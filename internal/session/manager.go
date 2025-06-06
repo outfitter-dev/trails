@@ -10,15 +10,23 @@ import (
 
 // Manager handles session lifecycle and container-use integration
 type Manager struct {
-	containerClient *containeruse.Client
-	repoPath        string
+	environmentProvider EnvironmentProvider
+	repoPath            string
 }
 
 // NewManager creates a new session manager
 func NewManager(repoPath string) *Manager {
 	return &Manager{
-		containerClient: containeruse.NewClient(),
-		repoPath:        repoPath,
+		environmentProvider: containeruse.NewClient(),
+		repoPath:            repoPath,
+	}
+}
+
+// NewManagerWithProvider creates a new session manager with custom provider
+func NewManagerWithProvider(repoPath string, provider EnvironmentProvider) *Manager {
+	return &Manager{
+		environmentProvider: provider,
+		repoPath:            repoPath,
 	}
 }
 
@@ -37,12 +45,12 @@ func (m *Manager) CreateSession(ctx context.Context, name, agent string) (*Sessi
 		},
 	}
 
-	env, err := m.containerClient.CreateEnvironment(ctx, envReq)
+	env, err := m.environmentProvider.CreateEnvironment(ctx, envReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create container environment: %w", err)
 	}
 
-	session.EnvironmentID = env.ID
+	session.EnvironmentID = NewEnvironmentID(env.ID)
 	session.UpdateStatus(StatusReady)
 
 	return session, nil
@@ -50,8 +58,8 @@ func (m *Manager) CreateSession(ctx context.Context, name, agent string) (*Sessi
 
 // DestroySession destroys a session and its container-use environment
 func (m *Manager) DestroySession(ctx context.Context, session *Session) error {
-	if session.EnvironmentID != "" {
-		if err := m.containerClient.DestroyEnvironment(ctx, session.EnvironmentID); err != nil {
+	if !session.EnvironmentID.IsEmpty() {
+		if err := m.environmentProvider.DestroyEnvironment(ctx, session.EnvironmentID.String()); err != nil {
 			return fmt.Errorf("failed to destroy container environment: %w", err)
 		}
 	}
@@ -61,13 +69,13 @@ func (m *Manager) DestroySession(ctx context.Context, session *Session) error {
 
 // StartAgent starts the AI agent in the session's environment
 func (m *Manager) StartAgent(ctx context.Context, session *Session) error {
-	if session.EnvironmentID == "" {
+	if session.EnvironmentID.IsEmpty() {
 		return fmt.Errorf("session has no environment ID")
 	}
 
 	session.UpdateStatus(StatusWorking)
 
-	if err := m.containerClient.SpawnAgent(ctx, session.EnvironmentID, session.Agent); err != nil {
+	if err := m.environmentProvider.SpawnAgent(ctx, session.EnvironmentID.String(), session.Agent); err != nil {
 		session.UpdateStatus(StatusError)
 		return fmt.Errorf("failed to spawn agent: %w", err)
 	}
@@ -77,11 +85,11 @@ func (m *Manager) StartAgent(ctx context.Context, session *Session) error {
 
 // GetEnvironmentStatus checks the status of a session's environment
 func (m *Manager) GetEnvironmentStatus(ctx context.Context, session *Session) error {
-	if session.EnvironmentID == "" {
+	if session.EnvironmentID.IsEmpty() {
 		return nil
 	}
 
-	env, err := m.containerClient.GetEnvironment(ctx, session.EnvironmentID)
+	env, err := m.environmentProvider.GetEnvironment(ctx, session.EnvironmentID.String())
 	if err != nil {
 		session.UpdateStatus(StatusError)
 		return fmt.Errorf("failed to get environment status: %w", err)

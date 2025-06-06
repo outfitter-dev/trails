@@ -27,13 +27,15 @@ type GlobalConfig struct {
 	DefaultAgent    string            `json:"default_agent"`
 	ProjectRegistry map[string]string `json:"project_registry"`
 	Theme           string            `json:"theme"`
+	MinimalMode     *bool             `json:"minimal_mode,omitempty"`
 }
 
 // RepoConfig stores repository-specific settings
 type RepoConfig struct {
 	PreferredAgents []string          `json:"preferred_agents"`
 	DefaultAgent    string            `json:"default_agent"`
-	AutoRestore     bool              `json:"auto_restore"`
+	AutoRestore     *bool             `json:"auto_restore,omitempty"`
+	MinimalMode     *bool             `json:"minimal_mode,omitempty"`
 	Environment     map[string]string `json:"environment"`
 }
 
@@ -78,13 +80,29 @@ func (c *Config) GetDefaultAgent() string {
 
 // GetAutoRestore returns whether to automatically restore sessions
 func (c *Config) GetAutoRestore() bool {
-	if c.Local != nil {
-		return c.Local.AutoRestore
+	// Priority: Local > Repo > default
+	if c.Local != nil && c.Local.AutoRestore != nil {
+		return *c.Local.AutoRestore
 	}
-	if c.Repo != nil {
-		return c.Repo.AutoRestore
+	if c.Repo != nil && c.Repo.AutoRestore != nil {
+		return *c.Repo.AutoRestore
 	}
 	return true // default to true
+}
+
+// GetMinimalMode returns the preferred minimal mode setting
+func (c *Config) GetMinimalMode() bool {
+	// Priority: Local > Repo > Global > default
+	if c.Local != nil && c.Local.MinimalMode != nil {
+		return *c.Local.MinimalMode
+	}
+	if c.Repo != nil && c.Repo.MinimalMode != nil {
+		return *c.Repo.MinimalMode
+	}
+	if c.Global != nil && c.Global.MinimalMode != nil {
+		return *c.Global.MinimalMode
+	}
+	return false // default to false
 }
 
 func loadGlobalConfig() (*GlobalConfig, error) {

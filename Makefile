@@ -7,11 +7,11 @@ SRC_DIR=cmd/agentish
 # Build the binary
 build:
 	@mkdir -p $(BUILD_DIR)
-	go build -o $(BUILD_DIR)/$(BINARY_NAME) $(SRC_DIR)/main.go
+	go build -o $(BUILD_DIR)/$(BINARY_NAME) ./$(SRC_DIR)/
 
 # Run from source
 run:
-	go run $(SRC_DIR)/main.go
+	go run ./$(SRC_DIR)/
 
 # Development with auto-rebuild
 dev:

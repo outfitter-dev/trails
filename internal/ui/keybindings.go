@@ -86,7 +86,7 @@ func (a *App) createSession(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	a.state.AddSession(sess)
-	log.Printf("Created session: %s with environment: %s", sess.GetDisplayName(), sess.EnvironmentID)
+	log.Printf("Created session: %s with environment: %s", sess.GetDisplayName(), sess.EnvironmentID.String())
 
 	return nil
 }
@@ -134,7 +134,7 @@ func (a *App) startAgent(g *gocui.Gui, v *gocui.View) error {
 		return nil // Don't crash the UI
 	}
 
-	log.Printf("Started %s agent in environment: %s", focused.Agent, focused.EnvironmentID)
+	log.Printf("Started %s agent in environment: %s", focused.Agent, focused.EnvironmentID.String())
 	return nil
 }
 

@@ -1,8 +1,10 @@
 package session
 
 import (
-	"fmt"
+	"crypto/rand"
 	"time"
+
+	"github.com/oklog/ulid/v2"
 )
 
 // Status represents the current state of a session
@@ -39,7 +41,7 @@ type Session struct {
 	Name          string            `json:"name"`
 	Agent         string            `json:"agent"`
 	Status        Status            `json:"status"`
-	EnvironmentID string            `json:"environment_id"`
+	EnvironmentID EnvironmentID     `json:"environment_id"`
 	Branch        string            `json:"branch,omitempty"`
 	LastActivity  time.Time         `json:"last_activity"`
 	CreatedAt     time.Time         `json:"created_at"`
@@ -52,14 +54,14 @@ type Session struct {
 // NewSession creates a new session
 func NewSession(name, agent string) *Session {
 	now := time.Now()
+	id := ulid.MustNew(ulid.Timestamp(now), rand.Reader)
 	return &Session{
-		ID:           fmt.Sprintf("%s-%d", name, now.Unix()),
+		ID:           id.String(),
 		Name:         name,
 		Agent:        agent,
 		Status:       StatusReady,
 		LastActivity: now,
 		CreatedAt:    now,
-		Position:     0,
 		Expanded:     false,
 		Environment:  make(map[string]string),
 	}

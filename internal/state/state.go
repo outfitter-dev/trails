@@ -6,12 +6,15 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
+	"time"
 
 	"github.com/maybe-good/agentish/internal/session"
 )
 
 // State represents the current application state
 type State struct {
+	mu             sync.RWMutex                `json:"-"`
 	RepoPath       string                      `json:"repo_path"`
 	Sessions       map[string]*session.Session `json:"sessions"`
 	FocusedSession string                      `json:"focused_session"`
@@ -32,6 +35,9 @@ func NewState(repoPath string) *State {
 
 // AddSession adds a new session to the state
 func (s *State) AddSession(sess *session.Session) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
 	s.Sessions[sess.ID] = sess
 	s.SessionOrder = append(s.SessionOrder, sess.ID)
 
@@ -46,6 +52,9 @@ func (s *State) AddSession(sess *session.Session) {
 
 // RemoveSession removes a session from the state
 func (s *State) RemoveSession(sessionID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
 	delete(s.Sessions, sessionID)
 
 	// Remove from order
@@ -71,6 +80,9 @@ func (s *State) RemoveSession(sessionID string) {
 
 // GetFocusedSession returns the currently focused session
 func (s *State) GetFocusedSession() *session.Session {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	
 	if s.FocusedSession == "" {
 		return nil
 	}
@@ -79,6 +91,9 @@ func (s *State) GetFocusedSession() *session.Session {
 
 // GetOrderedSessions returns sessions in display order
 func (s *State) GetOrderedSessions() []*session.Session {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	
 	sessions := make([]*session.Session, 0, len(s.SessionOrder))
 	for _, id := range s.SessionOrder {
 		if sess, exists := s.Sessions[id]; exists {
@@ -90,6 +105,9 @@ func (s *State) GetOrderedSessions() []*session.Session {
 
 // GetActionableSessions returns sessions that need attention
 func (s *State) GetActionableSessions() []*session.Session {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	
 	var actionable []*session.Session
 	for _, sess := range s.Sessions {
 		if sess.IsActionable() {
@@ -107,6 +125,9 @@ func (s *State) GetActionableSessions() []*session.Session {
 
 // MoveFocus moves focus to the next/previous session
 func (s *State) MoveFocus(direction int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
 	if len(s.SessionOrder) == 0 {
 		return
 	}
@@ -136,6 +157,8 @@ func (s *State) FocusNextActionable() bool {
 		return false
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.FocusedSession = actionable[0].ID
 	return true
 }
@@ -150,6 +173,11 @@ func (s *State) updatePositions() {
 
 // Save persists the state to disk
 func (s *State) Save() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
+	s.LastSaved = time.Now().Unix()
+	
 	statePath := filepath.Join(s.RepoPath, ".agentish")
 	if err := os.MkdirAll(statePath, 0755); err != nil {
 		return fmt.Errorf("failed to create .agentish directory: %w", err)

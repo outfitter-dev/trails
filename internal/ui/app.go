@@ -38,6 +38,11 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		sessionManager: session.NewManager(cfg.RepoPath),
 	}
 
+	// Apply config preferences to state if not overridden
+	if st.MinimalMode == false && cfg.GetMinimalMode() {
+		st.MinimalMode = true
+	}
+
 	// Set up GUI
 	g.SetLayout(app.layout)
 	if err := app.setupKeybindings(); err != nil {
@@ -166,7 +171,7 @@ func (a *App) drawMainContent(v *gocui.View) {
 	fmt.Fprintf(v, "Session: %s\n", focused.GetDisplayName())
 	fmt.Fprintf(v, "Agent: %s\n", focused.Agent)
 	fmt.Fprintf(v, "Status: %s\n", focused.GetStatusDisplay())
-	fmt.Fprintf(v, "Environment: %s\n", focused.EnvironmentID)
+	fmt.Fprintf(v, "Environment: %s\n", focused.EnvironmentID.String())
 	fmt.Fprintf(v, "Branch: %s\n", focused.Branch)
 	fmt.Fprintf(v, "Created: %s\n", focused.CreatedAt.Format("2006-01-02 15:04:05"))
 	fmt.Fprintf(v, "Last Activity: %s\n", focused.LastActivity.Format("2006-01-02 15:04:05"))

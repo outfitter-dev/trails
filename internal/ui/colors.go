@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"fmt"
+	"strings"
 
 	"github.com/jesseduffield/gocui"
 	"github.com/maybe-good/agentish/internal/session"
@@ -37,13 +37,23 @@ func GetStatusColor(status session.Status) gocui.Attribute {
 
 // FormatSessionTab formats a session tab with colors
 func FormatSessionTab(sess *session.Session, focused bool) string {
-	display := fmt.Sprintf("%s:%s [%s]",
-		sess.Agent,
-		sess.GetDisplayName(),
-		sess.GetStatusDisplay())
+	var builder strings.Builder
+	
+	builder.WriteString(sess.Agent)
+	builder.WriteString(":")
+	builder.WriteString(sess.GetDisplayName())
+	builder.WriteString(" [")
+	builder.WriteString(sess.GetStatusDisplay())
+	builder.WriteString("]")
+	
+	display := builder.String()
 
 	if focused {
-		return fmt.Sprintf("\033[1m%s\033[0m", display) // Bold for focused
+		var focusedBuilder strings.Builder
+		focusedBuilder.WriteString("\033[1m")
+		focusedBuilder.WriteString(display)
+		focusedBuilder.WriteString("\033[0m")
+		return focusedBuilder.String()
 	}
 
 	return display
@@ -51,8 +61,14 @@ func FormatSessionTab(sess *session.Session, focused bool) string {
 
 // FormatMinimalSession formats a session for minimal mode
 func FormatMinimalSession(sess *session.Session) string {
-	return fmt.Sprintf("%s:%s[%s]",
-		sess.Agent,
-		sess.GetDisplayName(),
-		sess.Status.String())
+	var builder strings.Builder
+	
+	builder.WriteString(sess.Agent)
+	builder.WriteString(":")
+	builder.WriteString(sess.GetDisplayName())
+	builder.WriteString("[")
+	builder.WriteString(sess.Status.String())
+	builder.WriteString("]")
+	
+	return builder.String()
 }

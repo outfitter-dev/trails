@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
-	"strings"
 )
 
 // Client represents a container-use MCP client
@@ -44,12 +43,11 @@ func (c *Client) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		return nil, fmt.Errorf("container-use CLI not found: %w. Please install container-use from https://github.com/dagger/container-use", err)
 	}
 
-	// For now, we'll use the MCP container-use CLI
-	// In the future, we could use direct MCP protocol communication
-
+	// Use JSON format for reliable parsing
 	cmd := exec.CommandContext(ctx, "container-use", "environment", "create",
 		"--name", req.Name,
-		"--source", req.Source)
+		"--source", req.Source,
+		"--format", "json")
 
 	if req.Explanation != "" {
 		cmd.Args = append(cmd.Args, "--explanation", req.Explanation)
@@ -63,31 +61,27 @@ func (c *Client) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		return nil, fmt.Errorf("failed to execute container-use create: %w", err)
 	}
 
-	// Parse the output to extract environment ID
-	// This is a simplified implementation - real container-use output parsing would be more robust
-	lines := strings.Split(string(output), "\n")
-	var envID string
-	for _, line := range lines {
-		if strings.Contains(line, "Environment ID:") {
-			parts := strings.Split(line, ":")
-			if len(parts) > 1 {
-				envID = strings.TrimSpace(parts[1])
-				break
-			}
-		}
+	// Parse JSON response instead of text parsing
+	var env Environment
+	if err := json.Unmarshal(output, &env); err != nil {
+		return nil, fmt.Errorf("failed to parse container-use create response: %w. Output: %s", err, string(output))
 	}
 
-	if envID == "" {
-		return nil, fmt.Errorf("failed to extract environment ID from container-use output: %s", string(output))
+	// Set additional fields if not provided by the response
+	if env.Name == "" {
+		env.Name = req.Name
+	}
+	if env.Source == "" {
+		env.Source = req.Source
+	}
+	if env.Status == "" {
+		env.Status = "ready"
+	}
+	if env.Environment == nil && req.Environment != nil {
+		env.Environment = req.Environment
 	}
 
-	return &Environment{
-		ID:          envID,
-		Name:        req.Name,
-		Source:      req.Source,
-		Status:      "ready",
-		Environment: req.Environment,
-	}, nil
+	return &env, nil
 }
 
 // DestroyEnvironment destroys a container-use environment

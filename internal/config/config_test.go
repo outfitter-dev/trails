@@ -74,39 +74,39 @@ func TestGetAutoRestore(t *testing.T) {
 		expected bool
 	}{
 		{
-			name: "Local override true",
+			name: "local-override-true",
 			config: &Config{
-				Repo:  &RepoConfig{AutoRestore: false},
-				Local: &RepoConfig{AutoRestore: true},
+				Repo:  &RepoConfig{AutoRestore: boolPtr(false)},
+				Local: &RepoConfig{AutoRestore: boolPtr(true)},
 			},
 			expected: true,
 		},
 		{
-			name: "Local override false",
+			name: "local-override-false",
 			config: &Config{
-				Repo:  &RepoConfig{AutoRestore: true},
-				Local: &RepoConfig{AutoRestore: false},
+				Repo:  &RepoConfig{AutoRestore: boolPtr(true)},
+				Local: &RepoConfig{AutoRestore: boolPtr(false)},
 			},
 			expected: false,
 		},
 		{
-			name: "Repo config true",
+			name: "repo-config-true",
 			config: &Config{
-				Repo:  &RepoConfig{AutoRestore: true},
+				Repo:  &RepoConfig{AutoRestore: boolPtr(true)},
 				Local: nil,
 			},
 			expected: true,
 		},
 		{
-			name: "Repo config false",
+			name: "repo-config-false",
 			config: &Config{
-				Repo:  &RepoConfig{AutoRestore: false},
+				Repo:  &RepoConfig{AutoRestore: boolPtr(false)},
 				Local: nil,
 			},
 			expected: false,
 		},
 		{
-			name: "Default to true",
+			name: "default-to-true",
 			config: &Config{
 				Repo:  nil,
 				Local: nil,
@@ -123,4 +123,9 @@ func TestGetAutoRestore(t *testing.T) {
 			}
 		})
 	}
+}
+
+// boolPtr returns a pointer to a bool value
+func boolPtr(b bool) *bool {
+	return &b
 }
