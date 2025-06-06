@@ -73,7 +73,7 @@ func (c *Config) GetDefaultAgent() string {
 	if c.Global != nil && c.Global.DefaultAgent != "" {
 		return c.Global.DefaultAgent
 	}
-	return "claude" // fallback
+	return "codex" // fallback
 }
 
 // GetAutoRestore returns whether to automatically restore sessions
@@ -99,7 +99,7 @@ func loadGlobalConfig() (*GlobalConfig, error) {
 		if os.IsNotExist(err) {
 			// Return default config
 			return &GlobalConfig{
-				DefaultAgent:    "claude",
+				DefaultAgent:    "codex",
 				ProjectRegistry: make(map[string]string),
 				Theme:           "default",
 			}, nil

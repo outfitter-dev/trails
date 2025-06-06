@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file provides guidance to AI agents when working with code in this repository.
+This file provides context-specific guidance for AI agents (especially OpenAI Codex) when working with code in this repository. Follow these instructions for all code changes, testing, and pull requests within this directory tree.
 
 ## Agent Identity
 
@@ -314,10 +314,69 @@ Each session represents one AI agent + one container-use environment with states
 ## Development Notes
 
 ### Container-use Integration
-The `internal/containeruse/` package is planned for MCP client integration. Currently sessions use placeholder environment IDs until container-use backend is implemented.
+The `internal/containeruse/` package provides MCP client integration with full environment lifecycle management. Sessions create real container-use environments for agent isolation.
 
 ### TUI Framework
 Uses gocui (same as lazygit) for terminal interface consistency. Main layout includes tabs view (0,0 to maxX,2) and main content view (0,3 to maxX,maxY).
 
 ### Session Status Model
 Status enum drives UI coloring and navigation behavior. IsActionable() method determines which sessions need user attention for the "next actionable" navigation feature.
+
+## Programmatic Checks
+
+Before submitting any changes, you MUST run these validation commands:
+
+```bash
+# Build verification
+make build
+
+# Run all tests
+make test
+
+# Code formatting
+make fmt
+
+# Linting (if available)
+make lint || echo "Linter not available, skipping"
+```
+
+All checks must pass before code changes are considered complete.
+
+## Pull Request Guidelines
+
+When creating pull requests for this repository:
+
+1. **Commit Messages**: Use conventional commits format:
+   - `feat: description` for new features
+   - `fix: description` for bug fixes  
+   - `docs: description` for documentation
+   - `refactor: description` for code improvements
+   - `test: description` for test additions
+
+2. **PR Description**: Include:
+   - Clear summary of changes
+   - Motivation/reasoning for changes
+   - Testing performed
+   - Any breaking changes
+
+3. **Code Standards**: 
+   - Follow Go conventions and gofmt formatting
+   - Include tests for new functionality
+   - Update documentation for API changes
+   - Maintain backwards compatibility unless explicitly breaking
+
+## Agent-Specific Instructions for Codex
+
+This codebase is designed to manage multiple AI coding agents, including Codex itself. When working on this code:
+
+1. **Understand the Meta-Context**: You are working on a tool that manages AI agents like yourself
+2. **Agent Types Supported**: 
+   - `codex` - OpenAI Codex (replaces previous "claude" references)
+   - `aider` - Aider coding assistant
+   - `claude` - Anthropic Claude (legacy support)
+3. **Session Management**: Each agent runs in isolated container-use environments
+4. **State Awareness**: The application tracks agent status (ready, working, waiting, error, thinking)
+
+## File Scope
+
+This AGENTS.md file applies to all code within the agentish repository. More specific AGENTS.md files in subdirectories take precedence for their respective scopes.

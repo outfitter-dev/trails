@@ -44,7 +44,7 @@ func TestGetDefaultAgent(t *testing.T) {
 				Repo:   nil,
 				Local:  nil,
 			},
-			expected: "claude",
+			expected: "codex",
 		},
 		{
 			name: "Empty configs fallback",
@@ -53,7 +53,7 @@ func TestGetDefaultAgent(t *testing.T) {
 				Repo:   &RepoConfig{DefaultAgent: ""},
 				Local:  &RepoConfig{DefaultAgent: ""},
 			},
-			expected: "claude",
+			expected: "codex",
 		},
 	}
 

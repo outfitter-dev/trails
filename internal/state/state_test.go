@@ -33,7 +33,7 @@ func TestNewState(t *testing.T) {
 
 func TestAddSession(t *testing.T) {
 	state := NewState("/test/repo")
-	sess := session.NewSession("test", "claude")
+	sess := session.NewSession("test", "codex")
 
 	state.AddSession(sess)
 
@@ -64,7 +64,7 @@ func TestAddSession(t *testing.T) {
 
 func TestRemoveSession(t *testing.T) {
 	state := NewState("/test/repo")
-	sess1 := session.NewSession("test1", "claude")
+	sess1 := session.NewSession("test1", "codex")
 	sess2 := session.NewSession("test2", "aider")
 
 	state.AddSession(sess1)
@@ -91,7 +91,7 @@ func TestRemoveSession(t *testing.T) {
 
 func TestMoveFocus(t *testing.T) {
 	state := NewState("/test/repo")
-	sess1 := session.NewSession("test1", "claude")
+	sess1 := session.NewSession("test1", "codex")
 	sess2 := session.NewSession("test2", "aider")
 	sess3 := session.NewSession("test3", "codex")
 
@@ -132,7 +132,7 @@ func TestMoveFocus(t *testing.T) {
 func TestGetActionableSessions(t *testing.T) {
 	state := NewState("/test/repo")
 
-	sess1 := session.NewSession("ready", "claude")
+	sess1 := session.NewSession("ready", "codex")
 	sess1.Status = session.StatusReady
 
 	sess2 := session.NewSession("working", "aider")

@@ -7,7 +7,7 @@ import (
 
 func TestNewSession(t *testing.T) {
 	name := "test-session"
-	agent := "claude"
+	agent := "codex"
 
 	session := NewSession(name, agent)
 
@@ -33,7 +33,7 @@ func TestNewSession(t *testing.T) {
 }
 
 func TestSessionUpdateStatus(t *testing.T) {
-	session := NewSession("test", "claude")
+	session := NewSession("test", "codex")
 	originalTime := session.LastActivity
 
 	// Wait a bit to ensure time difference
@@ -56,8 +56,8 @@ func TestSessionGetDisplayName(t *testing.T) {
 		agent    string
 		expected string
 	}{
-		{"custom-name", "claude", "custom-name"},
-		{"", "claude", "claude"},
+		{"custom-name", "codex", "custom-name"},
+		{"", "codex", "codex"},
 		{"", "aider", "aider"},
 	}
 
@@ -82,7 +82,7 @@ func TestSessionIsActionable(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		session := NewSession("test", "claude")
+		session := NewSession("test", "codex")
 		session.Status = tt.status
 		if got := session.IsActionable(); got != tt.expected {
 			t.Errorf("IsActionable() with status %v = %v, want %v", tt.status, got, tt.expected)
