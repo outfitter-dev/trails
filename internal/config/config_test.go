@@ -159,6 +159,15 @@ func TestGetMinimalMode(t *testing.T) {
 			expected: true,
 		},
 		{
+			name: "repo-config-false",
+			config: &Config{
+				Global: &GlobalConfig{MinimalMode: boolPtr(true)},
+				Repo:   &RepoConfig{MinimalMode: boolPtr(false)},
+				Local:  nil,
+			},
+			expected: false,
+		},
+		{
 			name: "global-config-true",
 			config: &Config{
 				Global: &GlobalConfig{MinimalMode: boolPtr(true)},
