@@ -9,6 +9,13 @@ import (
 	"github.com/maybe-good/agentish/internal/security"
 )
 
+// ValidAgentTypes defines the supported AI agent types
+var ValidAgentTypes = map[string]bool{
+	"claude": true,
+	"aider":  true,
+	"codex":  true,
+}
+
 // Manager handles session lifecycle and container-use integration
 type Manager struct {
 	environmentProvider EnvironmentProvider
@@ -55,12 +62,7 @@ func (m *Manager) CreateSession(ctx context.Context, name, agent string) (*Sessi
 	}
 	
 	// Validate agent type
-	validAgents := map[string]bool{
-		"claude": true,
-		"aider":  true,
-		"codex":  true,
-	}
-	if !validAgents[agent] {
+	if !ValidAgentTypes[agent] {
 		return nil, fmt.Errorf("unsupported agent type: %s", agent)
 	}
 

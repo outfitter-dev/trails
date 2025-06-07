@@ -16,7 +16,7 @@ type Client struct {
 	auditLogger *security.AuditLogger
 }
 
-// Input validation patterns
+// Input validation patterns - compiled once for performance
 var (
 	// validNamePattern restricts names to alphanumeric, hyphens, and underscores
 	validNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
@@ -25,6 +25,19 @@ var (
 	// validEnvIDPattern restricts environment IDs to safe alphanumeric strings
 	validEnvIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 )
+
+// Security constants
+const (
+	// Dangerous characters that could be used for command injection
+	dangerousChars = ";|&$`\n\r(){}[]<>"
+)
+
+// Safe commands allowlist - only these commands are permitted for execution
+var safeCommands = map[string]bool{
+	"claude-code": true,
+	"aider":       true,
+	"codex":       true,
+}
 
 // validateInput sanitizes and validates user input to prevent command injection
 func validateInput(input, inputType string, auditLogger *security.AuditLogger) error {
@@ -40,7 +53,7 @@ func validateInput(input, inputType string, auditLogger *security.AuditLogger) e
 	}
 	
 	// Check for dangerous characters
-	if strings.ContainsAny(input, ";|&$`\n\r(){}[]<>") {
+	if strings.ContainsAny(input, dangerousChars) {
 		err := fmt.Errorf("%s contains dangerous characters", inputType)
 		if auditLogger != nil {
 			auditLogger.LogSecurityViolation("input_validation", input, err.Error(), map[string]interface{}{
@@ -132,11 +145,9 @@ func (c *Client) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 	}
 	if req.Explanation != "" {
 		// Sanitize explanation by removing dangerous characters
-		req.Explanation = strings.ReplaceAll(req.Explanation, ";", "")
-		req.Explanation = strings.ReplaceAll(req.Explanation, "|", "")
-		req.Explanation = strings.ReplaceAll(req.Explanation, "&", "")
-		req.Explanation = strings.ReplaceAll(req.Explanation, "$", "")
-		req.Explanation = strings.ReplaceAll(req.Explanation, "`", "")
+		for _, char := range []string{";", "|", "&", "$", "`"} {
+			req.Explanation = strings.ReplaceAll(req.Explanation, char, "")
+		}
 	}
 
 	// Check if container-use is available
@@ -251,12 +262,6 @@ func (c *Client) RunCommand(ctx context.Context, envID, command string, backgrou
 	}
 	
 	// Validate command - only allow predefined safe commands
-	safeCommands := map[string]bool{
-		"claude-code": true,
-		"aider":       true,
-		"codex":       true,
-	}
-	
 	if !safeCommands[command] {
 		err := fmt.Errorf("command '%s' is not in the allowlist of safe commands", command)
 		if c.auditLogger != nil {

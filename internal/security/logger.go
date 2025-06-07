@@ -8,6 +8,14 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// Security file permissions
+const (
+	// SecureAuditDirPerm - Owner read/write/execute only for audit directories  
+	SecureAuditDirPerm  os.FileMode = 0700
+	// SecureAuditFilePerm - Owner read/write only for audit files
+	SecureAuditFilePerm os.FileMode = 0600
+)
+
 // AuditLogger provides structured security audit logging
 type AuditLogger struct {
 	logger *zap.Logger
@@ -30,7 +38,7 @@ type Event struct {
 func NewAuditLogger(repoPath string) (*AuditLogger, error) {
 	// Create audit log directory
 	auditDir := filepath.Join(repoPath, ".agentish", "audit")
-	if err := os.MkdirAll(auditDir, 0700); err != nil {
+	if err := os.MkdirAll(auditDir, SecureAuditDirPerm); err != nil {
 		return nil, err
 	}
 
@@ -69,7 +77,7 @@ func NewAuditLogger(repoPath string) (*AuditLogger, error) {
 	}
 
 	// Ensure secure file permissions
-	if err := os.Chmod(auditFile, 0600); err != nil {
+	if err := os.Chmod(auditFile, SecureAuditFilePerm); err != nil {
 		logger.Warn("Failed to set secure permissions on audit log", zap.Error(err))
 	}
 

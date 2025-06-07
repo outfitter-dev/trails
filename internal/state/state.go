@@ -12,6 +12,14 @@ import (
 	"github.com/maybe-good/agentish/internal/session"
 )
 
+// File and directory permissions for security
+const (
+	// SecureDirPerm - Owner read/write/execute only for directories
+	SecureDirPerm  os.FileMode = 0700
+	// SecureFilePerm - Owner read/write only for files  
+	SecureFilePerm os.FileMode = 0600
+)
+
 // State represents the current application state
 type State struct {
 	mu             sync.RWMutex                `json:"-"`
@@ -191,7 +199,7 @@ func (s *State) Save() error {
 	s.LastSaved = time.Now().Unix()
 	
 	statePath := filepath.Join(s.RepoPath, ".agentish")
-	if err := os.MkdirAll(statePath, 0700); err != nil {
+	if err := os.MkdirAll(statePath, SecureDirPerm); err != nil {
 		return fmt.Errorf("failed to create .agentish directory: %w", err)
 	}
 
@@ -202,7 +210,7 @@ func (s *State) Save() error {
 	}
 
 	// Use secure file permissions (owner read/write only)
-	return os.WriteFile(stateFile, data, 0600)
+	return os.WriteFile(stateFile, data, SecureFilePerm)
 }
 
 // Load reads the state from disk
