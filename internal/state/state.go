@@ -100,9 +100,7 @@ func (s *State) GetFocusedSession() *session.Session {
 		return nil
 	}
 	
-	// Return a deep copy to prevent data races
-	sessionCopy := *sess
-	return &sessionCopy
+	return sess.DeepCopy()
 }
 
 // GetOrderedSessions returns deep copies of sessions in display order
@@ -113,9 +111,7 @@ func (s *State) GetOrderedSessions() []*session.Session {
 	sessions := make([]*session.Session, 0, len(s.SessionOrder))
 	for _, id := range s.SessionOrder {
 		if sess, exists := s.Sessions[id]; exists {
-			// Deep copy to prevent data races
-			sessionCopy := *sess
-			sessions = append(sessions, &sessionCopy)
+			sessions = append(sessions, sess.DeepCopy())
 		}
 	}
 	return sessions
@@ -129,9 +125,7 @@ func (s *State) GetActionableSessions() []*session.Session {
 	var actionable []*session.Session
 	for _, sess := range s.Sessions {
 		if sess.IsActionable() {
-			// Deep copy to prevent data races
-			sessionCopy := *sess
-			actionable = append(actionable, &sessionCopy)
+			actionable = append(actionable, sess.DeepCopy())
 		}
 	}
 
@@ -191,8 +185,8 @@ func (s *State) updatePositions() {
 	}
 }
 
-// Save persists the state to disk
-func (s *State) Save() error {
+// save persists the state to disk
+func (s *State) save() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	
@@ -218,25 +212,26 @@ func (s *State) Save() error {
 	return os.WriteFile(stateFile, data, SecureFilePerm)
 }
 
-// Load reads the state from disk
-func Load(repoPath string) (*State, error) {
+// Load reads the state from disk and returns the state and a close function
+func Load(repoPath string) (*State, func() error, error) {
 	stateFile := filepath.Join(repoPath, ".agentish", "state.json")
 	data, err := os.ReadFile(stateFile)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Return new state if file doesn't exist
-			return NewState(repoPath), nil
+			state := NewState(repoPath)
+			return state, state.save, nil
 		}
-		return nil, fmt.Errorf("failed to read state file: %w", err)
+		return nil, nil, fmt.Errorf("failed to read state file: %w", err)
 	}
 
 	var state State
 	if err := json.Unmarshal(data, &state); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal state: %w", err)
+		return nil, nil, fmt.Errorf("failed to unmarshal state: %w", err)
 	}
 
 	// Ensure repo path matches (in case state file was moved)
 	state.RepoPath = repoPath
 
-	return &state, nil
+	return &state, state.save, nil
 }

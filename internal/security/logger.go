@@ -34,12 +34,12 @@ type Event struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// NewAuditLogger creates a new security audit logger
-func NewAuditLogger(repoPath string) (*AuditLogger, error) {
+// NewAuditLogger creates a new security audit logger and a function to close it.
+func NewAuditLogger(repoPath string) (*AuditLogger, func() error, error) {
 	// Create audit log directory
 	auditDir := filepath.Join(repoPath, ".agentish", "audit")
 	if err := os.MkdirAll(auditDir, SecureAuditDirPerm); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Configure audit log file with secure permissions
@@ -73,7 +73,7 @@ func NewAuditLogger(repoPath string) (*AuditLogger, error) {
 
 	logger, err := config.Build()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Ensure secure file permissions
@@ -81,7 +81,8 @@ func NewAuditLogger(repoPath string) (*AuditLogger, error) {
 		logger.Warn("Failed to set secure permissions on audit log", zap.Error(err))
 	}
 
-	return &AuditLogger{logger: logger}, nil
+	al := &AuditLogger{logger: logger}
+	return al, al.Close, nil
 }
 
 // LogEvent logs a security audit event

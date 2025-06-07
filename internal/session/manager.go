@@ -25,27 +25,26 @@ type Manager struct {
 }
 
 // NewManager creates a new session manager
-func NewManager(repoPath string) *Manager {
+func NewManager(repoPath string) (*Manager, func() error, error) {
 	// Create audit logger
-	auditLogger, err := security.NewAuditLogger(repoPath)
+	auditLogger, closeLogger, err := security.NewAuditLogger(repoPath)
 	if err != nil {
-		// Log error but don't fail - security logging is important but not critical for basic operation
-		// In production, you might want to fail here for security compliance
-		auditLogger = nil
+		return nil, nil, fmt.Errorf("failed to create audit logger: %w", err)
 	}
 
 	return &Manager{
 		environmentProvider: containeruse.NewClientWithAudit(auditLogger),
 		repoPath:            repoPath,
 		auditLogger:         auditLogger,
-	}
+	}, closeLogger, nil
 }
 
 // NewManagerWithProvider creates a new session manager with custom provider
-func NewManagerWithProvider(repoPath string, provider EnvironmentProvider) *Manager {
+func NewManagerWithProvider(repoPath string, provider EnvironmentProvider, auditLogger *security.AuditLogger) *Manager {
 	return &Manager{
 		environmentProvider: provider,
 		repoPath:            repoPath,
+		auditLogger:         auditLogger,
 	}
 }
 

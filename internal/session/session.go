@@ -99,3 +99,22 @@ func (s *Session) GetStatusDisplay() string {
 func (s *Session) IsActionable() bool {
 	return s.Status == StatusReady || s.Status == StatusError
 }
+
+// DeepCopy creates a new Session object with the same values
+func (s *Session) DeepCopy() *Session {
+	if s == nil {
+		return nil
+	}
+
+	newSession := *s
+
+	// Deep copy the Environment map
+	if s.Environment != nil {
+		newSession.Environment = make(map[string]string, len(s.Environment))
+		for k, v := range s.Environment {
+			newSession.Environment[k] = v
+		}
+	}
+
+	return &newSession
+}

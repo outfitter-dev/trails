@@ -24,6 +24,8 @@ var (
 	validSourcePattern = regexp.MustCompile(`^[a-zA-Z0-9_./:@?=-]+$`)
 	// validEnvIDPattern restricts environment IDs to safe alphanumeric strings
 	validEnvIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+	// validExplanationPattern allows basic text, numbers, and common punctuation.
+	validExplanationPattern = regexp.MustCompile(`^[a-zA-Z0-9\s.,!?'"-]+$`)
 )
 
 // Security constants
@@ -52,9 +54,9 @@ func validateInput(input, inputType string, auditLogger *security.AuditLogger) e
 		return err
 	}
 	
-	// Check for dangerous characters
+	// Check for dangerous characters, now using a more restrictive pattern approach
 	if strings.ContainsAny(input, dangerousChars) {
-		err := fmt.Errorf("%s contains dangerous characters", inputType)
+		err := fmt.Errorf("%s contains characters that are not allowed", inputType)
 		if auditLogger != nil {
 			auditLogger.LogSecurityViolation("input_validation", input, err.Error(), map[string]interface{}{
 				"input_type": inputType,
@@ -94,6 +96,17 @@ func validateInput(input, inputType string, auditLogger *security.AuditLogger) e
 				auditLogger.LogSecurityViolation("input_validation", input, err.Error(), map[string]interface{}{
 					"input_type": inputType,
 					"violation":  "invalid_envid_pattern",
+				})
+			}
+			return err
+		}
+	case "explanation":
+		if !validExplanationPattern.MatchString(input) {
+			err := fmt.Errorf("explanation contains invalid characters")
+			if auditLogger != nil {
+				auditLogger.LogSecurityViolation("input_validation", input, err.Error(), map[string]interface{}{
+					"input_type": inputType,
+					"violation":  "invalid_explanation_pattern",
 				})
 			}
 			return err
@@ -145,9 +158,8 @@ func (c *Client) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		return nil, fmt.Errorf("invalid source: %w", err)
 	}
 	if req.Explanation != "" {
-		// Sanitize explanation by removing dangerous characters
-		for _, char := range []string{";", "|", "&", "$", "`"} {
-			req.Explanation = strings.ReplaceAll(req.Explanation, char, "")
+		if err := validateInput(req.Explanation, "explanation", c.auditLogger); err != nil {
+			return nil, fmt.Errorf("invalid explanation: %w", err)
 		}
 	}
 

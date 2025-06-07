@@ -22,6 +22,21 @@ type Config struct {
 	Local *RepoConfig `json:"local,omitempty"`
 }
 
+func boolPtr(b bool) *bool {
+	return &b
+}
+
+var defaultConfig = &Config{
+	Global: &GlobalConfig{
+		DefaultAgent: "codex",
+		Theme:        "default",
+	},
+	Repo: &RepoConfig{
+		AutoRestore: boolPtr(true),
+		MinimalMode: boolPtr(false),
+	},
+}
+
 // GlobalConfig stores global agentish preferences
 type GlobalConfig struct {
 	DefaultAgent    string            `json:"default_agent"`
@@ -45,18 +60,25 @@ func Load(repoPath string) (*Config, error) {
 		RepoPath: repoPath,
 	}
 
-	// Load global config
-	if globalCfg, err := loadGlobalConfig(); err == nil {
-		cfg.Global = globalCfg
+	globalCfg, err := loadGlobalConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error loading global config: %w", err)
 	}
+	cfg.Global = globalCfg
 
-	// Load repo-specific config
-	if repoCfg, err := loadRepoConfig(repoPath, "settings.json"); err == nil {
+	repoCfg, err := loadRepoConfig(repoPath, "settings.json")
+	if err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("error loading repo config: %w", err)
+	}
+	if err == nil {
 		cfg.Repo = repoCfg
 	}
 
-	// Load local overrides
-	if localCfg, err := loadRepoConfig(repoPath, "settings.local.json"); err == nil {
+	localCfg, err := loadRepoConfig(repoPath, "settings.local.json")
+	if err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("error loading local config: %w", err)
+	}
+	if err == nil {
 		cfg.Local = localCfg
 	}
 
@@ -65,44 +87,82 @@ func Load(repoPath string) (*Config, error) {
 
 // GetDefaultAgent returns the preferred agent for this context
 func (c *Config) GetDefaultAgent() string {
-	// Priority: Local > Repo > Global > fallback
-	if c.Local != nil && c.Local.DefaultAgent != "" {
-		return c.Local.DefaultAgent
-	}
-	if c.Repo != nil && c.Repo.DefaultAgent != "" {
-		return c.Repo.DefaultAgent
-	}
-	if c.Global != nil && c.Global.DefaultAgent != "" {
-		return c.Global.DefaultAgent
-	}
-	return "codex" // fallback
+	return getString(
+		c.Local, func(r *RepoConfig) string { return r.DefaultAgent },
+		c.Repo, func(r *RepoConfig) string { return r.DefaultAgent },
+		c.Global, func(g *GlobalConfig) string { return g.DefaultAgent },
+		defaultConfig.Global.DefaultAgent,
+	)
 }
 
 // GetAutoRestore returns whether to automatically restore sessions
 func (c *Config) GetAutoRestore() bool {
-	// Priority: Local > Repo > default
-	if c.Local != nil && c.Local.AutoRestore != nil {
-		return *c.Local.AutoRestore
-	}
-	if c.Repo != nil && c.Repo.AutoRestore != nil {
-		return *c.Repo.AutoRestore
-	}
-	return true // default to true
+	return getBool[RepoConfig, GlobalConfig](
+		c.Local, func(r *RepoConfig) *bool { return r.AutoRestore },
+		c.Repo, func(r *RepoConfig) *bool { return r.AutoRestore },
+		nil, nil, // Global doesn't have AutoRestore
+		*defaultConfig.Repo.AutoRestore,
+	)
 }
 
 // GetMinimalMode returns the preferred minimal mode setting
 func (c *Config) GetMinimalMode() bool {
-	// Priority: Local > Repo > Global > default
-	if c.Local != nil && c.Local.MinimalMode != nil {
-		return *c.Local.MinimalMode
+	return getBool[RepoConfig, GlobalConfig](
+		c.Local, func(r *RepoConfig) *bool { return r.MinimalMode },
+		c.Repo, func(r *RepoConfig) *bool { return r.MinimalMode },
+		c.Global, func(g *GlobalConfig) *bool { return g.MinimalMode },
+		*defaultConfig.Repo.MinimalMode,
+	)
+}
+
+// getString provides a generic way to resolve a string value from hierarchical configs.
+func getString[T, U any](
+	local *T, localFn func(*T) string,
+	repo *T, repoFn func(*T) string,
+	global *U, globalFn func(*U) string,
+	fallback string,
+) string {
+	if local != nil {
+		if val := localFn(local); val != "" {
+			return val
+		}
 	}
-	if c.Repo != nil && c.Repo.MinimalMode != nil {
-		return *c.Repo.MinimalMode
+	if repo != nil {
+		if val := repoFn(repo); val != "" {
+			return val
+		}
 	}
-	if c.Global != nil && c.Global.MinimalMode != nil {
-		return *c.Global.MinimalMode
+	if global != nil {
+		if val := globalFn(global); val != "" {
+			return val
+		}
 	}
-	return false // default to false
+	return fallback
+}
+
+// getBool provides a generic way to resolve a boolean value from hierarchical configs.
+func getBool[T, U any](
+	local *T, localFn func(*T) *bool,
+	repo *T, repoFn func(*T) *bool,
+	global *U, globalFn func(*U) *bool,
+	fallback bool,
+) bool {
+	if local != nil {
+		if val := localFn(local); val != nil {
+			return *val
+		}
+	}
+	if repo != nil {
+		if val := repoFn(repo); val != nil {
+			return *val
+		}
+	}
+	if global != nil {
+		if val := globalFn(global); val != nil {
+			return *val
+		}
+	}
+	return fallback
 }
 
 func loadGlobalConfig() (*GlobalConfig, error) {
@@ -116,11 +176,7 @@ func loadGlobalConfig() (*GlobalConfig, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Return default config
-			return &GlobalConfig{
-				DefaultAgent:    "codex",
-				ProjectRegistry: make(map[string]string),
-				Theme:           "default",
-			}, nil
+			return defaultConfig.Global, nil
 		}
 		return nil, err
 	}
