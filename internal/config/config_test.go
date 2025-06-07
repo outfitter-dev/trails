@@ -125,7 +125,65 @@ func TestGetAutoRestore(t *testing.T) {
 	}
 }
 
-// boolPtr returns a pointer to a bool value
-func boolPtr(b bool) *bool {
-	return &b
+func TestGetMinimalMode(t *testing.T) {
+	tests := []struct {
+		name     string
+		config   *Config
+		expected bool
+	}{
+		{
+			name: "local-override-true",
+			config: &Config{
+				Global: &GlobalConfig{MinimalMode: boolPtr(false)},
+				Repo:   &RepoConfig{MinimalMode: boolPtr(false)},
+				Local:  &RepoConfig{MinimalMode: boolPtr(true)},
+			},
+			expected: true,
+		},
+		{
+			name: "local-override-false",
+			config: &Config{
+				Global: &GlobalConfig{MinimalMode: boolPtr(true)},
+				Repo:   &RepoConfig{MinimalMode: boolPtr(true)},
+				Local:  &RepoConfig{MinimalMode: boolPtr(false)},
+			},
+			expected: false,
+		},
+		{
+			name: "repo-config-true",
+			config: &Config{
+				Global: &GlobalConfig{MinimalMode: boolPtr(false)},
+				Repo:   &RepoConfig{MinimalMode: boolPtr(true)},
+				Local:  nil,
+			},
+			expected: true,
+		},
+		{
+			name: "global-config-true",
+			config: &Config{
+				Global: &GlobalConfig{MinimalMode: boolPtr(true)},
+				Repo:   nil,
+				Local:  nil,
+			},
+			expected: true,
+		},
+		{
+			name: "default-to-false",
+			config: &Config{
+				Global: nil,
+				Repo:   nil,
+				Local:  nil,
+			},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.config.GetMinimalMode()
+			if result != tt.expected {
+				t.Errorf("GetMinimalMode() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
 }
