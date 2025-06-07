@@ -307,10 +307,10 @@ var sessionSlicePool = sync.Pool{
 **Fix:**
 ```makefile
 install:
-	go install ./$(SRC_DIR)
+    go install ./$(SRC_DIR)
 
 build-all:
-	GOOS=linux GOARCH=amd64 go build -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 ./$(SRC_DIR)
+    GOOS=linux GOARCH=amd64 go build -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 ./$(SRC_DIR)
 ```
 
 ---

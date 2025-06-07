@@ -62,6 +62,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 // Run starts the application
 func (a *App) Run() error {
 	if err := a.gui.Init(); err != nil {
+		a.cancel()
 		return fmt.Errorf("failed to initialize GUI: %w", err)
 	}
 	defer a.gui.Close()

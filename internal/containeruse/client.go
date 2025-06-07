@@ -20,8 +20,8 @@ type Client struct {
 var (
 	// validNamePattern restricts names to alphanumeric, hyphens, and underscores
 	validNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
-	// validSourcePattern restricts sources to safe filesystem paths and URLs
-	validSourcePattern = regexp.MustCompile(`^[a-zA-Z0-9_./:-]+$`)
+	// validSourcePattern restricts sources to safe filesystem paths and URLs (including git URLs)
+	validSourcePattern = regexp.MustCompile(`^[a-zA-Z0-9_./:@?=-]+$`)
 	// validEnvIDPattern restricts environment IDs to safe alphanumeric strings
 	validEnvIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 )
@@ -29,7 +29,7 @@ var (
 // Security constants
 const (
 	// Dangerous characters that could be used for command injection
-	dangerousChars = ";|&$`\n\r(){}[]<>"
+	dangerousChars = ";|&$`'\"\\n\\r(){}[]<>*?"
 )
 
 // Safe commands allowlist - only these commands are permitted for execution
@@ -109,6 +109,7 @@ func NewClient() *Client {
 }
 
 // NewClientWithAudit creates a new container-use client with audit logging
+// auditLogger can be nil and will be safely handled throughout the client
 func NewClientWithAudit(auditLogger *security.AuditLogger) *Client {
 	return &Client{
 		auditLogger: auditLogger,

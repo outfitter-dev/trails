@@ -202,6 +202,11 @@ func (s *State) Save() error {
 	if err := os.MkdirAll(statePath, SecureDirPerm); err != nil {
 		return fmt.Errorf("failed to create .agentish directory: %w", err)
 	}
+	
+	// Ensure permissions are correct even if directory existed
+	if err := os.Chmod(statePath, SecureDirPerm); err != nil {
+		return fmt.Errorf("failed to enforce permissions on %s: %w", statePath, err)
+	}
 
 	stateFile := filepath.Join(statePath, "state.json")
 	data, err := json.MarshalIndent(s, "", "  ")

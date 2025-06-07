@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/maybe-good/agentish/internal/containeruse"
 	"github.com/maybe-good/agentish/internal/security"
@@ -79,7 +80,11 @@ func (m *Manager) CreateSession(ctx context.Context, name, agent string) (*Sessi
 		},
 	}
 
-	env, err := m.environmentProvider.CreateEnvironment(ctx, envReq)
+	// Create environment with timeout to prevent hangs
+	createCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	
+	env, err := m.environmentProvider.CreateEnvironment(createCtx, envReq)
 	
 	// Audit log the session creation attempt
 	if m.auditLogger != nil {
