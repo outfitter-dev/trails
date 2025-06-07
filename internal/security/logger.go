@@ -10,10 +10,15 @@ import (
 
 // Security file permissions
 const (
-	// SecureAuditDirPerm - Owner read/write/execute only for audit directories  
-	SecureAuditDirPerm  os.FileMode = 0700
-	// SecureAuditFilePerm - Owner read/write only for audit files
-	SecureAuditFilePerm os.FileMode = 0600
+	// SecureDirPerm is the standard permission for directories managed by agentish (owner r/w/x).
+	SecureDirPerm os.FileMode = 0700
+	// SecureFilePerm is the standard permission for files managed by agentish (owner r/w).
+	SecureFilePerm os.FileMode = 0600
+
+	// secureAuditDirPerm - Owner read/write/execute only for audit directories
+	secureAuditDirPerm  os.FileMode = 0700
+	// secureAuditFilePerm - Owner read/write only for audit files
+	secureAuditFilePerm os.FileMode = 0600
 )
 
 // AuditLogger provides structured security audit logging
@@ -38,7 +43,7 @@ type Event struct {
 func NewAuditLogger(repoPath string) (*AuditLogger, func() error, error) {
 	// Create audit log directory
 	auditDir := filepath.Join(repoPath, ".agentish", "audit")
-	if err := os.MkdirAll(auditDir, SecureAuditDirPerm); err != nil {
+	if err := os.MkdirAll(auditDir, secureAuditDirPerm); err != nil {
 		return nil, nil, err
 	}
 
@@ -77,7 +82,7 @@ func NewAuditLogger(repoPath string) (*AuditLogger, func() error, error) {
 	}
 
 	// Ensure secure file permissions
-	if err := os.Chmod(auditFile, SecureAuditFilePerm); err != nil {
+	if err := os.Chmod(auditFile, secureAuditFilePerm); err != nil {
 		logger.Warn("Failed to set secure permissions on audit log", zap.Error(err))
 	}
 

@@ -9,15 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/maybe-good/agentish/internal/security"
 	"github.com/maybe-good/agentish/internal/session"
-)
-
-// File and directory permissions for security
-const (
-	// SecureDirPerm - Owner read/write/execute only for directories
-	SecureDirPerm  os.FileMode = 0700
-	// SecureFilePerm - Owner read/write only for files  
-	SecureFilePerm os.FileMode = 0600
 )
 
 // State represents the current application state
@@ -193,12 +186,12 @@ func (s *State) save() error {
 	s.LastSaved = time.Now().Unix()
 	
 	statePath := filepath.Join(s.RepoPath, ".agentish")
-	if err := os.MkdirAll(statePath, SecureDirPerm); err != nil {
+	if err := os.MkdirAll(statePath, security.SecureDirPerm); err != nil {
 		return fmt.Errorf("failed to create .agentish directory: %w", err)
 	}
 	
 	// Ensure permissions are correct even if directory existed
-	if err := os.Chmod(statePath, SecureDirPerm); err != nil {
+	if err := os.Chmod(statePath, security.SecureDirPerm); err != nil {
 		return fmt.Errorf("failed to enforce permissions on %s: %w", statePath, err)
 	}
 
@@ -209,7 +202,7 @@ func (s *State) save() error {
 	}
 
 	// Use secure file permissions (owner read/write only)
-	return os.WriteFile(stateFile, data, SecureFilePerm)
+	return os.WriteFile(stateFile, data, security.SecureFilePerm)
 }
 
 // Load reads the state from disk and returns the state and a close function
