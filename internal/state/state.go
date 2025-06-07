@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/maybe-good/agentish/internal/security"
 	"github.com/maybe-good/agentish/internal/session"
 )
 
@@ -78,7 +79,7 @@ func (s *State) RemoveSession(sessionID string) {
 	}
 }
 
-// GetFocusedSession returns the currently focused session
+// GetFocusedSession returns a copy of the currently focused session
 func (s *State) GetFocusedSession() *session.Session {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -86,10 +87,16 @@ func (s *State) GetFocusedSession() *session.Session {
 	if s.FocusedSession == "" {
 		return nil
 	}
-	return s.Sessions[s.FocusedSession]
+	
+	sess, exists := s.Sessions[s.FocusedSession]
+	if !exists {
+		return nil
+	}
+	
+	return sess.DeepCopy()
 }
 
-// GetOrderedSessions returns sessions in display order
+// GetOrderedSessions returns deep copies of sessions in display order
 func (s *State) GetOrderedSessions() []*session.Session {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -97,13 +104,13 @@ func (s *State) GetOrderedSessions() []*session.Session {
 	sessions := make([]*session.Session, 0, len(s.SessionOrder))
 	for _, id := range s.SessionOrder {
 		if sess, exists := s.Sessions[id]; exists {
-			sessions = append(sessions, sess)
+			sessions = append(sessions, sess.DeepCopy())
 		}
 	}
 	return sessions
 }
 
-// GetActionableSessions returns sessions that need attention
+// GetActionableSessions returns deep copies of sessions that need attention
 func (s *State) GetActionableSessions() []*session.Session {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -111,7 +118,7 @@ func (s *State) GetActionableSessions() []*session.Session {
 	var actionable []*session.Session
 	for _, sess := range s.Sessions {
 		if sess.IsActionable() {
-			actionable = append(actionable, sess)
+			actionable = append(actionable, sess.DeepCopy())
 		}
 	}
 
@@ -171,16 +178,21 @@ func (s *State) updatePositions() {
 	}
 }
 
-// Save persists the state to disk
-func (s *State) Save() error {
+// save persists the state to disk
+func (s *State) save() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	
 	s.LastSaved = time.Now().Unix()
 	
 	statePath := filepath.Join(s.RepoPath, ".agentish")
-	if err := os.MkdirAll(statePath, 0755); err != nil {
+	if err := os.MkdirAll(statePath, security.SecureDirPerm); err != nil {
 		return fmt.Errorf("failed to create .agentish directory: %w", err)
+	}
+	
+	// Ensure permissions are correct even if directory existed
+	if err := os.Chmod(statePath, security.SecureDirPerm); err != nil {
+		return fmt.Errorf("failed to enforce permissions on %s: %w", statePath, err)
 	}
 
 	stateFile := filepath.Join(statePath, "state.json")
@@ -189,28 +201,30 @@ func (s *State) Save() error {
 		return fmt.Errorf("failed to marshal state: %w", err)
 	}
 
-	return os.WriteFile(stateFile, data, 0644)
+	// Use secure file permissions (owner read/write only)
+	return os.WriteFile(stateFile, data, security.SecureFilePerm)
 }
 
-// Load reads the state from disk
-func Load(repoPath string) (*State, error) {
+// Load reads the state from disk and returns the state and a close function
+func Load(repoPath string) (*State, func() error, error) {
 	stateFile := filepath.Join(repoPath, ".agentish", "state.json")
 	data, err := os.ReadFile(stateFile)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Return new state if file doesn't exist
-			return NewState(repoPath), nil
+			state := NewState(repoPath)
+			return state, state.save, nil
 		}
-		return nil, fmt.Errorf("failed to read state file: %w", err)
+		return nil, nil, fmt.Errorf("failed to read state file: %w", err)
 	}
 
 	var state State
 	if err := json.Unmarshal(data, &state); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal state: %w", err)
+		return nil, nil, fmt.Errorf("failed to unmarshal state: %w", err)
 	}
 
 	// Ensure repo path matches (in case state file was moved)
 	state.RepoPath = repoPath
 
-	return &state, nil
+	return &state, state.save, nil
 }

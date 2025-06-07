@@ -14,6 +14,7 @@ import (
 // App represents the main application
 type App struct {
 	ctx            context.Context
+	cancel         context.CancelFunc
 	gui            *gocui.Gui
 	config         *config.Config
 	state          *state.State
@@ -21,21 +22,19 @@ type App struct {
 }
 
 // NewApp creates a new application instance
-func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
+func NewApp(ctx context.Context, cfg *config.Config, st *state.State, sm *session.Manager) (*App, error) {
+	// Create cancellable context to ensure proper cleanup
+	appCtx, cancel := context.WithCancel(ctx)
+	
 	g := gocui.NewGui()
 
-	// Load existing state or create new
-	st, err := state.Load(cfg.RepoPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load state: %w", err)
-	}
-
 	app := &App{
-		ctx:            ctx,
+		ctx:            appCtx,
+		cancel:         cancel,
 		gui:            g,
 		config:         cfg,
 		state:          st,
-		sessionManager: session.NewManager(cfg.RepoPath),
+		sessionManager: sm,
 	}
 
 	// Apply config preferences to state if not overridden
@@ -46,6 +45,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	// Set up GUI
 	g.SetLayout(app.layout)
 	if err := app.setupKeybindings(); err != nil {
+		cancel() // Clean up context on error
 		return nil, fmt.Errorf("failed to setup keybindings: %w", err)
 	}
 
@@ -55,9 +55,11 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 // Run starts the application
 func (a *App) Run() error {
 	if err := a.gui.Init(); err != nil {
+		a.cancel()
 		return fmt.Errorf("failed to initialize GUI: %w", err)
 	}
 	defer a.gui.Close()
+	defer a.cancel() // Ensure context is cancelled on exit
 
 	log.Printf("Loaded %d existing sessions", len(a.state.Sessions))
 
@@ -109,79 +111,4 @@ func (a *App) layout(g *gocui.Gui) error {
 	}
 
 	return nil
-}
-
-// drawTabs renders the session tabs
-func (a *App) drawTabs(v *gocui.View) {
-	v.Clear()
-
-	if len(a.state.Sessions) == 0 {
-		fmt.Fprint(v, "No active sessions - press 'c' to create one")
-		return
-	}
-
-	sessions := a.state.GetOrderedSessions()
-	focused := a.state.GetFocusedSession()
-
-	// Check if we should use minimal mode
-	if a.state.MinimalMode {
-		a.drawMinimalTabs(v, sessions)
-		return
-	}
-
-	for i, sess := range sessions {
-		if i > 0 {
-			fmt.Fprint(v, " ")
-		}
-
-		isFocused := focused != nil && sess.ID == focused.ID
-		display := FormatSessionTab(sess, isFocused)
-
-		if isFocused {
-			fmt.Fprintf(v, "▶ %s", display) // Arrow for focused session
-		} else {
-			fmt.Fprint(v, display)
-		}
-	}
-}
-
-// drawMinimalTabs renders tabs in minimal mode
-func (a *App) drawMinimalTabs(v *gocui.View, sessions []*session.Session) {
-	for i, sess := range sessions {
-		if i > 0 {
-			fmt.Fprint(v, " ")
-		}
-		fmt.Fprint(v, FormatMinimalSession(sess))
-	}
-}
-
-// drawMainContent renders the main content area
-func (a *App) drawMainContent(v *gocui.View) {
-	v.Clear()
-
-	focused := a.state.GetFocusedSession()
-	if focused == nil {
-		fmt.Fprint(v, "Welcome to Agentish!\n\n")
-		fmt.Fprint(v, "Commands:\n")
-		fmt.Fprint(v, "  c - Create new session\n")
-		fmt.Fprint(v, "  q - Quit\n")
-		return
-	}
-
-	fmt.Fprintf(v, "Session: %s\n", focused.GetDisplayName())
-	fmt.Fprintf(v, "Agent: %s\n", focused.Agent)
-	fmt.Fprintf(v, "Status: %s\n", focused.GetStatusDisplay())
-	fmt.Fprintf(v, "Environment: %s\n", focused.EnvironmentID.String())
-	fmt.Fprintf(v, "Branch: %s\n", focused.Branch)
-	fmt.Fprintf(v, "Created: %s\n", focused.CreatedAt.Format("2006-01-02 15:04:05"))
-	fmt.Fprintf(v, "Last Activity: %s\n", focused.LastActivity.Format("2006-01-02 15:04:05"))
-
-	fmt.Fprint(v, "\nCommands:\n")
-	fmt.Fprint(v, "  j/k - Navigate sessions\n")
-	fmt.Fprint(v, "  c - Create new session\n")
-	fmt.Fprint(v, "  d - Delete current session\n")
-	fmt.Fprint(v, "  Enter - Start agent\n")
-	fmt.Fprint(v, "  n - Next actionable session\n")
-	fmt.Fprint(v, "  m - Toggle minimal mode\n")
-	fmt.Fprint(v, "  q - Quit\n")
 }
