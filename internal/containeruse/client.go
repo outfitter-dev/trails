@@ -39,6 +39,8 @@ var safeCommands = map[string]bool{
 	"claude-code": true,
 	"aider":       true,
 	"codex":       true,
+	"amp":         true,
+	"jules":       true,
 }
 
 // validateInput sanitizes and validates user input to prevent command injection
@@ -319,6 +321,10 @@ func (c *Client) SpawnAgent(ctx context.Context, envID, agentType string) error 
 		command = "aider"
 	case "codex":
 		command = "codex"
+	case "amp":
+		command = "amp"
+	case "jules":
+		command = "jules"
 	default:
 		return fmt.Errorf("unsupported agent type: %s", agentType)
 	}
