@@ -78,7 +78,7 @@ func (s *State) RemoveSession(sessionID string) {
 	}
 }
 
-// GetFocusedSession returns the currently focused session
+// GetFocusedSession returns a copy of the currently focused session
 func (s *State) GetFocusedSession() *session.Session {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -86,10 +86,18 @@ func (s *State) GetFocusedSession() *session.Session {
 	if s.FocusedSession == "" {
 		return nil
 	}
-	return s.Sessions[s.FocusedSession]
+	
+	sess, exists := s.Sessions[s.FocusedSession]
+	if !exists {
+		return nil
+	}
+	
+	// Return a deep copy to prevent data races
+	sessionCopy := *sess
+	return &sessionCopy
 }
 
-// GetOrderedSessions returns sessions in display order
+// GetOrderedSessions returns deep copies of sessions in display order
 func (s *State) GetOrderedSessions() []*session.Session {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -97,13 +105,15 @@ func (s *State) GetOrderedSessions() []*session.Session {
 	sessions := make([]*session.Session, 0, len(s.SessionOrder))
 	for _, id := range s.SessionOrder {
 		if sess, exists := s.Sessions[id]; exists {
-			sessions = append(sessions, sess)
+			// Deep copy to prevent data races
+			sessionCopy := *sess
+			sessions = append(sessions, &sessionCopy)
 		}
 	}
 	return sessions
 }
 
-// GetActionableSessions returns sessions that need attention
+// GetActionableSessions returns deep copies of sessions that need attention
 func (s *State) GetActionableSessions() []*session.Session {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -111,7 +121,9 @@ func (s *State) GetActionableSessions() []*session.Session {
 	var actionable []*session.Session
 	for _, sess := range s.Sessions {
 		if sess.IsActionable() {
-			actionable = append(actionable, sess)
+			// Deep copy to prevent data races
+			sessionCopy := *sess
+			actionable = append(actionable, &sessionCopy)
 		}
 	}
 
@@ -179,7 +191,7 @@ func (s *State) Save() error {
 	s.LastSaved = time.Now().Unix()
 	
 	statePath := filepath.Join(s.RepoPath, ".agentish")
-	if err := os.MkdirAll(statePath, 0755); err != nil {
+	if err := os.MkdirAll(statePath, 0700); err != nil {
 		return fmt.Errorf("failed to create .agentish directory: %w", err)
 	}
 
@@ -189,7 +201,8 @@ func (s *State) Save() error {
 		return fmt.Errorf("failed to marshal state: %w", err)
 	}
 
-	return os.WriteFile(stateFile, data, 0644)
+	// Use secure file permissions (owner read/write only)
+	return os.WriteFile(stateFile, data, 0600)
 }
 
 // Load reads the state from disk

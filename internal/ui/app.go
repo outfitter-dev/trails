@@ -14,6 +14,7 @@ import (
 // App represents the main application
 type App struct {
 	ctx            context.Context
+	cancel         context.CancelFunc
 	gui            *gocui.Gui
 	config         *config.Config
 	state          *state.State
@@ -22,16 +23,21 @@ type App struct {
 
 // NewApp creates a new application instance
 func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
+	// Create cancellable context to ensure proper cleanup
+	appCtx, cancel := context.WithCancel(ctx)
+	
 	g := gocui.NewGui()
 
 	// Load existing state or create new
 	st, err := state.Load(cfg.RepoPath)
 	if err != nil {
+		cancel() // Clean up context on error
 		return nil, fmt.Errorf("failed to load state: %w", err)
 	}
 
 	app := &App{
-		ctx:            ctx,
+		ctx:            appCtx,
+		cancel:         cancel,
 		gui:            g,
 		config:         cfg,
 		state:          st,
@@ -46,6 +52,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	// Set up GUI
 	g.SetLayout(app.layout)
 	if err := app.setupKeybindings(); err != nil {
+		cancel() // Clean up context on error
 		return nil, fmt.Errorf("failed to setup keybindings: %w", err)
 	}
 
@@ -58,6 +65,7 @@ func (a *App) Run() error {
 		return fmt.Errorf("failed to initialize GUI: %w", err)
 	}
 	defer a.gui.Close()
+	defer a.cancel() // Ensure context is cancelled on exit
 
 	log.Printf("Loaded %d existing sessions", len(a.state.Sessions))
 

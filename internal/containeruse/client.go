@@ -5,16 +5,101 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"regexp"
+	"strings"
+
+	"github.com/maybe-good/agentish/internal/security"
 )
 
 // Client represents a container-use MCP client
 type Client struct {
-	// Could add configuration here in the future
+	auditLogger *security.AuditLogger
+}
+
+// Input validation patterns
+var (
+	// validNamePattern restricts names to alphanumeric, hyphens, and underscores
+	validNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+	// validSourcePattern restricts sources to safe filesystem paths and URLs
+	validSourcePattern = regexp.MustCompile(`^[a-zA-Z0-9_./:-]+$`)
+	// validEnvIDPattern restricts environment IDs to safe alphanumeric strings
+	validEnvIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+)
+
+// validateInput sanitizes and validates user input to prevent command injection
+func validateInput(input, inputType string, auditLogger *security.AuditLogger) error {
+	if input == "" {
+		err := fmt.Errorf("%s cannot be empty", inputType)
+		if auditLogger != nil {
+			auditLogger.LogSecurityViolation("input_validation", input, err.Error(), map[string]interface{}{
+				"input_type": inputType,
+				"violation":  "empty_input",
+			})
+		}
+		return err
+	}
+	
+	// Check for dangerous characters
+	if strings.ContainsAny(input, ";|&$`\n\r(){}[]<>") {
+		err := fmt.Errorf("%s contains dangerous characters", inputType)
+		if auditLogger != nil {
+			auditLogger.LogSecurityViolation("input_validation", input, err.Error(), map[string]interface{}{
+				"input_type": inputType,
+				"violation":  "dangerous_characters",
+			})
+		}
+		return err
+	}
+	
+	switch inputType {
+	case "name":
+		if !validNamePattern.MatchString(input) {
+			err := fmt.Errorf("name must contain only alphanumeric characters, hyphens, and underscores")
+			if auditLogger != nil {
+				auditLogger.LogSecurityViolation("input_validation", input, err.Error(), map[string]interface{}{
+					"input_type": inputType,
+					"violation":  "invalid_name_pattern",
+				})
+			}
+			return err
+		}
+	case "source":
+		if !validSourcePattern.MatchString(input) {
+			err := fmt.Errorf("source path contains invalid characters")
+			if auditLogger != nil {
+				auditLogger.LogSecurityViolation("input_validation", input, err.Error(), map[string]interface{}{
+					"input_type": inputType,
+					"violation":  "invalid_source_pattern",
+				})
+			}
+			return err
+		}
+	case "envID":
+		if !validEnvIDPattern.MatchString(input) {
+			err := fmt.Errorf("environment ID contains invalid characters")
+			if auditLogger != nil {
+				auditLogger.LogSecurityViolation("input_validation", input, err.Error(), map[string]interface{}{
+					"input_type": inputType,
+					"violation":  "invalid_envid_pattern",
+				})
+			}
+			return err
+		}
+	}
+	
+	return nil
 }
 
 // NewClient creates a new container-use client
 func NewClient() *Client {
 	return &Client{}
+}
+
+// NewClientWithAudit creates a new container-use client with audit logging
+func NewClientWithAudit(auditLogger *security.AuditLogger) *Client {
+	return &Client{
+		auditLogger: auditLogger,
+	}
 }
 
 // Environment represents a container-use environment
@@ -38,6 +123,22 @@ type CreateEnvironmentRequest struct {
 
 // CreateEnvironment creates a new container-use environment
 func (c *Client) CreateEnvironment(ctx context.Context, req CreateEnvironmentRequest) (*Environment, error) {
+	// Validate all inputs to prevent command injection
+	if err := validateInput(req.Name, "name", c.auditLogger); err != nil {
+		return nil, fmt.Errorf("invalid name: %w", err)
+	}
+	if err := validateInput(req.Source, "source", c.auditLogger); err != nil {
+		return nil, fmt.Errorf("invalid source: %w", err)
+	}
+	if req.Explanation != "" {
+		// Sanitize explanation by removing dangerous characters
+		req.Explanation = strings.ReplaceAll(req.Explanation, ";", "")
+		req.Explanation = strings.ReplaceAll(req.Explanation, "|", "")
+		req.Explanation = strings.ReplaceAll(req.Explanation, "&", "")
+		req.Explanation = strings.ReplaceAll(req.Explanation, "$", "")
+		req.Explanation = strings.ReplaceAll(req.Explanation, "`", "")
+	}
+
 	// Check if container-use is available
 	if _, err := exec.LookPath("container-use"); err != nil {
 		return nil, fmt.Errorf("container-use CLI not found: %w. Please install container-use from https://github.com/dagger/container-use", err)
@@ -86,8 +187,9 @@ func (c *Client) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 
 // DestroyEnvironment destroys a container-use environment
 func (c *Client) DestroyEnvironment(ctx context.Context, envID string) error {
-	if envID == "" {
-		return fmt.Errorf("environment ID cannot be empty")
+	// Validate environment ID to prevent command injection
+	if err := validateInput(envID, "envID", c.auditLogger); err != nil {
+		return fmt.Errorf("invalid environment ID: %w", err)
 	}
 
 	cmd := exec.CommandContext(ctx, "container-use", "environment", "destroy", envID)
@@ -121,6 +223,11 @@ func (c *Client) ListEnvironments(ctx context.Context) ([]*Environment, error) {
 
 // GetEnvironment gets details about a specific environment
 func (c *Client) GetEnvironment(ctx context.Context, envID string) (*Environment, error) {
+	// Validate environment ID to prevent command injection
+	if err := validateInput(envID, "envID", c.auditLogger); err != nil {
+		return nil, fmt.Errorf("invalid environment ID: %w", err)
+	}
+
 	cmd := exec.CommandContext(ctx, "container-use", "environment", "get", envID, "--format", "json")
 
 	output, err := cmd.Output()
@@ -138,6 +245,29 @@ func (c *Client) GetEnvironment(ctx context.Context, envID string) (*Environment
 
 // RunCommand runs a command in the specified environment
 func (c *Client) RunCommand(ctx context.Context, envID, command string, background bool) error {
+	// Validate environment ID to prevent command injection
+	if err := validateInput(envID, "envID", c.auditLogger); err != nil {
+		return fmt.Errorf("invalid environment ID: %w", err)
+	}
+	
+	// Validate command - only allow predefined safe commands
+	safeCommands := map[string]bool{
+		"claude-code": true,
+		"aider":       true,
+		"codex":       true,
+	}
+	
+	if !safeCommands[command] {
+		err := fmt.Errorf("command '%s' is not in the allowlist of safe commands", command)
+		if c.auditLogger != nil {
+			c.auditLogger.LogSecurityViolation("command_execution", envID, err.Error(), map[string]interface{}{
+				"attempted_command": command,
+				"environment_id":    envID,
+			})
+		}
+		return err
+	}
+
 	args := []string{"environment", "run", envID}
 
 	if background {
@@ -148,7 +278,12 @@ func (c *Client) RunCommand(ctx context.Context, envID, command string, backgrou
 
 	cmd := exec.CommandContext(ctx, "container-use", args...)
 
-	if err := cmd.Run(); err != nil {
+	err := cmd.Run()
+	if c.auditLogger != nil {
+		c.auditLogger.LogCommandExecution(envID, command, err == nil, err)
+	}
+	
+	if err != nil {
 		return fmt.Errorf("failed to run command in environment %s: %w", envID, err)
 	}
 
