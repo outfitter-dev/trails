@@ -382,4 +382,4 @@ This codebase is designed to manage multiple AI coding agents, including Codex i
 
 ## File Scope
 
-This AGENTS.md file applies to all code within the trails repository. More specific AGENTS.md files in subdirectories take precedence for their respective scopes.
+These guidelines apply to all code within the trails repository. More specific AGENTS.md files in subdirectories take precedence for their respective scopes.

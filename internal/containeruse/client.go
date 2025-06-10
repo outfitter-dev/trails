@@ -168,9 +168,9 @@ func (c *Client) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 
 	// Check if container-use is available
 	if _, err := exec.LookPath("cu"); err != nil {
-		return nil, fmt.Errorf(`container-use CLI not found: %w
+		return nil, fmt.Errorf(`cu CLI not found: %w
 
-To install container-use, run one of the following:
+To install cu (container-use), run one of the following:
   1. trails install-deps
   2. git clone https://github.com/dagger/container-use && cd container-use && make install
 

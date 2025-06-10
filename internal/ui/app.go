@@ -91,7 +91,9 @@ func (a *App) layout(g *gocui.Gui) error {
 		}
 
 		// Hide main view in minimal mode
-		g.DeleteView("main")
+		if err := g.DeleteView("main"); err != nil && err != gocui.ErrUnknownView {
+			return err
+		}
 		return nil
 	}
 

@@ -6,7 +6,7 @@ About You: @.ai/prompts/MAX.md
 
 ## Project Overview
 
-Trails is a terminal UI for managing multiple AI coding agents in isolated containerized environments. It provides a lazygit-inspired interface with collapsing session tabs and seamless state restoration.
+Trails provides a terminal UI for managing multiple AI coding agents in isolated containerized environments. It provides a lazygit-inspired interface with collapsing session tabs and seamless state restoration.
 
 ## Development Commands
 
@@ -57,3 +57,6 @@ Uses gocui (same as lazygit) for terminal interface consistency. Main layout inc
 
 ### Session Status Model
 Status enum drives UI coloring and navigation behavior. IsActionable() method determines which sessions need user attention for the "next actionable" navigation feature.
+
+## Workflow Notes
+- After updating any code to address PR feedback from `@coderabbitai`, write a comment on the PR with your changes and make sure to mention `@coderabbitai` in the body to check it out.

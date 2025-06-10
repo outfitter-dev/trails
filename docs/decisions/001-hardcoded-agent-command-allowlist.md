@@ -54,4 +54,4 @@ var safeCommands = map[string]bool{
     - Clear, auditable path for adding new agents via source control history.
     - Adherence to the "Secure by Default" principle.
 - **Negative**:
-    - Reduced flexibility for end-users who may want to experiment with unsupported agents. This is a conscious trade-off. The security benefits far outweigh the inconvenience. The correct path for adding a new agent is to contribute to the `trails` project itself. 
+  - Reduced flexibility for end-users who may want to experiment with unsupported agents. This is a conscious trade-off. The security benefits far outweigh the inconvenience. The correct path for adding a new agent is to contribute to the `trails` project itself. 

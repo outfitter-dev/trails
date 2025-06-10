@@ -444,15 +444,15 @@ build:
 ### Final Test Suite Results
 ```bash
 $ make test
-?   	github.com/maybe-good/trails/cmd/trails	[no test files]
+?       github.com/maybe-good/trails/cmd/trails    [no test files]
 === RUN   TestGetDefaultAgent
 --- PASS: TestGetDefaultAgent (0.00s)
 === RUN   TestGetAutoRestore  
 --- PASS: TestGetAutoRestore (0.00s)
 PASS
-ok  	github.com/maybe-good/trails/internal/config	(cached)
+ok      github.com/maybe-good/trails/internal/config    (cached)
 
-?   	github.com/maybe-good/trails/internal/containeruse	[no test files]
+?       github.com/maybe-good/trails/internal/containeruse    [no test files]
 
 === RUN   TestManager_CreateSession
 --- PASS: TestManager_CreateSession (0.00s)
@@ -471,7 +471,7 @@ ok  	github.com/maybe-good/trails/internal/config	(cached)
 === RUN   TestStatusString
 --- PASS: TestStatusString (0.00s)
 PASS
-ok  	github.com/maybe-good/trails/internal/session	(cached)
+ok      github.com/maybe-good/trails/internal/session    (cached)
 
 === RUN   TestNewState
 --- PASS: TestNewState (0.00s)
@@ -484,9 +484,9 @@ ok  	github.com/maybe-good/trails/internal/session	(cached)
 === RUN   TestGetActionableSessions
 --- PASS: TestGetActionableSessions (0.00s)
 PASS
-ok  	github.com/maybe-good/trails/internal/state	(cached)
+ok      github.com/maybe-good/trails/internal/state    (cached)
 
-?   	github.com/maybe-good/trails/internal/ui	[no test files]
+?       github.com/maybe-good/trails/internal/ui    [no test files]
 ```
 
 **Result: 100% PASS** - All tests passing across all packages

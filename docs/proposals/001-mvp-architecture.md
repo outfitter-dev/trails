@@ -49,7 +49,7 @@ claude:auth[working] aider:tests[ready] codex:docs[waiting] coordinator[thinking
 - **State**: JSON files in `.trails/`
 
 ### Project Structure
-```
+```text
 trails/
 ├── cmd/
 │   └── trails/

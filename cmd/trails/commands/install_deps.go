@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -27,8 +29,10 @@ var installDepsCmd = &cobra.Command{
 		}
 		fmt.Println("✓ Docker is installed")
 
-		// Check if Docker is running
-		if err := exec.Command("docker", "info").Run(); err != nil {
+		// Check if Docker is running with timeout
+		ctx, cancel := context.WithTimeout(cmd.Context(), 3*time.Second)
+		defer cancel()
+		if err := exec.CommandContext(ctx, "docker", "info", "--format", "{{json .}}").Run(); err != nil {
 			fmt.Println("❌ Docker is not running")
 			fmt.Println("\nPlease start Docker before running trails.")
 			return fmt.Errorf("Docker is installed but not running")

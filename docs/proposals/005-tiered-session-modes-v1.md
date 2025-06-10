@@ -295,7 +295,7 @@ A simple append-only log (`.trails/agent-comm.log`) where agents can:
 
 ### Trails MCP Server
 Future versions could expose an MCP server that agents can connect to:
-```
+```text
 Tools:
 - agent_message: Send messages between agents
 - claim_resource: Lock files/directories
