@@ -1,6 +1,6 @@
-BINARY_NAME=agentish
+BINARY_NAME=trails
 BUILD_DIR=build
-SRC_DIR=cmd/agentish
+SRC_DIR=cmd/trails
 
 .PHONY: build run clean test lint install dev
 

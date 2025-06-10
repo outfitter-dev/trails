@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/maybe-good/agentish/cmd/agentish/commands"
+	"github.com/outfitter-dev/trails/cmd/trails/commands"
 )
 
 func main() {

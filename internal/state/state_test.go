@@ -3,7 +3,7 @@ package state
 import (
 	"testing"
 
-	"github.com/maybe-good/agentish/internal/session"
+	"github.com/outfitter-dev/trails/internal/session"
 )
 
 func TestNewState(t *testing.T) {

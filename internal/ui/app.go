@@ -6,9 +6,9 @@ import (
 	"log"
 
 	"github.com/jesseduffield/gocui"
-	"github.com/maybe-good/agentish/internal/config"
-	"github.com/maybe-good/agentish/internal/session"
-	"github.com/maybe-good/agentish/internal/state"
+	"github.com/outfitter-dev/trails/internal/config"
+	"github.com/outfitter-dev/trails/internal/session"
+	"github.com/outfitter-dev/trails/internal/state"
 )
 
 // App represents the main application
@@ -27,6 +27,10 @@ func NewApp(ctx context.Context, cfg *config.Config, st *state.State, sm *sessio
 	appCtx, cancel := context.WithCancel(ctx)
 	
 	g := gocui.NewGui()
+
+	// Use terminal default colors
+	g.FgColor = gocui.ColorDefault
+	g.BgColor = gocui.ColorDefault
 
 	app := &App{
 		ctx:            appCtx,
@@ -82,6 +86,7 @@ func (a *App) layout(g *gocui.Gui) error {
 			}
 			v.Frame = false
 			v.Wrap = false
+			v.BgColor = gocui.ColorDefault
 			a.drawTabs(v)
 		}
 
@@ -97,6 +102,7 @@ func (a *App) layout(g *gocui.Gui) error {
 		}
 		v.Frame = false
 		v.Wrap = false
+		v.BgColor = gocui.ColorDefault
 		a.drawTabs(v)
 	}
 
@@ -105,8 +111,9 @@ func (a *App) layout(g *gocui.Gui) error {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
-		v.Title = "Agentish"
+		v.Title = "Trails"
 		v.Wrap = true
+		v.BgColor = gocui.ColorDefault
 		a.drawMainContent(v)
 	}
 

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/maybe-good/agentish/internal/config"
-	"github.com/maybe-good/agentish/internal/session"
-	"github.com/maybe-good/agentish/internal/state"
+	"github.com/outfitter-dev/trails/internal/config"
+	"github.com/outfitter-dev/trails/internal/session"
+	"github.com/outfitter-dev/trails/internal/state"
 	"github.com/spf13/cobra"
 )
 

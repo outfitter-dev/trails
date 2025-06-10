@@ -3,7 +3,7 @@ package ui
 import (
 	"strings"
 
-	"github.com/maybe-good/agentish/internal/session"
+	"github.com/outfitter-dev/trails/internal/session"
 )
 
 // FormatSessionTab formats a session tab with colors

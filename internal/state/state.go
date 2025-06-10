@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/maybe-good/agentish/internal/security"
-	"github.com/maybe-good/agentish/internal/session"
+	"github.com/outfitter-dev/trails/internal/security"
+	"github.com/outfitter-dev/trails/internal/session"
 )
 
 // State represents the current application state
@@ -178,16 +178,16 @@ func (s *State) updatePositions() {
 	}
 }
 
-// save persists the state to disk
-func (s *State) save() error {
+// Save persists the state to disk
+func (s *State) Save() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	
 	s.LastSaved = time.Now().Unix()
 	
-	statePath := filepath.Join(s.RepoPath, ".agentish")
+	statePath := filepath.Join(s.RepoPath, ".trails")
 	if err := os.MkdirAll(statePath, security.SecureDirPerm); err != nil {
-		return fmt.Errorf("failed to create .agentish directory: %w", err)
+		return fmt.Errorf("failed to create .trails directory: %w", err)
 	}
 	
 	// Ensure permissions are correct even if directory existed
@@ -207,13 +207,13 @@ func (s *State) save() error {
 
 // Load reads the state from disk and returns the state and a close function
 func Load(repoPath string) (*State, func() error, error) {
-	stateFile := filepath.Join(repoPath, ".agentish", "state.json")
+	stateFile := filepath.Join(repoPath, ".trails", "state.json")
 	data, err := os.ReadFile(stateFile)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Return new state if file doesn't exist
 			state := NewState(repoPath)
-			return state, state.save, nil
+			return state, state.Save, nil
 		}
 		return nil, nil, fmt.Errorf("failed to read state file: %w", err)
 	}
@@ -226,5 +226,5 @@ func Load(repoPath string) (*State, func() error, error) {
 	// Ensure repo path matches (in case state file was moved)
 	state.RepoPath = repoPath
 
-	return &state, state.save, nil
+	return &state, state.Save, nil
 }

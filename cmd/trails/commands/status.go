@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/maybe-good/agentish/internal/state"
+	"github.com/outfitter-dev/trails/internal/state"
 	"github.com/spf13/cobra"
 )
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Show the status of the agentish environment",
+	Short: "Show the status of the trails environment",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		wd, err := os.Getwd()
 		if err != nil {

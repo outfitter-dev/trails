@@ -6,13 +6,13 @@
 
 ## Summary
 
-This document proposes the implementation of automatic log rotation for the security audit logs (`.agentish/audit/security.log`). This is a critical feature to ensure the long-term stability and security of the application in a production or long-running environment.
+This document proposes the implementation of automatic log rotation for the security audit logs (`.trails/audit/security.log`). This is a critical feature to ensure the long-term stability and security of the application in a production or long-running environment.
 
 ## Problem
 
 The current implementation in `internal/security/logger.go` writes to a single, unbounded log file. Over time, this file will grow indefinitely. This presents two primary risks:
 
-1.  **Denial of Service (DoS):** The log file could eventually consume all available disk space, causing the `agentish` application and potentially other services on the host machine to crash.
+1.  **Denial of Service (DoS):** The log file could eventually consume all available disk space, causing the `trails` application and potentially other services on the host machine to crash.
 2.  **Performance Degradation:** Writing to and managing an extremely large file can incur performance penalties.
 
 ## Proposed Solution

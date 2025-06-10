@@ -10,9 +10,9 @@ import (
 
 // Security file permissions
 const (
-	// SecureDirPerm is the standard permission for directories managed by agentish (owner r/w/x).
+	// SecureDirPerm is the standard permission for directories managed by trails (owner r/w/x).
 	SecureDirPerm os.FileMode = 0700
-	// SecureFilePerm is the standard permission for files managed by agentish (owner r/w).
+	// SecureFilePerm is the standard permission for files managed by trails (owner r/w).
 	SecureFilePerm os.FileMode = 0600
 
 	// secureAuditDirPerm - Owner read/write/execute only for audit directories
@@ -42,7 +42,7 @@ type Event struct {
 // NewAuditLogger creates a new security audit logger and a function to close it.
 func NewAuditLogger(repoPath string) (*AuditLogger, func() error, error) {
 	// Create audit log directory
-	auditDir := filepath.Join(repoPath, ".agentish", "audit")
+	auditDir := filepath.Join(repoPath, ".trails", "audit")
 	if err := os.MkdirAll(auditDir, secureAuditDirPerm); err != nil {
 		return nil, nil, err
 	}

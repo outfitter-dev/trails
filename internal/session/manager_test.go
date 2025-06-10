@@ -5,18 +5,18 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/maybe-good/agentish/internal/containeruse"
+	"github.com/outfitter-dev/trails/internal/containeruse"
 )
 
-// MockEnvironmentProvider for testing
-type MockEnvironmentProvider struct {
+// MockProvider for testing
+type MockProvider struct {
 	createFunc  func(ctx context.Context, req containeruse.CreateEnvironmentRequest) (*containeruse.Environment, error)
 	destroyFunc func(ctx context.Context, envID string) error
 	getFunc     func(ctx context.Context, envID string) (*containeruse.Environment, error)
 	spawnFunc   func(ctx context.Context, envID, agentType string) error
 }
 
-func (m *MockEnvironmentProvider) CreateEnvironment(ctx context.Context, req containeruse.CreateEnvironmentRequest) (*containeruse.Environment, error) {
+func (m *MockProvider) CreateEnvironment(ctx context.Context, req containeruse.CreateEnvironmentRequest) (*containeruse.Environment, error) {
 	if m.createFunc != nil {
 		return m.createFunc(ctx, req)
 	}
@@ -28,14 +28,14 @@ func (m *MockEnvironmentProvider) CreateEnvironment(ctx context.Context, req con
 	}, nil
 }
 
-func (m *MockEnvironmentProvider) DestroyEnvironment(ctx context.Context, envID string) error {
+func (m *MockProvider) DestroyEnvironment(ctx context.Context, envID string) error {
 	if m.destroyFunc != nil {
 		return m.destroyFunc(ctx, envID)
 	}
 	return nil
 }
 
-func (m *MockEnvironmentProvider) GetEnvironment(ctx context.Context, envID string) (*containeruse.Environment, error) {
+func (m *MockProvider) GetEnvironment(ctx context.Context, envID string) (*containeruse.Environment, error) {
 	if m.getFunc != nil {
 		return m.getFunc(ctx, envID)
 	}
@@ -45,7 +45,7 @@ func (m *MockEnvironmentProvider) GetEnvironment(ctx context.Context, envID stri
 	}, nil
 }
 
-func (m *MockEnvironmentProvider) SpawnAgent(ctx context.Context, envID, agentType string) error {
+func (m *MockProvider) SpawnAgent(ctx context.Context, envID, agentType string) error {
 	if m.spawnFunc != nil {
 		return m.spawnFunc(ctx, envID, agentType)
 	}
@@ -87,11 +87,11 @@ func TestManager_CreateSession(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mock := &MockEnvironmentProvider{
+			mock := &MockProvider{
 				createFunc: tt.mockFunc,
 			}
 			
-			m := NewManagerWithProvider("/test/repo", mock)
+			m := NewManagerWithProvider("/test/repo", mock, nil)
 			
 			ctx := context.Background()
 			session, err := m.CreateSession(ctx, tt.sessionName, tt.agent)
@@ -155,11 +155,11 @@ func TestManager_DestroySession(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mock := &MockEnvironmentProvider{
+			mock := &MockProvider{
 				destroyFunc: tt.mockFunc,
 			}
 			
-			m := NewManagerWithProvider("/test/repo", mock)
+			m := NewManagerWithProvider("/test/repo", mock, nil)
 			
 			session := &Session{
 				ID:            "test-session-id",
@@ -215,11 +215,11 @@ func TestManager_StartAgent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mock := &MockEnvironmentProvider{
+			mock := &MockProvider{
 				spawnFunc: tt.mockFunc,
 			}
 			
-			m := NewManagerWithProvider("/test/repo", mock)
+			m := NewManagerWithProvider("/test/repo", mock, nil)
 			
 			session := &Session{
 				ID:            "test-session-id",

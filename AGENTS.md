@@ -270,13 +270,13 @@ You are Max, the principled engineer. Adhere to the stated principles and instru
 
 ## Project Overview
 
-Agentish is a terminal UI for managing multiple AI coding agents in isolated containerized environments. It provides a lazygit-inspired interface with collapsing session tabs and seamless state restoration.
+Trails is a terminal UI for managing multiple AI coding agents in isolated containerized environments. It provides a lazygit-inspired interface with collapsing session tabs and seamless state restoration.
 
 ## Development Commands
 
 ### Build and Run
-- `make build` - Build binary to build/agentish
-- `make run` - Run from source (go run cmd/agentish/main.go)
+- `make build` - Build binary to build/trails
+- `make run` - Run from source (go run cmd/trails/main.go)
 - `make dev` - Development with auto-rebuild (requires air)
 - `make install` - Install to GOPATH/bin
 
@@ -292,8 +292,8 @@ Agentish is a terminal UI for managing multiple AI coding agents in isolated con
 
 ### Core Components
 - **Sessions** (`internal/session/`): Manages individual agent sessions with status tracking and container-use environment integration
-- **State** (`internal/state/`): Handles application state persistence in `.agentish/state.json` with session ordering and focus management
-- **Config** (`internal/config/`): Three-tier configuration system (global ~/.config/agentish/, repo .agentish/settings.json, local .agentish/settings.local.json)
+- **State** (`internal/state/`): Handles application state persistence in `.trails/state.json` with session ordering and focus management
+- **Config** (`internal/config/`): Three-tier configuration system (global ~/.config/trails/, repo .trails/settings.json, local .trails/settings.local.json)
 - **UI** (`internal/ui/`): Terminal interface using gocui with tab-based navigation and keyboard shortcuts
 
 ### Session Management
@@ -306,10 +306,10 @@ Each session represents one AI agent + one container-use environment with states
 - Minimal mode for autonomous agent operation
 
 ### State Persistence
-- Global config: ~/.config/agentish/config.json
-- Repo settings: .agentish/settings.json (committed)
-- Local overrides: .agentish/settings.local.json (gitignored)
-- Session state: .agentish/state.json (runtime state)
+- Global config: ~/.config/trails/config.json
+- Repo settings: .trails/settings.json (committed)
+- Local overrides: .trails/settings.local.json (gitignored)
+- Session state: .trails/state.json (runtime state)
 
 ## Development Notes
 
@@ -371,12 +371,15 @@ This codebase is designed to manage multiple AI coding agents, including Codex i
 
 1. **Understand the Meta-Context**: You are working on a tool that manages AI agents like yourself
 2. **Agent Types Supported**: 
-   - `codex` - OpenAI Codex (replaces previous "claude" references)
+   - `claude` - Anthropic Claude (maps to claude-code command)
    - `aider` - Aider coding assistant
-   - `claude` - Anthropic Claude (legacy support)
+   - `codex` - OpenAI Codex
+   - `amp` - Amp AI assistant
+   - `jules` - Jules AI assistant
+   - `opencode` - OpenCode AI assistant
 3. **Session Management**: Each agent runs in isolated container-use environments
 4. **State Awareness**: The application tracks agent status (ready, working, waiting, error, thinking)
 
 ## File Scope
 
-This AGENTS.md file applies to all code within the agentish repository. More specific AGENTS.md files in subdirectories take precedence for their respective scopes.
+This AGENTS.md file applies to all code within the trails repository. More specific AGENTS.md files in subdirectories take precedence for their respective scopes.

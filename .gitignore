@@ -35,9 +35,9 @@ go.work
 ehthumbs.db
 Thumbs.db
 
-# Local agentish state and settings
-.agentish/state.json
-.agentish/settings.local.json
+# Local trails state and settings
+.trails/state.json
+.trails/settings.local.json
 
 # Logs
 *.log
