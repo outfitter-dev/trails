@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"dagger.io/dagger"
 	"github.com/outfitter-dev/trails/internal/security"
@@ -16,7 +18,8 @@ import (
 type DaggerClient struct {
 	dag         *dagger.Client
 	auditLogger *security.AuditLogger
-	containers  map[string]*dagger.Container // Track containers by environment ID
+	mu          sync.RWMutex
+	containers  map[string]*dagger.Container // Track containers by environment ID, guarded by mu
 }
 
 // NewDaggerClient creates a new Dagger-based client
@@ -59,8 +62,9 @@ func (c *DaggerClient) CreateEnvironment(ctx context.Context, req CreateEnvironm
 		return nil, fmt.Errorf("invalid source: %w", err)
 	}
 
-	// Create a unique environment ID
-	envID := fmt.Sprintf("env-%s", req.Name)
+	// Create a unique environment ID to avoid collisions
+	timestamp := time.Now().Unix()
+	envID := fmt.Sprintf("env-%s-%d", req.Name, timestamp)
 
 	// Determine base image based on agent type
 	baseImage := "ubuntu:latest"
@@ -94,12 +98,14 @@ func (c *DaggerClient) CreateEnvironment(ctx context.Context, req CreateEnvironm
 		container = container.WithEnvVariable(key, value)
 	}
 
-	// Install basic tools
+	// Install basic tools and clean up apt cache
 	container = container.
-		WithExec([]string{"sh", "-c", "apt-get update && apt-get install -y git curl wget tmux vim"})
+		WithExec([]string{"sh", "-c", "apt-get update && apt-get install -y git curl wget tmux vim && apt-get clean && rm -rf /var/lib/apt/lists/*"})
 
 	// Store the container
+	c.mu.Lock()
 	c.containers[envID] = container
+	c.mu.Unlock()
 
 	return &Environment{
 		ID:          envID,
@@ -112,14 +118,30 @@ func (c *DaggerClient) CreateEnvironment(ctx context.Context, req CreateEnvironm
 
 // DestroyEnvironment destroys a containerized environment
 func (c *DaggerClient) DestroyEnvironment(ctx context.Context, envID string) error {
-	// Simply remove from our tracking - Dagger handles cleanup
-	delete(c.containers, envID)
+	c.mu.Lock()
+	container, exists := c.containers[envID]
+	if exists {
+		delete(c.containers, envID)
+	}
+	c.mu.Unlock()
+
+	if exists {
+		// Note: Dagger containers are automatically cleaned up when the client closes
+		// or when the container object goes out of scope. For explicit cleanup in the future,
+		// we could add container.Stop() or similar if Dagger SDK provides it.
+		_ = container // Keep reference to avoid "unused variable" warning
+	}
+	
 	return nil
 }
 
 // GetEnvironment gets details about a specific environment
 func (c *DaggerClient) GetEnvironment(ctx context.Context, envID string) (*Environment, error) {
-	if _, exists := c.containers[envID]; !exists {
+	c.mu.RLock()
+	_, exists := c.containers[envID]
+	c.mu.RUnlock()
+	
+	if !exists {
 		return nil, fmt.Errorf("environment %s not found", envID)
 	}
 
@@ -131,7 +153,10 @@ func (c *DaggerClient) GetEnvironment(ctx context.Context, envID string) (*Envir
 
 // SpawnAgent spawns an AI agent in the specified environment
 func (c *DaggerClient) SpawnAgent(ctx context.Context, envID, agentType string) error {
+	c.mu.RLock()
 	container, exists := c.containers[envID]
+	c.mu.RUnlock()
+	
 	if !exists {
 		return fmt.Errorf("environment %s not found", envID)
 	}
@@ -154,7 +179,9 @@ func (c *DaggerClient) SpawnAgent(ctx context.Context, envID, agentType string) 
 	// Execute the agent command in background
 	// Note: For real implementation, we'd need to handle long-running processes
 	updatedContainer := container.WithExec(agentCmd)
+	c.mu.Lock()
 	c.containers[envID] = updatedContainer
+	c.mu.Unlock()
 
 	// Log the agent start
 	if c.auditLogger != nil {
@@ -166,7 +193,10 @@ func (c *DaggerClient) SpawnAgent(ctx context.Context, envID, agentType string) 
 
 // RunCommand runs a command in the specified environment
 func (c *DaggerClient) RunCommand(ctx context.Context, envID string, command []string) (string, error) {
+	c.mu.RLock()
 	container, exists := c.containers[envID]
+	c.mu.RUnlock()
+	
 	if !exists {
 		return "", fmt.Errorf("environment %s not found", envID)
 	}
@@ -179,14 +209,19 @@ func (c *DaggerClient) RunCommand(ctx context.Context, envID string, command []s
 	}
 
 	// Update the container state
+	c.mu.Lock()
 	c.containers[envID] = result
+	c.mu.Unlock()
 
 	return output, nil
 }
 
 // GetTerminal opens an interactive terminal to the environment
 func (c *DaggerClient) GetTerminal(ctx context.Context, envID string) error {
+	c.mu.RLock()
 	container, exists := c.containers[envID]
+	c.mu.RUnlock()
+	
 	if !exists {
 		return fmt.Errorf("environment %s not found", envID)
 	}

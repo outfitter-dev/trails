@@ -32,7 +32,7 @@ Use the Dagger SDK directly instead of trying to integrate with container-use.
 
 1. **Direct API access** - No subprocess management or output parsing
 2. **Type safety** - Go SDK provides compile-time type checking
-3. **Better error handling** - Exceptions and errors are first-class
+3. **Better error handling** - Errors are first-class values in Go
 4. **Single binary** - No external tools to install
 5. **Performance** - No subprocess overhead
 6. **Flexibility** - Full access to Dagger features
@@ -123,4 +123,4 @@ Could support container-use for specific scenarios:
 - [Dagger Documentation](https://docs.dagger.io)
 - [container-use Source](https://github.com/dagger/container-use)
 - [MCP Specification](https://modelcontextprotocol.io)
-- [Original container-use investigation](#2)
+- [Original container-use investigation](#context)

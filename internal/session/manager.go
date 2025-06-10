@@ -37,14 +37,18 @@ func NewManager(repoPath string) (*Manager, func() error, error) {
 	providerType := containeruse.GetDefaultProviderType()
 	provider, closeProvider, err := containeruse.NewProvider(providerType, auditLogger)
 	if err != nil {
-		closeLogger()
+		if errLogger := closeLogger(); errLogger != nil {
+			return nil, nil, fmt.Errorf("failed to create container provider: %w, logger cleanup error: %w", err, errLogger)
+		}
 		return nil, nil, fmt.Errorf("failed to create container provider: %w", err)
 	}
 
 	// Create cleanup function that closes both logger and provider
 	cleanup := func() error {
 		if err := closeProvider(); err != nil {
-			closeLogger()
+			if errLogger := closeLogger(); errLogger != nil {
+				return fmt.Errorf("cleanup errors: provider=%w, logger=%w", err, errLogger)
+			}
 			return err
 		}
 		return closeLogger()
@@ -57,7 +61,9 @@ func NewManager(repoPath string) (*Manager, func() error, error) {
 	}, cleanup, nil
 }
 
-// NewManagerWithProvider creates a new session manager with custom provider
+// NewManagerWithProvider creates a new session manager with custom provider.
+// NOTE: The caller is responsible for closing the provided provider and auditLogger
+// to avoid resource leaks.
 func NewManagerWithProvider(repoPath string, provider containeruse.Provider, auditLogger *security.AuditLogger) *Manager {
 	return &Manager{
 		environmentProvider: provider,

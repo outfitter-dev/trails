@@ -372,7 +372,7 @@ This coordination layer would work across all three modes, turning trails from a
 
 11. **Performance Metrics**
     - Should we track mode performance/resource usage?
-    - Help users choose optimal mode?
+    - Help users choose the optimal mode?
 
 12. **Security Policies**
     - Enterprise requirements for mode restrictions?

@@ -101,8 +101,8 @@ trails workflow import https://github.com/trails/workflows/tdd-cycle
 
 ## TUI Integration
 
-```
-┌─ Agentish ──────────────────────────────────┐
+```text
+┌─ Trails ────────────────────────────────────┐
 │ Sessions | Workflows | Settings              │
 ├─────────────────────────────────────────────┤
 │ Available Workflows:                         │
@@ -209,7 +209,7 @@ node_modules/
 {
   "name": "@trails/workflows-core",
   "version": "1.0.0",
-  "description": "Core workflows for Agentish",
+  "description": "Core workflows for Trails",
   "trails": {
     "type": "workflow-pack",
     "workflows": [
@@ -252,7 +252,7 @@ trails workflow import https://workflows.trails.dev/verified/quick-fix.yaml
 # ~/.config/trails/registries.yaml
 registries:
   official:
-    name: "Official Agentish Workflows"
+    name: "Official Trails Workflows"
     url: "https://registry.trails.dev"
     trusted: true
     
@@ -362,7 +362,7 @@ steps:
 
 ## Workflow Marketplace UI
 
-```
+```text
 ┌─ Workflow Marketplace ──────────────────────┐
 │ Search: [debugging_____________] [Search]    │
 ├─────────────────────────────────────────────┤
@@ -457,7 +457,7 @@ validation:
 
 ## Workflow Execution UI
 
-```
+```text
 ┌─ Running: Production Debugging ─────────────┐
 │                                             │
 │ ▶ Step 1/4: Analyzing logs      [RUNNING]   │
@@ -514,4 +514,4 @@ validation:
 4. **Efficiency**: No manual orchestration needed
 5. **Composability**: Build complex workflows from simple ones
 
-This would transform Agentish from a session manager into a **workflow orchestration platform** for AI agents, creating a whole ecosystem around workflow sharing and execution.
+This would transform Trails from a session manager into a **workflow orchestration platform** for AI agents, creating a whole ecosystem around workflow sharing and execution.
