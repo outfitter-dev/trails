@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
-	"github.com/maybe-good/agentish/internal/containeruse"
-	"github.com/maybe-good/agentish/internal/security"
+	"github.com/outfitter-dev/trails/internal/containeruse"
+	"github.com/outfitter-dev/trails/internal/security"
 )
 
 // ValidAgentTypes defines the supported AI agent types
@@ -17,9 +18,9 @@ var ValidAgentTypes = map[string]bool{
 	"codex":  true,
 }
 
-// Manager handles session lifecycle and container-use integration
+// Manager handles session lifecycle and container integration
 type Manager struct {
-	environmentProvider EnvironmentProvider
+	environmentProvider containeruse.Provider
 	repoPath            string
 	auditLogger         *security.AuditLogger
 }
@@ -32,15 +33,38 @@ func NewManager(repoPath string) (*Manager, func() error, error) {
 		return nil, nil, fmt.Errorf("failed to create audit logger: %w", err)
 	}
 
+	// Create container provider
+	providerType := containeruse.GetDefaultProviderType()
+	provider, closeProvider, err := containeruse.NewProvider(providerType, auditLogger)
+	if err != nil {
+		if errLogger := closeLogger(); errLogger != nil {
+			return nil, nil, fmt.Errorf("failed to create container provider: %w, logger cleanup error: %w", err, errLogger)
+		}
+		return nil, nil, fmt.Errorf("failed to create container provider: %w", err)
+	}
+
+	// Create cleanup function that closes both logger and provider
+	cleanup := func() error {
+		if err := closeProvider(); err != nil {
+			if errLogger := closeLogger(); errLogger != nil {
+				return fmt.Errorf("cleanup errors: provider=%w, logger=%w", err, errLogger)
+			}
+			return err
+		}
+		return closeLogger()
+	}
+
 	return &Manager{
-		environmentProvider: containeruse.NewClientWithAudit(auditLogger),
+		environmentProvider: provider,
 		repoPath:            repoPath,
 		auditLogger:         auditLogger,
-	}, closeLogger, nil
+	}, cleanup, nil
 }
 
-// NewManagerWithProvider creates a new session manager with custom provider
-func NewManagerWithProvider(repoPath string, provider EnvironmentProvider, auditLogger *security.AuditLogger) *Manager {
+// NewManagerWithProvider creates a new session manager with custom provider.
+// NOTE: The caller is responsible for closing the provided provider and auditLogger
+// to avoid resource leaks.
+func NewManagerWithProvider(repoPath string, provider containeruse.Provider, auditLogger *security.AuditLogger) *Manager {
 	return &Manager{
 		environmentProvider: provider,
 		repoPath:            repoPath,
@@ -60,7 +84,7 @@ func (m *Manager) CreateSession(ctx context.Context, name, agent string) (*Sessi
 	if m.repoPath == "" {
 		return nil, fmt.Errorf("repository path not configured")
 	}
-	
+
 	// Validate agent type
 	if !ValidAgentTypes[agent] {
 		return nil, fmt.Errorf("unsupported agent type: %s", agent)
@@ -70,26 +94,26 @@ func (m *Manager) CreateSession(ctx context.Context, name, agent string) (*Sessi
 
 	// Create container-use environment
 	envReq := containeruse.CreateEnvironmentRequest{
-		Name:        fmt.Sprintf("agentish-%s", session.ID),
+		Name:        fmt.Sprintf("trails-%s", strings.ToLower(session.ID)),
 		Source:      m.repoPath,
-		Explanation: fmt.Sprintf("Environment for %s agent session: %s", agent, name),
+		Explanation: fmt.Sprintf("Environment for %s agent session %s", agent, name),
 		Environment: map[string]string{
-			"AGENTISH_SESSION_ID": session.ID,
-			"AGENTISH_AGENT_TYPE": agent,
+			"TRAILS_SESSION_ID": session.ID,
+			"TRAILS_AGENT_TYPE": agent,
 		},
 	}
 
 	// Create environment with timeout to prevent hangs
 	createCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
-	
+
 	env, err := m.environmentProvider.CreateEnvironment(createCtx, envReq)
-	
+
 	// Audit log the session creation attempt
 	if m.auditLogger != nil {
 		m.auditLogger.LogSessionCreate(session.ID, agent, err == nil, err)
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to create container environment for session %s: %w", session.ID, err)
 	}
@@ -112,19 +136,19 @@ func (m *Manager) DestroySession(ctx context.Context, session *Session) error {
 	if session == nil {
 		return fmt.Errorf("session cannot be nil")
 	}
-	
+
 	var err error
 	if !session.EnvironmentID.IsEmpty() {
 		err = m.environmentProvider.DestroyEnvironment(ctx, session.EnvironmentID.String())
 	}
-	
+
 	// Audit log the session destruction attempt
 	if m.auditLogger != nil {
 		m.auditLogger.LogSessionDestroy(session.ID, err == nil, err)
 	}
-	
+
 	if err != nil {
-		return fmt.Errorf("failed to destroy container environment %s for session %s: %w", 
+		return fmt.Errorf("failed to destroy container environment %s for session %s: %w",
 			session.EnvironmentID.String(), session.ID, err)
 	}
 
@@ -146,15 +170,15 @@ func (m *Manager) StartAgent(ctx context.Context, session *Session) error {
 	session.UpdateStatus(StatusWorking)
 
 	err := m.environmentProvider.SpawnAgent(ctx, session.EnvironmentID.String(), session.Agent)
-	
+
 	// Audit log the agent start attempt
 	if m.auditLogger != nil {
 		m.auditLogger.LogAgentStart(session.ID, session.Agent, session.EnvironmentID.String(), err == nil, err)
 	}
-	
+
 	if err != nil {
 		session.UpdateStatus(StatusError)
-		return fmt.Errorf("failed to spawn %s agent in environment %s for session %s: %w", 
+		return fmt.Errorf("failed to spawn %s agent in environment %s for session %s: %w",
 			session.Agent, session.EnvironmentID.String(), session.ID, err)
 	}
 

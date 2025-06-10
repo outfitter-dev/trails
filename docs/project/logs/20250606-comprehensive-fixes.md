@@ -252,11 +252,11 @@ func NewSession(name, agent string) *Session {
 **Solution:** Created comprehensive CLI with multiple commands:
 ```go
 // Available CLI commands:
-// agentish create-session --name "my-session" --agent "claude"
-// agentish list-sessions
-// agentish delete-session <session-id>
-// agentish start-agent <session-id>
-// agentish status
+// trails create-session --name "my-session" --agent "claude"
+// trails list-sessions
+// trails delete-session <session-id>
+// trails start-agent <session-id>
+// trails status
 
 type CLI struct {
     repoPath string
@@ -267,10 +267,10 @@ type CLI struct {
 ```
 
 **Files Added:**
-- `cmd/agentish/cli.go` - Complete CLI implementation (172 lines)
+- `cmd/trails/cli.go` - Complete CLI implementation (172 lines)
 
 **Files Modified:**
-- `cmd/agentish/main.go:22-24` - CLI detection and routing
+- `cmd/trails/main.go:22-24` - CLI detection and routing
 
 ### Issue #11: UI Preferences Persistence
 **Problem:** UI state lost between sessions.
@@ -435,7 +435,7 @@ build:
 **Solution:** Removed all unused imports:
 - `internal/containeruse/client.go:8` - Removed unused "strings"
 - `internal/session/session.go:5` - Removed unused "fmt"  
-- `cmd/agentish/cli.go:9` - Removed unused "path/filepath"
+- `cmd/trails/cli.go:9` - Removed unused "path/filepath"
 
 ---
 
@@ -444,15 +444,15 @@ build:
 ### Final Test Suite Results
 ```bash
 $ make test
-?   	github.com/maybe-good/agentish/cmd/agentish	[no test files]
+?       github.com/maybe-good/trails/cmd/trails    [no test files]
 === RUN   TestGetDefaultAgent
 --- PASS: TestGetDefaultAgent (0.00s)
 === RUN   TestGetAutoRestore  
 --- PASS: TestGetAutoRestore (0.00s)
 PASS
-ok  	github.com/maybe-good/agentish/internal/config	(cached)
+ok      github.com/maybe-good/trails/internal/config    (cached)
 
-?   	github.com/maybe-good/agentish/internal/containeruse	[no test files]
+?       github.com/maybe-good/trails/internal/containeruse    [no test files]
 
 === RUN   TestManager_CreateSession
 --- PASS: TestManager_CreateSession (0.00s)
@@ -471,7 +471,7 @@ ok  	github.com/maybe-good/agentish/internal/config	(cached)
 === RUN   TestStatusString
 --- PASS: TestStatusString (0.00s)
 PASS
-ok  	github.com/maybe-good/agentish/internal/session	(cached)
+ok      github.com/maybe-good/trails/internal/session    (cached)
 
 === RUN   TestNewState
 --- PASS: TestNewState (0.00s)
@@ -484,9 +484,9 @@ ok  	github.com/maybe-good/agentish/internal/session	(cached)
 === RUN   TestGetActionableSessions
 --- PASS: TestGetActionableSessions (0.00s)
 PASS
-ok  	github.com/maybe-good/agentish/internal/state	(cached)
+ok      github.com/maybe-good/trails/internal/state    (cached)
 
-?   	github.com/maybe-good/agentish/internal/ui	[no test files]
+?       github.com/maybe-good/trails/internal/ui    [no test files]
 ```
 
 **Result: 100% PASS** - All tests passing across all packages
@@ -494,24 +494,24 @@ ok  	github.com/maybe-good/agentish/internal/state	(cached)
 ### Build Verification
 ```bash
 $ make build
-go build -o build/agentish ./cmd/agentish/
+go build -o build/trails ./cmd/trails/
 
 $ ls -la build/
 total 14240
--rwxr-xr-x  1 user  staff  7285856 Jan  6 15:30 agentish
+-rwxr-xr-x  1 user  staff  7285856 Jan  6 15:30 trails
 ```
 
 **Result: SUCCESSFUL** - Clean compilation with no errors or warnings
 
 ### CLI Verification
 ```bash
-$ ./build/agentish status
+$ ./build/trails status
 {
   "actionable_count": 0,
   "focused_session": null,
   "last_saved": 0,
   "minimal_mode": false,
-  "repo_path": "/Users/mg/Developer/agentish",
+  "repo_path": "/Users/mg/Developer/trails",
   "total_sessions": 0
 }
 ```
@@ -548,7 +548,7 @@ $ ./build/agentish status
 1. `internal/session/provider.go` - EnvironmentProvider interface
 2. `internal/session/manager_test.go` - Comprehensive unit tests  
 3. `internal/session/types.go` - EnvironmentID strong type
-4. `cmd/agentish/cli.go` - Complete CLI implementation
+4. `cmd/trails/cli.go` - Complete CLI implementation
 
 ### Files Modified (10)
 1. `internal/ui/app.go` - gocui API fix, UI preference loading
@@ -560,7 +560,7 @@ $ ./build/agentish status
 7. `internal/config/config.go` - Tri-state bools, UI preference support
 8. `internal/config/config_test.go` - Test naming, helper functions
 9. `internal/ui/colors.go` - String builder optimization
-10. `cmd/agentish/main.go` - CLI routing
+10. `cmd/trails/main.go` - CLI routing
 11. `Makefile` - Fixed build commands
 12. `go.mod` - ULID dependency
 

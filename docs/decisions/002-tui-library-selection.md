@@ -6,7 +6,7 @@
 
 ## Context and Problem Statement
 
-The `agentish` application requires a Terminal User Interface (TUI) to provide an interactive, pane-based experience for managing multiple agent sessions, inspired by tools like `lazygit`. The core decision is which Go library to use for building this TUI. The choice directly impacts the UI's architecture, maintainability, and developer experience.
+The `trails` application requires a Terminal User Interface (TUI) to provide an interactive, pane-based experience for managing multiple agent sessions, inspired by tools like `lazygit`. The core decision is which Go library to use for building this TUI. The choice directly impacts the UI's architecture, maintainability, and developer experience.
 
 ## Decision Drivers
 
@@ -23,7 +23,7 @@ The `agentish` application requires a Terminal User Interface (TUI) to provide a
 ## Decision Outcome
 
 **Initial Choice:** **`gocui`**.
-The initial MVP of `agentish` was built using `gocui`.
+The initial MVP of `trails` was built using `gocui`.
 
 **Future Direction:** **Migrate to `bubbletea`**.
 As documented in `docs/proposals/002-migrate-to-bubbletea.md`, we will undertake a full migration of the TUI from `gocui` to `bubbletea`.

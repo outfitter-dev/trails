@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/maybe-good/agentish/internal/security"
+	"github.com/outfitter-dev/trails/internal/security"
 )
 
 // Client represents a container-use MCP client
@@ -31,7 +31,7 @@ var (
 // Security constants
 const (
 	// Dangerous characters that could be used for command injection
-	dangerousChars = ";|&$`'\"\\n\\r(){}[]<>*?"
+	dangerousChars = ";|&$`'\"\n\r(){}[]<>*?"
 )
 
 // Safe commands allowlist - only these commands are permitted for execution
@@ -56,7 +56,7 @@ func validateInput(input, inputType string, auditLogger *security.AuditLogger) e
 		}
 		return err
 	}
-	
+
 	// Check for dangerous characters, now using a more restrictive pattern approach
 	if strings.ContainsAny(input, dangerousChars) {
 		err := fmt.Errorf("%s contains characters that are not allowed", inputType)
@@ -68,7 +68,7 @@ func validateInput(input, inputType string, auditLogger *security.AuditLogger) e
 		}
 		return err
 	}
-	
+
 	switch inputType {
 	case "name":
 		if !validNamePattern.MatchString(input) {
@@ -115,7 +115,7 @@ func validateInput(input, inputType string, auditLogger *security.AuditLogger) e
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
@@ -167,12 +167,18 @@ func (c *Client) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 	}
 
 	// Check if container-use is available
-	if _, err := exec.LookPath("container-use"); err != nil {
-		return nil, fmt.Errorf("container-use CLI not found: %w. Please install container-use from https://github.com/dagger/container-use", err)
+	if _, err := exec.LookPath("cu"); err != nil {
+		return nil, fmt.Errorf(`cu CLI not found: %w
+
+To install cu (container-use), run one of the following:
+  1. trails install-deps
+  2. git clone https://github.com/dagger/container-use && cd container-use && make install
+
+For development without container-use, run: trails --dev`, err)
 	}
 
 	// Use JSON format for reliable parsing
-	cmd := exec.CommandContext(ctx, "container-use", "environment", "create",
+	cmd := exec.CommandContext(ctx, "cu", "environment", "create",
 		"--name", req.Name,
 		"--source", req.Source,
 		"--format", "json")
@@ -219,7 +225,7 @@ func (c *Client) DestroyEnvironment(ctx context.Context, envID string) error {
 		return fmt.Errorf("invalid environment ID: %w", err)
 	}
 
-	cmd := exec.CommandContext(ctx, "container-use", "environment", "destroy", envID)
+	cmd := exec.CommandContext(ctx, "cu", "environment", "destroy", envID)
 
 	if err := cmd.Run(); err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -233,7 +239,7 @@ func (c *Client) DestroyEnvironment(ctx context.Context, envID string) error {
 
 // ListEnvironments lists all container-use environments
 func (c *Client) ListEnvironments(ctx context.Context) ([]*Environment, error) {
-	cmd := exec.CommandContext(ctx, "container-use", "environment", "list", "--format", "json")
+	cmd := exec.CommandContext(ctx, "cu", "environment", "list", "--format", "json")
 
 	output, err := cmd.Output()
 	if err != nil {
@@ -255,7 +261,7 @@ func (c *Client) GetEnvironment(ctx context.Context, envID string) (*Environment
 		return nil, fmt.Errorf("invalid environment ID: %w", err)
 	}
 
-	cmd := exec.CommandContext(ctx, "container-use", "environment", "get", envID, "--format", "json")
+	cmd := exec.CommandContext(ctx, "cu", "environment", "get", envID, "--format", "json")
 
 	output, err := cmd.Output()
 	if err != nil {
@@ -276,7 +282,7 @@ func (c *Client) RunCommand(ctx context.Context, envID, command string, backgrou
 	if err := validateInput(envID, "envID", c.auditLogger); err != nil {
 		return fmt.Errorf("invalid environment ID: %w", err)
 	}
-	
+
 	// Validate command - only allow predefined safe commands
 	if !safeCommands[command] {
 		err := fmt.Errorf("command '%s' is not in the allowlist of safe commands", command)
@@ -297,13 +303,13 @@ func (c *Client) RunCommand(ctx context.Context, envID, command string, backgrou
 
 	args = append(args, command)
 
-	cmd := exec.CommandContext(ctx, "container-use", args...)
+	cmd := exec.CommandContext(ctx, "cu", args...)
 
 	err := cmd.Run()
 	if c.auditLogger != nil {
 		c.auditLogger.LogCommandExecution(envID, command, err == nil, err)
 	}
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to run command in environment %s: %w", envID, err)
 	}

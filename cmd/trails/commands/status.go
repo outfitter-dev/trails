@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/maybe-good/agentish/internal/state"
+	"github.com/outfitter-dev/trails/internal/state"
 	"github.com/spf13/cobra"
 )
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Show the status of the agentish environment",
+	Short: "Show the status of the trails environment",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		wd, err := os.Getwd()
 		if err != nil {
@@ -29,12 +29,12 @@ var statusCmd = &cobra.Command{
 		actionable := st.GetActionableSessions()
 
 		status := map[string]interface{}{
-			"repo_path":         wd,
-			"total_sessions":    len(sessions),
-			"focused_session":   nil,
-			"actionable_count":  len(actionable),
-			"minimal_mode":      st.MinimalMode,
-			"last_saved":        st.LastSaved,
+			"repo_path":        wd,
+			"total_sessions":   len(sessions),
+			"focused_session":  nil,
+			"actionable_count": len(actionable),
+			"minimal_mode":     st.MinimalMode,
+			"last_saved":       st.LastSaved,
 		}
 
 		if focused != nil {
@@ -60,4 +60,4 @@ var statusCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(statusCmd)
-} 
+}

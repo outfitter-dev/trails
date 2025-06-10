@@ -6,7 +6,7 @@
 
 ## Context and Problem Statement
 
-The `agentish` application executes third-party coding agents within a containerized environment managed by `container-use`. A mechanism is required to determine which agent executables are permitted to run. The core problem is how to grant this permission in a way that is maximally secure and prevents arbitrary command execution, while still allowing for the addition of new, vetted agents. Two primary options were considered: a configurable allowlist (e.g., in a JSON or YAML file) or a hardcoded allowlist embedded directly in the source code.
+The `trails` application executes third-party coding agents within a containerized environment managed by `container-use`. A mechanism is required to determine which agent executables are permitted to run. The core problem is how to grant this permission in a way that is maximally secure and prevents arbitrary command execution, while still allowing for the addition of new, vetted agents. Two primary options were considered: a configurable allowlist (e.g., in a JSON or YAML file) or a hardcoded allowlist embedded directly in the source code.
 
 ## Decision Drivers
 
@@ -18,7 +18,7 @@ The `agentish` application executes third-party coding agents within a container
 ## Considered Options
 
 1.  **Configurable Allowlist**: A list of commands stored in a user-configurable file (e.g., `settings.json`).
-2.  **Hardcoded Allowlist**: A `map[string]bool` of permitted commands compiled directly into the `agentish` binary.
+2.  **Hardcoded Allowlist**: A `map[string]bool` of permitted commands compiled directly into the `trails` binary.
 3.  **Configurable Denylist**: A list of known-bad commands to block, allowing all others.
 4.  **Hardcoded Denylist**: A hardcoded list of known-bad commands.
 
@@ -54,4 +54,4 @@ var safeCommands = map[string]bool{
     - Clear, auditable path for adding new agents via source control history.
     - Adherence to the "Secure by Default" principle.
 - **Negative**:
-    - Reduced flexibility for end-users who may want to experiment with unsupported agents. This is a conscious trade-off. The security benefits far outweigh the inconvenience. The correct path for adding a new agent is to contribute to the `agentish` project itself. 
+  - Reduced flexibility for end-users who may want to experiment with unsupported agents. This is a conscious trade-off. The security benefits far outweigh the inconvenience. The correct path for adding a new agent is to contribute to the `trails` project itself. 

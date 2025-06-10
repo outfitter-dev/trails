@@ -1,8 +1,8 @@
-# Agentish MVP Architecture
+# Trails MVP Architecture
 
 ## Overview
 
-Agentish is a terminal UI for managing multiple AI coding agents in isolated containerized environments. It provides a lazygit-inspired interface with collapsing session tabs and seamless state restoration.
+Trails is a terminal UI for managing multiple AI coding agents in isolated containerized environments. It provides a lazygit-inspired interface with collapsing session tabs and seamless state restoration.
 
 ## Core Concepts
 
@@ -46,13 +46,13 @@ claude:auth[working] aider:tests[ready] codex:docs[waiting] coordinator[thinking
 - **Language**: Go
 - **TUI Library**: gocui (same as lazygit)
 - **Backend**: container-use MCP server
-- **State**: JSON files in `.agentish/`
+- **State**: JSON files in `.trails/`
 
 ### Project Structure
-```
-agentish/
+```text
+trails/
 ├── cmd/
-│   └── agentish/
+│   └── trails/
 │       └── main.go
 ├── internal/
 │   ├── config/          # Config management
@@ -73,11 +73,11 @@ Each session maintains:
 - UI state (collapsed/expanded, position)
 
 ### State Persistence
-Global state in `~/.config/agentish/`:
+Global state in `~/.config/trails/`:
 - Projects registry
 - Global preferences
 
-Per-repo state in `<repo>/.agentish/`:
+Per-repo state in `<repo>/.trails/`:
 - `state.json` - Active sessions, UI state
 - `settings.json` - Repo preferences (committed)
 - `settings.local.json` - Personal overrides (gitignored)
@@ -91,7 +91,7 @@ Per-repo state in `<repo>/.agentish/`:
 ## MVP Features
 
 ### Phase 1: Basic Session Management
-- [x] Single repo mode (`cd repo && agentish`)
+- [x] Single repo mode (`cd repo && trails`)
 - [x] Create/destroy sessions via container-use
 - [x] Basic tab navigation (j/k)
 - [x] Session status tracking
@@ -143,7 +143,7 @@ Per-repo state in `<repo>/.agentish/`:
 ## Success Criteria
 
 MVP is successful when:
-- Can launch agentish in any git repo
+- Can launch trails in any git repo
 - Can create multiple agent sessions
 - Sessions persist across restarts
 - Navigation feels natural and fast

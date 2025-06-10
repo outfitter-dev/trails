@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/maybe-good/agentish/internal/session"
-	"github.com/maybe-good/agentish/internal/state"
+	"github.com/outfitter-dev/trails/internal/session"
+	"github.com/outfitter-dev/trails/internal/state"
 	"github.com/spf13/cobra"
 )
 
-var deleteSessionCmd = &cobra.Command{
-	Use:   "delete-session [session_id]",
-	Short: "Delete a session",
+var startAgentCmd = &cobra.Command{
+	Use:   "start-agent [session_id]",
+	Short: "Start an agent in a session",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sessionID := args[0]
@@ -39,18 +39,16 @@ var deleteSessionCmd = &cobra.Command{
 		}
 		defer closeManager()
 
-		if err := manager.DestroySession(ctx, sess); err != nil {
-			return fmt.Errorf("failed to destroy session: %w", err)
+		if err := manager.StartAgent(ctx, sess); err != nil {
+			return fmt.Errorf("failed to start agent: %w", err)
 		}
 
-		st.RemoveSession(sessionID)
-		
-		fmt.Printf("Deleted session: %s\\n", sess.GetDisplayName())
+		fmt.Printf("Started %s agent for session: %s\\n", sess.Agent, sess.GetDisplayName())
 
 		return nil
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(deleteSessionCmd)
-} 
+	rootCmd.AddCommand(startAgentCmd)
+}

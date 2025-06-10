@@ -3,20 +3,20 @@ package ui
 import (
 	"strings"
 
-	"github.com/maybe-good/agentish/internal/session"
+	"github.com/outfitter-dev/trails/internal/session"
 )
 
 // FormatSessionTab formats a session tab with colors
 func FormatSessionTab(sess *session.Session, focused bool) string {
 	var builder strings.Builder
-	
+
 	builder.WriteString(sess.Agent)
 	builder.WriteString(":")
 	builder.WriteString(sess.GetDisplayName())
 	builder.WriteString(" [")
 	builder.WriteString(sess.GetStatusDisplay())
 	builder.WriteString("]")
-	
+
 	display := builder.String()
 
 	if focused {
@@ -33,13 +33,13 @@ func FormatSessionTab(sess *session.Session, focused bool) string {
 // FormatMinimalSession formats a session for minimal mode
 func FormatMinimalSession(sess *session.Session) string {
 	var builder strings.Builder
-	
+
 	builder.WriteString(sess.Agent)
 	builder.WriteString(":")
 	builder.WriteString(sess.GetDisplayName())
 	builder.WriteString("[")
 	builder.WriteString(sess.Status.String())
 	builder.WriteString("]")
-	
+
 	return builder.String()
-} 
+}

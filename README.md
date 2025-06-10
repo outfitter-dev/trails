@@ -1,14 +1,14 @@
-# Agentish
+# Trails
 
 A terminal UI for managing multiple AI coding agents in isolated containerized environments.
 
 ## Overview
 
-Agentish provides a lazygit-inspired interface for working with multiple AI agents simultaneously. Each agent runs in its own containerized environment managed by container-use, with seamless state restoration and intuitive navigation.
+Trails provides a lazygit-inspired interface for working with multiple AI agents simultaneously. Each agent runs in its own containerized environment, with seamless state restoration and intuitive navigation.
 
 ## Features
 
-- **Multi-agent management**: Run Claude Code, Aider, Codex and other agents simultaneously
+- **Multi-agent management**: Run Claude Code, Aider, Codex, Amp, Jules, OpenCode and other agents simultaneously
 - **Containerized isolation**: Each agent gets its own container-use environment
 - **Session tabs**: Navigate between agents with j/k keys, collapsing interface
 - **State persistence**: Resume exactly where you left off
@@ -19,25 +19,25 @@ Agentish provides a lazygit-inspired interface for working with multiple AI agen
 
 ```bash
 # Clone and build
-git clone https://github.com/maybe-good/agentish
-cd agentish
-go build -o agentish cmd/agentish/main.go
+git clone https://github.com/outfitter-dev/trails
+cd trails
+go build -o trails cmd/trails/main.go
 
 # Or install directly
-go install github.com/maybe-good/agentish/cmd/agentish@latest
+go install github.com/outfitter-dev/trails/cmd/trails@latest
 ```
 
 ## Prerequisites
 
 - [container-use](https://github.com/dagger/container-use) - Containerized environments backend
-- Go 1.24+ for building from source
+- Go 1.23+ for building from source
 
 ## Usage
 
 ```bash
-# Launch agentish in any git repository
+# Launch trails in any git repository
 cd your-project
-agentish
+trails
 ```
 
 ### Keyboard Shortcuts
@@ -67,30 +67,33 @@ agentish
 
 ## Configuration
 
-### Global Config: `~/.config/agentish/config.json`
+### Global Config: `~/.config/trails/config.json`
 ```json
 {
   "default_agent": "claude",
   "project_registry": {},
-  "theme": "default"
+  "theme": "default",
+  "minimal_mode": false
 }
 ```
 
-### Repo Config: `.agentish/settings.json`
+### Repo Config: `.trails/settings.json`
 ```json
 {
   "preferred_agents": ["claude", "aider"],
   "default_agent": "claude",
   "auto_restore": true,
+  "minimal_mode": false,
   "environment": {}
 }
 ```
 
-### Local Overrides: `.agentish/settings.local.json`
+### Local Overrides: `.trails/settings.local.json`
 ```json
 {
   "default_agent": "aider",
-  "auto_restore": false
+  "auto_restore": false,
+  "minimal_mode": true
 }
 ```
 
@@ -98,13 +101,13 @@ agentish
 
 ```bash
 # Run from source
-go run cmd/agentish/main.go
+go run cmd/trails/main.go
 
 # Run tests
 go test ./...
 
 # Build
-go build -o agentish cmd/agentish/main.go
+go build -o trails cmd/trails/main.go
 ```
 
 ## Architecture

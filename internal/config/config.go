@@ -7,18 +7,18 @@ import (
 	"path/filepath"
 )
 
-// Config holds agentish configuration
+// Config holds trails configuration
 type Config struct {
 	// RepoPath is the current repository path
 	RepoPath string `json:"repo_path"`
 
-	// Global configuration from ~/.config/agentish/
+	// Global configuration from ~/.config/trails/
 	Global *GlobalConfig `json:"global,omitempty"`
 
-	// Repo-specific configuration from .agentish/settings.json
+	// Repo-specific configuration from .trails/settings.json
 	Repo *RepoConfig `json:"repo,omitempty"`
 
-	// Local overrides from .agentish/settings.local.json
+	// Local overrides from .trails/settings.local.json
 	Local *RepoConfig `json:"local,omitempty"`
 }
 
@@ -37,7 +37,7 @@ var defaultConfig = &Config{
 	},
 }
 
-// GlobalConfig stores global agentish preferences
+// GlobalConfig stores global trails preferences
 type GlobalConfig struct {
 	DefaultAgent    string            `json:"default_agent"`
 	ProjectRegistry map[string]string `json:"project_registry"`
@@ -171,7 +171,7 @@ func loadGlobalConfig() (*GlobalConfig, error) {
 		return nil, err
 	}
 
-	configPath := filepath.Join(configDir, "agentish", "config.json")
+	configPath := filepath.Join(configDir, "trails", "config.json")
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -190,7 +190,7 @@ func loadGlobalConfig() (*GlobalConfig, error) {
 }
 
 func loadRepoConfig(repoPath, filename string) (*RepoConfig, error) {
-	configPath := filepath.Join(repoPath, ".agentish", filename)
+	configPath := filepath.Join(repoPath, ".trails", filename)
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, err

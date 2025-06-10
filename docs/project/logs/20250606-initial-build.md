@@ -2,7 +2,7 @@
 
 ## Overview
 
-This log documents the initial implementation of the agentish MVP, following the architecture specification in `docs/proposals/001-mvp-architecture.md`. The goal was to build a terminal UI for managing multiple AI coding agents in isolated containerized environments.
+This log documents the initial implementation of the trails MVP, following the architecture specification in `docs/proposals/001-mvp-architecture.md`. The goal was to build a terminal UI for managing multiple AI coding agents in isolated containerized environments.
 
 ## Development Process
 
@@ -131,7 +131,7 @@ This log documents the initial implementation of the agentish MVP, following the
 ### 8. Git Repository Setup (18:05-18:10)
 
 **Repository Initialization:**
-- Created `.gitignore` with Go and agentish-specific exclusions
+- Created `.gitignore` with Go and trails-specific exclusions
 - Initialized git repository
 - Staged all MVP files
 - Created conventional commit with proper attribution
@@ -157,7 +157,7 @@ This log documents the initial implementation of the agentish MVP, following the
    - Manager pattern for coordinating sessions and environments
 
 3. **State Persistence** (`internal/state/`)
-   - JSON-based state management in `.agentish/state.json`
+   - JSON-based state management in `.trails/state.json`
    - Session ordering and focus management
    - Actionable session detection and navigation
 
@@ -196,7 +196,7 @@ This log documents the initial implementation of the agentish MVP, following the
 
 ### State Management
 - **JSON Files**: Simple, debuggable, version-controllable state persistence
-- **Location**: `.agentish/` directory in each repository
+- **Location**: `.trails/` directory in each repository
 - **Separation**: Runtime state vs configuration vs local overrides
 
 ### Error Philosophy
@@ -226,4 +226,4 @@ The MVP is complete and ready for:
 
 ## Conclusion
 
-Successfully delivered a complete MVP implementation of agentish following the architectural specification. The system provides a solid foundation for managing multiple AI coding agents with containerized isolation, persistent state, and intuitive terminal UI navigation. All core requirements met with comprehensive testing and proper error handling.
+Successfully delivered a complete MVP implementation of trails following the architectural specification. The system provides a solid foundation for managing multiple AI coding agents with containerized isolation, persistent state, and intuitive terminal UI navigation. All core requirements met with comprehensive testing and proper error handling.
