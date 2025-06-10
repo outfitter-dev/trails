@@ -108,7 +108,7 @@ Environment variable for provider selection:
 
 ### MCP Integration
 Could add MCP server functionality to trails, allowing:
-- Agents to discover available sessions
+- Agents to discover available trails
 - Direct container control via MCP tools
 - Better integration with AI tools ecosystem
 
