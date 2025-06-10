@@ -29,12 +29,12 @@ var statusCmd = &cobra.Command{
 		actionable := st.GetActionableSessions()
 
 		status := map[string]interface{}{
-			"repo_path":         wd,
-			"total_sessions":    len(sessions),
-			"focused_session":   nil,
-			"actionable_count":  len(actionable),
-			"minimal_mode":      st.MinimalMode,
-			"last_saved":        st.LastSaved,
+			"repo_path":        wd,
+			"total_sessions":   len(sessions),
+			"focused_session":  nil,
+			"actionable_count": len(actionable),
+			"minimal_mode":     st.MinimalMode,
+			"last_saved":       st.LastSaved,
 		}
 
 		if focused != nil {
@@ -60,4 +60,4 @@ var statusCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(statusCmd)
-} 
+}

@@ -38,7 +38,7 @@ func NewState(repoPath string) *State {
 func (s *State) AddSession(sess *session.Session) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	s.Sessions[sess.ID] = sess
 	s.SessionOrder = append(s.SessionOrder, sess.ID)
 
@@ -55,7 +55,7 @@ func (s *State) AddSession(sess *session.Session) {
 func (s *State) RemoveSession(sessionID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	delete(s.Sessions, sessionID)
 
 	// Remove from order
@@ -83,16 +83,16 @@ func (s *State) RemoveSession(sessionID string) {
 func (s *State) GetFocusedSession() *session.Session {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	if s.FocusedSession == "" {
 		return nil
 	}
-	
+
 	sess, exists := s.Sessions[s.FocusedSession]
 	if !exists {
 		return nil
 	}
-	
+
 	return sess.DeepCopy()
 }
 
@@ -100,7 +100,7 @@ func (s *State) GetFocusedSession() *session.Session {
 func (s *State) GetOrderedSessions() []*session.Session {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	sessions := make([]*session.Session, 0, len(s.SessionOrder))
 	for _, id := range s.SessionOrder {
 		if sess, exists := s.Sessions[id]; exists {
@@ -114,7 +114,7 @@ func (s *State) GetOrderedSessions() []*session.Session {
 func (s *State) GetActionableSessions() []*session.Session {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	var actionable []*session.Session
 	for _, sess := range s.Sessions {
 		if sess.IsActionable() {
@@ -134,7 +134,7 @@ func (s *State) GetActionableSessions() []*session.Session {
 func (s *State) MoveFocus(direction int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	if len(s.SessionOrder) == 0 {
 		return
 	}
@@ -182,14 +182,14 @@ func (s *State) updatePositions() {
 func (s *State) Save() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	s.LastSaved = time.Now().Unix()
-	
+
 	statePath := filepath.Join(s.RepoPath, ".trails")
 	if err := os.MkdirAll(statePath, security.SecureDirPerm); err != nil {
 		return fmt.Errorf("failed to create .trails directory: %w", err)
 	}
-	
+
 	// Ensure permissions are correct even if directory existed
 	if err := os.Chmod(statePath, security.SecureDirPerm); err != nil {
 		return fmt.Errorf("failed to enforce permissions on %s: %w", statePath, err)

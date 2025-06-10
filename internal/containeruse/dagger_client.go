@@ -22,18 +22,18 @@ type DaggerClient struct {
 // NewDaggerClient creates a new Dagger-based client
 func NewDaggerClient(auditLogger *security.AuditLogger) (*DaggerClient, error) {
 	ctx := context.Background()
-	
+
 	// Connect to Dagger with optional log output
 	var logOutput io.Writer
 	if os.Getenv("DAGGER_LOG") != "" {
 		logOutput = os.Stderr
 	}
-	
+
 	dag, err := dagger.Connect(ctx, dagger.WithLogOutput(logOutput))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to Dagger: %w\n\nMake sure Docker or another container runtime is running.\nFor more info, see: https://docs.dagger.io/install", err)
 	}
-	
+
 	return &DaggerClient{
 		dag:         dag,
 		auditLogger: auditLogger,
@@ -58,10 +58,10 @@ func (c *DaggerClient) CreateEnvironment(ctx context.Context, req CreateEnvironm
 	if err := validateInput(req.Source, "source", c.auditLogger); err != nil {
 		return nil, fmt.Errorf("invalid source: %w", err)
 	}
-	
+
 	// Create a unique environment ID
 	envID := fmt.Sprintf("env-%s", req.Name)
-	
+
 	// Determine base image based on agent type
 	baseImage := "ubuntu:latest"
 	if agentType, ok := req.Environment["TRAILS_AGENT_TYPE"]; ok {
@@ -74,12 +74,12 @@ func (c *DaggerClient) CreateEnvironment(ctx context.Context, req CreateEnvironm
 			baseImage = "ubuntu:latest" // Generic for now
 		}
 	}
-	
+
 	// Create container with mounted source directory
 	container := c.dag.Container().
 		From(baseImage).
 		WithWorkdir("/workspace")
-	
+
 	// Mount the source directory if it's a local path
 	if strings.HasPrefix(req.Source, "/") || strings.HasPrefix(req.Source, "./") {
 		absPath, err := filepath.Abs(req.Source)
@@ -88,19 +88,19 @@ func (c *DaggerClient) CreateEnvironment(ctx context.Context, req CreateEnvironm
 		}
 		container = container.WithMountedDirectory("/workspace", c.dag.Host().Directory(absPath))
 	}
-	
+
 	// Set environment variables
 	for key, value := range req.Environment {
 		container = container.WithEnvVariable(key, value)
 	}
-	
+
 	// Install basic tools
 	container = container.
 		WithExec([]string{"sh", "-c", "apt-get update && apt-get install -y git curl wget tmux vim"})
-	
+
 	// Store the container
 	c.containers[envID] = container
-	
+
 	return &Environment{
 		ID:          envID,
 		Name:        req.Name,
@@ -122,7 +122,7 @@ func (c *DaggerClient) GetEnvironment(ctx context.Context, envID string) (*Envir
 	if _, exists := c.containers[envID]; !exists {
 		return nil, fmt.Errorf("environment %s not found", envID)
 	}
-	
+
 	return &Environment{
 		ID:     envID,
 		Status: "ready",
@@ -135,7 +135,7 @@ func (c *DaggerClient) SpawnAgent(ctx context.Context, envID, agentType string) 
 	if !exists {
 		return fmt.Errorf("environment %s not found", envID)
 	}
-	
+
 	// Map agent type to command
 	var agentCmd []string
 	switch agentType {
@@ -150,17 +150,17 @@ func (c *DaggerClient) SpawnAgent(ctx context.Context, envID, agentType string) 
 	default:
 		return fmt.Errorf("unsupported agent type: %s", agentType)
 	}
-	
+
 	// Execute the agent command in background
 	// Note: For real implementation, we'd need to handle long-running processes
 	updatedContainer := container.WithExec(agentCmd)
 	c.containers[envID] = updatedContainer
-	
+
 	// Log the agent start
 	if c.auditLogger != nil {
 		c.auditLogger.LogAgentStart("", agentType, envID, true, nil)
 	}
-	
+
 	return nil
 }
 
@@ -170,17 +170,17 @@ func (c *DaggerClient) RunCommand(ctx context.Context, envID string, command []s
 	if !exists {
 		return "", fmt.Errorf("environment %s not found", envID)
 	}
-	
+
 	// Execute command and capture output
 	result := container.WithExec(command)
 	output, err := result.Stdout(ctx)
 	if err != nil {
 		return "", fmt.Errorf("command execution failed: %w", err)
 	}
-	
+
 	// Update the container state
 	c.containers[envID] = result
-	
+
 	return output, nil
 }
 
@@ -190,7 +190,7 @@ func (c *DaggerClient) GetTerminal(ctx context.Context, envID string) error {
 	if !exists {
 		return fmt.Errorf("environment %s not found", envID)
 	}
-	
+
 	// For now, we'll use the Terminal() method which opens an interactive session
 	// In production, this might need to be handled differently
 	_, err := container.Terminal().Sync(ctx)

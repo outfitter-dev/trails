@@ -54,4 +54,4 @@ var listSessionsCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(listSessionsCmd)
-} 
+}

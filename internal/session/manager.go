@@ -40,7 +40,7 @@ func NewManager(repoPath string) (*Manager, func() error, error) {
 		closeLogger()
 		return nil, nil, fmt.Errorf("failed to create container provider: %w", err)
 	}
-	
+
 	// Create cleanup function that closes both logger and provider
 	cleanup := func() error {
 		if err := closeProvider(); err != nil {
@@ -49,7 +49,7 @@ func NewManager(repoPath string) (*Manager, func() error, error) {
 		}
 		return closeLogger()
 	}
-	
+
 	return &Manager{
 		environmentProvider: provider,
 		repoPath:            repoPath,
@@ -78,7 +78,7 @@ func (m *Manager) CreateSession(ctx context.Context, name, agent string) (*Sessi
 	if m.repoPath == "" {
 		return nil, fmt.Errorf("repository path not configured")
 	}
-	
+
 	// Validate agent type
 	if !ValidAgentTypes[agent] {
 		return nil, fmt.Errorf("unsupported agent type: %s", agent)
@@ -100,14 +100,14 @@ func (m *Manager) CreateSession(ctx context.Context, name, agent string) (*Sessi
 	// Create environment with timeout to prevent hangs
 	createCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
-	
+
 	env, err := m.environmentProvider.CreateEnvironment(createCtx, envReq)
-	
+
 	// Audit log the session creation attempt
 	if m.auditLogger != nil {
 		m.auditLogger.LogSessionCreate(session.ID, agent, err == nil, err)
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to create container environment for session %s: %w", session.ID, err)
 	}
@@ -130,19 +130,19 @@ func (m *Manager) DestroySession(ctx context.Context, session *Session) error {
 	if session == nil {
 		return fmt.Errorf("session cannot be nil")
 	}
-	
+
 	var err error
 	if !session.EnvironmentID.IsEmpty() {
 		err = m.environmentProvider.DestroyEnvironment(ctx, session.EnvironmentID.String())
 	}
-	
+
 	// Audit log the session destruction attempt
 	if m.auditLogger != nil {
 		m.auditLogger.LogSessionDestroy(session.ID, err == nil, err)
 	}
-	
+
 	if err != nil {
-		return fmt.Errorf("failed to destroy container environment %s for session %s: %w", 
+		return fmt.Errorf("failed to destroy container environment %s for session %s: %w",
 			session.EnvironmentID.String(), session.ID, err)
 	}
 
@@ -164,15 +164,15 @@ func (m *Manager) StartAgent(ctx context.Context, session *Session) error {
 	session.UpdateStatus(StatusWorking)
 
 	err := m.environmentProvider.SpawnAgent(ctx, session.EnvironmentID.String(), session.Agent)
-	
+
 	// Audit log the agent start attempt
 	if m.auditLogger != nil {
 		m.auditLogger.LogAgentStart(session.ID, session.Agent, session.EnvironmentID.String(), err == nil, err)
 	}
-	
+
 	if err != nil {
 		session.UpdateStatus(StatusError)
-		return fmt.Errorf("failed to spawn %s agent in environment %s for session %s: %w", 
+		return fmt.Errorf("failed to spawn %s agent in environment %s for session %s: %w",
 			session.Agent, session.EnvironmentID.String(), session.ID, err)
 	}
 

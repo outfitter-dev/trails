@@ -293,7 +293,7 @@ A simple append-only log (`.trails/agent-comm.log`) where agents can:
 - Request information from other agents
 - Coordinate file access
 
-### Agentish MCP Server
+### Trails MCP Server
 Future versions could expose an MCP server that agents can connect to:
 ```
 Tools:

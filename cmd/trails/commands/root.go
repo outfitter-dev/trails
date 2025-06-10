@@ -16,7 +16,6 @@ var (
 	devMode bool
 )
 
-
 var rootCmd = &cobra.Command{
 	Use:   "trails",
 	Short: "trails is a tool for managing AI coding guides",
@@ -25,7 +24,7 @@ var rootCmd = &cobra.Command{
 		// If no subcommand is given, run the TUI.
 		// This is the main entry point for the TUI mode.
 		// We set up all dependencies here and ensure they are properly closed.
-		
+
 		// Get current working directory (repo root)
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -48,13 +47,13 @@ var rootCmd = &cobra.Command{
 		// Create session manager
 		var sm *session.Manager
 		var closeManager func() error
-		
+
 		if devMode {
 			// Use mock provider in development mode
 			log.Println("Running in development mode with mock container provider")
 			os.Setenv("TRAILS_PROVIDER", "mock")
 		}
-		
+
 		// Create session manager (it will use the appropriate provider based on env)
 		sm, closeManager, err = session.NewManager(cwd)
 		if err != nil {
@@ -84,4 +83,4 @@ func Execute() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-} 
+}

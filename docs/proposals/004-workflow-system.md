@@ -2,7 +2,7 @@
 
 ## Overview
 
-Introduce a workflow system to Agentish that enables users to define, share, and execute multi-agent workflows with minimal interaction. Workflows are reusable, parameterized sequences of agent operations that can be triggered easily.
+Introduce a workflow system to Trails that enables users to define, share, and execute multi-agent workflows with minimal interaction. Workflows are reusable, parameterized sequences of agent operations that can be triggered easily.
 
 ## Core Concept
 

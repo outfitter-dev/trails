@@ -44,7 +44,7 @@ var deleteSessionCmd = &cobra.Command{
 		}
 
 		st.RemoveSession(sessionID)
-		
+
 		fmt.Printf("Deleted session: %s\\n", sess.GetDisplayName())
 
 		return nil
@@ -53,4 +53,4 @@ var deleteSessionCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(deleteSessionCmd)
-} 
+}

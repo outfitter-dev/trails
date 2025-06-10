@@ -1,8 +1,8 @@
-# Agentish MVP Architecture
+# Trails MVP Architecture
 
 ## Overview
 
-Agentish is a terminal UI for managing multiple AI coding agents in isolated containerized environments. It provides a lazygit-inspired interface with collapsing session tabs and seamless state restoration.
+Trails is a terminal UI for managing multiple AI coding agents in isolated containerized environments. It provides a lazygit-inspired interface with collapsing session tabs and seamless state restoration.
 
 ## Core Concepts
 

@@ -51,7 +51,7 @@ var createSessionCmd = &cobra.Command{
 		}
 
 		st.AddSession(sess)
-		
+
 		fmt.Printf("Created session: %s (ID: %s)\\n", sess.GetDisplayName(), sess.ID)
 		fmt.Printf("Environment: %s\\n", sess.EnvironmentID.String())
 
@@ -63,4 +63,4 @@ func init() {
 	rootCmd.AddCommand(createSessionCmd)
 	createSessionCmd.Flags().String("name", "session", "Session name")
 	createSessionCmd.Flags().String("agent", "", "Agent type")
-} 
+}

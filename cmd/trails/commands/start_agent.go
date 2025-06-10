@@ -51,4 +51,4 @@ var startAgentCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(startAgentCmd)
-} 
+}

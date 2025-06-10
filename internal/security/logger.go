@@ -16,7 +16,7 @@ const (
 	SecureFilePerm os.FileMode = 0600
 
 	// secureAuditDirPerm - Owner read/write/execute only for audit directories
-	secureAuditDirPerm  os.FileMode = 0700
+	secureAuditDirPerm os.FileMode = 0700
 	// secureAuditFilePerm - Owner read/write only for audit files
 	secureAuditFilePerm os.FileMode = 0600
 )
@@ -28,15 +28,15 @@ type AuditLogger struct {
 
 // Event represents a security audit event
 type Event struct {
-	Action      string `json:"action"`
-	Resource    string `json:"resource"`
-	UserID      string `json:"user_id,omitempty"`
-	SessionID   string `json:"session_id,omitempty"`
-	RemoteAddr  string `json:"remote_addr,omitempty"`
-	UserAgent   string `json:"user_agent,omitempty"`
-	Success     bool   `json:"success"`
-	ErrorMsg    string `json:"error_msg,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Action     string                 `json:"action"`
+	Resource   string                 `json:"resource"`
+	UserID     string                 `json:"user_id,omitempty"`
+	SessionID  string                 `json:"session_id,omitempty"`
+	RemoteAddr string                 `json:"remote_addr,omitempty"`
+	UserAgent  string                 `json:"user_agent,omitempty"`
+	Success    bool                   `json:"success"`
+	ErrorMsg   string                 `json:"error_msg,omitempty"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // NewAuditLogger creates a new security audit logger and a function to close it.
@@ -49,17 +49,17 @@ func NewAuditLogger(repoPath string) (*AuditLogger, func() error, error) {
 
 	// Configure audit log file with secure permissions
 	auditFile := filepath.Join(auditDir, "security.log")
-	
+
 	config := zap.NewProductionConfig()
 	config.OutputPaths = []string{auditFile}
 	config.ErrorOutputPaths = []string{auditFile}
 	config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
-	
+
 	// Add caller information for debugging
 	config.Development = false
 	config.DisableCaller = false
 	config.DisableStacktrace = false
-	
+
 	// Use JSON encoding for structured logs
 	config.Encoding = "json"
 	config.EncoderConfig = zapcore.EncoderConfig{

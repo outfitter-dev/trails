@@ -83,4 +83,4 @@ func (a *App) drawMainContent(v *gocui.View) {
 	fmt.Fprintln(v, "  n - Next actionable session")
 	fmt.Fprintln(v, "  m - Toggle minimal mode")
 	fmt.Fprintln(v, "  q - Quit")
-} 
+}

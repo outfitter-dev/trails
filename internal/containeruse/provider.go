@@ -12,9 +12,9 @@ import (
 type ProviderType string
 
 const (
-	ProviderTypeDagger      ProviderType = "dagger"
+	ProviderTypeDagger       ProviderType = "dagger"
 	ProviderTypeContainerUse ProviderType = "container-use"
-	ProviderTypeMock        ProviderType = "mock"
+	ProviderTypeMock         ProviderType = "mock"
 )
 
 // Provider is the unified interface for container providers
@@ -34,14 +34,14 @@ func NewProvider(providerType ProviderType, auditLogger *security.AuditLogger) (
 			return nil, nil, fmt.Errorf("failed to create Dagger client: %w", err)
 		}
 		return client, client.Close, nil
-		
+
 	case ProviderTypeContainerUse:
 		client := NewClientWithAudit(auditLogger)
 		return client, func() error { return nil }, nil
-		
+
 	case ProviderTypeMock:
 		return &MockProvider{}, func() error { return nil }, nil
-		
+
 	default:
 		return nil, nil, fmt.Errorf("unknown provider type: %s", providerType)
 	}
@@ -53,7 +53,7 @@ func GetDefaultProviderType() ProviderType {
 	if provider := os.Getenv("TRAILS_PROVIDER"); provider != "" {
 		return ProviderType(provider)
 	}
-	
+
 	// Default to Dagger
 	return ProviderTypeDagger
 }

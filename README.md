@@ -19,18 +19,18 @@ Trails provides a lazygit-inspired interface for working with multiple AI agents
 
 ```bash
 # Clone and build
-git clone https://github.com/maybe-good/trails
+git clone https://github.com/outfitter-dev/trails
 cd trails
 go build -o trails cmd/trails/main.go
 
 # Or install directly
-go install github.com/maybe-good/trails/cmd/trails@latest
+go install github.com/outfitter-dev/trails/cmd/trails@latest
 ```
 
 ## Prerequisites
 
 - [container-use](https://github.com/dagger/container-use) - Containerized environments backend
-- Go 1.24+ for building from source
+- Go 1.23+ for building from source
 
 ## Usage
 

@@ -5,7 +5,7 @@ Accepted
 
 ## Context
 
-Agentish needs to provide isolated container environments for AI coding agents. Our initial approach was to integrate with [container-use](https://github.com/dagger/container-use), a tool by Dagger that appeared to provide exactly this functionality.
+Trails needs to provide isolated container environments for AI coding agents. Our initial approach was to integrate with [container-use](https://github.com/dagger/container-use), a tool by Dagger that appeared to provide exactly this functionality.
 
 However, after implementation attempts, we discovered:
 

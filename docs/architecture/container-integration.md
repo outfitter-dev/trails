@@ -2,7 +2,7 @@
 
 ## Overview
 
-Agentish uses containerized environments to provide isolated workspaces for AI coding agents. Each session runs in its own container, preventing conflicts between multiple agents and ensuring clean, reproducible environments.
+Trails uses containerized environments to provide isolated workspaces for AI coding agents. Each session runs in its own container, preventing conflicts between multiple agents and ensuring clean, reproducible environments.
 
 ## Evolution of the Architecture
 

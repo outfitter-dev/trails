@@ -90,17 +90,17 @@ func TestManager_CreateSession(t *testing.T) {
 			mock := &MockProvider{
 				createFunc: tt.mockFunc,
 			}
-			
+
 			m := NewManagerWithProvider("/test/repo", mock, nil)
-			
+
 			ctx := context.Background()
 			session, err := m.CreateSession(ctx, tt.sessionName, tt.agent)
-			
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CreateSession() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			
+
 			if !tt.wantErr {
 				if session == nil {
 					t.Error("CreateSession() returned nil session")
@@ -125,10 +125,10 @@ func TestManager_CreateSession(t *testing.T) {
 
 func TestManager_DestroySession(t *testing.T) {
 	tests := []struct {
-		name        string
+		name         string
 		sessionEnvID string
-		mockFunc    func(ctx context.Context, envID string) error
-		wantErr     bool
+		mockFunc     func(ctx context.Context, envID string) error
+		wantErr      bool
 	}{
 		{
 			name:         "successful destruction",
@@ -158,17 +158,17 @@ func TestManager_DestroySession(t *testing.T) {
 			mock := &MockProvider{
 				destroyFunc: tt.mockFunc,
 			}
-			
+
 			m := NewManagerWithProvider("/test/repo", mock, nil)
-			
+
 			session := &Session{
 				ID:            "test-session-id",
 				EnvironmentID: NewEnvironmentID(tt.sessionEnvID),
 			}
-			
+
 			ctx := context.Background()
 			err := m.DestroySession(ctx, session)
-			
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DestroySession() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -218,23 +218,23 @@ func TestManager_StartAgent(t *testing.T) {
 			mock := &MockProvider{
 				spawnFunc: tt.mockFunc,
 			}
-			
+
 			m := NewManagerWithProvider("/test/repo", mock, nil)
-			
+
 			session := &Session{
 				ID:            "test-session-id",
 				EnvironmentID: NewEnvironmentID(tt.sessionEnvID),
 				Agent:         tt.agent,
 				Status:        StatusReady,
 			}
-			
+
 			ctx := context.Background()
 			err := m.StartAgent(ctx, session)
-			
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("StartAgent() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			
+
 			if tt.wantStatus != 0 && session.Status != tt.wantStatus {
 				t.Errorf("Session status = %v, want %v", session.Status, tt.wantStatus)
 			}

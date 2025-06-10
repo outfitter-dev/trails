@@ -25,7 +25,7 @@ type App struct {
 func NewApp(ctx context.Context, cfg *config.Config, st *state.State, sm *session.Manager) (*App, error) {
 	// Create cancellable context to ensure proper cleanup
 	appCtx, cancel := context.WithCancel(ctx)
-	
+
 	g := gocui.NewGui()
 
 	// Use terminal default colors

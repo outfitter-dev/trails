@@ -56,7 +56,7 @@ func validateInput(input, inputType string, auditLogger *security.AuditLogger) e
 		}
 		return err
 	}
-	
+
 	// Check for dangerous characters, now using a more restrictive pattern approach
 	if strings.ContainsAny(input, dangerousChars) {
 		err := fmt.Errorf("%s contains characters that are not allowed", inputType)
@@ -68,7 +68,7 @@ func validateInput(input, inputType string, auditLogger *security.AuditLogger) e
 		}
 		return err
 	}
-	
+
 	switch inputType {
 	case "name":
 		if !validNamePattern.MatchString(input) {
@@ -115,7 +115,7 @@ func validateInput(input, inputType string, auditLogger *security.AuditLogger) e
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
@@ -282,7 +282,7 @@ func (c *Client) RunCommand(ctx context.Context, envID, command string, backgrou
 	if err := validateInput(envID, "envID", c.auditLogger); err != nil {
 		return fmt.Errorf("invalid environment ID: %w", err)
 	}
-	
+
 	// Validate command - only allow predefined safe commands
 	if !safeCommands[command] {
 		err := fmt.Errorf("command '%s' is not in the allowlist of safe commands", command)
@@ -309,7 +309,7 @@ func (c *Client) RunCommand(ctx context.Context, envID, command string, backgrou
 	if c.auditLogger != nil {
 		c.auditLogger.LogCommandExecution(envID, command, err == nil, err)
 	}
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to run command in environment %s: %w", envID, err)
 	}
