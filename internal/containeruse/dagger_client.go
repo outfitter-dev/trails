@@ -2,6 +2,7 @@ package containeruse
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"io"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"dagger.io/dagger"
+	"github.com/oklog/ulid/v2"
 	"github.com/outfitter-dev/trails/internal/security"
 )
 
@@ -63,8 +65,9 @@ func (c *DaggerClient) CreateEnvironment(ctx context.Context, req CreateEnvironm
 	}
 
 	// Create a unique environment ID to avoid collisions
-	timestamp := time.Now().Unix()
-	envID := fmt.Sprintf("env-%s-%d", req.Name, timestamp)
+	entropy := ulid.Monotonic(rand.Reader, 0)
+	ulid := ulid.MustNew(ulid.Timestamp(time.Now()), entropy)
+	envID := fmt.Sprintf("env-%s-%s", req.Name, ulid.String())
 
 	// Determine base image based on agent type
 	baseImage := "ubuntu:latest"
@@ -131,7 +134,7 @@ func (c *DaggerClient) DestroyEnvironment(ctx context.Context, envID string) err
 		// we could add container.Stop() or similar if Dagger SDK provides it.
 		_ = container // Keep reference to avoid "unused variable" warning
 	}
-	
+
 	return nil
 }
 
@@ -140,7 +143,7 @@ func (c *DaggerClient) GetEnvironment(ctx context.Context, envID string) (*Envir
 	c.mu.RLock()
 	_, exists := c.containers[envID]
 	c.mu.RUnlock()
-	
+
 	if !exists {
 		return nil, fmt.Errorf("environment %s not found", envID)
 	}
@@ -156,7 +159,7 @@ func (c *DaggerClient) SpawnAgent(ctx context.Context, envID, agentType string) 
 	c.mu.RLock()
 	container, exists := c.containers[envID]
 	c.mu.RUnlock()
-	
+
 	if !exists {
 		return fmt.Errorf("environment %s not found", envID)
 	}
@@ -196,7 +199,7 @@ func (c *DaggerClient) RunCommand(ctx context.Context, envID string, command []s
 	c.mu.RLock()
 	container, exists := c.containers[envID]
 	c.mu.RUnlock()
-	
+
 	if !exists {
 		return "", fmt.Errorf("environment %s not found", envID)
 	}
@@ -221,7 +224,7 @@ func (c *DaggerClient) GetTerminal(ctx context.Context, envID string) error {
 	c.mu.RLock()
 	container, exists := c.containers[envID]
 	c.mu.RUnlock()
-	
+
 	if !exists {
 		return fmt.Errorf("environment %s not found", envID)
 	}
