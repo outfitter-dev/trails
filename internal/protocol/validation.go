@@ -70,8 +70,8 @@ func validateCreateSession(payload interface{}) error {
 		return fmt.Errorf("%w: name cannot be empty", ErrInvalidSessionName)
 	}
 
-	if len(cmd.Name) > 50 {
-		return fmt.Errorf("%w: name too long (max 50 chars)", ErrInvalidSessionName)
+	if len(cmd.Name) > MaxSessionNameLength {
+		return fmt.Errorf("%w: name too long (max %d chars)", ErrInvalidSessionName, MaxSessionNameLength)
 	}
 
 	if !isValidSessionName(cmd.Name) {
@@ -84,6 +84,21 @@ func validateCreateSession(payload interface{}) error {
 
 	if !isValidAgent(cmd.Agent) {
 		return fmt.Errorf("%w: unsupported agent: %s", ErrInvalidAgent, cmd.Agent)
+	}
+
+	// Validate environment variables if provided
+	if cmd.Environment != nil {
+		for key, value := range cmd.Environment {
+			if key == "" {
+				return fmt.Errorf("%w: environment key cannot be empty", ErrInvalidPayload)
+			}
+			if len(key) > 100 {
+				return fmt.Errorf("%w: environment key too long", ErrInvalidPayload)
+			}
+			if len(value) > 1000 {
+				return fmt.Errorf("%w: environment value too long", ErrInvalidPayload)
+			}
+		}
 	}
 
 	return nil
@@ -222,9 +237,7 @@ func isValidSessionName(name string) bool {
 }
 
 func isValidAgent(agent string) bool {
-	// List of supported agents
-	supportedAgents := []string{"claude", "gpt-4", "custom"}
-	for _, supported := range supportedAgents {
+	for _, supported := range SupportedAgents {
 		if agent == supported {
 			return true
 		}
@@ -233,15 +246,14 @@ func isValidAgent(agent string) bool {
 }
 
 func isValidULID(id string) bool {
-	// Basic ULID validation - 26 characters, uppercase letters and numbers
-	if len(id) != 26 {
+	// Basic ULID validation
+	if len(id) != ULIDLength {
 		return false
 	}
 
-	// ULID character set (Crockford's base32)
-	validChars := "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+	// Check character set
 	for _, r := range id {
-		if !strings.ContainsRune(validChars, r) {
+		if !strings.ContainsRune(ULIDCharset, r) {
 			return false
 		}
 	}

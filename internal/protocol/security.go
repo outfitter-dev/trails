@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -46,9 +47,15 @@ func (sc SecureCommand) Verify(secret []byte) error {
 	return nil
 }
 
+// rateLimiterEntry tracks a rate limiter with last access time
+type rateLimiterEntry struct {
+	limiter    *rate.Limiter
+	lastAccess time.Time
+}
+
 // RateLimiter implements per-session rate limiting
 type RateLimiter struct {
-	requests map[string]*rate.Limiter
+	requests map[string]*rateLimiterEntry
 	mu       sync.RWMutex
 	limit    rate.Limit
 	burst    int
@@ -57,7 +64,7 @@ type RateLimiter struct {
 // NewRateLimiter creates a new rate limiter
 func NewRateLimiter(limit rate.Limit, burst int) *RateLimiter {
 	return &RateLimiter{
-		requests: make(map[string]*rate.Limiter),
+		requests: make(map[string]*rateLimiterEntry),
 		limit:    limit,
 		burst:    burst,
 	}
@@ -68,20 +75,60 @@ func (rl *RateLimiter) Allow(sessionID string) bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
-	limiter, exists := rl.requests[sessionID]
+	entry, exists := rl.requests[sessionID]
 	if !exists {
-		limiter = rate.NewLimiter(rl.limit, rl.burst)
-		rl.requests[sessionID] = limiter
+		entry = &rateLimiterEntry{
+			limiter:    rate.NewLimiter(rl.limit, rl.burst),
+			lastAccess: time.Now(),
+		}
+		rl.requests[sessionID] = entry
+	} else {
+		entry.lastAccess = time.Now()
 	}
 
-	return limiter.Allow()
+	return entry.limiter.Allow()
+}
+
+// Wait blocks until a request is allowed or context is cancelled
+func (rl *RateLimiter) Wait(ctx context.Context, sessionID string) error {
+	rl.mu.Lock()
+	entry, exists := rl.requests[sessionID]
+	if !exists {
+		entry = &rateLimiterEntry{
+			limiter:    rate.NewLimiter(rl.limit, rl.burst),
+			lastAccess: time.Now(),
+		}
+		rl.requests[sessionID] = entry
+	} else {
+		entry.lastAccess = time.Now()
+	}
+	limiter := entry.limiter
+	rl.mu.Unlock()
+
+	return limiter.Wait(ctx)
 }
 
 // Cleanup removes old limiters to prevent memory leaks
-func (rl *RateLimiter) Cleanup(olderThan time.Duration) {
+func (rl *RateLimiter) Cleanup(olderThan time.Duration) int {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
-	// In a production system, we'd track last access time
-	// For now, we'll just provide the structure
+	cutoff := time.Now().Add(-olderThan)
+	removed := 0
+	
+	for id, entry := range rl.requests {
+		if entry.lastAccess.Before(cutoff) {
+			delete(rl.requests, id)
+			removed++
+		}
+	}
+	
+	return removed
+}
+
+// Size returns the number of tracked sessions
+func (rl *RateLimiter) Size() int {
+	rl.mu.RLock()
+	defer rl.mu.RUnlock()
+	return len(rl.requests)
 }

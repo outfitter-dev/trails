@@ -6,6 +6,7 @@ toolchain go1.24.3
 
 require (
 	dagger.io/dagger v0.18.9
+	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/jesseduffield/gocui v0.3.0
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/spf13/cobra v1.9.1
