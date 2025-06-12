@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/jesseduffield/gocui"
+	"github.com/outfitter-dev/trails/internal/protocol"
 )
 
 // setupKeybindings configures all keyboard shortcuts
@@ -52,22 +53,30 @@ func (a *App) setupKeybindings() error {
 
 // quit exits the application
 func (a *App) quit(g *gocui.Gui, v *gocui.View) error {
-	// Save state before quitting
-	if err := a.state.Save(); err != nil {
-		log.Printf("Failed to save state: %v", err)
-	}
+	// Send shutdown command
+	a.sendCommand(protocol.CmdShutdown, nil)
 	return gocui.ErrQuit
 }
 
 // moveDown navigates to the next session
 func (a *App) moveDown(g *gocui.Gui, v *gocui.View) error {
-	a.state.MoveFocus(1)
+	newIndex := a.uiState.FocusIndex + 1
+	if newIndex < len(a.uiState.Sessions) {
+		a.sendCommand(protocol.CmdSetFocus, protocol.SetFocusCommand{
+			SessionID: a.uiState.Sessions[newIndex].ID,
+		})
+	}
 	return nil
 }
 
 // moveUp navigates to the previous session
 func (a *App) moveUp(g *gocui.Gui, v *gocui.View) error {
-	a.state.MoveFocus(-1)
+	newIndex := a.uiState.FocusIndex - 1
+	if newIndex >= 0 {
+		a.sendCommand(protocol.CmdSetFocus, protocol.SetFocusCommand{
+			SessionID: a.uiState.Sessions[newIndex].ID,
+		})
+	}
 	return nil
 }
 
@@ -78,70 +87,74 @@ func (a *App) createSession(g *gocui.Gui, v *gocui.View) error {
 
 	log.Printf("Creating new session: %s with agent: %s", sessionName, defaultAgent)
 
-	// Create session with container-use environment
-	sess, err := a.sessionManager.CreateSession(a.ctx, sessionName, defaultAgent)
-	if err != nil {
-		log.Printf("Failed to create session: %v", err)
-		return nil // Don't crash the UI
-	}
-
-	a.state.AddSession(sess)
-	log.Printf("Created session: %s with environment: %s", sess.GetDisplayName(), sess.EnvironmentID.String())
+	a.sendCommand(protocol.CmdCreateSession, protocol.CreateSessionCommand{
+		Name:        sessionName,
+		Agent:       defaultAgent,
+		Branch:      "main",
+		Environment: make(map[string]string),
+	})
 
 	return nil
 }
 
 // deleteSession removes the current session
 func (a *App) deleteSession(g *gocui.Gui, v *gocui.View) error {
-	focused := a.state.GetFocusedSession()
-	if focused == nil {
-		return nil
+	if a.uiState.FocusIndex >= 0 && a.uiState.FocusIndex < len(a.uiState.Sessions) {
+		focused := a.uiState.Sessions[a.uiState.FocusIndex]
+		log.Printf("Deleting session: %s", focused.GetDisplayName())
+
+		a.sendCommand(protocol.CmdDeleteSession, protocol.DeleteSessionCommand{
+			SessionID: focused.ID,
+		})
 	}
-
-	log.Printf("Deleting session: %s", focused.GetDisplayName())
-
-	// Destroy container-use environment
-	if err := a.sessionManager.DestroySession(a.ctx, focused); err != nil {
-		log.Printf("Failed to destroy session environment: %v", err)
-		// Continue with removal from state even if environment cleanup fails
-	}
-
-	a.state.RemoveSession(focused.ID)
 	return nil
 }
 
 // nextActionable focuses the next session that needs attention
 func (a *App) nextActionable(g *gocui.Gui, v *gocui.View) error {
-	if a.state.FocusNextActionable() {
-		log.Printf("Focused next actionable session")
-	} else {
-		log.Printf("No actionable sessions found")
+	// Find the next actionable session
+	for i := a.uiState.FocusIndex + 1; i < len(a.uiState.Sessions); i++ {
+		if a.uiState.Sessions[i].IsActionable() {
+			a.sendCommand(protocol.CmdSetFocus, protocol.SetFocusCommand{
+				SessionID: a.uiState.Sessions[i].ID,
+			})
+			log.Printf("Focused next actionable session")
+			return nil
+		}
 	}
+
+	// Search from the beginning if not found
+	for i := 0; i <= a.uiState.FocusIndex; i++ {
+		if a.uiState.Sessions[i].IsActionable() {
+			a.sendCommand(protocol.CmdSetFocus, protocol.SetFocusCommand{
+				SessionID: a.uiState.Sessions[i].ID,
+			})
+			log.Printf("Focused next actionable session")
+			return nil
+		}
+	}
+
+	log.Printf("No actionable sessions found")
 	return nil
 }
 
 // startAgent starts the AI agent for the focused session
 func (a *App) startAgent(g *gocui.Gui, v *gocui.View) error {
-	focused := a.state.GetFocusedSession()
-	if focused == nil {
-		return nil
+	if a.uiState.FocusIndex >= 0 && a.uiState.FocusIndex < len(a.uiState.Sessions) {
+		focused := a.uiState.Sessions[a.uiState.FocusIndex]
+		log.Printf("Starting agent for session: %s", focused.GetDisplayName())
+
+		a.sendCommand(protocol.CmdStartAgent, protocol.StartAgentCommand{
+			SessionID: focused.ID,
+		})
 	}
-
-	log.Printf("Starting agent for session: %s", focused.GetDisplayName())
-
-	if err := a.sessionManager.StartAgent(a.ctx, focused); err != nil {
-		log.Printf("Failed to start agent: %v", err)
-		return nil // Don't crash the UI
-	}
-
-	log.Printf("Started %s agent in environment: %s", focused.Agent, focused.EnvironmentID.String())
 	return nil
 }
 
 // toggleMinimal toggles minimal status bar mode
 func (a *App) toggleMinimal(g *gocui.Gui, v *gocui.View) error {
-	a.state.MinimalMode = !a.state.MinimalMode
-	log.Printf("Minimal mode: %v", a.state.MinimalMode)
+	a.sendCommand(protocol.CmdToggleMinimal, nil)
+	log.Printf("Toggling minimal mode")
 
 	// Force layout refresh to show/hide main content
 	return nil

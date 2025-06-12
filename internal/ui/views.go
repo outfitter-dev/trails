@@ -11,26 +11,23 @@ import (
 func (a *App) drawTabs(v *gocui.View) {
 	v.Clear()
 
-	if len(a.state.Sessions) == 0 {
+	if len(a.uiState.Sessions) == 0 {
 		fmt.Fprint(v, "No active sessions - press 'c' to create one")
 		return
 	}
 
-	sessions := a.state.GetOrderedSessions()
-	focused := a.state.GetFocusedSession()
-
 	// Check if we should use minimal mode
-	if a.state.MinimalMode {
-		a.drawMinimalTabs(v, sessions)
+	if a.uiState.MinimalMode {
+		a.drawMinimalTabs(v, a.uiState.Sessions)
 		return
 	}
 
-	for i, sess := range sessions {
+	for i, sess := range a.uiState.Sessions {
 		if i > 0 {
 			fmt.Fprint(v, " ")
 		}
 
-		isFocused := focused != nil && sess.ID == focused.ID
+		isFocused := i == a.uiState.FocusIndex
 		display := FormatSessionTab(sess, isFocused)
 
 		if isFocused {
@@ -56,7 +53,11 @@ func (a *App) drawMinimalTabs(v *gocui.View, sessions []*session.Session) {
 func (a *App) drawMainContent(v *gocui.View) {
 	v.Clear()
 
-	focused := a.state.GetFocusedSession()
+	var focused *session.Session
+	if a.uiState.FocusIndex >= 0 && a.uiState.FocusIndex < len(a.uiState.Sessions) {
+		focused = a.uiState.Sessions[a.uiState.FocusIndex]
+	}
+
 	if focused == nil {
 		fmt.Fprintln(v, "Welcome to Trails!")
 		fmt.Fprintln(v)
