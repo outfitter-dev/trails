@@ -145,10 +145,17 @@ func (m *Manager) Save(ctx context.Context) error {
 
 // GetSnapshot returns a state snapshot for events
 func (m *Manager) GetSnapshot() (*protocol.StateSnapshotEvent, error) {
+	// Copy current state under lock to avoid holding lock during external calls
 	m.mu.RLock()
-	defer m.mu.RUnlock()
+	focusedID := m.state.FocusedID
+	minimalMode := m.state.MinimalMode
+	preferences := make(map[string]interface{})
+	for k, v := range m.state.Preferences {
+		preferences[k] = v
+	}
+	m.mu.RUnlock()
 
-	// Get current sessions
+	// Get current sessions without holding state lock
 	sessions, err := m.sessions.List(context.Background(), protocol.SessionFilter{})
 	if err != nil {
 		return nil, fmt.Errorf("get sessions for snapshot: %w", err)
@@ -171,9 +178,9 @@ func (m *Manager) GetSnapshot() (*protocol.StateSnapshotEvent, error) {
 
 	return &protocol.StateSnapshotEvent{
 		Sessions:    sessionInfos,
-		FocusedID:   m.state.FocusedID,
-		MinimalMode: m.state.MinimalMode,
-		Preferences: m.state.Preferences,
+		FocusedID:   focusedID,
+		MinimalMode: minimalMode,
+		Preferences: preferences,
 	}, nil
 }
 

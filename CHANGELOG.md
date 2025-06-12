@@ -11,14 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Protocol-based architecture separating UI from core business logic
 - Command/Event messaging system for all UI-Core communication
 - BubbleTea-based TUI implementation
-- Security layer with authentication and rate limiting
+- Security layer with authentication and rate-limiting
 - Event sourcing for state management
 - Comprehensive architecture documentation
 
 ### Changed
-- Complete refactor from tightly-coupled to protocol-based architecture
+- Complete refactor from tightly coupled to protocol-based architecture
 - Migrated from gocui to BubbleTea for better architecture
-- Session management now runs in separate core engine
+- Session management now runs in a separate core engine
 
 ### Security
 - Added authentication layer for protocol commands

@@ -23,9 +23,11 @@ func TestSecureCommand_Verify(t *testing.T) {
 	
 	nonce := "test-nonce"
 	
-	// Generate valid signature
+	// Generate valid signature with proper delimiters
 	mac := hmac.New(sha256.New, secret)
-	mac.Write([]byte(cmd.ID + nonce))
+	mac.Write([]byte(cmd.ID))
+	mac.Write([]byte("|"))
+	mac.Write([]byte(nonce))
 	signature := hex.EncodeToString(mac.Sum(nil))
 	
 	t.Run("valid signature and token", func(t *testing.T) {

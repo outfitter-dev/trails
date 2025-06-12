@@ -351,6 +351,8 @@ func (e *Engine) handleRestartAgent(ctx context.Context, cmd protocol.Command) e
 	}
 
 	ctx = logging.WithSessionID(ctx, payload.SessionID)
+	
+	e.logger.LogCommand(ctx, "Restarting agent", cmd)
 
 	// This is essentially stop + start
 	// TODO: Implement proper restart logic

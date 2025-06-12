@@ -30,9 +30,11 @@ type SecureCommand struct {
 
 // Verify command integrity
 func (sc SecureCommand) Verify(secret []byte) error {
-	// Verify signature
+	// Verify signature with proper delimiters to prevent collision attacks
 	mac := hmac.New(sha256.New, secret)
-	mac.Write([]byte(sc.Command.ID + sc.Nonce))
+	mac.Write([]byte(sc.Command.ID))
+	mac.Write([]byte("|"))
+	mac.Write([]byte(sc.Nonce))
 	expectedMAC := hex.EncodeToString(mac.Sum(nil))
 
 	if !hmac.Equal([]byte(sc.Signature), []byte(expectedMAC)) {

@@ -251,8 +251,11 @@ func isValidULID(id string) bool {
 		return false
 	}
 
+	// Convert to uppercase for validation as ULID allows lowercase
+	upper := strings.ToUpper(id)
+	
 	// Check character set
-	for _, r := range id {
+	for _, r := range upper {
 		if !strings.ContainsRune(ULIDCharset, r) {
 			return false
 		}

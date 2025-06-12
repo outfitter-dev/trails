@@ -271,7 +271,7 @@ func TestIsValidULID(t *testing.T) {
 		{"valid ULID", "01HQJW5X7CT4HN3X5V4DKREZJ8", true},
 		{"too short", "01HQJW5X7CT4HN3X5V4DKREZ", false},
 		{"too long", "01HQJW5X7CT4HN3X5V4DKREZJ8X", false},
-		{"lowercase", "01hqjw5x7ct4hn3x5v4dkrezj8", false},
+		{"lowercase", "01hqjw5x7ct4hn3x5v4dkrezj8", true},
 		{"invalid chars", "01HQJW5X7CT4HN3X5V4DKREZJ&", false},
 		{"empty", "", false},
 	}

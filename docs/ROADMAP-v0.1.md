@@ -47,6 +47,6 @@ Version 0.1.0 implements the protocol-based architecture, separating the TUI fro
 
 1. Start with creating the protocol package
 2. Define core message types
-3. Begin extracting business logic from UI
+3. Begin extracting the business logic from UI
 
 See `docs/architecture/` for detailed design documents.

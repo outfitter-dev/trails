@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"sort"
 	"sync"
 	"time"
 
@@ -145,14 +146,9 @@ func calculateDurationStats(durations []time.Duration) DurationStats {
 	sorted := make([]time.Duration, len(durations))
 	copy(sorted, durations)
 	
-	// Simple bubble sort (good enough for small arrays)
-	for i := 0; i < len(sorted); i++ {
-		for j := i + 1; j < len(sorted); j++ {
-			if sorted[i] > sorted[j] {
-				sorted[i], sorted[j] = sorted[j], sorted[i]
-			}
-		}
-	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i] < sorted[j]
+	})
 
 	// Calculate basic stats
 	var total time.Duration
