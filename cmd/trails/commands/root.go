@@ -13,11 +13,13 @@ import (
 	"github.com/outfitter-dev/trails/internal/logging"
 	"github.com/outfitter-dev/trails/internal/protocol"
 	"github.com/outfitter-dev/trails/internal/ui"
+	bubbletea "github.com/outfitter-dev/trails/internal/ui/bubbletea"
 	"github.com/spf13/cobra"
 )
 
 var (
 	devMode bool
+	useBubbleTea bool
 )
 
 var rootCmd = &cobra.Command{
@@ -71,20 +73,30 @@ var rootCmd = &cobra.Command{
 		defer eng.Stop()
 
 		// Initialize and run TUI
-		app, err := ui.NewApp(ctx, cfg, commandChan, eventChan)
-		if err != nil {
-			return fmt.Errorf("failed to create app: %w", err)
-		}
-
 		log.Printf("Starting trails in %s", cwd)
-		logger.Info("Trails started", "working_directory", cwd)
+		logger.Info("Trails started", "working_directory", cwd, "ui", map[bool]string{true: "bubbletea", false: "gocui"}[useBubbleTea])
 
-		return app.Run()
+		if useBubbleTea {
+			// Use new BubbleTea UI
+			app, err := bubbletea.NewApp(ctx, cfg, logger, commandChan, eventChan)
+			if err != nil {
+				return fmt.Errorf("failed to create bubbletea app: %w", err)
+			}
+			return app.Run()
+		} else {
+			// Use legacy gocui UI
+			app, err := ui.NewApp(ctx, cfg, commandChan, eventChan)
+			if err != nil {
+				return fmt.Errorf("failed to create app: %w", err)
+			}
+			return app.Run()
+		}
 	},
 }
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&devMode, "dev", false, "Run in development mode with mock container provider")
+	rootCmd.PersistentFlags().BoolVar(&useBubbleTea, "bubbletea", false, "Use BubbleTea UI instead of gocui")
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
