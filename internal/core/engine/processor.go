@@ -9,17 +9,19 @@ import (
 	"github.com/outfitter-dev/trails/internal/protocol"
 )
 
-// commandWorker processes commands from the command channel
+// commandWorker is a goroutine that processes commands from the command channel.
+// Multiple workers run concurrently for parallel command processing.
+// Each worker continues until the engine context is cancelled.
 func (e *Engine) commandWorker(workerID int) {
 	defer e.wg.Done()
 
 	workerLogger := e.logger.WithCommand(fmt.Sprintf("worker-%d", workerID))
-	workerLogger.Info("Command worker started")
+	workerLogger.Debug("Command worker started")
 
 	for {
 		select {
 		case <-e.ctx.Done():
-			workerLogger.Info("Command worker stopping")
+			workerLogger.Debug("Command worker stopping")
 			return
 
 		case cmd := <-e.commands:
@@ -28,7 +30,9 @@ func (e *Engine) commandWorker(workerID int) {
 	}
 }
 
-// processCommand handles a single command
+// processCommand handles a single command from start to finish.
+// It validates the command, applies rate limiting, executes the appropriate
+// handler, and sends response events. All errors are handled and reported.
 func (e *Engine) processCommand(cmd protocol.Command, logger *logging.Logger) {
 	start := time.Now()
 	
@@ -99,7 +103,9 @@ func (e *Engine) processCommand(cmd protocol.Command, logger *logging.Logger) {
 	}
 }
 
-// extractSessionID attempts to extract session ID from command payload
+// extractSessionID attempts to extract a session ID from various command payloads.
+// Returns empty string if the command doesn't contain a session ID.
+// This is used for rate limiting and logging.
 func (e *Engine) extractSessionID(cmd protocol.Command) string {
 	switch payload := cmd.Payload.(type) {
 	case protocol.DeleteSessionCommand:
@@ -119,7 +125,9 @@ func (e *Engine) extractSessionID(cmd protocol.Command) string {
 	}
 }
 
-// handleCommandError handles command processing errors
+// handleCommandError handles errors that occur during command processing.
+// It logs the error, records metrics, and sends an error event to the UI.
+// All command errors are considered recoverable by default.
 func (e *Engine) handleCommandError(ctx context.Context, cmd protocol.Command, err error, start time.Time, logger *logging.Logger) {
 	duration := time.Since(start)
 	
@@ -142,6 +150,9 @@ func (e *Engine) handleCommandError(ctx context.Context, cmd protocol.Command, e
 
 // Session command handlers
 
+// handleCreateSession creates a new agent session with the specified configuration.
+// It validates the request, creates the session and container environment,
+// and sends appropriate events on success or failure.
 func (e *Engine) handleCreateSession(ctx context.Context, cmd protocol.Command) error {
 	payload, err := protocol.GetTypedPayload[protocol.CreateSessionCommand](cmd)
 	if err != nil {
@@ -178,6 +189,9 @@ func (e *Engine) handleCreateSession(ctx context.Context, cmd protocol.Command) 
 	return nil
 }
 
+// handleDeleteSession removes a session and cleans up its resources.
+// If force is true, the session is deleted even if the agent is running.
+// Sends a SessionDeleted event on success.
 func (e *Engine) handleDeleteSession(ctx context.Context, cmd protocol.Command) error {
 	payload, err := protocol.GetTypedPayload[protocol.DeleteSessionCommand](cmd)
 	if err != nil {
@@ -205,6 +219,9 @@ func (e *Engine) handleDeleteSession(ctx context.Context, cmd protocol.Command) 
 	return nil
 }
 
+// handleUpdateSession modifies session properties.
+// Supported fields are defined by the SessionManager implementation.
+// Sends a SessionUpdated event with the modified session data.
 func (e *Engine) handleUpdateSession(ctx context.Context, cmd protocol.Command) error {
 	payload, err := protocol.GetTypedPayload[protocol.UpdateSessionCommand](cmd)
 	if err != nil {
@@ -238,6 +255,9 @@ func (e *Engine) handleUpdateSession(ctx context.Context, cmd protocol.Command) 
 	return nil
 }
 
+// handleListSessions retrieves sessions matching the filter criteria.
+// An empty filter returns all sessions.
+// Sends a SessionList event with the matching sessions.
 func (e *Engine) handleListSessions(ctx context.Context, cmd protocol.Command) error {
 	filter := protocol.SessionFilter{}
 	if payload, err := protocol.GetTypedPayload[protocol.ListSessionsCommand](cmd); err == nil {
@@ -271,6 +291,9 @@ func (e *Engine) handleListSessions(ctx context.Context, cmd protocol.Command) e
 
 // Agent command handlers
 
+// handleStartAgent launches the AI agent process for a session.
+// The session must exist and be in a startable state.
+// Sends appropriate status events as the agent starts.
 func (e *Engine) handleStartAgent(ctx context.Context, cmd protocol.Command) error {
 	payload, err := protocol.GetTypedPayload[protocol.StartAgentCommand](cmd)
 	if err != nil {
@@ -314,6 +337,9 @@ func (e *Engine) handleStartAgent(ctx context.Context, cmd protocol.Command) err
 	return nil
 }
 
+// handleStopAgent terminates the AI agent process for a session.
+// The session status is set back to ready.
+// Sends a StatusChanged event on completion.
 func (e *Engine) handleStopAgent(ctx context.Context, cmd protocol.Command) error {
 	payload, err := protocol.GetTypedPayload[protocol.StopAgentCommand](cmd)
 	if err != nil {
@@ -344,6 +370,9 @@ func (e *Engine) handleStopAgent(ctx context.Context, cmd protocol.Command) erro
 	return nil
 }
 
+// handleRestartAgent stops and restarts the AI agent process.
+// This is useful when the agent becomes unresponsive.
+// Currently implements a simple status update; full restart logic TODO.
 func (e *Engine) handleRestartAgent(ctx context.Context, cmd protocol.Command) error {
 	payload, err := protocol.GetTypedPayload[protocol.RestartAgentCommand](cmd)
 	if err != nil {
@@ -351,8 +380,6 @@ func (e *Engine) handleRestartAgent(ctx context.Context, cmd protocol.Command) e
 	}
 
 	ctx = logging.WithSessionID(ctx, payload.SessionID)
-	
-	e.logger.LogCommand(ctx, "Restarting agent", cmd)
 
 	// This is essentially stop + start
 	// TODO: Implement proper restart logic
@@ -376,6 +403,9 @@ func (e *Engine) handleRestartAgent(ctx context.Context, cmd protocol.Command) e
 
 // UI command handlers
 
+// handleSetFocus validates that a session exists before the UI sets focus.
+// The actual focus tracking is managed by the UI state.
+// Returns error if the session doesn't exist.
 func (e *Engine) handleSetFocus(ctx context.Context, cmd protocol.Command) error {
 	payload, err := protocol.GetTypedPayload[protocol.SetFocusCommand](cmd)
 	if err != nil {
@@ -394,6 +424,9 @@ func (e *Engine) handleSetFocus(ctx context.Context, cmd protocol.Command) error
 	return nil
 }
 
+// handleNextActionable finds the next session requiring user attention.
+// Actionable sessions are those in error or waiting states.
+// Sends a FocusChanged event if an actionable session is found.
 func (e *Engine) handleNextActionable(ctx context.Context, cmd protocol.Command) error {
 	// Find next actionable session
 	sessions, err := e.sessions.List(ctx, protocol.SessionFilter{})
@@ -431,12 +464,18 @@ func (e *Engine) handleNextActionable(ctx context.Context, cmd protocol.Command)
 	return nil
 }
 
+// handleToggleMinimal toggles the minimal UI mode.
+// In minimal mode, the UI shows less information for autonomous operation.
+// Currently a no-op; UI manages this state locally.
 func (e *Engine) handleToggleMinimal(ctx context.Context, cmd protocol.Command) error {
 	// This would typically update UI preferences
 	// For now, just acknowledge the command
 	return nil
 }
 
+// handleSetPreference stores a user preference.
+// Preferences control UI behavior and agent configuration.
+// TODO: Implement preference storage in state manager.
 func (e *Engine) handleSetPreference(ctx context.Context, cmd protocol.Command) error {
 	payload, err := protocol.GetTypedPayload[protocol.SetPreferenceCommand](cmd)
 	if err != nil {
@@ -451,6 +490,9 @@ func (e *Engine) handleSetPreference(ctx context.Context, cmd protocol.Command) 
 
 // System command handlers
 
+// handleHealthCheck returns current engine health metrics.
+// If includeDetails is false, only basic health status is returned.
+// Always sends a HealthStatus event with the results.
 func (e *Engine) handleHealthCheck(ctx context.Context, cmd protocol.Command) error {
 	includeDetails := false
 	if payload, err := protocol.GetTypedPayload[protocol.HealthCheckCommand](cmd); err == nil {
@@ -478,6 +520,9 @@ func (e *Engine) handleHealthCheck(ctx context.Context, cmd protocol.Command) er
 	return nil
 }
 
+// handleShutdown initiates graceful engine shutdown.
+// Sends an info event and then cancels the engine context.
+// The shutdown is delayed slightly to ensure the event is sent.
 func (e *Engine) handleShutdown(ctx context.Context, cmd protocol.Command) error {
 	e.logger.Info("Shutdown command received")
 
@@ -502,6 +547,9 @@ func (e *Engine) handleShutdown(ctx context.Context, cmd protocol.Command) error
 
 // Helper methods
 
+
+// sessionToInfo converts an internal Session to a protocol SessionInfo.
+// This strips out internal fields like process and mutex.
 func (e *Engine) sessionToInfo(session *Session) protocol.SessionInfo {
 	return protocol.SessionInfo{
 		ID:            session.ID,
@@ -515,12 +563,15 @@ func (e *Engine) sessionToInfo(session *Session) protocol.SessionInfo {
 	}
 }
 
+// sendEvent sends an event to the UI with retry logic.
+// Uses exponential backoff to handle temporary channel congestion.
+// Gives up after maximum attempts to prevent blocking forever.
 func (e *Engine) sendEvent(event protocol.EnhancedEvent) {
 	// Try to send with exponential backoff
-	backoff := 10 * time.Millisecond
-	maxBackoff := 500 * time.Millisecond
+	backoff := EventSendInitialBackoff
+	maxBackoff := EventSendMaxBackoff
 	attempts := 0
-	maxAttempts := 5
+	maxAttempts := EventSendMaxAttempts
 	
 	for attempts < maxAttempts {
 		select {

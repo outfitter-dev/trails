@@ -1,7 +1,12 @@
 package ui
 
 import (
+	"context"
+	"fmt"
+	"time"
+
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/outfitter-dev/trails/internal/core/engine"
 	"github.com/outfitter-dev/trails/internal/protocol"
 )
 
@@ -30,32 +35,40 @@ func waitForEvent(eventChan <-chan protocol.EnhancedEvent) tea.Cmd {
 	}
 }
 
-// sendCommand sends a command to the command channel
-func sendCommand(commandChan chan<- protocol.Command, cmd protocol.Command) tea.Cmd {
+// sendCommand sends a command to the command channel with context
+func sendCommand(ctx context.Context, commandChan chan<- protocol.Command, cmd protocol.Command) tea.Cmd {
 	return func() tea.Msg {
 		select {
 		case commandChan <- cmd:
 			// Command sent successfully
-		default:
-			// Channel might be full or closed
-			return errMsg{err: nil}
+		case <-ctx.Done():
+			// Context cancelled
+			return errMsg{err: ctx.Err()}
+		case <-time.After(engine.CommandSendTimeout):
+			// Timeout after configured duration
+			return errMsg{err: fmt.Errorf("timeout sending command")}
 		}
 		return nil
 	}
 }
 
 // requestInitialState sends a health check to get initial state
-func requestInitialState(commandChan chan<- protocol.Command) tea.Cmd {
+func requestInitialState(ctx context.Context, commandChan chan<- protocol.Command) tea.Cmd {
 	return func() tea.Msg {
 		cmd, err := protocol.HealthCheck(true).Build()
 		if err != nil {
 			return errMsg{err: err}
 		}
+		
 		select {
 		case commandChan <- cmd:
 			// Command sent successfully
-		default:
-			// Channel might be full or closed
+		case <-ctx.Done():
+			// Context cancelled
+			return errMsg{err: ctx.Err()}
+		case <-time.After(engine.InitialStateTimeout):
+			// Timeout for initial request
+			return errMsg{err: fmt.Errorf("timeout requesting initial state")}
 		}
 		return nil
 	}

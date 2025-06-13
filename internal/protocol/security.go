@@ -49,7 +49,8 @@ func (sc SecureCommand) Verify(secret []byte) error {
 	return nil
 }
 
-// rateLimiterEntry tracks a rate limiter with last access time
+// rateLimiterEntry tracks a rate limiter for a specific session.
+// It includes the last access time for LRU eviction.
 type rateLimiterEntry struct {
 	limiter    *rate.Limiter
 	lastAccess time.Time

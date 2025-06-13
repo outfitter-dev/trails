@@ -6,19 +6,21 @@ import (
 	"github.com/outfitter-dev/trails/internal/protocol"
 )
 
-// stateManager periodically saves state and sends snapshots
+// stateManager is a background goroutine that periodically saves state.
+// It runs every 30 seconds to persist the current state to disk
+// and send state snapshots to the UI for synchronization.
 func (e *Engine) stateManager() {
 	defer e.wg.Done()
 
-	ticker := time.NewTicker(30 * time.Second) // Save state every 30 seconds
+	ticker := time.NewTicker(StateManagerInterval) // Save state every 30 seconds
 	defer ticker.Stop()
 
-	e.logger.Info("State manager started")
+	e.logger.Debug("State manager started")
 
 	for {
 		select {
 		case <-e.ctx.Done():
-			e.logger.Info("State manager stopping")
+			e.logger.Debug("State manager stopping")
 			return
 
 		case <-ticker.C:
@@ -35,19 +37,21 @@ func (e *Engine) stateManager() {
 	}
 }
 
-// healthMonitor monitors system health and reports issues
+// healthMonitor is a background goroutine that checks system health.
+// It runs every minute to collect metrics, detect issues,
+// and send warning events when problems are detected.
 func (e *Engine) healthMonitor() {
 	defer e.wg.Done()
 
-	ticker := time.NewTicker(60 * time.Second) // Check health every minute
+	ticker := time.NewTicker(HealthMonitorInterval) // Check health every minute
 	defer ticker.Stop()
 
-	e.logger.Info("Health monitor started")
+	e.logger.Debug("Health monitor started")
 
 	for {
 		select {
 		case <-e.ctx.Done():
-			e.logger.Info("Health monitor stopping")
+			e.logger.Debug("Health monitor stopping")
 			return
 
 		case <-ticker.C:
@@ -56,19 +60,21 @@ func (e *Engine) healthMonitor() {
 	}
 }
 
-// cleanupWorker performs periodic cleanup tasks
+// cleanupWorker is a background goroutine that performs maintenance.
+// It removes stale rate limiters, cleans up error sessions,
+// and will eventually clean up unused containers.
 func (e *Engine) cleanupWorker() {
 	defer e.wg.Done()
 
-	ticker := time.NewTicker(5 * time.Minute) // Cleanup every 5 minutes
+	ticker := time.NewTicker(CleanupInterval)
 	defer ticker.Stop()
 
-	e.logger.Info("Cleanup worker started")
+	e.logger.Debug("Cleanup worker started")
 
 	for {
 		select {
 		case <-e.ctx.Done():
-			e.logger.Info("Cleanup worker stopping")
+			e.logger.Debug("Cleanup worker stopping")
 			return
 
 		case <-ticker.C:
@@ -77,7 +83,9 @@ func (e *Engine) cleanupWorker() {
 	}
 }
 
-// sendStateSnapshot creates and sends a state snapshot event
+// sendStateSnapshot retrieves the current state and sends it as an event.
+// This is used for UI synchronization after state changes.
+// Returns error if state cannot be retrieved.
 func (e *Engine) sendStateSnapshot() error {
 	snapshot, err := e.state.GetSnapshot()
 	if err != nil {
@@ -93,7 +101,9 @@ func (e *Engine) sendStateSnapshot() error {
 	return nil
 }
 
-// performHealthCheck checks system health
+// performHealthCheck gathers health metrics and logs them.
+// Updates the metrics collector with current session count
+// and checks for potential issues that need attention.
 func (e *Engine) performHealthCheck() {
 	health := e.Health()
 	
@@ -111,7 +121,10 @@ func (e *Engine) performHealthCheck() {
 	e.checkHealthIssues(health)
 }
 
-// checkHealthIssues identifies potential health problems
+// checkHealthIssues analyzes health metrics for problems.
+// Sends warning events when issues are detected such as:
+// - Maximum concurrent sessions reached
+// - High number of rate limiters (potential memory issue)
 func (e *Engine) checkHealthIssues(health map[string]interface{}) {
 	// Check session count
 	if sessionsInterface, ok := health["active_sessions"]; ok {
@@ -159,13 +172,24 @@ func (e *Engine) checkHealthIssues(health map[string]interface{}) {
 	}
 }
 
-// performCleanup runs various cleanup tasks
+// performCleanup executes maintenance tasks to prevent resource leaks.
+// This includes cleaning up old rate limiters, stale sessions,
+// and logging warnings when resources grow too large.
 func (e *Engine) performCleanup() {
-	// Clean up old rate limiters
-	removed := e.rateLimiter.Cleanup(1 * time.Hour) // Remove limiters older than 1 hour
+	// Clean up old rate limiters more aggressively
+	// Remove limiters that haven't been accessed in 5 minutes
+	removed := e.rateLimiter.Cleanup(RateLimiterCleanupAge)
 	if removed > 0 {
-		e.logger.Info("Cleaned up rate limiters",
+		e.logger.Debug("Cleaned up rate limiters",
 			"removed_count", removed,
+		)
+	}
+	
+	// Log current size for monitoring
+	currentSize := e.rateLimiter.Size()
+	if currentSize > RateLimiterWarningSize {
+		e.logger.Warn("Rate limiter size is large",
+			"size", currentSize,
 		)
 	}
 
@@ -176,7 +200,9 @@ func (e *Engine) performCleanup() {
 	e.cleanupStaleContainers()
 }
 
-// cleanupStaleSessions removes sessions that haven't been active
+// cleanupStaleSessions removes error sessions that have been inactive.
+// Only cleans up sessions in error state that haven't been active
+// for the configured timeout period. Sends deletion events for each.
 func (e *Engine) cleanupStaleSessions() {
 	sessions, err := e.sessions.List(e.ctx, protocol.SessionFilter{})
 	if err != nil {
@@ -184,14 +210,14 @@ func (e *Engine) cleanupStaleSessions() {
 		return
 	}
 
-	staleThreshold := time.Now().Add(-24 * time.Hour) // 24 hours
+	staleThreshold := time.Now().Add(-StaleSessionTimeout)
 	cleanedCount := 0
 
 	for _, session := range sessions {
 		if session.LastActivity.Before(staleThreshold) && 
 		   session.Status == protocol.StatusError {
 			
-			e.logger.Info("Cleaning up stale session",
+			e.logger.Debug("Cleaning up stale session",
 				"session_id", session.ID,
 				"session_name", session.Name,
 				"last_activity", session.LastActivity,
@@ -220,13 +246,15 @@ func (e *Engine) cleanupStaleSessions() {
 	}
 
 	if cleanedCount > 0 {
-		e.logger.Info("Cleaned up stale sessions",
+		e.logger.Debug("Cleaned up stale sessions",
 			"cleaned_count", cleanedCount,
 		)
 	}
 }
 
-// cleanupStaleContainers removes unused container environments
+// cleanupStaleContainers removes container environments not linked to active sessions.
+// TODO: Implement this to prevent container resource leaks.
+// Should list containers, check session associations, and destroy orphans.
 func (e *Engine) cleanupStaleContainers() {
 	// TODO: Implement container cleanup
 	// This would involve:

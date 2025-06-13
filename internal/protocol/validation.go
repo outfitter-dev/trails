@@ -225,11 +225,39 @@ func validateSetPreference(payload interface{}) error {
 
 // Helper functions
 
+// Performance optimizations:
+// The validation functions below use pre-computed lookup tables
+// instead of string operations for better performance.
+// This is especially important for ULID validation which happens frequently.
+
+// sessionNameCharLookup is a lookup table for valid session name characters
+var sessionNameCharLookup = func() [256]bool {
+	var lookup [256]bool
+	// Add lowercase letters
+	for c := 'a'; c <= 'z'; c++ {
+		lookup[c] = true
+	}
+	// Add uppercase letters
+	for c := 'A'; c <= 'Z'; c++ {
+		lookup[c] = true
+	}
+	// Add digits
+	for c := '0'; c <= '9'; c++ {
+		lookup[c] = true
+	}
+	// Add special allowed characters
+	lookup[' '] = true
+	lookup['-'] = true
+	lookup['_'] = true
+	return lookup
+}()
+
 func isValidSessionName(name string) bool {
 	// Allow alphanumeric, spaces, hyphens, underscores
-	for _, r := range name {
-		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
-			(r >= '0' && r <= '9') || r == ' ' || r == '-' || r == '_') {
+	// Using lookup table for better performance
+	for i := 0; i < len(name); i++ {
+		c := name[i]
+		if c >= 128 || !sessionNameCharLookup[c] {
 			return false
 		}
 	}
@@ -245,18 +273,31 @@ func isValidAgent(agent string) bool {
 	return false
 }
 
+// ulidCharLookup is a lookup table for valid ULID characters
+// This is faster than strings.ContainsRune for repeated lookups
+var ulidCharLookup = func() [256]bool {
+	var lookup [256]bool
+	for _, c := range ULIDCharset {
+		lookup[c] = true
+		// Also mark lowercase as valid
+		if c >= 'A' && c <= 'Z' {
+			lookup[c+32] = true // lowercase version
+		}
+	}
+	return lookup
+}()
+
 func isValidULID(id string) bool {
 	// Basic ULID validation
 	if len(id) != ULIDLength {
 		return false
 	}
 
-	// Convert to uppercase for validation as ULID allows lowercase
-	upper := strings.ToUpper(id)
-	
-	// Check character set
-	for _, r := range upper {
-		if !strings.ContainsRune(ULIDCharset, r) {
+	// Fast validation using lookup table
+	// This avoids uppercase conversion and string search
+	for i := 0; i < len(id); i++ {
+		c := id[i]
+		if c >= 128 || !ulidCharLookup[c] {
 			return false
 		}
 	}

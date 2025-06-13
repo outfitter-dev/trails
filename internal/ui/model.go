@@ -68,7 +68,7 @@ func (m Model) Init() tea.Cmd {
 	return tea.Batch(
 		waitForEvent(m.eventReceiver),
 		tea.EnterAltScreen,
-		requestInitialState(m.commandSender),
+		requestInitialState(m.ctx, m.commandSender),
 	)
 }
 
@@ -153,7 +153,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.logger.Error("Failed to build create session command", "error", err)
 				return m, nil
 			}
-			return m, sendCommand(m.commandSender, cmd)
+			return m, sendCommand(m.ctx, m.commandSender, cmd)
 			
 		case "d":
 			// Delete current session
@@ -164,7 +164,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.logger.Error("Failed to build delete session command", "error", err)
 					return m, nil
 				}
-				return m, sendCommand(m.commandSender, cmd)
+				return m, sendCommand(m.ctx, m.commandSender, cmd)
 			}
 			
 		case "m":
@@ -175,7 +175,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.logger.Error("Failed to build toggle minimal command", "error", err)
 				return m, nil
 			}
-			return m, sendCommand(m.commandSender, cmd)
+			return m, sendCommand(m.ctx, m.commandSender, cmd)
 			
 		case "?":
 			// Show help (not implemented yet)
@@ -193,8 +193,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) handleEvent(event protocol.EnhancedEvent) (tea.Model, tea.Cmd) {
 	switch event.Type {
 	case protocol.EventSessionCreated:
-		payload, ok := event.Payload.(protocol.SessionCreatedEvent)
-		if ok {
+		payload, err := protocol.GetTypedEnhancedEventPayload[protocol.SessionCreatedEvent](event)
+		if err == nil {
 			m.sessions = append(m.sessions, SessionInfo{
 				ID:            payload.Session.ID,
 				Name:          payload.Session.Name,
@@ -207,14 +207,14 @@ func (m Model) handleEvent(event protocol.EnhancedEvent) (tea.Model, tea.Cmd) {
 		}
 		
 	case protocol.EventSessionDeleted:
-		payload, ok := event.Payload.(protocol.SessionDeletedEvent)
-		if ok {
+		payload, err := protocol.GetTypedEnhancedEventPayload[protocol.SessionDeletedEvent](event)
+		if err == nil {
 			m.removeSession(payload.SessionID)
 		}
 		
 	case protocol.EventSessionUpdated:
-		payload, ok := event.Payload.(protocol.SessionUpdatedEvent)
-		if ok {
+		payload, err := protocol.GetTypedEnhancedEventPayload[protocol.SessionUpdatedEvent](event)
+		if err == nil {
 			for i, s := range m.sessions {
 				if s.ID == payload.Session.ID {
 					m.sessions[i] = SessionInfo{
@@ -233,8 +233,8 @@ func (m Model) handleEvent(event protocol.EnhancedEvent) (tea.Model, tea.Cmd) {
 		
 	case protocol.EventStateSnapshot:
 		// Handle full state update
-		payload, ok := event.Payload.(protocol.StateSnapshotEvent)
-		if ok {
+		payload, err := protocol.GetTypedEnhancedEventPayload[protocol.StateSnapshotEvent](event)
+		if err == nil {
 			m.sessions = make([]SessionInfo, 0, len(payload.Sessions))
 			for _, s := range payload.Sessions {
 				m.sessions = append(m.sessions, SessionInfo{

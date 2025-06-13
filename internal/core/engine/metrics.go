@@ -8,7 +8,9 @@ import (
 	"github.com/outfitter-dev/trails/internal/protocol"
 )
 
-// InMemoryMetrics implements MetricsCollector with in-memory storage
+// InMemoryMetrics implements MetricsCollector with in-memory storage.
+// This is a simple implementation suitable for development and testing.
+// For production, consider using a proper metrics backend.
 type InMemoryMetrics struct {
 	mu sync.RWMutex
 
@@ -27,7 +29,8 @@ type InMemoryMetrics struct {
 	startTime time.Time
 }
 
-// NewInMemoryMetrics creates a new in-memory metrics collector
+// NewInMemoryMetrics creates a new in-memory metrics collector.
+// The collector starts tracking time from creation.
 func NewInMemoryMetrics() *InMemoryMetrics {
 	return &InMemoryMetrics{
 		commandCounts:    make(map[protocol.CommandType]int64),
@@ -37,7 +40,8 @@ func NewInMemoryMetrics() *InMemoryMetrics {
 	}
 }
 
-// RecordCommand increments the count for a command type
+// RecordCommand increments the count for a command type.
+// Thread-safe method for tracking command frequency.
 func (m *InMemoryMetrics) RecordCommand(cmdType protocol.CommandType) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -45,20 +49,24 @@ func (m *InMemoryMetrics) RecordCommand(cmdType protocol.CommandType) {
 	m.commandCounts[cmdType]++
 }
 
-// RecordCommandDuration records the duration of a command
+// RecordCommandDuration records the duration of a command execution.
+// Maintains a sliding window of recent durations to prevent unbounded growth.
+// Thread-safe method for tracking command performance.
 func (m *InMemoryMetrics) RecordCommandDuration(cmdType protocol.CommandType, duration time.Duration) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	
 	m.commandDurations[cmdType] = append(m.commandDurations[cmdType], duration)
 	
-	// Keep only the last 100 durations to prevent unbounded memory growth
-	if len(m.commandDurations[cmdType]) > 100 {
+	// Keep only the configured number of durations to prevent unbounded memory growth
+	if len(m.commandDurations[cmdType]) > MetricsDurationHistorySize {
 		m.commandDurations[cmdType] = m.commandDurations[cmdType][1:]
 	}
 }
 
-// RecordError increments the count for an error type
+// RecordError increments the error count for a specific operation.
+// The operation string should identify where the error occurred.
+// Thread-safe method for tracking error rates.
 func (m *InMemoryMetrics) RecordError(operation string, err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -66,7 +74,9 @@ func (m *InMemoryMetrics) RecordError(operation string, err error) {
 	m.errorCounts[operation]++
 }
 
-// RecordSessionCount updates the current session count
+// RecordSessionCount updates the current and maximum session counts.
+// Called periodically by the health monitor.
+// Thread-safe method for tracking session metrics.
 func (m *InMemoryMetrics) RecordSessionCount(count int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -77,7 +87,9 @@ func (m *InMemoryMetrics) RecordSessionCount(count int) {
 	}
 }
 
-// GetMetrics returns a snapshot of all metrics
+// GetMetrics returns a point-in-time snapshot of all collected metrics.
+// The snapshot includes command statistics, error counts, and session metrics.
+// Thread-safe method that creates a consistent view of metrics.
 func (m *InMemoryMetrics) GetMetrics() MetricsSnapshot {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -114,7 +126,8 @@ func (m *InMemoryMetrics) GetMetrics() MetricsSnapshot {
 	}
 }
 
-// MetricsSnapshot represents a point-in-time view of metrics
+// MetricsSnapshot represents a point-in-time view of all metrics.
+// This is used for reporting and monitoring the engine's performance.
 type MetricsSnapshot struct {
 	CommandCounts       map[protocol.CommandType]int64   `json:"command_counts"`
 	CommandDurations    map[protocol.CommandType]DurationStats `json:"command_durations"`
@@ -125,7 +138,8 @@ type MetricsSnapshot struct {
 	Timestamp           time.Time                        `json:"timestamp"`
 }
 
-// DurationStats holds statistical information about durations
+// DurationStats holds statistical information about command durations.
+// Includes percentiles for understanding performance distribution.
 type DurationStats struct {
 	Count   int           `json:"count"`
 	Mean    time.Duration `json:"mean"`
@@ -136,7 +150,9 @@ type DurationStats struct {
 	P99     time.Duration `json:"p99"`
 }
 
-// calculateDurationStats computes statistics for a slice of durations
+// calculateDurationStats computes statistics for a slice of durations.
+// Returns percentiles (p50, p95, p99) along with min, max, and mean.
+// Assumes the input slice is not empty.
 func calculateDurationStats(durations []time.Duration) DurationStats {
 	if len(durations) == 0 {
 		return DurationStats{}
@@ -177,7 +193,9 @@ func calculateDurationStats(durations []time.Duration) DurationStats {
 	}
 }
 
-// Reset clears all metrics (useful for testing)
+// Reset clears all metrics and resets the start time.
+// This is primarily useful for testing scenarios.
+// Thread-safe method that reinitializes all tracking.
 func (m *InMemoryMetrics) Reset() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -190,7 +208,9 @@ func (m *InMemoryMetrics) Reset() {
 	m.startTime = time.Now()
 }
 
-// IncrementCounter increments a named counter with tags
+// IncrementCounter increments a named counter with optional tags.
+// Currently only tracks dropped events, but can be extended.
+// Thread-safe method for custom metric tracking.
 func (m *InMemoryMetrics) IncrementCounter(name string, tags map[string]string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

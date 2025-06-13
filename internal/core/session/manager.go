@@ -136,35 +136,8 @@ func (m *Manager) Update(ctx context.Context, sessionID string, updates map[stri
 		return fmt.Errorf("session not found: %s", sessionID)
 	}
 
-	// Apply updates
-	session.Mu.Lock()
-	defer session.Mu.Unlock()
-
-	for key, value := range updates {
-		switch key {
-		case "name":
-			if name, ok := value.(string); ok {
-				session.Name = name
-			}
-		case "agent":
-			if agent, ok := value.(string); ok {
-				session.Agent = agent
-			}
-		case "branch":
-			if branch, ok := value.(string); ok {
-				session.Branch = branch
-			}
-		case "environment":
-			if env, ok := value.(map[string]string); ok {
-				session.Environment = env
-			}
-		default:
-			return fmt.Errorf("unknown update field: %s", key)
-		}
-	}
-
-	session.UpdatedAt = time.Now()
-	session.LastActivity = time.Now()
+	// Apply updates using thread-safe method
+	session.Update(updates)
 
 	return nil
 }
@@ -180,9 +153,7 @@ func (m *Manager) Get(ctx context.Context, sessionID string) (*engine.Session, e
 	}
 
 	// Update last activity
-	session.Mu.Lock()
-	session.LastActivity = time.Now()
-	session.Mu.Unlock()
+	session.UpdateLastActivity()
 
 	return session, nil
 }
@@ -217,13 +188,9 @@ func (m *Manager) SetStatus(ctx context.Context, sessionID string, status protoc
 		return fmt.Errorf("session not found: %s", sessionID)
 	}
 
-	session.Mu.Lock()
-	defer session.Mu.Unlock()
-
-	oldStatus := session.Status
-	session.Status = status
-	session.UpdatedAt = time.Now()
-	session.LastActivity = time.Now()
+	oldStatus := session.GetStatus()
+	session.SetStatus(status)
+	session.UpdateLastActivity()
 
 	m.logger.LogStatusChange(ctx, sessionID, oldStatus, status)
 
