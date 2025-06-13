@@ -143,9 +143,9 @@ func (e *Engine) handleCommandError(ctx context.Context, cmd protocol.Command, e
 // Session command handlers
 
 func (e *Engine) handleCreateSession(ctx context.Context, cmd protocol.Command) error {
-	payload, ok := cmd.Payload.(protocol.CreateSessionCommand)
-	if !ok {
-		return fmt.Errorf("invalid payload type for CreateSession")
+	payload, err := protocol.GetTypedPayload[protocol.CreateSessionCommand](cmd)
+	if err != nil {
+		return fmt.Errorf("invalid payload for CreateSession: %w", err)
 	}
 
 	// Check session limits
@@ -179,9 +179,9 @@ func (e *Engine) handleCreateSession(ctx context.Context, cmd protocol.Command) 
 }
 
 func (e *Engine) handleDeleteSession(ctx context.Context, cmd protocol.Command) error {
-	payload, ok := cmd.Payload.(protocol.DeleteSessionCommand)
-	if !ok {
-		return fmt.Errorf("invalid payload type for DeleteSession")
+	payload, err := protocol.GetTypedPayload[protocol.DeleteSessionCommand](cmd)
+	if err != nil {
+		return fmt.Errorf("invalid payload for DeleteSession: %w", err)
 	}
 
 	ctx = logging.WithSessionID(ctx, payload.SessionID)
@@ -206,9 +206,9 @@ func (e *Engine) handleDeleteSession(ctx context.Context, cmd protocol.Command) 
 }
 
 func (e *Engine) handleUpdateSession(ctx context.Context, cmd protocol.Command) error {
-	payload, ok := cmd.Payload.(protocol.UpdateSessionCommand)
-	if !ok {
-		return fmt.Errorf("invalid payload type for UpdateSession")
+	payload, err := protocol.GetTypedPayload[protocol.UpdateSessionCommand](cmd)
+	if err != nil {
+		return fmt.Errorf("invalid payload for UpdateSession: %w", err)
 	}
 
 	ctx = logging.WithSessionID(ctx, payload.SessionID)
@@ -240,7 +240,7 @@ func (e *Engine) handleUpdateSession(ctx context.Context, cmd protocol.Command) 
 
 func (e *Engine) handleListSessions(ctx context.Context, cmd protocol.Command) error {
 	filter := protocol.SessionFilter{}
-	if payload, ok := cmd.Payload.(protocol.ListSessionsCommand); ok {
+	if payload, err := protocol.GetTypedPayload[protocol.ListSessionsCommand](cmd); err == nil {
 		filter = payload.Filter
 	}
 
@@ -272,9 +272,9 @@ func (e *Engine) handleListSessions(ctx context.Context, cmd protocol.Command) e
 // Agent command handlers
 
 func (e *Engine) handleStartAgent(ctx context.Context, cmd protocol.Command) error {
-	payload, ok := cmd.Payload.(protocol.StartAgentCommand)
-	if !ok {
-		return fmt.Errorf("invalid payload type for StartAgent")
+	payload, err := protocol.GetTypedPayload[protocol.StartAgentCommand](cmd)
+	if err != nil {
+		return fmt.Errorf("invalid payload for StartAgent: %w", err)
 	}
 
 	ctx = logging.WithSessionID(ctx, payload.SessionID)
@@ -315,9 +315,9 @@ func (e *Engine) handleStartAgent(ctx context.Context, cmd protocol.Command) err
 }
 
 func (e *Engine) handleStopAgent(ctx context.Context, cmd protocol.Command) error {
-	payload, ok := cmd.Payload.(protocol.StopAgentCommand)
-	if !ok {
-		return fmt.Errorf("invalid payload type for StopAgent")
+	payload, err := protocol.GetTypedPayload[protocol.StopAgentCommand](cmd)
+	if err != nil {
+		return fmt.Errorf("invalid payload for StopAgent: %w", err)
 	}
 
 	ctx = logging.WithSessionID(ctx, payload.SessionID)
@@ -345,9 +345,9 @@ func (e *Engine) handleStopAgent(ctx context.Context, cmd protocol.Command) erro
 }
 
 func (e *Engine) handleRestartAgent(ctx context.Context, cmd protocol.Command) error {
-	payload, ok := cmd.Payload.(protocol.RestartAgentCommand)
-	if !ok {
-		return fmt.Errorf("invalid payload type for RestartAgent")
+	payload, err := protocol.GetTypedPayload[protocol.RestartAgentCommand](cmd)
+	if err != nil {
+		return fmt.Errorf("invalid payload for RestartAgent: %w", err)
 	}
 
 	ctx = logging.WithSessionID(ctx, payload.SessionID)
@@ -377,13 +377,13 @@ func (e *Engine) handleRestartAgent(ctx context.Context, cmd protocol.Command) e
 // UI command handlers
 
 func (e *Engine) handleSetFocus(ctx context.Context, cmd protocol.Command) error {
-	payload, ok := cmd.Payload.(protocol.SetFocusCommand)
-	if !ok {
-		return fmt.Errorf("invalid payload type for SetFocus")
+	payload, err := protocol.GetTypedPayload[protocol.SetFocusCommand](cmd)
+	if err != nil {
+		return fmt.Errorf("invalid payload for SetFocus: %w", err)
 	}
 
 	// Verify session exists
-	_, err := e.sessions.Get(ctx, payload.SessionID)
+	_, err = e.sessions.Get(ctx, payload.SessionID)
 	if err != nil {
 		return fmt.Errorf("session not found: %w", err)
 	}
@@ -438,9 +438,9 @@ func (e *Engine) handleToggleMinimal(ctx context.Context, cmd protocol.Command) 
 }
 
 func (e *Engine) handleSetPreference(ctx context.Context, cmd protocol.Command) error {
-	payload, ok := cmd.Payload.(protocol.SetPreferenceCommand)
-	if !ok {
-		return fmt.Errorf("invalid payload type for SetPreference")
+	payload, err := protocol.GetTypedPayload[protocol.SetPreferenceCommand](cmd)
+	if err != nil {
+		return fmt.Errorf("invalid payload for SetPreference: %w", err)
 	}
 
 	// TODO: Store preference in state manager
@@ -453,7 +453,7 @@ func (e *Engine) handleSetPreference(ctx context.Context, cmd protocol.Command) 
 
 func (e *Engine) handleHealthCheck(ctx context.Context, cmd protocol.Command) error {
 	includeDetails := false
-	if payload, ok := cmd.Payload.(protocol.HealthCheckCommand); ok {
+	if payload, err := protocol.GetTypedPayload[protocol.HealthCheckCommand](cmd); err == nil {
 		includeDetails = payload.IncludeDetails
 	}
 
@@ -516,16 +516,53 @@ func (e *Engine) sessionToInfo(session *Session) protocol.SessionInfo {
 }
 
 func (e *Engine) sendEvent(event protocol.EnhancedEvent) {
-	select {
-	case e.events <- event:
-		// Event sent successfully
-	case <-e.ctx.Done():
-		// Engine is shutting down
-	default:
-		// Event channel is full, log warning
-		e.logger.Warn("Event channel full, dropping event",
-			"event_type", event.Type,
-			"event_id", event.Metadata.EventID,
-		)
+	// Try to send with exponential backoff
+	backoff := 10 * time.Millisecond
+	maxBackoff := 500 * time.Millisecond
+	attempts := 0
+	maxAttempts := 5
+	
+	for attempts < maxAttempts {
+		select {
+		case e.events <- event:
+			// Event sent successfully
+			if attempts > 0 {
+				e.logger.Debug("Event sent after retry",
+					"attempts", attempts+1,
+					"event_type", event.Type,
+				)
+			}
+			return
+			
+		case <-e.ctx.Done():
+			// Engine is shutting down
+			return
+			
+		case <-time.After(backoff):
+			// Retry with exponential backoff
+			attempts++
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+			
+			e.logger.Debug("Event channel full, retrying",
+				"attempt", attempts,
+				"event_type", event.Type,
+				"backoff", backoff,
+			)
+		}
 	}
+	
+	// After all retries failed, log error and increment metric
+	e.logger.Error("Failed to send event after retries",
+		"event_type", event.Type,
+		"event_id", event.Metadata.EventID,
+		"attempts", attempts,
+	)
+	
+	// Track dropped events in metrics
+	e.metrics.IncrementCounter("events.dropped", map[string]string{
+		"type": string(event.Type),
+	})
 }

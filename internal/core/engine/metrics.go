@@ -189,3 +189,19 @@ func (m *InMemoryMetrics) Reset() {
 	m.maxSessionCount = 0
 	m.startTime = time.Now()
 }
+
+// IncrementCounter increments a named counter with tags
+func (m *InMemoryMetrics) IncrementCounter(name string, tags map[string]string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+	// For now, we'll just track errors in errorCounts
+	// In a full implementation, this would support arbitrary counters
+	if name == "events.dropped" {
+		if eventType, ok := tags["type"]; ok {
+			m.errorCounts["dropped_event_"+eventType]++
+		} else {
+			m.errorCounts["dropped_event_unknown"]++
+		}
+	}
+}

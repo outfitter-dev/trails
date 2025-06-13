@@ -7,8 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/time/rate"
-
 	"github.com/outfitter-dev/trails/internal/logging"
 	"github.com/outfitter-dev/trails/internal/protocol"
 )
@@ -31,7 +29,7 @@ type Engine struct {
 
 	// Infrastructure
 	logger      *logging.Logger
-	rateLimiter *protocol.RateLimiter
+	rateLimiter *protocol.LRURateLimiter
 	metrics     MetricsCollector
 
 	// Configuration
@@ -55,7 +53,7 @@ func DefaultConfig() Config {
 	return Config{
 		MaxConcurrentSessions: 10,
 		CommandBufferSize:     100,
-		EventBufferSize:       1000,
+		EventBufferSize:       5000, // Increased to reduce blocking
 		StateFile:             ".trails/state.json",
 		WorkerCount:           3,
 		ShutdownTimeout:       30 * time.Second,
@@ -95,6 +93,7 @@ type MetricsCollector interface {
 	RecordCommandDuration(cmdType protocol.CommandType, duration time.Duration)
 	RecordError(operation string, err error)
 	RecordSessionCount(count int)
+	IncrementCounter(name string, tags map[string]string)
 }
 
 // Session represents an agent session
@@ -112,7 +111,89 @@ type Session struct {
 
 	// Runtime state (not persisted)
 	process *AgentProcess `json:"-"`
-	Mu      sync.RWMutex  `json:"-"`
+	mu      sync.RWMutex  `json:"-"`
+}
+
+// GetStatus returns the session status in a thread-safe manner
+func (s *Session) GetStatus() protocol.SessionStatus {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.Status
+}
+
+// SetStatus sets the session status in a thread-safe manner
+func (s *Session) SetStatus(status protocol.SessionStatus) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Status = status
+	s.UpdatedAt = time.Now()
+}
+
+// UpdateLastActivity updates the last activity time in a thread-safe manner
+func (s *Session) UpdateLastActivity() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.LastActivity = time.Now()
+}
+
+// GetProcess returns the agent process in a thread-safe manner
+func (s *Session) GetProcess() *AgentProcess {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.process
+}
+
+// SetProcess sets the agent process in a thread-safe manner
+func (s *Session) SetProcess(process *AgentProcess) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.process = process
+}
+
+// Update applies updates to the session in a thread-safe manner
+func (s *Session) Update(updates map[string]interface{}) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
+	for key, value := range updates {
+		switch key {
+		case "name":
+			if name, ok := value.(string); ok {
+				s.Name = name
+			}
+		case "status":
+			if status, ok := value.(protocol.SessionStatus); ok {
+				s.Status = status
+			} else if statusStr, ok := value.(string); ok {
+				s.Status = protocol.SessionStatus(statusStr)
+			}
+		case "branch":
+			if branch, ok := value.(string); ok {
+				s.Branch = branch
+			}
+		}
+	}
+	s.UpdatedAt = time.Now()
+}
+
+// Clone creates a thread-safe copy of the session
+func (s *Session) Clone() Session {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	
+	return Session{
+		ID:            s.ID,
+		Name:          s.Name,
+		Agent:         s.Agent,
+		Status:        s.Status,
+		EnvironmentID: s.EnvironmentID,
+		Branch:        s.Branch,
+		CreatedAt:     s.CreatedAt,
+		UpdatedAt:     s.UpdatedAt,
+		LastActivity:  s.LastActivity,
+		Environment:   s.Environment,
+		process:       s.process,
+	}
 }
 
 // AgentProcess represents a running agent
@@ -191,9 +272,11 @@ func New(
 		return nil, fmt.Errorf("logger cannot be nil")
 	}
 
-	rateLimiter := protocol.NewRateLimiter(
-		rate.Limit(cfg.RateLimitPerSecond),
+	// Use LRU rate limiter with max size of 10000 sessions
+	rateLimiter := protocol.NewLRURateLimiter(
+		cfg.RateLimitPerSecond,
 		cfg.RateLimitBurst,
+		10000, // Max tracked sessions
 	)
 
 	return &Engine{
