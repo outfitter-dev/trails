@@ -1,4 +1,4 @@
-package bubbletea
+package ui
 
 import (
 	"context"
