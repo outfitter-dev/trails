@@ -71,11 +71,12 @@ const (
 	EventEnvironmentError EventType = "env.error"
 
 	// System Events
-	EventError         EventType = "system.error"
-	EventWarning       EventType = "system.warning"
-	EventInfo          EventType = "system.info"
-	EventStateSnapshot EventType = "system.state_snapshot"
-	EventHealthStatus  EventType = "system.health_status"
+	EventError            EventType = "system.error"
+	EventWarning          EventType = "system.warning"
+	EventInfo             EventType = "system.info"
+	EventStateSnapshot    EventType = "system.state_snapshot"
+	EventHealthStatus     EventType = "system.health_status"
+	EventPreferenceChange EventType = "system.preference_change"
 )
 
 // SessionStatus enumeration

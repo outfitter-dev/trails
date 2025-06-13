@@ -234,7 +234,11 @@ func TestEngine_CreateSession(t *testing.T) {
 	// Start engine
 	err := engine.Start(ctx)
 	require.NoError(t, err)
-	defer engine.Stop()
+	defer func() {
+		if err := engine.Stop(); err != nil {
+			t.Errorf("engine.Stop() failed: %v", err)
+		}
+	}()
 
 	// Create command
 	cmd := protocol.NewCommand(protocol.CmdCreateSession, protocol.CreateSessionCommand{
@@ -275,7 +279,11 @@ func TestEngine_DeleteSession(t *testing.T) {
 	// Start engine
 	err := engine.Start(ctx)
 	require.NoError(t, err)
-	defer engine.Stop()
+	defer func() {
+		if err := engine.Stop(); err != nil {
+			t.Errorf("engine.Stop() failed: %v", err)
+		}
+	}()
 
 	// First create a session
 	createCmd := protocol.NewCommand(protocol.CmdCreateSession, protocol.CreateSessionCommand{
@@ -331,7 +339,11 @@ func TestEngine_HealthCheck(t *testing.T) {
 	// Start engine
 	err := engine.Start(ctx)
 	require.NoError(t, err)
-	defer engine.Stop()
+	defer func() {
+		if err := engine.Stop(); err != nil {
+			t.Errorf("engine.Stop() failed: %v", err)
+		}
+	}()
 
 	// Create health check command
 	cmd := protocol.NewCommand(protocol.CmdHealthCheck, protocol.HealthCheckCommand{
@@ -371,7 +383,11 @@ func TestEngine_InvalidCommand(t *testing.T) {
 	// Start engine
 	err := engine.Start(ctx)
 	require.NoError(t, err)
-	defer engine.Stop()
+	defer func() {
+		if err := engine.Stop(); err != nil {
+			t.Errorf("engine.Stop() failed: %v", err)
+		}
+	}()
 
 	// Create invalid command (missing required fields)
 	cmd := protocol.Command{

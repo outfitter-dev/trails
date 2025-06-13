@@ -64,7 +64,7 @@ func TestMockUsage(t *testing.T) {
 	
 	// Send command
 	cmd := testhelpers.TestCommand(
-		protocol.CommandCreateSession,
+		protocol.CmdCreateSession,
 		protocol.CreateSessionCommand{
 			Name:  "test-session",
 			Agent: "test-agent",
@@ -109,13 +109,13 @@ func TestCommandBuilder(t *testing.T) {
 	
 	// Check command types
 	expectedTypes := []protocol.CommandType{
-		protocol.CommandCreateSession,
-		protocol.CommandCreateSession,
-		protocol.CommandStartAgent,
-		protocol.CommandStartAgent,
-		protocol.CommandStopAgent,
-		protocol.CommandDeleteSession,
-		protocol.CommandHealthCheck,
+		protocol.CmdCreateSession,
+		protocol.CmdCreateSession,
+		protocol.CmdStartAgent,
+		protocol.CmdStartAgent,
+		protocol.CmdStopAgent,
+		protocol.CmdDeleteSession,
+		protocol.CmdHealthCheck,
 	}
 	
 	for i, cmd := range commands {

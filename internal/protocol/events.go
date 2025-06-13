@@ -97,6 +97,13 @@ type InfoEvent struct {
 	Details string `json:"details,omitempty"`
 }
 
+// PreferenceChangeEvent for preference/setting changes
+type PreferenceChangeEvent struct {
+	Key      string      `json:"key"`
+	Value    interface{} `json:"value"`
+	Previous interface{} `json:"previous,omitempty"`
+}
+
 // HealthStatusEvent payload
 type HealthStatusEvent struct {
 	Healthy bool                   `json:"healthy"`

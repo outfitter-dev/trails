@@ -94,7 +94,8 @@ func RestartAgent(sessionID string) *CommandBuilder {
 
 // Shutdown builds a shutdown command
 func Shutdown() *CommandBuilder {
-	return NewCommandBuilder(CmdShutdown)
+	return NewCommandBuilder(CmdShutdown).
+		WithPayload(struct{}{})
 }
 
 // HealthCheck builds a health check command
@@ -109,7 +110,8 @@ func HealthCheck(includeDetails bool) *CommandBuilder {
 
 // ToggleMinimal builds a toggle minimal mode command
 func ToggleMinimal() *CommandBuilder {
-	return NewCommandBuilder(CmdToggleMinimal)
+	return NewCommandBuilder(CmdToggleMinimal).
+		WithPayload(struct{}{})
 }
 
 // SetPreference builds a set preference command

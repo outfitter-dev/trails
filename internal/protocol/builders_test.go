@@ -106,7 +106,7 @@ func TestShutdownBuilder(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, CmdShutdown, cmd.Type)
-	assert.Nil(t, cmd.Payload)
+	assert.Equal(t, struct{}{}, cmd.Payload)
 }
 
 func TestHealthCheckBuilder(t *testing.T) {
@@ -125,7 +125,7 @@ func TestToggleMinimalBuilder(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, CmdToggleMinimal, cmd.Type)
-	assert.Nil(t, cmd.Payload)
+	assert.Equal(t, struct{}{}, cmd.Payload)
 }
 
 func TestSetPreferenceBuilder(t *testing.T) {

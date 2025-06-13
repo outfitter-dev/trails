@@ -18,9 +18,9 @@ var commandPayloadRegistry = map[CommandType]reflect.Type{
 	CmdRestartAgent:     reflect.TypeOf(RestartAgentCommand{}),
 	CmdSetPreference:    reflect.TypeOf(SetPreferenceCommand{}),
 	CmdHealthCheck:      reflect.TypeOf(HealthCheckCommand{}),
-	CmdToggleMinimal:    nil, // No payload
-	CmdNextActionable:   nil, // No payload
-	CmdShutdown:         nil, // No payload
+	CmdToggleMinimal:    reflect.TypeOf(struct{}{}), // Empty struct payload
+	CmdNextActionable:   reflect.TypeOf(struct{}{}), // Empty struct payload
+	CmdShutdown:         reflect.TypeOf(struct{}{}), // Empty struct payload
 }
 
 // eventPayloadRegistry maps event types to their payload types
@@ -75,12 +75,14 @@ func UnmarshalCommand(data []byte) (Command, error) {
 		return Command{}, fmt.Errorf("unknown command type: %s", raw.Type)
 	}
 	
-	// Handle commands with no payload
-	if payloadType == nil {
-		if len(raw.Payload) > 0 && string(raw.Payload) != "null" {
+	// Handle commands with empty struct payload (no-payload commands)
+	if payloadType == reflect.TypeOf(struct{}{}) {
+		// Accept null, empty, or empty object for empty struct commands
+		payloadStr := string(raw.Payload)
+		if len(raw.Payload) > 0 && payloadStr != "null" && payloadStr != "{}" {
 			return Command{}, fmt.Errorf("command %s must not contain a payload", raw.Type)
 		}
-		cmd.Payload = nil
+		cmd.Payload = struct{}{}
 		return cmd, nil
 	}
 	

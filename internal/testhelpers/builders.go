@@ -1,7 +1,7 @@
 package testhelpers
 
 import (
-	"context"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -32,7 +32,7 @@ func NewEngineBuilder(t *testing.T) *EngineBuilder {
 		state:      NewMockStateManager(),
 		containers: NewMockContainerManager(),
 		metrics:    NewMockMetricsCollector(),
-		logger:     logging.NewTestLogger(),
+		logger:     logging.New(slog.LevelDebug, false),
 		commands:   make(chan protocol.Command, 10),
 		events:     make(chan protocol.EnhancedEvent, 10),
 	}
@@ -83,7 +83,7 @@ func (b *EngineBuilder) WithChannels(commands chan protocol.Command, events chan
 
 // Build creates the engine instance.
 // Also starts the engine and registers cleanup.
-func (b *EngineBuilder) Build() (*engine.Engine, <-chan protocol.Command, <-chan protocol.EnhancedEvent) {
+func (b *EngineBuilder) Build() (*engine.Engine, chan protocol.Command, chan protocol.EnhancedEvent) {
 	b.t.Helper()
 	
 	eng, err := engine.New(
@@ -183,7 +183,7 @@ func NewCommandSequence() *CommandSequence {
 // CreateSession adds a create session command.
 func (cs *CommandSequence) CreateSession(name, agent string) *CommandSequence {
 	cs.commands = append(cs.commands, TestCommand(
-		protocol.CommandCreateSession,
+		protocol.CmdCreateSession,
 		protocol.CreateSessionCommand{
 			Name:  name,
 			Agent: agent,
@@ -195,7 +195,7 @@ func (cs *CommandSequence) CreateSession(name, agent string) *CommandSequence {
 // DeleteSession adds a delete session command.
 func (cs *CommandSequence) DeleteSession(sessionID string, force bool) *CommandSequence {
 	cs.commands = append(cs.commands, TestCommand(
-		protocol.CommandDeleteSession,
+		protocol.CmdDeleteSession,
 		protocol.DeleteSessionCommand{
 			SessionID: sessionID,
 			Force:     force,
@@ -207,7 +207,7 @@ func (cs *CommandSequence) DeleteSession(sessionID string, force bool) *CommandS
 // StartAgent adds a start agent command.
 func (cs *CommandSequence) StartAgent(sessionID string) *CommandSequence {
 	cs.commands = append(cs.commands, TestCommand(
-		protocol.CommandStartAgent,
+		protocol.CmdStartAgent,
 		protocol.StartAgentCommand{
 			SessionID: sessionID,
 		},
@@ -218,7 +218,7 @@ func (cs *CommandSequence) StartAgent(sessionID string) *CommandSequence {
 // StopAgent adds a stop agent command.
 func (cs *CommandSequence) StopAgent(sessionID string) *CommandSequence {
 	cs.commands = append(cs.commands, TestCommand(
-		protocol.CommandStopAgent,
+		protocol.CmdStopAgent,
 		protocol.StopAgentCommand{
 			SessionID: sessionID,
 		},
@@ -229,7 +229,7 @@ func (cs *CommandSequence) StopAgent(sessionID string) *CommandSequence {
 // HealthCheck adds a health check command.
 func (cs *CommandSequence) HealthCheck(includeDetails bool) *CommandSequence {
 	cs.commands = append(cs.commands, TestCommand(
-		protocol.CommandHealthCheck,
+		protocol.CmdHealthCheck,
 		protocol.HealthCheckCommand{
 			IncludeDetails: includeDetails,
 		},

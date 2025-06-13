@@ -49,7 +49,7 @@ func TestCommandJSONRoundtrip(t *testing.T) {
 				ID:        "cmd-789",
 				Type:      CmdShutdown,
 				Timestamp: time.Now().Truncate(time.Second),
-				Payload:   nil,
+				Payload:   struct{}{},
 			},
 		},
 		{
@@ -238,7 +238,7 @@ func TestUnmarshalEventErrors(t *testing.T) {
 }
 
 func TestCommandWithNullPayload(t *testing.T) {
-	// Test commands that should have null payload
+	// Test commands that should have empty struct payload
 	data := `{"id":"cmd-123","type":"system.shutdown","timestamp":"2023-01-01T00:00:00Z","payload":null}`
 	
 	cmd, err := UnmarshalCommand([]byte(data))
@@ -246,7 +246,7 @@ func TestCommandWithNullPayload(t *testing.T) {
 	
 	assert.Equal(t, "cmd-123", cmd.ID)
 	assert.Equal(t, CmdShutdown, cmd.Type)
-	assert.Nil(t, cmd.Payload)
+	assert.Equal(t, struct{}{}, cmd.Payload)
 }
 
 func TestJSONWithRealWorldData(t *testing.T) {

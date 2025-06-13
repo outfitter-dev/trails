@@ -466,10 +466,56 @@ func (e *Engine) handleNextActionable(ctx context.Context, cmd protocol.Command)
 
 // handleToggleMinimal toggles the minimal UI mode.
 // In minimal mode, the UI shows less information for autonomous operation.
-// Currently a no-op; UI manages this state locally.
 func (e *Engine) handleToggleMinimal(ctx context.Context, cmd protocol.Command) error {
-	// This would typically update UI preferences
-	// For now, just acknowledge the command
+	// Check if state manager supports minimal mode (duck typing)
+	type MinimalModeManager interface {
+		GetMinimalMode() bool
+		SetMinimalMode(bool) error
+	}
+	
+	stateManager, ok := e.state.(MinimalModeManager)
+	if !ok {
+		// Fallback: just send an info event
+		event := protocol.NewEnhancedEventForCommand(
+			protocol.EventInfo,
+			cmd.ID,
+			protocol.InfoEvent{
+				Message: "Minimal mode toggled (local only)",
+				Details: "State manager doesn't support persistent minimal mode",
+			},
+		)
+		e.events <- event
+		return nil
+	}
+	
+	// Get current state and toggle it
+	currentMode := stateManager.GetMinimalMode()
+	newMode := !currentMode
+	
+	// Update the state
+	if err := stateManager.SetMinimalMode(newMode); err != nil {
+		e.logger.Error("Failed to set minimal mode", "error", err)
+		return fmt.Errorf("failed to set minimal mode: %w", err)
+	}
+	
+	// Send preference change event
+	event := protocol.NewEnhancedEventForCommand(
+		protocol.EventPreferenceChange,
+		cmd.ID,
+		protocol.PreferenceChangeEvent{
+			Key:      "minimal_mode",
+			Value:    newMode,
+			Previous: currentMode,
+		},
+	)
+	e.events <- event
+	
+	e.logger.Info("Minimal mode toggled",
+		"previous", currentMode,
+		"current", newMode,
+		"command_id", cmd.ID,
+	)
+	
 	return nil
 }
 

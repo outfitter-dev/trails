@@ -143,8 +143,17 @@ func (m *MockSessionManager) List(ctx context.Context, filter protocol.SessionFi
 	var sessions []*engine.Session
 	for _, session := range m.sessions {
 		// Apply filter if needed
-		if filter.Status != "" && session.GetStatus() != filter.Status {
-			continue
+		if len(filter.Status) > 0 {
+			found := false
+			for _, status := range filter.Status {
+				if session.GetStatus() == status {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
 		}
 		if filter.Agent != "" && session.Agent != filter.Agent {
 			continue
