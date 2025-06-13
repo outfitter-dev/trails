@@ -3,7 +3,6 @@ package protocol
 import (
 	"errors"
 	"fmt"
-	"strings"
 )
 
 // Validation errors

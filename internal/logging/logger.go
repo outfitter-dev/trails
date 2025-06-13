@@ -122,6 +122,37 @@ func (l *Logger) LogEvent(ctx context.Context, msg string, event protocol.Event)
 	l.WithContext(ctx).InfoContext(ctx, msg, args...)
 }
 
+// LogEnhancedEvent logs an enhanced event with metadata
+func (l *Logger) LogEnhancedEvent(ctx context.Context, msg string, event protocol.EnhancedEvent) {
+	attrs := []slog.Attr{
+		slog.String("event_id", event.Metadata.EventID),
+		slog.String("event_type", string(event.Type)),
+		slog.Time("timestamp", event.Metadata.Timestamp),
+	}
+
+	if event.Metadata.CommandID != "" {
+		attrs = append(attrs, slog.String("command_id", event.Metadata.CommandID))
+	}
+
+	if event.Metadata.SessionID != "" {
+		attrs = append(attrs, slog.String("session_id", event.Metadata.SessionID))
+	}
+
+	if event.Metadata.CorrelationID != "" {
+		attrs = append(attrs, slog.String("correlation_id", event.Metadata.CorrelationID))
+	}
+
+	if event.Metadata.Source != "" {
+		attrs = append(attrs, slog.String("source", event.Metadata.Source))
+	}
+
+	args := make([]any, len(attrs))
+	for i, attr := range attrs {
+		args[i] = attr
+	}
+	l.WithContext(ctx).InfoContext(ctx, msg, args...)
+}
+
 // LogSessionCreated logs session creation
 func (l *Logger) LogSessionCreated(ctx context.Context, session protocol.SessionInfo) {
 	l.WithContext(ctx).InfoContext(ctx, "Session created",

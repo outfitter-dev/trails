@@ -46,9 +46,12 @@ var rootCmd = &cobra.Command{
 		// Set up logging
 		logger := logging.Default()
 
-		// Create protocol channels
-		commandChan := make(chan protocol.Command, 100)
-		eventChan := make(chan protocol.EnhancedEvent, 100)
+		// Create and start core engine
+		engineConfig := engine.DefaultConfig()
+		
+		// Create protocol channels with engine config buffer sizes
+		commandChan := make(chan protocol.Command, engineConfig.CommandBufferSize)
+		eventChan := make(chan protocol.EnhancedEvent, engineConfig.EventBufferSize)
 
 		// Create managers
 		containerManager := container.NewManager(logger)
@@ -58,8 +61,6 @@ var rootCmd = &cobra.Command{
 		// Create metrics collector
 		metrics := engine.NewInMemoryMetrics()
 
-		// Create and start core engine
-		engineConfig := engine.DefaultConfig()
 		eng, err := engine.New(engineConfig, commandChan, eventChan, sessionManager, stateManager, containerManager, metrics, logger)
 		if err != nil {
 			return fmt.Errorf("failed to create engine: %w", err)
@@ -68,7 +69,11 @@ var rootCmd = &cobra.Command{
 		if err := eng.Start(ctx); err != nil {
 			return fmt.Errorf("failed to start engine: %w", err)
 		}
-		defer eng.Stop()
+		defer func() {
+			if err := eng.Stop(); err != nil {
+				logger.Error("engine shutdown failed", "error", err)
+			}
+		}()
 
 		// Initialize and run TUI
 		log.Printf("Starting trails in %s", cwd)

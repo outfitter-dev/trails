@@ -155,7 +155,6 @@ func TestEnhancedEventJSONRoundtrip(t *testing.T) {
 			CausationID:   "cause-abc",
 			Timestamp:     time.Now().Truncate(time.Second),
 			Source:        "test-engine",
-			UserID:        "user-def",
 			SessionID:     "session-ghi",
 			Tags: map[string]string{
 				"env":     "test",
@@ -185,7 +184,7 @@ func TestEnhancedEventJSONRoundtrip(t *testing.T) {
 	assert.Equal(t, event.Metadata.CorrelationID, decoded.Metadata.CorrelationID)
 	assert.Equal(t, event.Metadata.CausationID, decoded.Metadata.CausationID)
 	assert.Equal(t, event.Metadata.Source, decoded.Metadata.Source)
-	assert.Equal(t, event.Metadata.UserID, decoded.Metadata.UserID)
+	assert.Equal(t, event.Metadata.SessionID, decoded.Metadata.SessionID)
 	assert.Equal(t, event.Metadata.SessionID, decoded.Metadata.SessionID)
 	assert.Equal(t, event.Metadata.Tags, decoded.Metadata.Tags)
 

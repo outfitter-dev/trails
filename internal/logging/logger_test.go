@@ -124,7 +124,7 @@ func TestLogEvent(t *testing.T) {
 	logger, buf := captureLogger(true)
 	ctx := context.Background()
 
-	event := protocol.NewEventForCommand(
+	event := protocol.NewEnhancedEventForCommand(
 		protocol.EventSessionCreated,
 		"cmd-123",
 		protocol.SessionCreatedEvent{
@@ -137,7 +137,7 @@ func TestLogEvent(t *testing.T) {
 		},
 	)
 
-	logger.LogEvent(ctx, "Session created event", event)
+	logger.LogEnhancedEvent(ctx, "Session created event", event)
 
 	// Parse JSON output
 	var log map[string]interface{}
@@ -145,7 +145,7 @@ func TestLogEvent(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "Session created event", log["msg"])
-	assert.Equal(t, event.ID, log["event_id"])
+	assert.Equal(t, event.Metadata.EventID, log["event_id"])
 	assert.Equal(t, "cmd-123", log["command_id"])
 }
 

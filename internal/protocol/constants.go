@@ -1,5 +1,7 @@
 package protocol
 
+import "time"
+
 // Protocol constants
 const (
 	// ULIDLength is the expected length of a ULID string
@@ -15,7 +17,7 @@ const (
 	DefaultRateBurst = 20
 	
 	// DefaultCleanupInterval is how often to clean up old rate limiters
-	DefaultCleanupInterval = 5 * 60 // 5 minutes
+	DefaultCleanupInterval = 5 * time.Minute
 	
 	// MaxEventTags is the maximum number of tags allowed in event metadata
 	MaxEventTags = 20
@@ -36,7 +38,7 @@ var SupportedAgents = []string{"claude", "gpt-4", "custom"}
 // Default security settings
 const (
 	// DefaultTokenExpiry is the default auth token expiry duration
-	DefaultTokenExpiry = 24 * 60 * 60 // 24 hours in seconds
+	DefaultTokenExpiry = 24 * time.Hour
 	
 	// MinPasswordLength for user authentication
 	MinPasswordLength = 8
@@ -45,5 +47,5 @@ const (
 	MaxLoginAttempts = 5
 	
 	// AccountLockoutDuration in seconds
-	AccountLockoutDuration = 15 * 60 // 15 minutes
+	AccountLockoutDuration = 15 * time.Minute
 )

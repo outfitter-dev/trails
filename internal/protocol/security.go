@@ -5,7 +5,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -30,10 +32,13 @@ type SecureCommand struct {
 
 // Verify command integrity
 func (sc SecureCommand) Verify(secret []byte) error {
-	// Verify signature with proper delimiters to prevent collision attacks
+	// Verify signature with canonical serialization to prevent tampering
 	mac := hmac.New(sha256.New, secret)
-	mac.Write([]byte(sc.Command.ID))
-	mac.Write([]byte("|"))
+	canonical, err := json.Marshal(sc.Command)
+	if err != nil {
+		return fmt.Errorf("canonicalise command: %w", err)
+	}
+	mac.Write(canonical)
 	mac.Write([]byte(sc.Nonce))
 	expectedMAC := hex.EncodeToString(mac.Sum(nil))
 
@@ -76,8 +81,6 @@ func NewRateLimiter(limit rate.Limit, burst int) *RateLimiter {
 // Allow checks if a request is allowed for the given session
 func (rl *RateLimiter) Allow(sessionID string) bool {
 	rl.mu.Lock()
-	defer rl.mu.Unlock()
-
 	entry, exists := rl.requests[sessionID]
 	if !exists {
 		entry = &rateLimiterEntry{
@@ -89,7 +92,10 @@ func (rl *RateLimiter) Allow(sessionID string) bool {
 		entry.lastAccess = time.Now()
 	}
 
-	return entry.limiter.Allow()
+	lim := entry.limiter
+	rl.mu.Unlock()
+
+	return lim.Allow()
 }
 
 // Wait blocks until a request is allowed or context is cancelled

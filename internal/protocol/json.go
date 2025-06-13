@@ -77,6 +77,9 @@ func UnmarshalCommand(data []byte) (Command, error) {
 	
 	// Handle commands with no payload
 	if payloadType == nil {
+		if len(raw.Payload) > 0 && string(raw.Payload) != "null" {
+			return Command{}, fmt.Errorf("command %s must not contain a payload", raw.Type)
+		}
 		cmd.Payload = nil
 		return cmd, nil
 	}
@@ -155,18 +158,23 @@ func MarshalEnhancedEvent(event EnhancedEvent) ([]byte, error) {
 func UnmarshalEnhancedEvent(data []byte) (EnhancedEvent, error) {
 	// First, unmarshal to get the type
 	var raw struct {
-		Metadata EventMetadata   `json:"metadata"`
 		Type     EventType       `json:"type"`
 		Payload  json.RawMessage `json:"payload"`
+		Metadata json.RawMessage `json:"metadata"`
 	}
 	
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return EnhancedEvent{}, fmt.Errorf("unmarshal enhanced event envelope: %w", err)
 	}
 	
+	// Start with basic event
 	event := EnhancedEvent{
-		Metadata: raw.Metadata,
-		Type:     raw.Type,
+		Type: raw.Type,
+	}
+	
+	// Unmarshal metadata
+	if err := json.Unmarshal(raw.Metadata, &event.Metadata); err != nil {
+		return EnhancedEvent{}, fmt.Errorf("unmarshal metadata: %w", err)
 	}
 	
 	// Get the payload type

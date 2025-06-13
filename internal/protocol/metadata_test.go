@@ -19,6 +19,7 @@ func TestEventBuilder(t *testing.T) {
 		}
 
 		event := NewEventBuilder(EventSessionCreated).
+			WithSource("trails-engine").
 			WithPayload(payload).
 			Build()
 
@@ -50,9 +51,8 @@ func TestEventBuilder(t *testing.T) {
 	t.Run("event with full metadata", func(t *testing.T) {
 		event := NewEventBuilder(EventSessionCreated).
 			WithCommandID("cmd-123").
-			WithCorrelation("corr-456").
-			WithCausation("cause-789").
-			WithUserID("user-abc").
+			WithCorrelationID("corr-456").
+			WithCausationID("cause-789").
 			WithSessionID("session-def").
 			WithSource("test-source").
 			WithTag("key1", "value1").
@@ -63,7 +63,6 @@ func TestEventBuilder(t *testing.T) {
 		assert.Equal(t, "cmd-123", event.Metadata.CommandID)
 		assert.Equal(t, "corr-456", event.Metadata.CorrelationID)
 		assert.Equal(t, "cause-789", event.Metadata.CausationID)
-		assert.Equal(t, "user-abc", event.Metadata.UserID)
 		assert.Equal(t, "session-def", event.Metadata.SessionID)
 		assert.Equal(t, "test-source", event.Metadata.Source)
 		assert.Equal(t, "value1", event.Metadata.Tags["key1"])
@@ -95,7 +94,10 @@ func TestEventBuilder(t *testing.T) {
 
 func TestNewEnhancedEvent(t *testing.T) {
 	payload := InfoEvent{Message: "test message"}
-	event := NewEnhancedEvent(EventInfo, payload)
+	event := NewEventBuilder(EventInfo).
+		WithSource("trails-engine").
+		WithPayload(payload).
+		Build()
 
 	assert.Equal(t, EventInfo, event.Type)
 	assert.Equal(t, payload, event.Payload)
@@ -124,7 +126,6 @@ func TestEventMetadata(t *testing.T) {
 		CausationID:   "cause-abc",
 		Timestamp:     time.Now(),
 		Source:        "test-source",
-		UserID:        "user-def",
 		SessionID:     "session-ghi",
 		Tags: map[string]string{
 			"environment": "test",
@@ -137,7 +138,7 @@ func TestEventMetadata(t *testing.T) {
 	assert.Equal(t, "corr-789", metadata.CorrelationID)
 	assert.Equal(t, "cause-abc", metadata.CausationID)
 	assert.Equal(t, "test-source", metadata.Source)
-	assert.Equal(t, "user-def", metadata.UserID)
+	assert.Equal(t, "session-ghi", metadata.SessionID)
 	assert.Equal(t, "session-ghi", metadata.SessionID)
 	assert.Equal(t, "test", metadata.Tags["environment"])
 	assert.Equal(t, "1.0.0", metadata.Tags["version"])

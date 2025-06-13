@@ -13,10 +13,10 @@ import (
 	"github.com/outfitter-dev/trails/internal/logging"
 )
 
-// Manager implements container management
+// Manager handles container lifecycle and orchestration
 type Manager struct {
-	mu         sync.RWMutex
 	containers map[string]*engine.Container
+	mu         sync.RWMutex
 	logger     *logging.Logger
 }
 
@@ -30,6 +30,11 @@ func NewManager(logger *logging.Logger) *Manager {
 
 // CreateEnvironment creates a new container environment
 func (m *Manager) CreateEnvironment(ctx context.Context, req engine.ContainerRequest) (*engine.Container, error) {
+	// Check if context is already cancelled
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("context cancelled: %w", err)
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -66,7 +71,9 @@ func (m *Manager) CreateEnvironment(ctx context.Context, req engine.ContainerReq
 		"name", req.Name,
 	)
 
-	return container, nil
+	// Return a copy to avoid data races
+	clone := *container
+	return &clone, nil
 }
 
 // DestroyEnvironment destroys a container environment
@@ -84,21 +91,11 @@ func (m *Manager) DestroyEnvironment(ctx context.Context, envID string) error {
 		"name", container.Name,
 	)
 
-	// Update status
+	// Mark as destroyed
 	container.Status = engine.ContainerStatusDestroyed
 
-	// In a real implementation, this would:
-	// 1. Stop any running processes
-	// 2. Clean up filesystem
-	// 3. Remove network resources
-	// 4. Update container registry
-
-	// Remove from our tracking
+	// Remove from tracking
 	delete(m.containers, envID)
-
-	m.logger.Info("Container environment destroyed",
-		"container_id", envID,
-	)
 
 	return nil
 }
@@ -116,112 +113,19 @@ func (m *Manager) GetEnvironmentStatus(ctx context.Context, envID string) (engin
 	return container.Status, nil
 }
 
-// ListEnvironments returns all container environments
-func (m *Manager) ListEnvironments() []*engine.Container {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	containers := make([]*engine.Container, 0, len(m.containers))
-	for _, container := range m.containers {
-		// Create copy to avoid race conditions
-		containerCopy := *container
-		containers = append(containers, &containerCopy)
-	}
-
-	return containers
-}
-
-// GetContainer returns a specific container by ID
-func (m *Manager) GetContainer(containerID string) (*engine.Container, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	container, exists := m.containers[containerID]
-	if !exists {
-		return nil, fmt.Errorf("container not found: %s", containerID)
-	}
-
-	// Return copy to avoid race conditions
-	containerCopy := *container
-	return &containerCopy, nil
-}
-
-// simulateContainerCreation simulates the async nature of container creation
+// simulateContainerCreation simulates the time it takes to create a container
 func (m *Manager) simulateContainerCreation(containerID string) {
-	// Simulate creation time
-	time.Sleep(100 * time.Millisecond)
+	// Simulate 2-5 second container creation time
+	time.Sleep(3 * time.Second)
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	container, exists := m.containers[containerID]
-	if !exists {
-		return // Container was deleted during creation
-	}
-
-	// Mark as ready
-	container.Status = engine.ContainerStatusReady
-
-	m.logger.Info("Container environment ready",
-		"container_id", containerID,
-		"name", container.Name,
-	)
-}
-
-// CleanupStaleContainers removes containers that are no longer needed
-func (m *Manager) CleanupStaleContainers(olderThan time.Duration) int {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	cutoff := time.Now().Add(-olderThan)
-	removed := 0
-
-	for id, container := range m.containers {
-		// Remove containers that are old and in error or destroyed state
-		if container.CreatedAt.Before(cutoff) && 
-		   (container.Status == engine.ContainerStatusError || 
-		    container.Status == engine.ContainerStatusDestroyed) {
-			
-			m.logger.Info("Cleaning up stale container",
-				"container_id", id,
-				"name", container.Name,
-				"status", container.Status,
-				"age", time.Since(container.CreatedAt),
-			)
-
-			delete(m.containers, id)
-			removed++
-		}
-	}
-
-	if removed > 0 {
-		m.logger.Info("Cleaned up stale containers",
-			"removed_count", removed,
+	if container, exists := m.containers[containerID]; exists {
+		container.Status = engine.ContainerStatusReady
+		m.logger.Info("Container environment ready",
+			"container_id", containerID,
+			"name", container.Name,
 		)
 	}
-
-	return removed
-}
-
-// GetContainerCount returns the number of tracked containers
-func (m *Manager) GetContainerCount() int {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return len(m.containers)
-}
-
-// GetContainersByStatus returns containers with a specific status
-func (m *Manager) GetContainersByStatus(status engine.ContainerStatus) []*engine.Container {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	var results []*engine.Container
-	for _, container := range m.containers {
-		if container.Status == status {
-			containerCopy := *container
-			results = append(results, &containerCopy)
-		}
-	}
-
-	return results
 }
