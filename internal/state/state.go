@@ -228,3 +228,21 @@ func Load(repoPath string) (*State, func() error, error) {
 
 	return &state, state.Save, nil
 }
+
+// GetMinimalMode returns the current minimal mode setting
+func (s *State) GetMinimalMode() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.MinimalMode
+}
+
+// SetMinimalMode updates the minimal mode setting and saves the state
+func (s *State) SetMinimalMode(minimal bool) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
+	s.MinimalMode = minimal
+	s.LastSaved = time.Now().Unix()
+	
+	return s.Save()
+}

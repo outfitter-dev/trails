@@ -6,8 +6,12 @@ import (
 	"os"
 
 	"github.com/outfitter-dev/trails/internal/config"
-	"github.com/outfitter-dev/trails/internal/session"
-	"github.com/outfitter-dev/trails/internal/state"
+	"github.com/outfitter-dev/trails/internal/core/container"
+	"github.com/outfitter-dev/trails/internal/core/engine"
+	"github.com/outfitter-dev/trails/internal/core/session"
+	"github.com/outfitter-dev/trails/internal/core/state"
+	"github.com/outfitter-dev/trails/internal/logging"
+	"github.com/outfitter-dev/trails/internal/protocol"
 	"github.com/outfitter-dev/trails/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -25,6 +29,8 @@ var rootCmd = &cobra.Command{
 		// This is the main entry point for the TUI mode.
 		// We set up all dependencies here and ensure they are properly closed.
 
+		ctx := cmd.Context()
+
 		// Get current working directory (repo root)
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -37,37 +43,46 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
-		// Load state
-		st, closeState, err := state.Load(cwd)
+		// Set up logging
+		logger := logging.Default()
+
+		// Create and start core engine
+		engineConfig := engine.DefaultConfig()
+		
+		// Create protocol channels with engine config buffer sizes
+		commandChan := make(chan protocol.Command, engineConfig.CommandBufferSize)
+		eventChan := make(chan protocol.EnhancedEvent, engineConfig.EventBufferSize)
+
+		// Create managers
+		containerManager := container.NewManager(logger)
+		sessionManager := session.NewManager(containerManager, logger)
+		stateManager := state.NewManager(cwd, sessionManager, logger)
+
+		// Create metrics collector
+		metrics := engine.NewInMemoryMetrics()
+
+		eng, err := engine.New(engineConfig, commandChan, eventChan, sessionManager, stateManager, containerManager, metrics, logger)
 		if err != nil {
-			return fmt.Errorf("failed to load state: %w", err)
-		}
-		defer closeState()
-
-		// Create session manager
-		var sm *session.Manager
-		var closeManager func() error
-
-		if devMode {
-			// Use mock provider in development mode
-			log.Println("Running in development mode with mock container provider")
-			os.Setenv("TRAILS_PROVIDER", "mock")
+			return fmt.Errorf("failed to create engine: %w", err)
 		}
 
-		// Create session manager (it will use the appropriate provider based on env)
-		sm, closeManager, err = session.NewManager(cwd)
-		if err != nil {
-			return fmt.Errorf("failed to create session manager: %w", err)
+		if err := eng.Start(ctx); err != nil {
+			return fmt.Errorf("failed to start engine: %w", err)
 		}
-		defer closeManager()
+		defer func() {
+			if err := eng.Stop(); err != nil {
+				logger.Error("engine shutdown failed", "error", err)
+			}
+		}()
 
 		// Initialize and run TUI
-		app, err := ui.NewApp(cmd.Context(), cfg, st, sm)
+		log.Printf("Starting trails in %s", cwd)
+		logger.Info("Trails started", "working_directory", cwd)
+
+		app, err := ui.NewApp(ctx, cfg, logger, commandChan, eventChan)
 		if err != nil {
 			return fmt.Errorf("failed to create app: %w", err)
 		}
-
-		log.Printf("Starting trails in %s", cwd)
 		return app.Run()
 	},
 }
