@@ -103,22 +103,45 @@ func (e *Engine) processCommand(cmd protocol.Command, logger *logging.Logger) {
 	}
 }
 
+// SessionIDProvider interface for commands that contain a session ID
+type SessionIDProvider interface {
+	GetSessionID() string
+}
+
 // extractSessionID attempts to extract a session ID from various command payloads.
 // Returns empty string if the command doesn't contain a session ID.
 // This is used for rate limiting and logging.
 func (e *Engine) extractSessionID(cmd protocol.Command) string {
+	// First try interface approach for future extensibility
+	if provider, ok := cmd.Payload.(SessionIDProvider); ok {
+		return provider.GetSessionID()
+	}
+	
+	// Handle both value and pointer types for existing command payloads
 	switch payload := cmd.Payload.(type) {
 	case protocol.DeleteSessionCommand:
 		return payload.SessionID
+	case *protocol.DeleteSessionCommand:
+		return payload.SessionID
 	case protocol.UpdateSessionCommand:
+		return payload.SessionID
+	case *protocol.UpdateSessionCommand:
 		return payload.SessionID
 	case protocol.SetFocusCommand:
 		return payload.SessionID
+	case *protocol.SetFocusCommand:
+		return payload.SessionID
 	case protocol.StartAgentCommand:
+		return payload.SessionID
+	case *protocol.StartAgentCommand:
 		return payload.SessionID
 	case protocol.StopAgentCommand:
 		return payload.SessionID
+	case *protocol.StopAgentCommand:
+		return payload.SessionID
 	case protocol.RestartAgentCommand:
+		return payload.SessionID
+	case *protocol.RestartAgentCommand:
 		return payload.SessionID
 	default:
 		return ""
