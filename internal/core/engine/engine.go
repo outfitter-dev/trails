@@ -101,6 +101,9 @@ type Config struct {
 	
 	// LogLevel controls logging verbosity (debug, info, warn, error)
 	LogLevel              string        `json:"log_level"`
+	
+	// Prometheus configuration for metrics exposure
+	Prometheus            PrometheusConfig `json:"prometheus"`
 }
 
 // DefaultConfig returns a Config with sensible defaults.
@@ -116,6 +119,7 @@ func DefaultConfig() Config {
 		RateLimitPerSecond:    protocol.DefaultRateLimit,
 		RateLimitBurst:        protocol.DefaultRateBurst,
 		LogLevel:              DefaultLogLevel,
+		Prometheus:            DefaultPrometheusConfig(),
 	}
 }
 
@@ -512,6 +516,40 @@ func New(
 	}, nil
 }
 
+// NewWithPrometheusMetrics creates a new Engine with Prometheus metrics enabled.
+// This is a convenience constructor that automatically creates and configures
+// Prometheus metrics if enabled in the configuration.
+func NewWithPrometheusMetrics(
+	cfg Config,
+	commands <-chan protocol.Command,
+	events chan<- protocol.EnhancedEvent,
+	sessions SessionManager,
+	state StateManager,
+	containers ContainerManager,
+	logger *logging.Logger,
+) (*Engine, MetricsCollector, error) {
+	var metrics MetricsCollector
+	
+	if cfg.Prometheus.Enabled {
+		promMetrics, err := NewPrometheusMetrics(cfg.Prometheus.Port)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to create Prometheus metrics: %w", err)
+		}
+		metrics = promMetrics
+		logger.Info("Prometheus metrics enabled", "port", cfg.Prometheus.Port)
+	} else {
+		metrics = NewInMemoryMetrics()
+		logger.Info("Using in-memory metrics (Prometheus disabled)")
+	}
+	
+	engine, err := New(cfg, commands, events, sessions, state, containers, metrics, logger)
+	if err != nil {
+		return nil, nil, err
+	}
+	
+	return engine, metrics, nil
+}
+
 // Start begins engine operation with the given context.
 // This starts all worker goroutines and background tasks.
 // Returns error if state cannot be loaded.
@@ -528,6 +566,16 @@ func (e *Engine) Start(ctx context.Context) error {
 	for i := 0; i < e.config.WorkerCount; i++ {
 		e.wg.Add(1)
 		go e.commandWorker(i)
+	}
+
+	// Start Prometheus metrics server if enabled and available
+	if promMetrics, ok := e.metrics.(*PrometheusMetrics); ok && e.config.Prometheus.Enabled {
+		if err := promMetrics.StartServer(e.ctx); err != nil {
+			e.logger.WithError(err).Warn("Failed to start Prometheus metrics server")
+		} else {
+			e.logger.Info("Prometheus metrics server started", 
+				"endpoint", promMetrics.GetMetricsEndpoint())
+		}
 	}
 
 	// Start background tasks
@@ -562,6 +610,17 @@ func (e *Engine) Stop() error {
 
 	// Cancel context to signal shutdown
 	e.cancel()
+
+	// Stop Prometheus metrics server if running
+	if promMetrics, ok := e.metrics.(*PrometheusMetrics); ok {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := promMetrics.StopServer(shutdownCtx); err != nil {
+			e.logger.WithError(err).Warn("Failed to stop Prometheus metrics server")
+		} else {
+			e.logger.Info("Prometheus metrics server stopped")
+		}
+	}
 
 	// Wait for workers to finish with timeout
 	done := make(chan struct{})
