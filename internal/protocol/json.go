@@ -89,13 +89,15 @@ func UnmarshalCommand(data []byte) (Command, error) {
 	// Create new instance of the payload type
 	payloadPtr := reflect.New(payloadType)
 	
-	// Unmarshal payload
+	// Unmarshal payload if present
 	if len(raw.Payload) > 0 && string(raw.Payload) != "null" {
 		if err := json.Unmarshal(raw.Payload, payloadPtr.Interface()); err != nil {
 			return Command{}, fmt.Errorf("unmarshal payload for %s: %w", raw.Type, err)
 		}
-		cmd.Payload = payloadPtr.Elem().Interface()
 	}
+	
+	// Always assign payload to ensure type safety
+	cmd.Payload = payloadPtr.Elem().Interface()
 	
 	return cmd, nil
 }
@@ -140,13 +142,15 @@ func UnmarshalEvent(data []byte) (Event, error) {
 	// Create new instance of the payload type
 	payloadPtr := reflect.New(payloadType)
 	
-	// Unmarshal payload
+	// Unmarshal payload if present
 	if len(raw.Payload) > 0 && string(raw.Payload) != "null" {
 		if err := json.Unmarshal(raw.Payload, payloadPtr.Interface()); err != nil {
 			return Event{}, fmt.Errorf("unmarshal payload for %s: %w", raw.Type, err)
 		}
-		event.Payload = payloadPtr.Elem().Interface()
 	}
+	
+	// Always assign payload to ensure type safety
+	event.Payload = payloadPtr.Elem().Interface()
 	
 	return event, nil
 }
@@ -188,13 +192,15 @@ func UnmarshalEnhancedEvent(data []byte) (EnhancedEvent, error) {
 	// Create new instance of the payload type
 	payloadPtr := reflect.New(payloadType)
 	
-	// Unmarshal payload
+	// Unmarshal payload if present
 	if len(raw.Payload) > 0 && string(raw.Payload) != "null" {
 		if err := json.Unmarshal(raw.Payload, payloadPtr.Interface()); err != nil {
 			return EnhancedEvent{}, fmt.Errorf("unmarshal payload for %s: %w", raw.Type, err)
 		}
-		event.Payload = payloadPtr.Elem().Interface()
 	}
+	
+	// Always assign payload to ensure type safety
+	event.Payload = payloadPtr.Elem().Interface()
 	
 	return event, nil
 }

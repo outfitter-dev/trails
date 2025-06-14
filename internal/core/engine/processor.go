@@ -379,10 +379,9 @@ func (e *Engine) handleRestartAgent(ctx context.Context, cmd protocol.Command) e
 		return fmt.Errorf("invalid payload for RestartAgent: %w", err)
 	}
 
-	ctx = logging.WithSessionID(ctx, payload.SessionID)
-
 	// This is essentially stop + start
 	// TODO: Implement proper restart logic
+	// Note: Would use logging.WithSessionID(ctx, payload.SessionID) when properly implemented
 
 	// Send status change event
 	event := protocol.NewEventBuilder(protocol.EventStatusChanged).
@@ -484,7 +483,7 @@ func (e *Engine) handleToggleMinimal(ctx context.Context, cmd protocol.Command) 
 				Details: "State manager doesn't support persistent minimal mode",
 			},
 		)
-		e.events <- event
+		e.sendEvent(event)
 		return nil
 	}
 	
@@ -508,7 +507,7 @@ func (e *Engine) handleToggleMinimal(ctx context.Context, cmd protocol.Command) 
 			Previous: currentMode,
 		},
 	)
-	e.events <- event
+	e.sendEvent(event)
 	
 	e.logger.Info("Minimal mode toggled",
 		"previous", currentMode,

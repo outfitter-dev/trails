@@ -76,6 +76,9 @@ func (b *EngineBuilder) WithLogger(logger *logging.Logger) *EngineBuilder {
 
 // WithChannels sets custom command and event channels.
 func (b *EngineBuilder) WithChannels(commands chan protocol.Command, events chan protocol.EnhancedEvent) *EngineBuilder {
+	if commands == nil || events == nil {
+		b.t.Fatalf("WithChannels: commands and events channels must not be nil")
+	}
 	b.commands = commands
 	b.events = events
 	return b
