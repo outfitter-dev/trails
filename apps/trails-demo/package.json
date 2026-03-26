@@ -1,0 +1,28 @@
+{
+  "name": "trails-demo",
+  "version": "0.1.0",
+  "private": true,
+  "bin": {
+    "demo": "./bin/demo.ts"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint ./src",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@ontrails/cli": "workspace:*",
+    "@ontrails/core": "workspace:*",
+    "@ontrails/logging": "workspace:*",
+    "@ontrails/mcp": "workspace:*",
+    "commander": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@ontrails/schema": "workspace:*",
+    "@ontrails/testing": "workspace:*"
+  }
+}

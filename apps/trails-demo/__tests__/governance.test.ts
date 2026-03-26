@@ -1,0 +1,316 @@
+/* oxlint-disable no-conditional-in-test -- if-guards used for TypeScript type narrowing after toBeDefined() */
+/* oxlint-disable no-inline-comments -- comments clarify test intent */
+/**
+ * Integration tests proving the full governance loop works end-to-end.
+ *
+ * The "five things" that make Trails real:
+ * 1. Surface map generation
+ * 2. Deterministic hashing
+ * 3. Breaking change detection
+ * 4. Non-breaking change detection
+ * 5. Examples as tests
+ */
+
+import { describe, expect, test } from 'bun:test';
+
+import { Result, trail, topo } from '@ontrails/core';
+import {
+  diffSurfaceMaps,
+  generateSurfaceMap,
+  hashSurfaceMap,
+} from '@ontrails/schema';
+import { testExamples } from '@ontrails/testing';
+import { z } from 'zod';
+
+import { app } from '../src/app.js';
+import * as entityEvents from '../src/events/entity-events.js';
+import { createStore } from '../src/store.js';
+import * as entity from '../src/trails/entity.js';
+import * as onboard from '../src/trails/onboard.js';
+import * as search from '../src/trails/search.js';
+
+// ---------------------------------------------------------------------------
+// 1. Surface map generation
+// ---------------------------------------------------------------------------
+
+describe('surface map generation', () => {
+  const surfaceMap = generateSurfaceMap(app);
+
+  test('contains all expected trail IDs', () => {
+    const ids = surfaceMap.entries.map((e) => e.id);
+
+    expect(ids).toContain('entity.show');
+    expect(ids).toContain('entity.add');
+    expect(ids).toContain('entity.delete');
+    expect(ids).toContain('entity.list');
+    expect(ids).toContain('search');
+    expect(ids).toContain('entity.onboard');
+    expect(ids).toContain('entity.updated');
+  });
+
+  test('has exactly 7 entries (5 trails + 1 hike + 1 event)', () => {
+    expect(surfaceMap.entries).toHaveLength(7);
+  });
+
+  test('entries are sorted alphabetically by id', () => {
+    const ids = surfaceMap.entries.map((e) => e.id);
+    const sorted = [...ids].toSorted();
+    expect(ids).toEqual(sorted);
+  });
+
+  test('each entry has the expected fields', () => {
+    for (const entry of surfaceMap.entries) {
+      expect(entry.id).toBeString();
+      expect(entry.kind).toBeOneOf(['trail', 'hike', 'event']);
+      expect(entry.exampleCount).toBeNumber();
+      expect(Array.isArray(entry.surfaces)).toBe(true);
+    }
+  });
+
+  test('trail entries include input schema', () => {
+    const showEntry = surfaceMap.entries.find((e) => e.id === 'entity.show');
+    expect(showEntry).toBeDefined();
+    if (showEntry) {
+      expect(showEntry.input).toBeDefined();
+      expect(showEntry.kind).toBe('trail');
+    }
+  });
+
+  test('safety markers are preserved', () => {
+    const showEntry = surfaceMap.entries.find((e) => e.id === 'entity.show');
+    const deleteEntry = surfaceMap.entries.find(
+      (e) => e.id === 'entity.delete'
+    );
+
+    expect(showEntry?.readOnly).toBe(true);
+    expect(deleteEntry?.destructive).toBe(true);
+  });
+
+  test('route entries include follows', () => {
+    const onboardEntry = surfaceMap.entries.find(
+      (e) => e.id === 'entity.onboard'
+    );
+    expect(onboardEntry).toBeDefined();
+    if (onboardEntry) {
+      expect(onboardEntry.kind).toBe('hike');
+      expect(onboardEntry.follows).toBeDefined();
+      expect(onboardEntry.follows).toContain('entity.add');
+      expect(onboardEntry.follows).toContain('search');
+    }
+  });
+
+  test('event entries include payload schema as input', () => {
+    const updatedEntry = surfaceMap.entries.find(
+      (e) => e.id === 'entity.updated'
+    );
+    expect(updatedEntry).toBeDefined();
+    if (updatedEntry) {
+      expect(updatedEntry.kind).toBe('event');
+      expect(updatedEntry.input).toBeDefined();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 2. Deterministic hashing
+// ---------------------------------------------------------------------------
+
+describe('surface map hashing is deterministic', () => {
+  test('identical topos produce identical hashes', () => {
+    const map1 = generateSurfaceMap(app);
+    const map2 = generateSurfaceMap(app);
+
+    const hash1 = hashSurfaceMap(map1);
+    const hash2 = hashSurfaceMap(map2);
+
+    expect(hash1).toBe(hash2);
+  });
+
+  test('hash is a valid 64-character hex string', () => {
+    const surfaceMap = generateSurfaceMap(app);
+    const hash = hashSurfaceMap(surfaceMap);
+
+    expect(hash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  test('generatedAt timestamp does not affect hash', () => {
+    const map1 = generateSurfaceMap(app);
+
+    // Manually create a copy with a different generatedAt
+    const map2 = {
+      ...map1,
+      generatedAt: '2099-12-31T23:59:59.999Z',
+    };
+
+    expect(hashSurfaceMap(map1)).toBe(hashSurfaceMap(map2));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 3. Breaking change detection
+// ---------------------------------------------------------------------------
+
+/** Standard entity output schema used by modified trails. */
+const entityOutputSchema = z.object({
+  createdAt: z.string(),
+  id: z.string(),
+  name: z.string(),
+  tags: z.array(z.string()),
+  type: z.string(),
+  updatedAt: z.string(),
+});
+
+/** Create a modified show trail with a specific input schema. */
+const makeModifiedShow = (inputSchema: z.ZodType) =>
+  trail('entity.show', {
+    description: 'Show an entity by name',
+    implementation: (input) => {
+      const { name } = input as { name: string };
+      return Result.ok({
+        createdAt: '',
+        id: '',
+        name,
+        tags: [] as string[],
+        type: '',
+        updatedAt: '',
+      });
+    },
+    input: inputSchema,
+    output: entityOutputSchema,
+    readOnly: true,
+  });
+
+/** Diff the baseline app against a modified app. */
+const diffAgainst = (...modules: Record<string, unknown>[]) => {
+  const before = generateSurfaceMap(app);
+  const modifiedApp = topo('demo-modified', ...modules);
+  const after = generateSurfaceMap(modifiedApp);
+  return diffSurfaceMaps(before, after);
+};
+
+describe('breaking change detection', () => {
+  test('new required input field is detected as breaking', () => {
+    const modifiedShow = makeModifiedShow(
+      z.object({ name: z.string(), verbose: z.boolean() })
+    );
+    const diff = diffAgainst(
+      { ...entity, show: modifiedShow },
+      search,
+      onboard,
+      entityEvents
+    );
+
+    expect(diff.hasBreaking).toBe(true);
+    expect(diff.breaking.length).toBeGreaterThan(0);
+
+    const showDiff = diff.breaking.find((e) => e.id === 'entity.show');
+    expect(showDiff).toBeDefined();
+    if (showDiff) {
+      expect(showDiff.severity).toBe('breaking');
+      expect(showDiff.change).toBe('modified');
+      expect(showDiff.details.some((d) => d.includes('verbose'))).toBe(true);
+    }
+  });
+
+  test('removed trail is detected as breaking', () => {
+    const diff = diffAgainst(entity, onboard, entityEvents);
+
+    expect(diff.hasBreaking).toBe(true);
+    const searchRemoved = diff.breaking.find((e) => e.id === 'search');
+    expect(searchRemoved).toBeDefined();
+    if (searchRemoved) {
+      expect(searchRemoved.change).toBe('removed');
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4. Non-breaking change detection
+// ---------------------------------------------------------------------------
+
+describe('non-breaking change detection', () => {
+  test('added trail is detected as info severity', () => {
+    const update = trail('entity.update', {
+      description: 'Update an existing entity',
+      implementation: (input) => Result.ok({ name: input.name, updated: true }),
+      input: z.object({
+        name: z.string(),
+        tags: z.array(z.string()).optional(),
+      }),
+      output: z.object({ name: z.string(), updated: z.boolean() }),
+    });
+
+    const diff = diffAgainst(entity, search, onboard, entityEvents, { update });
+    expect(diff.hasBreaking).toBe(false);
+
+    const addedEntry = diff.info.find((e) => e.id === 'entity.update');
+    expect(addedEntry).toBeDefined();
+    if (addedEntry) {
+      expect(addedEntry.severity).toBe('info');
+      expect(addedEntry.change).toBe('added');
+    }
+  });
+
+  test('optional input field added is non-breaking', () => {
+    const modifiedShow = makeModifiedShow(
+      z.object({ name: z.string(), verbose: z.boolean().optional() })
+    );
+    const diff = diffAgainst(
+      { ...entity, show: modifiedShow },
+      search,
+      onboard,
+      entityEvents
+    );
+    expect(diff.hasBreaking).toBe(false);
+
+    const showDiff = diff.info.find((e) => e.id === 'entity.show');
+    expect(showDiff).toBeDefined();
+    if (showDiff) {
+      expect(showDiff.severity).toBe('info');
+      expect(showDiff.details.some((d) => d.includes('verbose'))).toBe(true);
+    }
+  });
+
+  test('no changes produces empty diff', () => {
+    const map1 = generateSurfaceMap(app);
+    const map2 = generateSurfaceMap(app);
+    const diff = diffSurfaceMaps(map1, map2);
+
+    expect(diff.hasBreaking).toBe(false);
+    expect(diff.entries).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5. Examples as tests
+// ---------------------------------------------------------------------------
+
+describe('examples as tests', () => {
+  // Prove that testExamples generates tests for every trail with examples.
+  // The demo app has 5 trails with examples (10 examples total).
+  // entity.onboard is a route so testExamples does not cover it.
+  // oxlint-disable-next-line require-hook -- testExamples generates test() calls at describe scope
+  testExamples(app, () => ({
+    store: createStore([
+      { name: 'Alpha', tags: ['core'], type: 'concept' },
+      { name: 'Deletable', tags: ['temp'], type: 'tool' },
+    ]),
+  }));
+
+  test('all trails in the topo have at least one example', () => {
+    for (const [_id, t] of app.trails) {
+      const trailDef = t as { examples?: readonly unknown[] };
+      expect(trailDef.examples?.length ?? 0).toBeGreaterThan(0);
+    }
+  });
+
+  test('topo contains the expected number of trails with examples', () => {
+    let exampleCount = 0;
+    for (const [_id, t] of app.trails) {
+      const trailDef = t as { examples?: readonly unknown[] };
+      exampleCount += trailDef.examples?.length ?? 0;
+    }
+    // 5 trails x 2 examples each = 10
+    expect(exampleCount).toBe(10);
+  });
+});
