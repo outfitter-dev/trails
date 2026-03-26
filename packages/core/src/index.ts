@@ -118,6 +118,16 @@ export type {
   PositiveInt,
 } from './branded.js';
 
+// Path Security
+export { securePath, isPathSafe, resolveSafePath } from './path-security.js';
+
+// Workspace
+export {
+  findWorkspaceRoot,
+  isInsideWorkspace,
+  getRelativePath,
+} from './workspace.js';
+
 // Guards
 export {
   isDefined,
