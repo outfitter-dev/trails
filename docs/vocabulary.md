@@ -2,6 +2,10 @@
 
 All Trails terms and their definitions. Brand the framework primitives, use plain language for everything else.
 
+## Naming Principle
+
+Trails-branded terms are reserved for concepts unique to the framework. Infrastructure concepts that exist in every framework keep their standard names. The test: if a developer already knows what the word means from other frameworks, do not rename it.
+
 ## Locked Terms (shipped in v0.1)
 
 These are final. They appear in the public API, documentation, and code.
@@ -159,6 +163,7 @@ These use plain language because the concepts are universal.
 | `Implementation` | The pure function | Descriptive, self-explanatory |
 | `Error` | Error types | Universal |
 | `dry-run` | Execute without side effects | Universal CLI convention |
+| `dispatch` | Programmatic full-pipeline invocation | Standard term |
 
 ## Term Hierarchy
 
@@ -173,25 +178,24 @@ When introducing Trails to someone new, introduce terms in this order:
 
 **Intermediate (composition and enrichment):**
 
-5. `route()` -- a route follows multiple trails
-6. `ctx.follow()` -- call another trail from within a route
-7. `event()` -- define events the app can emit
-8. `markers` -- annotate trails with metadata
-9. `detours` -- define fallback paths when a trail fails
+1. `hike()` -- a hike follows multiple trails
+2. `ctx.follow()` -- call another trail from within a hike
+3. `event()` -- define events the app can emit
+4. `markers` -- annotate trails with metadata
+5. `detours` -- define fallback paths when a trail fails
 
 **Advanced (introspection and observability):**
 
-10. `topo` -- the internal trail collection
-11. `survey` -- full introspection of the trail system
-12. `scout` -- quick discovery and capability detection
-13. `guide` -- runtime guidance
-14. `tracks` -- observability and telemetry
+1. `topo` -- the internal trail collection
+2. `survey` -- full introspection of the trail system (use `--brief` for quick discovery)
+4. `guide` -- runtime guidance
+5. `tracks` -- observability and telemetry
 
 **Ecosystem (multi-app and governance):**
 
-15. `permit` -- auth and scopes
-16. `mount` -- consume another app's trails
-17. `warden` -- governance and contract enforcement
+1. `permit` -- auth and scopes
+2. `mount` -- consume another app's trails
+3. `warden` -- governance and contract enforcement
 
 ## Writing Style
 

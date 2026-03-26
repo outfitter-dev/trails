@@ -18,7 +18,7 @@ The package provides:
 
 ## Prerequisites
 
-- **Stage 01 complete** -- `@ontrails/core` ships `trail()`, `route()`, `trailhead()`, `Result`, error taxonomy.
+- **Stage 01 complete** -- `@ontrails/core` ships `trail()`, `hike()`, `topo()`, `Result`, error taxonomy.
 - **Stage 02 complete** -- `@ontrails/cli` ships `buildCliCommands()` and the Commander adapter.
 - **Stage 07 complete** -- `@ontrails/schema` ships `generateSurfaceMap()`, `hashSurfaceMap()`, `readSurfaceLock()` (warden uses these for drift detection).
 
@@ -30,7 +30,7 @@ The package provides:
 
 ### Package Setup
 
-```
+```text
 packages/warden/
   package.json
   tsconfig.json
@@ -147,11 +147,11 @@ export const trailsPlugin = {
 
 **Severity:** error
 
-**What it catches:** `throw` statements inside `implementation` function bodies in `trail()` or `route()` calls.
+**What it catches:** `throw` statements inside `implementation` function bodies in `trail()` or `hike()` calls.
 
 **Detection strategy:**
 
-1. Find calls to `trail(id, spec)` or `route(id, spec)`.
+1. Find calls to `trail(id, spec)` or `hike(id, spec)`.
 2. Locate the `implementation` property in the spec object literal.
 3. Walk the AST of the implementation function body.
 4. Flag any `ThrowStatement` node.
@@ -171,7 +171,7 @@ export const trailsPlugin = {
 
 **Detection strategy:**
 
-1. Check import declarations in files containing `trail()` or `route()` calls.
+1. Check import declarations in files containing `trail()` or `hike()` calls.
 2. Flag imports from surface-specific modules: `express`, `hono`, `fastify`, `@modelcontextprotocol/sdk`, `node:http`, etc.
 3. Also flag imports of specific type names: `Request`, `Response`, `NextFunction`, `McpSession`.
 
@@ -224,11 +224,11 @@ export const trailsPlugin = {
 
 **Severity:** error
 
-**What it catches:** Mismatch between a route's `follows` declaration and its `ctx.follow()` calls.
+**What it catches:** Mismatch between a hike's `follows` declaration and its `ctx.follow()` calls.
 
 **Detection strategy:**
 
-1. Find `route(id, spec)` calls with a `follows` array.
+1. Find `hike(id, spec)` calls with a `follows` array.
 2. Walk the implementation body for `ctx.follow("trailId", ...)` calls.
 3. Collect all trail IDs from `ctx.follow()` calls.
 4. Compare against the `follows` array:
@@ -243,10 +243,10 @@ export const trailsPlugin = {
 
 **Detection strategy:**
 
-1. Collect all `route(id, spec)` calls in the project.
-2. Build a directed graph from route ID -> follows IDs.
+1. Collect all `hike(id, spec)` calls in the project.
+2. Build a directed graph from hike ID -> follows IDs.
 3. Run cycle detection (DFS with back-edge detection).
-4. Report the cycle path if found: `Route "a" follows "b" follows "c" follows "a" -- cycle detected`.
+4. Report the cycle path if found: `Hike "a" follows "b" follows "c" follows "a" -- cycle detected`.
 
 **Note:** This requires cross-file analysis. The rule can either:
 
@@ -261,9 +261,9 @@ export const trailsPlugin = {
 
 **Detection strategy:**
 
-1. Collect all trail IDs from `trail(id, ...)` and `route(id, ...)` calls in the project.
-2. For each `route(id, spec)` with `follows`, check that every ID in `follows` exists in the collected set.
-3. Flag missing IDs: `Route "entity.onboard" follows "entity.relate" which is not defined`.
+1. Collect all trail IDs from `trail(id, ...)` and `hike(id, ...)` calls in the project.
+2. For each `hike(id, spec)` with `follows`, check that every ID in `follows` exists in the collected set.
+3. Flag missing IDs: `Hike "entity.onboard" follows "entity.relate" which is not defined`.
 
 **Same cross-file note as above.**
 
@@ -380,7 +380,7 @@ trails warden --drift-only
 2. **Drift detection** -- Compare the committed `surface.lock` against a freshly generated surface map hash (using `@ontrails/schema`). Report if they differ.
 3. **Report** -- Print a summary:
 
-```
+```text
 Warden Report
 =============
 

@@ -6,15 +6,15 @@
 
 ## Overview
 
-`@ontrails/testing` provides testing utilities that harvest what trail definitions already declare. The headline: `testAllExamples(app, ctx)` -- one line, the entire topo is tested. Every trail, every example, input validation, implementation execution, output validation. If you wrote good examples for agent fluency, you've already written your test suite.
+`@ontrails/testing` provides testing utilities that harvest what trail definitions already declare. The headline: `testExamples(app, ctx)` -- one line, the entire topo is tested. Every trail, every example, input validation, implementation execution, output validation. If you wrote good examples for agent fluency, you've already written your test suite.
 
-The package also provides `testTrail()` for custom scenarios, `testContracts()` for output schema verification, `testDetours()` for detour target validation, mock factories, and surface harnesses for CLI and MCP integration testing.
+The package also provides `testScenarios()` for custom scenarios, `testContracts()` for output schema verification, `testDetours()` for detour target validation, mock factories, and surface harnesses for CLI and MCP integration testing.
 
 ---
 
 ## Prerequisites
 
-- **Stage 01 complete** -- `@ontrails/core` ships `trail()`, `route()`, `event()`, `trailhead()`, `TrailContext`, `Result`, error taxonomy, and the `examples` field on `Trail`.
+- **Stage 01 complete** -- `@ontrails/core` ships `trail()`, `hike()`, `event()`, `topo()`, `TrailContext`, `Result`, error taxonomy, and the `examples` field on `Trail`.
 - **Stage 02 complete** -- `@ontrails/cli` ships `buildCliCommands()` and the Commander adapter (needed for `createCliHarness`).
 - **Stage 03 complete** -- `@ontrails/mcp` ships `buildMcpTools()` and `blaze()` (needed for `createMcpHarness`).
 - **Stage 04 complete** -- `@ontrails/logging` ships `createLogger()` (needed for `createTestLogger`).
@@ -25,18 +25,18 @@ The package also provides `testTrail()` for custom scenarios, `testContracts()` 
 
 ### Package Setup
 
-```
+```text
 packages/testing/
   package.json
   tsconfig.json
   src/
     index.ts                  # Public API
-    examples.ts               # testAllExamples
-    trail.ts                  # testTrail
+    examples.ts               # testExamples
+    trail.ts                  # testScenarios
     contracts.ts              # testContracts
     detours.ts                # testDetours
     assertions.ts             # Progressive assertion logic
-    context.ts                # createTestTrailContext
+    context.ts                # createTestContext
     logger.ts                 # createTestLogger
     harness-cli.ts            # createCliHarness
     harness-mcp.ts            # createMcpHarness
@@ -70,16 +70,16 @@ packages/testing/
 }
 ```
 
-### `testAllExamples(app, ctx)` -- The Headline One-Liner
+### `testExamples(app, ctx)` -- The Headline One-Liner
 
 ```typescript
-export function testAllExamples(
-  app: TrailsApp,
+export function testExamples(
+  app: Topo,
   ctx?: Partial<TrailContext>
 ): void;
 ```
 
-Iterates every trail in `app.topo`. For each trail with `examples`, generates a `describe` block with individual `test` calls per example. Uses Bun's test runner API directly (`describe`, `test`, `expect`).
+Iterates every trail in the topo. For each trail with `examples`, generates a `describe` block with individual `test` calls per example. Uses Bun's test runner API directly (`describe`, `test`, `expect`).
 
 **What it does per example:**
 
@@ -93,7 +93,7 @@ Iterates every trail in `app.topo`. For each trail with `examples`, generates a 
 
 **Generated test names:**
 
-```
+```text
 describe("entity.show") {
   test("example: Show entity by name") { ... }
   test("example: Entity not found returns NotFoundError") { ... }
@@ -105,7 +105,7 @@ describe("search") {
 
 Trails with no examples produce no tests (not a failure -- they just don't participate in example-driven testing).
 
-### `testTrail(trail, scenarios, ctx)` -- Single Trail Custom Scenarios
+### `testScenarios(trail, scenarios, ctx)` -- Single Trail Custom Scenarios
 
 ```typescript
 export interface TestScenario {
@@ -123,7 +123,7 @@ export interface TestScenario {
   readonly expectErrMessage?: string;
 }
 
-export function testTrail(
+export function testScenarios(
   trail: Trail<unknown, unknown>,
   scenarios: readonly TestScenario[],
   ctx?: Partial<TrailContext>
@@ -146,7 +146,7 @@ Generates a `describe` block for the trail with one `test` per scenario. This is
 
 ```typescript
 export function testContracts(
-  app: TrailsApp,
+  app: Topo,
   ctx?: Partial<TrailContext>
 ): void;
 ```
@@ -162,13 +162,13 @@ This catches the compile-time-for-runtime gap. TypeScript checks types at compil
 ### `testDetours(app)` -- Detour Target Validation
 
 ```typescript
-export function testDetours(app: TrailsApp): void;
+export function testDetours(app: Topo): void;
 ```
 
-For every trail in `app.topo` that has `detours`:
+For every trail in the topo that has `detours`:
 
 1. Collect all target trail IDs from the detour declarations.
-2. Verify each target exists in `app.topo`.
+2. Verify each target exists in the topo.
 3. Fail with a clear message if a target is missing: `Trail "entity.show" has detour target "entity.search" which does not exist in the topo`.
 
 No implementation execution needed -- this is pure structural validation against the topo.
@@ -228,19 +228,19 @@ function assertErrorMatch(
 }
 ```
 
-### `createTestTrailContext(overrides?)` -- Mock Context Factory
+### `createTestContext(overrides?)` -- Mock Context Factory
 
 ```typescript
-export interface TestTrailContextOptions {
+export interface TestContextOptions {
   readonly requestId?: string;
-  readonly logger?: LoggerInstance;
+  readonly logger?: Logger;
   readonly cwd?: string;
   readonly env?: Record<string, string>;
   readonly signal?: AbortSignal;
 }
 
-export function createTestTrailContext(
-  overrides?: TestTrailContextOptions
+export function createTestContext(
+  overrides?: TestContextOptions
 ): TrailContext;
 ```
 
@@ -255,7 +255,7 @@ Creates a `TrailContext` suitable for testing:
 ### `createTestLogger()` -- Logger with Entry Capture
 
 ```typescript
-export interface TestLoggerInstance extends LoggerInstance {
+export interface TestLogger extends Logger {
   /** All log records captured during the test. */
   readonly entries: readonly LogRecord[];
   /** Clear captured entries. */
@@ -277,7 +277,7 @@ The test logger captures all log records in an array instead of writing to conso
 
 ```typescript
 export interface CliHarnessOptions {
-  readonly app: TrailsApp;
+  readonly app: Topo;
 }
 
 export interface CliHarness {
@@ -311,7 +311,7 @@ expect(result.json).toMatchObject({ name: 'Alpha' });
 
 ```typescript
 export interface McpHarnessOptions {
-  readonly app: TrailsApp;
+  readonly app: Topo;
 }
 
 export interface McpHarness {
@@ -334,11 +334,11 @@ Builds MCP tools from the app's topo using `buildMcpTools()`. Invokes tools dire
 
 ### `app.forTesting(overrides)` -- Service Replacement
 
-This method lives on the `TrailsApp` type returned by `trailhead()` (defined in `@ontrails/core`), but the testing package documents and exercises it.
+This method lives on the `Topo` type returned by `topo()` (defined in `@ontrails/core`), but the testing package documents and exercises it.
 
 ```typescript
-interface TrailsApp {
-  forTesting(overrides: Record<string, unknown>): TrailsApp;
+interface Topo {
+  forTesting(overrides: Record<string, unknown>): Topo;
 }
 ```
 
@@ -357,7 +357,7 @@ const testApp = app.forTesting({
   cache: 'memory',
 });
 
-testAllExamples(testApp, createTestTrailContext());
+testExamples(testApp, createTestContext());
 ```
 
 ### Package Exports Summary
@@ -380,7 +380,7 @@ export { createMcpHarness } from './harness-mcp.js';
 // Types
 export type {
   TestScenario,
-  TestLoggerInstance,
+  TestLogger,
   CliHarness,
   CliHarnessResult,
   McpHarness,
@@ -403,15 +403,15 @@ Create a small in-memory app with 2-3 trails, each with examples covering all th
 - Trail with error example (`error`): verify error type assertion works.
 - Trail with no examples: verify it's skipped without failure.
 - Trail with invalid example input (broken example): verify it produces a clear failure.
-- Verify `testAllExamples` generates individual `test` calls with correct names.
+- Verify `testExamples` generates individual `test` calls with correct names.
 
 ### `trail.test.ts`
 
-- `testTrail` with `expectOk: true` passes when implementation returns ok.
-- `testTrail` with `expectValue` passes on exact match, fails on mismatch.
-- `testTrail` with `expectErr` passes when error type matches, fails on wrong type.
-- `testTrail` with `expectErrMessage` does substring matching.
-- `testTrail` with invalid input and `expectErr: ValidationError` passes.
+- `testScenarios` with `expectOk: true` passes when implementation returns ok.
+- `testScenarios` with `expectValue` passes on exact match, fails on mismatch.
+- `testScenarios` with `expectErr` passes when error type matches, fails on wrong type.
+- `testScenarios` with `expectErrMessage` does substring matching.
+- `testScenarios` with invalid input and `expectErr: ValidationError` passes.
 - Multiple scenarios on one trail produce individual test cases.
 
 ### `contracts.test.ts`
@@ -436,9 +436,9 @@ Create a small in-memory app with 2-3 trails, each with examples covering all th
 
 ### `context.test.ts`
 
-- `createTestTrailContext()` with no args produces a valid `TrailContext`.
+- `createTestContext()` with no args produces a valid `TrailContext`.
 - Overrides are applied correctly.
-- Default logger is a `TestLoggerInstance`.
+- Default logger is a `TestLogger`.
 
 ### `logger.test.ts`
 
@@ -466,12 +466,12 @@ Create a small in-memory app with 2-3 trails, each with examples covering all th
 
 ## Definition of Done
 
-- [ ] `testAllExamples(app, ctx)` tests every trail in the topo with one line of code.
-- [ ] `testTrail(trail, scenarios, ctx)` supports custom scenarios with all assertion types.
+- [ ] `testExamples(app, ctx)` tests every trail in the topo with one line of code.
+- [ ] `testScenarios(trail, scenarios, ctx)` supports custom scenarios with all assertion types.
 - [ ] `testContracts(app, ctx)` catches implementation-schema drift with clear Zod error detail.
 - [ ] `testDetours(app)` catches stale detour targets.
-- [ ] Progressive assertion works: full match, schema-only, and error match all function in `testAllExamples`.
-- [ ] `createTestTrailContext()` produces a valid context with sensible defaults.
+- [ ] Progressive assertion works: full match, schema-only, and error match all function in `testExamples`.
+- [ ] `createTestContext()` produces a valid context with sensible defaults.
 - [ ] `createTestLogger()` captures entries and supports `find()` and `assertLogged()`.
 - [ ] `createCliHarness()` executes CLI commands in-process and captures output.
 - [ ] `createMcpHarness()` invokes MCP tools directly and returns results.

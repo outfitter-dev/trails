@@ -5,6 +5,10 @@ pre-commit:
       glob: '**/*.{ts,tsx,js,jsx,json,jsonc}'
       run: bun run format:file {staged_files}
       stage_fixed: true
+    markdownlint:
+      glob: '*.md'
+      run: bun run mdlint:fix {staged_files}
+      stage_fixed: true
 
 pre-push:
   commands:

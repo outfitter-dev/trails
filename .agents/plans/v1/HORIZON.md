@@ -209,7 +209,7 @@ import { entityPack } from '@mylib/entity-pack';
 const app = topo('myapp', entityPack, searchTrails);
 ```
 
-**Prerequisites:** The core loop (trail → trailhead → blaze) proven in real apps. Services and events shipped.
+**Prerequisites:** The core loop (trail → topo → blaze) proven in real apps. Services and events shipped.
 
 **Timeline:** v1.3+, after services and events.
 

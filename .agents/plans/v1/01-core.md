@@ -1,6 +1,6 @@
 # Stage 01 -- Core (`@ontrails/core`)
 
-> The foundation of Trails. Result type, error taxonomy, trail/route/event definitions, trailhead, validation, patterns, types, and utilities. Everything a surface adapter needs to integrate.
+> The foundation of Trails. Result type, error taxonomy, trail/hike/event definitions, topo, validation, patterns, types, and utilities. Everything a surface adapter needs to integrate.
 
 ---
 
@@ -14,16 +14,16 @@
 
 ### 1.1 Create the package
 
-```
+```text
 packages/core/
 ├── src/
 │   ├── index.ts
 │   ├── result.ts
 │   ├── errors.ts
 │   ├── trail.ts
-│   ├── route.ts
+│   ├── hike.ts
 │   ├── event.ts
-│   ├── trailhead.ts
+│   ├── topo.ts
 │   ├── context.ts
 │   ├── layer.ts
 │   ├── types.ts
@@ -58,9 +58,9 @@ packages/core/
 │       ├── result.test.ts
 │       ├── errors.test.ts
 │       ├── trail.test.ts
-│       ├── route.test.ts
+│       ├── hike.test.ts
 │       ├── event.test.ts
-│       ├── trailhead.test.ts
+│       ├── topo.test.ts
 │       ├── context.test.ts
 │       ├── layer.test.ts
 │       ├── validation.test.ts
@@ -365,7 +365,7 @@ interface Trail<I = unknown, O = unknown> {
 }
 ```
 
-The `kind: "trail"` discriminant enables `trailhead()` to auto-scan module exports for Trail shapes.
+The `kind: "trail"` discriminant enables `topo()` to auto-scan module exports for Trail shapes.
 
 ### 4.3 Tests
 
@@ -381,38 +381,38 @@ The `kind: "trail"` discriminant enables `trailhead()` to auto-scan module expor
 
 ---
 
-## 5. Route Definition
+## 5. Hike Definition
 
-**File:** `src/route.ts`
+**File:** `src/hike.ts`
 
-### 5.1 `route(id, spec)` function
+### 5.1 `hike(id, spec)` function
 
 Defines a composite trail that follows other trails.
 
 ```typescript
-function route<I, O>(id: string, spec: RouteSpec<I, O>): Route<I, O>;
+function hike<I, O>(id: string, spec: HikeSpec<I, O>): Hike<I, O>;
 ```
 
-**`RouteSpec<I, O>`** extends `TrailSpec<I, O>` with:
+**`HikeSpec<I, O>`** extends `TrailSpec<I, O>` with:
 
 | Field     | Type       | Required | Description                  |
 | --------- | ---------- | -------- | ---------------------------- |
 | `follows` | `string[]` | Yes      | Trail IDs this hike follows |
 
-### 5.2 `Route<I, O>` type
+### 5.2 `Hike<I, O>` type
 
 ```typescript
-interface Route<I = unknown, O = unknown> extends Trail<I, O> {
+interface Hike<I = unknown, O = unknown> extends Trail<I, O> {
   readonly follows: string[];
   readonly kind: 'hike';
 }
 ```
 
-A route IS a trail (extends the interface). The `kind: "route"` discriminant distinguishes it.
+A hike IS a trail (extends the interface). The `kind: "hike"` discriminant distinguishes it.
 
 ### 5.3 Tests
 
-- `route()` returns a Route with correct id and kind
+- `hike()` returns a Hike with correct id and kind
 - `follows` array is preserved
 - Hike extends Trail interface (all Trail tests apply)
 - Sync and async implementations are handled by the unified `Implementation` type
@@ -462,61 +462,51 @@ Note: `event()` ships as a definition primitive in stage 01. The runtime machine
 
 ---
 
-## 7. Trailhead
+## 7. Topo
 
-**File:** `src/trailhead.ts`
+**File:** `src/topo.ts`
 
-### 7.1 `trailhead(name, ...modules)` function
+### 7.1 `topo(name, ...modules)` function
 
-Collects trail modules into an app. Auto-scans module exports for Trail, Route, and Event shapes (by checking `kind` discriminant).
+Collects trail modules into a Topo. Auto-scans module exports for Trail, Hike, and Event shapes (by checking `kind` discriminant).
 
 ```typescript
-function trailhead(name: string, ...modules: Record<string, unknown>[]): App;
+function topo(name: string, ...modules: Record<string, unknown>[]): Topo;
 ```
 
 **How auto-scanning works:**
 
 1. Iterate each module's exports
-2. Check if the export has a `kind` property matching `"trail"`, `"route"`, or `"event"`
+2. Check if the export has a `kind` property matching `"trail"`, `"hike"`, or `"event"`
 3. Collect into the internal topo
 4. Validate no duplicate IDs
-5. Return the App
+5. Return the Topo
 
-**`App` interface:**
-
-```typescript
-interface App {
-  readonly name: string;
-  readonly topo: Topo;
-}
-```
-
-### 7.2 `Topo` type
-
-The internal trail collection. The data structure that surfaces read, schema tools inspect, and `ctx.follow()` dispatches through.
+**`Topo` interface:**
 
 ```typescript
 interface Topo {
+  readonly name: string;
   readonly trails: ReadonlyMap<string, Trail>;
-  readonly routes: ReadonlyMap<string, Route>;
+  readonly hikes: ReadonlyMap<string, Hike>;
   readonly events: ReadonlyMap<string, Event>;
 
-  get(id: string): Trail | Route | undefined;
+  get(id: string): Trail | Hike | undefined;
   has(id: string): boolean;
-  list(): Array<Trail | Route>;
+  list(): Array<Trail | Hike>;
   listEvents(): Event[];
 }
 ```
 
-### 7.3 Tests
+### 7.2 Tests
 
-- `trailhead()` collects trails from modules
+- `topo()` collects trails from modules
 - Auto-scans exports by `kind` discriminant
 - Rejects duplicate trail IDs (throws `ValidationError`)
-- Returns App with name and topo
+- Returns Topo with name and collections
 - `topo.get()` retrieves by ID
 - `topo.has()` checks existence
-- `topo.list()` returns all trails and routes
+- `topo.list()` returns all trails and hikes
 - `topo.listEvents()` returns all events
 - Non-trail exports are silently ignored
 
@@ -564,7 +554,7 @@ interface LoggerPort {
 Key design decisions:
 
 - `signal` is required, not optional. Cancellation is always available.
-- `follow` is optional -- only provided inside routes (when the topo is available for dispatch).
+- `follow` is optional -- only provided inside hikes (when the topo is available for dispatch).
 - `permit` is `unknown` at the core level. Apps narrow the type.
 - `logger` is a port interface (`LoggerPort`), not a concrete logger. `@ontrails/logging` provides the adapter.
 - `progress` is optional -- only provided when the surface supports streaming.
@@ -592,7 +582,7 @@ Defaults:
 
 ---
 
-## 9. Implementation Types
+## 9. Implementation Type
 
 **File:** `src/types.ts`
 
@@ -912,41 +902,41 @@ function deserializeError(data: SerializedError): TrailsError;
 
 Matches `name` to the error class and reconstructs with the original context.
 
-### 15.3 `safeParse(json)`
+### 15.3 `Result.fromJson(json)`
 
 JSON.parse wrapped in a Result:
 
 ```typescript
-function safeParse(json: string): Result<unknown, ValidationError>;
+Result.fromJson(json: string): Result<unknown, ValidationError>;
 ```
 
-### 15.4 `safeStringify(value)`
+### 15.4 `Result.toJson(value)`
 
 JSON.stringify wrapped in a Result, handling circular references:
 
 ```typescript
-function safeStringify(value: unknown): Result<string, InternalError>;
+Result.toJson(value: unknown): Result<string, InternalError>;
 ```
 
 ### 15.5 Tests
 
 - Round-trip: `deserializeError(serializeError(error))` preserves category, message, context
-- `safeParse()` returns Ok for valid JSON
-- `safeParse()` returns Err for invalid JSON
-- `safeStringify()` handles circular references gracefully
+- `Result.fromJson()` returns Ok for valid JSON
+- `Result.fromJson()` returns Err for invalid JSON
+- `Result.toJson()` handles circular references gracefully
 
 ---
 
-## 16. fromFetch
+## 16. Result.fromFetch
 
 **File:** `src/fetch.ts`
 
-### 16.1 `fromFetch(input, init?)`
+### 16.1 `Result.fromFetch(input, init?)`
 
 Wraps `fetch()` to return a Result:
 
 ```typescript
-function fromFetch(
+Result.fromFetch(
   input: string | URL | Request,
   init?: RequestInit
 ): Promise<Result<Response, Error>>;
@@ -1515,14 +1505,14 @@ Minimum coverage for each area:
 
 - **Result**: constructors, type narrowing, map, flatMap, match, unwrap, combine
 - **Errors**: each class, category, retryable, taxonomy maps, instanceof
-- **Trail/Route/Event**: definition, type discriminant, all fields
-- **Trailhead**: auto-scanning, duplicate rejection, topo methods
+- **Trail/Hike/Event**: definition, type discriminant, all fields
+- **Topo**: auto-scanning, duplicate rejection, topo methods
 - **Context**: factory defaults, overrides, extensibility
 - **Layer**: composition, short-circuit, input/output transformation
 - **Validation**: valid/invalid input, Zod issue formatting, JSON Schema conversion
 - **Resilience**: retry logic, timeout, backoff, abort signal
 - **Serialization**: round-trip, safe parse/stringify
-- **fromFetch**: HTTP status mapping, network errors, abort
+- **Result.fromFetch**: HTTP status mapping, network errors, abort
 - **Branded**: validation, type safety
 - **Guards**: type narrowing, edge cases
 - **Collections**: chunk, dedupe, groupBy, sortBy, NonEmptyArray
@@ -1544,19 +1534,19 @@ Run all tests: `cd packages/core && bun test`
 - [ ] 13 error classes extending TrailsError with correct categories
 - [ ] Taxonomy maps (exitCode, statusCode, jsonRpc, retryable)
 - [ ] `trail()` function returns Trail with `kind: "trail"` discriminant
-- [ ] `route()` function returns Route with `follows` and `kind: "route"`
+- [ ] `hike()` function returns Hike with `follows` and `kind: "hike"`
 - [ ] `event()` function returns Event with `kind: "event"`
-- [ ] `trailhead()` auto-scans modules, builds Topo, rejects duplicates
+- [ ] `topo()` auto-scans modules, builds Topo, rejects duplicates
 - [ ] TrailContext interface with required signal, optional follow/permit/logger/progress
 - [ ] `createTrailContext()` factory with auto requestId and signal
-- [ ] Implementation and SyncImplementation type aliases
+- [ ] Implementation type alias (unified sync/async)
 - [ ] Layer interface and composeLayers utility
 - [ ] HealthStatus and HealthResult types
 - [ ] IndexAdapter, StorageAdapter, CacheAdapter port interfaces
 - [ ] validateInput, formatZodIssues, zodToJsonSchema
 - [ ] retry, withTimeout, shouldRetry, getBackoffDelay
-- [ ] serializeError, deserializeError, safeParse, safeStringify
-- [ ] fromFetch with HTTP status -> error class mapping
+- [ ] serializeError, deserializeError, Result.fromJson, Result.toJson
+- [ ] Result.fromFetch with HTTP status -> error class mapping
 - [ ] Branded type mechanism with UUID, Email, NonEmptyString, PositiveInt
 - [ ] Type guards: isDefined, isNonEmptyString, isPlainObject, hasProperty
 - [ ] Collections: chunk, dedupe, groupBy, sortBy, NonEmptyArray

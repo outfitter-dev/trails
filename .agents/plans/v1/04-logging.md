@@ -24,18 +24,18 @@ The key feature beyond basic structured logging is **hierarchical category filte
 
 ### Package Setup
 
-```
+```text
 packages/logging/
   package.json
   tsconfig.json
   src/
     index.ts              # Public API
-    logger.ts             # createLogger, LoggerInstance
+    logger.ts             # createLogger, Logger
     levels.ts             # LEVEL_PRIORITY, shouldLog, resolveCategory
     sinks.ts              # createConsoleSink, createFileSink
     formatters.ts         # createJsonFormatter, createPrettyFormatter
     env.ts                # resolveLogLevel
-    types.ts              # LoggerConfig, Sink, Formatter, etc.
+    types.ts              # LoggerConfig, LogSink, LogFormatter, etc.
     logtape/
       index.ts            # logtapeSink adapter
     __tests__/
@@ -81,13 +81,13 @@ export interface LoggerConfig {
   readonly levels?: Record<string, LogLevel>;
 
   /** Sinks to write log records to. Defaults to [createConsoleSink()]. */
-  readonly sinks?: readonly Sink[];
+  readonly sinks?: readonly LogSink[];
 
   /** Redaction config. Defaults to core's DEFAULT_PATTERNS + DEFAULT_SENSITIVE_KEYS. */
   readonly redaction?: RedactorConfig;
 }
 
-export function createLogger(config: LoggerConfig): LoggerInstance;
+export function createLogger(config: LoggerConfig): Logger;
 ```
 
 `createLogger` is the only way to create a logger. No factory, no adapter, no intermediate wrapper. It:
@@ -95,12 +95,12 @@ export function createLogger(config: LoggerConfig): LoggerInstance;
 1. Resolves the effective log level from `config.level`, `config.levels` hierarchy, and environment (`TRAILS_LOG_LEVEL`).
 2. Creates a `Redactor` from `@ontrails/core/redaction` using the provided config (or defaults).
 3. Wraps the sinks (default: `[createConsoleSink()]`) behind a level check and redaction pass.
-4. Returns a `LoggerInstance`.
+4. Returns a `Logger`.
 
-### `LoggerInstance`
+### `Logger`
 
 ```typescript
-export interface LoggerInstance {
+export interface Logger {
   trace(message: string, metadata?: LogMetadata): void;
   debug(message: string, metadata?: LogMetadata): void;
   info(message: string, metadata?: LogMetadata): void;
@@ -109,16 +109,16 @@ export interface LoggerInstance {
   fatal(message: string, metadata?: LogMetadata): void;
 
   /** Create a child logger with inherited config and additional metadata. */
-  child(metadata: LogMetadata): LoggerInstance;
+  child(metadata: LogMetadata): Logger;
 
   /** The resolved category name. */
   readonly name: string;
 }
 ```
 
-`LoggerInstance` satisfies the `Logger` interface from `@ontrails/core`, so it can be used as `TrailContext.logger`.
+`Logger` satisfies the `Logger` interface from `@ontrails/core`, so it can be used as `TrailContext.logger`.
 
-**`child(metadata)`** creates a new `LoggerInstance` that:
+**`child(metadata)`** creates a new `Logger` that:
 
 - Inherits the parent's sinks, level config, and redaction.
 - Merges the provided metadata into every log record (useful for `{ requestId, trail, surface }` enrichment).
@@ -194,7 +194,7 @@ The level check runs before redaction and before any sink dispatch. If the messa
 
 ### Built-in Sinks
 
-A `Sink` receives a formatted log record:
+A `LogSink` receives a formatted log record:
 
 ```typescript
 export interface LogRecord {
@@ -205,7 +205,7 @@ export interface LogRecord {
   readonly metadata: Record<string, unknown>;
 }
 
-export interface Sink {
+export interface LogSink {
   readonly name: string;
   write(record: LogRecord): void;
   flush?(): Promise<void>;
@@ -217,12 +217,12 @@ export interface Sink {
 ```typescript
 export interface ConsoleSinkOptions {
   /** Formatter to use. Defaults to createPrettyFormatter() in dev, createJsonFormatter() in production. */
-  readonly formatter?: Formatter;
+  readonly formatter?: LogFormatter;
   /** Output stream. Defaults to stderr for warn/error/fatal, stdout for others. */
   readonly stderr?: boolean;
 }
 
-export function createConsoleSink(options?: ConsoleSinkOptions): Sink;
+export function createConsoleSink(options?: ConsoleSinkOptions): LogSink;
 ```
 
 Maps log levels to `console.debug`, `console.info`, `console.warn`, `console.error`. Uses the configured formatter to produce the string.
@@ -234,10 +234,10 @@ export interface FileSinkOptions {
   /** Path to the log file. */
   readonly path: string;
   /** Formatter. Defaults to createJsonFormatter(). */
-  readonly formatter?: Formatter;
+  readonly formatter?: LogFormatter;
 }
 
-export function createFileSink(options: FileSinkOptions): Sink;
+export function createFileSink(options: FileSinkOptions): LogSink;
 ```
 
 Appends formatted log records to a file. Uses `Bun.file()` for writes. The `flush()` method ensures all buffered writes are complete.
@@ -245,7 +245,7 @@ Appends formatted log records to a file. Uses `Bun.file()` for writes. The `flus
 ### Built-in Formatters
 
 ```typescript
-export interface Formatter {
+export interface LogFormatter {
   format(record: LogRecord): string;
 }
 ```
@@ -284,7 +284,7 @@ export function createPrettyFormatter(
 
 Produces human-readable output:
 
-```
+```text
 10:00:00 INFO  [app.entity] Entity created  requestId=abc-123 entityId=e1
 ```
 
@@ -363,7 +363,7 @@ export interface LogtapeSinkOptions {
   readonly logger: LogtapeLogger;
 }
 
-export function logtapeSink(options: LogtapeSinkOptions): Sink;
+export function logtapeSink(options: LogtapeSinkOptions): LogSink;
 ```
 
 The sink forwards `LogRecord` to the logtape logger, mapping Trails levels to logtape levels. Redaction runs before the sink -- sensitive data is scrubbed regardless of the backend.
@@ -430,7 +430,7 @@ export type { LogtapeSinkOptions } from './logtape/index.js';
 - `createConsoleSink` uses the provided formatter.
 - `createFileSink` appends records to the specified file.
 - `createFileSink` `flush()` completes pending writes.
-- Sink `write` receives a well-formed `LogRecord`.
+- LogSink `write` receives a well-formed `LogRecord`.
 
 ### `formatters.test.ts`
 
@@ -457,7 +457,7 @@ export type { LogtapeSinkOptions } from './logtape/index.js';
 ## Definition of Done
 
 - [ ] `createLogger({ name: "app" })` is the only API. No factory, no adapter, no `Outfitter`-prefixed types.
-- [ ] `LoggerInstance` implements the `Logger` interface from `@ontrails/core` and works as `TrailContext.logger`.
+- [ ] `Logger` satisfies the `Logger` interface from `@ontrails/core` and works as `TrailContext.logger`.
 - [ ] Hierarchical category filtering resolves `"app.db.queries"` through `"app.db"` to `"app"` to fallback.
 - [ ] `createConsoleSink()` and `createFileSink()` work out of the box.
 - [ ] `createJsonFormatter()` and `createPrettyFormatter()` produce correct output.

@@ -18,7 +18,7 @@ import { trail, route, event } from '@ontrails/core';
 
 **`trail()`** — The atomic unit. A typed function with a Zod schema, returning `Result`. The trail is the contract.
 
-**`route()`** — A composite that follows multiple trails. Declares what it traverses via `follows`. Has its own schema.
+**`hike()`** — A composite that follows multiple trails. Declares what it traverses via `follows`. Has its own schema.
 
 **`event()`** — A server-originated push. Carries a Zod schema for the data shape. No implementation — things happen and this is the announcement.
 
@@ -36,7 +36,7 @@ const show = trail('entity.show', {
   implementation: (input) => Result.ok({ name: input.name, type: 'concept' }),
 });
 
-// 2. Collect into a trailhead
+// 2. Collect into a topo
 import * as entity from './trails/entity';
 const app = topo('myapp', entity);
 
@@ -51,8 +51,7 @@ import { blaze as blazeMcp } from '@ontrails/mcp';
 blazeMcp(app, { stdio: true });
 ```
 
-Same trails. Same implementation. Every surface.
-Pure trails can be authored synchronously; the runtime still normalizes execution to one awaitable shape for every surface.
+Same trails. Same implementation. Every surface. Pure trails can be authored synchronously; the runtime still normalizes execution to one awaitable shape for every surface.
 
 ## Examples Are Tests
 
@@ -83,7 +82,7 @@ Those examples serve six consumers at once:
 
 | Consumer | What it does with examples |
 | --- | --- |
-| **`testAllExamples(app)`** | Runs every example as a test — validates input, runs implementation, asserts output |
+| **`testExamples(app)`** | Runs every example as a test — validates input, runs implementation, asserts output |
 | **Agents (via MCP)** | Learns concrete input/output shapes by example |
 | **Agents (via survey)** | Sees what the trail does with real data |
 | **Guide** | Generates usage documentation |
@@ -103,11 +102,11 @@ You never write a separate test file for the happy path. The examples ARE the te
 
 | Package | Purpose |
 | --- | --- |
-| `@ontrails/core` | Foundation — Result, errors, trail/route/event, patterns, types, validation |
+| `@ontrails/core` | Foundation — Result, errors, trail/hike/event, patterns, types, validation |
 | `@ontrails/cli` | CLI surface adapter + `/commander` subpath |
 | `@ontrails/mcp` | MCP surface adapter |
 | `@ontrails/logging` | Structured logging + `/logtape` adapter |
-| `@ontrails/testing` | Contract-driven testing — `testAllExamples()` |
+| `@ontrails/testing` | Contract-driven testing — `testExamples()` |
 | `@ontrails/schema` | Surface maps, diffing, governance |
 
 ## npm Scope

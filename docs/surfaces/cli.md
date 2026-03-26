@@ -62,7 +62,7 @@ const search = trail('search', {
 
 Produces:
 
-```
+```text
 Options:
   --query <value>   Search query
   --limit [value]   Max results (default: 10)

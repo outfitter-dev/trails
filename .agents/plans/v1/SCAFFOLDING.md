@@ -14,7 +14,7 @@
 
 **Commits:** Conventional commits with scopes matching package names:
 
-```
+```text
 feat(core): implement Result type
 feat(cli): add flag derivation from Zod schemas
 feat(warden): add no-throw-in-implementation rule
@@ -36,7 +36,7 @@ Set up from day one. The Trails repo needs its own agent instructions — not a 
 - Project overview (what Trails is, the vocabulary)
 - Package structure and tiers
 - Commands (build, test, lint, typecheck)
-- The `trail()` / `trailhead()` / `blaze()` pattern
+- The `trail()` / `topo()` / `blaze()` pattern
 - Architecture (hexagonal, adapters, core)
 - Development principles (TDD, Result types, no throw)
 - Code style (strict TypeScript, oxfmt)
@@ -130,7 +130,7 @@ The Outfitter monorepo has 14 runtime packages with extensive custom tooling. Mu
 
 ## Monorepo Structure
 
-```
+```text
 trails/
 ├── packages/
 │   ├── core/                # @ontrails/core
@@ -171,7 +171,7 @@ trails/
 
 Each package follows the same structure:
 
-```
+```text
 packages/core/
 ├── src/
 │   ├── index.ts             # barrel export

@@ -7,16 +7,16 @@ Everything needed to define trails and blaze them on CLI and MCP. The core devel
 | Stage | Package | What you get |
 | --- | --- | --- |
 | 00 | (scaffolding) | Repo, workspace, CI |
-| 01 | `@ontrails/core` | Result, errors, `trail()`, `route()`, `event()`, `trailhead()`, patterns, types, validation |
+| 01 | `@ontrails/core` | Result, errors, `trail()`, `hike()`, `event()`, `topo()`, patterns, types, validation |
 | 02 | `@ontrails/cli` | CLI surface + Commander adapter, `blaze()` |
 | 03 | `@ontrails/mcp` | MCP surface, `blaze()` |
 | 04 | `@ontrails/logging` | Structured logging + logtape adapter |
-| 05 | `@ontrails/testing` | `testAllExamples()`, contract testing |
+| 05 | `@ontrails/testing` | `testExamples()`, contract testing |
 | 06 | `@ontrails/schema` | Surface maps, diffing, lock files |
-| 07 | `apps/trails` | CLI app — init, survey, scout |
+| 07 | `apps/trails` | CLI app — init, survey |
 | 08 | `apps/trails-demo` | Example app |
 
-After v1 ships, the framework is usable. You can define trails, blaze on CLI and MCP, test with one line, and introspect via survey/scout.
+After v1 ships, the framework is usable. You can define trails, blaze on CLI and MCP, test with one line, and introspect via survey.
 
 ---
 

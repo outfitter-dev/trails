@@ -16,7 +16,7 @@
 
 ### 1.1 Directory structure
 
-```
+```text
 trails/
 ├── packages/           # @ontrails/* packages
 ├── apps/               # Runnable applications
@@ -50,7 +50,7 @@ mkdir -p packages apps scripts .claude/rules .changeset .github/workflows
 
 Pin to the current stable Bun release:
 
-```
+```text
 1.2.8
 ```
 
@@ -417,8 +417,8 @@ The AGENTS.md should be a comprehensive guide for agents working in the repo. St
   12. Agent-native for building AND consuming
   13. Core is runtime-agnostic, ecosystem is Bun-first
 
-- **Vocabulary** -- trail, route, trailhead, blaze, follow, topo, implementation, markers, detours, permit. Reference LANGUAGE.md for full vocabulary.
-- **The pattern** -- `trail()` defines, `trailhead()` collects, `blaze()` surfaces.
+- **Vocabulary** -- trail, hike, topo, blaze, follow, implementation, markers, detours, permit. Reference LANGUAGE.md for full vocabulary.
+- **The pattern** -- `trail()` defines, `topo()` collects, `blaze()` surfaces.
 - **Package structure** -- Core at center, surface adapters on the left (CLI, MCP), infrastructure adapters on the right (logging). Clean DAG, no cycles.
 - **Commands** -- build, test, lint, typecheck, check, clean, format:check, format:fix
 - **Development principles** -- TDD first, Result types not exceptions, strict TypeScript
@@ -461,7 +461,7 @@ Trails-specific rules for agents:
 
 - Use "trail" not "action" or "handler"
 - Use "implementation" not "handler" or "impl"
-- Use "trailhead" not "registry" or "app factory"
+- Use "topo" not "registry" or "app factory"
 - Use "blaze" not "serve" or "mount" (mount is reserved for cross-app)
 - Use "follow" not "call" or "invoke" for trail-to-trail composition
 - Use "topo" not "registry" or "collection" for the internal trail map
@@ -512,7 +512,7 @@ Start minimal. Add permissions as workflows emerge. Don't pre-allow destructive 
 
 The following goes directly into AGENTS.md. CLAUDE.md's `@AGENTS.md` directive ensures Claude Code reads it. No need to duplicate into `.claude/rules/` — extract later if AGENTS.md grows too large.
 
-```markdown
+````markdown
 ## Build Workflow
 
 ### Source Control
@@ -552,7 +552,7 @@ Each stage of the build plan is one or more Graphite stacks:
 - Stage 00 (scaffolding) → single PR
 - Stage 01 (core) → may be multiple stacked PRs by subsystem:
   - `feat/trl-NNN/core-result-errors` (Result + error taxonomy)
-  - `feat/trl-NNN/core-trail-definitions` (trail/route/event/trailhead)
+  - `feat/trl-NNN/core-trail-definitions` (trail/hike/event/topo)
   - `feat/trl-NNN/core-patterns` (patterns subpath)
   - `feat/trl-NNN/core-types-validation` (branded types, guards, validation)
 - Stage 02 (cli) → 1-2 PRs
@@ -563,11 +563,12 @@ Keep PRs ~100-250 effective LOC where possible. Split larger stages into logical
 ## Commit Conventions
 
 Conventional commits with package scopes:
-```
+
+```text
 
 feat(core): implement Result type with Ok/Err/map/match feat(core): add error taxonomy with 13 classes feat(cli): add flag derivation from Zod schemas test(core): add Result type tests fix(mcp): handle missing output schema gracefully chore: add lefthook configuration
-
 ```
+````
 
 ## Development Flow
 
@@ -583,8 +584,8 @@ feat(core): implement Result type with Ok/Err/map/match feat(core): add error ta
 10. `-a` flag stages all unstaged changes — use it only when you're certain you want everything. Prefer explicit staging to avoid catching unintended files.
 11. `gt submit --no-interactive` when ready for review
 12. Repeat for next branch in the stack
-```
 
+````markdown
 ---
 
 ### 9.9 Hooks — Auto-format on write
@@ -606,6 +607,7 @@ In `.claude/settings.json`:
   }
 }
 ```
+````
 
 This means every time Claude (or any agent) writes or edits a file:
 
@@ -645,7 +647,7 @@ These are NOT stage 00 deliverables but worth tracking:
 
 When creating packages in subsequent stages, each follows this structure:
 
-```
+```text
 packages/<name>/
 ├── src/
 │   ├── index.ts              # barrel export

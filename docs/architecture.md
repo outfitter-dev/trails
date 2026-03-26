@@ -4,35 +4,35 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
 
 ## The Hexagonal Model
 
-```
+```text
                 LEFT SIDE (inbound)
                 How the world calls in
-                ┌─────────────────────┐
-                │  CLI (commander)     │
-                │  MCP (sdk)           │
-                │  HTTP (planned)      │
-                │  WebSocket (planned) │
-                └────────┬────────────┘
-                         │
-                ┌────────▼────────────┐
-                │                     │
-                │   @ontrails/core    │
-                │                     │
-                │  trail() -> Trail   │
-                │  route() -> Route   │
-                │  event() -> Event   │
-                │  trailhead() -> App │
-                │  Result, Errors     │
-                │  Layer, Topo        │
-                │                     │
-                └────────┬────────────┘
-                         │
-                ┌────────▼────────────┐
-                │  Logging (logtape)  │
-                │  Storage (planned)  │
-                │  Telemetry (planned)│
-                │  Search (planned)   │
-                └─────────────────────┘
+                +-----------------------+
+                |  CLI (commander)      |
+                |  MCP (sdk)            |
+                |  HTTP (planned)       |
+                |  WebSocket (planned)  |
+                +---------+-------------+
+                          |
+                +---------v-------------+
+                |                       |
+                |    @ontrails/core     |
+                |                       |
+                |  trail() -> Trail     |
+                |  hike() -> Hike       |
+                |  event() -> Event     |
+                |  topo() -> Topo       |
+                |  Result, Errors       |
+                |  Layer, Topo          |
+                |                       |
+                +---------+-------------+
+                          |
+                +---------v-------------+
+                |  Logging (logtape)    |
+                |  Storage (planned)    |
+                |  Telemetry (planned)  |
+                |  Search (planned)     |
+                +-----------------------+
                 RIGHT SIDE (outbound)
                 How the framework calls out
 ```
@@ -48,6 +48,10 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 **Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, and WebSocket are all equal adapters reading from the same topo. Adding a surface is a `blaze()` call, not an architecture change.
 
 **Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation does not know which surface invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before layers and surfaces run.
+
+**The framework defines ports -- everything concrete is an adapter.** CLI framework (Commander, yargs), logging backend (LogTape, pino), storage engine, telemetry exporter -- all pluggable. The framework never imports a concrete implementation.
+
+**The contract is machine-readable at runtime.** The topo, survey, and guide make the trail system queryable by agents, tooling, and CI.
 
 ## Information Architecture
 
@@ -151,7 +155,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 | Package | What it does |
 | --- | --- |
 | `@ontrails/testing` | `testExamples()`, `testTrail()`, `testHike()`, contract testing, surface harnesses |
-| `@ontrails/schema` | Surface maps, diffing, lock files |
+| `@ontrails/schema` | Surface maps, semantic diffing, lock files |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 
 ### Apps
@@ -163,7 +167,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 
 ## Dependency Graph
 
-```
+```text
 @ontrails/core (zod)
      ^
 @ontrails/cli (core)
@@ -185,7 +189,7 @@ Clean DAG. Core at the center. No cycles. Surface adapters depend only on core. 
 
 ### Request Path (CLI)
 
-```
+```text
 CLI input ("myapp entity show --name Alpha")
   -> Commander parses args/flags
   -> CLI adapter matches to trail via CliCommand model
@@ -200,7 +204,7 @@ CLI input ("myapp entity show --name Alpha")
 
 ### The Same Trail on MCP
 
-```
+```text
 MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
   -> MCP adapter matches to trail
   -> Zod validates input
@@ -237,4 +241,4 @@ All extend `TrailsError` (direct class inheritance). Pattern matching uses `inst
 
 All packages use Bun APIs where they improve the developer experience: `Bun.file()` for I/O, `Bun.Glob` for discovery, `Bun.randomUUIDv7()` for IDs, `Bun.CryptoHasher` for hashing, `bun:sqlite` for storage.
 
-The Trails monorepo itself uses Bun for development: `bun:test` for testing, `bun run` for scripts. But the published packages do not leak this requirement to consumers.
+The surfaces Trails produces (CLI commands, MCP tools, HTTP endpoints) are protocol-based. Consumers interact via standard protocols -- they don't need Bun. A Node project can add Trails by installing Bun alongside Node. Bun runs Node code, so everything coexists.

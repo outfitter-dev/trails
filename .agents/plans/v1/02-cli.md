@@ -15,7 +15,7 @@
 
 ### 1.1 Structure
 
-```
+```text
 packages/cli/
 ├── src/
 │   ├── index.ts                  # Main barrel: CliCommand, buildCliCommands, output, flags
@@ -264,14 +264,7 @@ interface BuildCliCommandsOptions {
 
 5. **Add destructive flag** -- If `trail.destructive` is true, auto-add `dryRunPreset()`.
 
-6. **Build execute function** -- Creates a function that:
-   a. Merges args + flags into a single input object
-   b. Calls `validateInput(trail.input, mergedInput)` from core
-   c. Creates or uses provided TrailContext
-   d. Applies layers via `composeLayers()`
-   e. Calls the normalized async implementation
-   f. Calls `onResult` if provided (or silently discards the result)
-   g. Returns the Result
+6. **Build execute function** -- Creates a function that: a. Merges args + flags into a single input object b. Calls `validateInput(trail.input, mergedInput)` from core c. Creates or uses provided TrailContext d. Applies layers via `composeLayers()` e. Calls the normalized async implementation f. Calls `onResult` if provided (or silently discards the result) g. Returns the Result
 
 7. **Group subcommands** -- Trails sharing the same group (first segment of dot-separated ID) are collected under a parent command. `entity.show` and `entity.add` both go under an `entity` parent.
 
@@ -410,7 +403,7 @@ The CLI surface composes layers from three sources:
 
 Layer composition uses `composeLayers()` from `@ontrails/core`. The CLI adapter calls it when executing a trail:
 
-```
+```text
 layers (outermost → innermost)
   → validateInput()
     → implementation(input, ctx)

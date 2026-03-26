@@ -6,7 +6,7 @@
 
 ## Overview
 
-`apps/trails-demo` is a complete working application built with the Trails framework. It demonstrates every core concept: trails, a route, an event, examples, markers, detours, and blazing on both CLI and MCP surfaces. It serves as both a validation that the stack works end-to-end and as the "getting started" tutorial for new developers.
+`apps/trails-demo` is a complete working application built with the Trails framework. It demonstrates every core concept: trails, a hike, an event, examples, markers, detours, and blazing on both CLI and MCP surfaces. It serves as both a validation that the stack works end-to-end and as the "getting started" tutorial for new developers.
 
 The domain: **entity management** -- a small CRUD + search system with enough depth to exercise composition, error handling, and progressive assertion.
 
@@ -23,7 +23,7 @@ The domain: **entity management** -- a small CRUD + search system with enough de
 
 ### Package Structure
 
-```
+```text
 apps/trails-demo/
   package.json
   tsconfig.json
@@ -31,22 +31,22 @@ apps/trails-demo/
   bin/
     demo.ts                     # CLI entry point
   src/
-    app.ts                      # trailhead() setup
+    app.ts                      # topo() setup
     mcp.ts                      # MCP entry point
     trails/
       entity.ts                 # entity.show, entity.add, entity.delete, entity.list
       search.ts                 # search
-      onboard.ts                # entity.onboard (route)
+      onboard.ts                # entity.onboard (hike)
     events/
       entity-events.ts          # entity.updated (event)
     store.ts                    # In-memory entity store (no external deps)
   __tests__/
-    examples.test.ts            # testAllExamples() -- the one-liner
+    examples.test.ts            # testExamples() -- the one-liner
     contracts.test.ts           # testContracts()
     detours.test.ts             # testDetours()
     entity.test.ts              # Custom scenario tests
     search.test.ts              # Custom scenario tests
-    onboard.test.ts             # Route composition tests
+    onboard.test.ts             # Hike composition tests
 ```
 
 **package.json:**
@@ -342,7 +342,7 @@ export const search = trail('search', {
 });
 ```
 
-### Route: `entity.onboard`
+### Hike: `entity.onboard`
 
 A composite trail that follows `entity.add` and `search` to create an entity and verify it's searchable:
 
@@ -393,7 +393,7 @@ export const onboard = hike('entity.onboard', {
 });
 ```
 
-**Demonstrates:** `route()`, `follows` declaration, `ctx.follow()` calls, composition with error propagation.
+**Demonstrates:** `hike()`, `follows` declaration, `ctx.follow()` calls, composition with error propagation.
 
 ### Event: `entity.updated`
 
@@ -438,7 +438,7 @@ blaze(app);
 
 **CLI commands generated:**
 
-```
+```bash
 demo entity show --name Alpha
 demo entity add --name Beta --type tool --tags automation
 demo entity delete --name Alpha
@@ -459,7 +459,7 @@ blaze(app, { name: 'demo', version: '0.1.0' });
 
 **MCP tools generated:**
 
-```
+```text
 demo_entity_show
 demo_entity_add
 demo_entity_delete
@@ -483,7 +483,7 @@ const testApp = app.forTesting({
   store: createStore(seedData),
 });
 
-testAllExamples(testApp, createTestTrailContext());
+testExamples(testApp, createTestContext());
 ```
 
 This single file tests every trail, every example, with progressive assertion. Full-match examples assert exact output. Schema-only examples assert the result is ok and matches the output schema. Error examples assert the correct error type.
@@ -498,7 +498,7 @@ const testApp = app.forTesting({
   store: createStore(seedData),
 });
 
-testContracts(testApp, createTestTrailContext());
+testContracts(testApp, createTestContext());
 ```
 
 Verifies every implementation's actual output matches its declared output schema.
@@ -520,7 +520,7 @@ Verifies all detour targets (`entity.show` -> `search`) exist in the topo.
 import { testScenarios, createTestContext } from '@ontrails/testing';
 import { show, add, remove } from '../src/trails/entity.js';
 
-const ctx = createTestTrailContext({
+const ctx = createTestContext({
   store: createStore(seedData),
 });
 
@@ -555,7 +555,7 @@ testScenarios(
 );
 ```
 
-#### `onboard.test.ts` -- Route Tests
+#### `onboard.test.ts` -- Hike Tests
 
 ```typescript
 import { testScenarios, createTestContext } from '@ontrails/testing';
@@ -583,12 +583,12 @@ testScenarios(
 
 The `README.md` walks through:
 
-1. **What this app does** -- Entity CRUD + search, 5 trails, 1 route, 1 event.
+1. **What this app does** -- Entity CRUD + search, 5 trails, 1 hike, 1 event.
 2. **Running the CLI** -- `bun run bin/demo.ts entity show --name Alpha`.
 3. **Running the MCP server** -- `bun run src/mcp.ts`.
 4. **Understanding the code** -- Walk through `entity.show` trail definition, explaining `input`, `output`, `examples`, `detours`, `readOnly`.
-5. **The route** -- Walk through `entity.onboard`, explaining `follows` and `ctx.follow()`.
-6. **Testing** -- Show the `testAllExamples()` one-liner and what it validates.
+5. **The hike** -- Walk through `entity.onboard`, explaining `follows` and `ctx.follow()`.
+6. **Testing** -- Show the `testExamples()` one-liner and what it validates.
 7. **Adding a new trail** -- Step-by-step guide to adding `entity.update`.
 8. **Running warden** -- `trails warden` to check governance.
 9. **Generating the surface map** -- `trails survey generate`.
@@ -599,13 +599,13 @@ The `README.md` walks through:
 
 The demo app's tests ARE the validation that the stack works:
 
-- `testAllExamples` runs all examples across all trails -- proves example-driven testing works.
+- `testExamples` runs all examples across all trails -- proves example-driven testing works.
 - `testContracts` verifies output schemas -- proves contract testing works.
 - `testDetours` validates detour references -- proves structural validation works.
-- `testTrail` with custom scenarios -- proves per-trail scenario testing works.
+- `testScenarios` with custom scenarios -- proves per-trail scenario testing works.
 - CLI entry point runs without errors -- proves `blaze()` on CLI works.
 - MCP entry point runs without errors -- proves `blaze()` on MCP works.
-- Route `entity.onboard` correctly follows `entity.add` and `search` -- proves `ctx.follow()` composition works.
+- Hike `entity.onboard` correctly follows `entity.add` and `search` -- proves `ctx.follow()` composition works.
 - Event `entity.updated` has valid `from` references -- proves event wiring works.
 
 ---
@@ -613,14 +613,14 @@ The demo app's tests ARE the validation that the stack works:
 ## Definition of Done
 
 - [ ] 5 trails defined: `entity.show`, `entity.add`, `entity.delete`, `entity.list`, `search`.
-- [ ] 1 route defined: `entity.onboard` with `follows: ["entity.add", "search"]`.
+- [ ] 1 hike defined: `entity.onboard` with `follows: ["entity.add", "search"]`.
 - [ ] 1 event defined: `entity.updated` with `from`.
 - [ ] Every trail has at least 1 example. Most have 2+ (success + error).
 - [ ] Markers used: `readOnly` on show/list/search, `destructive` on delete.
 - [ ] Detours used: `entity.show` suggests `search` on `NotFoundError`.
 - [ ] Blazed on CLI -- `demo entity show --name Alpha` works.
 - [ ] Blazed on MCP -- MCP tool calls work.
-- [ ] `testAllExamples()` one-liner validates the entire app.
+- [ ] `testExamples()` one-liner validates the entire app.
 - [ ] `testContracts()` verifies output schemas.
 - [ ] `testDetours()` verifies detour targets.
 - [ ] Custom scenario tests cover edge cases.

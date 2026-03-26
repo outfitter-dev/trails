@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun x ultracite fix $CLAUDE_FILE_PATH 2>/dev/null; bunx oxlint $CLAUDE_FILE_PATH --fix --quiet 2>/dev/null; true",
+            "command": "case \"$CLAUDE_FILE_PATH\" in *.md) bun run mdlint:fix \"$CLAUDE_FILE_PATH\" 2>/dev/null;; *) bun run format:file \"$CLAUDE_FILE_PATH\" 2>/dev/null;; esac; true",
             "timeout": 10000
           }
         ]

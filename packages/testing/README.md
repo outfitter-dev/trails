@@ -21,7 +21,7 @@ testExamples(app);
 
 One line. The entire topo is tested. Every trail, every example: input validation, implementation execution, output verification.
 
-```
+```text
  PASS  src/__tests__/app.test.ts
   greet
     example: Basic greeting

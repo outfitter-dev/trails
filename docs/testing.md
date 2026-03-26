@@ -61,7 +61,7 @@ testExamples(app);
 
 For each trail with examples, generates a `describe` block with individual `test` calls:
 
-```
+```text
 describe("entity.show") {
   test("example: Show entity by name") { ... }
   test("example: Entity not found returns NotFoundError") { ... }
@@ -100,9 +100,7 @@ Asserts `result.isOk()` and `result.value` deep-equals `expected`.
 Example has no `expected` and no `error`:
 
 ```typescript
-examples: [
-  { name: 'Returns something valid', input: { name: 'Alpha' } },
-];
+examples: [{ name: 'Returns something valid', input: { name: 'Alpha' } }];
 ```
 
 Asserts `result.isOk()` and, if the trail has an `output` schema, validates `result.value` against it.
@@ -185,6 +183,8 @@ testContracts(app);
 // Fails if any implementation returns data that doesn't match its declared output schema
 ```
 
+TypeScript checks types at compile time, but the implementation could return `{ name: "foo" }` when the output schema says `{ title: string }`. `testContracts` catches this at runtime.
+
 ## `testDetours(app)`
 
 Structural validation. Verifies every detour target trail exists in the topo. No implementation execution needed.
@@ -259,7 +259,7 @@ expect(result.isError).toBe(false);
 
 ## Recommended Test Structure
 
-```
+```text
 src/
   trails/
     entity.ts          # Trail definitions with examples

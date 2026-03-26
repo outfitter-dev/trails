@@ -84,13 +84,13 @@ Shared TSDoc and code-shape guidance for packages and apps lives in [`.claude/ru
 
 Use Graphite for source control operations.
 
-| Instead of | Use |
-| --- | --- |
-| `git checkout -b` | `gt create` |
-| `git commit --amend` | `gt modify` |
-| `git push` | `gt submit` |
-| `git pull` / `git fetch` | `gt sync` |
-| `git checkout` | `gt checkout` |
+| Instead of               | Use           |
+| ------------------------ | ------------- |
+| `git checkout -b`        | `gt create`   |
+| `git commit --amend`     | `gt modify`   |
+| `git push`               | `gt submit`   |
+| `git pull` / `git fetch` | `gt sync`     |
+| `git checkout`           | `gt checkout` |
 
 - `git status` and `git diff` are the normal read-only exceptions.
 - We use Conventional Commits.

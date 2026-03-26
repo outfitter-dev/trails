@@ -12,9 +12,9 @@
 
 **Implementations are pure functions.** Input in, `Result` out. No side effects, no surface knowledge, no transport coupling. Authoring may be sync or async; core normalizes execution to one awaitable shape before adapters run.
 
-**The contract is machine-readable at runtime.** Survey, scout, and guide make the topo queryable by agents, tooling, and CI.
+**The contract is machine-readable at runtime.** Survey and guide make the topo queryable by agents, tooling, and CI.
 
-**Examples are tests.** Add `examples` to a trail and you've written both agent documentation and a test suite. `testAllExamples(app)` runs every example as an assertion — input validation, implementation execution, output verification. No separate test file for the happy path. Write examples for agents, get tests for free.
+**Examples are tests.** Add `examples` to a trail and you've written both agent documentation and a test suite. `testExamples(app)` runs every example as an assertion — input validation, implementation execution, output verification. No separate test file for the happy path. Write examples for agents, get tests for free.
 
 **Core is runtime-agnostic. Ecosystem is Bun-first.** `@ontrails/core` is pure TypeScript + Zod — no runtime-specific APIs. It works on Node, Deno, Bun, and edge runtimes. Ecosystem packages (`@ontrails/index-sqlite`, the Trails CLI app) can use Bun-specific APIs where they provide clear advantages. The framework never forces a runtime on consumers.
 
@@ -24,7 +24,7 @@
 
 Trails is hexagonal on both sides:
 
-```
+```text
                     LEFT SIDE (inbound)
                     How the world calls in
                     ┌─────────────────────┐
@@ -39,9 +39,9 @@ Trails is hexagonal on both sides:
                     │   @ontrails/core    │
                     │                     │
                     │  trail() → Trail    │
-                    │  route() → Route    │
+                    │  hike() → Hike     │
                     │  event() → Event    │
-                    │  trailhead() → App  │
+                    │  topo() → Topo     │
                     │  Result, Errors     │
                     │  Layer, Topo        │
                     │                     │
@@ -67,7 +67,7 @@ Core defines **ports** (interfaces). Everything on the edges is an **adapter**.
 
 The foundation. One external dependency: `zod`.
 
-Contains: Result (built-in), error taxonomy, `trail()`/`route()`/`event()`, `trailhead()`, TrailContext, validation, patterns, redaction, branded types, type guards, collection utilities, Layer interface, adapter port interfaces, resilience utilities, serialization.
+Contains: Result (built-in), error taxonomy, `trail()`/`hike()`/`event()`, `topo()`, TrailContext, validation, patterns, redaction, branded types, type guards, collection utilities, Layer interface, adapter port interfaces, resilience utilities, serialization.
 
 **The test:** If you're building a surface adapter or ecosystem package, you should only need `@ontrails/core`.
 
@@ -93,7 +93,7 @@ Contains: Result (built-in), error taxonomy, `trail()`/`route()`/`event()`, `tra
 
 | Package | Purpose |
 | --- | --- |
-| `@ontrails/testing` | `testAllExamples()`, contract testing, harnesses |
+| `@ontrails/testing` | `testExamples()`, contract testing, harnesses |
 | `@ontrails/schema` | Surface maps, diffing, lock files |
 | `@ontrails/daemon` (planned) | Process hosting for registry lifecycle |
 | `@ontrails/state` (planned) | Cursor persistence for CLI pagination |
@@ -111,7 +111,7 @@ Contains: Result (built-in), error taxonomy, `trail()`/`route()`/`event()`, `tra
 
 ### Request Path (CLI example)
 
-```
+```text
 CLI input ("myapp entity show --name Alpha")
   → Commander parses args/flags
   → CLI adapter matches to trail via CliCommand model
@@ -126,7 +126,7 @@ CLI input ("myapp entity show --name Alpha")
 
 ### The same trail on MCP
 
-```
+```text
 MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
   → MCP adapter matches to trail
   → Zod validates input
@@ -210,7 +210,7 @@ The Trails monorepo itself is a Bun workspace. `bun:test` for testing, `bun run`
 
 ## Dependency Graph
 
-```
+```text
 @ontrails/core (zod)
      ↑
 @ontrails/cli (core)

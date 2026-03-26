@@ -14,7 +14,7 @@ Warden consumes this package for drift detection. The `trails survey` CLI comman
 
 ## Prerequisites
 
-- **Stage 01 complete** -- `@ontrails/core` ships `trail()`, `route()`, `event()`, `trailhead()`, `Topo` type, `zodToJsonSchema()`.
+- **Stage 01 complete** -- `@ontrails/core` ships `trail()`, `hike()`, `event()`, `topo()`, `Topo` type, `zodToJsonSchema()`.
 - The `Topo` type must expose all trail specs including their `input`/`output` schemas, `surfaces`, markers (`readOnly`, `destructive`, `idempotent`), `follows`, `detours`, `examples`, and `deprecated`/`replacedBy` fields.
 
 ---
@@ -23,7 +23,7 @@ Warden consumes this package for drift detection. The `trails survey` CLI comman
 
 ### Package Setup
 
-```
+```text
 packages/schema/
   package.json
   tsconfig.json

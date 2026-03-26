@@ -1,6 +1,6 @@
 # Stage 08 — apps/trails CLI
 
-> The opinionated CLI app that ties everything together: init, survey, scout, warden, guide.
+> The opinionated CLI app that ties everything together: init, survey, warden, guide.
 
 ---
 
@@ -27,7 +27,7 @@ This is an **app**, not a library. It lives in `apps/trails/` and is published a
 
 ### Package Structure
 
-```
+```text
 apps/trails/
   package.json
   tsconfig.json
@@ -37,14 +37,12 @@ apps/trails/
     index.ts                # App setup, command registration
     commands/
       init.ts               # trails init
-      survey.ts             # trails survey
-      scout.ts              # trails scout
+      survey.ts             # trails survey (includes --brief mode)
       warden.ts             # trails warden (delegates to @ontrails/warden)
       guide.ts         # trails guide (initial stub)
     __tests__/
       init.test.ts
       survey.test.ts
-      scout.test.ts
       warden.test.ts
       guide.test.ts
 ```
@@ -93,7 +91,6 @@ export const program = new Command('trails')
 
 program.addCommand(initCommand);
 program.addCommand(surveyCommand);
-program.addCommand(scoutCommand);
 program.addCommand(wardenCommand);
 program.addCommand(guideCommand);
 ```
@@ -135,7 +132,7 @@ trails blaze my-app --no-verify       # skip testing + warden
 
 **What gets generated (base -- always):**
 
-```
+```text
 my-app/
   package.json              # @ontrails/core, zod
   tsconfig.json             # Strict TypeScript
@@ -145,13 +142,10 @@ my-app/
   .trails/
     surface.lock            # Generated from starter trails
   src/
-    app.ts                  # trailhead() setup
+    app.ts                  # topo() setup
 ```
 
-Per surface: `src/cli.ts` (+ commander dep, bin entry), `src/mcp.ts` (+ @ontrails/mcp dep).
-Per verification: `__tests__/examples.test.ts` (testing), `lefthook.yml` + warden dep (warden).
-Per starter: `src/trails/hello.ts` or full entity CRUD set.
-Per extra: `src/logger.ts` (logging).
+Per surface: `src/cli.ts` (+ commander dep, bin entry), `src/mcp.ts` (+ @ontrails/mcp dep). Per verification: `__tests__/examples.test.ts` (testing), `lefthook.yml` + warden dep (warden). Per starter: `src/trails/hello.ts` or full entity CRUD set. Per extra: `src/logger.ts` (logging).
 
 #### Add surface flow (inside a project)
 
@@ -161,6 +155,7 @@ trails blaze cli          # add CLI surface
 ```
 
 What it does:
+
 1. Finds the topo (scans `src/` for `topo()` import)
 2. Creates entry point (`src/mcp.ts` with `blaze(app)`)
 3. Adds dependency to `package.json`
@@ -206,7 +201,7 @@ trails survey --diff main --exit-code
 
 Lists all trails in the topo with summary info. Uses `@outfitter/tui` tables for rendering.
 
-```
+```text
 Trails (12 total)
 
   ID                 Kind    Surfaces   Safety        Examples
@@ -222,7 +217,7 @@ Trails (12 total)
 
 Detailed view of a single trail:
 
-```
+```text
 Trail: entity.show
 
   Kind:           trail
@@ -275,7 +270,7 @@ Compare the current topo against a git ref:
 
 **Output format:**
 
-```
+```text
 Contract changes vs main:
 
   Breaking (2):
@@ -303,7 +298,7 @@ After computing the diff, scan the project for downstream references to changed 
 3. For each modified trail (input schema changed), search for CLI command patterns that are now invalid (missing required flags).
 4. Append impact report to the diff output.
 
-```
+```text
 Downstream impact:
   .claude/skills/entity-ops/SKILL.md:12
     References: "myapp entity lookup" (trail removed)
@@ -312,15 +307,15 @@ Downstream impact:
     References: "entity.lookup" (trail removed)
 ```
 
-### `trails scout` -- Quick Capabilities Check
+### `trails survey --brief` -- Quick Capabilities Check
 
-What an agent does on first contact -- a fast check of what's available.
+What an agent does on first contact -- a fast check of what's available. This is a mode of `trails survey`, not a separate command.
 
 ```bash
-trails scout
-trails scout --output json
-trails scout --surfaces
-trails scout --permits
+trails survey --brief
+trails survey --brief --output json
+trails survey --brief --surfaces
+trails survey --brief --permits
 ```
 
 **Default output:**
@@ -334,7 +329,7 @@ trails scout --permits
     "outputSchemas": true,
     "examples": true,
     "detours": true,
-    "routes": false,
+    "hikes": false,
     "events": false
   },
   "surfaces": {
@@ -346,15 +341,15 @@ trails scout --permits
 }
 ```
 
-Scout always outputs JSON (it's primarily for agent consumption). The human-readable format is a formatted summary using `@outfitter/tui` boxes.
+Brief mode always outputs JSON (it's primarily for agent consumption). The human-readable format is a formatted summary using `@outfitter/tui` boxes.
 
 **Implementation:**
 
 1. Load the app's topo.
-2. Count trails, events, routes.
+2. Count trails, events, hikes.
 3. Detect which features are in use (output schemas present, examples present, etc.).
 4. Detect which surfaces are blazed.
-5. Return the scout report.
+5. Return the brief report.
 
 ### `trails warden` -- Governance
 
@@ -394,7 +389,7 @@ trails guide --output json    # Structured output for agents
 Use `@outfitter/tui` for all terminal output:
 
 - **Tables** for `survey` trail listings.
-- **Boxes** for `scout` capability summaries.
+- **Boxes** for `survey --brief` capability summaries.
 - **Colors** for severity in `survey --diff` (red for breaking, yellow for warnings, green for info).
 - **Trees** for route composition visualization.
 
@@ -408,9 +403,9 @@ Respect `--output json` / `--output jsonl` flags for machine-readable output. Hu
 
 - `trails init my-app --no-interactive` generates a valid project structure.
 - Generated `package.json` has correct `@ontrails/*` dependencies.
-- Generated `src/app.ts` uses `trailhead()`.
+- Generated `src/app.ts` uses `topo()`.
 - Generated `src/cli.ts` uses `blaze()` from `@ontrails/cli/commander`.
-- Generated test file uses `testAllExamples()`.
+- Generated test file uses `testExamples()`.
 - `--template minimal` produces a single-trail project.
 - `--template full` produces a multi-trail project with examples.
 - Generated `.oxlintrc.json` includes the trails plugin.
@@ -426,9 +421,9 @@ Respect `--output json` / `--output jsonl` flags for machine-readable output. Hu
 - `trails survey --diff --impact` scans downstream files for broken references.
 - `trails survey --diff --breaking-only` filters to breaking changes only.
 
-### `scout.test.ts`
+### `survey.test.ts` (brief mode)
 
-- `trails scout` produces a valid capability report.
+- `trails survey --brief` produces a valid capability report.
 - Report includes correct trail count.
 - Report detects which features are in use.
 - `--output json` produces valid JSON.
@@ -459,7 +454,7 @@ Respect `--output json` / `--output jsonl` flags for machine-readable output. Hu
 - [ ] `trails survey --diff <ref>` shows semantic contract changes with severity classification.
 - [ ] `trails survey --diff <ref> --impact` scans for downstream broken references.
 - [ ] `trails survey --diff <ref> --exit-code` gates CI on breaking changes.
-- [ ] `trails scout` produces a capability report suitable for agent bootstrap.
+- [ ] `trails survey --brief` produces a capability report suitable for agent bootstrap.
 - [ ] `trails warden` delegates to `@ontrails/warden` for lint + drift checks.
 - [ ] `trails guide` provides basic trail guidance (stub, expandable post-v1).
 - [ ] Rendering uses `@outfitter/tui` for tables, boxes, and colors.

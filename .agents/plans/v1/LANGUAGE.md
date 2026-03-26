@@ -32,11 +32,11 @@ Agent-native means two things. Agents building with Trails produce correct, cons
 
 **Validate at the boundary, trust internally.** Zod validates input before the implementation sees it. Every surface, every time. The implementation receives typed, validated data — no defensive checks, no manual parsing. Same principle applies to config: validate at startup, trust internally.
 
-**Examples are tests.** Add `examples` to a trail and you've written both agent documentation and a test suite. `testAllExamples(app)` runs every example as an assertion. No separate test files for the happy path. Write examples for agent fluency — get test coverage for free.
+**Examples are tests.** Add `examples` to a trail and you've written both agent documentation and a test suite. `testExamples(app)` runs every example as an assertion. No separate test files for the happy path. Write examples for agent fluency — get test coverage for free.
 
 **Derive the default, override when it's wrong.** CLI command names, MCP tool names, HTTP routes, flag names — all derived from the trail ID and Zod schema. Surface blocks are pure override mechanisms for when the derivation doesn't fit. The most common trail definition has zero surface configuration.
 
-**The contract is readable by machines at runtime.** The topo, survey, scout, and guide make the trail system queryable — by agents, by tooling, by CI. The contract isn't documentation someone wrote separately. It's derived from the trail definitions themselves.
+**The contract is readable by machines at runtime.** The topo, survey, and guide make the trail system queryable — by agents, by tooling, by CI. The contract isn't documentation someone wrote separately. It's derived from the trail definitions themselves.
 
 **Agent-native for building AND consuming.** Trails makes agents that build tools produce consistent results by default (structural constraints). Trails makes agents that consume tools effective by default (queryable contracts, typed schemas, error taxonomy, examples).
 
@@ -82,21 +82,21 @@ export const show = trail('entity.show', {
 
 ---
 
-### `route`
+### `hike`
 
 **What:** A composite trail that follows other trails. Has its own input/output schema but delegates to other trails via `ctx.follow()`.
 
-**API:** `route(id, spec)` — define a route. The spec includes `follows: string[]`.
+**API:** `hike(id, spec)` — define a hike. The spec includes `follows: string[]`.
 
-**Type:** `Route<I, O>` — the spec type (extends `Trail`).
+**Type:** `Hike<I, O>` — the spec type (extends `Trail`).
 
 **Usage in prose:**
 
-- "Define a route" — yes
-- "The `entity.onboard` route follows `entity.add`, `entity.relate`, and `search`" — yes
-- "A route is a trail that follows other trails" — yes
-- "Routes and trails" — yes, when distinguishing composites from atomics
-- "Trails" — yes, when referring to both collectively (a route IS a trail)
+- "Define a hike" — yes
+- "The `entity.onboard` hike follows `entity.add`, `entity.relate`, and `search`" — yes
+- "A hike is a trail that follows other trails" — yes
+- "Hikes and trails" — yes, when distinguishing composites from atomics
+- "Trails" — yes, when referring to both collectively (a hike IS a trail)
 
 **Usage in code:**
 
@@ -117,17 +117,17 @@ export const onboard = hike('entity.onboard', {
 
 ---
 
-### `trailhead`
+### `topo`
 
-**What:** Collect trail modules into an app. Scans module exports for `Trail` shapes and builds the internal topo.
+**What:** Collect trail modules into a topo. Scans module exports for `Trail` shapes and builds the internal collection.
 
-**API:** `trailhead(name, ...modules)` — create an app from trail modules.
+**API:** `topo(name, ...modules)` — create a topo from trail modules.
 
 **Usage in prose:**
 
 - "Create a Trails app" — yes
-- "The app collects trails from modules" — yes
-- "Pass your trail modules to `trailhead()`" — yes
+- "The topo collects trails from modules" — yes
+- "Pass your trail modules to `topo()`" — yes
 
 **Usage in code:**
 
@@ -166,14 +166,14 @@ blaze(app);
 
 ### `follow`
 
-**What:** Call another trail from within a route's implementation. Goes through the topo with full validation and tracing.
+**What:** Call another trail from within a hike's implementation. Goes through the topo with full validation and tracing.
 
 **API:** `ctx.follow(id, input)` — returns `Promise<Result<T, Error>>`.
 
 **Usage in prose:**
 
-- "The route follows `entity.add`" — yes
-- "Follow a trail from within a route" — yes
+- "The hike follows `entity.add`" — yes
+- "Follow a trail from within a hike" — yes
 - "`ctx.follow()` validates input and propagates tracing" — yes
 
 **Usage in code:**
@@ -189,18 +189,18 @@ const result = await ctx.follow('entity.add', {
 
 ### `follows`
 
-**What:** The declaration on a `route()` spec listing which trails the route follows.
+**What:** The declaration on a `hike()` spec listing which trails the hike follows.
 
-**API:** `follows: string[]` — field on route spec.
+**API:** `follows: string[]` — field on hike spec.
 
 **Usage in prose:**
 
-- "This route follows three trails" — yes
+- "This hike follows three trails" — yes
 - "The `follows` declaration is verified by the linter" — yes
 
 ---
 
-### `topo`
+### `topo` (collection)
 
 **What:** The internal collection of all trails — the topography. The data structure that surfaces read, schema tools inspect, and `ctx.follow()` dispatches through.
 
@@ -220,7 +220,7 @@ const result = await ctx.follow('entity.add', {
 
 ### `implementation`
 
-**What:** The pure function inside a trail or route that does the domain work. Input in, `Result` out. Knows nothing about surfaces.
+**What:** The pure function inside a trail or hike that does the domain work. Input in, `Result` out. Knows nothing about surfaces.
 
 **API:** `implementation: (input, ctx) => Result | Promise<Result>` — field on trail/hike spec.
 
@@ -243,21 +243,21 @@ const result = await ctx.follow('entity.add', {
 
 These are reserved for planned features. They may appear in PRDs and design docs but are not yet in the public API. The naming is directional — it may evolve during implementation.
 
-### `scout`
+### `scout` (collapsed)
 
-**Reserved for:** Quick discovery and capability detection. What an agent does on first contact — a fast check of what's available without the full survey.
+**Status:** Collapsed into `survey --brief`. The `scout` command and trail no longer exist as separate entities. Quick discovery is now a flag on the `survey` command.
 
-**Intended usage:**
+**Previous intent:** Quick discovery and capability detection. What an agent does on first contact — a fast check of what's available without the full survey.
+
+**Current usage:**
 
 ```bash
-trails scout                     # Capabilities summary — surfaces, feature flags, trail count
-trails scout --surfaces          # What's blazed where
-trails scout --permits           # What scopes are required
+trails survey --brief            # Capabilities summary — surfaces, feature flags, trail count
+trails survey --brief --surfaces # What's blazed where
+trails survey --brief --permits  # What scopes are required
 ```
 
-**In prose:** "An agent scouts the app on first contact." "Scout tells you what's available without the full survey."
-
-**Not interchangeable with `survey`.** Scout is quick and discovery-oriented. Survey is comprehensive and structured. Scout answers "what can this do?" Survey answers "show me everything about what this does."
+**In prose:** "Run `survey --brief` for a quick capabilities check." "The brief survey tells you what's available without the full detail."
 
 ---
 
@@ -351,25 +351,7 @@ trails survey --diff v1.0 --impact # With downstream analysis
 
 **In prose:** "Survey the app to see the full trail system." "The survey shows every trail, its schema, examples, and relationships."
 
-**Not interchangeable with `scout`.** Survey is comprehensive and structured. Scout is quick and discovery-oriented.
-
----
-
-### `scout`
-
-**Reserved for:** Quick discovery and capability detection. What an agent does on first contact.
-
-**Intended usage:**
-
-```bash
-trails scout                       # Capabilities summary — surfaces, feature flags, counts
-trails scout --surfaces            # What's blazed where
-trails scout --permits             # What scopes are required
-```
-
-**In prose:** "An agent scouts the app on first contact." "Scout tells you what's available without the full survey."
-
-**The relationship:** Scout answers "what can this do?" Survey answers "show me everything about what this does."
+**Brief vs full:** `survey --brief` provides a quick capabilities check. The full `survey` is comprehensive and structured.
 
 ---
 
@@ -415,7 +397,7 @@ const path = topo.traverse('search', 'entity.show'); // Find connected path
 const plan = topo.traverse.plan('entity.onboard'); // Execution plan for a hike
 
 // In prose about composites
-// "The route traverses entity.add, then entity.relate, then search"
+// "The hike traverses entity.add, then entity.relate, then search"
 
 // In prose about cross-app
 // "The request traversed a junction into PatchOS"
@@ -476,7 +458,7 @@ trails guide --for-agent         # Optimized for LLM consumption
 
 **As an MCP tool:**
 
-```
+```text
 guide_entity_show → returns guidance for the entity.show trail
 ```
 
@@ -499,7 +481,7 @@ Survey gives you the data. Guide gives you the understanding.
 
 Same source (the topo). Same interpreter (the guide). Different moments. The developer's effort goes into writing good trail definitions with examples and markers. The guide synthesizes that into guidance — whether served live or generated into files.
 
-**Not the same as `@ontrails/docs`.** Docs assembles documentation from files you wrote (READMEs, guides, hand-authored markdown). Guide generates guidance from what you _defined_ (trails, markers, detours, examples, relations). You never write guide content directly — you write good trail definitions and the guide derives everything from them.
+**Not the same as `@ontrails/docs`.** Docs assembles documentation from files you wrote (READMEs, guides, hand-authored markdown). Guide generates guidance from what you *defined* (trails, markers, detours, examples, relations). You never write guide content directly — you write good trail definitions and the guide derives everything from them.
 
 ---
 
@@ -551,8 +533,8 @@ These use plain language because the concepts are universal. Don't rename them.
 
 ### In documentation
 
-- **Lead with code.** Show the `trail()` → `trailhead()` → `blaze()` flow before explaining it.
-- **Use branded terms naturally.** "Define a trail" not "define an action." "Blaze on CLI" not "serve via CLI." "The route follows three trails" not "the composite calls three actions."
+- **Lead with code.** Show the `trail()` → `topo()` → `blaze()` flow before explaining it.
+- **Use branded terms naturally.** "Define a trail" not "define an action." "Blaze on CLI" not "serve via CLI." "The hike follows three trails" not "the composite calls three actions."
 - **Don't overdo the metaphor.** "Trails is a contract-first framework" is fine. "Trails blazes a path through the wilderness of transport-agnostic design" is not.
 - **Standard terms stay standard.** "Configure the app" not "set up camp." "Define a service" not "pack your gear."
 - **The framework is "Trails" (capitalized). The primitive is "trail" (lowercase).**
@@ -579,10 +561,10 @@ const config = resolveConfig(schema, sources);
 
 ### In error messages
 
-```
+```text
 // Good: clear and direct
 Trail "entity.show" not found in topo
-Route "entity.onboard" follows "entity.relate" which does not exist
+Hike "entity.onboard" follows "entity.relate" which does not exist
 Permit denied: missing scope "entity:write" for trail "entity.delete"
 
 // Bad: too themed
@@ -602,9 +584,9 @@ The branded terms earn their keep here. This is where the vocabulary creates ide
 When talking about Trails, use the branded terms for framework concepts:
 
 - "I defined a trail for entity creation" — natural
-- "The route follows three trails" — natural
+- "The hike follows three trails" — natural
 - "We blazed it on MCP and CLI" — natural
-- "The scout command shows what's available" — natural
+- "`survey --brief` shows what's available" — natural
 
 Don't use them for general programming:
 
@@ -622,7 +604,7 @@ When introducing Trails to someone new, introduce terms in this order:
 
 1. **`trail()`** — "a trail is a typed function with a schema"
 2. **`Result`** — "trails return Result, not exceptions"
-3. **`trailhead()`** — "collect your trails into an app"
+3. **`topo()`** — "collect your trails into a topo"
 4. **`blaze()`** — "open the app on CLI, MCP, or HTTP"
 
 **Intermediate (composition and enrichment):** 5. **`hike()`** — "a hike follows multiple trails" 6. **`ctx.follow()`** — "call another trail from within a hike" 7. **`event()`** — "define events the app can emit" 8. **`markers`** — "annotate trails with metadata" 9. **`detours`** — "define fallback paths when a trail fails" 10. **`pack`** — "a distributable capability bundle"
@@ -638,21 +620,21 @@ When introducing Trails to someone new, introduce terms in this order:
 | Term | Concept | API |
 | --- | --- | --- |
 | `trail` | Atomic action definition | `trail(id, spec)` |
-| `route` | Composite following multiple trails | `route(id, spec)` with `follows: [...]` |
+| `hike` | Composite following multiple trails | `hike(id, spec)` with `follows: [...]` |
 | `event` | Server-originated push | `event(id, spec)` |
-| `trailhead` | Collect trails into an app | `trailhead(name, ...modules)` |
+| `topo` | Collect trails into a topo | `topo(name, ...modules)` |
 | `blaze` | Open app on a surface | `blaze(app, options?)` |
 | `follow` | Call another trail from within | `ctx.follow(id, input)` |
-| `follows` | What a route traverses | `follows: string[]` on route spec |
+| `follows` | What a hike traverses | `follows: string[]` on hike spec |
 | `topo` | The trail collection | `app.topo` |
-| `implementation` | The pure function | Field on trail/route spec |
+| `implementation` | The pure function | Field on trail/hike spec |
 
 ### Reserved (designed, not yet shipped)
 
 | Term | Concept | Planned API |
 | --- | --- | --- |
 | `survey` | Full schema introspection | `trails survey`, `trails survey --diff` |
-| `scout` | Quick discovery / capabilities | `trails scout`, agent bootstrap |
+| `scout` | Collapsed into `survey --brief` | Was `trails scout`, now `trails survey --brief` |
 | `tracks` | Observability / telemetry / audit | `@ontrails/tracks`, `tracksLayer()` |
 | `traverse` | Graph traversal / execution planning | `topo.traverse()`, planner API |
 | `marker` | Annotations / metadata / enrichment | `markers: {}` on trail spec |
@@ -661,9 +643,9 @@ When introducing Trails to someone new, introduce terms in this order:
 | `junction` | Bidirectional peer connection (future) | `app.junction(name, peerApp, transport)` |
 | `guide` | Runtime guidance layer | `trails guide`, MCP tool, agent context |
 | `detour` | Error recovery / fallback paths | `detours: { NotFoundError: ["search"] }` |
-| `pack` | Capability bundle (trails + services + events + markers) | `trailhead("myapp", entityPack, searchPack)` |
-| `loadout` | Deployment/environment config profile | `trailhead("myapp", entity).loadout(production)` |
-| `leg` | One segment of a route's execution | Span hierarchy in tracks |
+| `pack` | Capability bundle (trails + services + events + markers) | `topo("myapp", entityPack, searchPack)` |
+| `loadout` | Deployment/environment config profile | `topo("myapp", entity).loadout(production)` |
+| `leg` | One segment of a hike's execution | Span hierarchy in tracks |
 | `warden` | Governance / contract enforcement tooling | `trails warden`, `@ontrails/warden` |
 | `depot` | Pack registry / marketplace | Where packs are published and discovered |
 | `spur` | Side effect branching (future) | Event emission as a spur off a trail |
@@ -684,4 +666,4 @@ When introducing Trails to someone new, introduce terms in this order:
 | `dry-run` | Execute without side effects | Universal CLI convention — don't rename to `--recon` |
 | `dispatch` | Programmatic full-pipeline invocation | Standard term. `app.dispatch(id, input, opts)` — runs layers, validation, permit checks, tracks. Three levels: direct call (unit test), `follow` (through topo, no layers), `dispatch` (full pipeline). |
 
-The first four are all a beginner needs. You can build and ship a working CLI + MCP tool with just `trail`, `Result`, `trailhead`, `blaze`. Everything else is progressive — you learn it when you need it.
+The first four are all a beginner needs. You can build and ship a working CLI + MCP tool with just `trail`, `Result`, `topo`, `blaze`. Everything else is progressive — you learn it when you need it.

@@ -16,7 +16,7 @@
 
 ### 1.1 Structure
 
-```
+```text
 packages/mcp/
 ├── src/
 │   ├── index.ts                  # Main barrel
@@ -214,15 +214,15 @@ interface McpContent {
    d. **Annotations:** Call `deriveAnnotations(trail)`.
 
    e. **Handler:** Create a function that:
-      1. Validates input: `validateInput(trail.input, args)`
-      2. Creates TrailContext: uses `options.createContext()` if provided, otherwise `createTrailContext()`
-      3. Wires AbortSignal from `extra.signal` into the context
-      4. Wires progress callback from `extra.sendProgress` into the context (see section 5)
-      5. Applies layers: `composeLayers(options.layers ?? [], trail, trail.implementation)`
-      6. Calls the normalized async implementation
-      7. Maps the Result to McpToolResult:
-         - `Result.ok(value)` -> `{ content: [{ type: "text", text: JSON.stringify(value) }] }`
-         - `Result.err(error)` -> `{ content: [{ type: "text", text: error.message }], isError: true }`
+   1. Validates input: `validateInput(trail.input, args)`
+   2. Creates TrailContext: uses `options.createContext()` if provided, otherwise `createTrailContext()`
+   3. Wires AbortSignal from `extra.signal` into the context
+   4. Wires progress callback from `extra.sendProgress` into the context (see section 5)
+   5. Applies layers: `composeLayers(options.layers ?? [], trail, trail.implementation)`
+   6. Calls the normalized async implementation
+   7. Maps the Result to McpToolResult:
+      - `Result.ok(value)` -> `{ content: [{ type: "text", text: JSON.stringify(value) }] }`
+      - `Result.err(error)` -> `{ content: [{ type: "text", text: error.message }], isError: true }`
 
 4. **Handle BlobRef in output:** If the result value contains a `BlobRef`, convert it to an image or resource content entry:
    - Images (MIME type starts with `image/`): `{ type: "image", data: base64(blobRef.data), mimeType }`

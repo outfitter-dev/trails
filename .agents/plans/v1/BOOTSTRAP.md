@@ -30,7 +30,7 @@ Trails has three layers: the **core framework** (core package, surface adapters)
 | `@ontrails/schema` | Surface maps, diffing, governance | None beyond core |
 | `@ontrails/config` | Contract-aware config — `defineConfig()`, resolution stacks, XDG, preferences | `smol-toml` |
 | `@ontrails/logging` | Structured logging — clean API, hierarchical categories, redaction from contracts | None beyond core |
-| `@ontrails/testing` | `testAllExamples()`, progressive assertion, profile matrices | None beyond core |
+| `@ontrails/testing` | `testExamples()`, progressive assertion, profile matrices | None beyond core |
 | `@ontrails/services` | `defineService()`, lifecycle, health checks, port interfaces for storage/cache/search | None beyond core |
 | `@ontrails/http` | HTTP surface — route derivation, status code mapping, SSE, OpenAPI | None beyond core |
 
@@ -43,7 +43,7 @@ Core is everything a surface adapter, ecosystem package, or service adapter need
 | Module | Exports | Purpose |
 | --- | --- | --- |
 | `actions.ts` | `ActionSpec`, `defineAction`, `createActionRegistry`, `ActionRegistry`, `ActionSurface` | The action primitive |
-| `handler.ts` | `ActionImplementation`, `SyncActionImplementation` | Implementation function types |
+| `handler.ts` | `Implementation` (unified sync/async) | Implementation function type |
 | `context.ts` | `ActionContext`, `createActionContext`, `CreateActionContextOptions` | Invocation environment |
 | `events.ts` | `EventSpec`, `defineEvent` | Server-originated event definitions |
 | `relations.ts` | `ActionRelation`, `RelationType` | Action-to-action relationships |
@@ -64,8 +64,8 @@ Core is everything a surface adapter, ecosystem package, or service adapter need
 | --- | --- | --- |
 | `validation.ts` | `validateInput`, `formatZodIssues`, `createValidator`, `parseInput` | Zod validation at the boundary |
 | `schema.ts` | `zodToJsonSchema`, `JsonSchema` | One canonical Zod → JSON Schema conversion |
-| `serialization.ts` | `serializeError`, `deserializeError`, `safeParse`, `safeStringify` | Cross-boundary serialization |
-| `fetch.ts` | `fromFetch` | Fetch → Result helper |
+| `serialization.ts` | `serializeError`, `deserializeError`, `Result.fromJson`, `Result.toJson` | Cross-boundary serialization |
+| `fetch.ts` | `Result.fromFetch` | Fetch → Result helper |
 
 **Cross-cutting interfaces:**
 
@@ -106,7 +106,7 @@ No separate `@ontrails/types` package. Core IS the types. Trails is TypeScript-f
 | `defineService()`, lifecycle ordering | `@ontrails/services` | Application-level concern |
 | `generateSurfaceMap()`, diffing | `@ontrails/schema` | Governance tooling |
 | `defineConfig()`, resolution stacks | `@ontrails/config` | Config system is substantial |
-| `testAllExamples()`, profile matrices | `@ontrails/testing` | Test infrastructure |
+| `testExamples()`, profile matrices | `@ontrails/testing` | Test infrastructure |
 | Commander, yargs integration | `@ontrails/cli-commander` | Adapter |
 
 **The test:** If you're building a Trails surface adapter or a Trails ecosystem package, you should only need `@ontrails/core`. Everything required to integrate with the framework comes from one import.
@@ -122,8 +122,8 @@ Most adapters ship as **subpath exports** of the package they adapt — one inst
 | Import path | What it adapts | External dep |
 | --- | --- | --- |
 | `@ontrails/cli/commander` | `CliCommand[]` → Commander program | `commander` (optional peer) |
-| `@ontrails/logging/logtape` | Sink adapter for logtape (recommended default) | `@logtape/logtape` (optional peer) |
-| `@ontrails/logging/pino` | Sink adapter for pino | `pino` (optional peer) |
+| `@ontrails/logging/logtape` | LogSink adapter for logtape (recommended default) | `@logtape/logtape` (optional peer) |
+| `@ontrails/logging/pino` | LogSink adapter for pino | `pino` (optional peer) |
 | `@ontrails/telemetry/otel` | OTel exporter | `@opentelemetry/*` (optional peer) |
 
 **Standalone adapter packages (niche alternatives):**
@@ -245,7 +245,7 @@ import { Result, ValidationError, NotFoundError } from '@ontrails/core';
 
 The dependency graph is a clean DAG:
 
-```
+```text
 @ontrails/core  (owns Result, errors, ActionSpec — depends on: zod)
      ↑                        ↑
 @outfitter/file-ops    @outfitter/daemon    (import Result from Trails)
@@ -318,7 +318,7 @@ These can stay as scripts or a workspace-only package — they don't need to be 
 
 ## Trails Repo Structure
 
-```
+```text
 trails/
 ├── apps/
 │   ├── trails/                    # The `trails` CLI app
@@ -338,7 +338,7 @@ trails/
 │   │   │   │
 │   │   │   │ # Action system
 │   │   │   ├── actions.ts         # ActionSpec, defineAction, createActionRegistry
-│   │   │   ├── handler.ts         # ActionImplementation, SyncActionImplementation
+│   │   │   ├── handler.ts         # Implementation (unified sync/async)
 │   │   │   ├── context.ts         # ActionContext, createActionContext
 │   │   │   ├── events.ts          # EventSpec, defineEvent
 │   │   │   ├── relations.ts       # ActionRelation, RelationType
@@ -353,8 +353,8 @@ trails/
 │   │   │   │ # Schemas and validation
 │   │   │   ├── validation.ts      # validateInput, formatZodIssues, createValidator
 │   │   │   ├── schema.ts          # zodToJsonSchema (one canonical copy)
-│   │   │   ├── serialization.ts   # serializeError, deserializeError, safeParse
-│   │   │   ├── fetch.ts           # fromFetch (fetch → Result)
+│   │   │   ├── serialization.ts   # serializeError, deserializeError
+│   │   │   ├── fetch.ts           # Result.fromFetch (fetch → Result)
 │   │   │   │
 │   │   │   │ # Cross-cutting interfaces
 │   │   │   ├── layers.ts          # Layer interface, composition utilities
@@ -426,7 +426,7 @@ trails/
 │   │   └── package.json           # depends on @ontrails/core
 │   ├── testing/                   # @ontrails/testing
 │   │   ├── src/
-│   │   │   ├── examples.ts        # testAllExamples, testAction
+│   │   │   ├── examples.ts        # testExamples
 │   │   │   ├── contracts.ts       # testContracts, testRecoveryPaths
 │   │   │   ├── profiles.ts        # testWithProfiles, testWithPreferences, testAll
 │   │   │   ├── config.ts          # testConfig.profilesValidate, etc.
@@ -459,12 +459,12 @@ trails/
 | Term | What it does | Metaphor |
 | --- | --- | --- |
 | `trail()` | Define a path from input to output | Mark a trail |
-| `route()` | Define a composite that follows multiple trails | Plan a route across trails |
-| `trailhead()` | Collect trails into an app | Plan the trail system |
+| `hike()` | Define a composite that follows multiple trails | Plan a hike across trails |
+| `topo()` | Collect trails into a topo | Map the trail system |
 | `blaze()` | Open the app on a surface | Blaze the trails for others |
-| `ctx.follow()` | Call another trail from within a route | Follow a connecting trail |
+| `ctx.follow()` | Call another trail from within a hike | Follow a connecting trail |
 | `topo` | The collection of all trails (internal/power users) | The topography |
-| `follows: [...]` | What a route traverses | The trails this route follows |
+| `follows: [...]` | What a hike traverses | The trails this hike follows |
 
 ### Standard (universal terms, no learning curve)
 
@@ -480,7 +480,7 @@ trails/
 | Type | What it represents |
 | --- | --- |
 | `Trail<I, O>` | The spec — what `trail()` returns |
-| `Route<I, O>` | A trail with `follows` — what `route()` returns |
+| `Hike<I, O>` | A trail with `follows` — what `hike()` returns |
 | `Event<T>` | The event spec — what `event()` returns |
 | `TrailContext` | The invocation environment |
 | `Implementation<I, O>` | The function type (almost always inferred) |
@@ -489,7 +489,7 @@ trails/
 | `Example` | Input/output pair |
 | `CliSpec` / `McpSpec` / `HttpSpec` | Per-surface overrides |
 
-**Define trails → Collect into app → Blaze on surfaces.** Three branded words. The whole framework.
+**Define trails → Collect into topo → Blaze on surfaces.** Three branded words. The whole framework.
 
 ## Adding a Surface is Two Lines
 
@@ -633,7 +633,7 @@ Trails defines **ports** (interfaces). Everything concrete is an **adapter**:
 | --- | --- |
 | `CliCommand[]` model | `cli-commander`, `cli-yargs` |
 | `IndexAdapter` interface | `index-sqlite`, `index-meilisearch` |
-| `Sink` interface (logging) | `logging-pino`, `logging-logtape` |
+| `LogSink` interface (logging) | `logging-pino`, `logging-logtape` |
 | `TelemetryAdapter` interface | `telemetry-otel`, `telemetry-datadog` |
 | MCP server interface | `@modelcontextprotocol/sdk` (peer dep) |
 | HTTP route handler | Hono, Bun.serve, Express (framework integration) |
@@ -739,27 +739,27 @@ The current `apps/outfitter/` is the `outfitter` CLI that does scaffolding, chec
 1. Create Trails repo with workspace setup
 2. Implement `@ontrails/core` — ActionSpec, ActionImplementation, ActionContext, error taxonomy, patterns, events, relations. All PRD terminology from day one
 3. Implement `@ontrails/logging` — clean, no logtape, hierarchical categories
-4. Implement `@ontrails/testing` — testAllExamples, progressive assertion, mocks
+4. Implement `@ontrails/testing` — testExamples, progressive assertion, mocks
 5. Basic `apps/trails` — `trails init` scaffolding
 
 ### Phase 2: Surface Adapters
 
-6. Implement `@ontrails/cli` — buildCliCommands, flag derivation, layers
-7. Implement `@ontrails/mcp` — buildMcpTools, annotations
-8. Implement `@ontrails/schema` — surface maps, diffing
-9. Expand `apps/trails` — `trails schema`, `trails diff`, `trails serve`
+1. Implement `@ontrails/cli` — buildCliCommands, flag derivation, layers
+2. Implement `@ontrails/mcp` — buildMcpTools, annotations
+3. Implement `@ontrails/schema` — surface maps, diffing
+4. Expand `apps/trails` — `trails schema`, `trails diff`, `trails serve`
 
 ### Phase 3: Runtime Services
 
-10. Implement `@ontrails/config` — defineConfig, resolution stacks, preferences
-11. Implement `@ontrails/services` — defineService, lifecycle, health
-12. Implement `@ontrails/http` — buildHttpRoutes, SSE, OpenAPI
+1. Implement `@ontrails/config` — defineConfig, resolution stacks, preferences
+2. Implement `@ontrails/services` — defineService, lifecycle, health
+3. Implement `@ontrails/http` — buildHttpRoutes, SSE, OpenAPI
 
 ### Phase 4: Ecosystem
 
-13. Implement `@ontrails/telemetry` — OTel spans, adapter interface
-14. `trails-demo` app — full example
-15. Documentation site at trails.dev
+1. Implement `@ontrails/telemetry` — OTel spans, adapter interface
+2. `trails-demo` app — full example
+3. Documentation site at trails.dev
 
 ### Parallel: Outfitter cleanup
 
