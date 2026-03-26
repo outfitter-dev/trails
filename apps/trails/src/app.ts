@@ -5,9 +5,11 @@ import * as addTrail from './trails/add-trail.js';
 import * as addVerify from './trails/add-verify.js';
 import * as create from './trails/create.js';
 import * as createScaffold from './trails/create-scaffold.js';
+import * as survey from './trails/survey.js';
 
 export const app = topo(
   'trails',
+  survey,
   create,
   createScaffold,
   addSurface,
