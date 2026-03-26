@@ -55,3 +55,89 @@ export type { AnyEvent, Event, EventSpec } from './event.js';
 // Topo
 export { topo } from './topo.js';
 export type { Topo } from './topo.js';
+
+// Layer
+export { composeLayers } from './layer.js';
+export type { Layer } from './layer.js';
+
+// Health
+export type { HealthStatus, HealthResult } from './health.js';
+
+// Adapters
+export type {
+  IndexAdapter,
+  StorageAdapter,
+  CacheAdapter,
+  SearchOptions,
+  SearchResult,
+  StorageOptions,
+} from './adapters.js';
+
+// Derive
+export { derive } from './derive.js';
+export type { Field, FieldOverride } from './derive.js';
+
+// Validation
+export {
+  validateInput,
+  formatZodIssues,
+  zodToJsonSchema,
+} from './validation.js';
+
+// Serialization
+export { serializeError, deserializeError } from './serialization.js';
+export type { SerializedError } from './serialization.js';
+
+// Resilience
+export {
+  retry,
+  withTimeout,
+  shouldRetry,
+  getBackoffDelay,
+} from './resilience.js';
+export type { RetryOptions } from './resilience.js';
+
+// Fetch — fromFetch is available as Result.fromFetch()
+
+// Branded types
+export {
+  brand,
+  unbrand,
+  uuid,
+  email,
+  nonEmptyString,
+  positiveInt,
+  shortId,
+  hashId,
+} from './branded.js';
+export type {
+  Branded,
+  UUID,
+  Email,
+  NonEmptyString,
+  PositiveInt,
+} from './branded.js';
+
+// Guards
+export {
+  isDefined,
+  isNonEmptyString,
+  isPlainObject,
+  hasProperty,
+  assertNever,
+} from './guards.js';
+
+// Collections
+export {
+  chunk,
+  dedupe,
+  groupBy,
+  sortBy,
+  isNonEmptyArray,
+} from './collections.js';
+export type {
+  NonEmptyArray,
+  DeepPartial,
+  Prettify,
+  AtLeastOne,
+} from './collections.js';
