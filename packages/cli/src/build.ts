@@ -177,9 +177,7 @@ const createExecute =
 
     const validated = validateInput(t.input, mergedInput);
     if (validated.isErr()) {
-      const errorResult: Result<unknown, Error> = Result.err(
-        validated.error
-      );
+      const errorResult: Result<unknown, Error> = Result.err(validated.error);
       await reportResult(options, {
         args: parsedArgs,
         flags: parsedFlags,

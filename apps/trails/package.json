@@ -1,0 +1,28 @@
+{
+  "name": "trails",
+  "version": "0.1.0",
+  "bin": {
+    "trails": "./bin/trails.ts"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint ./src",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.1.0",
+    "@ontrails/cli": "workspace:*",
+    "@ontrails/core": "workspace:*",
+    "@ontrails/logging": "workspace:*",
+    "@ontrails/schema": "workspace:*",
+    "@ontrails/warden": "workspace:*",
+    "commander": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@ontrails/testing": "workspace:*"
+  }
+}

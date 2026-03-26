@@ -72,12 +72,7 @@ export const testContracts = (app: Topo, ctx?: Partial<TrailContext>): void => {
           const result = await t.implementation(validatedInput, testCtx);
           const resultValue = expectOk(result);
 
-          validateOutputSchema(
-            outputSchema,
-            resultValue,
-            t.id,
-            example.name
-          );
+          validateOutputSchema(outputSchema, resultValue, t.id, example.name);
         }
       );
     });

@@ -1,0 +1,51 @@
+/**
+ * Shared Trails-project detection helpers for scaffold trails.
+ */
+
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
+/** Return all TypeScript entries in a project's src directory. */
+const scanSourceEntries = (srcDir: string): string[] => [
+  ...new Bun.Glob('*.ts').scanSync({ cwd: srcDir }),
+];
+
+/** Resolve an entry to an app import if it contains topo(). */
+const toTrailheadImport = async (
+  srcDir: string,
+  entry: string
+): Promise<string | null> => {
+  const content = await Bun.file(join(srcDir, entry)).text();
+  return content.includes('topo') ? `./${entry.replace(/\.ts$/, '.js')}` : null;
+};
+
+/** Find the app module that defines a topo inside `src/`. */
+export const findTrailheadPath = async (
+  cwd: string
+): Promise<string | null> => {
+  const srcDir = join(cwd, 'src');
+  if (!existsSync(srcDir)) {
+    return null;
+  }
+
+  try {
+    for (const entry of scanSourceEntries(srcDir)) {
+      const appImport = await toTrailheadImport(srcDir, entry);
+      if (appImport) {
+        return appImport;
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
+/** Detect whether the directory already looks like a Trails project. */
+export const isInsideProject = async (cwd: string): Promise<boolean> => {
+  if (existsSync(join(cwd, '.trails'))) {
+    return true;
+  }
+  return (await findTrailheadPath(cwd)) !== null;
+};
