@@ -30,7 +30,15 @@ export type { ErrorCategory } from './errors.js';
 export type {
   Implementation,
   TrailContext,
+  FollowFn,
+  ProgressCallback,
+  ProgressEvent,
+  Logger,
+  Surface,
 } from './types.js';
+
+// Context factory
+export { createTrailContext } from './context.js';
 
 // Trail
 export { trail } from './trail.js';
