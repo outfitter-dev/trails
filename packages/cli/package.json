@@ -1,0 +1,29 @@
+{
+  "name": "@ontrails/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./commander": "./src/commander/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint ./src",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@ontrails/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "commander": "^14.0.3",
+    "zod": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "commander": {
+      "optional": true
+    }
+  }
+}
