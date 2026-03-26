@@ -1,0 +1,23 @@
+{
+  "name": "@ontrails/warden",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint ./src",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "@ontrails/core": "workspace:*",
+    "@ontrails/schema": "workspace:*"
+  }
+}
