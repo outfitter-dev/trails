@@ -11,6 +11,7 @@ export type Implementation<I, O> = (
   ctx: TrailContext
 ) => Result<O, Error> | Promise<Result<O, Error>>;
 
+<<<<<<< HEAD
 /** Invoke another trail by id — used for trail composition */
 export type FollowFn = <O>(
   id: string,
