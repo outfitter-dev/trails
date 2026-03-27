@@ -84,10 +84,10 @@ Iterates every trail in `app.topo`. For each trail with `examples`, generates a 
 **What it does per example:**
 
 1. **Input validation** -- Parse `example.input` against `trail.input` schema. Fail if input is invalid (the example itself is broken).
-2. **Execute implementation** -- Call `trail.implementation(validatedInput, mergedCtx)` where `mergedCtx` is `createTestTrailContext()` merged with the provided `ctx`.
+2. **Execute implementation** -- Call `trail.implementation(validatedInput, mergedCtx)` where `mergedCtx` is `createTestContext()` merged with the provided `ctx`. This is the normalized runtime function, so tests work the same for sync-authored and async-authored trails.
 3. **Progressive assertion** (see below):
-   - If `example.output` is present: assert `result.isOk()` and `result.value` deep-equals `example.output`.
-   - If `example.expectErr` is present: assert `result.isErr()` and `result.error` is an instance of the specified error class.
+   - If `example.expected` is present: assert `result.isOk()` and `result.value` deep-equals `example.expected`.
+   - If `example.error` is present: assert `result.isErr()` and `result.error` is an instance of the named error class.
    - If neither: assert `result.isOk()` and, if `trail.output` schema exists, validate `result.value` against it.
 4. **Output schema validation** -- If `trail.output` exists and result is ok, validate `result.value` against `trail.output` schema regardless of which assertion tier ran.
 
@@ -135,7 +135,7 @@ Generates a `describe` block for the trail with one `test` per scenario. This is
 **Per scenario:**
 
 1. If `trail.input` schema exists, validate `scenario.input` against it. If validation fails and `expectErr` is `ValidationError`, that's a pass (testing invalid input rejection). Otherwise, fail.
-2. Execute the implementation.
+2. Execute the implementation. As with `testExamples()`, this always hits the normalized runtime function, so sync-authored trails do not need special handling in tests.
 3. Apply assertions based on which `expect*` fields are set:
    - `expectOk: true` -- assert `result.isOk()`.
    - `expectValue` -- assert `result.isOk()` and deep-equal the value.
@@ -151,7 +151,7 @@ export function testContracts(
 ): void;
 ```
 
-For every trail that has both `examples` (with `output` or schema-only) and an `output` schema:
+For every trail that has both `examples` (with `expected` or schema-only) and an `output` schema:
 
 1. Run each example's input through the implementation.
 2. If result is ok, validate `result.value` against `trail.output` schema.
@@ -177,10 +177,13 @@ No implementation execution needed -- this is pure structural validation against
 
 Three assertion tiers, determined by what the example declares:
 
-#### Full Match (example has `output`)
+#### Full Match (example has `expected`)
 
 ```typescript
-function assertFullMatch(result: Result<unknown, Error>, expected: unknown): void {
+function assertFullMatch(
+  result: Result<unknown, Error>,
+  expected: unknown
+): void {
   expect(result.isOk()).toBe(true);
   if (result.isOk()) {
     expect(result.value).toEqual(expected);
@@ -188,7 +191,7 @@ function assertFullMatch(result: Result<unknown, Error>, expected: unknown): voi
 }
 ```
 
-#### Schema-Only Match (example has no `output` and no `expectErr`)
+#### Schema-Only Match (example has no `expected` and no `error`)
 
 ```typescript
 function assertSchemaMatch(
@@ -207,7 +210,7 @@ function assertSchemaMatch(
 }
 ```
 
-#### Error Match (example has `expectErr`)
+#### Error Match (example has `error`)
 
 ```typescript
 function assertErrorMatch(
@@ -263,7 +266,9 @@ export interface TestLoggerInstance extends LoggerInstance {
   assertLogged(level: LogLevel, messageSubstring: string): void;
 }
 
-export function createTestLogger(options?: { level?: LogLevel }): TestLoggerInstance;
+export function createTestLogger(options?: {
+  level?: LogLevel;
+}): TestLogger;
 ```
 
 The test logger captures all log records in an array instead of writing to console or file. Useful for asserting that implementations log expected messages.
@@ -297,9 +302,9 @@ Builds CLI commands from the app's topo using `buildCliCommands()` and the Comma
 
 ```typescript
 const harness = createCliHarness({ app });
-const result = await harness.run("entity show --name Alpha --output json");
+const result = await harness.run('entity show --name Alpha --output json');
 expect(result.exitCode).toBe(0);
-expect(result.json).toMatchObject({ name: "Alpha" });
+expect(result.json).toMatchObject({ name: 'Alpha' });
 ```
 
 ### `createMcpHarness(app)` -- MCP Integration Testing
@@ -311,7 +316,10 @@ export interface McpHarnessOptions {
 
 export interface McpHarness {
   /** Call an MCP tool by name with arguments. */
-  callTool(name: string, args: Record<string, unknown>): Promise<McpHarnessResult>;
+  callTool(
+    name: string,
+    args: Record<string, unknown>
+  ): Promise<McpHarnessResult>;
 }
 
 export interface McpHarnessResult {
@@ -335,6 +343,7 @@ interface TrailsApp {
 ```
 
 Creates a copy of the app with selective service replacement. Override values can be:
+
 - An object with config keys -- real service with test configuration.
 - An implementation object -- full mock replacement.
 - `"memory"` or `"noop"` -- built-in test doubles.
@@ -343,9 +352,9 @@ Creates a copy of the app with selective service replacement. Override values ca
 
 ```typescript
 const testApp = app.forTesting({
-  db: { url: "sqlite://test.db" },
+  db: { url: 'sqlite://test.db' },
   search: mockSearchService,
-  cache: "memory",
+  cache: 'memory',
 });
 
 testAllExamples(testApp, createTestTrailContext());
@@ -355,18 +364,18 @@ testAllExamples(testApp, createTestTrailContext());
 
 ```typescript
 // Contract-driven testing
-export { testAllExamples } from "./examples.js";
-export { testTrail } from "./trail.js";
-export { testContracts } from "./contracts.js";
-export { testDetours } from "./detours.js";
+export { testExamples } from './examples.js';
+export { testScenarios } from './trail.js';
+export { testContracts } from './contracts.js';
+export { testDetours } from './detours.js';
 
 // Mock factories
-export { createTestTrailContext } from "./context.js";
-export { createTestLogger } from "./logger.js";
+export { createTestContext } from './context.js';
+export { createTestLogger } from './logger.js';
 
 // Surface harnesses
-export { createCliHarness } from "./harness-cli.js";
-export { createMcpHarness } from "./harness-mcp.js";
+export { createCliHarness } from './harness-cli.js';
+export { createMcpHarness } from './harness-mcp.js';
 
 // Types
 export type {
@@ -376,7 +385,7 @@ export type {
   CliHarnessResult,
   McpHarness,
   McpHarnessResult,
-} from "./types.js";
+} from './types.js';
 ```
 
 ---
@@ -389,9 +398,9 @@ The testing package needs its own tests -- it's testing infrastructure, not exem
 
 Create a small in-memory app with 2-3 trails, each with examples covering all three assertion tiers:
 
-- Trail with full-match example (has `output`): verify exact equality assertion works.
-- Trail with schema-only example (no `output`): verify schema validation runs.
-- Trail with error example (`expectErr`): verify error type assertion works.
+- Trail with full-match example (has `expected`): verify exact equality assertion works.
+- Trail with schema-only example (no `expected`): verify schema validation runs.
+- Trail with error example (`error`): verify error type assertion works.
 - Trail with no examples: verify it's skipped without failure.
 - Trail with invalid example input (broken example): verify it produces a clear failure.
 - Verify `testAllExamples` generates individual `test` calls with correct names.

@@ -60,7 +60,7 @@ packages/schema/
 ```typescript
 export interface SurfaceMapEntry {
   readonly id: string;
-  readonly kind: "trail" | "route" | "event";
+  readonly kind: 'trail' | 'route' | 'event';
   readonly surfaces: readonly string[];
   readonly input?: JsonSchema;
   readonly output?: JsonSchema;
@@ -114,6 +114,7 @@ Produces a deterministic SHA-256 hash of the surface map content:
 4. Return the hex-encoded hash string.
 
 **Determinism is critical.** The same topo must produce the same hash byte-for-byte. This means:
+
 - No floating-point instability in JSON serialization.
 - No insertion-order dependence in object keys.
 - No timestamps or random values in the hash input.
@@ -123,9 +124,9 @@ Produces a deterministic SHA-256 hash of the surface map content:
 ```typescript
 export interface DiffEntry {
   readonly id: string;
-  readonly kind: "trail" | "route" | "event";
-  readonly change: "added" | "removed" | "modified";
-  readonly severity: "info" | "warning" | "breaking";
+  readonly kind: 'trail' | 'route' | 'event';
+  readonly change: 'added' | 'removed' | 'modified';
+  readonly severity: 'info' | 'warning' | 'breaking';
   readonly details: readonly string[];
 }
 
@@ -147,7 +148,7 @@ export function diffSurfaceMaps(prev: SurfaceMap, curr: SurfaceMap): DiffResult;
 3. **Modified trails** -- IDs in both, with differences. Per-field diff:
 
 | Field Change | Severity | Detail Message |
-|---|---|---|
+| --- | --- | --- |
 | Required input field added | `breaking` | `Required input field "type" added` |
 | Optional input field added | `info` | `Optional input field "filter" added` |
 | Input field removed | `breaking` | `Input field "name" removed` |
@@ -162,6 +163,7 @@ export function diffSurfaceMaps(prev: SurfaceMap, curr: SurfaceMap): DiffResult;
 | Follows changed | `warning` | `Follows changed: added "search", removed "lookup"` |
 
 **Schema comparison** for input/output fields uses JSON Schema diffing:
+
 - Compare the `properties` objects in the JSON schemas.
 - Check `required` arrays for additions/removals.
 - Compare `type` fields for type changes.
@@ -190,9 +192,9 @@ Writes the full surface map to `<dir>/_surface.json` (gitignored detail file). R
 #### `readSurfaceMap(options?)`
 
 ```typescript
-export async function readSurfaceMap(
-  options?: { dir?: string }
-): Promise<SurfaceMap | null>;
+export async function readSurfaceMap(options?: {
+  dir?: string;
+}): Promise<SurfaceMap | null>;
 ```
 
 Reads `_surface.json` from the specified directory. Returns `null` if the file doesn't exist.
@@ -213,9 +215,9 @@ Writes the hash to `<dir>/surface.lock` as a single line. Returns the file path.
 #### `readSurfaceLock(options?)`
 
 ```typescript
-export async function readSurfaceLock(
-  options?: { dir?: string }
-): Promise<string | null>;
+export async function readSurfaceLock(options?: {
+  dir?: string;
+}): Promise<string | null>;
 ```
 
 Reads `surface.lock` and returns the hash string. Returns `null` if the file doesn't exist.
@@ -225,7 +227,11 @@ Reads `surface.lock` and returns the hash string. Returns `null` if the file doe
 Warden calls `@ontrails/schema` to detect drift:
 
 ```typescript
-import { generateSurfaceMap, hashSurfaceMap, readSurfaceLock } from "@ontrails/schema";
+import {
+  generateSurfaceMap,
+  hashSurfaceMap,
+  readSurfaceLock,
+} from '@ontrails/schema';
 
 const surfaceMap = generateSurfaceMap(app.topo);
 const currentHash = hashSurfaceMap(surfaceMap);
@@ -254,15 +260,25 @@ Or, using the `trails warden --exit-code` command which includes drift detection
 
 ```typescript
 // Generation
-export { generateSurfaceMap } from "./generate.js";
-export { hashSurfaceMap } from "./hash.js";
-export { diffSurfaceMaps } from "./diff.js";
+export { generateSurfaceMap } from './generate.js';
+export { hashSurfaceMap } from './hash.js';
+export { diffSurfaceMaps } from './diff.js';
 
 // File I/O
-export { writeSurfaceMap, readSurfaceMap, writeSurfaceLock, readSurfaceLock } from "./io.js";
+export {
+  writeSurfaceMap,
+  readSurfaceMap,
+  writeSurfaceLock,
+  readSurfaceLock,
+} from './io.js';
 
 // Types
-export type { SurfaceMap, SurfaceMapEntry, DiffEntry, DiffResult } from "./types.js";
+export type {
+  SurfaceMap,
+  SurfaceMapEntry,
+  DiffEntry,
+  DiffResult,
+} from './types.js';
 ```
 
 ---

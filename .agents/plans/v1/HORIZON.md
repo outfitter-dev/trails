@@ -1,7 +1,6 @@
 # Trails — Horizon
 
-> **Status:** Design direction — not committed, not scheduled
-> **Purpose:** Capture concepts that are coming but aren't v1. Inform architecture decisions now so these aren't blocked later.
+> **Status:** Design direction — not committed, not scheduled **Purpose:** Capture concepts that are coming but aren't v1. Inform architecture decisions now so these aren't blocked later.
 
 ---
 
@@ -14,6 +13,7 @@ These could change the core `trail()` spec or `TrailContext` shape. Rather than 
 The first pattern that doesn't fit synchronous `Result<T, Error>`. A job trail returns immediately with a handle. The handle has status, progress, eventual result, and cancellation.
 
 **How each surface handles it:**
+
 - CLI: polls and shows a progress bar
 - HTTP: returns 202 with `Location` header for polling
 - WebSocket: subscribes to progress events via the event system
@@ -22,6 +22,7 @@ The first pattern that doesn't fit synchronous `Result<T, Error>`. A job trail r
 **The question for v1:** Does `trail()` need a `kind` field (`"query" | "mutation" | "job"`)? Or can jobs be expressed as a normal trail that returns `Result<JobHandle, Error>` where `JobHandle` has `statusFields()` + `progressFields()` in its output schema?
 
 If the latter works, then:
+
 - `trail()` spec doesn't change
 - Surface adapters detect the job pattern from the output shape (has `status`, `progress`, `cursor` for polling)
 - Layers handle the surface-specific behavior (CLI progress bar layer, HTTP 202 layer)
@@ -42,6 +43,7 @@ File uploads, artifact downloads, binary payloads. Doesn't fit the JSON body mod
 **The question for v1:** Does `@ontrails/http` need to handle `multipart/form-data` from day one? Or can file operations live outside the trail contract initially (standard Hono/Express file handling alongside Trails routes)?
 
 **Design direction:** A `BlobRef` type that surfaces handle differently:
+
 - HTTP: `multipart/form-data` upload, `Content-Disposition` download
 - CLI: file path argument
 - MCP: base64 content or URI reference
@@ -50,11 +52,11 @@ File uploads, artifact downloads, binary payloads. Doesn't fit the JSON body mod
 The `BlobRef` would be a Zod type that trail input/output schemas can use:
 
 ```typescript
-import { BlobRef } from "@ontrails/core";
+import { BlobRef } from '@ontrails/core';
 
-const upload = trail("file.upload", {
+const upload = trail('file.upload', {
   input: z.object({
-    file: BlobRef,  // Surface adapter handles the actual transport
+    file: BlobRef, // Surface adapter handles the actual transport
     name: z.string(),
   }),
   implementation: async (input, ctx) => {
@@ -78,13 +80,13 @@ The simplest event delivery surface: POST typed event payloads to registered URL
 Webhooks are the most common integration pattern in SaaS — most tools use webhooks, not WebSocket. They share event definitions with SSE and WebSocket — same `event()` contracts, different delivery.
 
 ```typescript
-import { createWebhookDispatcher } from "@ontrails/webhooks";
+import { createWebhookDispatcher } from '@ontrails/webhooks';
 
 const webhooks = createWebhookDispatcher({
-  events: ["entity.updated", "entity.deleted"],
-  store: webhookStore,       // Subscription persistence
+  events: ['entity.updated', 'entity.deleted'],
+  store: webhookStore, // Subscription persistence
   signing: { secret: env.WEBHOOK_SECRET },
-  retry: { maxAttempts: 3, backoff: "exponential" },
+  retry: { maxAttempts: 3, backoff: 'exponential' },
 });
 ```
 
@@ -101,40 +103,41 @@ The `permit` vocabulary is reserved, `authLayer` is designed in the layers PRD, 
 ```typescript
 // What IS a Permit?
 interface Permit {
-  id: string;                    // Caller identity
-  scopes: string[];              // What they're allowed to do
-  roles?: string[];              // Role membership
-  tenantId?: string;             // Multi-tenant isolation
-  metadata?: Record<string, unknown>;  // Custom claims
+  id: string; // Caller identity
+  scopes: string[]; // What they're allowed to do
+  roles?: string[]; // Role membership
+  tenantId?: string; // Multi-tenant isolation
+  metadata?: Record<string, unknown>; // Custom claims
 }
 
 // How do scopes compose?
-trail("entity.delete", {
+trail('entity.delete', {
   destructive: true,
   permit: {
-    scopes: ["entity:write"],           // Required scopes
+    scopes: ['entity:write'], // Required scopes
     // Or derived: destructive trail in entity domain → entity:write
   },
 });
 
 // How does RBAC work?
 const roles = defineRoles({
-  viewer: ["entity:read", "search:read"],
-  editor: ["entity:read", "entity:write", "search:read"],
-  admin: ["*"],  // All scopes
+  viewer: ['entity:read', 'search:read'],
+  editor: ['entity:read', 'entity:write', 'search:read'],
+  admin: ['*'], // All scopes
 });
 ```
 
 **What each surface does with permits:**
 
 | Surface | Auth Resolution | Scope Enforcement |
-|---------|----------------|-------------------|
+| --- | --- | --- |
 | CLI | Local keyring, env var, or no auth | Optional — CLI is often admin |
 | MCP | Session token from MCP config or OAuth | Filter tool list — agents don't see trails they can't call |
 | HTTP | Bearer token from `Authorization` header | 401 (no token) or 403 (insufficient scopes) |
 | WebSocket | Token from connection handshake | Filter available trails per connection |
 
 **What propagates across `ctx.follow()` and `mount()`:**
+
 - Within a route: the parent's permit propagates to inner trail calls
 - Across a mount: the mounting app's permit is forwarded as a header/metadata. The mounted app may have its own auth that validates it.
 
@@ -153,6 +156,7 @@ These are well-understood, don't change the core spec, and ship when their prere
 Schema-driven interactive UIs rendered in chat clients (Claude, ChatGPT, VS Code) via the MCP Apps protocol (SEP-1865).
 
 **What the topo provides:**
+
 - Input schema → auto-generate form fields (string → text input, enum → dropdown, boolean → toggle)
 - Output schema → auto-generate result visualization (array → table, object → detail view)
 - Trail markers → UI behavior (`destructive` → red button with confirmation, `readOnly` → query-only display)
@@ -173,10 +177,10 @@ Typed TypeScript client generated from the topo. Each trail becomes a method wit
 
 ```typescript
 // Generated by: trails guide generate --typescript
-import { createClient } from "./guide/client";
+import { createClient } from './guide/client';
 
-const client = createClient({ baseUrl: "https://api.example.com" });
-const results = await client.search({ query: "auth", limit: 10 });
+const client = createClient({ baseUrl: 'https://api.example.com' });
+const results = await client.search({ query: 'auth', limit: 10 });
 //    ^? SearchResult[] — typed from the trail's output schema
 ```
 
@@ -201,8 +205,8 @@ const results = await client.search({ query: "auth", limit: 10 });
 Distributable capability bundles. A pack carries trails, services, events, markers, and config fragments for a domain. The unit of sharing and reuse.
 
 ```typescript
-import { entityPack } from "@mylib/entity-pack";
-const app = trailhead("myapp", entityPack, searchTrails);
+import { entityPack } from '@mylib/entity-pack';
+const app = topo('myapp', entityPack, searchTrails);
 ```
 
 **Prerequisites:** The core loop (trail → trailhead → blaze) proven in real apps. Services and events shipped.
@@ -216,11 +220,13 @@ const app = trailhead("myapp", entityPack, searchTrails);
 One app consumes another app's trails. One-directional, transport-agnostic.
 
 ```typescript
-const app = trailhead("dispatch", dispatchTrails)
-  .mount("patch", patchApp, { transport: "http", baseUrl: "http://localhost:3000" });
+const app = topo('dispatch', dispatchTrails).mount('patch', patchApp, {
+  transport: 'http',
+  baseUrl: 'http://localhost:3000',
+});
 
 // Dispatch follows PatchOS trails
-await ctx.follow("patch.search", { query: "priorities" });
+await ctx.follow('patch.search', { query: 'priorities' });
 ```
 
 **Prerequisites:** `ctx.follow()` runtime dispatch, HTTP surface, the guide for typed cross-app contracts.
@@ -242,6 +248,7 @@ Zod schemas contain enough type info to generate a GraphQL schema. Read-only tra
 ### WebSocket Surface Details (not yet in a PRD)
 
 The production prototype proved:
+
 - Request/response framing (JSON-RPC style: `{ type: "request", requestId, method, params }`)
 - Connection state machine: `connecting → authenticating → ready → draining` with validated transitions
 - Backpressure management: per-connection send queue depth monitoring
@@ -258,8 +265,8 @@ Different from guide (which generates SDKs FROM the topo). This is wrapping an e
 ```typescript
 // Wrap an existing SDK's methods as trails
 const stripeTrails = adaptSdk(stripe, {
-  "charges.create": { id: "stripe.charge", destructive: false },
-  "charges.retrieve": { id: "stripe.charge.show", readOnly: true },
+  'charges.create': { id: 'stripe.charge', destructive: false },
+  'charges.retrieve': { id: 'stripe.charge.show', readOnly: true },
 });
 ```
 
@@ -323,13 +330,13 @@ The interesting question is whether `ctx.follow()` within a route should support
 
 ```typescript
 // Sequential (v1)
-const a = await ctx.follow("search", searchInput);
-const b = await ctx.follow("entity.add", addInput);
+const a = await ctx.follow('search', searchInput);
+const b = await ctx.follow('entity.add', addInput);
 
 // Parallel (batch)
 const [a, b] = await ctx.followAll([
-  ["search", searchInput],
-  ["entity.add", addInput],
+  ['search', searchInput],
+  ['entity.add', addInput],
 ]);
 ```
 

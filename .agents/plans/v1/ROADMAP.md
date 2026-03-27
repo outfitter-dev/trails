@@ -5,7 +5,7 @@
 Everything needed to define trails and blaze them on CLI and MCP. The core developer experience.
 
 | Stage | Package | What you get |
-|-------|---------|-------------|
+| --- | --- | --- |
 | 00 | (scaffolding) | Repo, workspace, CI |
 | 01 | `@ontrails/core` | Result, errors, `trail()`, `route()`, `event()`, `trailhead()`, patterns, types, validation |
 | 02 | `@ontrails/cli` | CLI surface + Commander adapter, `blaze()` |
@@ -27,7 +27,7 @@ The 13 PRDs written during the design phase cover the full vision. With a clean 
 ### Baked into v1 (no separate phase needed)
 
 | PRD Concept | How it's baked in |
-|-------------|------------------|
+| --- | --- |
 | `handler` → `implementation` rename | Never existed as `handler` — `implementation` from day one |
 | Safety metadata on Trail level | `readOnly`, `destructive`, `idempotent` on `trail()` spec from day one |
 | Error type widening | `Result<T, Error>` from day one, no `OutfitterError` constraint |
@@ -54,7 +54,7 @@ This is the payoff of starting fresh: most of the PRD work is "already done" by 
 ### v1.1 — Config and Services
 
 | Feature | Package | PRD |
-|---------|---------|-----|
+| --- | --- | --- |
 | `defineConfig()`, resolution stacks, XDG, preferences | `@ontrails/config` | config-prd.md |
 | `defineService()`, lifecycle, health checks | `@ontrails/services` | services-prd.md |
 | Config profiles for testing (`testWithProfiles`) | `@ontrails/testing` update | testing-prd.md |
@@ -63,7 +63,7 @@ This is the payoff of starting fresh: most of the PRD work is "already done" by 
 ### v1.2 — HTTP, Webhooks, Tracks, Governance
 
 | Feature | Package | PRD |
-|---------|---------|-----|
+| --- | --- | --- |
 | HTTP surface (`blaze` on HTTP, SSE, OpenAPI) | `@ontrails/http` | http-surface-prd.md |
 | Webhook event delivery | `@ontrails/webhooks` | — (needs PRD) |
 | Auth/permit model (`Permit` type, scope system, RBAC port) | `@ontrails/core` update | — (needs PRD) |
@@ -74,7 +74,7 @@ This is the payoff of starting fresh: most of the PRD work is "already done" by 
 ### v1.3 — Composition and Events
 
 | Feature | Package | PRD |
-|---------|---------|-----|
+| --- | --- | --- |
 | `ctx.follow()` runtime dispatch | Core + surface updates | composites-prd.md |
 | Event emission (`ctx.emit()`) | Core | events-prd.md |
 | Event delivery (WebSocket, SSE) | `@ontrails/http`, future `@ontrails/ws` | events-prd.md |
@@ -84,7 +84,7 @@ This is the payoff of starting fresh: most of the PRD work is "already done" by 
 ### v2+ — Ecosystem
 
 | Feature | Package | PRD |
-|---------|---------|-----|
+| --- | --- | --- |
 | Cross-app (`mount`) | Core + new packages | cross-app-prd.md |
 | Action graph (`traverse`, `itinerary`) | `@ontrails/graph` | relations-prd.md |
 | Junction (bidirectional peer) | — | — |

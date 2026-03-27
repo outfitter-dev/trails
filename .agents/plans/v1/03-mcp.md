@@ -88,12 +88,12 @@ function deriveToolName(appName: string, trailId: string): string;
 
 **Examples:**
 
-| App name | Trail ID | Tool name |
-|----------|----------|-----------|
-| `myapp` | `entity.show` | `myapp_entity_show` |
-| `myapp` | `search` | `myapp_search` |
-| `myapp` | `entity.onboard` | `myapp_entity_onboard` |
-| `dispatch` | `patch.search` | `dispatch_patch_search` |
+| App name   | Trail ID         | Tool name               |
+| ---------- | ---------------- | ----------------------- |
+| `myapp`    | `entity.show`    | `myapp_entity_show`     |
+| `myapp`    | `search`         | `myapp_search`          |
+| `myapp`    | `entity.onboard` | `myapp_entity_onboard`  |
+| `dispatch` | `patch.search`   | `dispatch_patch_search` |
 
 ### 2.2 Tests
 
@@ -128,7 +128,7 @@ interface McpAnnotations {
 **Mapping from trail spec to MCP annotations:**
 
 | Trail field | MCP annotation | Logic |
-|-------------|---------------|-------|
+| --- | --- | --- |
 | `readOnly: true` | `readOnlyHint: true` | Direct mapping |
 | `destructive: true` | `destructiveHint: true` | Direct mapping |
 | `idempotent: true` | `idempotentHint: true` | Direct mapping |
@@ -156,22 +156,25 @@ If none of `readOnly`, `destructive`, or `idempotent` are set, omit the correspo
 ```typescript
 function buildMcpTools(
   app: App,
-  options?: BuildMcpToolsOptions,
+  options?: BuildMcpToolsOptions
 ): McpToolDefinition[];
 
 interface BuildMcpToolsOptions {
   createContext?: () => TrailContext | Promise<TrailContext>;
   layers?: Layer[];
-  includeTrails?: string[];     // Whitelist trail IDs (default: all)
-  excludeTrails?: string[];     // Blacklist trail IDs
+  includeTrails?: string[]; // Whitelist trail IDs (default: all)
+  excludeTrails?: string[]; // Blacklist trail IDs
 }
 
 interface McpToolDefinition {
   name: string;
   description?: string;
-  inputSchema: Record<string, unknown>;   // JSON Schema from zodToJsonSchema()
+  inputSchema: Record<string, unknown>; // JSON Schema from zodToJsonSchema()
   annotations?: McpAnnotations;
-  handler: (args: Record<string, unknown>, extra: McpExtra) => Promise<McpToolResult>;
+  handler: (
+    args: Record<string, unknown>,
+    extra: McpExtra
+  ) => Promise<McpToolResult>;
 }
 
 interface McpExtra {
@@ -186,11 +189,11 @@ interface McpToolResult {
 }
 
 interface McpContent {
-  type: "text" | "image" | "resource";
+  type: 'text' | 'image' | 'resource';
   text?: string;
-  data?: string;          // Base64 for images
+  data?: string; // Base64 for images
   mimeType?: string;
-  uri?: string;           // For resource references
+  uri?: string; // For resource references
 }
 ```
 
@@ -216,7 +219,7 @@ interface McpContent {
       3. Wires AbortSignal from `extra.signal` into the context
       4. Wires progress callback from `extra.sendProgress` into the context (see section 5)
       5. Applies layers: `composeLayers(options.layers ?? [], trail, trail.implementation)`
-      6. Calls the implementation
+      6. Calls the normalized async implementation
       7. Maps the Result to McpToolResult:
          - `Result.ok(value)` -> `{ content: [{ type: "text", text: JSON.stringify(value) }] }`
          - `Result.err(error)` -> `{ content: [{ type: "text", text: error.message }], isError: true }`
@@ -240,6 +243,7 @@ interface McpContent {
 - BlobRef values are converted to image/resource content
 - AbortSignal is propagated from MCP extra to TrailContext
 - Layers compose correctly
+- Sync-authored trails still execute through the same async handler path
 
 ---
 
@@ -253,7 +257,7 @@ Bridges the TrailContext `progress` callback to MCP's `sendProgress` notificatio
 
 ```typescript
 function createMcpProgressCallback(
-  extra: McpExtra,
+  extra: McpExtra
 ): ProgressCallback | undefined;
 ```
 
@@ -289,17 +293,14 @@ This bridges the Trails streaming model (implementation emits ProgressEvents via
 ### 6.1 The one-liner
 
 ```typescript
-async function blaze(
-  app: App,
-  options?: BlazeMcpOptions,
-): Promise<void>;
+async function blaze(app: App, options?: BlazeMcpOptions): Promise<void>;
 
 interface BlazeMcpOptions {
   createContext?: () => TrailContext | Promise<TrailContext>;
   layers?: Layer[];
   includeTrails?: string[];
   excludeTrails?: string[];
-  transport?: "stdio";          // Only stdio for now; SSE/streamable HTTP later
+  transport?: 'stdio'; // Only stdio for now; SSE/streamable HTTP later
   serverInfo?: {
     name?: string;
     version?: string;
@@ -320,7 +321,7 @@ async function blaze(app: App, options: BlazeMcpOptions = {}): Promise<void> {
 
   const server = createMcpServer(tools, {
     name: options.serverInfo?.name ?? app.name,
-    version: options.serverInfo?.version ?? "0.1.0",
+    version: options.serverInfo?.version ?? '0.1.0',
   });
 
   await connectStdio(server);
@@ -338,7 +339,7 @@ Creates an MCP Server instance and registers all tools:
 ```typescript
 function createMcpServer(
   tools: McpToolDefinition[],
-  info: { name: string; version: string },
+  info: { name: string; version: string }
 ): Server;
 ```
 
@@ -352,11 +353,11 @@ Uses `@modelcontextprotocol/sdk`'s `Server` class:
 **Usage:**
 
 ```typescript
-import { trailhead } from "@ontrails/core";
-import { blaze } from "@ontrails/mcp";
-import * as entity from "./trails/entity.ts";
+import { topo } from '@ontrails/core';
+import { blaze } from '@ontrails/mcp';
+import * as entity from './trails/entity.ts';
 
-const app = trailhead("myapp", entity);
+const app = topo('myapp', entity);
 await blaze(app);
 ```
 
@@ -416,22 +417,22 @@ export {
   type McpToolResult,
   type McpContent,
   type McpExtra,
-} from "./build";
+} from './build';
 
 // Tool naming
-export { deriveToolName } from "./tool-name";
+export { deriveToolName } from './tool-name';
 
 // Annotations
-export { deriveAnnotations, type McpAnnotations } from "./annotations";
+export { deriveAnnotations, type McpAnnotations } from './annotations';
 
 // Progress
-export { createMcpProgressCallback } from "./progress";
+export { createMcpProgressCallback } from './progress';
 
 // Blaze
-export { blaze, type BlazeMcpOptions } from "./blaze";
+export { blaze, type BlazeMcpOptions } from './blaze';
 
 // Transport
-export { connectStdio } from "./stdio";
+export { connectStdio } from './stdio';
 ```
 
 Single export path. No subpaths needed for MCP (unlike CLI which has the `/commander` subpath). Everything comes from `@ontrails/mcp`.

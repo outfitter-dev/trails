@@ -1,8 +1,6 @@
 # Trails — Repo Bootstrap Plan
 
-> **Status:** Planning
-> **Author:** Matt Galligan
-> **Last updated:** 2026-03-25
+> **Status:** Planning **Author:** Matt Galligan **Last updated:** 2026-03-25
 
 ---
 
@@ -25,7 +23,7 @@ Trails has three layers: the **core framework** (core package, surface adapters)
 #### Core Framework
 
 | Package | Purpose | External deps |
-|---------|---------|---------------|
+| --- | --- | --- |
 | `@ontrails/core` | The framework foundation — see expanded scope below | `zod` |
 | `@ontrails/cli` | CLI surface — command model, flag derivation, `output()`, layer composition. **Does not import Commander.** | None beyond core |
 | `@ontrails/mcp` | MCP surface — `buildMcpTools()`, annotation auto-generation | `@modelcontextprotocol/sdk` |
@@ -43,7 +41,7 @@ Core is everything a surface adapter, ecosystem package, or service adapter need
 **Action system:**
 
 | Module | Exports | Purpose |
-|--------|---------|---------|
+| --- | --- | --- |
 | `actions.ts` | `ActionSpec`, `defineAction`, `createActionRegistry`, `ActionRegistry`, `ActionSurface` | The action primitive |
 | `handler.ts` | `ActionImplementation`, `SyncActionImplementation` | Implementation function types |
 | `context.ts` | `ActionContext`, `createActionContext`, `CreateActionContextOptions` | Invocation environment |
@@ -54,7 +52,7 @@ Core is everything a surface adapter, ecosystem package, or service adapter need
 **Result and errors:**
 
 | Module | Exports | Purpose |
-|--------|---------|---------|
+| --- | --- | --- |
 | `result.ts` | `Result`, `Ok`, `Err`, `combine`, `match` | Built-in Result type (no `better-result`) |
 | `errors.ts` | 13 error classes, `ErrorCategory`, `exitCodeMap`, `statusCodeMap`, `retryableMap`, `errorCategoryMeta` | Error taxonomy |
 | `recovery.ts` | `isRetryable`, `shouldRetry`, `getBackoffDelay` | Retry decision helpers |
@@ -63,7 +61,7 @@ Core is everything a surface adapter, ecosystem package, or service adapter need
 **Schemas and validation:**
 
 | Module | Exports | Purpose |
-|--------|---------|---------|
+| --- | --- | --- |
 | `validation.ts` | `validateInput`, `formatZodIssues`, `createValidator`, `parseInput` | Zod validation at the boundary |
 | `schema.ts` | `zodToJsonSchema`, `JsonSchema` | One canonical Zod → JSON Schema conversion |
 | `serialization.ts` | `serializeError`, `deserializeError`, `safeParse`, `safeStringify` | Cross-boundary serialization |
@@ -72,7 +70,7 @@ Core is everything a surface adapter, ecosystem package, or service adapter need
 **Cross-cutting interfaces:**
 
 | Module | Exports | Purpose |
-|--------|---------|---------|
+| --- | --- | --- |
 | `layers.ts` | `Layer` interface, layer composition utilities | Surface-agnostic layer contract — every adapter accepts these |
 | `health.ts` | `HealthStatus`, `HealthResult` | Shared by services and daemon |
 | `adapters.ts` | `IndexAdapter`, `StorageAdapter`, `CacheAdapter`, `AuthAdapter` | Right-side port interfaces for `defineService()` |
@@ -82,7 +80,7 @@ Core is everything a surface adapter, ecosystem package, or service adapter need
 **Types and utilities (folded in from `@outfitter/types`):**
 
 | Module | Exports | Purpose |
-|--------|---------|---------|
+| --- | --- | --- |
 | `branded.ts` | `Branded<T, Tag>`, `brand()`, `unbrand()`, `Email`, `UUID`, `NonEmptyString`, `PositiveInt` | Nominal typing for action inputs |
 | `guards.ts` | `isDefined()`, `isNonEmptyString()`, `isPlainObject()`, `hasProperty()`, `assertType()` | Boundary type narrowing |
 | `collections.ts` | `chunk()`, `dedupe()`, `groupBy()`, `sortBy()`, `first()`, `last()`, `NonEmptyArray`, `isNonEmptyArray()` | Collection utilities for implementations |
@@ -94,14 +92,14 @@ No separate `@ontrails/types` package. Core IS the types. Trails is TypeScript-f
 **Subpath exports:**
 
 | Import path | Exports | Purpose |
-|-------------|---------|---------|
+| --- | --- | --- |
 | `@ontrails/core/patterns` | `paginationFields`, `paginatedOutput`, `bulkOutput`, `dateRangeFields`, `sortFields`, `timestampFields`, `statusFields`, `changeOutput`, `progressFields` | Composable Zod schema helpers |
 | `@ontrails/core/redaction` | `createRedactor`, `DEFAULT_PATTERNS`, `DEFAULT_SENSITIVE_KEYS`, `RedactorConfig` | Sensitive data scrubbing |
 
 **What does NOT go in core:**
 
 | Concern | Package | Why it's separate |
-|---------|---------|-------------------|
+| --- | --- | --- |
 | `createLogger()`, sinks, formatters | `@ontrails/logging` | Implementation, not interface |
 | `buildCliCommands()`, flag derivation | `@ontrails/cli` | Surface-specific |
 | `buildMcpTools()` | `@ontrails/mcp` | Surface-specific |
@@ -122,7 +120,7 @@ Most adapters ship as **subpath exports** of the package they adapt — one inst
 **Subpath adapters (default choices, ship with the parent package):**
 
 | Import path | What it adapts | External dep |
-|-------------|---------------|-------------|
+| --- | --- | --- |
 | `@ontrails/cli/commander` | `CliCommand[]` → Commander program | `commander` (optional peer) |
 | `@ontrails/logging/logtape` | Sink adapter for logtape (recommended default) | `@logtape/logtape` (optional peer) |
 | `@ontrails/logging/pino` | Sink adapter for pino | `pino` (optional peer) |
@@ -131,7 +129,7 @@ Most adapters ship as **subpath exports** of the package they adapt — one inst
 **Standalone adapter packages (niche alternatives):**
 
 | Package | What it adapts | External dep |
-|---------|---------------|-------------|
+| --- | --- | --- |
 | `@ontrails/cli-yargs` (future) | `CliCommand[]` → yargs | `yargs` |
 | `@ontrails/cli-citty` (future) | `CliCommand[]` → citty | `citty` |
 | `@ontrails/telemetry-datadog` (future) | Datadog exporter | `dd-trace` |
@@ -143,20 +141,21 @@ Most adapters ship as **subpath exports** of the package they adapt — one inst
 #### Ecosystem (Packages shaped for Trails projects)
 
 | Package | Purpose | Built from |
-|---------|---------|------------|
+| --- | --- | --- |
 | `@ontrails/daemon` | Process hosting for registries — understands `registry.start()`/`registry.stop()`, service ordering, health aggregation, signal propagation to `ctx.signal` | `@outfitter/daemon`, reshaped for Trails |
 | `@ontrails/state` | Cursor persistence for CLI pagination — aligned with `paginatedOutput()` patterns | `@outfitter/state`, types aligned |
 | `@ontrails/docs` | Action/surface documentation assembly, `llms.txt` generation, freshness checks | `@outfitter/docs`, reshaped |
 | `@ontrails/telemetry` | Contract-aware instrumentation, `telemetryLayer`, adapter interface | Observability PRD |
 
 **Future ecosystem packages** (designed in PRDs, built when needed):
+
 - `@ontrails/ws` — WebSocket surface
 - `@ontrails/graph` — Action graph queries
 
 #### Apps
 
 | App | Purpose |
-|-----|---------|
+| --- | --- |
 | `apps/trails` | The `trails` CLI — `init`, `schema`, `diff`, `serve`. Imports `@outfitter/tui` for rendering, `@clack/prompts` for interactive flows. This is the opinionated app layer. |
 | `apps/trails-demo` | Example app demonstrating the framework |
 
@@ -165,7 +164,7 @@ Most adapters ship as **subpath exports** of the package they adapt — one inst
 General-purpose TypeScript building blocks. None know about actions, registries, or surfaces. All import `Result` from `@ontrails/core` (dogfooding).
 
 | Package | Purpose | Changes |
-|---------|---------|---------|
+| --- | --- | --- |
 | `@outfitter/types` | Branded types, type guards, collection utilities | Content folded into `@ontrails/core`. Stays published for direct consumers; Trails projects don't need it |
 | `@outfitter/tui` | Terminal rendering (tables, lists, trees, themes, borders) | Extract text utilities. Remove `@outfitter/cli` peer dep |
 | `@outfitter/file-ops` | Workspace detection, path security, locking, glob | Switch Result import to `@ontrails/core` |
@@ -183,6 +182,7 @@ Four active packages (types becomes a legacy re-export). All general-purpose. No
 ### Why
 
 `better-result` provides `Result`, `TaggedError`, and `TaggedErrorClass`. But Trails already extends all three:
+
 - Result extensions (`combine2`, `combine3`, `expect`, `orElse`, `unwrapOrElse`) live in core, not in `better-result`
 - Error classes wrap `TaggedError` bases with a second level of indirection (`TaggedError("ValidationError")` → `ValidationErrorBase` → `class ValidationError extends ValidationErrorBase`)
 - The default error generic is constrained — Trails wants `Result<T, Error>` (widened), not `Result<T, E extends SomeConstraint>`
@@ -210,15 +210,24 @@ Instead of the `TaggedError` factory pattern (two levels of indirection), Trails
 // One level. category is the discriminant, not _tag.
 abstract class TrailsError extends Error {
   abstract readonly category: ErrorCategory;
-  exitCode() { return exitCodeMap[this.category]; }
-  statusCode() { return statusCodeMap[this.category]; }
-  get retryable() { return retryableMap[this.category]; }
+  exitCode() {
+    return exitCodeMap[this.category];
+  }
+  statusCode() {
+    return statusCodeMap[this.category];
+  }
+  get retryable() {
+    return retryableMap[this.category];
+  }
 }
 
 class ValidationError extends TrailsError {
-  readonly category = "validation" as const;
-  constructor(public readonly field?: string, message?: string) {
-    super(message ?? "Validation failed");
+  readonly category = 'validation' as const;
+  constructor(
+    public readonly field?: string,
+    message?: string
+  ) {
+    super(message ?? 'Validation failed');
   }
 }
 ```
@@ -231,7 +240,7 @@ Outfitter packages import `Result` and error types from `@ontrails/core`:
 
 ```typescript
 // @outfitter/file-ops
-import { Result, ValidationError, NotFoundError } from "@ontrails/core";
+import { Result, ValidationError, NotFoundError } from '@ontrails/core';
 ```
 
 The dependency graph is a clean DAG:
@@ -260,7 +269,7 @@ The current `@outfitter/tooling` has 14 CLI commands. Some are general dev tooli
 Framework-aware checks that understand actions and the contract system:
 
 | Command | What it does | Why it's Trails |
-|---------|-------------|-----------------|
+| --- | --- | --- |
 | `trails check tsdoc` | Validates TSDoc on exported action declarations | Knows about ActionSpec |
 | `trails check exports` | Validates package.json exports match source | Generic but shipped with Trails |
 | `trails schema diff` | Contract diffing against git refs | Reads the action registry |
@@ -274,7 +283,7 @@ These live in `apps/trails` (the CLI app) or as a `@ontrails/dev` package. They 
 Project-agnostic dev tooling that works for any TypeScript project:
 
 | Command/Preset | What it does | Why it's Outfitter |
-|----------------|-------------|-------------------|
+| --- | --- | --- |
 | `tsconfig.preset.json` | Strict TypeScript config | Any TS project |
 | `tsconfig.preset.bun.json` | Bun-specific TS config | Any Bun project |
 | `lefthook.yml` | Git hooks configuration | Any project |
@@ -292,7 +301,7 @@ These stay in `@outfitter/tooling`. No knowledge of actions or registries. Pure 
 Commands that only make sense for the Outfitter monorepo itself:
 
 | Command | What it does | Why it's monorepo-only |
-|---------|-------------|----------------------|
+| --- | --- | --- |
 | `check-bunup-registry` | Validate bunup filter matches config | Outfitter build system |
 | `check-changeset` | Validate changesets for modified packages | Outfitter release flow |
 | `check-clean-tree` | Verify git tree is clean | CI-specific |
@@ -448,7 +457,7 @@ trails/
 ### Branded (the words people remember)
 
 | Term | What it does | Metaphor |
-|------|-------------|----------|
+| --- | --- | --- |
 | `trail()` | Define a path from input to output | Mark a trail |
 | `route()` | Define a composite that follows multiple trails | Plan a route across trails |
 | `trailhead()` | Collect trails into an app | Plan the trail system |
@@ -459,17 +468,17 @@ trails/
 
 ### Standard (universal terms, no learning curve)
 
-| Term | What it does |
-|------|-------------|
-| `event()` | Define a server-originated event |
-| `Result` | Success/failure return type |
-| `Layer` | Cross-cutting surface wrapper |
+| Term      | What it does                       |
+| --------- | ---------------------------------- |
+| `event()` | Define a server-originated event   |
+| `Result`  | Success/failure return type        |
+| `Layer`   | Cross-cutting surface wrapper      |
 | `Surface` | `"cli" \| "mcp" \| "http" \| "ws"` |
 
 ### Types (mostly inferred, rarely typed explicitly)
 
 | Type | What it represents |
-|------|-------------------|
+| --- | --- |
 | `Trail<I, O>` | The spec — what `trail()` returns |
 | `Route<I, O>` | A trail with `follows` — what `route()` returns |
 | `Event<T>` | The event spec — what `event()` returns |
@@ -489,39 +498,39 @@ Each surface package exports a `blaze()` function that does everything — build
 ### MCP-only tool (the starting point)
 
 ```typescript
-import { trail, trailhead, Result } from "@ontrails/core";
-import { blaze } from "@ontrails/mcp";
-import { z } from "zod";
+import { trail, topo, Result } from '@ontrails/core';
+import { blaze } from '@ontrails/mcp';
+import { z } from 'zod';
 
 // Define a trail
-export const hello = trail("hello", {
+export const hello = trail('hello', {
   input: z.object({ name: z.string() }),
   implementation: async (input) => Result.ok(`Hello, ${input.name}!`),
 });
 
 // Collect and blaze
-import * as actions from "./trails/hello";
-blaze(trailhead("myapp", actions), { stdio: true });
+import * as actions from './trails/hello';
+blaze(topo('myapp', actions), { stdio: true });
 ```
 
 ### Add CLI — two lines
 
 ```typescript
-import { blaze as blazeMcp } from "@ontrails/mcp";
-import { blaze as blazeCli } from "@ontrails/cli/commander";
+import { blaze as blazeMcp } from '@ontrails/mcp';
+import { blaze as blazeCli } from '@ontrails/cli/commander';
 
 // ... same app, same trails ...
 
-const app = trailhead("myapp", actions);
+const app = topo('myapp', actions);
 blazeMcp(app, { stdio: true });
-blazeCli(app);  // Every trail becomes a CLI command. Flags from Zod. --json for free.
+blazeCli(app); // Every trail becomes a CLI command. Flags from Zod. --json for free.
 ```
 
 ### Add HTTP — one more line
 
 ```typescript
-import { blaze as blazeHttp } from "@ontrails/http";
-blazeHttp(app, { port: 3000, prefix: "/api/v1" });
+import { blaze as blazeHttp } from '@ontrails/http';
+blazeHttp(app, { port: 3000, prefix: '/api/v1' });
 // GET for readOnly trails, POST for mutations. Error taxonomy → status codes. SSE for events.
 ```
 
@@ -532,15 +541,15 @@ Same app. Same trails. Same implementations. Each surface gets everything the ap
 `blaze()` is sugar over `buildCliCommands()` + adapter wiring. When you need layers, custom context factories, or fine-grained control:
 
 ```typescript
-import { buildCliCommands } from "@ontrails/cli";
-import { toCommander } from "@ontrails/cli/commander";
+import { buildCliCommands } from '@ontrails/cli';
+import { toCommander } from '@ontrails/cli/commander';
 
 const commands = buildCliCommands(app, {
   layers: [autoIterateLayer(), dateShortcutsLayer()],
   onResult: myCustomResultHandler,
 });
 
-const program = toCommander(commands, { name: "myapp", version: "1.0.0" });
+const program = toCommander(commands, { name: 'myapp', version: '1.0.0' });
 program.parse();
 ```
 
@@ -568,6 +577,7 @@ interface CliCommand {
 ```
 
 **What `@ontrails/cli` does:**
+
 - `buildCliCommands(registry)` → `CliCommand[]` model
 - Derive flags from Zod schemas
 - Validate input through Zod
@@ -578,6 +588,7 @@ interface CliCommand {
 - `blaze()` convenience (via `/commander` subpath)
 
 **What `@ontrails/cli` does NOT do:**
+
 - Import Commander, yargs, or any CLI framework (that's the adapter's job)
 - Import `@outfitter/tui` (no tables, no colors, no boxes)
 - Import `@clack/prompts` (no interactive prompts)
@@ -598,16 +609,16 @@ interface IndexAdapter<T> {
 }
 
 // @ontrails/index-sqlite implements it
-import { createSqliteIndex } from "@ontrails/index-sqlite";
+import { createSqliteIndex } from '@ontrails/index-sqlite';
 const searchService = defineService({
-  name: "search",
+  name: 'search',
   create: ({ config }) => createSqliteIndex({ path: config.indexPath }),
 });
 
 // @ontrails/index-meilisearch implements it differently
-import { createMeiliIndex } from "@ontrails/index-meilisearch";
+import { createMeiliIndex } from '@ontrails/index-meilisearch';
 const searchService = defineService({
-  name: "search",
+  name: 'search',
   create: ({ config }) => createMeiliIndex({ host: config.searchUrl }),
 });
 ```
@@ -619,7 +630,7 @@ The implementation doesn't know which adapter backs the search service. `ctx.ser
 Trails defines **ports** (interfaces). Everything concrete is an **adapter**:
 
 | Port (Trails defines) | Adapter (pluggable) |
-|-----------------------|---------------------|
+| --- | --- |
 | `CliCommand[]` model | `cli-commander`, `cli-yargs` |
 | `IndexAdapter` interface | `index-sqlite`, `index-meilisearch` |
 | `Sink` interface (logging) | `logging-pino`, `logging-logtape` |
@@ -675,7 +686,7 @@ With the framework and ecosystem pieces in Trails, Outfitter becomes a pure gene
 ### Moved to Trails (reimplemented fresh or reshaped)
 
 | Current Package | Trails Package | Notes |
-|----------------|---------------|-------|
+| --- | --- | --- |
 | `@outfitter/contracts` | `@ontrails/core` | Reimplemented with all PRD decisions baked in |
 | `@outfitter/cli` | `@ontrails/cli` + `@ontrails/cli-commander` | Split: model + adapter |
 | `@outfitter/mcp` | `@ontrails/mcp` | Reimplemented fresh |
@@ -693,13 +704,12 @@ These packages stay published in `@outfitter/*` for existing consumers with depr
 ### Stays in Outfitter
 
 | Package | Changes Needed |
-|---------|---------------|
+| --- | --- |
 | `@outfitter/types` | Switch Result import to `@ontrails/core` |
 | `@outfitter/tui` | Remove `@outfitter/cli` peer dep. Extract text utilities locally. Switch Result import |
 | `@outfitter/file-ops` | Switch Result import to `@ontrails/core` |
 | `@outfitter/tooling` | Remove framework-specific checks. Keep general dev presets (tsconfig, lefthook, oxlint) |
 | `@outfitter/presets` | Fix dependency bloat. Remove framework-specific templates |
-
 
 ### The `apps/outfitter` question
 

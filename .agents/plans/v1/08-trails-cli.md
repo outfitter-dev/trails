@@ -81,16 +81,15 @@ program.parse();
 
 ```typescript
 // src/index.ts
-import { Command } from "commander";
-import { initCommand } from "./commands/init.js";
-import { surveyCommand } from "./commands/survey.js";
-import { scoutCommand } from "./commands/scout.js";
-import { wardenCommand } from "./commands/warden.js";
-import { guideCommand } from "./commands/guide.js";
+import { Command } from 'commander';
+import { initCommand } from './commands/init.js';
+import { surveyCommand } from './commands/survey.js';
+import { wardenCommand } from './commands/warden.js';
+import { guideCommand } from './commands/guide.js';
 
-export const program = new Command("trails")
-  .description("Agent-native, contract-first TypeScript framework")
-  .version("0.1.0");
+export const program = new Command('trails')
+  .description('Agent-native, contract-first TypeScript framework')
+  .version('0.1.0');
 
 program.addCommand(initCommand);
 program.addCommand(surveyCommand);
@@ -99,51 +98,79 @@ program.addCommand(wardenCommand);
 program.addCommand(guideCommand);
 ```
 
-### `trails init` -- Scaffold a New Trails Project
+### `trails blaze` -- Create Projects & Wire Surfaces
 
-An interactive flow using `@clack/prompts` that generates a new Trails project.
+Context-aware: outside a project it scaffolds a new one, inside a project it adds a surface.
+
+**Detection:** looks for a `topo()` call in `src/` or a `.trails/` directory.
+
+#### Create flow (outside a project)
+
+Interactive via `@clack/prompts`:
 
 ```bash
-trails init
-trails init my-app
-trails init --template minimal
-trails init --no-interactive  # Non-interactive with defaults
+trails blaze              # interactive Clack prompts
+trails blaze my-app       # create "my-app" directory
 ```
 
-**Interactive flow:**
+**Prompt flow:**
 
-1. **Project name** -- `text()` prompt, defaults to the directory name or CLI argument.
-2. **Description** -- `text()` prompt, optional.
-3. **Template** -- `select()` prompt:
-   - `minimal` -- Single trail, CLI-only. The "hello world."
-   - `full` -- Multiple trails, CLI + MCP, examples, tests.
-4. **Surfaces** -- `multiselect()` prompt: CLI, MCP (HTTP deferred to post-v1).
-5. **Confirm** -- `confirm()` summary before scaffolding.
+1. **Project name** -- `text()`, defaults to directory name or CLI argument.
+2. **Description** -- `text()`, optional.
+3. **Surfaces** -- `multiselect()`: CLI (default on), MCP, HTTP (coming soon).
+4. **Verification** -- `multiselect()`: Testing (default on), Warden (default on). Both on by default -- testing proves the contract, warden prevents drift.
+5. **Starter trail** -- `select()`:
+   - `hello` -- One trail, one example. The "hello world."
+   - `entity` -- 4 trails, 1 route, 1 event, in-memory store. Full demo.
+   - `empty` -- Just the structure, no trails.
+6. **Extras** -- `multiselect()`: Logging (off by default).
 
-**What gets generated:**
+**Non-interactive mode:**
+
+```bash
+trails blaze my-app --surfaces cli,mcp --starter entity --include logging
+trails blaze my-app                   # defaults: cli, hello, testing + warden
+trails blaze my-app --no-verify       # skip testing + warden
+```
+
+**What gets generated (base -- always):**
 
 ```
 my-app/
-  package.json              # Bun workspace, @ontrails/* dependencies
+  package.json              # @ontrails/core, zod
   tsconfig.json             # Strict TypeScript
-  .oxlintrc.json            # With trails plugin
-  lefthook.yml              # Pre-commit and pre-push hooks
+  .oxlintrc.json            # Extends ultracite core
+  .oxfmtrc.jsonc            # Ultracite defaults
   .gitignore                # Includes .trails/_surface.json
   .trails/
-    surface.lock            # Initial empty or generated
+    surface.lock            # Generated from starter trails
   src/
     app.ts                  # trailhead() setup
-    trails/
-      hello.ts              # Example trail
-    cli.ts                  # blaze() on CLI (if CLI selected)
-    mcp.ts                  # blaze() on MCP (if MCP selected)
-  __tests__/
-    hello.test.ts           # testAllExamples() call
-  AGENTS.md                 # Agent instructions for the project
-  CLAUDE.md                 # Points to AGENTS.md
 ```
 
-**Non-interactive mode** (`--no-interactive`): uses defaults for all prompts. Suitable for agents scaffolding projects programmatically.
+Per surface: `src/cli.ts` (+ commander dep, bin entry), `src/mcp.ts` (+ @ontrails/mcp dep).
+Per verification: `__tests__/examples.test.ts` (testing), `lefthook.yml` + warden dep (warden).
+Per starter: `src/trails/hello.ts` or full entity CRUD set.
+Per extra: `src/logger.ts` (logging).
+
+#### Add surface flow (inside a project)
+
+```bash
+trails blaze mcp          # add MCP surface
+trails blaze cli          # add CLI surface
+```
+
+What it does:
+1. Finds the topo (scans `src/` for `topo()` import)
+2. Creates entry point (`src/mcp.ts` with `blaze(app)`)
+3. Adds dependency to `package.json`
+4. Regenerates `.trails/surface.lock`
+
+One file, one dep. The trail definitions don't change. The tests don't change.
+
+#### Replaces `trails init`
+
+The `init` command becomes an alias for `trails blaze` (outside a project). The primary command is `blaze` -- it mirrors the code API where `blaze(app)` opens the app on a surface.
 
 ### `trails survey` -- Full Topo Introspection
 
@@ -354,6 +381,7 @@ trails guide --output json    # Structured output for agents
 ```
 
 **v1 stub implementation:** Read the topo and format trail specs as guidance. Include:
+
 - Trail description and input/output schemas.
 - Examples (rendered as "how to use this").
 - Detours (rendered as "what to do when it fails").
@@ -364,6 +392,7 @@ trails guide --output json    # Structured output for agents
 ### Rendering with `@outfitter/tui`
 
 Use `@outfitter/tui` for all terminal output:
+
 - **Tables** for `survey` trail listings.
 - **Boxes** for `scout` capability summaries.
 - **Colors** for severity in `survey --diff` (red for breaking, yellow for warnings, green for info).

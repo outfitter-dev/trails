@@ -225,7 +225,7 @@ Start with standard rules. Custom Trails rules (warden) come in stage 06.
 ```jsonc
 {
   // oxfmt configuration
-  "experimentalSortImports": true
+  "experimentalSortImports": true,
 }
 ```
 
@@ -245,11 +245,11 @@ The `format:check` and `format:fix` scripts in root `package.json` use `ultracit
 pre-commit:
   commands:
     format:
-      glob: "*.{ts,tsx,js,jsx,json,jsonc}"
+      glob: '*.{ts,tsx,js,jsx,json,jsonc}'
       run: bunx ultracite --check {staged_files} || bunx ultracite {staged_files}
       stage_fixed: true
     lint:
-      glob: "*.{ts,tsx,js,jsx}"
+      glob: '*.{ts,tsx,js,jsx}'
       run: bunx oxlint {staged_files}
       stage_fixed: true
 
@@ -370,6 +370,7 @@ bun scripts/normalize-exports.ts packages/core
 ```
 
 The implementation should:
+
 - Parse `package.json` using `Bun.file()` and `JSON.parse()`
 - Sort `exports` keys alphabetically
 - Remove entries matching `./internal*`
@@ -447,6 +448,7 @@ Trails-specific rules for agents:
 # Trails Conventions
 
 ## Trail Conventions
+
 - Implementations return Result, never throw
 - TrailContext must not import surface-specific types (Request, Response, McpSession)
 - Routes use ctx.follow(), never direct .implementation() calls
@@ -456,6 +458,7 @@ Trails-specific rules for agents:
 - Use detours for error recovery, not inline retry logic
 
 ## Vocabulary
+
 - Use "trail" not "action" or "handler"
 - Use "implementation" not "handler" or "impl"
 - Use "trailhead" not "registry" or "app factory"
@@ -466,6 +469,7 @@ Trails-specific rules for agents:
 - Use "markers" not "metadata" or "annotations"
 
 ## Result Types
+
 - All domain logic returns Result<T, Error>
 - Use Result.ok() and Result.err() constructors
 - Pattern match with result.match() or check result.isOk() / result.isErr()
@@ -473,6 +477,7 @@ Trails-specific rules for agents:
 - Surface adapters handle the Result-to-transport mapping
 
 ## Error Taxonomy
+
 - 13 error classes, 10 categories
 - All extend TrailsError (direct class inheritance)
 - Use the most specific error class (NotFoundError, not InternalError)
@@ -513,6 +518,7 @@ The following goes directly into AGENTS.md. CLAUDE.md's `@AGENTS.md` directive e
 ### Source Control
 
 **Always `gt`, never `git`.** Every source control operation uses Graphite:
+
 - `gt create` not `git checkout -b`
 - `gt add .` not `git add .`
 - `gt modify` not `git commit --amend`
@@ -525,12 +531,14 @@ The only exception is `git status` and `git diff` for read-only inspection.
 ## Subagent Rules
 
 **Subagents must NOT perform git/gt operations.** Only the main agent handles source control. Subagents:
+
 - Write and edit files
 - Run tests
 - Run lint checks
 - Report results
 
 They do NOT:
+
 - `gt create` / `gt add` / `gt modify` / `gt submit`
 - `git add` / `git commit` / `git push`
 - Create branches, make commits, or push anything
@@ -556,12 +564,9 @@ Keep PRs ~100-250 effective LOC where possible. Split larger stages into logical
 
 Conventional commits with package scopes:
 ```
-feat(core): implement Result type with Ok/Err/map/match
-feat(core): add error taxonomy with 13 classes
-feat(cli): add flag derivation from Zod schemas
-test(core): add Result type tests
-fix(mcp): handle missing output schema gracefully
-chore: add lefthook configuration
+
+feat(core): implement Result type with Ok/Err/map/match feat(core): add error taxonomy with 13 classes feat(cli): add flag derivation from Zod schemas test(core): add Result type tests fix(mcp): handle missing output schema gracefully chore: add lefthook configuration
+
 ```
 
 ## Development Flow
@@ -603,6 +608,7 @@ In `.claude/settings.json`:
 ```
 
 This means every time Claude (or any agent) writes or edits a file:
+
 1. `oxfmt` formats it (import sorting, whitespace, etc.)
 2. `oxlint` runs auto-fixable rules
 
@@ -621,8 +627,7 @@ If using OpenAI Codex CLI alongside Claude Code, create a `codex.md` at the repo
 
 This is the Trails framework repo. See AGENTS.md for full context.
 
-Key: implementations return Result, never throw. Use trail() not defineAction().
-Use Trails vocabulary: trail, route, trailhead, blaze, follow, topo, markers, detours, permit.
+Key: implementations return Result, never throw. Use trail() not defineAction(). Use Trails vocabulary: trail, hike, topo, blaze, follow, markers, detours, permit.
 ```
 
 ### 9.9 Consider for later

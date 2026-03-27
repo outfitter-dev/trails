@@ -89,7 +89,7 @@ export function createStore(seed?: readonly Entity[]): EntityStore;
 
 export interface EntityStore {
   get(name: string): Entity | undefined;
-  add(entity: Omit<Entity, "id" | "createdAt" | "updatedAt">): Entity;
+  add(entity: Omit<Entity, 'id' | 'createdAt' | 'updatedAt'>): Entity;
   delete(name: string): boolean;
   list(options?: { type?: string; limit?: number; offset?: number }): Entity[];
   search(query: string): Entity[];
@@ -104,10 +104,10 @@ The store is injected via `TrailContext` (using a service override or direct con
 
 ```typescript
 // src/trails/entity.ts
-export const show = trail("entity.show", {
-  description: "Show an entity by name",
+export const show = trail('entity.show', {
+  description: 'Show an entity by name',
   input: z.object({
-    name: z.string().describe("Entity name to look up"),
+    name: z.string().describe('Entity name to look up'),
   }),
   output: z.object({
     id: z.string(),
@@ -119,18 +119,25 @@ export const show = trail("entity.show", {
   }),
   readOnly: true,
   detours: {
-    NotFoundError: ["search"],
+    NotFoundError: ['search'],
   },
   examples: [
     {
-      description: "Show entity by name",
-      input: { name: "Alpha" },
-      output: { id: "e1", name: "Alpha", type: "concept", tags: ["core"], createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z" },
+      description: 'Show entity by name',
+      input: { name: 'Alpha' },
+      expected: {
+        id: 'e1',
+        name: 'Alpha',
+        type: 'concept',
+        tags: ['core'],
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
     },
     {
-      description: "Entity not found",
-      input: { name: "nonexistent" },
-      expectErr: NotFoundError,
+      description: 'Entity not found',
+      input: { name: 'nonexistent' },
+      error: NotFoundError,
     },
   ],
   implementation: async (input, ctx) => {
@@ -143,18 +150,21 @@ export const show = trail("entity.show", {
 });
 ```
 
-**Markers demonstrated:** `readOnly: true`.
-**Detours demonstrated:** `NotFoundError` suggests the `search` trail.
+**Markers demonstrated:** `readOnly: true`. **Detours demonstrated:** `NotFoundError` suggests the `search` trail.
 
 #### `entity.add` -- Create a new entity
 
 ```typescript
-export const add = trail("entity.add", {
-  description: "Create a new entity",
+export const add = trail('entity.add', {
+  description: 'Create a new entity',
   input: z.object({
-    name: z.string().describe("Entity name"),
-    type: z.string().describe("Entity type (concept, tool, pattern)"),
-    tags: z.array(z.string()).optional().default([]).describe("Tags for categorization"),
+    name: z.string().describe('Entity name'),
+    type: z.string().describe('Entity type (concept, tool, pattern)'),
+    tags: z
+      .array(z.string())
+      .optional()
+      .default([])
+      .describe('Tags for categorization'),
   }),
   output: z.object({
     id: z.string(),
@@ -166,21 +176,27 @@ export const add = trail("entity.add", {
   }),
   examples: [
     {
-      description: "Add a new entity",
-      input: { name: "Beta", type: "tool", tags: ["automation"] },
+      description: 'Add a new entity',
+      input: { name: 'Beta', type: 'tool', tags: ['automation'] },
     },
     {
-      description: "Duplicate entity returns conflict",
-      input: { name: "Alpha", type: "concept" },
-      expectErr: AlreadyExistsError,
+      description: 'Duplicate entity returns conflict',
+      input: { name: 'Alpha', type: 'concept' },
+      error: AlreadyExistsError,
     },
   ],
   implementation: async (input, ctx) => {
     const existing = ctx.store.get(input.name);
     if (existing) {
-      return Result.err(new AlreadyExistsError(`Entity "${input.name}" already exists`));
+      return Result.err(
+        new AlreadyExistsError(`Entity "${input.name}" already exists`)
+      );
     }
-    const entity = ctx.store.add({ name: input.name, type: input.type, tags: input.tags ?? [] });
+    const entity = ctx.store.add({
+      name: input.name,
+      type: input.type,
+      tags: input.tags ?? [],
+    });
     return Result.ok(entity);
   },
 });
@@ -191,10 +207,10 @@ export const add = trail("entity.add", {
 #### `entity.delete` -- Delete an entity
 
 ```typescript
-export const remove = trail("entity.delete", {
-  description: "Delete an entity by name",
+export const remove = trail('entity.delete', {
+  description: 'Delete an entity by name',
   input: z.object({
-    name: z.string().describe("Entity name to delete"),
+    name: z.string().describe('Entity name to delete'),
   }),
   output: z.object({
     deleted: z.boolean(),
@@ -203,14 +219,14 @@ export const remove = trail("entity.delete", {
   destructive: true,
   examples: [
     {
-      description: "Delete an existing entity",
-      input: { name: "Alpha" },
-      output: { deleted: true, name: "Alpha" },
+      description: 'Delete an existing entity',
+      input: { name: 'Alpha' },
+      expected: { deleted: true, name: 'Alpha' },
     },
     {
-      description: "Delete non-existent entity returns not found",
-      input: { name: "nonexistent" },
-      expectErr: NotFoundError,
+      description: 'Delete non-existent entity returns not found',
+      input: { name: 'nonexistent' },
+      error: NotFoundError,
     },
   ],
   implementation: async (input, ctx) => {
@@ -228,37 +244,48 @@ export const remove = trail("entity.delete", {
 #### `entity.list` -- List entities with optional filtering
 
 ```typescript
-export const list = trail("entity.list", {
-  description: "List entities with optional type filter",
+export const list = trail('entity.list', {
+  description: 'List entities with optional type filter',
   input: z.object({
-    type: z.string().optional().describe("Filter by entity type"),
-    limit: z.number().optional().default(20).describe("Maximum results"),
-    offset: z.number().optional().default(0).describe("Pagination offset"),
+    type: z.string().optional().describe('Filter by entity type'),
+    limit: z.number().optional().default(20).describe('Maximum results'),
+    offset: z.number().optional().default(0).describe('Pagination offset'),
   }),
   output: z.object({
-    entities: z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      type: z.string(),
-      tags: z.array(z.string()),
-    })),
+    entities: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        type: z.string(),
+        tags: z.array(z.string()),
+      })
+    ),
     total: z.number(),
   }),
   readOnly: true,
   examples: [
     {
-      description: "List all entities",
+      description: 'List all entities',
       input: {},
     },
     {
-      description: "List entities by type",
-      input: { type: "concept" },
+      description: 'List entities by type',
+      input: { type: 'concept' },
     },
   ],
   implementation: async (input, ctx) => {
-    const entities = ctx.store.list({ type: input.type, limit: input.limit, offset: input.offset });
+    const entities = ctx.store.list({
+      type: input.type,
+      limit: input.limit,
+      offset: input.offset,
+    });
     return Result.ok({
-      entities: entities.map(e => ({ id: e.id, name: e.name, type: e.type, tags: e.tags })),
+      entities: entities.map((e) => ({
+        id: e.id,
+        name: e.name,
+        type: e.type,
+        tags: e.tags,
+      })),
       total: entities.length,
     });
   },
@@ -269,38 +296,45 @@ export const list = trail("entity.list", {
 
 ```typescript
 // src/trails/search.ts
-export const search = trail("search", {
-  description: "Search entities by keyword",
+export const search = trail('search', {
+  description: 'Search entities by keyword',
   input: z.object({
-    query: z.string().describe("Search query"),
-    limit: z.number().optional().default(10).describe("Maximum results"),
+    query: z.string().describe('Search query'),
+    limit: z.number().optional().default(10).describe('Maximum results'),
   }),
   output: z.object({
-    results: z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      type: z.string(),
-      tags: z.array(z.string()),
-    })),
+    results: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        type: z.string(),
+        tags: z.array(z.string()),
+      })
+    ),
     query: z.string(),
     total: z.number(),
   }),
   readOnly: true,
   examples: [
     {
-      description: "Search for entities",
-      input: { query: "Alpha" },
+      description: 'Search for entities',
+      input: { query: 'Alpha' },
     },
     {
-      description: "Search with no results",
-      input: { query: "zzz_nonexistent_zzz" },
+      description: 'Search with no results',
+      input: { query: 'zzz_nonexistent_zzz' },
     },
   ],
   implementation: async (input, ctx) => {
     const results = ctx.store.search(input.query);
     const limited = results.slice(0, input.limit);
     return Result.ok({
-      results: limited.map(e => ({ id: e.id, name: e.name, type: e.type, tags: e.tags })),
+      results: limited.map((e) => ({
+        id: e.id,
+        name: e.name,
+        type: e.type,
+        tags: e.tags,
+      })),
       query: input.query,
       total: results.length,
     });
@@ -314,12 +348,12 @@ A composite trail that follows `entity.add` and `search` to create an entity and
 
 ```typescript
 // src/trails/onboard.ts
-export const onboard = route("entity.onboard", {
-  description: "Create an entity and verify it appears in search",
-  follows: ["entity.add", "search"],
+export const onboard = hike('entity.onboard', {
+  description: 'Create an entity and verify it appears in search',
+  follows: ['entity.add', 'search'],
   input: z.object({
-    name: z.string().describe("Entity name"),
-    type: z.string().describe("Entity type"),
+    name: z.string().describe('Entity name'),
+    type: z.string().describe('Entity type'),
     tags: z.array(z.string()).optional().default([]),
   }),
   output: z.object({
@@ -332,23 +366,27 @@ export const onboard = route("entity.onboard", {
   }),
   examples: [
     {
-      description: "Onboard a new entity",
-      input: { name: "Gamma", type: "pattern", tags: ["workflow"] },
+      description: 'Onboard a new entity',
+      input: { name: 'Gamma', type: 'pattern', tags: ['workflow'] },
     },
   ],
   implementation: async (input, ctx) => {
-    const added = await ctx.follow("entity.add", {
+    const added = await ctx.follow('entity.add', {
       name: input.name,
       type: input.type,
       tags: input.tags,
     });
     if (added.isErr()) return added;
 
-    const searched = await ctx.follow("search", { query: input.name });
+    const searched = await ctx.follow('search', { query: input.name });
     const searchable = searched.isOk() && searched.value.total > 0;
 
     return Result.ok({
-      entity: { id: added.value.id, name: added.value.name, type: added.value.type },
+      entity: {
+        id: added.value.id,
+        name: added.value.name,
+        type: added.value.type,
+      },
       searchable,
     });
   },
@@ -361,30 +399,30 @@ export const onboard = route("entity.onboard", {
 
 ```typescript
 // src/events/entity-events.ts
-export const updated = event("entity.updated", {
-  description: "Emitted when an entity is created, modified, or deleted",
+export const updated = event('entity.updated', {
+  description: 'Emitted when an entity is created, modified, or deleted',
   payload: z.object({
     entityId: z.string(),
     entityName: z.string(),
-    action: z.enum(["created", "updated", "deleted"]),
+    action: z.enum(['created', 'updated', 'deleted']),
     timestamp: z.string(),
   }),
-  triggeredBy: ["entity.add", "entity.delete"],
+  from: ['entity.add', 'entity.delete'],
 });
 ```
 
-**Demonstrates:** `event()` with `triggeredBy` linking events to the trails that produce them.
+**Demonstrates:** `event()` with `from` linking events to the trails that produce them.
 
 ### App Setup
 
 ```typescript
 // src/app.ts
-import * as entity from "./trails/entity.js";
-import * as search from "./trails/search.js";
-import * as onboard from "./trails/onboard.js";
-import * as entityEvents from "./events/entity-events.js";
+import * as entity from './trails/entity.js';
+import * as search from './trails/search.js';
+import * as onboard from './trails/onboard.js';
+import * as entityEvents from './events/entity-events.js';
 
-export const app = trailhead("demo", entity, search, onboard, entityEvents);
+export const app = topo('demo', entity, search, onboard, entityEvents);
 ```
 
 ### Blazed on CLI
@@ -413,10 +451,10 @@ demo entity onboard --name Gamma --type pattern
 
 ```typescript
 // src/mcp.ts
-import { blaze } from "@ontrails/mcp";
-import { app } from "./app.js";
+import { blaze } from '@ontrails/mcp';
+import { app } from './app.js';
 
-blaze(app, { name: "demo", version: "0.1.0" });
+blaze(app, { name: 'demo', version: '0.1.0' });
 ```
 
 **MCP tools generated:**
@@ -435,13 +473,11 @@ demo_entity_onboard
 #### `examples.test.ts` -- The One-Liner
 
 ```typescript
-import { testAllExamples, createTestTrailContext } from "@ontrails/testing";
-import { app } from "../src/app.js";
-import { createStore } from "../src/store.js";
+import { testExamples, createTestContext } from '@ontrails/testing';
+import { app } from '../src/app.js';
+import { createStore } from '../src/store.js';
 
-const seedData = [
-  { name: "Alpha", type: "concept", tags: ["core"] },
-];
+const seedData = [{ name: 'Alpha', type: 'concept', tags: ['core'] }];
 
 const testApp = app.forTesting({
   store: createStore(seedData),
@@ -455,8 +491,8 @@ This single file tests every trail, every example, with progressive assertion. F
 #### `contracts.test.ts`
 
 ```typescript
-import { testContracts, createTestTrailContext } from "@ontrails/testing";
-import { app } from "../src/app.js";
+import { testContracts, createTestContext } from '@ontrails/testing';
+import { app } from '../src/app.js';
 
 const testApp = app.forTesting({
   store: createStore(seedData),
@@ -470,8 +506,8 @@ Verifies every implementation's actual output matches its declared output schema
 #### `detours.test.ts`
 
 ```typescript
-import { testDetours } from "@ontrails/testing";
-import { app } from "../src/app.js";
+import { testDetours } from '@ontrails/testing';
+import { app } from '../src/app.js';
 
 testDetours(app);
 ```
@@ -481,42 +517,66 @@ Verifies all detour targets (`entity.show` -> `search`) exist in the topo.
 #### `entity.test.ts` -- Custom Scenarios
 
 ```typescript
-import { testTrail, createTestTrailContext } from "@ontrails/testing";
-import { show, add, remove } from "../src/trails/entity.js";
+import { testScenarios, createTestContext } from '@ontrails/testing';
+import { show, add, remove } from '../src/trails/entity.js';
 
 const ctx = createTestTrailContext({
   store: createStore(seedData),
 });
 
-testTrail(show, [
-  { description: "Case insensitivity check", input: { name: "alpha" }, expectErr: NotFoundError },
-  { description: "Empty name", input: { name: "" }, expectErr: ValidationError },
-], ctx);
+testScenarios(
+  show,
+  [
+    {
+      description: 'Case insensitivity check',
+      input: { name: 'alpha' },
+      error: NotFoundError,
+    },
+    { description: 'Empty name', input: { name: '' }, error: ValidationError },
+  ],
+  ctx
+);
 
-testTrail(add, [
-  { description: "Add with empty tags", input: { name: "Delta", type: "tool" }, expectOk: true },
-  { description: "Missing required type", input: { name: "Delta" }, expectErr: ValidationError },
-], ctx);
+testScenarios(
+  add,
+  [
+    {
+      description: 'Add with empty tags',
+      input: { name: 'Delta', type: 'tool' },
+      expectOk: true,
+    },
+    {
+      description: 'Missing required type',
+      input: { name: 'Delta' },
+      error: ValidationError,
+    },
+  ],
+  ctx
+);
 ```
 
 #### `onboard.test.ts` -- Route Tests
 
 ```typescript
-import { testTrail, createTestTrailContext } from "@ontrails/testing";
-import { onboard } from "../src/trails/onboard.js";
+import { testScenarios, createTestContext } from '@ontrails/testing';
+import { onboard } from '../src/trails/onboard.js';
 
-testTrail(onboard, [
-  {
-    description: "Onboard creates and makes searchable",
-    input: { name: "Epsilon", type: "concept" },
-    expectOk: true,
-  },
-  {
-    description: "Onboard with duplicate name fails",
-    input: { name: "Alpha", type: "concept" },
-    expectErr: AlreadyExistsError,
-  },
-], ctx);
+testScenarios(
+  onboard,
+  [
+    {
+      description: 'Onboard creates and makes searchable',
+      input: { name: 'Epsilon', type: 'concept' },
+      expectOk: true,
+    },
+    {
+      description: 'Onboard with duplicate name fails',
+      input: { name: 'Alpha', type: 'concept' },
+      error: AlreadyExistsError,
+    },
+  ],
+  ctx
+);
 ```
 
 ### README as Getting-Started Tutorial
@@ -546,7 +606,7 @@ The demo app's tests ARE the validation that the stack works:
 - CLI entry point runs without errors -- proves `blaze()` on CLI works.
 - MCP entry point runs without errors -- proves `blaze()` on MCP works.
 - Route `entity.onboard` correctly follows `entity.add` and `search` -- proves `ctx.follow()` composition works.
-- Event `entity.updated` has valid `triggeredBy` references -- proves event wiring works.
+- Event `entity.updated` has valid `from` references -- proves event wiring works.
 
 ---
 
@@ -554,7 +614,7 @@ The demo app's tests ARE the validation that the stack works:
 
 - [ ] 5 trails defined: `entity.show`, `entity.add`, `entity.delete`, `entity.list`, `search`.
 - [ ] 1 route defined: `entity.onboard` with `follows: ["entity.add", "search"]`.
-- [ ] 1 event defined: `entity.updated` with `triggeredBy`.
+- [ ] 1 event defined: `entity.updated` with `from`.
 - [ ] Every trail has at least 1 example. Most have 2+ (success + error).
 - [ ] Markers used: `readOnly` on show/list/search, `destructive` on delete.
 - [ ] Detours used: `entity.show` suggests `search` on `NotFoundError`.

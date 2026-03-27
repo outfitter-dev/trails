@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun *)",
+      "Bash(bunx *)",
+      "Bash(bun x *)",
+      "Bash(gt *)",
+      "Bash(gh *)",
+      "Bash(oxlint *)",
+      "Bash(ls *)",
+      "Bash(wc *)",
+      "Bash(rg *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun x ultracite fix $CLAUDE_FILE_PATH 2>/dev/null; bunx oxlint $CLAUDE_FILE_PATH --fix --quiet 2>/dev/null; true",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
+}

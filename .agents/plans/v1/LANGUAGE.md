@@ -1,7 +1,6 @@
 # Trails Vocabulary and Language Guide
 
-> **Status:** Living document
-> **Last updated:** 2026-03-25
+> **Status:** Living document **Last updated:** 2026-03-25
 
 ---
 
@@ -25,7 +24,7 @@ Agent-native means two things. Agents building with Trails produce correct, cons
 
 **The framework defines ports. Everything concrete is an adapter.** CLI framework (Commander, yargs), logging backend (logtape, pino), storage engine (SQLite, MeiliSearch), telemetry exporter (OTel, Datadog) — all pluggable. The framework never imports a concrete implementation.
 
-**Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation doesn't know which surface invoked it, which adapter backs the storage, or which exporter records the tracks.
+**Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation doesn't know which surface invoked it, which adapter backs the storage, or which exporter records the tracks. Authoring can be sync or async; runtime execution is always awaitable.
 
 **One schema, every surface.** You can't have different parameter names across surfaces because there's only one Zod schema. CLI flags, MCP tool definitions, HTTP query params, and `--help` text are all generated from it. The schema IS the contract.
 
@@ -64,6 +63,7 @@ These are final. They appear in the public API, documentation, and code.
 **Type:** `Trail<I, O>` — the spec type.
 
 **Usage in prose:**
+
 - "Define a trail" — yes
 - "Create a trail" — yes
 - "The `entity.show` trail" — yes
@@ -71,11 +71,12 @@ These are final. They appear in the public API, documentation, and code.
 - "Call the trail" — no, use "follow the trail" for composites, or "invoke" for surfaces
 
 **Usage in code:**
+
 ```typescript
-export const show = trail("entity.show", {
+export const show = trail('entity.show', {
   input: z.object({ name: z.string() }),
   readOnly: true,
-  implementation: async (input, ctx) => Result.ok(entity),
+  implementation: (input, ctx) => Result.ok(entity),
 });
 ```
 
@@ -90,6 +91,7 @@ export const show = trail("entity.show", {
 **Type:** `Route<I, O>` — the spec type (extends `Trail`).
 
 **Usage in prose:**
+
 - "Define a route" — yes
 - "The `entity.onboard` route follows `entity.add`, `entity.relate`, and `search`" — yes
 - "A route is a trail that follows other trails" — yes
@@ -97,12 +99,16 @@ export const show = trail("entity.show", {
 - "Trails" — yes, when referring to both collectively (a route IS a trail)
 
 **Usage in code:**
+
 ```typescript
-export const onboard = route("entity.onboard", {
-  follows: ["entity.add", "entity.relate", "search"],
+export const onboard = hike('entity.onboard', {
+  follows: ['entity.add', 'entity.relate', 'search'],
   input: z.object({ name: z.string(), type: z.string() }),
   implementation: async (input, ctx) => {
-    const added = await ctx.follow("entity.add", { name: input.name, type: input.type });
+    const added = await ctx.follow('entity.add', {
+      name: input.name,
+      type: input.type,
+    });
     if (added.isErr()) return added;
     return Result.ok({ entity: added.value });
   },
@@ -118,16 +124,18 @@ export const onboard = route("entity.onboard", {
 **API:** `trailhead(name, ...modules)` — create an app from trail modules.
 
 **Usage in prose:**
+
 - "Create a Trails app" — yes
 - "The app collects trails from modules" — yes
 - "Pass your trail modules to `trailhead()`" — yes
 
 **Usage in code:**
-```typescript
-import * as entity from "./trails/entity";
-import * as search from "./trails/search";
 
-const app = trailhead("myapp", entity, search);
+```typescript
+import * as entity from './trails/entity';
+import * as search from './trails/search';
+
+const app = topo('myapp', entity, search);
 ```
 
 ---
@@ -139,14 +147,16 @@ const app = trailhead("myapp", entity, search);
 **API:** `blaze(app, options?)` — exported from each surface adapter subpath.
 
 **Usage in prose:**
+
 - "Blaze the app on CLI" — yes
 - "Blaze on MCP" — yes
 - "Adding a surface is one `blaze()` call" — yes
 - "Blazed trails are available to callers" — yes
 
 **Usage in code:**
+
 ```typescript
-import { blaze } from "@ontrails/cli/commander";
+import { blaze } from '@ontrails/cli/commander';
 blaze(app);
 ```
 
@@ -161,13 +171,18 @@ blaze(app);
 **API:** `ctx.follow(id, input)` — returns `Promise<Result<T, Error>>`.
 
 **Usage in prose:**
+
 - "The route follows `entity.add`" — yes
 - "Follow a trail from within a route" — yes
 - "`ctx.follow()` validates input and propagates tracing" — yes
 
 **Usage in code:**
+
 ```typescript
-const result = await ctx.follow("entity.add", { name: "Alpha", type: "concept" });
+const result = await ctx.follow('entity.add', {
+  name: 'Alpha',
+  type: 'concept',
+});
 ```
 
 ---
@@ -179,6 +194,7 @@ const result = await ctx.follow("entity.add", { name: "Alpha", type: "concept" }
 **API:** `follows: string[]` — field on route spec.
 
 **Usage in prose:**
+
 - "This route follows three trails" — yes
 - "The `follows` declaration is verified by the linter" — yes
 
@@ -193,6 +209,7 @@ const result = await ctx.follow("entity.add", { name: "Alpha", type: "concept" }
 **Type:** `Topo` — the collection type.
 
 **Usage in prose:**
+
 - "The topo contains all registered trails" — yes
 - "Surface adapters read from the topo" — yes
 - "The surface map is generated from the topo" — yes
@@ -205,15 +222,18 @@ const result = await ctx.follow("entity.add", { name: "Alpha", type: "concept" }
 
 **What:** The pure function inside a trail or route that does the domain work. Input in, `Result` out. Knows nothing about surfaces.
 
-**API:** `implementation: async (input, ctx) => Result` — field on trail/route spec.
+**API:** `implementation: (input, ctx) => Result | Promise<Result>` — field on trail/hike spec.
 
 **Type:** `Implementation<I, O>` — the function type (almost always inferred).
 
 **Usage in prose:**
+
 - "The implementation receives validated input" — yes
 - "Implementations return `Result`, never throw" — yes
 - "The implementation doesn't know which surface invoked it" — yes
 - "Write the implementation, the framework handles the rest" — yes
+
+**Execution shape:** Authors can return `Result` directly for pure, synchronous work or `Promise<Result>` when the trail awaits I/O or follows other trails. Trails normalizes both forms to one async runtime shape before layers and surfaces execute them.
 
 **Do not abbreviate** to "impl" in prose or public API. The full word is intentional — it reinforces that this function is the contract's implementation, inside the hexagon, not at the edge.
 
@@ -228,6 +248,7 @@ These are reserved for planned features. They may appear in PRDs and design docs
 **Reserved for:** Quick discovery and capability detection. What an agent does on first contact — a fast check of what's available without the full survey.
 
 **Intended usage:**
+
 ```bash
 trails scout                     # Capabilities summary — surfaces, feature flags, trail count
 trails scout --surfaces          # What's blazed where
@@ -245,10 +266,11 @@ trails scout --permits           # What scopes are required
 **Reserved for:** Auth and principal model. Who is allowed on which trails.
 
 **Intended usage:**
+
 ```typescript
-export const deleteEntity = trail("entity.delete", {
+export const deleteEntity = trail('entity.delete', {
   destructive: true,
-  permit: { scopes: ["entity:write"] },
+  permit: { scopes: ['entity:write'] },
   implementation: async (input, ctx) => {
     // ctx.permit is the resolved principal — who's calling
     const caller = ctx.permit;
@@ -270,13 +292,17 @@ export const deleteEntity = trail("entity.delete", {
 **Reserved for:** One app consuming another app's trails. One-directional — the mounting app calls the mounted app's trails; the mounted app doesn't know about the mounter.
 
 **Intended usage:**
+
 ```typescript
-const app = trailhead("dispatch", dispatch)
-  .mount("patch", patchApp, { transport: "http", baseUrl: "http://localhost:3000" })
-  .mount("hass", hassApp, { transport: "local" });
+const app = topo('dispatch', dispatch)
+  .mount('patch', patchApp, {
+    transport: 'http',
+    baseUrl: 'http://localhost:3000',
+  })
+  .mount('hass', hassApp, { transport: 'local' });
 
 // Dispatch can follow PatchOS trails
-await ctx.follow("patch.search", { query: "priorities" });
+await ctx.follow('patch.search', { query: 'priorities' });
 // PatchOS doesn't know Dispatch exists
 ```
 
@@ -291,14 +317,14 @@ await ctx.follow("patch.search", { query: "priorities" });
 **Reserved for (future):** Bidirectional peer connection between two Trails apps. Both can follow each other's trails, emit events to each other, share permit context. Full typed context in both directions.
 
 **Intended usage (speculative):**
+
 ```typescript
 // Both apps are aware of each other
-const app = trailhead("dispatch", dispatch)
-  .junction("patch", patchApp, {
-    transport: "ws",
-    // Bidirectional: Dispatch follows PatchOS trails, PatchOS can emit events to Dispatch
-    // Shared permit context — PatchOS sees Dispatch's caller identity
-  });
+const app = topo('dispatch', dispatch).junction('patch', patchApp, {
+  transport: 'ws',
+  // Bidirectional: Dispatch follows PatchOS trails, PatchOS can emit events to Dispatch
+  // Shared permit context — PatchOS sees Dispatch's caller identity
+});
 ```
 
 **In prose:** "A junction is a bidirectional connection — both apps can follow each other's trails." "Mounts are one-way; junctions are peer-to-peer."
@@ -312,6 +338,7 @@ const app = trailhead("dispatch", dispatch)
 **Reserved for:** Full schema introspection. The comprehensive, structured report of everything the app can do.
 
 **Intended usage:**
+
 ```bash
 trails survey                      # Full topo introspection
 trails survey entity.show          # Single trail detail
@@ -333,6 +360,7 @@ trails survey --diff v1.0 --impact # With downstream analysis
 **Reserved for:** Quick discovery and capability detection. What an agent does on first contact.
 
 **Intended usage:**
+
 ```bash
 trails scout                       # Capabilities summary — surfaces, feature flags, counts
 trails scout --surfaces            # What's blazed where
@@ -350,9 +378,10 @@ trails scout --permits             # What scopes are required
 **Reserved for:** Observability, telemetry, audit logs, execution history. The evidence of what happened on the trails.
 
 **Intended usage:**
+
 ```typescript
 // Package
-import { tracksLayer } from "@ontrails/tracks";
+import { tracksLayer } from '@ontrails/tracks';
 
 // Layer that records execution tracks
 blaze(app, { layers: [tracksLayer({ exporter: otelExporter })] });
@@ -379,10 +408,11 @@ trails tracks --errors             # Failed executions
 **Reserved for:** Execution, graph traversal, planner behavior, cross-boundary workflow movement. The runtime verb for moving through the trail system.
 
 **Intended usage:**
+
 ```typescript
 // Graph traversal API
-const path = topo.traverse("search", "entity.show");  // Find connected path
-const plan = topo.traverse.plan("entity.onboard");     // Execution plan for a route
+const path = topo.traverse('search', 'entity.show'); // Find connected path
+const plan = topo.traverse.plan('entity.onboard'); // Execution plan for a hike
 
 // In prose about composites
 // "The route traverses entity.add, then entity.relate, then search"
@@ -402,6 +432,7 @@ const plan = topo.traverse.plan("entity.onboard");     // Execution plan for a r
 **Reserved for:** Annotations, metadata, enrichment. Information attached to trails that describes them beyond their schema.
 
 **Intended usage:**
+
 ```typescript
 export const show = trail("entity.show", {
   input: z.object({ name: z.string() }),
@@ -432,6 +463,7 @@ export const show = trail("entity.show", {
 **Reserved for:** The runtime guidance layer. Reads the topo (trails, markers, detours, relations, examples) and translates it into usable guidance for agents and humans. Not a docs generator — a knowledge interpreter.
 
 **Intended usage:**
+
 ```bash
 # CLI: human asks "how do I use this?"
 trails guide entity              # Entity trails, inputs, examples, detours
@@ -443,6 +475,7 @@ trails guide --for-agent         # Optimized for LLM consumption
 ```
 
 **As an MCP tool:**
+
 ```
 guide_entity_show → returns guidance for the entity.show trail
 ```
@@ -451,11 +484,11 @@ guide_entity_show → returns guidance for the entity.show trail
 
 **Distinction from other introspection:**
 
-| Command | What it answers |
-|---------|----------------|
-| `scout` | "What can this app do?" (capabilities) |
-| `survey` | "Show me everything about this trail" (raw schema/types) |
-| `guide` | "How do I use this trail?" (guidance, examples, gotchas) |
+| Command          | What it answers                                          |
+| ---------------- | -------------------------------------------------------- |
+| `survey --brief` | "What can this app do?" (capabilities)                   |
+| `survey`         | "Show me everything about this trail" (raw schema/types) |
+| `guide`          | "How do I use this trail?" (guidance, examples, gotchas) |
 
 Survey gives you the data. Guide gives you the understanding.
 
@@ -466,7 +499,7 @@ Survey gives you the data. Guide gives you the understanding.
 
 Same source (the topo). Same interpreter (the guide). Different moments. The developer's effort goes into writing good trail definitions with examples and markers. The guide synthesizes that into guidance — whether served live or generated into files.
 
-**Not the same as `@ontrails/docs`.** Docs assembles documentation from files you wrote (READMEs, guides, hand-authored markdown). Guide generates guidance from what you *defined* (trails, markers, detours, examples, relations). You never write guide content directly — you write good trail definitions and the guide derives everything from them.
+**Not the same as `@ontrails/docs`.** Docs assembles documentation from files you wrote (READMEs, guides, hand-authored markdown). Guide generates guidance from what you _defined_ (trails, markers, detours, examples, relations). You never write guide content directly — you write good trail definitions and the guide derives everything from them.
 
 ---
 
@@ -475,12 +508,13 @@ Same source (the topo). Same interpreter (the guide). Different moments. The dev
 **Reserved for:** Capability bundles. A distributable unit that carries trails, services, events, markers, and config fragments for a domain. The unit of sharing and reuse.
 
 **Intended usage:**
+
 ```typescript
 // A pack bundles everything for a domain
-import { entityPack } from "@mylib/entity-pack";
-import { searchPack } from "@mylib/search-pack";
+import { entityPack } from '@mylib/entity-pack';
+import { searchPack } from '@mylib/search-pack';
 
-const app = trailhead("myapp", entityPack, searchPack);
+const app = topo('myapp', entityPack, searchPack);
 // entityPack brings:
 //   - trails: entity.show, entity.add, entity.delete
 //   - services: entity database adapter
@@ -500,7 +534,7 @@ const app = trailhead("myapp", entityPack, searchPack);
 These use plain language because the concepts are universal. Don't rename them.
 
 | Term | Concept | Why it's not branded |
-|------|---------|---------------------|
+| --- | --- | --- |
 | `config` | Configuration | Every framework has config. `defineConfig()` stays. |
 | `services` | Service definitions | Universal infrastructure concept. `defineService()` stays. |
 | `health` | Health checks | Standard ops terminology. |
@@ -528,11 +562,11 @@ These use plain language because the concepts are universal. Don't rename them.
 ```typescript
 // Good: uses branded terms naturally
 // Follow entity.add to create the entity, then relate it
-const entity = await ctx.follow("entity.add", input);
+const entity = await ctx.follow('entity.add', input);
 
 // Bad: forces the metaphor
 // Blaze a new path through the entity creation wilderness
-const entity = await ctx.follow("entity.add", input);
+const entity = await ctx.follow('entity.add', input);
 
 // Good: standard terms for standard concepts
 // Validate config before starting services
@@ -585,42 +619,24 @@ Don't use them for general programming:
 When introducing Trails to someone new, introduce terms in this order:
 
 **Beginner (all you need to ship):**
+
 1. **`trail()`** — "a trail is a typed function with a schema"
 2. **`Result`** — "trails return Result, not exceptions"
 3. **`trailhead()`** — "collect your trails into an app"
 4. **`blaze()`** — "open the app on CLI, MCP, or HTTP"
 
-**Intermediate (composition and enrichment):**
-5. **`route()`** — "a route follows multiple trails"
-6. **`ctx.follow()`** — "call another trail from within a route"
-7. **`event()`** — "define events the app can emit"
-8. **`markers`** — "annotate trails with metadata"
-9. **`detours`** — "define fallback paths when a trail fails"
-10. **`pack`** — "a distributable capability bundle"
+**Intermediate (composition and enrichment):** 5. **`hike()`** — "a hike follows multiple trails" 6. **`ctx.follow()`** — "call another trail from within a hike" 7. **`event()`** — "define events the app can emit" 8. **`markers`** — "annotate trails with metadata" 9. **`detours`** — "define fallback paths when a trail fails" 10. **`pack`** — "a distributable capability bundle"
 
-**Advanced (introspection and observability):**
-11. **`topo`** — "the internal trail collection"
-12. **`survey`** — "full introspection of the trail system"
-13. **`scout`** — "quick discovery and capability detection"
-14. **`guide`** — "runtime guidance — how to use these trails"
-15. **`tracks`** — "observability, telemetry, execution history"
-16. **`leg`** — "one segment of a route's execution"
-17. **`traverse`** — "graph traversal and execution planning"
-18. **`loadout`** — "deployment/environment config profile"
+**Advanced (introspection and observability):** 11. **`topo`** — "the internal trail collection" 12. **`survey`** — "full introspection of the trail system" 13. **`survey --brief`** — "quick discovery and capability detection (was `scout`)" 14. **`guide`** — "runtime guidance — how to use these trails" 15. **`tracks`** — "observability, telemetry, execution history" 16. **`leg`** — "one segment of a hike's execution" 17. **`traverse`** — "graph traversal and execution planning" 18. **`loadout`** — "deployment/environment config profile"
 
-**Ecosystem (multi-app and governance):**
-19. **`permit`** — "auth and scopes"
-20. **`mount`** — "consume another app's trails"
-21. **`junction`** — "bidirectional peer connection (future)"
-22. **`warden`** — "governance and contract enforcement"
-23. **`depot`** — "pack registry and marketplace"
+**Ecosystem (multi-app and governance):** 19. **`permit`** — "auth and scopes" 20. **`mount`** — "consume another app's trails" 21. **`junction`** — "bidirectional peer connection (future)" 22. **`warden`** — "governance and contract enforcement" 23. **`depot`** — "pack registry and marketplace"
 
 ## Complete Vocabulary Reference
 
 ### Locked (final, shipped in v0.1)
 
 | Term | Concept | API |
-|------|---------|-----|
+| --- | --- | --- |
 | `trail` | Atomic action definition | `trail(id, spec)` |
 | `route` | Composite following multiple trails | `route(id, spec)` with `follows: [...]` |
 | `event` | Server-originated push | `event(id, spec)` |
@@ -634,7 +650,7 @@ When introducing Trails to someone new, introduce terms in this order:
 ### Reserved (designed, not yet shipped)
 
 | Term | Concept | Planned API |
-|------|---------|-------------|
+| --- | --- | --- |
 | `survey` | Full schema introspection | `trails survey`, `trails survey --diff` |
 | `scout` | Quick discovery / capabilities | `trails scout`, agent bootstrap |
 | `tracks` | Observability / telemetry / audit | `@ontrails/tracks`, `tracksLayer()` |
@@ -656,7 +672,7 @@ When introducing Trails to someone new, introduce terms in this order:
 ### Standard (not branded)
 
 | Term | Concept | Why not branded |
-|------|---------|-----------------|
+| --- | --- | --- |
 | `config` | Configuration | Universal — every framework has it |
 | `services` | Service definitions | Universal infrastructure concept |
 | `health` | Health checks | Standard ops terminology |

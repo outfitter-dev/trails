@@ -13,7 +13,7 @@ Agent-native means two things:
 ## The Three Primitives
 
 ```typescript
-import { trail, route, event } from "@ontrails/core";
+import { trail, route, event } from '@ontrails/core';
 ```
 
 **`trail()`** — The atomic unit. A typed function with a Zod schema, returning `Result`. The trail is the contract.
@@ -25,46 +25,55 @@ import { trail, route, event } from "@ontrails/core";
 ## The Flow
 
 ```typescript
-import { trail, trailhead, Result } from "@ontrails/core";
-import { blaze } from "@ontrails/cli/commander";
-import { z } from "zod";
+import { trail, topo, Result } from '@ontrails/core';
+import { blaze } from '@ontrails/cli/commander';
+import { z } from 'zod';
 
 // 1. Define trails
-const show = trail("entity.show", {
+const show = trail('entity.show', {
   input: z.object({ name: z.string() }),
   readOnly: true,
-  implementation: async (input) => Result.ok({ name: input.name, type: "concept" }),
+  implementation: (input) => Result.ok({ name: input.name, type: 'concept' }),
 });
 
 // 2. Collect into a trailhead
-import * as entity from "./trails/entity";
-const app = trailhead("myapp", entity);
+import * as entity from './trails/entity';
+const app = topo('myapp', entity);
 
 // 3. Blaze on surfaces
-blaze(app);  // CLI — every trail becomes a command
+blaze(app); // CLI — every trail becomes a command
 ```
 
 Add MCP:
 
 ```typescript
-import { blaze as blazeMcp } from "@ontrails/mcp";
+import { blaze as blazeMcp } from '@ontrails/mcp';
 blazeMcp(app, { stdio: true });
 ```
 
 Same trails. Same implementation. Every surface.
+Pure trails can be authored synchronously; the runtime still normalizes execution to one awaitable shape for every surface.
 
 ## Examples Are Tests
 
 When you add `examples` to a trail, you're writing documentation for agents AND a test suite:
 
 ```typescript
-const search = trail("search", {
+const search = trail('search', {
   input: z.object({ query: z.string(), limit: z.number().default(10) }),
   output: z.array(ResultSchema),
   readOnly: true,
   examples: [
-    { description: "Basic search", input: { query: "auth" }, output: [{ id: "1", content: "JWT auth" }] },
-    { description: "Empty result is ok", input: { query: "nonexistent" }, output: [] },
+    {
+      description: 'Basic search',
+      input: { query: 'auth' },
+      output: [{ id: '1', content: 'JWT auth' }],
+    },
+    {
+      description: 'Empty result is ok',
+      input: { query: 'nonexistent' },
+      output: [],
+    },
   ],
   implementation: searchImpl,
 });
@@ -73,7 +82,7 @@ const search = trail("search", {
 Those examples serve six consumers at once:
 
 | Consumer | What it does with examples |
-|----------|--------------------------|
+| --- | --- |
 | **`testAllExamples(app)`** | Runs every example as a test — validates input, runs implementation, asserts output |
 | **Agents (via MCP)** | Learns concrete input/output shapes by example |
 | **Agents (via survey)** | Sees what the trail does with real data |
@@ -84,8 +93,8 @@ Those examples serve six consumers at once:
 One line tests the entire app:
 
 ```typescript
-import { testAllExamples } from "@ontrails/testing";
-testAllExamples(app, testContext);
+import { testExamples } from '@ontrails/testing';
+testExamples(app, testContext);
 ```
 
 You never write a separate test file for the happy path. The examples ARE the tests. Write them for agent fluency — get test coverage for free.
@@ -93,7 +102,7 @@ You never write a separate test file for the happy path. The examples ARE the te
 ## Packages
 
 | Package | Purpose |
-|---------|---------|
+| --- | --- |
 | `@ontrails/core` | Foundation — Result, errors, trail/route/event, patterns, types, validation |
 | `@ontrails/cli` | CLI surface adapter + `/commander` subpath |
 | `@ontrails/mcp` | MCP surface adapter |

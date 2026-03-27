@@ -10,7 +10,7 @@
 
 **The framework defines ports. Everything concrete is an adapter.** CLI framework, logging backend, storage engine, telemetry exporter — all pluggable. The framework never imports a concrete implementation.
 
-**Implementations are pure functions.** Input in, `Result` out. No side effects, no surface knowledge, no transport coupling.
+**Implementations are pure functions.** Input in, `Result` out. No side effects, no surface knowledge, no transport coupling. Authoring may be sync or async; core normalizes execution to one awaitable shape before adapters run.
 
 **The contract is machine-readable at runtime.** Survey, scout, and guide make the topo queryable by agents, tooling, and CI.
 
@@ -74,7 +74,7 @@ Contains: Result (built-in), error taxonomy, `trail()`/`route()`/`event()`, `tra
 ### Surface Adapters (left side)
 
 | Package | Exports | External dep |
-|---------|---------|-------------|
+| --- | --- | --- |
 | `@ontrails/cli` | `buildCliCommands()` → `CliCommand[]` model, `output()`, flag derivation | None beyond core |
 | `@ontrails/cli/commander` | `toCommander()`, `blaze()` | `commander` (optional peer) |
 | `@ontrails/mcp` | `buildMcpTools()`, `blaze()` | `@modelcontextprotocol/sdk` |
@@ -83,7 +83,7 @@ Contains: Result (built-in), error taxonomy, `trail()`/`route()`/`event()`, `tra
 ### Infrastructure Adapters (right side)
 
 | Package | Exports | External dep |
-|---------|---------|-------------|
+| --- | --- | --- |
 | `@ontrails/logging` | `createLogger()`, sinks, formatters | None beyond core |
 | `@ontrails/logging/logtape` | Sink adapter | `@logtape/logtape` (optional peer) |
 | `@ontrails/tracks` (planned) | `tracksLayer()`, telemetry | OTel (optional peer) |
@@ -92,7 +92,7 @@ Contains: Result (built-in), error taxonomy, `trail()`/`route()`/`event()`, `tra
 ### Ecosystem
 
 | Package | Purpose |
-|---------|---------|
+| --- | --- |
 | `@ontrails/testing` | `testAllExamples()`, contract testing, harnesses |
 | `@ontrails/schema` | Surface maps, diffing, lock files |
 | `@ontrails/daemon` (planned) | Process hosting for registry lifecycle |
@@ -100,10 +100,10 @@ Contains: Result (built-in), error taxonomy, `trail()`/`route()`/`event()`, `tra
 
 ### Apps
 
-| App | Purpose |
-|-----|---------|
-| `apps/trails` | The `trails` CLI — init, survey, scout, guide |
-| `apps/trails-demo` | Example app |
+| App                | Purpose                                       |
+| ------------------ | --------------------------------------------- |
+| `apps/trails`      | The `trails` CLI — init, survey, guide         |
+| `apps/trails-demo` | Example app                                   |
 
 ---
 
@@ -118,7 +118,7 @@ CLI input ("myapp entity show --name Alpha")
   → Layers run (auth, rate limit, telemetry)
   → Zod validates input against trail's schema
   → TrailContext created (requestId, logger, signal, permit)
-  → implementation(validatedInput, ctx) called
+  → normalized implementation(validatedInput, ctx) called
   → Result returned
   → Layers post-process (headers, metrics)
   → Result mapped to exit code + stdout output
@@ -131,12 +131,12 @@ MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
   → MCP adapter matches to trail
   → Zod validates input
   → TrailContext created
-  → Same implementation(validatedInput, ctx) called
+  → Same normalized implementation(validatedInput, ctx) called
   → Same Result returned
   → Result mapped to MCP tool response
 ```
 
-The implementation is identical. Only the edges change.
+The implementation is identical. Only the edges change. Surfaces still await one normalized runtime shape even when the trail author wrote a synchronous implementation.
 
 ---
 
@@ -145,7 +145,7 @@ The implementation is identical. Only the edges change.
 13 error classes, 10 categories. Each maps to CLI exit codes, HTTP status, JSON-RPC codes, and retryability:
 
 | Category | Exit | HTTP | Retryable | Classes |
-|----------|------|------|-----------|---------|
+| --- | --- | --- | --- | --- |
 | validation | 1 | 400 | No | `ValidationError`, `AmbiguousError`, `AssertionError` |
 | not_found | 2 | 404 | No | `NotFoundError` |
 | conflict | 3 | 409 | No | `AlreadyExistsError`, `ConflictError` |
@@ -189,7 +189,7 @@ Three layers, different rules:
 `@ontrails/core`, `@ontrails/cli`, `@ontrails/mcp`, `@ontrails/logging`, `@ontrails/testing`, `@ontrails/schema` must work on Node, Deno, Bun, and edge runtimes. No `Bun.*` APIs, no `bun:*` imports.
 
 | Instead of | Use |
-|-----------|-----|
+| --- | --- |
 | `Bun.randomUUIDv7()` | `crypto.randomUUID()` (Web Crypto, works everywhere) |
 | `Bun.hash()` | Web Crypto `crypto.subtle.digest()` or a pure JS hash |
 | `Bun.Glob` | Implement with standard APIs or make glob a separate utility |

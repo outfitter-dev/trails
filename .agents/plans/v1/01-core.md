@@ -181,10 +181,13 @@ abstract class TrailsError extends Error {
   readonly retryable: boolean;
   readonly context?: Record<string, unknown>;
 
-  constructor(message: string, options?: {
-    cause?: Error;
-    context?: Record<string, unknown>;
-  });
+  constructor(
+    message: string,
+    options?: {
+      cause?: Error;
+      context?: Record<string, unknown>;
+    }
+  );
 }
 ```
 
@@ -193,7 +196,7 @@ All 13 error classes extend `TrailsError` directly. No `TaggedError` factory pat
 ### 3.2 Error classes
 
 | Class | Category | Notes |
-|-------|----------|-------|
+| --- | --- | --- |
 | `ValidationError` | `validation` | Schema/input validation failures |
 | `AmbiguousError` | `validation` | Multiple valid interpretations |
 | `AssertionError` | `validation` | Internal assertions (invariant violations) |
@@ -209,6 +212,7 @@ All 13 error classes extend `TrailsError` directly. No `TaggedError` factory pat
 | `CancelledError` | `cancelled` | Operation cancelled (AbortSignal, user interrupt) |
 
 Each class:
+
 - Extends `TrailsError`
 - Sets `category` as a readonly literal
 - Sets `retryable` from the taxonomy (timeout, rate_limit, network are retryable)
@@ -246,10 +250,10 @@ const statusCodeMap: Record<ErrorCategory, number> = {
 };
 
 const jsonRpcCodeMap: Record<ErrorCategory, number> = {
-  validation: -32602,    // Invalid params
-  not_found: -32601,     // Method not found
-  conflict: -32603,      // Internal (no direct mapping)
-  permission: -32600,    // Invalid request
+  validation: -32602, // Invalid params
+  not_found: -32601, // Method not found
+  conflict: -32603, // Internal (no direct mapping)
+  permission: -32600, // Invalid request
   timeout: -32603,
   rate_limit: -32603,
   network: -32603,
@@ -276,16 +280,16 @@ const retryableMap: Record<ErrorCategory, boolean> = {
 
 ```typescript
 type ErrorCategory =
-  | "validation"
-  | "not_found"
-  | "conflict"
-  | "permission"
-  | "timeout"
-  | "rate_limit"
-  | "network"
-  | "internal"
-  | "auth"
-  | "cancelled";
+  | 'validation'
+  | 'not_found'
+  | 'conflict'
+  | 'permission'
+  | 'timeout'
+  | 'rate_limit'
+  | 'network'
+  | 'internal'
+  | 'auth'
+  | 'cancelled';
 ```
 
 ### 3.5 Tests
@@ -312,10 +316,10 @@ function trail<I, O>(id: string, spec: TrailSpec<I, O>): Trail<I, O>;
 **`TrailSpec<I, O>`** fields:
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| --- | --- | --- | --- |
 | `input` | `z.ZodType<I>` | Yes | Zod schema for input validation |
 | `output` | `z.ZodType<O>` | No | Zod schema for output (required for MCP/HTTP surfaces) |
-| `implementation` | `Implementation<I, O>` | Yes | The pure function |
+| `implementation` | `Implementation<I, O>` | Yes | The pure function (sync or async -- unified type) |
 | `description` | `string` | No | Human-readable description |
 | `examples` | `TrailExample<I, O>[]` | No | Input/output examples for agents and testing |
 | `readOnly` | `boolean` | No | Marks as non-mutating |
@@ -326,6 +330,8 @@ function trail<I, O>(id: string, spec: TrailSpec<I, O>): Trail<I, O>;
 
 The `readOnly`, `destructive`, and `idempotent` booleans are the trail's **markers** for surface adapters. CLI uses `destructive` to auto-add `--dry-run`. MCP uses `readOnly` for `readOnlyHint`. These are first-class fields, not stuffed into the `markers` bag.
 
+`trail()` accepts the unified `Implementation` type, which handles both sync and async authoring. The returned `Trail` always exposes a normalized async `implementation`, so layers and surfaces only have one execution shape to handle.
+
 **`TrailExample<I, O>`**:
 
 ```typescript
@@ -333,8 +339,8 @@ interface TrailExample<I, O> {
   name: string;
   description?: string;
   input: I;
-  expected?: O;         // For full-match testing
-  error?: string;       // Error class name for error-path examples
+  expected?: O; // For full-match testing
+  error?: string; // Error class name for error-path examples
 }
 ```
 
@@ -355,7 +361,7 @@ interface Trail<I = unknown, O = unknown> {
   readonly idempotent?: boolean;
   readonly markers?: Record<string, unknown>;
   readonly detours?: Record<string, string[]>;
-  readonly kind: "trail";
+  readonly kind: 'trail';
 }
 ```
 
@@ -367,6 +373,7 @@ The `kind: "trail"` discriminant enables `trailhead()` to auto-scan module expor
 - Input schema is preserved
 - Output schema is optional
 - Implementation is callable
+- Sync and async implementations are both handled by the unified `Implementation` type
 - Examples are stored
 - Markers are stored
 - Detours are stored
@@ -388,16 +395,16 @@ function route<I, O>(id: string, spec: RouteSpec<I, O>): Route<I, O>;
 
 **`RouteSpec<I, O>`** extends `TrailSpec<I, O>` with:
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `follows` | `string[]` | Yes | Trail IDs this route follows |
+| Field     | Type       | Required | Description                  |
+| --------- | ---------- | -------- | ---------------------------- |
+| `follows` | `string[]` | Yes      | Trail IDs this hike follows |
 
 ### 5.2 `Route<I, O>` type
 
 ```typescript
 interface Route<I = unknown, O = unknown> extends Trail<I, O> {
   readonly follows: string[];
-  readonly kind: "route";
+  readonly kind: 'hike';
 }
 ```
 
@@ -407,8 +414,9 @@ A route IS a trail (extends the interface). The `kind: "route"` discriminant dis
 
 - `route()` returns a Route with correct id and kind
 - `follows` array is preserved
-- Route extends Trail interface (all Trail tests apply)
-- `kind` is `"route"` not `"trail"`
+- Hike extends Trail interface (all Trail tests apply)
+- Sync and async implementations are handled by the unified `Implementation` type
+- `kind` is `"hike"` not `"trail"`
 
 ---
 
@@ -427,7 +435,7 @@ function event<T>(id: string, spec: EventSpec<T>): Event<T>;
 **`EventSpec<T>`** fields:
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| --- | --- | --- | --- |
 | `payload` | `z.ZodType<T>` | Yes | Zod schema for event payload |
 | `description` | `string` | No | Human-readable description |
 | `markers` | `Record<string, unknown>` | No | Custom metadata |
@@ -440,7 +448,7 @@ interface Event<T = unknown> {
   readonly payload: z.ZodType<T>;
   readonly description?: string;
   readonly markers?: Record<string, unknown>;
-  readonly kind: "event";
+  readonly kind: 'event';
 }
 ```
 
@@ -524,21 +532,21 @@ The invocation environment passed to every implementation.
 
 ```typescript
 interface TrailContext {
-  readonly requestId: string;         // Auto-generated UUID v7 (time-sortable)
-  readonly signal: AbortSignal;       // Required -- always present
-  readonly follow?: FollowFn;        // Call another trail from a route
-  readonly permit?: unknown;          // Auth/principal (typed by the app)
-  readonly workspaceRoot?: string;    // Resolved workspace root path
-  readonly logger?: LoggerPort;       // Logger port (not a concrete logger)
+  readonly requestId: string; // Auto-generated UUID v7 (time-sortable)
+  readonly signal: AbortSignal; // Required -- always present
+  readonly follow?: FollowFn; // Call another trail from a hike
+  readonly permit?: unknown; // Auth/principal (typed by the app)
+  readonly workspaceRoot?: string; // Resolved workspace root path
+  readonly logger?: LoggerPort; // Logger port (not a concrete logger)
   readonly progress?: ProgressCallback; // Progress reporting for streaming
-  readonly [key: string]: unknown;    // Extensible -- apps can add custom fields
+  readonly [key: string]: unknown; // Extensible -- apps can add custom fields
 }
 
 type FollowFn = <O>(id: string, input: unknown) => Promise<Result<O, Error>>;
 type ProgressCallback = (event: ProgressEvent) => void;
 
 interface ProgressEvent {
-  type: "start" | "progress" | "complete" | "error";
+  type: 'start' | 'progress' | 'complete' | 'error';
   current?: number;
   total?: number;
   message?: string;
@@ -590,27 +598,16 @@ Defaults:
 
 ### 9.1 `Implementation<I, O>`
 
-The async pure function type:
+The unified function type that handles both sync and async authoring:
 
 ```typescript
 type Implementation<I, O> = (
   input: I,
-  ctx: TrailContext,
-) => Promise<Result<O, Error>>;
+  ctx: TrailContext
+) => Result<O, Error> | Promise<Result<O, Error>>;
 ```
 
-### 9.2 `SyncImplementation<I, O>`
-
-For synchronous implementations (rare but supported):
-
-```typescript
-type SyncImplementation<I, O> = (
-  input: I,
-  ctx: TrailContext,
-) => Result<O, Error>;
-```
-
-These are type aliases, not runtime constructs. The `trail()` function accepts either.
+This is a type alias, not a runtime construct. `trail()` and `hike()` accept implementations that return either `Result` or `Promise<Result>`, then normalize to the async runtime shape before surfaces and layers see the trail.
 
 ---
 
@@ -629,7 +626,7 @@ interface Layer {
 
   wrap<I, O>(
     trail: Trail<I, O>,
-    implementation: Implementation<I, O>,
+    implementation: Implementation<I, O>
   ): Implementation<I, O>;
 }
 ```
@@ -644,7 +641,7 @@ Applies layers in order (outermost first):
 function composeLayers<I, O>(
   layers: Layer[],
   trail: Trail<I, O>,
-  implementation: Implementation<I, O>,
+  implementation: Implementation<I, O>
 ): Implementation<I, O>;
 ```
 
@@ -665,15 +662,18 @@ function composeLayers<I, O>(
 ### 11.1 Types
 
 ```typescript
-type HealthStatus = "healthy" | "degraded" | "unhealthy";
+type HealthStatus = 'healthy' | 'degraded' | 'unhealthy';
 
 interface HealthResult {
   status: HealthStatus;
-  checks: Record<string, {
-    status: HealthStatus;
-    message?: string;
-    latency?: number;
-  }>;
+  checks: Record<
+    string,
+    {
+      status: HealthStatus;
+      message?: string;
+      latency?: number;
+    }
+  >;
   version?: string;
   uptime?: number;
 }
@@ -693,8 +693,14 @@ Port interfaces for infrastructure adapters. Core defines the contracts; concret
 
 ```typescript
 interface IndexAdapter {
-  index(id: string, document: Record<string, unknown>): Promise<Result<void, Error>>;
-  search(query: string, options?: SearchOptions): Promise<Result<SearchResult[], Error>>;
+  index(
+    id: string,
+    document: Record<string, unknown>
+  ): Promise<Result<void, Error>>;
+  search(
+    query: string,
+    options?: SearchOptions
+  ): Promise<Result<SearchResult[], Error>>;
   remove(id: string): Promise<Result<void, Error>>;
 }
 
@@ -716,7 +722,11 @@ interface SearchResult {
 ```typescript
 interface StorageAdapter {
   get(key: string): Promise<Result<unknown, Error>>;
-  set(key: string, value: unknown, options?: StorageOptions): Promise<Result<void, Error>>;
+  set(
+    key: string,
+    value: unknown,
+    options?: StorageOptions
+  ): Promise<Result<void, Error>>;
   delete(key: string): Promise<Result<void, Error>>;
   has(key: string): Promise<Result<boolean, Error>>;
 }
@@ -757,7 +767,7 @@ Validates data against a Zod schema and returns a Result:
 ```typescript
 function validateInput<T>(
   schema: z.ZodType<T>,
-  data: unknown,
+  data: unknown
 ): Result<T, ValidationError>;
 ```
 
@@ -804,15 +814,15 @@ Retries an async function that returns a Result:
 ```typescript
 function retry<T>(
   fn: () => Promise<Result<T, Error>>,
-  options?: RetryOptions,
+  options?: RetryOptions
 ): Promise<Result<T, Error>>;
 
 interface RetryOptions {
-  maxAttempts?: number;        // Default: 3
-  baseDelay?: number;          // Default: 1000ms
-  maxDelay?: number;           // Default: 30000ms
-  backoffFactor?: number;      // Default: 2 (exponential)
-  shouldRetry?: (error: Error) => boolean;  // Default: checks retryableMap
+  maxAttempts?: number; // Default: 3
+  baseDelay?: number; // Default: 1000ms
+  maxDelay?: number; // Default: 30000ms
+  backoffFactor?: number; // Default: 2 (exponential)
+  shouldRetry?: (error: Error) => boolean; // Default: checks retryableMap
   signal?: AbortSignal;
 }
 ```
@@ -825,7 +835,7 @@ Wraps an async operation with a timeout:
 function withTimeout<T>(
   fn: () => Promise<Result<T, Error>>,
   ms: number,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<Result<T, Error>>;
 ```
 
@@ -846,11 +856,14 @@ Uses `retryableMap` if the error is a `TrailsError`, otherwise returns `false`.
 Calculates exponential backoff delay with jitter:
 
 ```typescript
-function getBackoffDelay(attempt: number, options?: {
-  baseDelay?: number;
-  maxDelay?: number;
-  backoffFactor?: number;
-}): number;
+function getBackoffDelay(
+  attempt: number,
+  options?: {
+    baseDelay?: number;
+    maxDelay?: number;
+    backoffFactor?: number;
+  }
+): number;
 ```
 
 ### 14.5 Tests
@@ -935,7 +948,7 @@ Wraps `fetch()` to return a Result:
 ```typescript
 function fromFetch(
   input: string | URL | Request,
-  init?: RequestInit,
+  init?: RequestInit
 ): Promise<Result<Response, Error>>;
 ```
 
@@ -977,10 +990,10 @@ function brand<T, Tag extends string>(tag: Tag, value: T): Branded<T, Tag>;
 ### 17.2 Built-in branded types
 
 ```typescript
-type UUID = Branded<string, "UUID">;
-type Email = Branded<string, "Email">;
-type NonEmptyString = Branded<string, "NonEmptyString">;
-type PositiveInt = Branded<number, "PositiveInt">;
+type UUID = Branded<string, 'UUID'>;
+type Email = Branded<string, 'Email'>;
+type NonEmptyString = Branded<string, 'NonEmptyString'>;
+type PositiveInt = Branded<number, 'PositiveInt'>;
 ```
 
 Each with a factory function that validates:
@@ -1011,7 +1024,10 @@ function positiveInt(value: number): Result<PositiveInt, ValidationError>;
 function isDefined<T>(value: T | undefined | null): value is T;
 function isNonEmptyString(value: unknown): value is string;
 function isPlainObject(value: unknown): value is Record<string, unknown>;
-function hasProperty<K extends string>(obj: unknown, key: K): obj is Record<K, unknown>;
+function hasProperty<K extends string>(
+  obj: unknown,
+  key: K
+): obj is Record<K, unknown>;
 ```
 
 ### 18.2 Tests
@@ -1030,7 +1046,10 @@ function hasProperty<K extends string>(obj: unknown, key: K): obj is Record<K, u
 ```typescript
 function chunk<T>(array: T[], size: number): T[][];
 function dedupe<T>(array: T[], key?: (item: T) => unknown): T[];
-function groupBy<T, K extends string>(array: T[], fn: (item: T) => K): Record<K, T[]>;
+function groupBy<T, K extends string>(
+  array: T[],
+  fn: (item: T) => K
+): Record<K, T[]>;
 function sortBy<T>(array: T[], fn: (item: T) => string | number): T[];
 ```
 
@@ -1040,7 +1059,7 @@ function sortBy<T>(array: T[], fn: (item: T) => string | number): T[];
 type NonEmptyArray<T> = [T, ...T[]];
 
 function isNonEmptyArray<T>(array: T[]): array is NonEmptyArray<T>;
-function assertNonEmpty<T>(array: T[]): NonEmptyArray<T>;  // throws if empty
+function assertNonEmpty<T>(array: T[]): NonEmptyArray<T>; // throws if empty
 ```
 
 ### 19.3 Tests
@@ -1062,9 +1081,15 @@ In core so the safe path is the easy path.
 ### 20.1 Functions
 
 ```typescript
-function securePath(basePath: string, userPath: string): Result<string, PermissionError>;
+function securePath(
+  basePath: string,
+  userPath: string
+): Result<string, PermissionError>;
 function isPathSafe(basePath: string, userPath: string): boolean;
-function resolveSafePath(basePath: string, ...segments: string[]): Result<string, PermissionError>;
+function resolveSafePath(
+  basePath: string,
+  ...segments: string[]
+): Result<string, PermissionError>;
 ```
 
 - `securePath()` resolves a user-provided path relative to a base path and verifies it does not escape the base directory (no `../` traversal attacks).
@@ -1127,7 +1152,11 @@ interface BlobRef {
 ### 22.2 Utilities
 
 ```typescript
-function createBlobRef(name: string, data: Uint8Array, mimeType?: string): BlobRef;
+function createBlobRef(
+  name: string,
+  data: Uint8Array,
+  mimeType?: string
+): BlobRef;
 function blobRefFromFile(path: string): Promise<Result<BlobRef, Error>>;
 ```
 
@@ -1152,7 +1181,7 @@ Verify that `statusFields()` and `progressFields()` from `@ontrails/core/pattern
 
 ```typescript
 function statusFields(): {
-  status: z.ZodEnum<["pending", "running", "completed", "failed", "cancelled"]>;
+  status: z.ZodEnum<['pending', 'running', 'completed', 'failed', 'cancelled']>;
   startedAt: z.ZodOptional<z.ZodString>;
   completedAt: z.ZodOptional<z.ZodString>;
   error: z.ZodOptional<z.ZodString>;
@@ -1197,8 +1226,8 @@ If the proof reveals that a `kind: "job"` discriminant is needed on the trail sp
 
 ```typescript
 function paginationInput(): {
-  limit: z.ZodDefault<z.ZodNumber>;   // default 20
-  offset: z.ZodDefault<z.ZodNumber>;  // default 0
+  limit: z.ZodDefault<z.ZodNumber>; // default 20
+  offset: z.ZodDefault<z.ZodNumber>; // default 0
   cursor: z.ZodOptional<z.ZodString>;
 };
 
@@ -1220,10 +1249,14 @@ function bulkInput<T>(itemSchema: z.ZodType<T>): z.ZodObject<{
 function bulkOutput(): z.ZodObject<{
   succeeded: z.ZodNumber;
   failed: z.ZodNumber;
-  errors: z.ZodOptional<z.ZodArray<z.ZodObject<{
-    index: z.ZodNumber;
-    error: z.ZodString;
-  }>>>;
+  errors: z.ZodOptional<
+    z.ZodArray<
+      z.ZodObject<{
+        index: z.ZodNumber;
+        error: z.ZodString;
+      }>
+    >
+  >;
 }>;
 ```
 
@@ -1250,7 +1283,7 @@ function dateRangeInput(): {
 ```typescript
 function sortingInput(allowedFields: string[]): {
   sortBy: z.ZodOptional<z.ZodEnum<[string, ...string[]]>>;
-  sortOrder: z.ZodDefault<z.ZodEnum<["asc", "desc"]>>;
+  sortOrder: z.ZodDefault<z.ZodEnum<['asc', 'desc']>>;
 };
 ```
 
@@ -1262,7 +1295,7 @@ function sortingInput(allowedFields: string[]): {
 
 ```typescript
 function changeFields(): {
-  changeType: z.ZodEnum<["created", "updated", "deleted"]>;
+  changeType: z.ZodEnum<['created', 'updated', 'deleted']>;
   changedFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
   previousValues: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
 };
@@ -1292,12 +1325,12 @@ Creates a redaction function:
 
 ```typescript
 function createRedactor(
-  patterns?: RedactionPattern[],
+  patterns?: RedactionPattern[]
 ): (value: string) => string;
 
 interface RedactionPattern {
   pattern: RegExp;
-  replacement?: string;  // Default: "[REDACTED]"
+  replacement?: string; // Default: "[REDACTED]"
   name: string;
 }
 ```
@@ -1308,11 +1341,23 @@ Built-in patterns for common secrets:
 
 ```typescript
 const DEFAULT_PATTERNS: RedactionPattern[] = [
-  { name: "bearer_token", pattern: /Bearer\s+[A-Za-z0-9\-._~+\/]+=*/g },
-  { name: "api_key", pattern: /(?:api[_-]?key|apikey)\s*[:=]\s*["']?[A-Za-z0-9\-._~+\/]+/gi },
-  { name: "password", pattern: /(?:password|passwd|pwd)\s*[:=]\s*["']?[^\s"']+/gi },
-  { name: "jwt", pattern: /eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g },
-  { name: "private_key", pattern: /-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END/g },
+  { name: 'bearer_token', pattern: /Bearer\s+[A-Za-z0-9\-._~+\/]+=*/g },
+  {
+    name: 'api_key',
+    pattern: /(?:api[_-]?key|apikey)\s*[:=]\s*["']?[A-Za-z0-9\-._~+\/]+/gi,
+  },
+  {
+    name: 'password',
+    pattern: /(?:password|passwd|pwd)\s*[:=]\s*["']?[^\s"']+/gi,
+  },
+  {
+    name: 'jwt',
+    pattern: /eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g,
+  },
+  {
+    name: 'private_key',
+    pattern: /-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END/g,
+  },
 ];
 ```
 
@@ -1332,7 +1377,7 @@ Export everything except patterns and redaction (those are subpaths):
 
 ```typescript
 // Result
-export { Result, Ok, Err } from "./result";
+export { Result, Ok, Err } from './result';
 
 // Errors
 export {
@@ -1355,13 +1400,13 @@ export {
   statusCodeMap,
   jsonRpcCodeMap,
   retryableMap,
-} from "./errors";
+} from './errors';
 
 // Definitions
-export { trail, type Trail, type TrailSpec, type TrailExample } from "./trail";
-export { route, type Route, type RouteSpec } from "./route";
-export { event, type Event, type EventSpec } from "./event";
-export { trailhead, type App, type Topo } from "./trailhead";
+export { trail, type Trail, type TrailSpec, type TrailExample } from './trail';
+export { hike, type Hike, type HikeSpec } from './hike';
+export { event, type Event, type EventSpec } from './event';
+export { topo, type Topo } from './topo';
 
 // Context
 export {
@@ -1371,46 +1416,88 @@ export {
   type ProgressEvent,
   type LoggerPort,
   createTrailContext,
-} from "./context";
+} from './context';
 
 // Types
-export { type Implementation, type SyncImplementation } from "./types";
-export { type Layer, composeLayers } from "./layer";
-export { type HealthStatus, type HealthResult } from "./health";
-export { type IndexAdapter, type StorageAdapter, type CacheAdapter } from "./adapters";
+export { type Implementation } from './types';
+export { type Layer, composeLayers } from './layer';
+export { type HealthStatus, type HealthResult } from './health';
+export {
+  type IndexAdapter,
+  type StorageAdapter,
+  type CacheAdapter,
+} from './adapters';
 
 // Validation
-export { validateInput, formatZodIssues, zodToJsonSchema } from "./validation";
+export { validateInput, formatZodIssues, zodToJsonSchema } from './validation';
 
 // Resilience
-export { retry, withTimeout, shouldRetry, getBackoffDelay, type RetryOptions } from "./resilience";
+export {
+  retry,
+  withTimeout,
+  shouldRetry,
+  getBackoffDelay,
+  type RetryOptions,
+} from './resilience';
 
 // Serialization
-export { serializeError, deserializeError, safeParse, safeStringify, type SerializedError } from "./serialization";
+export {
+  serializeError,
+  deserializeError,
+  type SerializedError,
+} from './serialization';
 
-// Fetch
-export { fromFetch } from "./fetch";
+// Result.fromJson and Result.toJson are methods on the Result namespace
+// Result.fromFetch is a method on the Result namespace
 
 // Branded types
-export { type Branded, brand, type UUID, uuid, type Email, email, type NonEmptyString, nonEmptyString, type PositiveInt, positiveInt } from "./branded";
+export {
+  type Branded,
+  brand,
+  type UUID,
+  uuid,
+  type Email,
+  email,
+  type NonEmptyString,
+  nonEmptyString,
+  type PositiveInt,
+  positiveInt,
+} from './branded';
 
 // Guards
-export { isDefined, isNonEmptyString, isPlainObject, hasProperty } from "./guards";
+export {
+  isDefined,
+  isNonEmptyString,
+  isPlainObject,
+  hasProperty,
+} from './guards';
 
 // Collections
-export { chunk, dedupe, groupBy, sortBy, type NonEmptyArray, isNonEmptyArray, assertNonEmpty } from "./collections";
+export {
+  chunk,
+  dedupe,
+  groupBy,
+  sortBy,
+  type NonEmptyArray,
+  isNonEmptyArray,
+  assertNonEmpty,
+} from './collections';
 
 // Path security
-export { securePath, isPathSafe, resolveSafePath } from "./path-security";
+export { securePath, isPathSafe, resolveSafePath } from './path-security';
 
 // Workspace
-export { findWorkspaceRoot, isInsideWorkspace, getRelativePath } from "./workspace";
+export {
+  findWorkspaceRoot,
+  isInsideWorkspace,
+  getRelativePath,
+} from './workspace';
 
 // BlobRef
-export { type BlobRef, createBlobRef, blobRefFromFile } from "./blob-ref";
+export { type BlobRef, createBlobRef, blobRefFromFile } from './blob-ref';
 
 // Job
-export { statusFields, progressFields } from "./job";
+export { statusFields, progressFields } from './job';
 ```
 
 ### 26.2 Subpath exports

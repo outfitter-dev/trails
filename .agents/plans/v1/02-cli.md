@@ -88,13 +88,13 @@ A framework-agnostic representation of a CLI command. This is the intermediate m
 
 ```typescript
 interface CliCommand {
-  readonly name: string;              // Command name (e.g., "entity-show")
+  readonly name: string; // Command name (e.g., "entity-show")
   readonly description?: string;
-  readonly group?: string;            // Parent group for subcommand nesting (e.g., "entity")
-  readonly flags: CliFlag[];          // Derived from Zod schema + presets
-  readonly args: CliArg[];            // Positional arguments (if any)
-  readonly trail: Trail;              // Reference to the trail spec
-  readonly layers?: Layer[];          // CLI-specific layers to apply
+  readonly group?: string; // Parent group for subcommand nesting (e.g., "entity")
+  readonly flags: CliFlag[]; // Derived from Zod schema + presets
+  readonly args: CliArg[]; // Positional arguments (if any)
+  readonly trail: Trail; // Reference to the trail spec
+  readonly layers?: Layer[]; // CLI-specific layers to apply
   readonly readOnly?: boolean;
   readonly destructive?: boolean;
   readonly idempotent?: boolean;
@@ -102,7 +102,7 @@ interface CliCommand {
   execute(
     parsedArgs: Record<string, unknown>,
     parsedFlags: Record<string, unknown>,
-    ctx?: Partial<TrailContext>,
+    ctx?: Partial<TrailContext>
   ): Promise<Result<unknown, Error>>;
 }
 ```
@@ -111,14 +111,14 @@ interface CliCommand {
 
 ```typescript
 interface CliFlag {
-  readonly name: string;              // Long flag name (e.g., "output")
-  readonly short?: string;            // Short alias (e.g., "o")
+  readonly name: string; // Long flag name (e.g., "output")
+  readonly short?: string; // Short alias (e.g., "o")
   readonly description?: string;
-  readonly type: "string" | "number" | "boolean" | "string[]" | "number[]";
+  readonly type: 'string' | 'number' | 'boolean' | 'string[]' | 'number[]';
   readonly required: boolean;
   readonly default?: unknown;
-  readonly choices?: string[];        // From z.enum()
-  readonly variadic: boolean;         // From z.array()
+  readonly choices?: string[]; // From z.enum()
+  readonly variadic: boolean; // From z.array()
 }
 ```
 
@@ -156,16 +156,16 @@ function deriveFlags(schema: z.ZodType): CliFlag[];
 **Derivation rules:**
 
 | Zod type | Flag type | Notes |
-|----------|-----------|-------|
-| `z.string()` | `string` | |
-| `z.number()` | `number` | |
-| `z.boolean()` | `boolean` | |
+| --- | --- | --- |
+| `z.string()` | `string` |  |
+| `z.number()` | `number` |  |
+| `z.boolean()` | `boolean` |  |
 | `z.enum([...])` | `string` with `choices` | Choices populated from enum values |
 | `z.array(z.string())` | `string[]` | `variadic: true` |
 | `z.array(z.number())` | `number[]` | `variadic: true` |
-| `z.optional(...)` | same, `required: false` | |
-| `z.default(...)` | same, `required: false`, `default` populated | |
-| `z.describe("...")` | adds `description` from `.describe()` | |
+| `z.optional(...)` | same, `required: false` |  |
+| `z.default(...)` | same, `required: false`, `default` populated |  |
+| `z.describe("...")` | adds `description` from `.describe()` |  |
 
 **Name conversion:**
 
@@ -238,14 +238,14 @@ Presets are arrays of `CliFlag` objects that get merged with schema-derived flag
 ```typescript
 function buildCliCommands(
   app: App,
-  options?: BuildCliCommandsOptions,
+  options?: BuildCliCommandsOptions
 ): CliCommand[];
 
 interface BuildCliCommandsOptions {
   onResult?: (ctx: ActionResultContext) => Promise<void>;
   createContext?: () => TrailContext | Promise<TrailContext>;
   layers?: Layer[];
-  presets?: CliFlag[][];        // Additional flag presets to add to all commands
+  presets?: CliFlag[][]; // Additional flag presets to add to all commands
 }
 ```
 
@@ -269,7 +269,7 @@ interface BuildCliCommandsOptions {
    b. Calls `validateInput(trail.input, mergedInput)` from core
    c. Creates or uses provided TrailContext
    d. Applies layers via `composeLayers()`
-   e. Calls the implementation
+   e. Calls the normalized async implementation
    f. Calls `onResult` if provided (or silently discards the result)
    g. Returns the Result
 
@@ -286,7 +286,7 @@ interface ActionResultContext {
   readonly trail: Trail;
   readonly args: Record<string, unknown>;
   readonly flags: Record<string, unknown>;
-  readonly input: unknown;              // Validated input
+  readonly input: unknown; // Validated input
   readonly result: Result<unknown, Error>;
 }
 ```
@@ -313,12 +313,9 @@ interface ActionResultContext {
 Writes a value to stdout in the specified format:
 
 ```typescript
-async function output(
-  value: unknown,
-  mode: OutputMode,
-): Promise<void>;
+async function output(value: unknown, mode: OutputMode): Promise<void>;
 
-type OutputMode = "text" | "json" | "jsonl";
+type OutputMode = 'text' | 'json' | 'jsonl';
 ```
 
 **Behavior by mode:**
@@ -334,9 +331,9 @@ Uses `Bun.write(Bun.stdout, ...)` or `process.stdout.write()`.
 Determines output mode from parsed CLI flags:
 
 ```typescript
-function resolveOutputMode(
-  flags: Record<string, unknown>,
-): { mode: OutputMode };
+function resolveOutputMode(flags: Record<string, unknown>): {
+  mode: OutputMode;
+};
 ```
 
 Resolution order (highest wins):
@@ -374,9 +371,7 @@ async function defaultOnResult(ctx: ActionResultContext): Promise<void>;
 **What it does:**
 
 1. If `ctx.result.isErr()`: throw the error (let the program's error handler produce the exit code)
-2. If `ctx.result.isOk()`:
-   a. Call `resolveOutputMode(ctx.flags)` to determine format
-   b. Call `output(ctx.result.value, mode)`
+2. If `ctx.result.isOk()`: a. Call `resolveOutputMode(ctx.flags)` to determine format b. Call `output(ctx.result.value, mode)`
 
 ### 6.2 Custom onResult
 
@@ -385,10 +380,13 @@ Users can provide their own callback for logging, metrics, custom formatting, et
 ```typescript
 async function myOnResult(ctx: ActionResultContext): Promise<void> {
   if (ctx.result.isErr()) {
-    logger.error("Trail failed", { trail: ctx.trail.id, error: ctx.result.error });
+    logger.error('Trail failed', {
+      trail: ctx.trail.id,
+      error: ctx.result.error,
+    });
     throw ctx.result.error;
   }
-  logger.info("Trail succeeded", { trail: ctx.trail.id });
+  logger.info('Trail succeeded', { trail: ctx.trail.id });
   const { mode } = resolveOutputMode(ctx.flags);
   await output(ctx.result.value, mode);
 }
@@ -439,12 +437,12 @@ Converts `CliCommand[]` into a configured Commander program:
 ```typescript
 function toCommander(
   commands: CliCommand[],
-  options?: ToCommanderOptions,
+  options?: ToCommanderOptions
 ): Command;
 
 interface ToCommanderOptions {
-  name?: string;          // Program name (default: from package.json or "cli")
-  version?: string;       // Program version
+  name?: string; // Program name (default: from package.json or "cli")
+  version?: string; // Program version
   description?: string;
 }
 ```
@@ -453,23 +451,17 @@ interface ToCommanderOptions {
 
 1. Create a new `Command` (from `commander`)
 2. Set name, version, description from options
-3. For each `CliCommand`:
-   a. If `command.group` is set, find or create the parent command
-   b. Create a `Command` for the trail's command name
-   c. Set description
-   d. For each `CliFlag`:
-      - Add Commander option with correct type handling
-      - Boolean flags: `--dry-run` (no argument)
-      - String/number flags: `--name <value>` (required) or `--name [value]` (optional)
-      - Variadic flags: `--tag <values...>` for `string[]`
-      - Enum flags: `.choices()` for constrained values
-      - Defaults: `.default()` for defaulted flags
-   e. For each `CliArg`:
-      - Add as Commander argument
-   f. Set `.action()` that:
-      - Extracts parsed args and flags from Commander
-      - Calls `command.execute(args, flags)`
-      - Handles errors (maps TrailsError category to exit code via `exitCodeMap`)
+3. For each `CliCommand`: a. If `command.group` is set, find or create the parent command b. Create a `Command` for the trail's command name c. Set description d. For each `CliFlag`:
+   - Add Commander option with correct type handling
+   - Boolean flags: `--dry-run` (no argument)
+   - String/number flags: `--name <value>` (required) or `--name [value]` (optional)
+   - Variadic flags: `--tag <values...>` for `string[]`
+   - Enum flags: `.choices()` for constrained values
+   - Defaults: `.default()` for defaulted flags e. For each `CliArg`:
+   - Add as Commander argument f. Set `.action()` that:
+   - Extracts parsed args and flags from Commander
+   - Calls `command.execute(args, flags)`
+   - Handles errors (maps TrailsError category to exit code via `exitCodeMap`)
 4. Return the configured program
 
 ### 8.2 `blaze(app, options?)`
@@ -518,11 +510,11 @@ That is the entire `blaze()` function. It:
 **Usage:**
 
 ```typescript
-import { trailhead } from "@ontrails/core";
-import { blaze } from "@ontrails/cli/commander";
-import * as entity from "./trails/entity.ts";
+import { topo } from '@ontrails/core';
+import { blaze } from '@ontrails/cli/commander';
+import * as entity from './trails/entity.ts';
 
-const app = trailhead("myapp", entity);
+const app = topo('myapp', entity);
 blaze(app);
 ```
 
@@ -604,29 +596,38 @@ When a trail's input schema has `since`/`until` fields (matching the dateRange p
 
 ```typescript
 // Command model
-export { type CliCommand, type CliFlag, type CliArg } from "./command";
+export { type CliCommand, type CliFlag, type CliArg } from './command';
 
 // Build
-export { buildCliCommands, type BuildCliCommandsOptions, type ActionResultContext } from "./build";
+export {
+  buildCliCommands,
+  type BuildCliCommandsOptions,
+  type ActionResultContext,
+} from './build';
 
 // Flags
-export { deriveFlags, outputModePreset, cwdPreset, dryRunPreset } from "./flags";
+export {
+  deriveFlags,
+  outputModePreset,
+  cwdPreset,
+  dryRunPreset,
+} from './flags';
 
 // Output
-export { output, resolveOutputMode, type OutputMode } from "./output";
+export { output, resolveOutputMode, type OutputMode } from './output';
 
 // onResult
-export { defaultOnResult } from "./on-result";
+export { defaultOnResult } from './on-result';
 
 // Layers
-export { autoIterateLayer, dateShortcutsLayer } from "./layers";
+export { autoIterateLayer, dateShortcutsLayer } from './layers';
 ```
 
 ### 10.2 `/commander` subpath (`src/commander/index.ts`)
 
 ```typescript
-export { toCommander, type ToCommanderOptions } from "./to-commander";
-export { blaze, type BlazeCliOptions } from "./blaze";
+export { toCommander, type ToCommanderOptions } from './to-commander';
+export { blaze, type BlazeCliOptions } from './blaze';
 ```
 
 ---

@@ -5,6 +5,7 @@
 **Graphite** for stacked PRs. Same workflow as Outfitter — `gt create`, `gt submit --stack`, `gt merge`. Each stage of the build plan is a stack or series of stacks.
 
 **Linear** for issue tracking. Team: **TRL**. Issues map to stages:
+
 - `TRL-*` issues for each stage's deliverables
 - Milestone per stage (00-09)
 - Labels: `stage:00`, `stage:01`, etc. for filtering
@@ -12,6 +13,7 @@
 **Branch naming:** `feat/trl-NNN/short-description` or Graphite auto-naming.
 
 **Commits:** Conventional commits with scopes matching package names:
+
 ```
 feat(core): implement Result type
 feat(cli): add flag derivation from Zod schemas
@@ -30,6 +32,7 @@ Set up from day one. The Trails repo needs its own agent instructions — not a 
 **CLAUDE.md** — points to AGENTS.md (same pattern as Outfitter).
 
 **AGENTS.md** should cover:
+
 - Project overview (what Trails is, the vocabulary)
 - Package structure and tiers
 - Commands (build, test, lint, typecheck)
@@ -46,7 +49,7 @@ Set up from day one. The Trails repo needs its own agent instructions — not a 
 Evaluate what carries from Outfitter's `.claude/` setup:
 
 | From Outfitter | Carry to Trails? | Notes |
-|---------------|-----------------|-------|
+| --- | --- | --- |
 | `rules/graphite.md` | Yes | Same Graphite workflow |
 | `rules/linear.md` | Yes, update team to TRL | Same Linear workflow |
 | `rules/tsdoc.md` | Yes | Same TSDoc conventions |
@@ -62,6 +65,7 @@ The warden lint rules should also be surfaced as Claude Code rules so agents int
 # .claude/rules/trails-conventions.md
 
 ## Trail Conventions
+
 - Implementations return Result, never throw
 - TrailContext must not import surface-specific types (Request, Response, McpSession)
 - Routes use ctx.follow(), never direct .implementation() calls
@@ -92,7 +96,7 @@ The Outfitter monorepo has 14 runtime packages with extensive custom tooling. Mu
 ### Carry as-is
 
 | Infrastructure | What | Why |
-|---------------|------|-----|
+| --- | --- | --- |
 | **TypeScript strict config** | `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noPropertyAccessFromIndexSignature`, `verbatimModuleSyntax` | These flags catch real bugs. Same flags, day one. |
 | **Ultracite** (oxlint + oxfmt) | Same versions, same formatter config | Proven linting and formatting. `experimentalSortImports` works well. |
 | **Lefthook** | Pre-commit: format + lint with `stage_fixed: true`. Pre-push: test + typecheck | The two-hook pattern is solid. Auto-fix on commit, verify on push. |
@@ -104,7 +108,7 @@ The Outfitter monorepo has 14 runtime packages with extensive custom tooling. Mu
 ### Carry simplified
 
 | Infrastructure | Outfitter | Trails v1 |
-|---------------|-----------|-----------|
+| --- | --- | --- |
 | **Build** | Turbo + bunup across 14 packages with registry system | Turbo + `tsc` with `declaration: true`. Bunup only if tree-shaking becomes a concern. |
 | **CI** | 8 jobs, 4 test shards, OOM retry, remote cache with signatures | Single build + single test job + lint-typecheck. Add shards when test suite grows. |
 | **Oxlint rules** | 15 custom rules in `packages/oxlint-plugin` | Global `.oxlintrc.json` with standard rules. Warden ships custom rules in stage 06. |
@@ -114,7 +118,7 @@ The Outfitter monorepo has 14 runtime packages with extensive custom tooling. Mu
 ### Don't carry
 
 | Infrastructure | Why not |
-|---------------|---------|
+| --- | --- |
 | **bunup registry system** | Outfitter-specific complexity for managing 14 package builds |
 | **Test shard configuration** | 10 packages don't need shard distribution |
 | **Custom pre-push orchestrator** | Overkill for fewer packages |
@@ -226,7 +230,7 @@ All packages start at `0.1.0`. Changesets for coordinated versioning. Canary rel
 ## What We Carry From Outfitter
 
 | Concern | What we take | What we leave |
-|---------|-------------|---------------|
+| --- | --- | --- |
 | TypeScript config | Strict flags (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, etc.) | Custom path aliases |
 | Testing | bun:test, snapshot conventions | Shard-based distribution |
 | Linting | oxlint with standard rules | Custom oxlint plugin (comes later) |

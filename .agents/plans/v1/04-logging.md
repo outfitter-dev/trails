@@ -119,6 +119,7 @@ export interface LoggerInstance {
 `LoggerInstance` satisfies the `Logger` interface from `@ontrails/core`, so it can be used as `TrailContext.logger`.
 
 **`child(metadata)`** creates a new `LoggerInstance` that:
+
 - Inherits the parent's sinks, level config, and redaction.
 - Merges the provided metadata into every log record (useful for `{ requestId, trail, surface }` enrichment).
 - Does not create a new sink pipeline -- child loggers share the parent's sinks.
@@ -129,12 +130,12 @@ The `levels` config maps category prefixes to log levels:
 
 ```typescript
 const logger = createLogger({
-  name: "app.db.queries",
-  level: "info",  // global fallback
+  name: 'app.db.queries',
+  level: 'info', // global fallback
   levels: {
-    "app": "info",
-    "app.db": "debug",
-    "app.http": "warn",
+    app: 'info',
+    'app.db': 'debug',
+    'app.http': 'warn',
   },
 });
 ```
@@ -160,7 +161,7 @@ export function resolveCategory(
   while (prefix.length > 0) {
     const level = levels[prefix];
     if (level !== undefined) return level;
-    const lastDot = prefix.lastIndexOf(".");
+    const lastDot = prefix.lastIndexOf('.');
     if (lastDot === -1) break;
     prefix = prefix.slice(0, lastDot);
   }
@@ -181,7 +182,10 @@ const LEVEL_PRIORITY: Record<LogLevel, number> = {
   silent: 6,
 };
 
-export function shouldLog(messageLevel: LogLevel, configuredLevel: LogLevel): boolean {
+export function shouldLog(
+  messageLevel: LogLevel,
+  configuredLevel: LogLevel
+): boolean {
   return LEVEL_PRIORITY[messageLevel] >= LEVEL_PRIORITY[configuredLevel];
 }
 ```
@@ -251,7 +255,14 @@ export interface Formatter {
 Produces one JSON object per log record, newline-delimited:
 
 ```json
-{"level":"info","message":"Entity created","category":"app.entity","timestamp":"2026-03-25T10:00:00.000Z","requestId":"abc-123","entityId":"e1"}
+{
+  "level": "info",
+  "message": "Entity created",
+  "category": "app.entity",
+  "timestamp": "2026-03-25T10:00:00.000Z",
+  "requestId": "abc-123",
+  "entityId": "e1"
+}
 ```
 
 Metadata fields are flattened into the top-level object. Timestamp is ISO 8601.
@@ -266,7 +277,9 @@ export interface PrettyFormatterOptions {
   readonly colors?: boolean;
 }
 
-export function createPrettyFormatter(options?: PrettyFormatterOptions): Formatter;
+export function createPrettyFormatter(
+  options?: PrettyFormatterOptions
+): LogFormatter;
 ```
 
 Produces human-readable output:
@@ -282,12 +295,19 @@ Uses `Bun.color()` for ANSI colors when available.
 `createLogger` creates a `Redactor` from `@ontrails/core/redaction`:
 
 ```typescript
-import { createRedactor, DEFAULT_PATTERNS, DEFAULT_SENSITIVE_KEYS } from "@ontrails/core/redaction";
+import {
+  createRedactor,
+  DEFAULT_PATTERNS,
+  DEFAULT_SENSITIVE_KEYS,
+} from '@ontrails/core/redaction';
 
 // Inside createLogger:
 const redactor = createRedactor({
   patterns: [...DEFAULT_PATTERNS, ...(config.redaction?.patterns ?? [])],
-  sensitiveKeys: [...DEFAULT_SENSITIVE_KEYS, ...(config.redaction?.sensitiveKeys ?? [])],
+  sensitiveKeys: [
+    ...DEFAULT_SENSITIVE_KEYS,
+    ...(config.redaction?.sensitiveKeys ?? []),
+  ],
 });
 ```
 
@@ -316,10 +336,13 @@ No global mutable redaction config. Rules are declarative, set at logger creatio
 ### `resolveLogLevel()` from Environment
 
 ```typescript
-export function resolveLogLevel(env?: Record<string, string | undefined>): LogLevel | undefined;
+export function resolveLogLevel(
+  env?: Record<string, string | undefined>
+): LogLevel | undefined;
 ```
 
 Resolution order:
+
 1. `TRAILS_LOG_LEVEL` env var (if valid log level string).
 2. `TRAILS_ENV` profile defaults:
    - `development` -> `"debug"`
@@ -333,7 +356,7 @@ Resolution order:
 
 ```typescript
 // @ontrails/logging/logtape
-import type { Logger as LogtapeLogger } from "@logtape/logtape";
+import type { Logger as LogtapeLogger } from '@logtape/logtape';
 
 export interface LogtapeSinkOptions {
   /** An existing logtape logger to forward records to. */
@@ -351,23 +374,29 @@ The sink forwards `LogRecord` to the logtape logger, mapping Trails levels to lo
 
 ```typescript
 // @ontrails/logging (main)
-export { createLogger } from "./logger.js";
-export type { LoggerInstance, LoggerConfig } from "./types.js";
+export { createLogger } from './logger.js';
+export type { Logger, LoggerConfig } from './types.js';
 
 // Re-exports from core
-export type { Logger, LogLevel, LogMetadata, LogMethod } from "@ontrails/core";
+export type { Logger, LogLevel, LogMetadata, LogMethod } from '@ontrails/core';
 
 // Sinks and formatters
-export { createConsoleSink, createFileSink } from "./sinks.js";
-export { createJsonFormatter, createPrettyFormatter } from "./formatters.js";
-export type { Sink, Formatter, ConsoleSinkOptions, FileSinkOptions, PrettyFormatterOptions } from "./types.js";
+export { createConsoleSink, createFileSink } from './sinks.js';
+export { createJsonFormatter, createPrettyFormatter } from './formatters.js';
+export type {
+  LogSink,
+  LogFormatter,
+  ConsoleSinkOptions,
+  FileSinkOptions,
+  PrettyFormatterOptions,
+} from './types.js';
 
 // Level resolution
-export { resolveLogLevel } from "./env.js";
+export { resolveLogLevel } from './env.js';
 
 // @ontrails/logging/logtape
-export { logtapeSink } from "./logtape/index.js";
-export type { LogtapeSinkOptions } from "./logtape/index.js";
+export { logtapeSink } from './logtape/index.js';
+export type { LogtapeSinkOptions } from './logtape/index.js';
 ```
 
 ---
