@@ -241,14 +241,20 @@ const createHandler =
  * - MCP annotations from trail markers
  * - A handler that validates, composes layers, executes, and maps results
  */
-/** Check if a trail should be included based on filters. */
-const shouldInclude = (id: string, options: BuildMcpToolsOptions): boolean => {
+/** Check if a trail should be included based on markers and filters. */
+const shouldInclude = (
+  trail: Trail<unknown, unknown>,
+  options: BuildMcpToolsOptions
+): boolean => {
+  if (trail.markers?.['internal'] === true) {
+    return false;
+  }
   if (options.includeTrails !== undefined && options.includeTrails.length > 0) {
-    return options.includeTrails.includes(id);
+    return options.includeTrails.includes(trail.id);
   }
   if (
     options.excludeTrails !== undefined &&
-    options.excludeTrails.includes(id)
+    options.excludeTrails.includes(trail.id)
   ) {
     return false;
   }
@@ -303,7 +309,7 @@ export const buildMcpTools = (
     if (item.kind !== 'trail' && item.kind !== 'hike') {
       continue;
     }
-    if (!shouldInclude(item.id, options)) {
+    if (!shouldInclude(item as Trail<unknown, unknown>, options)) {
       continue;
     }
     tools.push(

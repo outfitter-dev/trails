@@ -131,10 +131,10 @@ export const blaze = async (
   options: BlazeMcpOptions = {}
 ): Promise<void> => {
   const tools = buildMcpTools(app, {
-    createContext: options.createContext ?? undefined,
-    excludeTrails: options.excludeTrails ?? undefined,
-    includeTrails: options.includeTrails ?? undefined,
-    layers: options.layers ?? undefined,
+    createContext: options.createContext,
+    excludeTrails: options.excludeTrails,
+    includeTrails: options.includeTrails,
+    layers: options.layers,
   });
 
   const server = createMcpServer(tools, {
