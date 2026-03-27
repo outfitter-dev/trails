@@ -165,6 +165,13 @@ export const safeStringify = (
       }
       return val;
     });
+    if (json === undefined) {
+      return Result.err(
+        new InternalError('Value is not JSON-serializable', {
+          context: { type: typeof value },
+        })
+      );
+    }
     return Result.ok(json);
   } catch (error) {
     return Result.err(

@@ -8,6 +8,7 @@ import {
   NetworkError,
   NotFoundError,
   PermissionError,
+  ValidationError,
   RateLimitError,
   TimeoutError,
 } from '../errors.js';
@@ -151,12 +152,12 @@ describe('Result.fromFetch — status code mapping', () => {
     );
   });
 
-  test('400 → InternalError (unmapped client error)', async () => {
+  test('400 → ValidationError', async () => {
     mockFetch(async () => fakeResponse(400));
     const result = await Result.fromFetch('https://example.com/api');
     expect(result.isErr()).toBe(true);
     expect((result as unknown as { error: Error }).error).toBeInstanceOf(
-      InternalError
+      ValidationError
     );
   });
 });

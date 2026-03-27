@@ -67,7 +67,8 @@ type DeepRedact = (
   sensitiveKeysLower: ReadonlySet<string>,
   patterns: RegExp[],
   replacement: string,
-  currentKey?: string
+  currentKey?: string,
+  seen?: WeakSet<object>
 ) => unknown;
 
 const mapObjectValues = (
@@ -81,31 +82,76 @@ const mapObjectValues = (
   return result;
 };
 
-const deepRedact: DeepRedact = (
-  value: unknown,
+/** Track and guard against circular references in object graphs. */
+const trackOrCircular = (
+  value: object,
+  seen: WeakSet<object>
+): '[Circular]' | null => {
+  if (seen.has(value)) {
+    return '[Circular]';
+  }
+  seen.add(value);
+  return null;
+};
+
+/* oxlint-disable no-use-before-define -- mutual recursion between redactCompound and deepRedact */
+
+/** Redact a compound value (array or object), delegating scalars back to deepRedact. */
+const redactCompound = (
+  value: unknown[] | object,
   sensitiveKeysLower: ReadonlySet<string>,
   patterns: RegExp[],
   replacement: string,
-  currentKey?: string
+  seen: WeakSet<object>
 ): unknown => {
+  const circular = trackOrCircular(value, seen);
+  if (circular) {
+    return circular;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      deepRedact(
+        item,
+        sensitiveKeysLower,
+        patterns,
+        replacement,
+        undefined,
+        seen
+      )
+    );
+  }
+  return mapObjectValues(value, (item, key) =>
+    deepRedact(item, sensitiveKeysLower, patterns, replacement, key, seen)
+  );
+};
+
+const deepRedact: DeepRedact = (
+  value,
+  sensitiveKeysLower,
+  patterns,
+  replacement,
+  currentKey?,
+  seen = new WeakSet<object>()
+) => {
   if (isSensitiveKey(currentKey, sensitiveKeysLower)) {
     return replacement;
   }
   if (typeof value === 'string') {
     return applyPatterns(value, patterns, replacement);
   }
-  if (Array.isArray(value)) {
-    return value.map((item) =>
-      deepRedact(item, sensitiveKeysLower, patterns, replacement)
-    );
-  }
   if (value !== null && typeof value === 'object') {
-    return mapObjectValues(value, (item, key) =>
-      deepRedact(item, sensitiveKeysLower, patterns, replacement, key)
+    return redactCompound(
+      value,
+      sensitiveKeysLower,
+      patterns,
+      replacement,
+      seen
     );
   }
   return value;
 };
+
+/* oxlint-enable no-use-before-define */
 
 // ---------------------------------------------------------------------------
 // Factory

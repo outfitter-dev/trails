@@ -120,7 +120,9 @@ export const zodToJsonSchema: JsonSchemaConverter = (
     default: (value) => {
       const inner = value._zod.def['innerType'] as unknown as z.ZodType;
       const innerSchema = zodToJsonSchema(inner);
-      innerSchema['default'] = value._zod.def['defaultValue'];
+      const rawDefault = value._zod.def['defaultValue'];
+      innerSchema['default'] =
+        typeof rawDefault === 'function' ? rawDefault() : rawDefault;
       return innerSchema;
     },
     enum: (value) => {

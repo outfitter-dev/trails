@@ -8,12 +8,14 @@
 import {
   AuthError,
   CancelledError,
+  ConflictError,
   InternalError,
   NetworkError,
   NotFoundError,
   PermissionError,
   RateLimitError,
   TimeoutError,
+  ValidationError,
 } from './errors.js';
 import { Result } from './result.js';
 
@@ -80,6 +82,20 @@ const statusMappers: Record<number, StatusMapper> = {
   504: (ctx) => new TimeoutError('Gateway timeout', { context: ctx }),
 };
 
+/** Map 4xx status codes not in the explicit mapper to appropriate error types. */
+const mapClientError = (
+  status: number,
+  context: Record<string, unknown>
+): Error => {
+  if (status === 400 || status === 422) {
+    return new ValidationError(`Validation error (${status})`, { context });
+  }
+  if (status === 409) {
+    return new ConflictError(`Conflict (${status})`, { context });
+  }
+  return new InternalError(`HTTP error (${status})`, { context });
+};
+
 const mapStatusCode = (response: Response): Error => {
   const context = { status: response.status, url: response.url };
   const mapper = statusMappers[response.status];
@@ -89,7 +105,7 @@ const mapStatusCode = (response: Response): Error => {
   if (response.status >= 500) {
     return new InternalError(`Server error (${response.status})`, { context });
   }
-  return new InternalError(`HTTP error (${response.status})`, { context });
+  return mapClientError(response.status, context);
 };
 
 // ---------------------------------------------------------------------------

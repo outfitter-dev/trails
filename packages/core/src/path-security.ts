@@ -30,6 +30,10 @@ const isWithin = (base: string, target: string): boolean => {
  * Resolves `userPath` relative to `basePath` and ensures it stays within
  * the base directory. Returns the resolved absolute path on success, or a
  * `PermissionError` if the path escapes.
+ *
+ * Uses lexical path comparison (not `realpath`). Does not follow symlinks —
+ * if an attacker can create symlinks inside `basePath`, those could point
+ * outside the base. Use `realpath` before calling in symlink-sensitive environments.
  */
 export const securePath = (
   basePath: string,
