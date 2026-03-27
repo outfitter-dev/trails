@@ -56,6 +56,10 @@ export type { AnyEvent, Event, EventSpec } from './event.js';
 export { topo } from './topo.js';
 export type { Topo } from './topo.js';
 
+// Topo validation
+export { validateTopo } from './validate-topo.js';
+export type { TopoIssue } from './validate-topo.js';
+
 // Layer
 export { composeLayers } from './layer.js';
 export type { Layer } from './layer.js';

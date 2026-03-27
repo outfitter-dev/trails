@@ -1,4 +1,5 @@
 // Contract-driven testing
+export { testAll } from './all.js';
 export { testExamples } from './examples.js';
 export { testHike } from './hike.js';
 export { testTrail } from './trail.js';
