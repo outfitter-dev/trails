@@ -5,7 +5,13 @@
  */
 
 import { Result, trail } from '@ontrails/core';
-import { formatWardenReport, runWarden } from '@ontrails/warden';
+import {
+  formatGitHubAnnotations,
+  formatJson,
+  formatSummary,
+  formatWardenReport,
+  runWarden,
+} from '@ontrails/warden';
 import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
@@ -24,6 +30,12 @@ export const wardenTrail = trail('warden', {
       },
       name: 'Default warden run',
     },
+    {
+      input: {
+        format: 'github',
+      },
+      name: 'GitHub Actions annotations',
+    },
   ],
   implementation: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
@@ -38,7 +50,15 @@ export const wardenTrail = trail('warden', {
       rootDir,
       topo,
     });
-    const formatted = formatWardenReport(report);
+
+    const formatters: Record<string, (r: typeof report) => string> = {
+      github: formatGitHubAnnotations,
+      json: formatJson,
+      summary: formatSummary,
+      text: formatWardenReport,
+    };
+    const formatter = formatters[input.format] ?? formatWardenReport;
+    const formatted = formatter(report);
 
     return Result.ok({
       diagnostics: report.diagnostics,
@@ -51,6 +71,10 @@ export const wardenTrail = trail('warden', {
   },
   input: z.object({
     driftOnly: z.boolean().default(false).describe('Only run drift detection'),
+    format: z
+      .enum(['text', 'json', 'github', 'summary'])
+      .default('text')
+      .describe('Output format: text, json, github, or summary'),
     lintOnly: z.boolean().default(false).describe('Only run lint rules'),
     rootDir: z.string().optional().describe('Root directory to scan'),
   }),

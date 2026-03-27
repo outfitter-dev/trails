@@ -1,0 +1,19 @@
+{
+  "name": "trails-ci",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "ultracite check src/",
+    "test": "echo 'No tests yet'"
+  },
+  "dependencies": {
+    "@ontrails/core": "workspace:*",
+    "@ontrails/schema": "workspace:*",
+    "@ontrails/warden": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "ultracite": "7.2.3"
+  }
+}

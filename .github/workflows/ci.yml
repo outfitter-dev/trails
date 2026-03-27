@@ -40,3 +40,7 @@ jobs:
 
       - name: Test
         run: bun run test
+
+      - name: Governance
+        run: bun apps/ci/bin/ci.ts --format github --fail-on error
+        continue-on-error: true

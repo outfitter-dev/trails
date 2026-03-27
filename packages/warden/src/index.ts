@@ -41,6 +41,13 @@ export { wardenRules } from './rules/index.js';
 export type { WardenOptions, WardenReport } from './cli.js';
 export { formatWardenReport, runWarden } from './cli.js';
 
+// CI formatters
+export {
+  formatGitHubAnnotations,
+  formatJson,
+  formatSummary,
+} from './formatters.js';
+
 // Drift detection
 export type { DriftResult } from './drift.js';
 export { checkDrift } from './drift.js';
