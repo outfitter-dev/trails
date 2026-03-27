@@ -1,0 +1,14 @@
+pre-commit:
+  parallel: false
+  commands:
+    format:
+      glob: '*.{ts,tsx,js,jsx,json,jsonc}'
+      run: bun run format:file {staged_files}
+      stage_fixed: true
+
+pre-push:
+  commands:
+    test:
+      run: bun run test
+    typecheck:
+      run: bun run typecheck

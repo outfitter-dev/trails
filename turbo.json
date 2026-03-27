@@ -1,0 +1,24 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".bun-version", ".oxlintrc.json"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {
+      "inputs": ["src/**", ".oxlintrc.json", ".oxfmtrc.jsonc"],
+      "outputs": []
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}

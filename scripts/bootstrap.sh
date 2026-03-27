@@ -1,0 +1,248 @@
+#!/usr/bin/env bash
+#
+# bootstrap.sh — Get this repo from clone to runnable
+#
+# Usage: ./scripts/bootstrap.sh [--force]
+#
+# By default, exits immediately if all tools and deps are present.
+# Use --force to run full bootstrap regardless.
+#
+# This script is safe to run repeatedly. Cloud agents (Claude Code, Codex)
+# should run this before any other commands.
+#
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+BUN_VERSION_FILE="$REPO_ROOT/.bun-version"
+
+if [[ ! -f "$BUN_VERSION_FILE" ]]; then
+  echo "Error: Missing .bun-version at $BUN_VERSION_FILE" >&2
+  exit 1
+fi
+
+PINNED_BUN_VERSION="$(tr -d '[:space:]' < "$BUN_VERSION_FILE")"
+
+if [[ -z "$PINNED_BUN_VERSION" ]]; then
+  echo "Error: .bun-version is empty" >&2
+  exit 1
+fi
+
+# -----------------------------------------------------------------------------
+# Fast path — exit immediately if all tools and deps are present
+# -----------------------------------------------------------------------------
+if [[ "${1:-}" != "--force" ]]; then
+  all_present=true
+
+  if command -v bun &>/dev/null; then
+    installed_bun_version="$(bun --version)"
+    [[ "$installed_bun_version" == "$PINNED_BUN_VERSION" ]] || all_present=false
+  else
+    all_present=false
+  fi
+
+  command -v gh &>/dev/null || all_present=false
+  command -v gt &>/dev/null || all_present=false
+  [[ -d "$REPO_ROOT/node_modules" ]] || all_present=false
+
+  if $all_present; then
+    exit 0  # All good, nothing to do
+  fi
+fi
+
+# Strip --force if present
+[[ "${1:-}" == "--force" ]] && shift
+
+# Colors (disabled when not a terminal)
+if [[ -t 1 ]]; then
+  RED='\033[0;31m'
+  GREEN='\033[0;32m'
+  YELLOW='\033[0;33m'
+  BLUE='\033[0;34m'
+  NC='\033[0m'
+else
+  RED='' GREEN='' YELLOW='' BLUE='' NC=''
+fi
+
+info() { echo -e "${BLUE}▸${NC} $1"; }
+success() { echo -e "${GREEN}✓${NC} $1"; }
+warn() { echo -e "${YELLOW}!${NC} $1"; }
+error() { echo -e "${RED}✗${NC} $1" >&2; }
+
+# Check if command exists
+has() { command -v "$1" &>/dev/null; }
+
+# Detect OS
+OS="$(uname -s)"
+case "$OS" in
+  Darwin) IS_MACOS=true ;;
+  Linux)  IS_MACOS=false ;;
+  *)      error "Unsupported OS: $OS"; exit 1 ;;
+esac
+
+# -----------------------------------------------------------------------------
+# Homebrew (macOS only)
+# -----------------------------------------------------------------------------
+install_homebrew() {
+  if $IS_MACOS && ! has brew; then
+    info "Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    success "Homebrew installed"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# Bun
+# -----------------------------------------------------------------------------
+install_bun() {
+  local installed_bun_version=""
+
+  if has bun; then
+    installed_bun_version="$(bun --version)"
+  fi
+
+  if [[ "$installed_bun_version" == "$PINNED_BUN_VERSION" ]]; then
+    success "Bun already installed ($installed_bun_version)"
+    return
+  fi
+
+  if [[ -n "$installed_bun_version" ]]; then
+    info "Updating Bun from $installed_bun_version to $PINNED_BUN_VERSION..."
+  else
+    info "Installing Bun $PINNED_BUN_VERSION..."
+  fi
+
+  curl -fsSL https://bun.sh/install | bash -s -- "bun-v$PINNED_BUN_VERSION"
+
+  # Source the updated profile
+  export BUN_INSTALL="$HOME/.bun"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+  hash -r
+
+  local resolved_bun_version
+  resolved_bun_version="$(bun --version)"
+
+  if [[ "$resolved_bun_version" != "$PINNED_BUN_VERSION" ]]; then
+    error "Expected Bun $PINNED_BUN_VERSION but found $resolved_bun_version after install"
+    exit 1
+  fi
+
+  success "Bun ready ($resolved_bun_version)"
+}
+
+# -----------------------------------------------------------------------------
+# GitHub CLI (gh)
+# -----------------------------------------------------------------------------
+install_gh() {
+  if has gh; then
+    success "GitHub CLI already installed ($(gh --version | head -1))"
+  else
+    info "Installing GitHub CLI..."
+    if $IS_MACOS; then
+      brew install gh
+    else
+      # Linux: use official apt repo
+      curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg 2>/dev/null
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+      sudo apt-get update -qq && sudo apt-get install -y -qq gh
+    fi
+    success "GitHub CLI installed"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# Graphite CLI (gt)
+# -----------------------------------------------------------------------------
+install_graphite() {
+  if has gt; then
+    success "Graphite CLI already installed ($(gt --version 2>/dev/null || echo 'unknown'))"
+  else
+    info "Installing Graphite CLI..."
+    if $IS_MACOS && has brew; then
+      brew install withgraphite/tap/graphite
+    else
+      bun install -g @withgraphite/graphite-cli
+    fi
+    success "Graphite CLI installed"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# Auth checks
+# -----------------------------------------------------------------------------
+check_auth() {
+  echo ""
+  info "Checking authentication..."
+
+  # GitHub CLI
+  if [[ -n "${GH_TOKEN:-}" ]] || [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    success "GitHub CLI token found in environment"
+  elif gh auth status &>/dev/null; then
+    success "GitHub CLI already authenticated"
+  else
+    warn "GitHub CLI not authenticated. Run 'gh auth login' or set GH_TOKEN"
+  fi
+
+  # Graphite CLI
+  if [[ -n "${GT_AUTH_TOKEN:-}" ]]; then
+    info "Authenticating Graphite CLI..."
+    gt auth --token "$GT_AUTH_TOKEN"
+    success "Graphite CLI authenticated"
+  elif gt auth status &>/dev/null 2>&1; then
+    success "Graphite CLI already authenticated"
+  else
+    warn "Graphite CLI not authenticated. Run 'gt auth' or set GT_AUTH_TOKEN"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# Project dependencies
+# -----------------------------------------------------------------------------
+install_deps() {
+  info "Installing project dependencies..."
+  (
+    cd "$REPO_ROOT"
+    bun install
+  )
+  success "Dependencies installed"
+}
+
+# -----------------------------------------------------------------------------
+# Main
+# -----------------------------------------------------------------------------
+main() {
+  echo ""
+  echo -e "${BLUE}Trails Bootstrap${NC}"
+  echo "────────────────────"
+  echo ""
+
+  # Prerequisites
+  if $IS_MACOS; then
+    install_homebrew
+  fi
+
+  # Core tools
+  install_bun
+  install_gh
+  install_graphite
+
+  # Auth status
+  check_auth
+
+  echo ""
+
+  # Project setup
+  install_deps
+
+  echo ""
+  echo -e "${GREEN}Bootstrap complete!${NC}"
+  echo ""
+  echo "Next steps:"
+  echo "  bun run build      # Build all packages"
+  echo "  bun run test       # Run tests"
+  echo "  bun run check      # Lint + format + typecheck"
+  echo ""
+}
+
+main "$@"
