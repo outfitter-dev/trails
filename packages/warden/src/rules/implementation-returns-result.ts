@@ -432,14 +432,7 @@ export const implementationReturnsResult: WardenRule = {
     for (let i = 0; i < lines.length; i += 1) {
       const line = lines[i];
       if (line) {
-        processLine(
-          line,
-          i + 1,
-          lines,
-          filePath,
-          resultHelperNames,
-          diagnostics
-        );
+        processLine(line, i, lines, filePath, resultHelperNames, diagnostics);
       }
     }
 

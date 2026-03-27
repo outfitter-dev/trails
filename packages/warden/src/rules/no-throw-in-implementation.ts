@@ -67,6 +67,7 @@ const processLine = (
   diagnostics: WardenDiagnostic[]
 ): void => {
   if (!state.inImplementation && tryStartImpl(line, state)) {
+    processImplBody(line, lineNumber, filePath, state, diagnostics);
     return;
   }
   if (state.inImplementation) {

@@ -266,7 +266,10 @@ const formatResultLine = (report: WardenReport): string => {
  * Format a warden report as a human-readable string.
  */
 export const formatWardenReport = (report: WardenReport): string => {
-  if (report.diagnostics.length === 0 && report.drift === null) {
+  const lintLines = formatLintSection(report);
+  const driftLines = formatDriftSection(report.drift);
+
+  if (lintLines.length === 0 && driftLines.length === 0) {
     return ['Warden Report', '=============', '', 'No checks were run.'].join(
       '\n'
     );
@@ -276,9 +279,9 @@ export const formatWardenReport = (report: WardenReport): string => {
     'Warden Report',
     '=============',
     '',
-    ...formatLintSection(report),
+    ...lintLines,
     '',
-    ...formatDriftSection(report.drift),
+    ...driftLines,
     formatResultLine(report),
   ].join('\n');
 };

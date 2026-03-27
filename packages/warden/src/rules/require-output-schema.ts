@@ -109,9 +109,10 @@ const processLine = (
 export const requireOutputSchema: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
     const diagnostics: WardenDiagnostic[] = [];
-    for (const [i, line] of sourceCode.split('\n').entries()) {
+    const lines = sourceCode.split('\n');
+    for (const [i, line] of lines.entries()) {
       if (line) {
-        processLine(line, i, sourceCode.split('\n'), filePath, diagnostics);
+        processLine(line, i, lines, filePath, diagnostics);
       }
     }
     return diagnostics;
