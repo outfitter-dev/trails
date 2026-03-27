@@ -1,0 +1,50 @@
+{
+  "name": "trails",
+  "private": true,
+  "bin": {
+    "trails": "./src/cli.ts"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "format:check": "./node_modules/.bin/ultracite check .",
+    "format:fix": "./node_modules/.bin/ultracite fix .",
+    "format:file": "./node_modules/.bin/ultracite fix",
+    "mdlint:fix": "./node_modules/.bin/markdownlint-cli2 --fix",
+    "typecheck": "turbo run typecheck",
+    "check": "bun run lint && bun run format:check && bun run typecheck",
+    "clean": "turbo run clean --no-cache && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.8",
+    "@types/bun": "^1.3.11",
+    "@types/node": "^25.5.0",
+    "lefthook": "^2.1.1",
+    "oxfmt": "0.35.0",
+    "oxlint": "1.50.0",
+    "turbo": "^2.8.10",
+    "typescript": "^5.9.3",
+    "ultracite": "7.2.3"
+  },
+  "packageManager": "bun@1.3.10",
+  "catalog": {
+    "zod": "^4.3.5"
+  },
+  "trustedDependencies": [
+    "lefthook",
+    "oxfmt",
+    "oxlint"
+  ],
+  "dependencies": {
+    "@ontrails/cli": "workspace:*",
+    "commander": "^14.0.0"
+  },
+  "bin": {
+    "trails": "./src/cli.ts"
+  }
+}

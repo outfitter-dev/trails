@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.turbo/
+.scratch/
+*.tsbuildinfo
+.DS_Store
