@@ -83,13 +83,22 @@ export const guideTrail = trail('guide', {
       .describe('Path to the app module'),
     trailId: z.string().optional().describe('Trail ID for detailed guidance'),
   }),
-  output: z.array(
+  output: z.union([
+    z.array(
+      z.object({
+        description: z.string(),
+        exampleCount: z.number(),
+        id: z.string(),
+        kind: z.string(),
+      })
+    ),
     z.object({
-      description: z.string(),
-      exampleCount: z.number(),
+      description: z.string().nullable(),
+      detours: z.unknown().nullable(),
+      examples: z.array(z.unknown()),
       id: z.string(),
       kind: z.string(),
-    })
-  ),
+    }),
+  ]),
   readOnly: true,
 });

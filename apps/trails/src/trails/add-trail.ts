@@ -77,10 +77,10 @@ const writeWithDirs = async (
 
 export const addTrail = trail('add.trail', {
   description: 'Scaffold a new trail with tests and examples',
-  implementation: async (input) => {
+  implementation: async (input, ctx) => {
     const { id } = input;
     const moduleName = id.replaceAll('.', '-');
-    const cwd = resolve('.');
+    const cwd = resolve(ctx.cwd ?? '.');
 
     const files = new Map<string, string>([
       [

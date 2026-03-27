@@ -287,6 +287,26 @@ export const surveyTrail = trail('survey', {
       trails: z.number(),
       version: z.string(),
     }),
+    z.object({
+      breaking: z.array(z.unknown()),
+      hasBreaking: z.boolean(),
+      info: z.array(z.unknown()),
+      warnings: z.array(z.unknown()),
+    }),
+    z.object({
+      description: z.unknown().nullable(),
+      detours: z.unknown().nullable(),
+      examples: z.array(z.unknown()),
+      id: z.string(),
+      kind: z.string(),
+      safety: z.string(),
+      surfaces: z.array(z.string()),
+    }),
+    z.object({
+      hash: z.string(),
+      lockPath: z.string(),
+      mapPath: z.string(),
+    }),
   ]),
   readOnly: true,
 });

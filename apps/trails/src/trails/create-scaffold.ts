@@ -192,7 +192,7 @@ const generateOnboardRoute = (): string =>
   `import { Result, hike } from '@ontrails/core';
 import { z } from 'zod';
 
-export const onboard = route('entity.onboard', {
+export const onboard = hike('entity.onboard', {
   description: 'Onboard a new entity end-to-end',
   follows: ['entity.add'],
   implementation: async (input, ctx) => {
