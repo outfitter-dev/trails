@@ -51,16 +51,3 @@ export {
 // Drift detection
 export type { DriftResult } from './drift.js';
 export { checkDrift } from './drift.js';
-
-// Trail-based API
-export { wardenTopo, lintFile } from './trails/index.js';
-export type {
-  RuleInput,
-  ProjectAwareRuleInput,
-  RuleOutput,
-} from './trails/index.js';
-export {
-  ruleInputSchema,
-  projectAwareRuleInputSchema,
-  ruleOutputSchema,
-} from './trails/index.js';
