@@ -168,54 +168,67 @@ export const withTimeout = <T>(
     return Promise.resolve(Result.err(new CancelledError('Already cancelled')));
   }
 
-  const controller = new AbortController();
-
-  // Forward external signal
-  const onAbort = () => controller.abort();
-  signal?.addEventListener('abort', onAbort, { once: true });
-
-  // oxlint-disable-next-line avoid-new -- Promise constructor needed for timeout race
+  // oxlint-disable-next-line avoid-new, promise/no-multiple-resolved -- Promise constructor needed for timeout race; settled guard ensures single resolution
   return new Promise<Result<T, Error>>((resolve) => {
     let settled = false;
+    // oxlint-disable-next-line prefer-const -- assigned after declaration
+    let timer: ReturnType<typeof setTimeout>;
 
-    const timer = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        controller.abort();
-        resolve(
-          Result.err(
-            new TimeoutError(`Operation timed out after ${ms}ms`, {
-              context: { timeoutMs: ms },
-            })
-          )
-        );
+    const onAbort = () => {
+      if (settled) {
+        return;
       }
+      settled = true;
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      // oxlint-disable-next-line promise/no-multiple-resolved -- settled guard ensures single resolution
+      resolve(Result.err(new CancelledError('Operation cancelled')));
+    };
+
+    signal?.addEventListener('abort', onAbort, { once: true });
+
+    timer = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      signal?.removeEventListener('abort', onAbort);
+      // oxlint-disable-next-line promise/no-multiple-resolved -- settled guard ensures single resolution
+      resolve(
+        Result.err(
+          new TimeoutError(`Operation timed out after ${ms}ms`, {
+            context: { timeoutMs: ms },
+          })
+        )
+      );
     }, ms);
 
     // oxlint-disable-next-line prefer-await-to-then, no-void -- .then() needed inside Promise constructor; void discards unhandled rejection
     void fn().then(
       // oxlint-disable-next-line prefer-await-to-callbacks -- callback required inside .then()
       (result) => {
-        if (!settled) {
-          settled = true;
-          clearTimeout(timer);
-          resolve(result);
+        if (settled) {
+          return;
         }
+        settled = true;
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', onAbort);
+        // oxlint-disable-next-line promise/no-multiple-resolved -- settled guard ensures single resolution
+        resolve(result);
       },
       // oxlint-disable-next-line prefer-await-to-callbacks -- rejection handler required inside .then()
       (error: unknown) => {
-        if (!settled) {
-          settled = true;
-          clearTimeout(timer);
-          resolve(
-            Result.err(
-              error instanceof Error ? error : new Error(String(error))
-            )
-          );
+        if (settled) {
+          return;
         }
+        settled = true;
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', onAbort);
+        // oxlint-disable-next-line promise/no-multiple-resolved -- settled guard ensures single resolution
+        resolve(
+          Result.err(error instanceof Error ? error : new Error(String(error)))
+        );
       }
     );
-  }).finally(() => {
-    signal?.removeEventListener('abort', onAbort);
   });
 };

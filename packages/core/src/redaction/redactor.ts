@@ -88,10 +88,7 @@ const deepRedact: DeepRedact = (
   replacement: string,
   currentKey?: string
 ): unknown => {
-  if (
-    isSensitiveKey(currentKey, sensitiveKeysLower) &&
-    typeof value === 'string'
-  ) {
+  if (isSensitiveKey(currentKey, sensitiveKeysLower)) {
     return replacement;
   }
   if (typeof value === 'string') {

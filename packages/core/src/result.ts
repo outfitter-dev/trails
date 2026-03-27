@@ -161,6 +161,13 @@ export const Result = {
         }
         return val;
       });
+      if (json === undefined) {
+        return new Err(
+          new InternalError('Value is not JSON-serializable', {
+            context: { type: typeof value },
+          })
+        );
+      }
       return new Ok(json);
     } catch (error) {
       return new Err(
