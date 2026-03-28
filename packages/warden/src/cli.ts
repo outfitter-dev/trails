@@ -158,7 +158,7 @@ const buildProjectContextFromTopo = (appTopo: Topo): ProjectContext => {
   ]);
 
   const detourTargetTrailIds = new Set<string>();
-  for (const t of appTopo.trails.values()) {
+  for (const t of [...appTopo.trails.values(), ...appTopo.hikes.values()]) {
     const detours = (t as unknown as Record<string, unknown>)['detours'] as
       | Readonly<Record<string, readonly string[]>>
       | undefined;

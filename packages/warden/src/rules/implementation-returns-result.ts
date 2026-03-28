@@ -159,6 +159,63 @@ const trackResultVariable = (node: AstNode, resultVars: Set<string>): void => {
 };
 
 // ---------------------------------------------------------------------------
+// Shallow walk (stops at nested function boundaries)
+// ---------------------------------------------------------------------------
+
+const FUNCTION_BOUNDARY_TYPES = new Set([
+  'ArrowFunctionExpression',
+  'FunctionExpression',
+  'FunctionDeclaration',
+]);
+
+/** Check if a value is a function-boundary AST node that should not be recursed into. */
+const isFunctionBoundary = (val: unknown): boolean =>
+  !!val &&
+  typeof val === 'object' &&
+  FUNCTION_BOUNDARY_TYPES.has((val as AstNode).type);
+
+/** Recurse into a single AST property value, skipping function boundaries. */
+const visitValue = (
+  val: unknown,
+  visit: (node: AstNode) => void,
+  recurse: (node: unknown, visit: (node: AstNode) => void) => void
+): void => {
+  if (Array.isArray(val)) {
+    for (const item of val) {
+      if (!isFunctionBoundary(item)) {
+        recurse(item, visit);
+      }
+    }
+  } else if (
+    val &&
+    typeof val === 'object' &&
+    (val as AstNode).type &&
+    !isFunctionBoundary(val)
+  ) {
+    recurse(val, visit);
+  }
+};
+
+/**
+ * Walk an AST node tree without recursing into nested function bodies.
+ *
+ * This ensures that return statements inside `.map()`, `.filter()`, `.then()`
+ * callbacks etc. are not mistakenly checked as implementation-level returns.
+ */
+const walkShallow = (node: unknown, visit: (node: AstNode) => void): void => {
+  if (!node || typeof node !== 'object') {
+    return;
+  }
+  const n = node as AstNode;
+  if (n.type) {
+    visit(n);
+  }
+  for (const val of Object.values(n)) {
+    visitValue(val, visit, walkShallow);
+  }
+};
+
+// ---------------------------------------------------------------------------
 // Return statement checking
 // ---------------------------------------------------------------------------
 
@@ -173,7 +230,7 @@ const checkReturnStatements = (
 ): void => {
   const resultVars = new Set<string>();
 
-  walk(blockBody, (node) => {
+  walkShallow(blockBody, (node) => {
     if (node.type === 'VariableDeclarator') {
       trackResultVariable(node, resultVars);
     }

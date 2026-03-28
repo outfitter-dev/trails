@@ -140,7 +140,7 @@ const processLine = (
   knownIds: ReadonlySet<string>,
   diagnostics: WardenDiagnostic[]
 ): void => {
-  const trailMatch = line.match(/\btrail\s*\(\s*["'`]([^"'`]+)["'`]/);
+  const trailMatch = line.match(/\b(?:trail|hike)\s*\(\s*["'`]([^"'`]+)["'`]/);
   if (!trailMatch) {
     return;
   }

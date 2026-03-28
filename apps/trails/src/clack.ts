@@ -55,8 +55,30 @@ const fieldResolvers: Record<Field['type'], FieldResolver> = {
     const raw = await clack.text({ message: field.label });
     return clack.isCancel(raw) ? undefined : Number(raw);
   },
+  'number[]': async (field) => {
+    const raw = await clack.text({
+      message: `${field.label} (comma-separated numbers)`,
+    });
+    if (clack.isCancel(raw)) {
+      return;
+    }
+    return String(raw)
+      .split(',')
+      .map((s) => Number(s.trim()));
+  },
   string: async (field) =>
     cancelable(await clack.text({ message: field.label })),
+  'string[]': async (field) => {
+    const raw = await clack.text({
+      message: `${field.label} (comma-separated)`,
+    });
+    if (clack.isCancel(raw)) {
+      return;
+    }
+    return String(raw)
+      .split(',')
+      .map((s) => s.trim());
+  },
 };
 
 /** Resolve a single field value with Clack. */

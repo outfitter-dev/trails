@@ -145,6 +145,33 @@ trail("entity.show", {
     );
     expect(diagnostics.length).toBe(0);
   });
+
+  test('flags detour target in hike that does not exist', () => {
+    const code = `
+hike("entity.onboard", {
+  detours: [{ target: "entity.missing" }],
+  follows: ["entity.create"],
+  implementation: async (input, ctx) => Result.ok(data)
+})`;
+    const diagnostics = validDetourRefs.check(code, TEST_FILE);
+    expect(diagnostics.length).toBe(1);
+    expect(diagnostics[0]?.message).toContain('entity.missing');
+  });
+
+  test('passes when hike detour target exists', () => {
+    const code = `
+trail("entity.fallback", {
+  implementation: async (input, ctx) => Result.ok(data)
+})
+
+hike("entity.onboard", {
+  detours: [{ target: "entity.fallback" }],
+  follows: ["entity.create"],
+  implementation: async (input, ctx) => Result.ok(data)
+})`;
+    const diagnostics = validDetourRefs.check(code, TEST_FILE);
+    expect(diagnostics.length).toBe(0);
+  });
 });
 
 // ---------------------------------------------------------------------------
