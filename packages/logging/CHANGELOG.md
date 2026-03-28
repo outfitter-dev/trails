@@ -1,5 +1,14 @@
 # @ontrails/logging
 
+## 1.0.0-beta.2
+
+### Patch Changes
+
+- Fix workspace dependency resolution in published packages. Now using bun publish
+  which correctly replaces workspace:^ with actual version numbers.
+- Updated dependencies
+  - @ontrails/core@1.0.0-beta.2
+
 ## 1.0.0-beta.1
 
 ### Patch Changes

@@ -12,5 +12,5 @@
     "@ontrails/testing": "0.1.0",
     "@ontrails/warden": "0.1.0"
   },
-  "changesets": ["fix-publish-bugs", "initial-v1-beta"]
+  "changesets": ["fix-publish-bugs", "fix-workspace-publish", "initial-v1-beta"]
 }
