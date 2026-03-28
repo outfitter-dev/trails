@@ -56,7 +56,11 @@ const isSourceFile = (match: string): boolean =>
   !match.endsWith('.d.ts') &&
   !match.startsWith('node_modules/') &&
   !match.startsWith('dist/') &&
-  !match.startsWith('.git/');
+  !match.startsWith('.git/') &&
+  !match.includes('__tests__/') &&
+  !match.includes('__test__/') &&
+  !match.endsWith('.test.ts') &&
+  !match.endsWith('.spec.ts');
 
 const collectTsFiles = (dir: string): readonly string[] => {
   const glob = new Bun.Glob('**/*.ts');
