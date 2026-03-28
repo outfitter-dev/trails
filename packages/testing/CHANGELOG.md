@@ -1,5 +1,29 @@
 # @ontrails/testing
 
+## 1.0.0-beta.3
+
+### Minor Changes
+
+- Bug fixes across all surface packages found via parallel Codex review.
+
+  **core**: Fix Result.toJson false circular detection on DAGs, deserializeError subclass round-trip, topo cross-kind ID collisions, validateTopo multi-node cycle detection, error example input validation bypass, and deriveFields array type collapse.
+
+  **cli**: Switch blaze to parseAsync for proper async error handling, add boolean flag negation (--no-flag), and strict number parsing that rejects partial input.
+
+  **mcp**: Align BlobRef with core (including ReadableStream support) and detect tool-name collisions after normalization.
+
+  **testing**: Include hikes in testContracts validation, with follow-context awareness.
+
+  **warden**: Collect hike detour targets, validate detour refs in hike specs, and stop implementation-returns-result from walking into nested function bodies.
+
+### Patch Changes
+
+- Updated dependencies
+  - @ontrails/core@1.0.0-beta.3
+  - @ontrails/cli@1.0.0-beta.3
+  - @ontrails/mcp@1.0.0-beta.3
+  - @ontrails/logging@1.0.0-beta.3
+
 ## 1.0.0-beta.2
 
 ### Patch Changes
