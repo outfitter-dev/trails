@@ -11,7 +11,7 @@ author: '@galligan'
 
 Trails is a contract-first framework. The names in its public API are the first thing developers, agents, and contributors encounter. They form the language people use to think about and discuss the system. Getting them right at the foundation matters more than in most frameworks because:
 
-1. **Trails-branded vocabulary is central to the framework's identity.** Terms like `trail`, `hike`, `topo`, `blaze` carry meaning that standard terms don't. Misnamed concepts create confusion that compounds over time.
+1. **Trails-branded vocabulary is central to the framework's identity.** Terms like `trail`, `follow`, `topo`, `blaze` carry meaning that standard terms don't. Misnamed concepts create confusion that compounds over time.
 2. **Agents consume the API programmatically.** Names need to be unambiguous without contextual reasoning — a function name should tell an agent exactly what it does.
 3. **The framework is pre-v1 with zero users.** This is the best moment to get naming right. After v1, renames are breaking changes.
 
@@ -27,7 +27,7 @@ The meta-principle that governs all others. Every feature and API decision passe
 - **Derive:** Can the framework extract maximum value from what was authored? Does one declaration feed multiple consumers — types, surfaces, tests, docs, governance? Is the derivation deterministic?
 - **Declare:** When the developer tightens the contract, does the framework ensure the declaration stays true? Can the declaration drift from reality? If it can, is that drift detected and surfaced?
 
-The third question is the most important. Every declaration surface — output schemas, error types, `follows`, safety markers, examples — is a place where the stated contract can diverge from actual behavior. The framework must make divergence structurally difficult or immediately visible.
+The third question is the most important. Every declaration surface — output schemas, error types, `follow`, safety markers, examples — is a place where the stated contract can diverge from actual behavior. The framework must make divergence structurally difficult or immediately visible.
 
 **Drift guard checklist** applied to every new declaration feature:
 
@@ -60,11 +60,11 @@ Bad:
 
 Trails-branded terms are reserved for concepts unique to the framework — the things that make Trails feel like Trails. Standard infrastructure concepts keep their standard names.
 
-**Trails-branded:** `trail`, `hike`, `blaze`, `trailblaze`, `follow`, `topo`, `surface`, `markers`, `warden`, `survey`, `guide`, `scout` (reserved), `trailhead` (reserved)
+**Trails-branded:** `trail`, `blaze`, `trailblaze`, `follow`, `topo`, `surface`, `markers`, `warden`, `survey`, `guide`, `scout` (reserved), `trailhead` (reserved)
 
 **Standard:** `logger`, `config`, `context`, `harness`, `sink`, `formatter`, `layer`, `event`, `error`, `result`
 
-**The test:** if a developer already knows what the word means from other frameworks, don't rename it. `event` stays `event` because every developer knows what an event is. `route` becomes `hike` because `route` means something different (HTTP path → handler) in every other framework.
+**The test:** if a developer already knows what the word means from other frameworks, don't rename it. `event` stays `event` because every developer knows what an event is. Composition uses `follow` because `route` means something different (HTTP path -> handler) in every other framework.
 
 ### Convention 3: `test*` for testing helpers
 
@@ -72,8 +72,7 @@ Testing functions use the `test` prefix. This makes them self-documenting and pr
 
 ```typescript
 testExamples(topo)          // run all trail examples as tests
-testTrail(trail, [...])     // run custom scenarios against a trail
-testHike(hike, [...])       // run composition scenarios against a hike
+testTrail(trail, [...])     // run custom scenarios against a trail (including follow chains)
 testContracts(topo)         // verify output against declared schemas
 testDetours(topo)           // verify detour recovery paths
 ```
@@ -95,7 +94,7 @@ Functions that produce frozen, inert definitions use bare noun names. Functions 
 
 | Produces | Prefix | Examples |
 | --- | --- | --- |
-| Frozen definition (no lifecycle) | Bare noun | `trail()`, `hike()`, `event()`, `topo()` |
+| Frozen definition (no lifecycle) | Bare noun | `trail()`, `event()`, `topo()` |
 | Runtime instance (holds state) | `create*` | `createTrailContext()`, `createLogger()`, `createTestContext()` |
 
 **The test:** after calling this function, does the result change over time or hold resources? If yes, `create`. If no, bare noun.
@@ -107,8 +106,7 @@ This mirrors the broader TypeScript ecosystem: Zod uses `z.object()` (definition
 Each step adds a layer. Everything before `blaze` is definition. Everything after is execution.
 
 ```text
-trail()        → define a unit of work
-hike()         → define a composition that follows trails
+trail()        → define a unit of work (with optional follow for composition)
 event()        → define a payload schema
 topo()         → assemble into a queryable topology
 blaze()        → light up one surface (one-liner)
@@ -117,7 +115,7 @@ trailblaze()   → light up the full runtime (future: multi-surface, production)
 
 `topo()` is the pivot — where definitions become a connected graph. Everything operates on the topo: `blaze`, `survey`, `warden`, `guide`, `testExamples`, `testContracts`, `generateSurfaceMap`. The topo is the center of gravity.
 
-The sentence that explains the framework: **"You define trails. Then you hike them."**
+The sentence that explains the framework: **"You define trails. Then you follow them."**
 
 ### Convention 7: Suffix instances when the type isn't obvious from context
 
@@ -133,7 +131,7 @@ passthroughResolver; // obviously an InputResolver
 
 This mirrors convention 3: the suffix exists for the reader who doesn't have surrounding context. Repetition in a list (`layers: [rateLimitLayer, cachingLayer]`) is a signal, not noise.
 
-**When NOT to suffix:** Core primitives (`trail`, `hike`, `event`, `topo`) are the vocabulary itself. You don't write `myTrailTrail`. The suffix convention applies to instances of *supporting* concepts — layers, presets, harnesses, formatters, sinks, resolvers.
+**When NOT to suffix:** Core primitives (`trail`, `event`, `topo`) are the vocabulary itself. You don't write `myTrailTrail`. The suffix convention applies to instances of *supporting* concepts — layers, presets, harnesses, formatters, sinks, resolvers.
 
 ### Convention 8: Surface wiring — `build*` then `to*` or `connect*`
 
@@ -212,7 +210,7 @@ The developer thinks in Zod when writing schema definitions. They think in Trail
 ### Positive
 
 - **Guessable API.** A contributor who knows the conventions can predict function names before looking them up. `test*` for testing, `create*` for factories, `derive*` for derivations, `validate*` for verification, `build*` for surface derivation.
-- **Consistent mental model.** The vocabulary progression (trail → hike → event → topo → blaze → trailblaze) tells a learnable story. Each step builds on the previous.
+- **Consistent mental model.** The vocabulary progression (trail → follow → event → topo → blaze → trailblaze) tells a learnable story. Each step builds on the previous.
 - **Drift resistance.** Convention 0 ensures every declaration feature has enforcement at some level. The drift guard checklist is applied to new features before they ship.
 - **Agent-friendly.** Unambiguous names without contextual reasoning. An agent can consume the API from names alone.
 - **Community-scalable.** New contributors follow the conventions. Reviewers enforce them. The naming debates are pre-answered.
@@ -220,7 +218,7 @@ The developer thinks in Zod when writing schema definitions. They think in Trail
 ### Tradeoffs
 
 - **`Partial<I>` on examples.** Erases compile-time completeness checking for example inputs. Caught at test time and lint time, not compile time. Accepted: authoring friction reduction outweighs the safety loss.
-- **`hike()` learning curve.** Not immediately obvious to newcomers who expect "route." The `follows` field and documentation handle the learning. The collision avoidance with HTTP `route` is worth the curve.
+- **`follow` learning curve.** Composition is expressed via `follow` on the trail spec rather than a separate primitive. This keeps the API surface smaller at the cost of a slightly less obvious first encounter.
 - **Convention count.** Thirteen conventions is a lot to internalize. In practice, most are intuitive after seeing a few examples. Convention 0 is the one that requires active thinking; the rest become muscle memory.
 
 ### What this does NOT cover

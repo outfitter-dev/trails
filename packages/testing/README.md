@@ -29,8 +29,7 @@ testDetours(app);    // Verify detour targets exist
 | --- | --- |
 | `testAll(topo, ctx?)` | Single-line governance suite: validation + examples + contracts + detours |
 | `testExamples(topo, ctx?)` | Run trail examples as `describe`/`test` blocks |
-| `testTrail(trail, scenarios)` | Custom scenarios for edge cases and error paths |
-| `testHike(hike, scenarios)` | Test composition graphs -- follow chains, failure injection |
+| `testTrail(trail, scenarios)` | Custom scenarios for edge cases, error paths, and follow chains |
 | `testContracts(topo, ctx?)` | Validate implementation output against declared schemas |
 | `testDetours(topo)` | Verify every detour target exists in the topo |
 | `createTestContext(options?)` | `TrailContext` with sensible test defaults |
@@ -55,14 +54,14 @@ testTrail(showTrail, [
 ]);
 ```
 
-## testHike
+## Testing composition (trails with follow)
 
-Where `testTrail` exercises a single trail, `testHike` exercises the follow graph:
+`testTrail` works the same for trails with `follow` -- it exercises the follow graph:
 
 ```typescript
-import { testHike } from '@ontrails/testing';
+import { testTrail } from '@ontrails/testing';
 
-testHike(onboardHike, [
+testTrail(onboardTrail, [
   { description: 'happy path', input: { name: 'Delta', type: 'tool' }, expectOk: true },
   { description: 'add fails', input: { name: 'Alpha' }, expectErr: AlreadyExistsError },
 ]);

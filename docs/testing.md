@@ -61,7 +61,7 @@ testAll(app);
 
 Generates a `governance` describe block containing:
 
-- **Topo validation** via `validateTopo` (follows existence, recursive follows, event origins, example schema validation, output schema presence)
+- **Topo validation** via `validateTopo` (follow targets exist, no recursive follow, event origins, example schema validation, output schema presence)
 - **Example execution** via `testExamples`
 - **Contract checks** via `testContracts`
 - **Detour verification** via `testDetours`
@@ -169,14 +169,12 @@ testTrail(showTrail, [
 ]);
 ```
 
-## `testHike(hike, scenarios)`
-
-For testing a hike's composition graph -- follow chains, failure injection, and multi-trail interactions:
+For trails with `follow`, use `testTrail` the same way -- it exercises the follow graph and verifies that upstream failures propagate correctly:
 
 ```typescript
-import { testHike } from '@ontrails/testing';
+import { testTrail } from '@ontrails/testing';
 
-testHike(onboardHike, [
+testTrail(onboardTrail, [
   {
     description: 'successful onboard',
     input: { name: 'Delta', type: 'tool' },
@@ -189,8 +187,6 @@ testHike(onboardHike, [
   },
 ]);
 ```
-
-`testHike` is the composition counterpart to `testTrail`. Where `testTrail` exercises a single trail in isolation, `testHike` exercises the follow graph and verifies that upstream failures propagate correctly.
 
 ## `testContracts(app)`
 

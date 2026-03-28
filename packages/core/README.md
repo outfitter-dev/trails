@@ -21,13 +21,11 @@ const greet = trail('greet', {
 const app = topo('myapp', { greet });
 ```
 
-Hikes compose trails through `ctx.follow()`:
+Trails compose other trails through `follow` and `ctx.follow()`:
 
 ```typescript
-import { hike } from '@ontrails/core';
-
-const onboard = hike('entity.onboard', {
-  follows: ['entity.add', 'entity.relate'],
+const onboard = trail('entity.onboard', {
+  follow: ['entity.add', 'entity.relate'],
   input: z.object({ name: z.string(), type: z.string() }),
   implementation: async (input, ctx) => {
     const added = await ctx.follow('entity.add', input);
@@ -43,11 +41,10 @@ const onboard = hike('entity.onboard', {
 
 | Export | What it does |
 | --- | --- |
-| `trail(id, spec)` | Define an atomic unit of work with typed input and `Result` output |
-| `hike(id, spec)` | Define a composition that follows other trails via `ctx.follow()` |
+| `trail(id, spec)` | Define a unit of work with typed input and `Result` output; use `follow` for composition |
 | `event(id, spec)` | Define a server-originated push with a typed data schema |
 | `topo(name, ...modules)` | Collect trail modules into a queryable topology |
-| `validateTopo(topo)` | Structural validation: follows exist, no cycles, examples parse, output schemas present |
+| `validateTopo(topo)` | Structural validation: follow targets exist, no cycles, examples parse, output schemas present |
 
 ### Result
 

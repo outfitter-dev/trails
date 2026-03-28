@@ -14,7 +14,7 @@
 
 ## Mid-term (v1.3+)
 
-**Derived dependency graphs.** Instead of hand-maintaining `follows` declarations, the framework infers them from `ctx.follow()` calls in the implementation via static analysis. Same for service dependencies from `ctx.services` references. The surface lock captures the derived graph. Changes show up in diffs.
+**Derived dependency graphs.** Instead of hand-maintaining `follow` declarations, the framework infers them from `ctx.follow()` calls in the implementation via static analysis. Same for service dependencies from `ctx.services` references. The surface lock captures the derived graph. Changes show up in diffs.
 
 **Implementation synthesis from examples.** For trails with comprehensive examples that fully specify behavior (pure transformations, mapping logic, validation rules), an agent could synthesize the implementation from the examples alone. The examples become the source of truth; the code becomes the derived artifact.
 
@@ -30,7 +30,7 @@
 
 **SDK generation via guide.** Typed TypeScript clients generated from the topo. Each trail becomes a method with typed input/output. Working over HTTP or WebSocket.
 
-**Derived documentation sites.** A live site that reads the topo and renders it. Examples become interactive widgets. Error taxonomy becomes a searchable reference. The `follows` graph becomes a visual diagram. Always accurate because it reads the same data the framework uses at runtime.
+**Derived documentation sites.** A live site that reads the topo and renders it. Examples become interactive widgets. Error taxonomy becomes a searchable reference. The `follow` graph becomes a visual diagram. Always accurate because it reads the same data the framework uses at runtime.
 
 **Cross-app contract negotiation (junction).** Two Trails apps negotiate compatibility at connection time. "I need `entity.show` with at least `{ name: string }` input." The mounted app confirms or rejects.
 

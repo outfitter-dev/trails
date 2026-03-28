@@ -8,13 +8,12 @@ Canonical public surface. For naming conventions and decision history, see `docs
 
 ```typescript
 // Definitions
-trail(id, spec)                    // define a unit of work
-hike(id, spec)                     // define a composition that follows trails
+trail(id, spec)                    // define a unit of work (with optional follow for composition)
 event(id, spec)                    // define a payload schema with provenance
 topo(name, ...modules)             // assemble into a queryable topology
 
 // Types
-Trail<I, O>, Hike<I, O>, Event<T>, Topo
+Trail<I, O>, Event<T>, Topo
 TrailSpec<I, O>, HikeSpec<I, O>, EventSpec<T>, TrailExample<I, O>
 AnyTrail, AnyHike, AnyEvent
 
@@ -121,7 +120,6 @@ WriteOptions, ReadOptions
 // Test runners
 testAll(topo, ctx?)
 testExamples(topo, ctx?), testTrail(trail, scenarios, ctx?)
-testHike(hike, scenarios, ctx?)
 testContracts(topo, ctx?), testDetours(topo, ctx?)
 
 // Assertion helpers

@@ -22,22 +22,6 @@ const show = trail('entity.show', {
 });
 ```
 
-### `hike`
-
-A composite trail that follows other trails via `ctx.follow()`. Has its own input/output schema but delegates work to other trails.
-
-```typescript
-const onboard = hike('entity.onboard', {
-  follows: ['entity.add', 'entity.relate'],
-  input: z.object({ name: z.string(), type: z.string() }),
-  implementation: async (input, ctx) => {
-    const added = await ctx.follow('entity.add', input);
-    if (added.isErr()) return added;
-    return Result.ok({ entity: added.value });
-  },
-});
-```
-
 ### `event`
 
 A server-originated push. Carries a Zod schema for the data shape. No implementation -- things happen and this is the announcement.
@@ -72,7 +56,23 @@ await blazeMcp(app);
 
 ### `follow`
 
-Call another trail from within a hike's implementation. Goes through the topo with full validation and tracing.
+Declare which trails a trail will compose, and the runtime verb for invoking them. The same word names both the declaration (`follow: [...]` on the trail spec) and the runtime call (`ctx.follow()`).
+
+**As a declaration:**
+
+```typescript
+const onboard = trail('entity.onboard', {
+  follow: ['entity.add', 'entity.relate', 'search'],
+  input: z.object({ name: z.string(), type: z.string() }),
+  implementation: async (input, ctx) => {
+    const added = await ctx.follow('entity.add', input);
+    if (added.isErr()) return added;
+    return Result.ok({ entity: added.value });
+  },
+});
+```
+
+**As a runtime call:**
 
 ```typescript
 const result = await ctx.follow('entity.add', {
@@ -81,32 +81,23 @@ const result = await ctx.follow('entity.add', {
 });
 ```
 
-### `follows`
-
-The declaration on a `hike()` spec listing which trails the hike follows. Verified by the warden linter.
-
-```typescript
-const myHike = hike('onboard', {
-  follows: ['entity.add', 'entity.relate', 'search'],
-  // ...
-});
-```
+The `follow` declaration is verified by the warden linter against actual `ctx.follow()` usage.
 
 ### `topo` (the data structure)
 
-The internal collection of all trails -- the topography. The data structure that surfaces read, schema tools inspect, and `ctx.follow()` dispatches through. The `topo()` function returns a `Topo` object with `.trails`, `.hikes`, `.events` maps, and `.get()`, `.has()`, `.list()` accessors.
+The internal collection of all trails -- the topography. The data structure that surfaces read, schema tools inspect, and `ctx.follow()` dispatches through. The `topo()` function returns a `Topo` object with `.trails`, `.events` maps, and `.get()`, `.has()`, `.list()` accessors.
 
 ```typescript
 const app = topo('myapp', entityModule);
 app.trails; // ReadonlyMap of trail ID -> Trail
-app.list(); // All trails and hikes
+app.list(); // All trails
 ```
 
 Most developers never interact with the topo directly. Use "the app" or "the trail collection" in introductory material.
 
 ### `implementation`
 
-The pure function inside a trail or hike. Input in, `Result` out. Knows nothing about surfaces. Always the full word -- never "impl."
+The pure function inside a trail. Input in, `Result` out. Knows nothing about surfaces. Always the full word -- never "impl."
 
 ```typescript
 implementation: async (input, ctx) => Result.ok(value);
@@ -145,7 +136,6 @@ These are reserved for planned features. The naming is directional and may evolv
 | `junction` | Bidirectional peer connection between two Trails apps (future) |
 | `pack` | Distributable capability bundle (trails + services + events + markers) |
 | `loadout` | Deployment/environment config profile |
-| `leg` | One segment of a hike's execution |
 | `depot` | Pack registry and marketplace |
 
 ## Standard Terms (not branded)
@@ -178,11 +168,10 @@ When introducing Trails to someone new, introduce terms in this order:
 
 **Intermediate (composition and enrichment):**
 
-1. `hike()` -- a hike follows multiple trails
-2. `ctx.follow()` -- call another trail from within a hike
-3. `event()` -- define events the app can emit
-4. `markers` -- annotate trails with metadata
-5. `detours` -- define fallback paths when a trail fails
+1. `follow` -- declare which trails a trail composes (`follow: [...]`) and invoke them at runtime (`ctx.follow()`)
+2. `event()` -- define events the app can emit
+3. `markers` -- annotate trails with metadata
+4. `detours` -- define fallback paths when a trail fails
 
 **Advanced (introspection and observability):**
 

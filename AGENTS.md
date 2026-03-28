@@ -42,7 +42,7 @@ The architecture is designed to make consistency easier than drift. Agents build
 4. **Framework packages define ports.** Concrete UX and runtime libraries belong in apps or dedicated adapter subpaths, not in the base framework packages.
 5. **Implementations are pure.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no surface-specific request objects in domain logic.
 6. **Validate at the boundary, trust internally.** Zod validates before implementations run.
-7. **Derive by default, override deliberately.** Names, flags, hikes, and tool definitions should come from the trail contract unless there is a clear reason not to.
+7. **Derive by default, override deliberately.** Names, flags, and tool definitions should come from the trail contract unless there is a clear reason not to.
 8. **Examples are tests.** Trail examples serve both agent guidance and happy-path validation.
 9. **The contract is queryable at runtime.** Topo, survey, and guide exist so agents and tooling can inspect the system directly.
 10. **Trails is Bun-native.** Use Bun where it improves the developer experience. The surfaces Trails produces remain universally consumable.
@@ -54,9 +54,8 @@ Use the project language consistently:
 - `trail`, not action or handler
 - `implementation`, not handler or impl
 - `topo`, not registry or collection
-- `hike`, not route (for composition)
+- `follow`, not route (for composition declaration and runtime invocation)
 - `blaze`, not serve or mount
-- `follow`, not call or invoke
 - `surface`, not transport or adapter
 - `markers`, not metadata or annotations
 
@@ -68,8 +67,8 @@ Use the project language consistently:
 - Use `Result.ok()` and `Result.err()` to construct outcomes.
 - Branch on results with `isOk()`, `isErr()`, or `match()`.
 - Keep `TrailContext` and implementations surface-agnostic. Do not import `Request`, `Response`, `McpSession`, or similar surface types into trail logic.
-- Hikes compose through `ctx.follow()`, never by calling another trail's `.implementation()` directly.
-- Keep `follows` declarations aligned with actual `ctx.follow()` usage.
+- Trails with `follow` compose through `ctx.follow()`, never by calling another trail's `.implementation()` directly.
+- Keep `follow` declarations aligned with actual `ctx.follow()` usage.
 - Every trail exposed on MCP or HTTP surfaces must define an `output` schema.
 - Use `markers` for annotations and ownership data.
 - Use `detours` for recovery strategies instead of inline retry logic.

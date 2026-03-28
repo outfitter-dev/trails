@@ -73,7 +73,7 @@ await blazeMcp(app);
 
 One definition. Every surface. The rest is derived.
 
-Pure trails can return `Result` directly. Hikes and I/O-bound trails can stay `async`. Core normalizes both forms to one awaitable runtime shape before surfaces and layers execute them.
+Pure trails can return `Result` directly. Trails with `follow` and I/O-bound trails can stay `async`. Core normalizes both forms to one awaitable runtime shape before surfaces and layers execute them.
 
 ---
 
@@ -84,7 +84,7 @@ Every piece of information in a Trails app has a clear ownership model. Six cate
 - **Authored:** New information only you know — Zod schemas, safety markers, examples, the implementation, trail IDs. Everything else flows from these.
 - **Projected:** Mechanically derived, guaranteed correct — CLI flags from Zod fields, MCP tool names from trail IDs, exit codes from error classes. Projections can't be wrong because they're computed from the source.
 - **Enforced:** Constrained by the type system — output schemas bound the return type, `Result<T, Error>` eliminates throw/catch, `TrailContext` scopes what the implementation can access. The compiler makes non-compliance an error.
-- **Inferred:** Detected by static analysis, best-effort — which trails a hike follows (from `ctx.follow()` calls), error types returned (from `Result.err()` patterns). Warden verifies these. Useful for governance, not guaranteed.
+- **Inferred:** Detected by static analysis, best-effort — which trails a trail follows (from `ctx.follow()` calls), error types returned (from `Result.err()` patterns). Warden verifies these. Useful for governance, not guaranteed.
 - **Observed:** Learned from runtime (future) — error distributions, latency profiles, service usage patterns from the tracks system. Observations close the loop between declared intent and actual behavior.
 - **Overridden:** When derivation doesn't fit — any derived value can be explicitly set when the default is wrong. Overrides are escape hatches, visible in the surface map. If you're overriding everything, the derivation rules are wrong.
 
@@ -166,7 +166,7 @@ The answers became the principles: author what's new, derive what's known, overr
 
 ## What's Next
 
-The v1 implementation delivers the foundation: Result types, error taxonomy, trail/hike/event definitions, CLI and MCP surface adapters, contract-driven testing, schema governance, and the warden. These establish the contract layer and prove the core loop — define once, surface everywhere.
+The v1 implementation delivers the foundation: Result types, error taxonomy, trail and event definitions, CLI and MCP surface adapters, contract-driven testing, schema governance, and the warden. These establish the contract layer and prove the core loop — define once, surface everywhere.
 
 The architecture points toward capabilities that follow naturally — service capability shaping, derived dependency graphs, cross-app contract negotiation, implementation synthesis from examples. Each follows from the same principle: if the information exists in the system, don't ask the developer to restate it.
 

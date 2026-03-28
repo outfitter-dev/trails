@@ -19,7 +19,6 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 |    @ontrails/core     |
                 |                       |
                 |  trail() -> Trail     |
-                |  hike() -> Hike       |
                 |  event() -> Event     |
                 |  topo() -> Topo       |
                 |  Result, Errors       |
@@ -92,7 +91,7 @@ These are boundaries the compiler enforces on the implementation at development 
 | `output: z.object({...})` | Implementation return type must match the schema shape |
 | `Result<T, Error>` | Implementation cannot throw — must return `Result.ok()` or `Result.err()` |
 | `TrailContext` interface | Implementation receives only the fields the framework provides |
-| `follows: [...]` on hikes | Declares the dependency graph; warden verifies `ctx.follow()` calls match |
+| `follow: [...]` on trails | Declares the composition graph; warden verifies `ctx.follow()` calls match |
 
 ### Inferred — detected by static analysis, best-effort
 
@@ -100,7 +99,7 @@ These are derived from the implementation code itself. Useful for governance and
 
 | Inferred                     | From                                       |
 | ---------------------------- | ------------------------------------------ |
-| Which trails a hike follows  | `ctx.follow()` calls in the implementation |
+| Which trails a trail follows  | `ctx.follow()` calls in the implementation |
 | Error types returned         | `Result.err(new XError(...))` patterns     |
 | Surface map entries and hash | All of the above, canonicalized            |
 
@@ -119,7 +118,7 @@ Any derived value can be overridden when the default is wrong for your case:
 | CLI command name | Default derivation from trail ID doesn't read well |
 | MCP tool name | Need to match an external convention |
 | Flag name or description | Zod field name doesn't make a good flag |
-| `follows` list | Lock the dependency boundary tighter than the code implies |
+| `follow` list | Lock the composition boundary tighter than the code implies |
 
 Overrides are escape hatches. They're visible in the surface map as explicit deviations from derivation. They should be rare — if you're overriding everything, the derivation rules are wrong.
 
@@ -131,7 +130,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 
 ### Foundation
 
-`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, `trail()`/`hike()`/`event()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, layers, and adapter port interfaces.
+`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, `trail()`/`event()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, layers, and adapter port interfaces.
 
 **The test:** if you are building a surface adapter or ecosystem package, you should only need `@ontrails/core`.
 
@@ -154,7 +153,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 
 | Package | What it does |
 | --- | --- |
-| `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, `testHike()`, contract testing, surface harnesses |
+| `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, surface harnesses |
 | `@ontrails/schema` | Surface maps, semantic diffing, lock files |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 

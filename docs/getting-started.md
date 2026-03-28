@@ -132,7 +132,7 @@ Same trail. Same implementation. Different surface. The MCP server exposes a `my
 - `readOnlyHint: true` annotation from `readOnly: true`
 - Examples available for agent planning
 
-Pure trails can return `Result` directly. Hikes and I/O-heavy trails can stay `async`; Trails normalizes both forms before adapters run them.
+Pure trails can return `Result` directly. Trails with `follow` and I/O-heavy trails can stay `async`; Trails normalizes both forms before adapters run them.
 
 ## Test with `testAll`
 
@@ -161,7 +161,7 @@ $ bun test
 
 That single `testAll(app)` call runs the full governance suite:
 
-1. **Topo validation** via `validateTopo` -- follows existence, recursive follows, event origins, example schema validation, output schema presence
+1. **Topo validation** via `validateTopo` -- follow targets exist, no recursive follow, event origins, example schema validation, output schema presence
 2. **Example execution** -- for each trail, validates input, runs the implementation, asserts the result matches `expected` (or validates against the output schema when no `expected` is declared)
 3. **Contract checks** -- verifies implementation output matches declared output schemas
 4. **Detour verification** -- confirms detour targets exist in the topo
@@ -215,16 +215,16 @@ export const app = topo('myapp', greetModule, mathModule);
 
 The dotted trail ID `math.add` becomes a subcommand on CLI (`myapp math add --a 2 --b 3`) and a namespaced tool on MCP (`myapp_math_add`). No additional configuration needed.
 
-## Composing with Hikes
+## Composing Trails
 
-A hike follows multiple trails to accomplish a higher-level task:
+A trail can follow other trails to accomplish a higher-level task:
 
 ```typescript
-import { hike, Result } from '@ontrails/core';
+import { trail, Result } from '@ontrails/core';
 import { z } from 'zod';
 
-export const addAndDouble = hike('math.add-and-double', {
-  follows: ['math.add'],
+export const addAndDouble = trail('math.add-and-double', {
+  follow: ['math.add'],
   input: z.object({ a: z.number(), b: z.number() }),
   output: z.object({ result: z.number() }),
   implementation: async (input, ctx) => {
@@ -235,7 +235,7 @@ export const addAndDouble = hike('math.add-and-double', {
 });
 ```
 
-Hikes declare their dependencies with `follows` and call them with `ctx.follow()`. The warden linter verifies these match.
+Trails declare their composition dependencies with `follow` and invoke them with `ctx.follow()`. The warden linter verifies these match.
 
 ## What's Next
 

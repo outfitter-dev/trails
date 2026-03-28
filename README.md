@@ -90,8 +90,7 @@ The [Getting Started guide](./docs/getting-started.md) walks through building yo
 ## The vocabulary
 
 ```text
-trail()        define a unit of work
-hike()         define a composition that follows other trails
+trail()        define a unit of work (with optional follow for composition)
 event()        define a payload schema
 topo()         assemble trails into a queryable topology
 blaze()        surface the topo on CLI, MCP, HTTP, or WebSocket
@@ -101,11 +100,11 @@ blaze()        surface the topo on CLI, MCP, HTTP, or WebSocket
 
 | Package | What it does |
 | --- | --- |
-| [`@ontrails/core`](./packages/core) | Result, errors, trail/hike/event/topo, validateTopo, validation, schema derivation, patterns, branded types |
+| [`@ontrails/core`](./packages/core) | Result, errors, trail/event/topo, validateTopo, validation, schema derivation, patterns, branded types |
 | [`@ontrails/cli`](./packages/cli) | CLI surface — flag derivation from Zod, output formatting, Commander adapter, `blaze()` |
 | [`@ontrails/mcp`](./packages/mcp) | MCP surface — tool generation, annotations, progress bridge, `blaze()` |
 | [`@ontrails/logging`](./packages/logging) | Structured logging — sinks, formatters, hierarchical filtering, LogTape adapter |
-| [`@ontrails/testing`](./packages/testing) | `testAll()`, `testExamples()`, `testTrail()`, `testHike()`, `testContracts()`, surface harnesses |
+| [`@ontrails/testing`](./packages/testing) | `testAll()`, `testExamples()`, `testTrail()`, `testContracts()`, surface harnesses |
 | [`@ontrails/schema`](./packages/schema) | Surface maps, semantic diffing, lock files for CI governance |
 | [`@ontrails/warden`](./packages/warden) | AST-based code convention rules, drift detection, CI formatters |
 
