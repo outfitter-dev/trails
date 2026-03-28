@@ -28,6 +28,64 @@ export interface TopoIssue {
 // Validators
 // ---------------------------------------------------------------------------
 
+const WHITE = 0;
+const GRAY = 1;
+const BLACK = 2;
+
+/** Build an adjacency list and initial color map from hikes. */
+const buildFollowGraph = (
+  hikes: ReadonlyMap<string, AnyHike>
+): {
+  graph: Map<string, readonly string[]>;
+  color: Map<string, number>;
+} => {
+  const graph = new Map<string, readonly string[]>();
+  for (const [id, h] of hikes) {
+    graph.set(id, h.follows);
+  }
+  const color = new Map<string, number>();
+  for (const id of graph.keys()) {
+    color.set(id, WHITE);
+  }
+  return { color, graph };
+};
+
+/** Detect multi-node cycles in the hike follow graph via DFS. */
+const detectFollowCycles = (
+  hikes: ReadonlyMap<string, AnyHike>
+): TopoIssue[] => {
+  const issues: TopoIssue[] = [];
+  const { color, graph } = buildFollowGraph(hikes);
+
+  const dfs = (node: string, path: string[]): void => {
+    color.set(node, GRAY);
+    for (const next of graph.get(node) ?? []) {
+      if (!graph.has(next)) {
+        continue;
+      }
+      const c = color.get(next) ?? WHITE;
+      if (c === GRAY) {
+        const cycle = [...path.slice(path.indexOf(next)), next];
+        issues.push({
+          message: `Cycle detected: ${cycle.join(' → ')}`,
+          rule: 'follow-cycle',
+          trailId: next,
+        });
+      } else if (c === WHITE) {
+        dfs(next, [...path, next]);
+      }
+    }
+    color.set(node, BLACK);
+  };
+
+  for (const id of graph.keys()) {
+    if (color.get(id) === WHITE) {
+      dfs(id, [id]);
+    }
+  }
+  return issues;
+};
+
 const checkFollows = (
   hikes: ReadonlyMap<string, AnyHike>,
   topo: Topo
@@ -50,6 +108,7 @@ const checkFollows = (
       }
     }
   }
+  issues.push(...detectFollowCycles(hikes));
   return issues;
 };
 
@@ -66,7 +125,7 @@ const checkOneExample = (
 ): TopoIssue[] => {
   const issues: TopoIssue[] = [];
   const result = validateInput(inputSchema as AnyTrail['input'], example.input);
-  if (result.isErr() && example.error === undefined) {
+  if (result.isErr() && example.error !== 'ValidationError') {
     issues.push({
       message: `Example "${example.name}" input does not parse against schema`,
       rule: 'example-input-valid',

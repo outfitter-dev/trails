@@ -2,13 +2,24 @@ import { describe, test, expect } from 'bun:test';
 
 import {
   ValidationError,
+  AmbiguousError,
+  AssertionError,
   NetworkError,
   RateLimitError,
   InternalError,
   TimeoutError,
   NotFoundError,
+  AlreadyExistsError,
+  ConflictError,
+  PermissionError,
+  AuthError,
+  CancelledError,
 } from '../errors.js';
-import { serializeError, deserializeError } from '../serialization.js';
+import {
+  serializeError,
+  deserializeError,
+  safeStringify,
+} from '../serialization.js';
 import { Result } from '../result.js';
 import type { SerializedError } from '../serialization.js';
 
@@ -156,6 +167,66 @@ describe('deserializeError', () => {
       expect(err.category).toBe(category);
     }
   });
+
+  describe('round-trips all subclasses by name', () => {
+    const subclasses = [
+      { Ctor: ValidationError, category: 'validation' },
+      { Ctor: AmbiguousError, category: 'validation' },
+      { Ctor: AssertionError, category: 'internal' },
+      { Ctor: NotFoundError, category: 'not_found' },
+      { Ctor: AlreadyExistsError, category: 'conflict' },
+      { Ctor: ConflictError, category: 'conflict' },
+      { Ctor: PermissionError, category: 'permission' },
+      { Ctor: TimeoutError, category: 'timeout' },
+      { Ctor: NetworkError, category: 'network' },
+      { Ctor: InternalError, category: 'internal' },
+      { Ctor: AuthError, category: 'auth' },
+      { Ctor: CancelledError, category: 'cancelled' },
+    ] as const;
+
+    test.each(subclasses)(
+      '$Ctor.name round-trips with correct identity',
+      ({ Ctor, category }) => {
+        const original = new Ctor(`test ${Ctor.name}`, {
+          context: { key: 'value' },
+        });
+        const serialized = serializeError(original);
+        const restored = deserializeError(serialized);
+
+        expect(restored).toBeInstanceOf(Ctor);
+        expect(restored.constructor.name).toBe(Ctor.name);
+        expect(restored.name).toBe(Ctor.name);
+        expect(restored.category).toBe(category);
+        expect(restored.message).toBe(`test ${Ctor.name}`);
+        expect(restored.context).toEqual({ key: 'value' });
+      }
+    );
+
+    test('RateLimitError round-trips with retryAfter', () => {
+      const original = new RateLimitError('slow down', {
+        context: { endpoint: '/api' },
+        retryAfter: 42,
+      });
+      const serialized = serializeError(original);
+      const restored = deserializeError(serialized);
+
+      expect(restored).toBeInstanceOf(RateLimitError);
+      expect(restored.constructor.name).toBe('RateLimitError');
+      expect((restored as RateLimitError).retryAfter).toBe(42);
+      expect(restored.context).toEqual({ endpoint: '/api' });
+    });
+
+    test('falls back to category when name is unknown', () => {
+      const data: SerializedError = {
+        category: 'conflict',
+        message: 'custom error',
+        name: 'CustomConflictError',
+      };
+      const err = deserializeError(data);
+      expect(err).toBeInstanceOf(ConflictError);
+      expect(err.category).toBe('conflict');
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -232,5 +303,99 @@ describe('Result.toJson (safeStringify)', () => {
     const parsed = JSON.parse(ok.value) as Record<string, unknown>;
     expect(parsed['a']).toBe(1);
     expect(parsed['self']).toBe('[Circular]');
+  });
+
+  test('serializes shared references in a DAG without marking as circular', () => {
+    const shared = { x: 1 };
+    const obj = { a: shared, b: shared };
+    const result = Result.toJson(obj);
+    expect(result.isOk()).toBe(true);
+    const parsed = JSON.parse(result.unwrap()) as Record<string, unknown>;
+    expect(parsed['a']).toEqual({ x: 1 });
+    expect(parsed['b']).toEqual({ x: 1 });
+  });
+
+  test('detects deep circular references', () => {
+    const inner: Record<string, unknown> = { value: 'deep' };
+    const obj: Record<string, unknown> = { child: { nested: inner } };
+    inner['back'] = obj;
+    const result = Result.toJson(obj);
+    expect(result.isOk()).toBe(true);
+    const parsed = JSON.parse(result.unwrap()) as Record<string, unknown>;
+    const child = parsed['child'] as Record<string, unknown>;
+    const nested = child['nested'] as Record<string, unknown>;
+    expect(nested['value']).toBe('deep');
+    expect(nested['back']).toBe('[Circular]');
+  });
+
+  test('handles shared ref used in sibling subtrees of a DAG', () => {
+    const shared = { id: 42 };
+    const obj = {
+      left: { extra: 'l', ref: shared },
+      right: { extra: 'r', ref: shared },
+    };
+    const result = Result.toJson(obj);
+    expect(result.isOk()).toBe(true);
+    const parsed = JSON.parse(result.unwrap()) as Record<
+      string,
+      Record<string, unknown>
+    >;
+    expect(parsed['left']?.['ref']).toEqual({ id: 42 });
+    expect(parsed['right']?.['ref']).toEqual({ id: 42 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// safeStringify (shared DAG / circular detection)
+// ---------------------------------------------------------------------------
+
+describe('safeStringify', () => {
+  test('serializes shared references in a DAG without marking as circular', () => {
+    const shared = { x: 1 };
+    const obj = { a: shared, b: shared };
+    const result = safeStringify(obj);
+    expect(result.isOk()).toBe(true);
+    const parsed = JSON.parse(result.unwrap()) as Record<string, unknown>;
+    expect(parsed['a']).toEqual({ x: 1 });
+    expect(parsed['b']).toEqual({ x: 1 });
+  });
+
+  test('detects true circular references', () => {
+    const obj: Record<string, unknown> = { a: 1 };
+    obj['self'] = obj;
+    const result = safeStringify(obj);
+    expect(result.isOk()).toBe(true);
+    const parsed = JSON.parse(result.unwrap()) as Record<string, unknown>;
+    expect(parsed['a']).toBe(1);
+    expect(parsed['self']).toBe('[Circular]');
+  });
+
+  test('detects deep circular references', () => {
+    const inner: Record<string, unknown> = { value: 'deep' };
+    const obj: Record<string, unknown> = { child: { nested: inner } };
+    inner['back'] = obj;
+    const result = safeStringify(obj);
+    expect(result.isOk()).toBe(true);
+    const parsed = JSON.parse(result.unwrap()) as Record<string, unknown>;
+    const child = parsed['child'] as Record<string, unknown>;
+    const nested = child['nested'] as Record<string, unknown>;
+    expect(nested['value']).toBe('deep');
+    expect(nested['back']).toBe('[Circular]');
+  });
+
+  test('handles shared ref used in sibling subtrees of a DAG', () => {
+    const shared = { id: 42 };
+    const obj = {
+      left: { extra: 'l', ref: shared },
+      right: { extra: 'r', ref: shared },
+    };
+    const result = safeStringify(obj);
+    expect(result.isOk()).toBe(true);
+    const parsed = JSON.parse(result.unwrap()) as Record<
+      string,
+      Record<string, unknown>
+    >;
+    expect(parsed['left']?.['ref']).toEqual({ id: 42 });
+    expect(parsed['right']?.['ref']).toEqual({ id: 42 });
   });
 });

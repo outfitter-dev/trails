@@ -133,6 +133,10 @@ export {
   getRelativePath,
 } from './workspace.js';
 
+// Blob
+export { createBlobRef, isBlobRef } from './blob-ref.js';
+export type { BlobRef } from './blob-ref.js';
+
 // Guards
 export {
   isDefined,

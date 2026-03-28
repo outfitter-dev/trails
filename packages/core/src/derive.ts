@@ -14,7 +14,14 @@ import type { z } from 'zod';
 /** A surface-agnostic field descriptor derived from a Zod schema. */
 export interface Field {
   readonly name: string;
-  readonly type: 'string' | 'number' | 'boolean' | 'enum' | 'multiselect';
+  readonly type:
+    | 'string'
+    | 'number'
+    | 'boolean'
+    | 'enum'
+    | 'multiselect'
+    | 'string[]'
+    | 'number[]';
   readonly label: string;
   readonly required: boolean;
   readonly default?: unknown | undefined;
@@ -141,7 +148,10 @@ const fieldTypeByDef: Record<string, (s: ZodInternals) => DerivedFieldType> = {
       const entries = element._zod.def['entries'] as Record<string, string>;
       return { options: Object.values(entries), type: 'multiselect' };
     }
-    return { options: undefined, type: 'string' };
+    return {
+      options: undefined,
+      type: elementType === 'number' ? 'number[]' : 'string[]',
+    };
   },
   boolean: () => ({ options: undefined, type: 'boolean' }),
   enum: (s) => {

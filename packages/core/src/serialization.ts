@@ -8,7 +8,10 @@
 import type { ErrorCategory, TrailsError } from './errors.js';
 import {
   ValidationError,
+  AmbiguousError,
+  AssertionError,
   NotFoundError,
+  AlreadyExistsError,
   ConflictError,
   PermissionError,
   TimeoutError,
@@ -89,6 +92,31 @@ const createErrorByCategory = (
   return factory(message, opts, retryAfter);
 };
 
+/** Map error class names to their constructors for precise round-tripping. */
+const errorConstructorsByName: Record<string, ErrorFactory> = {
+  AlreadyExistsError: (msg, opts) => new AlreadyExistsError(msg, opts),
+  AmbiguousError: (msg, opts) => new AmbiguousError(msg, opts),
+  AssertionError: (msg, opts) => new AssertionError(msg, opts),
+  AuthError: (msg, opts) => new AuthError(msg, opts),
+  CancelledError: (msg, opts) => new CancelledError(msg, opts),
+  ConflictError: (msg, opts) => new ConflictError(msg, opts),
+  InternalError: (msg, opts) => new InternalError(msg, opts),
+  NetworkError: (msg, opts) => new NetworkError(msg, opts),
+  NotFoundError: (msg, opts) => new NotFoundError(msg, opts),
+  PermissionError: (msg, opts) => new PermissionError(msg, opts),
+  RateLimitError: (msg, opts, retryAfter) => {
+    const rlOpts: { context?: Record<string, unknown>; retryAfter?: number } = {
+      ...opts,
+    };
+    if (retryAfter !== undefined) {
+      rlOpts.retryAfter = retryAfter;
+    }
+    return new RateLimitError(msg, rlOpts);
+  },
+  TimeoutError: (msg, opts) => new TimeoutError(msg, opts),
+  ValidationError: (msg, opts) => new ValidationError(msg, opts),
+};
+
 // ---------------------------------------------------------------------------
 // Error serialization
 // ---------------------------------------------------------------------------
@@ -117,13 +145,17 @@ export const serializeError = (error: Error): SerializedError => {
 
 /** Reconstruct a TrailsError from serialized data. */
 export const deserializeError = (data: SerializedError): TrailsError => {
-  const category = data.category ?? 'internal';
-  const error = createErrorByCategory(
-    category,
-    data.message,
-    data.context,
-    data.retryAfter
-  );
+  const opts = buildOpts(data.context);
+  const nameFactory = errorConstructorsByName[data.name];
+
+  const error = nameFactory
+    ? nameFactory(data.message, opts, data.retryAfter)
+    : createErrorByCategory(
+        data.category ?? 'internal',
+        data.message,
+        data.context,
+        data.retryAfter
+      );
 
   if (data.stack) {
     error.stack = data.stack;
@@ -155,13 +187,26 @@ export const safeStringify = (
   value: unknown
 ): Result<string, InternalError> => {
   try {
-    const seen = new WeakSet();
-    const json = JSON.stringify(value, (_key, val: unknown) => {
+    // Track the current ancestor chain, not every object ever visited.
+    // This allows shared references in a DAG while still detecting cycles.
+    const stack: unknown[] = [];
+    const keys: string[] = [];
+
+    const json = JSON.stringify(value, function json(key, val: unknown) {
+      if (stack.length > 0) {
+        // `this` is the object that contains `key`. Trim the stack back
+        // to `this` so we only track the current ancestor path.
+        const thisIndex = stack.lastIndexOf(this as unknown);
+        stack.splice(thisIndex + 1);
+        keys.splice(thisIndex);
+      }
+
       if (typeof val === 'object' && val !== null) {
-        if (seen.has(val)) {
+        if (stack.includes(val)) {
           return '[Circular]';
         }
-        seen.add(val);
+        stack.push(val);
+        keys.push(key);
       }
       return val;
     });

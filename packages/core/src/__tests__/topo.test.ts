@@ -42,80 +42,116 @@ const mockEvent = (id: string) => ({
 // ---------------------------------------------------------------------------
 
 describe('topo', () => {
-  test('returns Topo with name', () => {
-    const t = topo('my-app');
-    expect(t.name).toBe('my-app');
+  describe('collection', () => {
+    test('returns Topo with name', () => {
+      const t = topo('my-app');
+      expect(t.name).toBe('my-app');
+    });
+
+    test('collects trails from modules', () => {
+      const mod = { myTrail: mockTrail('create-user') };
+      const t = topo('app', mod);
+
+      expect(t.trails.size).toBe(1);
+      expect(t.trails.get('create-user')).toBe(mod.myTrail);
+    });
+
+    test('auto-scans exports by kind discriminant', () => {
+      const mod = {
+        event1: mockEvent('e1'),
+        hike1: mockHike('r1'),
+        trail1: mockTrail('t1'),
+      };
+      const t = topo('app', mod);
+
+      expect(t.trails.size).toBe(1);
+      expect(t.hikes.size).toBe(1);
+      expect(t.events.size).toBe(1);
+    });
+
+    test('collects from multiple modules', () => {
+      const mod1 = { a: mockTrail('t1') };
+      const mod2 = { b: mockTrail('t2'), c: mockHike('r1') };
+      const t = topo('app', mod1, mod2);
+
+      expect(t.trails.size).toBe(2);
+      expect(t.hikes.size).toBe(1);
+    });
+
+    test('non-trail exports are silently ignored', () => {
+      const mod = {
+        config: { port: 3000 },
+        helper: () => 'not a trail',
+        name: 'some-string',
+        nothing: null,
+        num: 42,
+        trail1: mockTrail('t1'),
+        undef: undefined,
+      };
+      const t = topo('app', mod);
+
+      expect(t.trails.size).toBe(1);
+      expect(t.hikes.size).toBe(0);
+      expect(t.events.size).toBe(0);
+    });
+
+    test('allows different IDs across trails and hikes', () => {
+      const mod = { h: mockHike('hike-1'), t: mockTrail('trail-1') };
+      const t = topo('app', mod);
+
+      expect(t.trails.size).toBe(1);
+      expect(t.hikes.size).toBe(1);
+    });
   });
 
-  test('collects trails from modules', () => {
-    const mod = { myTrail: mockTrail('create-user') };
-    const t = topo('app', mod);
+  describe('duplicate rejection', () => {
+    test('rejects duplicate trail IDs', () => {
+      const mod1 = { a: mockTrail('dup') };
+      const mod2 = { b: mockTrail('dup') };
 
-    expect(t.trails.size).toBe(1);
-    expect(t.trails.get('create-user')).toBe(mod.myTrail);
-  });
+      expect(() => topo('app', mod1, mod2)).toThrow(ValidationError);
+      expect(() => topo('app', mod1, mod2)).toThrow(
+        'Duplicate trail ID: "dup"'
+      );
+    });
 
-  test('auto-scans exports by kind discriminant', () => {
-    const mod = {
-      event1: mockEvent('e1'),
-      hike1: mockHike('r1'),
-      trail1: mockTrail('t1'),
-    };
-    const t = topo('app', mod);
+    test('rejects duplicate hike IDs', () => {
+      const mod1 = { a: mockHike('dup') };
+      const mod2 = { b: mockHike('dup') };
 
-    expect(t.trails.size).toBe(1);
-    expect(t.hikes.size).toBe(1);
-    expect(t.events.size).toBe(1);
-  });
+      expect(() => topo('app', mod1, mod2)).toThrow(ValidationError);
+      expect(() => topo('app', mod1, mod2)).toThrow('Duplicate hike ID: "dup"');
+    });
 
-  test('collects from multiple modules', () => {
-    const mod1 = { a: mockTrail('t1') };
-    const mod2 = { b: mockTrail('t2'), c: mockHike('r1') };
-    const t = topo('app', mod1, mod2);
+    test('rejects duplicate event IDs', () => {
+      const mod1 = { a: mockEvent('dup') };
+      const mod2 = { b: mockEvent('dup') };
 
-    expect(t.trails.size).toBe(2);
-    expect(t.hikes.size).toBe(1);
-  });
+      expect(() => topo('app', mod1, mod2)).toThrow(ValidationError);
+      expect(() => topo('app', mod1, mod2)).toThrow(
+        'Duplicate event ID: "dup"'
+      );
+    });
 
-  test('non-trail exports are silently ignored', () => {
-    const mod = {
-      config: { port: 3000 },
-      helper: () => 'not a trail',
-      name: 'some-string',
-      nothing: null,
-      num: 42,
-      trail1: mockTrail('t1'),
-      undef: undefined,
-    };
-    const t = topo('app', mod);
+    test('rejects a hike whose ID collides with an existing trail', () => {
+      const modTrail = { a: mockTrail('shared-id') };
+      const modHike = { b: mockHike('shared-id') };
 
-    expect(t.trails.size).toBe(1);
-    expect(t.hikes.size).toBe(0);
-    expect(t.events.size).toBe(0);
-  });
+      expect(() => topo('app', modTrail, modHike)).toThrow(ValidationError);
+      expect(() => topo('app', modTrail, modHike)).toThrow(
+        /ID collision.*hike "shared-id".*trail/
+      );
+    });
 
-  test('rejects duplicate trail IDs', () => {
-    const mod1 = { a: mockTrail('dup') };
-    const mod2 = { b: mockTrail('dup') };
+    test('rejects a trail whose ID collides with an existing hike', () => {
+      const modHike = { a: mockHike('shared-id') };
+      const modTrail = { b: mockTrail('shared-id') };
 
-    expect(() => topo('app', mod1, mod2)).toThrow(ValidationError);
-    expect(() => topo('app', mod1, mod2)).toThrow('Duplicate trail ID: "dup"');
-  });
-
-  test('rejects duplicate hike IDs', () => {
-    const mod1 = { a: mockHike('dup') };
-    const mod2 = { b: mockHike('dup') };
-
-    expect(() => topo('app', mod1, mod2)).toThrow(ValidationError);
-    expect(() => topo('app', mod1, mod2)).toThrow('Duplicate hike ID: "dup"');
-  });
-
-  test('rejects duplicate event IDs', () => {
-    const mod1 = { a: mockEvent('dup') };
-    const mod2 = { b: mockEvent('dup') };
-
-    expect(() => topo('app', mod1, mod2)).toThrow(ValidationError);
-    expect(() => topo('app', mod1, mod2)).toThrow('Duplicate event ID: "dup"');
+      expect(() => topo('app', modHike, modTrail)).toThrow(ValidationError);
+      expect(() => topo('app', modHike, modTrail)).toThrow(
+        /ID collision.*trail "shared-id".*hike/
+      );
+    });
   });
 });
 

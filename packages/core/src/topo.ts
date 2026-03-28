@@ -91,11 +91,21 @@ const register = (
       if (hikes.has(id)) {
         throw new ValidationError(`Duplicate hike ID: "${id}"`);
       }
+      if (trails.has(id)) {
+        throw new ValidationError(
+          `ID collision: hike "${id}" conflicts with an existing trail of the same ID`
+        );
+      }
       hikes.set(id, value as AnyHike);
     },
     trail: () => {
       if (trails.has(id)) {
         throw new ValidationError(`Duplicate trail ID: "${id}"`);
+      }
+      if (hikes.has(id)) {
+        throw new ValidationError(
+          `ID collision: trail "${id}" conflicts with an existing hike of the same ID`
+        );
       }
       trails.set(id, value as AnyTrail);
     },

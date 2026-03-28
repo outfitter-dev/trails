@@ -97,8 +97,49 @@ describe('validateTopo', () => {
       expect(result.isErr()).toBe(true);
 
       const issues = extractIssues(result);
-      expect(issues).toHaveLength(1);
-      expect(issues[0]?.rule).toBe('no-self-follow');
+      expect(issues.some((i) => i.rule === 'no-self-follow')).toBe(true);
+    });
+
+    test('two-node cycle (a→b→a) is detected', () => {
+      const app = topo('app', {
+        a: mockHike('a', ['b']),
+        b: mockHike('b', ['a']),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issues = extractIssues(result);
+      const cycleIssues = issues.filter((i) => i.rule === 'follow-cycle');
+      expect(cycleIssues.length).toBeGreaterThanOrEqual(1);
+      expect(cycleIssues[0]?.message).toContain('Cycle detected');
+    });
+
+    test('three-node cycle (a→b→c→a) is detected', () => {
+      const app = topo('app', {
+        a: mockHike('a', ['b']),
+        b: mockHike('b', ['c']),
+        c: mockHike('c', ['a']),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issues = extractIssues(result);
+      const cycleIssues = issues.filter((i) => i.rule === 'follow-cycle');
+      expect(cycleIssues.length).toBeGreaterThanOrEqual(1);
+      expect(cycleIssues[0]?.message).toContain('Cycle detected');
+    });
+
+    test('valid DAG with shared targets is not flagged', () => {
+      const app = topo('app', {
+        a: mockHike('a', ['c']),
+        b: mockHike('b', ['c']),
+        c: mockHike('c', []),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
     });
   });
 
@@ -140,7 +181,7 @@ describe('validateTopo', () => {
       expect(issues[0]?.rule).toBe('output-schema-present');
     });
 
-    test('error example with invalid input is allowed', () => {
+    test('ValidationError example with invalid input is allowed', () => {
       const app = topo('app', {
         show: mockTrail('entity.show', {
           examples: [
@@ -148,6 +189,44 @@ describe('validateTopo', () => {
               error: 'ValidationError',
               input: { name: 123 },
               name: 'Error case',
+            },
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
+    });
+
+    test('NotFoundError example with invalid input fails', () => {
+      const app = topo('app', {
+        show: mockTrail('entity.show', {
+          examples: [
+            {
+              error: 'NotFoundError',
+              input: { name: 123 },
+              name: 'Not found case',
+            },
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issues = extractIssues(result);
+      expect(issues).toHaveLength(1);
+      expect(issues[0]?.rule).toBe('example-input-valid');
+    });
+
+    test('NotFoundError example with valid input passes', () => {
+      const app = topo('app', {
+        show: mockTrail('entity.show', {
+          examples: [
+            {
+              error: 'NotFoundError',
+              input: { name: 'test' },
+              name: 'Not found case',
             },
           ],
         }),

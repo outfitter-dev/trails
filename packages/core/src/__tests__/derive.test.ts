@@ -77,6 +77,50 @@ describe('derive', () => {
     });
   });
 
+  describe('array types', () => {
+    test('z.array(z.string()) derives string[] field', () => {
+      const schema = z.object({ names: z.array(z.string()) });
+      const fields = deriveFields(schema);
+      expect(fields[0]).toMatchObject({
+        name: 'names',
+        options: undefined,
+        required: true,
+        type: 'string[]',
+      });
+    });
+
+    test('z.array(z.number()) derives number[] field', () => {
+      const schema = z.object({ scores: z.array(z.number()) });
+      const fields = deriveFields(schema);
+      expect(fields[0]).toMatchObject({
+        name: 'scores',
+        options: undefined,
+        required: true,
+        type: 'number[]',
+      });
+    });
+
+    test('optional z.array(z.string()) marks not required', () => {
+      const schema = z.object({ tags: z.array(z.string()).optional() });
+      const fields = deriveFields(schema);
+      expect(fields[0]).toMatchObject({
+        name: 'tags',
+        required: false,
+        type: 'string[]',
+      });
+    });
+
+    test('z.array(z.string()) with default sets default value', () => {
+      const schema = z.object({
+        items: z.array(z.string()).default(['a', 'b']),
+      });
+      const fields = deriveFields(schema);
+      expect(fields[0]?.required).toBe(false);
+      expect(fields[0]?.type).toBe('string[]');
+      expect(fields[0]?.default).toEqual(['a', 'b']);
+    });
+  });
+
   describe('modifiers', () => {
     test('.describe() sets label', () => {
       const schema = z.object({

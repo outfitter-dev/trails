@@ -151,16 +151,30 @@ export const Result = {
    */
   toJson(value: unknown): Result<string, InternalError> {
     try {
-      const seen = new WeakSet();
-      const json = JSON.stringify(value, (_key, val: unknown) => {
+      // Track the current ancestor chain, not every object ever visited.
+      // This allows shared references in a DAG while still detecting cycles.
+      const stack: unknown[] = [];
+      const keys: string[] = [];
+
+      const json = JSON.stringify(value, function json(key, val: unknown) {
+        if (stack.length > 0) {
+          // `this` is the object that contains `key`. Trim the stack back
+          // to `this` so we only track the current ancestor path.
+          const thisIndex = stack.lastIndexOf(this as unknown);
+          stack.splice(thisIndex + 1);
+          keys.splice(thisIndex);
+        }
+
         if (typeof val === 'object' && val !== null) {
-          if (seen.has(val)) {
+          if (stack.includes(val)) {
             return '[Circular]';
           }
-          seen.add(val);
+          stack.push(val);
+          keys.push(key);
         }
         return val;
       });
+
       if (json === undefined) {
         return new Err(
           new InternalError('Value is not JSON-serializable', {
