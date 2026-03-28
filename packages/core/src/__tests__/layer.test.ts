@@ -24,10 +24,10 @@ const stubCtx: TrailContext = {
 };
 
 const echoTrail = trail('echo', {
-  implementation: (input) => Result.ok({ value: input.value }),
   input: z.object({ value: z.string() }),
-  markers: { domain: 'test' },
+  metadata: { domain: 'test' },
   output: z.object({ value: z.string() }),
+  run: (input) => Result.ok({ value: input.value }),
 });
 
 // ---------------------------------------------------------------------------
@@ -49,11 +49,7 @@ describe('Layer', () => {
       },
     };
 
-    const wrapped = composeLayers(
-      [prefixLayer],
-      echoTrail,
-      echoTrail.implementation
-    );
+    const wrapped = composeLayers([prefixLayer], echoTrail, echoTrail.run);
     const result = await wrapped({ value: 'hello' }, stubCtx);
 
     expect(result.isOk()).toBe(true);
@@ -87,11 +83,7 @@ describe('Layer', () => {
       },
     };
 
-    const wrapped = composeLayers(
-      [outer, inner],
-      echoTrail,
-      echoTrail.implementation
-    );
+    const wrapped = composeLayers([outer, inner], echoTrail, echoTrail.run);
     await wrapped({ value: 'x' }, stubCtx);
 
     expect(log).toEqual([
@@ -110,11 +102,7 @@ describe('Layer', () => {
       },
     };
 
-    const wrapped = composeLayers(
-      [shortCircuit],
-      echoTrail,
-      echoTrail.implementation
-    );
+    const wrapped = composeLayers([shortCircuit], echoTrail, echoTrail.run);
     const result = await wrapped({ value: 'hello' }, stubCtx);
 
     expect(result.isErr()).toBe(true);
@@ -122,25 +110,25 @@ describe('Layer', () => {
     expect(err.error.message).toBe('blocked');
   });
 
-  test('layer can inspect trail markers', () => {
+  test('layer can inspect trail metadata', () => {
     let capturedDomain: unknown;
 
     const inspectLayer: Layer = {
       name: 'inspect',
       wrap(t, impl) {
-        capturedDomain = t.markers?.['domain'];
+        capturedDomain = t.metadata?.['domain'];
         return impl;
       },
     };
 
-    composeLayers([inspectLayer], echoTrail, echoTrail.implementation);
+    composeLayers([inspectLayer], echoTrail, echoTrail.run);
 
     expect(capturedDomain).toBe('test');
   });
 
   test('empty layers array returns implementation unchanged', () => {
-    const wrapped = composeLayers([], echoTrail, echoTrail.implementation);
-    expect(wrapped).toBe(echoTrail.implementation);
+    const wrapped = composeLayers([], echoTrail, echoTrail.run);
+    expect(wrapped).toBe(echoTrail.run);
   });
 });
 

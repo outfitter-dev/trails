@@ -63,19 +63,6 @@ export const guideTrail = trail('guide', {
       name: 'List trail guidance',
     },
   ],
-  implementation: async (input, ctx) => {
-    const app = await loadApp(input.module, ctx.cwd ?? '.');
-
-    if (input.trailId) {
-      const item = app.get(input.trailId);
-      if (!item) {
-        return Result.err(new Error(`Trail not found: ${input.trailId}`));
-      }
-      return Result.ok(toGuideDetail(item as Trail<unknown, unknown>));
-    }
-
-    return Result.ok(toGuideEntries(app));
-  },
   input: z.object({
     module: z
       .string()
@@ -83,6 +70,7 @@ export const guideTrail = trail('guide', {
       .describe('Path to the app module'),
     trailId: z.string().optional().describe('Trail ID for detailed guidance'),
   }),
+  intent: 'read',
   output: z.union([
     z.array(
       z.object({
@@ -100,5 +88,17 @@ export const guideTrail = trail('guide', {
       kind: z.string(),
     }),
   ]),
-  readOnly: true,
+  run: async (input, ctx) => {
+    const app = await loadApp(input.module, ctx.cwd ?? '.');
+
+    if (input.trailId) {
+      const item = app.get(input.trailId);
+      if (!item) {
+        return Result.err(new Error(`Trail not found: ${input.trailId}`));
+      }
+      return Result.ok(toGuideDetail(item as Trail<unknown, unknown>));
+    }
+
+    return Result.ok(toGuideEntries(app));
+  },
 });

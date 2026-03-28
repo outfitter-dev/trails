@@ -29,9 +29,9 @@ const mockTrail = (
 ) => ({
   follow: Object.freeze([...(overrides?.follow ?? [])]),
   id,
-  implementation: noop,
   input: z.object({ name: z.string() }),
   kind: 'trail' as const,
+  run: noop,
   ...overrides,
 });
 

@@ -21,7 +21,25 @@ export const ciWardenTrail = trail('ci.warden', {
       name: 'JSON format',
     },
   ],
-  implementation: async (input, ctx) => {
+  input: z.object({
+    failOn: z
+      .enum(['error', 'warning'])
+      .default('error')
+      .describe('Minimum severity to fail on'),
+    format: z
+      .enum(['json', 'github', 'summary'])
+      .default('json')
+      .describe('Output format'),
+    rootDir: z.string().optional().describe('Root directory to scan'),
+  }),
+  intent: 'read',
+  output: z.object({
+    errorCount: z.number(),
+    output: z.string(),
+    passed: z.boolean(),
+    warningCount: z.number(),
+  }),
+  run: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
     const format: CiFormat = input.format ?? 'json';
     const failOn = input.failOn ?? 'error';
@@ -49,22 +67,4 @@ export const ciWardenTrail = trail('ci.warden', {
       warningCount: report.warnCount,
     });
   },
-  input: z.object({
-    failOn: z
-      .enum(['error', 'warning'])
-      .default('error')
-      .describe('Minimum severity to fail on'),
-    format: z
-      .enum(['json', 'github', 'summary'])
-      .default('json')
-      .describe('Output format'),
-    rootDir: z.string().optional().describe('Root directory to scan'),
-  }),
-  output: z.object({
-    errorCount: z.number(),
-    output: z.string(),
-    passed: z.boolean(),
-    warningCount: z.number(),
-  }),
-  readOnly: true,
 });

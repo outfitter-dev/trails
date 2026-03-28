@@ -1,8 +1,8 @@
 /**
- * Derive MCP tool annotations from trail spec markers.
+ * Derive MCP tool annotations from trail spec fields.
  */
 
-import type { Trail } from '@ontrails/core';
+import type { Intent, Trail } from '@ontrails/core';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,18 +27,18 @@ export interface McpAnnotations {
  * Omitted hints let the MCP SDK use its defaults.
  */
 export const deriveAnnotations = (
-  trail: Pick<
-    Trail<unknown, unknown>,
-    'readOnly' | 'destructive' | 'idempotent' | 'description'
-  >
+  trail: Pick<Trail<unknown, unknown>, 'intent' | 'idempotent' | 'description'>
 ): McpAnnotations => {
   const annotations: Record<string, unknown> = {};
 
-  if (trail.readOnly === true) {
-    annotations['readOnlyHint'] = true;
-  }
-  if (trail.destructive === true) {
-    annotations['destructiveHint'] = true;
+  const intentToHint: Partial<Record<Intent, string>> = {
+    destroy: 'destructiveHint',
+    read: 'readOnlyHint',
+  };
+
+  const hint = intentToHint[trail.intent];
+  if (hint) {
+    annotations[hint] = true;
   }
   if (trail.idempotent === true) {
     annotations['idempotentHint'] = true;

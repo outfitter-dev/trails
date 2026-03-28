@@ -61,8 +61,7 @@ export interface CliCommand {
   readonly args: CliArg[];
   readonly trail: AnyTrail;
   readonly layers?: Layer[] | undefined;
-  readonly readOnly?: boolean | undefined;
-  readonly destructive?: boolean | undefined;
+  readonly intent: 'read' | 'write' | 'destroy';
   readonly idempotent?: boolean | undefined;
 
   execute(

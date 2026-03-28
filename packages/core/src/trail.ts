@@ -39,19 +39,17 @@ export interface TrailSpec<I, O> {
   /** Zod schema for validating output (optional — some trails are fire-and-forget) */
   readonly output?: z.ZodType<O> | undefined;
   /** The pure function that does the work (sync or async authoring) */
-  readonly implementation: Implementation<I, O>;
+  readonly run: Implementation<I, O>;
   /** Human-readable description */
   readonly description?: string | undefined;
   /** Named examples for docs and testing */
   readonly examples?: readonly TrailExample<I, O>[] | undefined;
-  /** Trail is read-only (no side effects) */
-  readonly readOnly?: boolean | undefined;
-  /** Trail is destructive (deletes or overwrites data) */
-  readonly destructive?: boolean | undefined;
+  /** What this trail does to the world: read, write (default), or destroy */
+  readonly intent?: 'read' | 'write' | 'destroy' | undefined;
   /** Trail is idempotent (safe to retry) */
   readonly idempotent?: boolean | undefined;
   /** Arbitrary metadata for tooling and filtering */
-  readonly markers?: Readonly<Record<string, unknown>> | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
   /** Named sets of downstream trail IDs that may be invoked */
   readonly detours?: Readonly<Record<string, readonly string[]>> | undefined;
   /** Per-field overrides for deriveFields() (labels, hints, options) */
@@ -64,16 +62,21 @@ export interface TrailSpec<I, O> {
 // Trail (the frozen runtime object)
 // ---------------------------------------------------------------------------
 
+/** Intent describes what a trail does to the world */
+export type Intent = 'read' | 'write' | 'destroy';
+
 /** A fully-defined trail — the unit of work in the Trails system */
 export interface Trail<I, O> extends Omit<
   TrailSpec<I, O>,
-  'implementation' | 'follow'
+  'run' | 'follow' | 'intent'
 > {
   readonly kind: 'trail';
   readonly id: string;
-  readonly implementation: Implementation<I, O>;
+  readonly run: Implementation<I, O>;
   /** IDs of downstream trails this trail may invoke via ctx.follow() (always present, default []) */
   readonly follow: readonly string[];
+  /** What this trail does to the world (always present, default 'write') */
+  readonly intent: Intent;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,14 +94,14 @@ export interface Trail<I, O> extends Omit<
  * // ID as first argument (recommended for human authoring)
  * const show = trail("entity.show", {
  *   input: z.object({ name: z.string() }),
- *   implementation: (input) => Result.ok(entity),
+ *   run: (input) => Result.ok(entity),
  * });
  *
  * // Full spec object (for programmatic generation)
  * const show = trail({
  *   id: "entity.show",
  *   input: z.object({ name: z.string() }),
- *   implementation: (input) => Result.ok(entity),
+ *   run: (input) => Result.ok(entity),
  * });
  * ```
  */
@@ -119,15 +122,15 @@ export function trail<I, O>(
     throw new TypeError('trail() requires a spec when an id is provided');
   }
 
-  const { implementation, follow: rawFollow, ...spec } = resolved.spec;
+  const { run, follow: rawFollow, intent: rawIntent, ...spec } = resolved.spec;
 
   return Object.freeze({
     ...spec,
     follow: Object.freeze([...(rawFollow ?? [])]),
     id: resolved.id,
-    implementation: async (input: I, ctx: TrailContext) =>
-      await implementation(input, ctx),
+    intent: rawIntent ?? 'write',
     kind: 'trail' as const,
+    run: async (input: I, ctx: TrailContext) => await run(input, ctx),
   });
 }
 

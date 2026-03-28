@@ -28,20 +28,20 @@ const helloTrail = trail('hello', {
       name: 'Default greeting',
     },
   ],
-  implementation: (input) => {
+  input: z.object({ name: z.string().optional() }),
+  intent: 'read',
+  output: z.object({ message: z.string() }),
+  run: (input) => {
     const name = input.name ?? 'world';
     return Result.ok({ message: `Hello, ${name}!` });
   },
-  input: z.object({ name: z.string().optional() }),
-  output: z.object({ message: z.string() }),
-  readOnly: true,
 });
 
 const byeTrail = trail('bye', {
   description: 'Say goodbye',
-  implementation: (input) => Result.ok({ message: `Goodbye, ${input.name}!` }),
   input: z.object({ name: z.string() }),
   output: z.object({ message: z.string() }),
+  run: (input) => Result.ok({ message: `Goodbye, ${input.name}!` }),
 });
 
 const app = topo('test-app', { bye: byeTrail, hello: helloTrail });
@@ -64,7 +64,7 @@ describe('trails survey', () => {
     const hello = surfaceMap.entries.find((e) => e.id === 'hello');
     expect(hello).toBeDefined();
     expect(hello?.kind).toBe('trail');
-    expect(hello?.readOnly).toBe(true);
+    expect(hello?.intent).toBe('read');
     expect(hello?.exampleCount).toBe(1);
   });
 

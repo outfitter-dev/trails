@@ -80,8 +80,8 @@ describe('surface map generation', () => {
       (e) => e.id === 'entity.delete'
     );
 
-    expect(showEntry?.readOnly).toBe(true);
-    expect(deleteEntry?.destructive).toBe(true);
+    expect(showEntry?.intent).toBe('read');
+    expect(deleteEntry?.intent).toBe('destroy');
   });
 
   test('route entries include follow', () => {
@@ -162,7 +162,10 @@ const entityOutputSchema = z.object({
 const makeModifiedShow = (inputSchema: z.ZodType) =>
   trail('entity.show', {
     description: 'Show an entity by name',
-    implementation: (input) => {
+    input: inputSchema,
+    intent: 'read',
+    output: entityOutputSchema,
+    run: (input) => {
       const { name } = input as { name: string };
       return Result.ok({
         createdAt: '',
@@ -173,9 +176,6 @@ const makeModifiedShow = (inputSchema: z.ZodType) =>
         updatedAt: '',
       });
     },
-    input: inputSchema,
-    output: entityOutputSchema,
-    readOnly: true,
   });
 
 /** Diff the baseline app against a modified app. */
@@ -230,12 +230,12 @@ describe('non-breaking change detection', () => {
   test('added trail is detected as info severity', () => {
     const update = trail('entity.update', {
       description: 'Update an existing entity',
-      implementation: (input) => Result.ok({ name: input.name, updated: true }),
       input: z.object({
         name: z.string(),
         tags: z.array(z.string()).optional(),
       }),
       output: z.object({ name: z.string(), updated: z.boolean() }),
+      run: (input) => Result.ok({ name: input.name, updated: true }),
     });
 
     const diff = diffAgainst(entity, search, onboard, entityEvents, { update });

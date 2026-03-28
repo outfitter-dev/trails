@@ -16,7 +16,15 @@ export const ciDriftTrail = trail('ci.drift', {
       name: 'Default drift check',
     },
   ],
-  implementation: async (input, ctx) => {
+  input: z.object({
+    rootDir: z.string().optional().describe('Root directory to scan'),
+  }),
+  intent: 'read',
+  output: z.object({
+    hasDrift: z.boolean(),
+    output: z.string(),
+  }),
+  run: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
     const driftResult = await checkDrift(rootDir);
 
@@ -36,12 +44,4 @@ export const ciDriftTrail = trail('ci.drift', {
       output,
     });
   },
-  input: z.object({
-    rootDir: z.string().optional().describe('Root directory to scan'),
-  }),
-  output: z.object({
-    hasDrift: z.boolean(),
-    output: z.string(),
-  }),
-  readOnly: true,
 });

@@ -223,13 +223,13 @@ describe('diffSurfaceMaps', () => {
     });
 
     test('safety marker changed classified as warning', () => {
-      const prev = surfaceMap([entry({ id: 'data.wipe', readOnly: true })]);
-      const curr = surfaceMap([entry({ id: 'data.wipe', readOnly: false })]);
+      const prev = surfaceMap([entry({ id: 'data.wipe', intent: 'read' })]);
+      const curr = surfaceMap([entry({ id: 'data.wipe', intent: 'destroy' })]);
       const result = diffSurfaceMaps(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
       expect(
-        result.warnings[0]?.details.some((d) => d.includes('readOnly changed'))
+        result.warnings[0]?.details.some((d) => d.includes('intent changed'))
       ).toBe(true);
     });
 
@@ -300,22 +300,22 @@ describe('diffSurfaceMaps', () => {
         entry({
           description: 'old',
           id: 'a.trail',
+          intent: 'read',
           output: {
             properties: { removed: { type: 'string' } },
             type: 'object',
           },
-          readOnly: true,
         }),
       ]);
       const curr = surfaceMap([
         entry({
           description: 'new',
           id: 'a.trail',
+          intent: 'destroy',
           output: {
             properties: {},
             type: 'object',
           },
-          readOnly: false,
         }),
         entry({ id: 'b.trail' }),
       ]);

@@ -25,13 +25,13 @@ const helloTrail = trail('hello', {
       name: 'Named greeting',
     },
   ],
-  implementation: (input) => {
+  input: z.object({ name: z.string().optional() }),
+  intent: 'read',
+  output: z.object({ message: z.string() }),
+  run: (input) => {
     const name = input.name ?? 'world';
     return Result.ok({ message: `Hello, ${name}!` });
   },
-  input: z.object({ name: z.string().optional() }),
-  output: z.object({ message: z.string() }),
-  readOnly: true,
 });
 
 const app = topo('test-app', { hello: helloTrail });

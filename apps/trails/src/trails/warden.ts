@@ -37,7 +37,39 @@ export const wardenTrail = trail('warden', {
       name: 'GitHub Actions annotations',
     },
   ],
-  implementation: async (input, ctx) => {
+  input: z.object({
+    driftOnly: z.boolean().default(false).describe('Only run drift detection'),
+    format: z
+      .enum(['text', 'json', 'github', 'summary'])
+      .default('text')
+      .describe('Output format: text, json, github, or summary'),
+    lintOnly: z.boolean().default(false).describe('Only run lint rules'),
+    rootDir: z.string().optional().describe('Root directory to scan'),
+  }),
+  intent: 'read',
+  output: z.object({
+    diagnostics: z.array(
+      z.object({
+        filePath: z.string(),
+        line: z.number(),
+        message: z.string(),
+        rule: z.string(),
+        severity: z.enum(['error', 'warn']),
+      })
+    ),
+    drift: z
+      .object({
+        committedHash: z.string().nullable(),
+        currentHash: z.string(),
+        stale: z.boolean(),
+      })
+      .nullable(),
+    errorCount: z.number(),
+    formatted: z.string(),
+    passed: z.boolean(),
+    warnCount: z.number(),
+  }),
+  run: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
     // oxlint-disable-next-line prefer-await-to-then -- catch converts rejection to undefined cleanly
     const topo = await loadApp('./src/app.ts', rootDir).catch(
@@ -69,36 +101,4 @@ export const wardenTrail = trail('warden', {
       warnCount: report.warnCount,
     });
   },
-  input: z.object({
-    driftOnly: z.boolean().default(false).describe('Only run drift detection'),
-    format: z
-      .enum(['text', 'json', 'github', 'summary'])
-      .default('text')
-      .describe('Output format: text, json, github, or summary'),
-    lintOnly: z.boolean().default(false).describe('Only run lint rules'),
-    rootDir: z.string().optional().describe('Root directory to scan'),
-  }),
-  output: z.object({
-    diagnostics: z.array(
-      z.object({
-        filePath: z.string(),
-        line: z.number(),
-        message: z.string(),
-        rule: z.string(),
-        severity: z.enum(['error', 'warn']),
-      })
-    ),
-    drift: z
-      .object({
-        committedHash: z.string().nullable(),
-        currentHash: z.string(),
-        stale: z.boolean(),
-      })
-      .nullable(),
-    errorCount: z.number(),
-    formatted: z.string(),
-    passed: z.boolean(),
-    warnCount: z.number(),
-  }),
-  readOnly: true,
 });

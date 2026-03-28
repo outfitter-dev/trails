@@ -1,7 +1,7 @@
 /**
  * Search trail -- full-text search across entities.
  *
- * Demonstrates: readOnly, schema-only examples.
+ * Demonstrates: intent (read), schema-only examples.
  */
 
 import { trail, Result } from '@ontrails/core';
@@ -27,7 +27,24 @@ export const search = trail('search', {
       name: 'Search with no results',
     },
   ],
-  implementation: (input, ctx) => {
+  input: z.object({
+    limit: z.number().optional().default(10).describe('Maximum results'),
+    query: z.string().describe('Search query'),
+  }),
+  intent: 'read',
+  output: z.object({
+    query: z.string(),
+    results: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        tags: z.array(z.string()),
+        type: z.string(),
+      })
+    ),
+    total: z.number(),
+  }),
+  run: (input, ctx) => {
     const store = ctx['store'] as EntityStore;
     const results = store.search(input.query);
     const limited = results.slice(0, input.limit);
@@ -42,21 +59,4 @@ export const search = trail('search', {
       total: results.length,
     });
   },
-  input: z.object({
-    limit: z.number().optional().default(10).describe('Maximum results'),
-    query: z.string().describe('Search query'),
-  }),
-  output: z.object({
-    query: z.string(),
-    results: z.array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        tags: z.array(z.string()),
-        type: z.string(),
-      })
-    ),
-    total: z.number(),
-  }),
-  readOnly: true,
 });

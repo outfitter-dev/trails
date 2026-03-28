@@ -228,14 +228,19 @@ const diffMetadata = (
   prev: SurfaceMapEntry,
   curr: SurfaceMapEntry
 ): void => {
-  for (const marker of ['readOnly', 'destructive', 'idempotent'] as const) {
-    if (prev[marker] !== curr[marker]) {
-      addDetail(
-        acc,
-        'warning',
-        `${marker} changed: ${String(prev[marker] ?? false)} -> ${String(curr[marker] ?? false)}`
-      );
-    }
+  if (prev.intent !== curr.intent) {
+    addDetail(
+      acc,
+      'warning',
+      `intent changed: ${String(prev.intent ?? 'write')} -> ${String(curr.intent ?? 'write')}`
+    );
+  }
+  if (prev.idempotent !== curr.idempotent) {
+    addDetail(
+      acc,
+      'warning',
+      `idempotent changed: ${String(prev.idempotent ?? false)} -> ${String(curr.idempotent ?? false)}`
+    );
   }
   if (prev.description !== curr.description) {
     addDetail(acc, 'info', 'Description updated');

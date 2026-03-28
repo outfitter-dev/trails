@@ -42,7 +42,13 @@ export { createTrailContext } from './context.js';
 
 // Trail
 export { trail } from './trail.js';
-export type { AnyTrail, Trail, TrailSpec, TrailExample } from './trail.js';
+export type {
+  AnyTrail,
+  Intent,
+  Trail,
+  TrailSpec,
+  TrailExample,
+} from './trail.js';
 
 // Event
 export { event } from './event.js';

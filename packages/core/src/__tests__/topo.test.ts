@@ -16,10 +16,10 @@ const noop = async () => Result.ok();
 const mockTrail = (id: string, follow?: readonly string[]) => ({
   follow: Object.freeze([...(follow ?? [])]),
   id,
-  implementation: noop,
   input: z.object({ x: z.number() }),
   kind: 'trail' as const,
   output: z.object({ y: z.number() }),
+  run: noop,
 });
 
 const mockEvent = (id: string) => ({

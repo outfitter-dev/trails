@@ -84,14 +84,13 @@ export const generateBriefReport = (app: Topo): BriefReport => {
 // ---------------------------------------------------------------------------
 
 const safetyLabel = (entry: {
-  readOnly?: boolean;
-  destructive?: boolean;
+  intent?: 'read' | 'write' | 'destroy';
 }): string => {
-  if (entry.destructive) {
-    return 'destructive';
+  if (entry.intent === 'destroy') {
+    return 'destroy';
   }
-  if (entry.readOnly) {
-    return 'readOnly';
+  if (entry.intent === 'read') {
+    return 'read';
   }
   return '-';
 };
@@ -100,7 +99,7 @@ const formatTrailList = (app: Topo): object => {
   const items = app.list();
   const entries = items.map((item) => {
     const safety = safetyLabel(
-      item as unknown as { readOnly?: boolean; destructive?: boolean }
+      item as unknown as { intent?: 'read' | 'write' | 'destroy' }
     );
     const examples = Array.isArray(
       (item as unknown as { examples?: unknown[] }).examples
@@ -128,7 +127,7 @@ const formatTrailList = (app: Topo): object => {
  */
 const formatTrailDetail = (item: Trail<unknown, unknown>): object => {
   const safety = safetyLabel(
-    item as unknown as { readOnly?: boolean; destructive?: boolean }
+    item as unknown as { intent?: 'read' | 'write' | 'destroy' }
   );
 
   return {
@@ -214,27 +213,6 @@ export const surveyTrail = trail('survey', {
       name: 'Brief capability report',
     },
   ],
-  implementation: async (input, ctx) => {
-    const app = await loadApp(input.module, ctx.cwd ?? '.');
-
-    if (input.brief) {
-      return Result.ok(generateBriefReport(app));
-    }
-
-    if (input.diff) {
-      return await buildSurveyDiff(app, input.breakingOnly);
-    }
-
-    if (input.trailId) {
-      return buildSurveyDetail(app, input.trailId);
-    }
-
-    if (input.generate) {
-      return await buildSurveyGenerate(app);
-    }
-
-    return Result.ok(formatTrailList(app));
-  },
   input: z.object({
     breakingOnly: z
       .boolean()
@@ -252,6 +230,7 @@ export const surveyTrail = trail('survey', {
       .describe('Path to the app module'),
     trailId: z.string().optional().describe('Trail ID for detail view'),
   }),
+  intent: 'read',
   output: z.union([
     z.object({
       count: z.number(),
@@ -297,5 +276,25 @@ export const surveyTrail = trail('survey', {
       mapPath: z.string(),
     }),
   ]),
-  readOnly: true,
+  run: async (input, ctx) => {
+    const app = await loadApp(input.module, ctx.cwd ?? '.');
+
+    if (input.brief) {
+      return Result.ok(generateBriefReport(app));
+    }
+
+    if (input.diff) {
+      return await buildSurveyDiff(app, input.breakingOnly);
+    }
+
+    if (input.trailId) {
+      return buildSurveyDetail(app, input.trailId);
+    }
+
+    if (input.generate) {
+      return await buildSurveyGenerate(app);
+    }
+
+    return Result.ok(formatTrailList(app));
+  },
 });

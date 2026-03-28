@@ -1,7 +1,7 @@
 /**
  * Entity trails -- CRUD operations for the demo domain.
  *
- * Demonstrates: readOnly, destructive, detours, examples with full-match
+ * Demonstrates: intent (read/destroy), detours, examples with full-match
  * and error-path assertions.
  */
 
@@ -65,7 +65,12 @@ export const show = trail('entity.show', {
       name: 'Entity not found',
     },
   ],
-  implementation: (input, ctx) => {
+  input: z.object({
+    name: z.string().describe('Entity name to look up'),
+  }),
+  intent: 'read',
+  output: entitySchema,
+  run: (input, ctx) => {
     const store = getStore(ctx);
     const entity = store.get(input.name);
     if (!entity) {
@@ -80,11 +85,6 @@ export const show = trail('entity.show', {
       updatedAt: entity.updatedAt,
     });
   },
-  input: z.object({
-    name: z.string().describe('Entity name to look up'),
-  }),
-  output: entitySchema,
-  readOnly: true,
 });
 
 // ---------------------------------------------------------------------------
@@ -106,7 +106,17 @@ export const add = trail('entity.add', {
       name: 'Duplicate entity returns conflict',
     },
   ],
-  implementation: (input, ctx) => {
+  input: z.object({
+    name: z.string().describe('Entity name'),
+    tags: z
+      .array(z.string())
+      .optional()
+      .default([])
+      .describe('Tags for categorization'),
+    type: z.string().describe('Entity type (concept, tool, pattern)'),
+  }),
+  output: entitySchema,
+  run: (input, ctx) => {
     const store = getStore(ctx);
     const existing = store.get(input.name);
     if (existing) {
@@ -128,16 +138,6 @@ export const add = trail('entity.add', {
       updatedAt: entity.updatedAt,
     });
   },
-  input: z.object({
-    name: z.string().describe('Entity name'),
-    tags: z
-      .array(z.string())
-      .optional()
-      .default([])
-      .describe('Tags for categorization'),
-    type: z.string().describe('Entity type (concept, tool, pattern)'),
-  }),
-  output: entitySchema,
 });
 
 // ---------------------------------------------------------------------------
@@ -146,7 +146,6 @@ export const add = trail('entity.add', {
 
 export const remove = trail('entity.delete', {
   description: 'Delete an entity by name',
-  destructive: true,
   examples: [
     {
       description: 'Successfully delete an entity that exists',
@@ -160,7 +159,15 @@ export const remove = trail('entity.delete', {
       name: 'Delete non-existent entity returns not found',
     },
   ],
-  implementation: (input, ctx) => {
+  input: z.object({
+    name: z.string().describe('Entity name to delete'),
+  }),
+  intent: 'destroy',
+  output: z.object({
+    deleted: z.boolean(),
+    name: z.string(),
+  }),
+  run: (input, ctx) => {
     const store = getStore(ctx);
     const deleted = store.delete(input.name);
     if (!deleted) {
@@ -168,13 +175,6 @@ export const remove = trail('entity.delete', {
     }
     return Result.ok({ deleted: true, name: input.name });
   },
-  input: z.object({
-    name: z.string().describe('Entity name to delete'),
-  }),
-  output: z.object({
-    deleted: z.boolean(),
-    name: z.string(),
-  }),
 });
 
 // ---------------------------------------------------------------------------
@@ -195,7 +195,17 @@ export const list = trail('entity.list', {
       name: 'List entities by type',
     },
   ],
-  implementation: (input, ctx) => {
+  input: z.object({
+    limit: z.number().optional().default(20).describe('Maximum results'),
+    offset: z.number().optional().default(0).describe('Pagination offset'),
+    type: z.string().optional().describe('Filter by entity type'),
+  }),
+  intent: 'read',
+  output: z.object({
+    entities: z.array(entitySummarySchema),
+    total: z.number(),
+  }),
+  run: (input, ctx) => {
     const store = getStore(ctx);
     const listOptions: { limit?: number; offset?: number; type?: string } = {
       limit: input.limit,
@@ -215,14 +225,4 @@ export const list = trail('entity.list', {
       total: entities.length,
     });
   },
-  input: z.object({
-    limit: z.number().optional().default(20).describe('Maximum results'),
-    offset: z.number().optional().default(0).describe('Pagination offset'),
-    type: z.string().optional().describe('Filter by entity type'),
-  }),
-  output: z.object({
-    entities: z.array(entitySummarySchema),
-    total: z.number(),
-  }),
-  readOnly: true,
 });

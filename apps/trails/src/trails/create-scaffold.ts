@@ -107,7 +107,7 @@ export const hello = trail('hello', {
       name: 'Named greeting',
     },
   ],
-  implementation: (input) => {
+  run: (input) => {
     const name = input.name ?? 'world';
     return Result.ok({ message: \`Hello, \${name}!\` });
   },
@@ -117,7 +117,7 @@ export const hello = trail('hello', {
   output: z.object({
     message: z.string(),
   }),
-  readOnly: true,
+  intent: 'read',
 });
 `;
 
@@ -139,12 +139,12 @@ export const show = trail('entity.show', {
       name: 'Show entity',
     },
   ],
-  implementation: (input) => {
+  run: (input) => {
     return Result.ok({ id: input.id, name: 'Example' });
   },
   input: z.object({ id: z.string() }),
   output: entitySchema,
-  readOnly: true,
+  intent: 'read',
 });
 
 export const add = trail('entity.add', {
@@ -156,7 +156,7 @@ export const add = trail('entity.add', {
       name: 'Add entity',
     },
   ],
-  implementation: (input) => {
+  run: (input) => {
     return Result.ok({ id: '1', name: input.name });
   },
   input: z.object({ name: z.string() }),
@@ -177,14 +177,14 @@ export const search = trail('search', {
       name: 'Search entities',
     },
   ],
-  implementation: () => {
+  run: () => {
     return Result.ok({ results: [] });
   },
   input: z.object({ query: z.string() }),
   output: z.object({
     results: z.array(z.object({ id: z.string(), name: z.string() })),
   }),
-  readOnly: true,
+  intent: 'read',
 });
 `;
 
@@ -195,7 +195,7 @@ import { z } from 'zod';
 export const onboard = trail('entity.onboard', {
   description: 'Onboard a new entity end-to-end',
   follow: ['entity.add'],
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     const result = await ctx.follow('entity.add', { name: input.name });
     if (result.isErr()) {
       return result;
@@ -322,7 +322,21 @@ const writeScaffoldFiles = async (
 
 export const createScaffold = trail('create.scaffold', {
   description: 'Scaffold a new Trails project',
-  implementation: async (input) => {
+  input: z.object({
+    dir: z.string().optional().describe('Parent directory'),
+    name: z.string().describe('Project name'),
+    starter: z
+      .enum(['hello', 'entity', 'empty'])
+      .default('hello')
+      .describe('Starter trail'),
+  }),
+  metadata: { internal: true },
+  output: z.object({
+    created: z.array(z.string()),
+    dir: z.string(),
+    name: z.string(),
+  }),
+  run: async (input) => {
     const projectDir = resolve(input.dir ?? '.', input.name);
     const starter = (input.starter ?? 'hello') as Starter;
     const fileMap = collectScaffoldFiles(input.name, starter);
@@ -335,18 +349,4 @@ export const createScaffold = trail('create.scaffold', {
       name: input.name,
     } satisfies ScaffoldResult);
   },
-  input: z.object({
-    dir: z.string().optional().describe('Parent directory'),
-    name: z.string().describe('Project name'),
-    starter: z
-      .enum(['hello', 'entity', 'empty'])
-      .default('hello')
-      .describe('Starter trail'),
-  }),
-  markers: { internal: true },
-  output: z.object({
-    created: z.array(z.string()),
-    dir: z.string(),
-    name: z.string(),
-  }),
 });

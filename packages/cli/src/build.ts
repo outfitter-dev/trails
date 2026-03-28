@@ -155,7 +155,7 @@ const executeTrail = async (
 ): Promise<Result<unknown, Error>> => {
   const ctx = await resolveContext(ctxOverrides, options);
   const layers = options?.layers ?? [];
-  const impl = composeLayers(layers, t, t.implementation);
+  const impl = composeLayers(layers, t, t.run);
   return impl(validatedInput, ctx);
 };
 
@@ -207,14 +207,14 @@ const createExecute =
 /** Derive and merge flags for a trail. */
 const buildFlags = (
   fields: readonly Field[],
-  destructive: boolean | undefined,
+  intent: 'read' | 'write' | 'destroy',
   options?: BuildCliCommandsOptions
 ): CliFlag[] => {
   let flags = toFlags(fields);
   if (options?.presets) {
     flags = mergeFlags(options.presets.flat(), flags);
   }
-  if (destructive) {
+  if (intent === 'destroy') {
     flags = mergeFlags(dryRunPreset(), flags);
   }
   return flags;
@@ -227,19 +227,18 @@ const toCliCommand = (
 ): CliCommand => {
   const { group, name } = parseTrailId(t.id);
   const fields = deriveFields(t.input, t.fields);
-  const flags = buildFlags(fields, t.destructive, options);
+  const flags = buildFlags(fields, t.intent, options);
 
   return {
     args: [],
     description: t.description,
-    destructive: t.destructive,
     execute: createExecute(t, fields, flags, options),
     flags,
     group,
     idempotent: t.idempotent,
+    intent: t.intent,
     layers: options?.layers,
     name,
-    readOnly: t.readOnly,
     trail: t,
   };
 };
@@ -257,7 +256,7 @@ export const buildCliCommands = (
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const t = item as AnyTrail;
-    if (t.markers?.['internal'] === true) {
+    if (t.metadata?.['internal'] === true) {
       continue;
     }
     commands.push(toCliCommand(t, options));

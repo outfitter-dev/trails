@@ -22,16 +22,16 @@ const requireTool = (tools: ReturnType<typeof buildMcpTools>, name: string) => {
 const createIntegrationTools = () => {
   const greetTrail = trail('greet', {
     description: 'Greet someone',
-    implementation: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
     input: z.object({ name: z.string() }),
-    readOnly: true,
+    intent: 'read',
+    run: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
   });
 
   const deleteTrail = trail('item.delete', {
     description: 'Delete an item',
-    destructive: true,
-    implementation: (_input) => Result.ok({ deleted: true }),
     input: z.object({ id: z.string() }),
+    intent: 'destroy',
+    run: (_input) => Result.ok({ deleted: true }),
   });
 
   return buildMcpTools(topo('myapp', { deleteTrail, greetTrail }));
@@ -41,9 +41,9 @@ describe('blaze', () => {
   test('createMcpServer registers tools that can be listed', () => {
     const echoTrail = trail('echo', {
       description: 'Echo',
-      implementation: (input) => Result.ok({ reply: input.message }),
       input: z.object({ message: z.string() }),
-      readOnly: true,
+      intent: 'read',
+      run: (input) => Result.ok({ reply: input.message }),
     });
 
     const app = topo('testapp', { echoTrail });
@@ -60,15 +60,15 @@ describe('blaze', () => {
   test('createMcpServer handles multiple tools', () => {
     const echoTrail = trail('echo', {
       description: 'Echo',
-      implementation: (input) => Result.ok({ reply: input.message }),
       input: z.object({ message: z.string() }),
+      run: (input) => Result.ok({ reply: input.message }),
     });
 
     const searchTrail = trail('search', {
       description: 'Search',
-      implementation: (input) => Result.ok({ results: [input.query] }),
       input: z.object({ query: z.string() }),
-      readOnly: true,
+      intent: 'read',
+      run: (input) => Result.ok({ results: [input.query] }),
     });
 
     const app = topo('testapp', { echoTrail, searchTrail });

@@ -12,7 +12,7 @@ const payloadSchema = z.object({
 const userAction = event('user.action', {
   description: 'A user performed an action',
   from: ['auth.login', 'auth.signup'],
-  markers: { domain: 'auth', priority: 1 },
+  metadata: { domain: 'auth', priority: 1 },
   payload: payloadSchema,
 });
 
@@ -45,7 +45,7 @@ describe('event() basics', () => {
   });
 });
 
-describe('event() from and markers', () => {
+describe('event() from and metadata', () => {
   test('preserves from', () => {
     expect(userAction.from).toEqual(['auth.login', 'auth.signup']);
   });
@@ -54,8 +54,8 @@ describe('event() from and markers', () => {
     expect(Object.isFrozen(userAction.from)).toBe(true);
   });
 
-  test('preserves markers', () => {
-    expect(userAction.markers).toEqual({ domain: 'auth', priority: 1 });
+  test('preserves metadata', () => {
+    expect(userAction.metadata).toEqual({ domain: 'auth', priority: 1 });
   });
 
   test('optional fields default to undefined', () => {
@@ -64,7 +64,7 @@ describe('event() from and markers', () => {
     });
     expect(minimal.description).toBeUndefined();
     expect(minimal.from).toBeUndefined();
-    expect(minimal.markers).toBeUndefined();
+    expect(minimal.metadata).toBeUndefined();
   });
 });
 

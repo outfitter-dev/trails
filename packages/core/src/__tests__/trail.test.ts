@@ -17,9 +17,9 @@ describe('trail()', () => {
 
   const greet = trail('greet', {
     description: 'Greet someone',
-    implementation: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
     input: inputSchema,
     output: outputSchema,
+    run: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
   });
 
   describe('basics', () => {
@@ -41,14 +41,14 @@ describe('trail()', () => {
 
     test('output schema is optional', () => {
       const minimal = trail('noop', {
-        implementation: () => Result.ok(),
         input: z.object({}),
+        run: () => Result.ok(),
       });
       expect(minimal.output).toBeUndefined();
     });
 
     test('implementation is callable', async () => {
-      const result = await greet.implementation({ name: 'World' }, stubCtx);
+      const result = await greet.run({ name: 'World' }, stubCtx);
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toEqual({ greeting: 'Hello, World!' });
     });
@@ -61,8 +61,8 @@ describe('trail()', () => {
           { error: 'ValidationError', input: { text: '' }, name: 'error-case' },
           { expected: { text: 'hi' }, input: { text: 'hi' }, name: 'basic' },
         ],
-        implementation: (input) => Result.ok({ text: input.text }),
         input: z.object({ text: z.string() }),
+        run: (input) => Result.ok({ text: input.text }),
       });
       expect(withExamples.examples).toHaveLength(2);
       const first = withExamples.examples?.[0];
@@ -71,13 +71,13 @@ describe('trail()', () => {
       expect(second?.name).toBe('basic');
     });
 
-    test('markers are stored', () => {
-      const withMarkers = trail('tagged', {
-        implementation: () => Result.ok(),
+    test('metadata is stored', () => {
+      const withMetadata = trail('tagged', {
         input: z.object({}),
-        markers: { domain: 'billing', tier: 1 },
+        metadata: { domain: 'billing', tier: 1 },
+        run: () => Result.ok(),
       });
-      expect(withMarkers.markers).toEqual({ domain: 'billing', tier: 1 });
+      expect(withMetadata.metadata).toEqual({ domain: 'billing', tier: 1 });
     });
 
     test('detours are stored', () => {
@@ -86,8 +86,8 @@ describe('trail()', () => {
           onFailure: ['alert'],
           onSuccess: ['notify', 'audit'],
         },
-        implementation: () => Result.ok(),
         input: z.object({}),
+        run: () => Result.ok(),
       });
       expect(withDetours.detours).toEqual({
         onFailure: ['alert'],
@@ -99,8 +99,8 @@ describe('trail()', () => {
   describe('follow', () => {
     test('defaults to empty frozen array when omitted', () => {
       const minimal = trail('bare', {
-        implementation: () => Result.ok(),
         input: z.object({}),
+        run: () => Result.ok(),
       });
       expect(minimal.follow).toEqual([]);
       expect(Object.isFrozen(minimal.follow)).toBe(true);
@@ -109,8 +109,8 @@ describe('trail()', () => {
     test('preserves follow array', () => {
       const withFollow = trail('composed', {
         follow: ['authenticate', 'validate-session'],
-        implementation: () => Result.ok(),
         input: z.object({}),
+        run: () => Result.ok(),
       });
       expect(withFollow.follow).toEqual(['authenticate', 'validate-session']);
     });
@@ -118,35 +118,46 @@ describe('trail()', () => {
     test('follow array is frozen', () => {
       const withFollow = trail('composed', {
         follow: ['authenticate'],
-        implementation: () => Result.ok(),
         input: z.object({}),
+        run: () => Result.ok(),
       });
       expect(Object.isFrozen(withFollow.follow)).toBe(true);
     });
   });
 
-  describe('boolean flags', () => {
-    test('boolean flags default to undefined', () => {
+  describe('intent and idempotent', () => {
+    test('intent defaults to write', () => {
       const minimal = trail('bare', {
-        implementation: () => Result.ok(),
         input: z.object({}),
+        run: () => Result.ok(),
       });
-      expect(minimal.readOnly).toBeUndefined();
-      expect(minimal.destructive).toBeUndefined();
+      expect(minimal.intent).toBe('write');
       expect(minimal.idempotent).toBeUndefined();
     });
 
-    test('boolean flags are preserved when set', () => {
-      const withFlags = trail('flagged', {
-        destructive: false,
-        idempotent: true,
-        implementation: () => Result.ok(),
+    test('intent is preserved when set', () => {
+      const readTrail = trail('reader', {
         input: z.object({}),
-        readOnly: true,
+        intent: 'read',
+        run: () => Result.ok(),
       });
-      expect(withFlags.readOnly).toBe(true);
-      expect(withFlags.destructive).toBe(false);
-      expect(withFlags.idempotent).toBe(true);
+      expect(readTrail.intent).toBe('read');
+
+      const destroyTrail = trail('destroyer', {
+        input: z.object({}),
+        intent: 'destroy',
+        run: () => Result.ok(),
+      });
+      expect(destroyTrail.intent).toBe('destroy');
+    });
+
+    test('idempotent is preserved when set', () => {
+      const t = trail('idempotent', {
+        idempotent: true,
+        input: z.object({}),
+        run: () => Result.ok(),
+      });
+      expect(t.idempotent).toBe(true);
     });
   });
 
@@ -154,9 +165,9 @@ describe('trail()', () => {
     test('accepts spec with id property', () => {
       const t = trail({
         id: 'entity.show',
-        implementation: (input: { name: string }, _ctx: TrailContext) =>
-          Result.ok({ greeting: `Hi, ${input.name}` }),
         input: inputSchema,
+        run: (input: { name: string }, _ctx: TrailContext) =>
+          Result.ok({ greeting: `Hi, ${input.name}` }),
       });
       expect(t.id).toBe('entity.show');
       expect(t.kind).toBe('trail');
@@ -165,39 +176,37 @@ describe('trail()', () => {
     test('preserves all spec fields', () => {
       const t = trail({
         description: 'A full trail',
-        destructive: false,
         examples: [{ input: { name: 'World' }, name: 'test' }],
         id: 'full',
-        implementation: (input: { name: string }, _ctx: TrailContext) =>
-          Result.ok({ greeting: `Hi, ${input.name}` }),
         input: inputSchema,
+        intent: 'read',
         output: outputSchema,
-        readOnly: true,
+        run: (input: { name: string }, _ctx: TrailContext) =>
+          Result.ok({ greeting: `Hi, ${input.name}` }),
       });
       expect(t.description).toBe('A full trail');
-      expect(t.readOnly).toBe(true);
+      expect(t.intent).toBe('read');
       expect(t.examples).toHaveLength(1);
     });
 
     test('implementation is callable', async () => {
       const t = trail({
         id: 'callable',
-        implementation: (input: { x: number }) => Result.ok(input.x * 2),
         input: z.object({ x: z.number() }),
+        run: (input: { x: number }) => Result.ok(input.x * 2),
       });
-      const result = await t.implementation({ x: 5 }, stubCtx);
+      const result = await t.run({ x: 5 }, stubCtx);
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toBe(10);
     });
 
     test('sync implementations are normalized to an awaitable runtime function', async () => {
       const t = trail('normalized', {
-        implementation: (input: { value: number }) =>
-          Result.ok(input.value + 1),
         input: z.object({ value: z.number() }),
+        run: (input: { value: number }) => Result.ok(input.value + 1),
       });
 
-      const promise = t.implementation({ value: 2 }, stubCtx);
+      const promise = t.run({ value: 2 }, stubCtx);
       expect(promise).toBeInstanceOf(Promise);
 
       const result = await promise;

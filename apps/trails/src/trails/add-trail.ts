@@ -14,17 +14,9 @@ import { z } from 'zod';
 
 const generateTrailFile = (
   id: string,
-  readOnly: boolean,
-  destructive: boolean
+  intent: 'read' | 'write' | 'destroy'
 ): string => {
-  const markers: string[] = [];
-  if (readOnly) {
-    markers.push('  readOnly: true,');
-  }
-  if (destructive) {
-    markers.push('  destructive: true,');
-  }
-  const markerBlock = markers.length > 0 ? `\n${markers.join('\n')}` : '';
+  const intentLine = intent === 'write' ? '' : `\n  intent: '${intent}',`;
 
   return `import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
@@ -37,10 +29,10 @@ export const ${id.replaceAll('.', '_')} = trail('${id}', {
       name: 'TODO: add example',
     },
   ],
-  implementation: async (input) => {
+  run: async (input) => {
     return Result.ok({ message: 'TODO' });
   },
-  input: z.object({}),${markerBlock}
+  input: z.object({}),${intentLine}
   output: z.object({ message: z.string() }),
 });
 `;
@@ -73,16 +65,23 @@ const writeWithDirs = async (
 
 export const addTrail = trail('add.trail', {
   description: 'Scaffold a new trail with tests and examples',
-  implementation: async (input, ctx) => {
+  input: z.object({
+    id: z.string().describe('Trail ID (e.g., entity.update)'),
+    intent: z
+      .enum(['read', 'write', 'destroy'])
+      .default('write')
+      .describe('Trail intent'),
+  }),
+  output: z.object({
+    created: z.array(z.string()),
+  }),
+  run: async (input, ctx) => {
     const { id } = input;
     const moduleName = id.replaceAll('.', '-');
     const cwd = resolve(ctx.cwd ?? '.');
 
     const files = new Map<string, string>([
-      [
-        `src/trails/${moduleName}.ts`,
-        generateTrailFile(id, input.readOnly, input.destructive),
-      ],
+      [`src/trails/${moduleName}.ts`, generateTrailFile(id, input.intent)],
       [`__tests__/${moduleName}.test.ts`, generateTestFile(id)],
     ]);
 
@@ -92,12 +91,4 @@ export const addTrail = trail('add.trail', {
 
     return Result.ok({ created: [...files.keys()] });
   },
-  input: z.object({
-    destructive: z.boolean().default(false).describe('Destructive trail'),
-    id: z.string().describe('Trail ID (e.g., entity.update)'),
-    readOnly: z.boolean().default(false).describe('Read-only trail'),
-  }),
-  output: z.object({
-    created: z.array(z.string()),
-  }),
 });

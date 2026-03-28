@@ -11,7 +11,7 @@ import type { z } from 'zod';
 export interface EventSpec<T> {
   readonly payload: z.ZodType<T>;
   readonly description?: string | undefined;
-  readonly markers?: Readonly<Record<string, unknown>> | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
   /** Trail IDs that produce this event (e.g. the trails it originates from). */
   readonly from?: readonly string[] | undefined;
 }
@@ -25,7 +25,7 @@ export interface Event<T> {
   readonly kind: 'event';
   readonly payload: z.ZodType<T>;
   readonly description?: string | undefined;
-  readonly markers?: Readonly<Record<string, unknown>> | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
   /** Trail IDs that produce this event (e.g. the trails it originates from). */
   readonly from?: readonly string[] | undefined;
 }
@@ -68,7 +68,7 @@ export function event<T>(
     from: resolvedSpec.from ? Object.freeze([...resolvedSpec.from]) : undefined,
     id: resolvedId,
     kind: 'event' as const,
-    markers: resolvedSpec.markers,
+    metadata: resolvedSpec.metadata,
     payload: resolvedSpec.payload,
   });
 }

@@ -224,7 +224,7 @@ const executeAndMap = async (
   ctx: TrailContext,
   layers: readonly Layer[]
 ): Promise<McpToolResult> => {
-  const impl = composeLayers([...layers], trail, trail.implementation);
+  const impl = composeLayers([...layers], trail, trail.run);
   try {
     const result = await impl(validatedInput, ctx);
     if (result.isOk()) {
@@ -264,15 +264,15 @@ const createHandler =
  * Each trail in the topo becomes an McpToolDefinition with:
  * - A derived tool name (app-prefixed, underscore-delimited)
  * - JSON Schema input from zodToJsonSchema
- * - MCP annotations from trail markers
+ * - MCP annotations from trail metadata
  * - A handler that validates, composes layers, executes, and maps results
  */
-/** Check if a trail should be included based on markers and filters. */
+/** Check if a trail should be included based on metadata and filters. */
 const shouldInclude = (
   trail: Trail<unknown, unknown>,
   options: BuildMcpToolsOptions
 ): boolean => {
-  if (trail.markers?.['internal'] === true) {
+  if (trail.metadata?.['internal'] === true) {
     return false;
   }
   if (options.includeTrails !== undefined && options.includeTrails.length > 0) {

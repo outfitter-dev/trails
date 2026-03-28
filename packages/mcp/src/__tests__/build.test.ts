@@ -13,23 +13,23 @@ import type { McpExtra } from '../build.js';
 
 const echoTrail = trail('echo', {
   description: 'Echo a message back',
-  implementation: (input) => Result.ok({ reply: input.message }),
   input: z.object({ message: z.string() }),
+  intent: 'read',
   output: z.object({ reply: z.string() }),
-  readOnly: true,
+  run: (input) => Result.ok({ reply: input.message }),
 });
 
 const deleteTrail = trail('item.delete', {
   description: 'Delete an item',
-  destructive: true,
-  implementation: (_input) => Result.ok({ deleted: true }),
   input: z.object({ id: z.string() }),
+  intent: 'destroy',
+  run: (_input) => Result.ok({ deleted: true }),
 });
 
 const failTrail = trail('fail', {
   description: 'Always fails',
-  implementation: (input) => Result.err(new Error(input.reason)),
   input: z.object({ reason: z.string() }),
+  run: (input) => Result.err(new Error(input.reason)),
 });
 
 const exampleTrail = trail('with.examples', {
@@ -41,8 +41,8 @@ const exampleTrail = trail('with.examples', {
       name: 'basic',
     },
   ],
-  implementation: (input) => Result.ok({ greeting: `hello ${input.name}` }),
   input: z.object({ name: z.string() }),
+  run: (input) => Result.ok({ greeting: `hello ${input.name}` }),
 });
 
 const noExtra: McpExtra = {};
@@ -165,10 +165,10 @@ describe('buildMcpTools', () => {
 
     test('handler catches thrown exceptions', async () => {
       const throwTrail = trail('throw', {
-        implementation: () => {
+        input: z.object({}),
+        run: () => {
           throw new Error('unexpected crash');
         },
-        input: z.object({}),
       });
 
       const tool = requireOnlyTool(
@@ -244,11 +244,11 @@ describe('buildMcpTools', () => {
       let capturedSignal: AbortSignal | undefined;
 
       const signalTrail = trail('signal.check', {
-        implementation: (_input, ctx) => {
+        input: z.object({}),
+        run: (_input, ctx) => {
           capturedSignal = ctx.signal;
           return Result.ok({ ok: true });
         },
-        input: z.object({}),
       });
 
       const controller = new AbortController();
@@ -272,12 +272,12 @@ describe('buildMcpTools', () => {
       let contextUsed = false;
 
       const ctxTrail = trail('ctx.check', {
-        implementation: (_input, ctx) => {
+        input: z.object({}),
+        run: (_input, ctx) => {
           const ctxRecord = ctx as Record<string, unknown>;
           contextUsed = ctxRecord['custom'] === true;
           return Result.ok({ ok: true });
         },
-        input: z.object({}),
       });
 
       const app = topo('myapp', { ctxTrail });
@@ -299,7 +299,8 @@ describe('buildMcpTools', () => {
   describe('blob outputs', () => {
     test('BlobRef output converts to image content', async () => {
       const blobTrail = trail('blob.image', {
-        implementation: () =>
+        input: z.object({}),
+        run: () =>
           Result.ok(
             createBlobRef({
               data: new Uint8Array([1, 2, 3]),
@@ -308,7 +309,6 @@ describe('buildMcpTools', () => {
               size: 3,
             })
           ),
-        input: z.object({}),
       });
 
       const tool = requireOnlyTool(buildMcpTools(topo('myapp', { blobTrail })));
@@ -321,7 +321,8 @@ describe('buildMcpTools', () => {
 
     test('BlobRef output converts to resource content for non-images', async () => {
       const blobTrail = trail('blob.file', {
-        implementation: () =>
+        input: z.object({}),
+        run: () =>
           Result.ok(
             createBlobRef({
               data: new Uint8Array([1, 2, 3]),
@@ -330,7 +331,6 @@ describe('buildMcpTools', () => {
               size: 3,
             })
           ),
-        input: z.object({}),
       });
 
       const tool = requireOnlyTool(buildMcpTools(topo('myapp', { blobTrail })));
@@ -350,7 +350,8 @@ describe('buildMcpTools', () => {
         },
       });
       const blobTrail = trail('blob.stream', {
-        implementation: () =>
+        input: z.object({}),
+        run: () =>
           Result.ok(
             createBlobRef({
               data: stream,
@@ -359,7 +360,6 @@ describe('buildMcpTools', () => {
               size: 3,
             })
           ),
-        input: z.object({}),
       });
 
       const tool = requireOnlyTool(buildMcpTools(topo('myapp', { blobTrail })));
@@ -374,12 +374,12 @@ describe('buildMcpTools', () => {
   describe('tool-name collision detection', () => {
     test('throws on trails that produce the same derived tool name', () => {
       const dotTrail = trail('foo.bar', {
-        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
+        run: () => Result.ok({ ok: true }),
       });
       const underscoreTrail = trail('foo_bar', {
-        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
+        run: () => Result.ok({ ok: true }),
       });
 
       const app = topo('myapp', { dotTrail, underscoreTrail });
@@ -388,12 +388,12 @@ describe('buildMcpTools', () => {
 
     test('throws on trails where hyphen and underscore collide', () => {
       const hyphenTrail = trail('foo-bar', {
-        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
+        run: () => Result.ok({ ok: true }),
       });
       const underscoreTrail = trail('foo_bar', {
-        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
+        run: () => Result.ok({ ok: true }),
       });
 
       const app = topo('myapp', { hyphenTrail, underscoreTrail });
@@ -402,12 +402,12 @@ describe('buildMcpTools', () => {
 
     test('does not throw when trail names are distinct after normalization', () => {
       const fooTrail = trail('foo', {
-        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
+        run: () => Result.ok({ ok: true }),
       });
       const barTrail = trail('bar', {
-        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
+        run: () => Result.ok({ ok: true }),
       });
 
       const app = topo('myapp', { barTrail, fooTrail });
@@ -420,11 +420,10 @@ describe('buildMcpTools', () => {
       const greetTrail = trail('greet', {
         description: 'Greet someone',
         idempotent: true,
-        implementation: (input) =>
-          Result.ok({ greeting: `Hello, ${input.name}!` }),
         input: z.object({ name: z.string() }),
+        intent: 'read',
         output: z.object({ greeting: z.string() }),
-        readOnly: true,
+        run: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
       });
 
       const tool = requireOnlyTool(

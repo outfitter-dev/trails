@@ -36,9 +36,8 @@ const requireCommand = (commands: ReturnType<typeof buildCliCommands>) => {
 describe('buildCliCommands', () => {
   test('builds commands from a simple app with one trail', () => {
     const t = trail('greet', {
-      implementation: (input: { name: string }) =>
-        Result.ok(`Hello, ${input.name}`),
       input: z.object({ name: z.string() }),
+      run: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app);
@@ -49,13 +48,12 @@ describe('buildCliCommands', () => {
 
   test('builds grouped subcommands from dotted trail IDs', () => {
     const show = trail('entity.show', {
-      implementation: (input: { id: string }) => Result.ok({ id: input.id }),
       input: z.object({ id: z.string() }),
+      run: (input: { id: string }) => Result.ok({ id: input.id }),
     });
     const add = trail('entity.add', {
-      implementation: (input: { name: string }) =>
-        Result.ok({ name: input.name }),
       input: z.object({ name: z.string() }),
+      run: (input: { name: string }) => Result.ok({ name: input.name }),
     });
     const app = makeApp(show, add);
     const commands = buildCliCommands(app);
@@ -68,11 +66,11 @@ describe('buildCliCommands', () => {
 
   test('derives flags from input schema', () => {
     const t = trail('search', {
-      implementation: () => Result.ok([]),
       input: z.object({
         limit: z.number().optional(),
         query: z.string(),
       }),
+      run: () => Result.ok([]),
     });
     const app = makeApp(t);
     const { flags } = requireCommand(buildCliCommands(app));
@@ -84,11 +82,11 @@ describe('buildCliCommands', () => {
     expect(limitFlag?.required).toBe(false);
   });
 
-  test('adds --dry-run for destructive trails', () => {
+  test('adds --dry-run for destroy intent trails', () => {
     const t = trail('entity.delete', {
-      destructive: true,
-      implementation: () => Result.ok(),
       input: z.object({ id: z.string() }),
+      intent: 'destroy',
+      run: () => Result.ok(),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app);
@@ -100,8 +98,8 @@ describe('buildCliCommands', () => {
   test('calls onResult with correct context', async () => {
     let captured: ActionResultContext | undefined;
     const t = trail('ping', {
-      implementation: (input: { msg: string }) => Result.ok(input.msg),
       input: z.object({ msg: z.string() }),
+      run: (input: { msg: string }) => Result.ok(input.msg),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app, {
@@ -122,11 +120,11 @@ describe('buildCliCommands', () => {
   test('validates input before calling implementation', async () => {
     let implCalled = false;
     const t = trail('strict', {
-      implementation: () => {
+      input: z.object({ name: z.string() }),
+      run: () => {
         implCalled = true;
         return Result.ok('done');
       },
-      input: z.object({ name: z.string() }),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app);
@@ -143,11 +141,11 @@ describe('buildCliCommands', () => {
   test('applies layers in order', async () => {
     const order: string[] = [];
     const t = trail('layered', {
-      implementation: (input: { x: string }) => {
+      input: z.object({ x: z.string() }),
+      run: (input: { x: string }) => {
         order.push('impl');
         return Result.ok(input.x);
       },
-      input: z.object({ x: z.string() }),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app, {
@@ -186,11 +184,11 @@ describe('buildCliCommands', () => {
   test('uses provided createContext factory', async () => {
     let usedRequestId: string | undefined;
     const t = trail('ctx-test', {
-      implementation: (_input: Record<string, never>, ctx: TrailContext) => {
+      input: z.object({}),
+      run: (_input: Record<string, never>, ctx: TrailContext) => {
         usedRequestId = ctx.requestId;
         return Result.ok('ok');
       },
-      input: z.object({}),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app, {
@@ -204,11 +202,11 @@ describe('buildCliCommands', () => {
   test('converts kebab-case flags back to camelCase for input', async () => {
     let receivedInput: unknown;
     const t = trail('camel', {
-      implementation: (input) => {
+      input: z.object({ sortOrder: z.string() }),
+      run: (input) => {
         receivedInput = input;
         return Result.ok('ok');
       },
-      input: z.object({ sortOrder: z.string() }),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app);

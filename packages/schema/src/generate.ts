@@ -70,11 +70,8 @@ const addSafetyMarkers = (
   entry: Record<string, unknown>,
   t: Trail<unknown, unknown>
 ): void => {
-  if (t.readOnly === true) {
-    entry['readOnly'] = true;
-  }
-  if (t.destructive === true) {
-    entry['destructive'] = true;
+  if (t.intent !== 'write') {
+    entry['intent'] = t.intent;
   }
   if (t.idempotent === true) {
     entry['idempotent'] = true;
