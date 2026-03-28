@@ -27,7 +27,7 @@ The meta-principle that governs all others. Every feature and API decision passe
 - **Derive:** Can the framework extract maximum value from what was authored? Does one declaration feed multiple consumers — types, surfaces, tests, docs, governance? Is the derivation deterministic?
 - **Declare:** When the developer tightens the contract, does the framework ensure the declaration stays true? Can the declaration drift from reality? If it can, is that drift detected and surfaced?
 
-The third question is the most important. Every declaration surface — output schemas, error types, `follow`, safety markers, examples — is a place where the stated contract can diverge from actual behavior. The framework must make divergence structurally difficult or immediately visible.
+The third question is the most important. Every declaration surface — output schemas, error types, `follow`, safety properties, examples — is a place where the stated contract can diverge from actual behavior. The framework must make divergence structurally difficult or immediately visible.
 
 **Drift guard checklist** applied to every new declaration feature:
 
@@ -38,7 +38,7 @@ The third question is the most important. Every declaration surface — output s
 | If not compile-time, does `testExamples` catch it? | Prefer test-time safety. |
 | If not test-time, does the warden catch it? | Prefer lint-time safety. |
 | If not lint-time, does `survey --diff` catch it? | Prefer diff-time safety. |
-| If none of the above, is the declaration freeform? | Freeform is acceptable only for `markers`. |
+| If none of the above, is the declaration freeform? | Freeform is acceptable only for `metadata`. |
 
 ### Convention 1: Clarity without context
 
@@ -60,7 +60,7 @@ Bad:
 
 Trails-branded terms are reserved for concepts unique to the framework — the things that make Trails feel like Trails. Standard infrastructure concepts keep their standard names.
 
-**Trails-branded:** `trail`, `blaze`, `trailblaze`, `follow`, `topo`, `surface`, `markers`, `warden`, `survey`, `guide`, `scout` (reserved), `trailhead` (reserved)
+**Trails-branded:** `trail`, `blaze`, `trailblaze`, `follow`, `topo`, `surface`, `warden`, `survey`, `guide`, `scout` (reserved), `trailhead` (reserved)
 
 **Standard:** `logger`, `config`, `context`, `harness`, `sink`, `formatter`, `layer`, `event`, `error`, `result`
 

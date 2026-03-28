@@ -63,7 +63,7 @@ These are the creative contributions. They can't be derived because they don't e
 | What you author | Why it can't be derived |
 | --- | --- |
 | Input and output Zod schemas | The shape of your domain data |
-| Safety markers: `readOnly`, `destructive`, `idempotent` | Behavioral assertions about intent |
+| Safety properties: `intent`, `idempotent` | Behavioral assertions about intent |
 | Examples (input plus expected result or error) | Concrete specifications of behavior |
 | The implementation function | Your business logic |
 | Trail ID (`entity.show`) | Your domain hierarchy and naming |
@@ -77,8 +77,8 @@ These are deterministic transformations from authored information. If the input 
 | Zod input schema | CLI flags (types, defaults, descriptions), MCP `inputSchema` (JSON Schema) |
 | Trail ID | CLI command path (`entity show`), MCP tool name (`myapp_entity_show`) |
 | `.describe()` on Zod fields | `--help` text, MCP tool descriptions |
-| `readOnly: true` | MCP `readOnlyHint`, HTTP GET (future), skip CLI confirmation |
-| `destructive: true` | Auto-add `--dry-run` flag on CLI |
+| `intent: 'read'` | MCP `readOnlyHint`, HTTP GET (future), skip CLI confirmation |
+| `intent: 'destroy'` | Auto-add `--dry-run` flag on CLI |
 | Error taxonomy class | Exit code, HTTP status, JSON-RPC code, retryability |
 | Examples | Test assertions via `testExamples()`, agent documentation |
 

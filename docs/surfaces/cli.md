@@ -95,7 +95,7 @@ Adds `--cwd <path>` flag.
 import { dryRunPreset } from '@ontrails/cli';
 ```
 
-Adds `--dry-run` flag. Automatically added for trails with `destructive: true`.
+Adds `--dry-run` flag. Automatically added for trails with `intent: 'destroy'`.
 
 ## Output Formatting
 

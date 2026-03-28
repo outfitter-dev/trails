@@ -39,7 +39,7 @@ export const show = trail('entity.show', {
     name: z.string().describe('Entity name to look up'),
   }),
   output: EntitySchema,
-  readOnly: true,
+  intent: 'read',
   examples: [
     { name: 'Found', input: { name: 'Alpha' } },
     {
@@ -48,7 +48,7 @@ export const show = trail('entity.show', {
       error: 'NotFoundError',
     },
   ],
-  implementation: (input, ctx) => {
+  run: (input, ctx) => {
     const entity = store.get(input.name);
     if (!entity)
       return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
@@ -81,7 +81,7 @@ Pure trails can return `Result` directly. Trails with `follow` and I/O-bound tra
 
 Every piece of information in a Trails app has a clear ownership model. Six categories, from what you write to what the system learns. (See [Architecture](./architecture.md#information-architecture) for the full reference tables.)
 
-- **Authored:** New information only you know — Zod schemas, safety markers, examples, the implementation, trail IDs. Everything else flows from these.
+- **Authored:** New information only you know — Zod schemas, intent and metadata, examples, the implementation, trail IDs. Everything else flows from these.
 - **Projected:** Mechanically derived, guaranteed correct — CLI flags from Zod fields, MCP tool names from trail IDs, exit codes from error classes. Projections can't be wrong because they're computed from the source.
 - **Enforced:** Constrained by the type system — output schemas bound the return type, `Result<T, Error>` eliminates throw/catch, `TrailContext` scopes what the implementation can access. The compiler makes non-compliance an error.
 - **Inferred:** Detected by static analysis, best-effort — which trails a trail follows (from `ctx.follow()` calls), error types returned (from `Result.err()` patterns). Warden verifies these. Useful for governance, not guaranteed.
@@ -101,11 +101,11 @@ Trails makes a different tradeoff. The trail declaration creates a bounded envir
 - **`output: schema`** constrains the return type. The implementation can't return data the contract doesn't describe.
 - **`Result<T, Error>`** eliminates throw/catch. Every code path returns a typed result.
 - **`examples`** specify concrete inputs plus expected results or error classes. `testExamples(app)` runs them as assertions. One authoring act — three purposes: specification for builders, documentation for consumers, test coverage for CI.
-- **`readOnly` / `destructive` / `idempotent`** are behavioral assertions that surfaces honor. `readOnly` means no confirmation prompts on CLI, `readOnlyHint` on MCP, GET on HTTP. These aren't suggestions — they're projections.
+- **`intent` / `idempotent`** are behavioral assertions that surfaces honor. `intent: 'read'` means no confirmation prompts on CLI, `readOnlyHint` on MCP, GET on HTTP. These aren't suggestions — they're projections.
 
 The implementation satisfies the specification. The framework enforces the boundaries. An agent building a trail writes the irreducible information — schema, examples, logic — and the framework handles the rest.
 
-This is also a fundamentally better task description for an agent than "write a handler that does X." It's: "here's the input shape, here's the output shape, here are concrete examples, here are the safety markers. Write the code that satisfies all of this." That's a constrained, verifiable, testable task — the kind agents are best at.
+This is also a fundamentally better task description for an agent than "write a handler that does X." It's: "here's the input shape, here's the output shape, here are concrete examples, here are the safety properties. Write the code that satisfies all of this." That's a constrained, verifiable, testable task — the kind agents are best at.
 
 ---
 
@@ -137,7 +137,7 @@ One write, three reads. If someone changes the business rule, they change the ex
 
 Great tools already exist for each surface. tRPC, Hono, and Fastify are excellent for HTTP. Commander and oclif are battle-tested for CLIs. FastMCP and the official SDK make MCP server development straightforward. NestJS spans multiple transports with a mature ecosystem.
 
-Trails doesn't try to replace any of them. It occupies a different layer: the **contract layer** that sits above individual surface implementations. A trail definition captures the schema, examples, error types, safety markers, and composition graph in one place. Surface adapters — CLI, MCP, HTTP, WebSocket — project that contract into whatever runtime format the surface needs.
+Trails doesn't try to replace any of them. It occupies a different layer: the **contract layer** that sits above individual surface implementations. A trail definition captures the schema, examples, error types, intent and metadata, and composition graph in one place. Surface adapters — CLI, MCP, HTTP, WebSocket — project that contract into whatever runtime format the surface needs.
 
 The value isn't in being better at any single surface. It's in making the contract the source of truth so that every surface stays consistent with it — not because anyone was careful, but because the framework derives each surface from the same definition.
 

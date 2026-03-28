@@ -57,8 +57,6 @@ Use the project language consistently:
 - `follow`, not route (for composition declaration and runtime invocation)
 - `blaze`, not serve or mount
 - `surface`, not transport or adapter
-- `markers`, not metadata or annotations
-
 `mount` is reserved for cross-app composition. See `docs/vocabulary.md` for the full vocabulary guide.
 
 ## Trail Rules
@@ -70,7 +68,7 @@ Use the project language consistently:
 - Trails with `follow` compose through `ctx.follow()`, never by calling another trail's `.implementation()` directly.
 - Keep `follow` declarations aligned with actual `ctx.follow()` usage.
 - Every trail exposed on MCP or HTTP surfaces must define an `output` schema.
-- Use `markers` for annotations and ownership data.
+- Use `metadata` for annotations and ownership data.
 - Use `detours` for recovery strategies instead of inline retry logic.
 - Prefer the most specific `TrailsError` subclass available.
 - Keep error taxonomy behavior aligned across surfaces so CLI, HTTP, and JSON-RPC mappings stay coherent.

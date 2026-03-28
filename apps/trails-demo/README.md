@@ -1,18 +1,18 @@
 # trails-demo
 
-A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `follow`, an event, examples, markers, detours, and blazing on both CLI and MCP surfaces.
+A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `follow`, an event, examples, metadata, detours, and blazing on both CLI and MCP surfaces.
 
 ## What this app does
 
 Entity management -- a small CRUD + search system with enough depth to exercise composition, error handling, and progressive assertion.
 
-| Trail | Description | Markers |
+| Trail | Description | Intent / Metadata |
 | --- | --- | --- |
-| `entity.show` | Show an entity by name | `readOnly`, detours to `search` |
+| `entity.show` | Show an entity by name | `intent: 'read'`, detours to `search` |
 | `entity.add` | Create a new entity | -- |
-| `entity.delete` | Delete an entity by name | `destructive` |
-| `entity.list` | List entities with optional type filter | `readOnly` |
-| `search` | Full-text search across entities | `readOnly` |
+| `entity.delete` | Delete an entity by name | `intent: 'destroy'` |
+| `entity.list` | List entities with optional type filter | `intent: 'read'` |
+| `search` | Full-text search across entities | `intent: 'read'` |
 | `entity.onboard` | Composition: create + verify searchable | `follow: ['entity.add', 'search']` |
 
 Plus one event: `entity.updated` (triggered by `entity.add` and `entity.delete`).
@@ -59,7 +59,7 @@ export const show = trail('entity.show', {
   description: 'Show an entity by name',
   input: z.object({ name: z.string() }),
   output: entitySchema,
-  readOnly: true,
+  intent: 'read',
   detours: { NotFoundError: ['search'] },
   examples: [
     {
@@ -75,7 +75,7 @@ export const show = trail('entity.show', {
       error: 'NotFoundError',
     },
   ],
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     /* ... */
   },
 });
@@ -84,7 +84,7 @@ export const show = trail('entity.show', {
 Key concepts:
 
 - **`input` / `output`**: Zod schemas define the contract. Validated at the boundary, trusted internally.
-- **`readOnly`**: Marker. On CLI, this prevents destructive flags. On MCP, it sets `readOnlyHint`.
+- **`intent`**: Safety property. On CLI, `'read'` prevents destructive flags. On MCP, `'read'` sets `readOnlyHint`, `'destroy'` sets `destructiveHint`.
 - **`detours`**: When `entity.show` returns `NotFoundError`, the surface can suggest `search` as a next step.
 - **`examples`**: Agent-facing documentation that doubles as tests. Full-match examples assert exact output. Error examples assert the error class name. Schema-only examples (no `expected` or `error`) just validate the output matches the schema.
 
@@ -93,7 +93,7 @@ Key concepts:
 ```typescript
 export const onboard = trail('entity.onboard', {
   follow: ['entity.add', 'search'],
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     const added = await ctx.follow('entity.add', {
       /* ... */
     });
@@ -173,7 +173,7 @@ To add `entity.update`:
      examples: [
        { name: 'Update tags', input: { name: 'Alpha', tags: ['updated'] } },
      ],
-     implementation: async (input, ctx) => {
+     run: async (input, ctx) => {
        /* ... */
      },
    });
@@ -189,7 +189,7 @@ To add `entity.update`:
 trails warden
 ```
 
-Checks governance rules: every trail has examples, destructive trails are marked, follow targets reference existing trails, etc.
+Checks governance rules: every trail has examples, destructive trails declare `intent: 'destroy'`, follow targets reference existing trails, etc.
 
 ## Inspecting the app
 
@@ -197,4 +197,4 @@ Checks governance rules: every trail has examples, destructive trails are marked
 trails survey
 ```
 
-Produces a machine-readable map of all trails and events with their schemas, markers, and relationships.
+Produces a machine-readable map of all trails and events with their schemas, metadata, and relationships.

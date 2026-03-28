@@ -4,9 +4,9 @@
 
 ## Near-term (v1.1–v1.2)
 
-**Services and dependency injection.** Trails that declare which services they use via `ctx.services`. The framework provides only declared services. `readOnly: true` narrows the projection to read-only methods at the type level. Testing mocks only what the trail declares.
+**Services and dependency injection.** Trails that declare which services they use via `ctx.services`. The framework provides only declared services. `intent: 'read'` narrows the projection to read-only methods at the type level. Testing mocks only what the trail declares.
 
-**HTTP surface (`@ontrails/http`).** The third surface adapter. `readOnly` maps to GET, mutations to POST. Route paths derived from trail IDs. Error taxonomy maps to HTTP status codes. One `blaze()` call, same pattern as CLI and MCP.
+**HTTP surface (`@ontrails/http`).** The third surface adapter. `intent: 'read'` maps to GET, mutations to POST. Route paths derived from trail IDs. Error taxonomy maps to HTTP status codes. One `blaze()` call, same pattern as CLI and MCP.
 
 **Auth and permit model.** The `permit` field on TrailContext gets a full design: scopes, roles, per-surface resolution (bearer tokens for HTTP, session tokens for MCP, local keyring for CLI). Scope enforcement as a layer. Resource-level auth stays in the implementation — the framework provides identity, the app provides policy.
 
@@ -26,7 +26,7 @@
 
 **Progressive contract tightening.** A new trail starts loose — minimal schema, no examples. As it matures, the contract tightens: output schema added, examples written, error types specified. The framework tracks progression and suggests next steps.
 
-**Behavioral types from runtime observation.** The tracks (telemetry) system records what actually happens. Over time, runtime data validates or challenges authored declarations. A trail declared `readOnly: true` that triggers database writes has a contract violation. The framework surfaces the discrepancy.
+**Behavioral types from runtime observation.** The tracks (telemetry) system records what actually happens. Over time, runtime data validates or challenges authored declarations. A trail declared `intent: 'read'` that triggers database writes has a contract violation. The framework surfaces the discrepancy.
 
 **SDK generation via guide.** Typed TypeScript clients generated from the topo. Each trail becomes a method with typed input/output. Working over HTTP or WebSocket.
 

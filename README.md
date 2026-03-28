@@ -25,11 +25,11 @@ import { z } from 'zod';
 const greet = trail('greet', {
   input: z.object({ name: z.string().describe('Who to greet') }),
   output: z.object({ message: z.string() }),
-  readOnly: true,
+  intent: 'read',
   examples: [
     { name: 'Hello', input: { name: 'World' }, expected: { message: 'Hello, World!' } },
   ],
-  implementation: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
+  run: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
 ```
 

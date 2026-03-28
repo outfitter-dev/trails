@@ -17,8 +17,8 @@ The atomic unit of work. A defined path from typed input to `Result` output. `tr
 ```typescript
 const show = trail('entity.show', {
   input: z.object({ name: z.string() }),
-  readOnly: true,
-  implementation: async (input) => Result.ok({ name: input.name }),
+  intent: 'read',
+  run: async (input) => Result.ok({ name: input.name }),
 });
 ```
 
@@ -64,7 +64,7 @@ Declare which trails a trail will compose, and the runtime verb for invoking the
 const onboard = trail('entity.onboard', {
   follow: ['entity.add', 'entity.relate', 'search'],
   input: z.object({ name: z.string(), type: z.string() }),
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     const added = await ctx.follow('entity.add', input);
     if (added.isErr()) return added;
     return Result.ok({ entity: added.value });
@@ -100,7 +100,7 @@ Most developers never interact with the topo directly. Use "the app" or "the tra
 The pure function inside a trail. Input in, `Result` out. Knows nothing about surfaces. Always the full word -- never "impl."
 
 ```typescript
-implementation: async (input, ctx) => Result.ok(value);
+run: async (input, ctx) => Result.ok(value);
 ```
 
 ### `survey`
@@ -115,9 +115,9 @@ Runtime guidance layer -- how to use these trails. Available as `trails guide` i
 
 Governance and contract enforcement tooling. Lint rules, drift detection, CI gating. Available as `trails warden` in the CLI and as `@ontrails/warden`.
 
-### `markers`
+### `metadata`
 
-Annotations and metadata on trails (ownership, SLA, PII). Declared as `markers` on the trail spec.
+Arbitrary metadata for tooling and filtering. Declared as `metadata` on the trail spec.
 
 ### `detours`
 
@@ -134,7 +134,7 @@ These are reserved for planned features. The naming is directional and may evolv
 | `permit` | Auth and principal model. Who is allowed on which trails |
 | `mount` | One-directional cross-app connection (consume another app's trails) |
 | `junction` | Bidirectional peer connection between two Trails apps (future) |
-| `pack` | Distributable capability bundle (trails + services + events + markers) |
+| `pack` | Distributable capability bundle (trails + services + events + metadata) |
 | `loadout` | Deployment/environment config profile |
 | `depot` | Pack registry and marketplace |
 
@@ -170,7 +170,7 @@ When introducing Trails to someone new, introduce terms in this order:
 
 1. `follow` -- declare which trails a trail composes (`follow: [...]`) and invoke them at runtime (`ctx.follow()`)
 2. `event()` -- define events the app can emit
-3. `markers` -- annotate trails with metadata
+3. `metadata` -- annotate trails with metadata
 4. `detours` -- define fallback paths when a trail fails
 
 **Advanced (introspection and observability):**

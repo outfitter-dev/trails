@@ -28,14 +28,14 @@ console.log(formatWardenReport(report));
 
 | Rule | Severity | What it catches |
 | --- | --- | --- |
-| `no-throw-in-implementation` | error | `throw` inside implementation bodies |
-| `implementation-returns-result` | error | Implementations returning raw values instead of `Result` |
+| `no-throw-in-implementation` | error | `throw` inside run bodies |
+| `implementation-returns-result` | error | Run functions returning raw values instead of `Result` |
 | `context-no-surface-types` | error | Surface type imports (`Request`, `McpSession`) in trail files |
-| `no-sync-result-assumption` | error | Missing `await` on implementation results |
+| `no-sync-result-assumption` | error | Missing `await` on run results |
 | `valid-detour-refs` | error | Detour targets that do not exist in the topo |
 | `no-throw-in-detour-target` | error | `throw` inside detour target trails |
-| `no-direct-implementation-call` | warn | Direct `.implementation()` calls bypassing `ctx.follow()` |
-| `no-direct-impl-in-route` | warn | Direct `.implementation()` calls inside trail bodies with `follow` |
+| `no-direct-implementation-call` | warn | Direct `.run()` calls bypassing `ctx.follow()` |
+| `no-direct-impl-in-route` | warn | Direct `.run()` calls inside trail bodies with `follow` |
 | `prefer-schema-inference` | warn | Redundant field overrides already derivable from the schema |
 | `valid-describe-refs` | warn | `@see` refs in `.describe()` that do not resolve |
 

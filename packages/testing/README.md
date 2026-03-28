@@ -30,7 +30,7 @@ testDetours(app);    // Verify detour targets exist
 | `testAll(topo, ctx?)` | Single-line governance suite: validation + examples + contracts + detours |
 | `testExamples(topo, ctx?)` | Run trail examples as `describe`/`test` blocks |
 | `testTrail(trail, scenarios)` | Custom scenarios for edge cases, error paths, and follow chains |
-| `testContracts(topo, ctx?)` | Validate implementation output against declared schemas |
+| `testContracts(topo, ctx?)` | Validate output against declared schemas |
 | `testDetours(topo)` | Verify every detour target exists in the topo |
 | `createTestContext(options?)` | `TrailContext` with sensible test defaults |
 | `createTestLogger()` | Logger that captures entries in memory for assertions |

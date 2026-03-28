@@ -96,7 +96,7 @@ blaze(topo, options?)              // one-liner
 buildMcpTools(topo, options?)      // escape hatch step 1
 connectStdio(server)               // escape hatch step 2
 deriveToolName(appName, trailId)   // tool name derivation
-deriveAnnotations(trail)           // MCP annotations from markers
+deriveAnnotations(trail)           // MCP annotations from intent and metadata
 createMcpProgressCallback(extra)   // progress bridge
 
 BlazeMcpOptions, BuildMcpToolsOptions

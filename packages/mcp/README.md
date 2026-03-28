@@ -11,8 +11,8 @@ import { z } from 'zod';
 
 const greet = trail('greet', {
   input: z.object({ name: z.string().describe('Who to greet') }),
-  readOnly: true,
-  implementation: (input) => Result.ok(`Hello, ${input.name}!`),
+  intent: 'read',
+  run: (input) => Result.ok(`Hello, ${input.name}!`),
 });
 
 const app = topo('myapp', { greet });
@@ -42,19 +42,19 @@ for (const tool of tools) {
 | `blaze(app, options?)` | Start an MCP server with all trails as tools |
 | `buildMcpTools(app, options?)` | Build tool definitions without starting a server |
 | `deriveToolName(appName, trailId)` | Compute the MCP tool name from app and trail IDs |
-| `deriveAnnotations(trail)` | Extract MCP annotations from trail markers |
+| `deriveAnnotations(trail)` | Extract MCP annotations from trail intent and metadata |
 | `createMcpProgressCallback(server)` | Bridge `ctx.progress` to MCP `notifications/progress` |
 
 See the [API Reference](../../docs/api-reference.md) for the full list.
 
 ## Annotations
 
-Trail markers map directly to MCP annotations:
+Trail intent and metadata map directly to MCP annotations:
 
 | Trail field | MCP annotation |
 | --- | --- |
-| `readOnly: true` | `readOnlyHint: true` |
-| `destructive: true` | `destructiveHint: true` |
+| `intent: 'read'` | `readOnlyHint: true` |
+| `intent: 'destroy'` | `destructiveHint: true` |
 | `idempotent: true` | `idempotentHint: true` |
 | `description` | `title` |
 
@@ -70,7 +70,7 @@ Implementations report progress through `ctx.progress`. On MCP, these bridge to 
 
 ```typescript
 const importTrail = trail('data.import', {
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     for (let i = 0; i < items.length; i++) {
       await processItem(items[i]);
       ctx.progress?.({ type: 'progress', current: i + 1, total: items.length });

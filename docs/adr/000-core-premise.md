@@ -25,7 +25,7 @@ There's a meaningful delta right now between writing scripts that work and build
 
 Lots of frameworks do individual pieces well. There are great tools for building CLIs, great tools for HTTP APIs, great tools for MCP servers. Trails doesn't try to replace any of them. It occupies a different layer: the **contract** layer that sits above implementations and below surfaces.
 
-A trail is a typed contract—input schema, output schema, error types, examples, safety markers, composition graph—that happens to have an implementation attached. The contract is the product. The implementation is one rendering of it. CLI, MCP, HTTP, and WebSocket surfaces are others. You author the contract once. The framework projects it onto whatever surfaces you need.
+A trail is a typed contract—input schema, output schema, error types, examples, safety properties, composition graph—that happens to have an implementation attached. The contract is the product. The implementation is one rendering of it. CLI, MCP, HTTP, and WebSocket surfaces are others. You author the contract once. The framework projects it onto whatever surfaces you need.
 
 The core question behind every design decision: *does this require the developer to author information the framework already has?* If yes, derive it instead.
 
@@ -39,7 +39,7 @@ If an agent can write any implementation correctly, the value isn't in the code�
 
 - **Developers** who want to define a capability once and surface it on CLI, MCP, and HTTP without maintaining parallel implementations.
 - **Agents** that build more consistently when the contract tells them what to produce, rather than relying on memory of what they produced yesterday.
-- **Non-developers** who can describe behavior in terms of names, examples, fields, and safety properties. That description is close to a trail definition. The only part requiring programming skill is the implementation—and that's the part most amenable to agent synthesis.
+- **Non-developers** who can describe behavior in terms of names, examples, fields, and safety properties. That description is close to a trail definition. The only part requiring programming skill is the run function—and that's the part most amenable to agent synthesis.
 
 This ADR captures the foundational decisions that make Trails what it is. If any of these were reversed, it would be a different framework. Everything else—naming conventions, package structure, testing patterns, tooling—follows from these.
 
@@ -96,7 +96,7 @@ The framework derives everything it can from the trail contract:
 - CLI flags from input schema fields
 - MCP tool names from trail IDs
 - Command grouping from dot-separated IDs
-- Safety annotations from markers
+- Safety annotations from intent
 - Documentation from descriptions and examples
 - Test assertions from examples
 
@@ -130,7 +130,7 @@ One write, many reads. The developer authors an example. The framework reads it 
 
 The topo isn't just a registry. It's a queryable graph:
 
-- `survey` introspects the full topology—trails, schemas, examples, follow graph, safety markers
+- `survey` introspects the full topology—trails, schemas, examples, follow graph, intent and metadata
 - `warden` governs the topology—lint rules, drift detection, coaching suggestions
 - `guide` generates guidance from the topology—documentation, agent instructions, API references
 - Surface map generation captures the full contract as a diffable, hashable artifact
@@ -145,7 +145,7 @@ Every feature in the framework passes through three questions:
 - **Derive:** Can the framework extract maximum value from what was authored?
 - **Declare:** When the contract is tightened, can the declaration drift from reality?
 
-The third question is the hardest. Output schemas, error declarations, `follow` graphs, safety markers, examples—each is a place where the stated contract can diverge from behavior. The framework makes divergence structurally difficult (compiler catches it), immediately visible (tests catch it), or governable (warden catches it).
+The third question is the hardest. Output schemas, error declarations, `follow` graphs, intent, metadata, examples—each is a place where the stated contract can diverge from behavior. The framework makes divergence structurally difficult (compiler catches it), immediately visible (tests catch it), or governable (warden catches it).
 
 If none of these catch it, the feature needs redesign.
 
@@ -153,7 +153,7 @@ If none of these catch it, the feature needs redesign.
 
 There's a real difference between "the framework computed this deterministically" and "the framework inferred this from your code." Every piece of information in the system falls into one of six categories:
 
-- **Authored.** New information only the developer knows. Zod schemas, safety markers, examples, the implementation, trail IDs. Creative contributions that can't be derived because they don't exist until someone writes them.
+- **Authored.** New information only the developer knows. Zod schemas, intent, metadata, examples, the run function, trail IDs. Creative contributions that can't be derived because they don't exist until someone writes them.
 - **Projected.** Mechanically derived, guaranteed correct. MCP tool name from app name + trail ID. CLI flags from Zod fields. Exit codes from error classes. If the authored input exists, the projection is unambiguous.
 - **Enforced.** Constrained by the type system at compile time. Output schemas bind the return type. `Result<T, Error>` eliminates throw/catch. `TrailContext` scopes what the implementation can access. The compiler rejects non-compliance.
 - **Inferred.** Detected by static analysis, best-effort. Which trails a trail follows (from `ctx.follow()` calls). Which error types are returned (from `Result.err()` patterns). The warden uses inference to verify declarations match actual code. Useful for governance, but not compiler-guaranteed.
@@ -175,7 +175,7 @@ But the surfaces Trails produces are universally consumable. A CLI built with Tr
 - **Define once, surface everywhere.** One trail definition produces CLI commands, MCP tools, HTTP endpoints, WebSocket handlers, documentation, tests, and governance checks.
 - **Drift-resistant contracts.** Schema changes propagate to all surfaces. Error behavior is consistent. Examples stay in sync because they're on the definition, not in separate files.
 - **Agent-native development.** Agents can inspect, consume, and build with Trails because the contract is queryable, typed, and self-documenting.
-- **Progressive tightening.** Start with examples and an implementation. Add output schemas. Add safety markers. Add error declarations. Each step tightens the contract without rewriting anything.
+- **Progressive tightening.** Start with examples and a run function. Add output schemas. Add intent. Add error declarations. Each step tightens the contract without rewriting anything.
 
 ### What this constrains
 

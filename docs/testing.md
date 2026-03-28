@@ -10,7 +10,7 @@ When you add `examples` to a trail, you are writing both agent documentation and
 const search = trail('search', {
   input: z.object({ query: z.string(), limit: z.number().default(10) }),
   output: z.array(ResultSchema),
-  readOnly: true,
+  intent: 'read',
   examples: [
     {
       name: 'Basic search',
@@ -23,7 +23,7 @@ const search = trail('search', {
       expected: [],
     },
   ],
-  implementation: searchImpl,
+  run: searchImpl,
 });
 ```
 

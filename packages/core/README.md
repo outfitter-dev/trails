@@ -11,11 +11,11 @@ import { z } from 'zod';
 const greet = trail('greet', {
   input: z.object({ name: z.string().describe('Who to greet') }),
   output: z.object({ message: z.string() }),
-  readOnly: true,
+  intent: 'read',
   examples: [
     { name: 'Hello', input: { name: 'World' }, expected: { message: 'Hello, World!' } },
   ],
-  implementation: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
+  run: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
 
 const app = topo('myapp', { greet });
@@ -27,7 +27,7 @@ Trails compose other trails through `follow` and `ctx.follow()`:
 const onboard = trail('entity.onboard', {
   follow: ['entity.add', 'entity.relate'],
   input: z.object({ name: z.string(), type: z.string() }),
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     const added = await ctx.follow('entity.add', input);
     if (added.isErr()) return added;
     return Result.ok({ entity: added.value });

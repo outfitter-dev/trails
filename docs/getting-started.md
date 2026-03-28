@@ -40,7 +40,7 @@ export const greet = trail('greet', {
     loud: z.boolean().default(false).describe('Shout the greeting'),
   }),
   output: z.object({ message: z.string() }),
-  readOnly: true,
+  intent: 'read',
   examples: [
     {
       name: 'Basic greeting',
@@ -53,7 +53,7 @@ export const greet = trail('greet', {
       expected: { message: 'HELLO, WORLD!' },
     },
   ],
-  implementation: (input) => {
+  run: (input) => {
     const message = `Hello, ${input.name}!`;
     return Result.ok({
       message: input.loud ? message.toUpperCase() : message,
@@ -129,7 +129,7 @@ await blaze(app);
 Same trail. Same implementation. Different surface. The MCP server exposes a `myapp_greet` tool with:
 
 - JSON Schema input derived from the Zod schema
-- `readOnlyHint: true` annotation from `readOnly: true`
+- `readOnlyHint: true` annotation from `intent: 'read'`
 - Examples available for agent planning
 
 Pure trails can return `Result` directly. Trails with `follow` and I/O-heavy trails can stay `async`; Trails normalizes both forms before adapters run them.
@@ -191,7 +191,7 @@ export const add = trail('math.add', {
     b: z.number().describe('Second number'),
   }),
   output: z.object({ result: z.number() }),
-  readOnly: true,
+  intent: 'read',
   examples: [
     {
       name: 'Add two numbers',
@@ -199,7 +199,7 @@ export const add = trail('math.add', {
       expected: { result: 5 },
     },
   ],
-  implementation: (input) => Result.ok({ result: input.a + input.b }),
+  run: (input) => Result.ok({ result: input.a + input.b }),
 });
 ```
 
@@ -227,7 +227,7 @@ export const addAndDouble = trail('math.add-and-double', {
   follow: ['math.add'],
   input: z.object({ a: z.number(), b: z.number() }),
   output: z.object({ result: z.number() }),
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     const sum = await ctx.follow('math.add', input);
     if (sum.isErr()) return sum;
     return Result.ok({ result: sum.value.result * 2 });

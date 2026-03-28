@@ -1,6 +1,6 @@
 # MCP Surface
 
-The MCP surface adapter turns every trail into an MCP tool. Annotations are auto-derived from trail markers. Progress callbacks bridge to MCP notifications. One `blaze()` call starts a server.
+The MCP surface adapter turns every trail into an MCP tool. Annotations are auto-derived from trail intent and metadata. Progress callbacks bridge to MCP notifications. One `blaze()` call starts a server.
 
 ## Setup
 
@@ -64,12 +64,12 @@ Produces the JSON Schema:
 
 ## Annotations
 
-Trail markers map directly to MCP tool annotations:
+Trail intent maps directly to MCP tool annotations:
 
 | Trail field | MCP annotation | Effect |
 | --- | --- | --- |
-| `readOnly: true` | `readOnlyHint: true` | Tells the agent this tool does not modify state |
-| `destructive: true` | `destructiveHint: true` | Warns the agent about destructive side effects |
+| `intent: 'read'` | `readOnlyHint: true` | Tells the agent this tool does not modify state |
+| `intent: 'destroy'` | `destructiveHint: true` | Warns the agent about destructive side effects |
 | `idempotent: true` | `idempotentHint: true` | Tells the agent repeated calls are safe |
 | `description` | `title` | Human-readable tool title |
 
@@ -80,7 +80,7 @@ const annotations = deriveAnnotations(showTrail);
 // { readOnlyHint: true, title: "Show entity details" }
 ```
 
-Trails without markers produce empty annotations (MCP SDK defaults apply).
+Trails without intent produce empty annotations (MCP SDK defaults apply).
 
 ## Result Mapping
 
@@ -114,7 +114,7 @@ Trail implementations can report progress via `ctx.progress`. On the MCP surface
 
 ```typescript
 const importTrail = trail('data.import', {
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     for (let i = 0; i < items.length; i++) {
       await processItem(items[i]);
       ctx.progress?.({ type: 'progress', current: i + 1, total: items.length });
@@ -165,7 +165,7 @@ The MCP client's abort signal is propagated through to `TrailContext.signal`. If
 
 ```typescript
 const longTask = trail('long.task', {
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     for (const item of items) {
       if (ctx.signal?.aborted) {
         return Result.err(new CancelledError('Task cancelled'));

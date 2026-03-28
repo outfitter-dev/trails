@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 const greet = trail('greet', {
   input: z.object({ name: z.string().describe('Who to greet') }),
-  implementation: (input) => Result.ok(`Hello, ${input.name}!`),
+  run: (input) => Result.ok(`Hello, ${input.name}!`),
 });
 
 const app = topo('myapp', { greet });
