@@ -12,6 +12,7 @@ import {
   createTrailContext,
   validateInput,
 } from '@ontrails/core';
+import { expectErr } from '@ontrails/testing';
 import type { Trail, TrailContext } from '@ontrails/core';
 
 import type { EntityStore } from '../src/store.js';
@@ -91,8 +92,7 @@ describe('entity.onboard', () => {
 
     const result = await onboard.implementation(input, ctx);
     expect(result.isErr()).toBe(true);
-    if (result.isErr()) {
-      expect(result.error).toBeInstanceOf(AlreadyExistsError);
-    }
+    const error = expectErr(result);
+    expect(error).toBeInstanceOf(AlreadyExistsError);
   });
 });
