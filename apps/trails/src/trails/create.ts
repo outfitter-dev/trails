@@ -108,7 +108,7 @@ const collectCreatedFiles = (
   verify: readonly string[]
 ): string[] => [...scaffolded, ...surfaces, ...verify];
 
-const runBlaze = async (
+const runCreate = async (
   follow: FollowFn,
   input: BlazeInput
 ): Promise<Result<{ created: string[]; dir: string; name: string }, Error>> => {
@@ -127,17 +127,19 @@ const runBlaze = async (
   }
 
   const verifyFiles = await collectVerifyFiles(follow, input);
-  return verifyFiles.isErr()
-    ? Result.err(verifyFiles.error)
-    : Result.ok({
-        created: collectCreatedFiles(
-          scaffolded.value.created,
-          surfaceResults.value,
-          verifyFiles.value
-        ),
-        dir: scaffolded.value.dir,
-        name: input.name,
-      });
+  if (verifyFiles.isErr()) {
+    return Result.err(verifyFiles.error);
+  }
+
+  return Result.ok({
+    created: collectCreatedFiles(
+      scaffolded.value.created,
+      surfaceResults.value,
+      verifyFiles.value
+    ),
+    dir: scaffolded.value.dir,
+    name: input.name,
+  });
 };
 
 // ---------------------------------------------------------------------------
@@ -178,7 +180,7 @@ export const createRoute = hike('create', {
     if (!ctx.follow) {
       return Result.err(new Error('create route requires ctx.follow'));
     }
-    return await runBlaze(ctx.follow, input);
+    return await runCreate(ctx.follow, input);
   },
   input: z.object({
     dir: z.string().optional().describe('Parent directory'),

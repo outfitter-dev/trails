@@ -1,6 +1,6 @@
 import { describe, test } from 'bun:test';
 
-import { NotFoundError, Result, trail, topo } from '@ontrails/core';
+import { NotFoundError, Result, hike, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { testExamples } from '../examples.js';
@@ -68,6 +68,57 @@ const noExamplesTrail = trail('noexamples', {
 });
 
 // ---------------------------------------------------------------------------
+// Test hikes (for follows coverage)
+// ---------------------------------------------------------------------------
+
+const addTrail = trail('entity.add', {
+  description: 'Add an entity',
+  implementation: (input: { name: string }) =>
+    Result.ok({ id: '1', name: input.name }),
+  input: z.object({ name: z.string() }),
+  output: z.object({ id: z.string(), name: z.string() }),
+});
+
+const relateTrail = trail('entity.relate', {
+  description: 'Relate entities',
+  implementation: (input: { from: string; to: string }) =>
+    Result.ok({ from: input.from, to: input.to }),
+  input: z.object({ from: z.string(), to: z.string() }),
+  output: z.object({ from: z.string(), to: z.string() }),
+});
+
+const onboardHike = hike('entity.onboard', {
+  description: 'Onboard a new entity',
+  examples: [
+    {
+      expected: { id: '1', name: 'Alpha' },
+      input: { name: 'Alpha' },
+      name: 'Onboard Alpha',
+    },
+  ],
+  follows: ['entity.add', 'entity.relate'],
+  implementation: async (input: { name: string }, ctx) => {
+    if (!ctx.follow) {
+      return Result.err(new Error('follow not available'));
+    }
+    const addResult = await ctx.follow('entity.add', input);
+    if (addResult.isErr()) {
+      return addResult;
+    }
+    const relateResult = await ctx.follow('entity.relate', {
+      from: 'root',
+      to: (addResult.value as { id: string }).id,
+    });
+    if (relateResult.isErr()) {
+      return relateResult;
+    }
+    return Result.ok({ id: '1', name: input.name });
+  },
+  input: z.object({ name: z.string() }),
+  output: z.object({ id: z.string(), name: z.string() }),
+});
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -111,4 +162,15 @@ describe('testExamples skips trails with no examples', () => {
   test('no-op marker', () => {
     // This test exists so the describe block is not empty
   });
+});
+
+describe('testExamples follows coverage for hikes', () => {
+  // eslint-disable-next-line jest/require-hook
+  testExamples(
+    topo('hike-app', {
+      addTrail,
+      onboardHike,
+      relateTrail,
+    } as Record<string, unknown>)
+  );
 });

@@ -3,15 +3,17 @@
  *
  * Iterates every trail in the app's topo. For each trail with examples,
  * generates describe/test blocks using bun:test. Progressive assertion
- * determines which check to run per example.
+ * determines which check to run per example. For hikes with `follows`
+ * declarations, checks that every declared follow was called at least once.
  */
 
 import { describe, expect, test } from 'bun:test';
 
 import type {
+  AnyHike,
+  FollowFn,
   Topo,
   TrailExample,
-  Result,
   Trail,
   TrailContext,
 } from '@ontrails/core';
@@ -28,6 +30,7 @@ import {
   NotFoundError,
   PermissionError,
   RateLimitError,
+  Result,
   TimeoutError,
   TrailsError,
   ValidationError,
@@ -152,11 +155,143 @@ const runExample = async (
 };
 
 // ---------------------------------------------------------------------------
+// Follows coverage for hikes
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a recording follow function that tracks which trail IDs are called.
+ *
+ * Delegates to `baseFollow` when available, otherwise looks up the trail
+ * in the topo and executes it with validated input. Falls back to
+ * `Result.ok()` when neither is available.
+ */
+const createCoverageFollow = (
+  called: Set<string>,
+  baseFollow: FollowFn | undefined,
+  topo: Topo,
+  ctx: TrailContext
+): FollowFn => {
+  const follow = (id: string, input: unknown) => {
+    called.add(id);
+
+    if (baseFollow !== undefined) {
+      return baseFollow(id, input);
+    }
+
+    const trailDef = topo.get(id);
+    if (trailDef !== undefined) {
+      const validated = validateInput(trailDef.input, input);
+      if (validated.isErr()) {
+        return Promise.resolve(validated);
+      }
+      return Promise.resolve(trailDef.implementation(validated.value, ctx));
+    }
+
+    return Promise.resolve(Result.ok());
+  };
+  return follow as FollowFn;
+};
+
+/**
+ * Run a single example against a hike, recording follow calls.
+ */
+const runHikeExample = async (
+  hikeDef: AnyHike,
+  example: TrailExample<unknown, unknown>,
+  output: z.ZodType | undefined,
+  baseCtx: TrailContext,
+  called: Set<string>,
+  topo: Topo
+): Promise<void> => {
+  const validated = validateInput(hikeDef.input, example.input);
+
+  if (handleValidationError(validated, example)) {
+    return;
+  }
+  const validatedInput = expectOk(validated);
+
+  const follow = createCoverageFollow(called, baseCtx.follow, topo, baseCtx);
+  const testCtx: TrailContext = { ...baseCtx, follow };
+
+  const result = await hikeDef.implementation(validatedInput, testCtx);
+  assertProgressiveMatch(result, example, output);
+  assertOutputSchema(result, output);
+};
+
+// ---------------------------------------------------------------------------
+// Hike entry with examples pre-validated
+// ---------------------------------------------------------------------------
+
+interface HikeWithExamples {
+  readonly hikeDef: AnyHike;
+  readonly hikeId: string;
+  readonly examples: readonly TrailExample<unknown, unknown>[];
+}
+
+const collectHikesWithExamples = (app: Topo): readonly HikeWithExamples[] =>
+  [...app.hikes]
+    .filter(([, h]) => h.examples !== undefined && h.examples.length > 0)
+    .map(([hikeId, hikeDef]) => ({
+      examples: hikeDef.examples as readonly TrailExample<unknown, unknown>[],
+      hikeDef,
+      hikeId,
+    }));
+
+// ---------------------------------------------------------------------------
+// Hike example describe blocks
+// ---------------------------------------------------------------------------
+
+/**
+ * Generate describe/test blocks for hikes with follows coverage.
+ *
+ * Always uses a recording follow so that follows coverage can be checked.
+ * Hikes without `follows` still run their examples but skip the coverage test.
+ */
+const describeHikeExamples = (
+  hikesWithExamples: readonly HikeWithExamples[],
+  resolveCtx: () => Partial<TrailContext> | undefined,
+  topo: Topo
+): void => {
+  if (hikesWithExamples.length === 0) {
+    return;
+  }
+
+  describe.each([...hikesWithExamples])('$hikeId', ({ hikeDef, examples }) => {
+    const called = new Set<string>();
+
+    test.each([...examples])(
+      'example: $name',
+      async (example: TrailExample<unknown, unknown>) => {
+        const baseCtx = mergeTestContext(resolveCtx());
+        await runHikeExample(
+          hikeDef,
+          example,
+          hikeDef.output,
+          baseCtx,
+          called,
+          topo
+        );
+      }
+    );
+
+    if (hikeDef.follows.length > 0) {
+      test('follows coverage', () => {
+        const uncovered = hikeDef.follows.filter((id) => !called.has(id));
+        expect(uncovered).toEqual([]);
+      });
+    }
+  });
+};
+
+// ---------------------------------------------------------------------------
 // testExamples
 // ---------------------------------------------------------------------------
 
 /**
  * Generate describe/test blocks for every trail example in the app.
+ *
+ * For hikes with `follows` declarations and examples, also verifies that
+ * every declared follow ID was called at least once across all examples.
  *
  * One line in your test file:
  * ```ts
@@ -187,4 +322,6 @@ export const testExamples = (
       }
     );
   });
+
+  describeHikeExamples(collectHikesWithExamples(app), resolveCtx, app);
 };
