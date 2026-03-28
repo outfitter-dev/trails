@@ -154,7 +154,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 
 | Package | What it does |
 | --- | --- |
-| `@ontrails/testing` | `testExamples()`, `testTrail()`, `testHike()`, contract testing, surface harnesses |
+| `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, `testHike()`, contract testing, surface harnesses |
 | `@ontrails/schema` | Surface maps, semantic diffing, lock files |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 

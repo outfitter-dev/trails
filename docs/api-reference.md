@@ -108,6 +108,7 @@ WriteOptions, ReadOptions
 
 ```typescript
 // Test runners
+testAll(topo, ctx?)
 testExamples(topo, ctx?), testTrail(trail, scenarios, ctx?)
 testHike(hike, scenarios, ctx?)
 testContracts(topo, ctx?), testDetours(topo, ctx?)
@@ -155,6 +156,14 @@ DeepPartial<T>, Prettify<T>, AtLeastOne<T>
 
 ---
 
+## `@ontrails/core` — Validation
+
+```typescript
+validateTopo(topo)                 // → Result<void, ValidationError>
+```
+
+Structural validation: follows existence, recursive follows, event origins, example schema validation, output schema presence. Called automatically by `testAll()`.
+
 ## Reserved
 
 | Name | Intent |
@@ -162,6 +171,6 @@ DeepPartial<T>, Prettify<T>, AtLeastOne<T>
 | `trailblaze(topo, options?)` | Full hosted runtime |
 | `trailhead` | Static entry point / discovery |
 | `scout` | Agent-side runtime discovery |
-| `validateExample`, `validateFollow`, `validateTopo` | Contract verification family |
+| `validateExample`, `validateFollow` | Contract verification family |
 | `generateDocs`, `generateOpenApi`, `generateLlmsTxt` | Build-time doc generation |
 | `deriveMocks`, `deriveExamples` | Schema-derived test data |

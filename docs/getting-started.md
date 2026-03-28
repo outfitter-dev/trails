@@ -8,7 +8,7 @@ Install the core packages, define your first trail, blaze it on CLI and MCP, and
 # Requires Bun (https://bun.sh)
 
 # Recommended: scaffold a new project
-bunx trails init
+bunx trails create
 
 # Or install manually
 bun add @ontrails/core @ontrails/cli
@@ -163,6 +163,15 @@ That single `testExamples(app)` call:
 4. Asserts the result matches `expected` (or validates against the output schema when no `expected` is declared)
 
 No separate test files for the happy path. The examples ARE the tests.
+
+For one-call governance that runs examples AND structural contract checks (follows existence, recursive follows, event origins, output schema presence), use `testAll`:
+
+```typescript
+import { testAll } from '@ontrails/testing';
+import { app } from '../app';
+
+testAll(app);
+```
 
 ## Adding More Trails
 

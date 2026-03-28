@@ -62,7 +62,7 @@ Same trails. Same implementation. Every surface. Pure trails can return `Result`
 | [`@ontrails/cli`](./packages/cli) | CLI surface adapter + `/commander` subpath for flag derivation, output formatting, `blaze()` |
 | [`@ontrails/mcp`](./packages/mcp) | MCP surface adapter -- tool generation, annotations, progress bridge, `blaze()` |
 | [`@ontrails/logging`](./packages/logging) | Structured logging -- `createLogger()`, sinks, formatters, hierarchical filtering, `/logtape` adapter |
-| [`@ontrails/testing`](./packages/testing) | Contract-driven testing -- `testExamples()`, `testTrail()`, `testHike()`, `testContracts()`, surface harnesses |
+| [`@ontrails/testing`](./packages/testing) | Contract-driven testing -- `testAll()`, `testExamples()`, `testTrail()`, `testHike()`, `testContracts()`, surface harnesses |
 | [`@ontrails/schema`](./packages/schema) | Surface maps, semantic diffing, lock files for CI governance |
 | [`@ontrails/warden`](./packages/warden) | Lint rules, drift detection, contract enforcement |
 

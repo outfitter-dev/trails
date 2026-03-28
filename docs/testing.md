@@ -48,6 +48,26 @@ Red -> Green -> Refactor, with examples as the starting point:
 4. **Refactor** while tests stay green
 5. **Add edge-case tests** with `testTrail()` for scenarios that should not appear in agent-facing examples
 
+## `testAll(app)`
+
+One line runs the full governance suite -- structural validation, example execution, contract checks, and detour verification:
+
+```typescript
+import { testAll } from '@ontrails/testing';
+import { app } from '../app';
+
+testAll(app);
+```
+
+Generates a `governance` describe block containing:
+
+- **Topo validation** via `validateTopo` (follows existence, recursive follows, event origins, example schema validation, output schema presence)
+- **Example execution** via `testExamples`
+- **Contract checks** via `testContracts`
+- **Detour verification** via `testDetours`
+
+For most apps, `testAll` is the only test call you need. Reach for the individual helpers below when you need finer control.
+
 ## `testExamples(app)`
 
 One line tests the entire app:
@@ -265,9 +285,7 @@ src/
     entity.ts          # Trail definitions with examples
     search.ts
   __tests__/
-    app.test.ts        # testExamples(app) -- covers all happy paths
-    contracts.test.ts  # testContracts(app) -- catches schema drift
-    detours.test.ts    # testDetours(app) -- validates detour targets
+    governance.test.ts # testAll(app) -- full governance suite
     entity.test.ts     # testTrail(show, [...]) -- edge cases
     cli.test.ts        # CLI harness integration tests
     mcp.test.ts        # MCP harness integration tests

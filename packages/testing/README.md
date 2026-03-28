@@ -32,9 +32,22 @@ One line. The entire topo is tested. Every trail, every example: input validatio
 
 ## API Overview
 
+### `testAll(topo, ctx?)`
+
+Single-line governance suite. Wraps topo validation, example execution, contract checks, and detour verification into one `governance` describe block:
+
+```typescript
+import { testAll } from '@ontrails/testing';
+import { app } from '../app';
+
+testAll(app);
+```
+
+For most apps, `testAll` is the only test call you need.
+
 ### `testExamples(app, ctx?)`
 
-The headline one-liner. For each trail with `examples`, generates `describe`/`test` blocks using the Bun test runner.
+For each trail with `examples`, generates `describe`/`test` blocks using the Bun test runner.
 
 Per example:
 
@@ -189,6 +202,7 @@ expect(result.isError).toBe(false);
 
 ```typescript
 import {
+  testAll,
   testExamples,
   testTrail,
   testHike,

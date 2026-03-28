@@ -32,7 +32,7 @@ console.log(formatWardenReport(report));
 
 ## Lint Rules
 
-9 built-in rules under the `trails/` namespace:
+10 built-in rules under the `trails/` namespace:
 
 | Rule | Severity | What it catches |
 | --- | --- | --- |
@@ -45,6 +45,7 @@ console.log(formatWardenReport(report));
 | `no-sync-result-assumption` | error | Missing `await` on `.implementation()` results |
 | `implementation-returns-result` | error | Implementations that return raw values instead of `Result` |
 | `no-throw-in-detour-target` | error | `throw` inside trails that serve as detour targets |
+| `no-direct-impl-in-route` | warn | Direct `.implementation()` calls inside hike bodies |
 
 Several structural checks (follows existence, recursive follows, event origins, example schema validation, output schema presence) are handled by `validateTopo()` in `@ontrails/core`. Follows coverage (matching `follows` declarations to actual `ctx.follow()` calls) is verified by `testExamples()` in `@ontrails/testing`.
 
@@ -64,6 +65,7 @@ Add to `.oxlintrc.json`:
     "trails/implementation-returns-result": "error",
     "trails/no-throw-in-detour-target": "error",
     "trails/no-direct-implementation-call": "warn",
+    "trails/no-direct-impl-in-route": "warn",
     "trails/prefer-schema-inference": "warn"
   }
 }
