@@ -8,9 +8,9 @@
     "test": "echo 'No tests yet'"
   },
   "dependencies": {
-    "@ontrails/core": "workspace:*",
-    "@ontrails/schema": "workspace:*",
-    "@ontrails/warden": "workspace:*",
+    "@ontrails/core": "workspace:^",
+    "@ontrails/schema": "workspace:^",
+    "@ontrails/warden": "workspace:^",
     "zod": "catalog:"
   },
   "devDependencies": {

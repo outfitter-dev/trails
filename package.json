@@ -21,7 +21,7 @@
     "clean": "turbo run clean --no-cache && rm -rf node_modules"
   },
   "dependencies": {
-    "@ontrails/cli": "workspace:*",
+    "@ontrails/cli": "workspace:^",
     "commander": "^14.0.0"
   },
   "devDependencies": {

@@ -19,7 +19,7 @@
     "zod": "catalog:"
   },
   "peerDependencies": {
-    "@ontrails/core": "workspace:*",
-    "@ontrails/schema": "workspace:*"
+    "@ontrails/core": "workspace:^",
+    "@ontrails/schema": "workspace:^"
   }
 }

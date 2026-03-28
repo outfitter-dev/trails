@@ -15,7 +15,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@ontrails/core": "workspace:*"
+    "@ontrails/core": "workspace:^"
   },
   "peerDependencies": {
     "commander": "^14.0.3",

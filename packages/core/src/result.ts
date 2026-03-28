@@ -17,7 +17,7 @@ class Ok<T, E> {
   }
 
   // oxlint-disable-next-line class-methods-use-this -- type guard for Result discriminated union
-  isErr(): this is Err<T, E> {
+  isErr(): this is Err<E> {
     return false;
   }
 
@@ -47,7 +47,7 @@ class Ok<T, E> {
 }
 
 // oxlint-disable-next-line max-classes-per-file -- Result monad requires paired Ok/Err classes
-class Err<T, E> {
+class Err<E> {
   readonly error: E;
 
   constructor(error: E) {
@@ -55,28 +55,28 @@ class Err<T, E> {
   }
 
   // oxlint-disable-next-line class-methods-use-this -- type guard for Result discriminated union
-  isOk(): this is Ok<T, E> {
+  isOk(): this is Ok<never, E> {
     return false;
   }
 
   // oxlint-disable-next-line class-methods-use-this -- type guard for Result discriminated union
-  isErr(): this is Err<T, E> {
+  isErr(): this is Err<E> {
     return true;
   }
 
-  map<U>(_fn: (value: T) => U): Result<U, E> {
+  map<U>(_fn: (value: never) => U): Result<U, E> {
     return new Err(this.error);
   }
 
-  flatMap<U, F = E>(_fn: (value: T) => Result<U, F>): Result<U, E | F> {
+  flatMap<U, F = E>(_fn: (value: never) => Result<U, F>): Result<U, E | F> {
     return new Err(this.error);
   }
 
-  mapErr<F>(fn: (error: E) => F): Result<T, F> {
+  mapErr<F>(fn: (error: E) => F): Result<never, F> {
     return new Err(fn(this.error));
   }
 
-  match<U>(handlers: { ok: (value: T) => U; err: (error: E) => U }): U {
+  match<U>(handlers: { ok: (value: never) => U; err: (error: E) => U }): U {
     return handlers.err(this.error);
   }
 
@@ -87,12 +87,12 @@ class Err<T, E> {
   }
 
   // oxlint-disable-next-line class-methods-use-this -- symmetric API with Ok.unwrapOr
-  unwrapOr(fallback: T): T {
+  unwrapOr<T>(fallback: T): T {
     return fallback;
   }
 }
 
-export type Result<T, E = Error> = Ok<T, E> | Err<T, E>;
+export type Result<T, E = Error> = Ok<T, E> | Err<E>;
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export const Result = {
@@ -107,7 +107,7 @@ export const Result = {
     return new Ok(values);
   },
 
-  err<E>(error: E): Result<never, E> {
+  err<E>(error: E): Err<E> {
     return new Err(error);
   },
 

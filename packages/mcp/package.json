@@ -14,7 +14,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@ontrails/core": "workspace:*"
+    "@ontrails/core": "workspace:^"
   },
   "peerDependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",

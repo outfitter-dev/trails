@@ -14,10 +14,10 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "peerDependencies": {
-    "@ontrails/cli": "workspace:*",
-    "@ontrails/core": "workspace:*",
-    "@ontrails/logging": "workspace:*",
-    "@ontrails/mcp": "workspace:*",
+    "@ontrails/cli": "workspace:^",
+    "@ontrails/core": "workspace:^",
+    "@ontrails/logging": "workspace:^",
+    "@ontrails/mcp": "workspace:^",
     "zod": "catalog:"
   }
 }

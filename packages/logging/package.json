@@ -15,7 +15,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "peerDependencies": {
-    "@ontrails/core": "workspace:*"
+    "@ontrails/core": "workspace:^"
   },
   "peerDependenciesMeta": {
     "@logtape/logtape": {

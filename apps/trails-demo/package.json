@@ -14,15 +14,15 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@ontrails/cli": "workspace:*",
-    "@ontrails/core": "workspace:*",
-    "@ontrails/logging": "workspace:*",
-    "@ontrails/mcp": "workspace:*",
+    "@ontrails/cli": "workspace:^",
+    "@ontrails/core": "workspace:^",
+    "@ontrails/logging": "workspace:^",
+    "@ontrails/mcp": "workspace:^",
     "commander": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@ontrails/schema": "workspace:*",
-    "@ontrails/testing": "workspace:*"
+    "@ontrails/schema": "workspace:^",
+    "@ontrails/testing": "workspace:^"
   }
 }
