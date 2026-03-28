@@ -11,6 +11,12 @@ import type { Topo } from '@ontrails/core';
 
 import type { DriftResult } from './drift.js';
 import { checkDrift } from './drift.js';
+import {
+  findConfigProperty,
+  findTrailDefinitions,
+  parse,
+  walk,
+} from './rules/ast.js';
 import { wardenRules } from './rules/index.js';
 import type {
   ProjectAwareWardenRule,
@@ -87,35 +93,42 @@ interface SourceFile {
 
 const collectKnownTrailIds = (
   sourceCode: string,
+  filePath: string,
   knownTrailIds: Set<string>
 ): void => {
-  for (const match of sourceCode.matchAll(
-    /\b(?:trail|route)\s*\(\s*["'`]([^"'`]+)["'`]/g
-  )) {
-    const [, trailId] = match;
-    if (trailId) {
-      knownTrailIds.add(trailId);
-    }
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return;
+  }
+  for (const def of findTrailDefinitions(ast)) {
+    knownTrailIds.add(def.id);
   }
 };
 
 const collectDetourTargetTrailIds = (
   sourceCode: string,
+  filePath: string,
   detourTargetTrailIds: Set<string>
 ): void => {
-  for (const block of sourceCode.matchAll(
-    /\bdetours\s*:\s*(\{[\s\S]*?\}|\[[\s\S]*?\])/g
-  )) {
-    const [, detourBody] = block;
-    if (!detourBody) {
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return;
+  }
+  for (const def of findTrailDefinitions(ast)) {
+    const detoursProp = findConfigProperty(def.config, 'detours');
+    if (!detoursProp) {
       continue;
     }
-    for (const match of detourBody.matchAll(/["'`]([^"'`]+)["'`]/g)) {
-      const [, trailId] = match;
-      if (trailId && trailId.includes('.')) {
-        detourTargetTrailIds.add(trailId);
+    // Walk the detours value for string literals that look like trail IDs
+    walk(detoursProp, (node) => {
+      if (node.type !== 'Literal') {
+        return;
       }
-    }
+      const val = (node as unknown as { value?: string }).value;
+      if (val && val.includes('.')) {
+        detourTargetTrailIds.add(val);
+      }
+    });
   }
 };
 
@@ -145,8 +158,16 @@ const buildProjectContext = (
   const detourTargetTrailIds = new Set<string>();
 
   for (const sourceFile of sourceFiles) {
-    collectKnownTrailIds(sourceFile.sourceCode, knownTrailIds);
-    collectDetourTargetTrailIds(sourceFile.sourceCode, detourTargetTrailIds);
+    collectKnownTrailIds(
+      sourceFile.sourceCode,
+      sourceFile.filePath,
+      knownTrailIds
+    );
+    collectDetourTargetTrailIds(
+      sourceFile.sourceCode,
+      sourceFile.filePath,
+      detourTargetTrailIds
+    );
   }
 
   return {
