@@ -78,12 +78,13 @@ export type {
 } from './adapters.js';
 
 // Derive
-export { derive } from './derive.js';
+export { deriveFields } from './derive.js';
 export type { Field, FieldOverride } from './derive.js';
 
 // Validation
 export {
   validateInput,
+  validateOutput,
   formatZodIssues,
   zodToJsonSchema,
 } from './validation.js';

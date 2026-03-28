@@ -114,14 +114,14 @@ const diagnosticsForSpec = (
     .map(({ fieldEntry, fieldKey, redundantParts }) => ({
       filePath,
       line: fieldEntry.line,
-      message: `Trail "${spec.id}" field "${fieldKey}" only repeats schema-derived ${redundantParts.join(' and ')}. Remove the override and let derive() infer it.`,
+      message: `Trail "${spec.id}" field "${fieldKey}" only repeats schema-derived ${redundantParts.join(' and ')}. Remove the override and let deriveFields() infer it.`,
       rule: 'prefer-schema-inference',
       severity: 'warn' as const,
     }));
 };
 
 /**
- * Warns when a fields override only repeats metadata derive() already gets from
+ * Warns when a fields override only repeats metadata deriveFields() already gets from
  * the schema.
  */
 export const preferSchemaInference: WardenRule = {
@@ -135,7 +135,7 @@ export const preferSchemaInference: WardenRule = {
     );
   },
   description:
-    'Warn when fields overrides only restate labels or enum options derive() already infers from the Zod schema.',
+    'Warn when fields overrides only restate labels or enum options deriveFields() already infers from the Zod schema.',
   name: 'prefer-schema-inference',
   severity: 'warn',
 };

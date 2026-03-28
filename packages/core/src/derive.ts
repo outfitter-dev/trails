@@ -202,7 +202,7 @@ const deriveField = (
   return { default: defaultValue, label, name: key, options, required, type };
 };
 
-export const derive = (
+export const deriveFields = (
   schema: z.ZodType,
   overrides?: Record<string, FieldOverride>
 ): Field[] => {

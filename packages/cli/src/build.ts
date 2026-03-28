@@ -7,7 +7,7 @@ import {
   Result,
   composeLayers,
   createTrailContext,
-  derive,
+  deriveFields,
   validateInput,
 } from '@ontrails/core';
 
@@ -226,7 +226,7 @@ const toCliCommand = (
   options?: BuildCliCommandsOptions
 ): CliCommand => {
   const { group, name } = parseTrailId(t.id);
-  const fields = derive(t.input, t.fields);
+  const fields = deriveFields(t.input, t.fields);
   const flags = buildFlags(fields, t.destructive, options);
 
   return {

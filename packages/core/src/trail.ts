@@ -54,7 +54,7 @@ export interface TrailSpec<I, O> {
   readonly markers?: Readonly<Record<string, unknown>> | undefined;
   /** Named sets of downstream trail IDs that may be invoked */
   readonly detours?: Readonly<Record<string, readonly string[]>> | undefined;
-  /** Per-field overrides for derive() (labels, hints, options) */
+  /** Per-field overrides for deriveFields() (labels, hints, options) */
   readonly fields?: Readonly<Record<string, FieldOverride>> | undefined;
 }
 

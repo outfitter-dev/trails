@@ -2,7 +2,7 @@ import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
 
-import { derive } from '../derive.js';
+import { deriveFields } from '../derive.js';
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -12,7 +12,7 @@ describe('derive', () => {
   describe('primitive types', () => {
     test('z.string() derives string field', () => {
       const schema = z.object({ name: z.string() });
-      const fields = derive(schema);
+      const fields = deriveFields(schema);
       expect(fields).toHaveLength(1);
       expect(fields[0]).toMatchObject({
         label: 'Name',
@@ -24,7 +24,7 @@ describe('derive', () => {
 
     test('z.number() derives number field', () => {
       const schema = z.object({ count: z.number() });
-      const fields = derive(schema);
+      const fields = deriveFields(schema);
       expect(fields[0]).toMatchObject({
         name: 'count',
         required: true,
@@ -34,7 +34,7 @@ describe('derive', () => {
 
     test('z.boolean() derives boolean field', () => {
       const schema = z.object({ verbose: z.boolean() });
-      const fields = derive(schema);
+      const fields = deriveFields(schema);
       expect(fields[0]).toMatchObject({
         name: 'verbose',
         required: true,
@@ -46,7 +46,7 @@ describe('derive', () => {
   describe('enum and multiselect', () => {
     test('z.enum() derives enum field with options', () => {
       const schema = z.object({ color: z.enum(['red', 'green', 'blue']) });
-      const fields = derive(schema);
+      const fields = deriveFields(schema);
       expect(fields[0]).toMatchObject({
         name: 'color',
         required: true,
@@ -63,7 +63,7 @@ describe('derive', () => {
       const schema = z.object({
         tags: z.array(z.enum(['a', 'b', 'c'])),
       });
-      const fields = derive(schema);
+      const fields = deriveFields(schema);
       expect(fields[0]).toMatchObject({
         name: 'tags',
         required: true,
@@ -82,7 +82,7 @@ describe('derive', () => {
       const schema = z.object({
         name: z.string().describe('Your full name'),
       });
-      const fields = derive(schema);
+      const fields = deriveFields(schema);
       expect(fields[0]?.label).toBe('Your full name');
     });
 
@@ -90,7 +90,7 @@ describe('derive', () => {
       const schema = z.object({
         port: z.number().default(3000),
       });
-      const fields = derive(schema);
+      const fields = deriveFields(schema);
       expect(fields[0]?.required).toBe(false);
       expect(fields[0]?.default).toBe(3000);
     });
@@ -99,7 +99,7 @@ describe('derive', () => {
       const schema = z.object({
         nickname: z.string().optional(),
       });
-      const fields = derive(schema);
+      const fields = deriveFields(schema);
       expect(fields[0]?.required).toBe(false);
     });
   });
@@ -109,7 +109,7 @@ describe('derive', () => {
       const schema = z.object({
         name: z.string().describe('Derived label'),
       });
-      const fields = derive(schema, {
+      const fields = deriveFields(schema, {
         name: { label: 'Override label' },
       });
       expect(fields[0]?.label).toBe('Override label');
@@ -119,7 +119,7 @@ describe('derive', () => {
       const schema = z.object({
         color: z.enum(['red', 'green', 'blue']),
       });
-      const fields = derive(schema, {
+      const fields = deriveFields(schema, {
         color: {
           options: [
             { hint: 'Hot color', label: 'Red', value: 'red' },
@@ -142,17 +142,17 @@ describe('derive', () => {
         middle: z.string(),
         zebra: z.string(),
       });
-      const fields = derive(schema);
+      const fields = deriveFields(schema);
       expect(fields.map((f) => f.name)).toEqual(['alpha', 'middle', 'zebra']);
     });
 
     test('returns empty array for non-object schema', () => {
-      expect(derive(z.string())).toEqual([]);
+      expect(deriveFields(z.string())).toEqual([]);
     });
 
     test('humanizes camelCase field names', () => {
       const schema = z.object({ firstName: z.string() });
-      const fields = derive(schema);
+      const fields = deriveFields(schema);
       expect(fields[0]?.label).toBe('First Name');
     });
   });

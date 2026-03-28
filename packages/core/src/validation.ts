@@ -69,6 +69,28 @@ export const validateInput = <T>(
 };
 
 // ---------------------------------------------------------------------------
+// Output validation
+// ---------------------------------------------------------------------------
+
+/** Parse unknown data against a Zod schema, returning a Result suitable for output validation. */
+export const validateOutput = <T>(
+  schema: z.ZodType<T>,
+  data: unknown
+): Result<T, ValidationError> => {
+  const parsed = schema.safeParse(data);
+  if (parsed.success) {
+    return Result.ok(parsed.data);
+  }
+  const messages = formatZodIssues(parsed.error.issues);
+  return Result.err(
+    new ValidationError(`Output validation failed: ${messages.join('; ')}`, {
+      cause: parsed.error,
+      context: { issues: parsed.error.issues },
+    })
+  );
+};
+
+// ---------------------------------------------------------------------------
 // Zod → JSON Schema (public API)
 // ---------------------------------------------------------------------------
 

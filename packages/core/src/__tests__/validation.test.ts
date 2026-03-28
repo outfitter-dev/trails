@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { ValidationError } from '../errors.js';
 import {
   validateInput,
+  validateOutput,
   formatZodIssues,
   zodToJsonSchema,
 } from '../validation.js';
@@ -60,6 +61,53 @@ describe('validateInput', () => {
     expect(validateInput(str, 'hello').isOk()).toBe(true);
     expect(validateInput(str, '').isErr()).toBe(true);
     expect(validateInput(str, 42).isErr()).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateOutput
+// ---------------------------------------------------------------------------
+
+describe('validateOutput', () => {
+  const schema = z.object({
+    id: z.string(),
+    score: z.number(),
+  });
+
+  test('returns Ok for valid data', () => {
+    const result = validateOutput(schema, { id: 'abc', score: 42 });
+    expect(result.isOk()).toBe(true);
+    expect(result.unwrap()).toEqual({ id: 'abc', score: 42 });
+  });
+
+  test('returns Err with ValidationError for invalid data', () => {
+    const result = validateOutput(schema, { id: 123 });
+    expect(result.isErr()).toBe(true);
+    const err = result as unknown as { error: ValidationError };
+    expect(err.error).toBeInstanceOf(ValidationError);
+    expect(err.error.category).toBe('validation');
+  });
+
+  test('error message includes "Output validation failed" prefix', () => {
+    const result = validateOutput(schema, {});
+    expect(result.isErr()).toBe(true);
+    const err = result as unknown as { error: ValidationError };
+    expect(err.error.message).toContain('Output validation failed');
+  });
+
+  test('attaches ZodError as cause', () => {
+    const result = validateOutput(schema, {});
+    expect(result.isErr()).toBe(true);
+    const err = result as unknown as { error: ValidationError };
+    expect(err.error.cause).toBeInstanceOf(z.ZodError);
+  });
+
+  test('attaches issues in context', () => {
+    const result = validateOutput(schema, {});
+    expect(result.isErr()).toBe(true);
+    const err = result as unknown as { error: ValidationError };
+    expect(err.error.context).toBeDefined();
+    expect(Array.isArray(err.error.context?.['issues'])).toBe(true);
   });
 });
 
