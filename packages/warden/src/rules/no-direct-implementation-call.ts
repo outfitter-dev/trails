@@ -1,11 +1,13 @@
-import type { WardenDiagnostic, WardenRule } from './types.js';
-import {
-  isFrameworkInternalFile,
-  isTestFile,
-  stripQuotedContent,
-} from './scan.js';
+/**
+ * Flags direct `.implementation()` calls in application code.
+ *
+ * Uses AST parsing to find `.implementation()` call expressions,
+ * ignoring occurrences in strings and comments.
+ */
 
-const DIRECT_IMPLEMENTATION_PATTERN = /\b[A-Za-z_$][\w$]*\.implementation\s*\(/;
+import { isImplementationCall, offsetToLine, parse, walk } from './ast.js';
+import { isFrameworkInternalFile, isTestFile } from './scan.js';
+import type { WardenDiagnostic, WardenRule } from './types.js';
 
 /**
  * Flags direct `.implementation()` calls in application code.
@@ -16,24 +18,25 @@ export const noDirectImplementationCall: WardenRule = {
       return [];
     }
 
-    const diagnostics: WardenDiagnostic[] = [];
-    const lines = stripQuotedContent(sourceCode).split('\n');
-
-    for (let i = 0; i < lines.length; i += 1) {
-      const line = lines[i];
-      if (!line || !DIRECT_IMPLEMENTATION_PATTERN.test(line)) {
-        continue;
-      }
-
-      diagnostics.push({
-        filePath,
-        line: i + 1,
-        message:
-          'Use ctx.follow("trailId", input) instead of direct .implementation() calls. Direct implementation access bypasses validation, tracing, and layers.',
-        rule: 'no-direct-implementation-call',
-        severity: 'warn',
-      });
+    const ast = parse(filePath, sourceCode);
+    if (!ast) {
+      return [];
     }
+
+    const diagnostics: WardenDiagnostic[] = [];
+
+    walk(ast, (node) => {
+      if (isImplementationCall(node)) {
+        diagnostics.push({
+          filePath,
+          line: offsetToLine(sourceCode, node.start),
+          message:
+            'Use ctx.follow("trailId", input) instead of direct .implementation() calls. Direct implementation access bypasses validation, tracing, and layers.',
+          rule: 'no-direct-implementation-call',
+          severity: 'warn',
+        });
+      }
+    });
 
     return diagnostics;
   },

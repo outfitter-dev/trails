@@ -1,51 +1,46 @@
+/**
+ * Detects hike implementations that call `.implementation()` directly.
+ *
+ * Uses AST parsing to find hike definition bodies and check for
+ * `.implementation()` call expressions.
+ */
+
+import {
+  findImplementationBodies,
+  findTrailDefinitions,
+  isImplementationCall,
+  offsetToLine,
+  parse,
+  walk,
+} from './ast.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
-interface BraceState {
-  depth: number;
-  found: boolean;
+interface AstNode {
+  readonly type: string;
+  readonly start: number;
+  readonly end: number;
+  readonly [key: string]: unknown;
 }
 
-const trackBraces = (line: string, state: BraceState): void => {
-  for (const ch of line) {
-    if (ch === '{') {
-      state.depth += 1;
-      state.found = true;
-    }
-    if (ch === '}') {
-      state.depth -= 1;
-    }
-  }
-};
-
-const scanRouteBodyForImpl = (
-  lines: readonly string[],
-  startIndex: number,
+const findImplCallsInHike = (
+  def: { readonly config: AstNode },
   filePath: string,
+  sourceCode: string,
   diagnostics: WardenDiagnostic[]
 ): void => {
-  const braceState: BraceState = { depth: 0, found: false };
-
-  for (let j = startIndex; j < lines.length && j < startIndex + 200; j += 1) {
-    const specLine = lines[j];
-    if (!specLine) {
-      continue;
-    }
-    trackBraces(specLine, braceState);
-
-    if (/\w+\.implementation\s*\(/.test(specLine)) {
-      diagnostics.push({
-        filePath,
-        line: j + 1,
-        message:
-          'Use ctx.follow("trailId", input) instead of direct .implementation() calls. ctx.follow() validates input and propagates tracing.',
-        rule: 'no-direct-impl-in-route',
-        severity: 'warn',
-      });
-    }
-
-    if (braceState.found && braceState.depth <= 0) {
-      break;
-    }
+  for (const body of findImplementationBodies(def.config as AstNode)) {
+    walk(body, (node) => {
+      if (isImplementationCall(node as AstNode)) {
+        diagnostics.push({
+          filePath,
+          line: offsetToLine(sourceCode, node.start),
+          message:
+            'Use ctx.follow("trailId", input) instead of direct .implementation() calls. ctx.follow() validates input and propagates tracing.',
+          rule: 'no-direct-impl-in-route',
+          severity: 'warn',
+        });
+      }
+    });
   }
 };
 
@@ -58,15 +53,18 @@ export const noDirectImplInRoute: WardenRule = {
       return [];
     }
 
-    const diagnostics: WardenDiagnostic[] = [];
-    const lines = sourceCode.split('\n');
-    const routePattern = /\bhike\s*\(\s*["'`]([^"'`]+)["'`]/;
+    const ast = parse(filePath, sourceCode);
+    if (!ast) {
+      return [];
+    }
 
-    for (let i = 0; i < lines.length; i += 1) {
-      const line = lines[i];
-      if (line && routePattern.test(line)) {
-        scanRouteBodyForImpl(lines, i, filePath, diagnostics);
-      }
+    const diagnostics: WardenDiagnostic[] = [];
+    const hikeDefs = findTrailDefinitions(ast as AstNode).filter(
+      (d) => d.kind === 'hike'
+    );
+
+    for (const def of hikeDefs) {
+      findImplCallsInHike(def, filePath, sourceCode, diagnostics);
     }
 
     return diagnostics;

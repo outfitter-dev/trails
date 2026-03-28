@@ -1,419 +1,323 @@
-import type { WardenDiagnostic, WardenRule } from './types.js';
+/**
+ * Finds implementations that return raw values instead of `Result`.
+ *
+ * Uses AST parsing to find `implementation:` bodies and check that
+ * every return statement returns Result.ok(), Result.err(), ctx.follow(),
+ * or a tracked Result-typed variable.
+ */
+
+import {
+  findImplementationBodies,
+  findTrailDefinitions,
+  offsetToLine,
+  parse,
+  walk,
+} from './ast.js';
 import { isTestFile } from './scan.js';
+import type { WardenDiagnostic, WardenRule } from './types.js';
 
-const countBraces = (line: string): number => {
-  let delta = 0;
-  for (const ch of line) {
-    if (ch === '{') {
-      delta += 1;
-    }
-    if (ch === '}') {
-      delta -= 1;
-    }
-  }
-  return delta;
-};
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
-interface BlockState {
-  depth: number;
-  found: boolean;
+interface AstNode {
+  readonly type: string;
+  readonly start: number;
+  readonly end: number;
+  readonly [key: string]: unknown;
 }
 
-interface ImplementationState {
-  braceDepth: number;
-  inImplementation: boolean;
-  resultVariables: Set<string>;
-  resultHelperNames: ReadonlySet<string>;
-}
+// ---------------------------------------------------------------------------
+// Member expression helpers
+// ---------------------------------------------------------------------------
 
-const trackBraces = (line: string, state: BlockState): void => {
-  for (const ch of line) {
-    if (ch === '{') {
-      state.depth += 1;
-      state.found = true;
-    }
-    if (ch === '}') {
-      state.depth -= 1;
-    }
+/** Extract object.property names from a MemberExpression callee. */
+const extractMemberNames = (
+  callee: AstNode
+): { objName: string | undefined; propName: string | undefined } => {
+  const obj = (callee as unknown as { object?: AstNode }).object;
+  const prop = (callee as unknown as { property?: AstNode }).property;
+  const objName =
+    obj?.type === 'Identifier'
+      ? (obj as unknown as { name: string }).name
+      : undefined;
+  const propName =
+    prop?.type === 'Identifier'
+      ? (prop as unknown as { name: string }).name
+      : undefined;
+  return { objName, propName };
+};
+
+const isMemberExpression = (callee: AstNode): boolean =>
+  callee.type === 'StaticMemberExpression' ||
+  callee.type === 'MemberExpression';
+
+const isResultMemberCall = (callee: AstNode): boolean => {
+  if (!isMemberExpression(callee)) {
+    return false;
   }
-};
-
-const appendBlockLine = (blockText: string, line: string): string =>
-  `${blockText}${line}\n`;
-
-const shouldStopBlockScan = (state: BlockState): boolean =>
-  state.found && state.depth <= 0;
-
-const updateBlockScanState = (line: string, state: BlockState): boolean => {
-  trackBraces(line, state);
-  return shouldStopBlockScan(state);
-};
-
-const collectBalancedBlock = (
-  lines: readonly string[],
-  startIndex: number
-): string => {
-  const blockState: BlockState = { depth: 0, found: false };
-  let blockText = '';
-
-  for (let i = startIndex; i < lines.length && i < startIndex + 80; i += 1) {
-    const line = lines[i];
-    if (!line) {
-      continue;
-    }
-
-    blockText = appendBlockLine(blockText, line);
-    if (updateBlockScanState(line, blockState)) {
-      break;
-    }
-  }
-
-  return blockText;
-};
-
-const addTrackedResultVariables = (
-  line: string,
-  state: ImplementationState
-): void => {
-  for (const match of line.matchAll(
-    /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:await\s+)?(?:ctx\.follow\s*\(|[\w$]+\.implementation\s*\(|Result\.(?:ok|err)\s*\()/g
-  )) {
-    const [, name] = match;
-    if (name) {
-      state.resultVariables.add(name);
-    }
-  }
-
-  for (const match of line.matchAll(
-    /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:await\s+)?([A-Za-z_$][\w$]*)\s*\(/g
-  )) {
-    const [, name, helperName] = match;
-    if (name && helperName && state.resultHelperNames.has(helperName)) {
-      state.resultVariables.add(name);
-    }
-  }
-};
-
-const matchesResultHelperCall = (
-  expression: string,
-  state: ImplementationState
-): boolean => {
-  const helperCall = expression.match(/^(?:await\s+)?([A-Za-z_$][\w$]*)\s*\(/);
-  return Boolean(helperCall?.[1] && state.resultHelperNames.has(helperCall[1]));
-};
-
-const matchesAllowedConciseExpression = (
-  expression: string,
-  state: ImplementationState
-): boolean => {
-  const normalized = expression.trim().replace(/[,;]\s*$/, '');
-  const allowedPatterns = [
-    /^(?:await\s+)?Result\.(?:ok|err)\s*\(/,
-    /^(?:await\s+)?ctx\.follow\s*\(/,
-    /^(?:await\s+)?[A-Za-z_$][\w$]*\.implementation\s*\(/,
-  ];
-
-  if (allowedPatterns.some((pattern) => pattern.test(normalized))) {
+  const { objName, propName } = extractMemberNames(callee);
+  if (objName === 'Result' && (propName === 'ok' || propName === 'err')) {
     return true;
   }
-
-  if (matchesResultHelperCall(normalized, state)) {
+  if (objName === 'ctx' && propName === 'follow') {
     return true;
   }
+  return propName === 'implementation';
+};
 
-  if (!/^(?:await\s+)?[A-Za-z_$][\w$]*$/.test(normalized)) {
+// ---------------------------------------------------------------------------
+// Expression classification
+// ---------------------------------------------------------------------------
+
+/** Check if an expression node is an allowed Result-returning expression. */
+const isResultExpression = (node: AstNode): boolean => {
+  if (node.type === 'CallExpression') {
+    const callee = node['callee'] as AstNode | undefined;
+    if (!callee) {
+      return false;
+    }
+    return isResultMemberCall(callee);
+  }
+
+  if (node.type === 'AwaitExpression') {
+    const arg = (node as unknown as { argument?: AstNode }).argument;
+    return arg ? isResultExpression(arg) : false;
+  }
+
+  return false;
+};
+
+/** Check if a node is a call to a known Result-returning helper. */
+const isHelperCall = (
+  node: AstNode,
+  helperNames: ReadonlySet<string>
+): boolean => {
+  const target =
+    node.type === 'AwaitExpression'
+      ? ((node as unknown as { argument?: AstNode }).argument ?? null)
+      : node;
+
+  if (!target || target.type !== 'CallExpression') {
     return false;
   }
 
-  const variable = normalized.replace(/^await\s+/, '');
-  return state.resultVariables.has(variable);
-};
-
-const hasAllowedReturnPattern = (normalized: string): boolean => {
-  const allowedPatterns = [
-    /^return\s+(?:await\s+)?Result\.(?:ok|err)\s*\(/,
-    /^return\s+(?:await\s+)?ctx\.follow\s*\(/,
-    /^return\s+(?:await\s+)?[A-Za-z_$][\w$]*\.implementation\s*\(/,
-  ];
-
-  return allowedPatterns.some((pattern) => pattern.test(normalized));
-};
-
-const hasAllowedResultHelperReturn = (
-  normalized: string,
-  state: ImplementationState
-): boolean => {
-  const helperCall = normalized.match(
-    /^return\s+(?:await\s+)?([A-Za-z_$][\w$]*)\s*\(/
-  );
-  return Boolean(helperCall?.[1] && state.resultHelperNames.has(helperCall[1]));
-};
-
-const matchesTrackedReturnVariable = (
-  normalized: string,
-  state: ImplementationState
-): boolean => {
-  const awaitedIdentifier = normalized.match(
-    /^return\s+await\s+([A-Za-z_$][\w$]*)\s*;?\s*(?:\/\/.*)?$/
-  );
-  if (awaitedIdentifier?.[1]) {
-    return state.resultVariables.has(awaitedIdentifier[1]);
+  const callee = target['callee'] as AstNode | undefined;
+  if (callee?.type === 'Identifier') {
+    const { name } = callee as unknown as { name: string };
+    return helperNames.has(name);
   }
 
-  const identifier = normalized.match(
-    /^return\s+([A-Za-z_$][\w$]*)\s*;?\s*(?:\/\/.*)?$/
-  );
-  return Boolean(identifier?.[1] && state.resultVariables.has(identifier[1]));
+  return false;
 };
 
-const matchesAllowedReturn = (
-  line: string,
-  state: ImplementationState
-): boolean => {
-  const normalized = line.trim();
-
-  if (/^return\s*;?\s*(?:\/\/.*)?$/.test(normalized)) {
-    return false;
+/** Unwrap an optional AwaitExpression to get the inner identifier name. */
+const resolveIdentifierName = (node: AstNode): string | null => {
+  if (node.type === 'Identifier') {
+    return (node as unknown as { name: string }).name;
   }
-
-  if (hasAllowedReturnPattern(normalized)) {
-    return true;
-  }
-
-  if (hasAllowedResultHelperReturn(normalized, state)) {
-    return true;
-  }
-
-  return matchesTrackedReturnVariable(normalized, state);
-};
-
-const extractHelperName = (line: string): string | null => {
-  const constMatch = line.match(
-    /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\(/
-  );
-  if (constMatch?.[1]) {
-    return constMatch[1];
-  }
-
-  const functionMatch = line.match(
-    /\b(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/
-  );
-  return functionMatch?.[1] ?? null;
-};
-
-const hasExplicitResultReturnType = (blockText: string): boolean => {
-  const signature = blockText.includes('=>')
-    ? (blockText.split('=>', 1)[0] ?? '')
-    : (blockText.split('{', 1)[0] ?? '');
-
-  return /:\s*(?:Promise\s*<\s*)?Result\s*</.test(signature);
-};
-
-const extractResultHelperName = (
-  lines: readonly string[],
-  startIndex: number
-): string | null => {
-  const line = lines[startIndex];
-  if (!line) {
-    return null;
-  }
-
-  const helperName = extractHelperName(line);
-  if (!helperName) {
-    return null;
-  }
-
-  return hasExplicitResultReturnType(collectBalancedBlock(lines, startIndex))
-    ? helperName
-    : null;
-};
-
-const collectResultHelperNames = (
-  lines: readonly string[]
-): ReadonlySet<string> => {
-  const helperNames = new Set<string>();
-
-  for (let i = 0; i < lines.length; i += 1) {
-    const helperName = extractResultHelperName(lines, i);
-    if (!helperName) {
-      continue;
+  if (node.type === 'AwaitExpression') {
+    const inner = (node as unknown as { argument?: AstNode }).argument;
+    if (inner?.type === 'Identifier') {
+      return (inner as unknown as { name: string }).name;
     }
-    helperNames.add(helperName);
   }
-
-  return helperNames;
+  return null;
 };
 
-const reportRawValue = (
-  trailLabel: string,
-  trailId: string,
-  lineNumber: number,
+/** Check if a return argument is an allowed Result value. */
+const isAllowedReturnArgument = (
+  argument: AstNode,
+  helperNames: ReadonlySet<string>,
+  resultVars: ReadonlySet<string>
+): boolean => {
+  if (isResultExpression(argument)) {
+    return true;
+  }
+  if (isHelperCall(argument, helperNames)) {
+    return true;
+  }
+
+  const varName = resolveIdentifierName(argument);
+  return varName !== null && resultVars.has(varName);
+};
+
+// ---------------------------------------------------------------------------
+// Variable tracking
+// ---------------------------------------------------------------------------
+
+/** Track a VariableDeclarator, adding to resultVars if it produces a Result. */
+const trackResultVariable = (node: AstNode, resultVars: Set<string>): void => {
+  const { init } = node as unknown as { init?: AstNode };
+  const { id } = node as unknown as { id?: AstNode };
+  if (init && id?.type === 'Identifier') {
+    const { name } = id as unknown as { name: string };
+    if (isResultExpression(init)) {
+      resultVars.add(name);
+    }
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Return statement checking
+// ---------------------------------------------------------------------------
+
+/** Check return statements in a block body for non-Result returns. */
+const checkReturnStatements = (
+  blockBody: AstNode,
+  trailInfo: { id: string; label: string },
   filePath: string,
+  sourceCode: string,
+  helperNames: ReadonlySet<string>,
   diagnostics: WardenDiagnostic[]
 ): void => {
-  diagnostics.push({
-    filePath,
-    line: lineNumber,
-    message: `${trailLabel} "${trailId}" implementation must return Result.ok(...) or Result.err(...), not a raw value.`,
-    rule: 'implementation-returns-result',
-    severity: 'error',
+  const resultVars = new Set<string>();
+
+  walk(blockBody, (node) => {
+    if (node.type === 'VariableDeclarator') {
+      trackResultVariable(node, resultVars);
+    }
+
+    if (node.type !== 'ReturnStatement') {
+      return;
+    }
+
+    const { argument } = node as unknown as { argument?: AstNode };
+    // Bare return — not a value return
+    if (!argument) {
+      return;
+    }
+
+    if (isAllowedReturnArgument(argument, helperNames, resultVars)) {
+      return;
+    }
+
+    diagnostics.push({
+      filePath,
+      line: offsetToLine(sourceCode, node.start),
+      message: `${trailInfo.label} "${trailInfo.id}" implementation must return Result.ok(...) or Result.err(...), not a raw value.`,
+      rule: 'implementation-returns-result',
+      severity: 'error',
+    });
   });
 };
 
-const startImplementation = (
-  line: string,
-  trailId: string,
-  trailLabel: string,
-  lineNumber: number,
-  filePath: string,
-  state: ImplementationState,
-  diagnostics: WardenDiagnostic[]
-): boolean => {
-  if (!/\bimplementation\s*:/.test(line)) {
+// ---------------------------------------------------------------------------
+// Result helper name collection
+// ---------------------------------------------------------------------------
+
+/** Check if a return type annotation mentions Result. */
+const hasResultReturnType = (node: AstNode, sourceCode: string): boolean => {
+  const { returnType } = node as unknown as { returnType?: AstNode };
+  if (!returnType) {
     return false;
   }
+  const annotationText = sourceCode.slice(returnType.start, returnType.end);
+  return /\bResult\s*</.test(annotationText);
+};
 
-  const afterArrow = line.includes('=>') ? line.split('=>', 2)[1] : null;
-  if (afterArrow && !afterArrow.trimStart().startsWith('{')) {
-    if (!matchesAllowedConciseExpression(afterArrow, state)) {
-      reportRawValue(trailLabel, trailId, lineNumber, filePath, diagnostics);
+const isFunctionLikeExpression = (node: AstNode): boolean =>
+  node.type === 'ArrowFunctionExpression' || node.type === 'FunctionExpression';
+
+/** Collect names of top-level functions/consts with explicit Result return types. */
+const collectResultHelperNames = (
+  ast: AstNode,
+  sourceCode: string
+): ReadonlySet<string> => {
+  const names = new Set<string>();
+
+  walk(ast, (node) => {
+    if (node.type === 'VariableDeclarator') {
+      const { id } = node as unknown as { id?: AstNode };
+      const { init } = node as unknown as { init?: AstNode };
+      if (
+        id?.type === 'Identifier' &&
+        init &&
+        isFunctionLikeExpression(init) &&
+        hasResultReturnType(init, sourceCode)
+      ) {
+        names.add((id as unknown as { name: string }).name);
+      }
     }
-    return false;
-  }
 
-  state.inImplementation = true;
-  state.braceDepth = 0;
-  return true;
-};
-
-const processImplementationLine = (
-  line: string,
-  trailId: string,
-  trailLabel: string,
-  lineNumber: number,
-  filePath: string,
-  state: ImplementationState,
-  diagnostics: WardenDiagnostic[]
-): void => {
-  addTrackedResultVariables(line, state);
-
-  if (!matchesAllowedReturn(line, state) && /\breturn\b/.test(line)) {
-    reportRawValue(trailLabel, trailId, lineNumber, filePath, diagnostics);
-  }
-
-  state.braceDepth += countBraces(line);
-  if (state.braceDepth <= 0) {
-    state.inImplementation = false;
-    state.braceDepth = 0;
-    state.resultVariables.clear();
-  }
-};
-
-const shouldStopScan = (state: BlockState): boolean =>
-  state.found && state.depth <= 0;
-
-const scanTrailLine = (
-  line: string,
-  lineNumber: number,
-  trailId: string,
-  trailLabel: string,
-  filePath: string,
-  blockState: BlockState,
-  implementationState: ImplementationState,
-  diagnostics: WardenDiagnostic[]
-): boolean => {
-  if (!line) {
-    return false;
-  }
-
-  trackBraces(line, blockState);
-
-  if (
-    !implementationState.inImplementation &&
-    !startImplementation(
-      line,
-      trailId,
-      trailLabel,
-      lineNumber,
-      filePath,
-      implementationState,
-      diagnostics
-    )
-  ) {
-    return shouldStopScan(blockState);
-  }
-
-  processImplementationLine(
-    line,
-    trailId,
-    trailLabel,
-    lineNumber,
-    filePath,
-    implementationState,
-    diagnostics
-  );
-
-  return shouldStopScan(blockState);
-};
-
-const scanTrailImplementation = (
-  lines: readonly string[],
-  startIndex: number,
-  trailId: string,
-  trailLabel: string,
-  filePath: string,
-  resultHelperNames: ReadonlySet<string>,
-  diagnostics: WardenDiagnostic[]
-): void => {
-  const blockState: BlockState = { depth: 0, found: false };
-  const implementationState: ImplementationState = {
-    braceDepth: 0,
-    inImplementation: false,
-    resultHelperNames,
-    resultVariables: new Set<string>(),
-  };
-
-  for (let j = startIndex; j < lines.length && j < startIndex + 200; j += 1) {
-    if (
-      scanTrailLine(
-        lines[j] ?? '',
-        j + 1,
-        trailId,
-        trailLabel,
-        filePath,
-        blockState,
-        implementationState,
-        diagnostics
-      )
-    ) {
-      break;
+    if (node.type === 'FunctionDeclaration') {
+      const { id } = node as unknown as { id?: AstNode };
+      if (id?.type === 'Identifier' && hasResultReturnType(node, sourceCode)) {
+        names.add((id as unknown as { name: string }).name);
+      }
     }
-  }
+  });
+
+  return names;
 };
 
-const processLine = (
-  line: string,
-  i: number,
-  lines: readonly string[],
+// ---------------------------------------------------------------------------
+// Per-implementation checking
+// ---------------------------------------------------------------------------
+
+const checkImplementation = (
+  implValue: AstNode,
+  info: { id: string; label: string },
   filePath: string,
-  resultHelperNames: ReadonlySet<string>,
+  sourceCode: string,
+  helperNames: ReadonlySet<string>,
   diagnostics: WardenDiagnostic[]
 ): void => {
-  const trailMatch = line.match(/\b(?:trail|hike)\s*\(\s*["'`]([^"'`]+)["'`]/);
-  if (!trailMatch?.[1]) {
+  const fnBody = (implValue as unknown as { body?: AstNode }).body;
+  if (!fnBody) {
     return;
   }
 
-  const trailLabel = line.includes('hike(') ? 'Hike' : 'Trail';
-  scanTrailImplementation(
-    lines,
-    i,
-    trailMatch[1],
-    trailLabel,
-    filePath,
-    resultHelperNames,
-    diagnostics
-  );
+  if (fnBody.type === 'BlockStatement' || fnBody.type === 'FunctionBody') {
+    checkReturnStatements(
+      fnBody,
+      info,
+      filePath,
+      sourceCode,
+      helperNames,
+      diagnostics
+    );
+    return;
+  }
+
+  if (!isResultExpression(fnBody) && !isHelperCall(fnBody, helperNames)) {
+    diagnostics.push({
+      filePath,
+      line: offsetToLine(sourceCode, implValue.start),
+      message: `${info.label} "${info.id}" implementation must return Result.ok(...) or Result.err(...), not a raw value.`,
+      rule: 'implementation-returns-result',
+      severity: 'error',
+    });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Rule
+// ---------------------------------------------------------------------------
+
+const checkAllDefinitions = (
+  ast: AstNode,
+  filePath: string,
+  sourceCode: string
+): WardenDiagnostic[] => {
+  const diagnostics: WardenDiagnostic[] = [];
+  const helperNames = collectResultHelperNames(ast, sourceCode);
+
+  for (const def of findTrailDefinitions(ast)) {
+    const info = { id: def.id, label: def.kind === 'hike' ? 'Hike' : 'Trail' };
+    for (const implValue of findImplementationBodies(def.config as AstNode)) {
+      checkImplementation(
+        implValue,
+        info,
+        filePath,
+        sourceCode,
+        helperNames,
+        diagnostics
+      );
+    }
+  }
+
+  return diagnostics;
 };
 
 /**
@@ -425,18 +329,12 @@ export const implementationReturnsResult: WardenRule = {
       return [];
     }
 
-    const diagnostics: WardenDiagnostic[] = [];
-    const lines = sourceCode.split('\n');
-    const resultHelperNames = collectResultHelperNames(lines);
-
-    for (let i = 0; i < lines.length; i += 1) {
-      const line = lines[i];
-      if (line) {
-        processLine(line, i, lines, filePath, resultHelperNames, diagnostics);
-      }
+    const ast = parse(filePath, sourceCode);
+    if (!ast) {
+      return [];
     }
 
-    return diagnostics;
+    return checkAllDefinitions(ast as AstNode, filePath, sourceCode);
   },
   description:
     'Disallow implementations that return raw values instead of Result.ok() or Result.err().',
