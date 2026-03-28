@@ -16,7 +16,9 @@ const toTrailheadImport = async (
   entry: string
 ): Promise<string | null> => {
   const content = await Bun.file(join(srcDir, entry)).text();
-  return content.includes('topo') ? `./${entry.replace(/\.ts$/, '.js')}` : null;
+  return content.includes('topo(')
+    ? `./${entry.replace(/\.ts$/, '.js')}`
+    : null;
 };
 
 /** Find the app module that defines a topo inside `src/`. */

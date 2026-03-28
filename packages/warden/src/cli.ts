@@ -151,7 +151,31 @@ const loadSourceFiles = async (
   return sourceFiles;
 };
 
-const buildProjectContext = (
+const buildProjectContextFromTopo = (appTopo: Topo): ProjectContext => {
+  const knownTrailIds = new Set<string>([
+    ...appTopo.trails.keys(),
+    ...appTopo.hikes.keys(),
+  ]);
+
+  const detourTargetTrailIds = new Set<string>();
+  for (const t of appTopo.trails.values()) {
+    const detours = (t as unknown as Record<string, unknown>)['detours'] as
+      | Readonly<Record<string, readonly string[]>>
+      | undefined;
+    if (!detours) {
+      continue;
+    }
+    for (const targets of Object.values(detours)) {
+      for (const id of targets) {
+        detourTargetTrailIds.add(id);
+      }
+    }
+  }
+
+  return { detourTargetTrailIds, knownTrailIds };
+};
+
+const buildProjectContextFromFiles = (
   sourceFiles: readonly SourceFile[]
 ): ProjectContext => {
   const knownTrailIds = new Set<string>();
@@ -182,10 +206,15 @@ const isProjectAwareRule = (rule: WardenRule): rule is ProjectAwareWardenRule =>
 /**
  * Lint all files against all warden rules.
  */
-const lintFiles = async (rootDir: string): Promise<WardenDiagnostic[]> => {
+const lintFiles = async (
+  rootDir: string,
+  appTopo?: Topo | undefined
+): Promise<WardenDiagnostic[]> => {
   const allDiagnostics: WardenDiagnostic[] = [];
   const sourceFiles = await loadSourceFiles(rootDir);
-  const context = buildProjectContext(sourceFiles);
+  const context = appTopo
+    ? buildProjectContextFromTopo(appTopo)
+    : buildProjectContextFromFiles(sourceFiles);
 
   for (const sourceFile of sourceFiles) {
     for (const rule of wardenRules.values()) {
@@ -216,7 +245,9 @@ export const runWarden = async (
   options: WardenOptions = {}
 ): Promise<WardenReport> => {
   const rootDir = resolve(options.rootDir ?? process.cwd());
-  const allDiagnostics = options.driftOnly ? [] : await lintFiles(rootDir);
+  const allDiagnostics = options.driftOnly
+    ? []
+    : await lintFiles(rootDir, options.topo);
   const drift = options.lintOnly
     ? null
     : await checkDrift(rootDir, options.topo);

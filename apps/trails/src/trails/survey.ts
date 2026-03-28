@@ -103,10 +103,6 @@ const safetyLabel = (entry: {
 const formatTrailList = (app: Topo): object => {
   const items = app.list();
   const entries = items.map((item) => {
-    const raw = item as unknown as Record<string, unknown>;
-    const surfaces = Array.isArray(raw['surfaces'])
-      ? (raw['surfaces'] as string[])
-      : [];
     const safety = safetyLabel(
       item as unknown as { readOnly?: boolean; destructive?: boolean }
     );
@@ -121,18 +117,20 @@ const formatTrailList = (app: Topo): object => {
       id: item.id,
       kind: item.kind,
       safety,
-      surfaces,
     };
   });
 
   return { count: items.length, entries };
 };
 
+/**
+ * Build a human-readable detail view for a single trail.
+ *
+ * Overlaps with `trailToEntry` in `@ontrails/schema` which builds the
+ * surface-map entry. The two serve different audiences (human display vs
+ * machine-diffable surface map) so they are kept separate.
+ */
 const formatTrailDetail = (item: Trail<unknown, unknown>): object => {
-  const raw = item as unknown as Record<string, unknown>;
-  const surfaces = Array.isArray(raw['surfaces'])
-    ? (raw['surfaces'] as string[])
-    : [];
   const safety = safetyLabel(
     item as unknown as { readOnly?: boolean; destructive?: boolean }
   );
@@ -144,7 +142,6 @@ const formatTrailDetail = (item: Trail<unknown, unknown>): object => {
     id: item.id,
     kind: item.kind,
     safety,
-    surfaces,
   };
 };
 
@@ -268,7 +265,6 @@ export const surveyTrail = trail('survey', {
           id: z.string(),
           kind: z.string(),
           safety: z.string(),
-          surfaces: z.array(z.string()),
         })
       ),
     }),
@@ -300,7 +296,6 @@ export const surveyTrail = trail('survey', {
       id: z.string(),
       kind: z.string(),
       safety: z.string(),
-      surfaces: z.array(z.string()),
     }),
     z.object({
       hash: z.string(),

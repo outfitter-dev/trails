@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
+import type { AnyTrail } from '@ontrails/core';
 import { trail, topo, Result } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -48,31 +49,27 @@ describe('trails guide', () => {
     expect(hello).toBeDefined();
     expect(hello?.id).toBe('hello');
 
-    const raw = hello as unknown as Record<string, unknown>;
-    expect(raw['description']).toBe('Say hello');
+    expect((hello as AnyTrail).description).toBe('Say hello');
   });
 
   test('trail detail includes examples', () => {
-    const item = app.get('hello');
+    const item = app.get('hello') as AnyTrail;
     expect(item).toBeDefined();
-
-    const raw = item as unknown as Record<string, unknown>;
-    const examples = raw['examples'] as { name: string }[];
-    expect(examples.length).toBe(2);
-    expect(examples[0]?.name).toBe('Default greeting');
+    expect(item.examples).toBeDefined();
+    expect(item.examples?.length).toBe(2);
+    expect(item.examples?.[0]?.name).toBe('Default greeting');
   });
 
   test('JSON output for trail is valid', () => {
-    const item = app.get('hello');
-    expect(item).toBeDefined();
+    const t = app.get('hello') as AnyTrail;
+    expect(t).toBeDefined();
 
-    const raw = item as unknown as Record<string, unknown>;
     const json = JSON.stringify({
-      description: raw['description'],
-      detours: raw['detours'],
-      examples: raw['examples'],
-      id: (item as { id: string }).id,
-      kind: (item as { kind: string }).kind,
+      description: t.description,
+      detours: t.detours,
+      examples: t.examples,
+      id: t.id,
+      kind: t.kind,
     });
 
     const parsed = JSON.parse(json) as Record<string, unknown>;
@@ -87,11 +84,8 @@ describe('trails guide', () => {
   });
 
   test('detours are accessible on trail', () => {
-    const item = app.get('hello');
-    expect(item).toBeDefined();
-
-    const raw = item as unknown as Record<string, unknown>;
-    const detours = raw['detours'] as Record<string, string[]>;
-    expect(detours['NotFoundError']).toEqual(['search']);
+    const t = app.get('hello') as AnyTrail;
+    expect(t).toBeDefined();
+    expect(t.detours?.['NotFoundError']).toEqual(['search']);
   });
 });

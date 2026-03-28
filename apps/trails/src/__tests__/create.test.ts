@@ -334,7 +334,7 @@ describe('isInsideProject', () => {
       mkdirSync(join(dir, 'src'), { recursive: true });
       writeFileSync(
         join(dir, 'src', 'app.ts'),
-        "import { topo } from '@ontrails/core';\n"
+        "import { topo } from '@ontrails/core';\nexport const app = topo('app');\n"
       );
       expect(await isInsideProject(dir)).toBe(true);
     });

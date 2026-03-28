@@ -1,3 +1,4 @@
+import { collectTrailIds } from './specs.js';
 import type {
   ProjectAwareWardenRule,
   ProjectContext,
@@ -19,18 +20,6 @@ const trackBraces = (line: string, state: BraceState): void => {
       state.depth -= 1;
     }
   }
-};
-
-const collectTrailIds = (sourceCode: string): readonly string[] => {
-  const ids: string[] = [];
-  for (const m of sourceCode.matchAll(
-    /\b(?:trail|hike)\s*\(\s*["'`]([^"'`]+)["'`]/g
-  )) {
-    if (m[1]) {
-      ids.push(m[1]);
-    }
-  }
-  return ids;
 };
 
 const collectArrayText = (lines: readonly string[], start: number): string => {
@@ -183,11 +172,7 @@ const checkDetourRefs = (
  */
 export const validDetourRefs: ProjectAwareWardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
-    return checkDetourRefs(
-      sourceCode,
-      filePath,
-      new Set(collectTrailIds(sourceCode))
-    );
+    return checkDetourRefs(sourceCode, filePath, collectTrailIds(sourceCode));
   },
   checkWithContext(
     sourceCode: string,
