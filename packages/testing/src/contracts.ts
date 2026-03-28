@@ -44,7 +44,12 @@ const validateOutputSchema = (
  *
  * Trails without output schemas or examples are skipped.
  */
-export const testContracts = (app: Topo, ctx?: Partial<TrailContext>): void => {
+export const testContracts = (
+  app: Topo,
+  ctxOrFactory?: Partial<TrailContext> | (() => Partial<TrailContext>)
+): void => {
+  const resolveCtx =
+    typeof ctxOrFactory === 'function' ? ctxOrFactory : () => ctxOrFactory;
   const trailEntries = [...app.trails];
 
   describe('contracts', () => {
@@ -64,7 +69,7 @@ export const testContracts = (app: Topo, ctx?: Partial<TrailContext>): void => {
       test.each(successExamples)(
         'contract: $name',
         async (example: TrailExample<unknown, unknown>) => {
-          const testCtx = mergeTestContext(ctx);
+          const testCtx = mergeTestContext(resolveCtx());
 
           const validated = validateInput(t.input, example.input);
           const validatedInput = expectOk(validated);

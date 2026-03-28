@@ -188,7 +188,7 @@ export const search = trail('search', {
 });
 `;
 
-const generateOnboardRoute = (): string =>
+const generateOnboardHike = (): string =>
   `import { Result, hike } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -281,7 +281,7 @@ const starterFileGenerators: Record<Starter, () => [string, string][]> = {
   entity: () => [
     ['src/trails/entity.ts', generateEntityTrails()],
     ['src/trails/search.ts', generateSearchTrail()],
-    ['src/trails/onboard.ts', generateOnboardRoute()],
+    ['src/trails/onboard.ts', generateOnboardHike()],
     ['src/events/entity-events.ts', generateEntityEvents()],
     ['src/store.ts', generateStore()],
   ],

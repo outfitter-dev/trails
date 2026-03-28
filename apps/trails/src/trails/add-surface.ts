@@ -10,7 +10,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { findTrailheadPath } from './project.js';
+import { findTopoPath } from './project.js';
 
 const generateCliEntry = (appImportPath: string): string =>
   `import { blaze } from '@ontrails/cli/commander';
@@ -79,7 +79,7 @@ const writeSurfaceEntry = async (
 ): Promise<string> => {
   const entryFile = getEntryFile(surface);
   const fullEntryPath = join(cwd, entryFile);
-  const appImport = (await findTrailheadPath(cwd)) ?? './app.js';
+  const appImport = (await findTopoPath(cwd)) ?? './app.js';
   const content =
     surface === 'cli'
       ? generateCliEntry(appImport)

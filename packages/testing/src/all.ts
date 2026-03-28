@@ -23,6 +23,10 @@ import { testExamples } from './examples.js';
  * - Output contract checks via `testContracts`
  * - Detour target verification via `testDetours`
  *
+ * Accepts either a static context or a factory function that produces a
+ * fresh context per test (useful when the context contains mutable state
+ * like an in-memory store).
+ *
  * @example
  * ```ts
  * import { testAll } from '@ontrails/testing';
@@ -31,7 +35,10 @@ import { testExamples } from './examples.js';
  * testAll(app);
  * ```
  */
-export const testAll = (topo: Topo, ctx?: Partial<TrailContext>): void => {
+export const testAll = (
+  topo: Topo,
+  ctxOrFactory?: Partial<TrailContext> | (() => Partial<TrailContext>)
+): void => {
   describe('governance', () => {
     test('topo validates', () => {
       const result = validateTopo(topo);
@@ -39,9 +46,9 @@ export const testAll = (topo: Topo, ctx?: Partial<TrailContext>): void => {
     });
 
     // oxlint-disable-next-line jest/require-hook -- these generate describe/test blocks, not setup code
-    testExamples(topo, ctx);
+    testExamples(topo, ctxOrFactory);
     // oxlint-disable-next-line jest/require-hook -- these generate describe/test blocks, not setup code
-    testContracts(topo, ctx);
+    testContracts(topo, ctxOrFactory);
     // oxlint-disable-next-line jest/require-hook -- these generate describe/test blocks, not setup code
     testDetours(topo);
   });

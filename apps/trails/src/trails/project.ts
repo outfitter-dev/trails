@@ -11,7 +11,7 @@ const scanSourceEntries = (srcDir: string): string[] => [
 ];
 
 /** Resolve an entry to an app import if it contains topo(). */
-const toTrailheadImport = async (
+const toTopoImport = async (
   srcDir: string,
   entry: string
 ): Promise<string | null> => {
@@ -22,9 +22,7 @@ const toTrailheadImport = async (
 };
 
 /** Find the app module that defines a topo inside `src/`. */
-export const findTrailheadPath = async (
-  cwd: string
-): Promise<string | null> => {
+export const findTopoPath = async (cwd: string): Promise<string | null> => {
   const srcDir = join(cwd, 'src');
   if (!existsSync(srcDir)) {
     return null;
@@ -32,7 +30,7 @@ export const findTrailheadPath = async (
 
   try {
     for (const entry of scanSourceEntries(srcDir)) {
-      const appImport = await toTrailheadImport(srcDir, entry);
+      const appImport = await toTopoImport(srcDir, entry);
       if (appImport) {
         return appImport;
       }
@@ -49,5 +47,5 @@ export const isInsideProject = async (cwd: string): Promise<boolean> => {
   if (existsSync(join(cwd, '.trails'))) {
     return true;
   }
-  return (await findTrailheadPath(cwd)) !== null;
+  return (await findTopoPath(cwd)) !== null;
 };

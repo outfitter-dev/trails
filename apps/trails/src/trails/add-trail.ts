@@ -38,27 +38,23 @@ export const ${id.replaceAll('.', '_')} = trail('${id}', {
     },
   ],
   implementation: async (input) => {
-    return Result.ok({});
+    return Result.ok({ message: 'TODO' });
   },
   input: z.object({}),${markerBlock}
+  output: z.object({ message: z.string() }),
 });
 `;
 };
 
 const generateTestFile = (id: string): string => {
   const moduleName = id.replaceAll('.', '-');
-  return `import { describe, expect, test } from 'bun:test';
+  const trailName = id.replaceAll('.', '_');
+  return `import { testTrail } from '@ontrails/testing';
+import { ${trailName} } from '../src/trails/${moduleName}.js';
 
-import { Result } from '@ontrails/core';
-
-import { ${id.replaceAll('.', '_')} } from '../src/trails/${moduleName}.js';
-
-describe('${id}', () => {
-  test('runs successfully', async () => {
-    const result = await ${id.replaceAll('.', '_')}.implementation({}, {} as never);
-    expect(result.isOk()).toBe(true);
-  });
-});
+testTrail(${trailName}, [
+  { description: 'basic test', input: {}, expectOk: true },
+]);
 `;
 };
 

@@ -13,15 +13,10 @@ import { z } from 'zod';
 // ---------------------------------------------------------------------------
 
 const generateTestFile = (): string =>
-  `import { describe, expect, test } from 'bun:test';
-
+  `import { testAll } from '@ontrails/testing';
 import { app } from '../src/app.js';
 
-describe('examples', () => {
-  test('app is registered', () => {
-    expect(app.topo).toBeDefined();
-  });
-});
+testAll(app);
 `;
 
 const generateLefthookYml = (): string =>
