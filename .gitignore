@@ -4,3 +4,4 @@ dist/
 .scratch/
 *.tsbuildinfo
 .DS_Store
+.trail/
