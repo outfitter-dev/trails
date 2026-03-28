@@ -112,15 +112,28 @@ export const onboard = hike('entity.onboard', {
 ### The one-liner
 
 ```typescript
-import { testExamples } from '@ontrails/testing';
+import { testAll } from '@ontrails/testing';
 import { app } from '../src/app.js';
 import { createStore } from '../src/store.js';
 
-const store = createStore([{ name: 'Alpha', type: 'concept', tags: ['core'] }]);
-testExamples(app, { store });
+testAll(app, () => ({
+  store: createStore([
+    { name: 'Alpha', tags: ['core'], type: 'concept' },
+    { name: 'Deletable', tags: ['temp'], type: 'tool' },
+  ]),
+}));
 ```
 
-This single call tests every trail, every example, with progressive assertion:
+`testAll` runs the full governance suite in one call:
+
+1. **`validateTopo`** -- structural validation (follows targets exist, hike declarations are consistent).
+2. **`testExamples`** -- progressive assertion over every trail example.
+3. **`testContracts`** -- output schema verification for every success example.
+4. **`testDetours`** -- detour targets reference real trails in the topo.
+
+Pass a factory function (not a plain object) when the context contains mutable state like an in-memory store, so each test gets a fresh copy.
+
+### Progressive assertion
 
 - **Full-match examples** (`expected` field): assert exact output equality.
 - **Error examples** (`error` field): assert the result is an error of the named class.

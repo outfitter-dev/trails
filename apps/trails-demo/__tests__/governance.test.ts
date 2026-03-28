@@ -8,23 +8,21 @@
  * 2. Deterministic hashing
  * 3. Breaking change detection
  * 4. Non-breaking change detection
- * 5. Examples as tests
+ * 5. Topo validation
  */
 
 import { describe, expect, test } from 'bun:test';
 
-import { Result, trail, topo } from '@ontrails/core';
+import { Result, trail, topo, validateTopo } from '@ontrails/core';
 import {
   diffSurfaceMaps,
   generateSurfaceMap,
   hashSurfaceMap,
 } from '@ontrails/schema';
-import { testExamples } from '@ontrails/testing';
 import { z } from 'zod';
 
 import { app } from '../src/app.js';
 import * as entityEvents from '../src/events/entity-events.js';
-import { createStore } from '../src/store.js';
 import * as entity from '../src/trails/entity.js';
 import * as onboard from '../src/trails/onboard.js';
 import * as search from '../src/trails/search.js';
@@ -282,20 +280,14 @@ describe('non-breaking change detection', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 5. Examples as tests
+// 5. Topo validation
 // ---------------------------------------------------------------------------
 
-describe('examples as tests', () => {
-  // Prove that testExamples generates tests for every trail with examples.
-  // The demo app has 5 trails with examples (10 examples total).
-  // entity.onboard is a route so testExamples does not cover it.
-  // oxlint-disable-next-line require-hook -- testExamples generates test() calls at describe scope
-  testExamples(app, () => ({
-    store: createStore([
-      { name: 'Alpha', tags: ['core'], type: 'concept' },
-      { name: 'Deletable', tags: ['temp'], type: 'tool' },
-    ]),
-  }));
+describe('topo validation', () => {
+  test('validateTopo passes for the demo app', () => {
+    const result = validateTopo(app);
+    expect(result.isOk()).toBe(true);
+  });
 
   test('all trails in the topo have at least one example', () => {
     for (const [_id, t] of app.trails) {
