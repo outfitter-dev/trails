@@ -1,7 +1,7 @@
 /**
  * testContracts — output schema verification.
  *
- * For every trail that has both examples and an output schema,
+ * For every trail and hike that has both examples and an output schema,
  * run each example and validate the implementation output against
  * the declared schema.
  */
@@ -18,6 +18,18 @@ import { mergeTestContext } from './context.js';
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Check if a trail/hike requires follow() but the context doesn't provide it. */
+const needsFollowContext = (
+  t: unknown,
+  resolveCtx: () => Partial<TrailContext> | undefined
+): boolean => {
+  const spec = t as { follows?: readonly string[] };
+  if (!spec.follows || spec.follows.length === 0) {
+    return false;
+  }
+  return !resolveCtx()?.follow;
+};
 
 const validateOutputSchema = (
   outputSchema: z.ZodType,
@@ -39,10 +51,10 @@ const validateOutputSchema = (
 // ---------------------------------------------------------------------------
 
 /**
- * Verify that every trail's implementation output matches its declared
+ * Verify that every trail and hike implementation output matches its declared
  * output schema. Catches implementation-schema drift.
  *
- * Trails without output schemas or examples are skipped.
+ * Trails and hikes without output schemas or examples are skipped.
  */
 export const testContracts = (
   app: Topo,
@@ -50,16 +62,17 @@ export const testContracts = (
 ): void => {
   const resolveCtx =
     typeof ctxOrFactory === 'function' ? ctxOrFactory : () => ctxOrFactory;
-  const trailEntries = [...app.trails];
+  const allEntries = app.list() as Trail<unknown, unknown>[];
 
   describe('contracts', () => {
-    describe.each(trailEntries)('%s', (_id, trailDef) => {
-      const t = trailDef as Trail<unknown, unknown>;
-
+    describe.each(allEntries)('$id', (t) => {
       if (t.output === undefined) {
         return;
       }
       if (t.examples === undefined || t.examples.length === 0) {
+        return;
+      }
+      if (needsFollowContext(t, resolveCtx)) {
         return;
       }
 

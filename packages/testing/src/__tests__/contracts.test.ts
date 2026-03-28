@@ -1,6 +1,6 @@
 import { describe, test } from 'bun:test';
 
-import { Result, trail, topo } from '@ontrails/core';
+import { Result, hike, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { testContracts } from '../contracts.js';
@@ -39,6 +39,26 @@ const noExamplesTrail = trail('noexamples', {
 });
 
 // ---------------------------------------------------------------------------
+// Test hikes
+// ---------------------------------------------------------------------------
+
+/** Hike whose implementation matches the output schema. */
+const validHike = hike('hike.valid', {
+  examples: [
+    {
+      expected: { total: 3 },
+      input: { a: 1, b: 2 },
+      name: 'Valid hike output',
+    },
+  ],
+  follows: ['valid'],
+  implementation: (input: { a: number; b: number }) =>
+    Result.ok({ total: input.a + input.b }),
+  input: z.object({ a: z.number(), b: z.number() }),
+  output: z.object({ total: z.number() }),
+});
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -65,4 +85,9 @@ describe('testContracts: skips trails without examples', () => {
   test('no-op marker', () => {
     // Trail without examples is skipped -- no contract tests generated
   });
+});
+
+describe('testContracts: validates hike output schemas', () => {
+  // eslint-disable-next-line jest/require-hook
+  testContracts(topo('test-app', { validHike } as Record<string, unknown>));
 });
