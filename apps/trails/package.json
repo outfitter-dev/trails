@@ -1,6 +1,6 @@
 {
-  "name": "trails",
-  "version": "0.1.1-beta.0",
+  "name": "@ontrails/trails",
+  "version": "1.0.0-beta.0",
   "bin": {
     "trails": "./bin/trails.ts"
   },

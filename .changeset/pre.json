@@ -2,7 +2,7 @@
   "mode": "pre",
   "tag": "beta",
   "initialVersions": {
-    "trails": "0.1.0",
+    "@ontrails/trails": "0.1.0",
     "trails-demo": "0.1.0",
     "@ontrails/cli": "0.1.0",
     "@ontrails/core": "0.1.0",
