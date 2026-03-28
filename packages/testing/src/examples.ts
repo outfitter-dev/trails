@@ -97,17 +97,6 @@ const assertProgressiveMatch = (
   assertSchemaMatch(result, output);
 };
 
-const assertOutputSchema = (
-  result: Result<unknown, Error>,
-  output: z.ZodType | undefined
-): void => {
-  if (output === undefined || !result.isOk()) {
-    return;
-  }
-  const parsed = output.safeParse(result.value);
-  expect(parsed.success).toBe(true);
-};
-
 /**
  * Handle input validation failure for an example.
  * Returns true if the validation error was expected (and assertions passed).
@@ -151,7 +140,6 @@ const runExample = async (
 
   const result = await t.implementation(validatedInput, testCtx);
   assertProgressiveMatch(result, example, output);
-  assertOutputSchema(result, output);
 };
 
 // ---------------------------------------------------------------------------
@@ -215,7 +203,6 @@ const runHikeExample = async (
 
   const result = await hikeDef.implementation(validatedInput, testCtx);
   assertProgressiveMatch(result, example, output);
-  assertOutputSchema(result, output);
 };
 
 // ---------------------------------------------------------------------------

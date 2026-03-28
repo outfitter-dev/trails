@@ -10,7 +10,7 @@ interface ScanState {
 
 type DepthKey = 'braceDepth' | 'bracketDepth' | 'parenDepth';
 
-export interface BalancedSegment {
+interface BalancedSegment {
   readonly end: number;
   readonly text: string;
 }
@@ -155,24 +155,6 @@ export const captureBalanced = (
   return null;
 };
 
-export const findBalancedAfter = (
-  sourceText: string,
-  marker: string,
-  openChar: '{' | '[' | '('
-): BalancedSegment | null => {
-  const markerIndex = sourceText.indexOf(marker);
-  if (markerIndex === -1) {
-    return null;
-  }
-
-  const startIndex = sourceText.indexOf(openChar, markerIndex + marker.length);
-  if (startIndex === -1) {
-    return null;
-  }
-
-  return captureBalanced(sourceText, startIndex);
-};
-
 export const lineNumberAt = (sourceText: string, startIndex: number): number =>
   sourceText.slice(0, startIndex).split('\n').length;
 
@@ -250,6 +232,3 @@ export const splitTopLevelEntriesWithOffsets = (
 
   return entries;
 };
-
-export const splitTopLevelEntries = (sourceText: string): string[] =>
-  splitTopLevelEntriesWithOffsets(sourceText).map((entry) => entry.text);
