@@ -8,7 +8,7 @@ When you define a trail, you author the things only you know: the input schema, 
 
 This is DRY applied not just to code, but to information. Frameworks have always been good at eliminating duplicate code. Trails extends that principle to duplicate authorship — across the entire surface area of a project, from the implementation to the CLI to the MCP tools to the tests to the agent documentation.
 
-Trails is Bun-native -- the framework uses Bun APIs throughout for I/O, hashing, discovery, and storage. But the surfaces it produces are universally consumable: CLI binaries, MCP servers, and HTTP endpoints work with any runtime on the consuming side.
+Trails is Bun-native — the framework uses Bun APIs throughout for I/O, hashing, discovery, and storage. But the surfaces it produces are universally consumable: CLI binaries, MCP servers, and HTTP endpoints work with any runtime on the consuming side.
 
 ---
 
@@ -60,7 +60,7 @@ export const show = trail('entity.show', {
 Collect trails into an app with `topo()`. Open it on any surface with `blaze()`:
 
 ```typescript
-const app = topo('myapp', entity, search);
+const app = topo('myapp', entityModule, searchModule);
 
 // CLI
 import { blaze } from '@ontrails/cli/commander';

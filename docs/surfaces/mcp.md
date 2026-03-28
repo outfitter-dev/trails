@@ -181,7 +181,7 @@ const longTask = trail('long.task', {
 
 Layers compose identically to CLI. The MCP adapter uses `composeLayers()` from `@ontrails/core` to wrap the implementation.
 
-No MCP-specific layers ship in v0.1. The infrastructure is wired and ready for domain-specific layers (rate limiting, caching, auth) to be added later.
+No MCP-specific layers ship in v1. The infrastructure is wired and ready for domain-specific layers (rate limiting, caching, auth) to be added later.
 
 ## Building Tools Without `blaze()`
 

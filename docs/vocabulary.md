@@ -6,7 +6,7 @@ All Trails terms and their definitions. Brand the framework primitives, use plai
 
 Trails-branded terms are reserved for concepts unique to the framework. Infrastructure concepts that exist in every framework keep their standard names. The test: if a developer already knows what the word means from other frameworks, do not rename it.
 
-## Locked Terms (shipped in v0.1)
+## Locked Terms (shipped in v1)
 
 These are final. They appear in the public API, documentation, and code.
 
@@ -92,7 +92,7 @@ const myHike = hike('onboard', {
 });
 ```
 
-### `topo`
+### `topo` (the data structure)
 
 The internal collection of all trails -- the topography. The data structure that surfaces read, schema tools inspect, and `ctx.follow()` dispatches through. The `topo()` function returns a `Topo` object with `.trails`, `.hikes`, `.events` maps, and `.get()`, `.has()`, `.list()` accessors.
 
@@ -188,8 +188,8 @@ When introducing Trails to someone new, introduce terms in this order:
 
 1. `topo` -- the internal trail collection
 2. `survey` -- full introspection of the trail system (use `--brief` for quick discovery)
-4. `guide` -- runtime guidance
-5. `tracks` -- observability and telemetry
+3. `guide` -- runtime guidance
+4. `tracks` -- observability and telemetry
 
 **Ecosystem (multi-app and governance):**
 

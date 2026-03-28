@@ -18,12 +18,6 @@ Trail<I, O>, Hike<I, O>, Event<T>, Topo
 TrailSpec<I, O>, HikeSpec<I, O>, EventSpec<T>, TrailExample<I, O>
 AnyTrail, AnyHike, AnyEvent
 
-// Type utilities (compile-time)
-TrailInput<T>, TrailOutput<T>, TrailRawInput<T>, TrailErrors<T>
-
-// Schema accessors
-inputOf(trail), outputOf(trail)
-
 // Result
 Result<T, E>
 Result.ok(value?), Result.err(error), Result.combine(results)
@@ -42,10 +36,13 @@ FollowFn, ProgressCallback, ProgressEvent, Logger, Surface
 
 // Layers
 Layer                              // wrap(trail, implementation) → implementation
+composeLayers(layers, trail, implementation)
 
 // Validation
 validateInput(schema, data)        // → Result<T, ValidationError>
 validateOutput(schema, data)       // → Result<T, ValidationError>
+validateTopo(topo)                 // → Result<void, ValidationError>; called by testAll()
+TopoIssue
 
 // Schema derivation
 deriveFields(schema, overrides?)   // → Field[]
@@ -62,6 +59,14 @@ Branded<T, Tag>, UUID, Email, NonEmptyString, PositiveInt
 isDefined, isNonEmptyString, isPlainObject, hasProperty, assertNever
 isNonEmptyArray, NonEmptyArray<T>
 
+// Collections & utilities
+chunk(arr, size), dedupe(arr, key?), groupBy(arr, key), sortBy(arr, key)
+DeepPartial<T>, Prettify<T>, AtLeastOne<T>
+
+// Serialization
+serializeError(error), deserializeError(data)
+SerializedError, zodToJsonSchema(schema)
+
 // Path security & workspace
 securePath, isPathSafe, resolveSafePath
 findWorkspaceRoot, isInsideWorkspace, getRelativePath
@@ -73,8 +78,11 @@ findWorkspaceRoot, isInsideWorkspace, getRelativePath
 blaze(topo, options?)              // one-liner (from @ontrails/cli/commander)
 buildCliCommands(topo, options?)   // escape hatch step 1
 toCommander(commands, options?)    // escape hatch step 2
+deriveFlags(schema, overrides?)    // Zod → CLI flags
+output(value, mode)                // write to stdout in text/json/jsonl
+resolveOutputMode(flags)           // determine output format from flags/env
 
-BuildCliCommandsOptions, ActionResultContext
+BuildCliCommandsOptions, ActionResultContext, OutputMode
 CliCommand, CliFlag, CliArg
 outputModePreset(), cwdPreset(), dryRunPreset()
 defaultOnResult(ctx), passthroughResolver, isInteractive(options?)
@@ -88,6 +96,9 @@ autoIterateLayer, dateShortcutsLayer
 blaze(topo, options?)              // one-liner
 buildMcpTools(topo, options?)      // escape hatch step 1
 connectStdio(server)               // escape hatch step 2
+deriveToolName(appName, trailId)   // tool name derivation
+deriveAnnotations(trail)           // MCP annotations from markers
+createMcpProgressCallback(extra)   // progress bridge
 
 BlazeMcpOptions, BuildMcpToolsOptions
 McpToolDefinition, McpToolResult, McpContent, McpExtra, McpAnnotations
@@ -113,14 +124,16 @@ testExamples(topo, ctx?), testTrail(trail, scenarios, ctx?)
 testHike(hike, scenarios, ctx?)
 testContracts(topo, ctx?), testDetours(topo, ctx?)
 
-// Narrowing helpers
+// Assertion helpers
 expectOk(result), expectErr(result)
+assertFullMatch(result, expected), assertSchemaMatch(result, schema)
+assertErrorMatch(result, errorClass)
 
 // Factories
 createTestContext(options?), createTestLogger()
 createCliHarness(topo, options?), createMcpHarness(topo, options?)
 
-TestScenario, TestLogger, TestTrailContextOptions
+TestScenario, HikeScenario, TestLogger, TestTrailContextOptions, TestHikeOptions
 CliHarness, CliHarnessOptions, CliHarnessResult
 McpHarness, McpHarnessOptions, McpHarnessResult
 ```
@@ -129,9 +142,11 @@ McpHarness, McpHarnessOptions, McpHarnessResult
 
 ```typescript
 runWarden(options?), formatWardenReport(report), checkDrift(rootDir, topo?)
-wardenRules                        // .enforce, .validate, .coach, .all
+wardenRules                        // ReadonlyMap<string, WardenRule> — 10 AST-based rules
+formatGitHubAnnotations(report), formatJson(report), formatSummary(report)
 
 WardenOptions, WardenReport, WardenDiagnostic, WardenSeverity, DriftResult
+ProjectAwareWardenRule, ProjectContext
 ```
 
 ## `@ontrails/logging`
@@ -147,22 +162,7 @@ LogSink, LogFormatter
 ConsoleSinkOptions, FileSinkOptions, PrettyFormatterOptions
 ```
 
-## `@ontrails/essentials`
-
-```typescript
-chunk(arr, size), dedupe(arr, key?), groupBy(arr, key), sortBy(arr, key)
-DeepPartial<T>, Prettify<T>, AtLeastOne<T>
-```
-
 ---
-
-## `@ontrails/core` — Validation
-
-```typescript
-validateTopo(topo)                 // → Result<void, ValidationError>
-```
-
-Structural validation: follows existence, recursive follows, event origins, example schema validation, output schema presence. Called automatically by `testAll()`.
 
 ## Reserved
 

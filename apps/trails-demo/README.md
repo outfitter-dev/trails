@@ -191,10 +191,10 @@ trails warden
 
 Checks governance rules: every trail has examples, destructive trails are marked, hikes reference existing trails, etc.
 
-## Generating the surface map
+## Inspecting the app
 
 ```bash
-trails survey generate
+trails survey
 ```
 
 Produces a machine-readable map of all trails, hikes, and events with their schemas, markers, and relationships.

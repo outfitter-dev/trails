@@ -8,7 +8,7 @@ Install the core packages, define your first trail, blaze it on CLI and MCP, and
 # Requires Bun (https://bun.sh)
 
 # Recommended: scaffold a new project
-bunx trails create
+bunx @ontrails/trails create
 
 # Or install manually
 bun add @ontrails/core @ontrails/cli
@@ -134,15 +134,15 @@ Same trail. Same implementation. Different surface. The MCP server exposes a `my
 
 Pure trails can return `Result` directly. Hikes and I/O-heavy trails can stay `async`; Trails normalizes both forms before adapters run them.
 
-## Test with `testExamples`
+## Test with `testAll`
 
 Create `src/__tests__/app.test.ts`:
 
 ```typescript
-import { testExamples } from '@ontrails/testing';
+import { testAll } from '@ontrails/testing';
 import { app } from '../app';
 
-testExamples(app);
+testAll(app);
 ```
 
 Run it:
@@ -150,27 +150,31 @@ Run it:
 ```bash
 $ bun test
  PASS  src/__tests__/app.test.ts
-  greet
-    example: Basic greeting
-    example: Loud greeting
+  governance
+    topo validation
+    greet
+      example: Basic greeting
+      example: Loud greeting
+    contracts
+    detours
 ```
 
-That single `testExamples(app)` call:
+That single `testAll(app)` call runs the full governance suite:
 
-1. Iterates every trail in the topo
-2. For each example, validates the input against the trail's Zod schema
-3. Runs the implementation with validated input
-4. Asserts the result matches `expected` (or validates against the output schema when no `expected` is declared)
+1. **Topo validation** via `validateTopo` -- follows existence, recursive follows, event origins, example schema validation, output schema presence
+2. **Example execution** -- for each trail, validates input, runs the implementation, asserts the result matches `expected` (or validates against the output schema when no `expected` is declared)
+3. **Contract checks** -- verifies implementation output matches declared output schemas
+4. **Detour verification** -- confirms detour targets exist in the topo
 
 No separate test files for the happy path. The examples ARE the tests.
 
-For one-call governance that runs examples AND structural contract checks (follows existence, recursive follows, event origins, output schema presence), use `testAll`:
+For finer control, use `testExamples(app)` to run only example assertions without structural checks:
 
 ```typescript
-import { testAll } from '@ontrails/testing';
+import { testExamples } from '@ontrails/testing';
 import { app } from '../app';
 
-testAll(app);
+testExamples(app);
 ```
 
 ## Adding More Trails

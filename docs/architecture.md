@@ -162,7 +162,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 
 | App                | What it does                                           |
 | ------------------ | ------------------------------------------------------ |
-| `apps/trails`      | The `trails` CLI -- init, survey, guide, warden |
+| `apps/trails`      | The `trails` CLI -- create, survey, guide, warden |
 | `apps/trails-demo` | Example app demonstrating the framework                |
 
 ## Dependency Graph
