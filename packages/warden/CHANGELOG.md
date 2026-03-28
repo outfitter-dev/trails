@@ -1,5 +1,16 @@
 # @ontrails/warden
 
+## 1.0.0-beta.1
+
+### Patch Changes
+
+- Fix two blocking bugs from real-world migration:
+  - Published packages now resolve correctly (workspace:^ instead of workspace:\*)
+  - Error forwarding works across different success types (Err no longer carries phantom T)
+- Updated dependencies
+  - @ontrails/core@1.0.0-beta.1
+  - @ontrails/schema@1.0.0-beta.1
+
 ## 1.0.0-beta.0
 
 ### Minor Changes
