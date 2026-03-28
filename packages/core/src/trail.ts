@@ -56,6 +56,8 @@ export interface TrailSpec<I, O> {
   readonly detours?: Readonly<Record<string, readonly string[]>> | undefined;
   /** Per-field overrides for deriveFields() (labels, hints, options) */
   readonly fields?: Readonly<Record<string, FieldOverride>> | undefined;
+  /** IDs of downstream trails this trail may invoke via ctx.follow() */
+  readonly follow?: readonly string[] | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -63,10 +65,15 @@ export interface TrailSpec<I, O> {
 // ---------------------------------------------------------------------------
 
 /** A fully-defined trail — the unit of work in the Trails system */
-export interface Trail<I, O> extends Omit<TrailSpec<I, O>, 'implementation'> {
+export interface Trail<I, O> extends Omit<
+  TrailSpec<I, O>,
+  'implementation' | 'follow'
+> {
   readonly kind: 'trail';
   readonly id: string;
   readonly implementation: Implementation<I, O>;
+  /** IDs of downstream trails this trail may invoke via ctx.follow() (always present, default []) */
+  readonly follow: readonly string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -112,10 +119,11 @@ export function trail<I, O>(
     throw new TypeError('trail() requires a spec when an id is provided');
   }
 
-  const { implementation, ...spec } = resolved.spec;
+  const { implementation, follow: rawFollow, ...spec } = resolved.spec;
 
   return Object.freeze({
     ...spec,
+    follow: Object.freeze([...(rawFollow ?? [])]),
     id: resolved.id,
     implementation: async (input: I, ctx: TrailContext) =>
       await implementation(input, ctx),

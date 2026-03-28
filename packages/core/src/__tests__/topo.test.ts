@@ -13,22 +13,13 @@ import { topo } from '../topo.js';
 // oxlint-disable-next-line require-await -- satisfies async interface without needing await
 const noop = async () => Result.ok();
 
-const mockTrail = (id: string) => ({
+const mockTrail = (id: string, follow?: readonly string[]) => ({
+  follow: Object.freeze([...(follow ?? [])]),
   id,
   implementation: noop,
   input: z.object({ x: z.number() }),
   kind: 'trail' as const,
   output: z.object({ y: z.number() }),
-});
-
-const mockHike = (id: string) => ({
-  follows: [] as readonly string[],
-  id,
-  implementation: noop,
-  input: z.object({ q: z.string() }),
-  kind: 'hike' as const,
-  output: z.object({ r: z.string() }),
-  path: `/${id}`,
 });
 
 const mockEvent = (id: string) => ({
@@ -59,23 +50,21 @@ describe('topo', () => {
     test('auto-scans exports by kind discriminant', () => {
       const mod = {
         event1: mockEvent('e1'),
-        hike1: mockHike('r1'),
         trail1: mockTrail('t1'),
+        trail2: mockTrail('t2', ['t1']),
       };
       const t = topo('app', mod);
 
-      expect(t.trails.size).toBe(1);
-      expect(t.hikes.size).toBe(1);
+      expect(t.trails.size).toBe(2);
       expect(t.events.size).toBe(1);
     });
 
     test('collects from multiple modules', () => {
       const mod1 = { a: mockTrail('t1') };
-      const mod2 = { b: mockTrail('t2'), c: mockHike('r1') };
+      const mod2 = { b: mockTrail('t2'), c: mockTrail('t3', ['t1']) };
       const t = topo('app', mod1, mod2);
 
-      expect(t.trails.size).toBe(2);
-      expect(t.hikes.size).toBe(1);
+      expect(t.trails.size).toBe(3);
     });
 
     test('non-trail exports are silently ignored', () => {
@@ -91,16 +80,16 @@ describe('topo', () => {
       const t = topo('app', mod);
 
       expect(t.trails.size).toBe(1);
-      expect(t.hikes.size).toBe(0);
       expect(t.events.size).toBe(0);
     });
 
-    test('allows different IDs across trails and hikes', () => {
-      const mod = { h: mockHike('hike-1'), t: mockTrail('trail-1') };
+    test('trail with follow registers correctly', () => {
+      const mod = { t: mockTrail('trail-1', ['trail-2']) };
       const t = topo('app', mod);
 
       expect(t.trails.size).toBe(1);
-      expect(t.hikes.size).toBe(1);
+      const registered = t.trails.get('trail-1');
+      expect(registered?.follow).toEqual(['trail-2']);
     });
   });
 
@@ -115,14 +104,6 @@ describe('topo', () => {
       );
     });
 
-    test('rejects duplicate hike IDs', () => {
-      const mod1 = { a: mockHike('dup') };
-      const mod2 = { b: mockHike('dup') };
-
-      expect(() => topo('app', mod1, mod2)).toThrow(ValidationError);
-      expect(() => topo('app', mod1, mod2)).toThrow('Duplicate hike ID: "dup"');
-    });
-
     test('rejects duplicate event IDs', () => {
       const mod1 = { a: mockEvent('dup') };
       const mod2 = { b: mockEvent('dup') };
@@ -130,26 +111,6 @@ describe('topo', () => {
       expect(() => topo('app', mod1, mod2)).toThrow(ValidationError);
       expect(() => topo('app', mod1, mod2)).toThrow(
         'Duplicate event ID: "dup"'
-      );
-    });
-
-    test('rejects a hike whose ID collides with an existing trail', () => {
-      const modTrail = { a: mockTrail('shared-id') };
-      const modHike = { b: mockHike('shared-id') };
-
-      expect(() => topo('app', modTrail, modHike)).toThrow(ValidationError);
-      expect(() => topo('app', modTrail, modHike)).toThrow(
-        /ID collision.*hike "shared-id".*trail/
-      );
-    });
-
-    test('rejects a trail whose ID collides with an existing hike', () => {
-      const modHike = { a: mockHike('shared-id') };
-      const modTrail = { b: mockTrail('shared-id') };
-
-      expect(() => topo('app', modHike, modTrail)).toThrow(ValidationError);
-      expect(() => topo('app', modHike, modTrail)).toThrow(
-        /ID collision.*trail "shared-id".*hike/
       );
     });
   });
@@ -162,9 +123,9 @@ describe('topo', () => {
 describe('Topo', () => {
   const mod = {
     e1: mockEvent('event-1'),
-    h1: mockHike('hike-1'),
     t1: mockTrail('trail-1'),
     t2: mockTrail('trail-2'),
+    t3: mockTrail('trail-3', ['trail-1']),
   };
 
   // Build once for the describe block
@@ -175,8 +136,8 @@ describe('Topo', () => {
       expect(app.get('trail-1')).toBe(mod.t1);
     });
 
-    test('retrieves hike by ID', () => {
-      expect(app.get('hike-1')).toBe(mod.h1);
+    test('retrieves trail with follow by ID', () => {
+      expect(app.get('trail-3')).toBe(mod.t3);
     });
 
     test('returns undefined for unknown ID', () => {
@@ -189,26 +150,26 @@ describe('Topo', () => {
       expect(app.has('trail-1')).toBe(true);
     });
 
-    test('returns true for known hike', () => {
-      expect(app.has('hike-1')).toBe(true);
+    test('returns true for trail with follow', () => {
+      expect(app.has('trail-3')).toBe(true);
     });
 
     test('returns false for unknown ID', () => {
       expect(app.has('nope')).toBe(false);
     });
 
-    test('returns false for event ID (events are not trails/hikes)', () => {
+    test('returns false for event ID (events are not trails)', () => {
       expect(app.has('event-1')).toBe(false);
     });
   });
 
   describe('listing', () => {
-    test('list() returns all trails and hikes', () => {
+    test('list() returns all trails (with and without follow)', () => {
       const items = app.list();
       expect(items).toHaveLength(3);
       expect(items).toContain(mod.t1);
       expect(items).toContain(mod.t2);
-      expect(items).toContain(mod.h1);
+      expect(items).toContain(mod.t3);
     });
 
     test('listEvents() returns all events', () => {

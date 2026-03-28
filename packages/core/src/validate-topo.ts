@@ -1,14 +1,13 @@
 /**
  * Structural validation for a Topo graph.
  *
- * Checks hike follows references, example input validity, event origin
+ * Checks trail follow references, example input validity, event origin
  * references, and output schema completeness. Returns a Result with all
  * issues collected into a single ValidationError.
  */
 
 import { ValidationError } from './errors.js';
 import type { AnyEvent } from './event.js';
-import type { AnyHike } from './hike.js';
 import { Result } from './result.js';
 import type { Topo } from './topo.js';
 import type { AnyTrail } from './trail.js';
@@ -32,16 +31,18 @@ const WHITE = 0;
 const GRAY = 1;
 const BLACK = 2;
 
-/** Build an adjacency list and initial color map from hikes. */
+/** Build an adjacency list and initial color map from trails with follow. */
 const buildFollowGraph = (
-  hikes: ReadonlyMap<string, AnyHike>
+  trails: ReadonlyMap<string, AnyTrail>
 ): {
   graph: Map<string, readonly string[]>;
   color: Map<string, number>;
 } => {
   const graph = new Map<string, readonly string[]>();
-  for (const [id, h] of hikes) {
-    graph.set(id, h.follows);
+  for (const [id, t] of trails) {
+    if (t.follow.length > 0) {
+      graph.set(id, t.follow);
+    }
   }
   const color = new Map<string, number>();
   for (const id of graph.keys()) {
@@ -50,12 +51,12 @@ const buildFollowGraph = (
   return { color, graph };
 };
 
-/** Detect multi-node cycles in the hike follow graph via DFS. */
+/** Detect multi-node cycles in the trail follow graph via DFS. */
 const detectFollowCycles = (
-  hikes: ReadonlyMap<string, AnyHike>
+  trails: ReadonlyMap<string, AnyTrail>
 ): TopoIssue[] => {
   const issues: TopoIssue[] = [];
-  const { color, graph } = buildFollowGraph(hikes);
+  const { color, graph } = buildFollowGraph(trails);
 
   const dfs = (node: string, path: string[]): void => {
     color.set(node, GRAY);
@@ -87,28 +88,28 @@ const detectFollowCycles = (
 };
 
 const checkFollows = (
-  hikes: ReadonlyMap<string, AnyHike>,
+  trails: ReadonlyMap<string, AnyTrail>,
   topo: Topo
 ): TopoIssue[] => {
   const issues: TopoIssue[] = [];
-  for (const [id, hike] of hikes) {
-    for (const followId of hike.follows) {
+  for (const [id, trail] of trails) {
+    for (const followId of trail.follow) {
       if (followId === id) {
         issues.push({
-          message: `Hike follows itself`,
+          message: `Trail follows itself`,
           rule: 'no-self-follow',
           trailId: id,
         });
       } else if (!topo.has(followId)) {
         issues.push({
           message: `Follows "${followId}" which is not in the topo`,
-          rule: 'follows-exist',
+          rule: 'follow-exists',
           trailId: id,
         });
       }
     }
   }
-  issues.push(...detectFollowCycles(hikes));
+  issues.push(...detectFollowCycles(trails));
   return issues;
 };
 
@@ -184,13 +185,13 @@ const checkEventOrigins = (
 /**
  * Validate the structural integrity of a Topo graph.
  *
- * Checks follows references, example inputs, event origins, and output
+ * Checks follow references, example inputs, event origins, and output
  * schema presence. Returns `Result.ok()` when no issues are found, or
  * `Result.err(ValidationError)` with all issues in the error context.
  */
 export const validateTopo = (topo: Topo): Result<void, ValidationError> => {
   const issues = [
-    ...checkFollows(topo.hikes, topo),
+    ...checkFollows(topo.trails, topo),
     ...checkExamples(topo.trails),
     ...checkEventOrigins(topo.events, topo),
   ];

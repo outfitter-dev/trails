@@ -96,6 +96,35 @@ describe('trail()', () => {
     });
   });
 
+  describe('follow', () => {
+    test('defaults to empty frozen array when omitted', () => {
+      const minimal = trail('bare', {
+        implementation: () => Result.ok(),
+        input: z.object({}),
+      });
+      expect(minimal.follow).toEqual([]);
+      expect(Object.isFrozen(minimal.follow)).toBe(true);
+    });
+
+    test('preserves follow array', () => {
+      const withFollow = trail('composed', {
+        follow: ['authenticate', 'validate-session'],
+        implementation: () => Result.ok(),
+        input: z.object({}),
+      });
+      expect(withFollow.follow).toEqual(['authenticate', 'validate-session']);
+    });
+
+    test('follow array is frozen', () => {
+      const withFollow = trail('composed', {
+        follow: ['authenticate'],
+        implementation: () => Result.ok(),
+        input: z.object({}),
+      });
+      expect(Object.isFrozen(withFollow.follow)).toBe(true);
+    });
+  });
+
   describe('boolean flags', () => {
     test('boolean flags default to undefined', () => {
       const minimal = trail('bare', {

@@ -17,6 +17,7 @@ const noop = async () => Result.ok();
 const mockTrail = (
   id: string,
   overrides?: {
+    follow?: readonly string[];
     examples?: readonly {
       name: string;
       input: unknown;
@@ -26,19 +27,12 @@ const mockTrail = (
     output?: z.ZodType;
   }
 ) => ({
+  follow: Object.freeze([...(overrides?.follow ?? [])]),
   id,
   implementation: noop,
   input: z.object({ name: z.string() }),
   kind: 'trail' as const,
   ...overrides,
-});
-
-const mockHike = (id: string, follows: readonly string[]) => ({
-  follows,
-  id,
-  implementation: noop,
-  input: z.object({ q: z.string() }),
-  kind: 'hike' as const,
 });
 
 const mockEvent = (id: string, from?: readonly string[]) => ({
@@ -65,7 +59,9 @@ describe('validateTopo', () => {
   test('valid topo passes', () => {
     const app = topo('app', {
       add: mockTrail('entity.add'),
-      onboard: mockHike('entity.onboard', ['entity.add']),
+      onboard: mockTrail('entity.onboard', {
+        follow: ['entity.add'],
+      }),
       updated: mockEvent('entity.updated', ['entity.add']),
     });
 
@@ -73,10 +69,12 @@ describe('validateTopo', () => {
     expect(result.isOk()).toBe(true);
   });
 
-  describe('hike follows', () => {
-    test('hike following non-existent trail fails', () => {
+  describe('trail follow', () => {
+    test('trail following non-existent trail fails', () => {
       const app = topo('app', {
-        onboard: mockHike('entity.onboard', ['entity.missing']),
+        onboard: mockTrail('entity.onboard', {
+          follow: ['entity.missing'],
+        }),
       });
 
       const result = validateTopo(app);
@@ -84,13 +82,13 @@ describe('validateTopo', () => {
 
       const issues = extractIssues(result);
       expect(issues).toHaveLength(1);
-      expect(issues[0]?.rule).toBe('follows-exist');
+      expect(issues[0]?.rule).toBe('follow-exists');
       expect(issues[0]?.message).toContain('entity.missing');
     });
 
-    test('hike following itself fails', () => {
+    test('trail following itself fails', () => {
       const app = topo('app', {
-        loop: mockHike('entity.loop', ['entity.loop']),
+        loop: mockTrail('entity.loop', { follow: ['entity.loop'] }),
       });
 
       const result = validateTopo(app);
@@ -102,8 +100,8 @@ describe('validateTopo', () => {
 
     test('two-node cycle (a→b→a) is detected', () => {
       const app = topo('app', {
-        a: mockHike('a', ['b']),
-        b: mockHike('b', ['a']),
+        a: mockTrail('a', { follow: ['b'] }),
+        b: mockTrail('b', { follow: ['a'] }),
       });
 
       const result = validateTopo(app);
@@ -117,9 +115,9 @@ describe('validateTopo', () => {
 
     test('three-node cycle (a→b→c→a) is detected', () => {
       const app = topo('app', {
-        a: mockHike('a', ['b']),
-        b: mockHike('b', ['c']),
-        c: mockHike('c', ['a']),
+        a: mockTrail('a', { follow: ['b'] }),
+        b: mockTrail('b', { follow: ['c'] }),
+        c: mockTrail('c', { follow: ['a'] }),
       });
 
       const result = validateTopo(app);
@@ -133,9 +131,9 @@ describe('validateTopo', () => {
 
     test('valid DAG with shared targets is not flagged', () => {
       const app = topo('app', {
-        a: mockHike('a', ['c']),
-        b: mockHike('b', ['c']),
-        c: mockHike('c', []),
+        a: mockTrail('a', { follow: ['c'] }),
+        b: mockTrail('b', { follow: ['c'] }),
+        c: mockTrail('c'),
       });
 
       const result = validateTopo(app);
@@ -264,7 +262,7 @@ describe('validateTopo', () => {
 
   test('collects multiple issues', () => {
     const app = topo('app', {
-      broken: mockHike('entity.broken', ['entity.missing']),
+      broken: mockTrail('entity.broken', { follow: ['entity.missing'] }),
       show: mockTrail('entity.show', {
         examples: [{ input: { name: 123 }, name: 'Bad' }],
       }),

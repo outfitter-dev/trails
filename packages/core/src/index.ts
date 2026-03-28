@@ -44,10 +44,6 @@ export { createTrailContext } from './context.js';
 export { trail } from './trail.js';
 export type { AnyTrail, Trail, TrailSpec, TrailExample } from './trail.js';
 
-// Hike
-export { hike } from './hike.js';
-export type { AnyHike, Hike, HikeSpec } from './hike.js';
-
 // Event
 export { event } from './event.js';
 export type { AnyEvent, Event, EventSpec } from './event.js';

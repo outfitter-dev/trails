@@ -4,7 +4,6 @@
 
 import { ValidationError } from './errors.js';
 import type { AnyEvent } from './event.js';
-import type { AnyHike } from './hike.js';
 import type { AnyTrail } from './trail.js';
 
 // ---------------------------------------------------------------------------
@@ -14,11 +13,10 @@ import type { AnyTrail } from './trail.js';
 export interface Topo {
   readonly name: string;
   readonly trails: ReadonlyMap<string, AnyTrail>;
-  readonly hikes: ReadonlyMap<string, AnyHike>;
   readonly events: ReadonlyMap<string, AnyEvent>;
-  get(id: string): AnyTrail | AnyHike | undefined;
+  get(id: string): AnyTrail | undefined;
   has(id: string): boolean;
-  list(): (AnyTrail | AnyHike)[];
+  list(): AnyTrail[];
   listEvents(): AnyEvent[];
 }
 
@@ -26,14 +24,14 @@ export interface Topo {
 // Kind discriminant check
 // ---------------------------------------------------------------------------
 
-type Registrable = AnyTrail | AnyHike | AnyEvent;
+type Registrable = AnyTrail | AnyEvent;
 
 const isRegistrable = (value: unknown): value is Registrable => {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
   const { kind } = value as Record<string, unknown>;
-  return kind === 'trail' || kind === 'hike' || kind === 'event';
+  return kind === 'trail' || kind === 'event';
 };
 
 // ---------------------------------------------------------------------------
@@ -43,20 +41,18 @@ const isRegistrable = (value: unknown): value is Registrable => {
 const createTopo = (
   name: string,
   trails: ReadonlyMap<string, AnyTrail>,
-  hikes: ReadonlyMap<string, AnyHike>,
   events: ReadonlyMap<string, AnyEvent>
 ): Topo => ({
   events,
-  get(id: string): AnyTrail | AnyHike | undefined {
-    return trails.get(id) ?? hikes.get(id);
+  get(id: string): AnyTrail | undefined {
+    return trails.get(id);
   },
   has(id: string): boolean {
-    return trails.has(id) || hikes.has(id);
+    return trails.has(id);
   },
-  hikes,
 
-  list(): (AnyTrail | AnyHike)[] {
-    return [...trails.values(), ...hikes.values()];
+  list(): AnyTrail[] {
+    return [...trails.values()];
   },
 
   listEvents(): AnyEvent[] {
@@ -76,7 +72,6 @@ const createTopo = (
 const register = (
   value: Registrable,
   trails: Map<string, AnyTrail>,
-  hikes: Map<string, AnyHike>,
   events: Map<string, AnyEvent>
 ): void => {
   const { id } = value as { id: string };
@@ -87,25 +82,9 @@ const register = (
       }
       events.set(id, value as AnyEvent);
     },
-    hike: () => {
-      if (hikes.has(id)) {
-        throw new ValidationError(`Duplicate hike ID: "${id}"`);
-      }
-      if (trails.has(id)) {
-        throw new ValidationError(
-          `ID collision: hike "${id}" conflicts with an existing trail of the same ID`
-        );
-      }
-      hikes.set(id, value as AnyHike);
-    },
     trail: () => {
       if (trails.has(id)) {
         throw new ValidationError(`Duplicate trail ID: "${id}"`);
-      }
-      if (hikes.has(id)) {
-        throw new ValidationError(
-          `ID collision: trail "${id}" conflicts with an existing hike of the same ID`
-        );
       }
       trails.set(id, value as AnyTrail);
     },
@@ -118,16 +97,15 @@ export const topo = (
   ...modules: Record<string, unknown>[]
 ): Topo => {
   const trails = new Map<string, AnyTrail>();
-  const hikes = new Map<string, AnyHike>();
   const events = new Map<string, AnyEvent>();
 
   for (const mod of modules) {
     for (const value of Object.values(mod)) {
       if (isRegistrable(value)) {
-        register(value, trails, hikes, events);
+        register(value, trails, events);
       }
     }
   }
 
-  return createTopo(name, trails, hikes, events);
+  return createTopo(name, trails, events);
 };
