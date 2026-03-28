@@ -129,7 +129,6 @@ describe('trails survey --brief', () => {
   test('report includes correct trail count', () => {
     const report = generateBriefReport(app);
     expect(report.trails).toBe(2);
-    expect(report.hikes).toBe(0);
     expect(report.events).toBe(0);
   });
 
@@ -138,7 +137,6 @@ describe('trails survey --brief', () => {
     expect(report.features.outputSchemas).toBe(true);
     expect(report.features.examples).toBe(true);
     expect(report.features.detours).toBe(true);
-    expect(report.features.hikes).toBe(false);
     expect(report.features.events).toBe(false);
   });
 

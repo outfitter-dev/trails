@@ -1,6 +1,6 @@
 # trails-demo
 
-A complete working application built with the Trails framework. It demonstrates every core concept: trails, a hike, an event, examples, markers, detours, and blazing on both CLI and MCP surfaces.
+A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `follow`, an event, examples, markers, detours, and blazing on both CLI and MCP surfaces.
 
 ## What this app does
 
@@ -13,7 +13,7 @@ Entity management -- a small CRUD + search system with enough depth to exercise 
 | `entity.delete` | Delete an entity by name | `destructive` |
 | `entity.list` | List entities with optional type filter | `readOnly` |
 | `search` | Full-text search across entities | `readOnly` |
-| `entity.onboard` | Hike: create + verify searchable | follows `entity.add`, `search` |
+| `entity.onboard` | Composition: create + verify searchable | `follow: ['entity.add', 'search']` |
 
 Plus one event: `entity.updated` (triggered by `entity.add` and `entity.delete`).
 
@@ -38,7 +38,7 @@ bun run bin/demo.ts entity list --type concept
 # Search
 bun run bin/demo.ts search --query Alpha
 
-# Onboard (hike: add + verify searchable)
+# Onboard (follow: add + verify searchable)
 bun run bin/demo.ts entity onboard --name Epsilon --type pattern
 ```
 
@@ -88,11 +88,11 @@ Key concepts:
 - **`detours`**: When `entity.show` returns `NotFoundError`, the surface can suggest `search` as a next step.
 - **`examples`**: Agent-facing documentation that doubles as tests. Full-match examples assert exact output. Error examples assert the error class name. Schema-only examples (no `expected` or `error`) just validate the output matches the schema.
 
-### The hike: `entity.onboard`
+### Composition: `entity.onboard`
 
 ```typescript
-export const onboard = hike('entity.onboard', {
-  follows: ['entity.add', 'search'],
+export const onboard = trail('entity.onboard', {
+  follow: ['entity.add', 'search'],
   implementation: async (input, ctx) => {
     const added = await ctx.follow('entity.add', {
       /* ... */
@@ -104,7 +104,7 @@ export const onboard = hike('entity.onboard', {
 });
 ```
 
-- **`hike()`** declares a composite trail with upstream dependencies via `follows`.
+- **`follow`** declares which trails this trail composes.
 - **`ctx.follow()`** invokes another trail by ID, maintaining the execution context.
 
 ## Testing
@@ -126,7 +126,7 @@ testAll(app, () => ({
 
 `testAll` runs the full governance suite in one call:
 
-1. **`validateTopo`** -- structural validation (follows targets exist, hike declarations are consistent).
+1. **`validateTopo`** -- structural validation (follow targets exist, declarations are consistent).
 2. **`testExamples`** -- progressive assertion over every trail example.
 3. **`testContracts`** -- output schema verification for every success example.
 4. **`testDetours`** -- detour targets reference real trails in the topo.
@@ -189,7 +189,7 @@ To add `entity.update`:
 trails warden
 ```
 
-Checks governance rules: every trail has examples, destructive trails are marked, hikes reference existing trails, etc.
+Checks governance rules: every trail has examples, destructive trails are marked, follow targets reference existing trails, etc.
 
 ## Inspecting the app
 
@@ -197,4 +197,4 @@ Checks governance rules: every trail has examples, destructive trails are marked
 trails survey
 ```
 
-Produces a machine-readable map of all trails, hikes, and events with their schemas, markers, and relationships.
+Produces a machine-readable map of all trails and events with their schemas, markers, and relationships.

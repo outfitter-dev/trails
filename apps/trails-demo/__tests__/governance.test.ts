@@ -46,7 +46,7 @@ describe('surface map generation', () => {
     expect(ids).toContain('entity.updated');
   });
 
-  test('has exactly 7 entries (5 trails + 1 hike + 1 event)', () => {
+  test('has exactly 7 entries (6 trails + 1 event)', () => {
     expect(surfaceMap.entries).toHaveLength(7);
   });
 
@@ -59,7 +59,7 @@ describe('surface map generation', () => {
   test('each entry has the expected fields', () => {
     for (const entry of surfaceMap.entries) {
       expect(entry.id).toBeString();
-      expect(entry.kind).toBeOneOf(['trail', 'hike', 'event']);
+      expect(entry.kind).toBeOneOf(['trail', 'event']);
       expect(entry.exampleCount).toBeNumber();
       expect(Array.isArray(entry.surfaces)).toBe(true);
     }
@@ -84,16 +84,16 @@ describe('surface map generation', () => {
     expect(deleteEntry?.destructive).toBe(true);
   });
 
-  test('route entries include follows', () => {
+  test('route entries include follow', () => {
     const onboardEntry = surfaceMap.entries.find(
       (e) => e.id === 'entity.onboard'
     );
     expect(onboardEntry).toBeDefined();
     if (onboardEntry) {
-      expect(onboardEntry.kind).toBe('hike');
-      expect(onboardEntry.follows).toBeDefined();
-      expect(onboardEntry.follows).toContain('entity.add');
-      expect(onboardEntry.follows).toContain('search');
+      expect(onboardEntry.kind).toBe('trail');
+      expect(onboardEntry.follow).toBeDefined();
+      expect(onboardEntry.follow).toContain('entity.add');
+      expect(onboardEntry.follow).toContain('search');
     }
   });
 
@@ -302,7 +302,7 @@ describe('topo validation', () => {
       const trailDef = t as { examples?: readonly unknown[] };
       exampleCount += trailDef.examples?.length ?? 0;
     }
-    // 5 trails x 2 examples each = 10
-    expect(exampleCount).toBe(10);
+    // 5 trails x 2 examples each + 1 onboard trail x 1 example = 11
+    expect(exampleCount).toBe(11);
   });
 });

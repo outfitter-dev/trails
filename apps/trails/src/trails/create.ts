@@ -6,7 +6,7 @@
  */
 
 import type { FollowFn } from '@ontrails/core';
-import { Result, hike } from '@ontrails/core';
+import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
@@ -146,7 +146,7 @@ const runCreate = async (
 // Route definition
 // ---------------------------------------------------------------------------
 
-export const createRoute = hike('create', {
+export const createRoute = trail('create', {
   description: 'Create a new Trails project',
   fields: {
     starter: {
@@ -157,7 +157,7 @@ export const createRoute = hike('create', {
           value: 'hello',
         },
         {
-          hint: '4 trails, hike, event, store',
+          hint: '4 trails, event, store',
           label: 'Entity CRUD',
           value: 'entity',
         },
@@ -175,7 +175,7 @@ export const createRoute = hike('create', {
       ],
     },
   },
-  follows: ['create.scaffold', 'add.surface', 'add.verify'],
+  follow: ['create.scaffold', 'add.surface', 'add.verify'],
   implementation: async (input: BlazeInput, ctx) => {
     if (!ctx.follow) {
       return Result.err(new Error('create route requires ctx.follow'));

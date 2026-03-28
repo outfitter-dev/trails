@@ -1,18 +1,18 @@
 /**
  * entity.onboard route -- creates an entity and verifies it is searchable.
  *
- * Demonstrates: route(), follows declaration, ctx.follow() composition,
+ * Demonstrates: trail(), follow declaration, ctx.follow() composition,
  * error propagation from downstream trails.
  */
 
-import { hike, Result } from '@ontrails/core';
+import { trail, Result } from '@ontrails/core';
 import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
 // entity.onboard
 // ---------------------------------------------------------------------------
 
-export const onboard = hike('entity.onboard', {
+export const onboard = trail('entity.onboard', {
   description: 'Create an entity and verify it appears in search',
   examples: [
     {
@@ -21,7 +21,7 @@ export const onboard = hike('entity.onboard', {
       name: 'Onboard a new entity',
     },
   ],
-  follows: ['entity.add', 'search'],
+  follow: ['entity.add', 'search'],
   implementation: async (input, ctx) => {
     if (!ctx.follow) {
       return Result.err(new Error('Route requires a follow function'));

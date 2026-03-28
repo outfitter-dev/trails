@@ -32,11 +32,9 @@ export interface BriefReport {
     readonly outputSchemas: boolean;
     readonly examples: boolean;
     readonly detours: boolean;
-    readonly hikes: boolean;
     readonly events: boolean;
   };
   readonly trails: number;
-  readonly hikes: number;
   readonly events: number;
 }
 
@@ -73,10 +71,8 @@ export const generateBriefReport = (app: Topo): BriefReport => {
       detours: hasDetours,
       events: app.events.size > 0,
       examples: hasExamples,
-      hikes: app.hikes.size > 0,
       outputSchemas: hasOutputSchemas,
     },
-    hikes: app.hikes.size,
     name: app.name,
     trails: app.trails.size,
     version: '0.1.0',
@@ -275,10 +271,8 @@ export const surveyTrail = trail('survey', {
         detours: z.boolean(),
         events: z.boolean(),
         examples: z.boolean(),
-        hikes: z.boolean(),
         outputSchemas: z.boolean(),
       }),
-      hikes: z.number(),
       name: z.string(),
       trails: z.number(),
       version: z.string(),

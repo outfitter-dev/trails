@@ -199,7 +199,7 @@ const assertEntityStarter = (dir: string): void => {
     'return Result.ok({ results: [] })',
   ]);
   expectContainsAll(readText(dir, 'src/trails/onboard.ts'), [
-    "import { Result, hike } from '@ontrails/core'",
+    "import { Result, trail } from '@ontrails/core'",
     'return Result.ok({ onboarded: true })',
   ]);
 };
