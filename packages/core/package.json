@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "test": "bun test src/",
+    "test": "bun test",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint ./src",
     "clean": "rm -rf dist *.tsbuildinfo"
