@@ -1,11 +1,12 @@
 /**
- * Detects hike implementations that call `.implementation()` directly.
+ * Detects trail implementations with `follow` that call `.implementation()` directly.
  *
- * Uses AST parsing to find hike definition bodies and check for
- * `.implementation()` call expressions.
+ * Uses AST parsing to find trail definitions that declare `follow` and check for
+ * `.implementation()` call expressions in their bodies.
  */
 
 import {
+  findConfigProperty,
   findImplementationBodies,
   findTrailDefinitions,
   isImplementationCall,
@@ -22,7 +23,7 @@ interface AstNode {
   readonly [key: string]: unknown;
 }
 
-const findImplCallsInHike = (
+const findImplCallsInTrailWithFollow = (
   def: { readonly config: AstNode },
   filePath: string,
   sourceCode: string,
@@ -44,12 +45,15 @@ const findImplCallsInHike = (
   }
 };
 
+const hasFollowProperty = (config: AstNode): boolean =>
+  findConfigProperty(config as AstNode, 'follow') !== null;
+
 /**
- * Detects routes that call another trail's `.implementation()` directly.
+ * Detects trails with `follow` that call another trail's `.implementation()` directly.
  */
 export const noDirectImplInRoute: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
-    if (!/\bhike\s*\(/.test(sourceCode)) {
+    if (!/\btrail\s*\(/.test(sourceCode)) {
       return [];
     }
 
@@ -59,18 +63,18 @@ export const noDirectImplInRoute: WardenRule = {
     }
 
     const diagnostics: WardenDiagnostic[] = [];
-    const hikeDefs = findTrailDefinitions(ast as AstNode).filter(
-      (d) => d.kind === 'hike'
+    const followDefs = findTrailDefinitions(ast as AstNode).filter((d) =>
+      hasFollowProperty(d.config as AstNode)
     );
 
-    for (const def of hikeDefs) {
-      findImplCallsInHike(def, filePath, sourceCode, diagnostics);
+    for (const def of followDefs) {
+      findImplCallsInTrailWithFollow(def, filePath, sourceCode, diagnostics);
     }
 
     return diagnostics;
   },
   description:
-    'Prefer ctx.follow() over direct .implementation() calls in route bodies.',
+    'Prefer ctx.follow() over direct .implementation() calls in trail bodies with follow.',
   name: 'no-direct-impl-in-route',
 
   severity: 'warn',

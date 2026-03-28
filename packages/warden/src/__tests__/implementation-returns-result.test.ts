@@ -22,7 +22,8 @@ trail("entity.show", {
 
   test('allows Result.ok() and returning ctx.follow() results', () => {
     const code = `
-hike("entity.onboard", {
+trail("entity.onboard", {
+  follow: ["entity.create"],
   implementation: async (input, ctx) => {
     const result = await ctx.follow("entity.create", input);
     return result;

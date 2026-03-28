@@ -152,13 +152,10 @@ const loadSourceFiles = async (
 };
 
 const buildProjectContextFromTopo = (appTopo: Topo): ProjectContext => {
-  const knownTrailIds = new Set<string>([
-    ...appTopo.trails.keys(),
-    ...appTopo.hikes.keys(),
-  ]);
+  const knownTrailIds = new Set<string>(appTopo.trails.keys());
 
   const detourTargetTrailIds = new Set<string>();
-  for (const t of [...appTopo.trails.values(), ...appTopo.hikes.values()]) {
+  for (const t of appTopo.trails.values()) {
     const detours = (t as unknown as Record<string, unknown>)['detours'] as
       | Readonly<Record<string, readonly string[]>>
       | undefined;

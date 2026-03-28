@@ -18,7 +18,7 @@ export interface ObjectProperty extends ParsedEntry {
 
 export interface TrailLikeSpec {
   readonly id: string;
-  readonly kind: 'hike' | 'trail';
+  readonly kind: 'event' | 'trail';
   readonly line: number;
   readonly properties: ReadonlyMap<string, ObjectProperty>;
   readonly specText: string;
@@ -31,7 +31,7 @@ export interface SchemaFieldInfo {
   readonly required: boolean;
 }
 
-const TRAIL_LIKE_PATTERN = /\b(trail|hike)\s*\(/g;
+const TRAIL_LIKE_PATTERN = /\b(trail|event)\s*\(/g;
 
 const PROPERTY_PATTERN =
   /^(?:readonly\s+)?(?:(["'`])([^"'`]+)\1|([A-Za-z_$][\w$]*))\s*:\s*([\s\S]+)$/;
@@ -214,7 +214,7 @@ const resolveSpecId = (
 
 const buildTrailLikeSpec = (
   sourceCode: string,
-  kind: 'hike' | 'trail',
+  kind: 'event' | 'trail',
   specArg: SplitEntry,
   specStart: number,
   id: string,
@@ -276,7 +276,7 @@ const resolveTrailLikeSpec = (
 
 const parseTrailLikeMatch = (
   sourceCode: string,
-  kind: 'hike' | 'trail',
+  kind: 'event' | 'trail',
   callStart: number
 ): TrailLikeSpec | null => {
   const resolved = resolveTrailLikeSpec(sourceCode, callStart);
@@ -352,7 +352,7 @@ export const findTrailLikeSpecs = (
       continue;
     }
 
-    const kind = match[1] === 'hike' ? 'hike' : 'trail';
+    const kind = match[1] === 'event' ? 'event' : 'trail';
     const spec = parseTrailLikeMatch(sourceCode, kind, callStart);
     if (spec !== null) {
       specs.push(spec);

@@ -146,11 +146,11 @@ trail("entity.show", {
     expect(diagnostics.length).toBe(0);
   });
 
-  test('flags detour target in hike that does not exist', () => {
+  test('flags detour target in trail with follow that does not exist', () => {
     const code = `
-hike("entity.onboard", {
+trail("entity.onboard", {
   detours: [{ target: "entity.missing" }],
-  follows: ["entity.create"],
+  follow: ["entity.create"],
   implementation: async (input, ctx) => Result.ok(data)
 })`;
     const diagnostics = validDetourRefs.check(code, TEST_FILE);
@@ -158,15 +158,15 @@ hike("entity.onboard", {
     expect(diagnostics[0]?.message).toContain('entity.missing');
   });
 
-  test('passes when hike detour target exists', () => {
+  test('passes when trail with follow detour target exists', () => {
     const code = `
 trail("entity.fallback", {
   implementation: async (input, ctx) => Result.ok(data)
 })
 
-hike("entity.onboard", {
+trail("entity.onboard", {
   detours: [{ target: "entity.fallback" }],
-  follows: ["entity.create"],
+  follow: ["entity.create"],
   implementation: async (input, ctx) => Result.ok(data)
 })`;
     const diagnostics = validDetourRefs.check(code, TEST_FILE);
@@ -178,10 +178,10 @@ hike("entity.onboard", {
 // no-direct-impl-in-route
 // ---------------------------------------------------------------------------
 describe('no-direct-impl-in-route', () => {
-  test('warns on direct .implementation() call in route', () => {
+  test('warns on direct .implementation() call in trail with follow', () => {
     const code = `
-hike("entity.onboard", {
-  follows: ["entity.create"],
+trail("entity.onboard", {
+  follow: ["entity.create"],
   implementation: async (input, ctx) => {
     const result = await entityCreate.implementation(data);
     return Result.ok(result);
@@ -195,8 +195,8 @@ hike("entity.onboard", {
 
   test('allows ctx.follow() calls', () => {
     const code = `
-hike("entity.onboard", {
-  follows: ["entity.create"],
+trail("entity.onboard", {
+  follow: ["entity.create"],
   implementation: async (input, ctx) => {
     const result = await ctx.follow("entity.create", data);
     return Result.ok(result);
@@ -206,7 +206,19 @@ hike("entity.onboard", {
     expect(diagnostics.length).toBe(0);
   });
 
-  test('ignores files without hike() calls', () => {
+  test('ignores trails without follow', () => {
+    const code = `
+trail("entity.show", {
+  implementation: async (input, ctx) => {
+    const result = await someTrail.implementation(data);
+    return Result.ok(result);
+  }
+})`;
+    const diagnostics = noDirectImplInRoute.check(code, TEST_FILE);
+    expect(diagnostics.length).toBe(0);
+  });
+
+  test('ignores files without trail() calls', () => {
     const code = `
 const result = await someTrail.implementation(data);`;
     const diagnostics = noDirectImplInRoute.check(code, TEST_FILE);

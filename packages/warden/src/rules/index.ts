@@ -29,14 +29,7 @@ export { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
 export { preferSchemaInference } from './prefer-schema-inference.js';
 export { validDescribeRefs } from './valid-describe-refs.js';
 
-/**
- * All built-in warden rules, keyed by rule name.
- *
- * Rules that duplicate validateTopo checks (follows-trails-exist,
- * no-recursive-follows, event-origins-exist, examples-match-schema,
- * require-output-schema) and follows-matches-calls (now covered by
- * testExamples follows coverage) have been removed.
- */
+/** All built-in warden rules, keyed by rule name. */
 export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   string,
   WardenRule

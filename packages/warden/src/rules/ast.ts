@@ -92,20 +92,20 @@ export const findImplementationBodies = (ast: AstNode): AstNode[] => {
 export interface TrailDefinition {
   /** Trail ID string, e.g. "entity.show" */
   readonly id: string;
-  /** "trail" or "hike" */
+  /** "trail" or "event" */
   readonly kind: string;
-  /** The config object argument (second arg to trail/hike call) */
+  /** The config object argument (second arg to trail() call) */
   readonly config: AstNode;
   /** Start offset of the call expression */
   readonly start: number;
 }
 
 /**
- * Find all `trail("id", { ... })` and `hike("id", { ... })` call sites.
+ * Find all `trail("id", { ... })` and `event("id", { ... })` call sites.
  *
  * Returns the trail ID, kind, and config object node for each definition.
  */
-const TRAIL_CALLEE_NAMES = new Set(['trail', 'hike']);
+const TRAIL_CALLEE_NAMES = new Set(['trail', 'event']);
 
 const getTrailCalleeName = (node: AstNode): string | null => {
   if (node.type !== 'CallExpression') {

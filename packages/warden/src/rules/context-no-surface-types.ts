@@ -123,7 +123,7 @@ const classifyImport = (
  */
 export const contextNoSurfaceTypes: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
-    if (!/\b(?:trail|hike)\s*\(/.test(sourceCode)) {
+    if (!/\btrail\s*\(/.test(sourceCode)) {
       return [];
     }
 

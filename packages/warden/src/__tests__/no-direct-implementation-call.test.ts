@@ -26,8 +26,8 @@ async function run() {
 
   test('allows ctx.follow() calls', () => {
     const code = `
-hike("entity.onboard", {
-  follows: ["entity.create"],
+trail("entity.onboard", {
+  follow: ["entity.create"],
   implementation: async (input, ctx) => {
     const result = await ctx.follow("entity.create", input);
     return Result.ok(result);

@@ -361,7 +361,7 @@ const checkAllDefinitions = (
   const helperNames = collectResultHelperNames(ast, sourceCode);
 
   for (const def of findTrailDefinitions(ast)) {
-    const info = { id: def.id, label: def.kind === 'hike' ? 'Hike' : 'Trail' };
+    const info = { id: def.id, label: 'Trail' };
     for (const implValue of findImplementationBodies(def.config as AstNode)) {
       checkImplementation(
         implValue,
