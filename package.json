@@ -18,7 +18,8 @@
     "mdlint:fix": "./node_modules/.bin/markdownlint-cli2 --fix",
     "typecheck": "turbo run typecheck",
     "check": "bun run lint && bun run format:check && bun run typecheck",
-    "clean": "turbo run clean --no-cache && rm -rf node_modules"
+    "clean": "turbo run clean --no-cache && rm -rf node_modules",
+    "publish:packages": "./scripts/publish.sh"
   },
   "dependencies": {
     "@ontrails/cli": "workspace:^",
