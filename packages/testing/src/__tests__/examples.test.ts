@@ -1,6 +1,6 @@
 import { describe, test } from 'bun:test';
 
-import { NotFoundError, Result, hike, trail, topo } from '@ontrails/core';
+import { NotFoundError, Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { testExamples } from '../examples.js';
@@ -68,7 +68,7 @@ const noExamplesTrail = trail('noexamples', {
 });
 
 // ---------------------------------------------------------------------------
-// Test hikes (for follows coverage)
+// Composition trails (for follow coverage)
 // ---------------------------------------------------------------------------
 
 const addTrail = trail('entity.add', {
@@ -87,7 +87,7 @@ const relateTrail = trail('entity.relate', {
   output: z.object({ from: z.string(), to: z.string() }),
 });
 
-const onboardHike = hike('entity.onboard', {
+const onboardTrail = trail('entity.onboard', {
   description: 'Onboard a new entity',
   examples: [
     {
@@ -96,7 +96,7 @@ const onboardHike = hike('entity.onboard', {
       name: 'Onboard Alpha',
     },
   ],
-  follows: ['entity.add', 'entity.relate'],
+  follow: ['entity.add', 'entity.relate'],
   implementation: async (input: { name: string }, ctx) => {
     if (!ctx.follow) {
       return Result.err(new Error('follow not available'));
@@ -164,12 +164,12 @@ describe('testExamples skips trails with no examples', () => {
   });
 });
 
-describe('testExamples follows coverage for hikes', () => {
+describe('testExamples follow coverage for composition trails', () => {
   // eslint-disable-next-line jest/require-hook
   testExamples(
-    topo('hike-app', {
+    topo('composition-app', {
       addTrail,
-      onboardHike,
+      onboardTrail,
       relateTrail,
     } as Record<string, unknown>)
   );

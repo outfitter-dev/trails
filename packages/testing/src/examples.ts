@@ -3,14 +3,13 @@
  *
  * Iterates every trail in the app's topo. For each trail with examples,
  * generates describe/test blocks using bun:test. Progressive assertion
- * determines which check to run per example. For hikes with `follows`
+ * determines which check to run per example. For trails with `follow`
  * declarations, checks that every declared follow was called at least once.
  */
 
 import { describe, expect, test } from 'bun:test';
 
 import type {
-  AnyHike,
   FollowFn,
   Topo,
   TrailExample,
@@ -143,7 +142,7 @@ const runExample = async (
 };
 
 // ---------------------------------------------------------------------------
-// Follows coverage for hikes
+// Follow coverage for composition trails
 // ---------------------------------------------------------------------------
 
 /**
@@ -181,17 +180,17 @@ const createCoverageFollow = (
 };
 
 /**
- * Run a single example against a hike, recording follow calls.
+ * Run a single example against a composition trail, recording follow calls.
  */
-const runHikeExample = async (
-  hikeDef: AnyHike,
+const runCompositionExample = async (
+  trailDef: Trail<unknown, unknown>,
   example: TrailExample<unknown, unknown>,
   output: z.ZodType | undefined,
   baseCtx: TrailContext,
   called: Set<string>,
   topo: Topo
 ): Promise<void> => {
-  const validated = validateInput(hikeDef.input, example.input);
+  const validated = validateInput(trailDef.input, example.input);
 
   if (handleValidationError(validated, example)) {
     return;
@@ -201,73 +200,8 @@ const runHikeExample = async (
   const follow = createCoverageFollow(called, baseCtx.follow, topo, baseCtx);
   const testCtx: TrailContext = { ...baseCtx, follow };
 
-  const result = await hikeDef.implementation(validatedInput, testCtx);
+  const result = await trailDef.implementation(validatedInput, testCtx);
   assertProgressiveMatch(result, example, output);
-};
-
-// ---------------------------------------------------------------------------
-// Hike entry with examples pre-validated
-// ---------------------------------------------------------------------------
-
-interface HikeWithExamples {
-  readonly hikeDef: AnyHike;
-  readonly hikeId: string;
-  readonly examples: readonly TrailExample<unknown, unknown>[];
-}
-
-const collectHikesWithExamples = (app: Topo): readonly HikeWithExamples[] =>
-  [...app.hikes]
-    .filter(([, h]) => h.examples !== undefined && h.examples.length > 0)
-    .map(([hikeId, hikeDef]) => ({
-      examples: hikeDef.examples as readonly TrailExample<unknown, unknown>[],
-      hikeDef,
-      hikeId,
-    }));
-
-// ---------------------------------------------------------------------------
-// Hike example describe blocks
-// ---------------------------------------------------------------------------
-
-/**
- * Generate describe/test blocks for hikes with follows coverage.
- *
- * Always uses a recording follow so that follows coverage can be checked.
- * Hikes without `follows` still run their examples but skip the coverage test.
- */
-const describeHikeExamples = (
-  hikesWithExamples: readonly HikeWithExamples[],
-  resolveCtx: () => Partial<TrailContext> | undefined,
-  topo: Topo
-): void => {
-  if (hikesWithExamples.length === 0) {
-    return;
-  }
-
-  describe.each([...hikesWithExamples])('$hikeId', ({ hikeDef, examples }) => {
-    const called = new Set<string>();
-
-    test.each([...examples])(
-      'example: $name',
-      async (example: TrailExample<unknown, unknown>) => {
-        const baseCtx = mergeTestContext(resolveCtx());
-        await runHikeExample(
-          hikeDef,
-          example,
-          hikeDef.output,
-          baseCtx,
-          called,
-          topo
-        );
-      }
-    );
-
-    if (hikeDef.follows.length > 0) {
-      test('follows coverage', () => {
-        const uncovered = hikeDef.follows.filter((id) => !called.has(id));
-        expect(uncovered).toEqual([]);
-      });
-    }
-  });
 };
 
 // ---------------------------------------------------------------------------
@@ -277,7 +211,7 @@ const describeHikeExamples = (
 /**
  * Generate describe/test blocks for every trail example in the app.
  *
- * For hikes with `follows` declarations and examples, also verifies that
+ * For trails with `follow` declarations and examples, also verifies that
  * every declared follow ID was called at least once across all examples.
  *
  * One line in your test file:
@@ -291,24 +225,54 @@ export const testExamples = (
 ): void => {
   const resolveCtx =
     typeof ctxOrFactory === 'function' ? ctxOrFactory : () => ctxOrFactory;
-  const trailEntries = [...app.trails];
+  const allTrails = app.list() as Trail<unknown, unknown>[];
 
-  describe.each(trailEntries)('%s', (_id, trailDef) => {
-    const t = trailDef as Trail<unknown, unknown>;
-    if (t.examples === undefined || t.examples.length === 0) {
-      return;
-    }
+  const withExamples = allTrails.filter(
+    (t) => t.examples !== undefined && t.examples.length > 0
+  );
+  const simpleTrails = withExamples.filter((t) => t.follow.length === 0);
+  const compositionTrails = withExamples.filter((t) => t.follow.length > 0);
 
-    const { examples, output } = t;
-
-    test.each([...examples])(
-      'example: $name',
-      async (example: TrailExample<unknown, unknown>) => {
-        const testCtx = mergeTestContext(resolveCtx());
-        await runExample(t, example, output, testCtx);
+  // Simple trails: run examples directly
+  if (simpleTrails.length > 0) {
+    describe.each(simpleTrails)('$id', (t) => {
+      const { examples, output } = t;
+      if (!examples) {
+        return;
       }
-    );
-  });
 
-  describeHikeExamples(collectHikesWithExamples(app), resolveCtx, app);
+      test.each([...examples])(
+        'example: $name',
+        async (example: TrailExample<unknown, unknown>) => {
+          const testCtx = mergeTestContext(resolveCtx());
+          await runExample(t, example, output, testCtx);
+        }
+      );
+    });
+  }
+
+  // Composition trails: use recording follow and check coverage
+  if (compositionTrails.length > 0) {
+    describe.each(compositionTrails)('$id', (t) => {
+      const { examples, output } = t;
+      if (!examples) {
+        return;
+      }
+
+      const called = new Set<string>();
+
+      test.each([...examples])(
+        'example: $name',
+        async (example: TrailExample<unknown, unknown>) => {
+          const baseCtx = mergeTestContext(resolveCtx());
+          await runCompositionExample(t, example, output, baseCtx, called, app);
+        }
+      );
+
+      test('follow coverage', () => {
+        const uncovered = t.follow.filter((id) => !called.has(id));
+        expect(uncovered).toEqual([]);
+      });
+    });
+  }
 };

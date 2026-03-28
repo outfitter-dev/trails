@@ -1,7 +1,7 @@
 // Contract-driven testing
 export { testAll } from './all.js';
 export { testExamples } from './examples.js';
-export { testHike } from './hike.js';
+export { testFollows } from './follows.js';
 export { testTrail } from './trail.js';
 export { testContracts } from './contracts.js';
 export { testDetours } from './detours.js';
@@ -24,10 +24,10 @@ export { createCliHarness } from './harness-cli.js';
 export { createMcpHarness } from './harness-mcp.js';
 
 // Types
-export type { TestHikeOptions } from './hike.js';
+export type { TestFollowOptions } from './follows.js';
 
 export type {
-  HikeScenario,
+  FollowScenario,
   TestScenario,
   TestLogger,
   TestTrailContextOptions,

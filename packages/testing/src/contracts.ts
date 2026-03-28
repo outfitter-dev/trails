@@ -1,7 +1,7 @@
 /**
  * testContracts — output schema verification.
  *
- * For every trail and hike that has both examples and an output schema,
+ * For every trail that has both examples and an output schema,
  * run each example and validate the implementation output against
  * the declared schema.
  */
@@ -19,13 +19,13 @@ import { mergeTestContext } from './context.js';
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Check if a trail/hike requires follow() but the context doesn't provide it. */
+/** Check if a trail requires follow() but the context doesn't provide it. */
 const needsFollowContext = (
   t: unknown,
   resolveCtx: () => Partial<TrailContext> | undefined
 ): boolean => {
-  const spec = t as { follows?: readonly string[] };
-  if (!spec.follows || spec.follows.length === 0) {
+  const spec = t as { follow?: readonly string[] };
+  if (!spec.follow || spec.follow.length === 0) {
     return false;
   }
   return !resolveCtx()?.follow;
@@ -51,10 +51,10 @@ const validateOutputSchema = (
 // ---------------------------------------------------------------------------
 
 /**
- * Verify that every trail and hike implementation output matches its declared
+ * Verify that every trail implementation output matches its declared
  * output schema. Catches implementation-schema drift.
  *
- * Trails and hikes without output schemas or examples are skipped.
+ * Trails without output schemas or examples are skipped.
  */
 export const testContracts = (
   app: Topo,

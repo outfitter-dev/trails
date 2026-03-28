@@ -26,11 +26,11 @@ export interface TestScenario {
 }
 
 // ---------------------------------------------------------------------------
-// Hike Scenario (for testHike)
+// Follow Scenario (for testFollows)
 // ---------------------------------------------------------------------------
 
-/** A test scenario for a hike's composition graph. */
-export interface HikeScenario extends TestScenario {
+/** A test scenario for a trail's composition graph. */
+export interface FollowScenario extends TestScenario {
   /** Assert these trail IDs were followed, in order. */
   readonly expectFollowed?: readonly string[] | undefined;
   /** Assert follow counts per trail ID. */

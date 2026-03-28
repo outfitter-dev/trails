@@ -1,13 +1,13 @@
 /**
- * testHike — composition-aware scenario testing for hikes.
+ * testFollows — composition-aware scenario testing for trails with follow.
  *
- * Tests the composition graph: which trails were followed, in what order,
+ * Tests the follow graph: which trails were followed, in what order,
  * and supports failure injection from followed trail examples.
  */
 
 import { describe, expect, test } from 'bun:test';
 
-import type { AnyHike, AnyTrail, FollowFn, TrailContext } from '@ontrails/core';
+import type { AnyTrail, FollowFn, TrailContext } from '@ontrails/core';
 import {
   InternalError,
   Result,
@@ -22,7 +22,7 @@ import {
   expectOk,
 } from './assertions.js';
 import { mergeTestContext } from './context.js';
-import type { HikeScenario } from './types.js';
+import type { FollowScenario } from './types.js';
 
 // ---------------------------------------------------------------------------
 // Follow trace
@@ -58,7 +58,7 @@ const findErrorExample = (
  */
 const tryInjectError = (
   id: string,
-  scenario: HikeScenario,
+  scenario: FollowScenario,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined
 ): Result<unknown, Error> | undefined => {
   const injection = scenario.injectFromExample?.[id];
@@ -113,7 +113,7 @@ const executeFromMap = (
  */
 const createRecordingFollow = (
   trace: FollowRecord[],
-  scenario: HikeScenario,
+  scenario: FollowScenario,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
   baseFollow: FollowFn | undefined,
   ctx: TrailContext
@@ -148,8 +148,8 @@ const createRecordingFollow = (
 
 const assertScenarioResult = (
   result: Result<unknown, Error>,
-  scenario: HikeScenario,
-  hikeDef: AnyHike
+  scenario: FollowScenario,
+  trailDef: AnyTrail
 ): void => {
   if (scenario.expectValue !== undefined) {
     assertFullMatch(result, scenario.expectValue);
@@ -162,13 +162,13 @@ const assertScenarioResult = (
     }
   } else if (scenario.expectOk === true) {
     expect(result.isOk()).toBe(true);
-    assertSchemaMatch(result, hikeDef.output);
+    assertSchemaMatch(result, trailDef.output);
   }
 };
 
 const assertFollowTrace = (
   trace: readonly FollowRecord[],
-  scenario: HikeScenario
+  scenario: FollowScenario
 ): void => {
   if (scenario.expectFollowed !== undefined) {
     const followedIds = trace.map((r) => r.id);
@@ -185,7 +185,7 @@ const assertFollowTrace = (
 
 const handleValidationError = (
   validated: Result<unknown, Error>,
-  scenario: HikeScenario
+  scenario: FollowScenario
 ): boolean => {
   if (!validated.isErr()) {
     return false;
@@ -207,7 +207,7 @@ const handleValidationError = (
 // ---------------------------------------------------------------------------
 
 const buildTestContext = (
-  scenario: HikeScenario,
+  scenario: FollowScenario,
   ctx: Partial<TrailContext> | undefined,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined
 ): { trace: FollowRecord[]; testCtx: TrailContext } => {
@@ -224,28 +224,28 @@ const buildTestContext = (
 };
 
 const runScenario = async (
-  hikeDef: AnyHike,
-  scenario: HikeScenario,
+  trailDef: AnyTrail,
+  scenario: FollowScenario,
   ctx: Partial<TrailContext> | undefined,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined
 ): Promise<void> => {
-  const validated = validateInput(hikeDef.input, scenario.input);
+  const validated = validateInput(trailDef.input, scenario.input);
   if (handleValidationError(validated, scenario)) {
     return;
   }
 
   const { trace, testCtx } = buildTestContext(scenario, ctx, trailsMap);
-  const result = await hikeDef.implementation(expectOk(validated), testCtx);
+  const result = await trailDef.implementation(expectOk(validated), testCtx);
   assertFollowTrace(trace, scenario);
-  assertScenarioResult(result, scenario, hikeDef);
+  assertScenarioResult(result, scenario, trailDef);
 };
 
 // ---------------------------------------------------------------------------
-// testHike
+// testFollows
 // ---------------------------------------------------------------------------
 
-/** Options for testHike that provide trail definitions for injection. */
-export interface TestHikeOptions {
+/** Options for testFollows that provide trail definitions for injection. */
+export interface TestFollowOptions {
   /** Partial context overrides. */
   readonly ctx?: Partial<TrailContext> | undefined;
   /** Map of trail ID to trail definition, used for injectFromExample. */
@@ -253,11 +253,11 @@ export interface TestHikeOptions {
 }
 
 /**
- * Generate a describe block for a hike with one test per scenario.
+ * Generate a describe block for a composition trail with one test per scenario.
  *
  * @example
  * ```ts
- * testHike(onboardHike, [
+ * testFollows(onboardTrail, [
  *   {
  *     description: "follows add then relate",
  *     input: { name: "Alpha" },
@@ -267,16 +267,16 @@ export interface TestHikeOptions {
  * ]);
  * ```
  */
-export const testHike = (
-  hikeDef: AnyHike,
-  scenarios: readonly HikeScenario[],
-  options?: TestHikeOptions
+export const testFollows = (
+  trailDef: AnyTrail,
+  scenarios: readonly FollowScenario[],
+  options?: TestFollowOptions
 ): void => {
-  describe(hikeDef.id, () => {
+  describe(trailDef.id, () => {
     test.each([...scenarios])(
       '$description',
-      async (scenario: HikeScenario) => {
-        await runScenario(hikeDef, scenario, options?.ctx, options?.trails);
+      async (scenario: FollowScenario) => {
+        await runScenario(trailDef, scenario, options?.ctx, options?.trails);
       }
     );
   });

@@ -1,13 +1,13 @@
 import { describe } from 'bun:test';
 
 import type { AnyTrail, TrailContext } from '@ontrails/core';
-import { Result, hike, trail } from '@ontrails/core';
+import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { testHike } from '../hike.js';
+import { testFollows } from '../follows.js';
 
 // ---------------------------------------------------------------------------
-// Test trails (followed by hikes)
+// Test trails (followed by composition trail)
 // ---------------------------------------------------------------------------
 
 const addTrail = trail('entity.add', {
@@ -36,11 +36,11 @@ const relateTrail = trail('entity.relate', {
 });
 
 // ---------------------------------------------------------------------------
-// Test hike
+// Composition trail
 // ---------------------------------------------------------------------------
 
-const onboardHike = hike('entity.onboard', {
-  follows: ['entity.add', 'entity.relate'],
+const onboardTrail = trail('entity.onboard', {
+  follow: ['entity.add', 'entity.relate'],
   implementation: async (
     input: { name: string; relatedTo: string },
     ctx: TrailContext
@@ -84,10 +84,10 @@ const trailsMap = new Map<string, AnyTrail>([
 
 const opts = { trails: trailsMap };
 
-describe('testHike: expectOk', () => {
+describe('testFollows: expectOk', () => {
   // eslint-disable-next-line jest/require-hook
-  testHike(
-    onboardHike,
+  testFollows(
+    onboardTrail,
     [
       {
         description: 'basic onboard succeeds',
@@ -99,10 +99,10 @@ describe('testHike: expectOk', () => {
   );
 });
 
-describe('testHike: expectFollowed', () => {
+describe('testFollows: expectFollowed', () => {
   // eslint-disable-next-line jest/require-hook
-  testHike(
-    onboardHike,
+  testFollows(
+    onboardTrail,
     [
       {
         description: 'follows add then relate in order',
@@ -115,10 +115,10 @@ describe('testHike: expectFollowed', () => {
   );
 });
 
-describe('testHike: expectFollowedCount', () => {
+describe('testFollows: expectFollowedCount', () => {
   // eslint-disable-next-line jest/require-hook
-  testHike(
-    onboardHike,
+  testFollows(
+    onboardTrail,
     [
       {
         description: 'each trail followed exactly once',
@@ -131,10 +131,10 @@ describe('testHike: expectFollowedCount', () => {
   );
 });
 
-describe('testHike: injectFromExample', () => {
+describe('testFollows: injectFromExample', () => {
   // eslint-disable-next-line jest/require-hook
-  testHike(
-    onboardHike,
+  testFollows(
+    onboardTrail,
     [
       {
         description: 'inject duplicate error from add trail example',
@@ -148,10 +148,10 @@ describe('testHike: injectFromExample', () => {
   );
 });
 
-describe('testHike: expectValue', () => {
+describe('testFollows: expectValue', () => {
   // eslint-disable-next-line jest/require-hook
-  testHike(
-    onboardHike,
+  testFollows(
+    onboardTrail,
     [
       {
         description: 'exact value match',
