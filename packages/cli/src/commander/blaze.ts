@@ -43,7 +43,10 @@ export interface BlazeCliOptions {
  * blaze(app);
  * ```
  */
-export const blaze = (app: Topo, options: BlazeCliOptions = {}): void => {
+export const blaze = async (
+  app: Topo,
+  options: BlazeCliOptions = {}
+): Promise<void> => {
   const commands = buildCliCommands(app, {
     createContext: options.createContext,
     layers: options.layers,
@@ -63,5 +66,5 @@ export const blaze = (app: Topo, options: BlazeCliOptions = {}): void => {
   }
 
   const program = toCommander(commands, commanderOpts);
-  program.parse();
+  await program.parseAsync();
 };

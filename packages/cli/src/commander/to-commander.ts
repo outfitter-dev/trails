@@ -3,7 +3,7 @@
  */
 
 import { exitCodeMap, isTrailsError } from '@ontrails/core';
-import { Command, Option } from 'commander';
+import { Command, InvalidArgumentError, Option } from 'commander';
 
 import type { CliCommand, CliFlag } from '../command.js';
 
@@ -41,9 +41,17 @@ const buildFlagString = (flag: CliFlag): string => {
   return short ? `${short}, ${long} ${argPart}` : `${long} ${argPart}`;
 };
 
-/** Build a Commander Option from a CliFlag. */
-const buildOption = (flag: CliFlag): Option => {
-  const opt = new Option(buildFlagString(flag), flag.description);
+/** Strict number parser that rejects partial parses and non-finite values. */
+const strictParseNumber = (value: string): number => {
+  const n = Number(value);
+  if (Number.isNaN(n) || !Number.isFinite(n)) {
+    throw new InvalidArgumentError(`"${value}" is not a valid number`);
+  }
+  return n;
+};
+
+/** Apply common modifiers (choices, default, arg parser) to a Commander Option. */
+const applyOptionModifiers = (opt: Option, flag: CliFlag): void => {
   if (flag.choices) {
     opt.choices(flag.choices);
   }
@@ -51,9 +59,22 @@ const buildOption = (flag: CliFlag): Option => {
     opt.default(flag.default);
   }
   if (flag.type === 'number' || flag.type === 'number[]') {
-    opt.argParser(parseFloat);
+    opt.argParser(strictParseNumber);
   }
-  return opt;
+};
+
+/** Build Commander Option(s) from a CliFlag. Returns one or two options. */
+const buildOptions = (flag: CliFlag): Option[] => {
+  const opt = new Option(buildFlagString(flag), flag.description);
+  applyOptionModifiers(opt, flag);
+  if (flag.type === 'boolean') {
+    const negation = new Option(
+      `--no-${flag.name}`,
+      flag.description ? `Negate ${flag.description}` : undefined
+    );
+    return [opt, negation];
+  }
+  return [opt];
 };
 
 /** Add positional args to a Commander subcommand. */
@@ -162,7 +183,9 @@ const buildSubcommand = (cmd: CliCommand): Command => {
     sub.description(cmd.description);
   }
   for (const flag of cmd.flags) {
-    sub.addOption(buildOption(flag));
+    for (const opt of buildOptions(flag)) {
+      sub.addOption(opt);
+    }
   }
   addArgs(sub, cmd);
   wireAction(sub, cmd);

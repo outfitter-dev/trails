@@ -11,12 +11,36 @@ import { toCommander } from '../commander/to-commander.js';
 // Helpers
 // ---------------------------------------------------------------------------
 
+// oxlint-disable-next-line no-empty-function, require-await -- intentional noop for callback type
+const noopResult = async () => {};
+// oxlint-disable-next-line no-empty-function -- intentional noop for callback type
+const noopWrite = () => {};
+
 const makeApp = (...trails: AnyTrail[]) => {
   const mod: Record<string, unknown> = {};
   for (const t of trails) {
     mod[t.id] = t;
   }
   return topo('test-app', mod);
+};
+
+/** Intercept a command's execute to capture parsed opts. */
+const interceptOpts = (commands: ReturnType<typeof buildCliCommands>) => {
+  let received: Record<string, unknown> = {};
+  const [cmd] = commands;
+  if (!cmd) {
+    throw new Error('No commands built');
+  }
+  const original = cmd.execute;
+  cmd.execute = (args, opts) => {
+    received = opts;
+    return original(args, opts);
+  };
+  return {
+    get received() {
+      return received;
+    },
+  };
 };
 
 const requireCommand = (
@@ -90,11 +114,151 @@ describe('toCommander', () => {
     const program = toCommander(commands);
 
     const opts = requireCommand(program, 'search').options;
+    // 5 flags + negation options for boolean flags
     expect(opts.length).toBeGreaterThanOrEqual(5);
 
     const formatOpt = opts.find((entry) => entry.long === '--format');
     expect(formatOpt).toBeDefined();
     expect(formatOpt?.argChoices).toEqual(['json', 'text']);
+  });
+
+  describe('boolean flag negation', () => {
+    test('boolean flags get --no-<name> negation options', () => {
+      const t = trail('check', {
+        implementation: () => Result.ok('ok'),
+        input: z.object({ strict: z.boolean() }),
+      });
+      const app = makeApp(t);
+      const commands = buildCliCommands(app);
+      const program = toCommander(commands);
+
+      const cmd = requireCommand(program, 'check');
+      const strictOpt = cmd.options.find((o) => o.long === '--strict');
+      const noStrictOpt = cmd.options.find((o) => o.long === '--no-strict');
+
+      expect(strictOpt).toBeDefined();
+      expect(noStrictOpt).toBeDefined();
+    });
+
+    test('--no-<flag> sets value to false via parseAsync', async () => {
+      const t = trail('check', {
+        implementation: () => Result.ok('ok'),
+        input: z.object({ strict: z.boolean().default(true) }),
+      });
+      const app = makeApp(t);
+      const commands = buildCliCommands(app, { onResult: noopResult });
+      const spy = interceptOpts(commands);
+      const program = toCommander(commands, { name: 'test' });
+      program.exitOverride();
+
+      await program.parseAsync(['node', 'test', 'check', '--no-strict']);
+      expect(spy.received['strict']).toBe(false);
+    });
+
+    test('--flag sets boolean value to true via parseAsync', async () => {
+      const t = trail('check', {
+        implementation: () => Result.ok('ok'),
+        input: z.object({ strict: z.boolean().default(false) }),
+      });
+      const app = makeApp(t);
+      const commands = buildCliCommands(app, { onResult: noopResult });
+      const spy = interceptOpts(commands);
+      const program = toCommander(commands, { name: 'test' });
+      program.exitOverride();
+
+      await program.parseAsync(['node', 'test', 'check', '--strict']);
+      expect(spy.received['strict']).toBe(true);
+    });
+  });
+
+  describe('strict number parsing', () => {
+    const buildNumberProgram = () => {
+      const t = trail('count', {
+        implementation: () => Result.ok('ok'),
+        input: z.object({ limit: z.number() }),
+      });
+      const app = makeApp(t);
+      const commands = buildCliCommands(app);
+      const program = toCommander(commands, { name: 'test' });
+      program.exitOverride();
+      program.configureOutput({
+        writeErr: noopWrite,
+        writeOut: noopWrite,
+      });
+      // Also configure on the subcommand directly
+      for (const sub of program.commands) {
+        sub.exitOverride();
+        sub.configureOutput({
+          writeErr: noopWrite,
+          writeOut: noopWrite,
+        });
+      }
+      return program;
+    };
+
+    test('rejects partial number like "123abc"', async () => {
+      const program = buildNumberProgram();
+      let threw = false;
+      try {
+        await program.parseAsync([
+          'node',
+          'test',
+          'count',
+          '--limit',
+          '123abc',
+        ]);
+      } catch {
+        threw = true;
+      }
+      expect(threw).toBe(true);
+    });
+
+    test('rejects Infinity', async () => {
+      const program = buildNumberProgram();
+      let threw = false;
+      try {
+        await program.parseAsync([
+          'node',
+          'test',
+          'count',
+          '--limit',
+          'Infinity',
+        ]);
+      } catch {
+        threw = true;
+      }
+      expect(threw).toBe(true);
+    });
+
+    test('rejects NaN', async () => {
+      const program = buildNumberProgram();
+      let threw = false;
+      try {
+        await program.parseAsync(['node', 'test', 'count', '--limit', 'abc']);
+      } catch {
+        threw = true;
+      }
+      expect(threw).toBe(true);
+    });
+
+    test.each([
+      { expected: 42, input: '42' },
+      { expected: 3.14, input: '3.14' },
+      { expected: -5, input: '-5' },
+    ])('accepts valid number "$input"', async ({ expected, input }) => {
+      const t = trail('count', {
+        implementation: () => Result.ok('ok'),
+        input: z.object({ limit: z.number() }),
+      });
+      const app = makeApp(t);
+      const commands = buildCliCommands(app, { onResult: noopResult });
+      const spy = interceptOpts(commands);
+      const program = toCommander(commands, { name: 'test' });
+      program.exitOverride();
+
+      await program.parseAsync(['node', 'test', 'count', '--limit', input]);
+      expect(spy.received['limit']).toBe(expected);
+    });
   });
 
   test('sets version when provided', () => {

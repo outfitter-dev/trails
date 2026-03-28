@@ -4,6 +4,7 @@ import { Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { buildCliCommands } from '../build.js';
+import { blaze } from '../commander/blaze.js';
 import { toCommander } from '../commander/to-commander.js';
 import { defaultOnResult } from '../on-result.js';
 
@@ -45,6 +46,15 @@ describe('blaze', () => {
 
     expect(program.commands).toHaveLength(1);
     expect(program.commands[0]?.name()).toBe('echo');
+  });
+
+  test('blaze returns a Promise (async signature)', () => {
+    // Verify blaze's return type is a Promise by checking its constructor name.
+    // We don't call blaze() here because it invokes parseAsync on real argv.
+    expect(blaze).toBeDefined();
+    // The function is async, so calling it returns a Promise.
+    // We verify the type signature indirectly: async functions have AsyncFunction constructor.
+    expect(blaze.constructor.name).toBe('AsyncFunction');
   });
 
   test('end-to-end: define trail, build commands, execute, verify output', async () => {

@@ -33,7 +33,9 @@ const fieldTypeToCliFlag: Record<Field['type'], CliFlagShape> = {
   enum: { type: 'string', variadic: false },
   multiselect: { type: 'string[]', variadic: true },
   number: { type: 'number', variadic: false },
+  'number[]': { type: 'number[]', variadic: true },
   string: { type: 'string', variadic: false },
+  'string[]': { type: 'string[]', variadic: true },
 };
 
 /** Convert a derived field into a CLI flag descriptor. */
