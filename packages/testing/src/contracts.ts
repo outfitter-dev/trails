@@ -87,7 +87,7 @@ export const testContracts = (
           const validated = validateInput(t.input, example.input);
           const validatedInput = expectOk(validated);
 
-          const result = await t.implementation(validatedInput, testCtx);
+          const result = await t.run(validatedInput, testCtx);
           const resultValue = expectOk(result);
 
           validateOutputSchema(outputSchema, resultValue, t.id, example.name);

@@ -14,7 +14,7 @@ describe('no-throw-in-implementation', () => {
   test('flags throw inside implementation body', () => {
     const code = `
 trail("entity.show", {
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     throw new Error("boom");
   }
 })`;
@@ -27,7 +27,7 @@ trail("entity.show", {
   test('allows Result.err() in implementation', () => {
     const code = `
 trail("entity.show", {
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     return Result.err(new NotFoundError("not found"));
   }
 })`;
@@ -42,7 +42,7 @@ function helper() {
 }
 
 trail("entity.show", {
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     return Result.ok(data);
   }
 })`;
@@ -59,7 +59,7 @@ describe('context-no-surface-types', () => {
     const code = `
 import { Request, Response } from "express";
 trail("entity.show", {
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     return Result.ok(data);
   }
 })`;
@@ -73,7 +73,7 @@ trail("entity.show", {
     const code = `
 import type { McpSession } from "@modelcontextprotocol/sdk";
 trail("entity.show", {
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     return Result.ok(data);
   }
 })`;
@@ -85,7 +85,7 @@ trail("entity.show", {
     const code = `
 import { trail, Result } from "@ontrails/core";
 trail("entity.show", {
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     return Result.ok(data);
   }
 })`;
@@ -110,7 +110,7 @@ describe('valid-detour-refs', () => {
     const code = `
 trail("entity.show", {
   detours: [{ target: "entity.edit" }],
-  implementation: async (input, ctx) => Result.ok(data)
+  run: async (input, ctx) => Result.ok(data)
 })`;
     const diagnostics = validDetourRefs.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(1);
@@ -120,12 +120,12 @@ trail("entity.show", {
   test('passes when detour target exists', () => {
     const code = `
 trail("entity.edit", {
-  implementation: async (input, ctx) => Result.ok(data)
+  run: async (input, ctx) => Result.ok(data)
 })
 
 trail("entity.show", {
   detours: [{ target: "entity.edit" }],
-  implementation: async (input, ctx) => Result.ok(data)
+  run: async (input, ctx) => Result.ok(data)
 })`;
     const diagnostics = validDetourRefs.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(0);
@@ -135,7 +135,7 @@ trail("entity.show", {
     const code = `
 trail("entity.show", {
   detours: [{ target: "entity.edit" }],
-  implementation: async (input, ctx) => Result.ok(data)
+  run: async (input, ctx) => Result.ok(data)
 })`;
     const context = { knownTrailIds: new Set(['entity.show', 'entity.edit']) };
     const diagnostics = validDetourRefs.checkWithContext(
@@ -151,7 +151,7 @@ trail("entity.show", {
 trail("entity.onboard", {
   detours: [{ target: "entity.missing" }],
   follow: ["entity.create"],
-  implementation: async (input, ctx) => Result.ok(data)
+  run: async (input, ctx) => Result.ok(data)
 })`;
     const diagnostics = validDetourRefs.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(1);
@@ -161,13 +161,13 @@ trail("entity.onboard", {
   test('passes when trail with follow detour target exists', () => {
     const code = `
 trail("entity.fallback", {
-  implementation: async (input, ctx) => Result.ok(data)
+  run: async (input, ctx) => Result.ok(data)
 })
 
 trail("entity.onboard", {
   detours: [{ target: "entity.fallback" }],
   follow: ["entity.create"],
-  implementation: async (input, ctx) => Result.ok(data)
+  run: async (input, ctx) => Result.ok(data)
 })`;
     const diagnostics = validDetourRefs.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(0);
@@ -178,12 +178,12 @@ trail("entity.onboard", {
 // no-direct-impl-in-route
 // ---------------------------------------------------------------------------
 describe('no-direct-impl-in-route', () => {
-  test('warns on direct .implementation() call in trail with follow', () => {
+  test('warns on direct .run() call in trail with follow', () => {
     const code = `
 trail("entity.onboard", {
   follow: ["entity.create"],
-  implementation: async (input, ctx) => {
-    const result = await entityCreate.implementation(data);
+  run: async (input, ctx) => {
+    const result = await entityCreate.run(data);
     return Result.ok(result);
   }
 })`;
@@ -197,7 +197,7 @@ trail("entity.onboard", {
     const code = `
 trail("entity.onboard", {
   follow: ["entity.create"],
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     const result = await ctx.follow("entity.create", data);
     return Result.ok(result);
   }
@@ -209,8 +209,8 @@ trail("entity.onboard", {
   test('ignores trails without follow', () => {
     const code = `
 trail("entity.show", {
-  implementation: async (input, ctx) => {
-    const result = await someTrail.implementation(data);
+  run: async (input, ctx) => {
+    const result = await someTrail.run(data);
     return Result.ok(result);
   }
 })`;
@@ -220,7 +220,7 @@ trail("entity.show", {
 
   test('ignores files without trail() calls', () => {
     const code = `
-const result = await someTrail.implementation(data);`;
+const result = await someTrail.run(data);`;
     const diagnostics = noDirectImplInRoute.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(0);
   });

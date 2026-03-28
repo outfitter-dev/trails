@@ -74,15 +74,11 @@ export const offsetToLine = (sourceCode: string, offset: number): number => {
   return line;
 };
 
-/** Find all `implementation:` property values in an AST. */
-export const findImplementationBodies = (ast: AstNode): AstNode[] => {
+/** Find all `run:` property values in an AST. */
+export const findRunBodies = (ast: AstNode): AstNode[] => {
   const bodies: AstNode[] = [];
   walk(ast, (node) => {
-    if (
-      node.type === 'Property' &&
-      node.key?.name === 'implementation' &&
-      node.value
-    ) {
+    if (node.type === 'Property' && node.key?.name === 'run' && node.value) {
       bodies.push(node.value);
     }
   });
@@ -157,8 +153,8 @@ const extractTrailDefinition = (node: AstNode): TrailDefinition | null => {
   };
 };
 
-/** Check if a node is a call to `.implementation()` on some object. */
-export const isImplementationCall = (node: AstNode): boolean => {
+/** Check if a node is a call to `.run()` on some object. */
+export const isRunCall = (node: AstNode): boolean => {
   if (node.type !== 'CallExpression') {
     return false;
   }
@@ -175,7 +171,7 @@ export const isImplementationCall = (node: AstNode): boolean => {
   const prop = (callee as unknown as { property?: AstNode }).property;
   return (
     prop?.type === 'Identifier' &&
-    (prop as unknown as { name: string }).name === 'implementation'
+    (prop as unknown as { name: string }).name === 'run'
   );
 };
 

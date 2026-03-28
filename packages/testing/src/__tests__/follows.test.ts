@@ -21,18 +21,17 @@ const addTrail = trail('entity.add', {
       name: 'duplicate',
     },
   ],
-  implementation: (input: { name: string }) =>
-    Result.ok({ id: '1', name: input.name }),
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.string(), name: z.string() }),
+  run: (input: { name: string }) => Result.ok({ id: '1', name: input.name }),
 });
 
 const relateTrail = trail('entity.relate', {
   description: 'Relate two entities',
-  implementation: (input: { from: string; to: string }) =>
-    Result.ok({ from: input.from, to: input.to }),
   input: z.object({ from: z.string(), to: z.string() }),
   output: z.object({ from: z.string(), to: z.string() }),
+  run: (input: { from: string; to: string }) =>
+    Result.ok({ from: input.from, to: input.to }),
 });
 
 // ---------------------------------------------------------------------------
@@ -41,7 +40,9 @@ const relateTrail = trail('entity.relate', {
 
 const onboardTrail = trail('entity.onboard', {
   follow: ['entity.add', 'entity.relate'],
-  implementation: async (
+  input: z.object({ name: z.string(), relatedTo: z.string() }),
+  output: z.object({ name: z.string(), relatedTo: z.string() }),
+  run: async (
     input: { name: string; relatedTo: string },
     ctx: TrailContext
   ) => {
@@ -69,8 +70,6 @@ const onboardTrail = trail('entity.onboard', {
       relatedTo: relateResult.value.to,
     });
   },
-  input: z.object({ name: z.string(), relatedTo: z.string() }),
-  output: z.object({ name: z.string(), relatedTo: z.string() }),
 });
 
 const trailsMap = new Map<string, AnyTrail>([

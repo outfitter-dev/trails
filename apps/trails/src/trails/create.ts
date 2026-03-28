@@ -176,12 +176,6 @@ export const createRoute = trail('create', {
     },
   },
   follow: ['create.scaffold', 'add.surface', 'add.verify'],
-  implementation: async (input: BlazeInput, ctx) => {
-    if (!ctx.follow) {
-      return Result.err(new Error('create route requires ctx.follow'));
-    }
-    return await runCreate(ctx.follow, input);
-  },
   input: z.object({
     dir: z.string().optional().describe('Parent directory'),
     name: z.string().describe('Project name'),
@@ -200,4 +194,10 @@ export const createRoute = trail('create', {
     dir: z.string(),
     name: z.string(),
   }),
+  run: async (input: BlazeInput, ctx) => {
+    if (!ctx.follow) {
+      return Result.err(new Error('create route requires ctx.follow'));
+    }
+    return await runCreate(ctx.follow, input);
+  },
 });

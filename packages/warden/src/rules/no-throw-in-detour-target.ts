@@ -6,7 +6,7 @@
  */
 
 import {
-  findImplementationBodies,
+  findRunBodies,
   findTrailDefinitions,
   offsetToLine,
   parse,
@@ -66,7 +66,7 @@ const findThrowsInTargetedTrails = (
       continue;
     }
 
-    for (const body of findImplementationBodies(def.config as AstNode)) {
+    for (const body of findRunBodies(def.config as AstNode)) {
       walk(body, (node) => {
         if (node.type === 'ThrowStatement') {
           diagnostics.push({

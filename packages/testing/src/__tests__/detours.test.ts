@@ -13,18 +13,18 @@ const showTrail = trail('entity.show', {
   detours: {
     related: ['entity.list'],
   },
-  implementation: (input: { id: string }) => Result.ok({ id: input.id }),
   input: z.object({ id: z.string() }),
+  run: (input: { id: string }) => Result.ok({ id: input.id }),
 });
 
 const listTrail = trail('entity.list', {
-  implementation: () => Result.ok([]),
   input: z.object({}),
+  run: () => Result.ok([]),
 });
 
 const noDetoursTrail = trail('entity.plain', {
-  implementation: () => Result.ok('ok'),
   input: z.object({}),
+  run: () => Result.ok('ok'),
 });
 
 // ---------------------------------------------------------------------------

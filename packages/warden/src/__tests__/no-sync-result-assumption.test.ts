@@ -6,7 +6,7 @@ describe('no-sync-result-assumption', () => {
   test('flags direct result access on implementation calls', () => {
     const code = `
 async function run() {
-  const isOk = entityShow.implementation({ id: "1" }, ctx).isOk();
+  const isOk = entityShow.run({ id: "1" }, ctx).isOk();
   return isOk;
 }`;
 
@@ -20,7 +20,7 @@ async function run() {
 
   test('flags a stored implementation result that is used synchronously', () => {
     const code = `
-const result = entityShow.implementation({ id: "1" }, ctx);
+const result = entityShow.run({ id: "1" }, ctx);
 
 if (result.isOk()) {
   console.log("ok");
@@ -35,7 +35,7 @@ if (result.isOk()) {
   test('allows awaited implementation calls before result access', () => {
     const code = `
 async function run() {
-  const result = await entityShow.implementation({ id: "1" }, ctx);
+  const result = await entityShow.run({ id: "1" }, ctx);
   return result.isOk();
 }`;
 
@@ -47,7 +47,7 @@ async function run() {
   test('allows awaited implementation calls when the property access is chained', () => {
     const code = `
 async function run() {
-  return (await entityShow.implementation({ id: "1" }, ctx)).isOk();
+  return (await entityShow.run({ id: "1" }, ctx)).isOk();
 }`;
 
     const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
@@ -57,7 +57,7 @@ async function run() {
 
   test('ignores test files', () => {
     const code = `
-const result = entityShow.implementation({ id: "1" }, ctx);
+const result = entityShow.run({ id: "1" }, ctx);
 result.isOk();
 `;
 
@@ -71,7 +71,7 @@ result.isOk();
 
   test('ignores framework internals that intentionally call implementations', () => {
     const code = `
-const result = entityShow.implementation({ id: "1" }, ctx);
+const result = entityShow.run({ id: "1" }, ctx);
 result.isOk();
 `;
 

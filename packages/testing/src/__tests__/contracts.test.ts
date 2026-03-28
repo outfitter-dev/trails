@@ -18,24 +18,23 @@ const validTrail = trail('valid', {
       name: 'Valid output',
     },
   ],
-  implementation: (input: { name: string }) =>
-    Result.ok({ id: 1, name: input.name }),
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.number(), name: z.string() }),
+  run: (input: { name: string }) => Result.ok({ id: 1, name: input.name }),
 });
 
 /** Trail without output schema -- should be skipped. */
 const noSchemaTrail = trail('noschema', {
   examples: [{ expected: 10, input: { x: 5 }, name: 'No schema' }],
-  implementation: (input: { x: number }) => Result.ok(input.x * 2),
   input: z.object({ x: z.number() }),
+  run: (input: { x: number }) => Result.ok(input.x * 2),
 });
 
 /** Trail without examples -- should be skipped. */
 const noExamplesTrail = trail('noexamples', {
-  implementation: (input: { x: number }) => Result.ok({ value: input.x }),
   input: z.object({ x: z.number() }),
   output: z.object({ value: z.number() }),
+  run: (input: { x: number }) => Result.ok({ value: input.x }),
 });
 
 // ---------------------------------------------------------------------------
@@ -52,10 +51,10 @@ const compositionTrail = trail('composition.valid', {
     },
   ],
   follow: ['valid'],
-  implementation: (input: { a: number; b: number }) =>
-    Result.ok({ total: input.a + input.b }),
   input: z.object({ a: z.number(), b: z.number() }),
   output: z.object({ total: z.number() }),
+  run: (input: { a: number; b: number }) =>
+    Result.ok({ total: input.a + input.b }),
 });
 
 // ---------------------------------------------------------------------------

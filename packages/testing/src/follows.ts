@@ -101,7 +101,7 @@ const executeFromMap = (
   if (validated.isErr()) {
     return validated;
   }
-  return trailDef.implementation(validated.value, ctx);
+  return trailDef.run(validated.value, ctx);
 };
 
 // ---------------------------------------------------------------------------
@@ -235,7 +235,7 @@ const runScenario = async (
   }
 
   const { trace, testCtx } = buildTestContext(scenario, ctx, trailsMap);
-  const result = await trailDef.implementation(expectOk(validated), testCtx);
+  const result = await trailDef.run(expectOk(validated), testCtx);
   assertFollowTrace(trace, scenario);
   assertScenarioResult(result, scenario, trailDef);
 };

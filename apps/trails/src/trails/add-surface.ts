@@ -92,7 +92,15 @@ const writeSurfaceEntry = async (
 
 export const addSurface = trail('add.surface', {
   description: 'Add a surface to an existing project',
-  implementation: async (input) => {
+  input: z.object({
+    dir: z.string().optional().describe('Project directory'),
+    surface: z.enum(['cli', 'mcp']).describe('Surface to add'),
+  }),
+  output: z.object({
+    created: z.string(),
+    dependency: z.string(),
+  }),
+  run: async (input) => {
     const cwd = resolve(input.dir ?? '.');
     const { surface } = input;
     const entryFile = getEntryFile(surface);
@@ -108,12 +116,4 @@ export const addSurface = trail('add.surface', {
       dependency: await updatePkgJsonForSurface(cwd, surface),
     });
   },
-  input: z.object({
-    dir: z.string().optional().describe('Project directory'),
-    surface: z.enum(['cli', 'mcp']).describe('Surface to add'),
-  }),
-  output: z.object({
-    created: z.string(),
-    dependency: z.string(),
-  }),
 });

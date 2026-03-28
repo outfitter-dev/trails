@@ -22,7 +22,20 @@ export const onboard = trail('entity.onboard', {
     },
   ],
   follow: ['entity.add', 'search'],
-  implementation: async (input, ctx) => {
+  input: z.object({
+    name: z.string().describe('Entity name'),
+    tags: z.array(z.string()).optional().default([]),
+    type: z.string().describe('Entity type'),
+  }),
+  output: z.object({
+    entity: z.object({
+      id: z.string(),
+      name: z.string(),
+      type: z.string(),
+    }),
+    searchable: z.boolean(),
+  }),
+  run: async (input, ctx) => {
     if (!ctx.follow) {
       return Result.err(new Error('Route requires a follow function'));
     }
@@ -64,17 +77,4 @@ export const onboard = trail('entity.onboard', {
       searchable,
     });
   },
-  input: z.object({
-    name: z.string().describe('Entity name'),
-    tags: z.array(z.string()).optional().default([]),
-    type: z.string().describe('Entity type'),
-  }),
-  output: z.object({
-    entity: z.object({
-      id: z.string(),
-      name: z.string(),
-      type: z.string(),
-    }),
-    searchable: z.boolean(),
-  }),
 });

@@ -1,15 +1,15 @@
 /**
- * Detects trail implementations with `follow` that call `.implementation()` directly.
+ * Detects trail implementations with `follow` that call `.run()` directly.
  *
  * Uses AST parsing to find trail definitions that declare `follow` and check for
- * `.implementation()` call expressions in their bodies.
+ * `.run()` call expressions in their bodies.
  */
 
 import {
   findConfigProperty,
-  findImplementationBodies,
+  findRunBodies,
   findTrailDefinitions,
-  isImplementationCall,
+  isRunCall,
   offsetToLine,
   parse,
   walk,
@@ -29,14 +29,14 @@ const findImplCallsInTrailWithFollow = (
   sourceCode: string,
   diagnostics: WardenDiagnostic[]
 ): void => {
-  for (const body of findImplementationBodies(def.config as AstNode)) {
+  for (const body of findRunBodies(def.config as AstNode)) {
     walk(body, (node) => {
-      if (isImplementationCall(node as AstNode)) {
+      if (isRunCall(node as AstNode)) {
         diagnostics.push({
           filePath,
           line: offsetToLine(sourceCode, node.start),
           message:
-            'Use ctx.follow("trailId", input) instead of direct .implementation() calls. ctx.follow() validates input and propagates tracing.',
+            'Use ctx.follow("trailId", input) instead of direct .run() calls. ctx.follow() validates input and propagates tracing.',
           rule: 'no-direct-impl-in-route',
           severity: 'warn',
         });
@@ -49,7 +49,7 @@ const hasFollowProperty = (config: AstNode): boolean =>
   findConfigProperty(config as AstNode, 'follow') !== null;
 
 /**
- * Detects trails with `follow` that call another trail's `.implementation()` directly.
+ * Detects trails with `follow` that call another trail's `.run()` directly.
  */
 export const noDirectImplInRoute: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
@@ -74,7 +74,7 @@ export const noDirectImplInRoute: WardenRule = {
     return diagnostics;
   },
   description:
-    'Prefer ctx.follow() over direct .implementation() calls in trail bodies with follow.',
+    'Prefer ctx.follow() over direct .run() calls in trail bodies with follow.',
   name: 'no-direct-impl-in-route',
 
   severity: 'warn',

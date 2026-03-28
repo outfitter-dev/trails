@@ -9,11 +9,11 @@ describe('no-throw-in-detour-target', () => {
     const code = `
 trail("entity.show", {
   detours: { NotFoundError: ["entity.fallback"] },
-  implementation: async (input, ctx) => Result.ok({ id: "123" })
+  run: async (input, ctx) => Result.ok({ id: "123" })
 })
 
 trail("entity.fallback", {
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     throw new Error("boom");
   }
 })`;
@@ -28,7 +28,7 @@ trail("entity.fallback", {
   test('allows throw in implementations that are not detour targets', () => {
     const code = `
 trail("entity.show", {
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     throw new Error("boom");
   }
 })`;
@@ -42,11 +42,11 @@ trail("entity.show", {
     const code = `
 trail("entity.show", {
   detours: { NotFoundError: ["entity.fallback"] },
-  implementation: async (input, ctx) => Result.ok({ id: "123" })
+  run: async (input, ctx) => Result.ok({ id: "123" })
 })
 
 trail("entity.fallback", {
-  implementation: async (input, ctx) => { throw new Error("boom"); }
+  run: async (input, ctx) => { throw new Error("boom"); }
 })`;
 
     const diagnostics = noThrowInDetourTarget.check(code, TEST_FILE);
@@ -58,7 +58,7 @@ trail("entity.fallback", {
   test('uses project context when the detour target is defined in another file', () => {
     const code = `
 trail("entity.fallback", {
-  implementation: async (input, ctx) => {
+  run: async (input, ctx) => {
     throw new Error("boom");
   }
 })`;

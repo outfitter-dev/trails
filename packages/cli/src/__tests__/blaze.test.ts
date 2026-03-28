@@ -15,8 +15,8 @@ import { defaultOnResult } from '../on-result.js';
 describe('blaze', () => {
   test('smoke test: buildCliCommands + toCommander wiring does not throw', () => {
     const t = trail('ping', {
-      implementation: () => Result.ok('pong'),
       input: z.object({}),
+      run: () => Result.ok('pong'),
     });
     const app = topo('smoke-test', { ping: t });
 
@@ -33,8 +33,8 @@ describe('blaze', () => {
 
   test('uses defaultOnResult when none provided', () => {
     const t = trail('echo', {
-      implementation: (input: { msg: string }) => Result.ok(input.msg),
       input: z.object({ msg: z.string() }),
+      run: (input: { msg: string }) => Result.ok(input.msg),
     });
     const app = topo('default-on-result', { echo: t });
 
@@ -67,9 +67,8 @@ describe('blaze', () => {
 
     try {
       const t = trail('greet', {
-        implementation: (input: { name: string }) =>
-          Result.ok(`Hello, ${input.name}!`),
         input: z.object({ name: z.string() }),
+        run: (input: { name: string }) => Result.ok(`Hello, ${input.name}!`),
       });
       const app = topo('e2e-test', { greet: t });
 

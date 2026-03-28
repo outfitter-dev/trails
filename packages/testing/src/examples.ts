@@ -137,7 +137,7 @@ const runExample = async (
   }
   const validatedInput = expectOk(validated);
 
-  const result = await t.implementation(validatedInput, testCtx);
+  const result = await t.run(validatedInput, testCtx);
   assertProgressiveMatch(result, example, output);
 };
 
@@ -171,7 +171,7 @@ const createCoverageFollow = (
       if (validated.isErr()) {
         return Promise.resolve(validated);
       }
-      return Promise.resolve(trailDef.implementation(validated.value, ctx));
+      return Promise.resolve(trailDef.run(validated.value, ctx));
     }
 
     return Promise.resolve(Result.ok());
@@ -200,7 +200,7 @@ const runCompositionExample = async (
   const follow = createCoverageFollow(called, baseCtx.follow, topo, baseCtx);
   const testCtx: TrailContext = { ...baseCtx, follow };
 
-  const result = await trailDef.implementation(validatedInput, testCtx);
+  const result = await trailDef.run(validatedInput, testCtx);
   assertProgressiveMatch(result, example, output);
 };
 

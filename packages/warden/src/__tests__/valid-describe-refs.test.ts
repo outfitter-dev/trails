@@ -9,7 +9,7 @@ trail("entity.show", {
   input: z.object({
     query: z.string().describe("Search query. @see entity.search"),
   }),
-  implementation: (input) => Result.ok(input),
+  run: (input) => Result.ok(input),
 })`;
 
     const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
@@ -23,14 +23,14 @@ trail("entity.show", {
     const code = `
 trail("entity.search", {
   input: z.object({ query: z.string() }),
-  implementation: (input) => Result.ok(input),
+  run: (input) => Result.ok(input),
 })
 
 trail("entity.show", {
   input: z.object({
     query: z.string().describe("Search query. @see entity.search"),
   }),
-  implementation: (input) => Result.ok(input),
+  run: (input) => Result.ok(input),
 })`;
 
     const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
@@ -44,7 +44,7 @@ trail("entity.show", {
   input: z.object({
     query: z.string().describe("Search query. @see entity.search"),
   }),
-  implementation: (input) => Result.ok(input),
+  run: (input) => Result.ok(input),
 })`;
 
     const diagnostics = validDescribeRefs.checkWithContext(

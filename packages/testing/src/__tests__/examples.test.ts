@@ -18,10 +18,10 @@ const greetTrail = trail('greet', {
       name: 'Greet Alice',
     },
   ],
-  implementation: (input: { name: string }) =>
-    Result.ok({ greeting: `Hello, ${input.name}` }),
   input: z.object({ name: z.string() }),
   output: z.object({ greeting: z.string() }),
+  run: (input: { name: string }) =>
+    Result.ok({ greeting: `Hello, ${input.name}` }),
 });
 
 const searchTrail = trail('search', {
@@ -32,10 +32,10 @@ const searchTrail = trail('search', {
       name: 'Schema-only search',
     },
   ],
-  implementation: (input: { query: string }) =>
-    Result.ok({ results: [`result for ${input.query}`] }),
   input: z.object({ query: z.string() }),
   output: z.object({ results: z.array(z.string()) }),
+  run: (input: { query: string }) =>
+    Result.ok({ results: [`result for ${input.query}`] }),
 });
 
 const entityTrail = trail('entity.show', {
@@ -52,19 +52,19 @@ const entityTrail = trail('entity.show', {
       name: 'Entity not found returns NotFoundError',
     },
   ],
-  implementation: (input: { name: string }) => {
+  input: z.object({ name: z.string() }),
+  output: z.object({ id: z.number(), name: z.string() }),
+  run: (input: { name: string }) => {
     if (input.name === 'missing') {
       return Result.err(new NotFoundError('Entity not found'));
     }
     return Result.ok({ id: 1, name: input.name });
   },
-  input: z.object({ name: z.string() }),
-  output: z.object({ id: z.number(), name: z.string() }),
 });
 
 const noExamplesTrail = trail('noexamples', {
-  implementation: (input: { x: number }) => Result.ok(input.x * 2),
   input: z.object({ x: z.number() }),
+  run: (input: { x: number }) => Result.ok(input.x * 2),
 });
 
 // ---------------------------------------------------------------------------
@@ -73,18 +73,17 @@ const noExamplesTrail = trail('noexamples', {
 
 const addTrail = trail('entity.add', {
   description: 'Add an entity',
-  implementation: (input: { name: string }) =>
-    Result.ok({ id: '1', name: input.name }),
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.string(), name: z.string() }),
+  run: (input: { name: string }) => Result.ok({ id: '1', name: input.name }),
 });
 
 const relateTrail = trail('entity.relate', {
   description: 'Relate entities',
-  implementation: (input: { from: string; to: string }) =>
-    Result.ok({ from: input.from, to: input.to }),
   input: z.object({ from: z.string(), to: z.string() }),
   output: z.object({ from: z.string(), to: z.string() }),
+  run: (input: { from: string; to: string }) =>
+    Result.ok({ from: input.from, to: input.to }),
 });
 
 const onboardTrail = trail('entity.onboard', {
@@ -97,7 +96,9 @@ const onboardTrail = trail('entity.onboard', {
     },
   ],
   follow: ['entity.add', 'entity.relate'],
-  implementation: async (input: { name: string }, ctx) => {
+  input: z.object({ name: z.string() }),
+  output: z.object({ id: z.string(), name: z.string() }),
+  run: async (input: { name: string }, ctx) => {
     if (!ctx.follow) {
       return Result.err(new Error('follow not available'));
     }
@@ -114,8 +115,6 @@ const onboardTrail = trail('entity.onboard', {
     }
     return Result.ok({ id: '1', name: input.name });
   },
-  input: z.object({ name: z.string() }),
-  output: z.object({ id: z.string(), name: z.string() }),
 });
 
 // ---------------------------------------------------------------------------
