@@ -1,38 +1,48 @@
 # Trails
 
-**Define once. Surface everywhere. The rest is on Trails.**
+**Define once. Surface everywhere.**
 
-Trails is an agent-native, contract-first TypeScript framework. Define your logic once as typed trails with Zod schemas. Surface them on CLI, MCP, HTTP, or WebSocket -- one line each.
+Trails is a contract-first TypeScript framework for agent-assisted development. You define a trail — a typed contract with a Zod schema, implementation, examples, and metadata — and the framework projects it onto CLI, MCP, HTTP, or WebSocket. One definition, every surface, zero drift.
+
+## The problem
+
+Agents write good code, fast. But they write code that drifts.
+
+An agent that builds `users` on Monday and `billing` on Thursday produces slightly different patterns each time — different error formats, different validation approaches, different response envelopes. Both work. Both pass tests. They just diverged, because nothing structural prevented it.
+
+That divergence compounds. And it gets real the moment you want to add a second surface. The CLI and MCP versions of the same logic start drifting within days. Keeping them in sync becomes the work, not building features.
+
+Trails makes drift structurally harder than alignment.
+
+## How it works
+
+A trail is a typed function with a contract:
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
 import { z } from 'zod';
 
-// Define a trail
 const greet = trail('greet', {
-  input: z.object({
-    name: z.string().describe('Who to greet'),
-  }),
+  input: z.object({ name: z.string().describe('Who to greet') }),
   output: z.object({ message: z.string() }),
   readOnly: true,
   examples: [
-    {
-      name: 'Basic greeting',
-      input: { name: 'World' },
-      expected: { message: 'Hello, World!' },
-    },
+    { name: 'Hello', input: { name: 'World' }, expected: { message: 'Hello, World!' } },
   ],
   implementation: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
+```
 
-// Collect into an app
+Collect trails into a topo. Open it on any surface with `blaze()`:
+
+```typescript
 const app = topo('myapp', { greet });
 
-// Blaze on CLI
+// CLI
 import { blaze } from '@ontrails/cli/commander';
 blaze(app);
 
-// Blaze on MCP -- same trails, same implementation
+// MCP — same trails, same implementation
 import { blaze as blazeMcp } from '@ontrails/mcp';
 await blazeMcp(app);
 ```
@@ -42,47 +52,22 @@ $ myapp greet --name World
 { "message": "Hello, World!" }
 ```
 
-Same trails. Same implementation. Every surface. Pure trails can return `Result` directly; hikes and I/O-bound trails can stay `async`. Trails normalizes both forms to one awaitable runtime shape before layers and surfaces execute them.
+Same contract. Same implementation. Every surface derives its representation from the trail — CLI flags from the Zod schema, MCP tool definitions from the trail metadata, error codes from the error taxonomy. The developer authored one thing. The framework derived the rest.
 
-## Features
+## What Trails does
 
-- **One schema, every surface.** CLI flags, MCP tool definitions, HTTP query params, and `--help` text are all generated from a single Zod schema.
-- **Result types, not exceptions.** `Result<T, Error>` replaces throw/catch. 13 error classes across 10 categories, each mapping to exit codes, HTTP status, and retryability.
-- **Examples are tests.** Add `examples` to a trail and `testExamples(app)` runs them as assertions. Write for agent fluency, get test coverage for free.
-- **Derive the default, override when wrong.** Command names, tool names, flag names -- all derived from the trail ID and Zod schema. Zero configuration for the common case.
-- **Agent-native for building AND consuming.** Structural constraints make agent-built tools consistent by default. Queryable contracts make agent-consumed tools effective by default.
-- **Hexagonal architecture.** Core defines ports. Surfaces (CLI, MCP) and infrastructure (logging, storage) are adapters. No vendor lock-in.
-- **Bun-native framework.** Surfaces are universally consumable -- CLI binaries, MCP servers, and HTTP endpoints work with any runtime on the consuming side.
+**Author what's new. Derive what's known. Override what's wrong.**
 
-## Packages
+- **One schema, every surface.** CLI flags, MCP tool definitions, and `--help` text are all derived from a single Zod schema. Change the schema, every surface updates.
+- **Typed errors, not exceptions.** `Result<T, Error>` replaces throw/catch. 13 error classes map deterministically to exit codes, HTTP status, and JSON-RPC codes — on every surface, every time.
+- **Examples are tests.** Add `examples` to a trail and `testAll(app)` runs them as assertions, verifies output schemas, checks composition graphs, and validates structural integrity. One line of test code, full governance.
+- **The contract is queryable.** `survey` introspects the topo. `warden` governs it. `validateTopo()` checks structural validity. Agents and tooling can inspect the system without running it.
+- **Bun-native.** The framework uses Bun for development. The surfaces it produces — CLI binaries, MCP servers, HTTP endpoints — work with any runtime on the consuming side.
 
-| Package | Description |
-| --- | --- |
-| [`@ontrails/core`](./packages/core) | Foundation -- Result, errors, trail/hike/event, topo, patterns, redaction, branded types, validation |
-| [`@ontrails/cli`](./packages/cli) | CLI surface adapter + `/commander` subpath for flag derivation, output formatting, `blaze()` |
-| [`@ontrails/mcp`](./packages/mcp) | MCP surface adapter -- tool generation, annotations, progress bridge, `blaze()` |
-| [`@ontrails/logging`](./packages/logging) | Structured logging -- `createLogger()`, sinks, formatters, hierarchical filtering, `/logtape` adapter |
-| [`@ontrails/testing`](./packages/testing) | Contract-driven testing -- `testAll()`, `testExamples()`, `testTrail()`, `testHike()`, `testContracts()`, surface harnesses |
-| [`@ontrails/schema`](./packages/schema) | Surface maps, semantic diffing, lock files for CI governance |
-| [`@ontrails/warden`](./packages/warden) | Lint rules, drift detection, contract enforcement |
-
-## Quick Start
+## Quick start
 
 ```bash
-# Recommended: scaffold a new project
-bunx trails init
-
-# Or install manually
-bun add @ontrails/core @ontrails/cli
-
-# Add Commander adapter (for the /commander subpath)
-bun add commander
-
-# Add MCP surface (optional)
-bun add @ontrails/mcp
-
-# Add testing (dev)
-bun add -d @ontrails/testing
+bun add @ontrails/core @ontrails/cli commander
 ```
 
 Define a trail:
@@ -97,11 +82,7 @@ export const show = trail('entity.show', {
   output: z.object({ name: z.string(), type: z.string() }),
   readOnly: true,
   examples: [
-    {
-      name: 'Show entity',
-      input: { name: 'Alpha' },
-      expected: { name: 'Alpha', type: 'concept' },
-    },
+    { name: 'Show entity', input: { name: 'Alpha' }, expected: { name: 'Alpha', type: 'concept' } },
   ],
   implementation: (input) => Result.ok({ name: input.name, type: 'concept' }),
 });
@@ -121,33 +102,48 @@ import { app } from './app';
 blaze(app);
 ```
 
-Test with one line:
+Test:
 
 ```typescript
-// src/__tests__/app.test.ts
-import { testExamples } from '@ontrails/testing';
+import { testAll } from '@ontrails/testing';
 import { app } from '../app';
-testExamples(app);
+testAll(app);
 ```
 
-## The Pattern
+`testAll` runs `validateTopo` (structural integrity), `testExamples` (every example as an assertion), `testContracts` (output schema compliance), and `testDetours` (recovery paths) — in one call.
+
+## The vocabulary
 
 ```text
-trail()      defines   --> the contract (schema, implementation, examples, metadata)
-topo()       collects  --> trails into an app (builds the topo)
-blaze()      surfaces  --> the app on CLI, MCP, HTTP, or WebSocket
+trail()        define a unit of work
+hike()         define a composition that follows other trails
+event()        define a payload schema
+topo()         assemble trails into a queryable topology
+blaze()        surface the topo on CLI, MCP, HTTP, or WebSocket
 ```
+
+## Packages
+
+| Package | What it does |
+| --- | --- |
+| [`@ontrails/core`](./packages/core) | Result, errors, trail/hike/event/topo, validateTopo, validation, schema derivation, patterns, branded types |
+| [`@ontrails/cli`](./packages/cli) | CLI surface — flag derivation from Zod, output formatting, Commander adapter, `blaze()` |
+| [`@ontrails/mcp`](./packages/mcp) | MCP surface — tool generation, annotations, progress bridge, `blaze()` |
+| [`@ontrails/logging`](./packages/logging) | Structured logging — sinks, formatters, hierarchical filtering, LogTape adapter |
+| [`@ontrails/testing`](./packages/testing) | `testAll()`, `testExamples()`, `testTrail()`, `testHike()`, `testContracts()`, surface harnesses |
+| [`@ontrails/schema`](./packages/schema) | Surface maps, semantic diffing, lock files for CI governance |
+| [`@ontrails/warden`](./packages/warden) | AST-based code convention rules, drift detection, CI formatters |
 
 ## Documentation
 
-- [Why Trails](./docs/why-trails.md) -- Philosophy, derivation model, and how it compares
-- [Getting Started](./docs/getting-started.md) -- Installation, first trail, blaze, test
-- [Architecture](./docs/architecture.md) -- Hexagonal model, package layers, dependency graph
-- [Vocabulary](./docs/vocabulary.md) -- All Trails terms defined
-- [Testing Guide](./docs/testing.md) -- TDD, `testExamples()`, contract testing, harnesses
-- [CLI Surface](./docs/surfaces/cli.md) -- Flag derivation, output modes, layers
-- [MCP Surface](./docs/surfaces/mcp.md) -- Annotations, progress, tool naming
-- [Horizons](./docs/horizons.md) -- What the architecture unlocks next
+- [Why Trails](./docs/why-trails.md) — The problem, the approach, the design principles
+- [Getting Started](./docs/getting-started.md) — Installation, first trail, blaze, test
+- [Architecture](./docs/architecture.md) — Hexagonal model, package layers, information architecture
+- [Vocabulary](./docs/vocabulary.md) — Every Trails term defined
+- [Testing Guide](./docs/testing.md) — TDD with examples, `testAll()`, contract testing
+- [ADR-000: Core Premise](./docs/adr/000-core-premise.md) — The foundational decisions
+- [ADR-001: Naming Conventions](./docs/adr/001-naming-conventions.md) — The naming rules
+- [API Reference](./docs/api-reference.md) — The complete public API surface
 
 ## Development
 
@@ -155,10 +151,10 @@ blaze()      surfaces  --> the app on CLI, MCP, HTTP, or WebSocket
 bun run build          # Build all packages
 bun run test           # Run all tests
 bun run lint           # Lint with oxlint
-bun run typecheck      # TypeScript type checking
-bun run check          # lint + format:check + typecheck
+bun run typecheck      # TypeScript strict mode
+bun run check          # All of the above
 ```
 
----
+## Status
 
-The rest is on Trails.
+v1 beta. The contract layer, CLI and MCP surfaces, testing infrastructure, and governance tooling are implemented and passing. HTTP and WebSocket surfaces are designed but not yet built. See [Horizons](./docs/horizons.md) for what's next.
