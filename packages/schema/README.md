@@ -1,131 +1,63 @@
 # @ontrails/schema
 
-Surface maps, diffing, and lock files for Trails. The machine-readable contract for CI and governance.
+Surface maps, hashing, and semantic diffing for Trails. Generate a machine-readable snapshot of your topo, hash it into a lock file, and detect breaking changes before they ship.
 
-## Installation
-
-```bash
-bun add -d @ontrails/schema
-```
-
-Peer dependencies: `@ontrails/core`, `zod`.
-
-## Quick Start
+## Usage
 
 ```typescript
-import {
-  generateSurfaceMap,
-  hashSurfaceMap,
-  diffSurfaceMaps,
-} from '@ontrails/schema';
+import { generateSurfaceMap, hashSurfaceMap, diffSurfaceMaps } from '@ontrails/schema';
 
-// Generate the surface map from the topo
-const surfaceMap = generateSurfaceMap(app);
+const map = generateSurfaceMap(app);
+const hash = hashSurfaceMap(map);
 
-// Hash it for the lock file
-const hash = hashSurfaceMap(surfaceMap);
+// Later, after changes:
+const newMap = generateSurfaceMap(app);
+const diff = diffSurfaceMaps(map, newMap);
 
-// Diff two surface maps
-const diff = diffSurfaceMaps(previousMap, surfaceMap);
 if (diff.hasBreaking) {
-  console.error('Breaking changes detected:', diff.breaking);
+  console.error('Breaking changes:', diff.breaking);
 }
 ```
 
-## API Overview
+The surface map captures every trail's input/output schemas (as JSON Schema), safety markers, follows graph, and example counts. The hash goes into `surface.lock` -- a single committed line that CI can check for drift.
 
-### `generateSurfaceMap(topo)`
+## API
 
-Produces a deterministic manifest of every trail in the topo. Entries are sorted alphabetically by ID. Input and output schemas are converted to JSON Schema via `zodToJsonSchema()`.
+| Export | What it does |
+| --- | --- |
+| `generateSurfaceMap(topo)` | Deterministic manifest of every trail, sorted by ID |
+| `hashSurfaceMap(map)` | SHA-256 hash, excluding timestamps for stability |
+| `diffSurfaceMaps(prev, curr)` | Semantic diff with breaking/warning/info severity |
+| `writeSurfaceMap(map, options?)` | Write `.trails/_surface.json` (gitignored detail file) |
+| `readSurfaceMap(options?)` | Read it back |
+| `writeSurfaceLock(hash, options?)` | Write `surface.lock` (committed, single hash line) |
+| `readSurfaceLock(options?)` | Read the lock hash |
 
-```typescript
-const map = generateSurfaceMap(app);
-// {
-//   version: "1.0",
-//   generatedAt: "2026-03-25T10:00:00.000Z",
-//   entries: [
-//     { id: "entity.show", kind: "trail", input: {...}, readOnly: true, exampleCount: 2 },
-//     { id: "search", kind: "trail", input: {...}, exampleCount: 1 },
-//   ]
-// }
-```
+See the [API Reference](../../docs/api-reference.md) for the full list.
 
-Each `SurfaceMapEntry` includes:
+## Breaking change detection
 
-- `id`, `kind` (`"trail"` | `"hike"` | `"event"`)
-- `input` and `output` as JSON Schema
-- Safety markers: `readOnly`, `destructive`, `idempotent`
-- `deprecated`, `replacedBy`
-- `follows` (for hikes), `detours`
-- `exampleCount`, `description`
+The diff classifies every change by severity:
 
-### `hashSurfaceMap(surfaceMap)`
-
-SHA-256 hash of the surface map content. Excludes `generatedAt` so the same topo always produces the same hash byte-for-byte.
-
-```typescript
-const hash = hashSurfaceMap(map); // "a1b2c3d4..."
-```
-
-### `diffSurfaceMaps(prev, curr)`
-
-Semantic diff between two surface maps. Classifies every change by severity instead of producing raw JSON diffs.
-
-```typescript
-const diff = diffSurfaceMaps(previousMap, currentMap);
-
-diff.entries; // All changes
-diff.breaking; // Breaking changes only
-diff.warnings; // Warnings only
-diff.info; // Informational changes
-diff.hasBreaking; // Quick check
-```
-
-**Breaking change detection:**
-
-| Change                     | Severity |
-| -------------------------- | -------- |
-| Trail removed              | breaking |
+| Change | Severity |
+| --- | --- |
+| Trail removed | breaking |
 | Required input field added | breaking |
-| Input field removed        | breaking |
-| Output field removed       | breaking |
-| Output field type changed  | breaking |
-| Surface removed            | breaking |
-| Safety marker changed      | warning  |
-| Trail deprecated           | warning  |
-| Follows changed            | warning  |
-| Trail added                | info     |
-| Optional input field added | info     |
-| Output field added         | info     |
-| Surface added              | info     |
+| Input/output field removed | breaking |
+| Output field type changed | breaking |
+| Safety marker changed | warning |
+| Trail deprecated | warning |
+| Follows changed | warning |
+| Trail added | info |
+| Optional input field added | info |
+| Output field added | info |
 
-### Lock File I/O
+## Drift detection with warden
 
 ```typescript
-import {
-  writeSurfaceMap, // .trails/_surface.json (gitignored detail file)
-  readSurfaceMap, // Read it back
-  writeSurfaceLock, // surface.lock (committed, single hash line)
-  readSurfaceLock, // Read the lock hash
-} from '@ontrails/schema';
-```
+import { generateSurfaceMap, hashSurfaceMap, readSurfaceLock } from '@ontrails/schema';
 
-Default directory: `.trails/`. Override with `{ dir: "./custom" }`.
-
-- `_surface.json` -- Full surface map, gitignored. For local inspection and debugging.
-- `surface.lock` -- Single-line SHA-256 hash, committed to the repo. Source of truth for drift detection.
-
-## Usage with Warden
-
-```typescript
-import {
-  generateSurfaceMap,
-  hashSurfaceMap,
-  readSurfaceLock,
-} from '@ontrails/schema';
-
-const map = generateSurfaceMap(app);
-const current = hashSurfaceMap(map);
+const current = hashSurfaceMap(generateSurfaceMap(app));
 const committed = await readSurfaceLock();
 
 if (committed !== current) {
@@ -133,7 +65,10 @@ if (committed !== current) {
 }
 ```
 
-## Further Reading
+The `@ontrails/warden` package wraps this into a `checkDrift()` call with CI integration.
 
-- [Architecture](../../docs/architecture.md)
-- [Testing Guide](../../docs/testing.md)
+## Installation
+
+```bash
+bun add -d @ontrails/schema
+```

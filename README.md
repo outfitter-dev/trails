@@ -67,50 +67,25 @@ Same contract. Same implementation. Every surface derives its representation fro
 ## Quick start
 
 ```bash
-bun add @ontrails/core @ontrails/cli commander
+bunx @ontrails/trails create
 ```
 
-Define a trail:
+Follow the prompts — pick a name, choose a starter (hello world, entity CRUD, or empty), and select your surfaces (CLI, MCP, or both). The scaffolder generates a working project with trails, a topo, surface wiring, and tests.
 
-```typescript
-// src/trails/entity.ts
-import { trail, Result } from '@ontrails/core';
-import { z } from 'zod';
-
-export const show = trail('entity.show', {
-  input: z.object({ name: z.string().describe('Entity name') }),
-  output: z.object({ name: z.string(), type: z.string() }),
-  readOnly: true,
-  examples: [
-    { name: 'Show entity', input: { name: 'Alpha' }, expected: { name: 'Alpha', type: 'concept' } },
-  ],
-  implementation: (input) => Result.ok({ name: input.name, type: 'concept' }),
-});
+```bash
+cd my-project
+bun test        # Examples run as tests
+bun run cli     # Your CLI works
 ```
 
-Collect and blaze:
+Or install manually:
 
-```typescript
-// src/app.ts
-import { topo } from '@ontrails/core';
-import * as entity from './trails/entity';
-export const app = topo('myapp', entity);
-
-// src/cli.ts
-import { blaze } from '@ontrails/cli/commander';
-import { app } from './app';
-blaze(app);
+```bash
+bun add @ontrails/core @ontrails/cli commander zod
+bun add -d @ontrails/testing
 ```
 
-Test:
-
-```typescript
-import { testAll } from '@ontrails/testing';
-import { app } from '../app';
-testAll(app);
-```
-
-`testAll` runs `validateTopo` (structural integrity), `testExamples` (every example as an assertion), `testContracts` (output schema compliance), and `testDetours` (recovery paths) — in one call.
+The [Getting Started guide](./docs/getting-started.md) walks through building your first trail from scratch.
 
 ## The vocabulary
 

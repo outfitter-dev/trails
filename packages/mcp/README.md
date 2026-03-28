@@ -1,14 +1,8 @@
 # @ontrails/mcp
 
-MCP surface adapter for Trails. Generates MCP tools from trail definitions with auto-derived annotations, progress bridging, and a single `blaze()` call to start a server.
+MCP surface adapter. One `blaze()` call turns a topo into an MCP server with tool definitions, annotations, and progress bridging -- all derived from the trail contracts.
 
-## Installation
-
-```bash
-bun add @ontrails/mcp
-```
-
-## Quick Start
+## Usage
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
@@ -25,38 +19,14 @@ const app = topo('myapp', { greet });
 await blaze(app);
 ```
 
-This starts an MCP server over stdio with a `myapp_greet` tool. The tool has `readOnlyHint: true` and a JSON Schema input derived from the Zod schema.
+This starts an MCP server over stdio with a `myapp_greet` tool. The tool gets `readOnlyHint: true` and a JSON Schema input -- both derived from the trail definition.
 
-Pure trails can return `Result` directly. The MCP surface still executes the normalized awaitable implementation shape under the hood.
-
-## API Overview
-
-### `blaze(app, options?)`
-
-Start an MCP server with all trails registered as tools.
-
-```typescript
-await blaze(app, {
-  serverInfo: { name: 'myapp', version: '1.0.0' },
-  transport: 'stdio',
-  includeTrails: ['entity.show', 'search'],
-  excludeTrails: ['internal.debug'],
-  layers: [myAuthLayer],
-  createContext: () => createTrailContext({ logger: myLogger }),
-});
-```
-
-### `buildMcpTools(app, options?)`
-
-Build tool definitions without starting a server. For advanced use cases where you manage the MCP server instance directly.
+For more control, build the tools yourself:
 
 ```typescript
 import { buildMcpTools } from '@ontrails/mcp';
 
-const tools = buildMcpTools(app, {
-  includeTrails: ['entity.show', 'search'],
-});
-
+const tools = buildMcpTools(app);
 for (const tool of tools) {
   server.registerTool(tool.name, tool.handler, {
     inputSchema: tool.inputSchema,
@@ -65,44 +35,38 @@ for (const tool of tools) {
 }
 ```
 
-### Tool Name Derivation
+## API
 
-Trail IDs map to MCP tool names with the app name prefix:
+| Export | What it does |
+| --- | --- |
+| `blaze(app, options?)` | Start an MCP server with all trails as tools |
+| `buildMcpTools(app, options?)` | Build tool definitions without starting a server |
+| `deriveToolName(appName, trailId)` | Compute the MCP tool name from app and trail IDs |
+| `deriveAnnotations(trail)` | Extract MCP annotations from trail markers |
+| `createMcpProgressCallback(server)` | Bridge `ctx.progress` to MCP `notifications/progress` |
 
-| App name   | Trail ID       | Tool name               |
-| ---------- | -------------- | ----------------------- |
-| `myapp`    | `entity.show`  | `myapp_entity_show`     |
-| `myapp`    | `search`       | `myapp_search`          |
-| `dispatch` | `patch.search` | `dispatch_patch_search` |
+See the [API Reference](../../docs/api-reference.md) for the full list.
 
-Rules: dots become underscores, hyphens become underscores, everything lowercase. Names match MCP convention `[a-z0-9_]+`.
+## Annotations
 
-```typescript
-import { deriveToolName } from '@ontrails/mcp';
-deriveToolName('myapp', 'entity.show'); // "myapp_entity_show"
-```
+Trail markers map directly to MCP annotations:
 
-### Annotation Auto-Generation
+| Trail field | MCP annotation |
+| --- | --- |
+| `readOnly: true` | `readOnlyHint: true` |
+| `destructive: true` | `destructiveHint: true` |
+| `idempotent: true` | `idempotentHint: true` |
+| `description` | `title` |
 
-Trail markers map directly to MCP tool annotations:
+No manual annotation definitions. The contract is the source of truth.
 
-| Trail field | MCP annotation | Effect |
-| --- | --- | --- |
-| `readOnly: true` | `readOnlyHint: true` | Tool does not modify state |
-| `destructive: true` | `destructiveHint: true` | Tool has destructive side effects |
-| `idempotent: true` | `idempotentHint: true` | Repeated calls are safe |
-| `description` | `title` | Human-readable tool title |
+## Tool naming
 
-```typescript
-import { deriveAnnotations } from '@ontrails/mcp';
-deriveAnnotations(showTrail); // { readOnlyHint: true, title: "Show entity details" }
-```
+Trail IDs become MCP tool names with the app prefix: `entity.show` in app `myapp` becomes `myapp_entity_show`. Dots and hyphens become underscores, everything lowercase.
 
-Trails without markers produce empty annotations (MCP SDK defaults apply).
+## Progress bridge
 
-### Progress Bridge
-
-Trail implementations report progress via `ctx.progress`. On MCP, these bridge to `notifications/progress`:
+Implementations report progress through `ctx.progress`. On MCP, these bridge to `notifications/progress` when the client sends a `progressToken`:
 
 ```typescript
 const importTrail = trail('data.import', {
@@ -116,46 +80,15 @@ const importTrail = trail('data.import', {
 });
 ```
 
-Progress bridging activates only when the MCP client includes a `progressToken` in the tool call. Otherwise, `ctx.progress` calls are silently ignored.
-
-### Result Mapping
-
-| Trail Result | MCP Response |
-| --- | --- |
-| `Result.ok(value)` | `{ content: [{ type: "text", text: JSON.stringify(value) }] }` |
-| `Result.err(error)` | `{ content: [{ type: "text", text: error.message }], isError: true }` |
-| `BlobRef` with image MIME type | `{ content: [{ type: "image", data: "<base64>", mimeType: "..." }] }` |
-
-### Trail Filtering
+## Filtering
 
 ```typescript
-// Whitelist
-await blaze(app, { includeTrails: ['entity.show', 'entity.add', 'search'] });
-
-// Blacklist
-await blaze(app, { excludeTrails: ['internal.debug', 'admin.reset'] });
+await blaze(app, { includeTrails: ['entity.show', 'search'] });
+await blaze(app, { excludeTrails: ['internal.debug'] });
 ```
 
-`includeTrails` takes precedence over `excludeTrails`.
+## Installation
 
-### AbortSignal Propagation
-
-The MCP client's abort signal propagates to `TrailContext.signal`. If the client cancels a tool call, the implementation's signal is aborted.
-
-## Exports
-
-```typescript
-import {
-  blaze,
-  buildMcpTools,
-  deriveToolName,
-  deriveAnnotations,
-  createMcpProgressCallback,
-  connectStdio,
-} from '@ontrails/mcp';
+```bash
+bun add @ontrails/mcp
 ```
-
-## Further Reading
-
-- [MCP Surface Guide](../../docs/surfaces/mcp.md)
-- [Getting Started](../../docs/getting-started.md)

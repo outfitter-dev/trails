@@ -1,35 +1,31 @@
 # @ontrails/core
 
-The foundation of Trails. Result type, error taxonomy, trail/hike/event definitions, topo, validation, patterns, redaction, branded types, and collection utilities. One external dependency: `zod`.
+The foundation. Define trails, compose them into topos, return typed Results, and let the framework derive everything else.
 
-## Installation
-
-```bash
-bun add @ontrails/core
-```
-
-## Quick Start
+## Usage
 
 ```typescript
-import { trail, hike, topo, Result } from '@ontrails/core';
+import { trail, topo, Result } from '@ontrails/core';
 import { z } from 'zod';
 
-// Define a trail -- the atomic unit of work
-const show = trail('entity.show', {
-  input: z.object({ name: z.string().describe('Entity name') }),
-  output: z.object({ name: z.string(), type: z.string() }),
+const greet = trail('greet', {
+  input: z.object({ name: z.string().describe('Who to greet') }),
+  output: z.object({ message: z.string() }),
   readOnly: true,
   examples: [
-    {
-      name: 'Show an entity',
-      input: { name: 'Alpha' },
-      expected: { name: 'Alpha', type: 'concept' },
-    },
+    { name: 'Hello', input: { name: 'World' }, expected: { message: 'Hello, World!' } },
   ],
-  implementation: (input) => Result.ok({ name: input.name, type: 'concept' }),
+  implementation: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
 
-// Define a hike -- a composite that follows other trails
+const app = topo('myapp', { greet });
+```
+
+Hikes compose trails through `ctx.follow()`:
+
+```typescript
+import { hike } from '@ontrails/core';
+
 const onboard = hike('entity.onboard', {
   follows: ['entity.add', 'entity.relate'],
   input: z.object({ name: z.string(), type: z.string() }),
@@ -39,141 +35,73 @@ const onboard = hike('entity.onboard', {
     return Result.ok({ entity: added.value });
   },
 });
-
-// Collect into an app
-import * as entity from './trails/entity';
-const app = topo('myapp', entity);
 ```
 
-Pure trails can return `Result` directly. Hikes and other I/O-bound trails can stay `async`; core normalizes both forms to one awaitable runtime shape before layers and surfaces execute them.
+## API
 
-## API Overview
+### Trail primitives
 
-### Trail Primitives
-
-- **`trail(id, spec)`** -- Define an atomic unit of work. Typed input via Zod, returns `Result`. Authoring may be sync or async.
-- **`hike(id, spec)`** -- Define a composite that follows multiple trails via `ctx.follow()`. Declares dependencies with `follows: string[]`.
-- **`event(id, spec)`** -- Define a server-originated push with a typed data schema.
-- **`topo(name, ...modules)`** -- Collect trail modules into an app. Scans exports for `Trail` shapes and builds the topo.
-
-### Result Type
-
-Built-in `Result<T, E>` with no external dependency.
-
-```typescript
-Result.ok(value); // Create a success
-Result.err(error); // Create a failure
-Result.combine(results); // Collect Result<T>[] into Result<T[]>
-
-result.isOk(); // Type guard for Ok
-result.isErr(); // Type guard for Err
-result.map(fn); // Transform success value
-result.flatMap(fn); // Chain Result-returning functions
-result.match({ ok, err }); // Pattern match
-result.unwrapOr(fallback); // Value or fallback
-```
-
-Implementations return `Result`, never `throw`.
-
-### Error Taxonomy
-
-13 error classes across 10 categories, all extending `TrailsError`. Each maps to CLI exit codes, HTTP status codes, JSON-RPC codes, and retryability.
-
-| Category | Classes | Exit | HTTP | Retryable |
-| --- | --- | --- | --- | --- |
-| `validation` | `ValidationError`, `AmbiguousError`, `AssertionError` | 1 | 400 | No |
-| `not_found` | `NotFoundError` | 2 | 404 | No |
-| `conflict` | `AlreadyExistsError`, `ConflictError` | 3 | 409 | No |
-| `permission` | `PermissionError` | 4 | 403 | No |
-| `timeout` | `TimeoutError` | 5 | 504 | Yes |
-| `rate_limit` | `RateLimitError` | 6 | 429 | Yes |
-| `network` | `NetworkError` | 7 | 502 | Yes |
-| `internal` | `InternalError` | 8 | 500 | No |
-| `auth` | `AuthError` | 9 | 401 | No |
-| `cancelled` | `CancelledError` | 130 | 499 | No |
-
-All extend `TrailsError` directly (class inheritance, no factory pattern). Pattern matching via `instanceof` or `error.category`.
-
-### Patterns (`@ontrails/core/patterns`)
-
-Reusable Zod schemas for common input/output shapes:
-
-- **Pagination** -- `paginationInput`, `paginationOutput` (cursor-based)
-- **Bulk operations** -- `bulkInput`, `bulkOutput` (batch with per-item results)
-- **Timestamps** -- `timestamps` (`createdAt`/`updatedAt`)
-- **Date ranges** -- `dateRangeInput` (`since`/`until`)
-- **Sorting** -- `sortInput` (`sortBy`/`sortOrder`)
-- **Status** -- `statusField` (lifecycle state)
-- **Change tracking** -- `changeOutput` (before/after snapshots)
-- **Progress** -- `progressOutput` (completion reporting)
-
-### Redaction (`@ontrails/core/redaction`)
-
-Strip sensitive data from logs and outputs.
-
-```typescript
-import {
-  createRedactor,
-  DEFAULT_PATTERNS,
-  DEFAULT_SENSITIVE_KEYS,
-} from '@ontrails/core/redaction';
-
-const redactor = createRedactor({
-  patterns: DEFAULT_PATTERNS,
-  sensitiveKeys: DEFAULT_SENSITIVE_KEYS,
-});
-```
-
-### Validation
-
-- **`validateInput(schema, data)`** -- Validate data against a Zod schema, returning `Result`.
-- **`formatZodIssues(issues)`** -- Format Zod issues into human-readable strings.
-- **`zodToJsonSchema(schema)`** -- Convert a Zod schema to JSON Schema for MCP/HTTP surfaces.
-
-### Branded Types
-
-Nominal typing for IDs and domain-specific strings that should not be interchangeable.
-
-```typescript
-import { uuid, email, nonEmptyString, positiveInt } from '@ontrails/core';
-
-const id = uuid('550e8400-e29b-41d4-a716-446655440000');
-const addr = email('user@example.com');
-```
-
-### Collections and Guards
-
-- **Collections** -- `chunk`, `dedupe`, `groupBy`, `sortBy`, `isNonEmptyArray`
-- **Guards** -- `isDefined`, `isNonEmptyString`, `isPlainObject`, `hasProperty`, `assertNever`
-- **Resilience** -- `retry`, `withTimeout`, `shouldRetry`, `getBackoffDelay`
-- **Serialization** -- `serializeError`, `deserializeError`, `Result.fromJson`, `Result.toJson`
-- **Path Security** -- `securePath`, `isPathSafe`, `resolveSafePath`
-- **Workspace** -- `findWorkspaceRoot`, `isInsideWorkspace`, `getRelativePath`
-
-### Layers
-
-Cross-cutting concerns that wrap trail execution:
-
-```typescript
-const loggingLayer: Layer = {
-  name: 'logging',
-  wrap: (next, trail) => async (input, ctx) => {
-    ctx.logger.info(`Executing ${trail.id}`);
-    return next(input, ctx);
-  },
-};
-```
-
-## Subpath Exports
-
-| Export | Contents |
+| Export | What it does |
 | --- | --- |
-| `@ontrails/core` | trail, hike, event, topo, Result, errors, types, validation, guards, collections, layers |
-| `@ontrails/core/patterns` | Reusable Zod schema patterns |
-| `@ontrails/core/redaction` | Redactor, default patterns and keys |
+| `trail(id, spec)` | Define an atomic unit of work with typed input and `Result` output |
+| `hike(id, spec)` | Define a composition that follows other trails via `ctx.follow()` |
+| `event(id, spec)` | Define a server-originated push with a typed data schema |
+| `topo(name, ...modules)` | Collect trail modules into a queryable topology |
+| `validateTopo(topo)` | Structural validation: follows exist, no cycles, examples parse, output schemas present |
 
-## Further Reading
+### Result
 
-- [Getting Started](../../docs/getting-started.md)
-- [Architecture](../../docs/architecture.md)
-- [Vocabulary](../../docs/vocabulary.md)
+```typescript
+Result.ok(value);            // Success
+Result.err(error);           // Failure
+Result.combine(results);     // Result<T>[] → Result<T[]>
+Result.fromJson(json);       // Parse JSON string into Result
+Result.toJson(value);        // Serialize to JSON string as Result
+Result.fromFetch(response);  // Convert fetch Response to Result
+
+result.isOk();               // Type guard
+result.isErr();              // Type guard
+result.map(fn);              // Transform success
+result.flatMap(fn);          // Chain Result-returning functions
+result.match({ ok, err });   // Pattern match
+result.unwrapOr(fallback);   // Value or fallback
+```
+
+### Error taxonomy
+
+13 error classes across 10 categories. Each maps deterministically to exit codes, HTTP status, and JSON-RPC codes on every surface.
+
+| Category | Classes | HTTP | Retryable |
+| --- | --- | --- | --- |
+| `validation` | `ValidationError`, `AmbiguousError`, `AssertionError` | 400 | No |
+| `not_found` | `NotFoundError` | 404 | No |
+| `conflict` | `AlreadyExistsError`, `ConflictError` | 409 | No |
+| `permission` | `PermissionError` | 403 | No |
+| `timeout` | `TimeoutError` | 504 | Yes |
+| `rate_limit` | `RateLimitError` | 429 | Yes |
+| `network` | `NetworkError` | 502 | Yes |
+| `internal` | `InternalError` | 500 | No |
+| `auth` | `AuthError` | 401 | No |
+| `cancelled` | `CancelledError` | 499 | No |
+
+The developer returns `Result.err(new NotFoundError(...))`. The framework maps it to the right code on every surface.
+
+### Other exports
+
+- **Schema derivation** -- `deriveFields(schema)` extracts field metadata from Zod for prompts and forms
+- **Validation** -- `validateInput`, `formatZodIssues`, `zodToJsonSchema`
+- **Resilience** -- `retry`, `withTimeout`, `shouldRetry`, `getBackoffDelay`
+- **Serialization** -- `serializeError`, `deserializeError`
+- **Branded types** -- `uuid`, `email`, `nonEmptyString`, `positiveInt`
+- **Layers** -- cross-cutting middleware via `composeLayers`
+- **Guards and collections** -- `isDefined`, `chunk`, `dedupe`, `groupBy`, `sortBy`
+- **Patterns** (`@ontrails/core/patterns`) -- reusable Zod schemas for pagination, bulk ops, timestamps, sorting
+- **Redaction** (`@ontrails/core/redaction`) -- strip sensitive data before logging
+
+See the [API Reference](../../docs/api-reference.md) for the full list.
+
+## Installation
+
+```bash
+bun add @ontrails/core zod
+```
