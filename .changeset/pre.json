@@ -13,6 +13,7 @@
     "@ontrails/warden": "0.1.0"
   },
   "changesets": [
+    "api-simplification-beta4",
     "bug-fixes-beta3",
     "fix-publish-bugs",
     "fix-workspace-publish",

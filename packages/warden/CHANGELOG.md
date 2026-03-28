@@ -1,5 +1,29 @@
 # @ontrails/warden
 
+## 1.0.0-beta.4
+
+### Major Changes
+
+- API simplification: unified trail model, intent enum, run, metadata.
+
+  **BREAKING CHANGES:**
+
+  - `hike()` removed — use `trail()` with optional `follow: [...]` field
+  - `follows` renamed to `follow` (singular, matching `ctx.follow()`)
+  - `topo.hikes` removed — single `topo.trails` map
+  - `kind: 'hike'` removed — everything is `kind: 'trail'`
+  - `readOnly`/`destructive` booleans replaced by `intent: 'read' | 'write' | 'destroy'`
+  - `implementation` field renamed to `run`
+  - `markers` field renamed to `metadata`
+  - `testHike` renamed to `testFollows`, `HikeScenario` to `FollowScenario`
+  - `blaze()` now returns the surface handle (`Command` for CLI, `Server` for MCP)
+
+### Patch Changes
+
+- Updated dependencies
+  - @ontrails/core@1.0.0-beta.4
+  - @ontrails/schema@1.0.0-beta.4
+
 ## 1.0.0-beta.3
 
 ### Minor Changes
