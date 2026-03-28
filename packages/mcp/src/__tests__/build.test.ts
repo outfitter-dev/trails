@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, trail, topo } from '@ontrails/core';
+import { Result, createBlobRef, trail, topo } from '@ontrails/core';
 import type { Layer } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -300,12 +300,14 @@ describe('buildMcpTools', () => {
     test('BlobRef output converts to image content', async () => {
       const blobTrail = trail('blob.image', {
         implementation: () =>
-          Result.ok({
-            data: new Uint8Array([1, 2, 3]),
-            kind: 'blob' as const,
-            mimeType: 'image/png',
-            name: 'test.png',
-          }),
+          Result.ok(
+            createBlobRef({
+              data: new Uint8Array([1, 2, 3]),
+              mimeType: 'image/png',
+              name: 'test.png',
+              size: 3,
+            })
+          ),
         input: z.object({}),
       });
 
@@ -320,12 +322,14 @@ describe('buildMcpTools', () => {
     test('BlobRef output converts to resource content for non-images', async () => {
       const blobTrail = trail('blob.file', {
         implementation: () =>
-          Result.ok({
-            data: new Uint8Array([1, 2, 3]),
-            kind: 'blob' as const,
-            mimeType: 'application/pdf',
-            name: 'doc.pdf',
-          }),
+          Result.ok(
+            createBlobRef({
+              data: new Uint8Array([1, 2, 3]),
+              mimeType: 'application/pdf',
+              name: 'doc.pdf',
+              size: 3,
+            })
+          ),
         input: z.object({}),
       });
 
@@ -335,6 +339,79 @@ describe('buildMcpTools', () => {
       expect(result?.content[0]?.type).toBe('resource');
       expect(result?.content[0]?.uri).toBe('blob://doc.pdf');
       expect(result?.content[0]?.mimeType).toBe('application/pdf');
+    });
+
+    test('BlobRef with ReadableStream data is collected and serialized', async () => {
+      const bytes = new Uint8Array([10, 20, 30]);
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(bytes);
+          controller.close();
+        },
+      });
+      const blobTrail = trail('blob.stream', {
+        implementation: () =>
+          Result.ok(
+            createBlobRef({
+              data: stream,
+              mimeType: 'image/gif',
+              name: 'anim.gif',
+              size: 3,
+            })
+          ),
+        input: z.object({}),
+      });
+
+      const tool = requireOnlyTool(buildMcpTools(topo('myapp', { blobTrail })));
+      const result = await tool.handler({}, noExtra);
+
+      expect(result?.content[0]?.type).toBe('image');
+      expect(result?.content[0]?.mimeType).toBe('image/gif');
+      expect(result?.content[0]?.data).toBeDefined();
+    });
+  });
+
+  describe('tool-name collision detection', () => {
+    test('throws on trails that produce the same derived tool name', () => {
+      const dotTrail = trail('foo.bar', {
+        implementation: () => Result.ok({ ok: true }),
+        input: z.object({}),
+      });
+      const underscoreTrail = trail('foo_bar', {
+        implementation: () => Result.ok({ ok: true }),
+        input: z.object({}),
+      });
+
+      const app = topo('myapp', { dotTrail, underscoreTrail });
+      expect(() => buildMcpTools(app)).toThrow(/tool-name collision/i);
+    });
+
+    test('throws on trails where hyphen and underscore collide', () => {
+      const hyphenTrail = trail('foo-bar', {
+        implementation: () => Result.ok({ ok: true }),
+        input: z.object({}),
+      });
+      const underscoreTrail = trail('foo_bar', {
+        implementation: () => Result.ok({ ok: true }),
+        input: z.object({}),
+      });
+
+      const app = topo('myapp', { hyphenTrail, underscoreTrail });
+      expect(() => buildMcpTools(app)).toThrow(/tool-name collision/i);
+    });
+
+    test('does not throw when trail names are distinct after normalization', () => {
+      const fooTrail = trail('foo', {
+        implementation: () => Result.ok({ ok: true }),
+        input: z.object({}),
+      });
+      const barTrail = trail('bar', {
+        implementation: () => Result.ok({ ok: true }),
+        input: z.object({}),
+      });
+
+      const app = topo('myapp', { barTrail, fooTrail });
+      expect(() => buildMcpTools(app)).not.toThrow();
     });
   });
 

@@ -9,10 +9,11 @@
 import {
   composeLayers,
   createTrailContext,
+  isBlobRef,
   validateInput,
   zodToJsonSchema,
 } from '@ontrails/core';
-import type { Layer, Topo, Trail, TrailContext } from '@ontrails/core';
+import type { BlobRef, Layer, Topo, Trail, TrailContext } from '@ontrails/core';
 
 import type { McpAnnotations } from './annotations.js';
 import { deriveAnnotations } from './annotations.js';
@@ -68,23 +69,44 @@ export interface McpContent {
 // Internal helpers (defined before use)
 // ---------------------------------------------------------------------------
 
-interface BlobRef {
-  readonly data: Uint8Array;
-  readonly kind: 'blob';
-  readonly mimeType: string;
-  readonly name?: string | undefined;
-}
-
-const isBlobRef = (value: unknown): value is BlobRef => {
-  if (typeof value !== 'object' || value === null) {
-    return false;
+/** Concatenate an array of Uint8Array chunks into a single Uint8Array. */
+const concatChunks = (
+  chunks: Uint8Array[],
+  totalLength: number
+): Uint8Array => {
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
   }
-  const obj = value as Record<string, unknown>;
-  return (
-    obj['kind'] === 'blob' &&
-    obj['data'] instanceof Uint8Array &&
-    typeof obj['mimeType'] === 'string'
-  );
+  return result;
+};
+
+/** Collect a ReadableStream into a single Uint8Array. */
+const collectStream = async (
+  stream: ReadableStream<Uint8Array>
+): Promise<Uint8Array> => {
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalLength = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    chunks.push(value);
+    totalLength += value.length;
+  }
+  return concatChunks(chunks, totalLength);
+};
+
+/** Resolve BlobRef data to Uint8Array (handles ReadableStream). */
+const resolveBlobData = (blob: BlobRef): Promise<Uint8Array> | Uint8Array => {
+  if (blob.data instanceof ReadableStream) {
+    return collectStream(blob.data);
+  }
+  return blob.data;
 };
 
 const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
@@ -96,10 +118,11 @@ const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
   return btoa(binary);
 };
 
-const blobToContent = (blob: BlobRef): McpContent => {
+const blobToContent = async (blob: BlobRef): Promise<McpContent> => {
+  const bytes = await resolveBlobData(blob);
   if (blob.mimeType.startsWith('image/')) {
     return {
-      data: uint8ArrayToBase64(blob.data),
+      data: uint8ArrayToBase64(bytes),
       mimeType: blob.mimeType,
       type: 'image',
     };
@@ -108,25 +131,25 @@ const blobToContent = (blob: BlobRef): McpContent => {
   return {
     mimeType: blob.mimeType,
     type: 'resource',
-    uri: `blob://${blob.name ?? 'unnamed'}`,
+    uri: `blob://${blob.name}`,
   };
 };
 
 /** Separate blob fields from non-blob fields in an object. */
-const separateBlobFields = (
+const separateBlobFields = async (
   obj: Record<string, unknown>
-): {
+): Promise<{
   blobContents: McpContent[];
   hasBlobFields: boolean;
   textFields: Record<string, unknown>;
-} => {
+}> => {
   const blobContents: McpContent[] = [];
   const textFields: Record<string, unknown> = {};
   let hasBlobFields = false;
   for (const [key, val] of Object.entries(obj)) {
     if (isBlobRef(val)) {
       hasBlobFields = true;
-      blobContents.push(blobToContent(val));
+      blobContents.push(await blobToContent(val));
     } else {
       textFields[key] = val;
     }
@@ -135,10 +158,11 @@ const separateBlobFields = (
 };
 
 /** Serialize a mixed blob/text object to MCP content. */
-const serializeMixedObject = (
+const serializeMixedObject = async (
   obj: Record<string, unknown>
-): readonly McpContent[] | undefined => {
-  const { blobContents, hasBlobFields, textFields } = separateBlobFields(obj);
+): Promise<readonly McpContent[] | undefined> => {
+  const { blobContents, hasBlobFields, textFields } =
+    await separateBlobFields(obj);
   if (!hasBlobFields) {
     return undefined;
   }
@@ -148,12 +172,14 @@ const serializeMixedObject = (
   return blobContents;
 };
 
-const serializeOutput = (value: unknown): readonly McpContent[] => {
+const serializeOutput = async (
+  value: unknown
+): Promise<readonly McpContent[]> => {
   if (isBlobRef(value)) {
-    return [blobToContent(value)];
+    return [await blobToContent(value)];
   }
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    const mixed = serializeMixedObject(value as Record<string, unknown>);
+    const mixed = await serializeMixedObject(value as Record<string, unknown>);
     if (mixed) {
       return mixed;
     }
@@ -202,7 +228,7 @@ const executeAndMap = async (
   try {
     const result = await impl(validatedInput, ctx);
     if (result.isOk()) {
-      return { content: serializeOutput(result.value) };
+      return { content: await serializeOutput(result.value) };
     }
     return mcpError(result.error.message);
   } catch (error: unknown) {
@@ -298,23 +324,49 @@ const buildToolDefinition = (
   };
 };
 
+/** Register a trail as an MCP tool, checking for name collisions. */
+const registerTool = (
+  app: Topo,
+  trailItem: Trail<unknown, unknown>,
+  layers: readonly Layer[],
+  options: BuildMcpToolsOptions,
+  nameToTrailId: Map<string, string>,
+  tools: McpToolDefinition[]
+): void => {
+  const toolName = deriveToolName(app.name, trailItem.id);
+  const existingId = nameToTrailId.get(toolName);
+  if (existingId !== undefined) {
+    throw new Error(
+      `MCP tool-name collision: trails "${existingId}" and "${trailItem.id}" both derive the tool name "${toolName}"`
+    );
+  }
+  nameToTrailId.set(toolName, trailItem.id);
+  tools.push(buildToolDefinition(app, trailItem, layers, options));
+};
+
+/** Filter topo items to eligible trails/hikes. */
+const eligibleTrails = (
+  app: Topo,
+  options: BuildMcpToolsOptions
+): Trail<unknown, unknown>[] =>
+  app
+    .list()
+    .filter(
+      (item): item is Trail<unknown, unknown> =>
+        (item.kind === 'trail' || item.kind === 'hike') &&
+        shouldInclude(item as Trail<unknown, unknown>, options)
+    );
+
 export const buildMcpTools = (
   app: Topo,
   options: BuildMcpToolsOptions = {}
 ): McpToolDefinition[] => {
   const layers = options.layers ?? [];
   const tools: McpToolDefinition[] = [];
+  const nameToTrailId = new Map<string, string>();
 
-  for (const item of app.list()) {
-    if (item.kind !== 'trail' && item.kind !== 'hike') {
-      continue;
-    }
-    if (!shouldInclude(item as Trail<unknown, unknown>, options)) {
-      continue;
-    }
-    tools.push(
-      buildToolDefinition(app, item as Trail<unknown, unknown>, layers, options)
-    );
+  for (const trailItem of eligibleTrails(app, options)) {
+    registerTool(app, trailItem, layers, options, nameToTrailId, tools);
   }
 
   return tools;
