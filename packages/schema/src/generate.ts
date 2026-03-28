@@ -3,7 +3,7 @@
  */
 
 import { zodToJsonSchema } from '@ontrails/core';
-import type { Event, Hike, Topo, Trail } from '@ontrails/core';
+import type { Event, Topo, Trail } from '@ontrails/core';
 
 import type { JsonSchema, SurfaceMap, SurfaceMapEntry } from './types.js';
 
@@ -127,22 +127,8 @@ const trailToEntry = (t: Trail<unknown, unknown>): SurfaceMapEntry => {
   addSchemas(entry, t);
   addMetadata(entry, t, raw);
 
-  return sortKeys(entry) as unknown as SurfaceMapEntry;
-};
-
-const hikeToEntry = (r: Hike<unknown, unknown>): SurfaceMapEntry => {
-  const base = trailToEntry(r as unknown as Trail<unknown, unknown>);
-  const raw = r as unknown as Record<string, unknown>;
-
-  const entry: Record<string, unknown> = {
-    ...base,
-    follows: r.follows.toSorted(),
-    kind: 'hike',
-  };
-
-  // Re-check surfaces on the route itself
-  if (Array.isArray(raw['surfaces'])) {
-    entry['surfaces'] = (raw['surfaces'] as string[]).toSorted();
+  if (t.follow.length > 0) {
+    entry['follow'] = t.follow.toSorted();
   }
 
   return sortKeys(entry) as unknown as SurfaceMapEntry;
@@ -196,11 +182,6 @@ export const generateSurfaceMap = (topo: Topo): SurfaceMap => {
   // Collect all trails
   for (const t of topo.trails.values()) {
     entries.push(trailToEntry(t as Trail<unknown, unknown>));
-  }
-
-  // Collect all hikes
-  for (const r of topo.hikes.values()) {
-    entries.push(hikeToEntry(r as Hike<unknown, unknown>));
   }
 
   // Collect all events

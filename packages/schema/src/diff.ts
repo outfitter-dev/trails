@@ -250,8 +250,8 @@ const diffMetadata = (
   }
 };
 
-/** Build a follows-changed description from added/removed arrays. */
-const buildFollowsMessage = (added: string[], removed: string[]): string => {
+/** Build a follow-changed description from added/removed arrays. */
+const buildFollowMessage = (added: string[], removed: string[]): string => {
   const parts: string[] = [];
   if (added.length > 0) {
     parts.push(`added "${added.join('", "')}"`);
@@ -259,23 +259,21 @@ const buildFollowsMessage = (added: string[], removed: string[]): string => {
   if (removed.length > 0) {
     parts.push(`removed "${removed.join('", "')}"`);
   }
-  return `Follows changed: ${parts.join(', ')}`;
+  return `Follow changed: ${parts.join(', ')}`;
 };
 
-/** Diff follows arrays. */
-const diffFollows = (
+/** Diff follow arrays. */
+const diffFollow = (
   acc: DetailAccumulator,
   prev: SurfaceMapEntry,
   curr: SurfaceMapEntry
 ): void => {
-  const prevFollows = new Set(prev.follows);
-  const currFollows = new Set(curr.follows);
-  const added = [...currFollows].filter((f) => !prevFollows.has(f)).toSorted();
-  const removed = [...prevFollows]
-    .filter((f) => !currFollows.has(f))
-    .toSorted();
+  const prevFollow = new Set(prev.follow);
+  const currFollow = new Set(curr.follow);
+  const added = [...currFollow].filter((f) => !prevFollow.has(f)).toSorted();
+  const removed = [...prevFollow].filter((f) => !currFollow.has(f)).toSorted();
   if (added.length > 0 || removed.length > 0) {
-    addDetail(acc, 'warning', buildFollowsMessage(added, removed));
+    addDetail(acc, 'warning', buildFollowMessage(added, removed));
   }
 };
 
@@ -289,7 +287,7 @@ const diffEntry = (
   diffSchemaFields(acc, 'output', prev.output, curr.output);
   diffSurfaces(acc, prev, curr);
   diffMetadata(acc, prev, curr);
-  diffFollows(acc, prev, curr);
+  diffFollow(acc, prev, curr);
 
   if (acc.details.length === 0) {
     return undefined;
@@ -313,7 +311,7 @@ const diffEntry = (
  *
  * Classifies each change with a severity:
  * - `info`: new trail, optional field added, output field added, description change
- * - `warning`: safety marker change, deprecation, follows change
+ * - `warning`: safety marker change, deprecation, follow change
  * - `breaking`: trail removed, required input added, field removed, type change, surface removed
  */
 /** Find entries added in curr that don't exist in prev. */

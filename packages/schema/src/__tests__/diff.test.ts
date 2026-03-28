@@ -267,30 +267,30 @@ describe('diffSurfaceMaps', () => {
       ).toBe(true);
     });
 
-    test('follows changed produces warning', () => {
+    test('follow changed produces warning', () => {
       const prev = surfaceMap([
         entry({
-          follows: ['user.get', 'user.lookup'],
+          follow: ['user.get', 'user.lookup'],
           id: 'user.update',
-          kind: 'hike',
+          kind: 'trail',
         }),
       ]);
       const curr = surfaceMap([
         entry({
-          follows: ['user.get', 'user.search'],
+          follow: ['user.get', 'user.search'],
           id: 'user.update',
-          kind: 'hike',
+          kind: 'trail',
         }),
       ]);
       const result = diffSurfaceMaps(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
-      const followsDetail = result.warnings[0]?.details.find((d) =>
-        d.includes('Follows changed')
+      const followDetail = result.warnings[0]?.details.find((d) =>
+        d.includes('Follow changed')
       );
-      expect(followsDetail).toBeDefined();
-      expect(followsDetail).toContain('search');
-      expect(followsDetail).toContain('lookup');
+      expect(followDetail).toBeDefined();
+      expect(followDetail).toContain('search');
+      expect(followDetail).toContain('lookup');
     });
   });
 

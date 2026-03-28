@@ -251,7 +251,7 @@ export const buildCliCommands = (
   const commands: CliCommand[] = [];
 
   for (const item of app.list()) {
-    if (item.kind !== 'trail' && item.kind !== 'hike') {
+    if (item.kind !== 'trail') {
       continue;
     }
 

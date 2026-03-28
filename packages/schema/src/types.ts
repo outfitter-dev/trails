@@ -15,7 +15,7 @@ export type JsonSchema = Readonly<Record<string, unknown>>;
 
 export interface SurfaceMapEntry {
   readonly id: string;
-  readonly kind: 'trail' | 'hike' | 'event';
+  readonly kind: 'trail' | 'event';
   readonly surfaces: readonly string[];
   readonly input?: JsonSchema | undefined;
   readonly output?: JsonSchema | undefined;
@@ -24,7 +24,7 @@ export interface SurfaceMapEntry {
   readonly idempotent?: boolean | undefined;
   readonly deprecated?: boolean | undefined;
   readonly replacedBy?: string | undefined;
-  readonly follows?: readonly string[] | undefined;
+  readonly follow?: readonly string[] | undefined;
   readonly detours?: Readonly<Record<string, readonly string[]>> | undefined;
   readonly exampleCount: number;
   readonly description?: string | undefined;
@@ -42,7 +42,7 @@ export interface SurfaceMap {
 
 export interface DiffEntry {
   readonly id: string;
-  readonly kind: 'trail' | 'hike' | 'event';
+  readonly kind: 'trail' | 'event';
   readonly change: 'added' | 'removed' | 'modified';
   readonly severity: 'info' | 'warning' | 'breaking';
   readonly details: readonly string[];

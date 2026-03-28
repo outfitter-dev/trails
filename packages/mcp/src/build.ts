@@ -344,7 +344,7 @@ const registerTool = (
   tools.push(buildToolDefinition(app, trailItem, layers, options));
 };
 
-/** Filter topo items to eligible trails/hikes. */
+/** Filter topo items to eligible trails. */
 const eligibleTrails = (
   app: Topo,
   options: BuildMcpToolsOptions
@@ -353,7 +353,7 @@ const eligibleTrails = (
     .list()
     .filter(
       (item): item is Trail<unknown, unknown> =>
-        (item.kind === 'trail' || item.kind === 'hike') &&
+        item.kind === 'trail' &&
         shouldInclude(item as Trail<unknown, unknown>, options)
     );
 

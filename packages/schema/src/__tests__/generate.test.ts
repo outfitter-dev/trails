@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 
-import { trail, hike, event, topo, Result } from '@ontrails/core';
+import { trail, event, topo, Result } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -113,23 +113,23 @@ describe('generateSurfaceMap', () => {
       expect(map.entries[0]?.output).toBeUndefined();
     });
 
-    test('hike entries include follows array', () => {
+    test('trail entries include follow array when non-empty', () => {
       const base = trail('user.get', {
         implementation: noop,
         input: z.object({ id: z.string() }),
       });
-      const r = hike('user.update', {
-        follows: ['user.get'],
+      const r = trail('user.update', {
+        follow: ['user.get'],
         implementation: noop,
         input: z.object({ id: z.string(), name: z.string() }),
       });
       const tp = topoFrom({ base, r });
       const map = generateSurfaceMap(tp);
-      const hikeEntry = map.entries.find((e) => e.id === 'user.update');
-      expect(hikeEntry).toBeDefined();
+      const followEntry = map.entries.find((e) => e.id === 'user.update');
+      expect(followEntry).toBeDefined();
 
-      expect(hikeEntry?.kind).toBe('hike');
-      expect(hikeEntry?.follows).toEqual(['user.get']);
+      expect(followEntry?.kind).toBe('trail');
+      expect(followEntry?.follow).toEqual(['user.get']);
     });
 
     test("event entries are included with kind 'event'", () => {
