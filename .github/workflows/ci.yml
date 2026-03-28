@@ -1,33 +1,46 @@
 name: CI
 
 on:
+  pull_request:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  ci:
+  build:
+    name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
 
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version-file: .bun-version
-          cache: true
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - name: Build
+        run: bun run build
 
       - uses: actions/cache@v4
         with:
           path: .turbo
-          key: turbo-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}
-          restore-keys: turbo-${{ runner.os }}-
+          key: turbo-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}-
 
-      - name: Build
-        run: bun run build
+  lint:
+    name: Lint & Format
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}-
 
       - name: Lint
         run: bun run lint
@@ -35,12 +48,93 @@ jobs:
       - name: Format check
         run: bun run format:check
 
+  typecheck:
+    name: Typecheck
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}-
+
+      - name: Build
+        run: bun run build
+
       - name: Typecheck
         run: bun run typecheck
+
+  test:
+    name: Test
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}-
+
+      - name: Build
+        run: bun run build
 
       - name: Test
         run: bun run test
 
-      - name: Governance
+      - name: Tree clean
+        run: |
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+
+  governance:
+    name: Governance
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}-
+
+      - name: Build
+        run: bun run build
+
+      - name: Warden
         run: bun apps/ci/bin/ci.ts --format github --fail-on error
         continue-on-error: true
+
+  ci-summary:
+    name: CI
+    if: always()
+    needs: [build, lint, typecheck, test, governance]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        run: |
+          echo "## CI Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Job | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-----|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Build | \`${{ needs.build.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Lint & Format | \`${{ needs.lint.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Typecheck | \`${{ needs.typecheck.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Test | \`${{ needs.test.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Governance | \`${{ needs.governance.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure') && !cancelled()
+        run: exit 1
