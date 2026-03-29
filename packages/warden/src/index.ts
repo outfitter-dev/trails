@@ -45,3 +45,24 @@ export {
 // Drift detection
 export type { DriftResult } from './drift.js';
 export { checkDrift } from './drift.js';
+
+// Trail layer
+export { wardenTopo } from './trails/topo.js';
+export { runWardenTrails } from './trails/run.js';
+export {
+  contextNoSurfaceTypesTrail,
+  diagnosticSchema,
+  followDeclarationsTrail,
+  implementationReturnsResultTrail,
+  noDirectImplInRouteTrail,
+  noDirectImplementationCallTrail,
+  noSyncResultAssumptionTrail,
+  noThrowInDetourTargetTrail,
+  noThrowInImplementationTrail,
+  preferSchemaInferenceTrail,
+  ruleInput,
+  ruleOutput,
+  validDescribeRefsTrail,
+  validDetourRefsTrail,
+} from './trails/index.js';
+export type { RuleInput, RuleOutput } from './trails/index.js';
