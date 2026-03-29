@@ -1,5 +1,12 @@
 # @ontrails/schema
 
+## 1.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies
+  - @ontrails/core@1.0.0-beta.5
+
 ## 1.0.0-beta.4
 
 ### Major Changes

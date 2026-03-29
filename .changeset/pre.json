@@ -17,6 +17,7 @@
     "bug-fixes-beta3",
     "fix-publish-bugs",
     "fix-workspace-publish",
-    "initial-v1-beta"
+    "initial-v1-beta",
+    "type-utils-and-follow-rule"
   ]
 }

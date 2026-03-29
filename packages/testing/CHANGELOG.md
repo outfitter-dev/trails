@@ -1,5 +1,15 @@
 # @ontrails/testing
 
+## 1.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies
+  - @ontrails/core@1.0.0-beta.5
+  - @ontrails/logging@1.0.0-beta.5
+  - @ontrails/cli@1.0.0-beta.5
+  - @ontrails/mcp@1.0.0-beta.5
+
 ## 1.0.0-beta.4
 
 ### Major Changes
