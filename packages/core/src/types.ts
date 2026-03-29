@@ -54,5 +54,3 @@ export interface TrailContext {
   readonly env?: Record<string, string | undefined> | undefined;
   readonly [key: string]: unknown;
 }
-
-export type Surface = 'cli' | 'mcp' | 'http' | 'ws';

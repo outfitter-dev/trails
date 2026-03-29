@@ -34,7 +34,6 @@ export type {
   ProgressCallback,
   ProgressEvent,
   Logger,
-  Surface,
 } from './types.js';
 
 // Context factory
