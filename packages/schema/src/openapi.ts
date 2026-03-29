@@ -167,6 +167,13 @@ const buildInputSpec = (
     return params.length > 0 ? { parameters: params } : {};
   }
 
+  const properties = inputSchema['properties'] as
+    | Record<string, unknown>
+    | undefined;
+  if (properties !== undefined && Object.keys(properties).length === 0) {
+    return {};
+  }
+
   return {
     requestBody: {
       content: { 'application/json': { schema: inputSchema } },

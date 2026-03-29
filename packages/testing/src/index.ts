@@ -16,7 +16,7 @@ export {
 } from './assertions.js';
 
 // Mock factories
-export { createTestContext } from './context.js';
+export { createFollowContext, createTestContext } from './context.js';
 export { createTestLogger } from './logger.js';
 
 // Surface harnesses
@@ -24,6 +24,7 @@ export { createCliHarness } from './harness-cli.js';
 export { createMcpHarness } from './harness-mcp.js';
 
 // Types
+export type { CreateFollowContextOptions } from './context.js';
 export type { TestFollowOptions } from './follows.js';
 
 export type {

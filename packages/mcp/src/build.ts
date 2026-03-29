@@ -42,6 +42,8 @@ export interface McpToolDefinition {
   ) => Promise<McpToolResult>;
   readonly inputSchema: Record<string, unknown>;
   readonly name: string;
+  /** The trail ID this tool was derived from. */
+  readonly trailId: string;
 }
 
 export interface McpExtra {
@@ -287,6 +289,7 @@ const buildToolDefinition = (
     handler: createHandler(trail, layers, options),
     inputSchema: zodToJsonSchema(trail.input),
     name: deriveToolName(app.name, trail.id),
+    trailId: trail.id,
   };
 };
 

@@ -150,6 +150,20 @@ describe('generateOpenApiSpec', () => {
   });
 
   describe('request body', () => {
+    test('omits requestBody for empty input schema', () => {
+      const t = trail('action.trigger', {
+        input: z.object({}),
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/action/trigger']?.['post'] as Record<
+        string,
+        unknown
+      >;
+
+      expect(op['requestBody']).toBeUndefined();
+    });
+
     test('POST input schema becomes requestBody', () => {
       const t = trail('entity.create', {
         input: z.object({ name: z.string() }),
