@@ -106,6 +106,25 @@ Subagents must not perform `git` or `gt` write operations. Only the main agent h
 - Subagents do not create branches, make commits, or push anything.
 - The main agent collects subagent work and commits it.
 
+## Releasing
+
+All `@ontrails/*` packages are versioned in lockstep using [Changesets](https://github.com/changesets/changesets) in pre-release (`beta`) mode. We use Changesets only for versioning and changelogs — **not** `changeset publish`. Publishing goes through `bun publish` via our script, which correctly resolves `workspace:^` to real versions (npm publish does not).
+
+```bash
+# 1. Add a changeset (or create .changeset/<name>.md manually)
+bunx changeset add
+
+# 2. Version
+bunx changeset version
+
+# 3. Commit, push, publish
+git add -A && git commit -m "chore: version packages to 1.0.0-beta.N"
+git push
+bun run publish:packages
+```
+
+To exit pre-release mode for a stable release: `bunx changeset pre exit`, then version as usual.
+
 ## Testing
 
 - `bun:test` is the test runner.
