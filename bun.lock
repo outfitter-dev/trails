@@ -35,7 +35,7 @@
     },
     "apps/trails": {
       "name": "@ontrails/trails",
-      "version": "1.0.0-beta.6",
+      "version": "1.0.0-beta.8",
       "bin": {
         "trails": "./bin/trails.ts",
       },
@@ -76,7 +76,7 @@
     },
     "packages/cli": {
       "name": "@ontrails/cli",
-      "version": "1.0.0-beta.6",
+      "version": "1.0.0-beta.8",
       "dependencies": {
         "@ontrails/core": "workspace:^",
       },
@@ -90,32 +90,35 @@
     },
     "packages/core": {
       "name": "@ontrails/core",
-      "version": "1.0.0-beta.6",
+      "version": "1.0.0-beta.8",
       "peerDependencies": {
         "zod": "catalog:",
       },
     },
     "packages/http": {
       "name": "@ontrails/http",
-      "version": "1.0.0-beta.6",
+      "version": "1.0.0-beta.8",
       "dependencies": {
         "@ontrails/core": "workspace:^",
-        "hono": "^4.7.0",
       },
       "peerDependencies": {
+        "hono": "^4.7.0",
         "zod": "catalog:",
       },
+      "optionalPeers": [
+        "hono",
+      ],
     },
     "packages/logging": {
       "name": "@ontrails/logging",
-      "version": "1.0.0-beta.6",
+      "version": "1.0.0-beta.8",
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
       },
     },
     "packages/mcp": {
       "name": "@ontrails/mcp",
-      "version": "1.0.0-beta.6",
+      "version": "1.0.0-beta.8",
       "dependencies": {
         "@ontrails/core": "workspace:^",
       },
@@ -126,7 +129,7 @@
     },
     "packages/schema": {
       "name": "@ontrails/schema",
-      "version": "1.0.0-beta.6",
+      "version": "1.0.0-beta.8",
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
         "zod": "catalog:",
@@ -134,7 +137,7 @@
     },
     "packages/testing": {
       "name": "@ontrails/testing",
-      "version": "1.0.0-beta.6",
+      "version": "1.0.0-beta.8",
       "peerDependencies": {
         "@ontrails/cli": "workspace:^",
         "@ontrails/core": "workspace:^",
@@ -145,15 +148,16 @@
     },
     "packages/warden": {
       "name": "@ontrails/warden",
-      "version": "1.0.0-beta.6",
+      "version": "1.0.0-beta.8",
       "devDependencies": {
+        "@ontrails/testing": "workspace:^",
         "@oxc-project/types": "^0.122.0",
         "oxc-parser": "^0.121.0",
         "zod": "catalog:",
       },
       "peerDependencies": {
-        "@ontrails/core": "workspace:*",
-        "@ontrails/schema": "workspace:*",
+        "@ontrails/core": "workspace:^",
+        "@ontrails/schema": "workspace:^",
       },
     },
   },
