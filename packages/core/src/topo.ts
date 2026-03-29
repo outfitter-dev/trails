@@ -14,8 +14,10 @@ export interface Topo {
   readonly name: string;
   readonly trails: ReadonlyMap<string, AnyTrail>;
   readonly events: ReadonlyMap<string, AnyEvent>;
+  readonly count: number;
   get(id: string): AnyTrail | undefined;
   has(id: string): boolean;
+  ids(): string[];
   list(): AnyTrail[];
   listEvents(): AnyEvent[];
 }
@@ -43,12 +45,17 @@ const createTopo = (
   trails: ReadonlyMap<string, AnyTrail>,
   events: ReadonlyMap<string, AnyEvent>
 ): Topo => ({
+  count: trails.size,
   events,
   get(id: string): AnyTrail | undefined {
     return trails.get(id);
   },
   has(id: string): boolean {
     return trails.has(id);
+  },
+
+  ids(): string[] {
+    return [...trails.keys()];
   },
 
   list(): AnyTrail[] {

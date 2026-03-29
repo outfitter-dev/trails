@@ -117,6 +117,31 @@ describe('topo', () => {
 });
 
 // ---------------------------------------------------------------------------
+// topo accessors
+// ---------------------------------------------------------------------------
+
+describe('topo accessors', () => {
+  test('ids() returns all trail IDs', () => {
+    const a = mockTrail('alpha');
+    const b = mockTrail('beta');
+    const app = topo('test', { a, b });
+    expect(app.ids().toSorted()).toEqual(['alpha', 'beta']);
+  });
+
+  test('count returns number of trails', () => {
+    const a = mockTrail('alpha');
+    const app = topo('test', { a });
+    expect(app.count).toBe(1);
+  });
+
+  test('empty topo has zero count and empty ids', () => {
+    const app = topo('empty');
+    expect(app.count).toBe(0);
+    expect(app.ids()).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Topo
 // ---------------------------------------------------------------------------
 
