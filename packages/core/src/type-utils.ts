@@ -2,6 +2,7 @@
  * Type utilities for extracting input/output types from trails.
  */
 
+import type { Result } from './result.js';
 import type { AnyTrail, Trail } from './trail.js';
 
 // ---------------------------------------------------------------------------
@@ -17,6 +18,17 @@ export type TrailInput<T extends AnyTrail> =
 /** Extract the output type from a Trail. */
 export type TrailOutput<T extends AnyTrail> =
   T extends Trail<any, infer O> ? O : never;
+
+/**
+ * Extracts the full `Result<Output, Error>` type from a trail definition.
+ *
+ * @example
+ * ```typescript
+ * type SearchResult = TrailResult<typeof searchTrail>;
+ * // Result<{ results: Item[]; count: number }, Error>
+ * ```
+ */
+export type TrailResult<T extends AnyTrail> = Result<TrailOutput<T>, Error>;
 
 /* oxlint-enable no-explicit-any */
 

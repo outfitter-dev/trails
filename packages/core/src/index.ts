@@ -51,7 +51,7 @@ export type {
 } from './trail.js';
 
 // Type utilities
-export type { TrailInput, TrailOutput } from './type-utils.js';
+export type { TrailInput, TrailOutput, TrailResult } from './type-utils.js';
 export { inputOf, outputOf } from './type-utils.js';
 
 // Event
