@@ -321,13 +321,7 @@ const eligibleTrails = (
   app: Topo,
   options: BuildMcpToolsOptions
 ): Trail<unknown, unknown>[] =>
-  app
-    .list()
-    .filter(
-      (item): item is Trail<unknown, unknown> =>
-        item.kind === 'trail' &&
-        shouldInclude(item as Trail<unknown, unknown>, options)
-    );
+  app.list().filter((trail) => shouldInclude(trail, options));
 
 export const buildMcpTools = (
   app: Topo,
