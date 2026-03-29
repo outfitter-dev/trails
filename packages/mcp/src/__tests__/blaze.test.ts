@@ -71,8 +71,6 @@ describe('blaze', () => {
       run: () => Result.ok({}),
     });
     const app = topo('test', { t });
-    // blaze() proceeds past validation and into connectStdio() when validate: false.
-    // Race a short timeout so the test does not hang waiting for stdio transport.
     const result = await Promise.race([
       blaze(app, { validate: false }).then(() => 'resolved' as const),
       // oxlint-disable-next-line avoid-new -- Promise constructor needed for setTimeout-based timeout
@@ -82,7 +80,6 @@ describe('blaze', () => {
         }, 50);
       }),
     ]);
-    // Either outcome confirms validation did not throw.
     expect(['resolved', 'timeout']).toContain(result);
   });
 
