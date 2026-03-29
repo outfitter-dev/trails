@@ -1,5 +1,30 @@
 # @ontrails/schema
 
+## 1.0.0-beta.9
+
+### Minor Changes
+
+- Consolidated improvements across all surface packages.
+
+  **core**: Add `TrailResult<T>` utility type, `topo.ids()` and `topo.count` accessors, `dispatch()` for headless trail execution, and extract shared `executeTrail` pipeline used by CLI/MCP/HTTP.
+
+  **http**: Detect route path collisions and return `Result` from `buildHttpRoutes()`, wire request `AbortSignal` through to trail context, and make write → POST mapping explicit in intent-to-method lookup.
+
+  **mcp**: Return `Result` from `buildMcpTools()` on collision instead of throwing.
+
+  **cli**: Verify exception catching via centralized `executeTrail`.
+
+  **testing**: Follow context awareness improvements.
+
+  **warden**: Refactor rules as composable trails with examples.
+
+  **schema**: Error code and empty body fixes.
+
+### Patch Changes
+
+- Updated dependencies
+  - @ontrails/core@1.0.0-beta.9
+
 ## 1.0.0-beta.8
 
 ### Patch Changes
