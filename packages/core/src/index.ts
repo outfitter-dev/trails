@@ -91,6 +91,10 @@ export type { Field, FieldOverride } from './derive.js';
 export { executeTrail } from './execute.js';
 export type { ExecuteTrailOptions } from './execute.js';
 
+// Dispatch
+export { dispatch } from './dispatch.js';
+export type { DispatchOptions } from './dispatch.js';
+
 // Validation
 export {
   validateInput,

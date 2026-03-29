@@ -45,6 +45,10 @@ FollowFn, ProgressCallback, ProgressEvent, Logger, Surface
 Layer                              // wrap(trail, implementation) → implementation
 composeLayers(layers, trail, implementation)
 
+// Dispatch — headless surface
+dispatch(topo, id, input, options?) // look up and execute a trail by ID; returns Result, never throws
+DispatchOptions
+
 // Validation
 validateInput(schema, data)        // → Result<T, ValidationError>
 validateOutput(schema, data)       // → Result<T, ValidationError>
