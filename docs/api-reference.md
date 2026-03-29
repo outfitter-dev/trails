@@ -11,6 +11,7 @@ Canonical public surface. For naming conventions and decision history, see `docs
 trail(id, spec)                    // define a unit of work (with optional follow for composition)
 event(id, spec)                    // define a payload schema with provenance
 topo(name, ...modules)             // assemble into a queryable topology
+// Topo methods: .get(id), .has(id), .list(), .listEvents(), .ids(), .count
 
 // Types
 Trail<I, O>, Event<T>, Topo, Intent
