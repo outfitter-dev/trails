@@ -13,9 +13,15 @@ event(id, spec)                    // define a payload schema with provenance
 topo(name, ...modules)             // assemble into a queryable topology
 
 // Types
-Trail<I, O>, Event<T>, Topo
-TrailSpec<I, O>, HikeSpec<I, O>, EventSpec<T>, TrailExample<I, O>
-AnyTrail, AnyHike, AnyEvent
+Trail<I, O>, Event<T>, Topo, Intent
+TrailSpec<I, O>, EventSpec<T>, TrailExample<I, O>
+AnyTrail, AnyEvent
+
+// Type utilities
+TrailInput<T>                      // extract input type from a Trail
+TrailOutput<T>                     // extract output type from a Trail
+inputOf(trail)                     // get the input Zod schema
+outputOf(trail)                    // get the output Zod schema (or undefined)
 
 // Result
 Result<T, E>
@@ -140,7 +146,7 @@ McpHarness, McpHarnessOptions, McpHarnessResult
 
 ```typescript
 runWarden(options?), formatWardenReport(report), checkDrift(rootDir, topo?)
-wardenRules                        // ReadonlyMap<string, WardenRule> — 10 AST-based rules
+wardenRules                        // ReadonlyMap<string, WardenRule> — 11 AST-based rules
 formatGitHubAnnotations(report), formatJson(report), formatSummary(report)
 
 WardenOptions, WardenReport, WardenDiagnostic, WardenSeverity, DriftResult

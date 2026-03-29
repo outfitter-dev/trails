@@ -37,6 +37,7 @@ console.log(formatWardenReport(report));
 | `no-direct-implementation-call` | warn | Direct `.run()` calls bypassing `ctx.follow()` |
 | `no-direct-impl-in-route` | warn | Direct `.run()` calls inside trail bodies with `follow` |
 | `prefer-schema-inference` | warn | Redundant field overrides already derivable from the schema |
+| `follow-declarations` | error/warn | `ctx.follow()` calls that drift from declared `follow: [...]` |
 | `valid-describe-refs` | warn | `@see` refs in `.describe()` that do not resolve |
 
 ## Drift detection

@@ -1,4 +1,5 @@
 import { contextNoSurfaceTypes } from './context-no-surface-types.js';
+import { followDeclarations } from './follow-declarations.js';
 import { implementationReturnsResult } from './implementation-returns-result.js';
 import { noDirectImplInRoute } from './no-direct-impl-in-route.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
@@ -20,6 +21,7 @@ export type {
 
 export { noThrowInImplementation } from './no-throw-in-implementation.js';
 export { contextNoSurfaceTypes } from './context-no-surface-types.js';
+export { followDeclarations } from './follow-declarations.js';
 export { validDetourRefs } from './valid-detour-refs.js';
 export { noDirectImplInRoute } from './no-direct-impl-in-route.js';
 export { noDirectImplementationCall } from './no-direct-implementation-call.js';
@@ -36,6 +38,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
 >([
   [noThrowInImplementation.name, noThrowInImplementation],
   [contextNoSurfaceTypes.name, contextNoSurfaceTypes],
+  [followDeclarations.name, followDeclarations],
   [preferSchemaInference.name, preferSchemaInference],
   [validDescribeRefs.name, validDescribeRefs],
   [validDetourRefs.name, validDetourRefs],
