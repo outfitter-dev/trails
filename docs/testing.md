@@ -229,6 +229,29 @@ const ctx = createTestContext({
 
 Defaults: deterministic request ID, test logger (captures entries), non-aborted signal.
 
+### `createFollowContext(options?)`
+
+Creates a mock `FollowFn` for testing composite trails that call `ctx.follow()`. Pre-configure responses per trail ID:
+
+```typescript
+import { createFollowContext, createTestContext } from '@ontrails/testing';
+import { Result } from '@ontrails/core';
+
+const follow = createFollowContext({
+  responses: {
+    'user.get': Result.ok({ name: 'Alice' }),
+    'user.validate': Result.ok({ valid: true }),
+  },
+});
+
+const ctx = { ...createTestContext(), follow };
+const result = await onboardTrail.run({ name: 'Delta' }, ctx);
+
+expect(result.isOk()).toBe(true);
+```
+
+Calls to unregistered trail IDs return an error Result. If you need real execution instead of mocked responses, use `dispatch()` from `@ontrails/core`.
+
 ### `createTestLogger()`
 
 A logger that captures entries in memory:

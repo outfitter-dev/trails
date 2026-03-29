@@ -190,15 +190,21 @@ For advanced use cases, build the tool definitions directly:
 ```typescript
 import { buildMcpTools } from '@ontrails/mcp';
 
-const tools = buildMcpTools(app, {
+const result = buildMcpTools(app, {
   includeTrails: ['entity.show', 'search'],
 });
 
-// tools is McpToolDefinition[] -- register them with your own MCP server instance
-for (const tool of tools) {
+if (result.isErr()) {
+  throw result.error;
+}
+
+// result.value is McpToolDefinition[] -- register them with your own MCP server instance
+for (const tool of result.value) {
   server.registerTool(tool.name, tool.handler, {
     inputSchema: tool.inputSchema,
     annotations: tool.annotations,
   });
 }
 ```
+
+Each `McpToolDefinition` includes a `trailId` field containing the original trail ID (e.g. `'entity.show'`). This is useful for logging, filtering, or routing when managing tool definitions outside of `blaze()`.

@@ -26,7 +26,10 @@ const app = topo('myapp', greetModule);
 blaze(app);              // CLI — from @ontrails/cli/commander
 await blaze(app);        // MCP — from @ontrails/mcp
 
-// 4. Test
+// 4. Headless execution (no surface needed)
+const result = await dispatch(app, 'greet', { name: 'Alice' });
+
+// 5. Test
 testAll(app);            // Examples + governance in one line
 ```
 
@@ -126,7 +129,7 @@ See [cli-surface.md](references/cli-surface.md), [mcp-surface.md](references/mcp
 
 **TDD workflow**: Define trail with examples → run tests (red) → implement (green) → refactor.
 
-Edge cases go in `testTrail(trail, scenarios)`. Surface integration uses `createCliHarness()` / `createMcpHarness()`.
+Edge cases go in `testTrail(trail, scenarios)`. Use `createFollowContext()` to mock `ctx.follow` for composite trail unit tests. Surface integration uses `createCliHarness()` / `createMcpHarness()`.
 
 See [testing-patterns.md](references/testing-patterns.md) for the full testing API.
 

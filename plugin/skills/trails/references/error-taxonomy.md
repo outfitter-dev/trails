@@ -103,7 +103,7 @@ const restored = deserializeError(json);
 // Full TrailsError instance with correct prototype chain
 ```
 
-## Error Composition in Hikes
+## Error Composition in Composite Trails
 
 Propagate upstream errors directly. Wrap only when adding context:
 

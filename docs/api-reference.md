@@ -41,13 +41,14 @@ Implementation<I, O>              // (input, ctx) => Result | Promise<Result>
 TrailContext, createTrailContext(overrides?)
 FollowFn, ProgressCallback, ProgressEvent, Logger, Surface
 
+// Execution pipeline
+executeTrail(trail, rawInput, options?) // shared execution pipeline: validate → compose layers → run; used by all surfaces
+dispatch(topo, id, input, options?)    // look up and execute a trail by ID; returns Result, never throws
+DispatchOptions
+
 // Layers
 Layer                              // wrap(trail, implementation) → implementation
 composeLayers(layers, trail, implementation)
-
-// Dispatch — headless surface
-dispatch(topo, id, input, options?) // look up and execute a trail by ID; returns Result, never throws
-DispatchOptions
 
 // Validation
 validateInput(schema, data)        // → Result<T, ValidationError>
@@ -105,21 +106,22 @@ autoIterateLayer, dateShortcutsLayer
 
 ```typescript
 blaze(topo, options?)              // one-liner
-buildMcpTools(topo, options?)      // escape hatch step 1
+buildMcpTools(topo, options?)      // escape hatch step 1; returns Result<McpToolDefinition[], Error>
 connectStdio(server)               // escape hatch step 2
 deriveToolName(appName, trailId)   // tool name derivation
 deriveAnnotations(trail)           // MCP annotations from intent and metadata
 createMcpProgressCallback(extra)   // progress bridge
 
 BlazeMcpOptions, BuildMcpToolsOptions
-McpToolDefinition, McpToolResult, McpContent, McpExtra, McpAnnotations
+McpToolDefinition,                 // includes trailId: string
+McpToolResult, McpContent, McpExtra, McpAnnotations
 ```
 
 ## `@ontrails/http`
 
 ```typescript
 blaze(topo, options?)              // one-liner HTTP server
-buildHttpRoutes(topo, options?)    // escape hatch: route definitions without server
+buildHttpRoutes(topo, options?)    // escape hatch: route definitions without server; returns Result<HttpRouteDefinition[], Error>
 
 BlazeHttpOptions, BuildHttpRoutesOptions
 HttpMethod, HttpRouteDefinition
@@ -154,6 +156,7 @@ assertErrorMatch(result, errorClass)
 
 // Factories
 createTestContext(options?), createTestLogger()
+createFollowContext(options?)      // minimal context for testing trail composition via ctx.follow()
 createCliHarness(topo, options?), createMcpHarness(topo, options?)
 
 TestScenario, HikeScenario, TestLogger, TestTrailContextOptions, TestHikeOptions
@@ -166,6 +169,8 @@ McpHarness, McpHarnessOptions, McpHarnessResult
 ```typescript
 runWarden(options?), formatWardenReport(report), checkDrift(rootDir, topo?)
 wardenRules                        // ReadonlyMap<string, WardenRule> — 11 AST-based rules
+wardenTopo                         // pre-built Topo of all warden trails
+runWardenTrails(filePath, sourceCode, options?) // run warden rules against a single file
 formatGitHubAnnotations(report), formatJson(report), formatSummary(report)
 
 WardenOptions, WardenReport, WardenDiagnostic, WardenSeverity, DriftResult

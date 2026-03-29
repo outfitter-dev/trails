@@ -229,6 +229,33 @@ HTTP request (GET /entity/show?name=Alpha)
 
 The implementation is identical. Only the edges change.
 
+### Headless Execution via `dispatch()`
+
+`dispatch()` is the headless path -- no surface adapter needed:
+
+```text
+dispatch(topo, 'entity.show', { name: 'Alpha' }, options?)
+  -> topo.get(id) looks up the trail
+  -> executeTrail(trail, rawInput, options) runs the shared pipeline
+  -> Result returned, never throws
+```
+
+This is useful for server-side composition, background workers, and test harnesses that need to invoke trails by ID without wiring a surface.
+
+### The Shared `executeTrail()` Pipeline
+
+All surfaces -- CLI, MCP, HTTP, and `dispatch()` -- delegate to the same `executeTrail()` function in `@ontrails/core`:
+
+```text
+executeTrail(trail, rawInput, options?)
+  -> Zod validates rawInput against trail's input schema
+  -> Layers composed via composeLayers()
+  -> implementation(validatedInput, ctx) called
+  -> Result returned
+```
+
+This guarantees consistent validation, layer ordering, and error handling regardless of which surface initiated the call.
+
 ## Error Taxonomy
 
 13 error classes across 10 categories. Each maps to CLI exit codes, HTTP status codes, JSON-RPC codes, and retryability:

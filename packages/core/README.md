@@ -46,14 +46,50 @@ const onboard = trail('entity.onboard', {
 | `topo(name, ...modules)` | Collect trail modules into a queryable topology |
 | `validateTopo(topo)` | Structural validation: follow targets exist, no cycles, examples parse, output schemas present |
 
+### Execution
+
+| Export | What it does |
+| --- | --- |
+| `executeTrail(trail, rawInput, options?)` | Centralized execution pipeline: validates input, builds context, composes layers, runs the implementation. Never throws -- exceptions become `Result.err(InternalError)`. |
+| `dispatch(topo, id, input, options?)` | Headless trail execution by ID. Looks up the trail in the topo, then delegates to `executeTrail`. Returns `Result.err(NotFoundError)` if the ID is not registered. |
+
+```typescript
+// executeTrail — surface adapters use this directly
+const result = await executeTrail(greet, { name: 'Alice' });
+
+// dispatch — no-surface execution by trail ID
+const result = await dispatch(app, 'greet', { name: 'Alice' });
+if (result.isOk()) console.log(result.value);
+```
+
+### Topo accessors
+
+Beyond the `trail(id, spec)` builder, `Topo` exposes these accessors:
+
+| Accessor | What it returns |
+| --- | --- |
+| `topo.ids()` | `string[]` of all registered trail IDs |
+| `topo.count` | Number of registered trails |
+| `topo.get(id)` | The `Trail` with that ID, or `undefined` |
+| `topo.has(id)` | Whether a trail ID is registered |
+| `topo.list()` | All registered trails as an array |
+
 ### Type utilities
 
 | Export | What it does |
 | --- | --- |
 | `TrailInput<T>` | Extract the input type from a `Trail` |
 | `TrailOutput<T>` | Extract the output type from a `Trail` |
+| `TrailResult<T>` | `Result<TrailOutput<T>, Error>` -- the Result type for a trail's output |
 | `inputOf(trail)` | Get the input Zod schema from a trail instance |
 | `outputOf(trail)` | Get the output Zod schema (or `undefined`) from a trail instance |
+
+### Execution option types
+
+| Type | What it describes |
+| --- | --- |
+| `ExecuteTrailOptions` | Options for `executeTrail`: `ctx`, `signal`, `layers`, `createContext` |
+| `DispatchOptions` | Same shape as `ExecuteTrailOptions`; forwarded by `dispatch` |
 
 ### Result
 

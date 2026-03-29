@@ -74,15 +74,25 @@ await blaze(app, {
 
 ## Escape Hatch
 
-For manual tool definition or custom MCP server configuration, use `buildMcpTools()`:
+For manual tool definition or custom MCP server configuration, use `buildMcpTools()`. It returns `Result<McpToolDefinition[], Error>` — check for errors before using the array (name collisions produce a `ValidationError`):
 
 ```typescript
 import { buildMcpTools } from '@ontrails/mcp';
 import { app } from './app';
 
-const tools = buildMcpTools(app);
-// tools is an array of MCP tool definitions
+const toolsResult = buildMcpTools(app);
+if (toolsResult.isErr()) throw new Error(toolsResult.error.message);
+const tools = toolsResult.value;
 // Wire into your own MCP server setup
 ```
+
+Each `McpToolDefinition` includes:
+
+- `name` — derived tool name (`appName_trail_id`)
+- `inputSchema` — JSON Schema from the trail's Zod input
+- `annotations` — MCP hints derived from trail intent
+- `description` — trail description with first example appended
+- `handler` — async function that runs the full `executeTrail` pipeline
+- `trailId` — the original trail ID this tool was derived from (useful for filtering and introspection)
 
 This gives you the raw tool definitions to register manually while still benefiting from automatic schema derivation and annotation mapping.
