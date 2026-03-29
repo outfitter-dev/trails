@@ -86,5 +86,5 @@ This extends the Result model from runtime execution to framework wiring. The sa
 ## References
 
 - [ADR-000: Core Premise](000-core-premise.md) — the foundational decisions this pipeline serves, especially "implementations are pure" and "surfaces are peers"
-- [ADR-002: Result Type](002-result-type.md) — the Result model that `executeTrail` and builders both return
-- [ADR-005: HTTP Route Model](005-http-route-model.md) — the route derivation model that `buildHttpRoutes` implements
+- [ADR-002: Built-In Result Type](002-built-in-result-type.md) — the Result model that `executeTrail` and builders both return
+- [ADR-005: Framework-Agnostic HTTP Route Model](005-framework-agnostic-http-route-model.md) — the route derivation model that `buildHttpRoutes` implements

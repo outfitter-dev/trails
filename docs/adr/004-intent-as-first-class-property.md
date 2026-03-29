@@ -127,4 +127,4 @@ The mapping tables above live in surface packages, not in trail definitions. The
 ## References
 
 - [ADR-000: Core Premise](000-core-premise.md) — derive by default, override deliberately (Decision 6); the information architecture categories (Decision 10)
-- ADR-008: Deterministic Surface Derivation — the broader pattern of which intent is one instance
+- [ADR-008: Deterministic Surface Derivation](008-deterministic-surface-derivation.md) — the broader pattern of which intent is one instance

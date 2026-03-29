@@ -90,8 +90,8 @@ Trails with an explicit `http.path` override in metadata can use custom paths wh
 The trail's `intent` property drives method selection:
 
 - `read` → `GET`
-- `create`, `write` → `POST`
-- `delete` → `DELETE`
+- `write` → `POST`
+- `destroy` → `DELETE`
 
 This keeps the trail author out of HTTP vocabulary. They declare what the trail *does*; the framework decides what method that maps to.
 
@@ -120,5 +120,5 @@ This keeps the trail author out of HTTP vocabulary. They declare what the trail 
 ## References
 
 - [ADR-000: Core Premise](000-core-premise.md) — the foundational decisions that require surface-agnosticism
-- ADR-006: Shared Execution Pipeline — the `executeTrail` function that `HttpRouteDefinition.execute` delegates to
-- ADR-008: Deterministic Derivation — the derivation rules that produce paths, methods, and input sources from trail contracts
+- [ADR-006: Shared Execution Pipeline](006-shared-execution-pipeline.md) — the `executeTrail` function that `HttpRouteDefinition.execute` delegates to
+- [ADR-008: Deterministic Surface Derivation](008-deterministic-surface-derivation.md) — the derivation rules that produce paths, methods, and input sources from trail contracts
