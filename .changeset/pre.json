@@ -19,6 +19,7 @@
     "codex-review-fixes",
     "fix-publish-bugs",
     "fix-workspace-publish",
+    "http-restructure-and-fixes",
     "http-surface-and-openapi",
     "initial-v1-beta",
     "type-utils-and-follow-rule"
