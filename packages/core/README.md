@@ -46,6 +46,15 @@ const onboard = trail('entity.onboard', {
 | `topo(name, ...modules)` | Collect trail modules into a queryable topology |
 | `validateTopo(topo)` | Structural validation: follow targets exist, no cycles, examples parse, output schemas present |
 
+### Type utilities
+
+| Export | What it does |
+| --- | --- |
+| `TrailInput<T>` | Extract the input type from a `Trail` |
+| `TrailOutput<T>` | Extract the output type from a `Trail` |
+| `inputOf(trail)` | Get the input Zod schema from a trail instance |
+| `outputOf(trail)` | Get the output Zod schema (or `undefined`) from a trail instance |
+
 ### Result
 
 ```typescript
