@@ -8,10 +8,11 @@ Trails is a contract-first TypeScript framework. Define a trail — typed input,
 
 ### With an AI agent
 
-**Claude Code** — install the plugin:
+**Claude Code** — add the marketplace, then install the plugin:
 
 ```bash
-claude plugin install github:outfitter-dev/trails
+claude plugin marketplace add outfitter-dev/trails
+claude plugin install trails@trails
 ```
 
 **Codex, Cursor, and others** — install the skill:

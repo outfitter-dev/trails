@@ -5,7 +5,8 @@ Build with the [Trails](https://github.com/outfitter-dev/trails) framework — c
 ## Installation
 
 ```bash
-claude plugin install github:outfitter-dev/trails
+claude plugin marketplace add outfitter-dev/trails
+claude plugin install trails@trails
 ```
 
 ## What's Included
