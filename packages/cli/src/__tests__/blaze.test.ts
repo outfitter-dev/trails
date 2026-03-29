@@ -60,12 +60,6 @@ describe('blaze', () => {
   });
 
   test('BlazeCliOptions accepts validate: false without type errors', () => {
-    // Compile-time: verify the option is accepted by the type.
-    // Runtime: verify the topo with a broken follow does not throw at validation
-    // when validate: false is passed. We do not call blaze() directly because
-    // it invokes Commander's parseAsync() against real argv. Instead we verify
-    // the guard behavior by confirming the option exists on the type and that
-    // a no-validate call to the internal steps does not throw before parseAsync.
     const t = trail('broken', {
       follow: ['nonexistent.trail'],
       input: z.object({}),
@@ -73,11 +67,9 @@ describe('blaze', () => {
       run: () => Result.ok({}),
     });
     const app = topo('test', { t });
-    // buildCliCommands does not call validateTopo — it should succeed regardless.
     expect(() =>
       buildCliCommands(app, { onResult: defaultOnResult })
     ).not.toThrow();
-    // Verify the type accepts validate: false (would be a TS error if not).
     const opts: Parameters<typeof blaze>[1] = { validate: false };
     expect(opts.validate).toBe(false);
   });

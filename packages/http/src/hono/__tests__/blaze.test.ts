@@ -93,6 +93,32 @@ const requestRaw = (
 // ---------------------------------------------------------------------------
 
 describe('blaze (Hono adapter)', () => {
+  describe('validation', () => {
+    test('blaze throws on invalid topo', async () => {
+      const t = trail('broken', {
+        follow: ['nonexistent.trail'],
+        input: z.object({}),
+        output: z.object({}),
+        run: () => Result.ok({}),
+      });
+      const app = topo('test', { t });
+      await expect(blaze(app, { serve: false })).rejects.toThrow(/validation/i);
+    });
+
+    test('blaze skips validation when validate: false', async () => {
+      const t = trail('broken', {
+        follow: ['nonexistent.trail'],
+        input: z.object({}),
+        output: z.object({}),
+        run: () => Result.ok({}),
+      });
+      const app = topo('test', { t });
+      await expect(
+        blaze(app, { serve: false, validate: false })
+      ).resolves.toBeDefined();
+    });
+  });
+
   describe('GET handler', () => {
     test('returns 200 with data on success', async () => {
       const app = topo('testapp', { echoTrail });
