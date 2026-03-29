@@ -5,7 +5,7 @@ import type { Layer } from '@ontrails/core';
 import { z } from 'zod';
 
 import { buildMcpTools } from '../build.js';
-import type { McpExtra } from '../build.js';
+import type { McpExtra, McpToolDefinition } from '../build.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -47,7 +47,7 @@ const exampleTrail = trail('with.examples', {
 
 const noExtra: McpExtra = {};
 
-const requireTool = (tools: ReturnType<typeof buildMcpTools>, name: string) => {
+const requireTool = (tools: McpToolDefinition[], name: string) => {
   const tool = tools.find((entry) => entry.name === name);
   expect(tool).toBeDefined();
   if (!tool) {
@@ -56,7 +56,7 @@ const requireTool = (tools: ReturnType<typeof buildMcpTools>, name: string) => {
   return tool;
 };
 
-const requireOnlyTool = (tools: ReturnType<typeof buildMcpTools>) => {
+const requireOnlyTool = (tools: McpToolDefinition[]) => {
   expect(tools).toHaveLength(1);
   const [tool] = tools;
   expect(tool).toBeDefined();
@@ -64,6 +64,20 @@ const requireOnlyTool = (tools: ReturnType<typeof buildMcpTools>) => {
     throw new Error('Expected one MCP tool');
   }
   return tool;
+};
+
+/**
+ * Unwrap buildMcpTools result for success-path tests.
+ * Throws if the result is an error so test failures surface clearly.
+ */
+const buildTools = (
+  ...args: Parameters<typeof buildMcpTools>
+): McpToolDefinition[] => {
+  const result = buildMcpTools(...args);
+  if (result.isErr()) {
+    throw result.error;
+  }
+  return result.value;
 };
 
 const parseJsonContent = (
@@ -81,7 +95,7 @@ describe('buildMcpTools', () => {
   describe('discovery', () => {
     test('builds tools from a single-trail app', () => {
       const app = topo('myapp', { echoTrail });
-      const tools = buildMcpTools(app);
+      const tools = buildTools(app);
 
       expect(tools).toHaveLength(1);
       expect(requireOnlyTool(tools).name).toBe('myapp_echo');
@@ -89,7 +103,7 @@ describe('buildMcpTools', () => {
 
     test('builds tools from a multi-trail app', () => {
       const app = topo('myapp', { deleteTrail, echoTrail, failTrail });
-      const tools = buildMcpTools(app);
+      const tools = buildTools(app);
 
       expect(tools).toHaveLength(3);
       const names = tools.map((t) => t.name);
@@ -100,14 +114,14 @@ describe('buildMcpTools', () => {
 
     test('tool names follow derivation rules', () => {
       const app = topo('myapp', { deleteTrail });
-      const tools = buildMcpTools(app);
+      const tools = buildTools(app);
 
       expect(requireOnlyTool(tools).name).toBe('myapp_item_delete');
     });
 
     test('input schema is valid JSON Schema', () => {
       const app = topo('myapp', { echoTrail });
-      const schema = requireOnlyTool(buildMcpTools(app)).inputSchema;
+      const schema = requireOnlyTool(buildTools(app)).inputSchema;
 
       expect(schema['type']).toBe('object');
       expect(schema['properties']).toBeDefined();
@@ -117,7 +131,7 @@ describe('buildMcpTools', () => {
 
     test('annotations are correctly derived', () => {
       const app = topo('myapp', { deleteTrail, echoTrail });
-      const tools = buildMcpTools(app);
+      const tools = buildTools(app);
 
       expect(requireTool(tools, 'myapp_echo').annotations?.readOnlyHint).toBe(
         true
@@ -134,7 +148,7 @@ describe('buildMcpTools', () => {
   describe('handler execution', () => {
     test('handler validates input and returns isError on invalid', async () => {
       const app = topo('myapp', { echoTrail });
-      const tool = requireOnlyTool(buildMcpTools(app));
+      const tool = requireOnlyTool(buildTools(app));
 
       const result = await tool.handler({ notMessage: 123 }, noExtra);
       expect(result?.isError).toBe(true);
@@ -144,7 +158,7 @@ describe('buildMcpTools', () => {
 
     test('handler calls implementation and returns result as text content', async () => {
       const app = topo('myapp', { echoTrail });
-      const tool = requireOnlyTool(buildMcpTools(app));
+      const tool = requireOnlyTool(buildTools(app));
 
       const result = await tool.handler({ message: 'hello' }, noExtra);
       expect(result?.isError).toBeUndefined();
@@ -156,7 +170,7 @@ describe('buildMcpTools', () => {
 
     test('handler maps errors to isError content', async () => {
       const app = topo('myapp', { failTrail });
-      const tool = requireOnlyTool(buildMcpTools(app));
+      const tool = requireOnlyTool(buildTools(app));
 
       const result = await tool.handler({ reason: 'broken' }, noExtra);
       expect(result?.isError).toBe(true);
@@ -171,9 +185,7 @@ describe('buildMcpTools', () => {
         },
       });
 
-      const tool = requireOnlyTool(
-        buildMcpTools(topo('myapp', { throwTrail }))
-      );
+      const tool = requireOnlyTool(buildTools(topo('myapp', { throwTrail })));
       const result = await tool.handler({}, noExtra);
 
       expect(result?.isError).toBe(true);
@@ -184,7 +196,7 @@ describe('buildMcpTools', () => {
   describe('filters', () => {
     test('include filter limits which trails become tools', () => {
       const app = topo('myapp', { deleteTrail, echoTrail, failTrail });
-      const tools = buildMcpTools(app, {
+      const tools = buildTools(app, {
         includeTrails: ['echo'],
       });
 
@@ -194,7 +206,7 @@ describe('buildMcpTools', () => {
 
     test('exclude filter removes specific trails', () => {
       const app = topo('myapp', { deleteTrail, echoTrail, failTrail });
-      const tools = buildMcpTools(app, {
+      const tools = buildTools(app, {
         excludeTrails: ['fail'],
       });
 
@@ -205,7 +217,7 @@ describe('buildMcpTools', () => {
 
     test('include takes precedence over exclude', () => {
       const app = topo('myapp', { deleteTrail, echoTrail, failTrail });
-      const tools = buildMcpTools(app, {
+      const tools = buildTools(app, {
         excludeTrails: ['fail'],
         includeTrails: ['echo', 'fail'],
       });
@@ -234,7 +246,7 @@ describe('buildMcpTools', () => {
       };
 
       const app = topo('myapp', { echoTrail });
-      const tool = requireOnlyTool(buildMcpTools(app, { layers: [testLayer] }));
+      const tool = requireOnlyTool(buildTools(app, { layers: [testLayer] }));
 
       await tool.handler({ message: 'hi' }, noExtra);
       expect(calls).toEqual(['before', 'after']);
@@ -252,9 +264,7 @@ describe('buildMcpTools', () => {
       });
 
       const controller = new AbortController();
-      const tool = requireOnlyTool(
-        buildMcpTools(topo('myapp', { signalTrail }))
-      );
+      const tool = requireOnlyTool(buildTools(topo('myapp', { signalTrail })));
 
       await tool.handler({}, { signal: controller.signal });
       expect(capturedSignal).toBe(controller.signal);
@@ -262,7 +272,7 @@ describe('buildMcpTools', () => {
 
     test('description includes first example input when present', () => {
       const app = topo('myapp', { exampleTrail });
-      const tool = requireOnlyTool(buildMcpTools(app));
+      const tool = requireOnlyTool(buildTools(app));
 
       expect(tool.description).toContain('A trail with examples');
       expect(tool.description).toContain('"name":"world"');
@@ -282,7 +292,7 @@ describe('buildMcpTools', () => {
 
       const app = topo('myapp', { ctxTrail });
       const tool = requireOnlyTool(
-        buildMcpTools(app, {
+        buildTools(app, {
           createContext: () => ({
             custom: true,
             requestId: 'test-id',
@@ -311,7 +321,7 @@ describe('buildMcpTools', () => {
           ),
       });
 
-      const tool = requireOnlyTool(buildMcpTools(topo('myapp', { blobTrail })));
+      const tool = requireOnlyTool(buildTools(topo('myapp', { blobTrail })));
       const result = await tool.handler({}, noExtra);
 
       expect(result?.content[0]?.type).toBe('image');
@@ -333,7 +343,7 @@ describe('buildMcpTools', () => {
           ),
       });
 
-      const tool = requireOnlyTool(buildMcpTools(topo('myapp', { blobTrail })));
+      const tool = requireOnlyTool(buildTools(topo('myapp', { blobTrail })));
       const result = await tool.handler({}, noExtra);
 
       expect(result?.content[0]?.type).toBe('resource');
@@ -362,7 +372,7 @@ describe('buildMcpTools', () => {
           ),
       });
 
-      const tool = requireOnlyTool(buildMcpTools(topo('myapp', { blobTrail })));
+      const tool = requireOnlyTool(buildTools(topo('myapp', { blobTrail })));
       const result = await tool.handler({}, noExtra);
 
       expect(result?.content[0]?.type).toBe('image');
@@ -372,7 +382,7 @@ describe('buildMcpTools', () => {
   });
 
   describe('tool-name collision detection', () => {
-    test('throws on trails that produce the same derived tool name', () => {
+    test('returns Err on trails that produce the same derived tool name', () => {
       const dotTrail = trail('foo.bar', {
         input: z.object({}),
         run: () => Result.ok({ ok: true }),
@@ -383,10 +393,12 @@ describe('buildMcpTools', () => {
       });
 
       const app = topo('myapp', { dotTrail, underscoreTrail });
-      expect(() => buildMcpTools(app)).toThrow(/tool-name collision/i);
+      const result = buildMcpTools(app);
+      expect(result.isErr()).toBe(true);
+      expect(result.error?.message).toMatch(/tool-name collision/i);
     });
 
-    test('throws on trails where hyphen and underscore collide', () => {
+    test('returns Err on trails where hyphen and underscore collide', () => {
       const hyphenTrail = trail('foo-bar', {
         input: z.object({}),
         run: () => Result.ok({ ok: true }),
@@ -397,10 +409,12 @@ describe('buildMcpTools', () => {
       });
 
       const app = topo('myapp', { hyphenTrail, underscoreTrail });
-      expect(() => buildMcpTools(app)).toThrow(/tool-name collision/i);
+      const result = buildMcpTools(app);
+      expect(result.isErr()).toBe(true);
+      expect(result.error?.message).toMatch(/tool-name collision/i);
     });
 
-    test('does not throw when trail names are distinct after normalization', () => {
+    test('returns Ok when trail names are distinct after normalization', () => {
       const fooTrail = trail('foo', {
         input: z.object({}),
         run: () => Result.ok({ ok: true }),
@@ -411,7 +425,8 @@ describe('buildMcpTools', () => {
       });
 
       const app = topo('myapp', { barTrail, fooTrail });
-      expect(() => buildMcpTools(app)).not.toThrow();
+      const result = buildMcpTools(app);
+      expect(result.isOk()).toBe(true);
     });
   });
 
@@ -426,9 +441,7 @@ describe('buildMcpTools', () => {
         run: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
       });
 
-      const tool = requireOnlyTool(
-        buildMcpTools(topo('testapp', { greetTrail }))
-      );
+      const tool = requireOnlyTool(buildTools(topo('testapp', { greetTrail })));
 
       expect(tool).toMatchObject({
         annotations: {

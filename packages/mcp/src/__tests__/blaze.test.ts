@@ -5,18 +5,32 @@ import { z } from 'zod';
 
 import { createMcpServer } from '../blaze.js';
 import { buildMcpTools } from '../build.js';
+import type { McpToolDefinition } from '../build.js';
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-const requireTool = (tools: ReturnType<typeof buildMcpTools>, name: string) => {
+const requireTool = (tools: McpToolDefinition[], name: string) => {
   const tool = tools.find((entry) => entry.name === name);
   expect(tool).toBeDefined();
   if (!tool) {
     throw new Error(`Expected tool: ${name}`);
   }
   return tool;
+};
+
+/**
+ * Unwrap buildMcpTools result, throwing on error so test failures surface clearly.
+ */
+const buildTools = (
+  ...args: Parameters<typeof buildMcpTools>
+): McpToolDefinition[] => {
+  const result = buildMcpTools(...args);
+  if (result.isErr()) {
+    throw result.error;
+  }
+  return result.value;
 };
 
 const createIntegrationTools = () => {
@@ -34,7 +48,7 @@ const createIntegrationTools = () => {
     run: (_input) => Result.ok({ deleted: true }),
   });
 
-  return buildMcpTools(topo('myapp', { deleteTrail, greetTrail }));
+  return buildTools(topo('myapp', { deleteTrail, greetTrail }));
 };
 
 describe('blaze', () => {
@@ -47,7 +61,7 @@ describe('blaze', () => {
     });
 
     const app = topo('testapp', { echoTrail });
-    const tools = buildMcpTools(app);
+    const tools = buildTools(app);
     const server = createMcpServer(tools, {
       name: 'testapp',
       version: '0.1.0',
@@ -72,7 +86,7 @@ describe('blaze', () => {
     });
 
     const app = topo('testapp', { echoTrail, searchTrail });
-    const tools = buildMcpTools(app);
+    const tools = buildTools(app);
 
     expect(tools).toHaveLength(2);
 
