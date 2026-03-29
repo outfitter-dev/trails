@@ -109,12 +109,7 @@ const createExecute =
 
 /** Filter topo items to eligible trails. */
 const eligibleTrails = (app: Topo): Trail<unknown, unknown>[] =>
-  app
-    .list()
-    .filter(
-      (item): item is Trail<unknown, unknown> =>
-        item.kind === 'trail' && shouldInclude(item)
-    );
+  app.list().filter((trail) => shouldInclude(trail));
 
 /** Build a single route definition from a trail. */
 const buildRoute = (

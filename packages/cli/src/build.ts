@@ -209,17 +209,11 @@ export const buildCliCommands = (
 ): CliCommand[] => {
   const commands: CliCommand[] = [];
 
-  for (const item of app.list()) {
-    if (item.kind !== 'trail') {
+  for (const trail of app.list()) {
+    if (trail.metadata?.['internal'] === true) {
       continue;
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const t = item as AnyTrail;
-    if (t.metadata?.['internal'] === true) {
-      continue;
-    }
-    commands.push(toCliCommand(t, options));
+    commands.push(toCliCommand(trail, options));
   }
 
   return commands;
