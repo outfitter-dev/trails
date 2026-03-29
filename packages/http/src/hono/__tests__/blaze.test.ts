@@ -289,6 +289,60 @@ describe('blaze (Hono adapter)', () => {
     });
   });
 
+  describe('AbortSignal', () => {
+    test('passes request AbortSignal to trail context', async () => {
+      let capturedSignal: AbortSignal | undefined;
+
+      const signalTrail = trail('signal.check', {
+        input: z.object({}),
+        intent: 'read',
+        output: z.object({ ok: z.boolean() }),
+        run: (_input, ctx) => {
+          capturedSignal = ctx.signal;
+          return Result.ok({ ok: true });
+        },
+      });
+
+      const app = topo('testapp', { signalTrail });
+      const hono = await blaze(app, { serve: false });
+
+      const res = await request(hono, 'GET', '/signal/check');
+      expect(res.status).toBe(200);
+      expect(capturedSignal).toBeInstanceOf(AbortSignal);
+    });
+
+    test('signal is aborted when request is cancelled', async () => {
+      let capturedSignal: AbortSignal | undefined;
+
+      const signalTrail = trail('signal.aborted', {
+        input: z.object({}),
+        intent: 'read',
+        output: z.object({ ok: z.boolean() }),
+        run: (_input, ctx) => {
+          capturedSignal = ctx.signal;
+          return Result.ok({ ok: true });
+        },
+      });
+
+      const app = topo('testapp', { signalTrail });
+      const hono = await blaze(app, { serve: false });
+
+      const controller = new AbortController();
+      controller.abort();
+
+      // Pass the pre-aborted signal directly in the Request.
+      // Hono's fetch propagates Request.signal into c.req.raw.signal.
+      const res = await hono.fetch(
+        new Request('http://localhost/signal/aborted', {
+          method: 'GET',
+          signal: controller.signal,
+        })
+      );
+      expect(res.status).toBe(200);
+      expect(capturedSignal?.aborted).toBe(true);
+    });
+  });
+
   describe('context', () => {
     test('X-Request-ID header is used for requestId', async () => {
       let capturedRequestId: string | undefined;
