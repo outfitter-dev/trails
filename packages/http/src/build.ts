@@ -9,6 +9,7 @@
 import {
   InternalError,
   Result,
+  ValidationError,
   composeLayers,
   createTrailContext,
   validateInput,
@@ -160,6 +161,55 @@ const buildRoute = (
 };
 
 // ---------------------------------------------------------------------------
+// Collision detection
+// ---------------------------------------------------------------------------
+
+/** Derive the lookup key for (method, path) collision detection. */
+const routeKey = (route: HttpRouteDefinition): `${string} ${string}` =>
+  `${route.method} ${route.path}`;
+
+/** Register a route, checking for (path, method) collisions. */
+const registerRoute = (
+  route: HttpRouteDefinition,
+  seenRoutes: Map<string, string>,
+  routes: HttpRouteDefinition[]
+): Result<void, Error> => {
+  const key = routeKey(route);
+  const existingId = seenRoutes.get(key);
+  if (existingId !== undefined) {
+    return Result.err(
+      new ValidationError(
+        `HTTP route collision: trails "${existingId}" and "${route.trailId}" both derive ${route.method} ${route.path}`
+      )
+    );
+  }
+  seenRoutes.set(key, route.trailId);
+  routes.push(route);
+  return Result.ok();
+};
+
+/** Accumulate route definitions, returning early on the first collision. */
+const accumulateRoutes = (
+  trails: Trail<unknown, unknown>[],
+  basePath: string,
+  layers: readonly Layer[],
+  options: BuildHttpRoutesOptions
+): Result<HttpRouteDefinition[], Error> => {
+  const routes: HttpRouteDefinition[] = [];
+  const seenRoutes = new Map<string, string>();
+
+  for (const trail of trails) {
+    const route = buildRoute(trail, basePath, layers, options);
+    const registered = registerRoute(route, seenRoutes, routes);
+    if (registered.isErr()) {
+      return registered;
+    }
+  }
+
+  return Result.ok(routes);
+};
+
+// ---------------------------------------------------------------------------
 // Builder
 // ---------------------------------------------------------------------------
 
@@ -171,15 +221,15 @@ const buildRoute = (
  * - A path derived from the trail ID (dots become slashes)
  * - An input source derived from the method (GET -> query, others -> body)
  * - An `execute` function that validates, layers, and runs the implementation
+ *
+ * Returns `Result.err(ValidationError)` if two trails derive the same
+ * (method, path) pair. Returns `Result.ok(routes)` on success.
  */
 export const buildHttpRoutes = (
   app: Topo,
   options: BuildHttpRoutesOptions = {}
-): HttpRouteDefinition[] => {
+): Result<HttpRouteDefinition[], Error> => {
   const basePath = (options.basePath ?? '').replace(/\/+$/, '');
   const layers = options.layers ?? [];
-
-  return eligibleTrails(app).map((trail) =>
-    buildRoute(trail, basePath, layers, options)
-  );
+  return accumulateRoutes(eligibleTrails(app), basePath, layers, options);
 };
