@@ -239,4 +239,20 @@ describe('buildCliCommands', () => {
     await commands[0]?.execute({}, { 'sort-order': 'asc' });
     expect(receivedInput).toEqual({ sortOrder: 'asc' });
   });
+
+  test('returns InternalError when run function throws', async () => {
+    const throwing = trail('throw.test', {
+      input: z.object({}),
+      output: z.object({}),
+      run: () => {
+        throw new Error('unexpected kaboom');
+      },
+    });
+    const app = makeApp(throwing);
+    const commands = buildCliCommands(app);
+    const cmd = requireCommand(commands);
+    const result = await cmd.execute({}, {});
+    expect(result.isErr()).toBe(true);
+    expect(result.error.message).toContain('unexpected kaboom');
+  });
 });
