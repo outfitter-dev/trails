@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { Result } from '../result';
 import { trail } from '../trail';
-import type { TrailInput, TrailOutput } from '../type-utils';
+import type { TrailInput, TrailOutput, TrailResult } from '../type-utils';
 import { inputOf, outputOf } from '../type-utils';
 
 const greetTrail = trail('greet', {
@@ -65,6 +65,26 @@ describe('type-utils', () => {
       // If this compiles, the type is correct
       const _output: TrailOutput<typeof greetTrail> = { message: 'hello' };
       expect(_output.message).toBe('hello');
+    });
+  });
+
+  describe('TrailResult', () => {
+    test('extracts Result<Output, Error> from a trail', () => {
+      const t = trail('test.result', {
+        input: z.object({ q: z.string() }),
+        output: z.object({ answer: z.string() }),
+        run: (input) => Result.ok({ answer: input.q }),
+      });
+
+      type Expected = Result<{ answer: string }, Error>;
+      type Actual = TrailResult<typeof t>;
+
+      // Compile-time check: assignment works in both directions
+      const _check1: Expected = {} as Actual;
+      const _check2: Actual = {} as Expected;
+
+      // Runtime: type exists and is usable
+      expect(true).toBe(true);
     });
   });
 });

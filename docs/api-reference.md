@@ -20,6 +20,7 @@ AnyTrail, AnyEvent
 // Type utilities
 TrailInput<T>                      // extract input type from a Trail
 TrailOutput<T>                     // extract output type from a Trail
+TrailResult<T>                     // extract Result<Output, Error> from a Trail
 inputOf(trail)                     // get the input Zod schema
 outputOf(trail)                    // get the output Zod schema (or undefined)
 
