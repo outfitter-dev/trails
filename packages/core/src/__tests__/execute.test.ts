@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import { InternalError, ValidationError } from '../errors';
 import { executeTrail } from '../execute';
+import { createTrailContext } from '../context';
 import type { Layer } from '../layer';
 import { Result } from '../result';
 import { trail } from '../trail';
@@ -162,6 +163,28 @@ describe('executeTrail', () => {
 
       expect(capturedCtx?.requestId).toBe('overridden-id');
       expect(capturedCtx?.cwd).toBe('/factory');
+    });
+
+    test('deep-merges extensions from factory and overrides', async () => {
+      let captured: TrailContext | undefined;
+      const t = trail('ext.test', {
+        input: z.object({}),
+        output: z.object({}),
+        run: (_input, ctx) => {
+          captured = ctx;
+          return Result.ok({});
+        },
+      });
+      await executeTrail(
+        t,
+        {},
+        {
+          createContext: () =>
+            createTrailContext({ extensions: { store: 'db' } }),
+          ctx: { extensions: { userId: '123' } },
+        }
+      );
+      expect(captured?.extensions).toEqual({ store: 'db', userId: '123' });
     });
   });
 

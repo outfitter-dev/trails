@@ -394,8 +394,7 @@ describe('blaze (Hono adapter)', () => {
         input: z.object({}),
         intent: 'read',
         run: (_input, ctx) => {
-          const ctxRecord = ctx as Record<string, unknown>;
-          contextUsed = ctxRecord['custom'] === true;
+          contextUsed = ctx.extensions?.['custom'] === true;
           return Result.ok({ ok: true });
         },
       });
@@ -403,7 +402,7 @@ describe('blaze (Hono adapter)', () => {
       const app = topo('testapp', { ctxTrail });
       const hono = await blaze(app, {
         createContext: () => ({
-          custom: true,
+          extensions: { custom: true },
           requestId: 'test-id',
           signal: new AbortController().signal,
         }),

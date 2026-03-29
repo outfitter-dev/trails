@@ -25,6 +25,6 @@ const store = createStore([
 blaze(app, {
   createContext: () =>
     createTrailContext({
-      store,
+      extensions: { store },
     }),
 });

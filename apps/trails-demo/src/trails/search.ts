@@ -45,7 +45,7 @@ export const search = trail('search', {
     total: z.number(),
   }),
   run: (input, ctx) => {
-    const store = ctx['store'] as EntityStore;
+    const store = ctx.extensions?.['store'] as EntityStore;
     const results = store.search(input.query);
     const limited = results.slice(0, input.limit);
     return Result.ok({

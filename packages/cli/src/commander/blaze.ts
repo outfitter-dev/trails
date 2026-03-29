@@ -3,6 +3,7 @@
  */
 
 import type { Layer, Topo, TrailContext } from '@ontrails/core';
+import { validateTopo } from '@ontrails/core';
 
 import type { ActionResultContext } from '../build.js';
 import { buildCliCommands } from '../build.js';
@@ -24,8 +25,22 @@ export interface BlazeCliOptions {
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
   presets?: CliFlag[][] | undefined;
   resolveInput?: InputResolver | undefined;
+  /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
+  validate?: boolean | undefined;
   version?: string | undefined;
 }
+
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
+
+/** Throw a ValidationError if the topo has structural issues. */
+const assertValidTopo = (app: Topo): void => {
+  const validated = validateTopo(app);
+  if (validated.isErr()) {
+    throw validated.error;
+  }
+};
 
 // ---------------------------------------------------------------------------
 // blaze
@@ -47,6 +62,10 @@ export const blaze = async (
   app: Topo,
   options: BlazeCliOptions = {}
 ): Promise<void> => {
+  if (options.validate !== false) {
+    assertValidTopo(app);
+  }
+
   const commands = buildCliCommands(app, {
     createContext: options.createContext,
     layers: options.layers,

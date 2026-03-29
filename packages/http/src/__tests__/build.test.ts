@@ -352,8 +352,7 @@ describe('buildHttpRoutes', () => {
         input: z.object({}),
         intent: 'read',
         run: (_input, ctx) => {
-          const ctxRecord = ctx as Record<string, unknown>;
-          contextUsed = ctxRecord['custom'] === true;
+          contextUsed = ctx.extensions?.['custom'] === true;
           return Result.ok({ ok: true });
         },
       });
@@ -361,7 +360,7 @@ describe('buildHttpRoutes', () => {
       const app = topo('testapp', { ctxTrail });
       const buildResult = buildHttpRoutes(app, {
         createContext: () => ({
-          custom: true,
+          extensions: { custom: true },
           requestId: 'test-id',
           signal: new AbortController().signal,
         }),

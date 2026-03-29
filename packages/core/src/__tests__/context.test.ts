@@ -48,14 +48,13 @@ describe('createTrailContext', () => {
     expect(ctx.workspaceRoot).toBe('/tmp');
   });
 
-  test('TrailContext is extensible with custom fields', () => {
+  test('TrailContext supports extensions for custom fields', () => {
     const ctx: TrailContext = createTrailContext({
-      customField: 42,
-      nested: { key: 'value' },
+      extensions: { customField: 42, nested: { key: 'value' } },
     });
 
-    expect(ctx['customField']).toBe(42);
-    expect(ctx['nested']).toEqual({ key: 'value' });
+    expect(ctx.extensions?.['customField']).toBe(42);
+    expect(ctx.extensions?.['nested']).toEqual({ key: 'value' });
   });
 
   test('each call generates a unique requestId', () => {
