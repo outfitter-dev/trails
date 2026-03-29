@@ -6,9 +6,8 @@
  */
 
 import type { Topo } from './topo.js';
-import type { TrailContext } from './types.js';
-import type { Layer } from './layer.js';
 import { executeTrail } from './execute.js';
+import type { ExecuteTrailOptions } from './execute.js';
 import { NotFoundError } from './errors.js';
 import { Result } from './result.js';
 
@@ -17,18 +16,7 @@ import { Result } from './result.js';
 // ---------------------------------------------------------------------------
 
 /** Options forwarded to `executeTrail` from `dispatch`. */
-export interface DispatchOptions {
-  /** Partial context overrides merged on top of the base context. */
-  readonly ctx?: Partial<TrailContext> | undefined;
-  /** AbortSignal override (takes final precedence over ctx and factory). */
-  readonly signal?: AbortSignal | undefined;
-  /** Layers to compose around the implementation. */
-  readonly layers?: readonly Layer[] | undefined;
-  /** Factory that produces a base TrailContext (takes precedence over defaults). */
-  readonly createContext?:
-    | (() => TrailContext | Promise<TrailContext>)
-    | undefined;
-}
+export type DispatchOptions = ExecuteTrailOptions;
 
 // ---------------------------------------------------------------------------
 // dispatch()
