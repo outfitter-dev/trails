@@ -9,10 +9,8 @@
 import {
   Result,
   ValidationError,
-  composeLayers,
-  createTrailContext,
+  executeTrail,
   isBlobRef,
-  validateInput,
   zodToJsonSchema,
 } from '@ontrails/core';
 import type { BlobRef, Layer, Topo, Trail, TrailContext } from '@ontrails/core';
@@ -199,48 +197,9 @@ const mcpError = (message: string): McpToolResult => ({
   isError: true,
 });
 
-/** Build a TrailContext from options and MCP extra. */
-const buildTrailContext = async (
-  options: BuildMcpToolsOptions,
-  extra: McpExtra
-): Promise<TrailContext> => {
-  const baseContext =
-    options.createContext !== undefined && options.createContext !== null
-      ? await options.createContext()
-      : createTrailContext();
-
-  const signal = extra.signal ?? baseContext.signal;
-  const progressCb = createMcpProgressCallback(extra);
-
-  return {
-    ...baseContext,
-    signal,
-    ...(progressCb === undefined ? {} : { progress: progressCb }),
-  };
-};
-
-/** Execute a trail and map the result to an MCP response. */
-const executeAndMap = async (
-  trail: Trail<unknown, unknown>,
-  validatedInput: unknown,
-  ctx: TrailContext,
-  layers: readonly Layer[]
-): Promise<McpToolResult> => {
-  const impl = composeLayers([...layers], trail, trail.run);
-  try {
-    const result = await impl(validatedInput, ctx);
-    if (result.isOk()) {
-      return { content: await serializeOutput(result.value) };
-    }
-    return mcpError(result.error.message);
-  } catch (error: unknown) {
-    return mcpError(error instanceof Error ? error.message : String(error));
-  }
-};
-
 const createHandler =
   (
-    trail: Trail<unknown, unknown>,
+    t: Trail<unknown, unknown>,
     layers: readonly Layer[],
     options: BuildMcpToolsOptions
   ): ((
@@ -248,12 +207,17 @@ const createHandler =
     extra: McpExtra
   ) => Promise<McpToolResult>) =>
   async (args, extra): Promise<McpToolResult> => {
-    const validated = validateInput(trail.input, args);
-    if (validated.isErr()) {
-      return mcpError(validated.error.message);
+    const progressCb = createMcpProgressCallback(extra);
+    const result = await executeTrail(t, args, {
+      createContext: options.createContext,
+      ctx: progressCb === undefined ? undefined : { progress: progressCb },
+      layers,
+      signal: extra.signal,
+    });
+    if (result.isOk()) {
+      return { content: await serializeOutput(result.value) };
     }
-    const ctx = await buildTrailContext(options, extra);
-    return executeAndMap(trail, validated.value, ctx, layers);
+    return mcpError(result.error.message);
   };
 
 // ---------------------------------------------------------------------------

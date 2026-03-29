@@ -95,26 +95,51 @@ describe('buildCliCommands', () => {
     expect(dryRunFlag?.type).toBe('boolean');
   });
 
-  test('calls onResult with correct context', async () => {
-    let captured: ActionResultContext | undefined;
-    const t = trail('ping', {
-      input: z.object({ msg: z.string() }),
-      run: (input: { msg: string }) => Result.ok(input.msg),
-    });
-    const app = makeApp(t);
-    const commands = buildCliCommands(app, {
-      onResult: (ctx) => {
-        captured = ctx;
-        return Promise.resolve();
-      },
+  describe('onResult callback', () => {
+    test('receives correct context', async () => {
+      let captured: ActionResultContext | undefined;
+      const t = trail('ping', {
+        input: z.object({ msg: z.string() }),
+        run: (input: { msg: string }) => Result.ok(input.msg),
+      });
+      const app = makeApp(t);
+      const commands = buildCliCommands(app, {
+        onResult: (ctx) => {
+          captured = ctx;
+          return Promise.resolve();
+        },
+      });
+
+      await commands[0]?.execute({}, { msg: 'hello' });
+
+      expect(captured).toBeDefined();
+      expect(captured?.trail.id).toBe('ping');
+      expect(captured?.input).toEqual({ msg: 'hello' });
+      expect(captured?.result.isOk()).toBe(true);
     });
 
-    await commands[0]?.execute({}, { msg: 'hello' });
+    test('receives validated (coerced) input on success', async () => {
+      let captured: ActionResultContext | undefined;
+      const t = trail('coerce', {
+        input: z.object({ count: z.coerce.number() }),
+        run: (input: { count: number }) => Result.ok(input.count),
+      });
+      const app = makeApp(t);
+      const commands = buildCliCommands(app, {
+        onResult: (ctx) => {
+          captured = ctx;
+          return Promise.resolve();
+        },
+      });
 
-    expect(captured).toBeDefined();
-    expect(captured?.trail.id).toBe('ping');
-    expect(captured?.input).toEqual({ msg: 'hello' });
-    expect(captured?.result.isOk()).toBe(true);
+      // Pass count as a string — z.coerce.number() should transform it to 42
+      await commands[0]?.execute({}, { count: '42' });
+
+      expect(captured).toBeDefined();
+      expect(captured?.result.isOk()).toBe(true);
+      // onResult should receive the coerced number, not the raw string
+      expect(captured?.input).toEqual({ count: 42 });
+    });
   });
 
   test('validates input before calling implementation', async () => {
