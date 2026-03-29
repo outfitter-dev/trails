@@ -130,14 +130,18 @@ export const blaze = async (
   app: Topo,
   options: BlazeMcpOptions = {}
 ): Promise<void> => {
-  const tools = buildMcpTools(app, {
+  const toolsResult = buildMcpTools(app, {
     createContext: options.createContext,
     excludeTrails: options.excludeTrails,
     includeTrails: options.includeTrails,
     layers: options.layers,
   });
 
-  const server = createMcpServer(tools, {
+  if (toolsResult.isErr()) {
+    throw toolsResult.error;
+  }
+
+  const server = createMcpServer(toolsResult.value, {
     name: options.serverInfo?.name ?? app.name,
     version: options.serverInfo?.version ?? '0.1.0',
   });

@@ -31,9 +31,12 @@ import type {
  * ```
  */
 export const createMcpHarness = (options: McpHarnessOptions): McpHarness => {
-  const tools = buildMcpTools(options.app);
+  const toolsResult = buildMcpTools(options.app);
+  if (toolsResult.isErr()) {
+    throw toolsResult.error;
+  }
   const toolMap = new Map<string, McpToolDefinition>();
-  for (const tool of tools) {
+  for (const tool of toolsResult.value) {
     toolMap.set(tool.name, tool);
   }
 

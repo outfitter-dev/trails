@@ -7,6 +7,8 @@
  */
 
 import {
+  Result,
+  ValidationError,
   composeLayers,
   createTrailContext,
   isBlobRef,
@@ -332,16 +334,19 @@ const registerTool = (
   options: BuildMcpToolsOptions,
   nameToTrailId: Map<string, string>,
   tools: McpToolDefinition[]
-): void => {
+): Result<void, Error> => {
   const toolName = deriveToolName(app.name, trailItem.id);
   const existingId = nameToTrailId.get(toolName);
   if (existingId !== undefined) {
-    throw new Error(
-      `MCP tool-name collision: trails "${existingId}" and "${trailItem.id}" both derive the tool name "${toolName}"`
+    return Result.err(
+      new ValidationError(
+        `MCP tool-name collision: trails "${existingId}" and "${trailItem.id}" both derive the tool name "${toolName}"`
+      )
     );
   }
   nameToTrailId.set(toolName, trailItem.id);
   tools.push(buildToolDefinition(app, trailItem, layers, options));
+  return Result.ok();
 };
 
 /** Filter topo items to eligible trails. */
@@ -360,14 +365,24 @@ const eligibleTrails = (
 export const buildMcpTools = (
   app: Topo,
   options: BuildMcpToolsOptions = {}
-): McpToolDefinition[] => {
+): Result<McpToolDefinition[], Error> => {
   const layers = options.layers ?? [];
   const tools: McpToolDefinition[] = [];
   const nameToTrailId = new Map<string, string>();
 
   for (const trailItem of eligibleTrails(app, options)) {
-    registerTool(app, trailItem, layers, options, nameToTrailId, tools);
+    const registered = registerTool(
+      app,
+      trailItem,
+      layers,
+      options,
+      nameToTrailId,
+      tools
+    );
+    if (registered.isErr()) {
+      return registered;
+    }
   }
 
-  return tools;
+  return Result.ok(tools);
 };
