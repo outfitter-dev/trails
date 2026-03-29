@@ -224,12 +224,17 @@ export const blaze = async (
 
   registerErrorHandler(hono);
 
-  const routes = buildHttpRoutes(app, {
+  const routesResult = buildHttpRoutes(app, {
     basePath: options.basePath,
     createContext: options.createContext,
     layers: options.layers,
   });
-  registerRoutes(hono, routes);
+
+  if (routesResult.isErr()) {
+    throw routesResult.error;
+  }
+
+  registerRoutes(hono, routesResult.value);
 
   if (options.serve !== false) {
     Bun.serve({

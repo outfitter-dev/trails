@@ -4,6 +4,7 @@ import {
   InternalError,
   NotFoundError,
   Result,
+  ValidationError,
   trail,
   topo,
 } from '@ontrails/core';
@@ -66,24 +67,30 @@ describe('buildHttpRoutes', () => {
   describe('method derivation', () => {
     test('intent: read maps to GET', () => {
       const app = topo('testapp', { echoTrail });
-      const routes = buildHttpRoutes(app);
+      const result = buildHttpRoutes(app);
 
+      expect(result.isOk()).toBe(true);
+      const routes = result.value;
       expect(routes).toHaveLength(1);
       expect(routes[0]?.method).toBe('GET');
     });
 
     test('intent: destroy maps to DELETE', () => {
       const app = topo('testapp', { deleteTrail });
-      const routes = buildHttpRoutes(app);
+      const result = buildHttpRoutes(app);
 
+      expect(result.isOk()).toBe(true);
+      const routes = result.value;
       expect(routes).toHaveLength(1);
       expect(routes[0]?.method).toBe('DELETE');
     });
 
     test('default intent (write) maps to POST', () => {
       const app = topo('testapp', { createTrail });
-      const routes = buildHttpRoutes(app);
+      const result = buildHttpRoutes(app);
 
+      expect(result.isOk()).toBe(true);
+      const routes = result.value;
       expect(routes).toHaveLength(1);
       expect(routes[0]?.method).toBe('POST');
     });
@@ -92,61 +99,70 @@ describe('buildHttpRoutes', () => {
   describe('path derivation', () => {
     test('dotted ID becomes slashed path', () => {
       const app = topo('testapp', { createTrail });
-      const routes = buildHttpRoutes(app);
+      const result = buildHttpRoutes(app);
 
-      expect(routes[0]?.path).toBe('/item/create');
+      expect(result.isOk()).toBe(true);
+      expect(result.value[0]?.path).toBe('/item/create');
     });
 
     test('simple ID becomes /id', () => {
       const app = topo('testapp', { echoTrail });
-      const routes = buildHttpRoutes(app);
+      const result = buildHttpRoutes(app);
 
-      expect(routes[0]?.path).toBe('/echo');
+      expect(result.isOk()).toBe(true);
+      expect(result.value[0]?.path).toBe('/echo');
     });
 
     test('basePath is prepended', () => {
       const app = topo('testapp', { echoTrail });
-      const routes = buildHttpRoutes(app, { basePath: '/api/v1' });
+      const result = buildHttpRoutes(app, { basePath: '/api/v1' });
 
-      expect(routes[0]?.path).toBe('/api/v1/echo');
+      expect(result.isOk()).toBe(true);
+      expect(result.value[0]?.path).toBe('/api/v1/echo');
     });
 
     test('basePath trailing slash is normalized', () => {
       const app = topo('testapp', { echoTrail });
-      const routes = buildHttpRoutes(app, { basePath: '/api/v1/' });
+      const result = buildHttpRoutes(app, { basePath: '/api/v1/' });
 
-      expect(routes[0]?.path).toBe('/api/v1/echo');
+      expect(result.isOk()).toBe(true);
+      expect(result.value[0]?.path).toBe('/api/v1/echo');
     });
   });
 
   describe('input source derivation', () => {
     test('GET routes use query input source', () => {
       const app = topo('testapp', { echoTrail });
-      const routes = buildHttpRoutes(app);
+      const result = buildHttpRoutes(app);
 
-      expect(routes[0]?.inputSource).toBe('query');
+      expect(result.isOk()).toBe(true);
+      expect(result.value[0]?.inputSource).toBe('query');
     });
 
     test('POST routes use body input source', () => {
       const app = topo('testapp', { createTrail });
-      const routes = buildHttpRoutes(app);
+      const result = buildHttpRoutes(app);
 
-      expect(routes[0]?.inputSource).toBe('body');
+      expect(result.isOk()).toBe(true);
+      expect(result.value[0]?.inputSource).toBe('body');
     });
 
     test('DELETE routes use body input source', () => {
       const app = topo('testapp', { deleteTrail });
-      const routes = buildHttpRoutes(app);
+      const result = buildHttpRoutes(app);
 
-      expect(routes[0]?.inputSource).toBe('body');
+      expect(result.isOk()).toBe(true);
+      expect(result.value[0]?.inputSource).toBe('body');
     });
   });
 
   describe('filtering', () => {
     test('internal trails are skipped', () => {
       const app = topo('testapp', { echoTrail, internalMetaTrail });
-      const routes = buildHttpRoutes(app);
+      const result = buildHttpRoutes(app);
 
+      expect(result.isOk()).toBe(true);
+      const routes = result.value;
       expect(routes).toHaveLength(1);
       expect(routes[0]?.trailId).toBe('echo');
     });
@@ -155,24 +171,28 @@ describe('buildHttpRoutes', () => {
   describe('route definition shape', () => {
     test('includes trail reference', () => {
       const app = topo('testapp', { echoTrail });
-      const routes = buildHttpRoutes(app);
+      const result = buildHttpRoutes(app);
 
-      expect(routes[0]?.trail).toBe(echoTrail);
+      expect(result.isOk()).toBe(true);
+      expect(result.value[0]?.trail).toBe(echoTrail);
     });
 
     test('execute is a function', () => {
       const app = topo('testapp', { echoTrail });
-      const routes = buildHttpRoutes(app);
+      const result = buildHttpRoutes(app);
 
-      expect(typeof routes[0]?.execute).toBe('function');
+      expect(result.isOk()).toBe(true);
+      expect(typeof result.value[0]?.execute).toBe('function');
     });
   });
 
   describe('execute', () => {
     test('returns ok Result on valid input', async () => {
       const app = topo('testapp', { echoTrail });
-      const routes = buildHttpRoutes(app);
-      const [route] = routes;
+      const buildResult = buildHttpRoutes(app);
+
+      expect(buildResult.isOk()).toBe(true);
+      const [route] = buildResult.value;
 
       const result = await route?.execute({ message: 'hello' });
       expect(result?.isOk()).toBe(true);
@@ -181,8 +201,10 @@ describe('buildHttpRoutes', () => {
 
     test('returns err Result on invalid input', async () => {
       const app = topo('testapp', { echoTrail });
-      const routes = buildHttpRoutes(app);
-      const [route] = routes;
+      const buildResult = buildHttpRoutes(app);
+
+      expect(buildResult.isOk()).toBe(true);
+      const [route] = buildResult.value;
 
       const result = await route?.execute({});
       expect(result?.isErr()).toBe(true);
@@ -190,8 +212,10 @@ describe('buildHttpRoutes', () => {
 
     test('returns err Result from trail error', async () => {
       const app = topo('testapp', { notFoundTrail });
-      const routes = buildHttpRoutes(app);
-      const [route] = routes;
+      const buildResult = buildHttpRoutes(app);
+
+      expect(buildResult.isOk()).toBe(true);
+      const [route] = buildResult.value;
 
       const result = await route?.execute({ id: 'missing' });
       expect(result?.isErr()).toBe(true);
@@ -200,8 +224,10 @@ describe('buildHttpRoutes', () => {
 
     test('returns err Result from internal error', async () => {
       const app = topo('testapp', { internalTrail });
-      const routes = buildHttpRoutes(app);
-      const [route] = routes;
+      const buildResult = buildHttpRoutes(app);
+
+      expect(buildResult.isOk()).toBe(true);
+      const [route] = buildResult.value;
 
       const result = await route?.execute({});
       expect(result?.isErr()).toBe(true);
@@ -216,8 +242,10 @@ describe('buildHttpRoutes', () => {
         },
       });
       const app = topo('testapp', { throwingTrail });
-      const routes = buildHttpRoutes(app);
-      const [route] = routes;
+      const buildResult = buildHttpRoutes(app);
+
+      expect(buildResult.isOk()).toBe(true);
+      const [route] = buildResult.value;
 
       const result = await route?.execute({});
       expect(result?.isErr()).toBe(true);
@@ -227,12 +255,14 @@ describe('buildHttpRoutes', () => {
 
     test('returns err Result when createContext throws', async () => {
       const app = topo('testapp', { echoTrail });
-      const routes = buildHttpRoutes(app, {
+      const buildResult = buildHttpRoutes(app, {
         createContext: () => {
           throw new Error('context creation failed');
         },
       });
-      const [route] = routes;
+
+      expect(buildResult.isOk()).toBe(true);
+      const [route] = buildResult.value;
 
       const result = await route?.execute({ message: 'hi' });
       expect(result?.isErr()).toBe(true);
@@ -253,8 +283,10 @@ describe('buildHttpRoutes', () => {
       });
 
       const app = topo('testapp', { ctxTrail });
-      const routes = buildHttpRoutes(app);
-      const [route] = routes;
+      const buildResult = buildHttpRoutes(app);
+
+      expect(buildResult.isOk()).toBe(true);
+      const [route] = buildResult.value;
 
       await route?.execute({}, 'custom-req-123');
       expect(capturedRequestId).toBe('custom-req-123');
@@ -273,8 +305,10 @@ describe('buildHttpRoutes', () => {
       });
 
       const app = topo('testapp', { ctxTrail });
-      const routes = buildHttpRoutes(app);
-      const [route] = routes;
+      const buildResult = buildHttpRoutes(app);
+
+      expect(buildResult.isOk()).toBe(true);
+      const [route] = buildResult.value;
 
       await route?.execute({});
       expect(capturedRequestId).toBeDefined();
@@ -299,8 +333,10 @@ describe('buildHttpRoutes', () => {
       };
 
       const app = topo('testapp', { echoTrail });
-      const routes = buildHttpRoutes(app, { layers: [testLayer] });
-      const [route] = routes;
+      const buildResult = buildHttpRoutes(app, { layers: [testLayer] });
+
+      expect(buildResult.isOk()).toBe(true);
+      const [route] = buildResult.value;
 
       const result = await route?.execute({ message: 'hi' });
       expect(result?.isOk()).toBe(true);
@@ -323,18 +359,88 @@ describe('buildHttpRoutes', () => {
       });
 
       const app = topo('testapp', { ctxTrail });
-      const routes = buildHttpRoutes(app, {
+      const buildResult = buildHttpRoutes(app, {
         createContext: () => ({
           custom: true,
           requestId: 'test-id',
           signal: new AbortController().signal,
         }),
       });
-      const [route] = routes;
+
+      expect(buildResult.isOk()).toBe(true);
+      const [route] = buildResult.value;
 
       const result = await route?.execute({});
       expect(result?.isOk()).toBe(true);
       expect(contextUsed).toBe(true);
+    });
+  });
+
+  describe('collision detection', () => {
+    test('returns err on duplicate (path, method) pair', () => {
+      // "entity.show" derives path /entity/show (dots become slashes)
+      // "entity/show" derives path /entity/show (slashes are preserved)
+      // Both have intent: read -> GET, so they collide on GET /entity/show
+      const dotTrail = trail('entity.show', {
+        description: 'Show entity (dot notation)',
+        input: z.object({}),
+        intent: 'read',
+        run: () => Result.ok({ dot: true }),
+      });
+      const slashTrail = trail('entity/show', {
+        description: 'Show entity (slash notation)',
+        input: z.object({}),
+        intent: 'read',
+        run: () => Result.ok({ slash: true }),
+      });
+      const app = topo('testapp', { dotTrail, slashTrail });
+      const result = buildHttpRoutes(app);
+
+      expect(result.isErr()).toBe(true);
+      expect(result.error).toBeInstanceOf(ValidationError);
+      expect(result.error?.message).toContain('GET /entity/show');
+    });
+
+    test('same path with different methods is allowed', () => {
+      // "item.resource" derives GET /item/resource (intent: read)
+      // "item/resource" derives POST /item/resource (default intent: write)
+      // Same path, different methods — no collision
+      const getItem = trail('item.resource', {
+        description: 'Get item',
+        input: z.object({}),
+        intent: 'read',
+        run: () => Result.ok({ get: true }),
+      });
+      const createItem = trail('item/resource', {
+        description: 'Create item',
+        input: z.object({ name: z.string() }),
+        run: () => Result.ok({ created: true }),
+      });
+      const app = topo('testapp', { createItem, getItem });
+      const result = buildHttpRoutes(app);
+
+      expect(result.isOk()).toBe(true);
+      expect(result.value).toHaveLength(2);
+    });
+
+    test('collision error message identifies both trail IDs', () => {
+      const dotTrail = trail('entity.show', {
+        description: 'Trail one',
+        input: z.object({}),
+        intent: 'read',
+        run: () => Result.ok({ one: true }),
+      });
+      const slashTrail = trail('entity/show', {
+        description: 'Trail two',
+        input: z.object({}),
+        intent: 'read',
+        run: () => Result.ok({ two: true }),
+      });
+      const app = topo('testapp', { dotTrail, slashTrail });
+      const result = buildHttpRoutes(app);
+
+      expect(result.isErr()).toBe(true);
+      expect(result.error?.message).toContain('entity');
     });
   });
 });
