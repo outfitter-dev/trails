@@ -1,5 +1,14 @@
 # @ontrails/testing
 
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- @ontrails/cli@1.0.0-beta.7
+- @ontrails/core@1.0.0-beta.7
+- @ontrails/logging@1.0.0-beta.7
+- @ontrails/mcp@1.0.0-beta.7
+
 ## 1.0.0-beta.6
 
 ### Patch Changes

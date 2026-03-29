@@ -1,5 +1,13 @@
 # @ontrails/warden
 
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies
+  - @ontrails/schema@1.0.0-beta.7
+  - @ontrails/core@1.0.0-beta.7
+
 ## 1.0.0-beta.6
 
 ### Patch Changes

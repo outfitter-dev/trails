@@ -10,7 +10,8 @@
     "@ontrails/mcp": "0.1.0",
     "@ontrails/schema": "0.1.0",
     "@ontrails/testing": "0.1.0",
-    "@ontrails/warden": "0.1.0"
+    "@ontrails/warden": "0.1.0",
+    "@ontrails/http": "1.0.0-beta.6"
   },
   "changesets": [
     "api-simplification-beta4",
@@ -18,6 +19,7 @@
     "codex-review-fixes",
     "fix-publish-bugs",
     "fix-workspace-publish",
+    "http-surface-and-openapi",
     "initial-v1-beta",
     "type-utils-and-follow-rule"
   ]

@@ -1,5 +1,11 @@
 # @ontrails/logging
 
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- @ontrails/core@1.0.0-beta.7
+
 ## 1.0.0-beta.6
 
 ### Patch Changes
