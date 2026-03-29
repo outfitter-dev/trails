@@ -4,6 +4,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./hono": "./src/hono/index.ts",
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -14,10 +15,15 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@ontrails/core": "workspace:^",
-    "hono": "^4.7.0"
+    "@ontrails/core": "workspace:^"
   },
   "peerDependencies": {
+    "hono": "^4.7.0",
     "zod": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "hono": {
+      "optional": true
+    }
   }
 }

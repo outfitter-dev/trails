@@ -109,7 +109,7 @@ await blaze(app);
 **HTTP**: Routes from trail IDs (dots become path segments), verbs from intent, error responses from taxonomy.
 
 ```typescript
-import { blaze } from '@ontrails/http';
+import { blaze } from '@ontrails/http/hono';
 await blaze(app, { port: 3000 });
 ```
 

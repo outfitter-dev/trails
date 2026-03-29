@@ -1,10 +1,8 @@
-// Build
+// Build (framework-agnostic)
 export {
   buildHttpRoutes,
   type BuildHttpRoutesOptions,
   type HttpMethod,
   type HttpRouteDefinition,
+  type InputSource,
 } from './build.js';
-
-// Blaze
-export { blaze, type BlazeHttpOptions } from './blaze.js';

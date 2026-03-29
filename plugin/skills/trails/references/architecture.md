@@ -86,7 +86,8 @@ Warden uses inference to verify declarations match actual code. The surface map 
 | `@ontrails/cli` | Command model, flag derivation, output formatting | None beyond core |
 | `@ontrails/cli/commander` | Commander adapter, `blaze()` | `commander` (peer) |
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `blaze()` | `@modelcontextprotocol/sdk` |
-| `@ontrails/http` | HTTP routes, error mapping, `blaze()` | `hono` |
+| `@ontrails/http` | HTTP route definitions (framework-agnostic) | None beyond core |
+| `@ontrails/http/hono` | Hono adapter, `blaze()` | `hono` (peer) |
 
 ### Infrastructure Adapters (right side)
 
@@ -109,7 +110,7 @@ Warden uses inference to verify declarations match actual code. The surface map 
 @ontrails/core (zod)
   <- @ontrails/cli (core)
   <- @ontrails/mcp (core, @modelcontextprotocol/sdk)
-  <- @ontrails/http (core, hono)
+  <- @ontrails/http (core, hono peer)
   <- @ontrails/logging (core)
   <- @ontrails/testing (core, cli, mcp, logging)
   <- @ontrails/schema (core)

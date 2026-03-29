@@ -175,6 +175,30 @@ const buildInputSpec = (
   };
 };
 
+/** Wrap a raw output schema in the `{ data: ... }` envelope the HTTP adapter uses. */
+const wrapInDataEnvelope = (outputSchema: JsonSchema): JsonSchema => ({
+  properties: { data: outputSchema },
+  required: ['data'],
+  type: 'object',
+});
+
+/** Shared error response body schema: `{ error: { message, code, category } }`. */
+const errorResponseSchema: JsonSchema = {
+  properties: {
+    error: {
+      properties: {
+        category: { type: 'string' },
+        code: { type: 'string' },
+        message: { type: 'string' },
+      },
+      required: ['message', 'code', 'category'],
+      type: 'object',
+    },
+  },
+  required: ['error'],
+  type: 'object',
+};
+
 /** Build the 200 response entry. */
 const buildSuccessResponse = (
   t: Trail<unknown, unknown>
@@ -185,10 +209,23 @@ const buildSuccessResponse = (
   const outputSchema = toJsonSchema(t.output);
   return {
     '200': {
-      content: { 'application/json': { schema: outputSchema } },
+      content: {
+        'application/json': { schema: wrapInDataEnvelope(outputSchema) },
+      },
       description: 'Success',
     },
   };
+};
+
+/** Build the default 400 validation error response. */
+const validationErrorResponse: Record<
+  string,
+  { content: Record<string, unknown>; description: string }
+> = {
+  '400': {
+    content: { 'application/json': { schema: errorResponseSchema } },
+    description: 'Validation error',
+  },
 };
 
 /** Build all responses (success + error) for a trail. */
@@ -200,6 +237,7 @@ const buildResponses = (
   }[];
   return {
     ...buildSuccessResponse(t),
+    ...validationErrorResponse,
     ...errorResponsesFromExamples(examples),
   };
 };
@@ -280,7 +318,7 @@ export const generateOpenApiSpec = (
   components: { schemas: {} },
   info: buildInfo(app.name, options),
   openapi: '3.1.0',
-  paths: collectPaths(app, options?.basePath ?? ''),
+  paths: collectPaths(app, (options?.basePath ?? '').replace(/\/+$/, '')),
   ...(options?.servers && options.servers.length > 0
     ? { servers: options.servers }
     : {}),

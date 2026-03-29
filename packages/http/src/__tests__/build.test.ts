@@ -8,31 +8,13 @@ import {
   topo,
 } from '@ontrails/core';
 import type { Layer } from '@ontrails/core';
-import { Hono } from 'hono';
 import { z } from 'zod';
 
-import type { HttpMethod, HttpRouteDefinition } from '../build.js';
 import { buildHttpRoutes } from '../build.js';
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Test trails
 // ---------------------------------------------------------------------------
-
-/** Route registration keyed by HTTP method. */
-const routeRegistrars: Record<
-  HttpMethod,
-  (hono: Hono, route: HttpRouteDefinition) => void
-> = {
-  DELETE: (hono, route) => {
-    hono.delete(route.path, route.handler);
-  },
-  GET: (hono, route) => {
-    hono.get(route.path, route.handler);
-  },
-  POST: (hono, route) => {
-    hono.post(route.path, route.handler);
-  },
-};
 
 const echoTrail = trail('echo', {
   description: 'Echo a message back',
@@ -75,33 +57,6 @@ const internalMetaTrail = trail('secret', {
   metadata: { internal: true },
   run: () => Result.ok({ ok: true }),
 });
-
-/** Build a Hono app from routes for testing. */
-const buildTestApp = (...args: Parameters<typeof buildHttpRoutes>): Hono => {
-  const hono = new Hono();
-  const routes = buildHttpRoutes(...args);
-
-  for (const route of routes) {
-    routeRegistrars[route.method](hono, route);
-  }
-
-  return hono;
-};
-
-/** Make a request against a Hono test app. */
-const request = (
-  app: Hono,
-  method: string,
-  path: string,
-  body?: Record<string, unknown>
-): Promise<Response> => {
-  const init: RequestInit = { method };
-  if (body !== undefined) {
-    init.headers = { 'Content-Type': 'application/json' };
-    init.body = JSON.stringify(body);
-  }
-  return app.request(path, init);
-};
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -155,6 +110,36 @@ describe('buildHttpRoutes', () => {
 
       expect(routes[0]?.path).toBe('/api/v1/echo');
     });
+
+    test('basePath trailing slash is normalized', () => {
+      const app = topo('testapp', { echoTrail });
+      const routes = buildHttpRoutes(app, { basePath: '/api/v1/' });
+
+      expect(routes[0]?.path).toBe('/api/v1/echo');
+    });
+  });
+
+  describe('input source derivation', () => {
+    test('GET routes use query input source', () => {
+      const app = topo('testapp', { echoTrail });
+      const routes = buildHttpRoutes(app);
+
+      expect(routes[0]?.inputSource).toBe('query');
+    });
+
+    test('POST routes use body input source', () => {
+      const app = topo('testapp', { createTrail });
+      const routes = buildHttpRoutes(app);
+
+      expect(routes[0]?.inputSource).toBe('body');
+    });
+
+    test('DELETE routes use body input source', () => {
+      const app = topo('testapp', { deleteTrail });
+      const routes = buildHttpRoutes(app);
+
+      expect(routes[0]?.inputSource).toBe('body');
+    });
   });
 
   describe('filtering', () => {
@@ -167,112 +152,133 @@ describe('buildHttpRoutes', () => {
     });
   });
 
-  describe('GET handler', () => {
-    test('returns 200 with data on success', async () => {
+  describe('route definition shape', () => {
+    test('includes trail reference', () => {
       const app = topo('testapp', { echoTrail });
-      const hono = buildTestApp(app);
+      const routes = buildHttpRoutes(app);
 
-      const res = await request(hono, 'GET', '/echo?message=hello');
-      expect(res.status).toBe(200);
-
-      const json = await res.json();
-      expect(json).toEqual({ data: { reply: 'hello' } });
+      expect(routes[0]?.trail).toBe(echoTrail);
     });
 
-    test('returns 400 on invalid input', async () => {
+    test('execute is a function', () => {
       const app = topo('testapp', { echoTrail });
-      const hono = buildTestApp(app);
+      const routes = buildHttpRoutes(app);
 
-      const res = await request(hono, 'GET', '/echo');
-      expect(res.status).toBe(400);
-
-      const json = await res.json();
-      expect(json.error).toBeDefined();
-      expect(json.error.category).toBe('validation');
+      expect(typeof routes[0]?.execute).toBe('function');
     });
   });
 
-  describe('POST handler', () => {
-    test('returns 200 with data on success', async () => {
-      const app = topo('testapp', { createTrail });
-      const hono = buildTestApp(app);
+  describe('execute', () => {
+    test('returns ok Result on valid input', async () => {
+      const app = topo('testapp', { echoTrail });
+      const routes = buildHttpRoutes(app);
+      const [route] = routes;
 
-      const res = await request(hono, 'POST', '/item/create', {
-        name: 'Widget',
-      });
-      expect(res.status).toBe(200);
-
-      const json = await res.json();
-      expect(json).toEqual({ data: { id: '123', name: 'Widget' } });
+      const result = await route?.execute({ message: 'hello' });
+      expect(result?.isOk()).toBe(true);
+      expect(result?.value).toEqual({ reply: 'hello' });
     });
 
-    test('returns 400 on invalid input', async () => {
-      const app = topo('testapp', { createTrail });
-      const hono = buildTestApp(app);
+    test('returns err Result on invalid input', async () => {
+      const app = topo('testapp', { echoTrail });
+      const routes = buildHttpRoutes(app);
+      const [route] = routes;
 
-      const res = await request(hono, 'POST', '/item/create', {});
-      expect(res.status).toBe(400);
-
-      const json = await res.json();
-      expect(json.error.category).toBe('validation');
+      const result = await route?.execute({});
+      expect(result?.isErr()).toBe(true);
     });
-  });
 
-  describe('DELETE handler', () => {
-    test('returns 200 with data on success', async () => {
-      const app = topo('testapp', { deleteTrail });
-      const hono = buildTestApp(app);
-
-      const res = await request(hono, 'DELETE', '/item/delete', {
-        id: 'abc',
-      });
-      expect(res.status).toBe(200);
-
-      const json = await res.json();
-      expect(json).toEqual({ data: { deleted: true } });
-    });
-  });
-
-  describe('error mapping', () => {
-    test('NotFoundError maps to 404', async () => {
+    test('returns err Result from trail error', async () => {
       const app = topo('testapp', { notFoundTrail });
-      const hono = buildTestApp(app);
+      const routes = buildHttpRoutes(app);
+      const [route] = routes;
 
-      const res = await request(hono, 'GET', '/item/get?id=missing');
-      expect(res.status).toBe(404);
-
-      const json = await res.json();
-      expect(json.error.category).toBe('not_found');
-      expect(json.error.message).toBe('Item not found');
+      const result = await route?.execute({ id: 'missing' });
+      expect(result?.isErr()).toBe(true);
+      expect(result?.error?.message).toBe('Item not found');
     });
 
-    test('InternalError maps to 500', async () => {
+    test('returns err Result from internal error', async () => {
       const app = topo('testapp', { internalTrail });
-      const hono = buildTestApp(app);
+      const routes = buildHttpRoutes(app);
+      const [route] = routes;
 
-      const res = await request(hono, 'POST', '/crash', {});
-      expect(res.status).toBe(500);
-
-      const json = await res.json();
-      expect(json.error.category).toBe('internal');
+      const result = await route?.execute({});
+      expect(result?.isErr()).toBe(true);
+      expect(result?.error?.message).toBe('Something broke');
     });
 
-    test('thrown exceptions map to 500', async () => {
-      const throwTrail = trail('throw', {
+    test('returns err Result when run function throws', async () => {
+      const throwingTrail = trail('throwing', {
         input: z.object({}),
         run: () => {
-          throw new Error('unexpected crash');
+          throw new Error('unexpected throw');
+        },
+      });
+      const app = topo('testapp', { throwingTrail });
+      const routes = buildHttpRoutes(app);
+      const [route] = routes;
+
+      const result = await route?.execute({});
+      expect(result?.isErr()).toBe(true);
+      expect(result?.error).toBeInstanceOf(InternalError);
+      expect(result?.error?.message).toBe('unexpected throw');
+    });
+
+    test('returns err Result when createContext throws', async () => {
+      const app = topo('testapp', { echoTrail });
+      const routes = buildHttpRoutes(app, {
+        createContext: () => {
+          throw new Error('context creation failed');
+        },
+      });
+      const [route] = routes;
+
+      const result = await route?.execute({ message: 'hi' });
+      expect(result?.isErr()).toBe(true);
+      expect(result?.error).toBeInstanceOf(InternalError);
+      expect(result?.error?.message).toBe('context creation failed');
+    });
+
+    test('passes requestId to context', async () => {
+      let capturedRequestId: string | undefined;
+
+      const ctxTrail = trail('ctx.check', {
+        input: z.object({}),
+        intent: 'read',
+        run: (_input, ctx) => {
+          capturedRequestId = ctx.requestId;
+          return Result.ok({ ok: true });
         },
       });
 
-      const app = topo('testapp', { throwTrail });
-      const hono = buildTestApp(app);
+      const app = topo('testapp', { ctxTrail });
+      const routes = buildHttpRoutes(app);
+      const [route] = routes;
 
-      const res = await request(hono, 'POST', '/throw', {});
-      expect(res.status).toBe(500);
+      await route?.execute({}, 'custom-req-123');
+      expect(capturedRequestId).toBe('custom-req-123');
+    });
 
-      const json = await res.json();
-      expect(json.error.message).toBe('unexpected crash');
+    test('uses default requestId when none provided', async () => {
+      let capturedRequestId: string | undefined;
+
+      const ctxTrail = trail('ctx.default', {
+        input: z.object({}),
+        intent: 'read',
+        run: (_input, ctx) => {
+          capturedRequestId = ctx.requestId;
+          return Result.ok({ ok: true });
+        },
+      });
+
+      const app = topo('testapp', { ctxTrail });
+      const routes = buildHttpRoutes(app);
+      const [route] = routes;
+
+      await route?.execute({});
+      expect(capturedRequestId).toBeDefined();
+      expect(capturedRequestId).not.toBe('');
     });
   });
 
@@ -293,39 +299,16 @@ describe('buildHttpRoutes', () => {
       };
 
       const app = topo('testapp', { echoTrail });
-      const hono = buildTestApp(app, { layers: [testLayer] });
+      const routes = buildHttpRoutes(app, { layers: [testLayer] });
+      const [route] = routes;
 
-      const res = await request(hono, 'GET', '/echo?message=hi');
-      expect(res.status).toBe(200);
+      const result = await route?.execute({ message: 'hi' });
+      expect(result?.isOk()).toBe(true);
       expect(calls).toEqual(['before', 'after']);
     });
   });
 
-  describe('context', () => {
-    test('X-Request-ID header is used for requestId', async () => {
-      let capturedRequestId: string | undefined;
-
-      const ctxTrail = trail('ctx.check', {
-        input: z.object({}),
-        intent: 'read',
-        run: (_input, ctx) => {
-          capturedRequestId = ctx.requestId;
-          return Result.ok({ ok: true });
-        },
-      });
-
-      const app = topo('testapp', { ctxTrail });
-      const hono = buildTestApp(app);
-
-      const res = await hono.request('/ctx/check', {
-        headers: { 'X-Request-ID': 'custom-req-123' },
-        method: 'GET',
-      });
-
-      expect(res.status).toBe(200);
-      expect(capturedRequestId).toBe('custom-req-123');
-    });
-
+  describe('custom createContext', () => {
     test('custom createContext is used when provided', async () => {
       let contextUsed = false;
 
@@ -340,16 +323,17 @@ describe('buildHttpRoutes', () => {
       });
 
       const app = topo('testapp', { ctxTrail });
-      const hono = buildTestApp(app, {
+      const routes = buildHttpRoutes(app, {
         createContext: () => ({
           custom: true,
           requestId: 'test-id',
           signal: new AbortController().signal,
         }),
       });
+      const [route] = routes;
 
-      const res = await request(hono, 'GET', '/ctx/custom');
-      expect(res.status).toBe(200);
+      const result = await route?.execute({});
+      expect(result?.isOk()).toBe(true);
       expect(contextUsed).toBe(true);
     });
   });

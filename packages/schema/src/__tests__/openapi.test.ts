@@ -104,6 +104,20 @@ describe('generateOpenApiSpec', () => {
 
       expect(spec.paths['/api/v1/entity/show']).toBeDefined();
     });
+
+    test('basePath trailing slash is normalized', () => {
+      const t = trail('entity.show', {
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }), {
+        basePath: '/api/v1/',
+      });
+
+      expect(spec.paths['/api/v1/entity/show']).toBeDefined();
+      expect(spec.paths['/api/v1//entity/show']).toBeUndefined();
+    });
   });
 
   describe('GET query parameters', () => {
@@ -156,7 +170,7 @@ describe('generateOpenApiSpec', () => {
   });
 
   describe('responses', () => {
-    test('trail with output schema → 200 response with schema', () => {
+    test('trail with output schema → 200 response wrapped in { data }', () => {
       const t = trail('entity.show', {
         input: z.object({ id: z.string() }),
         intent: 'read',
@@ -164,14 +178,21 @@ describe('generateOpenApiSpec', () => {
         run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
-      const responses = getOperation(spec, '/entity/show', 'get')[
-        'responses'
-      ] as Record<string, unknown>;
-      const success = responses['200'] as Record<string, unknown>;
+      const success = (
+        getOperation(spec, '/entity/show', 'get')['responses'] as Record<
+          string,
+          unknown
+        >
+      )['200'] as Record<string, unknown>;
+      const schema = getJsonSchema(success);
 
       expect(success['description']).toBe('Success');
-      const schema = getJsonSchema(success);
       expect(schema['type']).toBe('object');
+      expect(schema['required']).toEqual(['data']);
+      const dataSchema = (schema['properties'] as Record<string, unknown>)[
+        'data'
+      ] as Record<string, unknown>;
+      expect(dataSchema['type']).toBe('object');
     });
 
     test('trail without output → 200 with no schema', () => {
@@ -200,7 +221,6 @@ describe('generateOpenApiSpec', () => {
             input: { id: 'missing' },
             name: 'not found',
           },
-          { error: 'ValidationError', input: {}, name: 'bad input' },
         ],
         input: z.object({ id: z.string() }),
         intent: 'read',
@@ -212,6 +232,43 @@ describe('generateOpenApiSpec', () => {
       const responses = op['responses'] as Record<string, unknown>;
 
       expect(responses['404']).toEqual({ description: 'NotFoundError' });
+    });
+
+    test('every trail includes a default 400 validation error response', () => {
+      const t = trail('entity.show', {
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+        output: z.object({ id: z.string() }),
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
+      const fourHundred = (op['responses'] as Record<string, unknown>)[
+        '400'
+      ] as Record<string, unknown>;
+
+      expect(fourHundred['description']).toBe('Validation error');
+      expect(fourHundred['content']).toBeDefined();
+      const schema = getJsonSchema(fourHundred);
+      const errorProp = (schema['properties'] as Record<string, unknown>)[
+        'error'
+      ] as Record<string, unknown>;
+      expect(errorProp['type']).toBe('object');
+    });
+
+    test('example-derived 400 does not override the default 400', () => {
+      const t = trail('entity.show', {
+        examples: [{ error: 'ValidationError', input: {}, name: 'bad input' }],
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+        output: z.object({ id: z.string() }),
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
+      const responses = op['responses'] as Record<string, unknown>;
+
+      // The example-derived 400 (description: 'ValidationError') overrides the default
       expect(responses['400']).toEqual({ description: 'ValidationError' });
     });
   });

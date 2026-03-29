@@ -6,7 +6,7 @@
  */
 
 import { createTrailContext } from '@ontrails/core';
-import { blaze } from '@ontrails/http';
+import { blaze } from '@ontrails/http/hono';
 
 import { app } from './app.js';
 import { createStore } from './store.js';

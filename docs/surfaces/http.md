@@ -2,6 +2,8 @@
 
 The HTTP surface adapter turns every trail into an endpoint. Routes are derived from trail IDs, HTTP verbs from intent, input parsing from the method, and error responses from the error taxonomy. One `blaze()` call starts a Hono server.
 
+The package separates framework-agnostic route building (`@ontrails/http`) from the Hono adapter (`@ontrails/http/hono`), following the same pattern as `@ontrails/cli` and `@ontrails/cli/commander`.
+
 ## Setup
 
 ```bash
@@ -9,7 +11,7 @@ bun add @ontrails/http hono
 ```
 
 ```typescript
-import { blaze } from '@ontrails/http';
+import { blaze } from '@ontrails/http/hono';
 import { app } from './app';
 
 await blaze(app, { port: 3000 });
@@ -106,7 +108,7 @@ Unrecognized errors (non-`TrailsError` exceptions) return 500 with `category: 'i
 Layers compose the same way as on CLI and MCP -- they wrap trail implementations:
 
 ```typescript
-import { blaze } from '@ontrails/http';
+import { blaze } from '@ontrails/http/hono';
 import { authLayer, loggingLayer } from './layers';
 
 await blaze(app, {
@@ -135,7 +137,7 @@ The handler reads `X-Request-ID` from inbound requests and passes it through to 
 
 ## Escape Hatch
 
-For custom Hono setups, use `buildHttpRoutes()` directly:
+For custom setups, use `buildHttpRoutes()` from the base package to get framework-agnostic route definitions. Each route has an `execute` function that validates input, composes layers, and runs the trail -- you wire it into whatever HTTP framework you use:
 
 ```typescript
 import { buildHttpRoutes } from '@ontrails/http';
@@ -145,19 +147,29 @@ const hono = new Hono();
 const routes = buildHttpRoutes(app, { basePath: '/api' });
 
 for (const route of routes) {
-  hono[route.method.toLowerCase()](route.path, route.handler);
+  const method = route.method.toLowerCase() as 'get' | 'post' | 'delete';
+  hono[method](route.path, async (c) => {
+    const input =
+      route.inputSource === 'query'
+        ? Object.fromEntries(new URL(c.req.url).searchParams)
+        : await c.req.json();
+    const result = await route.execute(input);
+    return result.isOk()
+      ? c.json({ data: result.value }, 200)
+      : c.json({ error: { message: result.error?.message } }, 500);
+  });
 }
 
 export default hono;
 ```
 
-This gives you full control over the Hono app while still deriving routes from the topo.
+This gives you full control over the HTTP framework while still deriving routes from the topo.
 
 ## Example: Full HTTP Entry Point
 
 ```typescript
 import { createTrailContext } from '@ontrails/core';
-import { blaze } from '@ontrails/http';
+import { blaze } from '@ontrails/http/hono';
 import { app } from './app';
 import { createStore } from './store';
 
