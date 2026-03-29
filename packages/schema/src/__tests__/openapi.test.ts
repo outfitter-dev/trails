@@ -1,0 +1,390 @@
+import { describe, expect, test } from 'bun:test';
+
+import { Result, topo, trail } from '@ontrails/core';
+import type { Topo } from '@ontrails/core';
+import { z } from 'zod';
+
+import { generateOpenApiSpec } from '../openapi.js';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const topoFrom = (...modules: Record<string, unknown>[]): Topo =>
+  topo('test-app', ...modules);
+
+const noop = () => Result.ok(null as unknown);
+
+/** Extract an operation from a spec by path and method. */
+const getOperation = (
+  spec: ReturnType<typeof generateOpenApiSpec>,
+  path: string,
+  method: string
+): Record<string, unknown> =>
+  spec.paths[path]?.[method] as Record<string, unknown>;
+
+/** Drill into a response to get the JSON schema. */
+const getJsonSchema = (
+  response: Record<string, unknown>
+): Record<string, unknown> => {
+  const content = response['content'] as Record<string, unknown>;
+  const json = content['application/json'] as Record<string, unknown>;
+  return json['schema'] as Record<string, unknown>;
+};
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe('generateOpenApiSpec', () => {
+  describe('path and method derivation', () => {
+    test('dotted trail ID becomes a path', () => {
+      const t = trail('entity.show', {
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+
+      expect(spec.paths['/entity/show']).toBeDefined();
+    });
+
+    test('single-segment trail ID becomes a root path', () => {
+      const t = trail('search', {
+        input: z.object({ q: z.string() }),
+        intent: 'read',
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+
+      expect(spec.paths['/search']).toBeDefined();
+    });
+
+    test('intent read → GET', () => {
+      const t = trail('entity.show', {
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+
+      expect(spec.paths['/entity/show']?.['get']).toBeDefined();
+    });
+
+    test('intent destroy → DELETE', () => {
+      const t = trail('entity.remove', {
+        input: z.object({ id: z.string() }),
+        intent: 'destroy',
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+
+      expect(spec.paths['/entity/remove']?.['delete']).toBeDefined();
+    });
+
+    test('intent write (default) → POST', () => {
+      const t = trail('entity.create', {
+        input: z.object({ name: z.string() }),
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+
+      expect(spec.paths['/entity/create']?.['post']).toBeDefined();
+    });
+
+    test('basePath is prepended to all paths', () => {
+      const t = trail('entity.show', {
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }), {
+        basePath: '/api/v1',
+      });
+
+      expect(spec.paths['/api/v1/entity/show']).toBeDefined();
+    });
+  });
+
+  describe('GET query parameters', () => {
+    const buildReadSpec = () => {
+      const t = trail('entity.show', {
+        input: z.object({ id: z.string(), verbose: z.boolean().optional() }),
+        intent: 'read',
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
+      return op['parameters'] as Record<string, unknown>[];
+    };
+
+    test('produces one parameter per input field', () => {
+      expect(buildReadSpec()).toHaveLength(2);
+    });
+
+    test('required field is marked required with in=query', () => {
+      const idParam = buildReadSpec().find((p) => p['name'] === 'id');
+      expect(idParam?.['in']).toBe('query');
+      expect(idParam?.['required']).toBe(true);
+    });
+
+    test('optional field is marked not required', () => {
+      const verboseParam = buildReadSpec().find((p) => p['name'] === 'verbose');
+      expect(verboseParam).toBeDefined();
+      expect(verboseParam?.['required']).toBe(false);
+    });
+  });
+
+  describe('request body', () => {
+    test('POST input schema becomes requestBody', () => {
+      const t = trail('entity.create', {
+        input: z.object({ name: z.string() }),
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/entity/create']?.['post'] as Record<
+        string,
+        unknown
+      >;
+      const body = op['requestBody'] as Record<string, unknown>;
+
+      expect(body['required']).toBe(true);
+      expect(body['content']).toBeDefined();
+      const content = body['content'] as Record<string, unknown>;
+      expect(content['application/json']).toBeDefined();
+    });
+  });
+
+  describe('responses', () => {
+    test('trail with output schema → 200 response with schema', () => {
+      const t = trail('entity.show', {
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+        output: z.object({ id: z.string(), name: z.string() }),
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const responses = getOperation(spec, '/entity/show', 'get')[
+        'responses'
+      ] as Record<string, unknown>;
+      const success = responses['200'] as Record<string, unknown>;
+
+      expect(success['description']).toBe('Success');
+      const schema = getJsonSchema(success);
+      expect(schema['type']).toBe('object');
+    });
+
+    test('trail without output → 200 with no schema', () => {
+      const t = trail('fire.forget', {
+        input: z.object({ msg: z.string() }),
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/fire/forget']?.['post'] as Record<
+        string,
+        unknown
+      >;
+      const responses = op['responses'] as Record<string, unknown>;
+      const success = responses['200'] as Record<string, unknown>;
+
+      expect(success['description']).toBe('Success');
+      expect(success['content']).toBeUndefined();
+    });
+
+    test('trail with error examples → appropriate error responses', () => {
+      const t = trail('entity.show', {
+        examples: [
+          { input: { id: '123' }, name: 'found' },
+          {
+            error: 'NotFoundError',
+            input: { id: 'missing' },
+            name: 'not found',
+          },
+          { error: 'ValidationError', input: {}, name: 'bad input' },
+        ],
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+        output: z.object({ id: z.string() }),
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
+      const responses = op['responses'] as Record<string, unknown>;
+
+      expect(responses['404']).toEqual({ description: 'NotFoundError' });
+      expect(responses['400']).toEqual({ description: 'ValidationError' });
+    });
+  });
+
+  describe('operationId', () => {
+    test('dots replaced with underscores', () => {
+      const t = trail('entity.show', {
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
+
+      expect(op['operationId']).toBe('entity_show');
+    });
+
+    test('single segment ID preserved', () => {
+      const t = trail('search', {
+        input: z.object({ q: z.string() }),
+        intent: 'read',
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/search']?.['get'] as Record<string, unknown>;
+
+      expect(op['operationId']).toBe('search');
+    });
+  });
+
+  describe('tags', () => {
+    test('tag is first segment of dotted ID', () => {
+      const t = trail('entity.show', {
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
+
+      expect(op['tags']).toEqual(['entity']);
+    });
+
+    test('single-segment ID uses itself as tag', () => {
+      const t = trail('search', {
+        input: z.object({ q: z.string() }),
+        intent: 'read',
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/search']?.['get'] as Record<string, unknown>;
+
+      expect(op['tags']).toEqual(['search']);
+    });
+  });
+
+  describe('multiple trails', () => {
+    test('all trails populate paths', () => {
+      const a = trail('entity.create', {
+        input: z.object({ name: z.string() }),
+        run: noop,
+      });
+      const b = trail('entity.show', {
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+        run: noop,
+      });
+      const c = trail('entity.remove', {
+        input: z.object({ id: z.string() }),
+        intent: 'destroy',
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ a, b, c }));
+
+      expect(Object.keys(spec.paths)).toHaveLength(3);
+      expect(spec.paths['/entity/create']?.['post']).toBeDefined();
+      expect(spec.paths['/entity/show']?.['get']).toBeDefined();
+      expect(spec.paths['/entity/remove']?.['delete']).toBeDefined();
+    });
+  });
+
+  describe('internal trails', () => {
+    test('trails with metadata.internal are skipped', () => {
+      const pub = trail('entity.show', {
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+        run: noop,
+      });
+      const internal = trail('internal.helper', {
+        input: z.object({}),
+        metadata: { internal: true },
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ internal, pub }));
+
+      expect(Object.keys(spec.paths)).toHaveLength(1);
+      expect(spec.paths['/entity/show']).toBeDefined();
+      expect(spec.paths['/internal/helper']).toBeUndefined();
+    });
+  });
+
+  describe('spec structure', () => {
+    test('openapi version is 3.1.0', () => {
+      const spec = generateOpenApiSpec(topoFrom({}));
+
+      expect(spec.openapi).toBe('3.1.0');
+    });
+
+    test('info defaults from topo name', () => {
+      const spec = generateOpenApiSpec(topoFrom({}));
+
+      expect(spec.info.title).toBe('test-app');
+      expect(spec.info.version).toBe('1.0.0');
+    });
+
+    test('info uses options when provided', () => {
+      const spec = generateOpenApiSpec(topoFrom({}), {
+        description: 'Test API',
+        title: 'My API',
+        version: '2.0.0',
+      });
+
+      expect(spec.info.title).toBe('My API');
+      expect(spec.info.version).toBe('2.0.0');
+      expect(spec.info.description).toBe('Test API');
+    });
+
+    test('servers included when provided', () => {
+      const spec = generateOpenApiSpec(topoFrom({}), {
+        servers: [{ description: 'Local', url: 'http://localhost:3000' }],
+      });
+
+      expect(spec.servers).toHaveLength(1);
+      expect(spec.servers?.[0]?.url).toBe('http://localhost:3000');
+    });
+
+    test('servers omitted when not provided', () => {
+      const spec = generateOpenApiSpec(topoFrom({}));
+
+      expect(spec.servers).toBeUndefined();
+    });
+
+    test('components.schemas is present (empty)', () => {
+      const spec = generateOpenApiSpec(topoFrom({}));
+
+      expect(spec.components.schemas).toEqual({});
+    });
+  });
+
+  describe('summary from description', () => {
+    test('trail description becomes operation summary', () => {
+      const t = trail('entity.show', {
+        description: 'Show an entity by ID',
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
+
+      expect(op['summary']).toBe('Show an entity by ID');
+    });
+
+    test('trail without description has no summary', () => {
+      const t = trail('entity.show', {
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
+
+      expect(op['summary']).toBeUndefined();
+    });
+  });
+});

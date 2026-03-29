@@ -3,6 +3,10 @@ export { generateSurfaceMap } from './generate.js';
 export { hashSurfaceMap } from './hash.js';
 export { diffSurfaceMaps } from './diff.js';
 
+// OpenAPI
+export { generateOpenApiSpec } from './openapi.js';
+export type { OpenApiOptions, OpenApiSpec, OpenApiServer } from './openapi.js';
+
 // File I/O
 export {
   writeSurfaceMap,

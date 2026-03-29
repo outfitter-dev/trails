@@ -10,6 +10,7 @@ import { Result, trail } from '@ontrails/core';
 import type { DiffResult } from '@ontrails/schema';
 import {
   diffSurfaceMaps,
+  generateOpenApiSpec,
   generateSurfaceMap,
   hashSurfaceMap,
   readSurfaceMap,
@@ -195,6 +196,55 @@ const buildSurveyGenerate = async (
   return Result.ok({ hash, lockPath, mapPath });
 };
 
+interface SurveyInput {
+  breakingOnly: boolean;
+  brief: boolean;
+  diff?: string | undefined;
+  generate: boolean;
+  openapi: boolean;
+  trailId?: string | undefined;
+}
+
+type SurveyMode = 'brief' | 'detail' | 'diff' | 'generate' | 'list' | 'openapi';
+
+/** Ordered mode checks — first truthy predicate wins, otherwise 'list'. */
+const modeChecks: readonly [(input: SurveyInput) => boolean, SurveyMode][] = [
+  [(i) => i.brief, 'brief'],
+  [(i) => Boolean(i.diff), 'diff'],
+  [(i) => Boolean(i.trailId), 'detail'],
+  [(i) => i.generate, 'generate'],
+  [(i) => i.openapi, 'openapi'],
+];
+
+/** Determine which survey mode was requested, falling back to 'list'. */
+const resolveSurveyMode = (input: SurveyInput): SurveyMode =>
+  modeChecks.find(([predicate]) => predicate(input))?.[1] ?? 'list';
+
+type SurveyHandler = (
+  app: Topo,
+  input: SurveyInput
+) => Result<object, Error> | Promise<Result<object, Error>>;
+
+/** Handlers keyed by survey mode. */
+const surveyHandlers: Record<SurveyMode, SurveyHandler> = {
+  brief: (app) => Result.ok(generateBriefReport(app)),
+  detail: (app, input) => buildSurveyDetail(app, input.trailId ?? ''),
+  diff: (app, input) => buildSurveyDiff(app, input.breakingOnly),
+  generate: (app) => buildSurveyGenerate(app),
+  list: (app) => Result.ok(formatTrailList(app)),
+  openapi: (app) => Result.ok(generateOpenApiSpec(app)),
+};
+
+/** Dispatch to the appropriate survey sub-command based on input flags. */
+const dispatchSurvey = (
+  app: Topo,
+  input: SurveyInput
+): Result<object, Error> | Promise<Result<object, Error>> => {
+  const mode = resolveSurveyMode(input);
+  const handler = surveyHandlers[mode];
+  return handler(app, input);
+};
+
 // ---------------------------------------------------------------------------
 // Trail definition
 // ---------------------------------------------------------------------------
@@ -212,6 +262,11 @@ export const surveyTrail = trail('survey', {
       input: { brief: true },
       name: 'Brief capability report',
     },
+    {
+      description: 'Generate an OpenAPI 3.1 specification for the topo',
+      input: { openapi: true },
+      name: 'OpenAPI spec',
+    },
   ],
   input: z.object({
     breakingOnly: z
@@ -228,6 +283,7 @@ export const surveyTrail = trail('survey', {
       .string()
       .default('./src/app.ts')
       .describe('Path to the app module'),
+    openapi: z.boolean().default(false).describe('Output OpenAPI 3.1 spec'),
     trailId: z.string().optional().describe('Trail ID for detail view'),
   }),
   intent: 'read',
@@ -275,26 +331,29 @@ export const surveyTrail = trail('survey', {
       lockPath: z.string(),
       mapPath: z.string(),
     }),
+    z.object({
+      components: z.object({
+        schemas: z.record(z.string(), z.unknown()),
+      }),
+      info: z.object({
+        description: z.string().optional(),
+        title: z.string(),
+        version: z.string(),
+      }),
+      openapi: z.literal('3.1.0'),
+      paths: z.record(z.string(), z.record(z.string(), z.unknown())),
+      servers: z
+        .array(
+          z.object({
+            description: z.string().optional(),
+            url: z.string(),
+          })
+        )
+        .optional(),
+    }),
   ]),
   run: async (input, ctx) => {
     const app = await loadApp(input.module, ctx.cwd ?? '.');
-
-    if (input.brief) {
-      return Result.ok(generateBriefReport(app));
-    }
-
-    if (input.diff) {
-      return await buildSurveyDiff(app, input.breakingOnly);
-    }
-
-    if (input.trailId) {
-      return buildSurveyDetail(app, input.trailId);
-    }
-
-    if (input.generate) {
-      return await buildSurveyGenerate(app);
-    }
-
-    return Result.ok(formatTrailList(app));
+    return dispatchSurvey(app, input);
   },
 });
