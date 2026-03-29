@@ -1,17 +1,8 @@
-/* oxlint-disable require-await -- adapter mocks and layer wrappers satisfy async interfaces without awaiting */
+/* oxlint-disable require-await -- layer wrappers satisfy async interfaces without awaiting */
 import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
 
-import type {
-  IndexAdapter,
-  StorageAdapter,
-  CacheAdapter,
-  SearchOptions,
-  SearchResult,
-  StorageOptions,
-} from '../adapters';
-import type { HealthStatus, HealthResult, HealthCheck } from '../health';
 import { composeLayers } from '../layer';
 import type { Layer } from '../layer';
 import { Result } from '../result';
@@ -129,84 +120,5 @@ describe('Layer', () => {
   test('empty layers array returns implementation unchanged', () => {
     const wrapped = composeLayers([], echoTrail, echoTrail.run);
     expect(wrapped).toBe(echoTrail.run);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Health types (compile-time verification)
-// ---------------------------------------------------------------------------
-
-describe('health types', () => {
-  test('HealthResult satisfies the interface', () => {
-    const check: HealthCheck = {
-      latency: 12,
-      message: 'ok',
-      status: 'healthy',
-    };
-    const result: HealthResult = {
-      checks: { db: check },
-      status: 'healthy',
-      uptime: 3600,
-      version: '1.0.0',
-    };
-
-    expect(result.status).toBe('healthy');
-    expect(result.checks['db']?.status).toBe('healthy');
-  });
-
-  test('HealthStatus union is exhaustive', () => {
-    const statuses: HealthStatus[] = ['healthy', 'degraded', 'unhealthy'];
-    expect(statuses).toHaveLength(3);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Adapter types (compile-time verification)
-// ---------------------------------------------------------------------------
-
-describe('adapter types', () => {
-  test('IndexAdapter mock satisfies the interface', () => {
-    const mock: IndexAdapter = {
-      index: async () => Result.ok(),
-      remove: async () => Result.ok(),
-      search: async () => Result.ok([]),
-    };
-    expect(mock.index).toBeDefined();
-    expect(mock.search).toBeDefined();
-    expect(mock.remove).toBeDefined();
-  });
-
-  test('StorageAdapter mock satisfies the interface', () => {
-    const mock: StorageAdapter = {
-      delete: async () => Result.ok(),
-      get: async () => Result.ok('value'),
-      has: async () => Result.ok(true),
-      set: async () => Result.ok(),
-    };
-    expect(mock.has).toBeDefined();
-  });
-
-  test('CacheAdapter mock satisfies the interface', () => {
-    const mock: CacheAdapter = {
-      clear: async () => Result.ok(),
-      delete: async () => Result.ok(),
-      get: async () => Result.ok(),
-      set: async () => Result.ok(),
-    };
-    expect(mock.clear).toBeDefined();
-  });
-
-  test('SearchOptions and SearchResult satisfy their shapes', () => {
-    const opts: SearchOptions = { filters: { tag: 'a' }, limit: 10, offset: 0 };
-    const hit: SearchResult = {
-      document: { title: 'x' },
-      id: '1',
-      score: 0.95,
-    };
-    const sopts: StorageOptions = { ttl: 5000 };
-
-    expect(opts.limit).toBe(10);
-    expect(hit.score).toBe(0.95);
-    expect(sopts.ttl).toBe(5000);
   });
 });

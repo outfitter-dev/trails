@@ -70,19 +70,6 @@ export type { TopoIssue } from './validate-topo.js';
 export { composeLayers } from './layer.js';
 export type { Layer } from './layer.js';
 
-// Health
-export type { HealthStatus, HealthResult } from './health.js';
-
-// Adapters
-export type {
-  IndexAdapter,
-  StorageAdapter,
-  CacheAdapter,
-  SearchOptions,
-  SearchResult,
-  StorageOptions,
-} from './adapters.js';
-
 // Derive
 export { deriveFields } from './derive.js';
 export type { Field, FieldOverride } from './derive.js';
