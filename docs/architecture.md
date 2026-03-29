@@ -10,7 +10,7 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 +-----------------------+
                 |  CLI (commander)      |
                 |  MCP (sdk)            |
-                |  HTTP (planned)       |
+                |  HTTP (hono)          |
                 |  WebSocket (planned)  |
                 +---------+-------------+
                           |
@@ -77,8 +77,8 @@ These are deterministic transformations from authored information. If the input 
 | Zod input schema | CLI flags (types, defaults, descriptions), MCP `inputSchema` (JSON Schema) |
 | Trail ID | CLI command path (`entity show`), MCP tool name (`myapp_entity_show`) |
 | `.describe()` on Zod fields | `--help` text, MCP tool descriptions |
-| `intent: 'read'` | MCP `readOnlyHint`, HTTP GET (future), skip CLI confirmation |
-| `intent: 'destroy'` | Auto-add `--dry-run` flag on CLI |
+| `intent: 'read'` | MCP `readOnlyHint`, HTTP GET, skip CLI confirmation |
+| `intent: 'destroy'` | Auto-add `--dry-run` flag on CLI, HTTP DELETE |
 | Error taxonomy class | Exit code, HTTP status, JSON-RPC code, retryability |
 | Examples | Test assertions via `testExamples()`, agent documentation |
 
@@ -141,6 +141,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 | `@ontrails/cli` | Framework-agnostic command model, flag derivation, output formatting | None beyond core |
 | `@ontrails/cli/commander` | Commander adapter, `blaze()` | `commander` (optional peer) |
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `blaze()` | `@modelcontextprotocol/sdk` |
+| `@ontrails/http` | HTTP routes, error mapping, `blaze()` | `hono` |
 
 ### Infrastructure Adapters (right side)
 
@@ -171,6 +172,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
      ^
 @ontrails/cli (core)
 @ontrails/mcp (core, @modelcontextprotocol/sdk)
+@ontrails/http (core, hono)
 @ontrails/logging (core)
 @ontrails/testing (core, cli, mcp, logging)
 @ontrails/schema (core)
@@ -211,6 +213,18 @@ MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
   -> Same implementation(validatedInput, ctx) called
   -> Same Result returned
   -> Result mapped to MCP tool response
+```
+
+### The Same Trail on HTTP
+
+```text
+HTTP request (GET /entity/show?name=Alpha)
+  -> Hono matches route derived from trail ID
+  -> Zod validates input (query params for GET, JSON body for POST/DELETE)
+  -> TrailContext created
+  -> Same implementation(validatedInput, ctx) called
+  -> Same Result returned
+  -> Result mapped to JSON response with status code from error taxonomy
 ```
 
 The implementation is identical. Only the edges change.

@@ -10,7 +10,7 @@ Core defines ports. Everything on the edges is an adapter.
             +--------------------+          +--------------------+
             |  CLI (commander)   |          |  Logging (logtape) |
             |  MCP (sdk)         |          |  Storage (planned) |
-            |  HTTP (planned)    |          |  Telemetry (planned)|
+            |  HTTP (hono)       |          |  Telemetry (planned)|
             |  WebSocket (plan.) |          |  Search (planned)  |
             +---------+----------+          +---------+----------+
                       |                               |
@@ -24,7 +24,7 @@ Core defines ports. Everything on the edges is an adapter.
 
 - The trail is the product, not the surface. Surfaces are projections.
 - Drift is structurally harder than alignment — one schema, one Result type, one error taxonomy.
-- Surfaces are peers. CLI, MCP, HTTP are equal adapters. Adding a surface is a `blaze()` call.
+- Surfaces are peers. CLI, MCP, and HTTP are shipped adapters. Adding a surface is a `blaze()` call.
 - Implementations are pure functions. Input in, Result out. No surface awareness.
 - The contract is machine-readable at runtime via topo, survey, and guide.
 
@@ -49,8 +49,8 @@ Every piece of information has a clear ownership model.
 | Zod input schema | CLI flags, MCP `inputSchema` (JSON Schema) |
 | Trail ID | CLI command path (`entity show`), MCP tool name (`app_entity_show`) |
 | `.describe()` on Zod fields | `--help` text, MCP descriptions |
-| `intent: 'read'` | MCP `readOnlyHint`, HTTP GET (future) |
-| `intent: 'destroy'` | Auto-add `--dry-run` flag on CLI, MCP `destructiveHint` |
+| `intent: 'read'` | MCP `readOnlyHint`, HTTP GET |
+| `intent: 'destroy'` | Auto-add `--dry-run` flag on CLI, MCP `destructiveHint`, HTTP DELETE |
 | Error taxonomy class | Exit code, HTTP status, JSON-RPC code, retryability |
 | Examples | Test assertions via `testExamples()`, agent documentation |
 
@@ -86,6 +86,7 @@ Warden uses inference to verify declarations match actual code. The surface map 
 | `@ontrails/cli` | Command model, flag derivation, output formatting | None beyond core |
 | `@ontrails/cli/commander` | Commander adapter, `blaze()` | `commander` (peer) |
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `blaze()` | `@modelcontextprotocol/sdk` |
+| `@ontrails/http` | HTTP routes, error mapping, `blaze()` | `hono` |
 
 ### Infrastructure Adapters (right side)
 
@@ -108,6 +109,7 @@ Warden uses inference to verify declarations match actual code. The surface map 
 @ontrails/core (zod)
   <- @ontrails/cli (core)
   <- @ontrails/mcp (core, @modelcontextprotocol/sdk)
+  <- @ontrails/http (core, hono)
   <- @ontrails/logging (core)
   <- @ontrails/testing (core, cli, mcp, logging)
   <- @ontrails/schema (core)
@@ -143,6 +145,18 @@ MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
   -> Same implementation(validatedInput, ctx) called
   -> Same Result returned
   -> Result mapped to MCP tool response
+```
+
+### HTTP Request Path
+
+```text
+HTTP request (GET /entity/show?name=Alpha)
+  -> Hono matches route derived from trail ID
+  -> Zod validates input (query params for GET, JSON body for POST/DELETE)
+  -> TrailContext created
+  -> Same implementation(validatedInput, ctx) called
+  -> Same Result returned
+  -> Result mapped to JSON response with status code from error taxonomy
 ```
 
 The implementation is identical. Only the edges change.

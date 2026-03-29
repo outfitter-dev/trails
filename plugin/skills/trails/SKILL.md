@@ -106,7 +106,14 @@ import { blaze } from '@ontrails/mcp';
 await blaze(app);
 ```
 
-See [cli-surface.md](references/cli-surface.md) and [mcp-surface.md](references/mcp-surface.md) for derivation details.
+**HTTP**: Routes from trail IDs (dots become path segments), verbs from intent, error responses from taxonomy.
+
+```typescript
+import { blaze } from '@ontrails/http';
+await blaze(app, { port: 3000 });
+```
+
+See [cli-surface.md](references/cli-surface.md), [mcp-surface.md](references/mcp-surface.md), and the HTTP surface docs for derivation details.
 
 ## Testing
 

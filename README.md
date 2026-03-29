@@ -93,8 +93,8 @@ Each declaration you add to a trail unlocks derived behavior across every surfac
 |---------|-----------------|
 | `input` (Zod schema) | CLI flags + `--help` text, MCP JSON Schema, input validation |
 | `output` (Zod schema) | Contract tests, MCP response typing, surface map entries |
-| `intent: 'read'` | MCP `readOnlyHint`, CLI skips confirmation, HTTP GET (future) |
-| `intent: 'destroy'` | MCP `destructiveHint`, CLI auto-adds `--dry-run`, HTTP DELETE (future) |
+| `intent: 'read'` | MCP `readOnlyHint`, CLI skips confirmation, HTTP GET |
+| `intent: 'destroy'` | MCP `destructiveHint`, CLI auto-adds `--dry-run`, HTTP DELETE |
 | `examples` | Tests (happy + error path), agent guidance, documentation |
 | `follow` | Composition graph, cycle detection, follow coverage in tests |
 | `detours` | Recovery paths, warden validates targets exist |
@@ -136,6 +136,7 @@ $ myapp greet --name World
 | [`@ontrails/core`](./packages/core) | Result, errors, trail/event/topo, validation, schema derivation |
 | [`@ontrails/cli`](./packages/cli) | CLI surface — flag derivation, output formatting, Commander adapter |
 | [`@ontrails/mcp`](./packages/mcp) | MCP surface — tool generation, annotations, progress bridge |
+| [`@ontrails/http`](./packages/http) | HTTP surface — route derivation, verb mapping, error responses, Hono adapter |
 | [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testFollows()`, contract testing, surface harnesses |
 | [`@ontrails/schema`](./packages/schema) | Surface maps, semantic diffing, lock files for CI governance |
 | [`@ontrails/warden`](./packages/warden) | AST-based convention rules, drift detection, CI formatters |
@@ -156,4 +157,4 @@ bun run typecheck      # TypeScript strict mode
 
 ## Status
 
-v1 beta. The contract layer, CLI and MCP surfaces, testing, and governance are implemented and shipping. HTTP and WebSocket surfaces are designed but not yet built. See [Horizons](./docs/horizons.md) for what's next.
+v1 beta. The contract layer, CLI, MCP, and HTTP surfaces, testing, and governance are implemented and shipping. WebSocket surface is designed but not yet built. See [Horizons](./docs/horizons.md) for what's next.

@@ -60,23 +60,25 @@
         "demo": "./bin/demo.ts",
       },
       "dependencies": {
-        "@ontrails/cli": "workspace:*",
-        "@ontrails/core": "workspace:*",
-        "@ontrails/logging": "workspace:*",
-        "@ontrails/mcp": "workspace:*",
+        "@ontrails/cli": "workspace:^",
+        "@ontrails/core": "workspace:^",
+        "@ontrails/http": "workspace:^",
+        "@ontrails/logging": "workspace:^",
+        "@ontrails/mcp": "workspace:^",
         "commander": "catalog:",
+        "hono": "^4.7.0",
         "zod": "catalog:",
       },
       "devDependencies": {
-        "@ontrails/schema": "workspace:*",
-        "@ontrails/testing": "workspace:*",
+        "@ontrails/schema": "workspace:^",
+        "@ontrails/testing": "workspace:^",
       },
     },
     "packages/cli": {
       "name": "@ontrails/cli",
       "version": "1.0.0-beta.6",
       "dependencies": {
-        "@ontrails/core": "workspace:*",
+        "@ontrails/core": "workspace:^",
       },
       "peerDependencies": {
         "commander": "^14.0.3",
@@ -108,14 +110,14 @@
       "name": "@ontrails/logging",
       "version": "1.0.0-beta.6",
       "peerDependencies": {
-        "@ontrails/core": "workspace:*",
+        "@ontrails/core": "workspace:^",
       },
     },
     "packages/mcp": {
       "name": "@ontrails/mcp",
       "version": "1.0.0-beta.6",
       "dependencies": {
-        "@ontrails/core": "workspace:*",
+        "@ontrails/core": "workspace:^",
       },
       "peerDependencies": {
         "@modelcontextprotocol/sdk": "^1.12.0",
@@ -126,7 +128,7 @@
       "name": "@ontrails/schema",
       "version": "1.0.0-beta.6",
       "peerDependencies": {
-        "@ontrails/core": "workspace:*",
+        "@ontrails/core": "workspace:^",
         "zod": "catalog:",
       },
     },
@@ -134,10 +136,10 @@
       "name": "@ontrails/testing",
       "version": "1.0.0-beta.6",
       "peerDependencies": {
-        "@ontrails/cli": "workspace:*",
-        "@ontrails/core": "workspace:*",
-        "@ontrails/logging": "workspace:*",
-        "@ontrails/mcp": "workspace:*",
+        "@ontrails/cli": "workspace:^",
+        "@ontrails/core": "workspace:^",
+        "@ontrails/logging": "workspace:^",
+        "@ontrails/mcp": "workspace:^",
         "zod": "catalog:",
       },
     },

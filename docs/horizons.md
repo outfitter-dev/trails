@@ -2,15 +2,17 @@
 
 > Directions, not commitments. These capabilities follow naturally from the Trails architecture but are not part of v1.
 
+## Shipped
+
+**HTTP surface (`@ontrails/http`).** The third surface adapter. `intent: 'read'` maps to GET, mutations to POST, `'destroy'` to DELETE. Route paths derived from trail IDs. Error taxonomy maps to HTTP status codes. One `blaze()` call, same pattern as CLI and MCP. Built on Hono.
+
+**OpenAPI generation (`@ontrails/schema`).** `generateOpenApiSpec()` produces a complete OpenAPI 3.1 spec from the topo. The topo already carries everything OpenAPI needs.
+
 ## Near-term (v1.1–v1.2)
 
 **Services and dependency injection.** Trails that declare which services they use via `ctx.services`. The framework provides only declared services. `intent: 'read'` narrows the projection to read-only methods at the type level. Testing mocks only what the trail declares.
 
-**HTTP surface (`@ontrails/http`).** The third surface adapter. `intent: 'read'` maps to GET, mutations to POST. Route paths derived from trail IDs. Error taxonomy maps to HTTP status codes. One `blaze()` call, same pattern as CLI and MCP.
-
 **Auth and permit model.** The `permit` field on TrailContext gets a full design: scopes, roles, per-surface resolution (bearer tokens for HTTP, session tokens for MCP, local keyring for CLI). Scope enforcement as a layer. Resource-level auth stays in the implementation — the framework provides identity, the app provides policy.
-
-**OpenAPI generation.** `trails survey --openapi` generates a complete OpenAPI 3.1 spec from the topo. Nearly free once the HTTP surface exists — the topo already carries everything OpenAPI needs.
 
 ## Mid-term (v1.3+)
 

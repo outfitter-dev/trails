@@ -42,6 +42,25 @@ bun run bin/demo.ts search --query Alpha
 bun run bin/demo.ts entity onboard --name Epsilon --type pattern
 ```
 
+## Running the HTTP server
+
+```bash
+bun run http
+```
+
+This starts a Hono-based HTTP server on port 3000. Routes are derived from trail IDs, verbs from intent:
+
+```bash
+# Read trail (GET)
+curl http://localhost:3000/entity/show?name=Alpha
+
+# Write trail (POST)
+curl -X POST http://localhost:3000/entity/add -H 'Content-Type: application/json' -d '{"name":"Gamma","type":"pattern"}'
+
+# Destructive trail (DELETE)
+curl -X DELETE http://localhost:3000/entity/delete -H 'Content-Type: application/json' -d '{"name":"Deletable"}'
+```
+
 ## Running the MCP server
 
 ```bash

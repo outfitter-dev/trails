@@ -16,6 +16,7 @@
 
 - **[CLI Surface](./surfaces/cli.md)** — Flag derivation, output modes, exit codes, `--dry-run`
 - **[MCP Surface](./surfaces/mcp.md)** — Tool naming, annotations, progress bridge
+- **[HTTP Surface](./surfaces/http.md)** — Route derivation, verb mapping, error responses, Hono adapter
 
 ## Governing your codebase?
 

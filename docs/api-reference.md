@@ -109,15 +109,28 @@ BlazeMcpOptions, BuildMcpToolsOptions
 McpToolDefinition, McpToolResult, McpContent, McpExtra, McpAnnotations
 ```
 
+## `@ontrails/http`
+
+```typescript
+blaze(topo, options?)              // one-liner HTTP server
+buildHttpRoutes(topo, options?)    // escape hatch: route definitions without server
+
+BlazeHttpOptions, BuildHttpRoutesOptions
+HttpMethod, HttpRouteDefinition
+```
+
 ## `@ontrails/schema`
 
 ```typescript
+generateOpenApiSpec(topo, options?) // OpenAPI 3.1 spec from topo
 generateSurfaceMap(topo), hashSurfaceMap(map), diffSurfaceMaps(before, after)
 writeSurfaceMap(map, options?), readSurfaceMap(options?)
 writeSurfaceLock(hash, options?), readSurfaceLock(options?)
 
 SurfaceMap, SurfaceMapEntry, DiffResult, DiffEntry, JsonSchema
 WriteOptions, ReadOptions
+
+OpenApiOptions, OpenApiSpec, OpenApiServer
 ```
 
 ## `@ontrails/testing`

@@ -11,14 +11,17 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint ./src",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "http": "bun src/http.ts"
   },
   "dependencies": {
     "@ontrails/cli": "workspace:^",
     "@ontrails/core": "workspace:^",
+    "@ontrails/http": "workspace:^",
     "@ontrails/logging": "workspace:^",
     "@ontrails/mcp": "workspace:^",
     "commander": "catalog:",
+    "hono": "^4.7.0",
     "zod": "catalog:"
   },
   "devDependencies": {
