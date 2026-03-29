@@ -2,14 +2,8 @@
  * Build framework-agnostic CliCommand[] from an App's topology.
  */
 
-import type { Field, Layer, Topo, TrailContext } from '@ontrails/core';
-import {
-  Result,
-  composeLayers,
-  createTrailContext,
-  deriveFields,
-  validateInput,
-} from '@ontrails/core';
+import type { Field, Layer, Result, Topo, TrailContext } from '@ontrails/core';
+import { deriveFields, executeTrail } from '@ontrails/core';
 
 import type { AnyTrail, CliCommand, CliFlag } from './command.js';
 import { dryRunPreset, toFlags } from './flags.js';
@@ -122,20 +116,6 @@ const applyPrompting = async (
   }
 };
 
-/** Resolve a TrailContext from overrides, factory, or default. */
-const resolveContext = (
-  ctxOverrides: Partial<TrailContext> | undefined,
-  options?: BuildCliCommandsOptions
-): Promise<TrailContext> => {
-  if (ctxOverrides) {
-    return Promise.resolve(createTrailContext(ctxOverrides));
-  }
-  if (options?.createContext) {
-    return Promise.resolve(options.createContext());
-  }
-  return Promise.resolve(createTrailContext());
-};
-
 /** Report a result via onResult callback if provided. */
 const reportResult = async (
   options: BuildCliCommandsOptions | undefined,
@@ -144,19 +124,6 @@ const reportResult = async (
   if (options?.onResult) {
     await options.onResult(ctx);
   }
-};
-
-/** Execute a trail with validated input. */
-const executeTrail = async (
-  t: AnyTrail,
-  validatedInput: unknown,
-  ctxOverrides: Partial<TrailContext> | undefined,
-  options?: BuildCliCommandsOptions
-): Promise<Result<unknown, Error>> => {
-  const ctx = await resolveContext(ctxOverrides, options);
-  const layers = options?.layers ?? [];
-  const impl = composeLayers(layers, t, t.run);
-  return impl(validatedInput, ctx);
 };
 
 /** Create the execute function for a CLI command. */
@@ -175,29 +142,22 @@ const createExecute =
     const mergedInput = mergeArgsAndFlags(parsedArgs, parsedFlags);
     await applyPrompting(fields, mergedInput, options);
 
-    const validated = validateInput(t.input, mergedInput);
-    if (validated.isErr()) {
-      const errorResult: Result<unknown, Error> = Result.err(validated.error);
-      await reportResult(options, {
-        args: parsedArgs,
-        flags: parsedFlags,
-        input: mergedInput,
-        result: errorResult,
-        trail: t,
-      });
-      return errorResult;
-    }
+    const result = await executeTrail(t, mergedInput, {
+      createContext: options?.createContext,
+      ctx: ctxOverrides,
+      layers: options?.layers,
+    });
 
-    const result = await executeTrail(
-      t,
-      validated.value,
-      ctxOverrides,
-      options
-    );
+    // Pass validated (coerced/transformed) input to onResult on success,
+    // raw merged input on validation failure.
+    const reportInput = result.isOk()
+      ? (t.input.safeParse(mergedInput).data ?? mergedInput)
+      : mergedInput;
+
     await reportResult(options, {
       args: parsedArgs,
       flags: parsedFlags,
-      input: validated.value,
+      input: reportInput,
       result,
       trail: t,
     });

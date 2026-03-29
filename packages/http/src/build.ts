@@ -6,14 +6,7 @@
  * implementation -- all without referencing any HTTP framework types.
  */
 
-import {
-  InternalError,
-  Result,
-  ValidationError,
-  composeLayers,
-  createTrailContext,
-  validateInput,
-} from '@ontrails/core';
+import { Result, ValidationError, executeTrail } from '@ontrails/core';
 import type { Layer, Topo, Trail, TrailContext } from '@ontrails/core';
 
 // ---------------------------------------------------------------------------
@@ -83,50 +76,24 @@ const shouldInclude = (trail: Trail<unknown, unknown>): boolean =>
 // Execute factory
 // ---------------------------------------------------------------------------
 
-/** Build a TrailContext, optionally overriding the requestId. */
-const buildTrailContext = async (
-  options: BuildHttpRoutesOptions,
-  requestId?: string | undefined
-): Promise<TrailContext> => {
-  const baseContext =
-    options.createContext !== undefined && options.createContext !== null
-      ? await options.createContext()
-      : createTrailContext();
-
-  if (requestId !== undefined) {
-    return { ...baseContext, requestId };
-  }
-
-  return baseContext;
-};
-
 /**
  * Create an `execute` function for a single trail.
  *
- * The returned function validates input, composes layers, and runs the
- * trail implementation. It returns a `Result` and never throws.
+ * Delegates to the centralized `executeTrail` pipeline in core.
+ * The returned function returns a `Result` and never throws.
  */
 const createExecute =
   (
-    trail: Trail<unknown, unknown>,
+    t: Trail<unknown, unknown>,
     layers: readonly Layer[],
     options: BuildHttpRoutesOptions
   ): HttpRouteDefinition['execute'] =>
-  async (input, requestId) => {
-    try {
-      const validated = validateInput(trail.input, input);
-      if (validated.isErr()) {
-        return validated;
-      }
-
-      const ctx = await buildTrailContext(options, requestId);
-      const impl = composeLayers([...layers], trail, trail.run);
-      return await impl(validated.value, ctx);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      return Result.err(new InternalError(message));
-    }
-  };
+  (input, requestId) =>
+    executeTrail(t, input, {
+      createContext: options.createContext,
+      ctx: requestId === undefined ? undefined : { requestId },
+      layers,
+    });
 
 // ---------------------------------------------------------------------------
 // Builder helpers

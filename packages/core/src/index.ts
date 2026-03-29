@@ -87,6 +87,10 @@ export type {
 export { deriveFields } from './derive.js';
 export type { Field, FieldOverride } from './derive.js';
 
+// Execute
+export { executeTrail } from './execute.js';
+export type { ExecuteTrailOptions } from './execute.js';
+
 // Validation
 export {
   validateInput,
