@@ -1,6 +1,6 @@
 # trails-demo
 
-A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `follow`, an event, examples, metadata, detours, and blazing on both CLI and MCP surfaces.
+A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `follow`, an event, examples, metadata, detours, idempotent upsert, and blazing on CLI, MCP, and HTTP surfaces.
 
 ## What this app does
 
@@ -14,6 +14,7 @@ Entity management -- a small CRUD + search system with enough depth to exercise 
 | `entity.list` | List entities with optional type filter | `intent: 'read'` |
 | `search` | Full-text search across entities | `intent: 'read'` |
 | `entity.onboard` | Composition: create + verify searchable | `follow: ['entity.add', 'search']` |
+| `demo.upsert` | Idempotent key-value store example | `idempotent: true` |
 
 Plus one event: `entity.updated` (triggered by `entity.add` and `entity.delete`).
 
@@ -59,6 +60,9 @@ curl -X POST http://localhost:3000/entity/add -H 'Content-Type: application/json
 
 # Destructive trail (DELETE)
 curl -X DELETE http://localhost:3000/entity/delete -H 'Content-Type: application/json' -d '{"name":"Deletable"}'
+
+# Idempotent upsert (POST — repeating produces the same result)
+curl -X POST http://localhost:3000/demo/upsert -H 'Content-Type: application/json' -d '{"key":"theme","value":"dark"}'
 ```
 
 ## Running the MCP server
@@ -67,7 +71,7 @@ curl -X DELETE http://localhost:3000/entity/delete -H 'Content-Type: application
 bun run src/mcp.ts
 ```
 
-This exposes MCP tools: `demo_entity_show`, `demo_entity_add`, `demo_entity_delete`, `demo_entity_list`, `demo_search`, `demo_entity_onboard`.
+This exposes MCP tools: `demo_entity_show`, `demo_entity_add`, `demo_entity_delete`, `demo_entity_list`, `demo_search`, `demo_entity_onboard`, `demo_demo_upsert`.
 
 ## Understanding the code
 

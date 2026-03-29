@@ -77,7 +77,7 @@ Warden uses inference to verify declarations match actual code. The surface map 
 
 ### Foundation
 
-`@ontrails/core` — only external dependency is `zod`. Contains Result, error taxonomy, `trail()`/`event()`, `topo()`, validation, layers, and adapter port interfaces.
+`@ontrails/core` — only external dependency is `zod`. Contains Result, error taxonomy, `trail()`/`event()`, `topo()`, validation, layers, adapter port interfaces, `executeTrail()` (the shared pipeline), and `dispatch()` (headless execution by trail ID).
 
 ### Surface Adapters (left side)
 
@@ -121,18 +121,28 @@ Warden uses inference to verify declarations match actual code. The surface map 
 
 ## Data Flow
 
+### Shared Execution Pipeline
+
+All surfaces delegate to `executeTrail(trail, rawInput, options)` from `@ontrails/core`. It is the single implementation of the validate-context-layers-run pipeline:
+
+```text
+executeTrail(trail, rawInput, options)
+  -> Zod validates input against trail's schema  -> Result.err(ValidationError) on failure
+  -> TrailContext created (requestId, logger, signal)
+  -> Layers composed around implementation
+  -> implementation(validatedInput, ctx) called
+  -> Result returned (never throws)
+```
+
+Surfaces only differ in how they parse inbound requests and map Results to their response format.
+
 ### CLI Request Path
 
 ```text
 CLI input ("myapp entity show --name Alpha")
   -> Commander parses args/flags
   -> CLI adapter matches trail via CliCommand model
-  -> Layers run (auth, rate limit, telemetry)
-  -> Zod validates input against trail's schema
-  -> TrailContext created (requestId, logger, signal)
-  -> implementation(validatedInput, ctx) called
-  -> Result returned
-  -> Layers post-process
+  -> Delegates to executeTrail(trail, parsedInput, { layers, ... })
   -> Result mapped to exit code + stdout
 ```
 
@@ -141,11 +151,8 @@ CLI input ("myapp entity show --name Alpha")
 ```text
 MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
   -> MCP adapter matches trail
-  -> Zod validates input
-  -> TrailContext created
-  -> Same implementation(validatedInput, ctx) called
-  -> Same Result returned
-  -> Result mapped to MCP tool response
+  -> Delegates to executeTrail(trail, args, { layers, signal, ... })
+  -> Result mapped to MCP tool response (content[], isError)
 ```
 
 ### HTTP Request Path
@@ -153,14 +160,23 @@ MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
 ```text
 HTTP request (GET /entity/show?name=Alpha)
   -> Hono matches route derived from trail ID
-  -> Zod validates input (query params for GET, JSON body for POST/DELETE)
-  -> TrailContext created
-  -> Same implementation(validatedInput, ctx) called
-  -> Same Result returned
+  -> Parses input (query params for GET, JSON body for POST/DELETE)
+  -> Delegates to executeTrail(trail, parsedInput, { layers, ... })
   -> Result mapped to JSON response with status code from error taxonomy
 ```
 
-The implementation is identical. Only the edges change.
+### Headless Execution (no surface)
+
+`dispatch(topo, id, input, options)` from `@ontrails/core` is the "no-surface" path. It resolves a trail by ID from the topo, then delegates to `executeTrail`. Returns `Result.err(NotFoundError)` if the ID is not registered.
+
+```text
+dispatch(myTopo, 'entity.show', { name: 'Alpha' })
+  -> Resolves trail from topo by ID
+  -> Delegates to executeTrail(trail, input, options)
+  -> Result returned
+```
+
+The implementation is identical across all paths. Only the edges change.
 
 ## Error Taxonomy
 

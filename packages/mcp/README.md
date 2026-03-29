@@ -26,14 +26,17 @@ For more control, build the tools yourself:
 ```typescript
 import { buildMcpTools } from '@ontrails/mcp';
 
-const tools = buildMcpTools(app);
-for (const tool of tools) {
+const result = buildMcpTools(app);
+if (result.isErr()) throw result.error; // ValidationError on tool-name collision
+for (const tool of result.value) {
   server.registerTool(tool.name, tool.handler, {
     inputSchema: tool.inputSchema,
     annotations: tool.annotations,
   });
 }
 ```
+
+`buildMcpTools` returns `Result<McpToolDefinition[], Error>` rather than a bare array. It returns `Result.err(ValidationError)` if two trails derive the same MCP tool name. Each `McpToolDefinition` includes a `trailId` field that records which trail the tool was derived from.
 
 ## API
 

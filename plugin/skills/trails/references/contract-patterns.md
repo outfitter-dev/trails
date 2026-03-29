@@ -138,3 +138,25 @@ Trails that compose others use `follow` and `ctx.follow()`.
 ```typescript
 const result = await ctx.follow('entity.add', { name: 'Beta', type: 'tool' });
 if (result.isErr()) return result;
+```
+
+## Type Utilities
+
+`@ontrails/core` exports three type utilities for extracting types from trail definitions without duplicating them:
+
+| Utility | Returns |
+|---------|---------|
+| `TrailInput<T>` | The validated input type for trail `T` |
+| `TrailOutput<T>` | The successful output type for trail `T` |
+| `TrailResult<T>` | `Result<TrailOutput<T>, Error>` — the full return type |
+
+```typescript
+import type { TrailInput, TrailOutput, TrailResult } from '@ontrails/core';
+import { myTrail } from './trails/entity.js';
+
+type Input = TrailInput<typeof myTrail>;   // z.infer<typeof myTrail.input>
+type Output = TrailOutput<typeof myTrail>; // z.infer<typeof myTrail.output>
+type RunResult = TrailResult<typeof myTrail>; // Result<Output, Error>
+```
+
+Use `TrailResult<T>` to type function return values that forward a trail's result without repeating the output shape.

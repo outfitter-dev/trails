@@ -32,6 +32,7 @@ testDetours(app);    // Verify detour targets exist
 | `testTrail(trail, scenarios)` | Custom scenarios for edge cases, error paths, and follow chains |
 | `testContracts(topo, ctx?)` | Validate output against declared schemas |
 | `testDetours(topo)` | Verify every detour target exists in the topo |
+| `createFollowContext(options?)` | Mock `FollowFn` for testing composite trails; returns preconfigured `Result` values keyed by trail ID |
 | `createTestContext(options?)` | `TrailContext` with sensible test defaults |
 | `createTestLogger()` | Logger that captures entries in memory for assertions |
 | `createCliHarness(options)` | Execute CLI commands in-process, capture stdout/stderr |
@@ -66,6 +67,24 @@ testTrail(onboardTrail, [
   { description: 'add fails', input: { name: 'Alpha' }, expectErr: AlreadyExistsError },
 ]);
 ```
+
+When you need to isolate a composite trail and stub out its dependencies, use `createFollowContext`:
+
+```typescript
+import { createFollowContext, createTestContext } from '@ontrails/testing';
+import { Result } from '@ontrails/core';
+
+const follow = createFollowContext({
+  responses: {
+    'entity.add': Result.ok({ id: '1', name: 'Delta', type: 'tool' }),
+    'search': Result.ok({ results: [] }),
+  },
+});
+const ctx = { ...createTestContext(), follow };
+const result = await onboardTrail.run({ name: 'Delta', type: 'tool' }, ctx);
+```
+
+Calls to unregistered trail IDs return `Result.err` with a descriptive message, so missing stubs fail loudly.
 
 ## Surface harnesses
 

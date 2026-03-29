@@ -121,6 +121,43 @@ Applied automatically per example based on which fields are present:
 
 Error class names: `ValidationError`, `NotFoundError`, `AlreadyExistsError`, `ConflictError`, `AuthError`, `PermissionError`, `TimeoutError`, `NetworkError`, `RateLimitError`, `InternalError`, `AmbiguousError`, `CancelledError`, `AssertionError`.
 
+## `createFollowContext()` -- Mock Follow for Composite Trails
+
+When unit-testing a composite trail in isolation (without a full topo), use `createFollowContext()` to provide preconfigured `Result` responses for each `ctx.follow()` call:
+
+```typescript
+import { Result } from '@ontrails/core';
+import { createFollowContext, createTestContext } from '@ontrails/testing';
+
+const follow = createFollowContext({
+  responses: {
+    'entity.add': Result.ok({ id: '1', name: 'Alpha' }),
+    'entity.relate': Result.ok({ linked: true }),
+  },
+});
+
+const ctx = { ...createTestContext(), follow };
+
+const result = await onboardTrail.run({ name: 'Alpha' }, ctx);
+expect(result.isOk()).toBe(true);
+```
+
+Calls to IDs not registered in `responses` return `Result.err` with a descriptive message, making missing mocks visible immediately.
+
+## `dispatch()` -- Headless Testing Against a Topo
+
+For integration-style tests that verify the full pipeline (validation, layers, implementation) without mounting a surface, use `dispatch()` from `@ontrails/core`:
+
+```typescript
+import { dispatch } from '@ontrails/core';
+import { app } from '../src/app.js';
+
+const result = await dispatch(app, 'entity.show', { name: 'Alpha' });
+expect(result.isOk()).toBe(true);
+```
+
+`dispatch()` returns `Result.err(NotFoundError)` if the trail ID is not in the topo, making it useful for verifying topo completeness as well.
+
 ## Test Context
 
 ```typescript

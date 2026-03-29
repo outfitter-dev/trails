@@ -33,7 +33,7 @@ run: async (input) => {
 
 **Why it's wrong:** Direct calls bypass the framework pipeline. Input isn't validated, layers don't run, and traces aren't recorded.
 
-**Fix:** In composite trails, use `ctx.follow(myTrail, input)`. In tests, use `testAll()` or the test harness.
+**Fix:** In composite trails, use `ctx.follow('trail.id', input)` (pass the string ID, not the trail object). In tests, use `testAll()` or the test harness.
 
 ## 4. Missing output schema
 
@@ -75,11 +75,11 @@ input: z.object({
 
 ```typescript
 trail('onboard', {
-  follow: [createUser, sendWelcome], // must match ctx.follow() calls
+  follow: ['user.create', 'user.welcome'], // must match ctx.follow() calls
   run: async (input, ctx) => {
-    const user = await ctx.follow(createUser, input);
+    const user = await ctx.follow('user.create', input);
     if (user.isErr()) return user;
-    return ctx.follow(sendWelcome, { userId: user.value.id });
+    return ctx.follow('user.welcome', { userId: user.value.id });
   },
 });
 ```

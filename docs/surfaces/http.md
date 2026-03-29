@@ -144,9 +144,13 @@ import { buildHttpRoutes } from '@ontrails/http';
 import { Hono } from 'hono';
 
 const hono = new Hono();
-const routes = buildHttpRoutes(app, { basePath: '/api' });
+const routesResult = buildHttpRoutes(app, { basePath: '/api' });
 
-for (const route of routes) {
+if (routesResult.isErr()) {
+  throw routesResult.error; // ValidationError if route collisions are detected
+}
+
+for (const route of routesResult.value) {
   const method = route.method.toLowerCase() as 'get' | 'post' | 'delete';
   hono[method](route.path, async (c) => {
     const input =
@@ -164,6 +168,26 @@ export default hono;
 ```
 
 This gives you full control over the HTTP framework while still deriving routes from the topo.
+
+`buildHttpRoutes()` returns `Result<HttpRouteDefinition[], Error>`. If two trails resolve to the same method + path (e.g. two trails both map to `POST /entity/add`), it returns a `ValidationError` describing the collision instead of silently overwriting a route.
+
+## AbortSignal Propagation
+
+The HTTP request's abort signal is forwarded to `TrailContext.signal`. If the client disconnects or cancels the request mid-flight, the implementation's signal is aborted.
+
+```typescript
+const longTask = trail('report.generate', {
+  run: async (input, ctx) => {
+    for (const chunk of data) {
+      if (ctx.signal?.aborted) {
+        return Result.err(new CancelledError('Request cancelled'));
+      }
+      await processChunk(chunk);
+    }
+    return Result.ok({ report: '...' });
+  },
+});
+```
 
 ## Example: Full HTTP Entry Point
 

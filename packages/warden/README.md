@@ -71,6 +71,24 @@ CI formatters for structured output:
 import { formatGitHubAnnotations, formatJson, formatSummary } from '@ontrails/warden';
 ```
 
+## Trail-based API
+
+Every built-in warden rule is also available as a composable trail. This makes rules queryable, testable, and invocable through any Trails surface.
+
+```typescript
+import { wardenTopo, runWardenTrails } from '@ontrails/warden';
+
+// Inspect the warden rule trails
+console.log(wardenTopo.ids()); // ['warden.rule.no-throw-in-implementation', ...]
+
+// Run all rule trails against a source file
+const diagnostics = await runWardenTrails(filePath, sourceCode, {
+  knownTrailIds: myApp.ids(),
+});
+```
+
+To wrap a custom rule as a trail, use `wrapRule` (imported from `@ontrails/warden/trails/wrap-rule`). This is the same factory used internally to build all built-in rule trails.
+
 ## API
 
 | Export | What it does |
@@ -79,6 +97,8 @@ import { formatGitHubAnnotations, formatJson, formatSummary } from '@ontrails/wa
 | `formatWardenReport(report)` | Human-readable report |
 | `checkDrift(app)` | Check if `surface.lock` matches the current topo |
 | `wardenRules` | Registry of all built-in rules |
+| `wardenTopo` | `Topo` of all built-in rule trails (one per rule) |
+| `runWardenTrails(filePath, sourceCode, options?)` | Dispatch all rule trails for a file, collect diagnostics |
 | `formatGitHubAnnotations(report)` | GitHub Actions annotation format |
 | `formatJson(report)` | Machine-readable JSON |
 | `formatSummary(report)` | Compact summary line |
