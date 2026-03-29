@@ -53,14 +53,16 @@ export interface HttpRouteDefinition {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-/** Derive HTTP method from trail intent. */
-const deriveMethod = (trail: Trail<unknown, unknown>): HttpMethod => {
-  const intentToMethod: Record<string, HttpMethod> = {
-    destroy: 'DELETE',
-    read: 'GET',
-  };
-  return intentToMethod[trail.intent] ?? 'POST';
+/** Explicit intent → HTTP method mapping. */
+const intentToMethod: Record<string, HttpMethod> = {
+  destroy: 'DELETE',
+  read: 'GET',
+  write: 'POST',
 };
+
+/** Derive HTTP method from trail intent. */
+const deriveMethod = (trail: Trail<unknown, unknown>): HttpMethod =>
+  intentToMethod[trail.intent] ?? 'POST';
 
 /** Derive HTTP path from trail ID: `entity.show` -> `/entity/show`. */
 const derivePath = (basePath: string, trailId: string): string => {
@@ -190,7 +192,7 @@ const accumulateRoutes = (
  * Build HTTP route definitions from a topo.
  *
  * Each trail becomes an HttpRouteDefinition with:
- * - An HTTP method derived from intent (read -> GET, destroy -> DELETE, default -> POST)
+ * - An HTTP method derived from intent (read -> GET, write -> POST, destroy -> DELETE)
  * - A path derived from the trail ID (dots become slashes)
  * - An input source derived from the method (GET -> query, others -> body)
  * - An `execute` function that validates, layers, and runs the implementation
