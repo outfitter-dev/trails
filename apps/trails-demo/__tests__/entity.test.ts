@@ -33,7 +33,7 @@ testTrail(
       input: { name: 'alpha' },
     },
   ],
-  { store }
+  { extensions: { store } }
 );
 
 // ---------------------------------------------------------------------------
@@ -55,7 +55,7 @@ testTrail(
       input: { name: 'Alpha', type: 'concept' },
     },
   ],
-  { store }
+  { extensions: { store } }
 );
 
 // ---------------------------------------------------------------------------
@@ -72,7 +72,7 @@ testTrail(
       input: { name: 'does-not-exist' },
     },
   ],
-  { store }
+  { extensions: { store } }
 );
 
 // ---------------------------------------------------------------------------
@@ -94,5 +94,5 @@ testTrail(
       input: { type: 'nonexistent-type' },
     },
   ],
-  { store }
+  { extensions: { store } }
 );

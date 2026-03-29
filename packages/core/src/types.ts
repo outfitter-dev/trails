@@ -52,5 +52,5 @@ export interface TrailContext {
   readonly progress?: ProgressCallback | undefined;
   readonly cwd?: string | undefined;
   readonly env?: Record<string, string | undefined> | undefined;
-  readonly [key: string]: unknown;
+  readonly extensions?: Readonly<Record<string, unknown>> | undefined;
 }

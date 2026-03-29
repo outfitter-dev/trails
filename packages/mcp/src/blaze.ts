@@ -15,6 +15,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import type { Layer, Topo, TrailContext } from '@ontrails/core';
+import { validateTopo } from '@ontrails/core';
 
 import type { McpToolDefinition } from './build.js';
 import { buildMcpTools } from './build.js';
@@ -38,6 +39,8 @@ export interface BlazeMcpOptions {
       }
     | undefined;
   readonly transport?: 'stdio' | undefined;
+  /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
+  readonly validate?: boolean | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -130,6 +133,13 @@ export const blaze = async (
   app: Topo,
   options: BlazeMcpOptions = {}
 ): Promise<void> => {
+  if (options.validate !== false) {
+    const validated = validateTopo(app);
+    if (validated.isErr()) {
+      throw validated.error;
+    }
+  }
+
   const toolsResult = buildMcpTools(app, {
     createContext: options.createContext,
     excludeTrails: options.excludeTrails,

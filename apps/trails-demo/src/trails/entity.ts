@@ -41,7 +41,7 @@ const entitySummarySchema = z.object({
 // ---------------------------------------------------------------------------
 
 const getStore = (ctx: TrailContext): EntityStore =>
-  ctx['store'] as EntityStore;
+  ctx.extensions?.['store'] as EntityStore;
 
 // ---------------------------------------------------------------------------
 // entity.show

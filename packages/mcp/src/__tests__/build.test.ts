@@ -294,8 +294,7 @@ describe('buildMcpTools', () => {
       const ctxTrail = trail('ctx.check', {
         input: z.object({}),
         run: (_input, ctx) => {
-          const ctxRecord = ctx as Record<string, unknown>;
-          contextUsed = ctxRecord['custom'] === true;
+          contextUsed = ctx.extensions?.['custom'] === true;
           return Result.ok({ ok: true });
         },
       });
@@ -304,7 +303,7 @@ describe('buildMcpTools', () => {
       const tool = requireOnlyTool(
         buildTools(app, {
           createContext: () => ({
-            custom: true,
+            extensions: { custom: true },
             requestId: 'test-id',
             signal: new AbortController().signal,
           }),

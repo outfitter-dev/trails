@@ -10,7 +10,7 @@
  * ```
  */
 
-import { isTrailsError, statusCodeMap } from '@ontrails/core';
+import { isTrailsError, statusCodeMap, validateTopo } from '@ontrails/core';
 import type { Layer, Topo, TrailContext } from '@ontrails/core';
 import { Hono } from 'hono';
 import type { Context as HonoContext } from 'hono';
@@ -34,6 +34,8 @@ export interface BlazeHttpOptions {
   readonly port?: number | undefined;
   /** Set false to return the Hono app without starting a server. */
   readonly serve?: boolean | undefined;
+  /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
+  readonly validate?: boolean | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -223,6 +225,24 @@ const registerErrorHandler = (hono: Hono): void => {
 };
 
 // ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
+
+/**
+ * Throw a ValidationError if the topo has structural issues.
+ * Pass `skip: true` to bypass validation (e.g. when `validate: false` is set).
+ */
+const assertValidTopo = (app: Topo, skip = false): void => {
+  if (skip) {
+    return;
+  }
+  const validated = validateTopo(app);
+  if (validated.isErr()) {
+    throw validated.error;
+  }
+};
+
+// ---------------------------------------------------------------------------
 // blaze
 // ---------------------------------------------------------------------------
 
@@ -234,6 +254,8 @@ export const blaze = async (
   app: Topo,
   options: BlazeHttpOptions = {}
 ): Promise<Hono> => {
+  assertValidTopo(app, options.validate === false);
+
   const hono = new Hono();
 
   registerErrorHandler(hono);

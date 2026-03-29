@@ -48,7 +48,7 @@ const createFollowFn = (ctx: TrailContext) => {
 };
 
 const makeCtx = (store: EntityStore): TrailContext => {
-  const base = createTrailContext({ store });
+  const base = createTrailContext({ extensions: { store } });
   const ctx: TrailContext = { ...base, follow: createFollowFn(base) };
   return ctx;
 };

@@ -52,7 +52,13 @@ const resolveContext = async (
   const base = options?.createContext
     ? await options.createContext()
     : createTrailContext();
-  const withOverrides = options?.ctx ? { ...base, ...options.ctx } : base;
+  const withOverrides = options?.ctx
+    ? {
+        ...base,
+        ...options.ctx,
+        extensions: { ...base.extensions, ...options.ctx.extensions },
+      }
+    : base;
   return options?.signal
     ? { ...withOverrides, signal: options.signal }
     : withOverrides;

@@ -20,7 +20,7 @@ const store = createStore([
 await blaze(app, {
   createContext: () =>
     createTrailContext({
-      store,
+      extensions: { store },
     }),
   port: 3000,
 });
