@@ -19,6 +19,18 @@ import { isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 // ---------------------------------------------------------------------------
+// Shared identifier helpers
+// ---------------------------------------------------------------------------
+
+/** Get the name of an Identifier node, or null. */
+const identifierName = (node: AstNode | undefined): string | null => {
+  if (node?.type !== 'Identifier') {
+    return null;
+  }
+  return (node as unknown as { name?: string }).name ?? null;
+};
+
+// ---------------------------------------------------------------------------
 // String literal helpers
 // ---------------------------------------------------------------------------
 
@@ -37,6 +49,42 @@ const isStringLiteral = (node: AstNode): boolean => {
 const getStringValue = (node: AstNode): string | null => {
   const val = (node as unknown as { value?: unknown }).value;
   return typeof val === 'string' ? val : null;
+};
+
+// ---------------------------------------------------------------------------
+// Const identifier resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Best-effort resolution of `const NAME = 'value'` declarations via regex.
+ *
+ * Returns the string value if a simple `const <name> = '...'` or `"..."` is
+ * found in the source. Returns null for anything more complex.
+ */
+const resolveConstString = (
+  name: string,
+  sourceCode: string
+): string | null => {
+  const pattern = new RegExp(
+    `const\\s+${name}\\s*=\\s*(?:'([^']*)'|"([^"]*)")`
+  );
+  const match = pattern.exec(sourceCode);
+  if (!match) {
+    return null;
+  }
+  return match[1] ?? match[2] ?? null;
+};
+
+/** Try to resolve an Identifier element to a string via const declaration. */
+const resolveIdentifierElement = (
+  el: AstNode,
+  sourceCode: string
+): string | null => {
+  const name = identifierName(el);
+  if (!name) {
+    return null;
+  }
+  return resolveConstString(name, sourceCode);
 };
 
 // ---------------------------------------------------------------------------
@@ -61,8 +109,11 @@ const getFollowElements = (config: AstNode): readonly AstNode[] | null => {
   return elements ?? null;
 };
 
-/** Collect string IDs from array elements. */
-const collectStringIds = (elements: readonly AstNode[]): Set<string> => {
+/** Collect string IDs from array elements, resolving identifiers when possible. */
+const collectStringIds = (
+  elements: readonly AstNode[],
+  sourceCode: string
+): Set<string> => {
   const ids = new Set<string>();
   for (const el of elements) {
     if (isStringLiteral(el)) {
@@ -70,15 +121,23 @@ const collectStringIds = (elements: readonly AstNode[]): Set<string> => {
       if (val) {
         ids.add(val);
       }
+    } else if (el.type === 'Identifier') {
+      const resolved = resolveIdentifierElement(el, sourceCode);
+      if (resolved) {
+        ids.add(resolved);
+      }
     }
   }
   return ids;
 };
 
 /** Extract string literal elements from a `follow: [...]` array property. */
-const extractDeclaredFollows = (config: AstNode): ReadonlySet<string> => {
+const extractDeclaredFollows = (
+  config: AstNode,
+  sourceCode: string
+): ReadonlySet<string> => {
   const elements = getFollowElements(config);
-  return elements ? collectStringIds(elements) : new Set();
+  return elements ? collectStringIds(elements, sourceCode) : new Set();
 };
 
 // ---------------------------------------------------------------------------
@@ -86,14 +145,6 @@ const extractDeclaredFollows = (config: AstNode): ReadonlySet<string> => {
 // ---------------------------------------------------------------------------
 
 const MEMBER_TYPES = new Set(['StaticMemberExpression', 'MemberExpression']);
-
-/** Get the name of an Identifier node, or null. */
-const identifierName = (node: AstNode | undefined): string | null => {
-  if (node?.type !== 'Identifier') {
-    return null;
-  }
-  return (node as unknown as { name?: string }).name ?? null;
-};
 
 /** Extract object and property Identifier names from a MemberExpression. */
 const extractMemberPair = (
@@ -129,8 +180,38 @@ const extractFirstStringArg = (node: AstNode): string | null => {
   return getStringValue(firstArg);
 };
 
-/** Check if a node is a `ctx.follow(...)` call and return the string trail ID. */
-const extractFollowCallId = (node: AstNode): string | null => {
+/**
+ * Extract the second parameter name from a run function node.
+ *
+ * Handles `(input, ctx) => ...` and `async (input, context) => ...` and
+ * `function(input, ctx) { ... }` forms.
+ */
+const extractContextParamName = (runBody: AstNode): string | null => {
+  const params = runBody['params'] as readonly AstNode[] | undefined;
+  if (!params || params.length < 2) {
+    return null;
+  }
+  return identifierName(params[1]);
+};
+
+/** Check if a callee is a member-style follow call: <ctxName>.follow(...). */
+const isMemberFollowCall = (
+  callee: AstNode,
+  ctxNames: ReadonlySet<string>
+): boolean => {
+  const pair = extractMemberPair(callee);
+  return !!pair && ctxNames.has(pair.objName) && pair.propName === 'follow';
+};
+
+/**
+ * Check if a node is a `<ctxName>.follow(...)` call and return the string trail ID.
+ *
+ * Also matches bare `follow(...)` calls (destructured pattern).
+ */
+const extractFollowCallId = (
+  node: AstNode,
+  ctxNames: ReadonlySet<string>
+): string | null => {
   if (node.type !== 'CallExpression') {
     return null;
   }
@@ -140,12 +221,26 @@ const extractFollowCallId = (node: AstNode): string | null => {
     return null;
   }
 
-  const pair = extractMemberPair(callee);
-  if (!pair || pair.objName !== 'ctx' || pair.propName !== 'follow') {
-    return null;
+  if (isMemberFollowCall(callee, ctxNames)) {
+    return extractFirstStringArg(node);
   }
 
-  return extractFirstStringArg(node);
+  // Match bare follow(...) — destructured pattern
+  if (identifierName(callee) === 'follow') {
+    return extractFirstStringArg(node);
+  }
+
+  return null;
+};
+
+/** Build the set of context parameter names to match against. */
+const buildCtxNames = (body: AstNode): ReadonlySet<string> => {
+  const ctxNames = new Set(['ctx', 'context']);
+  const paramName = extractContextParamName(body);
+  if (paramName) {
+    ctxNames.add(paramName);
+  }
+  return ctxNames;
 };
 
 /** Walk run bodies and collect all statically resolvable ctx.follow() trail IDs. */
@@ -153,8 +248,10 @@ const extractCalledFollows = (config: AstNode): ReadonlySet<string> => {
   const ids = new Set<string>();
 
   for (const body of findRunBodies(config)) {
+    const ctxNames = buildCtxNames(body);
+
     walk(body, (node) => {
-      const id = extractFollowCallId(node);
+      const id = extractFollowCallId(node, ctxNames);
       if (id) {
         ids.add(id);
       }
@@ -236,7 +333,7 @@ const checkTrailDefinition = (
   sourceCode: string,
   diagnostics: WardenDiagnostic[]
 ): void => {
-  const declared = extractDeclaredFollows(def.config);
+  const declared = extractDeclaredFollows(def.config, sourceCode);
   const called = extractCalledFollows(def.config);
 
   if (declared.size === 0 && called.size === 0) {

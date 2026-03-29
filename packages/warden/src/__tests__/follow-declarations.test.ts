@@ -85,6 +85,158 @@ trail('onboard', {
     });
   });
 
+  describe('single-object overload', () => {
+    test('recognizes trail({ id, follow, run }) form', () => {
+      const code = `
+trail({
+  id: 'onboard',
+  follow: ['entity.add'],
+  input: z.object({ name: z.string() }),
+  run: async (input, ctx) => {
+    await ctx.follow('entity.add', { name: input.name });
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = followDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('detects undeclared follows in single-object form', () => {
+      const code = `
+trail({
+  id: 'onboard',
+  input: z.object({ name: z.string() }),
+  run: async (input, ctx) => {
+    await ctx.follow('entity.add', { name: input.name });
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = followDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('error');
+      expect(diagnostics[0]?.message).toContain("'entity.add'");
+    });
+  });
+
+  describe('context parameter naming', () => {
+    test('recognizes context.follow() when second param is named context', () => {
+      const code = `
+trail('onboard', {
+  follow: ['entity.add'],
+  input: z.object({ name: z.string() }),
+  run: async (input, context) => {
+    await context.follow('entity.add', { name: input.name });
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = followDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('detects undeclared context.follow() calls', () => {
+      const code = `
+trail('onboard', {
+  input: z.object({ name: z.string() }),
+  run: async (input, context) => {
+    await context.follow('entity.add', { name: input.name });
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = followDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('error');
+    });
+
+    test('recognizes destructured follow() calls', () => {
+      const code = `
+trail('onboard', {
+  follow: ['entity.add'],
+  input: z.object({ name: z.string() }),
+  run: async (input, ctx) => {
+    const { follow } = ctx;
+    await follow('entity.add', { name: input.name });
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = followDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(0);
+    });
+  });
+
+  describe('nested run false positives', () => {
+    test('metadata.run does not trigger false positives', () => {
+      const code = `
+trail('onboard', {
+  follow: ['entity.add'],
+  input: z.object({ name: z.string() }),
+  metadata: { run: async () => ctx.follow('phantom') },
+  run: async (input, ctx) => {
+    await ctx.follow('entity.add', { name: input.name });
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = followDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(0);
+    });
+  });
+
+  describe('identifier resolution in follow arrays', () => {
+    test('resolves const identifiers in follow array', () => {
+      const code = `
+const ENTITY_ADD = 'entity.add';
+trail('onboard', {
+  follow: [ENTITY_ADD],
+  input: z.object({ name: z.string() }),
+  run: async (input, ctx) => {
+    await ctx.follow('entity.add', { name: input.name });
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = followDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('reports error when resolved identifier does not match called follow', () => {
+      const code = `
+const ENTITY_ADD = 'entity.add';
+trail('onboard', {
+  follow: [ENTITY_ADD],
+  input: z.object({ name: z.string() }),
+  run: async (input, ctx) => {
+    await ctx.follow('search', { name: input.name });
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = followDeclarations.check(code, TEST_FILE);
+
+      // 'search' called but not declared, 'entity.add' declared but not called
+      expect(diagnostics.length).toBe(2);
+    });
+  });
+
   describe('edge cases', () => {
     test('dynamic follow IDs are skipped', () => {
       const code = `

@@ -2,8 +2,6 @@
  * Type utilities for extracting input/output types from trails.
  */
 
-import type { z } from 'zod';
-
 import type { AnyTrail, Trail } from './trail.js';
 
 // ---------------------------------------------------------------------------
@@ -26,9 +24,10 @@ export type TrailOutput<T extends AnyTrail> =
 // Runtime schema accessors
 // ---------------------------------------------------------------------------
 
-/** Get the input Zod schema from a trail. */
-export const inputOf = <I, O>(trail: Trail<I, O>): z.ZodType<I> => trail.input;
+/** Get the input Zod schema from a trail, preserving the specific schema type. */
+export const inputOf = <T extends AnyTrail>(trail: T): T['input'] =>
+  trail.input;
 
-/** Get the output Zod schema from a trail, if defined. */
-export const outputOf = <I, O>(trail: Trail<I, O>): z.ZodType<O> | undefined =>
+/** Get the output Zod schema from a trail, if defined, preserving the specific schema type. */
+export const outputOf = <T extends AnyTrail>(trail: T): T['output'] =>
   trail.output;

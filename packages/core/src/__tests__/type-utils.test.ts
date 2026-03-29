@@ -30,6 +30,13 @@ describe('type-utils', () => {
         name: 'Alice',
       });
     });
+
+    test('preserves specific schema type so .shape is accessible', () => {
+      const schema = inputOf(greetTrail);
+      // .shape is only available on z.ZodObject, not the broader z.ZodType
+      expect(schema.shape).toBeDefined();
+      expect(schema.shape.name).toBeDefined();
+    });
   });
 
   describe('outputOf', () => {
