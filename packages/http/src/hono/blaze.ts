@@ -60,6 +60,16 @@ const parseQueryParams = (c: HonoContext): Record<string, unknown> => {
 /** Sentinel indicating a JSON parse failure. */
 const JSON_PARSE_ERROR = Symbol('JSON_PARSE_ERROR');
 
+/** Return true when the request has no body content. */
+const isEmptyBody = (c: HonoContext): boolean => {
+  const contentLength = c.req.header('Content-Length');
+  if (contentLength !== undefined) {
+    return Number.parseInt(contentLength, 10) === 0;
+  }
+  // No Content-Length header — treat as empty when Content-Type is also absent.
+  return c.req.header('Content-Type') === undefined;
+};
+
 /** Read input from request based on input source. */
 const readInput = async (
   c: HonoContext,
@@ -67,6 +77,9 @@ const readInput = async (
 ): Promise<unknown> => {
   if (inputSource === 'query') {
     return parseQueryParams(c);
+  }
+  if (isEmptyBody(c)) {
+    return {};
   }
   try {
     return await c.req.json();
@@ -143,7 +156,7 @@ const createHonoHandler =
         {
           error: {
             category: 'validation',
-            code: 'validation',
+            code: 'ValidationError',
             message: 'Invalid JSON in request body',
           },
         },

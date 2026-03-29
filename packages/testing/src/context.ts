@@ -2,7 +2,8 @@
  * Test context factory for creating TrailContext instances suitable for testing.
  */
 
-import type { TrailContext } from '@ontrails/core';
+import type { FollowFn, TrailContext } from '@ontrails/core';
+import { Result } from '@ontrails/core';
 
 import { createTestLogger } from './logger.js';
 import type { TestTrailContextOptions } from './types.js';
@@ -27,6 +28,46 @@ export const createTestContext = (
   signal: overrides?.signal ?? new AbortController().signal,
   workspaceRoot: overrides?.cwd ?? process.cwd(),
 });
+
+// ---------------------------------------------------------------------------
+// createFollowContext
+// ---------------------------------------------------------------------------
+
+export interface CreateFollowContextOptions {
+  readonly responses?: Record<string, Result<unknown, Error>> | undefined;
+}
+
+/**
+ * Create a mock `FollowFn` for testing composite trails.
+ *
+ * Returns preconfigured `Result` values keyed by trail ID. Calls to
+ * unregistered IDs return `Result.err` with a descriptive message.
+ *
+ * @example
+ * ```ts
+ * const follow = createFollowContext({
+ *   responses: { 'entity.add': Result.ok({ id: '1', name: 'Alpha' }) },
+ * });
+ * const ctx = { ...createTestContext(), follow };
+ * ```
+ */
+export const createFollowContext = (
+  options?: CreateFollowContextOptions
+): FollowFn => {
+  const responses = options?.responses ?? {};
+  return <O>(id: string, _input: unknown): Promise<Result<O, Error>> => {
+    const response = responses[id];
+    if (response === undefined) {
+      return Promise.resolve(
+        Result.err(new Error(`No mock response for follow("${id}")`)) as Result<
+          O,
+          Error
+        >
+      );
+    }
+    return Promise.resolve(response as Result<O, Error>);
+  };
+};
 
 /**
  * Merge a Partial<TrailContext> into a test context.

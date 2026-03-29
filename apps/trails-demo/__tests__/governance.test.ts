@@ -24,6 +24,7 @@ import { z } from 'zod';
 import { app } from '../src/app.js';
 import * as entityEvents from '../src/events/entity-events.js';
 import * as entity from '../src/trails/entity.js';
+import * as kv from '../src/trails/kv.js';
 import * as onboard from '../src/trails/onboard.js';
 import * as search from '../src/trails/search.js';
 
@@ -44,10 +45,11 @@ describe('surface map generation', () => {
     expect(ids).toContain('search');
     expect(ids).toContain('entity.onboard');
     expect(ids).toContain('entity.updated');
+    expect(ids).toContain('demo.upsert');
   });
 
-  test('has exactly 7 entries (6 trails + 1 event)', () => {
-    expect(surfaceMap.entries).toHaveLength(7);
+  test('has exactly 8 entries (7 trails + 1 event)', () => {
+    expect(surfaceMap.entries).toHaveLength(8);
   });
 
   test('entries are sorted alphabetically by id', () => {
@@ -238,7 +240,9 @@ describe('non-breaking change detection', () => {
       run: (input) => Result.ok({ name: input.name, updated: true }),
     });
 
-    const diff = diffAgainst(entity, search, onboard, entityEvents, { update });
+    const diff = diffAgainst(entity, search, onboard, entityEvents, kv, {
+      update,
+    });
     expect(diff.hasBreaking).toBe(false);
 
     const addedEntry = diff.info.find((e) => e.id === 'entity.update');
@@ -257,7 +261,8 @@ describe('non-breaking change detection', () => {
       { ...entity, show: modifiedShow },
       search,
       onboard,
-      entityEvents
+      entityEvents,
+      kv
     );
     expect(diff.hasBreaking).toBe(false);
 
@@ -302,7 +307,7 @@ describe('topo validation', () => {
       const trailDef = t as { examples?: readonly unknown[] };
       exampleCount += trailDef.examples?.length ?? 0;
     }
-    // 5 trails x 2 examples each + 1 onboard trail x 1 example = 11
-    expect(exampleCount).toBe(11);
+    // 5 trails x 2 examples each + 1 onboard trail x 1 example + 1 kv trail x 1 example = 12
+    expect(exampleCount).toBe(12);
   });
 });

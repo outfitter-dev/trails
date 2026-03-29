@@ -143,6 +143,16 @@ describe('buildMcpTools', () => {
         requireTool(tools, 'myapp_item_delete').annotations?.destructiveHint
       ).toBe(true);
     });
+
+    test('trailId identifies the source trail', () => {
+      const app = topo('myapp', { deleteTrail, echoTrail });
+      const tools = buildTools(app);
+
+      expect(requireTool(tools, 'myapp_echo').trailId).toBe('echo');
+      expect(requireTool(tools, 'myapp_item_delete').trailId).toBe(
+        'item.delete'
+      );
+    });
   });
 
   describe('handler execution', () => {

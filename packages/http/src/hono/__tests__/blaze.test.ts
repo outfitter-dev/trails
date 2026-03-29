@@ -142,6 +142,26 @@ describe('blaze (Hono adapter)', () => {
       const json = await res.json();
       expect(json.error.category).toBe('validation');
     });
+
+    test('POST with empty input schema succeeds without a body', async () => {
+      const emptyWriteTrail = trail('empty.write', {
+        input: z.object({}),
+        intent: 'write',
+        output: z.object({ ok: z.boolean() }),
+        run: () => Result.ok({ ok: true }),
+      });
+
+      const app = topo('testapp', { emptyWriteTrail });
+      const hono = await blaze(app, { serve: false });
+
+      // No body, no Content-Type header — mirrors a client that obeys the
+      // OpenAPI spec (no requestBody declared for empty-input POST routes).
+      const res = await hono.request('/empty/write', { method: 'POST' });
+      expect(res.status).toBe(200);
+
+      const json = await res.json();
+      expect(json).toEqual({ data: { ok: true } });
+    });
   });
 
   describe('DELETE handler', () => {
@@ -237,7 +257,7 @@ describe('blaze (Hono adapter)', () => {
 
       const json = await res.json();
       expect(json.error.message).toBe('Invalid JSON in request body');
-      expect(json.error.code).toBe('validation');
+      expect(json.error.code).toBe('ValidationError');
       expect(json.error.category).toBe('validation');
     });
 
