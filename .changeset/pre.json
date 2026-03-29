@@ -15,6 +15,7 @@
   },
   "changesets": [
     "api-simplification-beta4",
+    "beta10-cleanup-and-hardening",
     "beta9-consolidated",
     "bug-fixes-beta3",
     "codex-review-fixes",

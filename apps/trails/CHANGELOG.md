@@ -1,5 +1,16 @@
 # trails
 
+## 1.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies
+  - @ontrails/core@1.0.0-beta.10
+  - @ontrails/cli@1.0.0-beta.10
+  - @ontrails/warden@1.0.0-beta.10
+  - @ontrails/logging@1.0.0-beta.10
+  - @ontrails/schema@1.0.0-beta.10
+
 ## 1.0.0-beta.9
 
 ### Patch Changes
