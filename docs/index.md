@@ -27,6 +27,13 @@
 
 - **[ADR-000: Core Premise](./adr/000-core-premise.md)** — Why contracts, why Result, why derive
 - **[ADR-001: Naming Conventions](./adr/001-naming-conventions.md)** — How and why we chose every term
+- **[ADR-002: Built-In Result Type](./adr/002-built-in-result-type.md)** — Own the Result primitive, zero dependencies
+- **[ADR-003: Unified Trail Primitive](./adr/003-unified-trail-primitive.md)** — One `trail()`, composition as a property
+- **[ADR-004: Intent as a First-Class Property](./adr/004-intent-as-first-class-property.md)** — One field drives all surface behavior
+- **[ADR-005: Framework-Agnostic HTTP Route Model](./adr/005-framework-agnostic-http-route-model.md)** — `HttpRoute[]` with thin adapter subpaths
+- **[ADR-006: Shared Execution Pipeline](./adr/006-shared-execution-pipeline.md)** — One `executeTrail`, Result-returning builders
+- **[ADR-007: Governance as Trails](./adr/007-governance-as-trails.md)** — Warden rules are trails, AST-based analysis
+- **[ADR-008: Deterministic Surface Derivation](./adr/008-deterministic-surface-derivation.md)** — Explicit lookup tables for every surface
 
 ## What's next?
 
