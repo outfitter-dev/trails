@@ -11,6 +11,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type {
   FollowFn,
+  ServiceOverrideMap,
   Topo,
   TrailExample,
   Trail,
@@ -29,6 +30,7 @@ import {
   NotFoundError,
   PermissionError,
   RateLimitError,
+  executeTrail,
   Result,
   TimeoutError,
   TrailsError,
@@ -41,9 +43,14 @@ import {
   assertErrorMatch,
   assertFullMatch,
   assertSchemaMatch,
-  expectOk,
 } from './assertions.js';
-import { mergeTestContext } from './context.js';
+import {
+  mergeServiceOverrides,
+  mergeTestContext,
+  normalizeTestExecutionOptions,
+  resolveMockServices,
+} from './context.js';
+import type { TestExecutionOptions } from './context.js';
 
 // ---------------------------------------------------------------------------
 // Error class name -> constructor map
@@ -128,16 +135,19 @@ const runExample = async (
   t: Trail<unknown, unknown>,
   example: TrailExample<unknown, unknown>,
   output: z.ZodType | undefined,
-  testCtx: TrailContext
+  testCtx: TrailContext,
+  services?: ServiceOverrideMap
 ): Promise<void> => {
   const validated = validateInput(t.input, example.input);
 
   if (handleValidationError(validated, example)) {
     return;
   }
-  const validatedInput = expectOk(validated);
 
-  const result = await t.run(validatedInput, testCtx);
+  const result = await executeTrail(t, example.input, {
+    ctx: testCtx,
+    services,
+  });
   assertProgressiveMatch(result, example, output);
 };
 
@@ -156,7 +166,8 @@ const createCoverageFollow = (
   called: Set<string>,
   baseFollow: FollowFn | undefined,
   topo: Topo,
-  ctx: TrailContext
+  ctx: TrailContext,
+  services?: ServiceOverrideMap
 ): FollowFn => {
   const follow = (id: string, input: unknown) => {
     called.add(id);
@@ -167,11 +178,10 @@ const createCoverageFollow = (
 
     const trailDef = topo.get(id);
     if (trailDef !== undefined) {
-      const validated = validateInput(trailDef.input, input);
-      if (validated.isErr()) {
-        return Promise.resolve(validated);
-      }
-      return Promise.resolve(trailDef.run(validated.value, { ...ctx, follow }));
+      return executeTrail(trailDef, input, {
+        ctx: { ...ctx, follow },
+        services,
+      });
     }
 
     return Promise.resolve(Result.ok());
@@ -188,19 +198,28 @@ const runCompositionExample = async (
   output: z.ZodType | undefined,
   baseCtx: TrailContext,
   called: Set<string>,
-  topo: Topo
+  topo: Topo,
+  services?: ServiceOverrideMap
 ): Promise<void> => {
   const validated = validateInput(trailDef.input, example.input);
 
   if (handleValidationError(validated, example)) {
     return;
   }
-  const validatedInput = expectOk(validated);
 
-  const follow = createCoverageFollow(called, baseCtx.follow, topo, baseCtx);
+  const follow = createCoverageFollow(
+    called,
+    baseCtx.follow,
+    topo,
+    baseCtx,
+    services
+  );
   const testCtx: TrailContext = { ...baseCtx, follow };
 
-  const result = await trailDef.run(validatedInput, testCtx);
+  const result = await executeTrail(trailDef, example.input, {
+    ctx: testCtx,
+    services,
+  });
   assertProgressiveMatch(result, example, output);
 };
 
@@ -221,9 +240,12 @@ const runCompositionExample = async (
  */
 export const testExamples = (
   app: Topo,
-  ctxOrFactory?: Partial<TrailContext> | (() => Partial<TrailContext>)
+  ctxOrFactory?:
+    | Partial<TrailContext>
+    | TestExecutionOptions
+    | (() => Partial<TrailContext> | TestExecutionOptions)
 ): void => {
-  const resolveCtx =
+  const resolveInput =
     typeof ctxOrFactory === 'function' ? ctxOrFactory : () => ctxOrFactory;
   const allTrails = app.list() as Trail<unknown, unknown>[];
 
@@ -244,8 +266,14 @@ export const testExamples = (
       test.each([...examples])(
         'example: $name',
         async (example: TrailExample<unknown, unknown>) => {
-          const testCtx = mergeTestContext(resolveCtx());
-          await runExample(t, example, output, testCtx);
+          const resolved = normalizeTestExecutionOptions(resolveInput());
+          const services = mergeServiceOverrides(
+            await resolveMockServices(app),
+            resolved.ctx,
+            resolved.services
+          );
+          const testCtx = mergeTestContext(resolved.ctx);
+          await runExample(t, example, output, testCtx, services);
         }
       );
     });
@@ -264,8 +292,22 @@ export const testExamples = (
       test.each([...examples])(
         'example: $name',
         async (example: TrailExample<unknown, unknown>) => {
-          const baseCtx = mergeTestContext(resolveCtx());
-          await runCompositionExample(t, example, output, baseCtx, called, app);
+          const resolved = normalizeTestExecutionOptions(resolveInput());
+          const services = mergeServiceOverrides(
+            await resolveMockServices(app),
+            resolved.ctx,
+            resolved.services
+          );
+          const baseCtx = mergeTestContext(resolved.ctx);
+          await runCompositionExample(
+            t,
+            example,
+            output,
+            baseCtx,
+            called,
+            app,
+            services
+          );
         }
       );
 

@@ -2,7 +2,12 @@
  * Test context factory for creating TrailContext instances suitable for testing.
  */
 
-import type { FollowFn, TrailContext } from '@ontrails/core';
+import type {
+  FollowFn,
+  ServiceOverrideMap,
+  Topo,
+  TrailContext,
+} from '@ontrails/core';
 import { Result, createServiceLookup } from '@ontrails/core';
 
 import { createTestLogger } from './logger.js';
@@ -26,13 +31,15 @@ type MutableTrailContext = {
 export const createTestContext = (
   overrides?: TestTrailContextOptions
 ): TrailContext => {
+  const cwd = overrides?.cwd ?? process.cwd();
   const ctx = {
+    cwd,
     env: overrides?.env ?? { TRAILS_ENV: 'test' },
     extensions: undefined,
     logger: overrides?.logger ?? createTestLogger(),
     requestId: overrides?.requestId ?? 'test-request-001',
     signal: overrides?.signal ?? new AbortController().signal,
-    workspaceRoot: overrides?.cwd ?? process.cwd(),
+    workspaceRoot: cwd,
   } as MutableTrailContext;
   ctx.service = createServiceLookup(() => ctx);
   return ctx;
@@ -44,6 +51,11 @@ export const createTestContext = (
 
 export interface CreateFollowContextOptions {
   readonly responses?: Record<string, Result<unknown, Error>> | undefined;
+}
+
+export interface TestExecutionOptions {
+  readonly ctx?: Partial<TrailContext> | undefined;
+  readonly services?: ServiceOverrideMap | undefined;
 }
 
 /**
@@ -78,15 +90,61 @@ export const createFollowContext = (
   };
 };
 
+const isTestExecutionOptions = (
+  input: Partial<TrailContext> | TestExecutionOptions | undefined
+): input is TestExecutionOptions =>
+  input !== undefined &&
+  (Object.hasOwn(input, 'ctx') || Object.hasOwn(input, 'services'));
+
+export const normalizeTestExecutionOptions = (
+  input?: Partial<TrailContext> | TestExecutionOptions
+): TestExecutionOptions =>
+  isTestExecutionOptions(input) ? input : { ctx: input };
+
+export const mergeServiceOverrides = (
+  autoResolved: ServiceOverrideMap,
+  ctx: Partial<TrailContext> | undefined,
+  explicit: ServiceOverrideMap | undefined
+): ServiceOverrideMap => ({
+  ...autoResolved,
+  ...ctx?.extensions,
+  ...explicit,
+});
+
+const buildMockServices = async (app: Topo): Promise<ServiceOverrideMap> => {
+  const services: Record<string, unknown> = {};
+  for (const declaredService of app.listServices()) {
+    if (!declaredService.mock) {
+      continue;
+    }
+    services[declaredService.id] = await declaredService.mock();
+  }
+  return services;
+};
+
+export const resolveMockServices = async (
+  app: Topo
+): Promise<ServiceOverrideMap> => await buildMockServices(app);
+
 /**
  * Merge a Partial<TrailContext> into a test context.
  * Used internally when the public API accepts Partial<TrailContext>.
  */
-export const mergeTestContext = (ctx?: Partial<TrailContext>): TrailContext => {
-  if (ctx === undefined) {
-    return createTestContext();
-  }
-
+export const mergeTestContext = (
+  ctx?: Partial<TrailContext>,
+  services?: ServiceOverrideMap
+): TrailContext => {
   const base = createTestContext();
-  return { ...base, ...ctx };
+  const extensions = {
+    ...base.extensions,
+    ...ctx?.extensions,
+    ...services,
+  };
+  const merged = {
+    ...base,
+    ...ctx,
+    extensions: Object.keys(extensions).length === 0 ? undefined : extensions,
+  } as MutableTrailContext;
+  merged.service = createServiceLookup(() => merged);
+  return merged;
 };

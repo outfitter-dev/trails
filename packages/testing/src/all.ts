@@ -11,6 +11,7 @@ import type { Topo, TrailContext } from '@ontrails/core';
 import { validateTopo } from '@ontrails/core';
 
 import { testContracts } from './contracts.js';
+import type { TestExecutionOptions } from './context.js';
 import { testDetours } from './detours.js';
 import { testExamples } from './examples.js';
 
@@ -37,7 +38,10 @@ import { testExamples } from './examples.js';
  */
 export const testAll = (
   topo: Topo,
-  ctxOrFactory?: Partial<TrailContext> | (() => Partial<TrailContext>)
+  ctxOrFactory?:
+    | Partial<TrailContext>
+    | TestExecutionOptions
+    | (() => Partial<TrailContext> | TestExecutionOptions)
 ): void => {
   describe('governance', () => {
     test('topo validates', () => {
