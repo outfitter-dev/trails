@@ -124,6 +124,34 @@ Arbitrary metadata for tooling and filtering. Declared as `metadata` on the trai
 
 Error recovery and fallback paths when a trail fails. Declared as `detours` on the trail spec.
 
+### `service`
+
+An infrastructure dependency definition with lifecycle management and built-in testing support. Services wrap databases, caches, APIs, or any external resource a trail needs.
+
+```typescript
+const db = service('db', {
+  create: () => Result.ok(createPool(process.env.DATABASE_URL)),
+  mock: () => createMockPool(),
+  dispose: (pool) => pool.end(),
+});
+```
+
+Trails declare their service dependencies with `services: [...]` on the trail spec:
+
+```typescript
+const list = trail('entity.list', {
+  services: [db],
+  input: z.object({}),
+  output: EntityListSchema,
+  run: async (input, ctx) => {
+    const pool = db.from(ctx);
+    // ...
+  },
+});
+```
+
+Access services through `db.from(ctx)` for typed access or `ctx.service()` for dynamic lookup. The `mock` factory enables `testAll(app)` to run without real infrastructure.
+
 ## Reserved Terms (designed, not yet shipped)
 
 These are reserved for planned features. The naming is directional and may evolve.
@@ -146,7 +174,7 @@ These use plain language because the concepts are universal.
 | Term | Concept | Why not branded |
 | --- | --- | --- |
 | `config` | Configuration | Every framework has config |
-| `services` | Service definitions | Universal infrastructure concept |
+| `services` | Service declarations on a trail spec | The array syntax is standard; `service()` itself is branded |
 | `health` | Health checks | Standard ops terminology |
 | `Result` | Success/failure return | Standard in Rust, Haskell, Swift |
 | `Layer` | Cross-cutting surface wrapper | Standard middleware concept |
@@ -170,9 +198,10 @@ When introducing Trails to someone new, introduce terms in this order:
 **Intermediate (composition and enrichment):**
 
 1. `follow` -- declare which trails a trail composes (`follow: [...]`) and invoke them at runtime (`ctx.follow()`)
-2. `event()` -- define events the app can emit
-3. `metadata` -- annotate trails with metadata
-4. `detours` -- define fallback paths when a trail fails
+2. `service()` -- define infrastructure dependencies with lifecycle and mock support
+3. `event()` -- define events the app can emit
+4. `metadata` -- annotate trails with metadata
+5. `detours` -- define fallback paths when a trail fails
 
 **Advanced (introspection and observability):**
 

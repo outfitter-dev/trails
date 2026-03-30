@@ -74,6 +74,10 @@ Flags come from the Zod schema automatically. No manual flag definitions.
 
 Dotted trail IDs create subcommand groups: `entity.show` becomes `myapp entity show`.
 
+## Service resolution
+
+Declared services on each trail are resolved into the context before the implementation runs.
+
 ## Layers
 
 - **`autoIterateLayer`** -- adds `--all` for paginated trails, collects all pages

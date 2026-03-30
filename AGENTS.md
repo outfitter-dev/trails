@@ -57,6 +57,7 @@ Use the project language consistently:
 - `follow`, not route (for composition declaration and runtime invocation)
 - `blaze`, not serve or mount
 - `surface`, not transport or adapter
+- `service`, not dependency or provider
 `mount` is reserved for cross-app composition. See `docs/vocabulary.md` for the full vocabulary guide.
 
 ## Trail Rules
@@ -72,6 +73,10 @@ Use the project language consistently:
 - Use `detours` for recovery strategies instead of inline retry logic.
 - Prefer the most specific `TrailsError` subclass available.
 - Keep error taxonomy behavior aligned across surfaces so CLI, HTTP, and JSON-RPC mappings stay coherent.
+- Trails that use external dependencies declare them with `services: [...]`.
+- Access services through `db.from(ctx)` or `ctx.service()`, never by constructing dependencies inline.
+- Keep `follow` declarations for composition and `services` declarations for infrastructure — they serve different purposes.
+- Every service should define a `mock` factory so `testAll(app)` works without configuration.
 
 ## Shared Conventions
 

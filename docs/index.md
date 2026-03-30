@@ -10,6 +10,7 @@
 
 - **[Architecture](./architecture.md)** — Hexagonal model, package layers, how data flows from trail to surface
 - **[API Reference](./api-reference.md)** — Every public export across all packages
+- **[Services Guide](./services.md)** — Define dependencies, declare them on trails, test with mock factories
 - **[Testing Guide](./testing.md)** — TDD with examples, `testAll()`, contract testing, surface harnesses
 
 ## Adding a surface?

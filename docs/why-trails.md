@@ -77,6 +77,16 @@ Pure trails can return `Result` directly. Trails with `follow` and I/O-bound tra
 
 ---
 
+## The Services Problem
+
+Pure trail functions are great until they need a database. The typical escape hatch — constructing clients inline or importing singletons — couples implementations to concrete infrastructure and makes testing painful.
+
+Trails solves this with `service()` declarations. A service defines its factory, a `mock` factory for tests, and an optional `dispose` hook for cleanup. Trails declare their dependencies with `services: [...]` and access them through `db.from(ctx)`. The framework manages the lifecycle, surfaces can inspect the dependency graph, and `testAll(app)` resolves mocks automatically.
+
+The result: implementations stay pure (input in, `Result` out), infrastructure is declared rather than imported, and the entire app remains testable without configuration.
+
+---
+
 ## The Information Architecture
 
 Every piece of information in a Trails app has a clear ownership model. Six categories, from what you write to what the system learns. (See [Architecture](./architecture.md#information-architecture) for the full reference tables.)
