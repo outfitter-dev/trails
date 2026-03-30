@@ -7,6 +7,7 @@ import { dispatch } from '../dispatch';
 import { InternalError, NotFoundError, ValidationError } from '../errors';
 import type { Layer } from '../layer';
 import { Result } from '../result';
+import { service } from '../service';
 import { topo } from '../topo';
 import { trail } from '../trail';
 import type { TrailContext, TrailContextInit } from '../types';
@@ -41,6 +42,32 @@ describe('dispatch', () => {
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toEqual({ value: 'hello' });
+    });
+
+    test('passes service overrides through to executeTrail', async () => {
+      const id = `dispatch.service.${Bun.randomUUIDv7()}`;
+      const db = service(id, {
+        create: () => Result.ok({ source: 'factory' }),
+      });
+      const searchTrail = trail('search', {
+        input: z.object({}),
+        output: z.object({ source: z.string() }),
+        run: (_input, ctx) => Result.ok({ source: db.from(ctx).source }),
+        services: [db],
+      });
+      const searchTopo = topo('service-test', { searchTrail });
+
+      const result = await dispatch(
+        searchTopo,
+        'search',
+        {},
+        {
+          services: { [id]: { source: 'override' } },
+        }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toEqual({ source: 'override' });
     });
   });
 

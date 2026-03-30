@@ -2,7 +2,15 @@
  * Build framework-agnostic CliCommand[] from an App's topology.
  */
 
-import type { Field, Layer, Result, Topo, TrailContext } from '@ontrails/core';
+import type {
+  Field,
+  Layer,
+  Result,
+  ServiceOverrideMap,
+  Topo,
+  TrailContext,
+  TrailContextInit,
+} from '@ontrails/core';
 import { deriveFields, executeTrail } from '@ontrails/core';
 
 import type { AnyTrail, CliCommand, CliFlag } from './command.js';
@@ -24,11 +32,14 @@ export interface ActionResultContext {
 
 /** Options for buildCliCommands. */
 export interface BuildCliCommandsOptions {
-  createContext?: (() => TrailContext | Promise<TrailContext>) | undefined;
+  createContext?:
+    | (() => TrailContextInit | Promise<TrailContextInit>)
+    | undefined;
   layers?: Layer[] | undefined;
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
   presets?: CliFlag[][] | undefined;
   resolveInput?: InputResolver | undefined;
+  services?: ServiceOverrideMap | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -146,6 +157,7 @@ const createExecute =
       createContext: options?.createContext,
       ctx: ctxOverrides,
       layers: options?.layers,
+      services: options?.services,
     });
 
     // Pass validated (coerced/transformed) input to onResult on success,

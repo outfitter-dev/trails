@@ -2,7 +2,12 @@
  * The one-liner convenience for wiring an App to Commander.
  */
 
-import type { Layer, Topo, TrailContext } from '@ontrails/core';
+import type {
+  Layer,
+  ServiceOverrideMap,
+  Topo,
+  TrailContextInit,
+} from '@ontrails/core';
 import { validateTopo } from '@ontrails/core';
 
 import type { ActionResultContext } from '../build.js';
@@ -18,13 +23,16 @@ import { toCommander } from './to-commander.js';
 // ---------------------------------------------------------------------------
 
 export interface BlazeCliOptions {
-  createContext?: (() => TrailContext | Promise<TrailContext>) | undefined;
+  createContext?:
+    | (() => TrailContextInit | Promise<TrailContextInit>)
+    | undefined;
   description?: string | undefined;
   layers?: Layer[] | undefined;
   name?: string | undefined;
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
   presets?: CliFlag[][] | undefined;
   resolveInput?: InputResolver | undefined;
+  services?: ServiceOverrideMap | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
   validate?: boolean | undefined;
   version?: string | undefined;
@@ -72,6 +80,7 @@ export const blaze = async (
     onResult: options.onResult ?? defaultOnResult,
     presets: options.presets,
     resolveInput: options.resolveInput,
+    services: options.services,
   });
 
   const commanderOpts: ToCommanderOptions = {

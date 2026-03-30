@@ -7,7 +7,13 @@
  */
 
 import { Result, ValidationError, executeTrail } from '@ontrails/core';
-import type { Layer, Topo, Trail, TrailContext } from '@ontrails/core';
+import type {
+  Layer,
+  ServiceOverrideMap,
+  Topo,
+  Trail,
+  TrailContextInit,
+} from '@ontrails/core';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -16,9 +22,10 @@ import type { Layer, Topo, Trail, TrailContext } from '@ontrails/core';
 export interface BuildHttpRoutesOptions {
   readonly basePath?: string | undefined;
   readonly createContext?:
-    | (() => TrailContext | Promise<TrailContext>)
+    | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   readonly layers?: readonly Layer[] | undefined;
+  readonly services?: ServiceOverrideMap | undefined;
 }
 
 export type HttpMethod = 'GET' | 'POST' | 'DELETE';
@@ -100,6 +107,7 @@ const createExecute =
       createContext: options.createContext,
       ctx: requestId === undefined ? undefined : { requestId },
       layers,
+      services: options.services,
       signal,
     });
 

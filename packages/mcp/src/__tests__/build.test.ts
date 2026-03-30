@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, createBlobRef, trail, topo } from '@ontrails/core';
+import { Result, createBlobRef, service, trail, topo } from '@ontrails/core';
 import type { Layer } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -43,6 +43,13 @@ const exampleTrail = trail('with.examples', {
   ],
   input: z.object({ name: z.string() }),
   run: (input) => Result.ok({ greeting: `hello ${input.name}` }),
+});
+
+const dbService = service('db.main', {
+  create: () =>
+    Result.ok({
+      source: 'factory',
+    }),
 });
 
 const noExtra: McpExtra = {};
@@ -312,6 +319,28 @@ describe('buildMcpTools', () => {
 
       await tool.handler({}, noExtra);
       expect(contextUsed).toBe(true);
+    });
+
+    test('service overrides are forwarded to executeTrail', async () => {
+      const serviceTrail = trail('service.check', {
+        input: z.object({}),
+        output: z.object({ source: z.string() }),
+        run: (_input, ctx) =>
+          Result.ok({ source: dbService.from(ctx).source as string }),
+        services: [dbService],
+      });
+
+      const tool = requireOnlyTool(
+        buildTools(topo('myapp', { serviceTrail }), {
+          services: { 'db.main': { source: 'override' } },
+        })
+      );
+
+      const result = await tool.handler({}, noExtra);
+      expect(result?.isError).toBeUndefined();
+      expect(parseJsonContent(result?.content[0])).toEqual({
+        source: 'override',
+      });
     });
   });
 
