@@ -152,6 +152,18 @@ const errorResponsesFromExamples = (
 // Operation builder — split into focused helpers
 // ---------------------------------------------------------------------------
 
+/** True when the body is required — non-object schemas are always required,
+ *  object schemas are required only when they have at least one required property. */
+const isBodyRequired = (schema: JsonSchema): boolean => {
+  if (schema['type'] !== 'object') {
+    return true;
+  }
+  return (
+    Array.isArray(schema['required']) &&
+    (schema['required'] as unknown[]).length > 0
+  );
+};
+
 /** Build the input portion of an operation (parameters or requestBody). */
 const buildInputSpec = (
   t: Trail<unknown, unknown>,
@@ -177,7 +189,7 @@ const buildInputSpec = (
   return {
     requestBody: {
       content: { 'application/json': { schema: inputSchema } },
-      required: true,
+      required: isBodyRequired(inputSchema),
     },
   };
 };

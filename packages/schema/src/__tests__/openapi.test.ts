@@ -181,6 +181,42 @@ describe('generateOpenApiSpec', () => {
       const content = body['content'] as Record<string, unknown>;
       expect(content['application/json']).toBeDefined();
     });
+
+    test('requestBody required is false when all input fields are optional', () => {
+      const t = trail('entity.update', {
+        input: z.object({
+          name: z.string().optional(),
+          tag: z.string().optional(),
+        }),
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/entity/update']?.['post'] as Record<
+        string,
+        unknown
+      >;
+      const body = op['requestBody'] as Record<string, unknown>;
+
+      expect(body['required']).toBe(false);
+    });
+
+    test('requestBody required is true when input has required fields', () => {
+      const t = trail('entity.create', {
+        input: z.object({
+          name: z.string(),
+          tag: z.string().optional(),
+        }),
+        run: noop,
+      });
+      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/entity/create']?.['post'] as Record<
+        string,
+        unknown
+      >;
+      const body = op['requestBody'] as Record<string, unknown>;
+
+      expect(body['required']).toBe(true);
+    });
   });
 
   describe('responses', () => {

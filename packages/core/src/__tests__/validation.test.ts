@@ -280,4 +280,57 @@ describe('zodToJsonSchema', () => {
       expect(zodToJsonSchema(z.any())).toEqual({});
     });
   });
+
+  describe('default values', () => {
+    test('preserves static defaults as-is', () => {
+      const schema = z.string().default('hello');
+      expect(zodToJsonSchema(schema)).toEqual({
+        default: 'hello',
+        type: 'string',
+      });
+    });
+
+    test('omits dynamic defaults that produce different values', () => {
+      let counter = 0;
+      const schema = z.string().default(() => {
+        counter += 1;
+        return `id-${counter}`;
+      });
+      const result = zodToJsonSchema(schema);
+      expect(result).toEqual({ type: 'string' });
+      expect(result['default']).toBeUndefined();
+    });
+
+    test('preserves stable functional defaults that return constant values', () => {
+      const schema = z.string().default(() => 'constant');
+      const result = zodToJsonSchema(schema);
+      expect(result).toEqual({ default: 'constant', type: 'string' });
+    });
+
+    test('preserves stable functional defaults that return equivalent objects', () => {
+      const schema = z
+        .object({ key: z.string() })
+        .default(() => ({ key: 'val' }));
+      const result = zodToJsonSchema(schema);
+      expect(result['default']).toEqual({ key: 'val' });
+    });
+
+    test('preserves stable functional defaults that return equivalent arrays', () => {
+      const schema = z.array(z.string()).default(() => ['a', 'b']);
+      const result = zodToJsonSchema(schema);
+      expect(result['default']).toEqual(['a', 'b']);
+    });
+
+    test('produces identical output across repeated calls', () => {
+      let counter = 0;
+      const schema = z.string().default(() => {
+        counter += 1;
+        return `id-${counter}`;
+      });
+      const first = zodToJsonSchema(schema);
+      const second = zodToJsonSchema(schema);
+      // Key invariant: repeated calls always produce the same schema
+      expect(first).toEqual(second);
+    });
+  });
 });

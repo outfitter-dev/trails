@@ -173,3 +173,69 @@ describe('testExamples follow coverage for composition trails', () => {
     } as Record<string, unknown>)
   );
 });
+
+// ---------------------------------------------------------------------------
+// Nested follow chain: A → B → C
+// ---------------------------------------------------------------------------
+
+const leafTrail = trail('step.leaf', {
+  description: 'Leaf trail in a nested chain',
+  input: z.object({ value: z.string() }),
+  output: z.object({ leaf: z.string() }),
+  run: (input: { value: string }) => Result.ok({ leaf: input.value }),
+});
+
+const middleTrail = trail('step.middle', {
+  description: 'Middle trail that follows the leaf',
+  follow: ['step.leaf'],
+  input: z.object({ value: z.string() }),
+  output: z.object({ middle: z.string() }),
+  run: async (input: { value: string }, ctx) => {
+    if (!ctx.follow) {
+      return Result.err(new Error('follow not available'));
+    }
+    const leafResult = await ctx.follow<{ leaf: string }>('step.leaf', input);
+    if (leafResult.isErr()) {
+      return leafResult;
+    }
+    return Result.ok({ middle: leafResult.value.leaf });
+  },
+});
+
+const rootTrail = trail('step.root', {
+  description: 'Root trail that follows the middle trail',
+  examples: [
+    {
+      expected: { root: 'hello' },
+      input: { value: 'hello' },
+      name: 'Nested follow chain A→B→C',
+    },
+  ],
+  follow: ['step.middle'],
+  input: z.object({ value: z.string() }),
+  output: z.object({ root: z.string() }),
+  run: async (input: { value: string }, ctx) => {
+    if (!ctx.follow) {
+      return Result.err(new Error('follow not available'));
+    }
+    const midResult = await ctx.follow<{ middle: string }>(
+      'step.middle',
+      input
+    );
+    if (midResult.isErr()) {
+      return midResult;
+    }
+    return Result.ok({ root: midResult.value.middle });
+  },
+});
+
+describe('testExamples nested follow chain (A → B → C)', () => {
+  // eslint-disable-next-line jest/require-hook
+  testExamples(
+    topo('nested-chain-app', {
+      leafTrail,
+      middleTrail,
+      rootTrail,
+    } as Record<string, unknown>)
+  );
+});

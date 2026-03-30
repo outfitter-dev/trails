@@ -171,7 +171,7 @@ const createCoverageFollow = (
       if (validated.isErr()) {
         return Promise.resolve(validated);
       }
-      return Promise.resolve(trailDef.run(validated.value, ctx));
+      return Promise.resolve(trailDef.run(validated.value, { ...ctx, follow }));
     }
 
     return Promise.resolve(Result.ok());

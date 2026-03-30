@@ -95,6 +95,34 @@ export const validateOutput = <T>(
 // ---------------------------------------------------------------------------
 
 /**
+ * Sentinel indicating a dynamic default that should be omitted from schema
+ * exports. Zod v4 wraps all defaults in getters; dynamic ones (functions)
+ * produce new values on each access. We detect this by reading the getter
+ * twice and comparing with `Object.is`. If values differ, the default is
+ * dynamic and we cache this sentinel to skip it in future calls.
+ */
+const DYNAMIC_DEFAULT = Symbol('DYNAMIC_DEFAULT');
+const defaultValueCache = new WeakMap<object, unknown>();
+
+/** Read a Zod v4 default getter twice and decide if it's stable.
+ *  Uses Object.is for primitives and JSON.stringify for objects/arrays. */
+const resolveDefault = (def: Record<string, unknown>): unknown => {
+  try {
+    const a = def['defaultValue'];
+    const b = def['defaultValue'];
+    if (Object.is(a, b)) {
+      return a;
+    }
+    // Object/array defaults produce new references each call but may
+    // still be structurally identical (e.g. `() => ({ key: 'val' })`).
+    return JSON.stringify(a) === JSON.stringify(b) ? a : DYNAMIC_DEFAULT;
+  } catch {
+    // BigInt, circular refs, or other non-serializable defaults
+    return DYNAMIC_DEFAULT;
+  }
+};
+
+/**
  * Convert common Zod types to a JSON Schema object.
  *
  * Uses Zod v4's `_zod.def` and `_zod.traits` for introspection.
@@ -142,9 +170,13 @@ export const zodToJsonSchema: JsonSchemaConverter = (
     default: (value) => {
       const inner = value._zod.def['innerType'] as unknown as z.ZodType;
       const innerSchema = zodToJsonSchema(inner);
-      const rawDefault = value._zod.def['defaultValue'];
-      innerSchema['default'] =
-        typeof rawDefault === 'function' ? rawDefault() : rawDefault;
+      if (!defaultValueCache.has(value._zod.def)) {
+        defaultValueCache.set(value._zod.def, resolveDefault(value._zod.def));
+      }
+      const cached = defaultValueCache.get(value._zod.def);
+      if (cached !== DYNAMIC_DEFAULT) {
+        innerSchema['default'] = cached;
+      }
       return innerSchema;
     },
     enum: (value) => {
