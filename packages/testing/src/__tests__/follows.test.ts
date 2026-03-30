@@ -161,3 +161,72 @@ describe('testFollows: expectValue', () => {
     opts
   );
 });
+
+// ---------------------------------------------------------------------------
+// Nested follow chain: A → B → C
+// ---------------------------------------------------------------------------
+
+const leafTrail = trail('step.leaf', {
+  description: 'Leaf trail in a nested chain',
+  input: z.object({ value: z.string() }),
+  output: z.object({ leaf: z.string() }),
+  run: (input: { value: string }) => Result.ok({ leaf: input.value }),
+});
+
+const middleTrail = trail('step.middle', {
+  description: 'Middle trail that follows the leaf',
+  follow: ['step.leaf'],
+  input: z.object({ value: z.string() }),
+  output: z.object({ middle: z.string() }),
+  run: async (input: { value: string }, ctx: TrailContext) => {
+    if (!ctx.follow) {
+      return Result.err(new Error('follow not available'));
+    }
+    const leafResult = await ctx.follow<{ leaf: string }>('step.leaf', input);
+    if (leafResult.isErr()) {
+      return leafResult;
+    }
+    return Result.ok({ middle: leafResult.value.leaf });
+  },
+});
+
+const nestedRootTrail = trail('step.root', {
+  description: 'Root trail that follows the middle trail',
+  follow: ['step.middle'],
+  input: z.object({ value: z.string() }),
+  output: z.object({ root: z.string() }),
+  run: async (input: { value: string }, ctx: TrailContext) => {
+    if (!ctx.follow) {
+      return Result.err(new Error('follow not available'));
+    }
+    const midResult = await ctx.follow<{ middle: string }>(
+      'step.middle',
+      input
+    );
+    if (midResult.isErr()) {
+      return midResult;
+    }
+    return Result.ok({ root: midResult.value.middle });
+  },
+});
+
+const nestedTrailsMap = new Map<string, AnyTrail>([
+  ['step.leaf', leafTrail],
+  ['step.middle', middleTrail],
+]);
+
+describe('testFollows: nested follow chain (A → B → C)', () => {
+  // eslint-disable-next-line jest/require-hook
+  testFollows(
+    nestedRootTrail,
+    [
+      {
+        description: 'nested ctx.follow works through A → B → C',
+        expectOk: true,
+        expectValue: { root: 'hello' },
+        input: { value: 'hello' },
+      },
+    ],
+    { trails: nestedTrailsMap }
+  );
+});

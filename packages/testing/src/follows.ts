@@ -90,7 +90,8 @@ const executeFromMap = (
   id: string,
   input: unknown,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
-  ctx: TrailContext
+  ctx: TrailContext,
+  follow?: FollowFn
 ): Result<unknown, Error> | Promise<Result<unknown, Error>> | undefined => {
   const trailDef = trailsMap?.get(id);
   if (trailDef === undefined) {
@@ -101,7 +102,8 @@ const executeFromMap = (
   if (validated.isErr()) {
     return validated;
   }
-  return trailDef.run(validated.value, ctx);
+  const nestedCtx = follow ? { ...ctx, follow } : ctx;
+  return trailDef.run(validated.value, nestedCtx);
 };
 
 // ---------------------------------------------------------------------------
@@ -132,7 +134,13 @@ const createRecordingFollow = (
       return baseFollow(id, input);
     }
 
-    const executed = executeFromMap(id, input, trailsMap, ctx);
+    const executed = executeFromMap(
+      id,
+      input,
+      trailsMap,
+      ctx,
+      follow as FollowFn
+    );
     if (executed !== undefined) {
       return Promise.resolve(executed);
     }
