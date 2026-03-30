@@ -24,6 +24,7 @@
     "http-restructure-and-fixes",
     "http-surface-and-openapi",
     "initial-v1-beta",
+    "services-primitive",
     "type-utils-and-follow-rule"
   ]
 }
