@@ -1,7 +1,7 @@
 import { describe } from 'bun:test';
 
 import type { AnyTrail, TrailContext } from '@ontrails/core';
-import { Result, trail } from '@ontrails/core';
+import { InternalError, Result, service, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { testFollows } from '../follows.js';
@@ -228,5 +228,362 @@ describe('testFollows: nested follow chain (A → B → C)', () => {
       },
     ],
     { trails: nestedTrailsMap }
+  );
+});
+
+const mockDbService = service('db.mock.follows', {
+  create: () => Result.ok({ source: 'factory' }),
+  mock: () => ({ source: 'mock' }),
+});
+
+const serviceLeafTrail = trail('service.leaf', {
+  description: 'Leaf trail that reads from a service',
+  input: z.object({}),
+  output: z.object({ childSource: z.string() }),
+  run: (_input, ctx) =>
+    Result.ok({ childSource: mockDbService.from(ctx).source }),
+  services: [mockDbService],
+});
+
+const serviceRootTrail = trail('service.root', {
+  description: 'Root trail that reads from a service and follows a child trail',
+  follow: ['service.leaf'],
+  input: z.object({}),
+  output: z.object({ childSource: z.string(), rootSource: z.string() }),
+  run: async (_input, ctx: TrailContext) => {
+    if (!ctx.follow) {
+      return Result.err(new Error('follow not available'));
+    }
+    const childResult = await ctx.follow<{ childSource: string }>(
+      'service.leaf',
+      {}
+    );
+    if (childResult.isErr()) {
+      return childResult;
+    }
+
+    return Result.ok({
+      childSource: childResult.value.childSource,
+      rootSource: mockDbService.from(ctx).source,
+    });
+  },
+  services: [mockDbService],
+});
+
+const serviceTrailsMap = new Map<string, AnyTrail>([
+  ['service.leaf', serviceLeafTrail],
+]);
+
+const statefulMockDbService = service('db.mock.follows.stateful', {
+  create: () => Result.ok({ count: 0 }),
+  mock: () => ({ count: 0 }),
+});
+
+const statefulServiceLeafTrail = trail('service.stateful.leaf', {
+  description: 'Leaf trail that observes the current mock service state',
+  input: z.object({}),
+  output: z.object({ childCount: z.number() }),
+  run: (_input, ctx) =>
+    Result.ok({ childCount: statefulMockDbService.from(ctx).count }),
+  services: [statefulMockDbService],
+});
+
+const statefulServiceRootTrail = trail('service.stateful.root', {
+  description:
+    'Root trail that mutates a mocked service and follows a child trail',
+  follow: ['service.stateful.leaf'],
+  input: z.object({}),
+  output: z.object({ childCount: z.number(), rootCount: z.number() }),
+  run: async (_input, ctx: TrailContext) => {
+    if (!ctx.follow) {
+      return Result.err(new Error('follow not available'));
+    }
+
+    const statefulService = statefulMockDbService.from(ctx);
+    statefulService.count += 1;
+
+    const childResult = await ctx.follow<{ childCount: number }>(
+      'service.stateful.leaf',
+      {}
+    );
+    if (childResult.isErr()) {
+      return childResult;
+    }
+
+    return Result.ok({
+      childCount: childResult.value.childCount,
+      rootCount: statefulService.count,
+    });
+  },
+  services: [statefulMockDbService],
+});
+
+const statefulServiceTrailsMap = new Map<string, AnyTrail>([
+  ['service.stateful.leaf', statefulServiceLeafTrail],
+]);
+
+const scenarioStateService = service('db.mock.scenarios', {
+  create: () => Result.ok({ count: 0 }),
+  mock: () => ({ count: 0 }),
+});
+
+const scenarioLeafTrail = trail('service.scenario.leaf', {
+  description: 'Leaf trail that reads mutable scenario state',
+  input: z.object({}),
+  output: z.object({ count: z.number() }),
+  run: (_input, ctx) =>
+    Result.ok({ count: scenarioStateService.from(ctx).count }),
+  services: [scenarioStateService],
+});
+
+const scenarioRootTrail = trail('service.scenario.root', {
+  description: 'Root trail that mutates scenario state and follows a leaf',
+  follow: ['service.scenario.leaf'],
+  input: z.object({}),
+  output: z.object({ count: z.number() }),
+  run: async (_input, ctx: TrailContext) => {
+    if (!ctx.follow) {
+      return Result.err(new Error('follow not available'));
+    }
+
+    const state = scenarioStateService.from(ctx);
+    state.count += 1;
+
+    const leafResult = await ctx.follow<{ count: number }>(
+      'service.scenario.leaf',
+      {}
+    );
+    if (leafResult.isErr()) {
+      return leafResult;
+    }
+
+    return Result.ok({ count: leafResult.value.count });
+  },
+  services: [scenarioStateService],
+});
+
+const scenarioTrailsMap = new Map<string, AnyTrail>([
+  ['service.scenario.leaf', scenarioLeafTrail],
+]);
+
+const transformedFollowLeafTrail = trail('follow.transformed.leaf', {
+  description: 'Leaf trail in a transformed follow chain',
+  input: z.object({ value: z.number() }),
+  output: z.object({ value: z.number() }),
+  run: (input: { value: number }) => Result.ok({ value: input.value }),
+});
+
+const transformedFollowRootTrail = trail('follow.transformed.root', {
+  description: 'Root trail that transforms input once before following',
+  follow: ['follow.transformed.leaf'],
+  input: z
+    .object({ value: z.string() })
+    .transform(({ value }) => ({ value: Number(value) + 1 })),
+  output: z.object({ root: z.number() }),
+  run: async (input: { value: number }, ctx: TrailContext) => {
+    if (!ctx.follow) {
+      return Result.err(new Error('follow not available'));
+    }
+
+    const leafResult = await ctx.follow<{ value: number }>(
+      'follow.transformed.leaf',
+      { value: input.value }
+    );
+    if (leafResult.isErr()) {
+      return leafResult;
+    }
+
+    return Result.ok({ root: leafResult.value.value });
+  },
+});
+
+const transformedFollowTrailsMap = new Map<string, AnyTrail>([
+  ['follow.transformed.leaf', transformedFollowLeafTrail],
+]);
+
+const undeclaredFollowService = service('db.undeclared.follows', {
+  create: () => Result.ok({ source: 'factory' }),
+  mock: () => ({ source: 'mock' }),
+});
+
+const undeclaredServiceLeafTrail = trail('service.undeclared.leaf', {
+  description: 'Leaf trail that declares the shared service',
+  input: z.object({}),
+  output: z.object({ childSource: z.string() }),
+  run: (_input, ctx) =>
+    Result.ok({ childSource: undeclaredFollowService.from(ctx).source }),
+  services: [undeclaredFollowService],
+});
+
+const undeclaredServiceRootTrail = trail('service.undeclared.root', {
+  description: 'Root trail that uses a service without declaring it',
+  follow: ['service.undeclared.leaf'],
+  input: z.object({}),
+  output: z.object({ childSource: z.string(), rootSource: z.string() }),
+  run: async (_input, ctx: TrailContext) => {
+    if (!ctx.follow) {
+      return Result.err(new Error('follow not available'));
+    }
+
+    const childResult = await ctx.follow<{ childSource: string }>(
+      'service.undeclared.leaf',
+      {}
+    );
+    if (childResult.isErr()) {
+      return childResult;
+    }
+
+    return Result.ok({
+      childSource: childResult.value.childSource,
+      rootSource: undeclaredFollowService.from(ctx).source,
+    });
+  },
+});
+
+const undeclaredServiceTrailsMap = new Map<string, AnyTrail>([
+  ['service.undeclared.leaf', undeclaredServiceLeafTrail],
+]);
+
+const unrelatedFollowService = service('db.unrelated.follows', {
+  create: () => Result.ok({ source: 'factory' }),
+  mock: () => {
+    throw new Error('unrelated mock should not be resolved');
+  },
+});
+
+const unrelatedServiceTrail = trail('service.unrelated', {
+  description: 'Trail that should not be traversed or mocked',
+  input: z.object({}),
+  output: z.object({ source: z.string() }),
+  run: (_input, ctx) =>
+    Result.ok({ source: unrelatedFollowService.from(ctx).source }),
+  services: [unrelatedFollowService],
+});
+
+const unrelatedServiceTrailsMap = new Map<string, AnyTrail>([
+  ['service.unrelated', unrelatedServiceTrail],
+]);
+
+describe('testFollows service mocks', () => {
+  // eslint-disable-next-line jest/require-hook
+  testFollows(
+    serviceRootTrail,
+    [
+      {
+        description: 'propagates auto-resolved service mocks through follow',
+        expectValue: { childSource: 'mock', rootSource: 'mock' },
+        input: {},
+      },
+    ],
+    { trails: serviceTrailsMap }
+  );
+});
+
+describe('testFollows service mocks are fresh per scenario', () => {
+  // eslint-disable-next-line jest/require-hook
+  testFollows(
+    scenarioRootTrail,
+    [
+      {
+        description: 'first scenario sees a fresh mutable service',
+        expectValue: { count: 1 },
+        input: {},
+      },
+      {
+        description: 'second scenario also sees a fresh mutable service',
+        expectValue: { count: 1 },
+        input: {},
+      },
+    ],
+    { trails: scenarioTrailsMap }
+  );
+});
+
+describe('testFollows explicit service overrides', () => {
+  // eslint-disable-next-line jest/require-hook
+  testFollows(
+    serviceRootTrail,
+    [
+      {
+        description: 'propagates explicit service overrides through follow',
+        expectValue: { childSource: 'override', rootSource: 'override' },
+        input: {},
+      },
+    ],
+    {
+      services: { 'db.mock.follows': { source: 'override' } },
+      trails: serviceTrailsMap,
+    }
+  );
+});
+
+describe('testFollows raw transformed input', () => {
+  // eslint-disable-next-line jest/require-hook
+  testFollows(
+    transformedFollowRootTrail,
+    [
+      {
+        description: 'raw scenario input is only transformed once',
+        expectValue: { root: 2 },
+        input: { value: '1' },
+      },
+    ],
+    { trails: transformedFollowTrailsMap }
+  );
+});
+
+describe('testFollows service declarations', () => {
+  // eslint-disable-next-line jest/require-hook
+  testFollows(
+    undeclaredServiceRootTrail,
+    [
+      {
+        description: 'fails when the root trail omits a required service',
+        expectErr: InternalError,
+        expectErrMessage: undeclaredFollowService.id,
+        input: {},
+      },
+    ],
+    { trails: undeclaredServiceTrailsMap }
+  );
+});
+
+describe('testFollows only resolves mocks for trails under test', () => {
+  // eslint-disable-next-line jest/require-hook
+  testFollows(
+    serviceRootTrail,
+    [
+      {
+        description: 'unrelated service mocks are not resolved',
+        expectValue: { childSource: 'mock', rootSource: 'mock' },
+        input: {},
+      },
+    ],
+    {
+      trails: new Map<string, AnyTrail>([
+        ...serviceTrailsMap.entries(),
+        ...unrelatedServiceTrailsMap.entries(),
+      ]),
+    }
+  );
+});
+
+describe('testFollows fresh service mocks per scenario', () => {
+  // eslint-disable-next-line jest/require-hook
+  testFollows(
+    statefulServiceRootTrail,
+    [
+      {
+        description: 'first scenario gets a fresh service mock',
+        expectValue: { childCount: 1, rootCount: 1 },
+        input: {},
+      },
+      {
+        description: 'second scenario also gets a fresh service mock',
+        expectValue: { childCount: 1, rootCount: 1 },
+        input: {},
+      },
+    ],
+    { trails: statefulServiceTrailsMap }
   );
 });
