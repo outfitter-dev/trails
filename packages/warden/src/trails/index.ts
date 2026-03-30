@@ -8,6 +8,7 @@ export { noThrowInDetourTargetTrail } from './no-throw-in-detour-target.trail.js
 export { noThrowInImplementationTrail } from './no-throw-in-implementation.trail.js';
 export { preferSchemaInferenceTrail } from './prefer-schema-inference.trail.js';
 export { serviceDeclarationsTrail } from './service-declarations.trail.js';
+export { serviceExistsTrail } from './service-exists.trail.js';
 export { validDescribeRefsTrail } from './valid-describe-refs.trail.js';
 export { validDetourRefsTrail } from './valid-detour-refs.trail.js';
 

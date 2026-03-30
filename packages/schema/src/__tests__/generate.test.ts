@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 
-import { trail, event, topo, Result } from '@ontrails/core';
+import { event, Result, service, topo, trail } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -14,6 +14,11 @@ const topoFrom = (...modules: Record<string, unknown>[]): Topo =>
   topo('test-app', ...modules);
 
 const noop = () => Result.ok(null as unknown);
+const dbService = service('db.main', {
+  create: () => Result.ok({ source: 'factory' }),
+  description: 'Primary database',
+  health: () => Result.ok({ ok: true }),
+});
 
 const getFirstEntry = (map: ReturnType<typeof generateSurfaceMap>) => {
   const [entry] = map.entries;
@@ -86,6 +91,7 @@ describe('generateSurfaceMap', () => {
         input: z.object({ age: z.number(), name: z.string() }),
         output: z.object({ id: z.string(), name: z.string() }),
         run: noop,
+        services: [dbService],
       });
       const map = generateSurfaceMap(topoFrom({ t }));
       const entry = getFirstEntry(map);
@@ -100,6 +106,7 @@ describe('generateSurfaceMap', () => {
         id: { type: 'string' },
         name: { type: 'string' },
       });
+      expect(entry.services).toEqual(['db.main']);
     });
 
     test('trail without output schema has output undefined', () => {
@@ -143,6 +150,17 @@ describe('generateSurfaceMap', () => {
       expect(entry.id).toBe('user.created');
       expect(entry.description).toBe('A user was created');
       expect(entry.input).toBeDefined();
+    });
+
+    test('service entries are included with description and healthcheck metadata', () => {
+      const map = generateSurfaceMap(topoFrom({ dbService }));
+      const entry = getFirstEntry(map);
+
+      expect(entry.kind).toBe('service');
+      expect(entry.id).toBe('db.main');
+      expect(entry.description).toBe('Primary database');
+      expect(entry.healthcheck).toBe(true);
+      expect(entry.surfaces).toEqual([]);
     });
   });
 

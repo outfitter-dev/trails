@@ -12,6 +12,7 @@ import type { Topo } from '@ontrails/core';
 import type { DriftResult } from './drift.js';
 import { checkDrift } from './drift.js';
 import {
+  collectServiceDefinitionIds,
   findConfigProperty,
   findTrailDefinitions,
   parse,
@@ -132,6 +133,20 @@ const collectDetourTargetTrailIds = (
   }
 };
 
+const collectKnownServiceIds = (
+  sourceCode: string,
+  filePath: string,
+  knownServiceIds: Set<string>
+): void => {
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return;
+  }
+  for (const id of collectServiceDefinitionIds(ast)) {
+    knownServiceIds.add(id);
+  }
+};
+
 const loadSourceFiles = async (
   rootDir: string
 ): Promise<readonly SourceFile[]> => {
@@ -151,12 +166,13 @@ const loadSourceFiles = async (
   return sourceFiles;
 };
 
-const buildProjectContextFromTopo = (appTopo: Topo): ProjectContext => {
-  const knownTrailIds = new Set<string>(appTopo.trails.keys());
-
+const collectTopoDetourTargetTrailIds = (
+  appTopo: Topo
+): ReadonlySet<string> => {
   const detourTargetTrailIds = new Set<string>();
-  for (const t of appTopo.trails.values()) {
-    const detours = (t as unknown as Record<string, unknown>)['detours'] as
+
+  for (const trail of appTopo.trails.values()) {
+    const detours = (trail as unknown as Record<string, unknown>)['detours'] as
       | Readonly<Record<string, readonly string[]>>
       | undefined;
     if (!detours) {
@@ -169,13 +185,22 @@ const buildProjectContextFromTopo = (appTopo: Topo): ProjectContext => {
     }
   }
 
-  return { detourTargetTrailIds, knownTrailIds };
+  return detourTargetTrailIds;
+};
+
+const buildProjectContextFromTopo = (appTopo: Topo): ProjectContext => {
+  const knownTrailIds = new Set<string>(appTopo.trails.keys());
+  const knownServiceIds = new Set<string>(appTopo.services.keys());
+  const detourTargetTrailIds = collectTopoDetourTargetTrailIds(appTopo);
+
+  return { detourTargetTrailIds, knownServiceIds, knownTrailIds };
 };
 
 const buildProjectContextFromFiles = (
   sourceFiles: readonly SourceFile[]
 ): ProjectContext => {
   const knownTrailIds = new Set<string>();
+  const knownServiceIds = new Set<string>();
   const detourTargetTrailIds = new Set<string>();
 
   for (const sourceFile of sourceFiles) {
@@ -183,6 +208,11 @@ const buildProjectContextFromFiles = (
       sourceFile.sourceCode,
       sourceFile.filePath,
       knownTrailIds
+    );
+    collectKnownServiceIds(
+      sourceFile.sourceCode,
+      sourceFile.filePath,
+      knownServiceIds
     );
     collectDetourTargetTrailIds(
       sourceFile.sourceCode,
@@ -193,6 +223,7 @@ const buildProjectContextFromFiles = (
 
   return {
     detourTargetTrailIds,
+    knownServiceIds,
     knownTrailIds,
   };
 };
