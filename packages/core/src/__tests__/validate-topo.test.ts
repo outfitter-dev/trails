@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import { Result } from '../result.js';
+import { service } from '../service.js';
 import { topo } from '../topo.js';
 import type { TopoIssue } from '../validate-topo.js';
 import { validateTopo } from '../validate-topo.js';
@@ -25,6 +26,7 @@ const mockTrail = (
       error?: string;
     }[];
     output?: z.ZodType;
+    services?: readonly ReturnType<typeof service>[];
   }
 ) => ({
   follow: Object.freeze([...(overrides?.follow ?? [])]),
@@ -32,8 +34,14 @@ const mockTrail = (
   input: z.object({ name: z.string() }),
   kind: 'trail' as const,
   run: noop,
+  services: Object.freeze([...(overrides?.services ?? [])]),
   ...overrides,
 });
+
+const mockService = (id: string) =>
+  service(id, {
+    create: () => Result.ok({ id }),
+  });
 
 const mockEvent = (id: string, from?: readonly string[]) => ({
   from,
@@ -138,6 +146,38 @@ describe('validateTopo', () => {
 
       const result = validateTopo(app);
       expect(result.isOk()).toBe(true);
+    });
+  });
+
+  describe('service declarations', () => {
+    test('trail declaring a registered service passes', () => {
+      const db = mockService('db.main');
+      const app = topo('app', {
+        db,
+        show: mockTrail('entity.show', {
+          services: [db],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
+    });
+
+    test('trail declaring a missing service fails', () => {
+      const db = mockService('db.main');
+      const app = topo('app', {
+        show: mockTrail('entity.show', {
+          services: [db],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issues = extractIssues(result);
+      expect(issues).toHaveLength(1);
+      expect(issues[0]?.rule).toBe('service-exists');
+      expect(issues[0]?.message).toContain('db.main');
     });
   });
 
@@ -261,8 +301,12 @@ describe('validateTopo', () => {
   });
 
   test('collects multiple issues', () => {
+    const db = mockService('db.main');
     const app = topo('app', {
       broken: mockTrail('entity.broken', { follow: ['entity.missing'] }),
+      missingService: mockTrail('entity.missing-service', {
+        services: [db],
+      }),
       show: mockTrail('entity.show', {
         examples: [{ input: { name: 123 }, name: 'Bad' }],
       }),
@@ -273,6 +317,6 @@ describe('validateTopo', () => {
     expect(result.isErr()).toBe(true);
 
     const issues = extractIssues(result);
-    expect(issues).toHaveLength(3);
+    expect(issues).toHaveLength(4);
   });
 });

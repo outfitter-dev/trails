@@ -36,6 +36,7 @@ interface DeclaredService {
 interface CalledServices {
   readonly fromNames: ReadonlySet<string>;
   readonly lookupIds: ReadonlySet<string>;
+  readonly lookupNames: ReadonlySet<string>;
 }
 
 const MEMBER_TYPES = new Set(['StaticMemberExpression', 'MemberExpression']);
@@ -115,20 +116,11 @@ const extractDeclaredService = (
 const extractDeclaredServices = (
   config: AstNode,
   serviceIdsByName: ReadonlyMap<string, string>
-): readonly DeclaredService[] => {
-  const elements = getServiceElements(config);
-
-  const declared: DeclaredService[] = [];
-
-  for (const element of elements) {
+): readonly DeclaredService[] =>
+  getServiceElements(config).flatMap((element) => {
     const service = extractDeclaredService(element, serviceIdsByName);
-    if (service) {
-      declared.push(service);
-    }
-  }
-
-  return declared;
-};
+    return service ? [service] : [];
+  });
 
 // ---------------------------------------------------------------------------
 // Called service extraction
@@ -169,24 +161,32 @@ const extractFirstIdentifierArg = (node: AstNode): string | null => {
   return identifierName(firstArg);
 };
 
+const extractCallInfo = (
+  node: AstNode
+): { callee: AstNode; firstArgName: string | null } | null => {
+  const callee = extractCallCallee(node);
+  return callee
+    ? {
+        callee,
+        firstArgName: extractFirstIdentifierArg(node),
+      }
+    : null;
+};
+
 /** Extract `db.from(ctx)` object names. */
 const extractFromCallName = (
   node: AstNode,
   ctxNames: ReadonlySet<string>
 ): string | null => {
-  const callee = extractCallCallee(node);
-  if (!callee) {
-    return null;
-  }
+  const call = extractCallInfo(node);
+  const pair = call ? extractMemberPair(call.callee) : null;
 
-  const pair = extractMemberPair(callee);
-  if (!pair || pair.propName !== 'from') {
-    return null;
-  }
-
-  const ctxName = extractFirstIdentifierArg(node);
-
-  return ctxName && ctxNames.has(ctxName) ? pair.objName : null;
+  return pair &&
+    pair.propName === 'from' &&
+    call?.firstArgName &&
+    ctxNames.has(call.firstArgName)
+    ? pair.objName
+    : null;
 };
 
 /** Check if a callee is a member-style `ctx.service(...)` call. */
@@ -196,6 +196,28 @@ const isMemberServiceCall = (
 ): boolean => {
   const pair = extractMemberPair(callee);
   return !!pair && ctxNames.has(pair.objName) && pair.propName === 'service';
+};
+
+/** Extract `ctx.service(db)` and destructured `service(db)` lookup names. */
+const extractLookupServiceName = (
+  node: AstNode,
+  ctxNames: ReadonlySet<string>,
+  serviceAliases: ReadonlySet<string>
+): string | null => {
+  const callee = extractCallCallee(node);
+  if (!callee) {
+    return null;
+  }
+
+  if (isMemberServiceCall(callee, ctxNames)) {
+    return extractFirstIdentifierArg(node);
+  }
+
+  if (serviceAliases.has(identifierName(callee) ?? '')) {
+    return extractFirstIdentifierArg(node);
+  }
+
+  return null;
 };
 
 /** Extract `ctx.service('id')` and destructured `service('id')` lookup IDs. */
@@ -213,7 +235,9 @@ const extractLookupServiceId = (
     return extractFirstStringArg(node);
   }
 
-  if (serviceAliases.has(identifierName(callee) ?? '')) {
+  const calleeName = identifierName(callee);
+  const args = node['arguments'] as readonly AstNode[] | undefined;
+  if (calleeName && serviceAliases.has(calleeName) && args?.length === 1) {
     return extractFirstStringArg(node);
   }
 
@@ -280,6 +304,7 @@ const collectServiceAliases = (
 const extractCalledServices = (config: AstNode): CalledServices => {
   const fromNames = new Set<string>();
   const lookupIds = new Set<string>();
+  const lookupNames = new Set<string>();
 
   for (const body of findRunBodies(config)) {
     const ctxNames = buildCtxNames(body);
@@ -295,10 +320,19 @@ const extractCalledServices = (config: AstNode): CalledServices => {
       if (lookupId) {
         lookupIds.add(lookupId);
       }
+
+      const lookupName = extractLookupServiceName(
+        node,
+        ctxNames,
+        serviceAliases
+      );
+      if (lookupName) {
+        lookupNames.add(lookupName);
+      }
     });
   }
 
-  return { fromNames, lookupIds };
+  return { fromNames, lookupIds, lookupNames };
 };
 
 // ---------------------------------------------------------------------------
@@ -334,6 +368,19 @@ const buildUndeclaredLookupDiagnostic = (
   severity: 'error',
 });
 
+const buildUndeclaredLookupNameDiagnostic = (
+  trailId: string,
+  serviceName: string,
+  filePath: string,
+  line: number
+): WardenDiagnostic => ({
+  filePath,
+  line,
+  message: `Trail "${trailId}": ctx.service(${serviceName}) called but '${serviceName}' is not declared in services`,
+  rule: 'service-declarations',
+  severity: 'error',
+});
+
 const buildUnusedDiagnostic = (
   trailId: string,
   declaredService: DeclaredService,
@@ -357,7 +404,8 @@ const serviceWasUsed = (
 ): boolean => {
   if (
     declaredService.name &&
-    calledServices.fromNames.has(declaredService.name)
+    (calledServices.fromNames.has(declaredService.name) ||
+      calledServices.lookupNames.has(declaredService.name))
   ) {
     return true;
   }
@@ -406,8 +454,24 @@ const reportUndeclaredLookupCalls = (
   line: number,
   calledServices: CalledServices,
   declaredIds: ReadonlySet<string>,
+  declaredNames: ReadonlySet<string>,
   diagnostics: WardenDiagnostic[]
 ): void => {
+  for (const serviceName of calledServices.lookupNames) {
+    // Name-based lookup checks remain reliable even when an imported service ID
+    // cannot be resolved locally.
+    if (!declaredNames.has(serviceName)) {
+      diagnostics.push(
+        buildUndeclaredLookupNameDiagnostic(
+          trailId,
+          serviceName,
+          filePath,
+          line
+        )
+      );
+    }
+  }
+
   for (const serviceId of calledServices.lookupIds) {
     if (!declaredIds.has(serviceId)) {
       diagnostics.push(
@@ -446,7 +510,8 @@ const hasNoServiceActivity = (
 ): boolean =>
   declaredServices.length === 0 &&
   calledServices.fromNames.size === 0 &&
-  calledServices.lookupIds.size === 0;
+  calledServices.lookupIds.size === 0 &&
+  calledServices.lookupNames.size === 0;
 
 const analyzeTrailServices = (
   def: { config: AstNode; start: number },
@@ -500,6 +565,7 @@ const checkTrailDefinition = (
     line,
     calledServices,
     declaredIds,
+    declaredNames,
     diagnostics
   );
   reportUnusedDeclarations(
