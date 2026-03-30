@@ -333,6 +333,57 @@ describe('blaze (Hono adapter)', () => {
       const json = await res.json();
       expect(json.data.tags).toEqual(['a', 'b']);
     });
+
+    test('single value is wrapped in array when schema expects z.array()', async () => {
+      const tagsTrail = trail('tags.single', {
+        input: z.object({ tags: z.array(z.string()) }),
+        intent: 'read',
+        run: (input) => Result.ok({ tags: input.tags }),
+      });
+
+      const app = topo('testapp', { tagsTrail });
+      const hono = await blaze(app, { serve: false });
+
+      const res = await request(hono, 'GET', '/tags/single?tags=foo');
+      expect(res.status).toBe(200);
+
+      const json = await res.json();
+      expect(json.data.tags).toEqual(['foo']);
+    });
+
+    test('single value stays scalar when schema expects a string', async () => {
+      const nameTrail = trail('name.check', {
+        input: z.object({ name: z.string() }),
+        intent: 'read',
+        run: (input) => Result.ok({ name: input.name }),
+      });
+
+      const app = topo('testapp', { nameTrail });
+      const hono = await blaze(app, { serve: false });
+
+      const res = await request(hono, 'GET', '/name/check?name=bar');
+      expect(res.status).toBe(200);
+
+      const json = await res.json();
+      expect(json.data.name).toBe('bar');
+    });
+
+    test('optional array field with single value is wrapped in array', async () => {
+      const optArrayTrail = trail('opt.array', {
+        input: z.object({ ids: z.array(z.string()).optional() }),
+        intent: 'read',
+        run: (input) => Result.ok({ ids: input.ids }),
+      });
+
+      const app = topo('testapp', { optArrayTrail });
+      const hono = await blaze(app, { serve: false });
+
+      const res = await request(hono, 'GET', '/opt/array?ids=one');
+      expect(res.status).toBe(200);
+
+      const json = await res.json();
+      expect(json.data.ids).toEqual(['one']);
+    });
   });
 
   describe('AbortSignal', () => {

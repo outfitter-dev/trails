@@ -15,6 +15,7 @@ import type { Layer, Topo, TrailContext } from '@ontrails/core';
 import { Hono } from 'hono';
 import type { Context as HonoContext } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
+import type { z } from 'zod';
 
 import type { HttpMethod, HttpRouteDefinition } from '../build.js';
 import { buildHttpRoutes } from '../build.js';
@@ -42,10 +43,64 @@ export interface BlazeHttpOptions {
 // Request parsing
 // ---------------------------------------------------------------------------
 
+/**
+ * Build a set of field names that the input schema expects as arrays.
+ *
+ * Inspects the Zod v4 `_zod.def` internals to find top-level array fields.
+ * Returns an empty set when the schema is not an object or cannot be inspected.
+ */
+interface ZodDef {
+  _zod: { def: Record<string, unknown> };
+}
+
+/** Unwrap optional/default wrappers to reach the underlying Zod type name. */
+const unwrapZodType = (node: ZodDef): string => {
+  let current = node;
+  while (
+    (current._zod.def['type'] as string) === 'optional' ||
+    (current._zod.def['type'] as string) === 'default'
+  ) {
+    current = current._zod.def['innerType'] as ZodDef;
+  }
+  return current._zod.def['type'] as string;
+};
+
+/** Extract the object shape from a Zod schema, or undefined if not an object. */
+const extractShape = (
+  schema: z.ZodType
+): Record<string, ZodDef> | undefined => {
+  const s = schema as unknown as ZodDef;
+  if ((s._zod.def['type'] as string) !== 'object') {
+    return undefined;
+  }
+  return s._zod.def['shape'] as Record<string, ZodDef> | undefined;
+};
+
+/** Collect top-level field names whose underlying type is array. */
+const collectArrayKeys = (
+  inputSchema: z.ZodType | undefined
+): ReadonlySet<string> => {
+  const shape = inputSchema ? extractShape(inputSchema) : undefined;
+  if (!shape) {
+    return new Set();
+  }
+  const keys = new Set<string>();
+  for (const [key, value] of Object.entries(shape)) {
+    if (unwrapZodType(value) === 'array') {
+      keys.add(key);
+    }
+  }
+  return keys;
+};
+
 /** Parse query params into a plain object, preserving raw strings for Zod. */
-const parseQueryParams = (c: HonoContext): Record<string, unknown> => {
+const parseQueryParams = (
+  c: HonoContext,
+  inputSchema?: z.ZodType | undefined
+): Record<string, unknown> => {
   const result: Record<string, unknown> = {};
   const url = new URL(c.req.url);
+  const arrayKeys = collectArrayKeys(inputSchema);
 
   for (const key of url.searchParams.keys()) {
     // Already collected via getAll
@@ -53,7 +108,7 @@ const parseQueryParams = (c: HonoContext): Record<string, unknown> => {
       continue;
     }
     const all = url.searchParams.getAll(key);
-    result[key] = all.length > 1 ? all : all[0];
+    result[key] = all.length > 1 || arrayKeys.has(key) ? all : all[0];
   }
 
   return result;
@@ -75,10 +130,11 @@ const isEmptyBody = (c: HonoContext): boolean => {
 /** Read input from request based on input source. */
 const readInput = async (
   c: HonoContext,
-  inputSource: 'query' | 'body'
+  inputSource: 'query' | 'body',
+  inputSchema?: z.ZodType | undefined
 ): Promise<unknown> => {
   if (inputSource === 'query') {
-    return parseQueryParams(c);
+    return parseQueryParams(c, inputSchema);
   }
   if (isEmptyBody(c)) {
     return {};
@@ -151,7 +207,7 @@ const handleCaughtError = (error: unknown, c: HonoContext): Response => {
 const createHonoHandler =
   (route: HttpRouteDefinition) =>
   async (c: HonoContext): Promise<Response> => {
-    const rawInput = await readInput(c, route.inputSource);
+    const rawInput = await readInput(c, route.inputSource, route.trail.input);
 
     if (rawInput === JSON_PARSE_ERROR) {
       return c.json(
