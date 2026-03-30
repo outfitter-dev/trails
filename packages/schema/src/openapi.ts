@@ -152,6 +152,11 @@ const errorResponsesFromExamples = (
 // Operation builder — split into focused helpers
 // ---------------------------------------------------------------------------
 
+/** True when the JSON Schema has at least one required property. */
+const schemaHasRequiredFields = (schema: JsonSchema): boolean =>
+  Array.isArray(schema['required']) &&
+  (schema['required'] as unknown[]).length > 0;
+
 /** Build the input portion of an operation (parameters or requestBody). */
 const buildInputSpec = (
   t: Trail<unknown, unknown>,
@@ -177,7 +182,7 @@ const buildInputSpec = (
   return {
     requestBody: {
       content: { 'application/json': { schema: inputSchema } },
-      required: true,
+      required: schemaHasRequiredFields(inputSchema),
     },
   };
 };
