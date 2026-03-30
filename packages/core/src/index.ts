@@ -40,6 +40,7 @@ export type {
 export { createTrailContext } from './context.js';
 
 // Service
+export { findDuplicateServiceId, isService, service } from './service.js';
 export type {
   AnyService,
   Service,
