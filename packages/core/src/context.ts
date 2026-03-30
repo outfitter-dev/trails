@@ -1,4 +1,9 @@
-import type { TrailContext } from './types.js';
+import { createServiceLookup } from './service.js';
+import type { TrailContext, TrailContextInit } from './types.js';
+
+type MutableTrailContext = {
+  -readonly [K in keyof TrailContext]: TrailContext[K];
+};
 
 /**
  * Create a TrailContext with sensible defaults.
@@ -8,11 +13,15 @@ import type { TrailContext } from './types.js';
  * - All other fields come from `overrides`
  */
 export const createTrailContext = (
-  overrides?: Partial<TrailContext>
-): TrailContext => ({
-  cwd: process.cwd(),
-  env: process.env as Record<string, string | undefined>,
-  requestId: Bun.randomUUIDv7(),
-  signal: new AbortController().signal,
-  ...overrides,
-});
+  overrides?: Partial<TrailContextInit>
+): TrailContext => {
+  const ctx = {
+    cwd: process.cwd(),
+    env: process.env as Record<string, string | undefined>,
+    requestId: Bun.randomUUIDv7(),
+    signal: new AbortController().signal,
+    ...overrides,
+  } as MutableTrailContext;
+  ctx.service = overrides?.service ?? createServiceLookup(() => ctx);
+  return ctx;
+};

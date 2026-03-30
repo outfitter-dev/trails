@@ -2,15 +2,16 @@ import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
 
+import { createTrailContext } from '../context';
 import { Result } from '../result';
 import { service } from '../service';
 import { trail } from '../trail';
 import type { TrailContext } from '../types';
 
-const stubCtx: TrailContext = {
+const stubCtx: TrailContext = createTrailContext({
   requestId: 'test-123',
   signal: AbortSignal.timeout(5000),
-};
+});
 
 const dbService = service('db.main', {
   create: () =>

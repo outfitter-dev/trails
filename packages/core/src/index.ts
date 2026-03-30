@@ -30,21 +30,29 @@ export type { ErrorCategory } from './errors.js';
 export type {
   Implementation,
   TrailContext,
+  TrailContextInit,
   FollowFn,
   ProgressCallback,
   ProgressEvent,
   Logger,
+  ServiceLookup,
 } from './types.js';
 
 // Context factory
 export { createTrailContext } from './context.js';
 
 // Service
-export { findDuplicateServiceId, isService, service } from './service.js';
+export {
+  createServiceLookup,
+  findDuplicateServiceId,
+  isService,
+  service,
+} from './service.js';
 export type {
   AnyService,
   Service,
   ServiceContext,
+  ServiceOverrideMap,
   ServiceSpec,
 } from './service.js';
 

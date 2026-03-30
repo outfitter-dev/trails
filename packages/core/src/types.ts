@@ -17,6 +17,11 @@ export type FollowFn = <O>(
   input: unknown
 ) => Promise<Result<O, Error>>;
 
+/** Resolve a service instance from the current trail context. */
+export type ServiceLookup = <T = unknown>(
+  serviceOrId: { readonly id: string } | string
+) => T;
+
 /** Callback for reporting progress from long-running trails */
 export type ProgressCallback = (event: ProgressEvent) => void;
 
@@ -53,4 +58,10 @@ export interface TrailContext {
   readonly cwd?: string | undefined;
   readonly env?: Record<string, string | undefined> | undefined;
   readonly extensions?: Readonly<Record<string, unknown>> | undefined;
+  readonly service?: ServiceLookup | undefined;
 }
+
+/** Input shape used to seed a runtime TrailContext before resolution. */
+export type TrailContextInit = Omit<TrailContext, 'service'> & {
+  readonly service?: ServiceLookup | undefined;
+};
