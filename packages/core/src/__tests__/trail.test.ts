@@ -3,6 +3,7 @@ import { describe, test, expect } from 'bun:test';
 import { z } from 'zod';
 
 import { Result } from '../result';
+import { service } from '../service';
 import { trail } from '../trail';
 import type { TrailContext } from '../types';
 
@@ -10,6 +11,16 @@ const stubCtx: TrailContext = {
   requestId: 'test-123',
   signal: AbortSignal.timeout(5000),
 };
+
+const dbService = service('db.main', {
+  create: () =>
+    Result.ok({
+      query(sql: string) {
+        return sql.length;
+      },
+    }),
+  description: 'Primary database service',
+});
 
 describe('trail()', () => {
   const inputSchema = z.object({ name: z.string() });
@@ -125,6 +136,36 @@ describe('trail()', () => {
     });
   });
 
+  describe('services', () => {
+    test('defaults to empty frozen array when omitted', () => {
+      const minimal = trail('bare', {
+        input: z.object({}),
+        run: () => Result.ok(),
+      });
+      expect(minimal.services).toEqual([]);
+      expect(Object.isFrozen(minimal.services)).toBe(true);
+    });
+
+    test('preserves declared service objects', () => {
+      const withServices = trail('search', {
+        input: z.object({}),
+        run: () => Result.ok(),
+        services: [dbService],
+      });
+      expect(withServices.services).toEqual([dbService]);
+      expect(withServices.services[0]).toBe(dbService);
+    });
+
+    test('services array is frozen', () => {
+      const withServices = trail('search', {
+        input: z.object({}),
+        run: () => Result.ok(),
+        services: [dbService],
+      });
+      expect(Object.isFrozen(withServices.services)).toBe(true);
+    });
+  });
+
   describe('intent and idempotent', () => {
     test('intent defaults to write', () => {
       const minimal = trail('bare', {
@@ -183,10 +224,12 @@ describe('trail()', () => {
         output: outputSchema,
         run: (input: { name: string }, _ctx: TrailContext) =>
           Result.ok({ greeting: `Hi, ${input.name}` }),
+        services: [dbService],
       });
       expect(t.description).toBe('A full trail');
       expect(t.intent).toBe('read');
       expect(t.examples).toHaveLength(1);
+      expect(t.services).toEqual([dbService]);
     });
 
     test('implementation is callable', async () => {
