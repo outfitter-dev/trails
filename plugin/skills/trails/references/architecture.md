@@ -8,16 +8,16 @@ Core defines ports. Everything on the edges is an adapter.
             LEFT SIDE (inbound)             RIGHT SIDE (outbound)
             How the world calls in          How the framework calls out
             +--------------------+          +--------------------+
-            |  CLI (commander)   |          |  Logging (logtape) |
-            |  MCP (sdk)         |          |  Storage (planned) |
-            |  HTTP (hono)       |          |  Telemetry (planned)|
-            |  WebSocket (plan.) |          |  Search (planned)  |
+            |  CLI (commander)   |          |  Services (core)   |
+            |  MCP (sdk)         |          |  Logging (logtape) |
+            |  HTTP (hono)       |          |  Storage (planned) |
+            |  WebSocket (plan.) |          |  Telemetry (planned)|
             +---------+----------+          +---------+----------+
                       |                               |
                       +-------> @ontrails/core <------+
                                 trail() event()
-                                topo() Result Errors
-                                Layer, Topo
+                                service() topo()
+                                Result Errors Layer
 ```
 
 **Core principles:**
@@ -62,6 +62,7 @@ Every piece of information has a clear ownership model.
 | `Result<T, Error>` | Cannot throw — must return `Result.ok()` or `Result.err()` |
 | `TrailContext` interface | Implementation receives only framework-provided fields |
 | `follow: [...]` on trail | Warden verifies `ctx.follow()` calls match |
+| `services: [...]` on trail | Warden verifies `db.from(ctx)` / `ctx.service()` calls match |
 
 ### Inferred — detected by static analysis, best-effort
 
@@ -129,7 +130,8 @@ All surfaces delegate to `executeTrail(trail, rawInput, options)` from `@ontrail
 executeTrail(trail, rawInput, options)
   -> Zod validates input against trail's schema  -> Result.err(ValidationError) on failure
   -> TrailContext created (requestId, logger, signal)
-  -> Layers composed around implementation
+  -> Services resolved (create singletons or retrieve cached)
+  -> Layers composed around implementation (layers can access services)
   -> implementation(validatedInput, ctx) called
   -> Result returned (never throws)
 ```

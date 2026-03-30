@@ -19,6 +19,11 @@ export const myComposite = trail('namespace.compound-verb', {
   // The warden verifies these match actual ctx.follow() calls.
   follow: ['namespace.first', 'namespace.second'],
 
+  // --- Services (optional) ---
+  // Declare services the composite trail needs directly.
+  // Followed trails declare their own services independently.
+  // services: [db],
+
   // --- Input schema ---
   // The trail's own input — may differ from followed trails' inputs.
   // The trail maps its input to each followed trail's expected shape.

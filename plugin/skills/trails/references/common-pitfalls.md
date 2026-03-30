@@ -107,7 +107,62 @@ run: async (input, ctx) => {
 
 **Fix:** Always check and propagate: `if (result.isErr()) return result;`
 
-## 9. Sync Result assumptions
+## 9. Constructing dependencies inline instead of declaring services
+
+**Symptom:** Every trail creates its own database connection. Tests require `vi.mock()`. `testAll(app)` fails for any trail with external dependencies.
+
+**Why it's wrong:** Inline construction hides dependencies from the framework. The warden can't verify them, survey can't report them, and the testing harness can't swap them.
+
+**Fix:** Define a `service()`, declare it on the trail, and access with `db.from(ctx)`:
+
+```typescript
+// Define once
+const db = service('db.main', {
+  create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
+  mock: () => createInMemoryDb(),
+});
+
+// Declare and access
+const search = trail('search', {
+  services: [db],
+  run: async (input, ctx) => {
+    const conn = db.from(ctx);
+    // ...
+  },
+});
+```
+
+## 10. Forgetting mock factories on service definitions
+
+**Symptom:** `testAll(app)` fails with a service resolution error because `DATABASE_URL` is not set in the test environment.
+
+**Why it's wrong:** Without a `mock` factory, the testing harness falls back to the real `create` factory, which needs production-like configuration.
+
+**Fix:** Always define `mock` on service definitions:
+
+```typescript
+const db = service('db.main', {
+  create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
+  mock: () => createInMemoryDb(), // enables zero-config testAll(app)
+});
+```
+
+## 11. Importing surface types into service factories
+
+**Symptom:** A service factory imports `Request`, `McpSession`, or reads `process.argv`. It works on one surface but breaks on others.
+
+**Why it's wrong:** Service factories receive `ServiceContext` — a narrow subset with `env`, `cwd`, and `workspaceRoot` only. Services are singletons resolved once per process, not per request. Surface-specific state would be stale after the first resolution.
+
+**Fix:** Keep service factories surface-agnostic. Use `svc.env` for configuration:
+
+```typescript
+const api = service('api.client', {
+  create: (svc) => Result.ok(new ApiClient(svc.env?.API_BASE_URL)),
+  // Not this: create: (svc) => new ApiClient(process.argv[2])
+});
+```
+
+## 12. Sync Result assumptions
 
 **Symptom:** Test expects synchronous execution but gets a pending Promise.
 

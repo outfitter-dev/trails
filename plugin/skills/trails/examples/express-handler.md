@@ -38,9 +38,23 @@ app.delete('/projects/:id', async (req, res) => {
 ## After
 
 ```typescript
+// services/db.ts
+import { service, Result } from '@ontrails/core';
+
+export const db = service('db.main', {
+  create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
+  dispose: (conn) => conn.close(),
+  health: (conn) => conn.ping(),
+  mock: () => createInMemoryDb(),
+  description: 'Primary database connection',
+});
+```
+
+```typescript
 // trails/project.ts
 import { z } from 'zod';
 import { trail, Result, NotFoundError, PermissionError } from '@ontrails/core';
+import { db } from '../services/db.js';
 
 const ProjectId = z.object({ id: z.string().uuid() });
 const Project = z.object({ id: z.string(), name: z.string(), status: z.string() });
@@ -49,10 +63,12 @@ export const show = trail('project.show', {
   input: ProjectId,
   output: Project,
   intent: 'read',
+  services: [db],
   description: 'Get a project by ID',
   examples: [{ name: 'existing', input: { id: '550e8400-e29b-41d4-a716-446655440000' } }],
-  run: async (input) => {
-    const project = await db.projects.findById(input.id);
+  run: async (input, ctx) => {
+    const conn = db.from(ctx);
+    const project = await conn.projects.findById(input.id);
     if (!project) return Result.err(new NotFoundError('Project not found'));
     return Result.ok(project);
   },
@@ -62,25 +78,28 @@ export const destroy = trail('project.destroy', {
   input: ProjectId,
   output: z.object({ deleted: z.boolean() }),
   intent: 'destroy',
+  services: [db],
   description: 'Delete a project',
   run: async (input, ctx) => {
     if (!ctx.permit) return Result.err(new PermissionError('Admin required'));
-    const deleted = await db.projects.delete(input.id);
+    const conn = db.from(ctx);
+    const deleted = await conn.projects.delete(input.id);
     if (!deleted) return Result.err(new NotFoundError('Project not found'));
     return Result.ok({ deleted: true });
   },
 });
 ```
 
-Wire to CLI or MCP with the same trails:
+Wire to CLI or MCP with the same trails. The `db.mock()` factory is used automatically by `testAll`.
 
 ```typescript
 // cli.ts
 import { topo } from '@ontrails/core';
 import { blaze } from '@ontrails/cli/commander';
 import * as project from './trails/project.js';
+import * as services from './services/db.js';
 
-const app = topo('myapp', project);
+const app = topo('myapp', project, services);
 blaze(app); // "myapp project show --id ..."
 
 // mcp.ts

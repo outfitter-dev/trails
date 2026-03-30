@@ -19,6 +19,39 @@
 - Every trail exposed on MCP or HTTP must define an `output` schema.
 - Prefer the most specific `TrailsError` subclass available.
 
+## Service Access
+
+Declare infrastructure dependencies as services. Access them through `db.from(ctx)`.
+
+```typescript
+// Correct: declare and access via service definition
+const search = trail('search', {
+  services: [db],
+  run: async (input, ctx) => {
+    const conn = db.from(ctx);
+    return Result.ok(await conn.search(input.query));
+  },
+});
+```
+
+Do not construct dependencies inline:
+
+```typescript
+// Wrong: inline construction hides dependencies, breaks testing
+const search = trail('search', {
+  run: async (input) => {
+    const conn = openDatabase();       // invisible to framework
+    try {
+      return Result.ok(await conn.search(input.query));
+    } finally {
+      conn.close();                    // manual lifecycle
+    }
+  },
+});
+```
+
+Service factories receive `ServiceContext` (env, cwd, workspaceRoot) — not the full `TrailContext`. Keep them surface-agnostic.
+
 ## Code Shape
 
 - Prefer lookup tables over switch statements.

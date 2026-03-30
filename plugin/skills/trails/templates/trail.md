@@ -80,9 +80,17 @@ export const myTrail = trail('namespace.verb', {
   // Receives validated input and TrailContext.
   // Return Result — never throw.
   // Keep surface-agnostic: no process.exit(), no console.log().
+  // --- Services (optional) ---
+  // Declare external dependencies so the framework manages lifecycle and testing.
+  // services: [db],
+
   run: async (input, ctx) => {
     // Your logic here. Input types are guaranteed by the schema.
     // Use ctx for services, logging, and following other trails.
+
+    // Access a declared service — typed from the service's create() return:
+    // const conn = db.from(ctx);
+    // const record = await conn.findByName(input.name);
 
     // Success:
     return Result.ok({ id: '1', name: input.name });

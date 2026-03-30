@@ -104,6 +104,35 @@ testContracts(app);  // schema drift detection
 testDetours(app);    // structural detour validation
 ```
 
+## Service Mocking
+
+Services with a `mock` factory auto-resolve during `testAll`, `testExamples`, and `testContracts` — no configuration needed.
+
+```typescript
+// Zero-config: mock factories on service definitions are used automatically
+testAll(app);
+```
+
+Override explicitly when you need specific behavior:
+
+```typescript
+testAll(app, () => ({
+  services: { 'db.main': createSpecialTestDb() },
+}));
+```
+
+Pass a factory (the `() => ({...})` form) when overrides contain mutable state. This gives each test a fresh instance and prevents test pollution from shared in-memory stores.
+
+The same override mechanism works with `dispatch`:
+
+```typescript
+dispatch(app, 'search', input, {
+  services: { 'db.main': testDb },
+});
+```
+
+If a service definition omits `mock`, `testAll` requires an explicit override for any trail that uses it. Always define `mock` on service definitions to keep the zero-config `testAll(app)` promise.
+
 ## Progressive Assertion Modes
 
 Applied automatically per example based on which fields are present:

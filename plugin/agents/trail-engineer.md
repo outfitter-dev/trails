@@ -28,6 +28,7 @@ Before writing implementation code:
 - Choose trail ID (dotted, lowercase, verb-last)
 - Define input/output Zod schemas
 - Set flags (intent, idempotent)
+- Identify service dependencies (database, API clients, caches) and define them with `service(id, spec)` -- include `mock` factories for testing
 - Write examples that cover happy path + key error cases
 
 If the feature is complex, sketch the contract and get user alignment before implementing.
@@ -36,6 +37,7 @@ If the feature is complex, sketch the contract and get user alignment before imp
 
 - Return `Result`, never throw
 - Keep implementations surface-agnostic
+- Declare services on the trail spec with `services: [db]` and access via `db.from(ctx)` -- never construct dependencies inline
 - Use `ctx.follow()` for composition, never `.run()` directly
 - Use `ctx.logger` instead of `console.log`
 
@@ -63,6 +65,14 @@ import { app } from '../app';
 testAll(app);
 ```
 
+Services with `mock` factories are resolved automatically by `testAll(app)` -- no manual wiring needed. Override specific services when tests need controlled behavior:
+
+```typescript
+testAll(app, () => ({
+  services: { 'db.main': createSpecialTestDb() },
+}));
+```
+
 Add `testTrail()` scenarios for edge cases that don't belong in agent-facing examples.
 
 ### 6. Verify with Warden
@@ -79,6 +89,8 @@ Fix any violations before considering the work done. Common issues:
 - `missing-output-schema` — add `output` to the trail
 - `throw-in-implementation` — replace with `Result.err()`
 - `missing-describe` — add `.describe()` to Zod fields
+- `service-declarations` — update `services` to match `db.from(ctx)` and `ctx.service()` calls
+- `service-exists` — ensure every declared service is registered in the topo
 
 If warden reports drift:
 

@@ -140,6 +140,36 @@ const result = await ctx.follow('entity.add', { name: 'Beta', type: 'tool' });
 if (result.isErr()) return result;
 ```
 
+## Service Declarations
+
+Trails declare infrastructure dependencies with `services: [...]`, parallel to `follow` for composition.
+
+```typescript
+import { trail, Result } from '@ontrails/core';
+import { db } from '../services';
+
+const search = trail('search', {
+  services: [db],
+  input: z.object({ query: z.string().describe('Search term') }),
+  output: z.array(z.object({ id: z.string(), title: z.string() })),
+  run: async (input, ctx) => {
+    const conn = db.from(ctx);
+    return Result.ok(await conn.search(input.query));
+  },
+});
+```
+
+**`db.from(ctx)`** is the primary access pattern. The type is inferred from the service's `create` factory — no generic annotation needed.
+
+**`ctx.service<Database>('db.main')`** is the escape hatch for dynamic or string-based lookups. Both resolve the same way at runtime.
+
+**When to use each:**
+
+- `db.from(ctx)` — default. Typed, statically analyzable, warden-verifiable.
+- `ctx.service()` — when the service ID is computed or comes from configuration.
+
+The warden enforces two rules: `service-declarations` verifies that `db.from(ctx)` and `ctx.service()` calls match the declared `services` array; `service-exists` verifies that declared service IDs resolve in the topo.
+
 ## Type Utilities
 
 `@ontrails/core` exports three type utilities for extracting types from trail definitions without duplicating them:

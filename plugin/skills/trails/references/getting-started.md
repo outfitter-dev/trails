@@ -195,3 +195,47 @@ Rules for composition:
 - Call them with `ctx.follow()` — never call `.run()` directly
 - Propagate errors: `if (result.isErr()) return result;`
 - The warden verifies `follow` matches actual `ctx.follow()` calls
+
+## Using Services
+
+When trails need infrastructure — databases, API clients, caches — declare them as services.
+
+Define a service in `src/services/db.ts`:
+
+```typescript
+import { service, Result } from '@ontrails/core';
+
+export const db = service('db.main', {
+  create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
+  dispose: (conn) => conn.close(),
+  mock: () => createInMemoryDb(),
+});
+```
+
+Register services in the topo alongside trails:
+
+```typescript
+import * as greetModule from './trails/greet';
+import * as services from './services/db';
+
+export const app = topo('myapp', greetModule, services);
+```
+
+Use in a trail by declaring `services` and accessing via `db.from(ctx)`:
+
+```typescript
+const lookup = trail('lookup', {
+  services: [db],
+  input: z.object({ id: z.string().describe('Record ID') }),
+  output: z.object({ name: z.string() }),
+  intent: 'read',
+  run: async (input, ctx) => {
+    const conn = db.from(ctx);
+    const record = await conn.findById(input.id);
+    if (!record) return Result.err(new NotFoundError(`No record: ${input.id}`));
+    return Result.ok({ name: record.name });
+  },
+});
+```
+
+The `mock` factory means `testAll(app)` works with no additional configuration — the in-memory database is used automatically in tests.

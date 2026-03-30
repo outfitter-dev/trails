@@ -118,6 +118,49 @@ await blaze(app, { port: 3000 });
 
 See [cli-surface.md](references/cli-surface.md), [mcp-surface.md](references/mcp-surface.md), and the HTTP surface docs for derivation details.
 
+## Services
+
+Services declare infrastructure dependencies — databases, API clients, caches — as first-class primitives alongside trails and events.
+
+**Define** a service with `service()`:
+
+```typescript
+const db = service('db.main', {
+  create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
+  dispose: (conn) => conn.close(),
+  health: (conn) => conn.ping(),
+  mock: () => createInMemoryDb(),
+});
+```
+
+The `create` factory receives `ServiceContext` (env, cwd, workspaceRoot only — not the full `TrailContext`). Services are singletons, resolved once per process and cached.
+
+**Declare** on trails with `services: [...]`:
+
+```typescript
+const search = trail('search', {
+  services: [db],
+  input: z.object({ query: z.string() }),
+  output: z.array(z.object({ id: z.string(), title: z.string() })),
+  run: async (input, ctx) => {
+    const conn = db.from(ctx);
+    return Result.ok(await conn.search(input.query));
+  },
+});
+```
+
+**Access** via `db.from(ctx)` (typed, preferred) or `ctx.service<Database>('db.main')` (dynamic escape hatch).
+
+**Test** with zero config — services with `mock` factories auto-resolve in `testAll(app)`. Override explicitly when needed:
+
+```typescript
+testAll(app, () => ({ services: { 'db.main': createSpecialTestDb() } }));
+```
+
+**Governance:** The warden enforces `service-declarations` (usage matches declarations) and `service-exists` (service IDs resolve in the topo).
+
+See [contract-patterns.md](references/contract-patterns.md) for declaration patterns and [testing-patterns.md](references/testing-patterns.md) for mock strategies.
+
 ## Testing
 
 `testAll(app)` runs the full governance suite in one line:
@@ -176,7 +219,7 @@ trails warden          # Convention checks
 trails warden --drift  # Contract drift vs lock file
 ```
 
-Key rules: no throw in run functions, no surface imports, follow declarations match ctx.follow() calls, output schemas present, .describe() on fields.
+Key rules: no throw in run functions, no surface imports, follow declarations match ctx.follow() calls, service declarations match db.from(ctx) / ctx.service() calls, output schemas present, .describe() on fields.
 
 ## References
 
