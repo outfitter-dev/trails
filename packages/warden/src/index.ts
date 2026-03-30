@@ -27,6 +27,7 @@ export { implementationReturnsResult } from './rules/implementation-returns-resu
 export { noThrowInDetourTarget } from './rules/no-throw-in-detour-target.js';
 export { preferSchemaInference } from './rules/prefer-schema-inference.js';
 export { serviceDeclarations } from './rules/service-declarations.js';
+export { serviceExists } from './rules/service-exists.js';
 export { validDescribeRefs } from './rules/valid-describe-refs.js';
 
 // Rule registry
@@ -64,6 +65,7 @@ export {
   ruleInput,
   ruleOutput,
   serviceDeclarationsTrail,
+  serviceExistsTrail,
   validDescribeRefsTrail,
   validDetourRefsTrail,
 } from './trails/index.js';

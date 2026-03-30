@@ -3,7 +3,7 @@
  */
 
 import { zodToJsonSchema } from '@ontrails/core';
-import type { Event, Topo, Trail } from '@ontrails/core';
+import type { AnyService, Event, Topo, Trail } from '@ontrails/core';
 
 import type { JsonSchema, SurfaceMap, SurfaceMapEntry } from './types.js';
 
@@ -127,6 +127,9 @@ const trailToEntry = (t: Trail<unknown, unknown>): SurfaceMapEntry => {
   if (t.follow.length > 0) {
     entry['follow'] = t.follow.toSorted();
   }
+  if (t.services.length > 0) {
+    entry['services'] = t.services.map((service) => service.id).toSorted();
+  }
 
   return sortKeys(entry) as unknown as SurfaceMapEntry;
 };
@@ -163,6 +166,24 @@ const eventToEntry = (e: Event<unknown>): SurfaceMapEntry => {
   return sortKeys(entry) as unknown as SurfaceMapEntry;
 };
 
+const serviceToEntry = (service: AnyService): SurfaceMapEntry => {
+  const entry: Record<string, unknown> = {
+    exampleCount: 0,
+    id: service.id,
+    kind: 'service',
+    surfaces: [],
+  };
+
+  if (service.description !== undefined) {
+    entry['description'] = service.description;
+  }
+  if (service.health !== undefined) {
+    entry['healthcheck'] = true;
+  }
+
+  return sortKeys(entry) as unknown as SurfaceMapEntry;
+};
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -184,6 +205,11 @@ export const generateSurfaceMap = (topo: Topo): SurfaceMap => {
   // Collect all events
   for (const e of topo.events.values()) {
     entries.push(eventToEntry(e as Event<unknown>));
+  }
+
+  // Collect all services
+  for (const service of topo.services.values()) {
+    entries.push(serviceToEntry(service));
   }
 
   // Sort alphabetically by id

@@ -7,7 +7,11 @@
 import { trail, Result } from '@ontrails/core';
 import type { Trail } from '@ontrails/core';
 
-import type { ProjectAwareWardenRule, WardenRule } from '../rules/types.js';
+import type {
+  ProjectAwareWardenRule,
+  ProjectContext,
+  WardenRule,
+} from '../rules/types.js';
 import { projectAwareRuleInput, ruleInput, ruleOutput } from './schema.js';
 import type { ProjectAwareRuleInput, RuleInput, RuleOutput } from './schema.js';
 
@@ -55,14 +59,18 @@ export function wrapRule(
       metadata: { category: 'governance', severity: rule.severity },
       output: ruleOutput,
       run: (input: ProjectAwareRuleInput) => {
+        const context = {
+          knownServiceIds: input.knownServiceIds
+            ? new Set(input.knownServiceIds)
+            : undefined,
+          knownTrailIds: input.knownTrailIds
+            ? new Set(input.knownTrailIds)
+            : new Set<string>(),
+        } as ProjectContext;
         const diagnostics = projectAwareRule.checkWithContext(
           input.sourceCode,
           input.filePath,
-          {
-            knownTrailIds: input.knownTrailIds
-              ? new Set(input.knownTrailIds)
-              : new Set<string>(),
-          }
+          context
         );
         return Result.ok({ diagnostics: [...diagnostics] });
       },

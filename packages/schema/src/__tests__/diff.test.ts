@@ -47,6 +47,15 @@ describe('diffSurfaceMaps', () => {
       expect(result.info).toHaveLength(1);
     });
 
+    test('added service detected as info', () => {
+      const prev = surfaceMap([]);
+      const curr = surfaceMap([entry({ id: 'db.main', kind: 'service' })]);
+      const result = diffSurfaceMaps(prev, curr);
+
+      expect(result.entries[0]?.details).toContain('Service "db.main" added');
+      expect(result.info).toHaveLength(1);
+    });
+
     test('removed trail detected as breaking', () => {
       const prev = surfaceMap([entry({ id: 'user.delete' })]);
       const curr = surfaceMap([]);
@@ -55,6 +64,15 @@ describe('diffSurfaceMaps', () => {
       expect(result.entries).toHaveLength(1);
       expect(result.entries[0]?.change).toBe('removed');
       expect(result.entries[0]?.severity).toBe('breaking');
+      expect(result.hasBreaking).toBe(true);
+    });
+
+    test('removed service detected as breaking', () => {
+      const prev = surfaceMap([entry({ id: 'db.main', kind: 'service' })]);
+      const curr = surfaceMap([]);
+      const result = diffSurfaceMaps(prev, curr);
+
+      expect(result.entries[0]?.details).toContain('Service "db.main" removed');
       expect(result.hasBreaking).toBe(true);
     });
 
@@ -291,6 +309,30 @@ describe('diffSurfaceMaps', () => {
       expect(followDetail).toBeDefined();
       expect(followDetail).toContain('search');
       expect(followDetail).toContain('lookup');
+    });
+
+    test('declared services changed produces warning', () => {
+      const prev = surfaceMap([
+        entry({
+          id: 'user.update',
+          services: ['db.main', 'search.index'],
+        }),
+      ]);
+      const curr = surfaceMap([
+        entry({
+          id: 'user.update',
+          services: ['db.main', 'cache.main'],
+        }),
+      ]);
+      const result = diffSurfaceMaps(prev, curr);
+
+      expect(result.warnings).toHaveLength(1);
+      const serviceDetail = result.warnings[0]?.details.find((detail) =>
+        detail.includes('Services changed')
+      );
+      expect(serviceDetail).toBeDefined();
+      expect(serviceDetail).toContain('cache.main');
+      expect(serviceDetail).toContain('search.index');
     });
   });
 

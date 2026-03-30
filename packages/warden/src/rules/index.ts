@@ -8,6 +8,7 @@ import { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
 import { serviceDeclarations } from './service-declarations.js';
+import { serviceExists } from './service-exists.js';
 import type { WardenRule } from './types.js';
 import { validDescribeRefs } from './valid-describe-refs.js';
 import { validDetourRefs } from './valid-detour-refs.js';
@@ -31,6 +32,7 @@ export { implementationReturnsResult } from './implementation-returns-result.js'
 export { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
 export { preferSchemaInference } from './prefer-schema-inference.js';
 export { serviceDeclarations } from './service-declarations.js';
+export { serviceExists } from './service-exists.js';
 export { validDescribeRefs } from './valid-describe-refs.js';
 
 /** All built-in warden rules, keyed by rule name. */
@@ -42,6 +44,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [contextNoSurfaceTypes.name, contextNoSurfaceTypes],
   [followDeclarations.name, followDeclarations],
   [serviceDeclarations.name, serviceDeclarations],
+  [serviceExists.name, serviceExists],
   [preferSchemaInference.name, preferSchemaInference],
   [validDescribeRefs.name, validDescribeRefs],
   [validDetourRefs.name, validDetourRefs],

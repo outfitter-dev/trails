@@ -19,14 +19,27 @@ import { wardenTopo } from './topo.js';
 export const runWardenTrails = async (
   filePath: string,
   sourceCode: string,
-  options?: { readonly knownTrailIds?: readonly string[] }
+  options?: {
+    readonly knownServiceIds?: readonly string[];
+    readonly knownTrailIds?: readonly string[];
+  }
 ): Promise<readonly WardenDiagnostic[]> => {
   const allDiagnostics: WardenDiagnostic[] = [];
 
   for (const id of wardenTopo.ids()) {
-    const input = options?.knownTrailIds
-      ? { filePath, knownTrailIds: options.knownTrailIds, sourceCode }
-      : { filePath, sourceCode };
+    const input =
+      options?.knownTrailIds || options?.knownServiceIds
+        ? {
+            filePath,
+            ...(options?.knownServiceIds
+              ? { knownServiceIds: options.knownServiceIds }
+              : {}),
+            ...(options?.knownTrailIds
+              ? { knownTrailIds: options.knownTrailIds }
+              : {}),
+            sourceCode,
+          }
+        : { filePath, sourceCode };
     const result = await dispatch(wardenTopo, id, input);
     if (result.isOk()) {
       const { diagnostics } = result.value as RuleOutput;

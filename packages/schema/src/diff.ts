@@ -44,6 +44,16 @@ const addDetail = (
 const capitalize = (s: string): string =>
   `${s.charAt(0).toUpperCase()}${s.slice(1)}`;
 
+const labelForKind = (kind: SurfaceMapEntry['kind']): string => {
+  if (kind === 'service') {
+    return 'Service';
+  }
+  if (kind === 'event') {
+    return 'Event';
+  }
+  return 'Trail';
+};
+
 // ---------------------------------------------------------------------------
 // Schema field diffing
 // ---------------------------------------------------------------------------
@@ -267,6 +277,17 @@ const buildFollowMessage = (added: string[], removed: string[]): string => {
   return `Follow changed: ${parts.join(', ')}`;
 };
 
+const buildServicesMessage = (added: string[], removed: string[]): string => {
+  const parts: string[] = [];
+  if (added.length > 0) {
+    parts.push(`added "${added.join('", "')}"`);
+  }
+  if (removed.length > 0) {
+    parts.push(`removed "${removed.join('", "')}"`);
+  }
+  return `Services changed: ${parts.join(', ')}`;
+};
+
 /** Diff follow arrays. */
 const diffFollow = (
   acc: DetailAccumulator,
@@ -282,6 +303,25 @@ const diffFollow = (
   }
 };
 
+/** Diff declared service arrays on trail entries. */
+const diffServices = (
+  acc: DetailAccumulator,
+  prev: SurfaceMapEntry,
+  curr: SurfaceMapEntry
+): void => {
+  const prevServices = new Set(prev.services);
+  const currServices = new Set(curr.services);
+  const added = [...currServices]
+    .filter((service) => !prevServices.has(service))
+    .toSorted();
+  const removed = [...prevServices]
+    .filter((service) => !currServices.has(service))
+    .toSorted();
+  if (added.length > 0 || removed.length > 0) {
+    addDetail(acc, 'warning', buildServicesMessage(added, removed));
+  }
+};
+
 const diffEntry = (
   prev: SurfaceMapEntry,
   curr: SurfaceMapEntry
@@ -293,6 +333,7 @@ const diffEntry = (
   diffSurfaces(acc, prev, curr);
   diffMetadata(acc, prev, curr);
   diffFollow(acc, prev, curr);
+  diffServices(acc, prev, curr);
 
   if (acc.details.length === 0) {
     return undefined;
@@ -328,7 +369,7 @@ const findAdded = (
     .filter(([id]) => !prevById.has(id))
     .map(([id, entry]) => ({
       change: 'added' as const,
-      details: [`Trail "${id}" added`],
+      details: [`${labelForKind(entry.kind)} "${id}" added`],
       id,
       kind: entry.kind,
       severity: 'info' as const,
@@ -343,7 +384,7 @@ const findRemoved = (
     .filter(([id]) => !currById.has(id))
     .map(([id, entry]) => ({
       change: 'removed' as const,
-      details: [`Trail "${id}" removed`],
+      details: [`${labelForKind(entry.kind)} "${id}" removed`],
       id,
       kind: entry.kind,
       severity: 'breaking' as const,
