@@ -25,6 +25,7 @@ export { createMcpHarness } from './harness-mcp.js';
 
 // Types
 export type { CreateFollowContextOptions } from './context.js';
+export type { TestExecutionOptions } from './context.js';
 export type { TestFollowOptions } from './follows.js';
 
 export type {

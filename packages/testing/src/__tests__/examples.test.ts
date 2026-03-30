@@ -1,6 +1,6 @@
 import { describe, test } from 'bun:test';
 
-import { NotFoundError, Result, trail, topo } from '@ontrails/core';
+import { NotFoundError, Result, service, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { testExamples } from '../examples.js';
@@ -65,6 +65,137 @@ const entityTrail = trail('entity.show', {
 const noExamplesTrail = trail('noexamples', {
   input: z.object({ x: z.number() }),
   run: (input: { x: number }) => Result.ok(input.x * 2),
+});
+
+const mockDbService = service('db.mock.examples', {
+  create: () => Result.ok({ source: 'factory' }),
+  mock: () => ({ source: 'mock' }),
+});
+
+const mockServiceTrail = trail('service.mocked', {
+  description: 'Trail that reads from a mocked service',
+  examples: [
+    {
+      expected: { source: 'mock' },
+      input: {},
+      name: 'Uses auto-resolved service mock',
+    },
+  ],
+  input: z.object({}),
+  output: z.object({ source: z.string() }),
+  run: (_input, ctx) => Result.ok({ source: mockDbService.from(ctx).source }),
+  services: [mockDbService],
+});
+
+const explicitOverrideTrail = trail('service.override', {
+  description: 'Trail whose service mock can be overridden explicitly',
+  examples: [
+    {
+      expected: { source: 'override' },
+      input: {},
+      name: 'Explicit service override wins over mock factory',
+    },
+  ],
+  input: z.object({}),
+  output: z.object({ source: z.string() }),
+  run: (_input, ctx) => Result.ok({ source: mockDbService.from(ctx).source }),
+  services: [mockDbService],
+});
+
+const transformedInputTrail = trail('example.transformed', {
+  description: 'Trail whose input schema transforms once',
+  examples: [
+    {
+      expected: { value: 2 },
+      input: { value: '1' },
+      name: 'Raw example input is only transformed once',
+    },
+  ],
+  input: z
+    .object({ value: z.string() })
+    .transform(({ value }) => ({ value: Number(value) + 1 })),
+  output: z.object({ value: z.number() }),
+  run: (input: { value: number }) => Result.ok({ value: input.value }),
+});
+
+const ctxOverrideTrail = trail('service.ctx-override', {
+  description: 'Trail whose service mock can be overridden by ctx.extensions',
+  examples: [
+    {
+      expected: { source: 'ctx' },
+      input: {},
+      name: 'Context extensions beat auto-resolved mock services',
+    },
+  ],
+  input: z.object({}),
+  output: z.object({ source: z.string() }),
+  run: (_input, ctx) => Result.ok({ source: mockDbService.from(ctx).source }),
+  services: [mockDbService],
+});
+
+const undeclaredDbService = service('db.undeclared.examples', {
+  create: () => Result.ok({ source: 'factory' }),
+  mock: () => ({ source: 'mock' }),
+});
+
+const undeclaredServiceTrail = trail('service.undeclared.examples', {
+  description: 'Trail that uses a service without declaring it',
+  examples: [
+    {
+      error: 'InternalError',
+      input: {},
+      name: 'Undeclared services stay unavailable during example execution',
+    },
+  ],
+  input: z.object({}),
+  output: z.object({ source: z.string() }),
+  run: (_input, ctx) =>
+    Result.ok({ source: undeclaredDbService.from(ctx).source }),
+});
+
+const followedDbService = service('db.mock.examples.follow', {
+  create: () => Result.ok({ source: 'factory' }),
+  mock: () => ({ source: 'mock' }),
+});
+
+const followedLeafTrail = trail('service.follow.leaf', {
+  description: 'Leaf trail that resolves a service inside a follow chain',
+  input: z.object({}),
+  output: z.object({ childSource: z.string() }),
+  run: (_input, ctx) =>
+    Result.ok({ childSource: followedDbService.from(ctx).source }),
+  services: [followedDbService],
+});
+
+const followedRootTrail = trail('service.follow.root', {
+  description: 'Root trail that follows a child trail using services',
+  examples: [
+    {
+      expected: { childSource: 'mock', rootSource: 'mock' },
+      input: {},
+      name: 'Propagates service mocks through follow execution',
+    },
+  ],
+  follow: ['service.follow.leaf'],
+  input: z.object({}),
+  output: z.object({ childSource: z.string(), rootSource: z.string() }),
+  run: async (_input, ctx) => {
+    if (!ctx.follow) {
+      return Result.err(new Error('follow not available'));
+    }
+    const childResult = await ctx.follow<{ childSource: string }>(
+      'service.follow.leaf',
+      {}
+    );
+    if (childResult.isErr()) {
+      return childResult;
+    }
+    return Result.ok({
+      childSource: childResult.value.childSource,
+      rootSource: followedDbService.from(ctx).source,
+    });
+  },
+  services: [followedDbService],
 });
 
 // ---------------------------------------------------------------------------
@@ -163,6 +294,63 @@ describe('testExamples skips trails with no examples', () => {
   });
 });
 
+describe('testExamples service mocks', () => {
+  // eslint-disable-next-line jest/require-hook
+  testExamples(
+    topo('service-mock-app', {
+      mockDbService,
+      mockServiceTrail,
+    } as Record<string, unknown>)
+  );
+});
+
+describe('testExamples explicit service overrides', () => {
+  // eslint-disable-next-line jest/require-hook
+  testExamples(
+    topo('service-override-app', {
+      explicitOverrideTrail,
+      mockDbService,
+    } as Record<string, unknown>),
+    {
+      services: { 'db.mock.examples': { source: 'override' } },
+    }
+  );
+});
+
+describe('testExamples raw transformed input', () => {
+  // eslint-disable-next-line jest/require-hook
+  testExamples(
+    topo('transformed-input-app', {
+      transformedInputTrail,
+    } as Record<string, unknown>)
+  );
+});
+
+describe('testExamples context extension overrides', () => {
+  // eslint-disable-next-line jest/require-hook
+  testExamples(
+    topo('ctx-override-app', {
+      ctxOverrideTrail,
+      mockDbService,
+    } as Record<string, unknown>),
+    {
+      ctx: {
+        extensions: { 'db.mock.examples': { source: 'ctx' } },
+      },
+    }
+  );
+});
+
+describe('testExamples service declarations', () => {
+  // eslint-disable-next-line jest/require-hook
+  testExamples(
+    topo('undeclared-service-app', {
+      undeclaredDbService,
+      undeclaredServiceTrail,
+    } as Record<string, unknown>)
+  );
+});
+
 describe('testExamples follow coverage for composition trails', () => {
   // eslint-disable-next-line jest/require-hook
   testExamples(
@@ -170,6 +358,17 @@ describe('testExamples follow coverage for composition trails', () => {
       addTrail,
       onboardTrail,
       relateTrail,
+    } as Record<string, unknown>)
+  );
+});
+
+describe('testExamples service mocks through follow', () => {
+  // eslint-disable-next-line jest/require-hook
+  testExamples(
+    topo('service-follow-app', {
+      followedDbService,
+      followedLeafTrail,
+      followedRootTrail,
     } as Record<string, unknown>)
   );
 });

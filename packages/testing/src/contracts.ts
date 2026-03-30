@@ -9,11 +9,17 @@
 import { describe, test } from 'bun:test';
 
 import type { Topo, TrailExample, Trail, TrailContext } from '@ontrails/core';
-import { formatZodIssues, validateInput } from '@ontrails/core';
+import { executeTrail, formatZodIssues, validateInput } from '@ontrails/core';
 import type { z } from 'zod';
 
 import { expectOk } from './assertions.js';
-import { mergeTestContext } from './context.js';
+import {
+  mergeServiceOverrides,
+  mergeTestContext,
+  normalizeTestExecutionOptions,
+  resolveMockServices,
+} from './context.js';
+import type { TestExecutionOptions } from './context.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -22,13 +28,13 @@ import { mergeTestContext } from './context.js';
 /** Check if a trail requires follow() but the context doesn't provide it. */
 const needsFollowContext = (
   t: unknown,
-  resolveCtx: () => Partial<TrailContext> | undefined
+  resolveCtx: () => Partial<TrailContext> | TestExecutionOptions | undefined
 ): boolean => {
   const spec = t as { follow?: readonly string[] };
   if (!spec.follow || spec.follow.length === 0) {
     return false;
   }
-  return !resolveCtx()?.follow;
+  return !normalizeTestExecutionOptions(resolveCtx()).ctx?.follow;
 };
 
 const validateOutputSchema = (
@@ -58,9 +64,12 @@ const validateOutputSchema = (
  */
 export const testContracts = (
   app: Topo,
-  ctxOrFactory?: Partial<TrailContext> | (() => Partial<TrailContext>)
+  ctxOrFactory?:
+    | Partial<TrailContext>
+    | TestExecutionOptions
+    | (() => Partial<TrailContext> | TestExecutionOptions)
 ): void => {
-  const resolveCtx =
+  const resolveInput =
     typeof ctxOrFactory === 'function' ? ctxOrFactory : () => ctxOrFactory;
   const allEntries = app.list() as Trail<unknown, unknown>[];
 
@@ -72,7 +81,7 @@ export const testContracts = (
       if (t.examples === undefined || t.examples.length === 0) {
         return;
       }
-      if (needsFollowContext(t, resolveCtx)) {
+      if (needsFollowContext(t, resolveInput)) {
         return;
       }
 
@@ -82,12 +91,21 @@ export const testContracts = (
       test.each(successExamples)(
         'contract: $name',
         async (example: TrailExample<unknown, unknown>) => {
-          const testCtx = mergeTestContext(resolveCtx());
+          const resolved = normalizeTestExecutionOptions(resolveInput());
+          const services = mergeServiceOverrides(
+            await resolveMockServices(app),
+            resolved.ctx,
+            resolved.services
+          );
+          const testCtx = mergeTestContext(resolved.ctx);
 
           const validated = validateInput(t.input, example.input);
-          const validatedInput = expectOk(validated);
+          expectOk(validated);
 
-          const result = await t.run(validatedInput, testCtx);
+          const result = await executeTrail(t, example.input, {
+            ctx: testCtx,
+            services,
+          });
           const resultValue = expectOk(result);
 
           validateOutputSchema(outputSchema, resultValue, t.id, example.name);
