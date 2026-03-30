@@ -95,6 +95,15 @@ export const validateOutput = <T>(
 // ---------------------------------------------------------------------------
 
 /**
+ * Memoizes Zod default values per schema instance. Zod v4 wraps `defaultValue`
+ * in a getter that re-evaluates function defaults on every access, which makes
+ * repeated `zodToJsonSchema` calls nondeterministic for schemas like
+ * `z.string().default(() => Bun.randomUUIDv7())`. Reading the value once and
+ * caching it here keeps schema exports stable.
+ */
+const defaultValueCache = new WeakMap<object, unknown>();
+
+/**
  * Convert common Zod types to a JSON Schema object.
  *
  * Uses Zod v4's `_zod.def` and `_zod.traits` for introspection.
@@ -142,9 +151,10 @@ export const zodToJsonSchema: JsonSchemaConverter = (
     default: (value) => {
       const inner = value._zod.def['innerType'] as unknown as z.ZodType;
       const innerSchema = zodToJsonSchema(inner);
-      const rawDefault = value._zod.def['defaultValue'];
-      innerSchema['default'] =
-        typeof rawDefault === 'function' ? rawDefault() : rawDefault;
+      if (!defaultValueCache.has(value._zod.def)) {
+        defaultValueCache.set(value._zod.def, value._zod.def['defaultValue']);
+      }
+      innerSchema['default'] = defaultValueCache.get(value._zod.def);
       return innerSchema;
     },
     enum: (value) => {

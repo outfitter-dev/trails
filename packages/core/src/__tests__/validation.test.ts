@@ -280,4 +280,36 @@ describe('zodToJsonSchema', () => {
       expect(zodToJsonSchema(z.any())).toEqual({});
     });
   });
+
+  describe('default values', () => {
+    test('preserves static defaults as-is', () => {
+      const schema = z.string().default('hello');
+      expect(zodToJsonSchema(schema)).toEqual({
+        default: 'hello',
+        type: 'string',
+      });
+    });
+
+    test('memoizes functional defaults for deterministic output', () => {
+      let counter = 0;
+      const schema = z.string().default(() => {
+        counter += 1;
+        return `id-${counter}`;
+      });
+      const first = zodToJsonSchema(schema);
+      const second = zodToJsonSchema(schema);
+      // Both calls return the same memoized value
+      expect(first).toEqual(second);
+      // The default was evaluated exactly once (counter incremented once)
+      expect(first['default']).toBe('id-1');
+      expect(counter).toBe(1);
+    });
+
+    test('produces identical output across calls for functional defaults', () => {
+      const schema = z.string().default(() => `id-${Date.now()}`);
+      const first = zodToJsonSchema(schema);
+      const second = zodToJsonSchema(schema);
+      expect(first).toEqual(second);
+    });
+  });
 });
