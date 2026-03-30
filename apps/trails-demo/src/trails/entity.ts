@@ -11,10 +11,9 @@ import {
   NotFoundError,
   AlreadyExistsError,
 } from '@ontrails/core';
-import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
-import type { EntityStore } from '../store.js';
+import { entityStoreService } from '../services/entity-store.js';
 
 // ---------------------------------------------------------------------------
 // Shared schemas
@@ -35,17 +34,6 @@ const entitySummarySchema = z.object({
   tags: z.array(z.string()),
   type: z.string(),
 });
-
-// ---------------------------------------------------------------------------
-// Helper: extract store from context
-// ---------------------------------------------------------------------------
-
-const getStore = (ctx: TrailContext): EntityStore =>
-  ctx.extensions?.['store'] as EntityStore;
-
-// ---------------------------------------------------------------------------
-// entity.show
-// ---------------------------------------------------------------------------
 
 export const show = trail('entity.show', {
   description: 'Show an entity by name',
@@ -71,7 +59,7 @@ export const show = trail('entity.show', {
   intent: 'read',
   output: entitySchema,
   run: (input, ctx) => {
-    const store = getStore(ctx);
+    const store = entityStoreService.from(ctx);
     const entity = store.get(input.name);
     if (!entity) {
       return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
@@ -85,6 +73,7 @@ export const show = trail('entity.show', {
       updatedAt: entity.updatedAt,
     });
   },
+  services: [entityStoreService],
 });
 
 // ---------------------------------------------------------------------------
@@ -117,7 +106,7 @@ export const add = trail('entity.add', {
   }),
   output: entitySchema,
   run: (input, ctx) => {
-    const store = getStore(ctx);
+    const store = entityStoreService.from(ctx);
     const existing = store.get(input.name);
     if (existing) {
       return Result.err(
@@ -138,6 +127,7 @@ export const add = trail('entity.add', {
       updatedAt: entity.updatedAt,
     });
   },
+  services: [entityStoreService],
 });
 
 // ---------------------------------------------------------------------------
@@ -168,13 +158,14 @@ export const remove = trail('entity.delete', {
     name: z.string(),
   }),
   run: (input, ctx) => {
-    const store = getStore(ctx);
+    const store = entityStoreService.from(ctx);
     const deleted = store.delete(input.name);
     if (!deleted) {
       return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
     }
     return Result.ok({ deleted: true, name: input.name });
   },
+  services: [entityStoreService],
 });
 
 // ---------------------------------------------------------------------------
@@ -206,7 +197,7 @@ export const list = trail('entity.list', {
     total: z.number(),
   }),
   run: (input, ctx) => {
-    const store = getStore(ctx);
+    const store = entityStoreService.from(ctx);
     const listOptions: { limit?: number; offset?: number; type?: string } = {
       limit: input.limit,
       offset: input.offset,
@@ -225,4 +216,5 @@ export const list = trail('entity.list', {
       total: entities.length,
     });
   },
+  services: [entityStoreService],
 });
