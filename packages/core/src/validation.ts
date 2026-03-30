@@ -151,10 +151,21 @@ export const zodToJsonSchema: JsonSchemaConverter = (
     default: (value) => {
       const inner = value._zod.def['innerType'] as unknown as z.ZodType;
       const innerSchema = zodToJsonSchema(inner);
+      // Zod v4 wraps all defaults in a getter. For dynamic defaults
+      // (functions that return new values each call), two accesses
+      // produce different results. Omit those to keep schemas stable.
       if (!defaultValueCache.has(value._zod.def)) {
-        defaultValueCache.set(value._zod.def, value._zod.def['defaultValue']);
+        const first = value._zod.def['defaultValue'];
+        const second = value._zod.def['defaultValue'];
+        defaultValueCache.set(
+          value._zod.def,
+          JSON.stringify(first) === JSON.stringify(second) ? first : undefined
+        );
       }
-      innerSchema['default'] = defaultValueCache.get(value._zod.def);
+      const cached = defaultValueCache.get(value._zod.def);
+      if (cached !== undefined) {
+        innerSchema['default'] = cached;
+      }
       return innerSchema;
     },
     enum: (value) => {

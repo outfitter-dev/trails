@@ -290,26 +290,29 @@ describe('zodToJsonSchema', () => {
       });
     });
 
-    test('memoizes functional defaults for deterministic output', () => {
+    test('omits dynamic defaults that produce different values', () => {
       let counter = 0;
       const schema = z.string().default(() => {
         counter += 1;
         return `id-${counter}`;
       });
-      const first = zodToJsonSchema(schema);
-      const second = zodToJsonSchema(schema);
-      // Both calls return the same memoized value
-      expect(first).toEqual(second);
-      // The default was evaluated exactly once (counter incremented once)
-      expect(first['default']).toBe('id-1');
-      expect(counter).toBe(1);
+      const result = zodToJsonSchema(schema);
+      expect(result).toEqual({ type: 'string' });
+      expect(result['default']).toBeUndefined();
     });
 
-    test('produces identical output across calls for functional defaults', () => {
+    test('preserves stable functional defaults that return constant values', () => {
+      const schema = z.string().default(() => 'constant');
+      const result = zodToJsonSchema(schema);
+      expect(result).toEqual({ default: 'constant', type: 'string' });
+    });
+
+    test('produces identical output across calls for dynamic defaults', () => {
       const schema = z.string().default(() => `id-${Date.now()}`);
       const first = zodToJsonSchema(schema);
       const second = zodToJsonSchema(schema);
       expect(first).toEqual(second);
+      expect(first['default']).toBeUndefined();
     });
   });
 });
