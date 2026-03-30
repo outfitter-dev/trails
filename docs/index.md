@@ -10,6 +10,7 @@
 
 - **[Architecture](./architecture.md)** — Hexagonal model, package layers, how data flows from trail to surface
 - **[API Reference](./api-reference.md)** — Every public export across all packages
+- **[Services Guide](./services.md)** — Define dependencies, declare them on trails, test with mock factories
 - **[Testing Guide](./testing.md)** — TDD with examples, `testAll()`, contract testing, surface harnesses
 
 ## Adding a surface?
@@ -34,7 +35,7 @@
 - **[ADR-006: Shared Execution Pipeline](./adr/006-shared-execution-pipeline.md)** — One `executeTrail`, Result-returning builders
 - **[ADR-007: Governance as Trails](./adr/007-governance-as-trails.md)** — Warden rules are trails, AST-based analysis
 - **[ADR-008: Deterministic Surface Derivation](./adr/008-deterministic-surface-derivation.md)** — Explicit lookup tables for every surface
-- **[ADR-009: Services as a First-Class Primitive](./adr/009-services.md)** *(proposed)* — Dependency declarations, lifecycle, testing, governance
+- **[ADR-009: Services as a First-Class Primitive](./adr/009-services.md)** — Dependency declarations, lifecycle, testing, governance
 
 ## What's next?
 

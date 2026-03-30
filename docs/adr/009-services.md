@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 created: 2026-03-30
 updated: 2026-03-30
 author: '@galligan'

@@ -43,6 +43,7 @@ const onboard = trail('entity.onboard', {
 | --- | --- |
 | `trail(id, spec)` | Define a unit of work with typed input and `Result` output; use `follow` for composition |
 | `event(id, spec)` | Define a server-originated push with a typed data schema |
+| `service(id, spec)` | Define an infrastructure dependency with `create`, `dispose`, and optional `mock` |
 | `topo(name, ...modules)` | Collect trail modules into a queryable topology |
 | `validateTopo(topo)` | Structural validation: follow targets exist, no cycles, examples parse, output schemas present |
 

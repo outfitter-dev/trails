@@ -60,6 +60,10 @@ Trail IDs map to paths: `entity.show` becomes `/entity/show`. Dots become slashe
 
 `buildHttpRoutes` detects when two trails would produce the same `(method, path)` pair and returns `Result.err(ValidationError)` describing both trail IDs. The `blaze()` Hono adapter throws on collision.
 
+## Service resolution
+
+Declared services on each trail are resolved into the context before the implementation runs.
+
 ## AbortSignal propagation
 
 The `execute` function on each `HttpRouteDefinition` accepts an optional `AbortSignal`. The Hono adapter extracts `signal` from `c.req.raw` and passes it to `execute`, so client disconnects propagate into trail execution.

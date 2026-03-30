@@ -97,6 +97,7 @@ Each declaration you add to a trail unlocks derived behavior across every surfac
 | `intent: 'destroy'` | MCP `destructiveHint`, CLI auto-adds `--dry-run`, HTTP DELETE |
 | `examples` | Tests (happy + error path), agent guidance, documentation |
 | `follow` | Composition graph, cycle detection, follow coverage in tests |
+| `services: [db]` | Singleton lifecycle, test mock auto-resolution, warden governance |
 | `detours` | Recovery paths, warden validates targets exist |
 
 The value isn't any single feature. It's that they multiply — each declaration makes every surface smarter without additional wiring.

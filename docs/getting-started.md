@@ -168,6 +168,10 @@ That single `testAll(app)` call runs the full governance suite:
 
 No separate test files for the happy path. The examples ARE the tests.
 
+If your app declares services with `mock` factories, `testAll(app)` and
+`testExamples(app)` pick them up automatically. Use explicit `services`
+overrides only when you need a specific fake or fresh mutable state.
+
 For finer control, use `testExamples(app)` to run only example assertions without structural checks:
 
 ```typescript
@@ -236,6 +240,35 @@ export const addAndDouble = trail('math.add-and-double', {
 ```
 
 Trails declare their composition dependencies with `follow` and invoke them with `ctx.follow()`. The warden linter verifies these match.
+
+## Using Services
+
+When a trail needs an external dependency — a database, cache, or API client — declare it as a service:
+
+```typescript
+import { service, trail, Result } from '@ontrails/core';
+import { z } from 'zod';
+
+const db = service('db', {
+  create: () => Result.ok(createPool(process.env.DATABASE_URL)),
+  mock: () => createMockPool(),
+  dispose: (pool) => pool.end(),
+});
+
+export const listUsers = trail('user.list', {
+  services: [db],
+  input: z.object({}),
+  output: z.object({ users: z.array(UserSchema) }),
+  intent: 'read',
+  run: async (input, ctx) => {
+    const pool = db.from(ctx);
+    const rows = await pool.query('SELECT * FROM users');
+    return Result.ok({ users: rows });
+  },
+});
+```
+
+The `services: [db]` declaration tells the topo which infrastructure this trail depends on. Access the service instance through `db.from(ctx)` for typed access. When you run `testAll(app)`, the framework automatically resolves `mock` factories — no configuration needed for example-based tests.
 
 ## What's Next
 

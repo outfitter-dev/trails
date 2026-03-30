@@ -19,7 +19,7 @@ if (diff.hasBreaking) {
 }
 ```
 
-The surface map captures every trail's input/output schemas (as JSON Schema), intent and metadata, follow graph, and example counts. The hash goes into `surface.lock` -- a single committed line that CI can check for drift.
+The surface map captures every trail's input/output schemas (as JSON Schema), intent and metadata, follow graph, declared services, example counts, and the registered service inventory. The hash goes into `surface.lock` -- a single committed line that CI can check for drift.
 
 ## API
 
@@ -48,7 +48,10 @@ The diff classifies every change by severity:
 | Safety property changed | warning |
 | Trail deprecated | warning |
 | Follow changed | warning |
+| Declared services changed | warning |
+| Service removed | breaking |
 | Trail added | info |
+| Service added | info |
 | Optional input field added | info |
 | Output field added | info |
 

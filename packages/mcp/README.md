@@ -67,6 +67,10 @@ No manual annotation definitions. The contract is the source of truth.
 
 Trail IDs become MCP tool names with the app prefix: `entity.show` in app `myapp` becomes `myapp_entity_show`. Dots and hyphens become underscores, everything lowercase.
 
+## Service resolution
+
+Declared services on each trail are resolved into the context before the implementation runs.
+
 ## Progress bridge
 
 Implementations report progress through `ctx.progress`. On MCP, these bridge to `notifications/progress` when the client sends a `progressToken`:

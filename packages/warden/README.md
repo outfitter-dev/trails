@@ -1,8 +1,8 @@
 # @ontrails/warden
 
-AST-based code convention rules for Trails. 10 lint rules that catch contract violations at development time, plus surface lock drift detection and CI formatters.
+AST-based code convention rules for Trails. 13 lint rules that catch contract violations at development time, plus surface lock drift detection and CI formatters.
 
-Structural checks (follow target existence, recursive follow, example schema validation) live in `validateTopo()` from `@ontrails/core`. Warden handles the code-level rules that need AST analysis.
+Structural checks (follow target existence, declared service existence, recursive follow, example schema validation) live in `validateTopo()` from `@ontrails/core`. Warden handles the code-level rules that need AST analysis.
 
 ## Usage
 
@@ -38,6 +38,8 @@ console.log(formatWardenReport(report));
 | `no-direct-impl-in-route` | warn | Direct `.run()` calls inside trail bodies with `follow` |
 | `prefer-schema-inference` | warn | Redundant field overrides already derivable from the schema |
 | `follow-declarations` | error/warn | `ctx.follow()` calls that drift from declared `follow: [...]` |
+| `service-declarations` | error/warn | `service.from(ctx)` / `ctx.service()` usage that drifts from declared `services: [...]` |
+| `service-exists` | error | Declared or referenced service IDs that do not resolve in project context |
 | `valid-describe-refs` | warn | `@see` refs in `.describe()` that do not resolve |
 
 ## Drift detection
@@ -84,6 +86,7 @@ console.log(wardenTopo.ids()); // ['warden.rule.no-throw-in-implementation', ...
 // Run all rule trails against a source file
 const diagnostics = await runWardenTrails(filePath, sourceCode, {
   knownTrailIds: myApp.ids(),
+  knownServiceIds: myApp.serviceIds(),
 });
 ```
 
