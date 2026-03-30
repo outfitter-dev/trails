@@ -39,6 +39,14 @@ export type {
 // Context factory
 export { createTrailContext } from './context.js';
 
+// Service
+export type {
+  AnyService,
+  Service,
+  ServiceContext,
+  ServiceSpec,
+} from './service.js';
+
 // Trail
 export { trail } from './trail.js';
 export type {
