@@ -95,13 +95,25 @@ export const validateOutput = <T>(
 // ---------------------------------------------------------------------------
 
 /**
- * Memoizes Zod default values per schema instance. Zod v4 wraps `defaultValue`
- * in a getter that re-evaluates function defaults on every access, which makes
- * repeated `zodToJsonSchema` calls nondeterministic for schemas like
- * `z.string().default(() => Bun.randomUUIDv7())`. Reading the value once and
- * caching it here keeps schema exports stable.
+ * Sentinel indicating a dynamic default that should be omitted from schema
+ * exports. Zod v4 wraps all defaults in getters; dynamic ones (functions)
+ * produce new values on each access. We detect this by reading the getter
+ * twice and comparing with `Object.is`. If values differ, the default is
+ * dynamic and we cache this sentinel to skip it in future calls.
  */
+const DYNAMIC_DEFAULT = Symbol('DYNAMIC_DEFAULT');
 const defaultValueCache = new WeakMap<object, unknown>();
+
+/** Read a Zod v4 default getter twice and decide if it's stable. */
+const resolveDefault = (def: Record<string, unknown>): unknown => {
+  try {
+    const a = def['defaultValue'];
+    const b = def['defaultValue'];
+    return Object.is(a, b) ? a : DYNAMIC_DEFAULT;
+  } catch {
+    return DYNAMIC_DEFAULT;
+  }
+};
 
 /**
  * Convert common Zod types to a JSON Schema object.
@@ -151,19 +163,11 @@ export const zodToJsonSchema: JsonSchemaConverter = (
     default: (value) => {
       const inner = value._zod.def['innerType'] as unknown as z.ZodType;
       const innerSchema = zodToJsonSchema(inner);
-      // Zod v4 wraps all defaults in a getter. For dynamic defaults
-      // (functions that return new values each call), two accesses
-      // produce different results. Omit those to keep schemas stable.
       if (!defaultValueCache.has(value._zod.def)) {
-        const first = value._zod.def['defaultValue'];
-        const second = value._zod.def['defaultValue'];
-        defaultValueCache.set(
-          value._zod.def,
-          JSON.stringify(first) === JSON.stringify(second) ? first : undefined
-        );
+        defaultValueCache.set(value._zod.def, resolveDefault(value._zod.def));
       }
       const cached = defaultValueCache.get(value._zod.def);
-      if (cached !== undefined) {
+      if (cached !== DYNAMIC_DEFAULT) {
         innerSchema['default'] = cached;
       }
       return innerSchema;
