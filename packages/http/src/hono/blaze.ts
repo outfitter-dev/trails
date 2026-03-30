@@ -11,7 +11,12 @@
  */
 
 import { isTrailsError, statusCodeMap, validateTopo } from '@ontrails/core';
-import type { Layer, Topo, TrailContext } from '@ontrails/core';
+import type {
+  Layer,
+  ServiceOverrideMap,
+  Topo,
+  TrailContextInit,
+} from '@ontrails/core';
 import { Hono } from 'hono';
 import type { Context as HonoContext } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
@@ -27,12 +32,13 @@ import { buildHttpRoutes } from '../build.js';
 export interface BlazeHttpOptions {
   readonly basePath?: string | undefined;
   readonly createContext?:
-    | (() => TrailContext | Promise<TrailContext>)
+    | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   readonly hostname?: string | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly name?: string | undefined;
   readonly port?: number | undefined;
+  readonly services?: ServiceOverrideMap | undefined;
   /** Set false to return the Hono app without starting a server. */
   readonly serve?: boolean | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
@@ -320,6 +326,7 @@ export const blaze = async (
     basePath: options.basePath,
     createContext: options.createContext,
     layers: options.layers,
+    services: options.services,
   });
 
   if (routesResult.isErr()) {

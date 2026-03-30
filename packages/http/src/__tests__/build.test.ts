@@ -4,6 +4,7 @@ import {
   InternalError,
   NotFoundError,
   Result,
+  service,
   ValidationError,
   trail,
   topo,
@@ -57,6 +58,13 @@ const internalMetaTrail = trail('secret', {
   input: z.object({}),
   metadata: { internal: true },
   run: () => Result.ok({ ok: true }),
+});
+
+const dbService = service('db.main', {
+  create: () =>
+    Result.ok({
+      source: 'factory',
+    }),
 });
 
 // ---------------------------------------------------------------------------
@@ -313,6 +321,28 @@ describe('buildHttpRoutes', () => {
       await route?.execute({});
       expect(capturedRequestId).toBeDefined();
       expect(capturedRequestId).not.toBe('');
+    });
+
+    test('forwards service overrides into executeTrail', async () => {
+      const serviceTrail = trail('service.check', {
+        input: z.object({}),
+        output: z.object({ source: z.string() }),
+        run: (_input, ctx) =>
+          Result.ok({ source: dbService.from(ctx).source as string }),
+        services: [dbService],
+      });
+
+      const app = topo('testapp', { serviceTrail });
+      const buildResult = buildHttpRoutes(app, {
+        services: { 'db.main': { source: 'override' } },
+      });
+
+      expect(buildResult.isOk()).toBe(true);
+      const [route] = buildResult.value;
+
+      const result = await route?.execute({});
+      expect(result?.isOk()).toBe(true);
+      expect(result?.value).toEqual({ source: 'override' });
     });
   });
 

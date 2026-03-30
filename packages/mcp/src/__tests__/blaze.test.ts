@@ -83,6 +83,14 @@ describe('blaze', () => {
     expect(['resolved', 'timeout']).toContain(result);
   });
 
+  test('BlazeMcpOptions accepts service overrides', () => {
+    const opts: Parameters<typeof blaze>[1] = {
+      services: {},
+      validate: false,
+    };
+    expect(opts.services).toEqual({});
+  });
+
   test('createMcpServer registers tools that can be listed', () => {
     const echoTrail = trail('echo', {
       description: 'Echo',

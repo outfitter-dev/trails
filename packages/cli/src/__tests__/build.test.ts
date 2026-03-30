@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, createTrailContext, trail, topo } from '@ontrails/core';
+import {
+  Result,
+  createTrailContext,
+  service,
+  trail,
+  topo,
+} from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -19,6 +25,13 @@ const makeApp = (...trails: AnyTrail[]) => {
   }
   return topo('test-app', mod);
 };
+
+const dbService = service('db.main', {
+  create: () =>
+    Result.ok({
+      name: 'factory',
+    }),
+});
 
 const requireCommand = (commands: ReturnType<typeof buildCliCommands>) => {
   const [command] = commands;
@@ -254,5 +267,25 @@ describe('buildCliCommands', () => {
     const result = await cmd.execute({}, {});
     expect(result.isErr()).toBe(true);
     expect(result.error.message).toContain('unexpected kaboom');
+  });
+});
+
+describe('buildCliCommands service overrides', () => {
+  test('forwards service overrides into executeTrail', async () => {
+    const t = trail('service-test', {
+      input: z.object({}),
+      output: z.object({ name: z.string() }),
+      run: (_input, ctx) =>
+        Result.ok({ name: dbService.from(ctx).name as string }),
+      services: [dbService],
+    });
+    const app = makeApp(t);
+    const commands = buildCliCommands(app, {
+      services: { 'db.main': { name: 'override' } },
+    });
+
+    const result = await commands[0]?.execute({}, {});
+    expect(result?.isOk()).toBe(true);
+    expect(result?.unwrap()).toEqual({ name: 'override' });
   });
 });

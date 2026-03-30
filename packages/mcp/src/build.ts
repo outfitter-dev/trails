@@ -13,7 +13,14 @@ import {
   isBlobRef,
   zodToJsonSchema,
 } from '@ontrails/core';
-import type { BlobRef, Layer, Topo, Trail, TrailContext } from '@ontrails/core';
+import type {
+  BlobRef,
+  Layer,
+  ServiceOverrideMap,
+  Topo,
+  Trail,
+  TrailContextInit,
+} from '@ontrails/core';
 
 import type { McpAnnotations } from './annotations.js';
 import { deriveAnnotations } from './annotations.js';
@@ -26,11 +33,12 @@ import { deriveToolName } from './tool-name.js';
 
 export interface BuildMcpToolsOptions {
   readonly createContext?:
-    | (() => TrailContext | Promise<TrailContext>)
+    | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   readonly excludeTrails?: readonly string[] | undefined;
   readonly includeTrails?: readonly string[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
+  readonly services?: ServiceOverrideMap | undefined;
 }
 
 export interface McpToolDefinition {
@@ -214,6 +222,7 @@ const createHandler =
       createContext: options.createContext,
       ctx: progressCb === undefined ? undefined : { progress: progressCb },
       layers,
+      services: options.services,
       signal: extra.signal,
     });
     if (result.isOk()) {

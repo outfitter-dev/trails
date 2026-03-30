@@ -4,6 +4,7 @@ import {
   InternalError,
   NotFoundError,
   Result,
+  service,
   trail,
   topo,
 } from '@ontrails/core';
@@ -49,6 +50,13 @@ const internalTrail = trail('crash', {
   description: 'Always fails with internal error',
   input: z.object({}),
   run: () => Result.err(new InternalError('Something broke')),
+});
+
+const dbService = service('db.main', {
+  create: () =>
+    Result.ok({
+      source: 'factory',
+    }),
 });
 
 // ---------------------------------------------------------------------------
@@ -489,6 +497,29 @@ describe('blaze (Hono adapter)', () => {
       const res = await request(hono, 'GET', '/ctx/custom');
       expect(res.status).toBe(200);
       expect(contextUsed).toBe(true);
+    });
+
+    test('service overrides reach the trail through blaze()', async () => {
+      const serviceTrail = trail('service.check', {
+        input: z.object({}),
+        intent: 'read',
+        output: z.object({ source: z.string() }),
+        run: (_input, ctx) =>
+          Result.ok({ source: dbService.from(ctx).source as string }),
+        services: [dbService],
+      });
+
+      const app = topo('testapp', { dbService, serviceTrail });
+      const hono = await blaze(app, {
+        serve: false,
+        services: { 'db.main': { source: 'override' } },
+      });
+
+      const res = await request(hono, 'GET', '/service/check');
+      expect(res.status).toBe(200);
+
+      const json = await res.json();
+      expect(json.data.source).toBe('override');
     });
   });
 });

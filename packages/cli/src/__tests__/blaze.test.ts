@@ -70,8 +70,12 @@ describe('blaze', () => {
     expect(() =>
       buildCliCommands(app, { onResult: defaultOnResult })
     ).not.toThrow();
-    const opts: Parameters<typeof blaze>[1] = { validate: false };
+    const opts: Parameters<typeof blaze>[1] = {
+      services: {},
+      validate: false,
+    };
     expect(opts.validate).toBe(false);
+    expect(opts.services).toEqual({});
   });
 
   test('blaze returns a Promise (async signature)', () => {

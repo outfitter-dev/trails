@@ -14,7 +14,12 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import type { Layer, Topo, TrailContext } from '@ontrails/core';
+import type {
+  Layer,
+  ServiceOverrideMap,
+  Topo,
+  TrailContextInit,
+} from '@ontrails/core';
 import { validateTopo } from '@ontrails/core';
 
 import type { McpToolDefinition } from './build.js';
@@ -27,7 +32,7 @@ import { connectStdio } from './stdio.js';
 
 export interface BlazeMcpOptions {
   readonly createContext?:
-    | (() => TrailContext | Promise<TrailContext>)
+    | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   readonly excludeTrails?: readonly string[] | undefined;
   readonly includeTrails?: readonly string[] | undefined;
@@ -39,6 +44,7 @@ export interface BlazeMcpOptions {
       }
     | undefined;
   readonly transport?: 'stdio' | undefined;
+  readonly services?: ServiceOverrideMap | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
   readonly validate?: boolean | undefined;
 }
@@ -145,6 +151,7 @@ export const blaze = async (
     excludeTrails: options.excludeTrails,
     includeTrails: options.includeTrails,
     layers: options.layers,
+    services: options.services,
   });
 
   if (toolsResult.isErr()) {
