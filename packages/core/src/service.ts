@@ -1,3 +1,4 @@
+import { NotFoundError } from './errors.js';
 import type { Result } from './result.js';
 import type { TrailContext } from './types.js';
 import type { z } from 'zod';
@@ -46,6 +47,8 @@ export interface ServiceSpec<T> {
 export interface Service<T> extends ServiceSpec<T> {
   readonly kind: 'service';
   readonly id: string;
+  /** Read the resolved service instance from a trail context. */
+  from(ctx: TrailContext): T;
 }
 
 /**
@@ -56,3 +59,53 @@ export interface Service<T> extends ServiceSpec<T> {
  */
 // oxlint-disable-next-line no-explicit-any -- existential type for heterogeneous service collections
 export type AnyService = Service<any>;
+
+const getServiceInstance = (ctx: TrailContext, id: string): unknown =>
+  ctx.extensions?.[id];
+
+/**
+ * Create a typed service definition.
+ *
+ * The service object is inert until a later execution branch resolves concrete
+ * instances into TrailContext extensions.
+ */
+export const service = <T>(id: string, spec: ServiceSpec<T>): Service<T> =>
+  Object.freeze({
+    ...spec,
+    from(ctx: TrailContext): T {
+      if (!Object.hasOwn(ctx.extensions ?? {}, id)) {
+        throw new NotFoundError(`Service "${id}" not found in trail context`);
+      }
+      return getServiceInstance(ctx, id) as T;
+    },
+    id,
+    kind: 'service' as const,
+  });
+
+/** Narrow unknown values to service definitions during topo discovery. */
+export const isService = (value: unknown): value is AnyService => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const v = value as { kind?: unknown; id?: unknown };
+  return v.kind === 'service' && typeof v.id === 'string';
+};
+
+/**
+ * Return the first duplicate service ID in a collection, if any.
+ *
+ * This supports later topo registration without each caller duplicating the
+ * same scan logic.
+ */
+export const findDuplicateServiceId = (
+  services: readonly Pick<AnyService, 'id'>[]
+): string | undefined => {
+  const seen = new Set<string>();
+  for (const candidate of services) {
+    if (seen.has(candidate.id)) {
+      return candidate.id;
+    }
+    seen.add(candidate.id);
+  }
+  return undefined;
+};
