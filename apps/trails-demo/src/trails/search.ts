@@ -7,7 +7,7 @@
 import { trail, Result } from '@ontrails/core';
 import { z } from 'zod';
 
-import type { EntityStore } from '../store.js';
+import { entityStoreService } from '../services/entity-store.js';
 
 // ---------------------------------------------------------------------------
 // search
@@ -45,7 +45,7 @@ export const search = trail('search', {
     total: z.number(),
   }),
   run: (input, ctx) => {
-    const store = ctx.extensions?.['store'] as EntityStore;
+    const store = entityStoreService.from(ctx);
     const results = store.search(input.query);
     const limited = results.slice(0, input.limit);
     return Result.ok({
@@ -59,4 +59,5 @@ export const search = trail('search', {
       total: results.length,
     });
   },
+  services: [entityStoreService],
 });

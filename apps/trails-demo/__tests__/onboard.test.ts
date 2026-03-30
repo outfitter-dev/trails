@@ -15,6 +15,7 @@ import {
 import { expectErr } from '@ontrails/testing';
 import type { Trail, TrailContext } from '@ontrails/core';
 
+import { entityStoreService } from '../src/services/entity-store.js';
 import type { EntityStore } from '../src/store.js';
 import { createStore } from '../src/store.js';
 import { add } from '../src/trails/entity.js';
@@ -48,7 +49,9 @@ const createFollowFn = (ctx: TrailContext) => {
 };
 
 const makeCtx = (store: EntityStore): TrailContext => {
-  const base = createTrailContext({ extensions: { store } });
+  const base = createTrailContext({
+    extensions: { [entityStoreService.id]: store },
+  });
   const ctx: TrailContext = { ...base, follow: createFollowFn(base) };
   return ctx;
 };

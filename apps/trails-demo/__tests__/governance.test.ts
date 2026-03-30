@@ -23,6 +23,7 @@ import { z } from 'zod';
 
 import { app } from '../src/app.js';
 import * as entityEvents from '../src/events/entity-events.js';
+import * as demoServices from '../src/services/entity-store.js';
 import * as entity from '../src/trails/entity.js';
 import * as kv from '../src/trails/kv.js';
 import * as onboard from '../src/trails/onboard.js';
@@ -35,7 +36,7 @@ import * as search from '../src/trails/search.js';
 describe('surface map generation', () => {
   const surfaceMap = generateSurfaceMap(app);
 
-  test('contains all expected trail IDs', () => {
+  test('contains all expected trail, event, and service IDs', () => {
     const ids = surfaceMap.entries.map((e) => e.id);
 
     expect(ids).toContain('entity.show');
@@ -46,10 +47,11 @@ describe('surface map generation', () => {
     expect(ids).toContain('entity.onboard');
     expect(ids).toContain('entity.updated');
     expect(ids).toContain('demo.upsert');
+    expect(ids).toContain('demo.entity-store');
   });
 
-  test('has exactly 8 entries (7 trails + 1 event)', () => {
-    expect(surfaceMap.entries).toHaveLength(8);
+  test('has exactly 9 entries (7 trails + 1 event + 1 service)', () => {
+    expect(surfaceMap.entries).toHaveLength(9);
   });
 
   test('entries are sorted alphabetically by id', () => {
@@ -61,7 +63,7 @@ describe('surface map generation', () => {
   test('each entry has the expected fields', () => {
     for (const entry of surfaceMap.entries) {
       expect(entry.id).toBeString();
-      expect(entry.kind).toBeOneOf(['trail', 'event']);
+      expect(entry.kind).toBeOneOf(['trail', 'event', 'service']);
       expect(entry.exampleCount).toBeNumber();
       expect(Array.isArray(entry.surfaces)).toBe(true);
     }
@@ -107,6 +109,19 @@ describe('surface map generation', () => {
     if (updatedEntry) {
       expect(updatedEntry.kind).toBe('event');
       expect(updatedEntry.input).toBeDefined();
+    }
+  });
+
+  test('service entries include their description', () => {
+    const serviceEntry = surfaceMap.entries.find(
+      (e) => e.id === 'demo.entity-store'
+    );
+    expect(serviceEntry).toBeDefined();
+    if (serviceEntry) {
+      expect(serviceEntry.kind).toBe('service');
+      expect(serviceEntry.description).toBe(
+        'In-memory entity store used by the demo trails app.'
+      );
     }
   });
 });
@@ -178,6 +193,7 @@ const makeModifiedShow = (inputSchema: z.ZodType) =>
         updatedAt: '',
       });
     },
+    services: [demoServices.entityStoreService],
   });
 
 /** Diff the baseline app against a modified app. */
@@ -197,7 +213,9 @@ describe('breaking change detection', () => {
       { ...entity, show: modifiedShow },
       search,
       onboard,
-      entityEvents
+      entityEvents,
+      kv,
+      demoServices
     );
 
     expect(diff.hasBreaking).toBe(true);
@@ -213,7 +231,7 @@ describe('breaking change detection', () => {
   });
 
   test('removed trail is detected as breaking', () => {
-    const diff = diffAgainst(entity, onboard, entityEvents);
+    const diff = diffAgainst(entity, onboard, entityEvents, kv, demoServices);
 
     expect(diff.hasBreaking).toBe(true);
     const searchRemoved = diff.breaking.find((e) => e.id === 'search');
@@ -240,9 +258,15 @@ describe('non-breaking change detection', () => {
       run: (input) => Result.ok({ name: input.name, updated: true }),
     });
 
-    const diff = diffAgainst(entity, search, onboard, entityEvents, kv, {
-      update,
-    });
+    const diff = diffAgainst(
+      entity,
+      search,
+      onboard,
+      entityEvents,
+      kv,
+      demoServices,
+      { update }
+    );
     expect(diff.hasBreaking).toBe(false);
 
     const addedEntry = diff.info.find((e) => e.id === 'entity.update');
@@ -262,7 +286,8 @@ describe('non-breaking change detection', () => {
       search,
       onboard,
       entityEvents,
-      kv
+      kv,
+      demoServices
     );
     expect(diff.hasBreaking).toBe(false);
 

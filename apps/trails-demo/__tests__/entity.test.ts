@@ -7,6 +7,7 @@
 import { NotFoundError, AlreadyExistsError } from '@ontrails/core';
 import { testTrail } from '@ontrails/testing';
 
+import { entityStoreService } from '../src/services/entity-store.js';
 import { createStore } from '../src/store.js';
 import { show, add, remove, list } from '../src/trails/entity.js';
 
@@ -18,6 +19,12 @@ const store = createStore([
   { name: 'Alpha', tags: ['core'], type: 'concept' },
   { name: 'Beta', tags: ['automation'], type: 'tool' },
 ]);
+
+const ctx = {
+  extensions: {
+    [entityStoreService.id]: store,
+  },
+};
 
 // ---------------------------------------------------------------------------
 // entity.show
@@ -33,7 +40,7 @@ testTrail(
       input: { name: 'alpha' },
     },
   ],
-  { extensions: { store } }
+  ctx
 );
 
 // ---------------------------------------------------------------------------
@@ -55,7 +62,7 @@ testTrail(
       input: { name: 'Alpha', type: 'concept' },
     },
   ],
-  { extensions: { store } }
+  ctx
 );
 
 // ---------------------------------------------------------------------------
@@ -72,7 +79,7 @@ testTrail(
       input: { name: 'does-not-exist' },
     },
   ],
-  { extensions: { store } }
+  ctx
 );
 
 // ---------------------------------------------------------------------------
@@ -94,5 +101,5 @@ testTrail(
       input: { type: 'nonexistent-type' },
     },
   ],
-  { extensions: { store } }
+  ctx
 );
