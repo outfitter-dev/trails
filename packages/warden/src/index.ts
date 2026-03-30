@@ -26,6 +26,7 @@ export { noSyncResultAssumption } from './rules/no-sync-result-assumption.js';
 export { implementationReturnsResult } from './rules/implementation-returns-result.js';
 export { noThrowInDetourTarget } from './rules/no-throw-in-detour-target.js';
 export { preferSchemaInference } from './rules/prefer-schema-inference.js';
+export { serviceDeclarations } from './rules/service-declarations.js';
 export { validDescribeRefs } from './rules/valid-describe-refs.js';
 
 // Rule registry
@@ -62,6 +63,7 @@ export {
   preferSchemaInferenceTrail,
   ruleInput,
   ruleOutput,
+  serviceDeclarationsTrail,
   validDescribeRefsTrail,
   validDetourRefsTrail,
 } from './trails/index.js';

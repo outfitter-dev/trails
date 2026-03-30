@@ -39,8 +39,26 @@ export const parse = (filePath: string, sourceCode: string): AstNode | null => {
 // Walker
 // ---------------------------------------------------------------------------
 
+type WalkFn = (node: unknown, visit: (node: AstNode) => void) => void;
+
+const walkChildren = (
+  node: AstNode,
+  visit: (node: AstNode) => void,
+  recurse: WalkFn
+): void => {
+  for (const val of Object.values(node)) {
+    if (Array.isArray(val)) {
+      for (const item of val) {
+        recurse(item, visit);
+      }
+    } else if (val && typeof val === 'object' && (val as AstNode).type) {
+      recurse(val, visit);
+    }
+  }
+};
+
 /** Walk an AST node tree, calling `visit` on every node. */
-export const walk = (node: unknown, visit: (node: AstNode) => void): void => {
+export const walk: WalkFn = (node, visit) => {
   if (!node || typeof node !== 'object') {
     return;
   }
@@ -48,15 +66,44 @@ export const walk = (node: unknown, visit: (node: AstNode) => void): void => {
   if (n.type) {
     visit(n);
   }
-  for (const val of Object.values(n)) {
-    if (Array.isArray(val)) {
-      for (const item of val) {
-        walk(item, visit);
-      }
-    } else if (val && typeof val === 'object' && (val as AstNode).type) {
-      walk(val, visit);
+  walkChildren(n, visit, walk);
+};
+
+const NESTED_SCOPE_TYPES = new Set([
+  'ArrowFunctionExpression',
+  'FunctionExpression',
+  'FunctionDeclaration',
+]);
+
+const walkScopeInner: WalkFn = (node, visit) => {
+  if (!node || typeof node !== 'object') {
+    return;
+  }
+  const n = node as AstNode;
+  if (n.type) {
+    visit(n);
+    if (NESTED_SCOPE_TYPES.has(n.type)) {
+      return;
     }
   }
+  walkChildren(n, visit, walkScopeInner);
+};
+
+/**
+ * Walk an AST node tree without descending into nested function scopes.
+ * The root node is always traversed; only inner function boundaries are skipped.
+ * Useful for service-access analysis where inner functions may shadow
+ * the trail context parameter name.
+ */
+export const walkScope: WalkFn = (node, visit) => {
+  if (!node || typeof node !== 'object') {
+    return;
+  }
+  const n = node as AstNode;
+  if (n.type) {
+    visit(n);
+  }
+  walkChildren(n, visit, walkScopeInner);
 };
 
 // ---------------------------------------------------------------------------
@@ -72,6 +119,119 @@ export const offsetToLine = (sourceCode: string, offset: number): number => {
     }
   }
   return line;
+};
+
+/** Get the name of an Identifier node, or null. */
+export const identifierName = (node: AstNode | undefined): string | null => {
+  if (node?.type !== 'Identifier') {
+    return null;
+  }
+  return (node as unknown as { name?: string }).name ?? null;
+};
+
+/** Check if a node is a string literal. */
+export const isStringLiteral = (node: AstNode | undefined): node is AstNode => {
+  if (!node) {
+    return false;
+  }
+  if (node.type === 'StringLiteral') {
+    return true;
+  }
+  if (node.type === 'Literal') {
+    return typeof (node as unknown as { value?: unknown }).value === 'string';
+  }
+  return false;
+};
+
+/** Extract the string value from a string literal node. */
+export const getStringValue = (node: AstNode): string | null => {
+  const val = (node as unknown as { value?: unknown }).value;
+  return typeof val === 'string' ? val : null;
+};
+
+/** Extract a string literal value, or null when the node is not a string. */
+export const extractStringLiteral = (
+  node: AstNode | undefined
+): string | null =>
+  node && isStringLiteral(node) ? getStringValue(node) : null;
+
+/** Extract the first string argument from a CallExpression. */
+export const extractFirstStringArg = (node: AstNode): string | null => {
+  if (node.type !== 'CallExpression') {
+    return null;
+  }
+
+  const args = node['arguments'] as readonly AstNode[] | undefined;
+  const [firstArg] = args ?? [];
+  return extractStringLiteral(firstArg);
+};
+
+const isServiceCall = (node: AstNode | undefined): boolean =>
+  !!node &&
+  node.type === 'CallExpression' &&
+  identifierName((node as unknown as { callee?: AstNode }).callee) ===
+    'service';
+
+const extractBindingName = (node: AstNode | undefined): string | null => {
+  if (!node) {
+    return null;
+  }
+  if (node.type === 'Identifier') {
+    return identifierName(node);
+  }
+  if (node.type === 'AssignmentPattern') {
+    return identifierName((node as unknown as { left?: AstNode }).left);
+  }
+  return null;
+};
+
+/** Collect `const foo = service('id', ...)` bindings from a parsed file. */
+export const collectNamedServiceIds = (
+  ast: AstNode
+): ReadonlyMap<string, string> => {
+  const ids = new Map<string, string>();
+
+  walk(ast, (node) => {
+    if (node.type !== 'VariableDeclarator') {
+      return;
+    }
+
+    const { id, init } = node as unknown as {
+      readonly id?: AstNode;
+      readonly init?: AstNode;
+    };
+    if (!isServiceCall(init)) {
+      return;
+    }
+
+    const name = extractBindingName(id);
+    const serviceId = init ? extractFirstStringArg(init) : null;
+    if (name && serviceId) {
+      ids.set(name, serviceId);
+    }
+  });
+
+  return ids;
+};
+
+/** Collect all inline `service('id', ...)` definition IDs from a parsed file. */
+export const collectServiceDefinitionIds = (
+  ast: AstNode
+): ReadonlySet<string> => {
+  const ids = new Set<string>();
+
+  walk(ast, (node) => {
+    if (!isServiceCall(node)) {
+      return;
+    }
+
+    const id = extractFirstStringArg(node);
+    if (id) {
+      ids.add(id);
+    }
+  });
+
+  return ids;
 };
 
 // ---------------------------------------------------------------------------
