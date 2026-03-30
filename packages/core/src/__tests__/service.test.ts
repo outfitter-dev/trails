@@ -100,6 +100,9 @@ describe('service types', () => {
 
   test('Service carries identity alongside the shared spec fields', async () => {
     const service: Service<number> = {
+      from(ctx) {
+        return ctx.service(this);
+      },
       id: 'counter.main',
       kind: 'service',
       ...counterServiceSpec,

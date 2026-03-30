@@ -9,7 +9,7 @@ import type { Layer } from '../layer';
 import { Result } from '../result';
 import { topo } from '../topo';
 import { trail } from '../trail';
-import type { TrailContext } from '../types';
+import type { TrailContext, TrailContextInit } from '../types';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -124,7 +124,7 @@ describe('dispatch', () => {
       });
 
       const ctxTopo = topo('factory-test', { ctxTrail });
-      const customCtx: TrailContext = {
+      const customCtx: TrailContextInit = {
         cwd: '/custom',
         requestId: 'factory-id',
         signal: new AbortController().signal,

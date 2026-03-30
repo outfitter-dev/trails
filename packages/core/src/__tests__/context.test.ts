@@ -57,6 +57,18 @@ describe('createTrailContext', () => {
     expect(ctx.extensions?.['nested']).toEqual({ key: 'value' });
   });
 
+  test('provides a service accessor backed by extensions', () => {
+    const widget = { id: 'widget-1' };
+    const ctx = createTrailContext({
+      extensions: { 'widget.main': widget },
+    });
+
+    expect(ctx.service('widget.main')).toBe(widget);
+    expect(ctx.service<{ id: string }>({ id: 'widget.main' }).id).toBe(
+      'widget-1'
+    );
+  });
+
   test('each call generates a unique requestId', () => {
     const a = createTrailContext();
     const b = createTrailContext();

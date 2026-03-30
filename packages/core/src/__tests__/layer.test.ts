@@ -3,16 +3,17 @@ import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
 
+import { createTrailContext } from '../context';
 import { composeLayers } from '../layer';
 import type { Layer } from '../layer';
 import { Result } from '../result';
 import { trail } from '../trail';
 import type { TrailContext } from '../types';
 
-const stubCtx: TrailContext = {
+const stubCtx: TrailContext = createTrailContext({
   requestId: 'test-layer',
   signal: AbortSignal.timeout(5000),
-};
+});
 
 const echoTrail = trail('echo', {
   input: z.object({ value: z.string() }),

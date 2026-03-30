@@ -1,6 +1,6 @@
 import { NotFoundError } from './errors.js';
 import type { Result } from './result.js';
-import type { TrailContext } from './types.js';
+import type { ServiceLookup, TrailContext } from './types.js';
 import type { z } from 'zod';
 
 /**
@@ -60,8 +60,38 @@ export interface Service<T> extends ServiceSpec<T> {
 // oxlint-disable-next-line no-explicit-any -- existential type for heterogeneous service collections
 export type AnyService = Service<any>;
 
-const getServiceInstance = (ctx: TrailContext, id: string): unknown =>
-  ctx.extensions?.[id];
+/** Explicit runtime overrides keyed by service ID. */
+export type ServiceOverrideMap = Readonly<Record<string, unknown>>;
+
+const getServiceId = <T>(
+  serviceOrId: string | Pick<Service<T>, 'id'>
+): string => (typeof serviceOrId === 'string' ? serviceOrId : serviceOrId.id);
+
+const getServiceInstance = <T>(
+  ctx: Pick<TrailContext, 'extensions'>,
+  serviceOrId: string | Pick<Service<T>, 'id'>
+): T => {
+  const id = getServiceId(serviceOrId);
+  return ctx.extensions?.[id] as T;
+};
+
+const hasServiceInstance = (
+  ctx: Pick<TrailContext, 'extensions'>,
+  serviceOrId: string | Pick<AnyService, 'id'>
+): boolean => Object.hasOwn(ctx.extensions ?? {}, getServiceId(serviceOrId));
+
+/** Create a `ctx.service(...)` accessor bound to a concrete context snapshot. */
+export const createServiceLookup = (
+  getContext: () => Pick<TrailContext, 'extensions'>
+): ServiceLookup =>
+  ((serviceOrId: string | Pick<AnyService, 'id'>) => {
+    const id = getServiceId(serviceOrId);
+    const ctx = getContext();
+    if (!hasServiceInstance(ctx, id)) {
+      throw new NotFoundError(`Service "${id}" not found in trail context`);
+    }
+    return getServiceInstance(ctx, id);
+  }) as ServiceLookup;
 
 /**
  * Create a typed service definition.
@@ -73,10 +103,8 @@ export const service = <T>(id: string, spec: ServiceSpec<T>): Service<T> =>
   Object.freeze({
     ...spec,
     from(ctx: TrailContext): T {
-      if (!Object.hasOwn(ctx.extensions ?? {}, id)) {
-        throw new NotFoundError(`Service "${id}" not found in trail context`);
-      }
-      return getServiceInstance(ctx, id) as T;
+      const lookup = ctx.service ?? createServiceLookup(() => ctx);
+      return lookup(this);
     },
     id,
     kind: 'service' as const,

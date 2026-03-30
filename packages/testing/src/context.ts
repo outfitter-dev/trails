@@ -3,10 +3,14 @@
  */
 
 import type { FollowFn, TrailContext } from '@ontrails/core';
-import { Result } from '@ontrails/core';
+import { Result, createServiceLookup } from '@ontrails/core';
 
 import { createTestLogger } from './logger.js';
 import type { TestTrailContextOptions } from './types.js';
+
+type MutableTrailContext = {
+  -readonly [K in keyof TrailContext]: TrailContext[K];
+};
 
 // ---------------------------------------------------------------------------
 // createTestContext
@@ -21,13 +25,18 @@ import type { TestTrailContextOptions } from './types.js';
  */
 export const createTestContext = (
   overrides?: TestTrailContextOptions
-): TrailContext => ({
-  env: overrides?.env ?? { TRAILS_ENV: 'test' },
-  logger: overrides?.logger ?? createTestLogger(),
-  requestId: overrides?.requestId ?? 'test-request-001',
-  signal: overrides?.signal ?? new AbortController().signal,
-  workspaceRoot: overrides?.cwd ?? process.cwd(),
-});
+): TrailContext => {
+  const ctx = {
+    env: overrides?.env ?? { TRAILS_ENV: 'test' },
+    extensions: undefined,
+    logger: overrides?.logger ?? createTestLogger(),
+    requestId: overrides?.requestId ?? 'test-request-001',
+    signal: overrides?.signal ?? new AbortController().signal,
+    workspaceRoot: overrides?.cwd ?? process.cwd(),
+  } as MutableTrailContext;
+  ctx.service = createServiceLookup(() => ctx);
+  return ctx;
+};
 
 // ---------------------------------------------------------------------------
 // createFollowContext
