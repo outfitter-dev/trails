@@ -152,7 +152,6 @@ const undeclaredServiceTrail = trail('service.undeclared.examples', {
   run: (_input, ctx) =>
     Result.ok({ source: undeclaredDbService.from(ctx).source }),
 });
-
 const followedDbService = service('db.mock.examples.follow', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),

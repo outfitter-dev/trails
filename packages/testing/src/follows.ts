@@ -7,8 +7,14 @@
 
 import { describe, expect, test } from 'bun:test';
 
-import type { AnyTrail, FollowFn, TrailContext } from '@ontrails/core';
+import type {
+  AnyTrail,
+  FollowFn,
+  ServiceOverrideMap,
+  TrailContext,
+} from '@ontrails/core';
 import {
+  executeTrail,
   InternalError,
   Result,
   ValidationError,
@@ -19,9 +25,8 @@ import {
   assertErrorMatch,
   assertFullMatch,
   assertSchemaMatch,
-  expectOk,
 } from './assertions.js';
-import { mergeTestContext } from './context.js';
+import { mergeServiceOverrides, mergeTestContext } from './context.js';
 import type { FollowScenario } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -32,6 +37,58 @@ interface FollowRecord {
   readonly id: string;
   readonly input: unknown;
 }
+
+const collectDeclaredServices = (
+  trailDef: AnyTrail,
+  trailsMap: ReadonlyMap<string, AnyTrail> | undefined
+): AnyTrail['services'] => {
+  const seenServiceIds = new Set<string>();
+  const seenTrailIds = new Set<string>();
+  const services: AnyTrail['services'][number][] = [];
+
+  const collect = (candidate: AnyTrail): void => {
+    for (const declaredService of candidate.services) {
+      if (seenServiceIds.has(declaredService.id)) {
+        continue;
+      }
+      seenServiceIds.add(declaredService.id);
+      services.push(declaredService);
+    }
+  };
+
+  const visit = (candidate: AnyTrail): void => {
+    if (seenTrailIds.has(candidate.id)) {
+      return;
+    }
+    seenTrailIds.add(candidate.id);
+    collect(candidate);
+    for (const followedId of candidate.follow) {
+      const followedTrail = trailsMap?.get(followedId);
+      if (followedTrail) {
+        visit(followedTrail);
+      }
+    }
+  };
+
+  visit(trailDef);
+  return services;
+};
+
+const resolveMockServices = async (
+  trailDef: AnyTrail,
+  trailsMap: ReadonlyMap<string, AnyTrail> | undefined
+): Promise<ServiceOverrideMap> => {
+  const services: Record<string, unknown> = {};
+
+  for (const declaredService of collectDeclaredServices(trailDef, trailsMap)) {
+    if (!declaredService.mock) {
+      continue;
+    }
+    services[declaredService.id] = await declaredService.mock();
+  }
+
+  return services;
+};
 
 // ---------------------------------------------------------------------------
 // Injection helpers
@@ -91,6 +148,7 @@ const executeFromMap = (
   input: unknown,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
   ctx: TrailContext,
+  services: ServiceOverrideMap | undefined,
   follow?: FollowFn
 ): Result<unknown, Error> | Promise<Result<unknown, Error>> | undefined => {
   const trailDef = trailsMap?.get(id);
@@ -98,12 +156,11 @@ const executeFromMap = (
     return undefined;
   }
 
-  const validated = validateInput(trailDef.input, input);
-  if (validated.isErr()) {
-    return validated;
-  }
   const nestedCtx = follow ? { ...ctx, follow } : ctx;
-  return trailDef.run(validated.value, nestedCtx);
+  return executeTrail(trailDef, input, {
+    ctx: nestedCtx,
+    services,
+  });
 };
 
 // ---------------------------------------------------------------------------
@@ -118,7 +175,8 @@ const createRecordingFollow = (
   scenario: FollowScenario,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
   baseFollow: FollowFn | undefined,
-  ctx: TrailContext
+  ctx: TrailContext,
+  services: ServiceOverrideMap | undefined
 ): FollowFn => {
   // The generic O on FollowFn is erased at runtime; the cast is safe
   // because callers narrow via isOk/isErr before accessing the value.
@@ -139,6 +197,7 @@ const createRecordingFollow = (
       input,
       trailsMap,
       ctx,
+      services,
       follow as FollowFn
     );
     if (executed !== undefined) {
@@ -217,7 +276,8 @@ const handleValidationError = (
 const buildTestContext = (
   scenario: FollowScenario,
   ctx: Partial<TrailContext> | undefined,
-  trailsMap: ReadonlyMap<string, AnyTrail> | undefined
+  trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
+  services: ServiceOverrideMap | undefined
 ): { trace: FollowRecord[]; testCtx: TrailContext } => {
   const trace: FollowRecord[] = [];
   const baseCtx = mergeTestContext(ctx);
@@ -226,7 +286,8 @@ const buildTestContext = (
     scenario,
     trailsMap,
     baseCtx.follow,
-    baseCtx
+    baseCtx,
+    services
   );
   return { testCtx: { ...baseCtx, follow }, trace };
 };
@@ -235,15 +296,24 @@ const runScenario = async (
   trailDef: AnyTrail,
   scenario: FollowScenario,
   ctx: Partial<TrailContext> | undefined,
-  trailsMap: ReadonlyMap<string, AnyTrail> | undefined
+  trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
+  services: ServiceOverrideMap | undefined
 ): Promise<void> => {
   const validated = validateInput(trailDef.input, scenario.input);
   if (handleValidationError(validated, scenario)) {
     return;
   }
 
-  const { trace, testCtx } = buildTestContext(scenario, ctx, trailsMap);
-  const result = await trailDef.run(expectOk(validated), testCtx);
+  const { trace, testCtx } = buildTestContext(
+    scenario,
+    ctx,
+    trailsMap,
+    services
+  );
+  const result = await executeTrail(trailDef, scenario.input, {
+    ctx: testCtx,
+    services,
+  });
   assertFollowTrace(trace, scenario);
   assertScenarioResult(result, scenario, trailDef);
 };
@@ -256,6 +326,12 @@ const runScenario = async (
 export interface TestFollowOptions {
   /** Partial context overrides. */
   readonly ctx?: Partial<TrailContext> | undefined;
+  /**
+   * Explicit service overrides merged on top of auto-resolved mocks for every
+   * scenario. Values are passed by reference — provide immutable objects, or
+   * use `mock()` on the service definition to get a fresh instance per run.
+   */
+  readonly services?: ServiceOverrideMap | undefined;
   /** Map of trail ID to trail definition, used for injectFromExample. */
   readonly trails?: ReadonlyMap<string, AnyTrail> | undefined;
 }
@@ -284,7 +360,18 @@ export const testFollows = (
     test.each([...scenarios])(
       '$description',
       async (scenario: FollowScenario) => {
-        await runScenario(trailDef, scenario, options?.ctx, options?.trails);
+        const services = mergeServiceOverrides(
+          await resolveMockServices(trailDef, options?.trails),
+          options?.ctx,
+          options?.services
+        );
+        await runScenario(
+          trailDef,
+          scenario,
+          options?.ctx,
+          options?.trails,
+          services
+        );
       }
     );
   });
