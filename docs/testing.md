@@ -59,6 +59,31 @@ import { app } from '../app';
 testAll(app);
 ```
 
+When trails declare services, the testing helpers respect them in two ways:
+
+- Services with a `mock` factory auto-resolve during `testAll`, `testExamples`, and `testContracts`.
+- Explicit `services` overrides let you inject a specific test double when you need one.
+
+```typescript
+import { service, Result } from '@ontrails/core';
+import { testAll } from '@ontrails/testing';
+import { app } from '../app';
+
+const db = service('db.main', {
+  create: () => Result.ok(connectToDatabase()),
+  mock: () => createInMemoryDb(),
+});
+
+// `db` must be part of `app`'s topo for auto-resolution to work.
+testAll(app); // auto-resolves db.main from db.mock()
+
+testAll(app, () => ({
+  services: { 'db.main': createInMemoryDb() },
+}));
+```
+
+Pass a factory when your explicit overrides contain mutable state, so each test gets a fresh instance.
+
 Generates a `governance` describe block containing:
 
 - **Topo validation** via `validateTopo` (follow targets exist, no recursive follow, event origins, example schema validation, output schema presence)
@@ -228,6 +253,8 @@ const ctx = createTestContext({
 ```
 
 Defaults: deterministic request ID, test logger (captures entries), non-aborted signal.
+
+If you need a service override at the context level, pass it through `services` to `testAll()` / `testExamples()` / `testContracts()`, or attach it to `extensions` under the service ID when calling a single trail helper like `testTrail()`. `testTrail()` accepts a raw context object, so service injection there bypasses the normal pipeline resolution step and goes directly through `extensions`.
 
 ### `createFollowContext(options?)`
 

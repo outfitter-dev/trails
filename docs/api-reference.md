@@ -10,13 +10,16 @@ Canonical public surface. For naming conventions and decision history, see `docs
 // Definitions
 trail(id, spec)                    // define a unit of work (with optional follow for composition)
 event(id, spec)                    // define a payload schema with provenance
-topo(name, ...modules)             // assemble into a queryable topology
+service(id, spec)                  // define a first-class service dependency
+createServiceLookup(getContext)    // bind ctx.service() to a specific context snapshot
+topo(name, ...modules)             // assemble trails, events, and services into a queryable topology
 // Topo methods: .get(id), .has(id), .list(), .listEvents(), .ids(), .count
+//               .getService(id), .hasService(id), .listServices(), .serviceIds(), .serviceCount
 
 // Types
-Trail<I, O>, Event<T>, Topo, Intent
-TrailSpec<I, O>, EventSpec<T>, TrailExample<I, O>
-AnyTrail, AnyEvent
+Trail<I, O>, Event<T>, Service<T>, Topo, Intent
+TrailSpec<I, O>, EventSpec<T>, ServiceSpec<T>, TrailExample<I, O>
+AnyTrail, AnyEvent, AnyService, ServiceContext, ServiceOverrideMap
 
 // Type utilities
 TrailInput<T>                      // extract input type from a Trail
@@ -39,11 +42,11 @@ ErrorCategory, isTrailsError(value?), isRetryable(error)
 // Implementation & context
 Implementation<I, O>              // (input, ctx) => Result | Promise<Result>
 TrailContext, createTrailContext(overrides?)
-FollowFn, ProgressCallback, ProgressEvent, Logger, Surface
+FollowFn, ServiceLookup, ProgressCallback, ProgressEvent, Logger, Surface
 
 // Execution pipeline
-executeTrail(trail, rawInput, options?) // shared execution pipeline: validate → compose layers → run; used by all surfaces
-dispatch(topo, id, input, options?)    // look up and execute a trail by ID; returns Result, never throws
+executeTrail(trail, rawInput, options?) // validate → resolve context → resolve services → compose layers → run
+dispatch(topo, id, input, options?)    // look up and execute a trail by ID; accepts ctx/services overrides
 DispatchOptions
 
 // Layers
@@ -145,9 +148,10 @@ OpenApiOptions, OpenApiSpec, OpenApiServer
 
 ```typescript
 // Test runners
-testAll(topo, ctx?)
-testExamples(topo, ctx?), testTrail(trail, scenarios, ctx?)
-testContracts(topo, ctx?), testDetours(topo, ctx?)
+testAll(topo, ctxOrFactory?)
+testExamples(topo, ctxOrFactory?), testTrail(trail, scenarios, ctx?)
+testFollows(trail, scenarios, options?)
+testContracts(topo, ctxOrFactory?), testDetours(topo)
 
 // Assertion helpers
 expectOk(result), expectErr(result)
@@ -159,7 +163,8 @@ createTestContext(options?), createTestLogger()
 createFollowContext(options?)      // minimal context for testing trail composition via ctx.follow()
 createCliHarness(topo, options?), createMcpHarness(topo, options?)
 
-TestScenario, HikeScenario, TestLogger, TestTrailContextOptions, TestHikeOptions
+TestExecutionOptions, TestFollowOptions
+TestScenario, FollowScenario, TestLogger, TestTrailContextOptions
 CliHarness, CliHarnessOptions, CliHarnessResult
 McpHarness, McpHarnessOptions, McpHarnessResult
 ```
@@ -168,7 +173,7 @@ McpHarness, McpHarnessOptions, McpHarnessResult
 
 ```typescript
 runWarden(options?), formatWardenReport(report), checkDrift(rootDir, topo?)
-wardenRules                        // ReadonlyMap<string, WardenRule> — 11 AST-based rules
+wardenRules                        // ReadonlyMap<string, WardenRule> — 13 AST-based rules
 wardenTopo                         // pre-built Topo of all warden trails
 runWardenTrails(filePath, sourceCode, options?) // run warden rules against a single file
 formatGitHubAnnotations(report), formatJson(report), formatSummary(report)

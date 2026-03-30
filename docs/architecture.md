@@ -92,6 +92,7 @@ These are boundaries the compiler enforces on the implementation at development 
 | `Result<T, Error>` | Implementation cannot throw — must return `Result.ok()` or `Result.err()` |
 | `TrailContext` interface | Implementation receives only the fields the framework provides |
 | `follow: [...]` on trails | Declares the composition graph; warden verifies `ctx.follow()` calls match |
+| `services: [...]` on trails | Declares infrastructure dependencies; warden verifies `service.from(ctx)` / `ctx.service()` usage match |
 
 ### Inferred — detected by static analysis, best-effort
 
@@ -194,9 +195,10 @@ Clean DAG. Core at the center. No cycles. Surface adapters depend only on core. 
 CLI input ("myapp entity show --name Alpha")
   -> Commander parses args/flags
   -> CLI adapter matches to trail via CliCommand model
-  -> Layers run (auth, rate limit, telemetry)
   -> Zod validates input against trail's schema
-  -> TrailContext created (requestId, logger, signal)
+  -> TrailContext created (requestId, logger, signal, env, cwd)
+  -> Declared services resolved into ctx
+  -> Layers run (auth, rate limit, telemetry)
   -> implementation(validatedInput, ctx) called
   -> Result returned
   -> Layers post-process
@@ -210,6 +212,7 @@ MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
   -> MCP adapter matches to trail
   -> Zod validates input
   -> TrailContext created
+  -> Declared services resolved into ctx
   -> Same implementation(validatedInput, ctx) called
   -> Same Result returned
   -> Result mapped to MCP tool response
@@ -222,6 +225,7 @@ HTTP request (GET /entity/show?name=Alpha)
   -> Hono matches route derived from trail ID
   -> Zod validates input (query params for GET, JSON body for POST/DELETE)
   -> TrailContext created
+  -> Declared services resolved into ctx
   -> Same implementation(validatedInput, ctx) called
   -> Same Result returned
   -> Result mapped to JSON response with status code from error taxonomy
@@ -249,6 +253,8 @@ All surfaces -- CLI, MCP, HTTP, and `dispatch()` -- delegate to the same `execut
 ```text
 executeTrail(trail, rawInput, options?)
   -> Zod validates rawInput against trail's input schema
+  -> TrailContext resolved from options/createContext
+  -> Declared services resolved into ctx
   -> Layers composed via composeLayers()
   -> implementation(validatedInput, ctx) called
   -> Result returned

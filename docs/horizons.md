@@ -8,15 +8,15 @@
 
 **OpenAPI generation (`@ontrails/schema`).** `generateOpenApiSpec()` produces a complete OpenAPI 3.1 spec from the topo. The topo already carries everything OpenAPI needs.
 
-## Near-term (v1.1–v1.2)
+**Services (`service()` and trail `services: [...]`).** Trails now declare infrastructure dependencies explicitly. `executeTrail()` resolves app-scoped singletons before layers and implementations run. Testing can auto-resolve `mock` factories, and survey / schema tooling exposes the full service graph.
 
-**Services and dependency injection.** Trails that declare which services they use via `ctx.services`. The framework provides only declared services. `intent: 'read'` narrows the projection to read-only methods at the type level. Testing mocks only what the trail declares.
+## Near-term (v1.1–v1.2)
 
 **Auth and permit model.** The `permit` field on TrailContext gets a full design: scopes, roles, per-surface resolution (bearer tokens for HTTP, session tokens for MCP, local keyring for CLI). Scope enforcement as a layer. Resource-level auth stays in the implementation — the framework provides identity, the app provides policy.
 
 ## Mid-term (v1.3+)
 
-**Derived dependency graphs.** Instead of hand-maintaining `follow` declarations, the framework infers them from `ctx.follow()` calls in the implementation via static analysis. Same for service dependencies from `ctx.services` references. The surface lock captures the derived graph. Changes show up in diffs.
+**Derived dependency graphs.** Instead of hand-maintaining `follow` declarations, the framework infers them from `ctx.follow()` calls in the implementation via static analysis. The same idea could eventually extend beyond today's declared `services: [...]` model to richer service capability inference. The surface lock captures the graph. Changes show up in diffs.
 
 **Implementation synthesis from examples.** For trails with comprehensive examples that fully specify behavior (pure transformations, mapping logic, validation rules), an agent could synthesize the implementation from the examples alone. The examples become the source of truth; the code becomes the derived artifact.
 

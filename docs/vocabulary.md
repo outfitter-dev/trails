@@ -85,12 +85,13 @@ The `follow` declaration is verified by the warden linter against actual `ctx.fo
 
 ### `topo` (the data structure)
 
-The internal collection of all trails -- the topography. The data structure that surfaces read, schema tools inspect, and `ctx.follow()` dispatches through. The `topo()` function returns a `Topo` object with `.trails`, `.events` maps, and `.get()`, `.has()`, `.list()` accessors.
+The internal collection of all trails -- the topography. The data structure that surfaces read, schema tools inspect, and `ctx.follow()` dispatches through. The `topo()` function returns a `Topo` object with `.trails`, `.events`, and `.services` maps, plus `.get()`, `.has()`, `.list()`, `.getService()`, `.hasService()`, and `.listServices()` accessors.
 
 ```typescript
 const app = topo('myapp', entityModule);
 app.trails; // ReadonlyMap of trail ID -> Trail
 app.list(); // All trails
+app.services; // ReadonlyMap of service ID -> Service
 ```
 
 Most developers never interact with the topo directly. Use "the app" or "the trail collection" in introductory material.

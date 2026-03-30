@@ -1,6 +1,6 @@
 # trails-demo
 
-A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `follow`, an event, examples, metadata, detours, idempotent upsert, and blazing on CLI, MCP, and HTTP surfaces.
+A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `follow`, a first-class service dependency, an event, examples, metadata, detours, idempotent upsert, and blazing on CLI, MCP, and HTTP surfaces.
 
 ## What this app does
 
@@ -17,6 +17,8 @@ Entity management -- a small CRUD + search system with enough depth to exercise 
 | `demo.upsert` | Idempotent key-value store example | `idempotent: true` |
 
 Plus one event: `entity.updated` (triggered by `entity.add` and `entity.delete`).
+
+Plus one service: `demo.entity-store` (the in-memory entity store used by the entity and search trails).
 
 ## Running the CLI
 
@@ -78,12 +80,15 @@ This exposes MCP tools: `demo_entity_show`, `demo_entity_add`, `demo_entity_dele
 ### Trail definition: `entity.show`
 
 ```typescript
+import { entityStoreService } from '../src/services/entity-store.js';
+
 export const show = trail('entity.show', {
   description: 'Show an entity by name',
   input: z.object({ name: z.string() }),
   output: entitySchema,
   intent: 'read',
   detours: { NotFoundError: ['search'] },
+  services: [entityStoreService],
   examples: [
     {
       name: 'Show entity by name',
@@ -99,6 +104,7 @@ export const show = trail('entity.show', {
     },
   ],
   run: async (input, ctx) => {
+    const store = entityStoreService.from(ctx);
     /* ... */
   },
 });
@@ -137,13 +143,15 @@ export const onboard = trail('entity.onboard', {
 ```typescript
 import { testAll } from '@ontrails/testing';
 import { app } from '../src/app.js';
-import { createStore } from '../src/store.js';
+import {
+  createMockEntityStore,
+  entityStoreService,
+} from '../src/services/entity-store.js';
 
 testAll(app, () => ({
-  store: createStore([
-    { name: 'Alpha', tags: ['core'], type: 'concept' },
-    { name: 'Deletable', tags: ['temp'], type: 'tool' },
-  ]),
+  services: {
+    [entityStoreService.id]: createMockEntityStore(),
+  },
 }));
 ```
 
@@ -154,7 +162,7 @@ testAll(app, () => ({
 3. **`testContracts`** -- output schema verification for every success example.
 4. **`testDetours`** -- detour targets reference real trails in the topo.
 
-Pass a factory function (not a plain object) when the context contains mutable state like an in-memory store, so each test gets a fresh copy.
+Pass a factory function (not a plain object) when your explicit service overrides contain mutable state like an in-memory store, so each test gets a fresh copy.
 
 ### Progressive assertion
 
@@ -165,7 +173,10 @@ Pass a factory function (not a plain object) when the context contains mutable s
 ### Custom scenarios
 
 ```typescript
+import { createStore } from '../src/store.js';
 import { testTrail } from '@ontrails/testing';
+import { entityStoreService } from '../src/services/entity-store.js';
+
 testTrail(
   show,
   [
@@ -175,7 +186,13 @@ testTrail(
       expectErr: NotFoundError,
     },
   ],
-  { store }
+  {
+    extensions: {
+      [entityStoreService.id]: createStore([
+        { name: 'Alpha', tags: ['core'], type: 'concept' },
+      ]),
+    },
+  }
 );
 ```
 
@@ -220,4 +237,4 @@ Checks governance rules: every trail has examples, destructive trails declare `i
 trails survey
 ```
 
-Produces a machine-readable map of all trails and events with their schemas, metadata, and relationships.
+Produces a machine-readable map of all trails, events, and services with their schemas, metadata, and relationships.

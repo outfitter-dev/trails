@@ -168,6 +168,10 @@ That single `testAll(app)` call runs the full governance suite:
 
 No separate test files for the happy path. The examples ARE the tests.
 
+If your app declares services with `mock` factories, `testAll(app)` and
+`testExamples(app)` pick them up automatically. Use explicit `services`
+overrides only when you need a specific fake or fresh mutable state.
+
 For finer control, use `testExamples(app)` to run only example assertions without structural checks:
 
 ```typescript
