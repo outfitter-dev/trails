@@ -15,6 +15,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [006](006-shared-execution-pipeline.md) | Shared Execution Pipeline | Accepted |
 | [007](007-governance-as-trails.md) | Governance as Trails | Accepted |
 | [008](008-deterministic-surface-derivation.md) | Deterministic Surface Derivation | Accepted |
+| [009](009-services.md) | Services as a First-Class Primitive | Proposed |
 
 ## Format
 
