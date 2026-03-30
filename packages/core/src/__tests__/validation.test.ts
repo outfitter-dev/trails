@@ -307,6 +307,20 @@ describe('zodToJsonSchema', () => {
       expect(result).toEqual({ default: 'constant', type: 'string' });
     });
 
+    test('preserves stable functional defaults that return equivalent objects', () => {
+      const schema = z
+        .object({ key: z.string() })
+        .default(() => ({ key: 'val' }));
+      const result = zodToJsonSchema(schema);
+      expect(result['default']).toEqual({ key: 'val' });
+    });
+
+    test('preserves stable functional defaults that return equivalent arrays', () => {
+      const schema = z.array(z.string()).default(() => ['a', 'b']);
+      const result = zodToJsonSchema(schema);
+      expect(result['default']).toEqual(['a', 'b']);
+    });
+
     test('produces identical output across repeated calls', () => {
       let counter = 0;
       const schema = z.string().default(() => {

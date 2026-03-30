@@ -104,13 +104,20 @@ export const validateOutput = <T>(
 const DYNAMIC_DEFAULT = Symbol('DYNAMIC_DEFAULT');
 const defaultValueCache = new WeakMap<object, unknown>();
 
-/** Read a Zod v4 default getter twice and decide if it's stable. */
+/** Read a Zod v4 default getter twice and decide if it's stable.
+ *  Uses Object.is for primitives and JSON.stringify for objects/arrays. */
 const resolveDefault = (def: Record<string, unknown>): unknown => {
   try {
     const a = def['defaultValue'];
     const b = def['defaultValue'];
-    return Object.is(a, b) ? a : DYNAMIC_DEFAULT;
+    if (Object.is(a, b)) {
+      return a;
+    }
+    // Object/array defaults produce new references each call but may
+    // still be structurally identical (e.g. `() => ({ key: 'val' })`).
+    return JSON.stringify(a) === JSON.stringify(b) ? a : DYNAMIC_DEFAULT;
   } catch {
+    // BigInt, circular refs, or other non-serializable defaults
     return DYNAMIC_DEFAULT;
   }
 };
