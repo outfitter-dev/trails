@@ -113,6 +113,27 @@ const checkFollows = (
   return issues;
 };
 
+const checkServices = (
+  trails: ReadonlyMap<string, AnyTrail>,
+  topo: Topo
+): TopoIssue[] => {
+  const issues: TopoIssue[] = [];
+
+  for (const [id, trail] of trails) {
+    for (const declaredService of trail.services) {
+      if (!topo.hasService(declaredService.id)) {
+        issues.push({
+          message: `Service "${declaredService.id}" is not in the topo`,
+          rule: 'service-exists',
+          trailId: id,
+        });
+      }
+    }
+  }
+
+  return issues;
+};
+
 const checkOneExample = (
   id: string,
   example: {
@@ -192,6 +213,7 @@ const checkEventOrigins = (
 export const validateTopo = (topo: Topo): Result<void, ValidationError> => {
   const issues = [
     ...checkFollows(topo.trails, topo),
+    ...checkServices(topo.trails, topo),
     ...checkExamples(topo.trails),
     ...checkEventOrigins(topo.events, topo),
   ];

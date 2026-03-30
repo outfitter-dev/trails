@@ -95,6 +95,27 @@ trail('entity.show', {
 
       expect(diagnostics.length).toBe(0);
     });
+
+    test('recognizes ctx.service(db) lookups by declared service object', () => {
+      const code = `
+import { Result, service, trail } from '@ontrails/core';
+
+const db = service('db.main', {
+  create: () => Result.ok({ source: 'factory' }),
+});
+
+trail('entity.show', {
+  services: [db],
+  run: async (_input, ctx) => {
+    return Result.ok(ctx.service(db));
+  },
+});
+`;
+
+      const diagnostics = serviceDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(0);
+    });
   });
 
   describe('error cases', () => {
@@ -136,6 +157,52 @@ trail('entity.show', {
       expect(diagnostics.length).toBe(1);
       expect(diagnostics[0]?.severity).toBe('error');
       expect(diagnostics[0]?.message).toContain("ctx.service('db.main')");
+    });
+
+    test('unresolved imported service declarations do not suppress lookup diagnostics', () => {
+      const code = `
+import { Result, trail } from '@ontrails/core';
+import { db } from './services';
+
+// const db = service('db.main', {
+//   create: () => Result.ok({ source: 'factory' }),
+// });
+
+trail('entity.show', {
+  services: [db],
+  run: async (_input, ctx) => {
+    return Result.ok(ctx.service('db.main'));
+  },
+});
+`;
+
+      const diagnostics = serviceDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('error');
+      expect(diagnostics[0]?.message).toContain("ctx.service('db.main')");
+    });
+
+    test('ctx.service(db) without a declaration produces an error', () => {
+      const code = `
+import { Result, service, trail } from '@ontrails/core';
+
+const db = service('db.main', {
+  create: () => Result.ok({ source: 'factory' }),
+});
+
+trail('entity.show', {
+  run: async (_input, ctx) => {
+    return Result.ok(ctx.service(db));
+  },
+});
+`;
+
+      const diagnostics = serviceDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('error');
+      expect(diagnostics[0]?.message).toContain('ctx.service(db)');
     });
   });
 
@@ -235,5 +302,17 @@ trail('entity.show', {
 
       expect(diagnostics.length).toBe(0);
     });
+  });
+
+  test('skips test files', () => {
+    const code = `
+trail('entity.show', {
+  run: async (_input, ctx) => {
+    return Result.ok(ctx.service('db.main'));
+  },
+});
+`;
+
+    expect(serviceDeclarations.check(code, 'entity.test.ts')).toEqual([]);
   });
 });
