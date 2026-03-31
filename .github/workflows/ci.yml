@@ -117,8 +117,8 @@ jobs:
         run: bun apps/ci/bin/ci.ts --format github --fail-on error
         continue-on-error: true
 
-  ci-summary:
-    name: CI
+  ci-gate:
+    name: CI Gate
     if: always()
     needs: [build, lint, typecheck, test, governance]
     runs-on: ubuntu-latest
@@ -135,6 +135,6 @@ jobs:
           echo "| Test | \`${{ needs.test.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Governance | \`${{ needs.governance.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Check for failures
+      - name: Require all jobs to pass
         if: contains(needs.*.result, 'failure') && !cancelled()
         run: exit 1
