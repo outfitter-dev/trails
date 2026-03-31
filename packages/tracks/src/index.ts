@@ -23,3 +23,9 @@ export {
   type TracksApiWithState,
 } from './tracks-api.js';
 export { tracks } from './tracks-accessor.js';
+export {
+  createDevStore,
+  type DevStore,
+  type DevStoreOptions,
+  type DevStoreQueryOptions,
+} from './stores/dev.js';
