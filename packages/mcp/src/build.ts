@@ -33,6 +33,10 @@ import { deriveToolName } from './tool-name.js';
 // ---------------------------------------------------------------------------
 
 export interface BuildMcpToolsOptions {
+  /** Config values for services that declare a `config` schema, keyed by service ID. */
+  readonly configValues?:
+    | Readonly<Record<string, Record<string, unknown>>>
+    | undefined;
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
@@ -230,6 +234,7 @@ const createHandler =
   async (args, extra): Promise<McpToolResult> => {
     const progressCb = createMcpProgressCallback(extra);
     const result = await executeTrail(t, args, {
+      configValues: options.configValues,
       createContext: options.createContext,
       ctx: withMcpSurface(progressCb),
       layers,
