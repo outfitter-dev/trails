@@ -53,6 +53,20 @@ export interface CreateFollowContextOptions {
   readonly responses?: Record<string, Result<unknown, Error>> | undefined;
 }
 
+/** Minimal permit shape returned by the mint function. */
+export interface MintedPermit {
+  readonly id: string;
+  readonly scopes: readonly string[];
+}
+
+/** Trail shape consumed by the mint function — avoids importing permits. */
+export interface MintableTrail {
+  readonly permit?:
+    | { readonly scopes: readonly string[] }
+    | 'public'
+    | undefined;
+}
+
 export interface TestExecutionOptions {
   readonly ctx?: Partial<TrailContext> | undefined;
   readonly services?: ServiceOverrideMap | undefined;
@@ -61,6 +75,15 @@ export interface TestExecutionOptions {
    * explicit permits.
    */
   readonly strictPermits?: boolean | undefined;
+  /**
+   * Optional function to mint a test permit for a trail. When provided,
+   * called for each trail with a non-public `permit` requirement.
+   * Returning `undefined` skips minting for that trail.
+   *
+   * A default inline implementation is used when this is not provided,
+   * keeping the testing package free of a hard dependency on `@ontrails/permits`.
+   */
+  readonly mintPermit?: (trail: MintableTrail) => MintedPermit | undefined;
 }
 
 /**
@@ -95,11 +118,27 @@ export const createFollowContext = (
   };
 };
 
+/**
+ * Default permit minter — reads `trail.permit.scopes` and produces a
+ * minimal permit object. No dependency on `@ontrails/permits`.
+ */
+export const defaultMintPermit = (
+  trail: MintableTrail
+): MintedPermit | undefined => {
+  if (!trail.permit || trail.permit === 'public') {
+    return undefined;
+  }
+  return { id: 'test-permit', scopes: trail.permit.scopes };
+};
+
 const isTestExecutionOptions = (
   input: Partial<TrailContext> | TestExecutionOptions | undefined
 ): input is TestExecutionOptions =>
   input !== undefined &&
-  (Object.hasOwn(input, 'ctx') || Object.hasOwn(input, 'services'));
+  (Object.hasOwn(input, 'ctx') ||
+    Object.hasOwn(input, 'services') ||
+    Object.hasOwn(input, 'strictPermits') ||
+    Object.hasOwn(input, 'mintPermit'));
 
 export const normalizeTestExecutionOptions = (
   input?: Partial<TrailContext> | TestExecutionOptions

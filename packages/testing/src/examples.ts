@@ -45,12 +45,13 @@ import {
   assertSchemaMatch,
 } from './assertions.js';
 import {
+  defaultMintPermit,
   mergeServiceOverrides,
   mergeTestContext,
   normalizeTestExecutionOptions,
   resolveMockServices,
 } from './context.js';
-import type { TestExecutionOptions } from './context.js';
+import type { MintableTrail, TestExecutionOptions } from './context.js';
 
 // ---------------------------------------------------------------------------
 // Error class name -> constructor map
@@ -128,6 +129,29 @@ const handleValidationError = (
 };
 
 /**
+ * Apply auto-minting: if the trail declares scoped permits and the context
+ * doesn't already have a permit, mint one and merge it into the context.
+ */
+const applyAutoMint = (
+  ctx: TrailContext,
+  trailDef: MintableTrail,
+  opts: TestExecutionOptions
+): TrailContext => {
+  if (opts.strictPermits) {
+    return ctx;
+  }
+  if (ctx.permit !== undefined) {
+    return ctx;
+  }
+  const mint = opts.mintPermit ?? defaultMintPermit;
+  const permit = mint(trailDef);
+  if (!permit) {
+    return ctx;
+  }
+  return { ...ctx, permit };
+};
+
+/**
  * Run a single example against a trail.
  * Handles validation, execution, and assertions.
  */
@@ -136,7 +160,8 @@ const runExample = async (
   example: TrailExample<unknown, unknown>,
   output: z.ZodType | undefined,
   testCtx: TrailContext,
-  services?: ServiceOverrideMap
+  services?: ServiceOverrideMap,
+  opts?: TestExecutionOptions
 ): Promise<void> => {
   const validated = validateInput(t.input, example.input);
 
@@ -144,8 +169,10 @@ const runExample = async (
     return;
   }
 
+  const ctx = opts ? applyAutoMint(testCtx, t, opts) : testCtx;
+
   const result = await executeTrail(t, example.input, {
-    ctx: testCtx,
+    ctx,
     services,
   });
   assertProgressiveMatch(result, example, output);
@@ -199,7 +226,8 @@ const runCompositionExample = async (
   baseCtx: TrailContext,
   called: Set<string>,
   topo: Topo,
-  services?: ServiceOverrideMap
+  services?: ServiceOverrideMap,
+  opts?: TestExecutionOptions
 ): Promise<void> => {
   const validated = validateInput(trailDef.input, example.input);
 
@@ -207,14 +235,15 @@ const runCompositionExample = async (
     return;
   }
 
+  const mintedCtx = opts ? applyAutoMint(baseCtx, trailDef, opts) : baseCtx;
   const follow = createCoverageFollow(
     called,
-    baseCtx.follow,
+    mintedCtx.follow,
     topo,
-    baseCtx,
+    mintedCtx,
     services
   );
-  const testCtx: TrailContext = { ...baseCtx, follow };
+  const testCtx: TrailContext = { ...mintedCtx, follow };
 
   const result = await executeTrail(trailDef, example.input, {
     ctx: testCtx,
@@ -273,7 +302,7 @@ export const testExamples = (
             resolved.services
           );
           const testCtx = mergeTestContext(resolved.ctx);
-          await runExample(t, example, output, testCtx, services);
+          await runExample(t, example, output, testCtx, services, resolved);
         }
       );
     });
@@ -306,7 +335,8 @@ export const testExamples = (
             baseCtx,
             called,
             app,
-            services
+            services,
+            resolved
           );
         }
       );

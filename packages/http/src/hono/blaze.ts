@@ -31,6 +31,10 @@ import { buildHttpRoutes } from '../build.js';
 
 export interface BlazeHttpOptions {
   readonly basePath?: string | undefined;
+  /** Config values for services that declare a `config` schema, keyed by service ID. */
+  readonly configValues?:
+    | Readonly<Record<string, Record<string, unknown>>>
+    | undefined;
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
@@ -324,6 +328,7 @@ export const blaze = async (
 
   const routesResult = buildHttpRoutes(app, {
     basePath: options.basePath,
+    configValues: options.configValues,
     createContext: options.createContext,
     layers: options.layers,
     services: options.services,

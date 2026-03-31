@@ -26,6 +26,10 @@ import type {
 
 export interface BuildHttpRoutesOptions {
   readonly basePath?: string | undefined;
+  /** Config values for services that declare a `config` schema, keyed by service ID. */
+  readonly configValues?:
+    | Readonly<Record<string, Record<string, unknown>>>
+    | undefined;
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
@@ -119,6 +123,7 @@ const createExecute =
   ): HttpRouteDefinition['execute'] =>
   (input, requestId, signal) =>
     executeTrail(t, input, {
+      configValues: options.configValues,
       createContext: options.createContext,
       ctx: withHttpSurface(requestId),
       layers,

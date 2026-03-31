@@ -46,12 +46,18 @@ export interface Logger {
   child(context: Record<string, unknown>): Logger;
 }
 
+/** Minimal permit shape available on TrailContext. Permits extends this. */
+export interface BasePermit {
+  readonly id: string;
+  readonly scopes: readonly string[];
+}
+
 /** Runtime context threaded through every trail execution */
 export interface TrailContext {
   readonly requestId: string;
   readonly signal: AbortSignal;
   readonly follow?: FollowFn | undefined;
-  readonly permit?: unknown | undefined;
+  readonly permit?: BasePermit;
   readonly workspaceRoot?: string | undefined;
   readonly logger?: Logger | undefined;
   readonly progress?: ProgressCallback | undefined;
