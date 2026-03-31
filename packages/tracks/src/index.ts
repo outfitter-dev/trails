@@ -1,5 +1,3 @@
-/** Internal placeholder — replaced by real types in TRL-106+. */
-export interface TracksPlaceholder {
-  readonly __brand: 'tracks';
-}
-export { tracks } from './tracks-accessor.js';
+export { type TrackRecord, createTrackRecord } from './record.js';
+export { createTracksLayer, type TrackSink } from './tracks-layer.js';
+export { createMemorySink } from './memory-sink.js';
