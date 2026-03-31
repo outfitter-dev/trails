@@ -10,9 +10,11 @@
 
 **Services (`service()` and trail `services: [...]`).** Trails now declare infrastructure dependencies explicitly. `executeTrail()` resolves app-scoped singletons before layers and implementations run. Testing can auto-resolve `mock` factories, and survey / schema tooling exposes the full service graph.
 
-## Near-term (v1.1–v1.2)
+**Config resolution (`@ontrails/config`).** `defineConfig()` provides schema-validated config with loadouts (named environment profiles), env variable mapping, and `ServiceSpec.config` for service-level config schemas. Includes diagnostics (`checkConfig`), introspection (`describeConfig`, `explainConfig`), and generation (`generateEnvExample`).
 
-**Auth and permit model.** The `permit` field on TrailContext gets a full design: scopes, roles, per-surface resolution (bearer tokens for HTTP, session tokens for MCP, local keyring for CLI). Scope enforcement as a layer. Resource-level auth stays in the implementation — the framework provides identity, the app provides policy.
+**Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. `authLayer` extracts credentials from surface-specific sources, `AuthAdapter` resolves them to a `Permit` (identity, scopes, roles), and scope enforcement rejects unauthorized access. Includes JWT adapter, governance rules (`validatePermits`), and test helpers (`mintTestPermit`, `mintPermitForTrail`).
+
+**Tracks (`@ontrails/tracks`).** Telemetry recording with `createTracksLayer` capturing execution duration, errors, and trace context propagation for every trail invocation. Pluggable sinks: `createMemorySink` for testing, `createDevStore` for local development, `createOtelAdapter` for production OpenTelemetry export. Sampling configuration controls recording volume.
 
 ## Mid-term (v1.3+)
 
@@ -28,7 +30,7 @@
 
 **Progressive contract tightening.** A new trail starts loose — minimal schema, no examples. As it matures, the contract tightens: output schema added, examples written, error types specified. The framework tracks progression and suggests next steps.
 
-**Behavioral types from runtime observation.** The tracks (telemetry) system records what actually happens. Over time, runtime data validates or challenges authored declarations. A trail declared `intent: 'read'` that triggers database writes has a contract violation. The framework surfaces the discrepancy.
+**Behavioral types from runtime observation.** The tracks system already records execution data. Over time, runtime data validates or challenges authored declarations. A trail declared `intent: 'read'` that triggers database writes has a contract violation. The framework surfaces the discrepancy.
 
 **SDK generation via guide.** Typed TypeScript clients generated from the topo. Each trail becomes a method with typed input/output. Working over HTTP or WebSocket.
 

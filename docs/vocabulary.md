@@ -152,19 +152,63 @@ const list = trail('entity.list', {
 
 Access services through `db.from(ctx)` for typed access or `ctx.service()` for dynamic lookup. The `mock` factory enables `testAll(app)` to run without real infrastructure.
 
+### `permit`
+
+The resolved identity and scopes from a successful authentication. Attached to `TrailContext` by the auth layer. Trails declare their permit requirements with the `permit` field on the trail spec.
+
+```typescript
+import { getPermit } from '@ontrails/permits';
+
+const admin = trail('admin.dashboard', {
+  permit: { scopes: ['admin:read'] },
+  input: z.object({}),
+  run: async (_input, ctx) => {
+    const permit = getPermit(ctx);
+    return Result.ok({ user: permit?.id });
+  },
+});
+```
+
+### `loadout`
+
+A named config profile for a deployment environment. Loadouts are declared in `defineConfig()` and selected via `TRAILS_ENV` or explicit option.
+
+```typescript
+import { defineConfig } from '@ontrails/config';
+
+const config = defineConfig({
+  schema: z.object({
+    port: z.number().default(3000),
+    debug: z.boolean().default(false),
+  }),
+  loadouts: {
+    production: { debug: false },
+    test: { debug: true, port: 0 },
+  },
+});
+```
+
+### `tracks`
+
+Telemetry recording and trace context propagation. The tracks layer captures execution duration, errors, and trace context for every trail invocation.
+
+```typescript
+import { createTracksLayer, createMemorySink } from '@ontrails/tracks';
+
+const sink = createMemorySink();
+const layer = createTracksLayer(sink);
+```
+
 ## Reserved Terms (designed, not yet shipped)
 
 These are reserved for planned features. The naming is directional and may evolve.
 
 | Term | Concept |
 | --- | --- |
-| `tracks` | Observability, telemetry, audit logs, execution history |
 | `traverse` | Graph traversal, execution planning |
-| `permit` | Auth and principal model. Who is allowed on which trails |
 | `mount` | One-directional cross-app connection (consume another app's trails) |
 | `junction` | Bidirectional peer connection between two Trails apps (future) |
 | `pack` | Distributable capability bundle (trails + services + events + metadata) |
-| `loadout` | Deployment/environment config profile |
 | `depot` | Pack registry and marketplace |
 
 ## Standard Terms (not branded)
@@ -203,18 +247,19 @@ When introducing Trails to someone new, introduce terms in this order:
 4. `metadata` -- annotate trails with metadata
 5. `detours` -- define fallback paths when a trail fails
 
-**Advanced (introspection and observability):**
+**Advanced (introspection, infrastructure, and observability):**
 
 1. `topo` -- the internal trail collection
 2. `survey` -- full introspection of the trail system (use `--brief` for quick discovery)
 3. `guide` -- runtime guidance
-4. `tracks` -- observability and telemetry
+4. `permit` -- auth and scopes
+5. `loadout` -- deployment/environment config profiles
+6. `tracks` -- telemetry and trace context
 
 **Ecosystem (multi-app and governance):**
 
-1. `permit` -- auth and scopes
-2. `mount` -- consume another app's trails
-3. `warden` -- governance and contract enforcement
+1. `mount` -- consume another app's trails
+2. `warden` -- governance and contract enforcement
 
 ## Writing Style
 

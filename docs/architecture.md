@@ -27,16 +27,16 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 +---------+-------------+
                           |
                 +---------v-------------+
+                |  Config (config)      |
+                |  Permits (permits)    |
+                |  Tracks (tracks)      |
                 |  Logging (logtape)    |
-                |  Storage (planned)    |
-                |  Telemetry (planned)  |
-                |  Search (planned)     |
                 +-----------------------+
                 RIGHT SIDE (outbound)
                 How the framework calls out
 ```
 
-The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP requests. The right side is where the framework calls out -- logging, storage, telemetry. Core sits in the middle and defines the contracts for both sides.
+The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP requests. The right side is where the framework calls out -- config, auth permits, telemetry tracks, and logging. Core sits in the middle and defines the contracts for both sides.
 
 ## Core Principles
 
@@ -106,9 +106,9 @@ These are derived from the implementation code itself. Useful for governance and
 
 Warden uses inference to verify that declarations match actual code. The surface map captures inferred information for CI governance.
 
-### Observed — learned from runtime (future)
+### Observed — learned from runtime
 
-The tracks (telemetry) system will capture what actually happens in production: error distributions, latency profiles, service usage patterns. Observations close the loop — declarations define intent, observations verify reality.
+The tracks (`@ontrails/tracks`) system captures what actually happens at runtime: execution duration, error distributions, trace context propagation. Observations close the loop -- declarations define intent, observations verify reality.
 
 ### Overridden — when derivation doesn't fit
 
@@ -148,6 +148,9 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 
 | Package | What it does | External dep |
 | --- | --- | --- |
+| `@ontrails/config` | Config resolution, loadouts, service config schemas, diagnostics | None beyond core |
+| `@ontrails/permits` | Auth layer, permit model, JWT adapter, scope enforcement | None beyond core |
+| `@ontrails/tracks` | Telemetry recording, trace context, memory/OTel sinks | None beyond core |
 | `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
 | `@ontrails/logging/logtape` | LogTape sink adapter | `@logtape/logtape` (optional peer) |
 
@@ -174,6 +177,9 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 @ontrails/cli (core)
 @ontrails/mcp (core, @modelcontextprotocol/sdk)
 @ontrails/http (core, hono)
+@ontrails/config (core)
+@ontrails/permits (core)
+@ontrails/tracks (core)
 @ontrails/logging (core)
 @ontrails/testing (core, cli, mcp, logging)
 @ontrails/schema (core)
