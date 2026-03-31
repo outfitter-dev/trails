@@ -1,3 +1,18 @@
 export { type TrackRecord, createTrackRecord } from './record.js';
-export { createTracksLayer, type TrackSink } from './tracks-layer.js';
+export {
+  createTracksLayer,
+  type TrackSink,
+  type TracksLayerOptions,
+} from './tracks-layer.js';
 export { createMemorySink } from './memory-sink.js';
+export {
+  type TraceContext,
+  getTraceContext,
+  childTraceContext,
+  TRACE_CONTEXT_KEY,
+} from './trace-context.js';
+export {
+  shouldSample,
+  DEFAULT_SAMPLING,
+  type SamplingConfig,
+} from './sampling.js';
