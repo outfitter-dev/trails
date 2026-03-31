@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, createBlobRef, service, trail, topo } from '@ontrails/core';
+import {
+  Result,
+  SURFACE_KEY,
+  createBlobRef,
+  service,
+  trail,
+  topo,
+} from '@ontrails/core';
 import type { Layer } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -297,11 +304,13 @@ describe('buildMcpTools', () => {
 
     test('custom createContext is used when provided', async () => {
       let contextUsed = false;
+      let surfaceUsed = false;
 
       const ctxTrail = trail('ctx.check', {
         input: z.object({}),
         run: (_input, ctx) => {
           contextUsed = ctx.extensions?.['custom'] === true;
+          surfaceUsed = ctx.extensions?.[SURFACE_KEY] === 'mcp';
           return Result.ok({ ok: true });
         },
       });
@@ -319,6 +328,7 @@ describe('buildMcpTools', () => {
 
       await tool.handler({}, noExtra);
       expect(contextUsed).toBe(true);
+      expect(surfaceUsed).toBe(true);
     });
 
     test('service overrides are forwarded to executeTrail', async () => {

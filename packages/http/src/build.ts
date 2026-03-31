@@ -6,7 +6,12 @@
  * implementation -- all without referencing any HTTP framework types.
  */
 
-import { Result, ValidationError, executeTrail } from '@ontrails/core';
+import {
+  Result,
+  SURFACE_KEY,
+  ValidationError,
+  executeTrail,
+} from '@ontrails/core';
 import type {
   Layer,
   ServiceOverrideMap,
@@ -86,6 +91,16 @@ const deriveInputSource = (method: HttpMethod): InputSource =>
 const shouldInclude = (trail: Trail<unknown, unknown>): boolean =>
   trail.metadata?.['internal'] !== true;
 
+/** Build per-request context overrides with the HTTP surface marker. */
+const withHttpSurface = (
+  requestId: string | undefined
+): Partial<TrailContextInit> => ({
+  ...(requestId === undefined ? {} : { requestId }),
+  extensions: {
+    [SURFACE_KEY]: 'http' as const,
+  },
+});
+
 // ---------------------------------------------------------------------------
 // Execute factory
 // ---------------------------------------------------------------------------
@@ -105,7 +120,7 @@ const createExecute =
   (input, requestId, signal) =>
     executeTrail(t, input, {
       createContext: options.createContext,
-      ctx: requestId === undefined ? undefined : { requestId },
+      ctx: withHttpSurface(requestId),
       layers,
       services: options.services,
       signal,
