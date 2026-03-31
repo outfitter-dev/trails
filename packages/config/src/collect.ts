@@ -30,7 +30,9 @@ const META_EXTRACTORS: readonly {
 const pickConfigMeta = (
   raw: Record<string, unknown> | undefined
 ): ConfigFieldMeta | undefined => {
-  if (!raw) {return undefined;}
+  if (!raw) {
+    return undefined;
+  }
 
   const parts = META_EXTRACTORS.filter((e) => e.test(raw)).map((e) =>
     e.extract(raw)
@@ -49,7 +51,9 @@ const extractConfigMeta = (schema: z.ZodType): ConfigFieldMeta | undefined => {
 
   while (current) {
     const meta = pickConfigMeta(globalRegistry.get(current));
-    if (meta) {return meta;}
+    if (meta) {
+      return meta;
+    }
 
     const def = current.def as unknown as Record<string, unknown>;
     current = def['innerType'] as z.ZodType | undefined;
@@ -83,7 +87,9 @@ const walkObjectShape = (
       });
     } else {
       const meta = extractConfigMeta(fieldSchema);
-      if (meta) {result.set(path, meta);}
+      if (meta) {
+        result.set(path, meta);
+      }
     }
   }
 };
