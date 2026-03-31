@@ -135,6 +135,14 @@
         "zod": "catalog:",
       },
     },
+    "packages/permits": {
+      "name": "@ontrails/permits",
+      "version": "1.0.0-beta.11",
+      "peerDependencies": {
+        "@ontrails/core": "workspace:^",
+        "zod": "catalog:",
+      },
+    },
     "packages/schema": {
       "name": "@ontrails/schema",
       "version": "1.0.0-beta.11",
@@ -254,6 +262,8 @@
     "@ontrails/logging": ["@ontrails/logging@workspace:packages/logging"],
 
     "@ontrails/mcp": ["@ontrails/mcp@workspace:packages/mcp"],
+
+    "@ontrails/permits": ["@ontrails/permits@workspace:packages/permits"],
 
     "@ontrails/schema": ["@ontrails/schema@workspace:packages/schema"],
 
