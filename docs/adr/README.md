@@ -19,7 +19,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [010](010-infrastructure-services-pattern.md) | Trails-Native Infrastructure Pattern | Accepted |
 | [011](011-config-resolution.md) | Config Resolution | Accepted |
 | [012](012-permit-model.md) | Permit Model | Accepted |
-| [013](013-tracks.md) | Tracks | Accepted |
+| [013](013-crumbs.md) | Crumbs | Accepted |
 
 ## Format
 

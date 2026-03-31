@@ -103,6 +103,19 @@ const buildJsonObject = (
 const formatJson = (schema: z.ZodObject<Record<string, z.ZodType>>): string =>
   `${JSON.stringify(buildJsonObject(schema), null, 2)}\n`;
 
+/** Serialize a nested object field for JSONC output. */
+const serializeJsoncObject = (fieldSchema: z.ZodType): string | undefined => {
+  const nested = getObjectShape(fieldSchema);
+  if (!nested) {
+    return undefined;
+  }
+  const inner = unwrap(fieldSchema) as z.ZodObject<Record<string, z.ZodType>>;
+  return JSON.stringify(buildJsonObject(inner), null, 2).replaceAll(
+    '\n',
+    '\n  '
+  );
+};
+
 /** Render a single JSONC entry (comments + key: value). */
 const renderJsoncEntry = (
   key: string,
@@ -111,8 +124,11 @@ const renderJsoncEntry = (
   lines: string[]
 ): void => {
   pushComments(lines, fieldComments(fieldSchema, '//'), '  ');
-  const val = formatValue(fieldValue(fieldSchema));
   const comma = isLast ? '' : ',';
+  const serialized = isObjectType(fieldSchema)
+    ? serializeJsoncObject(fieldSchema)
+    : undefined;
+  const val = serialized ?? formatValue(fieldValue(fieldSchema));
   lines.push(`  "${key}": ${val}${comma}`);
 };
 

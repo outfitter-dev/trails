@@ -134,6 +134,19 @@ describe('resolveConfig', () => {
       expect(result.unwrap().port).toBe(8080);
     });
 
+    test('rejects non-numeric string with Zod error instead of NaN', () => {
+      const schema = z.object({
+        port: env(z.number(), 'PORT').default(3000),
+      });
+
+      const result = resolveConfig({
+        env: { PORT: 'abc' },
+        schema,
+      });
+
+      expect(result.isErr()).toBe(true);
+    });
+
     test('coerces string to boolean', () => {
       const schema = z.object({
         debug: env(z.boolean(), 'DEBUG').default(false),

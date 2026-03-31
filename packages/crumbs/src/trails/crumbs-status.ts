@@ -1,10 +1,10 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { tracksService } from '../tracks-service.js';
+import { crumbsService } from '../crumbs-service.js';
 
-/** Output schema for the tracks.status trail. */
-const tracksStatusOutput = z.object({
+/** Output schema for the crumbs.status trail. */
+const crumbsStatusOutput = z.object({
   active: z.boolean(),
   recordCount: z.number(),
   samplingConfig: z.object({
@@ -15,30 +15,30 @@ const tracksStatusOutput = z.object({
 });
 
 /**
- * Reports the current status of the tracks telemetry subsystem.
+ * Reports the current status of the crumbs telemetry subsystem.
  *
  * Returns whether tracking is active, the current record count, and
  * the sampling configuration for each intent. Reads all values from
- * the `tracksService` state.
+ * the `crumbsService` state.
  */
-export const tracksStatus = trail('tracks.status', {
+export const crumbsStatus = trail('crumbs.status', {
   examples: [
     {
       input: {},
-      name: 'Check tracks status',
+      name: 'Check crumbs status',
     },
   ],
   input: z.object({}),
   intent: 'read',
   metadata: { category: 'infrastructure' },
-  output: tracksStatusOutput,
+  output: crumbsStatusOutput,
   run: (_input, ctx) => {
-    const state = tracksService.from(ctx);
+    const state = crumbsService.from(ctx);
     return Result.ok({
       active: state.active,
       recordCount: state.store?.count() ?? 0,
       samplingConfig: { ...state.sampling },
     });
   },
-  services: [tracksService],
+  services: [crumbsService],
 });

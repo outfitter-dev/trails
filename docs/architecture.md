@@ -29,14 +29,14 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 +---------v-------------+
                 |  Config (config)      |
                 |  Permits (permits)    |
-                |  Tracks (tracks)      |
+                |  Crumbs (crumbs)      |
                 |  Logging (logtape)    |
                 +-----------------------+
                 RIGHT SIDE (outbound)
                 How the framework calls out
 ```
 
-The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP requests. The right side is where the framework calls out -- config, auth permits, telemetry tracks, and logging. Core sits in the middle and defines the contracts for both sides.
+The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP requests. The right side is where the framework calls out -- config, auth permits, telemetry crumbs, and logging. Core sits in the middle and defines the contracts for both sides.
 
 ## Core Principles
 
@@ -108,7 +108,7 @@ Warden uses inference to verify that declarations match actual code. The surface
 
 ### Observed — learned from runtime
 
-The tracks (`@ontrails/tracks`) system captures what actually happens at runtime: execution duration, error distributions, trace context propagation. Observations close the loop -- declarations define intent, observations verify reality.
+The crumbs (`@ontrails/crumbs`) system captures what actually happens at runtime: execution duration, error distributions, trace context propagation. Observations close the loop -- declarations define intent, observations verify reality.
 
 ### Overridden — when derivation doesn't fit
 
@@ -150,7 +150,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 | --- | --- | --- |
 | `@ontrails/config` | Config resolution, loadouts, service config schemas, diagnostics | None beyond core |
 | `@ontrails/permits` | Auth layer, permit model, JWT adapter, scope enforcement | None beyond core |
-| `@ontrails/tracks` | Telemetry recording, trace context, memory/OTel sinks | None beyond core |
+| `@ontrails/crumbs` | Telemetry recording, trace context, memory/OTel sinks | None beyond core |
 | `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
 | `@ontrails/logging/logtape` | LogTape sink adapter | `@logtape/logtape` (optional peer) |
 
@@ -179,7 +179,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 @ontrails/http (core, hono)
 @ontrails/config (core)
 @ontrails/permits (core)
-@ontrails/tracks (core)
+@ontrails/crumbs (core)
 @ontrails/logging (core)
 @ontrails/testing (core, cli, mcp, logging)
 @ontrails/schema (core)

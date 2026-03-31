@@ -13,25 +13,25 @@ import {
   TrailsError,
 } from '@ontrails/core';
 
-import type { TrackRecord } from './record.js';
-import { createTrackRecord } from './record.js';
+import type { Crumb } from './record.js';
+import { createCrumb } from './record.js';
 import type { SamplingConfig } from './sampling.js';
 import { shouldSample } from './sampling.js';
 import type { TraceContext } from './trace-context.js';
-import { createTracksApi, TRACKS_API_KEY } from './tracks-api.js';
+import { createCrumbsApi, CRUMBS_API_KEY } from './crumbs-api.js';
 import {
   TRACE_CONTEXT_KEY,
   childTraceContext,
   getTraceContext,
 } from './trace-context.js';
 
-/** Sink that receives completed TrackRecords. */
-export interface TrackSink {
-  readonly write: (record: TrackRecord) => void | Promise<void>;
+/** Sink that receives completed Crumbs. */
+export interface CrumbSink {
+  readonly write: (record: Crumb) => void | Promise<void>;
 }
 
-/** Options for configuring the tracks layer. */
-export interface TracksLayerOptions {
+/** Options for configuring the crumbs layer. */
+export interface CrumbsLayerOptions {
   /** Intent-based sampling overrides. */
   readonly sampling?: Partial<SamplingConfig> | undefined;
   /** Promote sampled-out traces to sampled on error. Default true. */
@@ -42,7 +42,7 @@ export interface TracksLayerOptions {
 
 /** Outcome fields derived from a trail execution result. */
 interface TrackOutcome {
-  readonly status: TrackRecord['status'];
+  readonly status: Crumb['status'];
   readonly errorCategory: string | undefined;
 }
 
@@ -80,9 +80,9 @@ const createRootTrace = (sampled: boolean): TraceContext => {
 
 /** Build a completed record from a base record and execution result. */
 const completeRecord = (
-  record: TrackRecord,
+  record: Crumb,
   result: Result<unknown, Error>
-): TrackRecord => ({
+): Crumb => ({
   ...record,
   ...deriveOutcome(result),
   endedAt: Date.now(),
@@ -90,9 +90,9 @@ const completeRecord = (
 
 /** Merge manual annotations into a completed trail record. */
 const mergeAnnotations = (
-  record: TrackRecord,
+  record: Crumb,
   attrs: Readonly<Record<string, unknown>>
-): TrackRecord =>
+): Crumb =>
   Object.keys(attrs).length === 0
     ? record
     : {
@@ -132,7 +132,7 @@ const enrichExtensions = (
 
 /** Decide whether a completed record should be written to the sink. */
 const shouldWrite = (
-  record: TrackRecord,
+  record: Crumb,
   sampled: boolean,
   keepOnError: boolean
 ): boolean => {
@@ -151,7 +151,7 @@ const resolveTrace = (
     ? { ...childTraceContext(parentTrace), sampled }
     : createRootTrace(sampled);
 
-/** Extract permit fields from ctx for the track record. */
+/** Extract permit fields from ctx for the crumb record. */
 const extractPermit = (
   ctx: TrailContext
 ): { readonly id: string; readonly tenantId?: string } | undefined => {
@@ -169,7 +169,7 @@ const extractPermit = (
 
 /** Notify sink observers without letting secondary failures escape. */
 const notifySinkError = (
-  options: TracksLayerOptions | undefined,
+  options: CrumbsLayerOptions | undefined,
   error: unknown
 ): void => {
   try {
@@ -183,20 +183,20 @@ const notifySinkError = (
 const prepareExecution = <I, O>(
   trail: Trail<I, O>,
   ctx: TrailContext,
-  sink: TrackSink,
-  options?: TracksLayerOptions
+  sink: CrumbSink,
+  options?: CrumbsLayerOptions
 ) => {
   const parentTrace = getTraceContext(ctx);
   const sampled = resolveSampled(parentTrace, trail.intent, options?.sampling);
   const trace = resolveTrace(parentTrace, sampled);
   const isRoot = parentTrace === undefined;
 
-  const record = createTrackRecord({
+  const record = createCrumb({
     intent: trail.intent,
     parentId: parentTrace?.spanId,
     permit: extractPermit(ctx),
     rootId: isRoot ? undefined : trace.rootId,
-    surface: ctx.extensions?.[SURFACE_KEY] as TrackRecord['surface'],
+    surface: ctx.extensions?.[SURFACE_KEY] as Crumb['surface'],
     traceId: trace.traceId,
     trailId: trail.id,
   });
@@ -207,17 +207,17 @@ const prepareExecution = <I, O>(
     spanId: record.id,
   };
   const traceCtx = enrichExtensions(ctx, enrichedTrace);
-  const tracksApi = createTracksApi(traceCtx, sink);
+  const crumbsApi = createCrumbsApi(traceCtx, sink);
 
   return {
     ctx: {
       ...traceCtx,
       extensions: {
         ...traceCtx.extensions,
-        [TRACKS_API_KEY]: tracksApi.api,
+        [CRUMBS_API_KEY]: crumbsApi.api,
       },
     },
-    getAnnotations: tracksApi.getAnnotations,
+    getAnnotations: crumbsApi.getAnnotations,
     record,
     sampled,
   };
@@ -231,12 +231,12 @@ const prepareExecution = <I, O>(
  * context into `ctx.extensions` so child trails inherit the trace. Supports
  * intent-based sampling and error promotion for sampled-out traces.
  */
-export const createTracksLayer = (
-  sink: TrackSink,
-  options?: TracksLayerOptions
+export const createCrumbsLayer = (
+  sink: CrumbSink,
+  options?: CrumbsLayerOptions
 ): Layer => ({
   description: 'Automatic trail execution recording',
-  name: 'tracks',
+  name: 'crumbs',
   wrap:
     <I, O>(trail: Trail<I, O>, impl: Implementation<I, O>) =>
     async (input: I, ctx) => {

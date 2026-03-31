@@ -21,7 +21,7 @@ const db = service('db.main', {
 
 This works. It's also manual parsing with no validation, no defaults, no documentation, and no type safety. Every service duplicates the same pattern: read a string from `process.env`, hope it's there, cast it to the right type, move on.
 
-Config feeds everything in a Trails app. Service factories need connection strings. Auth layers need JWT secrets. Tracks need sampling rates. The question isn't whether config needs a system — it's whether the system can follow the Trails pattern: author a typed contract, derive the rest.
+Config feeds everything in a Trails app. Service factories need connection strings. Auth layers need JWT secrets. Crumbs need sampling rates. The question isn't whether config needs a system — it's whether the system can follow the Trails pattern: author a typed contract, derive the rest.
 
 ### What config touches
 
@@ -29,7 +29,7 @@ Config is upstream of everything that runs:
 
 - **Services** — `svc.config.db.url` instead of `svc.env?.DATABASE_URL`
 - **Auth** — JWT secrets, issuer URLs, token lifetimes
-- **Tracks** — sampling rates, enabled/disabled, export targets
+- **Crumbs** — sampling rates, enabled/disabled, export targets
 - **Layers** — transaction boundaries, caching TTLs, rate limits
 
 Today none of these have a typed contract. Each reads raw strings from the environment and parses them independently.
@@ -119,7 +119,7 @@ export default defineConfig({
       jwtSecret: secret(env(z.string(), 'JWT_SECRET')),
       issuer: z.string().default('https://auth.example.com'),
     }),
-    tracks: z.object({
+    crumbs: z.object({
       enabled: z.boolean().default(true),
       samplingRate: z.number().default(1.0),
     }),
@@ -349,4 +349,4 @@ This keeps config resolution predictable and fast. The entire config tree resolv
 ## References
 
 - [ADR-009: Services as a First-Class Primitive](009-services.md) — services declare config schemas via the reserved `config` field; config enriches `ServiceContext`
-- [ADR-013: Tracks](013-tracks.md) — tracks consume config for sampling rates and export targets
+- [ADR-013: Crumbs](013-crumbs.md) — crumbs consume config for sampling rates and export targets

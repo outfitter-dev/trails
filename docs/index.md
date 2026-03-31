@@ -39,4 +39,4 @@
 
 ## What's next?
 
-- **[Horizons](./horizons.md)** — HTTP surface, permits, mounts, tracks, and the road to v1 stable
+- **[Horizons](./horizons.md)** — HTTP surface, permits, mounts, crumbs, and the road to v1 stable

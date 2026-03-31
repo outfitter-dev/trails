@@ -29,6 +29,23 @@ if [[ -z "$PINNED_BUN_VERSION" ]]; then
   exit 1
 fi
 
+has_repo_install_state() {
+  [[ -e "$REPO_ROOT/node_modules" ]] || return 1
+
+  local dir
+  local nullglob_state
+  nullglob_state="$(shopt -p nullglob)"
+  shopt -s nullglob
+  for dir in "$REPO_ROOT"/packages/* "$REPO_ROOT"/apps/*; do
+    [[ -f "$dir/package.json" ]] || continue
+    if [[ ! -e "$dir/node_modules" ]]; then
+      eval "$nullglob_state"
+      return 1
+    fi
+  done
+  eval "$nullglob_state"
+}
+
 # -----------------------------------------------------------------------------
 # Fast path — exit immediately if all tools and deps are present
 # -----------------------------------------------------------------------------
@@ -44,15 +61,19 @@ if [[ "${1:-}" != "--force" ]]; then
 
   command -v gh &>/dev/null || all_present=false
   command -v gt &>/dev/null || all_present=false
-  [[ -d "$REPO_ROOT/node_modules" ]] || all_present=false
+  has_repo_install_state || all_present=false
 
   if $all_present; then
     exit 0  # All good, nothing to do
   fi
 fi
 
-# Strip --force if present
-[[ "${1:-}" == "--force" ]] && shift
+# Capture and strip --force if present
+FORCE=false
+if [[ "${1:-}" == "--force" ]]; then
+  FORCE=true
+  shift
+fi
 
 # Colors (disabled when not a terminal)
 if [[ -t 1 ]]; then
@@ -208,12 +229,33 @@ check_auth() {
 # Project dependencies
 # -----------------------------------------------------------------------------
 install_deps() {
-  info "Installing project dependencies..."
+  info "Installing project dependencies with Bun..."
   (
     cd "$REPO_ROOT"
     bun install
   )
   success "Dependencies installed"
+}
+
+ensure_project_deps() {
+  if ! $FORCE && has_repo_install_state; then
+    success "Dependencies already available"
+    return
+  fi
+
+  if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree &>/dev/null; then
+    local git_dir=""
+    local common_dir=""
+
+    git_dir="$(git -C "$REPO_ROOT" rev-parse --git-dir)"
+    common_dir="$(git -C "$REPO_ROOT" rev-parse --git-common-dir)"
+
+    if [[ "$git_dir" != "$common_dir" ]]; then
+      info "Linked worktree detected; installing dependencies locally for this checkout"
+    fi
+  fi
+
+  install_deps
 }
 
 # -----------------------------------------------------------------------------
@@ -241,7 +283,7 @@ main() {
   echo ""
 
   # Project setup
-  install_deps
+  ensure_project_deps
 
   echo ""
   echo -e "${GREEN}Bootstrap complete!${NC}"

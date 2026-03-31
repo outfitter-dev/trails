@@ -2,13 +2,13 @@ import { describe, expect, test } from 'bun:test';
 import { createServiceLookup } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 
-import type { TracksState } from '../registry.js';
+import type { CrumbsState } from '../registry.js';
 import { DEFAULT_SAMPLING } from '../sampling.js';
-import { tracksStatus } from '../trails/tracks-status.js';
+import { crumbsStatus } from '../trails/crumbs-status.js';
 
-/** Build a TrailContext with tracksService resolved in extensions. */
-const buildCtx = (state: TracksState): TrailContext => {
-  const extensions = { tracks: state };
+/** Build a TrailContext with crumbsService resolved in extensions. */
+const buildCtx = (state: CrumbsState): TrailContext => {
+  const extensions = { crumbs: state };
   const ctx: TrailContext = {
     cwd: '/tmp',
     env: {},
@@ -26,41 +26,41 @@ const buildCtx = (state: TracksState): TrailContext => {
 };
 
 /** Default test state. */
-const defaultState: TracksState = {
+const defaultState: CrumbsState = {
   active: true,
   sampling: DEFAULT_SAMPLING,
   store: undefined,
 };
 
-describe('tracks.status', () => {
+describe('crumbs.status', () => {
   describe('contract', () => {
     test('has correct id', () => {
-      expect(tracksStatus.id).toBe('tracks.status');
+      expect(crumbsStatus.id).toBe('crumbs.status');
     });
 
     test('has read intent', () => {
-      expect(tracksStatus.intent).toBe('read');
+      expect(crumbsStatus.intent).toBe('read');
     });
 
     test('has infrastructure metadata', () => {
-      expect(tracksStatus.metadata).toEqual({ category: 'infrastructure' });
+      expect(crumbsStatus.metadata).toEqual({ category: 'infrastructure' });
     });
 
     test('has examples', () => {
-      expect(tracksStatus.examples).toBeDefined();
-      expect(tracksStatus.examples?.length).toBeGreaterThan(0);
+      expect(crumbsStatus.examples).toBeDefined();
+      expect(crumbsStatus.examples?.length).toBeGreaterThan(0);
     });
 
-    test('declares tracksService in services', () => {
-      expect(tracksStatus.services).toBeDefined();
-      expect(tracksStatus.services?.length).toBe(1);
+    test('declares crumbsService in services', () => {
+      expect(crumbsStatus.services).toBeDefined();
+      expect(crumbsStatus.services?.length).toBe(1);
     });
   });
 
   describe('run', () => {
     test('returns active from state', async () => {
       const ctx = buildCtx(defaultState);
-      const result = await tracksStatus.run({}, ctx);
+      const result = await crumbsStatus.run({}, ctx);
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
       expect(value.active).toBe(true);
@@ -68,21 +68,21 @@ describe('tracks.status', () => {
 
     test('returns inactive when state says so', async () => {
       const ctx = buildCtx({ ...defaultState, active: false });
-      const result = await tracksStatus.run({}, ctx);
+      const result = await crumbsStatus.run({}, ctx);
       const value = result.unwrap();
       expect(value.active).toBe(false);
     });
 
     test('returns recordCount of 0 for v1', async () => {
       const ctx = buildCtx(defaultState);
-      const result = await tracksStatus.run({}, ctx);
+      const result = await crumbsStatus.run({}, ctx);
       const value = result.unwrap();
       expect(value.recordCount).toBe(0);
     });
 
     test('returns sampling config from state', async () => {
       const ctx = buildCtx(defaultState);
-      const result = await tracksStatus.run({}, ctx);
+      const result = await crumbsStatus.run({}, ctx);
       const value = result.unwrap();
       expect(value.samplingConfig).toEqual({
         destroy: DEFAULT_SAMPLING.destroy,
@@ -94,7 +94,7 @@ describe('tracks.status', () => {
     test('returns custom sampling when state overrides defaults', async () => {
       const custom = { destroy: 0.5, read: 0.1, write: 0.9 };
       const ctx = buildCtx({ ...defaultState, sampling: custom });
-      const result = await tracksStatus.run({}, ctx);
+      const result = await crumbsStatus.run({}, ctx);
       const value = result.unwrap();
       expect(value.samplingConfig).toEqual(custom);
     });

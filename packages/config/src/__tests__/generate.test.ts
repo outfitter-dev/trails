@@ -104,6 +104,15 @@ describe('generateExample()', () => {
 
       expect(result).toContain('// DEPRECATED: Use newEndpoint instead');
     });
+
+    test('handles nested objects', () => {
+      const result = generateExample(nestedSchema, 'jsonc');
+
+      expect(result).toContain('"db"');
+      expect(result).toContain('"host"');
+      expect(result).toContain('"localhost"');
+      expect(result).not.toContain('"db": ""');
+    });
   });
 
   describe('YAML format', () => {

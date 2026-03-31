@@ -1,5 +1,5 @@
-import type { TrackRecord } from '../record.js';
-import type { TrackSink } from '../tracks-layer.js';
+import type { Crumb } from '../record.js';
+import type { CrumbSink } from '../crumbs-layer.js';
 
 /** OTel span representation produced by the adapter. */
 export interface OtelSpan {
@@ -23,8 +23,8 @@ export interface OtelAdapterOptions {
   readonly batchSize?: number;
 }
 
-/** Map from TrackRecord status to OTel status. */
-const STATUS_MAP: Record<TrackRecord['status'], OtelSpan['status']> = {
+/** Map from Crumb status to OTel status. */
+const STATUS_MAP: Record<Crumb['status'], OtelSpan['status']> = {
   cancelled: 'UNSET',
   err: 'ERROR',
   ok: 'OK',
@@ -37,7 +37,7 @@ const deriveKind = (parentId: string | undefined): OtelSpan['kind'] =>
 /** Attribute mapping: record field → OTel attribute key + extractor. */
 const ATTR_MAP: readonly {
   key: string;
-  get: (r: TrackRecord) => string | undefined;
+  get: (r: Crumb) => string | undefined;
 }[] = [
   { get: (r) => r.trailId, key: 'trails.trail.id' },
   { get: (r) => r.intent, key: 'trails.intent' },
@@ -46,9 +46,9 @@ const ATTR_MAP: readonly {
   { get: (r) => r.permit?.tenantId, key: 'trails.permit.tenant_id' },
 ];
 
-/** Build the trails-namespaced attributes from a TrackRecord. */
+/** Build the trails-namespaced attributes from a Crumb. */
 const buildAttributes = (
-  record: TrackRecord
+  record: Crumb
 ): Record<string, string | number | boolean> => {
   const attrs: Record<string, string | number | boolean> = {};
   for (const { key, get } of ATTR_MAP) {
@@ -69,8 +69,8 @@ const buildAttributes = (
   return attrs;
 };
 
-/** Translate a TrackRecord into an OTel span. */
-const toOtelSpan = (record: TrackRecord): OtelSpan => ({
+/** Translate a Crumb into an OTel span. */
+const toOtelSpan = (record: Crumb): OtelSpan => ({
   attributes: buildAttributes(record),
   endTime: record.endedAt,
   kind: deriveKind(record.parentId),
@@ -82,14 +82,14 @@ const toOtelSpan = (record: TrackRecord): OtelSpan => ({
   traceId: record.traceId,
 });
 
-/** A TrackSink extended with an explicit flush for shutdown. */
-export interface OtelSink extends TrackSink {
+/** A CrumbSink extended with an explicit flush for shutdown. */
+export interface OtelSink extends CrumbSink {
   /** Flush any remaining buffered spans to the exporter. */
   readonly flush: () => Promise<void>;
 }
 
 /**
- * Create a TrackSink that translates TrackRecords to OTel spans.
+ * Create a CrumbSink that translates Crumbs to OTel spans.
  *
  * The adapter maps Trails-native fields to OpenTelemetry span attributes
  * under a `trails.*` namespace. Pass any OTel-compatible exporter callback
@@ -118,7 +118,7 @@ export const createOtelAdapter = (options: OtelAdapterOptions): OtelSink => {
 
   return {
     flush,
-    write: async (record: TrackRecord): Promise<void> => {
+    write: async (record: Crumb): Promise<void> => {
       buffer.push(toOtelSpan(record));
       if (buffer.length >= batchSize) {
         await flush();

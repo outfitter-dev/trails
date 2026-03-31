@@ -2,8 +2,13 @@
  * Lazy config reference markers for trail input defaults.
  *
  * A `ConfigRef` is a marker object that can be embedded as a trail input
- * default. The resolution stack detects it at invocation time and replaces
- * it with the live config value at the given path.
+ * default. When resolution is wired into the execution pipeline, it will
+ * be replaced with the live config value at the given path.
+ *
+ * Note: resolution is not yet wired into the execution pipeline.
+ * Currently this module provides the marker type and type guard only.
+ * Trail input defaults using `configRef()` will not be resolved
+ * automatically until the execution pipeline integration ships.
  */
 
 /** Marker object representing a lazy reference to a config field. */
@@ -15,7 +20,7 @@ export interface ConfigRef {
 /**
  * Create a lazy reference to a config field for use as a trail input default.
  *
- * The reference is resolved at invocation time, not at declaration time.
+ * Note: resolution is not yet automatic. See module-level docs.
  *
  */
 export const configRef = (path: string): ConfigRef => ({

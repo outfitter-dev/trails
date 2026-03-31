@@ -2,9 +2,9 @@ import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import type { DevStoreQueryOptions } from '../stores/dev.js';
-import { tracksService } from '../tracks-service.js';
+import { crumbsService } from '../crumbs-service.js';
 
-/** Output schema for individual track records. */
+/** Output schema for individual crumb records. */
 const trackRecordOutput = z.object({
   endedAt: z.number().optional(),
   id: z.string(),
@@ -19,13 +19,13 @@ const trackRecordOutput = z.object({
   trailId: z.string().optional(),
 });
 
-/** Output schema for the tracks.query trail. */
-const tracksQueryOutput = z.object({
+/** Output schema for the crumbs.query trail. */
+const crumbsQueryOutput = z.object({
   count: z.number(),
   records: z.array(trackRecordOutput),
 });
 
-/** Map a TrackRecord to the output shape, dropping internal fields. */
+/** Map a Crumb to the output shape, dropping internal fields. */
 const mapRecord = (r: {
   readonly endedAt?: number | undefined;
   readonly id: string;
@@ -66,12 +66,12 @@ const buildQueryOptions = (input: {
 });
 
 /**
- * Query execution history from the tracks dev store.
+ * Query execution history from the crumbs dev store.
  *
- * Reads the store from the `tracksService` state. Returns an empty
+ * Reads the store from the `crumbsService` state. Returns an empty
  * result set when no store has been configured.
  */
-export const tracksQuery = trail('tracks.query', {
+export const crumbsQuery = trail('crumbs.query', {
   examples: [
     { input: {}, name: 'Recent traces' },
     { input: { trailId: 'user.create' }, name: 'Filter by trail' },
@@ -85,9 +85,9 @@ export const tracksQuery = trail('tracks.query', {
   }),
   intent: 'read',
   metadata: { category: 'infrastructure' },
-  output: tracksQueryOutput,
+  output: crumbsQueryOutput,
   run: (input, ctx) => {
-    const state = tracksService.from(ctx);
+    const state = crumbsService.from(ctx);
     if (!state.store) {
       return Result.ok({ count: 0, records: [] });
     }
@@ -95,5 +95,5 @@ export const tracksQuery = trail('tracks.query', {
     const mapped = records.map(mapRecord);
     return Result.ok({ count: mapped.length, records: mapped });
   },
-  services: [tracksService],
+  services: [crumbsService],
 });

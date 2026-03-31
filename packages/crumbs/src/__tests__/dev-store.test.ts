@@ -3,12 +3,12 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import type { TrackRecord } from '../record.js';
+import type { Crumb } from '../record.js';
 import type { DevStore } from '../stores/dev.js';
 import { createDevStore } from '../stores/dev.js';
 
-/** Build a minimal TrackRecord for testing. */
-const makeRecord = (overrides?: Partial<TrackRecord>): TrackRecord => ({
+/** Build a minimal Crumb for testing. */
+const makeRecord = (overrides?: Partial<Crumb>): Crumb => ({
   attrs: {},
   endedAt: Date.now(),
   id: `rec-${crypto.randomUUID()}`,
@@ -42,7 +42,7 @@ describe('createDevStore', () => {
   describe('lifecycle', () => {
     test('creates a database file at the specified path', () => {
       const dir = makeTmpDir();
-      const dbPath = join(dir, 'tracks.db');
+      const dbPath = join(dir, 'crumbs.db');
 
       store = createDevStore({ path: dbPath });
 
@@ -51,7 +51,7 @@ describe('createDevStore', () => {
 
     test('close() closes the database connection', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracks.db') });
+      store = createDevStore({ path: join(dir, 'crumbs.db') });
       store.write(makeRecord());
 
       store.close();
@@ -64,9 +64,9 @@ describe('createDevStore', () => {
   });
 
   describe('write()', () => {
-    test('persists a TrackRecord', () => {
+    test('persists a Crumb', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracks.db') });
+      store = createDevStore({ path: join(dir, 'crumbs.db') });
       const record = makeRecord();
 
       store.write(record);
@@ -79,7 +79,7 @@ describe('createDevStore', () => {
 
     test('persists attrs as JSON', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracks.db') });
+      store = createDevStore({ path: join(dir, 'crumbs.db') });
       const record = makeRecord({ attrs: { count: 42, key: 'value' } });
 
       store.write(record);
@@ -90,7 +90,7 @@ describe('createDevStore', () => {
 
     test('persists permit fields', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracks.db') });
+      store = createDevStore({ path: join(dir, 'crumbs.db') });
       const record = makeRecord({
         permit: { id: 'permit-1', tenantId: 'tenant-1' },
       });
@@ -106,7 +106,7 @@ describe('createDevStore', () => {
 
     test('upserts duplicate record ids instead of throwing', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracks.db') });
+      store = createDevStore({ path: join(dir, 'crumbs.db') });
 
       store.write(makeRecord({ id: 'dup', name: 'first' }));
       store.write(makeRecord({ id: 'dup', name: 'updated' }));
@@ -120,7 +120,7 @@ describe('createDevStore', () => {
   describe('query()', () => {
     test('returns persisted records ordered by startedAt descending', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracks.db') });
+      store = createDevStore({ path: join(dir, 'crumbs.db') });
 
       const older = makeRecord({
         id: 'rec-old',
@@ -144,7 +144,7 @@ describe('createDevStore', () => {
 
     test('filters by trailId', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracks.db') });
+      store = createDevStore({ path: join(dir, 'crumbs.db') });
 
       store.write(makeRecord({ id: 'a', trailId: 'users.list' }));
       store.write(makeRecord({ id: 'b', trailId: 'users.get' }));
@@ -158,7 +158,7 @@ describe('createDevStore', () => {
 
     test('filters by traceId', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracks.db') });
+      store = createDevStore({ path: join(dir, 'crumbs.db') });
 
       store.write(makeRecord({ id: 'a', traceId: 'trace-abc' }));
       store.write(makeRecord({ id: 'b', traceId: 'trace-xyz' }));
@@ -171,7 +171,7 @@ describe('createDevStore', () => {
 
     test('filters by errorsOnly', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracks.db') });
+      store = createDevStore({ path: join(dir, 'crumbs.db') });
 
       store.write(makeRecord({ id: 'ok-1', status: 'ok' }));
       store.write(
@@ -191,7 +191,7 @@ describe('createDevStore', () => {
 
     test('limits results', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracks.db') });
+      store = createDevStore({ path: join(dir, 'crumbs.db') });
 
       for (let i = 0; i < 10; i += 1) {
         store.write(makeRecord({ id: `rec-${String(i)}` }));
@@ -208,7 +208,7 @@ describe('createDevStore', () => {
       const dir = makeTmpDir();
       store = createDevStore({
         maxRecords: 5,
-        path: join(dir, 'tracks.db'),
+        path: join(dir, 'crumbs.db'),
       });
 
       for (let i = 0; i < 8; i += 1) {
@@ -226,7 +226,7 @@ describe('createDevStore', () => {
       const dir = makeTmpDir();
       store = createDevStore({
         maxAge: 1000,
-        path: join(dir, 'tracks.db'),
+        path: join(dir, 'crumbs.db'),
       });
 
       store.write(makeRecord({ id: 'old', startedAt: Date.now() - 5000 }));
@@ -243,7 +243,7 @@ describe('createDevStore', () => {
       const dir = makeTmpDir();
       store = createDevStore({
         maxRecords: 2,
-        path: join(dir, 'tracks.db'),
+        path: join(dir, 'crumbs.db'),
       });
 
       store.write(makeRecord({ id: 'a', startedAt: 1000 }));

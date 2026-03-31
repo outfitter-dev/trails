@@ -7,7 +7,7 @@ export interface TraceContext {
 }
 
 /** Key used to store trace context in ctx.extensions. */
-export const TRACE_CONTEXT_KEY = '__tracks_trace';
+export const TRACE_CONTEXT_KEY = '__crumbs_trace';
 
 /** Read trace context from trail context extensions. */
 export const getTraceContext = (ctx: {
