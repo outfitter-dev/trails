@@ -14,6 +14,7 @@ import type { TrailContext } from '@ontrails/core';
 import { createMemorySink } from '../memory-sink.js';
 import { getTraceContext, TRACE_CONTEXT_KEY } from '../trace-context.js';
 import type { TraceContext } from '../trace-context.js';
+import { tracks } from '../index.js';
 import { createTracksLayer } from '../tracks-layer.js';
 
 const stubCtx: TrailContext = createTrailContext({
@@ -221,6 +222,7 @@ describe('tracksLayer', () => {
     const layer = createTracksLayer(
       {
         write: async () => {
+          await Promise.resolve();
           throw new Error('sink down');
         },
       },
@@ -327,5 +329,62 @@ describe('tracksLayer', () => {
     expect(sink.records).toHaveLength(1);
     expect(sink.records[0]?.status).toBe('cancelled');
     expect(sink.records[0]?.errorCategory).toBe('cancelled');
+  });
+
+  test('injects tracks.from(ctx).span so manual spans become child records', async () => {
+    const sink = createMemorySink();
+    const instrumentedTrail = trail('instrumented', {
+      input: z.object({}),
+      output: z.object({ value: z.string() }),
+      run: async (_input, ctx) => {
+        const value = await tracks
+          .from(ctx as TrailContext)
+          .span('inner-span', () => 'done');
+        return Result.ok({ value });
+      },
+    });
+
+    const layer = createTracksLayer(sink);
+    const wrapped = layer.wrap(instrumentedTrail, instrumentedTrail.run);
+
+    const result = await wrapped({}, stubCtx);
+
+    expect(result.isOk()).toBe(true);
+    expect(sink.records).toHaveLength(2);
+
+    const trailRecord = sink.records.find((record) => record.kind === 'trail');
+    const spanRecord = sink.records.find((record) => record.kind === 'span');
+
+    expect(trailRecord?.trailId).toBe('instrumented');
+    expect(spanRecord?.name).toBe('inner-span');
+    expect(spanRecord?.parentId).toBe(trailRecord?.id);
+    expect(spanRecord?.rootId).toBe(trailRecord?.id);
+    expect(spanRecord?.traceId).toBe(trailRecord?.traceId);
+  });
+
+  test('merges tracks.from(ctx).annotate attrs into the trail record', async () => {
+    const sink = createMemorySink();
+    const annotatedTrail = trail('annotated', {
+      input: z.object({}),
+      output: z.object({ value: z.string() }),
+      run: (_input, ctx) => {
+        tracks.from(ctx as TrailContext).annotate({ count: 1, stage: 'start' });
+        tracks.from(ctx as TrailContext).annotate({ count: 2, detail: 'done' });
+        return Result.ok({ value: 'ok' });
+      },
+    });
+
+    const layer = createTracksLayer(sink);
+    const wrapped = layer.wrap(annotatedTrail, annotatedTrail.run);
+
+    const result = await wrapped({}, stubCtx);
+
+    expect(result.isOk()).toBe(true);
+    expect(sink.records).toHaveLength(1);
+    expect(sink.records[0]?.attrs).toEqual({
+      count: 2,
+      detail: 'done',
+      stage: 'start',
+    });
   });
 });

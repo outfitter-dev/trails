@@ -22,3 +22,4 @@ export {
   type TracksApi,
   type TracksApiWithState,
 } from './tracks-api.js';
+export { tracks } from './tracks-accessor.js';
