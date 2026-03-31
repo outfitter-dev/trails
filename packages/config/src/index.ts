@@ -26,6 +26,8 @@ export {
   generateExample,
   generateJsonSchema,
 } from './generate/index.js';
+export { configLayer } from './config-layer.js';
+export { configService } from './config-service.js';
 export {
   clearConfigState,
   type ConfigState,
@@ -37,3 +39,6 @@ export { configRef, isConfigRef, type ConfigRef } from './ref.js';
 export { resolveConfig, type ResolveConfigOptions } from './resolve.js';
 export { configCheck } from './trails/config-check.js';
 export { configDescribe } from './trails/config-describe.js';
+export { configExplain } from './trails/config-explain.js';
+export { configInit } from './trails/config-init.js';
+export { ensureWorkspace } from './workspace.js';
