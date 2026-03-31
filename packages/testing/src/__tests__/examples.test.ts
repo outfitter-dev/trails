@@ -437,3 +437,97 @@ describe('testExamples nested follow chain (A → B → C)', () => {
     } as Record<string, unknown>)
   );
 });
+
+// ---------------------------------------------------------------------------
+// Auto-minting permit tests (B3)
+// ---------------------------------------------------------------------------
+
+const scopedTrail = trail('scoped.trail', {
+  description: 'Trail requiring admin scope',
+  examples: [
+    {
+      expected: { ok: true },
+      input: {},
+      name: 'Runs with auto-minted permit',
+    },
+  ],
+  input: z.object({}),
+  output: z.object({ ok: z.boolean() }),
+  permit: { scopes: ['admin'] },
+  run: (_input, ctx) => {
+    // Verify the permit was auto-minted with declared scopes
+    const permit = ctx.permit as
+      | { id: string; scopes: readonly string[] }
+      | undefined;
+    if (!permit || !permit.scopes.includes('admin')) {
+      return Result.err(new Error('Missing permit or scopes'));
+    }
+    return Result.ok({ ok: true });
+  },
+});
+
+const publicTrail = trail('public.trail', {
+  description: 'Public trail — no permit needed',
+  examples: [
+    {
+      expected: { ok: true },
+      input: {},
+      name: 'Runs without a permit',
+    },
+  ],
+  input: z.object({}),
+  output: z.object({ ok: z.boolean() }),
+  permit: 'public',
+  run: (_input, ctx) => {
+    // Public trail should NOT get a permit
+    if (ctx.permit !== undefined) {
+      return Result.err(new Error('Unexpected permit on public trail'));
+    }
+    return Result.ok({ ok: true });
+  },
+});
+
+describe('testExamples auto-minting permits', () => {
+  describe('scoped trail gets auto-minted permit', () => {
+    // eslint-disable-next-line jest/require-hook
+    testExamples(
+      topo('mint-scoped-app', {
+        scopedTrail,
+      } as Record<string, unknown>)
+    );
+  });
+
+  describe('public trail does NOT get a permit', () => {
+    // eslint-disable-next-line jest/require-hook
+    testExamples(
+      topo('mint-public-app', {
+        publicTrail,
+      } as Record<string, unknown>)
+    );
+  });
+
+  describe('strictPermits skips auto-minting', () => {
+    const strictScopedTrail = trail('strict.scoped', {
+      description: 'Trail that expects no permit under strictPermits',
+      examples: [
+        {
+          expected: { hasPermit: false },
+          input: {},
+          name: 'No auto-minted permit when strictPermits is true',
+        },
+      ],
+      input: z.object({}),
+      output: z.object({ hasPermit: z.boolean() }),
+      permit: { scopes: ['admin'] },
+      run: (_input, ctx) => Result.ok({ hasPermit: ctx.permit !== undefined }),
+    });
+
+    // eslint-disable-next-line jest/require-hook
+    testExamples(
+      topo('strict-app', {
+        strictScopedTrail,
+      } as Record<string, unknown>),
+      { strictPermits: true }
+    );
+  });
+});

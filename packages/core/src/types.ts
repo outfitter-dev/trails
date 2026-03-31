@@ -49,12 +49,18 @@ export interface Logger {
 /** Context extension key for the invoking surface name. */
 export const SURFACE_KEY = '__trails_surface' as const;
 
+/** Minimal permit shape available on TrailContext. Permits extends this. */
+export interface BasePermit {
+  readonly id: string;
+  readonly scopes: readonly string[];
+}
+
 /** Runtime context threaded through every trail execution */
 export interface TrailContext {
   readonly requestId: string;
   readonly signal: AbortSignal;
   readonly follow?: FollowFn | undefined;
-  readonly permit?: unknown | undefined;
+  readonly permit?: BasePermit;
   readonly workspaceRoot?: string | undefined;
   readonly logger?: Logger | undefined;
   readonly progress?: ProgressCallback | undefined;
@@ -63,6 +69,17 @@ export interface TrailContext {
   readonly extensions?: Readonly<Record<string, unknown>> | undefined;
   readonly service?: ServiceLookup | undefined;
 }
+
+/**
+ * Permit requirement declared on a trail spec.
+ *
+ * A scopes object means the trail requires a permit with those scopes.
+ * `'public'` means the trail has explicitly opted out of auth.
+ * Omitting the field entirely means the trail hasn't declared an auth posture.
+ */
+export type PermitRequirement =
+  | { readonly scopes: readonly string[] }
+  | 'public';
 
 /** Input shape used to seed a runtime TrailContext before resolution. */
 export type TrailContextInit = Omit<TrailContext, 'service'> & {

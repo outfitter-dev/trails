@@ -31,6 +31,10 @@ import { connectStdio } from './stdio.js';
 // ---------------------------------------------------------------------------
 
 export interface BlazeMcpOptions {
+  /** Config values for services that declare a `config` schema, keyed by service ID. */
+  readonly configValues?:
+    | Readonly<Record<string, Record<string, unknown>>>
+    | undefined;
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
@@ -147,6 +151,7 @@ export const blaze = async (
   }
 
   const toolsResult = buildMcpTools(app, {
+    configValues: options.configValues,
     createContext: options.createContext,
     excludeTrails: options.excludeTrails,
     includeTrails: options.includeTrails,

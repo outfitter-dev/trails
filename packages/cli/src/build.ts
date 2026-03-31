@@ -32,6 +32,8 @@ export interface ActionResultContext {
 
 /** Options for buildCliCommands. */
 export interface BuildCliCommandsOptions {
+  /** Config values for services that declare a `config` schema, keyed by service ID. */
+  configValues?: Readonly<Record<string, Record<string, unknown>>> | undefined;
   createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
@@ -165,6 +167,7 @@ const createExecute =
     await applyPrompting(fields, mergedInput, options);
 
     const result = await executeTrail(t, mergedInput, {
+      configValues: options?.configValues,
       createContext: options?.createContext,
       ctx: withCliSurface(ctxOverrides),
       layers: options?.layers,

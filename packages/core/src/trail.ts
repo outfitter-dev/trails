@@ -3,7 +3,11 @@ import type { z } from 'zod';
 import type { FieldOverride } from './derive.js';
 import type { Result } from './result.js';
 import type { AnyService } from './service.js';
-import type { Implementation, TrailContext } from './types.js';
+import type {
+  Implementation,
+  PermitRequirement,
+  TrailContext,
+} from './types.js';
 
 // ---------------------------------------------------------------------------
 // Trail example
@@ -59,6 +63,8 @@ export interface TrailSpec<I, O> {
   readonly follow?: readonly string[] | undefined;
   /** Services this trail may access via service.from(ctx) */
   readonly services?: readonly AnyService[] | undefined;
+  /** Auth requirement: scopes object, 'public', or omitted (undeclared) */
+  readonly permit?: PermitRequirement | undefined;
 }
 
 // ---------------------------------------------------------------------------
