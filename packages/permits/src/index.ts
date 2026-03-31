@@ -8,3 +8,4 @@ export { authLayer } from './auth-layer.js';
 export { PermitError } from './errors.js';
 export { type PermitExtractionInput } from './extraction.js';
 export { type Permit, getPermit } from './permit.js';
+export { validatePermits, type PermitDiagnostic } from './rules.js';
