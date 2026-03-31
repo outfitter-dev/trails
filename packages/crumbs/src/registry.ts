@@ -2,32 +2,32 @@ import { DEFAULT_SAMPLING } from './sampling.js';
 import type { SamplingConfig } from './sampling.js';
 import type { DevStore } from './stores/dev.js';
 
-/** Full telemetry subsystem state carried by tracksService. */
-export interface TracksState {
+/** Full telemetry subsystem state carried by crumbsService. */
+export interface CrumbsState {
   readonly active: boolean;
   readonly sampling: SamplingConfig;
   readonly store: DevStore | undefined;
 }
 
-let state: TracksState | undefined;
+let state: CrumbsState | undefined;
 
 /** Register telemetry state at bootstrap. */
-export const registerTracksState = (s: TracksState): void => {
+export const registerCrumbsState = (s: CrumbsState): void => {
   state = s;
 };
 
 /** Read the registered telemetry state. Returns `undefined` before registration. */
-export const getTracksState = (): TracksState | undefined => state;
+export const getCrumbsState = (): CrumbsState | undefined => state;
 
 /** Clear registered state. Primarily useful in tests. */
-export const clearTracksState = (): void => {
+export const clearCrumbsState = (): void => {
   state = undefined;
 };
 
 // --- Backward-compatible convenience wrappers ---
 
-/** Register a DevStore instance for use by the tracks.query trail. */
-export const registerTrackStore = (s: DevStore): void => {
+/** Register a DevStore instance for use by the crumbs.query trail. */
+export const registerCrumbStore = (s: DevStore): void => {
   state = {
     active: state?.active ?? true,
     sampling: state?.sampling ?? DEFAULT_SAMPLING,
@@ -36,10 +36,10 @@ export const registerTrackStore = (s: DevStore): void => {
 };
 
 /** Retrieve the currently registered DevStore, if any. */
-export const getTrackStore = (): DevStore | undefined => state?.store;
+export const getCrumbStore = (): DevStore | undefined => state?.store;
 
 /** Clear the registered store. Useful for testing teardown. */
-export const clearTrackStore = (): void => {
+export const clearCrumbStore = (): void => {
   if (state) {
     state = { ...state, store: undefined };
   }

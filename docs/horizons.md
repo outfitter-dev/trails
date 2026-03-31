@@ -14,7 +14,7 @@
 
 **Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. `authLayer` extracts credentials from surface-specific sources, `AuthAdapter` resolves them to a `Permit` (identity, scopes, roles), and scope enforcement rejects unauthorized access. Includes JWT adapter, governance rules (`validatePermits`), and test helpers (`mintTestPermit`, `mintPermitForTrail`).
 
-**Tracks (`@ontrails/tracks`).** Telemetry recording with `createTracksLayer` capturing execution duration, errors, and trace context propagation for every trail invocation. Pluggable sinks: `createMemorySink` for testing, `createDevStore` for local development, `createOtelAdapter` for production OpenTelemetry export. Sampling configuration controls recording volume.
+**Crumbs (`@ontrails/crumbs`).** Telemetry recording with `createCrumbsLayer` capturing execution duration, errors, and trace context propagation for every trail invocation. Pluggable sinks: `createMemorySink` for testing, `createDevStore` for local development, `createOtelAdapter` for production OpenTelemetry export. Sampling configuration controls recording volume.
 
 ## Mid-term (v1.3+)
 
@@ -30,7 +30,7 @@
 
 **Progressive contract tightening.** A new trail starts loose — minimal schema, no examples. As it matures, the contract tightens: output schema added, examples written, error types specified. The framework tracks progression and suggests next steps.
 
-**Behavioral types from runtime observation.** The tracks system already records execution data. Over time, runtime data validates or challenges authored declarations. A trail declared `intent: 'read'` that triggers database writes has a contract violation. The framework surfaces the discrepancy.
+**Behavioral types from runtime observation.** The crumbs system already records execution data. Over time, runtime data validates or challenges authored declarations. A trail declared `intent: 'read'` that triggers database writes has a contract violation. The framework surfaces the discrepancy.
 
 **SDK generation via guide.** Typed TypeScript clients generated from the topo. Each trail becomes a method with typed input/output. Working over HTTP or WebSocket.
 

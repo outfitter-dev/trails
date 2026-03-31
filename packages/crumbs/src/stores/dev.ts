@@ -3,12 +3,12 @@ import type { SQLQueryBindings } from 'bun:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-import type { TrackRecord } from '../record.js';
-import type { TrackSink } from '../tracks-layer.js';
+import type { Crumb } from '../record.js';
+import type { CrumbSink } from '../crumbs-layer.js';
 
 /** Configuration for the SQLite dev store. */
 export interface DevStoreOptions {
-  /** Path to the SQLite database file. Defaults to `.trails/dev/tracks.db`. */
+  /** Path to the SQLite database file. Defaults to `.trails/dev/crumbs.db`. */
   readonly path?: string;
   /** Maximum number of records to retain. Defaults to 10000. */
   readonly maxRecords?: number;
@@ -16,7 +16,7 @@ export interface DevStoreOptions {
   readonly maxAge?: number;
 }
 
-/** Query options for filtering stored track records. */
+/** Query options for filtering stored crumb records. */
 export interface DevStoreQueryOptions {
   readonly trailId?: string;
   readonly traceId?: string;
@@ -24,18 +24,18 @@ export interface DevStoreQueryOptions {
   readonly limit?: number;
 }
 
-/** SQLite-backed dev store for persisting and querying track records. */
-export interface DevStore extends TrackSink {
+/** SQLite-backed dev store for persisting and querying crumb records. */
+export interface DevStore extends CrumbSink {
   /** Query recent traces with optional filters. */
-  readonly query: (options?: DevStoreQueryOptions) => readonly TrackRecord[];
+  readonly query: (options?: DevStoreQueryOptions) => readonly Crumb[];
   /** Return the total number of stored records. */
   readonly count: () => number;
   /** Close the database connection. */
   readonly close: () => void;
 }
 
-/** SQL for creating the tracks table. */
-const CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS tracks (
+/** SQL for creating the crumbs table. */
+const CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS crumbs (
   id TEXT PRIMARY KEY,
   trace_id TEXT NOT NULL,
   root_id TEXT NOT NULL,
@@ -56,14 +56,14 @@ const CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS tracks (
 
 /** Index for common query patterns. */
 const CREATE_INDEXES_SQL = [
-  'CREATE INDEX IF NOT EXISTS idx_tracks_trail_id ON tracks(trail_id)',
-  'CREATE INDEX IF NOT EXISTS idx_tracks_trace_id ON tracks(trace_id)',
-  'CREATE INDEX IF NOT EXISTS idx_tracks_status ON tracks(status)',
-  'CREATE INDEX IF NOT EXISTS idx_tracks_started_at ON tracks(started_at)',
+  'CREATE INDEX IF NOT EXISTS idx_crumbs_trail_id ON crumbs(trail_id)',
+  'CREATE INDEX IF NOT EXISTS idx_crumbs_trace_id ON crumbs(trace_id)',
+  'CREATE INDEX IF NOT EXISTS idx_crumbs_status ON crumbs(status)',
+  'CREATE INDEX IF NOT EXISTS idx_crumbs_started_at ON crumbs(started_at)',
 ];
 
-/** Shape of a row returned from the tracks table. */
-interface TrackRow {
+/** Shape of a row returned from the crumbs table. */
+interface CrumbRow {
   readonly id: string;
   readonly trace_id: string;
   readonly root_id: string;
@@ -86,7 +86,7 @@ interface TrackRow {
 const buildPermit = (
   permitId: string | null,
   tenantId: string | null
-): TrackRecord['permit'] => {
+): Crumb['permit'] => {
   if (permitId === null) {
     return undefined;
   }
@@ -97,21 +97,21 @@ const buildPermit = (
 const parseAttrs = (raw: string | null): Readonly<Record<string, unknown>> =>
   raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
 
-/** Reconstruct a TrackRecord from a database row. */
-const rowToRecord = (row: TrackRow): TrackRecord => ({
+/** Reconstruct a Crumb from a database row. */
+const rowToRecord = (row: CrumbRow): Crumb => ({
   attrs: parseAttrs(row.attrs),
   endedAt: row.ended_at ?? undefined,
   errorCategory: row.error_category ?? undefined,
   id: row.id,
-  intent: (row.intent ?? undefined) as TrackRecord['intent'],
-  kind: row.kind as TrackRecord['kind'],
+  intent: (row.intent ?? undefined) as Crumb['intent'],
+  kind: row.kind as Crumb['kind'],
   name: row.name,
   parentId: row.parent_id ?? undefined,
   permit: buildPermit(row.permit_id, row.permit_tenant_id),
   rootId: row.root_id,
   startedAt: row.started_at,
-  status: row.status as TrackRecord['status'],
-  surface: (row.surface ?? undefined) as TrackRecord['surface'],
+  status: row.status as Crumb['status'],
+  surface: (row.surface ?? undefined) as Crumb['surface'],
   traceId: row.trace_id,
   trailId: row.trail_id ?? undefined,
 });
@@ -134,7 +134,7 @@ const ensureDir = (path: string): void => {
 /** Prune records exceeding the retention limit. */
 const pruneByCount = (db: Database, maxRecords: number): void => {
   const countResult = db
-    .query<{ count: number }, []>('SELECT COUNT(*) as count FROM tracks')
+    .query<{ count: number }, []>('SELECT COUNT(*) as count FROM crumbs')
     .get();
   const count = countResult?.count ?? 0;
 
@@ -144,8 +144,8 @@ const pruneByCount = (db: Database, maxRecords: number): void => {
 
   const excess = count - maxRecords;
   db.run(
-    `DELETE FROM tracks WHERE id IN (
-      SELECT id FROM tracks ORDER BY started_at ASC LIMIT ?
+    `DELETE FROM crumbs WHERE id IN (
+      SELECT id FROM crumbs ORDER BY started_at ASC LIMIT ?
     )`,
     [excess]
   );
@@ -154,7 +154,7 @@ const pruneByCount = (db: Database, maxRecords: number): void => {
 /** Prune records older than maxAge milliseconds. */
 const pruneByAge = (db: Database, maxAge: number): void => {
   const threshold = Date.now() - maxAge;
-  db.run('DELETE FROM tracks WHERE started_at < ?', [threshold]);
+  db.run('DELETE FROM crumbs WHERE started_at < ?', [threshold]);
 };
 
 /** Filter definition: column condition and optional bound value. */
@@ -199,7 +199,7 @@ const buildQuery = (
 
   return {
     params,
-    sql: `SELECT * FROM tracks ${where} ORDER BY started_at DESC LIMIT ?`,
+    sql: `SELECT * FROM crumbs ${where} ORDER BY started_at DESC LIMIT ?`,
   };
 };
 
@@ -209,8 +209,8 @@ const serializeAttrs = (
 ): string | null =>
   Object.keys(attrs).length > 0 ? JSON.stringify(attrs) : null;
 
-/** Serialize a TrackRecord into positional INSERT parameters. */
-const recordToParams = (record: TrackRecord): SQLQueryBindings[] => [
+/** Serialize a Crumb into positional INSERT parameters. */
+const recordToParams = (record: Crumb): SQLQueryBindings[] => [
   record.id,
   record.traceId,
   record.rootId,
@@ -229,8 +229,8 @@ const recordToParams = (record: TrackRecord): SQLQueryBindings[] => [
   serializeAttrs(record.attrs),
 ];
 
-/** SQL for inserting a track record. */
-const UPSERT_SQL = `INSERT INTO tracks (
+/** SQL for inserting a crumb record. */
+const UPSERT_SQL = `INSERT INTO crumbs (
   id, trace_id, root_id, parent_id,
   kind, name, trail_id, surface,
   intent, started_at, ended_at, status,
@@ -261,10 +261,10 @@ const openDb = (dbPath: string): Database => {
   return db;
 };
 
-/** Count stored track records. */
+/** Count stored crumb records. */
 const countRecords = (db: Database): number => {
   const result = db
-    .query<{ count: number }, []>('SELECT COUNT(*) as count FROM tracks')
+    .query<{ count: number }, []>('SELECT COUNT(*) as count FROM crumbs')
     .get();
   return result?.count ?? 0;
 };
@@ -275,8 +275,8 @@ const createWriter = (
   insertStmt: ReturnType<Database['prepare']>,
   maxRecords: number,
   maxAge: number | undefined
-): ((record: TrackRecord) => void) =>
-  db.transaction((record: TrackRecord) => {
+): ((record: Crumb) => void) =>
+  db.transaction((record: Crumb) => {
     insertStmt.run(...recordToParams(record));
     pruneByCount(db, maxRecords);
     if (maxAge !== undefined) {
@@ -285,24 +285,22 @@ const createWriter = (
   });
 
 /**
- * Create a SQLite-backed dev store for persisting track records.
+ * Create a SQLite-backed dev store for persisting crumb records.
  *
  * Uses WAL mode and normal synchronous for good write performance.
  * Automatically prunes records exceeding `maxRecords` on each write.
  */
 export const createDevStore = (options?: DevStoreOptions): DevStore => {
-  const dbPath = options?.path ?? '.trails/dev/tracks.db';
+  const dbPath = options?.path ?? '.trails/dev/crumbs.db';
   const maxRecords = options?.maxRecords ?? 10_000;
   const maxAge = options?.maxAge;
   const db = openDb(dbPath);
   const insertStmt = db.prepare(UPSERT_SQL);
   const write = createWriter(db, insertStmt, maxRecords, maxAge);
 
-  const query = (
-    queryOptions?: DevStoreQueryOptions
-  ): readonly TrackRecord[] => {
+  const query = (queryOptions?: DevStoreQueryOptions): readonly Crumb[] => {
     const { sql, params } = buildQuery(maxRecords, queryOptions);
-    const rows = db.query<TrackRow, SQLQueryBindings[]>(sql).all(...params);
+    const rows = db.query<CrumbRow, SQLQueryBindings[]>(sql).all(...params);
     return rows.map(rowToRecord);
   };
 

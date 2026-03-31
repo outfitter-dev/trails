@@ -11,7 +11,7 @@ Core defines ports. Everything on the edges is an adapter.
             |  CLI (commander)   |          |  Services (core)   |
             |  MCP (sdk)         |          |  Config (config)   |
             |  HTTP (hono)       |          |  Permits (permits) |
-            |  WebSocket (plan.) |          |  Tracks (tracks)   |
+            |  WebSocket (plan.) |          |  Crumbs (crumbs)   |
             |                    |          |  Logging (logtape) |
             +---------+----------+          +---------+----------+
                       |                               |
@@ -97,7 +97,7 @@ Warden uses inference to verify declarations match actual code. The surface map 
 |---------|---------|-------------|
 | `@ontrails/config` | Config resolution, loadouts, service config schemas, diagnostics | None beyond core |
 | `@ontrails/permits` | Auth layer, permit model, JWT adapter, scope enforcement | None beyond core |
-| `@ontrails/tracks` | Telemetry recording, trace context, memory/OTel sinks | None beyond core |
+| `@ontrails/crumbs` | Telemetry recording, trace context, memory/OTel sinks | None beyond core |
 | `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
 | `@ontrails/logging/logtape` | LogTape sink adapter | `@logtape/logtape` (peer) |
 
@@ -118,7 +118,7 @@ Warden uses inference to verify declarations match actual code. The surface map 
   <- @ontrails/http (core, hono peer)
   <- @ontrails/config (core)
   <- @ontrails/permits (core)
-  <- @ontrails/tracks (core)
+  <- @ontrails/crumbs (core)
   <- @ontrails/logging (core)
   <- @ontrails/testing (core, cli, mcp, logging)
   <- @ontrails/schema (core)

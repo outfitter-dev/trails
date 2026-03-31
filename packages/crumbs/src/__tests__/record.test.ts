@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import { createTrackRecord } from '../record.js';
+import { createCrumb } from '../record.js';
 
-describe('createTrackRecord', () => {
+describe('createCrumb', () => {
   test('generates unique id and traceId', () => {
-    const a = createTrackRecord({ trailId: 'test.trail' });
-    const b = createTrackRecord({ trailId: 'test.trail' });
+    const a = createCrumb({ trailId: 'test.trail' });
+    const b = createCrumb({ trailId: 'test.trail' });
 
     expect(a.id).toBeString();
     expect(a.traceId).toBeString();
@@ -14,7 +14,7 @@ describe('createTrackRecord', () => {
   });
 
   test('uses provided traceId when given', () => {
-    const record = createTrackRecord({
+    const record = createCrumb({
       traceId: 'trace-abc',
       trailId: 'test.trail',
     });
@@ -23,7 +23,7 @@ describe('createTrackRecord', () => {
   });
 
   test('uses provided rootId when given', () => {
-    const record = createTrackRecord({
+    const record = createCrumb({
       rootId: 'root-abc',
       trailId: 'test.trail',
     });
@@ -33,7 +33,7 @@ describe('createTrackRecord', () => {
 
   test('sets startedAt to current time', () => {
     const before = Date.now();
-    const record = createTrackRecord({ trailId: 'test.trail' });
+    const record = createCrumb({ trailId: 'test.trail' });
     const after = Date.now();
 
     expect(record.startedAt).toBeGreaterThanOrEqual(before);
@@ -41,13 +41,13 @@ describe('createTrackRecord', () => {
   });
 
   test('sets status to ok initially', () => {
-    const record = createTrackRecord({ trailId: 'test.trail' });
+    const record = createCrumb({ trailId: 'test.trail' });
 
     expect(record.status).toBe('ok');
   });
 
   test('includes trailId, intent, and surface when provided', () => {
-    const record = createTrackRecord({
+    const record = createCrumb({
       intent: 'write',
       surface: 'mcp',
       trailId: 'widget.create',

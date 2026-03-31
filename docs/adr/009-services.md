@@ -165,7 +165,7 @@ Service `create` factories return `Result`. Thrown exceptions are wrapped as `In
 
 Today, each surface creates its own `ctx.follow` function ad-hoc. With services, follow needs to propagate the resolved service scope through nested trail invocations. A core `createFollow(topo, scope)` function — named per Convention 5 — centralizes this. All surfaces and `dispatch()` use the same function.
 
-The execution scope is a lightweight object that `executeTrail` creates per root invocation. For v1, it holds the singleton service cache. The scope is extensible — tracks will add `TrackScope` for trace propagation, and request-scoped services (when they ship) will add per-request state. Designing the seam now avoids retrofitting it later.
+The execution scope is a lightweight object that `executeTrail` creates per root invocation. For v1, it holds the singleton service cache. The scope is extensible — crumbs will add `CrumbScope` for trace propagation, and request-scoped services (when they ship) will add per-request state. Designing the seam now avoids retrofitting it later.
 
 ### Singleton lifecycle in v1
 
@@ -300,7 +300,7 @@ The layer receives the service definition as a parameter. It reads from context 
 - **Service-to-service dependencies.** Whether one service's factory can depend on another service. The expected pattern when this is needed: service factories receive a service resolver alongside `ctx`, and resolution order is topologically sorted from the dependency graph. The graph is already queryable — this follows naturally. Config resolution will be the first instance of this.
 - **Composable config resolution.** The reserved `config` field on `ServiceSpec` enables services to declare their own config schemas. When `@ontrails/config` ships, service config schemas compose into the app-level config automatically. The field is reserved now to prevent breaking changes.
 - **Specific adapter port interfaces.** The architecture plans `IndexAdapter`, `StorageAdapter`, `CacheAdapter`, and `AuthAdapter` as port interfaces. Services are the mechanism to register concrete implementations of these ports. Which ports ship first, and whether they live in core or in dedicated packages like `@ontrails/storage`, is separate from the services primitive itself.
-- **Infrastructure services pattern.** Config, permits, and tracks will each ship as a service + layer + trails package following the pattern established by `@ontrails/logging`. The services primitive enables this but doesn't prescribe it.
+- **Infrastructure services pattern.** Config, permits, and crumbs will each ship as a service + layer + trails package following the pattern established by `@ontrails/logging`. The services primitive enables this but doesn't prescribe it.
 
 ## References
 

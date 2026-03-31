@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { TrackRecord } from '../record.js';
+import type { Crumb } from '../record.js';
 import { createOtelAdapter } from '../adapters/otel.js';
 import type { OtelSpan } from '../adapters/otel.js';
 
-/** Build a minimal TrackRecord for testing with sensible defaults. */
-const makeRecord = (overrides: Partial<TrackRecord> = {}): TrackRecord => ({
+/** Build a minimal Crumb for testing with sensible defaults. */
+const makeRecord = (overrides: Partial<Crumb> = {}): Crumb => ({
   attrs: {},
   endedAt: 1000,
   id: 'span-1',

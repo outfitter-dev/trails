@@ -1,5 +1,5 @@
 /** Evidence of a single trail execution or manual span. */
-export interface TrackRecord {
+export interface Crumb {
   readonly id: string;
   readonly traceId: string;
   readonly rootId: string;
@@ -19,23 +19,21 @@ export interface TrackRecord {
   readonly attrs: Readonly<Record<string, unknown>>;
 }
 
-/** Options for creating a trail-scoped TrackRecord. */
-interface CreateTrackRecordOptions {
+/** Options for creating a trail-scoped Crumb. */
+interface CreateCrumbOptions {
   readonly trailId: string;
   readonly traceId?: string | undefined;
   readonly parentId?: string | undefined;
   readonly rootId?: string | undefined;
-  readonly surface?: TrackRecord['surface'];
-  readonly intent?: TrackRecord['intent'];
+  readonly surface?: Crumb['surface'];
+  readonly intent?: Crumb['intent'];
   readonly permit?:
     | { readonly id: string; readonly tenantId?: string }
     | undefined;
 }
 
-/** Create a fresh TrackRecord for a trail execution. */
-export const createTrackRecord = (
-  options: CreateTrackRecordOptions
-): TrackRecord => {
+/** Create a fresh Crumb for a trail execution. */
+export const createCrumb = (options: CreateCrumbOptions): Crumb => {
   const id = Bun.randomUUIDv7();
   const traceId = options.traceId ?? Bun.randomUUIDv7();
 

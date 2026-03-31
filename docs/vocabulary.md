@@ -188,15 +188,15 @@ const config = defineConfig({
 });
 ```
 
-### `tracks`
+### `crumbs`
 
-Telemetry recording and trace context propagation. The tracks layer captures execution duration, errors, and trace context for every trail invocation.
+Telemetry recording and trace context propagation. The crumbs layer captures execution duration, errors, and trace context for every trail invocation.
 
 ```typescript
-import { createTracksLayer, createMemorySink } from '@ontrails/tracks';
+import { createCrumbsLayer, createMemorySink } from '@ontrails/crumbs';
 
 const sink = createMemorySink();
-const layer = createTracksLayer(sink);
+const layer = createCrumbsLayer(sink);
 ```
 
 ## Reserved Terms (designed, not yet shipped)
@@ -254,7 +254,7 @@ When introducing Trails to someone new, introduce terms in this order:
 3. `guide` -- runtime guidance
 4. `permit` -- auth and scopes
 5. `loadout` -- deployment/environment config profiles
-6. `tracks` -- telemetry and trace context
+6. `crumbs` -- telemetry and trace context
 
 **Ecosystem (multi-app and governance):**
 
