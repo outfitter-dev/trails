@@ -46,6 +46,9 @@ export interface Logger {
   child(context: Record<string, unknown>): Logger;
 }
 
+/** Context extension key for the invoking surface name. */
+export const SURFACE_KEY = '__trails_surface' as const;
+
 /** Runtime context threaded through every trail execution */
 export interface TrailContext {
   readonly requestId: string;

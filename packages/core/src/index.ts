@@ -37,6 +37,7 @@ export type {
   Logger,
   ServiceLookup,
 } from './types.js';
+export { SURFACE_KEY } from './types.js';
 
 // Context factory
 export { createTrailContext } from './context.js';

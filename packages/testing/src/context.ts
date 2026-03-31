@@ -56,6 +56,11 @@ export interface CreateFollowContextOptions {
 export interface TestExecutionOptions {
   readonly ctx?: Partial<TrailContext> | undefined;
   readonly services?: ServiceOverrideMap | undefined;
+  /**
+   * When true, disables automatic permit minting. Tests must provide
+   * explicit permits.
+   */
+  readonly strictPermits?: boolean | undefined;
 }
 
 /**

@@ -7,23 +7,29 @@ import type { z } from 'zod';
  * Stable process-scoped fields available when constructing a service.
  *
  * Services are app-level singletons, so they intentionally do not receive the
- * full per-request TrailContext.
+ * full per-request TrailContext. When a service declares a `config` schema,
+ * the validated config is passed as `svc.config`.
  */
-export type ServiceContext = Pick<
+export type ServiceContext<C = unknown> = Pick<
   TrailContext,
   'cwd' | 'env' | 'workspaceRoot'
->;
+> & {
+  readonly config: C;
+};
 
 /**
  * Everything needed to describe a service before a factory is introduced.
+ *
+ * When `config` is a Zod schema, the `create` callback receives
+ * `ServiceContext<C>` with the validated config value.
  */
-export interface ServiceSpec<T> {
+export interface ServiceSpec<T, C = unknown> {
   /** Create the service instance from stable process-scoped context. */
   readonly create: (
-    svc: ServiceContext
+    svc: ServiceContext<C>
   ) => Result<T, Error> | Promise<Result<T, Error>>;
-  /** Reserved config schema for follow-up config composition work. */
-  readonly config?: z.ZodType | undefined;
+  /** Config schema — when present, config is validated and passed to `create`. */
+  readonly config?: z.ZodType<C> | undefined;
   /** Optional cleanup performed when the hosting surface shuts down. */
   readonly dispose?: ((service: T) => void | Promise<void>) | undefined;
   /** Optional operational readiness probe for introspection tooling. */
