@@ -7,7 +7,7 @@
 import type { z } from 'zod';
 
 import { collectConfigMeta } from './collect.js';
-import { getAtPath, isZodObject, zodDef } from './zod-utils.js';
+import { getAtPath, isZodObject, unwrapToBase, zodDef } from './zod-utils.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -165,7 +165,7 @@ const walkShape = (
   for (const [key, fieldSchema] of Object.entries(shape)) {
     const path = prefix ? `${prefix}.${key}` : key;
     if (isZodObject(fieldSchema)) {
-      queue.push({ path, schema: fieldSchema });
+      queue.push({ path, schema: unwrapToBase(fieldSchema) });
     } else {
       leaves.push({ path, schema: fieldSchema });
     }

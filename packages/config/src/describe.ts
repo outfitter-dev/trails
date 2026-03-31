@@ -8,7 +8,7 @@ import { globalRegistry } from 'zod';
 import type { z } from 'zod';
 
 import { collectConfigMeta } from './collect.js';
-import { isZodObject, zodDef } from './zod-utils.js';
+import { isZodObject, unwrapToBase, zodDef } from './zod-utils.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -212,7 +212,7 @@ const walkShapeLevel = (
   for (const [key, fieldSchema] of Object.entries(shape)) {
     const path = prefix ? `${prefix}.${key}` : key;
     if (isZodObject(fieldSchema)) {
-      queue.push({ prefix: path, schema: fieldSchema });
+      queue.push({ prefix: path, schema: unwrapToBase(fieldSchema) });
     } else {
       results.push(buildFieldDescription(path, fieldSchema, configMeta));
     }

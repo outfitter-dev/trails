@@ -28,7 +28,11 @@ const filterByPath = (
   entries: readonly { readonly path: string }[],
   prefix: string
 ): readonly { readonly path: string }[] =>
-  prefix ? entries.filter((e) => e.path.startsWith(prefix)) : entries;
+  prefix
+    ? entries.filter(
+        (entry) => entry.path === prefix || entry.path.startsWith(`${prefix}.`)
+      )
+    : entries;
 
 /** Build ExplainConfigOptions from ConfigState, omitting undefined layers. */
 const toExplainOptions = (

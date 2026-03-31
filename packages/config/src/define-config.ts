@@ -103,8 +103,9 @@ export const defineConfig = <T extends z.ZodType>(
     base: options.base,
     loadouts: options.loadouts,
     resolve: async (resolveOpts?: DefineConfigResolveOptions) => {
-      const envRecord =
-        resolveOpts?.env ?? (process.env as Record<string, string | undefined>);
+      const envRecord = {
+        ...(resolveOpts?.env ?? process.env),
+      } as Record<string, string | undefined>;
 
       if (
         options.envFromNodeEnv &&

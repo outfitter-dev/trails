@@ -12,6 +12,39 @@ const schema = z.object({
   port: z.number().default(3000),
 });
 
+type EnvKey = 'NODE_ENV' | 'TRAILS_ENV';
+
+interface EnvSnapshot {
+  readonly NODE_ENV: string | undefined;
+  readonly TRAILS_ENV: string | undefined;
+}
+
+const readEnvSnapshot = (): EnvSnapshot => ({
+  NODE_ENV: process.env.NODE_ENV,
+  TRAILS_ENV: process.env.TRAILS_ENV,
+});
+
+const setEnvVar = (key: EnvKey, value: string | undefined): void => {
+  if (value === undefined) {
+    if (key === 'NODE_ENV') {
+      delete process.env.NODE_ENV;
+    } else {
+      delete process.env.TRAILS_ENV;
+    }
+    return;
+  }
+  if (key === 'NODE_ENV') {
+    process.env.NODE_ENV = value;
+  } else {
+    process.env.TRAILS_ENV = value;
+  }
+};
+
+const restoreEnv = (snapshot: EnvSnapshot): void => {
+  setEnvVar('NODE_ENV', snapshot.NODE_ENV);
+  setEnvVar('TRAILS_ENV', snapshot.TRAILS_ENV);
+};
+
 describe('defineConfig', () => {
   test('returns an object with schema, base, and loadouts', () => {
     const base = { host: 'example.com' };
@@ -79,6 +112,31 @@ describe('defineConfig', () => {
     expect(result.isOk()).toBe(true);
     expect(result.unwrap().host).toBe('prod.example.com');
     expect(result.unwrap().port).toBe(443);
+  });
+
+  test('envFromNodeEnv does not mutate process.env', async () => {
+    const snapshot = readEnvSnapshot();
+    setEnvVar('TRAILS_ENV', undefined);
+    setEnvVar('NODE_ENV', 'production');
+
+    try {
+      const config = defineConfig({
+        base: { host: 'example.com' },
+        envFromNodeEnv: true,
+        loadouts: {
+          production: { host: 'prod.example.com', port: 443 },
+        },
+        schema,
+      });
+
+      const result = await config.resolve();
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap().host).toBe('prod.example.com');
+      expect(process.env.TRAILS_ENV).toBeUndefined();
+    } finally {
+      restoreEnv(snapshot);
+    }
   });
 
   test('envFromNodeEnv does not override explicit TRAILS_ENV', async () => {

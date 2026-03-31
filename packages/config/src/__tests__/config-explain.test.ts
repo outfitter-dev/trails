@@ -104,6 +104,31 @@ describe('config.explain trail', () => {
       expect(value.entries[0]?.path).toBe('db.host');
     });
 
+    test('does not match sibling roots that only share a prefix', async () => {
+      const schema = z.object({
+        db: z.object({
+          host: z.string().default('localhost'),
+        }),
+        dbReplica: z.object({
+          host: z.string().default('replica.local'),
+        }),
+      });
+      const state: ConfigState = {
+        resolved: {
+          db: { host: 'localhost' },
+          dbReplica: { host: 'replica.local' },
+        },
+        schema,
+      };
+      const ctx = buildCtx(state);
+      const result = await configExplain.run({ path: 'db' }, ctx);
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap().entries).toEqual([
+        expect.objectContaining({ path: 'db.host' }),
+      ]);
+    });
+
     test('shows base layer as source when base provides value', async () => {
       const schema = z.object({
         port: z.number().default(3000),

@@ -17,6 +17,9 @@ const GITIGNORE_CONTENT = [
   '# Development state',
   'dev/',
   '',
+  '# Generated artifacts',
+  'generated/',
+  '',
 ].join('\n');
 
 /**

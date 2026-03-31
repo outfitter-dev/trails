@@ -95,6 +95,24 @@ describe('describeConfig', () => {
       expect(dbPort?.type).toBe('number');
       expect(dbPort?.default).toBe(5432);
     });
+
+    test('unwraps optional nested object schemas before walking', () => {
+      const schema = z.object({
+        db: z
+          .object({
+            host: z.string(),
+            port: z.number().default(5432),
+          })
+          .optional(),
+      });
+
+      const fields = describeConfig(schema);
+
+      expect(fields).toEqual([
+        expect.objectContaining({ path: 'db.host', required: true }),
+        expect.objectContaining({ default: 5432, path: 'db.port' }),
+      ]);
+    });
   });
 
   describe('constraints', () => {

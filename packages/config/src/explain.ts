@@ -8,7 +8,7 @@ import type { z } from 'zod';
 
 import { collectConfigMeta } from './collect.js';
 import { isLikelySecret } from './secret-heuristics.js';
-import { getAtPath, isZodObject, zodDef } from './zod-utils.js';
+import { getAtPath, isZodObject, unwrapToBase, zodDef } from './zod-utils.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -115,7 +115,7 @@ const collectLeafPaths = (schema: z.ZodType, prefix: string): string[] => {
     for (const [key, fieldSchema] of Object.entries(shape)) {
       const path = entry.prefix ? `${entry.prefix}.${key}` : key;
       if (isZodObject(fieldSchema)) {
-        queue.push({ prefix: path, schema: fieldSchema });
+        queue.push({ prefix: path, schema: unwrapToBase(fieldSchema) });
       } else {
         paths.push(path);
       }

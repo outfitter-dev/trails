@@ -2,7 +2,7 @@ import { globalRegistry } from 'zod';
 import type { z } from 'zod';
 
 import type { ConfigFieldMeta } from './extensions.js';
-import { isZodObject } from './zod-utils.js';
+import { isZodObject, unwrapToBase } from './zod-utils.js';
 
 /** Config meta keys we look for in Zod registry entries. */
 const META_EXTRACTORS: readonly {
@@ -83,7 +83,9 @@ const walkObjectShape = (
     if (isZodObject(fieldSchema)) {
       queue.push({
         prefix: path,
-        schema: fieldSchema as z.ZodObject<Record<string, z.ZodType>>,
+        schema: unwrapToBase(fieldSchema) as z.ZodObject<
+          Record<string, z.ZodType>
+        >,
       });
     } else {
       const meta = extractConfigMeta(fieldSchema);

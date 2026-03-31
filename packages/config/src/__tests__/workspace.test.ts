@@ -1,6 +1,6 @@
-import { describe, expect, test, beforeEach } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { mkdtemp, readdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 
 import { ensureWorkspace } from '../workspace.js';
@@ -10,6 +10,10 @@ describe('ensureWorkspace', () => {
 
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), 'trails-ws-'));
+  });
+
+  afterEach(async () => {
+    await rm(root, { force: true, recursive: true });
   });
 
   describe('directory creation', () => {
@@ -41,6 +45,7 @@ describe('ensureWorkspace', () => {
       );
       expect(content).toContain('config/');
       expect(content).toContain('dev/');
+      expect(content).toContain('generated/');
     });
 
     test('does not overwrite existing .gitignore', async () => {

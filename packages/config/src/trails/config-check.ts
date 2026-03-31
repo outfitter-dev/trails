@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import { configService } from '../config-service.js';
 import { checkConfig } from '../doctor.js';
+import { deepMerge } from '../merge.js';
 
 const diagnosticSchema = z.object({
   message: z.string(),
@@ -27,7 +28,7 @@ const mergeValues = (
   overrides: Record<string, unknown>
 ): Record<string, unknown> => {
   const hasOverrides = Object.keys(overrides).length > 0;
-  return hasOverrides ? { ...resolved, ...overrides } : resolved;
+  return hasOverrides ? deepMerge(resolved, overrides) : resolved;
 };
 
 export const configCheck = trail('config.check', {

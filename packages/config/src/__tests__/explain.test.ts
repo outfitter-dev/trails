@@ -86,6 +86,26 @@ describe('explainConfig', () => {
       expect(host?.source).toBe('env');
       expect(host?.value).toBe('env.example.com');
     });
+
+    test('walks optional nested object schemas for env-backed entries', () => {
+      const envSchema = z.object({
+        db: z
+          .object({
+            host: env(z.string(), 'DB_HOST').default('localhost'),
+          })
+          .optional(),
+      });
+
+      const entries = explainConfig({
+        env: { DB_HOST: 'env.example.com' },
+        resolved: { db: { host: 'env.example.com' } },
+        schema: envSchema,
+      });
+
+      const host = entries.find((entry) => entry.path === 'db.host');
+      expect(host?.source).toBe('env');
+      expect(host?.value).toBe('env.example.com');
+    });
   });
 
   describe('secret redaction', () => {

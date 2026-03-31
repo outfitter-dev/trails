@@ -148,5 +148,25 @@ describe('checkConfig', () => {
       expect(dbHostDiag?.status).toBe('valid');
       expect(dbHostDiag?.value).toBe('dbhost.local');
     });
+
+    test('walks optional nested object schemas for env overrides', () => {
+      const nestedSchema = z.object({
+        db: z
+          .object({
+            host: env(z.string(), 'DB_HOST'),
+          })
+          .optional(),
+      });
+
+      const result = checkConfig(
+        nestedSchema,
+        {},
+        { env: { DB_HOST: 'dbhost.local' } }
+      );
+      const dbHostDiag = result.diagnostics.find((d) => d.path === 'db.host');
+
+      expect(dbHostDiag?.status).toBe('valid');
+      expect(dbHostDiag?.value).toBe('dbhost.local');
+    });
   });
 });

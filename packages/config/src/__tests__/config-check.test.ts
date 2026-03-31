@@ -117,6 +117,39 @@ describe('config.check trail', () => {
       expect(value.diagnostics[0]?.status).toBe('valid');
     });
 
+    test('deep merges nested input overrides with resolved values', async () => {
+      const schema = z.object({
+        db: z.object({
+          host: z.string(),
+          port: z.number(),
+        }),
+      });
+      const state: ConfigState = {
+        resolved: { db: { host: 'localhost', port: 5432 } },
+        schema,
+      };
+      const ctx = buildCtx(state);
+      const result = await configCheck.run(
+        { values: { db: { port: 6543 } } },
+        ctx
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap().valid).toBe(true);
+      expect(result.unwrap().diagnostics).toEqual([
+        expect.objectContaining({
+          path: 'db.host',
+          status: 'valid',
+          value: 'localhost',
+        }),
+        expect.objectContaining({
+          path: 'db.port',
+          status: 'valid',
+          value: 6543,
+        }),
+      ]);
+    });
+
     test('reports default status for fields using defaults', async () => {
       const schema = z.object({
         port: z.number().default(3000),
