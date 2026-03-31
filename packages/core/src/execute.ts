@@ -8,11 +8,7 @@
 
 import type { AnyTrail } from './trail.js';
 import type { Layer } from './layer.js';
-import type {
-  AnyService,
-  ServiceContext,
-  ServiceOverrideMap,
-} from './service.js';
+import type { ServiceOverrideMap } from './service.js';
 import type { TrailContext, TrailContextInit } from './types.js';
 
 import { composeLayers } from './layer.js';
@@ -20,6 +16,7 @@ import { createTrailContext } from './context.js';
 import { InternalError } from './errors.js';
 import { Result } from './result.js';
 import { createServiceLookup } from './service.js';
+import { resolveServices } from './service-config.js';
 import { validateInput } from './validation.js';
 
 type MutableTrailContext = {
@@ -44,6 +41,10 @@ export interface ExecuteTrailOptions {
     | undefined;
   /** Explicit service instance overrides keyed by service ID. */
   readonly services?: ServiceOverrideMap | undefined;
+  /** Config values for services that declare a `config` schema, keyed by service ID. */
+  readonly configValues?:
+    | Readonly<Record<string, Record<string, unknown>>>
+    | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -87,213 +88,17 @@ const resolveContext = async (
   return resolved as TrailContext;
 };
 
-const singletonServices = new WeakMap<AnyService, Map<string, unknown>>();
-
-/** In-flight service creation promises, keyed by service × context. */
-const pendingCreations = new WeakMap<
-  AnyService,
-  Map<string, Promise<Result<unknown, Error>>>
->();
-
-const hasOwnServiceOverride = (
-  overrides: ServiceOverrideMap | undefined,
-  id: string
-): overrides is ServiceOverrideMap =>
-  overrides !== undefined && Object.hasOwn(overrides, id);
-
-const toServiceContext = (ctx: TrailContext): ServiceContext => ({
-  cwd: ctx.cwd,
-  env: ctx.env,
-  workspaceRoot: ctx.workspaceRoot,
-});
-
-const toServiceContextKey = (ctx: ServiceContext): string =>
-  JSON.stringify({
-    cwd: ctx.cwd,
-    env: Object.entries(ctx.env ?? {}).toSorted(([left], [right]) =>
-      left.localeCompare(right)
-    ),
-    workspaceRoot: ctx.workspaceRoot,
-  });
-
-const toInternalServiceError = (id: string, error: unknown): InternalError => {
-  const cause = error instanceof Error ? error : undefined;
-  const message = cause?.message ?? String(error);
-  return new InternalError(`Service "${id}" failed to resolve: ${message}`, {
-    ...(cause ? { cause } : {}),
-    context: { serviceId: id },
-  });
-};
-
-const getCachedSingletonService = (
-  declaredService: AnyService,
-  serviceContext: ServiceContext
-): { readonly found: boolean; readonly value: unknown } => {
-  const scopedCache = singletonServices.get(declaredService);
-  if (scopedCache === undefined) {
-    return { found: false, value: undefined };
-  }
-
-  const key = toServiceContextKey(serviceContext);
-  if (!scopedCache.has(key)) {
-    return { found: false, value: undefined };
-  }
-
-  return {
-    found: true,
-    value: scopedCache.get(key),
-  };
-};
-
-const getProvidedService = (
-  ctx: TrailContext,
-  overrides: ServiceOverrideMap | undefined,
-  declaredService: AnyService,
-  serviceContext: ServiceContext
-): Result<unknown, Error> | undefined => {
-  const { id } = declaredService;
-  if (hasOwnServiceOverride(overrides, id)) {
-    return Result.ok(overrides[id]);
-  }
-
-  if (Object.hasOwn(ctx.extensions ?? {}, id)) {
-    return Result.ok(ctx.extensions?.[id]);
-  }
-
-  const cached = getCachedSingletonService(declaredService, serviceContext);
-  if (cached.found) {
-    return Result.ok(cached.value);
-  }
-
-  return undefined;
-};
-
-const getSingletonServiceCache = (
-  declaredService: AnyService
-): Map<string, unknown> => {
-  const existing = singletonServices.get(declaredService);
-  if (existing !== undefined) {
-    return existing;
-  }
-
-  const created = new Map<string, unknown>();
-  singletonServices.set(declaredService, created);
-  return created;
-};
-
-const doCreateServiceInstance = async (
-  declaredService: AnyService,
-  serviceContext: ServiceContext
-): Promise<Result<unknown, Error>> => {
-  try {
-    const created = await declaredService.create(serviceContext);
-    if (created.isErr()) {
-      return Result.err(created.error);
-    }
-
-    const instance = created.unwrap();
-    getSingletonServiceCache(declaredService).set(
-      toServiceContextKey(serviceContext),
-      instance
-    );
-    return Result.ok(instance);
-  } catch (error: unknown) {
-    return Result.err(toInternalServiceError(declaredService.id, error));
-  }
-};
-
-const trackPendingCreation = (
-  declaredService: AnyService,
-  key: string,
-  promise: Promise<Result<unknown, Error>>
-): void => {
-  const pending = pendingCreations.get(declaredService);
-  if (pending) {
-    pending.set(key, promise);
-  } else {
-    pendingCreations.set(declaredService, new Map([[key, promise]]));
-  }
-};
-
-/**
- * Deduplicates concurrent creation of the same service singleton.
- * If a creation is already in flight for this service × context key,
- * returns the existing promise instead of spawning a second factory call.
- */
-const createServiceInstance = async (
-  declaredService: AnyService,
-  serviceContext: ServiceContext
-): Promise<Result<unknown, Error>> => {
-  const key = toServiceContextKey(serviceContext);
-  const inflight = pendingCreations.get(declaredService)?.get(key);
-  if (inflight) {
-    return inflight;
-  }
-
-  const promise = doCreateServiceInstance(declaredService, serviceContext);
-  trackPendingCreation(declaredService, key, promise);
-
-  try {
-    return await promise;
-  } finally {
-    pendingCreations.get(declaredService)?.delete(key);
-  }
-};
-
-const resolveServiceInstance = async (
-  declaredService: AnyService,
-  ctx: TrailContext,
-  serviceContext: ServiceContext,
-  overrides?: ServiceOverrideMap
-): Promise<Result<unknown, Error>> =>
-  getProvidedService(ctx, overrides, declaredService, serviceContext) ??
-  (await createServiceInstance(declaredService, serviceContext));
-
-const withResolvedServices = (
-  ctx: TrailContext,
-  resolvedServices: Record<string, unknown>
-): TrailContext => {
-  const extensions = { ...ctx.extensions, ...resolvedServices };
-  const resolvedCtx = { ...ctx, extensions } as MutableTrailContext;
-  resolvedCtx.service = createServiceLookup(() => resolvedCtx);
-  return resolvedCtx;
-};
-
-const resolveServices = async (
-  trail: AnyTrail,
-  ctx: TrailContext,
-  overrides?: ServiceOverrideMap
-): Promise<Result<TrailContext, Error>> => {
-  if (trail.services.length === 0) {
-    return Result.ok(ctx);
-  }
-
-  const resolvedServices: Record<string, unknown> = {};
-  const serviceContext = toServiceContext(ctx);
-
-  for (const declaredService of trail.services) {
-    const resolved = await resolveServiceInstance(
-      declaredService,
-      ctx,
-      serviceContext,
-      overrides
-    );
-    if (resolved.isErr()) {
-      return resolved;
-    }
-
-    resolvedServices[declaredService.id] = resolved.unwrap();
-  }
-
-  return Result.ok(withResolvedServices(ctx, resolvedServices));
-};
-
 const prepareContext = async (
   trail: AnyTrail,
   options?: ExecuteTrailOptions
 ): Promise<Result<TrailContext, Error>> => {
   const baseCtx = await resolveContext(options);
-  return await resolveServices(trail, baseCtx, options?.services);
+  return await resolveServices(
+    trail,
+    baseCtx,
+    options?.services,
+    options?.configValues
+  );
 };
 
 const runTrail = async (
