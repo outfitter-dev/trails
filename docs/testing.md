@@ -323,6 +323,32 @@ const result = await harness.callTool('myapp_entity_show', { name: 'Alpha' });
 expect(result.isError).toBe(false);
 ```
 
+## Testing with Infrastructure Services
+
+The config, permits, and tracks packages each provide test-friendly primitives that work with `testAll(app)` and `testExamples(app)` without external dependencies.
+
+**Config test loadout.** Use `defineConfig()` with a `test` loadout that uses safe defaults (port 0, debug enabled, in-memory stores). When the `TRAILS_ENV` environment variable is set to `test`, the test loadout is selected automatically during resolution. Services with `config` schemas receive the test loadout values through `svc.config`.
+
+**Synthetic permit minting.** `mintTestPermit()` creates a `Permit` with exactly the scopes you specify -- no admin privileges, no wildcards. `mintPermitForTrail()` reads a trail's `permit` declaration and mints a permit with exactly the declared scopes, so tests exercise the real authorization path without a running auth provider:
+
+```typescript
+import { mintTestPermit, mintPermitForTrail } from '@ontrails/permits';
+
+const permit = mintTestPermit({ scopes: ['entity:read'] });
+const trailPermit = mintPermitForTrail(showTrail);
+```
+
+**Tracks memory sink.** `createMemorySink()` captures all track records in memory for assertion. Pair it with `createTracksLayer()` to verify that trails emit the expected telemetry without configuring a real exporter:
+
+```typescript
+import { createMemorySink, createTracksLayer } from '@ontrails/tracks';
+
+const sink = createMemorySink();
+const layer = createTracksLayer(sink);
+// ...run trails with the layer...
+expect(sink.records).toHaveLength(1);
+```
+
 ## Recommended Test Structure
 
 ```text

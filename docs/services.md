@@ -30,6 +30,24 @@ The type of the service instance is inferred from the `create` factory return. N
 
 The `create` factory receives `ServiceContext` -- a narrow subset of `TrailContext` -- because services are singletons resolved once per process. Request-scoped fields like `requestId` would be stale after the first resolution.
 
+## Service Config Schemas
+
+Services can declare a `config` field with a Zod schema. When present, the framework validates the service's config slice during resolution and passes the typed result to the `create` factory via `svc.config`:
+
+```typescript
+import { service, Result } from '@ontrails/core';
+import { z } from 'zod';
+
+const db = service('db.main', {
+  config: z.object({ poolSize: z.number(), url: z.string().url() }),
+  create: (svc) => Result.ok(openPool(svc.config.url, svc.config.poolSize)),
+  dispose: (pool) => pool.end(),
+  mock: () => createInMemoryDb(),
+});
+```
+
+The config values come from the resolved app config, keyed by service ID. `@ontrails/config` provides `collectServiceConfigs()` to gather all service config schemas from a topo, and `defineConfig()` to wire loadout-based resolution into the bootstrap pipeline. Services without a `config` schema receive `unknown` and ignore `svc.config`.
+
 ## Declaring Services on a Trail
 
 Add services to the trail spec with the `services` array:
