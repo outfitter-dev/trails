@@ -18,6 +18,7 @@ import { createTrackRecord } from './record.js';
 import type { SamplingConfig } from './sampling.js';
 import { shouldSample } from './sampling.js';
 import type { TraceContext } from './trace-context.js';
+import { createTracksApi, TRACKS_API_KEY } from './tracks-api.js';
 import {
   TRACE_CONTEXT_KEY,
   childTraceContext,
@@ -86,6 +87,21 @@ const completeRecord = (
   ...deriveOutcome(result),
   endedAt: Date.now(),
 });
+
+/** Merge manual annotations into a completed trail record. */
+const mergeAnnotations = (
+  record: TrackRecord,
+  attrs: Readonly<Record<string, unknown>>
+): TrackRecord =>
+  Object.keys(attrs).length === 0
+    ? record
+    : {
+        ...record,
+        attrs: {
+          ...record.attrs,
+          ...attrs,
+        },
+      };
 
 /** Resolve whether this invocation should be sampled. */
 const resolveSampled = (
@@ -167,6 +183,7 @@ const notifySinkError = (
 const prepareExecution = <I, O>(
   trail: Trail<I, O>,
   ctx: TrailContext,
+  sink: TrackSink,
   options?: TracksLayerOptions
 ) => {
   const parentTrace = getTraceContext(ctx);
@@ -189,9 +206,18 @@ const prepareExecution = <I, O>(
     rootId: isRoot ? record.id : trace.rootId,
     spanId: record.id,
   };
+  const traceCtx = enrichExtensions(ctx, enrichedTrace);
+  const tracksApi = createTracksApi(traceCtx, sink);
 
   return {
-    ctx: enrichExtensions(ctx, enrichedTrace),
+    ctx: {
+      ...traceCtx,
+      extensions: {
+        ...traceCtx.extensions,
+        [TRACKS_API_KEY]: tracksApi.api,
+      },
+    },
+    getAnnotations: tracksApi.getAnnotations,
     record,
     sampled,
   };
@@ -214,7 +240,7 @@ export const createTracksLayer = (
   wrap:
     <I, O>(trail: Trail<I, O>, impl: Implementation<I, O>) =>
     async (input: I, ctx) => {
-      const execution = prepareExecution(trail, ctx, options);
+      const execution = prepareExecution(trail, ctx, sink, options);
       let result: Result<O, Error>;
 
       try {
@@ -223,7 +249,10 @@ export const createTracksLayer = (
         result = ResultCtor.err(normalizeThrownError(error));
       }
 
-      const completed = completeRecord(execution.record, result);
+      const completed = mergeAnnotations(
+        completeRecord(execution.record, result),
+        execution.getAnnotations()
+      );
 
       if (
         shouldWrite(completed, execution.sampled, options?.keepOnError ?? true)
