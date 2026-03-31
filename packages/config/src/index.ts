@@ -11,6 +11,11 @@ export { collectServiceConfigs, type ServiceConfigEntry } from './compose.js';
 export { defineConfig, type DefineConfigOptions } from './define-config.js';
 export { env, secret, deprecated, type ConfigFieldMeta } from './extensions.js';
 export {
+  generateEnvExample,
+  generateExample,
+  generateJsonSchema,
+} from './generate/index.js';
+export {
   clearConfigState,
   type ConfigState,
   getConfigState,
