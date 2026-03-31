@@ -79,7 +79,10 @@ const coerceBooleanEnv = (raw: string): unknown => {
 /** Coerce env var lookup table keyed by base type name. */
 const ENV_COERCERS: Record<string, (raw: string) => unknown> = {
   boolean: coerceBooleanEnv,
-  number: Number,
+  number: (raw: string) => {
+    const n = Number(raw);
+    return Number.isNaN(n) ? raw : n;
+  },
 };
 
 /** Coerce a string env value to the type expected by the schema field. */
