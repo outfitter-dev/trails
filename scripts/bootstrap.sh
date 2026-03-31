@@ -68,8 +68,12 @@ if [[ "${1:-}" != "--force" ]]; then
   fi
 fi
 
-# Strip --force if present
-[[ "${1:-}" == "--force" ]] && shift
+# Capture and strip --force if present
+FORCE=false
+if [[ "${1:-}" == "--force" ]]; then
+  FORCE=true
+  shift
+fi
 
 # Colors (disabled when not a terminal)
 if [[ -t 1 ]]; then
@@ -234,7 +238,7 @@ install_deps() {
 }
 
 ensure_project_deps() {
-  if has_repo_install_state; then
+  if ! $FORCE && has_repo_install_state; then
     success "Dependencies already available"
     return
   fi
