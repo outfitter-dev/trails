@@ -55,9 +55,6 @@ export interface BasePermit {
   readonly scopes: readonly string[];
 }
 
-/** Context extension key for the invoking surface name. */
-export const SURFACE_KEY = '__trails_surface' as const;
-
 /** Runtime context threaded through every trail execution */
 export interface TrailContext {
   readonly requestId: string;

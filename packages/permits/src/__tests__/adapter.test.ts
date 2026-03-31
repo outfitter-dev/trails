@@ -128,6 +128,22 @@ describe('createJwtAdapter', () => {
     expect(err.code).toBe('invalid_token');
   });
 
+  test('rejects tokens with a missing subject claim', async () => {
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signJwt(
+      { exp: now + 3600, scope: 'read' },
+      TEST_SECRET
+    );
+    const result = await adapter.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isErr()).toBe(true);
+    const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
+    expect(err.code).toBe('invalid_token');
+    expect(err.message).toContain('Missing subject claim');
+  });
+
   test('extracts scopes from token claims', async () => {
     const adapter = createJwtAdapter({
       scopesClaim: 'permissions',
@@ -249,6 +265,25 @@ describe('createJwtAdapter', () => {
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwt(
       { exp: now + 3600, scope: ['read', 'write'], sub: 'user-arr-scope' },
+      TEST_SECRET
+    );
+    const result = await adapter.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isOk()).toBe(true);
+    const permit = result.unwrap() as Permit;
+    expect(permit.scopes).toEqual(['read', 'write']);
+  });
+
+  test('filters empty strings from array-format scope claims', async () => {
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signJwt(
+      {
+        exp: now + 3600,
+        scope: ['', 'read', '', 'write'],
+        sub: 'user-arr-scope-empty',
+      },
       TEST_SECRET
     );
     const result = await adapter.authenticate(

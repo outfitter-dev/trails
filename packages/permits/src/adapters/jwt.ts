@@ -134,7 +134,9 @@ const extractScopes = (
     return raw.split(' ').filter(Boolean);
   }
   if (Array.isArray(raw)) {
-    return raw.filter((s): s is string => typeof s === 'string');
+    return raw.filter(
+      (s): s is string => typeof s === 'string' && s.length > 0
+    );
   }
   return [];
 };
@@ -155,13 +157,16 @@ const extractRoles = (
 const buildPermit = (
   payload: JwtPayload,
   options: JwtAdapterOptions
-): Permit => {
+): Result<Permit, AuthError> => {
+  if (!payload.sub) {
+    return authErr('invalid_token', 'Missing subject claim (sub)');
+  }
   const roles = extractRoles(payload, options.rolesClaim ?? 'roles');
-  return {
-    id: payload.sub ?? '',
+  return Result.ok({
+    id: payload.sub,
     scopes: extractScopes(payload, options.scopesClaim ?? 'scope'),
     ...(roles ? { roles } : {}),
-  };
+  });
 };
 
 /** Verify the signature and return the decoded payload, or an error. */
@@ -193,7 +198,7 @@ const payloadToPermit = (
   if (claimError) {
     return Result.err(claimError);
   }
-  return Result.ok(buildPermit(payload, options));
+  return buildPermit(payload, options);
 };
 
 // ---------------------------------------------------------------------------

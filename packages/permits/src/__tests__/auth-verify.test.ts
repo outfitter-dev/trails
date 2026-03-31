@@ -1,10 +1,16 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, executeTrail } from '@ontrails/core';
+import {
+  Result,
+  SURFACE_KEY,
+  ValidationError,
+  executeTrail,
+} from '@ontrails/core';
 
 import type { AuthAdapter } from '../adapter.js';
 import { authService } from '../auth-service.js';
 import { createJwtAdapter } from '../adapters/jwt.js';
+import type { Permit } from '../permit.js';
 import { authVerify } from '../trails/auth-verify.js';
 
 // ---------------------------------------------------------------------------
@@ -55,12 +61,26 @@ const jwtAdapter = (): AuthAdapter => createJwtAdapter({ secret: TEST_SECRET });
 /** Execute auth.verify with a given adapter injected as the auth service. */
 const runVerify = async (
   token: string,
-  adapter: AuthAdapter
+  adapter: AuthAdapter,
+  options?: {
+    surface?: 'http' | 'mcp' | 'cli';
+  }
 ): Promise<
   Result<
     {
       error?: string;
-      permit?: { id: string; scopes: string[] };
+      errorCode?:
+        | 'expired_token'
+        | 'insufficient_scope'
+        | 'invalid_token'
+        | 'missing_credentials';
+      permit?: {
+        id: string;
+        metadata?: Record<string, unknown>;
+        roles?: string[];
+        scopes: string[];
+        tenantId?: string;
+      };
       valid: boolean;
     },
     Error
@@ -70,13 +90,23 @@ const runVerify = async (
     authVerify,
     { token },
     {
+      ctx:
+        options?.surface === undefined
+          ? undefined
+          : { extensions: { [SURFACE_KEY]: options.surface } },
       services: { [authService.id]: adapter },
     }
   );
   return result as Result<
     {
       error?: string;
-      permit?: { id: string; scopes: string[] };
+      permit?: {
+        id: string;
+        metadata?: Record<string, unknown>;
+        roles?: string[];
+        scopes: string[];
+        tenantId?: string;
+      };
       valid: boolean;
     },
     Error
@@ -122,6 +152,7 @@ describe('auth.verify trail', () => {
       const value = result.unwrap();
       expect(value.valid).toBe(false);
       expect(value.error).toBe('No credentials');
+      expect(value.errorCode).toBe('missing_credentials');
       expect(value.permit).toBeUndefined();
     });
   });
@@ -145,6 +176,52 @@ describe('auth.verify trail', () => {
       });
       expect(value.error).toBeUndefined();
     });
+
+    test('returns the full permit payload from the adapter', async () => {
+      const permit: Permit = {
+        id: 'user-42',
+        metadata: { plan: 'pro' },
+        roles: ['admin'],
+        scopes: ['read', 'write'],
+        tenantId: 'tenant-1',
+      };
+      const adapter: AuthAdapter = {
+        // oxlint-disable-next-line require-await -- satisfies async interface
+        authenticate: async () => Result.ok(permit),
+      };
+
+      const result = await runVerify('full-permit-token', adapter);
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap().permit).toEqual({
+        id: 'user-42',
+        metadata: { plan: 'pro' },
+        roles: ['admin'],
+        scopes: ['read', 'write'],
+        tenantId: 'tenant-1',
+      });
+    });
+
+    test('forwards the invoking surface from trail context', async () => {
+      let seenSurface: string | undefined;
+      const adapter: AuthAdapter = {
+        // oxlint-disable-next-line require-await -- captures adapter input
+        authenticate: async (input) => {
+          seenSurface = input.surface;
+          return Result.ok({
+            id: 'user-42',
+            scopes: ['read'],
+          });
+        },
+      };
+
+      const result = await runVerify('surface-aware-token', adapter, {
+        surface: 'mcp',
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(seenSurface).toBe('mcp');
+    });
   });
 
   describe('with invalid token', () => {
@@ -161,6 +238,7 @@ describe('auth.verify trail', () => {
       const value = result.unwrap();
       expect(value.valid).toBe(false);
       expect(value.error).toBeDefined();
+      expect(value.errorCode).toBe('invalid_token');
       expect(value.permit).toBeUndefined();
     });
 
@@ -177,7 +255,23 @@ describe('auth.verify trail', () => {
       const value = result.unwrap();
       expect(value.valid).toBe(false);
       expect(value.error).toBeDefined();
+      expect(value.errorCode).toBe('expired_token');
       expect(value.permit).toBeUndefined();
+    });
+  });
+
+  describe('input validation', () => {
+    test('rejects empty bearer tokens at the boundary', async () => {
+      const result = await executeTrail(
+        authVerify,
+        { token: '' },
+        {
+          services: { [authService.id]: jwtAdapter() },
+        }
+      );
+
+      expect(result.isErr()).toBe(true);
+      expect(result.error).toBeInstanceOf(ValidationError);
     });
   });
 });

@@ -57,20 +57,24 @@ export const authLayer: Layer = {
       const permit = getPermit(ctx);
 
       if (!permit) {
-        return Result.err(new PermitError('No permit provided'));
+        return Promise.resolve(
+          Result.err(new PermitError('No permit provided'))
+        );
       }
 
       const missing = findMissing(requirement.scopes, permit.scopes);
 
       if (missing.length > 0) {
-        return Result.err(
-          new PermitError(`Missing scopes: ${missing.join(', ')}`, {
-            context: { missing, required: requirement.scopes },
-          })
+        return Promise.resolve(
+          Result.err(
+            new PermitError(`Missing scopes: ${missing.join(', ')}`, {
+              context: { missing, required: requirement.scopes },
+            })
+          )
         );
       }
 
-      return impl(input, ctx);
+      return Promise.resolve(impl(input, ctx));
     };
   },
 };
