@@ -4,6 +4,7 @@ import {
   InternalError,
   NotFoundError,
   Result,
+  SURFACE_KEY,
   service,
   ValidationError,
   trail,
@@ -376,13 +377,14 @@ describe('buildHttpRoutes', () => {
 
   describe('custom createContext', () => {
     test('custom createContext is used when provided', async () => {
-      let contextUsed = false;
+      const contextState = { custom: false, surface: false };
 
       const ctxTrail = trail('ctx.custom', {
         input: z.object({}),
         intent: 'read',
         run: (_input, ctx) => {
-          contextUsed = ctx.extensions?.['custom'] === true;
+          contextState.custom = ctx.extensions?.['custom'] === true;
+          contextState.surface = ctx.extensions?.[SURFACE_KEY] === 'http';
           return Result.ok({ ok: true });
         },
       });
@@ -401,7 +403,8 @@ describe('buildHttpRoutes', () => {
 
       const result = await route?.execute({});
       expect(result?.isOk()).toBe(true);
-      expect(contextUsed).toBe(true);
+      expect(contextState.custom).toBe(true);
+      expect(contextState.surface).toBe(true);
     });
   });
 

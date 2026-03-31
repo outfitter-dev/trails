@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   Result,
+  SURFACE_KEY,
   createTrailContext,
   service,
   trail,
@@ -221,20 +222,30 @@ describe('buildCliCommands', () => {
 
   test('uses provided createContext factory', async () => {
     let usedRequestId: string | undefined;
+    let usedCustom = false;
+    let usedSurface = false;
     const t = trail('ctx-test', {
       input: z.object({}),
       run: (_input: Record<string, never>, ctx: TrailContext) => {
         usedRequestId = ctx.requestId;
+        usedCustom = ctx.extensions?.['custom'] === true;
+        usedSurface = ctx.extensions?.[SURFACE_KEY] === 'cli';
         return Result.ok('ok');
       },
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app, {
-      createContext: () => createTrailContext({ requestId: 'custom-123' }),
+      createContext: () =>
+        createTrailContext({
+          extensions: { custom: true },
+          requestId: 'custom-123',
+        }),
     });
 
     await commands[0]?.execute({}, {});
     expect(usedRequestId).toBe('custom-123');
+    expect(usedCustom).toBe(true);
+    expect(usedSurface).toBe(true);
   });
 
   test('converts kebab-case flags back to camelCase for input', async () => {

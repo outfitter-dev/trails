@@ -11,7 +11,7 @@ import type {
   TrailContext,
   TrailContextInit,
 } from '@ontrails/core';
-import { deriveFields, executeTrail } from '@ontrails/core';
+import { SURFACE_KEY, deriveFields, executeTrail } from '@ontrails/core';
 
 import type { AnyTrail, CliCommand, CliFlag } from './command.js';
 import { dryRunPreset, toFlags } from './flags.js';
@@ -137,6 +137,17 @@ const reportResult = async (
   }
 };
 
+/** Merge context overrides with the CLI surface marker. */
+const withCliSurface = (
+  ctxOverrides: Partial<TrailContext> | undefined
+): Partial<TrailContext> => ({
+  ...ctxOverrides,
+  extensions: {
+    ...ctxOverrides?.extensions,
+    [SURFACE_KEY]: 'cli' as const,
+  },
+});
+
 /** Create the execute function for a CLI command. */
 const createExecute =
   (
@@ -155,7 +166,7 @@ const createExecute =
 
     const result = await executeTrail(t, mergedInput, {
       createContext: options?.createContext,
-      ctx: ctxOverrides,
+      ctx: withCliSurface(ctxOverrides),
       layers: options?.layers,
       services: options?.services,
     });

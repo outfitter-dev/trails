@@ -8,6 +8,7 @@
 
 import {
   Result,
+  SURFACE_KEY,
   ValidationError,
   executeTrail,
   isBlobRef,
@@ -207,6 +208,16 @@ const mcpError = (message: string): McpToolResult => ({
   isError: true,
 });
 
+/** Add the MCP surface marker while preserving any existing context extras. */
+const withMcpSurface = (
+  progressCb: TrailContextInit['progress']
+): Partial<TrailContextInit> => ({
+  ...(progressCb === undefined ? {} : { progress: progressCb }),
+  extensions: {
+    [SURFACE_KEY]: 'mcp' as const,
+  },
+});
+
 const createHandler =
   (
     t: Trail<unknown, unknown>,
@@ -220,7 +231,7 @@ const createHandler =
     const progressCb = createMcpProgressCallback(extra);
     const result = await executeTrail(t, args, {
       createContext: options.createContext,
-      ctx: progressCb === undefined ? undefined : { progress: progressCb },
+      ctx: withMcpSurface(progressCb),
       layers,
       services: options.services,
       signal: extra.signal,
