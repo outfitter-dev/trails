@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { z } from 'zod';
 
+import type { AppConfig } from '../app-config.js';
 import { appConfig } from '../app-config.js';
 import { describeConfig } from '../describe.js';
 import { checkConfig } from '../doctor.js';
@@ -13,6 +14,24 @@ const testSchema = z.object({
   output: z.string().describe('Output directory').default('./output'),
   verbose: z.boolean().default(false),
 });
+
+const createJsonConfig = () =>
+  appConfig('myapp', {
+    formats: ['json'],
+    schema: testSchema,
+  });
+
+const writeJsonConfig = (filePath: string, output: string) =>
+  Bun.write(filePath, JSON.stringify({ output }));
+
+const resolveOutput = async (
+  config: AppConfig<typeof testSchema>,
+  filePath: string
+): Promise<string> => {
+  const result = await config.resolve({ path: filePath });
+  expect(result.isOk()).toBe(true);
+  return result.unwrap().output;
+};
 
 describe('appConfig()', () => {
   describe('creation', () => {
@@ -71,10 +90,7 @@ describe('appConfig()', () => {
         JSON.stringify({ output: './dist', verbose: true })
       );
 
-      const config = appConfig('myapp', {
-        formats: ['json'],
-        schema: testSchema,
-      });
+      const config = createJsonConfig();
       const result = await config.resolve({ path: filePath });
 
       expect(result.isOk()).toBe(true);
@@ -99,23 +115,31 @@ describe('appConfig()', () => {
       const filePath = join(tempDir, 'myapp.config.json');
       await Bun.write(filePath, JSON.stringify({}));
 
-      const config = appConfig('myapp', {
-        formats: ['json'],
-        schema: testSchema,
-      });
+      const config = createJsonConfig();
       const result = await config.resolve({ path: filePath });
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toEqual({ output: './output', verbose: false });
     });
 
+    test('re-reads config files after they change on disk', async () => {
+      const filePath = join(tempDir, 'myapp.config.json');
+      await writeJsonConfig(filePath, './first');
+
+      const config = createJsonConfig();
+
+      expect(await resolveOutput(config, filePath)).toBe('./first');
+
+      await Bun.sleep(10);
+      await writeJsonConfig(filePath, './second');
+
+      expect(await resolveOutput(config, filePath)).toBe('./second');
+    });
+
     test('returns Result.err when file does not exist', async () => {
       const filePath = join(tempDir, 'nonexistent.json');
 
-      const config = appConfig('myapp', {
-        formats: ['json'],
-        schema: testSchema,
-      });
+      const config = createJsonConfig();
       const result = await config.resolve({ path: filePath });
 
       expect(result.isErr()).toBe(true);
@@ -128,10 +152,7 @@ describe('appConfig()', () => {
         JSON.stringify({ output: 42, verbose: 'not-a-bool' })
       );
 
-      const config = appConfig('myapp', {
-        formats: ['json'],
-        schema: testSchema,
-      });
+      const config = createJsonConfig();
       const result = await config.resolve({ path: filePath });
 
       expect(result.isErr()).toBe(true);
@@ -151,12 +172,9 @@ describe('appConfig()', () => {
 
     test('discovers config file in cwd', async () => {
       const filePath = join(tempDir, 'myapp.config.json');
-      await Bun.write(filePath, JSON.stringify({ output: './found' }));
+      await writeJsonConfig(filePath, './found');
 
-      const config = appConfig('myapp', {
-        formats: ['json'],
-        schema: testSchema,
-      });
+      const config = createJsonConfig();
       const result = await config.resolve({ cwd: tempDir });
 
       expect(result.isOk()).toBe(true);

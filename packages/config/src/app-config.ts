@@ -89,7 +89,64 @@ const configFileName = (
 const fileExists = (filePath: string): Promise<boolean> =>
   Bun.file(filePath).exists();
 
-/** Read and parse a config file using Bun's native import. */
+/** Known config suffixes, ordered to avoid `.json` matching `.jsonc`. */
+const FORMAT_SUFFIXES: readonly [ConfigFormat, `.${string}`][] = [
+  ['jsonc', '.jsonc'],
+  ['json', '.json'],
+  ['toml', '.toml'],
+  ['yaml', '.yaml'],
+];
+
+/** Detect the declared config format from a file path. */
+const detectFormat = (filePath: string): ConfigFormat | undefined => {
+  for (const [format, suffix] of FORMAT_SUFFIXES) {
+    if (filePath.endsWith(suffix)) {
+      return format;
+    }
+  }
+  return undefined;
+};
+
+/** Parse config file text with Bun's native format parsers. */
+const parseConfigText = (
+  filePath: string,
+  text: string
+): Result<unknown, Error> => {
+  const format = detectFormat(filePath);
+
+  try {
+    switch (format) {
+      case 'json': {
+        return Result.ok(JSON.parse(text));
+      }
+      case 'jsonc': {
+        return Result.ok(Bun.JSONC.parse(text));
+      }
+      case 'toml': {
+        return Result.ok(Bun.TOML.parse(text));
+      }
+      case 'yaml': {
+        return Result.ok(Bun.YAML.parse(text));
+      }
+      default: {
+        return Result.err(
+          new ValidationError(`Unsupported config file format: ${filePath}`, {
+            context: { path: filePath },
+          })
+        );
+      }
+    }
+  } catch (error) {
+    return Result.err(
+      new ValidationError(`Failed to parse config file: ${filePath}`, {
+        cause: error instanceof Error ? error : new Error(String(error)),
+        context: { path: filePath },
+      })
+    );
+  }
+};
+
+/** Read and parse a config file, always reflecting the latest on-disk content. */
 const readConfigFile = async (
   filePath: string
 ): Promise<Result<unknown, Error>> => {
@@ -102,18 +159,8 @@ const readConfigFile = async (
     );
   }
 
-  try {
-    // Bun natively imports TOML, JSON, JSONC, and YAML — result has `.default`
-    const mod: Record<string, unknown> = await import(filePath);
-    return Result.ok(mod['default'] ?? mod);
-  } catch (error) {
-    return Result.err(
-      new ValidationError(`Failed to parse config file: ${filePath}`, {
-        cause: error instanceof Error ? error : new Error(String(error)),
-        context: { path: filePath },
-      })
-    );
-  }
+  const text = await Bun.file(filePath).text();
+  return parseConfigText(filePath, text);
 };
 
 /** Validate parsed data against a Zod schema. */
