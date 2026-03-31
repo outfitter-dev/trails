@@ -16,3 +16,9 @@ export {
   DEFAULT_SAMPLING,
   type SamplingConfig,
 } from './sampling.js';
+export {
+  createTracksApi,
+  TRACKS_API_KEY,
+  type TracksApi,
+  type TracksApiWithState,
+} from './tracks-api.js';
