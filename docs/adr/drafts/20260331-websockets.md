@@ -1,0 +1,343 @@
+---
+status: draft
+created: 2026-03-31
+updated: 2026-04-01
+owners: ['[galligan](https://github.com/galligan)']
+---
+
+# ADR: WebSocket Surface
+
+## Context
+
+### Four surfaces, all request-response
+
+CLI, MCP, and HTTP are request-response surfaces. Something external says "do this," the framework dispatches a trail, a Result comes back. Each surface parses input in its format, calls `executeTrail`, and formats the Result in its response format. The surface model is clean and proven.
+
+WebSocket breaks this model because it's two things over one persistent connection: request-response (client calls trails, gets Results) AND server-push (clients subscribe to events, receive them as they happen). The first part follows the established surface pattern. The second part has no precedent in the current surface model.
+
+### Why WebSocket matters now
+
+With the Events Runtime shipping `ctx.emit()`, trails can announce what happened. Events have typed schemas, delivery tracking, and routing. But the only consumers of events are internal (triggers that activate other trails). There's no way for external clients to subscribe to events.
+
+WebSocket is the natural first surface for event subscriptions. A browser dashboard subscribing to `booking.confirmed` events. An agent maintaining a live view of system health. A mobile client receiving push notifications. All of these need a persistent connection where the server pushes typed events to subscribers.
+
+SSE (Server-Sent Events) on the HTTP surface is a lighter-weight option for server-push, but it's unidirectional (server to client only). WebSocket provides bidirectional communication: the client can call trails AND receive events over the same connection. For applications that need both, WebSocket is the right surface.
+
+### What the pre-Trails prototype proved
+
+A production WebSocket implementation (pre-Trails) validated several patterns:
+
+- JSON-RPC style framing works well for trail invocation over WebSocket
+- Connection state machines (connecting, authenticating, ready, draining) are necessary for reliability
+- Per-connection send queue depth monitoring prevents backpressure from crashing clients
+- Circular event buffers with sequence numbers enable replay on reconnect
+- `lastSeenSeq` on reconnect is sufficient for most replay needs
+
+These patterns inform the design but don't constrain it. The Trails version can be cleaner because the framework provides typed contracts, the event runtime provides emission, and the permit model provides authentication.
+
+## Decision
+
+### WebSocket follows the surface pattern
+
+WebSocket is a surface. It has a `blaze()` one-liner, a `build*` escape hatch, and it renders the topo's trails and events for its transport.
+
+```typescript
+import { blaze } from '@ontrails/ws';
+
+blaze(app, { port: 3001 });
+```
+
+Or sharing a port with the HTTP surface via upgrade:
+
+```typescript
+import { blaze as blazeHttp } from '@ontrails/http/hono';
+import { blaze as blazeWs } from '@ontrails/ws';
+
+const http = blazeHttp(app, { port: 3000, serve: false });
+blazeWs(app, { server: http });
+```
+
+`buildWsHandlers(topo)` produces handler definitions. `blaze()` wires them to a WebSocket server. The same two-step pattern as every other surface.
+
+### Two capabilities over one connection
+
+#### Trail invocation (request-response)
+
+Clients call trails by sending a request message:
+
+```json
+{ "type": "request", "id": "req_1", "trail": "booking.show", "input": { "id": "bk_123" } }
+```
+
+The surface dispatches through `executeTrail`. The Result comes back:
+
+```json
+{ "type": "response", "id": "req_1", "ok": true, "value": { "bookingId": "bk_123", "status": "confirmed" } }
+```
+
+On error:
+
+```json
+{ "type": "response", "id": "req_1", "ok": false, "error": { "code": "NotFoundError", "category": "not_found", "message": "Booking not found: bk_123" } }
+```
+
+The `id` field correlates requests to responses. The client manages its own request IDs. The framing is JSON-RPC-adjacent but simplified: no JSON-RPC version field, no `jsonrpc: "2.0"` boilerplate, just `type`, `id`, `trail`, `input`.
+
+Trail invocation respects the same filtering as other surfaces: visibility (internal trails are not callable), intent filtering (if configured on blaze), and permit-gated discovery (the client only sees trails it can call, based on its connection permit).
+
+#### Event subscription (server-push)
+
+Clients subscribe to event types:
+
+```json
+{ "type": "subscribe", "events": ["booking.confirmed", "booking.cancelled"] }
+```
+
+The surface validates the event IDs against the topo (do these events exist?) and the connection's permit (does this client have read access to the event's namespace?). Response:
+
+```json
+{ "type": "subscribed", "events": ["booking.confirmed", "booking.cancelled"] }
+```
+
+Or partial subscription if some events are unauthorized:
+
+```json
+{
+  "type": "subscribed",
+  "events": ["booking.confirmed"],
+  "denied": [{ "event": "booking.cancelled", "reason": "insufficient scope" }]
+}
+```
+
+When a subscribed event is emitted (via `ctx.emit()` or framework lifecycle events), the surface pushes it to all subscribed connections:
+
+```json
+{ "type": "event", "event": "booking.confirmed", "payload": { "bookingId": "bk_123", "userId": "user_1" }, "seq": 42 }
+```
+
+The `seq` field is a per-connection monotonically increasing sequence number. It enables replay on reconnect.
+
+Unsubscribe:
+
+```json
+{ "type": "unsubscribe", "events": ["booking.cancelled"] }
+```
+
+### Connection lifecycle
+
+```text
+connect -> authenticate -> ready -> draining -> closed
+                             |
+                       receiving events
+                       calling trails
+```
+
+#### Connect
+
+The WebSocket handshake establishes the connection. No authentication yet. The connection is in a pending state.
+
+#### Authenticate
+
+The first message from the client must be an authentication message:
+
+```json
+{ "type": "auth", "token": "bearer_token_here" }
+```
+
+The surface resolves the token through the permit model's configured auth adapter. On success:
+
+```json
+{ "type": "authenticated", "permit": { "id": "user_1", "scopes": ["booking:read", "booking:write"] } }
+```
+
+On failure:
+
+```json
+{ "type": "error", "code": "AuthError", "message": "Invalid token" }
+```
+
+The connection closes on authentication failure. On success, the connection transitions to ready.
+
+Alternative authentication mechanisms: token in the WebSocket URL query string (resolved during handshake, no auth message needed), or token in a custom header during the upgrade request. The surface supports multiple auth strategies through the same permit resolver used by other surfaces. The Permit is the framework type; JWT, API key, or session cookie are auth adapters that produce a Permit. The WebSocket surface is adapter-agnostic -- it receives a Permit from whichever auth adapter is configured.
+
+#### Ready
+
+The connection is authenticated. The client can call trails and subscribe to events. The connection's permit determines what's accessible.
+
+#### Draining
+
+When the server shuts down gracefully, connections enter a draining state. No new trail invocations are accepted. In-flight invocations complete. A final message is sent:
+
+```json
+{ "type": "draining", "reason": "server shutting down" }
+```
+
+The client has a window to reconnect to another instance.
+
+#### Closed
+
+The connection terminates. Subscriptions are removed. In-flight requests receive no response (the client should retry on reconnect).
+
+### Reconnection and replay
+
+When a client reconnects, it sends its last seen sequence number:
+
+```json
+{ "type": "auth", "token": "bearer_token_here", "lastSeenSeq": 38 }
+```
+
+The surface replays events from sequence 39 onward. Events are buffered in a per-connection circular buffer (configurable size, default 1000 events). If the client's `lastSeenSeq` is too old (outside the buffer window), the surface sends a gap notification:
+
+```json
+{ "type": "replay_gap", "from": 38, "available_from": 142, "message": "Events 39-141 are no longer available" }
+```
+
+The client decides how to handle the gap: refetch state via trail invocations, or accept the loss. The framework doesn't mandate a recovery strategy.
+
+The replay buffer uses the crumbs store. Emitted events are already recorded by the Events Runtime with sequence metadata. The WebSocket surface reads from crumbs for replay rather than maintaining a separate buffer. This means replay data persists across server restarts if crumbs uses a durable store.
+
+### Permit-scoped discovery and subscriptions
+
+The connection's permit scopes what the client can see and do:
+
+**Trail discovery.** The client can request the list of available trails:
+
+```json
+{ "type": "discover" }
+```
+
+The surface responds with trails filtered by the connection's permit, same as MCP's permit-gated tool listing:
+
+```json
+{
+  "type": "trails",
+  "trails": [
+    { "id": "booking.show", "intent": "read", "input": { "...schema..." } },
+    { "id": "booking.confirm", "intent": "write", "input": { "...schema..." } }
+  ]
+}
+```
+
+Only trails the permit authorizes are included. Internal trails are excluded. Intent filtering from blaze options applies.
+
+**Event discovery.** The client can request available events:
+
+```json
+{ "type": "events" }
+```
+
+Response filtered by permit scopes. `booking.*` events require `booking:read` scope. Namespace-to-scope mapping, same as trail discovery.
+
+**Subscription filtering.** A client can only subscribe to events their permit authorizes. Attempts to subscribe to unauthorized events are denied in the subscription response.
+
+### Backpressure
+
+Each connection has a send queue. When the queue depth exceeds a configurable threshold, the surface takes progressive action:
+
+1. **Warning.** Log the backpressure condition. Continue sending.
+2. **Throttle.** Drop low-priority events (lifecycle events before authored events). Notify the client:
+
+```json
+{ "type": "backpressure", "dropped": 12, "since": "2026-03-31T14:32:00Z" }
+```
+
+1. **Disconnect.** If the queue is critically full, close the connection with a reason. The client reconnects and replays.
+
+Backpressure thresholds are configurable on blaze options:
+
+```typescript
+blaze(app, {
+  port: 3001,
+  backpressure: {
+    warnAt: 100,
+    throttleAt: 500,
+    disconnectAt: 1000,
+  },
+});
+```
+
+### Surface derivation
+
+Trail ID to WebSocket method name follows the same convention as MCP: the trail ID is the method name. `booking.show` is callable as `"trail": "booking.show"`. No transformation needed.
+
+Event ID to subscription channel follows the same convention: the event ID is the channel name. `booking.confirmed` is subscribable as `"events": ["booking.confirmed"]`. The event declaration is the channel declaration.
+
+### BlazeWsOptions
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `port` | `number` | `3001` | Listen port (standalone mode) |
+| `server` | `Server` | none | Existing HTTP server (upgrade mode) |
+| `path` | `string` | `/ws` | WebSocket endpoint path (upgrade mode) |
+| `intent` | `Intent[]` | all | Filter trails by intent |
+| `include` | `string[]` | all | Glob patterns for trail inclusion |
+| `exclude` | `string[]` | none | Glob patterns for trail exclusion |
+| `layers` | `Layer[]` | `[]` | Layers for trail execution |
+| `replayBuffer` | `number` | `1000` | Max events in replay buffer per connection |
+| `backpressure` | `BackpressureConfig` | defaults | Backpressure thresholds |
+| `authTimeout` | `number` | `5000` | Ms to wait for auth message before disconnecting |
+
+The options follow the same patterns as HTTP and MCP blaze options. Intent filtering, glob patterns, and layers work identically.
+
+### Package structure
+
+```text
+@ontrails/ws
+├── blaze()              — one-liner WebSocket server
+├── buildWsHandlers()    — escape hatch, returns handler definitions
+├── types                — message type definitions
+└── /bun                 — Bun.serve WebSocket adapter (if needed)
+```
+
+The package depends on `@ontrails/core` and benefits from the Events Runtime for subscription delivery. If the Events Runtime is not present, the WebSocket surface operates in request-response-only mode (trail invocation works, event subscription is unavailable).
+
+### How WebSocket compounds with existing features
+
+**With Events Runtime.** WebSocket is the first external delivery surface for events. `ctx.emit()` produces events. The WebSocket surface delivers them to subscribed clients. Crumbs records delivery outcomes. The event runtime provides the emission and routing. WebSocket provides the transport.
+
+**With triggers.** A webhook trigger fires, activating a trail. The trail emits an event. A WebSocket client subscribed to that event receives it. The full chain: external webhook to trail execution to event emission to WebSocket delivery. Each piece is a different ADR. Together they form a reactive pipeline from external input to external output.
+
+**With visibility.** Internal trails are not callable over WebSocket. The `discover` message only returns public trails. Event subscription respects visibility: events emitted by internal trails are still deliverable (the event is public, the trail that emitted it is internal).
+
+**With packs.** A pack's public trails are callable over WebSocket. A pack's events are subscribable. The pack author doesn't configure anything WebSocket-specific. The surface derives everything from the topo.
+
+**With permit-gated discovery.** The connection's permit scopes trail visibility AND event subscription. An agent connected with `booking:read` scope sees booking read trails and can subscribe to booking events. Write trails and admin events are invisible.
+
+**With crumbs.** WebSocket connections are observed: connection established, authentication result, subscriptions, disconnection, replay requests. Combined with event delivery tracking from the Events Runtime, crumbs provides full observability of the WebSocket surface.
+
+## Consequences
+
+### Positive
+
+- **Bidirectional communication over one connection.** Clients call trails (request-response) and receive events (server-push) without managing two separate connections or polling.
+- **Event subscriptions use the Events Runtime.** No separate pub/sub system. `ctx.emit()` in any trail delivers to WebSocket subscribers through the same routing pipeline that serves triggers. One emission, multiple consumers.
+- **Replay on reconnect.** Sequence numbers and the crumbs-backed replay buffer mean clients don't miss events during brief disconnections. The framework handles replay. The client sends `lastSeenSeq`.
+- **Permit-scoped everything.** Trail discovery, event subscription, and invocation all respect the connection's permit. An agent sees exactly what it's authorized to use.
+- **Same surface patterns.** `blaze()`, `build*` escape hatch, intent filtering, glob patterns, layers. Developers who know the HTTP or MCP surface already know how to configure WebSocket.
+
+### Tradeoffs
+
+- **Persistent connection state.** Unlike HTTP (stateless) and CLI (one-shot), WebSocket connections have lifecycle: auth state, subscriptions, replay position, backpressure state. The surface manages per-connection state that no other surface needs.
+- **Replay buffer memory.** Each connection maintains a replay buffer (default 1000 events). For servers with many concurrent connections and high event throughput, memory usage scales with connections times buffer size. The crumbs-backed approach mitigates this (shared storage, not per-connection buffers), but query overhead replaces memory overhead.
+- **Backpressure complexity.** Slow clients can cause send queue growth. The progressive backpressure strategy (warn, throttle, disconnect) handles this but adds operational complexity. Monitoring send queue depth becomes an operational concern.
+- **Graceful shutdown is harder.** Draining WebSocket connections requires signaling clients, waiting for in-flight requests, and closing connections. HTTP can simply stop accepting new requests. WebSocket needs active connection management during shutdown.
+
+### What this does NOT decide
+
+- **The specific WebSocket library.** Bun has native WebSocket support via `Bun.serve()` with WebSocket upgrade. Whether `@ontrails/ws` uses this directly or wraps a library is an implementation choice.
+- **Binary message support.** The current design uses JSON text messages. Binary protocols (MessagePack, Protocol Buffers) could improve throughput. That's a future optimization.
+- **Connection multiplexing.** Whether one WebSocket connection can operate with multiple permits (e.g., switching user context). Currently, one connection = one permit = one auth. Multiplexing would add complexity.
+- **Horizontal scaling.** When multiple server instances run behind a load balancer, event subscriptions must reach the right server. This requires a shared event bus (Redis pub/sub, etc.) that the Events Runtime can plug into. The WebSocket surface doesn't solve distributed delivery.
+- **SSE as a lighter alternative.** Server-Sent Events on the HTTP surface could provide event subscriptions without the complexity of WebSocket connection management. SSE is unidirectional (server to client) but sufficient for many use cases. Whether to add SSE support to the HTTP surface is a separate decision.
+
+## References
+
+- [ADR-0000: Core Premise](0000-core-premise.md) -- "surfaces are peers"; WebSocket is the fourth surface, following the same patterns as CLI, MCP, and HTTP
+- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) -- trail invocations over WebSocket dispatch through `executeTrail`
+- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-surface-derivation.md) -- trail IDs map to WebSocket method names, event IDs map to subscription channels
+- [ADR-013: Crumbs](00013-crumbs.md) -- observability and replay buffer backing store
+- ADR: Events Runtime (draft) -- `ctx.emit()` provides the events that WebSocket subscriptions deliver
+- ADR: Trail Visibility (draft) -- visibility and intent filtering apply to WebSocket trail discovery and invocation
+- ADR: Triggers (draft) -- triggers and WebSocket subscriptions are both consumers of the event routing pipeline
+- ADR: Webhooks (draft) -- webhook to trail to event to WebSocket is a complete reactive pipeline from external input to external output
+- ADR: Unified Lockfile (draft) -- connection-level concurrency control for WebSocket state management
