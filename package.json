@@ -6,7 +6,8 @@
   },
   "workspaces": [
     "packages/*",
-    "apps/*"
+    "apps/*",
+    ".try/*"
   ],
   "scripts": {
     "build": "turbo run build",
