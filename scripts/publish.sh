@@ -24,7 +24,11 @@ PACKAGES=(
   packages/core
   packages/logging
   packages/schema
+  packages/config
+  packages/permits
+  packages/crumbs
   packages/cli
+  packages/http
   packages/mcp
   packages/testing
   packages/warden
