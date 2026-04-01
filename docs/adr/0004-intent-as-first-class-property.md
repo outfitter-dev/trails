@@ -1,11 +1,11 @@
 ---
 status: accepted
 created: 2026-03-29
-updated: 2026-03-29
-author: '@galligan'
+updated: 2026-04-01
+owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-004: Intent as a First-Class Property
+# ADR-0004: Intent as a First-Class Property
 
 ## Context
 
@@ -126,5 +126,5 @@ The mapping tables above live in surface packages, not in trail definitions. The
 
 ## References
 
-- [ADR-000: Core Premise](000-core-premise.md) — derive by default, override deliberately (Decision 6); the information architecture categories (Decision 10)
-- [ADR-008: Deterministic Surface Derivation](008-deterministic-surface-derivation.md) — the broader pattern of which intent is one instance
+- [ADR-0000: Core Premise](0000-core-premise.md) — derive by default, override deliberately; the information architecture categories
+- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-surface-derivation.md) — the broader pattern of which intent is one instance

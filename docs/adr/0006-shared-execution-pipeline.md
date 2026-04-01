@@ -1,11 +1,11 @@
 ---
 status: accepted
 created: 2026-03-29
-updated: 2026-03-29
-author: '@galligan'
+updated: 2026-04-01
+owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-006: Shared Execution Pipeline with Result-Returning Builders
+# ADR-0006: Shared Execution Pipeline with Result-Returning Builders
 
 ## Context
 
@@ -85,6 +85,6 @@ This extends the Result model from runtime execution to framework wiring. The sa
 
 ## References
 
-- [ADR-000: Core Premise](000-core-premise.md) — the foundational decisions this pipeline serves, especially "implementations are pure" and "surfaces are peers"
-- [ADR-002: Built-In Result Type](002-built-in-result-type.md) — the Result model that `executeTrail` and builders both return
-- [ADR-005: Framework-Agnostic HTTP Route Model](005-framework-agnostic-http-route-model.md) — the route derivation model that `buildHttpRoutes` implements
+- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions this pipeline serves, especially "implementations are pure" and "surfaces are peers"
+- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) — the Result model that `executeTrail` and builders both return
+- [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) — the route derivation model that `buildHttpRoutes` implements

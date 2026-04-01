@@ -1,6 +1,6 @@
 # Trails API Reference
 
-Canonical public surface. For naming conventions and decision history, see `docs/adr/001-naming-conventions.md`.
+Canonical public surface. For naming conventions and decision history, see [ADR-0001](docs/adr/0001-naming-conventions.md).
 
 ---
 

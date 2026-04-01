@@ -170,4 +170,4 @@ Both follow the established AST analysis pattern used by `follow-declarations`.
 
 Services complete the trail contract. A trail now declares what it takes (input), what it produces (output), what it composes (follow), and what it needs (services). The full dependency graph -- trails, services, events -- is queryable through survey.
 
-For the complete design decision, tradeoffs, and future directions (request-scoped services, composable config, intent-based type narrowing), see [ADR-009: Services as a First-Class Primitive](./adr/009-services.md).
+For the complete design decision, tradeoffs, and future directions (request-scoped services, composable config, intent-based type narrowing), see [ADR-0009: Services as a First-Class Primitive](./adr/0009-services.md).

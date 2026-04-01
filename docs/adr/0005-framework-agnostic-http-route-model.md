@@ -1,11 +1,11 @@
 ---
 status: accepted
 created: 2026-03-29
-updated: 2026-03-29
-author: '@galligan'
+updated: 2026-04-01
+owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-005: Framework-Agnostic HTTP Route Model
+# ADR-0005: Framework-Agnostic HTTP Route Model
 
 ## Context
 
@@ -119,6 +119,6 @@ This keeps the trail author out of HTTP vocabulary. They declare what the trail 
 
 ## References
 
-- [ADR-000: Core Premise](000-core-premise.md) — the foundational decisions that require surface-agnosticism
-- [ADR-006: Shared Execution Pipeline](006-shared-execution-pipeline.md) — the `executeTrail` function that `HttpRouteDefinition.execute` delegates to
-- [ADR-008: Deterministic Surface Derivation](008-deterministic-surface-derivation.md) — the derivation rules that produce paths, methods, and input sources from trail contracts
+- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions that require surface-agnosticism
+- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the `executeTrail` function that `HttpRouteDefinition.execute` delegates to
+- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-surface-derivation.md) — the derivation rules that produce paths, methods, and input sources from trail contracts

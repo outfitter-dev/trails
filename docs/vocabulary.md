@@ -1,6 +1,6 @@
 # Vocabulary
 
-All Trails terms and their definitions. Brand the framework primitives, use plain language for everything else.
+All Trails terms and their definitions. Brand the framework primitives, use plain language for everything else. For naming conventions and terminology decisions, see [ADR-0001](docs/adr/0001-naming-conventions.md).
 
 ## Naming Principle
 

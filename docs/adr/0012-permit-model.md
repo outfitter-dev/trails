@@ -1,11 +1,11 @@
 ---
 status: accepted
 created: 2026-03-30
-updated: 2026-03-30
-author: '@galligan'
+updated: 2026-04-01
+owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-012: Permit Model
+# ADR-0012: Permit Model
 
 ## Context
 
@@ -23,7 +23,7 @@ Auth doesn't fit cleanly into one primitive. The auth provider (JWT verification
 
 ### Intent compounds with auth
 
-A `destroy` trail with no auth requirement is a governance problem. Intent already tells the framework how dangerous a trail is (ADR-004). Permit declarations tell it who's allowed to trigger that danger. The two fields compound: the warden can flag unprotected destructive trails before deployment, not after an incident.
+A `destroy` trail with no auth requirement is a governance problem. Intent already tells the framework how dangerous a trail is (ADR-0004). Permit declarations tell it who's allowed to trigger that danger. The two fields compound: the warden can flag unprotected destructive trails before deployment, not after an incident.
 
 ## Decision
 
@@ -109,11 +109,14 @@ The warden statically validates that parent trail scopes are a superset of child
 
 ### Warden governance
 
-Four new rules:
+New rules by intent:
 
 - **`destroy` + no permit** — error. Destructive trails without auth requirements are a governance failure.
 - **`write` + no permit** — warning, unless `permit: 'public'` is set. Explicit public opt-out silences the warning.
-- **`read` + no permit** — no rule. Read trails are commonly public.
+- **`read` + no permit** — no finding. Read trails are commonly public.
+
+New rules for scope hygiene:
+
 - **Scope naming consistency** — warning for scope strings that don't follow the `entity:action` convention used by other trails in the topo.
 - **Orphan scope detection** — warning for scopes not used by any other trail. Catches typos like `user:wirte`.
 
@@ -157,6 +160,6 @@ No cookies. No session-based auth at the framework level. Session management via
 
 ## References
 
-- [ADR-004: Intent as a First-Class Property](004-intent-as-first-class-property.md) — intent compounds with permit for governance; `destroy` + no permit is an error
-- [ADR-009: Services as a First-Class Primitive](009-services.md) — auth adapter is a service; auth layer consumes it via `service.from(ctx)`
-- [ADR-010: Trails-Native Infrastructure Pattern](010-infrastructure-services-pattern.md) — auth layer follows the shared layer model for cross-cutting enforcement
+- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent compounds with permit for governance; `destroy` + no permit is an error
+- [ADR-0009: Services as a First-Class Primitive](0009-services.md) — auth adapter is a service; auth layer consumes it via `service.from(ctx)`
+- [ADR-0010: Trails-Native Infrastructure Pattern](0010-infrastructure-services-pattern.md) — auth layer follows the shared layer model for cross-cutting enforcement

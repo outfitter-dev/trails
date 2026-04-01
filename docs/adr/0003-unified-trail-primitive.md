@@ -1,11 +1,11 @@
 ---
 status: accepted
 created: 2026-03-29
-updated: 2026-03-29
-author: '@galligan'
+updated: 2026-04-01
+owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-003: Unified Trail Primitive
+# ADR-0003: Unified Trail Primitive
 
 ## Context
 
@@ -108,5 +108,5 @@ No discriminant. No branching. One type, one code path, everywhere.
 
 ## References
 
-- [ADR-000: Core Premise](000-core-premise.md) — the foundational decisions, particularly "the trail is the product" and "derive by default"
-- [ADR-001: Naming Conventions](001-naming-conventions.md) — Convention 5 (bare nouns for definitions) and Convention 6 (the vocabulary progression) informed the single-primitive approach
+- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions, particularly "the trail is the product" and "derive by default"
+- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — bare nouns for definitions and the vocabulary progression informed the single-primitive approach

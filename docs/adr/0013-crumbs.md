@@ -1,11 +1,11 @@
 ---
 status: accepted
 created: 2026-03-30
-updated: 2026-03-30
-author: '@galligan'
+updated: 2026-04-01
+owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-013: Crumbs
+# ADR-0013: Crumbs
 
 ## Context
 
@@ -13,11 +13,11 @@ The framework can now declare what a trail IS (contract via `trail()`), what it 
 
 "Crumbs" is the reserved vocabulary for this — evidence of what happened on the trails. Footprints, not blueprints.
 
-The architecture has a natural chokepoint for recording this evidence. `executeTrail` (ADR-006) is the single function every surface calls for every trail invocation. One layer wrapping that function records everything. No per-surface instrumentation. No opt-in ceremony.
+The architecture has a natural chokepoint for recording this evidence. `executeTrail` (ADR-0006) is the single function every surface calls for every trail invocation. One layer wrapping that function records everything. No per-surface instrumentation. No opt-in ceremony.
 
 Follow chains create parent-child relationships. When trail A follows trail B and B follows trail C, that's a trace with three legs. The vocabulary already exists — `follow` for composition, `leg` for individual steps in a follow chain. Crumbs makes these relationships queryable after the fact.
 
-This ADR locks after Permits (ADR-012) ships.
+This ADR locks after Permits (ADR-0012) ships.
 
 ## Decision
 
@@ -73,7 +73,7 @@ Trees are materialized at query time — in CLI output, in survey reports, in th
 
 ### Follow chain propagation via ExecutionScope
 
-ADR-009 introduced `createFollow(topo, scope)` as the centralized follow factory. Crumbs hooks into the same mechanism.
+ADR-0009 introduced `createFollow(topo, scope)` as the centralized follow factory. Crumbs hooks into the same mechanism.
 
 When `crumbsLayer` wraps a root invocation, it creates a root `Crumb` and writes `traceId` and the record's `id` into the execution scope. When that trail calls `ctx.follow()`, `createFollow` propagates the scope to the child. The child's `crumbsLayer` reads the inherited `traceId` and `parentId` from scope and creates a child record. No separate follow factory. No trace context threading through application code. The scope propagation that services already use carries trace context for free.
 
@@ -150,7 +150,7 @@ The data for behavioral validation will be there. Every `Crumb` carries intent, 
 ### Positive
 
 - **Every trail execution is recorded with zero developer effort.** `crumbsLayer` wraps `executeTrail`. No per-trail opt-in.
-- **Follow chains produce proper parent-child trace relationships.** The execution scope propagation from ADR-009 carries trace context without application code changes.
+- **Follow chains produce proper parent-child trace relationships.** The execution scope propagation from ADR-0009 carries trace context without application code changes.
 - **The dev store enables `trails crumbs` for debugging.** Persistent, queryable, cross-process. No external infrastructure needed during development.
 - **OTel export is a mechanical translation, not a rewrite.** The Trails-native model captures richer semantics. OTel gets them as structured attributes.
 - **The same `Crumb` feeds dev debugging AND production observability.** One model, two destinations.
@@ -170,6 +170,7 @@ The data for behavioral validation will be there. Every `Crumb` carries intent, 
 
 ## References
 
-- [ADR-006: Shared Execution Pipeline](006-shared-execution-pipeline.md) — `executeTrail` is the chokepoint where `crumbsLayer` records execution
-- [ADR-009: Services as a First-Class Primitive](009-services.md) — execution scope propagation, `createFollow(topo, scope)`, and the `crumbs` service pattern
-- [ADR-004: Intent as a First-Class Property](004-intent-as-first-class-property.md) — intent drives sampling defaults and is carried on every `Crumb`
+- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent drives sampling defaults and is carried on every `Crumb`
+- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — `executeTrail` is the chokepoint where `crumbsLayer` records execution
+- [ADR-0009: Services as a First-Class Primitive](0009-services.md) — execution scope propagation, `createFollow(topo, scope)`, and the `crumbs` service pattern
+- [ADR-0012: Permit Model](0012-permit-model.md) — permit identity is carried on every `Crumb` for auth observability

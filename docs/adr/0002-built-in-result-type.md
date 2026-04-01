@@ -1,23 +1,23 @@
 ---
 status: accepted
 created: 2026-03-29
-updated: 2026-03-29
-author: '@galligan'
+updated: 2026-04-01
+owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-002: Built-In Result Type
+# ADR-0002: Built-In Result Type
 
 ## Context
 
 ### The problem
 
-Trails implementations never throw. That's a hard rule — ADR-000 established it. Input in, `Result` out. The warden enforces it. If an implementation throws, it's a bug.
+Trails implementations never throw. That's a hard rule — [ADR-0000](0000-core-premise.md) established it. Input in, `Result` out. The warden enforces it. If an implementation throws, it's a bug.
 
 This means Result isn't optional infrastructure. It's the return type of every trail, the input to every surface renderer, the thing every error flows through. The framework's contract model depends on it completely.
 
 ### External options
 
-Several good Result libraries exist in the TypeScript ecosystem — `neverthrow`, `oxide.ts`, `@badrap/result`, `true-myth`, among others. I evaluated the main ones before deciding. The tradeoffs:
+Several good Result libraries exist in the TypeScript ecosystem — `neverthrow`[^neverthrow], `oxide.ts`[^oxide], `@badrap/result`[^badrap], `true-myth`[^true-myth], among others. I evaluated the main ones before deciding. The tradeoffs:
 
 - **`neverthrow`** is the most popular. It's well-maintained and has a reasonable API. But it carries its own error model, its own combinators, and its own opinions about how errors compose. Trails has a 13-class error taxonomy with deterministic surface mappings. Bridging neverthrow's error model to ours would mean wrapping everything anyway.
 - **`oxide.ts`** and **`true-myth`** are Rust-inspired and thorough. They're also larger than what we need and bring opinions about Option types, pattern matching, and other primitives that don't align with Trails' scope.
@@ -126,7 +126,12 @@ The `isRetryable(error)` helper checks the category map. Detours (trail-level re
 
 ## References
 
-- [ADR-000: Core Premise](000-core-premise.md) — establishes Result as mandatory and implementations as pure
-- [ADR-001: Naming Conventions](001-naming-conventions.md) — naming rules for `Result.ok()`, `Result.err()`, and the `validate*` family
+- [ADR-0000: Core Premise](0000-core-premise.md) — establishes Result as mandatory and implementations as pure
+- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — naming rules for `Result.ok()`, `Result.err()`, and the `validate*` family
 - [API Reference](../api-reference.md) — the canonical public API surface
 - [Architecture](../architecture.md) — system architecture and how Result flows through surfaces
+
+[^neverthrow]: [neverthrow](https://github.com/supermacro/neverthrow) — the most popular TypeScript Result library
+[^oxide]: [oxide.ts](https://github.com/neoncitylights/oxide.ts) — Rust-inspired Result and Option types for TypeScript
+[^badrap]: [@badrap/result](https://github.com/nicolo-ribaudo/result) — minimal Result type for TypeScript
+[^true-myth]: [true-myth](https://github.com/true-myth/true-myth) — idiomatic Maybe and Result for TypeScript

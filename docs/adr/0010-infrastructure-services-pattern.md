@@ -1,11 +1,11 @@
 ---
 status: accepted
 created: 2026-03-30
-updated: 2026-03-30
-author: '@galligan'
+updated: 2026-04-01
+owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-010: Trails-Native Infrastructure Pattern
+# ADR-0010: Trails-Native Infrastructure Pattern
 
 ## Context
 
@@ -13,7 +13,7 @@ author: '@galligan'
 
 The hexagonal architecture has a clear story on the left. Surfaces — CLI, MCP, HTTP, WebSocket — adapt inbound requests to trail contracts via `blaze()`. Each is a peer rendering of the same topo. That side is solved.
 
-The right side — logging, storage, telemetry, auth — had no primitive until ADR-009 introduced services. Before that, every trail that talked to infrastructure created its own connections inline. No lifecycle, no governance, no testability.
+The right side — logging, storage, telemetry, auth — had no primitive until ADR-0009 introduced services. Before that, every trail that talked to infrastructure created its own connections inline. No lifecycle, no governance, no testability.
 
 `@ontrails/logging` established the adapter pattern before services existed: abstract API (`Logger`) → extension point (`LogSink`) → built-in implementations → subpath adapters (`/logtape`). It works, but it's hand-wired. There's no standard way to manage its lifecycle, compose it with execution, or mock it in tests. Services generalize what logging pioneered.
 
@@ -31,7 +31,7 @@ Each needs the same three constructs. A **service** for lifecycle — create the
 
 ### The pattern gap
 
-ADR-009 gives us the service primitive. But it doesn't prescribe how infrastructure packages combine services, layers, and trails into a cohesive unit. Without a shared pattern, each package will invent its own shape. Config will wire differently from permits, which will wire differently from crumbs. That's the drift this framework exists to prevent.
+ADR-0009 gives us the service primitive. But it doesn't prescribe how infrastructure packages combine services, layers, and trails into a cohesive unit. Without a shared pattern, each package will invent its own shape. Config will wire differently from permits, which will wire differently from crumbs. That's the drift this framework exists to prevent.
 
 ## Decision
 
@@ -111,7 +111,7 @@ The built-in for each package is functional enough for development and simple pr
 
 ### `testAll(app)` just works
 
-The mock factory pattern from ADR-009 makes zero-config testing possible for every infrastructure service:
+The mock factory pattern from ADR-0009 makes zero-config testing possible for every infrastructure service:
 
 - Config resolves a test loadout — minimal, deterministic, no env vars required.
 - Auth mints synthetic permits — valid tokens with minimal claims, enough to pass `authLayer` without a real provider.
@@ -121,7 +121,7 @@ The mock factory pattern from ADR-009 makes zero-config testing possible for eve
 testAll(app); // infrastructure services auto-mock, business trails run against mocks
 ```
 
-No setup. No test config files. No mock wiring. The service definitions carry their own mock factories. `testAll` resolves them automatically. This is the ADR-009 promise delivered across the entire infrastructure layer.
+No setup. No test config files. No mock wiring. The service definitions carry their own mock factories. `testAll` resolves them automatically. This is the ADR-0009 promise delivered across the entire infrastructure layer.
 
 ### Sequential ADR approval
 
@@ -152,13 +152,13 @@ Each ADR can refine the shared pattern based on what the previous package learne
 ### What this does NOT decide
 
 - **Which specific adapters ship first.** The adapter list above is directional. Actual adapter selection depends on user demand and the packages available at build time.
-- **Request-scoped service support.** Per-request auth context, per-request trace spans — these need request-scoped services, which are deferred per ADR-009. The singleton model handles the adapter lifecycle; request-scoped state flows through layers and context extensions.
+- **Request-scoped service support.** Per-request auth context, per-request trace spans — these need request-scoped services, which are deferred per ADR-0009. The singleton model handles the adapter lifecycle; request-scoped state flows through layers and context extensions.
 - **Runtime declaration validation.** Crumbs observing that a `read`-intent trail actually writes to a database is powerful but requires runtime instrumentation. Deferred.
 - **Mock scaffolding and capture-based mock generation.** Running a trail against real services and recording response shapes at the service boundary could seed mock factories automatically. This is a tooling concern — the framework records, tooling generates — and is deferred to a future ADR or CLI feature.
 
 ## References
 
-- [ADR-000: Core Premise](000-core-premise.md) — "the trail is the product," "derive by default," and the information architecture that infrastructure trails inherit
-- [ADR-006: Shared Execution Pipeline](006-shared-execution-pipeline.md) — the `executeTrail` pipeline that infrastructure layers compose into
-- [ADR-007: Governance as Trails](007-governance-as-trails.md) — the warden model that governs infrastructure trails alongside business trails
-- [ADR-009: Services as a First-Class Primitive](009-services.md) — the service primitive that infrastructure packages build on
+- [ADR-0000: Core Premise](0000-core-premise.md) — "the trail is the product," "derive by default," and the information architecture that infrastructure trails inherit
+- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the `executeTrail` pipeline that infrastructure layers compose into
+- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — the warden model that governs infrastructure trails alongside business trails
+- [ADR-0009: Services as a First-Class Primitive](0009-services.md) — the service primitive that infrastructure packages build on

@@ -1,11 +1,11 @@
 ---
 status: accepted
 created: 2026-03-29
-updated: 2026-03-29
-author: '@galligan'
+updated: 2026-04-01
+owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-008: Deterministic Surface Derivation
+# ADR-0008: Deterministic Surface Derivation
 
 ## Context
 
@@ -97,5 +97,5 @@ This is the governance complement to deterministic derivation. The derivation ru
 
 ## References
 
-- [ADR-000: Core Premise](000-core-premise.md) — "derive by default, override deliberately" principle
-- [ADR-001: Naming Conventions](001-naming-conventions.md) — `derive*` prefix convention and the information architecture categories (authored, projected, overridden)
+- [ADR-0000: Core Premise](0000-core-premise.md) — "derive by default, override deliberately" principle
+- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — `derive*` prefix convention and the information architecture categories (authored, projected, overridden)

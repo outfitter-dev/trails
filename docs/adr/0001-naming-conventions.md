@@ -1,11 +1,11 @@
 ---
 status: accepted
 created: 2026-03-27
-updated: 2026-03-27
-author: '@galligan'
+updated: 2026-04-01
+owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-001: Naming Conventions
+# ADR-0001: Naming Conventions — Guessable API Through Structural Rules
 
 ## Context
 
@@ -19,7 +19,7 @@ This ADR establishes the naming conventions that govern all public API names acr
 
 ## Decision
 
-### Convention 0: Author, derive, declare — guard against drift
+### Author, derive, declare — guard against drift
 
 The meta-principle that governs all others. Every feature and API decision passes through three questions:
 
@@ -40,7 +40,7 @@ The third question is the most important. Every declaration surface — output s
 | If not lint-time, does `survey --diff` catch it? | Prefer diff-time safety. |
 | If none of the above, is the declaration freeform? | Freeform is acceptable only for `metadata`. |
 
-### Convention 1: Clarity without context
+### Clarity without context
 
 A name must be understandable on line 200 of a file without seeing the import at the top. If a reader has to scroll up to know what a function does, the name failed.
 
@@ -56,7 +56,7 @@ Bad:
 - `autoIterate` — could be a function, a flag, a config key
 - `testContext()` — could be accessing a global, not constructing one
 
-### Convention 2: Trails vocabulary for Trails concepts; standard vocabulary for everything else
+### Trails vocabulary for Trails concepts; standard vocabulary for everything else
 
 Trails-branded terms are reserved for concepts unique to the framework — the things that make Trails feel like Trails. Standard infrastructure concepts keep their standard names.
 
@@ -66,7 +66,7 @@ Trails-branded terms are reserved for concepts unique to the framework — the t
 
 **The test:** if a developer already knows what the word means from other frameworks, don't rename it. `event` stays `event` because every developer knows what an event is. Composition uses `follow` because `route` means something different (HTTP path -> handler) in every other framework.
 
-### Convention 3: `test*` for testing helpers
+### `test*` for testing helpers
 
 Testing functions use the `test` prefix. This makes them self-documenting and provides a consistent, extensible pattern. The word after `test` describes what is being verified.
 
@@ -79,7 +79,7 @@ testDetours(topo)           // verify detour recovery paths
 
 Future additions follow naturally: `testWayfinding(topo)`.
 
-### Convention 4: `expect*` for test-time narrowing
+### `expect*` for test-time narrowing
 
 Helpers that assert-and-return (combining an assertion with type narrowing) use the `expect` prefix. This mirrors the test runner's `expect()` and signals "this will fail the test if the condition isn't met."
 
@@ -88,7 +88,7 @@ const value = expectOk(result); // assert Ok, return value
 const error = expectErr(result); // assert Err, return error
 ```
 
-### Convention 5: Bare nouns for definitions, `create*` for runtime instances
+### Bare nouns for definitions, `create*` for runtime instances
 
 Functions that produce frozen, inert definitions use bare noun names. Functions that produce stateful runtime instances use the `create` prefix.
 
@@ -101,7 +101,7 @@ Functions that produce frozen, inert definitions use bare noun names. Functions 
 
 This mirrors the broader TypeScript ecosystem: Zod uses `z.object()` (definition), React uses `createContext()` (runtime instance).
 
-### Convention 6: The vocabulary progression
+### The vocabulary progression
 
 Each step adds a layer. Everything before `blaze` is definition. Everything after is execution.
 
@@ -117,7 +117,7 @@ trailblaze()   → light up the full runtime (future: multi-surface, production)
 
 The sentence that explains the framework: **"You define trails. Then you follow them."**
 
-### Convention 7: Suffix instances when the type isn't obvious from context
+### Suffix instances when the type isn't obvious from context
 
 When an instance of a supporting concept can appear far from the declaration site where its role is obvious, suffix it with what it is.
 
@@ -133,17 +133,17 @@ This mirrors convention 3: the suffix exists for the reader who doesn't have sur
 
 **When NOT to suffix:** Core primitives (`trail`, `event`, `topo`) are the vocabulary itself. You don't write `myTrailTrail`. The suffix convention applies to instances of *supporting* concepts — layers, presets, harnesses, formatters, sinks, resolvers.
 
-### Convention 8: Surface wiring — `build*` then `to*` or `connect*`
+### Surface wiring — `build*` then `to*` or `connect*`
 
 Every surface has a two-step escape hatch behind the `blaze()` one-liner:
 
 1. **`build*`** — derive the surface representation from a topo. Always the first step.
-2. **`to*`** or **`connect*`** — wire to a runtime. Which verb depends on the transport:
+2. **`to*`** or **`connect*`** — wire to a runtime. Which verb depends on the surface:
 
 | Verb | Meaning | Returns | Lifecycle |
 | --- | --- | --- | --- |
 | `to*` | Transform into library-specific runtime object | The object | Developer controls |
-| `connect*` | Wire to transport and start | void | Framework controls |
+| `connect*` | Wire to surface and start | void | Framework controls |
 
 ```text
 CLI:  buildCliCommands(topo) → toCommander(commands) → program.parse()
@@ -153,13 +153,13 @@ HTTP: buildHttpRoutes(topo)  → toHono(routes) → app.listen(3000)   (future)
 
 `blaze()` collapses all steps into one call.
 
-### Convention 9: Don't namespace what package scope provides
+### Don't namespace what package scope provides
 
 Package-level imports (`@ontrails/core`, `@ontrails/testing`) provide sufficient scoping. No `z.`-style namespace object is needed at current API density.
 
 If a domain grows dense enough to justify namespacing (e.g., a future `mock` namespace with `mock.input()`, `mock.services()`, `mock.fromExamples()`), add it then. Don't prematurely namespace.
 
-### Convention 10: `derive*` for framework derivations
+### `derive*` for framework derivations
 
 "Derive" is the framework's core capability — you declare the trail, the framework derives everything else. Functions that perform derivation use the `derive` prefix. The word after `derive` names what's derived.
 
@@ -172,7 +172,7 @@ deriveMocks(schema); // mock data (future)
 deriveExamples(trail); // generated examples (future)
 ```
 
-### Convention 11: `validate*` for contract verification
+### `validate*` for contract verification
 
 Validation functions use the `validate` prefix. They always return `Result`. They always use Trails error types (`ValidationError`). Developers never need to interact with Zod's validation API for validation operations.
 
@@ -186,7 +186,7 @@ validateTopo(topo); // future
 
 **Principle:** Zod is the schema authoring language. Trails is the validation language. You write schemas *in* Zod, you validate *with* Trails.
 
-### Convention 12: Zod is authoring, Trails is everything else
+### Zod is authoring, Trails is everything else
 
 The abstraction boundary between Zod and Trails:
 
@@ -211,7 +211,7 @@ The developer thinks in Zod when writing schema definitions. They think in Trail
 
 - **Guessable API.** A contributor who knows the conventions can predict function names before looking them up. `test*` for testing, `create*` for factories, `derive*` for derivations, `validate*` for verification, `build*` for surface derivation.
 - **Consistent mental model.** The vocabulary progression (trail → follow → event → topo → blaze → trailblaze) tells a learnable story. Each step builds on the previous.
-- **Drift resistance.** Convention 0 ensures every declaration feature has enforcement at some level. The drift guard checklist is applied to new features before they ship.
+- **Drift resistance.** The [author, derive, declare](#author-derive-declare--guard-against-drift) meta-convention ensures every declaration feature has enforcement at some level. The drift guard checklist is applied to new features before they ship.
 - **Agent-friendly.** Unambiguous names without contextual reasoning. An agent can consume the API from names alone.
 - **Community-scalable.** New contributors follow the conventions. Reviewers enforce them. The naming debates are pre-answered.
 
@@ -219,9 +219,9 @@ The developer thinks in Zod when writing schema definitions. They think in Trail
 
 - **`Partial<I>` on examples.** Erases compile-time completeness checking for example inputs. Caught at test time and lint time, not compile time. Accepted: authoring friction reduction outweighs the safety loss.
 - **`follow` learning curve.** Composition is expressed via `follow` on the trail spec rather than a separate primitive. This keeps the API surface smaller at the cost of a slightly less obvious first encounter.
-- **Convention count.** Thirteen conventions is a lot to internalize. In practice, most are intuitive after seeing a few examples. Convention 0 is the one that requires active thinking; the rest become muscle memory.
+- **Convention count.** Thirteen conventions is a lot to internalize. In practice, most are intuitive after seeing a few examples. The [drift guard](#author-derive-declare--guard-against-drift) convention is the one that requires active thinking; the rest become muscle memory.
 
-### What this does NOT cover
+### What this does NOT decide
 
 - Specific function-to-name mappings (see the [API Reference](../api-reference.md))
 - Internal naming conventions (non-exported code follows general TypeScript conventions)
@@ -230,7 +230,7 @@ The developer thinks in Zod when writing schema definitions. They think in Trail
 
 ## References
 
-- [ADR-000: Core Premise](000-core-premise.md) — the foundational decisions these conventions serve
+- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions these conventions serve
 - [API Reference](../api-reference.md) — the canonical public API surface
 - [Vocabulary](../vocabulary.md) — the Trails vocabulary guide
 - [Testing](../testing.md) — the testing story that informed several conventions

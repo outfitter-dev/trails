@@ -1,11 +1,11 @@
 ---
 status: accepted
 created: 2026-03-30
-updated: 2026-03-30
-author: '@galligan'
+updated: 2026-04-01
+owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-009: Services as a First-Class Primitive
+# ADR-0009: Services as a First-Class Primitive
 
 ## Context
 
@@ -304,9 +304,9 @@ The layer receives the service definition as a parameter. It reads from context 
 
 ## References
 
-- [ADR-000: Core Premise](000-core-premise.md) — "the trail is the product," "derive by default," and the information architecture
-- [ADR-002: Built-In Result Type](002-built-in-result-type.md) — service factories return Result, consistent with the error taxonomy
-- [ADR-003: Unified Trail Primitive](003-unified-trail-primitive.md) — services follow the same pattern: declaration on the spec, governance via warden
-- [ADR-004: Intent as a First-Class Property](004-intent-as-first-class-property.md) — intent compounds with the service graph for security insights
-- [ADR-006: Shared Execution Pipeline](006-shared-execution-pipeline.md) — services resolve within executeTrail, before layers compose
-- [ADR-007: Governance as Trails](007-governance-as-trails.md) — service-declarations rule follows the same AST pattern
+- [ADR-0000: Core Premise](0000-core-premise.md) — "the trail is the product," "derive by default," and the information architecture
+- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) — service factories return Result, consistent with the error taxonomy
+- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — services follow the same pattern: declaration on the spec, governance via warden
+- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent compounds with the service graph for security insights
+- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — services resolve within executeTrail, before layers compose
+- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — service-declarations rule follows the same AST pattern

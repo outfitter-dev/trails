@@ -1,11 +1,11 @@
 ---
 status: accepted
 created: 2026-03-29
-updated: 2026-03-29
-author: '@galligan'
+updated: 2026-04-01
+owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-007: Governance as Trails with AST-Based Analysis
+# ADR-0007: Governance as Trails with AST-Based Analysis
 
 ## Context
 
@@ -37,7 +37,7 @@ This is dogfooding. The governance system uses the same contract model it enforc
 
 ### Part 2: AST-based analysis
 
-Rules that need structural understanding of code use `oxc-parser` instead of regex. The `parseSync()` function produces a full AST from TypeScript source with native speed (oxc is Rust-compiled).
+Rules that need structural understanding of code use `oxc-parser` instead of regex. The `parseSync()` function produces a full AST from TypeScript source with native speed[^oxc].
 
 The warden provides lightweight helpers over the raw AST:
 
@@ -79,7 +79,7 @@ Basic rules analyze a single file. Project-aware rules receive a `ProjectContext
 
 ### Tradeoffs
 
-- **oxc-parser is a native dependency.** It ships as a Rust-compiled binary (with WASM fallback). This adds platform-specific artifacts to the package. The tradeoff is worth it — AST parsing at native speed with full TypeScript support, no configuration.
+- **oxc-parser is a native dependency.** It ships as a Rust-compiled binary with a WASM fallback[^oxc]. This adds platform-specific artifacts to the package. The tradeoff is worth it — AST parsing at native speed with full TypeScript support, no configuration.
 - **Rules are slightly more complex to write than regex.** Walking an AST and matching node types requires more code than a regex `.test()`. But the rules are more correct, and the pattern is consistent enough that the complexity is predictable.
 
 ### What this does NOT decide
@@ -90,6 +90,8 @@ Basic rules analyze a single file. Project-aware rules receive a `ProjectContext
 
 ## References
 
-- [ADR-000: Core Premise](000-core-premise.md) — the foundational decisions; warden is the governance arm of "author, derive, declare — guard against drift"
-- [ADR-003: Unified Trail Primitive](003-unified-trail-primitive.md) — the trail contract model that rules are now wrapped in
-- [ADR-006: Shared Execution Pipeline](006-shared-execution-pipeline.md) — the dispatch pipeline that runs rule trails
+- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions; warden is the governance arm of "author, derive, declare — guard against drift"
+- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the trail contract model that rules are now wrapped in
+- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the dispatch pipeline that runs rule trails
+
+[^oxc]: [oxc-parser](https://oxc.rs/) — Rust-compiled JavaScript/TypeScript toolchain with native bindings and WASM fallback
