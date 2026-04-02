@@ -67,7 +67,7 @@ describe('formatGitHubAnnotations', () => {
 
   test('emits drift as a single ::error annotation', () => {
     const output = formatGitHubAnnotations(reportWithDrift);
-    expect(output).toContain('::error::drift: surface.lock is stale');
+    expect(output).toContain('::error::drift: trailhead.lock is stale');
   });
 
   test('produces one line per diagnostic', () => {
@@ -148,7 +148,7 @@ describe('formatSummary', () => {
   test('includes drift section when stale', () => {
     const output = formatSummary(reportWithDrift);
     expect(output).toContain('### Drift');
-    expect(output).toContain('surface.lock is stale');
+    expect(output).toContain('trailhead.lock is stale');
   });
 
   test('omits drift section when clean', () => {

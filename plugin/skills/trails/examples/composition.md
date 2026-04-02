@@ -1,4 +1,4 @@
-Convert direct function calls into trail composition with follow declarations.
+Convert direct function calls into trail composition with crosses declarations.
 
 ## Before
 
@@ -28,10 +28,10 @@ async function createOrder(items: CartItem[], customerId: string) {
 ## After
 
 ```typescript
-// services/db.ts
-import { service, Result } from '@ontrails/core';
+// provisions/db.ts
+import { provision, Result } from '@ontrails/core';
 
-export const db = service('db.main', {
+export const db = provision('db.main', {
   create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
   dispose: (conn) => conn.close(),
   mock: () => createInMemoryDb(),
@@ -41,15 +41,15 @@ export const db = service('db.main', {
 // trails/customer.ts
 import { z } from 'zod';
 import { trail, Result, NotFoundError } from '@ontrails/core';
-import { db } from '../services/db.js';
+import { db } from '../provisions/db.js';
 
 export const get = trail('customer.get', {
   input: z.object({ id: z.string() }),
   output: z.object({ id: z.string(), email: z.string(), name: z.string() }),
   intent: 'read',
-  services: [db],
+  provisions: [db],
   examples: [{ name: 'existing', input: { id: 'cust_123' } }],
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const conn = db.from(ctx);
     const customer = await conn.customers.findById(input.id);
     if (!customer) return Result.err(new NotFoundError('Customer not found'));
@@ -58,15 +58,15 @@ export const get = trail('customer.get', {
 });
 
 // trails/inventory.ts
-import { db } from '../services/db.js';
+import { db } from '../provisions/db.js';
 
 export const check = trail('inventory.check', {
   input: z.object({ items: z.array(CartItemSchema) }),
   output: z.object({ available: z.boolean(), total: z.number() }),
   intent: 'read',
-  services: [db],
+  provisions: [db],
   examples: [{ name: 'in stock', input: { items: [{ sku: 'TRAIL-001', qty: 1 }] } }],
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const conn = db.from(ctx);
     const result = await conn.warehouse.check(input.items);
     return Result.ok(result);
@@ -74,22 +74,22 @@ export const check = trail('inventory.check', {
 });
 
 // trails/order.ts — the composition trail
-import { db } from '../services/db.js';
+import { db } from '../provisions/db.js';
 
 export const create = trail('order.create', {
   input: z.object({ customerId: z.string(), items: z.array(CartItemSchema) }),
   output: z.object({ orderId: z.string(), total: z.number() }),
   intent: 'write',
-  follow: ['customer.get', 'inventory.check'],
-  services: [db],
+  crosses: ['customer.get', 'inventory.check'],
+  provisions: [db],
   examples: [
     { name: 'happy path', input: { customerId: 'cust_123', items: [{ sku: 'TRAIL-001', qty: 1 }] } },
   ],
-  run: async (input, ctx) => {
-    const customer = await ctx.follow!<{ id: string; email: string }>('customer.get', { id: input.customerId });
+  blaze: async (input, ctx) => {
+    const customer = await ctx.cross!<{ id: string; email: string }>('customer.get', { id: input.customerId });
     if (customer.isErr()) return customer;
 
-    const stock = await ctx.follow!<{ available: boolean; total: number }>('inventory.check', { items: input.items });
+    const stock = await ctx.cross!<{ available: boolean; total: number }>('inventory.check', { items: input.items });
     if (stock.isErr()) return stock;
     if (!stock.value.available) return Result.err(new ValidationError('Items out of stock'));
 
@@ -100,7 +100,7 @@ export const create = trail('order.create', {
 });
 ```
 
-`testAll` checks that every declared follow was actually called:
+`testAll` checks that every declared cross was actually called:
 
 ```typescript
 // __tests__/governance.test.ts
@@ -109,10 +109,10 @@ import { topo } from '@ontrails/core';
 import * as customer from '../trails/customer.js';
 import * as inventory from '../trails/inventory.js';
 import * as order from '../trails/order.js';
-import * as services from '../services/db.js';
+import * as provisions from '../provisions/db.js';
 
-const app = topo('shop', customer, inventory, order, services);
+const app = topo('shop', customer, inventory, order, provisions);
 testAll(app);
-// Validates topo structure, runs all examples, checks follow coverage,
-// and uses db.mock() automatically for service resolution
+// Validates topo structure, runs all examples, checks cross coverage,
+// and uses db.mock() automatically for provision resolution
 ```

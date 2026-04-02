@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { createTrailContext } from '../context';
 import { Result } from '../result';
-import { service } from '../service';
+import { provision } from '../provision';
 import { trail } from '../trail';
 import type { TrailContext } from '../types';
 
@@ -13,14 +13,14 @@ const stubCtx: TrailContext = createTrailContext({
   requestId: 'test-123',
 });
 
-const dbService = service('db.main', {
+const dbProvision = provision('db.main', {
   create: () =>
     Result.ok({
       query(sql: string) {
         return sql.length;
       },
     }),
-  description: 'Primary database service',
+  description: 'Primary database provision',
 });
 
 describe('trail()', () => {
@@ -108,62 +108,62 @@ describe('trail()', () => {
     });
   });
 
-  describe('follow', () => {
+  describe('crosses', () => {
     test('defaults to empty frozen array when omitted', () => {
       const minimal = trail('bare', {
         blaze: () => Result.ok(),
         input: z.object({}),
       });
-      expect(minimal.follow).toEqual([]);
-      expect(Object.isFrozen(minimal.follow)).toBe(true);
+      expect(minimal.crosses).toEqual([]);
+      expect(Object.isFrozen(minimal.crosses)).toBe(true);
     });
 
-    test('preserves follow array', () => {
-      const withFollow = trail('composed', {
+    test('preserves crosses array', () => {
+      const withCrosses = trail('composed', {
         blaze: () => Result.ok(),
-        follow: ['authenticate', 'validate-session'],
+        crosses: ['authenticate', 'validate-session'],
         input: z.object({}),
       });
-      expect(withFollow.follow).toEqual(['authenticate', 'validate-session']);
+      expect(withCrosses.crosses).toEqual(['authenticate', 'validate-session']);
     });
 
-    test('follow array is frozen', () => {
-      const withFollow = trail('composed', {
+    test('crosses array is frozen', () => {
+      const withCrosses = trail('composed', {
         blaze: () => Result.ok(),
-        follow: ['authenticate'],
+        crosses: ['authenticate'],
         input: z.object({}),
       });
-      expect(Object.isFrozen(withFollow.follow)).toBe(true);
+      expect(Object.isFrozen(withCrosses.crosses)).toBe(true);
     });
   });
 
-  describe('services', () => {
+  describe('provisions', () => {
     test('defaults to empty frozen array when omitted', () => {
       const minimal = trail('bare', {
         blaze: () => Result.ok(),
         input: z.object({}),
       });
-      expect(minimal.services).toEqual([]);
-      expect(Object.isFrozen(minimal.services)).toBe(true);
+      expect(minimal.provisions).toEqual([]);
+      expect(Object.isFrozen(minimal.provisions)).toBe(true);
     });
 
-    test('preserves declared service objects', () => {
-      const withServices = trail('search', {
+    test('preserves declared provision objects', () => {
+      const withProvisions = trail('search', {
         blaze: () => Result.ok(),
         input: z.object({}),
-        services: [dbService],
+        provisions: [dbProvision],
       });
-      expect(withServices.services).toEqual([dbService]);
-      expect(withServices.services[0]).toBe(dbService);
+      expect(withProvisions.provisions).toEqual([dbProvision]);
+      expect(withProvisions.provisions[0]).toBe(dbProvision);
     });
 
-    test('services array is frozen', () => {
-      const withServices = trail('search', {
+    test('provisions array is frozen', () => {
+      const withProvisions = trail('search', {
         blaze: () => Result.ok(),
         input: z.object({}),
-        services: [dbService],
+        provisions: [dbProvision],
       });
-      expect(Object.isFrozen(withServices.services)).toBe(true);
+      expect(Object.isFrozen(withProvisions.provisions)).toBe(true);
     });
   });
 
@@ -225,12 +225,12 @@ describe('trail()', () => {
         input: inputSchema,
         intent: 'read',
         output: outputSchema,
-        services: [dbService],
+        provisions: [dbProvision],
       });
       expect(t.description).toBe('A full trail');
       expect(t.intent).toBe('read');
       expect(t.examples).toHaveLength(1);
-      expect(t.services).toEqual([dbService]);
+      expect(t.provisions).toEqual([dbProvision]);
     });
 
     test('implementation is callable', async () => {

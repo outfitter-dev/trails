@@ -20,7 +20,7 @@ The packs ADR defines `pack()` as a compositional primitive. A pack carries trai
 
 Real-world pack usage splits into two patterns:
 
-**Dependency packs** are consumed as-is. An SDK wrapper, an auth adapter, a telemetry backend. You import it, compose it into your topo, and let npm manage versioning. You don't modify the source. You want coordinated updates.
+**Dependency packs** are consumed as-is. An SDK wrapper, an auth connector, a telemetry backend. You import it, compose it into your topo, and let npm manage versioning. You don't modify the source. You want coordinated updates.
 
 **Scaffolded packs** are starting points. An inbox pattern, a webhook handler template, a CRUD entity pack. You copy the source into your project, modify it for your domain, and own it going forward. The code is meant to be adapted.
 
@@ -217,7 +217,7 @@ When a pack is scaffolded, the provisions system captures a contract snapshot: t
 }
 ```
 
-The snapshot captures trail shapes (schemas as JSON Schema), example counts, follow declarations, service declarations, and event declarations. Not source code. The contract.
+The snapshot captures trail shapes (schemas as JSON Schema), example counts, follow declarations, provision declarations, and event declarations. Not source code. The contract.
 
 ### Why three-way diff is tractable here
 
@@ -362,8 +362,8 @@ The warden gains provisions-aware rules:
 
 - [ADR-0000: Core Premise](../0000-core-premise.md) -- "author what's new, derive what's known, override what's wrong"; provisions leverage derived contract data for upgrades
 - ADR: Packs as Namespace Boundaries (draft) -- the compositional primitive that provisions distribute
-- ADR: Trail Visibility and Surface Filtering (draft) -- visibility inheritance that pack-level defaults enable
+- ADR: Trail Visibility and Trailhead Filtering (draft) -- visibility inheritance that pack-level defaults enable
 - ADR: The Serialized Topo Graph (draft) -- provisions state is captured in the lockfile graph; provisions occupy a section in `trails.lock`
-- [ADR-0013: Crumbs](../0013-crumbs.md) -- telemetry primitives that provisions can carry and surface
-- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) -- survey output provides the contract snapshots
+- [ADR-0013: Tracker](../0013-tracker.md) -- telemetry primitives that provisions can carry and trailhead
+- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- survey output provides the contract snapshots
 - [docs/vocabulary.md](../../vocabulary.md) -- `pack` reserved term; `provisions` to be added

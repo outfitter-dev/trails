@@ -13,7 +13,7 @@ import {
 } from '@ontrails/core';
 import { z } from 'zod';
 
-import { entityStoreService } from '../services/entity-store.js';
+import { entityStoreProvision } from '../provisions/entity-store.js';
 
 // ---------------------------------------------------------------------------
 // Shared schemas
@@ -37,7 +37,7 @@ const entitySummarySchema = z.object({
 
 export const show = trail('entity.show', {
   blaze: (input, ctx) => {
-    const store = entityStoreService.from(ctx);
+    const store = entityStoreProvision.from(ctx);
     const entity = store.get(input.name);
     if (!entity) {
       return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
@@ -73,7 +73,7 @@ export const show = trail('entity.show', {
   }),
   intent: 'read',
   output: entitySchema,
-  services: [entityStoreService],
+  provisions: [entityStoreProvision],
 });
 
 // ---------------------------------------------------------------------------
@@ -82,7 +82,7 @@ export const show = trail('entity.show', {
 
 export const add = trail('entity.add', {
   blaze: (input, ctx) => {
-    const store = entityStoreService.from(ctx);
+    const store = entityStoreProvision.from(ctx);
     const existing = store.get(input.name);
     if (existing) {
       return Result.err(
@@ -127,7 +127,7 @@ export const add = trail('entity.add', {
     type: z.string().describe('Entity type (concept, tool, pattern)'),
   }),
   output: entitySchema,
-  services: [entityStoreService],
+  provisions: [entityStoreProvision],
 });
 
 // ---------------------------------------------------------------------------
@@ -136,7 +136,7 @@ export const add = trail('entity.add', {
 
 export const remove = trail('entity.delete', {
   blaze: (input, ctx) => {
-    const store = entityStoreService.from(ctx);
+    const store = entityStoreProvision.from(ctx);
     const deleted = store.delete(input.name);
     if (!deleted) {
       return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
@@ -165,7 +165,7 @@ export const remove = trail('entity.delete', {
     deleted: z.boolean(),
     name: z.string(),
   }),
-  services: [entityStoreService],
+  provisions: [entityStoreProvision],
 });
 
 // ---------------------------------------------------------------------------
@@ -174,7 +174,7 @@ export const remove = trail('entity.delete', {
 
 export const list = trail('entity.list', {
   blaze: (input, ctx) => {
-    const store = entityStoreService.from(ctx);
+    const store = entityStoreProvision.from(ctx);
     const listOptions: { limit?: number; offset?: number; type?: string } = {
       limit: input.limit,
       offset: input.offset,
@@ -216,5 +216,5 @@ export const list = trail('entity.list', {
     entities: z.array(entitySummarySchema),
     total: z.number(),
   }),
-  services: [entityStoreService],
+  provisions: [entityStoreProvision],
 });

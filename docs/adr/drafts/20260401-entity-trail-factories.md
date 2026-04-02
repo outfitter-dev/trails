@@ -29,15 +29,15 @@ Each of these patterns produces standard trails with predictable schemas, intent
 
 ## Decision
 
-### Part 1: `entity()` -- CRUD trail factory
+### Part 1: `mark()` -- CRUD trail factory
 
-`entity()` produces up to six trail definitions from a store table:
+`mark()` produces up to six trail definitions from a store table:
 
 ```typescript
 import { entity } from '@ontrails/store';
 import { db } from '../store';
 
-export const { create, show, list, update, remove } = entity('gist', db.gists, {
+export const { create, show, list, update, remove } = mark('gist', db.gists, {
   create: {
     examples: [
       { name: 'Create public gist', input: { owner: 'matt', description: 'Utils' } },
@@ -69,7 +69,7 @@ export const { create, show, list, update, remove } = entity('gist', db.gists, {
 });
 ```
 
-What `entity()` derives for each operation:
+What `mark()` derives for each operation:
 
 | Operation | Trail ID | Input schema | Output schema | Intent | Error mapping |
 |---|---|---|---|---|---|
@@ -85,7 +85,7 @@ The developer authors only: which operations to include, filter fields for list,
 
 ```typescript
 // Read-only entity: no create, update, or remove
-export const { show, list } = entity('metric', db.metrics, { ... });
+export const { show, list } = mark('metric', db.metrics, { ... });
 ```
 
 Operations not destructured are never created. No dead code.
@@ -99,12 +99,12 @@ create: {
 },
 ```
 
-This produces a `gist.create` trail with `idempotent: true`. The implementation uses `INSERT ... ON CONFLICT UPDATE`. The `idempotent` marker already exists on trails and already affects surface behavior (MCP annotations, retry semantics). Now it also affects the store operation. Compound effect.
+This produces a `gist.create` trail with `idempotent: true`. The implementation uses `INSERT ... ON CONFLICT UPDATE`. The `idempotent` marker already exists on trails and already affects trailhead behavior (MCP annotations, retry semantics). Now it also affects the store operation. Compound effect.
 
-**Search.** When the underlying store table has a `search` declaration (see the Declarative Search draft), `entity()` auto-generates a search trail alongside the CRUD trails:
+**Search.** When the underlying store table has a `search` declaration (see the Declarative Search draft), `mark()` auto-generates a search trail alongside the CRUD trails:
 
 ```typescript
-export const { create, show, list, update, remove, search } = entity('gist', db.gists, {
+export const { create, show, list, update, remove, search } = mark('gist', db.gists, {
   // search trail is auto-generated because db.gists has search: { fts: true }
   search: {
     examples: [
@@ -176,7 +176,7 @@ Produces two trails and a mutation hook:
 | `showRevision` | `gist.revision.show` | `read` | Show a specific revision by ID. |
 | (hook) | -- | -- | Before update on parent, snapshot current state into revisions table. |
 
-If the parent entity's CRUD is derived via `entity()`, the snapshot hook wires in automatically. If the parent's update trail is hand-authored, the pattern provides a composable `snapshotRevision(conn, parentId)` function the developer calls explicitly.
+If the parent entity's CRUD is derived via `mark()`, the snapshot hook wires in automatically. If the parent's update trail is hand-authored, the pattern provides a composable `snapshotRevision(conn, parentId)` function the developer calls explicitly.
 
 ### Part 4: `comments()` -- threaded comments pattern
 
@@ -238,8 +238,8 @@ The scoped pattern derives from an existing list trail. It removes the scope fie
 Patterns compose with each other and with hand-authored trails:
 
 ```typescript
-// CRUD from entity()
-export const { create, show, list, update, remove } = entity('gist', db.gists, { ... });
+// CRUD from mark()
+export const { create, show, list, update, remove } = mark('gist', db.gists, { ... });
 
 // Toggle from toggle() -- references same store
 export const { star, unstar, starred } = toggle('gist.star', { store: db.stars, ... });
@@ -251,7 +251,7 @@ export const { list: listRevisions, show: showRevision } = revisions('gist.revis
 
 // Hand-authored -- for logic too complex to derive
 export const fork = trail('gist.fork', {
-  follow: ['gist.show', 'gist.create'],
+  crosses: ['gist.show', 'gist.create'],
   ...
 });
 
@@ -259,7 +259,7 @@ export const fork = trail('gist.fork', {
 export const app = topo('stash', gist, gistStar, gistRevision, gistFork, ...);
 ```
 
-Every pattern produces standard trails. They appear in `survey`, are tested by `testAll`, surface on CLI/MCP/HTTP, and are governed by the warden. No second-class citizens.
+Every pattern produces standard trails. They appear in `survey`, are tested by `testAll`, trailhead on CLI/MCP/HTTP, and are governed by the warden. No second-class citizens.
 
 ### Part 7: Opting out
 
@@ -267,14 +267,14 @@ When a derived trail isn't right, the developer replaces it:
 
 ```typescript
 // Derive most CRUD operations
-export const { show, list, remove } = entity('gist', db.gists, { ... });
+export const { show, list, remove } = mark('gist', db.gists, { ... });
 
 // Hand-author create because it has custom business logic
 export const create = trail('gist.create', {
   input: gistCreateSchema,
   output: gistSchema,
   intent: 'write',
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     // Custom logic: validate files, check quotas, etc.
     ...
   },
@@ -291,19 +291,19 @@ Derived and hand-authored trails coexist in the same topo. The developer uses th
 ### Positive
 
 - **~80% of trail definitions become configuration.** CRUD, toggle, revisions, comments, scoped views, and search are all derivable. The developer authors examples and configuration, not implementations.
-- **Patterns compound with the full framework.** Testing, surfaces, governance, error taxonomy all work unchanged on pattern-derived trails.
+- **Patterns compound with the full framework.** Testing, trailheads, governance, error taxonomy all work unchanged on pattern-derived trails.
 - **No second-class citizens.** Derived trails are indistinguishable from hand-authored trails in the topo. Everything downstream works the same.
 - **Opt-out is granular.** Replace any single operation with a hand-authored trail. The pattern handles the rest.
 
 ### Tradeoffs
 
-- **Pattern API surface.** Seven pattern functions (`entity`, `toggle`, `revisions`, `comments`, `scoped`, plus search from the Declarative Search draft) is a non-trivial API to learn. Mitigated by progressive disclosure: most apps only need `entity()`.
+- **Pattern API trailhead.** Seven pattern functions (`entity`, `toggle`, `revisions`, `comments`, `scoped`, plus search from the Declarative Search draft) is a non-trivial API to learn. Mitigated by progressive disclosure: most apps only need `mark()`.
 - **Implicit behavior.** Derived implementations are not visible in the source code. A developer debugging a `gist.create` failure needs to understand the pattern's behavior. Mitigated by: clear documentation, `survey` introspection, and the fact that the implementations are simple CRUD operations.
 - **Pattern-specific configuration.** Each pattern has its own configuration shape. This is inherent complexity, not accidental: toggle needs `subject`/`target`, revisions needs `parent`/`snapshot`, comments needs `author`/`body`.
 
 ### What this does NOT decide
 
-- Whether patterns ship in v1 or v1.x (likely `entity()` in v1, others in v1.x)
+- Whether patterns ship in v1 or v1.x (likely `mark()` in v1, others in v1.x)
 - Whether custom pattern authors can publish their own patterns (possible future)
 - Relationship cardinality beyond 1:N (many-to-many patterns are future work)
 - Whether the warden adds pattern-specific governance rules

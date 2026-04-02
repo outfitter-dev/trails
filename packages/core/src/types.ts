@@ -12,14 +12,14 @@ export type Implementation<I, O> = (
 ) => Result<O, Error> | Promise<Result<O, Error>>;
 
 /** Invoke another trail by id — used for trail composition */
-export type FollowFn = <O>(
+export type CrossFn = <O>(
   id: string,
   input: unknown
 ) => Promise<Result<O, Error>>;
 
-/** Resolve a service instance from the current trail context. */
-export type ServiceLookup = <T = unknown>(
-  serviceOrId: { readonly id: string } | string
+/** Resolve a provision instance from the current trail context. */
+export type ProvisionLookup = <T = unknown>(
+  provisionOrId: { readonly id: string } | string
 ) => T;
 
 /** Callback for reporting progress from long-running trails */
@@ -46,8 +46,8 @@ export interface Logger {
   child(context: Record<string, unknown>): Logger;
 }
 
-/** Context extension key for the invoking surface name. */
-export const SURFACE_KEY = '__trails_surface' as const;
+/** Context extension key for the invoking trailhead name. */
+export const TRAILHEAD_KEY = '__trails_trailhead' as const;
 
 /** Minimal permit shape available on TrailContext. Permits extends this. */
 export interface BasePermit {
@@ -59,7 +59,7 @@ export interface BasePermit {
 export interface TrailContext {
   readonly requestId: string;
   readonly abortSignal: AbortSignal;
-  readonly follow?: FollowFn | undefined;
+  readonly cross?: CrossFn | undefined;
   readonly permit?: BasePermit;
   readonly workspaceRoot?: string | undefined;
   readonly logger?: Logger | undefined;
@@ -67,7 +67,7 @@ export interface TrailContext {
   readonly cwd?: string | undefined;
   readonly env?: Record<string, string | undefined> | undefined;
   readonly extensions?: Readonly<Record<string, unknown>> | undefined;
-  readonly service?: ServiceLookup | undefined;
+  readonly provision?: ProvisionLookup | undefined;
 }
 
 /**
@@ -82,6 +82,6 @@ export type PermitRequirement =
   | 'public';
 
 /** Input shape used to seed a runtime TrailContext before resolution. */
-export type TrailContextInit = Omit<TrailContext, 'service'> & {
-  readonly service?: ServiceLookup | undefined;
+export type TrailContextInit = Omit<TrailContext, 'provision'> & {
+  readonly provision?: ProvisionLookup | undefined;
 };

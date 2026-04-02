@@ -1,11 +1,14 @@
 export {
-  type AuthAdapter,
+  type AuthConnector,
   type AuthCredentials,
   type AuthError,
-} from './adapter.js';
-export { createJwtAdapter, type JwtAdapterOptions } from './adapters/jwt.js';
-export { authLayer } from './auth-layer.js';
-export { authService } from './auth-service.js';
+} from './connectors/connector.js';
+export {
+  createJwtConnector,
+  type JwtConnectorOptions,
+} from './connectors/jwt.js';
+export { authGate } from './auth-gate.js';
+export { authProvision } from './auth-provision.js';
 export { authVerify } from './trails/auth-verify.js';
 export { PermitError } from './errors.js';
 export { type PermitExtractionInput } from './extraction.js';

@@ -1,22 +1,22 @@
 /**
  * Centralized trail execution pipeline.
  *
- * Validates input, builds context, composes layers, and runs the
+ * Validates input, builds context, composes gates, and runs the
  * implementation. Surfaces (CLI, MCP, HTTP) delegate here instead
  * of reimplementing the pipeline.
  */
 
 import type { AnyTrail } from './trail.js';
-import type { Layer } from './layer.js';
-import type { ServiceOverrideMap } from './service.js';
+import type { Gate } from './gate.js';
+import type { ProvisionOverrideMap } from './provision.js';
 import type { TrailContext, TrailContextInit } from './types.js';
 
-import { composeLayers } from './layer.js';
+import { composeGates } from './gate.js';
 import { createTrailContext } from './context.js';
 import { InternalError } from './errors.js';
 import { Result } from './result.js';
-import { createServiceLookup } from './service.js';
-import { resolveServices } from './service-config.js';
+import { createProvisionLookup } from './provision.js';
+import { resolveProvisions } from './provision-config.js';
 import { validateInput } from './validation.js';
 
 type MutableTrailContext = {
@@ -33,15 +33,15 @@ export interface ExecuteTrailOptions {
   readonly ctx?: Partial<TrailContextInit> | undefined;
   /** AbortSignal override (takes final precedence over ctx and factory). */
   readonly abortSignal?: AbortSignal | undefined;
-  /** Layers to compose around the implementation. */
-  readonly layers?: readonly Layer[] | undefined;
+  /** Gates to compose around the implementation. */
+  readonly gates?: readonly Gate[] | undefined;
   /** Factory that produces a base TrailContext (takes precedence over defaults). */
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
-  /** Explicit service instance overrides keyed by service ID. */
-  readonly services?: ServiceOverrideMap | undefined;
-  /** Config values for services that declare a `config` schema, keyed by service ID. */
+  /** Explicit provision instance overrides keyed by provision ID. */
+  readonly provisions?: ProvisionOverrideMap | undefined;
+  /** Config values for provisions that declare a `config` schema, keyed by provision ID. */
   readonly configValues?:
     | Readonly<Record<string, Record<string, unknown>>>
     | undefined;
@@ -50,6 +50,40 @@ export interface ExecuteTrailOptions {
 // ---------------------------------------------------------------------------
 // Context resolution
 // ---------------------------------------------------------------------------
+
+const applyContextOverrides = (
+  base: TrailContextInit,
+  options?: ExecuteTrailOptions
+): TrailContextInit => {
+  const withOverrides = options?.ctx
+    ? {
+        ...base,
+        ...options.ctx,
+        extensions: { ...base.extensions, ...options.ctx.extensions },
+      }
+    : base;
+
+  return options?.abortSignal
+    ? { ...withOverrides, abortSignal: options.abortSignal }
+    : withOverrides;
+};
+
+const bindProvisionLookup = (
+  resolved: TrailContextInit,
+  options?: ExecuteTrailOptions
+): TrailContext => {
+  if (
+    options?.ctx?.extensions === undefined &&
+    resolved.provision !== undefined
+  ) {
+    return resolved as TrailContext;
+  }
+
+  const bound = { ...resolved } as MutableTrailContext;
+  const lookup = createProvisionLookup(() => bound);
+  bound.provision = lookup;
+  return bound;
+};
 
 /**
  * Build a TrailContext from options.
@@ -65,27 +99,9 @@ const resolveContext = async (
   const seed = options?.createContext
     ? await options.createContext()
     : createTrailContext();
-  const base = seed.service ? seed : createTrailContext(seed);
-  const withOverrides = options?.ctx
-    ? {
-        ...base,
-        ...options.ctx,
-        extensions: { ...base.extensions, ...options.ctx.extensions },
-      }
-    : base;
-  const resolved = options?.abortSignal
-    ? { ...withOverrides, abortSignal: options.abortSignal }
-    : withOverrides;
-  if (
-    options?.ctx?.extensions !== undefined ||
-    resolved.service === undefined
-  ) {
-    const bound = { ...resolved } as MutableTrailContext;
-    bound.service = createServiceLookup(() => bound);
-    return bound;
-  }
-
-  return resolved as TrailContext;
+  const base = seed.provision ? seed : createTrailContext(seed);
+  const resolved = applyContextOverrides(base, options);
+  return bindProvisionLookup(resolved, options);
 };
 
 const prepareContext = async (
@@ -93,10 +109,10 @@ const prepareContext = async (
   options?: ExecuteTrailOptions
 ): Promise<Result<TrailContext, Error>> => {
   const baseCtx = await resolveContext(options);
-  return await resolveServices(
+  return await resolveProvisions(
     trail,
     baseCtx,
-    options?.services,
+    options?.provisions,
     options?.configValues
   );
 };
@@ -105,9 +121,9 @@ const runTrail = async (
   trail: AnyTrail,
   input: unknown,
   ctx: TrailContext,
-  layers: readonly Layer[]
+  gates: readonly Gate[]
 ): Promise<Result<unknown, Error>> => {
-  const impl = composeLayers([...layers], trail, trail.blaze);
+  const impl = composeGates([...gates], trail, trail.blaze);
   return await impl(input, ctx);
 };
 
@@ -116,7 +132,7 @@ const runTrail = async (
 // ---------------------------------------------------------------------------
 
 /**
- * Execute a trail through the standard validate-context-layers-run pipeline.
+ * Execute a trail through the standard validate-context-gates-run pipeline.
  *
  * The function never throws -- unexpected exceptions are caught and
  * returned as `Result.err(InternalError)`.
@@ -141,7 +157,7 @@ export const executeTrail = async (
       trail,
       validated.value,
       resolvedCtx.value,
-      options?.layers ?? []
+      options?.gates ?? []
     );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

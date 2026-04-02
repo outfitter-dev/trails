@@ -14,7 +14,7 @@ owners: ['[galligan](https://github.com/galligan)']
 
 Trails is a contract-first framework. The public API is the language people use to think with, not just a set of import paths. Because the project is still pre-release, we can still choose coherence over compatibility and rewrite history for clarity where needed.
 
-The earlier naming pass deliberately preserved some generic technical words such as `surface`, `adapter`, `Layer`, `event`, and `service`. That kept the API closer to established framework vocabulary, but it also split the mental model in two. Core trail concepts used the branded language (`trail`, `topo`, `follow`, `blaze`, `warden`) while adjacent concepts kept unrelated infrastructure jargon. The result was a translation tax:
+The earlier naming pass deliberately preserved some generic technical words such as `trailhead`, `connector`, `gate`, `signal`, and `provision`. That kept the API closer to established framework vocabulary, but it also split the mental model in two. Core trail concepts used the branded language (`trail`, `topo`, `cross`, `blaze`, `warden`) while adjacent concepts kept unrelated infrastructure jargon. The result was a translation tax:
 
 - docs had to explain which nouns were special and which were just borrowed
 - scaffolding and examples mixed two vocabularies in the same story
@@ -197,6 +197,6 @@ Zod remains the schema authoring language. Trails owns the surrounding language 
 
 - [ADR-0000: Core Premise](0000-core-premise.md)
 - [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md)
-- [ADR-0013: Tracker](0013-crumbs.md)
+- [ADR-0013: Tracker](0013-tracker.md)
 - [API Reference](../api-reference.md)
 - [Vocabulary](../vocabulary.md)

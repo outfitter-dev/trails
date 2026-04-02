@@ -34,7 +34,7 @@ export const secret = <T extends z.ZodType>(schema: T): T =>
  * standard key. We set `deprecated: true` so Zod-native tooling (schema
  * serializers, OpenAPI generators) recognises the field as deprecated, and store
  * the human-readable message under `deprecationMessage` for our own
- * `collectConfigMeta` / survey / explain surfaces.
+ * `collectConfigMeta` / survey / explain trailheads.
  *
  * Must be called BEFORE `.default()`, `.optional()`, or other transforms
  * so that the metadata lives on the inner type where `collectConfigMeta`

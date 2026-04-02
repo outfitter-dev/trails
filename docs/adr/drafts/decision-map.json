@@ -32,25 +32,25 @@
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260331-external-surfaces-as-trails.md",
-      "slug": "external-surfaces-as-trails",
+      "path": "docs/adr/drafts/20260331-external-trailheads-as-trails.md",
+      "slug": "external-trailheads-as-trails",
       "status": "draft",
       "superseded_by": null,
-      "title": "External Surfaces as Trail Contracts",
-      "updated": "2026-04-01"
+      "title": "External Trailheads as Trails",
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-03-31",
-      "depends_on": ["9", "12", "webhooks-and-adapters"],
+      "depends_on": ["9", "12", "webhooks-and-connectors"],
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260331-inbound-event-surfaces.md",
-      "slug": "inbound-event-surfaces",
+      "path": "docs/adr/drafts/20260331-inbound-event-trailheads.md",
+      "slug": "inbound-event-trailheads",
       "status": "draft",
       "superseded_by": null,
-      "title": "Inbound Event Surfaces",
-      "updated": "2026-04-01"
+      "title": "Inbound Event Trailheads",
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-03-31",
@@ -80,7 +80,7 @@
     },
     {
       "created": "2026-03-31",
-      "depends_on": ["3", "4", "13", "typed-event-emission"],
+      "depends_on": ["3", "4", "13", "typed-signal-emission"],
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
@@ -110,11 +110,11 @@
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260331-typed-event-emission.md",
-      "slug": "typed-event-emission",
+      "path": "docs/adr/drafts/20260331-typed-signal-emission.md",
+      "slug": "typed-signal-emission",
       "status": "draft",
       "superseded_by": null,
-      "title": "Typed Event Emission",
+      "title": "Typed Signal Emission",
       "updated": "2026-04-01"
     },
     {
@@ -127,7 +127,7 @@
       "slug": "visibility-and-filtering",
       "status": "draft",
       "superseded_by": null,
-      "title": "Trail Visibility and Surface Filtering",
+      "title": "Trail Visibility and Trailhead Filtering",
       "updated": "2026-04-01"
     },
     {
@@ -135,31 +135,31 @@
       "depends_on": [
         "5",
         "12",
-        "typed-event-emission",
+        "typed-signal-emission",
         "reactive-trail-activation"
       ],
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260331-webhooks-and-adapters.md",
-      "slug": "webhooks-and-adapters",
+      "path": "docs/adr/drafts/20260331-webhooks-and-connectors.md",
+      "slug": "webhooks-and-connectors",
       "status": "draft",
       "superseded_by": null,
-      "title": "Webhooks and Input Adapters",
-      "updated": "2026-04-01"
+      "title": "Webhooks and Connectors",
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-03-31",
-      "depends_on": ["typed-event-emission"],
+      "depends_on": ["typed-signal-emission"],
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260331-websocket-surface.md",
-      "slug": "websocket-surface",
+      "path": "docs/adr/drafts/20260331-websocket-trailhead.md",
+      "slug": "websocket-trailhead",
       "status": "draft",
       "superseded_by": null,
-      "title": "WebSocket Surface",
-      "updated": "2026-04-01"
+      "title": "WebSocket Trailhead",
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-04-01",
@@ -167,12 +167,12 @@
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260401-compiled-pack-surface.md",
-      "slug": "compiled-pack-surface",
+      "path": "docs/adr/drafts/20260401-compiled-pack-trailhead.md",
+      "slug": "compiled-pack-trailhead",
       "status": "draft",
       "superseded_by": null,
-      "title": "Pack as a Compiled Surface",
-      "updated": "2026-04-01"
+      "title": "Compiled Pack Trailhead",
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-04-01",
@@ -193,12 +193,12 @@
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260401-drizzle-store-adapter.md",
-      "slug": "drizzle-store-adapter",
+      "path": "docs/adr/drafts/20260401-drizzle-store-connector.md",
+      "slug": "drizzle-store-connector",
       "status": "draft",
       "superseded_by": null,
-      "title": "Drizzle Store Adapter",
-      "updated": "2026-04-01"
+      "title": "Drizzle Store Connector",
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-04-01",

@@ -219,4 +219,4 @@ When introducing Trails, use this order:
 - Lead with code: `trail()` -> `blaze:` -> `topo()` -> `trailhead()`
 - Use the framework vocabulary consistently: "cross" instead of "follow," "trailhead" instead of "surface"
 - Keep the metaphor disciplined. The words should clarify behavior, not turn the docs into theme writing.
-- Prefer the new trail-native nouns even for internal architecture explanations. Leaving generic words like `surface`, `adapter`, or `Layer` behind only creates translation tax later.
+- Prefer the new trail-native nouns even for internal architecture explanations. Leaving generic words like `trailhead`, `connector`, or `gates` behind only creates translation tax later.

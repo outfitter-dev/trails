@@ -1,7 +1,7 @@
 /**
  * entity.onboard route -- creates an entity and verifies it is searchable.
  *
- * Demonstrates: trail(), follow declaration, ctx.follow() composition,
+ * Demonstrates: trail(), crossing declaration, ctx.cross() composition,
  * error propagation from downstream trails.
  */
 
@@ -14,11 +14,11 @@ import { z } from 'zod';
 
 export const onboard = trail('entity.onboard', {
   blaze: async (input, ctx) => {
-    if (!ctx.follow) {
-      return Result.err(new Error('Route requires a follow function'));
+    if (!ctx.cross) {
+      return Result.err(new Error('Route requires a cross function'));
     }
 
-    const added = await ctx.follow<{
+    const added = await ctx.cross<{
       id: string;
       name: string;
       type: string;
@@ -34,7 +34,7 @@ export const onboard = trail('entity.onboard', {
       return Result.err(added.error);
     }
 
-    const searched = await ctx.follow<{
+    const searched = await ctx.cross<{
       results: {
         id: string;
         name: string;
@@ -55,6 +55,7 @@ export const onboard = trail('entity.onboard', {
       searchable,
     });
   },
+  crosses: ['entity.add', 'search'],
   description: 'Create an entity and verify it appears in search',
   examples: [
     {
@@ -63,7 +64,6 @@ export const onboard = trail('entity.onboard', {
       name: 'Onboard a new entity',
     },
   ],
-  follow: ['entity.add', 'search'],
   input: z.object({
     name: z.string().describe('Entity name'),
     tags: z.array(z.string()).optional().default([]),

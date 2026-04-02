@@ -51,7 +51,7 @@ describe('trailhead', () => {
   test('trailhead throws on invalid topo', async () => {
     const t = trail('broken', {
       blaze: () => Result.ok({}),
-      follow: ['nonexistent.trail'],
+      crosses: ['nonexistent.trail'],
       input: z.object({}),
       output: z.object({}),
     });
@@ -62,7 +62,7 @@ describe('trailhead', () => {
   test('TrailheadCliOptions accepts validate: false without type errors', () => {
     const t = trail('broken', {
       blaze: () => Result.ok({}),
-      follow: ['nonexistent.trail'],
+      crosses: ['nonexistent.trail'],
       input: z.object({}),
       output: z.object({}),
     });
@@ -71,11 +71,11 @@ describe('trailhead', () => {
       buildCliCommands(app, { onResult: defaultOnResult })
     ).not.toThrow();
     const opts: Parameters<typeof trailhead>[1] = {
-      services: {},
+      provisions: {},
       validate: false,
     };
     expect(opts.validate).toBe(false);
-    expect(opts.services).toEqual({});
+    expect(opts.provisions).toEqual({});
   });
 
   test('trailhead returns a Promise (async signature)', () => {

@@ -1,11 +1,11 @@
 /**
- * trails-demo application -- wires all trails, routes, and events into a topo.
+ * trails-demo application -- wires all trails, routes, and signals into a topo.
  */
 
 import { topo } from '@ontrails/core';
 
-import * as entityEvents from './events/entity-events.js';
-import * as demoServices from './services/entity-store.js';
+import * as entitySignals from './signals/entity-signals.js';
+import * as demoProvisions from './provisions/entity-store.js';
 import * as entity from './trails/entity.js';
 import * as kv from './trails/kv.js';
 import * as onboard from './trails/onboard.js';
@@ -13,10 +13,10 @@ import * as search from './trails/search.js';
 
 export const app = topo(
   'demo',
-  demoServices,
+  demoProvisions,
   entity,
   search,
   onboard,
-  entityEvents,
+  entitySignals,
   kv
 );

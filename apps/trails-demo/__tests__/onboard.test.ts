@@ -15,7 +15,7 @@ import {
 import { expectErr } from '@ontrails/testing';
 import type { Trail, TrailContext } from '@ontrails/core';
 
-import { entityStoreService } from '../src/services/entity-store.js';
+import { entityStoreProvision } from '../src/provisions/entity-store.js';
 import type { EntityStore } from '../src/store.js';
 import { createStore } from '../src/store.js';
 import { add } from '../src/trails/entity.js';
@@ -23,13 +23,13 @@ import { onboard } from '../src/trails/onboard.js';
 import { search } from '../src/trails/search.js';
 
 // ---------------------------------------------------------------------------
-// Helper: create a follow function that dispatches to real trail impls
+// Helper: create a cross function that dispatches to real trail impls
 // ---------------------------------------------------------------------------
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyTrail = Trail<any, any>;
 
-const createFollowFn = (ctx: TrailContext) => {
+const createCrossFn = (ctx: TrailContext) => {
   const trailMap = new Map<string, AnyTrail>([
     ['entity.add', add],
     ['search', search],
@@ -50,9 +50,9 @@ const createFollowFn = (ctx: TrailContext) => {
 
 const makeCtx = (store: EntityStore): TrailContext => {
   const base = createTrailContext({
-    extensions: { [entityStoreService.id]: store },
+    extensions: { [entityStoreProvision.id]: store },
   });
-  const ctx: TrailContext = { ...base, follow: createFollowFn(base) };
+  const ctx: TrailContext = { ...base, cross: createCrossFn(base) };
   return ctx;
 };
 

@@ -2,7 +2,7 @@ import type { z } from 'zod';
 
 import type { FieldOverride } from './derive.js';
 import type { Result } from './result.js';
-import type { AnyService } from './service.js';
+import type { AnyProvision } from './provision.js';
 import type {
   Implementation,
   PermitRequirement,
@@ -59,10 +59,10 @@ export interface TrailSpec<I, O> {
   readonly detours?: Readonly<Record<string, readonly string[]>> | undefined;
   /** Per-field overrides for deriveFields() (labels, hints, options) */
   readonly fields?: Readonly<Record<string, FieldOverride>> | undefined;
-  /** IDs of downstream trails this trail may invoke via ctx.follow() */
-  readonly follow?: readonly string[] | undefined;
-  /** Services this trail may access via service.from(ctx) */
-  readonly services?: readonly AnyService[] | undefined;
+  /** IDs of downstream trails this trail may invoke via ctx.cross() */
+  readonly crosses?: readonly string[] | undefined;
+  /** Provisions this trail may access via provision.from(ctx) */
+  readonly provisions?: readonly AnyProvision[] | undefined;
   /** Auth requirement: scopes object, 'public', or omitted (undeclared) */
   readonly permit?: PermitRequirement | undefined;
 }
@@ -77,15 +77,15 @@ export type Intent = 'read' | 'write' | 'destroy';
 /** A fully-defined trail — the unit of work in the Trails system */
 export interface Trail<I, O> extends Omit<
   TrailSpec<I, O>,
-  'blaze' | 'follow' | 'intent' | 'services'
+  'blaze' | 'crosses' | 'intent' | 'provisions'
 > {
   readonly kind: 'trail';
   readonly id: string;
   readonly blaze: Implementation<I, O>;
-  /** IDs of downstream trails this trail may invoke via ctx.follow() (always present, default []) */
-  readonly follow: readonly string[];
-  /** Services this trail may access via service.from(ctx) (always present, default []) */
-  readonly services: readonly AnyService[];
+  /** IDs of downstream trails this trail may invoke via ctx.cross() (always present, default []) */
+  readonly crosses: readonly string[];
+  /** Provisions this trail may access via provision.from(ctx) (always present, default []) */
+  readonly provisions: readonly AnyProvision[];
   /** What this trail does to the world (always present, default 'write') */
   readonly intent: Intent;
 }
@@ -135,20 +135,21 @@ export function trail<I, O>(
 
   const {
     blaze,
-    follow: rawFollow,
+    crosses: rawCrosses,
     intent: rawIntent,
-    services: rawServices,
+    provisions: rawProvisions,
     ...spec
   } = resolved.spec;
+  const provisions = Object.freeze([...(rawProvisions ?? [])]);
 
   return Object.freeze({
     ...spec,
     blaze: async (input: I, ctx: TrailContext) => await blaze(input, ctx),
-    follow: Object.freeze([...(rawFollow ?? [])]),
+    crosses: Object.freeze([...(rawCrosses ?? [])]),
     id: resolved.id,
     intent: rawIntent ?? 'write',
     kind: 'trail' as const,
-    services: Object.freeze([...(rawServices ?? [])]),
+    provisions,
   });
 }
 

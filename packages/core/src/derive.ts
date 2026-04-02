@@ -1,8 +1,8 @@
 /**
  * Schema-driven field derivation for @ontrails/core
  *
- * Introspects Zod v4 schemas to produce a surface-agnostic Field[] descriptor
- * that UI layers (CLI prompts, web forms, etc.) can consume.
+ * Introspects Zod v4 schemas to produce a runtime-agnostic Field[] descriptor
+ * that UI consumers (CLI prompts, web forms, etc.) can consume.
  */
 
 import type { z } from 'zod';
@@ -11,7 +11,7 @@ import type { z } from 'zod';
 // Public types
 // ---------------------------------------------------------------------------
 
-/** A surface-agnostic field descriptor derived from a Zod schema. */
+/** A runtime-agnostic field descriptor derived from a Zod schema. */
 export interface Field {
   readonly name: string;
   readonly type:
@@ -193,11 +193,6 @@ const buildOptions = (
 // Public API
 // ---------------------------------------------------------------------------
 
-/**
- * Derive a surface-agnostic Field[] from a Zod object schema.
- *
- * Uses Zod v4's `_zod.def` for introspection. Returns fields sorted by name.
- */
 /** Derive a single field from a shape entry. */
 const deriveField = (
   key: string,
@@ -212,6 +207,11 @@ const deriveField = (
   return { default: defaultValue, label, name: key, options, required, type };
 };
 
+/**
+ * Derive a runtime-agnostic Field[] from a Zod object schema.
+ *
+ * Uses Zod v4's `_zod.def` for introspection. Returns fields sorted by name.
+ */
 export const deriveFields = (
   schema: z.ZodType,
   overrides?: Record<string, FieldOverride>

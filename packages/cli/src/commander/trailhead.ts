@@ -3,8 +3,8 @@
  */
 
 import type {
-  Layer,
-  ServiceOverrideMap,
+  Gate,
+  ProvisionOverrideMap,
   Topo,
   TrailContextInit,
 } from '@ontrails/core';
@@ -27,12 +27,12 @@ export interface TrailheadCliOptions {
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   description?: string | undefined;
-  layers?: Layer[] | undefined;
+  gates?: Gate[] | undefined;
   name?: string | undefined;
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
   presets?: CliFlag[][] | undefined;
+  provisions?: ProvisionOverrideMap | undefined;
   resolveInput?: InputResolver | undefined;
-  services?: ServiceOverrideMap | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
   validate?: boolean | undefined;
   version?: string | undefined;
@@ -76,11 +76,11 @@ export const trailhead = async (
 
   const commands = buildCliCommands(app, {
     createContext: options.createContext,
-    layers: options.layers,
+    gates: options.gates,
     onResult: options.onResult ?? defaultOnResult,
     presets: options.presets,
+    provisions: options.provisions,
     resolveInput: options.resolveInput,
-    services: options.services,
   });
 
   const commanderOpts: ToCommanderOptions = {

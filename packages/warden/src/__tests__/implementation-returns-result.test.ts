@@ -20,12 +20,12 @@ trail("entity.show", {
     expect(diagnostics[0]?.severity).toBe('error');
   });
 
-  test('allows Result.ok() and returning ctx.follow() results', () => {
+  test('allows Result.ok() and returning ctx.cross() results', () => {
     const code = `
 trail("entity.onboard", {
-  follow: ["entity.create"],
+  crosses: ["entity.create"],
   blaze: async (input, ctx) => {
-    const result = await ctx.follow("entity.create", input);
+    const result = await ctx.cross("entity.create", input);
     return result;
   }
 })

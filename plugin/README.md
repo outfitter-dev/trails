@@ -1,6 +1,6 @@
 # Trails Plugin for Claude Code
 
-Build with the [Trails](https://github.com/outfitter-dev/trails) framework — contract-first trails, surfaces, testing, and governance for agent-assisted development.
+Build with the [Trails](https://github.com/outfitter-dev/trails) framework — contract-first trails, trailheads, testing, and governance for agent-assisted development.
 
 ## Installation
 
@@ -13,7 +13,7 @@ claude plugin install trails@trails
 
 ### Skill
 
-**`trails`** — The complete guide to building with Trails. Covers trail creation, services, surfaces, testing, debugging, migration, and governance in one skill with 11 reference files for deep dives.
+**`trails`** — The complete guide to building with Trails. Covers trail creation, provisions, trailheads, testing, debugging, migration, and governance in one skill with 11 reference files for deep dives.
 
 ### Agent
 
@@ -23,8 +23,8 @@ claude plugin install trails@trails
 
 ### Rules
 
-- **vocabulary** — Enforces Trails-branded terms (trail, topo, blaze, follow)
-- **patterns** — Core coding patterns (Result over throw, surface-agnostic implementations)
+- **vocabulary** — Enforces Trails-branded terms (trail, trailhead, topo, blaze, cross, provision, signal, gate, tracker)
+- **patterns** — Core coding patterns (Result over throw, trailhead-agnostic implementations)
 
 ## License
 

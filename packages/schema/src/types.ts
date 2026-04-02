@@ -1,5 +1,5 @@
 /**
- * Types for surface maps, diffing, and lock files.
+ * Types for trailhead maps, diffing, and lock files.
  */
 
 // ---------------------------------------------------------------------------
@@ -10,31 +10,31 @@
 export type JsonSchema = Readonly<Record<string, unknown>>;
 
 // ---------------------------------------------------------------------------
-// Surface Map
+// Trailhead Map
 // ---------------------------------------------------------------------------
 
-export interface SurfaceMapEntry {
+export interface TrailheadMapEntry {
   readonly id: string;
-  readonly kind: 'trail' | 'event' | 'service';
-  readonly surfaces: readonly string[];
+  readonly kind: 'trail' | 'signal' | 'provision';
+  readonly trailheads: readonly string[];
   readonly input?: JsonSchema | undefined;
   readonly output?: JsonSchema | undefined;
   readonly intent?: 'read' | 'write' | 'destroy' | undefined;
   readonly idempotent?: boolean | undefined;
   readonly deprecated?: boolean | undefined;
   readonly replacedBy?: string | undefined;
-  readonly follow?: readonly string[] | undefined;
-  readonly services?: readonly string[] | undefined;
+  readonly crosses?: readonly string[] | undefined;
+  readonly provisions?: readonly string[] | undefined;
   readonly detours?: Readonly<Record<string, readonly string[]>> | undefined;
   readonly healthcheck?: boolean | undefined;
   readonly exampleCount: number;
   readonly description?: string | undefined;
 }
 
-export interface SurfaceMap {
+export interface TrailheadMap {
   readonly version: string;
   readonly generatedAt: string;
-  readonly entries: readonly SurfaceMapEntry[];
+  readonly entries: readonly TrailheadMapEntry[];
 }
 
 // ---------------------------------------------------------------------------
@@ -43,7 +43,7 @@ export interface SurfaceMap {
 
 export interface DiffEntry {
   readonly id: string;
-  readonly kind: 'trail' | 'event' | 'service';
+  readonly kind: 'trail' | 'signal' | 'provision';
   readonly change: 'added' | 'removed' | 'modified';
   readonly severity: 'info' | 'warning' | 'breaking';
   readonly details: readonly string[];

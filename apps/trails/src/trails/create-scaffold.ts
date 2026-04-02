@@ -73,7 +73,7 @@ const TSCONFIG_CONTENT = JSON.stringify(
 const GITIGNORE_CONTENT = `node_modules/
 dist/
 *.tsbuildinfo
-.trails/_surface.json
+.trails/_trailhead.json
 `;
 
 const OXLINTRC_CONTENT = JSON.stringify(
@@ -194,9 +194,9 @@ import { z } from 'zod';
 
 export const onboard = trail('entity.onboard', {
   description: 'Onboard a new entity end-to-end',
-  follow: ['entity.add'],
+  crosses: ['entity.add'],
   blaze: async (input, ctx) => {
-    const result = await ctx.follow('entity.add', { name: input.name });
+    const result = await ctx.cross('entity.add', { name: input.name });
     if (result.isErr()) {
       return result;
     }
@@ -207,11 +207,11 @@ export const onboard = trail('entity.onboard', {
 });
 `;
 
-const generateEntityEvents = (): string =>
-  `import { event } from '@ontrails/core';
+const generateEntitySignals = (): string =>
+  `import { signal } from '@ontrails/core';
 import { z } from 'zod';
 
-export const entityUpdated = event('entity.updated', {
+export const entityUpdated = signal('entity.updated', {
   description: 'Fired when an entity is updated',
   payload: z.object({
     entityId: z.string(),
@@ -248,9 +248,9 @@ const starterImports: Record<
       "import * as entity from './trails/entity.js';",
       "import * as search from './trails/search.js';",
       "import * as onboard from './trails/onboard.js';",
-      "import * as entityEvents from './events/entity-events.js';",
+      "import * as entitySignals from './signals/entity-signals.js';",
     ],
-    modules: ['entity', 'search', 'onboard', 'entityEvents'],
+    modules: ['entity', 'search', 'onboard', 'entitySignals'],
   },
   hello: {
     imports: ["import * as hello from './trails/hello.js';"],
@@ -282,7 +282,7 @@ const starterFileGenerators: Record<Starter, () => [string, string][]> = {
     ['src/trails/entity.ts', generateEntityTrails()],
     ['src/trails/search.ts', generateSearchTrail()],
     ['src/trails/onboard.ts', generateOnboardTrail()],
-    ['src/events/entity-events.ts', generateEntityEvents()],
+    ['src/signals/entity-signals.ts', generateEntitySignals()],
     ['src/store.ts', generateStore()],
   ],
   hello: () => [['src/trails/hello.ts', generateHelloTrail()]],

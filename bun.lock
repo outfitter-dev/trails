@@ -103,14 +103,6 @@
         "zod": "catalog:",
       },
     },
-    "packages/crumbs": {
-      "name": "@ontrails/crumbs",
-      "version": "1.0.0-beta.12",
-      "peerDependencies": {
-        "@ontrails/core": "workspace:^",
-        "zod": "catalog:",
-      },
-    },
     "packages/http": {
       "name": "@ontrails/http",
       "version": "1.0.0-beta.12",
@@ -167,6 +159,14 @@
         "@ontrails/core": "workspace:^",
         "@ontrails/logging": "workspace:^",
         "@ontrails/mcp": "workspace:^",
+        "zod": "catalog:",
+      },
+    },
+    "packages/tracker": {
+      "name": "@ontrails/tracker",
+      "version": "1.0.0-beta.12",
+      "peerDependencies": {
+        "@ontrails/core": "workspace:^",
         "zod": "catalog:",
       },
     },
@@ -265,8 +265,6 @@
 
     "@ontrails/core": ["@ontrails/core@workspace:packages/core"],
 
-    "@ontrails/crumbs": ["@ontrails/crumbs@workspace:packages/crumbs"],
-
     "@ontrails/http": ["@ontrails/http@workspace:packages/http"],
 
     "@ontrails/logging": ["@ontrails/logging@workspace:packages/logging"],
@@ -278,6 +276,8 @@
     "@ontrails/schema": ["@ontrails/schema@workspace:packages/schema"],
 
     "@ontrails/testing": ["@ontrails/testing@workspace:packages/testing"],
+
+    "@ontrails/tracker": ["@ontrails/tracker@workspace:packages/tracker"],
 
     "@ontrails/trails": ["@ontrails/trails@workspace:apps/trails"],
 

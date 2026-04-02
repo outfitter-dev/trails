@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createServiceLookup } from '@ontrails/core';
+import { createProvisionLookup } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -7,7 +7,7 @@ import { configCheck } from '../trails/config-check.js';
 import type { ConfigState } from '../registry.js';
 
 /**
- * Build a TrailContext with configService resolved in extensions.
+ * Build a TrailContext with configProvision resolved in extensions.
  */
 const buildCtx = (state: ConfigState): TrailContext => {
   const extensions = { config: state };
@@ -16,13 +16,13 @@ const buildCtx = (state: ConfigState): TrailContext => {
     cwd: '/tmp',
     env: {},
     extensions,
+    provision: undefined as unknown as TrailContext['provision'],
     requestId: 'test',
-    service: undefined as unknown as TrailContext['service'],
     workspaceRoot: '/tmp',
   };
   const withLookup = {
     ...ctx,
-    service: createServiceLookup(() => withLookup),
+    provision: createProvisionLookup(() => withLookup),
   };
   return withLookup;
 };
@@ -49,9 +49,9 @@ describe('config.check trail', () => {
       expect(configCheck.output).toBeDefined();
     });
 
-    test('declares configService dependency', () => {
-      expect(configCheck.services).toBeDefined();
-      expect(configCheck.services?.length).toBe(1);
+    test('declares configProvision dependency', () => {
+      expect(configCheck.provisions).toBeDefined();
+      expect(configCheck.provisions?.length).toBe(1);
     });
   });
 

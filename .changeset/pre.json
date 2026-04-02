@@ -14,13 +14,13 @@
     "@ontrails/http": "1.0.0-beta.6",
     "stash": "0.1.0",
     "@ontrails/config": "1.0.0-beta.11",
-    "@ontrails/crumbs": "1.0.0-beta.11",
+    "@ontrails/tracker": "1.0.0-beta.11",
     "@ontrails/permits": "1.0.0-beta.11"
   },
   "changesets": [
     "api-simplification-beta4",
     "beta10-cleanup-and-hardening",
-    "beta12-config-permits-crumbs",
+    "beta12-config-permits-tracker",
     "beta9-consolidated",
     "bug-fixes-beta3",
     "codex-review-fixes",

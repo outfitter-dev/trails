@@ -4,13 +4,13 @@ import {
   InternalError,
   NotFoundError,
   Result,
-  SURFACE_KEY,
-  service,
+  TRAILHEAD_KEY,
+  provision,
   ValidationError,
   trail,
   topo,
 } from '@ontrails/core';
-import type { Layer } from '@ontrails/core';
+import type { Gate } from '@ontrails/core';
 import { z } from 'zod';
 
 import { buildHttpRoutes } from '../build.js';
@@ -61,7 +61,7 @@ const internalMetaTrail = trail('secret', {
   metadata: { internal: true },
 });
 
-const dbService = service('db.main', {
+const dbProvision = provision('db.main', {
   create: () =>
     Result.ok({
       source: 'factory',
@@ -324,18 +324,18 @@ describe('buildHttpRoutes', () => {
       expect(capturedRequestId).not.toBe('');
     });
 
-    test('forwards service overrides into executeTrail', async () => {
-      const serviceTrail = trail('service.check', {
+    test('forwards provision overrides into executeTrail', async () => {
+      const provisionTrail = trail('provision.check', {
         blaze: (_input, ctx) =>
-          Result.ok({ source: dbService.from(ctx).source as string }),
+          Result.ok({ source: dbProvision.from(ctx).source as string }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
-        services: [dbService],
+        provisions: [dbProvision],
       });
 
-      const app = topo('testapp', { serviceTrail });
+      const app = topo('testapp', { provisionTrail });
       const buildResult = buildHttpRoutes(app, {
-        services: { 'db.main': { source: 'override' } },
+        provisions: { 'db.main': { source: 'override' } },
       });
 
       expect(buildResult.isOk()).toBe(true);
@@ -347,12 +347,12 @@ describe('buildHttpRoutes', () => {
     });
   });
 
-  describe('layers', () => {
-    test('layers compose around trail execution', async () => {
+  describe('gates', () => {
+    test('gates compose around trail execution', async () => {
       const calls: string[] = [];
 
-      const testLayer: Layer = {
-        name: 'test-layer',
+      const testGate: Gate = {
+        name: 'test-gate',
         wrap(_trail, impl) {
           return async (input, ctx) => {
             calls.push('before');
@@ -364,7 +364,7 @@ describe('buildHttpRoutes', () => {
       };
 
       const app = topo('testapp', { echoTrail });
-      const buildResult = buildHttpRoutes(app, { layers: [testLayer] });
+      const buildResult = buildHttpRoutes(app, { gates: [testGate] });
 
       expect(buildResult.isOk()).toBe(true);
       const [route] = buildResult.value;
@@ -377,12 +377,13 @@ describe('buildHttpRoutes', () => {
 
   describe('custom createContext', () => {
     test('custom createContext is used when provided', async () => {
-      const contextState = { custom: false, surface: false };
+      const contextState = { custom: false, trailheadMarker: false };
 
       const ctxTrail = trail('ctx.custom', {
         blaze: (_input, ctx) => {
           contextState.custom = ctx.extensions?.['custom'] === true;
-          contextState.surface = ctx.extensions?.[SURFACE_KEY] === 'http';
+          contextState.trailheadMarker =
+            ctx.extensions?.[TRAILHEAD_KEY] === 'http';
           return Result.ok({ ok: true });
         },
         input: z.object({}),
@@ -404,7 +405,7 @@ describe('buildHttpRoutes', () => {
       const result = await route?.execute({});
       expect(result?.isOk()).toBe(true);
       expect(contextState.custom).toBe(true);
-      expect(contextState.surface).toBe(true);
+      expect(contextState.trailheadMarker).toBe(true);
     });
   });
 

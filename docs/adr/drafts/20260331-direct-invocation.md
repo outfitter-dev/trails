@@ -17,18 +17,18 @@ depends_on: [serialized-topo-graph]
 A developer authors a trail. To see it work, they have three options:
 
 1. **Write a test.** `testExamples(app)` runs examples. Good for validation. Not good for exploration. The developer wants to throw arbitrary input at the trail and see what happens, not write a test case first.
-1. **Blaze a surface.** Set up Commander, run the CLI binary, pass flags. Or start the MCP server, connect a client, call the tool. Or start the HTTP server, curl the endpoint. Each requires infrastructure: a bin entry, a blaze call, a running server. The developer wants to run one trail, not boot an application.
-1. **Write a script.** Import the topo, call `dispatch()`, console.log the result. Works, but it's throwaway code. A new file for every ad-hoc invocation. Friction that discourages exploration.
+1. **Blaze a trailhead.** Set up Commander, run the CLI binary, pass flags. Or start the MCP server, connect a client, call the tool. Or start the HTTP server, curl the endpoint. Each requires infrastructure: a bin entry, a blaze call, a running server. The developer wants to run one trail, not boot an application.
+1. **Write a script.** Import the topo, call `run()`, console.log the result. Works, but it's throwaway code. A new file for every ad-hoc invocation. Friction that discourages exploration.
 
 Every other runtime has a direct invocation path. `bun run script.ts`. `python -c "..."`. `ruby -e "..."`. Even build tools have it: `make target`, `cargo run`. The pattern is universal: point at a thing, run it, see the result.
 
-Trails has `dispatch()` as a programmatic API. It doesn't have `dispatch` as a CLI command. The gap is small but the friction is real: the developer must write code to run code.
+Trails has `run()` as a programmatic API. It doesn't have `dispatch` as a CLI command. The gap is small but the friction is real: the developer must write code to run code.
 
-### `dispatch()` is already the universal pipeline
+### `run()` is already the universal pipeline
 
-Every invocation path converges on `dispatch()` which calls `executeTrail()`: validate input, resolve context, compose layers, run implementation, return Result. CLI surfaces call it. MCP surfaces call it. HTTP surfaces call it. Follow calls it. Triggers call it.
+Every invocation path converges on `run()` which calls `executeTrail()`: validate input, resolve context, compose gates, run implementation, return Result. CLI trailheads call it. MCP trailheads call it. HTTP trailheads call it. Follow calls it. Triggers call it.
 
-`trails run` is `dispatch()` wired to stdin/stdout. The infrastructure is already there. The execution semantics are identical to every other invocation path. The trail doesn't know it's being run from `trails run` vs a blazed CLI surface vs an MCP tool call. The pipeline is the pipeline.
+`trails run` is `run()` wired to stdin/stdout. The infrastructure is already there. The execution semantics are identical to every other invocation path. The trail doesn't know it's being run from `trails run` vs a blazed CLI trailhead vs an MCP tool call. The pipeline is the pipeline.
 
 ### What the examples teach us
 
@@ -77,7 +77,7 @@ $ trails run entity.show '{"name": "nonexistent"}'
 }
 ```
 
-Exit codes follow the same error taxonomy mapping as the CLI surface: 0 for success, category-mapped codes for errors. The output is JSON by default (machine-readable, pipeable). Human-readable formatting is opt-in.
+Exit codes follow the same error taxonomy mapping as the CLI trailhead: 0 for success, category-mapped codes for errors. The output is JSON by default (machine-readable, pipeable). Human-readable formatting is opt-in.
 
 ### Input sources
 
@@ -162,29 +162,29 @@ trails run booking.confirm '{"slotId": "slot_1"}' --verbose
 
 Standard stuff. Every developer knows these patterns from other tools. No new concepts.
 
-#### The crumbs dimension (the journey, not just the destination)
+#### The tracker dimension (the journey, not just the destination)
 
-`--crumbs` is not a verbosity level. It's a different kind of output entirely.
+`--tracker` is not a verbosity level. It's a different kind of output entirely.
 
-The format and verbosity flags control the *result*: what the trail returned, and how much context to show around it. `--crumbs` adds the *journey*: the live execution narrative as the system works.
+The format and verbosity flags control the *result*: what the trail returned, and how much context to show around it. `--tracker` adds the *journey*: the live execution narrative as the system works.
 
 ```bash
-trails run booking.confirm '{"slotId": "slot_1"}' --crumbs
+trails run booking.confirm '{"slotId": "slot_1"}' --tracker
 ```
 
-The crumbs stream to stderr. The result goes to stdout. They don't interfere:
+The tracker stream to stderr. The result goes to stdout. They don't interfere:
 
 ```bash
-# Crumbs stream to stderr, result pipes cleanly to jq
-trails run booking.confirm '{"slotId": "slot_1"}' --crumbs | jq '.bookingId'
+# Tracker stream to stderr, result pipes cleanly to jq
+trails run booking.confirm '{"slotId": "slot_1"}' --tracker | jq '.bookingId'
 ```
 
 Same pattern as progress bars and log lines: narrative to stderr, data to stdout. Unix convention.
 
-**What the crumbs stream looks like:**
+**What the tracker stream looks like:**
 
 ```bash
-$ trails run booking.confirm '{"slotId": "slot_1"}' --crumbs
+$ trails run booking.confirm '{"slotId": "slot_1"}' --tracker
 
 ● booking.confirm
   ├── availability.reserve (slot_1)
@@ -203,11 +203,11 @@ $ trails run booking.confirm '{"slotId": "slot_1"}' --crumbs
 
 The tree renders in real time. Each step appears when it starts. The checkmark and timing appear when it completes. Event emissions show as they fire. Triggered trails appear when activation starts. The tree grows as you watch. When everything is done, the final result prints to stdout.
 
-**Crumbs composes with every standard flag:**
+**Tracker composes with every standard flag:**
 
 ```bash
-# Crumbs + quiet: the journey, then just the value
-trails run booking.confirm '{"slotId": "slot_1"}' --crumbs --quiet
+# Tracker + quiet: the journey, then just the value
+trails run booking.confirm '{"slotId": "slot_1"}' --tracker --quiet
 
 ● booking.confirm
   ├── availability.reserve ✓ 45ms
@@ -219,8 +219,8 @@ trails run booking.confirm '{"slotId": "slot_1"}' --crumbs --quiet
 ```
 
 ```bash
-# Crumbs + verbose: the journey AND the detailed summary
-trails run booking.confirm '{"slotId": "slot_1"}' --crumbs --verbose
+# Tracker + verbose: the journey AND the detailed summary
+trails run booking.confirm '{"slotId": "slot_1"}' --tracker --verbose
 
 ● booking.confirm
   ├── availability.reserve ✓ 45ms
@@ -236,15 +236,15 @@ Events: booking.confirmed (1 trigger, 0 subscriptions)
 ```
 
 ```bash
-# Crumbs + json: tree streams to stderr, structured crumbs in JSON to stdout
-trails run booking.confirm '{"slotId": "slot_1"}' --crumbs --json
+# Tracker + json: tree streams to stderr, structured tracker in JSON to stdout
+trails run booking.confirm '{"slotId": "slot_1"}' --tracker --json
 # stderr: the tree visualization (human-readable, real-time)
-# stdout: {"ok":true,"value":{...},"crumbs":[...]}
+# stdout: {"ok":true,"value":{...},"tracker":[...]}
 ```
 
-`--crumbs --json` includes the crumbs as structured data in the JSON output while also streaming the human-readable tree to stderr. The machine gets structured crumb data. The human sees the real-time tree. Both from one invocation.
+`--tracker --json` includes the tracker as structured data in the JSON output while also streaming the human-readable tree to stderr. The machine gets structured crumb data. The human sees the real-time tree. Both from one invocation.
 
-**What crumbs reveals that result output can't:**
+**What tracker reveals that result output can't:**
 
 Timing between steps and framework overhead:
 
@@ -283,7 +283,7 @@ Failure cascades and compensation:
 
 The developer sees the failure, the error propagation, the compensating trigger, all in one view.
 
-Event delivery across surfaces:
+Event delivery across trailheads:
 
 ```bash
   ├── ↑ emit booking.confirmed
@@ -294,23 +294,23 @@ Event delivery across surfaces:
 
 Events show their full delivery: which triggers fired, which WebSocket subscribers received it, which failed. The reactive graph executing in real time.
 
-**The relationship between `trails run --crumbs` and `trails crumbs`:**
+**The relationship between `trails run --tracker` and `trails tracker`:**
 
-`trails run --crumbs` shows crumbs in real time during a live execution. You're watching the crumbs drop as the trail is walked.
+`trails run --tracker` shows tracker in real time during a live execution. You're watching the tracker drop as the trail is walked.
 
-`trails crumbs` queries historical crumbs from the crumbs store. You're following crumbs that were left behind earlier.
+`trails tracker` queries historical tracker from the tracker store. You're following tracker that were left behind earlier.
 
 Same data. Same vocabulary. Different time dimension. One is live. One is retrospective.
 
 ```bash
-# Live: watch the crumbs drop
-trails run booking.confirm '{"slotId": "slot_1"}' --crumbs
+# Live: watch the tracker drop
+trails run booking.confirm '{"slotId": "slot_1"}' --tracker
 
-# Historical: follow crumbs from the last execution
-trails crumbs --last
+# Historical: follow tracker from the last execution
+trails tracker --last
 
 # Historical: follow the chain for a specific execution
-trails crumbs --chain exec_abc
+trails tracker --chain exec_abc
 ```
 
 ### Example-driven execution
@@ -405,7 +405,7 @@ Each output item is a separate JSON line. Pipeable to `jq`, `grep`, another `tra
 
 ### Service resolution
 
-`trails run` resolves services the same way any invocation does. In development, mock services resolve by default (from the `mock` factory on the service definition). The developer gets production-equivalent behavior without production infrastructure.
+`trails run` resolves services the same way any invocation does. In development, mock services resolve by default (from the `mock` factory on the provision definition). The developer gets production-equivalent behavior without production infrastructure.
 
 ### Permit context
 
@@ -415,7 +415,7 @@ By default, `trails run` executes with no permit (undefined). For trails that re
 # Run with a specific permit scope
 trails run admin.reset-cache --permit '{"id": "dev", "scopes": ["admin:write"]}'
 
-# Run with a permit from a token (resolved through the auth adapter)
+# Run with a permit from a token (resolved through the auth connector)
 trails run booking.confirm '{"slotId": "slot_1"}' --token "eyJhbG..."
 
 # Run with the dev permit (full access, development only)
@@ -440,13 +440,13 @@ trails run entity.show --example "Found" --watch
 
 Edit the implementation, save, the example reruns, match/mismatch updates instantly. This is TDD without leaving the terminal. The example is the assertion. The watch loop is the runner.
 
-Combined with `--crumbs`:
+Combined with `--tracker`:
 
 ```bash
-trails run booking.confirm '{"slotId": "slot_1"}' --watch --crumbs
+trails run booking.confirm '{"slotId": "slot_1"}' --watch --tracker
 ```
 
-Edit, save, and the full execution tree re-renders. The crumbs show whether a change in the implementation affected timing, follow behavior, or event emission. The developer sees the ripple effects of every edit.
+Edit, save, and the full execution tree re-renders. The tracker show whether a change in the implementation affected timing, follow behavior, or event emission. The developer sees the ripple effects of every edit.
 
 ### Dry run
 
@@ -456,7 +456,7 @@ For trails with `intent: 'write'` or `intent: 'destroy'`:
 trails run booking.cancel '{"bookingId": "bk_123"}' --dry-run
 ```
 
-Passes `ctx.dryRun = true` to the implementation. The same flag the CLI surface adds automatically for destroy trails. The trail's implementation decides what dry-run means (preview the changes, validate without committing, etc.).
+Passes `ctx.dryRun = true` to the implementation. The same flag the CLI trailhead adds automatically for destroy trails. The trail's implementation decides what dry-run means (preview the changes, validate without committing, etc.).
 
 ### Topo resolution
 
@@ -486,7 +486,7 @@ trails run health.check --app trails-api
 
 In watch mode, the topo reloads on file changes. The lockfile is the source of truth for resolution; `trails run` does not scan for entry points or apply convention-based discovery.
 
-### Interaction with crumbs
+### Interaction with tracker
 
 Every `trails run` invocation leaves a crumb with `type: 'direct'`. The crumb records:
 
@@ -504,7 +504,7 @@ Every `trails run` invocation leaves a crumb with `type: 'direct'`. The crumb re
 }
 ```
 
-In verbose mode, the crumb is displayed inline. In normal mode, it's recorded silently. Either way, `trails crumbs --last` shows the most recent execution, including `trails run` invocations.
+In verbose mode, the crumb is displayed inline. In normal mode, it's recorded silently. Either way, `trails tracker --last` shows the most recent execution, including `trails run` invocations.
 
 This means the development workflow has full observability:
 
@@ -512,12 +512,12 @@ This means the development workflow has full observability:
 # Run a trail
 trails run booking.confirm '{"slotId": "slot_1"}'
 
-# Something went wrong, check the crumbs
-trails crumbs --last
+# Something went wrong, check the tracker
+trails tracker --last
 # Shows the full execution chain including follows, events, and timing
 
 # Deep dive on a specific execution
-trails crumbs --chain exec_abc
+trails tracker --chain exec_abc
 # Shows the full causal chain from this invocation through all follows and triggers
 ```
 
@@ -529,9 +529,9 @@ When `trails run` invokes a trail that emits events, the events flow through the
 trails run booking.confirm '{"slotId": "slot_1"}'
 ```
 
-Could trigger `notify.booking-confirmed`, which could trigger `audit.log-write`, which could emit more events. The full reactive chain executes. With `--crumbs`, the triggered trails appear in the execution tree as they fire.
+Could trigger `notify.booking-confirmed`, which could trigger `audit.log-write`, which could emit more events. The full reactive chain executes. With `--tracker`, the triggered trails appear in the execution tree as they fire.
 
-This is intentional. `trails run` is not an isolated sandbox. It's a direct invocation through the real pipeline. Mock services (the default) provide isolation. With `--crumbs`, the triggered trails appear in the execution tree as they fire.
+This is intentional. `trails run` is not an isolated sandbox. It's a direct invocation through the real pipeline. Mock services (the default) provide isolation. With `--tracker`, the triggered trails appear in the execution tree as they fire.
 
 ### Autocomplete
 
@@ -553,36 +553,36 @@ Trail IDs are completed from the topo. Example names are completed from the trai
 
 ### Positive
 
-- **Zero-ceremony invocation.** Run any trail from the terminal with one command. No surface setup, no bin entry, no server. The topo is the interface.
+- **Zero-ceremony invocation.** Run any trail from the terminal with one command. No trailhead setup, no bin entry, no server. The topo is the interface.
 - **Examples become directly executable.** `--example` bridges exploration and testing. The developer runs a specific example, sees actual vs expected, adjusts the implementation. TDD in the terminal.
 - **Unix-native composition.** JSON in, JSON out, exit codes, pipes. `trails run` composes with `jq`, `xargs`, other `trails run` invocations, and any JSONL-aware tool. Trails become first-class Unix citizens.
-- **Full pipeline execution.** Validation, layers, services, events, triggers, crumbs. Everything fires. The developer sees production-equivalent behavior without production infrastructure (via mock services).
+- **Full pipeline execution.** Validation, gates, services, events, triggers, tracker. Everything fires. The developer sees production-equivalent behavior without production infrastructure (via mock services).
 - **Watch mode tightens the loop.** Edit, save, see the result. Combined with `--example`, it's TDD without a test framework. The example is the assertion. The file system is the trigger.
-- **`--crumbs` makes composition visible.** The live execution tree shows follows, events, triggers, parallel branches, and timing as they happen. The developer understands the reactive chain without reading code. Crumbs stream to stderr while the result goes to stdout, composing cleanly with standard flags and Unix pipes.
+- **`--tracker` makes composition visible.** The live execution tree shows follows, events, triggers, parallel branches, and timing as they happen. The developer understands the reactive chain without reading code. Tracker stream to stderr while the result goes to stdout, composing cleanly with standard flags and Unix pipes.
 
 ### Tradeoffs
 
 - **Depends on the lockfile.** `trails run` resolves trails through `trails.lock`. The lockfile must be current. A stale lockfile could point to a trail that's been renamed or removed. `trails lock` (or whatever regenerates it) becomes a prerequisite for accurate resolution.
-- **Reactive chains can cascade.** `trails run` with triggers enabled means one invocation could trigger a chain of trail executions. With `--crumbs` this is visible. Without it, the cascading triggers are silent. A developer exploring a trail might not expect their invocation to trigger five downstream trails.
+- **Reactive chains can cascade.** `trails run` with triggers enabled means one invocation could trigger a chain of trail executions. With `--tracker` this is visible. Without it, the cascading triggers are silent. A developer exploring a trail might not expect their invocation to trigger five downstream trails.
 - **Watch mode requires file watching.** Adds a dependency on file system watching (Bun handles this natively). For large projects, file watching can be resource-intensive, though scoping to the trail's source file and its dependencies mitigates this.
 
 ### What this does NOT decide
 
-- **REPL mode.** An interactive session where the developer can call multiple trails, inspect results, modify input, and retry without restarting. `trails run` is single-invocation. A REPL (`trails console` or `trails repl`) is a future extension that could use `Bun.repl` or a custom prompt backed by `dispatch()`.
+- **REPL mode.** An interactive session where the developer can call multiple trails, inspect results, modify input, and retry without restarting. `trails run` is single-invocation. A REPL (`trails console` or `trails repl`) is a future extension that could use `Bun.repl` or a custom prompt backed by `run()`.
 - **Remote execution.** `trails run` invokes locally. Running a trail on a remote topo (via mount) would need `trails run --remote <url> <trail-id>`. That's tied to the mount ADR.
 - **Scheduled or delayed execution.** `trails run` is immediate. "Run this trail in 5 minutes" or "run this trail every hour" is the trigger system's job.
-- **Output formatting beyond JSON.** Tables, CSV, custom formats. The default is JSON. `--verbose` and `--crumbs` are human-readable. If someone needs `trails run entity.list --format table`, that's a future enhancement.
+- **Output formatting beyond JSON.** Tables, CSV, custom formats. The default is JSON. `--verbose` and `--tracker` are human-readable. If someone needs `trails run entity.list --format table`, that's a future enhancement.
 - **Batch execution.** Running a trail against multiple inputs from a JSONL file. Sequential and parallel batch modes. A future extension that builds on the same pipeline.
 - **Interactive prompting.** Deriving an interactive input form from the trail's Zod schema (`--prompt`). A non-trivial UX project that can follow once the core invocation path is stable.
 - **Live service resolution.** A `--live` or `--no-mocks` flag to bypass mock services and run against real infrastructure. Requires careful footgun guards (especially combined with batch mode).
 
 ## References
 
-- [ADR-0000: Core Premise](../0000-core-premise.md) -- "the trail is the product"; `trails run` makes every trail directly invocable without surface ceremony
+- [ADR-0000: Core Premise](../0000-core-premise.md) -- "the trail is the product"; `trails run` makes every trail directly invocable without trailhead ceremony
 - [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- every trail is runnable, whether atomic or composite
-- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` dispatches through `executeTrail`, the same pipeline as every surface
-- ADR: Typed Event Emission (draft) -- events emitted during `trails run` flow through normal routing, triggers fire
-- ADR: Concurrent Follow Composition (draft) -- `--crumbs` renders concurrent follows as parallel branches in the execution tree
-- ADR: Trail Visibility and Surface Filtering (draft) -- `trails run` can invoke internal trails (it's programmatic, like dispatch)
+- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` dispatches through `executeTrail`, the same pipeline as every trailhead
+- ADR: Typed Signal Emission (draft) -- events emitted during `trails run` flow through normal routing, triggers fire
+- ADR: Concurrent Follow Composition (draft) -- `--tracker` renders concurrent follows as parallel branches in the execution tree
+- ADR: Trail Visibility and Trailhead Filtering (draft) -- `trails run` can invoke internal trails (it's programmatic, like dispatch)
 - ADR: Packs as Namespace Boundaries (draft) -- `trails run` can invoke any trail in any pack, regardless of visibility
-- [ADR-0013: Crumbs](../0013-crumbs.md) -- `--crumbs` uses the crumbs vocabulary; live crumbs during `trails run`, historical crumbs via `trails crumbs`
+- [ADR-0013: Tracker](../0013-tracker.md) -- `--tracker` uses the tracker vocabulary; live tracker during `trails run`, historical tracker via `trails tracker`

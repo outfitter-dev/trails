@@ -1,5 +1,5 @@
 /**
- * Headless trail execution — the "no-surface" surface.
+ * Headless trail execution without mounting a trailhead.
  *
  * Looks up a trail by ID in a topo, then delegates to `executeTrail`.
  * Returns a `Result` and never throws.
@@ -23,7 +23,7 @@ export type RunOptions = ExecuteTrailOptions;
 // ---------------------------------------------------------------------------
 
 /**
- * Execute a trail by ID from a topo without mounting a surface.
+ * Execute a trail by ID from a topo without mounting a trailhead.
  *
  * Resolves the trail from the topo, then runs it through the standard
  * `executeTrail` pipeline. Returns `Result.err(NotFoundError)` if the

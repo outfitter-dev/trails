@@ -7,7 +7,12 @@ export {
   type ResolveOptions,
 } from './app-config.js';
 export { collectConfigMeta } from './collect.js';
-export { collectServiceConfigs, type ServiceConfigEntry } from './compose.js';
+export {
+  collectProvisionConfigs,
+  collectServiceConfigs,
+  type ProvisionConfigEntry,
+  type ServiceConfigEntry,
+} from './compose.js';
 export { defineConfig, type DefineConfigOptions } from './define-config.js';
 export { describeConfig, type FieldDescription } from './describe.js';
 export {
@@ -26,8 +31,8 @@ export {
   generateExample,
   generateJsonSchema,
 } from './generate/index.js';
-export { configLayer } from './config-layer.js';
-export { configService } from './config-service.js';
+export { configGate } from './config-gate.js';
+export { configProvision } from './config-provision.js';
 export {
   clearConfigState,
   type ConfigState,

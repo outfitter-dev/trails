@@ -12,7 +12,7 @@ msg="This project uses the Trails framework (@ontrails/*). Load the \`trails\` s
 
 # Check if trails CLI is available
 if ! which trails >/dev/null 2>&1; then
-  msg="$msg The \`trails\` CLI is not installed — run: bun add -g @ontrails/trails"
+  msg="$msg The \`trails\` CLI is not installed — blaze: bun add -g @ontrails/trails"
 fi
 
 echo "$msg"

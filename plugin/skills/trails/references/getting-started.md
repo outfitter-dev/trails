@@ -10,8 +10,8 @@ bunx @ontrails/trails create
 
 # Or install manually
 bun add @ontrails/core @ontrails/cli
-bun add commander                    # Commander adapter
-bun add @ontrails/mcp                # MCP surface (optional)
+bun add commander                    # Commander connector
+bun add @ontrails/mcp                # MCP trailhead (optional)
 bun add -d @ontrails/testing         # Testing (dev)
 ```
 
@@ -43,7 +43,7 @@ export const greet = trail('greet', {
       expected: { message: 'HELLO, WORLD!' },
     },
   ],
-  run: (input) => {
+  blaze: (input) => {
     const message = `Hello, ${input.name}!`;
     return Result.ok({
       message: input.loud ? message.toUpperCase() : message,
@@ -72,10 +72,10 @@ export const app = topo('myapp', greetModule);
 Create `src/cli.ts`:
 
 ```typescript
-import { blaze } from '@ontrails/cli/commander';
+import { trailhead } from '@ontrails/cli/commander';
 import { app } from './app';
 
-blaze(app);
+trailhead(app);
 ```
 
 Run it:
@@ -95,13 +95,13 @@ Flags, types, defaults, and `--help` text are all derived from the Zod schema.
 Create `src/mcp.ts`:
 
 ```typescript
-import { blaze } from '@ontrails/mcp';
+import { trailhead } from '@ontrails/mcp';
 import { app } from './app';
 
-await blaze(app);
+await trailhead(app);
 ```
 
-Same trail, same implementation, different surface. The MCP server exposes `myapp_greet` with JSON Schema input, `readOnlyHint: true`, and examples for agent planning.
+Same trail, same implementation, different trailhead. The MCP server exposes `myapp_greet` with JSON Schema input, `readOnlyHint: true`, and examples for agent planning.
 
 ## Test with testAll
 
@@ -148,7 +148,7 @@ export const add = trail('math.add', {
   examples: [
     { name: 'Add two numbers', input: { a: 2, b: 3 }, expected: { result: 5 } },
   ],
-  run: (input) => Result.ok({ result: input.a + input.b }),
+  blaze: (input) => Result.ok({ result: input.a + input.b }),
 });
 ```
 
@@ -171,18 +171,18 @@ No additional configuration needed.
 
 ## Composing Trails
 
-A trail can follow other trails to accomplish a higher-level task:
+A trail can cross other trails to accomplish a higher-level task:
 
 ```typescript
 import { trail, Result } from '@ontrails/core';
 import { z } from 'zod';
 
 export const addAndDouble = trail('math.add-and-double', {
-  follow: ['math.add'],
+  crosses: ['math.add'],
   input: z.object({ a: z.number(), b: z.number() }),
   output: z.object({ result: z.number() }),
-  run: async (input, ctx) => {
-    const sum = await ctx.follow('math.add', input);
+  blaze: async (input, ctx) => {
+    const sum = await ctx.cross('math.add', input);
     if (sum.isErr()) return sum;
     return Result.ok({ result: sum.value.result * 2 });
   },
@@ -191,45 +191,45 @@ export const addAndDouble = trail('math.add-and-double', {
 
 Rules for composition:
 
-- Declare dependencies with `follow`
-- Call them with `ctx.follow()` — never call `.run()` directly
+- Declare dependencies with `crosses`
+- Call them with `ctx.cross()` — never call `.run()` directly
 - Propagate errors: `if (result.isErr()) return result;`
-- The warden verifies `follow` matches actual `ctx.follow()` calls
+- The warden verifies `crosses` matches actual `ctx.cross()` calls
 
 ## Using Services
 
-When trails need infrastructure — databases, API clients, caches — declare them as services.
+When trails need infrastructure — databases, API clients, caches — declare them as provisions.
 
-Define a service in `src/services/db.ts`:
+Define a provision in `src/provisions/db.ts`:
 
 ```typescript
-import { service, Result } from '@ontrails/core';
+import { provision, Result } from '@ontrails/core';
 
-export const db = service('db.main', {
+export const db = provision('db.main', {
   create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
   dispose: (conn) => conn.close(),
   mock: () => createInMemoryDb(),
 });
 ```
 
-Register services in the topo alongside trails:
+Register provisions in the topo alongside trails:
 
 ```typescript
 import * as greetModule from './trails/greet';
-import * as services from './services/db';
+import * as provisions from './provisions/db';
 
-export const app = topo('myapp', greetModule, services);
+export const app = topo('myapp', greetModule, provisions);
 ```
 
-Use in a trail by declaring `services` and accessing via `db.from(ctx)`:
+Use in a trail by declaring `provisions` and accessing via `db.from(ctx)`:
 
 ```typescript
 const lookup = trail('lookup', {
-  services: [db],
+  provisions: [db],
   input: z.object({ id: z.string().describe('Record ID') }),
   output: z.object({ name: z.string() }),
   intent: 'read',
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const conn = db.from(ctx);
     const record = await conn.findById(input.id);
     if (!record) return Result.err(new NotFoundError(`No record: ${input.id}`));

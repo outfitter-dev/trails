@@ -12,15 +12,15 @@ depends_on: [7, 8]
 
 ## Context
 
-The framework currently produces `surface.lock` via `trails schema lock`. This file captures the derived surface shape (MCP tool names, CLI commands, HTTP routes) as a diffable, hashable artifact. CI compares it against the current topo to detect unintentional contract changes.
+The framework currently produces `trailhead.lock` via `trails schema lock`. This file captures the derived trailhead shape (MCP tool names, CLI commands, HTTP routes) as a diffable, hashable artifact. CI compares it against the current topo to detect unintentional contract changes.
 
-As the framework grows, more resolved state needs the same treatment: surfaces, events, triggers, services, provisions, config, the reactive graph. Each is "resolved state of the system that should be diffable and governable." Splitting them into separate lockfiles creates multiple files to commit, multiple CI checks to configure, and multiple commands to remember.
+As the framework grows, more resolved state needs the same treatment: trailheads, events, triggers, services, provisions, config, the reactive graph. Each is "resolved state of the system that should be diffable and governable." Splitting them into separate lockfiles creates multiple files to commit, multiple CI checks to configure, and multiple commands to remember.
 
-But the deeper issue is that these aren't independent concerns. A trail's surface derivation, its trigger activations, its event emissions, its service dependencies, and its follow declarations are all facets of the same graph. Surfaces reference trails. Triggers reference events. Events reference emitters. Services reference config. The resolved state of the system is a single connected graph, not a collection of independent sections.
+But the deeper issue is that these aren't independent concerns. A trail's trailhead derivation, its trigger activations, its event emissions, its service dependencies, and its follow declarations are all facets of the same graph. Trailheads reference trails. Triggers reference events. Events reference emitters. Services reference config. The resolved state of the system is a single connected graph, not a collection of independent sections.
 
 ### The lockfile as the story
 
-An agent connecting to an unfamiliar Trails workspace should be able to read one file and understand the entire system: what trails exist, what activates them, what they emit, what services they need, how they compose, what surfaces expose them, and what permissions they require. That file is the lockfile.
+An agent connecting to an unfamiliar Trails workspace should be able to read one file and understand the entire system: what trails exist, what activates them, what they emit, what services they need, how they compose, what trailheads expose them, and what permissions they require. That file is the lockfile.
 
 This aligns with the design tenet: *the contract is queryable*. The lockfile is the fully resolved, serialized form of the queryable contract. It's the topo graph with all derivations applied, all references resolved, all edges explicit.
 
@@ -30,15 +30,15 @@ A Trails workspace can contain multiple apps, each with its own topo. The lockfi
 
 When a trail ID exists in multiple apps (e.g., `health.check` in both `trails-api` and `trails-admin`), the lockfile records both. Consumers that need to resolve ambiguity (like `trails run`) can prompt the developer or accept an `--app` override.
 
-### Migration from `surface.lock`
+### Migration from `trailhead.lock`
 
-The current `surface.lock` has no external consumers. It's generated, committed, and checked by the framework's own tooling. The migration is mechanical: the existing surface lock content becomes part of the trail nodes in the new graph. The warden rule that validates the lock updates to read from the new location.
+The current `trailhead.lock` has no external consumers. It's generated, committed, and checked by the framework's own tooling. The migration is mechanical: the existing trailhead lock content becomes part of the trail nodes in the new graph. The warden rule that validates the lock updates to read from the new location.
 
 ## Decision
 
 ### One lockfile: `.trails/trails.lock`
 
-All resolved framework state lives in `.trails/trails.lock`. The file is structured as a serialized topo graph. Every trail, service, event, and surface is a node. Relationships — triggers, follows, emits, consumes — are edges. The file is the compiled, resolved, deduplicated story of the workspace.
+All resolved framework state lives in `.trails/trails.lock`. The file is structured as a serialized topo graph. Every trail, service, event, and trailhead is a node. Relationships — triggers, follows, emits, consumes — are edges. The file is the compiled, resolved, deduplicated story of the workspace.
 
 ```json
 {
@@ -58,7 +58,7 @@ All resolved framework state lives in `.trails/trails.lock`. The file is structu
           "services": ["bookingStore", "billingService"],
           "visibility": "public",
           "examples": 3,
-          "surfaces": {
+          "trailheads": {
             "cli": { "command": "booking confirm", "flags": ["slotId", "userId"] },
             "mcp": { "name": "trails-api_booking_confirm" },
             "http": { "method": "POST", "path": "/booking/confirm" }
@@ -83,11 +83,11 @@ All resolved framework state lives in `.trails/trails.lock`. The file is structu
 }
 ```
 
-A single trail entry carries everything: input/output schemas, intent, permit requirements, event emissions, follow declarations, trigger activations, service dependencies, visibility, example count, and per-surface derivations. No duplication — the trail is the node, everything else is an edge or a property.
+A single trail entry carries everything: input/output schemas, intent, permit requirements, event emissions, follow declarations, trigger activations, service dependencies, visibility, example count, and per-trailhead derivations. No duplication — the trail is the node, everything else is an edge or a property.
 
 ### The graph, not sections
 
-The lockfile is not organized by concern (a surfaces section, an events section, a triggers section). It's organized by the topo graph: apps contain trails, events, and services. Relationships between them are edges on the nodes.
+The lockfile is not organized by concern (a trailheads section, an events section, a triggers section). It's organized by the topo graph: apps contain trails, events, and services. Relationships between them are edges on the nodes.
 
 This means:
 
@@ -165,16 +165,16 @@ webhook:stripe → booking.confirm → booking.confirmed → notify.booking-conf
 ### What this does NOT decide
 
 - **The exact schema for each node type.** Trail nodes, event nodes, and service nodes will gain properties as their respective ADRs ship. The graph structure is stable; the node schemas evolve.
-- **Whether sections can be independently regenerated** (e.g., `trails lock --only surfaces`). Future ergonomic improvement if needed.
+- **Whether sections can be independently regenerated** (e.g., `trails lock --only trailheads`). Future ergonomic improvement if needed.
 - **Whether the format is JSON, JSONC, or another structured format.** JSON is the default for machine-generated artifacts. If comments become valuable, JSONC is a backward-compatible extension.
 - **Provision contract snapshots.** How provisioned packs record their contract state in the lockfile. The provisions ADR defines this.
-- **Rig lock state.** How rigged external surfaces record their resolved state. The rig ADR defines this.
+- **Rig lock state.** How rigged external trailheads record their resolved state. The rig ADR defines this.
 
 ## References
 
-- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) — the derivation rules that produce surface properties on trail nodes
+- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — the derivation rules that produce trailhead properties on trail nodes
 - [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — the warden rules that validate the lock
-- ADR: Typed Event Emission (draft) — events as nodes in the graph, emission edges on trail nodes
+- ADR: Typed Signal Emission (draft) — events as nodes in the graph, emission edges on trail nodes
 - ADR: Reactive Trail Activation (draft) — trigger activations as edges, reactive graph resolution
 - ADR: Packs as Namespace Boundaries (draft) — pack boundaries as subgraphs within the topo
 - ADR: Pack Provisioning (draft) — provisioned pack state recorded in the graph

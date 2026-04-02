@@ -15,8 +15,8 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import type {
-  Layer,
-  ServiceOverrideMap,
+  Gate,
+  ProvisionOverrideMap,
   Topo,
   TrailContextInit,
 } from '@ontrails/core';
@@ -31,7 +31,7 @@ import { connectStdio } from './stdio.js';
 // ---------------------------------------------------------------------------
 
 export interface TrailheadMcpOptions {
-  /** Config values for services that declare a `config` schema, keyed by service ID. */
+  /** Config values for provisions that declare a `config` schema, keyed by provision ID. */
   readonly configValues?:
     | Readonly<Record<string, Record<string, unknown>>>
     | undefined;
@@ -40,7 +40,8 @@ export interface TrailheadMcpOptions {
     | undefined;
   readonly excludeTrails?: readonly string[] | undefined;
   readonly includeTrails?: readonly string[] | undefined;
-  readonly layers?: readonly Layer[] | undefined;
+  readonly gates?: readonly Gate[] | undefined;
+  readonly provisions?: ProvisionOverrideMap | undefined;
   readonly serverInfo?:
     | {
         readonly name?: string | undefined;
@@ -48,7 +49,6 @@ export interface TrailheadMcpOptions {
       }
     | undefined;
   readonly transport?: 'stdio' | undefined;
-  readonly services?: ServiceOverrideMap | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
   readonly validate?: boolean | undefined;
 }
@@ -154,9 +154,9 @@ export const trailhead = async (
     configValues: options.configValues,
     createContext: options.createContext,
     excludeTrails: options.excludeTrails,
+    gates: options.gates,
     includeTrails: options.includeTrails,
-    layers: options.layers,
-    services: options.services,
+    provisions: options.provisions,
   });
 
   if (toolsResult.isErr()) {

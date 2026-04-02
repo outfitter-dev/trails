@@ -2,13 +2,13 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   Result,
-  SURFACE_KEY,
+  TRAILHEAD_KEY,
   createBlobRef,
-  service,
+  provision,
   trail,
   topo,
 } from '@ontrails/core';
-import type { Layer } from '@ontrails/core';
+import type { Gate } from '@ontrails/core';
 import { z } from 'zod';
 
 import { buildMcpTools } from '../build.js';
@@ -52,7 +52,7 @@ const exampleTrail = trail('with.examples', {
   input: z.object({ name: z.string() }),
 });
 
-const dbService = service('db.main', {
+const dbProvision = provision('db.main', {
   create: () =>
     Result.ok({
       source: 'factory',
@@ -82,7 +82,7 @@ const requireOnlyTool = (tools: McpToolDefinition[]) => {
 
 /**
  * Unwrap buildMcpTools result for success-path tests.
- * Throws if the result is an error so test failures surface clearly.
+ * Throws if the result is an error so test failures show up clearly.
  */
 const buildTools = (
   ...args: Parameters<typeof buildMcpTools>
@@ -254,11 +254,11 @@ describe('buildMcpTools', () => {
   });
 
   describe('composition', () => {
-    test('layers compose and execute around the implementation', async () => {
+    test('gates compose and execute around the implementation', async () => {
       const calls: string[] = [];
 
-      const testLayer: Layer = {
-        name: 'test-layer',
+      const testGate: Gate = {
+        name: 'test-gate',
         wrap(_trail, impl) {
           return async (input, ctx) => {
             calls.push('before');
@@ -270,7 +270,7 @@ describe('buildMcpTools', () => {
       };
 
       const app = topo('myapp', { echoTrail });
-      const tool = requireOnlyTool(buildTools(app, { layers: [testLayer] }));
+      const tool = requireOnlyTool(buildTools(app, { gates: [testGate] }));
 
       await tool.handler({ message: 'hi' }, noExtra);
       expect(calls).toEqual(['before', 'after']);
@@ -304,12 +304,12 @@ describe('buildMcpTools', () => {
 
     test('custom createContext is used when provided', async () => {
       let contextUsed = false;
-      let surfaceUsed = false;
+      let trailheadMarkerUsed = false;
 
       const ctxTrail = trail('ctx.check', {
         blaze: (_input, ctx) => {
           contextUsed = ctx.extensions?.['custom'] === true;
-          surfaceUsed = ctx.extensions?.[SURFACE_KEY] === 'mcp';
+          trailheadMarkerUsed = ctx.extensions?.[TRAILHEAD_KEY] === 'mcp';
           return Result.ok({ ok: true });
         },
         input: z.object({}),
@@ -328,21 +328,21 @@ describe('buildMcpTools', () => {
 
       await tool.handler({}, noExtra);
       expect(contextUsed).toBe(true);
-      expect(surfaceUsed).toBe(true);
+      expect(trailheadMarkerUsed).toBe(true);
     });
 
-    test('service overrides are forwarded to executeTrail', async () => {
-      const serviceTrail = trail('service.check', {
+    test('provision overrides are forwarded to executeTrail', async () => {
+      const provisionTrail = trail('provision.check', {
         blaze: (_input, ctx) =>
-          Result.ok({ source: dbService.from(ctx).source as string }),
+          Result.ok({ source: dbProvision.from(ctx).source as string }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
-        services: [dbService],
+        provisions: [dbProvision],
       });
 
       const tool = requireOnlyTool(
-        buildTools(topo('myapp', { serviceTrail }), {
-          services: { 'db.main': { source: 'override' } },
+        buildTools(topo('myapp', { provisionTrail }), {
+          provisions: { 'db.main': { source: 'override' } },
         })
       );
 

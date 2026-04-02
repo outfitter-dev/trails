@@ -55,7 +55,7 @@ export const run = trail('deploy.run', {
     { name: 'staging dry run', input: { service: 'api', env: 'staging', dryRun: true } },
     { name: 'production deploy', input: { service: 'api', env: 'production' } },
   ],
-  run: async (input) => {
+  blaze: async (input) => {
     const result = await runDeploy(input.service, input.env, {
       dryRun: input.dryRun,
       timeout: input.timeout,
@@ -70,11 +70,11 @@ Dotted IDs become subcommands. Flags derive from the Zod schema:
 ```typescript
 // cli.ts
 import { topo } from '@ontrails/core';
-import { blaze } from '@ontrails/cli/commander';
+import { trailhead } from '@ontrails/cli/commander';
 import * as deploy from './trails/deploy.js';
 
 const app = topo('myapp', deploy);
-blaze(app);
+trailhead(app);
 // myapp deploy run --service api --env staging --dry-run
 // Flags, defaults, descriptions, and validation all derived from Zod.
 ```

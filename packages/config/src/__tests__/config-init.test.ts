@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createServiceLookup } from '@ontrails/core';
+import { createProvisionLookup } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -11,7 +11,7 @@ import type { ConfigState } from '../registry.js';
 import { configInit } from '../trails/config-init.js';
 
 /**
- * Build a TrailContext with configService resolved in extensions.
+ * Build a TrailContext with configProvision resolved in extensions.
  */
 const buildCtx = (state: ConfigState): TrailContext => {
   const extensions = { config: state };
@@ -20,13 +20,13 @@ const buildCtx = (state: ConfigState): TrailContext => {
     cwd: '/tmp',
     env: {},
     extensions,
+    provision: undefined as unknown as TrailContext['provision'],
     requestId: 'test',
-    service: undefined as unknown as TrailContext['service'],
     workspaceRoot: '/tmp',
   };
   const withLookup = {
     ...ctx,
-    service: createServiceLookup(() => withLookup),
+    provision: createProvisionLookup(() => withLookup),
   };
   return withLookup;
 };
@@ -63,9 +63,9 @@ describe('config.init trail', () => {
       expect(configInit.output).toBeDefined();
     });
 
-    test('declares configService dependency', () => {
-      expect(configInit.services).toBeDefined();
-      expect(configInit.services?.length).toBe(1);
+    test('declares configProvision dependency', () => {
+      expect(configInit.provisions).toBeDefined();
+      expect(configInit.provisions?.length).toBe(1);
     });
   });
 

@@ -1,94 +1,102 @@
-import { existsSync } from 'node:fs';
-
-import { auditRoots, auditRules } from './vocab-cutover-map';
+import { auditRules, auditSelfExclusions } from './vocab-cutover-map';
+import {
+  formatScopeSummary,
+  getScopeOptions,
+  hasFlag,
+  listScopedRepoFiles,
+  parseFlagValues,
+} from './vocab-cutover-utils';
 
 interface MatchDetail {
   readonly count: number;
+  readonly excerpt: string;
+  readonly line: number;
   readonly path: string;
 }
 
 interface RuleResult {
   readonly id: string;
   readonly description: string;
+  readonly fileCount: number;
   readonly matches: readonly MatchDetail[];
   readonly total: number;
 }
 
-const args = new Set(Bun.argv.slice(2));
-const json = args.has('--json');
-const selectedRuleIndex = Bun.argv.indexOf('--rule');
-const selectedRule =
-  selectedRuleIndex === -1 ? undefined : Bun.argv[selectedRuleIndex + 1];
+const json = hasFlag('--json');
+const listRules = hasFlag('--list-rules');
+const selectedRules = parseFlagValues('--rule');
+const scopeOptions = getScopeOptions();
 
-const isAuditTarget = (path: string) =>
-  auditRoots.some((root) => path === root || path.startsWith(root));
+const globallyExcludedPaths = new Set(auditSelfExclusions);
 
 const isExcludedFromRule = (path: string, rule: (typeof auditRules)[number]) =>
-  rule.excludePaths?.some(
+  globallyExcludedPaths.has(path) ||
+  (rule.excludePaths?.some(
     (excludedPath) =>
       path === excludedPath || path.startsWith(`${excludedPath}/`)
-  ) ?? false;
-
-const listGitFiles = (gitArgs: readonly string[]) => {
-  const result = Bun.spawnSync(['git', ...gitArgs], {
-    cwd: process.cwd(),
-    stderr: 'pipe',
-    stdout: 'pipe',
-  });
-
-  if (result.exitCode !== 0) {
-    const error = new Error(result.stderr.toString());
-    error.name = 'GitLsFilesError';
-    throw error;
-  }
-
-  return result.stdout
-    .toString()
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-};
-
-const listRepoFiles = () => {
-  const tracked = listGitFiles(['ls-files']);
-  const untracked = listGitFiles([
-    'ls-files',
-    '--others',
-    '--exclude-standard',
-  ]);
-
-  return [...new Set([...tracked, ...untracked])]
-    .filter((path) => existsSync(path))
-    .filter(isAuditTarget);
-};
+  ) ??
+    false);
 
 const getSelectedRules = () =>
-  selectedRule
-    ? auditRules.filter((rule) => rule.id === selectedRule)
+  selectedRules.length > 0
+    ? auditRules.filter((rule) => selectedRules.includes(rule.id))
     : auditRules;
 
-const countMatches = (content: string, matcher: RegExp) =>
-  [...content.matchAll(matcher)].length;
+const countMatches = (content: string, pattern: string) => {
+  const matcher = new RegExp(pattern, 'g');
+  return [...content.matchAll(matcher)].length;
+};
 
-const findMatchDetail = async (path: string, matcher: RegExp) => {
+const formatExcerpt = (line: string) => {
+  const normalized = line.trim().replaceAll(/\s+/g, ' ');
+  if (normalized.length <= 120) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, 117)}...`;
+};
+
+const findMatchDetail = async (
+  path: string,
+  pattern: string
+): Promise<MatchDetail[] | undefined> => {
   const content = await Bun.file(path).text();
-  const count = countMatches(content, matcher);
-  return count === 0 ? undefined : { count, path };
+  const matches = content.split(/\r?\n/).flatMap((line, index) => {
+    const count = countMatches(line, pattern);
+    if (count === 0) {
+      return [];
+    }
+
+    return [
+      {
+        count,
+        excerpt: formatExcerpt(line),
+        line: index + 1,
+        path,
+      },
+    ];
+  });
+
+  return matches.length === 0 ? undefined : matches;
 };
 
 const findRuleResult = async (
   rule: (typeof auditRules)[number],
   files: readonly string[]
 ): Promise<RuleResult> => {
-  const matcher = new RegExp(rule.pattern, 'g');
   const scopedFiles = files.filter((path) => !isExcludedFromRule(path, rule));
   const matches = await Promise.all(
-    scopedFiles.map((path) => findMatchDetail(path, matcher))
+    scopedFiles.map((path) => findMatchDetail(path, rule.pattern))
   );
-  const details = matches.filter((match) => match !== undefined);
+  const details = matches.flatMap((match) => match ?? []);
+  const fileCount = matches.reduce(
+    (sum, match) => sum + (match === undefined ? 0 : 1),
+    0
+  );
 
   return {
     description: rule.description,
+    fileCount,
     id: rule.id,
     matches: details,
     total: details.reduce((sum, match) => sum + match.count, 0),
@@ -96,17 +104,30 @@ const findRuleResult = async (
 };
 
 const findRuleResults = () => {
-  const files = listRepoFiles();
+  const files = listScopedRepoFiles(scopeOptions);
   return Promise.all(
     getSelectedRules().map((rule) => findRuleResult(rule, files))
   );
+};
+
+const printRuleList = () => {
+  console.log('Available vocab audit rules:\n');
+  for (const rule of auditRules) {
+    const exclusions =
+      (rule.excludePaths?.length ?? 0)
+        ? ` (excludes: ${rule.excludePaths?.join(', ')})`
+        : '';
+    console.log(`- ${rule.id}: ${rule.description}${exclusions}`);
+  }
 };
 
 const printText = (results: readonly RuleResult[]) => {
   const failing = results.filter((result) => result.total > 0);
 
   if (failing.length === 0) {
-    console.log('vocab-cutover audit passed: no legacy patterns found.');
+    console.log(
+      `vocab-cutover audit passed for ${formatScopeSummary(scopeOptions)}: no legacy patterns found.`
+    );
     return;
   }
 
@@ -114,15 +135,20 @@ const printText = (results: readonly RuleResult[]) => {
     console.log(`\n${result.id} — ${result.description}`);
     for (const match of result.matches) {
       console.log(
-        `  ${match.count.toString().padStart(4, ' ')}  ${match.path}`
+        `  ${match.path}:${match.line.toString().padStart(4, ' ')}  x${match.count.toString().padStart(2, ' ')}  ${match.excerpt}`
       );
     }
   }
 
   console.log(
-    `\nFound ${failing.length} failing rule${failing.length === 1 ? '' : 's'} across ${failing.reduce((sum, result) => sum + result.matches.length, 0)} files.`
+    `\nFound ${failing.length} failing rule${failing.length === 1 ? '' : 's'} across ${failing.reduce((sum, result) => sum + result.fileCount, 0)} files and ${failing.reduce((sum, result) => sum + result.matches.length, 0)} matching lines.`
   );
 };
+
+if (listRules) {
+  printRuleList();
+  process.exit(0);
+}
 
 const results = await findRuleResults();
 

@@ -1,64 +1,66 @@
 import { describe } from 'bun:test';
 
-import { Result, service, trail, topo } from '@ontrails/core';
+import { Result, provision, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { testAll } from '../all.js';
 
-const mockDbService = service('db.mock.all', {
+const mockDbProvision = provision('db.mock.all', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
-const mockedTrail = trail('service.mocked.all', {
-  blaze: (_input, ctx) => Result.ok({ source: mockDbService.from(ctx).source }),
-  description: 'Trail that uses a mocked service through testAll',
+const mockedTrail = trail('provision.mocked.all', {
+  blaze: (_input, ctx) =>
+    Result.ok({ source: mockDbProvision.from(ctx).source }),
+  description: 'Trail that uses a mocked provision through testAll',
   examples: [
     {
       expected: { source: 'mock' },
       input: {},
-      name: 'Uses auto-resolved service mock',
+      name: 'Uses auto-resolved provision mock',
     },
   ],
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  services: [mockDbService],
+  provisions: [mockDbProvision],
 });
 
-const overrideTrail = trail('service.override.all', {
-  blaze: (_input, ctx) => Result.ok({ source: mockDbService.from(ctx).source }),
+const overrideTrail = trail('provision.override.all', {
+  blaze: (_input, ctx) =>
+    Result.ok({ source: mockDbProvision.from(ctx).source }),
   description: 'Trail that prefers explicit overrides over mock factories',
   examples: [
     {
       expected: { source: 'override' },
       input: {},
-      name: 'Explicit service override wins',
+      name: 'Explicit provision override wins',
     },
   ],
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  services: [mockDbService],
+  provisions: [mockDbProvision],
 });
 
-describe('testAll service mocks', () => {
+describe('testAll provision mocks', () => {
   // eslint-disable-next-line jest/require-hook
   testAll(
-    topo('test-all-service-mock-app', {
-      mockDbService,
+    topo('test-all-provision-mock-app', {
+      mockDbProvision,
       mockedTrail,
     } as Record<string, unknown>)
   );
 });
 
-describe('testAll explicit service overrides', () => {
+describe('testAll explicit provision overrides', () => {
   // eslint-disable-next-line jest/require-hook
   testAll(
-    topo('test-all-service-override-app', {
-      mockDbService,
+    topo('test-all-provision-override-app', {
+      mockDbProvision,
       overrideTrail,
     } as Record<string, unknown>),
     {
-      services: { 'db.mock.all': { source: 'override' } },
+      provisions: { 'db.mock.all': { source: 'override' } },
     }
   );
 });

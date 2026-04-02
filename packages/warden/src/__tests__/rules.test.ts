@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { contextNoSurfaceTypes } from '../rules/context-no-surface-types.js';
+import { contextNoTrailheadTypes } from '../rules/context-no-trailhead-types.js';
 import { noDirectImplInRoute } from '../rules/no-direct-impl-in-route.js';
 import { noThrowInImplementation } from '../rules/no-throw-in-implementation.js';
 import { validDetourRefs } from '../rules/valid-detour-refs.js';
@@ -52,9 +52,9 @@ trail("entity.show", {
 });
 
 // ---------------------------------------------------------------------------
-// context-no-surface-types
+// context-no-trailhead-types
 // ---------------------------------------------------------------------------
-describe('context-no-surface-types', () => {
+describe('context-no-trailhead-types', () => {
   test('flags express import in trail file', () => {
     const code = `
 import { Request, Response } from "express";
@@ -63,9 +63,9 @@ trail("entity.show", {
     return Result.ok(data);
   }
 })`;
-    const diagnostics = contextNoSurfaceTypes.check(code, TEST_FILE);
+    const diagnostics = contextNoTrailheadTypes.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(1);
-    expect(diagnostics[0]?.rule).toBe('context-no-surface-types');
+    expect(diagnostics[0]?.rule).toBe('context-no-trailhead-types');
     expect(diagnostics[0]?.message).toContain('express');
   });
 
@@ -77,7 +77,7 @@ trail("entity.show", {
     return Result.ok(data);
   }
 })`;
-    const diagnostics = contextNoSurfaceTypes.check(code, TEST_FILE);
+    const diagnostics = contextNoTrailheadTypes.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(1);
   });
 
@@ -89,7 +89,7 @@ trail("entity.show", {
     return Result.ok(data);
   }
 })`;
-    const diagnostics = contextNoSurfaceTypes.check(code, TEST_FILE);
+    const diagnostics = contextNoTrailheadTypes.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(0);
   });
 
@@ -97,7 +97,7 @@ trail("entity.show", {
     const code = `
 import { Request, Response } from "express";
 export function handleRequest(req: Request, res: Response) {}`;
-    const diagnostics = contextNoSurfaceTypes.check(code, TEST_FILE);
+    const diagnostics = contextNoTrailheadTypes.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(0);
   });
 });
@@ -146,11 +146,11 @@ trail("entity.show", {
     expect(diagnostics.length).toBe(0);
   });
 
-  test('flags detour target in trail with follow that does not exist', () => {
+  test('flags detour target in trail with crossings that does not exist', () => {
     const code = `
 trail("entity.onboard", {
   detours: [{ target: "entity.missing" }],
-  follow: ["entity.create"],
+  crosses: ["entity.create"],
   blaze: async (input, ctx) => Result.ok(data)
 })`;
     const diagnostics = validDetourRefs.check(code, TEST_FILE);
@@ -158,7 +158,7 @@ trail("entity.onboard", {
     expect(diagnostics[0]?.message).toContain('entity.missing');
   });
 
-  test('passes when trail with follow detour target exists', () => {
+  test('passes when trail with crossings detour target exists', () => {
     const code = `
 trail("entity.fallback", {
   blaze: async (input, ctx) => Result.ok(data)
@@ -166,7 +166,7 @@ trail("entity.fallback", {
 
 trail("entity.onboard", {
   detours: [{ target: "entity.fallback" }],
-  follow: ["entity.create"],
+  crosses: ["entity.create"],
   blaze: async (input, ctx) => Result.ok(data)
 })`;
     const diagnostics = validDetourRefs.check(code, TEST_FILE);
@@ -178,10 +178,10 @@ trail("entity.onboard", {
 // no-direct-impl-in-route
 // ---------------------------------------------------------------------------
 describe('no-direct-impl-in-route', () => {
-  test('warns on direct .blaze() call in trail with follow', () => {
+  test('warns on direct .blaze() call in trail with crossings', () => {
     const code = `
 trail("entity.onboard", {
-  follow: ["entity.create"],
+  crosses: ["entity.create"],
   blaze: async (input, ctx) => {
     const result = await entityCreate.blaze(data);
     return Result.ok(result);
@@ -190,15 +190,15 @@ trail("entity.onboard", {
     const diagnostics = noDirectImplInRoute.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(1);
     expect(diagnostics[0]?.severity).toBe('warn');
-    expect(diagnostics[0]?.message).toContain('ctx.follow');
+    expect(diagnostics[0]?.message).toContain('ctx.cross');
   });
 
-  test('allows ctx.follow() calls', () => {
+  test('allows ctx.cross() calls', () => {
     const code = `
 trail("entity.onboard", {
-  follow: ["entity.create"],
+  crosses: ["entity.create"],
   blaze: async (input, ctx) => {
-    const result = await ctx.follow("entity.create", data);
+    const result = await ctx.cross("entity.create", data);
     return Result.ok(result);
   }
 })`;
@@ -206,7 +206,7 @@ trail("entity.onboard", {
     expect(diagnostics.length).toBe(0);
   });
 
-  test('ignores trails without follow', () => {
+  test('ignores trails without crossings', () => {
     const code = `
 trail("entity.show", {
   blaze: async (input, ctx) => {

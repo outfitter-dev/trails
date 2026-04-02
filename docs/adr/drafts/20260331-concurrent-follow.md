@@ -13,12 +13,12 @@ owners: ['[galligan](https://github.com/galligan)']
 
 ### Sequential composition today
 
-`ctx.follow()` is the composition primitive. One trail follows another by ID, passing input and receiving a Result. The calling trail controls flow with normal TypeScript: branch on errors, pass results forward, compose sequentially. The `follow` declaration is a flat array of trail IDs the trail might call. The warden verifies declarations match code.
+`ctx.cross()` is the composition primitive. One trail follows another by ID, passing input and receiving a Result. The calling trail controls flow with normal TypeScript: branch on errors, pass results forward, compose sequentially. The `follow` declaration is a flat array of trail IDs the trail might call. The warden verifies declarations match code.
 
 ```typescript
-const user = await ctx.follow('user.create', { name: input.name });
+const user = await ctx.cross('user.create', { name: input.name });
 if (user.isErr()) return user;
-const welcome = await ctx.follow('notify.welcome', { userId: user.value.id });
+const welcome = await ctx.cross('notify.welcome', { userId: user.value.id });
 ```
 
 This is powerful because it's just code. The developer writes exactly what they mean. No DSL, no workflow engine, no graph builder. TypeScript is the orchestration language.
@@ -29,14 +29,14 @@ Real workflows have independent branches. Three notifications that don't depend 
 
 ```typescript
 // These are independent but run one after another
-const email = await ctx.follow('notify.email', { userId });
-const sms = await ctx.follow('notify.sms', { userId });
-const push = await ctx.follow('notify.push', { userId });
+const email = await ctx.cross('notify.email', { userId });
+const sms = await ctx.cross('notify.sms', { userId });
+const push = await ctx.cross('notify.push', { userId });
 ```
 
 This wastes time. If email takes 150ms, sms 180ms, and push 120ms, the sequential total is 450ms. Concurrent execution would take 180ms (the longest branch). For three notifications that's annoying. For twenty parallel API calls it's a real bottleneck.
 
-More importantly, the framework can't see the developer's intent. Survey reports three follows. Crumbs records three sequential spans. Neither knows the developer wanted concurrency. The code doesn't express what the developer means.
+More importantly, the framework can't see the developer's intent. Survey reports three follows. Tracker records three sequential spans. Neither knows the developer wanted concurrency. The code doesn't express what the developer means.
 
 ### The composition patterns people actually build
 
@@ -56,16 +56,16 @@ Of these, only fan-out and fan-out/fan-in need a new runtime primitive. Conditio
 
 ## Decision
 
-### Overload `ctx.follow()` for concurrent composition
+### Overload `ctx.cross()` for concurrent composition
 
-`ctx.follow()` gains an array overload. When called with an array of `[trailId, input]` tuples, it executes all branches concurrently and returns a `Result[]` in the same order:
+`ctx.cross()` gains an array overload. When called with an array of `[trailId, input]` tuples, it executes all branches concurrently and returns a `Result[]` in the same order:
 
 ```typescript
 // Sequential (unchanged): string + input → single Result
-const result = await ctx.follow('notify.email', { userId });
+const result = await ctx.cross('notify.email', { userId });
 
 // Concurrent (new): array of tuples → Result[]
-const results = await ctx.follow([
+const results = await ctx.cross([
   ['notify.email', { userId }],
   ['notify.sms', { userId }],
   ['notify.push', { userId }],
@@ -82,22 +82,22 @@ The array form reads naturally in every composition pattern:
 
 ```typescript
 // Sequential dependency, then fan-out
-const order = await ctx.follow('order.validate', input);
+const order = await ctx.cross('order.validate', input);
 if (order.isErr()) return order;
 
-const [payment, inventory] = await ctx.follow([
+const [payment, inventory] = await ctx.cross([
   ['billing.charge', { amount: order.value.total }],
   ['inventory.reserve', { items: order.value.items }],
 ]);
 
 // Fan-out, then fan-in
-const [users, orders] = await ctx.follow([
+const [users, orders] = await ctx.cross([
   ['data.extract-users', { since: input.since }],
   ['data.extract-orders', { since: input.since }],
 ]);
 if (users.isErr() || orders.isErr()) return Result.err(new InternalError('extraction failed'));
 
-const report = await ctx.follow('data.generate-report', {
+const report = await ctx.cross('data.generate-report', {
   users: users.value,
   orders: orders.value,
 });
@@ -115,7 +115,7 @@ An optional second argument on the array form controls concurrency:
 
 ```typescript
 // Fan out to 20 sources, limit to 5 concurrent
-const results = await ctx.follow([
+const results = await ctx.cross([
   ['source.a', query],
   ['source.b', query],
   // ...18 more...
@@ -131,7 +131,7 @@ The single-follow overload never sees the options argument. It doesn't need conc
 The Result model already handles optionality. No new primitive needed:
 
 ```typescript
-const results = await ctx.follow([
+const results = await ctx.cross([
   ['notify.email', { userId }],
   ['notify.sms', { userId }],
   ['notify.push', { userId }],
@@ -162,27 +162,27 @@ The developer expresses optionality by how they handle the Result, the same way 
 ### The `follow` declaration stays flat
 
 ```typescript
-follow: ['notify.email', 'notify.sms', 'notify.push', 'user.enrich'],
+crosses: ['notify.email', 'notify.sms', 'notify.push', 'user.enrich'],
 ```
 
 The declaration lists every trail this trail might follow. Whether those follows are sequential, concurrent, optional, or conditional is a runtime decision expressed in the implementation. The declaration is the vocabulary (what trails am I allowed to talk to). The implementation is the grammar (how I compose them).
 
-The warden's job is unchanged: verify that every ID in a `ctx.follow()` call (single or array form) appears in the `follow` declaration. If you call something you didn't declare, error. If you declare something you never call, warning. Whether the follow is sequential or concurrent doesn't affect the governance rule.
+The warden's job is unchanged: verify that every ID in a `ctx.cross()` call (single or array form) appears in the `follow` declaration. If you call something you didn't declare, error. If you declare something you never call, warning. Whether the follow is sequential or concurrent doesn't affect the governance rule.
 
-### Crumbs records what actually happens
+### Tracker records what actually happens
 
-Crumbs doesn't need declaration hints to record composition shape. It observes it:
+Tracker doesn't need declaration hints to record composition shape. It observes it:
 
-- Single `ctx.follow()` call → child span under the current trail's span.
-- Array `ctx.follow()` call → sibling spans with concurrent timing under the current trail's span. Same parent, overlapping start timestamps.
+- Single `ctx.cross()` call → child span under the current trail's span.
+- Array `ctx.cross()` call → sibling spans with concurrent timing under the current trail's span. Same parent, overlapping start timestamps.
 
-Crumbs can derive "these three follows ran concurrently in 180ms" vs "these two follows ran sequentially totaling 300ms." The observation is ground truth, more accurate than any declaration would be.
+Tracker can derive "these three follows ran concurrently in 180ms" vs "these two follows ran sequentially totaling 300ms." The observation is ground truth, more accurate than any declaration would be.
 
-With crumbs data available, survey can report observed composition patterns: "in the last 1000 executions, `notify.email`, `notify.sms`, and `notify.push` always run concurrently." That's observed information, not authored information.
+With tracker data available, survey can report observed composition patterns: "in the last 1000 executions, `notify.email`, `notify.sms`, and `notify.push` always run concurrently." That's observed information, not authored information.
 
 ### Scoping for concurrent branches
 
-Each concurrent branch gets an independent service context. Two parallel trails writing to the same transaction is a recipe for race conditions. If branches need shared state, the developer uses the sequential form.
+Each concurrent branch gets an independent provision context. Two parallel trails writing to the same transaction is a recipe for race conditions. If branches need shared state, the developer uses the sequential form.
 
 The parent trail's `permit`, `logger`, and `signal` (AbortSignal) propagate to all branches. Cancellation via the signal cancels all running branches.
 
@@ -199,12 +199,12 @@ const results = await ctx.followAll([
 
 This was the initial design. A new method specifically for parallel execution. Rejected because it adds vocabulary that isn't needed. "Follow all" is just "follow" with multiple targets. The array overload communicates the same thing without a new name. One method doing one conceptual thing (follow trails) is simpler than two methods for two modes of the same thing.
 
-Adding `followAll` also opens the door to `followAny`, `followRace`, `followFirst`, and other combinators. Each is a new method on context, a new concept to learn, a new thing the warden must understand. The overload approach avoids this proliferation: `ctx.follow()` is the composition primitive, period.
+Adding `followAll` also opens the door to `followAny`, `followRace`, `followFirst`, and other combinators. Each is a new method on context, a new concept to learn, a new thing the warden must understand. The overload approach avoids this proliferation: `ctx.cross()` is the composition primitive, period.
 
 ### Structured `follow` declaration with groups and annotations
 
 ```typescript
-follow: {
+crosses: {
   'billing.charge': { },
   'notify.email': { group: 'notifications' },
   'notify.sms': { group: 'notifications', optional: true },
@@ -214,7 +214,7 @@ follow: {
 
 This approach would let the declaration express composition shape: which follows are concurrent (grouped), which are optional, which are conditional. The warden could check that grouped follows are actually called concurrently, and that optional follows' errors aren't propagated.
 
-Rejected for several reasons. The declaration becomes a second place where composition logic lives, separate from the implementation. The declaration can say `group: 'notifications'` but the code might call them sequentially. That's a new drift surface. The annotations are governance hints that duplicate information already present in the code's control flow.
+Rejected for several reasons. The declaration becomes a second place where composition logic lives, separate from the implementation. The declaration can say `group: 'notifications'` but the code might call them sequentially. That's a new drift trailhead. The annotations are governance hints that duplicate information already present in the code's control flow.
 
 The flat array is beautifully simple. It says "here's what I might call." Everything else is in the code, where TypeScript provides the full expressiveness of a real programming language. Adding structure to the declaration is adding a limited DSL that competes with TypeScript for expressing the same things.
 
@@ -223,7 +223,7 @@ If real usage reveals that the warden genuinely needs to know composition shape 
 ### `before`/`after`/`concurrent` annotations on declarations
 
 ```typescript
-follow: {
+crosses: {
   'step.a': { before: 'step.b' },
   'step.b': { after: 'step.a', before: 'step.c' },
   'step.c': { after: 'step.b' },
@@ -231,7 +231,7 @@ follow: {
 },
 ```
 
-This would let the declaration express ordering constraints and concurrency relationships. Rejected because `await` already is the ordering primitive. Writing `const a = await ctx.follow('step.a', input)` before `const b = await ctx.follow('step.b', a.value)` already expresses "A before B." The dependency is the data flow. Adding `before`/`after` annotations restates what the code says and can drift from it.
+This would let the declaration express ordering constraints and concurrency relationships. Rejected because `await` already is the ordering primitive. Writing `const a = await ctx.cross('step.a', input)` before `const b = await ctx.cross('step.b', a.value)` already expresses "A before B." The dependency is the data flow. Adding `before`/`after` annotations restates what the code says and can drift from it.
 
 Concurrency relationships are similarly expressed by the array overload: if two follows appear in the same array, they're concurrent. If they're separate awaits, they're sequential. The code structure is the concurrency declaration.
 
@@ -261,14 +261,14 @@ const results = await ctx.follow.concurrent([
 const enriched = await ctx.follow.optional('user.enrich', { userId });
 ```
 
-Method chaining on `follow` with named modes. Rejected because `concurrent` is just the array overload (no new method needed), and `optional` is just "handle the Result without propagating the error" (no new method needed). Adding named modes for things the developer already expresses with normal code patterns adds API surface without adding capability.
+Method chaining on `follow` with named modes. Rejected because `concurrent` is just the array overload (no new method needed), and `optional` is just "handle the Result without propagating the error" (no new method needed). Adding named modes for things the developer already expresses with normal code patterns adds API trailhead without adding capability.
 
 The optional pattern in particular is dangerous to codify. What does `follow.optional` return when the follow fails? `null`? `undefined`? A default value? The Result model already answers this question clearly: you get a `Result`, you check it, you decide what to do. Adding `follow.optional` would hide the error handling, which is the opposite of what Result is designed for.
 
 ### Weighted or prioritized follows
 
 ```typescript
-follow: {
+crosses: {
   'provider.fast': { weight: 0.8 },
   'provider.slow': { weight: 0.2 },
 },
@@ -278,7 +278,7 @@ Weights for load balancing or priority across concurrent follows. Rejected becau
 
 ### Automatic concurrency detection via static analysis
 
-Instead of an explicit array overload, the framework could detect that three sequential `ctx.follow()` calls are independent (no data dependency between them) and run them concurrently automatically.
+Instead of an explicit array overload, the framework could detect that three sequential `ctx.cross()` calls are independent (no data dependency between them) and run them concurrently automatically.
 
 Rejected because implicit concurrency is a correctness hazard. Two follows may look independent (no data flow between them) but have hidden dependencies: shared external state, ordering requirements in a third system, rate limit interactions. The developer must opt in to concurrency because only the developer knows whether concurrent execution is safe.
 
@@ -286,33 +286,33 @@ Rejected because implicit concurrency is a correctness hazard. Two follows may l
 
 ### Positive
 
-- **No new vocabulary.** `ctx.follow()` is still the one composition primitive. The developer learns one method. The array overload is a natural extension of the existing signature.
+- **No new vocabulary.** `ctx.cross()` is still the one composition primitive. The developer learns one method. The array overload is a natural extension of the existing signature.
 - **The declaration stays simple.** The `follow` array is still a flat list of trail IDs. No structural annotations, no groups, no ordering constraints. The declaration is the vocabulary. The code is the grammar.
 - **Partial failure uses existing patterns.** The Result model handles optionality. The developer checks results and decides what's required vs optional. No new framework concept for optional follows.
-- **Crumbs observes composition shape.** Concurrent follows produce sibling spans with overlapping timestamps. Sequential follows produce sequential spans. The observation is ground truth, not declaration.
-- **Warden rules are unchanged.** The existing `follow-declarations` rule validates that every ID in a `ctx.follow()` call appears in the `follow` declaration. The rule works identically for single and array forms.
+- **Tracker observes composition shape.** Concurrent follows produce sibling spans with overlapping timestamps. Sequential follows produce sequential spans. The observation is ground truth, not declaration.
+- **Warden rules are unchanged.** The existing `follow-declarations` rule validates that every ID in a `ctx.cross()` call appears in the `follow` declaration. The rule works identically for single and array forms.
 - **Concurrency control is opt-in.** The `{ concurrency: N }` option handles backpressure for large fan-outs without affecting the common case.
 
 ### Tradeoffs
 
-- **Overloaded return type.** `ctx.follow()` returns `Result` for the single form and `Result[]` for the array form. TypeScript handles this with union discrimination, but the developer must know which form they used. In practice, the call site makes this unambiguous: if you destructure as an array, you used the array form.
-- **No framework-level composition introspection before runtime.** Survey reports a flat follow list. It doesn't know which follows are concurrent, optional, or conditional until crumbs observes actual execution. This is a deliberate tradeoff: runtime observation is more accurate than static declaration. If static introspection of composition shape proves valuable, the structured declaration can be added later.
+- **Overloaded return type.** `ctx.cross()` returns `Result` for the single form and `Result[]` for the array form. TypeScript handles this with union discrimination, but the developer must know which form they used. In practice, the call site makes this unambiguous: if you destructure as an array, you used the array form.
+- **No framework-level composition introspection before runtime.** Survey reports a flat follow list. It doesn't know which follows are concurrent, optional, or conditional until tracker observes actual execution. This is a deliberate tradeoff: runtime observation is more accurate than static declaration. If static introspection of composition shape proves valuable, the structured declaration can be added later.
 - **Concurrency limit is per-call, not per-topo.** If two trails both fan out to 20 branches with `{ concurrency: 5 }`, the topo may have 10 concurrent operations total. There's no global concurrency governor. This is acceptable for v1. If it becomes a problem, a topo-level concurrency limit would be a separate concern.
 
 ### What this does NOT decide
 
 - Whether the `follow` declaration will gain structural annotations (groups, optional markers, ordering hints) in the future. The flat array is sufficient today. Real usage may reveal governance needs that require structure.
-- Whether `ctx.follow()` will gain additional overloads (e.g., streaming results, race semantics). The current two forms (single and array) cover the common patterns. Additional forms would need their own ADR.
+- Whether `ctx.cross()` will gain additional overloads (e.g., streaming results, race semantics). The current two forms (single and array) cover the common patterns. Additional forms would need their own ADR.
 - How parallel follows interact with request-scoped services if those are added in the future. The current decision (independent scopes per branch) is correct for singleton services and would need revisiting for shared mutable state.
 - Whether the concurrency limit should support more sophisticated strategies (e.g., adaptive concurrency based on error rates). A static limit is sufficient for v1.
 
 ## References
 
-- [ADR-0000: Core Premise](../0000-core-premise.md) -- "derive by default"; crumbs observes composition shape rather than requiring it to be declared
+- [ADR-0000: Core Premise](../0000-core-premise.md) -- "derive by default"; tracker observes composition shape rather than requiring it to be declared
 - [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent follows
 - [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- "composition is a property, not a type"; parallel vs sequential is a runtime choice, not a contract distinction. The `follow` declaration stays flat, same as when `hike()` was unified into `trail()`.
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `executeTrail` is called for each concurrent branch; the pipeline is unchanged
-- [ADR-0013: Crumbs](../0013-crumbs.md) -- crumbs observes concurrent vs sequential spans to derive composition shape at runtime
+- [ADR-0013: Tracker](../0013-tracker.md) -- tracker observes concurrent vs sequential spans to derive composition shape at runtime
 - ADR: The Serialized Topo Graph (draft) -- the lockfile captures composition shapes including parallel follow patterns
-- ADR: Trail Visibility and Surface Filtering (draft) -- concurrent follows respect visibility; internal trails are followable regardless of concurrency mode
+- ADR: Trail Visibility and Trailhead Filtering (draft) -- concurrent follows respect visibility; internal trails are followable regardless of concurrency mode
 - ADR: Packs as Namespace Boundaries (draft) -- concurrent follows across pack boundaries work identically to sequential follows; pack boundary governance is unchanged

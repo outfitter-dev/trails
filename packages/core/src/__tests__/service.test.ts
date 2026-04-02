@@ -4,18 +4,18 @@ import { z } from 'zod';
 import {
   Result,
   createTrailContext,
-  findDuplicateServiceId,
-  isService,
-  service as defineService,
+  findDuplicateProvisionId,
+  isProvision,
+  provision as defineProvision,
 } from '../index.js';
 import type {
-  Service,
-  ServiceContext,
-  ServiceSpec,
+  Provision,
+  ProvisionContext,
+  ProvisionSpec,
   TrailContext,
 } from '../index.js';
 
-const serviceCtx: ServiceContext = {
+const provisionCtx: ProvisionContext = {
   cwd: '/tmp/trails',
   env: { DATABASE_URL: 'file::memory:' },
   workspaceRoot: '/tmp',
@@ -23,13 +23,13 @@ const serviceCtx: ServiceContext = {
 
 let disposedValue: number | undefined;
 
-const counterServiceSpec: ServiceSpec<number> = {
+const counterProvisionSpec: ProvisionSpec<number> = {
   create: () => Result.ok(3),
-  description: 'Counter service',
-  dispose: (service) => {
-    disposedValue = service;
+  description: 'Counter provision',
+  dispose: (provision) => {
+    disposedValue = provision;
   },
-  health: (service) => Result.ok({ healthy: service > 0 }),
+  health: (provision) => Result.ok({ healthy: provision > 0 }),
   metadata: { domain: 'data' },
   mock: () => 1,
 };
@@ -41,21 +41,21 @@ const resolvedServiceCtx = (id: string, instance: unknown): TrailContext =>
     requestId: `${id}-request`,
   });
 
-describe('service types', () => {
-  test('ServiceContext exposes the stable process-scoped fields', () => {
-    expect(serviceCtx.cwd).toBe('/tmp/trails');
-    expect(serviceCtx.env?.DATABASE_URL).toBe('file::memory:');
-    expect(serviceCtx.workspaceRoot).toBe('/tmp');
+describe('provision types', () => {
+  test('ProvisionContext exposes the stable process-scoped fields', () => {
+    expect(provisionCtx.cwd).toBe('/tmp/trails');
+    expect(provisionCtx.env?.DATABASE_URL).toBe('file::memory:');
+    expect(provisionCtx.workspaceRoot).toBe('/tmp');
   });
 
-  test('ServiceSpec stores description and metadata', () => {
-    expect(counterServiceSpec.description).toBe('Counter service');
-    expect(counterServiceSpec.metadata).toEqual({ domain: 'data' });
+  test('ProvisionSpec stores description and metadata', () => {
+    expect(counterProvisionSpec.description).toBe('Counter provision');
+    expect(counterProvisionSpec.metadata).toEqual({ domain: 'data' });
   });
 
-  test('ServiceSpec can reserve a config schema for future composition', () => {
+  test('ProvisionSpec can reserve a config schema for future composition', () => {
     const config = z.object({ url: z.string().url() });
-    const spec: ServiceSpec<number> = {
+    const spec: ProvisionSpec<number> = {
       config,
       create: () => Result.ok(1),
     };
@@ -63,72 +63,72 @@ describe('service types', () => {
     expect(spec.config).toBe(config);
   });
 
-  test('ServiceSpec create and health callbacks are callable', async () => {
-    const result = await counterServiceSpec.create(serviceCtx);
+  test('ProvisionSpec create and health callbacks are callable', async () => {
+    const result = await counterProvisionSpec.create(provisionCtx);
     expect(result.isOk()).toBe(true);
     expect(result.unwrap()).toBe(3);
 
-    const health = await counterServiceSpec.health?.(result.unwrap());
+    const health = await counterProvisionSpec.health?.(result.unwrap());
     expect(health?.isOk()).toBe(true);
     expect(health?.unwrap()).toEqual({ healthy: true });
   });
 
-  test('ServiceSpec mock and dispose callbacks are callable', async () => {
+  test('ProvisionSpec mock and dispose callbacks are callable', async () => {
     disposedValue = undefined;
-    const result = await counterServiceSpec.create(serviceCtx);
+    const result = await counterProvisionSpec.create(provisionCtx);
     expect(result.isOk()).toBe(true);
 
-    const service = result.unwrap();
-    expect(await counterServiceSpec.mock?.()).toBe(1);
+    const provision = result.unwrap();
+    expect(await counterProvisionSpec.mock?.()).toBe(1);
 
-    await counterServiceSpec.dispose?.(service);
+    await counterProvisionSpec.dispose?.(provision);
     expect(disposedValue).toBe(3);
   });
 
-  test('ServiceSpec create can be async', async () => {
-    const spec: ServiceSpec<number> = {
+  test('ProvisionSpec create can be async', async () => {
+    const spec: ProvisionSpec<number> = {
       create: async () => {
         await Bun.sleep(0);
         return Result.ok(7);
       },
     };
 
-    const result = await spec.create(serviceCtx);
+    const result = await spec.create(provisionCtx);
     expect(result.isOk()).toBe(true);
     expect(result.unwrap()).toBe(7);
   });
 
-  test('Service carries identity alongside the shared spec fields', async () => {
-    const service: Service<number> = {
+  test('Provision carries identity alongside the shared spec fields', async () => {
+    const counterProvision: Provision<number> = {
       from(ctx) {
-        return ctx.service(this);
+        return ctx.provision(this);
       },
       id: 'counter.main',
-      kind: 'service',
-      ...counterServiceSpec,
+      kind: 'provision',
+      ...counterProvisionSpec,
     };
 
-    expect(service.kind).toBe('service');
-    expect(service.id).toBe('counter.main');
+    expect(counterProvision.kind).toBe('provision');
+    expect(counterProvision.id).toBe('counter.main');
 
-    const created = await service.create(serviceCtx);
+    const created = await counterProvision.create(provisionCtx);
     expect(created.isOk()).toBe(true);
     expect(created.unwrap()).toBe(3);
-    expect(await service.mock?.()).toBe(1);
+    expect(await counterProvision.mock?.()).toBe(1);
   });
 });
 
-describe('service()', () => {
-  test('returns a frozen service object with kind and id', () => {
-    const counter = defineService('counter.main', counterServiceSpec);
+describe('provision()', () => {
+  test('returns a frozen provision object with kind and id', () => {
+    const counter = defineProvision('counter.main', counterProvisionSpec);
 
-    expect(counter.kind).toBe('service');
+    expect(counter.kind).toBe('provision');
     expect(counter.id).toBe('counter.main');
     expect(Object.isFrozen(counter)).toBe(true);
   });
 
-  test('infers the service type through from(ctx)', () => {
-    const db = defineService('db.main', {
+  test('infers the provision type through from(ctx)', () => {
+    const db = defineProvision('db.main', {
       create: () =>
         Result.ok({
           query(sql: string) {
@@ -149,48 +149,48 @@ describe('service()', () => {
     expect(resolved.query('select 1')).toBe(8);
   });
 
-  test('from(ctx) throws when the service is missing', () => {
-    const counter = defineService('counter.main', counterServiceSpec);
+  test('from(ctx) throws when the provision is missing', () => {
+    const counter = defineProvision('counter.main', counterProvisionSpec);
     const ctx = createTrailContext({
       abortSignal: new AbortController().signal,
-      requestId: 'missing-service',
+      requestId: 'missing-provision',
     });
 
     expect(() => counter.from(ctx)).toThrow(
-      'Service "counter.main" not found in trail context'
+      'Provision "counter.main" not found in trail context'
     );
   });
 
-  test('from(ctx) returns undefined when the service key exists with an undefined value', () => {
-    const optional = defineService<undefined>('optional.main', {
+  test('from(ctx) returns undefined when the provision key exists with an undefined value', () => {
+    const optional = defineProvision<undefined>('optional.main', {
       create: () => Result.ok<undefined>(),
     });
     const ctx = createTrailContext({
       abortSignal: new AbortController().signal,
       extensions: { [optional.id]: undefined },
-      requestId: 'undefined-service',
+      requestId: 'undefined-provision',
     });
 
     expect(optional.from(ctx)).toBeUndefined();
   });
 });
 
-describe('service helpers', () => {
-  test('isService identifies service definitions', () => {
-    const counter = defineService('counter.main', counterServiceSpec);
+describe('provision helpers', () => {
+  test('isProvision identifies provision definitions', () => {
+    const counter = defineProvision('counter.main', counterProvisionSpec);
 
-    expect(isService(counter)).toBe(true);
-    expect(isService({ id: 'counter.main', kind: 'trail' })).toBe(false);
-    expect(isService(null)).toBe(false);
+    expect(isProvision(counter)).toBe(true);
+    expect(isProvision({ id: 'counter.main', kind: 'trail' })).toBe(false);
+    expect(isProvision(null)).toBe(false);
   });
 
-  test('findDuplicateServiceId returns the first repeated ID', () => {
-    const first = defineService('counter.main', counterServiceSpec);
-    const duplicate = defineService('counter.main', counterServiceSpec);
-    const other = defineService('counter.secondary', counterServiceSpec);
+  test('findDuplicateProvisionId returns the first repeated ID', () => {
+    const first = defineProvision('counter.main', counterProvisionSpec);
+    const duplicate = defineProvision('counter.main', counterProvisionSpec);
+    const other = defineProvision('counter.secondary', counterProvisionSpec);
 
-    expect(findDuplicateServiceId([first, other])).toBeUndefined();
-    expect(findDuplicateServiceId([first, other, duplicate])).toBe(
+    expect(findDuplicateProvisionId([first, other])).toBeUndefined();
+    expect(findDuplicateProvisionId([first, other, duplicate])).toBe(
       'counter.main'
     );
   });

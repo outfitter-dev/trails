@@ -20,7 +20,7 @@ export const runWardenTrails = async (
   filePath: string,
   sourceCode: string,
   options?: {
-    readonly knownServiceIds?: readonly string[];
+    readonly knownProvisionIds?: readonly string[];
     readonly knownTrailIds?: readonly string[];
   }
 ): Promise<readonly WardenDiagnostic[]> => {
@@ -28,11 +28,11 @@ export const runWardenTrails = async (
 
   for (const id of wardenTopo.ids()) {
     const input =
-      options?.knownTrailIds || options?.knownServiceIds
+      options?.knownTrailIds || options?.knownProvisionIds
         ? {
             filePath,
-            ...(options?.knownServiceIds
-              ? { knownServiceIds: options.knownServiceIds }
+            ...(options?.knownProvisionIds
+              ? { knownProvisionIds: options.knownProvisionIds }
               : {}),
             ...(options?.knownTrailIds
               ? { knownTrailIds: options.knownTrailIds }

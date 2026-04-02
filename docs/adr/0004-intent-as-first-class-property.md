@@ -12,7 +12,7 @@ owners: ['[galligan](https://github.com/galligan)']
 
 ## Context
 
-Trails needs to know whether a trail is safe to call without side effects, whether it modifies state, or whether it destroys something. Surfaces use this information to derive behavior: HTTP picks a method, MCP sets annotation hints, CLI adds safety flags. The question is how the developer declares it.
+Trails needs to know whether a trail is safe to call without side effects, whether it modifies state, or whether it destroys something. Trailheads use this information to derive behavior: HTTP picks a method, MCP sets annotation hints, CLI adds safety flags. The question is how the developer declares it.
 
 Early versions used two booleans:
 
@@ -33,9 +33,9 @@ Two booleans create four states. Three are meaningful:
 | `false` | `true` | Destructive mutation |
 | `true` | `true` | **Contradictory** |
 
-The fourth state — read-only and destructive — makes no sense. But the type system permits it. Nothing prevents a developer (or an agent) from setting both to `true` and producing a trail with undefined surface behavior.
+The fourth state — read-only and destructive — makes no sense. But the type system permits it. Nothing prevents a developer (or an agent) from setting both to `true` and producing a trail with undefined trailhead behavior.
 
-This is the kind of invalid state that compounds. Surfaces would need defensive checks. Tests would need to cover the contradictory case. Documentation would need to explain why it's wrong. All of that is waste created by a modeling choice that allows something that shouldn't exist.
+This is the kind of invalid state that compounds. Trailheads would need defensive checks. Tests would need to cover the contradictory case. Documentation would need to explain why it's wrong. All of that is waste created by a modeling choice that allows something that shouldn't exist.
 
 A single field with three values models the domain exactly. No invalid states. No defensive checks. One field, three meanings, zero ambiguity.
 
@@ -60,9 +60,9 @@ trail({
 });
 ```
 
-### Surface derivation from intent
+### Trailhead derivation from intent
 
-The developer declares intent. The framework derives surface behavior. Each surface has an explicit lookup table — no conditionals, no fallback chains.
+The developer declares intent. The framework derives trailhead behavior. Each trailhead has an explicit lookup table — no conditionals, no fallback chains.
 
 **HTTP** — method and input source:
 
@@ -105,14 +105,14 @@ Folding idempotency into intent would create a combinatorial explosion (`'idempo
 
 ### This is framework knowledge
 
-The mapping tables above live in surface packages, not in trail definitions. The developer writes `intent: 'read'`. The HTTP surface knows that means GET. The MCP surface knows that means `readOnlyHint: true`. The CLI surface knows that means no dry-run preset. The developer doesn't need to know any of this. They declare what the trail does; the framework handles how each surface represents it.
+The mapping tables above live in trailhead packages, not in trail definitions. The developer writes `intent: 'read'`. The HTTP trailhead knows that means GET. The MCP trailhead knows that means `readOnlyHint: true`. The CLI trailhead knows that means no dry-run preset. The developer doesn't need to know any of this. They declare what the trail does; the framework handles how each trailhead represents it.
 
 ## Consequences
 
 ### Positive
 
 - **No invalid states.** Three values, three meanings. The type system rejects anything else.
-- **One field drives all surfaces.** A single `intent` declaration produces the correct HTTP method, MCP annotation, and CLI flag behavior. No per-surface configuration.
+- **One field drives all trailheads.** A single `intent` declaration produces the correct HTTP method, MCP annotation, and CLI flag behavior. No per-trailhead configuration.
 - **Clear semantic meaning.** `intent: 'destroy'` communicates more than `readOnly: false, destructive: true`. The code reads like prose.
 - **Safe default.** Defaulting to `'write'` means trails are treated as state-mutating unless explicitly marked otherwise. You opt into lighter treatment, not out of safety.
 
@@ -125,9 +125,9 @@ The mapping tables above live in surface packages, not in trail definitions. The
 
 - Whether additional intent values will be added in the future
 - How `intent` interacts with authorization or access control (that's a separate concern)
-- Whether surfaces can override the derived behavior (currently they cannot — the mapping is deterministic)
+- Whether trailheads can override the derived behavior (currently they cannot — the mapping is deterministic)
 
 ## References
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — derive by default, override deliberately; the information architecture categories
-- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-surface-derivation.md) — the broader pattern of which intent is one instance
+- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — the broader pattern of which intent is one instance

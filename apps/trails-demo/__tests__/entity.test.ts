@@ -7,7 +7,7 @@
 import { NotFoundError, AlreadyExistsError } from '@ontrails/core';
 import { testTrail } from '@ontrails/testing';
 
-import { entityStoreService } from '../src/services/entity-store.js';
+import { entityStoreProvision } from '../src/provisions/entity-store.js';
 import { createStore } from '../src/store.js';
 import { show, add, remove, list } from '../src/trails/entity.js';
 
@@ -22,7 +22,7 @@ const store = createStore([
 
 const ctx = {
   extensions: {
-    [entityStoreService.id]: store,
+    [entityStoreProvision.id]: store,
   },
 };
 

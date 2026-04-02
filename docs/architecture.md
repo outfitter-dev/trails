@@ -1,6 +1,6 @@
 # Architecture
 
-Trails uses a hexagonal architecture. Core defines ports. Everything on the edges is an adapter.
+Trails uses a hexagonal architecture. Core defines ports. Everything on the edges is a connector.
 
 ## The Hexagonal Model
 
@@ -19,36 +19,36 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 |    @ontrails/core     |
                 |                       |
                 |  trail() -> Trail     |
-                |  event() -> Event     |
+                |  signal() -> Signal   |
                 |  topo() -> Topo       |
                 |  Result, Errors       |
-                |  Layer, Topo          |
+                |  Gate, Topo           |
                 |                       |
                 +---------+-------------+
                           |
                 +---------v-------------+
                 |  Config (config)      |
                 |  Permits (permits)    |
-                |  Crumbs (crumbs)      |
+                |  Tracker (tracker)    |
                 |  Logging (logtape)    |
                 +-----------------------+
                 RIGHT SIDE (outbound)
                 How the framework calls out
 ```
 
-The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP requests. The right side is where the framework calls out -- config, auth permits, telemetry crumbs, and logging. Core sits in the middle and defines the contracts for both sides.
+The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP requests. The right side is where the framework calls out -- config, auth permits, telemetry tracking, and logging. Core sits in the middle and defines the contracts for both sides.
 
 ## Core Principles
 
-**The trail is the product, not the surface.** A trail is a typed function with a Zod schema, error taxonomy, examples, and metadata. CLI commands, MCP tools, and HTTP endpoints are projections of that trail onto surfaces.
+**The trail is the product, not the trailhead.** A trail is a typed function with a Zod schema, error taxonomy, examples, and metadata. CLI commands, MCP tools, and HTTP endpoints are projections of that trail onto trailheads.
 
-**Drift is structurally harder than alignment.** One schema, one `Result` type, one error taxonomy. You cannot have different parameter names across surfaces because there is only one schema.
+**Drift is structurally harder than alignment.** One schema, one `Result` type, one error taxonomy. You cannot have different parameter names across trailheads because there is only one schema.
 
-**Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, and WebSocket are all equal adapters reading from the same topo. Adding a surface is a `trailhead()` call, not an architecture change.
+**Trailheads are peers.** No trailhead is privileged. CLI, MCP, HTTP, and WebSocket are all equal connectors reading from the same topo. Adding a trailhead is a `trailhead()` call, not an architecture change.
 
-**Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation does not know which surface invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before layers and surfaces run.
+**Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation does not know which trailhead invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before gates and trailheads run.
 
-**The framework defines ports -- everything concrete is an adapter.** CLI framework (Commander, yargs), logging backend (LogTape, pino), storage engine, telemetry exporter -- all pluggable. The framework never imports a concrete implementation.
+**The framework defines ports -- everything concrete is a connector.** CLI framework (Commander, yargs), logging backend (LogTape, pino), storage engine, telemetry exporter -- all pluggable. The framework never imports a concrete implementation.
 
 **The contract is machine-readable at runtime.** The topo, survey, and guide make the trail system queryable by agents, tooling, and CI.
 
@@ -91,8 +91,8 @@ These are boundaries the compiler enforces on the implementation at development 
 | `output: z.object({...})` | Implementation return type must match the schema shape |
 | `Result<T, Error>` | Implementation cannot throw — must return `Result.ok()` or `Result.err()` |
 | `TrailContext` interface | Implementation receives only the fields the framework provides |
-| `follow: [...]` on trails | Declares the composition graph; warden verifies `ctx.follow()` calls match |
-| `services: [...]` on trails | Declares infrastructure dependencies; warden verifies `service.from(ctx)` / `ctx.service()` usage match |
+| `crosses: [...]` on trails | Declares the composition graph; warden verifies `ctx.cross()` calls match |
+| `provisions: [...]` on trails | Declares infrastructure dependencies; warden verifies `provision.from(ctx)` / `ctx.provision()` usage match |
 
 ### Inferred — detected by static analysis, best-effort
 
@@ -100,15 +100,15 @@ These are derived from the implementation code itself. Useful for governance and
 
 | Inferred                     | From                                       |
 | ---------------------------- | ------------------------------------------ |
-| Which trails a trail follows  | `ctx.follow()` calls in the implementation |
+| Which trails a trail follows  | `ctx.cross()` calls in the implementation |
 | Error types returned         | `Result.err(new XError(...))` patterns     |
-| Surface map entries and hash | All of the above, canonicalized            |
+| Trailhead map entries and hash | All of the above, canonicalized            |
 
-Warden uses inference to verify that declarations match actual code. The surface map captures inferred information for CI governance.
+Warden uses inference to verify that declarations match actual code. The trailhead map captures inferred information for CI governance.
 
 ### Observed — learned from runtime
 
-The crumbs (`@ontrails/crumbs`) system captures what actually happens at runtime: execution duration, error distributions, trace context propagation. Observations close the loop -- declarations define intent, observations verify reality.
+The tracker (`@ontrails/tracker`) system captures what actually happens at runtime: execution duration, error distributions, trace context propagation. Observations close the loop -- declarations define intent, observations verify reality.
 
 ### Overridden — when derivation doesn't fit
 
@@ -119,47 +119,47 @@ Any derived value can be overridden when the default is wrong for your case:
 | CLI command name | Default derivation from trail ID doesn't read well |
 | MCP tool name | Need to match an external convention |
 | Flag name or description | Zod field name doesn't make a good flag |
-| `follow` list | Lock the composition boundary tighter than the code implies |
+| `crosses` list | Lock the composition boundary tighter than the code implies |
 
-Overrides are escape hatches. They're visible in the surface map as explicit deviations from derivation. They should be rare — if you're overriding everything, the derivation rules are wrong.
+Overrides are escape hatches. They're visible in the trailhead map as explicit deviations from derivation. They should be rare — if you're overriding everything, the derivation rules are wrong.
 
 **The design heuristic:** when evaluating any new feature, ask "does this require the developer to author information the framework already has?" If yes, derive it. If it genuinely can't be derived, it earns a place on the trail spec. If it can be derived but might be wrong sometimes, derive it with an override.
 
 ---
 
-## Package Layers
+## Package Gates
 
 ### Foundation
 
-`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, `trail()`/`event()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, layers, and adapter port interfaces.
+`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, `trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, gates, and connector port interfaces.
 
-**The test:** if you are building a surface adapter or ecosystem package, you should only need `@ontrails/core`.
+**The test:** if you are building a trailhead connector or ecosystem package, you should only need `@ontrails/core`.
 
-### Surface Adapters (left side)
+### Trailhead Connectors (left side)
 
 | Package | What it does | External dep |
 | --- | --- | --- |
 | `@ontrails/cli` | Framework-agnostic command model, flag derivation, output formatting | None beyond core |
-| `@ontrails/cli/commander` | Commander adapter, `trailhead()` | `commander` (optional peer) |
+| `@ontrails/cli/commander` | Commander connector, `trailhead()` | `commander` (optional peer) |
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `trailhead()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP routes, error mapping, `trailhead()` | `hono` |
 
-### Infrastructure Adapters (right side)
+### Infrastructure Connectors (right side)
 
 | Package | What it does | External dep |
 | --- | --- | --- |
-| `@ontrails/config` | Config resolution, loadouts, service config schemas, diagnostics | None beyond core |
-| `@ontrails/permits` | Auth layer, permit model, JWT adapter, scope enforcement | None beyond core |
-| `@ontrails/crumbs` | Telemetry recording, trace context, memory/OTel sinks | None beyond core |
+| `@ontrails/config` | Config resolution, loadouts, provision config schemas, diagnostics | None beyond core |
+| `@ontrails/permits` | Auth gate, permit model, JWT connector, scope enforcement | None beyond core |
+| `@ontrails/tracker` | Telemetry recording, trace context, memory/OTel sinks | None beyond core |
 | `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
-| `@ontrails/logging/logtape` | LogTape sink adapter | `@logtape/logtape` (optional peer) |
+| `@ontrails/logging/logtape` | LogTape sink connector | `@logtape/logtape` (optional peer) |
 
 ### Ecosystem
 
 | Package | What it does |
 | --- | --- |
-| `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, surface harnesses |
-| `@ontrails/schema` | Surface maps, semantic diffing, lock files |
+| `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, trailhead harnesses |
+| `@ontrails/schema` | Trailhead maps, semantic diffing, lock files |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 
 ### Apps
@@ -179,7 +179,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 @ontrails/http (core, hono)
 @ontrails/config (core)
 @ontrails/permits (core)
-@ontrails/crumbs (core)
+@ontrails/tracker (core)
 @ontrails/logging (core)
 @ontrails/testing (core, cli, mcp, logging)
 @ontrails/schema (core)
@@ -191,7 +191,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 apps/trails (cli/commander, schema)
 ```
 
-Clean DAG. Core at the center. No cycles. Surface adapters depend only on core. Framework adapters depend on their parent package.
+Clean DAG. Core at the center. No cycles. Trailhead connectors depend only on core. Framework connectors depend on their parent package.
 
 ## Data Flow
 
@@ -200,14 +200,14 @@ Clean DAG. Core at the center. No cycles. Surface adapters depend only on core. 
 ```text
 CLI input ("myapp entity show --name Alpha")
   -> Commander parses args/flags
-  -> CLI adapter matches to trail via CliCommand model
+  -> CLI connector matches to trail via CliCommand model
   -> Zod validates input against trail's schema
   -> TrailContext created (requestId, logger, abortSignal, env, cwd)
-  -> Declared services resolved into ctx
-  -> Layers run (auth, rate limit, telemetry)
+  -> Declared provisions resolved into ctx
+  -> Gates run (auth, rate limit, telemetry)
   -> implementation(validatedInput, ctx) called
   -> Result returned
-  -> Layers post-process
+  -> Gates post-process
   -> Result mapped to exit code + stdout output
 ```
 
@@ -215,10 +215,10 @@ CLI input ("myapp entity show --name Alpha")
 
 ```text
 MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
-  -> MCP adapter matches to trail
+  -> MCP connector matches to trail
   -> Zod validates input
   -> TrailContext created
-  -> Declared services resolved into ctx
+  -> Declared provisions resolved into ctx
   -> Same implementation(validatedInput, ctx) called
   -> Same Result returned
   -> Result mapped to MCP tool response
@@ -231,7 +231,7 @@ HTTP request (GET /entity/show?name=Alpha)
   -> Hono matches route derived from trail ID
   -> Zod validates input (query params for GET, JSON body for POST/DELETE)
   -> TrailContext created
-  -> Declared services resolved into ctx
+  -> Declared provisions resolved into ctx
   -> Same implementation(validatedInput, ctx) called
   -> Same Result returned
   -> Result mapped to JSON response with status code from error taxonomy
@@ -241,7 +241,7 @@ The implementation is identical. Only the edges change.
 
 ### Headless Execution via `run()`
 
-`run()` is the headless path -- no surface adapter needed:
+`run()` is the headless path -- no trailhead connector needed:
 
 ```text
 run(topo, 'entity.show', { name: 'Alpha' }, options?)
@@ -250,23 +250,23 @@ run(topo, 'entity.show', { name: 'Alpha' }, options?)
   -> Result returned, never throws
 ```
 
-This is useful for server-side composition, background workers, and test harnesses that need to invoke trails by ID without wiring a surface.
+This is useful for server-side composition, background workers, and test harnesses that need to invoke trails by ID without wiring a trailhead.
 
 ### The Shared `executeTrail()` Pipeline
 
-All surfaces -- CLI, MCP, HTTP, and `run()` -- delegate to the same `executeTrail()` function in `@ontrails/core`:
+All trailheads -- CLI, MCP, HTTP, and `run()` -- delegate to the same `executeTrail()` function in `@ontrails/core`:
 
 ```text
 executeTrail(trail, rawInput, options?)
   -> Zod validates rawInput against trail's input schema
   -> TrailContext resolved from options/createContext
-  -> Declared services resolved into ctx
-  -> Layers composed via composeLayers()
+  -> Declared provisions resolved into ctx
+  -> Gates composed via composeGates()
   -> implementation(validatedInput, ctx) called
   -> Result returned
 ```
 
-This guarantees consistent validation, layer ordering, and error handling regardless of which surface initiated the call.
+This guarantees consistent validation, gate ordering, and error handling regardless of which trailhead initiated the call.
 
 ## Error Taxonomy
 
@@ -289,8 +289,8 @@ All extend `TrailsError` (direct class inheritance). Pattern matching uses `inst
 
 ## Runtime Strategy
 
-**Trails is Bun-native. Surfaces are universally consumable.**
+**Trails is Bun-native. Trailheads are universally consumable.**
 
 All packages use Bun APIs where they improve the developer experience: `Bun.file()` for I/O, `Bun.Glob` for discovery, `Bun.randomUUIDv7()` for IDs, `Bun.CryptoHasher` for hashing, `bun:sqlite` for storage.
 
-The surfaces Trails produces (CLI commands, MCP tools, HTTP endpoints) are protocol-based. Consumers interact via standard protocols -- they don't need Bun. A Node project can add Trails by installing Bun alongside Node. Bun runs Node code, so everything coexists.
+The trailheads Trails produces (CLI commands, MCP tools, HTTP endpoints) are protocol-based. Consumers interact via standard protocols -- they don't need Bun. A Node project can add Trails by installing Bun alongside Node. Bun runs Node code, so everything coexists.

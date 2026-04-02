@@ -59,17 +59,17 @@ import { app } from '../app';
 testAll(app);
 ```
 
-When trails declare services, the testing helpers respect them in two ways:
+When trails declare provisions, the testing helpers respect them in two ways:
 
-- Services with a `mock` factory auto-resolve during `testAll`, `testExamples`, and `testContracts`.
-- Explicit `services` overrides let you inject a specific test double when you need one.
+- Provisions with a `mock` factory auto-resolve during `testAll`, `testExamples`, and `testContracts`.
+- Explicit `provisions` overrides let you inject a specific test double when you need one.
 
 ```typescript
-import { service, Result } from '@ontrails/core';
+import { provision, Result } from '@ontrails/core';
 import { testAll } from '@ontrails/testing';
 import { app } from '../app';
 
-const db = service('db.main', {
+const db = provision('db.main', {
   create: () => Result.ok(connectToDatabase()),
   mock: () => createInMemoryDb(),
 });
@@ -78,7 +78,7 @@ const db = service('db.main', {
 testAll(app); // auto-resolves db.main from db.mock()
 
 testAll(app, () => ({
-  services: { 'db.main': createInMemoryDb() },
+  provisions: { 'db.main': createInMemoryDb() },
 }));
 ```
 
@@ -86,7 +86,7 @@ Pass a factory when your explicit overrides contain mutable state, so each test 
 
 Generates a `governance` describe block containing:
 
-- **Topo validation** via `validateTopo` (follow targets exist, no recursive follow, event origins, example schema validation, output schema presence)
+- **Topo validation** via `validateTopo` (crosses exist, no recursive crossing, event origins, example schema validation, output schema presence)
 - **Example execution** via `testExamples`
 - **Contract checks** via `testContracts`
 - **Detour verification** via `testDetours`
@@ -194,7 +194,7 @@ testTrail(showTrail, [
 ]);
 ```
 
-For trails with `follow`, use `testTrail` the same way -- it exercises the follow graph and verifies that upstream failures propagate correctly:
+For trails with `crosses`, use `testTrail` the same way -- it exercises the crossing graph and verifies that upstream failures propagate correctly:
 
 ```typescript
 import { testTrail } from '@ontrails/testing';
@@ -254,25 +254,25 @@ const ctx = createTestContext({
 
 Defaults: deterministic request ID, test logger (captures entries), a non-aborted `abortSignal`.
 
-If you need a service override at the context level, pass it through `services` to `testAll()` / `testExamples()` / `testContracts()`, or attach it to `extensions` under the service ID when calling a single trail helper like `testTrail()`. `testTrail()` accepts a raw context object, so service injection there bypasses the normal pipeline resolution step and goes directly through `extensions`.
+If you need a provision override at the context level, pass it through `provisions` to `testAll()` / `testExamples()` / `testContracts()`, or attach it to `extensions` under the provision ID when calling a single trail helper like `testTrail()`. `testTrail()` accepts a raw context object, so provision injection there bypasses the normal pipeline resolution step and goes directly through `extensions`.
 
-### `createFollowContext(options?)`
+### `createCrossContext(options?)`
 
-Creates a mock `FollowFn` for testing composite trails that call `ctx.follow()`. Pre-configure responses per trail ID:
+Creates a mock `CrossFn` for testing composite trails that call `ctx.cross()`. Pre-configure responses per trail ID:
 
 ```typescript
-import { createFollowContext, createTestContext } from '@ontrails/testing';
+import { createCrossContext, createTestContext } from '@ontrails/testing';
 import { Result } from '@ontrails/core';
 
-const follow = createFollowContext({
+const cross = createCrossContext({
   responses: {
     'user.get': Result.ok({ name: 'Alice' }),
     'user.validate': Result.ok({ valid: true }),
   },
 });
 
-const ctx = { ...createTestContext(), follow };
-const result = await onboardTrail.blaze({ name: 'Delta' }, ctx);
+const ctx = { ...createTestContext(), cross };
+const result = await onboardTrail.trailhead({ name: 'Delta' }, ctx);
 
 expect(result.isOk()).toBe(true);
 ```
@@ -294,7 +294,7 @@ logger.entries; // all captured records
 logger.clear(); // reset
 ```
 
-## Surface Harnesses
+## Trailhead Harnesses
 
 ### CLI Harness
 
@@ -323,9 +323,9 @@ const result = await harness.callTool('myapp_entity_show', { name: 'Alpha' });
 expect(result.isError).toBe(false);
 ```
 
-## Testing with Infrastructure Services
+## Testing with Infrastructure Provisions
 
-The config, permits, and crumbs packages each provide test-friendly primitives that work with `testAll(app)` and `testExamples(app)` without external dependencies.
+The config, permits, and tracker packages each provide test-friendly primitives that work with `testAll(app)` and `testExamples(app)` without external dependencies.
 
 **Config test loadout.** Use `defineConfig()` with a `test` loadout that uses safe defaults (port 0, debug enabled, in-memory stores). When the `TRAILS_ENV` environment variable is set to `test`, the test loadout is selected automatically during resolution. Services with `config` schemas receive the test loadout values through `svc.config`.
 
@@ -338,14 +338,14 @@ const permit = mintTestPermit({ scopes: ['entity:read'] });
 const trailPermit = mintPermitForTrail(showTrail);
 ```
 
-**Crumbs memory sink.** `createMemorySink()` captures all crumb records in memory for assertion. Pair it with `createCrumbsLayer()` to verify that trails emit the expected telemetry without configuring a real exporter:
+**Tracker memory gate.** `createMemorySink()` captures all tracker records in memory for assertion. Pair it with `createTrackerGate()` to verify that trails emit the expected telemetry without configuring a real exporter:
 
 ```typescript
-import { createMemorySink, createCrumbsLayer } from '@ontrails/crumbs';
+import { createMemorySink, createTrackerGate } from '@ontrails/tracker';
 
 const sink = createMemorySink();
-const layer = createCrumbsLayer(sink);
-// ...run trails with the layer...
+const gate = createTrackerGate(sink);
+// ...run trails with the gate...
 expect(sink.records).toHaveLength(1);
 ```
 

@@ -1,0 +1,19 @@
+# @ontrails/tracker
+
+## 1.0.0-beta.12
+
+### Minor Changes
+
+- Complete trifecta for config, permits, and tracker (formerly tracks)
+
+  - **config**: Add `configProvision`, `config.gate`, `config.trail`, and `config.workspace` trails with full `defineConfig`, `resolve`, `describe`, `explain`, `doctor`, and code generation support
+  - **permits**: Add `authProvision` and `auth.verify` trail for runtime authorization checks
+  - **tracker**: Rename tracks to tracker; add `trackerProvision` and `tracker.status` trail for structured event tracking
+  - **cli**: Fix build flag handling and improve bootstrap scaffolding
+  - **testing**: Expand test context helpers and example-based testing utilities
+  - **core/mcp/http**: Internal alignment for provision and composition updates
+
+### Patch Changes
+
+- Updated dependencies
+  - @ontrails/core@1.0.0-beta.12

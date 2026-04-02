@@ -1,7 +1,7 @@
 /**
  * `survey` trail -- Full topo introspection.
  *
- * Lists trails, shows detail for individual trails, generates surface maps,
+ * Lists trails, shows detail for individual trails, generates trailhead maps,
  * and diffs against previous versions.
  */
 
@@ -9,13 +9,13 @@ import type { Topo, Trail } from '@ontrails/core';
 import { Result, trail } from '@ontrails/core';
 import type { DiffResult } from '@ontrails/schema';
 import {
-  diffSurfaceMaps,
+  diffTrailheadMaps,
   generateOpenApiSpec,
-  generateSurfaceMap,
-  hashSurfaceMap,
-  readSurfaceMap,
-  writeSurfaceLock,
-  writeSurfaceMap,
+  generateTrailheadMap,
+  hashTrailheadMap,
+  readTrailheadMap,
+  writeTrailheadLock,
+  writeTrailheadMap,
 } from '@ontrails/schema';
 import { z } from 'zod';
 
@@ -30,15 +30,15 @@ export interface BriefReport {
   readonly version: string;
   readonly contractVersion: string;
   readonly features: {
-    readonly services: boolean;
+    readonly provisions: boolean;
     readonly outputSchemas: boolean;
     readonly examples: boolean;
     readonly detours: boolean;
-    readonly events: boolean;
+    readonly signals: boolean;
   };
   readonly trails: number;
-  readonly events: number;
-  readonly services: number;
+  readonly signals: number;
+  readonly provisions: number;
 }
 
 export interface SurveyListReport {
@@ -49,12 +49,12 @@ export interface SurveyListReport {
     readonly kind: string;
     readonly safety: string;
   }[];
-  readonly serviceCount: number;
-  readonly services: readonly {
+  readonly provisionCount: number;
+  readonly provisions: readonly {
     readonly description: string | null;
     readonly health: 'available' | 'none';
     readonly id: string;
-    readonly kind: 'service';
+    readonly kind: 'provision';
     readonly lifetime: 'singleton';
     readonly usedBy: readonly string[];
   }[];
@@ -64,12 +64,12 @@ export interface TrailDetailReport {
   readonly description: string | null;
   readonly detours: Trail<unknown, unknown>['detours'] | null;
   readonly examples: readonly unknown[];
-  readonly follow: readonly string[];
+  readonly crosses: readonly string[];
   readonly id: string;
   readonly intent: 'read' | 'write' | 'destroy';
   readonly kind: string;
   readonly safety: string;
-  readonly services: readonly string[];
+  readonly provisions: readonly string[];
 }
 
 /** Check if a trail has a specific feature. */
@@ -87,7 +87,7 @@ const detectFeatures = (
   hasDetours: boolean;
   hasExamples: boolean;
   hasOutputSchemas: boolean;
-  hasServices: boolean;
+  hasProvisions: boolean;
 } => {
   const trails = [...app.trails.values()].map(
     (item) => item as unknown as Record<string, unknown>
@@ -96,30 +96,31 @@ const detectFeatures = (
     hasDetours: trails.some((r) => trailHas(r, 'detours')),
     hasExamples: trails.some((r) => trailHas(r, 'examples')),
     hasOutputSchemas: trails.some((r) => trailHas(r, 'output')),
-    hasServices: trails.some(
+    hasProvisions: trails.some(
       (r) =>
-        Array.isArray(r['services']) && (r['services'] as unknown[]).length > 0
+        Array.isArray(r['provisions']) &&
+        (r['provisions'] as unknown[]).length > 0
     ),
   };
 };
 
 /** Generate a compact capability report for the given topo. */
 export const generateBriefReport = (app: Topo): BriefReport => {
-  const { hasDetours, hasExamples, hasOutputSchemas, hasServices } =
+  const { hasDetours, hasExamples, hasOutputSchemas, hasProvisions } =
     detectFeatures(app);
 
   return {
     contractVersion: '2026-03',
-    events: app.events.size,
     features: {
       detours: hasDetours,
-      events: app.events.size > 0,
       examples: hasExamples,
       outputSchemas: hasOutputSchemas,
-      services: hasServices,
+      provisions: hasProvisions,
+      signals: app.signals.size > 0,
     },
     name: app.name,
-    services: app.services.size,
+    provisions: app.provisions.size,
+    signals: app.signals.size,
     trails: app.trails.size,
     version: '0.1.0',
   };
@@ -141,16 +142,16 @@ const safetyLabel = (entry: {
   return '-';
 };
 
-const buildServiceUsage = (
+const buildProvisionUsage = (
   app: Topo
 ): ReadonlyMap<string, readonly string[]> => {
   const usage = new Map<string, string[]>();
 
   for (const trailDef of app.list()) {
-    for (const declaredService of trailDef.services) {
-      const users = usage.get(declaredService.id) ?? [];
+    for (const declaredProvision of trailDef.provisions) {
+      const users = usage.get(declaredProvision.id) ?? [];
       users.push(trailDef.id);
-      usage.set(declaredService.id, users);
+      usage.set(declaredProvision.id, users);
     }
   }
 
@@ -159,22 +160,22 @@ const buildServiceUsage = (
   );
 };
 
-const serviceHealthStatus = (service: {
+const provisionHealthStatus = (provision: {
   health?: unknown;
 }): 'available' | 'none' =>
-  service.health === undefined ? 'none' : 'available';
+  provision.health === undefined ? 'none' : 'available';
 
-const formatServiceList = (app: Topo): SurveyListReport['services'] => {
-  const usage = buildServiceUsage(app);
+const formatProvisionList = (app: Topo): SurveyListReport['provisions'] => {
+  const usage = buildProvisionUsage(app);
   return app
-    .listServices()
-    .map((service) => ({
-      description: service.description ?? null,
-      health: serviceHealthStatus(service),
-      id: service.id,
-      kind: service.kind,
+    .listProvisions()
+    .map((provision) => ({
+      description: provision.description ?? null,
+      health: provisionHealthStatus(provision),
+      id: provision.id,
+      kind: provision.kind,
       lifetime: 'singleton' as const,
-      usedBy: usage.get(service.id) ?? [],
+      usedBy: usage.get(provision.id) ?? [],
     }))
     .toSorted((a, b) => a.id.localeCompare(b.id));
 };
@@ -199,13 +200,13 @@ export const generateSurveyList = (app: Topo): SurveyListReport => {
     };
   });
 
-  const services = formatServiceList(app);
+  const provisions = formatProvisionList(app);
 
   return {
     count: items.length,
     entries,
-    serviceCount: services.length,
-    services,
+    provisionCount: provisions.length,
+    provisions,
   };
 };
 
@@ -213,8 +214,8 @@ export const generateSurveyList = (app: Topo): SurveyListReport => {
  * Build a human-readable detail view for a single trail.
  *
  * Overlaps with `trailToEntry` in `@ontrails/schema` which builds the
- * surface-map entry. The two serve different audiences (human display vs
- * machine-diffable surface map) so they are kept separate.
+ * trailhead-map entry. The two serve different audiences (human display vs
+ * machine-diffable trailhead map) so they are kept separate.
  */
 export const generateTrailDetail = (
   item: Trail<unknown, unknown>
@@ -224,27 +225,27 @@ export const generateTrailDetail = (
   );
 
   return {
+    crosses: item.crosses.toSorted(),
     description: item.description ?? null,
     detours: item.detours ?? null,
     examples: item.examples ?? [],
-    follow: item.follow.toSorted(),
     id: item.id,
     intent: item.intent,
     kind: item.kind,
+    provisions: item.provisions.map((provision) => provision.id).toSorted(),
     safety,
-    services: item.services.map((service) => service.id).toSorted(),
   };
 };
 
-const formatServiceDetail = (app: Topo, serviceId: string): object => {
-  const item = app.getService(serviceId);
-  const usedBy = buildServiceUsage(app).get(serviceId) ?? [];
+const formatProvisionDetail = (app: Topo, provisionId: string): object => {
+  const item = app.getProvision(provisionId);
+  const usedBy = buildProvisionUsage(app).get(provisionId) ?? [];
 
   return {
     description: item?.description ?? null,
-    health: item ? serviceHealthStatus(item) : 'none',
-    id: serviceId,
-    kind: 'service',
+    health: item ? provisionHealthStatus(item) : 'none',
+    id: provisionId,
+    kind: 'provision',
     lifetime: 'singleton',
     usedBy,
   };
@@ -261,17 +262,17 @@ const buildSurveyDiff = async (
   app: Topo,
   breakingOnly: boolean
 ): Promise<Result<object, Error>> => {
-  const currentMap = generateSurfaceMap(app);
-  const previousMap = await readSurfaceMap();
+  const currentMap = generateTrailheadMap(app);
+  const previousMap = await readTrailheadMap();
   if (!previousMap) {
     return Result.err(
       new Error(
-        'No previous surface map found. Run `trails survey generate` first.'
+        'No previous trailhead map found. Run `trails survey generate` first.'
       )
     );
   }
 
-  const diff = diffSurfaceMaps(previousMap, currentMap);
+  const diff = diffTrailheadMaps(previousMap, currentMap);
   return Result.ok(
     breakingOnly
       ? formatDiff({
@@ -292,19 +293,19 @@ const buildSurveyDetail = (
   if (item) {
     return Result.ok(generateTrailDetail(item as Trail<unknown, unknown>));
   }
-  if (app.getService(trailId)) {
-    return Result.ok(formatServiceDetail(app, trailId));
+  if (app.getProvision(trailId)) {
+    return Result.ok(formatProvisionDetail(app, trailId));
   }
-  return Result.err(new Error(`Trail or service not found: ${trailId}`));
+  return Result.err(new Error(`Trail or provision not found: ${trailId}`));
 };
 
 const buildSurveyGenerate = async (
   app: Topo
 ): Promise<Result<object, Error>> => {
-  const surfaceMap = generateSurfaceMap(app);
-  const mapPath = await writeSurfaceMap(surfaceMap);
-  const hash = hashSurfaceMap(surfaceMap);
-  const lockPath = await writeSurfaceLock(hash);
+  const trailheadMap = generateTrailheadMap(app);
+  const mapPath = await writeTrailheadMap(trailheadMap);
+  const hash = hashTrailheadMap(trailheadMap);
+  const lockPath = await writeTrailheadLock(hash);
   return Result.ok({ hash, lockPath, mapPath });
 };
 
@@ -369,18 +370,18 @@ export const surveyTrail = trail('survey', {
   description: 'Full topo introspection',
   examples: [
     {
-      description: 'Lists all registered trails with safety and surface info',
-      input: {},
+      description: 'Lists all registered trails with safety and trailhead info',
+      input: { module: './src/app.ts' },
       name: 'List all trails',
     },
     {
       description: 'Quick capability summary with counts and feature flags',
-      input: { brief: true },
+      input: { brief: true, module: './src/app.ts' },
       name: 'Brief capability report',
     },
     {
       description: 'Generate an OpenAPI 3.1 specification for the topo',
-      input: { openapi: true },
+      input: { module: './src/app.ts', openapi: true },
       name: 'OpenAPI spec',
     },
   ],
@@ -394,7 +395,7 @@ export const surveyTrail = trail('survey', {
     generate: z
       .boolean()
       .default(false)
-      .describe('Generate surface map and lock file'),
+      .describe('Generate trailhead map and lock file'),
     module: z
       .string()
       .default('./src/app.ts')
@@ -414,13 +415,13 @@ export const surveyTrail = trail('survey', {
           safety: z.string(),
         })
       ),
-      serviceCount: z.number(),
-      services: z.array(
+      provisionCount: z.number(),
+      provisions: z.array(
         z.object({
           description: z.string().nullable(),
           health: z.enum(['available', 'none']),
           id: z.string(),
-          kind: z.literal('service'),
+          kind: z.literal('provision'),
           lifetime: z.literal('singleton'),
           usedBy: z.array(z.string()),
         })
@@ -428,16 +429,16 @@ export const surveyTrail = trail('survey', {
     }),
     z.object({
       contractVersion: z.string(),
-      events: z.number(),
       features: z.object({
         detours: z.boolean(),
-        events: z.boolean(),
         examples: z.boolean(),
         outputSchemas: z.boolean(),
-        services: z.boolean(),
+        provisions: z.boolean(),
+        signals: z.boolean(),
       }),
       name: z.string(),
-      services: z.number(),
+      provisions: z.number(),
+      signals: z.number(),
       trails: z.number(),
       version: z.string(),
     }),
@@ -448,21 +449,21 @@ export const surveyTrail = trail('survey', {
       warnings: z.array(z.unknown()),
     }),
     z.object({
+      crosses: z.array(z.string()),
       description: z.unknown().nullable(),
       detours: z.unknown().nullable(),
       examples: z.array(z.unknown()),
-      follow: z.array(z.string()),
       id: z.string(),
       intent: z.enum(['read', 'write', 'destroy']),
       kind: z.string(),
+      provisions: z.array(z.string()),
       safety: z.string(),
-      services: z.array(z.string()),
     }),
     z.object({
       description: z.string().nullable(),
       health: z.enum(['available', 'none']),
       id: z.string(),
-      kind: z.literal('service'),
+      kind: z.literal('provision'),
       lifetime: z.literal('singleton'),
       usedBy: z.array(z.string()),
     }),

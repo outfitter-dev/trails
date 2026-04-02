@@ -21,14 +21,14 @@ const greet = trail('greet', {
 const app = topo('myapp', { greet });
 ```
 
-Trails compose other trails through `follow` and `ctx.follow()`:
+Trails compose other trails through `crosses` and `ctx.cross()`:
 
 ```typescript
 const onboard = trail('entity.onboard', {
-  follow: ['entity.add', 'entity.relate'],
+  crosses: ['entity.add', 'entity.relate'],
   input: z.object({ name: z.string(), type: z.string() }),
   blaze: async (input, ctx) => {
-    const added = await ctx.follow('entity.add', input);
+    const added = await ctx.cross('entity.add', input);
     if (added.isErr()) return added;
     return Result.ok({ entity: added.value });
   },
@@ -41,24 +41,24 @@ const onboard = trail('entity.onboard', {
 
 | Export | What it does |
 | --- | --- |
-| `trail(id, spec)` | Define a unit of work with typed input and `Result` output; use `follow` for composition |
-| `event(id, spec)` | Define a server-originated push with a typed data schema |
-| `service(id, spec)` | Define an infrastructure dependency with `create`, `dispose`, and optional `mock` |
+| `trail(id, spec)` | Define a unit of work with typed input and `Result` output; use `crosses` for composition |
+| `signal(id, spec)` | Define a server-originated notification with a typed data schema |
+| `provision(id, spec)` | Define an infrastructure dependency with `create`, `dispose`, and optional `mock` |
 | `topo(name, ...modules)` | Collect trail modules into a queryable topology |
-| `validateTopo(topo)` | Structural validation: follow targets exist, no cycles, examples parse, output schemas present |
+| `validateTopo(topo)` | Structural validation: cross targets exist, no cycles, examples parse, output schemas present |
 
 ### Execution
 
 | Export | What it does |
 | --- | --- |
-| `executeTrail(trail, rawInput, options?)` | Centralized execution pipeline: validates input, builds context, composes layers, runs the implementation. Never throws -- exceptions become `Result.err(InternalError)`. |
+| `executeTrail(trail, rawInput, options?)` | Centralized execution pipeline: validates input, builds context, composes gates, runs the implementation. Never throws -- exceptions become `Result.err(InternalError)`. |
 | `run(topo, id, input, options?)` | Headless trail execution by ID. Looks up the trail in the topo, then delegates to `executeTrail`. Returns `Result.err(NotFoundError)` if the ID is not registered. |
 
 ```typescript
-// executeTrail — surface adapters use this directly
+// executeTrail — trailheads use this directly
 const result = await executeTrail(greet, { name: 'Alice' });
 
-// run — no-surface execution by trail ID
+// run — no-trailhead execution by trail ID
 const result = await run(app, 'greet', { name: 'Alice' });
 if (result.isOk()) console.log(result.value);
 ```
@@ -89,7 +89,7 @@ Beyond the `trail(id, spec)` builder, `Topo` exposes these accessors:
 
 | Type | What it describes |
 | --- | --- |
-| `ExecuteTrailOptions` | Options for `executeTrail`: `ctx`, `abortSignal`, `layers`, `createContext` |
+| `ExecuteTrailOptions` | Options for `executeTrail`: `ctx`, `abortSignal`, `gates`, `createContext` |
 | `RunOptions` | Same shape as `ExecuteTrailOptions`; forwarded by `run` |
 
 ### Result
@@ -112,7 +112,7 @@ result.unwrapOr(fallback);   // Value or fallback
 
 ### Error taxonomy
 
-13 error classes across 10 categories. Each maps deterministically to exit codes, HTTP status, and JSON-RPC codes on every surface.
+13 error classes across 10 categories. Each maps deterministically to exit codes, HTTP status, and JSON-RPC codes on every trailhead.
 
 | Category | Classes | HTTP | Retryable |
 | --- | --- | --- | --- |
@@ -127,7 +127,7 @@ result.unwrapOr(fallback);   // Value or fallback
 | `auth` | `AuthError` | 401 | No |
 | `cancelled` | `CancelledError` | 499 | No |
 
-The developer returns `Result.err(new NotFoundError(...))`. The framework maps it to the right code on every surface.
+The developer returns `Result.err(new NotFoundError(...))`. The framework maps it to the right code on every trailhead.
 
 ### Other exports
 
@@ -136,7 +136,7 @@ The developer returns `Result.err(new NotFoundError(...))`. The framework maps i
 - **Resilience** -- `retry`, `withTimeout`, `shouldRetry`, `getBackoffDelay`
 - **Serialization** -- `serializeError`, `deserializeError`
 - **Branded types** -- `uuid`, `email`, `nonEmptyString`, `positiveInt`
-- **Layers** -- cross-cutting middleware via `composeLayers`
+- **Gates** -- cross-cutting gates via `composeGates`
 - **Guards and collections** -- `isDefined`, `chunk`, `dedupe`, `groupBy`, `sortBy`
 - **Patterns** (`@ontrails/core/patterns`) -- reusable Zod schemas for pagination, bulk ops, timestamps, sorting
 - **Redaction** (`@ontrails/core/redaction`) -- strip sensitive data before logging

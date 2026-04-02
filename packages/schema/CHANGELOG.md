@@ -11,19 +11,19 @@
 
 ### Patch Changes
 
-- Add services as a first-class primitive.
+- Add provisions as a first-class primitive.
 
-  Services make infrastructure dependencies declarative, injectable, and governable. Define a service with `service()`, declare it on a trail with `services: [db]`, and access it with `db.from(ctx)` or `ctx.service()`.
+  Provisions make infrastructure dependencies declarative, injectable, and governable. Define a provision with `provision()`, declare it on a trail with `provisions: [db]`, and access it with `db.from(ctx)` or `ctx.provision()`.
 
-  **Core:** `service()` factory, `ServiceSpec<T>`, `ServiceContext`, singleton resolution in `executeTrail`, in-flight creation dedup, `isService` guard, `findDuplicateServiceId`, topo service discovery and validation, `services` field on trail specs.
+  **Core:** `provision()` factory, `ProvisionSpec<T>`, `ProvisionContext`, singleton resolution in `executeTrail`, in-flight creation dedup, `isProvision` guard, `findDuplicateProvisionId`, topo provision discovery and validation, `provisions` field on trail specs.
 
-  **Testing:** Auto-resolution of `mock` factories in `testAll`, `testExamples`, `testContracts`, and `testFollows`. Explicit `services` overrides with correct precedence (`explicit > ctx.extensions > auto-mock`). Service mock propagation through follow graphs.
+  **Testing:** Auto-resolution of `mock` factories in `testAll`, `testExamples`, `testContracts`, and `testCrosses`. Explicit `provisions` overrides with correct precedence (`explicit > ctx.extensions > auto-mock`). Provision mock propagation through crossing graphs.
 
-  **Warden:** `service-declarations` rule validates `db.from(ctx)` and `ctx.service()` usage matches declared `services: [...]`. `service-exists` rule validates declared service IDs resolve in project context. Scope-aware AST walking skips nested function boundaries.
+  **Warden:** `provision-declarations` rule validates `db.from(ctx)` and `ctx.provision()` usage matches declared `provisions: [...]`. `provision-exists` rule validates declared provision IDs resolve in project context. Scope-aware AST walking skips nested function boundaries.
 
-  **Surfaces:** Service overrides thread through `dispatch` and `trailhead` on CLI, MCP, and HTTP.
+  **Trailheads:** Provision overrides thread through `run` and `trailhead` on CLI, MCP, and HTTP.
 
-  **Introspection:** Survey and surface map outputs include service graph. Topo exposes `.services`, `.getService()`, `.hasService()`, `.listServices()`, `.serviceIds()`, `.serviceCount`.
+  **Introspection:** Survey and trailhead map outputs include provision graph. Topo exposes `.provisions`, `.getProvision()`, `.hasProvision()`, `.listProvisions()`, `.provisionIds()`, `.provisionCount`.
 
   **Docs:** ADR-009 accepted. Unified services guide, updated vocabulary, getting-started, architecture, and package READMEs.
 
@@ -41,7 +41,7 @@
 
 ### Minor Changes
 
-- Consolidated improvements across all surface packages.
+- Consolidated improvements across all trailhead packages.
 
   **core**: Add `TrailResult<T>` utility type, `topo.ids()` and `topo.count` accessors, `run()` for headless trail execution, and extract shared `executeTrail` pipeline used by CLI/MCP/HTTP.
 
@@ -51,7 +51,7 @@
 
   **cli**: Verify exception catching via centralized `executeTrail`.
 
-  **testing**: Follow context awareness improvements.
+  **testing**: Cross-context awareness improvements.
 
   **warden**: Refactor rules as composable trails with examples.
 
@@ -78,9 +78,9 @@
 
 ### Minor Changes
 
-- HTTP surface and OpenAPI generation.
+- HTTP trailhead and OpenAPI generation.
 
-  **http**: New `@ontrails/http` package — Hono-based HTTP adapter. `trailhead()` derives routes from trail IDs, maps intent to HTTP verbs (read→GET, write→POST, destroy→DELETE), and maps error taxonomy to status codes. Returns the Hono instance.
+  **http**: New `@ontrails/http` package — Hono-based HTTP connector. `trailhead()` derives routes from trail IDs, maps intent to HTTP verbs (read→GET, write→POST, destroy→DELETE), and maps error taxonomy to status codes. Returns the Hono instance.
 
   **schema**: Add `generateOpenApiSpec(topo)` — generates a complete OpenAPI 3.1 spec from the topo. Each trail becomes an operation with path, method, schemas, and error responses derived from the contract.
 
@@ -112,15 +112,15 @@
 
   **BREAKING CHANGES:**
 
-  - `hike()` removed — use `trail()` with optional `follow: [...]` field
-  - `follows` renamed to `follow` (singular, matching `ctx.follow()`)
+  - `hike()` removed — use `trail()` with optional `crosses: [...]` field
+  - `follows` renamed to `crosses` (matching `ctx.cross()`)
   - `topo.hikes` removed — single `topo.trails` map
   - `kind: 'hike'` removed — everything is `kind: 'trail'`
   - `readOnly`/`destructive` booleans replaced by `intent: 'read' | 'write' | 'destroy'`
   - `implementation` field renamed to `run`
   - `markers` field renamed to `metadata`
-  - `testHike` renamed to `testFollows`, `HikeScenario` to `FollowScenario`
-  - `trailhead()` now returns the surface handle (`Command` for CLI, `Server` for MCP)
+  - `testHike` renamed to `testCrosses`, `HikeScenario` to `CrossScenario`
+  - `trailhead()` now returns the trailhead handle (`Command` for CLI, `Server` for MCP)
 
 ### Patch Changes
 
@@ -160,12 +160,12 @@
 - Initial v1 beta release of the Trails framework.
 
   - **@ontrails/core** — Result type, error taxonomy, trail/hike/event/topo, validateTopo, validateInput/Output, deriveFields, patterns, redaction, branded types, resilience
-  - **@ontrails/cli** — CLI surface adapter, Commander integration, flag derivation, layers
-  - **@ontrails/mcp** — MCP surface adapter, tool generation, annotations, progress bridge
-  - **@ontrails/logging** — Structured logging, sinks, formatters, LogTape adapter
-  - **@ontrails/testing** — testAll, testExamples, testTrail, testHike, testContracts, testDetours, surface harnesses
+  - **@ontrails/cli** — CLI trailhead connector, Commander integration, flag derivation, gates
+  - **@ontrails/mcp** — MCP trailhead connector, tool generation, annotations, progress bridge
+  - **@ontrails/logging** — Structured logging, sinks, formatters, LogTape connector
+  - **@ontrails/testing** — testAll, testExamples, testTrail, testHike, testContracts, testDetours, trailhead harnesses
   - **@ontrails/warden** — AST-based code convention rules via oxc-parser, drift detection, CI formatters
-  - **@ontrails/schema** — Surface map generation, hashing, semantic diffing
+  - **@ontrails/schema** — Trailhead map generation, hashing, semantic diffing
 
 ### Patch Changes
 

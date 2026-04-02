@@ -1,6 +1,6 @@
 # @ontrails/logging
 
-Structured logging for Trails. One entry point: `createLogger`. Built-in sinks and formatters, hierarchical category filtering, automatic redaction, and an optional LogTape adapter.
+Structured logging for Trails. One entry point: `createLogger`. Built-in sinks and formatters, hierarchical category filtering, automatic redaction, and an optional LogTape connector.
 
 ## Usage
 
@@ -72,7 +72,7 @@ logger.info('Auth', { user: 'admin', password: 'hunter2' });
 // password → "[REDACTED]"
 ```
 
-## LogTape adapter
+## LogTape connector
 
 Bridge to an existing LogTape setup via the `/logtape` subpath:
 

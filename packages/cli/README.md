@@ -1,6 +1,6 @@
 # @ontrails/cli
 
-CLI surface adapter. One `trailhead()` call turns a topo into a full CLI with flags, subcommands, help text, and error-mapped exit codes -- all derived from the trail contracts.
+CLI trailhead connector. One `trailhead()` call turns a topo into a full CLI with flags, subcommands, help text, and error-mapped exit codes -- all derived from the trail contracts.
 
 ## Usage
 
@@ -41,7 +41,7 @@ const program = toCommander(commands, { name: 'myapp' });
 program.parse();
 ```
 
-`buildCliCommands` returns a framework-agnostic `CliCommand[]`. Use `toCommander` for Commander, or write your own adapter.
+`buildCliCommands` returns a framework-agnostic `CliCommand[]`. Use `toCommander` for Commander, or write your own connector.
 
 ## API
 
@@ -49,7 +49,7 @@ program.parse();
 | --- | --- |
 | `trailhead(app, options?)` | One-liner: build commands, wire Commander, parse argv |
 | `buildCliCommands(app)` | Framework-agnostic command builder, returns `CliCommand[]` |
-| `toCommander(commands, options?)` | Adapt `CliCommand[]` to a Commander program |
+| `toCommander(commands, options?)` | Connect `CliCommand[]` to a Commander program |
 | `deriveFlags(schema)` | Extract CLI flags from a Zod schema |
 | `output(data, mode)` | Format output as JSON, JSONL, or text |
 | `resolveOutputMode(options)` | Resolve output mode from flags and env vars |
@@ -76,12 +76,12 @@ Dotted trail IDs create subcommand groups: `entity.show` becomes `myapp entity s
 
 ## Service resolution
 
-Declared services on each trail are resolved into the context before the implementation runs.
+Declared provisions on each trail are resolved into the context before the implementation runs.
 
-## Layers
+## Gates
 
-- **`autoIterateLayer`** -- adds `--all` for paginated trails, collects all pages
-- **`dateShortcutsLayer`** -- expands `"today"`, `"7d"`, `"30d"` into ISO date ranges
+- **`autoIterateGate`** -- adds `--all` for paginated trails, collects all pages
+- **`dateShortcutsGate`** -- expands `"today"`, `"7d"`, `"30d"` into ISO date ranges
 
 ## Installation
 

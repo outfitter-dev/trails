@@ -1,5 +1,5 @@
 /**
- * Hono adapter for Trails HTTP routes.
+ * Hono connector for Trails HTTP routes.
  *
  * Takes framework-agnostic HttpRouteDefinition[] and wires them into a
  * Hono application, handling request parsing, response mapping, and errors.
@@ -12,8 +12,8 @@
 
 import { isTrailsError, statusCodeMap, validateTopo } from '@ontrails/core';
 import type {
-  Layer,
-  ServiceOverrideMap,
+  Gate,
+  ProvisionOverrideMap,
   Topo,
   TrailContextInit,
 } from '@ontrails/core';
@@ -31,7 +31,7 @@ import { buildHttpRoutes } from '../build.js';
 
 export interface TrailheadHttpOptions {
   readonly basePath?: string | undefined;
-  /** Config values for services that declare a `config` schema, keyed by service ID. */
+  /** Config values for provisions that declare a `config` schema, keyed by provision ID. */
   readonly configValues?:
     | Readonly<Record<string, Record<string, unknown>>>
     | undefined;
@@ -39,10 +39,10 @@ export interface TrailheadHttpOptions {
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   readonly hostname?: string | undefined;
-  readonly layers?: readonly Layer[] | undefined;
+  readonly gates?: readonly Gate[] | undefined;
   readonly name?: string | undefined;
   readonly port?: number | undefined;
-  readonly services?: ServiceOverrideMap | undefined;
+  readonly provisions?: ProvisionOverrideMap | undefined;
   /** Set false to return the Hono app without starting a server. */
   readonly serve?: boolean | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
@@ -315,7 +315,7 @@ const assertValidTopo = (app: Topo, skip = false): void => {
 /**
  * Build HTTP routes from a topo, create a Hono app, and optionally start serving.
  */
-// oxlint-disable-next-line require-await -- async for consistency with other trailhead() surfaces
+// oxlint-disable-next-line require-await -- async for consistency with other trailhead() entrypoints
 export const trailhead = async (
   app: Topo,
   options: TrailheadHttpOptions = {}
@@ -330,8 +330,8 @@ export const trailhead = async (
     basePath: options.basePath,
     configValues: options.configValues,
     createContext: options.createContext,
-    layers: options.layers,
-    services: options.services,
+    gates: options.gates,
+    provisions: options.provisions,
   });
 
   if (routesResult.isErr()) {

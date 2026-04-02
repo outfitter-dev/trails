@@ -4,11 +4,11 @@ import {
   InternalError,
   NotFoundError,
   Result,
-  service,
+  provision,
   trail,
   topo,
 } from '@ontrails/core';
-import type { Layer } from '@ontrails/core';
+import type { Gate } from '@ontrails/core';
 import { z } from 'zod';
 
 import { trailhead } from '../trailhead.js';
@@ -52,7 +52,7 @@ const internalTrail = trail('crash', {
   input: z.object({}),
 });
 
-const dbService = service('db.main', {
+const dbProvision = provision('db.main', {
   create: () =>
     Result.ok({
       source: 'factory',
@@ -100,12 +100,12 @@ const requestRaw = (
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('trailhead (Hono adapter)', () => {
+describe('trailhead (Hono connector)', () => {
   describe('validation', () => {
     test('trailhead throws on invalid topo', async () => {
       const t = trail('broken', {
         blaze: () => Result.ok({}),
-        follow: ['nonexistent.trail'],
+        crosses: ['nonexistent.trail'],
         input: z.object({}),
         output: z.object({}),
       });
@@ -118,7 +118,7 @@ describe('trailhead (Hono adapter)', () => {
     test('trailhead skips validation when validate: false', async () => {
       const t = trail('broken', {
         blaze: () => Result.ok({}),
-        follow: ['nonexistent.trail'],
+        crosses: ['nonexistent.trail'],
         input: z.object({}),
         output: z.object({}),
       });
@@ -258,12 +258,12 @@ describe('trailhead (Hono adapter)', () => {
     });
   });
 
-  describe('layers', () => {
-    test('layers compose around trail execution', async () => {
+  describe('gates', () => {
+    test('gates compose around trail execution', async () => {
       const calls: string[] = [];
 
-      const testLayer: Layer = {
-        name: 'test-layer',
+      const testGate: Gate = {
+        name: 'test-gate',
         wrap(_trail, impl) {
           return async (input, ctx) => {
             calls.push('before');
@@ -275,7 +275,7 @@ describe('trailhead (Hono adapter)', () => {
       };
 
       const app = topo('testapp', { echoTrail });
-      const hono = await trailhead(app, { layers: [testLayer], serve: false });
+      const hono = await trailhead(app, { gates: [testGate], serve: false });
 
       const res = await request(hono, 'GET', '/echo?message=hi');
       expect(res.status).toBe(200);
@@ -501,23 +501,23 @@ describe('trailhead (Hono adapter)', () => {
       expect(contextUsed).toBe(true);
     });
 
-    test('service overrides reach the trail through trailhead()', async () => {
-      const serviceTrail = trail('service.check', {
+    test('provision overrides reach the trail through trailhead()', async () => {
+      const provisionTrail = trail('provision.check', {
         blaze: (_input, ctx) =>
-          Result.ok({ source: dbService.from(ctx).source as string }),
+          Result.ok({ source: dbProvision.from(ctx).source as string }),
         input: z.object({}),
         intent: 'read',
         output: z.object({ source: z.string() }),
-        services: [dbService],
+        provisions: [dbProvision],
       });
 
-      const app = topo('testapp', { dbService, serviceTrail });
+      const app = topo('testapp', { dbProvision, provisionTrail });
       const hono = await trailhead(app, {
+        provisions: { 'db.main': { source: 'override' } },
         serve: false,
-        services: { 'db.main': { source: 'override' } },
       });
 
-      const res = await request(hono, 'GET', '/service/check');
+      const res = await request(hono, 'GET', '/provision/check');
       expect(res.status).toBe(200);
 
       const json = await res.json();

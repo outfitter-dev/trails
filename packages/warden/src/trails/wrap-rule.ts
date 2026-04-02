@@ -51,8 +51,8 @@ export function wrapRule(
     return trail(`warden.rule.${rule.name}`, {
       blaze: (input: ProjectAwareRuleInput) => {
         const context = {
-          knownServiceIds: input.knownServiceIds
-            ? new Set(input.knownServiceIds)
+          knownProvisionIds: input.knownProvisionIds
+            ? new Set(input.knownProvisionIds)
             : undefined,
           knownTrailIds: input.knownTrailIds
             ? new Set(input.knownTrailIds)

@@ -1,6 +1,6 @@
 # @ontrails/mcp
 
-MCP surface adapter. One `trailhead()` call turns a topo into an MCP server with tool definitions, annotations, and progress bridging -- all derived from the trail contracts.
+MCP trailhead connector. One `trailhead()` call turns a topo into an MCP server with tool definitions, annotations, and progress bridging -- all derived from the trail contracts.
 
 ## Usage
 
@@ -67,9 +67,9 @@ No manual annotation definitions. The contract is the source of truth.
 
 Trail IDs become MCP tool names with the app prefix: `entity.show` in app `myapp` becomes `myapp_entity_show`. Dots and hyphens become underscores, everything lowercase.
 
-## Service resolution
+## Provision resolution
 
-Declared services on each trail are resolved into the context before the implementation runs.
+Declared provisions on each trail are resolved into the context before the implementation runs.
 
 ## Progress bridge
 

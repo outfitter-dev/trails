@@ -14,10 +14,10 @@ import type { z } from 'zod';
 
 import { expectOk } from './assertions.js';
 import {
-  mergeServiceOverrides,
+  mergeProvisionOverrides,
   mergeTestContext,
   normalizeTestExecutionOptions,
-  resolveMockServices,
+  resolveMockProvisions,
 } from './context.js';
 import type { TestExecutionOptions } from './context.js';
 
@@ -25,16 +25,16 @@ import type { TestExecutionOptions } from './context.js';
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Check if a trail requires follow() but the context doesn't provide it. */
-const needsFollowContext = (
+/** Check if a trail requires cross() but the context doesn't provide it. */
+const needsCrossContext = (
   t: unknown,
   resolveCtx: () => Partial<TrailContext> | TestExecutionOptions | undefined
 ): boolean => {
-  const spec = t as { follow?: readonly string[] };
-  if (!spec.follow || spec.follow.length === 0) {
+  const spec = t as { crosses?: readonly string[] };
+  if (!spec.crosses || spec.crosses.length === 0) {
     return false;
   }
-  return !normalizeTestExecutionOptions(resolveCtx()).ctx?.follow;
+  return !normalizeTestExecutionOptions(resolveCtx()).ctx?.cross;
 };
 
 const validateOutputSchema = (
@@ -81,7 +81,7 @@ export const testContracts = (
       if (t.examples === undefined || t.examples.length === 0) {
         return;
       }
-      if (needsFollowContext(t, resolveInput)) {
+      if (needsCrossContext(t, resolveInput)) {
         return;
       }
 
@@ -92,10 +92,10 @@ export const testContracts = (
         'contract: $name',
         async (example: TrailExample<unknown, unknown>) => {
           const resolved = normalizeTestExecutionOptions(resolveInput());
-          const services = mergeServiceOverrides(
-            await resolveMockServices(app),
+          const provisions = mergeProvisionOverrides(
+            await resolveMockProvisions(app),
             resolved.ctx,
-            resolved.services
+            resolved.provisions
           );
           const testCtx = mergeTestContext(resolved.ctx);
 
@@ -104,7 +104,7 @@ export const testContracts = (
 
           const result = await executeTrail(t, example.input, {
             ctx: testCtx,
-            services,
+            provisions,
           });
           const resultValue = expectOk(result);
 

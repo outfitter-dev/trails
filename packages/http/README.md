@@ -1,6 +1,6 @@
 # @ontrails/http
 
-HTTP surface adapter. One `trailhead()` call turns a topo into a Hono-based HTTP server with routes, input validation, and error mapping -- all derived from the trail contracts.
+HTTP trailhead connector. One `trailhead()` call turns a topo into a Hono-based HTTP server with routes, input validation, and error mapping -- all derived from the trail contracts.
 
 ## Usage
 
@@ -58,15 +58,15 @@ Trail IDs map to paths: `entity.show` becomes `/entity/show`. Dots become slashe
 
 ## Collision detection
 
-`buildHttpRoutes` detects when two trails would produce the same `(method, path)` pair and returns `Result.err(ValidationError)` describing both trail IDs. The `trailhead()` Hono adapter throws on collision.
+`buildHttpRoutes` detects when two trails would produce the same `(method, path)` pair and returns `Result.err(ValidationError)` describing both trail IDs. The `trailhead()` Hono connector throws on collision.
 
-## Service resolution
+## Provision resolution
 
-Declared services on each trail are resolved into the context before the implementation runs.
+Declared provisions on each trail are resolved into the context before the implementation runs.
 
 ## AbortSignal propagation
 
-The `execute` function on each `HttpRouteDefinition` accepts an optional `abortSignal`. The Hono adapter extracts `signal` from `c.req.raw` and forwards it as `abortSignal`, so client disconnects propagate into trail execution.
+The `execute` function on each `HttpRouteDefinition` accepts an optional `abortSignal`. The Hono connector extracts `signal` from `c.req.raw` and forwards it as `abortSignal`, so client disconnects propagate into trail execution.
 
 ## `HttpRouteDefinition`
 
@@ -79,7 +79,7 @@ Each route definition produced by `buildHttpRoutes` includes:
 | `trailId` | `string` | The trail ID this route was derived from |
 | `inputSource` | `'query' \| 'body'` | Where to read input |
 | `trail` | `Trail` | The original trail definition |
-| `execute` | `(input, requestId?, abortSignal?) => Promise<Result>` | Validates, layers, and runs the implementation |
+| `execute` | `(input, requestId?, abortSignal?) => Promise<Result>` | Validates, gates, and runs the implementation |
 
 ## Installation
 

@@ -5,7 +5,7 @@
       "depends_on": [],
       "inbound": [
         {
-          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions these conventions serve",
+          "context": "- [ADR-0000: Core Premise](0000-core-premise.md)",
           "from": "0001",
           "fromPath": "docs/adr/0001-naming-conventions.md"
         },
@@ -25,12 +25,12 @@
           "fromPath": "docs/adr/0004-intent-as-first-class-property.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions that require surface-agnosticism",
+          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions that require trailhead-agnosticism",
           "from": "0005",
           "fromPath": "docs/adr/0005-framework-agnostic-http-route-model.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions this pipeline serves, especially \"implementations are pure\" and \"surfaces are peers\"",
+          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions this pipeline serves, especially \"implementations are pure\" and \"trailheads are peers\"",
           "from": "0006",
           "fromPath": "docs/adr/0006-shared-execution-pipeline.md"
         },
@@ -42,12 +42,12 @@
         {
           "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — \"derive by default, override deliberately\" principle",
           "from": "0008",
-          "fromPath": "docs/adr/0008-deterministic-surface-derivation.md"
+          "fromPath": "docs/adr/0008-deterministic-trailhead-derivation.md"
         },
         {
           "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — \"the trail is the product,\" \"derive by default,\" and the information architecture",
           "from": "0009",
-          "fromPath": "docs/adr/0009-first-class-services.md"
+          "fromPath": "docs/adr/0009-first-class-provisions.md"
         },
         {
           "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — \"the trail is the product,\" \"derive by default,\" and the information architecture that infrastructure trails inherit",
@@ -60,19 +60,19 @@
           "fromPath": "docs/adr/0011-schema-driven-config.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"derive by default\"; crumbs observes composition shape rather than requiring it to be declared",
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"derive by default\"; tracker observes composition shape rather than requiring it to be declared",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-concurrent-follow.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; `trails run` makes every trail directly invocable without surface ceremony",
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; `trails run` makes every trail directly invocable without trailhead ceremony",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; rig makes external surfaces into trails. Decision 11 (\"Bun-native, universally consumable\") governs the implementatio",
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; rig makes external trailheads into trails. Decision 11 (\"Bun-native, universally consumable\") governs the implementatio",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-external-surfaces-as-trails.md"
+          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"author what's new, derive what's known, override what's wrong\"; provisions leverage derived contract data for upgrades",
@@ -92,7 +92,7 @@
         {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — \"derive by default\"; framework lifecycle events are derived from execution observation",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-event-emission.md"
+          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"derive by default, override deliberately\"; the information architecture categories",
@@ -100,19 +100,19 @@
           "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"author what's new, derive what's known\"; the trail's input schema is the clean contract, the adapter transforms the messy external world",
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"author what's new, derive what's known\"; the trail's input schema is the clean contract, the connector transforms the messy external world",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-webhooks-and-adapters.md"
+          "fromPath": "docs/adr/drafts/20260331-webhooks-and-connectors.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"surfaces are peers\"; WebSocket is the fourth surface, following the same patterns as CLI, MCP, and HTTP",
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"trailheads are peers\"; WebSocket is the fourth trailhead, following the same patterns as CLI, MCP, and HTTP",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-surface.md"
+          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md): \"define once, surface everywhere\" and the information architecture categories (authored, projected, overridden)",
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md): \"define once, trailhead everywhere\" and the information architecture categories (authored, projected, overridden)",
           "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-compiled-pack-surface.md"
+          "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
         {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- author what's new, derive what's known",
@@ -136,7 +136,7 @@
       "slug": "core-premise",
       "status": "accepted",
       "superseded_by": null,
-      "title": "Core Premise — Contract-First, Surface-Agnostic Design",
+      "title": "Core Premise — Contract-First, Trailhead-Agnostic Design",
       "updated": "2026-04-01"
     },
     {
@@ -161,15 +161,15 @@
         {
           "context": "- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — `derive*` prefix convention and the information architecture categories (authored, projected, overridden)",
           "from": "0008",
-          "fromPath": "docs/adr/0008-deterministic-surface-derivation.md"
+          "fromPath": "docs/adr/0008-deterministic-trailhead-derivation.md"
         },
         {
-          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md): `create*` factory convention, `derive*` prefix for framework derivations, `build*`/`to*` surface wiring pattern",
+          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md): `create*` factory convention, `derive*` prefix for framework derivations, `build*`/`to*` trailhead wiring pattern",
           "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-compiled-pack-surface.md"
+          "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
         {
-          "context": "Canonical public surface. For naming conventions and decision history, see [ADR-0001](docs/adr/0001-naming-conventions.md).",
+          "context": "Canonical public trailhead. For naming conventions and decision history, see [ADR-0001](docs/adr/0001-naming-conventions.md).",
           "from": "api-reference",
           "fromPath": "docs/api-reference.md"
         },
@@ -177,11 +177,6 @@
           "context": "- **[ADR-0001: Naming Conventions](./adr/0001-naming-conventions.md)** — How and why we chose every term",
           "from": "index",
           "fromPath": "docs/index.md"
-        },
-        {
-          "context": "All Trails terms and their definitions. Brand the framework primitives, use plain language for everything else. For naming conventions and terminology decisions, see [ADR-0001](docs/adr/0001-naming-co",
-          "from": "vocabulary",
-          "fromPath": "docs/vocabulary.md"
         }
       ],
       "number": "0001",
@@ -191,7 +186,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Naming Conventions — Guessable API Through Structural Rules",
-      "updated": "2026-04-01"
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-03-29",
@@ -203,9 +198,9 @@
           "fromPath": "docs/adr/0006-shared-execution-pipeline.md"
         },
         {
-          "context": "- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) — service factories return Result, consistent with the error taxonomy",
+          "context": "- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) — provision factories return Result, consistent with the error taxonomy",
           "from": "0009",
-          "fromPath": "docs/adr/0009-first-class-services.md"
+          "fromPath": "docs/adr/0009-first-class-provisions.md"
         },
         {
           "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent follows",
@@ -215,7 +210,7 @@
         {
           "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the error taxonomy maps to categorized failure events",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-event-emission.md"
+          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
           "context": "- **[ADR-0002: Built-In Result Type](./adr/0002-built-in-result-type.md)** — Own the Result primitive, zero dependencies",
@@ -244,7 +239,7 @@
         {
           "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — services follow the same pattern: declaration on the spec, governance via warden",
           "from": "0009",
-          "fromPath": "docs/adr/0009-first-class-services.md"
+          "fromPath": "docs/adr/0009-first-class-provisions.md"
         },
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- \"composition is a property, not a type\"; parallel vs sequential is a runtime choice, not a contract distinction. The `follo",
@@ -259,7 +254,7 @@
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- `rig()` returns a Trail, not a new primitive",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-external-surfaces-as-trails.md"
+          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- the trail definition that packs contain",
@@ -274,7 +269,7 @@
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — `emits` is a new property on the trail spec",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-event-emission.md"
+          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- the trail spec that gains the `visibility` field",
@@ -306,24 +301,24 @@
       "depends_on": [],
       "inbound": [
         {
-          "context": "- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent compounds with the service graph for security insights",
+          "context": "- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent compounds with the provision graph for security insights",
           "from": "0009",
-          "fromPath": "docs/adr/0009-first-class-services.md"
+          "fromPath": "docs/adr/0009-first-class-provisions.md"
         },
         {
           "context": "- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent compounds with permit for governance; `destroy` + no permit is an error",
           "from": "0012",
-          "fromPath": "docs/adr/0012-adapter-agnostic-permits.md"
+          "fromPath": "docs/adr/0012-connector-agnostic-permits.md"
         },
         {
-          "context": "- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent drives sampling defaults and is carried on every `Crumb`",
+          "context": "- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md)",
           "from": "0013",
-          "fromPath": "docs/adr/0013-crumbs.md"
+          "fromPath": "docs/adr/0013-tracker.md"
         },
         {
           "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- rigged trails declare intent; HTTP method mapping and MCP annotations work identically",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-external-surfaces-as-trails.md"
+          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
           "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) — intent compounds with triggers; lifecycle events filter by intent",
@@ -331,7 +326,7 @@
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
         {
-          "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent drives HTTP verbs, MCP annotations, and now surface filtering",
+          "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent drives HTTP verbs, MCP annotations, and now trailhead filtering",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
@@ -341,7 +336,7 @@
           "fromPath": "docs/adr/drafts/20260401-entity-trail-factories.md"
         },
         {
-          "context": "- **[ADR-0004: Intent as a First-Class Property](./adr/0004-intent-as-first-class-property.md)** — One field drives all surface behavior",
+          "context": "- **[ADR-0004: Intent as a First-Class Property](./adr/0004-intent-as-first-class-property.md)** — One field drives all trailhead behavior",
           "from": "index",
           "fromPath": "docs/index.md"
         }
@@ -367,7 +362,7 @@
         {
           "context": "- [ADR-0005: Framework-Agnostic HTTP Route Model](../0005-framework-agnostic-http-route-model.md) -- webhooks extend the HTTP route model with verification and adaptation",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-webhooks-and-adapters.md"
+          "fromPath": "docs/adr/drafts/20260331-webhooks-and-connectors.md"
         },
         {
           "context": "- [ADR-0005: Framework-Agnostic HTTP Route Model](../0005-framework-agnostic-http-route-model.md) -- the two-level architecture pattern this mirrors",
@@ -375,7 +370,7 @@
           "fromPath": "docs/adr/drafts/20260401-schema-derived-persistence.md"
         },
         {
-          "context": "- **[ADR-0005: Framework-Agnostic HTTP Route Model](./adr/0005-framework-agnostic-http-route-model.md)** — `HttpRoute[]` with thin adapter subpaths",
+          "context": "- **[ADR-0005: Framework-Agnostic HTTP Route Model](./adr/0005-framework-agnostic-http-route-model.md)** — `HttpRoute[]` with thin connector subpaths",
           "from": "index",
           "fromPath": "docs/index.md"
         }
@@ -394,29 +389,34 @@
       "depends_on": [],
       "inbound": [
         {
+          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md)",
+          "from": "0001",
+          "fromPath": "docs/adr/0001-naming-conventions.md"
+        },
+        {
           "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the `executeTrail` function that `HttpRouteDefinition.execute` delegates to",
           "from": "0005",
           "fromPath": "docs/adr/0005-framework-agnostic-http-route-model.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the dispatch pipeline that runs rule trails",
+          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the shared execution pipeline that runs rule trails",
           "from": "0007",
           "fromPath": "docs/adr/0007-governance-as-trails.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — services resolve within executeTrail, before layers compose",
+          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — services resolve within executeTrail, before gates compose",
           "from": "0009",
-          "fromPath": "docs/adr/0009-first-class-services.md"
+          "fromPath": "docs/adr/0009-first-class-provisions.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the `executeTrail` pipeline that infrastructure layers compose into",
+          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the `executeTrail` pipeline that infrastructure gates compose into",
           "from": "0010",
           "fromPath": "docs/adr/0010-native-infrastructure.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — `executeTrail` is the chokepoint where `crumbsLayer` records execution",
+          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md)",
           "from": "0013",
-          "fromPath": "docs/adr/0013-crumbs.md"
+          "fromPath": "docs/adr/0013-tracker.md"
         },
         {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `executeTrail` is called for each concurrent branch; the pipeline is unchanged",
@@ -424,39 +424,39 @@
           "fromPath": "docs/adr/drafts/20260331-concurrent-follow.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` dispatches through `executeTrail`, the same pipeline as every surface",
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` dispatches through `executeTrail`, the same pipeline as every trailhead",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         },
         {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- rigged trails execute through the same pipeline",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-external-surfaces-as-trails.md"
+          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — lifecycle events are emitted by `executeTrail`",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-event-emission.md"
+          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `executeTrail` runs the trail after verification and adaptation; the pipeline is unchanged",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-webhooks-and-adapters.md"
+          "fromPath": "docs/adr/drafts/20260331-webhooks-and-connectors.md"
         },
         {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- trail invocations over WebSocket dispatch through `executeTrail`",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-surface.md"
+          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-layers-run; the library surface delegates to the same pip",
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-gates-run; the library trailhead delegates to the same pip",
           "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-compiled-pack-surface.md"
+          "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- surfaces as thin wrappers, same pattern for store",
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- trailheads as thin wrappers, same pattern for store",
           "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-drizzle-store-adapter.md"
+          "fromPath": "docs/adr/drafts/20260401-drizzle-store-connector.md"
         },
         {
           "context": "- **[ADR-0006: Shared Execution Pipeline](./adr/0006-shared-execution-pipeline.md)** — One `executeTrail`, Result-returning builders",
@@ -478,9 +478,9 @@
       "depends_on": [],
       "inbound": [
         {
-          "context": "- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — service-declarations rule follows the same AST pattern",
+          "context": "- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — provision-declarations rule follows the same AST pattern",
           "from": "0009",
-          "fromPath": "docs/adr/0009-first-class-services.md"
+          "fromPath": "docs/adr/0009-first-class-provisions.md"
         },
         {
           "context": "- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — the warden model that governs infrastructure trails alongside business trails",
@@ -495,7 +495,7 @@
         {
           "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — warden rules for event declarations",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-event-emission.md"
+          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
           "context": "- **[ADR-0007: Governance as Trails](./adr/0007-governance-as-trails.md)** — Warden rules are trails, AST-based analysis",
@@ -515,159 +515,47 @@
     {
       "created": "2026-03-29",
       "depends_on": [],
-      "inbound": [
-        {
-          "context": "- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-surface-derivation.md) — the broader pattern of which intent is one instance",
-          "from": "0004",
-          "fromPath": "docs/adr/0004-intent-as-first-class-property.md"
-        },
-        {
-          "context": "- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-surface-derivation.md) — the derivation rules that produce paths, methods, and input sources from trail contracts",
-          "from": "0005",
-          "fromPath": "docs/adr/0005-framework-agnostic-http-route-model.md"
-        },
-        {
-          "context": "- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) -- rigged trails get surface derivation for free",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-external-surfaces-as-trails.md"
-        },
-        {
-          "context": "- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) — validates that the surface derivation model extends to event-driven inbound patterns",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-inbound-event-surfaces.md"
-        },
-        {
-          "context": "- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) -- survey output provides the contract snapshots",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-pack-provisioning.md"
-        },
-        {
-          "context": "- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) — the derivation rules that produce surface properties on trail nodes",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-serialized-topo-graph.md"
-        },
-        {
-          "context": "- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) -- the derivation rules that visibility and intent filtering extend",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
-        },
-        {
-          "context": "- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) -- webhook endpoints are not derived from trail IDs; they're explicitly configured paths",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-webhooks-and-adapters.md"
-        },
-        {
-          "context": "- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) -- trail IDs map to WebSocket method names, event IDs map to subscription channels",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-surface.md"
-        },
-        {
-          "context": "- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md): the derivation properties (pure, deterministic, explicit lookup tables, overridable) that the library surfa",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-compiled-pack-surface.md"
-        },
-        {
-          "context": "- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) -- deterministic derivation, now extended to storage",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-schema-derived-persistence.md"
-        },
-        {
-          "context": "- **[ADR-0008: Deterministic Surface Derivation](./adr/0008-deterministic-surface-derivation.md)** — Explicit lookup tables for every surface",
-          "from": "index",
-          "fromPath": "docs/index.md"
-        }
-      ],
+      "inbound": [],
       "number": "0008",
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0008-deterministic-surface-derivation.md",
-      "slug": "deterministic-surface-derivation",
+      "path": "docs/adr/0008-deterministic-trailhead-derivation.md",
+      "slug": "deterministic-trailhead-derivation",
       "status": "accepted",
       "superseded_by": null,
-      "title": "Deterministic Surface Derivation",
-      "updated": "2026-04-01"
+      "title": "Deterministic Trailhead Derivation",
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-03-30",
       "depends_on": [],
-      "inbound": [
-        {
-          "context": "- [ADR-0009: Services as a First-Class Primitive](0009-first-class-services.md) — the service primitive that infrastructure packages build on",
-          "from": "0010",
-          "fromPath": "docs/adr/0010-native-infrastructure.md"
-        },
-        {
-          "context": "- [ADR-0009: Services as a First-Class Primitive](0009-first-class-services.md) — services declare config schemas via the reserved `config` field; config enriches `ServiceContext`",
-          "from": "0011",
-          "fromPath": "docs/adr/0011-schema-driven-config.md"
-        },
-        {
-          "context": "- [ADR-0009: Services as a First-Class Primitive](0009-first-class-services.md) — auth adapter is a service; auth layer consumes it via `service.from(ctx)`",
-          "from": "0012",
-          "fromPath": "docs/adr/0012-adapter-agnostic-permits.md"
-        },
-        {
-          "context": "- [ADR-0009: Services as a First-Class Primitive](0009-first-class-services.md) — execution scope propagation, `createFollow(topo, scope)`, and the `crumbs` service pattern",
-          "from": "0013",
-          "fromPath": "docs/adr/0013-crumbs.md"
-        },
-        {
-          "context": "- [ADR-0009: Services as a First-Class Primitive](../0009-first-class-services.md) — inbound surfaces depend on the service primitive for infrastructure dependencies (stores, email, queue clients)",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-inbound-event-surfaces.md"
-        },
-        {
-          "context": "- [ADR-0009: Services](../0009-first-class-services.md) -- the service primitive that packs scope and compose",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
-        },
-        {
-          "context": "- [ADR-0009: Services](../0009-first-class-services.md): service lifecycle, factory/dispose/health/mock, and the execution model the library surface must project into consumer-facing runtime inputs",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-compiled-pack-surface.md"
-        },
-        {
-          "context": "- [ADR-0009: Services](../0009-first-class-services.md) -- the service pattern for embedding providers",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
-        },
-        {
-          "context": "- [ADR-0009: Services](../0009-first-class-services.md) -- the service lifecycle the store produces",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-drizzle-store-adapter.md"
-        },
-        {
-          "context": "- [ADR-0009: Services](../0009-first-class-services.md) -- the service primitive that the store builds on",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-schema-derived-persistence.md"
-        }
-      ],
+      "inbound": [],
       "number": "0009",
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0009-first-class-services.md",
-      "slug": "first-class-services",
+      "path": "docs/adr/0009-first-class-provisions.md",
+      "slug": "first-class-provisions",
       "status": "accepted",
       "superseded_by": null,
-      "title": "Services as a First-Class Primitive",
-      "updated": "2026-04-01"
+      "title": "First-Class Provisions",
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-03-30",
       "depends_on": [],
       "inbound": [
         {
-          "context": "- [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — config is the first infrastructure package following the service + layer + trails trifecta",
+          "context": "- [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — config is the first infrastructure package following the provision + gate + trails trifecta",
           "from": "0011",
           "fromPath": "docs/adr/0011-schema-driven-config.md"
         },
         {
           "context": "- [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — auth layer follows the shared layer model for cross-cutting enforcement",
           "from": "0012",
-          "fromPath": "docs/adr/0012-adapter-agnostic-permits.md"
+          "fromPath": "docs/adr/0012-connector-agnostic-permits.md"
         },
         {
-          "context": "- [ADR-0010: Trails-Native Infrastructure Pattern](../0010-native-infrastructure.md) — idempotency layer and deduplication store follow the infrastructure pattern (layer + service)",
+          "context": "- [ADR-0010: Trails-Native Infrastructure Pattern](../0010-native-infrastructure.md) — idempotency layer and deduplication store follow the infrastructure pattern (gate + provision)",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-inbound-event-surfaces.md"
+          "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
         }
       ],
       "number": "0010",
@@ -695,100 +583,28 @@
     {
       "created": "2026-03-30",
       "depends_on": [],
-      "inbound": [
-        {
-          "context": "- [ADR-0012: Permit Model](0012-adapter-agnostic-permits.md) — permit identity is carried on every `Crumb` for auth observability",
-          "from": "0013",
-          "fromPath": "docs/adr/0013-crumbs.md"
-        },
-        {
-          "context": "- [ADR-0012: Adapter-Agnostic Permits](../0012-adapter-agnostic-permits.md) — webhook signature verification maps to the permit resolution model",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-inbound-event-surfaces.md"
-        }
-      ],
+      "inbound": [],
       "number": "0012",
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0012-adapter-agnostic-permits.md",
-      "slug": "adapter-agnostic-permits",
+      "path": "docs/adr/0012-connector-agnostic-permits.md",
+      "slug": "connector-agnostic-permits",
       "status": "accepted",
       "superseded_by": null,
-      "title": "Adapter-Agnostic Permits",
-      "updated": "2026-04-01"
+      "title": "Connector-Agnostic Permits",
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-03-30",
       "depends_on": [],
-      "inbound": [
-        {
-          "context": "- [ADR-0013: Crumbs](0013-crumbs.md) — crumbs consume config for sampling rates and export targets",
-          "from": "0011",
-          "fromPath": "docs/adr/0011-schema-driven-config.md"
-        },
-        {
-          "context": "- [ADR-0013: Crumbs](../0013-crumbs.md) -- crumbs observes concurrent vs sequential spans to derive composition shape at runtime",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-concurrent-follow.md"
-        },
-        {
-          "context": "- [ADR-0013: Crumbs](../0013-crumbs.md) -- `--crumbs` uses the crumbs vocabulary; live crumbs during `trails run`, historical crumbs via `trails crumbs`",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
-        },
-        {
-          "context": "- [ADR-0013: Crumbs](../0013-crumbs.md) -- rigged trail executions are recorded via crumbs for observability",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-external-surfaces-as-trails.md"
-        },
-        {
-          "context": "- [ADR-0013: Crumbs](../0013-crumbs.md) — inbound surface execution recording uses the crumbs system",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-inbound-event-surfaces.md"
-        },
-        {
-          "context": "- [ADR-0013: Crumbs](../0013-crumbs.md) -- telemetry primitives that provisions can carry and surface",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-pack-provisioning.md"
-        },
-        {
-          "context": "- [ADR-0013: Crumbs](../0013-crumbs.md) -- observability primitive; packs scope crumb emission boundaries",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
-        },
-        {
-          "context": "- [ADR-0013: Crumbs](../0013-crumbs.md) — crumbs records trigger provenance on every activation",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
-        },
-        {
-          "context": "- [ADR-0013: Crumbs](../0013-crumbs.md) — crumbs records emission and delivery metadata",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-event-emission.md"
-        },
-        {
-          "context": "- [ADR-0013: Crumbs](../0013-crumbs.md) -- the telemetry system; visibility filtering events are observable through crumbs",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
-        },
-        {
-          "context": "- [ADR-0013: Crumbs](../0013-crumbs.md) -- crumbs records async trail results and provides the idempotency store for delivery deduplication",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-webhooks-and-adapters.md"
-        },
-        {
-          "context": "- [ADR-0013: Crumbs](../0013-crumbs.md) -- observability and replay buffer backing store",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-surface.md"
-        }
-      ],
+      "inbound": [],
       "number": "0013",
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0013-crumbs.md",
-      "slug": "crumbs",
+      "path": "docs/adr/0013-tracker.md",
+      "slug": "tracker",
       "status": "accepted",
       "superseded_by": null,
-      "title": "Crumbs",
-      "updated": "2026-04-01"
+      "title": "Tracker — Runtime Recording Primitive",
+      "updated": "2026-04-02"
     }
   ],
   "version": 1

@@ -1,11 +1,11 @@
 /**
- * Generate a deterministic surface map from a Topo.
+ * Generate a deterministic trailhead map from a Topo.
  */
 
 import { zodToJsonSchema } from '@ontrails/core';
-import type { AnyService, Event, Topo, Trail } from '@ontrails/core';
+import type { AnyProvision, Signal, Topo, Trail } from '@ontrails/core';
 
-import type { JsonSchema, SurfaceMap, SurfaceMapEntry } from './types.js';
+import type { JsonSchema, TrailheadMap, TrailheadMapEntry } from './types.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -46,10 +46,10 @@ const toSortedJsonSchema = (schema: unknown): JsonSchema => {
 // Entry builders
 // ---------------------------------------------------------------------------
 
-/** Extract surfaces from a raw object. */
-const extractSurfaces = (raw: Record<string, unknown>): string[] =>
-  Array.isArray(raw['surfaces'])
-    ? (raw['surfaces'] as string[]).toSorted()
+/** Extract trailheads from a raw object. */
+const extractTrailheads = (raw: Record<string, unknown>): string[] =>
+  Array.isArray(raw['trailheads'])
+    ? (raw['trailheads'] as string[]).toSorted()
     : [];
 
 /** Add optional schemas to an entry. */
@@ -112,32 +112,35 @@ const addMetadata = (
   addExtendedMetadata(entry, t, raw);
 };
 
-const trailToEntry = (t: Trail<unknown, unknown>): SurfaceMapEntry => {
+const trailToEntry = (t: Trail<unknown, unknown>): TrailheadMapEntry => {
   const raw = t as unknown as Record<string, unknown>;
+  const trailheads = extractTrailheads(raw);
   const entry: Record<string, unknown> = {
     exampleCount: Array.isArray(t.examples) ? t.examples.length : 0,
     id: t.id,
     kind: t.kind,
-    surfaces: extractSurfaces(raw),
+    trailheads,
   };
 
   addSchemas(entry, t);
   addMetadata(entry, t, raw);
 
-  if (t.follow.length > 0) {
-    entry['follow'] = t.follow.toSorted();
+  if (t.crosses.length > 0) {
+    entry['crosses'] = t.crosses.toSorted();
   }
-  if (t.services.length > 0) {
-    entry['services'] = t.services.map((service) => service.id).toSorted();
+  if (t.provisions.length > 0) {
+    entry['provisions'] = t.provisions
+      .map((provision) => provision.id)
+      .toSorted();
   }
 
-  return sortKeys(entry) as unknown as SurfaceMapEntry;
+  return sortKeys(entry) as unknown as TrailheadMapEntry;
 };
 
 /** Add optional event-specific fields. */
 const addEventFields = (
   entry: Record<string, unknown>,
-  e: Event<unknown>,
+  e: Signal<unknown>,
   raw: Record<string, unknown>
 ): void => {
   if (e.payload) {
@@ -154,34 +157,35 @@ const addEventFields = (
   }
 };
 
-const eventToEntry = (e: Event<unknown>): SurfaceMapEntry => {
+const signalToEntry = (e: Signal<unknown>): TrailheadMapEntry => {
   const raw = e as unknown as Record<string, unknown>;
+  const trailheads = extractTrailheads(raw);
   const entry: Record<string, unknown> = {
     exampleCount: 0,
     id: e.id,
-    kind: 'event',
-    surfaces: extractSurfaces(raw),
+    kind: 'signal',
+    trailheads,
   };
   addEventFields(entry, e, raw);
-  return sortKeys(entry) as unknown as SurfaceMapEntry;
+  return sortKeys(entry) as unknown as TrailheadMapEntry;
 };
 
-const serviceToEntry = (service: AnyService): SurfaceMapEntry => {
+const provisionToEntry = (provision: AnyProvision): TrailheadMapEntry => {
   const entry: Record<string, unknown> = {
     exampleCount: 0,
-    id: service.id,
-    kind: 'service',
-    surfaces: [],
+    id: provision.id,
+    kind: 'provision',
+    trailheads: [],
   };
 
-  if (service.description !== undefined) {
-    entry['description'] = service.description;
+  if (provision.description !== undefined) {
+    entry['description'] = provision.description;
   }
-  if (service.health !== undefined) {
+  if (provision.health !== undefined) {
     entry['healthcheck'] = true;
   }
 
-  return sortKeys(entry) as unknown as SurfaceMapEntry;
+  return sortKeys(entry) as unknown as TrailheadMapEntry;
 };
 
 // ---------------------------------------------------------------------------
@@ -189,27 +193,27 @@ const serviceToEntry = (service: AnyService): SurfaceMapEntry => {
 // ---------------------------------------------------------------------------
 
 /**
- * Generate a deterministic surface map from a Topo.
+ * Generate a deterministic trailhead map from a Topo.
  *
  * Entries are sorted alphabetically by id. Object keys within each entry
  * are sorted lexicographically for stable serialization.
  */
-export const generateSurfaceMap = (topo: Topo): SurfaceMap => {
-  const entries: SurfaceMapEntry[] = [];
+export const generateTrailheadMap = (topo: Topo): TrailheadMap => {
+  const entries: TrailheadMapEntry[] = [];
 
   // Collect all trails
   for (const t of topo.trails.values()) {
     entries.push(trailToEntry(t as Trail<unknown, unknown>));
   }
 
-  // Collect all events
-  for (const e of topo.events.values()) {
-    entries.push(eventToEntry(e as Event<unknown>));
+  // Collect all signals
+  for (const e of topo.signals.values()) {
+    entries.push(signalToEntry(e as Signal<unknown>));
   }
 
-  // Collect all services
-  for (const service of topo.services.values()) {
-    entries.push(serviceToEntry(service));
+  // Collect all provisions
+  for (const provision of topo.provisions.values()) {
+    entries.push(provisionToEntry(provision));
   }
 
   // Sort alphabetically by id

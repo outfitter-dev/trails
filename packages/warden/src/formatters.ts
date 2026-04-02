@@ -33,7 +33,7 @@ export const formatGitHubAnnotations = (report: WardenReport): string => {
 
   if (report.drift?.stale) {
     lines.push(
-      '::error::drift: surface.lock is stale (regenerate with `trails survey generate`)'
+      '::error::drift: trailhead.lock is stale (regenerate with `trails survey generate`)'
     );
   }
 
@@ -88,7 +88,7 @@ const driftSection = (drift: WardenReport['drift']): readonly string[] => {
   return [
     '',
     '### Drift',
-    '- surface.lock is stale (regenerate with `trails survey generate`)',
+    '- trailhead.lock is stale (regenerate with `trails survey generate`)',
   ];
 };
 

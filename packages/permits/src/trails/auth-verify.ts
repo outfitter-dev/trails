@@ -1,8 +1,8 @@
-import { Result, SURFACE_KEY, trail } from '@ontrails/core';
+import { Result, TRAILHEAD_KEY, trail } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
-import { authService } from '../auth-service.js';
+import { authProvision } from '../auth-provision.js';
 import type { PermitExtractionInput } from '../extraction.js';
 import type { Permit } from '../permit.js';
 
@@ -30,28 +30,32 @@ const toOutputPermit = (permit: Permit) => ({
   scopes: [...permit.scopes],
 });
 
-const isSurface = (value: unknown): value is PermitExtractionInput['surface'] =>
+const isTrailhead = (
+  value: unknown
+): value is PermitExtractionInput['trailhead'] =>
   value === 'http' || value === 'mcp' || value === 'cli';
 
-const getSurface = (ctx: TrailContext): PermitExtractionInput['surface'] => {
-  const surface = ctx.extensions?.[SURFACE_KEY];
-  return isSurface(surface) ? surface : 'http';
+const getTrailhead = (
+  ctx: TrailContext
+): PermitExtractionInput['trailhead'] => {
+  const trailhead = ctx.extensions?.[TRAILHEAD_KEY];
+  return isTrailhead(trailhead) ? trailhead : 'http';
 };
 
 /**
  * Infrastructure trail that verifies a bearer token and returns the resolved permit.
  *
- * Reads the auth adapter from `authService` — the adapter is configured at
- * bootstrap (e.g. JWT with HMAC secret). The mock adapter always succeeds with
- * a null permit, so `testAll(app)` works without configuration.
+ * Reads the auth connector from `authProvision` — the connector is configured
+ * at bootstrap (e.g. JWT with HMAC secret). The mock connector always
+ * succeeds with a null permit, so `testAll(app)` works without configuration.
  */
 export const authVerify = trail('auth.verify', {
   blaze: async (input, ctx) => {
-    const adapter = authService.from(ctx);
-    const result = await adapter.authenticate({
+    const connector = authProvision.from(ctx);
+    const result = await connector.authenticate({
       bearerToken: input.token,
       requestId: ctx.requestId,
-      surface: getSurface(ctx),
+      trailhead: getTrailhead(ctx),
     });
 
     if (result.isErr()) {
@@ -93,5 +97,5 @@ export const authVerify = trail('auth.verify', {
     permit: permitSchema.optional(),
     valid: z.boolean(),
   }),
-  services: [authService],
+  provisions: [authProvision],
 });

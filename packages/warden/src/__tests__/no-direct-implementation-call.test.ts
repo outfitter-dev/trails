@@ -21,15 +21,15 @@ async function run() {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.rule).toBe('no-direct-implementation-call');
     expect(diagnostics[0]?.severity).toBe('warn');
-    expect(diagnostics[0]?.message).toContain('ctx.follow');
+    expect(diagnostics[0]?.message).toContain('ctx.cross');
   });
 
-  test('allows ctx.follow() calls', () => {
+  test('allows ctx.cross() calls', () => {
     const code = `
 trail("entity.onboard", {
-  follow: ["entity.create"],
+  crosses: ["entity.create"],
   blaze: async (input, ctx) => {
-    const result = await ctx.follow("entity.create", input);
+    const result = await ctx.cross("entity.create", input);
     return Result.ok(result);
   },
 });

@@ -1,8 +1,8 @@
 # @ontrails/warden
 
-AST-based code convention rules for Trails. 13 lint rules that catch contract violations at development time, plus surface lock drift detection and CI formatters.
+AST-based code convention rules for Trails. 13 lint rules that catch contract violations at development time, plus lock drift detection and CI formatters.
 
-Structural checks (follow target existence, declared service existence, recursive follow, example schema validation) live in `validateTopo()` from `@ontrails/core`. Warden handles the code-level rules that need AST analysis.
+Structural checks (cross target existence, declared provision existence, recursive crossing, example schema validation) live in `validateTopo()` from `@ontrails/core`. Warden handles the code-level rules that need AST analysis.
 
 ## Usage
 
@@ -30,28 +30,28 @@ console.log(formatWardenReport(report));
 | --- | --- | --- |
 | `no-throw-in-implementation` | error | `throw` inside blaze bodies |
 | `implementation-returns-result` | error | Blaze functions returning raw values instead of `Result` |
-| `context-no-surface-types` | error | Surface type imports (`Request`, `McpSession`) in trail files |
-| `no-sync-result-assumption` | error | Missing `await` on `.blaze()` results |
+| `context-no-trailhead-types` | error | Trailhead type imports (`Request`, `McpSession`) in trail files |
+| `no-sync-result-assumption` | error | Missing `await` on `.trailhead()` results |
 | `valid-detour-refs` | error | Detour targets that do not exist in the topo |
 | `no-throw-in-detour-target` | error | `throw` inside detour target trails |
-| `no-direct-implementation-call` | warn | Direct `.blaze()` calls bypassing `ctx.follow()` |
-| `no-direct-impl-in-route` | warn | Direct `.blaze()` calls inside trail bodies with `follow` |
+| `no-direct-implementation-call` | warn | Direct `.trailhead()` calls bypassing `ctx.cross()` |
+| `no-direct-impl-in-route` | warn | Direct `.trailhead()` calls inside trail bodies with `crosses` |
 | `prefer-schema-inference` | warn | Redundant field overrides already derivable from the schema |
-| `follow-declarations` | error/warn | `ctx.follow()` calls that drift from declared `follow: [...]` |
-| `service-declarations` | error/warn | `service.from(ctx)` / `ctx.service()` usage that drifts from declared `services: [...]` |
-| `service-exists` | error | Declared or referenced service IDs that do not resolve in project context |
+| `cross-declarations` | error/warn | `ctx.cross()` calls that drift from declared `crosses: [...]` |
+| `provision-declarations` | error/warn | `provision.from(ctx)` / `ctx.provision()` usage that drifts from declared `provisions: [...]` |
+| `provision-exists` | error | Declared or referenced provision IDs that do not resolve in project context |
 | `valid-describe-refs` | warn | `@see` refs in `.describe()` that do not resolve |
 
 ## Drift detection
 
-Warden integrates with `@ontrails/schema` to detect when the topo has changed without updating `surface.lock`:
+Warden integrates with `@ontrails/schema` to detect when the topo has changed without updating the lock file:
 
 ```typescript
 import { checkDrift } from '@ontrails/warden';
 
 const drift = await checkDrift(app);
 if (drift.stale) {
-  console.log('surface.lock is stale -- regenerate with `trails survey generate`');
+  console.log('lock file is stale -- regenerate with `trails survey generate`');
 }
 ```
 
@@ -63,7 +63,7 @@ Add to lefthook for pre-push enforcement:
 pre-push:
   commands:
     warden:
-      run: trails warden --exit-code
+      blaze: trails warden --exit-code
       tags: governance
 ```
 
@@ -75,7 +75,7 @@ import { formatGitHubAnnotations, formatJson, formatSummary } from '@ontrails/wa
 
 ## Trail-based API
 
-Every built-in warden rule is also available as a composable trail. This makes rules queryable, testable, and invocable through any Trails surface.
+Every built-in warden rule is also available as a composable trail. This makes rules queryable, testable, and invocable through any Trails trailhead.
 
 ```typescript
 import { wardenTopo, runWardenTrails } from '@ontrails/warden';
@@ -86,7 +86,7 @@ console.log(wardenTopo.ids()); // ['warden.rule.no-throw-in-implementation', ...
 // Run all rule trails against a source file
 const diagnostics = await runWardenTrails(filePath, sourceCode, {
   knownTrailIds: myApp.ids(),
-  knownServiceIds: myApp.serviceIds(),
+  knownProvisionIds: myApp.provisionIds(),
 });
 ```
 
@@ -98,7 +98,7 @@ To wrap a custom rule as a trail, use `wrapRule` (imported from `@ontrails/warde
 | --- | --- |
 | `runWarden(app, options?)` | Run all rules and drift checks, return a report |
 | `formatWardenReport(report)` | Human-readable report |
-| `checkDrift(app)` | Check if `surface.lock` matches the current topo |
+| `checkDrift(app)` | Check if the lock file matches the current topo |
 | `wardenRules` | Registry of all built-in rules |
 | `wardenTopo` | `Topo` of all built-in rule trails (one per rule) |
 | `runWardenTrails(filePath, sourceCode, options?)` | Dispatch all rule trails for a file, collect diagnostics |

@@ -14,7 +14,7 @@ import { Result, trail } from '@ontrails/core';
 import type { z } from 'zod';
 import { z as zod } from 'zod';
 
-import { configService } from '../config-service.js';
+import { configProvision } from '../config-provision.js';
 import {
   generateEnvExample,
   generateExample,
@@ -63,7 +63,7 @@ const writeArtifacts = async (
 
 export const configInit = trail('config.init', {
   blaze: async (input, ctx) => {
-    const state = configService.from(ctx);
+    const state = configProvision.from(ctx);
     const schema = state.schema as z.ZodObject<Record<string, z.ZodType>>;
     const content = generateExample(schema, input.format);
 
@@ -92,5 +92,5 @@ export const configInit = trail('config.init', {
   intent: 'write',
   metadata: { category: 'infrastructure' },
   output: outputSchema,
-  services: [configService],
+  provisions: [configProvision],
 });

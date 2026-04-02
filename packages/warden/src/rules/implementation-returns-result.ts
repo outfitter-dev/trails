@@ -2,7 +2,7 @@
  * Finds implementations that return raw values instead of `Result`.
  *
  * Uses AST parsing to find `blaze:` bodies and check that
- * every return statement returns Result.ok(), Result.err(), ctx.follow(),
+ * every return statement returns Result.ok(), Result.err(), ctx.cross(),
  * or a tracked Result-typed variable.
  */
 
@@ -60,7 +60,7 @@ const isResultMemberCall = (callee: AstNode): boolean => {
   if (objName === 'Result' && (propName === 'ok' || propName === 'err')) {
     return true;
   }
-  if (objName === 'ctx' && propName === 'follow') {
+  if (objName === 'ctx' && propName === 'cross') {
     return true;
   }
   return propName === 'blaze';

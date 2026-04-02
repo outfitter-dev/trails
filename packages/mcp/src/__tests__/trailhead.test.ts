@@ -21,7 +21,7 @@ const requireTool = (tools: McpToolDefinition[], name: string) => {
 };
 
 /**
- * Unwrap buildMcpTools result, throwing on error so test failures surface clearly.
+ * Unwrap buildMcpTools result, throwing on error so test failures show up clearly.
  */
 const buildTools = (
   ...args: Parameters<typeof buildMcpTools>
@@ -55,7 +55,7 @@ describe('trailhead', () => {
   test('trailhead throws on invalid topo', async () => {
     const t = trail('broken', {
       blaze: () => Result.ok({}),
-      follow: ['nonexistent.trail'],
+      crosses: ['nonexistent.trail'],
       input: z.object({}),
       output: z.object({}),
     });
@@ -66,7 +66,7 @@ describe('trailhead', () => {
   test('trailhead skips validation when validate: false', async () => {
     const t = trail('broken', {
       blaze: () => Result.ok({}),
-      follow: ['nonexistent.trail'],
+      crosses: ['nonexistent.trail'],
       input: z.object({}),
       output: z.object({}),
     });
@@ -83,12 +83,12 @@ describe('trailhead', () => {
     expect(['resolved', 'timeout']).toContain(result);
   });
 
-  test('TrailheadMcpOptions accepts service overrides', () => {
+  test('TrailheadMcpOptions accepts provision overrides', () => {
     const opts: Parameters<typeof trailhead>[1] = {
-      services: {},
+      provisions: {},
       validate: false,
     };
-    expect(opts.services).toEqual({});
+    expect(opts.provisions).toEqual({});
   });
 
   test('createMcpServer registers tools that can be listed', () => {

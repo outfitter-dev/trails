@@ -1,19 +1,19 @@
 /**
- * File I/O for surface maps and lock files.
+ * File I/O for trailhead maps and lock files.
  */
 
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { ReadOptions, SurfaceMap, WriteOptions } from './types.js';
+import type { ReadOptions, TrailheadMap, WriteOptions } from './types.js';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
 const DEFAULT_DIR = '.trails';
-const SURFACE_MAP_FILE = '_surface.json';
-const SURFACE_LOCK_FILE = 'surface.lock';
+const TRAILHEAD_MAP_FILE = '_trailhead.json';
+const TRAILHEAD_LOCK_FILE = 'trailhead.lock';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -31,85 +31,80 @@ const ensureDir = async (dir: string): Promise<void> => {
   await mkdir(dir, { recursive: true });
 };
 
+const readFirstExistingText = async (
+  filePaths: readonly string[]
+): Promise<string | null> => {
+  for (const filePath of filePaths) {
+    try {
+      return await Bun.file(filePath).text();
+    } catch (error: unknown) {
+      if (!isNotFound(error)) {
+        throw error;
+      }
+    }
+  }
+  return null;
+};
+
 // ---------------------------------------------------------------------------
-// Surface Map
+// Trailhead Map
 // ---------------------------------------------------------------------------
 
 /**
- * Write a surface map to `<dir>/_surface.json`.
+ * Write a trailhead map to `<dir>/_trailhead.json`.
  *
  * Creates the directory if it doesn't exist. Returns the file path.
  */
-export const writeSurfaceMap = async (
-  surfaceMap: SurfaceMap,
+export const writeTrailheadMap = async (
+  trailheadMap: TrailheadMap,
   options?: WriteOptions
 ): Promise<string> => {
   const dir = resolveDir(options);
   await ensureDir(dir);
-  const filePath = join(dir, SURFACE_MAP_FILE);
-  const json = `${JSON.stringify(surfaceMap, null, 2)}\n`;
+  const filePath = join(dir, TRAILHEAD_MAP_FILE);
+  const json = `${JSON.stringify(trailheadMap, null, 2)}\n`;
   await Bun.write(filePath, json);
   return filePath;
 };
 
 /**
- * Read a surface map from `<dir>/_surface.json`.
- *
- * Returns `null` if the file doesn't exist.
+ * Read a trailhead map from `<dir>/_trailhead.json`.
  */
-export const readSurfaceMap = async (
+export const readTrailheadMap = async (
   options?: ReadOptions
-): Promise<SurfaceMap | null> => {
+): Promise<TrailheadMap | null> => {
   const dir = resolveDir(options);
-  const filePath = join(dir, SURFACE_MAP_FILE);
-  try {
-    const content = await Bun.file(filePath).text();
-    return JSON.parse(content) as SurfaceMap;
-  } catch (error: unknown) {
-    if (isNotFound(error)) {
-      return null;
-    }
-    throw error;
-  }
+  const content = await readFirstExistingText([join(dir, TRAILHEAD_MAP_FILE)]);
+  return content ? (JSON.parse(content) as TrailheadMap) : null;
 };
 
 // ---------------------------------------------------------------------------
-// Surface Lock
+// Trailhead Lock
 // ---------------------------------------------------------------------------
 
 /**
- * Write a hash to `<dir>/surface.lock` as a single line.
+ * Write a hash to `<dir>/trailhead.lock` as a single line.
  *
  * Creates the directory if it doesn't exist. Returns the file path.
  */
-export const writeSurfaceLock = async (
+export const writeTrailheadLock = async (
   hash: string,
   options?: WriteOptions
 ): Promise<string> => {
   const dir = resolveDir(options);
   await ensureDir(dir);
-  const filePath = join(dir, SURFACE_LOCK_FILE);
+  const filePath = join(dir, TRAILHEAD_LOCK_FILE);
   await Bun.write(filePath, `${hash}\n`);
   return filePath;
 };
 
 /**
- * Read the hash from `<dir>/surface.lock`.
- *
- * Returns `null` if the file doesn't exist.
+ * Read the hash from `<dir>/trailhead.lock`.
  */
-export const readSurfaceLock = async (
+export const readTrailheadLock = async (
   options?: ReadOptions
 ): Promise<string | null> => {
   const dir = resolveDir(options);
-  const filePath = join(dir, SURFACE_LOCK_FILE);
-  try {
-    const content = await Bun.file(filePath).text();
-    return content.trim();
-  } catch (error: unknown) {
-    if (isNotFound(error)) {
-      return null;
-    }
-    throw error;
-  }
+  const content = await readFirstExistingText([join(dir, TRAILHEAD_LOCK_FILE)]);
+  return content ? content.trim() : null;
 };

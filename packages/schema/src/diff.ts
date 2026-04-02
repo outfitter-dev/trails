@@ -1,13 +1,13 @@
 /**
- * Semantic diffing of surface maps.
+ * Semantic diffing of trailhead maps.
  */
 
 import type {
   DiffEntry,
   DiffResult,
   JsonSchema,
-  SurfaceMap,
-  SurfaceMapEntry,
+  TrailheadMap,
+  TrailheadMapEntry,
 } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -44,12 +44,12 @@ const addDetail = (
 const capitalize = (s: string): string =>
   `${s.charAt(0).toUpperCase()}${s.slice(1)}`;
 
-const labelForKind = (kind: SurfaceMapEntry['kind']): string => {
-  if (kind === 'service') {
-    return 'Service';
+const labelForKind = (kind: TrailheadMapEntry['kind']): string => {
+  if (kind === 'provision') {
+    return 'Provision';
   }
-  if (kind === 'event') {
-    return 'Event';
+  if (kind === 'signal') {
+    return 'Signal';
   }
   return 'Trail';
 };
@@ -212,22 +212,22 @@ const diffSchemaFields = (
 // Per-entry diffing
 // ---------------------------------------------------------------------------
 
-/** Diff surface additions and removals. */
-const diffSurfaces = (
+/** Diff trailhead additions and removals. */
+const diffTrailheads = (
   acc: DetailAccumulator,
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TrailheadMapEntry,
+  curr: TrailheadMapEntry
 ): void => {
-  const prevSurfaces = new Set(prev.surfaces);
-  const currSurfaces = new Set(curr.surfaces);
-  for (const s of [...currSurfaces].toSorted()) {
-    if (!prevSurfaces.has(s)) {
-      addDetail(acc, 'info', `Surface "${s}" added`);
+  const prevTrailheads = new Set(prev.trailheads);
+  const currTrailheads = new Set(curr.trailheads);
+  for (const trailhead of [...currTrailheads].toSorted()) {
+    if (!prevTrailheads.has(trailhead)) {
+      addDetail(acc, 'info', `Trailhead "${trailhead}" added`);
     }
   }
-  for (const s of [...prevSurfaces].toSorted()) {
-    if (!currSurfaces.has(s)) {
-      addDetail(acc, 'breaking', `Surface "${s}" removed`);
+  for (const trailhead of [...prevTrailheads].toSorted()) {
+    if (!currTrailheads.has(trailhead)) {
+      addDetail(acc, 'breaking', `Trailhead "${trailhead}" removed`);
     }
   }
 };
@@ -235,8 +235,8 @@ const diffSurfaces = (
 /** Diff safety markers, description, and deprecation. */
 const diffMetadata = (
   acc: DetailAccumulator,
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TrailheadMapEntry,
+  curr: TrailheadMapEntry
 ): void => {
   if (prev.intent !== curr.intent) {
     addDetail(
@@ -265,8 +265,8 @@ const diffMetadata = (
   }
 };
 
-/** Build a follow-changed description from added/removed arrays. */
-const buildFollowMessage = (added: string[], removed: string[]): string => {
+/** Build a crossing-changed description from added/removed arrays. */
+const buildCrossesMessage = (added: string[], removed: string[]): string => {
   const parts: string[] = [];
   if (added.length > 0) {
     parts.push(`added "${added.join('", "')}"`);
@@ -274,10 +274,10 @@ const buildFollowMessage = (added: string[], removed: string[]): string => {
   if (removed.length > 0) {
     parts.push(`removed "${removed.join('", "')}"`);
   }
-  return `Follow changed: ${parts.join(', ')}`;
+  return `Crosses changed: ${parts.join(', ')}`;
 };
 
-const buildServicesMessage = (added: string[], removed: string[]): string => {
+const buildProvisionsMessage = (added: string[], removed: string[]): string => {
   const parts: string[] = [];
   if (added.length > 0) {
     parts.push(`added "${added.join('", "')}"`);
@@ -285,55 +285,59 @@ const buildServicesMessage = (added: string[], removed: string[]): string => {
   if (removed.length > 0) {
     parts.push(`removed "${removed.join('", "')}"`);
   }
-  return `Services changed: ${parts.join(', ')}`;
+  return `Provisions changed: ${parts.join(', ')}`;
 };
 
-/** Diff follow arrays. */
-const diffFollow = (
+/** Diff crosses arrays. */
+const diffCrosses = (
   acc: DetailAccumulator,
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TrailheadMapEntry,
+  curr: TrailheadMapEntry
 ): void => {
-  const prevFollow = new Set(prev.follow);
-  const currFollow = new Set(curr.follow);
-  const added = [...currFollow].filter((f) => !prevFollow.has(f)).toSorted();
-  const removed = [...prevFollow].filter((f) => !currFollow.has(f)).toSorted();
+  const prevCrosses = new Set(prev.crosses);
+  const currCrosses = new Set(curr.crosses);
+  const added = [...currCrosses]
+    .filter((crossedId) => !prevCrosses.has(crossedId))
+    .toSorted();
+  const removed = [...prevCrosses]
+    .filter((crossedId) => !currCrosses.has(crossedId))
+    .toSorted();
   if (added.length > 0 || removed.length > 0) {
-    addDetail(acc, 'warning', buildFollowMessage(added, removed));
+    addDetail(acc, 'warning', buildCrossesMessage(added, removed));
   }
 };
 
-/** Diff declared service arrays on trail entries. */
-const diffServices = (
+/** Diff declared provision arrays on trail entries. */
+const diffProvisions = (
   acc: DetailAccumulator,
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TrailheadMapEntry,
+  curr: TrailheadMapEntry
 ): void => {
-  const prevServices = new Set(prev.services);
-  const currServices = new Set(curr.services);
-  const added = [...currServices]
-    .filter((service) => !prevServices.has(service))
+  const prevProvisions = new Set(prev.provisions);
+  const currProvisions = new Set(curr.provisions);
+  const added = [...currProvisions]
+    .filter((provision) => !prevProvisions.has(provision))
     .toSorted();
-  const removed = [...prevServices]
-    .filter((service) => !currServices.has(service))
+  const removed = [...prevProvisions]
+    .filter((provision) => !currProvisions.has(provision))
     .toSorted();
   if (added.length > 0 || removed.length > 0) {
-    addDetail(acc, 'warning', buildServicesMessage(added, removed));
+    addDetail(acc, 'warning', buildProvisionsMessage(added, removed));
   }
 };
 
 const diffEntry = (
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TrailheadMapEntry,
+  curr: TrailheadMapEntry
 ): DiffEntry | undefined => {
   const acc: DetailAccumulator = { details: [], severity: 'info' };
 
   diffSchemaFields(acc, 'input', prev.input, curr.input);
   diffSchemaFields(acc, 'output', prev.output, curr.output);
-  diffSurfaces(acc, prev, curr);
+  diffTrailheads(acc, prev, curr);
   diffMetadata(acc, prev, curr);
-  diffFollow(acc, prev, curr);
-  diffServices(acc, prev, curr);
+  diffCrosses(acc, prev, curr);
+  diffProvisions(acc, prev, curr);
 
   if (acc.details.length === 0) {
     return undefined;
@@ -353,17 +357,17 @@ const diffEntry = (
 // ---------------------------------------------------------------------------
 
 /**
- * Compute a semantic diff between two surface maps.
+ * Compute a semantic diff between two trailhead maps.
  *
  * Classifies each change with a severity:
  * - `info`: new trail, optional field added, output field added, description change
- * - `warning`: safety marker change, deprecation, follow change
- * - `breaking`: trail removed, required input added, field removed, type change, surface removed
+ * - `warning`: safety marker change, deprecation, crossing change
+ * - `breaking`: trail removed, required input added, field removed, type change, trailhead removed
  */
 /** Find entries added in curr that don't exist in prev. */
 const findAdded = (
-  prevById: Map<string, SurfaceMapEntry>,
-  currById: Map<string, SurfaceMapEntry>
+  prevById: Map<string, TrailheadMapEntry>,
+  currById: Map<string, TrailheadMapEntry>
 ): DiffEntry[] =>
   [...currById.entries()]
     .filter(([id]) => !prevById.has(id))
@@ -377,8 +381,8 @@ const findAdded = (
 
 /** Find entries removed from prev that don't exist in curr. */
 const findRemoved = (
-  prevById: Map<string, SurfaceMapEntry>,
-  currById: Map<string, SurfaceMapEntry>
+  prevById: Map<string, TrailheadMapEntry>,
+  currById: Map<string, TrailheadMapEntry>
 ): DiffEntry[] =>
   [...prevById.entries()]
     .filter(([id]) => !currById.has(id))
@@ -392,8 +396,8 @@ const findRemoved = (
 
 /** Find entries modified between prev and curr. */
 const findModified = (
-  prevById: Map<string, SurfaceMapEntry>,
-  currById: Map<string, SurfaceMapEntry>
+  prevById: Map<string, TrailheadMapEntry>,
+  currById: Map<string, TrailheadMapEntry>
 ): DiffEntry[] => {
   const results: DiffEntry[] = [];
   for (const [id, currEntry] of currById) {
@@ -410,17 +414,17 @@ const findModified = (
 
 /** Collect all diff entries (added, removed, modified) between two maps. */
 const collectDiffEntries = (
-  prevById: Map<string, SurfaceMapEntry>,
-  currById: Map<string, SurfaceMapEntry>
+  prevById: Map<string, TrailheadMapEntry>,
+  currById: Map<string, TrailheadMapEntry>
 ): DiffEntry[] => [
   ...findAdded(prevById, currById),
   ...findRemoved(prevById, currById),
   ...findModified(prevById, currById),
 ];
 
-export const diffSurfaceMaps = (
-  prev: SurfaceMap,
-  curr: SurfaceMap
+export const diffTrailheadMaps = (
+  prev: TrailheadMap,
+  curr: TrailheadMap
 ): DiffResult => {
   const prevById = new Map(prev.entries.map((e) => [e.id, e]));
   const currById = new Map(curr.entries.map((e) => [e.id, e]));

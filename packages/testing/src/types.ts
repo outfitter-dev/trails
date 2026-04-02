@@ -26,16 +26,16 @@ export interface TestScenario {
 }
 
 // ---------------------------------------------------------------------------
-// Follow Scenario (for testFollows)
+// Cross Scenario (for testCrosses)
 // ---------------------------------------------------------------------------
 
 /** A test scenario for a trail's composition graph. */
-export interface FollowScenario extends TestScenario {
-  /** Assert these trail IDs were followed, in order. */
-  readonly expectFollowed?: readonly string[] | undefined;
-  /** Assert follow counts per trail ID. */
-  readonly expectFollowedCount?: Readonly<Record<string, number>> | undefined;
-  /** Inject failure from a followed trail's example by description. */
+export interface CrossScenario extends TestScenario {
+  /** Assert these trail IDs were crossed, in order. */
+  readonly expectCrossed?: readonly string[] | undefined;
+  /** Assert crossing counts per trail ID. */
+  readonly expectCrossedCount?: Readonly<Record<string, number>> | undefined;
+  /** Inject failure from a crossed trail's example by description. */
   readonly injectFromExample?: Readonly<Record<string, string>> | undefined;
 }
 

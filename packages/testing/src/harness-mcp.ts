@@ -22,7 +22,7 @@ import type {
  * Create an MCP harness for integration testing.
  *
  * Builds MCP tools from the app's topo and provides a `callTool()` method
- * that invokes tools directly without any transport layer.
+ * that invokes tools directly without any transport boundary.
  *
  * ```ts
  * const harness = createMcpHarness({ app });

@@ -45,8 +45,8 @@ export interface WardenRule {
 export interface ProjectContext {
   /** All known trail IDs in the project */
   readonly knownTrailIds: ReadonlySet<string>;
-  /** All known service IDs in the project */
-  readonly knownServiceIds?: ReadonlySet<string>;
+  /** All known provision IDs in the project */
+  readonly knownProvisionIds?: ReadonlySet<string>;
   /** All trail IDs referenced as detour targets across the project */
   readonly detourTargetTrailIds?: ReadonlySet<string>;
 }

@@ -1,7 +1,7 @@
 /**
- * Config composition utilities for services.
+ * Config composition utilities for provisions.
  *
- * Collects config schemas from service declarations so they can be
+ * Collects config schemas from provision declarations so they can be
  * composed into a unified config structure via `defineConfig`.
  */
 
@@ -11,14 +11,17 @@ import type { z } from 'zod';
 // Types
 // ---------------------------------------------------------------------------
 
-/** A service config schema entry extracted from a service declaration. */
-export interface ServiceConfigEntry {
-  readonly serviceId: string;
+/** A provision config schema entry extracted from a provision declaration. */
+export interface ProvisionConfigEntry {
+  readonly provisionId: string;
   readonly schema: z.ZodType;
 }
 
-/** Minimal shape needed to extract config from a service-like object. */
-interface ServiceWithOptionalConfig {
+/** Backward-compatible alias while the migration is in flight. */
+export type ServiceConfigEntry = ProvisionConfigEntry;
+
+/** Minimal shape needed to extract config from a provision-like object. */
+interface ProvisionWithOptionalConfig {
   readonly id: string;
   readonly config?: z.ZodType | undefined;
 }
@@ -28,19 +31,22 @@ interface ServiceWithOptionalConfig {
 // ---------------------------------------------------------------------------
 
 /**
- * Collect config schemas from services that declare them.
+ * Collect config schemas from provisions that declare them.
  *
- * Returns entries keyed by service ID for composition into `defineConfig`.
- * Services without a `config` schema are excluded.
+ * Returns entries keyed by provision ID for composition into `defineConfig`.
+ * Provisions without a `config` schema are excluded.
  */
-export const collectServiceConfigs = (
-  services: readonly ServiceWithOptionalConfig[]
-): ServiceConfigEntry[] =>
-  services
+export const collectProvisionConfigs = (
+  provisions: readonly ProvisionWithOptionalConfig[]
+): ProvisionConfigEntry[] =>
+  provisions
     .filter(
       (
         svc
-      ): svc is ServiceWithOptionalConfig & { readonly config: z.ZodType } =>
+      ): svc is ProvisionWithOptionalConfig & { readonly config: z.ZodType } =>
         svc.config !== undefined
     )
-    .map((svc) => ({ schema: svc.config, serviceId: svc.id }));
+    .map((svc) => ({ provisionId: svc.id, schema: svc.config }));
+
+/** Backward-compatible alias while the migration is in flight. */
+export const collectServiceConfigs = collectProvisionConfigs;

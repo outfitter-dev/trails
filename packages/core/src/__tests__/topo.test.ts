@@ -3,8 +3,8 @@ import { describe, test, expect } from 'bun:test';
 import { z } from 'zod';
 
 import { ValidationError } from '../errors.js';
+import { provision } from '../provision.js';
 import { Result } from '../result.js';
-import { service } from '../service.js';
 import { topo } from '../topo.js';
 
 // ---------------------------------------------------------------------------
@@ -14,9 +14,9 @@ import { topo } from '../topo.js';
 // oxlint-disable-next-line require-await -- satisfies async interface without needing await
 const noop = async () => Result.ok();
 
-const mockTrail = (id: string, follow?: readonly string[]) => ({
+const mockTrail = (id: string, crosses?: readonly string[]) => ({
   blaze: noop,
-  follow: Object.freeze([...(follow ?? [])]),
+  crosses: Object.freeze([...(crosses ?? [])]),
   id,
   input: z.object({ x: z.number() }),
   kind: 'trail' as const,
@@ -25,14 +25,14 @@ const mockTrail = (id: string, follow?: readonly string[]) => ({
 
 const mockEvent = (id: string) => ({
   id,
-  kind: 'event' as const,
+  kind: 'signal' as const,
   payload: z.object({ payload: z.string() }),
 });
 
-const mockService = (id: string) =>
-  service(id, {
+const mockProvision = (id: string) =>
+  provision(id, {
     create: () => Result.ok({ id }),
-    description: `${id} service`,
+    description: `${id} provision`,
   });
 
 // ---------------------------------------------------------------------------
@@ -57,15 +57,15 @@ describe('topo', () => {
     test('auto-scans exports by kind discriminant', () => {
       const mod = {
         event1: mockEvent('e1'),
-        service1: mockService('s1'),
+        provision1: mockProvision('s1'),
         trail1: mockTrail('t1'),
         trail2: mockTrail('t2', ['t1']),
       };
       const t = topo('app', mod);
 
       expect(t.trails.size).toBe(2);
-      expect(t.events.size).toBe(1);
-      expect(t.services.size).toBe(1);
+      expect(t.signals.size).toBe(1);
+      expect(t.provisions.size).toBe(1);
     });
 
     test('collects from multiple modules', () => {
@@ -89,25 +89,25 @@ describe('topo', () => {
       const t = topo('app', mod);
 
       expect(t.trails.size).toBe(1);
-      expect(t.events.size).toBe(0);
-      expect(t.services.size).toBe(0);
+      expect(t.signals.size).toBe(0);
+      expect(t.provisions.size).toBe(0);
     });
 
-    test('trail with follow registers correctly', () => {
+    test('trail with crossings registers correctly', () => {
       const mod = { t: mockTrail('trail-1', ['trail-2']) };
       const t = topo('app', mod);
 
       expect(t.trails.size).toBe(1);
       const registered = t.trails.get('trail-1');
-      expect(registered?.follow).toEqual(['trail-2']);
+      expect(registered?.crosses).toEqual(['trail-2']);
     });
 
-    test('collects services from modules', () => {
-      const mod = { db: mockService('db.main') };
+    test('collects provisions from modules', () => {
+      const mod = { db: mockProvision('db.main') };
       const t = topo('app', mod);
 
-      expect(t.services.size).toBe(1);
-      expect(t.services.get('db.main')).toBe(mod.db);
+      expect(t.provisions.size).toBe(1);
+      expect(t.provisions.get('db.main')).toBe(mod.db);
     });
   });
 
@@ -128,17 +128,17 @@ describe('topo', () => {
 
       expect(() => topo('app', mod1, mod2)).toThrow(ValidationError);
       expect(() => topo('app', mod1, mod2)).toThrow(
-        'Duplicate event ID: "dup"'
+        'Duplicate signal ID: "dup"'
       );
     });
 
-    test('rejects duplicate service IDs', () => {
-      const mod1 = { a: mockService('dup') };
-      const mod2 = { b: mockService('dup') };
+    test('rejects duplicate provision IDs', () => {
+      const mod1 = { a: mockProvision('dup') };
+      const mod2 = { b: mockProvision('dup') };
 
       expect(() => topo('app', mod1, mod2)).toThrow(ValidationError);
       expect(() => topo('app', mod1, mod2)).toThrow(
-        'Duplicate service ID: "dup"'
+        'Duplicate provision ID: "dup"'
       );
     });
   });
@@ -162,26 +162,26 @@ describe('topo accessors', () => {
     expect(app.count).toBe(1);
   });
 
-  test('serviceCount returns number of services', () => {
-    const db = mockService('db.main');
-    const cache = mockService('cache.main');
+  test('provisionCount returns number of provisions', () => {
+    const db = mockProvision('db.main');
+    const cache = mockProvision('cache.main');
     const app = topo('test', { cache, db });
-    expect(app.serviceCount).toBe(2);
+    expect(app.provisionCount).toBe(2);
   });
 
   test('empty topo has zero count and empty ids', () => {
     const app = topo('empty');
     expect(app.count).toBe(0);
     expect(app.ids()).toEqual([]);
-    expect(app.serviceCount).toBe(0);
-    expect(app.serviceIds()).toEqual([]);
+    expect(app.provisionCount).toBe(0);
+    expect(app.provisionIds()).toEqual([]);
   });
 
-  test('serviceIds() returns all service IDs', () => {
-    const db = mockService('db.main');
-    const cache = mockService('cache.main');
+  test('provisionIds() returns all provision IDs', () => {
+    const db = mockProvision('db.main');
+    const cache = mockProvision('cache.main');
     const app = topo('test', { cache, db });
-    expect(app.serviceIds().toSorted()).toEqual(['cache.main', 'db.main']);
+    expect(app.provisionIds().toSorted()).toEqual(['cache.main', 'db.main']);
   });
 });
 
@@ -192,7 +192,7 @@ describe('topo accessors', () => {
 describe('Topo', () => {
   const mod = {
     e1: mockEvent('event-1'),
-    s1: mockService('service-1'),
+    p1: mockProvision('provision-1'),
     t1: mockTrail('trail-1'),
     t2: mockTrail('trail-2'),
     t3: mockTrail('trail-3', ['trail-1']),
@@ -206,7 +206,7 @@ describe('Topo', () => {
       expect(app.get('trail-1')).toBe(mod.t1);
     });
 
-    test('retrieves trail with follow by ID', () => {
+    test('retrieves trail with crossings by ID', () => {
       expect(app.get('trail-3')).toBe(mod.t3);
     });
 
@@ -220,7 +220,7 @@ describe('Topo', () => {
       expect(app.has('trail-1')).toBe(true);
     });
 
-    test('returns true for trail with follow', () => {
+    test('returns true for trail with crossings', () => {
       expect(app.has('trail-3')).toBe(true);
     });
 
@@ -228,33 +228,33 @@ describe('Topo', () => {
       expect(app.has('nope')).toBe(false);
     });
 
-    test('returns false for event ID (events are not trails)', () => {
+    test('returns false for event ID (signals are not trails)', () => {
       expect(app.has('event-1')).toBe(false);
     });
   });
 
-  describe('getService()', () => {
-    test('retrieves service by ID', () => {
-      expect(app.getService('service-1')).toBe(mod.s1);
+  describe('getProvision()', () => {
+    test('retrieves provision by ID', () => {
+      expect(app.getProvision('provision-1')).toBe(mod.p1);
     });
 
-    test('returns undefined for unknown service ID', () => {
-      expect(app.getService('missing-service')).toBeUndefined();
+    test('returns undefined for unknown provision ID', () => {
+      expect(app.getProvision('missing-provision')).toBeUndefined();
     });
   });
 
-  describe('hasService()', () => {
-    test('returns true for known service', () => {
-      expect(app.hasService('service-1')).toBe(true);
+  describe('hasProvision()', () => {
+    test('returns true for known provision', () => {
+      expect(app.hasProvision('provision-1')).toBe(true);
     });
 
-    test('returns false for unknown service', () => {
-      expect(app.hasService('missing-service')).toBe(false);
+    test('returns false for unknown provision', () => {
+      expect(app.hasProvision('missing-provision')).toBe(false);
     });
   });
 
   describe('listing', () => {
-    test('list() returns all trails (with and without follow)', () => {
+    test('list() returns all trails (with and without crossings)', () => {
       const items = app.list();
       expect(items).toHaveLength(3);
       expect(items).toContain(mod.t1);
@@ -262,16 +262,16 @@ describe('Topo', () => {
       expect(items).toContain(mod.t3);
     });
 
-    test('listEvents() returns all events', () => {
-      const items = app.listEvents();
+    test('listEvents() returns all signals', () => {
+      const items = app.listSignals();
       expect(items).toHaveLength(1);
       expect(items).toContain(mod.e1);
     });
 
-    test('listServices() returns all services', () => {
-      const items = app.listServices();
+    test('listProvisions() returns all provisions', () => {
+      const items = app.listProvisions();
       expect(items).toHaveLength(1);
-      expect(items).toContain(mod.s1);
+      expect(items).toContain(mod.p1);
     });
   });
 });

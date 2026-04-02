@@ -192,7 +192,7 @@ describe('formatWardenReport', () => {
       passed: false,
       warnCount: 0,
     });
-    expect(output).toContain('surface.lock is stale');
+    expect(output).toContain('trailhead.lock is stale');
     expect(output).toContain('Result: FAIL');
   });
 });

@@ -8,14 +8,14 @@ export const noDirectImplInRouteTrail = wrapRule({
       input: {
         filePath: 'clean.ts',
         sourceCode: `trail("entity.onboard", {
-  follow: ["entity.create"],
+  crosses: ["entity.create"],
   blaze: async (input, ctx) => {
-    const result = await ctx.follow("entity.create", input);
+    const result = await ctx.cross("entity.create", input);
     return Result.ok(result);
   }
 })`,
       },
-      name: 'Trail with follow using ctx.follow()',
+      name: 'Trail with crossings using ctx.cross()',
     },
   ],
   rule: noDirectImplInRoute,

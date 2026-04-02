@@ -64,8 +64,8 @@ const buildSecretSet = (
   return result;
 };
 
-/** Source layers in reverse precedence order for winner detection. */
-type SourceLayer = readonly [
+/** Source entries in reverse precedence order for winner detection. */
+type SourceEntry = readonly [
   name: ProvenanceEntry['source'],
   values: Record<string, unknown> | undefined,
 ];
@@ -74,7 +74,7 @@ type SourceLayer = readonly [
 const determineSource = (
   path: string,
   resolved: Record<string, unknown>,
-  layers: readonly SourceLayer[],
+  sources: readonly SourceEntry[],
   envMap: Map<string, string>,
   envVars: Record<string, string | undefined> | undefined
 ): ProvenanceEntry['source'] => {
@@ -86,7 +86,7 @@ const determineSource = (
   }
 
   const resolvedValue = getAtPath(resolved, path);
-  for (const [name, values] of layers) {
+  for (const [name, values] of sources) {
     if (values && getAtPath(values, path) === resolvedValue) {
       return name;
     }
@@ -144,7 +144,7 @@ export const explainConfig = <T extends z.ZodType>(
   const envMap = buildEnvMap(objSchema);
   const secretSet = buildSecretSet(objSchema);
 
-  const layers: readonly SourceLayer[] = [
+  const sources: readonly SourceEntry[] = [
     ['local', options.local],
     ['loadout', options.loadout],
     ['base', options.base],
@@ -156,7 +156,7 @@ export const explainConfig = <T extends z.ZodType>(
     const source = determineSource(
       path,
       options.resolved,
-      layers,
+      sources,
       envMap,
       options.env
     );

@@ -14,7 +14,7 @@ depends_on: [3, 9]
 
 ### The gap between trails and apps
 
-Trails has two compositional units: the trail (atomic operation) and the topo (the app). A trail defines typed input-to-Result behavior. A topo collects trails, events, and services into a queryable topology that surfaces can render.
+Trails has two compositional units: the trail (atomic operation) and the topo (the app). A trail defines typed input-to-Result behavior. A topo collects trails, events, and services into a queryable topology that trailheads can render.
 
 Between these two, there's a missing layer. Real applications organize capability into domains: GitHub operations, inbox management, billing, notifications. Each domain has its own trails, services, config requirements, and events. Today, these domains are plain TypeScript modules passed to `topo()`. The framework discovers trails and events via module scanning. It works, but the module has no identity, no boundary, and no metadata. The framework doesn't know "these 12 trails and 2 services belong together as the GitHub capability."
 
@@ -53,7 +53,7 @@ Config composition, visibility defaults, service namespacing, event ownership, a
 
 ### `pack()` as a definition function
 
-`pack()` is a definition function, like `trail()`, `service()`, and `event()`. It returns a Pack. The topo accepts Packs alongside bare trail modules.
+`pack()` is a definition function, like `trail()`, `provision()`, and `signal()`. It returns a Pack. The topo accepts Packs alongside bare trail modules.
 
 ```typescript
 import { pack } from '@ontrails/core';
@@ -61,7 +61,7 @@ import { pack } from '@ontrails/core';
 export const githubCore = pack('github.core', {
   visibility: 'internal',
   config: githubConfigSchema,
-  services: [githubClient],
+  provisions: [githubClient],
   trails: [authenticate, verifyWebhook, listRepos, getUser],
   events: [webhookReceived],
 });
@@ -113,7 +113,7 @@ const listRepos = trail('github.repos.list', {
   intent: 'read',
   input: z.object({ org: z.string().optional() }),
   output: z.object({ repos: z.array(RepoSchema) }),
-  run: async (input, ctx) => { /* ... */ },
+  blaze: async (input, ctx) => { /* ... */ },
 });
 ```
 
@@ -162,10 +162,10 @@ Services within a pack are namespaced by the pack. The pack name provides the na
 
 ```typescript
 // In github.core pack
-const githubClient = service('github.client', { /* ... */ });
+const githubClient = provision('github.client', { /* ... */ });
 
 // In linear.core pack
-const linearClient = service('linear.client', { /* ... */ });
+const linearClient = provision('linear.client', { /* ... */ });
 ```
 
 The namespacing convention is already established (developers namespace by hand today). Packs formalize it. The warden can warn when a service ID doesn't match its pack's namespace.
@@ -186,7 +186,7 @@ const app = topo('firewatch',
 );
 ```
 
-Internally, `topo()` unpacks each Pack: registers its trails, services, and events, composes its config schema, and validates its `requires`. The resulting Topo is the same flat topology that surfaces, survey, and the warden operate on. Packs are a composition-time concept, not a runtime concept.
+Internally, `topo()` unpacks each Pack: registers its trails, services, and events, composes its config schema, and validates its `requires`. The resulting Topo is the same flat topology that trailheads, survey, and the warden operate on. Packs are a composition-time concept, not a runtime concept.
 
 However, the topo retains pack membership metadata. Survey can report "this trail belongs to the `github.core` pack." The warden can enforce pack boundaries. CLI help can group by pack. The information is preserved for introspection without changing the runtime model.
 
@@ -198,10 +198,10 @@ A pack's trails may declare `on` triggers as authored defaults. When a consuming
 const app = topo('firewatch',
   githubCore,
   githubPullRequests.provision({
-    triggers: {
-      'github.pr.list': { on: ['cron:every-5m'] },       // replace authored trigger
-      'github.pr.show': { on: [] },                       // suppress all triggers
-      'github.pr.submit-review': { on: { add: ['event:review.requested'] } }, // add to existing
+    fires: {
+      'github.pr.list': { fires: ['cron:every-5m'] },       // replace authored fire sources
+      'github.pr.show': { fires: [] },                       // suppress all fire sources
+      'github.pr.submit-review': { fires: { add: ['event:review.requested'] } }, // add to existing
     },
   }),
 );
@@ -219,18 +219,18 @@ Events within a pack follow the same progressive disclosure as everything else:
 
 ```typescript
 // Stage 1: Event is derived from the emitting trail
-// The schema is captured from the typed payload in ctx.emit()
+// The schema is captured from the typed payload in ctx.signal()
 const processWebhook = trail('github.webhook.process', {
-  emits: ['github.webhook.received'],
-  run: async (input, ctx) => {
-    ctx.emit('github.webhook.received', { action: input.action, payload: input.body });
+  signals: ['github.webhook.received'],
+  blaze: async (input, ctx) => {
+    ctx.signal('github.webhook.received', { action: input.action, payload: input.body });
     return Result.ok({ processed: true });
   },
 });
 
 // Stage 2: Event promoted to pack-level declaration
 // The schema is now explicit, queryable, and part of the pack's public contract
-const webhookReceived = event('github.webhook.received', {
+const webhookReceived = signal('github.webhook.received', {
   schema: z.object({ action: z.string(), payload: z.unknown() }),
 });
 
@@ -240,7 +240,7 @@ const githubCore = pack('github.core', {
 });
 ```
 
-Pack-level `event()` declarations signal "this event is part of the pack's public contract" the same way trail visibility signals "this trail is part of the pack's public API." Events that are only emitted and consumed within the pack don't need extraction — they're internal implementation details.
+Pack-level `signal()` declarations signal "this event is part of the pack's public contract" the same way trail visibility signals "this trail is part of the pack's public API." Events that are only emitted and consumed within the pack don't need extraction — they're internal implementation details.
 
 ### The SDK wrapping pattern
 
@@ -251,7 +251,7 @@ A layered pack composition for wrapping an external SDK:
 const githubCore = pack('github.core', {
   visibility: 'internal',
   config: githubConfigSchema,
-  services: [githubClient],
+  provisions: [githubClient],
   trails: [
     authenticate, verifyWebhook,
     rawListRepos, rawGetUser, rawListPRs, rawGetPR,
@@ -272,7 +272,7 @@ const githubPullRequests = pack('github.pull-requests', {
 // Layer 3: Product pack (app-specific)
 const firewatchInbox = pack('firewatch.inbox', {
   requires: [githubPullRequests, linearIssues],
-  services: [inboxStore],
+  provisions: [inboxStore],
   trails: [showInbox, triageItem, archiveItem],
 });
 ```
@@ -284,14 +284,14 @@ A thin passthrough trail in layer 2:
 ```typescript
 const listPRs = trail('github.pr.list', {
   intent: 'read',
-  follow: ['github.core.raw-list-prs'],
+  crosses: ['github.core.raw-list-prs'],
   input: z.object({
     repo: z.string().describe('owner/repo format'),
     state: z.enum(['open', 'closed', 'all']).default('open'),
   }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const [owner, repo] = input.repo.split('/');
-    return ctx.follow('github.core.raw-list-prs', { owner, repo, state: input.state });
+    return ctx.cross('github.core.raw-list-prs', { owner, repo, state: input.state });
   },
 });
 ```
@@ -335,7 +335,7 @@ The warden enforces pack boundaries:
 
 ### Positive
 
-- **Formal capability boundaries.** Packs give the framework a compositional unit between trail and app. Survey, warden, testing, and surfaces all benefit from knowing "these things belong together."
+- **Formal capability boundaries.** Packs give the framework a compositional unit between trail and app. Survey, warden, testing, and trailheads all benefit from knowing "these things belong together."
 - **Progressive adoption.** A bare module still works. `topo('myapp', myModule)` keeps working. Packs are opt-in. Wrapping a module in `pack()` adds boundary semantics without changing the trails.
 - **Visibility defaults compound.** An SDK wrapper pack with `visibility: 'internal'` eliminates per-trail annotation for the common case. The visibility ADR and the pack ADR multiply each other's value.
 - **Config composition is formalized.** The pack-level config scoping from the config ADR gains a proper container. Config schemas, env prefixes, and generated artifacts all key off the pack boundary.
@@ -345,9 +345,9 @@ The warden enforces pack boundaries:
 
 ### Tradeoffs
 
-- **A new primitive.** `pack()` joins `trail()`, `service()`, `event()`, and `topo()` in the framework's definition vocabulary. Every new primitive is a concept to learn. The justification: the gap between trail and topo is real, and developers are already building ad-hoc boundaries with modules.
+- **A new primitive.** `pack()` joins `trail()`, `provision()`, `signal()`, and `topo()` in the framework's definition vocabulary. Every new primitive is a concept to learn. The justification: the gap between trail and topo is real, and developers are already building ad-hoc boundaries with modules.
 - **`requires` validation adds a startup cost.** Topo construction now validates pack dependencies. This is a one-time cost at startup and is negligible for any realistic topo size.
-- **Pack boundaries are advisory for `dispatch`.** `dispatch()` can invoke any trail regardless of pack boundaries and visibility. This is intentional (programmatic invocation should not be constrained by surface-level concerns) but means pack boundaries are not a security mechanism.
+- **Pack boundaries are advisory for `dispatch`.** `run()` can invoke any trail regardless of pack boundaries and visibility. This is intentional (programmatic invocation should not be constrained by trailhead-level concerns) but means pack boundaries are not a security mechanism.
 
 ### What this does NOT decide
 
@@ -361,13 +361,13 @@ The warden enforces pack boundaries:
 
 - [ADR-0000: Core Premise](../0000-core-premise.md) -- "the trail is the product"; packs group trails into capability boundaries
 - [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- the trail definition that packs contain
-- [ADR-0009: Services](../0009-first-class-services.md) -- the service primitive that packs scope and compose
-- ADR: Trail Visibility and Surface Filtering (draft) -- packs set default visibility; this ADR depends on it
+- [ADR-0009: Services](../0009-first-class-provisions.md) -- the provision primitive that packs scope and compose
+- ADR: Trail Visibility and Trailhead Filtering (draft) -- packs set default visibility; this ADR depends on it
 - ADR: Pack Provisioning (draft) -- distribution mechanism for packs; depends on this ADR
-- ADR: Typed Event Emission (draft) -- events are the primary decoupling mechanism between packs
+- ADR: Typed Signal Emission (draft) -- events are the primary decoupling mechanism between packs
 - ADR: Reactive Trail Activation (draft) -- packs carry trigger declarations; activation registers when the pack composes into a topo
-- ADR: External Surfaces as Trail Contracts (draft) -- rigged trails compose into packs with the same layering pattern
-- [ADR-0013: Crumbs](../0013-crumbs.md) -- observability primitive; packs scope crumb emission boundaries
-- ADR: The Serialized Topo Graph (draft) -- lockfile records pack membership and surface bindings
+- ADR: External Trailheads as Trail Contracts (draft) -- rigged trails compose into packs with the same layering pattern
+- [ADR-0013: Tracker](../0013-tracker.md) -- observability primitive; packs scope crumb emission boundaries
+- ADR: The Serialized Topo Graph (draft) -- lockfile records pack membership and trailhead bindings
 - [docs/vocabulary.md](../../vocabulary.md) -- `pack` reserved term
 - [docs/horizons.md](../../horizons.md) -- packs listed as mid-term direction

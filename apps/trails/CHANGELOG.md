@@ -17,17 +17,17 @@
 
 - Add services as a first-class primitive.
 
-  Services make infrastructure dependencies declarative, injectable, and governable. Define a service with `service()`, declare it on a trail with `services: [db]`, and access it with `db.from(ctx)` or `ctx.service()`.
+  Services make infrastructure dependencies declarative, injectable, and governable. Define a service with `provision()`, declare it on a trail with `provisions: [db]`, and access it with `db.from(ctx)` or `ctx.provision()`.
 
-  **Core:** `service()` factory, `ServiceSpec<T>`, `ServiceContext`, singleton resolution in `executeTrail`, in-flight creation dedup, `isService` guard, `findDuplicateServiceId`, topo service discovery and validation, `services` field on trail specs.
+  **Core:** `provision()` factory, `ServiceSpec<T>`, `ServiceContext`, singleton resolution in `executeTrail`, in-flight creation dedup, `isService` guard, `findDuplicateServiceId`, topo service discovery and validation, `services` field on trail specs.
 
-  **Testing:** Auto-resolution of `mock` factories in `testAll`, `testExamples`, `testContracts`, and `testFollows`. Explicit `services` overrides with correct precedence (`explicit > ctx.extensions > auto-mock`). Service mock propagation through follow graphs.
+  **Testing:** Auto-resolution of `mock` factories in `testAll`, `testExamples`, `testContracts`, and `testCrosses`. Explicit `services` overrides with correct precedence (`explicit > ctx.extensions > auto-mock`). Service mock propagation through crossing graphs.
 
-  **Warden:** `service-declarations` rule validates `db.from(ctx)` and `ctx.service()` usage matches declared `services: [...]`. `service-exists` rule validates declared service IDs resolve in project context. Scope-aware AST walking skips nested function boundaries.
+  **Warden:** `service-declarations` rule validates `db.from(ctx)` and `ctx.provision()` usage matches declared `provisions: [...]`. `service-exists` rule validates declared service IDs resolve in project context. Scope-aware AST walking skips nested function boundaries.
 
-  **Surfaces:** Service overrides thread through `run` and `trailhead` on CLI, MCP, and HTTP.
+  **Trailheads:** Service overrides thread through `run` and `trailhead` on CLI, MCP, and HTTP.
 
-  **Introspection:** Survey and surface map outputs include service graph. Topo exposes `.services`, `.getService()`, `.hasService()`, `.listServices()`, `.serviceIds()`, `.serviceCount`.
+  **Introspection:** Survey and trailhead map outputs include service graph. Topo exposes `.services`, `.getService()`, `.hasService()`, `.listServices()`, `.serviceIds()`, `.serviceCount`.
 
   **Docs:** ADR-009 accepted. Unified services guide, updated vocabulary, getting-started, architecture, and package READMEs.
 
@@ -75,9 +75,9 @@
 
 ### Minor Changes
 
-- HTTP surface and OpenAPI generation.
+- HTTP trailhead and OpenAPI generation.
 
-  **http**: New `@ontrails/http` package — Hono-based HTTP adapter. `trailhead()` derives routes from trail IDs, maps intent to HTTP verbs (read→GET, write→POST, destroy→DELETE), and maps error taxonomy to status codes. Returns the Hono instance.
+  **http**: New `@ontrails/http` package — Hono-based HTTP connector. `trailhead()` derives routes from trail IDs, maps intent to HTTP verbs (read→GET, write→POST, destroy→DELETE), and maps error taxonomy to status codes. Returns the Hono instance.
 
   **schema**: Add `generateOpenApiSpec(topo)` — generates a complete OpenAPI 3.1 spec from the topo. Each trail becomes an operation with path, method, schemas, and error responses derived from the contract.
 
@@ -122,15 +122,15 @@
 
   **BREAKING CHANGES:**
 
-  - `hike()` removed — use `trail()` with optional `follow: [...]` field
-  - `follows` renamed to `follow` (singular, matching `ctx.follow()`)
+  - `hike()` removed — use `trail()` with optional `crosses: [...]` field
+  - `follows` renamed to `crosses` (matching `ctx.cross()`)
   - `topo.hikes` removed — single `topo.trails` map
   - `kind: 'hike'` removed — everything is `kind: 'trail'`
   - `readOnly`/`destructive` booleans replaced by `intent: 'read' | 'write' | 'destroy'`
   - `implementation` field renamed to `run`
   - `markers` field renamed to `metadata`
-  - `testHike` renamed to `testFollows`, `HikeScenario` to `FollowScenario`
-  - `trailhead()` now returns the surface handle (`Command` for CLI, `Server` for MCP)
+  - `testHike` renamed to `testCrosses`, `HikeScenario` to `CrossScenario`
+  - `trailhead()` now returns the trailhead handle (`Command` for CLI, `Server` for MCP)
 
 ### Patch Changes
 

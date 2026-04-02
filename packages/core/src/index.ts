@@ -31,33 +31,33 @@ export type {
   Implementation,
   TrailContext,
   TrailContextInit,
-  FollowFn,
+  CrossFn,
   BasePermit,
   PermitRequirement,
   ProgressCallback,
   ProgressEvent,
   Logger,
-  ServiceLookup,
+  ProvisionLookup,
 } from './types.js';
-export { SURFACE_KEY } from './types.js';
+export { TRAILHEAD_KEY } from './types.js';
 
 // Context factory
 export { createTrailContext } from './context.js';
 
-// Service
+// Provision
 export {
-  createServiceLookup,
-  findDuplicateServiceId,
-  isService,
-  service,
-} from './service.js';
+  createProvisionLookup,
+  findDuplicateProvisionId,
+  isProvision,
+  provision,
+} from './provision.js';
 export type {
-  AnyService,
-  Service,
-  ServiceContext,
-  ServiceOverrideMap,
-  ServiceSpec,
-} from './service.js';
+  AnyProvision,
+  Provision,
+  ProvisionContext,
+  ProvisionOverrideMap,
+  ProvisionSpec,
+} from './provision.js';
 
 // Trail
 export { trail } from './trail.js';
@@ -73,7 +73,9 @@ export type {
 export type { TrailInput, TrailOutput, TrailResult } from './type-utils.js';
 export { inputOf, outputOf } from './type-utils.js';
 
-// Event
+// Signal
+export { signal } from './signal.js';
+export type { AnySignal, Signal, SignalSpec } from './signal.js';
 export { event } from './event.js';
 export type { AnyEvent, Event, EventSpec } from './event.js';
 
@@ -85,9 +87,9 @@ export type { Topo } from './topo.js';
 export { validateTopo } from './validate-topo.js';
 export type { TopoIssue } from './validate-topo.js';
 
-// Layer
-export { composeLayers } from './layer.js';
-export type { Layer } from './layer.js';
+// Gate
+export { composeGates } from './gate.js';
+export type { Gate } from './gate.js';
 
 // Derive
 export { deriveFields } from './derive.js';

@@ -1,7 +1,7 @@
 // Generation
-export { generateSurfaceMap } from './generate.js';
-export { hashSurfaceMap } from './hash.js';
-export { diffSurfaceMaps } from './diff.js';
+export { generateTrailheadMap } from './generate.js';
+export { hashTrailheadMap } from './hash.js';
+export { diffTrailheadMaps } from './diff.js';
 
 // OpenAPI
 export { generateOpenApiSpec } from './openapi.js';
@@ -9,16 +9,16 @@ export type { OpenApiOptions, OpenApiSpec, OpenApiServer } from './openapi.js';
 
 // File I/O
 export {
-  writeSurfaceMap,
-  readSurfaceMap,
-  writeSurfaceLock,
-  readSurfaceLock,
+  writeTrailheadMap,
+  readTrailheadMap,
+  writeTrailheadLock,
+  readTrailheadLock,
 } from './io.js';
 
 // Types
 export type {
-  SurfaceMap,
-  SurfaceMapEntry,
+  TrailheadMap,
+  TrailheadMapEntry,
   DiffEntry,
   DiffResult,
   JsonSchema,

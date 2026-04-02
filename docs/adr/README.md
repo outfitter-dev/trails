@@ -6,7 +6,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 
 | ADR | Title | Status |
 | --- | --- | --- |
-| [0000](0000-core-premise.md) | Core Premise — Contract-First, Surface-Agnostic Design | Accepted |
+| [0000](0000-core-premise.md) | Core Premise — Contract-First, Trailhead-Agnostic Design | Accepted |
 | [0001](0001-naming-conventions.md) | Naming Conventions — Guessable API Through Structural Rules | Accepted |
 | [0002](0002-built-in-result-type.md) | Built-In Result Type | Accepted |
 | [0003](0003-unified-trail-primitive.md) | Unified Trail Primitive | Accepted |
@@ -14,9 +14,9 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0005](0005-framework-agnostic-http-route-model.md) | Framework-Agnostic HTTP Route Model | Accepted |
 | [0006](0006-shared-execution-pipeline.md) | Shared Execution Pipeline with Result-Returning Builders | Accepted |
 | [0007](0007-governance-as-trails.md) | Governance as Trails with AST-Based Analysis | Accepted |
-| [0008](0008-deterministic-surface-derivation.md) | Deterministic Surface Derivation | Accepted |
-| [0009](0009-first-class-services.md) | Services as a First-Class Primitive | Accepted |
+| [0008](0008-deterministic-trailhead-derivation.md) | Deterministic Trailhead Derivation | Accepted |
+| [0009](0009-first-class-provisions.md) | First-Class Provisions | Accepted |
 | [0010](0010-native-infrastructure.md) | Trails-Native Infrastructure Pattern | Accepted |
 | [0011](0011-schema-driven-config.md) | Schema-Driven Config | Accepted |
-| [0012](0012-adapter-agnostic-permits.md) | Adapter-Agnostic Permits | Accepted |
-| [0013](0013-crumbs.md) | Crumbs | Accepted |
+| [0012](0012-connector-agnostic-permits.md) | Connector-Agnostic Permits | Accepted |
+| [0013](0013-tracker.md) | Tracker — Runtime Recording Primitive | Accepted |

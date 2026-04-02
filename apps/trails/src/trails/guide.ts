@@ -72,7 +72,7 @@ export const guideTrail = trail('guide', {
   examples: [
     {
       description: 'Lists all trails with descriptions and example counts',
-      input: {},
+      input: { module: './src/app.ts' },
       name: 'List trail guidance',
     },
   ],
