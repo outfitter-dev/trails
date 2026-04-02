@@ -1,4 +1,7 @@
 ---
+id: 4
+slug: intent-as-first-class-property
+title: Intent as a First-Class Property
 status: accepted
 created: 2026-03-29
 updated: 2026-04-01

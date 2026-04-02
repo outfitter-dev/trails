@@ -1,16 +1,18 @@
 ---
+slug: drizzle-store-adapter
+title: Drizzle Store Adapter
 status: draft
 created: 2026-04-01
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [014]
+depends_on: [schema-derived-persistence, 9]
 ---
 
 # ADR: Drizzle Store Adapter
 
 ## Context
 
-ADR-014 defines the framework-agnostic store abstraction: Zod schemas as source of truth, typed accessors, service lifecycle. This ADR decides the first concrete adapter.
+The Schema-Derived Persistence draft defines the framework-agnostic store abstraction: Zod schemas as source of truth, typed accessors, service lifecycle. This ADR decides the first concrete adapter.
 
 The adapter's job is mechanical: translate `StoreDefinition` into real database tables and execute queries against them. It follows the same pattern as surface adapters: `@ontrails/cli` defines the abstract `CliCommand[]` model, `@ontrails/cli/commander` wires it to Commander.js. The store package defines the abstract `StoreDefinition`, the Drizzle adapter wires it to Drizzle ORM.
 
@@ -24,7 +26,7 @@ Three options were considered:
 
 **Drizzle.** TypeScript-native schema definitions, SQL-like query builder, lightweight, supports SQLite and Postgres, and has first-party Zod integration (though in the wrong direction, table-to-Zod). Drizzle's query builder is the right escape hatch for complex operations. Its `drizzle-kit` handles migrations. The mental model (write SQL in TypeScript) aligns with Trails' "no magic" philosophy.
 
-Drizzle is the recommended first adapter. The store abstraction (ADR-014) is adapter-agnostic, so a raw `bun:sqlite` adapter or a Prisma adapter can be added later without affecting the core model.
+Drizzle is the recommended first adapter. The store abstraction (Schema-Derived Persistence draft) is adapter-agnostic, so a raw `bun:sqlite` adapter or a Prisma adapter can be added later without affecting the core model.
 
 ## Decision
 
@@ -101,7 +103,7 @@ Internally, `store()`:
 
 1. Calls `deriveTable()` for each entity to produce Drizzle table definitions
 2. Creates a Drizzle database instance with the derived schema
-3. Wraps it in the typed accessor API from ADR-014
+3. Wraps it in the typed accessor API from the Schema-Derived Persistence draft
 4. Returns a service-compatible object with `create`, `dispose`, `mock`, and `health`
 
 ### 4. SQLite-first, Postgres-second
@@ -204,12 +206,12 @@ For SQLite, transactions use `BEGIN IMMEDIATE` by default (serializable). For Po
 ### What this does NOT decide
 
 - Whether to ship a raw `bun:sqlite` adapter without Drizzle. Possible future work for zero-dependency use cases.
-- How FTS and vector search integrate with the Drizzle adapter. That's ADR-017 (Search).
+- How FTS and vector search integrate with the Drizzle adapter. That's the Declarative Search draft.
 - Whether `conn.query()` returns typed results or `unknown`. The Drizzle query builder provides its own type inference; Trails should not duplicate it.
 
 ## References
 
-- [ADR-014: Store Package](014-store.md) -- the abstract store model this adapter implements
-- [ADR-0009: Services](0009-services.md) -- the service lifecycle the store produces
-- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) -- surfaces as thin wrappers, same pattern for store
+- ADR: Schema-Derived Persistence (draft) -- the abstract store model this adapter implements
+- [ADR-0009: Services](../0009-first-class-services.md) -- the service lifecycle the store produces
+- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- surfaces as thin wrappers, same pattern for store
 - Drizzle ORM documentation: <https://orm.drizzle.team>

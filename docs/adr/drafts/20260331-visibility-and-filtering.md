@@ -1,8 +1,11 @@
 ---
+slug: visibility-and-filtering
+title: Trail Visibility and Surface Filtering
 status: draft
 created: 2026-03-31
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
+depends_on: [packs-namespace-boundaries]
 ---
 
 # ADR: Trail Visibility and Surface Filtering
@@ -243,10 +246,10 @@ Four new governance rules follow from this ADR:
 
 ## References
 
-- [ADR-0000: Core Premise](0000-core-premise.md) -- "derive by default, override deliberately"; the information architecture categories
-- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) -- the trail spec that gains the `visibility` field
-- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) -- intent drives HTTP verbs, MCP annotations, and now surface filtering
-- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-surface-derivation.md) -- the derivation rules that visibility and intent filtering extend
-- [ADR-013: Crumbs](00013-crumbs.md) -- the telemetry system; visibility filtering events are observable through crumbs
-- ADR: Unified Lockfile (draft) -- the lockfile captures resolved visibility state after all overrides are applied
-- ADR: Packs (draft) -- packs set default visibility for their trails; depends on this ADR
+- [ADR-0000: Core Premise](../0000-core-premise.md) -- "derive by default, override deliberately"; the information architecture categories
+- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- the trail spec that gains the `visibility` field
+- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent drives HTTP verbs, MCP annotations, and now surface filtering
+- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) -- the derivation rules that visibility and intent filtering extend
+- [ADR-0013: Crumbs](../0013-crumbs.md) -- the telemetry system; visibility filtering events are observable through crumbs
+- ADR: The Serialized Topo Graph (draft) -- the lockfile captures resolved visibility state after all overrides are applied
+- ADR: Packs as Namespace Boundaries (draft) -- packs set default visibility for their trails; depends on this ADR

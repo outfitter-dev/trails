@@ -15,8 +15,8 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0006](0006-shared-execution-pipeline.md) | Shared Execution Pipeline with Result-Returning Builders | Accepted |
 | [0007](0007-governance-as-trails.md) | Governance as Trails with AST-Based Analysis | Accepted |
 | [0008](0008-deterministic-surface-derivation.md) | Deterministic Surface Derivation | Accepted |
-| [0009](0009-services.md) | Services as a First-Class Primitive | Accepted |
-| [0010](0010-infrastructure-services-pattern.md) | Trails-Native Infrastructure Pattern | Accepted |
-| [0011](0011-config-resolution.md) | Config Resolution | Accepted |
-| [0012](0012-permit-model.md) | Permit Model | Accepted |
+| [0009](0009-first-class-services.md) | Services as a First-Class Primitive | Accepted |
+| [0010](0010-native-infrastructure.md) | Trails-Native Infrastructure Pattern | Accepted |
+| [0011](0011-schema-driven-config.md) | Schema-Driven Config | Accepted |
+| [0012](0012-adapter-agnostic-permits.md) | Adapter-Agnostic Permits | Accepted |
 | [0013](0013-crumbs.md) | Crumbs | Accepted |

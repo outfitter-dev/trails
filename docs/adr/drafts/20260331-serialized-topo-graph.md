@@ -1,11 +1,14 @@
 ---
+slug: serialized-topo-graph
+title: The Serialized Topo Graph
 status: draft
 created: 2026-03-31
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
+depends_on: [7, 8]
 ---
 
-# ADR: Unified Lockfile
+# ADR: The Serialized Topo Graph
 
 ## Context
 
@@ -169,10 +172,10 @@ webhook:stripe → booking.confirm → booking.confirmed → notify.booking-conf
 
 ## References
 
-- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-surface-derivation.md) — the derivation rules that produce surface properties on trail nodes
-- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — the warden rules that validate the lock
-- ADR: Events Runtime (draft) — events as nodes in the graph, emission edges on trail nodes
-- ADR: Triggers (draft) — trigger activations as edges, reactive graph resolution
-- ADR: Packs (draft) — pack boundaries as subgraphs within the topo
-- ADR: Provisions (draft) — provisioned pack state recorded in the graph
+- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) — the derivation rules that produce surface properties on trail nodes
+- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — the warden rules that validate the lock
+- ADR: Typed Event Emission (draft) — events as nodes in the graph, emission edges on trail nodes
+- ADR: Reactive Trail Activation (draft) — trigger activations as edges, reactive graph resolution
+- ADR: Packs as Namespace Boundaries (draft) — pack boundaries as subgraphs within the topo
+- ADR: Pack Provisioning (draft) — provisioned pack state recorded in the graph
 - ADR: Trail Run (draft) — trail ID resolution via the lockfile

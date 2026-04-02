@@ -1,4 +1,7 @@
 ---
+id: 6
+slug: shared-execution-pipeline
+title: Shared Execution Pipeline with Result-Returning Builders
 status: accepted
 created: 2026-03-29
 updated: 2026-04-01

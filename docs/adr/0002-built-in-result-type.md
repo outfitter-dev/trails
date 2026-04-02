@@ -1,4 +1,7 @@
 ---
+id: 2
+slug: built-in-result-type
+title: Built-In Result Type
 status: accepted
 created: 2026-03-29
 updated: 2026-04-01

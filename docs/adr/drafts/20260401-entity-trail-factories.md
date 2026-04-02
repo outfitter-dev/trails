@@ -1,15 +1,18 @@
 ---
+slug: entity-trail-factories
+title: Entity Trail Factories
 status: draft
 created: 2026-04-01
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
+depends_on: [schema-derived-persistence, declarative-search, 3, 4]
 ---
 
-# ADR: Entity Patterns
+# ADR: Entity Trail Factories
 
 ## Context
 
-ADR-014 establishes the store package with typed accessors for CRUD operations. ADR-016 adds searchability. But the developer still writes trail definitions with schemas, examples, intent, and implementations for each operation. For a CRUD entity, this is mechanical: the create trail's input is the entity schema minus generated fields, the show trail does a primary key lookup and returns `NotFoundError` on null, the list trail applies filters and pagination.
+The Schema-Derived Persistence draft establishes the store package with typed accessors for CRUD operations. The Declarative Search draft adds searchability. But the developer still writes trail definitions with schemas, examples, intent, and implementations for each operation. For a CRUD entity, this is mechanical: the create trail's input is the entity schema minus generated fields, the show trail does a primary key lookup and returns `NotFoundError` on null, the list trail applies filters and pagination.
 
 The Stash dogfood app had 19 trails. Of those, roughly 14 followed predictable patterns: 5 basic CRUD operations on gists, plus toggle (star/unstar), clone (fork), comments, revisions, scoped views, and search. Only 3-4 trails had truly custom logic that couldn't be derived.
 
@@ -20,7 +23,7 @@ Beyond CRUD, several patterns recur across nearly every data-backed application:
 - **Revisions**: version history, edit log, audit trail
 - **Comments**: threaded comments on any entity
 - **Scoped views**: "my gists", "my starred items" filtered by the current user
-- **Search**: full-text and semantic search (covered in ADR-016)
+- **Search**: full-text and semantic search (covered in the Declarative Search draft)
 
 Each of these patterns produces standard trails with predictable schemas, intents, error handling, and implementations. They are trail factories, not new primitives. The topo doesn't know or care whether a trail was hand-authored or produced by a pattern. No second-class citizens.
 
@@ -98,7 +101,7 @@ create: {
 
 This produces a `gist.create` trail with `idempotent: true`. The implementation uses `INSERT ... ON CONFLICT UPDATE`. The `idempotent` marker already exists on trails and already affects surface behavior (MCP annotations, retry semantics). Now it also affects the store operation. Compound effect.
 
-**Search.** When the underlying store table has a `search` declaration (ADR-016), `entity()` auto-generates a search trail alongside the CRUD trails:
+**Search.** When the underlying store table has a `search` declaration (see the Declarative Search draft), `entity()` auto-generates a search trail alongside the CRUD trails:
 
 ```typescript
 export const { create, show, list, update, remove, search } = entity('gist', db.gists, {
@@ -294,7 +297,7 @@ Derived and hand-authored trails coexist in the same topo. The developer uses th
 
 ### Tradeoffs
 
-- **Pattern API surface.** Seven pattern functions (`entity`, `toggle`, `revisions`, `comments`, `scoped`, plus search from ADR-016) is a non-trivial API to learn. Mitigated by progressive disclosure: most apps only need `entity()`.
+- **Pattern API surface.** Seven pattern functions (`entity`, `toggle`, `revisions`, `comments`, `scoped`, plus search from the Declarative Search draft) is a non-trivial API to learn. Mitigated by progressive disclosure: most apps only need `entity()`.
 - **Implicit behavior.** Derived implementations are not visible in the source code. A developer debugging a `gist.create` failure needs to understand the pattern's behavior. Mitigated by: clear documentation, `survey` introspection, and the fact that the implementations are simple CRUD operations.
 - **Pattern-specific configuration.** Each pattern has its own configuration shape. This is inherent complexity, not accidental: toggle needs `subject`/`target`, revisions needs `parent`/`snapshot`, comments needs `author`/`body`.
 
@@ -307,8 +310,8 @@ Derived and hand-authored trails coexist in the same topo. The developer uses th
 
 ## References
 
-- [ADR-014: Store Package](014-store-package.md) -- the store model that patterns build on
-- [ADR-016: Search](016-search.md) -- search as a derived trail from store declarations
-- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) -- patterns produce standard trails
-- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) -- intents are derived per operation
-- [ADR-0000: Core Premise](0000-core-premise.md) -- author what's new, derive what's known
+- ADR: Schema-Derived Persistence (draft) -- the store model that patterns build on
+- ADR: Declarative Search (draft) -- search as a derived trail from store declarations
+- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- patterns produce standard trails
+- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intents are derived per operation
+- [ADR-0000: Core Premise](../0000-core-premise.md) -- author what's new, derive what's known

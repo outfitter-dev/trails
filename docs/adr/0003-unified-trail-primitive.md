@@ -1,4 +1,7 @@
 ---
+id: 3
+slug: unified-trail-primitive
+title: Unified Trail Primitive
 status: accepted
 created: 2026-03-29
 updated: 2026-04-01

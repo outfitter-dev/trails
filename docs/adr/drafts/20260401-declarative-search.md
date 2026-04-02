@@ -1,12 +1,14 @@
 ---
+slug: declarative-search
+title: Declarative Search
 status: draft
 created: 2026-04-01
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [014, 015, 016]
+depends_on: [schema-derived-persistence, 9]
 ---
 
-# ADR: Search
+# ADR: Declarative Search
 
 ## Context
 
@@ -198,7 +200,7 @@ Cross-table search fields (e.g., `'files.content'` declared on `gists`) require 
 
 ### 5. `entity()` auto-generates a search trail
 
-When search is declared on a store entity and the developer uses `entity()` (ADR-016), a search trail is automatically included:
+When search is declared on a store entity and the developer uses `entity()` (see the Entity Trail Factories draft), a search trail is automatically included:
 
 ```typescript
 export const { create, show, list, update, remove, search } = entity('gist', db.gists, {
@@ -288,13 +290,13 @@ This is explicitly deferred. The initial implementation focuses on single-entity
 - **Query suggestion or autocomplete.** These are application-level features that build on search, not search primitives.
 - **Real-time search / streaming results.** The search accessor returns a paginated result set. Streaming or live-updating results are a future concern.
 - **Topo-level search.** Searching across trail descriptions and examples for agent discovery is a compelling future direction but is architecturally distinct from entity search. It would use the same search primitives but operates on the topo graph, not on stored entities.
-- **Relevance analytics.** Tracking which queries return good results, which return empty, and how users interact with search results is an observability concern (related to Tracks, ADR-013) rather than a search concern.
+- **Relevance analytics.** Tracking which queries return good results, which return empty, and how users interact with search results is an observability concern (related to Crumbs, ADR-0013) rather than a search concern.
 
 ## References
 
-- [ADR-014: Store Package](014-store.md) -- the store abstraction that search extends
-- [ADR-015: Drizzle Adapter](015-drizzle-adapter.md) -- the adapter that implements FTS5 and vector indexing
-- [ADR-016: Entity Patterns](016-entity-patterns.md) -- the `entity()` factory that auto-generates search trails
-- [ADR-0009: Services](0009-services.md) -- the service pattern for embedding providers
-- [Architecture](../architecture.md) -- information categories, right-side hexagonal adapters
+- ADR: Schema-Derived Persistence (draft) -- the store abstraction that search extends
+- ADR: Drizzle Store Adapter (draft) -- the adapter that implements FTS5 and vector indexing
+- ADR: Entity Trail Factories (draft) -- the `entity()` factory that auto-generates search trails
+- [ADR-0009: Services](../0009-first-class-services.md) -- the service pattern for embedding providers
+- [Architecture](../../architecture.md) -- information categories, right-side hexagonal adapters
 - Alex Garcia's hybrid search guide: <https://alexgarcia.xyz/blog/2024/sqlite-vec-hybrid-search/>

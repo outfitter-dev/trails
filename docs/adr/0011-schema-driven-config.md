@@ -1,11 +1,14 @@
 ---
+id: 11
+slug: schema-driven-config
+title: Schema-Driven Config
 status: accepted
 created: 2026-03-30
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-0011: Config Resolution
+# ADR-0011: Schema-Driven Config
 
 ## Context
 
@@ -349,6 +352,6 @@ This keeps config resolution predictable and fast. The entire config tree resolv
 ## References
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — "one write, many reads" and "derive by default" — config derives discovery, validation, examples, and introspection from a single schema declaration
-- [ADR-0009: Services as a First-Class Primitive](0009-services.md) — services declare config schemas via the reserved `config` field; config enriches `ServiceContext`
-- [ADR-0010: Trails-Native Infrastructure Pattern](0010-infrastructure-services-pattern.md) — config is the first infrastructure package following the service + layer + trails trifecta
+- [ADR-0009: Services as a First-Class Primitive](0009-first-class-services.md) — services declare config schemas via the reserved `config` field; config enriches `ServiceContext`
+- [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — config is the first infrastructure package following the service + layer + trails trifecta
 - [ADR-0013: Crumbs](0013-crumbs.md) — crumbs consume config for sampling rates and export targets

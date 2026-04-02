@@ -1,4 +1,7 @@
 ---
+id: 1
+slug: naming-conventions
+title: Naming Conventions — Guessable API Through Structural Rules
 status: accepted
 created: 2026-03-27
 updated: 2026-04-01

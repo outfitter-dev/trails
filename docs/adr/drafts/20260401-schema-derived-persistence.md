@@ -1,11 +1,14 @@
 ---
+slug: schema-derived-persistence
+title: Schema-Derived Persistence
 status: draft
 created: 2026-04-01
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
+depends_on: [9]
 ---
 
-# ADR: Store Package
+# ADR: Schema-Derived Persistence
 
 ## Context
 
@@ -46,7 +49,7 @@ A new package, `@ontrails/store`, provides the framework-agnostic store model. I
 | | Left side (surfaces) | Right side (store) |
 |---|---|---|
 | Framework-agnostic model | `CliCommand[]`, `McpTool[]`, `HttpRoute[]` | Table definitions, typed accessors |
-| Adapter subpath | `/commander`, `/hono` | `/drizzle` (see ADR-015) |
+| Adapter subpath | `/commander`, `/hono` | `/drizzle` (see the Drizzle Store Adapter draft) |
 | One-liner | `blaze(app)` | `store({...})` |
 | Escape hatch | `buildCliCommands()` then manual wiring | `conn.query()` for raw queries |
 | Derived from | Zod input schema + intent | Zod entity schema + persistence metadata |
@@ -87,7 +90,7 @@ export const db = store({
 - `generated` -- which fields are server-managed (auto-generated IDs, timestamps)
 - `indexes` -- which fields get database indexes
 - `references` -- foreign key relationships between tables
-- `search` -- searchability configuration (see ADR-016)
+- `search` -- searchability configuration (see the Declarative Search draft)
 
 **What the framework derives** (from the Zod schema + metadata):
 
@@ -182,7 +185,7 @@ The store accessors return `Result` and map database errors to the Trails error 
 
 | Database condition | Trails error |
 |---|---|
-| Row not found (get returns null) | The accessor returns null; the entity pattern (ADR-017) wraps as `NotFoundError` |
+| Row not found (get returns null) | The accessor returns null; the Entity Trail Factories draft wraps as `NotFoundError` |
 | Unique constraint violation | `AlreadyExistsError` |
 | Foreign key violation | `ValidationError` |
 | Connection failure | `NetworkError` |
@@ -236,17 +239,17 @@ Fixtures are:
 
 ### What this does NOT decide
 
-- Which database adapters ship (see ADR-015 for Drizzle)
-- Entity-level trail derivation patterns (see ADR-017)
-- Search and indexing beyond basic column indexes (see ADR-016)
+- Which database adapters ship (see the Drizzle Store Adapter draft)
+- Entity-level trail derivation patterns (see the Entity Trail Factories draft)
+- Search and indexing beyond basic column indexes (see the Declarative Search draft)
 - Transaction semantics beyond single-operation ACID
 
 ## References
 
-- [ADR-0000: Core Premise](0000-core-premise.md) -- the trail is the product, everything else is a projection
-- [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) -- the two-level architecture pattern this mirrors
-- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-surface-derivation.md) -- deterministic derivation, now extended to storage
-- [ADR-0009: Services](0009-services.md) -- the service primitive that the store builds on
-- [ADR-015: Drizzle Adapter](015-drizzle-adapter.md) -- the first database adapter
-- [ADR-016: Search](016-search.md) -- searchability as a store declaration
-- [ADR-017: Entity Patterns](017-entity-patterns.md) -- trail factories derived from store tables
+- [ADR-0000: Core Premise](../0000-core-premise.md) -- the trail is the product, everything else is a projection
+- [ADR-0005: Framework-Agnostic HTTP Route Model](../0005-framework-agnostic-http-route-model.md) -- the two-level architecture pattern this mirrors
+- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) -- deterministic derivation, now extended to storage
+- [ADR-0009: Services](../0009-first-class-services.md) -- the service primitive that the store builds on
+- ADR: Drizzle Store Adapter (draft) -- the first database adapter
+- ADR: Declarative Search (draft) -- searchability as a store declaration
+- ADR: Entity Trail Factories (draft) -- trail factories derived from store tables

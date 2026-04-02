@@ -1,8 +1,11 @@
 ---
+slug: webhooks-and-adapters
+title: Webhooks and Input Adapters
 status: draft
 created: 2026-03-31
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
+depends_on: [5, 12, typed-event-emission, reactive-trail-activation]
 ---
 
 # ADR: Webhooks and Input Adapters
@@ -346,12 +349,12 @@ testWebhook(app, '/webhooks/stripe', {
 
 ## References
 
-- [ADR-0000: Core Premise](0000-core-premise.md) -- "author what's new, derive what's known"; the trail's input schema is the clean contract, the adapter transforms the messy external world
-- [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) -- webhooks extend the HTTP route model with verification and adaptation
-- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) -- `executeTrail` runs the trail after verification and adaptation; the pipeline is unchanged
-- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-surface-derivation.md) -- webhook endpoints are not derived from trail IDs; they're explicitly configured paths
-- [ADR-013: Crumbs](00013-crumbs.md) -- crumbs records async trail results and provides the idempotency store for delivery deduplication
-- ADR: Unified Lockfile (draft) -- webhook secrets resolve through the config system; lockfile captures the resolved config shape
-- ADR: Triggers (draft) -- webhook triggers declare activation intent on the trail; webhook surface config handles HTTP concerns
-- ADR: Trail Visibility (draft) -- webhook-triggered trails may be internal (not surfaced on CLI or MCP)
-- ADR: Packs (draft) -- provider packs can include built-in verifiers and adapters for their webhooks
+- [ADR-0000: Core Premise](../0000-core-premise.md) -- "author what's new, derive what's known"; the trail's input schema is the clean contract, the adapter transforms the messy external world
+- [ADR-0005: Framework-Agnostic HTTP Route Model](../0005-framework-agnostic-http-route-model.md) -- webhooks extend the HTTP route model with verification and adaptation
+- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `executeTrail` runs the trail after verification and adaptation; the pipeline is unchanged
+- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) -- webhook endpoints are not derived from trail IDs; they're explicitly configured paths
+- [ADR-0013: Crumbs](../0013-crumbs.md) -- crumbs records async trail results and provides the idempotency store for delivery deduplication
+- ADR: The Serialized Topo Graph (draft) -- webhook secrets resolve through the config system; lockfile captures the resolved config shape
+- ADR: Reactive Trail Activation (draft) -- webhook triggers declare activation intent on the trail; webhook surface config handles HTTP concerns
+- ADR: Trail Visibility and Surface Filtering (draft) -- webhook-triggered trails may be internal (not surfaced on CLI or MCP)
+- ADR: Packs as Namespace Boundaries (draft) -- provider packs can include built-in verifiers and adapters for their webhooks

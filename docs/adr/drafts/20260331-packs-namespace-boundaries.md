@@ -1,11 +1,14 @@
 ---
+slug: packs-namespace-boundaries
+title: Packs as Namespace Boundaries
 status: draft
 created: 2026-03-31
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
+depends_on: [3, 9]
 ---
 
-# ADR: Packs
+# ADR: Packs as Namespace Boundaries
 
 ## Context
 
@@ -17,7 +20,7 @@ Between these two, there's a missing layer. Real applications organize capabilit
 
 This matters because:
 
-1. **Config composition is already pack-shaped.** The config ADR introduced `pack()` for env prefix scoping. A pack's config schema gets prefixed when composed into a topo. That primitive implies a boundary that doesn't yet exist at the trail/service level.
+1. **Config composition implies boundaries.** The config ADR's env prefix scoping behaves like a namespace boundary — a pack's config schema gets prefixed when composed into a topo. That pattern implies a boundary that doesn't yet exist at the trail/service level. The boundary is real; the primitive to express it is not.
 
 2. **Visibility needs a scope.** The visibility ADR introduces `internal` trails that aren't surfaced. But an SDK wrapper pack should default all its trails to `internal`. Without pack-level defaults, every trail must individually declare `visibility: 'internal'`.
 
@@ -42,9 +45,9 @@ This pattern (from the Graphite/Git analogy) requires two things from packs:
 1. **Pack-level default visibility.** An SDK wrapper pack defaults to `internal`. Every trail inherits the default. A few are promoted to `public` by explicit override.
 2. **Pack-level dependency.** The domain pack declares `requires: [sdkCorePack]`. The topo validates that the SDK pack is present when the domain pack is composed.
 
-### What `pack()` already does
+### Why `pack()` now
 
-The config ADR introduced `pack()` as a lightweight env prefix scoping mechanism for config composition. This ADR elevates it to a full compositional primitive while preserving backward compatibility with the existing config behavior.
+Config composition, visibility defaults, service namespacing, event ownership, and testing boundaries all point to the same missing concept: a named container between trail and topo that carries identity and metadata. Each of these patterns has emerged independently — developers namespace services by convention, config schemas scope by prefix, visibility annotations repeat across related trails. This ADR introduces `pack()` as a new primitive to formalize the boundary these patterns already imply.
 
 ## Decision
 
@@ -139,7 +142,7 @@ The dependency is by pack identity (the Pack object), not by name string. This i
 
 ### Config composition
 
-A pack's `config` schema composes into the app-level config under the pack name, extending the `pack()` behavior already established in the config ADR:
+A pack's `config` schema composes into the app-level config under the pack name. The config ADR established env prefix scoping as a composition pattern; `pack()` gives that pattern a proper container:
 
 ```typescript
 const githubCore = pack('github.core', {
@@ -356,15 +359,15 @@ The warden enforces pack boundaries:
 
 ## References
 
-- [ADR-0000: Core Premise](0000-core-premise.md) -- "the trail is the product"; packs group trails into capability boundaries
-- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) -- the trail definition that packs contain
-- [ADR-0009: Services](0009-services.md) -- the service primitive that packs scope and compose
-- ADR: Trail Visibility (draft) -- packs set default visibility; this ADR depends on it
-- ADR: Provisions (draft) -- distribution mechanism for packs; depends on this ADR
-- ADR: Events Runtime (draft) -- events are the primary decoupling mechanism between packs
-- ADR: Triggers (draft) -- packs carry trigger declarations; activation registers when the pack composes into a topo
-- ADR: Rig (draft) -- rigged trails compose into packs with the same layering pattern
-- [ADR-013: Crumbs](../../docs/adr/00013-crumbs.md) -- observability primitive; packs scope crumb emission boundaries
-- ADR: Unified Lockfile (draft) -- lockfile records pack membership and surface bindings
-- [docs/vocabulary.md](../vocabulary.md) -- `pack` reserved term
-- [docs/horizons.md](../horizons.md) -- packs listed as mid-term direction
+- [ADR-0000: Core Premise](../0000-core-premise.md) -- "the trail is the product"; packs group trails into capability boundaries
+- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- the trail definition that packs contain
+- [ADR-0009: Services](../0009-first-class-services.md) -- the service primitive that packs scope and compose
+- ADR: Trail Visibility and Surface Filtering (draft) -- packs set default visibility; this ADR depends on it
+- ADR: Pack Provisioning (draft) -- distribution mechanism for packs; depends on this ADR
+- ADR: Typed Event Emission (draft) -- events are the primary decoupling mechanism between packs
+- ADR: Reactive Trail Activation (draft) -- packs carry trigger declarations; activation registers when the pack composes into a topo
+- ADR: External Surfaces as Trail Contracts (draft) -- rigged trails compose into packs with the same layering pattern
+- [ADR-0013: Crumbs](../0013-crumbs.md) -- observability primitive; packs scope crumb emission boundaries
+- ADR: The Serialized Topo Graph (draft) -- lockfile records pack membership and surface bindings
+- [docs/vocabulary.md](../../vocabulary.md) -- `pack` reserved term
+- [docs/horizons.md](../../horizons.md) -- packs listed as mid-term direction

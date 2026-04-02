@@ -1,4 +1,7 @@
 ---
+id: 9
+slug: first-class-services
+title: Services as a First-Class Primitive
 status: accepted
 created: 2026-03-30
 updated: 2026-04-01

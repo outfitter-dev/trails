@@ -1,4 +1,7 @@
 ---
+id: 0
+slug: core-premise
+title: Core Premise — Contract-First, Surface-Agnostic Design
 status: accepted
 created: 2026-03-26
 updated: 2026-04-01

@@ -1,11 +1,14 @@
 ---
+slug: reactive-trail-activation
+title: Reactive Trail Activation
 status: draft
 created: 2026-03-31
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
+depends_on: [3, 4, 13, typed-event-emission]
 ---
 
-# ADR: Triggers
+# ADR: Reactive Trail Activation
 
 ## Context
 
@@ -315,13 +318,13 @@ Crumbs queries can filter by trigger type: "show me all scheduled executions," "
 
 ## References
 
-- [ADR-0000: Core Premise](0000-core-premise.md) — "derive by default"; triggers declare activation, the framework derives the reactive graph
-- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — trails with triggers are still trails. Activation is a property.
-- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent compounds with triggers; lifecycle events filter by intent
-- [ADR-013: Crumbs](00013-crumbs.md) — crumbs records trigger provenance on every activation
-- ADR: Events Runtime (draft) — **depends on this ADR**; provides `ctx.emit()`, lifecycle events, and the event routing pipeline
-- ADR: Unified Lockfile (draft) — the lockfile captures the reactive graph
-- ADR: Trail Visibility (draft) — triggered trails can be internal
-- ADR: Packs (draft) — packs carry trigger declarations; overridable in consuming apps
-- ADR: Webhooks (draft) — webhook triggers delegate to the webhook surface
-- ADR: Parallel Composition (draft) — triggered trails can use concurrent follow
+- [ADR-0000: Core Premise](../0000-core-premise.md) — "derive by default"; triggers declare activation, the framework derives the reactive graph
+- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — trails with triggers are still trails. Activation is a property.
+- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) — intent compounds with triggers; lifecycle events filter by intent
+- [ADR-0013: Crumbs](../0013-crumbs.md) — crumbs records trigger provenance on every activation
+- ADR: Typed Event Emission (draft) — **this ADR depends on it**; provides `ctx.emit()`, lifecycle events, and the event routing pipeline
+- ADR: The Serialized Topo Graph (draft) — the lockfile captures the reactive graph
+- ADR: Trail Visibility and Surface Filtering (draft) — triggered trails can be internal
+- ADR: Packs as Namespace Boundaries (draft) — packs carry trigger declarations; overridable in consuming apps
+- ADR: Webhooks and Input Adapters (draft) — webhook triggers delegate to the webhook surface
+- ADR: Concurrent Follow Composition (draft) — triggered trails can use concurrent follow

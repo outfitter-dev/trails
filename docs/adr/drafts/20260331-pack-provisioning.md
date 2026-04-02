@@ -1,11 +1,14 @@
 ---
+slug: pack-provisioning
+title: Pack Provisioning
 status: draft
 created: 2026-03-31
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
+depends_on: [packs-namespace-boundaries]
 ---
 
-# ADR: Provisions
+# ADR: Pack Provisioning
 
 ## Context
 
@@ -357,10 +360,10 @@ The warden gains provisions-aware rules:
 
 ## References
 
-- [ADR-0000: Core Premise](0000-core-premise.md) -- "author what's new, derive what's known, override what's wrong"; provisions leverage derived contract data for upgrades
-- ADR: Packs (draft) -- the compositional primitive that provisions distribute
-- ADR: Trail Visibility (draft) -- visibility inheritance that pack-level defaults enable
-- ADR: Unified Lockfile (draft) -- provisions state is captured in the lockfile graph; provisions occupy a section in `trails.lock`
-- ADR-013: Crumbs -- telemetry primitives that provisions can carry and surface
-- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-surface-derivation.md) -- survey output provides the contract snapshots
-- [docs/vocabulary.md](../vocabulary.md) -- `pack` reserved term; `provisions` to be added
+- [ADR-0000: Core Premise](../0000-core-premise.md) -- "author what's new, derive what's known, override what's wrong"; provisions leverage derived contract data for upgrades
+- ADR: Packs as Namespace Boundaries (draft) -- the compositional primitive that provisions distribute
+- ADR: Trail Visibility and Surface Filtering (draft) -- visibility inheritance that pack-level defaults enable
+- ADR: The Serialized Topo Graph (draft) -- provisions state is captured in the lockfile graph; provisions occupy a section in `trails.lock`
+- [ADR-0013: Crumbs](../0013-crumbs.md) -- telemetry primitives that provisions can carry and surface
+- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) -- survey output provides the contract snapshots
+- [docs/vocabulary.md](../../vocabulary.md) -- `pack` reserved term; `provisions` to be added

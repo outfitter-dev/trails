@@ -1,11 +1,14 @@
 ---
+slug: typed-event-emission
+title: Typed Event Emission
 status: draft
 created: 2026-03-31
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
+depends_on: [2, 3, 6, 7, 13]
 ---
 
-# ADR: Events Runtime
+# ADR: Typed Event Emission
 
 ## Context
 
@@ -299,14 +302,14 @@ Reactive mode runs after standard mode passes. Standard mode validates each trai
 
 ## References
 
-- [ADR-0000: Core Premise](0000-core-premise.md) — "derive by default"; framework lifecycle events are derived from execution observation
-- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) — the error taxonomy maps to categorized failure events
-- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — `emits` is a new property on the trail spec
-- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — lifecycle events are emitted by `executeTrail`
-- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — warden rules for event declarations
-- [ADR-013: Crumbs](00013-crumbs.md) — crumbs records emission and delivery metadata
-- ADR: Unified Lockfile (draft) — events as nodes in the topo graph
-- ADR: Trail Visibility (draft) — event-triggered trails can be internal
-- ADR: Packs (draft) — events are the decoupling mechanism between packs
-- ADR: Triggers (draft) — depends on this ADR; triggers consume events for reactive activation
-- ADR: Webhooks (draft) — inbound webhooks produce events that flow through the event runtime
+- [ADR-0000: Core Premise](../0000-core-premise.md) — "derive by default"; framework lifecycle events are derived from execution observation
+- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the error taxonomy maps to categorized failure events
+- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — `emits` is a new property on the trail spec
+- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — lifecycle events are emitted by `executeTrail`
+- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — warden rules for event declarations
+- [ADR-0013: Crumbs](../0013-crumbs.md) — crumbs records emission and delivery metadata
+- ADR: The Serialized Topo Graph (draft) — events as nodes in the topo graph
+- ADR: Trail Visibility and Surface Filtering (draft) — event-triggered trails can be internal
+- ADR: Packs as Namespace Boundaries (draft) — events are the decoupling mechanism between packs
+- ADR: Reactive Trail Activation (draft) — depends on this ADR; triggers consume events for reactive activation
+- ADR: Webhooks and Input Adapters (draft) — inbound webhooks produce events that flow through the event runtime

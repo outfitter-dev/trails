@@ -1,4 +1,7 @@
 ---
+id: 8
+slug: deterministic-surface-derivation
+title: Deterministic Surface Derivation
 status: accepted
 created: 2026-03-29
 updated: 2026-04-01

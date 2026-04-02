@@ -1,8 +1,11 @@
 ---
+slug: direct-invocation
+title: Direct Trail Invocation (`trails run`)
 status: draft
 created: 2026-03-31
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
+depends_on: [serialized-topo-graph]
 ---
 
 # ADR: Direct Trail Invocation (`trails run`)
@@ -575,11 +578,11 @@ Trail IDs are completed from the topo. Example names are completed from the trai
 
 ## References
 
-- [ADR-0000: Core Premise](0000-core-premise.md) -- "the trail is the product"; `trails run` makes every trail directly invocable without surface ceremony
-- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) -- every trail is runnable, whether atomic or composite
-- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) -- `trails run` dispatches through `executeTrail`, the same pipeline as every surface
-- ADR: Events Runtime (draft) -- events emitted during `trails run` flow through normal routing, triggers fire
-- ADR: Parallel Composition (draft) -- `--crumbs` renders concurrent follows as parallel branches in the execution tree
-- ADR: Trail Visibility (draft) -- `trails run` can invoke internal trails (it's programmatic, like dispatch)
-- ADR: Packs (draft) -- `trails run` can invoke any trail in any pack, regardless of visibility
-- Naming Decision: Crumbs (draft) -- `--crumbs` uses the crumbs vocabulary; live crumbs during `trails run`, historical crumbs via `trails crumbs`
+- [ADR-0000: Core Premise](../0000-core-premise.md) -- "the trail is the product"; `trails run` makes every trail directly invocable without surface ceremony
+- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- every trail is runnable, whether atomic or composite
+- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` dispatches through `executeTrail`, the same pipeline as every surface
+- ADR: Typed Event Emission (draft) -- events emitted during `trails run` flow through normal routing, triggers fire
+- ADR: Concurrent Follow Composition (draft) -- `--crumbs` renders concurrent follows as parallel branches in the execution tree
+- ADR: Trail Visibility and Surface Filtering (draft) -- `trails run` can invoke internal trails (it's programmatic, like dispatch)
+- ADR: Packs as Namespace Boundaries (draft) -- `trails run` can invoke any trail in any pack, regardless of visibility
+- [ADR-0013: Crumbs](../0013-crumbs.md) -- `--crumbs` uses the crumbs vocabulary; live crumbs during `trails run`, historical crumbs via `trails crumbs`

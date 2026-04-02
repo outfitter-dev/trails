@@ -1,8 +1,11 @@
 ---
+slug: websocket-surface
+title: WebSocket Surface
 status: draft
 created: 2026-03-31
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
+depends_on: [typed-event-emission]
 ---
 
 # ADR: WebSocket Surface
@@ -194,7 +197,7 @@ The surface replays events from sequence 39 onward. Events are buffered in a per
 
 The client decides how to handle the gap: refetch state via trail invocations, or accept the loss. The framework doesn't mandate a recovery strategy.
 
-The replay buffer uses the crumbs store. Emitted events are already recorded by the Events Runtime with sequence metadata. The WebSocket surface reads from crumbs for replay rather than maintaining a separate buffer. This means replay data persists across server restarts if crumbs uses a durable store.
+The WebSocket surface maintains a cursor position per connection — the last sequence number delivered. On reconnect, the surface reads forward from that position. For authored events, it reads from the events runtime's delivery log. For execution observations, it reads from whatever tracking infrastructure exists. "Replay" is the surface catching up a reconnected client by reading forward from its last known position. There is no separate replay buffer or abstraction — the surface is a cursor over existing data sources. If those data sources are durable, replay survives server restarts.
 
 ### Permit-scoped discovery and subscriptions
 
@@ -293,7 +296,7 @@ The package depends on `@ontrails/core` and benefits from the Events Runtime for
 
 ### How WebSocket compounds with existing features
 
-**With Events Runtime.** WebSocket is the first external delivery surface for events. `ctx.emit()` produces events. The WebSocket surface delivers them to subscribed clients. Crumbs records delivery outcomes. The event runtime provides the emission and routing. WebSocket provides the transport.
+**With Events Runtime.** WebSocket is the first external delivery surface for events. `ctx.emit()` produces events. The WebSocket surface delivers them to subscribed clients. The event runtime provides the emission and routing. WebSocket provides the transport.
 
 **With triggers.** A webhook trigger fires, activating a trail. The trail emits an event. A WebSocket client subscribed to that event receives it. The full chain: external webhook to trail execution to event emission to WebSocket delivery. Each piece is a different ADR. Together they form a reactive pipeline from external input to external output.
 
@@ -303,7 +306,7 @@ The package depends on `@ontrails/core` and benefits from the Events Runtime for
 
 **With permit-gated discovery.** The connection's permit scopes trail visibility AND event subscription. An agent connected with `booking:read` scope sees booking read trails and can subscribe to booking events. Write trails and admin events are invisible.
 
-**With crumbs.** WebSocket connections are observed: connection established, authentication result, subscriptions, disconnection, replay requests. Combined with event delivery tracking from the Events Runtime, crumbs provides full observability of the WebSocket surface.
+**With observability.** WebSocket connections are observed: connection established, authentication result, subscriptions, disconnection, replay requests. Combined with event delivery tracking from the Events Runtime, the tracking layer provides full observability of the WebSocket surface.
 
 ## Consequences
 
@@ -311,14 +314,14 @@ The package depends on `@ontrails/core` and benefits from the Events Runtime for
 
 - **Bidirectional communication over one connection.** Clients call trails (request-response) and receive events (server-push) without managing two separate connections or polling.
 - **Event subscriptions use the Events Runtime.** No separate pub/sub system. `ctx.emit()` in any trail delivers to WebSocket subscribers through the same routing pipeline that serves triggers. One emission, multiple consumers.
-- **Replay on reconnect.** Sequence numbers and the crumbs-backed replay buffer mean clients don't miss events during brief disconnections. The framework handles replay. The client sends `lastSeenSeq`.
+- **Replay on reconnect.** Per-connection cursor positions and sequence numbers mean clients don't miss events during brief disconnections. The surface reads forward from the client's last seen position. The client sends `lastSeenSeq`.
 - **Permit-scoped everything.** Trail discovery, event subscription, and invocation all respect the connection's permit. An agent sees exactly what it's authorized to use.
 - **Same surface patterns.** `blaze()`, `build*` escape hatch, intent filtering, glob patterns, layers. Developers who know the HTTP or MCP surface already know how to configure WebSocket.
 
 ### Tradeoffs
 
 - **Persistent connection state.** Unlike HTTP (stateless) and CLI (one-shot), WebSocket connections have lifecycle: auth state, subscriptions, replay position, backpressure state. The surface manages per-connection state that no other surface needs.
-- **Replay buffer memory.** Each connection maintains a replay buffer (default 1000 events). For servers with many concurrent connections and high event throughput, memory usage scales with connections times buffer size. The crumbs-backed approach mitigates this (shared storage, not per-connection buffers), but query overhead replaces memory overhead.
+- **Replay query cost.** On reconnect, the surface reads forward from the client's last cursor position. For clients that reconnect after long gaps, this may involve reading a large number of records from the events runtime or tracking layer. The configurable replay window (default 1000 events) caps how far back a reconnect can reach.
 - **Backpressure complexity.** Slow clients can cause send queue growth. The progressive backpressure strategy (warn, throttle, disconnect) handles this but adds operational complexity. Monitoring send queue depth becomes an operational concern.
 - **Graceful shutdown is harder.** Draining WebSocket connections requires signaling clients, waiting for in-flight requests, and closing connections. HTTP can simply stop accepting new requests. WebSocket needs active connection management during shutdown.
 
@@ -332,12 +335,12 @@ The package depends on `@ontrails/core` and benefits from the Events Runtime for
 
 ## References
 
-- [ADR-0000: Core Premise](0000-core-premise.md) -- "surfaces are peers"; WebSocket is the fourth surface, following the same patterns as CLI, MCP, and HTTP
-- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) -- trail invocations over WebSocket dispatch through `executeTrail`
-- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-surface-derivation.md) -- trail IDs map to WebSocket method names, event IDs map to subscription channels
-- [ADR-013: Crumbs](00013-crumbs.md) -- observability and replay buffer backing store
-- ADR: Events Runtime (draft) -- `ctx.emit()` provides the events that WebSocket subscriptions deliver
-- ADR: Trail Visibility (draft) -- visibility and intent filtering apply to WebSocket trail discovery and invocation
-- ADR: Triggers (draft) -- triggers and WebSocket subscriptions are both consumers of the event routing pipeline
-- ADR: Webhooks (draft) -- webhook to trail to event to WebSocket is a complete reactive pipeline from external input to external output
-- ADR: Unified Lockfile (draft) -- connection-level concurrency control for WebSocket state management
+- [ADR-0000: Core Premise](../0000-core-premise.md) -- "surfaces are peers"; WebSocket is the fourth surface, following the same patterns as CLI, MCP, and HTTP
+- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- trail invocations over WebSocket dispatch through `executeTrail`
+- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) -- trail IDs map to WebSocket method names, event IDs map to subscription channels
+- [ADR-0013: Crumbs](../0013-crumbs.md) -- observability and replay buffer backing store
+- ADR: Typed Event Emission (draft) -- `ctx.emit()` provides the events that WebSocket subscriptions deliver
+- ADR: Trail Visibility and Surface Filtering (draft) -- visibility and intent filtering apply to WebSocket trail discovery and invocation
+- ADR: Reactive Trail Activation (draft) -- triggers and WebSocket subscriptions are both consumers of the event routing pipeline
+- ADR: Webhooks and Input Adapters (draft) -- webhook to trail to event to WebSocket is a complete reactive pipeline from external input to external output
+- ADR: The Serialized Topo Graph (draft) -- captures WebSocket surface configuration in the resolved topo graph

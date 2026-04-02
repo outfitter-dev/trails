@@ -1,11 +1,14 @@
 ---
+slug: external-surfaces-as-trails
+title: External Surfaces as Trail Contracts
 status: draft
 created: 2026-03-31
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
+depends_on: [packs-namespace-boundaries]
 ---
 
-# ADR: Rig
+# ADR: External Surfaces as Trail Contracts
 
 ## Context
 
@@ -777,15 +780,15 @@ Rig lock state rolls up into the `rigs` section of `trails.lock`:
 
 ## References
 
-- [ADR-0000: Core Premise](0000-core-premise.md) -- "the trail is the product"; rig makes external surfaces into trails. Decision 11 ("Bun-native, universally consumable") governs the implementation: Bun APIs for the rig internals, standard trails for the output.
-- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) -- `rig()` returns a Trail, not a new primitive
-- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) -- rigged trails declare intent; HTTP method mapping and MCP annotations work identically
-- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) -- rigged trails execute through the same pipeline
-- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-surface-derivation.md) -- rigged trails get surface derivation for free
-- ADR: Trail Visibility (draft) -- rigged SDK wrapper packs use `visibility: 'internal'`
-- ADR: Packs (draft) -- rigged trails compose into packs with the same layering pattern
-- ADR: Provisions (draft) -- rig packs distribute as provisions with the same lifecycle
-- ADR: Events Runtime (draft) -- rigged trails can emit events via `ctx.emit()`; the "observe and announce" pattern
-- ADR: Triggers (draft) -- rigged trails with schedule triggers become periodic monitoring probes
-- ADR: Unified Lockfile (draft) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`
-- ADR-013: Crumbs (draft) -- rigged trail executions are recorded via crumbs for observability
+- [ADR-0000: Core Premise](../0000-core-premise.md) -- "the trail is the product"; rig makes external surfaces into trails. Decision 11 ("Bun-native, universally consumable") governs the implementation: Bun APIs for the rig internals, standard trails for the output.
+- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- `rig()` returns a Trail, not a new primitive
+- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- rigged trails declare intent; HTTP method mapping and MCP annotations work identically
+- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- rigged trails execute through the same pipeline
+- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) -- rigged trails get surface derivation for free
+- ADR: Trail Visibility and Surface Filtering (draft) -- rigged SDK wrapper packs use `visibility: 'internal'`
+- ADR: Packs as Namespace Boundaries (draft) -- rigged trails compose into packs with the same layering pattern
+- ADR: Pack Provisioning (draft) -- rig packs distribute as provisions with the same lifecycle
+- ADR: Typed Event Emission (draft) -- rigged trails can emit events via `ctx.emit()`; the "observe and announce" pattern
+- ADR: Reactive Trail Activation (draft) -- rigged trails with schedule triggers become periodic monitoring probes
+- ADR: The Serialized Topo Graph (draft) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`
+- [ADR-0013: Crumbs](../0013-crumbs.md) -- rigged trail executions are recorded via crumbs for observability

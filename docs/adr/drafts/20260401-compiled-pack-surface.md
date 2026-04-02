@@ -1,8 +1,11 @@
 ---
+slug: compiled-pack-surface
+title: Pack as a Compiled Surface
 status: draft
 created: 2026-04-01
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
+depends_on: [8, 9, 6]
 ---
 
 # ADR: Pack as a Compiled Surface
@@ -317,11 +320,11 @@ If a pack doesn't make sense as a library, that's feedback on the pack design, n
 
 ## References
 
-- [ADR-0000: Core Premise](0000-core-premise.md): "define once, surface everywhere" and the information architecture categories (authored, projected, overridden)
-- [ADR-0001: Naming Conventions](0001-naming-conventions.md): `create*` factory convention, `derive*` prefix for framework derivations, `build*`/`to*` surface wiring pattern
-- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-layers-run; the library surface delegates to the same pipeline
-- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-surface-derivation.md): the derivation properties (pure, deterministic, explicit lookup tables, overridable) that the library surface must also follow
-- [ADR-0009: Services](0009-services.md): service lifecycle, factory/dispose/health/mock, and the execution model the library surface must project into consumer-facing runtime inputs
-- ADR-NNN: Events (in progress): event payload schemas and provenance model; the library surface's event projection depends on where that ADR lands
-- [Vocabulary: `pack`](../vocabulary.md): the distributable capability bundle concept, sharpened here as a compilable library boundary
-- [Horizons: Packs](../horizons.md): the mid-term direction for packs as a distributable unit
+- [ADR-0000: Core Premise](../0000-core-premise.md): "define once, surface everywhere" and the information architecture categories (authored, projected, overridden)
+- [ADR-0001: Naming Conventions](../0001-naming-conventions.md): `create*` factory convention, `derive*` prefix for framework derivations, `build*`/`to*` surface wiring pattern
+- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-layers-run; the library surface delegates to the same pipeline
+- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md): the derivation properties (pure, deterministic, explicit lookup tables, overridable) that the library surface must also follow
+- [ADR-0009: Services](../0009-first-class-services.md): service lifecycle, factory/dispose/health/mock, and the execution model the library surface must project into consumer-facing runtime inputs
+- ADR: Typed Event Emission (draft) -- event payload schemas and provenance model; the library surface's event projection depends on where that ADR lands
+- [Vocabulary: `pack`](../../vocabulary.md): the distributable capability bundle concept, sharpened here as a compilable library boundary
+- [Horizons: Packs](../../horizons.md): the mid-term direction for packs as a distributable unit

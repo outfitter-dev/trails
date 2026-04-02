@@ -1,14 +1,16 @@
 ---
+slug: inbound-event-surfaces
+title: Inbound Event Surfaces
 status: draft
 created: 2026-03-31
-updated: 2026-03-31
+updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [009]
+depends_on: [9, 12, webhooks-and-adapters]
 ---
 
 # ADR: Inbound Event Surfaces
 
-## The problem
+## Context
 
 Trails has three inbound surfaces: CLI (human types a command), MCP (agent calls a tool), HTTP (client sends a request). All three are request-initiated — something external says "do this" and the framework dispatches a trail.
 
@@ -34,32 +36,29 @@ Cal.com sends booking reminders 24 hours before each event. A nightly cleanup tr
 
 The pattern: **time triggers trail execution, with optional input (the current time, a batch of pending items).**
 
-## What these have in common
+### Shared infrastructure needs
 
 All three are inbound surfaces — they receive something from outside and dispatch a trail. They share the same infrastructure needs as CLI/MCP/HTTP:
 
 - **Config**: endpoint URLs, secrets, queue connection strings
-- **Auth**: webhook signature verification, queue auth, cron doesn't need auth but needs permit context for tracks
-- **Tracks**: record what arrived, what was dispatched, outcome, timing
+- **Auth**: webhook signature verification, queue auth, cron doesn't need auth but needs permit context for crumbs
+- **Crumbs**: record what arrived, what was dispatched, outcome, timing
 - **Validation**: the incoming payload validates against the trail's input schema
 - **Error taxonomy**: webhook returns 400 on validation failure, 500 on internal error. Queue nacks on failure. Cron logs the error.
 
 They also follow the same surface model: `blaze()` one-liner, `build*` escape hatch.
 
-## What a Trails-native solution could look like
+## Decision
 
 ### Webhooks
 
-Webhooks are HTTP under the hood — they could be a mode of the existing HTTP surface rather than a separate package. A trail marked as a webhook handler gets special treatment:
+Webhooks are HTTP under the hood — they could be a mode of the existing HTTP surface rather than a separate package. The trail itself stays surface-agnostic. It knows its input schema and its run function. It does not know about HTTP paths or signature verification:
 
 ```typescript
 const paymentCompleted = trail('billing.payment-completed', {
   intent: 'write',
   input: StripePaymentEventSchema,
-  webhook: {
-    path: '/webhooks/stripe',
-    verify: stripeSignatureVerifier,  // (headers, body) => Result<void, AuthError>
-  },
+  services: [bookingStore],
   run: async (input, ctx) => {
     const booking = bookingStore.from(ctx);
     return booking.confirmPayment(input.paymentIntentId);
@@ -67,13 +66,23 @@ const paymentCompleted = trail('billing.payment-completed', {
 });
 ```
 
-The `webhook` field on the trail spec declares:
+Webhook configuration lives at the surface level, in `blaze()` options. The verifier is an auth adapter that produces a Permit — webhook signature verification IS permit resolution, just through a different adapter than bearer tokens:
 
-- The HTTP path where the webhook is received
-- A verifier function that checks the signature (this IS permit resolution for webhooks)
-- The input schema validates the payload after verification
+```typescript
+import { blaze } from '@ontrails/http/hono';
 
-`blaze()` on HTTP registers both regular routes and webhook endpoints. The execution pipeline is identical — validate, resolve context, compose layers, run. Tracks records the webhook arrival. The warden can verify webhook trails have verifiers.
+blaze(app, {
+  port: 3000,
+  webhooks: {
+    '/webhooks/stripe': {
+      trail: 'billing.payment-completed',
+      verify: stripeSignatureVerifier,  // (headers, body) => Result<Permit, AuthError>
+    },
+  },
+});
+```
+
+The execution pipeline is identical to any other surface invocation — validate input against the trail's schema, resolve context (the verifier produces the Permit), compose layers, run. The warden can verify that webhook-bound trails have verifiers configured in at least one surface.
 
 **What the examples teach us:**
 
@@ -116,7 +125,7 @@ blaze(app, {
 });
 ```
 
-Each message deserializes → validates against the trail's input schema → dispatches through `executeTrail`. Failed messages nack (or dead-letter). Tracks records each message processing.
+Each message deserializes → validates against the trail's input schema → dispatches through `executeTrail`. Failed messages nack (or dead-letter). Crumbs records each message processing.
 
 **What the examples teach us:**
 
@@ -156,7 +165,7 @@ blaze(app, {
 });
 ```
 
-The cron surface triggers trail execution on a schedule. Input can be static (configured in the schedule) or dynamic (the current time, a batch query). Tracks records each execution.
+The cron surface triggers trail execution on a schedule. Input can be static (configured in the schedule) or dynamic (the current time, a batch query). Crumbs records each execution.
 
 **What the examples teach us:**
 
@@ -181,49 +190,53 @@ const sendReminders = trail('booking.send-reminders', {
 
 Cron trails are testable via `testExamples` with mock services — no actual scheduler needed. The examples validate the business logic independent of timing.
 
-## What this teaches the infrastructure ADRs
+### Implications for infrastructure ADRs
 
-### 1. Webhook verification IS permit resolution
+### Webhook verification IS permit resolution
 
-Webhook signature checking is structurally identical to bearer token verification — take credentials (the signature + headers), produce a verified identity (the webhook source). The auth adapter interface should be broad enough to handle this:
+Webhook signature checking is structurally identical to bearer token verification — take credentials (the signature + headers), produce a verified identity (the webhook source). The verifier is just another auth adapter that produces a Permit. The core permit type doesn't need to know about credential kinds (bearer, webhook, session, API key) — that's the adapter's business. Each adapter takes its transport-specific input and outputs the same framework Permit type. ADR-0012's adapter-agnostic model holds as-is.
 
-```typescript
-type AuthCredentials =
-  | { kind: 'bearer'; token: string }
-  | { kind: 'webhook'; signature: string; body: string; headers: Headers }
-  | { kind: 'session'; sessionId: string }
-  | { kind: 'apikey'; key: string }
-  | { kind: 'none' };
-```
-
-If the permit model doesn't account for webhook verification, we'll need a separate verification system that duplicates the same pattern.
-
-### 2. Error taxonomy maps to every transport
+### Error taxonomy maps to every transport
 
 The 13 error classes already map to HTTP status codes, CLI exit codes, and JSON-RPC codes. They also map naturally to queue semantics (retryable → retry, permanent → dead-letter) and webhook responses (400, 500). The error taxonomy is more universal than we realized — it's a transport-independent behavior contract.
 
 Worth noting in the infrastructure pattern doc: error taxonomy mappings should be extensible per surface, not hardcoded for the original three.
 
-### 3. Idempotency is an infrastructure concern, not just a trail property
+### Idempotency is an infrastructure concern
 
 `idempotent: true` on a trail spec is a declaration. But webhook trails and queue-consumed trails NEED idempotency — duplicate delivery is the norm. The framework should help:
 
 - An idempotency layer that deduplicates by request/message ID
-- A service that stores processed IDs (could be the same SQLite store as tracks)
+- A service that stores processed IDs (could be the same SQLite store as crumbs)
 
 This is a layer + service, following the infrastructure pattern.
 
-### 4. Inbound surfaces share the same `blaze()` pattern
+### Inbound surfaces share the same `blaze()` pattern
 
 Every surface — including these new inbound ones — follows `blaze(app, options)`. The framework builds handlers from the topo, the surface wires them to its transport. This validates the surface model's extensibility.
 
-### 5. The trail spec may need a surface-hints field
+### The trail spec may need a surface-hints field
 
 Webhook trails need a path and verifier. Queue trails need a topic mapping. Cron trails need a schedule. Today these live in `blaze()` options, separate from the trail. But they're part of the trail's contract — "this trail is triggered by a Stripe webhook at /webhooks/stripe."
 
 Should this be on the trail spec (like `http: { path }` overrides) or on the surface config? If it's on the spec, survey can report it. If it's on the surface config, it's invisible to introspection.
 
-## Open questions
+## Consequences
+
+### Positive
+
+- The surface model proves extensible beyond request-initiated patterns — webhooks, queues, and cron all fit the `blaze(app, options)` shape without special-casing
+- Error taxonomy gains broader applicability as a transport-independent behavior contract, mapping naturally to queue retry/dead-letter semantics alongside existing HTTP status and CLI exit code mappings
+- Webhook verification unifies with the permit model, avoiding a parallel authentication system
+- Examples and `testExamples` validate inbound surface trails without running actual schedulers, brokers, or webhook endpoints
+
+### Tradeoffs
+
+- Each new inbound surface adds a package to maintain and a transport adapter to keep aligned with the execution pipeline
+- Idempotency infrastructure (deduplication layer + ID store) is new framework surface area that must justify itself across multiple surface types
+- Surface-hints on the trail spec increase the authored surface for trail definitions, trading the "reduce ceremony" principle against the "contract is queryable" principle
+
+### Open questions
 
 1. **Webhooks as HTTP sub-surface or separate package?** Webhooks are HTTP POSTs. They could be a mode of `@ontrails/http` rather than `@ontrails/webhooks`. But webhook-specific concerns (signature verification, idempotency, retry) are significant enough to justify separation.
 
@@ -232,3 +245,12 @@ Should this be on the trail spec (like `http: { path }` overrides) or on the sur
 3. **Cron surface vs cron layer.** A cron trigger could be a surface (`blaze()` starts a scheduler) or a layer (wraps trails with scheduling metadata). Surface is cleaner for standalone use. Layer is better for embedding in an existing app.
 
 4. **Dead letter handling.** When a queue message permanently fails, where does it go? A dead-letter trail? A service? An event? This needs a pattern.
+
+## References
+
+- [ADR-0009: Services as a First-Class Primitive](../0009-first-class-services.md) — inbound surfaces depend on the service primitive for infrastructure dependencies (stores, email, queue clients)
+- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-surface-derivation.md) — validates that the surface derivation model extends to event-driven inbound patterns
+- [ADR-0010: Trails-Native Infrastructure Pattern](../0010-native-infrastructure.md) — idempotency layer and deduplication store follow the infrastructure pattern (layer + service)
+- [ADR-0012: Adapter-Agnostic Permits](../0012-adapter-agnostic-permits.md) — webhook signature verification maps to the permit resolution model
+- [ADR-0013: Crumbs](../0013-crumbs.md) — inbound surface execution recording uses the crumbs system
+- ADR: Webhooks and Input Adapters (draft) — explores the webhook surface in more detail

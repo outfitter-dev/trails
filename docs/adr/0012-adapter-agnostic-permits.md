@@ -1,11 +1,14 @@
 ---
+id: 12
+slug: adapter-agnostic-permits
+title: Adapter-Agnostic Permits
 status: accepted
 created: 2026-03-30
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-0012: Permit Model
+# ADR-0012: Adapter-Agnostic Permits
 
 ## Context
 
@@ -161,5 +164,5 @@ No cookies. No session-based auth at the framework level. Session management via
 ## References
 
 - [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent compounds with permit for governance; `destroy` + no permit is an error
-- [ADR-0009: Services as a First-Class Primitive](0009-services.md) — auth adapter is a service; auth layer consumes it via `service.from(ctx)`
-- [ADR-0010: Trails-Native Infrastructure Pattern](0010-infrastructure-services-pattern.md) — auth layer follows the shared layer model for cross-cutting enforcement
+- [ADR-0009: Services as a First-Class Primitive](0009-first-class-services.md) — auth adapter is a service; auth layer consumes it via `service.from(ctx)`
+- [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — auth layer follows the shared layer model for cross-cutting enforcement

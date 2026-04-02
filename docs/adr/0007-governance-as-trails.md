@@ -1,4 +1,7 @@
 ---
+id: 7
+slug: governance-as-trails
+title: Governance as Trails with AST-Based Analysis
 status: accepted
 created: 2026-03-29
 updated: 2026-04-01

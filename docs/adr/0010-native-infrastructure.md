@@ -1,4 +1,7 @@
 ---
+id: 10
+slug: native-infrastructure
+title: Trails-Native Infrastructure Pattern
 status: accepted
 created: 2026-03-30
 updated: 2026-04-01
@@ -161,4 +164,4 @@ Each ADR can refine the shared pattern based on what the previous package learne
 - [ADR-0000: Core Premise](0000-core-premise.md) — "the trail is the product," "derive by default," and the information architecture that infrastructure trails inherit
 - [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the `executeTrail` pipeline that infrastructure layers compose into
 - [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — the warden model that governs infrastructure trails alongside business trails
-- [ADR-0009: Services as a First-Class Primitive](0009-services.md) — the service primitive that infrastructure packages build on
+- [ADR-0009: Services as a First-Class Primitive](0009-first-class-services.md) — the service primitive that infrastructure packages build on

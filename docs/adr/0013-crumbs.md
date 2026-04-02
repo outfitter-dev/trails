@@ -1,4 +1,7 @@
 ---
+id: 13
+slug: crumbs
+title: Crumbs
 status: accepted
 created: 2026-03-30
 updated: 2026-04-01
@@ -172,5 +175,5 @@ The data for behavioral validation will be there. Every `Crumb` carries intent, 
 
 - [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent drives sampling defaults and is carried on every `Crumb`
 - [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — `executeTrail` is the chokepoint where `crumbsLayer` records execution
-- [ADR-0009: Services as a First-Class Primitive](0009-services.md) — execution scope propagation, `createFollow(topo, scope)`, and the `crumbs` service pattern
-- [ADR-0012: Permit Model](0012-permit-model.md) — permit identity is carried on every `Crumb` for auth observability
+- [ADR-0009: Services as a First-Class Primitive](0009-first-class-services.md) — execution scope propagation, `createFollow(topo, scope)`, and the `crumbs` service pattern
+- [ADR-0012: Permit Model](0012-adapter-agnostic-permits.md) — permit identity is carried on every `Crumb` for auth observability

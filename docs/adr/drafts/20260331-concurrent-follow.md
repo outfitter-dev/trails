@@ -1,11 +1,13 @@
 ---
+slug: concurrent-follow
+title: Concurrent Follow Composition
 status: draft
 created: 2026-03-31
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR: Parallel Composition
+# ADR: Concurrent Follow Composition
 
 ## Context
 
@@ -306,11 +308,11 @@ Rejected because implicit concurrency is a correctness hazard. Two follows may l
 
 ## References
 
-- [ADR-0000: Core Premise](0000-core-premise.md) -- "derive by default"; crumbs observes composition shape rather than requiring it to be declared
-- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent follows
-- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) -- "composition is a property, not a type"; parallel vs sequential is a runtime choice, not a contract distinction. The `follow` declaration stays flat, same as when `hike()` was unified into `trail()`.
-- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) -- `executeTrail` is called for each concurrent branch; the pipeline is unchanged
-- [ADR-013: Crumbs](00013-crumbs.md) -- crumbs observes concurrent vs sequential spans to derive composition shape at runtime
-- ADR: Unified Lockfile (draft) -- the lockfile captures composition shapes including parallel follow patterns
-- ADR: Trail Visibility (draft) -- concurrent follows respect visibility; internal trails are followable regardless of concurrency mode
-- ADR: Packs (draft) -- concurrent follows across pack boundaries work identically to sequential follows; pack boundary governance is unchanged
+- [ADR-0000: Core Premise](../0000-core-premise.md) -- "derive by default"; crumbs observes composition shape rather than requiring it to be declared
+- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent follows
+- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- "composition is a property, not a type"; parallel vs sequential is a runtime choice, not a contract distinction. The `follow` declaration stays flat, same as when `hike()` was unified into `trail()`.
+- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `executeTrail` is called for each concurrent branch; the pipeline is unchanged
+- [ADR-0013: Crumbs](../0013-crumbs.md) -- crumbs observes concurrent vs sequential spans to derive composition shape at runtime
+- ADR: The Serialized Topo Graph (draft) -- the lockfile captures composition shapes including parallel follow patterns
+- ADR: Trail Visibility and Surface Filtering (draft) -- concurrent follows respect visibility; internal trails are followable regardless of concurrency mode
+- ADR: Packs as Namespace Boundaries (draft) -- concurrent follows across pack boundaries work identically to sequential follows; pack boundary governance is unchanged

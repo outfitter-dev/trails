@@ -1,4 +1,7 @@
 ---
+id: 5
+slug: framework-agnostic-http-route-model
+title: Framework-Agnostic HTTP Route Model
 status: accepted
 created: 2026-03-29
 updated: 2026-04-01

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Primary instruction file for agents working in the Trails monorepo.
+Our primary fieldguide for agents working in on the Trails project.
 
 ## Commands
 
@@ -34,18 +34,12 @@ Trails is an agent-native, contract-first TypeScript framework. Define a trail o
 
 The architecture is designed to make consistency easier than drift. Agents building with Trails should naturally produce aligned surfaces. Agents consuming Trails apps should be able to inspect contracts, examples, schemas, and errors at runtime without guessing.
 
-## Core Principles
+## Project Documentation
 
-1. **The trail is the product.** Surfaces are renderings of the trail contract, not separate implementations.
-2. **One schema, one Result model, one error taxonomy.** Drift across surfaces should be structurally difficult.
-3. **Surfaces are peers.** CLI, MCP, HTTP, and WebSocket are equal adapters over the same topo.
-4. **Framework packages define ports.** Concrete UX and runtime libraries belong in apps or dedicated adapter subpaths, not in the base framework packages.
-5. **Implementations are pure.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no surface-specific request objects in domain logic.
-6. **Validate at the boundary, trust internally.** Zod validates before implementations run.
-7. **Derive by default, override deliberately.** Names, flags, and tool definitions should come from the trail contract unless there is a clear reason not to.
-8. **Examples are tests.** Trail examples serve both agent guidance and happy-path validation.
-9. **The contract is queryable at runtime.** Topo, survey, and guide exist so agents and tooling can inspect the system directly.
-10. **Trails is Bun-native.** Use Bun where it improves the developer experience. The surfaces Trails produces remain universally consumable.
+1. Contracts are at the core of how Trails works, and the contract for how Trails is worked on is governed by our [Tenets](docs/tenets.md).
+2. Decisions that define what Trails is, and what it is not, are defined by our [ADRs](docs/adr/README.md).
+   - Future directions for Trails are outlined in speculative or [draft ADRs](docs/adr/drafts/README.md).
+3. We keep a log of our working notes, session recaps, learnings, etc. in [.agents/notes](.agents/notes) as a historical record of our journey.
 
 ## Vocabulary
 
