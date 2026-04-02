@@ -1,5 +1,36 @@
 # @ontrails/testing
 
+## 1.0.0-beta.13
+
+### Minor Changes
+
+- Trail-native vocabulary cutover. Breaking API field renames across all packages:
+
+  - Trail spec: `run:` → `blaze:`, `follow:` → `crosses:`, `services:` → `provisions:`, `metadata:` → `meta:`, `emits:` → `signals:`
+  - Runtime: `ctx.follow()` → `ctx.cross()`, `ctx.emit()` → `ctx.signal()`, `ctx.signal` (abort) → `ctx.abortSignal`
+  - Entry points: `blaze(app)` → `trailhead(app)`
+  - Package rename: `@ontrails/crumbs` → `@ontrails/tracker`
+  - Wrapper types: `Layer` → `Gate`, `layers`/`middleware` → `gates`
+  - Transport: `surface` → `trailhead`, `adapter` → `connector`
+
+### Patch Changes
+
+- 6944147: Complete trifecta for config, permits, and tracker (formerly tracks)
+
+  - **config**: Add `configProvision`, `configGate`, `config.trail`, and `config.workspace` trails with full `defineConfig`, `resolve`, `describe`, `explain`, `doctor`, and code generation support
+  - **permits**: Add `authService` and `auth.verify` trail for runtime authorization checks
+  - **tracker**: Rename tracks to tracker; add `trackerProvision` and `tracker.status` trail for structured signal tracking
+  - **cli**: Fix build flag handling and improve bootstrap scaffolding
+  - **testing**: Expand test context helpers and example-based testing utilities
+  - **core/mcp/http**: Internal alignment for provision and composition updates
+
+- Updated dependencies [6944147]
+- Updated dependencies
+  - @ontrails/core@1.0.0-beta.13
+  - @ontrails/cli@1.0.0-beta.13
+  - @ontrails/mcp@1.0.0-beta.13
+  - @ontrails/logging@1.0.0-beta.13
+
 ## 1.0.0-beta.12
 
 ### Patch Changes

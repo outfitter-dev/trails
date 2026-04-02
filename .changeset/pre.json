@@ -20,7 +20,7 @@
   "changesets": [
     "api-simplification-beta4",
     "beta10-cleanup-and-hardening",
-    "beta12-config-permits-tracker",
+    "beta12-config-permits-crumbs",
     "beta9-consolidated",
     "bug-fixes-beta3",
     "codex-review-fixes",
@@ -30,6 +30,7 @@
     "http-surface-and-openapi",
     "initial-v1-beta",
     "services-primitive",
-    "type-utils-and-follow-rule"
+    "type-utils-and-follow-rule",
+    "vocabulary-cutover"
   ]
 }

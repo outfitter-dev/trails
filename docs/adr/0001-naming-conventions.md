@@ -193,6 +193,10 @@ Zod remains the schema authoring language. Trails owns the surrounding language 
 - Whether a temporary bridge name is used inside a branch-local codemod
 - Future concepts that do not yet have a stable public shape
 
+### A note on the ADR record
+
+This vocabulary cutover was applied retroactively across all accepted and draft ADRs in a single pass (`13b3d9c`). We made this one-time exception to the normal ADR process — rewriting existing decisions in place rather than superseding them — because the project is pre-release and the old vocabulary would only create confusion for people reading through the ADR history or for agents consuming the docs. The goal was to settle the language before Trails ships publicly. Moving forward, any vocabulary changes will have a corresponding ADR documenting the decision.
+
 ## References
 
 - [ADR-0000: Core Premise](0000-core-premise.md)

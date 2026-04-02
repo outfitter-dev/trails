@@ -80,11 +80,9 @@ This is the drift guard for composition. The `crosses` array is the declaration.
 
 No discriminant. No branching. One type, one code path, everywhere.
 
-### Removed artifacts
+### What was removed
 
-- `hike()` — removed entirely
-- `testHike` — renamed to `testCrosses` (tests crossing-chain behavior)
-- `HikeScenario` — renamed to `CrossScenario`
+- `hike()` — the separate "composition-only" primitive. Trails handle both direct execution and crossings.
 - `topo.hikes` — gone; `topo.trails` is the single map
 - `kind: 'hike'` — gone; `kind` is always `'trail'`
 

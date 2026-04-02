@@ -1,5 +1,17 @@
 # trails
 
+## 1.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [6944147]
+- Updated dependencies
+  - @ontrails/core@1.0.0-beta.13
+  - @ontrails/cli@1.0.0-beta.13
+  - @ontrails/schema@1.0.0-beta.13
+  - @ontrails/warden@1.0.0-beta.13
+  - @ontrails/logging@1.0.0-beta.13
+
 ## 1.0.0-beta.12
 
 ### Patch Changes
