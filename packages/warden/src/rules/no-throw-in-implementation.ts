@@ -1,11 +1,11 @@
 /**
- * Finds `throw` statements inside `run:` function bodies.
+ * Finds `throw` statements inside `blaze:` function bodies.
  *
  * Uses AST parsing for accurate detection — no false positives from
  * throw in comments, strings, or nested non-implementation functions.
  */
 
-import { findRunBodies, offsetToLine, parse, walk } from './ast.js';
+import { findBlazeBodies, offsetToLine, parse, walk } from './ast.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 export const noThrowInImplementation: WardenRule = {
@@ -17,7 +17,7 @@ export const noThrowInImplementation: WardenRule = {
 
     const diagnostics: WardenDiagnostic[] = [];
 
-    for (const body of findRunBodies(ast)) {
+    for (const body of findBlazeBodies(ast)) {
       walk(body, (node) => {
         if (node.type === 'ThrowStatement') {
           diagnostics.push({

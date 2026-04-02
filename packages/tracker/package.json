@@ -1,0 +1,21 @@
+{
+  "name": "@ontrails/tracker",
+  "version": "1.0.0-beta.13",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./otel": "./src/connectors/otel.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint ./src",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "peerDependencies": {
+    "@ontrails/core": "workspace:^",
+    "zod": "catalog:"
+  }
+}

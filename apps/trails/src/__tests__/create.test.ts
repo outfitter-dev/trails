@@ -11,19 +11,19 @@ import { basename, dirname, join } from 'node:path';
 
 import { Result } from '@ontrails/core';
 
-import { addSurface } from '../trails/add-surface.js';
+import { addTrailhead } from '../trails/add-trailhead.js';
 import { addVerify } from '../trails/add-verify.js';
 import { createRoute } from '../trails/create.js';
 import { createScaffold } from '../trails/create-scaffold.js';
 import { isInsideProject } from '../trails/project.js';
 
 type Starter = 'empty' | 'entity' | 'hello';
-type Surface = 'cli' | 'mcp';
+type Trailhead = 'cli' | 'mcp';
 
 const makeTempProject = (): string =>
   join(
     tmpdir(),
-    `trails-blaze-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    `trails-create-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
   );
 
 const readJson = (dir: string, relativePath: string): Record<string, unknown> =>
@@ -68,43 +68,43 @@ const expectErr = <T>(result: Result<T, Error>): Error => {
   return result.error;
 };
 
-const runFollow = async (
+const runCross = async (
   id: string,
   input: unknown
 ): Promise<Result<unknown, Error>> => {
   switch (id) {
     case 'create.scaffold': {
-      return await createScaffold.run(input as never, {} as never);
+      return await createScaffold.blaze(input as never, {} as never);
     }
-    case 'add.surface': {
-      return await addSurface.run(input as never, {} as never);
+    case 'add.trailhead': {
+      return await addTrailhead.blaze(input as never, {} as never);
     }
     case 'add.verify': {
-      return await addVerify.run(input as never, {} as never);
+      return await addVerify.blaze(input as never, {} as never);
     }
     default: {
-      return Result.err(new Error(`Unknown follow target: ${id}`));
+      return Result.err(new Error(`Unknown cross target: ${id}`));
     }
   }
 };
 
-const runBlaze = (
+const runCreate = (
   projectDir: string,
   overrides?: Partial<{
     starter: Starter;
-    surfaces: readonly Surface[];
+    trailheads: readonly Trailhead[];
     verify: boolean;
   }>
 ) =>
-  createRoute.run(
+  createRoute.blaze(
     {
       dir: dirname(projectDir),
       name: basename(projectDir),
       starter: overrides?.starter ?? 'hello',
-      surfaces: [...(overrides?.surfaces ?? ['cli'])],
+      trailheads: [...(overrides?.trailheads ?? ['cli'])],
       verify: overrides?.verify ?? true,
     },
-    { follow: runFollow } as never
+    { cross: runCross } as never
   );
 
 const setupMinimalProject = (dir: string): void => {
@@ -177,7 +177,7 @@ const assertEntityStarter = (dir: string): void => {
       'src/trails/entity.ts',
       'src/trails/search.ts',
       'src/trails/onboard.ts',
-      'src/events/entity-events.ts',
+      'src/signals/entity-signals.ts',
       'src/store.ts',
     ],
     true
@@ -187,7 +187,7 @@ const assertEntityStarter = (dir: string): void => {
     "import * as entity from './trails/entity.js'",
     "import * as search from './trails/search.js'",
     "import * as onboard from './trails/onboard.js'",
-    "import * as entityEvents from './events/entity-events.js'",
+    "import * as entitySignals from './signals/entity-signals.js'",
   ]);
   expectContainsAll(readText(dir, 'src/trails/entity.ts'), [
     "import { Result, trail } from '@ontrails/core'",
@@ -204,12 +204,12 @@ const assertEntityStarter = (dir: string): void => {
   ]);
 };
 
-const assertMcpSurface = (dir: string): void => {
+const assertMcpTrailhead = (dir: string): void => {
   expectPaths(dir, ['src/mcp.ts'], true);
   expectPaths(dir, ['src/cli.ts'], false);
   expectContainsAll(readText(dir, 'src/mcp.ts'), [
-    "import { blaze } from '@ontrails/mcp'",
-    'await blaze(app)',
+    "import { trailhead } from '@ontrails/mcp'",
+    'await trailhead(app)',
   ]);
 
   const deps = readJson(dir, 'package.json')['dependencies'] as Record<
@@ -244,11 +244,11 @@ const withTempProject = async (
   }
 };
 
-describe('trails blaze', () => {
+describe('trails create', () => {
   describe('create mode', () => {
     test('generates project structure with defaults', async () => {
       await withTempProject(async (dir) => {
-        expectOk(await runBlaze(dir));
+        expectOk(await runCreate(dir));
         assertDefaultProjectFiles(dir);
         assertCliPackage(dir);
         assertHelloApp(dir);
@@ -257,46 +257,46 @@ describe('trails blaze', () => {
 
     test('generates with entity starter', async () => {
       await withTempProject(async (dir) => {
-        expectOk(await runBlaze(dir, { starter: 'entity' }));
+        expectOk(await runCreate(dir, { starter: 'entity' }));
         assertEntityStarter(dir);
       });
     });
 
-    test('generates with MCP surface', async () => {
+    test('generates with MCP trailhead', async () => {
       await withTempProject(async (dir) => {
-        expectOk(await runBlaze(dir, { surfaces: ['mcp'] }));
-        assertMcpSurface(dir);
+        expectOk(await runCreate(dir, { trailheads: ['mcp'] }));
+        assertMcpTrailhead(dir);
       });
     });
 
     test('skips verification when verify is false', async () => {
       await withTempProject(async (dir) => {
-        expectOk(await runBlaze(dir, { verify: false }));
+        expectOk(await runCreate(dir, { verify: false }));
         assertVerifySkipped(dir);
       });
     });
 
     test('generates with empty starter', async () => {
       await withTempProject(async (dir) => {
-        expectOk(await runBlaze(dir, { starter: 'empty' }));
+        expectOk(await runCreate(dir, { starter: 'empty' }));
         assertEmptyStarter(dir);
       });
     });
   });
 
-  describe('add-surface mode', () => {
+  describe('add-trailhead mode', () => {
     test('adds MCP to existing project', async () => {
       await withTempProject(async (dir) => {
         setupMinimalProject(dir);
         const result = expectOk(
-          await addSurface.run({ dir, surface: 'mcp' }, {} as never)
+          await addTrailhead.blaze({ dir, trailhead: 'mcp' }, {} as never)
         );
 
         expect(result.created).toBe('src/mcp.ts');
         expect(result.dependency).toBe('@ontrails/mcp');
         expectPaths(dir, ['src/mcp.ts'], true);
         expectContainsAll(readText(dir, 'src/mcp.ts'), [
-          "import { blaze } from '@ontrails/mcp'",
+          "import { trailhead } from '@ontrails/mcp'",
         ]);
         const deps = readJson(dir, 'package.json')['dependencies'] as Record<
           string,
@@ -306,16 +306,18 @@ describe('trails blaze', () => {
       });
     });
 
-    test('detects already-blazed surface', async () => {
+    test('detects existing trailhead entrypoint', async () => {
       await withTempProject(async (dir) => {
         mkdirSync(join(dir, 'src'), { recursive: true });
         mkdirSync(join(dir, '.trails'), { recursive: true });
         writeFileSync(join(dir, 'src', 'mcp.ts'), 'existing content');
 
         const error = expectErr(
-          await addSurface.run({ dir, surface: 'mcp' }, {} as never)
+          await addTrailhead.blaze({ dir, trailhead: 'mcp' }, {} as never)
         );
-        expect(error.message).toBe('MCP is already blazed. Nothing to do.');
+        expect(error.message).toBe(
+          'MCP trailhead already exists. Nothing to do.'
+        );
       });
     });
   });

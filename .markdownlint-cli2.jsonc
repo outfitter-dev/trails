@@ -4,6 +4,7 @@
     "MD003": { "style": "atx" },
     "MD022": { "lines_above": 1, "lines_below": 1 },
     "MD024": { "siblings_only": true },
+    "MD025": { "front_matter_title": "" },
     "MD041": false,
 
     // Line length - disabled for prose flexibility

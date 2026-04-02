@@ -18,7 +18,7 @@ export interface ObjectProperty extends ParsedEntry {
 
 export interface TrailLikeSpec {
   readonly id: string;
-  readonly kind: 'event' | 'trail';
+  readonly kind: 'signal' | 'trail';
   readonly line: number;
   readonly properties: ReadonlyMap<string, ObjectProperty>;
   readonly specText: string;
@@ -214,7 +214,7 @@ const resolveSpecId = (
 
 const buildTrailLikeSpec = (
   sourceCode: string,
-  kind: 'event' | 'trail',
+  kind: 'signal' | 'trail',
   specArg: SplitEntry,
   specStart: number,
   id: string,
@@ -276,7 +276,7 @@ const resolveTrailLikeSpec = (
 
 const parseTrailLikeMatch = (
   sourceCode: string,
-  kind: 'event' | 'trail',
+  kind: 'signal' | 'trail',
   callStart: number
 ): TrailLikeSpec | null => {
   const resolved = resolveTrailLikeSpec(sourceCode, callStart);
@@ -352,7 +352,7 @@ export const findTrailLikeSpecs = (
       continue;
     }
 
-    const kind = match[1] === 'event' ? 'event' : 'trail';
+    const kind = match[1] === 'signal' ? 'signal' : 'trail';
     const spec = parseTrailLikeMatch(sourceCode, kind, callStart);
     if (spec !== null) {
       specs.push(spec);

@@ -62,7 +62,7 @@ export const search = trail('docs.search', {
     { name: 'api search', input: { query: 'authentication', section: 'api' } },
     { name: 'limited results', input: { query: 'deploy', section: 'guides', limit: 3 } },
   ],
-  run: async (input) => {
+  blaze: async (input) => {
     const results = await searchIndex(input.query, {
       limit: input.limit,
       section: input.section,
@@ -77,11 +77,11 @@ One line to expose as MCP tools:
 ```typescript
 // mcp.ts
 import { topo } from '@ontrails/core';
-import { blaze } from '@ontrails/mcp';
+import { trailhead } from '@ontrails/mcp';
 import * as docs from './trails/docs.js';
 
 const app = topo('docs', docs);
-await blaze(app);
+await trailhead(app);
 // Tool name: docs_docs_search
 // Annotations derived from trail:
 //   readOnlyHint: true    (intent: 'read')

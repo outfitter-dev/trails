@@ -1,22 +1,22 @@
 import { describe, test, expect } from 'bun:test';
 
-import { diffSurfaceMaps } from '../diff.js';
-import type { SurfaceMap, SurfaceMapEntry } from '../types.js';
+import { diffTrailheadMaps } from '../diff.js';
+import type { TrailheadMap, TrailheadMapEntry } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 const entry = (
-  overrides: Partial<SurfaceMapEntry> & { id: string }
-): SurfaceMapEntry => ({
+  overrides: Partial<TrailheadMapEntry> & { id: string }
+): TrailheadMapEntry => ({
   exampleCount: 0,
   kind: 'trail',
-  surfaces: [],
+  trailheads: [],
   ...overrides,
 });
 
-const surfaceMap = (entries: SurfaceMapEntry[]): SurfaceMap => ({
+const trailheadMap = (entries: TrailheadMapEntry[]): TrailheadMap => ({
   entries,
   generatedAt: new Date().toISOString(),
   version: '1.0',
@@ -26,20 +26,20 @@ const surfaceMap = (entries: SurfaceMapEntry[]): SurfaceMap => ({
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('diffSurfaceMaps', () => {
+describe('diffTrailheadMaps', () => {
   describe('top-level changes', () => {
     test('empty diff for identical maps', () => {
       const e = entry({ id: 'user.create' });
-      const result = diffSurfaceMaps(surfaceMap([e]), surfaceMap([e]));
+      const result = diffTrailheadMaps(trailheadMap([e]), trailheadMap([e]));
 
       expect(result.entries).toHaveLength(0);
       expect(result.hasBreaking).toBe(false);
     });
 
     test('added trail detected as info', () => {
-      const prev = surfaceMap([]);
-      const curr = surfaceMap([entry({ id: 'user.create' })]);
-      const result = diffSurfaceMaps(prev, curr);
+      const prev = trailheadMap([]);
+      const curr = trailheadMap([entry({ id: 'user.create' })]);
+      const result = diffTrailheadMaps(prev, curr);
 
       expect(result.entries).toHaveLength(1);
       expect(result.entries[0]?.change).toBe('added');
@@ -47,19 +47,19 @@ describe('diffSurfaceMaps', () => {
       expect(result.info).toHaveLength(1);
     });
 
-    test('added service detected as info', () => {
-      const prev = surfaceMap([]);
-      const curr = surfaceMap([entry({ id: 'db.main', kind: 'service' })]);
-      const result = diffSurfaceMaps(prev, curr);
+    test('added provision detected as info', () => {
+      const prev = trailheadMap([]);
+      const curr = trailheadMap([entry({ id: 'db.main', kind: 'provision' })]);
+      const result = diffTrailheadMaps(prev, curr);
 
-      expect(result.entries[0]?.details).toContain('Service "db.main" added');
+      expect(result.entries[0]?.details).toContain('Provision "db.main" added');
       expect(result.info).toHaveLength(1);
     });
 
     test('removed trail detected as breaking', () => {
-      const prev = surfaceMap([entry({ id: 'user.delete' })]);
-      const curr = surfaceMap([]);
-      const result = diffSurfaceMaps(prev, curr);
+      const prev = trailheadMap([entry({ id: 'user.delete' })]);
+      const curr = trailheadMap([]);
+      const result = diffTrailheadMaps(prev, curr);
 
       expect(result.entries).toHaveLength(1);
       expect(result.entries[0]?.change).toBe('removed');
@@ -67,19 +67,21 @@ describe('diffSurfaceMaps', () => {
       expect(result.hasBreaking).toBe(true);
     });
 
-    test('removed service detected as breaking', () => {
-      const prev = surfaceMap([entry({ id: 'db.main', kind: 'service' })]);
-      const curr = surfaceMap([]);
-      const result = diffSurfaceMaps(prev, curr);
+    test('removed provision detected as breaking', () => {
+      const prev = trailheadMap([entry({ id: 'db.main', kind: 'provision' })]);
+      const curr = trailheadMap([]);
+      const result = diffTrailheadMaps(prev, curr);
 
-      expect(result.entries[0]?.details).toContain('Service "db.main" removed');
+      expect(result.entries[0]?.details).toContain(
+        'Provision "db.main" removed'
+      );
       expect(result.hasBreaking).toBe(true);
     });
 
     test('DiffResult.hasBreaking is true when any breaking entries exist', () => {
-      const prev = surfaceMap([entry({ id: 'user.delete' })]);
-      const curr = surfaceMap([]);
-      const result = diffSurfaceMaps(prev, curr);
+      const prev = trailheadMap([entry({ id: 'user.delete' })]);
+      const curr = trailheadMap([]);
+      const result = diffTrailheadMaps(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(result.breaking.length).toBeGreaterThan(0);
@@ -88,7 +90,7 @@ describe('diffSurfaceMaps', () => {
 
   describe('schema changes', () => {
     test('required input field added classified as breaking', () => {
-      const prev = surfaceMap([
+      const prev = trailheadMap([
         entry({
           id: 'user.create',
           input: {
@@ -98,7 +100,7 @@ describe('diffSurfaceMaps', () => {
           },
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = trailheadMap([
         entry({
           id: 'user.create',
           input: {
@@ -111,7 +113,7 @@ describe('diffSurfaceMaps', () => {
           },
         }),
       ]);
-      const result = diffSurfaceMaps(prev, curr);
+      const result = diffTrailheadMaps(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(result.breaking).toHaveLength(1);
@@ -125,7 +127,7 @@ describe('diffSurfaceMaps', () => {
     });
 
     test('optional input field added classified as info', () => {
-      const prev = surfaceMap([
+      const prev = trailheadMap([
         entry({
           id: 'user.create',
           input: {
@@ -135,7 +137,7 @@ describe('diffSurfaceMaps', () => {
           },
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = trailheadMap([
         entry({
           id: 'user.create',
           input: {
@@ -148,7 +150,7 @@ describe('diffSurfaceMaps', () => {
           },
         }),
       ]);
-      const result = diffSurfaceMaps(prev, curr);
+      const result = diffTrailheadMaps(prev, curr);
 
       expect(result.info).toHaveLength(1);
       const [infoEntry] = result.info;
@@ -161,7 +163,7 @@ describe('diffSurfaceMaps', () => {
     });
 
     test('output field removed classified as breaking', () => {
-      const prev = surfaceMap([
+      const prev = trailheadMap([
         entry({
           id: 'user.get',
           output: {
@@ -173,7 +175,7 @@ describe('diffSurfaceMaps', () => {
           },
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = trailheadMap([
         entry({
           id: 'user.get',
           output: {
@@ -184,7 +186,7 @@ describe('diffSurfaceMaps', () => {
           },
         }),
       ]);
-      const result = diffSurfaceMaps(prev, curr);
+      const result = diffTrailheadMaps(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(
@@ -195,7 +197,7 @@ describe('diffSurfaceMaps', () => {
     });
 
     test('output field type changed classified as breaking', () => {
-      const prev = surfaceMap([
+      const prev = trailheadMap([
         entry({
           id: 'user.get',
           output: {
@@ -204,7 +206,7 @@ describe('diffSurfaceMaps', () => {
           },
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = trailheadMap([
         entry({
           id: 'user.get',
           output: {
@@ -213,7 +215,7 @@ describe('diffSurfaceMaps', () => {
           },
         }),
       ]);
-      const result = diffSurfaceMaps(prev, curr);
+      const result = diffTrailheadMaps(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(
@@ -224,26 +226,30 @@ describe('diffSurfaceMaps', () => {
     });
   });
 
-  describe('metadata and surfaces', () => {
-    test('surface removed classified as breaking', () => {
-      const prev = surfaceMap([
-        entry({ id: 'user.list', surfaces: ['cli', 'mcp'] }),
+  describe('meta and trailheads', () => {
+    test('trailhead removed classified as breaking', () => {
+      const prev = trailheadMap([
+        entry({ id: 'user.list', trailheads: ['cli', 'mcp'] }),
       ]);
-      const curr = surfaceMap([entry({ id: 'user.list', surfaces: ['mcp'] })]);
-      const result = diffSurfaceMaps(prev, curr);
+      const curr = trailheadMap([
+        entry({ id: 'user.list', trailheads: ['mcp'] }),
+      ]);
+      const result = diffTrailheadMaps(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(
         result.breaking[0]?.details.some((d) =>
-          d.includes('Surface "cli" removed')
+          d.includes('Trailhead "cli" removed')
         )
       ).toBe(true);
     });
 
     test('safety marker changed classified as warning', () => {
-      const prev = surfaceMap([entry({ id: 'data.wipe', intent: 'read' })]);
-      const curr = surfaceMap([entry({ id: 'data.wipe', intent: 'destroy' })]);
-      const result = diffSurfaceMaps(prev, curr);
+      const prev = trailheadMap([entry({ id: 'data.wipe', intent: 'read' })]);
+      const curr = trailheadMap([
+        entry({ id: 'data.wipe', intent: 'destroy' }),
+      ]);
+      const result = diffTrailheadMaps(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
       expect(
@@ -252,13 +258,13 @@ describe('diffSurfaceMaps', () => {
     });
 
     test('description change classified as info', () => {
-      const prev = surfaceMap([
+      const prev = trailheadMap([
         entry({ description: 'Get a user', id: 'user.get' }),
       ]);
-      const curr = surfaceMap([
+      const curr = trailheadMap([
         entry({ description: 'Fetch a user by ID', id: 'user.get' }),
       ]);
-      const result = diffSurfaceMaps(prev, curr);
+      const result = diffTrailheadMaps(prev, curr);
 
       expect(result.info).toHaveLength(1);
       expect(
@@ -267,15 +273,15 @@ describe('diffSurfaceMaps', () => {
     });
 
     test('deprecation added classified as warning', () => {
-      const prev = surfaceMap([entry({ id: 'entity.list' })]);
-      const curr = surfaceMap([
+      const prev = trailheadMap([entry({ id: 'entity.list' })]);
+      const curr = trailheadMap([
         entry({
           deprecated: true,
           id: 'entity.list',
           replacedBy: 'entity.show',
         }),
       ]);
-      const result = diffSurfaceMaps(prev, curr);
+      const result = diffTrailheadMaps(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
       expect(
@@ -285,60 +291,60 @@ describe('diffSurfaceMaps', () => {
       ).toBe(true);
     });
 
-    test('follow changed produces warning', () => {
-      const prev = surfaceMap([
+    test('crosses changed produces warning', () => {
+      const prev = trailheadMap([
         entry({
-          follow: ['user.get', 'user.lookup'],
+          crosses: ['user.get', 'user.lookup'],
           id: 'user.update',
           kind: 'trail',
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = trailheadMap([
         entry({
-          follow: ['user.get', 'user.search'],
+          crosses: ['user.get', 'user.search'],
           id: 'user.update',
           kind: 'trail',
         }),
       ]);
-      const result = diffSurfaceMaps(prev, curr);
+      const result = diffTrailheadMaps(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
-      const followDetail = result.warnings[0]?.details.find((d) =>
-        d.includes('Follow changed')
+      const crossesDetail = result.warnings[0]?.details.find((d) =>
+        d.includes('Crosses changed')
       );
-      expect(followDetail).toBeDefined();
-      expect(followDetail).toContain('search');
-      expect(followDetail).toContain('lookup');
+      expect(crossesDetail).toBeDefined();
+      expect(crossesDetail).toContain('search');
+      expect(crossesDetail).toContain('lookup');
     });
 
-    test('declared services changed produces warning', () => {
-      const prev = surfaceMap([
+    test('declared provisions changed produces warning', () => {
+      const prev = trailheadMap([
         entry({
           id: 'user.update',
-          services: ['db.main', 'search.index'],
+          provisions: ['db.main', 'search.index'],
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = trailheadMap([
         entry({
           id: 'user.update',
-          services: ['db.main', 'cache.main'],
+          provisions: ['db.main', 'cache.main'],
         }),
       ]);
-      const result = diffSurfaceMaps(prev, curr);
+      const result = diffTrailheadMaps(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
-      const serviceDetail = result.warnings[0]?.details.find((detail) =>
-        detail.includes('Services changed')
+      const provisionDetail = result.warnings[0]?.details.find((detail) =>
+        detail.includes('Provisions changed')
       );
-      expect(serviceDetail).toBeDefined();
-      expect(serviceDetail).toContain('cache.main');
-      expect(serviceDetail).toContain('search.index');
+      expect(provisionDetail).toBeDefined();
+      expect(provisionDetail).toContain('cache.main');
+      expect(provisionDetail).toContain('search.index');
     });
   });
 
   describe('severity partitioning', () => {
     test('DiffResult partitions correctly into breaking, warnings, info', () => {
-      const prev = surfaceMap([
+      const prev = trailheadMap([
         entry({
           description: 'old',
           id: 'a.trail',
@@ -349,7 +355,7 @@ describe('diffSurfaceMaps', () => {
           },
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = trailheadMap([
         entry({
           description: 'new',
           id: 'a.trail',
@@ -361,7 +367,7 @@ describe('diffSurfaceMaps', () => {
         }),
         entry({ id: 'b.trail' }),
       ]);
-      const result = diffSurfaceMaps(prev, curr);
+      const result = diffTrailheadMaps(prev, curr);
 
       expect(result.entries.length).toBeGreaterThanOrEqual(2);
 

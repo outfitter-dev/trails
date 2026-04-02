@@ -4,14 +4,14 @@
 
 import type {
   Field,
-  Layer,
+  Gate,
+  ProvisionOverrideMap,
   Result,
-  ServiceOverrideMap,
   Topo,
   TrailContext,
   TrailContextInit,
 } from '@ontrails/core';
-import { SURFACE_KEY, deriveFields, executeTrail } from '@ontrails/core';
+import { TRAILHEAD_KEY, deriveFields, executeTrail } from '@ontrails/core';
 
 import type { AnyTrail, CliCommand, CliFlag } from './command.js';
 import { dryRunPreset, toFlags } from './flags.js';
@@ -32,16 +32,16 @@ export interface ActionResultContext {
 
 /** Options for buildCliCommands. */
 export interface BuildCliCommandsOptions {
-  /** Config values for services that declare a `config` schema, keyed by service ID. */
+  /** Config values for provisions that declare a `config` schema, keyed by provision ID. */
   configValues?: Readonly<Record<string, Record<string, unknown>>> | undefined;
   createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
-  layers?: Layer[] | undefined;
+  gates?: Gate[] | undefined;
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
   presets?: CliFlag[][] | undefined;
+  provisions?: ProvisionOverrideMap | undefined;
   resolveInput?: InputResolver | undefined;
-  services?: ServiceOverrideMap | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -139,14 +139,14 @@ const reportResult = async (
   }
 };
 
-/** Merge context overrides with the CLI surface marker. */
-const withCliSurface = (
+/** Merge context overrides with the CLI trailhead marker. */
+const withCliTrailhead = (
   ctxOverrides: Partial<TrailContext> | undefined
 ): Partial<TrailContext> => ({
   ...ctxOverrides,
   extensions: {
     ...ctxOverrides?.extensions,
-    [SURFACE_KEY]: 'cli' as const,
+    [TRAILHEAD_KEY]: 'cli' as const,
   },
 });
 
@@ -169,9 +169,9 @@ const createExecute =
     const result = await executeTrail(t, mergedInput, {
       configValues: options?.configValues,
       createContext: options?.createContext,
-      ctx: withCliSurface(ctxOverrides),
-      layers: options?.layers,
-      services: options?.services,
+      ctx: withCliTrailhead(ctxOverrides),
+      gates: options?.gates,
+      provisions: options?.provisions,
     });
 
     // Pass validated (coerced/transformed) input to onResult on success,
@@ -220,10 +220,10 @@ const toCliCommand = (
     description: t.description,
     execute: createExecute(t, fields, flags, options),
     flags,
+    gates: options?.gates,
     group,
     idempotent: t.idempotent,
     intent: t.intent,
-    layers: options?.layers,
     name,
     trail: t,
   };
@@ -236,7 +236,7 @@ export const buildCliCommands = (
   const commands: CliCommand[] = [];
 
   for (const trail of app.list()) {
-    if (trail.metadata?.['internal'] === true) {
+    if (trail.meta?.['internal'] === true) {
       continue;
     }
     commands.push(toCliCommand(trail, options));

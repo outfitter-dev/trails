@@ -12,7 +12,7 @@ import type { Topo } from '@ontrails/core';
 import type { DriftResult } from './drift.js';
 import { checkDrift } from './drift.js';
 import {
-  collectServiceDefinitionIds,
+  collectProvisionDefinitionIds,
   findConfigProperty,
   findTrailDefinitions,
   parse,
@@ -36,7 +36,7 @@ export interface WardenOptions {
   readonly lintOnly?: boolean | undefined;
   /** Only run drift detection, skip lint rules */
   readonly driftOnly?: boolean | undefined;
-  /** App topology for drift detection. When provided, enables real surface lock comparison. */
+  /** App topology for drift detection. When provided, enables real trailhead lock comparison. */
   readonly topo?: Topo | undefined;
 }
 
@@ -133,17 +133,17 @@ const collectDetourTargetTrailIds = (
   }
 };
 
-const collectKnownServiceIds = (
+const collectKnownProvisionIds = (
   sourceCode: string,
   filePath: string,
-  knownServiceIds: Set<string>
+  knownProvisionIds: Set<string>
 ): void => {
   const ast = parse(filePath, sourceCode);
   if (!ast) {
     return;
   }
-  for (const id of collectServiceDefinitionIds(ast)) {
-    knownServiceIds.add(id);
+  for (const id of collectProvisionDefinitionIds(ast)) {
+    knownProvisionIds.add(id);
   }
 };
 
@@ -190,17 +190,21 @@ const collectTopoDetourTargetTrailIds = (
 
 const buildProjectContextFromTopo = (appTopo: Topo): ProjectContext => {
   const knownTrailIds = new Set<string>(appTopo.trails.keys());
-  const knownServiceIds = new Set<string>(appTopo.services.keys());
+  const knownProvisionIds = new Set<string>(appTopo.provisions.keys());
   const detourTargetTrailIds = collectTopoDetourTargetTrailIds(appTopo);
 
-  return { detourTargetTrailIds, knownServiceIds, knownTrailIds };
+  return {
+    detourTargetTrailIds,
+    knownProvisionIds,
+    knownTrailIds,
+  };
 };
 
 const buildProjectContextFromFiles = (
   sourceFiles: readonly SourceFile[]
 ): ProjectContext => {
   const knownTrailIds = new Set<string>();
-  const knownServiceIds = new Set<string>();
+  const knownProvisionIds = new Set<string>();
   const detourTargetTrailIds = new Set<string>();
 
   for (const sourceFile of sourceFiles) {
@@ -209,10 +213,10 @@ const buildProjectContextFromFiles = (
       sourceFile.filePath,
       knownTrailIds
     );
-    collectKnownServiceIds(
+    collectKnownProvisionIds(
       sourceFile.sourceCode,
       sourceFile.filePath,
-      knownServiceIds
+      knownProvisionIds
     );
     collectDetourTargetTrailIds(
       sourceFile.sourceCode,
@@ -223,7 +227,7 @@ const buildProjectContextFromFiles = (
 
   return {
     detourTargetTrailIds,
-    knownServiceIds,
+    knownProvisionIds,
     knownTrailIds,
   };
 };
@@ -324,7 +328,7 @@ const formatDriftSection = (drift: DriftResult | null): string[] => {
     return [];
   }
   const label = drift.stale
-    ? 'Drift: surface.lock is stale (regenerate with `trails survey generate`)'
+    ? 'Drift: trailhead.lock is stale (regenerate with `trails survey generate`)'
     : 'Drift: clean';
   return [label, ''];
 };

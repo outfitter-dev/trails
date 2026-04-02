@@ -3,12 +3,12 @@
  */
 
 import type {
-  FollowFn,
-  ServiceOverrideMap,
+  CrossFn,
+  ProvisionOverrideMap,
   Topo,
   TrailContext,
 } from '@ontrails/core';
-import { Result, createServiceLookup } from '@ontrails/core';
+import { Result, createProvisionLookup } from '@ontrails/core';
 
 import { createTestLogger } from './logger.js';
 import type { TestTrailContextOptions } from './types.js';
@@ -26,30 +26,31 @@ type MutableTrailContext = {
  *
  * - `requestId`: `"test-request-001"` (deterministic)
  * - `logger`: a `TestLogger` that captures entries
- * - `signal`: a non-aborted AbortController signal
+ * - `abortSignal`: a non-aborted AbortController signal
  */
 export const createTestContext = (
   overrides?: TestTrailContextOptions
 ): TrailContext => {
   const cwd = overrides?.cwd ?? process.cwd();
   const ctx = {
+    abortSignal: overrides?.abortSignal ?? new AbortController().signal,
     cwd,
     env: overrides?.env ?? { TRAILS_ENV: 'test' },
     extensions: undefined,
     logger: overrides?.logger ?? createTestLogger(),
     requestId: overrides?.requestId ?? 'test-request-001',
-    signal: overrides?.signal ?? new AbortController().signal,
     workspaceRoot: cwd,
   } as MutableTrailContext;
-  ctx.service = createServiceLookup(() => ctx);
+  const lookup = createProvisionLookup(() => ctx);
+  ctx.provision = lookup;
   return ctx;
 };
 
 // ---------------------------------------------------------------------------
-// createFollowContext
+// createCrossContext
 // ---------------------------------------------------------------------------
 
-export interface CreateFollowContextOptions {
+export interface CreateCrossContextOptions {
   readonly responses?: Record<string, Result<unknown, Error>> | undefined;
 }
 
@@ -69,7 +70,7 @@ export interface MintableTrail {
 
 export interface TestExecutionOptions {
   readonly ctx?: Partial<TrailContext> | undefined;
-  readonly services?: ServiceOverrideMap | undefined;
+  readonly provisions?: ProvisionOverrideMap | undefined;
   /**
    * When true, disables automatic permit minting. Tests must provide
    * explicit permits.
@@ -87,28 +88,28 @@ export interface TestExecutionOptions {
 }
 
 /**
- * Create a mock `FollowFn` for testing composite trails.
+ * Create a mock `CrossFn` for testing composite trails.
  *
  * Returns preconfigured `Result` values keyed by trail ID. Calls to
  * unregistered IDs return `Result.err` with a descriptive message.
  *
  * @example
  * ```ts
- * const follow = createFollowContext({
+ * const cross = createCrossContext({
  *   responses: { 'entity.add': Result.ok({ id: '1', name: 'Alpha' }) },
  * });
- * const ctx = { ...createTestContext(), follow };
+ * const ctx = { ...createTestContext(), cross };
  * ```
  */
-export const createFollowContext = (
-  options?: CreateFollowContextOptions
-): FollowFn => {
+export const createCrossContext = (
+  options?: CreateCrossContextOptions
+): CrossFn => {
   const responses = options?.responses ?? {};
   return <O>(id: string, _input: unknown): Promise<Result<O, Error>> => {
     const response = responses[id];
     if (response === undefined) {
       return Promise.resolve(
-        Result.err(new Error(`No mock response for follow("${id}")`)) as Result<
+        Result.err(new Error(`No mock response for cross("${id}")`)) as Result<
           O,
           Error
         >
@@ -136,7 +137,7 @@ const isTestExecutionOptions = (
 ): input is TestExecutionOptions =>
   input !== undefined &&
   (Object.hasOwn(input, 'ctx') ||
-    Object.hasOwn(input, 'services') ||
+    Object.hasOwn(input, 'provisions') ||
     Object.hasOwn(input, 'strictPermits') ||
     Object.hasOwn(input, 'mintPermit'));
 
@@ -145,30 +146,32 @@ export const normalizeTestExecutionOptions = (
 ): TestExecutionOptions =>
   isTestExecutionOptions(input) ? input : { ctx: input };
 
-export const mergeServiceOverrides = (
-  autoResolved: ServiceOverrideMap,
+export const mergeProvisionOverrides = (
+  autoResolved: ProvisionOverrideMap,
   ctx: Partial<TrailContext> | undefined,
-  explicit: ServiceOverrideMap | undefined
-): ServiceOverrideMap => ({
+  explicit: ProvisionOverrideMap | undefined
+): ProvisionOverrideMap => ({
   ...autoResolved,
   ...ctx?.extensions,
   ...explicit,
 });
 
-const buildMockServices = async (app: Topo): Promise<ServiceOverrideMap> => {
-  const services: Record<string, unknown> = {};
-  for (const declaredService of app.listServices()) {
-    if (!declaredService.mock) {
+const buildMockProvisions = async (
+  app: Topo
+): Promise<ProvisionOverrideMap> => {
+  const provisions: Record<string, unknown> = {};
+  for (const declaredProvision of app.listProvisions()) {
+    if (!declaredProvision.mock) {
       continue;
     }
-    services[declaredService.id] = await declaredService.mock();
+    provisions[declaredProvision.id] = await declaredProvision.mock();
   }
-  return services;
+  return provisions;
 };
 
-export const resolveMockServices = async (
+export const resolveMockProvisions = async (
   app: Topo
-): Promise<ServiceOverrideMap> => await buildMockServices(app);
+): Promise<ProvisionOverrideMap> => await buildMockProvisions(app);
 
 /**
  * Merge a Partial<TrailContext> into a test context.
@@ -176,19 +179,20 @@ export const resolveMockServices = async (
  */
 export const mergeTestContext = (
   ctx?: Partial<TrailContext>,
-  services?: ServiceOverrideMap
+  provisions?: ProvisionOverrideMap
 ): TrailContext => {
   const base = createTestContext();
   const extensions = {
     ...base.extensions,
     ...ctx?.extensions,
-    ...services,
+    ...provisions,
   };
   const merged = {
     ...base,
     ...ctx,
     extensions: Object.keys(extensions).length === 0 ? undefined : extensions,
   } as MutableTrailContext;
-  merged.service = createServiceLookup(() => merged);
+  const lookup = createProvisionLookup(() => merged);
+  merged.provision = lookup;
   return merged;
 };

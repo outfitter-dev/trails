@@ -1,4 +1,4 @@
-# CLI Surface Reference
+# CLI Trailhead Reference
 
 ## Flag Derivation
 
@@ -23,17 +23,17 @@ Zod fields on a trail's `input` schema become CLI flags automatically.
 
 ## Output Modes
 
-CLI surfaces support `--output text|json|jsonl` for structured output.
+CLI trailheads support `--output text|json|jsonl` for structured output.
 
 ```typescript
-blaze(app, {
+trailhead(app, {
   presets: [outputModePreset()],
 });
 ```
 
-The surface handles formatting based on mode:
+The trailhead handles formatting based on mode:
 
-- `text` — Human-readable (default). The surface calls `.toString()` or formats objects.
+- `text` — Human-readable (default). The trailhead calls `.toString()` or formats objects.
 - `json` — Pretty-printed JSON of the Result value.
 - `jsonl` — One JSON object per line. Useful for piping to `jq`.
 
@@ -71,10 +71,10 @@ Groups are created automatically from the dot-separated prefix.
 
 ## Destructive Trails
 
-When a trail has `intent: 'destroy'`, the CLI surface automatically adds a `--dry-run` flag. The `ctx.dryRun` boolean is available inside the implementation. You can also add this explicitly:
+When a trail has `intent: 'destroy'`, the CLI trailhead automatically adds a `--dry-run` flag. The `ctx.dryRun` boolean is available inside the implementation. You can also add this explicitly:
 
 ```typescript
-blaze(app, {
+trailhead(app, {
   presets: [dryRunPreset()],
 });
 ```
@@ -90,7 +90,7 @@ Presets add common flags and behavior to all commands:
 | `dryRunPreset()` | `--dry-run` flag on `intent: 'destroy'` trails |
 
 ```typescript
-blaze(app, {
+trailhead(app, {
   presets: [outputModePreset(), cwdPreset()],
 });
 ```
@@ -98,7 +98,7 @@ blaze(app, {
 ## Blaze Options
 
 ```typescript
-blaze(app, {
+trailhead(app, {
   name: 'myapp',           // CLI binary name (defaults to topo name)
   version: '1.0.0',        // --version output
   description: 'My app',   // Top-level help text
@@ -111,7 +111,7 @@ blaze(app, {
 
 ## Execution Pipeline
 
-The CLI surface delegates to `executeTrail()` from `@ontrails/core` — the same pipeline used by MCP, HTTP, and `dispatch()`. Input is validated by Zod before the implementation runs. Layers are applied in order. The Result is mapped to an exit code and stdout/stderr by the surface; implementations never call `process.exit()` directly.
+The CLI trailhead delegates to `executeTrail()` from `@ontrails/core` — the same pipeline used by MCP, HTTP, and `run()`. Input is validated by Zod before the implementation runs. Gates are applied in order. The Result is mapped to an exit code and stdout/stderr by the trailhead; implementations never call `process.exit()` directly.
 
 ## Escape Hatch
 

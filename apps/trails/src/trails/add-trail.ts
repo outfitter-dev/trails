@@ -29,7 +29,7 @@ export const ${id.replaceAll('.', '_')} = trail('${id}', {
       name: 'TODO: add example',
     },
   ],
-  run: async (input) => {
+  blaze: async (input) => {
     return Result.ok({ message: 'TODO' });
   },
   input: z.object({}),${intentLine}
@@ -64,18 +64,7 @@ const writeWithDirs = async (
 };
 
 export const addTrail = trail('add.trail', {
-  description: 'Scaffold a new trail with tests and examples',
-  input: z.object({
-    id: z.string().describe('Trail ID (e.g., entity.update)'),
-    intent: z
-      .enum(['read', 'write', 'destroy'])
-      .default('write')
-      .describe('Trail intent'),
-  }),
-  output: z.object({
-    created: z.array(z.string()),
-  }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const { id } = input;
     const moduleName = id.replaceAll('.', '-');
     const cwd = resolve(ctx.cwd ?? '.');
@@ -91,4 +80,15 @@ export const addTrail = trail('add.trail', {
 
     return Result.ok({ created: [...files.keys()] });
   },
+  description: 'Scaffold a new trail with tests and examples',
+  input: z.object({
+    id: z.string().describe('Trail ID (e.g., entity.update)'),
+    intent: z
+      .enum(['read', 'write', 'destroy'])
+      .default('write')
+      .describe('Trail intent'),
+  }),
+  output: z.object({
+    created: z.array(z.string()),
+  }),
 });

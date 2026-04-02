@@ -109,7 +109,7 @@ Propagate upstream errors directly. Wrap only when adding context:
 
 ```typescript
 // Propagate as-is (most common)
-const result = await ctx.follow(lookupUser, { id });
+const result = await ctx.cross(lookupUser, { id });
 if (result.isErr()) return result;
 
 // Wrap when adding context (rare — only when upstream error would be misleading)

@@ -42,7 +42,7 @@ const LEVEL_MAP: Record<string, ForwardMethod> = {
 };
 
 /**
- * Sink adapter that forwards `LogRecord` instances to an existing logtape
+ * Sink connector that forwards `LogRecord` instances to an existing logtape
  * logger. Redaction runs _before_ the sink receives records, so sensitive
  * data is scrubbed regardless of the backend.
  */

@@ -1,13 +1,13 @@
 /**
  * Structural validation for a Topo graph.
  *
- * Checks trail follow references, example input validity, event origin
+ * Checks trail crossing references, example input validity, event origin
  * references, and output schema completeness. Returns a Result with all
  * issues collected into a single ValidationError.
  */
 
 import { ValidationError } from './errors.js';
-import type { AnyEvent } from './event.js';
+import type { AnySignal } from './event.js';
 import { Result } from './result.js';
 import type { Topo } from './topo.js';
 import type { AnyTrail } from './trail.js';
@@ -31,8 +31,8 @@ const WHITE = 0;
 const GRAY = 1;
 const BLACK = 2;
 
-/** Build an adjacency list and initial color map from trails with follow. */
-const buildFollowGraph = (
+/** Build an adjacency list and initial color map from trails with crossings. */
+const buildCrossGraph = (
   trails: ReadonlyMap<string, AnyTrail>
 ): {
   graph: Map<string, readonly string[]>;
@@ -40,8 +40,8 @@ const buildFollowGraph = (
 } => {
   const graph = new Map<string, readonly string[]>();
   for (const [id, t] of trails) {
-    if (t.follow.length > 0) {
-      graph.set(id, t.follow);
+    if (t.crosses.length > 0) {
+      graph.set(id, t.crosses);
     }
   }
   const color = new Map<string, number>();
@@ -51,12 +51,12 @@ const buildFollowGraph = (
   return { color, graph };
 };
 
-/** Detect multi-node cycles in the trail follow graph via DFS. */
-const detectFollowCycles = (
+/** Detect multi-node cycles in the trail crossing graph via DFS. */
+const detectCrossCycles = (
   trails: ReadonlyMap<string, AnyTrail>
 ): TopoIssue[] => {
   const issues: TopoIssue[] = [];
-  const { color, graph } = buildFollowGraph(trails);
+  const { color, graph } = buildCrossGraph(trails);
 
   const dfs = (node: string, path: string[]): void => {
     color.set(node, GRAY);
@@ -69,7 +69,7 @@ const detectFollowCycles = (
         const cycle = [...path.slice(path.indexOf(next)), next];
         issues.push({
           message: `Cycle detected: ${cycle.join(' → ')}`,
-          rule: 'follow-cycle',
+          rule: 'cross-cycle',
           trailId: next,
         });
       } else if (c === WHITE) {
@@ -87,44 +87,44 @@ const detectFollowCycles = (
   return issues;
 };
 
-const checkFollows = (
+const checkCrosses = (
   trails: ReadonlyMap<string, AnyTrail>,
   topo: Topo
 ): TopoIssue[] => {
   const issues: TopoIssue[] = [];
   for (const [id, trail] of trails) {
-    for (const followId of trail.follow) {
-      if (followId === id) {
+    for (const crossedId of trail.crosses) {
+      if (crossedId === id) {
         issues.push({
-          message: `Trail follows itself`,
-          rule: 'no-self-follow',
+          message: `Trail crosses itself`,
+          rule: 'no-self-cross',
           trailId: id,
         });
-      } else if (!topo.has(followId)) {
+      } else if (!topo.has(crossedId)) {
         issues.push({
-          message: `Follows "${followId}" which is not in the topo`,
-          rule: 'follow-exists',
+          message: `Crosses "${crossedId}" which is not in the topo`,
+          rule: 'cross-exists',
           trailId: id,
         });
       }
     }
   }
-  issues.push(...detectFollowCycles(trails));
+  issues.push(...detectCrossCycles(trails));
   return issues;
 };
 
-const checkServices = (
+const checkProvisions = (
   trails: ReadonlyMap<string, AnyTrail>,
   topo: Topo
 ): TopoIssue[] => {
   const issues: TopoIssue[] = [];
 
   for (const [id, trail] of trails) {
-    for (const declaredService of trail.services) {
-      if (!topo.hasService(declaredService.id)) {
+    for (const declaredProvision of trail.provisions) {
+      if (!topo.hasProvision(declaredProvision.id)) {
         issues.push({
-          message: `Service "${declaredService.id}" is not in the topo`,
-          rule: 'service-exists',
+          message: `Provision "${declaredProvision.id}" is not in the topo`,
+          rule: 'provision-exists',
           trailId: id,
         });
       }
@@ -177,20 +177,20 @@ const checkExamples = (trails: ReadonlyMap<string, AnyTrail>): TopoIssue[] => {
   return issues;
 };
 
-const checkEventOrigins = (
-  events: ReadonlyMap<string, AnyEvent>,
+const checkSignalOrigins = (
+  signals: ReadonlyMap<string, AnySignal>,
   topo: Topo
 ): TopoIssue[] => {
   const issues: TopoIssue[] = [];
-  for (const [id, evt] of events) {
+  for (const [id, evt] of signals) {
     if (!evt.from) {
       continue;
     }
     for (const originId of evt.from) {
       if (!topo.has(originId)) {
         issues.push({
-          message: `Event origin "${originId}" is not in the topo`,
-          rule: 'event-origin-exists',
+          message: `Signal origin "${originId}" is not in the topo`,
+          rule: 'signal-origin-exists',
           trailId: id,
         });
       }
@@ -206,16 +206,16 @@ const checkEventOrigins = (
 /**
  * Validate the structural integrity of a Topo graph.
  *
- * Checks follow references, example inputs, event origins, and output
+ * Checks crossing references, example inputs, event origins, and output
  * schema presence. Returns `Result.ok()` when no issues are found, or
  * `Result.err(ValidationError)` with all issues in the error context.
  */
 export const validateTopo = (topo: Topo): Result<void, ValidationError> => {
   const issues = [
-    ...checkFollows(topo.trails, topo),
-    ...checkServices(topo.trails, topo),
+    ...checkCrosses(topo.trails, topo),
+    ...checkProvisions(topo.trails, topo),
     ...checkExamples(topo.trails),
-    ...checkEventOrigins(topo.events, topo),
+    ...checkSignalOrigins(topo.signals, topo),
   ];
 
   if (issues.length === 0) {

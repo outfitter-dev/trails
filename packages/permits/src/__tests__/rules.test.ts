@@ -24,9 +24,9 @@ const noopRun = () => Result.ok({});
 describe('destroyWithoutPermit', () => {
   test('error when destroy trail has no permit', () => {
     const t = trail('user.delete', {
+      blaze: noopRun,
       input: emptyInput,
       intent: 'destroy',
-      run: noopRun,
     });
     const diagnostics = destroyWithoutPermit([t]);
     expect(diagnostics).toHaveLength(1);
@@ -40,10 +40,10 @@ describe('destroyWithoutPermit', () => {
 
   test('no diagnostic when destroy trail has a scoped permit', () => {
     const t = trail('user.delete', {
+      blaze: noopRun,
       input: emptyInput,
       intent: 'destroy',
       permit: { scopes: ['user:delete'] },
-      run: noopRun,
     });
     const diagnostics = destroyWithoutPermit([t]);
     expect(diagnostics).toHaveLength(0);
@@ -51,10 +51,10 @@ describe('destroyWithoutPermit', () => {
 
   test('error when destroy trail has permit: public', () => {
     const t = trail('user.delete', {
+      blaze: noopRun,
       input: emptyInput,
       intent: 'destroy',
       permit: 'public',
-      run: noopRun,
     });
     const diagnostics = destroyWithoutPermit([t]);
     expect(diagnostics).toHaveLength(1);
@@ -73,8 +73,8 @@ describe('destroyWithoutPermit', () => {
 describe('writeWithoutPermit', () => {
   test('warning when write trail has no permit', () => {
     const t = trail('user.create', {
+      blaze: noopRun,
       input: emptyInput,
-      run: noopRun,
     });
     const diagnostics = writeWithoutPermit([t]);
     expect(diagnostics).toHaveLength(1);
@@ -87,9 +87,9 @@ describe('writeWithoutPermit', () => {
 
   test('no warning when write trail has permit: public', () => {
     const t = trail('user.create', {
+      blaze: noopRun,
       input: emptyInput,
       permit: 'public',
-      run: noopRun,
     });
     const diagnostics = writeWithoutPermit([t]);
     expect(diagnostics).toHaveLength(0);
@@ -97,8 +97,8 @@ describe('writeWithoutPermit', () => {
 
   test('warning when trail has no intent (defaults to write)', () => {
     const t = trail('user.update', {
+      blaze: noopRun,
       input: emptyInput,
-      run: noopRun,
     });
     // Override intent to undefined to simulate a manually constructed trail
     const noIntent = { ...t, intent: undefined } as unknown as ReturnType<
@@ -115,9 +115,9 @@ describe('writeWithoutPermit', () => {
 
   test('no diagnostic for read trail without permit', () => {
     const t = trail('user.list', {
+      blaze: noopRun,
       input: emptyInput,
       intent: 'read',
-      run: noopRun,
     });
     const diagnostics = writeWithoutPermit([t]);
     expect(diagnostics).toHaveLength(0);
@@ -131,9 +131,9 @@ describe('writeWithoutPermit', () => {
 describe('scopeNamingConsistency', () => {
   test('scope user:write passes naming check', () => {
     const t = trail('user.update', {
+      blaze: noopRun,
       input: emptyInput,
       permit: { scopes: ['user:write'] },
-      run: noopRun,
     });
     const diagnostics = scopeNamingConsistency([t]);
     expect(diagnostics).toHaveLength(0);
@@ -141,9 +141,9 @@ describe('scopeNamingConsistency', () => {
 
   test('warning for scope without colon', () => {
     const t = trail('admin.panel', {
+      blaze: noopRun,
       input: emptyInput,
       permit: { scopes: ['admin'] },
-      run: noopRun,
     });
     const diagnostics = scopeNamingConsistency([t]);
     expect(diagnostics).toHaveLength(1);
@@ -163,14 +163,14 @@ describe('scopeNamingConsistency', () => {
 describe('orphanScopeDetection', () => {
   test('warning for orphan scope (typo)', () => {
     const t1 = trail('user.read', {
+      blaze: noopRun,
       input: emptyInput,
       permit: { scopes: ['user:read'] },
-      run: noopRun,
     });
     const t2 = trail('user.write', {
+      blaze: noopRun,
       input: emptyInput,
       permit: { scopes: ['user:wirte'] },
-      run: noopRun,
     });
     const diagnostics = orphanScopeDetection([t1, t2]);
     // Both scopes are unique (appear in only 1 trail each)
@@ -181,14 +181,14 @@ describe('orphanScopeDetection', () => {
 
   test('no warning for shared scopes', () => {
     const t1 = trail('user.read', {
+      blaze: noopRun,
       input: emptyInput,
       permit: { scopes: ['user:read'] },
-      run: noopRun,
     });
     const t2 = trail('user.profile', {
+      blaze: noopRun,
       input: emptyInput,
       permit: { scopes: ['user:read'] },
-      run: noopRun,
     });
     const diagnostics = orphanScopeDetection([t1, t2]);
     expect(diagnostics).toHaveLength(0);
@@ -203,23 +203,23 @@ describe('orphanScopeDetection', () => {
 describe('validatePermits', () => {
   test('runs all rules and aggregates diagnostics', () => {
     const destroyNoPerm = trail('user.delete', {
+      blaze: noopRun,
       input: emptyInput,
       intent: 'destroy',
-      run: noopRun,
     });
     const writeNoPerm = trail('user.create', {
+      blaze: noopRun,
       input: emptyInput,
-      run: noopRun,
     });
     const badScope = trail('admin.panel', {
+      blaze: noopRun,
       input: emptyInput,
       permit: { scopes: ['admin'] },
-      run: noopRun,
     });
     const orphanScope = trail('analytics.export', {
+      blaze: noopRun,
       input: emptyInput,
       permit: { scopes: ['analytics:exportt'] },
-      run: noopRun,
     });
 
     const diagnostics = validatePermits([

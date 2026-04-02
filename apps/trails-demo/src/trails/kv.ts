@@ -13,6 +13,7 @@ import { z } from 'zod';
 // ---------------------------------------------------------------------------
 
 export const upsert = trail('demo.upsert', {
+  blaze: (input) => Result.ok({ key: input.key, value: input.value }),
   description: 'Upsert a key-value pair (idempotent)',
   examples: [
     {
@@ -29,5 +30,4 @@ export const upsert = trail('demo.upsert', {
     value: z.string().describe('Item value'),
   }),
   output: z.object({ key: z.string(), value: z.string() }),
-  run: (input) => Result.ok({ key: input.key, value: input.value }),
 });

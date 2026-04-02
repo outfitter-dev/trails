@@ -8,7 +8,7 @@ describe('implementation-returns-result', () => {
   test('flags raw object return in trail implementation', () => {
     const code = `
 trail("entity.show", {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     return { name: "foo" };
   }
 })`;
@@ -20,18 +20,18 @@ trail("entity.show", {
     expect(diagnostics[0]?.severity).toBe('error');
   });
 
-  test('allows Result.ok() and returning ctx.follow() results', () => {
+  test('allows Result.ok() and returning ctx.cross() results', () => {
     const code = `
 trail("entity.onboard", {
-  follow: ["entity.create"],
-  run: async (input, ctx) => {
-    const result = await ctx.follow("entity.create", input);
+  crosses: ["entity.create"],
+  blaze: async (input, ctx) => {
+    const result = await ctx.cross("entity.create", input);
     return result;
   }
 })
 
 trail("entity.create", {
-  run: async (input, ctx) => Result.ok({ id: "123" })
+  blaze: async (input, ctx) => Result.ok({ id: "123" })
 })`;
 
     const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
@@ -42,7 +42,7 @@ trail("entity.create", {
   test('flags concise raw implementation bodies', () => {
     const code = `
 trail("entity.create", {
-  run: async (input, ctx) => ({ id: "123" })
+  blaze: async (input, ctx) => ({ id: "123" })
 })`;
 
     const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
@@ -54,7 +54,7 @@ trail("entity.create", {
   test('ignores return statements inside nested callbacks like .map()', () => {
     const code = `
 trail("entity.list", {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const items = ["a", "b", "c"];
     const mapped = items.map((item) => {
       return { name: item };
@@ -74,7 +74,7 @@ trail("entity.list", {
   test('ignores return statements inside .then() callbacks', () => {
     const code = `
 trail("entity.fetch", {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const data = await somePromise.then((res) => {
       return res.json();
     });
@@ -90,7 +90,7 @@ trail("entity.fetch", {
   test('still flags raw returns at the implementation level', () => {
     const code = `
 trail("entity.list", {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const items = ["a", "b"].map((item) => {
       return { name: item };
     });
@@ -113,7 +113,7 @@ const buildDiff = async (): Promise<Result<object, Error>> =>
   Result.ok({ breaking: [] });
 
 trail("survey", {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     if (input.diff) {
       return await buildDiff();
     }

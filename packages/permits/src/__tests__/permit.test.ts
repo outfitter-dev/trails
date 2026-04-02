@@ -60,7 +60,7 @@ describe('getPermit()', () => {
     expect(result).toBeUndefined();
   });
 
-  test('preserves extended permit fields from the auth layer', () => {
+  test('preserves extended permit fields from the auth gate', () => {
     const ctx = {
       permit: {
         id: 'usr_2',
@@ -77,42 +77,42 @@ describe('getPermit()', () => {
 });
 
 describe('PermitExtractionInput', () => {
-  test('accepts HTTP surface extraction', () => {
+  test('accepts HTTP trailhead extraction', () => {
     const input: PermitExtractionInput = {
       bearerToken: 'eyJhbGciOiJSUzI1NiJ9.test',
       headers: new Headers({
         authorization: 'Bearer eyJhbGciOiJSUzI1NiJ9.test',
       }),
       requestId: 'req-http-1',
-      surface: 'http',
+      trailhead: 'http',
     };
-    expect(input.surface).toBe('http');
+    expect(input.trailhead).toBe('http');
     expect(input.bearerToken).toBeDefined();
   });
 
-  test('accepts MCP surface extraction', () => {
+  test('accepts MCP trailhead extraction', () => {
     const input: PermitExtractionInput = {
       requestId: 'req-mcp-1',
       sessionId: 'mcp-session-abc',
-      surface: 'mcp',
+      trailhead: 'mcp',
     };
-    expect(input.surface).toBe('mcp');
+    expect(input.trailhead).toBe('mcp');
     expect(input.sessionId).toBe('mcp-session-abc');
   });
 
-  test('accepts CLI surface extraction', () => {
+  test('accepts CLI trailhead extraction', () => {
     const input: PermitExtractionInput = {
       bearerToken: 'cli-token-from-keyring',
       requestId: 'req-cli-1',
-      surface: 'cli',
+      trailhead: 'cli',
     };
-    expect(input.surface).toBe('cli');
+    expect(input.trailhead).toBe('cli');
   });
 
   test('accepts minimal extraction with only required fields', () => {
     const input: PermitExtractionInput = {
       requestId: 'req-minimal',
-      surface: 'http',
+      trailhead: 'http',
     };
     expect(input.requestId).toBe('req-minimal');
     expect(input.bearerToken).toBeUndefined();

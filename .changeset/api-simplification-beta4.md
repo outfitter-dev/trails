@@ -8,16 +8,16 @@
 "@ontrails/trails": major
 ---
 
-API simplification: unified trail model, intent enum, run, metadata.
+API simplification: unified trail model, intent enum, blaze, metadata.
 
 **BREAKING CHANGES:**
 
-- `hike()` removed — use `trail()` with optional `follow: [...]` field
-- `follows` renamed to `follow` (singular, matching `ctx.follow()`)
+- `hike()` removed — use `trail()` with optional `crosses: [...]` field
+- `follows` renamed to `crosses` (matching `ctx.cross()`)
 - `topo.hikes` removed — single `topo.trails` map
 - `kind: 'hike'` removed — everything is `kind: 'trail'`
 - `readOnly`/`destructive` booleans replaced by `intent: 'read' | 'write' | 'destroy'`
-- `implementation` field renamed to `run`
+- `implementation` field renamed to `blaze`
 - `markers` field renamed to `metadata`
-- `testHike` renamed to `testFollows`, `HikeScenario` to `FollowScenario`
-- `blaze()` now returns the surface handle (`Command` for CLI, `Server` for MCP)
+- `testHike` renamed to `testCrosses`, `HikeScenario` to `CrossScenario`
+- `blaze()` now returns the trailhead handle (`Command` for CLI, `Server` for MCP)

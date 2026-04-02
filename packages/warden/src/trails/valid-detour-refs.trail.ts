@@ -9,12 +9,12 @@ export const validDetourRefsTrail = wrapRule({
         filePath: 'clean.ts',
         knownTrailIds: ['entity.fallback', 'entity.show'],
         sourceCode: `trail("entity.fallback", {
-  run: async (input, ctx) => Result.ok(data)
+  blaze: async (input, ctx) => Result.ok(data)
 })
 
 trail("entity.show", {
   detours: [{ target: "entity.fallback" }],
-  run: async (input, ctx) => Result.ok(data)
+  blaze: async (input, ctx) => Result.ok(data)
 })`,
       },
       name: 'Valid detour target reference',

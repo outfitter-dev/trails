@@ -7,7 +7,7 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { configService } from '../config-service.js';
+import { configProvision } from '../config-provision.js';
 import { checkConfig } from '../doctor.js';
 import { deepMerge } from '../merge.js';
 
@@ -32,6 +32,15 @@ const mergeValues = (
 };
 
 export const configCheck = trail('config.check', {
+  blaze: (input, ctx) => {
+    const state = configProvision.from(ctx);
+    const effective = mergeValues(state.resolved, input.values);
+    const checked = checkConfig(state.schema, effective);
+    return Result.ok({
+      diagnostics: [...checked.diagnostics],
+      valid: checked.valid,
+    });
+  },
   examples: [
     {
       input: {},
@@ -45,16 +54,7 @@ export const configCheck = trail('config.check', {
       .default({}),
   }),
   intent: 'read',
-  metadata: { category: 'infrastructure' },
+  meta: { category: 'infrastructure' },
   output: outputSchema,
-  run: (input, ctx) => {
-    const state = configService.from(ctx);
-    const effective = mergeValues(state.resolved, input.values);
-    const checked = checkConfig(state.schema, effective);
-    return Result.ok({
-      diagnostics: [...checked.diagnostics],
-      valid: checked.valid,
-    });
-  },
-  services: [configService],
+  provisions: [configProvision],
 });

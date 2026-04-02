@@ -1,23 +1,23 @@
 # @ontrails/http
 
-HTTP surface adapter. One `blaze()` call turns a topo into a Hono-based HTTP server with routes, input validation, and error mapping -- all derived from the trail contracts.
+HTTP trailhead connector. One `trailhead()` call turns a topo into a Hono-based HTTP server with routes, input validation, and error mapping -- all derived from the trail contracts.
 
 ## Usage
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
-import { blaze } from '@ontrails/http/hono';
+import { trailhead } from '@ontrails/http/hono';
 import { z } from 'zod';
 
 const greet = trail('greet', {
   input: z.object({ name: z.string().describe('Who to greet') }),
   output: z.object({ message: z.string() }),
   intent: 'read',
-  run: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
+  blaze: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
 
 const app = topo('myapp', { greet });
-await blaze(app, { port: 3000 });
+await trailhead(app, { port: 3000 });
 ```
 
 This starts a Hono-based HTTP server. The `greet` trail becomes `GET /greet?name=...` because its `intent` is `'read'`.
@@ -41,7 +41,7 @@ for (const route of result.value) {
 | Export | What it does |
 | --- | --- |
 | `buildHttpRoutes(app, options?)` | Build framework-agnostic route definitions from a topo |
-| `blaze(app, options?)` (`@ontrails/http/hono`) | Start a Hono HTTP server with all trails as routes |
+| `trailhead(app, options?)` (`@ontrails/http/hono`) | Start a Hono HTTP server with all trails as routes |
 
 ## Route derivation
 
@@ -58,15 +58,15 @@ Trail IDs map to paths: `entity.show` becomes `/entity/show`. Dots become slashe
 
 ## Collision detection
 
-`buildHttpRoutes` detects when two trails would produce the same `(method, path)` pair and returns `Result.err(ValidationError)` describing both trail IDs. The `blaze()` Hono adapter throws on collision.
+`buildHttpRoutes` detects when two trails would produce the same `(method, path)` pair and returns `Result.err(ValidationError)` describing both trail IDs. The `trailhead()` Hono connector throws on collision.
 
-## Service resolution
+## Provision resolution
 
-Declared services on each trail are resolved into the context before the implementation runs.
+Declared provisions on each trail are resolved into the context before the implementation runs.
 
 ## AbortSignal propagation
 
-The `execute` function on each `HttpRouteDefinition` accepts an optional `AbortSignal`. The Hono adapter extracts `signal` from `c.req.raw` and passes it to `execute`, so client disconnects propagate into trail execution.
+The `execute` function on each `HttpRouteDefinition` accepts an optional `abortSignal`. The Hono connector extracts `signal` from `c.req.raw` and forwards it as `abortSignal`, so client disconnects propagate into trail execution.
 
 ## `HttpRouteDefinition`
 
@@ -79,7 +79,7 @@ Each route definition produced by `buildHttpRoutes` includes:
 | `trailId` | `string` | The trail ID this route was derived from |
 | `inputSource` | `'query' \| 'body'` | Where to read input |
 | `trail` | `Trail` | The original trail definition |
-| `execute` | `(input, requestId?, signal?) => Promise<Result>` | Validates, layers, and runs the implementation |
+| `execute` | `(input, requestId?, abortSignal?) => Promise<Result>` | Validates, gates, and runs the implementation |
 
 ## Installation
 

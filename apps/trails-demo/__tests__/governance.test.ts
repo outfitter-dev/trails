@@ -4,7 +4,7 @@
  * Integration tests proving the full governance loop works end-to-end.
  *
  * The "five things" that make Trails real:
- * 1. Surface map generation
+ * 1. Trailhead map generation
  * 2. Deterministic hashing
  * 3. Breaking change detection
  * 4. Non-breaking change detection
@@ -15,29 +15,29 @@ import { describe, expect, test } from 'bun:test';
 
 import { Result, trail, topo, validateTopo } from '@ontrails/core';
 import {
-  diffSurfaceMaps,
-  generateSurfaceMap,
-  hashSurfaceMap,
+  diffTrailheadMaps,
+  generateTrailheadMap,
+  hashTrailheadMap,
 } from '@ontrails/schema';
 import { z } from 'zod';
 
 import { app } from '../src/app.js';
-import * as entityEvents from '../src/events/entity-events.js';
-import * as demoServices from '../src/services/entity-store.js';
+import * as entitySignals from '../src/signals/entity-signals.js';
+import * as demoProvisions from '../src/provisions/entity-store.js';
 import * as entity from '../src/trails/entity.js';
 import * as kv from '../src/trails/kv.js';
 import * as onboard from '../src/trails/onboard.js';
 import * as search from '../src/trails/search.js';
 
 // ---------------------------------------------------------------------------
-// 1. Surface map generation
+// 1. Trailhead map generation
 // ---------------------------------------------------------------------------
 
-describe('surface map generation', () => {
-  const surfaceMap = generateSurfaceMap(app);
+describe('trailhead map generation', () => {
+  const trailheadMap = generateTrailheadMap(app);
 
-  test('contains all expected trail, event, and service IDs', () => {
-    const ids = surfaceMap.entries.map((e) => e.id);
+  test('contains all expected trail, event, and provision IDs', () => {
+    const ids = trailheadMap.entries.map((e) => e.id);
 
     expect(ids).toContain('entity.show');
     expect(ids).toContain('entity.add');
@@ -50,27 +50,27 @@ describe('surface map generation', () => {
     expect(ids).toContain('demo.entity-store');
   });
 
-  test('has exactly 9 entries (7 trails + 1 event + 1 service)', () => {
-    expect(surfaceMap.entries).toHaveLength(9);
+  test('has exactly 9 entries (7 trails + 1 event + 1 provision)', () => {
+    expect(trailheadMap.entries).toHaveLength(9);
   });
 
   test('entries are sorted alphabetically by id', () => {
-    const ids = surfaceMap.entries.map((e) => e.id);
+    const ids = trailheadMap.entries.map((e) => e.id);
     const sorted = [...ids].toSorted();
     expect(ids).toEqual(sorted);
   });
 
   test('each entry has the expected fields', () => {
-    for (const entry of surfaceMap.entries) {
+    for (const entry of trailheadMap.entries) {
       expect(entry.id).toBeString();
-      expect(entry.kind).toBeOneOf(['trail', 'event', 'service']);
+      expect(entry.kind).toBeOneOf(['trail', 'signal', 'provision']);
       expect(entry.exampleCount).toBeNumber();
-      expect(Array.isArray(entry.surfaces)).toBe(true);
+      expect(Array.isArray(entry.trailheads)).toBe(true);
     }
   });
 
   test('trail entries include input schema', () => {
-    const showEntry = surfaceMap.entries.find((e) => e.id === 'entity.show');
+    const showEntry = trailheadMap.entries.find((e) => e.id === 'entity.show');
     expect(showEntry).toBeDefined();
     if (showEntry) {
       expect(showEntry.input).toBeDefined();
@@ -79,8 +79,8 @@ describe('surface map generation', () => {
   });
 
   test('safety markers are preserved', () => {
-    const showEntry = surfaceMap.entries.find((e) => e.id === 'entity.show');
-    const deleteEntry = surfaceMap.entries.find(
+    const showEntry = trailheadMap.entries.find((e) => e.id === 'entity.show');
+    const deleteEntry = trailheadMap.entries.find(
       (e) => e.id === 'entity.delete'
     );
 
@@ -88,38 +88,38 @@ describe('surface map generation', () => {
     expect(deleteEntry?.intent).toBe('destroy');
   });
 
-  test('route entries include follow', () => {
-    const onboardEntry = surfaceMap.entries.find(
+  test('route entries include crosses', () => {
+    const onboardEntry = trailheadMap.entries.find(
       (e) => e.id === 'entity.onboard'
     );
     expect(onboardEntry).toBeDefined();
     if (onboardEntry) {
       expect(onboardEntry.kind).toBe('trail');
-      expect(onboardEntry.follow).toBeDefined();
-      expect(onboardEntry.follow).toContain('entity.add');
-      expect(onboardEntry.follow).toContain('search');
+      expect(onboardEntry.crosses).toBeDefined();
+      expect(onboardEntry.crosses).toContain('entity.add');
+      expect(onboardEntry.crosses).toContain('search');
     }
   });
 
   test('event entries include payload schema as input', () => {
-    const updatedEntry = surfaceMap.entries.find(
+    const updatedEntry = trailheadMap.entries.find(
       (e) => e.id === 'entity.updated'
     );
     expect(updatedEntry).toBeDefined();
     if (updatedEntry) {
-      expect(updatedEntry.kind).toBe('event');
+      expect(updatedEntry.kind).toBe('signal');
       expect(updatedEntry.input).toBeDefined();
     }
   });
 
-  test('service entries include their description', () => {
-    const serviceEntry = surfaceMap.entries.find(
+  test('provision entries include their description', () => {
+    const provisionEntry = trailheadMap.entries.find(
       (e) => e.id === 'demo.entity-store'
     );
-    expect(serviceEntry).toBeDefined();
-    if (serviceEntry) {
-      expect(serviceEntry.kind).toBe('service');
-      expect(serviceEntry.description).toBe(
+    expect(provisionEntry).toBeDefined();
+    if (provisionEntry) {
+      expect(provisionEntry.kind).toBe('provision');
+      expect(provisionEntry.description).toBe(
         'In-memory entity store used by the demo trails app.'
       );
     }
@@ -130,26 +130,26 @@ describe('surface map generation', () => {
 // 2. Deterministic hashing
 // ---------------------------------------------------------------------------
 
-describe('surface map hashing is deterministic', () => {
+describe('trailhead map hashing is deterministic', () => {
   test('identical topos produce identical hashes', () => {
-    const map1 = generateSurfaceMap(app);
-    const map2 = generateSurfaceMap(app);
+    const map1 = generateTrailheadMap(app);
+    const map2 = generateTrailheadMap(app);
 
-    const hash1 = hashSurfaceMap(map1);
-    const hash2 = hashSurfaceMap(map2);
+    const hash1 = hashTrailheadMap(map1);
+    const hash2 = hashTrailheadMap(map2);
 
     expect(hash1).toBe(hash2);
   });
 
   test('hash is a valid 64-character hex string', () => {
-    const surfaceMap = generateSurfaceMap(app);
-    const hash = hashSurfaceMap(surfaceMap);
+    const trailheadMap = generateTrailheadMap(app);
+    const hash = hashTrailheadMap(trailheadMap);
 
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
   test('generatedAt timestamp does not affect hash', () => {
-    const map1 = generateSurfaceMap(app);
+    const map1 = generateTrailheadMap(app);
 
     // Manually create a copy with a different generatedAt
     const map2 = {
@@ -157,7 +157,7 @@ describe('surface map hashing is deterministic', () => {
       generatedAt: '2099-12-31T23:59:59.999Z',
     };
 
-    expect(hashSurfaceMap(map1)).toBe(hashSurfaceMap(map2));
+    expect(hashTrailheadMap(map1)).toBe(hashTrailheadMap(map2));
   });
 });
 
@@ -178,11 +178,7 @@ const entityOutputSchema = z.object({
 /** Create a modified show trail with a specific input schema. */
 const makeModifiedShow = (inputSchema: z.ZodType) =>
   trail('entity.show', {
-    description: 'Show an entity by name',
-    input: inputSchema,
-    intent: 'read',
-    output: entityOutputSchema,
-    run: (input) => {
+    blaze: (input) => {
       const { name } = input as { name: string };
       return Result.ok({
         createdAt: '',
@@ -193,15 +189,19 @@ const makeModifiedShow = (inputSchema: z.ZodType) =>
         updatedAt: '',
       });
     },
-    services: [demoServices.entityStoreService],
+    description: 'Show an entity by name',
+    input: inputSchema,
+    intent: 'read',
+    output: entityOutputSchema,
+    provisions: [demoProvisions.entityStoreProvision],
   });
 
 /** Diff the baseline app against a modified app. */
 const diffAgainst = (...modules: Record<string, unknown>[]) => {
-  const before = generateSurfaceMap(app);
+  const before = generateTrailheadMap(app);
   const modifiedApp = topo('demo-modified', ...modules);
-  const after = generateSurfaceMap(modifiedApp);
-  return diffSurfaceMaps(before, after);
+  const after = generateTrailheadMap(modifiedApp);
+  return diffTrailheadMaps(before, after);
 };
 
 describe('breaking change detection', () => {
@@ -213,9 +213,9 @@ describe('breaking change detection', () => {
       { ...entity, show: modifiedShow },
       search,
       onboard,
-      entityEvents,
+      entitySignals,
       kv,
-      demoServices
+      demoProvisions
     );
 
     expect(diff.hasBreaking).toBe(true);
@@ -231,7 +231,13 @@ describe('breaking change detection', () => {
   });
 
   test('removed trail is detected as breaking', () => {
-    const diff = diffAgainst(entity, onboard, entityEvents, kv, demoServices);
+    const diff = diffAgainst(
+      entity,
+      onboard,
+      entitySignals,
+      kv,
+      demoProvisions
+    );
 
     expect(diff.hasBreaking).toBe(true);
     const searchRemoved = diff.breaking.find((e) => e.id === 'search');
@@ -249,22 +255,22 @@ describe('breaking change detection', () => {
 describe('non-breaking change detection', () => {
   test('added trail is detected as info severity', () => {
     const update = trail('entity.update', {
+      blaze: (input) => Result.ok({ name: input.name, updated: true }),
       description: 'Update an existing entity',
       input: z.object({
         name: z.string(),
         tags: z.array(z.string()).optional(),
       }),
       output: z.object({ name: z.string(), updated: z.boolean() }),
-      run: (input) => Result.ok({ name: input.name, updated: true }),
     });
 
     const diff = diffAgainst(
       entity,
       search,
       onboard,
-      entityEvents,
+      entitySignals,
       kv,
-      demoServices,
+      demoProvisions,
       { update }
     );
     expect(diff.hasBreaking).toBe(false);
@@ -285,9 +291,9 @@ describe('non-breaking change detection', () => {
       { ...entity, show: modifiedShow },
       search,
       onboard,
-      entityEvents,
+      entitySignals,
       kv,
-      demoServices
+      demoProvisions
     );
     expect(diff.hasBreaking).toBe(false);
 
@@ -300,9 +306,9 @@ describe('non-breaking change detection', () => {
   });
 
   test('no changes produces empty diff', () => {
-    const map1 = generateSurfaceMap(app);
-    const map2 = generateSurfaceMap(app);
-    const diff = diffSurfaceMaps(map1, map2);
+    const map1 = generateTrailheadMap(app);
+    const map2 = generateTrailheadMap(app);
+    const diff = diffTrailheadMaps(map1, map2);
 
     expect(diff.hasBreaking).toBe(false);
     expect(diff.entries).toHaveLength(0);

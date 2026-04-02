@@ -22,7 +22,7 @@ import type {
  * Create an MCP harness for integration testing.
  *
  * Builds MCP tools from the app's topo and provides a `callTool()` method
- * that invokes tools directly without any transport layer.
+ * that invokes tools directly without any transport boundary.
  *
  * ```ts
  * const harness = createMcpHarness({ app });
@@ -54,9 +54,9 @@ export const createMcpHarness = (options: McpHarnessOptions): McpHarness => {
       }
 
       const result = await tool.handler(args, {
+        abortSignal: undefined,
         progressToken: undefined,
         sendProgress: undefined,
-        signal: undefined,
       });
 
       return {

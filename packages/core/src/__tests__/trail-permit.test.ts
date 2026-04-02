@@ -21,38 +21,38 @@ describe('PermitRequirement type', () => {
 describe('trail() with permit field', () => {
   test('accepts permit with scopes', () => {
     const t = trail('user.delete', {
+      blaze: (input) => Result.ok({ deleted: input.id }),
       input: z.object({ id: z.string() }),
       intent: 'destroy',
       permit: { scopes: ['user:write'] },
-      run: (input) => Result.ok({ deleted: input.id }),
     });
     expect(t.permit).toEqual({ scopes: ['user:write'] });
   });
 
   test('accepts permit: public', () => {
     const t = trail('health.check', {
+      blaze: () => Result.ok({ status: 'ok' }),
       input: z.object({}),
       intent: 'read',
       permit: 'public',
-      run: () => Result.ok({ status: 'ok' }),
     });
     expect(t.permit).toBe('public');
   });
 
   test('permit is undefined when omitted (backward compatible)', () => {
     const t = trail('legacy.trail', {
+      blaze: () => Result.ok(),
       input: z.object({}),
-      run: () => Result.ok(),
     });
     expect(t.permit).toBeUndefined();
   });
 
   test('preserves permit on the frozen Trail object', () => {
     const t = trail('user.list', {
+      blaze: () => Result.ok([]),
       input: z.object({}),
       intent: 'read',
       permit: { scopes: ['user:read'] },
-      run: () => Result.ok([]),
     });
     expect(Object.isFrozen(t)).toBe(true);
     expect(t.permit).toEqual({ scopes: ['user:read'] });

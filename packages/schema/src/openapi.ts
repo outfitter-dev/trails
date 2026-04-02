@@ -194,7 +194,7 @@ const buildInputSpec = (
   };
 };
 
-/** Wrap a raw output schema in the `{ data: ... }` envelope the HTTP adapter uses. */
+/** Wrap a raw output schema in the `{ data: ... }` envelope the HTTP connector uses. */
 const wrapInDataEnvelope = (outputSchema: JsonSchema): JsonSchema => ({
   properties: { data: outputSchema },
   required: ['data'],
@@ -282,10 +282,10 @@ const isPublicTrail = (t: Trail<unknown, unknown>): boolean => {
   if (t.kind !== 'trail') {
     return false;
   }
-  const { metadata } = t as unknown as {
-    metadata?: Record<string, unknown>;
+  const { meta } = t as unknown as {
+    meta?: Record<string, unknown>;
   };
-  return metadata?.['internal'] !== true;
+  return meta?.['internal'] !== true;
 };
 
 /** Collect all paths from public trails in the topo. */
@@ -326,7 +326,7 @@ const buildInfo = (
 /**
  * Generate an OpenAPI 3.1 specification from a Topo.
  *
- * Iterates all trails, skipping events and internal trails, and produces
+ * Iterates all trails, skipping signals and internal trails, and produces
  * paths, operations, parameters, and response schemas derived from
  * the trail contract.
  */

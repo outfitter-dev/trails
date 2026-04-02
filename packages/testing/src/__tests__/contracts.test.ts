@@ -1,6 +1,6 @@
 import { describe, test } from 'bun:test';
 
-import { Result, service, trail, topo } from '@ontrails/core';
+import { Result, provision, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { testContracts } from '../contracts.js';
@@ -11,6 +11,7 @@ import { testContracts } from '../contracts.js';
 
 /** Trail whose implementation matches the output schema. */
 const validTrail = trail('valid', {
+  blaze: (input: { name: string }) => Result.ok({ id: 1, name: input.name }),
   examples: [
     {
       expected: { id: 1, name: 'Alpha' },
@@ -20,21 +21,20 @@ const validTrail = trail('valid', {
   ],
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.number(), name: z.string() }),
-  run: (input: { name: string }) => Result.ok({ id: 1, name: input.name }),
 });
 
 /** Trail without output schema -- should be skipped. */
 const noSchemaTrail = trail('noschema', {
+  blaze: (input: { x: number }) => Result.ok(input.x * 2),
   examples: [{ expected: 10, input: { x: 5 }, name: 'No schema' }],
   input: z.object({ x: z.number() }),
-  run: (input: { x: number }) => Result.ok(input.x * 2),
 });
 
 /** Trail without examples -- should be skipped. */
 const noExamplesTrail = trail('noexamples', {
+  blaze: (input: { x: number }) => Result.ok({ value: input.x }),
   input: z.object({ x: z.number() }),
   output: z.object({ value: z.number() }),
-  run: (input: { x: number }) => Result.ok({ value: input.x }),
 });
 
 // ---------------------------------------------------------------------------
@@ -43,6 +43,9 @@ const noExamplesTrail = trail('noexamples', {
 
 /** Composition trail whose implementation matches the output schema. */
 const compositionTrail = trail('composition.valid', {
+  blaze: (input: { a: number; b: number }) =>
+    Result.ok({ total: input.a + input.b }),
+  crosses: ['valid'],
   examples: [
     {
       expected: { total: 3 },
@@ -50,14 +53,12 @@ const compositionTrail = trail('composition.valid', {
       name: 'Valid composition output',
     },
   ],
-  follow: ['valid'],
   input: z.object({ a: z.number(), b: z.number() }),
   output: z.object({ total: z.number() }),
-  run: (input: { a: number; b: number }) =>
-    Result.ok({ total: input.a + input.b }),
 });
 
 const transformedInputTrail = trail('contract.transformed', {
+  blaze: (input: { value: number }) => Result.ok({ value: input.value }),
   examples: [
     {
       expected: { value: 2 },
@@ -69,49 +70,48 @@ const transformedInputTrail = trail('contract.transformed', {
     .object({ value: z.string() })
     .transform(({ value }) => ({ value: Number(value) + 1 })),
   output: z.object({ value: z.number() }),
-  run: (input: { value: number }) => Result.ok({ value: input.value }),
 });
 
-const undeclaredContractDbService = service('db.undeclared.contracts', {
+const undeclaredContractDbProvision = provision('db.undeclared.contracts', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
-const undeclaredContractTrail = trail('service.undeclared.contracts', {
+const undeclaredContractTrail = trail('provision.undeclared.contracts', {
+  blaze: (_input, ctx) =>
+    Result.ok({
+      hasInjectedProvision:
+        ctx.extensions?.[undeclaredContractDbProvision.id] !== undefined,
+    }),
   examples: [
     {
-      expected: { hasInjectedService: false },
+      expected: { hasInjectedProvision: false },
       input: {},
-      name: 'Undeclared services are not preloaded into contract contexts',
+      name: 'Undeclared provisions are not preloaded into contract contexts',
     },
   ],
   input: z.object({}),
-  output: z.object({ hasInjectedService: z.literal(false) }),
-  run: (_input, ctx) =>
-    Result.ok({
-      hasInjectedService:
-        ctx.extensions?.[undeclaredContractDbService.id] !== undefined,
-    }),
+  output: z.object({ hasInjectedProvision: z.literal(false) }),
 });
 
-const ctxOverrideContractService = service('db.mock.contracts', {
+const ctxOverrideContractProvision = provision('db.mock.contracts', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
-const ctxOverrideContractTrail = trail('service.ctx.contracts', {
+const ctxOverrideContractTrail = trail('provision.ctx.contracts', {
+  blaze: (_input, ctx) =>
+    Result.ok({ source: ctxOverrideContractProvision.from(ctx).source }),
   examples: [
     {
       expected: { source: 'ctx' },
       input: {},
-      name: 'Context extensions beat auto-resolved contract mocks',
+      name: 'Context extensions beat auto-resolved contract provision mocks',
     },
   ],
   input: z.object({}),
   output: z.object({ source: z.literal('ctx') }),
-  run: (_input, ctx) =>
-    Result.ok({ source: ctxOverrideContractService.from(ctx).source }),
-  services: [ctxOverrideContractService],
+  provisions: [ctxOverrideContractProvision],
 });
 
 // ---------------------------------------------------------------------------
@@ -143,7 +143,7 @@ describe('testContracts: skips trails without examples', () => {
   });
 });
 
-describe('testContracts: validates composition trail output schemas', () => {
+describe('testContracts: validates output schemas for trails with crossings', () => {
   // eslint-disable-next-line jest/require-hook
   testContracts(
     topo('test-app', { compositionTrail } as Record<string, unknown>)
@@ -163,7 +163,7 @@ describe('testContracts: context extension overrides', () => {
   // eslint-disable-next-line jest/require-hook
   testContracts(
     topo('ctx-contract-app', {
-      ctxOverrideContractService,
+      ctxOverrideContractProvision,
       ctxOverrideContractTrail,
     } as Record<string, unknown>),
     {
@@ -174,11 +174,11 @@ describe('testContracts: context extension overrides', () => {
   );
 });
 
-describe('testContracts service declarations', () => {
+describe('testContracts provision declarations', () => {
   // eslint-disable-next-line jest/require-hook
   testContracts(
-    topo('undeclared-contract-service-app', {
-      undeclaredContractDbService,
+    topo('undeclared-contract-provision-app', {
+      undeclaredContractDbProvision,
       undeclaredContractTrail,
     } as Record<string, unknown>)
   );

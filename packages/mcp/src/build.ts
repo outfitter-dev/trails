@@ -2,13 +2,13 @@
  * Build MCP tool definitions from a Trails App.
  *
  * Iterates the topo, generates McpToolDefinition[] with handlers that
- * validate input, compose layers, execute the implementation, and map
+ * validate input, compose gates, execute the implementation, and map
  * Results to MCP responses.
  */
 
 import {
   Result,
-  SURFACE_KEY,
+  TRAILHEAD_KEY,
   ValidationError,
   executeTrail,
   isBlobRef,
@@ -16,8 +16,8 @@ import {
 } from '@ontrails/core';
 import type {
   BlobRef,
-  Layer,
-  ServiceOverrideMap,
+  Gate,
+  ProvisionOverrideMap,
   Topo,
   Trail,
   TrailContextInit,
@@ -33,7 +33,7 @@ import { deriveToolName } from './tool-name.js';
 // ---------------------------------------------------------------------------
 
 export interface BuildMcpToolsOptions {
-  /** Config values for services that declare a `config` schema, keyed by service ID. */
+  /** Config values for provisions that declare a `config` schema, keyed by provision ID. */
   readonly configValues?:
     | Readonly<Record<string, Record<string, unknown>>>
     | undefined;
@@ -42,8 +42,8 @@ export interface BuildMcpToolsOptions {
     | undefined;
   readonly excludeTrails?: readonly string[] | undefined;
   readonly includeTrails?: readonly string[] | undefined;
-  readonly layers?: readonly Layer[] | undefined;
-  readonly services?: ServiceOverrideMap | undefined;
+  readonly gates?: readonly Gate[] | undefined;
+  readonly provisions?: ProvisionOverrideMap | undefined;
 }
 
 export interface McpToolDefinition {
@@ -64,7 +64,7 @@ export interface McpExtra {
   readonly sendProgress?:
     | ((current: number, total: number) => Promise<void>)
     | undefined;
-  readonly signal?: AbortSignal | undefined;
+  readonly abortSignal?: AbortSignal | undefined;
 }
 
 export interface McpToolResult {
@@ -212,20 +212,20 @@ const mcpError = (message: string): McpToolResult => ({
   isError: true,
 });
 
-/** Add the MCP surface marker while preserving any existing context extras. */
-const withMcpSurface = (
+/** Add the MCP trailhead marker while preserving any existing context extras. */
+const withMcpTrailhead = (
   progressCb: TrailContextInit['progress']
 ): Partial<TrailContextInit> => ({
   ...(progressCb === undefined ? {} : { progress: progressCb }),
   extensions: {
-    [SURFACE_KEY]: 'mcp' as const,
+    [TRAILHEAD_KEY]: 'mcp' as const,
   },
 });
 
 const createHandler =
   (
     t: Trail<unknown, unknown>,
-    layers: readonly Layer[],
+    gates: readonly Gate[],
     options: BuildMcpToolsOptions
   ): ((
     args: Record<string, unknown>,
@@ -234,12 +234,12 @@ const createHandler =
   async (args, extra): Promise<McpToolResult> => {
     const progressCb = createMcpProgressCallback(extra);
     const result = await executeTrail(t, args, {
+      abortSignal: extra.abortSignal,
       configValues: options.configValues,
       createContext: options.createContext,
-      ctx: withMcpSurface(progressCb),
-      layers,
-      services: options.services,
-      signal: extra.signal,
+      ctx: withMcpTrailhead(progressCb),
+      gates,
+      provisions: options.provisions,
     });
     if (result.isOk()) {
       return { content: await serializeOutput(result.value) };
@@ -257,15 +257,15 @@ const createHandler =
  * Each trail in the topo becomes an McpToolDefinition with:
  * - A derived tool name (app-prefixed, underscore-delimited)
  * - JSON Schema input from zodToJsonSchema
- * - MCP annotations from trail metadata
- * - A handler that validates, composes layers, executes, and maps results
+ * - MCP annotations from trail meta
+ * - A handler that validates, composes gates, executes, and maps results
  */
-/** Check if a trail should be included based on metadata and filters. */
+/** Check if a trail should be included based on meta and filters. */
 const shouldInclude = (
   trail: Trail<unknown, unknown>,
   options: BuildMcpToolsOptions
 ): boolean => {
-  if (trail.metadata?.['internal'] === true) {
+  if (trail.meta?.['internal'] === true) {
     return false;
   }
   if (options.includeTrails !== undefined && options.includeTrails.length > 0) {
@@ -302,7 +302,7 @@ const buildDescription = (
 const buildToolDefinition = (
   app: Topo,
   trail: Trail<unknown, unknown>,
-  layers: readonly Layer[],
+  gates: readonly Gate[],
   options: BuildMcpToolsOptions
 ): McpToolDefinition => {
   const rawAnnotations = deriveAnnotations(trail);
@@ -311,7 +311,7 @@ const buildToolDefinition = (
   return {
     annotations,
     description: buildDescription(trail),
-    handler: createHandler(trail, layers, options),
+    handler: createHandler(trail, gates, options),
     inputSchema: zodToJsonSchema(trail.input),
     name: deriveToolName(app.name, trail.id),
     trailId: trail.id,
@@ -322,7 +322,7 @@ const buildToolDefinition = (
 const registerTool = (
   app: Topo,
   trailItem: Trail<unknown, unknown>,
-  layers: readonly Layer[],
+  gates: readonly Gate[],
   options: BuildMcpToolsOptions,
   nameToTrailId: Map<string, string>,
   tools: McpToolDefinition[]
@@ -337,7 +337,7 @@ const registerTool = (
     );
   }
   nameToTrailId.set(toolName, trailItem.id);
-  tools.push(buildToolDefinition(app, trailItem, layers, options));
+  tools.push(buildToolDefinition(app, trailItem, gates, options));
   return Result.ok();
 };
 
@@ -352,7 +352,7 @@ export const buildMcpTools = (
   app: Topo,
   options: BuildMcpToolsOptions = {}
 ): Result<McpToolDefinition[], Error> => {
-  const layers = options.layers ?? [];
+  const gates = options.gates ?? [];
   const tools: McpToolDefinition[] = [];
   const nameToTrailId = new Map<string, string>();
 
@@ -360,7 +360,7 @@ export const buildMcpTools = (
     const registered = registerTool(
       app,
       trailItem,
-      layers,
+      gates,
       options,
       nameToTrailId,
       tools

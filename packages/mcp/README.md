@@ -1,22 +1,22 @@
 # @ontrails/mcp
 
-MCP surface adapter. One `blaze()` call turns a topo into an MCP server with tool definitions, annotations, and progress bridging -- all derived from the trail contracts.
+MCP trailhead connector. One `trailhead()` call turns a topo into an MCP server with tool definitions, annotations, and progress bridging -- all derived from the trail contracts.
 
 ## Usage
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
-import { blaze } from '@ontrails/mcp';
+import { trailhead } from '@ontrails/mcp';
 import { z } from 'zod';
 
 const greet = trail('greet', {
   input: z.object({ name: z.string().describe('Who to greet') }),
   intent: 'read',
-  run: (input) => Result.ok(`Hello, ${input.name}!`),
+  blaze: (input) => Result.ok(`Hello, ${input.name}!`),
 });
 
 const app = topo('myapp', { greet });
-await blaze(app);
+await trailhead(app);
 ```
 
 This starts an MCP server over stdio with a `myapp_greet` tool. The tool gets `readOnlyHint: true` and a JSON Schema input -- both derived from the trail definition.
@@ -42,7 +42,7 @@ for (const tool of result.value) {
 
 | Export | What it does |
 | --- | --- |
-| `blaze(app, options?)` | Start an MCP server with all trails as tools |
+| `trailhead(app, options?)` | Start an MCP server with all trails as tools |
 | `buildMcpTools(app, options?)` | Build tool definitions without starting a server |
 | `deriveToolName(appName, trailId)` | Compute the MCP tool name from app and trail IDs |
 | `deriveAnnotations(trail)` | Extract MCP annotations from trail intent and metadata |
@@ -67,9 +67,9 @@ No manual annotation definitions. The contract is the source of truth.
 
 Trail IDs become MCP tool names with the app prefix: `entity.show` in app `myapp` becomes `myapp_entity_show`. Dots and hyphens become underscores, everything lowercase.
 
-## Service resolution
+## Provision resolution
 
-Declared services on each trail are resolved into the context before the implementation runs.
+Declared provisions on each trail are resolved into the context before the implementation runs.
 
 ## Progress bridge
 
@@ -77,7 +77,7 @@ Implementations report progress through `ctx.progress`. On MCP, these bridge to 
 
 ```typescript
 const importTrail = trail('data.import', {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     for (let i = 0; i < items.length; i++) {
       await processItem(items[i]);
       ctx.progress?.({ type: 'progress', current: i + 1, total: items.length });
@@ -90,8 +90,8 @@ const importTrail = trail('data.import', {
 ## Filtering
 
 ```typescript
-await blaze(app, { includeTrails: ['entity.show', 'search'] });
-await blaze(app, { excludeTrails: ['internal.debug'] });
+await trailhead(app, { includeTrails: ['entity.show', 'search'] });
+await trailhead(app, { excludeTrails: ['internal.debug'] });
 ```
 
 ## Installation

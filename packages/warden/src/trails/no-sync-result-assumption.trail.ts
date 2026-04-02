@@ -7,12 +7,12 @@ export const noSyncResultAssumptionTrail = wrapRule({
       expected: { diagnostics: [] },
       input: {
         filePath: 'clean.ts',
-        sourceCode: `const result = await myTrail.run(input, ctx);
+        sourceCode: `const result = await myTrail.blaze(input, ctx);
 if (result.isOk()) {
   console.log(result.value);
 }`,
       },
-      name: 'Properly awaited .run() call',
+      name: 'Properly awaited .blaze() call',
     },
   ],
   rule: noSyncResultAssumption,

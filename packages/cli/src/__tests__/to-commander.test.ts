@@ -62,8 +62,8 @@ const requireCommand = (
 describe('toCommander', () => {
   test('creates a Commander program with correct commands', () => {
     const t = trail('greet', {
+      blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
       input: z.object({ name: z.string() }),
-      run: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app);
@@ -77,12 +77,12 @@ describe('toCommander', () => {
 
   test('grouped commands create parent/subcommand structure', () => {
     const show = trail('entity.show', {
+      blaze: () => Result.ok({}),
       input: z.object({ id: z.string() }),
-      run: () => Result.ok({}),
     });
     const add = trail('entity.add', {
+      blaze: () => Result.ok({}),
       input: z.object({ name: z.string() }),
-      run: () => Result.ok({}),
     });
     const app = makeApp(show, add);
     const commands = buildCliCommands(app);
@@ -99,6 +99,7 @@ describe('toCommander', () => {
 
   test('flag types map correctly to Commander options', () => {
     const t = trail('search', {
+      blaze: () => Result.ok([]),
       input: z.object({
         format: z.enum(['json', 'text']).optional(),
         limit: z.number().optional(),
@@ -106,7 +107,6 @@ describe('toCommander', () => {
         tags: z.array(z.string()).optional(),
         verbose: z.boolean().optional(),
       }),
-      run: () => Result.ok([]),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app);
@@ -124,8 +124,8 @@ describe('toCommander', () => {
   describe('boolean flag negation', () => {
     test('boolean flags get --no-<name> negation options', () => {
       const t = trail('check', {
+        blaze: () => Result.ok('ok'),
         input: z.object({ strict: z.boolean() }),
-        run: () => Result.ok('ok'),
       });
       const app = makeApp(t);
       const commands = buildCliCommands(app);
@@ -141,8 +141,8 @@ describe('toCommander', () => {
 
     test('--no-<flag> sets value to false via parseAsync', async () => {
       const t = trail('check', {
+        blaze: () => Result.ok('ok'),
         input: z.object({ strict: z.boolean().default(true) }),
-        run: () => Result.ok('ok'),
       });
       const app = makeApp(t);
       const commands = buildCliCommands(app, { onResult: noopResult });
@@ -156,8 +156,8 @@ describe('toCommander', () => {
 
     test('--flag sets boolean value to true via parseAsync', async () => {
       const t = trail('check', {
+        blaze: () => Result.ok('ok'),
         input: z.object({ strict: z.boolean().default(false) }),
-        run: () => Result.ok('ok'),
       });
       const app = makeApp(t);
       const commands = buildCliCommands(app, { onResult: noopResult });
@@ -173,8 +173,8 @@ describe('toCommander', () => {
   describe('strict number parsing', () => {
     const buildNumberProgram = () => {
       const t = trail('count', {
+        blaze: () => Result.ok('ok'),
         input: z.object({ limit: z.number() }),
-        run: () => Result.ok('ok'),
       });
       const app = makeApp(t);
       const commands = buildCliCommands(app);
@@ -246,8 +246,8 @@ describe('toCommander', () => {
       { expected: -5, input: '-5' },
     ])('accepts valid number "$input"', async ({ expected, input }) => {
       const t = trail('count', {
+        blaze: () => Result.ok('ok'),
         input: z.object({ limit: z.number() }),
-        run: () => Result.ok('ok'),
       });
       const app = makeApp(t);
       const commands = buildCliCommands(app, { onResult: noopResult });
@@ -262,8 +262,8 @@ describe('toCommander', () => {
 
   test('sets version when provided', () => {
     const t = trail('ping', {
+      blaze: () => Result.ok('pong'),
       input: z.object({}),
-      run: () => Result.ok('pong'),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app);
@@ -282,8 +282,8 @@ describe('toCommander', () => {
     // This test verifies the error handling structure exists.
     // Full integration would need process.exit mocking.
     const t = trail('fail', {
+      blaze: () => Result.ok('ok'),
       input: z.object({}),
-      run: () => Result.ok('ok'),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app);

@@ -1,6 +1,6 @@
 # Trails API Reference
 
-Canonical public surface. For naming conventions and decision history, see `docs/adr/001-naming-conventions.md`.
+Canonical public trailhead-facing reference. For naming conventions and decision history, see [ADR-0001](docs/adr/0001-naming-conventions.md).
 
 ---
 
@@ -8,18 +8,18 @@ Canonical public surface. For naming conventions and decision history, see `docs
 
 ```typescript
 // Definitions
-trail(id, spec)                    // define a unit of work (with optional follow for composition)
-event(id, spec)                    // define a payload schema with provenance
-service(id, spec)                  // define a first-class service dependency
-createServiceLookup(getContext)    // bind ctx.service() to a specific context snapshot
-topo(name, ...modules)             // assemble trails, events, and services into a queryable topology
+trail(id, spec)                    // define a unit of work (with optional crosses for composition)
+signal(id, spec)                    // define a payload schema with provenance
+provision(id, spec)                  // define a first-class provision dependency
+createProvisionLookup(getContext)   // bind ctx.provision() to a specific context snapshot
+topo(name, ...modules)             // assemble trails, signals, and provisions into a queryable topology
 // Topo methods: .get(id), .has(id), .list(), .listEvents(), .ids(), .count
-//               .getService(id), .hasService(id), .listServices(), .serviceIds(), .serviceCount
+//               .getProvision(id), .hasProvision(id), .listProvisions(), .provisionIds(), .provisionCount
 
 // Types
-Trail<I, O>, Event<T>, Service<T>, Topo, Intent
-TrailSpec<I, O>, EventSpec<T>, ServiceSpec<T>, TrailExample<I, O>
-AnyTrail, AnyEvent, AnyService, ServiceContext, ServiceOverrideMap
+Trail<I, O>, Event<T>, Provision<T>, Topo, Intent
+TrailSpec<I, O>, EventSpec<T>, ProvisionSpec<T>, TrailExample<I, O>
+AnyTrail, AnyEvent, AnyProvision, ProvisionContext, ProvisionOverrideMap
 
 // Type utilities
 TrailInput<T>                      // extract input type from a Trail
@@ -42,16 +42,16 @@ ErrorCategory, isTrailsError(value?), isRetryable(error)
 // Implementation & context
 Implementation<I, O>              // (input, ctx) => Result | Promise<Result>
 TrailContext, createTrailContext(overrides?)
-FollowFn, ServiceLookup, ProgressCallback, ProgressEvent, Logger, Surface
+CrossFn, ProvisionLookup, ProgressCallback, ProgressEvent, Logger, Trailhead
 
 // Execution pipeline
-executeTrail(trail, rawInput, options?) // validate → resolve context → resolve services → compose layers → run
-dispatch(topo, id, input, options?)    // look up and execute a trail by ID; accepts ctx/services overrides
-DispatchOptions
+executeTrail(trail, rawInput, options?) // validate → resolve context → resolve provisions → compose gates → run
+run(topo, id, input, options?)    // look up and execute a trail by ID; accepts ctx/provision overrides
+RunOptions
 
-// Layers
-Layer                              // wrap(trail, implementation) → implementation
-composeLayers(layers, trail, implementation)
+// Gates
+Gate                               // wrap(trail, implementation) → implementation
+composeGates(gates, trail, implementation)
 
 // Validation
 validateInput(schema, data)        // → Result<T, ValidationError>
@@ -90,7 +90,7 @@ findWorkspaceRoot, isInsideWorkspace, getRelativePath
 ## `@ontrails/cli`
 
 ```typescript
-blaze(topo, options?)              // one-liner (from @ontrails/cli/commander)
+trailhead(topo, options?)              // one-liner (from @ontrails/cli/commander)
 buildCliCommands(topo, options?)   // escape hatch step 1
 toCommander(commands, options?)    // escape hatch step 2
 deriveFlags(schema, overrides?)    // Zod → CLI flags
@@ -102,20 +102,20 @@ CliCommand, CliFlag, CliArg
 outputModePreset(), cwdPreset(), dryRunPreset()
 defaultOnResult(ctx), passthroughResolver, isInteractive(options?)
 InputResolver, ResolveInputOptions
-autoIterateLayer, dateShortcutsLayer
+autoIterateGate, dateShortcutsGate
 ```
 
 ## `@ontrails/mcp`
 
 ```typescript
-blaze(topo, options?)              // one-liner
+trailhead(topo, options?)              // one-liner
 buildMcpTools(topo, options?)      // escape hatch step 1; returns Result<McpToolDefinition[], Error>
 connectStdio(server)               // escape hatch step 2
 deriveToolName(appName, trailId)   // tool name derivation
 deriveAnnotations(trail)           // MCP annotations from intent and metadata
 createMcpProgressCallback(extra)   // progress bridge
 
-BlazeMcpOptions, BuildMcpToolsOptions
+TrailheadMcpOptions, BuildMcpToolsOptions
 McpToolDefinition,                 // includes trailId: string
 McpToolResult, McpContent, McpExtra, McpAnnotations
 ```
@@ -123,10 +123,10 @@ McpToolResult, McpContent, McpExtra, McpAnnotations
 ## `@ontrails/http`
 
 ```typescript
-blaze(topo, options?)              // one-liner HTTP server
+trailhead(topo, options?)              // one-liner HTTP server
 buildHttpRoutes(topo, options?)    // escape hatch: route definitions without server; returns Result<HttpRouteDefinition[], Error>
 
-BlazeHttpOptions, BuildHttpRoutesOptions
+TrailheadHttpOptions, BuildHttpRoutesOptions
 HttpMethod, HttpRouteDefinition
 ```
 
@@ -134,11 +134,11 @@ HttpMethod, HttpRouteDefinition
 
 ```typescript
 generateOpenApiSpec(topo, options?) // OpenAPI 3.1 spec from topo
-generateSurfaceMap(topo), hashSurfaceMap(map), diffSurfaceMaps(before, after)
-writeSurfaceMap(map, options?), readSurfaceMap(options?)
-writeSurfaceLock(hash, options?), readSurfaceLock(options?)
+generateTrailheadMap(topo), hashTrailheadMap(map), diffTrailheadMaps(before, after)
+writeTrailheadMap(map, options?), readTrailheadMap(options?)
+writeTrailheadLock(hash, options?), readTrailheadLock(options?)
 
-SurfaceMap, SurfaceMapEntry, DiffResult, DiffEntry, JsonSchema
+TrailheadMap, TrailheadMapEntry, DiffResult, DiffEntry, JsonSchema
 WriteOptions, ReadOptions
 
 OpenApiOptions, OpenApiSpec, OpenApiServer
@@ -150,7 +150,7 @@ OpenApiOptions, OpenApiSpec, OpenApiServer
 // Test runners
 testAll(topo, ctxOrFactory?)
 testExamples(topo, ctxOrFactory?), testTrail(trail, scenarios, ctx?)
-testFollows(trail, scenarios, options?)
+testCrosses(trail, scenarios, options?)
 testContracts(topo, ctxOrFactory?), testDetours(topo)
 
 // Assertion helpers
@@ -160,11 +160,11 @@ assertErrorMatch(result, errorClass)
 
 // Factories
 createTestContext(options?), createTestLogger()
-createFollowContext(options?)      // minimal context for testing trail composition via ctx.follow()
+createCrossContext(options?)       // minimal context for testing trail composition via ctx.cross()
 createCliHarness(topo, options?), createMcpHarness(topo, options?)
 
-TestExecutionOptions, TestFollowOptions
-TestScenario, FollowScenario, TestLogger, TestTrailContextOptions
+TestExecutionOptions, TestCrossOptions
+TestScenario, CrossScenario, TestLogger, TestTrailContextOptions
 CliHarness, CliHarnessOptions, CliHarnessResult
 McpHarness, McpHarnessOptions, McpHarnessResult
 ```

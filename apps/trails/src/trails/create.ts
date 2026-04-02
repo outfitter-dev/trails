@@ -1,11 +1,11 @@
 /**
  * `create` route -- Create a new Trails project.
  *
- * Composes create.scaffold, add.surface, and add.verify sub-trails
- * via ctx.follow().
+ * Composes create.scaffold, add.trailhead, and add.verify sub-trails
+ * via ctx.cross().
  */
 
-import type { FollowFn } from '@ontrails/core';
+import type { CrossFn } from '@ontrails/core';
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -14,13 +14,13 @@ import { z } from 'zod';
 // ---------------------------------------------------------------------------
 
 type Starter = 'empty' | 'entity' | 'hello';
-type Surface = 'cli' | 'mcp';
+type Trailhead = 'cli' | 'mcp';
 
-interface BlazeInput {
+interface CreateInput {
   readonly dir?: string | undefined;
   readonly name: string;
   readonly starter: Starter;
-  readonly surfaces: readonly Surface[];
+  readonly trailheads: readonly Trailhead[];
   readonly verify: boolean;
 }
 
@@ -48,9 +48,9 @@ const buildScaffoldInput = (input: ScaffoldRequest) => ({
   starter: input.starter,
 });
 
-const buildSurfaceInput = (dir: string, surface: string) => ({
+const buildTrailheadInput = (dir: string, trailhead: string) => ({
   dir,
-  surface,
+  trailhead,
 });
 
 const buildVerifyInput = (input: VerifyRequest) => ({
@@ -59,22 +59,22 @@ const buildVerifyInput = (input: VerifyRequest) => ({
 });
 
 const scaffoldProject = (
-  follow: FollowFn,
+  cross: CrossFn,
   input: ScaffoldRequest
 ): Promise<Result<ScaffoldedProject, Error>> =>
-  follow('create.scaffold', buildScaffoldInput(input));
+  cross('create.scaffold', buildScaffoldInput(input));
 
-const addSurfaceFiles = async (
-  follow: FollowFn,
+const addTrailheadFiles = async (
+  cross: CrossFn,
   dir: string,
-  surfaces: readonly string[]
+  trailheads: readonly string[]
 ): Promise<Result<string[], Error>> => {
   const created: string[] = [];
 
-  for (const surface of surfaces) {
-    const result = await follow<{ created: string; dependency: string }>(
-      'add.surface',
-      buildSurfaceInput(dir, surface)
+  for (const trailhead of trailheads) {
+    const result = await cross<{ created: string; dependency: string }>(
+      'add.trailhead',
+      buildTrailheadInput(dir, trailhead)
     );
     if (result.isErr()) {
       return Result.err(result.error);
@@ -86,14 +86,14 @@ const addSurfaceFiles = async (
 };
 
 const collectVerifyFiles = async (
-  follow: FollowFn,
+  cross: CrossFn,
   input: VerifyRequest
 ): Promise<Result<string[], Error>> => {
   if (!input.verify) {
     return Result.ok([]);
   }
 
-  const result = await follow<{ created: string[] }>(
+  const result = await cross<{ created: string[] }>(
     'add.verify',
     buildVerifyInput(input)
   );
@@ -104,29 +104,29 @@ const collectVerifyFiles = async (
 
 const collectCreatedFiles = (
   scaffolded: readonly string[],
-  surfaces: readonly string[],
+  trailheads: readonly string[],
   verify: readonly string[]
-): string[] => [...scaffolded, ...surfaces, ...verify];
+): string[] => [...scaffolded, ...trailheads, ...verify];
 
 const runCreate = async (
-  follow: FollowFn,
-  input: BlazeInput
+  cross: CrossFn,
+  input: CreateInput
 ): Promise<Result<{ created: string[]; dir: string; name: string }, Error>> => {
-  const scaffolded = await scaffoldProject(follow, input);
+  const scaffolded = await scaffoldProject(cross, input);
   if (scaffolded.isErr()) {
     return Result.err(scaffolded.error);
   }
 
-  const surfaceResults = await addSurfaceFiles(
-    follow,
+  const trailheadResults = await addTrailheadFiles(
+    cross,
     scaffolded.value.dir,
-    input.surfaces
+    input.trailheads
   );
-  if (surfaceResults.isErr()) {
-    return Result.err(surfaceResults.error);
+  if (trailheadResults.isErr()) {
+    return Result.err(trailheadResults.error);
   }
 
-  const verifyFiles = await collectVerifyFiles(follow, input);
+  const verifyFiles = await collectVerifyFiles(cross, input);
   if (verifyFiles.isErr()) {
     return Result.err(verifyFiles.error);
   }
@@ -134,7 +134,7 @@ const runCreate = async (
   return Result.ok({
     created: collectCreatedFiles(
       scaffolded.value.created,
-      surfaceResults.value,
+      trailheadResults.value,
       verifyFiles.value
     ),
     dir: scaffolded.value.dir,
@@ -147,6 +147,13 @@ const runCreate = async (
 // ---------------------------------------------------------------------------
 
 export const createRoute = trail('create', {
+  blaze: async (input: CreateInput, ctx) => {
+    if (!ctx.cross) {
+      return Result.err(new Error('create route requires ctx.cross'));
+    }
+    return await runCreate(ctx.cross, input);
+  },
+  crosses: ['create.scaffold', 'add.trailhead', 'add.verify'],
   description: 'Create a new Trails project',
   fields: {
     starter: {
@@ -157,14 +164,14 @@ export const createRoute = trail('create', {
           value: 'hello',
         },
         {
-          hint: '4 trails, event, store',
+          hint: '4 trails, signal, store',
           label: 'Entity CRUD',
           value: 'entity',
         },
         { hint: 'Just the structure', label: 'Empty', value: 'empty' },
       ],
     },
-    surfaces: {
+    trailheads: {
       options: [
         { hint: 'Commander-based command line', label: 'CLI', value: 'cli' },
         {
@@ -175,7 +182,6 @@ export const createRoute = trail('create', {
       ],
     },
   },
-  follow: ['create.scaffold', 'add.surface', 'add.verify'],
   input: z.object({
     dir: z.string().optional().describe('Parent directory'),
     name: z.string().describe('Project name'),
@@ -183,10 +189,10 @@ export const createRoute = trail('create', {
       .enum(['hello', 'entity', 'empty'])
       .default('hello')
       .describe('Starter trail'),
-    surfaces: z
+    trailheads: z
       .array(z.enum(['cli', 'mcp']))
       .default(['cli'])
-      .describe('Surfaces'),
+      .describe('Trailheads'),
     verify: z.boolean().default(true).describe('Include testing + warden'),
   }),
   output: z.object({
@@ -194,10 +200,4 @@ export const createRoute = trail('create', {
     dir: z.string(),
     name: z.string(),
   }),
-  run: async (input: BlazeInput, ctx) => {
-    if (!ctx.follow) {
-      return Result.err(new Error('create route requires ctx.follow'));
-    }
-    return await runCreate(ctx.follow, input);
-  },
 });

@@ -12,7 +12,7 @@ import { z } from 'zod';
 
 const outputSchema = z.object({
   // Define the shape of successful results.
-  // This schema is required for MCP and HTTP surfaces.
+  // This schema is required for MCP and HTTP trailheads.
   id: z.string(),
   name: z.string(),
 });
@@ -43,7 +43,7 @@ export const myTrail = trail('namespace.verb', {
   // --- Intent and flags ---
   // intent: 'read',       // No side effects — safe for agents to call freely
   // intent: 'destroy',    // Irreversible — CLI auto-adds --dry-run flag
-  // idempotent: true,     // Safe to retry — surfaces may auto-retry on failure
+  // idempotent: true,     // Safe to retry — trailheads may auto-retry on failure
   // Omit intent for standard create/update operations.
 
   // --- Detours (optional) ---
@@ -79,16 +79,16 @@ export const myTrail = trail('namespace.verb', {
   // --- Run ---
   // Receives validated input and TrailContext.
   // Return Result — never throw.
-  // Keep surface-agnostic: no process.exit(), no console.log().
-  // --- Services (optional) ---
+  // Keep trailhead-agnostic: no process.exit(), no console.log().
+  // --- Provisions (optional) ---
   // Declare external dependencies so the framework manages lifecycle and testing.
-  // services: [db],
+  // provisions: [db],
 
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     // Your logic here. Input types are guaranteed by the schema.
-    // Use ctx for services, logging, and following other trails.
+    // Use ctx for provisions, logging, and following other trails.
 
-    // Access a declared service — typed from the service's create() return:
+    // Access a declared provision — typed from the provision's create() return:
     // const conn = db.from(ctx);
     // const record = await conn.findByName(input.name);
 

@@ -1,6 +1,6 @@
 # trails-demo
 
-A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `follow`, a first-class service dependency, an event, examples, metadata, detours, idempotent upsert, and blazing on CLI, MCP, and HTTP surfaces.
+A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `crosses`, a first-class provision dependency, a signal, examples, metadata, detours, idempotent upsert, and trailhead entrypoints on CLI, MCP, and HTTP.
 
 ## What this app does
 
@@ -13,12 +13,12 @@ Entity management -- a small CRUD + search system with enough depth to exercise 
 | `entity.delete` | Delete an entity by name | `intent: 'destroy'` |
 | `entity.list` | List entities with optional type filter | `intent: 'read'` |
 | `search` | Full-text search across entities | `intent: 'read'` |
-| `entity.onboard` | Composition: create + verify searchable | `follow: ['entity.add', 'search']` |
+| `entity.onboard` | Composition: create + verify searchable | `crosses: ['entity.add', 'search']` |
 | `demo.upsert` | Idempotent key-value store example | `idempotent: true` |
 
-Plus one event: `entity.updated` (triggered by `entity.add` and `entity.delete`).
+Plus one signal: `entity.updated` (fired by `entity.add` and `entity.delete`).
 
-Plus one service: `demo.entity-store` (the in-memory entity store used by the entity and search trails).
+Plus one provision: `demo.entity-store` (the in-memory entity store used by the entity and search trails).
 
 ## Running the CLI
 
@@ -41,7 +41,7 @@ bun run bin/demo.ts entity list --type concept
 # Search
 bun run bin/demo.ts search --query Alpha
 
-# Onboard (follow: add + verify searchable)
+# Onboard (crosses: add + verify searchable)
 bun run bin/demo.ts entity onboard --name Epsilon --type pattern
 ```
 
@@ -80,7 +80,7 @@ This exposes MCP tools: `demo_entity_show`, `demo_entity_add`, `demo_entity_dele
 ### Trail definition: `entity.show`
 
 ```typescript
-import { entityStoreService } from '../src/services/entity-store.js';
+import { entityStoreProvision } from '../src/provisions/entity-store.js';
 
 export const show = trail('entity.show', {
   description: 'Show an entity by name',
@@ -88,7 +88,7 @@ export const show = trail('entity.show', {
   output: entitySchema,
   intent: 'read',
   detours: { NotFoundError: ['search'] },
-  services: [entityStoreService],
+  provisions: [entityStoreProvision],
   examples: [
     {
       name: 'Show entity by name',
@@ -103,8 +103,8 @@ export const show = trail('entity.show', {
       error: 'NotFoundError',
     },
   ],
-  run: async (input, ctx) => {
-    const store = entityStoreService.from(ctx);
+  blaze: async (input, ctx) => {
+    const store = entityStoreProvision.from(ctx);
     /* ... */
   },
 });
@@ -114,27 +114,27 @@ Key concepts:
 
 - **`input` / `output`**: Zod schemas define the contract. Validated at the boundary, trusted internally.
 - **`intent`**: Safety property. On CLI, `'read'` prevents destructive flags. On MCP, `'read'` sets `readOnlyHint`, `'destroy'` sets `destructiveHint`.
-- **`detours`**: When `entity.show` returns `NotFoundError`, the surface can suggest `search` as a next step.
+- **`detours`**: When `entity.show` returns `NotFoundError`, the trailhead can suggest `search` as a next step.
 - **`examples`**: Agent-facing documentation that doubles as tests. Full-match examples assert exact output. Error examples assert the error class name. Schema-only examples (no `expected` or `error`) just validate the output matches the schema.
 
 ### Composition: `entity.onboard`
 
 ```typescript
 export const onboard = trail('entity.onboard', {
-  follow: ['entity.add', 'search'],
-  run: async (input, ctx) => {
-    const added = await ctx.follow('entity.add', {
+  crosses: ['entity.add', 'search'],
+  blaze: async (input, ctx) => {
+    const added = await ctx.cross('entity.add', {
       /* ... */
     });
     if (added.isErr()) return added;
-    const searched = await ctx.follow('search', { query: input.name });
+    const searched = await ctx.cross('search', { query: input.name });
     // ...
   },
 });
 ```
 
-- **`follow`** declares which trails this trail composes.
-- **`ctx.follow()`** invokes another trail by ID, maintaining the execution context.
+- **`crosses`** declares which trails this trail composes.
+- **`ctx.cross()`** invokes another trail by ID, maintaining the execution context.
 
 ## Testing
 
@@ -143,26 +143,23 @@ export const onboard = trail('entity.onboard', {
 ```typescript
 import { testAll } from '@ontrails/testing';
 import { app } from '../src/app.js';
-import {
-  createMockEntityStore,
-  entityStoreService,
-} from '../src/services/entity-store.js';
+import { createMockEntityStore, entityStoreProvision } from '../src/provisions/entity-store.js';
 
 testAll(app, () => ({
-  services: {
-    [entityStoreService.id]: createMockEntityStore(),
+  provisions: {
+    [entityStoreProvision.id]: createMockEntityStore(),
   },
 }));
 ```
 
 `testAll` runs the full governance suite in one call:
 
-1. **`validateTopo`** -- structural validation (follow targets exist, declarations are consistent).
+1. **`validateTopo`** -- structural validation (cross targets exist, declarations are consistent).
 2. **`testExamples`** -- progressive assertion over every trail example.
 3. **`testContracts`** -- output schema verification for every success example.
 4. **`testDetours`** -- detour targets reference real trails in the topo.
 
-Pass a factory function (not a plain object) when your explicit service overrides contain mutable state like an in-memory store, so each test gets a fresh copy.
+Pass a factory function (not a plain object) when your explicit provision overrides contain mutable state like an in-memory store, so each test gets a fresh copy.
 
 ### Progressive assertion
 
@@ -175,7 +172,7 @@ Pass a factory function (not a plain object) when your explicit service override
 ```typescript
 import { createStore } from '../src/store.js';
 import { testTrail } from '@ontrails/testing';
-import { entityStoreService } from '../src/services/entity-store.js';
+import { entityStoreProvision } from '../src/provisions/entity-store.js';
 
 testTrail(
   show,
@@ -188,7 +185,7 @@ testTrail(
   ],
   {
     extensions: {
-      [entityStoreService.id]: createStore([
+      [entityStoreProvision.id]: createStore([
         { name: 'Alpha', tags: ['core'], type: 'concept' },
       ]),
     },
@@ -213,7 +210,7 @@ To add `entity.update`:
      examples: [
        { name: 'Update tags', input: { name: 'Alpha', tags: ['updated'] } },
      ],
-     run: async (input, ctx) => {
+     blaze: async (input, ctx) => {
        /* ... */
      },
    });
@@ -229,7 +226,7 @@ To add `entity.update`:
 trails warden
 ```
 
-Checks governance rules: every trail has examples, destructive trails declare `intent: 'destroy'`, follow targets reference existing trails, etc.
+Checks governance rules: every trail has examples, destructive trails declare `intent: 'destroy'`, cross targets reference existing trails, etc.
 
 ## Inspecting the app
 
@@ -237,4 +234,4 @@ Checks governance rules: every trail has examples, destructive trails declare `i
 trails survey
 ```
 
-Produces a machine-readable map of all trails, events, and services with their schemas, metadata, and relationships.
+Produces a machine-readable map of all trails, signals, and provisions with their schemas, metadata, and relationships.

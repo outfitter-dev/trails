@@ -23,10 +23,10 @@ describe('createTrailContext', () => {
     expect(ctx.env).toBe(process.env);
   });
 
-  test('provides a non-aborted signal by default', () => {
+  test('provides a non-aborted abortSignal by default', () => {
     const ctx = createTrailContext();
-    expect(ctx.signal).toBeInstanceOf(AbortSignal);
-    expect(ctx.signal.aborted).toBe(false);
+    expect(ctx.abortSignal).toBeInstanceOf(AbortSignal);
+    expect(ctx.abortSignal.aborted).toBe(false);
   });
 
   test('override values take precedence', () => {
@@ -34,17 +34,17 @@ describe('createTrailContext', () => {
     ac.abort();
 
     const ctx = createTrailContext({
+      abortSignal: ac.signal,
       cwd: '/custom/dir',
       env: { CUSTOM: 'yes' },
       requestId: 'custom-id',
-      signal: ac.signal,
       workspaceRoot: '/tmp',
     });
 
     expect(ctx.cwd).toBe('/custom/dir');
     expect(ctx.env).toEqual({ CUSTOM: 'yes' });
     expect(ctx.requestId).toBe('custom-id');
-    expect(ctx.signal.aborted).toBe(true);
+    expect(ctx.abortSignal.aborted).toBe(true);
     expect(ctx.workspaceRoot).toBe('/tmp');
   });
 
@@ -57,14 +57,14 @@ describe('createTrailContext', () => {
     expect(ctx.extensions?.['nested']).toEqual({ key: 'value' });
   });
 
-  test('provides a service accessor backed by extensions', () => {
+  test('provides a provision accessor backed by extensions', () => {
     const widget = { id: 'widget-1' };
     const ctx = createTrailContext({
       extensions: { 'widget.main': widget },
     });
 
-    expect(ctx.service('widget.main')).toBe(widget);
-    expect(ctx.service<{ id: string }>({ id: 'widget.main' }).id).toBe(
+    expect(ctx.provision('widget.main')).toBe(widget);
+    expect(ctx.provision<{ id: string }>({ id: 'widget.main' }).id).toBe(
       'widget-1'
     );
   });

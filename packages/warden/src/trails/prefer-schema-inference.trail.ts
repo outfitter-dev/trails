@@ -9,7 +9,7 @@ export const preferSchemaInferenceTrail = wrapRule({
         filePath: 'clean.ts',
         sourceCode: `trail("entity.show", {
   input: z.object({ name: z.string() }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     return Result.ok({ name: input.name });
   }
 })`,

@@ -1,11 +1,11 @@
 import { outputModePreset } from '@ontrails/cli';
-import { blaze } from '@ontrails/cli/commander';
+import { trailhead } from '@ontrails/cli/commander';
 
 import { app } from './app.js';
 import { resolveInputWithClack } from './clack.js';
 
 // oxlint-disable-next-line require-hook -- CLI entry point
-blaze(app, {
+trailhead(app, {
   description: 'Agent-native, contract-first TypeScript framework',
   name: 'trails',
   presets: [outputModePreset()],

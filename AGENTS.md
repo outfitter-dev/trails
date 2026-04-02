@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Primary instruction file for agents working in the Trails monorepo.
+Our primary fieldguide for agents working in on the Trails project.
 
 ## Commands
 
@@ -30,22 +30,16 @@ For direct local lint and format validation, prefer `bunx ultracite check` and `
 
 ## Project Overview
 
-Trails is an agent-native, contract-first TypeScript framework. Define a trail once with typed input, `Result` output, examples, and metadata, then surface it on CLI, MCP, HTTP, or WebSocket.
+Trails is an agent-native, contract-first TypeScript framework. Define a trail once with typed input, `Result` output, examples, and metadata, then trailhead it on CLI, MCP, HTTP, or WebSocket.
 
-The architecture is designed to make consistency easier than drift. Agents building with Trails should naturally produce aligned surfaces. Agents consuming Trails apps should be able to inspect contracts, examples, schemas, and errors at runtime without guessing.
+The architecture is designed to make consistency easier than drift. Agents building with Trails should naturally produce aligned trailheads. Agents consuming Trails apps should be able to inspect contracts, examples, schemas, and errors at runtime without guessing.
 
-## Core Principles
+## Project Documentation
 
-1. **The trail is the product.** Surfaces are renderings of the trail contract, not separate implementations.
-2. **One schema, one Result model, one error taxonomy.** Drift across surfaces should be structurally difficult.
-3. **Surfaces are peers.** CLI, MCP, HTTP, and WebSocket are equal adapters over the same topo.
-4. **Framework packages define ports.** Concrete UX and runtime libraries belong in apps or dedicated adapter subpaths, not in the base framework packages.
-5. **Implementations are pure.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no surface-specific request objects in domain logic.
-6. **Validate at the boundary, trust internally.** Zod validates before implementations run.
-7. **Derive by default, override deliberately.** Names, flags, and tool definitions should come from the trail contract unless there is a clear reason not to.
-8. **Examples are tests.** Trail examples serve both agent guidance and happy-path validation.
-9. **The contract is queryable at runtime.** Topo, survey, and guide exist so agents and tooling can inspect the system directly.
-10. **Trails is Bun-native.** Use Bun where it improves the developer experience. The surfaces Trails produces remain universally consumable.
+1. Contracts are at the core of how Trails works, and the contract for how Trails is worked on is governed by our [Tenets](docs/tenets.md).
+2. Decisions that define what Trails is, and what it is not, are defined by our [ADRs](docs/adr/README.md).
+   - Future directions for Trails are outlined in speculative or [draft ADRs](docs/adr/drafts/README.md).
+3. We keep a log of our working notes, session recaps, learnings, etc. in [.agents/notes](.agents/notes) as a historical record of our journey.
 
 ## Vocabulary
 
@@ -54,10 +48,11 @@ Use the project language consistently:
 - `trail`, not action or handler
 - `implementation`, not handler or impl
 - `topo`, not registry or collection
-- `follow`, not route (for composition declaration and runtime invocation)
+- `cross`, not follow (for composition declaration and runtime invocation)
 - `blaze`, not serve or mount
-- `surface`, not transport or adapter
-- `service`, not dependency or provider
+- `trailhead`, not transport terminology
+- `provision`, not service or dependency
+- `gate`, not layer
 `mount` is reserved for cross-app composition. See `docs/vocabulary.md` for the full vocabulary guide.
 
 ## Trail Rules
@@ -65,18 +60,18 @@ Use the project language consistently:
 - Implementations return `Result`, never throw.
 - Use `Result.ok()` and `Result.err()` to construct outcomes.
 - Branch on results with `isOk()`, `isErr()`, or `match()`.
-- Keep `TrailContext` and implementations surface-agnostic. Do not import `Request`, `Response`, `McpSession`, or similar surface types into trail logic.
-- Trails with `follow` compose through `ctx.follow()`, never by calling another trail's `.implementation()` directly.
-- Keep `follow` declarations aligned with actual `ctx.follow()` usage.
-- Every trail exposed on MCP or HTTP surfaces must define an `output` schema.
+- Keep `TrailContext` and implementations trailhead-agnostic. Do not import `Request`, `Response`, `McpSession`, or similar trailhead types into trail logic.
+- Trails with `crosses` compose through `ctx.cross()`, never by calling another trail's `.implementation()` directly.
+- Keep `crosses` declarations aligned with actual `ctx.cross()` usage.
+- Every trail exposed on MCP or HTTP trailheads must define an `output` schema.
 - Use `metadata` for annotations and ownership data.
 - Use `detours` for recovery strategies instead of inline retry logic.
 - Prefer the most specific `TrailsError` subclass available.
-- Keep error taxonomy behavior aligned across surfaces so CLI, HTTP, and JSON-RPC mappings stay coherent.
-- Trails that use external dependencies declare them with `services: [...]`.
-- Access services through `db.from(ctx)` or `ctx.service()`, never by constructing dependencies inline.
-- Keep `follow` declarations for composition and `services` declarations for infrastructure — they serve different purposes.
-- Every service should define a `mock` factory so `testAll(app)` works without configuration.
+- Keep error taxonomy behavior aligned across trailheads so CLI, HTTP, and JSON-RPC mappings stay coherent.
+- Trails that use external dependencies declare them with `provisions: [...]`.
+- Access provisions through `db.from(ctx)` or `ctx.provision()`, never by constructing dependencies inline.
+- Keep `crosses` declarations for composition and `provisions` declarations for infrastructure — they serve different purposes.
+- Every provision should define a `mock` factory so `testAll(app)` works without configuration.
 
 ## Shared Conventions
 

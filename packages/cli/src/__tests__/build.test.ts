@@ -2,9 +2,9 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   Result,
-  SURFACE_KEY,
+  TRAILHEAD_KEY,
   createTrailContext,
-  service,
+  provision,
   trail,
   topo,
 } from '@ontrails/core';
@@ -27,7 +27,7 @@ const makeApp = (...trails: AnyTrail[]) => {
   return topo('test-app', mod);
 };
 
-const dbService = service('db.main', {
+const dbProvision = provision('db.main', {
   create: () =>
     Result.ok({
       name: 'factory',
@@ -50,8 +50,8 @@ const requireCommand = (commands: ReturnType<typeof buildCliCommands>) => {
 describe('buildCliCommands', () => {
   test('builds commands from a simple app with one trail', () => {
     const t = trail('greet', {
+      blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
       input: z.object({ name: z.string() }),
-      run: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app);
@@ -62,12 +62,12 @@ describe('buildCliCommands', () => {
 
   test('builds grouped subcommands from dotted trail IDs', () => {
     const show = trail('entity.show', {
+      blaze: (input: { id: string }) => Result.ok({ id: input.id }),
       input: z.object({ id: z.string() }),
-      run: (input: { id: string }) => Result.ok({ id: input.id }),
     });
     const add = trail('entity.add', {
+      blaze: (input: { name: string }) => Result.ok({ name: input.name }),
       input: z.object({ name: z.string() }),
-      run: (input: { name: string }) => Result.ok({ name: input.name }),
     });
     const app = makeApp(show, add);
     const commands = buildCliCommands(app);
@@ -80,11 +80,11 @@ describe('buildCliCommands', () => {
 
   test('derives flags from input schema', () => {
     const t = trail('search', {
+      blaze: () => Result.ok([]),
       input: z.object({
         limit: z.number().optional(),
         query: z.string(),
       }),
-      run: () => Result.ok([]),
     });
     const app = makeApp(t);
     const { flags } = requireCommand(buildCliCommands(app));
@@ -98,9 +98,9 @@ describe('buildCliCommands', () => {
 
   test('adds --dry-run for destroy intent trails', () => {
     const t = trail('entity.delete', {
+      blaze: () => Result.ok(),
       input: z.object({ id: z.string() }),
       intent: 'destroy',
-      run: () => Result.ok(),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app);
@@ -113,8 +113,8 @@ describe('buildCliCommands', () => {
     test('receives correct context', async () => {
       let captured: ActionResultContext | undefined;
       const t = trail('ping', {
+        blaze: (input: { msg: string }) => Result.ok(input.msg),
         input: z.object({ msg: z.string() }),
-        run: (input: { msg: string }) => Result.ok(input.msg),
       });
       const app = makeApp(t);
       const commands = buildCliCommands(app, {
@@ -135,8 +135,8 @@ describe('buildCliCommands', () => {
     test('receives validated (coerced) input on success', async () => {
       let captured: ActionResultContext | undefined;
       const t = trail('coerce', {
+        blaze: (input: { count: number }) => Result.ok(input.count),
         input: z.object({ count: z.coerce.number() }),
-        run: (input: { count: number }) => Result.ok(input.count),
       });
       const app = makeApp(t);
       const commands = buildCliCommands(app, {
@@ -159,11 +159,11 @@ describe('buildCliCommands', () => {
   test('validates input before calling implementation', async () => {
     let implCalled = false;
     const t = trail('strict', {
-      input: z.object({ name: z.string() }),
-      run: () => {
+      blaze: () => {
         implCalled = true;
         return Result.ok('done');
       },
+      input: z.object({ name: z.string() }),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app);
@@ -177,18 +177,18 @@ describe('buildCliCommands', () => {
     expect(implCalled).toBe(false);
   });
 
-  test('applies layers in order', async () => {
+  test('applies gates in order', async () => {
     const order: string[] = [];
     const t = trail('layered', {
-      input: z.object({ x: z.string() }),
-      run: (input: { x: string }) => {
+      blaze: (input: { x: string }) => {
         order.push('impl');
         return Result.ok(input.x);
       },
+      input: z.object({ x: z.string() }),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app, {
-      layers: [
+      gates: [
         {
           name: 'outer',
           wrap: (_trail, impl) => async (input, ctx) => {
@@ -223,15 +223,15 @@ describe('buildCliCommands', () => {
   test('uses provided createContext factory', async () => {
     let usedRequestId: string | undefined;
     let usedCustom = false;
-    let usedSurface = false;
+    let usedTrailheadMarker = false;
     const t = trail('ctx-test', {
-      input: z.object({}),
-      run: (_input: Record<string, never>, ctx: TrailContext) => {
+      blaze: (_input: Record<string, never>, ctx: TrailContext) => {
         usedRequestId = ctx.requestId;
         usedCustom = ctx.extensions?.['custom'] === true;
-        usedSurface = ctx.extensions?.[SURFACE_KEY] === 'cli';
+        usedTrailheadMarker = ctx.extensions?.[TRAILHEAD_KEY] === 'cli';
         return Result.ok('ok');
       },
+      input: z.object({}),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app, {
@@ -245,17 +245,17 @@ describe('buildCliCommands', () => {
     await commands[0]?.execute({}, {});
     expect(usedRequestId).toBe('custom-123');
     expect(usedCustom).toBe(true);
-    expect(usedSurface).toBe(true);
+    expect(usedTrailheadMarker).toBe(true);
   });
 
   test('converts kebab-case flags back to camelCase for input', async () => {
     let receivedInput: unknown;
     const t = trail('camel', {
-      input: z.object({ sortOrder: z.string() }),
-      run: (input) => {
+      blaze: (input) => {
         receivedInput = input;
         return Result.ok('ok');
       },
+      input: z.object({ sortOrder: z.string() }),
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app);
@@ -264,13 +264,13 @@ describe('buildCliCommands', () => {
     expect(receivedInput).toEqual({ sortOrder: 'asc' });
   });
 
-  test('returns InternalError when run function throws', async () => {
+  test('returns InternalError when blaze function throws', async () => {
     const throwing = trail('throw.test', {
-      input: z.object({}),
-      output: z.object({}),
-      run: () => {
+      blaze: () => {
         throw new Error('unexpected kaboom');
       },
+      input: z.object({}),
+      output: z.object({}),
     });
     const app = makeApp(throwing);
     const commands = buildCliCommands(app);
@@ -281,18 +281,18 @@ describe('buildCliCommands', () => {
   });
 });
 
-describe('buildCliCommands service overrides', () => {
-  test('forwards service overrides into executeTrail', async () => {
-    const t = trail('service-test', {
+describe('buildCliCommands provision overrides', () => {
+  test('forwards provision overrides into executeTrail', async () => {
+    const t = trail('provision-test', {
+      blaze: (_input, ctx) =>
+        Result.ok({ name: dbProvision.from(ctx).name as string }),
       input: z.object({}),
       output: z.object({ name: z.string() }),
-      run: (_input, ctx) =>
-        Result.ok({ name: dbService.from(ctx).name as string }),
-      services: [dbService],
+      provisions: [dbProvision],
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app, {
-      services: { 'db.main': { name: 'override' } },
+      provisions: { 'db.main': { name: 'override' } },
     });
 
     const result = await commands[0]?.execute({}, {});

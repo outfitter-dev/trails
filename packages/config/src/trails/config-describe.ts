@@ -7,7 +7,7 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { configService } from '../config-service.js';
+import { configProvision } from '../config-provision.js';
 import { describeConfig } from '../describe.js';
 
 const fieldSchema = z.object({
@@ -25,6 +25,11 @@ const outputSchema = z.object({
 });
 
 export const configDescribe = trail('config.describe', {
+  blaze: (_input, ctx) => {
+    const state = configProvision.from(ctx);
+    const fields = describeConfig(state.schema);
+    return Result.ok({ fields: [...fields] });
+  },
   examples: [
     {
       input: {},
@@ -33,12 +38,7 @@ export const configDescribe = trail('config.describe', {
   ],
   input: z.object({}),
   intent: 'read',
-  metadata: { category: 'infrastructure' },
+  meta: { category: 'infrastructure' },
   output: outputSchema,
-  run: (_input, ctx) => {
-    const state = configService.from(ctx);
-    const fields = describeConfig(state.schema);
-    return Result.ok({ fields: [...fields] });
-  },
-  services: [configService],
+  provisions: [configProvision],
 });

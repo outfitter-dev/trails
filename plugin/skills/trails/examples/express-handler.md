@@ -1,4 +1,4 @@
-Convert Express CRUD handlers to trails that work on any surface.
+Convert Express CRUD handlers to trails that work on any trailhead.
 
 ## Before
 
@@ -38,10 +38,10 @@ app.delete('/projects/:id', async (req, res) => {
 ## After
 
 ```typescript
-// services/db.ts
-import { service, Result } from '@ontrails/core';
+// provisions/db.ts
+import { provision, Result } from '@ontrails/core';
 
-export const db = service('db.main', {
+export const db = provision('db.main', {
   create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
   dispose: (conn) => conn.close(),
   health: (conn) => conn.ping(),
@@ -54,7 +54,7 @@ export const db = service('db.main', {
 // trails/project.ts
 import { z } from 'zod';
 import { trail, Result, NotFoundError, PermissionError } from '@ontrails/core';
-import { db } from '../services/db.js';
+import { db } from '../provisions/db.js';
 
 const ProjectId = z.object({ id: z.string().uuid() });
 const Project = z.object({ id: z.string(), name: z.string(), status: z.string() });
@@ -63,10 +63,10 @@ export const show = trail('project.show', {
   input: ProjectId,
   output: Project,
   intent: 'read',
-  services: [db],
+  provisions: [db],
   description: 'Get a project by ID',
   examples: [{ name: 'existing', input: { id: '550e8400-e29b-41d4-a716-446655440000' } }],
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const conn = db.from(ctx);
     const project = await conn.projects.findById(input.id);
     if (!project) return Result.err(new NotFoundError('Project not found'));
@@ -78,9 +78,9 @@ export const destroy = trail('project.destroy', {
   input: ProjectId,
   output: z.object({ deleted: z.boolean() }),
   intent: 'destroy',
-  services: [db],
+  provisions: [db],
   description: 'Delete a project',
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     if (!ctx.permit) return Result.err(new PermissionError('Admin required'));
     const conn = db.from(ctx);
     const deleted = await conn.projects.delete(input.id);
@@ -95,14 +95,14 @@ Wire to CLI or MCP with the same trails. The `db.mock()` factory is used automat
 ```typescript
 // cli.ts
 import { topo } from '@ontrails/core';
-import { blaze } from '@ontrails/cli/commander';
+import { trailhead } from '@ontrails/cli/commander';
 import * as project from './trails/project.js';
-import * as services from './services/db.js';
+import * as provisions from './provisions/db.js';
 
-const app = topo('myapp', project, services);
-blaze(app); // "myapp project show --id ..."
+const app = topo('myapp', project, provisions);
+trailhead(app); // "myapp project show --id ..."
 
 // mcp.ts
-import { blaze } from '@ontrails/mcp';
-blaze(app); // tool: myapp_project_show, myapp_project_destroy
+import { trailhead } from '@ontrails/mcp';
+trailhead(app); // tool: myapp_project_show, myapp_project_destroy
 ```

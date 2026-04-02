@@ -30,7 +30,7 @@ const formatGitHub = (output: CiOutput): string => {
 
   if (output.driftResult.stale) {
     lines.push(
-      '::error title=drift-detected::surface.lock is stale — regenerate with `trails survey generate`'
+      '::error title=drift-detected::trailhead.lock is stale — regenerate with `trails survey generate`'
     );
   }
 
@@ -82,7 +82,7 @@ const summaryDriftSection = (drift: DriftResult): string[] => {
   if (drift.stale) {
     return [
       '### Drift: stale',
-      'The surface.lock is out of date. Regenerate with `trails survey generate`.',
+      'The trailhead.lock is out of date. Regenerate with `trails survey generate`.',
     ];
   }
   return ['### Drift: clean'];

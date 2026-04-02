@@ -101,7 +101,7 @@ examples: [
 | `intent` | `'destroy'` | Deletes, irreversible mutations. CLI adds `--dry-run`. |
 | `idempotent` | `true` | Safe to retry. Upserts, PUT-style operations. |
 
-Omitting `intent` means "has side effects but not destructive" — typical for create/update. Surface effects: CLI adds `--dry-run` for `intent: 'destroy'`; MCP skips confirmation for `intent: 'read'`; HTTP maps `'read'` to GET, others to POST.
+Omitting `intent` means "has side effects but not destructive" — typical for create/update. Trailhead effects: CLI adds `--dry-run` for `intent: 'destroy'`; MCP skips confirmation for `intent: 'read'`; HTTP maps `'read'` to GET, others to POST.
 
 ## Detours
 
@@ -114,7 +114,7 @@ detours: {
 },
 ```
 
-Keys are error type names (strings, not classes). Values are arrays of trail IDs. Surfaces can auto-suggest or auto-follow detours.
+Keys are error type names (strings, not classes). Values are arrays of trail IDs. Trailheads can auto-suggest or auto-cross detours.
 
 ## Field Overrides
 
@@ -129,46 +129,46 @@ fields: {
 
 ## Composition Patterns
 
-Trails that compose others use `follow` and `ctx.follow()`.
+Trails that compose others use `crosses` and `ctx.cross()`.
 
-**`follow`** — declare which trails this trail composes. The warden verifies these match actual `ctx.follow()` calls: `follow: ['entity.add', 'search']`.
+**`crosses`** — declare which trails this trail composes. The warden verifies these match actual `ctx.cross()` calls: `crosses: ['entity.add', 'search']`.
 
-**`ctx.follow()`** — compose at runtime. Always `await`, always check `isErr()` before accessing `.value`, never call `.run()` directly. Type the generic for return shape: `ctx.follow<OutputType>(...)`.
+**`ctx.cross()`** — compose at runtime. Always `await`, always check `isErr()` before accessing `.value`, never call `.run()` directly. Type the generic for return shape: `ctx.cross<OutputType>(...)`.
 
 ```typescript
-const result = await ctx.follow('entity.add', { name: 'Beta', type: 'tool' });
+const result = await ctx.cross('entity.add', { name: 'Beta', type: 'tool' });
 if (result.isErr()) return result;
 ```
 
-## Service Declarations
+## Provision Declarations
 
-Trails declare infrastructure dependencies with `services: [...]`, parallel to `follow` for composition.
+Trails declare infrastructure dependencies with `provisions: [...]`, parallel to `crosses` for composition.
 
 ```typescript
 import { trail, Result } from '@ontrails/core';
-import { db } from '../services';
+import { db } from '../provisions';
 
 const search = trail('search', {
-  services: [db],
+  provisions: [db],
   input: z.object({ query: z.string().describe('Search term') }),
   output: z.array(z.object({ id: z.string(), title: z.string() })),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const conn = db.from(ctx);
     return Result.ok(await conn.search(input.query));
   },
 });
 ```
 
-**`db.from(ctx)`** is the primary access pattern. The type is inferred from the service's `create` factory — no generic annotation needed.
+**`db.from(ctx)`** is the primary access pattern. The type is inferred from the provision's `create` factory — no generic annotation needed.
 
-**`ctx.service<Database>('db.main')`** is the escape hatch for dynamic or string-based lookups. Both resolve the same way at runtime.
+**`ctx.provision<Database>('db.main')`** is the escape hatch for dynamic or string-based lookups. Both resolve the same way at runtime.
 
 **When to use each:**
 
 - `db.from(ctx)` — default. Typed, statically analyzable, warden-verifiable.
-- `ctx.service()` — when the service ID is computed or comes from configuration.
+- `ctx.provision()` — when the provision ID is computed or comes from configuration.
 
-The warden enforces two rules: `service-declarations` verifies that `db.from(ctx)` and `ctx.service()` calls match the declared `services` array; `service-exists` verifies that declared service IDs resolve in the topo.
+The warden enforces two rules: `provision-declarations` verifies that `db.from(ctx)` and `ctx.provision()` calls match the declared `provisions` array; `provision-exists` verifies that declared provision IDs resolve in the topo.
 
 ## Type Utilities
 

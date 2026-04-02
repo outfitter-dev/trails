@@ -24,5 +24,5 @@ export { defaultOnResult } from './on-result.js';
 export { passthroughResolver, isInteractive } from './prompt.js';
 export type { Field, InputResolver, ResolveInputOptions } from './prompt.js';
 
-// Layers
-export { autoIterateLayer, dateShortcutsLayer } from './layers.js';
+// Gates
+export { autoIterateGate, dateShortcutsGate } from './gates.js';

@@ -8,7 +8,7 @@ export const noThrowInDetourTargetTrail = wrapRule({
       input: {
         filePath: 'clean.ts',
         sourceCode: `trail("entity.fallback", {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     return Result.ok({ recovered: true });
   }
 })`,

@@ -6,27 +6,17 @@ ADRs document the significant design decisions behind Trails — the choices tha
 
 | ADR | Title | Status |
 | --- | --- | --- |
-| [000](000-core-premise.md) | Core Premise | Accepted |
-| [001](001-naming-conventions.md) | Naming Conventions | Accepted |
-| [002](002-built-in-result-type.md) | Built-In Result Type | Accepted |
-| [003](003-unified-trail-primitive.md) | Unified Trail Primitive | Accepted |
-| [004](004-intent-as-first-class-property.md) | Intent as a First-Class Property | Accepted |
-| [005](005-framework-agnostic-http-route-model.md) | Framework-Agnostic HTTP Route Model | Accepted |
-| [006](006-shared-execution-pipeline.md) | Shared Execution Pipeline | Accepted |
-| [007](007-governance-as-trails.md) | Governance as Trails | Accepted |
-| [008](008-deterministic-surface-derivation.md) | Deterministic Surface Derivation | Accepted |
-| [009](009-services.md) | Services as a First-Class Primitive | Accepted |
-| [010](010-infrastructure-services-pattern.md) | Trails-Native Infrastructure Pattern | Accepted |
-| [011](011-config-resolution.md) | Config Resolution | Accepted |
-| [012](012-permit-model.md) | Permit Model | Accepted |
-| [013](013-crumbs.md) | Crumbs | Accepted |
-
-## Format
-
-Each ADR follows the same structure:
-
-- **Frontmatter** — status, created/updated dates, author
-- **Context** — what problem or tension prompted the decision
-- **Decision** — what we chose and why, with concrete code examples
-- **Consequences** — what this enables, what it constrains, what it leaves open
-- **References** — links to related ADRs and docs
+| [0000](0000-core-premise.md) | Core Premise — Contract-First, Trailhead-Agnostic Design | Accepted |
+| [0001](0001-naming-conventions.md) | Naming Conventions — Guessable API Through Structural Rules | Accepted |
+| [0002](0002-built-in-result-type.md) | Built-In Result Type | Accepted |
+| [0003](0003-unified-trail-primitive.md) | Unified Trail Primitive | Accepted |
+| [0004](0004-intent-as-first-class-property.md) | Intent as a First-Class Property | Accepted |
+| [0005](0005-framework-agnostic-http-route-model.md) | Framework-Agnostic HTTP Route Model | Accepted |
+| [0006](0006-shared-execution-pipeline.md) | Shared Execution Pipeline with Result-Returning Builders | Accepted |
+| [0007](0007-governance-as-trails.md) | Governance as Trails with AST-Based Analysis | Accepted |
+| [0008](0008-deterministic-trailhead-derivation.md) | Deterministic Trailhead Derivation | Accepted |
+| [0009](0009-first-class-provisions.md) | First-Class Provisions | Accepted |
+| [0010](0010-native-infrastructure.md) | Trails-Native Infrastructure Pattern | Accepted |
+| [0011](0011-schema-driven-config.md) | Schema-Driven Config | Accepted |
+| [0012](0012-connector-agnostic-permits.md) | Connector-Agnostic Permits | Accepted |
+| [0013](0013-tracker.md) | Tracker — Runtime Recording Primitive | Accepted |

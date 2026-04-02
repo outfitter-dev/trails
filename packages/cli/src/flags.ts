@@ -1,5 +1,5 @@
 /**
- * Flag derivation from surface-agnostic fields and reusable flag presets.
+ * Flag derivation from trailhead-agnostic fields and reusable flag presets.
  */
 
 import type { Field } from '@ontrails/core';

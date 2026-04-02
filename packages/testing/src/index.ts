@@ -1,7 +1,7 @@
 // Contract-driven testing
 export { testAll } from './all.js';
 export { testExamples } from './examples.js';
-export { testFollows } from './follows.js';
+export { testCrosses } from './crosses.js';
 export { testTrail } from './trail.js';
 export { testContracts } from './contracts.js';
 export { testDetours } from './detours.js';
@@ -17,27 +17,27 @@ export {
 
 // Mock factories
 export {
-  createFollowContext,
+  createCrossContext,
   createTestContext,
   defaultMintPermit,
 } from './context.js';
 export { createTestLogger } from './logger.js';
 
-// Surface harnesses
+// Trailhead harnesses
 export { createCliHarness } from './harness-cli.js';
 export { createMcpHarness } from './harness-mcp.js';
 
 // Types
-export type { CreateFollowContextOptions } from './context.js';
+export type { CreateCrossContextOptions } from './context.js';
 export type {
   MintableTrail,
   MintedPermit,
   TestExecutionOptions,
 } from './context.js';
-export type { TestFollowOptions } from './follows.js';
+export type { TestCrossOptions } from './crosses.js';
 
 export type {
-  FollowScenario,
+  CrossScenario,
   TestScenario,
   TestLogger,
   TestTrailContextOptions,

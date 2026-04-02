@@ -7,3 +7,7 @@
 ## Agent Instructions
 
 @AGENTS.md
+
+## Project Instructions
+
+@docs/tenets.md

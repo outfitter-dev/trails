@@ -3,9 +3,9 @@
  */
 
 import { ValidationError } from './errors.js';
-import type { AnyEvent } from './event.js';
-import type { AnyService } from './service.js';
-import { isService } from './service.js';
+import type { AnySignal } from './event.js';
+import type { AnyProvision } from './provision.js';
+import { isProvision } from './provision.js';
 import type { AnyTrail } from './trail.js';
 
 // ---------------------------------------------------------------------------
@@ -15,33 +15,33 @@ import type { AnyTrail } from './trail.js';
 export interface Topo {
   readonly name: string;
   readonly trails: ReadonlyMap<string, AnyTrail>;
-  readonly events: ReadonlyMap<string, AnyEvent>;
-  readonly services: ReadonlyMap<string, AnyService>;
+  readonly signals: ReadonlyMap<string, AnySignal>;
+  readonly provisions: ReadonlyMap<string, AnyProvision>;
   readonly count: number;
-  readonly serviceCount: number;
+  readonly provisionCount: number;
   get(id: string): AnyTrail | undefined;
-  getService(id: string): AnyService | undefined;
+  getProvision(id: string): AnyProvision | undefined;
   has(id: string): boolean;
-  hasService(id: string): boolean;
+  hasProvision(id: string): boolean;
   ids(): string[];
-  serviceIds(): string[];
+  provisionIds(): string[];
   list(): AnyTrail[];
-  listEvents(): AnyEvent[];
-  listServices(): AnyService[];
+  listSignals(): AnySignal[];
+  listProvisions(): AnyProvision[];
 }
 
 // ---------------------------------------------------------------------------
 // Kind discriminant check
 // ---------------------------------------------------------------------------
 
-type Registrable = AnyTrail | AnyEvent | AnyService;
+type Registrable = AnyTrail | AnySignal | AnyProvision;
 
 const isRegistrable = (value: unknown): value is Registrable => {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
   const { kind } = value as Record<string, unknown>;
-  return kind === 'trail' || kind === 'event';
+  return kind === 'trail' || kind === 'signal';
 };
 
 // ---------------------------------------------------------------------------
@@ -51,24 +51,22 @@ const isRegistrable = (value: unknown): value is Registrable => {
 const createTopo = (
   name: string,
   trails: ReadonlyMap<string, AnyTrail>,
-  events: ReadonlyMap<string, AnyEvent>,
-  services: ReadonlyMap<string, AnyService>
+  signals: ReadonlyMap<string, AnySignal>,
+  provisions: ReadonlyMap<string, AnyProvision>
 ): Topo => ({
   count: trails.size,
-  events,
   get(id: string): AnyTrail | undefined {
     return trails.get(id);
   },
-  getService(id: string): AnyService | undefined {
-    return services.get(id);
+  getProvision(id: string): AnyProvision | undefined {
+    return provisions.get(id);
   },
   has(id: string): boolean {
     return trails.has(id);
   },
-  hasService(id: string): boolean {
-    return services.has(id);
+  hasProvision(id: string): boolean {
+    return provisions.has(id);
   },
-
   ids(): string[] {
     return [...trails.keys()];
   },
@@ -76,21 +74,22 @@ const createTopo = (
   list(): AnyTrail[] {
     return [...trails.values()];
   },
-
-  listEvents(): AnyEvent[] {
-    return [...events.values()];
+  listProvisions(): AnyProvision[] {
+    return [...provisions.values()];
   },
-  listServices(): AnyService[] {
-    return [...services.values()];
+
+  listSignals(): AnySignal[] {
+    return [...signals.values()];
   },
 
   name,
-  serviceCount: services.size,
-  serviceIds(): string[] {
-    return [...services.keys()];
-  },
+  provisionCount: provisions.size,
 
-  services,
+  provisionIds(): string[] {
+    return [...provisions.keys()];
+  },
+  provisions,
+  signals,
   trails,
 });
 
@@ -102,22 +101,22 @@ const createTopo = (
 const register = (
   value: Registrable,
   trails: Map<string, AnyTrail>,
-  events: Map<string, AnyEvent>,
-  services: Map<string, AnyService>
+  signals: Map<string, AnySignal>,
+  provisions: Map<string, AnyProvision>
 ): void => {
   const { id } = value as { id: string };
   const registrars: Record<string, () => void> = {
-    event: () => {
-      if (events.has(id)) {
-        throw new ValidationError(`Duplicate event ID: "${id}"`);
+    provision: () => {
+      if (provisions.has(id)) {
+        throw new ValidationError(`Duplicate provision ID: "${id}"`);
       }
-      events.set(id, value as AnyEvent);
+      provisions.set(id, value as AnyProvision);
     },
-    service: () => {
-      if (services.has(id)) {
-        throw new ValidationError(`Duplicate service ID: "${id}"`);
+    signal: () => {
+      if (signals.has(id)) {
+        throw new ValidationError(`Duplicate signal ID: "${id}"`);
       }
-      services.set(id, value as AnyService);
+      signals.set(id, value as AnySignal);
     },
     trail: () => {
       if (trails.has(id)) {
@@ -129,20 +128,43 @@ const register = (
   registrars[value.kind]?.();
 };
 
+const markUniqueObject = (
+  value: unknown,
+  seenValues: WeakSet<object>
+): boolean => {
+  if (typeof value !== 'object' || value === null) {
+    return true;
+  }
+  if (seenValues.has(value)) {
+    return false;
+  }
+  seenValues.add(value);
+  return true;
+};
+
+const registerModuleValue = (
+  value: unknown,
+  trails: Map<string, AnyTrail>,
+  signals: Map<string, AnySignal>,
+  provisions: Map<string, AnyProvision>
+): void => {
+  if (isProvision(value) || isRegistrable(value)) {
+    register(value, trails, signals, provisions);
+  }
+};
+
 const registerModuleValues = (
   mod: Record<string, unknown>,
   trails: Map<string, AnyTrail>,
-  events: Map<string, AnyEvent>,
-  services: Map<string, AnyService>
+  signals: Map<string, AnySignal>,
+  provisions: Map<string, AnyProvision>
 ): void => {
+  const seenValues = new WeakSet<object>();
   for (const value of Object.values(mod)) {
-    if (isService(value)) {
-      register(value, trails, events, services);
+    if (!markUniqueObject(value, seenValues)) {
       continue;
     }
-    if (isRegistrable(value)) {
-      register(value, trails, events, services);
-    }
+    registerModuleValue(value, trails, signals, provisions);
   }
 };
 
@@ -151,12 +173,12 @@ export const topo = (
   ...modules: Record<string, unknown>[]
 ): Topo => {
   const trails = new Map<string, AnyTrail>();
-  const events = new Map<string, AnyEvent>();
-  const services = new Map<string, AnyService>();
+  const signals = new Map<string, AnySignal>();
+  const provisions = new Map<string, AnyProvision>();
 
   for (const mod of modules) {
-    registerModuleValues(mod, trails, events, services);
+    registerModuleValues(mod, trails, signals, provisions);
   }
 
-  return createTopo(name, trails, events, services);
+  return createTopo(name, trails, signals, provisions);
 };

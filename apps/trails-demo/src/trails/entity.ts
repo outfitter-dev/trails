@@ -13,7 +13,7 @@ import {
 } from '@ontrails/core';
 import { z } from 'zod';
 
-import { entityStoreService } from '../services/entity-store.js';
+import { entityStoreProvision } from '../provisions/entity-store.js';
 
 // ---------------------------------------------------------------------------
 // Shared schemas
@@ -36,6 +36,21 @@ const entitySummarySchema = z.object({
 });
 
 export const show = trail('entity.show', {
+  blaze: (input, ctx) => {
+    const store = entityStoreProvision.from(ctx);
+    const entity = store.get(input.name);
+    if (!entity) {
+      return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
+    }
+    return Result.ok({
+      createdAt: entity.createdAt,
+      id: entity.id,
+      name: entity.name,
+      tags: [...entity.tags],
+      type: entity.type,
+      updatedAt: entity.updatedAt,
+    });
+  },
   description: 'Show an entity by name',
   detours: {
     NotFoundError: ['search'],
@@ -58,12 +73,27 @@ export const show = trail('entity.show', {
   }),
   intent: 'read',
   output: entitySchema,
-  run: (input, ctx) => {
-    const store = entityStoreService.from(ctx);
-    const entity = store.get(input.name);
-    if (!entity) {
-      return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
+  provisions: [entityStoreProvision],
+});
+
+// ---------------------------------------------------------------------------
+// entity.add
+// ---------------------------------------------------------------------------
+
+export const add = trail('entity.add', {
+  blaze: (input, ctx) => {
+    const store = entityStoreProvision.from(ctx);
+    const existing = store.get(input.name);
+    if (existing) {
+      return Result.err(
+        new AlreadyExistsError(`Entity "${input.name}" already exists`)
+      );
     }
+    const entity = store.add({
+      name: input.name,
+      tags: input.tags ?? [],
+      type: input.type,
+    });
     return Result.ok({
       createdAt: entity.createdAt,
       id: entity.id,
@@ -73,14 +103,6 @@ export const show = trail('entity.show', {
       updatedAt: entity.updatedAt,
     });
   },
-  services: [entityStoreService],
-});
-
-// ---------------------------------------------------------------------------
-// entity.add
-// ---------------------------------------------------------------------------
-
-export const add = trail('entity.add', {
   description: 'Create a new entity',
   examples: [
     {
@@ -105,29 +127,7 @@ export const add = trail('entity.add', {
     type: z.string().describe('Entity type (concept, tool, pattern)'),
   }),
   output: entitySchema,
-  run: (input, ctx) => {
-    const store = entityStoreService.from(ctx);
-    const existing = store.get(input.name);
-    if (existing) {
-      return Result.err(
-        new AlreadyExistsError(`Entity "${input.name}" already exists`)
-      );
-    }
-    const entity = store.add({
-      name: input.name,
-      tags: input.tags ?? [],
-      type: input.type,
-    });
-    return Result.ok({
-      createdAt: entity.createdAt,
-      id: entity.id,
-      name: entity.name,
-      tags: [...entity.tags],
-      type: entity.type,
-      updatedAt: entity.updatedAt,
-    });
-  },
-  services: [entityStoreService],
+  provisions: [entityStoreProvision],
 });
 
 // ---------------------------------------------------------------------------
@@ -135,6 +135,14 @@ export const add = trail('entity.add', {
 // ---------------------------------------------------------------------------
 
 export const remove = trail('entity.delete', {
+  blaze: (input, ctx) => {
+    const store = entityStoreProvision.from(ctx);
+    const deleted = store.delete(input.name);
+    if (!deleted) {
+      return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
+    }
+    return Result.ok({ deleted: true, name: input.name });
+  },
   description: 'Delete an entity by name',
   examples: [
     {
@@ -157,15 +165,7 @@ export const remove = trail('entity.delete', {
     deleted: z.boolean(),
     name: z.string(),
   }),
-  run: (input, ctx) => {
-    const store = entityStoreService.from(ctx);
-    const deleted = store.delete(input.name);
-    if (!deleted) {
-      return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
-    }
-    return Result.ok({ deleted: true, name: input.name });
-  },
-  services: [entityStoreService],
+  provisions: [entityStoreProvision],
 });
 
 // ---------------------------------------------------------------------------
@@ -173,6 +173,26 @@ export const remove = trail('entity.delete', {
 // ---------------------------------------------------------------------------
 
 export const list = trail('entity.list', {
+  blaze: (input, ctx) => {
+    const store = entityStoreProvision.from(ctx);
+    const listOptions: { limit?: number; offset?: number; type?: string } = {
+      limit: input.limit,
+      offset: input.offset,
+    };
+    if (input.type !== undefined) {
+      listOptions.type = input.type;
+    }
+    const entities = store.list(listOptions);
+    return Result.ok({
+      entities: entities.map((e) => ({
+        id: e.id,
+        name: e.name,
+        tags: [...e.tags],
+        type: e.type,
+      })),
+      total: entities.length,
+    });
+  },
   description: 'List entities with optional type filter',
   examples: [
     {
@@ -196,25 +216,5 @@ export const list = trail('entity.list', {
     entities: z.array(entitySummarySchema),
     total: z.number(),
   }),
-  run: (input, ctx) => {
-    const store = entityStoreService.from(ctx);
-    const listOptions: { limit?: number; offset?: number; type?: string } = {
-      limit: input.limit,
-      offset: input.offset,
-    };
-    if (input.type !== undefined) {
-      listOptions.type = input.type;
-    }
-    const entities = store.list(listOptions);
-    return Result.ok({
-      entities: entities.map((e) => ({
-        id: e.id,
-        name: e.name,
-        tags: [...e.tags],
-        type: e.type,
-      })),
-      total: entities.length,
-    });
-  },
-  services: [entityStoreService],
+  provisions: [entityStoreProvision],
 });

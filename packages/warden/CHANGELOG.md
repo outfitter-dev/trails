@@ -1,5 +1,25 @@
 # @ontrails/warden
 
+## 1.0.0-beta.13
+
+### Minor Changes
+
+- Trail-native vocabulary cutover. Breaking API field renames across all packages:
+
+  - Trail spec: `run:` → `blaze:`, `follow:` → `crosses:`, `services:` → `provisions:`, `metadata:` → `meta:`, `emits:` → `signals:`
+  - Runtime: `ctx.follow()` → `ctx.cross()`, `ctx.emit()` → `ctx.signal()`, `ctx.signal` (abort) → `ctx.abortSignal`
+  - Entry points: `blaze(app)` → `trailhead(app)`
+  - Package rename: `@ontrails/crumbs` → `@ontrails/tracker`
+  - Wrapper types: `Layer` → `Gate`, `layers`/`middleware` → `gates`
+  - Transport: `surface` → `trailhead`, `adapter` → `connector`
+
+### Patch Changes
+
+- Updated dependencies [6944147]
+- Updated dependencies
+  - @ontrails/core@1.0.0-beta.13
+  - @ontrails/schema@1.0.0-beta.13
+
 ## 1.0.0-beta.12
 
 ### Patch Changes
@@ -12,19 +32,19 @@
 
 ### Minor Changes
 
-- Add services as a first-class primitive.
+- Add provisions as a first-class primitive.
 
-  Services make infrastructure dependencies declarative, injectable, and governable. Define a service with `service()`, declare it on a trail with `services: [db]`, and access it with `db.from(ctx)` or `ctx.service()`.
+  Provisions make infrastructure dependencies declarative, injectable, and governable. Define a provision with `provision()`, declare it on a trail with `provisions: [db]`, and access it with `db.from(ctx)` or `ctx.provision()`.
 
-  **Core:** `service()` factory, `ServiceSpec<T>`, `ServiceContext`, singleton resolution in `executeTrail`, in-flight creation dedup, `isService` guard, `findDuplicateServiceId`, topo service discovery and validation, `services` field on trail specs.
+  **Core:** `provision()` factory, `ProvisionSpec<T>`, `ProvisionContext`, singleton resolution in `executeTrail`, in-flight creation dedup, `isProvision` guard, `findDuplicateProvisionId`, topo provision discovery and validation, `provisions` field on trail specs.
 
-  **Testing:** Auto-resolution of `mock` factories in `testAll`, `testExamples`, `testContracts`, and `testFollows`. Explicit `services` overrides with correct precedence (`explicit > ctx.extensions > auto-mock`). Service mock propagation through follow graphs.
+  **Testing:** Auto-resolution of `mock` factories in `testAll`, `testExamples`, `testContracts`, and `testCrosses`. Explicit `provisions` overrides with correct precedence (`explicit > ctx.extensions > auto-mock`). Provision mock propagation through crossing graphs.
 
-  **Warden:** `service-declarations` rule validates `db.from(ctx)` and `ctx.service()` usage matches declared `services: [...]`. `service-exists` rule validates declared service IDs resolve in project context. Scope-aware AST walking skips nested function boundaries.
+  **Warden:** `provision-declarations` rule validates `db.from(ctx)` and `ctx.provision()` usage matches declared `provisions: [...]`. `provision-exists` rule validates declared provision IDs resolve in project context. Scope-aware AST walking skips nested function boundaries.
 
-  **Surfaces:** Service overrides thread through `dispatch` and `blaze` on CLI, MCP, and HTTP.
+  **Trailheads:** Provision overrides thread through `run` and `trailhead` on CLI, MCP, and HTTP.
 
-  **Introspection:** Survey and surface map outputs include service graph. Topo exposes `.services`, `.getService()`, `.hasService()`, `.listServices()`, `.serviceIds()`, `.serviceCount`.
+  **Introspection:** Survey and trailhead map outputs include provision graph. Topo exposes `.provisions`, `.getProvision()`, `.hasProvision()`, `.listProvisions()`, `.provisionIds()`, `.provisionCount`.
 
   **Docs:** ADR-009 accepted. Unified services guide, updated vocabulary, getting-started, architecture, and package READMEs.
 
@@ -40,13 +60,13 @@
 
 - Cleanup and hardening pass across all packages.
 
-  **core**: Deduplicate `DispatchOptions` as type alias of `ExecuteTrailOptions`. Replace `TrailContext` index signature with typed `extensions` field for type safety. Deep-merge `extensions` in `executeTrail` context resolution. Remove unused `Surface` type, `adapters.ts`, `health.ts`, and `job.ts` proof-of-concept from published package.
+  **core**: Deduplicate `RunOptions` as type alias of `ExecuteTrailOptions`. Replace `TrailContext` index signature with typed `extensions` field for type safety. Deep-merge `extensions` in `executeTrail` context resolution. Remove unused `Trailhead` type and proof-of-concept files from published package.
 
-  **cli**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `blaze()` with opt-out via `validate: false`.
+  **cli**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `trailhead()` with opt-out via `validate: false`.
 
-  **http**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `blaze()` with opt-out.
+  **http**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `trailhead()` with opt-out.
 
-  **mcp**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `blaze()` with opt-out.
+  **mcp**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `trailhead()` with opt-out.
 
   **warden**: Project-aware rule context preserved in trail wrappers.
 
@@ -58,9 +78,9 @@
 
 ### Minor Changes
 
-- Consolidated improvements across all surface packages.
+- Consolidated improvements across all trailhead packages.
 
-  **core**: Add `TrailResult<T>` utility type, `topo.ids()` and `topo.count` accessors, `dispatch()` for headless trail execution, and extract shared `executeTrail` pipeline used by CLI/MCP/HTTP.
+  **core**: Add `TrailResult<T>` utility type, `topo.ids()` and `topo.count` accessors, `run()` for headless trail execution, and extract shared `executeTrail` pipeline used by CLI/MCP/HTTP.
 
   **http**: Detect route path collisions and return `Result` from `buildHttpRoutes()`, wire request `AbortSignal` through to trail context, and make write → POST mapping explicit in intent-to-method lookup.
 
@@ -68,7 +88,7 @@
 
   **cli**: Verify exception catching via centralized `executeTrail`.
 
-  **testing**: Follow context awareness improvements.
+  **testing**: Cross-context awareness improvements.
 
   **warden**: Refactor rules as composable trails with examples.
 
@@ -100,11 +120,11 @@
 
 ### Patch Changes
 
-- Fix Codex review findings on type-utils and follow-declarations.
+- Fix Codex review findings on type-utils and cross-declarations.
 
   **core**: `inputOf()`/`outputOf()` now preserve the exact Zod schema subtype instead of widening to `z.ZodType`.
 
-  **warden**: `follow-declarations` rule now recognizes single-object trail overload, detects any context parameter name (not just `ctx`), matches destructured `follow()` calls, resolves const identifiers in `follow` arrays, and restricts run body extraction to top-level config properties.
+  **warden**: `cross-declarations` rule now recognizes single-object trail overload, detects any context parameter name (not just `ctx`), matches destructured `cross()` calls, resolves const identifiers in `crosses` arrays, and restricts blaze body extraction to top-level config properties.
 
 - Updated dependencies
   - @ontrails/core@1.0.0-beta.6
@@ -114,11 +134,11 @@
 
 ### Minor Changes
 
-- Type utilities and follow-declarations warden rule.
+- Type utilities and cross-declarations warden rule.
 
   **core**: Add `TrailInput<T>`, `TrailOutput<T>` utility types and `inputOf()`, `outputOf()` runtime schema accessors.
 
-  **warden**: Add `follow-declarations` rule — statically analyzes `ctx.follow()` calls against declared `follow: [...]` arrays. Errors on undeclared calls, warns on unused declarations.
+  **warden**: Add `cross-declarations` rule — statically analyzes `ctx.cross()` calls against declared `crosses: [...]` arrays. Errors on undeclared calls, warns on unused declarations.
 
 ### Patch Changes
 
@@ -134,15 +154,15 @@
 
   **BREAKING CHANGES:**
 
-  - `hike()` removed — use `trail()` with optional `follow: [...]` field
-  - `follows` renamed to `follow` (singular, matching `ctx.follow()`)
+  - `hike()` removed — use `trail()` with optional `crosses: [...]` field
+  - `follows` renamed to `crosses` (matching `ctx.cross()`)
   - `topo.hikes` removed — single `topo.trails` map
   - `kind: 'hike'` removed — everything is `kind: 'trail'`
   - `readOnly`/`destructive` booleans replaced by `intent: 'read' | 'write' | 'destroy'`
   - `implementation` field renamed to `run`
   - `markers` field renamed to `metadata`
-  - `testHike` renamed to `testFollows`, `HikeScenario` to `FollowScenario`
-  - `blaze()` now returns the surface handle (`Command` for CLI, `Server` for MCP)
+  - `testHike` renamed to `testCrosses`, `HikeScenario` to `CrossScenario`
+  - `trailhead()` now returns the trailhead handle (`Command` for CLI, `Server` for MCP)
 
 ### Patch Changes
 
@@ -154,15 +174,15 @@
 
 ### Minor Changes
 
-- Bug fixes across all surface packages found via parallel Codex review.
+- Bug fixes across all trailhead packages found via parallel Codex review.
 
   **core**: Fix Result.toJson false circular detection on DAGs, deserializeError subclass round-trip, topo cross-kind ID collisions, validateTopo multi-node cycle detection, error example input validation bypass, and deriveFields array type collapse.
 
-  **cli**: Switch blaze to parseAsync for proper async error handling, add boolean flag negation (--no-flag), and strict number parsing that rejects partial input.
+  **cli**: Switch trailhead to parseAsync for proper async error handling, add boolean flag negation (--no-flag), and strict number parsing that rejects partial input.
 
   **mcp**: Align BlobRef with core (including ReadableStream support) and detect tool-name collisions after normalization.
 
-  **testing**: Include hikes in testContracts validation, with follow-context awareness.
+  **testing**: Include hikes in testContracts validation, with cross-context awareness.
 
   **warden**: Collect hike detour targets, validate detour refs in hike specs, and stop implementation-returns-result from walking into nested function bodies.
 
@@ -199,13 +219,13 @@
 
 - Initial v1 beta release of the Trails framework.
 
-  - **@ontrails/core** — Result type, error taxonomy, trail/hike/event/topo, validateTopo, validateInput/Output, deriveFields, patterns, redaction, branded types, resilience
-  - **@ontrails/cli** — CLI surface adapter, Commander integration, flag derivation, layers
-  - **@ontrails/mcp** — MCP surface adapter, tool generation, annotations, progress bridge
-  - **@ontrails/logging** — Structured logging, sinks, formatters, LogTape adapter
-  - **@ontrails/testing** — testAll, testExamples, testTrail, testHike, testContracts, testDetours, surface harnesses
+  - **@ontrails/core** — Result type, error taxonomy, trail/hike/signal/topo, validateTopo, validateInput/Output, deriveFields, patterns, redaction, branded types, resilience
+  - **@ontrails/cli** — CLI trailhead connector, Commander integration, flag derivation
+  - **@ontrails/mcp** — MCP trailhead connector, tool generation, annotations, progress bridge
+  - **@ontrails/logging** — Structured logging, sinks, formatters, LogTape connector
+  - **@ontrails/testing** — testAll, testExamples, testTrail, testHike, testContracts, testDetours, trailhead harnesses
   - **@ontrails/warden** — AST-based code convention rules via oxc-parser, drift detection, CI formatters
-  - **@ontrails/schema** — Surface map generation, hashing, semantic diffing
+  - **@ontrails/schema** — Trailhead map generation, hashing, semantic diffing
 
 ### Patch Changes
 

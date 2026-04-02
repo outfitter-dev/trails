@@ -40,9 +40,9 @@ describe('generateOpenApiSpec', () => {
   describe('path and method derivation', () => {
     test('dotted trail ID becomes a path', () => {
       const t = trail('entity.show', {
+        blaze: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
 
@@ -51,9 +51,9 @@ describe('generateOpenApiSpec', () => {
 
     test('single-segment trail ID becomes a root path', () => {
       const t = trail('search', {
+        blaze: noop,
         input: z.object({ q: z.string() }),
         intent: 'read',
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
 
@@ -62,9 +62,9 @@ describe('generateOpenApiSpec', () => {
 
     test('intent read → GET', () => {
       const t = trail('entity.show', {
+        blaze: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
 
@@ -73,9 +73,9 @@ describe('generateOpenApiSpec', () => {
 
     test('intent destroy → DELETE', () => {
       const t = trail('entity.remove', {
+        blaze: noop,
         input: z.object({ id: z.string() }),
         intent: 'destroy',
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
 
@@ -84,8 +84,8 @@ describe('generateOpenApiSpec', () => {
 
     test('intent write (default) → POST', () => {
       const t = trail('entity.create', {
+        blaze: noop,
         input: z.object({ name: z.string() }),
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
 
@@ -94,9 +94,9 @@ describe('generateOpenApiSpec', () => {
 
     test('basePath is prepended to all paths', () => {
       const t = trail('entity.show', {
+        blaze: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }), {
         basePath: '/api/v1',
@@ -107,9 +107,9 @@ describe('generateOpenApiSpec', () => {
 
     test('basePath trailing slash is normalized', () => {
       const t = trail('entity.show', {
+        blaze: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }), {
         basePath: '/api/v1/',
@@ -123,9 +123,9 @@ describe('generateOpenApiSpec', () => {
   describe('GET query parameters', () => {
     const buildReadSpec = () => {
       const t = trail('entity.show', {
+        blaze: noop,
         input: z.object({ id: z.string(), verbose: z.boolean().optional() }),
         intent: 'read',
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
@@ -152,8 +152,8 @@ describe('generateOpenApiSpec', () => {
   describe('request body', () => {
     test('omits requestBody for empty input schema', () => {
       const t = trail('action.trigger', {
+        blaze: noop,
         input: z.object({}),
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/action/trigger']?.['post'] as Record<
@@ -166,8 +166,8 @@ describe('generateOpenApiSpec', () => {
 
     test('POST input schema becomes requestBody', () => {
       const t = trail('entity.create', {
+        blaze: noop,
         input: z.object({ name: z.string() }),
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/create']?.['post'] as Record<
@@ -184,11 +184,11 @@ describe('generateOpenApiSpec', () => {
 
     test('requestBody required is false when all input fields are optional', () => {
       const t = trail('entity.update', {
+        blaze: noop,
         input: z.object({
           name: z.string().optional(),
           tag: z.string().optional(),
         }),
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/update']?.['post'] as Record<
@@ -202,11 +202,11 @@ describe('generateOpenApiSpec', () => {
 
     test('requestBody required is true when input has required fields', () => {
       const t = trail('entity.create', {
+        blaze: noop,
         input: z.object({
           name: z.string(),
           tag: z.string().optional(),
         }),
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/create']?.['post'] as Record<
@@ -222,10 +222,10 @@ describe('generateOpenApiSpec', () => {
   describe('responses', () => {
     test('trail with output schema → 200 response wrapped in { data }', () => {
       const t = trail('entity.show', {
+        blaze: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
         output: z.object({ id: z.string(), name: z.string() }),
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const success = (
@@ -247,8 +247,8 @@ describe('generateOpenApiSpec', () => {
 
     test('trail without output → 200 with no schema', () => {
       const t = trail('fire.forget', {
+        blaze: noop,
         input: z.object({ msg: z.string() }),
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/fire/forget']?.['post'] as Record<
@@ -264,6 +264,7 @@ describe('generateOpenApiSpec', () => {
 
     test('trail with error examples → appropriate error responses', () => {
       const t = trail('entity.show', {
+        blaze: noop,
         examples: [
           { input: { id: '123' }, name: 'found' },
           {
@@ -275,7 +276,6 @@ describe('generateOpenApiSpec', () => {
         input: z.object({ id: z.string() }),
         intent: 'read',
         output: z.object({ id: z.string() }),
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
@@ -286,10 +286,10 @@ describe('generateOpenApiSpec', () => {
 
     test('every trail includes a default 400 validation error response', () => {
       const t = trail('entity.show', {
+        blaze: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
         output: z.object({ id: z.string() }),
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
@@ -308,11 +308,11 @@ describe('generateOpenApiSpec', () => {
 
     test('example-derived 400 does not override the default 400', () => {
       const t = trail('entity.show', {
+        blaze: noop,
         examples: [{ error: 'ValidationError', input: {}, name: 'bad input' }],
         input: z.object({ id: z.string() }),
         intent: 'read',
         output: z.object({ id: z.string() }),
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
@@ -326,9 +326,9 @@ describe('generateOpenApiSpec', () => {
   describe('operationId', () => {
     test('dots replaced with underscores', () => {
       const t = trail('entity.show', {
+        blaze: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
@@ -338,9 +338,9 @@ describe('generateOpenApiSpec', () => {
 
     test('single segment ID preserved', () => {
       const t = trail('search', {
+        blaze: noop,
         input: z.object({ q: z.string() }),
         intent: 'read',
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/search']?.['get'] as Record<string, unknown>;
@@ -352,9 +352,9 @@ describe('generateOpenApiSpec', () => {
   describe('tags', () => {
     test('tag is first segment of dotted ID', () => {
       const t = trail('entity.show', {
+        blaze: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
@@ -364,9 +364,9 @@ describe('generateOpenApiSpec', () => {
 
     test('single-segment ID uses itself as tag', () => {
       const t = trail('search', {
+        blaze: noop,
         input: z.object({ q: z.string() }),
         intent: 'read',
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/search']?.['get'] as Record<string, unknown>;
@@ -378,18 +378,18 @@ describe('generateOpenApiSpec', () => {
   describe('multiple trails', () => {
     test('all trails populate paths', () => {
       const a = trail('entity.create', {
+        blaze: noop,
         input: z.object({ name: z.string() }),
-        run: noop,
       });
       const b = trail('entity.show', {
+        blaze: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
-        run: noop,
       });
       const c = trail('entity.remove', {
+        blaze: noop,
         input: z.object({ id: z.string() }),
         intent: 'destroy',
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ a, b, c }));
 
@@ -401,16 +401,16 @@ describe('generateOpenApiSpec', () => {
   });
 
   describe('internal trails', () => {
-    test('trails with metadata.internal are skipped', () => {
+    test('trails with meta.internal are skipped', () => {
       const pub = trail('entity.show', {
+        blaze: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
-        run: noop,
       });
       const internal = trail('internal.helper', {
+        blaze: noop,
         input: z.object({}),
-        metadata: { internal: true },
-        run: noop,
+        meta: { internal: true },
       });
       const spec = generateOpenApiSpec(topoFrom({ internal, pub }));
 
@@ -471,10 +471,10 @@ describe('generateOpenApiSpec', () => {
   describe('summary from description', () => {
     test('trail description becomes operation summary', () => {
       const t = trail('entity.show', {
+        blaze: noop,
         description: 'Show an entity by ID',
         input: z.object({ id: z.string() }),
         intent: 'read',
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
@@ -484,9 +484,9 @@ describe('generateOpenApiSpec', () => {
 
     test('trail without description has no summary', () => {
       const t = trail('entity.show', {
+        blaze: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
-        run: noop,
       });
       const spec = generateOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;

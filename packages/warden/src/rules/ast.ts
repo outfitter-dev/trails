@@ -92,7 +92,7 @@ const walkScopeInner: WalkFn = (node, visit) => {
 /**
  * Walk an AST node tree without descending into nested function scopes.
  * The root node is always traversed; only inner function boundaries are skipped.
- * Useful for service-access analysis where inner functions may shadow
+ * Useful for provision-access analysis where inner functions may shadow
  * the trail context parameter name.
  */
 export const walkScope: WalkFn = (node, visit) => {
@@ -166,11 +166,11 @@ export const extractFirstStringArg = (node: AstNode): string | null => {
   return extractStringLiteral(firstArg);
 };
 
-const isServiceCall = (node: AstNode | undefined): boolean =>
+const isProvisionCall = (node: AstNode | undefined): boolean =>
   !!node &&
   node.type === 'CallExpression' &&
   identifierName((node as unknown as { callee?: AstNode }).callee) ===
-    'service';
+    'provision';
 
 const extractBindingName = (node: AstNode | undefined): string | null => {
   if (!node) {
@@ -185,8 +185,8 @@ const extractBindingName = (node: AstNode | undefined): string | null => {
   return null;
 };
 
-/** Collect `const foo = service('id', ...)` bindings from a parsed file. */
-export const collectNamedServiceIds = (
+/** Collect `const foo = provision('id', ...)` bindings from a parsed file. */
+export const collectNamedProvisionIds = (
   ast: AstNode
 ): ReadonlyMap<string, string> => {
   const ids = new Map<string, string>();
@@ -200,28 +200,28 @@ export const collectNamedServiceIds = (
       readonly id?: AstNode;
       readonly init?: AstNode;
     };
-    if (!isServiceCall(init)) {
+    if (!isProvisionCall(init)) {
       return;
     }
 
     const name = extractBindingName(id);
-    const serviceId = init ? extractFirstStringArg(init) : null;
-    if (name && serviceId) {
-      ids.set(name, serviceId);
+    const provisionId = init ? extractFirstStringArg(init) : null;
+    if (name && provisionId) {
+      ids.set(name, provisionId);
     }
   });
 
   return ids;
 };
 
-/** Collect all inline `service('id', ...)` definition IDs from a parsed file. */
-export const collectServiceDefinitionIds = (
+/** Collect all inline `provision('id', ...)` definition IDs from a parsed file. */
+export const collectProvisionDefinitionIds = (
   ast: AstNode
 ): ReadonlySet<string> => {
   const ids = new Set<string>();
 
   walk(ast, (node) => {
-    if (!isServiceCall(node)) {
+    if (!isProvisionCall(node)) {
       return;
     }
 
@@ -233,6 +233,11 @@ export const collectServiceDefinitionIds = (
 
   return ids;
 };
+
+/** Backward-compatible aliases while the migration is in flight. */
+export const collectNamedServiceIds = collectNamedProvisionIds;
+/** Backward-compatible aliases while the migration is in flight. */
+export const collectServiceDefinitionIds = collectProvisionDefinitionIds;
 
 // ---------------------------------------------------------------------------
 // Config property extraction helpers
@@ -265,7 +270,7 @@ export const findConfigProperty = (
 export interface TrailDefinition {
   /** Trail ID string, e.g. "entity.show" */
   readonly id: string;
-  /** "trail" or "event" */
+  /** "trail" or "signal" */
   readonly kind: string;
   /** The config object argument (second arg to trail() call) */
   readonly config: AstNode;
@@ -275,11 +280,11 @@ export interface TrailDefinition {
 
 /**
  * Find all `trail("id", { ... })`, `trail({ id: "x", ... })`, and
- * `event("id", { ... })` call sites.
+ * `signal("id", { ... })` call sites.
  *
  * Returns the trail ID, kind, and config object node for each definition.
  */
-const TRAIL_CALLEE_NAMES = new Set(['trail', 'event']);
+const TRAIL_CALLEE_NAMES = new Set(['trail', 'signal']);
 
 const getTrailCalleeName = (node: AstNode): string | null => {
   if (node.type !== 'CallExpression') {
@@ -376,22 +381,22 @@ export const findTrailDefinitions = (ast: AstNode): TrailDefinition[] => {
 };
 
 // ---------------------------------------------------------------------------
-// Run body extraction
+// Blaze body extraction
 // ---------------------------------------------------------------------------
 
 /**
- * Extract top-level `run:` property values from an ObjectExpression's direct properties.
+ * Extract top-level `blaze:` property values from an ObjectExpression's direct properties.
  *
- * Does not recurse into nested objects, so `metadata: { run: ... }` is ignored.
+ * Does not recurse into nested objects, so `meta: { blaze: ... }` is ignored.
  */
-const extractRunFromConfig = (config: AstNode): AstNode[] => {
+const extractBlazeFromConfig = (config: AstNode): AstNode[] => {
   const bodies: AstNode[] = [];
   const properties = config['properties'] as readonly AstNode[] | undefined;
   if (!properties) {
     return bodies;
   }
   for (const prop of properties) {
-    if (prop.type === 'Property' && prop.key?.name === 'run' && prop.value) {
+    if (prop.type === 'Property' && prop.key?.name === 'blaze' && prop.value) {
       bodies.push(prop.value);
     }
   }
@@ -399,22 +404,22 @@ const extractRunFromConfig = (config: AstNode): AstNode[] => {
 };
 
 /**
- * Find `run:` property values.
+ * Find `blaze:` property values.
  *
- * When given an ObjectExpression (trail config), returns only its direct `run:`
+ * When given an ObjectExpression (trail config), returns only its direct `blaze:`
  * properties. When given a full AST, finds trail definitions first and extracts
- * `run:` from each config — in both cases ignoring nested `run:` properties
- * (e.g. `metadata: { run: ... }`).
+ * `blaze:` from each config — in both cases ignoring nested `blaze:` properties
+ * (e.g. `meta: { blaze: ... }`).
  */
-export const findRunBodies = (node: AstNode): AstNode[] => {
+export const findBlazeBodies = (node: AstNode): AstNode[] => {
   if (node.type === 'ObjectExpression') {
-    return extractRunFromConfig(node);
+    return extractBlazeFromConfig(node);
   }
 
-  // Full AST — find trail definitions and extract run from their configs
+  // Full AST — find trail definitions and extract blaze from their configs
   const bodies: AstNode[] = [];
   for (const def of findTrailDefinitions(node)) {
-    bodies.push(...extractRunFromConfig(def.config));
+    bodies.push(...extractBlazeFromConfig(def.config));
   }
   return bodies;
 };
@@ -423,8 +428,8 @@ export const findRunBodies = (node: AstNode): AstNode[] => {
 // Misc helpers
 // ---------------------------------------------------------------------------
 
-/** Check if a node is a call to `.run()` on some object. */
-export const isRunCall = (node: AstNode): boolean => {
+/** Check if a node is a call to `.blaze()` on some object. */
+export const isBlazeCall = (node: AstNode): boolean => {
   if (node.type !== 'CallExpression') {
     return false;
   }
@@ -441,6 +446,6 @@ export const isRunCall = (node: AstNode): boolean => {
   const prop = (callee as unknown as { property?: AstNode }).property;
   return (
     prop?.type === 'Identifier' &&
-    (prop as unknown as { name: string }).name === 'run'
+    (prop as unknown as { name: string }).name === 'blaze'
   );
 };

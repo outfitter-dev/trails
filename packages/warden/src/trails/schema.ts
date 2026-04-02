@@ -30,10 +30,10 @@ export const ruleInput = z.object({
  * files.
  */
 export const projectAwareRuleInput = ruleInput.extend({
-  knownServiceIds: z
+  knownProvisionIds: z
     .array(z.string())
     .optional()
-    .describe('Service IDs known across the project'),
+    .describe('Provision IDs known across the project'),
   knownTrailIds: z
     .array(z.string())
     .optional()

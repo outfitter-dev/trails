@@ -4,13 +4,13 @@ import {
   InternalError,
   NotFoundError,
   Result,
-  SURFACE_KEY,
-  service,
+  TRAILHEAD_KEY,
+  provision,
   ValidationError,
   trail,
   topo,
 } from '@ontrails/core';
-import type { Layer } from '@ontrails/core';
+import type { Gate } from '@ontrails/core';
 import { z } from 'zod';
 
 import { buildHttpRoutes } from '../build.js';
@@ -20,48 +20,48 @@ import { buildHttpRoutes } from '../build.js';
 // ---------------------------------------------------------------------------
 
 const echoTrail = trail('echo', {
+  blaze: (input) => Result.ok({ reply: input.message }),
   description: 'Echo a message back',
   input: z.object({ message: z.string() }),
   intent: 'read',
   output: z.object({ reply: z.string() }),
-  run: (input) => Result.ok({ reply: input.message }),
 });
 
 const createTrail = trail('item.create', {
+  blaze: (input) => Result.ok({ id: '123', name: input.name }),
   description: 'Create an item',
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.string(), name: z.string() }),
-  run: (input) => Result.ok({ id: '123', name: input.name }),
 });
 
 const deleteTrail = trail('item.delete', {
+  blaze: (_input) => Result.ok({ deleted: true }),
   description: 'Delete an item',
   input: z.object({ id: z.string() }),
   intent: 'destroy',
-  run: (_input) => Result.ok({ deleted: true }),
 });
 
 const notFoundTrail = trail('item.get', {
+  blaze: (_input) => Result.err(new NotFoundError('Item not found')),
   description: 'Get an item that does not exist',
   input: z.object({ id: z.string() }),
   intent: 'read',
-  run: (_input) => Result.err(new NotFoundError('Item not found')),
 });
 
 const internalTrail = trail('crash', {
+  blaze: () => Result.err(new InternalError('Something broke')),
   description: 'Always fails with internal error',
   input: z.object({}),
-  run: () => Result.err(new InternalError('Something broke')),
 });
 
 const internalMetaTrail = trail('secret', {
+  blaze: () => Result.ok({ ok: true }),
   description: 'Internal trail that should be skipped',
   input: z.object({}),
-  metadata: { internal: true },
-  run: () => Result.ok({ ok: true }),
+  meta: { internal: true },
 });
 
-const dbService = service('db.main', {
+const dbProvision = provision('db.main', {
   create: () =>
     Result.ok({
       source: 'factory',
@@ -245,10 +245,10 @@ describe('buildHttpRoutes', () => {
 
     test('returns err Result when run function throws', async () => {
       const throwingTrail = trail('throwing', {
-        input: z.object({}),
-        run: () => {
+        blaze: () => {
           throw new Error('unexpected throw');
         },
+        input: z.object({}),
       });
       const app = topo('testapp', { throwingTrail });
       const buildResult = buildHttpRoutes(app);
@@ -283,12 +283,12 @@ describe('buildHttpRoutes', () => {
       let capturedRequestId: string | undefined;
 
       const ctxTrail = trail('ctx.check', {
-        input: z.object({}),
-        intent: 'read',
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           capturedRequestId = ctx.requestId;
           return Result.ok({ ok: true });
         },
+        input: z.object({}),
+        intent: 'read',
       });
 
       const app = topo('testapp', { ctxTrail });
@@ -305,12 +305,12 @@ describe('buildHttpRoutes', () => {
       let capturedRequestId: string | undefined;
 
       const ctxTrail = trail('ctx.default', {
-        input: z.object({}),
-        intent: 'read',
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           capturedRequestId = ctx.requestId;
           return Result.ok({ ok: true });
         },
+        input: z.object({}),
+        intent: 'read',
       });
 
       const app = topo('testapp', { ctxTrail });
@@ -324,18 +324,18 @@ describe('buildHttpRoutes', () => {
       expect(capturedRequestId).not.toBe('');
     });
 
-    test('forwards service overrides into executeTrail', async () => {
-      const serviceTrail = trail('service.check', {
+    test('forwards provision overrides into executeTrail', async () => {
+      const provisionTrail = trail('provision.check', {
+        blaze: (_input, ctx) =>
+          Result.ok({ source: dbProvision.from(ctx).source as string }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
-        run: (_input, ctx) =>
-          Result.ok({ source: dbService.from(ctx).source as string }),
-        services: [dbService],
+        provisions: [dbProvision],
       });
 
-      const app = topo('testapp', { serviceTrail });
+      const app = topo('testapp', { provisionTrail });
       const buildResult = buildHttpRoutes(app, {
-        services: { 'db.main': { source: 'override' } },
+        provisions: { 'db.main': { source: 'override' } },
       });
 
       expect(buildResult.isOk()).toBe(true);
@@ -347,12 +347,12 @@ describe('buildHttpRoutes', () => {
     });
   });
 
-  describe('layers', () => {
-    test('layers compose around trail execution', async () => {
+  describe('gates', () => {
+    test('gates compose around trail execution', async () => {
       const calls: string[] = [];
 
-      const testLayer: Layer = {
-        name: 'test-layer',
+      const testGate: Gate = {
+        name: 'test-gate',
         wrap(_trail, impl) {
           return async (input, ctx) => {
             calls.push('before');
@@ -364,7 +364,7 @@ describe('buildHttpRoutes', () => {
       };
 
       const app = topo('testapp', { echoTrail });
-      const buildResult = buildHttpRoutes(app, { layers: [testLayer] });
+      const buildResult = buildHttpRoutes(app, { gates: [testGate] });
 
       expect(buildResult.isOk()).toBe(true);
       const [route] = buildResult.value;
@@ -377,24 +377,25 @@ describe('buildHttpRoutes', () => {
 
   describe('custom createContext', () => {
     test('custom createContext is used when provided', async () => {
-      const contextState = { custom: false, surface: false };
+      const contextState = { custom: false, trailheadMarker: false };
 
       const ctxTrail = trail('ctx.custom', {
-        input: z.object({}),
-        intent: 'read',
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           contextState.custom = ctx.extensions?.['custom'] === true;
-          contextState.surface = ctx.extensions?.[SURFACE_KEY] === 'http';
+          contextState.trailheadMarker =
+            ctx.extensions?.[TRAILHEAD_KEY] === 'http';
           return Result.ok({ ok: true });
         },
+        input: z.object({}),
+        intent: 'read',
       });
 
       const app = topo('testapp', { ctxTrail });
       const buildResult = buildHttpRoutes(app, {
         createContext: () => ({
+          abortSignal: new AbortController().signal,
           extensions: { custom: true },
           requestId: 'test-id',
-          signal: new AbortController().signal,
         }),
       });
 
@@ -404,7 +405,7 @@ describe('buildHttpRoutes', () => {
       const result = await route?.execute({});
       expect(result?.isOk()).toBe(true);
       expect(contextState.custom).toBe(true);
-      expect(contextState.surface).toBe(true);
+      expect(contextState.trailheadMarker).toBe(true);
     });
   });
 
@@ -414,16 +415,16 @@ describe('buildHttpRoutes', () => {
       // "entity/show" derives path /entity/show (slashes are preserved)
       // Both have intent: read -> GET, so they collide on GET /entity/show
       const dotTrail = trail('entity.show', {
+        blaze: () => Result.ok({ dot: true }),
         description: 'Show entity (dot notation)',
         input: z.object({}),
         intent: 'read',
-        run: () => Result.ok({ dot: true }),
       });
       const slashTrail = trail('entity/show', {
+        blaze: () => Result.ok({ slash: true }),
         description: 'Show entity (slash notation)',
         input: z.object({}),
         intent: 'read',
-        run: () => Result.ok({ slash: true }),
       });
       const app = topo('testapp', { dotTrail, slashTrail });
       const result = buildHttpRoutes(app);
@@ -438,15 +439,15 @@ describe('buildHttpRoutes', () => {
       // "item/resource" derives POST /item/resource (default intent: write)
       // Same path, different methods — no collision
       const getItem = trail('item.resource', {
+        blaze: () => Result.ok({ get: true }),
         description: 'Get item',
         input: z.object({}),
         intent: 'read',
-        run: () => Result.ok({ get: true }),
       });
       const createItem = trail('item/resource', {
+        blaze: () => Result.ok({ created: true }),
         description: 'Create item',
         input: z.object({ name: z.string() }),
-        run: () => Result.ok({ created: true }),
       });
       const app = topo('testapp', { createItem, getItem });
       const result = buildHttpRoutes(app);
@@ -457,16 +458,16 @@ describe('buildHttpRoutes', () => {
 
     test('collision error message identifies both trail IDs', () => {
       const dotTrail = trail('entity.show', {
+        blaze: () => Result.ok({ one: true }),
         description: 'Trail one',
         input: z.object({}),
         intent: 'read',
-        run: () => Result.ok({ one: true }),
       });
       const slashTrail = trail('entity/show', {
+        blaze: () => Result.ok({ two: true }),
         description: 'Trail two',
         input: z.object({}),
         intent: 'read',
-        run: () => Result.ok({ two: true }),
       });
       const app = topo('testapp', { dotTrail, slashTrail });
       const result = buildHttpRoutes(app);

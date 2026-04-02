@@ -1,15 +1,15 @@
 /**
- * Detects trail implementations with `follow` that call `.run()` directly.
+ * Detects trail implementations with `crosses` that call `.blaze()` directly.
  *
- * Uses AST parsing to find trail definitions that declare `follow` and check for
- * `.run()` call expressions in their bodies.
+ * Uses AST parsing to find trail definitions that declare `crosses` and check for
+ * `.blaze()` call expressions in their bodies.
  */
 
 import {
   findConfigProperty,
-  findRunBodies,
+  findBlazeBodies,
   findTrailDefinitions,
-  isRunCall,
+  isBlazeCall,
   offsetToLine,
   parse,
   walk,
@@ -23,20 +23,20 @@ interface AstNode {
   readonly [key: string]: unknown;
 }
 
-const findImplCallsInTrailWithFollow = (
+const findImplCallsInTrailWithCrosses = (
   def: { readonly config: AstNode },
   filePath: string,
   sourceCode: string,
   diagnostics: WardenDiagnostic[]
 ): void => {
-  for (const body of findRunBodies(def.config as AstNode)) {
+  for (const body of findBlazeBodies(def.config as AstNode)) {
     walk(body, (node) => {
-      if (isRunCall(node as AstNode)) {
+      if (isBlazeCall(node as AstNode)) {
         diagnostics.push({
           filePath,
           line: offsetToLine(sourceCode, node.start),
           message:
-            'Use ctx.follow("trailId", input) instead of direct .run() calls. ctx.follow() validates input and propagates tracing.',
+            'Use ctx.cross("trailId", input) instead of direct .blaze() calls. ctx.cross() validates input and propagates tracing.',
           rule: 'no-direct-impl-in-route',
           severity: 'warn',
         });
@@ -45,11 +45,11 @@ const findImplCallsInTrailWithFollow = (
   }
 };
 
-const hasFollowProperty = (config: AstNode): boolean =>
-  findConfigProperty(config as AstNode, 'follow') !== null;
+const hasCrossesProperty = (config: AstNode): boolean =>
+  findConfigProperty(config as AstNode, 'crosses') !== null;
 
 /**
- * Detects trails with `follow` that call another trail's `.run()` directly.
+ * Detects trails with `crosses` that call another trail's `.blaze()` directly.
  */
 export const noDirectImplInRoute: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
@@ -63,18 +63,18 @@ export const noDirectImplInRoute: WardenRule = {
     }
 
     const diagnostics: WardenDiagnostic[] = [];
-    const followDefs = findTrailDefinitions(ast as AstNode).filter((d) =>
-      hasFollowProperty(d.config as AstNode)
+    const crossDefs = findTrailDefinitions(ast as AstNode).filter((d) =>
+      hasCrossesProperty(d.config as AstNode)
     );
 
-    for (const def of followDefs) {
-      findImplCallsInTrailWithFollow(def, filePath, sourceCode, diagnostics);
+    for (const def of crossDefs) {
+      findImplCallsInTrailWithCrosses(def, filePath, sourceCode, diagnostics);
     }
 
     return diagnostics;
   },
   description:
-    'Prefer ctx.follow() over direct .run() calls in trail bodies with follow.',
+    'Prefer ctx.cross() over direct .blaze() calls in trail bodies with crossings.',
   name: 'no-direct-impl-in-route',
 
   severity: 'warn',

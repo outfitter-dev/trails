@@ -1,8 +1,8 @@
 # Trails
 
-**Define once. Surface everywhere.**
+**Define once. Trailhead everywhere.**
 
-Trails is a contract-first TypeScript framework. Define a trail — typed input, Result output, examples, intent — and the framework projects it onto CLI, MCP, HTTP, or WebSocket. One definition, every surface, zero drift.
+Trails is a contract-first TypeScript framework. Define a trail — typed input, Result output, examples, intent — and the framework projects it onto CLI, MCP, HTTP, or WebSocket. One definition, every trailhead, zero drift.
 
 ## Get started
 
@@ -21,7 +21,7 @@ claude plugin install trails@trails
 npx skills outfitter-dev/trails
 ```
 
-The skill gives your agent the full Trails reference: vocabulary, patterns, error taxonomy, surface wiring, testing, and before/after migration examples.
+The skill gives your agent the full Trails reference: vocabulary, patterns, error taxonomy, trailhead wiring, testing, and before/after migration examples.
 
 ### With code
 
@@ -29,7 +29,7 @@ The skill gives your agent the full Trails reference: vocabulary, patterns, erro
 bunx @ontrails/trails create
 ```
 
-Follow the prompts — pick a name, choose a starter, select your surfaces. The scaffolder generates a working project with trails, a topo, surface wiring, and tests.
+Follow the prompts — pick a name, choose a starter, select your trailheads. The scaffolder generates a working project with trails, a topo, trailhead wiring, and tests.
 
 Or install manually:
 
@@ -68,7 +68,7 @@ const show = trail('project.show', {
     { name: 'Found', input: { id: 'p_1' }, expected: { id: 'p_1', name: 'Acme' } },
     { name: 'Missing', input: { id: 'p_0' }, error: 'NotFoundError' },
   ],
-  run: async (input) => {
+  blaze: async (input) => {
     const project = await db.projects.findById(input.id);
     if (!project) return Result.err(new NotFoundError(`Project ${input.id} not found`));
     return Result.ok(project);
@@ -81,32 +81,32 @@ Same logic. But now the framework derives:
 - **CLI**: `myapp project show --id p_1` with `--help` text, exit code 2 for not-found
 - **MCP**: tool `myapp_project_show` with JSON Schema input, `readOnlyHint` annotation
 - **Tests**: both examples run as assertions — `testAll(app)` validates the happy path and the error path
-- **Governance**: warden checks for throws, surface imports, missing output schemas
+- **Governance**: warden checks for throws, trailhead imports, missing output schemas
 
 You authored the contract. The framework did the rest.
 
 ## What compounds
 
-Each declaration you add to a trail unlocks derived behavior across every surface:
+Each declaration you add to a trail unlocks derived behavior across every trailhead:
 
 | You add | You get for free |
 |---------|-----------------|
 | `input` (Zod schema) | CLI flags + `--help` text, MCP JSON Schema, input validation |
-| `output` (Zod schema) | Contract tests, MCP response typing, surface map entries |
+| `output` (Zod schema) | Contract tests, MCP response typing, trailhead map entries |
 | `intent: 'read'` | MCP `readOnlyHint`, CLI skips confirmation, HTTP GET |
 | `intent: 'destroy'` | MCP `destructiveHint`, CLI auto-adds `--dry-run`, HTTP DELETE |
 | `examples` | Tests (happy + error path), agent guidance, documentation |
-| `follow` | Composition graph, cycle detection, follow coverage in tests |
-| `services: [db]` | Singleton lifecycle, test mock auto-resolution, warden governance |
+| `crosses` | Composition graph, cycle detection, cross coverage in tests |
+| `provisions: [db]` | Singleton lifecycle, test mock auto-resolution, warden governance |
 | `detours` | Recovery paths, warden validates targets exist |
 
-The value isn't any single feature. It's that they multiply — each declaration makes every surface smarter without additional wiring.
+The value isn't any single feature. It's that they multiply — each declaration makes every trailhead smarter without additional wiring.
 
 ## How it works
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
-import { blaze } from '@ontrails/cli/commander';
+import { trailhead } from '@ontrails/cli/commander';
 import { z } from 'zod';
 
 // 1. Define trails
@@ -114,15 +114,15 @@ const greet = trail('greet', {
   input: z.object({ name: z.string().describe('Who to greet') }),
   output: z.object({ message: z.string() }),
   intent: 'read',
-  run: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
+  blaze: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
 
 // 2. Collect into topo
 const app = topo('myapp', { greet });
 
-// 3. Blaze on any surface
-blaze(app);              // CLI
-// await blaze(app);     // MCP — same trails, same run function
+// 3. Open trailheads in any connector
+trailhead(app);              // CLI
+// await trailhead(app);     // MCP — same trails, same run function
 ```
 
 ```bash
@@ -135,13 +135,13 @@ $ myapp greet --name World
 | Package | What it does |
 |---------|-------------|
 | [`@ontrails/core`](./packages/core) | Result, errors, trail/event/topo, validation, schema derivation |
-| [`@ontrails/cli`](./packages/cli) | CLI surface — flag derivation, output formatting, Commander adapter |
-| [`@ontrails/mcp`](./packages/mcp) | MCP surface — tool generation, annotations, progress bridge |
-| [`@ontrails/http`](./packages/http) | HTTP surface — route derivation, verb mapping, error responses, Hono adapter |
-| [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testFollows()`, contract testing, surface harnesses |
-| [`@ontrails/schema`](./packages/schema) | Surface maps, semantic diffing, lock files for CI governance |
+| [`@ontrails/cli`](./packages/cli) | CLI trailhead — flag derivation, output formatting, Commander connector |
+| [`@ontrails/mcp`](./packages/mcp) | MCP trailhead — tool generation, annotations, progress bridge |
+| [`@ontrails/http`](./packages/http) | HTTP trailhead — route derivation, verb mapping, error responses, Hono connector |
+| [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testCrosses()`, contract testing, trailhead harnesses |
+| [`@ontrails/schema`](./packages/schema) | Trailhead maps, semantic diffing, lock files for CI governance |
 | [`@ontrails/warden`](./packages/warden) | AST-based convention rules, drift detection, CI formatters |
-| [`@ontrails/logging`](./packages/logging) | Structured logging — sinks, formatters, LogTape adapter |
+| [`@ontrails/logging`](./packages/logging) | Structured logging — sinks, formatters, LogTape connector |
 
 ## Documentation
 
@@ -158,4 +158,4 @@ bun run typecheck      # TypeScript strict mode
 
 ## Status
 
-v1 beta. The contract layer, CLI, MCP, and HTTP surfaces, testing, and governance are implemented and shipping. WebSocket surface is designed but not yet built. See [Horizons](./docs/horizons.md) for what's next.
+v1 beta. The contract layer, CLI, MCP, and HTTP trailheads, testing, and governance are implemented and shipping. WebSocket trailhead is designed but not yet built. See [Horizons](./docs/horizons.md) for what's next.

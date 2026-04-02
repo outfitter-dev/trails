@@ -2,8 +2,8 @@ import { describe, expect, test } from 'bun:test';
 
 import { z } from 'zod';
 
+import { provision } from '../provision.js';
 import { Result } from '../result.js';
-import { service } from '../service.js';
 import { topo } from '../topo.js';
 import type { TopoIssue } from '../validate-topo.js';
 import { validateTopo } from '../validate-topo.js';
@@ -18,7 +18,7 @@ const noop = async () => Result.ok();
 const mockTrail = (
   id: string,
   overrides?: {
-    follow?: readonly string[];
+    crosses?: readonly string[];
     examples?: readonly {
       name: string;
       input: unknown;
@@ -26,27 +26,27 @@ const mockTrail = (
       error?: string;
     }[];
     output?: z.ZodType;
-    services?: readonly ReturnType<typeof service>[];
+    provisions?: readonly ReturnType<typeof provision>[];
   }
 ) => ({
-  follow: Object.freeze([...(overrides?.follow ?? [])]),
+  blaze: noop,
+  crosses: Object.freeze([...(overrides?.crosses ?? [])]),
   id,
   input: z.object({ name: z.string() }),
   kind: 'trail' as const,
-  run: noop,
-  services: Object.freeze([...(overrides?.services ?? [])]),
+  provisions: Object.freeze([...(overrides?.provisions ?? [])]),
   ...overrides,
 });
 
-const mockService = (id: string) =>
-  service(id, {
+const mockProvision = (id: string) =>
+  provision(id, {
     create: () => Result.ok({ id }),
   });
 
 const mockEvent = (id: string, from?: readonly string[]) => ({
   from,
   id,
-  kind: 'event' as const,
+  kind: 'signal' as const,
   payload: z.object({ data: z.string() }),
 });
 
@@ -68,7 +68,7 @@ describe('validateTopo', () => {
     const app = topo('app', {
       add: mockTrail('entity.add'),
       onboard: mockTrail('entity.onboard', {
-        follow: ['entity.add'],
+        crosses: ['entity.add'],
       }),
       updated: mockEvent('entity.updated', ['entity.add']),
     });
@@ -77,11 +77,11 @@ describe('validateTopo', () => {
     expect(result.isOk()).toBe(true);
   });
 
-  describe('trail follow', () => {
-    test('trail following non-existent trail fails', () => {
+  describe('trail crossing', () => {
+    test('trail crossing a non-existent trail fails', () => {
       const app = topo('app', {
         onboard: mockTrail('entity.onboard', {
-          follow: ['entity.missing'],
+          crosses: ['entity.missing'],
         }),
       });
 
@@ -90,57 +90,57 @@ describe('validateTopo', () => {
 
       const issues = extractIssues(result);
       expect(issues).toHaveLength(1);
-      expect(issues[0]?.rule).toBe('follow-exists');
+      expect(issues[0]?.rule).toBe('cross-exists');
       expect(issues[0]?.message).toContain('entity.missing');
     });
 
-    test('trail following itself fails', () => {
+    test('trail crossing itself fails', () => {
       const app = topo('app', {
-        loop: mockTrail('entity.loop', { follow: ['entity.loop'] }),
+        loop: mockTrail('entity.loop', { crosses: ['entity.loop'] }),
       });
 
       const result = validateTopo(app);
       expect(result.isErr()).toBe(true);
 
       const issues = extractIssues(result);
-      expect(issues.some((i) => i.rule === 'no-self-follow')).toBe(true);
+      expect(issues.some((i) => i.rule === 'no-self-cross')).toBe(true);
     });
 
     test('two-node cycle (a→b→a) is detected', () => {
       const app = topo('app', {
-        a: mockTrail('a', { follow: ['b'] }),
-        b: mockTrail('b', { follow: ['a'] }),
+        a: mockTrail('a', { crosses: ['b'] }),
+        b: mockTrail('b', { crosses: ['a'] }),
       });
 
       const result = validateTopo(app);
       expect(result.isErr()).toBe(true);
 
       const issues = extractIssues(result);
-      const cycleIssues = issues.filter((i) => i.rule === 'follow-cycle');
+      const cycleIssues = issues.filter((i) => i.rule === 'cross-cycle');
       expect(cycleIssues.length).toBeGreaterThanOrEqual(1);
       expect(cycleIssues[0]?.message).toContain('Cycle detected');
     });
 
     test('three-node cycle (a→b→c→a) is detected', () => {
       const app = topo('app', {
-        a: mockTrail('a', { follow: ['b'] }),
-        b: mockTrail('b', { follow: ['c'] }),
-        c: mockTrail('c', { follow: ['a'] }),
+        a: mockTrail('a', { crosses: ['b'] }),
+        b: mockTrail('b', { crosses: ['c'] }),
+        c: mockTrail('c', { crosses: ['a'] }),
       });
 
       const result = validateTopo(app);
       expect(result.isErr()).toBe(true);
 
       const issues = extractIssues(result);
-      const cycleIssues = issues.filter((i) => i.rule === 'follow-cycle');
+      const cycleIssues = issues.filter((i) => i.rule === 'cross-cycle');
       expect(cycleIssues.length).toBeGreaterThanOrEqual(1);
       expect(cycleIssues[0]?.message).toContain('Cycle detected');
     });
 
     test('valid DAG with shared targets is not flagged', () => {
       const app = topo('app', {
-        a: mockTrail('a', { follow: ['c'] }),
-        b: mockTrail('b', { follow: ['c'] }),
+        a: mockTrail('a', { crosses: ['c'] }),
+        b: mockTrail('b', { crosses: ['c'] }),
         c: mockTrail('c'),
       });
 
@@ -149,13 +149,13 @@ describe('validateTopo', () => {
     });
   });
 
-  describe('service declarations', () => {
-    test('trail declaring a registered service passes', () => {
-      const db = mockService('db.main');
+  describe('provision declarations', () => {
+    test('trail declaring a registered provision passes', () => {
+      const db = mockProvision('db.main');
       const app = topo('app', {
         db,
         show: mockTrail('entity.show', {
-          services: [db],
+          provisions: [db],
         }),
       });
 
@@ -163,11 +163,11 @@ describe('validateTopo', () => {
       expect(result.isOk()).toBe(true);
     });
 
-    test('trail declaring a missing service fails', () => {
-      const db = mockService('db.main');
+    test('trail declaring a missing provision fails', () => {
+      const db = mockProvision('db.main');
       const app = topo('app', {
         show: mockTrail('entity.show', {
-          services: [db],
+          provisions: [db],
         }),
       });
 
@@ -176,7 +176,7 @@ describe('validateTopo', () => {
 
       const issues = extractIssues(result);
       expect(issues).toHaveLength(1);
-      expect(issues[0]?.rule).toBe('service-exists');
+      expect(issues[0]?.rule).toBe('provision-exists');
       expect(issues[0]?.message).toContain('db.main');
     });
   });
@@ -286,7 +286,7 @@ describe('validateTopo', () => {
 
       const issues = extractIssues(result);
       expect(issues).toHaveLength(1);
-      expect(issues[0]?.rule).toBe('event-origin-exists');
+      expect(issues[0]?.rule).toBe('signal-origin-exists');
       expect(issues[0]?.message).toContain('entity.ghost');
     });
 
@@ -301,11 +301,11 @@ describe('validateTopo', () => {
   });
 
   test('collects multiple issues', () => {
-    const db = mockService('db.main');
+    const db = mockProvision('db.main');
     const app = topo('app', {
-      broken: mockTrail('entity.broken', { follow: ['entity.missing'] }),
+      broken: mockTrail('entity.broken', { crosses: ['entity.missing'] }),
       missingService: mockTrail('entity.missing-service', {
-        services: [db],
+        provisions: [db],
       }),
       show: mockTrail('entity.show', {
         examples: [{ input: { name: 123 }, name: 'Bad' }],

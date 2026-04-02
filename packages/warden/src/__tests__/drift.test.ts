@@ -4,16 +4,16 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { trail, topo, Result } from '@ontrails/core';
-import { hashSurfaceMap, generateSurfaceMap } from '@ontrails/schema';
+import { hashTrailheadMap, generateTrailheadMap } from '@ontrails/schema';
 import { z } from 'zod';
 
 import { checkDrift } from '../drift.js';
 
 const makeTopo = () => {
   const t = trail('test.hello', {
+    blaze: () => Result.ok({ greeting: 'hi' }),
     input: z.object({ name: z.string() }),
     output: z.object({ greeting: z.string() }),
-    run: () => Result.ok({ greeting: 'hi' }),
   });
   return topo('test-app', { t });
 };
@@ -47,8 +47,8 @@ describe('checkDrift', () => {
     const dir = createTempDir();
     try {
       const tp = makeTopo();
-      const hash = hashSurfaceMap(generateSurfaceMap(tp));
-      writeFileSync(join(dir, 'surface.lock'), `${hash}\n`);
+      const hash = hashTrailheadMap(generateTrailheadMap(tp));
+      writeFileSync(join(dir, 'trailhead.lock'), `${hash}\n`);
 
       const result = await checkDrift(dir, tp);
       expect(result.stale).toBe(false);
@@ -62,7 +62,7 @@ describe('checkDrift', () => {
   test('returns stale: true when lock does not match', async () => {
     const dir = createTempDir();
     try {
-      writeFileSync(join(dir, 'surface.lock'), 'outdated-hash\n');
+      writeFileSync(join(dir, 'trailhead.lock'), 'outdated-hash\n');
 
       const result = await checkDrift(dir, makeTopo());
       expect(result.stale).toBe(true);

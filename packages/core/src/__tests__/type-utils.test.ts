@@ -8,14 +8,14 @@ import type { TrailInput, TrailOutput, TrailResult } from '../type-utils';
 import { inputOf, outputOf } from '../type-utils';
 
 const greetTrail = trail('greet', {
+  blaze: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
   input: z.object({ name: z.string() }),
   output: z.object({ message: z.string() }),
-  run: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
 
 const noOutputTrail = trail('ping', {
+  blaze: () => Result.ok(),
   input: z.object({}),
-  run: () => Result.ok(),
 });
 
 describe('type-utils', () => {
@@ -71,9 +71,9 @@ describe('type-utils', () => {
   describe('TrailResult', () => {
     test('extracts Result<Output, Error> from a trail', () => {
       const t = trail('test.result', {
+        blaze: (input) => Result.ok({ answer: input.q }),
         input: z.object({ q: z.string() }),
         output: z.object({ answer: z.string() }),
-        run: (input) => Result.ok({ answer: input.q }),
       });
 
       type Expected = Result<{ answer: string }, Error>;

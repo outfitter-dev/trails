@@ -8,11 +8,11 @@ describe('no-direct-implementation-call', () => {
 import { trail, Result } from "@ontrails/core";
 
 const entityShow = trail("entity.show", {
-  run: async (input, ctx) => Result.ok({ id: input.id }),
+  blaze: async (input, ctx) => Result.ok({ id: input.id }),
 });
 
 async function run() {
-  const result = await entityShow.run({ id: "1" }, ctx);
+  const result = await entityShow.blaze({ id: "1" }, ctx);
   return result;
 }`;
 
@@ -21,15 +21,15 @@ async function run() {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.rule).toBe('no-direct-implementation-call');
     expect(diagnostics[0]?.severity).toBe('warn');
-    expect(diagnostics[0]?.message).toContain('ctx.follow');
+    expect(diagnostics[0]?.message).toContain('ctx.cross');
   });
 
-  test('allows ctx.follow() calls', () => {
+  test('allows ctx.cross() calls', () => {
     const code = `
 trail("entity.onboard", {
-  follow: ["entity.create"],
-  run: async (input, ctx) => {
-    const result = await ctx.follow("entity.create", input);
+  crosses: ["entity.create"],
+  blaze: async (input, ctx) => {
+    const result = await ctx.cross("entity.create", input);
     return Result.ok(result);
   },
 });
@@ -43,7 +43,7 @@ trail("entity.onboard", {
   test('ignores test files', () => {
     const code = `
 async function run() {
-  return await entityShow.run({ id: "1" }, ctx);
+  return await entityShow.blaze({ id: "1" }, ctx);
 }`;
 
     const diagnostics = noDirectImplementationCall.check(
@@ -57,7 +57,7 @@ async function run() {
   test('ignores framework internals that intentionally call implementations', () => {
     const code = `
 export async function run() {
-  return await entityShow.run({ id: "1" }, ctx);
+  return await entityShow.blaze({ id: "1" }, ctx);
 }`;
 
     const diagnostics = noDirectImplementationCall.check(
@@ -70,7 +70,7 @@ export async function run() {
 
   test('ignores implementation references inside template strings', () => {
     const code = `
-const generated = \`const result = await entityShow.run({ id: "1" }, ctx);\`;
+const generated = \`const result = await entityShow.blaze({ id: "1" }, ctx);\`;
 `;
 
     const diagnostics = noDirectImplementationCall.check(

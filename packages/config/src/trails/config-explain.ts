@@ -7,7 +7,7 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { configService } from '../config-service.js';
+import { configProvision } from '../config-provision.js';
 import type { ExplainConfigOptions } from '../explain.js';
 import { explainConfig } from '../explain.js';
 import type { ConfigState } from '../registry.js';
@@ -34,7 +34,7 @@ const filterByPath = (
       )
     : entries;
 
-/** Build ExplainConfigOptions from ConfigState, omitting undefined layers. */
+/** Build ExplainConfigOptions from ConfigState, omitting undefined source overrides. */
 const toExplainOptions = (
   state: ConfigState
 ): ExplainConfigOptions<typeof state.schema> => {
@@ -48,7 +48,7 @@ const toExplainOptions = (
   return base;
 };
 
-/** Enrich explain options with env and layer overrides from state. */
+/** Enrich explain options with env and source overrides from state. */
 const enrichOptions = (
   state: ConfigState,
   options: ExplainConfigOptions<typeof state.schema>
@@ -67,6 +67,13 @@ const enrichOptions = (
 };
 
 export const configExplain = trail('config.explain', {
+  blaze: (input, ctx) => {
+    const state = configProvision.from(ctx);
+    const options = enrichOptions(state, toExplainOptions(state));
+    const entries = explainConfig(options);
+    const filtered = filterByPath(entries, input.path);
+    return Result.ok({ entries: [...filtered] });
+  },
   examples: [
     {
       input: {},
@@ -80,14 +87,7 @@ export const configExplain = trail('config.explain', {
       .default(''),
   }),
   intent: 'read',
-  metadata: { category: 'infrastructure' },
+  meta: { category: 'infrastructure' },
   output: outputSchema,
-  run: (input, ctx) => {
-    const state = configService.from(ctx);
-    const options = enrichOptions(state, toExplainOptions(state));
-    const entries = explainConfig(options);
-    const filtered = filterByPath(entries, input.path);
-    return Result.ok({ entries: [...filtered] });
-  },
-  services: [configService],
+  provisions: [configProvision],
 });

@@ -2,14 +2,14 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   Result,
-  SURFACE_KEY,
+  TRAILHEAD_KEY,
   ValidationError,
   executeTrail,
 } from '@ontrails/core';
 
-import type { AuthAdapter } from '../adapter.js';
-import { authService } from '../auth-service.js';
-import { createJwtAdapter } from '../adapters/jwt.js';
+import type { AuthConnector } from '../connectors/connector.js';
+import { authProvision } from '../auth-provision.js';
+import { createJwtConnector } from '../connectors/jwt.js';
 import type { Permit } from '../permit.js';
 import { authVerify } from '../trails/auth-verify.js';
 
@@ -55,15 +55,16 @@ const signJwt = async (
 
 const TEST_SECRET = 'test-secret-for-hmac-256';
 
-/** Create an AuthAdapter wired to a JWT secret. */
-const jwtAdapter = (): AuthAdapter => createJwtAdapter({ secret: TEST_SECRET });
+/** Create an AuthConnector wired to a JWT secret. */
+const jwtConnector = (): AuthConnector =>
+  createJwtConnector({ secret: TEST_SECRET });
 
-/** Execute auth.verify with a given adapter injected as the auth service. */
+/** Execute auth.verify with a given connector injected as the auth provision. */
 const runVerify = async (
   token: string,
-  adapter: AuthAdapter,
+  connector: AuthConnector,
   options?: {
-    surface?: 'http' | 'mcp' | 'cli';
+    trailhead?: 'http' | 'mcp' | 'cli';
   }
 ): Promise<
   Result<
@@ -91,10 +92,10 @@ const runVerify = async (
     { token },
     {
       ctx:
-        options?.surface === undefined
+        options?.trailhead === undefined
           ? undefined
-          : { extensions: { [SURFACE_KEY]: options.surface } },
-      services: { [authService.id]: adapter },
+          : { extensions: { [TRAILHEAD_KEY]: options.trailhead } },
+      provisions: { [authProvision.id]: connector },
     }
   );
   return result as Result<
@@ -124,8 +125,8 @@ describe('auth.verify trail', () => {
       expect(authVerify.intent).toBe('read');
     });
 
-    test('has infrastructure metadata', () => {
-      expect(authVerify.metadata).toEqual({ category: 'infrastructure' });
+    test('has infrastructure meta', () => {
+      expect(authVerify.meta).toEqual({ category: 'infrastructure' });
     });
 
     test('has examples', () => {
@@ -133,20 +134,20 @@ describe('auth.verify trail', () => {
       expect(authVerify.examples?.length).toBeGreaterThan(0);
     });
 
-    test('declares authService dependency', () => {
-      expect(authVerify.services).toHaveLength(1);
-      expect(authVerify.services[0]?.id).toBe('auth');
+    test('declares authProvision dependency', () => {
+      expect(authVerify.provisions).toHaveLength(1);
+      expect(authVerify.provisions[0]?.id).toBe('auth');
     });
   });
 
-  describe('with mock adapter (no credentials)', () => {
+  describe('with mock connector (no credentials)', () => {
     test('returns valid: false with error message', async () => {
-      const noopAdapter: AuthAdapter = {
+      const noopConnector: AuthConnector = {
         // oxlint-disable-next-line require-await -- satisfies async interface
         authenticate: async () => Result.ok(null),
       };
 
-      const result = await runVerify('some-token', noopAdapter);
+      const result = await runVerify('some-token', noopConnector);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -165,7 +166,7 @@ describe('auth.verify trail', () => {
         TEST_SECRET
       );
 
-      const result = await runVerify(token, jwtAdapter());
+      const result = await runVerify(token, jwtConnector());
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -177,7 +178,7 @@ describe('auth.verify trail', () => {
       expect(value.error).toBeUndefined();
     });
 
-    test('returns the full permit payload from the adapter', async () => {
+    test('returns the full permit payload from the connector', async () => {
       const permit: Permit = {
         id: 'user-42',
         metadata: { plan: 'pro' },
@@ -185,12 +186,12 @@ describe('auth.verify trail', () => {
         scopes: ['read', 'write'],
         tenantId: 'tenant-1',
       };
-      const adapter: AuthAdapter = {
+      const connector: AuthConnector = {
         // oxlint-disable-next-line require-await -- satisfies async interface
         authenticate: async () => Result.ok(permit),
       };
 
-      const result = await runVerify('full-permit-token', adapter);
+      const result = await runVerify('full-permit-token', connector);
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap().permit).toEqual({
@@ -202,12 +203,12 @@ describe('auth.verify trail', () => {
       });
     });
 
-    test('forwards the invoking surface from trail context', async () => {
-      let seenSurface: string | undefined;
-      const adapter: AuthAdapter = {
-        // oxlint-disable-next-line require-await -- captures adapter input
+    test('forwards the invoking trailhead from trail context', async () => {
+      let seenTrailhead: string | undefined;
+      const connector: AuthConnector = {
+        // oxlint-disable-next-line require-await -- captures connector input
         authenticate: async (input) => {
-          seenSurface = input.surface;
+          seenTrailhead = input.trailhead;
           return Result.ok({
             id: 'user-42',
             scopes: ['read'],
@@ -215,12 +216,12 @@ describe('auth.verify trail', () => {
         },
       };
 
-      const result = await runVerify('surface-aware-token', adapter, {
-        surface: 'mcp',
+      const result = await runVerify('trailhead-aware-token', connector, {
+        trailhead: 'mcp',
       });
 
       expect(result.isOk()).toBe(true);
-      expect(seenSurface).toBe('mcp');
+      expect(seenTrailhead).toBe('mcp');
     });
   });
 
@@ -232,7 +233,7 @@ describe('auth.verify trail', () => {
         'wrong-secret'
       );
 
-      const result = await runVerify(token, jwtAdapter());
+      const result = await runVerify(token, jwtConnector());
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -249,7 +250,7 @@ describe('auth.verify trail', () => {
         TEST_SECRET
       );
 
-      const result = await runVerify(token, jwtAdapter());
+      const result = await runVerify(token, jwtConnector());
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -266,7 +267,7 @@ describe('auth.verify trail', () => {
         authVerify,
         { token: '' },
         {
-          services: { [authService.id]: jwtAdapter() },
+          provisions: { [authProvision.id]: jwtConnector() },
         }
       );
 

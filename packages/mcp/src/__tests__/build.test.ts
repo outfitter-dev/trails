@@ -2,13 +2,13 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   Result,
-  SURFACE_KEY,
+  TRAILHEAD_KEY,
   createBlobRef,
-  service,
+  provision,
   trail,
   topo,
 } from '@ontrails/core';
-import type { Layer } from '@ontrails/core';
+import type { Gate } from '@ontrails/core';
 import { z } from 'zod';
 
 import { buildMcpTools } from '../build.js';
@@ -19,27 +19,28 @@ import type { McpExtra, McpToolDefinition } from '../build.js';
 // ---------------------------------------------------------------------------
 
 const echoTrail = trail('echo', {
+  blaze: (input) => Result.ok({ reply: input.message }),
   description: 'Echo a message back',
   input: z.object({ message: z.string() }),
   intent: 'read',
   output: z.object({ reply: z.string() }),
-  run: (input) => Result.ok({ reply: input.message }),
 });
 
 const deleteTrail = trail('item.delete', {
+  blaze: (_input) => Result.ok({ deleted: true }),
   description: 'Delete an item',
   input: z.object({ id: z.string() }),
   intent: 'destroy',
-  run: (_input) => Result.ok({ deleted: true }),
 });
 
 const failTrail = trail('fail', {
+  blaze: (input) => Result.err(new Error(input.reason)),
   description: 'Always fails',
   input: z.object({ reason: z.string() }),
-  run: (input) => Result.err(new Error(input.reason)),
 });
 
 const exampleTrail = trail('with.examples', {
+  blaze: (input) => Result.ok({ greeting: `hello ${input.name}` }),
   description: 'A trail with examples',
   examples: [
     {
@@ -49,10 +50,9 @@ const exampleTrail = trail('with.examples', {
     },
   ],
   input: z.object({ name: z.string() }),
-  run: (input) => Result.ok({ greeting: `hello ${input.name}` }),
 });
 
-const dbService = service('db.main', {
+const dbProvision = provision('db.main', {
   create: () =>
     Result.ok({
       source: 'factory',
@@ -82,7 +82,7 @@ const requireOnlyTool = (tools: McpToolDefinition[]) => {
 
 /**
  * Unwrap buildMcpTools result for success-path tests.
- * Throws if the result is an error so test failures surface clearly.
+ * Throws if the result is an error so test failures show up clearly.
  */
 const buildTools = (
   ...args: Parameters<typeof buildMcpTools>
@@ -203,10 +203,10 @@ describe('buildMcpTools', () => {
 
     test('handler catches thrown exceptions', async () => {
       const throwTrail = trail('throw', {
-        input: z.object({}),
-        run: () => {
+        blaze: () => {
           throw new Error('unexpected crash');
         },
+        input: z.object({}),
       });
 
       const tool = requireOnlyTool(buildTools(topo('myapp', { throwTrail })));
@@ -254,11 +254,11 @@ describe('buildMcpTools', () => {
   });
 
   describe('composition', () => {
-    test('layers compose and execute around the implementation', async () => {
+    test('gates compose and execute around the implementation', async () => {
       const calls: string[] = [];
 
-      const testLayer: Layer = {
-        name: 'test-layer',
+      const testGate: Gate = {
+        name: 'test-gate',
         wrap(_trail, impl) {
           return async (input, ctx) => {
             calls.push('before');
@@ -270,7 +270,7 @@ describe('buildMcpTools', () => {
       };
 
       const app = topo('myapp', { echoTrail });
-      const tool = requireOnlyTool(buildTools(app, { layers: [testLayer] }));
+      const tool = requireOnlyTool(buildTools(app, { gates: [testGate] }));
 
       await tool.handler({ message: 'hi' }, noExtra);
       expect(calls).toEqual(['before', 'after']);
@@ -280,17 +280,17 @@ describe('buildMcpTools', () => {
       let capturedSignal: AbortSignal | undefined;
 
       const signalTrail = trail('signal.check', {
-        input: z.object({}),
-        run: (_input, ctx) => {
-          capturedSignal = ctx.signal;
+        blaze: (_input, ctx) => {
+          capturedSignal = ctx.abortSignal;
           return Result.ok({ ok: true });
         },
+        input: z.object({}),
       });
 
       const controller = new AbortController();
       const tool = requireOnlyTool(buildTools(topo('myapp', { signalTrail })));
 
-      await tool.handler({}, { signal: controller.signal });
+      await tool.handler({}, { abortSignal: controller.signal });
       expect(capturedSignal).toBe(controller.signal);
     });
 
@@ -304,45 +304,45 @@ describe('buildMcpTools', () => {
 
     test('custom createContext is used when provided', async () => {
       let contextUsed = false;
-      let surfaceUsed = false;
+      let trailheadMarkerUsed = false;
 
       const ctxTrail = trail('ctx.check', {
-        input: z.object({}),
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           contextUsed = ctx.extensions?.['custom'] === true;
-          surfaceUsed = ctx.extensions?.[SURFACE_KEY] === 'mcp';
+          trailheadMarkerUsed = ctx.extensions?.[TRAILHEAD_KEY] === 'mcp';
           return Result.ok({ ok: true });
         },
+        input: z.object({}),
       });
 
       const app = topo('myapp', { ctxTrail });
       const tool = requireOnlyTool(
         buildTools(app, {
           createContext: () => ({
+            abortSignal: new AbortController().signal,
             extensions: { custom: true },
             requestId: 'test-id',
-            signal: new AbortController().signal,
           }),
         })
       );
 
       await tool.handler({}, noExtra);
       expect(contextUsed).toBe(true);
-      expect(surfaceUsed).toBe(true);
+      expect(trailheadMarkerUsed).toBe(true);
     });
 
-    test('service overrides are forwarded to executeTrail', async () => {
-      const serviceTrail = trail('service.check', {
+    test('provision overrides are forwarded to executeTrail', async () => {
+      const provisionTrail = trail('provision.check', {
+        blaze: (_input, ctx) =>
+          Result.ok({ source: dbProvision.from(ctx).source as string }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
-        run: (_input, ctx) =>
-          Result.ok({ source: dbService.from(ctx).source as string }),
-        services: [dbService],
+        provisions: [dbProvision],
       });
 
       const tool = requireOnlyTool(
-        buildTools(topo('myapp', { serviceTrail }), {
-          services: { 'db.main': { source: 'override' } },
+        buildTools(topo('myapp', { provisionTrail }), {
+          provisions: { 'db.main': { source: 'override' } },
         })
       );
 
@@ -357,8 +357,7 @@ describe('buildMcpTools', () => {
   describe('blob outputs', () => {
     test('BlobRef output converts to image content', async () => {
       const blobTrail = trail('blob.image', {
-        input: z.object({}),
-        run: () =>
+        blaze: () =>
           Result.ok(
             createBlobRef({
               data: new Uint8Array([1, 2, 3]),
@@ -367,6 +366,7 @@ describe('buildMcpTools', () => {
               size: 3,
             })
           ),
+        input: z.object({}),
       });
 
       const tool = requireOnlyTool(buildTools(topo('myapp', { blobTrail })));
@@ -379,8 +379,7 @@ describe('buildMcpTools', () => {
 
     test('BlobRef output converts to resource content for non-images', async () => {
       const blobTrail = trail('blob.file', {
-        input: z.object({}),
-        run: () =>
+        blaze: () =>
           Result.ok(
             createBlobRef({
               data: new Uint8Array([1, 2, 3]),
@@ -389,6 +388,7 @@ describe('buildMcpTools', () => {
               size: 3,
             })
           ),
+        input: z.object({}),
       });
 
       const tool = requireOnlyTool(buildTools(topo('myapp', { blobTrail })));
@@ -408,8 +408,7 @@ describe('buildMcpTools', () => {
         },
       });
       const blobTrail = trail('blob.stream', {
-        input: z.object({}),
-        run: () =>
+        blaze: () =>
           Result.ok(
             createBlobRef({
               data: stream,
@@ -418,6 +417,7 @@ describe('buildMcpTools', () => {
               size: 3,
             })
           ),
+        input: z.object({}),
       });
 
       const tool = requireOnlyTool(buildTools(topo('myapp', { blobTrail })));
@@ -432,12 +432,12 @@ describe('buildMcpTools', () => {
   describe('tool-name collision detection', () => {
     test('returns Err on trails that produce the same derived tool name', () => {
       const dotTrail = trail('foo.bar', {
+        blaze: () => Result.ok({ ok: true }),
         input: z.object({}),
-        run: () => Result.ok({ ok: true }),
       });
       const underscoreTrail = trail('foo_bar', {
+        blaze: () => Result.ok({ ok: true }),
         input: z.object({}),
-        run: () => Result.ok({ ok: true }),
       });
 
       const app = topo('myapp', { dotTrail, underscoreTrail });
@@ -448,12 +448,12 @@ describe('buildMcpTools', () => {
 
     test('returns Err on trails where hyphen and underscore collide', () => {
       const hyphenTrail = trail('foo-bar', {
+        blaze: () => Result.ok({ ok: true }),
         input: z.object({}),
-        run: () => Result.ok({ ok: true }),
       });
       const underscoreTrail = trail('foo_bar', {
+        blaze: () => Result.ok({ ok: true }),
         input: z.object({}),
-        run: () => Result.ok({ ok: true }),
       });
 
       const app = topo('myapp', { hyphenTrail, underscoreTrail });
@@ -464,12 +464,12 @@ describe('buildMcpTools', () => {
 
     test('returns Ok when trail names are distinct after normalization', () => {
       const fooTrail = trail('foo', {
+        blaze: () => Result.ok({ ok: true }),
         input: z.object({}),
-        run: () => Result.ok({ ok: true }),
       });
       const barTrail = trail('bar', {
+        blaze: () => Result.ok({ ok: true }),
         input: z.object({}),
-        run: () => Result.ok({ ok: true }),
       });
 
       const app = topo('myapp', { barTrail, fooTrail });
@@ -481,12 +481,12 @@ describe('buildMcpTools', () => {
   describe('end-to-end', () => {
     test('full pipeline from trail to MCP response', async () => {
       const greetTrail = trail('greet', {
+        blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
         description: 'Greet someone',
         idempotent: true,
         input: z.object({ name: z.string() }),
         intent: 'read',
         output: z.object({ greeting: z.string() }),
-        run: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
       });
 
       const tool = requireOnlyTool(buildTools(topo('testapp', { greetTrail })));

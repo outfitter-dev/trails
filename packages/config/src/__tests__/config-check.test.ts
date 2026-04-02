@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createServiceLookup } from '@ontrails/core';
+import { createProvisionLookup } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -7,22 +7,22 @@ import { configCheck } from '../trails/config-check.js';
 import type { ConfigState } from '../registry.js';
 
 /**
- * Build a TrailContext with configService resolved in extensions.
+ * Build a TrailContext with configProvision resolved in extensions.
  */
 const buildCtx = (state: ConfigState): TrailContext => {
   const extensions = { config: state };
   const ctx: TrailContext = {
+    abortSignal: AbortSignal.timeout(5000),
     cwd: '/tmp',
     env: {},
     extensions,
+    provision: undefined as unknown as TrailContext['provision'],
     requestId: 'test',
-    service: undefined as unknown as TrailContext['service'],
-    signal: AbortSignal.timeout(5000),
     workspaceRoot: '/tmp',
   };
   const withLookup = {
     ...ctx,
-    service: createServiceLookup(() => withLookup),
+    provision: createProvisionLookup(() => withLookup),
   };
   return withLookup;
 };
@@ -41,17 +41,17 @@ describe('config.check trail', () => {
       expect(configCheck.intent).toBe('read');
     });
 
-    test('has infrastructure metadata', () => {
-      expect(configCheck.metadata).toEqual({ category: 'infrastructure' });
+    test('has infrastructure meta', () => {
+      expect(configCheck.meta).toEqual({ category: 'infrastructure' });
     });
 
     test('has output schema', () => {
       expect(configCheck.output).toBeDefined();
     });
 
-    test('declares configService dependency', () => {
-      expect(configCheck.services).toBeDefined();
-      expect(configCheck.services?.length).toBe(1);
+    test('declares configProvision dependency', () => {
+      expect(configCheck.provisions).toBeDefined();
+      expect(configCheck.provisions?.length).toBe(1);
     });
   });
 
@@ -72,7 +72,7 @@ describe('config.check trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configCheck.run({ values: {} }, ctx);
+      const result = await configCheck.blaze({ values: {} }, ctx);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -90,7 +90,7 @@ describe('config.check trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configCheck.run({ values: {} }, ctx);
+      const result = await configCheck.blaze({ values: {} }, ctx);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -108,7 +108,7 @@ describe('config.check trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configCheck.run({ values: { port: 8080 } }, ctx);
+      const result = await configCheck.blaze({ values: { port: 8080 } }, ctx);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -129,7 +129,7 @@ describe('config.check trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configCheck.run(
+      const result = await configCheck.blaze(
         { values: { db: { port: 6543 } } },
         ctx
       );
@@ -159,7 +159,7 @@ describe('config.check trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configCheck.run({ values: {} }, ctx);
+      const result = await configCheck.blaze({ values: {} }, ctx);
 
       expect(result.isOk()).toBe(true);
       const defaults = result

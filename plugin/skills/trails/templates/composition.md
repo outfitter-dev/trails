@@ -1,6 +1,6 @@
 # Composite Trail Template
 
-Annotated skeleton for composing trails via `follow`. Copy, rename, fill in.
+Annotated skeleton for composing trails via `cross`. Copy, rename, fill in.
 
 ```typescript
 import { trail, Result } from '@ontrails/core';
@@ -14,19 +14,19 @@ export const myComposite = trail('namespace.compound-verb', {
   // What this trail accomplishes by composing other trails.
   description: 'Create an entity and verify it appears in search',
 
-  // --- Declare followed trails ---
-  // List every trail this trail calls via ctx.follow().
-  // The warden verifies these match actual ctx.follow() calls.
-  follow: ['namespace.first', 'namespace.second'],
+  // --- Declare downstream trails ---
+  // List every trail this trail calls via ctx.cross().
+  // The warden verifies these match actual ctx.cross() calls.
+  crosses: ['namespace.first', 'namespace.second'],
 
-  // --- Services (optional) ---
-  // Declare services the composite trail needs directly.
-  // Followed trails declare their own services independently.
-  // services: [db],
+  // --- Provisions (optional) ---
+  // Declare provisions the composite trail needs directly.
+  // Crossed trails declare their own provisions independently.
+  // provisions: [db],
 
   // --- Input schema ---
-  // The trail's own input — may differ from followed trails' inputs.
-  // The trail maps its input to each followed trail's expected shape.
+  // The trail's own input — may differ from downstream trails' inputs.
+  // The trail maps its input to each downstream trail's expected shape.
   input: z.object({
     name: z.string().describe('Name for the new entity'),
     type: z.string().describe('Entity type'),
@@ -34,7 +34,7 @@ export const myComposite = trail('namespace.compound-verb', {
   }),
 
   // --- Output schema ---
-  // The trail's own output — typically combines results from followed trails.
+  // The trail's own output — typically combines results from downstream trails.
   output: z.object({
     entity: z.object({
       id: z.string(),
@@ -55,12 +55,12 @@ export const myComposite = trail('namespace.compound-verb', {
   ],
 
   // --- Run ---
-  // Compose trails through ctx.follow() — never call .run() directly.
+  // Compose trails through ctx.cross() — never call .run() directly.
   // Always await, always check isErr() before accessing .value.
-  run: async (input, ctx) => {
-    // Step 1: Follow the first trail
+  blaze: async (input, ctx) => {
+    // Step 1: Cross the first trail
     // Type the generic when you need the return shape.
-    const first = await ctx.follow<{
+    const first = await ctx.cross<{
       id: string;
       name: string;
       type: string;
@@ -73,8 +73,8 @@ export const myComposite = trail('namespace.compound-verb', {
     // Propagate errors — don't swallow them.
     if (first.isErr()) return first;
 
-    // Step 2: Follow the second trail, using results from the first
-    const second = await ctx.follow<{
+    // Step 2: Cross the second trail, using results from the first
+    const second = await ctx.cross<{
       results: { id: string; name: string }[];
       total: number;
     }>('namespace.second', {
@@ -87,7 +87,7 @@ export const myComposite = trail('namespace.compound-verb', {
     // Option B: degrade gracefully (soft failure)
     const verified = second.isOk() && second.value.total > 0;
 
-    // Combine results from followed trails into the output shape.
+    // Combine results from downstream trails into the output shape.
     return Result.ok({
       entity: {
         id: first.value.id,
@@ -105,23 +105,23 @@ export const myComposite = trail('namespace.compound-verb', {
 **Sequential** — each step depends on the previous:
 
 ```typescript
-const a = await ctx.follow('step.one', input);
+const a = await ctx.cross('step.one', input);
 if (a.isErr()) return a;
-const b = await ctx.follow('step.two', { id: a.value.id });
+const b = await ctx.cross('step.two', { id: a.value.id });
 ```
 
 **Parallel** — independent steps run concurrently:
 
 ```typescript
 const [a, b] = await Promise.all([
-  ctx.follow('step.one', { name }),
-  ctx.follow('step.two', { name }),
+  ctx.cross('step.one', { name }),
+  ctx.cross('step.two', { name }),
 ]);
 ```
 
 **Graceful degradation** — non-critical steps can fail without failing the trail:
 
 ```typescript
-const optional = await ctx.follow('step.enrich', data);
+const optional = await ctx.cross('step.enrich', data);
 const enriched = optional.isOk() ? optional.value : null;
 ```

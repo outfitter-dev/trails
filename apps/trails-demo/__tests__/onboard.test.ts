@@ -15,7 +15,7 @@ import {
 import { expectErr } from '@ontrails/testing';
 import type { Trail, TrailContext } from '@ontrails/core';
 
-import { entityStoreService } from '../src/services/entity-store.js';
+import { entityStoreProvision } from '../src/provisions/entity-store.js';
 import type { EntityStore } from '../src/store.js';
 import { createStore } from '../src/store.js';
 import { add } from '../src/trails/entity.js';
@@ -23,13 +23,13 @@ import { onboard } from '../src/trails/onboard.js';
 import { search } from '../src/trails/search.js';
 
 // ---------------------------------------------------------------------------
-// Helper: create a follow function that dispatches to real trail impls
+// Helper: create a cross function that dispatches to real trail impls
 // ---------------------------------------------------------------------------
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyTrail = Trail<any, any>;
 
-const createFollowFn = (ctx: TrailContext) => {
+const createCrossFn = (ctx: TrailContext) => {
   const trailMap = new Map<string, AnyTrail>([
     ['entity.add', add],
     ['search', search],
@@ -44,15 +44,15 @@ const createFollowFn = (ctx: TrailContext) => {
     if (validated.isErr()) {
       return validated as Result<O, Error>;
     }
-    return (await t.run(validated.value, ctx)) as Result<O, Error>;
+    return (await t.blaze(validated.value, ctx)) as Result<O, Error>;
   };
 };
 
 const makeCtx = (store: EntityStore): TrailContext => {
   const base = createTrailContext({
-    extensions: { [entityStoreService.id]: store },
+    extensions: { [entityStoreProvision.id]: store },
   });
-  const ctx: TrailContext = { ...base, follow: createFollowFn(base) };
+  const ctx: TrailContext = { ...base, cross: createCrossFn(base) };
   return ctx;
 };
 
@@ -73,7 +73,7 @@ describe('entity.onboard', () => {
     expect(validated.isOk()).toBe(true);
     const input = validated.unwrap();
 
-    const result = await onboard.run(input, ctx);
+    const result = await onboard.blaze(input, ctx);
     expect(result.isOk()).toBe(true);
     const value = result.unwrap();
     expect(value.entity.name).toBe('Epsilon');
@@ -93,7 +93,7 @@ describe('entity.onboard', () => {
     expect(validated.isOk()).toBe(true);
     const input = validated.unwrap();
 
-    const result = await onboard.run(input, ctx);
+    const result = await onboard.blaze(input, ctx);
     expect(result.isErr()).toBe(true);
     const error = expectErr(result);
     expect(error).toBeInstanceOf(AlreadyExistsError);

@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, service, topo, trail } from '@ontrails/core';
+import { Result, provision, topo, trail } from '@ontrails/core';
 import {
-  generateSurfaceMap,
-  hashSurfaceMap,
-  diffSurfaceMaps,
+  generateTrailheadMap,
+  hashTrailheadMap,
+  diffTrailheadMaps,
 } from '@ontrails/schema';
-import type { SurfaceMap } from '@ontrails/schema';
+import type { TrailheadMap } from '@ontrails/schema';
 import { z } from 'zod';
 
 import {
@@ -25,6 +25,10 @@ import type {
 // ---------------------------------------------------------------------------
 
 const helloTrail = trail('hello', {
+  blaze: (input) => {
+    const name = input.name ?? 'world';
+    return Result.ok({ message: `Hello, ${name}!` });
+  },
   description: 'Say hello',
   detours: {
     NotFoundError: ['search'],
@@ -39,32 +43,28 @@ const helloTrail = trail('hello', {
   input: z.object({ name: z.string().optional() }),
   intent: 'read',
   output: z.object({ message: z.string() }),
-  run: (input) => {
-    const name = input.name ?? 'world';
-    return Result.ok({ message: `Hello, ${name}!` });
-  },
-  services: [
-    service('db.main', {
+  provisions: [
+    provision('db.main', {
       create: () => Result.ok({ source: 'factory' }),
     }),
   ],
 });
 
 const byeTrail = trail('bye', {
+  blaze: (input) => Result.ok({ message: `Goodbye, ${input.name}!` }),
   description: 'Say goodbye',
   input: z.object({ name: z.string() }),
   output: z.object({ message: z.string() }),
-  run: (input) => Result.ok({ message: `Goodbye, ${input.name}!` }),
 });
 
-const [dbService] = helloTrail.services;
-if (!dbService) {
+const [dbProvision] = helloTrail.provisions;
+if (!dbProvision) {
   throw new Error('Expected helloTrail to declare db.main');
 }
 
 const app = topo('test-app', {
   bye: byeTrail,
-  dbService,
+  dbProvision,
   hello: helloTrail,
 });
 
@@ -73,46 +73,46 @@ const app = topo('test-app', {
 // ---------------------------------------------------------------------------
 
 describe('trails survey', () => {
-  test('generateSurfaceMap includes all trails', () => {
-    const surfaceMap = generateSurfaceMap(app);
-    expect(surfaceMap.entries.length).toBe(3);
-    const ids = surfaceMap.entries.map((e) => e.id);
+  test('generateTrailheadMap includes all trails', () => {
+    const trailheadMap = generateTrailheadMap(app);
+    expect(trailheadMap.entries.length).toBe(3);
+    const ids = trailheadMap.entries.map((e) => e.id);
     expect(ids).toContain('hello');
     expect(ids).toContain('bye');
     expect(ids).toContain('db.main');
   });
 
-  test('surface map entries have expected fields', () => {
-    const surfaceMap = generateSurfaceMap(app);
-    const hello = surfaceMap.entries.find((e) => e.id === 'hello');
+  test('trailhead map entries have expected fields', () => {
+    const trailheadMap = generateTrailheadMap(app);
+    const hello = trailheadMap.entries.find((e) => e.id === 'hello');
     expect(hello).toBeDefined();
     expect(hello?.kind).toBe('trail');
     expect(hello?.intent).toBe('read');
     expect(hello?.exampleCount).toBe(1);
-    expect(hello?.services).toEqual(['db.main']);
+    expect(hello?.provisions).toEqual(['db.main']);
   });
 
   test('JSON output is valid JSON', () => {
-    const surfaceMap = generateSurfaceMap(app);
-    const json = JSON.stringify(surfaceMap, null, 2);
-    const parsed = JSON.parse(json) as SurfaceMap;
+    const trailheadMap = generateTrailheadMap(app);
+    const json = JSON.stringify(trailheadMap, null, 2);
+    const parsed = JSON.parse(json) as TrailheadMap;
     expect(parsed.version).toBe('1.0');
     expect(parsed.entries.length).toBe(3);
   });
 
-  test('hashSurfaceMap produces stable hash', () => {
-    const surfaceMap = generateSurfaceMap(app);
-    const hash1 = hashSurfaceMap(surfaceMap);
-    const hash2 = hashSurfaceMap(surfaceMap);
+  test('hashTrailheadMap produces stable hash', () => {
+    const trailheadMap = generateTrailheadMap(app);
+    const hash1 = hashTrailheadMap(trailheadMap);
+    const hash2 = hashTrailheadMap(trailheadMap);
     expect(hash1).toBe(hash2);
     // SHA-256 hex
     expect(hash1.length).toBe(64);
   });
 
-  test('diffSurfaceMaps detects added trails', () => {
-    const prev = generateSurfaceMap(topo('test', { hello: helloTrail }));
-    const curr = generateSurfaceMap(app);
-    const diff = diffSurfaceMaps(prev, curr);
+  test('diffTrailheadMaps detects added trails', () => {
+    const prev = generateTrailheadMap(topo('test', { hello: helloTrail }));
+    const curr = generateTrailheadMap(app);
+    const diff = diffTrailheadMaps(prev, curr);
 
     expect(diff.info.length).toBeGreaterThan(0);
     const addedBye = diff.info.find((e) => e.id === 'bye');
@@ -120,10 +120,10 @@ describe('trails survey', () => {
     expect(addedBye?.change).toBe('added');
   });
 
-  test('diffSurfaceMaps detects removed trails', () => {
-    const prev = generateSurfaceMap(app);
-    const curr = generateSurfaceMap(topo('test', { hello: helloTrail }));
-    const diff = diffSurfaceMaps(prev, curr);
+  test('diffTrailheadMaps detects removed trails', () => {
+    const prev = generateTrailheadMap(app);
+    const curr = generateTrailheadMap(topo('test', { hello: helloTrail }));
+    const diff = diffTrailheadMaps(prev, curr);
 
     expect(diff.hasBreaking).toBe(true);
     const removedBye = diff.breaking.find((e) => e.id === 'bye');
@@ -131,9 +131,9 @@ describe('trails survey', () => {
     expect(removedBye?.change).toBe('removed');
   });
 
-  test('diffSurfaceMaps returns empty for identical maps', () => {
-    const map = generateSurfaceMap(app);
-    const diff = diffSurfaceMaps(map, map);
+  test('diffTrailheadMaps returns empty for identical maps', () => {
+    const trailheadMap = generateTrailheadMap(app);
+    const diff = diffTrailheadMaps(trailheadMap, trailheadMap);
     expect(diff.entries.length).toBe(0);
     expect(diff.hasBreaking).toBe(false);
   });
@@ -153,8 +153,8 @@ describe('trails survey --brief', () => {
   test('report includes correct trail count', () => {
     const report = generateBriefReport(app);
     expect(report.trails).toBe(2);
-    expect(report.events).toBe(0);
-    expect(report.services).toBe(1);
+    expect(report.signals).toBe(0);
+    expect(report.provisions).toBe(1);
   });
 
   test('detects features in use', () => {
@@ -162,8 +162,8 @@ describe('trails survey --brief', () => {
     expect(report.features.outputSchemas).toBe(true);
     expect(report.features.examples).toBe(true);
     expect(report.features.detours).toBe(true);
-    expect(report.features.events).toBe(false);
-    expect(report.features.services).toBe(true);
+    expect(report.features.signals).toBe(false);
+    expect(report.features.provisions).toBe(true);
   });
 
   test('JSON output is valid', () => {
@@ -172,7 +172,7 @@ describe('trails survey --brief', () => {
     const parsed = JSON.parse(json) as BriefReport;
     expect(parsed.name).toBe('test-app');
     expect(parsed.trails).toBe(2);
-    expect(parsed.services).toBe(1);
+    expect(parsed.provisions).toBe(1);
   });
 
   test('empty app reports zero features', () => {
@@ -182,33 +182,33 @@ describe('trails survey --brief', () => {
     expect(report.features.outputSchemas).toBe(false);
     expect(report.features.examples).toBe(false);
     expect(report.features.detours).toBe(false);
-    expect(report.features.services).toBe(false);
+    expect(report.features.provisions).toBe(false);
   });
 });
 
 describe('trails survey detail', () => {
-  test('trail detail includes declared services, follow, and intent', () => {
+  test('trail detail includes declared provisions, crossings, and intent', () => {
     const detail = generateTrailDetail(helloTrail);
     const parsed = structuredClone(detail) as TrailDetailReport;
 
-    expect(parsed.follow).toEqual([]);
+    expect(parsed.crosses).toEqual([]);
     expect(parsed.intent).toBe('read');
-    expect(parsed.services).toEqual(['db.main']);
+    expect(parsed.provisions).toEqual(['db.main']);
   });
 });
 
-describe('trails survey services section', () => {
-  test('list output includes service lifetime and health status', () => {
+describe('trails survey provisions section', () => {
+  test('list output includes provision lifetime and health status', () => {
     const report = generateSurveyList(app);
     const parsed = structuredClone(report) as SurveyListReport;
-    const db = parsed.services.find((entry) => entry.id === 'db.main');
+    const db = parsed.provisions.find((entry) => entry.id === 'db.main');
 
-    expect(parsed.serviceCount).toBe(1);
+    expect(parsed.provisionCount).toBe(1);
     expect(db).toEqual({
       description: null,
       health: 'none',
       id: 'db.main',
-      kind: 'service',
+      kind: 'provision',
       lifetime: 'singleton',
       usedBy: ['hello'],
     });

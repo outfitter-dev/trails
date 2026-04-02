@@ -3,15 +3,15 @@
  *
  * Iterates every trail in the app's topo. For each trail with examples,
  * generates describe/test blocks using bun:test. Progressive assertion
- * determines which check to run per example. For trails with `follow`
- * declarations, checks that every declared follow was called at least once.
+ * determines which check to run per example. For trails with `crosses`
+ * declarations, checks that every declared crossing was called at least once.
  */
 
 import { describe, expect, test } from 'bun:test';
 
 import type {
-  FollowFn,
-  ServiceOverrideMap,
+  CrossFn,
+  ProvisionOverrideMap,
   Topo,
   TrailExample,
   Trail,
@@ -46,10 +46,10 @@ import {
 } from './assertions.js';
 import {
   defaultMintPermit,
-  mergeServiceOverrides,
+  mergeProvisionOverrides,
   mergeTestContext,
   normalizeTestExecutionOptions,
-  resolveMockServices,
+  resolveMockProvisions,
 } from './context.js';
 import type { MintableTrail, TestExecutionOptions } from './context.js';
 
@@ -160,7 +160,7 @@ const runExample = async (
   example: TrailExample<unknown, unknown>,
   output: z.ZodType | undefined,
   testCtx: TrailContext,
-  services?: ServiceOverrideMap,
+  provisions?: ProvisionOverrideMap,
   opts?: TestExecutionOptions
 ): Promise<void> => {
   const validated = validateInput(t.input, example.input);
@@ -173,51 +173,51 @@ const runExample = async (
 
   const result = await executeTrail(t, example.input, {
     ctx,
-    services,
+    provisions: provisions ?? opts?.provisions,
   });
   assertProgressiveMatch(result, example, output);
 };
 
 // ---------------------------------------------------------------------------
-// Follow coverage for composition trails
+// Crossing coverage for trails with crossings
 // ---------------------------------------------------------------------------
 
 /**
- * Build a recording follow function that tracks which trail IDs are called.
+ * Build a recording cross function that tracks which trail IDs are called.
  *
- * Delegates to `baseFollow` when available, otherwise looks up the trail
+ * Delegates to `baseCross` when available, otherwise looks up the trail
  * in the topo and executes it with validated input. Falls back to
  * `Result.ok()` when neither is available.
  */
-const createCoverageFollow = (
+const createCoverageCross = (
   called: Set<string>,
-  baseFollow: FollowFn | undefined,
+  baseCross: CrossFn | undefined,
   topo: Topo,
   ctx: TrailContext,
-  services?: ServiceOverrideMap
-): FollowFn => {
-  const follow = (id: string, input: unknown) => {
+  provisions?: ProvisionOverrideMap
+): CrossFn => {
+  const cross = (id: string, input: unknown) => {
     called.add(id);
 
-    if (baseFollow !== undefined) {
-      return baseFollow(id, input);
+    if (baseCross !== undefined) {
+      return baseCross(id, input);
     }
 
     const trailDef = topo.get(id);
     if (trailDef !== undefined) {
       return executeTrail(trailDef, input, {
-        ctx: { ...ctx, follow },
-        services,
+        ctx: { ...ctx, cross },
+        provisions,
       });
     }
 
     return Promise.resolve(Result.ok());
   };
-  return follow as FollowFn;
+  return cross as CrossFn;
 };
 
 /**
- * Run a single example against a composition trail, recording follow calls.
+ * Run a single example against a trail with crossings, recording cross calls.
  */
 const runCompositionExample = async (
   trailDef: Trail<unknown, unknown>,
@@ -226,7 +226,7 @@ const runCompositionExample = async (
   baseCtx: TrailContext,
   called: Set<string>,
   topo: Topo,
-  services?: ServiceOverrideMap,
+  provisions?: ProvisionOverrideMap,
   opts?: TestExecutionOptions
 ): Promise<void> => {
   const validated = validateInput(trailDef.input, example.input);
@@ -236,18 +236,18 @@ const runCompositionExample = async (
   }
 
   const mintedCtx = opts ? applyAutoMint(baseCtx, trailDef, opts) : baseCtx;
-  const follow = createCoverageFollow(
+  const cross = createCoverageCross(
     called,
-    mintedCtx.follow,
+    mintedCtx.cross,
     topo,
     mintedCtx,
-    services
+    provisions
   );
-  const testCtx: TrailContext = { ...mintedCtx, follow };
+  const testCtx: TrailContext = { ...mintedCtx, cross };
 
   const result = await executeTrail(trailDef, example.input, {
     ctx: testCtx,
-    services,
+    provisions: provisions ?? opts?.provisions,
   });
   assertProgressiveMatch(result, example, output);
 };
@@ -259,8 +259,8 @@ const runCompositionExample = async (
 /**
  * Generate describe/test blocks for every trail example in the app.
  *
- * For trails with `follow` declarations and examples, also verifies that
- * every declared follow ID was called at least once across all examples.
+ * For trails with `crosses` declarations and examples, also verifies that
+ * every declared crossed ID was called at least once across all examples.
  *
  * One line in your test file:
  * ```ts
@@ -281,8 +281,8 @@ export const testExamples = (
   const withExamples = allTrails.filter(
     (t) => t.examples !== undefined && t.examples.length > 0
   );
-  const simpleTrails = withExamples.filter((t) => t.follow.length === 0);
-  const compositionTrails = withExamples.filter((t) => t.follow.length > 0);
+  const simpleTrails = withExamples.filter((t) => t.crosses.length === 0);
+  const compositionTrails = withExamples.filter((t) => t.crosses.length > 0);
 
   // Simple trails: run examples directly
   if (simpleTrails.length > 0) {
@@ -296,19 +296,19 @@ export const testExamples = (
         'example: $name',
         async (example: TrailExample<unknown, unknown>) => {
           const resolved = normalizeTestExecutionOptions(resolveInput());
-          const services = mergeServiceOverrides(
-            await resolveMockServices(app),
+          const provisions = mergeProvisionOverrides(
+            await resolveMockProvisions(app),
             resolved.ctx,
-            resolved.services
+            resolved.provisions
           );
           const testCtx = mergeTestContext(resolved.ctx);
-          await runExample(t, example, output, testCtx, services, resolved);
+          await runExample(t, example, output, testCtx, provisions, resolved);
         }
       );
     });
   }
 
-  // Composition trails: use recording follow and check coverage
+  // Composition trails: use recording cross and check coverage
   if (compositionTrails.length > 0) {
     describe.each(compositionTrails)('$id', (t) => {
       const { examples, output } = t;
@@ -322,10 +322,10 @@ export const testExamples = (
         'example: $name',
         async (example: TrailExample<unknown, unknown>) => {
           const resolved = normalizeTestExecutionOptions(resolveInput());
-          const services = mergeServiceOverrides(
-            await resolveMockServices(app),
+          const provisions = mergeProvisionOverrides(
+            await resolveMockProvisions(app),
             resolved.ctx,
-            resolved.services
+            resolved.provisions
           );
           const baseCtx = mergeTestContext(resolved.ctx);
           await runCompositionExample(
@@ -335,14 +335,14 @@ export const testExamples = (
             baseCtx,
             called,
             app,
-            services,
+            provisions,
             resolved
           );
         }
       );
 
-      test('follow coverage', () => {
-        const uncovered = t.follow.filter((id) => !called.has(id));
+      test('crossing coverage', () => {
+        const uncovered = t.crosses.filter((id) => !called.has(id));
         expect(uncovered).toEqual([]);
       });
     });

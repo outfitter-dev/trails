@@ -21,7 +21,7 @@ describe('runWarden', () => {
       writeFileSync(
         join(dir, 'bad.ts'),
         `trail("entity.show", {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     throw new Error("boom");
   }
 })`
@@ -41,7 +41,7 @@ describe('runWarden', () => {
       writeFileSync(
         join(dir, 'good.ts'),
         `trail("entity.show", {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     return Result.ok(data);
   }
 })`
@@ -72,7 +72,7 @@ describe('runWarden', () => {
       // Even with bad code, driftOnly should produce 0 diagnostics
       writeFileSync(
         join(dir, 'bad.ts'),
-        `trail("x", { run: async () => { throw new Error("x"); } })`
+        `trail("x", { blaze: async () => { throw new Error("x"); } })`
       );
       const report = await runWarden({ driftOnly: true, rootDir: dir });
       expect(report.diagnostics.length).toBe(0);
@@ -89,7 +89,7 @@ describe('runWarden', () => {
         join(dir, 'show.ts'),
         `trail("entity.show", {
   detours: { NotFoundError: ["entity.search"] },
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     return Result.ok(data);
   }
 })`
@@ -97,7 +97,7 @@ describe('runWarden', () => {
       writeFileSync(
         join(dir, 'search.ts'),
         `trail("entity.search", {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     return Result.ok(data);
   }
 })`
@@ -121,7 +121,7 @@ describe('runWarden', () => {
         join(dir, 'show.ts'),
         `trail("entity.show", {
   detours: { NotFoundError: ["entity.search"] },
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     return Result.ok(data);
   }
 })`
@@ -129,7 +129,7 @@ describe('runWarden', () => {
       writeFileSync(
         join(dir, 'search.ts'),
         `trail("entity.search", {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     throw new Error("boom");
   }
 })`
@@ -192,7 +192,7 @@ describe('formatWardenReport', () => {
       passed: false,
       warnCount: 0,
     });
-    expect(output).toContain('surface.lock is stale');
+    expect(output).toContain('trailhead.lock is stale');
     expect(output).toContain('Result: FAIL');
   });
 });

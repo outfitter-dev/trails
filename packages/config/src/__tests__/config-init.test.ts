@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createServiceLookup } from '@ontrails/core';
+import { createProvisionLookup } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -11,22 +11,22 @@ import type { ConfigState } from '../registry.js';
 import { configInit } from '../trails/config-init.js';
 
 /**
- * Build a TrailContext with configService resolved in extensions.
+ * Build a TrailContext with configProvision resolved in extensions.
  */
 const buildCtx = (state: ConfigState): TrailContext => {
   const extensions = { config: state };
   const ctx: TrailContext = {
+    abortSignal: AbortSignal.timeout(5000),
     cwd: '/tmp',
     env: {},
     extensions,
+    provision: undefined as unknown as TrailContext['provision'],
     requestId: 'test',
-    service: undefined as unknown as TrailContext['service'],
-    signal: AbortSignal.timeout(5000),
     workspaceRoot: '/tmp',
   };
   const withLookup = {
     ...ctx,
-    service: createServiceLookup(() => withLookup),
+    provision: createProvisionLookup(() => withLookup),
   };
   return withLookup;
 };
@@ -55,17 +55,17 @@ describe('config.init trail', () => {
       expect(configInit.intent).toBe('write');
     });
 
-    test('has infrastructure metadata', () => {
-      expect(configInit.metadata).toEqual({ category: 'infrastructure' });
+    test('has infrastructure meta', () => {
+      expect(configInit.meta).toEqual({ category: 'infrastructure' });
     });
 
     test('has output schema', () => {
       expect(configInit.output).toBeDefined();
     });
 
-    test('declares configService dependency', () => {
-      expect(configInit.services).toBeDefined();
-      expect(configInit.services?.length).toBe(1);
+    test('declares configProvision dependency', () => {
+      expect(configInit.provisions).toBeDefined();
+      expect(configInit.provisions?.length).toBe(1);
     });
   });
 
@@ -78,7 +78,7 @@ describe('config.init trail', () => {
   describe('wired behavior', () => {
     test('generates TOML output by default', async () => {
       const ctx = buildCtx(testState);
-      const result = await configInit.run({ format: 'toml' }, ctx);
+      const result = await configInit.blaze({ format: 'toml' }, ctx);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -90,7 +90,7 @@ describe('config.init trail', () => {
 
     test('generates JSON output when requested', async () => {
       const ctx = buildCtx(testState);
-      const result = await configInit.run({ format: 'json' }, ctx);
+      const result = await configInit.blaze({ format: 'json' }, ctx);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -101,7 +101,7 @@ describe('config.init trail', () => {
 
     test('generates YAML output when requested', async () => {
       const ctx = buildCtx(testState);
-      const result = await configInit.run({ format: 'yaml' }, ctx);
+      const result = await configInit.blaze({ format: 'yaml' }, ctx);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -111,7 +111,7 @@ describe('config.init trail', () => {
 
     test('generates JSONC output when requested', async () => {
       const ctx = buildCtx(testState);
-      const result = await configInit.run({ format: 'jsonc' }, ctx);
+      const result = await configInit.blaze({ format: 'jsonc' }, ctx);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -121,7 +121,7 @@ describe('config.init trail', () => {
 
     test('output content is non-empty for schema with fields', async () => {
       const ctx = buildCtx(testState);
-      const result = await configInit.run({ format: 'toml' }, ctx);
+      const result = await configInit.blaze({ format: 'toml' }, ctx);
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap().content.trim().length).toBeGreaterThan(0);
@@ -129,7 +129,7 @@ describe('config.init trail', () => {
 
     test('returns content without writtenFiles when dir is not provided', async () => {
       const ctx = buildCtx(testState);
-      const result = await configInit.run({ format: 'toml' }, ctx);
+      const result = await configInit.blaze({ format: 'toml' }, ctx);
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap().writtenFiles).toBeUndefined();
@@ -159,7 +159,7 @@ describe('config.init trail', () => {
 
     test('writes .schema.json when dir is provided', async () => {
       const ctx = buildCtx(envState);
-      const result = await configInit.run(
+      const result = await configInit.blaze(
         { dir: tempDir, format: 'toml' },
         ctx
       );
@@ -181,7 +181,7 @@ describe('config.init trail', () => {
 
     test('writes .env.example when schema has env bindings', async () => {
       const ctx = buildCtx(envState);
-      const result = await configInit.run(
+      const result = await configInit.blaze(
         { dir: tempDir, format: 'toml' },
         ctx
       );
@@ -196,7 +196,7 @@ describe('config.init trail', () => {
 
     test('still returns content alongside written files', async () => {
       const ctx = buildCtx(envState);
-      const result = await configInit.run(
+      const result = await configInit.blaze(
         { dir: tempDir, format: 'json' },
         ctx
       );

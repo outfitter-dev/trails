@@ -1,6 +1,6 @@
 # Getting Started
 
-Install the core packages, define your first trail, blaze it on CLI and MCP, and test it with one line.
+Install the core packages, define your first trail, open trailheads on CLI and MCP, and test it with one line.
 
 ## Installation
 
@@ -13,10 +13,10 @@ bunx @ontrails/trails create
 # Or install manually
 bun add @ontrails/core @ontrails/cli
 
-# Add Commander adapter (for the /commander subpath)
+# Add Commander connector (for the /commander subpath)
 bun add commander
 
-# Add MCP surface (optional)
+# Add MCP trailhead (optional)
 bun add @ontrails/mcp
 
 # Add testing (dev dependency)
@@ -53,7 +53,7 @@ export const greet = trail('greet', {
       expected: { message: 'HELLO, WORLD!' },
     },
   ],
-  run: (input) => {
+  blaze: (input) => {
     const message = `Hello, ${input.name}!`;
     return Result.ok({
       message: input.loud ? message.toUpperCase() : message,
@@ -68,7 +68,7 @@ What you get from this single definition:
 - CLI flags derived from the Zod schema: `--name <value>`, `--loud`
 - An MCP tool with JSON Schema input and annotations (`readOnlyHint: true`)
 - Two examples that serve as agent documentation AND test cases
-- Sync authoring for pure work, with the runtime normalized to one awaitable execution shape for layers and surfaces
+- Sync authoring for pure work, with the runtime normalized to one awaitable execution shape for gates and trailheads
 
 ## Collect Into a Topo
 
@@ -83,15 +83,15 @@ export const app = topo('myapp', greetModule);
 
 `topo()` scans the module exports for `Trail` shapes and builds the internal topo (the trail collection).
 
-## Blaze on CLI
+## Open a CLI Trailhead
 
 Create `src/cli.ts`:
 
 ```typescript
-import { blaze } from '@ontrails/cli/commander';
+import { trailhead } from '@ontrails/cli/commander';
 import { app } from './app';
 
-blaze(app);
+trailhead(app);
 ```
 
 Run it:
@@ -115,24 +115,24 @@ Options:
   -h, --help      display help for command
 ```
 
-## Blaze on MCP
+## Open an MCP Trailhead
 
 Create `src/mcp.ts`:
 
 ```typescript
-import { blaze } from '@ontrails/mcp';
+import { trailhead } from '@ontrails/mcp';
 import { app } from './app';
 
-await blaze(app);
+await trailhead(app);
 ```
 
-Same trail. Same implementation. Different surface. The MCP server exposes a `myapp_greet` tool with:
+Same trail. Same implementation. Different trailhead. The MCP server exposes a `myapp_greet` tool with:
 
 - JSON Schema input derived from the Zod schema
 - `readOnlyHint: true` annotation from `intent: 'read'`
 - Examples available for agent planning
 
-Pure trails can return `Result` directly. Trails with `follow` and I/O-heavy trails can stay `async`; Trails normalizes both forms before adapters run them.
+Pure trails can return `Result` directly. Trails with `crosses` and I/O-heavy trails can stay `async`; Trails normalizes both forms before connectors run them.
 
 ## Test with `testAll`
 
@@ -161,15 +161,15 @@ $ bun test
 
 That single `testAll(app)` call runs the full governance suite:
 
-1. **Topo validation** via `validateTopo` -- follow targets exist, no recursive follow, event origins, example schema validation, output schema presence
+1. **Topo validation** via `validateTopo` -- crosses exist, no recursive crossing, event origins, example schema validation, output schema presence
 2. **Example execution** -- for each trail, validates input, runs the implementation, asserts the result matches `expected` (or validates against the output schema when no `expected` is declared)
 3. **Contract checks** -- verifies implementation output matches declared output schemas
 4. **Detour verification** -- confirms detour targets exist in the topo
 
 No separate test files for the happy path. The examples ARE the tests.
 
-If your app declares services with `mock` factories, `testAll(app)` and
-`testExamples(app)` pick them up automatically. Use explicit `services`
+If your app declares provisions with `mock` factories, `testAll(app)` and
+`testExamples(app)` pick them up automatically. Use explicit `provisions`
 overrides only when you need a specific fake or fresh mutable state.
 
 For finer control, use `testExamples(app)` to run only example assertions without structural checks:
@@ -203,7 +203,7 @@ export const add = trail('math.add', {
       expected: { result: 5 },
     },
   ],
-  run: (input) => Result.ok({ result: input.a + input.b }),
+  blaze: (input) => Result.ok({ result: input.a + input.b }),
 });
 ```
 
@@ -221,46 +221,46 @@ The dotted trail ID `math.add` becomes a subcommand on CLI (`myapp math add --a 
 
 ## Composing Trails
 
-A trail can follow other trails to accomplish a higher-level task:
+A trail can compose other trails via `crosses` to accomplish a higher-level task:
 
 ```typescript
 import { trail, Result } from '@ontrails/core';
 import { z } from 'zod';
 
 export const addAndDouble = trail('math.add-and-double', {
-  follow: ['math.add'],
+  crosses: ['math.add'],
   input: z.object({ a: z.number(), b: z.number() }),
   output: z.object({ result: z.number() }),
-  run: async (input, ctx) => {
-    const sum = await ctx.follow('math.add', input);
+  blaze: async (input, ctx) => {
+    const sum = await ctx.cross('math.add', input);
     if (sum.isErr()) return sum;
     return Result.ok({ result: sum.value.result * 2 });
   },
 });
 ```
 
-Trails declare their composition dependencies with `follow` and invoke them with `ctx.follow()`. The warden linter verifies these match.
+Trails declare their composition dependencies with `crosses` and invoke them with `ctx.cross()`. The warden linter verifies these match.
 
 ## Using Services
 
-When a trail needs an external dependency — a database, cache, or API client — declare it as a service:
+When a trail needs an external dependency — a database, cache, or API client — declare it as a provision:
 
 ```typescript
-import { service, trail, Result } from '@ontrails/core';
+import { provision, trail, Result } from '@ontrails/core';
 import { z } from 'zod';
 
-const db = service('db', {
+const db = provision('db', {
   create: () => Result.ok(createPool(process.env.DATABASE_URL)),
   mock: () => createMockPool(),
   dispose: (pool) => pool.end(),
 });
 
 export const listUsers = trail('user.list', {
-  services: [db],
+  provisions: [db],
   input: z.object({}),
   output: z.object({ users: z.array(UserSchema) }),
   intent: 'read',
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const pool = db.from(ctx);
     const rows = await pool.query('SELECT * FROM users');
     return Result.ok({ users: rows });
@@ -268,12 +268,12 @@ export const listUsers = trail('user.list', {
 });
 ```
 
-The `services: [db]` declaration tells the topo which infrastructure this trail depends on. Access the service instance through `db.from(ctx)` for typed access. When you run `testAll(app)`, the framework automatically resolves `mock` factories — no configuration needed for example-based tests.
+The `provisions: [db]` declaration tells the topo which infrastructure this trail depends on. Access the provision instance through `db.from(ctx)` for typed access. When you run `testAll(app)`, the framework automatically resolves `mock` factories — no configuration needed for example-based tests.
 
 ## What's Next
 
 - [Architecture](./architecture.md) -- How the hexagonal model works
 - [Vocabulary](./vocabulary.md) -- All Trails terms defined
 - [Testing Guide](./testing.md) -- TDD approach, contract testing, harnesses
-- [CLI Surface Guide](./surfaces/cli.md) -- Flag derivation, output modes, layers
-- [MCP Surface Guide](./surfaces/mcp.md) -- Annotations, progress, tool naming
+- [CLI Trailhead Guide](./trailheads/cli.md) -- Flag derivation, output modes, gates
+- [MCP Trailhead Guide](./trailheads/mcp.md) -- Annotations, progress, tool naming

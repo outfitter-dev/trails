@@ -1,5 +1,5 @@
-import { contextNoSurfaceTypes } from './context-no-surface-types.js';
-import { followDeclarations } from './follow-declarations.js';
+import { contextNoTrailheadTypes } from './context-no-trailhead-types.js';
+import { crossDeclarations } from './cross-declarations.js';
 import { implementationReturnsResult } from './implementation-returns-result.js';
 import { noDirectImplInRoute } from './no-direct-impl-in-route.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
@@ -7,8 +7,8 @@ import { noSyncResultAssumption } from './no-sync-result-assumption.js';
 import { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
-import { serviceDeclarations } from './service-declarations.js';
-import { serviceExists } from './service-exists.js';
+import { provisionDeclarations } from './provision-declarations.js';
+import { provisionExists } from './provision-exists.js';
 import type { WardenRule } from './types.js';
 import { validDescribeRefs } from './valid-describe-refs.js';
 import { validDetourRefs } from './valid-detour-refs.js';
@@ -22,8 +22,8 @@ export type {
 } from './types.js';
 
 export { noThrowInImplementation } from './no-throw-in-implementation.js';
-export { contextNoSurfaceTypes } from './context-no-surface-types.js';
-export { followDeclarations } from './follow-declarations.js';
+export { contextNoTrailheadTypes } from './context-no-trailhead-types.js';
+export { crossDeclarations } from './cross-declarations.js';
 export { validDetourRefs } from './valid-detour-refs.js';
 export { noDirectImplInRoute } from './no-direct-impl-in-route.js';
 export { noDirectImplementationCall } from './no-direct-implementation-call.js';
@@ -31,8 +31,8 @@ export { noSyncResultAssumption } from './no-sync-result-assumption.js';
 export { implementationReturnsResult } from './implementation-returns-result.js';
 export { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
 export { preferSchemaInference } from './prefer-schema-inference.js';
-export { serviceDeclarations } from './service-declarations.js';
-export { serviceExists } from './service-exists.js';
+export { provisionDeclarations } from './provision-declarations.js';
+export { provisionExists } from './provision-exists.js';
 export { validDescribeRefs } from './valid-describe-refs.js';
 
 /** All built-in warden rules, keyed by rule name. */
@@ -41,10 +41,10 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   WardenRule
 >([
   [noThrowInImplementation.name, noThrowInImplementation],
-  [contextNoSurfaceTypes.name, contextNoSurfaceTypes],
-  [followDeclarations.name, followDeclarations],
-  [serviceDeclarations.name, serviceDeclarations],
-  [serviceExists.name, serviceExists],
+  [contextNoTrailheadTypes.name, contextNoTrailheadTypes],
+  [crossDeclarations.name, crossDeclarations],
+  [provisionDeclarations.name, provisionDeclarations],
+  [provisionExists.name, provisionExists],
   [preferSchemaInference.name, preferSchemaInference],
   [validDescribeRefs.name, validDescribeRefs],
   [validDetourRefs.name, validDetourRefs],

@@ -55,16 +55,7 @@ const updatePackageJsonForVerify = async (
 // ---------------------------------------------------------------------------
 
 export const addVerify = trail('add.verify', {
-  description: 'Add testing and warden verification',
-  input: z.object({
-    dir: z.string().optional().describe('Parent directory'),
-    name: z.string().describe('Project name'),
-  }),
-  metadata: { internal: true },
-  output: z.object({
-    created: z.array(z.string()),
-  }),
-  run: async (input) => {
+  blaze: async (input) => {
     const projectDir = resolve(input.dir ?? '.', input.name);
     const files: string[] = [];
 
@@ -84,4 +75,13 @@ export const addVerify = trail('add.verify', {
 
     return Result.ok({ created: files });
   },
+  description: 'Add testing and warden verification',
+  input: z.object({
+    dir: z.string().optional().describe('Parent directory'),
+    name: z.string().describe('Project name'),
+  }),
+  meta: { internal: true },
+  output: z.object({
+    created: z.array(z.string()),
+  }),
 });

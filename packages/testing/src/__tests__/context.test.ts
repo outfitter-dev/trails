@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, service, topo } from '@ontrails/core';
+import { Result, provision, topo } from '@ontrails/core';
 
 import {
-  createFollowContext,
+  createCrossContext,
   createTestContext,
   mergeTestContext,
-  resolveMockServices,
+  resolveMockProvisions,
 } from '../context.js';
 import type { TestLogger } from '../types.js';
 
@@ -19,8 +19,8 @@ describe('createTestContext', () => {
     const ctx = createTestContext();
     expect(ctx.cwd).toBe(process.cwd());
     expect(ctx.requestId).toBe('test-request-001');
-    expect(ctx.signal).toBeDefined();
-    expect(ctx.signal.aborted).toBe(false);
+    expect(ctx.abortSignal).toBeDefined();
+    expect(ctx.abortSignal.aborted).toBe(false);
     expect(ctx.logger).toBeDefined();
     expect(ctx.workspaceRoot).toBe(process.cwd());
   });
@@ -46,11 +46,11 @@ describe('createTestContext', () => {
     expect(ctx.requestId).toBe('custom-id');
   });
 
-  test('overrides signal', () => {
+  test('overrides abortSignal', () => {
     const controller = new AbortController();
     controller.abort();
-    const ctx = createTestContext({ signal: controller.signal });
-    expect(ctx.signal.aborted).toBe(true);
+    const ctx = createTestContext({ abortSignal: controller.signal });
+    expect(ctx.abortSignal.aborted).toBe(true);
   });
 
   test('overrides cwd', () => {
@@ -68,41 +68,41 @@ describe('createTestContext', () => {
   });
 });
 
-describe('createFollowContext', () => {
+describe('createCrossContext', () => {
   test('returns configured ok response for registered id', async () => {
-    const follow = createFollowContext({
+    const cross = createCrossContext({
       responses: { 'entity.add': Result.ok({ id: '1', name: 'Alpha' }) },
     });
-    const result = await follow('entity.add', { name: 'Alpha' });
+    const result = await cross('entity.add', { name: 'Alpha' });
     expect(result.unwrap()).toEqual({ id: '1', name: 'Alpha' });
   });
 
   test('returns configured err response for registered id', async () => {
     const err = new Error('conflict');
-    const follow = createFollowContext({
+    const cross = createCrossContext({
       responses: { 'entity.add': Result.err(err) },
     });
-    const result = await follow('entity.add', {});
+    const result = await cross('entity.add', {});
     expect(result.isErr()).toBe(true);
     expect(result.error?.message).toBe('conflict');
   });
 
   test('returns err with descriptive message for unregistered id', async () => {
-    const follow = createFollowContext();
-    const result = await follow('unknown.trail', {});
+    const cross = createCrossContext();
+    const result = await cross('unknown.trail', {});
     expect(result.isErr()).toBe(true);
     expect(result.error?.message).toContain('unknown.trail');
   });
 
   test('no options defaults to empty responses', async () => {
-    const follow = createFollowContext();
-    const result = await follow('any.id', {});
+    const cross = createCrossContext();
+    const result = await cross('any.id', {});
     expect(result.isErr()).toBe(true);
   });
 });
 
 describe('mergeTestContext', () => {
-  test('merges service overrides into extensions and the service accessor', () => {
+  test('merges provision overrides into extensions and the provision accessor', () => {
     const ctx = mergeTestContext(
       {
         extensions: { existing: true },
@@ -114,14 +114,14 @@ describe('mergeTestContext', () => {
       'db.main': { source: 'mock' },
       existing: true,
     });
-    expect(ctx.service<{ source: string }>('db.main').source).toBe('mock');
+    expect(ctx.provision<{ source: string }>('db.main').source).toBe('mock');
   });
 });
 
-describe('resolveMockServices', () => {
-  test('creates fresh mock services for each invocation', async () => {
+describe('resolveMockProvisions', () => {
+  test('creates fresh mock provisions for each invocation', async () => {
     let mockCalls = 0;
-    const mockable = service(`service.mock.${Bun.randomUUIDv7()}`, {
+    const mockable = provision(`provision.mock.${Bun.randomUUIDv7()}`, {
       create: () => Result.ok({ source: 'factory' }),
       mock: () => {
         mockCalls += 1;
@@ -130,8 +130,8 @@ describe('resolveMockServices', () => {
     });
     const app = topo('mock-app', { mockable } as Record<string, unknown>);
 
-    const first = await resolveMockServices(app);
-    const second = await resolveMockServices(app);
+    const first = await resolveMockProvisions(app);
+    const second = await resolveMockProvisions(app);
 
     expect(first).toEqual({ [mockable.id]: { source: 'mock' } });
     expect(second).toEqual(first);
@@ -139,12 +139,12 @@ describe('resolveMockServices', () => {
     expect(mockCalls).toBe(2);
   });
 
-  test('skips services without mock factories', async () => {
-    const plain = service(`service.plain.${Bun.randomUUIDv7()}`, {
+  test('skips provisions without mock factories', async () => {
+    const plain = provision(`provision.plain.${Bun.randomUUIDv7()}`, {
       create: () => Result.ok({ source: 'factory' }),
     });
     const app = topo('plain-app', { plain } as Record<string, unknown>);
 
-    expect(await resolveMockServices(app)).toEqual({});
+    expect(await resolveMockProvisions(app)).toEqual({});
   });
 });

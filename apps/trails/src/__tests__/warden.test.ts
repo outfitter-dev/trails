@@ -21,7 +21,7 @@ describe('trails warden', () => {
       writeFileSync(
         join(dir, 'good.ts'),
         `trail("hello", {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     return Result.ok({ message: "hi" });
   }
 })`
@@ -54,7 +54,7 @@ describe('trails warden', () => {
       writeFileSync(
         join(dir, 'bad.ts'),
         `trail("x", {
-  run: async () => { throw new Error("boom"); }
+  blaze: async () => { throw new Error("boom"); }
 })`
       );
       const report = await runWarden({ driftOnly: true, rootDir: dir });

@@ -2,7 +2,7 @@ import type { z } from 'zod';
 
 import type { FieldOverride } from './derive.js';
 import type { Result } from './result.js';
-import type { AnyService } from './service.js';
+import type { AnyProvision } from './provision.js';
 import type {
   Implementation,
   PermitRequirement,
@@ -44,7 +44,7 @@ export interface TrailSpec<I, O> {
   /** Zod schema for validating output (optional — some trails are fire-and-forget) */
   readonly output?: z.ZodType<O> | undefined;
   /** The pure function that does the work (sync or async authoring) */
-  readonly run: Implementation<I, O>;
+  readonly blaze: Implementation<I, O>;
   /** Human-readable description */
   readonly description?: string | undefined;
   /** Named examples for docs and testing */
@@ -53,16 +53,16 @@ export interface TrailSpec<I, O> {
   readonly intent?: 'read' | 'write' | 'destroy' | undefined;
   /** Trail is idempotent (safe to retry) */
   readonly idempotent?: boolean | undefined;
-  /** Arbitrary metadata for tooling and filtering */
-  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  /** Arbitrary meta for tooling and filtering */
+  readonly meta?: Readonly<Record<string, unknown>> | undefined;
   /** Named sets of downstream trail IDs that may be invoked */
   readonly detours?: Readonly<Record<string, readonly string[]>> | undefined;
   /** Per-field overrides for deriveFields() (labels, hints, options) */
   readonly fields?: Readonly<Record<string, FieldOverride>> | undefined;
-  /** IDs of downstream trails this trail may invoke via ctx.follow() */
-  readonly follow?: readonly string[] | undefined;
-  /** Services this trail may access via service.from(ctx) */
-  readonly services?: readonly AnyService[] | undefined;
+  /** IDs of downstream trails this trail may invoke via ctx.cross() */
+  readonly crosses?: readonly string[] | undefined;
+  /** Provisions this trail may access via provision.from(ctx) */
+  readonly provisions?: readonly AnyProvision[] | undefined;
   /** Auth requirement: scopes object, 'public', or omitted (undeclared) */
   readonly permit?: PermitRequirement | undefined;
 }
@@ -77,15 +77,15 @@ export type Intent = 'read' | 'write' | 'destroy';
 /** A fully-defined trail — the unit of work in the Trails system */
 export interface Trail<I, O> extends Omit<
   TrailSpec<I, O>,
-  'run' | 'follow' | 'intent' | 'services'
+  'blaze' | 'crosses' | 'intent' | 'provisions'
 > {
   readonly kind: 'trail';
   readonly id: string;
-  readonly run: Implementation<I, O>;
-  /** IDs of downstream trails this trail may invoke via ctx.follow() (always present, default []) */
-  readonly follow: readonly string[];
-  /** Services this trail may access via service.from(ctx) (always present, default []) */
-  readonly services: readonly AnyService[];
+  readonly blaze: Implementation<I, O>;
+  /** IDs of downstream trails this trail may invoke via ctx.cross() (always present, default []) */
+  readonly crosses: readonly string[];
+  /** Provisions this trail may access via provision.from(ctx) (always present, default []) */
+  readonly provisions: readonly AnyProvision[];
   /** What this trail does to the world (always present, default 'write') */
   readonly intent: Intent;
 }
@@ -105,14 +105,14 @@ export interface Trail<I, O> extends Omit<
  * // ID as first argument (recommended for human authoring)
  * const show = trail("entity.show", {
  *   input: z.object({ name: z.string() }),
- *   run: (input) => Result.ok(entity),
+ *   blaze: (input) => Result.ok(entity),
  * });
  *
  * // Full spec object (for programmatic generation)
  * const show = trail({
  *   id: "entity.show",
  *   input: z.object({ name: z.string() }),
- *   run: (input) => Result.ok(entity),
+ *   blaze: (input) => Result.ok(entity),
  * });
  * ```
  */
@@ -134,21 +134,22 @@ export function trail<I, O>(
   }
 
   const {
-    run,
-    follow: rawFollow,
+    blaze,
+    crosses: rawCrosses,
     intent: rawIntent,
-    services: rawServices,
+    provisions: rawProvisions,
     ...spec
   } = resolved.spec;
+  const provisions = Object.freeze([...(rawProvisions ?? [])]);
 
   return Object.freeze({
     ...spec,
-    follow: Object.freeze([...(rawFollow ?? [])]),
+    blaze: async (input: I, ctx: TrailContext) => await blaze(input, ctx),
+    crosses: Object.freeze([...(rawCrosses ?? [])]),
     id: resolved.id,
     intent: rawIntent ?? 'write',
     kind: 'trail' as const,
-    run: async (input: I, ctx: TrailContext) => await run(input, ctx),
-    services: Object.freeze([...(rawServices ?? [])]),
+    provisions,
   });
 }
 
