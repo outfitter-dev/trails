@@ -7,4 +7,5 @@ dist/
 .DS_Store
 .trail/
 .agents/plans/
+.claude/agent-memory/
 .npmrc
