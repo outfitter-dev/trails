@@ -93,19 +93,6 @@
     },
     {
       "created": "2026-03-31",
-      "depends_on": ["7", "8"],
-      "inbound": [],
-      "number": null,
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260331-serialized-topo-graph.md",
-      "slug": "serialized-topo-graph",
-      "status": "draft",
-      "superseded_by": null,
-      "title": "The Serialized Topo Graph",
-      "updated": "2026-04-02"
-    },
-    {
-      "created": "2026-03-31",
       "depends_on": ["2", "3", "6", "7", "13"],
       "inbound": [],
       "number": null,
@@ -216,19 +203,6 @@
       "status": "draft",
       "superseded_by": null,
       "title": "Entity Trail Factories",
-      "updated": "2026-04-01"
-    },
-    {
-      "created": "2026-04-01",
-      "depends_on": ["9"],
-      "inbound": [],
-      "number": null,
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260401-schema-derived-persistence.md",
-      "slug": "schema-derived-persistence",
-      "status": "draft",
-      "superseded_by": null,
-      "title": "Schema-Derived Persistence",
       "updated": "2026-04-01"
     }
   ],

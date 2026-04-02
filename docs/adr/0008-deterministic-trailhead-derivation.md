@@ -4,7 +4,7 @@ slug: deterministic-trailhead-derivation
 title: Deterministic Trailhead Derivation
 status: accepted
 created: 2026-03-29
-updated: 2026-04-02
+updated: 2026-04-03
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -24,12 +24,14 @@ Finally, derivation results need to be capturable as artifacts. Trailhead maps (
 
 ### CLI derivation
 
-Trail IDs map to CLI commands via dot-splitting:
+Trail IDs map to CLI commands via deterministic path projection:
 
-- The first dot separates group from command name: `entity.show` → group `entity`, name `show`
-- Top-level IDs (no dot) have no group: `search` → name `search`
+- Trail IDs derive to an ordered command path by dot-splitting every segment: `entity.show` → `["entity", "show"]`
+- Top-level IDs (no dot) derive to a one-segment path: `search` → `["search"]`
+- The full CLI path projection and executable-parent behavior are defined in ADR-0019
 - `deriveFields(schema)` introspects the Zod input schema to produce a trailhead-agnostic `Field[]` descriptor array
-- `toFlags(fields)` converts those descriptors to CLI flag definitions, including kebab-casing (`dryRun` → `--dry-run`)
+- `toFlags(fields)` converts faithfully representable descriptors to CLI flag definitions, including kebab-casing (`dryRun` → `--dry-run`)
+- Structured input channels supplement flags for full-schema input on the CLI; that input model is defined in ADR-0020
 - Destroy-intent trails auto-merge a `--dry-run` flag via `dryRunPreset()`
 
 ### MCP derivation
@@ -61,8 +63,7 @@ The following table shows how a single trail ID derives across all three trailhe
 
 | Trailhead | Derived artifact | Value |
 | --- | --- | --- |
-| CLI | Group | `user` |
-| CLI | Command name | `delete` |
+| CLI | Command path | `["user", "delete"]` |
 | CLI | Extra flags | `--dry-run` (auto-added for destroy intent) |
 | MCP | Tool name | `myapp_user_delete` |
 | MCP | Annotations | `destructiveHint: true` |
@@ -74,7 +75,7 @@ Every value in this table is computed from two inputs: the trail ID and the inte
 
 ### Trailhead maps as drift detection
 
-`generateSurfaceMap(topo)` captures every derivation for every trail in a topo as a serializable artifact. The output is diffable and hashable. When checked into source control or compared between CI runs, it answers the question: "did any trailhead projection change since last time?"
+`generateTrailheadMap(topo)` captures every derivation for every trail in a topo as a serializable artifact. The output is diffable and hashable. When checked into source control or compared between CI runs, it answers the question: "did any trailhead projection change since last time?"
 
 This is the governance complement to deterministic derivation. The derivation rules guarantee predictability. Trailhead maps guarantee visibility.
 
@@ -102,3 +103,5 @@ This is the governance complement to deterministic derivation. The derivation ru
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — "derive by default, override deliberately" principle
 - [ADR-0001: Naming Conventions](0001-naming-conventions.md) — `derive*` prefix convention and the information architecture categories (authored, projected, overridden)
+- [ADR-0019: Hierarchical Command Trees from Trail IDs](0019-hierarchical-command-trees-from-trail-ids.md) — extends CLI derivation from a shallow grouping rule to a full path
+- [ADR-0020: Flags for Fields, Structured Input on the CLI](0020-flags-for-fields-structured-input-on-the-cli.md) — defines when CLI input derives to flags and when it uses structured channels

@@ -748,7 +748,7 @@ Rig lock state rolls up into the `rigs` section of `trails.lock`:
 }
 ```
 
-`trails lock --check` validates rig lock hashes. CI catches untracked rig lock changes.
+`trails topo verify` validates rig lock hashes. CI catches untracked rig lock changes.
 
 ## Consequences
 

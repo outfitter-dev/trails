@@ -1,18 +1,19 @@
 ---
+id: 17
 slug: serialized-topo-graph
 title: The Serialized Topo Graph
-status: draft
+status: accepted
 created: 2026-03-31
 updated: 2026-04-02
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [7, 8]
 ---
 
-# ADR: The Serialized Topo Graph
+# ADR-0017: The Serialized Topo Graph
 
 ## Context
 
-The framework currently produces `trailhead.lock` via `trails schema lock`. This file captures the derived trailhead shape (MCP tool names, CLI commands, HTTP routes) as a diffable, hashable artifact. CI compares it against the current topo to detect unintentional contract changes.
+The framework currently produces `trailhead.lock` via `trails survey generate`. This file captures the derived trailhead shape (MCP tool names, CLI commands, HTTP routes) as a diffable, hashable artifact. CI compares it against the current topo to detect unintentional contract changes.
 
 As the framework grows, more resolved state needs the same treatment: trailheads, signals, fires, provisions, config, the reactive graph. Each is "resolved state of the system that should be diffable and governable." Splitting them into separate lockfiles creates multiple files to commit, multiple CI checks to configure, and multiple commands to remember.
 
@@ -98,19 +99,19 @@ This means:
 ### Generation and lifecycle
 
 ```bash
-trails lock                  # regenerate trails.lock from current topo
-trails lock --check          # verify trails.lock matches current topo (CI mode)
-trails lock --diff           # show what changed since last lock
+trails topo export           # write .trails/trails.lock from current topo
+trails topo verify           # verify .trails/trails.lock matches current topo (CI mode)
+trails topo diff --lock      # show lockfile drift against current topo
 ```
 
-`trails lock` replaces `trails schema lock`. The command is shorter, the scope is broader. `--check` is the CI gate. `--diff` is the developer feedback loop.
+`trails topo export` replaces the old lock-focused command shape. The command now centers on the thing being exported rather than on the artifact. `verify` is the CI gate. `diff --lock` is the developer feedback loop.
 
 The lockfile is:
 
-- **Generated** by `trails lock` from the current code. Explicit action, like `bun install` generating `bun.lock`.
+- **Generated** by `trails topo export` from the current code. In manual workflows this is explicit, like `bun install` generating `bun.lock`. Signal-driven flows can invoke the same trail automatically from topo saves or pins.
 - **Checked in** to source control. A PR that changes trail contracts produces a lockfile diff.
-- **CI-diffable.** `trails lock --check` fails if the lockfile doesn't match the current code. Drift between code and lockfile is caught before merge.
-- **The checkpoint of resolved state.** Not a cache, not a convenience. A commitment: "this is the resolved state of the system at this point in time."
+- **CI-diffable.** `trails topo verify` fails if the lockfile doesn't match the current code. Drift between code and lockfile is caught before merge.
+- **The saved record of resolved state.** Not a cache, not a convenience. A commitment: "this is the resolved state of the system at this point in time."
 
 Development commands (`trails run`, `trails guide`) should degrade gracefully without a lockfile in single-app projects by falling back to direct topo loading. In multi-app workspaces, the lockfile is required for cross-app trail ID resolution.
 
@@ -140,7 +141,7 @@ The lockfile captures the full reactive graph: which events trigger which trails
 
 ```bash
 # Derived from the lockfile
-trails survey --reactive
+trails topo show --reactive
 webhook:stripe → booking.confirm → booking.confirmed → notify.booking-confirmed
                                                       → audit.log-write
 ```
@@ -150,7 +151,7 @@ webhook:stripe → booking.confirm → booking.confirmed → notify.booking-conf
 ### Positive
 
 - **One file to commit.** A PR that changes trail schemas, adds triggers, updates provisions, and modifies config produces one lockfile diff.
-- **One CI check.** `trails lock --check` validates everything.
+- **One CI check.** `trails topo verify` validates everything.
 - **Agent-readable.** An agent reads the lockfile to understand the entire system without source code. The contract is queryable.
 - **Graph-native.** Cross-cutting queries (orphan events, unreachable trails, trigger cycles) are natural graph traversals.
 - **Multi-app resolution.** Trail IDs resolve workspace-wide. `trails run` and `trails guide` work across apps without specifying which app owns a trail.
@@ -159,13 +160,13 @@ webhook:stripe → booking.confirm → booking.confirmed → notify.booking-conf
 ### Tradeoffs
 
 - **Larger file over time.** As the topo grows, the lockfile grows. For most projects this is manageable. For very large workspaces, the graph structure helps: changes to one trail only affect that trail's node and its edges.
-- **Requires `trails lock` to stay current.** A stale lockfile means stale resolution. `trails lock --check` in CI catches this, but the developer must remember to regenerate. This is the same discipline as `bun install` after editing `package.json`.
+- **Requires topo export to stay current.** A stale lockfile means stale resolution. `trails topo verify` in CI catches this, but a manual workflow must still export after contract changes unless a save- or pin-driven automation does it.
 - **Graph format is more complex than flat sections.** A section-per-concern format is simpler to understand at first glance. The graph format is more powerful but requires understanding the node/edge model. The tradeoff favors power: the lockfile is primarily machine-read (by agents, CI, framework commands), not human-read.
 
 ### What this does NOT decide
 
 - **The exact schema for each node type.** Trail nodes, signal nodes, and provision nodes will gain properties as their respective ADRs ship. The graph structure is stable; the node schemas evolve.
-- **Whether sections can be independently regenerated** (e.g., `trails lock --only trailheads`). Future ergonomic improvement if needed.
+- **Whether sections can be independently regenerated** (e.g., `trails topo export --only trailheads`). Future ergonomic improvement if needed.
 - **Whether the format is JSON, JSONC, or another structured format.** JSON is the default for machine-generated artifacts. If comments become valuable, JSONC is a backward-compatible extension.
 - **Provision contract snapshots.** How provisioned packs record their contract state in the lockfile. The provisions ADR defines this.
 - **Rig lock state.** How rigged external trailheads record their resolved state. The rig ADR defines this.
