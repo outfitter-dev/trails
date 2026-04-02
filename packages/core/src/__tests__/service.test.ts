@@ -36,9 +36,9 @@ const counterServiceSpec: ServiceSpec<number> = {
 
 const resolvedServiceCtx = (id: string, instance: unknown): TrailContext =>
   createTrailContext({
+    abortSignal: new AbortController().signal,
     extensions: { [id]: instance },
     requestId: `${id}-request`,
-    signal: new AbortController().signal,
   });
 
 describe('service types', () => {
@@ -152,8 +152,8 @@ describe('service()', () => {
   test('from(ctx) throws when the service is missing', () => {
     const counter = defineService('counter.main', counterServiceSpec);
     const ctx = createTrailContext({
+      abortSignal: new AbortController().signal,
       requestId: 'missing-service',
-      signal: new AbortController().signal,
     });
 
     expect(() => counter.from(ctx)).toThrow(
@@ -166,9 +166,9 @@ describe('service()', () => {
       create: () => Result.ok<undefined>(),
     });
     const ctx = createTrailContext({
+      abortSignal: new AbortController().signal,
       extensions: { [optional.id]: undefined },
       requestId: 'undefined-service',
-      signal: new AbortController().signal,
     });
 
     expect(optional.from(ctx)).toBeUndefined();

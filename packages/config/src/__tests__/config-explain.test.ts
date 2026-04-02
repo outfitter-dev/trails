@@ -13,12 +13,12 @@ import type { ConfigState } from '../registry.js';
 const buildCtx = (state: ConfigState): TrailContext => {
   const extensions = { config: state };
   const ctx: TrailContext = {
+    abortSignal: AbortSignal.timeout(5000),
     cwd: '/tmp',
     env: {},
     extensions,
     requestId: 'test',
     service: undefined as unknown as TrailContext['service'],
-    signal: AbortSignal.timeout(5000),
     workspaceRoot: '/tmp',
   };
   const withLookup = {

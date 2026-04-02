@@ -54,9 +54,9 @@ export const createMcpHarness = (options: McpHarnessOptions): McpHarness => {
       }
 
       const result = await tool.handler(args, {
+        abortSignal: undefined,
         progressToken: undefined,
         sendProgress: undefined,
-        signal: undefined,
       });
 
       return {

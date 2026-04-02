@@ -17,12 +17,12 @@ import { crumbsQuery } from '../trails/crumbs-query.js';
 const buildCtx = (state: CrumbsState): TrailContext => {
   const extensions = { crumbs: state };
   const ctx: TrailContext = {
+    abortSignal: AbortSignal.timeout(5000),
     cwd: '/tmp',
     env: {},
     extensions,
     requestId: 'test',
     service: undefined as unknown as TrailContext['service'],
-    signal: AbortSignal.timeout(5000),
     workspaceRoot: '/tmp',
   };
   const withLookup = {

@@ -11,8 +11,8 @@ import { trail } from '../trail';
 import type { TrailContext } from '../types';
 
 const stubCtx: TrailContext = createTrailContext({
+  abortSignal: AbortSignal.timeout(5000),
   requestId: 'test-layer',
-  signal: AbortSignal.timeout(5000),
 });
 
 const echoTrail = trail('echo', {

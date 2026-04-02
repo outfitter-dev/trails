@@ -173,13 +173,13 @@ This gives you full control over the HTTP framework while still deriving routes 
 
 ## AbortSignal Propagation
 
-The HTTP request's abort signal is forwarded to `TrailContext.signal`. If the client disconnects or cancels the request mid-flight, the implementation's signal is aborted.
+The HTTP request's abort signal is forwarded to `TrailContext.abortSignal`. If the client disconnects or cancels the request mid-flight, the implementation's signal is aborted.
 
 ```typescript
 const longTask = trail('report.generate', {
   run: async (input, ctx) => {
     for (const chunk of data) {
-      if (ctx.signal?.aborted) {
+      if (ctx.abortSignal?.aborted) {
         return Result.err(new CancelledError('Request cancelled'));
       }
       await processChunk(chunk);

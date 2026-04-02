@@ -16,9 +16,9 @@ const makeCtx = (permit?: {
   id: string;
   scopes: readonly string[];
 }): TrailContext => ({
+  abortSignal: AbortSignal.timeout(5000),
   permit,
   requestId: 'test-auth',
-  signal: AbortSignal.timeout(5000),
 });
 
 const okImpl = async () => Result.ok({ done: true });

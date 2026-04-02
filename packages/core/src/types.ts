@@ -58,7 +58,7 @@ export interface BasePermit {
 /** Runtime context threaded through every trail execution */
 export interface TrailContext {
   readonly requestId: string;
-  readonly signal: AbortSignal;
+  readonly abortSignal: AbortSignal;
   readonly follow?: FollowFn | undefined;
   readonly permit?: BasePermit;
   readonly workspaceRoot?: string | undefined;

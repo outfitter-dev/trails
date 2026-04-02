@@ -26,19 +26,19 @@ type MutableTrailContext = {
  *
  * - `requestId`: `"test-request-001"` (deterministic)
  * - `logger`: a `TestLogger` that captures entries
- * - `signal`: a non-aborted AbortController signal
+ * - `abortSignal`: a non-aborted AbortController signal
  */
 export const createTestContext = (
   overrides?: TestTrailContextOptions
 ): TrailContext => {
   const cwd = overrides?.cwd ?? process.cwd();
   const ctx = {
+    abortSignal: overrides?.abortSignal ?? new AbortController().signal,
     cwd,
     env: overrides?.env ?? { TRAILS_ENV: 'test' },
     extensions: undefined,
     logger: overrides?.logger ?? createTestLogger(),
     requestId: overrides?.requestId ?? 'test-request-001',
-    signal: overrides?.signal ?? new AbortController().signal,
     workspaceRoot: cwd,
   } as MutableTrailContext;
   ctx.service = createServiceLookup(() => ctx);

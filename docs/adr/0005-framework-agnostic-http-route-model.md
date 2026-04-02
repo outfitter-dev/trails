@@ -44,7 +44,7 @@ The core function takes a topo and returns an array of framework-agnostic route 
 - **`inputSource`** — `query` for reads, `body` for writes, derived from the method
 - **`trailId`** — the trail's ID, for debugging and logging
 - **`trail`** — the full trail definition, for metadata access
-- **`execute(input, requestId?, signal?)`** — validates input, composes layers, runs the implementation, returns `Result`
+- **`execute(input, requestId?, abortSignal?)`** — validates input, composes layers, runs the implementation, returns `Result`
 
 The `execute` function is the important part. It does everything *except* touch HTTP framework types. It doesn't parse a `Request`. It doesn't construct a `Response`. It doesn't set status codes. It takes validated input, runs the trail, and returns a `Result`. Everything HTTP-specific happens in the adapter.
 

@@ -275,20 +275,20 @@ describe('executeTrail', () => {
       expect(capturedCtx?.requestId).toBe('override-id');
     });
 
-    test('accepts signal override', async () => {
+    test('accepts abortSignal override', async () => {
       let capturedSignal: AbortSignal | undefined;
       const sigTrail = trail('sig-test', {
         input: z.object({}),
         run: (_input, ctx) => {
-          capturedSignal = ctx.signal;
+          capturedSignal = ctx.abortSignal;
           return Result.ok(null);
         },
       });
 
-      const signal = AbortSignal.timeout(9999);
-      await executeTrail(sigTrail, {}, { signal });
+      const abortSignal = AbortSignal.timeout(9999);
+      await executeTrail(sigTrail, {}, { abortSignal });
 
-      expect(capturedSignal).toBe(signal);
+      expect(capturedSignal).toBe(abortSignal);
     });
 
     test('accepts context factory', async () => {
@@ -302,9 +302,9 @@ describe('executeTrail', () => {
       });
 
       const customCtx: TrailContextInit = {
+        abortSignal: new AbortController().signal,
         cwd: '/custom',
         requestId: 'factory-id',
-        signal: new AbortController().signal,
       };
 
       await executeTrail(ctxTrail, {}, { createContext: () => customCtx });
@@ -324,9 +324,9 @@ describe('executeTrail', () => {
       });
 
       const baseCtx: TrailContextInit = {
+        abortSignal: new AbortController().signal,
         cwd: '/factory',
         requestId: 'factory-id',
-        signal: new AbortController().signal,
       };
 
       await executeTrail(
@@ -419,9 +419,9 @@ describe('executeTrail', () => {
         {},
         {
           createContext: () => ({
+            abortSignal: new AbortController().signal,
             extensions: { [id]: widget },
             requestId: 'seeded-service',
-            signal: new AbortController().signal,
           }),
         }
       );

@@ -54,14 +54,14 @@ export interface HttpRouteDefinition {
    * The caller is responsible for parsing raw input from the request and
    * mapping the Result to an HTTP response. This function is framework-agnostic.
    *
-   * @param signal - Optional AbortSignal from the HTTP request. When provided,
+   * @param abortSignal - Optional AbortSignal from the HTTP request. When provided,
    *   it takes final precedence over any context factory signal, allowing
    *   client-initiated cancellation to propagate into trail execution.
    */
   readonly execute: (
     input: unknown,
     requestId?: string | undefined,
-    signal?: AbortSignal | undefined
+    abortSignal?: AbortSignal | undefined
   ) => Promise<Result<unknown, Error>>;
 }
 
@@ -121,14 +121,14 @@ const createExecute =
     layers: readonly Layer[],
     options: BuildHttpRoutesOptions
   ): HttpRouteDefinition['execute'] =>
-  (input, requestId, signal) =>
+  (input, requestId, abortSignal) =>
     executeTrail(t, input, {
+      abortSignal,
       configValues: options.configValues,
       createContext: options.createContext,
       ctx: withHttpSurface(requestId),
       layers,
       services: options.services,
-      signal,
     });
 
 // ---------------------------------------------------------------------------

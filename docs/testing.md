@@ -252,7 +252,7 @@ const ctx = createTestContext({
 });
 ```
 
-Defaults: deterministic request ID, test logger (captures entries), non-aborted signal.
+Defaults: deterministic request ID, test logger (captures entries), a non-aborted `abortSignal`.
 
 If you need a service override at the context level, pass it through `services` to `testAll()` / `testExamples()` / `testContracts()`, or attach it to `extensions` under the service ID when calling a single trail helper like `testTrail()`. `testTrail()` accepts a raw context object, so service injection there bypasses the normal pipeline resolution step and goes directly through `extensions`.
 

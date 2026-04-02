@@ -66,7 +66,7 @@ Declared services on each trail are resolved into the context before the impleme
 
 ## AbortSignal propagation
 
-The `execute` function on each `HttpRouteDefinition` accepts an optional `AbortSignal`. The Hono adapter extracts `signal` from `c.req.raw` and passes it to `execute`, so client disconnects propagate into trail execution.
+The `execute` function on each `HttpRouteDefinition` accepts an optional `abortSignal`. The Hono adapter extracts `signal` from `c.req.raw` and forwards it as `abortSignal`, so client disconnects propagate into trail execution.
 
 ## `HttpRouteDefinition`
 
@@ -79,7 +79,7 @@ Each route definition produced by `buildHttpRoutes` includes:
 | `trailId` | `string` | The trail ID this route was derived from |
 | `inputSource` | `'query' \| 'body'` | Where to read input |
 | `trail` | `Trail` | The original trail definition |
-| `execute` | `(input, requestId?, signal?) => Promise<Result>` | Validates, layers, and runs the implementation |
+| `execute` | `(input, requestId?, abortSignal?) => Promise<Result>` | Validates, layers, and runs the implementation |
 
 ## Installation
 

@@ -64,7 +64,7 @@ export interface McpExtra {
   readonly sendProgress?:
     | ((current: number, total: number) => Promise<void>)
     | undefined;
-  readonly signal?: AbortSignal | undefined;
+  readonly abortSignal?: AbortSignal | undefined;
 }
 
 export interface McpToolResult {
@@ -234,12 +234,12 @@ const createHandler =
   async (args, extra): Promise<McpToolResult> => {
     const progressCb = createMcpProgressCallback(extra);
     const result = await executeTrail(t, args, {
+      abortSignal: extra.abortSignal,
       configValues: options.configValues,
       createContext: options.createContext,
       ctx: withMcpSurface(progressCb),
       layers,
       services: options.services,
-      signal: extra.signal,
     });
     if (result.isOk()) {
       return { content: await serializeOutput(result.value) };

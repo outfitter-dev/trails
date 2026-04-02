@@ -119,9 +119,9 @@ export const createMcpServer = (
           };
 
     const extra = {
+      abortSignal: undefined as AbortSignal | undefined,
       progressToken,
       sendProgress,
-      signal: undefined as AbortSignal | undefined,
     };
 
     const result = await tool.handler(args, extra);

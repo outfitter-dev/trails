@@ -403,7 +403,7 @@ describe('blaze (Hono adapter)', () => {
         intent: 'read',
         output: z.object({ ok: z.boolean() }),
         run: (_input, ctx) => {
-          capturedSignal = ctx.signal;
+          capturedSignal = ctx.abortSignal;
           return Result.ok({ ok: true });
         },
       });
@@ -424,7 +424,7 @@ describe('blaze (Hono adapter)', () => {
         intent: 'read',
         output: z.object({ ok: z.boolean() }),
         run: (_input, ctx) => {
-          capturedSignal = ctx.signal;
+          capturedSignal = ctx.abortSignal;
           return Result.ok({ ok: true });
         },
       });
@@ -487,9 +487,9 @@ describe('blaze (Hono adapter)', () => {
       const app = topo('testapp', { ctxTrail });
       const hono = await blaze(app, {
         createContext: () => ({
+          abortSignal: new AbortController().signal,
           extensions: { custom: true },
           requestId: 'test-id',
-          signal: new AbortController().signal,
         }),
         serve: false,
       });

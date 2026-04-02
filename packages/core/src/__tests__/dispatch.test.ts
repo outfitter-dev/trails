@@ -152,9 +152,9 @@ describe('dispatch', () => {
 
       const ctxTopo = topo('factory-test', { ctxTrail });
       const customCtx: TrailContextInit = {
+        abortSignal: new AbortController().signal,
         cwd: '/custom',
         requestId: 'factory-id',
-        signal: new AbortController().signal,
       };
 
       await dispatch(

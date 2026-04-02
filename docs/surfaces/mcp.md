@@ -161,13 +161,13 @@ await blaze(app, {
 
 ## AbortSignal Propagation
 
-The MCP client's abort signal is propagated through to `TrailContext.signal`. If the client cancels a tool call, the implementation's signal is aborted.
+The MCP client's abort signal is propagated through to `TrailContext.abortSignal`. If the client cancels a tool call, the implementation's signal is aborted.
 
 ```typescript
 const longTask = trail('long.task', {
   run: async (input, ctx) => {
     for (const item of items) {
-      if (ctx.signal?.aborted) {
+      if (ctx.abortSignal?.aborted) {
         return Result.err(new CancelledError('Task cancelled'));
       }
       await processItem(item);

@@ -282,7 +282,7 @@ describe('buildMcpTools', () => {
       const signalTrail = trail('signal.check', {
         input: z.object({}),
         run: (_input, ctx) => {
-          capturedSignal = ctx.signal;
+          capturedSignal = ctx.abortSignal;
           return Result.ok({ ok: true });
         },
       });
@@ -290,7 +290,7 @@ describe('buildMcpTools', () => {
       const controller = new AbortController();
       const tool = requireOnlyTool(buildTools(topo('myapp', { signalTrail })));
 
-      await tool.handler({}, { signal: controller.signal });
+      await tool.handler({}, { abortSignal: controller.signal });
       expect(capturedSignal).toBe(controller.signal);
     });
 
@@ -319,9 +319,9 @@ describe('buildMcpTools', () => {
       const tool = requireOnlyTool(
         buildTools(app, {
           createContext: () => ({
+            abortSignal: new AbortController().signal,
             extensions: { custom: true },
             requestId: 'test-id',
-            signal: new AbortController().signal,
           }),
         })
       );

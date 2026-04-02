@@ -32,7 +32,7 @@ export interface ExecuteTrailOptions {
   /** Partial context overrides merged on top of the base context. */
   readonly ctx?: Partial<TrailContextInit> | undefined;
   /** AbortSignal override (takes final precedence over ctx and factory). */
-  readonly signal?: AbortSignal | undefined;
+  readonly abortSignal?: AbortSignal | undefined;
   /** Layers to compose around the implementation. */
   readonly layers?: readonly Layer[] | undefined;
   /** Factory that produces a base TrailContext (takes precedence over defaults). */
@@ -57,7 +57,7 @@ export interface ExecuteTrailOptions {
  * Resolution order:
  * 1. Factory (`createContext`) or `createTrailContext()` defaults.
  * 2. Partial `ctx` overrides merged on top.
- * 3. `signal` override takes final precedence.
+ * 3. `abortSignal` override takes final precedence.
  */
 const resolveContext = async (
   options?: ExecuteTrailOptions
@@ -73,8 +73,8 @@ const resolveContext = async (
         extensions: { ...base.extensions, ...options.ctx.extensions },
       }
     : base;
-  const resolved = options?.signal
-    ? { ...withOverrides, signal: options.signal }
+  const resolved = options?.abortSignal
+    ? { ...withOverrides, abortSignal: options.abortSignal }
     : withOverrides;
   if (
     options?.ctx?.extensions !== undefined ||

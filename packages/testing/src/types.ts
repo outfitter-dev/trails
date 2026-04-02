@@ -65,7 +65,7 @@ export interface TestTrailContextOptions {
   readonly env?: Record<string, string> | undefined;
   readonly logger?: Logger | undefined;
   readonly requestId?: string | undefined;
-  readonly signal?: AbortSignal | undefined;
+  readonly abortSignal?: AbortSignal | undefined;
 }
 
 // ---------------------------------------------------------------------------

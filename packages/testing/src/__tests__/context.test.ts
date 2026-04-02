@@ -19,8 +19,8 @@ describe('createTestContext', () => {
     const ctx = createTestContext();
     expect(ctx.cwd).toBe(process.cwd());
     expect(ctx.requestId).toBe('test-request-001');
-    expect(ctx.signal).toBeDefined();
-    expect(ctx.signal.aborted).toBe(false);
+    expect(ctx.abortSignal).toBeDefined();
+    expect(ctx.abortSignal.aborted).toBe(false);
     expect(ctx.logger).toBeDefined();
     expect(ctx.workspaceRoot).toBe(process.cwd());
   });
@@ -46,11 +46,11 @@ describe('createTestContext', () => {
     expect(ctx.requestId).toBe('custom-id');
   });
 
-  test('overrides signal', () => {
+  test('overrides abortSignal', () => {
     const controller = new AbortController();
     controller.abort();
-    const ctx = createTestContext({ signal: controller.signal });
-    expect(ctx.signal.aborted).toBe(true);
+    const ctx = createTestContext({ abortSignal: controller.signal });
+    expect(ctx.abortSignal.aborted).toBe(true);
   });
 
   test('overrides cwd', () => {

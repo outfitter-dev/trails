@@ -23,10 +23,10 @@ describe('createTrailContext', () => {
     expect(ctx.env).toBe(process.env);
   });
 
-  test('provides a non-aborted signal by default', () => {
+  test('provides a non-aborted abortSignal by default', () => {
     const ctx = createTrailContext();
-    expect(ctx.signal).toBeInstanceOf(AbortSignal);
-    expect(ctx.signal.aborted).toBe(false);
+    expect(ctx.abortSignal).toBeInstanceOf(AbortSignal);
+    expect(ctx.abortSignal.aborted).toBe(false);
   });
 
   test('override values take precedence', () => {
@@ -34,17 +34,17 @@ describe('createTrailContext', () => {
     ac.abort();
 
     const ctx = createTrailContext({
+      abortSignal: ac.signal,
       cwd: '/custom/dir',
       env: { CUSTOM: 'yes' },
       requestId: 'custom-id',
-      signal: ac.signal,
       workspaceRoot: '/tmp',
     });
 
     expect(ctx.cwd).toBe('/custom/dir');
     expect(ctx.env).toEqual({ CUSTOM: 'yes' });
     expect(ctx.requestId).toBe('custom-id');
-    expect(ctx.signal.aborted).toBe(true);
+    expect(ctx.abortSignal.aborted).toBe(true);
     expect(ctx.workspaceRoot).toBe('/tmp');
   });
 

@@ -392,9 +392,9 @@ describe('buildHttpRoutes', () => {
       const app = topo('testapp', { ctxTrail });
       const buildResult = buildHttpRoutes(app, {
         createContext: () => ({
+          abortSignal: new AbortController().signal,
           extensions: { custom: true },
           requestId: 'test-id',
-          signal: new AbortController().signal,
         }),
       });
 

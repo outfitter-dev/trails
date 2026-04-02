@@ -89,7 +89,7 @@ Beyond the `trail(id, spec)` builder, `Topo` exposes these accessors:
 
 | Type | What it describes |
 | --- | --- |
-| `ExecuteTrailOptions` | Options for `executeTrail`: `ctx`, `signal`, `layers`, `createContext` |
+| `ExecuteTrailOptions` | Options for `executeTrail`: `ctx`, `abortSignal`, `layers`, `createContext` |
 | `DispatchOptions` | Same shape as `ExecuteTrailOptions`; forwarded by `dispatch` |
 
 ### Result

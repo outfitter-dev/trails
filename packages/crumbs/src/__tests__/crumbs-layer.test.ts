@@ -18,8 +18,8 @@ import { crumbs } from '../index.js';
 import { createCrumbsLayer } from '../crumbs-layer.js';
 
 const stubCtx: TrailContext = createTrailContext({
+  abortSignal: AbortSignal.timeout(5000),
   requestId: 'test-crumbs',
-  signal: AbortSignal.timeout(5000),
 });
 
 const echoTrail = trail('echo', {

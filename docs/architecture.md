@@ -202,7 +202,7 @@ CLI input ("myapp entity show --name Alpha")
   -> Commander parses args/flags
   -> CLI adapter matches to trail via CliCommand model
   -> Zod validates input against trail's schema
-  -> TrailContext created (requestId, logger, signal, env, cwd)
+  -> TrailContext created (requestId, logger, abortSignal, env, cwd)
   -> Declared services resolved into ctx
   -> Layers run (auth, rate limit, telemetry)
   -> implementation(validatedInput, ctx) called

@@ -233,10 +233,10 @@ const createHonoHandler =
     }
 
     const requestId = c.req.header('X-Request-ID') ?? undefined;
-    const { signal } = c.req.raw;
+    const { signal: abortSignal } = c.req.raw;
 
     try {
-      const result = await route.execute(rawInput, requestId, signal);
+      const result = await route.execute(rawInput, requestId, abortSignal);
       return mapResultToResponse(result, c);
     } catch (error: unknown) {
       return handleCaughtError(error, c);

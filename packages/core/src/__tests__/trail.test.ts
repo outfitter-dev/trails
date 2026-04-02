@@ -9,8 +9,8 @@ import { trail } from '../trail';
 import type { TrailContext } from '../types';
 
 const stubCtx: TrailContext = createTrailContext({
+  abortSignal: AbortSignal.timeout(5000),
   requestId: 'test-123',
-  signal: AbortSignal.timeout(5000),
 });
 
 const dbService = service('db.main', {
