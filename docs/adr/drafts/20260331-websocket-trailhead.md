@@ -14,7 +14,7 @@ depends_on: [typed-signal-emission]
 
 ### Four trailheads, all request-response
 
-CLI, MCP, and HTTP are request-response trailheads. Something external says "do this," the framework dispatches a trail, a Result comes back. Each trailhead parses input in its format, calls `executeTrail`, and formats the Result in its response format. The trailhead model is clean and proven.
+CLI, MCP, and HTTP are request-response trailheads. Something external says "do this," the framework executes a trail, a Result comes back. Each trailhead parses input in its format, calls `executeTrail`, and formats the Result in its response format. The trailhead model is clean and proven.
 
 WebSocket breaks this model because it's two things over one persistent connection: request-response (client calls trails, gets Results) AND server-push (clients subscribe to events, receive them as they happen). The first part follows the established trailhead pattern. The second part has no precedent in the current trailhead model.
 
@@ -72,7 +72,7 @@ Clients call trails by sending a request message:
 { "type": "request", "id": "req_1", "trail": "booking.show", "input": { "id": "bk_123" } }
 ```
 
-The trailhead dispatches through `executeTrail`. The Result comes back:
+The trailhead executes through the pipeline. The Result comes back:
 
 ```json
 { "type": "response", "id": "req_1", "ok": true, "value": { "bookingId": "bk_123", "status": "confirmed" } }
@@ -161,7 +161,7 @@ On failure:
 
 The connection closes on authentication failure. On success, the connection transitions to ready.
 
-Alternative authentication mechanisms: token in the WebSocket URL query string (resolved during handshake, no auth message needed), or token in a custom header during the upgrade request. The trailhead supports multiple auth strategies through the same permit resolver used by other trailheads. The Permit is the framework type; JWT, API key, or session cookie are auth connectors that produce a Permit. The WebSocket trailhead is connector-agnostic -- it receives a Permit from whichever auth connector is configured.
+Alternative authentication mechanisms: token in the WebSocket URL query string (resolved during handshake, no auth message needed), or token in a custom header during the upgrade request. The trailhead supports multiple auth strategies through the same permit resolver used by other trailheads. The Permit is the framework type; JWT, API key, or session cookie are auth connectors that produce a Permit. The WebSocket trailhead is connector-agnostic — it receives a Permit from whichever auth connector is configured.
 
 #### Ready
 
@@ -336,7 +336,7 @@ The package depends on `@ontrails/core` and benefits from the Events Runtime for
 ## References
 
 - [ADR-0000: Core Premise](../0000-core-premise.md) -- "trailheads are peers"; WebSocket is the fourth trailhead, following the same patterns as CLI, MCP, and HTTP
-- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- trail invocations over WebSocket dispatch through `executeTrail`
+- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- trail invocations over WebSocket execute through the pipeline
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- trail IDs map to WebSocket method names, event IDs map to subscription channels
 - [ADR-0013: Tracker](../0013-tracker.md) -- observability and replay buffer backing store
 - ADR: Typed Signal Emission (draft) -- `ctx.signal()` provides the events that WebSocket subscriptions deliver

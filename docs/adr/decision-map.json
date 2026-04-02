@@ -62,7 +62,7 @@
         {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"derive by default\"; tracker observes composition shape rather than requiring it to be declared",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-concurrent-follow.md"
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; `trails run` makes every trail directly invocable without trailhead ceremony",
@@ -70,7 +70,7 @@
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; rig makes external trailheads into trails. Decision 11 (\"Bun-native, universally consumable\") governs the implementatio",
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; rig makes external trailheads into trails. Decision 11 (\"Bun-native, universally consumable\") governs the implementat",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
@@ -85,7 +85,7 @@
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — \"derive by default\"; triggers declare activation, the framework derives the reactive graph",
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — \"derive by default\"; fires declare activation, the framework derives the reactive graph",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
@@ -169,7 +169,7 @@
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
         {
-          "context": "Canonical public trailhead. For naming conventions and decision history, see [ADR-0001](docs/adr/0001-naming-conventions.md).",
+          "context": "Canonical public trailhead-facing reference. For naming conventions and decision history, see [ADR-0001](docs/adr/0001-naming-conventions.md).",
           "from": "api-reference",
           "fromPath": "docs/api-reference.md"
         },
@@ -203,9 +203,9 @@
           "fromPath": "docs/adr/0009-first-class-provisions.md"
         },
         {
-          "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent follows",
+          "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent crossings",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-concurrent-follow.md"
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the error taxonomy maps to categorized failure events",
@@ -237,14 +237,14 @@
           "fromPath": "docs/adr/0007-governance-as-trails.md"
         },
         {
-          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — services follow the same pattern: declaration on the spec, governance via warden",
+          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — provisions follow the same pattern: declaration on the spec, governance via warden",
           "from": "0009",
           "fromPath": "docs/adr/0009-first-class-provisions.md"
         },
         {
-          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- \"composition is a property, not a type\"; parallel vs sequential is a runtime choice, not a contract distinction. The `follo",
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- \"composition is a property, not a type\"; parallel vs sequential is a runtime choice, not a contract distinction. The crossi",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-concurrent-follow.md"
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- every trail is runnable, whether atomic or composite",
@@ -262,7 +262,7 @@
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — trails with triggers are still trails. Activation is a property.",
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — trails with fires are still trails. Activation is a property.",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
@@ -321,7 +321,7 @@
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) — intent compounds with triggers; lifecycle events filter by intent",
+          "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) — intent compounds with fires; lifecycle signals filter by intent",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
@@ -404,7 +404,7 @@
           "fromPath": "docs/adr/0007-governance-as-trails.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — services resolve within executeTrail, before gates compose",
+          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — provisions resolve within executeTrail, before gates compose",
           "from": "0009",
           "fromPath": "docs/adr/0009-first-class-provisions.md"
         },
@@ -419,12 +419,12 @@
           "fromPath": "docs/adr/0013-tracker.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `executeTrail` is called for each concurrent branch; the pipeline is unchanged",
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- the execution pipeline runs for each concurrent branch; the pipeline is unchanged",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-concurrent-follow.md"
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` dispatches through `executeTrail`, the same pipeline as every trailhead",
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` executes through the pipeline, the same as every trailhead",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         },
@@ -444,12 +444,12 @@
           "fromPath": "docs/adr/drafts/20260331-webhooks-and-connectors.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- trail invocations over WebSocket dispatch through `executeTrail`",
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- trail invocations over WebSocket execute through the pipeline",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-gates-run; the library trailhead delegates to the same pip",
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-gates-run; the library trailhead delegates to the same pi",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
@@ -515,7 +515,68 @@
     {
       "created": "2026-03-29",
       "depends_on": [],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — the broader pattern of which intent is one instance",
+          "from": "0004",
+          "fromPath": "docs/adr/0004-intent-as-first-class-property.md"
+        },
+        {
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — the derivation rules that produce paths, methods, and input sources from trail contracts",
+          "from": "0005",
+          "fromPath": "docs/adr/0005-framework-agnostic-http-route-model.md"
+        },
+        {
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- rigged trails get trailhead derivation for free",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
+        },
+        {
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — validates that the trailhead derivation model extends to event-driven inbound patterns",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
+        },
+        {
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- survey output provides the contract snapshots",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-pack-provisioning.md"
+        },
+        {
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — the derivation rules that produce trailhead properties on trail nodes",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-serialized-topo-graph.md"
+        },
+        {
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- the derivation rules that visibility and intent filtering extend",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
+        },
+        {
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- webhook endpoints are not derived from trail IDs; they're explicitly configured paths",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-webhooks-and-connectors.md"
+        },
+        {
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- trail IDs map to WebSocket method names, event IDs map to subscription channels",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        },
+        {
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md): the derivation properties (pure, deterministic, explicit lookup tables, overridable) that the library t",
+          "from": "20260401",
+          "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
+        },
+        {
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- deterministic derivation, now extended to storage",
+          "from": "20260401",
+          "fromPath": "docs/adr/drafts/20260401-schema-derived-persistence.md"
+        },
+        {
+          "context": "- **[ADR-0008: Deterministic Trailhead Derivation](./adr/0008-deterministic-trailhead-derivation.md)** — Explicit lookup tables for every trailhead",
+          "from": "index",
+          "fromPath": "docs/index.md"
+        }
+      ],
       "number": "0008",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0008-deterministic-trailhead-derivation.md",
@@ -528,7 +589,68 @@
     {
       "created": "2026-03-30",
       "depends_on": [],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "- [ADR-0009: Provisions as a First-Class Primitive](0009-first-class-provisions.md) — the provision primitive that infrastructure packages build on",
+          "from": "0010",
+          "fromPath": "docs/adr/0010-native-infrastructure.md"
+        },
+        {
+          "context": "- [ADR-0009: Provisions as a First-Class Primitive](0009-first-class-provisions.md) — provisions declare config schemas via the reserved `config` field; config enriches `ProvisionContext`",
+          "from": "0011",
+          "fromPath": "docs/adr/0011-schema-driven-config.md"
+        },
+        {
+          "context": "- [ADR-0009: Provisions as a First-Class Primitive](0009-first-class-provisions.md) — auth connector is a service; auth layer consumes it via `provision.from(ctx)`",
+          "from": "0012",
+          "fromPath": "docs/adr/0012-connector-agnostic-permits.md"
+        },
+        {
+          "context": "- [ADR-0009: Provisions as a First-Class Primitive](0009-first-class-provisions.md)",
+          "from": "0013",
+          "fromPath": "docs/adr/0013-tracker.md"
+        },
+        {
+          "context": "- [ADR-0009: Provisions as a First-Class Primitive](../0009-first-class-provisions.md) — inbound trailheads depend on the provision primitive for infrastructure dependencies (stores, email, queue clie",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
+        },
+        {
+          "context": "- [ADR-0009: Provisions](../0009-first-class-provisions.md) -- the provision primitive that packs scope and compose",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
+        },
+        {
+          "context": "- [ADR-0009: Services](../0009-first-class-provisions.md): provision lifecycle, factory/dispose/health/mock, and the execution model the library trailhead must project into consumer-facing runtime inp",
+          "from": "20260401",
+          "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
+        },
+        {
+          "context": "- [ADR-0009: Services](../0009-first-class-provisions.md) -- the service pattern for embedding providers",
+          "from": "20260401",
+          "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
+        },
+        {
+          "context": "- [ADR-0009: Services](../0009-first-class-provisions.md) -- the provision lifecycle the store produces",
+          "from": "20260401",
+          "fromPath": "docs/adr/drafts/20260401-drizzle-store-connector.md"
+        },
+        {
+          "context": "- [ADR-0009: Services](../0009-first-class-provisions.md) -- the provision primitive that the store builds on",
+          "from": "20260401",
+          "fromPath": "docs/adr/drafts/20260401-schema-derived-persistence.md"
+        },
+        {
+          "context": "- **[ADR-0009: First-Class Provisions](./adr/0009-first-class-provisions.md)** — Dependency declarations, lifecycle, testing, governance",
+          "from": "index",
+          "fromPath": "docs/index.md"
+        },
+        {
+          "context": "For the complete design decision, tradeoffs, and future directions (request-scoped provisions, composable config, intent-based type narrowing), see [ADR-0009: First-Class Provisions](./adr/0009-first-",
+          "from": "services",
+          "fromPath": "docs/services.md"
+        }
+      ],
       "number": "0009",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0009-first-class-provisions.md",
@@ -583,7 +705,18 @@
     {
       "created": "2026-03-30",
       "depends_on": [],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "- [ADR-0012: Connector-Agnostic Permits](0012-connector-agnostic-permits.md)",
+          "from": "0013",
+          "fromPath": "docs/adr/0013-tracker.md"
+        },
+        {
+          "context": "- [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) — webhook signature verification maps to the permit resolution model",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
+        }
+      ],
       "number": "0012",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0012-connector-agnostic-permits.md",
@@ -596,7 +729,73 @@
     {
       "created": "2026-03-30",
       "depends_on": [],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "- [ADR-0013: Tracker](0013-tracker.md)",
+          "from": "0001",
+          "fromPath": "docs/adr/0001-naming-conventions.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracker](0013-tracker.md) — tracker consume config for sampling rates and export targets",
+          "from": "0011",
+          "fromPath": "docs/adr/0011-schema-driven-config.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- tracker observes concurrent vs sequential spans to derive composition shape at runtime",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- `--tracker` uses the tracker vocabulary; live tracker during `trails run`, historical tracker via `trails tracker`",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- rigged trail executions are recorded via tracker for observability",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracker](../0013-tracker.md) — inbound trailhead execution recording uses the tracker system",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- telemetry primitives that provisions can carry and trailhead",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-pack-provisioning.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- observability primitive; packs scope tracker emission boundaries",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracker](../0013-tracker.md) — tracker records fire provenance on every activation",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracker](../0013-tracker.md) — tracker records emission and delivery metadata",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- the observability system; visibility filtering events are observable through tracker",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- tracker records async trail results and provides the idempotency store for delivery deduplication",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-webhooks-and-connectors.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- observability and replay buffer backing store",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        }
+      ],
       "number": "0013",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0013-tracker.md",

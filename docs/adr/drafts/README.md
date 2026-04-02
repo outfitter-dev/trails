@@ -6,13 +6,13 @@ Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.
 
 ## 2026-03
 
-- [Concurrent Follow Composition](20260331-concurrent-follow.md)
+- [Concurrent Trail Crossing](20260331-concurrent-crossing.md)
 - [Direct Trail Invocation (`trails run`)](20260331-direct-invocation.md)
   - depends on [The Serialized Topo Graph](20260331-serialized-topo-graph.md)
 - [External Trailheads as Trails](20260331-external-trailheads-as-trails.md)
   - depends on [Packs as Namespace Boundaries](20260331-packs-namespace-boundaries.md)
 - [Inbound Event Trailheads](20260331-inbound-event-trailheads.md)
-  - depends on [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md), [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md)
+  - depends on [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md), [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md), [Webhooks and Connectors](20260331-webhooks-and-connectors.md)
 - [Pack Provisioning](20260331-pack-provisioning.md)
   - depends on [Packs as Namespace Boundaries](20260331-packs-namespace-boundaries.md)
 - [Packs as Namespace Boundaries](20260331-packs-namespace-boundaries.md)

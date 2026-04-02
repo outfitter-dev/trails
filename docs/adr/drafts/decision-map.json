@@ -6,12 +6,12 @@
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260331-concurrent-follow.md",
-      "slug": "concurrent-follow",
+      "path": "docs/adr/drafts/20260331-concurrent-crossing.md",
+      "slug": "concurrent-crossing",
       "status": "draft",
       "superseded_by": null,
-      "title": "Concurrent Follow Composition",
-      "updated": "2026-04-01"
+      "title": "Concurrent Trail Crossing",
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-03-31",
@@ -24,7 +24,7 @@
       "status": "draft",
       "superseded_by": null,
       "title": "Direct Trail Invocation (`trails run`)",
-      "updated": "2026-04-01"
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-03-31",
@@ -63,7 +63,7 @@
       "status": "draft",
       "superseded_by": null,
       "title": "Pack Provisioning",
-      "updated": "2026-04-01"
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-03-31",
@@ -76,7 +76,7 @@
       "status": "draft",
       "superseded_by": null,
       "title": "Packs as Namespace Boundaries",
-      "updated": "2026-04-01"
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-03-31",
@@ -89,7 +89,7 @@
       "status": "draft",
       "superseded_by": null,
       "title": "Reactive Trail Activation",
-      "updated": "2026-04-01"
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-03-31",
@@ -102,7 +102,7 @@
       "status": "draft",
       "superseded_by": null,
       "title": "The Serialized Topo Graph",
-      "updated": "2026-04-01"
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-03-31",
@@ -128,7 +128,7 @@
       "status": "draft",
       "superseded_by": null,
       "title": "Trail Visibility and Trailhead Filtering",
-      "updated": "2026-04-01"
+      "updated": "2026-04-02"
     },
     {
       "created": "2026-03-31",

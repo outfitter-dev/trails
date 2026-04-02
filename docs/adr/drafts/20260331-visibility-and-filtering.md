@@ -3,7 +3,7 @@ slug: visibility-and-filtering
 title: Trail Visibility and Trailhead Filtering
 status: draft
 created: 2026-03-31
-updated: 2026-04-01
+updated: 2026-04-02
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [packs-namespace-boundaries]
 ---
@@ -18,21 +18,21 @@ A simple Trails app has 5-10 trails. Every trail is a public verb. `trailhead(ap
 
 ### The problem at pack scale
 
-A pack-scale app has 40-80 trails across multiple capability boundaries. Some trails exist only to support composition via `follow`. Others are debug or operator tools that shouldn't appear in a public API. Others make sense on CLI but not MCP. The current mechanism for managing this is `include`/`exclude` on blaze options, which works but has two problems:
+A pack-scale app has 40-80 trails across multiple capability boundaries. Some trails exist only to support composition via `crosses`. Others are debug or operator tools that shouldn't appear in a public API. Others make sense on CLI but not MCP. The current mechanism for managing this is `include`/`exclude` on trailhead options, which works but has two problems:
 
-1. **It's trailhead-side knowledge about trail-side intent.** The trail author knows "this trail is not a public verb, it exists to be followed." That information lives in the author's head, not in the trail definition. Every trailhead must independently be told to exclude it.
+1. **It's trailhead-side knowledge about trail-side intent.** The trail author knows "this trail is not a public verb, it exists to be crossed into." That information lives in the author's head, not in the trail definition. Every trailhead must independently be told to exclude it.
 
-2. **It doesn't scale.** Flat string lists of trail IDs become unwieldy. Adding a new composition trail requires updating exclude lists on every trailhead. Forgetting one trailhead silently exposes an internal trail.
+2. **It doesn't scale.** Flat string lists of trail IDs become unwieldy. Adding a new crossing target requires updating exclude lists on every trailhead. Forgetting one trailhead silently exposes an internal trail.
 
 ### What the trail author actually knows
 
-The author knows one thing that the framework currently can't express: **whether a trail is a public verb or an internal composition target.** This is about the trail's role in the system, not about any particular trailhead. An internal trail isn't "hidden from CLI but shown on HTTP." It's "not a verb at all."
+The author knows one thing that the framework currently can't express: **whether a trail is a public verb or an internal crossing target.** This is about the trail's role in the system, not about any particular trailhead. An internal trail isn't "hidden from CLI but shown on HTTP." It's "not a verb at all."
 
 Everything else people want from "visibility" is either already derivable from information on the trail (intent, permit scopes, namespace hierarchy) or is a trailhead-level configuration concern (which trailheads show which trails). The trail shouldn't know about trailheads. That's the hexagonal model.
 
 ### The intent axis
 
-Intent (`read`, `write`, `destroy`) is the most compounding property on a trail. It already drives HTTP verb derivation, MCP annotations, and will drive service access narrowing. But trailheads can't currently filter by intent. An MCP trailhead that should only expose read operations has to enumerate every read trail in an `include` list, or enumerate every write/destroy trail in an `exclude` list. Both are fragile.
+Intent (`read`, `write`, `destroy`) is the most compounding property on a trail. It already drives HTTP verb derivation, MCP annotations, and will drive provision access narrowing. But trailheads can't currently filter by intent. An MCP trailhead that should only expose read operations has to enumerate every read trail in an `include` list, or enumerate every write/destroy trail in an `exclude` list. Both are fragile.
 
 Intent is authored on the trail. Filtering by intent at the trailhead is pure derivation.
 
@@ -61,15 +61,15 @@ const normalizePayload = trail('github.normalize-payload', {
 `visibility` accepts two values:
 
 - `'public'` (default, omitted in most definitions) -- the trail is a verb. Trailheads derive public commands, tools, and routes from it.
-- `'internal'` -- the trail is a composition target. Trailheads skip it by default. `follow` and `dispatch` still work. Survey reports it with its visibility.
+- `'internal'` -- the trail is a composition target. Trailheads skip it by default. `ctx.cross()` and `run()` still work. Survey reports it with its visibility.
 
 The default is `'public'` for backward compatibility. Existing trails don't change. Progressive adoption: add `visibility: 'internal'` to composition-only trails when it matters.
 
-On the frozen Trail object, `visibility` is always present (defaulted to `'public'`). No runtime type narrowing needed. Same pattern as `follow` defaulting to `[]`.
+On the frozen Trail object, `visibility` is always present (defaulted to `'public'`). No runtime type narrowing needed. Same pattern as `crosses` defaulting to `[]`.
 
-### Part 2: Glob patterns in blaze include/exclude
+### Part 2: Glob patterns in trailhead include/exclude
 
-`include` and `exclude` on blaze options accept glob patterns using the dotted namespace convention:
+`include` and `exclude` on trailhead options accept glob patterns using the dotted namespace convention:
 
 ```typescript
 // Exclude all dev trails
@@ -91,11 +91,11 @@ Patterns match against trail IDs using standard glob semantics. `*` matches one 
 trailhead(app, { include: ['github.core.verify-webhook'] });
 ```
 
-This is an override, visible and intentional. The default (internal trails are not surfaced) holds unless explicitly overridden by exact ID.
+This is an override, visible and intentional. The default (internal trails are not exposed at a trailhead) holds unless explicitly overridden by exact ID.
 
-### Part 3: Intent filtering on blaze options
+### Part 3: Intent filtering on trailhead options
 
-Blaze options accept an `intent` filter:
+Trailhead options accept an `intent` filter:
 
 ```typescript
 // Read-only MCP trailhead for agents
@@ -168,9 +168,9 @@ export default defineConfig({
 });
 ```
 
-Loadout exclusions apply before trailhead-level blaze options. A trail excluded by the loadout is not in the topo for that environment. It can't be followed, dispatched, or surfaced.
+Loadout exclusions apply before trailhead-level blaze options. A trail excluded by the loadout is not in the topo for that environment. It can't be crossed, run, or exposed at a trailhead.
 
-The warden validates loadout integrity: a loadout that excludes a trail followed by an included trail is a dependency violation.
+The warden validates loadout integrity: a loadout that excludes a trail crossed by an included trail is a dependency violation.
 
 ### Part 6: CLI help hierarchy from namespaces
 
@@ -215,10 +215,10 @@ The **lockfile** captures the resolved visibility state after the full pipeline 
 
 Four new governance rules follow from this ADR:
 
-- **Dead internal trail.** An `internal` trail with no followers anywhere in the topo is unreachable. Warning.
-- **Loadout dependency violation.** A loadout excludes trail B, but trail A (included in that loadout) follows B. Error.
-- **Intent propagation.** A trail with `intent: 'read'` follows a trail with `intent: 'write'` or `'destroy'`. The composite operation has side effects, but the entry point claims to be read-only. Warning.
-- **Missing visibility.** A trail that is only referenced in `follow` declarations and never surfaced directly could benefit from `visibility: 'internal'`. Coaching suggestion.
+- **Dead internal trail.** An `internal` trail with no crossings anywhere in the topo is unreachable. Warning.
+- **Loadout dependency violation.** A loadout excludes trail B, but trail A (included in that loadout) crosses B. Error.
+- **Intent propagation.** A trail with `intent: 'read'` crosses a trail with `intent: 'write'` or `'destroy'`. The composite operation has side effects, but the entry point claims to be read-only. Warning.
+- **Missing visibility.** A trail that is only referenced in crossing declarations and never exposed at a trailhead could benefit from `visibility: 'internal'`. Coaching suggestion.
 
 ## Consequences
 
@@ -233,7 +233,7 @@ Four new governance rules follow from this ADR:
 
 ### Tradeoffs
 
-- **`visibility` is a new field on the trail spec.** This is a deliberate addition to the authored trailhead. It's justified because it captures genuinely new information (the trail's role) that the framework can't derive. But every addition to the trail spec is a cost.
+- **`visibility` is a new field on the trail spec.** This is a deliberate addition to the authored contract. It's justified because it captures genuinely new information (the trail's role) that the framework can't derive. But every addition to the trail spec is a cost.
 - **The filtering pipeline has five stages.** Each stage is simple and subtractive, but the interaction between loadout exclusions, visibility, blaze globs, intent filters, and permit-gated discovery could surprise users in edge cases. Clear documentation of the pipeline order mitigates this.
 - **Permit-gated discovery is trailhead-specific behavior.** HTTP and MCP handle discovery differently for the same trails. This is correct (different trailheads have different conventions) but means the answer to "will this trail appear?" depends on which trailhead you're asking about.
 
@@ -241,8 +241,8 @@ Four new governance rules follow from this ADR:
 
 - Whether `visibility` will gain values beyond `'public'` and `'internal'`. Two values is enough. If a third is needed, a separate ADR will evaluate it.
 - Whether trailheads can override intent-derived behavior. Currently, intent filtering in blaze is additive (you can only narrow, not widen). Whether a trailhead should be able to promote a `destroy` trail to appear in a read-only context is left open.
-- How progressive disclosure (primary/secondary tool tiers) works on MCP. The MCP protocol supports deferred tool loading. Whether and how to leverage this is an MCP trailhead implementation concern, not an architectural decision. Pack membership and follow-graph analysis provide signals the trailhead can use.
-- Whether visibility interacts with `run()`. Currently, `run()` can invoke any trail regardless of visibility. This is intentional: `dispatch` is programmatic, not trailhead-mediated.
+- How progressive disclosure (primary/secondary tool tiers) works on MCP. The MCP protocol supports deferred tool loading. Whether and how to leverage this is an MCP trailhead implementation concern, not an architectural decision. Pack membership and crossing-graph analysis provide signals the trailhead can use.
+- Whether visibility interacts with `run()`. Currently, `run()` can invoke any trail regardless of visibility. This is intentional: programmatic execution is not trailhead-mediated.
 
 ## References
 
@@ -250,6 +250,6 @@ Four new governance rules follow from this ADR:
 - [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- the trail spec that gains the `visibility` field
 - [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent drives HTTP verbs, MCP annotations, and now trailhead filtering
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- the derivation rules that visibility and intent filtering extend
-- [ADR-0013: Tracker](../0013-tracker.md) -- the telemetry system; visibility filtering events are observable through tracker
+- [ADR-0013: Tracker](../0013-tracker.md) -- the observability system; visibility filtering events are observable through tracker
 - ADR: The Serialized Topo Graph (draft) -- the lockfile captures resolved visibility state after all overrides are applied
 - ADR: Packs as Namespace Boundaries (draft) -- packs set default visibility for their trails; depends on this ADR

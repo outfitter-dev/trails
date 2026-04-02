@@ -281,7 +281,7 @@ All derived. The developer authored trails. The framework emitted a package.
 
 **A CLI they didn't have to build.** If the library ships a CLI companion, the consumer can use it from scripts, CI, or the terminal. No installation required. Same contract, different trailhead.
 
-**They don't need to know about Trails.** The consumer never sees Result, TrailContext, follow declarations, or warden rules. The framework is invisible.
+**They don't need to know about Trails.** The consumer never sees Result, TrailContext, `crosses` declarations, or warden rules. The framework is invisible.
 
 ### What this sharpens about packs
 

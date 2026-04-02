@@ -12,17 +12,17 @@ depends_on: [9, 12, webhooks-and-connectors]
 
 ## Context
 
-Trails has three inbound trailheads: CLI (human types a command), MCP (agent calls a tool), HTTP (client sends a request). All three are request-initiated — something external says "do this" and the framework dispatches a trail.
+Trails has three inbound trailheads: CLI (human types a command), MCP (agent calls a tool), HTTP (client sends a request). All three are request-initiated — something external says "do this" and the framework runs a trail.
 
 But real applications receive events from external systems that also need to trigger trail execution:
 
 ### Incoming webhooks
 
-Cal.com receives a Stripe `payment_intent.succeeded` webhook. The payload must be verified (signature check), validated against a schema, and dispatched to a trail that completes the booking.
+Cal.com receives a Stripe `payment_intent.succeeded` webhook. The payload must be verified (signature check), validated against a schema, and run through a trail that completes the booking.
 
 Payload CMS receives a GitHub webhook when content is pushed. The payload triggers a content sync trail.
 
-The pattern: **external system POSTs a typed payload, the framework verifies, validates, and dispatches.**
+The pattern: **external system POSTs a typed payload, the framework verifies, validates, and runs it.**
 
 ### Message queue consumers
 
@@ -38,11 +38,11 @@ The pattern: **time triggers trail execution, with optional input (the current t
 
 ### Shared infrastructure needs
 
-All three are inbound trailheads — they receive something from outside and dispatch a trail. They share the same infrastructure needs as CLI/MCP/HTTP:
+All three are inbound trailheads — they receive something from outside and run a trail. They share the same infrastructure needs as CLI/MCP/HTTP:
 
 - **Config**: endpoint URLs, secrets, queue connection strings
 - **Auth**: webhook signature verification, queue auth, cron doesn't need auth but needs permit context for tracker
-- **Tracker**: record what arrived, what was dispatched, outcome, timing
+- **Tracker**: record what arrived, what was run, outcome, timing
 - **Validation**: the incoming payload validates against the trail's input schema
 - **Error taxonomy**: webhook returns 400 on validation failure, 500 on internal error. Queue nacks on failure. Cron logs the error.
 
@@ -101,7 +101,7 @@ examples: [
 ],
 ```
 
-Webhook trails need idempotency examples. The same event may arrive multiple times. `testExamples` validates idempotency with mock services.
+Webhook trails need idempotency examples. The same event may arrive multiple times. `testExamples` validates idempotency with mock provisions.
 
 ### Message queues
 
@@ -125,7 +125,7 @@ trailhead(app, {
 });
 ```
 
-Each message deserializes → validates against the trail's input schema → dispatches through `executeTrail`. Failed messages nack (or dead-letter). Tracker records each message processing.
+Each message deserializes → validates against the trail's input schema → executes through the pipeline. Failed messages nack (or dead-letter). Tracker records each message processing.
 
 **What the examples teach us:**
 
@@ -172,7 +172,7 @@ The cron trailhead triggers trail execution on a schedule. Input can be static (
 ```typescript
 const sendReminders = trail('booking.send-reminders', {
   intent: 'write',
-  input: z.object({}),  // no input needed — reads from service
+  input: z.object({}),  // no input needed — reads from provision
   output: z.object({ sent: z.number(), failed: z.number() }),
   examples: [
     { name: 'three bookings due', input: {}, expected: { sent: 3, failed: 0 } },
@@ -188,7 +188,7 @@ const sendReminders = trail('booking.send-reminders', {
 });
 ```
 
-Cron trails are testable via `testExamples` with mock services — no actual scheduler needed. The examples validate the business logic independent of timing.
+Cron trails are testable via `testExamples` with mock provisions — no actual scheduler needed. The examples validate the business logic independent of timing.
 
 ### Implications for infrastructure ADRs
 
@@ -207,7 +207,7 @@ Worth noting in the infrastructure pattern doc: error taxonomy mappings should b
 `idempotent: true` on a trail spec is a declaration. But webhook trails and queue-consumed trails NEED idempotency — duplicate delivery is the norm. The framework should help:
 
 - An idempotency layer that deduplicates by request/message ID
-- A service that stores processed IDs (could be the same SQLite store as tracker)
+- A provision that stores processed IDs (could be the same SQLite store as tracker)
 
 This is a gate + provision, following the infrastructure pattern.
 
@@ -244,7 +244,7 @@ Should this be on the trail spec (like `http: { path }` overrides) or on the tra
 
 3. **Cron trailhead vs cron gate.** A cron fire source could be a trailhead (`trailhead()` starts a scheduler) or a gate (wraps trails with scheduling metadata). Trailhead is cleaner for standalone use. Gate is better for embedding in an existing app.
 
-4. **Dead letter handling.** When a queue message permanently fails, where does it go? A dead-letter trail? A service? An event? This needs a pattern.
+4. **Dead letter handling.** When a queue message permanently fails, where does it go? A dead-letter trail? A provision? An event? This needs a pattern.
 
 ## References
 

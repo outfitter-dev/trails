@@ -3,7 +3,7 @@ slug: pack-provisioning
 title: Pack Provisioning
 status: draft
 created: 2026-03-31
-updated: 2026-04-01
+updated: 2026-04-02
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [packs-namespace-boundaries]
 ---
@@ -14,7 +14,7 @@ depends_on: [packs-namespace-boundaries]
 
 ### Packs need distribution
 
-The packs ADR defines `pack()` as a compositional primitive. A pack carries trails, services, events, and config for a domain. But `pack()` says nothing about how packs travel between projects. A pack published to npm is consumed like any other dependency. A pack copied from a GitHub repo is owned source. The framework should support both modes and help developers manage the lifecycle of packs however they arrived.
+The packs ADR defines `pack()` as a compositional primitive. A pack carries trails, provisions, signals, and config for a domain. But `pack()` says nothing about how packs travel between projects. A pack published to npm is consumed like any other dependency. A pack copied from a GitHub repo is owned source. The framework should support both modes and help developers manage the lifecycle of packs however they arrived.
 
 ### Two distribution modes
 
@@ -204,10 +204,10 @@ When a pack is scaffolded, the provisions system captures a contract snapshot: t
                 "inputSchema": { "...JSON Schema..." },
                 "outputSchema": { "...JSON Schema..." },
                 "examples": 3,
-                "follow": []
+                "crosses": []
               }
             },
-            "services": [],
+            "provisions": [],
             "events": []
           }
         }
@@ -217,7 +217,7 @@ When a pack is scaffolded, the provisions system captures a contract snapshot: t
 }
 ```
 
-The snapshot captures trail shapes (schemas as JSON Schema), example counts, follow declarations, provision declarations, and event declarations. Not source code. The contract.
+The snapshot captures trail shapes (schemas as JSON Schema), example counts, `crosses` declarations, provision declarations, and signal declarations. Not source code. The contract.
 
 ### Why three-way diff is tractable here
 
@@ -227,7 +227,7 @@ Trails contracts are not unstructured text. They're structured data with known s
 
 - **Schema fields** have names. Upstream adds `currency`; you added `notes`. Non-conflicting — they're different keys. Upstream changes `amount` from `z.number()` to `z.number().positive()` while you didn't touch it — clean merge by field identity.
 - **Examples** have names. Upstream adds "Refund"; you added "Bulk". Non-conflicting set addition.
-- **Follow, emits, services** are sets of identifiers. Both sides adding to the set is unambiguous.
+- **Crosses, signals, provisions** are sets of identifiers. Both sides adding to the set is unambiguous.
 - **Intent, visibility, permit** are atomic values. One side changed it — clean. Both changed it — flag the conflict.
 
 The only truly unstructured part is the `run` function body. But that's the part the developer explicitly chose to own when they scaffolded. The contract is the framework's domain. The implementation is the developer's domain.
@@ -312,7 +312,7 @@ trails provisions inspect @ontrails/github
 
 `trails provisions search` queries npm and/or GitHub for provisions (packages containing `provision.json`). This is a convenience over manual browsing, not a custom registry.
 
-`trails provisions inspect` fetches the provision's `provision.json` and displays it in Trails-native terms: pack names, trail counts, service counts, config schemas, requires. Richer than an npm README because it's structured data, not prose.
+`trails provisions inspect` fetches the provision's `provision.json` and displays it in Trails-native terms: pack names, trail counts, provision counts, config schemas, requires. Richer than an npm README because it's structured data, not prose.
 
 ### Interaction with `trails.lock`
 

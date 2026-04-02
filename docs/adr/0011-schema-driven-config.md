@@ -165,7 +165,7 @@ poolSize: env(z.number(), 'DB_POOL_SIZE').default(5),
 
 No separate mapping file that drifts from the schema. The warden lints env bindings for collisions. Survey reports them alongside field metadata. One source of truth.
 
-### Composable config from services
+### Composable config from provisions
 
 Services declare their own config schemas via the reserved `config` field from ADR-0009:
 
@@ -189,15 +189,15 @@ export default defineConfig({
 });
 ```
 
-If every field has a default, the service works with zero config. Install a pack, its services declare what they need, the framework tells you what's missing at startup.
+If every field has a default, the provision works with zero config. Install a pack, its provisions declare what they need, the framework tells you what's missing at startup.
 
-### Config enriches ServiceContext
+### Config enriches ProvisionContext
 
-`ServiceContext` gains a typed `config` field. `svc.config.url` instead of `svc.env?.DATABASE_URL` with manual `parseInt` for numbers. Validated, defaulted, typed. The `env` field remains as a fallback for one-off values that don't warrant schema definition.
+`ProvisionContext` gains a typed `config` field. `svc.config.url` instead of `svc.env?.DATABASE_URL` with manual `parseInt` for numbers. Validated, defaulted, typed. The `env` field remains as a fallback for one-off values that don't warrant schema definition.
 
 ### Config as runtime bootstrap, not topo
 
-Config does NOT live on `topo()`. Topo is the contract graph — trails, events, services. Config is deployment state. Mixing the two conflates what a system can do with how a specific deployment is configured.
+Config does NOT live on `topo()`. Topo is the contract graph — trails, signals, and provisions. Config is deployment state. Mixing the two conflates what a system can do with how a specific deployment is configured.
 
 Config is resolved in `trailhead()` / `run()` options:
 
@@ -297,7 +297,7 @@ myapp config check
   ✓ 4 of 5 fields valid
 ```
 
-The same structured output feeds CLI rendering, agent inspection, and the warden. A trail can expose `config.check` as a first-class operation — queryable, testable, surfaceable on MCP for agents that need to diagnose config issues programmatically.
+The same structured output feeds CLI rendering, agent inspection, and the warden. A trail can expose `config.check` as a first-class operation — queryable, testable, available on any trailhead for agents that need to diagnose config issues programmatically.
 
 ### Validation error UX
 
@@ -326,19 +326,19 @@ This keeps config resolution predictable and fast. The entire config tree resolv
 ### Positive
 
 - **One schema defines everything.** Type, validation, defaults, env mapping, secret annotation, deprecation, descriptions, and value constraints — all co-located on the field definition.
-- **Services get typed config.** `svc.config.url` instead of raw env parsing and manual type coercion.
+- **Provisions get typed config.** `svc.config.url` instead of raw env parsing and manual type coercion.
 - **Generated artifacts never drift.** Example files, JSON Schema, `.env.example` — all derived from the same schemas that validate at runtime.
 - **`explain()` makes debugging config trivial.** Structured provenance answers "where did this value come from?" without guessing.
 - **`describe()` makes introspection trivial.** Agents and CLI users can enumerate every config option without reading source code or documentation.
 - **JSON Schema gives IDE support for free.** Autocomplete and inline validation in config files, same experience as established tools.
-- **Composable config follows the pack model.** Install a pack, its services declare their config needs. The framework tells you what's missing.
+- **Composable config follows the pack model.** Install a pack, its provisions declare their config needs. The framework tells you what's missing.
 - **`config.ref()` connects config to trail inputs.** Config values serve as defaults for trail inputs without coupling the two schemas. One source of truth for defaults, overridable per-invocation.
 - **`appConfig` is the same primitive Trails uses.** Not a second-class utility — the framework's own config runs on the same system apps use.
 
 ### Tradeoffs
 
 - **`env()` and `secret()` use Zod's metadata API.** Implementation depends on Zod 4's `globalRegistry` and `.meta()`. Wrapper functions compose metadata before transforms. If Zod's metadata model changes, this trailhead breaks.
-- **Composable config adds schema merging complexity.** Multiple services contributing config schemas means the framework must handle namespace scoping and conflict detection.
+- **Composable config adds schema merging complexity.** Multiple provisions contributing config schemas means the framework must handle namespace scoping and conflict detection.
 - **No CLI flag derivation from config.** Environment variables are the only command-line override mechanism. Teams that want flags must set env vars or use wrapper scripts.
 
 ### What this does NOT decide
@@ -352,6 +352,6 @@ This keeps config resolution predictable and fast. The entire config tree resolv
 ## References
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — "one write, many reads" and "derive by default" — config derives discovery, validation, examples, and introspection from a single schema declaration
-- [ADR-0009: Provisions as a First-Class Primitive](0009-first-class-provisions.md) — services declare config schemas via the reserved `config` field; config enriches `ServiceContext`
+- [ADR-0009: Provisions as a First-Class Primitive](0009-first-class-provisions.md) — provisions declare config schemas via the reserved `config` field; config enriches `ProvisionContext`
 - [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — config is the first infrastructure package following the provision + gate + trails trifecta
 - [ADR-0013: Tracker](0013-tracker.md) — tracker consume config for sampling rates and export targets

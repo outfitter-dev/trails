@@ -39,7 +39,7 @@ Beyond input transformation, webhooks need:
 - **Signature verification.** The payload must be authenticated before processing. Stripe signs with HMAC-SHA256. GitHub signs with HMAC-SHA256. Each provider has a different verification algorithm, different header locations for the signature, and different key management.
 - **Endpoint registration.** The webhook needs an HTTP path. This path is not derived from the trail ID the way regular routes are (you don't want `/api/billing/confirm` as your Stripe webhook URL; you want `/webhooks/stripe`).
 - **Idempotency.** Webhook providers retry on failure. The same event may arrive multiple times. The trail must handle duplicates gracefully, or the trailhead must deduplicate.
-- **Acknowledgment semantics.** The webhook sender expects a 200 quickly. Long-running trail execution should not block the HTTP response. The trailhead may need to accept, respond 200, and dispatch asynchronously.
+- **Acknowledgment semantics.** The webhook sender expects a 200 quickly. Long-running trail execution should not block the HTTP response. The trailhead may need to accept, respond 200, and run asynchronously.
 
 ### Verification is permit resolution
 
@@ -126,9 +126,9 @@ trailhead(app, {
 });
 ```
 
-The `webhooks` config on blaze options registers webhook endpoints alongside regular trail routes. Each webhook specifies:
+The `webhooks` config on trailhead options registers webhook endpoints alongside regular trail routes. Each webhook specifies:
 
-- **`trail`**: the trail ID to dispatch to.
+- **`trail`**: the trail ID to run.
 - **`verify`**: the verification function (signature checking).
 - **`connector`** (optional): the input connector that transforms the payload.
 
@@ -224,20 +224,20 @@ config: z.object({
 
 The secret is not hardcoded in the webhook config. It's resolved at runtime from the config system. The `.secret()` marker ensures it's redacted in logs and config.explain output.
 
-### Acknowledgment and async dispatch
+### Acknowledgment and async execution
 
-For long-running trails, the webhook endpoint should respond quickly and dispatch asynchronously:
+For long-running trails, the webhook endpoint should respond quickly and run asynchronously:
 
 ```typescript
 '/webhooks/stripe': {
   trail: 'billing.payment-completed',
   verify: verifyStripe,
   connector: stripeConnector,
-  async: true,  // respond 202, dispatch in background
+  async: true,  // respond 202, run in background
 },
 ```
 
-When `async: true`, the endpoint verifies and validates, responds 202 (Accepted), and dispatches the trail in the background. The trail's Result is recorded by tracker but not returned to the webhook sender.
+When `async: true`, the endpoint verifies and validates, responds 202 (Accepted), and runs the trail in the background. The trail's Result is recorded by tracker but not returned to the webhook sender.
 
 Default is `false` (synchronous): verify, validate, execute, respond with the result status. This is simpler and correct for fast trails.
 

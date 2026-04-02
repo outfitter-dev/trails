@@ -3,7 +3,7 @@ slug: reactive-trail-activation
 title: Reactive Trail Activation
 status: draft
 created: 2026-03-31
-updated: 2026-04-01
+updated: 2026-04-02
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [3, 4, 13, typed-signal-emission]
 ---
@@ -14,9 +14,9 @@ depends_on: [3, 4, 13, typed-signal-emission]
 
 ### Trails are callable but not activatable
 
-Every trail in a topo is callable: a trailhead or `run()` can invoke it with input and receive a Result. But the framework has no concept of *when* a trail should be invoked. Activation logic lives outside the contract: in trailhead configuration (blaze options), in external schedulers (crontab), in application code (a webhook handler that calls `dispatch`), or in infrastructure (a queue consumer).
+Every trail in a topo is callable: a trailhead or `run()` can invoke it with input and receive a Result. But the framework has no concept of *when* a trail should be invoked. Activation logic lives outside the contract: in trailhead configuration (trailhead options), in external schedulers (crontab), in application code (a webhook handler that calls `run()`), or in infrastructure (a queue consumer).
 
-This means the framework can't see the reactive graph. Survey reports what trails exist and what they follow. It can't report what activates them. The warden governs trail contracts and composition. It can't govern activation. Tracker records what happened. It can't attribute the execution to a trigger source.
+This means the framework can't see the reactive graph. Survey reports what trails exist and what they cross. It can't report what activates them. The warden governs trail contracts and composition. It can't govern activation. Tracker records what happened. It can't attribute the execution to a trigger source.
 
 ### Real applications are event-driven
 
@@ -28,15 +28,15 @@ The patterns are everywhere:
 - An emitted event triggers a downstream trail
 - A config change triggers a cache invalidation
 
-Developers build these patterns today with application code: webhook handlers call `dispatch`, schedulers call `dispatch`, error handlers call `dispatch`. The activation logic works, but it's invisible to the framework. The trigger, the condition, and the action are disconnected.
+Developers build these patterns today with application code: webhook handlers call `run()`, schedulers call `run()`, error handlers call `run()`. The activation logic works, but it's invisible to the framework. The trigger, the condition, and the action are disconnected.
 
 ### The key constraint
 
-Triggers activate trails. That's the boundary. A trigger does not compose trails. It does not orchestrate. It does not branch. It fires, the trail runs, the trail handles composition with normal `follow` inside its implementation.
+Triggers activate trails. That's the boundary. A trigger does not compose trails. It does not orchestrate. It does not branch. It fires, the trail runs, and the trail handles composition with normal `ctx.cross()` calls inside its implementation.
 
-If someone wants "when X happens, do A then B then C with branching," the answer is: put a trigger on a trail that follows A, B, and C with normal imperative composition. The trigger is the activation layer. The trail is the execution layer. These stay separate.
+If someone wants "when X happens, do A then B then C with branching," the answer is: put a trigger on a trail that crosses into A, B, and C with normal imperative composition. The trigger is the activation layer. The trail is the execution layer. These stay separate.
 
-### Depends on: Events Runtime
+### Depends on: Signals Runtime
 
 The Events Runtime ADR establishes `ctx.signal()`, the `emits` declaration, and framework lifecycle events (`trail.completed`, `trail.failed`, `trail.failed.<category>`). Triggers consume the event routing pipeline. Trail completions and failures are lifecycle events emitted by the framework. Rather than implementing separate trigger types for these, the trigger system listens for events — both authored and framework-emitted — through one mechanism.
 
@@ -70,10 +70,10 @@ A trail with `fires` is still a normal trail. It still has an input schema, outp
 
 The `fires` field is part of the trail's contract — the author's stated design for what activates this trail. It follows the same pattern as `visibility` and `intent`: authored default on the trail, overridable at the pack or app level.
 
-This matters for provisions. A provisioned pack declares `fires` for its trails. The consuming app may need different activation:
+This matters for packs. A pack declares `fires` for its trails. The consuming app may need different activation:
 
 ```typescript
-// The provisioned trail declares its default trigger
+// The pack trail declares its default trigger
 const notifyBooking = trail('notify.booking-confirmed', {
   fires: [{ signal: 'booking.confirmed' }],
   // ...
@@ -170,7 +170,7 @@ const githubEventReceived = trail('github.event.received', {
 });
 ```
 
-Webhook verification is permit resolution for this activation path — it produces a `Permit` through an connector, not necessarily a JWT. See the Webhooks ADR for the full webhook trailhead design.
+Webhook verification is permit resolution for this activation path — it produces a `Permit` through a connector, not necessarily a JWT. See the Webhooks ADR for the full webhook trailhead design.
 
 ### Conditional fire sources with `where`
 
@@ -223,7 +223,7 @@ Each fire source is an independent activation path. The trail's implementation d
 
 When a topo is constructed, the framework resolves all fire sources. The lockfile captures the full reactive graph:
 
-- **Schedule fire sources** register with the scheduler provision.
+- **Schedule fire sources** register with the scheduler.
 - **Signal fire sources** register as listeners on the signal routing pipeline.
 - **Webhook fire sources** register endpoints on the HTTP trailhead.
 
@@ -251,7 +251,7 @@ Invalid fire sources are caught at construction time:
 
 ### Fire-activated execution uses `run()`
 
-When a fire source ignites, the framework calls `run(trailId, input)` internally. The trail goes through the full execution pipeline. Tracker records the execution with fire provenance:
+When a fire source ignites, the framework executes the trail through the full pipeline via `run(trailId, input)`. Tracker records the execution with fire provenance:
 
 ```json
 {
@@ -266,7 +266,7 @@ When a fire source ignites, the framework calls `run(trailId, input)` internally
 }
 ```
 
-Tracker queries can filter by fire source type: "show me all scheduled executions," "show me all webhook-fired failures."
+Tracker queries can filter by fire source type: "show me all scheduled executions," "show me all webhook-activated failures."
 
 ### Warden rules for fires
 
@@ -280,11 +280,11 @@ Tracker queries can filter by fire source type: "show me all scheduled execution
 
 ### How fires compound with existing features
 
-**With packs.** A provider pack declares fires on its trails. When the pack composes into a topo, those fire sources register automatically. The pack author declared the activation. The app author overrides only when needed.
+**With packs.** A pack declares fires on its trails. When the pack composes into a topo, those fire sources register automatically. The pack author declared the activation. The app author overrides only when needed.
 
 **With visibility.** Reactively fired trails can be `visibility: 'internal'`. They don't appear on trailheads. They activate reactively. Background workers, compensators, and audit trails.
 
-**With parallel composition.** A triggered trail can use the array form of `ctx.cross()` for concurrent work. The activation model and the composition model compose without knowing about each other.
+**With parallel composition.** An activated trail can use the array form of `ctx.cross()` for concurrent work. The activation model and the composition model compose without knowing about each other.
 
 **With the Events Runtime.** Fire sources consume the signal routing pipeline. Authored signals, framework lifecycle signals, and webhook fires all flow through the same mechanism.
 
@@ -301,12 +301,12 @@ Tracker queries can filter by fire source type: "show me all scheduled execution
 - **Three fire source types cover the full space.** Schedule (time), signal (authored + lifecycle + error category), webhook (external inbound). Fewer concepts, one routing mechanism.
 - **The framework sees the full picture.** The static call graph (crossings) and the reactive activation graph (fires) together describe the system's behavior. Both are in the lockfile.
 - **Fire conditions are testable.** `where` predicates with examples are tested by `testExamples`.
-- **No workflow engine.** Fire sources activate trails. Trails handle composition with crossings. The activation layer and the execution layer stay separate.
+- **No workflow engine.** Fire sources activate trails. Trails handle composition through crossings. The activation layer and the execution layer stay separate.
 
 ### Tradeoffs
 
 - **New field on the trail spec.** `fires` adds a concept to learn. The justification: activation is genuinely new information that the framework can't derive.
-- **Fire resolution adds startup complexity.** Topo construction resolves fires: register schedules, bind signal listeners, register webhook endpoints.
+- **Fire resolution adds startup cost.** Topo construction resolves fires: register schedules, bind signal listeners, register webhook endpoints.
 - **Complex reactive chains.** Deep chains are inspectable via survey and the lockfile, and the warden detects cycles, but emergent behavior of long chains requires attention.
 - **Scheduled fires need runtime infrastructure.** `Bun.cron` for production, mock scheduler for testing.
 
@@ -329,4 +329,4 @@ Tracker queries can filter by fire source type: "show me all scheduled execution
 - ADR: Trail Visibility and Trailhead Filtering (draft) — reactively fired trails can be internal
 - ADR: Packs as Namespace Boundaries (draft) — packs carry fires declarations; overridable in consuming apps
 - ADR: Webhooks and Input Connectors (draft) — webhook fires delegate to the webhook trailhead
-- ADR: Concurrent Cross Composition (draft) — fired trails can use concurrent crossing
+- ADR: Concurrent Cross Composition (draft) — activated trails can use concurrent crossing
