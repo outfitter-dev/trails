@@ -16,7 +16,7 @@ const db = service('db.main', {
 
 trail('entity.show', {
   services: [db],
-  run: async (_input, ctx) => {
+  blaze: async (_input, ctx) => {
     return Result.ok({ source: db.from(ctx).source });
   },
 });
@@ -37,7 +37,7 @@ const db = service('db.main', {
 
 trail('entity.show', {
   services: [db],
-  run: async (_input, ctx) => {
+  blaze: async (_input, ctx) => {
     const service = (id: string) => id;
     return Result.ok({
       resolved: service('db.main'),
@@ -62,7 +62,7 @@ const db = service('db.main', {
 
 trail('entity.show', {
   services: [db],
-  run: async (_input, ctx) => {
+  blaze: async (_input, ctx) => {
     const resolved = ctx.service('db.main');
     return Result.ok(resolved);
   },
@@ -84,7 +84,7 @@ const db = service('db.main', {
 
 trail('entity.show', {
   services: [db],
-  run: async (_input, ctx) => {
+  blaze: async (_input, ctx) => {
     const { service } = ctx;
     return Result.ok(service('db.main'));
   },
@@ -106,7 +106,7 @@ const db = service('db.main', {
 
 trail('entity.show', {
   services: [db],
-  run: async (_input, ctx) => {
+  blaze: async (_input, ctx) => {
     return Result.ok(ctx.service(db));
   },
 });
@@ -128,7 +128,7 @@ const db = service('db.main', {
 });
 
 trail('entity.show', {
-  run: async (_input, ctx) => {
+  blaze: async (_input, ctx) => {
     return Result.ok({ source: db.from(ctx).source });
   },
 });
@@ -146,7 +146,7 @@ trail('entity.show', {
     test('ctx.service() without a declaration produces an error', () => {
       const code = `
 trail('entity.show', {
-  run: async (_input, ctx) => {
+  blaze: async (_input, ctx) => {
     return Result.ok(ctx.service('db.main'));
   },
 });
@@ -170,7 +170,7 @@ import { db } from './services';
 
 trail('entity.show', {
   services: [db],
-  run: async (_input, ctx) => {
+  blaze: async (_input, ctx) => {
     return Result.ok(ctx.service('db.main'));
   },
 });
@@ -192,7 +192,7 @@ const db = service('db.main', {
 });
 
 trail('entity.show', {
-  run: async (_input, ctx) => {
+  blaze: async (_input, ctx) => {
     return Result.ok(ctx.service(db));
   },
 });
@@ -217,7 +217,7 @@ const db = service('db.main', {
 
 trail('entity.show', {
   services: [db],
-  run: async () => {
+  blaze: async () => {
     return Result.ok({ ok: true });
   },
 });
@@ -245,7 +245,7 @@ const db = service('db.main', {
 trail({
   id: 'entity.show',
   services: [db],
-  run: async (_input, ctx) => {
+  blaze: async (_input, ctx) => {
     return Result.ok({ source: db.from(ctx).source });
   },
 });
@@ -268,7 +268,7 @@ const database = service('db.main', {
 
 trail('entity.show', {
   services: [database],
-  run: async (_input, context) => {
+  blaze: async (_input, context) => {
     return Result.ok(database.from(context));
   },
 });
@@ -291,8 +291,8 @@ const db = service('db.main', {
 
 trail('entity.show', {
   services: [db],
-  metadata: { run: async () => ctx.service('phantom') },
-  run: async (_input, ctx) => {
+  metadata: { blaze: async () => ctx.service('phantom') },
+  blaze: async (_input, ctx) => {
     return Result.ok(db.from(ctx));
   },
 });
@@ -307,7 +307,7 @@ trail('entity.show', {
   test('skips test files', () => {
     const code = `
 trail('entity.show', {
-  run: async (_input, ctx) => {
+  blaze: async (_input, ctx) => {
     return Result.ok(ctx.service('db.main'));
   },
 });

@@ -11,6 +11,7 @@ import { testContracts } from '../contracts.js';
 
 /** Trail whose implementation matches the output schema. */
 const validTrail = trail('valid', {
+  blaze: (input: { name: string }) => Result.ok({ id: 1, name: input.name }),
   examples: [
     {
       expected: { id: 1, name: 'Alpha' },
@@ -20,21 +21,20 @@ const validTrail = trail('valid', {
   ],
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.number(), name: z.string() }),
-  run: (input: { name: string }) => Result.ok({ id: 1, name: input.name }),
 });
 
 /** Trail without output schema -- should be skipped. */
 const noSchemaTrail = trail('noschema', {
+  blaze: (input: { x: number }) => Result.ok(input.x * 2),
   examples: [{ expected: 10, input: { x: 5 }, name: 'No schema' }],
   input: z.object({ x: z.number() }),
-  run: (input: { x: number }) => Result.ok(input.x * 2),
 });
 
 /** Trail without examples -- should be skipped. */
 const noExamplesTrail = trail('noexamples', {
+  blaze: (input: { x: number }) => Result.ok({ value: input.x }),
   input: z.object({ x: z.number() }),
   output: z.object({ value: z.number() }),
-  run: (input: { x: number }) => Result.ok({ value: input.x }),
 });
 
 // ---------------------------------------------------------------------------
@@ -43,6 +43,8 @@ const noExamplesTrail = trail('noexamples', {
 
 /** Composition trail whose implementation matches the output schema. */
 const compositionTrail = trail('composition.valid', {
+  blaze: (input: { a: number; b: number }) =>
+    Result.ok({ total: input.a + input.b }),
   examples: [
     {
       expected: { total: 3 },
@@ -53,11 +55,10 @@ const compositionTrail = trail('composition.valid', {
   follow: ['valid'],
   input: z.object({ a: z.number(), b: z.number() }),
   output: z.object({ total: z.number() }),
-  run: (input: { a: number; b: number }) =>
-    Result.ok({ total: input.a + input.b }),
 });
 
 const transformedInputTrail = trail('contract.transformed', {
+  blaze: (input: { value: number }) => Result.ok({ value: input.value }),
   examples: [
     {
       expected: { value: 2 },
@@ -69,7 +70,6 @@ const transformedInputTrail = trail('contract.transformed', {
     .object({ value: z.string() })
     .transform(({ value }) => ({ value: Number(value) + 1 })),
   output: z.object({ value: z.number() }),
-  run: (input: { value: number }) => Result.ok({ value: input.value }),
 });
 
 const undeclaredContractDbService = service('db.undeclared.contracts', {
@@ -78,6 +78,11 @@ const undeclaredContractDbService = service('db.undeclared.contracts', {
 });
 
 const undeclaredContractTrail = trail('service.undeclared.contracts', {
+  blaze: (_input, ctx) =>
+    Result.ok({
+      hasInjectedService:
+        ctx.extensions?.[undeclaredContractDbService.id] !== undefined,
+    }),
   examples: [
     {
       expected: { hasInjectedService: false },
@@ -87,11 +92,6 @@ const undeclaredContractTrail = trail('service.undeclared.contracts', {
   ],
   input: z.object({}),
   output: z.object({ hasInjectedService: z.literal(false) }),
-  run: (_input, ctx) =>
-    Result.ok({
-      hasInjectedService:
-        ctx.extensions?.[undeclaredContractDbService.id] !== undefined,
-    }),
 });
 
 const ctxOverrideContractService = service('db.mock.contracts', {
@@ -100,6 +100,8 @@ const ctxOverrideContractService = service('db.mock.contracts', {
 });
 
 const ctxOverrideContractTrail = trail('service.ctx.contracts', {
+  blaze: (_input, ctx) =>
+    Result.ok({ source: ctxOverrideContractService.from(ctx).source }),
   examples: [
     {
       expected: { source: 'ctx' },
@@ -109,8 +111,6 @@ const ctxOverrideContractTrail = trail('service.ctx.contracts', {
   ],
   input: z.object({}),
   output: z.object({ source: z.literal('ctx') }),
-  run: (_input, ctx) =>
-    Result.ok({ source: ctxOverrideContractService.from(ctx).source }),
   services: [ctxOverrideContractService],
 });
 

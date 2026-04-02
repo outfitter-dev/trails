@@ -1,6 +1,7 @@
 export interface VocabAuditRule {
   readonly id: string;
   readonly description: string;
+  readonly excludePaths?: readonly string[];
   readonly pattern: string;
 }
 
@@ -9,9 +10,10 @@ export const auditRoots = ['README.md', 'apps/', 'docs/', 'packages/'] as const;
 export const auditRules: readonly VocabAuditRule[] = [
   {
     description:
-      'Old trail implementation field still uses run: instead of blaze:',
+      'Old trail implementation field still uses run: arrow/function bodies instead of blaze:',
+    excludePaths: ['packages/testing/src/harness-cli.ts'],
     id: 'run-field',
-    pattern: String.raw`\brun\s*:`,
+    pattern: String.raw`\brun\s*:\s*(?:(?:async\s*)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>|function\s*\()`,
   },
   {
     description: 'Old direct execution helper still uses dispatch(...)',
@@ -44,9 +46,10 @@ export const auditRules: readonly VocabAuditRule[] = [
     pattern: String.raw`\bevent\(`,
   },
   {
-    description: 'Old surface entrypoint still uses blaze(...)',
+    description:
+      'Old surface entrypoint still imports or calls the top-level blaze helper',
     id: 'blaze-call',
-    pattern: String.raw`\bblaze\(`,
+    pattern: String.raw`from\s+['"][^'"]*/blaze(?:\.js)?['"]|\bimport\s*{[^}]*\bblaze\b[^}]*}|\bexport\s*{[^}]*\bblaze\b[^}]*}`,
   },
   {
     description: 'Old telemetry package name still references crumbs',

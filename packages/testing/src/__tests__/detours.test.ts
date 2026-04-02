@@ -10,21 +10,21 @@ import { testDetours } from '../detours.js';
 // ---------------------------------------------------------------------------
 
 const showTrail = trail('entity.show', {
+  blaze: (input: { id: string }) => Result.ok({ id: input.id }),
   detours: {
     related: ['entity.list'],
   },
   input: z.object({ id: z.string() }),
-  run: (input: { id: string }) => Result.ok({ id: input.id }),
 });
 
 const listTrail = trail('entity.list', {
+  blaze: () => Result.ok([]),
   input: z.object({}),
-  run: () => Result.ok([]),
 });
 
 const noDetoursTrail = trail('entity.plain', {
+  blaze: () => Result.ok('ok'),
   input: z.object({}),
-  run: () => Result.ok('ok'),
 });
 
 // ---------------------------------------------------------------------------

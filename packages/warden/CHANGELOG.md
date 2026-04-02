@@ -22,7 +22,7 @@
 
   **Warden:** `service-declarations` rule validates `db.from(ctx)` and `ctx.service()` usage matches declared `services: [...]`. `service-exists` rule validates declared service IDs resolve in project context. Scope-aware AST walking skips nested function boundaries.
 
-  **Surfaces:** Service overrides thread through `dispatch` and `trailhead` on CLI, MCP, and HTTP.
+  **Surfaces:** Service overrides thread through `run` and `trailhead` on CLI, MCP, and HTTP.
 
   **Introspection:** Survey and surface map outputs include service graph. Topo exposes `.services`, `.getService()`, `.hasService()`, `.listServices()`, `.serviceIds()`, `.serviceCount`.
 
@@ -40,7 +40,7 @@
 
 - Cleanup and hardening pass across all packages.
 
-  **core**: Deduplicate `DispatchOptions` as type alias of `ExecuteTrailOptions`. Replace `TrailContext` index signature with typed `extensions` field for type safety. Deep-merge `extensions` in `executeTrail` context resolution. Remove unused `Surface` type, `adapters.ts`, `health.ts`, and `job.ts` proof-of-concept from published package.
+  **core**: Deduplicate `RunOptions` as type alias of `ExecuteTrailOptions`. Replace `TrailContext` index signature with typed `extensions` field for type safety. Deep-merge `extensions` in `executeTrail` context resolution. Remove unused `Surface` type, `adapters.ts`, `health.ts`, and `job.ts` proof-of-concept from published package.
 
   **cli**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `trailhead()` with opt-out via `validate: false`.
 
@@ -60,7 +60,7 @@
 
 - Consolidated improvements across all surface packages.
 
-  **core**: Add `TrailResult<T>` utility type, `topo.ids()` and `topo.count` accessors, `dispatch()` for headless trail execution, and extract shared `executeTrail` pipeline used by CLI/MCP/HTTP.
+  **core**: Add `TrailResult<T>` utility type, `topo.ids()` and `topo.count` accessors, `run()` for headless trail execution, and extract shared `executeTrail` pipeline used by CLI/MCP/HTTP.
 
   **http**: Detect route path collisions and return `Result` from `buildHttpRoutes()`, wire request `AbortSignal` through to trail context, and make write → POST mapping explicit in intent-to-method lookup.
 
@@ -104,7 +104,7 @@
 
   **core**: `inputOf()`/`outputOf()` now preserve the exact Zod schema subtype instead of widening to `z.ZodType`.
 
-  **warden**: `follow-declarations` rule now recognizes single-object trail overload, detects any context parameter name (not just `ctx`), matches destructured `follow()` calls, resolves const identifiers in `follow` arrays, and restricts run body extraction to top-level config properties.
+  **warden**: `follow-declarations` rule now recognizes single-object trail overload, detects any context parameter name (not just `ctx`), matches destructured `follow()` calls, resolves const identifiers in `follow` arrays, and restricts blaze body extraction to top-level config properties.
 
 - Updated dependencies
   - @ontrails/core@1.0.0-beta.6

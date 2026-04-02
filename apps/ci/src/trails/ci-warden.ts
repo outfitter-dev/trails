@@ -10,6 +10,34 @@ import type { CiFormat } from '../formatters.js';
 import { formatCiOutput } from '../formatters.js';
 
 export const ciWardenTrail = trail('ci.warden', {
+  blaze: async (input, ctx) => {
+    const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
+    const format: CiFormat = input.format ?? 'json';
+    const failOn = input.failOn ?? 'error';
+
+    const report = await runWarden({ rootDir });
+    const driftResult = report.drift ?? {
+      committedHash: null,
+      currentHash: 'unknown',
+      stale: false,
+    };
+
+    const output = formatCiOutput(format, {
+      driftResult,
+      wardenReport: report,
+    });
+
+    const failedByErrors = report.errorCount > 0;
+    const failedByWarnings = failOn === 'warning' && report.warnCount > 0;
+    const passed = !failedByErrors && !failedByWarnings;
+
+    return Result.ok({
+      errorCount: report.errorCount,
+      output,
+      passed,
+      warningCount: report.warnCount,
+    });
+  },
   description: 'Run warden governance checks with CI-friendly output',
   examples: [
     {
@@ -39,32 +67,4 @@ export const ciWardenTrail = trail('ci.warden', {
     passed: z.boolean(),
     warningCount: z.number(),
   }),
-  run: async (input, ctx) => {
-    const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
-    const format: CiFormat = input.format ?? 'json';
-    const failOn = input.failOn ?? 'error';
-
-    const report = await runWarden({ rootDir });
-    const driftResult = report.drift ?? {
-      committedHash: null,
-      currentHash: 'unknown',
-      stale: false,
-    };
-
-    const output = formatCiOutput(format, {
-      driftResult,
-      wardenReport: report,
-    });
-
-    const failedByErrors = report.errorCount > 0;
-    const failedByWarnings = failOn === 'warning' && report.warnCount > 0;
-    const passed = !failedByErrors && !failedByWarnings;
-
-    return Result.ok({
-      errorCount: report.errorCount,
-      output,
-      passed,
-      warningCount: report.warnCount,
-    });
-  },
 });

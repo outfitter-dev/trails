@@ -46,8 +46,8 @@ FollowFn, ServiceLookup, ProgressCallback, ProgressEvent, Logger, Surface
 
 // Execution pipeline
 executeTrail(trail, rawInput, options?) // validate → resolve context → resolve services → compose layers → run
-dispatch(topo, id, input, options?)    // look up and execute a trail by ID; accepts ctx/services overrides
-DispatchOptions
+run(topo, id, input, options?)    // look up and execute a trail by ID; accepts ctx/services overrides
+RunOptions
 
 // Layers
 Layer                              // wrap(trail, implementation) → implementation

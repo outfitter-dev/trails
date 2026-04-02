@@ -13,7 +13,7 @@ const greet = trail('greet', {
   input: z.object({ name: z.string().describe('Who to greet') }),
   output: z.object({ message: z.string() }),
   intent: 'read',
-  run: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
+  blaze: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
 
 const app = topo('myapp', { greet });

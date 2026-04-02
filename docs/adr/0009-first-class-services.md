@@ -18,7 +18,7 @@ Trails implementations are pure functions. Input in, `Result` out. No side effec
 
 ```typescript
 const search = trail('search', {
-  run: async (input) => {
+  blaze: async (input) => {
     const db = openDatabase();
     try {
       const result = await dbSearch(db, input);
@@ -114,7 +114,7 @@ const search = trail('search', {
   services: [db],
   intent: 'read',
   input: z.object({ query: z.string() }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const conn = db.from(ctx);
     const result = await dbSearch(conn, input);
     return Result.ok({ results: result.value });
@@ -166,7 +166,7 @@ Service `create` factories return `Result`. Thrown exceptions are wrapped as `In
 
 ### Centralized follow creation
 
-Today, each surface creates its own `ctx.follow` function ad-hoc. With services, follow needs to propagate the resolved service scope through nested trail invocations. A core `createFollow(topo, scope)` function — named per Convention 5 — centralizes this. All surfaces and `dispatch()` use the same function.
+Today, each surface creates its own `ctx.follow` function ad-hoc. With services, follow needs to propagate the resolved service scope through nested trail invocations. A core `createFollow(topo, scope)` function — named per Convention 5 — centralizes this. All surfaces and `run()` use the same function.
 
 The execution scope is a lightweight object that `executeTrail` creates per root invocation. For v1, it holds the singleton service cache. The scope is extensible — crumbs will add `CrumbScope` for trace propagation, and request-scoped services (when they ship) will add per-request state. Designing the seam now avoids retrofitting it later.
 
@@ -192,14 +192,14 @@ testExamples(app, { services: { 'db.main': customMock } });
 
 When a service definition includes a `mock` factory, `testExamples` uses it automatically. No configuration needed. The service contract includes how to mock itself. This restores the `testExamples(app)` promise — one line tests the entire app, even for trails with external dependencies.
 
-The same mechanism works with `testFollows`, `dispatch`, and surface-level overrides:
+The same mechanism works with `testFollows`, `run`, and surface-level overrides:
 
 ```typescript
 testFollows(onboardTrail, scenarios, {
   services: { 'db.main': mockDb },
 });
 
-dispatch(app, 'search', input, {
+run(app, 'search', input, {
   services: { 'db.main': testDb },
 });
 
@@ -251,7 +251,7 @@ export const entityStore = service('entity.store', {
 
 export const show = trail('entity.show', {
   services: [entityStore],
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const store = entityStore.from(ctx);
     return store.get(input.name);
   },

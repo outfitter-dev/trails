@@ -15,12 +15,12 @@ import { topo } from '../topo.js';
 const noop = async () => Result.ok();
 
 const mockTrail = (id: string, follow?: readonly string[]) => ({
+  blaze: noop,
   follow: Object.freeze([...(follow ?? [])]),
   id,
   input: z.object({ x: z.number() }),
   kind: 'trail' as const,
   output: z.object({ y: z.number() }),
-  run: noop,
 });
 
 const mockEvent = (id: string) => ({

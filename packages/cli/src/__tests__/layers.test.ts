@@ -48,6 +48,7 @@ const expectSameDate = (value: string | undefined, expected: Date) => {
 
 describe('autoIterateLayer', () => {
   const paginatedTrail = trail('list-items', {
+    blaze: () => Result.ok({ hasMore: false, items: [] }),
     input: z.object({
       all: z.boolean().optional(),
       cursor: z.string().optional(),
@@ -57,7 +58,6 @@ describe('autoIterateLayer', () => {
       items: z.array(z.string()),
       nextCursor: z.string().optional(),
     }),
-    run: () => Result.ok({ hasMore: false, items: [] }),
   });
 
   test('collects paginated results with --all flag', async () => {
@@ -112,8 +112,8 @@ describe('autoIterateLayer', () => {
 
   test('ignores non-paginated trails', () => {
     const simpleTrail = trail('simple', {
+      blaze: (input: { name: string }) => Result.ok(input.name),
       input: z.object({ name: z.string() }),
-      run: (input: { name: string }) => Result.ok(input.name),
     });
 
     const impl: Implementation<{ name: string }, string> = async (input) =>
@@ -132,12 +132,14 @@ describe('autoIterateLayer', () => {
 
 describe('dateShortcutsLayer', () => {
   const dateTrail = trail('events', {
+    blaze: (input: {
+      since?: string | undefined;
+      until?: string | undefined;
+    }) => Result.ok(input),
     input: z.object({
       since: z.string().optional(),
       until: z.string().optional(),
     }),
-    run: (input: { since?: string | undefined; until?: string | undefined }) =>
-      Result.ok(input),
   });
 
   test("expands 'today' to correct date", async () => {
@@ -178,8 +180,8 @@ describe('dateShortcutsLayer', () => {
 
   test('ignores trails without date range fields', () => {
     const noDateTrail = trail('no-dates', {
+      blaze: (input: { name: string }) => Result.ok(input.name),
       input: z.object({ name: z.string() }),
-      run: (input: { name: string }) => Result.ok(input.name),
     });
 
     const impl: Implementation<{ name: string }, string> = async (input) =>

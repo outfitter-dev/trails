@@ -18,38 +18,38 @@ import { trailhead } from '../trailhead.js';
 // ---------------------------------------------------------------------------
 
 const echoTrail = trail('echo', {
+  blaze: (input) => Result.ok({ reply: input.message }),
   description: 'Echo a message back',
   input: z.object({ message: z.string() }),
   intent: 'read',
   output: z.object({ reply: z.string() }),
-  run: (input) => Result.ok({ reply: input.message }),
 });
 
 const createTrail = trail('item.create', {
+  blaze: (input) => Result.ok({ id: '123', name: input.name }),
   description: 'Create an item',
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.string(), name: z.string() }),
-  run: (input) => Result.ok({ id: '123', name: input.name }),
 });
 
 const deleteTrail = trail('item.delete', {
+  blaze: (_input) => Result.ok({ deleted: true }),
   description: 'Delete an item',
   input: z.object({ id: z.string() }),
   intent: 'destroy',
-  run: (_input) => Result.ok({ deleted: true }),
 });
 
 const notFoundTrail = trail('item.get', {
+  blaze: (_input) => Result.err(new NotFoundError('Item not found')),
   description: 'Get an item that does not exist',
   input: z.object({ id: z.string() }),
   intent: 'read',
-  run: (_input) => Result.err(new NotFoundError('Item not found')),
 });
 
 const internalTrail = trail('crash', {
+  blaze: () => Result.err(new InternalError('Something broke')),
   description: 'Always fails with internal error',
   input: z.object({}),
-  run: () => Result.err(new InternalError('Something broke')),
 });
 
 const dbService = service('db.main', {
@@ -104,10 +104,10 @@ describe('trailhead (Hono adapter)', () => {
   describe('validation', () => {
     test('trailhead throws on invalid topo', async () => {
       const t = trail('broken', {
+        blaze: () => Result.ok({}),
         follow: ['nonexistent.trail'],
         input: z.object({}),
         output: z.object({}),
-        run: () => Result.ok({}),
       });
       const app = topo('test', { t });
       await expect(trailhead(app, { serve: false })).rejects.toThrow(
@@ -117,10 +117,10 @@ describe('trailhead (Hono adapter)', () => {
 
     test('trailhead skips validation when validate: false', async () => {
       const t = trail('broken', {
+        blaze: () => Result.ok({}),
         follow: ['nonexistent.trail'],
         input: z.object({}),
         output: z.object({}),
-        run: () => Result.ok({}),
       });
       const app = topo('test', { t });
       await expect(
@@ -181,10 +181,10 @@ describe('trailhead (Hono adapter)', () => {
 
     test('POST with empty input schema succeeds without a body', async () => {
       const emptyWriteTrail = trail('empty.write', {
+        blaze: () => Result.ok({ ok: true }),
         input: z.object({}),
         intent: 'write',
         output: z.object({ ok: z.boolean() }),
-        run: () => Result.ok({ ok: true }),
       });
 
       const app = topo('testapp', { emptyWriteTrail });
@@ -241,10 +241,10 @@ describe('trailhead (Hono adapter)', () => {
 
     test('thrown exceptions map to 500', async () => {
       const throwTrail = trail('throw', {
-        input: z.object({}),
-        run: () => {
+        blaze: () => {
           throw new Error('unexpected crash');
         },
+        input: z.object({}),
       });
 
       const app = topo('testapp', { throwTrail });
@@ -312,9 +312,9 @@ describe('trailhead (Hono adapter)', () => {
   describe('query param parsing', () => {
     test('numeric-looking string is preserved as string', async () => {
       const stringIdTrail = trail('lookup', {
+        blaze: (input) => Result.ok({ id: input.id }),
         input: z.object({ id: z.string() }),
         intent: 'read',
-        run: (input) => Result.ok({ id: input.id }),
       });
 
       const app = topo('testapp', { stringIdTrail });
@@ -329,9 +329,9 @@ describe('trailhead (Hono adapter)', () => {
 
     test('repeated keys become arrays', async () => {
       const tagsTrail = trail('tags', {
+        blaze: (input) => Result.ok({ tags: input.tags }),
         input: z.object({ tags: z.array(z.string()) }),
         intent: 'read',
-        run: (input) => Result.ok({ tags: input.tags }),
       });
 
       const app = topo('testapp', { tagsTrail });
@@ -346,9 +346,9 @@ describe('trailhead (Hono adapter)', () => {
 
     test('single value is wrapped in array when schema expects z.array()', async () => {
       const tagsTrail = trail('tags.single', {
+        blaze: (input) => Result.ok({ tags: input.tags }),
         input: z.object({ tags: z.array(z.string()) }),
         intent: 'read',
-        run: (input) => Result.ok({ tags: input.tags }),
       });
 
       const app = topo('testapp', { tagsTrail });
@@ -363,9 +363,9 @@ describe('trailhead (Hono adapter)', () => {
 
     test('single value stays scalar when schema expects a string', async () => {
       const nameTrail = trail('name.check', {
+        blaze: (input) => Result.ok({ name: input.name }),
         input: z.object({ name: z.string() }),
         intent: 'read',
-        run: (input) => Result.ok({ name: input.name }),
       });
 
       const app = topo('testapp', { nameTrail });
@@ -380,9 +380,9 @@ describe('trailhead (Hono adapter)', () => {
 
     test('optional array field with single value is wrapped in array', async () => {
       const optArrayTrail = trail('opt.array', {
+        blaze: (input) => Result.ok({ ids: input.ids }),
         input: z.object({ ids: z.array(z.string()).optional() }),
         intent: 'read',
-        run: (input) => Result.ok({ ids: input.ids }),
       });
 
       const app = topo('testapp', { optArrayTrail });
@@ -401,13 +401,13 @@ describe('trailhead (Hono adapter)', () => {
       let capturedSignal: AbortSignal | undefined;
 
       const signalTrail = trail('signal.check', {
-        input: z.object({}),
-        intent: 'read',
-        output: z.object({ ok: z.boolean() }),
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           capturedSignal = ctx.abortSignal;
           return Result.ok({ ok: true });
         },
+        input: z.object({}),
+        intent: 'read',
+        output: z.object({ ok: z.boolean() }),
       });
 
       const app = topo('testapp', { signalTrail });
@@ -422,13 +422,13 @@ describe('trailhead (Hono adapter)', () => {
       let capturedSignal: AbortSignal | undefined;
 
       const signalTrail = trail('signal.aborted', {
-        input: z.object({}),
-        intent: 'read',
-        output: z.object({ ok: z.boolean() }),
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           capturedSignal = ctx.abortSignal;
           return Result.ok({ ok: true });
         },
+        input: z.object({}),
+        intent: 'read',
+        output: z.object({ ok: z.boolean() }),
       });
 
       const app = topo('testapp', { signalTrail });
@@ -455,12 +455,12 @@ describe('trailhead (Hono adapter)', () => {
       let capturedRequestId: string | undefined;
 
       const ctxTrail = trail('ctx.check', {
-        input: z.object({}),
-        intent: 'read',
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           capturedRequestId = ctx.requestId;
           return Result.ok({ ok: true });
         },
+        input: z.object({}),
+        intent: 'read',
       });
 
       const app = topo('testapp', { ctxTrail });
@@ -478,12 +478,12 @@ describe('trailhead (Hono adapter)', () => {
       let contextUsed = false;
 
       const ctxTrail = trail('ctx.custom', {
-        input: z.object({}),
-        intent: 'read',
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           contextUsed = ctx.extensions?.['custom'] === true;
           return Result.ok({ ok: true });
         },
+        input: z.object({}),
+        intent: 'read',
       });
 
       const app = topo('testapp', { ctxTrail });
@@ -503,11 +503,11 @@ describe('trailhead (Hono adapter)', () => {
 
     test('service overrides reach the trail through trailhead()', async () => {
       const serviceTrail = trail('service.check', {
+        blaze: (_input, ctx) =>
+          Result.ok({ source: dbService.from(ctx).source as string }),
         input: z.object({}),
         intent: 'read',
         output: z.object({ source: z.string() }),
-        run: (_input, ctx) =>
-          Result.ok({ source: dbService.from(ctx).source as string }),
         services: [dbService],
       });
 

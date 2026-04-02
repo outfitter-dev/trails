@@ -21,6 +21,38 @@ import { loadApp } from './load-app.js';
 // ---------------------------------------------------------------------------
 
 export const wardenTrail = trail('warden', {
+  blaze: async (input, ctx) => {
+    const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
+    // oxlint-disable-next-line prefer-await-to-then -- catch converts rejection to undefined cleanly
+    const topo = await loadApp('./src/app.ts', rootDir).catch(
+      (): undefined => undefined
+    );
+
+    const report = await runWarden({
+      driftOnly: input.driftOnly,
+      lintOnly: input.lintOnly,
+      rootDir,
+      topo,
+    });
+
+    const formatters: Record<string, (r: typeof report) => string> = {
+      github: formatGitHubAnnotations,
+      json: formatJson,
+      summary: formatSummary,
+      text: formatWardenReport,
+    };
+    const formatter = formatters[input.format] ?? formatWardenReport;
+    const formatted = formatter(report);
+
+    return Result.ok({
+      diagnostics: report.diagnostics,
+      drift: report.drift,
+      errorCount: report.errorCount,
+      formatted,
+      passed: report.passed,
+      warnCount: report.warnCount,
+    });
+  },
   description: 'Run governance checks (lint + drift)',
   examples: [
     {
@@ -69,36 +101,4 @@ export const wardenTrail = trail('warden', {
     passed: z.boolean(),
     warnCount: z.number(),
   }),
-  run: async (input, ctx) => {
-    const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
-    // oxlint-disable-next-line prefer-await-to-then -- catch converts rejection to undefined cleanly
-    const topo = await loadApp('./src/app.ts', rootDir).catch(
-      (): undefined => undefined
-    );
-
-    const report = await runWarden({
-      driftOnly: input.driftOnly,
-      lintOnly: input.lintOnly,
-      rootDir,
-      topo,
-    });
-
-    const formatters: Record<string, (r: typeof report) => string> = {
-      github: formatGitHubAnnotations,
-      json: formatJson,
-      summary: formatSummary,
-      text: formatWardenReport,
-    };
-    const formatter = formatters[input.format] ?? formatWardenReport;
-    const formatted = formatter(report);
-
-    return Result.ok({
-      diagnostics: report.diagnostics,
-      drift: report.drift,
-      errorCount: report.errorCount,
-      formatted,
-      passed: report.passed,
-      warnCount: report.warnCount,
-    });
-  },
 });

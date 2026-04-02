@@ -45,7 +45,7 @@ All four surfaces use it:
 - **CLI:** parse argv into raw input → `executeTrail` → format output for terminal
 - **MCP:** parse JSON-RPC params into raw input → `executeTrail` → format output as JSON-RPC response
 - **HTTP:** parse request body/params into raw input → `executeTrail` → format output as HTTP response
-- **Headless (`dispatch`):** accept raw input directly → `executeTrail` → return Result
+- **Headless (`run`):** accept raw input directly → `executeTrail` → return Result
 
 Each surface is a thin wrapper: parse surface-specific input, call `executeTrail`, format surface-specific output. The execution semantics — validation, layers, error handling — are framework concerns, not surface concerns.
 

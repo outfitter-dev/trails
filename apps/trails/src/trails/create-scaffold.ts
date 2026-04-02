@@ -107,7 +107,7 @@ export const hello = trail('hello', {
       name: 'Named greeting',
     },
   ],
-  run: (input) => {
+  blaze: (input) => {
     const name = input.name ?? 'world';
     return Result.ok({ message: \`Hello, \${name}!\` });
   },
@@ -139,7 +139,7 @@ export const show = trail('entity.show', {
       name: 'Show entity',
     },
   ],
-  run: (input) => {
+  blaze: (input) => {
     return Result.ok({ id: input.id, name: 'Example' });
   },
   input: z.object({ id: z.string() }),
@@ -156,7 +156,7 @@ export const add = trail('entity.add', {
       name: 'Add entity',
     },
   ],
-  run: (input) => {
+  blaze: (input) => {
     return Result.ok({ id: '1', name: input.name });
   },
   input: z.object({ name: z.string() }),
@@ -177,7 +177,7 @@ export const search = trail('search', {
       name: 'Search entities',
     },
   ],
-  run: () => {
+  blaze: () => {
     return Result.ok({ results: [] });
   },
   input: z.object({ query: z.string() }),
@@ -195,7 +195,7 @@ import { z } from 'zod';
 export const onboard = trail('entity.onboard', {
   description: 'Onboard a new entity end-to-end',
   follow: ['entity.add'],
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const result = await ctx.follow('entity.add', { name: input.name });
     if (result.isErr()) {
       return result;
@@ -321,6 +321,19 @@ const writeScaffoldFiles = async (
 // ---------------------------------------------------------------------------
 
 export const createScaffold = trail('create.scaffold', {
+  blaze: async (input) => {
+    const projectDir = resolve(input.dir ?? '.', input.name);
+    const starter = (input.starter ?? 'hello') as Starter;
+    const fileMap = collectScaffoldFiles(input.name, starter);
+    const files = await writeScaffoldFiles(projectDir, fileMap);
+    mkdirSync(join(projectDir, '.trails'), { recursive: true });
+
+    return Result.ok({
+      created: files,
+      dir: projectDir,
+      name: input.name,
+    } satisfies ScaffoldResult);
+  },
   description: 'Scaffold a new Trails project',
   input: z.object({
     dir: z.string().optional().describe('Parent directory'),
@@ -336,17 +349,4 @@ export const createScaffold = trail('create.scaffold', {
     dir: z.string(),
     name: z.string(),
   }),
-  run: async (input) => {
-    const projectDir = resolve(input.dir ?? '.', input.name);
-    const starter = (input.starter ?? 'hello') as Starter;
-    const fileMap = collectScaffoldFiles(input.name, starter);
-    const files = await writeScaffoldFiles(projectDir, fileMap);
-    mkdirSync(join(projectDir, '.trails'), { recursive: true });
-
-    return Result.ok({
-      created: files,
-      dir: projectDir,
-      name: input.name,
-    } satisfies ScaffoldResult);
-  },
 });

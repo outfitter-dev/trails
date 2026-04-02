@@ -25,6 +25,11 @@ const outputSchema = z.object({
 });
 
 export const configDescribe = trail('config.describe', {
+  blaze: (_input, ctx) => {
+    const state = configService.from(ctx);
+    const fields = describeConfig(state.schema);
+    return Result.ok({ fields: [...fields] });
+  },
   examples: [
     {
       input: {},
@@ -35,10 +40,5 @@ export const configDescribe = trail('config.describe', {
   intent: 'read',
   metadata: { category: 'infrastructure' },
   output: outputSchema,
-  run: (_input, ctx) => {
-    const state = configService.from(ctx);
-    const fields = describeConfig(state.schema);
-    return Result.ok({ fields: [...fields] });
-  },
   services: [configService],
 });

@@ -60,7 +60,7 @@ describe('crumbs.status', () => {
   describe('run', () => {
     test('returns active from state', async () => {
       const ctx = buildCtx(defaultState);
-      const result = await crumbsStatus.run({}, ctx);
+      const result = await crumbsStatus.blaze({}, ctx);
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
       expect(value.active).toBe(true);
@@ -68,21 +68,21 @@ describe('crumbs.status', () => {
 
     test('returns inactive when state says so', async () => {
       const ctx = buildCtx({ ...defaultState, active: false });
-      const result = await crumbsStatus.run({}, ctx);
+      const result = await crumbsStatus.blaze({}, ctx);
       const value = result.unwrap();
       expect(value.active).toBe(false);
     });
 
     test('returns recordCount of 0 for v1', async () => {
       const ctx = buildCtx(defaultState);
-      const result = await crumbsStatus.run({}, ctx);
+      const result = await crumbsStatus.blaze({}, ctx);
       const value = result.unwrap();
       expect(value.recordCount).toBe(0);
     });
 
     test('returns sampling config from state', async () => {
       const ctx = buildCtx(defaultState);
-      const result = await crumbsStatus.run({}, ctx);
+      const result = await crumbsStatus.blaze({}, ctx);
       const value = result.unwrap();
       expect(value.samplingConfig).toEqual({
         destroy: DEFAULT_SAMPLING.destroy,
@@ -94,7 +94,7 @@ describe('crumbs.status', () => {
     test('returns custom sampling when state overrides defaults', async () => {
       const custom = { destroy: 0.5, read: 0.1, write: 0.9 };
       const ctx = buildCtx({ ...defaultState, sampling: custom });
-      const result = await crumbsStatus.run({}, ctx);
+      const result = await crumbsStatus.blaze({}, ctx);
       const value = result.unwrap();
       expect(value.samplingConfig).toEqual(custom);
     });

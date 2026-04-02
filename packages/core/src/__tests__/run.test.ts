@@ -3,7 +3,7 @@ import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
 
-import { dispatch } from '../dispatch';
+import { run } from '../run';
 import { InternalError, NotFoundError, ValidationError } from '../errors';
 import type { Layer } from '../layer';
 import { Result } from '../result';
@@ -17,16 +17,16 @@ import type { TrailContext, TrailContextInit } from '../types';
 // ---------------------------------------------------------------------------
 
 const echoTrail = trail('echo', {
+  blaze: (input) => Result.ok({ value: input.value }),
   input: z.object({ value: z.string() }),
   output: z.object({ value: z.string() }),
-  run: (input) => Result.ok({ value: input.value }),
 });
 
 const throwingTrail = trail('throws', {
-  input: z.object({}),
-  run: () => {
+  blaze: () => {
     throw new Error('kaboom');
   },
+  input: z.object({}),
 });
 
 const testTopo = topo('test', { echoTrail, throwingTrail });
@@ -35,29 +35,29 @@ const testTopo = topo('test', { echoTrail, throwingTrail });
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('dispatch', () => {
+describe('run', () => {
   describe('happy path', () => {
-    test('dispatches by ID and returns Result.ok with expected value', async () => {
-      const result = await dispatch(testTopo, 'echo', { value: 'hello' });
+    test('executes by ID and returns Result.ok with expected value', async () => {
+      const result = await run(testTopo, 'echo', { value: 'hello' });
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toEqual({ value: 'hello' });
     });
 
     test('passes service overrides through to executeTrail', async () => {
-      const id = `dispatch.service.${Bun.randomUUIDv7()}`;
+      const id = `run.service.${Bun.randomUUIDv7()}`;
       const db = service(id, {
         create: () => Result.ok({ source: 'factory' }),
       });
       const searchTrail = trail('search', {
+        blaze: (_input, ctx) => Result.ok({ source: db.from(ctx).source }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
-        run: (_input, ctx) => Result.ok({ source: db.from(ctx).source }),
         services: [db],
       });
       const searchTopo = topo('service-test', { searchTrail });
 
-      const result = await dispatch(
+      const result = await run(
         searchTopo,
         'search',
         {},
@@ -73,7 +73,7 @@ describe('dispatch', () => {
 
   describe('not found', () => {
     test('returns NotFoundError for unknown trail ID', async () => {
-      const result = await dispatch(testTopo, 'nonexistent', {});
+      const result = await run(testTopo, 'nonexistent', {});
 
       expect(result.isErr()).toBe(true);
       expect(result.error).toBeInstanceOf(NotFoundError);
@@ -84,7 +84,7 @@ describe('dispatch', () => {
 
   describe('validation', () => {
     test('returns ValidationError for invalid input', async () => {
-      const result = await dispatch(testTopo, 'echo', { value: 42 });
+      const result = await run(testTopo, 'echo', { value: 42 });
 
       expect(result.isErr()).toBe(true);
       expect(result.error).toBeInstanceOf(ValidationError);
@@ -92,7 +92,7 @@ describe('dispatch', () => {
   });
 
   describe('layers', () => {
-    test('layer composition works through dispatch', async () => {
+    test('layer composition works through run', async () => {
       const log: string[] = [];
       const layer: Layer = {
         name: 'test-layer',
@@ -106,7 +106,7 @@ describe('dispatch', () => {
         },
       };
 
-      const result = await dispatch(
+      const result = await run(
         testTopo,
         'echo',
         { value: 'x' },
@@ -119,20 +119,20 @@ describe('dispatch', () => {
   });
 
   describe('context', () => {
-    test('context overrides work through dispatch', async () => {
+    test('context overrides work through run', async () => {
       let capturedCtx: TrailContext | undefined;
-      const ctxTrail = trail('ctx-dispatch-test', {
-        input: z.object({}),
-        run: (_input, ctx) => {
+      const ctxTrail = trail('ctx-run-test', {
+        blaze: (_input, ctx) => {
           capturedCtx = ctx;
           return Result.ok(null);
         },
+        input: z.object({}),
       });
 
       const ctxTopo = topo('ctx-test', { ctxTrail });
-      await dispatch(
+      await run(
         ctxTopo,
-        'ctx-dispatch-test',
+        'ctx-run-test',
         {},
         { ctx: { requestId: 'override-id' } }
       );
@@ -140,14 +140,14 @@ describe('dispatch', () => {
       expect(capturedCtx?.requestId).toBe('override-id');
     });
 
-    test('createContext factory works through dispatch', async () => {
+    test('createContext factory works through run', async () => {
       let capturedCtx: TrailContext | undefined;
-      const ctxTrail = trail('factory-dispatch-test', {
-        input: z.object({}),
-        run: (_input, ctx) => {
+      const ctxTrail = trail('factory-run-test', {
+        blaze: (_input, ctx) => {
           capturedCtx = ctx;
           return Result.ok(null);
         },
+        input: z.object({}),
       });
 
       const ctxTopo = topo('factory-test', { ctxTrail });
@@ -157,9 +157,9 @@ describe('dispatch', () => {
         requestId: 'factory-id',
       };
 
-      await dispatch(
+      await run(
         ctxTopo,
-        'factory-dispatch-test',
+        'factory-run-test',
         {},
         { createContext: () => customCtx }
       );
@@ -171,7 +171,7 @@ describe('dispatch', () => {
 
   describe('error handling', () => {
     test('never throws — exceptions become InternalError', async () => {
-      const result = await dispatch(testTopo, 'throws', {});
+      const result = await run(testTopo, 'throws', {});
 
       expect(result.isErr()).toBe(true);
       expect(result.error).toBeInstanceOf(InternalError);

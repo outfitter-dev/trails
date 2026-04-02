@@ -16,7 +16,7 @@ const db: Service<{ source: string }> = service('db.main', {
 
 trail('entity.show', {
   services: [db],
-  run: async (_input, ctx) => Result.ok(db.from(ctx)),
+  blaze: async (_input, ctx) => Result.ok(db.from(ctx)),
 });
 `;
 
@@ -29,7 +29,7 @@ import { Result, trail } from '@ontrails/core';
 
 trail('entity.show', {
   services: ['db.main'],
-  run: async (_input, ctx) => Result.ok(ctx.service('db.main')),
+  blaze: async (_input, ctx) => Result.ok(ctx.service('db.main')),
 });
 
 // const db = service('db.main', {
@@ -54,7 +54,7 @@ const db = service('db.main', {
 
 trail('entity.show', {
   services: [db],
-  run: async (_input, ctx) => Result.ok(db.from(ctx)),
+  blaze: async (_input, ctx) => Result.ok(db.from(ctx)),
 });
 `;
 
@@ -78,7 +78,7 @@ const db = service('db.main', {
 
 trail('entity.show', {
   services: [db],
-  run: async (_input, ctx) => Result.ok(db.from(ctx)),
+  blaze: async (_input, ctx) => Result.ok(db.from(ctx)),
 });
 `;
 
@@ -97,7 +97,7 @@ import { db } from './services';
 
 trail('entity.show', {
   services: [db],
-  run: async (_input, ctx) => Result.ok(db.from(ctx)),
+  blaze: async (_input, ctx) => Result.ok(db.from(ctx)),
 });
 `;
 
@@ -113,7 +113,7 @@ trail('entity.show', {
     const code = `
 trail('entity.show', {
   services: ['db.main'],
-  run: async (_input, ctx) => Result.ok(ctx.service('db.main')),
+  blaze: async (_input, ctx) => Result.ok(ctx.service('db.main')),
 });
 `;
 

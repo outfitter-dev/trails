@@ -107,7 +107,7 @@ describe('crumbs.query', () => {
 
     test('returns empty records when state has no store', async () => {
       const ctx = buildCtx(noStoreState);
-      const result = await crumbsQuery.run({}, ctx);
+      const result = await crumbsQuery.blaze({}, ctx);
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
       expect(value.count).toBe(0);
@@ -129,7 +129,7 @@ describe('crumbs.query', () => {
       );
 
       const ctx = buildCtx(stateWithStore(testStore.store));
-      const result = await crumbsQuery.run({}, ctx);
+      const result = await crumbsQuery.blaze({}, ctx);
       const value = result.unwrap();
 
       expect(value.count).toBe(1);
@@ -152,7 +152,7 @@ describe('crumbs.query', () => {
       testStore.store.write(makeRecord({ id: 'b', trailId: 'user.list' }));
 
       const ctx = buildCtx(stateWithStore(testStore.store));
-      const result = await crumbsQuery.run({ trailId: 'user.create' }, ctx);
+      const result = await crumbsQuery.blaze({ trailId: 'user.create' }, ctx);
       const value = result.unwrap();
 
       expect(value.count).toBe(1);
@@ -166,7 +166,7 @@ describe('crumbs.query', () => {
       testStore.store.write(makeRecord({ id: 'err-1', status: 'err' }));
 
       const ctx = buildCtx(stateWithStore(testStore.store));
-      const result = await crumbsQuery.run({ errorsOnly: true }, ctx);
+      const result = await crumbsQuery.blaze({ errorsOnly: true }, ctx);
       const value = result.unwrap();
 
       expect(value.count).toBe(1);

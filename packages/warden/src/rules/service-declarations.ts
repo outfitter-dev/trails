@@ -1,7 +1,7 @@
 /**
  * Validates that service access matches the declared `services` array.
  *
- * Statically analyzes trail run functions to find `db.from(ctx)` and
+ * Statically analyzes trail `blaze` functions to find `db.from(ctx)` and
  * `ctx.service('db.main')` calls and compares them against the declared
  * `services: [...]` array in the trail config. Reports errors for undeclared
  * access and warnings for unused declarations.
@@ -11,7 +11,7 @@ import {
   collectNamedServiceIds,
   extractFirstStringArg,
   findConfigProperty,
-  findRunBodies,
+  findBlazeBodies,
   findTrailDefinitions,
   getStringValue,
   identifierName,
@@ -126,7 +126,7 @@ const extractDeclaredServices = (
 // Called service extraction
 // ---------------------------------------------------------------------------
 
-/** Extract the second parameter name from a run function node. */
+/** Extract the second parameter name from a blaze function node. */
 const extractContextParamName = (runBody: AstNode): string | null => {
   const params = runBody['params'] as readonly AstNode[] | undefined;
   if (!params || params.length < 2) {
@@ -300,13 +300,13 @@ const collectServiceAliases = (
   return aliases;
 };
 
-/** Walk run bodies and collect service access that can be resolved statically. */
+/** Walk blaze bodies and collect service access that can be resolved statically. */
 const extractCalledServices = (config: AstNode): CalledServices => {
   const fromNames = new Set<string>();
   const lookupIds = new Set<string>();
   const lookupNames = new Set<string>();
 
-  for (const body of findRunBodies(config)) {
+  for (const body of findBlazeBodies(config)) {
     const ctxNames = buildCtxNames(body);
     const serviceAliases = collectServiceAliases(body, ctxNames);
 

@@ -32,6 +32,15 @@ const mergeValues = (
 };
 
 export const configCheck = trail('config.check', {
+  blaze: (input, ctx) => {
+    const state = configService.from(ctx);
+    const effective = mergeValues(state.resolved, input.values);
+    const checked = checkConfig(state.schema, effective);
+    return Result.ok({
+      diagnostics: [...checked.diagnostics],
+      valid: checked.valid,
+    });
+  },
   examples: [
     {
       input: {},
@@ -47,14 +56,5 @@ export const configCheck = trail('config.check', {
   intent: 'read',
   metadata: { category: 'infrastructure' },
   output: outputSchema,
-  run: (input, ctx) => {
-    const state = configService.from(ctx);
-    const effective = mergeValues(state.resolved, input.values);
-    const checked = checkConfig(state.schema, effective);
-    return Result.ok({
-      diagnostics: [...checked.diagnostics],
-      valid: checked.valid,
-    });
-  },
   services: [configService],
 });

@@ -44,7 +44,7 @@ export interface TrailSpec<I, O> {
   /** Zod schema for validating output (optional — some trails are fire-and-forget) */
   readonly output?: z.ZodType<O> | undefined;
   /** The pure function that does the work (sync or async authoring) */
-  readonly run: Implementation<I, O>;
+  readonly blaze: Implementation<I, O>;
   /** Human-readable description */
   readonly description?: string | undefined;
   /** Named examples for docs and testing */
@@ -77,11 +77,11 @@ export type Intent = 'read' | 'write' | 'destroy';
 /** A fully-defined trail — the unit of work in the Trails system */
 export interface Trail<I, O> extends Omit<
   TrailSpec<I, O>,
-  'run' | 'follow' | 'intent' | 'services'
+  'blaze' | 'follow' | 'intent' | 'services'
 > {
   readonly kind: 'trail';
   readonly id: string;
-  readonly run: Implementation<I, O>;
+  readonly blaze: Implementation<I, O>;
   /** IDs of downstream trails this trail may invoke via ctx.follow() (always present, default []) */
   readonly follow: readonly string[];
   /** Services this trail may access via service.from(ctx) (always present, default []) */
@@ -105,14 +105,14 @@ export interface Trail<I, O> extends Omit<
  * // ID as first argument (recommended for human authoring)
  * const show = trail("entity.show", {
  *   input: z.object({ name: z.string() }),
- *   run: (input) => Result.ok(entity),
+ *   blaze: (input) => Result.ok(entity),
  * });
  *
  * // Full spec object (for programmatic generation)
  * const show = trail({
  *   id: "entity.show",
  *   input: z.object({ name: z.string() }),
- *   run: (input) => Result.ok(entity),
+ *   blaze: (input) => Result.ok(entity),
  * });
  * ```
  */
@@ -134,7 +134,7 @@ export function trail<I, O>(
   }
 
   const {
-    run,
+    blaze,
     follow: rawFollow,
     intent: rawIntent,
     services: rawServices,
@@ -143,11 +143,11 @@ export function trail<I, O>(
 
   return Object.freeze({
     ...spec,
+    blaze: async (input: I, ctx: TrailContext) => await blaze(input, ctx),
     follow: Object.freeze([...(rawFollow ?? [])]),
     id: resolved.id,
     intent: rawIntent ?? 'write',
     kind: 'trail' as const,
-    run: async (input: I, ctx: TrailContext) => await run(input, ctx),
     services: Object.freeze([...(rawServices ?? [])]),
   });
 }

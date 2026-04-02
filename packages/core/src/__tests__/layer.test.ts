@@ -16,10 +16,10 @@ const stubCtx: TrailContext = createTrailContext({
 });
 
 const echoTrail = trail('echo', {
+  blaze: (input) => Result.ok({ value: input.value }),
   input: z.object({ value: z.string() }),
   metadata: { domain: 'test' },
   output: z.object({ value: z.string() }),
-  run: (input) => Result.ok({ value: input.value }),
 });
 
 // ---------------------------------------------------------------------------
@@ -41,7 +41,7 @@ describe('Layer', () => {
       },
     };
 
-    const wrapped = composeLayers([prefixLayer], echoTrail, echoTrail.run);
+    const wrapped = composeLayers([prefixLayer], echoTrail, echoTrail.blaze);
     const result = await wrapped({ value: 'hello' }, stubCtx);
 
     expect(result.isOk()).toBe(true);
@@ -75,7 +75,7 @@ describe('Layer', () => {
       },
     };
 
-    const wrapped = composeLayers([outer, inner], echoTrail, echoTrail.run);
+    const wrapped = composeLayers([outer, inner], echoTrail, echoTrail.blaze);
     await wrapped({ value: 'x' }, stubCtx);
 
     expect(log).toEqual([
@@ -94,7 +94,7 @@ describe('Layer', () => {
       },
     };
 
-    const wrapped = composeLayers([shortCircuit], echoTrail, echoTrail.run);
+    const wrapped = composeLayers([shortCircuit], echoTrail, echoTrail.blaze);
     const result = await wrapped({ value: 'hello' }, stubCtx);
 
     expect(result.isErr()).toBe(true);
@@ -113,13 +113,13 @@ describe('Layer', () => {
       },
     };
 
-    composeLayers([inspectLayer], echoTrail, echoTrail.run);
+    composeLayers([inspectLayer], echoTrail, echoTrail.blaze);
 
     expect(capturedDomain).toBe('test');
   });
 
   test('empty layers array returns implementation unchanged', () => {
-    const wrapped = composeLayers([], echoTrail, echoTrail.run);
-    expect(wrapped).toBe(echoTrail.run);
+    const wrapped = composeLayers([], echoTrail, echoTrail.blaze);
+    expect(wrapped).toBe(echoTrail.blaze);
   });
 });

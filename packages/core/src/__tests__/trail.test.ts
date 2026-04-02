@@ -28,10 +28,10 @@ describe('trail()', () => {
   const outputSchema = z.object({ greeting: z.string() });
 
   const greet = trail('greet', {
+    blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
     description: 'Greet someone',
     input: inputSchema,
     output: outputSchema,
-    run: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
   });
 
   describe('basics', () => {
@@ -53,14 +53,14 @@ describe('trail()', () => {
 
     test('output schema is optional', () => {
       const minimal = trail('noop', {
+        blaze: () => Result.ok(),
         input: z.object({}),
-        run: () => Result.ok(),
       });
       expect(minimal.output).toBeUndefined();
     });
 
     test('implementation is callable', async () => {
-      const result = await greet.run({ name: 'World' }, stubCtx);
+      const result = await greet.blaze({ name: 'World' }, stubCtx);
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toEqual({ greeting: 'Hello, World!' });
     });
@@ -69,12 +69,12 @@ describe('trail()', () => {
   describe('metadata', () => {
     test('examples are stored', () => {
       const withExamples = trail('echo', {
+        blaze: (input) => Result.ok({ text: input.text }),
         examples: [
           { error: 'ValidationError', input: { text: '' }, name: 'error-case' },
           { expected: { text: 'hi' }, input: { text: 'hi' }, name: 'basic' },
         ],
         input: z.object({ text: z.string() }),
-        run: (input) => Result.ok({ text: input.text }),
       });
       expect(withExamples.examples).toHaveLength(2);
       const first = withExamples.examples?.[0];
@@ -85,21 +85,21 @@ describe('trail()', () => {
 
     test('metadata is stored', () => {
       const withMetadata = trail('tagged', {
+        blaze: () => Result.ok(),
         input: z.object({}),
         metadata: { domain: 'billing', tier: 1 },
-        run: () => Result.ok(),
       });
       expect(withMetadata.metadata).toEqual({ domain: 'billing', tier: 1 });
     });
 
     test('detours are stored', () => {
       const withDetours = trail('orchestrator', {
+        blaze: () => Result.ok(),
         detours: {
           onFailure: ['alert'],
           onSuccess: ['notify', 'audit'],
         },
         input: z.object({}),
-        run: () => Result.ok(),
       });
       expect(withDetours.detours).toEqual({
         onFailure: ['alert'],
@@ -111,8 +111,8 @@ describe('trail()', () => {
   describe('follow', () => {
     test('defaults to empty frozen array when omitted', () => {
       const minimal = trail('bare', {
+        blaze: () => Result.ok(),
         input: z.object({}),
-        run: () => Result.ok(),
       });
       expect(minimal.follow).toEqual([]);
       expect(Object.isFrozen(minimal.follow)).toBe(true);
@@ -120,18 +120,18 @@ describe('trail()', () => {
 
     test('preserves follow array', () => {
       const withFollow = trail('composed', {
+        blaze: () => Result.ok(),
         follow: ['authenticate', 'validate-session'],
         input: z.object({}),
-        run: () => Result.ok(),
       });
       expect(withFollow.follow).toEqual(['authenticate', 'validate-session']);
     });
 
     test('follow array is frozen', () => {
       const withFollow = trail('composed', {
+        blaze: () => Result.ok(),
         follow: ['authenticate'],
         input: z.object({}),
-        run: () => Result.ok(),
       });
       expect(Object.isFrozen(withFollow.follow)).toBe(true);
     });
@@ -140,8 +140,8 @@ describe('trail()', () => {
   describe('services', () => {
     test('defaults to empty frozen array when omitted', () => {
       const minimal = trail('bare', {
+        blaze: () => Result.ok(),
         input: z.object({}),
-        run: () => Result.ok(),
       });
       expect(minimal.services).toEqual([]);
       expect(Object.isFrozen(minimal.services)).toBe(true);
@@ -149,8 +149,8 @@ describe('trail()', () => {
 
     test('preserves declared service objects', () => {
       const withServices = trail('search', {
+        blaze: () => Result.ok(),
         input: z.object({}),
-        run: () => Result.ok(),
         services: [dbService],
       });
       expect(withServices.services).toEqual([dbService]);
@@ -159,8 +159,8 @@ describe('trail()', () => {
 
     test('services array is frozen', () => {
       const withServices = trail('search', {
+        blaze: () => Result.ok(),
         input: z.object({}),
-        run: () => Result.ok(),
         services: [dbService],
       });
       expect(Object.isFrozen(withServices.services)).toBe(true);
@@ -170,8 +170,8 @@ describe('trail()', () => {
   describe('intent and idempotent', () => {
     test('intent defaults to write', () => {
       const minimal = trail('bare', {
+        blaze: () => Result.ok(),
         input: z.object({}),
-        run: () => Result.ok(),
       });
       expect(minimal.intent).toBe('write');
       expect(minimal.idempotent).toBeUndefined();
@@ -179,25 +179,25 @@ describe('trail()', () => {
 
     test('intent is preserved when set', () => {
       const readTrail = trail('reader', {
+        blaze: () => Result.ok(),
         input: z.object({}),
         intent: 'read',
-        run: () => Result.ok(),
       });
       expect(readTrail.intent).toBe('read');
 
       const destroyTrail = trail('destroyer', {
+        blaze: () => Result.ok(),
         input: z.object({}),
         intent: 'destroy',
-        run: () => Result.ok(),
       });
       expect(destroyTrail.intent).toBe('destroy');
     });
 
     test('idempotent is preserved when set', () => {
       const t = trail('idempotent', {
+        blaze: () => Result.ok(),
         idempotent: true,
         input: z.object({}),
-        run: () => Result.ok(),
       });
       expect(t.idempotent).toBe(true);
     });
@@ -206,10 +206,10 @@ describe('trail()', () => {
   describe('single-object overload', () => {
     test('accepts spec with id property', () => {
       const t = trail({
+        blaze: (input: { name: string }, _ctx: TrailContext) =>
+          Result.ok({ greeting: `Hi, ${input.name}` }),
         id: 'entity.show',
         input: inputSchema,
-        run: (input: { name: string }, _ctx: TrailContext) =>
-          Result.ok({ greeting: `Hi, ${input.name}` }),
       });
       expect(t.id).toBe('entity.show');
       expect(t.kind).toBe('trail');
@@ -217,14 +217,14 @@ describe('trail()', () => {
 
     test('preserves all spec fields', () => {
       const t = trail({
+        blaze: (input: { name: string }, _ctx: TrailContext) =>
+          Result.ok({ greeting: `Hi, ${input.name}` }),
         description: 'A full trail',
         examples: [{ input: { name: 'World' }, name: 'test' }],
         id: 'full',
         input: inputSchema,
         intent: 'read',
         output: outputSchema,
-        run: (input: { name: string }, _ctx: TrailContext) =>
-          Result.ok({ greeting: `Hi, ${input.name}` }),
         services: [dbService],
       });
       expect(t.description).toBe('A full trail');
@@ -235,22 +235,22 @@ describe('trail()', () => {
 
     test('implementation is callable', async () => {
       const t = trail({
+        blaze: (input: { x: number }) => Result.ok(input.x * 2),
         id: 'callable',
         input: z.object({ x: z.number() }),
-        run: (input: { x: number }) => Result.ok(input.x * 2),
       });
-      const result = await t.run({ x: 5 }, stubCtx);
+      const result = await t.blaze({ x: 5 }, stubCtx);
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toBe(10);
     });
 
     test('sync implementations are normalized to an awaitable runtime function', async () => {
       const t = trail('normalized', {
+        blaze: (input: { value: number }) => Result.ok(input.value + 1),
         input: z.object({ value: z.number() }),
-        run: (input: { value: number }) => Result.ok(input.value + 1),
       });
 
-      const promise = t.run({ value: 2 }, stubCtx);
+      const promise = t.blaze({ value: 2 }, stubCtx);
       expect(promise).toBeInstanceOf(Promise);
 
       const result = await promise;

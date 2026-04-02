@@ -73,7 +73,7 @@ describe('config.describe trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configDescribe.run({}, ctx);
+      const result = await configDescribe.blaze({}, ctx);
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap().fields.length).toBe(2);
@@ -89,7 +89,7 @@ describe('config.describe trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configDescribe.run({}, ctx);
+      const result = await configDescribe.blaze({}, ctx);
       const { fields } = result.unwrap();
 
       expect(fields[0]?.path).toBe('host');
@@ -107,7 +107,7 @@ describe('config.describe trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configDescribe.run({}, ctx);
+      const result = await configDescribe.blaze({}, ctx);
 
       expect(result.isOk()).toBe(true);
       const [field] = result.unwrap().fields;
@@ -123,7 +123,7 @@ describe('config.describe trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configDescribe.run({}, ctx);
+      const result = await configDescribe.blaze({}, ctx);
 
       expect(result.isOk()).toBe(true);
       const [field] = result.unwrap().fields;
@@ -141,7 +141,7 @@ describe('config.describe trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configDescribe.run({}, ctx);
+      const result = await configDescribe.blaze({}, ctx);
 
       expect(result.isOk()).toBe(true);
       const { fields } = result.unwrap();

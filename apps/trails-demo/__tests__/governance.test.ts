@@ -178,11 +178,7 @@ const entityOutputSchema = z.object({
 /** Create a modified show trail with a specific input schema. */
 const makeModifiedShow = (inputSchema: z.ZodType) =>
   trail('entity.show', {
-    description: 'Show an entity by name',
-    input: inputSchema,
-    intent: 'read',
-    output: entityOutputSchema,
-    run: (input) => {
+    blaze: (input) => {
       const { name } = input as { name: string };
       return Result.ok({
         createdAt: '',
@@ -193,6 +189,10 @@ const makeModifiedShow = (inputSchema: z.ZodType) =>
         updatedAt: '',
       });
     },
+    description: 'Show an entity by name',
+    input: inputSchema,
+    intent: 'read',
+    output: entityOutputSchema,
     services: [demoServices.entityStoreService],
   });
 
@@ -249,13 +249,13 @@ describe('breaking change detection', () => {
 describe('non-breaking change detection', () => {
   test('added trail is detected as info severity', () => {
     const update = trail('entity.update', {
+      blaze: (input) => Result.ok({ name: input.name, updated: true }),
       description: 'Update an existing entity',
       input: z.object({
         name: z.string(),
         tags: z.array(z.string()).optional(),
       }),
       output: z.object({ name: z.string(), updated: z.boolean() }),
-      run: (input) => Result.ok({ name: input.name, updated: true }),
     });
 
     const diff = diffAgainst(

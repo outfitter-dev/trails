@@ -68,7 +68,7 @@ const show = trail('project.show', {
     { name: 'Found', input: { id: 'p_1' }, expected: { id: 'p_1', name: 'Acme' } },
     { name: 'Missing', input: { id: 'p_0' }, error: 'NotFoundError' },
   ],
-  run: async (input) => {
+  blaze: async (input) => {
     const project = await db.projects.findById(input.id);
     if (!project) return Result.err(new NotFoundError(`Project ${input.id} not found`));
     return Result.ok(project);
@@ -114,7 +114,7 @@ const greet = trail('greet', {
   input: z.object({ name: z.string().describe('Who to greet') }),
   output: z.object({ message: z.string() }),
   intent: 'read',
-  run: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
+  blaze: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
 
 // 2. Collect into topo

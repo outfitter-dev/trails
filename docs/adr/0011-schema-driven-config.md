@@ -199,11 +199,11 @@ If every field has a default, the service works with zero config. Install a pack
 
 Config does NOT live on `topo()`. Topo is the contract graph — trails, events, services. Config is deployment state. Mixing the two conflates what a system can do with how a specific deployment is configured.
 
-Config is resolved in `trailhead()` / `dispatch()` options:
+Config is resolved in `trailhead()` / `run()` options:
 
 ```typescript
 await trailhead(app, { config });
-await dispatch(app, 'search', input, { config });
+await run(app, 'search', input, { config });
 ```
 
 Resolution order:

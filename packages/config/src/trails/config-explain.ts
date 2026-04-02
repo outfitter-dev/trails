@@ -67,6 +67,13 @@ const enrichOptions = (
 };
 
 export const configExplain = trail('config.explain', {
+  blaze: (input, ctx) => {
+    const state = configService.from(ctx);
+    const options = enrichOptions(state, toExplainOptions(state));
+    const entries = explainConfig(options);
+    const filtered = filterByPath(entries, input.path);
+    return Result.ok({ entries: [...filtered] });
+  },
   examples: [
     {
       input: {},
@@ -82,12 +89,5 @@ export const configExplain = trail('config.explain', {
   intent: 'read',
   metadata: { category: 'infrastructure' },
   output: outputSchema,
-  run: (input, ctx) => {
-    const state = configService.from(ctx);
-    const options = enrichOptions(state, toExplainOptions(state));
-    const entries = explainConfig(options);
-    const filtered = filterByPath(entries, input.path);
-    return Result.ok({ entries: [...filtered] });
-  },
   services: [configService],
 });

@@ -103,7 +103,7 @@ export const show = trail('entity.show', {
       error: 'NotFoundError',
     },
   ],
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const store = entityStoreService.from(ctx);
     /* ... */
   },
@@ -122,7 +122,7 @@ Key concepts:
 ```typescript
 export const onboard = trail('entity.onboard', {
   follow: ['entity.add', 'search'],
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const added = await ctx.follow('entity.add', {
       /* ... */
     });
@@ -213,7 +213,7 @@ To add `entity.update`:
      examples: [
        { name: 'Update tags', input: { name: 'Alpha', tags: ['updated'] } },
      ],
-     run: async (input, ctx) => {
+     blaze: async (input, ctx) => {
        /* ... */
      },
    });

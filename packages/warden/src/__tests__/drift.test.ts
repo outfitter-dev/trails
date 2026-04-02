@@ -11,9 +11,9 @@ import { checkDrift } from '../drift.js';
 
 const makeTopo = () => {
   const t = trail('test.hello', {
+    blaze: () => Result.ok({ greeting: 'hi' }),
     input: z.object({ name: z.string() }),
     output: z.object({ greeting: z.string() }),
-    run: () => Result.ok({ greeting: 'hi' }),
   });
   return topo('test-app', { t });
 };

@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { configLayer } from '../config-layer.js';
 
 const stubTrail = {
+  blaze: (_input: unknown, _ctx: TrailContext) => Result.ok({}),
   description: undefined,
   detours: undefined,
   examples: undefined,
@@ -18,7 +19,6 @@ const stubTrail = {
   kind: 'trail' as const,
   metadata: undefined,
   output: undefined,
-  run: (_input: unknown, _ctx: TrailContext) => Result.ok({}),
   services: [],
 };
 

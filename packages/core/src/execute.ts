@@ -107,7 +107,7 @@ const runTrail = async (
   ctx: TrailContext,
   layers: readonly Layer[]
 ): Promise<Result<unknown, Error>> => {
-  const impl = composeLayers([...layers], trail, trail.run);
+  const impl = composeLayers([...layers], trail, trail.blaze);
   return await impl(input, ctx);
 };
 

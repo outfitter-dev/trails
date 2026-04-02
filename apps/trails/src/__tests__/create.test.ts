@@ -74,13 +74,13 @@ const runFollow = async (
 ): Promise<Result<unknown, Error>> => {
   switch (id) {
     case 'create.scaffold': {
-      return await createScaffold.run(input as never, {} as never);
+      return await createScaffold.blaze(input as never, {} as never);
     }
     case 'add.surface': {
-      return await addSurface.run(input as never, {} as never);
+      return await addSurface.blaze(input as never, {} as never);
     }
     case 'add.verify': {
-      return await addVerify.run(input as never, {} as never);
+      return await addVerify.blaze(input as never, {} as never);
     }
     default: {
       return Result.err(new Error(`Unknown follow target: ${id}`));
@@ -96,7 +96,7 @@ const runCreate = (
     verify: boolean;
   }>
 ) =>
-  createRoute.run(
+  createRoute.blaze(
     {
       dir: dirname(projectDir),
       name: basename(projectDir),
@@ -289,7 +289,7 @@ describe('trails create', () => {
       await withTempProject(async (dir) => {
         setupMinimalProject(dir);
         const result = expectOk(
-          await addSurface.run({ dir, surface: 'mcp' }, {} as never)
+          await addSurface.blaze({ dir, surface: 'mcp' }, {} as never)
         );
 
         expect(result.created).toBe('src/mcp.ts');
@@ -313,7 +313,7 @@ describe('trails create', () => {
         writeFileSync(join(dir, 'src', 'mcp.ts'), 'existing content');
 
         const error = expectErr(
-          await addSurface.run({ dir, surface: 'mcp' }, {} as never)
+          await addSurface.blaze({ dir, surface: 'mcp' }, {} as never)
         );
         expect(error.message).toBe(
           'MCP trailhead already exists. Nothing to do.'

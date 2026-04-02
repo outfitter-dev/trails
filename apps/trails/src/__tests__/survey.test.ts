@@ -25,6 +25,10 @@ import type {
 // ---------------------------------------------------------------------------
 
 const helloTrail = trail('hello', {
+  blaze: (input) => {
+    const name = input.name ?? 'world';
+    return Result.ok({ message: `Hello, ${name}!` });
+  },
   description: 'Say hello',
   detours: {
     NotFoundError: ['search'],
@@ -39,10 +43,6 @@ const helloTrail = trail('hello', {
   input: z.object({ name: z.string().optional() }),
   intent: 'read',
   output: z.object({ message: z.string() }),
-  run: (input) => {
-    const name = input.name ?? 'world';
-    return Result.ok({ message: `Hello, ${name}!` });
-  },
   services: [
     service('db.main', {
       create: () => Result.ok({ source: 'factory' }),
@@ -51,10 +51,10 @@ const helloTrail = trail('hello', {
 });
 
 const byeTrail = trail('bye', {
+  blaze: (input) => Result.ok({ message: `Goodbye, ${input.name}!` }),
   description: 'Say goodbye',
   input: z.object({ name: z.string() }),
   output: z.object({ message: z.string() }),
-  run: (input) => Result.ok({ message: `Goodbye, ${input.name}!` }),
 });
 
 const [dbService] = helloTrail.services;

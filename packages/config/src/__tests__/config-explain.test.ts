@@ -73,7 +73,7 @@ describe('config.explain trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configExplain.run({ path: '' }, ctx);
+      const result = await configExplain.blaze({ path: '' }, ctx);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -96,7 +96,7 @@ describe('config.explain trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configExplain.run({ path: 'db' }, ctx);
+      const result = await configExplain.blaze({ path: 'db' }, ctx);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -121,7 +121,7 @@ describe('config.explain trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configExplain.run({ path: 'db' }, ctx);
+      const result = await configExplain.blaze({ path: 'db' }, ctx);
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap().entries).toEqual([
@@ -139,7 +139,7 @@ describe('config.explain trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configExplain.run({ path: '' }, ctx);
+      const result = await configExplain.blaze({ path: '' }, ctx);
 
       expect(result.isOk()).toBe(true);
       const [entry] = result.unwrap().entries;
@@ -157,7 +157,7 @@ describe('config.explain trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configExplain.run({ path: '' }, ctx);
+      const result = await configExplain.blaze({ path: '' }, ctx);
 
       expect(result.isOk()).toBe(true);
       const [entry] = result.unwrap().entries;

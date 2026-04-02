@@ -22,6 +22,14 @@ const crumbsStatusOutput = z.object({
  * the `crumbsService` state.
  */
 export const crumbsStatus = trail('crumbs.status', {
+  blaze: (_input, ctx) => {
+    const state = crumbsService.from(ctx);
+    return Result.ok({
+      active: state.active,
+      recordCount: state.store?.count() ?? 0,
+      samplingConfig: { ...state.sampling },
+    });
+  },
   examples: [
     {
       input: {},
@@ -32,13 +40,5 @@ export const crumbsStatus = trail('crumbs.status', {
   intent: 'read',
   metadata: { category: 'infrastructure' },
   output: crumbsStatusOutput,
-  run: (_input, ctx) => {
-    const state = crumbsService.from(ctx);
-    return Result.ok({
-      active: state.active,
-      recordCount: state.store?.count() ?? 0,
-      samplingConfig: { ...state.sampling },
-    });
-  },
   services: [crumbsService],
 });

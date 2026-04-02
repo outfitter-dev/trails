@@ -11,6 +11,7 @@ const mockDbService = service('db.mock.all', {
 });
 
 const mockedTrail = trail('service.mocked.all', {
+  blaze: (_input, ctx) => Result.ok({ source: mockDbService.from(ctx).source }),
   description: 'Trail that uses a mocked service through testAll',
   examples: [
     {
@@ -21,11 +22,11 @@ const mockedTrail = trail('service.mocked.all', {
   ],
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  run: (_input, ctx) => Result.ok({ source: mockDbService.from(ctx).source }),
   services: [mockDbService],
 });
 
 const overrideTrail = trail('service.override.all', {
+  blaze: (_input, ctx) => Result.ok({ source: mockDbService.from(ctx).source }),
   description: 'Trail that prefers explicit overrides over mock factories',
   examples: [
     {
@@ -36,7 +37,6 @@ const overrideTrail = trail('service.override.all', {
   ],
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  run: (_input, ctx) => Result.ok({ source: mockDbService.from(ctx).source }),
   services: [mockDbService],
 });
 

@@ -17,21 +17,21 @@ import type { TrailContext, TrailContextInit } from '../types';
 // ---------------------------------------------------------------------------
 
 const echoTrail = trail('echo', {
+  blaze: (input) => Result.ok({ value: input.value }),
   input: z.object({ value: z.string() }),
   output: z.object({ value: z.string() }),
-  run: (input) => Result.ok({ value: input.value }),
 });
 
 const failingTrail = trail('fails', {
+  blaze: () => Result.err(new ValidationError('bad input')),
   input: z.object({}),
-  run: () => Result.err(new ValidationError('bad input')),
 });
 
 const throwingTrail = trail('throws', {
-  input: z.object({}),
-  run: () => {
+  blaze: () => {
     throw new Error('kaboom');
   },
+  input: z.object({}),
 });
 
 const nextServiceId = (name: string): string =>
@@ -55,14 +55,14 @@ const createEagerServiceTrail = (
   onRun: (value: number) => void
 ) =>
   trail('service.eager', {
-    input: z.object({}),
-    output: z.object({ total: z.number() }),
-    run: (_input, ctx) => {
+    blaze: (_input, ctx) => {
       const fromAccessor = ctx.service<{ value: number }>(id);
       const fromDefinition = counter.from(ctx);
       onRun(fromDefinition.value);
       return Result.ok({ total: fromAccessor.value + 1 });
     },
+    input: z.object({}),
+    output: z.object({ total: z.number() }),
     services: [counter],
   });
 
@@ -88,12 +88,12 @@ const createSingletonTrail = (
   singleton: ReturnType<typeof createSingletonService>
 ) =>
   trail('service.singleton', {
-    input: z.object({}),
-    output: z.object({ createdAtCall: z.number() }),
-    run: (_input, ctx) =>
+    blaze: (_input, ctx) =>
       Result.ok({
         createdAtCall: singleton.from(ctx).createdAtCall,
       }),
+    input: z.object({}),
+    output: z.object({ createdAtCall: z.number() }),
     services: [singleton],
   });
 
@@ -154,10 +154,10 @@ describe('executeTrail', () => {
         },
       });
       const serviceTrail = trail('service.async-factory', {
+        blaze: (_input, ctx) =>
+          Result.ok({ source: db.from(ctx).source as string }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
-        run: (_input, ctx) =>
-          Result.ok({ source: db.from(ctx).source as string }),
         services: [db],
       });
 
@@ -191,10 +191,10 @@ describe('executeTrail', () => {
         create: (ctx) => Result.ok({ value: String(ctx.env?.VAL) }),
       });
       const envAwareTrail = trail('service.singleton-context', {
+        blaze: (_input, ctx) =>
+          Result.ok({ value: envAwareService.from(ctx).value }),
         input: z.object({}),
         output: z.object({ value: z.string() }),
-        run: (_input, ctx) =>
-          Result.ok({ value: envAwareService.from(ctx).value }),
         services: [envAwareService],
       });
 
@@ -263,11 +263,11 @@ describe('executeTrail', () => {
     test('accepts context overrides', async () => {
       let capturedCtx: TrailContext | undefined;
       const ctxTrail = trail('ctx-test', {
-        input: z.object({}),
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           capturedCtx = ctx;
           return Result.ok(null);
         },
+        input: z.object({}),
       });
 
       await executeTrail(ctxTrail, {}, { ctx: { requestId: 'override-id' } });
@@ -278,11 +278,11 @@ describe('executeTrail', () => {
     test('accepts abortSignal override', async () => {
       let capturedSignal: AbortSignal | undefined;
       const sigTrail = trail('sig-test', {
-        input: z.object({}),
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           capturedSignal = ctx.abortSignal;
           return Result.ok(null);
         },
+        input: z.object({}),
       });
 
       const abortSignal = AbortSignal.timeout(9999);
@@ -294,11 +294,11 @@ describe('executeTrail', () => {
     test('accepts context factory', async () => {
       let capturedCtx: TrailContext | undefined;
       const ctxTrail = trail('factory-test', {
-        input: z.object({}),
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           capturedCtx = ctx;
           return Result.ok(null);
         },
+        input: z.object({}),
       });
 
       const customCtx: TrailContextInit = {
@@ -316,11 +316,11 @@ describe('executeTrail', () => {
     test('context factory + ctx overrides merge correctly', async () => {
       let capturedCtx: TrailContext | undefined;
       const ctxTrail = trail('merge-test', {
-        input: z.object({}),
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           capturedCtx = ctx;
           return Result.ok(null);
         },
+        input: z.object({}),
       });
 
       const baseCtx: TrailContextInit = {
@@ -345,12 +345,12 @@ describe('executeTrail', () => {
     test('deep-merges extensions from factory and overrides', async () => {
       let captured: TrailContext | undefined;
       const t = trail('ext.test', {
-        input: z.object({}),
-        output: z.object({}),
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           captured = ctx;
           return Result.ok({});
         },
+        input: z.object({}),
+        output: z.object({}),
       });
       await executeTrail(
         t,
@@ -370,12 +370,12 @@ describe('executeTrail', () => {
         create: () => Result.ok({ source: 'factory' }),
       });
       const serviceTrail = trail('ctx.service.override', {
-        input: z.object({}),
-        output: z.object({ source: z.string() }),
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           resolvedSource = ctx.service<{ source: string }>(db).source;
           return Result.ok({ source: resolvedSource });
         },
+        input: z.object({}),
+        output: z.object({ source: z.string() }),
         services: [db],
       });
 
@@ -406,11 +406,11 @@ describe('executeTrail', () => {
       const id = nextServiceId('factory-seed');
       const widget = { id: 'widget-1' };
       const widgetTrail = trail('service.factory-seed', {
-        input: z.object({}),
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           capturedCtx = ctx;
           return Result.ok(null);
         },
+        input: z.object({}),
         services: [],
       });
 
@@ -454,11 +454,11 @@ describe('executeTrail', () => {
       });
       let ran = false;
       const serviceTrail = trail('service.factory-error', {
-        input: z.object({}),
-        run: () => {
+        blaze: () => {
           ran = true;
           return Result.ok(null);
         },
+        input: z.object({}),
         services: [failingService],
       });
 
@@ -477,8 +477,8 @@ describe('executeTrail', () => {
         },
       });
       const serviceTrail = trail('service.factory-throw', {
+        blaze: () => Result.ok(null),
         input: z.object({}),
-        run: () => Result.ok(null),
         services: [explodingService],
       });
 
@@ -500,10 +500,10 @@ describe('executeTrail', () => {
         },
       });
       const serviceTrail = trail('service.override', {
+        blaze: (_input, ctx) =>
+          Result.ok({ source: db.from(ctx).source as string }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
-        run: (_input, ctx) =>
-          Result.ok({ source: db.from(ctx).source as string }),
         services: [db],
       });
 

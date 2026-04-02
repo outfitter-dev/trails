@@ -10,7 +10,7 @@ trail("entity.show", {
   fields: {
     firstName: { label: "First Name" },
   },
-  run: (input) => Result.ok(input),
+  blaze: (input) => Result.ok(input),
 })`;
 
     const diagnostics = preferSchemaInference.check(code, 'src/entity.ts');
@@ -31,7 +31,7 @@ trail("entity.paint", {
       options: [{ value: "red" }, { value: "green" }],
     },
   },
-  run: (input) => Result.ok(input),
+  blaze: (input) => Result.ok(input),
 })`;
 
     const diagnostics = preferSchemaInference.check(code, 'src/entity.ts');
@@ -56,7 +56,7 @@ trail("entity.paint", {
     },
     displayName: { label: "Public name" },
   },
-  run: (input) => Result.ok(input),
+  blaze: (input) => Result.ok(input),
 })`;
 
     const diagnostics = preferSchemaInference.check(code, 'src/entity.ts');
@@ -74,7 +74,7 @@ trail("entity.show", {
       message: "Who should we greet?",
     },
   },
-  run: (input) => Result.ok(input),
+  blaze: (input) => Result.ok(input),
 })`;
 
     const diagnostics = preferSchemaInference.check(code, 'src/entity.ts');

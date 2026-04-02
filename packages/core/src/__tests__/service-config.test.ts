@@ -32,13 +32,13 @@ const createSingletonConfigTrail = (id: string) => {
   return {
     captures,
     trail: trail('svc-config.singleton', {
-      input: z.object({}),
-      output: z.object({ createCall: z.number(), key: z.string() }),
-      run: (_input, ctx) =>
+      blaze: (_input, ctx) =>
         Result.ok({
           createCall: svc.from(ctx).createCall,
           key: svc.from(ctx).key,
         }),
+      input: z.object({}),
+      output: z.object({ createCall: z.number(), key: z.string() }),
       services: [svc],
     }),
   };
@@ -62,9 +62,9 @@ describe('ServiceContext.config', () => {
     });
 
     const dbTrail = trail('svc-config.typed', {
+      blaze: (_input, ctx) => Result.ok({ connected: db.from(ctx).connected }),
       input: z.object({}),
       output: z.object({ connected: z.boolean() }),
-      run: (_input, ctx) => Result.ok({ connected: db.from(ctx).connected }),
       services: [db],
     });
 
@@ -94,8 +94,8 @@ describe('ServiceContext.config', () => {
     });
 
     const counterTrail = trail('svc-config.no-config', {
+      blaze: (_input, ctx) => Result.ok({ value: counter.from(ctx) }),
       input: z.object({}),
-      run: (_input, ctx) => Result.ok({ value: counter.from(ctx) }),
       services: [counter],
     });
 
@@ -114,8 +114,8 @@ describe('ServiceContext.config', () => {
     });
 
     const dbTrail = trail('svc-config.invalid', {
+      blaze: () => Result.ok(null),
       input: z.object({}),
-      run: () => Result.ok(null),
       services: [db],
     });
 
@@ -142,8 +142,8 @@ describe('ServiceContext.config', () => {
     });
 
     const dbTrail = trail('svc-config.missing', {
+      blaze: () => Result.ok(null),
       input: z.object({}),
-      run: () => Result.ok(null),
       services: [db],
     });
 
@@ -162,9 +162,9 @@ describe('ServiceContext.config', () => {
     });
 
     const dbTrail = trail('svc-config.override', {
+      blaze: (_input, ctx) => Result.ok({ value: db.from(ctx) as number }),
       input: z.object({}),
       output: z.object({ value: z.number() }),
-      run: (_input, ctx) => Result.ok({ value: db.from(ctx) as number }),
       services: [db],
     });
 
@@ -187,9 +187,9 @@ describe('ServiceContext.config', () => {
     });
 
     const svcTrail = trail('svc-config.options', {
+      blaze: (_input, ctx) => Result.ok({ key: svc.from(ctx).key }),
       input: z.object({}),
       output: z.object({ key: z.string() }),
-      run: (_input, ctx) => Result.ok({ key: svc.from(ctx).key }),
       services: [svc],
     });
 

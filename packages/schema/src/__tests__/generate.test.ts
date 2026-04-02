@@ -49,12 +49,12 @@ describe('generateSurfaceMap', () => {
   describe('entries', () => {
     test('produces entries for all trails in the topo', () => {
       const a = trail('a.create', {
+        blaze: noop,
         input: z.object({ name: z.string() }),
-        run: noop,
       });
       const b = trail('b.list', {
+        blaze: noop,
         input: z.object({}),
-        run: noop,
       });
       const tp = topoFrom({ a, b });
       const map = generateSurfaceMap(tp);
@@ -65,16 +65,16 @@ describe('generateSurfaceMap', () => {
 
     test('entries are sorted alphabetically by id', () => {
       const z2 = trail('z.trail', {
+        blaze: noop,
         input: z.object({}),
-        run: noop,
       });
       const a2 = trail('a.trail', {
+        blaze: noop,
         input: z.object({}),
-        run: noop,
       });
       const m2 = trail('m.trail', {
+        blaze: noop,
         input: z.object({}),
-        run: noop,
       });
       const tp = topoFrom({ a2, m2, z2 });
       const map = generateSurfaceMap(tp);
@@ -88,9 +88,9 @@ describe('generateSurfaceMap', () => {
 
     test('trail with input/output schemas produces valid JSON Schema entries', () => {
       const t = trail('entity.create', {
+        blaze: noop,
         input: z.object({ age: z.number(), name: z.string() }),
         output: z.object({ id: z.string(), name: z.string() }),
-        run: noop,
         services: [dbService],
       });
       const map = generateSurfaceMap(topoFrom({ t }));
@@ -111,8 +111,8 @@ describe('generateSurfaceMap', () => {
 
     test('trail without output schema has output undefined', () => {
       const t = trail('fire.forget', {
+        blaze: noop,
         input: z.object({ msg: z.string() }),
-        run: noop,
       });
       const tp = topoFrom({ t });
       const map = generateSurfaceMap(tp);
@@ -122,13 +122,13 @@ describe('generateSurfaceMap', () => {
 
     test('trail entries include follow array when non-empty', () => {
       const base = trail('user.get', {
+        blaze: noop,
         input: z.object({ id: z.string() }),
-        run: noop,
       });
       const r = trail('user.update', {
+        blaze: noop,
         follow: ['user.get'],
         input: z.object({ id: z.string(), name: z.string() }),
-        run: noop,
       });
       const tp = topoFrom({ base, r });
       const map = generateSurfaceMap(tp);
@@ -167,10 +167,10 @@ describe('generateSurfaceMap', () => {
   describe('metadata', () => {
     test('safety markers are included when set', () => {
       const t = trail('safe.trail', {
+        blaze: noop,
         idempotent: true,
         input: z.object({}),
         intent: 'read',
-        run: noop,
       });
       const entry = getFirstEntry(generateSurfaceMap(topoFrom({ t })));
 
@@ -180,6 +180,7 @@ describe('generateSurfaceMap', () => {
 
     test('exampleCount reflects the number of examples', () => {
       const t = trail('with.examples', {
+        blaze: noop,
         examples: [
           { expected: { y: 2 }, input: { x: 1 }, name: 'basic' },
           { expected: { y: 0 }, input: { x: 0 }, name: 'zero' },
@@ -187,7 +188,6 @@ describe('generateSurfaceMap', () => {
         ],
         input: z.object({ x: z.number() }),
         output: z.object({ y: z.number() }),
-        run: noop,
       });
       const tp = topoFrom({ t });
       const map = generateSurfaceMap(tp);
@@ -197,12 +197,12 @@ describe('generateSurfaceMap', () => {
 
     test('detours are included and sorted', () => {
       const t = trail('with.detours', {
+        blaze: noop,
         detours: {
           onError: ['notify.admin', 'log.error'],
           onSuccess: ['cache.invalidate'],
         },
         input: z.object({}),
-        run: noop,
       });
       const entry = getFirstEntry(generateSurfaceMap(topoFrom({ t })));
 
@@ -214,9 +214,9 @@ describe('generateSurfaceMap', () => {
 
     test('description is included when present', () => {
       const t = trail('described', {
+        blaze: noop,
         description: 'A described trail',
         input: z.object({}),
-        run: noop,
       });
       const tp = topoFrom({ t });
       const map = generateSurfaceMap(tp);
@@ -228,11 +228,11 @@ describe('generateSurfaceMap', () => {
   describe('stability', () => {
     test('determinism: same topo produces identical output', () => {
       const t = trail('stable', {
+        blaze: noop,
         description: 'Stable trail',
         input: z.object({ a: z.string(), b: z.number() }),
         intent: 'read',
         output: z.object({ c: z.boolean() }),
-        run: noop,
       });
       const tp = topoFrom({ t });
 
@@ -245,8 +245,8 @@ describe('generateSurfaceMap', () => {
 
     test('version is set to 1.0', () => {
       const t = trail('v.check', {
+        blaze: noop,
         input: z.object({}),
-        run: noop,
       });
       const tp = topoFrom({ t });
       const map = generateSurfaceMap(tp);
@@ -256,8 +256,8 @@ describe('generateSurfaceMap', () => {
 
     test('generatedAt is an ISO timestamp', () => {
       const t = trail('ts.check', {
+        blaze: noop,
         input: z.object({}),
-        run: noop,
       });
       const tp = topoFrom({ t });
       const map = generateSurfaceMap(tp);

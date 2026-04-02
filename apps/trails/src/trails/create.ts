@@ -147,6 +147,12 @@ const runCreate = async (
 // ---------------------------------------------------------------------------
 
 export const createRoute = trail('create', {
+  blaze: async (input: CreateInput, ctx) => {
+    if (!ctx.follow) {
+      return Result.err(new Error('create route requires ctx.follow'));
+    }
+    return await runCreate(ctx.follow, input);
+  },
   description: 'Create a new Trails project',
   fields: {
     starter: {
@@ -194,10 +200,4 @@ export const createRoute = trail('create', {
     dir: z.string(),
     name: z.string(),
   }),
-  run: async (input: CreateInput, ctx) => {
-    if (!ctx.follow) {
-      return Result.err(new Error('create route requires ctx.follow'));
-    }
-    return await runCreate(ctx.follow, input);
-  },
 });

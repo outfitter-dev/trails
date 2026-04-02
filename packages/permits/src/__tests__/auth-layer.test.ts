@@ -36,9 +36,9 @@ describe('authLayer', () => {
   describe('pass-through cases', () => {
     test('passes through when trail has no permit field', async () => {
       const t = trail('test.nopermit', {
+        blaze: okImpl,
         input: z.object({}),
         output: z.object({ done: z.boolean() }),
-        run: okImpl,
       });
 
       const wrapped = authLayer.wrap(t, okImpl);
@@ -50,10 +50,10 @@ describe('authLayer', () => {
 
     test('passes through when trail permit is public', async () => {
       const t = trail('test.public', {
+        blaze: okImpl,
         input: z.object({}),
         output: z.object({ done: z.boolean() }),
         permit: 'public',
-        run: okImpl,
       });
 
       const wrapped = authLayer.wrap(t, okImpl);
@@ -66,10 +66,10 @@ describe('authLayer', () => {
 
   describe('scope enforcement', () => {
     const scopedTrail = trail('test.scoped', {
+      blaze: okImpl,
       input: z.object({}),
       output: z.object({ done: z.boolean() }),
       permit: { scopes: ['user:read'] },
-      run: okImpl,
     });
 
     test('passes when ctx.permit has matching scopes', async () => {
@@ -95,10 +95,10 @@ describe('authLayer', () => {
 
     test('returns error when permit is missing required scopes', async () => {
       const multiScopeTrail = trail('test.multi', {
+        blaze: okImpl,
         input: z.object({}),
         output: z.object({ done: z.boolean() }),
         permit: { scopes: ['user:read', 'user:write'] },
-        run: okImpl,
       });
 
       const wrapped = authLayer.wrap(multiScopeTrail, okImpl);

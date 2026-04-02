@@ -15,7 +15,7 @@ export const serviceExistsTrail = wrapRule({
 
 trail("entity.show", {
   services: [db],
-  run: async (_input, ctx) => {
+  blaze: async (_input, ctx) => {
     return Result.ok(db.from(ctx));
   }
 })`,

@@ -177,7 +177,7 @@ The HTTP request's abort signal is forwarded to `TrailContext.abortSignal`. If t
 
 ```typescript
 const longTask = trail('report.generate', {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     for (const chunk of data) {
       if (ctx.abortSignal?.aborted) {
         return Result.err(new CancelledError('Request cancelled'));

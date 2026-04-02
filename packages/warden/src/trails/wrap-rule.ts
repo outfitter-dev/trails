@@ -49,16 +49,7 @@ export function wrapRule(
   if (isProjectAware) {
     const projectAwareRule = rule as ProjectAwareWardenRule;
     return trail(`warden.rule.${rule.name}`, {
-      description: rule.description,
-      examples: examples as Trail<
-        ProjectAwareRuleInput,
-        RuleOutput
-      >['examples'],
-      input: projectAwareRuleInput,
-      intent: 'read',
-      metadata: { category: 'governance', severity: rule.severity },
-      output: ruleOutput,
-      run: (input: ProjectAwareRuleInput) => {
+      blaze: (input: ProjectAwareRuleInput) => {
         const context = {
           knownServiceIds: input.knownServiceIds
             ? new Set(input.knownServiceIds)
@@ -74,19 +65,28 @@ export function wrapRule(
         );
         return Result.ok({ diagnostics: [...diagnostics] });
       },
+      description: rule.description,
+      examples: examples as Trail<
+        ProjectAwareRuleInput,
+        RuleOutput
+      >['examples'],
+      input: projectAwareRuleInput,
+      intent: 'read',
+      metadata: { category: 'governance', severity: rule.severity },
+      output: ruleOutput,
     });
   }
 
   return trail(`warden.rule.${rule.name}`, {
+    blaze: (input: RuleInput) => {
+      const diagnostics = rule.check(input.sourceCode, input.filePath);
+      return Result.ok({ diagnostics: [...diagnostics] });
+    },
     description: rule.description,
     examples: examples as Trail<RuleInput, RuleOutput>['examples'],
     input: ruleInput,
     intent: 'read',
     metadata: { category: 'governance', severity: rule.severity },
     output: ruleOutput,
-    run: (input: RuleInput) => {
-      const diagnostics = rule.check(input.sourceCode, input.filePath);
-      return Result.ok({ diagnostics: [...diagnostics] });
-    },
   });
 }

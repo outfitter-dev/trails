@@ -13,29 +13,7 @@ import { z } from 'zod';
 // ---------------------------------------------------------------------------
 
 export const onboard = trail('entity.onboard', {
-  description: 'Create an entity and verify it appears in search',
-  examples: [
-    {
-      description: 'Create an entity and verify it appears in search results',
-      input: { name: 'Gamma', tags: ['workflow'], type: 'pattern' },
-      name: 'Onboard a new entity',
-    },
-  ],
-  follow: ['entity.add', 'search'],
-  input: z.object({
-    name: z.string().describe('Entity name'),
-    tags: z.array(z.string()).optional().default([]),
-    type: z.string().describe('Entity type'),
-  }),
-  output: z.object({
-    entity: z.object({
-      id: z.string(),
-      name: z.string(),
-      type: z.string(),
-    }),
-    searchable: z.boolean(),
-  }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     if (!ctx.follow) {
       return Result.err(new Error('Route requires a follow function'));
     }
@@ -77,4 +55,26 @@ export const onboard = trail('entity.onboard', {
       searchable,
     });
   },
+  description: 'Create an entity and verify it appears in search',
+  examples: [
+    {
+      description: 'Create an entity and verify it appears in search results',
+      input: { name: 'Gamma', tags: ['workflow'], type: 'pattern' },
+      name: 'Onboard a new entity',
+    },
+  ],
+  follow: ['entity.add', 'search'],
+  input: z.object({
+    name: z.string().describe('Entity name'),
+    tags: z.array(z.string()).optional().default([]),
+    type: z.string().describe('Entity type'),
+  }),
+  output: z.object({
+    entity: z.object({
+      id: z.string(),
+      name: z.string(),
+      type: z.string(),
+    }),
+    searchable: z.boolean(),
+  }),
 });

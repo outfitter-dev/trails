@@ -15,11 +15,11 @@ import { Result } from './result.js';
 // Options
 // ---------------------------------------------------------------------------
 
-/** Options forwarded to `executeTrail` from `dispatch`. */
-export type DispatchOptions = ExecuteTrailOptions;
+/** Options forwarded to `executeTrail` from `run`. */
+export type RunOptions = ExecuteTrailOptions;
 
 // ---------------------------------------------------------------------------
-// dispatch()
+// run()
 // ---------------------------------------------------------------------------
 
 /**
@@ -32,15 +32,15 @@ export type DispatchOptions = ExecuteTrailOptions;
  *
  * @example
  * ```typescript
- * const result = await dispatch(myTopo, 'greet', { name: 'Alice' });
+ * const result = await run(myTopo, 'greet', { name: 'Alice' });
  * if (result.isOk()) console.log(result.value);
  * ```
  */
-export const dispatch = (
+export const run = (
   topo: Topo,
   id: string,
   input: unknown,
-  options?: DispatchOptions
+  options?: RunOptions
 ): Promise<Result<unknown, Error>> => {
   const trail = topo.get(id);
   if (trail === undefined) {

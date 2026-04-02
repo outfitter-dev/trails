@@ -55,6 +55,19 @@ const toGuideDetail = (item: Trail<unknown, unknown>): object => ({
 });
 
 export const guideTrail = trail('guide', {
+  blaze: async (input, ctx) => {
+    const app = await loadApp(input.module, ctx.cwd ?? '.');
+
+    if (input.trailId) {
+      const item = app.get(input.trailId);
+      if (!item) {
+        return Result.err(new Error(`Trail not found: ${input.trailId}`));
+      }
+      return Result.ok(toGuideDetail(item as Trail<unknown, unknown>));
+    }
+
+    return Result.ok(toGuideEntries(app));
+  },
   description: 'Runtime guidance for trails',
   examples: [
     {
@@ -88,17 +101,4 @@ export const guideTrail = trail('guide', {
       kind: z.string(),
     }),
   ]),
-  run: async (input, ctx) => {
-    const app = await loadApp(input.module, ctx.cwd ?? '.');
-
-    if (input.trailId) {
-      const item = app.get(input.trailId);
-      if (!item) {
-        return Result.err(new Error(`Trail not found: ${input.trailId}`));
-      }
-      return Result.ok(toGuideDetail(item as Trail<unknown, unknown>));
-    }
-
-    return Result.ok(toGuideEntries(app));
-  },
 });

@@ -72,6 +72,15 @@ const buildQueryOptions = (input: {
  * result set when no store has been configured.
  */
 export const crumbsQuery = trail('crumbs.query', {
+  blaze: (input, ctx) => {
+    const state = crumbsService.from(ctx);
+    if (!state.store) {
+      return Result.ok({ count: 0, records: [] });
+    }
+    const records = state.store.query(buildQueryOptions(input));
+    const mapped = records.map(mapRecord);
+    return Result.ok({ count: mapped.length, records: mapped });
+  },
   examples: [
     { input: {}, name: 'Recent traces' },
     { input: { trailId: 'user.create' }, name: 'Filter by trail' },
@@ -86,14 +95,5 @@ export const crumbsQuery = trail('crumbs.query', {
   intent: 'read',
   metadata: { category: 'infrastructure' },
   output: crumbsQueryOutput,
-  run: (input, ctx) => {
-    const state = crumbsService.from(ctx);
-    if (!state.store) {
-      return Result.ok({ count: 0, records: [] });
-    }
-    const records = state.store.query(buildQueryOptions(input));
-    const mapped = records.map(mapRecord);
-    return Result.ok({ count: mapped.length, records: mapped });
-  },
   services: [crumbsService],
 });

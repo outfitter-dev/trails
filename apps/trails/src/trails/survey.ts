@@ -362,6 +362,10 @@ const dispatchSurvey = (
 // ---------------------------------------------------------------------------
 
 export const surveyTrail = trail('survey', {
+  blaze: async (input, ctx) => {
+    const app = await loadApp(input.module, ctx.cwd ?? '.');
+    return dispatchSurvey(app, input);
+  },
   description: 'Full topo introspection',
   examples: [
     {
@@ -488,8 +492,4 @@ export const surveyTrail = trail('survey', {
         .optional(),
     }),
   ]),
-  run: async (input, ctx) => {
-    const app = await loadApp(input.module, ctx.cwd ?? '.');
-    return dispatchSurvey(app, input);
-  },
 });

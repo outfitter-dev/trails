@@ -1,13 +1,13 @@
 /**
  * Finds implementations that return raw values instead of `Result`.
  *
- * Uses AST parsing to find `run:` bodies and check that
+ * Uses AST parsing to find `blaze:` bodies and check that
  * every return statement returns Result.ok(), Result.err(), ctx.follow(),
  * or a tracked Result-typed variable.
  */
 
 import {
-  findRunBodies,
+  findBlazeBodies,
   findTrailDefinitions,
   offsetToLine,
   parse,
@@ -63,7 +63,7 @@ const isResultMemberCall = (callee: AstNode): boolean => {
   if (objName === 'ctx' && propName === 'follow') {
     return true;
   }
-  return propName === 'run';
+  return propName === 'blaze';
 };
 
 // ---------------------------------------------------------------------------
@@ -362,7 +362,7 @@ const checkAllDefinitions = (
 
   for (const def of findTrailDefinitions(ast)) {
     const info = { id: def.id, label: 'Trail' };
-    for (const implValue of findRunBodies(def.config as AstNode)) {
+    for (const implValue of findBlazeBodies(def.config as AstNode)) {
       checkImplementation(
         implValue,
         info,

@@ -12,7 +12,7 @@ import { trail, Result } from '@ontrails/core';
 const t = trail('onboard', {
   follow: ['entity.add', 'search'],
   input: z.object({ name: z.string() }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     await ctx.follow('entity.add', { name: input.name });
     await ctx.follow('search', { query: input.name });
     return Result.ok({});
@@ -29,7 +29,7 @@ const t = trail('onboard', {
       const code = `
 trail('simple', {
   input: z.object({ name: z.string() }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     return Result.ok({ greeting: 'hello ' + input.name });
   },
 });
@@ -46,7 +46,7 @@ trail('simple', {
       const code = `
 trail('onboard', {
   input: z.object({ name: z.string() }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     await ctx.follow('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -68,7 +68,7 @@ trail('onboard', {
       const code = `
 trail('onboard', {
   follow: ['entity.add', 'search'],
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     await ctx.follow('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -92,7 +92,7 @@ trail({
   id: 'onboard',
   follow: ['entity.add'],
   input: z.object({ name: z.string() }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     await ctx.follow('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -109,7 +109,7 @@ trail({
 trail({
   id: 'onboard',
   input: z.object({ name: z.string() }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     await ctx.follow('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -130,7 +130,7 @@ trail({
 trail('onboard', {
   follow: ['entity.add'],
   input: z.object({ name: z.string() }),
-  run: async (input, context) => {
+  blaze: async (input, context) => {
     await context.follow('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -146,7 +146,7 @@ trail('onboard', {
       const code = `
 trail('onboard', {
   input: z.object({ name: z.string() }),
-  run: async (input, context) => {
+  blaze: async (input, context) => {
     await context.follow('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -164,7 +164,7 @@ trail('onboard', {
 trail('onboard', {
   follow: ['entity.add'],
   input: z.object({ name: z.string() }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const { follow } = ctx;
     await follow('entity.add', { name: input.name });
     return Result.ok({});
@@ -184,8 +184,8 @@ trail('onboard', {
 trail('onboard', {
   follow: ['entity.add'],
   input: z.object({ name: z.string() }),
-  metadata: { run: async () => ctx.follow('phantom') },
-  run: async (input, ctx) => {
+  metadata: { blaze: async () => ctx.follow('phantom') },
+  blaze: async (input, ctx) => {
     await ctx.follow('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -205,7 +205,7 @@ const ENTITY_ADD = 'entity.add';
 trail('onboard', {
   follow: [ENTITY_ADD],
   input: z.object({ name: z.string() }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     await ctx.follow('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -223,7 +223,7 @@ const ENTITY_ADD = 'entity.add';
 trail('onboard', {
   follow: [ENTITY_ADD],
   input: z.object({ name: z.string() }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     await ctx.follow('search', { name: input.name });
     return Result.ok({});
   },
@@ -242,7 +242,7 @@ trail('onboard', {
       const code = `
 trail('dispatch', {
   follow: ['entity.add'],
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const trailId = input.target;
     await ctx.follow(trailId, input);
     await ctx.follow('entity.add', input);
@@ -260,14 +260,14 @@ trail('dispatch', {
       const code = `
 trail('alpha', {
   follow: ['shared'],
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     await ctx.follow('shared', input);
     return Result.ok({});
   },
 });
 
 trail('beta', {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     await ctx.follow('undeclared', input);
     return Result.ok({});
   },
@@ -285,7 +285,7 @@ trail('beta', {
     test('skips test files', () => {
       const code = `
 trail('onboard', {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     await ctx.follow('entity.add', input);
     return Result.ok({});
   },

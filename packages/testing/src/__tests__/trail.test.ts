@@ -10,20 +10,20 @@ import { testTrail } from '../trail.js';
 // ---------------------------------------------------------------------------
 
 const greetTrail = trail('greet', {
+  blaze: (input: { name: string }) =>
+    Result.ok({ greeting: `Hello, ${input.name}` }),
   input: z.object({ name: z.string() }),
   output: z.object({ greeting: z.string() }),
-  run: (input: { name: string }) =>
-    Result.ok({ greeting: `Hello, ${input.name}` }),
 });
 
 const failTrail = trail('fail', {
-  input: z.object({ id: z.string() }),
-  run: (input: { id: string }) => {
+  blaze: (input: { id: string }) => {
     if (input.id === 'missing') {
       return Result.err(new NotFoundError('Not found: missing'));
     }
     return Result.ok({ id: input.id });
   },
+  input: z.object({ id: z.string() }),
 });
 
 // ---------------------------------------------------------------------------

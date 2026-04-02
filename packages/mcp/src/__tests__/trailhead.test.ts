@@ -35,17 +35,17 @@ const buildTools = (
 
 const createIntegrationTools = () => {
   const greetTrail = trail('greet', {
+    blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
     description: 'Greet someone',
     input: z.object({ name: z.string() }),
     intent: 'read',
-    run: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
   });
 
   const deleteTrail = trail('item.delete', {
+    blaze: (_input) => Result.ok({ deleted: true }),
     description: 'Delete an item',
     input: z.object({ id: z.string() }),
     intent: 'destroy',
-    run: (_input) => Result.ok({ deleted: true }),
   });
 
   return buildTools(topo('myapp', { deleteTrail, greetTrail }));
@@ -54,10 +54,10 @@ const createIntegrationTools = () => {
 describe('trailhead', () => {
   test('trailhead throws on invalid topo', async () => {
     const t = trail('broken', {
+      blaze: () => Result.ok({}),
       follow: ['nonexistent.trail'],
       input: z.object({}),
       output: z.object({}),
-      run: () => Result.ok({}),
     });
     const app = topo('test', { t });
     await expect(trailhead(app)).rejects.toThrow(/validation/i);
@@ -65,10 +65,10 @@ describe('trailhead', () => {
 
   test('trailhead skips validation when validate: false', async () => {
     const t = trail('broken', {
+      blaze: () => Result.ok({}),
       follow: ['nonexistent.trail'],
       input: z.object({}),
       output: z.object({}),
-      run: () => Result.ok({}),
     });
     const app = topo('test', { t });
     const result = await Promise.race([
@@ -93,10 +93,10 @@ describe('trailhead', () => {
 
   test('createMcpServer registers tools that can be listed', () => {
     const echoTrail = trail('echo', {
+      blaze: (input) => Result.ok({ reply: input.message }),
       description: 'Echo',
       input: z.object({ message: z.string() }),
       intent: 'read',
-      run: (input) => Result.ok({ reply: input.message }),
     });
 
     const app = topo('testapp', { echoTrail });
@@ -112,16 +112,16 @@ describe('trailhead', () => {
 
   test('createMcpServer handles multiple tools', () => {
     const echoTrail = trail('echo', {
+      blaze: (input) => Result.ok({ reply: input.message }),
       description: 'Echo',
       input: z.object({ message: z.string() }),
-      run: (input) => Result.ok({ reply: input.message }),
     });
 
     const searchTrail = trail('search', {
+      blaze: (input) => Result.ok({ results: [input.query] }),
       description: 'Search',
       input: z.object({ query: z.string() }),
       intent: 'read',
-      run: (input) => Result.ok({ results: [input.query] }),
     });
 
     const app = topo('testapp', { echoTrail, searchTrail });

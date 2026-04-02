@@ -11,6 +11,7 @@ import { testFollows } from '../follows.js';
 // ---------------------------------------------------------------------------
 
 const addTrail = trail('entity.add', {
+  blaze: (input: { name: string }) => Result.ok({ id: '1', name: input.name }),
   description: 'Add an entity',
   examples: [
     { input: { name: 'Alpha' }, name: 'success' },
@@ -23,15 +24,14 @@ const addTrail = trail('entity.add', {
   ],
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.string(), name: z.string() }),
-  run: (input: { name: string }) => Result.ok({ id: '1', name: input.name }),
 });
 
 const relateTrail = trail('entity.relate', {
+  blaze: (input: { from: string; to: string }) =>
+    Result.ok({ from: input.from, to: input.to }),
   description: 'Relate two entities',
   input: z.object({ from: z.string(), to: z.string() }),
   output: z.object({ from: z.string(), to: z.string() }),
-  run: (input: { from: string; to: string }) =>
-    Result.ok({ from: input.from, to: input.to }),
 });
 
 // ---------------------------------------------------------------------------
@@ -39,10 +39,7 @@ const relateTrail = trail('entity.relate', {
 // ---------------------------------------------------------------------------
 
 const onboardTrail = trail('entity.onboard', {
-  follow: ['entity.add', 'entity.relate'],
-  input: z.object({ name: z.string(), relatedTo: z.string() }),
-  output: z.object({ name: z.string(), relatedTo: z.string() }),
-  run: async (
+  blaze: async (
     input: { name: string; relatedTo: string },
     ctx: TrailContext
   ) => {
@@ -70,6 +67,9 @@ const onboardTrail = trail('entity.onboard', {
       relatedTo: relateResult.value.to,
     });
   },
+  follow: ['entity.add', 'entity.relate'],
+  input: z.object({ name: z.string(), relatedTo: z.string() }),
+  output: z.object({ name: z.string(), relatedTo: z.string() }),
 });
 
 const trailsMap = new Map<string, AnyTrail>([
@@ -167,18 +167,14 @@ describe('testFollows: expectValue', () => {
 // ---------------------------------------------------------------------------
 
 const leafTrail = trail('step.leaf', {
+  blaze: (input: { value: string }) => Result.ok({ leaf: input.value }),
   description: 'Leaf trail in a nested chain',
   input: z.object({ value: z.string() }),
   output: z.object({ leaf: z.string() }),
-  run: (input: { value: string }) => Result.ok({ leaf: input.value }),
 });
 
 const middleTrail = trail('step.middle', {
-  description: 'Middle trail that follows the leaf',
-  follow: ['step.leaf'],
-  input: z.object({ value: z.string() }),
-  output: z.object({ middle: z.string() }),
-  run: async (input: { value: string }, ctx: TrailContext) => {
+  blaze: async (input: { value: string }, ctx: TrailContext) => {
     if (!ctx.follow) {
       return Result.err(new Error('follow not available'));
     }
@@ -188,14 +184,14 @@ const middleTrail = trail('step.middle', {
     }
     return Result.ok({ middle: leafResult.value.leaf });
   },
+  description: 'Middle trail that follows the leaf',
+  follow: ['step.leaf'],
+  input: z.object({ value: z.string() }),
+  output: z.object({ middle: z.string() }),
 });
 
 const nestedRootTrail = trail('step.root', {
-  description: 'Root trail that follows the middle trail',
-  follow: ['step.middle'],
-  input: z.object({ value: z.string() }),
-  output: z.object({ root: z.string() }),
-  run: async (input: { value: string }, ctx: TrailContext) => {
+  blaze: async (input: { value: string }, ctx: TrailContext) => {
     if (!ctx.follow) {
       return Result.err(new Error('follow not available'));
     }
@@ -208,6 +204,10 @@ const nestedRootTrail = trail('step.root', {
     }
     return Result.ok({ root: midResult.value.middle });
   },
+  description: 'Root trail that follows the middle trail',
+  follow: ['step.middle'],
+  input: z.object({ value: z.string() }),
+  output: z.object({ root: z.string() }),
 });
 
 const nestedTrailsMap = new Map<string, AnyTrail>([
@@ -237,20 +237,16 @@ const mockDbService = service('db.mock.follows', {
 });
 
 const serviceLeafTrail = trail('service.leaf', {
+  blaze: (_input, ctx) =>
+    Result.ok({ childSource: mockDbService.from(ctx).source }),
   description: 'Leaf trail that reads from a service',
   input: z.object({}),
   output: z.object({ childSource: z.string() }),
-  run: (_input, ctx) =>
-    Result.ok({ childSource: mockDbService.from(ctx).source }),
   services: [mockDbService],
 });
 
 const serviceRootTrail = trail('service.root', {
-  description: 'Root trail that reads from a service and follows a child trail',
-  follow: ['service.leaf'],
-  input: z.object({}),
-  output: z.object({ childSource: z.string(), rootSource: z.string() }),
-  run: async (_input, ctx: TrailContext) => {
+  blaze: async (_input, ctx: TrailContext) => {
     if (!ctx.follow) {
       return Result.err(new Error('follow not available'));
     }
@@ -267,6 +263,10 @@ const serviceRootTrail = trail('service.root', {
       rootSource: mockDbService.from(ctx).source,
     });
   },
+  description: 'Root trail that reads from a service and follows a child trail',
+  follow: ['service.leaf'],
+  input: z.object({}),
+  output: z.object({ childSource: z.string(), rootSource: z.string() }),
   services: [mockDbService],
 });
 
@@ -280,21 +280,16 @@ const statefulMockDbService = service('db.mock.follows.stateful', {
 });
 
 const statefulServiceLeafTrail = trail('service.stateful.leaf', {
+  blaze: (_input, ctx) =>
+    Result.ok({ childCount: statefulMockDbService.from(ctx).count }),
   description: 'Leaf trail that observes the current mock service state',
   input: z.object({}),
   output: z.object({ childCount: z.number() }),
-  run: (_input, ctx) =>
-    Result.ok({ childCount: statefulMockDbService.from(ctx).count }),
   services: [statefulMockDbService],
 });
 
 const statefulServiceRootTrail = trail('service.stateful.root', {
-  description:
-    'Root trail that mutates a mocked service and follows a child trail',
-  follow: ['service.stateful.leaf'],
-  input: z.object({}),
-  output: z.object({ childCount: z.number(), rootCount: z.number() }),
-  run: async (_input, ctx: TrailContext) => {
+  blaze: async (_input, ctx: TrailContext) => {
     if (!ctx.follow) {
       return Result.err(new Error('follow not available'));
     }
@@ -315,6 +310,11 @@ const statefulServiceRootTrail = trail('service.stateful.root', {
       rootCount: statefulService.count,
     });
   },
+  description:
+    'Root trail that mutates a mocked service and follows a child trail',
+  follow: ['service.stateful.leaf'],
+  input: z.object({}),
+  output: z.object({ childCount: z.number(), rootCount: z.number() }),
   services: [statefulMockDbService],
 });
 
@@ -328,20 +328,16 @@ const scenarioStateService = service('db.mock.scenarios', {
 });
 
 const scenarioLeafTrail = trail('service.scenario.leaf', {
+  blaze: (_input, ctx) =>
+    Result.ok({ count: scenarioStateService.from(ctx).count }),
   description: 'Leaf trail that reads mutable scenario state',
   input: z.object({}),
   output: z.object({ count: z.number() }),
-  run: (_input, ctx) =>
-    Result.ok({ count: scenarioStateService.from(ctx).count }),
   services: [scenarioStateService],
 });
 
 const scenarioRootTrail = trail('service.scenario.root', {
-  description: 'Root trail that mutates scenario state and follows a leaf',
-  follow: ['service.scenario.leaf'],
-  input: z.object({}),
-  output: z.object({ count: z.number() }),
-  run: async (_input, ctx: TrailContext) => {
+  blaze: async (_input, ctx: TrailContext) => {
     if (!ctx.follow) {
       return Result.err(new Error('follow not available'));
     }
@@ -359,6 +355,10 @@ const scenarioRootTrail = trail('service.scenario.root', {
 
     return Result.ok({ count: leafResult.value.count });
   },
+  description: 'Root trail that mutates scenario state and follows a leaf',
+  follow: ['service.scenario.leaf'],
+  input: z.object({}),
+  output: z.object({ count: z.number() }),
   services: [scenarioStateService],
 });
 
@@ -367,20 +367,14 @@ const scenarioTrailsMap = new Map<string, AnyTrail>([
 ]);
 
 const transformedFollowLeafTrail = trail('follow.transformed.leaf', {
+  blaze: (input: { value: number }) => Result.ok({ value: input.value }),
   description: 'Leaf trail in a transformed follow chain',
   input: z.object({ value: z.number() }),
   output: z.object({ value: z.number() }),
-  run: (input: { value: number }) => Result.ok({ value: input.value }),
 });
 
 const transformedFollowRootTrail = trail('follow.transformed.root', {
-  description: 'Root trail that transforms input once before following',
-  follow: ['follow.transformed.leaf'],
-  input: z
-    .object({ value: z.string() })
-    .transform(({ value }) => ({ value: Number(value) + 1 })),
-  output: z.object({ root: z.number() }),
-  run: async (input: { value: number }, ctx: TrailContext) => {
+  blaze: async (input: { value: number }, ctx: TrailContext) => {
     if (!ctx.follow) {
       return Result.err(new Error('follow not available'));
     }
@@ -395,6 +389,12 @@ const transformedFollowRootTrail = trail('follow.transformed.root', {
 
     return Result.ok({ root: leafResult.value.value });
   },
+  description: 'Root trail that transforms input once before following',
+  follow: ['follow.transformed.leaf'],
+  input: z
+    .object({ value: z.string() })
+    .transform(({ value }) => ({ value: Number(value) + 1 })),
+  output: z.object({ root: z.number() }),
 });
 
 const transformedFollowTrailsMap = new Map<string, AnyTrail>([
@@ -407,20 +407,16 @@ const undeclaredFollowService = service('db.undeclared.follows', {
 });
 
 const undeclaredServiceLeafTrail = trail('service.undeclared.leaf', {
+  blaze: (_input, ctx) =>
+    Result.ok({ childSource: undeclaredFollowService.from(ctx).source }),
   description: 'Leaf trail that declares the shared service',
   input: z.object({}),
   output: z.object({ childSource: z.string() }),
-  run: (_input, ctx) =>
-    Result.ok({ childSource: undeclaredFollowService.from(ctx).source }),
   services: [undeclaredFollowService],
 });
 
 const undeclaredServiceRootTrail = trail('service.undeclared.root', {
-  description: 'Root trail that uses a service without declaring it',
-  follow: ['service.undeclared.leaf'],
-  input: z.object({}),
-  output: z.object({ childSource: z.string(), rootSource: z.string() }),
-  run: async (_input, ctx: TrailContext) => {
+  blaze: async (_input, ctx: TrailContext) => {
     if (!ctx.follow) {
       return Result.err(new Error('follow not available'));
     }
@@ -438,6 +434,10 @@ const undeclaredServiceRootTrail = trail('service.undeclared.root', {
       rootSource: undeclaredFollowService.from(ctx).source,
     });
   },
+  description: 'Root trail that uses a service without declaring it',
+  follow: ['service.undeclared.leaf'],
+  input: z.object({}),
+  output: z.object({ childSource: z.string(), rootSource: z.string() }),
 });
 
 const undeclaredServiceTrailsMap = new Map<string, AnyTrail>([
@@ -452,11 +452,11 @@ const unrelatedFollowService = service('db.unrelated.follows', {
 });
 
 const unrelatedServiceTrail = trail('service.unrelated', {
+  blaze: (_input, ctx) =>
+    Result.ok({ source: unrelatedFollowService.from(ctx).source }),
   description: 'Trail that should not be traversed or mocked',
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  run: (_input, ctx) =>
-    Result.ok({ source: unrelatedFollowService.from(ctx).source }),
   services: [unrelatedFollowService],
 });
 

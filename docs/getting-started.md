@@ -53,7 +53,7 @@ export const greet = trail('greet', {
       expected: { message: 'HELLO, WORLD!' },
     },
   ],
-  run: (input) => {
+  blaze: (input) => {
     const message = `Hello, ${input.name}!`;
     return Result.ok({
       message: input.loud ? message.toUpperCase() : message,
@@ -203,7 +203,7 @@ export const add = trail('math.add', {
       expected: { result: 5 },
     },
   ],
-  run: (input) => Result.ok({ result: input.a + input.b }),
+  blaze: (input) => Result.ok({ result: input.a + input.b }),
 });
 ```
 
@@ -231,7 +231,7 @@ export const addAndDouble = trail('math.add-and-double', {
   follow: ['math.add'],
   input: z.object({ a: z.number(), b: z.number() }),
   output: z.object({ result: z.number() }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const sum = await ctx.follow('math.add', input);
     if (sum.isErr()) return sum;
     return Result.ok({ result: sum.value.result * 2 });
@@ -260,7 +260,7 @@ export const listUsers = trail('user.list', {
   input: z.object({}),
   output: z.object({ users: z.array(UserSchema) }),
   intent: 'read',
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const pool = db.from(ctx);
     const rows = await pool.query('SELECT * FROM users');
     return Result.ok({ users: rows });

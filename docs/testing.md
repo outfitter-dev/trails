@@ -23,7 +23,7 @@ const search = trail('search', {
       expected: [],
     },
   ],
-  run: searchImpl,
+  blaze: searchImpl,
 });
 ```
 
@@ -272,12 +272,12 @@ const follow = createFollowContext({
 });
 
 const ctx = { ...createTestContext(), follow };
-const result = await onboardTrail.run({ name: 'Delta' }, ctx);
+const result = await onboardTrail.blaze({ name: 'Delta' }, ctx);
 
 expect(result.isOk()).toBe(true);
 ```
 
-Calls to unregistered trail IDs return an error Result. If you need real execution instead of mocked responses, use `dispatch()` from `@ontrails/core`.
+Calls to unregistered trail IDs return an error Result. If you need real execution instead of mocked responses, use `run()` from `@ontrails/core`.
 
 ### `createTestLogger()`
 

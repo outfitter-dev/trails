@@ -61,7 +61,7 @@ const search = trail('search', {
   intent: 'read',
   input: z.object({ query: z.string() }),
   output: z.array(z.object({ id: z.string(), title: z.string() })),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const conn = db.from(ctx);
     const results = await conn.search(input.query);
     return Result.ok(results);
@@ -125,10 +125,10 @@ testAll(app, () => ({
 
 Pass a factory (the `() => ({...})` form) when overrides contain mutable state, so each test gets a fresh instance. This prevents test pollution from shared in-memory stores.
 
-The same override mechanism works with `dispatch` and `trailhead`:
+The same override mechanism works with `run` and `trailhead`:
 
 ```typescript
-dispatch(app, 'search', input, {
+run(app, 'search', input, {
   services: { 'db.main': testDb },
 });
 

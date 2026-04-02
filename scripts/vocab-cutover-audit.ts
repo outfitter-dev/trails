@@ -23,6 +23,12 @@ const selectedRule =
 const isAuditTarget = (path: string) =>
   auditRoots.some((root) => path === root || path.startsWith(root));
 
+const isExcludedFromRule = (path: string, rule: (typeof auditRules)[number]) =>
+  rule.excludePaths?.some(
+    (excludedPath) =>
+      path === excludedPath || path.startsWith(`${excludedPath}/`)
+  ) ?? false;
+
 const listGitFiles = (gitArgs: readonly string[]) => {
   const result = Bun.spawnSync(['git', ...gitArgs], {
     cwd: process.cwd(),
@@ -75,8 +81,9 @@ const findRuleResult = async (
   files: readonly string[]
 ): Promise<RuleResult> => {
   const matcher = new RegExp(rule.pattern, 'g');
+  const scopedFiles = files.filter((path) => !isExcludedFromRule(path, rule));
   const matches = await Promise.all(
-    files.map((path) => findMatchDetail(path, matcher))
+    scopedFiles.map((path) => findMatchDetail(path, matcher))
   );
   const details = matches.filter((match) => match !== undefined);
 

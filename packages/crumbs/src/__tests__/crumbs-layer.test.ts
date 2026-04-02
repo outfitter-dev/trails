@@ -23,16 +23,16 @@ const stubCtx: TrailContext = createTrailContext({
 });
 
 const echoTrail = trail('echo', {
+  blaze: (input) => Result.ok({ value: input.value }),
   input: z.object({ value: z.string() }),
   intent: 'read',
   output: z.object({ value: z.string() }),
-  run: (input) => Result.ok({ value: input.value }),
 });
 
 const failTrail = trail('fail', {
+  blaze: () => Result.err(new Error('boom')),
   input: z.object({}),
   output: z.object({ value: z.string() }),
-  run: () => Result.err(new Error('boom')),
 });
 
 // oxlint-disable max-statements -- integration tests with setup + assertions
@@ -40,7 +40,7 @@ describe('tracksLayer', () => {
   test('records a successful trail execution', async () => {
     const sink = createMemorySink();
     const layer = createCrumbsLayer(sink);
-    const wrapped = layer.wrap(echoTrail, echoTrail.run);
+    const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
     const result = await wrapped({ value: 'hello' }, stubCtx);
 
@@ -52,7 +52,7 @@ describe('tracksLayer', () => {
   test('records status err on failure', async () => {
     const sink = createMemorySink();
     const layer = createCrumbsLayer(sink);
-    const wrapped = layer.wrap(failTrail, failTrail.run);
+    const wrapped = layer.wrap(failTrail, failTrail.blaze);
 
     const result = await wrapped({}, stubCtx);
 
@@ -64,7 +64,7 @@ describe('tracksLayer', () => {
   test('captures timing (endedAt > startedAt)', async () => {
     const sink = createMemorySink();
     const layer = createCrumbsLayer(sink);
-    const wrapped = layer.wrap(echoTrail, echoTrail.run);
+    const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
     await wrapped({ value: 'hello' }, stubCtx);
 
@@ -80,7 +80,7 @@ describe('tracksLayer', () => {
   test('records trailId and intent from the trail', async () => {
     const sink = createMemorySink();
     const layer = createCrumbsLayer(sink);
-    const wrapped = layer.wrap(echoTrail, echoTrail.run);
+    const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
     await wrapped({ value: 'hello' }, stubCtx);
 
@@ -92,7 +92,7 @@ describe('tracksLayer', () => {
   test('writes to the provided sink', async () => {
     const sink = createMemorySink();
     const layer = createCrumbsLayer(sink);
-    const wrapped = layer.wrap(echoTrail, echoTrail.run);
+    const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
     await wrapped({ value: 'a' }, stubCtx);
     await wrapped({ value: 'b' }, stubCtx);
@@ -105,7 +105,7 @@ describe('tracksLayer', () => {
     test('creates root trace context for root invocations', async () => {
       const sink = createMemorySink();
       const layer = createCrumbsLayer(sink);
-      const wrapped = layer.wrap(echoTrail, echoTrail.run);
+      const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
       await wrapped({ value: 'hello' }, stubCtx);
 
@@ -117,17 +117,17 @@ describe('tracksLayer', () => {
     test('injects trace context into ctx.extensions for child trails', async () => {
       let capturedTrace: TraceContext | undefined;
       const capturingTrail = trail('capture', {
-        input: z.object({}),
-        output: z.object({}),
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           capturedTrace = getTraceContext(ctx as TrailContext);
           return Result.ok({});
         },
+        input: z.object({}),
+        output: z.object({}),
       });
 
       const sink = createMemorySink();
       const layer = createCrumbsLayer(sink);
-      const wrapped = layer.wrap(capturingTrail, capturingTrail.run);
+      const wrapped = layer.wrap(capturingTrail, capturingTrail.blaze);
 
       await wrapped({}, stubCtx);
 
@@ -142,22 +142,22 @@ describe('tracksLayer', () => {
       const layer = createCrumbsLayer(sink);
 
       const childTrail = trail('child', {
+        blaze: () => Result.ok({}),
         input: z.object({}),
         output: z.object({}),
-        run: () => Result.ok({}),
       });
 
       let capturedTrace: TraceContext | undefined;
       const rootTrail = trail('root', {
-        input: z.object({}),
-        output: z.object({}),
-        run: (_input, ctx) => {
+        blaze: (_input, ctx) => {
           capturedTrace = getTraceContext(ctx as TrailContext);
           return Result.ok({});
         },
+        input: z.object({}),
+        output: z.object({}),
       });
 
-      const wrappedRoot = layer.wrap(rootTrail, rootTrail.run);
+      const wrappedRoot = layer.wrap(rootTrail, rootTrail.blaze);
       await wrappedRoot({}, stubCtx);
 
       const ctxWithTrace: TrailContext = {
@@ -168,7 +168,7 @@ describe('tracksLayer', () => {
         },
       };
 
-      const wrappedChild = layer.wrap(childTrail, childTrail.run);
+      const wrappedChild = layer.wrap(childTrail, childTrail.blaze);
       await wrappedChild({}, ctxWithTrace);
 
       const [rootRecord, childRecord] = sink.records;
@@ -182,7 +182,7 @@ describe('tracksLayer', () => {
     test('captures permit from ctx when present', async () => {
       const sink = createMemorySink();
       const layer = createCrumbsLayer(sink);
-      const wrapped = layer.wrap(echoTrail, echoTrail.run);
+      const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
       const ctxWithPermit: TrailContext = {
         ...stubCtx,
@@ -202,7 +202,7 @@ describe('tracksLayer', () => {
     test('captures the invoking surface from ctx.extensions', async () => {
       const sink = createMemorySink();
       const layer = createCrumbsLayer(sink);
-      const wrapped = layer.wrap(echoTrail, echoTrail.run);
+      const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
       const ctxWithSurface: TrailContext = {
         ...stubCtx,
@@ -232,7 +232,7 @@ describe('tracksLayer', () => {
         },
       }
     );
-    const wrapped = layer.wrap(echoTrail, echoTrail.run);
+    const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
     const result = await wrapped({ value: 'hello' }, stubCtx);
 
@@ -250,7 +250,7 @@ describe('tracksLayer', () => {
       Math.random = () => 0.99;
       const sink = createMemorySink();
       const layer = createCrumbsLayer(sink, { sampling: { read: 0.05 } });
-      const wrapped = layer.wrap(echoTrail, echoTrail.run);
+      const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
       const result = await wrapped({ value: 'hello' }, stubCtx);
 
@@ -267,13 +267,13 @@ describe('tracksLayer', () => {
       });
 
       const readFailTrail = trail('read-fail', {
+        blaze: () => Result.err(new Error('boom')),
         input: z.object({}),
         intent: 'read',
         output: z.object({ value: z.string() }),
-        run: () => Result.err(new Error('boom')),
       });
 
-      const wrapped = layer.wrap(readFailTrail, readFailTrail.run);
+      const wrapped = layer.wrap(readFailTrail, readFailTrail.blaze);
       const result = await wrapped({}, stubCtx);
 
       expect(result.isErr()).toBe(true);
@@ -285,7 +285,7 @@ describe('tracksLayer', () => {
       Math.random = () => 0.99;
       const sink = createMemorySink();
       const layer = createCrumbsLayer(sink, { sampling: {} });
-      const wrapped = layer.wrap(echoTrail, echoTrail.run);
+      const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
       await wrapped({ value: 'hello' }, stubCtx);
 
@@ -296,15 +296,15 @@ describe('tracksLayer', () => {
   test('records thrown implementations as err results', async () => {
     const sink = createMemorySink();
     const throwingTrail = trail('throwing', {
-      input: z.object({}),
-      output: z.object({ value: z.string() }),
-      run: () => {
+      blaze: () => {
         throw new Error('explode');
       },
+      input: z.object({}),
+      output: z.object({ value: z.string() }),
     });
 
     const layer = createCrumbsLayer(sink);
-    const wrapped = layer.wrap(throwingTrail, throwingTrail.run);
+    const wrapped = layer.wrap(throwingTrail, throwingTrail.blaze);
     const result = await wrapped({}, stubCtx);
 
     expect(result.isErr()).toBe(true);
@@ -316,13 +316,13 @@ describe('tracksLayer', () => {
   test('maps cancelled errors to cancelled status and category', async () => {
     const sink = createMemorySink();
     const cancelledTrail = trail('cancelled', {
+      blaze: () => Result.err(new CancelledError('stop')),
       input: z.object({}),
       output: z.object({ value: z.string() }),
-      run: () => Result.err(new CancelledError('stop')),
     });
 
     const layer = createCrumbsLayer(sink);
-    const wrapped = layer.wrap(cancelledTrail, cancelledTrail.run);
+    const wrapped = layer.wrap(cancelledTrail, cancelledTrail.blaze);
     const result = await wrapped({}, stubCtx);
 
     expect(result.isErr()).toBe(true);
@@ -334,18 +334,18 @@ describe('tracksLayer', () => {
   test('injects crumbs.from(ctx).span so manual spans become child records', async () => {
     const sink = createMemorySink();
     const instrumentedTrail = trail('instrumented', {
-      input: z.object({}),
-      output: z.object({ value: z.string() }),
-      run: async (_input, ctx) => {
+      blaze: async (_input, ctx) => {
         const value = await crumbs
           .from(ctx as TrailContext)
           .span('inner-span', () => 'done');
         return Result.ok({ value });
       },
+      input: z.object({}),
+      output: z.object({ value: z.string() }),
     });
 
     const layer = createCrumbsLayer(sink);
-    const wrapped = layer.wrap(instrumentedTrail, instrumentedTrail.run);
+    const wrapped = layer.wrap(instrumentedTrail, instrumentedTrail.blaze);
 
     const result = await wrapped({}, stubCtx);
 
@@ -365,17 +365,17 @@ describe('tracksLayer', () => {
   test('merges crumbs.from(ctx).annotate attrs into the trail record', async () => {
     const sink = createMemorySink();
     const annotatedTrail = trail('annotated', {
-      input: z.object({}),
-      output: z.object({ value: z.string() }),
-      run: (_input, ctx) => {
+      blaze: (_input, ctx) => {
         crumbs.from(ctx as TrailContext).annotate({ count: 1, stage: 'start' });
         crumbs.from(ctx as TrailContext).annotate({ count: 2, detail: 'done' });
         return Result.ok({ value: 'ok' });
       },
+      input: z.object({}),
+      output: z.object({ value: z.string() }),
     });
 
     const layer = createCrumbsLayer(sink);
-    const wrapped = layer.wrap(annotatedTrail, annotatedTrail.run);
+    const wrapped = layer.wrap(annotatedTrail, annotatedTrail.blaze);
 
     const result = await wrapped({}, stubCtx);
 

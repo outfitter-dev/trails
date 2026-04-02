@@ -9,22 +9,7 @@ import { z } from 'zod';
 import { formatCiOutput } from '../formatters.js';
 
 export const ciDriftTrail = trail('ci.drift', {
-  description: 'Run surface lock drift detection',
-  examples: [
-    {
-      input: {},
-      name: 'Default drift check',
-    },
-  ],
-  input: z.object({
-    rootDir: z.string().optional().describe('Root directory to scan'),
-  }),
-  intent: 'read',
-  output: z.object({
-    hasDrift: z.boolean(),
-    output: z.string(),
-  }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
     const driftResult = await checkDrift(rootDir);
 
@@ -44,4 +29,19 @@ export const ciDriftTrail = trail('ci.drift', {
       output,
     });
   },
+  description: 'Run surface lock drift detection',
+  examples: [
+    {
+      input: {},
+      name: 'Default drift check',
+    },
+  ],
+  input: z.object({
+    rootDir: z.string().optional().describe('Root directory to scan'),
+  }),
+  intent: 'read',
+  output: z.object({
+    hasDrift: z.boolean(),
+    output: z.string(),
+  }),
 });

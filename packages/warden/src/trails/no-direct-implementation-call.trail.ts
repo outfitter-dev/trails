@@ -9,7 +9,7 @@ export const noDirectImplementationCallTrail = wrapRule({
         filePath: 'clean.ts',
         sourceCode: `const data = await ctx.follow("entity.show", { id: "1" });`,
       },
-      name: 'Clean code using ctx.follow instead of .run()',
+      name: 'Clean code using ctx.follow instead of .blaze()',
     },
   ],
   rule: noDirectImplementationCall,

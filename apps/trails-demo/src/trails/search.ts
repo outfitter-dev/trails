@@ -14,6 +14,21 @@ import { entityStoreService } from '../services/entity-store.js';
 // ---------------------------------------------------------------------------
 
 export const search = trail('search', {
+  blaze: (input, ctx) => {
+    const store = entityStoreService.from(ctx);
+    const results = store.search(input.query);
+    const limited = results.slice(0, input.limit);
+    return Result.ok({
+      query: input.query,
+      results: limited.map((e) => ({
+        id: e.id,
+        name: e.name,
+        tags: [...e.tags],
+        type: e.type,
+      })),
+      total: results.length,
+    });
+  },
   description: 'Search entities by keyword',
   examples: [
     {
@@ -44,20 +59,5 @@ export const search = trail('search', {
     ),
     total: z.number(),
   }),
-  run: (input, ctx) => {
-    const store = entityStoreService.from(ctx);
-    const results = store.search(input.query);
-    const limited = results.slice(0, input.limit);
-    return Result.ok({
-      query: input.query,
-      results: limited.map((e) => ({
-        id: e.id,
-        name: e.name,
-        tags: [...e.tags],
-        type: e.type,
-      })),
-      total: results.length,
-    });
-  },
   services: [entityStoreService],
 });

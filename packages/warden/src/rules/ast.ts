@@ -376,22 +376,22 @@ export const findTrailDefinitions = (ast: AstNode): TrailDefinition[] => {
 };
 
 // ---------------------------------------------------------------------------
-// Run body extraction
+// Blaze body extraction
 // ---------------------------------------------------------------------------
 
 /**
- * Extract top-level `run:` property values from an ObjectExpression's direct properties.
+ * Extract top-level `blaze:` property values from an ObjectExpression's direct properties.
  *
- * Does not recurse into nested objects, so `metadata: { run: ... }` is ignored.
+ * Does not recurse into nested objects, so `metadata: { blaze: ... }` is ignored.
  */
-const extractRunFromConfig = (config: AstNode): AstNode[] => {
+const extractBlazeFromConfig = (config: AstNode): AstNode[] => {
   const bodies: AstNode[] = [];
   const properties = config['properties'] as readonly AstNode[] | undefined;
   if (!properties) {
     return bodies;
   }
   for (const prop of properties) {
-    if (prop.type === 'Property' && prop.key?.name === 'run' && prop.value) {
+    if (prop.type === 'Property' && prop.key?.name === 'blaze' && prop.value) {
       bodies.push(prop.value);
     }
   }
@@ -399,22 +399,22 @@ const extractRunFromConfig = (config: AstNode): AstNode[] => {
 };
 
 /**
- * Find `run:` property values.
+ * Find `blaze:` property values.
  *
- * When given an ObjectExpression (trail config), returns only its direct `run:`
+ * When given an ObjectExpression (trail config), returns only its direct `blaze:`
  * properties. When given a full AST, finds trail definitions first and extracts
- * `run:` from each config — in both cases ignoring nested `run:` properties
- * (e.g. `metadata: { run: ... }`).
+ * `blaze:` from each config — in both cases ignoring nested `blaze:` properties
+ * (e.g. `metadata: { blaze: ... }`).
  */
-export const findRunBodies = (node: AstNode): AstNode[] => {
+export const findBlazeBodies = (node: AstNode): AstNode[] => {
   if (node.type === 'ObjectExpression') {
-    return extractRunFromConfig(node);
+    return extractBlazeFromConfig(node);
   }
 
-  // Full AST — find trail definitions and extract run from their configs
+  // Full AST — find trail definitions and extract blaze from their configs
   const bodies: AstNode[] = [];
   for (const def of findTrailDefinitions(node)) {
-    bodies.push(...extractRunFromConfig(def.config));
+    bodies.push(...extractBlazeFromConfig(def.config));
   }
   return bodies;
 };
@@ -423,8 +423,8 @@ export const findRunBodies = (node: AstNode): AstNode[] => {
 // Misc helpers
 // ---------------------------------------------------------------------------
 
-/** Check if a node is a call to `.run()` on some object. */
-export const isRunCall = (node: AstNode): boolean => {
+/** Check if a node is a call to `.blaze()` on some object. */
+export const isBlazeCall = (node: AstNode): boolean => {
   if (node.type !== 'CallExpression') {
     return false;
   }
@@ -441,6 +441,6 @@ export const isRunCall = (node: AstNode): boolean => {
   const prop = (callee as unknown as { property?: AstNode }).property;
   return (
     prop?.type === 'Identifier' &&
-    (prop as unknown as { name: string }).name === 'run'
+    (prop as unknown as { name: string }).name === 'blaze'
   );
 };

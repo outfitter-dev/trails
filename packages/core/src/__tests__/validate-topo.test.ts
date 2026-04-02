@@ -29,11 +29,11 @@ const mockTrail = (
     services?: readonly ReturnType<typeof service>[];
   }
 ) => ({
+  blaze: noop,
   follow: Object.freeze([...(overrides?.follow ?? [])]),
   id,
   input: z.object({ name: z.string() }),
   kind: 'trail' as const,
-  run: noop,
   services: Object.freeze([...(overrides?.services ?? [])]),
   ...overrides,
 });

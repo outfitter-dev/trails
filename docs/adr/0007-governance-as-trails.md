@@ -34,7 +34,7 @@ Each warden rule is wrapped via `wrapRule()` into a trail with ID `warden.rule.<
 
 Rules have examples showing both clean code (empty diagnostics array) and violations (expected diagnostics with specific messages and line numbers). This means every rule's behavior is documented in the contract itself, not in separate test files or prose.
 
-All 11 rules are collected into `wardenTopo` via `topo('warden', rules)` and dispatched at runtime via `dispatch()`. Running the warden is just iterating the topo and dispatching each trail with the file's source code as input.
+All 11 rules are collected into `wardenTopo` via `topo('warden', rules)` and dispatched at runtime via `run()`. Running the warden is just iterating the topo and dispatching each trail with the file's source code as input.
 
 This is dogfooding. The governance system uses the same contract model it enforces. Rules get schemas, examples, and testing for free — `testAll(wardenTopo)` validates every rule's examples in a single call.
 
@@ -47,7 +47,7 @@ The warden provides lightweight helpers over the raw AST:
 - `parse()` — parse source into an AST, returning null on failure
 - `walk()` — depth-first traversal of all nodes
 - `findTrailDefinitions()` — locate `trail()` and `event()` call sites with their config objects
-- `findRunBodies()` — extract `run:` property values from trail configs
+- `findBlazeBodies()` — extract `blaze:` property values from trail configs
 - `findConfigProperty()` — find a named property inside an ObjectExpression
 - `offsetToLine()` — convert byte offset to 1-based line number
 
@@ -57,13 +57,13 @@ One critical addition: `walkShallow()`. Standard `walk()` descends into everythi
 
 | Rule | Severity | Kind | What it checks |
 |---|---|---|---|
-| `no-throw-in-implementation` | error | basic | No `throw` statements inside `run:` bodies |
-| `implementation-returns-result` | error | basic | `run:` bodies return `Result.ok()` or `Result.err()`, not raw values |
+| `no-throw-in-implementation` | error | basic | No `throw` statements inside `blaze:` bodies |
+| `implementation-returns-result` | error | basic | `blaze:` bodies return `Result.ok()` or `Result.err()`, not raw values |
 | `context-no-surface-types` | error | basic | No imports of `Request`, `Response`, `McpSession`, etc. in trail files |
 | `follow-declarations` | error | basic | `ctx.follow()` calls match the declared `follow` array |
-| `no-sync-result-assumption` | error | basic | `.run()` results are awaited, not treated as synchronous |
-| `no-direct-implementation-call` | warn | basic | Application code uses `ctx.follow()`, not direct `.run()` calls |
-| `no-direct-impl-in-route` | warn | basic | Trail bodies with `follow` prefer `ctx.follow()` over `.run()` |
+| `no-sync-result-assumption` | error | basic | `.blaze()` results are awaited, not treated as synchronous |
+| `no-direct-implementation-call` | warn | basic | Application code uses `ctx.follow()`, not direct `.blaze()` calls |
+| `no-direct-impl-in-route` | warn | basic | Trail bodies with `follow` prefer `ctx.follow()` over `.blaze()` |
 | `prefer-schema-inference` | warn | basic | `fields` overrides don't restate what `deriveFields()` already infers |
 | `valid-describe-refs` | warn | project | `@see` tags in `.describe()` strings reference defined trail IDs |
 | `valid-detour-refs` | error | project | Detour target trail IDs reference defined trails |
@@ -95,6 +95,6 @@ Basic rules analyze a single file. Project-aware rules receive a `ProjectContext
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions; warden is the governance arm of "author, derive, declare — guard against drift"
 - [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the trail contract model that rules are now wrapped in
-- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the dispatch pipeline that runs rule trails
+- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the shared execution pipeline that runs rule trails
 
 [^oxc]: [oxc-parser](https://oxc.rs/) — Rust-compiled JavaScript/TypeScript toolchain with native bindings and WASM fallback

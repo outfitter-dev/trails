@@ -7,10 +7,10 @@ import {
 
 const RESULT_ACCESS_PATTERN =
   /\.(?:isOk|isErr|match|map)\s*\(|\.(?:value|error)\b/;
-const IMPLEMENTATION_CALL_PATTERN = /\.run\s*\(/;
+const IMPLEMENTATION_CALL_PATTERN = /\.blaze\s*\(/;
 
 const isAwaitedImplementationCall = (line: string): boolean => {
-  const callIndex = line.indexOf('.run(');
+  const callIndex = line.indexOf('.blaze(');
   if (callIndex === -1) {
     return false;
   }
@@ -39,7 +39,7 @@ interface PendingCall {
 }
 
 const MISSING_AWAIT_MESSAGE =
-  'Missing await: .run() returns Promise<Result> after normalization. Use `const result = await trail.run(input, ctx)`.';
+  'Missing await: .blaze() returns Promise<Result> after normalization. Use `const result = await trail.blaze(input, ctx)`.';
 
 const createMissingAwaitDiagnostic = (
   filePath: string,
@@ -140,7 +140,7 @@ const scanSourceCode = (
 };
 
 /**
- * Flags code that assumes `.run()` returns a synchronous result.
+ * Flags code that assumes `.blaze()` returns a synchronous result.
  */
 export const noSyncResultAssumption: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
@@ -150,7 +150,7 @@ export const noSyncResultAssumption: WardenRule = {
     return scanSourceCode(stripQuotedContent(sourceCode), filePath);
   },
   description:
-    'Disallow treating .run() as synchronous after normalization. Always await the returned Promise<Result>.',
+    'Disallow treating .blaze() as synchronous after normalization. Always await the returned Promise<Result>.',
   name: 'no-sync-result-assumption',
   severity: 'error',
 };

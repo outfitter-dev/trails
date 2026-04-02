@@ -12,7 +12,7 @@ import { z } from 'zod';
 const greet = trail('greet', {
   input: z.object({ name: z.string().describe('Who to greet') }),
   intent: 'read',
-  run: (input) => Result.ok(`Hello, ${input.name}!`),
+  blaze: (input) => Result.ok(`Hello, ${input.name}!`),
 });
 
 const app = topo('myapp', { greet });
@@ -77,7 +77,7 @@ Implementations report progress through `ctx.progress`. On MCP, these bridge to 
 
 ```typescript
 const importTrail = trail('data.import', {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     for (let i = 0; i < items.length; i++) {
       await processItem(items[i]);
       ctx.progress?.({ type: 'progress', current: i + 1, total: items.length });

@@ -9,7 +9,7 @@ export const followDeclarationsTrail = wrapRule({
         filePath: 'clean.ts',
         sourceCode: `trail("entity.onboard", {
   follow: ["entity.create"],
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const result = await ctx.follow("entity.create", input);
     return Result.ok(result);
   }

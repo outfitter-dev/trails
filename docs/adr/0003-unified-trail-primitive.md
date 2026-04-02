@@ -44,7 +44,7 @@ const greet = trail({
   id: 'greet',
   input: z.object({ name: z.string() }),
   output: z.object({ message: z.string() }),
-  run: async (input) => Result.ok({ message: `Hello, ${input.name}` }),
+  blaze: async (input) => Result.ok({ message: `Hello, ${input.name}` }),
 });
 
 // Composing trail — declares follow, uses ctx.follow()
@@ -53,7 +53,7 @@ const onboard = trail({
   input: z.object({ userId: z.string() }),
   output: z.object({ status: z.string() }),
   follow: ['users.create', 'notify.welcome'],
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const user = await ctx.follow('users.create', { id: input.userId });
     if (user.isErr()) return user;
     await ctx.follow('notify.welcome', { userId: input.userId });

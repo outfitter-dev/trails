@@ -10,6 +10,8 @@ import { testExamples } from '../examples.js';
 // ---------------------------------------------------------------------------
 
 const greetTrail = trail('greet', {
+  blaze: (input: { name: string }) =>
+    Result.ok({ greeting: `Hello, ${input.name}` }),
   description: 'Greet someone',
   examples: [
     {
@@ -20,11 +22,11 @@ const greetTrail = trail('greet', {
   ],
   input: z.object({ name: z.string() }),
   output: z.object({ greeting: z.string() }),
-  run: (input: { name: string }) =>
-    Result.ok({ greeting: `Hello, ${input.name}` }),
 });
 
 const searchTrail = trail('search', {
+  blaze: (input: { query: string }) =>
+    Result.ok({ results: [`result for ${input.query}`] }),
   description: 'Search for things',
   examples: [
     {
@@ -34,11 +36,15 @@ const searchTrail = trail('search', {
   ],
   input: z.object({ query: z.string() }),
   output: z.object({ results: z.array(z.string()) }),
-  run: (input: { query: string }) =>
-    Result.ok({ results: [`result for ${input.query}`] }),
 });
 
 const entityTrail = trail('entity.show', {
+  blaze: (input: { name: string }) => {
+    if (input.name === 'missing') {
+      return Result.err(new NotFoundError('Entity not found'));
+    }
+    return Result.ok({ id: 1, name: input.name });
+  },
   description: 'Show entity',
   examples: [
     {
@@ -54,17 +60,11 @@ const entityTrail = trail('entity.show', {
   ],
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.number(), name: z.string() }),
-  run: (input: { name: string }) => {
-    if (input.name === 'missing') {
-      return Result.err(new NotFoundError('Entity not found'));
-    }
-    return Result.ok({ id: 1, name: input.name });
-  },
 });
 
 const noExamplesTrail = trail('noexamples', {
+  blaze: (input: { x: number }) => Result.ok(input.x * 2),
   input: z.object({ x: z.number() }),
-  run: (input: { x: number }) => Result.ok(input.x * 2),
 });
 
 const mockDbService = service('db.mock.examples', {
@@ -73,6 +73,7 @@ const mockDbService = service('db.mock.examples', {
 });
 
 const mockServiceTrail = trail('service.mocked', {
+  blaze: (_input, ctx) => Result.ok({ source: mockDbService.from(ctx).source }),
   description: 'Trail that reads from a mocked service',
   examples: [
     {
@@ -83,11 +84,11 @@ const mockServiceTrail = trail('service.mocked', {
   ],
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  run: (_input, ctx) => Result.ok({ source: mockDbService.from(ctx).source }),
   services: [mockDbService],
 });
 
 const explicitOverrideTrail = trail('service.override', {
+  blaze: (_input, ctx) => Result.ok({ source: mockDbService.from(ctx).source }),
   description: 'Trail whose service mock can be overridden explicitly',
   examples: [
     {
@@ -98,11 +99,11 @@ const explicitOverrideTrail = trail('service.override', {
   ],
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  run: (_input, ctx) => Result.ok({ source: mockDbService.from(ctx).source }),
   services: [mockDbService],
 });
 
 const transformedInputTrail = trail('example.transformed', {
+  blaze: (input: { value: number }) => Result.ok({ value: input.value }),
   description: 'Trail whose input schema transforms once',
   examples: [
     {
@@ -115,10 +116,10 @@ const transformedInputTrail = trail('example.transformed', {
     .object({ value: z.string() })
     .transform(({ value }) => ({ value: Number(value) + 1 })),
   output: z.object({ value: z.number() }),
-  run: (input: { value: number }) => Result.ok({ value: input.value }),
 });
 
 const ctxOverrideTrail = trail('service.ctx-override', {
+  blaze: (_input, ctx) => Result.ok({ source: mockDbService.from(ctx).source }),
   description: 'Trail whose service mock can be overridden by ctx.extensions',
   examples: [
     {
@@ -129,7 +130,6 @@ const ctxOverrideTrail = trail('service.ctx-override', {
   ],
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  run: (_input, ctx) => Result.ok({ source: mockDbService.from(ctx).source }),
   services: [mockDbService],
 });
 
@@ -139,6 +139,8 @@ const undeclaredDbService = service('db.undeclared.examples', {
 });
 
 const undeclaredServiceTrail = trail('service.undeclared.examples', {
+  blaze: (_input, ctx) =>
+    Result.ok({ source: undeclaredDbService.from(ctx).source }),
   description: 'Trail that uses a service without declaring it',
   examples: [
     {
@@ -149,8 +151,6 @@ const undeclaredServiceTrail = trail('service.undeclared.examples', {
   ],
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  run: (_input, ctx) =>
-    Result.ok({ source: undeclaredDbService.from(ctx).source }),
 });
 const followedDbService = service('db.mock.examples.follow', {
   create: () => Result.ok({ source: 'factory' }),
@@ -158,27 +158,16 @@ const followedDbService = service('db.mock.examples.follow', {
 });
 
 const followedLeafTrail = trail('service.follow.leaf', {
+  blaze: (_input, ctx) =>
+    Result.ok({ childSource: followedDbService.from(ctx).source }),
   description: 'Leaf trail that resolves a service inside a follow chain',
   input: z.object({}),
   output: z.object({ childSource: z.string() }),
-  run: (_input, ctx) =>
-    Result.ok({ childSource: followedDbService.from(ctx).source }),
   services: [followedDbService],
 });
 
 const followedRootTrail = trail('service.follow.root', {
-  description: 'Root trail that follows a child trail using services',
-  examples: [
-    {
-      expected: { childSource: 'mock', rootSource: 'mock' },
-      input: {},
-      name: 'Propagates service mocks through follow execution',
-    },
-  ],
-  follow: ['service.follow.leaf'],
-  input: z.object({}),
-  output: z.object({ childSource: z.string(), rootSource: z.string() }),
-  run: async (_input, ctx) => {
+  blaze: async (_input, ctx) => {
     if (!ctx.follow) {
       return Result.err(new Error('follow not available'));
     }
@@ -194,6 +183,17 @@ const followedRootTrail = trail('service.follow.root', {
       rootSource: followedDbService.from(ctx).source,
     });
   },
+  description: 'Root trail that follows a child trail using services',
+  examples: [
+    {
+      expected: { childSource: 'mock', rootSource: 'mock' },
+      input: {},
+      name: 'Propagates service mocks through follow execution',
+    },
+  ],
+  follow: ['service.follow.leaf'],
+  input: z.object({}),
+  output: z.object({ childSource: z.string(), rootSource: z.string() }),
   services: [followedDbService],
 });
 
@@ -202,33 +202,22 @@ const followedRootTrail = trail('service.follow.root', {
 // ---------------------------------------------------------------------------
 
 const addTrail = trail('entity.add', {
+  blaze: (input: { name: string }) => Result.ok({ id: '1', name: input.name }),
   description: 'Add an entity',
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.string(), name: z.string() }),
-  run: (input: { name: string }) => Result.ok({ id: '1', name: input.name }),
 });
 
 const relateTrail = trail('entity.relate', {
+  blaze: (input: { from: string; to: string }) =>
+    Result.ok({ from: input.from, to: input.to }),
   description: 'Relate entities',
   input: z.object({ from: z.string(), to: z.string() }),
   output: z.object({ from: z.string(), to: z.string() }),
-  run: (input: { from: string; to: string }) =>
-    Result.ok({ from: input.from, to: input.to }),
 });
 
 const onboardTrail = trail('entity.onboard', {
-  description: 'Onboard a new entity',
-  examples: [
-    {
-      expected: { id: '1', name: 'Alpha' },
-      input: { name: 'Alpha' },
-      name: 'Onboard Alpha',
-    },
-  ],
-  follow: ['entity.add', 'entity.relate'],
-  input: z.object({ name: z.string() }),
-  output: z.object({ id: z.string(), name: z.string() }),
-  run: async (input: { name: string }, ctx) => {
+  blaze: async (input: { name: string }, ctx) => {
     if (!ctx.follow) {
       return Result.err(new Error('follow not available'));
     }
@@ -245,6 +234,17 @@ const onboardTrail = trail('entity.onboard', {
     }
     return Result.ok({ id: '1', name: input.name });
   },
+  description: 'Onboard a new entity',
+  examples: [
+    {
+      expected: { id: '1', name: 'Alpha' },
+      input: { name: 'Alpha' },
+      name: 'Onboard Alpha',
+    },
+  ],
+  follow: ['entity.add', 'entity.relate'],
+  input: z.object({ name: z.string() }),
+  output: z.object({ id: z.string(), name: z.string() }),
 });
 
 // ---------------------------------------------------------------------------
@@ -377,18 +377,14 @@ describe('testExamples service mocks through follow', () => {
 // ---------------------------------------------------------------------------
 
 const leafTrail = trail('step.leaf', {
+  blaze: (input: { value: string }) => Result.ok({ leaf: input.value }),
   description: 'Leaf trail in a nested chain',
   input: z.object({ value: z.string() }),
   output: z.object({ leaf: z.string() }),
-  run: (input: { value: string }) => Result.ok({ leaf: input.value }),
 });
 
 const middleTrail = trail('step.middle', {
-  description: 'Middle trail that follows the leaf',
-  follow: ['step.leaf'],
-  input: z.object({ value: z.string() }),
-  output: z.object({ middle: z.string() }),
-  run: async (input: { value: string }, ctx) => {
+  blaze: async (input: { value: string }, ctx) => {
     if (!ctx.follow) {
       return Result.err(new Error('follow not available'));
     }
@@ -398,21 +394,14 @@ const middleTrail = trail('step.middle', {
     }
     return Result.ok({ middle: leafResult.value.leaf });
   },
+  description: 'Middle trail that follows the leaf',
+  follow: ['step.leaf'],
+  input: z.object({ value: z.string() }),
+  output: z.object({ middle: z.string() }),
 });
 
 const rootTrail = trail('step.root', {
-  description: 'Root trail that follows the middle trail',
-  examples: [
-    {
-      expected: { root: 'hello' },
-      input: { value: 'hello' },
-      name: 'Nested follow chain A→B→C',
-    },
-  ],
-  follow: ['step.middle'],
-  input: z.object({ value: z.string() }),
-  output: z.object({ root: z.string() }),
-  run: async (input: { value: string }, ctx) => {
+  blaze: async (input: { value: string }, ctx) => {
     if (!ctx.follow) {
       return Result.err(new Error('follow not available'));
     }
@@ -425,6 +414,17 @@ const rootTrail = trail('step.root', {
     }
     return Result.ok({ root: midResult.value.middle });
   },
+  description: 'Root trail that follows the middle trail',
+  examples: [
+    {
+      expected: { root: 'hello' },
+      input: { value: 'hello' },
+      name: 'Nested follow chain A→B→C',
+    },
+  ],
+  follow: ['step.middle'],
+  input: z.object({ value: z.string() }),
+  output: z.object({ root: z.string() }),
 });
 
 describe('testExamples nested follow chain (A → B → C)', () => {
@@ -443,6 +443,16 @@ describe('testExamples nested follow chain (A → B → C)', () => {
 // ---------------------------------------------------------------------------
 
 const scopedTrail = trail('scoped.trail', {
+  blaze: (_input, ctx) => {
+    // Verify the permit was auto-minted with declared scopes
+    const permit = ctx.permit as
+      | { id: string; scopes: readonly string[] }
+      | undefined;
+    if (!permit || !permit.scopes.includes('admin')) {
+      return Result.err(new Error('Missing permit or scopes'));
+    }
+    return Result.ok({ ok: true });
+  },
   description: 'Trail requiring admin scope',
   examples: [
     {
@@ -454,19 +464,16 @@ const scopedTrail = trail('scoped.trail', {
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
   permit: { scopes: ['admin'] },
-  run: (_input, ctx) => {
-    // Verify the permit was auto-minted with declared scopes
-    const permit = ctx.permit as
-      | { id: string; scopes: readonly string[] }
-      | undefined;
-    if (!permit || !permit.scopes.includes('admin')) {
-      return Result.err(new Error('Missing permit or scopes'));
-    }
-    return Result.ok({ ok: true });
-  },
 });
 
 const publicTrail = trail('public.trail', {
+  blaze: (_input, ctx) => {
+    // Public trail should NOT get a permit
+    if (ctx.permit !== undefined) {
+      return Result.err(new Error('Unexpected permit on public trail'));
+    }
+    return Result.ok({ ok: true });
+  },
   description: 'Public trail — no permit needed',
   examples: [
     {
@@ -478,13 +485,6 @@ const publicTrail = trail('public.trail', {
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
   permit: 'public',
-  run: (_input, ctx) => {
-    // Public trail should NOT get a permit
-    if (ctx.permit !== undefined) {
-      return Result.err(new Error('Unexpected permit on public trail'));
-    }
-    return Result.ok({ ok: true });
-  },
 });
 
 describe('testExamples auto-minting permits', () => {
@@ -508,6 +508,8 @@ describe('testExamples auto-minting permits', () => {
 
   describe('strictPermits skips auto-minting', () => {
     const strictScopedTrail = trail('strict.scoped', {
+      blaze: (_input, ctx) =>
+        Result.ok({ hasPermit: ctx.permit !== undefined }),
       description: 'Trail that expects no permit under strictPermits',
       examples: [
         {
@@ -519,7 +521,6 @@ describe('testExamples auto-minting permits', () => {
       input: z.object({}),
       output: z.object({ hasPermit: z.boolean() }),
       permit: { scopes: ['admin'] },
-      run: (_input, ctx) => Result.ok({ hasPermit: ctx.permit !== undefined }),
     });
 
     // eslint-disable-next-line jest/require-hook

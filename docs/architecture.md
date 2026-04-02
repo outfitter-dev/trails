@@ -239,12 +239,12 @@ HTTP request (GET /entity/show?name=Alpha)
 
 The implementation is identical. Only the edges change.
 
-### Headless Execution via `dispatch()`
+### Headless Execution via `run()`
 
-`dispatch()` is the headless path -- no surface adapter needed:
+`run()` is the headless path -- no surface adapter needed:
 
 ```text
-dispatch(topo, 'entity.show', { name: 'Alpha' }, options?)
+run(topo, 'entity.show', { name: 'Alpha' }, options?)
   -> topo.get(id) looks up the trail
   -> executeTrail(trail, rawInput, options) runs the shared pipeline
   -> Result returned, never throws
@@ -254,7 +254,7 @@ This is useful for server-side composition, background workers, and test harness
 
 ### The Shared `executeTrail()` Pipeline
 
-All surfaces -- CLI, MCP, HTTP, and `dispatch()` -- delegate to the same `executeTrail()` function in `@ontrails/core`:
+All surfaces -- CLI, MCP, HTTP, and `run()` -- delegate to the same `executeTrail()` function in `@ontrails/core`:
 
 ```text
 executeTrail(trail, rawInput, options?)

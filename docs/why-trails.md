@@ -48,7 +48,7 @@ export const show = trail('entity.show', {
       error: 'NotFoundError',
     },
   ],
-  run: (input, ctx) => {
+  blaze: (input, ctx) => {
     const entity = store.get(input.name);
     if (!entity)
       return Result.err(new NotFoundError(`Entity "${input.name}" not found`));

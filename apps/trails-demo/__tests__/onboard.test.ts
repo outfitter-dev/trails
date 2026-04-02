@@ -44,7 +44,7 @@ const createFollowFn = (ctx: TrailContext) => {
     if (validated.isErr()) {
       return validated as Result<O, Error>;
     }
-    return (await t.run(validated.value, ctx)) as Result<O, Error>;
+    return (await t.blaze(validated.value, ctx)) as Result<O, Error>;
   };
 };
 
@@ -73,7 +73,7 @@ describe('entity.onboard', () => {
     expect(validated.isOk()).toBe(true);
     const input = validated.unwrap();
 
-    const result = await onboard.run(input, ctx);
+    const result = await onboard.blaze(input, ctx);
     expect(result.isOk()).toBe(true);
     const value = result.unwrap();
     expect(value.entity.name).toBe('Epsilon');
@@ -93,7 +93,7 @@ describe('entity.onboard', () => {
     expect(validated.isOk()).toBe(true);
     const input = validated.unwrap();
 
-    const result = await onboard.run(input, ctx);
+    const result = await onboard.blaze(input, ctx);
     expect(result.isErr()).toBe(true);
     const error = expectErr(result);
     expect(error).toBeInstanceOf(AlreadyExistsError);

@@ -9,7 +9,7 @@ export const contextNoSurfaceTypesTrail = wrapRule({
         filePath: 'clean.ts',
         sourceCode: `import { trail, Result } from "@ontrails/core";
 trail("entity.show", {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     return Result.ok({ name: "test" });
   }
 })`,

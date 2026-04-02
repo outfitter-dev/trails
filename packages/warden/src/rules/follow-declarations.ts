@@ -1,14 +1,14 @@
 /**
  * Validates that `ctx.follow()` calls match the declared `follow` array.
  *
- * Statically analyzes trail run functions to find `ctx.follow('trailId', ...)`
+ * Statically analyzes trail `blaze` functions to find `ctx.follow('trailId', ...)`
  * calls and compares them against the `follow: [...]` declaration in the trail
  * config. Reports errors for undeclared follows and warnings for unused ones.
  */
 
 import {
   findConfigProperty,
-  findRunBodies,
+  findBlazeBodies,
   findTrailDefinitions,
   offsetToLine,
   parse,
@@ -181,7 +181,7 @@ const extractFirstStringArg = (node: AstNode): string | null => {
 };
 
 /**
- * Extract the second parameter name from a run function node.
+ * Extract the second parameter name from a blaze function node.
  *
  * Handles `(input, ctx) => ...` and `async (input, context) => ...` and
  * `function(input, ctx) { ... }` forms.
@@ -243,11 +243,11 @@ const buildCtxNames = (body: AstNode): ReadonlySet<string> => {
   return ctxNames;
 };
 
-/** Walk run bodies and collect all statically resolvable ctx.follow() trail IDs. */
+/** Walk blaze bodies and collect all statically resolvable ctx.follow() trail IDs. */
 const extractCalledFollows = (config: AstNode): ReadonlySet<string> => {
   const ids = new Set<string>();
 
-  for (const body of findRunBodies(config)) {
+  for (const body of findBlazeBodies(config)) {
     const ctxNames = buildCtxNames(body);
 
     walk(body, (node) => {

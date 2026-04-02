@@ -114,7 +114,7 @@ Trail implementations can report progress via `ctx.progress`. On the MCP surface
 
 ```typescript
 const importTrail = trail('data.import', {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     for (let i = 0; i < items.length; i++) {
       await processItem(items[i]);
       ctx.progress?.({ type: 'progress', current: i + 1, total: items.length });
@@ -165,7 +165,7 @@ The MCP client's abort signal is propagated through to `TrailContext.abortSignal
 
 ```typescript
 const longTask = trail('long.task', {
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     for (const item of items) {
       if (ctx.abortSignal?.aborted) {
         return Result.err(new CancelledError('Task cancelled'));

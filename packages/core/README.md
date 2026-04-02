@@ -15,7 +15,7 @@ const greet = trail('greet', {
   examples: [
     { name: 'Hello', input: { name: 'World' }, expected: { message: 'Hello, World!' } },
   ],
-  run: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
+  blaze: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
 
 const app = topo('myapp', { greet });
@@ -27,7 +27,7 @@ Trails compose other trails through `follow` and `ctx.follow()`:
 const onboard = trail('entity.onboard', {
   follow: ['entity.add', 'entity.relate'],
   input: z.object({ name: z.string(), type: z.string() }),
-  run: async (input, ctx) => {
+  blaze: async (input, ctx) => {
     const added = await ctx.follow('entity.add', input);
     if (added.isErr()) return added;
     return Result.ok({ entity: added.value });
@@ -52,14 +52,14 @@ const onboard = trail('entity.onboard', {
 | Export | What it does |
 | --- | --- |
 | `executeTrail(trail, rawInput, options?)` | Centralized execution pipeline: validates input, builds context, composes layers, runs the implementation. Never throws -- exceptions become `Result.err(InternalError)`. |
-| `dispatch(topo, id, input, options?)` | Headless trail execution by ID. Looks up the trail in the topo, then delegates to `executeTrail`. Returns `Result.err(NotFoundError)` if the ID is not registered. |
+| `run(topo, id, input, options?)` | Headless trail execution by ID. Looks up the trail in the topo, then delegates to `executeTrail`. Returns `Result.err(NotFoundError)` if the ID is not registered. |
 
 ```typescript
 // executeTrail — surface adapters use this directly
 const result = await executeTrail(greet, { name: 'Alice' });
 
-// dispatch — no-surface execution by trail ID
-const result = await dispatch(app, 'greet', { name: 'Alice' });
+// run — no-surface execution by trail ID
+const result = await run(app, 'greet', { name: 'Alice' });
 if (result.isOk()) console.log(result.value);
 ```
 
@@ -90,7 +90,7 @@ Beyond the `trail(id, spec)` builder, `Topo` exposes these accessors:
 | Type | What it describes |
 | --- | --- |
 | `ExecuteTrailOptions` | Options for `executeTrail`: `ctx`, `abortSignal`, `layers`, `createContext` |
-| `DispatchOptions` | Same shape as `ExecuteTrailOptions`; forwarded by `dispatch` |
+| `RunOptions` | Same shape as `ExecuteTrailOptions`; forwarded by `run` |
 
 ### Result
 
