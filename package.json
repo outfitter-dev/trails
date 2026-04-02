@@ -12,6 +12,8 @@
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
+    "vocab:audit": "bun scripts/vocab-cutover-audit.ts",
+    "vocab:audit:json": "bun scripts/vocab-cutover-audit.ts --json",
     "format:check": "./node_modules/.bin/ultracite check .",
     "format:fix": "./node_modules/.bin/ultracite fix .",
     "format:file": "./node_modules/.bin/ultracite fix",

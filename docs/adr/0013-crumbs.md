@@ -1,179 +1,143 @@
 ---
 id: 13
-slug: crumbs
-title: Crumbs
+slug: tracker
+title: Tracker — Runtime Recording Primitive
 status: accepted
 created: 2026-03-30
-updated: 2026-04-01
+updated: 2026-04-02
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-0013: Crumbs
+# ADR-0013: Tracker — Runtime Recording Primitive
 
 ## Context
 
-The framework can now declare what a trail IS (contract via `trail()`), what it NEEDS (services via `service()`), and how it BEHAVES (intent, idempotency, safety presets). What it can't tell you is what actually happened when a trail ran. Did the follow chain complete? How long did the database call take? Did the child trail error while the parent succeeded?
+The framework can already declare what a trail is, what it needs, and how it behaves. What it still needs is a first-class record of what actually happened at runtime:
 
-"Crumbs" is the reserved vocabulary for this — evidence of what happened on the trails. Footprints, not blueprints.
+- which trail ran
+- how long it took
+- what permit or loadout was involved
+- which crossings happened
+- where an error occurred
+- how a nested execution chain fit together
 
-The architecture has a natural chokepoint for recording this evidence. `executeTrail` (ADR-0006) is the single function every surface calls for every trail invocation. One layer wrapping that function records everything. No per-surface instrumentation. No opt-in ceremony.
+The architecture already has a natural chokepoint for recording this evidence. `executeTrail` (ADR-0006) is the shared function every trailhead uses for every trail invocation. One gate wrapping that function can record everything. No per-trail instrumentation. No per-trailhead instrumentation. No opt-in ceremony for the common path.
 
-Follow chains create parent-child relationships. When trail A follows trail B and B follows trail C, that's a trace with three legs. The vocabulary already exists — `follow` for composition, `leg` for individual steps in a follow chain. Crumbs makes these relationships queryable after the fact.
+The previous `crumbs` language captured the metaphor, but it blurred the infrastructure boundary. "Crumbs" tried to be both the primitive and the user-facing story. The cleaner split is:
 
-This ADR locks after Permits (ADR-0012) ships.
+- a **track** is one recorded footprint
+- the **tracker** is the primitive that records and queries tracks
+
+This framing makes the system easier to extend. Signal delivery, trailhead catch-up, execution replay, and debugging all depend on the same underlying recorded sequence. The primitive should say what it is.
 
 ## Decision
 
-### Trails-native model, translated to OTel
+### Trails-native model, translated outward
 
-The core telemetry model is Trails-shaped. A `Crumb` knows about trail IDs, intents, permits, surfaces, and follow chains. These are first-class fields, not string-keyed attributes stuffed into a generic span.
+The core recording model remains Trails-shaped. A `Track` knows about trail IDs, intents, permits, trailheads, and crossings. Export formats translate outward from that model rather than defining it.
 
-OpenTelemetry is the export target, not the source abstraction. The OTel adapter is a mechanical translation: `Crumb` fields map to OTel span attributes under a `trails.*` namespace. If OTel vocabulary starts leaking into core — if someone writes `ctx.tracer.startSpan()` in a trail implementation — the model is wrong. The framework's own concepts come first. Industry-standard export is a surface concern.
+### Provision plus gate hybrid
 
-### Service + layer hybrid
+The tracker integrates in two ways:
 
-Two integration points, one automatic and one manual:
+- **`trackerGate`** records every trail execution automatically
+- **`tracker` provision** gives trail implementations manual access to scoped recording
 
-**`crumbsLayer`** — a framework-provided layer that auto-records every trail execution. Wrap it around your topo and every trail invocation produces a `Crumb` with timing, status, intent, surface, and parentage. Zero developer effort. This is the default and the common case.
-
-**`crumbs` service** — manual instrumentation for when the automatic layer isn't enough. A trail that makes three database calls can distinguish them:
+The automatic path is the default. The manual path exists for trails that need extra detail around internal work.
 
 ```typescript
-const result = await crumbs.from(ctx).span('db-query', async () => {
+const result = await tracker.from(ctx).track('db-query', async () => {
   return db.from(ctx).search(input.query);
 });
 
-crumbs.from(ctx).annotate({ userId: input.userId });
+tracker.from(ctx).annotate({ userId: input.userId });
 ```
-
-The service reads from context, so it participates in the same trace. Manual spans become children of the trail's automatic record.
 
 ### Flat records, tree views
 
-Storage is flat. Every `Crumb` is an independent row with explicit parent pointers:
+Storage stays flat. Each `Track` is an independent row with explicit lineage:
 
 ```typescript
-interface Crumb {
-  id: string;
-  traceId: string;
-  rootId: string;
-  parentId?: string;
-  kind: 'trail' | 'span';
-  name: string;
-  trailId?: string;
-  surface?: 'cli' | 'mcp' | 'http' | 'ws';
-  intent?: Intent;
-  startedAt: number;
-  endedAt?: number;
-  status: 'ok' | 'err' | 'cancelled';
-  errorCategory?: string;
-  permit?: { id: string; tenantId?: string };
-  attrs: Record<string, unknown>;
+interface Track {
+  readonly id: string;
+  readonly traceId: string;
+  readonly rootId: string;
+  readonly parentId?: string;
+  readonly kind: 'trail' | 'span';
+  readonly name: string;
+  readonly trailId?: string;
+  readonly trailhead?: 'cli' | 'mcp' | 'http' | 'ws';
+  readonly intent?: Intent;
+  readonly startedAt: number;
+  readonly endedAt?: number;
+  readonly status: 'ok' | 'err' | 'cancelled';
+  readonly errorCategory?: string;
+  readonly permit?: { id: string; tenantId?: string };
+  readonly attrs: Record<string, unknown>;
 }
 ```
 
-Trees are materialized at query time — in CLI output, in survey reports, in the OTel exporter. The storage model stays simple. Flat records are easy to index, easy to retain, easy to export. Tree rendering is a view concern, not a storage concern.
+Tree rendering happens at query time. Storage, retention, and export stay simple.
 
-### Follow chain propagation via ExecutionScope
+### Crossing propagation through execution scope
 
-ADR-0009 introduced `createFollow(topo, scope)` as the centralized follow factory. Crumbs hooks into the same mechanism.
+The shared execution scope already exists for nested calls. The tracker piggybacks on it.
 
-When `crumbsLayer` wraps a root invocation, it creates a root `Crumb` and writes `traceId` and the record's `id` into the execution scope. When that trail calls `ctx.follow()`, `createFollow` propagates the scope to the child. The child's `crumbsLayer` reads the inherited `traceId` and `parentId` from scope and creates a child record. No separate follow factory. No trace context threading through application code. The scope propagation that services already use carries trace context for free.
+When `trackerGate` wraps a root invocation, it writes `traceId` and the root track ID into scope. When that trail crosses another trail, the child inherits the same trace and parent linkage. No extra plumbing leaks into application code.
 
-### Two sampling classes for v1: sampled and kept
+### Root-level sampling
 
-Not every trace is worth storing. Read-heavy apps would drown in records. But every destructive operation should be recorded.
+Sampling happens at the root trace. Once a trace is sampled in, all descendant tracks are kept. Once it is sampled out, descendants are skipped unless the trace is promoted by error.
 
-Intent-based defaults:
+Intent-based defaults still make sense:
 
-- `read` — sampled at 5%
-- `write` — kept (100%)
-- `destroy` — kept (100%)
+- `read` — sampled
+- `write` — kept
+- `destroy` — kept
 
-The sampling decision happens at the root trace. Once a trace is sampled in, every child record in the follow chain is kept. Once sampled out, children are skipped. This keeps traces complete — you never get a parent without its children or orphaned child records.
+The exact percentages can evolve, but the invariant should not: a kept trace remains complete.
 
-Error promotion: `keepOnError: true` (the default) promotes a sampled-out trace to kept if any record in the chain errors. The data you need most is always there.
+### Callback-only manual API in v1
 
-An `audit` retention class — immutable, compliance-grade, tamper-evident — is deferred until concrete compliance use cases emerge. The `Crumb` schema has room for it. The data model doesn't need to change.
-
-### Manual API: callback-only `span()` for v1
+The manual API is callback-based to guarantee closure:
 
 ```typescript
-crumbs.from(ctx).span('db-query', async () => {
+tracker.from(ctx).track('db-query', async () => {
   // timed, parented, auto-closed
 });
-
-crumbs.from(ctx).annotate({ userId: input.userId });
 ```
 
-No raw `startSpan()` / `endSpan()`. Callbacks guarantee spans close. A forgotten `endSpan()` in an early return or exception path is a common source of telemetry bugs in OTel codebases. The callback pattern makes that class of bug structurally impossible.
+No raw `start` / `end` pair in v1. Structural safety beats flexibility here.
 
-The tradeoff: streaming or long-lived spans can't use this API. That's acceptable for v1. If long-lived spans prove necessary, a separate ADR will address them with the same structural safety guarantees.
+### Dev store and export connectors
 
-### Dev store: `bun:sqlite` at `.trails/dev/crumbs.db`
-
-Development crumbs write to a local SQLite database using `bun:sqlite`. WAL mode for concurrent reads. Persistent across process restarts, queryable across surfaces. The same dev store serves the CLI, MCP, and HTTP surfaces running on the same machine.
-
-This enables `trails crumbs` — a CLI command for querying execution history during development:
-
-```bash
-trails crumbs                    # recent traces
-trails crumbs --trail user.create  # filter by trail
-trails crumbs --trace abc123     # full trace tree
-trails crumbs --errors           # failed traces only
-```
-
-Retention is configurable: max trace count, max age, or both. Defaults are generous for development — you shouldn't need to think about retention until production.
-
-The dev store is not the production story. Production uses the OTel adapter to export to whatever backend the team already runs.
-
-### OTel adapter: `@ontrails/crumbs/otel`
-
-A subpath export. The OTel SDK is an optional peer dependency — you don't pay for it if you don't use it.
-
-The mapping:
-
-- `Crumb.trailId` → `trails.trail.id`
-- `Crumb.intent` → `trails.intent`
-- `Crumb.surface` → `trails.surface`
-- `Crumb.permit.id` → `trails.permit.id`
-- `Crumb.permit.tenantId` → `trails.permit.tenant_id`
-- `Crumb.kind` → span kind mapping (`trail` → `INTERNAL`, root trail → `SERVER`)
-
-The smoke test: trail A (`read`) follows trail B (`write`), B emits a manual span, B follows trail C (`destroy`), C errors. The exported OTel trace preserves parentage across all four spans, carries intent and permit on each, and marks C's span as errored with the correct category. If this test passes, the adapter is correct.
-
-### Runtime declaration validation: deferred
-
-Crumbs records what happened. It does not validate whether what happened matches what was declared. Questions like "did this `read` trail actually only read?" or "did this follow chain escalate intent correctly?" are behavioral validation — a future ADR topic.
-
-The data for behavioral validation will be there. Every `Crumb` carries intent, service access patterns (via manual spans), and follow chain structure. When the validation ADR ships, it reads from crumbs. But crumbs itself stays focused: record and query. One job, done well.
+The development store remains local SQLite. Production export remains an optional connector. The important language change is that these are **connectors**, not adapters. The tracker owns the Trails-native model; connectors translate it into storage or observability systems.
 
 ## Consequences
 
 ### Positive
 
-- **Every trail execution is recorded with zero developer effort.** `crumbsLayer` wraps `executeTrail`. No per-trail opt-in.
-- **Follow chains produce proper parent-child trace relationships.** The execution scope propagation from ADR-0009 carries trace context without application code changes.
-- **The dev store enables `trails crumbs` for debugging.** Persistent, queryable, cross-process. No external infrastructure needed during development.
-- **OTel export is a mechanical translation, not a rewrite.** The Trails-native model captures richer semantics. OTel gets them as structured attributes.
-- **The same `Crumb` feeds dev debugging AND production observability.** One model, two destinations.
+- **Every trail execution can be recorded with zero per-trail ceremony.** `trackerGate` wraps the shared execution pipeline instead of relying on ad hoc instrumentation.
+- **The primitive is honest.** Tracker is infrastructure, not just a debugging nicety.
+- **The atomic unit is explicit.** A track is one footprint, which makes lineage, retention, and export easier to describe.
+- **The naming composes better with future work.** Signal delivery, replay, and trailhead catch-up can all talk about the tracker without inheriting a narrow observability metaphor.
 
 ### Tradeoffs
 
-- **The `bun:sqlite` dev store adds a write path to development.** Every trail invocation writes a record. WAL mode keeps this fast, but it's not zero-cost. The dev store can be disabled if it's ever a problem.
-- **Sampling decisions are root-level.** You can't sample individual spans differently within a trace. This keeps traces complete but limits fine-grained control.
-- **Manual span API is callback-only.** No streaming or long-lived spans in v1. The structural safety is worth the constraint for now.
+- **This is a rename plus a conceptual reframing.** The package, exports, docs, and surrounding language all need to move together.
+- **`track` as a verb and noun needs careful API naming.** The ergonomic win is worth the extra review attention.
 
 ### What this does NOT decide
 
-- **`audit` retention class.** Deferred to compliance use cases.
-- **Runtime declaration validation.** Whether recorded behavior matches declared intent is a future ADR. The data will be there.
-- **Metrics and counters.** Not in v1. Crumbs records individual executions. Aggregation is a query concern or an OTel backend concern.
-- **Cross-process trace propagation for `mount()`.** When apps compose via mount, trace context needs to cross process boundaries. That's tied to the mount protocol, not to crumbs itself.
+- the exact production connector set
+- replay or catch-up semantics
+- long-lived manual spans beyond the callback API
+- compliance-grade immutable audit retention
 
 ## References
 
-- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent drives sampling defaults and is carried on every `Crumb`
-- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — `executeTrail` is the chokepoint where `crumbsLayer` records execution
-- [ADR-0009: Services as a First-Class Primitive](0009-first-class-services.md) — execution scope propagation, `createFollow(topo, scope)`, and the `crumbs` service pattern
-- [ADR-0012: Permit Model](0012-adapter-agnostic-permits.md) — permit identity is carried on every `Crumb` for auth observability
+- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md)
+- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md)
+- [ADR-0009: Services as a First-Class Primitive](0009-first-class-services.md)
+- [ADR-0012: Adapter-Agnostic Permits](0012-adapter-agnostic-permits.md)
+- [Vocabulary](../vocabulary.md)
