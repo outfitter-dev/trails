@@ -146,9 +146,9 @@ Provisions register alongside trails through `topo()`:
 ```typescript
 import { topo } from '@ontrails/core';
 import * as entityTrails from './trails/entity';
-import * as services from './services';
+import * as provisions from './services';
 
-const app = topo('myapp', entityTrails, services);
+const app = topo('myapp', entityTrails, provisions);
 // app.provisions -- Map<id, Provision>
 ```
 
@@ -164,7 +164,7 @@ The warden provides two provision-related rules:
 
 **`provision-exists`** -- validates that every provision referenced in trail declarations exists in the topo. Same pattern as `valid-detour-refs`.
 
-Both follow the established AST analysis pattern used by `cross-declarations`.
+Both use the established AST analysis pattern used by `cross-declarations`.
 
 ## Design Rationale
 

@@ -72,7 +72,7 @@ import { onboardTrail } from '../src/trails/onboard.js';
 
 testTrail(onboardTrail, [
   {
-    description: 'follows add then relate',
+    description: 'crosses add then relate',
     input: { name: 'Alpha' },
     expectOk: true,
     expectCrossed: ['entity.add', 'entity.relate'],
@@ -123,7 +123,7 @@ testAll(app, () => ({
 
 Pass a factory (the `() => ({...})` form) when overrides contain mutable state. This gives each test a fresh instance and prevents test pollution from shared in-memory stores.
 
-The same override mechanism works with `dispatch`:
+The same override mechanism works with `run()`:
 
 ```typescript
 run(app, 'search', input, {
@@ -167,7 +167,7 @@ const cross = createCrossContext({
 
 const ctx = { ...createTestContext(), cross };
 
-const result = await onboardTrail.trailhead({ name: 'Alpha' }, ctx);
+const result = await onboardTrail.blaze({ name: 'Alpha' }, ctx);
 expect(result.isOk()).toBe(true);
 ```
 
@@ -178,7 +178,7 @@ Calls to IDs not registered in `responses` return `Result.err` with a descriptiv
 For integration-style tests that verify the full pipeline (validation, gates, implementation) without mounting a trailhead, use `run()` from `@ontrails/core`:
 
 ```typescript
-import { dispatch } from '@ontrails/core';
+import { run } from '@ontrails/core';
 import { app } from '../src/app.js';
 
 const result = await run(app, 'entity.show', { name: 'Alpha' });

@@ -10,14 +10,14 @@ Canonical public trailhead-facing reference. For naming conventions and decision
 // Definitions
 trail(id, spec)                    // define a unit of work (with optional crosses for composition)
 signal(id, spec)                    // define a payload schema with provenance
-provision(id, spec)                  // define a first-class service dependency
+provision(id, spec)                  // define a first-class provision dependency
 createProvisionLookup(getContext)   // bind ctx.provision() to a specific context snapshot
-topo(name, ...modules)             // assemble trails, events, and services into a queryable topology
+topo(name, ...modules)             // assemble trails, signals, and provisions into a queryable topology
 // Topo methods: .get(id), .has(id), .list(), .listEvents(), .ids(), .count
 //               .getProvision(id), .hasProvision(id), .listProvisions(), .provisionIds(), .provisionCount
 
 // Types
-Trail<I, O>, Event<T>, Service<T>, Topo, Intent
+Trail<I, O>, Event<T>, Provision<T>, Topo, Intent
 TrailSpec<I, O>, EventSpec<T>, ProvisionSpec<T>, TrailExample<I, O>
 AnyTrail, AnyEvent, AnyProvision, ProvisionContext, ProvisionOverrideMap
 
@@ -46,7 +46,7 @@ CrossFn, ProvisionLookup, ProgressCallback, ProgressEvent, Logger, Trailhead
 
 // Execution pipeline
 executeTrail(trail, rawInput, options?) // validate → resolve context → resolve provisions → compose gates → run
-run(topo, id, input, options?)    // look up and execute a trail by ID; accepts ctx/services overrides
+run(topo, id, input, options?)    // look up and execute a trail by ID; accepts ctx/provision overrides
 RunOptions
 
 // Gates

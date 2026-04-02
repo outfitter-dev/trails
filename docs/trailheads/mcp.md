@@ -25,7 +25,7 @@ Tool names are derived from the app name and trail ID:
 | ---------- | -------------- | ----------------------- |
 | `myapp`    | `entity.show`  | `myapp_entity_show`     |
 | `myapp`    | `search`       | `myapp_search`          |
-| `dispatch` | `patch.search` | `dispatch_patch_search` |
+| `patches`  | `patch.search` | `patches_patch_search`  |
 
 Rules: dots become underscores, hyphens become underscores, everything lowercase. Tool names match the MCP convention of `[a-z0-9_]+`.
 

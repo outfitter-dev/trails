@@ -108,7 +108,7 @@ When tests fail or behavior is unexpected:
 1. **Read the error** — Trails errors are typed. The class name tells you the category.
 2. **Check the taxonomy** — Refer to `error-taxonomy.md` from the trails skill.
 3. **Run warden** — Convention violations cause subtle bugs. `trails warden` catches them.
-4. **Check common pitfalls** — Throwing instead of returning Result, calling `.run()` directly, missing output schemas, mismatched follows.
+4. **Check common pitfalls** — Throwing instead of returning Result, calling `.blaze()` directly, missing output schemas, mismatched crossings.
 5. **Inspect the topo** — `trails survey` shows the full trail graph.
 
 ## What Not to Do
@@ -116,5 +116,5 @@ When tests fail or behavior is unexpected:
 - Don't skip the contract. Design the trail before implementing it.
 - Don't throw in implementations. Return `Result.err()`.
 - Don't import trailhead types into trail logic. No `Request`, `Response`, `McpSession`.
-- Don't call `.run()` directly. Use `ctx.cross()`.
+- Don't call `.blaze()` directly. Use `ctx.cross()`.
 - Don't skip warden. Run it before marking work complete.

@@ -10,7 +10,7 @@
 
 - **[Architecture](./architecture.md)** — Hexagonal model, package gates, how data flows from trail to trailhead
 - **[API Reference](./api-reference.md)** — Every public export across all packages
-- **[Provisions Guide](./services.md)** — Define dependencies, declare them on trails, test with mock factories
+- **[Provisions Guide](./services.md)** — Define provisions, declare them on trails, test with mock factories
 - **[Testing Guide](./testing.md)** — TDD with examples, `testAll()`, contract testing, trailhead harnesses
 
 ## Adding a trailhead?
