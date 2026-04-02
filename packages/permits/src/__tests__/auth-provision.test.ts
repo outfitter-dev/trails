@@ -36,8 +36,8 @@ describe('authProvision', () => {
     expect(authProvision.kind).toBe('provision');
   });
 
-  test('has infrastructure metadata', () => {
-    expect(authProvision.metadata).toEqual({ category: 'infrastructure' });
+  test('has infrastructure meta', () => {
+    expect(authProvision.meta).toEqual({ category: 'infrastructure' });
   });
 
   test('mock returns an AuthConnector', async () => {

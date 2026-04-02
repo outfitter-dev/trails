@@ -143,7 +143,7 @@ describe('testContracts: skips trails without examples', () => {
   });
 });
 
-describe('testContracts: validates composition trail output schemas', () => {
+describe('testContracts: validates output schemas for trails with crossings', () => {
   // eslint-disable-next-line jest/require-hook
   testContracts(
     topo('test-app', { compositionTrail } as Record<string, unknown>)

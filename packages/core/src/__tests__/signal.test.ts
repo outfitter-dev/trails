@@ -12,7 +12,7 @@ const payloadSchema = z.object({
 const userAction = signal('user.action', {
   description: 'A user performed an action',
   from: ['auth.login', 'auth.signup'],
-  metadata: { domain: 'auth', priority: 1 },
+  meta: { domain: 'auth', priority: 1 },
   payload: payloadSchema,
 });
 
@@ -45,7 +45,7 @@ describe('signal() basics', () => {
   });
 });
 
-describe('signal() from and metadata', () => {
+describe('signal() from and meta', () => {
   test('preserves from', () => {
     expect(userAction.from).toEqual(['auth.login', 'auth.signup']);
   });
@@ -54,8 +54,8 @@ describe('signal() from and metadata', () => {
     expect(Object.isFrozen(userAction.from)).toBe(true);
   });
 
-  test('preserves metadata', () => {
-    expect(userAction.metadata).toEqual({ domain: 'auth', priority: 1 });
+  test('preserves meta', () => {
+    expect(userAction.meta).toEqual({ domain: 'auth', priority: 1 });
   });
 
   test('optional fields default to undefined', () => {
@@ -64,7 +64,7 @@ describe('signal() from and metadata', () => {
     });
     expect(minimal.description).toBeUndefined();
     expect(minimal.from).toBeUndefined();
-    expect(minimal.metadata).toBeUndefined();
+    expect(minimal.meta).toBeUndefined();
   });
 });
 

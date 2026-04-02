@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { testCrosses } from '../crosses.js';
 
 // ---------------------------------------------------------------------------
-// Test trails (composition trail)
+// Test trails (trails with crossings)
 // ---------------------------------------------------------------------------
 
 const addTrail = trail('entity.add', {

@@ -282,10 +282,10 @@ const isPublicTrail = (t: Trail<unknown, unknown>): boolean => {
   if (t.kind !== 'trail') {
     return false;
   }
-  const { metadata } = t as unknown as {
-    metadata?: Record<string, unknown>;
+  const { meta } = t as unknown as {
+    meta?: Record<string, unknown>;
   };
-  return metadata?.['internal'] !== true;
+  return meta?.['internal'] !== true;
 };
 
 /** Collect all paths from public trails in the topo. */

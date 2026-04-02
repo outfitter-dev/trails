@@ -53,8 +53,8 @@ export interface TrailSpec<I, O> {
   readonly intent?: 'read' | 'write' | 'destroy' | undefined;
   /** Trail is idempotent (safe to retry) */
   readonly idempotent?: boolean | undefined;
-  /** Arbitrary metadata for tooling and filtering */
-  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  /** Arbitrary meta for tooling and filtering */
+  readonly meta?: Readonly<Record<string, unknown>> | undefined;
   /** Named sets of downstream trail IDs that may be invoked */
   readonly detours?: Readonly<Record<string, readonly string[]>> | undefined;
   /** Per-field overrides for deriveFields() (labels, hints, options) */

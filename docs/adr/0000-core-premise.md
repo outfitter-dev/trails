@@ -133,7 +133,7 @@ One write, many reads. The developer authors an example. The framework reads it 
 
 The topo isn't just a collection. It's a queryable graph:
 
-- `survey` introspects the full topology — trails, schemas, examples, cross graph, intent and metadata
+- `survey` introspects the full topology — trails, schemas, examples, cross graph, intent and meta (`meta`)
 - `warden` governs the topology — lint rules, drift detection, coaching suggestions
 - `guide` generates guidance from the topology — documentation, agent instructions, API references
 - Trailhead map generation captures the full contract as a diffable, hashable artifact
@@ -148,7 +148,7 @@ Every feature in the framework passes through three questions:
 - **Derive:** Can the framework extract maximum value from what was authored?
 - **Declare:** When the contract is tightened, can the declaration drift from reality?
 
-The third question is the hardest. Output schemas, error declarations, crossing graphs, intent, metadata, examples — each is a place where the stated contract can diverge from behavior. The framework makes divergence structurally difficult (compiler catches it), immediately visible (tests catch it), or governable (warden catches it).
+The third question is the hardest. Output schemas, error declarations, crossing graphs, intent, meta, examples — each is a place where the stated contract can diverge from behavior. The framework makes divergence structurally difficult (compiler catches it), immediately visible (tests catch it), or governable (warden catches it).
 
 If none of these catch it, the feature needs redesign.
 
@@ -156,7 +156,7 @@ If none of these catch it, the feature needs redesign.
 
 There's a real difference between "the framework computed this deterministically" and "the framework inferred this from your code." Every piece of information in the system falls into one of six categories:
 
-- **Authored.** New information only the developer knows. Zod schemas, intent, metadata, examples, the run function, trail IDs. Creative contributions that can't be derived because they don't exist until someone writes them.
+- **Authored.** New information only the developer knows. Zod schemas, intent, meta (`meta`), examples, the run function, trail IDs. Creative contributions that can't be derived because they don't exist until someone writes them.
 - **Projected.** Mechanically derived, guaranteed correct. MCP tool name from app name + trail ID. CLI flags from Zod fields. Exit codes from error classes. If the authored input exists, the projection is unambiguous.
 - **Enforced.** Constrained by the type system at compile time. Output schemas bind the return type. `Result<T, Error>` eliminates throw/catch. `TrailContext` scopes what the implementation can access. The compiler rejects non-compliance.
 - **Inferred.** Detected by static analysis, best-effort. Which trails a trail follows (from `ctx.cross()` calls). Which error types are returned (from `Result.err()` patterns). The warden uses inference to verify declarations match actual code. Useful for governance, but not compiler-guaranteed.

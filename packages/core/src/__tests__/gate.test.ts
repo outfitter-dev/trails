@@ -18,7 +18,7 @@ const stubCtx: TrailContext = createTrailContext({
 const echoTrail = trail('echo', {
   blaze: (input) => Result.ok({ value: input.value }),
   input: z.object({ value: z.string() }),
-  metadata: { domain: 'test' },
+  meta: { domain: 'test' },
   output: z.object({ value: z.string() }),
 });
 
@@ -102,13 +102,13 @@ describe('Gate', () => {
     expect(err.error.message).toBe('blocked');
   });
 
-  test('gate can inspect trail metadata', () => {
+  test('gate can inspect trail meta', () => {
     let capturedDomain: unknown;
 
     const inspectGate: Gate = {
       name: 'inspect',
       wrap(t, impl) {
-        capturedDomain = t.metadata?.['domain'];
+        capturedDomain = t.meta?.['domain'];
         return impl;
       },
     };

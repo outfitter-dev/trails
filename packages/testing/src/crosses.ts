@@ -1,5 +1,5 @@
 /**
- * testCrosses — composition-aware scenario testing for trails with crossings.
+ * testCrosses — crossing-aware scenario testing for trails with crossings.
  *
  * Tests the crossing graph: which trails were crossed, in what order,
  * and supports failure injection from crossed trail examples.
@@ -340,7 +340,7 @@ export interface TestCrossOptions {
 }
 
 /**
- * Generate a describe block for a composition trail with one test per scenario.
+ * Generate a describe block for a trail with crossings with one test per scenario.
  *
  * @example
  * ```ts

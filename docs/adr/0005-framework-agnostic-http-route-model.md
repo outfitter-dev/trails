@@ -43,7 +43,7 @@ The core function takes a topo and returns an array of framework-agnostic route 
 - **`path`** — derived from the trail ID (dots become slashes: `entity.show` becomes `/entity/show`), prepended with a configurable `basePath`
 - **`inputSource`** — `query` for reads, `body` for writes, derived from the method
 - **`trailId`** — the trail's ID, for debugging and logging
-- **`trail`** — the full trail definition, for metadata access
+- **`trail`** — the full trail definition, for `meta` access
 - **`execute(input, requestId?, abortSignal?)`** — validates input, composes gates, runs the implementation, returns `Result`
 
 The `execute` function is the important part. It does everything *except* touch HTTP framework types. It doesn't parse a `Request`. It doesn't construct a `Response`. It doesn't set status codes. It takes validated input, runs the trail, and returns a `Result`. Everything HTTP-specific happens in the connector.
@@ -86,7 +86,7 @@ basePath: '/api/v1'
 entity.show           → /api/v1/entity/show
 ```
 
-Trails with an explicit `http.path` override in metadata can use custom paths when the derivation doesn't fit — REST-style resource paths like `/users/:id` need per-trail configuration. The default handles the common case; the override handles the rest.
+Trails with an explicit `http.path` override in `meta` can use custom paths when the derivation doesn't fit — REST-style resource paths like `/users/:id` need per-trail configuration. The default handles the common case; the override handles the rest.
 
 ### Method derivation from intent
 

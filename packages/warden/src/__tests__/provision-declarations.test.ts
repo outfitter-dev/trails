@@ -281,7 +281,7 @@ trail('entity.show', {
   });
 
   describe('nested run false positives', () => {
-    test('metadata.run does not trigger false positives', () => {
+    test('meta.run does not trigger false positives', () => {
       const code = `
 import { Result, provision, trail } from '@ontrails/core';
 
@@ -291,7 +291,7 @@ const db = provision('db.main', {
 
 trail('entity.show', {
   provisions: [db],
-  metadata: { blaze: async () => ctx.provision('phantom') },
+  meta: { blaze: async () => ctx.provision('phantom') },
   blaze: async (_input, ctx) => {
     return Result.ok(db.from(ctx));
   },

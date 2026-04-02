@@ -20,7 +20,7 @@ When a developer builds a set of trails, the only way to consume them is through
 
 Meanwhile, library authors in the broader TypeScript ecosystem face a different version of the same problem. They hand-maintain types, write validation logic, build a CLI separately from the programmatic API, write docs that drift from the code, and copy schema information across package boundaries. Every library is an exercise in keeping multiple representations of the same contract in sync.
 
-Trails already solves this. The pack graph already carries typed schemas, validation, examples, error taxonomy, intent, and metadata. It carries everything a well-built library needs. The framework just doesn't emit it in that shape yet.
+Trails already solves this. The pack graph already carries typed schemas, validation, examples, error taxonomy, intent, and meta (`meta`). It carries everything a well-built library needs. The framework just doesn't emit it in that shape yet.
 
 The core principle says: if the information exists in the system, don't ask the developer to restate it. The information for a publishable library already exists in the pack graph. The framework should derive the library trailhead the same way it derives CLI commands and MCP tools.
 
@@ -45,7 +45,7 @@ The library trailhead compiles a pack (or topo) into a publishable npm package. 
 The compile step walks the pack and signals:
 
 - A **factory function** (when the pack declares services or config) or **bare exports** (when it doesn't)
-- A **method per trail**, typed from input/output schemas, with JSDoc derived from metadata and examples
+- A **method per trail**, typed from input/output schemas, with JSDoc derived from meta and examples
 - **TypeScript declarations** (`.d.ts`)
 - **Error classes** re-exported from the error taxonomy, mapped to standard throws
 
@@ -111,7 +111,7 @@ When the compiled pack owns disposable resources, the generated instance exposes
 | --- | --- |
 | TypeScript types (input, output) | Result type (unwrapped to return/throw) |
 | Error classes (as standard Error subclasses) | TrailContext (dissolved into constructor params) |
-| JSDoc (from metadata, descriptions, examples) | Follow declarations (internal wiring) |
+| JSDoc (from meta, descriptions, examples) | Follow declarations (internal wiring) |
 | `dispose()` when pack owns disposable resources | Warden rules (compile-time only) |
 | | Gates (internal pipeline concern) |
 

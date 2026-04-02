@@ -164,7 +164,7 @@ describe('generateTrailheadMap', () => {
     });
   });
 
-  describe('metadata', () => {
+  describe('meta', () => {
     test('safety markers are included when set', () => {
       const t = trail('safe.trail', {
         blaze: noop,

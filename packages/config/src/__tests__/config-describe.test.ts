@@ -42,8 +42,8 @@ describe('config.describe trail', () => {
       expect(configDescribe.intent).toBe('read');
     });
 
-    test('has infrastructure metadata', () => {
-      expect(configDescribe.metadata).toEqual({ category: 'infrastructure' });
+    test('has infrastructure meta', () => {
+      expect(configDescribe.meta).toEqual({ category: 'infrastructure' });
     });
 
     test('has output schema', () => {

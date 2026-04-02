@@ -28,7 +28,7 @@ The `trail` / `hike` distinction rippled through the entire system:
 
 ### The realization
 
-A hike was a trail with a non-empty `crosses` array. That's it. The input schema, output schema, error taxonomy, examples, metadata, intent, implementation signature — all identical. The two primitives existed because composition *felt* like a different category, not because it *was* one structurally.
+A hike was a trail with a non-empty `crosses` array. That's it. The input schema, output schema, error taxonomy, examples, meta, intent, implementation signature — all identical. The two primitives existed because composition *felt* like a different category, not because it *was* one structurally.
 
 When a conceptual distinction doesn't produce a structural difference, the abstraction is wrong.
 

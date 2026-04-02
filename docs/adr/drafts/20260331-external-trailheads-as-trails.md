@@ -398,12 +398,12 @@ All built-in parsers use native APIs:
 
 The full parser set is roughly 200 lines of glue code. No parsing libraries needed.
 
-### Rig metadata
+### Rig meta
 
-Every rigged trail carries metadata that identifies it as a rig and records its external dependency:
+Every rigged trail carries meta (`meta`) that identifies it as a rig and records its external dependency:
 
 ```typescript
-metadata: {
+meta: {
   rig: {
     source: 'cli',
     binary: 'git',
@@ -413,7 +413,7 @@ metadata: {
 }
 ```
 
-This metadata propagates through the dependency chain. Survey reports rig dependencies:
+This meta propagates through the dependency chain. Survey reports rig dependencies:
 
 ```bash
 $ trails survey --rigs
@@ -768,7 +768,7 @@ Rig lock state rolls up into the `rigs` section of `trails.lock`:
 - **CLI probing is heuristic.** `--help` parsing works for well-behaved CLIs (GNU-style flags, consistent formatting). Unusual help formats produce incomplete or incorrect discoveries. `Bun.Terminal` provides a PTY fallback for tools that render differently in non-TTY mode, but the probe remains best-effort. The scaffold is a starting point, not a guarantee.
 - **External binary availability.** Integration tests require the actual binary, MCP server, or API. CI environments need the tools installed. Mock examples provide a fallback but don't validate parse functions.
 - **Parse functions are manual for non-standard formats.** The built-in parsers (json, jsonl, lines, table, csv, regex, markdown) cover the majority of CLI output patterns. For tools with unusual output formats, the developer authors a custom parse function. Community rig packs amortize this effort for popular tools.
-- **Rig metadata adds weight.** Every rigged trail carries rig metadata. Follow chains accumulate rig dependency information. Survey output grows. This is informational overhead in exchange for dependency visibility.
+- **Rig meta adds weight.** Every rigged trail carries rig meta. Follow chains accumulate rig dependency information. Survey output grows. This is informational overhead in exchange for dependency visibility.
 
 ### What this does NOT decide
 

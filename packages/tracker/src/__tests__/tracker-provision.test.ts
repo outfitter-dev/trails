@@ -13,8 +13,8 @@ describe('trackerProvision', () => {
     expect(trackerProvision.kind).toBe('provision');
   });
 
-  test('has infrastructure metadata', () => {
-    expect(trackerProvision.metadata).toEqual({ category: 'infrastructure' });
+  test('has infrastructure meta', () => {
+    expect(trackerProvision.meta).toEqual({ category: 'infrastructure' });
   });
 
   describe('mock', () => {

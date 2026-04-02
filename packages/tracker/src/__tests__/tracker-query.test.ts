@@ -82,8 +82,8 @@ describe('tracker.query', () => {
       expect(trackerQuery.intent).toBe('read');
     });
 
-    test('has infrastructure metadata', () => {
-      expect(trackerQuery.metadata).toEqual({ category: 'infrastructure' });
+    test('has infrastructure meta', () => {
+      expect(trackerQuery.meta).toEqual({ category: 'infrastructure' });
     });
 
     test('has examples', () => {

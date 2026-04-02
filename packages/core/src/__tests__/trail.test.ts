@@ -66,7 +66,7 @@ describe('trail()', () => {
     });
   });
 
-  describe('metadata', () => {
+  describe('meta', () => {
     test('examples are stored', () => {
       const withExamples = trail('echo', {
         blaze: (input) => Result.ok({ text: input.text }),
@@ -83,13 +83,13 @@ describe('trail()', () => {
       expect(second?.name).toBe('basic');
     });
 
-    test('metadata is stored', () => {
-      const withMetadata = trail('tagged', {
+    test('meta is stored', () => {
+      const withMeta = trail('tagged', {
         blaze: () => Result.ok(),
         input: z.object({}),
-        metadata: { domain: 'billing', tier: 1 },
+        meta: { domain: 'billing', tier: 1 },
       });
-      expect(withMetadata.metadata).toEqual({ domain: 'billing', tier: 1 });
+      expect(withMeta.meta).toEqual({ domain: 'billing', tier: 1 });
     });
 
     test('detours are stored', () => {

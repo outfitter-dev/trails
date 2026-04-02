@@ -90,7 +90,7 @@ export const configInit = trail('config.init', {
       .default('toml'),
   }),
   intent: 'write',
-  metadata: { category: 'infrastructure' },
+  meta: { category: 'infrastructure' },
   output: outputSchema,
   provisions: [configProvision],
 });

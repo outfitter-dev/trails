@@ -90,12 +90,12 @@ This is the governance complement to deterministic derivation. The derivation ru
 ### Tradeoffs
 
 - **Action-oriented paths, not RESTful resource paths.** The default HTTP derivation produces paths like `/api/user/delete`, not `/api/users/:id` with a `DELETE` method. Teams that want REST-style paths need per-trail overrides. This is a deliberate choice: action-oriented paths are unambiguous and map cleanly from trail IDs. REST-style paths require additional information (pluralization, parameter extraction) that the trail contract doesn't encode.
-- **Flat MCP tool names.** The underscore-delimited format (`myapp_user_delete`) loses the hierarchical structure of dot-separated trail IDs. MCP tool names are flat strings by spec. Hierarchy is recovered via description and annotation metadata, not the name itself.
+- **Flat MCP tool names.** The underscore-delimited format (`myapp_user_delete`) loses the hierarchical structure of dot-separated trail IDs. MCP tool names are flat strings by spec. Hierarchy is recovered via description and annotation meta (`meta`), not the name itself.
 
 ### What this does NOT decide
 
 - Whether a `rest` derivation mode will be added at the app or topo level to produce RESTful resource paths by default
-- Whether trailhead-specific overrides will use a dedicated config block or inline trail metadata
+- Whether trailhead-specific overrides will use a dedicated config block or inline trail `meta`
 - URL parameter extraction patterns for resource-oriented routes (e.g., `/users/:id`)
 
 ## References

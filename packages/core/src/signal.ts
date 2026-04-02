@@ -1,5 +1,5 @@
 /**
- * Signal — a named payload schema with optional provenance metadata.
+ * Signal — a named payload schema with optional provenance meta.
  */
 
 import type { z } from 'zod';
@@ -11,7 +11,7 @@ import type { z } from 'zod';
 export interface SignalSpec<T> {
   readonly payload: z.ZodType<T>;
   readonly description?: string | undefined;
-  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly meta?: Readonly<Record<string, unknown>> | undefined;
   /** Trail IDs that produce this signal (e.g. the trails it originates from). */
   readonly from?: readonly string[] | undefined;
 }
@@ -25,7 +25,7 @@ export interface Signal<T> {
   readonly kind: 'signal';
   readonly payload: z.ZodType<T>;
   readonly description?: string | undefined;
-  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly meta?: Readonly<Record<string, unknown>> | undefined;
   /** Trail IDs that produce this signal (e.g. the trails it originates from). */
   readonly from?: readonly string[] | undefined;
 }
@@ -56,7 +56,7 @@ export function signal<T>(
     from: resolvedSpec.from ? Object.freeze([...resolvedSpec.from]) : undefined,
     id: resolvedId,
     kind: 'signal' as const,
-    metadata: resolvedSpec.metadata,
+    meta: resolvedSpec.meta,
     payload: resolvedSpec.payload,
   });
 }

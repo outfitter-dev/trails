@@ -226,7 +226,7 @@ describe('diffTrailheadMaps', () => {
     });
   });
 
-  describe('metadata and trailheads', () => {
+  describe('meta and trailheads', () => {
     test('trailhead removed classified as breaking', () => {
       const prev = trailheadMap([
         entry({ id: 'user.list', trailheads: ['cli', 'mcp'] }),

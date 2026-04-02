@@ -17,7 +17,7 @@ const stubTrail = {
   input: z.object({}),
   intent: 'read' as const,
   kind: 'trail' as const,
-  metadata: undefined,
+  meta: undefined,
   output: undefined,
   provisions: [],
 };

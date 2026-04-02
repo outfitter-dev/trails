@@ -87,7 +87,7 @@ export const configExplain = trail('config.explain', {
       .default(''),
   }),
   intent: 'read',
-  metadata: { category: 'infrastructure' },
+  meta: { category: 'infrastructure' },
   output: outputSchema,
   provisions: [configProvision],
 });

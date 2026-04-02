@@ -90,7 +90,7 @@ export const authVerify = trail('auth.verify', {
     token: z.string().min(1).describe('Bearer token to verify'),
   }),
   intent: 'read',
-  metadata: { category: 'infrastructure' },
+  meta: { category: 'infrastructure' },
   output: z.object({
     error: z.string().optional(),
     errorCode: authErrorCodeSchema.optional(),

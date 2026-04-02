@@ -29,7 +29,7 @@ export interface TestScenario {
 // Cross Scenario (for testCrosses)
 // ---------------------------------------------------------------------------
 
-/** A test scenario for a trail's composition graph. */
+/** A test scenario for a trail's crossing graph. */
 export interface CrossScenario extends TestScenario {
   /** Assert these trail IDs were crossed, in order. */
   readonly expectCrossed?: readonly string[] | undefined;

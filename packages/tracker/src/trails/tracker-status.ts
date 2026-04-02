@@ -38,7 +38,7 @@ export const trackerStatus = trail('tracker.status', {
   ],
   input: z.object({}),
   intent: 'read',
-  metadata: { category: 'infrastructure' },
+  meta: { category: 'infrastructure' },
   output: trackerStatusOutput,
   provisions: [trackerProvision],
 });

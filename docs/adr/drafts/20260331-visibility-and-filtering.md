@@ -229,7 +229,7 @@ Four new governance rules follow from this ADR:
 - **Permit-gated discovery compiles for free.** The MCP trailhead uses data it already has (permit scopes, trail intent) to filter the tool list. Agents see only what they can call. Zero ceremony.
 - **Namespace-aware filtering.** Glob patterns replace flat string lists. `exclude: ['dev.*']` scales from 5 dev trails to 50 without maintenance.
 - **Environment gating without trail pollution.** Loadouts handle activation per environment. The trail definition doesn't change across environments.
-- **CLI discoverability from existing structure.** Help hierarchy derives from trail IDs that developers are already writing. No metadata or annotations needed.
+- **CLI discoverability from existing structure.** Help hierarchy derives from trail IDs that developers are already writing. No `meta` or annotations needed.
 
 ### Tradeoffs
 

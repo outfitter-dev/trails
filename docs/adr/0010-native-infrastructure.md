@@ -54,12 +54,12 @@ The trifecta is the unit of infrastructure. If a package ships a service without
 
 ### Infrastructure trails live in the same topo
 
-Infrastructure trails aren't a separate topo. They register alongside business trails in the same app topo. Separation happens through metadata:
+Infrastructure trails aren't a separate topo. They register alongside business trails in the same app topo. Separation happens through meta (`meta`):
 
 ```typescript
 const explain = trail('config.explain', {
   intent: 'read',
-  metadata: { category: 'infrastructure' },
+  meta: { category: 'infrastructure' },
   // ...
 });
 ```
@@ -69,7 +69,7 @@ This means:
 - **Survey reports them.** An agent connecting to the topo sees both business and infrastructure capabilities.
 - **`testAll` covers them.** Infrastructure examples run alongside business examples. One line validates the entire system.
 - **Warden governs them.** The same rules apply — no throws, Result returns, crossing declarations match usage.
-- **Trailheads can filter them.** A trailhead that wants to hide infrastructure trails filters on `metadata.category`. The default is to expose everything.
+- **Trailheads can filter them.** A trailhead that wants to hide infrastructure trails filters on `meta.category`. The default is to expose everything.
 
 The alternative — a separate infrastructure topo — fragments the graph. Follow chains can't cross topo boundaries. Survey would need to merge multiple topos. The warden would need to run twice. One topo, one graph, one governance pass.
 

@@ -387,7 +387,7 @@ export const findTrailDefinitions = (ast: AstNode): TrailDefinition[] => {
 /**
  * Extract top-level `blaze:` property values from an ObjectExpression's direct properties.
  *
- * Does not recurse into nested objects, so `metadata: { blaze: ... }` is ignored.
+ * Does not recurse into nested objects, so `meta: { blaze: ... }` is ignored.
  */
 const extractBlazeFromConfig = (config: AstNode): AstNode[] => {
   const bodies: AstNode[] = [];
@@ -409,7 +409,7 @@ const extractBlazeFromConfig = (config: AstNode): AstNode[] => {
  * When given an ObjectExpression (trail config), returns only its direct `blaze:`
  * properties. When given a full AST, finds trail definitions first and extracts
  * `blaze:` from each config — in both cases ignoring nested `blaze:` properties
- * (e.g. `metadata: { blaze: ... }`).
+ * (e.g. `meta: { blaze: ... }`).
  */
 export const findBlazeBodies = (node: AstNode): AstNode[] => {
   if (node.type === 'ObjectExpression') {

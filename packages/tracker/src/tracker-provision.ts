@@ -23,6 +23,6 @@ const defaultState: TrackerState = {
 export const trackerProvision = provision<TrackerState>('tracker', {
   create: () => Result.ok(getTrackerState() ?? defaultState),
   description: 'Telemetry recording and query provision',
-  metadata: { category: 'infrastructure' },
+  meta: { category: 'infrastructure' },
   mock: (): TrackerState => ({ ...defaultState }),
 });

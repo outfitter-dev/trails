@@ -17,7 +17,7 @@ export const authProvision = provision<AuthConnector>('auth', {
       authenticate: async () => Result.ok(null),
     } satisfies AuthConnector),
   description: 'Authentication connector',
-  metadata: { category: 'infrastructure' },
+  meta: { category: 'infrastructure' },
   mock: () =>
     ({
       // oxlint-disable-next-line require-await -- mock connector satisfies async interface

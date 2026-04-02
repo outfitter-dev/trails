@@ -177,7 +177,7 @@ When a consuming app installs a provision in dependency mode, it can override th
 }
 ```
 
-The override replaces the upstream `on` declaration at compose time. The trail's implementation, schemas, and metadata remain unchanged. This lets consumers adapt trigger behavior (schedules, event sources, conditions) to their operational context while still receiving upstream contract upgrades for everything else.
+The override replaces the upstream `on` declaration at compose time. The trail's implementation, schemas, and meta remain unchanged. This lets consumers adapt trigger behavior (schedules, event sources, conditions) to their operational context while still receiving upstream contract upgrades for everything else.
 
 Trigger overrides apply only in dependency mode. Scaffolded packs are owned source -- modify the `on` field directly.
 

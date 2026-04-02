@@ -80,7 +80,7 @@ export const addVerify = trail('add.verify', {
     dir: z.string().optional().describe('Parent directory'),
     name: z.string().describe('Project name'),
   }),
-  metadata: { internal: true },
+  meta: { internal: true },
   output: z.object({
     created: z.array(z.string()),
   }),

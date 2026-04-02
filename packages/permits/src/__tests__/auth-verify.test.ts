@@ -125,8 +125,8 @@ describe('auth.verify trail', () => {
       expect(authVerify.intent).toBe('read');
     });
 
-    test('has infrastructure metadata', () => {
-      expect(authVerify.metadata).toEqual({ category: 'infrastructure' });
+    test('has infrastructure meta', () => {
+      expect(authVerify.meta).toEqual({ category: 'infrastructure' });
     });
 
     test('has examples', () => {

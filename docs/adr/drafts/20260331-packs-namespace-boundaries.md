@@ -16,7 +16,7 @@ depends_on: [3, 9]
 
 Trails has two compositional units: the trail (atomic operation) and the topo (the app). A trail defines typed input-to-Result behavior. A topo collects trails, events, and services into a queryable topology that trailheads can render.
 
-Between these two, there's a missing layer. Real applications organize capability into domains: GitHub operations, inbox management, billing, notifications. Each domain has its own trails, provisions, config requirements, and events. Today, these domains are plain TypeScript modules passed to `topo()`. The framework discovers trails and events via module scanning. It works, but the module has no identity, no boundary, and no metadata. The framework doesn't know "these 12 trails and 2 provisions belong together as the GitHub capability."
+Between these two, there's a missing layer. Real applications organize capability into domains: GitHub operations, inbox management, billing, notifications. Each domain has its own trails, provisions, config requirements, and events. Today, these domains are plain TypeScript modules passed to `topo()`. The framework discovers trails and events via module scanning. It works, but the module has no identity, no boundary, and no meta. The framework doesn't know "these 12 trails and 2 provisions belong together as the GitHub capability."
 
 This matters because:
 
@@ -188,7 +188,7 @@ const app = topo('firewatch',
 
 Internally, `topo()` unpacks each Pack: registers its trails, provisions, and events, composes its config schema, and validates its `requires`. The resulting Topo is the same flat topology that trailheads, survey, and the warden operate on. Packs are a composition-time concept, not a runtime concept.
 
-However, the topo retains pack membership metadata. Survey can report "this trail belongs to the `github.core` pack." The warden can enforce pack boundaries. CLI help can group by pack. The information is preserved for introspection without changing the runtime model.
+However, the topo retains pack membership meta. Survey can report "this trail belongs to the `github.core` pack." The warden can enforce pack boundaries. CLI help can group by pack. The information is preserved for introspection without changing the runtime model.
 
 ### Pack-level trigger overrides
 

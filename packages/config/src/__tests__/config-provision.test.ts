@@ -27,8 +27,8 @@ describe('configProvision', () => {
       expect(configProvision.kind).toBe('provision');
     });
 
-    test('has infrastructure metadata', () => {
-      expect(configProvision.metadata).toEqual({ category: 'infrastructure' });
+    test('has infrastructure meta', () => {
+      expect(configProvision.meta).toEqual({ category: 'infrastructure' });
     });
 
     test('has description', () => {

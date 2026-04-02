@@ -93,7 +93,7 @@ export const trackerQuery = trail('tracker.query', {
     trailId: z.string().describe('Filter by trail ID').optional(),
   }),
   intent: 'read',
-  metadata: { category: 'infrastructure' },
+  meta: { category: 'infrastructure' },
   output: trackerQueryOutput,
   provisions: [trackerProvision],
 });

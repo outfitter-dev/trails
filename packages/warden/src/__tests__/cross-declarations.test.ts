@@ -179,12 +179,12 @@ trail('onboard', {
   });
 
   describe('nested run false positives', () => {
-    test('metadata.run does not trigger false positives', () => {
+    test('meta.run does not trigger false positives', () => {
       const code = `
 trail('onboard', {
   crosses: ['entity.add'],
   input: z.object({ name: z.string() }),
-  metadata: { blaze: async () => ctx.cross('phantom') },
+  meta: { blaze: async () => ctx.cross('phantom') },
   blaze: async (input, ctx) => {
     await ctx.cross('entity.add', { name: input.name });
     return Result.ok({});

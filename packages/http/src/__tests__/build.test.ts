@@ -58,7 +58,7 @@ const internalMetaTrail = trail('secret', {
   blaze: () => Result.ok({ ok: true }),
   description: 'Internal trail that should be skipped',
   input: z.object({}),
-  metadata: { internal: true },
+  meta: { internal: true },
 });
 
 const dbProvision = provision('db.main', {

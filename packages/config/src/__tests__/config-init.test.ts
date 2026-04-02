@@ -55,8 +55,8 @@ describe('config.init trail', () => {
       expect(configInit.intent).toBe('write');
     });
 
-    test('has infrastructure metadata', () => {
-      expect(configInit.metadata).toEqual({ category: 'infrastructure' });
+    test('has infrastructure meta', () => {
+      expect(configInit.meta).toEqual({ category: 'infrastructure' });
     });
 
     test('has output schema', () => {

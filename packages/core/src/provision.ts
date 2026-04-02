@@ -42,8 +42,8 @@ export interface ProvisionSpec<T, C = unknown> {
   readonly mock?: (() => T | Promise<T>) | undefined;
   /** Human-readable description. */
   readonly description?: string | undefined;
-  /** Arbitrary metadata for tooling and filtering. */
-  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  /** Arbitrary meta for tooling and filtering. */
+  readonly meta?: Readonly<Record<string, unknown>> | undefined;
 }
 
 /** A typed provision definition. */

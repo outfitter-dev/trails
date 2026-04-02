@@ -236,7 +236,7 @@ export const buildCliCommands = (
   const commands: CliCommand[] = [];
 
   for (const trail of app.list()) {
-    if (trail.metadata?.['internal'] === true) {
+    if (trail.meta?.['internal'] === true) {
       continue;
     }
     commands.push(toCliCommand(trail, options));

@@ -24,7 +24,7 @@ export const configProvision = provision<ConfigState>('config', {
     return Result.ok(state);
   },
   description: 'Resolved application configuration',
-  metadata: { category: 'infrastructure' },
+  meta: { category: 'infrastructure' },
   mock: (): ConfigState => ({
     resolved: {},
     schema: z.object({}),

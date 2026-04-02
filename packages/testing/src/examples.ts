@@ -179,7 +179,7 @@ const runExample = async (
 };
 
 // ---------------------------------------------------------------------------
-// Cross coverage for composition trails
+// Crossing coverage for trails with crossings
 // ---------------------------------------------------------------------------
 
 /**
@@ -217,7 +217,7 @@ const createCoverageCross = (
 };
 
 /**
- * Run a single example against a composition trail, recording cross calls.
+ * Run a single example against a trail with crossings, recording cross calls.
  */
 const runCompositionExample = async (
   trailDef: Trail<unknown, unknown>,
@@ -341,7 +341,7 @@ export const testExamples = (
         }
       );
 
-      test('cross coverage', () => {
+      test('crossing coverage', () => {
         const uncovered = t.crosses.filter((id) => !called.has(id));
         expect(uncovered).toEqual([]);
       });

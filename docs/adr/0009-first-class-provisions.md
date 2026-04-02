@@ -58,7 +58,7 @@ The logging package already established the connector pattern: abstract API (`Lo
 
 ### `provision()` is a first-class primitive
 
-Provisions are frozen definition objects with `kind: 'provision'`, parallel to `trail()` and `signal()`. They carry identity, a factory, optional disposal, optional mock, and metadata.
+Provisions are frozen definition objects with `kind: 'provision'`, parallel to `trail()` and `signal()`. They carry identity, a factory, optional disposal, optional mock, and meta (`meta`).
 
 ```typescript
 const db = provision('db.main', {

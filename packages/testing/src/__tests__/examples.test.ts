@@ -353,7 +353,7 @@ describe('testExamples provision declarations', () => {
   );
 });
 
-describe('testExamples cross coverage for composition trails', () => {
+describe('testExamples crossing coverage for trails with crossings', () => {
   // eslint-disable-next-line jest/require-hook
   testExamples(
     topo('composition-app', {

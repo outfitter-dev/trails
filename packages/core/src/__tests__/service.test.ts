@@ -30,7 +30,7 @@ const counterProvisionSpec: ProvisionSpec<number> = {
     disposedValue = provision;
   },
   health: (provision) => Result.ok({ healthy: provision > 0 }),
-  metadata: { domain: 'data' },
+  meta: { domain: 'data' },
   mock: () => 1,
 };
 
@@ -48,9 +48,9 @@ describe('provision types', () => {
     expect(provisionCtx.workspaceRoot).toBe('/tmp');
   });
 
-  test('ProvisionSpec stores description and metadata', () => {
+  test('ProvisionSpec stores description and meta', () => {
     expect(counterProvisionSpec.description).toBe('Counter provision');
-    expect(counterProvisionSpec.metadata).toEqual({ domain: 'data' });
+    expect(counterProvisionSpec.meta).toEqual({ domain: 'data' });
   });
 
   test('ProvisionSpec can reserve a config schema for future composition', () => {

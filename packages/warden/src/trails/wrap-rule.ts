@@ -72,7 +72,7 @@ export function wrapRule(
       >['examples'],
       input: projectAwareRuleInput,
       intent: 'read',
-      metadata: { category: 'governance', severity: rule.severity },
+      meta: { category: 'governance', severity: rule.severity },
       output: ruleOutput,
     });
   }
@@ -86,7 +86,7 @@ export function wrapRule(
     examples: examples as Trail<RuleInput, RuleOutput>['examples'],
     input: ruleInput,
     intent: 'read',
-    metadata: { category: 'governance', severity: rule.severity },
+    meta: { category: 'governance', severity: rule.severity },
     output: ruleOutput,
   });
 }

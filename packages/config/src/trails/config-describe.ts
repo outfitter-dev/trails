@@ -38,7 +38,7 @@ export const configDescribe = trail('config.describe', {
   ],
   input: z.object({}),
   intent: 'read',
-  metadata: { category: 'infrastructure' },
+  meta: { category: 'infrastructure' },
   output: outputSchema,
   provisions: [configProvision],
 });

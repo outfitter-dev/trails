@@ -343,7 +343,7 @@ export const createScaffold = trail('create.scaffold', {
       .default('hello')
       .describe('Starter trail'),
   }),
-  metadata: { internal: true },
+  meta: { internal: true },
   output: z.object({
     created: z.array(z.string()),
     dir: z.string(),

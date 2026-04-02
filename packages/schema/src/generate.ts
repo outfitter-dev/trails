@@ -99,7 +99,7 @@ const addExtendedMetadata = (
   }
 };
 
-/** Add optional metadata fields to an entry. */
+/** Add optional meta fields to an entry. */
 const addMetadata = (
   entry: Record<string, unknown>,
   t: Trail<unknown, unknown>,
