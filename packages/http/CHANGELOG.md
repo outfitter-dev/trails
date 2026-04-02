@@ -30,7 +30,7 @@
 
   **Warden:** `service-declarations` rule validates `db.from(ctx)` and `ctx.service()` usage matches declared `services: [...]`. `service-exists` rule validates declared service IDs resolve in project context. Scope-aware AST walking skips nested function boundaries.
 
-  **Surfaces:** Service overrides thread through `dispatch` and `blaze` on CLI, MCP, and HTTP.
+  **Surfaces:** Service overrides thread through `dispatch` and `trailhead` on CLI, MCP, and HTTP.
 
   **Introspection:** Survey and surface map outputs include service graph. Topo exposes `.services`, `.getService()`, `.hasService()`, `.listServices()`, `.serviceIds()`, `.serviceCount`.
 
@@ -47,11 +47,11 @@
 
   **core**: Deduplicate `DispatchOptions` as type alias of `ExecuteTrailOptions`. Replace `TrailContext` index signature with typed `extensions` field for type safety. Deep-merge `extensions` in `executeTrail` context resolution. Remove unused `Surface` type, `adapters.ts`, `health.ts`, and `job.ts` proof-of-concept from published package.
 
-  **cli**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `blaze()` with opt-out via `validate: false`.
+  **cli**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `trailhead()` with opt-out via `validate: false`.
 
-  **http**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `blaze()` with opt-out.
+  **http**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `trailhead()` with opt-out.
 
-  **mcp**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `blaze()` with opt-out.
+  **mcp**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `trailhead()` with opt-out.
 
   **warden**: Project-aware rule context preserved in trail wrappers.
 
@@ -89,7 +89,7 @@
 
 - Restructure HTTP package and fix Codex review findings.
 
-  **http**: BREAKING — `blaze()` moved to `@ontrails/http/hono` subpath. Hono is now a peer dependency. `buildHttpRoutes()` is framework-agnostic. Fixed: malformed JSON → 400, execute() never throws, query parsing preserves raw strings and supports arrays.
+  **http**: BREAKING — `trailhead()` moved to `@ontrails/http/hono` subpath. Hono is now a peer dependency. `buildHttpRoutes()` is framework-agnostic. Fixed: malformed JSON → 400, execute() never throws, query parsing preserves raw strings and supports arrays.
 
   **schema**: OpenAPI 200 response wraps in `{ data }` envelope matching wire format. Always includes 400 ValidationError with error schema. basePath trailing slash normalized.
 
@@ -103,7 +103,7 @@
 
 - HTTP surface and OpenAPI generation.
 
-  **http**: New `@ontrails/http` package — Hono-based HTTP adapter. `blaze()` derives routes from trail IDs, maps intent to HTTP verbs (read→GET, write→POST, destroy→DELETE), and maps error taxonomy to status codes. Returns the Hono instance.
+  **http**: New `@ontrails/http` package — Hono-based HTTP adapter. `trailhead()` derives routes from trail IDs, maps intent to HTTP verbs (read→GET, write→POST, destroy→DELETE), and maps error taxonomy to status codes. Returns the Hono instance.
 
   **schema**: Add `generateOpenApiSpec(topo)` — generates a complete OpenAPI 3.1 spec from the topo. Each trail becomes an operation with path, method, schemas, and error responses derived from the contract.
 

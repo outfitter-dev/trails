@@ -4,7 +4,7 @@ import { Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { buildCliCommands } from '../build.js';
-import { blaze } from '../commander/blaze.js';
+import { trailhead } from '../commander/trailhead.js';
 import { toCommander } from '../commander/to-commander.js';
 import { defaultOnResult } from '../on-result.js';
 
@@ -12,7 +12,7 @@ import { defaultOnResult } from '../on-result.js';
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('blaze', () => {
+describe('trailhead', () => {
   test('smoke test: buildCliCommands + toCommander wiring does not throw', () => {
     const t = trail('ping', {
       input: z.object({}),
@@ -20,7 +20,7 @@ describe('blaze', () => {
     });
     const app = topo('smoke-test', { ping: t });
 
-    // Reproduce blaze() steps without calling parse()
+    // Reproduce trailhead() steps without calling parse()
     const commands = buildCliCommands(app, {
       onResult: defaultOnResult,
     });
@@ -48,7 +48,7 @@ describe('blaze', () => {
     expect(program.commands[0]?.name()).toBe('echo');
   });
 
-  test('blaze throws on invalid topo', async () => {
+  test('trailhead throws on invalid topo', async () => {
     const t = trail('broken', {
       follow: ['nonexistent.trail'],
       input: z.object({}),
@@ -56,10 +56,10 @@ describe('blaze', () => {
       run: () => Result.ok({}),
     });
     const app = topo('test', { t });
-    await expect(blaze(app)).rejects.toThrow(/validation/i);
+    await expect(trailhead(app)).rejects.toThrow(/validation/i);
   });
 
-  test('BlazeCliOptions accepts validate: false without type errors', () => {
+  test('TrailheadCliOptions accepts validate: false without type errors', () => {
     const t = trail('broken', {
       follow: ['nonexistent.trail'],
       input: z.object({}),
@@ -70,7 +70,7 @@ describe('blaze', () => {
     expect(() =>
       buildCliCommands(app, { onResult: defaultOnResult })
     ).not.toThrow();
-    const opts: Parameters<typeof blaze>[1] = {
+    const opts: Parameters<typeof trailhead>[1] = {
       services: {},
       validate: false,
     };
@@ -78,13 +78,13 @@ describe('blaze', () => {
     expect(opts.services).toEqual({});
   });
 
-  test('blaze returns a Promise (async signature)', () => {
-    // Verify blaze's return type is a Promise by checking its constructor name.
-    // We don't call blaze() here because it invokes parseAsync on real argv.
-    expect(blaze).toBeDefined();
+  test('trailhead returns a Promise (async signature)', () => {
+    // Verify trailhead's return type is a Promise by checking its constructor name.
+    // We don't call trailhead() here because it invokes parseAsync on real argv.
+    expect(trailhead).toBeDefined();
     // The function is async, so calling it returns a Promise.
     // We verify the type signature indirectly: async functions have AsyncFunction constructor.
-    expect(blaze.constructor.name).toBe('AsyncFunction');
+    expect(trailhead.constructor.name).toBe('AsyncFunction');
   });
 
   test('end-to-end: define trail, build commands, execute, verify output', async () => {

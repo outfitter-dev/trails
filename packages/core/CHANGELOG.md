@@ -27,7 +27,7 @@
 
   **Warden:** `service-declarations` rule validates `db.from(ctx)` and `ctx.service()` usage matches declared `services: [...]`. `service-exists` rule validates declared service IDs resolve in project context. Scope-aware AST walking skips nested function boundaries.
 
-  **Surfaces:** Service overrides thread through `dispatch` and `blaze` on CLI, MCP, and HTTP.
+  **Surfaces:** Service overrides thread through `dispatch` and `trailhead` on CLI, MCP, and HTTP.
 
   **Introspection:** Survey and surface map outputs include service graph. Topo exposes `.services`, `.getService()`, `.hasService()`, `.listServices()`, `.serviceIds()`, `.serviceCount`.
 
@@ -41,11 +41,11 @@
 
   **core**: Deduplicate `DispatchOptions` as type alias of `ExecuteTrailOptions`. Replace `TrailContext` index signature with typed `extensions` field for type safety. Deep-merge `extensions` in `executeTrail` context resolution. Remove unused `Surface` type, `adapters.ts`, `health.ts`, and `job.ts` proof-of-concept from published package.
 
-  **cli**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `blaze()` with opt-out via `validate: false`.
+  **cli**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `trailhead()` with opt-out via `validate: false`.
 
-  **http**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `blaze()` with opt-out.
+  **http**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `trailhead()` with opt-out.
 
-  **mcp**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `blaze()` with opt-out.
+  **mcp**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `trailhead()` with opt-out.
 
   **warden**: Project-aware rule context preserved in trail wrappers.
 
@@ -109,7 +109,7 @@
   - `implementation` field renamed to `run`
   - `markers` field renamed to `metadata`
   - `testHike` renamed to `testFollows`, `HikeScenario` to `FollowScenario`
-  - `blaze()` now returns the surface handle (`Command` for CLI, `Server` for MCP)
+  - `trailhead()` now returns the surface handle (`Command` for CLI, `Server` for MCP)
 
 ## 1.0.0-beta.3
 
@@ -119,7 +119,7 @@
 
   **core**: Fix Result.toJson false circular detection on DAGs, deserializeError subclass round-trip, topo cross-kind ID collisions, validateTopo multi-node cycle detection, error example input validation bypass, and deriveFields array type collapse.
 
-  **cli**: Switch blaze to parseAsync for proper async error handling, add boolean flag negation (--no-flag), and strict number parsing that rejects partial input.
+  **cli**: Switch trailhead to parseAsync for proper async error handling, add boolean flag negation (--no-flag), and strict number parsing that rejects partial input.
 
   **mcp**: Align BlobRef with core (including ReadableStream support) and detect tool-name collisions after normalization.
 

@@ -1,6 +1,6 @@
 # Getting Started
 
-Install the core packages, define your first trail, blaze it on CLI and MCP, and test it with one line.
+Install the core packages, define your first trail, open trailheads on CLI and MCP, and test it with one line.
 
 ## Installation
 
@@ -83,15 +83,15 @@ export const app = topo('myapp', greetModule);
 
 `topo()` scans the module exports for `Trail` shapes and builds the internal topo (the trail collection).
 
-## Blaze on CLI
+## Open a CLI Trailhead
 
 Create `src/cli.ts`:
 
 ```typescript
-import { blaze } from '@ontrails/cli/commander';
+import { trailhead } from '@ontrails/cli/commander';
 import { app } from './app';
 
-blaze(app);
+trailhead(app);
 ```
 
 Run it:
@@ -115,15 +115,15 @@ Options:
   -h, --help      display help for command
 ```
 
-## Blaze on MCP
+## Open an MCP Trailhead
 
 Create `src/mcp.ts`:
 
 ```typescript
-import { blaze } from '@ontrails/mcp';
+import { trailhead } from '@ontrails/mcp';
 import { app } from './app';
 
-await blaze(app);
+await trailhead(app);
 ```
 
 Same trail. Same implementation. Different surface. The MCP server exposes a `myapp_greet` tool with:

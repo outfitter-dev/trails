@@ -106,7 +106,7 @@ The value isn't any single feature. It's that they multiply — each declaration
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
-import { blaze } from '@ontrails/cli/commander';
+import { trailhead } from '@ontrails/cli/commander';
 import { z } from 'zod';
 
 // 1. Define trails
@@ -120,9 +120,9 @@ const greet = trail('greet', {
 // 2. Collect into topo
 const app = topo('myapp', { greet });
 
-// 3. Blaze on any surface
-blaze(app);              // CLI
-// await blaze(app);     // MCP — same trails, same run function
+// 3. Open trailheads on any surface
+trailhead(app);              // CLI
+// await trailhead(app);     // MCP — same trails, same run function
 ```
 
 ```bash

@@ -57,18 +57,18 @@ export const show = trail('entity.show', {
 });
 ```
 
-Collect trails into an app with `topo()`. Open it on any surface with `blaze()`:
+Collect trails into an app with `topo()`. Open it on any surface with `trailhead()`:
 
 ```typescript
 const app = topo('myapp', entityModule, searchModule);
 
 // CLI
-import { blaze } from '@ontrails/cli/commander';
-blaze(app);
+import { trailhead } from '@ontrails/cli/commander';
+trailhead(app);
 
 // MCP
-import { blaze as blazeMcp } from '@ontrails/mcp';
-await blazeMcp(app);
+import { trailhead as mcpTrailhead } from '@ontrails/mcp';
+await mcpTrailhead(app);
 ```
 
 One definition. Every surface. The rest is derived.

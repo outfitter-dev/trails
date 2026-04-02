@@ -44,7 +44,7 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 
 **Drift is structurally harder than alignment.** One schema, one `Result` type, one error taxonomy. You cannot have different parameter names across surfaces because there is only one schema.
 
-**Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, and WebSocket are all equal adapters reading from the same topo. Adding a surface is a `blaze()` call, not an architecture change.
+**Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, and WebSocket are all equal adapters reading from the same topo. Adding a surface is a `trailhead()` call, not an architecture change.
 
 **Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation does not know which surface invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before layers and surfaces run.
 
@@ -140,9 +140,9 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 | Package | What it does | External dep |
 | --- | --- | --- |
 | `@ontrails/cli` | Framework-agnostic command model, flag derivation, output formatting | None beyond core |
-| `@ontrails/cli/commander` | Commander adapter, `blaze()` | `commander` (optional peer) |
-| `@ontrails/mcp` | MCP tools, annotations, progress bridge, `blaze()` | `@modelcontextprotocol/sdk` |
-| `@ontrails/http` | HTTP routes, error mapping, `blaze()` | `hono` |
+| `@ontrails/cli/commander` | Commander adapter, `trailhead()` | `commander` (optional peer) |
+| `@ontrails/mcp` | MCP tools, annotations, progress bridge, `trailhead()` | `@modelcontextprotocol/sdk` |
+| `@ontrails/http` | HTTP routes, error mapping, `trailhead()` | `hono` |
 
 ### Infrastructure Adapters (right side)
 

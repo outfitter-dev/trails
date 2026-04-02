@@ -22,7 +22,7 @@ import { toCommander } from './to-commander.js';
 // Options
 // ---------------------------------------------------------------------------
 
-export interface BlazeCliOptions {
+export interface TrailheadCliOptions {
   createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
@@ -51,7 +51,7 @@ const assertValidTopo = (app: Topo): void => {
 };
 
 // ---------------------------------------------------------------------------
-// blaze
+// trailhead
 // ---------------------------------------------------------------------------
 
 /**
@@ -59,16 +59,16 @@ const assertValidTopo = (app: Topo): void => {
  *
  * ```ts
  * import { topo } from "@ontrails/core";
- * import { blaze } from "@ontrails/cli/commander";
+ * import { trailhead } from "@ontrails/cli/commander";
  * import * as entity from "./trails/entity.ts";
  *
  * const app = topo("myapp", entity);
- * blaze(app);
+ * trailhead(app);
  * ```
  */
-export const blaze = async (
+export const trailhead = async (
   app: Topo,
-  options: BlazeCliOptions = {}
+  options: TrailheadCliOptions = {}
 ): Promise<void> => {
   if (options.validate !== false) {
     assertValidTopo(app);

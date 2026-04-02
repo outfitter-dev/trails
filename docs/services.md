@@ -101,7 +101,7 @@ Resolution happens eagerly during `executeTrail`, after input validation and bef
 
 This means failures surface at the boundary -- a missing `DATABASE_URL` fails before the implementation runs, not on line 47. It also means layers can access services via `db.from(ctx)` because resolution is already complete.
 
-Shutdown signaling differs by surface. CLI tools dispose after the command completes. Long-running servers (MCP, HTTP) dispose on `SIGTERM`/`SIGINT`. The surface's `blaze()` owns the lifecycle.
+Shutdown signaling differs by surface. CLI tools dispose after the command completes. Long-running servers (MCP, HTTP) dispose on `SIGTERM`/`SIGINT`. The surface's `trailhead()` owns the lifecycle.
 
 ## Testing with Services
 
@@ -125,14 +125,14 @@ testAll(app, () => ({
 
 Pass a factory (the `() => ({...})` form) when overrides contain mutable state, so each test gets a fresh instance. This prevents test pollution from shared in-memory stores.
 
-The same override mechanism works with `dispatch` and `blaze`:
+The same override mechanism works with `dispatch` and `trailhead`:
 
 ```typescript
 dispatch(app, 'search', input, {
   services: { 'db.main': testDb },
 });
 
-blaze(app, {
+trailhead(app, {
   services: { 'db.main': stagingDb },
 });
 ```

@@ -1,1 +1,1 @@
-export { blaze, type BlazeHttpOptions } from './blaze.js';
+export { trailhead, type TrailheadHttpOptions } from './trailhead.js';

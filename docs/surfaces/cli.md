@@ -10,10 +10,10 @@ bun add commander  # required for the /commander subpath
 ```
 
 ```typescript
-import { blaze } from '@ontrails/cli/commander';
+import { trailhead } from '@ontrails/cli/commander';
 import { app } from './app';
 
-blaze(app);
+trailhead(app);
 ```
 
 That is the entire CLI setup. Every trail in the app becomes a command.
@@ -144,10 +144,10 @@ The error message is written to stderr. Non-`TrailsError` errors default to exit
 Override the default result handler for custom formatting, logging, or metrics:
 
 ```typescript
-import { blaze } from '@ontrails/cli/commander';
+import { trailhead } from '@ontrails/cli/commander';
 import { output, resolveOutputMode } from '@ontrails/cli';
 
-blaze(app, {
+trailhead(app, {
   onResult: async (ctx) => {
     if (ctx.result.isErr()) {
       console.error(`Failed: ${ctx.trail.id}`);
@@ -191,11 +191,11 @@ const program = toCommander(commands, { name: 'myapp' });
 program.parse();
 ```
 
-Or use `blaze()` which does both in one call:
+Or use `trailhead()` which does both in one call:
 
 ```typescript
-import { blaze } from '@ontrails/cli/commander';
-blaze(app);
+import { trailhead } from '@ontrails/cli/commander';
+trailhead(app);
 ```
 
 To use a different CLI framework (yargs, oclif, etc.), consume `CliCommand[]` directly and write your own adapter. The model carries everything needed: command names, flags, args, groups, and an `execute()` function.

@@ -14,7 +14,7 @@ owners: ['[galligan](https://github.com/galligan)']
 
 ### The missing right side
 
-The hexagonal architecture has a clear story on the left. Surfaces — CLI, MCP, HTTP, WebSocket — adapt inbound requests to trail contracts via `blaze()`. Each is a peer rendering of the same topo. That side is solved.
+The hexagonal architecture has a clear story on the left. Surfaces — CLI, MCP, HTTP, WebSocket — adapt inbound requests to trail contracts via `trailhead()`. Each is a peer rendering of the same topo. That side is solved.
 
 The right side — logging, storage, telemetry, auth — had no primitive until ADR-0009 introduced services. Before that, every trail that talked to infrastructure created its own connections inline. No lifecycle, no governance, no testability.
 

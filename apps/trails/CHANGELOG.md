@@ -25,7 +25,7 @@
 
   **Warden:** `service-declarations` rule validates `db.from(ctx)` and `ctx.service()` usage matches declared `services: [...]`. `service-exists` rule validates declared service IDs resolve in project context. Scope-aware AST walking skips nested function boundaries.
 
-  **Surfaces:** Service overrides thread through `dispatch` and `blaze` on CLI, MCP, and HTTP.
+  **Surfaces:** Service overrides thread through `dispatch` and `trailhead` on CLI, MCP, and HTTP.
 
   **Introspection:** Survey and surface map outputs include service graph. Topo exposes `.services`, `.getService()`, `.hasService()`, `.listServices()`, `.serviceIds()`, `.serviceCount`.
 
@@ -77,7 +77,7 @@
 
 - HTTP surface and OpenAPI generation.
 
-  **http**: New `@ontrails/http` package — Hono-based HTTP adapter. `blaze()` derives routes from trail IDs, maps intent to HTTP verbs (read→GET, write→POST, destroy→DELETE), and maps error taxonomy to status codes. Returns the Hono instance.
+  **http**: New `@ontrails/http` package — Hono-based HTTP adapter. `trailhead()` derives routes from trail IDs, maps intent to HTTP verbs (read→GET, write→POST, destroy→DELETE), and maps error taxonomy to status codes. Returns the Hono instance.
 
   **schema**: Add `generateOpenApiSpec(topo)` — generates a complete OpenAPI 3.1 spec from the topo. Each trail becomes an operation with path, method, schemas, and error responses derived from the contract.
 
@@ -130,7 +130,7 @@
   - `implementation` field renamed to `run`
   - `markers` field renamed to `metadata`
   - `testHike` renamed to `testFollows`, `HikeScenario` to `FollowScenario`
-  - `blaze()` now returns the surface handle (`Command` for CLI, `Server` for MCP)
+  - `trailhead()` now returns the surface handle (`Command` for CLI, `Server` for MCP)
 
 ### Patch Changes
 

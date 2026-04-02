@@ -11,7 +11,7 @@ import {
 import type { Layer } from '@ontrails/core';
 import { z } from 'zod';
 
-import { blaze } from '../blaze.js';
+import { trailhead } from '../trailhead.js';
 
 // ---------------------------------------------------------------------------
 // Test trails
@@ -65,7 +65,7 @@ const dbService = service('db.main', {
 
 /** Make a request against a Hono test app. */
 const request = (
-  app: Awaited<ReturnType<typeof blaze>>,
+  app: Awaited<ReturnType<typeof trailhead>>,
   method: string,
   path: string,
   body?: Record<string, unknown>,
@@ -82,7 +82,7 @@ const request = (
 
 /** Make a request with a raw string body. */
 const requestRaw = (
-  app: Awaited<ReturnType<typeof blaze>>,
+  app: Awaited<ReturnType<typeof trailhead>>,
   method: string,
   path: string,
   rawBody: string,
@@ -100,9 +100,9 @@ const requestRaw = (
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('blaze (Hono adapter)', () => {
+describe('trailhead (Hono adapter)', () => {
   describe('validation', () => {
-    test('blaze throws on invalid topo', async () => {
+    test('trailhead throws on invalid topo', async () => {
       const t = trail('broken', {
         follow: ['nonexistent.trail'],
         input: z.object({}),
@@ -110,10 +110,12 @@ describe('blaze (Hono adapter)', () => {
         run: () => Result.ok({}),
       });
       const app = topo('test', { t });
-      await expect(blaze(app, { serve: false })).rejects.toThrow(/validation/i);
+      await expect(trailhead(app, { serve: false })).rejects.toThrow(
+        /validation/i
+      );
     });
 
-    test('blaze skips validation when validate: false', async () => {
+    test('trailhead skips validation when validate: false', async () => {
       const t = trail('broken', {
         follow: ['nonexistent.trail'],
         input: z.object({}),
@@ -122,7 +124,7 @@ describe('blaze (Hono adapter)', () => {
       });
       const app = topo('test', { t });
       await expect(
-        blaze(app, { serve: false, validate: false })
+        trailhead(app, { serve: false, validate: false })
       ).resolves.toBeDefined();
     });
   });
@@ -130,7 +132,7 @@ describe('blaze (Hono adapter)', () => {
   describe('GET handler', () => {
     test('returns 200 with data on success', async () => {
       const app = topo('testapp', { echoTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await request(hono, 'GET', '/echo?message=hello');
       expect(res.status).toBe(200);
@@ -141,7 +143,7 @@ describe('blaze (Hono adapter)', () => {
 
     test('returns 400 on invalid input', async () => {
       const app = topo('testapp', { echoTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await request(hono, 'GET', '/echo');
       expect(res.status).toBe(400);
@@ -155,7 +157,7 @@ describe('blaze (Hono adapter)', () => {
   describe('POST handler', () => {
     test('returns 200 with data on success', async () => {
       const app = topo('testapp', { createTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await request(hono, 'POST', '/item/create', {
         name: 'Widget',
@@ -168,7 +170,7 @@ describe('blaze (Hono adapter)', () => {
 
     test('returns 400 on invalid input', async () => {
       const app = topo('testapp', { createTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await request(hono, 'POST', '/item/create', {});
       expect(res.status).toBe(400);
@@ -186,7 +188,7 @@ describe('blaze (Hono adapter)', () => {
       });
 
       const app = topo('testapp', { emptyWriteTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       // No body, no Content-Type header — mirrors a client that obeys the
       // OpenAPI spec (no requestBody declared for empty-input POST routes).
@@ -201,7 +203,7 @@ describe('blaze (Hono adapter)', () => {
   describe('DELETE handler', () => {
     test('returns 200 with data on success', async () => {
       const app = topo('testapp', { deleteTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await request(hono, 'DELETE', '/item/delete', {
         id: 'abc',
@@ -216,7 +218,7 @@ describe('blaze (Hono adapter)', () => {
   describe('error mapping', () => {
     test('NotFoundError maps to 404', async () => {
       const app = topo('testapp', { notFoundTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await request(hono, 'GET', '/item/get?id=missing');
       expect(res.status).toBe(404);
@@ -228,7 +230,7 @@ describe('blaze (Hono adapter)', () => {
 
     test('InternalError maps to 500', async () => {
       const app = topo('testapp', { internalTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await request(hono, 'POST', '/crash', {});
       expect(res.status).toBe(500);
@@ -246,7 +248,7 @@ describe('blaze (Hono adapter)', () => {
       });
 
       const app = topo('testapp', { throwTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await request(hono, 'POST', '/throw', {});
       expect(res.status).toBe(500);
@@ -273,7 +275,7 @@ describe('blaze (Hono adapter)', () => {
       };
 
       const app = topo('testapp', { echoTrail });
-      const hono = await blaze(app, { layers: [testLayer], serve: false });
+      const hono = await trailhead(app, { layers: [testLayer], serve: false });
 
       const res = await request(hono, 'GET', '/echo?message=hi');
       expect(res.status).toBe(200);
@@ -284,7 +286,7 @@ describe('blaze (Hono adapter)', () => {
   describe('malformed JSON body', () => {
     test('returns 400 for invalid JSON in POST body', async () => {
       const app = topo('testapp', { createTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await requestRaw(hono, 'POST', '/item/create', '{invalid');
       expect(res.status).toBe(400);
@@ -297,7 +299,7 @@ describe('blaze (Hono adapter)', () => {
 
     test('returns 400 for invalid JSON in DELETE body', async () => {
       const app = topo('testapp', { deleteTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await requestRaw(hono, 'DELETE', '/item/delete', 'not-json');
       expect(res.status).toBe(400);
@@ -316,7 +318,7 @@ describe('blaze (Hono adapter)', () => {
       });
 
       const app = topo('testapp', { stringIdTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await request(hono, 'GET', '/lookup?id=00123');
       expect(res.status).toBe(200);
@@ -333,7 +335,7 @@ describe('blaze (Hono adapter)', () => {
       });
 
       const app = topo('testapp', { tagsTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await request(hono, 'GET', '/tags?tags=a&tags=b');
       expect(res.status).toBe(200);
@@ -350,7 +352,7 @@ describe('blaze (Hono adapter)', () => {
       });
 
       const app = topo('testapp', { tagsTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await request(hono, 'GET', '/tags/single?tags=foo');
       expect(res.status).toBe(200);
@@ -367,7 +369,7 @@ describe('blaze (Hono adapter)', () => {
       });
 
       const app = topo('testapp', { nameTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await request(hono, 'GET', '/name/check?name=bar');
       expect(res.status).toBe(200);
@@ -384,7 +386,7 @@ describe('blaze (Hono adapter)', () => {
       });
 
       const app = topo('testapp', { optArrayTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await request(hono, 'GET', '/opt/array?ids=one');
       expect(res.status).toBe(200);
@@ -409,7 +411,7 @@ describe('blaze (Hono adapter)', () => {
       });
 
       const app = topo('testapp', { signalTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await request(hono, 'GET', '/signal/check');
       expect(res.status).toBe(200);
@@ -430,7 +432,7 @@ describe('blaze (Hono adapter)', () => {
       });
 
       const app = topo('testapp', { signalTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const controller = new AbortController();
       controller.abort();
@@ -462,7 +464,7 @@ describe('blaze (Hono adapter)', () => {
       });
 
       const app = topo('testapp', { ctxTrail });
-      const hono = await blaze(app, { serve: false });
+      const hono = await trailhead(app, { serve: false });
 
       const res = await request(hono, 'GET', '/ctx/check', undefined, {
         'X-Request-ID': 'custom-req-123',
@@ -485,7 +487,7 @@ describe('blaze (Hono adapter)', () => {
       });
 
       const app = topo('testapp', { ctxTrail });
-      const hono = await blaze(app, {
+      const hono = await trailhead(app, {
         createContext: () => ({
           abortSignal: new AbortController().signal,
           extensions: { custom: true },
@@ -499,7 +501,7 @@ describe('blaze (Hono adapter)', () => {
       expect(contextUsed).toBe(true);
     });
 
-    test('service overrides reach the trail through blaze()', async () => {
+    test('service overrides reach the trail through trailhead()', async () => {
       const serviceTrail = trail('service.check', {
         input: z.object({}),
         intent: 'read',
@@ -510,7 +512,7 @@ describe('blaze (Hono adapter)', () => {
       });
 
       const app = topo('testapp', { dbService, serviceTrail });
-      const hono = await blaze(app, {
+      const hono = await trailhead(app, {
         serve: false,
         services: { 'db.main': { source: 'override' } },
       });

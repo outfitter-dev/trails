@@ -1,12 +1,12 @@
 # @ontrails/cli
 
-CLI surface adapter. One `blaze()` call turns a topo into a full CLI with flags, subcommands, help text, and error-mapped exit codes -- all derived from the trail contracts.
+CLI surface adapter. One `trailhead()` call turns a topo into a full CLI with flags, subcommands, help text, and error-mapped exit codes -- all derived from the trail contracts.
 
 ## Usage
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
-import { blaze } from '@ontrails/cli/commander';
+import { trailhead } from '@ontrails/cli/commander';
 import { z } from 'zod';
 
 const greet = trail('greet', {
@@ -15,7 +15,7 @@ const greet = trail('greet', {
 });
 
 const app = topo('myapp', { greet });
-blaze(app);
+trailhead(app);
 ```
 
 ```bash
@@ -47,7 +47,7 @@ program.parse();
 
 | Export | What it does |
 | --- | --- |
-| `blaze(app, options?)` | One-liner: build commands, wire Commander, parse argv |
+| `trailhead(app, options?)` | One-liner: build commands, wire Commander, parse argv |
 | `buildCliCommands(app)` | Framework-agnostic command builder, returns `CliCommand[]` |
 | `toCommander(commands, options?)` | Adapt `CliCommand[]` to a Commander program |
 | `deriveFlags(schema)` | Extract CLI flags from a Zod schema |

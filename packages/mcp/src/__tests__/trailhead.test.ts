@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { blaze, createMcpServer } from '../blaze.js';
+import { trailhead, createMcpServer } from '../trailhead.js';
 import { buildMcpTools } from '../build.js';
 import type { McpToolDefinition } from '../build.js';
 
@@ -51,8 +51,8 @@ const createIntegrationTools = () => {
   return buildTools(topo('myapp', { deleteTrail, greetTrail }));
 };
 
-describe('blaze', () => {
-  test('blaze throws on invalid topo', async () => {
+describe('trailhead', () => {
+  test('trailhead throws on invalid topo', async () => {
     const t = trail('broken', {
       follow: ['nonexistent.trail'],
       input: z.object({}),
@@ -60,10 +60,10 @@ describe('blaze', () => {
       run: () => Result.ok({}),
     });
     const app = topo('test', { t });
-    await expect(blaze(app)).rejects.toThrow(/validation/i);
+    await expect(trailhead(app)).rejects.toThrow(/validation/i);
   });
 
-  test('blaze skips validation when validate: false', async () => {
+  test('trailhead skips validation when validate: false', async () => {
     const t = trail('broken', {
       follow: ['nonexistent.trail'],
       input: z.object({}),
@@ -72,7 +72,7 @@ describe('blaze', () => {
     });
     const app = topo('test', { t });
     const result = await Promise.race([
-      blaze(app, { validate: false }).then(() => 'resolved' as const),
+      trailhead(app, { validate: false }).then(() => 'resolved' as const),
       // oxlint-disable-next-line avoid-new -- Promise constructor needed for setTimeout-based timeout
       new Promise<'timeout'>((resolve) => {
         setTimeout(() => {
@@ -83,8 +83,8 @@ describe('blaze', () => {
     expect(['resolved', 'timeout']).toContain(result);
   });
 
-  test('BlazeMcpOptions accepts service overrides', () => {
-    const opts: Parameters<typeof blaze>[1] = {
+  test('TrailheadMcpOptions accepts service overrides', () => {
+    const opts: Parameters<typeof trailhead>[1] = {
       services: {},
       validate: false,
     };

@@ -1,6 +1,6 @@
 # HTTP Surface
 
-The HTTP surface adapter turns every trail into an endpoint. Routes are derived from trail IDs, HTTP verbs from intent, input parsing from the method, and error responses from the error taxonomy. One `blaze()` call starts a Hono server.
+The HTTP surface adapter turns every trail into an endpoint. Routes are derived from trail IDs, HTTP verbs from intent, input parsing from the method, and error responses from the error taxonomy. One `trailhead()` call starts a Hono server.
 
 The package separates framework-agnostic route building (`@ontrails/http`) from the Hono adapter (`@ontrails/http/hono`), following the same pattern as `@ontrails/cli` and `@ontrails/cli/commander`.
 
@@ -11,10 +11,10 @@ bun add @ontrails/http hono
 ```
 
 ```typescript
-import { blaze } from '@ontrails/http/hono';
+import { trailhead } from '@ontrails/http/hono';
 import { app } from './app';
 
-await blaze(app, { port: 3000 });
+await trailhead(app, { port: 3000 });
 ```
 
 That starts an HTTP server with every trail registered as a route.
@@ -33,7 +33,7 @@ Dots in trail IDs become path segments:
 A `basePath` option prepends a prefix to all routes:
 
 ```typescript
-await blaze(app, { basePath: '/api/v1', port: 3000 });
+await trailhead(app, { basePath: '/api/v1', port: 3000 });
 // entity.show -> /api/v1/entity/show
 ```
 
@@ -108,10 +108,10 @@ Unrecognized errors (non-`TrailsError` exceptions) return 500 with `category: 'i
 Layers compose the same way as on CLI and MCP -- they wrap trail implementations:
 
 ```typescript
-import { blaze } from '@ontrails/http/hono';
+import { trailhead } from '@ontrails/http/hono';
 import { authLayer, loggingLayer } from './layers';
 
-await blaze(app, {
+await trailhead(app, {
   layers: [loggingLayer, authLayer],
   port: 3000,
 });
@@ -119,7 +119,7 @@ await blaze(app, {
 
 Layers run in order, wrapping the implementation. They have access to the trail and its context, so they can inspect intent, metadata, and markers.
 
-## BlazeHttpOptions
+## TrailheadHttpOptions
 
 | Option          | Type                                   | Default       | Description                                          |
 | --------------- | -------------------------------------- | ------------- | ---------------------------------------------------- |
@@ -193,7 +193,7 @@ const longTask = trail('report.generate', {
 
 ```typescript
 import { createTrailContext } from '@ontrails/core';
-import { blaze } from '@ontrails/http/hono';
+import { trailhead } from '@ontrails/http/hono';
 import { app } from './app';
 import { createStore } from './store';
 
@@ -201,7 +201,7 @@ const store = createStore([
   { name: 'Alpha', tags: ['core'], type: 'concept' },
 ]);
 
-await blaze(app, {
+await trailhead(app, {
   createContext: () => createTrailContext({ store }),
   port: 3000,
 });

@@ -9,9 +9,9 @@
  *   bun run bin/demo.ts search --query Alpha
  */
 
-import { blaze } from '@ontrails/cli/commander';
+import { trailhead } from '@ontrails/cli/commander';
 
 import { app } from '../src/app.js';
 
 // oxlint-disable-next-line require-hook -- CLI entry point, not a test file
-blaze(app);
+trailhead(app);

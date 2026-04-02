@@ -6,7 +6,7 @@
  *
  * ```ts
  * const app = topo("myapp", entity);
- * await blaze(app, { port: 3000 });
+ * await trailhead(app, { port: 3000 });
  * ```
  */
 
@@ -29,7 +29,7 @@ import { buildHttpRoutes } from '../build.js';
 // Options
 // ---------------------------------------------------------------------------
 
-export interface BlazeHttpOptions {
+export interface TrailheadHttpOptions {
   readonly basePath?: string | undefined;
   /** Config values for services that declare a `config` schema, keyed by service ID. */
   readonly configValues?:
@@ -309,16 +309,16 @@ const assertValidTopo = (app: Topo, skip = false): void => {
 };
 
 // ---------------------------------------------------------------------------
-// blaze
+// trailhead
 // ---------------------------------------------------------------------------
 
 /**
  * Build HTTP routes from a topo, create a Hono app, and optionally start serving.
  */
-// oxlint-disable-next-line require-await -- async for consistency with other blaze() surfaces
-export const blaze = async (
+// oxlint-disable-next-line require-await -- async for consistency with other trailhead() surfaces
+export const trailhead = async (
   app: Topo,
-  options: BlazeHttpOptions = {}
+  options: TrailheadHttpOptions = {}
 ): Promise<Hono> => {
   assertValidTopo(app, options.validate === false);
 

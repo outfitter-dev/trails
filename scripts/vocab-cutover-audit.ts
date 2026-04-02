@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+
 import { auditRoots, auditRules } from './vocab-cutover-map';
 
 interface MatchDetail {
@@ -21,8 +23,8 @@ const selectedRule =
 const isAuditTarget = (path: string) =>
   auditRoots.some((root) => path === root || path.startsWith(root));
 
-const listRepoFiles = () => {
-  const result = Bun.spawnSync(['git', 'ls-files'], {
+const listGitFiles = (gitArgs: readonly string[]) => {
+  const result = Bun.spawnSync(['git', ...gitArgs], {
     cwd: process.cwd(),
     stderr: 'pipe',
     stdout: 'pipe',
@@ -38,7 +40,19 @@ const listRepoFiles = () => {
     .toString()
     .split('\n')
     .map((line) => line.trim())
-    .filter(Boolean)
+    .filter(Boolean);
+};
+
+const listRepoFiles = () => {
+  const tracked = listGitFiles(['ls-files']);
+  const untracked = listGitFiles([
+    'ls-files',
+    '--others',
+    '--exclude-standard',
+  ]);
+
+  return [...new Set([...tracked, ...untracked])]
+    .filter((path) => existsSync(path))
     .filter(isAuditTarget);
 };
 

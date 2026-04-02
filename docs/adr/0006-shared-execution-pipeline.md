@@ -64,7 +64,7 @@ Setup errors are surfaced before the server starts, not at request time. A calle
 
 This extends the Result model from runtime execution to framework wiring. The same error-handling pattern works from boot to shutdown: check the Result, branch on success or failure, handle errors with full type information.
 
-`blaze()` — the one-liner that collapses build + wire into a single call — handles the Result internally. If the build fails, `blaze` logs the error and exits (CLI) or returns a startup failure (programmatic). The Result is there for developers who use the two-step `build*` → `to*` escape hatch and want explicit control.
+`trailhead()` — the one-liner that collapses build + wire into a single call — handles the Result internally. If the build fails, `trailhead` logs the error and exits (CLI) or returns a startup failure (programmatic). The Result is there for developers who use the two-step `build*` → `to*` escape hatch and want explicit control.
 
 ## Consequences
 
@@ -84,7 +84,7 @@ This extends the Result model from runtime execution to framework wiring. The sa
 
 - Whether `executeTrail` will gain middleware or interceptor hooks beyond the current layer model. Layers handle most cross-cutting concerns today. If that proves insufficient, a separate ADR will address it.
 - The specific options surface on `executeTrail` beyond the current parameters. The function signature will grow as needs emerge.
-- How `blaze()` handles builder failures in non-CLI contexts (e.g., programmatic embedding). That's a surface-level UX decision.
+- How `trailhead()` handles builder failures in non-CLI contexts (e.g., programmatic embedding). That's a surface-level UX decision.
 
 ## References
 

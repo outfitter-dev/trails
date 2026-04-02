@@ -2,7 +2,7 @@
  * Thin wrapper around MCP SDK's StdioServerTransport.
  *
  * Exists as a separate function so it can be swapped for other transports
- * (SSE, streamable HTTP) without changing blaze().
+ * (SSE, streamable HTTP) without changing trailhead().
  */
 
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';

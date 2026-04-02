@@ -1,6 +1,6 @@
 # MCP Surface
 
-The MCP surface adapter turns every trail into an MCP tool. Annotations are auto-derived from trail intent and metadata. Progress callbacks bridge to MCP notifications. One `blaze()` call starts a server.
+The MCP surface adapter turns every trail into an MCP tool. Annotations are auto-derived from trail intent and metadata. Progress callbacks bridge to MCP notifications. One `trailhead()` call starts a server.
 
 ## Setup
 
@@ -9,10 +9,10 @@ bun add @ontrails/mcp
 ```
 
 ```typescript
-import { blaze } from '@ontrails/mcp';
+import { trailhead } from '@ontrails/mcp';
 import { app } from './app';
 
-await blaze(app);
+await trailhead(app);
 ```
 
 That starts an MCP server over stdio with every trail registered as a tool.
@@ -133,12 +133,12 @@ Progress bridging activates only when the MCP client includes a `progressToken` 
 Not every trail should be exposed as an MCP tool. Use include/exclude filters:
 
 ```typescript
-await blaze(app, {
+await trailhead(app, {
   includeTrails: ['entity.show', 'entity.add', 'search'],
 });
 
 // Or exclude specific trails
-await blaze(app, {
+await trailhead(app, {
   excludeTrails: ['internal.debug', 'admin.reset'],
 });
 ```
@@ -148,7 +148,7 @@ await blaze(app, {
 ## Server Configuration
 
 ```typescript
-await blaze(app, {
+await trailhead(app, {
   serverInfo: {
     name: 'myapp',
     version: '1.0.0',
@@ -183,7 +183,7 @@ Layers compose identically to CLI. The MCP adapter uses `composeLayers()` from `
 
 No MCP-specific layers ship in v1. The infrastructure is wired and ready for domain-specific layers (rate limiting, caching, auth) to be added later.
 
-## Building Tools Without `blaze()`
+## Building Tools Without `trailhead()`
 
 For advanced use cases, build the tool definitions directly:
 
@@ -207,4 +207,4 @@ for (const tool of result.value) {
 }
 ```
 
-Each `McpToolDefinition` includes a `trailId` field containing the original trail ID (e.g. `'entity.show'`). This is useful for logging, filtering, or routing when managing tool definitions outside of `blaze()`.
+Each `McpToolDefinition` includes a `trailId` field containing the original trail ID (e.g. `'entity.show'`). This is useful for logging, filtering, or routing when managing tool definitions outside of `trailhead()`.

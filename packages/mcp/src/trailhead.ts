@@ -1,11 +1,11 @@
 /**
- * blaze() -- the one-liner MCP server launcher.
+ * trailhead() -- the one-liner MCP server launcher.
  *
  * Three lines to expose trails as MCP tools:
  *
  * ```ts
  * const app = topo("myapp", entity);
- * await blaze(app);
+ * await trailhead(app);
  * ```
  */
 
@@ -30,7 +30,7 @@ import { connectStdio } from './stdio.js';
 // Options
 // ---------------------------------------------------------------------------
 
-export interface BlazeMcpOptions {
+export interface TrailheadMcpOptions {
   /** Config values for services that declare a `config` schema, keyed by service ID. */
   readonly configValues?:
     | Readonly<Record<string, Record<string, unknown>>>
@@ -133,15 +133,15 @@ export const createMcpServer = (
 };
 
 // ---------------------------------------------------------------------------
-// blaze
+// trailhead
 // ---------------------------------------------------------------------------
 
 /**
  * Build MCP tools from an App, create a server, and connect via stdio.
  */
-export const blaze = async (
+export const trailhead = async (
   app: Topo,
-  options: BlazeMcpOptions = {}
+  options: TrailheadMcpOptions = {}
 ): Promise<void> => {
   if (options.validate !== false) {
     const validated = validateTopo(app);

@@ -3,8 +3,8 @@
 ## New to Trails?
 
 1. **[Why Trails](./why-trails.md)** — The problem, the approach, why contracts beat conventions
-2. **[Getting Started](./getting-started.md)** — Install, define your first trail, blaze it on CLI, test it
-3. **[Vocabulary](./vocabulary.md)** — The terms you'll use every day: trail, topo, blaze, follow, intent
+2. **[Getting Started](./getting-started.md)** — Install, define your first trail, open a CLI trailhead, test it
+3. **[Vocabulary](./vocabulary.md)** — The terms you'll use every day: trail, blaze, topo, trailhead, follow, intent
 
 ## Building something?
 

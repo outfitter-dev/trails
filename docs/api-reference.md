@@ -90,7 +90,7 @@ findWorkspaceRoot, isInsideWorkspace, getRelativePath
 ## `@ontrails/cli`
 
 ```typescript
-blaze(topo, options?)              // one-liner (from @ontrails/cli/commander)
+trailhead(topo, options?)              // one-liner (from @ontrails/cli/commander)
 buildCliCommands(topo, options?)   // escape hatch step 1
 toCommander(commands, options?)    // escape hatch step 2
 deriveFlags(schema, overrides?)    // Zod → CLI flags
@@ -108,14 +108,14 @@ autoIterateLayer, dateShortcutsLayer
 ## `@ontrails/mcp`
 
 ```typescript
-blaze(topo, options?)              // one-liner
+trailhead(topo, options?)              // one-liner
 buildMcpTools(topo, options?)      // escape hatch step 1; returns Result<McpToolDefinition[], Error>
 connectStdio(server)               // escape hatch step 2
 deriveToolName(appName, trailId)   // tool name derivation
 deriveAnnotations(trail)           // MCP annotations from intent and metadata
 createMcpProgressCallback(extra)   // progress bridge
 
-BlazeMcpOptions, BuildMcpToolsOptions
+TrailheadMcpOptions, BuildMcpToolsOptions
 McpToolDefinition,                 // includes trailId: string
 McpToolResult, McpContent, McpExtra, McpAnnotations
 ```
@@ -123,10 +123,10 @@ McpToolResult, McpContent, McpExtra, McpAnnotations
 ## `@ontrails/http`
 
 ```typescript
-blaze(topo, options?)              // one-liner HTTP server
+trailhead(topo, options?)              // one-liner HTTP server
 buildHttpRoutes(topo, options?)    // escape hatch: route definitions without server; returns Result<HttpRouteDefinition[], Error>
 
-BlazeHttpOptions, BuildHttpRoutesOptions
+TrailheadHttpOptions, BuildHttpRoutesOptions
 HttpMethod, HttpRouteDefinition
 ```
 

@@ -1,12 +1,12 @@
 # @ontrails/mcp
 
-MCP surface adapter. One `blaze()` call turns a topo into an MCP server with tool definitions, annotations, and progress bridging -- all derived from the trail contracts.
+MCP surface adapter. One `trailhead()` call turns a topo into an MCP server with tool definitions, annotations, and progress bridging -- all derived from the trail contracts.
 
 ## Usage
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
-import { blaze } from '@ontrails/mcp';
+import { trailhead } from '@ontrails/mcp';
 import { z } from 'zod';
 
 const greet = trail('greet', {
@@ -16,7 +16,7 @@ const greet = trail('greet', {
 });
 
 const app = topo('myapp', { greet });
-await blaze(app);
+await trailhead(app);
 ```
 
 This starts an MCP server over stdio with a `myapp_greet` tool. The tool gets `readOnlyHint: true` and a JSON Schema input -- both derived from the trail definition.
@@ -42,7 +42,7 @@ for (const tool of result.value) {
 
 | Export | What it does |
 | --- | --- |
-| `blaze(app, options?)` | Start an MCP server with all trails as tools |
+| `trailhead(app, options?)` | Start an MCP server with all trails as tools |
 | `buildMcpTools(app, options?)` | Build tool definitions without starting a server |
 | `deriveToolName(appName, trailId)` | Compute the MCP tool name from app and trail IDs |
 | `deriveAnnotations(trail)` | Extract MCP annotations from trail intent and metadata |
@@ -90,8 +90,8 @@ const importTrail = trail('data.import', {
 ## Filtering
 
 ```typescript
-await blaze(app, { includeTrails: ['entity.show', 'search'] });
-await blaze(app, { excludeTrails: ['internal.debug'] });
+await trailhead(app, { includeTrails: ['entity.show', 'search'] });
+await trailhead(app, { excludeTrails: ['internal.debug'] });
 ```
 
 ## Installation

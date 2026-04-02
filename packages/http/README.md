@@ -1,12 +1,12 @@
 # @ontrails/http
 
-HTTP surface adapter. One `blaze()` call turns a topo into a Hono-based HTTP server with routes, input validation, and error mapping -- all derived from the trail contracts.
+HTTP surface adapter. One `trailhead()` call turns a topo into a Hono-based HTTP server with routes, input validation, and error mapping -- all derived from the trail contracts.
 
 ## Usage
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
-import { blaze } from '@ontrails/http/hono';
+import { trailhead } from '@ontrails/http/hono';
 import { z } from 'zod';
 
 const greet = trail('greet', {
@@ -17,7 +17,7 @@ const greet = trail('greet', {
 });
 
 const app = topo('myapp', { greet });
-await blaze(app, { port: 3000 });
+await trailhead(app, { port: 3000 });
 ```
 
 This starts a Hono-based HTTP server. The `greet` trail becomes `GET /greet?name=...` because its `intent` is `'read'`.
@@ -41,7 +41,7 @@ for (const route of result.value) {
 | Export | What it does |
 | --- | --- |
 | `buildHttpRoutes(app, options?)` | Build framework-agnostic route definitions from a topo |
-| `blaze(app, options?)` (`@ontrails/http/hono`) | Start a Hono HTTP server with all trails as routes |
+| `trailhead(app, options?)` (`@ontrails/http/hono`) | Start a Hono HTTP server with all trails as routes |
 
 ## Route derivation
 
@@ -58,7 +58,7 @@ Trail IDs map to paths: `entity.show` becomes `/entity/show`. Dots become slashe
 
 ## Collision detection
 
-`buildHttpRoutes` detects when two trails would produce the same `(method, path)` pair and returns `Result.err(ValidationError)` describing both trail IDs. The `blaze()` Hono adapter throws on collision.
+`buildHttpRoutes` detects when two trails would produce the same `(method, path)` pair and returns `Result.err(ValidationError)` describing both trail IDs. The `trailhead()` Hono adapter throws on collision.
 
 ## Service resolution
 

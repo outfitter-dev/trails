@@ -17,8 +17,8 @@ export { deriveAnnotations, type McpAnnotations } from './annotations.js';
 // Progress
 export { createMcpProgressCallback } from './progress.js';
 
-// Blaze
-export { blaze, type BlazeMcpOptions } from './blaze.js';
+// Trailhead
+export { trailhead, type TrailheadMcpOptions } from './trailhead.js';
 
 // Transport
 export { connectStdio } from './stdio.js';

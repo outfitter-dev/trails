@@ -20,7 +20,7 @@ But Trails can't couple to any single one of them either. Coupling to Hono means
 
 The HTTP surface also needs to work in three distinct integration patterns:
 
-1. **Standalone.** Trails is the server. You call `blaze()` and it starts listening. No existing app, no existing framework.
+1. **Standalone.** Trails is the server. You call `trailhead()` and it starts listening. No existing app, no existing framework.
 2. **Embedded.** Trails mounts into an existing Hono, Express, or Fastify app. The app owns the server lifecycle; Trails provides a subset of the routes.
 3. **Full-stack catch-all.** A Next.js, Astro, or SvelteKit app routes `/api/[...slug]` to Trails. The full-stack framework owns the server; Trails handles the API layer behind a single catch-all route.
 
@@ -53,7 +53,7 @@ The `execute` function is the important part. It does everything *except* touch 
 The Hono adapter lives in a subpath export, not in the main package entry. Two functions:
 
 - **`toHono(routes, options?)`** — takes `HttpRouteDefinition[]` and returns a Hono app with routes registered. The developer owns the app lifecycle.
-- **`blaze(topo, options?)`** — collapses the pipeline into one call for the standalone case. Calls `buildHttpRoutes`, then `toHono`, then starts listening.
+- **`trailhead(topo, options?)`** — collapses the pipeline into one call for the standalone case. Calls `buildHttpRoutes`, then `toHono`, then starts listening.
 
 The adapter handles:
 
@@ -105,7 +105,7 @@ This keeps the trail author out of HTTP vocabulary. They declare what the trail 
 - **No framework lock-in.** Users choose their HTTP framework. Trails provides the route model; adapters bridge to specific runtimes.
 - **Three integration patterns from one model.** Standalone, embedded, and catch-all all work because `HttpRouteDefinition[]` is just data. Wire it however you want.
 - **Thin adapters.** Each framework adapter is roughly 100–150 lines. The route model does the heavy lifting; the adapter does the wiring.
-- **Consistent surface pattern.** HTTP follows the same `build*` → `to*`/`connect*` → `blaze()` pattern as CLI and MCP. One mental model for all surfaces.
+- **Consistent surface pattern.** HTTP follows the same `build*` → `to*`/`connect*` → `trailhead()` pattern as CLI and MCP. One mental model for all surfaces.
 - **Testable without HTTP.** `execute()` on a route definition takes plain input and returns `Result`. You can test every trail's HTTP behavior without starting a server or making HTTP requests.
 
 ### Tradeoffs

@@ -16,7 +16,7 @@ import { z } from 'zod';
 type Starter = 'empty' | 'entity' | 'hello';
 type Surface = 'cli' | 'mcp';
 
-interface BlazeInput {
+interface CreateInput {
   readonly dir?: string | undefined;
   readonly name: string;
   readonly starter: Starter;
@@ -110,7 +110,7 @@ const collectCreatedFiles = (
 
 const runCreate = async (
   follow: FollowFn,
-  input: BlazeInput
+  input: CreateInput
 ): Promise<Result<{ created: string[]; dir: string; name: string }, Error>> => {
   const scaffolded = await scaffoldProject(follow, input);
   if (scaffolded.isErr()) {
@@ -194,7 +194,7 @@ export const createRoute = trail('create', {
     dir: z.string(),
     name: z.string(),
   }),
-  run: async (input: BlazeInput, ctx) => {
+  run: async (input: CreateInput, ctx) => {
     if (!ctx.follow) {
       return Result.err(new Error('create route requires ctx.follow'));
     }

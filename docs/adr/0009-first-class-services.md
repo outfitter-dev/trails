@@ -46,7 +46,7 @@ That's the gap. The trail contract has no way to express dependencies on externa
 
 ### The right side of the hexagon
 
-The Trails architecture is hexagonal. The left side (inbound) has its primitive: surfaces via `blaze()`. The right side (outbound) — logging, storage, telemetry, search — doesn't have one yet. The architecture doc says: *"The framework defines ports. Everything concrete is an adapter."* But there's no mechanism to register, resolve, or govern those adapters.
+The Trails architecture is hexagonal. The left side (inbound) has its primitive: surfaces via `trailhead()`. The right side (outbound) — logging, storage, telemetry, search — doesn't have one yet. The architecture doc says: *"The framework defines ports. Everything concrete is an adapter."* But there's no mechanism to register, resolve, or govern those adapters.
 
 The logging package already established the adapter pattern: abstract API (`Logger`) → extension point (`LogSink`) → built-in implementations → subpath adapters (`/logtape`). Services generalize this pattern. They're the primitive that fills the right side of the hexagon — how you register concrete implementations of adapter ports and make them available to trails.
 
@@ -174,7 +174,7 @@ The execution scope is a lightweight object that `executeTrail` creates per root
 
 All services are app-scoped singletons. Created once on first resolution, cached for the lifetime of the process, disposed on shutdown. This covers the dominant use case — database pools, API clients, cached configs.
 
-Shutdown signaling differs by surface. CLI tools run once and exit — disposal happens after the command completes. Long-running servers (MCP, HTTP) listen for `SIGTERM`/`SIGINT` and dispose services before exiting. The surface's `blaze()` function owns this lifecycle, which is consistent with how surfaces already own the server lifecycle today.
+Shutdown signaling differs by surface. CLI tools run once and exit — disposal happens after the command completes. Long-running servers (MCP, HTTP) listen for `SIGTERM`/`SIGINT` and dispose services before exiting. The surface's `trailhead()` function owns this lifecycle, which is consistent with how surfaces already own the server lifecycle today.
 
 Request-scoped services (per-invocation loggers, transaction contexts) are deferred. The singleton model is simple, predictable, and sufficient for v1.
 
@@ -203,7 +203,7 @@ dispatch(app, 'search', input, {
   services: { 'db.main': testDb },
 });
 
-blaze(app, {
+trailhead(app, {
   services: { 'db.main': stagingDb },
 });
 ```

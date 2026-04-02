@@ -13,19 +13,19 @@ import { z } from 'zod';
 import { findTopoPath } from './project.js';
 
 const generateCliEntry = (appImportPath: string): string =>
-  `import { blaze } from '@ontrails/cli/commander';
+  `import { trailhead } from '@ontrails/cli/commander';
 
 import { app } from '${appImportPath}';
 
-blaze(app);
+trailhead(app);
 `;
 
 const generateMcpEntry = (appImportPath: string): string =>
-  `import { blaze } from '@ontrails/mcp';
+  `import { trailhead } from '@ontrails/mcp';
 
 import { app } from '${appImportPath}';
 
-await blaze(app);
+await trailhead(app);
 `;
 
 /** Resolve the entry file for a surface. */
@@ -107,7 +107,9 @@ export const addSurface = trail('add.surface', {
 
     if (existsSync(join(cwd, entryFile))) {
       return Result.err(
-        new Error(`${surface.toUpperCase()} is already blazed. Nothing to do.`)
+        new Error(
+          `${surface.toUpperCase()} trailhead already exists. Nothing to do.`
+        )
       );
     }
 
