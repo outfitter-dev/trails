@@ -2,7 +2,7 @@ import { NotFoundError, Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
-import { formatProvisionDetail, generateTrailDetail } from './topo-reports.js';
+import { buildCurrentTopoDetail } from './topo-read-support.js';
 import { DEFAULT_APP_MODULE } from './topo-support.js';
 
 const trailDetailOutput = z.object({
@@ -30,13 +30,9 @@ export const topoShowTrail = trail('topo.show', {
   blaze: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
     const app = await loadApp(input.module, rootDir);
-    const item = app.get(input.id);
-
-    if (item) {
-      return Result.ok(generateTrailDetail(item));
-    }
-    if (app.getProvision(input.id)) {
-      return Result.ok(formatProvisionDetail(app, input.id));
+    const detail = buildCurrentTopoDetail(app, input.id, { rootDir });
+    if (detail !== undefined) {
+      return Result.ok(detail);
     }
     return Result.err(
       new NotFoundError(`Trail or provision not found: ${input.id}`)

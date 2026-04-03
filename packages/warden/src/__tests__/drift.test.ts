@@ -3,7 +3,12 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { trail, topo, Result } from '@ontrails/core';
+import { createTopoStore, trail, topo, Result } from '@ontrails/core';
+import { persistEstablishedTopoSave } from '@ontrails/core/internal/topo-store';
+import {
+  openWriteTrailsDb,
+  resolveTrailsDir,
+} from '@ontrails/core/internal/trails-db';
 import {
   hashTrailheadMap,
   generateTrailheadMap,
@@ -34,6 +39,28 @@ const createTempDir = (): string => {
   return dir;
 };
 
+const committedLockDir = (dir: string): string => {
+  const trailsDir = resolveTrailsDir({ rootDir: dir });
+  mkdirSync(trailsDir, { recursive: true });
+  return trailsDir;
+};
+
+const seedSavedTopo = (dir: string): string | undefined => {
+  const db = openWriteTrailsDb({ rootDir: dir });
+  try {
+    const result = persistEstablishedTopoSave(db, makeTopo(), {
+      createdAt: '2026-04-03T15:00:00.000Z',
+    });
+    if (result.isErr()) {
+      throw result.error;
+    }
+  } finally {
+    db.close();
+  }
+
+  return createTopoStore({ rootDir: dir }).exports.get()?.trailheadHash;
+};
+
 describe('checkDrift', () => {
   test('returns stale: false when no topo is provided', async () => {
     const result = await checkDrift('/tmp');
@@ -48,6 +75,19 @@ describe('checkDrift', () => {
       expect(result.stale).toBe(false);
       expect(result.committedHash).toBeNull();
       expect(result.currentHash.length).toBeGreaterThan(0);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('uses the latest saved topo hash when no live topo is provided', async () => {
+    const dir = createTempDir();
+    try {
+      const expectedHash = seedSavedTopo(dir);
+      const result = await checkDrift(dir);
+
+      expect(result.stale).toBe(false);
+      expect(result.currentHash).toBe(expectedHash);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

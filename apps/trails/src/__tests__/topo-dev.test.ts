@@ -17,6 +17,8 @@ import { createDevStore } from '@ontrails/tracker';
 import { devCleanTrail } from '../trails/dev-clean.js';
 import { devResetTrail } from '../trails/dev-reset.js';
 import { devStatsTrail } from '../trails/dev-stats.js';
+import { guideTrail } from '../trails/guide.js';
+import { surveyTrail } from '../trails/survey.js';
 import { topoExportTrail } from '../trails/topo-export.js';
 import { topoHistoryTrail } from '../trails/topo-history.js';
 import { topoPinTrail } from '../trails/topo-pin.js';
@@ -122,16 +124,109 @@ describe('topo and dev trails', () => {
         version: 1,
       });
 
+      writeFileSync(
+        join(dir, '.trails', 'trailhead.lock'),
+        readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8')
+      );
+      rmSync(join(dir, '.trails', 'trails.lock'));
+
+      const legacySummary = expectOk(
+        await topoTrail.blaze(moduleInput, { cwd: dir } as never)
+      );
+      expect(legacySummary.lockExists).toBe(true);
+
       const verifyResult = expectOk(
         await topoVerifyTrail.blaze(moduleInput, { cwd: dir } as never)
       );
       expect(verifyResult.stale).toBe(false);
 
-      writeFileSync(join(dir, '.trails', 'trails.lock'), 'stale\n');
+      writeFileSync(join(dir, '.trails', 'trailhead.lock'), 'stale\n');
       const verifyError = expectErr(
         await topoVerifyTrail.blaze(moduleInput, { cwd: dir } as never)
       );
       expect(verifyError.message).toContain('trails.lock is stale');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('survey and guide read current topo state through the shared topo store', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeAppFixture(dir);
+
+      const surveyList = expectOk(
+        await surveyTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      expect(surveyList).toMatchObject({
+        count: 2,
+        provisionCount: 1,
+      });
+
+      const surveyBrief = expectOk(
+        await surveyTrail.blaze({ brief: true, module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      expect(surveyBrief).toMatchObject({
+        features: {
+          examples: true,
+          outputSchemas: true,
+          provisions: true,
+        },
+        name: 'fixture-app',
+        trails: 2,
+      });
+
+      const surveyDetail = expectOk(
+        await surveyTrail.blaze({ module: './src/app.ts', trailId: 'hello' }, {
+          cwd: dir,
+        } as never)
+      );
+      expect(surveyDetail).toMatchObject({
+        id: 'hello',
+        provisions: ['db.main'],
+      });
+
+      const guideList = expectOk(
+        await guideTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      expect(guideList).toEqual([
+        {
+          description: '(no description)',
+          exampleCount: 0,
+          id: 'goodbye',
+          kind: 'trail',
+        },
+        {
+          description: '(no description)',
+          exampleCount: 1,
+          id: 'hello',
+          kind: 'trail',
+        },
+      ]);
+
+      const guideDetail = expectOk(
+        await guideTrail.blaze({ module: './src/app.ts', trailId: 'hello' }, {
+          cwd: dir,
+        } as never)
+      );
+      expect(guideDetail).toMatchObject({
+        description: null,
+        examples: [
+          {
+            input: {},
+            name: 'Default greeting',
+          },
+        ],
+        id: 'hello',
+        kind: 'trail',
+      });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

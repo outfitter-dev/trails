@@ -23,15 +23,9 @@ import {
   resolveTrailsDbPath,
   resolveTrailsDir,
 } from '@ontrails/core/internal/trails-db';
-import {
-  generateTrailheadMap,
-  hashTrailheadMap,
-  readTrailheadLock,
-} from '@ontrails/schema';
 import { z } from 'zod';
 
 import type { BriefReport, SurveyListReport } from './topo-reports.js';
-import { generateBriefReport, generateSurveyList } from './topo-reports.js';
 
 /** Output schema for a topo save record. Shared across topo trails. */
 export const topoSaveOutput = z.object({
@@ -219,6 +213,18 @@ export const createCurrentTopoSave = (
   } finally {
     db.close();
   }
+};
+
+export const isolatedExampleInput = (
+  name: string
+): { readonly module: string; readonly rootDir: string } => {
+  const rootDir = join(tmpdir(), 'ontrails-trails-examples', name);
+  rmSync(rootDir, { force: true, recursive: true });
+  mkdirSync(rootDir, { recursive: true });
+  return {
+    module: EXAMPLE_APP_MODULE,
+    rootDir,
+  };
 };
 
 export const listTopoHistory = (options?: {

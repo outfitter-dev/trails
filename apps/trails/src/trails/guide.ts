@@ -4,11 +4,14 @@
  * Lists trails with descriptions and examples. Detailed guidance is planned for post-v1.
  */
 
-import type { Topo, Trail } from '@ontrails/core';
 import { NotFoundError, Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
+import {
+  buildCurrentGuideEntries,
+  buildCurrentTopoDetail,
+} from './topo-read-support.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,50 +28,30 @@ interface GuideEntry {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const toGuideEntries = (app: Topo): GuideEntry[] => {
-  const entries: GuideEntry[] = [];
-
-  for (const item of app.list()) {
-    const raw = item as unknown as Record<string, unknown>;
-    entries.push({
-      description:
-        typeof raw['description'] === 'string'
-          ? raw['description']
-          : '(no description)',
-      exampleCount: Array.isArray(raw['examples'])
-        ? (raw['examples'] as unknown[]).length
-        : 0,
-      id: item.id,
-      kind: item.kind,
-    });
-  }
-
-  return entries;
-};
-
-const toGuideDetail = (item: Trail<unknown, unknown>): object => ({
-  description: item.description ?? null,
-  detours: item.detours ?? null,
-  examples: item.examples ?? [],
-  id: item.id,
-  kind: item.kind,
-});
-
 export const guideTrail = trail('guide', {
   blaze: async (input, ctx) => {
-    const app = await loadApp(input.module, ctx.cwd ?? '.');
+    const rootDir = ctx.cwd ?? '.';
+    const app = await loadApp(input.module, rootDir);
 
     if (input.trailId) {
-      const item = app.get(input.trailId);
-      if (!item) {
+      const detail = buildCurrentTopoDetail(app, input.trailId, { rootDir });
+      if (detail === undefined || detail.kind !== 'trail') {
         return Result.err(
           new NotFoundError(`Trail not found: ${input.trailId}`)
         );
       }
-      return Result.ok(toGuideDetail(item as Trail<unknown, unknown>));
+      return Result.ok({
+        description: detail.description,
+        detours: detail.detours,
+        examples: detail.examples,
+        id: detail.id,
+        kind: detail.kind,
+      });
     }
 
-    return Result.ok(toGuideEntries(app));
+    return Result.ok(
+      buildCurrentGuideEntries(app, { rootDir }) as GuideEntry[]
+    );
   },
   description: 'Runtime guidance for trails',
   examples: [

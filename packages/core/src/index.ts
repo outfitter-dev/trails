@@ -82,6 +82,20 @@ export type { AnyEvent, Event, EventSpec } from './event.js';
 // Topo
 export { topo } from './topo.js';
 export type { Topo } from './topo.js';
+export {
+  createMockTopoStore,
+  createTopoStore,
+  topoStore,
+} from './topo-store.js';
+export type {
+  MockTopoStoreSeed,
+  ReadOnlyTopoStore,
+  TopoStoreExportRecord,
+  TopoStoreProvisionRecord,
+  TopoStoreRef,
+  TopoStoreTrailDetailRecord,
+  TopoStoreTrailRecord,
+} from './topo-store.js';
 
 // Draft state
 export {
