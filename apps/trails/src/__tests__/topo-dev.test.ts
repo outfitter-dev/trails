@@ -115,6 +115,12 @@ describe('topo and dev trails', () => {
       expect(exportResult.hash).toHaveLength(64);
       expect(existsSync(join(dir, '.trails', '_trailhead.json'))).toBe(true);
       expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(true);
+      expect(
+        JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
+      ).toMatchObject({
+        hash: exportResult.hash,
+        version: 1,
+      });
 
       const verifyResult = expectOk(
         await topoVerifyTrail.blaze(moduleInput, { cwd: dir } as never)
@@ -151,6 +157,13 @@ describe('topo and dev trails', () => {
       const secondExport = expectOk(
         await topoExportTrail.blaze(moduleInput, { cwd: dir } as never)
       );
+      expect(firstExport.hash).toBe(secondExport.hash);
+      expect(
+        JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
+      ).toMatchObject({
+        hash: secondExport.hash,
+        version: 1,
+      });
 
       const projectionDb = openReadTrailsDb({ rootDir: dir });
       try {
@@ -169,10 +182,16 @@ describe('topo and dev trails', () => {
             'SELECT COUNT(DISTINCT save_id) as count FROM topo_trails'
           )
           .get();
+        const cachedSchemas = projectionDb
+          .query<{ count: number }, []>(
+            'SELECT COUNT(*) as count FROM topo_schemas'
+          )
+          .get();
 
         expect(pinnedRows?.count).toBe(2);
         expect(exportedRows?.count).toBe(2);
         expect(projectedSaves?.count).toBe(3);
+        expect(cachedSchemas?.count).toBeGreaterThanOrEqual(9);
       } finally {
         projectionDb.close();
       }

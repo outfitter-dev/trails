@@ -448,7 +448,7 @@ describe('validateEstablishedTopo', () => {
     expect(issues[0]?.rule).toBe('cross-exists');
   });
 
-  test('allows provision declarations to be satisfied outside the topo', () => {
+  test('fails when provision declarations are not established in the topo', () => {
     const app = topo('app', {
       show: mockTrail('entity.show', {
         provisions: [mockProvision('db.main')],
@@ -456,7 +456,11 @@ describe('validateEstablishedTopo', () => {
     });
 
     const result = validateEstablishedTopo(app);
-    expect(result.isOk()).toBe(true);
+    expect(result.isErr()).toBe(true);
+
+    const issues = extractIssues(result);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.rule).toBe('provision-exists');
   });
 
   test('allows authoring-only example issues outside projection checks', () => {

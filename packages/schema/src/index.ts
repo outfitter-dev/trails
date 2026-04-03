@@ -12,6 +12,7 @@ export {
   writeTrailheadMap,
   readTrailheadMap,
   writeTrailheadLock,
+  readTrailheadLockData,
   readTrailheadLock,
 } from './io.js';
 
@@ -19,6 +20,7 @@ export {
 export type {
   TrailheadMap,
   TrailheadMapEntry,
+  TrailheadLock,
   DiffEntry,
   DiffResult,
   JsonSchema,

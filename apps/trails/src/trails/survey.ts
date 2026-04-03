@@ -12,10 +12,7 @@ import {
   diffTrailheadMaps,
   generateOpenApiSpec,
   generateTrailheadMap,
-  hashTrailheadMap,
   readTrailheadMap,
-  writeTrailheadLock,
-  writeTrailheadMap,
 } from '@ontrails/schema';
 import { z } from 'zod';
 
@@ -26,6 +23,7 @@ import {
   generateSurveyList,
   generateTrailDetail,
 } from './topo-reports.js';
+import { exportCurrentTopo } from './topo-support.js';
 
 export {
   formatProvisionDetail,
@@ -94,13 +92,18 @@ const buildSurveyDetail = (
 };
 
 const buildSurveyGenerate = async (
-  app: Topo
+  app: Topo,
+  rootDir: string
 ): Promise<Result<object, Error>> => {
-  const trailheadMap = generateTrailheadMap(app);
-  const mapPath = await writeTrailheadMap(trailheadMap);
-  const hash = hashTrailheadMap(trailheadMap);
-  const lockPath = await writeTrailheadLock(hash);
-  return Result.ok({ hash, lockPath, mapPath });
+  const exported = await exportCurrentTopo(app, { rootDir });
+  if (exported.isErr()) {
+    return exported;
+  }
+  return Result.ok({
+    hash: exported.value.hash,
+    lockPath: exported.value.lockPath,
+    mapPath: exported.value.mapPath,
+  });
 };
 
 interface SurveyInput {
@@ -129,7 +132,8 @@ const resolveSurveyMode = (input: SurveyInput): SurveyMode =>
 
 type SurveyHandler = (
   app: Topo,
-  input: SurveyInput
+  input: SurveyInput,
+  rootDir: string
 ) => Result<object, Error> | Promise<Result<object, Error>>;
 
 /** Handlers keyed by survey mode. */
@@ -137,7 +141,7 @@ const surveyHandlers: Record<SurveyMode, SurveyHandler> = {
   brief: (app) => Result.ok(generateBriefReport(app)),
   detail: (app, input) => buildSurveyDetail(app, input.trailId ?? ''),
   diff: (app, input) => buildSurveyDiff(app, input.breakingOnly),
-  generate: (app) => buildSurveyGenerate(app),
+  generate: (app, _input, rootDir) => buildSurveyGenerate(app, rootDir),
   list: (app) => Result.ok(generateSurveyList(app)),
   openapi: (app) => Result.ok(generateOpenApiSpec(app)),
 };
@@ -145,11 +149,12 @@ const surveyHandlers: Record<SurveyMode, SurveyHandler> = {
 /** Dispatch to the appropriate survey sub-command based on input flags. */
 const dispatchSurvey = (
   app: Topo,
-  input: SurveyInput
+  input: SurveyInput,
+  rootDir: string
 ): Result<object, Error> | Promise<Result<object, Error>> => {
   const mode = resolveSurveyMode(input);
   const handler = surveyHandlers[mode];
-  return handler(app, input);
+  return handler(app, input, rootDir);
 };
 
 // ---------------------------------------------------------------------------
@@ -158,8 +163,9 @@ const dispatchSurvey = (
 
 export const surveyTrail = trail('survey', {
   blaze: async (input, ctx) => {
-    const app = await loadApp(input.module, ctx.cwd ?? '.');
-    return dispatchSurvey(app, input);
+    const rootDir = ctx.cwd ?? '.';
+    const app = await loadApp(input.module, rootDir);
+    return dispatchSurvey(app, input, rootDir);
   },
   description: 'Full topo introspection',
   examples: [

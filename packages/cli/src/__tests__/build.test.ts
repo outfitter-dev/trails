@@ -53,7 +53,7 @@ describe('buildCliCommands path derivation', () => {
       blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
       input: z.object({ name: z.string() }),
     });
-    const app = makeApp(t);
+    const app = topo('test-app', { 'db.main': dbProvision, [t.id]: t });
     const commands = buildCliCommands(app);
     expect(commands).toHaveLength(1);
     expect(commands[0]?.path).toEqual(['greet']);
@@ -94,7 +94,10 @@ describe('buildCliCommands path derivation', () => {
         query: z.string(),
       }),
     });
-    const app = makeApp(t);
+    const app = topo('test-app', {
+      'db.main': dbProvision,
+      [t.id]: t,
+    });
     const { flags } = requireCommand(buildCliCommands(app));
 
     const queryFlag = flags.find((f) => f.name === 'query');
@@ -446,7 +449,10 @@ describe('buildCliCommands provision overrides', () => {
       output: z.object({ name: z.string() }),
       provisions: [dbProvision],
     });
-    const app = makeApp(t);
+    const app = topo('test-app', {
+      'db.main': dbProvision,
+      [t.id]: t,
+    });
     const commands = buildCliCommands(app, {
       provisions: { 'db.main': { name: 'override' } },
     });

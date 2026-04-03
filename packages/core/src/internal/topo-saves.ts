@@ -89,6 +89,23 @@ const TOPO_TABLE_STATEMENTS = [
     save_id TEXT NOT NULL,
     FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
   )`,
+  `CREATE TABLE IF NOT EXISTS topo_schemas (
+    owner_id TEXT NOT NULL,
+    owner_kind TEXT NOT NULL,
+    schema_kind TEXT NOT NULL,
+    zod_hash TEXT NOT NULL,
+    json_schema TEXT NOT NULL,
+    save_id TEXT NOT NULL,
+    PRIMARY KEY (owner_id, owner_kind, schema_kind, save_id),
+    FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS topo_exports (
+    save_id TEXT PRIMARY KEY,
+    trailhead_map TEXT NOT NULL,
+    trailhead_hash TEXT NOT NULL,
+    serialized_lock TEXT NOT NULL,
+    FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
+  )`,
 ] as const;
 const TOPO_INDEX_STATEMENTS = [
   'CREATE INDEX IF NOT EXISTS idx_topo_saves_created_at ON topo_saves(created_at DESC)',
@@ -101,6 +118,9 @@ const TOPO_INDEX_STATEMENTS = [
   'CREATE INDEX IF NOT EXISTS idx_topo_trail_signals_save_id ON topo_trail_signals(save_id)',
   'CREATE INDEX IF NOT EXISTS idx_topo_trailheads_save_id ON topo_trailheads(save_id)',
   'CREATE UNIQUE INDEX IF NOT EXISTS idx_topo_examples_save_trail_ordinal ON topo_examples(save_id, trail_id, ordinal)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_schemas_save_id ON topo_schemas(save_id)',
+  `CREATE INDEX IF NOT EXISTS idx_topo_schemas_lookup
+   ON topo_schemas(owner_id, owner_kind, schema_kind, zod_hash)`,
 ] as const;
 
 interface TopoSaveRow {
@@ -196,7 +216,7 @@ export const ensureTopoHistorySchema = (db: Database): void => {
       }
     },
     subsystem: TOPO_SUBSYSTEM,
-    version: 2,
+    version: 3,
   });
 };
 

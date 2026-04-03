@@ -7,8 +7,23 @@ import type { AnySignal } from '../signal.js';
 import type { Topo } from '../topo.js';
 import type { AnyTrail } from '../trail.js';
 import { validateEstablishedTopo } from '../validate-established-topo.js';
+import { zodToJsonSchema } from '../validation.js';
 import type { CreateTopoSaveInput, TopoSaveRecord } from './topo-saves.js';
 import { ensureTopoHistorySchema, insertTopoSaveRecord } from './topo-saves.js';
+
+type TrailheadMapEntryRecord = Readonly<Record<string, unknown>> & {
+  readonly id: string;
+  readonly kind: 'provision' | 'signal' | 'trail';
+};
+
+type TrailheadMapRecord = Readonly<{
+  readonly entries: readonly TrailheadMapEntryRecord[];
+  readonly generatedAt: string;
+  readonly version: '1.0';
+}>;
+
+type JsonRecord = Readonly<Record<string, unknown>>;
+type ZodSchemaInput = Parameters<typeof zodToJsonSchema>[0];
 
 interface TopoTrailRow {
   readonly description: string | null;
@@ -73,6 +88,51 @@ interface TopoExampleRow {
   readonly trailId: string;
 }
 
+interface TopoSchemaRow {
+  readonly jsonSchema: string;
+  readonly ownerId: string;
+  readonly ownerKind: 'signal' | 'trail';
+  readonly saveId: string;
+  readonly schemaKind: 'input' | 'output' | 'payload';
+  readonly zodHash: string;
+}
+
+interface StoredTopoExportRow {
+  readonly saveId: string;
+  readonly serializedLock: string;
+  readonly trailheadHash: string;
+  readonly trailheadMap: string;
+}
+
+interface StoredTopoExportDbRow {
+  readonly serialized_lock: string;
+  readonly trailhead_hash: string;
+  readonly trailhead_map: string;
+}
+
+export interface StoredTopoExport {
+  readonly lockContent: string;
+  readonly trailheadHash: string;
+  readonly trailheadMapJson: string;
+}
+
+interface MaterializedSchemas {
+  readonly rows: readonly TopoSchemaRow[];
+  readonly signalPayloads: ReadonlyMap<string, JsonRecord>;
+  readonly trailSchemas: ReadonlyMap<
+    string,
+    Readonly<{
+      readonly input: JsonRecord;
+      readonly output?: JsonRecord;
+    }>
+  >;
+}
+
+interface MaterializedTopoArtifacts {
+  readonly exportRow: StoredTopoExportRow;
+  readonly schemaRows: readonly TopoSchemaRow[];
+}
+
 interface NormalizedTopoProjection {
   readonly crossings: readonly TopoCrossingRow[];
   readonly examples: readonly TopoExampleRow[];
@@ -84,22 +144,93 @@ interface NormalizedTopoProjection {
   readonly trails: readonly TopoTrailRow[];
 }
 
+const canonicalLeaf = (value: unknown): unknown => {
+  switch (typeof value) {
+    case 'bigint': {
+      return value.toString();
+    }
+    case 'function': {
+      return `[Function:${value.name || 'anonymous'}]`;
+    }
+    case 'symbol': {
+      return `[Symbol:${value.description ?? ''}]`;
+    }
+    case 'undefined': {
+      return '[Undefined]';
+    }
+    default: {
+      return value;
+    }
+  }
+};
+
+const canonicalObject = (
+  value: Record<string, unknown>,
+  visit: (value: unknown) => unknown
+): Record<string, unknown> => {
+  const sorted: Record<string, unknown> = {};
+  for (const key of Object.keys(value).toSorted()) {
+    const next = value[key];
+    sorted[key] = next === undefined ? '[Undefined]' : visit(next);
+  }
+  return sorted;
+};
+
 const canonicalize = (value: unknown): unknown => {
   if (Array.isArray(value)) {
     return value.map(canonicalize);
   }
-  if (value !== null && typeof value === 'object') {
-    const sorted: Record<string, unknown> = {};
-    for (const key of Object.keys(value).toSorted()) {
-      sorted[key] = canonicalize((value as Record<string, unknown>)[key]);
-    }
-    return sorted;
+  if (value instanceof Date) {
+    return value.toISOString();
   }
-  return value;
+  if (value instanceof RegExp) {
+    return value.toString();
+  }
+  if (value !== null && typeof value === 'object') {
+    return canonicalObject(value as Record<string, unknown>, canonicalize);
+  }
+  return canonicalLeaf(value);
 };
 
 const stableJson = (value: unknown): string =>
   JSON.stringify(canonicalize(value));
+
+const hashText = (text: string): string => {
+  const hasher = new Bun.CryptoHasher('sha256');
+  hasher.update(text);
+  return hasher.digest('hex');
+};
+
+const hashValue = (value: unknown): string => hashText(stableJson(value));
+
+const parseJsonRecord = (value: string): JsonRecord =>
+  JSON.parse(value) as JsonRecord;
+
+const schemaDefinitionHash = (schema: unknown): string => {
+  const def =
+    typeof schema === 'object' && schema !== null && '_def' in schema
+      ? (schema as { readonly _def: unknown })._def
+      : schema;
+  return hashValue(def);
+};
+
+const sortedJsonSchema = (
+  schema: ZodSchemaInput
+): { readonly json: string; readonly value: JsonRecord } => {
+  const json = stableJson(zodToJsonSchema(schema));
+  return {
+    json,
+    value: parseJsonRecord(json),
+  };
+};
+
+const sortKeys = <T extends Record<string, unknown>>(value: T): T => {
+  const sorted: Record<string, unknown> = {};
+  for (const key of Object.keys(value).toSorted()) {
+    sorted[key] = value[key];
+  }
+  return sorted as T;
+};
 
 const normalizeTrailRows = (
   trails: readonly AnyTrail[],
@@ -255,6 +386,487 @@ const normalizeTopoProjection = (
  * deterministic for a given `_def` hash — the `schemaDefinitionHash` pipeline
  * guarantees that structurally identical schemas produce the same hash.
  */
+const readCachedJsonSchema = (
+  db: Database,
+  ownerId: string,
+  ownerKind: TopoSchemaRow['ownerKind'],
+  schemaKind: TopoSchemaRow['schemaKind'],
+  zodHash: string
+): string | undefined => {
+  const row = db
+    .query<
+      {
+        readonly json_schema: string;
+      },
+      [string, string, string, string]
+    >(
+      `SELECT json_schema
+       FROM topo_schemas
+       WHERE owner_id = ?
+         AND owner_kind = ?
+         AND schema_kind = ?
+         AND zod_hash = ?
+       LIMIT 1`
+    )
+    .get(ownerId, ownerKind, schemaKind, zodHash);
+
+  return row?.json_schema;
+};
+
+const resolveSchemaRow = (
+  db: Database,
+  ownerId: string,
+  ownerKind: TopoSchemaRow['ownerKind'],
+  saveId: string,
+  schemaKind: TopoSchemaRow['schemaKind'],
+  schema: ZodSchemaInput
+): {
+  readonly row: TopoSchemaRow;
+  readonly value: JsonRecord;
+} => {
+  const zodHash = schemaDefinitionHash(schema);
+  const cachedJson = readCachedJsonSchema(
+    db,
+    ownerId,
+    ownerKind,
+    schemaKind,
+    zodHash
+  );
+
+  if (cachedJson !== undefined) {
+    return {
+      row: {
+        jsonSchema: cachedJson,
+        ownerId,
+        ownerKind,
+        saveId,
+        schemaKind,
+        zodHash,
+      },
+      value: parseJsonRecord(cachedJson),
+    };
+  }
+
+  const generated = sortedJsonSchema(schema);
+  return {
+    row: {
+      jsonSchema: generated.json,
+      ownerId,
+      ownerKind,
+      saveId,
+      schemaKind,
+      zodHash,
+    },
+    value: generated.value,
+  };
+};
+
+const materializeTrailSchema = (
+  db: Database,
+  saveId: string,
+  trail: AnyTrail
+): {
+  readonly rows: readonly TopoSchemaRow[];
+  readonly value: Readonly<{
+    readonly input: JsonRecord;
+    readonly output?: JsonRecord;
+  }>;
+} => {
+  const inputSchema = resolveSchemaRow(
+    db,
+    trail.id,
+    'trail',
+    saveId,
+    'input',
+    trail.input as ZodSchemaInput
+  );
+
+  if (trail.output === undefined) {
+    return {
+      rows: [inputSchema.row],
+      value: {
+        input: inputSchema.value,
+      },
+    };
+  }
+
+  const outputSchema = resolveSchemaRow(
+    db,
+    trail.id,
+    'trail',
+    saveId,
+    'output',
+    trail.output as ZodSchemaInput
+  );
+
+  return {
+    rows: [inputSchema.row, outputSchema.row],
+    value: {
+      input: inputSchema.value,
+      output: outputSchema.value,
+    },
+  };
+};
+
+const materializeTrailSchemas = (
+  db: Database,
+  saveId: string,
+  trails: readonly AnyTrail[]
+): Pick<MaterializedSchemas, 'rows' | 'trailSchemas'> => {
+  const rows: TopoSchemaRow[] = [];
+  const trailSchemas = new Map<
+    string,
+    Readonly<{
+      readonly input: JsonRecord;
+      readonly output?: JsonRecord;
+    }>
+  >();
+
+  for (const trail of trails) {
+    const materialized = materializeTrailSchema(db, saveId, trail);
+    rows.push(...materialized.rows);
+    trailSchemas.set(trail.id, materialized.value);
+  }
+
+  return {
+    rows,
+    trailSchemas,
+  };
+};
+
+const materializeSignalSchemas = (
+  db: Database,
+  saveId: string,
+  signals: readonly AnySignal[]
+): Pick<MaterializedSchemas, 'rows' | 'signalPayloads'> => {
+  const rows: TopoSchemaRow[] = [];
+  const signalPayloads = new Map<string, JsonRecord>();
+
+  for (const signal of signals) {
+    const payloadSchema = resolveSchemaRow(
+      db,
+      signal.id,
+      'signal',
+      saveId,
+      'payload',
+      signal.payload as ZodSchemaInput
+    );
+    rows.push(payloadSchema.row);
+    signalPayloads.set(signal.id, payloadSchema.value);
+  }
+
+  return {
+    rows,
+    signalPayloads,
+  };
+};
+
+const materializeSchemas = (
+  db: Database,
+  saveId: string,
+  signals: readonly AnySignal[],
+  trails: readonly AnyTrail[]
+): MaterializedSchemas => {
+  const trailMaterial = materializeTrailSchemas(db, saveId, trails);
+  const signalMaterial = materializeSignalSchemas(db, saveId, signals);
+
+  return {
+    rows: [...trailMaterial.rows, ...signalMaterial.rows],
+    signalPayloads: signalMaterial.signalPayloads,
+    trailSchemas: trailMaterial.trailSchemas,
+  };
+};
+
+const extractTrailheads = (raw: Record<string, unknown>): string[] =>
+  Array.isArray(raw['trailheads'])
+    ? (raw['trailheads'] as string[]).toSorted()
+    : [];
+
+const addSafetyMarkers = (
+  entry: Record<string, unknown>,
+  trail: AnyTrail
+): void => {
+  if (trail.intent !== 'write') {
+    entry['intent'] = trail.intent;
+  }
+
+  if (trail.idempotent === true) {
+    entry['idempotent'] = true;
+  }
+};
+
+const addExtendedMetadata = (
+  entry: Record<string, unknown>,
+  raw: Record<string, unknown>,
+  trail: AnyTrail
+): void => {
+  if (raw['deprecated'] === true) {
+    entry['deprecated'] = true;
+  }
+
+  if (typeof raw['replacedBy'] === 'string') {
+    entry['replacedBy'] = raw['replacedBy'];
+  }
+
+  if (trail.detours !== undefined) {
+    const detours: Record<string, readonly string[]> = {};
+    for (const key of Object.keys(trail.detours).toSorted()) {
+      detours[key] = (trail.detours[key] ?? []).toSorted();
+    }
+    entry['detours'] = detours;
+  }
+};
+
+const addTrailRelations = (
+  entry: Record<string, unknown>,
+  trail: AnyTrail
+): void => {
+  if (trail.crosses.length > 0) {
+    entry['crosses'] = trail.crosses.toSorted();
+  }
+
+  if (trail.provisions.length > 0) {
+    entry['provisions'] = trail.provisions
+      .map((provision) => provision.id)
+      .toSorted();
+  }
+};
+
+const buildTrailEntryBase = (
+  trail: AnyTrail,
+  trailSchema: Readonly<{
+    readonly input: JsonRecord;
+    readonly output?: JsonRecord;
+  }>
+): {
+  readonly entry: Record<string, unknown>;
+  readonly raw: Record<string, unknown>;
+} => {
+  const raw = trail as unknown as Record<string, unknown>;
+  const entry: Record<string, unknown> = {
+    cli: { path: deriveCliPath(trail.id) },
+    exampleCount: trail.examples?.length ?? 0,
+    id: trail.id,
+    input: trailSchema.input,
+    kind: trail.kind,
+    trailheads: extractTrailheads(raw),
+  };
+
+  if (trailSchema.output !== undefined) {
+    entry['output'] = trailSchema.output;
+  }
+
+  if (trail.description !== undefined) {
+    entry['description'] = trail.description;
+  }
+
+  return {
+    entry,
+    raw,
+  };
+};
+
+const trailToEntryRecord = (
+  trail: AnyTrail,
+  trailSchema: Readonly<{
+    readonly input: JsonRecord;
+    readonly output?: JsonRecord;
+  }>
+): TrailheadMapEntryRecord => {
+  const { entry, raw } = buildTrailEntryBase(trail, trailSchema);
+  addSafetyMarkers(entry, trail);
+  addExtendedMetadata(entry, raw, trail);
+  addTrailRelations(entry, trail);
+  return sortKeys(entry) as TrailheadMapEntryRecord;
+};
+
+const signalToEntryRecord = (
+  signal: AnySignal,
+  payloadSchema: JsonRecord
+): TrailheadMapEntryRecord => {
+  const raw = signal as unknown as Record<string, unknown>;
+  const entry: Record<string, unknown> = {
+    exampleCount: 0,
+    id: signal.id,
+    input: payloadSchema,
+    kind: 'signal',
+    trailheads: extractTrailheads(raw),
+  };
+
+  if (signal.description !== undefined) {
+    entry['description'] = signal.description;
+  }
+
+  if (raw['deprecated'] === true) {
+    entry['deprecated'] = true;
+  }
+
+  if (typeof raw['replacedBy'] === 'string') {
+    entry['replacedBy'] = raw['replacedBy'];
+  }
+
+  return sortKeys(entry) as TrailheadMapEntryRecord;
+};
+
+const provisionToEntryRecord = (
+  provision: AnyProvision
+): TrailheadMapEntryRecord => {
+  const entry: Record<string, unknown> = {
+    exampleCount: 0,
+    id: provision.id,
+    kind: 'provision',
+    trailheads: [],
+  };
+
+  if (provision.description !== undefined) {
+    entry['description'] = provision.description;
+  }
+
+  if (provision.health !== undefined) {
+    entry['healthcheck'] = true;
+  }
+
+  return sortKeys(entry) as TrailheadMapEntryRecord;
+};
+
+const requireTrailSchema = (
+  trailSchemas: MaterializedSchemas['trailSchemas'],
+  trailId: string
+): Readonly<{
+  readonly input: JsonRecord;
+  readonly output?: JsonRecord;
+}> => {
+  const schema = trailSchemas.get(trailId);
+  if (schema === undefined) {
+    throw new Error(`Missing cached trail schema for "${trailId}"`);
+  }
+  return schema;
+};
+
+const requireSignalPayload = (
+  signalPayloads: MaterializedSchemas['signalPayloads'],
+  signalId: string
+): JsonRecord => {
+  const payload = signalPayloads.get(signalId);
+  if (payload === undefined) {
+    throw new Error(`Missing cached signal schema for "${signalId}"`);
+  }
+  return payload;
+};
+
+const buildTrailheadMap = (
+  generatedAt: string,
+  provisions: readonly AnyProvision[],
+  signalPayloads: ReadonlyMap<string, JsonRecord>,
+  signals: readonly AnySignal[],
+  trailSchemas: ReadonlyMap<
+    string,
+    Readonly<{
+      readonly input: JsonRecord;
+      readonly output?: JsonRecord;
+    }>
+  >,
+  trails: readonly AnyTrail[]
+): TrailheadMapRecord => {
+  const entries = [
+    ...trails.map((trail) =>
+      trailToEntryRecord(trail, requireTrailSchema(trailSchemas, trail.id))
+    ),
+    ...signals.map((signal) =>
+      signalToEntryRecord(
+        signal,
+        requireSignalPayload(signalPayloads, signal.id)
+      )
+    ),
+    ...provisions.map((provision) => provisionToEntryRecord(provision)),
+  ].toSorted((a, b) => a.id.localeCompare(b.id));
+
+  return {
+    entries,
+    generatedAt,
+    version: '1.0',
+  };
+};
+
+const hashTrailheadMapRecord = (trailheadMap: TrailheadMapRecord): string => {
+  const { generatedAt: _unused, ...rest } = trailheadMap;
+  return hashValue(rest);
+};
+
+const entryPayload = (
+  entry: TrailheadMapEntryRecord
+): Readonly<Record<string, unknown>> => {
+  const { id: _unusedId, kind: _unusedKind, ...rest } = entry;
+  return sortKeys(rest);
+};
+
+const entriesForKind = (
+  entries: readonly TrailheadMapEntryRecord[],
+  kind: TrailheadMapEntryRecord['kind']
+): Readonly<Record<string, Readonly<Record<string, unknown>>>> =>
+  Object.fromEntries(
+    entries
+      .filter((entry) => entry.kind === kind)
+      .map((entry) => [entry.id, entryPayload(entry)])
+  );
+
+const buildSerializedLock = (
+  hash: string,
+  topo: Topo,
+  trailheadMap: TrailheadMapRecord
+): Readonly<Record<string, unknown>> =>
+  sortKeys({
+    apps: sortKeys({
+      [topo.name]: sortKeys({
+        provisions: entriesForKind(trailheadMap.entries, 'provision'),
+        signals: entriesForKind(trailheadMap.entries, 'signal'),
+        trails: entriesForKind(trailheadMap.entries, 'trail'),
+      }),
+    }),
+    generatedAt: trailheadMap.generatedAt,
+    hash,
+    version: 1,
+  });
+
+const buildStoredTopoExport = (
+  db: Database,
+  save: TopoSaveRecord,
+  topo: Topo
+): MaterializedTopoArtifacts => {
+  const trails = topo.list().toSorted((a, b) => a.id.localeCompare(b.id));
+  const provisions = topo
+    .listProvisions()
+    .toSorted((a, b) => a.id.localeCompare(b.id));
+  const signals = topo
+    .listSignals()
+    .toSorted((a, b) => a.id.localeCompare(b.id));
+  const schemas = materializeSchemas(db, save.id, signals, trails);
+  const trailheadMap = buildTrailheadMap(
+    save.createdAt,
+    provisions,
+    schemas.signalPayloads,
+    signals,
+    schemas.trailSchemas,
+    trails
+  );
+  const trailheadHash = hashTrailheadMapRecord(trailheadMap);
+  const serializedLock = `${JSON.stringify(
+    buildSerializedLock(trailheadHash, topo, trailheadMap),
+    null,
+    2
+  )}\n`;
+
+  return {
+    exportRow: {
+      saveId: save.id,
+      serializedLock,
+      trailheadHash,
+      trailheadMap: `${JSON.stringify(trailheadMap, null, 2)}\n`,
+    },
+    schemaRows: schemas.rows,
+  };
+};
+
 const insertRows = <TRow>(
   db: Database,
   rows: readonly TRow[],
@@ -354,6 +966,67 @@ const insertProjectedRows = (
   );
 };
 
+const insertSchemaRows = (
+  db: Database,
+  rows: readonly TopoSchemaRow[]
+): void => {
+  insertRows(
+    db,
+    rows,
+    `INSERT INTO topo_schemas (
+      owner_id, owner_kind, schema_kind, zod_hash, json_schema, save_id
+    ) VALUES (?, ?, ?, ?, ?, ?)`,
+    (row) => [
+      row.ownerId,
+      row.ownerKind,
+      row.schemaKind,
+      row.zodHash,
+      row.jsonSchema,
+      row.saveId,
+    ]
+  );
+};
+
+const insertStoredExport = (
+  db: Database,
+  exportRow: StoredTopoExportRow
+): void => {
+  db.run(
+    `INSERT INTO topo_exports (
+      save_id, trailhead_map, trailhead_hash, serialized_lock
+    ) VALUES (?, ?, ?, ?)`,
+    [
+      exportRow.saveId,
+      exportRow.trailheadMap,
+      exportRow.trailheadHash,
+      exportRow.serializedLock,
+    ]
+  );
+};
+
+export const getStoredTopoExport = (
+  db: Database,
+  saveId: string
+): StoredTopoExport | undefined => {
+  const row = db
+    .query<StoredTopoExportDbRow, [string]>(
+      `SELECT trailhead_map, trailhead_hash, serialized_lock
+       FROM topo_exports
+       WHERE save_id = ?`
+    )
+    .get(saveId);
+
+  if (row === undefined || row === null) {
+    return undefined;
+  }
+
+  return {
+    lockContent: row.serialized_lock,
+    trailheadHash: row.trailhead_hash,
+    trailheadMapJson: row.trailhead_map,
+  };
+};
+
 export const persistEstablishedTopoSave = (
   db: Database,
   topo: Topo,
@@ -375,7 +1048,10 @@ export const persistEstablishedTopoSave = (
 
   const save = db.transaction(() => {
     const record = insertTopoSaveRecord(db, saveInput);
+    const artifacts = buildStoredTopoExport(db, record, topo);
     insertProjectedRows(db, normalizeTopoProjection(topo, record.id));
+    insertSchemaRows(db, artifacts.schemaRows);
+    insertStoredExport(db, artifacts.exportRow);
     return record;
   })();
 
