@@ -20,6 +20,11 @@ const GITIGNORE_CONTENT = [
   '# Generated artifacts',
   'generated/',
   '',
+  '# Shared Trails database',
+  'trails.db',
+  'trails.db-shm',
+  'trails.db-wal',
+  '',
 ].join('\n');
 
 /**

@@ -1,12 +1,12 @@
 import { DEFAULT_SAMPLING } from './sampling.js';
 import type { SamplingConfig } from './sampling.js';
-import type { DevStore } from './stores/dev.js';
+import type { TrackStore } from './stores/dev.js';
 
 /** Full telemetry subsystem state carried by trackerProvision. */
 export interface TrackerState {
   readonly active: boolean;
   readonly sampling: SamplingConfig;
-  readonly store: DevStore | undefined;
+  readonly store: TrackStore | undefined;
 }
 
 let state: TrackerState | undefined;
@@ -26,8 +26,8 @@ export const clearTrackerState = (): void => {
 
 // --- Backward-compatible convenience wrappers ---
 
-/** Register a DevStore instance for use by the tracker.query trail. */
-export const registerTrackStore = (s: DevStore): void => {
+/** Register a track store instance for use by the tracker.query trail. */
+export const registerTrackStore = (s: TrackStore): void => {
   state = {
     active: state?.active ?? true,
     sampling: state?.sampling ?? DEFAULT_SAMPLING,
@@ -35,8 +35,8 @@ export const registerTrackStore = (s: DevStore): void => {
   };
 };
 
-/** Retrieve the currently registered DevStore, if any. */
-export const getTrackStore = (): DevStore | undefined => state?.store;
+/** Retrieve the currently registered track store, if any. */
+export const getTrackStore = (): TrackStore | undefined => state?.store;
 
 /** Clear the registered store. Useful for testing teardown. */
 export const clearTrackStore = (): void => {

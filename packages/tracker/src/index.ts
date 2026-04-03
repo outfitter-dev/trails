@@ -40,6 +40,8 @@ export {
   type DevStore,
   type DevStoreOptions,
   type DevStoreQueryOptions,
+  type TrackStore,
+  toTrackStore,
 } from './stores/dev.js';
 export {
   createOtelConnector,
