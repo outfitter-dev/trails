@@ -10,13 +10,13 @@ import type {
   TopoSaveRecord,
 } from '@ontrails/core/internal/topo-saves';
 import {
-  createTopoSave,
   getTopoPin,
   listTopoPins,
   listTopoSaves,
   pinTopoSave,
   unpinTopoSave,
 } from '@ontrails/core/internal/topo-saves';
+import { persistEstablishedTopoSave } from '@ontrails/core/internal/topo-store';
 import {
   openReadTrailsDb,
   openWriteTrailsDb,
@@ -210,7 +210,7 @@ export const createCurrentTopoSave = (
   const db = openWriteTrailsDb({ rootDir });
 
   try {
-    return createTopoSave(db, {
+    const result = persistEstablishedTopoSave(db, app, {
       ...currentGitState(rootDir),
       ...topoCounts(app),
     });
@@ -251,7 +251,7 @@ export const pinCurrentTopo = (
   const db = openWriteTrailsDb({ rootDir });
 
   try {
-    const save = createTopoSave(db, {
+    const result = persistEstablishedTopoSave(db, app, {
       ...currentGitState(rootDir),
       ...topoCounts(app),
     });
