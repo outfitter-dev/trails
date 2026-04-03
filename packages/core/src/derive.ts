@@ -142,13 +142,20 @@ interface DerivedFieldType {
   type: Field['type'];
 }
 
-const fieldTypeByDef: Record<string, (s: ZodInternals) => DerivedFieldType> = {
+const fieldTypeByDef: Record<
+  string,
+  (s: ZodInternals) => DerivedFieldType | null
+> = {
   array: (s) => {
     const element = s._zod.def['element'] as unknown as ZodInternals;
-    const elementType = element._zod.def['type'] as string;
+    const { inner } = unwrap(element);
+    const elementType = inner._zod.def['type'] as string;
     if (elementType === 'enum') {
-      const entries = element._zod.def['entries'] as Record<string, string>;
+      const entries = inner._zod.def['entries'] as Record<string, string>;
       return { options: Object.values(entries), type: 'multiselect' };
+    }
+    if (elementType !== 'number' && elementType !== 'string') {
+      return null;
     }
     return {
       options: undefined,
@@ -165,10 +172,10 @@ const fieldTypeByDef: Record<string, (s: ZodInternals) => DerivedFieldType> = {
 };
 
 /** Derive field type and raw options from the unwrapped Zod def. */
-const deriveFieldType = (s: ZodInternals): DerivedFieldType => {
+const deriveFieldType = (s: ZodInternals): DerivedFieldType | null => {
   const defType = s._zod.def['type'] as string;
   const derive = fieldTypeByDef[defType];
-  return derive ? derive(s) : { options: undefined, type: 'string' };
+  return derive ? derive(s) : null;
 };
 
 /** Build options array, merging with overrides when present. */
@@ -216,9 +223,13 @@ const deriveField = (
   key: string,
   value: ZodInternals,
   overrides?: Record<string, FieldOverride>
-): Field => {
+): Field | null => {
   const { inner, required, defaultValue, description } = unwrap(value);
-  const { type, options: rawOptions } = deriveFieldType(inner);
+  const derived = deriveFieldType(inner);
+  if (!derived) {
+    return null;
+  }
+  const { type, options: rawOptions } = derived;
   const override = overrides?.[key];
   const label = override?.label ?? description ?? humanize(key);
   const options = buildOptions(rawOptions, override?.options);
@@ -247,5 +258,7 @@ export const deriveFields = (
   const fields = Object.entries(shape).map(([key, value]) =>
     deriveField(key, value, overrides)
   );
-  return fields.toSorted((a, b) => a.name.localeCompare(b.name));
+  return fields
+    .filter((field): field is Field => field !== null)
+    .toSorted((a, b) => a.name.localeCompare(b.name));
 };

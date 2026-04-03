@@ -131,7 +131,8 @@ The developer returns `Result.err(new NotFoundError(...))`. The framework maps i
 
 ### Other exports
 
-- **Schema derivation** -- `deriveFields(schema)` extracts field metadata from Zod for prompts and forms
+- **Schema derivation** -- `deriveFields(schema)` extracts faithfully
+  representable field metadata from Zod for prompts and forms
 - **Validation** -- `validateInput`, `formatZodIssues`, `zodToJsonSchema`
 - **Resilience** -- `retry`, `withTimeout`, `shouldRetry`, `getBackoffDelay`
 - **Serialization** -- `serializeError`, `deserializeError`

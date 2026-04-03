@@ -60,7 +60,7 @@ validateTopo(topo)                 // → Result<void, ValidationError>; called 
 TopoIssue
 
 // Schema derivation
-deriveFields(schema, overrides?)   // → Field[]
+deriveFields(schema, overrides?)   // → Field[] (faithfully representable fields only)
 deriveCliPath(trailId)             // dotted trail ID → ordered CLI path segments
 Field, FieldOverride
 

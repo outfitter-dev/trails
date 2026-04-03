@@ -1,6 +1,10 @@
 # CLI Trailhead
 
-The CLI trailhead connector turns every trail into a command. Flags are derived from Zod schemas. Output formatting, error handling, and exit codes are handled automatically.
+The CLI trailhead connector turns every trail into a command. Flags are
+derived from faithfully representable Zod schema fields, and structured JSON
+channels are available when the input shape is richer than flags can express
+honestly. Output formatting, error handling, and exit codes are handled
+automatically.
 
 ## Setup
 
@@ -40,7 +44,9 @@ commands exist beneath that path.
 
 ## Flag Derivation
 
-Flags are derived from the trail's Zod input schema. No manual flag configuration needed.
+Flags are derived from the trail's Zod input schema when the shape can be
+represented truthfully on the command line. No manual flag configuration
+needed.
 
 | Zod type | CLI flag | Example |
 | --- | --- | --- |
@@ -55,6 +61,9 @@ Flags are derived from the trail's Zod input schema. No manual flag configuratio
 **Name conversion:** `camelCase` field names become `--kebab-case` flags. `sortOrder` becomes `--sort-order`.
 
 **Descriptions:** `.describe("text")` on Zod fields becomes the flag help text.
+
+Nested objects and arrays of objects are intentionally omitted from automatic
+flag derivation. The CLI prefers fewer flags over dishonest flags.
 
 ```typescript
 const search = trail('search', {
@@ -75,6 +84,37 @@ Options:
   --limit [value]   Max results (default: 10)
   --format <value>  (choices: "json", "table", default: "json")
 ```
+
+## Structured Input
+
+Every non-empty object input schema also gets three structured input channels:
+
+- `--input-json <json>` to pass the full input object inline
+- `--input-file <path>` to load the full input object from a JSON file
+- `--stdin` to read the full input object as JSON from stdin
+
+These channels merge into one final input object before validation:
+
+1. Structured input payload
+2. Positional args
+3. Explicit CLI flags
+4. Interactive prompting for any remaining missing values
+
+Explicit args and flags always win on conflict. Validation still happens once,
+against the original trail schema, after the merge.
+
+```bash
+myapp gist create \
+  --input-json '{"files":[{"filename":"README.md","content":"Hello"}]}'
+```
+
+```bash
+cat payload.json | myapp gist create --stdin
+```
+
+When a schema includes fields that cannot be expressed truthfully as flags, the
+command help still shows the structured input options so the escape hatch stays
+discoverable.
 
 ## Flag Presets
 

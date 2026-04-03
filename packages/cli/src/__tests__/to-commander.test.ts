@@ -252,6 +252,31 @@ describe('toCommander option wiring', () => {
     expect(formatOpt?.argChoices).toEqual(['json', 'text']);
   });
 
+  test('complex schemas expose structured input options instead of lossy nested flags', () => {
+    const t = trail('gist.create', {
+      blaze: () => Result.ok('ok'),
+      input: z.object({
+        files: z.array(
+          z.object({
+            content: z.string(),
+            filename: z.string(),
+          })
+        ),
+      }),
+    });
+    const app = makeApp(t);
+    const commands = buildCliCommands(app);
+    const program = toCommander(commands);
+
+    const opts = requireNestedCommand(program, ['gist', 'create']).options;
+    const longs = opts.map((option) => option.long);
+
+    expect(longs).toEqual(
+      expect.arrayContaining(['--input-file', '--input-json', '--stdin'])
+    );
+    expect(longs).not.toContain('--files');
+  });
+
   describe('boolean flag negation', () => {
     test('boolean flags get --no-<name> negation options', () => {
       const t = trail('check', {

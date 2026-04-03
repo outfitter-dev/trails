@@ -6,13 +6,14 @@ import type {
   Field,
   Gate,
   ProvisionOverrideMap,
-  Result,
   Topo,
   TrailContext,
   TrailContextInit,
 } from '@ontrails/core';
 import {
+  Result,
   TRAILHEAD_KEY,
+  ValidationError,
   deriveCliPath,
   deriveFields,
   executeTrail,
@@ -21,6 +22,15 @@ import {
 import type { AnyTrail, CliCommand, CliFlag } from './command.js';
 import { dryRunPreset, toFlags } from './flags.js';
 import type { InputResolver } from './prompt.js';
+import {
+  STRUCTURED_INPUT_HINT,
+  hasStructuredOnlyFields,
+  kebabToCamel,
+  normalizeParsedFlags,
+  readStructuredInput,
+  structuredInputPreset,
+  supportsStructuredInput,
+} from './structured-input.js';
 import { validateCliCommands } from './validate.js';
 
 // ---------------------------------------------------------------------------
@@ -54,10 +64,6 @@ export interface BuildCliCommandsOptions {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Convert kebab-case flag name back to camelCase for input merging. */
-const toCamel = (str: string): string =>
-  str.replaceAll(/-([a-z])/g, (_, ch: string) => ch.toUpperCase());
-
 /**
  * Merge preset flags with schema-derived flags.
  * Schema-derived flags take precedence on name collision.
@@ -84,17 +90,29 @@ const mergeFlags = (presets: CliFlag[], derived: CliFlag[]): CliFlag[] => {
  * dot-notation, and wires up the execute function with validation,
  * layer composition, and onResult handling.
  */
-const META_FLAGS = new Set(['json', 'jsonl', 'output']);
+const META_FLAG_CANDIDATES = new Set([
+  'inputFile',
+  'inputJson',
+  'json',
+  'jsonl',
+  'output',
+  'stdin',
+]);
 
 /** Merge parsed args and flags into a camelCase input record. */
 const mergeArgsAndFlags = (
+  metaFlagNames: ReadonlySet<string>,
+  structuredInput: Record<string, unknown>,
   parsedArgs: Record<string, unknown>,
   parsedFlags: Record<string, unknown>
 ): Record<string, unknown> => {
-  const mergedInput: Record<string, unknown> = { ...parsedArgs };
+  const mergedInput: Record<string, unknown> = {
+    ...structuredInput,
+    ...parsedArgs,
+  };
   for (const [key, value] of Object.entries(parsedFlags)) {
-    if (!META_FLAGS.has(key)) {
-      mergedInput[toCamel(key)] = value;
+    if (!metaFlagNames.has(key)) {
+      mergedInput[key] = value;
     }
   }
   return mergedInput;
@@ -111,7 +129,7 @@ const applyPrompting = async (
   }
   const resolved = await options.resolveInput(fields, mergedInput);
   for (const [key, value] of Object.entries(resolved)) {
-    if (value !== undefined) {
+    if (value !== undefined && mergedInput[key] === undefined) {
       mergedInput[key] = value;
     }
   }
@@ -138,12 +156,111 @@ const withCliTrailhead = (
   },
 });
 
+const selectStructuredInputFlags = (
+  normalizedFlags: Record<string, unknown>,
+  metaFlagNames: ReadonlySet<string>
+): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(normalizedFlags).filter(([key]) => metaFlagNames.has(key))
+  );
+
+const usesStructuredInput = (
+  structuredInputFlags: Record<string, unknown>
+): boolean =>
+  structuredInputFlags['inputJson'] !== undefined ||
+  structuredInputFlags['inputFile'] !== undefined ||
+  structuredInputFlags['stdin'] === true;
+
+const resolveMergedInput = async (
+  fields: readonly Field[],
+  metaFlagNames: ReadonlySet<string>,
+  parsedArgs: Record<string, unknown>,
+  parsedFlags: Record<string, unknown>,
+  options?: BuildCliCommandsOptions
+): Promise<{
+  readonly mergedInput: Record<string, unknown>;
+  readonly usedStructuredInput: boolean;
+}> => {
+  const normalizedFlags = normalizeParsedFlags(parsedFlags);
+  const structuredInputFlags = selectStructuredInputFlags(
+    normalizedFlags,
+    metaFlagNames
+  );
+  const structuredInput = await readStructuredInput(structuredInputFlags);
+  const mergedInput = mergeArgsAndFlags(
+    metaFlagNames,
+    structuredInput,
+    parsedArgs,
+    normalizedFlags
+  );
+  await applyPrompting(fields, mergedInput, options);
+  return {
+    mergedInput,
+    usedStructuredInput: usesStructuredInput(structuredInputFlags),
+  };
+};
+
+const maybeAddStructuredInputHint = (
+  result: Result<unknown, Error>,
+  shouldHintStructuredInput: boolean,
+  usedStructuredInput: boolean
+): Result<unknown, Error> => {
+  if (
+    !shouldHintStructuredInput ||
+    result.isOk() ||
+    !(result.error instanceof ValidationError) ||
+    usedStructuredInput ||
+    result.error.message.includes(STRUCTURED_INPUT_HINT)
+  ) {
+    return result;
+  }
+
+  return Result.err(
+    new ValidationError(`${result.error.message}. ${STRUCTURED_INPUT_HINT}`, {
+      cause: result.error,
+      ...(result.error.context === undefined
+        ? {}
+        : { context: result.error.context }),
+    })
+  );
+};
+
+const safeMergeInput = async (
+  fields: readonly Field[],
+  metaFlagNames: ReadonlySet<string>,
+  parsedArgs: Record<string, unknown>,
+  parsedFlags: Record<string, unknown>,
+  options?: BuildCliCommandsOptions
+): Promise<
+  Result<
+    { mergedInput: Record<string, unknown>; usedStructuredInput: boolean },
+    Error
+  >
+> => {
+  try {
+    return Result.ok(
+      await resolveMergedInput(
+        fields,
+        metaFlagNames,
+        parsedArgs,
+        parsedFlags,
+        options
+      )
+    );
+  } catch (error: unknown) {
+    return Result.err(
+      error instanceof Error ? error : new Error(String(error))
+    );
+  }
+};
+
 /** Create the execute function for a CLI command. */
 const createExecute =
   (
     t: AnyTrail,
     fields: readonly Field[],
-    _flags: CliFlag[],
+    metaFlagNames: ReadonlySet<string>,
+    shouldHintStructuredInput: boolean,
     options?: BuildCliCommandsOptions
   ) =>
   async (
@@ -151,8 +268,24 @@ const createExecute =
     parsedFlags: Record<string, unknown>,
     ctxOverrides?: Partial<TrailContext>
   ): Promise<Result<unknown, Error>> => {
-    const mergedInput = mergeArgsAndFlags(parsedArgs, parsedFlags);
-    await applyPrompting(fields, mergedInput, options);
+    const merged = await safeMergeInput(
+      fields,
+      metaFlagNames,
+      parsedArgs,
+      parsedFlags,
+      options
+    );
+    if (merged.isErr()) {
+      await reportResult(options, {
+        args: parsedArgs,
+        flags: parsedFlags,
+        input: { ...parsedArgs, ...parsedFlags },
+        result: merged,
+        trail: t,
+      });
+      return merged;
+    }
+    const { mergedInput, usedStructuredInput } = merged.value;
 
     const result = await executeTrail(t, mergedInput, {
       configValues: options?.configValues,
@@ -161,10 +294,15 @@ const createExecute =
       gates: options?.gates,
       provisions: options?.provisions,
     });
+    const finalResult = maybeAddStructuredInputHint(
+      result,
+      shouldHintStructuredInput,
+      usedStructuredInput
+    );
 
     // Pass validated (coerced/transformed) input to onResult on success,
     // raw merged input on validation failure.
-    const reportInput = result.isOk()
+    const reportInput = finalResult.isOk()
       ? (t.input.safeParse(mergedInput).data ?? mergedInput)
       : mergedInput;
 
@@ -172,19 +310,23 @@ const createExecute =
       args: parsedArgs,
       flags: parsedFlags,
       input: reportInput,
-      result,
+      result: finalResult,
       trail: t,
     });
-    return result;
+    return finalResult;
   };
 
 /** Derive and merge flags for a trail. */
 const buildFlags = (
+  t: AnyTrail,
   fields: readonly Field[],
   intent: 'read' | 'write' | 'destroy',
   options?: BuildCliCommandsOptions
 ): CliFlag[] => {
   let flags = toFlags(fields);
+  if (supportsStructuredInput(t.input)) {
+    flags = mergeFlags(structuredInputPreset(), flags);
+  }
   if (options?.presets) {
     flags = mergeFlags(options.presets.flat(), flags);
   }
@@ -200,12 +342,32 @@ const toCliCommand = (
   options?: BuildCliCommandsOptions
 ): CliCommand => {
   const fields = deriveFields(t.input, t.fields);
-  const flags = buildFlags(fields, t.intent, options);
+  const flags = buildFlags(t, fields, t.intent, options);
+  const derivedFlagNames = new Set(
+    toFlags(fields).map((flag) => kebabToCamel(flag.name))
+  );
+  const metaFlagNames = new Set(
+    flags
+      .map((flag) => kebabToCamel(flag.name))
+      .filter(
+        (name) => META_FLAG_CANDIDATES.has(name) && !derivedFlagNames.has(name)
+      )
+  );
+  const shouldHintStructuredInput = hasStructuredOnlyFields(
+    t.input,
+    fields.length
+  );
 
   return {
     args: [],
     description: t.description,
-    execute: createExecute(t, fields, flags, options),
+    execute: createExecute(
+      t,
+      fields,
+      metaFlagNames,
+      shouldHintStructuredInput,
+      options
+    ),
     flags,
     gates: options?.gates,
     idempotent: t.idempotent,
