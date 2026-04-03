@@ -4,6 +4,7 @@ export type { AnyTrail, CliCommand, CliFlag, CliArg } from './command.js';
 // Build
 export { buildCliCommands } from './build.js';
 export type { BuildCliCommandsOptions, ActionResultContext } from './build.js';
+export { validateCliCommands } from './validate.js';
 
 // Flags
 export {

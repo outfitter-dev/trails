@@ -98,6 +98,7 @@ describe('generateTrailheadMap', () => {
 
       expect(entry.input).toBeDefined();
       expect(entry.output).toBeDefined();
+      expect(entry.cli?.path).toEqual(['entity', 'create']);
       expectSchemaProperties(entry.input, {
         age: { type: 'number' },
         name: { type: 'string' },
@@ -136,6 +137,7 @@ describe('generateTrailheadMap', () => {
       expect(crossesEntry).toBeDefined();
 
       expect(crossesEntry?.kind).toBe('trail');
+      expect(crossesEntry?.cli?.path).toEqual(['user', 'update']);
       expect(crossesEntry?.crosses).toEqual(['user.get']);
     });
 

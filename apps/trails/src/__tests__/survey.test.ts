@@ -86,6 +86,7 @@ describe('trails survey', () => {
     const trailheadMap = generateTrailheadMap(app);
     const hello = trailheadMap.entries.find((e) => e.id === 'hello');
     expect(hello).toBeDefined();
+    expect(hello?.cli?.path).toEqual(['hello']);
     expect(hello?.kind).toBe('trail');
     expect(hello?.intent).toBe('read');
     expect(hello?.exampleCount).toBe(1);

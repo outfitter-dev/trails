@@ -19,7 +19,7 @@ if (diff.hasBreaking) {
 }
 ```
 
-The trailhead map captures every trail's input/output schemas (as JSON Schema), intent and metadata, crossing graph, declared provisions, example counts, and the registered provision inventory. The hash goes into the committed lock file -- a single line that CI can check for drift.
+The trailhead map captures every trail's input/output schemas (as JSON Schema), intent and metadata, CLI path projection, crossing graph, declared provisions, example counts, and the registered provision inventory. The hash goes into the committed lock file -- a single line that CI can check for drift.
 
 ## API
 
@@ -45,6 +45,7 @@ The diff classifies every change by severity:
 | Required input field added | breaking |
 | Input/output field removed | breaking |
 | Output field type changed | breaking |
+| CLI path changed | breaking |
 | Safety property changed | warning |
 | Trail deprecated | warning |
 | Crosses changed | warning |

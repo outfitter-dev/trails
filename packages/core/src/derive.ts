@@ -189,6 +189,10 @@ const buildOptions = (
   });
 };
 
+/** Derive the canonical ordered CLI path from a trail ID. */
+export const deriveCliPath = (trailId: string): string[] =>
+  trailId.split('.').filter((segment) => segment.length > 0);
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------

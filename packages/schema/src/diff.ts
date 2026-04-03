@@ -265,6 +265,32 @@ const diffMetadata = (
   }
 };
 
+const diffCliPath = (
+  acc: DetailAccumulator,
+  prev: TrailheadMapEntry,
+  curr: TrailheadMapEntry
+): void => {
+  const prevPath = prev.cli?.path.join(' ');
+  const currPath = curr.cli?.path.join(' ');
+
+  if (prevPath === currPath) {
+    return;
+  }
+
+  // First-time CLI path recording (upgrade from a lockfile without paths)
+  // is informational, not a breaking change.
+  if (prevPath === undefined && currPath !== undefined) {
+    addDetail(acc, 'info', `CLI path recorded: ${currPath}`);
+    return;
+  }
+
+  addDetail(
+    acc,
+    'breaking',
+    `CLI path changed: ${prevPath ?? '(none)'} -> ${currPath ?? '(none)'}`
+  );
+};
+
 /** Build a crossing-changed description from added/removed arrays. */
 const buildCrossesMessage = (added: string[], removed: string[]): string => {
   const parts: string[] = [];
@@ -326,18 +352,27 @@ const diffProvisions = (
   }
 };
 
+const diffEntryDetails = (
+  acc: DetailAccumulator,
+  prev: TrailheadMapEntry,
+  curr: TrailheadMapEntry
+): void => {
+  diffSchemaFields(acc, 'input', prev.input, curr.input);
+  diffSchemaFields(acc, 'output', prev.output, curr.output);
+  diffTrailheads(acc, prev, curr);
+  diffCliPath(acc, prev, curr);
+  diffMetadata(acc, prev, curr);
+  diffCrosses(acc, prev, curr);
+  diffProvisions(acc, prev, curr);
+};
+
 const diffEntry = (
   prev: TrailheadMapEntry,
   curr: TrailheadMapEntry
 ): DiffEntry | undefined => {
   const acc: DetailAccumulator = { details: [], severity: 'info' };
 
-  diffSchemaFields(acc, 'input', prev.input, curr.input);
-  diffSchemaFields(acc, 'output', prev.output, curr.output);
-  diffTrailheads(acc, prev, curr);
-  diffMetadata(acc, prev, curr);
-  diffCrosses(acc, prev, curr);
-  diffProvisions(acc, prev, curr);
+  diffEntryDetails(acc, prev, curr);
 
   if (acc.details.length === 0) {
     return undefined;

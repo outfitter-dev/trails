@@ -11,11 +11,17 @@ import type {
   TrailContext,
   TrailContextInit,
 } from '@ontrails/core';
-import { TRAILHEAD_KEY, deriveFields, executeTrail } from '@ontrails/core';
+import {
+  TRAILHEAD_KEY,
+  deriveCliPath,
+  deriveFields,
+  executeTrail,
+} from '@ontrails/core';
 
 import type { AnyTrail, CliCommand, CliFlag } from './command.js';
 import { dryRunPreset, toFlags } from './flags.js';
 import type { InputResolver } from './prompt.js';
+import { validateCliCommands } from './validate.js';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -51,24 +57,6 @@ export interface BuildCliCommandsOptions {
 /** Convert kebab-case flag name back to camelCase for input merging. */
 const toCamel = (str: string): string =>
   str.replaceAll(/-([a-z])/g, (_, ch: string) => ch.toUpperCase());
-
-/**
- * Parse a trail ID into group + command name.
- * "entity.show" -> { group: "entity", name: "show" }
- * "search" -> { group: undefined, name: "search" }
- */
-const parseTrailId = (
-  id: string
-): { group: string | undefined; name: string } => {
-  const dotIndex = id.indexOf('.');
-  if (dotIndex === -1) {
-    return { group: undefined, name: id };
-  }
-  return {
-    group: id.slice(0, dotIndex),
-    name: id.slice(dotIndex + 1),
-  };
-};
 
 /**
  * Merge preset flags with schema-derived flags.
@@ -211,7 +199,6 @@ const toCliCommand = (
   t: AnyTrail,
   options?: BuildCliCommandsOptions
 ): CliCommand => {
-  const { group, name } = parseTrailId(t.id);
   const fields = deriveFields(t.input, t.fields);
   const flags = buildFlags(fields, t.intent, options);
 
@@ -221,10 +208,9 @@ const toCliCommand = (
     execute: createExecute(t, fields, flags, options),
     flags,
     gates: options?.gates,
-    group,
     idempotent: t.idempotent,
     intent: t.intent,
-    name,
+    path: deriveCliPath(t.id),
     trail: t,
   };
 };
@@ -242,5 +228,6 @@ export const buildCliCommands = (
     commands.push(toCliCommand(trail, options));
   }
 
+  validateCliCommands(commands);
   return commands;
 };

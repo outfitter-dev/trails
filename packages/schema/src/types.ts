@@ -17,6 +17,11 @@ export interface TrailheadMapEntry {
   readonly id: string;
   readonly kind: 'trail' | 'signal' | 'provision';
   readonly trailheads: readonly string[];
+  readonly cli?:
+    | {
+        readonly path: readonly string[];
+      }
+    | undefined;
   readonly input?: JsonSchema | undefined;
   readonly output?: JsonSchema | undefined;
   readonly intent?: 'read' | 'write' | 'destroy' | undefined;

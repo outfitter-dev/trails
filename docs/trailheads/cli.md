@@ -20,7 +20,7 @@ That is the entire CLI setup. Every trail in the app becomes a command.
 
 ## How Trail IDs Map to Commands
 
-Trail IDs with dots create subcommand groups:
+Trail IDs derive to full ordered command paths:
 
 | Trail ID      | CLI command         |
 | ------------- | ------------------- |
@@ -28,8 +28,15 @@ Trail IDs with dots create subcommand groups:
 | `entity.show` | `myapp entity show` |
 | `entity.add`  | `myapp entity add`  |
 | `math.add`    | `myapp math add`    |
+| `topo.pin`    | `myapp topo pin`    |
 
-Trails sharing the same first segment are grouped under a parent command.
+Each dot becomes another command-path segment. A path node may be both
+executable and a parent, so `myapp topo` and `myapp topo pin` can coexist
+naturally.
+
+The CLI model is validated before adapter wiring. Duplicate command paths are
+rejected, and executable parents cannot also declare positional args if child
+commands exist beneath that path.
 
 ## Flag Derivation
 
@@ -198,4 +205,6 @@ import { trailhead } from '@ontrails/cli/commander';
 trailhead(app);
 ```
 
-To use a different CLI framework (yargs, oclif, etc.), consume `CliCommand[]` directly and write your own connector. The model carries everything needed: command names, flags, args, groups, and an `execute()` function.
+To use a different CLI framework (yargs, oclif, etc.), consume `CliCommand[]`
+directly and write your own connector. The model carries everything needed: a
+full ordered command path, flags, args, and an `execute()` function.
