@@ -1,44 +1,111 @@
 import { describe } from 'bun:test';
 
-import { Result, provision, trail, topo } from '@ontrails/core';
+import { Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { testAll } from '../all.js';
+import { store as defineStore } from '@ontrails/store';
+import { connectDrizzle } from '@ontrails/store/drizzle';
 
-const mockDbProvision = provision('db.mock.all', {
-  create: () => Result.ok({ source: 'factory' }),
-  mock: () => ({ source: 'mock' }),
+const dbDefinition = defineStore({
+  entities: {
+    fixtures: [
+      {
+        id: 'seed-1',
+        name: 'Alpha',
+        source: 'mock',
+      },
+    ],
+    generated: ['id'],
+    primaryKey: 'id',
+    schema: z.object({
+      id: z.string(),
+      name: z.string(),
+      source: z.string(),
+    }),
+  },
 });
 
+const createDbProvision = (
+  seed?: readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly source: string;
+  }[]
+) =>
+  connectDrizzle(dbDefinition, {
+    id: 'db.mock.all',
+    ...(seed === undefined ? {} : { mockSeed: { entities: seed } }),
+    url: ':memory:',
+  });
+
+const createOverrideStore = () => {
+  const { mock } = createDbProvision([
+    {
+      id: 'seed-1',
+      name: 'Override',
+      source: 'override',
+    },
+  ]);
+
+  if (mock === undefined) {
+    throw new Error('Expected drizzle test store to expose a mock factory');
+  }
+
+  const created = mock();
+  if (created instanceof Promise) {
+    throw new TypeError(
+      'Expected drizzle test store mock to resolve synchronously'
+    );
+  }
+
+  return created;
+};
+
+const mockDbProvision = createDbProvision();
+
 const mockedTrail = trail('provision.mocked.all', {
-  blaze: (_input, ctx) =>
-    Result.ok({ source: mockDbProvision.from(ctx).source }),
-  description: 'Trail that uses a mocked provision through testAll',
+  blaze: async (_input, ctx) => {
+    const entity = await mockDbProvision.from(ctx).entities.get('seed-1');
+    if (entity === null) {
+      return Result.err(new Error('expected seeded entity to exist'));
+    }
+
+    return Result.ok({ name: entity.name, source: entity.source });
+  },
+  description:
+    'Trail that uses a mocked connector-bound provision through testAll',
   examples: [
     {
-      expected: { source: 'mock' },
+      expected: { name: 'Alpha', source: 'mock' },
       input: {},
       name: 'Uses auto-resolved provision mock',
     },
   ],
   input: z.object({}),
-  output: z.object({ source: z.string() }),
+  output: z.object({ name: z.string(), source: z.string() }),
   provisions: [mockDbProvision],
 });
 
 const overrideTrail = trail('provision.override.all', {
-  blaze: (_input, ctx) =>
-    Result.ok({ source: mockDbProvision.from(ctx).source }),
+  blaze: async (_input, ctx) => {
+    const entity = await mockDbProvision.from(ctx).entities.get('seed-1');
+    if (entity === null) {
+      return Result.err(new Error('expected overridden entity to exist'));
+    }
+
+    return Result.ok({ name: entity.name, source: entity.source });
+  },
   description: 'Trail that prefers explicit overrides over mock factories',
   examples: [
     {
-      expected: { source: 'override' },
+      expected: { name: 'Override', source: 'override' },
       input: {},
       name: 'Explicit provision override wins',
     },
   ],
   input: z.object({}),
-  output: z.object({ source: z.string() }),
+  output: z.object({ name: z.string(), source: z.string() }),
   provisions: [mockDbProvision],
 });
 
@@ -59,8 +126,10 @@ describe('testAll explicit provision overrides', () => {
       mockDbProvision,
       overrideTrail,
     } as Record<string, unknown>),
-    {
-      provisions: { 'db.mock.all': { source: 'override' } },
-    }
+    () => ({
+      provisions: {
+        'db.mock.all': createOverrideStore(),
+      },
+    })
   );
 });

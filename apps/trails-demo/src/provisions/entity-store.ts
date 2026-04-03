@@ -23,6 +23,7 @@ export const createMockEntityStore = () => createStore(mockSeed);
 
 export const entityStoreProvision = provision('demo.entity-store', {
   create: () => Result.ok(createStore(runtimeSeed)),
-  description: 'In-memory entity store used by the demo trails app.',
+  description:
+    'Drizzle-backed in-memory entity store used by the demo trails app.',
   mock: () => createMockEntityStore(),
 });

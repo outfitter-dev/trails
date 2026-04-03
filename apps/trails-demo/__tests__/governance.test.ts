@@ -120,7 +120,7 @@ describe('trailhead map generation', () => {
     if (provisionEntry) {
       expect(provisionEntry.kind).toBe('provision');
       expect(provisionEntry.description).toBe(
-        'In-memory entity store used by the demo trails app.'
+        'Drizzle-backed in-memory entity store used by the demo trails app.'
       );
     }
   });
