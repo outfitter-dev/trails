@@ -194,7 +194,7 @@
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
         {
-          "context": "Canonical public trailhead-facing reference. For naming conventions and decision history, see [ADR-0001](docs/adr/0001-naming-conventions.md).",
+          "context": "Canonical public trailhead-facing reference. For naming conventions and decision history, see [ADR-0001](./adr/0001-naming-conventions.md).",
           "from": "api-reference",
           "fromPath": "docs/api-reference.md"
         },
@@ -479,11 +479,6 @@
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- trailheads as thin wrappers, same pattern for store",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-drizzle-store-connector.md"
-        },
-        {
           "context": "- **[ADR-0006: Shared Execution Pipeline](./adr/0006-shared-execution-pipeline.md)** — One `executeTrail`, Result-returning builders",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -666,6 +661,11 @@
           "fromPath": "docs/adr/0016-schema-derived-persistence.md"
         },
         {
+          "context": "- [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md) — the provision lifecycle a bound store participates in",
+          "from": "0022",
+          "fromPath": "docs/adr/0022-drizzle-store-connector.md"
+        },
+        {
           "context": "- [ADR-0009: Provisions as a First-Class Primitive](../0009-first-class-provisions.md) — inbound trailheads depend on the provision primitive for infrastructure dependencies (stores, email, queue clie",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
@@ -684,11 +684,6 @@
           "context": "- [ADR-0009: Services](../0009-first-class-provisions.md) -- the service pattern for embedding providers",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
-        },
-        {
-          "context": "- [ADR-0009: Services](../0009-first-class-provisions.md) -- the provision lifecycle the store produces",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-drizzle-store-connector.md"
         },
         {
           "context": "- **[ADR-0009: First-Class Provisions](./adr/0009-first-class-provisions.md)** — Dependency declarations, lifecycle, testing, governance",
@@ -936,6 +931,11 @@
           "context": "- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — app-level persistence using the same provision patterns",
           "from": "0018",
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
+        },
+        {
+          "context": "[ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) defines the store model: the root package owns the durable `store(...)` declaration, and connectors bind that declaration ",
+          "from": "0022",
+          "fromPath": "docs/adr/0022-drizzle-store-connector.md"
         }
       ],
       "number": "0016",
@@ -1059,6 +1059,25 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Draft State Stays Out of the Resolved Graph",
+      "updated": "2026-04-03"
+    },
+    {
+      "created": "2026-04-01",
+      "depends_on": ["16", "9"],
+      "inbound": [
+        {
+          "context": "- **[ADR-0022: Drizzle Store Connector](./adr/0022-drizzle-store-connector.md)** — Drizzle binds schema-derived stores to SQLite",
+          "from": "index",
+          "fromPath": "docs/index.md"
+        }
+      ],
+      "number": "0022",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0022-drizzle-store-connector.md",
+      "slug": "drizzle-store-connector",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Drizzle Binds Schema-Derived Stores to SQLite",
       "updated": "2026-04-03"
     }
   ],

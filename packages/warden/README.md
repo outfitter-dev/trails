@@ -51,7 +51,7 @@ import { checkDrift } from '@ontrails/warden';
 
 const drift = await checkDrift(app);
 if (drift.stale) {
-  console.log('lock file is stale -- regenerate with `trails survey generate`');
+  console.log('lock file is stale -- regenerate with `trails topo export`');
 }
 ```
 

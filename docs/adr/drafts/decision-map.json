@@ -176,19 +176,6 @@
     },
     {
       "created": "2026-04-01",
-      "depends_on": ["16", "9"],
-      "inbound": [],
-      "number": null,
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260401-drizzle-store-connector.md",
-      "slug": "drizzle-store-connector",
-      "status": "draft",
-      "superseded_by": null,
-      "title": "Drizzle Store Connector",
-      "updated": "2026-04-02"
-    },
-    {
-      "created": "2026-04-01",
       "depends_on": ["16", "declarative-search", "3", "4"],
       "inbound": [],
       "number": null,

@@ -28,3 +28,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0019](0019-hierarchical-command-trees-from-trail-ids.md) | Hierarchical Command Trees from Trail IDs | Accepted |
 | [0020](0020-flags-for-fields-structured-input-on-the-cli.md) | Flags for Fields, Structured Input on the CLI | Accepted |
 | [0021](0021-draft-state-stays-out-of-the-resolved-graph.md) | Draft State Stays Out of the Resolved Graph | Accepted |
+| [0022](0022-drizzle-store-connector.md) | Drizzle Binds Schema-Derived Stores to SQLite | Accepted |

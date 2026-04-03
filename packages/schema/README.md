@@ -1,39 +1,69 @@
 # @ontrails/schema
 
-Trailhead maps, hashing, and semantic diffing for Trails. Generate a machine-readable snapshot of your topo, hash it into a lock file, and detect breaking changes before they ship.
+Deterministic trailhead maps, lockfile helpers, and semantic diffing for Trails.
+
+Most applications reach this package through `trails topo export` and `trails topo verify`. Those CLI trails layer workspace and topo-store behavior on top of the low-level building blocks in `@ontrails/schema`.
+
+## What it owns
+
+- deterministic trailhead-map generation from an established topo
+- stable hashing for CI drift detection
+- semantic diffing between two trailhead maps
+- file I/O helpers for `.trails/_trailhead.json` and `.trails/trails.lock`
+- OpenAPI generation from the same topo contract
+
+The package does not own topo history, pins, or `trails.db`. Those higher-level workflows live in the `trails` app and `@ontrails/core`. `@ontrails/schema` stays focused on serializable artifacts and diffing.
 
 ## Usage
 
 ```typescript
-import { generateTrailheadMap, hashTrailheadMap, diffTrailheadMaps } from '@ontrails/schema';
+import {
+  diffTrailheadMaps,
+  generateTrailheadMap,
+  hashTrailheadMap,
+  writeTrailheadLock,
+  writeTrailheadMap,
+} from '@ontrails/schema';
 
 const map = generateTrailheadMap(app);
 const hash = hashTrailheadMap(map);
 
+await writeTrailheadMap(map);
+await writeTrailheadLock({ hash });
+
 // Later, after changes:
-const newMap = generateTrailheadMap(app);
-const diff = diffTrailheadMaps(map, newMap);
+const nextMap = generateTrailheadMap(app);
+const diff = diffTrailheadMaps(map, nextMap);
 
 if (diff.hasBreaking) {
   console.error('Breaking changes:', diff.breaking);
 }
 ```
 
-The trailhead map captures every trail's input/output schemas (as JSON Schema), intent and metadata, CLI path projection, crossing graph, declared provisions, example counts, and the registered provision inventory. The hash goes into the committed lock file -- a single line that CI can check for drift.
+`generateTrailheadMap()` rejects draft-contaminated topos. Only established state can be serialized into the committed artifacts.
+
+## File outputs
+
+The typical exported artifact pair is:
+
+- `.trails/_trailhead.json` — detailed derived map, useful for inspection and diffing
+- `.trails/trails.lock` — committed lock artifact, stored as structured JSON or legacy hash-only text
+
+`trails topo export` writes both from the current topo. `trails topo verify` and `@ontrails/warden` use the lockfile helpers here to detect drift.
 
 ## API
 
 | Export | What it does |
 | --- | --- |
-| `generateTrailheadMap(topo)` | Deterministic trailhead map of every trail, sorted by ID |
-| `hashTrailheadMap(map)` | SHA-256 hash, excluding timestamps for stability |
-| `diffTrailheadMaps(prev, curr)` | Semantic diff with breaking/warning/info severity |
-| `writeTrailheadMap(map, options?)` | Write `.trails/_trailhead.json` (gitignored detail file) |
-| `readTrailheadMap(options?)` | Read it back |
-| `writeTrailheadLock(hash, options?)` | Write the committed lock file (single hash line) |
-| `readTrailheadLock(options?)` | Read the lock hash |
-
-See the [API Reference](../../docs/api-reference.md) for the full list.
+| `generateTrailheadMap(topo)` | Deterministic trailhead map of every established trail, signal, and provision |
+| `hashTrailheadMap(map)` | Stable SHA-256 hash of the map |
+| `diffTrailheadMaps(prev, curr)` | Semantic diff with `breaking`, `warning`, and `info` classifications |
+| `writeTrailheadMap(map, options?)` | Write `.trails/_trailhead.json` |
+| `readTrailheadMap(options?)` | Read `.trails/_trailhead.json` |
+| `writeTrailheadLock(lock, options?)` | Write `.trails/trails.lock` as either structured JSON or legacy hash text |
+| `readTrailheadLockData(options?)` | Read the full normalized lock payload from `.trails/trails.lock` |
+| `readTrailheadLock(options?)` | Read just the committed lock hash |
+| `generateOpenApiSpec(topo, options?)` | Generate an OpenAPI 3.1 document from the topo |
 
 ## Breaking change detection
 
@@ -43,7 +73,7 @@ The diff classifies every change by severity:
 | --- | --- |
 | Trail removed | breaking |
 | Required input field added | breaking |
-| Input/output field removed | breaking |
+| Input or output field removed | breaking |
 | Output field type changed | breaking |
 | CLI path changed | breaking |
 | Safety property changed | warning |
@@ -55,6 +85,8 @@ The diff classifies every change by severity:
 | Provision added | info |
 | Optional input field added | info |
 | Output field added | info |
+
+Because CLI paths are now full hierarchical command paths, command-tree changes are reflected directly in the semantic diff.
 
 ## Drift detection with warden
 
@@ -69,7 +101,7 @@ if (committed !== current) {
 }
 ```
 
-The `@ontrails/warden` package wraps this into a `checkDrift()` call with CI integration.
+The `@ontrails/warden` package wraps this into `checkDrift()` with CI-friendly reporting.
 
 ## Installation
 

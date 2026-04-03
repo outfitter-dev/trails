@@ -46,13 +46,13 @@ The architecture is designed to make consistency easier than drift. Agents build
 Use the project language consistently:
 
 - `trail`, not action or handler
-- `implementation`, not handler or impl
+- `blaze`, not handler or impl (both the field name and the verb for opening trailheads)
 - `topo`, not registry or collection
 - `cross`, not follow (for composition declaration and runtime invocation)
-- `blaze`, not serve or mount
 - `trailhead`, not transport terminology
 - `provision`, not service or dependency
 - `gate`, not layer
+
 `mount` is reserved for cross-app composition. See `docs/vocabulary.md` for the full vocabulary guide.
 
 ## Trail Rules
@@ -72,6 +72,14 @@ Use the project language consistently:
 - Access provisions through `db.from(ctx)` or `ctx.provision()`, never by constructing dependencies inline.
 - Keep `crosses` declarations for composition and `provisions` declarations for infrastructure — they serve different purposes.
 - Every provision should define a `mock` factory so `testAll(app)` works without configuration.
+
+## Draft State
+
+- `_draft.` is the reserved marker for draft IDs.
+- Files whose primary purpose is draft-authored state should use the `_draft.` prefix.
+- Otherwise-normal files that contain draft-authored state should use a `.draft.` trailing segment before the extension.
+- Draft-authored state is visible debt. It must never leak into established trailheads, topo exports, committed lockfiles, or other established outputs.
+- Prefer the built-in promotion workflow when moving draft state into the established graph instead of hand-editing large batches of references.
 
 ## Shared Conventions
 
