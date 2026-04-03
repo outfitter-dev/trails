@@ -77,10 +77,26 @@ const omitFields = <TSchema extends StoreObjectSchema>(
   return schema.omit(buildFieldMask(fields)) as StoreObjectSchema;
 };
 
+const partialFields = <TSchema extends StoreObjectSchema>(
+  schema: TSchema,
+  fields: readonly string[]
+): StoreObjectSchema => {
+  if (fields.length === 0) {
+    return schema;
+  }
+
+  return schema.partial(buildFieldMask(fields)) as StoreObjectSchema;
+};
+
 const deriveInsertSchema = <TSchema extends StoreObjectSchema>(
   schema: TSchema,
   generated: readonly string[]
 ): StoreObjectSchema => omitFields(schema, generated);
+
+const deriveFixtureSchema = <TSchema extends StoreObjectSchema>(
+  schema: TSchema,
+  generated: readonly string[]
+): StoreObjectSchema => partialFields(schema, generated);
 
 /**
  * Strip `default` wrappers from a Zod type so that partial update schemas
@@ -135,6 +151,32 @@ const deriveUpdateSchema = (
     : partial;
 };
 
+const formatFixtureIssues = (issues: readonly { readonly message: string }[]) =>
+  issues.map((issue) => issue.message).join('; ');
+
+const validateFixturePrimaryKeys = (
+  tableName: string,
+  primaryKey: string,
+  fixtures: readonly Record<string, unknown>[]
+): void => {
+  const seen = new Set<unknown>();
+
+  for (const [index, fixture] of fixtures.entries()) {
+    const identifier = fixture[primaryKey];
+    if (identifier === undefined) {
+      continue;
+    }
+
+    if (seen.has(identifier)) {
+      throw new ValidationError(
+        `Store table "${tableName}" fixture ${index + 1} duplicates primary key "${String(identifier)}"`
+      );
+    }
+
+    seen.add(identifier);
+  }
+};
+
 const normalizeReferences = (
   references: Readonly<Partial<Record<string, string>>> | undefined
 ): Readonly<Record<string, string>> => {
@@ -182,6 +224,33 @@ type MutableTables<TTables extends StoreTablesInput> = {
   -readonly [TName in keyof TTables]: StoreDefinition<TTables>['tables'][TName];
 };
 
+const normalizeFixtures = <TInput extends StoreTableInput>(
+  tableName: string,
+  primaryKey: string,
+  fixtureSchema: StoreObjectSchema,
+  fixtures: TInput['fixtures']
+): StoreTable<TInput>['fixtures'] => {
+  if (fixtures === undefined || fixtures.length === 0) {
+    return Object.freeze([]) as StoreTable<TInput>['fixtures'];
+  }
+
+  const normalized = [];
+
+  for (const [index, fixture] of fixtures.entries()) {
+    const parsed = fixtureSchema.safeParse(fixture);
+    if (!parsed.success) {
+      throw new ValidationError(
+        `Store table "${tableName}" fixture ${index + 1} is invalid: ${formatFixtureIssues(parsed.error.issues)}`
+      );
+    }
+
+    normalized.push(Object.freeze(parsed.data));
+  }
+
+  validateFixturePrimaryKeys(tableName, primaryKey, normalized);
+  return Object.freeze(normalized) as StoreTable<TInput>['fixtures'];
+};
+
 const normalizeTable = <
   TName extends string,
   TInput extends StoreTableInput<StoreObjectSchema>,
@@ -199,6 +268,7 @@ const normalizeTable = <
   const generated = uniqueStrings(input.generated);
   const indexes = uniqueStrings(input.indexes);
   const references = normalizeReferences(input.references);
+  const fixtureSchema = deriveFixtureSchema(input.schema, generated);
   validateTableInput(
     name,
     input.schema,
@@ -210,8 +280,16 @@ const normalizeTable = <
   );
 
   const insertSchema = deriveInsertSchema(input.schema, generated);
+  const fixtures = normalizeFixtures(
+    name,
+    input.primaryKey,
+    fixtureSchema,
+    input.fixtures
+  );
 
   return Object.freeze({
+    fixtureSchema,
+    fixtures,
     generated,
     indexes,
     insertSchema,
@@ -266,6 +344,13 @@ export const store = <const TTables extends StoreTablesInput>(
 export const entitySchemaOf = <TTable extends StoreTable>(
   table: TTable
 ): TTable['schema'] => table.schema;
+
+/**
+ * Read the fixture schema from a normalized store table.
+ */
+export const fixtureSchemaOf = <TTable extends StoreTable>(
+  table: TTable
+): TTable['fixtureSchema'] => table.fixtureSchema;
 
 /**
  * Read the insert schema from a normalized store table.

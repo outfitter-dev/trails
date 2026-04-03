@@ -2,9 +2,16 @@ import { describe, expect, test } from 'bun:test';
 import { ValidationError } from '@ontrails/core';
 import { z } from 'zod';
 
-import type { EntityOf, InsertOf, UpdateOf } from '../index.js';
+import type {
+  EntityOf,
+  FixtureInputOf,
+  FixtureOf,
+  InsertOf,
+  UpdateOf,
+} from '../index.js';
 import {
   entitySchemaOf,
+  fixtureSchemaOf,
   insertSchemaOf,
   store,
   updateSchemaOf,
@@ -57,6 +64,7 @@ const expectDerivedSchemas = (
   table: ReturnType<typeof createStoreDefinition>['tables']['gists']
 ) => {
   expect(entitySchemaOf(table)).toBe(table.schema);
+  expect(fixtureSchemaOf(table)).toBe(table.fixtureSchema);
   expect(insertSchemaOf(table)).toBe(table.insertSchema);
   expect(updateSchemaOf(table)).toBe(table.updateSchema);
 
@@ -102,6 +110,14 @@ const createGistEntity = <
     updatedAt: '2026-04-03T12:00:00.000Z',
   }) as EntityOf<TTable>;
 
+const requireFixture = <T>(fixture: T | undefined): T => {
+  if (fixture === undefined) {
+    throw new Error('Expected fixture to be present');
+  }
+
+  return fixture;
+};
+
 describe('@ontrails/store', () => {
   test('normalizes tables and derives insert/update schemas', () => {
     const db = createStoreDefinition();
@@ -113,6 +129,75 @@ describe('@ontrails/store', () => {
     expectNormalizedGistTable(table);
     expect(db.get('users')).toBe(db.tables.users);
     expectDerivedSchemas(table);
+  });
+
+  test('normalizes fixtures through the derived fixture schema', () => {
+    const db = store({
+      gists: {
+        fixtures: [
+          {
+            id: 'gist-seed',
+            ownerId: 'user-1',
+          },
+        ],
+        generated: ['id', 'createdAt', 'updatedAt'],
+        primaryKey: 'id',
+        schema: gistSchema,
+      },
+    });
+
+    type GistTable = typeof db.tables.gists;
+
+    const fixtureInput: FixtureInputOf<GistTable> = {
+      id: 'gist-other',
+      ownerId: 'user-2',
+    };
+    const fixture: FixtureOf<GistTable> = requireFixture(
+      db.tables.gists.fixtures[0]
+    );
+
+    expect(fixtureInput.ownerId).toBe('user-2');
+    expect(fixture).toEqual({
+      description: null,
+      id: 'gist-seed',
+      isPublic: true,
+      ownerId: 'user-1',
+      tags: [],
+    });
+    expect(Object.isFrozen(fixture)).toBe(true);
+    expect(Object.isFrozen(db.tables.gists.fixtures)).toBe(true);
+    expect(db.tables.gists.fixtureSchema.parse({ ownerId: 'user-3' })).toEqual({
+      description: null,
+      isPublic: true,
+      ownerId: 'user-3',
+      tags: [],
+    });
+  });
+
+  test('rejects duplicate fixture primary keys when they are explicitly provided', () => {
+    expect(() =>
+      store({
+        gists: {
+          fixtures: [
+            {
+              id: 'gist-seed',
+              ownerId: 'user-1',
+            },
+            {
+              id: 'gist-seed',
+              ownerId: 'user-2',
+            },
+          ],
+          generated: ['id', 'createdAt', 'updatedAt'],
+          primaryKey: 'id',
+          schema: gistSchema,
+        },
+      })
+    ).toThrow(
+      new ValidationError(
+        'Store table "gists" fixture 2 duplicates primary key "gist-seed"'
+      )
+    );
   });
 
   test('rejects non-object schemas and unknown metadata fields', () => {
@@ -165,6 +250,21 @@ describe('@ontrails/store', () => {
     ).toThrow(
       new ValidationError(
         'Store table "gists" declares index field "missing" that is not present on the schema'
+      )
+    );
+
+    expect(() =>
+      store({
+        gists: {
+          fixtures: [{ id: 'gist-seed' } as never],
+          generated: ['id', 'createdAt', 'updatedAt'],
+          primaryKey: 'id',
+          schema: gistSchema,
+        },
+      })
+    ).toThrow(
+      new ValidationError(
+        'Store table "gists" fixture 1 is invalid: Invalid input: expected string, received undefined'
       )
     );
   });
