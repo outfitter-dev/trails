@@ -10,7 +10,7 @@
  * ```
  */
 
-import { isTrailsError, statusCodeMap, validateTopo } from '@ontrails/core';
+import { isTrailsError, statusCodeMap } from '@ontrails/core';
 import type {
   Gate,
   ProvisionOverrideMap,
@@ -294,20 +294,6 @@ const registerErrorHandler = (hono: Hono): void => {
 // Validation
 // ---------------------------------------------------------------------------
 
-/**
- * Throw a ValidationError if the topo has structural issues.
- * Pass `skip: true` to bypass validation (e.g. when `validate: false` is set).
- */
-const assertValidTopo = (app: Topo, skip = false): void => {
-  if (skip) {
-    return;
-  }
-  const validated = validateTopo(app);
-  if (validated.isErr()) {
-    throw validated.error;
-  }
-};
-
 // ---------------------------------------------------------------------------
 // trailhead
 // ---------------------------------------------------------------------------
@@ -334,6 +320,7 @@ export const trailhead = async (
     createContext: options.createContext,
     gates: options.gates,
     provisions: options.provisions,
+    validate: options.validate,
   });
 
   if (routesResult.isErr()) {

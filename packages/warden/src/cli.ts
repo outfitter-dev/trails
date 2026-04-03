@@ -293,7 +293,10 @@ export const runWarden = async (
     diagnostics: allDiagnostics,
     drift,
     errorCount,
-    passed: errorCount === 0 && !(drift?.stale ?? false),
+    passed:
+      errorCount === 0 &&
+      !(drift?.stale ?? false) &&
+      drift?.blockedReason === undefined,
     warnCount,
   };
 };
@@ -327,6 +330,9 @@ const formatDriftSection = (drift: DriftResult | null): string[] => {
   if (drift === null) {
     return [];
   }
+  if (drift.blockedReason !== undefined) {
+    return [`Drift: blocked (${drift.blockedReason})`, ''];
+  }
   const label = drift.stale
     ? 'Drift: trailhead.lock is stale (regenerate with `trails survey generate`)'
     : 'Drift: clean';
@@ -343,6 +349,9 @@ const formatResultLine = (report: WardenReport): string => {
   const parts: string[] = [];
   if (report.errorCount > 0) {
     parts.push(`${report.errorCount} errors`);
+  }
+  if (report.drift?.blockedReason !== undefined) {
+    parts.push('established exports blocked');
   }
   if (report.drift?.stale) {
     parts.push('drift detected');

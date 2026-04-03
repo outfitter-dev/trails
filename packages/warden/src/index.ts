@@ -19,6 +19,8 @@ export type {
 // Individual rules
 export { noThrowInImplementation } from './rules/no-throw-in-implementation.js';
 export { contextNoTrailheadTypes } from './rules/context-no-trailhead-types.js';
+export { draftFileMarking } from './rules/draft-file-marking.js';
+export { draftVisibleDebt } from './rules/draft-visible-debt.js';
 export { validDetourRefs } from './rules/valid-detour-refs.js';
 export { noDirectImplInRoute } from './rules/no-direct-impl-in-route.js';
 export { noDirectImplementationCall } from './rules/no-direct-implementation-call.js';
@@ -47,6 +49,25 @@ export {
 // Drift detection
 export type { DriftResult } from './drift.js';
 export { checkDrift } from './drift.js';
+
+// Draft helpers
+export {
+  DRAFT_FILE_PREFIX,
+  DRAFT_FILE_SEGMENT,
+  isDraftMarkedFile,
+  stripDraftFileMarkers,
+} from './draft.js';
+
+// AST helpers for repo-local tooling
+export {
+  findStringLiterals,
+  getStringValue,
+  isStringLiteral,
+  offsetToLine,
+  parse,
+  walk,
+} from './rules/ast.js';
+export type { AstNode, StringLiteralMatch } from './rules/ast.js';
 
 // Trail gate
 export { wardenTopo } from './trails/topo.js';

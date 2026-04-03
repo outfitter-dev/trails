@@ -17,6 +17,7 @@ import {
   deriveCliPath,
   deriveFields,
   executeTrail,
+  validateEstablishedTopo,
 } from '@ontrails/core';
 
 import type { AnyTrail, CliCommand, CliFlag } from './command.js';
@@ -58,6 +59,8 @@ export interface BuildCliCommandsOptions {
   presets?: CliFlag[][] | undefined;
   provisions?: ProvisionOverrideMap | undefined;
   resolveInput?: InputResolver | undefined;
+  /** Set to `false` to skip topo validation while building commands. */
+  validate?: boolean | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -77,6 +80,20 @@ const mergeFlags = (presets: CliFlag[], derived: CliFlag[]): CliFlag[] => {
     }
   }
   return merged;
+};
+
+const assertValidCliTopo = (
+  app: Topo,
+  options?: BuildCliCommandsOptions
+): void => {
+  if (options?.validate === false) {
+    return;
+  }
+
+  const validated = validateEstablishedTopo(app);
+  if (validated.isErr()) {
+    throw validated.error;
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -377,19 +394,21 @@ const toCliCommand = (
   };
 };
 
+const collectCommands = (
+  app: Topo,
+  options?: BuildCliCommandsOptions
+): CliCommand[] =>
+  app
+    .list()
+    .filter((trail) => trail.meta?.['internal'] !== true)
+    .map((trail) => toCliCommand(trail, options));
+
 export const buildCliCommands = (
   app: Topo,
   options?: BuildCliCommandsOptions
 ): CliCommand[] => {
-  const commands: CliCommand[] = [];
-
-  for (const trail of app.list()) {
-    if (trail.meta?.['internal'] === true) {
-      continue;
-    }
-    commands.push(toCliCommand(trail, options));
-  }
-
+  assertValidCliTopo(app, options);
+  const commands = collectCommands(app, options);
   validateCliCommands(commands);
   return commands;
 };

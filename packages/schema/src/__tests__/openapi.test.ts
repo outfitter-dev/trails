@@ -32,11 +32,7 @@ const getJsonSchema = (
   return json['schema'] as Record<string, unknown>;
 };
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
-describe('generateOpenApiSpec', () => {
+const registerPathAndMethodTests = () => {
   describe('path and method derivation', () => {
     test('dotted trail ID becomes a path', () => {
       const t = trail('entity.show', {
@@ -119,7 +115,9 @@ describe('generateOpenApiSpec', () => {
       expect(spec.paths['/api/v1//entity/show']).toBeUndefined();
     });
   });
+};
 
+const registerGetQueryParameterTests = () => {
   describe('GET query parameters', () => {
     const buildReadSpec = () => {
       const t = trail('entity.show', {
@@ -148,7 +146,9 @@ describe('generateOpenApiSpec', () => {
       expect(verboseParam?.['required']).toBe(false);
     });
   });
+};
 
+const registerRequestBodyTests = () => {
   describe('request body', () => {
     test('omits requestBody for empty input schema', () => {
       const t = trail('action.trigger', {
@@ -218,7 +218,9 @@ describe('generateOpenApiSpec', () => {
       expect(body['required']).toBe(true);
     });
   });
+};
 
+const registerResponseTests = () => {
   describe('responses', () => {
     test('trail with output schema → 200 response wrapped in { data }', () => {
       const t = trail('entity.show', {
@@ -322,7 +324,9 @@ describe('generateOpenApiSpec', () => {
       expect(responses['400']).toEqual({ description: 'ValidationError' });
     });
   });
+};
 
+const registerMetadataAndStructureTests = () => {
   describe('operationId', () => {
     test('dots replaced with underscores', () => {
       const t = trail('entity.show', {
@@ -494,4 +498,30 @@ describe('generateOpenApiSpec', () => {
       expect(op['summary']).toBeUndefined();
     });
   });
-});
+
+  describe('established graph enforcement', () => {
+    test('rejects draft-contaminated topologies', () => {
+      const exportTrail = trail('entity.export', {
+        blaze: noop,
+        crosses: ['_draft.entity.prepare'],
+        input: z.object({}),
+      });
+
+      expect(() => generateOpenApiSpec(topoFrom({ exportTrail }))).toThrowError(
+        /draft/i
+      );
+    });
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe('generateOpenApiSpec', () => [
+  registerPathAndMethodTests(),
+  registerGetQueryParameterTests(),
+  registerRequestBodyTests(),
+  registerResponseTests(),
+  registerMetadataAndStructureTests(),
+]);

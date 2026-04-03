@@ -68,7 +68,10 @@ describe('trailhead', () => {
     });
     const app = topo('test', { t });
     expect(() =>
-      buildCliCommands(app, { onResult: defaultOnResult })
+      buildCliCommands(app, {
+        onResult: defaultOnResult,
+        validate: false,
+      })
     ).not.toThrow();
     const opts: Parameters<typeof trailhead>[1] = {
       provisions: {},

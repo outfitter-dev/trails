@@ -71,4 +71,24 @@ describe('checkDrift', () => {
       rmSync(dir, { force: true, recursive: true });
     }
   });
+
+  test('blocks drift calculation when draft state remains in the topo', async () => {
+    const dir = createTempDir();
+    try {
+      const draftTrail = trail('test.hello', {
+        blaze: () => Result.ok({ greeting: 'hi' }),
+        crosses: ['_draft.test.prepare'],
+        input: z.object({ name: z.string() }),
+        output: z.object({ greeting: z.string() }),
+      });
+
+      const result = await checkDrift(dir, topo('test-app', { draftTrail }));
+
+      expect(result.stale).toBe(false);
+      expect(result.blockedReason).toContain('draft');
+      expect(result.currentHash).toBe('blocked');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
 });

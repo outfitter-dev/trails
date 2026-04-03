@@ -91,6 +91,7 @@ export const wardenTrail = trail('warden', {
     ),
     drift: z
       .object({
+        blockedReason: z.string().optional(),
         committedHash: z.string().nullable(),
         currentHash: z.string(),
         stale: z.boolean(),

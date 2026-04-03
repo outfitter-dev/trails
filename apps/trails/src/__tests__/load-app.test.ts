@@ -1,7 +1,36 @@
 import { describe, expect, test } from 'bun:test';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
 import { loadApp } from '../trails/load-app.js';
+
+const writeLoadAppFixture = (cwd: string, name: string): void => {
+  writeFileSync(
+    resolve(cwd, 'src/app.ts'),
+    `export const app = {
+  name: '${name}',
+  trails: new Map(),
+  signals: new Map(),
+  provisions: new Map()
+};`
+  );
+};
+
+const assertLoadAppCaching = async (cwd: string): Promise<void> => {
+  writeLoadAppFixture(cwd, 'first');
+
+  const first = await loadApp('./src/app.ts', cwd);
+
+  writeLoadAppFixture(cwd, 'second');
+
+  const cached = await loadApp('./src/app.ts', cwd);
+  const fresh = await loadApp('./src/app.ts', cwd, { fresh: true });
+
+  expect(first.name).toBe('first');
+  expect(cached.name).toBe('first');
+  expect(fresh.name).toBe('second');
+};
 
 describe('loadApp', () => {
   test('resolves relative module paths from cwd', async () => {
@@ -11,5 +40,19 @@ describe('loadApp', () => {
 
     expect(app.name).toBe('trails');
     expect(app.get('survey')).toBeDefined();
+  });
+
+  test('can bypass module caching with fresh loading', async () => {
+    const cwd = resolve(
+      tmpdir(),
+      `trails-load-app-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
+
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+      await assertLoadAppCaching(cwd);
+    } finally {
+      rmSync(cwd, { force: true, recursive: true });
+    }
   });
 });

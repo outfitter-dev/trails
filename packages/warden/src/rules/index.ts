@@ -1,5 +1,7 @@
 import { contextNoTrailheadTypes } from './context-no-trailhead-types.js';
 import { crossDeclarations } from './cross-declarations.js';
+import { draftFileMarking } from './draft-file-marking.js';
+import { draftVisibleDebt } from './draft-visible-debt.js';
 import { implementationReturnsResult } from './implementation-returns-result.js';
 import { noDirectImplInRoute } from './no-direct-impl-in-route.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
@@ -24,6 +26,8 @@ export type {
 export { noThrowInImplementation } from './no-throw-in-implementation.js';
 export { contextNoTrailheadTypes } from './context-no-trailhead-types.js';
 export { crossDeclarations } from './cross-declarations.js';
+export { draftFileMarking } from './draft-file-marking.js';
+export { draftVisibleDebt } from './draft-visible-debt.js';
 export { validDetourRefs } from './valid-detour-refs.js';
 export { noDirectImplInRoute } from './no-direct-impl-in-route.js';
 export { noDirectImplementationCall } from './no-direct-implementation-call.js';
@@ -43,6 +47,8 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [noThrowInImplementation.name, noThrowInImplementation],
   [contextNoTrailheadTypes.name, contextNoTrailheadTypes],
   [crossDeclarations.name, crossDeclarations],
+  [draftFileMarking.name, draftFileMarking],
+  [draftVisibleDebt.name, draftVisibleDebt],
   [provisionDeclarations.name, provisionDeclarations],
   [provisionExists.name, provisionExists],
   [preferSchemaInference.name, preferSchemaInference],

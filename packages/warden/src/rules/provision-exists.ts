@@ -1,3 +1,5 @@
+import { isDraftId } from '@ontrails/core';
+
 import {
   collectNamedProvisionIds,
   collectProvisionDefinitionIds,
@@ -94,7 +96,7 @@ const reportMissingProvisions = (
     def.config,
     provisionIdsByName
   )) {
-    if (!knownProvisionIds.has(provisionId)) {
+    if (!knownProvisionIds.has(provisionId) && !isDraftId(provisionId)) {
       diagnostics.push(
         buildMissingProvisionDiagnostic(def.id, provisionId, filePath, line)
       );

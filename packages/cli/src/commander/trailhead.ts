@@ -8,7 +8,6 @@ import type {
   Topo,
   TrailContextInit,
 } from '@ontrails/core';
-import { validateTopo } from '@ontrails/core';
 
 import type { ActionResultContext } from '../build.js';
 import { buildCliCommands } from '../build.js';
@@ -39,23 +38,14 @@ export interface TrailheadCliOptions {
 }
 
 // ---------------------------------------------------------------------------
-// Validation
-// ---------------------------------------------------------------------------
-
-/** Throw a ValidationError if the topo has structural issues. */
-const assertValidTopo = (app: Topo): void => {
-  const validated = validateTopo(app);
-  if (validated.isErr()) {
-    throw validated.error;
-  }
-};
-
-// ---------------------------------------------------------------------------
 // trailhead
 // ---------------------------------------------------------------------------
 
 /**
  * Wire an App to Commander and parse argv in one call.
+ *
+ * Validation is handled by `buildCliCommands` — pass `validate: false`
+ * to skip it (e.g. during hot-reload or progressive startup).
  *
  * ```ts
  * import { topo } from "@ontrails/core";
@@ -70,10 +60,6 @@ export const trailhead = async (
   app: Topo,
   options: TrailheadCliOptions = {}
 ): Promise<void> => {
-  if (options.validate !== false) {
-    assertValidTopo(app);
-  }
-
   const commands = buildCliCommands(app, {
     createContext: options.createContext,
     gates: options.gates,
@@ -81,6 +67,7 @@ export const trailhead = async (
     presets: options.presets,
     provisions: options.provisions,
     resolveInput: options.resolveInput,
+    validate: options.validate,
   });
 
   const commanderOpts: ToCommanderOptions = {

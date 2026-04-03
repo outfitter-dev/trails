@@ -1,3 +1,5 @@
+import { isDraftId } from '@ontrails/core';
+
 import { collectTrailIds } from './specs.js';
 import type {
   ProjectAwareWardenRule,
@@ -44,7 +46,7 @@ const findMissingDetourTargets = (
   const missing: string[] = [];
   for (const m of text.matchAll(/target\s*:\s*["'`]([^"'`]+)["'`]/g)) {
     const [, id] = m;
-    if (id && !knownIds.has(id)) {
+    if (id && !knownIds.has(id) && !isDraftId(id)) {
       missing.push(id);
     }
   }
@@ -59,7 +61,7 @@ const findMissingPlainDetours = (
   const cleaned = text.replaceAll(/target\s*:\s*["'`][^"'`]+["'`]/g, '');
   for (const m of cleaned.matchAll(/["'`]([^"'`]+)["'`]/g)) {
     const [, id] = m;
-    if (id && id.includes('.') && !knownIds.has(id)) {
+    if (id && id.includes('.') && !knownIds.has(id) && !isDraftId(id)) {
       missing.push(id);
     }
   }

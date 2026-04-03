@@ -12,6 +12,7 @@ import {
   ValidationError,
   executeTrail,
   isBlobRef,
+  validateEstablishedTopo,
   zodToJsonSchema,
 } from '@ontrails/core';
 import type {
@@ -44,6 +45,8 @@ export interface BuildMcpToolsOptions {
   readonly includeTrails?: readonly string[] | undefined;
   readonly gates?: readonly Gate[] | undefined;
   readonly provisions?: ProvisionOverrideMap | undefined;
+  /** Set to `false` to skip topo validation while building tools. */
+  readonly validate?: boolean | undefined;
 }
 
 export interface McpToolDefinition {
@@ -348,11 +351,23 @@ const eligibleTrails = (
 ): Trail<unknown, unknown>[] =>
   app.list().filter((trail) => shouldInclude(trail, options));
 
-export const buildMcpTools = (
+const validateToolBuild = (
   app: Topo,
-  options: BuildMcpToolsOptions = {}
+  options: BuildMcpToolsOptions
+): Result<void, Error> => {
+  if (options.validate === false) {
+    return Result.ok();
+  }
+
+  const validated = validateEstablishedTopo(app);
+  return validated.isErr() ? Result.err(validated.error) : Result.ok();
+};
+
+const registerTools = (
+  app: Topo,
+  options: BuildMcpToolsOptions,
+  gates: readonly Gate[]
 ): Result<McpToolDefinition[], Error> => {
-  const gates = options.gates ?? [];
   const tools: McpToolDefinition[] = [];
   const nameToTrailId = new Map<string, string>();
 
@@ -371,4 +386,16 @@ export const buildMcpTools = (
   }
 
   return Result.ok(tools);
+};
+
+export const buildMcpTools = (
+  app: Topo,
+  options: BuildMcpToolsOptions = {}
+): Result<McpToolDefinition[], Error> => {
+  const validation = validateToolBuild(app, options);
+  if (validation.isErr()) {
+    return validation;
+  }
+
+  return registerTools(app, options, options.gates ?? []);
 };
