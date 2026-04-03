@@ -4,12 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { Topo } from '@ontrails/core';
-import {
-  ConflictError,
-  InternalError,
-  NotFoundError,
-  Result,
-} from '@ontrails/core';
+import { ConflictError, NotFoundError, Result } from '@ontrails/core';
 import type {
   TopoPinRecord,
   TopoSaveRecord,
@@ -21,24 +16,17 @@ import {
   pinTopoSave,
   unpinTopoSave,
 } from '@ontrails/core/internal/topo-saves';
-import type { StoredTopoExport } from '@ontrails/core/internal/topo-store';
-import {
-  getStoredTopoExport,
-  persistEstablishedTopoSave,
-} from '@ontrails/core/internal/topo-store';
+import { persistEstablishedTopoSave } from '@ontrails/core/internal/topo-store';
 import {
   openReadTrailsDb,
   openWriteTrailsDb,
   resolveTrailsDbPath,
   resolveTrailsDir,
 } from '@ontrails/core/internal/trails-db';
-import type { TrailheadLock, TrailheadMap } from '@ontrails/schema';
 import {
   generateTrailheadMap,
   hashTrailheadMap,
   readTrailheadLock,
-  writeTrailheadLock,
-  writeTrailheadMap,
 } from '@ontrails/schema';
 import { z } from 'zod';
 
@@ -110,7 +98,7 @@ export interface TopoVerifyReport {
   readonly stale: false;
 }
 
-const resolveRootDir = (cwd?: string): string => cwd ?? process.cwd();
+export const resolveRootDir = (cwd?: string): string => cwd ?? process.cwd();
 
 const safeGit = (cwd: string, args: readonly string[]): string | undefined => {
   const proc = Bun.spawnSync({
@@ -125,7 +113,7 @@ const safeGit = (cwd: string, args: readonly string[]): string | undefined => {
   return text.length === 0 ? undefined : text;
 };
 
-const currentGitState = (
+export const currentGitState = (
   rootDir: string
 ): { readonly gitDirty: boolean; readonly gitSha?: string } => {
   const gitSha = safeGit(rootDir, ['rev-parse', 'HEAD']);
@@ -136,7 +124,7 @@ const currentGitState = (
   };
 };
 
-const topoCounts = (
+export const topoCounts = (
   app: Topo
 ): Pick<TopoSaveRecord, 'provisionCount' | 'signalCount' | 'trailCount'> => ({
   provisionCount: app.provisions.size,
@@ -305,81 +293,6 @@ export const removeTopoPin = (input: {
       return { dryRun: input.dryRun, removed: false };
     }
     return removeTopoPinWithDb(input, pin, db);
-  } finally {
-    db.close();
-  }
-};
-
-const persistAndReadStoredExport = (
-  app: Topo,
-  db: ReturnType<typeof openWriteTrailsDb>,
-  rootDir: string
-): Result<{ save: TopoSaveRecord; storedExport: StoredTopoExport }, Error> => {
-  let save: TopoSaveRecord;
-  try {
-    save = persistEstablishedTopoSave(db, app, {
-      ...currentGitState(rootDir),
-      ...topoCounts(app),
-    });
-  } catch (error) {
-    return Result.err(
-      error instanceof Error ? error : new Error(String(error))
-    );
-  }
-
-  const storedExport = getStoredTopoExport(db, save.id);
-
-  if (storedExport === undefined) {
-    return Result.err(
-      new InternalError(`Missing stored topo export for save "${save.id}"`)
-    );
-  }
-
-  return Result.ok({
-    save,
-    storedExport,
-  });
-};
-
-const writeStoredExportArtifacts = async (
-  storedExport: StoredTopoExport,
-  trailsDir: string
-): Promise<Pick<TopoExportReport, 'hash' | 'lockPath' | 'mapPath'>> => {
-  const mapPath = await writeTrailheadMap(
-    JSON.parse(storedExport.trailheadMapJson) as TrailheadMap,
-    { dir: trailsDir }
-  );
-  const lockPath = await writeTrailheadLock(
-    JSON.parse(storedExport.lockContent) as TrailheadLock,
-    { dir: trailsDir }
-  );
-
-  return {
-    hash: storedExport.trailheadHash,
-    lockPath,
-    mapPath,
-  };
-};
-
-export const exportCurrentTopo = async (
-  app: Topo,
-  options?: { readonly rootDir?: string }
-): Promise<Result<TopoExportReport, Error>> => {
-  const rootDir = resolveRootDir(options?.rootDir);
-  const db = openWriteTrailsDb({ rootDir });
-
-  try {
-    const persisted = persistAndReadStoredExport(app, db, rootDir);
-    if (persisted.isErr()) {
-      return persisted;
-    }
-
-    const { save, storedExport } = persisted.value;
-    const artifacts = await writeStoredExportArtifacts(
-      storedExport,
-      resolveTrailsDir({ rootDir })
-    );
-    return Result.ok({ ...artifacts, save });
   } finally {
     db.close();
   }
