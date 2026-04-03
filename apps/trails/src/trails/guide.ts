@@ -5,7 +5,7 @@
  */
 
 import type { Topo, Trail } from '@ontrails/core';
-import { Result, trail } from '@ontrails/core';
+import { NotFoundError, Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
@@ -61,7 +61,9 @@ export const guideTrail = trail('guide', {
     if (input.trailId) {
       const item = app.get(input.trailId);
       if (!item) {
-        return Result.err(new Error(`Trail not found: ${input.trailId}`));
+        return Result.err(
+          new NotFoundError(`Trail not found: ${input.trailId}`)
+        );
       }
       return Result.ok(toGuideDetail(item as Trail<unknown, unknown>));
     }

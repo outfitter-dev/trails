@@ -13,7 +13,8 @@ import type { ReadOptions, TrailheadMap, WriteOptions } from './types.js';
 
 const DEFAULT_DIR = '.trails';
 const TRAILHEAD_MAP_FILE = '_trailhead.json';
-const TRAILHEAD_LOCK_FILE = 'trailhead.lock';
+const TRAILHEAD_LOCK_FILE = 'trails.lock';
+const LEGACY_TRAILHEAD_LOCK_FILE = 'trailhead.lock';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -83,7 +84,7 @@ export const readTrailheadMap = async (
 // ---------------------------------------------------------------------------
 
 /**
- * Write a hash to `<dir>/trailhead.lock` as a single line.
+ * Write a hash to `<dir>/trails.lock` as a single line.
  *
  * Creates the directory if it doesn't exist. Returns the file path.
  */
@@ -99,12 +100,16 @@ export const writeTrailheadLock = async (
 };
 
 /**
- * Read the hash from `<dir>/trailhead.lock`.
+ * Read the hash from `<dir>/trails.lock`, falling back to the legacy
+ * `<dir>/trailhead.lock` during migration.
  */
 export const readTrailheadLock = async (
   options?: ReadOptions
 ): Promise<string | null> => {
   const dir = resolveDir(options);
-  const content = await readFirstExistingText([join(dir, TRAILHEAD_LOCK_FILE)]);
+  const content = await readFirstExistingText([
+    join(dir, TRAILHEAD_LOCK_FILE),
+    join(dir, LEGACY_TRAILHEAD_LOCK_FILE),
+  ]);
   return content ? content.trim() : null;
 };

@@ -35,22 +35,23 @@
     },
     "apps/trails": {
       "name": "@ontrails/trails",
-      "version": "1.0.0-beta.12",
+      "version": "1.0.0-beta.13",
       "bin": {
         "trails": "./bin/trails.ts",
       },
       "dependencies": {
         "@clack/prompts": "^1.1.0",
-        "@ontrails/cli": "workspace:*",
-        "@ontrails/core": "workspace:*",
-        "@ontrails/logging": "workspace:*",
-        "@ontrails/schema": "workspace:*",
-        "@ontrails/warden": "workspace:*",
+        "@ontrails/cli": "workspace:^",
+        "@ontrails/core": "workspace:^",
+        "@ontrails/logging": "workspace:^",
+        "@ontrails/schema": "workspace:^",
+        "@ontrails/tracker": "workspace:^",
+        "@ontrails/warden": "workspace:^",
         "commander": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {
-        "@ontrails/testing": "workspace:*",
+        "@ontrails/testing": "workspace:^",
       },
     },
     "apps/trails-demo": {
@@ -76,7 +77,7 @@
     },
     "packages/cli": {
       "name": "@ontrails/cli",
-      "version": "1.0.0-beta.12",
+      "version": "1.0.0-beta.13",
       "dependencies": {
         "@ontrails/core": "workspace:^",
       },
@@ -90,7 +91,7 @@
     },
     "packages/config": {
       "name": "@ontrails/config",
-      "version": "1.0.0-beta.12",
+      "version": "1.0.0-beta.13",
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
         "zod": "catalog:",
@@ -98,14 +99,14 @@
     },
     "packages/core": {
       "name": "@ontrails/core",
-      "version": "1.0.0-beta.12",
+      "version": "1.0.0-beta.13",
       "peerDependencies": {
         "zod": "catalog:",
       },
     },
     "packages/http": {
       "name": "@ontrails/http",
-      "version": "1.0.0-beta.12",
+      "version": "1.0.0-beta.13",
       "dependencies": {
         "@ontrails/core": "workspace:^",
       },
@@ -119,14 +120,14 @@
     },
     "packages/logging": {
       "name": "@ontrails/logging",
-      "version": "1.0.0-beta.12",
+      "version": "1.0.0-beta.13",
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
       },
     },
     "packages/mcp": {
       "name": "@ontrails/mcp",
-      "version": "1.0.0-beta.12",
+      "version": "1.0.0-beta.13",
       "dependencies": {
         "@ontrails/core": "workspace:^",
       },
@@ -137,7 +138,7 @@
     },
     "packages/permits": {
       "name": "@ontrails/permits",
-      "version": "1.0.0-beta.12",
+      "version": "1.0.0-beta.13",
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
         "zod": "catalog:",
@@ -145,7 +146,7 @@
     },
     "packages/schema": {
       "name": "@ontrails/schema",
-      "version": "1.0.0-beta.12",
+      "version": "1.0.0-beta.13",
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
         "zod": "catalog:",
@@ -153,7 +154,7 @@
     },
     "packages/testing": {
       "name": "@ontrails/testing",
-      "version": "1.0.0-beta.12",
+      "version": "1.0.0-beta.13",
       "peerDependencies": {
         "@ontrails/cli": "workspace:^",
         "@ontrails/core": "workspace:^",
@@ -164,7 +165,7 @@
     },
     "packages/tracker": {
       "name": "@ontrails/tracker",
-      "version": "1.0.0-beta.12",
+      "version": "1.0.0-beta.13",
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
         "zod": "catalog:",
@@ -172,7 +173,7 @@
     },
     "packages/warden": {
       "name": "@ontrails/warden",
-      "version": "1.0.0-beta.12",
+      "version": "1.0.0-beta.13",
       "devDependencies": {
         "@ontrails/testing": "workspace:^",
         "@oxc-project/types": "^0.122.0",

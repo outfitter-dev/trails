@@ -287,7 +287,7 @@ describe('formatWardenReport', () => {
       passed: false,
       warnCount: 0,
     });
-    expect(output).toContain('trailhead.lock is stale');
+    expect(output).toContain('trails.lock is stale');
     expect(output).toContain('Result: FAIL');
   });
 

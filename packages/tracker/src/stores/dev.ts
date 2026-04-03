@@ -3,18 +3,19 @@ import { Database } from 'bun:sqlite';
 import { existsSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { openWriteTrailsDb } from '@ontrails/core/internal/trails-db';
+
 import {
-  ensureSubsystemSchema,
-  openWriteTrailsDb,
-} from '@ontrails/core/internal/trails-db';
+  DEFAULT_MAX_AGE,
+  DEFAULT_MAX_RECORDS,
+  TRACK_TABLE,
+  applyTrackCleanup,
+  countTrackRecords,
+  ensureTrackSchema,
+} from '../internal/dev-state.js';
 
 import type { Track } from '../track.js';
 import type { TrackSink } from '../tracker-gate.js';
-
-const DEFAULT_MAX_RECORDS = 10_000;
-const DEFAULT_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
-const TRACK_SUBSYSTEM = 'track';
-const TRACK_TABLE = 'track_records';
 
 /** Configuration for the SQLite dev store. */
 export interface DevStoreOptions {
@@ -48,34 +49,6 @@ export interface TrackStore {
 
 /** SQLite-backed dev store for persisting and querying track records. */
 export interface DevStore extends TrackStore, TrackSink {}
-
-/** SQL for creating the tracker table. */
-const CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS ${TRACK_TABLE} (
-  id TEXT PRIMARY KEY,
-  trace_id TEXT NOT NULL,
-  root_id TEXT NOT NULL,
-  parent_id TEXT,
-  kind TEXT NOT NULL,
-  name TEXT NOT NULL,
-  trail_id TEXT,
-  trailhead TEXT,
-  intent TEXT,
-  started_at INTEGER NOT NULL,
-  ended_at INTEGER,
-  status TEXT NOT NULL,
-  error_category TEXT,
-  permit_id TEXT,
-  permit_tenant_id TEXT,
-  attrs TEXT
-)`;
-
-/** Index for common query patterns. */
-const CREATE_INDEXES_SQL = [
-  `CREATE INDEX IF NOT EXISTS idx_${TRACK_TABLE}_trail_id ON ${TRACK_TABLE}(trail_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_${TRACK_TABLE}_trace_id ON ${TRACK_TABLE}(trace_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_${TRACK_TABLE}_status ON ${TRACK_TABLE}(status)`,
-  `CREATE INDEX IF NOT EXISTS idx_${TRACK_TABLE}_started_at ON ${TRACK_TABLE}(started_at)`,
-];
 
 /** Shape of a row returned from the tracker table. */
 interface TrackRow {
@@ -130,47 +103,6 @@ const rowToRecord = (row: TrackRow): Track => ({
   trailId: row.trail_id ?? undefined,
   trailhead: (row.trailhead ?? undefined) as Track['trailhead'],
 });
-
-const ensureTrackSchema = (db: Database): void => {
-  ensureSubsystemSchema(db, {
-    migrate: () => {
-      db.run(CREATE_TABLE_SQL);
-      for (const sql of CREATE_INDEXES_SQL) {
-        db.run(sql);
-      }
-    },
-    subsystem: TRACK_SUBSYSTEM,
-    version: 1,
-  });
-};
-
-/** Prune records exceeding the retention limit. */
-const pruneByCount = (db: Database, maxRecords: number): void => {
-  const countResult = db
-    .query<{ count: number }, []>(
-      `SELECT COUNT(*) as count FROM ${TRACK_TABLE}`
-    )
-    .get();
-  const count = countResult?.count ?? 0;
-
-  if (count <= maxRecords) {
-    return;
-  }
-
-  const excess = count - maxRecords;
-  db.run(
-    `DELETE FROM ${TRACK_TABLE} WHERE id IN (
-      SELECT id FROM ${TRACK_TABLE} ORDER BY started_at ASC LIMIT ?
-    )`,
-    [excess]
-  );
-};
-
-/** Prune records older than maxAge milliseconds. */
-const pruneByAge = (db: Database, maxAge: number): void => {
-  const threshold = Date.now() - maxAge;
-  db.run(`DELETE FROM ${TRACK_TABLE} WHERE started_at < ?`, [threshold]);
-};
 
 /** Filter definition: column condition and optional bound value. */
 interface QueryFilter {
@@ -268,16 +200,6 @@ ON CONFLICT(id) DO UPDATE SET
   permit_tenant_id = excluded.permit_tenant_id,
   attrs = excluded.attrs`;
 
-/** Count stored track records. */
-const countRecords = (db: Database): number => {
-  const result = db
-    .query<{ count: number }, []>(
-      `SELECT COUNT(*) as count FROM ${TRACK_TABLE}`
-    )
-    .get();
-  return result?.count ?? 0;
-};
-
 /** Create a transactional writer that keeps retention pruning atomic. */
 const createWriter = (
   db: Database,
@@ -287,10 +209,10 @@ const createWriter = (
 ): ((record: Track) => void) =>
   db.transaction((record: Track) => {
     insertStmt.run(...recordToParams(record));
-    pruneByCount(db, maxRecords);
-    if (maxAge !== undefined) {
-      pruneByAge(db, maxAge);
-    }
+    applyTrackCleanup(db, {
+      maxRecords,
+      ...(maxAge === undefined ? {} : { maxAge }),
+    });
   });
 
 const resolveLegacyPath = (rootDir?: string): string =>
@@ -308,7 +230,7 @@ const hasLegacyTrackerTable = (db: Database): boolean => {
 const shouldSkipLegacyMigration = (
   db: Database,
   _options: DevStoreOptions | undefined
-): boolean => countRecords(db) > 0;
+): boolean => countTrackRecords(db) > 0;
 
 const readLegacyRows = (legacyDb: Database): readonly TrackRow[] => {
   if (!hasLegacyTrackerTable(legacyDb)) {
@@ -379,7 +301,7 @@ const createReadApi = (db: Database, defaultLimit: number): TrackStore => ({
   close: () => {
     db.close();
   },
-  count: () => countRecords(db),
+  count: () => countTrackRecords(db),
   query: (queryOptions?: DevStoreQueryOptions): readonly Track[] => {
     const { sql, params } = buildQuery(defaultLimit, queryOptions);
     const rows = db.query<TrackRow, SQLQueryBindings[]>(sql).all(...params);

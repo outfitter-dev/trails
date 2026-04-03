@@ -30,7 +30,7 @@ const formatGitHub = (output: CiOutput): string => {
 
   if (output.driftResult.stale) {
     lines.push(
-      '::error title=drift-detected::trailhead.lock is stale — regenerate with `trails survey generate`'
+      '::error title=drift-detected::trails.lock is stale — regenerate with `trails topo export`'
     );
   }
 
@@ -82,7 +82,7 @@ const summaryDriftSection = (drift: DriftResult): string[] => {
   if (drift.stale) {
     return [
       '### Drift: stale',
-      'The trailhead.lock is out of date. Regenerate with `trails survey generate`.',
+      'The trails.lock file is out of date. Regenerate with `trails topo export`.',
     ];
   }
   return ['### Drift: clean'];

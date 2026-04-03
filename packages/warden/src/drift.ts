@@ -1,7 +1,7 @@
 /**
- * Trailhead lock drift detection.
+ * Topo lock drift detection.
  *
- * Compares the committed `trailhead.lock` hash against a freshly generated
+ * Compares the committed `trails.lock` hash against a freshly generated
  * trailhead map hash to detect when the trail topology has changed without
  * updating the lock file.
  */
@@ -15,21 +15,21 @@ import {
 } from '@ontrails/schema';
 
 /**
- * Result of a drift check comparing committed trailhead.lock against the current state.
+ * Result of a drift check comparing committed trails.lock against the current state.
  */
 export interface DriftResult {
   /** Why drift could not be computed for the established graph, when blocked. */
   readonly blockedReason?: string | undefined;
   /** Whether the committed lock is out of date */
   readonly stale: boolean;
-  /** Hash from the committed trailhead.lock file, or null if not found */
+  /** Hash from the committed trails.lock file, or null if not found */
   readonly committedHash: string | null;
   /** Hash computed from the current trail topology */
   readonly currentHash: string;
 }
 
 /**
- * Check whether the committed trailhead.lock is stale compared to the current topology.
+ * Check whether the committed trails.lock is stale compared to the current topology.
  *
  * When no topo is provided, returns a clean result (no drift detectable without runtime info).
  */
