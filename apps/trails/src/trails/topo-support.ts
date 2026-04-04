@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,7 +20,6 @@ import {
   openReadTrailsDb,
   openWriteTrailsDb,
   resolveTrailsDbPath,
-  resolveTrailsDir,
 } from '@ontrails/core/internal/trails-db';
 import { z } from 'zod';
 
@@ -176,23 +175,6 @@ export const isolatedExampleInput = (
   };
 };
 
-export const buildTopoSummary = (
-  app: Topo,
-  options?: { readonly rootDir?: string }
-): TopoSummaryReport => {
-  const rootDir = resolveRootDir(options?.rootDir);
-  const trailsDir = resolveTrailsDir({ rootDir });
-  return {
-    app: generateBriefReport(app),
-    dbPath: resolveTrailsDbPath({ rootDir }),
-    list: generateSurveyList(app),
-    lockExists:
-      existsSync(join(trailsDir, 'trails.lock')) ||
-      existsSync(join(trailsDir, 'trailhead.lock')),
-    lockPath: resolveLockPath(trailsDir),
-  };
-};
-
 export const createCurrentTopoSave = (
   app: Topo,
   options?: { readonly rootDir?: string }
@@ -212,18 +194,6 @@ export const createCurrentTopoSave = (
   } finally {
     db.close();
   }
-};
-
-export const isolatedExampleInput = (
-  name: string
-): { readonly module: string; readonly rootDir: string } => {
-  const rootDir = join(tmpdir(), 'ontrails-trails-examples', name);
-  rmSync(rootDir, { force: true, recursive: true });
-  mkdirSync(rootDir, { recursive: true });
-  return {
-    module: EXAMPLE_APP_MODULE,
-    rootDir,
-  };
 };
 
 export const listTopoHistory = (options?: {

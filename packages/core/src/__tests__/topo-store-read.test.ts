@@ -163,6 +163,25 @@ describe('read-only topo store', () => {
     ]);
   });
 
+  test('filters trails by intent', () => {
+    const { rootDir, save } = seedStore();
+    const store = createTopoStore({ rootDir });
+
+    const writeTrails = store.trails.list({
+      intent: 'write',
+      save: { saveId: save.id },
+    });
+    expect(writeTrails).toHaveLength(1);
+    expect(writeTrails[0]?.id).toBe('entity.add');
+
+    const readTrails = store.trails.list({
+      intent: 'read',
+      save: { saveId: save.id },
+    });
+    expect(readTrails).toHaveLength(1);
+    expect(readTrails[0]?.id).toBe('entity.list');
+  });
+
   test('returns detailed trail and export views, plus a query escape hatch', () => {
     const { rootDir, save } = seedStore();
     const store = createTopoStore({ rootDir });
