@@ -187,6 +187,13 @@ const expectDeletedGist = async (
   expect(await created.gists.get(gistId)).toBeNull();
 };
 
+const expectMissingGistDelete = async (
+  created: WritableDemoStoreRuntime
+): Promise<void> => {
+  const deleted = await created.gists.remove('non-existent-id');
+  expect(deleted).toEqual({ deleted: false });
+};
+
 const expectWritableLifecycle = async (
   created: WritableDemoStoreRuntime
 ): Promise<void> => {
@@ -195,6 +202,7 @@ const expectWritableLifecycle = async (
   await expectUpdatedGist(created, gist);
   await expectQueryEscapeHatch(created);
   await expectDeletedGist(created, gist.id);
+  await expectMissingGistDelete(created);
 };
 
 const expectProvisionResolution = (
