@@ -138,8 +138,8 @@ But the default remains honest derivation plus structured input channels. The fr
 
 ## References
 
-- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — this keeps CLI derivation deterministic while refusing lossy projections
+- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — this keeps CLI derivation deterministic while refusing lossy projections
 - [ADR-0019: Hierarchical Command Trees from Trail IDs](0019-hierarchical-command-trees-from-trail-ids.md) — the companion decision for nested command paths
-- [Trails Design Tenets](../../tenets.md) — especially "schema always exists" and "validate at the boundary, trust internally"
+- [Trails Design Tenets](../tenets.md) — especially "schema always exists" and "validate at the boundary, trust internally"
 
-[^retro]: The Stash retro note at `.agents/notes/2026-04-01-stash-retro.md` calls out `gist.create` as the first practical place where flat flag derivation fails for nested input.
+[^retro]: The Stash dogfood retro identified `gist.create` as the first practical place where flat flag derivation fails for nested input.

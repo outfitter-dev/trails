@@ -135,10 +135,10 @@ No separate CLI authoring language is introduced. The override is still a projec
 
 ## References
 
-- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — this extends the CLI derivation story from a shallow first-dot grouping rule to a full ordered path
-- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — trail IDs are authored artifacts that feed multiple projections
-- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — CLI projections belong in the resolved graph and lockfile
-- [Trails Design Tenets](../../tenets.md) — especially "one write, many reads" and "the trail is the product"
+- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — this extends the CLI derivation story from a shallow first-dot grouping rule to a full ordered path
+- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — trail IDs are authored artifacts that feed multiple projections
+- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — CLI projections belong in the resolved graph and lockfile
+- [Trails Design Tenets](../tenets.md) — especially "one write, many reads" and "the trail is the product"
 
 [^build-cli]: [`packages/cli/src/build.ts`](../../../packages/cli/src/build.ts) previously parsed a trail ID into `{ group, name }` by splitting on the first dot. It will call `deriveCliPath` which splits on all dots to produce a full command path.
 [^to-commander]: [`packages/cli/src/commander/to-commander.ts`](../../../packages/cli/src/commander/to-commander.ts) previously created only one parent layer keyed by `group`. It will build a full nested command tree via `ensureCommandNode`.

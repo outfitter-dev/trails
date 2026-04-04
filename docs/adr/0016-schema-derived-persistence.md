@@ -345,12 +345,12 @@ Overrides are explicit and visible in the store definition. The framework derive
 
 ## References
 
-- [ADR-0000: Core Premise](../0000-core-premise.md) — the trail is the product, everything else is a projection
-- [ADR-0005: Framework-Agnostic HTTP Route Model](../0005-framework-agnostic-http-route-model.md) — the two-level architecture pattern this mirrors
-- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — deterministic derivation, now extended to storage
-- [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md) — the provision primitive that the store builds on
-- [ADR-0014: Core Database Primitive](../0014-core-database-primitive.md) — the `trails.db` foundation and patterns this extends
-- [ADR-0015: Topo Store](../0015-topo-store.md) — the framework's own usage of the store patterns
+- [ADR-0000: Core Premise](0000-core-premise.md) — the trail is the product, everything else is a projection
+- [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) — the two-level architecture pattern this mirrors
+- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — deterministic derivation, now extended to storage
+- [ADR-0009: First-Class Provisions](0009-first-class-provisions.md) — the provision primitive that the store builds on
+- [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) — the `trails.db` foundation and patterns this extends
+- [ADR-0015: Topo Store](0015-topo-store.md) — the framework's own usage of the store patterns
 - ADR: Drizzle Store Connector (draft) — the first database connector
 - ADR: Declarative Search (draft) — searchability as a store declaration
 - ADR: Entity Trail Factories (draft) — trail factories derived from store tables via `mark()`

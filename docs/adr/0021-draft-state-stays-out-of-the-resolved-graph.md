@@ -152,9 +152,9 @@ Draft state is a deliberate sketching tool, not an invisible shortcut.
 
 ## References
 
-- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — the resolved graph and lockfile must remain established and queryable
-- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — trail IDs are meaningful authored artifacts, so the draft marker must be deliberate and visible
-- [Trails Design Tenets](../../tenets.md) — especially "the resolved graph is the story" and "the contract is queryable"
+- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — the resolved graph and lockfile must remain established and queryable
+- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — trail IDs are meaningful authored artifacts, so the draft marker must be deliberate and visible
+- [Trails Design Tenets](../tenets.md) — especially "the resolved graph is the story" and "the contract is queryable"
 
-[^retro]: The Stash retro note at `.agents/notes/2026-04-01-stash-retro.md` calls out eager validation of event `from` references as a barrier to incremental authoring.
-[^tenets]: [Trails Design Tenets](../../tenets.md) states that the resolved graph is the story and that the contract must stay queryable.
+[^retro]: The Stash dogfood retro identified eager validation of event `from` references as a barrier to incremental authoring.
+[^tenets]: [Trails Design Tenets](../tenets.md) states that the resolved graph is the story and that the contract must stay queryable.

@@ -60,22 +60,22 @@
           "fromPath": "docs/adr/0011-schema-driven-config.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — the trail is the product, everything else is a projection",
+          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — the trail is the product, everything else is a projection",
           "from": "0014",
           "fromPath": "docs/adr/0014-core-database-primitive.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — \"the contract is queryable\"",
+          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — \"the contract is queryable\"",
           "from": "0015",
           "fromPath": "docs/adr/0015-topo-store.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — the trail is the product, everything else is a projection",
+          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — the trail is the product, everything else is a projection",
           "from": "0016",
           "fromPath": "docs/adr/0016-schema-derived-persistence.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — \"examples are structured data,\" \"the contract is queryable\"",
+          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — \"examples are structured data,\" \"the contract is queryable\"",
           "from": "0018",
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
         },
@@ -179,12 +179,12 @@
           "fromPath": "docs/adr/0008-deterministic-trailhead-derivation.md"
         },
         {
-          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — trail IDs are authored artifacts that feed multiple projections",
+          "context": "- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — trail IDs are authored artifacts that feed multiple projections",
           "from": "0019",
           "fromPath": "docs/adr/0019-hierarchical-command-trees-from-trail-ids.md"
         },
         {
-          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — trail IDs are meaningful authored artifacts, so the draft marker must be deliberate and visible",
+          "context": "- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — trail IDs are meaningful authored artifacts, so the draft marker must be deliberate and visible",
           "from": "0021",
           "fromPath": "docs/adr/0021-draft-state-stays-out-of-the-resolved-graph.md"
         },
@@ -385,7 +385,7 @@
           "fromPath": "docs/adr/0006-shared-execution-pipeline.md"
         },
         {
-          "context": "- [ADR-0005: Framework-Agnostic HTTP Route Model](../0005-framework-agnostic-http-route-model.md) — the two-level architecture pattern this mirrors",
+          "context": "- [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) — the two-level architecture pattern this mirrors",
           "from": "0016",
           "fromPath": "docs/adr/0016-schema-derived-persistence.md"
         },
@@ -513,7 +513,7 @@
           "fromPath": "docs/adr/0010-native-infrastructure.md"
         },
         {
-          "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — the warden rules that validate the lock",
+          "context": "- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — the warden rules that validate the lock",
           "from": "0017",
           "fromPath": "docs/adr/0017-serialized-topo-graph.md"
         },
@@ -557,27 +557,27 @@
           "fromPath": "docs/adr/0014-core-database-primitive.md"
         },
         {
-          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — the trailhead map that the topo store subsumes",
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — the trailhead map that the topo store subsumes",
           "from": "0015",
           "fromPath": "docs/adr/0015-topo-store.md"
         },
         {
-          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — deterministic derivation, now extended to storage",
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — deterministic derivation, now extended to storage",
           "from": "0016",
           "fromPath": "docs/adr/0016-schema-derived-persistence.md"
         },
         {
-          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — the derivation rules that produce trailhead properties on trail nodes",
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — the derivation rules that produce trailhead properties on trail nodes",
           "from": "0017",
           "fromPath": "docs/adr/0017-serialized-topo-graph.md"
         },
         {
-          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — this extends the CLI derivation story from a shallow first-dot grouping rule to a full ordered path",
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — this extends the CLI derivation story from a shallow first-dot grouping rule to a full ordered path",
           "from": "0019",
           "fromPath": "docs/adr/0019-hierarchical-command-trees-from-trail-ids.md"
         },
         {
-          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — this keeps CLI derivation deterministic while refusing lossy projections",
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — this keeps CLI derivation deterministic while refusing lossy projections",
           "from": "0020",
           "fromPath": "docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md"
         },
@@ -656,12 +656,12 @@
           "fromPath": "docs/adr/0013-tracker.md"
         },
         {
-          "context": "- [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md) — the provision primitive that the read-only store provision builds on",
+          "context": "- [ADR-0009: First-Class Provisions](0009-first-class-provisions.md) — the provision primitive that the read-only store provision builds on",
           "from": "0014",
           "fromPath": "docs/adr/0014-core-database-primitive.md"
         },
         {
-          "context": "- [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md) — the provision primitive that the store builds on",
+          "context": "- [ADR-0009: First-Class Provisions](0009-first-class-provisions.md) — the provision primitive that the store builds on",
           "from": "0016",
           "fromPath": "docs/adr/0016-schema-derived-persistence.md"
         },
@@ -791,12 +791,12 @@
           "fromPath": "docs/adr/0011-schema-driven-config.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](../0013-tracker.md) — the execution recording primitive whose DevStore consolidates into this database",
+          "context": "- [ADR-0013: Tracker](0013-tracker.md) — the execution recording primitive whose DevStore consolidates into this database",
           "from": "0014",
           "fromPath": "docs/adr/0014-core-database-primitive.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](../0013-tracker.md) — execution records that colocate with topo data for cross-cutting queries",
+          "context": "- [ADR-0013: Tracker](0013-tracker.md) — execution records that colocate with topo data for cross-cutting queries",
           "from": "0015",
           "fromPath": "docs/adr/0015-topo-store.md"
         },
@@ -870,24 +870,19 @@
       "depends_on": [],
       "inbound": [
         {
-          "context": "- [ADR-0014: Core Database Primitive](../0014-core-database-primitive.md) — the `trails.db` foundation this builds on",
+          "context": "- [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) — the `trails.db` foundation this builds on",
           "from": "0015",
           "fromPath": "docs/adr/0015-topo-store.md"
         },
         {
-          "context": "- [ADR-0014: Core Database Primitive](../0014-core-database-primitive.md) — the `trails.db` foundation and patterns this extends",
+          "context": "- [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) — the `trails.db` foundation and patterns this extends",
           "from": "0016",
           "fromPath": "docs/adr/0016-schema-derived-persistence.md"
         },
         {
-          "context": "- [ADR-0014: Core Database Primitive](../0014-core-database-primitive.md) — the `trails.db` foundation",
+          "context": "- [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) — the `trails.db` foundation",
           "from": "0018",
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
-        },
-        {
-          "context": "- **[ADR-0014: Core Database Primitive](./adr/0014-core-database-primitive.md)** — Shared `trails.db`, subsystem schema versioning",
-          "from": "index",
-          "fromPath": "docs/index.md"
         }
       ],
       "number": "0014",
@@ -904,24 +899,19 @@
       "depends_on": ["14"],
       "inbound": [
         {
-          "context": "- [ADR-0015: Topo Store](../0015-topo-store.md) — the structural graph projected into this database",
+          "context": "- [ADR-0015: Topo Store](0015-topo-store.md) — the structural graph projected into this database",
           "from": "0014",
           "fromPath": "docs/adr/0014-core-database-primitive.md"
         },
         {
-          "context": "- [ADR-0015: Topo Store](../0015-topo-store.md) — the framework's own usage of the store patterns",
+          "context": "- [ADR-0015: Topo Store](0015-topo-store.md) — the framework's own usage of the store patterns",
           "from": "0016",
           "fromPath": "docs/adr/0016-schema-derived-persistence.md"
         },
         {
-          "context": "- [ADR-0015: Topo Store](../0015-topo-store.md) — the read-only provision that governance trails query",
+          "context": "- [ADR-0015: Topo Store](0015-topo-store.md) — the read-only provision that governance trails query",
           "from": "0018",
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
-        },
-        {
-          "context": "- **[ADR-0015: Topo Store](./adr/0015-topo-store.md)** — Queryable relational projection of the resolved graph",
-          "from": "index",
-          "fromPath": "docs/index.md"
         }
       ],
       "number": "0015",
@@ -938,19 +928,14 @@
       "depends_on": ["14", "9"],
       "inbound": [
         {
-          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — app-level persistence building on the patterns established here",
+          "context": "- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — app-level persistence building on the patterns established here",
           "from": "0014",
           "fromPath": "docs/adr/0014-core-database-primitive.md"
         },
         {
-          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — app-level persistence using the same provision patterns",
+          "context": "- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — app-level persistence using the same provision patterns",
           "from": "0018",
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
-        },
-        {
-          "context": "- **[ADR-0016: Schema-Derived Persistence](./adr/0016-schema-derived-persistence.md)** — `store()` declaration, connector binding, fixtures",
-          "from": "index",
-          "fromPath": "docs/index.md"
         }
       ],
       "number": "0016",
@@ -967,29 +952,24 @@
       "depends_on": ["7", "8"],
       "inbound": [
         {
-          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — the lockfile projection exported from topo state",
+          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — the lockfile projection exported from topo state",
           "from": "0015",
           "fromPath": "docs/adr/0015-topo-store.md"
         },
         {
-          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — topo export, verify, and lockfile-as-projection semantics",
+          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — topo export, verify, and lockfile-as-projection semantics",
           "from": "0018",
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
         },
         {
-          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — CLI projections belong in the resolved graph and lockfile",
+          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — CLI projections belong in the resolved graph and lockfile",
           "from": "0019",
           "fromPath": "docs/adr/0019-hierarchical-command-trees-from-trail-ids.md"
         },
         {
-          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — the resolved graph and lockfile must remain established and queryable",
+          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — the resolved graph and lockfile must remain established and queryable",
           "from": "0021",
           "fromPath": "docs/adr/0021-draft-state-stays-out-of-the-resolved-graph.md"
-        },
-        {
-          "context": "- **[ADR-0017: The Serialized Topo Graph](./adr/0017-serialized-topo-graph.md)** — Lockfile as resolved graph",
-          "from": "index",
-          "fromPath": "docs/index.md"
         }
       ],
       "number": "0017",
@@ -1006,19 +986,14 @@
       "depends_on": ["14", "15", "17"],
       "inbound": [
         {
-          "context": "- [ADR-0018: Signal-Driven Governance](../0018-signal-driven-governance.md) — the framework lifecycle as a topo",
+          "context": "- [ADR-0018: Signal-Driven Governance](0018-signal-driven-governance.md) — the framework lifecycle as a topo",
           "from": "0014",
           "fromPath": "docs/adr/0014-core-database-primitive.md"
         },
         {
-          "context": "- [ADR-0018: Signal-Driven Governance](../0018-signal-driven-governance.md) — how topo saves and pins drive downstream behavior",
+          "context": "- [ADR-0018: Signal-Driven Governance](0018-signal-driven-governance.md) — how topo saves and pins drive downstream behavior",
           "from": "0015",
           "fromPath": "docs/adr/0015-topo-store.md"
-        },
-        {
-          "context": "- **[ADR-0018: Signal-Driven Governance](./adr/0018-signal-driven-governance.md)** — Governance through signals",
-          "from": "index",
-          "fromPath": "docs/index.md"
         }
       ],
       "number": "0018",
@@ -1043,11 +1018,6 @@
           "context": "- [ADR-0019: Hierarchical Command Trees from Trail IDs](0019-hierarchical-command-trees-from-trail-ids.md) — the companion decision for nested command paths",
           "from": "0020",
           "fromPath": "docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md"
-        },
-        {
-          "context": "- **[ADR-0019: Hierarchical Command Trees](./adr/0019-hierarchical-command-trees-from-trail-ids.md)** — Full CLI path derivation from dotted trail IDs",
-          "from": "index",
-          "fromPath": "docs/index.md"
         }
       ],
       "number": "0019",
@@ -1067,11 +1037,6 @@
           "context": "- [ADR-0020: Flags for Fields, Structured Input on the CLI](0020-flags-for-fields-structured-input-on-the-cli.md) — defines when CLI input derives to flags and when it uses structured channels",
           "from": "0008",
           "fromPath": "docs/adr/0008-deterministic-trailhead-derivation.md"
-        },
-        {
-          "context": "- **[ADR-0020: Structured CLI Input](./adr/0020-flags-for-fields-structured-input-on-the-cli.md)** — Flags for fields, JSON/file/stdin channels",
-          "from": "index",
-          "fromPath": "docs/index.md"
         }
       ],
       "number": "0020",
@@ -1086,13 +1051,7 @@
     {
       "created": "2026-04-03",
       "depends_on": ["17"],
-      "inbound": [
-        {
-          "context": "- **[ADR-0021: Draft State Containment](./adr/0021-draft-state-stays-out-of-the-resolved-graph.md)** — Draft state stays out of the resolved graph",
-          "from": "index",
-          "fromPath": "docs/index.md"
-        }
-      ],
+      "inbound": [],
       "number": "0021",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0021-draft-state-stays-out-of-the-resolved-graph.md",

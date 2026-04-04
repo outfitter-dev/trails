@@ -11,7 +11,7 @@ This document sits at the top of a purposeful, multi-tier documentation structur
 - **Tenets** (you are here): What we believe and why. Changes when our model of the world changes, which should be rare.
 - **Decisions** (ADRs): Where we've been, what's true today, and what might change down the path. These are our human-readable contracts that govern the state of the project. Once accepted, the contracts remain stable until there is a sufficient justification to blaze a new trail.
 - **Fieldguides**: How we build, with technical patterns, code examples, and dependency choices. Changes when we ship features or refine APIs. These are more stable, but still change.
-- **Trail Notes** (`AGENTS.md`, `.agents/notes/`): Repo conventions, commands, and workflow. Changes when the repo changes. Frequent.
+- **Trail Notes** (`AGENTS.md`): Repo conventions, commands, and workflow. Changes when the repo changes. Frequent.
 
 ## Principles
 

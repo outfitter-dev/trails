@@ -173,8 +173,8 @@ webhook:stripe → booking.confirm → booking.confirmed → notify.booking-conf
 
 ## References
 
-- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — the derivation rules that produce trailhead properties on trail nodes
-- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — the warden rules that validate the lock
+- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — the derivation rules that produce trailhead properties on trail nodes
+- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — the warden rules that validate the lock
 - ADR: Typed Signal Emission (draft) — events as nodes in the graph, emission edges on trail nodes
 - ADR: Reactive Trail Activation (draft) — trigger activations as edges, reactive graph resolution
 - ADR: Packs as Namespace Boundaries (draft) — pack boundaries as subgraphs within the topo
