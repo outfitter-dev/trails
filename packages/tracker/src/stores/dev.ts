@@ -346,6 +346,17 @@ const drainLegacyRows = (
   }
 };
 
+const removeLegacyDbFiles = (options: DevStoreOptions | undefined): void => {
+  const legacyPath = resolveLegacyPath(options?.rootDir);
+  unlinkSync(legacyPath);
+  for (const suffix of ['-wal', '-shm']) {
+    const sidecar = `${legacyPath}${suffix}`;
+    if (existsSync(sidecar)) {
+      unlinkSync(sidecar);
+    }
+  }
+};
+
 const migrateLegacyStoreIfPresent = (
   db: Database,
   options: DevStoreOptions | undefined,
@@ -361,7 +372,7 @@ const migrateLegacyStoreIfPresent = (
   for (const row of rows) {
     write(rowToRecord(row));
   }
-  unlinkSync(resolveLegacyPath(options?.rootDir));
+  removeLegacyDbFiles(options);
 };
 
 const createReadApi = (db: Database, defaultLimit: number): TrackStore => ({
