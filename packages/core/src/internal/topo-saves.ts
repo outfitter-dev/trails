@@ -284,6 +284,8 @@ export const pruneUnpinnedTopoSaves = (
     return 0;
   }
 
+  const before = countSaves(db);
+
   db.run(
     `DELETE FROM topo_saves
      WHERE id IN (
