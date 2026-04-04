@@ -214,6 +214,10 @@ export const createCurrentTopoSave = (
       ...currentGitState(rootDir),
       ...topoCounts(app),
     });
+    if (result.isErr()) {
+      throw result.error;
+    }
+    return result.value;
   } finally {
     db.close();
   }
@@ -255,8 +259,14 @@ export const pinCurrentTopo = (
       ...currentGitState(rootDir),
       ...topoCounts(app),
     });
-    const pin = pinTopoSave(db, { name: input.name, saveId: save.id });
-    return { pin, save };
+    if (result.isErr()) {
+      throw result.error;
+    }
+    const pin = pinTopoSave(db, {
+      name: input.name,
+      saveId: result.value.id,
+    });
+    return { pin, save: result.value };
   } finally {
     db.close();
   }

@@ -169,7 +169,7 @@ const normalizeTrailSignalRows = (
   saveId: string
 ): readonly TopoTrailSignalRow[] =>
   signals.flatMap((signal) =>
-    [...new Set(signal.from ?? [])].toSorted().map((trailId) => ({
+    [...new Set(signal.from)].toSorted().map((trailId) => ({
       saveId,
       signalId: signal.id,
       trailId,
@@ -373,11 +373,11 @@ export const persistEstablishedTopoSave = (
     trailCount: input?.trailCount ?? topo.trails.size,
   };
 
-  return db.transaction(() => {
-    const save = insertTopoSaveRecord(db, saveInput);
-    insertProjectedRows(db, normalizeTopoProjection(topo, save.id));
-    return created;
+  const save = db.transaction(() => {
+    const record = insertTopoSaveRecord(db, saveInput);
+    insertProjectedRows(db, normalizeTopoProjection(topo, record.id));
+    return record;
   })();
 
-  return Result.ok(record);
+  return Result.ok(save);
 };
