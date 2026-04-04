@@ -449,6 +449,7 @@ const appendPrimaryKeySql = (
     return;
   }
 
+  parts.push('NOT NULL');
   parts.push('PRIMARY KEY');
   const isAutoIncrement =
     table.generated.includes(field) &&

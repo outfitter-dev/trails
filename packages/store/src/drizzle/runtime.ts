@@ -82,7 +82,11 @@ const closeConnection = (connection: object): void => {
 };
 
 const mapDatabaseError = (tableName: string, error: unknown): Error => {
-  if (error instanceof ValidationError || error instanceof AlreadyExistsError) {
+  if (
+    error instanceof ValidationError ||
+    error instanceof AlreadyExistsError ||
+    error instanceof InternalError
+  ) {
     return error;
   }
 
@@ -371,6 +375,18 @@ const primaryKeyColumn = (
   field: string
 ): AnySQLiteColumn => table[field as keyof typeof table] as AnySQLiteColumn;
 
+const buildFilterConditions = (
+  drizzleTable: AnySQLiteTable,
+  filters: Record<string, unknown> | undefined
+): ReturnType<typeof eq>[] =>
+  filters === undefined
+    ? []
+    : Object.entries(filters)
+        .filter(([, value]) => value !== undefined)
+        .map(([field, value]) =>
+          eq(primaryKeyColumn(drizzleTable, field), value as never)
+        );
+
 const createReadOnlyAccessor = <
   TStore extends AnyStoreDefinition,
   TName extends keyof TStore['tables'] & string,
@@ -403,30 +419,20 @@ const createReadOnlyAccessor = <
   },
   list(filters, options) {
     try {
-      let query = db.select().from(drizzleTable).$dynamic();
-      const conditions =
-        filters === undefined
-          ? []
-          : Object.entries(filters)
-              .filter(([, value]) => value !== undefined)
-              .map(([field, value]) =>
-                eq(primaryKeyColumn(drizzleTable, field), value as never)
-              );
-
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
-
-      if (options?.limit !== undefined) {
-        query = query.limit(options.limit);
-      }
-
-      if (options?.offset !== undefined) {
-        query = query.offset(options.offset);
-      }
+      const conditions = buildFilterConditions(
+        drizzleTable,
+        filters as Record<string, unknown> | undefined
+      );
+      const base = db.select().from(drizzleTable).$dynamic();
+      const filtered =
+        conditions.length > 0 ? base.where(and(...conditions)) : base;
+      const rows = filtered
+        .limit(options?.limit ?? -1)
+        .offset(options?.offset ?? 0)
+        .all();
 
       return Promise.resolve(
-        query.all().map((row) => cloneValue(parseEntity(definitionTable, row)))
+        rows.map((row) => cloneValue(parseEntity(definitionTable, row)))
       );
     } catch (error) {
       return Promise.reject(mapDatabaseError(definitionTable.name, error));
