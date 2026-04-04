@@ -181,14 +181,39 @@ export interface StoreDefinition<
 }
 
 /**
- * Any normalized store table.
+ * Structural view of any normalized store table.
+ *
+ * This stays broad on purpose so connector packages can accept concrete store
+ * definitions returned by `store(...)` without erasing their table-specific
+ * types back to one canonical generic instantiation.
  */
-export type AnyStoreTable = StoreTable<StoreTableInput, string>;
+export interface AnyStoreTable {
+  readonly fixtureSchema: StoreObjectSchema;
+  readonly fixtures: readonly Record<string, unknown>[];
+  readonly generated: readonly string[];
+  readonly indexes: readonly string[];
+  readonly insertSchema: StoreObjectSchema;
+  readonly name: string;
+  readonly primaryKey: string;
+  readonly references: Readonly<Partial<Record<string, string>>>;
+  readonly schema: StoreObjectSchema;
+  readonly search?: StoreSearchDefinition | undefined;
+  readonly updateSchema: StoreObjectSchema;
+}
 
 /**
- * Any normalized store definition.
+ * Structural view of any normalized store definition.
  */
-export type AnyStoreDefinition = StoreDefinition<StoreTablesInput>;
+export interface AnyStoreDefinition {
+  readonly kind: 'store';
+  readonly tableNames: readonly string[];
+  readonly tables: Readonly<Record<string, AnyStoreTable>>;
+}
+
+type GeneratedFieldKeysOf<TTable extends AnyStoreTable> = readonly Extract<
+  TTable['generated'][number],
+  StoreFieldKey<TTable['schema']>
+>[];
 
 /**
  * Full entity type represented by one store table.
@@ -200,7 +225,7 @@ export type EntityOf<TTable extends AnyStoreTable> = z.output<TTable['schema']>;
  */
 export type FixtureInputOf<TTable extends AnyStoreTable> = StoreFixtureInput<
   TTable['schema'],
-  TTable['generated']
+  GeneratedFieldKeysOf<TTable>
 >;
 
 /**
@@ -208,7 +233,7 @@ export type FixtureInputOf<TTable extends AnyStoreTable> = StoreFixtureInput<
  */
 export type FixtureOf<TTable extends AnyStoreTable> = StoreFixtureRow<
   TTable['schema'],
-  TTable['generated']
+  GeneratedFieldKeysOf<TTable>
 >;
 
 /**
@@ -219,8 +244,10 @@ export type PrimaryKeyOf<TTable extends AnyStoreTable> = TTable['primaryKey'];
 /**
  * Server-managed fields for one store table.
  */
-export type GeneratedKeysOf<TTable extends AnyStoreTable> =
-  TTable['generated'][number] & string;
+export type GeneratedKeysOf<TTable extends AnyStoreTable> = Extract<
+  TTable['generated'][number],
+  StoreFieldKey<TTable['schema']>
+>;
 
 /**
  * Insert shape: entity minus generated fields, with defaulted fields optional.
