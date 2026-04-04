@@ -77,7 +77,7 @@ The fields:
 
 - **`create`** — factory that returns `Result<T, Error>`. Receives a narrowed `ProvisionContext` — not the full `TrailContext` — containing only stable, process-scoped fields: `env`, `cwd`, `workspaceRoot`. Singleton provisions are resolved once and cached; request-specific fields like `requestId` or `signal` would reflect the first resolution and be stale for every subsequent call. The narrowed type makes this constraint structural rather than documentary. Named `create` per Convention 5 (`create*` for runtime instances).
 - **`dispose`** — optional cleanup called on shutdown. Database pools close, API clients disconnect.
-- **`health`** — optional check returning `Result`. Feeds into topo and survey reporting plus operational readiness. A database service can report whether it's connected; an API client can report whether the upstream is reachable.
+- **`health`** — optional check returning `Result`. Feeds into topo and survey reporting plus operational readiness. A database provision can report whether it's connected; an API client can report whether the upstream is reachable.
 - **`mock`** — optional factory for testing. When present, `testExamples(app)` uses it automatically with no configuration.
 - **`config`** — reserved. Optional Zod schema declaring the config this provision needs. When the config system ships, provision config schemas compose into the app-level config automatically. Not resolved in v1, but reserving the field prevents breaking changes when composable config arrives.
 
