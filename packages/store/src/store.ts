@@ -18,7 +18,7 @@ const uniqueStrings = <T extends string>(
   Object.freeze([...(values === undefined ? [] : new Set(values))]);
 
 const hasField = (schema: StoreObjectSchema, field: string): boolean =>
-  field in schema.shape;
+  Object.hasOwn(schema.shape, field);
 
 const validateFieldList = (
   tableName: string,
