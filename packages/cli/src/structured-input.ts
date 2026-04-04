@@ -24,7 +24,7 @@ export const structuredInputPreset = (): CliFlag[] => [
     description:
       'JSON object to merge before explicit positional args and flags',
     name: 'input-json',
-    required: false,
+    required: true,
     type: 'string',
     variadic: false,
   },
@@ -32,7 +32,7 @@ export const structuredInputPreset = (): CliFlag[] => [
     description:
       'Path to a JSON file to merge before explicit positional args and flags',
     name: 'input-file',
-    required: false,
+    required: true,
     type: 'string',
     variadic: false,
   },

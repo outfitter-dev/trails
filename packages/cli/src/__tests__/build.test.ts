@@ -178,6 +178,40 @@ describe('buildCliCommands execution', () => {
       // onResult should receive the coerced number, not the raw string
       expect(captured?.input).toEqual({ count: 42 });
     });
+
+    test('receives merged args+flags as input on merge failure', async () => {
+      // Regression: the error path previously passed only parsedFlags, dropping parsedArgs.
+      let captured: ActionResultContext | undefined;
+      const t = trail('fail-merge', {
+        blaze: () => Result.ok('ok'),
+        // z.coerce.number on a non-numeric value will fail validation later,
+        // but we need merge itself to fail — pass invalid JSON via input-json to
+        // trigger a merge error before execution.
+        input: z.object({ name: z.string() }),
+      });
+      const app = makeApp(t);
+      const commands = buildCliCommands(app, {
+        onResult: (ctx) => {
+          captured = ctx;
+          return Promise.resolve();
+        },
+      });
+
+      // 'input-json' with invalid JSON causes safeMergeInput to throw and return Err.
+      // Pass an arg too so we can confirm it is not dropped.
+      await commands[0]?.execute(
+        { name: 'from-arg' },
+        { 'input-json': '{bad json}' }
+      );
+
+      expect(captured).toBeDefined();
+      expect(captured?.result.isErr()).toBe(true);
+      // input on the error path must be merged args + flags, not just flags.
+      expect(captured?.input).toMatchObject({
+        'input-json': '{bad json}',
+        name: 'from-arg',
+      });
+    });
   });
 
   test('validates input before calling implementation', async () => {
