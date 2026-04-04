@@ -55,6 +55,7 @@ export const topoPinOutput = z.object({
 export const DEFAULT_APP_MODULE = './src/app.ts';
 export const DEFAULT_TOPO_HISTORY_LIMIT = 10;
 export const LOCK_PATH = '.trails/trails.lock';
+export const LEGACY_LOCK_PATH = '.trails/trailhead.lock';
 const EXAMPLE_APP_MODULE = fileURLToPath(new URL('../app.ts', import.meta.url));
 
 export interface TopoSummaryReport {
@@ -183,7 +184,9 @@ export const buildTopoSummary = (
     app: generateBriefReport(app),
     dbPath: resolveTrailsDbPath({ rootDir }),
     list: generateSurveyList(app),
-    lockExists: existsSync(join(trailsDir, 'trails.lock')),
+    lockExists:
+      existsSync(join(trailsDir, 'trails.lock')) ||
+      existsSync(join(trailsDir, 'trailhead.lock')),
     lockPath: LOCK_PATH,
   };
 };

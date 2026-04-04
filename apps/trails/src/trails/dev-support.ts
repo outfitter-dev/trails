@@ -177,10 +177,17 @@ const liveDevStats = (
 const resolveDevStatsContext = (options?: DevRetentionOptions) => {
   const rootDir = resolveRootDir(options?.rootDir);
   const dbPath = resolveTrailsDbPath({ rootDir });
+  const trailsDir = resolveTrailsDir({ rootDir });
+  const primaryLockPath = join(trailsDir, 'trails.lock');
+  const legacyLockPath = join(trailsDir, 'trailhead.lock');
+  let lockPath = primaryLockPath;
+  if (!existsSync(primaryLockPath) && existsSync(legacyLockPath)) {
+    lockPath = legacyLockPath;
+  }
   return {
     dbExists: existsSync(dbPath),
     dbPath,
-    lockPath: join(resolveTrailsDir({ rootDir }), 'trails.lock'),
+    lockPath,
     retention: buildRetention(options),
     rootDir,
   };
@@ -286,7 +293,9 @@ export const cleanDevState = (
     return emptyDevClean(context.retention, context.dryRun);
   }
 
-  const db = openWriteTrailsDb({ rootDir: context.rootDir });
+  const db = context.dryRun
+    ? openReadTrailsDb({ rootDir: context.rootDir })
+    : openWriteTrailsDb({ rootDir: context.rootDir });
 
   try {
     return buildCleanReport(db, context);
