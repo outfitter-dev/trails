@@ -314,11 +314,35 @@ const collectPromotableFileRename = async (
   return buildPromotableFileRename(filePath, fileName);
 };
 
-const collectAndApplyFileRenames = async (
+/** Validate that no two renames target the same path and no target already exists. */
+const validateRenameTargets = (
+  renames: readonly FileRename[]
+): Result<void, Error> => {
+  const targets = new Set<string>();
+  for (const r of renames) {
+    if (targets.has(r.to)) {
+      return Result.err(
+        new ValidationError(
+          `Duplicate rename target "${r.to}" — multiple draft files would be renamed to the same path`
+        )
+      );
+    }
+    if (existsSync(r.to)) {
+      return Result.err(
+        new ValidationError(
+          `Rename target "${r.to}" already exists — cannot overwrite`
+        )
+      );
+    }
+    targets.add(r.to);
+  }
+  return Result.ok();
+};
+
+const collectFileRenames = async (
   filePaths: readonly string[]
 ): Promise<Result<FileRename[], Error>> => {
   const renames: FileRename[] = [];
-
   for (const filePath of filePaths) {
     const renameResult = await collectPromotableFileRename(filePath);
     if (renameResult.isErr()) {
@@ -327,6 +351,22 @@ const collectAndApplyFileRenames = async (
     if (renameResult.value !== null) {
       renames.push(renameResult.value);
     }
+  }
+  return Result.ok(renames);
+};
+
+const collectAndApplyFileRenames = async (
+  filePaths: readonly string[]
+): Promise<Result<FileRename[], Error>> => {
+  const collected = await collectFileRenames(filePaths);
+  if (collected.isErr()) {
+    return collected;
+  }
+
+  const renames = collected.value;
+  const valid = validateRenameTargets(renames);
+  if (valid.isErr()) {
+    return valid;
   }
 
   for (const r of renames) {
