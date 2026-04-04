@@ -21,7 +21,7 @@ import {
   previewTrackCleanup,
 } from '@ontrails/tracker/internal/dev-state';
 
-import { LOCK_PATH } from './topo-support.js';
+import { resolveLockPath } from './topo-support.js';
 
 export const DEFAULT_TOPO_SAVE_RETENTION = 50;
 
@@ -125,7 +125,7 @@ const emptyDevClean = (
 const buildLockStats = (lockPath: string): DevStatsReport['lock'] => ({
   exists: existsSync(lockPath),
   fileSizeBytes: existsSync(lockPath) ? statSync(lockPath).size : 0,
-  path: LOCK_PATH,
+  path: lockPath,
 });
 
 const buildDbStats = (
@@ -178,12 +178,7 @@ const resolveDevStatsContext = (options?: DevRetentionOptions) => {
   const rootDir = resolveRootDir(options?.rootDir);
   const dbPath = resolveTrailsDbPath({ rootDir });
   const trailsDir = resolveTrailsDir({ rootDir });
-  const primaryLockPath = join(trailsDir, 'trails.lock');
-  const legacyLockPath = join(trailsDir, 'trailhead.lock');
-  let lockPath = primaryLockPath;
-  if (!existsSync(primaryLockPath) && existsSync(legacyLockPath)) {
-    lockPath = legacyLockPath;
-  }
+  const lockPath = resolveLockPath(trailsDir);
   return {
     dbExists: existsSync(dbPath),
     dbPath,

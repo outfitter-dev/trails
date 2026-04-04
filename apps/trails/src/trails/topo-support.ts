@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,6 +21,7 @@ import {
   openReadTrailsDb,
   openWriteTrailsDb,
   resolveTrailsDbPath,
+  resolveTrailsDir,
 } from '@ontrails/core/internal/trails-db';
 import {
   generateTrailheadMap,
@@ -56,6 +57,16 @@ export const DEFAULT_APP_MODULE = './src/app.ts';
 export const DEFAULT_TOPO_HISTORY_LIMIT = 10;
 export const LOCK_PATH = '.trails/trails.lock';
 export const LEGACY_LOCK_PATH = '.trails/trailhead.lock';
+
+/** Resolve the lockfile path, preferring the current name with legacy fallback. */
+export const resolveLockPath = (trailsDir: string): string => {
+  const primary = join(trailsDir, 'trails.lock');
+  if (existsSync(primary)) {
+    return primary;
+  }
+  const legacy = join(trailsDir, 'trailhead.lock');
+  return existsSync(legacy) ? legacy : primary;
+};
 const EXAMPLE_APP_MODULE = fileURLToPath(new URL('../app.ts', import.meta.url));
 
 export interface TopoSummaryReport {
@@ -187,7 +198,7 @@ export const buildTopoSummary = (
     lockExists:
       existsSync(join(trailsDir, 'trails.lock')) ||
       existsSync(join(trailsDir, 'trailhead.lock')),
-    lockPath: LOCK_PATH,
+    lockPath: resolveLockPath(trailsDir),
   };
 };
 
@@ -302,11 +313,10 @@ export const verifyCurrentTopo = async (
   options?: { readonly rootDir?: string }
 ): Promise<Result<TopoVerifyReport, Error>> => {
   const rootDir = resolveRootDir(options?.rootDir);
+  const trailsDir = resolveTrailsDir({ rootDir });
   const trailheadMap = generateTrailheadMap(app);
   const currentHash = hashTrailheadMap(trailheadMap);
-  const committedHash = await readTrailheadLock({
-    dir: resolveTrailsDir({ rootDir }),
-  });
+  const committedHash = await readTrailheadLock({ dir: trailsDir });
 
   if (committedHash === null) {
     return Result.err(
@@ -327,7 +337,7 @@ export const verifyCurrentTopo = async (
   return Result.ok({
     committedHash,
     currentHash,
-    lockPath: LOCK_PATH,
+    lockPath: resolveLockPath(trailsDir),
     stale: false,
   });
 };
