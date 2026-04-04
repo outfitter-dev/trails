@@ -299,7 +299,7 @@ describe('formatWardenReport', () => {
           'Established topo validation failed with 1 draft issue(s)',
         committedHash: null,
         currentHash: 'blocked',
-        stale: false,
+        stale: true,
       },
       errorCount: 0,
       passed: false,

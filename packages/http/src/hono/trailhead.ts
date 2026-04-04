@@ -311,7 +311,6 @@ export const trailhead = async (
 ): Promise<Hono> => {
   const hono = new Hono();
 
-  assertValidTopo(app, options.validate === false);
   registerErrorHandler(hono);
 
   const routesResult = buildHttpRoutes(app, {

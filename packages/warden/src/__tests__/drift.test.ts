@@ -84,7 +84,7 @@ describe('checkDrift', () => {
 
       const result = await checkDrift(dir, topo('test-app', { draftTrail }));
 
-      expect(result.stale).toBe(false);
+      expect(result.stale).toBe(true);
       expect(result.blockedReason).toContain('draft');
       expect(result.currentHash).toBe('blocked');
     } finally {
