@@ -3,7 +3,8 @@
  *
  * Compares the committed `trails.lock` hash against a freshly generated
  * trailhead map hash to detect when the trail topology has changed without
- * updating the lock file.
+ * updating the lock file. The committed lock may be structured JSON or the
+ * legacy single-line hash format.
  */
 
 import type { Topo } from '@ontrails/core';
@@ -12,7 +13,7 @@ import { resolveTrailsDir } from '@ontrails/core/internal/trails-db';
 import {
   generateTrailheadMap,
   hashTrailheadMap,
-  readTrailheadLock,
+  readTrailheadLockData,
 } from '@ontrails/schema';
 
 /**
@@ -45,14 +46,17 @@ export const checkDrift = async (
   try {
     const trailheadMap = generateTrailheadMap(topo);
     const currentHash = hashTrailheadMap(trailheadMap);
-    const committedHash = await readTrailheadLock({
+    const committedLock = await readTrailheadLockData({
       dir: resolveTrailsDir({ rootDir }),
     });
 
     return {
-      committedHash,
+      committedHash: committedLock?.hash ?? null,
       currentHash,
-      stale: committedHash !== null && committedHash !== currentHash,
+      stale:
+        committedLock !== null &&
+        currentHash !== 'unknown' &&
+        committedLock.hash !== currentHash,
     };
   } catch (error) {
     if (!(error instanceof ValidationError)) {

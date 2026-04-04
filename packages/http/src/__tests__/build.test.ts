@@ -333,7 +333,7 @@ describe('buildHttpRoutes', () => {
         provisions: [dbProvision],
       });
 
-      const app = topo('testapp', { provisionTrail });
+      const app = topo('testapp', { dbProvision, provisionTrail });
       const buildResult = buildHttpRoutes(app, {
         provisions: { 'db.main': { source: 'override' } },
       });

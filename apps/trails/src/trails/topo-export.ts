@@ -2,9 +2,9 @@ import { trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
+import { exportCurrentTopo } from './topo-store-support.js';
 import {
   DEFAULT_APP_MODULE,
-  exportCurrentTopo,
   isolatedExampleInput,
   topoSaveOutput,
 } from './topo-support.js';

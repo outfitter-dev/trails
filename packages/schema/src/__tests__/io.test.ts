@@ -7,6 +7,7 @@ import {
   writeTrailheadMap,
   readTrailheadMap,
   writeTrailheadLock,
+  readTrailheadLockData,
   readTrailheadLock,
 } from '../io.js';
 import type { TrailheadMap } from '../types.js';
@@ -29,6 +30,17 @@ const makeTrailheadMap = (): TrailheadMap => ({
   generatedAt: '2025-01-01T00:00:00.000Z',
   version: '1.0',
 });
+
+const makeStructuredLock = (hash: string) => ({
+  generatedAt: '2026-04-03T00:00:00.000Z',
+  hash,
+  version: 1,
+});
+
+const readParsedLock = async (
+  filePath: string
+): Promise<Record<string, unknown>> =>
+  JSON.parse(await readFile(filePath, 'utf8')) as Record<string, unknown>;
 
 // ---------------------------------------------------------------------------
 // Setup / Teardown
@@ -94,12 +106,24 @@ describe('writeTrailheadLock / readTrailheadLock', () => {
     expect(content).toBe(`${hash}\n`);
   });
 
-  test('reads the hash back', async () => {
+  test('writes and reads structured JSON locks', async () => {
     const hash = 'deadbeef'.repeat(8);
-    await writeTrailheadLock(hash, { dir: tempDir });
-    const result = await readTrailheadLock({ dir: tempDir });
+    const filePath = await writeTrailheadLock(makeStructuredLock(hash), {
+      dir: tempDir,
+    });
 
-    expect(result).toBe(hash);
+    expect(filePath).toBe(join(tempDir, 'trails.lock'));
+
+    const parsed = await readParsedLock(filePath);
+    expect(parsed.hash).toBe(hash);
+    expect(parsed.version).toBe(1);
+
+    const result = await readTrailheadLockData({ dir: tempDir });
+
+    expect(result).toEqual(makeStructuredLock(hash));
+
+    const legacyResult = await readTrailheadLock({ dir: tempDir });
+    expect(legacyResult).toBe(hash);
   });
 
   test('falls back to the legacy trailhead.lock name during migration', async () => {

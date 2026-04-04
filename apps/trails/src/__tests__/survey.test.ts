@@ -1,4 +1,12 @@
 import { describe, expect, test } from 'bun:test';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { join, resolve } from 'node:path';
 
 import { Result, provision, topo, trail } from '@ontrails/core';
 import {
@@ -13,6 +21,7 @@ import {
   generateBriefReport,
   generateSurveyList,
   generateTrailDetail,
+  surveyTrail,
 } from '../trails/survey.js';
 import type {
   BriefReport,
@@ -67,6 +76,49 @@ const app = topo('test-app', {
   dbProvision,
   hello: helloTrail,
 });
+
+const expectOk = <T>(result: Result<T, Error>): T => {
+  if (result.isErr()) {
+    throw result.error;
+  }
+  return result.value;
+};
+
+const writeSurveyAppFixture = (dir: string): void => {
+  mkdirSync(join(dir, 'src'), { recursive: true });
+  writeFileSync(
+    join(dir, 'src', 'app.ts'),
+    `import { Result, provision, topo, trail } from '@ontrails/core';
+import { z } from 'zod';
+
+const hello = trail('hello', {
+  blaze: async (input) => Result.ok({ message: \`Hello, \${input.name ?? 'world'}!\` }),
+  input: z.object({ name: z.string().optional() }),
+  intent: 'read',
+  output: z.object({ message: z.string() }),
+  provisions: [
+    provision('db.main', {
+      create: () => Result.ok({ source: 'factory' }),
+    }),
+  ],
+});
+
+const [dbMain] = hello.provisions;
+if (!dbMain) {
+  throw new Error('expected hello to declare db.main');
+}
+
+export const app = topo('survey-fixture', { dbMain, hello });
+`
+  );
+};
+
+const repoTempDir = (): string =>
+  join(
+    resolve(import.meta.dir, '../..'),
+    '.tmp-tests',
+    `trails-survey-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -213,5 +265,37 @@ describe('trails survey provisions section', () => {
       lifetime: 'singleton',
       usedBy: ['hello'],
     });
+  });
+});
+
+describe('trails survey generate', () => {
+  test('delegates to topo export and writes a structured lock', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+
+      const generated = expectOk(
+        await surveyTrail.blaze({ generate: true, module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      ) as {
+        readonly hash: string;
+        readonly lockPath: string;
+        readonly mapPath: string;
+      };
+
+      expect(generated.hash).toHaveLength(64);
+      expect(existsSync(join(dir, '.trails', '_trailhead.json'))).toBe(true);
+      expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(true);
+      expect(
+        JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
+      ).toMatchObject({
+        hash: generated.hash,
+        version: 1,
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
   });
 });

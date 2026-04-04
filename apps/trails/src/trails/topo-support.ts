@@ -27,8 +27,6 @@ import {
   generateTrailheadMap,
   hashTrailheadMap,
   readTrailheadLock,
-  writeTrailheadLock,
-  writeTrailheadMap,
 } from '@ontrails/schema';
 import { z } from 'zod';
 
@@ -100,7 +98,7 @@ export interface TopoVerifyReport {
   readonly stale: false;
 }
 
-const resolveRootDir = (cwd?: string): string => cwd ?? process.cwd();
+export const resolveRootDir = (cwd?: string): string => cwd ?? process.cwd();
 
 const safeGit = (cwd: string, args: readonly string[]): string | undefined => {
   const proc = Bun.spawnSync({
@@ -115,7 +113,7 @@ const safeGit = (cwd: string, args: readonly string[]): string | undefined => {
   return text.length === 0 ? undefined : text;
 };
 
-const currentGitState = (
+export const currentGitState = (
   rootDir: string
 ): { readonly gitDirty: boolean; readonly gitSha?: string } => {
   const gitSha = safeGit(rootDir, ['rev-parse', 'HEAD']);
@@ -126,7 +124,7 @@ const currentGitState = (
   };
 };
 
-const topoCounts = (
+export const topoCounts = (
   app: Topo
 ): Pick<TopoSaveRecord, 'provisionCount' | 'signalCount' | 'trailCount'> => ({
   provisionCount: app.provisions.size,
@@ -300,34 +298,13 @@ export const removeTopoPin = (input: {
   }
 };
 
-export const exportCurrentTopo = async (
-  app: Topo,
-  options?: { readonly rootDir?: string }
-): Promise<Result<TopoExportReport, Error>> => {
-  const rootDir = resolveRootDir(options?.rootDir);
-  const trailsDir = resolveTrailsDir({ rootDir });
-  const save = createCurrentTopoSave(app, { rootDir });
-  const trailheadMap = generateTrailheadMap(app);
-  const mapPath = await writeTrailheadMap(trailheadMap, { dir: trailsDir });
-  const hash = hashTrailheadMap(trailheadMap);
-  const lockPath = await writeTrailheadLock(hash, { dir: trailsDir });
-
-  return Result.ok({
-    hash,
-    lockPath,
-    mapPath,
-    save,
-  });
-};
-
 export const verifyCurrentTopo = async (
   app: Topo,
   options?: { readonly rootDir?: string }
 ): Promise<Result<TopoVerifyReport, Error>> => {
   const rootDir = resolveRootDir(options?.rootDir);
   const trailsDir = resolveTrailsDir({ rootDir });
-  const trailheadMap = generateTrailheadMap(app);
-  const currentHash = hashTrailheadMap(trailheadMap);
+  const currentHash = hashTrailheadMap(generateTrailheadMap(app));
   const committedHash = await readTrailheadLock({ dir: trailsDir });
 
   if (committedHash === null) {

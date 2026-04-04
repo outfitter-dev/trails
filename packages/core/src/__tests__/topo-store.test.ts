@@ -11,7 +11,10 @@ import {
   pinTopoSave,
   pruneUnpinnedTopoSaves,
 } from '../internal/topo-saves.js';
-import { persistEstablishedTopoSave } from '../internal/topo-store.js';
+import {
+  getStoredTopoExport,
+  persistEstablishedTopoSave,
+} from '../internal/topo-store.js';
 import { openWriteTrailsDb } from '../internal/trails-db.js';
 
 const noop = () => Result.ok({ ok: true });
@@ -199,6 +202,17 @@ const readProjectedTrailIds = (
     .all(saveId)
     .map((row) => row.id);
 
+const requireStoredExport = (
+  db: ReturnType<typeof openWriteTrailsDb>,
+  saveId: string
+) => {
+  const stored = getStoredTopoExport(db, saveId);
+  if (stored === undefined) {
+    throw new Error(`Expected stored topo export for save "${saveId}"`);
+  }
+  return stored;
+};
+
 const expectProjectionCounts = (
   db: ReturnType<typeof openWriteTrailsDb>,
   saveId: string
@@ -211,6 +225,8 @@ const expectProjectionCounts = (
   expect(countRows(db, 'topo_trail_signals', saveId)).toBe(1);
   expect(countRows(db, 'topo_trailheads', saveId)).toBe(2);
   expect(countRows(db, 'topo_examples', saveId)).toBe(2);
+  expect(countRows(db, 'topo_schemas', saveId)).toBe(5);
+  expect(countRows(db, 'topo_exports')).toBeGreaterThanOrEqual(1);
 };
 
 const expectProjectedFixtureRows = (
@@ -356,6 +372,25 @@ describe('topo store projection', () => {
       );
       expectProjectionCounts(db, save.id);
       expectProjectedFixtureRows(db, save.id);
+
+      const stored = requireStoredExport(db, save.id);
+      expect(JSON.parse(stored.trailheadMapJson)).toMatchObject({
+        entries: expect.any(Array),
+        generatedAt: '2026-04-03T12:00:00.000Z',
+        version: '1.0',
+      });
+      expect(JSON.parse(stored.lockContent)).toMatchObject({
+        apps: {
+          'projection-app': {
+            provisions: expect.any(Object),
+            signals: expect.any(Object),
+            trails: expect.any(Object),
+          },
+        },
+        generatedAt: '2026-04-03T12:00:00.000Z',
+        hash: stored.trailheadHash,
+        version: 1,
+      });
     });
   });
 
@@ -380,6 +415,9 @@ describe('topo store projection', () => {
         'entity.add',
         'entity.list',
       ]);
+      expect(requireStoredExport(db, firstSave.id).trailheadHash).not.toBe(
+        requireStoredExport(db, secondSave.id).trailheadHash
+      );
     });
   });
 
@@ -404,6 +442,7 @@ describe('topo store projection', () => {
       expect(countRows(db, 'topo_trails', disposable.id)).toBe(0);
       expect(countRows(db, 'topo_crossings', disposable.id)).toBe(0);
       expect(countRows(db, 'topo_examples', disposable.id)).toBe(0);
+      expect(countRows(db, 'topo_schemas', disposable.id)).toBe(0);
     });
   });
 
@@ -417,10 +456,12 @@ describe('topo store projection', () => {
             "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
           )
           .get()?.version
-      ).toBe(2);
+      ).toBe(3);
       expect(tableExists(db, 'topo_trails')).toBe(true);
       expect(tableExists(db, 'topo_crossings')).toBe(true);
       expect(tableExists(db, 'topo_examples')).toBe(true);
+      expect(tableExists(db, 'topo_exports')).toBe(true);
+      expect(tableExists(db, 'topo_schemas')).toBe(true);
       expect(countRows(db, 'topo_saves')).toBe(1);
       expect(countRows(db, 'topo_pins')).toBe(1);
     });

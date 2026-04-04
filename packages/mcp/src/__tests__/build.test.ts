@@ -341,7 +341,7 @@ describe('buildMcpTools', () => {
       });
 
       const tool = requireOnlyTool(
-        buildTools(topo('myapp', { provisionTrail }), {
+        buildTools(topo('myapp', { dbProvision, provisionTrail }), {
           provisions: { 'db.main': { source: 'override' } },
         })
       );

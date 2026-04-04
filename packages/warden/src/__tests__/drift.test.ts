@@ -4,7 +4,11 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { trail, topo, Result } from '@ontrails/core';
-import { hashTrailheadMap, generateTrailheadMap } from '@ontrails/schema';
+import {
+  hashTrailheadMap,
+  generateTrailheadMap,
+  writeTrailheadLock,
+} from '@ontrails/schema';
 import { z } from 'zod';
 
 import { checkDrift } from '../drift.js';
@@ -54,7 +58,10 @@ describe('checkDrift', () => {
     try {
       const tp = makeTopo();
       const hash = hashTrailheadMap(generateTrailheadMap(tp));
-      writeFileSync(join(committedLockDir(dir), 'trailhead.lock'), `${hash}\n`);
+      await writeTrailheadLock(
+        { hash, version: 1 },
+        { dir: committedLockDir(dir) }
+      );
 
       const result = await checkDrift(dir, tp);
       expect(result.stale).toBe(false);

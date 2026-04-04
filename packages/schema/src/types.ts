@@ -43,6 +43,21 @@ export interface TrailheadMap {
 }
 
 // ---------------------------------------------------------------------------
+// Trailhead Lock
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalized lock data read from `trails.lock`.
+ *
+ * The file may be stored as structured JSON or legacy single-line text.
+ * The normalized shape always exposes the committed hash and preserves any
+ * extra structured metadata.
+ */
+export type TrailheadLock = Readonly<Record<string, unknown>> & {
+  readonly hash: string;
+};
+
+// ---------------------------------------------------------------------------
 // Diff
 // ---------------------------------------------------------------------------
 
