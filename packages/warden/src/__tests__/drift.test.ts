@@ -9,6 +9,12 @@ import { z } from 'zod';
 
 import { checkDrift } from '../drift.js';
 
+const committedLockDir = (rootDir: string): string => {
+  const dir = join(rootDir, '.trails');
+  mkdirSync(dir, { recursive: true });
+  return dir;
+};
+
 const makeTopo = () => {
   const t = trail('test.hello', {
     blaze: () => Result.ok({ greeting: 'hi' }),
@@ -48,7 +54,7 @@ describe('checkDrift', () => {
     try {
       const tp = makeTopo();
       const hash = hashTrailheadMap(generateTrailheadMap(tp));
-      writeFileSync(join(dir, 'trailhead.lock'), `${hash}\n`);
+      writeFileSync(join(committedLockDir(dir), 'trailhead.lock'), `${hash}\n`);
 
       const result = await checkDrift(dir, tp);
       expect(result.stale).toBe(false);
@@ -62,7 +68,10 @@ describe('checkDrift', () => {
   test('returns stale: true when lock does not match', async () => {
     const dir = createTempDir();
     try {
-      writeFileSync(join(dir, 'trailhead.lock'), 'outdated-hash\n');
+      writeFileSync(
+        join(committedLockDir(dir), 'trailhead.lock'),
+        'outdated-hash\n'
+      );
 
       const result = await checkDrift(dir, makeTopo());
       expect(result.stale).toBe(true);
