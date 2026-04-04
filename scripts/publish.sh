@@ -22,6 +22,7 @@ fi
 # Packages in dependency order (core first, dependents after)
 PACKAGES=(
   packages/core
+  packages/store
   packages/logging
   packages/schema
   packages/config

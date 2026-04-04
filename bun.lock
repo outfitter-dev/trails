@@ -152,6 +152,16 @@
         "zod": "catalog:",
       },
     },
+    "packages/store": {
+      "name": "@ontrails/store",
+      "version": "1.0.0-beta.13",
+      "dependencies": {
+        "@ontrails/core": "workspace:^",
+      },
+      "peerDependencies": {
+        "zod": "catalog:",
+      },
+    },
     "packages/testing": {
       "name": "@ontrails/testing",
       "version": "1.0.0-beta.13",
@@ -275,6 +285,8 @@
     "@ontrails/permits": ["@ontrails/permits@workspace:packages/permits"],
 
     "@ontrails/schema": ["@ontrails/schema@workspace:packages/schema"],
+
+    "@ontrails/store": ["@ontrails/store@workspace:packages/store"],
 
     "@ontrails/testing": ["@ontrails/testing@workspace:packages/testing"],
 

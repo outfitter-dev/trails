@@ -1,0 +1,233 @@
+import { describe, expect, test } from 'bun:test';
+import { ValidationError } from '@ontrails/core';
+import { z } from 'zod';
+
+import type { EntityOf, InsertOf, UpdateOf } from '../index.js';
+import {
+  entitySchemaOf,
+  insertSchemaOf,
+  store,
+  updateSchemaOf,
+} from '../index.js';
+
+const userSchema = z.object({
+  email: z.string().email(),
+  id: z.string(),
+});
+
+const gistSchema = z.object({
+  createdAt: z.string(),
+  description: z.string().nullable().default(null),
+  id: z.string(),
+  isPublic: z.boolean().default(true),
+  ownerId: z.string(),
+  tags: z.array(z.string()).default([]),
+  updatedAt: z.string(),
+});
+
+const createStoreDefinition = () =>
+  store({
+    gists: {
+      generated: ['id', 'createdAt', 'updatedAt'],
+      indexes: ['ownerId'],
+      primaryKey: 'id',
+      references: { ownerId: 'users' },
+      schema: gistSchema,
+      search: { fts: true },
+    },
+    users: {
+      generated: ['id'],
+      primaryKey: 'id',
+      schema: userSchema,
+    },
+  });
+
+const expectNormalizedGistTable = (
+  table: ReturnType<typeof createStoreDefinition>['tables']['gists']
+) => {
+  expect(table.name).toBe('gists');
+  expect(table.primaryKey).toBe('id');
+  expect(table.generated).toEqual(['id', 'createdAt', 'updatedAt']);
+  expect(table.indexes).toEqual(['ownerId']);
+  expect(table.references).toEqual({ ownerId: 'users' });
+  expect(table.search).toEqual({ fts: true });
+};
+
+const expectDerivedSchemas = (
+  table: ReturnType<typeof createStoreDefinition>['tables']['gists']
+) => {
+  expect(entitySchemaOf(table)).toBe(table.schema);
+  expect(insertSchemaOf(table)).toBe(table.insertSchema);
+  expect(updateSchemaOf(table)).toBe(table.updateSchema);
+
+  expect(
+    table.insertSchema.parse({
+      ownerId: 'user-1',
+    })
+  ).toEqual({
+    description: null,
+    isPublic: true,
+    ownerId: 'user-1',
+    tags: [],
+  });
+
+  expect(
+    table.updateSchema.parse({
+      description: 'Updated',
+    })
+  ).toEqual({
+    description: 'Updated',
+  });
+};
+
+const createTypeTestStore = () =>
+  store({
+    gists: {
+      generated: ['id', 'createdAt', 'updatedAt'],
+      primaryKey: 'id',
+      schema: gistSchema,
+    },
+  });
+
+const createGistEntity = <
+  TTable extends Parameters<typeof entitySchemaOf>[0],
+>() =>
+  ({
+    createdAt: '2026-04-03T12:00:00.000Z',
+    description: null,
+    id: 'gist-1',
+    isPublic: true,
+    ownerId: 'user-1',
+    tags: ['core'],
+    updatedAt: '2026-04-03T12:00:00.000Z',
+  }) as EntityOf<TTable>;
+
+describe('@ontrails/store', () => {
+  test('normalizes tables and derives insert/update schemas', () => {
+    const db = createStoreDefinition();
+
+    expect(db.kind).toBe('store');
+    expect(db.tableNames).toEqual(['gists', 'users']);
+
+    const table = db.tables.gists;
+    expectNormalizedGistTable(table);
+    expect(db.get('users')).toBe(db.tables.users);
+    expectDerivedSchemas(table);
+  });
+
+  test('rejects non-object schemas and unknown metadata fields', () => {
+    expect(() =>
+      store({
+        broken: {
+          primaryKey: 'id' as never,
+          schema: z.string() as never,
+        },
+      })
+    ).toThrow(
+      new ValidationError('Store table "broken" must use a Zod object schema')
+    );
+
+    expect(() =>
+      store({
+        gists: {
+          primaryKey: 'slug' as never,
+          schema: gistSchema,
+        },
+      })
+    ).toThrow(
+      new ValidationError(
+        'Store table "gists" declares primaryKey "slug" that is not present on the schema'
+      )
+    );
+
+    expect(() =>
+      store({
+        gists: {
+          generated: ['missing'] as const as never,
+          primaryKey: 'id',
+          schema: gistSchema,
+        },
+      })
+    ).toThrow(
+      new ValidationError(
+        'Store table "gists" declares generated field "missing" that is not present on the schema'
+      )
+    );
+
+    expect(() =>
+      store({
+        gists: {
+          indexes: ['missing'] as const as never,
+          primaryKey: 'id',
+          schema: gistSchema,
+        },
+      })
+    ).toThrow(
+      new ValidationError(
+        'Store table "gists" declares index field "missing" that is not present on the schema'
+      )
+    );
+  });
+
+  test('rejects bad references', () => {
+    expect(() =>
+      store({
+        gists: {
+          primaryKey: 'id',
+          references: { missing: 'users' } as never,
+          schema: gistSchema,
+        },
+        users: {
+          primaryKey: 'id',
+          schema: userSchema,
+        },
+      })
+    ).toThrow(
+      new ValidationError(
+        'Store table "gists" declares reference field "missing" that is not present on the schema'
+      )
+    );
+
+    expect(() =>
+      store({
+        gists: {
+          primaryKey: 'id',
+          references: { ownerId: 'accounts' },
+          schema: gistSchema,
+        },
+        users: {
+          primaryKey: 'id',
+          schema: userSchema,
+        },
+      })
+    ).toThrow(
+      new ValidationError(
+        'Store table "gists" references unknown table "accounts"'
+      )
+    );
+  });
+
+  test('type-level helpers expose connector-facing contracts', () => {
+    const db = createTypeTestStore();
+
+    type GistTable = typeof db.tables.gists;
+
+    const entity = createGistEntity<GistTable>();
+
+    const insert: InsertOf<GistTable> = {
+      description: null,
+      isPublic: true,
+      ownerId: 'user-1',
+      tags: ['core'],
+    };
+
+    const update: UpdateOf<GistTable> = {
+      description: 'Updated',
+    };
+
+    expect(insert.ownerId).toBe('user-1');
+    expect(update.description).toBe('Updated');
+    expect(entity.id).toBe('gist-1');
+    expect(db.tables.gists.name).toBe('gists');
+  });
+});
