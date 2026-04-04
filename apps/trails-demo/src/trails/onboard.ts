@@ -69,6 +69,7 @@ export const onboard = trail('entity.onboard', {
     tags: z.array(z.string()).optional().default([]),
     type: z.string().describe('Entity type'),
   }),
+  intent: 'write',
   output: z.object({
     entity: z.object({
       id: z.string(),

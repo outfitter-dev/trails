@@ -1,121 +1,88 @@
 /**
- * In-memory entity store for the trails-demo app.
+ * Schema-derived entity store for the trails-demo app.
  *
- * No external dependencies -- the focus is on demonstrating Trails patterns,
- * not infrastructure.
+ * The demo still uses an in-memory SQLite database for easy local runs, but
+ * the storage contract itself is now authored once and projected through
+ * `@ontrails/store/drizzle`.
  */
 
-// ---------------------------------------------------------------------------
-// Entity type
-// ---------------------------------------------------------------------------
+import { store as defineStore } from '@ontrails/store';
+import { store as bindDrizzleStore } from '@ontrails/store/drizzle';
+import { z } from 'zod';
 
-export interface Entity {
-  readonly id: string;
-  readonly name: string;
-  readonly type: string;
-  readonly tags: readonly string[];
-  readonly createdAt: string;
-  readonly updatedAt: string;
-}
+export const entitySchema = z.object({
+  createdAt: z.string(),
+  id: z.string(),
+  name: z.string(),
+  tags: z.array(z.string()),
+  type: z.string(),
+  updatedAt: z.string(),
+});
 
-// ---------------------------------------------------------------------------
-// Store interface
-// ---------------------------------------------------------------------------
+const mockFixtures = [
+  { name: 'Alpha', tags: ['core'], type: 'concept' },
+  { name: 'Deletable', tags: ['temp'], type: 'tool' },
+] as const;
 
-export interface EntityStore {
-  get(name: string): Entity | undefined;
-  add(entity: Omit<Entity, 'id' | 'createdAt' | 'updatedAt'>): Entity;
-  delete(name: string): boolean;
-  list(options?: { type?: string; limit?: number; offset?: number }): Entity[];
-  search(query: string): Entity[];
-}
+const entityTables = {
+  entities: {
+    fixtures: mockFixtures,
+    generated: ['id', 'createdAt', 'updatedAt'],
+    indexes: ['type'],
+    primaryKey: 'name',
+    schema: entitySchema,
+  },
+} as const;
 
-// ---------------------------------------------------------------------------
-// Seed input (partial entity without generated fields)
-// ---------------------------------------------------------------------------
+export const entityStoreDefinition = defineStore(entityTables);
 
+export type Entity = z.output<typeof entitySchema>;
 export interface EntitySeed {
+  readonly createdAt?: string;
+  readonly id?: string;
   readonly name: string;
+  readonly tags: readonly string[];
   readonly type: string;
-  readonly tags?: readonly string[];
+  readonly updatedAt?: string;
 }
 
-// ---------------------------------------------------------------------------
-// Factory
-// ---------------------------------------------------------------------------
+interface MutableEntitySeed {
+  readonly createdAt?: string;
+  readonly id?: string;
+  readonly name: string;
+  readonly tags: string[];
+  readonly type: string;
+  readonly updatedAt?: string;
+}
+
+const normalizeSeed = (seed: EntitySeed): MutableEntitySeed => ({
+  ...seed,
+  tags: [...seed.tags],
+});
+
+const createBoundEntityStore = (seed?: readonly EntitySeed[]) =>
+  bindDrizzleStore(entityTables, {
+    id: 'demo.entity-store',
+    ...(seed === undefined
+      ? {}
+      : { mockSeed: { entities: seed.map(normalizeSeed) } }),
+    url: ':memory:',
+  });
+
+export type EntityStore = Awaited<
+  ReturnType<NonNullable<ReturnType<typeof createBoundEntityStore>['mock']>>
+>;
 
 export const createStore = (seed?: readonly EntitySeed[]): EntityStore => {
-  let counter = 0;
-
-  const nextId = (): string => {
-    counter += 1;
-    return `e${String(counter)}`;
-  };
-
-  const byName = new Map<string, Entity>();
-
-  // Seed initial data
-  if (seed !== undefined) {
-    for (const s of seed) {
-      const entity: Entity = {
-        createdAt: '2026-01-01T00:00:00Z',
-        id: nextId(),
-        name: s.name,
-        tags: s.tags ?? [],
-        type: s.type,
-        updatedAt: '2026-01-01T00:00:00Z',
-      };
-      byName.set(entity.name, entity);
-    }
+  const { mock } = createBoundEntityStore(seed);
+  if (mock === undefined) {
+    throw new Error('Demo entity store requires a mock factory');
   }
 
-  return {
-    add(input: Omit<Entity, 'id' | 'createdAt' | 'updatedAt'>): Entity {
-      const now = new Date().toISOString();
-      const entity: Entity = {
-        createdAt: now,
-        id: nextId(),
-        name: input.name,
-        tags: input.tags,
-        type: input.type,
-        updatedAt: now,
-      };
-      byName.set(entity.name, entity);
-      return entity;
-    },
+  const created = mock();
+  if (created instanceof Promise) {
+    throw new TypeError('Demo entity store mock must resolve synchronously');
+  }
 
-    delete(name: string): boolean {
-      return byName.delete(name);
-    },
-
-    get(name: string): Entity | undefined {
-      return byName.get(name);
-    },
-
-    list(options?: {
-      type?: string;
-      limit?: number;
-      offset?: number;
-    }): Entity[] {
-      let entities = [...byName.values()];
-
-      if (options?.type !== undefined) {
-        entities = entities.filter((e) => e.type === options.type);
-      }
-
-      const offset = options?.offset ?? 0;
-      const limit = options?.limit ?? 20;
-      return entities.slice(offset, offset + limit);
-    },
-
-    search(query: string): Entity[] {
-      const q = query.toLowerCase();
-      return [...byName.values()].filter(
-        (e) =>
-          e.name.toLowerCase().includes(q) ||
-          e.type.toLowerCase().includes(q) ||
-          e.tags.some((t) => t.toLowerCase().includes(q))
-      );
-    },
-  };
+  return created;
 };

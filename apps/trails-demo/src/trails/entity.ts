@@ -14,19 +14,12 @@ import {
 import { z } from 'zod';
 
 import { entityStoreProvision } from '../provisions/entity-store.js';
+import type { Entity } from '../store.js';
+import { entitySchema } from '../store.js';
 
 // ---------------------------------------------------------------------------
 // Shared schemas
 // ---------------------------------------------------------------------------
-
-const entitySchema = z.object({
-  createdAt: z.string(),
-  id: z.string(),
-  name: z.string(),
-  tags: z.array(z.string()),
-  type: z.string(),
-  updatedAt: z.string(),
-});
 
 const entitySummarySchema = z.object({
   id: z.string(),
@@ -35,21 +28,30 @@ const entitySummarySchema = z.object({
   type: z.string(),
 });
 
+const toEntity = (entity: Entity) => ({
+  createdAt: entity.createdAt,
+  id: entity.id,
+  name: entity.name,
+  tags: [...entity.tags],
+  type: entity.type,
+  updatedAt: entity.updatedAt,
+});
+
+const toSummary = (entity: Entity) => ({
+  id: entity.id,
+  name: entity.name,
+  tags: [...entity.tags],
+  type: entity.type,
+});
+
 export const show = trail('entity.show', {
-  blaze: (input, ctx) => {
+  blaze: async (input, ctx) => {
     const store = entityStoreProvision.from(ctx);
-    const entity = store.get(input.name);
+    const entity = await store.entities.get(input.name);
     if (!entity) {
       return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
     }
-    return Result.ok({
-      createdAt: entity.createdAt,
-      id: entity.id,
-      name: entity.name,
-      tags: [...entity.tags],
-      type: entity.type,
-      updatedAt: entity.updatedAt,
-    });
+    return Result.ok(toEntity(entity));
   },
   description: 'Show an entity by name',
   detours: {
@@ -81,27 +83,24 @@ export const show = trail('entity.show', {
 // ---------------------------------------------------------------------------
 
 export const add = trail('entity.add', {
-  blaze: (input, ctx) => {
+  blaze: async (input, ctx) => {
     const store = entityStoreProvision.from(ctx);
-    const existing = store.get(input.name);
-    if (existing) {
+    try {
+      const entity = await store.entities.insert({
+        name: input.name,
+        tags: input.tags ?? [],
+        type: input.type,
+      });
+      return Result.ok(toEntity(entity));
+    } catch (error) {
+      if (error instanceof AlreadyExistsError) {
+        return Result.err(error);
+      }
+
       return Result.err(
-        new AlreadyExistsError(`Entity "${input.name}" already exists`)
+        error instanceof Error ? error : new Error(String(error))
       );
     }
-    const entity = store.add({
-      name: input.name,
-      tags: input.tags ?? [],
-      type: input.type,
-    });
-    return Result.ok({
-      createdAt: entity.createdAt,
-      id: entity.id,
-      name: entity.name,
-      tags: [...entity.tags],
-      type: entity.type,
-      updatedAt: entity.updatedAt,
-    });
   },
   description: 'Create a new entity',
   examples: [
@@ -126,6 +125,7 @@ export const add = trail('entity.add', {
       .describe('Tags for categorization'),
     type: z.string().describe('Entity type (concept, tool, pattern)'),
   }),
+  intent: 'write',
   output: entitySchema,
   provisions: [entityStoreProvision],
 });
@@ -135,10 +135,10 @@ export const add = trail('entity.add', {
 // ---------------------------------------------------------------------------
 
 export const remove = trail('entity.delete', {
-  blaze: (input, ctx) => {
+  blaze: async (input, ctx) => {
     const store = entityStoreProvision.from(ctx);
-    const deleted = store.delete(input.name);
-    if (!deleted) {
+    const deleted = await store.entities.remove(input.name);
+    if (!deleted.deleted) {
       return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
     }
     return Result.ok({ deleted: true, name: input.name });
@@ -173,24 +173,19 @@ export const remove = trail('entity.delete', {
 // ---------------------------------------------------------------------------
 
 export const list = trail('entity.list', {
-  blaze: (input, ctx) => {
+  blaze: async (input, ctx) => {
     const store = entityStoreProvision.from(ctx);
-    const listOptions: { limit?: number; offset?: number; type?: string } = {
-      limit: input.limit,
-      offset: input.offset,
-    };
-    if (input.type !== undefined) {
-      listOptions.type = input.type;
-    }
-    const entities = store.list(listOptions);
+    const filters = input.type === undefined ? undefined : { type: input.type };
+    const [entities, allMatching] = await Promise.all([
+      store.entities.list(filters, {
+        limit: input.limit,
+        offset: input.offset,
+      }),
+      store.entities.list(filters),
+    ]);
     return Result.ok({
-      entities: entities.map((e) => ({
-        id: e.id,
-        name: e.name,
-        tags: [...e.tags],
-        type: e.type,
-      })),
-      total: entities.length,
+      entities: entities.map(toSummary),
+      total: allMatching.length,
     });
   },
   description: 'List entities with optional type filter',

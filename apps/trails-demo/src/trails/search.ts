@@ -14,9 +14,16 @@ import { entityStoreProvision } from '../provisions/entity-store.js';
 // ---------------------------------------------------------------------------
 
 export const search = trail('search', {
-  blaze: (input, ctx) => {
+  blaze: async (input, ctx) => {
     const store = entityStoreProvision.from(ctx);
-    const results = store.search(input.query);
+    const query = input.query.toLowerCase();
+    const entities = await store.entities.list();
+    const results = entities.filter(
+      (entity) =>
+        entity.name.toLowerCase().includes(query) ||
+        entity.type.toLowerCase().includes(query) ||
+        entity.tags.some((tag) => tag.toLowerCase().includes(query))
+    );
     const limited = results.slice(0, input.limit);
     return Result.ok({
       query: input.query,

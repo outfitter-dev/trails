@@ -1,6 +1,6 @@
 # trails-demo
 
-A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `crosses`, a first-class provision dependency, a signal, examples, metadata, detours, idempotent upsert, and trailhead entrypoints on CLI, MCP, and HTTP.
+A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `crosses`, a first-class provision dependency, a schema-derived store, a signal, examples, metadata, detours, idempotent upsert, and trailhead entrypoints on CLI, MCP, and HTTP.
 
 ## What this app does
 
@@ -18,7 +18,7 @@ Entity management -- a small CRUD + search system with enough depth to exercise 
 
 Plus one signal: `entity.updated` (fired by `entity.add` and `entity.delete`).
 
-Plus one provision: `demo.entity-store` (the in-memory entity store used by the entity and search trails).
+Plus one provision: `demo.entity-store` (a Drizzle-backed in-memory entity store derived from a root `store(...)` definition).
 
 ## Running the CLI
 
@@ -159,7 +159,7 @@ testAll(app, () => ({
 3. **`testContracts`** -- output schema verification for every success example.
 4. **`testDetours`** -- detour targets reference real trails in the topo.
 
-Pass a factory function (not a plain object) when your explicit provision overrides contain mutable state like an in-memory store, so each test gets a fresh copy.
+Pass a factory function (not a plain object) when your explicit provision overrides contain mutable state like an in-memory SQLite store, so each test gets a fresh copy.
 
 ### Progressive assertion
 

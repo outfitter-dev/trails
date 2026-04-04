@@ -20,6 +20,7 @@
     "@ontrails/http": "workspace:^",
     "@ontrails/logging": "workspace:^",
     "@ontrails/mcp": "workspace:^",
+    "@ontrails/store": "workspace:^",
     "commander": "catalog:",
     "hono": "^4.7.0",
     "zod": "catalog:"
