@@ -193,8 +193,6 @@ export const pruneUnpinnedTopoSaves = (
   ensureTopoHistorySchema(db);
   const before = countSaves(db);
 
-  const before = countSaves(db);
-
   db.run(
     `DELETE FROM topo_saves
      WHERE id IN (
