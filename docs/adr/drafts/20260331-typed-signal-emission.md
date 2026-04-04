@@ -26,7 +26,7 @@ When a trail can announce what happened, the framework gains a communication lay
 - A trail emits `entity.updated`. A search indexer, a cache invalidator, and an audit logger all respond. The emitting trail doesn't know about any of them.
 - A scheduled health check fails. The failure is observed by the framework as an event. An alerting trail activates. No manual error handler wiring.
 
-Without events as a runtime primitive, these patterns require either direct follows (tight coupling between packs) or application-level glue code. Events provide the decoupling.
+Without events as a runtime primitive, these patterns require either direct crosses (tight coupling between packs) or application-level glue code. Events provide the decoupling.
 
 ### Schema always exists
 
@@ -257,7 +257,7 @@ An opt-in reactive mode follows the event chain:
 trails test --reactive
 ```
 
-In reactive mode, emitted events actually trigger listener trails (with mock services). The test verifies the full reactive chain. This catches integration bugs: "the event emits correctly but the listener trail's input schema doesn't match the event payload."
+In reactive mode, emitted events actually trigger listener trails (with mock provisions). The test verifies the full reactive chain. This catches integration bugs: "the event emits correctly but the listener trail's input schema doesn't match the event payload."
 
 Reactive mode runs after standard mode passes. Standard mode validates each trail independently. Reactive mode validates the communication graph.
 
@@ -281,7 +281,7 @@ Reactive mode runs after standard mode passes. Standard mode validates each trai
 
 - **Events become a runtime primitive.** The `signal()` declaration gains `ctx.signal()` for emission, delivery routing, and tracker recording. The primitive evolves from structural metadata to a live communication channel.
 - **Schema is always present.** Derived from the emitter at stage 1, declared inline at stage 2, extracted to `signal()` at stage 3. No untyped events. Progressive disclosure without a schema gap.
-- **Trails decouple through events.** Packs communicate via events instead of direct follows. The event schema is the contract. The topo validates compatibility.
+- **Trails decouple through events.** Packs communicate via events instead of direct crosses. The event schema is the contract. The topo validates compatibility.
 - **Framework lifecycle events unify observation.** The error taxonomy maps to categorized failure events. The reactive graph handles both authored and observed events uniformly.
 - **Dead events are visible at every layer.** Five gates of safety from one primitive: types (compile time), examples (test time), warden (lint time), tracker (runtime), survey (inspection time).
 
