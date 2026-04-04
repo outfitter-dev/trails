@@ -5,7 +5,7 @@
  * and diffs against previous versions.
  */
 
-import type { Topo, Trail } from '@ontrails/core';
+import type { Topo } from '@ontrails/core';
 import { NotFoundError, Result, trail } from '@ontrails/core';
 import type { DiffResult } from '@ontrails/schema';
 import {
@@ -18,11 +18,10 @@ import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
 import {
-  formatProvisionDetail,
-  generateBriefReport,
-  generateSurveyList,
-  generateTrailDetail,
-} from './topo-reports.js';
+  buildCurrentTopoBrief,
+  buildCurrentTopoDetail,
+  buildCurrentTopoList,
+} from './topo-read-support.js';
 import { exportCurrentTopo } from './topo-store-support.js';
 
 export {
@@ -77,14 +76,12 @@ const buildSurveyDiff = async (
 
 const buildSurveyDetail = (
   app: Topo,
-  trailId: string
+  trailId: string,
+  rootDir: string
 ): Result<object, Error> => {
-  const item = app.get(trailId);
-  if (item) {
-    return Result.ok(generateTrailDetail(item as Trail<unknown, unknown>));
-  }
-  if (app.getProvision(trailId)) {
-    return Result.ok(formatProvisionDetail(app, trailId));
+  const detail = buildCurrentTopoDetail(app, trailId, { rootDir });
+  if (detail !== undefined) {
+    return Result.ok(detail);
   }
   return Result.err(
     new NotFoundError(`Trail or provision not found: ${trailId}`)
@@ -138,11 +135,14 @@ type SurveyHandler = (
 
 /** Handlers keyed by survey mode. */
 const surveyHandlers: Record<SurveyMode, SurveyHandler> = {
-  brief: (app) => Result.ok(generateBriefReport(app)),
-  detail: (app, input) => buildSurveyDetail(app, input.trailId ?? ''),
+  brief: (app, _input, rootDir) =>
+    Result.ok(buildCurrentTopoBrief(app, { rootDir })),
+  detail: (app, input, rootDir) =>
+    buildSurveyDetail(app, input.trailId ?? '', rootDir),
   diff: (app, input) => buildSurveyDiff(app, input.breakingOnly),
   generate: (app, _input, rootDir) => buildSurveyGenerate(app, rootDir),
-  list: (app) => Result.ok(generateSurveyList(app)),
+  list: (app, _input, rootDir) =>
+    Result.ok(buildCurrentTopoList(app, { rootDir })),
   openapi: (app) => Result.ok(generateOpenApiSpec(app)),
 };
 

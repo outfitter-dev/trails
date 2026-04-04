@@ -2,7 +2,8 @@ import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
-import { buildTopoSummary, DEFAULT_APP_MODULE } from './topo-support.js';
+import { buildTopoSummary } from './topo-read-support.js';
+import { DEFAULT_APP_MODULE } from './topo-support.js';
 
 const summaryOutput = z.object({
   app: z.object({

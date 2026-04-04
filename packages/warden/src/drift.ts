@@ -7,8 +7,14 @@
  * legacy single-line hash format.
  */
 
+import { existsSync, statSync } from 'node:fs';
+
 import type { Topo } from '@ontrails/core';
-import { ValidationError } from '@ontrails/core';
+import {
+  createTopoStore,
+  NotFoundError,
+  ValidationError,
+} from '@ontrails/core';
 import { resolveTrailsDir } from '@ontrails/core/internal/trails-db';
 import {
   generateTrailheadMap,
@@ -39,16 +45,29 @@ export const checkDrift = async (
   rootDir: string,
   topo?: Topo | undefined
 ): Promise<DriftResult> => {
-  if (!topo) {
-    return { committedHash: null, currentHash: 'unknown', stale: false };
-  }
-
   try {
-    const trailheadMap = generateTrailheadMap(topo);
-    const currentHash = hashTrailheadMap(trailheadMap);
-    const committedLock = await readTrailheadLockData({
-      dir: resolveTrailsDir({ rootDir }),
-    });
+    const trailsDir = resolveTrailsDir({ rootDir });
+    const committedLock =
+      existsSync(rootDir) && statSync(rootDir).isDirectory()
+        ? await readTrailheadLockData({ dir: trailsDir })
+        : null;
+    // Prefer the stored hash (computed by the export pipeline) to avoid
+    // divergence between the schema and store hash pipelines.
+    const storedHash = (() => {
+      try {
+        return createTopoStore({ rootDir }).exports.get()?.trailheadHash;
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return;
+        }
+        throw error;
+      }
+    })();
+    const currentHash =
+      storedHash ??
+      (topo === undefined
+        ? 'unknown'
+        : hashTrailheadMap(generateTrailheadMap(topo)));
 
     return {
       committedHash: committedLock?.hash ?? null,

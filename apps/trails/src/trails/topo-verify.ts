@@ -2,7 +2,8 @@ import { trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
-import { DEFAULT_APP_MODULE, verifyCurrentTopo } from './topo-support.js';
+import { verifyCurrentTopo } from './topo-read-support.js';
+import { DEFAULT_APP_MODULE } from './topo-support.js';
 
 export const topoVerifyTrail = trail('topo.verify', {
   blaze: async (input, ctx) => {
