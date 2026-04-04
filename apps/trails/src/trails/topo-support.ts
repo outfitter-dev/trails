@@ -4,7 +4,6 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { Topo } from '@ontrails/core';
-import { ConflictError, NotFoundError, Result } from '@ontrails/core';
 import type {
   TopoPinRecord,
   TopoSaveRecord,
@@ -302,53 +301,4 @@ export const removeTopoPin = (input: {
   } finally {
     db.close();
   }
-};
-
-export const verifyCurrentTopo = async (
-  app: Topo,
-  options?: { readonly rootDir?: string }
-): Promise<Result<TopoVerifyReport, Error>> => {
-  const rootDir = resolveRootDir(options?.rootDir);
-  const trailsDir = resolveTrailsDir({ rootDir });
-  const currentHash = hashTrailheadMap(generateTrailheadMap(app));
-  const committedHash = await readTrailheadLock({ dir: trailsDir });
-
-  if (committedHash === null) {
-    return Result.err(
-      new NotFoundError(
-        'No committed trails.lock found. Run `trails topo export` first.'
-      )
-    );
-  }
-
-  if (committedHash !== currentHash) {
-    return Result.err(
-      new ConflictError(
-        'trails.lock is stale. Run `trails topo export` to refresh it.'
-      )
-    );
-  }
-
-  return Result.ok({
-    committedHash,
-    currentHash,
-    lockPath: resolveLockPath(trailsDir),
-    stale: false,
-  });
-};
-
-export const lockfileStats = (options?: {
-  readonly rootDir?: string;
-}): {
-  readonly exists: boolean;
-  readonly fileSizeBytes: number;
-  readonly path: string;
-} => {
-  const rootDir = resolveRootDir(options?.rootDir);
-  const filePath = join(resolveTrailsDir({ rootDir }), 'trails.lock');
-  return {
-    exists: existsSync(filePath),
-    fileSizeBytes: existsSync(filePath) ? statSync(filePath).size : 0,
-    path: LOCK_PATH,
-  };
 };

@@ -329,7 +329,7 @@ export const listTopoStoreTrails = (
              ORDER BY id ASC`
           )
           .all(save.id)
-      : options.intent === 'write'
+      : (options.intent === 'write'
         ? db
             .query<TopoTrailRow, [string]>(
               `SELECT id, intent, idempotent, has_output, has_examples, example_count, description, meta, save_id
@@ -345,7 +345,7 @@ export const listTopoStoreTrails = (
              WHERE save_id = ? AND intent = ?
              ORDER BY id ASC`
             )
-            .all(save.id, options.intent);
+            .all(save.id, options.intent));
 
   return rows.map(mapTrailRow);
 };
