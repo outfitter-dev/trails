@@ -3,6 +3,105 @@ import type { Database } from 'bun:sqlite';
 import { ensureSubsystemSchema } from './trails-db.js';
 
 const TOPO_SUBSYSTEM = 'topo';
+const TOPO_TABLE_STATEMENTS = [
+  `CREATE TABLE IF NOT EXISTS topo_saves (
+    id TEXT PRIMARY KEY,
+    git_sha TEXT,
+    git_dirty INTEGER NOT NULL DEFAULT 0,
+    trail_count INTEGER NOT NULL DEFAULT 0,
+    signal_count INTEGER NOT NULL DEFAULT 0,
+    provision_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS topo_pins (
+    name TEXT PRIMARY KEY,
+    save_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (save_id) REFERENCES topo_saves(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS topo_trails (
+    id TEXT NOT NULL,
+    intent TEXT,
+    idempotent INTEGER NOT NULL DEFAULT 0,
+    has_output INTEGER NOT NULL DEFAULT 0,
+    has_examples INTEGER NOT NULL DEFAULT 0,
+    example_count INTEGER NOT NULL DEFAULT 0,
+    description TEXT,
+    meta TEXT,
+    save_id TEXT NOT NULL,
+    PRIMARY KEY (id, save_id),
+    FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS topo_crossings (
+    source_id TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    save_id TEXT NOT NULL,
+    PRIMARY KEY (source_id, target_id, save_id),
+    FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS topo_trail_provisions (
+    trail_id TEXT NOT NULL,
+    provision_id TEXT NOT NULL,
+    save_id TEXT NOT NULL,
+    PRIMARY KEY (trail_id, provision_id, save_id),
+    FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS topo_provisions (
+    id TEXT NOT NULL,
+    has_mock INTEGER NOT NULL DEFAULT 0,
+    has_health INTEGER NOT NULL DEFAULT 0,
+    save_id TEXT NOT NULL,
+    PRIMARY KEY (id, save_id),
+    FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS topo_signals (
+    id TEXT NOT NULL,
+    description TEXT,
+    save_id TEXT NOT NULL,
+    PRIMARY KEY (id, save_id),
+    FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS topo_trail_signals (
+    trail_id TEXT NOT NULL,
+    signal_id TEXT NOT NULL,
+    save_id TEXT NOT NULL,
+    PRIMARY KEY (trail_id, signal_id, save_id),
+    FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS topo_trailheads (
+    trail_id TEXT NOT NULL,
+    trailhead TEXT NOT NULL,
+    derived_name TEXT NOT NULL,
+    method TEXT,
+    save_id TEXT NOT NULL,
+    PRIMARY KEY (trail_id, trailhead, save_id),
+    FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS topo_examples (
+    id TEXT PRIMARY KEY,
+    trail_id TEXT NOT NULL,
+    ordinal INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    input TEXT NOT NULL,
+    expected TEXT,
+    error TEXT,
+    save_id TEXT NOT NULL,
+    FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
+  )`,
+] as const;
+const TOPO_INDEX_STATEMENTS = [
+  'CREATE INDEX IF NOT EXISTS idx_topo_saves_created_at ON topo_saves(created_at DESC)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_pins_save_id ON topo_pins(save_id)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_trails_save_id ON topo_trails(save_id)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_crossings_save_id ON topo_crossings(save_id)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_trail_provisions_save_id ON topo_trail_provisions(save_id)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_provisions_save_id ON topo_provisions(save_id)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_signals_save_id ON topo_signals(save_id)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_trail_signals_save_id ON topo_trail_signals(save_id)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_trailheads_save_id ON topo_trailheads(save_id)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS idx_topo_examples_save_trail_ordinal ON topo_examples(save_id, trail_id, ordinal)',
+] as const;
 
 interface TopoSaveRow {
   readonly created_at: string;
@@ -77,42 +176,34 @@ const tableExists = (db: Database, tableName: string): boolean => {
   return row?.name === tableName;
 };
 
+const runStatements = (db: Database, statements: readonly string[]): void => {
+  for (const statement of statements) {
+    db.run(statement);
+  }
+};
+
 export const ensureTopoHistorySchema = (db: Database): void => {
   ensureSubsystemSchema(db, {
-    migrate: () => {
-      db.run(`CREATE TABLE IF NOT EXISTS topo_saves (
-        id TEXT PRIMARY KEY,
-        git_sha TEXT,
-        git_dirty INTEGER NOT NULL DEFAULT 0,
-        trail_count INTEGER NOT NULL DEFAULT 0,
-        signal_count INTEGER NOT NULL DEFAULT 0,
-        provision_count INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL
-      )`);
-      db.run(`CREATE TABLE IF NOT EXISTS topo_pins (
-        name TEXT PRIMARY KEY,
-        save_id TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        FOREIGN KEY (save_id) REFERENCES topo_saves(id)
-      )`);
-      db.run(
-        'CREATE INDEX IF NOT EXISTS idx_topo_saves_created_at ON topo_saves(created_at DESC)'
-      );
-      db.run(
-        'CREATE INDEX IF NOT EXISTS idx_topo_pins_save_id ON topo_pins(save_id)'
-      );
+    migrate: (currentVersion) => {
+      if (currentVersion < 2) {
+        runStatements(db, TOPO_TABLE_STATEMENTS);
+        runStatements(db, TOPO_INDEX_STATEMENTS);
+      }
+      if (currentVersion === 2) {
+        // v2→v3: add schema cache and export tables
+        runStatements(db, TOPO_TABLE_STATEMENTS.slice(10));
+        runStatements(db, TOPO_INDEX_STATEMENTS.slice(10));
+      }
     },
     subsystem: TOPO_SUBSYSTEM,
-    version: 1,
+    version: 2,
   });
 };
 
-export const createTopoSave = (
+export const insertTopoSaveRecord = (
   db: Database,
   input?: CreateTopoSaveInput
 ): TopoSaveRecord => {
-  ensureTopoHistorySchema(db);
-
   const record: TopoSaveRecord = {
     createdAt: input?.createdAt ?? new Date().toISOString(),
     gitDirty: input?.gitDirty ?? false,
@@ -139,6 +230,14 @@ export const createTopoSave = (
   );
 
   return record;
+};
+
+export const createTopoSave = (
+  db: Database,
+  input?: CreateTopoSaveInput
+): TopoSaveRecord => {
+  ensureTopoHistorySchema(db);
+  return insertTopoSaveRecord(db, input);
 };
 
 export const pinTopoSave = (

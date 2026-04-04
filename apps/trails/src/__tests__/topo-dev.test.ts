@@ -11,6 +11,7 @@ import {
 import { join, resolve } from 'node:path';
 
 import type { Result } from '@ontrails/core';
+import { openReadTrailsDb } from '@ontrails/core/internal/trails-db';
 import { createDevStore } from '@ontrails/tracker';
 
 import { devCleanTrail } from '../trails/dev-clean.js';
@@ -142,9 +143,39 @@ describe('topo and dev trails', () => {
         } as never)
       );
       expect(firstPin.pin.name).toBe('before-auth');
+      expect(firstPin.pin.saveId).toBe(firstPin.save.id);
 
-      await topoExportTrail.blaze(moduleInput, { cwd: dir } as never);
-      await topoExportTrail.blaze(moduleInput, { cwd: dir } as never);
+      const firstExport = expectOk(
+        await topoExportTrail.blaze(moduleInput, { cwd: dir } as never)
+      );
+      const secondExport = expectOk(
+        await topoExportTrail.blaze(moduleInput, { cwd: dir } as never)
+      );
+
+      const projectionDb = openReadTrailsDb({ rootDir: dir });
+      try {
+        const pinnedRows = projectionDb
+          .query<{ count: number }, [string]>(
+            'SELECT COUNT(*) as count FROM topo_trails WHERE save_id = ?'
+          )
+          .get(firstPin.save.id);
+        const exportedRows = projectionDb
+          .query<{ count: number }, [string]>(
+            'SELECT COUNT(*) as count FROM topo_trails WHERE save_id = ?'
+          )
+          .get(firstExport.save.id);
+        const projectedSaves = projectionDb
+          .query<{ count: number }, []>(
+            'SELECT COUNT(DISTINCT save_id) as count FROM topo_trails'
+          )
+          .get();
+
+        expect(pinnedRows?.count).toBe(2);
+        expect(exportedRows?.count).toBe(2);
+        expect(projectedSaves?.count).toBe(3);
+      } finally {
+        projectionDb.close();
+      }
 
       const store = createDevStore({ rootDir: dir });
       try {
@@ -183,6 +214,10 @@ describe('topo and dev trails', () => {
       );
       expect(history.pinCount).toBe(1);
       expect(history.saveCount).toBeGreaterThanOrEqual(3);
+      expect(history.pins[0]?.saveId).toBe(firstPin.save.id);
+      expect(
+        history.saves.some((save) => save.id === secondExport.save.id)
+      ).toBe(true);
 
       const stats = expectOk(
         await devStatsTrail.blaze({}, { cwd: dir } as never)
