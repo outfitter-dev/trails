@@ -8,6 +8,7 @@
 
 import type { Topo } from '@ontrails/core';
 import { ValidationError } from '@ontrails/core';
+import { resolveTrailsDir } from '@ontrails/core/internal/trails-db';
 import {
   generateTrailheadMap,
   hashTrailheadMap,
@@ -44,7 +45,9 @@ export const checkDrift = async (
   try {
     const trailheadMap = generateTrailheadMap(topo);
     const currentHash = hashTrailheadMap(trailheadMap);
-    const committedHash = await readTrailheadLock({ dir: rootDir });
+    const committedHash = await readTrailheadLock({
+      dir: resolveTrailsDir({ rootDir }),
+    });
 
     return {
       committedHash,
