@@ -319,33 +319,29 @@ export const listTopoStoreTrails = (
     return [];
   }
 
-  const rows =
-    options?.intent === undefined
-      ? db
-          .query<TopoTrailRow, [string]>(
-            `SELECT id, intent, idempotent, has_output, has_examples, example_count, description, meta, save_id
-             FROM topo_trails
-             WHERE save_id = ?
-             ORDER BY id ASC`
-          )
-          .all(save.id)
-      : (options.intent === 'write'
-        ? db
-            .query<TopoTrailRow, [string]>(
-              `SELECT id, intent, idempotent, has_output, has_examples, example_count, description, meta, save_id
-             FROM topo_trails
-             WHERE save_id = ? AND intent IS NULL
-             ORDER BY id ASC`
-            )
-            .all(save.id)
-        : db
-            .query<TopoTrailRow, [string, string]>(
-              `SELECT id, intent, idempotent, has_output, has_examples, example_count, description, meta, save_id
-             FROM topo_trails
-             WHERE save_id = ? AND intent = ?
-             ORDER BY id ASC`
-            )
-            .all(save.id, options.intent));
+  const baseQuery = `SELECT id, intent, idempotent, has_output, has_examples, example_count, description, meta, save_id
+             FROM topo_trails`;
+
+  let rows: TopoTrailRow[];
+  if (options?.intent === undefined) {
+    rows = db
+      .query<TopoTrailRow, [string]>(
+        `${baseQuery} WHERE save_id = ? ORDER BY id ASC`
+      )
+      .all(save.id);
+  } else if (options.intent === 'write') {
+    rows = db
+      .query<TopoTrailRow, [string]>(
+        `${baseQuery} WHERE save_id = ? AND intent = 'write' ORDER BY id ASC`
+      )
+      .all(save.id);
+  } else {
+    rows = db
+      .query<TopoTrailRow, [string, string]>(
+        `${baseQuery} WHERE save_id = ? AND intent = ? ORDER BY id ASC`
+      )
+      .all(save.id, options.intent);
+  }
 
   return rows.map(mapTrailRow);
 };

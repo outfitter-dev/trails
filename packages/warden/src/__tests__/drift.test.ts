@@ -18,12 +18,6 @@ import { z } from 'zod';
 
 import { checkDrift } from '../drift.js';
 
-const committedLockDir = (rootDir: string): string => {
-  const dir = join(rootDir, '.trails');
-  mkdirSync(dir, { recursive: true });
-  return dir;
-};
-
 const makeTopo = () => {
   const t = trail('test.hello', {
     blaze: () => Result.ok({ greeting: 'hi' }),
