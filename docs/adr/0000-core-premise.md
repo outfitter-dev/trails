@@ -124,7 +124,7 @@ Because they're structured, they serve multiple purposes simultaneously:
 - **Documentation:** Agents and developers read examples to understand behavior
 - **Validation:** The warden checks that examples parse against schemas
 - **Mock data:** Testing infrastructure derives mocks from example data
-- **Composition testing:** Failure injection references examples from followed trails
+- **Composition testing:** Failure injection references examples from crossed trails
 - **Contract coverage:** The warden reports which behaviors have examples and which don't
 
 One write, many reads. The developer authors an example. The framework reads it six different ways.

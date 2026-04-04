@@ -83,7 +83,7 @@ const confirmBooking = trail('booking.confirm', {
 
 `ctx.signal()` takes an event definition (or string ID) and a typed payload. The payload validates against the event's schema at runtime. The emission is fire-and-forget from the trail's perspective: the trail doesn't wait for delivery, doesn't know who's listening, doesn't get a result back. The trail's job is to do work and declare what happened. Delivery is the framework's job.
 
-`ctx.signal()` is available in any trail, including within `follow` chains. A followed trail's emissions flow through the same routing as the root trail's emissions.
+`ctx.signal()` is available in any trail, including within `cross` chains. A crossed trail's emissions flow through the same routing as the root trail's emissions.
 
 ### The `emits` declaration
 
@@ -93,7 +93,7 @@ A trail declares which events it may emit:
 signals: [bookingConfirmed, bookingCancelled],
 ```
 
-This is analogous to `follow` declaring which trails may be called. The warden verifies alignment:
+This is analogous to `crosses` declaring which trails may be called. The warden verifies alignment:
 
 - A `ctx.signal(someEvent)` call in the implementation without a corresponding entry in `emits`: error. Undeclared emission.
 - An event in `emits` that is never emitted in the implementation: warning. Unused declaration.
@@ -287,10 +287,10 @@ Reactive mode runs after standard mode passes. Standard mode validates each trai
 
 ### Tradeoffs
 
-- **New field on the trail spec.** `emits` joins `follow`, `visibility`, `on`, `services`, and the rest. The justification: emission is genuinely new information that the framework can't derive from the implementation without static analysis.
+- **New field on the trail spec.** `emits` joins `crosses`, `visibility`, `on`, `provisions`, and the rest. The justification: emission is genuinely new information that the framework can't derive from the implementation without static analysis.
 - **Fire-and-forget semantics.** The emitting trail doesn't know if the event was delivered. This is correct (the trail shouldn't couple to its listeners) but means delivery failures are only visible through tracker.
 - **Lifecycle events add volume.** Every trail execution produces at least one lifecycle event. Sampling is a future optimization.
-- **Event ordering is not guaranteed across listeners.** Multiple triggers on the same event activate concurrently. If ordering matters, use sequential `follow` composition.
+- **Event ordering is not guaranteed across listeners.** Multiple triggers on the same event activate concurrently. If ordering matters, use sequential `cross` composition.
 
 ### What this does NOT decide
 
