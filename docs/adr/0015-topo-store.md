@@ -36,6 +36,9 @@ The core premise says "the contract is queryable." Today it's queryable in the s
 ### Table schema
 
 The topo store projects the resolved topology into relational tables within `trails.db`:
+The foundational `topo_saves` and `topo_pins` tables intentionally restate ADR-0014's
+core database primitive so this ADR can present the full topo store schema as a
+self-contained unit.
 
 ```sql
 CREATE TABLE topo_saves (
