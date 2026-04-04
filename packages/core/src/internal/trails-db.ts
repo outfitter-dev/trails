@@ -57,11 +57,12 @@ const ensureDbParentDir = (dbPath: string): void => {
   mkdirSync(dirname(dbPath), { recursive: true });
 };
 
-const ensureWorkspaceGitignore = (trailsDir: string): void => {
-  const gitignorePath = join(trailsDir, '.gitignore');
-  const content = existsSync(gitignorePath)
-    ? readFileSync(gitignorePath, 'utf8')
-    : '';
+const GITIGNORE_TEMPLATE = `${REQUIRED_GITIGNORE_LINES.join('\n').trimEnd()}\n`;
+
+const appendMissingGitignoreLines = (
+  gitignorePath: string,
+  content: string
+): void => {
   const existingLines = new Set(content.split('\n').map((l) => l.trim()));
   const missing = REQUIRED_GITIGNORE_LINES.filter(
     (line) => line !== '' && !existingLines.has(line)
@@ -71,9 +72,22 @@ const ensureWorkspaceGitignore = (trailsDir: string): void => {
     return;
   }
 
-  const normalized = content.trimEnd();
-  const next = `${normalized}${normalized ? '\n\n' : ''}${missing.join('\n')}`;
+  const next = `${content.trimEnd()}\n\n${missing.join('\n')}`;
   writeFileSync(gitignorePath, `${next.trimEnd()}\n`);
+};
+
+const ensureWorkspaceGitignore = (trailsDir: string): void => {
+  const gitignorePath = join(trailsDir, '.gitignore');
+
+  if (!existsSync(gitignorePath)) {
+    writeFileSync(gitignorePath, GITIGNORE_TEMPLATE);
+    return;
+  }
+
+  appendMissingGitignoreLines(
+    gitignorePath,
+    readFileSync(gitignorePath, 'utf8')
+  );
 };
 
 const ensureWorkspaceDir = (rootDir: string): void => {

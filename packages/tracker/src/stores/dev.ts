@@ -307,8 +307,8 @@ const hasLegacyTrackerTable = (db: Database): boolean => {
 
 const shouldSkipLegacyMigration = (
   db: Database,
-  options: DevStoreOptions | undefined
-): boolean => options?.path !== undefined || countRecords(db) > 0;
+  _options: DevStoreOptions | undefined
+): boolean => countRecords(db) > 0;
 
 const readLegacyRows = (legacyDb: Database): readonly TrackRow[] => {
   if (!hasLegacyTrackerTable(legacyDb)) {
@@ -331,12 +331,18 @@ const openLegacyDb = (
   return new Database(legacyPath, { readonly: true });
 };
 
-const writeLegacyRows = (
-  rows: readonly TrackRow[],
-  write: (record: Track) => void
-): void => {
-  for (const row of rows) {
-    write(rowToRecord(row));
+/** Read rows from the legacy DB and close it. Returns empty array if no legacy DB. */
+const drainLegacyRows = (
+  options: DevStoreOptions | undefined
+): readonly TrackRow[] => {
+  const legacyDb = openLegacyDb(options);
+  if (legacyDb === undefined) {
+    return [];
+  }
+  try {
+    return readLegacyRows(legacyDb);
+  } finally {
+    legacyDb.close();
   }
 };
 
@@ -348,16 +354,12 @@ const migrateLegacyStoreIfPresent = (
   if (shouldSkipLegacyMigration(db, options)) {
     return;
   }
-
-  const legacyDb = openLegacyDb(options);
-  if (legacyDb === undefined) {
+  const rows = drainLegacyRows(options);
+  if (rows.length === 0) {
     return;
   }
-
-  try {
-    writeLegacyRows(readLegacyRows(legacyDb), write);
-  } finally {
-    legacyDb.close();
+  for (const row of rows) {
+    write(rowToRecord(row));
   }
   unlinkSync(resolveLegacyPath(options?.rootDir));
 };
