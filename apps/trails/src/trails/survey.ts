@@ -58,7 +58,7 @@ const buildSurveyDiff = async (
   const previousMap = await readTrailheadMap();
   if (!previousMap) {
     return Result.err(
-      new Error(
+      new NotFoundError(
         'No previous trailhead map found. Run `trails topo export` first.'
       )
     );
