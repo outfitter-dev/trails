@@ -6,6 +6,7 @@ import { exitCodeMap, isTrailsError } from '@ontrails/core';
 import { Command, InvalidArgumentError, Option } from 'commander';
 
 import type { CliCommand, CliFlag } from '../command.js';
+import { validateCliCommands } from '../validate.js';
 
 // ---------------------------------------------------------------------------
 // Options
@@ -121,9 +122,9 @@ const handleError = (error: unknown): void => {
 };
 
 /** Wire a CliCommand's action to a Commander subcommand. */
-const wireAction = (sub: Command, cmd: CliCommand): void => {
-  sub.action(async (...actionArgs: unknown[]) => {
-    const opts = sub.opts() as Record<string, unknown>;
+const wireAction = (target: Command, cmd: CliCommand): void => {
+  target.action(async (...actionArgs: unknown[]) => {
+    const opts = target.opts() as Record<string, unknown>;
     const parsedArgs = collectPositionalArgs(cmd, actionArgs);
     try {
       await cmd.execute(parsedArgs, opts);
@@ -131,26 +132,6 @@ const wireAction = (sub: Command, cmd: CliCommand): void => {
       handleError(error);
     }
   });
-};
-
-/** Attach a subcommand to its group or to the top-level program. */
-const attachToGroup = (
-  sub: Command,
-  cmd: CliCommand,
-  program: Command,
-  groups: Map<string, Command>
-): void => {
-  if (cmd.group) {
-    let groupCmd = groups.get(cmd.group);
-    if (!groupCmd) {
-      groupCmd = new Command(cmd.group);
-      groups.set(cmd.group, groupCmd);
-      program.addCommand(groupCmd);
-    }
-    groupCmd.addCommand(sub);
-  } else {
-    program.addCommand(sub);
-  }
 };
 
 /** Apply options to a Commander program. */
@@ -173,36 +154,98 @@ const applyOptions = (program: Command, options?: ToCommanderOptions): void => {
 /**
  * Convert CliCommand[] into a configured Commander program.
  *
- * Groups commands by their `group` field into parent/subcommand structure.
+ * Builds a nested command tree from each command's full ordered path.
  * Wires each command's `.action()` to call `execute()` and handle errors.
  */
-/** Build a Commander subcommand from a CliCommand. */
-const buildSubcommand = (cmd: CliCommand): Command => {
-  const sub = new Command(cmd.name);
+const pathKey = (path: readonly string[]): string => path.join('\0');
+
+interface CommandNodeState {
+  readonly command: Command;
+  executable: boolean;
+}
+
+const getPathSegment = (path: readonly string[], index: number): string => {
+  const segment = path[index];
+  if (segment === undefined) {
+    throw new Error('CLI command path contains an undefined segment');
+  }
+  return segment;
+};
+
+const getOrCreateCommandNode = (
+  key: string,
+  segment: string,
+  parent: Command,
+  nodes: Map<string, CommandNodeState>
+): CommandNodeState => {
+  const existing = nodes.get(key);
+  if (existing) {
+    return existing;
+  }
+
+  const command = new Command(segment);
+  const state = { command, executable: false };
+  nodes.set(key, state);
+  parent.addCommand(command);
+  return state;
+};
+
+const ensureCommandNode = (
+  path: readonly string[],
+  program: Command,
+  nodes: Map<string, CommandNodeState>
+): CommandNodeState => {
+  let parent = program;
+  let state: CommandNodeState | undefined;
+
+  for (let index = 0; index < path.length; index += 1) {
+    const segment = getPathSegment(path, index);
+    const key = pathKey(path.slice(0, index + 1));
+    state = getOrCreateCommandNode(key, segment, parent, nodes);
+    parent = state.command;
+  }
+
+  if (!state) {
+    throw new Error('CLI command path cannot be empty');
+  }
+
+  return state;
+};
+
+const applyCliCommand = (state: CommandNodeState, cmd: CliCommand): void => {
+  if (state.executable) {
+    throw new Error(`Duplicate CLI path: ${cmd.path.join(' ')}`);
+  }
+
   if (cmd.description) {
-    sub.description(cmd.description);
+    state.command.description(cmd.description);
   }
   for (const flag of cmd.flags) {
     for (const opt of buildOptions(flag)) {
-      sub.addOption(opt);
+      state.command.addOption(opt);
     }
   }
-  addArgs(sub, cmd);
-  wireAction(sub, cmd);
-  return sub;
+  addArgs(state.command, cmd);
+  wireAction(state.command, cmd);
+  state.executable = true;
 };
 
 export const toCommander = (
   commands: CliCommand[],
   options?: ToCommanderOptions
 ): Command => {
+  validateCliCommands(commands);
   const program = new Command();
   applyOptions(program, options);
-  const groups = new Map<string, Command>();
+  const nodes = new Map<string, CommandNodeState>();
 
-  for (const cmd of commands) {
-    const sub = buildSubcommand(cmd);
-    attachToGroup(sub, cmd, program, groups);
+  for (const cmd of commands.toSorted((a, b) =>
+    a.path.length === b.path.length
+      ? a.path.join('.').localeCompare(b.path.join('.'))
+      : a.path.length - b.path.length
+  )) {
+    const state = ensureCommandNode(cmd.path, program, nodes);
+    applyCliCommand(state, cmd);
   }
 
   return program;

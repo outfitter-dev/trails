@@ -92,7 +92,7 @@ export { composeGates } from './gate.js';
 export type { Gate } from './gate.js';
 
 // Derive
-export { deriveFields } from './derive.js';
+export { deriveCliPath, deriveFields } from './derive.js';
 export type { Field, FieldOverride } from './derive.js';
 
 // Execute

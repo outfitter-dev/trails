@@ -47,7 +47,7 @@ const requireCommand = (commands: ReturnType<typeof buildCliCommands>) => {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('buildCliCommands', () => {
+describe('buildCliCommands path derivation', () => {
   test('builds commands from a simple app with one trail', () => {
     const t = trail('greet', {
       blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
@@ -56,11 +56,10 @@ describe('buildCliCommands', () => {
     const app = makeApp(t);
     const commands = buildCliCommands(app);
     expect(commands).toHaveLength(1);
-    expect(commands[0]?.name).toBe('greet');
-    expect(commands[0]?.group).toBeUndefined();
+    expect(commands[0]?.path).toEqual(['greet']);
   });
 
-  test('builds grouped subcommands from dotted trail IDs', () => {
+  test('builds full ordered paths from dotted trail IDs', () => {
     const show = trail('entity.show', {
       blaze: (input: { id: string }) => Result.ok({ id: input.id }),
       input: z.object({ id: z.string() }),
@@ -72,10 +71,19 @@ describe('buildCliCommands', () => {
     const app = makeApp(show, add);
     const commands = buildCliCommands(app);
     expect(commands).toHaveLength(2);
-    expect(commands[0]?.group).toBe('entity');
-    expect(commands[0]?.name).toBe('show');
-    expect(commands[1]?.group).toBe('entity');
-    expect(commands[1]?.name).toBe('add');
+    expect(commands[0]?.path).toEqual(['entity', 'show']);
+    expect(commands[1]?.path).toEqual(['entity', 'add']);
+  });
+
+  test('preserves deeper CLI hierarchies from multi-dot trail IDs', () => {
+    const remove = trail('topo.pin.remove', {
+      blaze: () => Result.ok({ removed: true }),
+      input: z.object({ name: z.string() }),
+    });
+    const app = makeApp(remove);
+    const commands = buildCliCommands(app);
+
+    expect(commands[0]?.path).toEqual(['topo', 'pin', 'remove']);
   });
 
   test('derives flags from input schema', () => {
@@ -108,7 +116,9 @@ describe('buildCliCommands', () => {
     expect(dryRunFlag).toBeDefined();
     expect(dryRunFlag?.type).toBe('boolean');
   });
+});
 
+describe('buildCliCommands execution', () => {
   describe('onResult callback', () => {
     test('receives correct context', async () => {
       let captured: ActionResultContext | undefined;

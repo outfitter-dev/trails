@@ -244,6 +244,23 @@ describe('diffTrailheadMaps', () => {
       ).toBe(true);
     });
 
+    test('CLI path change is classified as breaking', () => {
+      const prev = trailheadMap([
+        entry({ cli: { path: ['topo', 'pin'] }, id: 'topo.pin' }),
+      ]);
+      const curr = trailheadMap([
+        entry({ cli: { path: ['topo', 'save'] }, id: 'topo.pin' }),
+      ]);
+      const result = diffTrailheadMaps(prev, curr);
+
+      expect(result.hasBreaking).toBe(true);
+      expect(
+        result.breaking[0]?.details.some((detail) =>
+          detail.includes('CLI path changed: topo pin -> topo save')
+        )
+      ).toBe(true);
+    });
+
     test('safety marker changed classified as warning', () => {
       const prev = trailheadMap([entry({ id: 'data.wipe', intent: 'read' })]);
       const curr = trailheadMap([

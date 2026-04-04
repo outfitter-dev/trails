@@ -42,6 +42,9 @@ program.parse();
 ```
 
 `buildCliCommands` returns a framework-agnostic `CliCommand[]`. Use `toCommander` for Commander, or write your own connector.
+Invalid command models are rejected before adapter wiring, including duplicate
+CLI paths and executable parents that also declare positional args beneath child
+commands.
 
 ## API
 
@@ -49,6 +52,7 @@ program.parse();
 | --- | --- |
 | `trailhead(app, options?)` | One-liner: build commands, wire Commander, parse argv |
 | `buildCliCommands(app)` | Framework-agnostic command builder, returns `CliCommand[]` |
+| `validateCliCommands(commands)` | Validate `CliCommand[]` shapes before wiring a CLI adapter |
 | `toCommander(commands, options?)` | Connect `CliCommand[]` to a Commander program |
 | `deriveFlags(schema)` | Extract CLI flags from a Zod schema |
 | `output(data, mode)` | Format output as JSON, JSONL, or text |
@@ -72,7 +76,18 @@ Flags come from the Zod schema automatically. No manual flag definitions.
 
 ## Subcommands
 
-Dotted trail IDs create subcommand groups: `entity.show` becomes `myapp entity show`.
+Dotted trail IDs derive to full ordered command paths:
+
+- `entity.show` -> `myapp entity show`
+- `topo.pin` -> `myapp topo pin`
+- `topo.pin.remove` -> `myapp topo pin remove`
+
+Command-path nodes may be both executable and parents, so `myapp topo` and
+`myapp topo pin` can coexist naturally.
+
+`CliCommand[]` validation rejects ambiguous parent/child shapes, so an
+executable parent cannot also declare positional args if child commands exist
+beneath that path.
 
 ## Service resolution
 

@@ -30,55 +30,31 @@ const parseCommandString = (input: string): string[] =>
 // Command resolution
 // ---------------------------------------------------------------------------
 
-/** Try to match group + name from tokens. */
-const tryGroupMatch = (
-  commands: CliCommand[],
-  firstToken: string,
-  secondToken: string | undefined,
-  tokens: string[]
-): { command: CliCommand; flagTokens: string[] } | undefined => {
-  if (secondToken === undefined || secondToken.startsWith('-')) {
-    return undefined;
-  }
-  const match = commands.find(
-    (c) => c.group === firstToken && c.name === secondToken
-  );
-  if (match === undefined) {
-    return undefined;
-  }
-  return { command: match, flagTokens: tokens.slice(2) };
-};
+const matchesPath = (
+  path: readonly string[],
+  tokens: readonly string[]
+): boolean =>
+  path.length <= tokens.length &&
+  path.every((segment, index) => tokens[index] === segment);
 
-/** Try to match a direct name from the first token. */
-const tryDirectMatch = (
-  commands: CliCommand[],
-  firstToken: string,
-  tokens: string[]
-): { command: CliCommand; flagTokens: string[] } | undefined => {
-  const match = commands.find(
-    (c) => c.name === firstToken && c.group === undefined
-  );
-  if (match === undefined) {
-    return undefined;
-  }
-  return { command: match, flagTokens: tokens.slice(1) };
-};
-
-/** Resolve a command from tokens, handling group.name patterns. */
+/** Resolve a command from tokens using the longest matching command path. */
 const resolveCommand = (
   commands: CliCommand[],
   tokens: string[]
 ): { command: CliCommand; flagTokens: string[] } | undefined => {
-  const [firstToken, secondToken] = tokens;
-
-  if (firstToken === undefined) {
+  if (tokens.length === 0) {
     return undefined;
   }
 
-  return (
-    tryGroupMatch(commands, firstToken, secondToken, tokens) ??
-    tryDirectMatch(commands, firstToken, tokens)
-  );
+  const [match] = commands
+    .filter((command) => matchesPath(command.path, tokens))
+    .toSorted((a, b) => b.path.length - a.path.length);
+
+  if (match === undefined) {
+    return undefined;
+  }
+
+  return { command: match, flagTokens: tokens.slice(match.path.length) };
 };
 
 // ---------------------------------------------------------------------------

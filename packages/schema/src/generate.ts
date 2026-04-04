@@ -2,7 +2,7 @@
  * Generate a deterministic trailhead map from a Topo.
  */
 
-import { zodToJsonSchema } from '@ontrails/core';
+import { deriveCliPath, zodToJsonSchema } from '@ontrails/core';
 import type { AnyProvision, Signal, Topo, Trail } from '@ontrails/core';
 
 import type { JsonSchema, TrailheadMap, TrailheadMapEntry } from './types.js';
@@ -116,6 +116,7 @@ const trailToEntry = (t: Trail<unknown, unknown>): TrailheadMapEntry => {
   const raw = t as unknown as Record<string, unknown>;
   const trailheads = extractTrailheads(raw);
   const entry: Record<string, unknown> = {
+    cli: { path: deriveCliPath(t.id) },
     exampleCount: Array.isArray(t.examples) ? t.examples.length : 0,
     id: t.id,
     kind: t.kind,

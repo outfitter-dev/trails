@@ -61,6 +61,7 @@ TopoIssue
 
 // Schema derivation
 deriveFields(schema, overrides?)   // → Field[]
+deriveCliPath(trailId)             // dotted trail ID → ordered CLI path segments
 Field, FieldOverride
 
 // Resilience
@@ -92,6 +93,7 @@ findWorkspaceRoot, isInsideWorkspace, getRelativePath
 ```typescript
 trailhead(topo, options?)              // one-liner (from @ontrails/cli/commander)
 buildCliCommands(topo, options?)   // escape hatch step 1
+validateCliCommands(commands)      // validate command tree shape and collisions
 toCommander(commands, options?)    // escape hatch step 2
 deriveFlags(schema, overrides?)    // Zod → CLI flags
 output(value, mode)                // write to stdout in text/json/jsonl

@@ -54,9 +54,8 @@ export interface CliArg {
 
 /** A framework-agnostic representation of a CLI command. */
 export interface CliCommand {
-  readonly name: string;
+  readonly path: readonly string[];
   readonly description?: string | undefined;
-  readonly group?: string | undefined;
   readonly flags: CliFlag[];
   readonly args: CliArg[];
   readonly trail: AnyTrail;

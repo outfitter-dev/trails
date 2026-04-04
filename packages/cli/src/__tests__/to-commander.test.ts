@@ -55,11 +55,49 @@ const requireCommand = (
   return command;
 };
 
+const requireNestedCommand = (
+  program: ReturnType<typeof toCommander>,
+  path: readonly string[]
+) => {
+  let current = program;
+  for (const segment of path) {
+    const next = current.commands.find((entry) => entry.name() === segment);
+    expect(next).toBeDefined();
+    if (!next) {
+      throw new Error(`Expected command path: ${path.join(' ')}`);
+    }
+    current = next;
+  }
+  return current;
+};
+
+const buildExecutableParentProgram = (calls: string[]) => {
+  const topoShow = trail('topo', {
+    blaze: () => {
+      calls.push('topo');
+      return Result.ok('topo');
+    },
+    input: z.object({}),
+  });
+  const topoPin = trail('topo.pin', {
+    blaze: () => {
+      calls.push('topo.pin');
+      return Result.ok('topo.pin');
+    },
+    input: z.object({}),
+  });
+  const app = makeApp(topoShow, topoPin);
+  const commands = buildCliCommands(app, { onResult: noopResult });
+  const program = toCommander(commands, { name: 'test' });
+  program.exitOverride();
+  return program;
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('toCommander', () => {
+describe('toCommander command trees', () => {
   test('creates a Commander program with correct commands', () => {
     const t = trail('greet', {
       blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
@@ -88,15 +126,108 @@ describe('toCommander', () => {
     const commands = buildCliCommands(app);
     const program = toCommander(commands);
 
-    // Should have an "entity" parent command
-    const entityCmd = program.commands.find((c) => c.name() === 'entity');
-    expect(entityCmd).toBeDefined();
-    // With "show" and "add" subcommands
+    const entityCmd = requireNestedCommand(program, ['entity']);
     const subNames = entityCmd?.commands.map((c) => c.name());
     expect(subNames).toContain('show');
     expect(subNames).toContain('add');
   });
 
+  test('supports arbitrary-depth nested command trees', () => {
+    const remove = trail('topo.pin.remove', {
+      blaze: () => Result.ok({ removed: true }),
+      input: z.object({ name: z.string() }),
+    });
+    const app = makeApp(remove);
+    const commands = buildCliCommands(app);
+    const program = toCommander(commands);
+
+    const topoCmd = requireNestedCommand(program, ['topo']);
+    const pinCmd = requireNestedCommand(program, ['topo', 'pin']);
+    const removeCmd = requireNestedCommand(program, ['topo', 'pin', 'remove']);
+
+    expect(topoCmd.commands.map((entry) => entry.name())).toContain('pin');
+    expect(pinCmd.commands.map((entry) => entry.name())).toContain('remove');
+    expect(removeCmd.name()).toBe('remove');
+  });
+
+  test('supports executable parents alongside child commands', async () => {
+    const calls: string[] = [];
+    const program = buildExecutableParentProgram(calls);
+
+    const topoCmd = requireNestedCommand(program, ['topo']);
+    expect(topoCmd.commands.map((entry) => entry.name())).toContain('pin');
+
+    await program.parseAsync(['node', 'test', 'topo']);
+    await program.parseAsync(['node', 'test', 'topo', 'pin']);
+
+    expect(calls).toEqual(['topo', 'topo.pin']);
+  });
+});
+
+describe('toCommander validation', () => {
+  test('throws when two commands share the same CLI path', () => {
+    const duplicatePath = ['topo', 'pin'] as const;
+    const commands = [
+      {
+        args: [],
+        execute: async () => await Result.ok('first'),
+        flags: [],
+        intent: 'read' as const,
+        path: duplicatePath,
+        trail: trail('first', {
+          blaze: () => Result.ok('first'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [],
+        execute: async () => await Result.ok('second'),
+        flags: [],
+        intent: 'read' as const,
+        path: duplicatePath,
+        trail: trail('second', {
+          blaze: () => Result.ok('second'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    expect(() => toCommander(commands)).toThrow('Duplicate CLI path: topo pin');
+  });
+
+  test('rejects executable parents with positional args when child commands exist', () => {
+    const commands = [
+      {
+        args: [{ name: 'ref', required: true, variadic: false }],
+        execute: async () => await Result.ok('topo'),
+        flags: [],
+        intent: 'read' as const,
+        path: ['topo'] as const,
+        trail: trail('topo', {
+          blaze: () => Result.ok('topo'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [],
+        execute: async () => await Result.ok('topo.pin'),
+        flags: [],
+        intent: 'read' as const,
+        path: ['topo', 'pin'] as const,
+        trail: trail('topo.pin', {
+          blaze: () => Result.ok('topo.pin'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    expect(() => toCommander(commands)).toThrow(
+      'Executable parent commands cannot declare positional args when child commands exist: topo'
+    );
+  });
+});
+
+describe('toCommander option wiring', () => {
   test('flag types map correctly to Commander options', () => {
     const t = trail('search', {
       blaze: () => Result.ok([]),

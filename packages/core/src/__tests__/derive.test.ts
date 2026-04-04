@@ -2,13 +2,45 @@ import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
 
-import { deriveFields } from '../derive.js';
+import { deriveCliPath, deriveFields } from '../derive.js';
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe('derive', () => {
+  describe('cli paths', () => {
+    test('top-level trail IDs derive to a one-segment CLI path', () => {
+      expect(deriveCliPath('search')).toEqual(['search']);
+    });
+
+    test('multi-dot trail IDs derive to the full ordered CLI path', () => {
+      expect(deriveCliPath('topo.pin.remove')).toEqual([
+        'topo',
+        'pin',
+        'remove',
+      ]);
+    });
+
+    test('trail IDs with consecutive dots throw a ValidationError', () => {
+      expect(() => deriveCliPath('topo..pin')).toThrow(
+        'Trail ID "topo..pin" contains an empty segment'
+      );
+    });
+
+    test('trail IDs with a leading dot throw a ValidationError', () => {
+      expect(() => deriveCliPath('.pin')).toThrow(
+        'Trail ID ".pin" contains an empty segment'
+      );
+    });
+
+    test('trail IDs with a trailing dot throw a ValidationError', () => {
+      expect(() => deriveCliPath('pin.')).toThrow(
+        'Trail ID "pin." contains an empty segment'
+      );
+    });
+  });
+
   describe('primitive types', () => {
     test('z.string() derives string field', () => {
       const schema = z.object({ name: z.string() });
