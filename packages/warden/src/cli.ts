@@ -352,8 +352,7 @@ const formatResultLine = (report: WardenReport): string => {
   }
   if (report.drift?.blockedReason !== undefined) {
     parts.push('established exports blocked');
-  }
-  if (report.drift?.stale) {
+  } else if (report.drift?.stale) {
     parts.push('drift detected');
   }
   return `Result: FAIL (${parts.join(', ')})`;

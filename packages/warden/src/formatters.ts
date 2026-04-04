@@ -34,9 +34,7 @@ export const formatGitHubAnnotations = (report: WardenReport): string => {
 
   if (report.drift?.blockedReason !== undefined) {
     lines.push(`::error::drift: ${report.drift.blockedReason}`);
-  }
-
-  if (report.drift?.stale) {
+  } else if (report.drift?.stale) {
     lines.push(
       '::error::drift: trailhead.lock is stale (regenerate with `trails survey generate`)'
     );
