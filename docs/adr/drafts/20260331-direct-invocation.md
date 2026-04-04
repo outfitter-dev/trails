@@ -5,7 +5,7 @@ status: draft
 created: 2026-03-31
 updated: 2026-04-02
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [serialized-topo-graph]
+depends_on: [17]
 ---
 
 # ADR: Direct Trail Invocation (`trails run`)

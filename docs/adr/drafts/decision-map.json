@@ -15,7 +15,7 @@
     },
     {
       "created": "2026-03-31",
-      "depends_on": ["serialized-topo-graph"],
+      "depends_on": ["17"],
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
@@ -163,7 +163,7 @@
     },
     {
       "created": "2026-04-01",
-      "depends_on": ["schema-derived-persistence", "9"],
+      "depends_on": ["16", "9"],
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
@@ -176,7 +176,7 @@
     },
     {
       "created": "2026-04-01",
-      "depends_on": ["schema-derived-persistence", "9"],
+      "depends_on": ["16", "9"],
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
@@ -189,12 +189,7 @@
     },
     {
       "created": "2026-04-01",
-      "depends_on": [
-        "schema-derived-persistence",
-        "declarative-search",
-        "3",
-        "4"
-      ],
+      "depends_on": ["16", "declarative-search", "3", "4"],
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],

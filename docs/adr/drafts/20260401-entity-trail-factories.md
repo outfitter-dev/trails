@@ -5,7 +5,7 @@ status: draft
 created: 2026-04-01
 updated: 2026-04-01
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [schema-derived-persistence, declarative-search, 3, 4]
+depends_on: [16, declarative-search, 3, 4]
 ---
 
 # ADR: Entity Trail Factories

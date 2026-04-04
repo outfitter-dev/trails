@@ -8,7 +8,7 @@ Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.
 
 - [Concurrent Trail Crossing](20260331-concurrent-crossing.md)
 - [Direct Trail Invocation (`trails run`)](20260331-direct-invocation.md)
-  - depends on
+  - depends on [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md)
 - [External Trailheads as Trails](20260331-external-trailheads-as-trails.md)
   - depends on [Packs as Namespace Boundaries](20260331-packs-namespace-boundaries.md)
 - [Inbound Event Trailheads](20260331-inbound-event-trailheads.md)
@@ -33,8 +33,8 @@ Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.
 - [Compiled Pack Trailhead](20260401-compiled-pack-trailhead.md)
   - depends on [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md), [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md), [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md)
 - [Declarative Search](20260401-declarative-search.md)
-  - depends on [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md)
+  - depends on [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md), [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md)
 - [Drizzle Store Connector](20260401-drizzle-store-connector.md)
-  - depends on [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md)
+  - depends on [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md), [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md)
 - [Entity Trail Factories](20260401-entity-trail-factories.md)
-  - depends on [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md), [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md), [Declarative Search](20260401-declarative-search.md)
+  - depends on [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md), [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md), [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md), [Declarative Search](20260401-declarative-search.md)

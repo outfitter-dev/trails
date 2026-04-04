@@ -6,7 +6,7 @@ status: accepted
 created: 2026-04-02
 updated: 2026-04-02
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [core-database-primitive, topo-store, serialized-topo-graph]
+depends_on: [14, 15, 17]
 ---
 
 # ADR-0018: Signal-Driven Governance

@@ -6,7 +6,7 @@ status: accepted
 created: 2026-04-01
 updated: 2026-04-02
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [core-database-primitive, 9]
+depends_on: [14, 9]
 ---
 
 # ADR-0016: Schema-Derived Persistence

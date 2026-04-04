@@ -629,7 +629,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Deterministic Trailhead Derivation",
-      "updated": "2026-04-02"
+      "updated": "2026-04-03"
     },
     {
       "created": "2026-03-30",
@@ -901,7 +901,7 @@
     },
     {
       "created": "2026-04-02",
-      "depends_on": ["core-database-primitive"],
+      "depends_on": ["14"],
       "inbound": [
         {
           "context": "- [ADR-0015: Topo Store](../0015-topo-store.md) — the structural graph projected into this database",
@@ -935,7 +935,7 @@
     },
     {
       "created": "2026-04-01",
-      "depends_on": ["core-database-primitive", "9"],
+      "depends_on": ["14", "9"],
       "inbound": [
         {
           "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — app-level persistence building on the patterns established here",
@@ -1003,11 +1003,7 @@
     },
     {
       "created": "2026-04-02",
-      "depends_on": [
-        "core-database-primitive",
-        "topo-store",
-        "serialized-topo-graph"
-      ],
+      "depends_on": ["14", "15", "17"],
       "inbound": [
         {
           "context": "- [ADR-0018: Signal-Driven Governance](../0018-signal-driven-governance.md) — the framework lifecycle as a topo",
@@ -1039,7 +1035,12 @@
       "depends_on": ["8"],
       "inbound": [
         {
-          "context": "- [ADR: Hierarchical Command Trees from Trail IDs](0019-hierarchical-command-trees-from-trail-ids.md) (draft) — the companion decision for nested command paths",
+          "context": "- [ADR-0019: Hierarchical Command Trees from Trail IDs](0019-hierarchical-command-trees-from-trail-ids.md) — extends CLI derivation from a shallow grouping rule to a full path",
+          "from": "0008",
+          "fromPath": "docs/adr/0008-deterministic-trailhead-derivation.md"
+        },
+        {
+          "context": "- [ADR-0019: Hierarchical Command Trees from Trail IDs](0019-hierarchical-command-trees-from-trail-ids.md) — the companion decision for nested command paths",
           "from": "0020",
           "fromPath": "docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md"
         },
@@ -1060,8 +1061,19 @@
     },
     {
       "created": "2026-04-03",
-      "depends_on": ["8"],
-      "inbound": [],
+      "depends_on": ["8", "19"],
+      "inbound": [
+        {
+          "context": "- [ADR-0020: Flags for Fields, Structured Input on the CLI](0020-flags-for-fields-structured-input-on-the-cli.md) — defines when CLI input derives to flags and when it uses structured channels",
+          "from": "0008",
+          "fromPath": "docs/adr/0008-deterministic-trailhead-derivation.md"
+        },
+        {
+          "context": "- **[ADR-0020: Structured CLI Input](./adr/0020-flags-for-fields-structured-input-on-the-cli.md)** — Flags for fields, JSON/file/stdin channels",
+          "from": "index",
+          "fromPath": "docs/index.md"
+        }
+      ],
       "number": "0020",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md",
