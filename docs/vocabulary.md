@@ -32,8 +32,8 @@ const create = trail('entity.create', {
   output: entityOutput,
   provisions: [db],
   blaze: async (input, ctx) => {
-    const store = db.from(ctx);
-    return Result.ok(await store.create(input));
+    const conn = db.from(ctx);
+    return Result.ok(await conn.create(input));
   },
 });
 ```
