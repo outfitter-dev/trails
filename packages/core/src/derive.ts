@@ -7,6 +7,8 @@
 
 import type { z } from 'zod';
 
+import { ValidationError } from './errors.js';
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
@@ -189,9 +191,21 @@ const buildOptions = (
   });
 };
 
-/** Derive the canonical ordered CLI path from a trail ID. */
-export const deriveCliPath = (trailId: string): string[] =>
-  trailId.split('.').filter((segment) => segment.length > 0);
+/**
+ * Derive the canonical ordered CLI path from a trail ID.
+ *
+ * @throws {ValidationError} if the trail ID contains empty segments (e.g. consecutive dots).
+ */
+export const deriveCliPath = (trailId: string): string[] => {
+  const segments = trailId.split('.');
+  const emptyIndex = segments.findIndex((s) => s.length === 0);
+  if (emptyIndex !== -1) {
+    throw new ValidationError(
+      `Trail ID "${trailId}" contains an empty segment at position ${emptyIndex}`
+    );
+  }
+  return segments;
+};
 
 // ---------------------------------------------------------------------------
 // Public API

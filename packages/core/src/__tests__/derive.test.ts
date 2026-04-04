@@ -21,6 +21,24 @@ describe('derive', () => {
         'remove',
       ]);
     });
+
+    test('trail IDs with consecutive dots throw a ValidationError', () => {
+      expect(() => deriveCliPath('topo..pin')).toThrow(
+        'Trail ID "topo..pin" contains an empty segment'
+      );
+    });
+
+    test('trail IDs with a leading dot throw a ValidationError', () => {
+      expect(() => deriveCliPath('.pin')).toThrow(
+        'Trail ID ".pin" contains an empty segment'
+      );
+    });
+
+    test('trail IDs with a trailing dot throw a ValidationError', () => {
+      expect(() => deriveCliPath('pin.')).toThrow(
+        'Trail ID "pin." contains an empty segment'
+      );
+    });
   });
 
   describe('primitive types', () => {

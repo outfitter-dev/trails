@@ -4,6 +4,8 @@ import type { CliCommand } from './command.js';
 
 const renderPath = (path: readonly string[]): string => path.join(' ');
 
+const keyPath = (path: readonly string[]): string => path.join('\0');
+
 const isPrefixPath = (
   prefix: readonly string[],
   path: readonly string[]
@@ -29,9 +31,11 @@ const validateUniquePaths = (commands: readonly CliCommand[]): void => {
   const seen = new Set<string>();
 
   for (const command of commands) {
-    const key = renderPath(command.path);
+    const key = keyPath(command.path);
     if (seen.has(key)) {
-      throw new ValidationError(`Duplicate CLI path: ${key}`);
+      throw new ValidationError(
+        `Duplicate CLI path: ${renderPath(command.path)}`
+      );
     }
     seen.add(key);
   }
