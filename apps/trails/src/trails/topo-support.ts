@@ -275,7 +275,9 @@ export const removeTopoPin = (input: {
   if (!existsSync(resolveTrailsDbPath({ rootDir }))) {
     return { dryRun: input.dryRun, removed: false };
   }
-  const db = openWriteTrailsDb({ rootDir });
+  const db = input.dryRun
+    ? openReadTrailsDb({ rootDir })
+    : openWriteTrailsDb({ rootDir });
 
   try {
     const pin = getTopoPin(db, input.name);
