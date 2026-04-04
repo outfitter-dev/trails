@@ -59,14 +59,12 @@ const ensureDbParentDir = (dbPath: string): void => {
 
 const ensureWorkspaceGitignore = (trailsDir: string): void => {
   const gitignorePath = join(trailsDir, '.gitignore');
-  let content = '';
-
-  if (existsSync(gitignorePath)) {
-    content = readFileSync(gitignorePath, 'utf8');
-  }
-
+  const content = existsSync(gitignorePath)
+    ? readFileSync(gitignorePath, 'utf8')
+    : '';
+  const existingLines = new Set(content.split('\n').map((l) => l.trim()));
   const missing = REQUIRED_GITIGNORE_LINES.filter(
-    (line) => line !== '' && !content.includes(line)
+    (line) => line !== '' && !existingLines.has(line)
   );
 
   if (missing.length === 0) {

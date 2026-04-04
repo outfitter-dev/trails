@@ -330,15 +330,16 @@ describe('createDevStore', () => {
         path: join(dir, 'tracker.db'),
       });
 
+      const now = Date.now();
       for (let i = 0; i < 8; i += 1) {
         store.write(
-          makeRecord({ id: `rec-${String(i)}`, startedAt: 1000 + i })
+          makeRecord({ id: `rec-${String(i)}`, startedAt: now - i * 1000 })
         );
       }
 
       const results = store.query();
 
-      expect(results.length).toBeLessThanOrEqual(5);
+      expect(results.length).toBe(5);
     });
 
     test('prunes records older than maxAge', () => {

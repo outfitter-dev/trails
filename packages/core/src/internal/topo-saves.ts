@@ -82,7 +82,7 @@ export const ensureTopoHistorySchema = (db: Database): void => {
       )`);
       db.run(`CREATE TABLE IF NOT EXISTS topo_pins (
         name TEXT PRIMARY KEY,
-        save_id TEXT NOT NULL UNIQUE,
+        save_id TEXT NOT NULL,
         created_at TEXT NOT NULL,
         FOREIGN KEY (save_id) REFERENCES topo_saves(id)
       )`);
@@ -179,19 +179,11 @@ export const listTopoPins = (db: Database): readonly TopoPinRecord[] => {
   return rows.map(rowToPin);
 };
 
-const countSaves = (db: Database): number => {
-  const row = db
-    .query<{ count: number }, []>('SELECT COUNT(*) as count FROM topo_saves')
-    .get();
-  return row?.count ?? 0;
-};
-
 export const pruneUnpinnedTopoSaves = (
   db: Database,
   options: { readonly keep: number }
 ): number => {
   ensureTopoHistorySchema(db);
-  const before = countSaves(db);
 
   db.run(
     `DELETE FROM topo_saves
@@ -206,5 +198,8 @@ export const pruneUnpinnedTopoSaves = (
     [options.keep]
   );
 
-  return before - countSaves(db);
+  return (
+    db.query<{ changes: number }, []>('SELECT changes() as changes').get()
+      ?.changes ?? 0
+  );
 };

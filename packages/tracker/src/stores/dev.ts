@@ -1,6 +1,6 @@
 import type { SQLQueryBindings } from 'bun:sqlite';
 import { Database } from 'bun:sqlite';
-import { existsSync } from 'node:fs';
+import { existsSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
 import {
@@ -359,6 +359,7 @@ const migrateLegacyStoreIfPresent = (
   } finally {
     legacyDb.close();
   }
+  unlinkSync(resolveLegacyPath(options?.rootDir));
 };
 
 const createReadApi = (db: Database, defaultLimit: number): TrackStore => ({
