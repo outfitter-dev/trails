@@ -7,6 +7,7 @@
  */
 
 import { ValidationError } from './errors.js';
+import { isDraftId } from './draft.js';
 import type { AnySignal } from './event.js';
 import { Result } from './result.js';
 import type { Topo } from './topo.js';
@@ -100,7 +101,7 @@ const checkCrosses = (
           rule: 'no-self-cross',
           trailId: id,
         });
-      } else if (!topo.has(crossedId)) {
+      } else if (!topo.has(crossedId) && !isDraftId(crossedId)) {
         issues.push({
           message: `Crosses "${crossedId}" which is not in the topo`,
           rule: 'cross-exists',
@@ -121,7 +122,10 @@ const checkProvisions = (
 
   for (const [id, trail] of trails) {
     for (const declaredProvision of trail.provisions) {
-      if (!topo.hasProvision(declaredProvision.id)) {
+      if (
+        !topo.hasProvision(declaredProvision.id) &&
+        !isDraftId(declaredProvision.id)
+      ) {
         issues.push({
           message: `Provision "${declaredProvision.id}" is not in the topo`,
           rule: 'provision-exists',
@@ -187,7 +191,7 @@ const checkSignalOrigins = (
       continue;
     }
     for (const originId of evt.from) {
-      if (!topo.has(originId)) {
+      if (!topo.has(originId) && !isDraftId(originId)) {
         issues.push({
           message: `Signal origin "${originId}" is not in the topo`,
           rule: 'signal-origin-exists',

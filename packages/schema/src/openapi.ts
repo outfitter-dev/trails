@@ -5,7 +5,11 @@
  * parameters, and response schemas from the trail contract.
  */
 
-import { statusCodeMap, zodToJsonSchema } from '@ontrails/core';
+import {
+  statusCodeMap,
+  validateDraftFreeTopo,
+  zodToJsonSchema,
+} from '@ontrails/core';
 import type { Topo, Trail } from '@ontrails/core';
 
 import type { JsonSchema } from './types.js';
@@ -333,12 +337,19 @@ const buildInfo = (
 export const generateOpenApiSpec = (
   app: Topo,
   options?: OpenApiOptions
-): OpenApiSpec => ({
-  components: { schemas: {} },
-  info: buildInfo(app.name, options),
-  openapi: '3.1.0',
-  paths: collectPaths(app, (options?.basePath ?? '').replace(/\/+$/, '')),
-  ...(options?.servers && options.servers.length > 0
-    ? { servers: options.servers }
-    : {}),
-});
+): OpenApiSpec => {
+  const validated = validateDraftFreeTopo(app);
+  if (validated.isErr()) {
+    throw validated.error;
+  }
+
+  return {
+    components: { schemas: {} },
+    info: buildInfo(app.name, options),
+    openapi: '3.1.0',
+    paths: collectPaths(app, (options?.basePath ?? '').replace(/\/+$/, '')),
+    ...(options?.servers && options.servers.length > 0
+      ? { servers: options.servers }
+      : {}),
+  };
+};

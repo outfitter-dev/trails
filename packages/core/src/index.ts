@@ -83,9 +83,24 @@ export type { AnyEvent, Event, EventSpec } from './event.js';
 export { topo } from './topo.js';
 export type { Topo } from './topo.js';
 
+// Draft state
+export {
+  DRAFT_ID_PREFIX,
+  analyzeDraftState,
+  isDraftId,
+  validateEstablishedTopo as validateDraftFreeTopo,
+} from './draft.js';
+export type {
+  DraftDependency,
+  DraftDependencyKind,
+  DraftFinding,
+  DraftStateAnalysis,
+} from './draft.js';
+
 // Topo validation
 export { validateTopo } from './validate-topo.js';
 export type { TopoIssue } from './validate-topo.js';
+export { validateEstablishedTopo } from './validate-established-topo.js';
 
 // Gate
 export { composeGates } from './gate.js';

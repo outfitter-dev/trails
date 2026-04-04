@@ -5,6 +5,24 @@ import { join } from 'node:path';
 
 import { formatWardenReport, runWarden } from '../cli.js';
 
+const isDraftFileMarking = (rule: string): boolean =>
+  rule === 'draft-file-marking';
+
+const isDraftFileMarkingError = (diagnostic: {
+  rule: string;
+  severity?: string;
+}): boolean =>
+  isDraftFileMarking(diagnostic.rule) && diagnostic.severity === 'error';
+
+const isDraftFileMarkingWarn = (diagnostic: {
+  rule: string;
+  severity?: string;
+}): boolean =>
+  isDraftFileMarking(diagnostic.rule) && diagnostic.severity === 'warn';
+
+const isDraftVisibleDebt = (rule: string): boolean =>
+  rule === 'draft-visible-debt';
+
 const makeTempDir = (): string => {
   const dir = join(
     tmpdir(),
@@ -146,6 +164,83 @@ describe('runWarden', () => {
       rmSync(dir, { force: true, recursive: true });
     }
   });
+
+  test('requires draft-bearing files to be visibly marked', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'draft-id.ts'),
+        `trail("_draft.entity.prepare", {
+  blaze: async () => Result.ok({ ok: true }),
+  input: z.object({})
+})`
+      );
+
+      const report = await runWarden({ rootDir: dir });
+
+      const hasDraftFileMarking = report.diagnostics.some((diagnostic) =>
+        isDraftFileMarking(diagnostic.rule)
+      );
+      const hasDraftVisibleDebt = report.diagnostics.some((diagnostic) =>
+        isDraftVisibleDebt(diagnostic.rule)
+      );
+
+      expect(hasDraftFileMarking).toBe(true);
+      expect(hasDraftVisibleDebt).toBe(true);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('allows correctly marked draft files while keeping the debt visible', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, '_draft.entity.ts'),
+        `trail("_draft.entity.prepare", {
+  blaze: async () => Result.ok({ ok: true }),
+  input: z.object({})
+})`
+      );
+
+      const report = await runWarden({ rootDir: dir });
+
+      const hasDraftFileMarkingError = report.diagnostics.some((diagnostic) =>
+        isDraftFileMarkingError(diagnostic)
+      );
+      const hasDraftVisibleDebt = report.diagnostics.some((diagnostic) =>
+        isDraftVisibleDebt(diagnostic.rule)
+      );
+
+      expect(hasDraftFileMarkingError).toBe(false);
+      expect(hasDraftVisibleDebt).toBe(true);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('warns when a draft-marked file no longer contains draft ids', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'entity.draft.ts'),
+        `trail("entity.prepare", {
+  blaze: async () => Result.ok({ ok: true }),
+  input: z.object({})
+})`
+      );
+
+      const report = await runWarden({ rootDir: dir });
+
+      const hasDraftFileMarkingWarn = report.diagnostics.some((diagnostic) =>
+        isDraftFileMarkingWarn(diagnostic)
+      );
+
+      expect(hasDraftFileMarkingWarn).toBe(true);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
 });
 
 describe('formatWardenReport', () => {
@@ -194,5 +289,23 @@ describe('formatWardenReport', () => {
     });
     expect(output).toContain('trailhead.lock is stale');
     expect(output).toContain('Result: FAIL');
+  });
+
+  test('formats a report with blocked established exports', () => {
+    const output = formatWardenReport({
+      diagnostics: [],
+      drift: {
+        blockedReason:
+          'Established topo validation failed with 1 draft issue(s)',
+        committedHash: null,
+        currentHash: 'blocked',
+        stale: true,
+      },
+      errorCount: 0,
+      passed: false,
+      warnCount: 0,
+    });
+    expect(output).toContain('Drift: blocked');
+    expect(output).toContain('established exports blocked');
   });
 });

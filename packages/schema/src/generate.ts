@@ -2,7 +2,11 @@
  * Generate a deterministic trailhead map from a Topo.
  */
 
-import { deriveCliPath, zodToJsonSchema } from '@ontrails/core';
+import {
+  deriveCliPath,
+  validateDraftFreeTopo,
+  zodToJsonSchema,
+} from '@ontrails/core';
 import type { AnyProvision, Signal, Topo, Trail } from '@ontrails/core';
 
 import type { JsonSchema, TrailheadMap, TrailheadMapEntry } from './types.js';
@@ -189,6 +193,25 @@ const provisionToEntry = (provision: AnyProvision): TrailheadMapEntry => {
   return sortKeys(entry) as unknown as TrailheadMapEntry;
 };
 
+const assertEstablishedTopo = (topo: Topo): void => {
+  const validated = validateDraftFreeTopo(topo);
+  if (validated.isErr()) {
+    throw validated.error;
+  }
+};
+
+const collectEntries = (topo: Topo): TrailheadMapEntry[] => [
+  ...[...topo.trails.values()].map((trail) =>
+    trailToEntry(trail as Trail<unknown, unknown>)
+  ),
+  ...[...topo.signals.values()].map((signal) =>
+    signalToEntry(signal as Signal<unknown>)
+  ),
+  ...[...topo.provisions.values()].map((provision) =>
+    provisionToEntry(provision)
+  ),
+];
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -200,25 +223,10 @@ const provisionToEntry = (provision: AnyProvision): TrailheadMapEntry => {
  * are sorted lexicographically for stable serialization.
  */
 export const generateTrailheadMap = (topo: Topo): TrailheadMap => {
-  const entries: TrailheadMapEntry[] = [];
-
-  // Collect all trails
-  for (const t of topo.trails.values()) {
-    entries.push(trailToEntry(t as Trail<unknown, unknown>));
-  }
-
-  // Collect all signals
-  for (const e of topo.signals.values()) {
-    entries.push(signalToEntry(e as Signal<unknown>));
-  }
-
-  // Collect all provisions
-  for (const provision of topo.provisions.values()) {
-    entries.push(provisionToEntry(provision));
-  }
-
-  // Sort alphabetically by id
-  const sorted = entries.toSorted((a, b) => a.id.localeCompare(b.id));
+  assertEstablishedTopo(topo);
+  const sorted = collectEntries(topo).toSorted((a, b) =>
+    a.id.localeCompare(b.id)
+  );
 
   return {
     entries: sorted,

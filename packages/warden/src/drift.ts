@@ -7,6 +7,7 @@
  */
 
 import type { Topo } from '@ontrails/core';
+import { ValidationError } from '@ontrails/core';
 import {
   generateTrailheadMap,
   hashTrailheadMap,
@@ -17,6 +18,8 @@ import {
  * Result of a drift check comparing committed trailhead.lock against the current state.
  */
 export interface DriftResult {
+  /** Why drift could not be computed for the established graph, when blocked. */
+  readonly blockedReason?: string | undefined;
   /** Whether the committed lock is out of date */
   readonly stale: boolean;
   /** Hash from the committed trailhead.lock file, or null if not found */
@@ -38,13 +41,26 @@ export const checkDrift = async (
     return { committedHash: null, currentHash: 'unknown', stale: false };
   }
 
-  const trailheadMap = generateTrailheadMap(topo);
-  const currentHash = hashTrailheadMap(trailheadMap);
-  const committedHash = await readTrailheadLock({ dir: rootDir });
+  try {
+    const trailheadMap = generateTrailheadMap(topo);
+    const currentHash = hashTrailheadMap(trailheadMap);
+    const committedHash = await readTrailheadLock({ dir: rootDir });
 
-  return {
-    committedHash,
-    currentHash,
-    stale: committedHash !== null && committedHash !== currentHash,
-  };
+    return {
+      committedHash,
+      currentHash,
+      stale: committedHash !== null && committedHash !== currentHash,
+    };
+  } catch (error) {
+    if (!(error instanceof ValidationError)) {
+      throw error;
+    }
+
+    return {
+      blockedReason: error.message,
+      committedHash: null,
+      currentHash: 'blocked',
+      stale: true,
+    };
+  }
 };

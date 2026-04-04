@@ -19,7 +19,8 @@ const ghLevel: Record<WardenSeverity, string> = {
  * Produce GitHub Actions workflow command annotations, one per diagnostic.
  *
  * Severity mapping: `error` to `::error`, `warn` to `::warning`.
- * Drift staleness is emitted as a single `::error` annotation when detected.
+ * Drift staleness or established-export blocking is emitted as a single
+ * `::error` annotation when detected.
  */
 export const formatGitHubAnnotations = (report: WardenReport): string => {
   const lines: string[] = [];
@@ -31,7 +32,9 @@ export const formatGitHubAnnotations = (report: WardenReport): string => {
     );
   }
 
-  if (report.drift?.stale) {
+  if (report.drift?.blockedReason !== undefined) {
+    lines.push(`::error::drift: ${report.drift.blockedReason}`);
+  } else if (report.drift?.stale) {
     lines.push(
       '::error::drift: trailhead.lock is stale (regenerate with `trails survey generate`)'
     );
@@ -82,6 +85,14 @@ const severitySection = (
 
 /** Render a drift section if stale, otherwise empty array. */
 const driftSection = (drift: WardenReport['drift']): readonly string[] => {
+  if (drift?.blockedReason !== undefined) {
+    return [
+      '',
+      '### Drift',
+      `- established exports are blocked: ${drift.blockedReason}`,
+    ];
+  }
+
   if (!drift?.stale) {
     return [];
   }

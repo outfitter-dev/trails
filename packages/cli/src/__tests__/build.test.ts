@@ -456,3 +456,15 @@ describe('buildCliCommands provision overrides', () => {
     expect(result?.unwrap()).toEqual({ name: 'override' });
   });
 });
+
+describe('buildCliCommands established graph enforcement', () => {
+  test('throws when draft contamination remains', () => {
+    const draftTrail = trail('entity.export', {
+      blaze: () => Result.ok({ ok: true }),
+      crosses: ['_draft.entity.prepare'],
+      input: z.object({}),
+    });
+
+    expect(() => buildCliCommands(makeApp(draftTrail))).toThrowError(/draft/i);
+  });
+});

@@ -476,4 +476,19 @@ describe('buildHttpRoutes', () => {
       expect(result.error?.message).toContain('entity');
     });
   });
+
+  describe('established graph enforcement', () => {
+    test('returns err when draft contamination remains', () => {
+      const draftTrail = trail('entity.export', {
+        blaze: () => Result.ok({ ok: true }),
+        crosses: ['_draft.entity.prepare'],
+        input: z.object({}),
+      });
+
+      const result = buildHttpRoutes(topo('testapp', { draftTrail }));
+
+      expect(result.isErr()).toBe(true);
+      expect(result.error?.message).toMatch(/draft/i);
+    });
+  });
 });

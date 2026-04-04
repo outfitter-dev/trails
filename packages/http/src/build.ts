@@ -11,6 +11,7 @@ import {
   TRAILHEAD_KEY,
   ValidationError,
   executeTrail,
+  validateEstablishedTopo,
 } from '@ontrails/core';
 import type {
   Gate,
@@ -35,6 +36,8 @@ export interface BuildHttpRoutesOptions {
     | undefined;
   readonly gates?: readonly Gate[] | undefined;
   readonly provisions?: ProvisionOverrideMap | undefined;
+  /** Set to `false` to skip topo validation while building routes. */
+  readonly validate?: boolean | undefined;
 }
 
 export type HttpMethod = 'GET' | 'POST' | 'DELETE';
@@ -227,6 +230,13 @@ export const buildHttpRoutes = (
   app: Topo,
   options: BuildHttpRoutesOptions = {}
 ): Result<HttpRouteDefinition[], Error> => {
+  if (options.validate !== false) {
+    const validated = validateEstablishedTopo(app);
+    if (validated.isErr()) {
+      return Result.err(validated.error);
+    }
+  }
+
   const basePath = (options.basePath ?? '').replace(/\/+$/, '');
   const gates = options.gates ?? [];
   return accumulateRoutes(eligibleTrails(app), basePath, gates, options);

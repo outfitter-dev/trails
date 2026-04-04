@@ -5,10 +5,24 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { isDraftMarkedFile } from '@ontrails/warden';
+
 /** Return all TypeScript entries in a project's src directory. */
-const scanSourceEntries = (srcDir: string): string[] => [
-  ...new Bun.Glob('*.ts').scanSync({ cwd: srcDir }),
-];
+const sourceEntryPriority = (entry: string): number => {
+  if (entry === 'app.ts') {
+    return 0;
+  }
+  return isDraftMarkedFile(entry) ? 2 : 1;
+};
+
+const scanSourceEntries = (srcDir: string): string[] =>
+  [...new Bun.Glob('*.ts').scanSync({ cwd: srcDir })].toSorted((a, b) => {
+    const priority = sourceEntryPriority(a) - sourceEntryPriority(b);
+    if (priority === 0) {
+      return a.localeCompare(b);
+    }
+    return priority;
+  });
 
 /** Resolve an entry to an app import if it contains topo(). */
 const toTopoImport = async (

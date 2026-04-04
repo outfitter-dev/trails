@@ -155,6 +155,44 @@ export const extractStringLiteral = (
 ): string | null =>
   node && isStringLiteral(node) ? getStringValue(node) : null;
 
+export interface StringLiteralMatch {
+  readonly end: number;
+  readonly node: AstNode;
+  readonly start: number;
+  readonly value: string;
+}
+
+export const findStringLiterals = (
+  ast: AstNode,
+  predicate?: (value: string, node: AstNode) => boolean
+): StringLiteralMatch[] => {
+  const matches: StringLiteralMatch[] = [];
+
+  walk(ast, (node) => {
+    if (!isStringLiteral(node)) {
+      return;
+    }
+
+    const value = getStringValue(node);
+    if (value === null) {
+      return;
+    }
+
+    if (predicate && !predicate(value, node)) {
+      return;
+    }
+
+    matches.push({
+      end: node.end,
+      node,
+      start: node.start,
+      value,
+    });
+  });
+
+  return matches;
+};
+
 /** Extract the first string argument from a CallExpression. */
 export const extractFirstStringArg = (node: AstNode): string | null => {
   if (node.type !== 'CallExpression') {

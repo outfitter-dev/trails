@@ -1,0 +1,704 @@
+import { existsSync, renameSync, statSync } from 'node:fs';
+import { basename, dirname, join, relative } from 'node:path';
+
+import {
+  Result,
+  ValidationError,
+  analyzeDraftState,
+  isDraftId,
+  trail,
+} from '@ontrails/core';
+import {
+  DRAFT_FILE_PREFIX,
+  findStringLiterals,
+  isDraftMarkedFile,
+  parse,
+  stripDraftFileMarkers,
+} from '@ontrails/warden';
+import { z } from 'zod';
+
+import { loadApp } from './load-app.js';
+import { findTopoPath } from './project.js';
+
+interface PromotionEdit {
+  readonly end: number;
+  readonly replacement: string;
+  readonly start: number;
+}
+
+interface FileRename {
+  readonly from: string;
+  readonly to: string;
+}
+
+const isManagedSourceFile = (match: string): boolean =>
+  !match.endsWith('.d.ts') &&
+  !match.startsWith('node_modules/') &&
+  !match.startsWith('dist/') &&
+  !match.startsWith('.git/');
+
+const collectTsFiles = (rootDir: string): string[] => {
+  const files: string[] = [];
+  for (const match of new Bun.Glob('**/*.ts').scanSync({
+    cwd: rootDir,
+    dot: false,
+    onlyFiles: true,
+  })) {
+    if (isManagedSourceFile(match)) {
+      files.push(join(rootDir, match));
+    }
+  }
+  return files.toSorted();
+};
+
+const applyEdits = (
+  sourceCode: string,
+  edits: readonly PromotionEdit[]
+): string => {
+  let updated = sourceCode;
+  for (const edit of [...edits].toSorted((a, b) => b.start - a.start)) {
+    updated =
+      updated.slice(0, edit.start) + edit.replacement + updated.slice(edit.end);
+  }
+  return updated;
+};
+
+const literalQuote = (raw: string): '"' | "'" | '`' => {
+  const [first] = raw;
+  return first === '"' || first === '`' ? first : "'";
+};
+
+const replaceQuotedLiteral = (
+  sourceCode: string,
+  start: number,
+  end: number,
+  nextValue: string
+): string => {
+  const quote = literalQuote(sourceCode.slice(start, end));
+  return `${quote}${nextValue}${quote}`;
+};
+
+const replaceIdLiterals = (
+  sourceCode: string,
+  filePath: string,
+  fromId: string,
+  toId: string
+): { readonly changed: boolean; readonly nextSource: string } => {
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return { changed: false, nextSource: sourceCode };
+  }
+
+  const edits = findStringLiterals(ast, (value) => value === fromId).map(
+    (match) => ({
+      end: match.end,
+      replacement: replaceQuotedLiteral(
+        sourceCode,
+        match.start,
+        match.end,
+        toId
+      ),
+      start: match.start,
+    })
+  );
+
+  if (edits.length === 0) {
+    return { changed: false, nextSource: sourceCode };
+  }
+
+  return {
+    changed: true,
+    nextSource: applyEdits(sourceCode, edits),
+  };
+};
+
+const hasDraftIds = (sourceCode: string, filePath: string): boolean => {
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return sourceCode.includes(DRAFT_FILE_PREFIX);
+  }
+  return findStringLiterals(ast, (value) => isDraftId(value)).length > 0;
+};
+
+const toJsPath = (filePath: string): string => filePath.replace(/\.ts$/, '.js');
+
+const toRelativeModulePath = (fromFile: string, toFile: string): string => {
+  const rel = relative(dirname(fromFile), toJsPath(toFile)).replaceAll(
+    '\\',
+    '/'
+  );
+  return rel.startsWith('.') ? rel : `./${rel}`;
+};
+
+const replaceLiteralValue = (
+  sourceCode: string,
+  filePath: string,
+  currentValue: string,
+  nextValue: string
+): { readonly changed: boolean; readonly nextSource: string } => {
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return { changed: false, nextSource: sourceCode };
+  }
+
+  const edits = findStringLiterals(ast, (value) => value === currentValue).map(
+    (match) => ({
+      end: match.end,
+      replacement: replaceQuotedLiteral(
+        sourceCode,
+        match.start,
+        match.end,
+        nextValue
+      ),
+      start: match.start,
+    })
+  );
+
+  if (edits.length === 0) {
+    return { changed: false, nextSource: sourceCode };
+  }
+
+  return {
+    changed: true,
+    nextSource: applyEdits(sourceCode, edits),
+  };
+};
+
+const collectOutputId = (
+  app: Awaited<ReturnType<typeof loadApp>>,
+  id: string
+) => app.get(id) ?? app.signals.get(id) ?? app.getProvision(id);
+
+const toRelativeOutputPath = (rootDir: string, filePath: string): string =>
+  relative(rootDir, filePath).replaceAll('\\', '/');
+
+const toProjectModulePath = (sourceImport: string): string =>
+  sourceImport.startsWith('./')
+    ? `./src/${sourceImport.slice(2)}`
+    : sourceImport;
+
+interface PromotionRewriteState {
+  readonly renames: FileRename[];
+  readonly updatedSourceFiles: Set<string>;
+}
+
+interface PromotionLoadState {
+  readonly appModule: string | null;
+  readonly loadError: string | null;
+  readonly loadedApp: Awaited<ReturnType<typeof loadApp>> | undefined;
+}
+
+const validatePromotionInput = (input: {
+  readonly fromId: string;
+  readonly toId: string;
+}): Result<void, ValidationError> => {
+  if (!isDraftId(input.fromId)) {
+    return Result.err(
+      new ValidationError(
+        `fromId must use the reserved draft prefix: "${input.fromId}"`
+      )
+    );
+  }
+
+  if (isDraftId(input.toId)) {
+    return Result.err(
+      new ValidationError(
+        `toId must be established, not draft: "${input.toId}"`
+      )
+    );
+  }
+
+  return Result.ok();
+};
+
+const validatePromotionRoot = (
+  rootDir: string
+): Result<void, ValidationError> => {
+  if (!existsSync(rootDir)) {
+    return Result.err(
+      new ValidationError(`rootDir does not exist: "${rootDir}"`)
+    );
+  }
+
+  if (!statSync(rootDir).isDirectory()) {
+    return Result.err(
+      new ValidationError(`rootDir must be a directory: "${rootDir}"`)
+    );
+  }
+
+  return Result.ok();
+};
+
+const resolveValidatedPromotionRoot = (
+  input: {
+    readonly fromId: string;
+    readonly rootDir?: string | undefined;
+    readonly toId: string;
+  },
+  ctx: { readonly cwd?: string | undefined }
+): Result<string, ValidationError> => {
+  const validation = validatePromotionInput(input);
+  if (validation.isErr()) {
+    return validation;
+  }
+
+  const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
+  const rootValidation = validatePromotionRoot(rootDir);
+  if (rootValidation.isErr()) {
+    return rootValidation;
+  }
+
+  return Result.ok(rootDir);
+};
+
+const rewritePromotedSourceFiles = async (
+  filePaths: readonly string[],
+  fromId: string,
+  toId: string,
+  updatedSourceFiles: Set<string>
+): Promise<void> => {
+  for (const filePath of filePaths) {
+    const sourceCode = await Bun.file(filePath).text();
+    const replaced = replaceIdLiterals(sourceCode, filePath, fromId, toId);
+    if (!replaced.changed) {
+      continue;
+    }
+
+    await Bun.write(filePath, replaced.nextSource);
+    updatedSourceFiles.add(filePath);
+  }
+};
+
+const hasDraftIdsInFile = async (filePath: string): Promise<boolean> => {
+  const sourceCode = await Bun.file(filePath).text();
+  return hasDraftIds(sourceCode, filePath);
+};
+
+const buildPromotableFileRename = (
+  filePath: string,
+  fileName: string
+): Result<FileRename | null, Error> => {
+  const nextFileName = stripDraftFileMarkers(fileName);
+  if (nextFileName === fileName) {
+    return Result.ok(null);
+  }
+
+  const nextPath = join(dirname(filePath), nextFileName);
+  if (nextPath !== filePath && existsSync(nextPath)) {
+    return Result.err(
+      new ValidationError(
+        `Cannot promote draft file "${filePath}" because "${nextPath}" already exists.`
+      )
+    );
+  }
+
+  return Result.ok({ from: filePath, to: nextPath });
+};
+
+const collectPromotableFileRename = async (
+  filePath: string
+): Promise<Result<FileRename | null, Error>> => {
+  if (!isDraftMarkedFile(filePath)) {
+    return Result.ok(null);
+  }
+
+  const fileName = basename(filePath);
+  if (!fileName) {
+    return Result.ok(null);
+  }
+
+  if (await hasDraftIdsInFile(filePath)) {
+    return Result.ok(null);
+  }
+
+  return buildPromotableFileRename(filePath, fileName);
+};
+
+/** Validate that no two renames target the same path and no target already exists. */
+const validateRenameTargets = (
+  renames: readonly FileRename[]
+): Result<void, Error> => {
+  const targets = new Set<string>();
+  for (const r of renames) {
+    if (targets.has(r.to)) {
+      return Result.err(
+        new ValidationError(
+          `Duplicate rename target "${r.to}" — multiple draft files would be renamed to the same path`
+        )
+      );
+    }
+    if (existsSync(r.to)) {
+      return Result.err(
+        new ValidationError(
+          `Rename target "${r.to}" already exists — cannot overwrite`
+        )
+      );
+    }
+    targets.add(r.to);
+  }
+  return Result.ok();
+};
+
+const collectFileRenames = async (
+  filePaths: readonly string[]
+): Promise<Result<FileRename[], Error>> => {
+  const renames: FileRename[] = [];
+  for (const filePath of filePaths) {
+    const renameResult = await collectPromotableFileRename(filePath);
+    if (renameResult.isErr()) {
+      return renameResult;
+    }
+    if (renameResult.value !== null) {
+      renames.push(renameResult.value);
+    }
+  }
+  return Result.ok(renames);
+};
+
+const collectAndApplyFileRenames = async (
+  filePaths: readonly string[]
+): Promise<Result<FileRename[], Error>> => {
+  const collected = await collectFileRenames(filePaths);
+  if (collected.isErr()) {
+    return collected;
+  }
+
+  const renames = collected.value;
+  const valid = validateRenameTargets(renames);
+  if (valid.isErr()) {
+    return valid;
+  }
+
+  for (const r of renames) {
+    renameSync(r.from, r.to);
+  }
+  return Result.ok(renames);
+};
+
+const applyRenameEffects = (
+  updatedSourceFiles: Set<string>,
+  renames: readonly FileRename[]
+): void => {
+  for (const rename of renames) {
+    if (updatedSourceFiles.delete(rename.from)) {
+      updatedSourceFiles.add(rename.to);
+    }
+  }
+};
+
+const applyRelativeImportRename = (
+  sourceCode: string,
+  filePath: string,
+  rename: FileRename
+): { readonly changed: boolean; readonly sourceCode: string } => {
+  const currentValue = toRelativeModulePath(filePath, rename.from);
+  const nextValue = toRelativeModulePath(filePath, rename.to);
+  if (currentValue === nextValue) {
+    return { changed: false, sourceCode };
+  }
+
+  const replaced = replaceLiteralValue(
+    sourceCode,
+    filePath,
+    currentValue,
+    nextValue
+  );
+  if (!replaced.changed) {
+    return { changed: false, sourceCode };
+  }
+
+  return { changed: true, sourceCode: replaced.nextSource };
+};
+
+const rewriteRelativeImportsForFile = (
+  filePath: string,
+  renames: readonly FileRename[],
+  sourceCode: string
+): { readonly changed: boolean; readonly sourceCode: string } => {
+  let nextSourceCode = sourceCode;
+  let changed = false;
+
+  for (const rename of renames) {
+    const updated = applyRelativeImportRename(nextSourceCode, filePath, rename);
+    if (!updated.changed) {
+      continue;
+    }
+
+    nextSourceCode = updated.sourceCode;
+    changed = true;
+  }
+
+  return { changed, sourceCode: nextSourceCode };
+};
+
+const updateRelativeImportsForFile = async (
+  filePath: string,
+  renames: readonly FileRename[]
+): Promise<boolean> => {
+  const sourceCode = await Bun.file(filePath).text();
+  const updated = rewriteRelativeImportsForFile(filePath, renames, sourceCode);
+  if (updated.changed) {
+    await Bun.write(filePath, updated.sourceCode);
+    return true;
+  }
+
+  return false;
+};
+
+const updateRelativeImports = async (
+  filePaths: readonly string[],
+  renames: readonly FileRename[]
+): Promise<string[]> => {
+  const updatedFiles = new Set<string>();
+
+  for (const filePath of filePaths) {
+    const changed = await updateRelativeImportsForFile(filePath, renames);
+    if (changed) {
+      updatedFiles.add(filePath);
+    }
+  }
+
+  return [...updatedFiles].toSorted();
+};
+
+const rewritePromotionState = async (
+  rootDir: string,
+  input: {
+    readonly fromId: string;
+    readonly renameFiles: boolean;
+    readonly toId: string;
+  }
+): Promise<Result<PromotionRewriteState, Error>> => {
+  const initialFiles = collectTsFiles(rootDir);
+  const updatedSourceFiles = new Set<string>();
+
+  await rewritePromotedSourceFiles(
+    initialFiles,
+    input.fromId,
+    input.toId,
+    updatedSourceFiles
+  );
+
+  const renamesResult = input.renameFiles
+    ? await collectAndApplyFileRenames(initialFiles)
+    : Result.ok([] as FileRename[]);
+  if (renamesResult.isErr()) {
+    return Result.err(renamesResult.error);
+  }
+
+  applyRenameEffects(updatedSourceFiles, renamesResult.value);
+  for (const f of await updateRelativeImports(
+    collectTsFiles(rootDir),
+    renamesResult.value
+  )) {
+    updatedSourceFiles.add(f);
+  }
+  return Result.ok({ renames: renamesResult.value, updatedSourceFiles });
+};
+
+const resolvePromotionAppModule = async (
+  input: {
+    readonly appModule?: string | undefined;
+  },
+  rootDir: string
+): Promise<string | null> => {
+  const discoveredAppModule = await findTopoPath(rootDir);
+  return (
+    input.appModule ??
+    (discoveredAppModule === null
+      ? null
+      : toProjectModulePath(discoveredAppModule))
+  );
+};
+
+const loadVerifiedApp = async (
+  appModule: string | null,
+  rootDir: string
+): Promise<PromotionLoadState> => {
+  if (appModule === null) {
+    return { appModule, loadError: null, loadedApp: undefined };
+  }
+
+  let loadError: string | null = null;
+  const loadedApp = await loadApp(appModule, rootDir, { fresh: true }).catch(
+    (error: unknown): undefined => {
+      loadError = error instanceof Error ? error.message : String(error);
+      return undefined;
+    }
+  );
+
+  return { appModule, loadError, loadedApp };
+};
+
+const toRenamedFiles = (rootDir: string, renames: readonly FileRename[]) =>
+  renames.map((rename) => ({
+    from: toRelativeOutputPath(rootDir, rename.from),
+    to: toRelativeOutputPath(rootDir, rename.to),
+  }));
+
+const toUpdatedFiles = (rootDir: string, updatedSourceFiles: Set<string>) =>
+  [...updatedSourceFiles]
+    .toSorted()
+    .map((filePath) => toRelativeOutputPath(rootDir, filePath));
+
+const buildUnverifiedPromotionResult = (
+  rootDir: string,
+  loadError: string | null,
+  renames: readonly FileRename[],
+  updatedSourceFiles: Set<string>,
+  appModule: string | null
+) =>
+  Result.ok({
+    appModule,
+    message:
+      loadError === null
+        ? 'Promotion rewrote source files, but no topo entrypoint could be loaded for verification.'
+        : `Promotion rewrote source files, but verification failed: ${loadError}`,
+    promotedEstablished: false,
+    remainingDraftIds: [],
+    renamedFiles: toRenamedFiles(rootDir, renames),
+    updatedFiles: toUpdatedFiles(rootDir, updatedSourceFiles),
+  });
+
+const buildVerifiedPromotionResult = (
+  rootDir: string,
+  analysis: ReturnType<typeof analyzeDraftState>,
+  promotedEstablished: boolean,
+  renames: readonly FileRename[],
+  updatedSourceFiles: Set<string>,
+  appModule: string | null,
+  toId: string
+) => {
+  const blockingFinding = analysis.findings.find(
+    (finding) => finding.id === toId
+  );
+
+  return Result.ok({
+    appModule,
+    message:
+      blockingFinding?.message ??
+      (promotedEstablished
+        ? `Promoted "${toId}" is now established.`
+        : `Promoted "${toId}" could not be verified as established.`),
+    promotedEstablished,
+    remainingDraftIds: [...analysis.declaredDraftIds].toSorted(),
+    renamedFiles: toRenamedFiles(rootDir, renames),
+    updatedFiles: toUpdatedFiles(rootDir, updatedSourceFiles),
+  });
+};
+
+const buildVerifiedPromotionResultFromApp = (
+  rootDir: string,
+  loadedApp: Awaited<ReturnType<typeof loadApp>>,
+  renames: readonly FileRename[],
+  updatedSourceFiles: Set<string>,
+  appModule: string | null,
+  toId: string
+) => {
+  const analysis = analyzeDraftState(loadedApp);
+  const promotedNode = collectOutputId(loadedApp, toId);
+  const promotedEstablished =
+    promotedNode !== undefined && !analysis.contaminatedIds.has(toId);
+
+  return buildVerifiedPromotionResult(
+    rootDir,
+    analysis,
+    promotedEstablished,
+    renames,
+    updatedSourceFiles,
+    appModule,
+    toId
+  );
+};
+
+const promoteDraftState = async (
+  input: {
+    readonly appModule?: string | undefined;
+    readonly fromId: string;
+    readonly renameFiles: boolean;
+    readonly rootDir?: string | undefined;
+    readonly toId: string;
+  },
+  ctx: { readonly cwd?: string | undefined }
+) => {
+  const rootDirResult = resolveValidatedPromotionRoot(input, ctx);
+  if (rootDirResult.isErr()) {
+    return rootDirResult;
+  }
+
+  const rewriteResult = await rewritePromotionState(rootDirResult.value, input);
+  if (rewriteResult.isErr()) {
+    return Result.err(rewriteResult.error);
+  }
+
+  const { renames, updatedSourceFiles } = rewriteResult.value;
+  const appModule = await resolvePromotionAppModule(input, rootDirResult.value);
+  const { loadError, loadedApp } = await loadVerifiedApp(
+    appModule,
+    rootDirResult.value
+  );
+
+  return loadedApp
+    ? buildVerifiedPromotionResultFromApp(
+        rootDirResult.value,
+        loadedApp,
+        renames,
+        updatedSourceFiles,
+        appModule,
+        input.toId
+      )
+    : buildUnverifiedPromotionResult(
+        rootDirResult.value,
+        loadError,
+        renames,
+        updatedSourceFiles,
+        appModule
+      );
+};
+
+export const draftPromoteTrail = trail('draft.promote', {
+  blaze: promoteDraftState,
+  description:
+    'Promote a draft id to an established id, rewrite inbound references, and verify the result against a fresh topo load.',
+  examples: [
+    {
+      error: 'ValidationError',
+      input: {
+        fromId: '_draft.entity.prepare',
+        renameFiles: true,
+        rootDir: './__does_not_exist__/draft-promote-example',
+        toId: 'entity.prepare',
+      },
+      name: 'Rejects a missing project root before any rewrite begins',
+    },
+  ],
+  input: z.object({
+    appModule: z
+      .string()
+      .optional()
+      .describe('Optional app module to verify after promotion'),
+    fromId: z.string().describe('Draft id to promote'),
+    renameFiles: z
+      .boolean()
+      .default(true)
+      .describe('Rename draft-marked files that no longer contain draft ids'),
+    rootDir: z.string().optional().describe('Project root directory'),
+    toId: z
+      .string()
+      .describe('Established id to write in place of the draft id'),
+  }),
+  intent: 'write',
+  output: z.object({
+    appModule: z.string().nullable(),
+    message: z.string(),
+    promotedEstablished: z.boolean(),
+    remainingDraftIds: z.array(z.string()),
+    renamedFiles: z.array(
+      z.object({
+        from: z.string(),
+        to: z.string(),
+      })
+    ),
+    updatedFiles: z.array(z.string()),
+  }),
+});

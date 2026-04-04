@@ -20,7 +20,7 @@ import type {
   Topo,
   TrailContextInit,
 } from '@ontrails/core';
-import { validateTopo } from '@ontrails/core';
+import { validateEstablishedTopo } from '@ontrails/core';
 
 import type { McpToolDefinition } from './build.js';
 import { buildMcpTools } from './build.js';
@@ -144,7 +144,7 @@ export const trailhead = async (
   options: TrailheadMcpOptions = {}
 ): Promise<void> => {
   if (options.validate !== false) {
-    const validated = validateTopo(app);
+    const validated = validateEstablishedTopo(app);
     if (validated.isErr()) {
       throw validated.error;
     }
@@ -157,6 +157,7 @@ export const trailhead = async (
     gates: options.gates,
     includeTrails: options.includeTrails,
     provisions: options.provisions,
+    validate: options.validate,
   });
 
   if (toolsResult.isErr()) {

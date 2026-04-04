@@ -511,4 +511,19 @@ describe('buildMcpTools', () => {
       expect(errorResult?.isError).toBe(true);
     });
   });
+
+  describe('established graph enforcement', () => {
+    test('returns Err when draft contamination remains', () => {
+      const draftTrail = trail('entity.export', {
+        blaze: () => Result.ok({ ok: true }),
+        crosses: ['_draft.entity.prepare'],
+        input: z.object({}),
+      });
+
+      const result = buildMcpTools(topo('myapp', { draftTrail }));
+
+      expect(result.isErr()).toBe(true);
+      expect(result.error?.message).toMatch(/draft/i);
+    });
+  });
 });

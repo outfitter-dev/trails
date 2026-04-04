@@ -267,4 +267,18 @@ describe('generateTrailheadMap', () => {
       expect(new Date(map.generatedAt).toISOString()).toBe(map.generatedAt);
     });
   });
+
+  describe('established graph enforcement', () => {
+    test('rejects draft-contaminated topologies', () => {
+      const exportTrail = trail('entity.export', {
+        blaze: noop,
+        crosses: ['_draft.entity.prepare'],
+        input: z.object({}),
+      });
+
+      expect(() =>
+        generateTrailheadMap(topoFrom({ exportTrail }))
+      ).toThrowError(/draft/i);
+    });
+  });
 });
