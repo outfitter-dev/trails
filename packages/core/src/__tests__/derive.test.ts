@@ -151,6 +151,31 @@ describe('derive', () => {
       expect(fields[0]?.type).toBe('string[]');
       expect(fields[0]?.default).toEqual(['a', 'b']);
     });
+
+    test('z.array(z.object(...)) is omitted when it cannot be represented faithfully', () => {
+      const schema = z.object({
+        files: z.array(
+          z.object({
+            content: z.string(),
+            filename: z.string(),
+          })
+        ),
+      });
+
+      expect(deriveFields(schema)).toEqual([]);
+    });
+  });
+
+  describe('unsupported shapes', () => {
+    test('nested objects are omitted when they cannot be represented faithfully', () => {
+      const schema = z.object({
+        filter: z.object({
+          query: z.string(),
+        }),
+      });
+
+      expect(deriveFields(schema)).toEqual([]);
+    });
   });
 
   describe('modifiers', () => {

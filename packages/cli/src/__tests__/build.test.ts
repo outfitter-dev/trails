@@ -97,11 +97,25 @@ describe('buildCliCommands path derivation', () => {
     const app = makeApp(t);
     const { flags } = requireCommand(buildCliCommands(app));
 
-    expect(flags).toHaveLength(2);
     const queryFlag = flags.find((f) => f.name === 'query');
     const limitFlag = flags.find((f) => f.name === 'limit');
     expect(queryFlag?.required).toBe(true);
     expect(limitFlag?.required).toBe(false);
+  });
+
+  test('adds structured input flags for non-empty object schemas', () => {
+    const t = trail('search', {
+      blaze: () => Result.ok([]),
+      input: z.object({
+        query: z.string(),
+      }),
+    });
+    const app = makeApp(t);
+    const { flags } = requireCommand(buildCliCommands(app));
+
+    expect(flags.map((flag) => flag.name)).toEqual(
+      expect.arrayContaining(['input-file', 'input-json', 'stdin', 'query'])
+    );
   });
 
   test('adds --dry-run for destroy intent trails', () => {
@@ -163,6 +177,40 @@ describe('buildCliCommands execution', () => {
       expect(captured?.result.isOk()).toBe(true);
       // onResult should receive the coerced number, not the raw string
       expect(captured?.input).toEqual({ count: 42 });
+    });
+
+    test('receives merged args+flags as input on merge failure', async () => {
+      // Regression: the error path previously passed only parsedFlags, dropping parsedArgs.
+      let captured: ActionResultContext | undefined;
+      const t = trail('fail-merge', {
+        blaze: () => Result.ok('ok'),
+        // z.coerce.number on a non-numeric value will fail validation later,
+        // but we need merge itself to fail — pass invalid JSON via input-json to
+        // trigger a merge error before execution.
+        input: z.object({ name: z.string() }),
+      });
+      const app = makeApp(t);
+      const commands = buildCliCommands(app, {
+        onResult: (ctx) => {
+          captured = ctx;
+          return Promise.resolve();
+        },
+      });
+
+      // 'input-json' with invalid JSON causes safeMergeInput to throw and return Err.
+      // Pass an arg too so we can confirm it is not dropped.
+      await commands[0]?.execute(
+        { name: 'from-arg' },
+        { 'input-json': '{bad json}' }
+      );
+
+      expect(captured).toBeDefined();
+      expect(captured?.result.isErr()).toBe(true);
+      // input on the error path must be merged args + flags, not just flags.
+      expect(captured?.input).toMatchObject({
+        'input-json': '{bad json}',
+        name: 'from-arg',
+      });
     });
   });
 
@@ -272,6 +320,104 @@ describe('buildCliCommands execution', () => {
 
     await commands[0]?.execute({}, { 'sort-order': 'asc' });
     expect(receivedInput).toEqual({ sortOrder: 'asc' });
+  });
+
+  test('does not drop derived fields that collide with structured input flag names', async () => {
+    let receivedInput: unknown;
+    const t = trail('collision', {
+      blaze: (input) => {
+        receivedInput = input;
+        return Result.ok('ok');
+      },
+      input: z.object({ inputJson: z.string() }),
+    });
+    const app = makeApp(t);
+    const commands = buildCliCommands(app);
+
+    await commands[0]?.execute({}, { 'input-json': 'literal value' });
+
+    expect(receivedInput).toEqual({ inputJson: 'literal value' });
+  });
+
+  test('merges structured input before explicit flags and args', async () => {
+    let receivedInput: unknown;
+    const t = trail('search', {
+      blaze: (input) => {
+        receivedInput = input;
+        return Result.ok(input);
+      },
+      input: z.object({
+        limit: z.number(),
+        query: z.string(),
+      }),
+    });
+    const app = makeApp(t);
+    const commands = buildCliCommands(app);
+
+    await commands[0]?.execute(
+      { query: 'from arg' },
+      {
+        'input-json': '{"query":"from json","limit":10}',
+        limit: 20,
+      }
+    );
+
+    expect(receivedInput).toEqual({
+      limit: 20,
+      query: 'from arg',
+    });
+  });
+
+  test('resolveInput only fills missing values and never overwrites explicit input', async () => {
+    let receivedInput: unknown;
+    const t = trail('prompted', {
+      blaze: (input) => {
+        receivedInput = input;
+        return Result.ok(input);
+      },
+      input: z.object({
+        limit: z.number(),
+        query: z.string(),
+      }),
+    });
+    const app = makeApp(t);
+    const commands = buildCliCommands(app, {
+      resolveInput: async () =>
+        await Promise.resolve({
+          limit: 10,
+          query: 'from prompt',
+        }),
+    });
+
+    await commands[0]?.execute({}, { query: 'from flag' });
+
+    expect(receivedInput).toEqual({
+      limit: 10,
+      query: 'from flag',
+    });
+  });
+
+  test('validation errors for complex schemas point back to structured input', async () => {
+    const t = trail('gist.create', {
+      blaze: () => Result.ok('ok'),
+      input: z.object({
+        files: z.array(
+          z.object({
+            content: z.string(),
+            filename: z.string(),
+          })
+        ),
+      }),
+    });
+    const app = makeApp(t);
+    const commands = buildCliCommands(app);
+
+    const result = await commands[0]?.execute({}, {});
+
+    expect(result?.isErr()).toBe(true);
+    expect(result?.error.message).toContain(
+      'Use --input-json, --input-file, or --stdin for full structured input.'
+    );
   });
 
   test('returns InternalError when blaze function throws', async () => {

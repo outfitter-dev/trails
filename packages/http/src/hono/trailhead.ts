@@ -314,16 +314,18 @@ const assertValidTopo = (app: Topo, skip = false): void => {
 
 /**
  * Build HTTP routes from a topo, create a Hono app, and optionally start serving.
+ *
+ * Topo validation runs before route construction — pass `validate: false`
+ * to skip it (e.g. during hot-reload or progressive startup).
  */
 // oxlint-disable-next-line require-await -- async for consistency with other trailhead() entrypoints
 export const trailhead = async (
   app: Topo,
   options: TrailheadHttpOptions = {}
 ): Promise<Hono> => {
-  assertValidTopo(app, options.validate === false);
-
   const hono = new Hono();
 
+  assertValidTopo(app, options.validate === false);
   registerErrorHandler(hono);
 
   const routesResult = buildHttpRoutes(app, {

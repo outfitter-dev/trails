@@ -78,6 +78,33 @@ describe('deriveFlags', () => {
       expect(flag.type).toBe('number[]');
       expect(flag.variadic).toBe(true);
     });
+
+    test('nested object fields are omitted when they are not faithfully representable', () => {
+      const flags = deriveFlags(
+        z.object({
+          filter: z.object({
+            query: z.string(),
+          }),
+        })
+      );
+
+      expect(flags).toEqual([]);
+    });
+
+    test('arrays of objects are omitted when they are not faithfully representable', () => {
+      const flags = deriveFlags(
+        z.object({
+          files: z.array(
+            z.object({
+              content: z.string(),
+              filename: z.string(),
+            })
+          ),
+        })
+      );
+
+      expect(flags).toEqual([]);
+    });
   });
 
   describe('modifiers and naming', () => {
@@ -105,6 +132,18 @@ describe('deriveFlags', () => {
 
       expect(flags).toHaveLength(1);
       expect(requireFlag(flags, 'query').description).toBe('Search query');
+    });
+
+    test('field overrides still flow through flag derivation', () => {
+      const flags = deriveFlags(
+        z.object({ query: z.string().describe('Search query') }),
+        {
+          query: { label: 'Find query' },
+        }
+      );
+
+      expect(flags).toHaveLength(1);
+      expect(requireFlag(flags, 'query').description).toBe('Find query');
     });
 
     test('camelCase field names convert to kebab-case flag names', () => {

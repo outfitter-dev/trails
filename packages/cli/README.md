@@ -1,6 +1,8 @@
 # @ontrails/cli
 
-CLI trailhead connector. One `trailhead()` call turns a topo into a full CLI with flags, subcommands, help text, and error-mapped exit codes -- all derived from the trail contracts.
+CLI trailhead connector. One `trailhead()` call turns a topo into a full CLI
+with honest flags, structured input channels, subcommands, help text, and
+error-mapped exit codes -- all derived from the trail contracts.
 
 ## Usage
 
@@ -54,7 +56,7 @@ commands.
 | `buildCliCommands(app)` | Framework-agnostic command builder, returns `CliCommand[]` |
 | `validateCliCommands(commands)` | Validate `CliCommand[]` shapes before wiring a CLI adapter |
 | `toCommander(commands, options?)` | Connect `CliCommand[]` to a Commander program |
-| `deriveFlags(schema)` | Extract CLI flags from a Zod schema |
+| `deriveFlags(schema)` | Extract honest CLI flags from a Zod schema |
 | `output(data, mode)` | Format output as JSON, JSONL, or text |
 | `resolveOutputMode(options)` | Resolve output mode from flags and env vars |
 
@@ -62,7 +64,8 @@ See the [API Reference](../../docs/api-reference.md) for the full list.
 
 ## Flag derivation
 
-Flags come from the Zod schema automatically. No manual flag definitions.
+Flags come from the Zod schema automatically when the field shape can be
+represented truthfully on the command line. No manual flag definitions.
 
 | Zod type | CLI flag | Notes |
 | --- | --- | --- |
@@ -73,6 +76,26 @@ Flags come from the Zod schema automatically. No manual flag definitions.
 | `z.optional(...)` | `--name [value]` | Optional |
 
 `camelCase` fields become `--kebab-case` flags. `.describe()` becomes help text.
+
+Nested objects and arrays of objects are intentionally omitted from automatic
+flag derivation. The CLI prefers fewer flags over dishonest flags.
+
+## Structured input
+
+For every non-empty object input schema, the CLI also exposes:
+
+- `--input-json <json>`
+- `--input-file <path>`
+- `--stdin`
+
+These channels supply the full input object before positional args and explicit
+flags are merged on top. Explicit CLI inputs always win on conflict, and the
+final merged object is still validated once by the trail schema.
+
+```bash
+myapp gist create \
+  --input-json '{"files":[{"filename":"README.md","content":"Hello"}]}'
+```
 
 ## Subcommands
 
