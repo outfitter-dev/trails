@@ -185,7 +185,7 @@ export const list = trail('entity.list', {
     ]);
     return Result.ok({
       entities: entities.map(toSummary),
-      total: entities.length,
+      total: allMatching.length,
     });
   },
   description: 'List entities with optional type filter',

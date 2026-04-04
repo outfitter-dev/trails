@@ -171,6 +171,9 @@
     "packages/testing": {
       "name": "@ontrails/testing",
       "version": "1.0.0-beta.13",
+      "devDependencies": {
+        "@ontrails/store": "workspace:^",
+      },
       "peerDependencies": {
         "@ontrails/cli": "workspace:^",
         "@ontrails/core": "workspace:^",
