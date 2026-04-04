@@ -99,7 +99,7 @@ Resolution happens eagerly during `executeTrail`, after input validation and bef
 4. Compose gates
 5. Execute implementation
 
-This means failures trailhead at the boundary -- a missing `DATABASE_URL` fails before the implementation runs, not on line 47. It also means gates can access provisions via `db.from(ctx)` because resolution is already complete.
+This means failures surface at the boundary -- a missing `DATABASE_URL` fails before the implementation runs, not on line 47. It also means gates can access provisions via `db.from(ctx)` because resolution is already complete.
 
 Shutdown signaling differs by trailhead. CLI tools dispose after the command completes. Long-running servers (MCP, HTTP) dispose on `SIGTERM`/`SIGINT`. The trailhead's `trailhead()` owns the lifecycle.
 
