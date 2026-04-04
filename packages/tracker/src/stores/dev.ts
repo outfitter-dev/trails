@@ -1,15 +1,27 @@
-import { Database } from 'bun:sqlite';
 import type { SQLQueryBindings } from 'bun:sqlite';
-import { mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { Database } from 'bun:sqlite';
+import { existsSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
+
+import {
+  ensureSubsystemSchema,
+  openWriteTrailsDb,
+} from '@ontrails/core/internal/trails-db';
 
 import type { Track } from '../track.js';
 import type { TrackSink } from '../tracker-gate.js';
 
+const DEFAULT_MAX_RECORDS = 10_000;
+const DEFAULT_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+const TRACK_SUBSYSTEM = 'track';
+const TRACK_TABLE = 'track_records';
+
 /** Configuration for the SQLite dev store. */
 export interface DevStoreOptions {
-  /** Path to the SQLite database file. Defaults to `.trails/dev/tracker.db`. */
+  /** Path to the SQLite database file. Defaults to `.trails/trails.db`. */
   readonly path?: string;
+  /** Root directory used when resolving the default `.trails/trails.db` path. */
+  readonly rootDir?: string;
   /** Maximum number of records to retain. Defaults to 10000. */
   readonly maxRecords?: number;
   /** Maximum age of records in milliseconds. Defaults to 7 days. */
@@ -24,8 +36,8 @@ export interface DevStoreQueryOptions {
   readonly limit?: number;
 }
 
-/** SQLite-backed dev store for persisting and querying track records. */
-export interface DevStore extends TrackSink {
+/** Read-only query surface over persisted track records. */
+export interface TrackStore {
   /** Query recent traces with optional filters. */
   readonly query: (options?: DevStoreQueryOptions) => readonly Track[];
   /** Return the total number of stored records. */
@@ -34,8 +46,11 @@ export interface DevStore extends TrackSink {
   readonly close: () => void;
 }
 
+/** SQLite-backed dev store for persisting and querying track records. */
+export interface DevStore extends TrackStore, TrackSink {}
+
 /** SQL for creating the tracker table. */
-const CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS tracker (
+const CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS ${TRACK_TABLE} (
   id TEXT PRIMARY KEY,
   trace_id TEXT NOT NULL,
   root_id TEXT NOT NULL,
@@ -56,10 +71,10 @@ const CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS tracker (
 
 /** Index for common query patterns. */
 const CREATE_INDEXES_SQL = [
-  'CREATE INDEX IF NOT EXISTS idx_tracker_trail_id ON tracker(trail_id)',
-  'CREATE INDEX IF NOT EXISTS idx_tracker_trace_id ON tracker(trace_id)',
-  'CREATE INDEX IF NOT EXISTS idx_tracker_status ON tracker(status)',
-  'CREATE INDEX IF NOT EXISTS idx_tracker_started_at ON tracker(started_at)',
+  `CREATE INDEX IF NOT EXISTS idx_${TRACK_TABLE}_trail_id ON ${TRACK_TABLE}(trail_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_${TRACK_TABLE}_trace_id ON ${TRACK_TABLE}(trace_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_${TRACK_TABLE}_status ON ${TRACK_TABLE}(status)`,
+  `CREATE INDEX IF NOT EXISTS idx_${TRACK_TABLE}_started_at ON ${TRACK_TABLE}(started_at)`,
 ];
 
 /** Shape of a row returned from the tracker table. */
@@ -116,25 +131,25 @@ const rowToRecord = (row: TrackRow): Track => ({
   trailhead: (row.trailhead ?? undefined) as Track['trailhead'],
 });
 
-/** Initialize the database with pragmas, table, and indexes. */
-const initializeDb = (db: Database): void => {
-  db.run('PRAGMA journal_mode = WAL');
-  db.run('PRAGMA synchronous = NORMAL');
-  db.run(CREATE_TABLE_SQL);
-  for (const sql of CREATE_INDEXES_SQL) {
-    db.run(sql);
-  }
-};
-
-/** Ensure the parent directory for the database file exists. */
-const ensureDir = (path: string): void => {
-  mkdirSync(dirname(path), { recursive: true });
+const ensureTrackSchema = (db: Database): void => {
+  ensureSubsystemSchema(db, {
+    migrate: () => {
+      db.run(CREATE_TABLE_SQL);
+      for (const sql of CREATE_INDEXES_SQL) {
+        db.run(sql);
+      }
+    },
+    subsystem: TRACK_SUBSYSTEM,
+    version: 1,
+  });
 };
 
 /** Prune records exceeding the retention limit. */
 const pruneByCount = (db: Database, maxRecords: number): void => {
   const countResult = db
-    .query<{ count: number }, []>('SELECT COUNT(*) as count FROM tracker')
+    .query<{ count: number }, []>(
+      `SELECT COUNT(*) as count FROM ${TRACK_TABLE}`
+    )
     .get();
   const count = countResult?.count ?? 0;
 
@@ -144,8 +159,8 @@ const pruneByCount = (db: Database, maxRecords: number): void => {
 
   const excess = count - maxRecords;
   db.run(
-    `DELETE FROM tracker WHERE id IN (
-      SELECT id FROM tracker ORDER BY started_at ASC LIMIT ?
+    `DELETE FROM ${TRACK_TABLE} WHERE id IN (
+      SELECT id FROM ${TRACK_TABLE} ORDER BY started_at ASC LIMIT ?
     )`,
     [excess]
   );
@@ -154,7 +169,7 @@ const pruneByCount = (db: Database, maxRecords: number): void => {
 /** Prune records older than maxAge milliseconds. */
 const pruneByAge = (db: Database, maxAge: number): void => {
   const threshold = Date.now() - maxAge;
-  db.run('DELETE FROM tracker WHERE started_at < ?', [threshold]);
+  db.run(`DELETE FROM ${TRACK_TABLE} WHERE started_at < ?`, [threshold]);
 };
 
 /** Filter definition: column condition and optional bound value. */
@@ -199,7 +214,7 @@ const buildQuery = (
 
   return {
     params,
-    sql: `SELECT * FROM tracker ${where} ORDER BY started_at DESC LIMIT ?`,
+    sql: `SELECT * FROM ${TRACK_TABLE} ${where} ORDER BY started_at DESC LIMIT ?`,
   };
 };
 
@@ -230,7 +245,7 @@ const recordToParams = (record: Track): SQLQueryBindings[] => [
 ];
 
 /** SQL for inserting a track record. */
-const UPSERT_SQL = `INSERT INTO tracker (
+const UPSERT_SQL = `INSERT INTO ${TRACK_TABLE} (
   id, trace_id, root_id, parent_id,
   kind, name, trail_id, trailhead,
   intent, started_at, ended_at, status,
@@ -253,18 +268,12 @@ ON CONFLICT(id) DO UPDATE SET
   permit_tenant_id = excluded.permit_tenant_id,
   attrs = excluded.attrs`;
 
-/** Open and initialize the database at the given path. */
-const openDb = (dbPath: string): Database => {
-  ensureDir(dbPath);
-  const db = new Database(dbPath, { create: true });
-  initializeDb(db);
-  return db;
-};
-
 /** Count stored track records. */
 const countRecords = (db: Database): number => {
   const result = db
-    .query<{ count: number }, []>('SELECT COUNT(*) as count FROM tracker')
+    .query<{ count: number }, []>(
+      `SELECT COUNT(*) as count FROM ${TRACK_TABLE}`
+    )
     .get();
   return result?.count ?? 0;
 };
@@ -284,6 +293,100 @@ const createWriter = (
     }
   });
 
+const resolveLegacyPath = (rootDir?: string): string =>
+  join(rootDir ?? process.cwd(), '.trails', 'dev', 'tracker.db');
+
+const hasLegacyTrackerTable = (db: Database): boolean => {
+  const row = db
+    .query<{ name: string }, []>(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'tracker'"
+    )
+    .get();
+  return row?.name === 'tracker';
+};
+
+const shouldSkipLegacyMigration = (
+  db: Database,
+  _options: DevStoreOptions | undefined
+): boolean => countRecords(db) > 0;
+
+const readLegacyRows = (legacyDb: Database): readonly TrackRow[] => {
+  if (!hasLegacyTrackerTable(legacyDb)) {
+    return [];
+  }
+
+  return legacyDb
+    .query<TrackRow, []>('SELECT * FROM tracker ORDER BY started_at ASC')
+    .all();
+};
+
+const openLegacyDb = (
+  options: DevStoreOptions | undefined
+): Database | undefined => {
+  const legacyPath = resolveLegacyPath(options?.rootDir);
+  if (!existsSync(legacyPath)) {
+    return undefined;
+  }
+
+  return new Database(legacyPath, { readonly: true });
+};
+
+/** Read rows from the legacy DB and close it. Returns empty array if no legacy DB. */
+const drainLegacyRows = (
+  options: DevStoreOptions | undefined
+): readonly TrackRow[] => {
+  const legacyDb = openLegacyDb(options);
+  if (legacyDb === undefined) {
+    return [];
+  }
+  try {
+    return readLegacyRows(legacyDb);
+  } finally {
+    legacyDb.close();
+  }
+};
+
+const removeLegacyDbFiles = (options: DevStoreOptions | undefined): void => {
+  const legacyPath = resolveLegacyPath(options?.rootDir);
+  unlinkSync(legacyPath);
+  for (const suffix of ['-wal', '-shm']) {
+    const sidecar = `${legacyPath}${suffix}`;
+    if (existsSync(sidecar)) {
+      unlinkSync(sidecar);
+    }
+  }
+};
+
+const migrateLegacyStoreIfPresent = (
+  db: Database,
+  options: DevStoreOptions | undefined,
+  write: (record: Track) => void
+): void => {
+  if (shouldSkipLegacyMigration(db, options)) {
+    return;
+  }
+  const rows = drainLegacyRows(options);
+  if (rows.length === 0) {
+    return;
+  }
+  for (const row of rows) {
+    write(rowToRecord(row));
+  }
+  removeLegacyDbFiles(options);
+};
+
+const createReadApi = (db: Database, defaultLimit: number): TrackStore => ({
+  close: () => {
+    db.close();
+  },
+  count: () => countRecords(db),
+  query: (queryOptions?: DevStoreQueryOptions): readonly Track[] => {
+    const { sql, params } = buildQuery(defaultLimit, queryOptions);
+    const rows = db.query<TrackRow, SQLQueryBindings[]>(sql).all(...params);
+    return rows.map(rowToRecord);
+  },
+});
+
 /**
  * Create a SQLite-backed dev store for persisting track records.
  *
@@ -291,24 +394,29 @@ const createWriter = (
  * Automatically prunes records exceeding `maxRecords` on each write.
  */
 export const createDevStore = (options?: DevStoreOptions): DevStore => {
-  const dbPath = options?.path ?? '.trails/dev/tracker.db';
-  const maxRecords = options?.maxRecords ?? 10_000;
-  const maxAge = options?.maxAge;
-  const db = openDb(dbPath);
+  const maxRecords = options?.maxRecords ?? DEFAULT_MAX_RECORDS;
+  const maxAge = options?.maxAge ?? DEFAULT_MAX_AGE;
+  const db = openWriteTrailsDb({
+    ...(options?.path === undefined ? {} : { path: options.path }),
+    ...(options?.rootDir === undefined ? {} : { rootDir: options.rootDir }),
+  });
+  ensureTrackSchema(db);
   const insertStmt = db.prepare(UPSERT_SQL);
   const write = createWriter(db, insertStmt, maxRecords, maxAge);
-
-  const query = (queryOptions?: DevStoreQueryOptions): readonly Track[] => {
-    const { sql, params } = buildQuery(maxRecords, queryOptions);
-    const rows = db.query<TrackRow, SQLQueryBindings[]>(sql).all(...params);
-    return rows.map(rowToRecord);
-  };
-
-  const count = (): number => countRecords(db);
-
-  const close = (): void => {
-    db.close();
-  };
-
-  return { close, count, query, write };
+  migrateLegacyStoreIfPresent(db, options, write);
+  return { ...createReadApi(db, maxRecords), write };
 };
+
+/**
+ * Read-only view of a TrackStore.
+ *
+ * `close()` is a no-op — consumers of this view (e.g. the tracker provision)
+ * must not close the underlying connection they don't own.
+ */
+export const toTrackStore = (store: TrackStore): TrackStore => ({
+  close: () => {
+    // Intentional no-op: read-only view must not close the underlying DB.
+  },
+  count: () => store.count(),
+  query: (options?: DevStoreQueryOptions) => store.query(options),
+});

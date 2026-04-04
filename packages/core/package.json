@@ -4,6 +4,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./internal/topo-saves": "./src/internal/topo-saves.ts",
+    "./internal/trails-db": "./src/internal/trails-db.ts",
     "./patterns": "./src/patterns/index.ts",
     "./redaction": "./src/redaction/index.ts",
     "./package.json": "./package.json"

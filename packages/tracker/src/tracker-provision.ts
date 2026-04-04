@@ -3,6 +3,7 @@ import { Result, provision } from '@ontrails/core';
 import type { TrackerState } from './tracker-state.js';
 import { getTrackerState } from './tracker-state.js';
 import { DEFAULT_SAMPLING } from './sampling.js';
+import { toTrackStore } from './stores/dev.js';
 
 /** Default state when no explicit state has been registered. */
 const defaultState: TrackerState = {
@@ -21,7 +22,13 @@ const defaultState: TrackerState = {
  * telemetry should never fail to start.
  */
 export const trackerProvision = provision<TrackerState>('tracker', {
-  create: () => Result.ok(getTrackerState() ?? defaultState),
+  create: () => {
+    const state = getTrackerState() ?? defaultState;
+    return Result.ok({
+      ...state,
+      store: state.store ? toTrackStore(state.store) : undefined,
+    });
+  },
   description: 'Telemetry recording and query provision',
   meta: { category: 'infrastructure' },
   mock: (): TrackerState => ({ ...defaultState }),

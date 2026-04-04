@@ -1,5 +1,6 @@
+import { Database } from 'bun:sqlite';
 import { afterEach, describe, expect, test } from 'bun:test';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -22,6 +23,116 @@ const makeRecord = (overrides?: Partial<Track>): Track => ({
   ...overrides,
 });
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const LEGACY_CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS tracker (
+  id TEXT PRIMARY KEY,
+  trace_id TEXT NOT NULL,
+  root_id TEXT NOT NULL,
+  parent_id TEXT,
+  kind TEXT NOT NULL,
+  name TEXT NOT NULL,
+  trail_id TEXT,
+  trailhead TEXT,
+  intent TEXT,
+  started_at INTEGER NOT NULL,
+  ended_at INTEGER,
+  status TEXT NOT NULL,
+  error_category TEXT,
+  permit_id TEXT,
+  permit_tenant_id TEXT,
+  attrs TEXT
+)`;
+
+const LEGACY_UPSERT_SQL = `INSERT INTO tracker (
+  id, trace_id, root_id, parent_id,
+  kind, name, trail_id, trailhead,
+  intent, started_at, ended_at, status,
+  error_category, permit_id, permit_tenant_id, attrs
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(id) DO UPDATE SET
+  trace_id = excluded.trace_id,
+  root_id = excluded.root_id,
+  parent_id = excluded.parent_id,
+  kind = excluded.kind,
+  name = excluded.name,
+  trail_id = excluded.trail_id,
+  trailhead = excluded.trailhead,
+  intent = excluded.intent,
+  started_at = excluded.started_at,
+  ended_at = excluded.ended_at,
+  status = excluded.status,
+  error_category = excluded.error_category,
+  permit_id = excluded.permit_id,
+  permit_tenant_id = excluded.permit_tenant_id,
+  attrs = excluded.attrs`;
+
+const writeLegacyTrackerDb = (
+  rootDir: string,
+  records: readonly Track[]
+): void => {
+  const path = join(rootDir, '.trails', 'dev', 'tracker.db');
+  mkdirSync(join(rootDir, '.trails', 'dev'), { recursive: true });
+  const db = new Database(path, { create: true });
+
+  try {
+    db.run(LEGACY_CREATE_TABLE_SQL);
+    const stmt = db.prepare(LEGACY_UPSERT_SQL);
+    for (const record of records) {
+      stmt.run(
+        record.id,
+        record.traceId,
+        record.rootId,
+        record.parentId ?? null,
+        record.kind,
+        record.name,
+        record.trailId ?? null,
+        record.trailhead ?? null,
+        record.intent ?? null,
+        record.startedAt,
+        record.endedAt ?? null,
+        record.status,
+        record.errorCategory ?? null,
+        record.permit?.id ?? null,
+        record.permit?.tenantId ?? null,
+        Object.keys(record.attrs).length > 0
+          ? JSON.stringify(record.attrs)
+          : null
+      );
+    }
+  } finally {
+    db.close();
+  }
+};
+
+const makeOrderedRecords = (): {
+  readonly newer: Track;
+  readonly older: Track;
+} => {
+  const now = Date.now();
+  return {
+    newer: makeRecord({
+      id: 'rec-new',
+      name: 'second',
+      startedAt: now - 1000,
+    }),
+    older: makeRecord({
+      id: 'rec-old',
+      name: 'first',
+      startedAt: now - 2000,
+    }),
+  };
+};
+
+const writeRecords = (store: DevStore, records: readonly Track[]): void => {
+  for (const record of records) {
+    store.write(record);
+  }
+};
+
+const queryIds = (store: DevStore): readonly string[] =>
+  store.query().map((record) => record.id);
+
 describe('createDevStore', () => {
   let tmpDir: string;
   let store: DevStore | undefined;
@@ -40,6 +151,15 @@ describe('createDevStore', () => {
   });
 
   describe('lifecycle', () => {
+    test('defaults to the shared .trails/trails.db path under rootDir', () => {
+      const dir = makeTmpDir();
+
+      store = createDevStore({ rootDir: dir });
+      store.write(makeRecord());
+
+      expect(existsSync(join(dir, '.trails', 'trails.db'))).toBe(true);
+    });
+
     test('creates a database file at the specified path', () => {
       const dir = makeTmpDir();
       const dbPath = join(dir, 'tracker.db');
@@ -121,25 +241,10 @@ describe('createDevStore', () => {
     test('returns persisted records ordered by startedAt descending', () => {
       const dir = makeTmpDir();
       store = createDevStore({ path: join(dir, 'tracker.db') });
+      const { newer, older } = makeOrderedRecords();
 
-      const older = makeRecord({
-        id: 'rec-old',
-        name: 'first',
-        startedAt: 1000,
-      });
-      const newer = makeRecord({
-        id: 'rec-new',
-        name: 'second',
-        startedAt: 2000,
-      });
-
-      store.write(older);
-      store.write(newer);
-      const results = store.query();
-
-      expect(results).toHaveLength(2);
-      expect(results[0]?.id).toBe('rec-new');
-      expect(results[1]?.id).toBe('rec-old');
+      writeRecords(store, [older, newer]);
+      expect(queryIds(store)).toEqual(['rec-new', 'rec-old']);
     });
 
     test('filters by trailId', () => {
@@ -204,6 +309,20 @@ describe('createDevStore', () => {
   });
 
   describe('retention', () => {
+    test('defaults maxAge to seven days when not provided explicitly', () => {
+      const dir = makeTmpDir();
+      store = createDevStore({ path: join(dir, 'tracker.db') });
+
+      store.write(
+        makeRecord({ id: 'old', startedAt: Date.now() - 8 * DAY_MS })
+      );
+      store.write(makeRecord({ id: 'fresh', startedAt: Date.now() }));
+
+      const results = store.query();
+      expect(results).toHaveLength(1);
+      expect(results[0]?.id).toBe('fresh');
+    });
+
     test('enforces maxRecords by pruning oldest entries', () => {
       const dir = makeTmpDir();
       store = createDevStore({
@@ -211,15 +330,16 @@ describe('createDevStore', () => {
         path: join(dir, 'tracker.db'),
       });
 
+      const now = Date.now();
       for (let i = 0; i < 8; i += 1) {
         store.write(
-          makeRecord({ id: `rec-${String(i)}`, startedAt: 1000 + i })
+          makeRecord({ id: `rec-${String(i)}`, startedAt: now - i * 1000 })
         );
       }
 
       const results = store.query();
 
-      expect(results.length).toBeLessThanOrEqual(5);
+      expect(results.length).toBe(5);
     });
 
     test('prunes records older than maxAge', () => {
@@ -238,6 +358,32 @@ describe('createDevStore', () => {
     });
   });
 
+  describe('legacy migration', () => {
+    test('migrates legacy .trails/dev/tracker.db records into shared trails.db', () => {
+      const dir = makeTmpDir();
+      const now = Date.now();
+      const legacyRecords = [
+        makeRecord({
+          id: 'legacy-a',
+          startedAt: now - 2000,
+          trailId: 'user.create',
+        }),
+        makeRecord({
+          id: 'legacy-b',
+          startedAt: now - 1000,
+          trailId: 'user.list',
+        }),
+      ];
+
+      writeLegacyTrackerDb(dir, legacyRecords);
+
+      store = createDevStore({ maxRecords: 10, rootDir: dir });
+
+      expect(existsSync(join(dir, '.trails', 'trails.db'))).toBe(true);
+      expect(queryIds(store)).toEqual(['legacy-b', 'legacy-a']);
+    });
+  });
+
   describe('count()', () => {
     test('returns the number of retained records', () => {
       const dir = makeTmpDir();
@@ -245,10 +391,11 @@ describe('createDevStore', () => {
         maxRecords: 2,
         path: join(dir, 'tracker.db'),
       });
+      const now = Date.now();
 
-      store.write(makeRecord({ id: 'a', startedAt: 1000 }));
-      store.write(makeRecord({ id: 'b', startedAt: 2000 }));
-      store.write(makeRecord({ id: 'c', startedAt: 3000 }));
+      store.write(makeRecord({ id: 'a', startedAt: now - 3000 }));
+      store.write(makeRecord({ id: 'b', startedAt: now - 2000 }));
+      store.write(makeRecord({ id: 'c', startedAt: now - 1000 }));
 
       expect(store.count()).toBe(2);
       expect(store.query()).toHaveLength(2);
