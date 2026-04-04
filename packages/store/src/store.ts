@@ -107,10 +107,7 @@ const stripDefaultWrappers = (schema: z.ZodType): z.ZodType => {
   }
 
   // Re-apply nullable wrappers (optional is dropped — .partial() re-adds it)
-  return wrappers.reduceRight(
-    (acc, w) => (w === 'nullable' ? acc.nullable() : acc),
-    current
-  );
+  return wrappers.includes('nullable') ? current.nullable() : current;
 };
 
 const stripDefaultsFromShape = (
