@@ -1,6 +1,6 @@
 # Trails API Reference
 
-Canonical public trailhead-facing reference. For naming conventions and decision history, see [ADR-0001](docs/adr/0001-naming-conventions.md).
+Canonical public trailhead-facing reference. For naming conventions and decision history, see [ADR-0001](./adr/0001-naming-conventions.md).
 
 ---
 
@@ -15,6 +15,7 @@ createProvisionLookup(getContext)   // bind ctx.provision() to a specific contex
 topo(name, ...modules)             // assemble trails, signals, and provisions into a queryable topology
 // Topo methods: .get(id), .has(id), .list(), .listEvents(), .ids(), .count
 //               .getProvision(id), .hasProvision(id), .listProvisions(), .provisionIds(), .provisionCount
+createTopoStore(options?), createMockTopoStore(seed?), topoStore
 
 // Types
 Trail<I, O>, Event<T>, Provision<T>, Topo, Intent
@@ -57,12 +58,17 @@ composeGates(gates, trail, implementation)
 validateInput(schema, data)        // → Result<T, ValidationError>
 validateOutput(schema, data)       // → Result<T, ValidationError>
 validateTopo(topo)                 // → Result<void, ValidationError>; called by testAll()
+validateEstablishedTopo(topo)      // → Result<void, ValidationError>; rejects draft-contaminated outputs
 TopoIssue
 
 // Schema derivation
 deriveFields(schema, overrides?)   // → Field[] (faithfully representable fields only)
-deriveCliPath(trailId)             // dotted trail ID → ordered CLI path segments
+deriveCliPath(trailId)             // trail ID → hierarchical CLI command path
 Field, FieldOverride
+
+// Draft state
+DRAFT_ID_PREFIX, isDraftId(value), analyzeDraftState(topo)
+validateDraftFreeTopo(topo)        // alias of validateEstablishedTopo
 
 // Resilience
 retry(fn, options?), withTimeout(fn, ms, signal?), RetryOptions
@@ -138,12 +144,42 @@ HttpMethod, HttpRouteDefinition
 generateOpenApiSpec(topo, options?) // OpenAPI 3.1 spec from topo
 generateTrailheadMap(topo), hashTrailheadMap(map), diffTrailheadMaps(before, after)
 writeTrailheadMap(map, options?), readTrailheadMap(options?)
-writeTrailheadLock(hash, options?), readTrailheadLock(options?)
+writeTrailheadLock(lock, options?), readTrailheadLockData(options?), readTrailheadLock(options?)
 
 TrailheadMap, TrailheadMapEntry, DiffResult, DiffEntry, JsonSchema
 WriteOptions, ReadOptions
 
 OpenApiOptions, OpenApiSpec, OpenApiServer
+```
+
+## `@ontrails/store`
+
+```typescript
+store(tables)                      // connector-agnostic store definition
+entitySchemaOf(table)              // normalized full entity schema
+insertSchemaOf(table)              // entity schema minus generated fields
+updateSchemaOf(table)              // partial update schema
+fixtureSchemaOf(table)             // fixture schema with generated fields optional
+
+StoreDefinition, StoreTable, StoreTablesInput, StoreTableInput
+EntityOf<T>, InsertOf<T>, UpdateOf<T>, FixtureInputOf<T>, FixtureOf<T>
+FiltersOf<T>, StoreListOptions
+StoreConnection<T>, ReadOnlyStoreConnection<T>
+StoreTableAccessor<T>, ReadOnlyStoreTableAccessor<T>
+```
+
+## `@ontrails/store/drizzle`
+
+```typescript
+connectDrizzle(definition, options?)         // bind a root store definition to a writable Drizzle provision
+connectReadOnlyDrizzle(definition, options?) // bind a root store definition to a read-only Drizzle provision
+store(tables, options?)                      // convenience: define + connect writable store
+readonlyStore(tables, options?)              // convenience: define + connect read-only store
+getSchema(binding)                           // expose raw derived Drizzle tables
+
+ConnectDrizzleOptions, ReadOnlyDrizzleOptions
+DrizzleStoreProvision, DrizzleStoreConnection, ReadOnlyDrizzleStoreConnection
+DrizzleQueryContext, DrizzleStoreSchema, DrizzleMockSeed
 ```
 
 ## `@ontrails/testing`
@@ -175,7 +211,7 @@ McpHarness, McpHarnessOptions, McpHarnessResult
 
 ```typescript
 runWarden(options?), formatWardenReport(report), checkDrift(rootDir, topo?)
-wardenRules                        // ReadonlyMap<string, WardenRule> — 13 AST-based rules
+wardenRules                        // ReadonlyMap<string, WardenRule> — 15 AST-based rules
 wardenTopo                         // pre-built Topo of all warden trails
 runWardenTrails(filePath, sourceCode, options?) // run warden rules against a single file
 formatGitHubAnnotations(report), formatJson(report), formatSummary(report)
@@ -206,6 +242,6 @@ ConsoleSinkOptions, FileSinkOptions, PrettyFormatterOptions
 | `trailblaze(topo, options?)` | Full hosted runtime |
 | `trailhead` | Static entry point / discovery |
 | `scout` | Agent-side runtime discovery |
-| `validateExample`, `validateFollow` | Contract verification family |
+| `validateExample`, `validateCross` | Contract verification family |
 | `generateDocs`, `generateOpenApi`, `generateLlmsTxt` | Build-time doc generation |
 | `deriveMocks`, `deriveExamples` | Schema-derived test data |

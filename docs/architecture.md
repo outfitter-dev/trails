@@ -29,6 +29,7 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 +---------v-------------+
                 |  Config (config)      |
                 |  Permits (permits)    |
+                |  Store (store/drizzle)|
                 |  Tracker (tracker)    |
                 |  Logging (logtape)    |
                 +-----------------------+
@@ -50,7 +51,7 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 
 **The framework defines ports -- everything concrete is a connector.** CLI framework (Commander, yargs), logging backend (LogTape, pino), storage engine, telemetry exporter -- all pluggable. The framework never imports a concrete implementation.
 
-**The contract is machine-readable at runtime.** The topo, survey, and guide make the trail system queryable by agents, tooling, and CI.
+**The contract is machine-readable at runtime.** The topo, survey, guide, and committed lock artifacts make the trail system queryable by agents, tooling, and CI.
 
 ## Information Architecture
 
@@ -75,7 +76,7 @@ These are deterministic transformations from authored information. If the input 
 | Authored | Projected |
 | --- | --- |
 | Zod input schema | CLI flags (types, defaults, descriptions), MCP `inputSchema` (JSON Schema) |
-| Trail ID | CLI command path (`entity show`), MCP tool name (`myapp_entity_show`) |
+| Trail ID | Full CLI command path (`entity show`, `topo pin`, `topo pin remove`), MCP tool name (`myapp_entity_show`) |
 | `.describe()` on Zod fields | `--help` text, MCP tool descriptions |
 | `intent: 'read'` | MCP `readOnlyHint`, HTTP GET, skip CLI confirmation |
 | `intent: 'destroy'` | Auto-add `--dry-run` flag on CLI, HTTP DELETE |
@@ -100,9 +101,9 @@ These are derived from the implementation code itself. Useful for governance and
 
 | Inferred                     | From                                       |
 | ---------------------------- | ------------------------------------------ |
-| Which trails a trail follows  | `ctx.cross()` calls in the implementation |
-| Error types returned         | `Result.err(new XError(...))` patterns     |
-| Trailhead map entries and hash | All of the above, canonicalized            |
+| Which trails a trail crosses | `ctx.cross()` calls in the implementation |
+| Error types returned | `Result.err(new XError(...))` patterns |
+| Trailhead map entries and lock metadata | All of the above, canonicalized |
 
 Warden uses inference to verify that declarations match actual code. The trailhead map captures inferred information for CI governance.
 
@@ -150,7 +151,9 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 | --- | --- | --- |
 | `@ontrails/config` | Config resolution, loadouts, provision config schemas, diagnostics | None beyond core |
 | `@ontrails/permits` | Auth gate, permit model, JWT connector, scope enforcement | None beyond core |
-| `@ontrails/tracker` | Telemetry recording, trace context, memory/OTel sinks | None beyond core |
+| `@ontrails/store` | Connector-agnostic schema-derived store definitions | None beyond core |
+| `@ontrails/store/drizzle` | Drizzle SQLite connector, typed store bindings, read-only bindings | `drizzle-orm` (optional peer) |
+| `@ontrails/tracker` | Telemetry recording, trace context, `trails.db` dev-state sinks | None beyond core |
 | `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
 | `@ontrails/logging/logtape` | LogTape sink connector | `@logtape/logtape` (optional peer) |
 
@@ -159,14 +162,14 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 | Package | What it does |
 | --- | --- |
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, trailhead harnesses |
-| `@ontrails/schema` | Trailhead maps, semantic diffing, lock files |
+| `@ontrails/schema` | Trailhead maps, semantic diffing, OpenAPI generation, lock helpers |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 
 ### Apps
 
 | App                | What it does                                           |
 | ------------------ | ------------------------------------------------------ |
-| `apps/trails`      | The `trails` CLI -- create, survey, guide, warden |
+| `apps/trails`      | The `trails` CLI -- create, survey, topo/dev workflows, draft promotion, guide, warden |
 | `apps/trails-demo` | Example app demonstrating the framework                |
 
 ## Dependency Graph
@@ -179,6 +182,8 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 @ontrails/http (core, hono)
 @ontrails/config (core)
 @ontrails/permits (core)
+@ontrails/store (core)
+@ontrails/store/drizzle (store, drizzle-orm)
 @ontrails/tracker (core)
 @ontrails/logging (core)
 @ontrails/testing (core, cli, mcp, logging)
@@ -188,7 +193,7 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 @ontrails/logging/logtape (logging, @logtape/logtape)
 @ontrails/warden (core, schema)
      ^
-apps/trails (cli/commander, schema)
+apps/trails (cli/commander, schema, tracker)
 ```
 
 Clean DAG. Core at the center. No cycles. Trailhead connectors depend only on core. Framework connectors depend on their parent package.

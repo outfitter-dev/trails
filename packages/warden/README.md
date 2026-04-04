@@ -1,6 +1,6 @@
 # @ontrails/warden
 
-AST-based code convention rules for Trails. 13 lint rules that catch contract violations at development time, plus lock drift detection and CI formatters.
+AST-based code convention rules for Trails. 15 lint rules that catch contract violations at development time, plus lock drift detection and CI formatters.
 
 Structural checks (cross target existence, declared provision existence, recursive crossing, example schema validation) live in `validateTopo()` from `@ontrails/core`. Warden handles the code-level rules that need AST analysis.
 
@@ -20,7 +20,7 @@ Or programmatically:
 ```typescript
 import { runWarden, formatWardenReport } from '@ontrails/warden';
 
-const report = await runWarden(app, { exitCode: true });
+const report = await runWarden({ topo: app });
 console.log(formatWardenReport(report));
 ```
 
@@ -31,16 +31,18 @@ console.log(formatWardenReport(report));
 | `no-throw-in-implementation` | error | `throw` inside blaze bodies |
 | `implementation-returns-result` | error | Blaze functions returning raw values instead of `Result` |
 | `context-no-trailhead-types` | error | Trailhead type imports (`Request`, `McpSession`) in trail files |
-| `no-sync-result-assumption` | error | Missing `await` on `.trailhead()` results |
+| `no-sync-result-assumption` | error | Missing `await` on `.blaze()` results |
 | `valid-detour-refs` | error | Detour targets that do not exist in the topo |
 | `no-throw-in-detour-target` | error | `throw` inside detour target trails |
-| `no-direct-implementation-call` | warn | Direct `.trailhead()` calls bypassing `ctx.cross()` |
-| `no-direct-impl-in-route` | warn | Direct `.trailhead()` calls inside trail bodies with `crosses` |
+| `no-direct-implementation-call` | warn | Direct `.blaze()` calls bypassing `ctx.cross()` |
+| `no-direct-impl-in-route` | warn | Direct `.blaze()` calls inside trail bodies with `crosses` |
 | `prefer-schema-inference` | warn | Redundant field overrides already derivable from the schema |
 | `cross-declarations` | error/warn | `ctx.cross()` calls that drift from declared `crosses: [...]` |
 | `provision-declarations` | error/warn | `provision.from(ctx)` / `ctx.provision()` usage that drifts from declared `provisions: [...]` |
 | `provision-exists` | error | Declared or referenced provision IDs that do not resolve in project context |
 | `valid-describe-refs` | warn | `@see` refs in `.describe()` that do not resolve |
+| `draft-file-marking` | error | Draft-bearing files missing `_draft.*` or `*.draft.*` filename markers |
+| `draft-visible-debt` | warn | Draft IDs remaining in source files that need promotion or removal |
 
 ## Drift detection
 
@@ -49,9 +51,9 @@ Warden integrates with `@ontrails/schema` to detect when the topo has changed wi
 ```typescript
 import { checkDrift } from '@ontrails/warden';
 
-const drift = await checkDrift(app);
+const drift = await checkDrift(process.cwd(), app);
 if (drift.stale) {
-  console.log('lock file is stale -- regenerate with `trails survey generate`');
+  console.log('lock file is stale -- regenerate with `trails topo export`');
 }
 ```
 
@@ -63,7 +65,7 @@ Add to lefthook for pre-push enforcement:
 pre-push:
   commands:
     warden:
-      blaze: trails warden --exit-code
+      run: trails warden --exit-code
       tags: governance
 ```
 
@@ -96,9 +98,9 @@ To wrap a custom rule as a trail, use `wrapRule` (imported from `@ontrails/warde
 
 | Export | What it does |
 | --- | --- |
-| `runWarden(app, options?)` | Run all rules and drift checks, return a report |
+| `runWarden(options?)` | Run all rules and drift checks, return a report |
 | `formatWardenReport(report)` | Human-readable report |
-| `checkDrift(app)` | Check if the lock file matches the current topo |
+| `checkDrift(rootDir, topo?)` | Check if the lock file matches the current topo |
 | `wardenRules` | Registry of all built-in rules |
 | `wardenTopo` | `Topo` of all built-in rule trails (one per rule) |
 | `runWardenTrails(filePath, sourceCode, options?)` | Dispatch all rule trails for a file, collect diagnostics |

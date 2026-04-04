@@ -24,9 +24,9 @@ The type of the provision instance is inferred from the `create` factory return.
 | --- | --- |
 | `create` | Factory returning `Result<T, Error>`. Receives a `ProvisionContext` with `env`, `cwd`, and `workspaceRoot` only -- not the full `TrailContext`. |
 | `dispose` | Optional cleanup on shutdown. Database pools close, API clients disconnect. |
-| `health` | Optional readiness probe. Feeds into `survey --brief` and operational checks. |
+| `health` | Optional readiness probe. Feeds into topo and survey reporting plus operational checks. |
 | `mock` | Optional test factory. When present, `testExamples(app)` uses it automatically. |
-| `description` | Human-readable label for survey output and agent introspection. |
+| `description` | Human-readable label for topo or survey output and agent introspection. |
 
 The `create` factory receives `ProvisionContext` -- a narrow subset of `TrailContext` -- because provisions are singletons resolved once per process. Request-scoped fields like `requestId` would be stale after the first resolution.
 
@@ -99,7 +99,7 @@ Resolution happens eagerly during `executeTrail`, after input validation and bef
 4. Compose gates
 5. Execute implementation
 
-This means failures trailhead at the boundary -- a missing `DATABASE_URL` fails before the implementation runs, not on line 47. It also means gates can access provisions via `db.from(ctx)` because resolution is already complete.
+This means failures surface at the boundary -- a missing `DATABASE_URL` fails before the implementation runs, not on line 47. It also means gates can access provisions via `db.from(ctx)` because resolution is already complete.
 
 Shutdown signaling differs by trailhead. CLI tools dispose after the command completes. Long-running servers (MCP, HTTP) dispose on `SIGTERM`/`SIGINT`. The trailhead's `trailhead()` owns the lifecycle.
 
@@ -168,6 +168,6 @@ Both use the established AST analysis pattern used by `cross-declarations`.
 
 ## Design Rationale
 
-Provisions complete the trail contract. A trail now declares what it takes (input), what it produces (output), what it crosses (crosses), and what it needs (provisions). The full dependency graph -- trails, provisions, events -- is queryable through survey.
+Provisions complete the trail contract. A trail now declares what it takes (input), what it produces (output), what it crosses (crosses), and what it needs (provisions). The full dependency graph -- trails, provisions, events -- is queryable through the current topo, survey, and the committed lock artifacts.
 
 For the complete design decision, tradeoffs, and future directions (request-scoped provisions, composable config, intent-based type narrowing), see [ADR-0009: First-Class Provisions](./adr/0009-first-class-provisions.md).

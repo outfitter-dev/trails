@@ -34,7 +34,7 @@ Each of these patterns produces standard trails with predictable schemas, intent
 `mark()` produces up to six trail definitions from a store table:
 
 ```typescript
-import { entity } from '@ontrails/store';
+import { mark } from '@ontrails/store';
 import { db } from '../store';
 
 export const { create, show, list, update, remove } = mark('gist', db.gists, {

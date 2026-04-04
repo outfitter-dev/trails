@@ -194,7 +194,7 @@
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
         {
-          "context": "Canonical public trailhead-facing reference. For naming conventions and decision history, see [ADR-0001](docs/adr/0001-naming-conventions.md).",
+          "context": "Canonical public trailhead-facing reference. For naming conventions and decision history, see [ADR-0001](./adr/0001-naming-conventions.md).",
           "from": "api-reference",
           "fromPath": "docs/api-reference.md"
         },
@@ -479,11 +479,6 @@
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- trailheads as thin wrappers, same pattern for store",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-drizzle-store-connector.md"
-        },
-        {
           "context": "- **[ADR-0006: Shared Execution Pipeline](./adr/0006-shared-execution-pipeline.md)** — One `executeTrail`, Result-returning builders",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -666,6 +661,11 @@
           "fromPath": "docs/adr/0016-schema-derived-persistence.md"
         },
         {
+          "context": "- [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md) — the provision lifecycle a bound store participates in",
+          "from": "0022",
+          "fromPath": "docs/adr/0022-drizzle-store-connector.md"
+        },
+        {
           "context": "- [ADR-0009: Provisions as a First-Class Primitive](../0009-first-class-provisions.md) — inbound trailheads depend on the provision primitive for infrastructure dependencies (stores, email, queue clie",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
@@ -686,19 +686,14 @@
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
         },
         {
-          "context": "- [ADR-0009: Services](../0009-first-class-provisions.md) -- the provision lifecycle the store produces",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-drizzle-store-connector.md"
-        },
-        {
           "context": "- **[ADR-0009: First-Class Provisions](./adr/0009-first-class-provisions.md)** — Dependency declarations, lifecycle, testing, governance",
           "from": "index",
           "fromPath": "docs/index.md"
         },
         {
           "context": "For the complete design decision, tradeoffs, and future directions (request-scoped provisions, composable config, intent-based type narrowing), see [ADR-0009: First-Class Provisions](./adr/0009-first-",
-          "from": "services",
-          "fromPath": "docs/services.md"
+          "from": "provisions",
+          "fromPath": "docs/provisions.md"
         }
       ],
       "number": "0009",
@@ -728,6 +723,11 @@
           "context": "- [ADR-0010: Trails-Native Infrastructure Pattern](../0010-native-infrastructure.md) — idempotency layer and deduplication store follow the infrastructure pattern (gate + provision)",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
+        },
+        {
+          "context": "- **[ADR-0010: Trails-Native Infrastructure](./adr/0010-native-infrastructure.md)** — Workspace layout, `.trails/` directory, shared database",
+          "from": "index",
+          "fromPath": "docs/index.md"
         }
       ],
       "number": "0010",
@@ -742,7 +742,13 @@
     {
       "created": "2026-03-30",
       "depends_on": [],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "- **[ADR-0011: Schema-Driven Config](./adr/0011-schema-driven-config.md)** — Typed configuration from schemas",
+          "from": "index",
+          "fromPath": "docs/index.md"
+        }
+      ],
       "number": "0011",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0011-schema-driven-config.md",
@@ -765,6 +771,11 @@
           "context": "- [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) — webhook signature verification maps to the permit resolution model",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
+        },
+        {
+          "context": "- **[ADR-0012: Connector-Agnostic Permits](./adr/0012-connector-agnostic-permits.md)** — Permission model independent of trailhead",
+          "from": "index",
+          "fromPath": "docs/index.md"
         }
       ],
       "number": "0012",
@@ -854,6 +865,11 @@
           "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- observability and replay buffer backing store",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        },
+        {
+          "context": "- **[ADR-0013: Tracker](./adr/0013-tracker.md)** — Runtime recording primitive",
+          "from": "index",
+          "fromPath": "docs/index.md"
         }
       ],
       "number": "0013",
@@ -936,6 +952,11 @@
           "context": "- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — app-level persistence using the same provision patterns",
           "from": "0018",
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
+        },
+        {
+          "context": "[ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) defines the store model: the root package owns the durable `store(...)` declaration, and connectors bind that declaration ",
+          "from": "0022",
+          "fromPath": "docs/adr/0022-drizzle-store-connector.md"
         }
       ],
       "number": "0016",
@@ -1059,6 +1080,25 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Draft State Stays Out of the Resolved Graph",
+      "updated": "2026-04-03"
+    },
+    {
+      "created": "2026-04-01",
+      "depends_on": ["16", "9"],
+      "inbound": [
+        {
+          "context": "- **[ADR-0022: Drizzle Store Connector](./adr/0022-drizzle-store-connector.md)** — Drizzle binds schema-derived stores to SQLite",
+          "from": "index",
+          "fromPath": "docs/index.md"
+        }
+      ],
+      "number": "0022",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0022-drizzle-store-connector.md",
+      "slug": "drizzle-store-connector",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Drizzle Binds Schema-Derived Stores to SQLite",
       "updated": "2026-04-03"
     }
   ],

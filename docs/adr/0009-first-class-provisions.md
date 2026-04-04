@@ -42,7 +42,7 @@ This pattern appears in every trail that touches infrastructure. It has three pr
 
 A trail's contract today answers: what does it take (input schema), what does it produce (output schema), what does it cross (crosses), and how does it behave (intent). It doesn't answer: **what does it need?**
 
-That's the gap. The trail contract has no way to express dependencies on external capabilities. Services fill it.
+That's the gap. The trail contract has no way to express dependencies on external capabilities. Provisions fill it.
 
 ### The right side of the hexagon
 
@@ -77,9 +77,9 @@ The fields:
 
 - **`create`** — factory that returns `Result<T, Error>`. Receives a narrowed `ProvisionContext` — not the full `TrailContext` — containing only stable, process-scoped fields: `env`, `cwd`, `workspaceRoot`. Singleton provisions are resolved once and cached; request-specific fields like `requestId` or `signal` would reflect the first resolution and be stale for every subsequent call. The narrowed type makes this constraint structural rather than documentary. Named `create` per Convention 5 (`create*` for runtime instances).
 - **`dispose`** — optional cleanup called on shutdown. Database pools close, API clients disconnect.
-- **`health`** — optional check returning `Result`. Feeds into `survey --brief` and operational readiness. A database service can report whether it's connected; an API client can report whether the upstream is reachable.
+- **`health`** — optional check returning `Result`. Feeds into topo and survey reporting plus operational readiness. A database provision can report whether it's connected; an API client can report whether the upstream is reachable.
 - **`mock`** — optional factory for testing. When present, `testExamples(app)` uses it automatically with no configuration.
-- **`config`** — reserved. Optional Zod schema declaring the config this service needs. When the config system ships, provision config schemas compose into the app-level config automatically. Not resolved in v1, but reserving the field prevents breaking changes when composable config arrives.
+- **`config`** — reserved. Optional Zod schema declaring the config this provision needs. When the config system ships, provision config schemas compose into the app-level config automatically. Not resolved in v1, but reserving the field prevents breaking changes when composable config arrives.
 
 ### Topo discovers provisions alongside trails
 
@@ -144,7 +144,7 @@ Both resolve the same way at runtime. `db.from(ctx)` is convenience; `ctx.provis
 
 ### Eager resolution in the execution pipeline
 
-Services resolve during `executeTrail`, after context creation and before layer composition:
+Provisions resolve during `executeTrail`, after context creation and before layer composition:
 
 ```text
 executeTrail pipeline:
@@ -162,7 +162,7 @@ Eager resolution means:
 - **Gates can access provisions.** A transaction gate calls `db.from(ctx)` in its wrapper — the provision is already resolved.
 - **Resolution is synchronous from the implementation's perspective.** `db.from(ctx)` is a lookup in an already-resolved map, not an async factory call.
 
-Service `create` factories return `Result`. Thrown exceptions are wrapped as `InternalError` with the service ID in context. A failed service resolution short-circuits execution with a clear error.
+Provision `create` factories return `Result`. Thrown exceptions are wrapped as `InternalError` with the service ID in context. A failed provision resolution short-circuits execution with a clear error.
 
 ### Centralized cross creation
 

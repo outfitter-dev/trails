@@ -10,7 +10,8 @@
 
 - **[Architecture](./architecture.md)** — Hexagonal model, package gates, how data flows from trail to trailhead
 - **[API Reference](./api-reference.md)** — Every public export across all packages
-- **[Provisions Guide](./services.md)** — Define provisions, declare them on trails, test with mock factories
+- **[Provisions Guide](./provisions.md)** — Define provisions, declare them on trails, test with mock factories
+- **[Store Guide](../packages/store/README.md)** — Declare schema-derived stores, bind them with Drizzle, use fixtures and read-only access
 - **[Testing Guide](./testing.md)** — TDD with examples, `testAll()`, contract testing, trailhead harnesses
 
 ## Adding a trailhead?
@@ -22,7 +23,7 @@
 ## Governing your codebase?
 
 - **[Warden](../packages/warden/README.md)** — AST-based convention rules, drift detection, CI integration
-- **[Schema](../packages/schema/README.md)** — Trailhead maps, semantic diffing, lock files
+- **[Schema](../packages/schema/README.md)** — Trailhead maps, topo export helpers, semantic diffing, lock files
 
 ## Design decisions
 
@@ -36,6 +37,19 @@
 - **[ADR-0007: Governance as Trails](./adr/0007-governance-as-trails.md)** — Warden rules are trails, AST-based analysis
 - **[ADR-0008: Deterministic Trailhead Derivation](./adr/0008-deterministic-trailhead-derivation.md)** — Explicit lookup tables for every trailhead
 - **[ADR-0009: First-Class Provisions](./adr/0009-first-class-provisions.md)** — Dependency declarations, lifecycle, testing, governance
+- **[ADR-0010: Trails-Native Infrastructure](./adr/0010-native-infrastructure.md)** — Workspace layout, `.trails/` directory, shared database
+- **[ADR-0011: Schema-Driven Config](./adr/0011-schema-driven-config.md)** — Typed configuration from schemas
+- **[ADR-0012: Connector-Agnostic Permits](./adr/0012-connector-agnostic-permits.md)** — Permission model independent of trailhead
+- **[ADR-0013: Tracker](./adr/0013-tracker.md)** — Runtime recording primitive
+- **[ADR-0014: Core Database Primitive](./adr/0014-core-database-primitive.md)** — Shared `trails.db`, subsystem schema versioning
+- **[ADR-0015: Topo Store](./adr/0015-topo-store.md)** — Queryable relational projection of the resolved graph
+- **[ADR-0016: Schema-Derived Persistence](./adr/0016-schema-derived-persistence.md)** — `store()` declaration, connector binding, fixtures
+- **[ADR-0017: The Serialized Topo Graph](./adr/0017-serialized-topo-graph.md)** — Lockfile as resolved graph
+- **[ADR-0018: Signal-Driven Governance](./adr/0018-signal-driven-governance.md)** — Governance through signals
+- **[ADR-0019: Hierarchical Command Trees](./adr/0019-hierarchical-command-trees-from-trail-ids.md)** — Full CLI path derivation from dotted trail IDs
+- **[ADR-0020: Structured CLI Input](./adr/0020-flags-for-fields-structured-input-on-the-cli.md)** — Flags for fields, JSON/file/stdin channels
+- **[ADR-0021: Draft State Containment](./adr/0021-draft-state-stays-out-of-the-resolved-graph.md)** — Draft state stays out of the resolved graph
+- **[ADR-0022: Drizzle Store Connector](./adr/0022-drizzle-store-connector.md)** — Drizzle binds schema-derived stores to SQLite
 
 ## Where to next?
 

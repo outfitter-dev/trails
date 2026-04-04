@@ -231,7 +231,17 @@ Checks governance rules: every trail has examples, destructive trails declare `i
 ## Inspecting the app
 
 ```bash
-trails survey
+# Inspect one trail or provision
+trails topo show --module ./src/app.ts --id entity.show
+
+# See saved topo history and pins
+trails topo history --root-dir .
+
+# Export the committed lock artifacts
+trails topo export --module ./src/app.ts
+
+# Get the broader machine-readable report
+trails survey --module ./src/app.ts
 ```
 
-Produces a machine-readable map of all trails, signals, and provisions with their schemas, metadata, and relationships.
+Use `trails topo *` for the day-to-day operational flow: inspect the current topo, pin meaningful points, and export or verify the committed lock artifacts. `survey` remains the broader introspection surface for list, detail, diff, and OpenAPI output.

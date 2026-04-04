@@ -91,14 +91,14 @@ Trails establishes `.trails/` as the workspace directory for framework state:
 ```text
 .trails/
 ├── config/          — local overrides (gitignored)
-├── dev/             — development state (gitignored)
-├── generated/       — derived artifacts
-└── trailhead.lock     — committed
+├── trails.db        — local framework database (gitignored)
+├── _trailhead.json  — derived detail map
+└── trails.lock      — committed lock artifact
 ```
 
-Auto-created on first framework operation. The framework generates a `.gitignore` inside `.trails/` that excludes `config/` and `dev/`. `generated/` and `trailhead.lock` are committed — they're derived artifacts that should be diffable and reviewable.
+Auto-created on first framework operation. The framework generates a `.gitignore` inside `.trails/` that excludes local mutable state such as `config/` and `trails.db`. `_trailhead.json` and `trails.lock` are the derived artifacts that support inspection and review; `trails.lock` is the committed contract artifact.
 
-The workspace gives infrastructure a known home. Config reads overrides from `.trails/config/`. Dev tooling writes state to `.trails/dev/`. Generated trailhead maps land in `.trails/generated/`. No more scattering framework files across the project root.
+The workspace gives infrastructure a known home. Config reads overrides from `.trails/config/`. Local framework state and topo history live in `.trails/trails.db`. Derived contract artifacts land alongside them in `.trails/_trailhead.json` and `.trails/trails.lock`. No more scattering framework files across the project root.
 
 ### Connectors are the integration point
 
