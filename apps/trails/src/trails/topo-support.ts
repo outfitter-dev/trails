@@ -4,12 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { Topo } from '@ontrails/core';
-import {
-  ConflictError,
-  NotFoundError,
-  Result,
-  createTopoStore,
-} from '@ontrails/core';
+import { ConflictError, NotFoundError, Result } from '@ontrails/core';
 import type {
   TopoPinRecord,
   TopoSaveRecord,
@@ -303,29 +298,13 @@ export const removeTopoPin = (input: {
   }
 };
 
-/**
- * Resolve the current topo hash, preferring the stored export hash to avoid
- * divergence between the schema and store hash pipelines.
- */
-const resolveCurrentHash = (app: Topo, rootDir: string): string => {
-  try {
-    const stored = createTopoStore({ rootDir }).exports.get()?.trailheadHash;
-    if (stored !== undefined) {
-      return stored;
-    }
-  } catch {
-    // DB may not exist yet — fall back to schema pipeline hash.
-  }
-  return hashTrailheadMap(generateTrailheadMap(app));
-};
-
 export const verifyCurrentTopo = async (
   app: Topo,
   options?: { readonly rootDir?: string }
 ): Promise<Result<TopoVerifyReport, Error>> => {
   const rootDir = resolveRootDir(options?.rootDir);
   const trailsDir = resolveTrailsDir({ rootDir });
-  const currentHash = resolveCurrentHash(app, rootDir);
+  const currentHash = hashTrailheadMap(generateTrailheadMap(app));
   const committedHash = await readTrailheadLock({ dir: trailsDir });
 
   if (committedHash === null) {
