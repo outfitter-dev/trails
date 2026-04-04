@@ -1,12 +1,6 @@
 /* oxlint-disable max-statements -- cross-reference scanning and rewriting */
 
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ADR_DIR, ROOT } from './paths.ts';
 import { listNumberedAdrs, listDrafts } from './discovery.ts';
@@ -62,24 +56,6 @@ export const fixCrossReferences = (): void => {
   }
 };
 
-/** Recursively collect all .md files under a directory. */
-const collectMarkdown = (
-  dir: string,
-  files: { path: string; filename: string }[]
-): void => {
-  if (!existsSync(dir)) {
-    return;
-  }
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) {
-      collectMarkdown(full, files);
-    } else if (entry.endsWith('.md')) {
-      files.push({ filename: entry, path: full });
-    }
-  }
-};
-
 /** All files that might contain ADR cross-references. */
 const allReferencingFiles = (): { path: string; filename: string }[] => {
   const files: { path: string; filename: string }[] = [];
@@ -102,9 +78,6 @@ const allReferencingFiles = (): { path: string; filename: string }[] => {
   if (existsSync(agentsPath)) {
     files.push({ filename: 'AGENTS.md', path: agentsPath });
   }
-
-  // .agents/notes/ (recursive)
-  collectMarkdown(join(ROOT, '.agents/notes'), files);
 
   return files;
 };

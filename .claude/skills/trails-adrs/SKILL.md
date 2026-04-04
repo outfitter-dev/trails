@@ -77,14 +77,14 @@ For manual ADR management without the script, see [assets/adr-management.md](ass
 2. MUST lead with their identifier `ADR-NNNN` unless in `draft` status, which omits the number
 3. MUST be descriptive enough to recall without opening the file — a good title makes a claim or paints a picture, not just names a topic
 4. Prefer a single evocative phrase over `Topic — Explanation` structure. The em dash subtitle is a fallback for when a short title genuinely can't stand alone, not the default pattern
-5. A coined term or framework-specific name (like "Crumbs") is fine as a standalone title when the concept is well-established in the project. A generic noun ("Search", "Triggers") is not — it needs to say what the decision *is*
+5. A coined term or framework-specific name (like "Tracker") is fine as a standalone title when the concept is well-established in the project. A generic noun ("Search", "Triggers") is not — it needs to say what the decision *is*
 
 Examples:
 
 - ✅ "Reactive Trail Activation" — makes a claim about what triggers become
 - ✅ "Governance as Trails" — reveals the insight (governance uses the same primitive)
 - ✅ "Deterministic Surface Derivation" — precise enough to recall the mechanism
-- ✅ "Crumbs — Execution Recording and Observability" — coined term earns a subtitle
+- ✅ "Tracker — Execution Recording and Observability" — coined term earns a subtitle
 - ✅ "Core Premise" — foundational enough to stand alone
 - 🚫 "Triggers" — just a topic, says nothing about the decision
 - 🚫 "Config Resolution — Schema-Driven Discovery and Validation" — subtitle bolted on formulaically
@@ -255,7 +255,7 @@ Synthesized from ADR-000 (Core Premise) and ADR-001 (Naming Conventions).
 
 ### Vocabulary
 
-Use the project vocabulary consistently: trail (not action/handler), topo (not registry), follow (not route), blaze (not serve/mount), surface (not transport), crumbs (not tracks).
+Use the accepted project vocabulary consistently: trail (not action/handler), topo (not registry), cross (not follow), blaze (not serve/mount), trailhead (not transport), tracker (not crumbs), and track (not crumb or trace record unless you mean a different concept).
 
 Read `docs/tenets.md` before writing. Every ADR must be consistent with the tenets.
 

@@ -5,7 +5,7 @@ status: draft
 created: 2026-04-01
 updated: 2026-04-02
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [schema-derived-persistence, 9]
+depends_on: [16, 9]
 ---
 
 # ADR: Drizzle Store Connector

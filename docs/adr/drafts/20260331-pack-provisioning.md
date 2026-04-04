@@ -322,7 +322,7 @@ Provisions occupy a section in `trails.lock` (see the unified lockfile ADR). The
 - Contract snapshots for scaffolded packs
 - Dependency manifests (npm dependencies the provision requires)
 
-`trails lock --check` in CI validates that provisioned packs match their recorded state. A scaffolded pack whose contract drifted from its recorded snapshot without an explicit upgrade triggers a warning (not an error, since deliberate modification is expected).
+`trails topo verify` in CI validates that provisioned packs match their recorded state. A scaffolded pack whose contract drifted from its recorded snapshot without an explicit upgrade triggers a warning (not an error, since deliberate modification is expected).
 
 ### Interaction with the warden
 

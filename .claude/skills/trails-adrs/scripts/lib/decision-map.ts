@@ -5,7 +5,6 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
-  statSync,
   writeFileSync,
 } from 'node:fs';
 import { basename, join } from 'node:path';
@@ -49,24 +48,6 @@ export interface DecisionMap {
   entries: DecisionMapEntry[];
 }
 
-/** Recursively collect all .md files under a directory. */
-const collectMarkdown = (
-  dir: string,
-  files: { path: string; filename: string }[]
-): void => {
-  if (!existsSync(dir)) {
-    return;
-  }
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) {
-      collectMarkdown(full, files);
-    } else if (entry.endsWith('.md')) {
-      files.push({ filename: entry, path: full });
-    }
-  }
-};
-
 /** List non-ADR markdown files that may reference ADR filenames. */
 const listDocFiles = (): { path: string; filename: string }[] => {
   const files: { path: string; filename: string }[] = [];
@@ -84,9 +65,6 @@ const listDocFiles = (): { path: string; filename: string }[] => {
   if (existsSync(agentsPath)) {
     files.push({ filename: 'AGENTS.md', path: agentsPath });
   }
-
-  // .agents/notes/ (recursive)
-  collectMarkdown(join(ROOT, '.agents/notes'), files);
 
   return files;
 };

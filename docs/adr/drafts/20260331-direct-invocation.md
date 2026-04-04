@@ -5,7 +5,7 @@ status: draft
 created: 2026-03-31
 updated: 2026-04-02
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [serialized-topo-graph]
+depends_on: [17]
 ---
 
 # ADR: Direct Trail Invocation (`trails run`)
@@ -562,7 +562,7 @@ Trail IDs are completed from the topo. Example names are completed from the trai
 
 ### Tradeoffs
 
-- **Depends on the lockfile.** `trails run` resolves trails through `trails.lock`. The lockfile must be current. A stale lockfile could point to a trail that's been renamed or removed. `trails lock` (or whatever regenerates it) becomes a prerequisite for accurate resolution.
+- **Depends on the lockfile.** `trails run` resolves trails through `trails.lock`. The lockfile must be current. A stale lockfile could point to a trail that's been renamed or removed. `trails topo export` (or a pin-driven export workflow) becomes a prerequisite for accurate resolution.
 - **Reactive chains can cascade.** `trails run` with triggers enabled means one invocation could trigger a chain of trail executions. With `--tracker` this is visible. Without it, the cascading triggers are silent. A developer exploring a trail might not expect their invocation to trigger five downstream trails.
 - **Watch mode requires file watching.** Adds a dependency on file system watching (Bun handles this natively). For large projects, file watching can be resource-intensive, though scoping to the trail's source file and its dependencies mitigates this.
 
