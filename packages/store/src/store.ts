@@ -268,7 +268,6 @@ const normalizeTable = <
   const generated = uniqueStrings(input.generated);
   const indexes = uniqueStrings(input.indexes);
   const references = normalizeReferences(input.references);
-  const fixtureSchema = deriveFixtureSchema(input.schema, generated);
   validateTableInput(
     name,
     input.schema,
@@ -280,6 +279,7 @@ const normalizeTable = <
   );
 
   const insertSchema = deriveInsertSchema(input.schema, generated);
+  const fixtureSchema = deriveFixtureSchema(input.schema, generated);
   const fixtures = normalizeFixtures(
     name,
     input.primaryKey,
