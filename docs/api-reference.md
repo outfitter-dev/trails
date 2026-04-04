@@ -211,7 +211,7 @@ McpHarness, McpHarnessOptions, McpHarnessResult
 
 ```typescript
 runWarden(options?), formatWardenReport(report), checkDrift(rootDir, topo?)
-wardenRules                        // ReadonlyMap<string, WardenRule> — 13 AST-based rules
+wardenRules                        // ReadonlyMap<string, WardenRule> — 15 AST-based rules
 wardenTopo                         // pre-built Topo of all warden trails
 runWardenTrails(filePath, sourceCode, options?) // run warden rules against a single file
 formatGitHubAnnotations(report), formatJson(report), formatSummary(report)

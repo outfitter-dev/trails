@@ -186,5 +186,5 @@ This keeps external tooling such as migration workflows or local inspection alig
 
 - [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the root store model this connector binds
 - [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md) — the provision lifecycle a bound store participates in
-- [docs/tenets.md](../../tenets.md) — governing design principles for derived, queryable, contract-first systems
+- [docs/tenets.md](../tenets.md) — governing design principles for derived, queryable, contract-first systems
 - Drizzle ORM documentation: <https://orm.drizzle.team>
