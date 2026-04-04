@@ -111,7 +111,7 @@ const mergeArgsAndFlags = (
     ...parsedArgs,
   };
   for (const [key, value] of Object.entries(parsedFlags)) {
-    if (!metaFlagNames.has(key)) {
+    if (!metaFlagNames.has(key) && value !== undefined) {
       mergedInput[key] = value;
     }
   }
