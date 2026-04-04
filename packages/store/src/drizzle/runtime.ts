@@ -152,45 +152,65 @@ const baseFieldKind = <TTable extends AnyStoreTable>(
     table.schema.shape[field as keyof typeof table.schema.shape] as z.ZodType
   ).kind;
 
+const TIMESTAMP_FIELD_NAMES = new Set([
+  'createdAt',
+  'updatedAt',
+  'created_at',
+  'updated_at',
+]);
+
+const ID_FIELD_SUFFIX_RE = /[Ii]d$/;
+
 /**
  * Synthesize a value for a generated field during insert.
  *
  * The connector recognizes these conventions for generated fields:
  *
  * - **Primary key** (`integer` type): auto-increment, left to SQLite.
- * - **`createdAt` / `updatedAt`**: materialized as `new Date()` (date type)
- *   or ISO 8601 string (text type). Fields must be named exactly
- *   `createdAt` or `updatedAt` — other timestamp names like `modifiedAt`
- *   or `created_at` are not recognized and will produce a `ValidationError`.
- * - **Text fields**: filled with `Bun.randomUUIDv7()`.
+ * - **Timestamp fields** (`createdAt`, `updatedAt`, `created_at`,
+ *   `updated_at`): materialized as `new Date()` (date type) or ISO 8601
+ *   string (text type).
+ * - **ID-like text fields** (name ends with `Id` or `id`): filled with
+ *   `Bun.randomUUIDv7()`.
+ *
+ * Any other generated `text` field that does not match a recognized convention
+ * throws a `ValidationError` — the developer must either supply a value or
+ * give the field a Zod default.
  *
  * All other generated field types fall through to `undefined`, letting the
  * schema's Zod default (if any) apply during validation.
  */
+const generatedTimestamp = (kind: string): unknown =>
+  kind === 'date' ? new Date() : new Date().toISOString();
+
+const generatedTextValue = (tableName: string, fieldName: string): unknown => {
+  if (ID_FIELD_SUFFIX_RE.test(fieldName)) {
+    return Bun.randomUUIDv7();
+  }
+  throw new ValidationError(
+    `Store table "${tableName}" has a generated text field "${fieldName}" that does not match a recognized convention (timestamp or ID field). Supply a value or add a Zod default.`
+  );
+};
+
 const generatedValueForInsert = <TTable extends AnyStoreTable>(
   table: TTable,
   field: StoreFieldKey<TTable['schema']>
 ): unknown => {
+  const fieldName = field as string;
   const kind = baseFieldKind(table, field);
 
   if (field === table.primaryKey && kind === 'integer') {
     return undefined;
   }
-
-  if (field === 'createdAt' || field === 'updatedAt') {
-    if (kind === 'date') {
-      return new Date();
-    }
-
-    return new Date().toISOString();
+  if (TIMESTAMP_FIELD_NAMES.has(fieldName)) {
+    return generatedTimestamp(kind);
   }
-
   if (kind === 'text') {
-    return Bun.randomUUIDv7();
+    return generatedTextValue(table.name, fieldName);
   }
-
-  // Unrecognized generated field — return undefined so Zod defaults apply.
-  return undefined;
+  throw new ValidationError(
+    `Store table "${table.name}" has a generated field "${fieldName}" of unrecognized type "${kind}". Only "integer" (primary key), "text", and timestamp fields are supported as generated fields. Supply a value or add a Zod default.`
+  );
 };
 
 const materializeGeneratedFields = <TTable extends AnyStoreTable>(
@@ -528,35 +548,66 @@ const createWritableAccessor = <
   },
 });
 
-const seedFixtures = <TStore extends AnyStoreDefinition>(
+/** Collect non-empty fixture arrays keyed by table name. */
+const collectFixtures = <TStore extends AnyStoreDefinition>(
+  definition: TStore,
+  seed?: DrizzleMockSeed<TStore>
+): Map<string, readonly FixtureInputOf<AnyStoreTable>[]> => {
+  const result = new Map<string, readonly FixtureInputOf<AnyStoreTable>[]>();
+  for (const tableName of definition.tableNames) {
+    const table = definition.tables[tableName];
+    if (table === undefined) {
+      continue;
+    }
+    const fixtures =
+      (seed?.[tableName] as
+        | readonly FixtureInputOf<typeof table>[]
+        | undefined) ?? table.fixtures;
+    if (fixtures.length > 0) {
+      result.set(tableName, fixtures);
+    }
+  }
+  return result;
+};
+
+/** Insert fixture rows in topological order. */
+const insertFixtureRows = <TStore extends AnyStoreDefinition>(
   definition: TStore,
   tables: DrizzleStoreSchema<TStore>,
   db: ReturnType<typeof drizzle<DrizzleStoreSchema<TStore>>>,
-  seed?: DrizzleMockSeed<TStore>
+  fixturesByTable: Map<string, readonly FixtureInputOf<AnyStoreTable>[]>
 ): void => {
   for (const tableName of topologicalTableOrder(definition)) {
-    const definitionTable = definition.tables[tableName];
+    const defTable = definition.tables[tableName];
     const drizzleTable = tables[tableName];
-    if (definitionTable === undefined || drizzleTable === undefined) {
+    const fixtures = fixturesByTable.get(tableName);
+    if (!defTable || !drizzleTable || !fixtures) {
       continue;
     }
-
-    const fixtures =
-      (seed?.[tableName] as
-        | readonly FixtureInputOf<typeof definitionTable>[]
-        | undefined) ?? definitionTable.fixtures;
-
     for (const fixture of fixtures) {
       db.insert(drizzleTable)
         .values(
           applyGeneratedInsertFields(
-            definitionTable,
+            defTable,
             fixture as Record<string, unknown>
           ) as never
         )
         .run();
     }
   }
+};
+
+const seedFixtures = <TStore extends AnyStoreDefinition>(
+  definition: TStore,
+  tables: DrizzleStoreSchema<TStore>,
+  db: ReturnType<typeof drizzle<DrizzleStoreSchema<TStore>>>,
+  seed?: DrizzleMockSeed<TStore>
+): void => {
+  const fixturesByTable = collectFixtures(definition, seed);
+  if (fixturesByTable.size === 0) {
+    return;
+  }
+  insertFixtureRows(definition, tables, db, fixturesByTable);
 };
 
 const createReadOnlyConnection = <TStore extends AnyStoreDefinition>(
@@ -669,7 +720,7 @@ const connectionHealth = (
  * factory creates an in-memory SQLite database seeded with fixtures — callers
  * who obtain a mock connection are responsible for calling `closeConnection()`
  * when done, or letting the connection be garbage-collected (the underlying
- * `Database` client is tracked via `WeakRef`).
+ * `Database` client is tracked via `WeakMap`).
  *
  * Note: the `search` field on `StoreTableInput` is not yet interpreted by
  * this connector — it is reserved for future full-text search support.
@@ -687,18 +738,26 @@ export const connectDrizzle = <const TStore extends AnyStoreDefinition>(
   return buildProvisionShape(
     provision(options.id ?? defaultProvisionId, {
       create: () => {
-        const client = openSqliteDatabase(options.url, false);
         try {
-          ensureSqliteSchema(client, definition);
+          const client = openSqliteDatabase(options.url, false);
+          try {
+            ensureSqliteSchema(client, definition);
+          } catch (error) {
+            client.close();
+            throw error;
+          }
+          const db = drizzle({ client, schema: tables });
+          return Result.ok(
+            createWritableConnection(definition, tables, db, client)
+          );
         } catch (error) {
-          client.close();
-          throw error;
+          return Result.err(
+            new InternalError(
+              `Drizzle store failed to open database at "${options.url}": ${asError(error).message}`,
+              { cause: asError(error) }
+            )
+          );
         }
-        const db = drizzle({ client, schema: tables });
-
-        return Result.ok(
-          createWritableConnection(definition, tables, db, client)
-        );
       },
       description:
         options.description ??
@@ -739,12 +798,20 @@ export const connectReadOnlyDrizzle = <const TStore extends AnyStoreDefinition>(
   return buildProvisionShape(
     provision(options.id ?? defaultProvisionId, {
       create: () => {
-        const client = openSqliteDatabase(options.url, true);
-        const db = drizzle({ client, schema: tables });
-
-        return Result.ok(
-          createReadOnlyConnection(definition, tables, db, client)
-        );
+        try {
+          const client = openSqliteDatabase(options.url, true);
+          const db = drizzle({ client, schema: tables });
+          return Result.ok(
+            createReadOnlyConnection(definition, tables, db, client)
+          );
+        } catch (error) {
+          return Result.err(
+            new InternalError(
+              `Drizzle read-only store failed to open database at "${options.url}": ${asError(error).message}`,
+              { cause: asError(error) }
+            )
+          );
+        }
       },
       description:
         options.description ??
