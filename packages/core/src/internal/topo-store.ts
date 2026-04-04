@@ -192,6 +192,29 @@ const canonicalize = (value: unknown): unknown => {
   return canonicalLeaf(value);
 };
 
+/**
+ * Canonicalize a value for schema definition hashing.
+ *
+ * Matches the canonicalization logic used in `@ontrails/schema` so that
+ * schema hashes are consistent regardless of which code path computes them.
+ * Unlike the general `canonicalize`, this does not convert `Date`, `RegExp`,
+ * or `undefined` to sentinel strings — Zod `_zod.def` objects are plain
+ * JSON-serializable structures and both paths must agree on the same encoding.
+ */
+const schemaCanonical = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(schemaCanonical);
+  }
+  if (value !== null && typeof value === 'object') {
+    const sorted: Record<string, unknown> = {};
+    for (const key of Object.keys(value).toSorted()) {
+      sorted[key] = schemaCanonical((value as Record<string, unknown>)[key]);
+    }
+    return sorted;
+  }
+  return value;
+};
+
 const stableJson = (value: unknown): string =>
   JSON.stringify(canonicalize(value));
 
@@ -208,10 +231,15 @@ const parseJsonRecord = (value: string): JsonRecord =>
 
 const schemaDefinitionHash = (schema: unknown): string => {
   const def =
-    typeof schema === 'object' && schema !== null && '_def' in schema
-      ? (schema as { readonly _def: unknown })._def
+    typeof schema === 'object' &&
+    schema !== null &&
+    '_zod' in schema &&
+    typeof (schema as { readonly _zod: unknown })._zod === 'object' &&
+    (schema as { readonly _zod: Record<string, unknown> })._zod !== null &&
+    'def' in (schema as { readonly _zod: Record<string, unknown> })._zod
+      ? (schema as { readonly _zod: { readonly def: unknown } })._zod.def
       : schema;
-  return hashValue(def);
+  return hashText(JSON.stringify(schemaCanonical(def)));
 };
 
 const sortedJsonSchema = (
