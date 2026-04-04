@@ -68,6 +68,15 @@ const rowToPin = (row: TopoPinRow): TopoPinRecord => ({
   saveId: row.save_id,
 });
 
+const tableExists = (db: Database, tableName: string): boolean => {
+  const row = db
+    .query<{ name: string }, [string]>(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?"
+    )
+    .get(tableName);
+  return row?.name === tableName;
+};
+
 export const ensureTopoHistorySchema = (db: Database): void => {
   ensureSubsystemSchema(db, {
     migrate: () => {
@@ -156,7 +165,9 @@ export const pinTopoSave = (
 };
 
 export const listTopoSaves = (db: Database): readonly TopoSaveRecord[] => {
-  ensureTopoHistorySchema(db);
+  if (!tableExists(db, 'topo_saves')) {
+    return [];
+  }
   const rows = db
     .query<TopoSaveRow, []>(
       `SELECT id, git_sha, git_dirty, trail_count, signal_count, provision_count, created_at
@@ -168,7 +179,9 @@ export const listTopoSaves = (db: Database): readonly TopoSaveRecord[] => {
 };
 
 export const listTopoPins = (db: Database): readonly TopoPinRecord[] => {
-  ensureTopoHistorySchema(db);
+  if (!tableExists(db, 'topo_pins')) {
+    return [];
+  }
   const rows = db
     .query<TopoPinRow, []>(
       `SELECT name, save_id, created_at
@@ -179,11 +192,97 @@ export const listTopoPins = (db: Database): readonly TopoPinRecord[] => {
   return rows.map(rowToPin);
 };
 
+const countSaves = (db: Database): number => {
+  const row = db
+    .query<{ count: number }, []>('SELECT COUNT(*) as count FROM topo_saves')
+    .get();
+  return row?.count ?? 0;
+};
+
+export const countTopoSaves = (db: Database): number => {
+  if (!tableExists(db, 'topo_saves')) {
+    return 0;
+  }
+  return countSaves(db);
+};
+
+export const countTopoPins = (db: Database): number => {
+  if (!tableExists(db, 'topo_pins')) {
+    return 0;
+  }
+  const row = db
+    .query<{ count: number }, []>('SELECT COUNT(*) as count FROM topo_pins')
+    .get();
+  return row?.count ?? 0;
+};
+
+export const getTopoSave = (
+  db: Database,
+  id: string
+): TopoSaveRecord | undefined => {
+  if (!tableExists(db, 'topo_saves')) {
+    return undefined;
+  }
+  const row = db
+    .query<TopoSaveRow, [string]>(
+      `SELECT id, git_sha, git_dirty, trail_count, signal_count, provision_count, created_at
+       FROM topo_saves
+       WHERE id = ?`
+    )
+    .get(id);
+  return row === null || row === undefined ? undefined : rowToSave(row);
+};
+
+export const getTopoPin = (
+  db: Database,
+  name: string
+): TopoPinRecord | undefined => {
+  if (!tableExists(db, 'topo_pins')) {
+    return undefined;
+  }
+  const row = db
+    .query<TopoPinRow, [string]>(
+      `SELECT name, save_id, created_at
+       FROM topo_pins
+       WHERE name = ?`
+    )
+    .get(name);
+  return row === null || row === undefined ? undefined : rowToPin(row);
+};
+
+export const countPrunableTopoSaves = (
+  db: Database,
+  options: { readonly keep: number }
+): number => {
+  if (!tableExists(db, 'topo_saves') || !tableExists(db, 'topo_pins')) {
+    return 0;
+  }
+  const row = db
+    .query<{ count: number }, [number]>(
+      `SELECT COUNT(*) as count
+       FROM (
+         SELECT save.id
+         FROM topo_saves save
+         LEFT JOIN topo_pins pin ON pin.save_id = save.id
+         WHERE pin.save_id IS NULL
+         ORDER BY save.created_at DESC, save.id DESC
+         LIMIT -1 OFFSET ?
+       )`
+    )
+    .get(options.keep);
+  return row?.count ?? 0;
+};
+
 export const pruneUnpinnedTopoSaves = (
   db: Database,
   options: { readonly keep: number }
 ): number => {
-  ensureTopoHistorySchema(db);
+  if (!tableExists(db, 'topo_saves') || !tableExists(db, 'topo_pins')) {
+    return 0;
+  }
+  if (countPrunableTopoSaves(db, options) === 0) {
+    return 0;
+  }
 
   db.run(
     `DELETE FROM topo_saves
@@ -202,4 +301,10 @@ export const pruneUnpinnedTopoSaves = (
     db.query<{ changes: number }, []>('SELECT changes() as changes').get()
       ?.changes ?? 0
   );
+};
+
+export const unpinTopoSave = (db: Database, name: string): boolean => {
+  ensureTopoHistorySchema(db);
+  const result = db.run('DELETE FROM topo_pins WHERE name = ?', [name]);
+  return result.changes > 0;
 };

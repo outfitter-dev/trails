@@ -18,6 +18,7 @@
     "@ontrails/core": "workspace:^",
     "@ontrails/logging": "workspace:^",
     "@ontrails/schema": "workspace:^",
+    "@ontrails/tracker": "workspace:^",
     "@ontrails/warden": "workspace:^",
     "commander": "catalog:",
     "zod": "catalog:"

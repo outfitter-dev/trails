@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
-import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -86,7 +86,7 @@ describe('writeTrailheadLock / readTrailheadLock', () => {
     const hash = 'abc123def456'.repeat(4);
     const filePath = await writeTrailheadLock(hash, { dir: tempDir });
 
-    expect(filePath).toBe(join(tempDir, 'trailhead.lock'));
+    expect(filePath).toBe(join(tempDir, 'trails.lock'));
 
     const content = await readFile(filePath, 'utf8');
     expect(content.trim()).toBe(hash);
@@ -99,6 +99,14 @@ describe('writeTrailheadLock / readTrailheadLock', () => {
     await writeTrailheadLock(hash, { dir: tempDir });
     const result = await readTrailheadLock({ dir: tempDir });
 
+    expect(result).toBe(hash);
+  });
+
+  test('falls back to the legacy trailhead.lock name during migration', async () => {
+    const hash = 'legacydeadbeef'.repeat(4);
+    await writeFile(join(tempDir, 'trailhead.lock'), `${hash}\n`);
+
+    const result = await readTrailheadLock({ dir: tempDir });
     expect(result).toBe(hash);
   });
 
@@ -133,7 +141,7 @@ describe('default directory', () => {
     const hash = 'a1b2c3d4e5f6'.repeat(5);
     const filePath = await writeTrailheadLock(hash, { dir: customDir });
 
-    expect(filePath).toBe(join(customDir, 'trailhead.lock'));
+    expect(filePath).toBe(join(customDir, 'trails.lock'));
 
     const result = await readTrailheadLock({ dir: customDir });
     expect(result).toBe(hash);
