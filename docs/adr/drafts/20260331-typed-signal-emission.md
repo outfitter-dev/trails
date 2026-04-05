@@ -26,7 +26,7 @@ When a trail can announce what happened, the framework gains a communication lay
 - A trail emits `entity.updated`. A search indexer, a cache invalidator, and an audit logger all respond. The emitting trail doesn't know about any of them.
 - A scheduled health check fails. The failure is observed by the framework as an event. An alerting trail activates. No manual error handler wiring.
 
-Without events as a runtime primitive, these patterns require either direct follows (tight coupling between packs) or application-level glue code. Events provide the decoupling.
+Without events as a runtime primitive, these patterns require either direct crosses (tight coupling between packs) or application-level glue code. Events provide the decoupling.
 
 ### Schema always exists
 
@@ -83,7 +83,7 @@ const confirmBooking = trail('booking.confirm', {
 
 `ctx.signal()` takes an event definition (or string ID) and a typed payload. The payload validates against the event's schema at runtime. The emission is fire-and-forget from the trail's perspective: the trail doesn't wait for delivery, doesn't know who's listening, doesn't get a result back. The trail's job is to do work and declare what happened. Delivery is the framework's job.
 
-`ctx.signal()` is available in any trail, including within `follow` chains. A followed trail's emissions flow through the same routing as the root trail's emissions.
+`ctx.signal()` is available in any trail, including within `cross` chains. A crossed trail's emissions flow through the same routing as the root trail's emissions.
 
 ### The `emits` declaration
 
@@ -93,7 +93,7 @@ A trail declares which events it may emit:
 signals: [bookingConfirmed, bookingCancelled],
 ```
 
-This is analogous to `follow` declaring which trails may be called. The warden verifies alignment:
+This is analogous to `crosses` declaring which trails may be called. The warden verifies alignment:
 
 - A `ctx.signal(someEvent)` call in the implementation without a corresponding entry in `emits`: error. Undeclared emission.
 - An event in `emits` that is never emitted in the implementation: warning. Unused declaration.
@@ -257,7 +257,7 @@ An opt-in reactive mode follows the event chain:
 trails test --reactive
 ```
 
-In reactive mode, emitted events actually trigger listener trails (with mock services). The test verifies the full reactive chain. This catches integration bugs: "the event emits correctly but the listener trail's input schema doesn't match the event payload."
+In reactive mode, emitted events actually trigger listener trails (with mock provisions). The test verifies the full reactive chain. This catches integration bugs: "the event emits correctly but the listener trail's input schema doesn't match the event payload."
 
 Reactive mode runs after standard mode passes. Standard mode validates each trail independently. Reactive mode validates the communication graph.
 
@@ -281,16 +281,16 @@ Reactive mode runs after standard mode passes. Standard mode validates each trai
 
 - **Events become a runtime primitive.** The `signal()` declaration gains `ctx.signal()` for emission, delivery routing, and tracker recording. The primitive evolves from structural metadata to a live communication channel.
 - **Schema is always present.** Derived from the emitter at stage 1, declared inline at stage 2, extracted to `signal()` at stage 3. No untyped events. Progressive disclosure without a schema gap.
-- **Trails decouple through events.** Packs communicate via events instead of direct follows. The event schema is the contract. The topo validates compatibility.
+- **Trails decouple through events.** Packs communicate via events instead of direct crosses. The event schema is the contract. The topo validates compatibility.
 - **Framework lifecycle events unify observation.** The error taxonomy maps to categorized failure events. The reactive graph handles both authored and observed events uniformly.
 - **Dead events are visible at every layer.** Five gates of safety from one primitive: types (compile time), examples (test time), warden (lint time), tracker (runtime), survey (inspection time).
 
 ### Tradeoffs
 
-- **New field on the trail spec.** `emits` joins `follow`, `visibility`, `on`, `services`, and the rest. The justification: emission is genuinely new information that the framework can't derive from the implementation without static analysis.
+- **New field on the trail spec.** `emits` joins `crosses`, `visibility`, `on`, `provisions`, and the rest. The justification: emission is genuinely new information that the framework can't derive from the implementation without static analysis.
 - **Fire-and-forget semantics.** The emitting trail doesn't know if the event was delivered. This is correct (the trail shouldn't couple to its listeners) but means delivery failures are only visible through tracker.
 - **Lifecycle events add volume.** Every trail execution produces at least one lifecycle event. Sampling is a future optimization.
-- **Event ordering is not guaranteed across listeners.** Multiple triggers on the same event activate concurrently. If ordering matters, use sequential `follow` composition.
+- **Event ordering is not guaranteed across listeners.** Multiple triggers on the same event activate concurrently. If ordering matters, use sequential `cross` composition.
 
 ### What this does NOT decide
 
