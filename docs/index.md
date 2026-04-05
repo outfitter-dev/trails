@@ -12,6 +12,9 @@
 - **[API Reference](./api-reference.md)** — Every public export across all packages
 - **[Provisions Guide](./provisions.md)** — Define provisions, declare them on trails, test with mock factories
 - **[Store Guide](../packages/store/README.md)** — Declare schema-derived stores, bind them with Drizzle, use fixtures and read-only access
+- **[Config Guide](../packages/config/README.md)** — Schema-derived configuration, resolution stack, extensions, loadouts
+- **[Permits Guide](../packages/permits/README.md)** — Scope-based authorization, auth connectors, permit governance
+- **[Tracker Guide](../packages/tracker/README.md)** — Execution recording, sinks, sampling, manual instrumentation
 - **[Testing Guide](./testing.md)** — TDD with examples, `testAll()`, contract testing, trailhead harnesses
 
 ## Adding a trailhead?

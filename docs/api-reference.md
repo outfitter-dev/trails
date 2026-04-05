@@ -220,6 +220,94 @@ WardenOptions, WardenReport, WardenDiagnostic, WardenSeverity, DriftResult
 ProjectAwareWardenRule, ProjectContext
 ```
 
+## `@ontrails/config`
+
+```typescript
+// Schema & resolution
+defineConfig(options)                // define a config schema with base, loadouts, and extensions
+appConfig(name, options)             // lower-level config factory without Trails conventions
+
+// Extensions
+env(schema, envVar)                  // bind a schema field to an environment variable
+secret(schema)                       // mark a field as sensitive (redacted in output)
+deprecated(schema, message)          // mark a field as deprecated with migration guidance
+
+// Provision & gate
+configProvision                      // provision for resolved config state
+configGate                           // gate for per-trail config context
+
+// State management
+registerConfigState(state)           // register resolved config at bootstrap
+clearConfigState()                   // clear global config state (for tests)
+
+// Trail definitions
+configCheck                          // validate config values against schema
+configDescribe                       // describe all schema fields
+configExplain                        // show which source won per field
+configInit                           // generate example config files
+
+DefineConfigOptions, ConfigState, ConfigFieldMeta, ConfigDiagnostic
+```
+
+## `@ontrails/permits`
+
+```typescript
+// Provision & gate
+authProvision                        // provision for auth connector lifecycle
+authGate                             // gate that enforces permit scopes on trails
+
+// Permits
+getPermit(ctx)                       // extract the resolved permit from context
+Permit                               // { id, scopes, roles?, tenantId?, metadata? }
+PermitExtractionInput                // transport-agnostic auth input
+
+// Connectors
+AuthConnector                        // interface: authenticate(input) → Result<Permit | null>
+createJwtConnector(options)          // built-in HS256 JWT connector (from @ontrails/permits/jwt)
+
+// Trail definitions
+authVerify                           // verify a bearer token and return a permit
+
+// Testing
+mintTestPermit(overrides?)           // create a permit for tests
+mintPermitForTrail(trail)            // mint a permit matching a trail's requirements
+
+// Governance
+validatePermits(trails)              // check trails against permit governance rules
+PermitDiagnostic
+```
+
+## `@ontrails/tracker`
+
+```typescript
+// Provision & gate
+trackerProvision                     // provision for tracker state
+tracker                              // accessor provision for manual instrumentation
+createTrackerGate(sink, options?)    // gate that records every trail invocation
+
+// Sinks
+createMemorySink()                   // in-memory sink for testing
+createDevStore(options?)             // SQLite-backed persistent sink for development
+createOtelConnector(options?)        // OpenTelemetry span exporter
+
+// State management
+registerTrackerState(state)          // register tracker state at bootstrap
+
+// Trail definitions
+trackerStatus                        // report tracking state and record count
+trackerQuery                         // query execution history with filters
+
+// Context
+getTraceContext(ctx)                  // get current trace context
+childTraceContext(parent)            // create a child trace context
+
+// Sampling
+shouldSample(intent, config?)        // sampling decision based on intent
+DEFAULT_SAMPLING                     // default sampling rates by intent
+
+Track, TrackerState, TrackSink, SamplingConfig, TraceContext
+```
+
 ## `@ontrails/logging`
 
 ```typescript
