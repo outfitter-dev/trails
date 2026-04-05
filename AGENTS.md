@@ -46,7 +46,7 @@ The architecture is designed to make consistency easier than drift. Agents build
 Use the project language consistently:
 
 - `trail`, not action or handler
-- `blaze`, not handler or impl (both the field name and the verb for opening trailheads)
+- `blaze`, not handler or impl (the implementation field on a trail)
 - `topo`, not registry or collection
 - `cross`, not follow (for composition declaration and runtime invocation)
 - `trailhead`, not transport terminology
