@@ -1,8 +1,11 @@
 ---
 '@ontrails/cli': minor
+'@ontrails/config': minor
 '@ontrails/core': minor
 '@ontrails/http': minor
+'@ontrails/logging': minor
 '@ontrails/mcp': minor
+'@ontrails/permits': minor
 '@ontrails/schema': minor
 '@ontrails/store': minor
 '@ontrails/testing': minor
