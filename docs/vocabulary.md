@@ -32,8 +32,8 @@ const create = trail('entity.create', {
   output: entityOutput,
   provisions: [db],
   blaze: async (input, ctx) => {
-    const store = db.from(ctx);
-    return Result.ok(await store.create(input));
+    const conn = db.from(ctx);
+    return Result.ok(await conn.create(input));
   },
 });
 ```
@@ -146,6 +146,39 @@ import { createTrackerGate, createMemorySink } from '@ontrails/tracker';
 const gate = createTrackerGate(createMemorySink());
 ```
 
+### `store`
+
+A persistence declaration. `store(definition)` declares tables with schemas, primary keys, generated fields, indexes, references, and fixtures. The store itself is connector-agnostic — bind it to a runtime (e.g., Drizzle + SQLite) to get typed accessors.
+
+```typescript
+const db = store({
+  gists: {
+    schema: gistSchema,
+    primaryKey: 'id',
+    generated: ['id', 'createdAt', 'updatedAt'],
+    indexes: ['owner'],
+    fixtures: [{ owner: 'matt', description: 'Seed' }],
+  },
+});
+```
+
+A store is infrastructure declared as data. A provision is how that infrastructure reaches trail implementations. A store becomes usable through a provision; they are complementary, not interchangeable.
+
+### `pin`
+
+A named snapshot of the topo state at a point in time. Pins are stored in `trails.db` and enable comparison between the current resolved graph and a previous known-good state.
+
+```bash
+trails topo pin --name v1.0
+trails topo verify
+```
+
+A pin captures the topo; an export serializes it. Pins are internal references for diffing. Exports are portable outputs for external consumers.
+
+### `projection`
+
+A mechanically derived output from authored information. The topo store is a relational projection of the resolved graph — the same data, restructured for queries. CLI flags are projections of input schemas. HTTP verbs are projections of intent. The framework derives projections; developers author the source.
+
 ### `warden`
 
 Governance and contract enforcement tooling. Lint rules, drift detection, and CI gating live here.
@@ -172,6 +205,7 @@ These are directional. They should not be reused for unrelated concepts.
 | `pack` | Distributable capability bundle |
 | `depot` | Registry or distribution point for packs and shared assets |
 | `dispatch` | Reserved strong verb for a future concept, no longer the direct execution helper |
+| `_draft.` | Reserved ID prefix for draft state. Trails, signals, and other primitives with `_draft.` IDs are visible in source but excluded from the resolved graph, established trailheads, and topo exports. Draft state is visible debt — it must never leak into established outputs. See ADR-0021. |
 
 ## Standard Terms
 
@@ -204,15 +238,18 @@ When introducing Trails, use this order:
 2. `crosses` / `ctx.cross()` — compose one trail through another
 3. `provision()` / `provisions` — declare infrastructure dependencies
 4. `signal()` / `ctx.signal()` — define and emit typed notifications
-5. `detours` and `metadata` — enrich the contract
+5. `store()` — declare persistence with schemas, keys, and fixtures
+6. `detours` and `metadata` — enrich the contract
 
 ### Advanced
 
 1. `gate` — wrap execution with cross-cutting behavior
 2. `tracker` / `track` — record what happened
 3. `permit` — auth and scopes
-4. `loadout` — deployment and environment profiles
-5. `warden` — governance and drift detection
+4. `pin` — named topo snapshot for diffing and verification
+5. `projection` — mechanically derived output from authored data
+6. `loadout` — deployment and environment profiles
+7. `warden` — governance and drift detection
 
 ## Writing Style
 
