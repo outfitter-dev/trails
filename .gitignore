@@ -10,3 +10,4 @@ dist/
 .agents/notes/
 .claude/agent-memory/
 .npmrc
+.envrc

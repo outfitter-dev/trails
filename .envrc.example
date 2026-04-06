@@ -1,0 +1,8 @@
+# Turbo remote cache — enables local dev cache sharing with CI and other machines.
+# Copy this to .envrc and fill in the values from 1Password or your team secret store.
+# direnv will auto-load .envrc when you cd into this directory.
+
+export TURBO_TOKEN=<your-turbo-token>
+export TURBO_TEAM=<your-turbo-team>
+export TURBO_API=https://turbo-cache.outfitter.dev
+export TURBO_REMOTE_CACHE_SIGNATURE_KEY=<set-from-1password-or-team-secret>
