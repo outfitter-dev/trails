@@ -26,6 +26,7 @@ import * as entitySignals from '../src/signals/entity-signals.js';
 import * as demoProvisions from '../src/resources/entity-store.js';
 import * as entity from '../src/trails/entity.js';
 import * as kv from '../src/trails/kv.js';
+import * as notify from '../src/trails/notify.js';
 import * as onboard from '../src/trails/onboard.js';
 import * as search from '../src/trails/search.js';
 
@@ -50,8 +51,8 @@ describe('trailhead map generation', () => {
     expect(ids).toContain('demo.entity-store');
   });
 
-  test('has exactly 9 entries (7 trails + 1 event + 1 resource)', () => {
-    expect(trailheadMap.entries).toHaveLength(9);
+  test('has exactly 10 entries (8 trails + 1 event + 1 resource)', () => {
+    expect(trailheadMap.entries).toHaveLength(10);
   });
 
   test('entries are sorted alphabetically by id', () => {
@@ -215,6 +216,7 @@ describe('breaking change detection', () => {
       onboard,
       entitySignals,
       kv,
+      notify,
       demoProvisions
     );
 
@@ -236,6 +238,7 @@ describe('breaking change detection', () => {
       onboard,
       entitySignals,
       kv,
+      notify,
       demoProvisions
     );
 
@@ -270,6 +273,7 @@ describe('non-breaking change detection', () => {
       onboard,
       entitySignals,
       kv,
+      notify,
       demoProvisions,
       { update }
     );
@@ -293,6 +297,7 @@ describe('non-breaking change detection', () => {
       onboard,
       entitySignals,
       kv,
+      notify,
       demoProvisions
     );
     expect(diff.hasBreaking).toBe(false);
@@ -338,7 +343,7 @@ describe('topo validation', () => {
       const trailDef = t as { examples?: readonly unknown[] };
       exampleCount += trailDef.examples?.length ?? 0;
     }
-    // 5 trails x 2 examples each + 1 onboard trail x 1 example + 1 kv trail x 1 example = 12
-    expect(exampleCount).toBe(12);
+    // 5 trails x 2 examples each + 1 onboard trail x 1 example + 1 kv trail x 1 example + 1 notify trail x 1 example = 13
+    expect(exampleCount).toBe(13);
   });
 });

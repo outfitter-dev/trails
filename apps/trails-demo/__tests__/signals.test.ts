@@ -1,0 +1,126 @@
+/**
+ * End-to-end integration tests for the producer -> consumer signal flow.
+ *
+ * Proves that `fires:` / `on:` fan-out works against a real topo:
+ * - entity.add declares `fires: ['entity.updated']` and calls ctx.fire
+ * - entity.updated is a signal defined in src/signals/entity-signals.ts
+ * - entity.notify-updated declares `on: ['entity.updated']` as a consumer
+ *
+ * Also exercises the warden rules that guard the declarations.
+ */
+
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+
+import { beforeEach, describe, expect, test } from 'bun:test';
+
+import { run } from '@ontrails/core';
+import { firesDeclarations, onReferencesExist } from '@ontrails/warden';
+
+import { app } from '../src/app.js';
+import { entityStoreProvision } from '../src/resources/entity-store.js';
+import { createStore } from '../src/store.js';
+import { clearNotifications, getNotifications } from '../src/trails/notify.js';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const moduleDir = dirname(fileURLToPath(import.meta.url));
+const entitySourcePath = resolve(moduleDir, '../src/trails/entity.ts');
+const notifySourcePath = resolve(moduleDir, '../src/trails/notify.ts');
+
+// ---------------------------------------------------------------------------
+// End-to-end fan-out
+// ---------------------------------------------------------------------------
+
+describe('entity.updated signal flow', () => {
+  beforeEach(() => {
+    clearNotifications();
+  });
+
+  test('entity.add fires entity.updated and notify consumer runs', async () => {
+    const store = createStore([]);
+
+    const result = await run(
+      app,
+      'entity.add',
+      { name: 'Epsilon', tags: ['reactive'], type: 'concept' },
+      { ctx: { extensions: { [entityStoreProvision.id]: store } } }
+    );
+
+    expect(result.isOk()).toBe(true);
+
+    const notifications = getNotifications();
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]?.action).toBe('created');
+    expect(notifications[0]?.entityName).toBe('Epsilon');
+    expect(notifications[0]?.entityId).toBeString();
+    expect(notifications[0]?.timestamp).toBeString();
+  });
+
+  test('entity.delete also fires entity.updated', async () => {
+    const store = createStore([{ name: 'Disposable', tags: [], type: 'tool' }]);
+
+    const result = await run(
+      app,
+      'entity.delete',
+      { name: 'Disposable' },
+      { ctx: { extensions: { [entityStoreProvision.id]: store } } }
+    );
+
+    expect(result.isOk()).toBe(true);
+    const notifications = getNotifications();
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]?.action).toBe('deleted');
+    expect(notifications[0]?.entityName).toBe('Disposable');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Topo registration sanity
+// ---------------------------------------------------------------------------
+
+describe('signal wiring in the demo topo', () => {
+  test('entity.updated is registered as a signal', () => {
+    expect(app.signals.has('entity.updated')).toBe(true);
+  });
+
+  test('entity.notify-updated is registered with on: [entity.updated]', () => {
+    const consumer = app.get('entity.notify-updated');
+    expect(consumer).toBeDefined();
+    expect(consumer?.on).toContain('entity.updated');
+  });
+
+  test('entity.add declares fires: [entity.updated]', () => {
+    const producer = app.get('entity.add');
+    expect(producer).toBeDefined();
+    expect(producer?.fires).toContain('entity.updated');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Warden rule coverage
+// ---------------------------------------------------------------------------
+
+describe('warden rules over the signal producer/consumer', () => {
+  test('fires-declarations passes for entity.ts', () => {
+    const source = readFileSync(entitySourcePath, 'utf8');
+    const diagnostics = firesDeclarations.check(source, entitySourcePath);
+    expect(diagnostics).toEqual([]);
+  });
+
+  test('on-references-exist passes for notify.ts with known signals', () => {
+    const source = readFileSync(notifySourcePath, 'utf8');
+    const diagnostics = onReferencesExist.checkWithContext(
+      source,
+      notifySourcePath,
+      {
+        knownSignalIds: new Set(['entity.updated']),
+        knownTrailIds: new Set(),
+      }
+    );
+    expect(diagnostics).toEqual([]);
+  });
+});

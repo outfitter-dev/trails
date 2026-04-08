@@ -91,6 +91,12 @@ export const add = trail('entity.add', {
         tags: input.tags ?? [],
         type: input.type,
       });
+      await ctx.fire?.('entity.updated', {
+        action: 'created',
+        entityId: entity.id,
+        entityName: entity.name,
+        timestamp: entity.createdAt,
+      });
       return Result.ok(toEntity(entity));
     } catch (error) {
       if (error instanceof AlreadyExistsError) {
@@ -116,6 +122,7 @@ export const add = trail('entity.add', {
       name: 'Duplicate entity returns conflict',
     },
   ],
+  fires: ['entity.updated'],
   input: z.object({
     name: z.string().describe('Entity name'),
     tags: z
@@ -141,6 +148,12 @@ export const remove = trail('entity.delete', {
     if (!deleted.deleted) {
       return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
     }
+    await ctx.fire?.('entity.updated', {
+      action: 'deleted',
+      entityId: input.name,
+      entityName: input.name,
+      timestamp: new Date().toISOString(),
+    });
     return Result.ok({ deleted: true, name: input.name });
   },
   description: 'Delete an entity by name',
@@ -157,6 +170,7 @@ export const remove = trail('entity.delete', {
       name: 'Delete non-existent entity returns not found',
     },
   ],
+  fires: ['entity.updated'],
   input: z.object({
     name: z.string().describe('Entity name to delete'),
   }),

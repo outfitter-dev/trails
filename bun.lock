@@ -75,6 +75,7 @@
       "devDependencies": {
         "@ontrails/schema": "workspace:^",
         "@ontrails/testing": "workspace:^",
+        "@ontrails/warden": "workspace:^",
       },
     },
     "packages/cli": {
