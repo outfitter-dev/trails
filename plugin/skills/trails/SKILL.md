@@ -118,14 +118,14 @@ await trailhead(app, { port: 3000 });
 
 See the CLI trailhead docs, the MCP trailhead docs, and the HTTP trailhead docs for derivation details.
 
-## Provisions
+## Resources
 
-Provisions declare infrastructure dependencies — databases, API clients, caches — as first-class primitives alongside trails and events.
+Resources declare infrastructure dependencies — databases, API clients, caches — as first-class primitives alongside trails and events.
 
-**Define** a provision with `provision()`:
+**Define** a resource with `resource()`:
 
 ```typescript
-const db = provision('db.main', {
+const db = resource('db.main', {
   create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
   dispose: (conn) => conn.close(),
   health: (conn) => conn.ping(),
@@ -133,13 +133,13 @@ const db = provision('db.main', {
 });
 ```
 
-The `create` factory receives `ProvisionContext` (env, cwd, workspaceRoot only — not the full `TrailContext`). Provisions are singletons, resolved once per process and cached.
+The `create` factory receives `ResourceContext` (env, cwd, workspaceRoot only — not the full `TrailContext`). Resources are singletons, resolved once per process and cached.
 
-**Declare** on trails with `provisions: [...]`:
+**Declare** on trails with `resources: [...]`:
 
 ```typescript
 const search = trail('search', {
-  provisions: [db],
+  resources: [db],
   input: z.object({ query: z.string() }),
   output: z.array(z.object({ id: z.string(), title: z.string() })),
   blaze: async (input, ctx) => {
@@ -149,15 +149,15 @@ const search = trail('search', {
 });
 ```
 
-**Access** via `db.from(ctx)` (typed, preferred) or `ctx.provision<Database>('db.main')` (dynamic escape hatch).
+**Access** via `db.from(ctx)` (typed, preferred) or `ctx.resource<Database>('db.main')` (dynamic escape hatch).
 
-**Test** with zero config — provisions with `mock` factories auto-resolve in `testAll(app)`. Override explicitly when needed:
+**Test** with zero config — resources with `mock` factories auto-resolve in `testAll(app)`. Override explicitly when needed:
 
 ```typescript
-testAll(app, () => ({ provisions: { 'db.main': createSpecialTestDb() } }));
+testAll(app, () => ({ resources: { 'db.main': createSpecialTestDb() } }));
 ```
 
-**Governance:** The warden enforces `provision-declarations` (usage matches declarations) and `provision-exists` (provision IDs resolve in the topo).
+**Governance:** The warden enforces `resource-declarations` (usage matches declarations) and `resource-exists` (resource IDs resolve in the topo).
 
 See [contract-patterns.md](references/contract-patterns.md) for declaration patterns and [testing-patterns.md](references/testing-patterns.md) for mock strategies.
 
@@ -219,7 +219,7 @@ trails warden          # Convention checks
 trails warden --drift  # Contract drift vs lock file
 ```
 
-Key rules: no throw in blaze functions, no trailhead imports, crosses declarations match ctx.cross() calls, provision declarations match db.from(ctx) / ctx.provision() calls, output schemas present, .describe() on fields.
+Key rules: no throw in blaze functions, no trailhead imports, crosses declarations match ctx.cross() calls, resource declarations match db.from(ctx) / ctx.resource() calls, output schemas present, .describe() on fields.
 
 ## References
 

@@ -107,24 +107,24 @@ blaze: async (input, ctx) => {
 
 **Fix:** Always check and propagate: `if (result.isErr()) return result;`
 
-## 9. Constructing dependencies inline instead of declaring provisions
+## 9. Constructing dependencies inline instead of declaring resources
 
 **Symptom:** Every trail creates its own database connection. Tests require `vi.mock()`. `testAll(app)` fails for any trail with external dependencies.
 
 **Why it's wrong:** Inline construction hides dependencies from the framework. The warden can't verify them, survey can't report them, and the testing harness can't swap them.
 
-**Fix:** Define a `provision()`, declare it on the trail, and access with `db.from(ctx)`:
+**Fix:** Define a `resource()`, declare it on the trail, and access with `db.from(ctx)`:
 
 ```typescript
 // Define once
-const db = provision('db.main', {
+const db = resource('db.main', {
   create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
   mock: () => createInMemoryDb(),
 });
 
 // Declare and access
 const search = trail('search', {
-  provisions: [db],
+  resources: [db],
   blaze: async (input, ctx) => {
     const conn = db.from(ctx);
     // ...
@@ -132,31 +132,31 @@ const search = trail('search', {
 });
 ```
 
-## 10. Forgetting mock factories on provision definitions
+## 10. Forgetting mock factories on resource definitions
 
-**Symptom:** `testAll(app)` fails with a provision resolution error because `DATABASE_URL` is not set in the test environment.
+**Symptom:** `testAll(app)` fails with a resource resolution error because `DATABASE_URL` is not set in the test environment.
 
 **Why it's wrong:** Without a `mock` factory, the testing harness falls back to the real `create` factory, which needs production-like configuration.
 
-**Fix:** Always define `mock` on provision definitions:
+**Fix:** Always define `mock` on resource definitions:
 
 ```typescript
-const db = provision('db.main', {
+const db = resource('db.main', {
   create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
   mock: () => createInMemoryDb(), // enables zero-config testAll(app)
 });
 ```
 
-## 11. Importing trailhead types into provision factories
+## 11. Importing trailhead types into resource factories
 
-**Symptom:** A provision factory imports `Request`, `McpSession`, or reads `process.argv`. It works on one trailhead but breaks on others.
+**Symptom:** A resource factory imports `Request`, `McpSession`, or reads `process.argv`. It works on one trailhead but breaks on others.
 
-**Why it's wrong:** Provision factories receive `ProvisionContext` — a narrow subset with `env`, `cwd`, and `workspaceRoot` only. Provisions are singletons resolved once per process, not per request. Trailhead-specific state would be stale after the first resolution.
+**Why it's wrong:** Resource factories receive `ResourceContext` — a narrow subset with `env`, `cwd`, and `workspaceRoot` only. Resources are singletons resolved once per process, not per request. Trailhead-specific state would be stale after the first resolution.
 
-**Fix:** Keep provision factories trailhead-agnostic. Use `svc.env` for configuration:
+**Fix:** Keep resource factories trailhead-agnostic. Use `svc.env` for configuration:
 
 ```typescript
-const api = provision('api.client', {
+const api = resource('api.client', {
   create: (svc) => Result.ok(new ApiClient(svc.env?.API_BASE_URL)),
   // Not this: create: (svc) => new ApiClient(process.argv[2])
 });

@@ -28,10 +28,10 @@ async function createOrder(items: CartItem[], customerId: string) {
 ## After
 
 ```typescript
-// provisions/db.ts
-import { provision, Result } from '@ontrails/core';
+// resources/db.ts
+import { resource, Result } from '@ontrails/core';
 
-export const db = provision('db.main', {
+export const db = resource('db.main', {
   create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
   dispose: (conn) => conn.close(),
   mock: () => createInMemoryDb(),
@@ -41,13 +41,13 @@ export const db = provision('db.main', {
 // trails/customer.ts
 import { z } from 'zod';
 import { trail, Result, NotFoundError } from '@ontrails/core';
-import { db } from '../provisions/db.js';
+import { db } from '../resources/db.js';
 
 export const get = trail('customer.get', {
   input: z.object({ id: z.string() }),
   output: z.object({ id: z.string(), email: z.string(), name: z.string() }),
   intent: 'read',
-  provisions: [db],
+  resources: [db],
   examples: [{ name: 'existing', input: { id: 'cust_123' } }],
   blaze: async (input, ctx) => {
     const conn = db.from(ctx);
@@ -58,13 +58,13 @@ export const get = trail('customer.get', {
 });
 
 // trails/inventory.ts
-import { db } from '../provisions/db.js';
+import { db } from '../resources/db.js';
 
 export const check = trail('inventory.check', {
   input: z.object({ items: z.array(CartItemSchema) }),
   output: z.object({ available: z.boolean(), total: z.number() }),
   intent: 'read',
-  provisions: [db],
+  resources: [db],
   examples: [{ name: 'in stock', input: { items: [{ sku: 'TRAIL-001', qty: 1 }] } }],
   blaze: async (input, ctx) => {
     const conn = db.from(ctx);
@@ -74,14 +74,14 @@ export const check = trail('inventory.check', {
 });
 
 // trails/order.ts — the composition trail
-import { db } from '../provisions/db.js';
+import { db } from '../resources/db.js';
 
 export const create = trail('order.create', {
   input: z.object({ customerId: z.string(), items: z.array(CartItemSchema) }),
   output: z.object({ orderId: z.string(), total: z.number() }),
   intent: 'write',
   crosses: ['customer.get', 'inventory.check'],
-  provisions: [db],
+  resources: [db],
   examples: [
     { name: 'happy path', input: { customerId: 'cust_123', items: [{ sku: 'TRAIL-001', qty: 1 }] } },
   ],
@@ -109,10 +109,10 @@ import { topo } from '@ontrails/core';
 import * as customer from '../trails/customer.js';
 import * as inventory from '../trails/inventory.js';
 import * as order from '../trails/order.js';
-import * as provisions from '../provisions/db.js';
+import * as resources from '../resources/db.js';
 
-const app = topo('shop', customer, inventory, order, provisions);
+const app = topo('shop', customer, inventory, order, resources);
 testAll(app);
 // Validates topo structure, runs all examples, checks cross coverage,
-// and uses db.mock() automatically for provision resolution
+// and uses db.mock() automatically for resource resolution
 ```
