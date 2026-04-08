@@ -63,6 +63,10 @@ export interface TrailSpec<I, O> {
   readonly crosses?: readonly string[] | undefined;
   /** Resources this trail may access via resource.from(ctx) */
   readonly resources?: readonly AnyResource[] | undefined;
+  /** IDs of signals this trail emits via ctx.fire() */
+  readonly fires?: readonly string[] | undefined;
+  /** IDs of signals that activate this trail (framework auto-subscribes) */
+  readonly on?: readonly string[] | undefined;
   /** Auth requirement: scopes object, 'public', or omitted (undeclared) */
   readonly permit?: PermitRequirement | undefined;
 }
@@ -77,7 +81,7 @@ export type Intent = 'read' | 'write' | 'destroy';
 /** A fully-defined trail — the unit of work in the Trails system */
 export interface Trail<I, O> extends Omit<
   TrailSpec<I, O>,
-  'blaze' | 'crosses' | 'intent' | 'resources'
+  'blaze' | 'crosses' | 'fires' | 'intent' | 'on' | 'resources'
 > {
   readonly kind: 'trail';
   readonly id: string;
@@ -86,6 +90,10 @@ export interface Trail<I, O> extends Omit<
   readonly crosses: readonly string[];
   /** Resources this trail may access via resource.from(ctx) (always present, default []) */
   readonly resources: readonly AnyResource[];
+  /** IDs of signals this trail emits via ctx.fire() (always present, default []) */
+  readonly fires: readonly string[];
+  /** IDs of signals that activate this trail (always present, default []) */
+  readonly on: readonly string[];
   /** What this trail does to the world (always present, default 'write') */
   readonly intent: Intent;
 }
@@ -136,19 +144,23 @@ export function trail<I, O>(
   const {
     blaze,
     crosses: rawCrosses,
+    fires: rawFires,
     intent: rawIntent,
-    resources: rawProvisions,
+    on: rawOn,
+    resources: rawResources,
     ...spec
   } = resolved.spec;
-  const resources = Object.freeze([...(rawProvisions ?? [])]);
+  const resources = Object.freeze([...(rawResources ?? [])]);
 
   return Object.freeze({
     ...spec,
     blaze: async (input: I, ctx: TrailContext) => await blaze(input, ctx),
     crosses: Object.freeze([...(rawCrosses ?? [])]),
+    fires: Object.freeze([...(rawFires ?? [])]),
     id: resolved.id,
     intent: rawIntent ?? 'write',
     kind: 'trail' as const,
+    on: Object.freeze([...(rawOn ?? [])]),
     resources,
   });
 }
