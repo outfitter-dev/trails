@@ -157,6 +157,12 @@ export const createFireFn = (
       return Result.err(dispatch.error);
     }
     const consumerCtx = buildConsumerCtx(producerCtx, signalId);
+    // Pre-bind fire on the consumer ctx as a safety net for direct
+    // executeTrail calls that skip the topo-aware path. In the normal
+    // fan-out flow below, bindFireToCtx in execute.ts rebinds fire to
+    // the fully-traced ctx before the blaze runs, so this assignment
+    // is superseded — but keeping it makes consumerCtx self-sufficient
+    // for any caller that inspects it pre-execution.
     consumerCtx.fire = createFireFn(
       topo,
       consumerCtx as TrailContextInit,
