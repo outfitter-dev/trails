@@ -8,7 +8,7 @@ import { run } from '../run';
 import { signal } from '../signal';
 import { topo } from '../topo';
 import { trail } from '../trail';
-import type { Logger, TrailContext } from '../types';
+import type { Logger } from '../types';
 
 const noopLogger: Logger = {
   child() {

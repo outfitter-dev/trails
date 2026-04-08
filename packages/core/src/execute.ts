@@ -21,7 +21,6 @@ import type {
 } from './types.js';
 
 import { createTrailContext } from './context.js';
-import { composeLayers } from './layer.js';
 import { CancelledError, InternalError, TrailsError } from './errors.js';
 import {
   TRACE_CONTEXT_KEY,
