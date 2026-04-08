@@ -137,14 +137,11 @@ const prepareContext = async (
 // ---------------------------------------------------------------------------
 
 /** Derive the status + error category fields from a trail result. */
-const deriveResultErrorCategory = (error: Error): string | undefined => {
+const deriveResultErrorCategory = (error: Error): string => {
   if (error instanceof TrailsError) {
     return error.category;
   }
-  if (error instanceof Error) {
-    return 'internal';
-  }
-  return undefined;
+  return 'internal';
 };
 
 const deriveOutcome = (

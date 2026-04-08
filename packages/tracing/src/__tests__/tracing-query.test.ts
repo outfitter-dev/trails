@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { createResourceLookup } from '@ontrails/core';
+import { createResourceLookup, passthroughTrace } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 
 import type { TraceRecord } from '../trace-record.js';
@@ -12,9 +12,6 @@ import { DEFAULT_SAMPLING } from '../sampling.js';
 import type { DevStore } from '../stores/dev.js';
 import { createDevStore } from '../stores/dev.js';
 import { tracingQuery } from '../trails/tracing-query.js';
-
-const passthroughTrace: TrailContext['trace'] = async (_label, fn) =>
-  await fn();
 
 /** Build a TrailContext with tracingResource resolved in extensions. */
 const buildCtx = (state: TracingState): TrailContext => {

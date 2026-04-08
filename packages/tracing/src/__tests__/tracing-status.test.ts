@@ -1,13 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { createResourceLookup } from '@ontrails/core';
+import { createResourceLookup, passthroughTrace } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 
 import type { TracingState } from '../tracing-state.js';
 import { DEFAULT_SAMPLING } from '../sampling.js';
 import { tracingStatus } from '../trails/tracing-status.js';
-
-const passthroughTrace: TrailContext['trace'] = async (_label, fn) =>
-  await fn();
 
 /** Build a TrailContext with tracingResource resolved in extensions. */
 const buildCtx = (state: TracingState): TrailContext => {

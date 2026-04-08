@@ -8,7 +8,7 @@ import type {
   Topo,
   TrailContext,
 } from '@ontrails/core';
-import { Result, createResourceLookup } from '@ontrails/core';
+import { Result, createResourceLookup, passthroughTrace } from '@ontrails/core';
 
 import { createTestLogger } from './logger.js';
 import type { TestTrailContextOptions } from './types.js';
@@ -16,9 +16,6 @@ import type { TestTrailContextOptions } from './types.js';
 type MutableTrailContext = {
   -readonly [K in keyof TrailContext]: TrailContext[K];
 };
-
-const passthroughTrace: TrailContext['trace'] = async (_label, fn) =>
-  await fn();
 
 // ---------------------------------------------------------------------------
 // createTestContext

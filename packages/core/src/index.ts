@@ -42,7 +42,7 @@ export type {
 export { TRAILHEAD_KEY } from './types.js';
 
 // Context factory
-export { createTrailContext } from './context.js';
+export { createTrailContext, passthroughTrace } from './context.js';
 
 // Resource
 export {
