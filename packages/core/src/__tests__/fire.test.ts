@@ -8,6 +8,31 @@ import { run } from '../run';
 import { signal } from '../signal';
 import { topo } from '../topo';
 import { trail } from '../trail';
+import type { Logger } from '../types';
+
+const noopLogger: Logger = {
+  child() {
+    return noopLogger;
+  },
+  debug() {
+    // noop
+  },
+  error() {
+    // noop
+  },
+  fatal() {
+    // noop
+  },
+  info() {
+    // noop
+  },
+  trace() {
+    // noop
+  },
+  warn() {
+    // noop
+  },
+};
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -178,6 +203,39 @@ describe('fire', () => {
       const result = await executeTrail(standalone, {});
       expect(result.isOk()).toBe(true);
       expect((result.unwrap() as { hasFire: boolean }).hasFire).toBe(false);
+    });
+  });
+
+  describe('producer context inheritance', () => {
+    test('consumer inherits producer logger and requestId', async () => {
+      const captured: { requestId: string; loggerExists: boolean }[] = [];
+      const consumer = trail('inherit.consumer', {
+        blaze: (_input, ctx) => {
+          captured.push({
+            loggerExists: ctx.logger !== undefined,
+            requestId: ctx.requestId,
+          });
+          return Result.ok({ ok: true });
+        },
+        input: z.object({ orderId: z.string(), total: z.number() }),
+        on: ['order.placed'],
+      });
+      const fireBox: { result?: Result<void, Error> } = {};
+      const app = topo('fire-inherit', {
+        consumer,
+        orderPlaced,
+        producer: makeProducer(fireBox),
+      });
+      const result = await run(
+        app,
+        'order.create',
+        { orderId: 'o-inherit', total: 1 },
+        { ctx: { logger: noopLogger, requestId: 'producer-request-id' } }
+      );
+      expect(result.isOk()).toBe(true);
+      expect(captured).toHaveLength(1);
+      expect(captured[0]?.loggerExists).toBe(true);
+      expect(captured[0]?.requestId).toBe('producer-request-id');
     });
   });
 });

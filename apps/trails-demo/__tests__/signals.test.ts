@@ -5,6 +5,8 @@
  * - entity.add declares `fires: ['entity.updated']` and calls ctx.fire
  * - entity.updated is a signal defined in src/signals/entity-signals.ts
  * - entity.notify-updated declares `on: ['entity.updated']` as a consumer
+ *   and reads its notification sink from a real resource registered on
+ *   the producer's context — proving consumer ctx inheritance (TRL-198)
  *
  * Also exercises the warden rules that guard the declarations.
  */
@@ -13,15 +15,18 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
-import { beforeEach, describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 
 import { run } from '@ontrails/core';
 import { firesDeclarations, onReferencesExist } from '@ontrails/warden';
 
 import { app } from '../src/app.js';
 import { entityStoreProvision } from '../src/resources/entity-store.js';
+import {
+  createNotificationStore,
+  notificationStoreProvision,
+} from '../src/resources/notification-store.js';
 import { createStore } from '../src/store.js';
-import { clearNotifications, getNotifications } from '../src/trails/notify.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -31,28 +36,32 @@ const moduleDir = dirname(fileURLToPath(import.meta.url));
 const entitySourcePath = resolve(moduleDir, '../src/trails/entity.ts');
 const notifySourcePath = resolve(moduleDir, '../src/trails/notify.ts');
 
+const buildCtxExtensions = (
+  entityStore: ReturnType<typeof createStore>,
+  notificationStore: ReturnType<typeof createNotificationStore>
+) => ({
+  [entityStoreProvision.id]: entityStore,
+  [notificationStoreProvision.id]: notificationStore,
+});
+
 // ---------------------------------------------------------------------------
 // End-to-end fan-out
 // ---------------------------------------------------------------------------
 
 describe('entity.updated signal flow', () => {
-  beforeEach(() => {
-    clearNotifications();
-  });
-
   test('entity.add fires entity.updated and notify consumer runs', async () => {
-    const store = createStore([]);
-
+    const entityStore = createStore([]);
+    const notificationStore = createNotificationStore();
     const result = await run(
       app,
       'entity.add',
       { name: 'Epsilon', tags: ['reactive'], type: 'concept' },
-      { ctx: { extensions: { [entityStoreProvision.id]: store } } }
+      {
+        ctx: { extensions: buildCtxExtensions(entityStore, notificationStore) },
+      }
     );
-
     expect(result.isOk()).toBe(true);
-
-    const notifications = getNotifications();
+    const notifications = notificationStore.list();
     expect(notifications).toHaveLength(1);
     expect(notifications[0]?.action).toBe('created');
     expect(notifications[0]?.entityName).toBe('Epsilon');
@@ -61,17 +70,20 @@ describe('entity.updated signal flow', () => {
   });
 
   test('entity.delete also fires entity.updated', async () => {
-    const store = createStore([{ name: 'Disposable', tags: [], type: 'tool' }]);
-
+    const entityStore = createStore([
+      { name: 'Disposable', tags: [], type: 'tool' },
+    ]);
+    const notificationStore = createNotificationStore();
     const result = await run(
       app,
       'entity.delete',
       { name: 'Disposable' },
-      { ctx: { extensions: { [entityStoreProvision.id]: store } } }
+      {
+        ctx: { extensions: buildCtxExtensions(entityStore, notificationStore) },
+      }
     );
-
     expect(result.isOk()).toBe(true);
-    const notifications = getNotifications();
+    const notifications = notificationStore.list();
     expect(notifications).toHaveLength(1);
     expect(notifications[0]?.action).toBe('deleted');
     expect(notifications[0]?.entityName).toBe('Disposable');

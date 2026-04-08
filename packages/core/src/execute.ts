@@ -10,6 +10,9 @@ import type { AnyTrail } from './trail.js';
 import type { Layer } from './layer.js';
 import type { ProvisionOverrideMap } from './resource.js';
 import type { TraceContext, TraceRecord } from './internal/tracing.js';
+import type { Topo } from './topo.js';
+
+import { createFireFn } from './fire.js';
 import type {
   Implementation,
   TraceFn,
@@ -60,6 +63,8 @@ export interface ExecuteTrailOptions {
   readonly configValues?:
     | Readonly<Record<string, Record<string, unknown>>>
     | undefined;
+  /** Topo used for signal-driven activation; required for `ctx.fire()` to work. */
+  readonly topo?: Topo | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -284,19 +289,36 @@ const runImplWithRootRecord = async (
   }
 };
 
+const bindFireToCtx = (
+  ctx: TrailContext,
+  topo: Topo | undefined
+): TrailContext => {
+  if (topo === undefined) {
+    return ctx;
+  }
+  // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
+  const fire = createFireFn(topo, ctx, (consumer, input, consumerCtx) =>
+    // eslint-disable-next-line no-use-before-define
+    executeTrail(consumer, input, { ctx: consumerCtx, topo })
+  );
+  return { ...ctx, fire };
+};
+
 const runTrail = async (
   trail: AnyTrail,
   input: unknown,
   ctx: TrailContext,
-  layers: readonly Layer[]
+  layers: readonly Layer[],
+  topo: Topo | undefined
 ): Promise<Result<unknown, Error>> => {
   const sink = getTraceSink();
   const { record, tracedCtx } = buildTracedContext(trail, ctx);
+  const ctxWithFire = bindFireToCtx(tracedCtx, topo);
   const impl = composeLayers([...layers], trail, trail.blaze);
   return await runImplWithRootRecord(
     impl as Implementation<unknown, unknown>,
     input,
-    tracedCtx,
+    ctxWithFire,
     record,
     sink
   );
@@ -332,7 +354,8 @@ export const executeTrail = async (
       trail,
       validated.value,
       resolvedCtx.value,
-      options?.layers ?? []
+      options?.layers ?? [],
+      options?.topo
     );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

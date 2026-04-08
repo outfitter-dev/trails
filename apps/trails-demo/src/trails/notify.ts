@@ -4,40 +4,16 @@
  * Demonstrates: `on:` activation wiring trails to signals emitted by
  * other trails. The runtime fans out to every consumer that lists the
  * signal in its `on:` array when a producer calls `ctx.fire()`.
+ *
+ * Consumer trails inherit the producer's full context, including
+ * resources, so the notification side-effect lives in a real
+ * `notificationStoreProvision` resource rather than a module-level array.
  */
 
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-// ---------------------------------------------------------------------------
-// Notification log -- in-memory side-effect sink
-// ---------------------------------------------------------------------------
-
-/**
- * Mutable in-memory log of notifications emitted by `entity.notify-updated`.
- *
- * Exists so the demo and its integration tests can observe the end-to-end
- * signal fan-out pipeline without a real notification transport. A real
- * app would replace this with an email/slack/webhook provision.
- */
-export interface Notification {
-  readonly action: 'created' | 'updated' | 'deleted';
-  readonly entityId: string;
-  readonly entityName: string;
-  readonly timestamp: string;
-}
-
-const notificationLog: Notification[] = [];
-
-/** Read the current notification log (defensive copy). */
-export const getNotifications = (): readonly Notification[] => [
-  ...notificationLog,
-];
-
-/** Clear the notification log. Useful between tests. */
-export const clearNotifications = (): void => {
-  notificationLog.length = 0;
-};
+import { notificationStoreProvision } from '../resources/notification-store.js';
 
 // ---------------------------------------------------------------------------
 // entity.notify-updated
@@ -46,13 +22,15 @@ export const clearNotifications = (): void => {
 /**
  * Consumer trail that reacts to entity.updated signals.
  *
- * Receives the validated signal payload as its input and logs a
- * notification. Serves as the proof-of-life for the signal fan-out
- * pipeline in the demo app.
+ * Receives the validated signal payload as its input and writes a
+ * notification to the resource-backed notification store. Serves as
+ * the proof-of-life for the signal fan-out pipeline in the demo app
+ * AND for resource access from a consumer context.
  */
 export const notifyEntityUpdated = trail('entity.notify-updated', {
   blaze: (input, ctx) => {
-    notificationLog.push({
+    const store = notificationStoreProvision.from(ctx);
+    store.push({
       action: input.action,
       entityId: input.entityId,
       entityName: input.entityName,
@@ -87,4 +65,5 @@ export const notifyEntityUpdated = trail('entity.notify-updated', {
   intent: 'write',
   on: ['entity.updated'],
   output: z.object({ notified: z.boolean() }),
+  resources: [notificationStoreProvision],
 });
