@@ -103,7 +103,7 @@ validateCliCommands(commands)      // validate command tree shape and collisions
 toCommander(commands, options?)    // escape hatch step 2
 deriveFlags(schema, overrides?)    // Zod → CLI flags
 output(value, mode)                // write to stdout in text/json/jsonl
-resolveOutputMode(flags)           // determine output format from flags/env
+resolveOutputMode(flags, topoName) // determine output format from flags/topo-derived env
 
 BuildCliCommandsOptions, ActionResultContext, OutputMode
 CliCommand, CliFlag, CliArg

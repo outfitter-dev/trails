@@ -63,53 +63,77 @@ describe('resolveOutputMode', () => {
 
   describe('flag precedence', () => {
     test('--json flag returns json', () => {
-      const result = resolveOutputMode({ json: true });
+      const result = resolveOutputMode({ json: true }, 'stash');
       expect(result.mode).toBe('json');
     });
 
     test('--jsonl flag returns jsonl', () => {
-      const result = resolveOutputMode({ jsonl: true });
+      const result = resolveOutputMode({ jsonl: true }, 'stash');
       expect(result.mode).toBe('jsonl');
     });
 
     test('--json takes priority over --jsonl', () => {
-      const result = resolveOutputMode({ json: true, jsonl: true });
+      const result = resolveOutputMode({ json: true, jsonl: true }, 'stash');
       expect(result.mode).toBe('json');
     });
 
     test('--output flag returns specified mode', () => {
-      const result = resolveOutputMode({ output: 'jsonl' });
+      const result = resolveOutputMode({ output: 'jsonl' }, 'stash');
       expect(result.mode).toBe('jsonl');
     });
 
     test('--json takes priority over --output', () => {
-      const result = resolveOutputMode({ json: true, output: 'text' });
+      const result = resolveOutputMode({ json: true, output: 'text' }, 'stash');
       expect(result.mode).toBe('json');
     });
   });
 
-  describe('environment fallback', () => {
-    test('TRAILS_JSON=1 env var returns json', () => {
-      process.env['TRAILS_JSON'] = '1';
-      const result = resolveOutputMode({});
+  describe('topo-derived environment fallback', () => {
+    test('<TOPO>_JSON=1 env var returns json', () => {
+      process.env['STASH_JSON'] = '1';
+      const result = resolveOutputMode({}, 'stash');
       expect(result.mode).toBe('json');
     });
 
-    test('TRAILS_JSONL=1 env var returns jsonl', () => {
-      process.env['TRAILS_JSONL'] = '1';
-      const result = resolveOutputMode({});
+    test('<TOPO>_JSONL=1 env var returns jsonl', () => {
+      process.env['STASH_JSONL'] = '1';
+      const result = resolveOutputMode({}, 'stash');
       expect(result.mode).toBe('jsonl');
     });
 
     test('flags take priority over env vars', () => {
-      process.env['TRAILS_JSON'] = '1';
-      const result = resolveOutputMode({ jsonl: true });
+      process.env['STASH_JSON'] = '1';
+      const result = resolveOutputMode({ jsonl: true }, 'stash');
       expect(result.mode).toBe('jsonl');
     });
 
     test('defaults to text when nothing specified', () => {
-      const result = resolveOutputMode({});
+      const result = resolveOutputMode({}, 'stash');
       expect(result.mode).toBe('text');
+    });
+
+    test('env var for a different topo does not leak', () => {
+      process.env['OTHER_JSON'] = '1';
+      const result = resolveOutputMode({}, 'stash');
+      expect(result.mode).toBe('text');
+    });
+
+    test('legacy TRAILS_JSON is no longer honored', () => {
+      process.env['TRAILS_JSON'] = '1';
+      const result = resolveOutputMode({}, 'stash');
+      expect(result.mode).toBe('text');
+    });
+
+    test('topo name with hyphens is normalized to underscores', () => {
+      process.env['MY_APP_JSON'] = '1';
+      const result = resolveOutputMode({}, 'my-app');
+      expect(result.mode).toBe('json');
+    });
+
+    test('topo name starting with a digit gets underscore prefix', () => {
+      process.env['_1APP_JSON'] = '1';
+      const result = resolveOutputMode({}, '1app');
+      expect(result.mode).toBe('json');
     });
   });
 });

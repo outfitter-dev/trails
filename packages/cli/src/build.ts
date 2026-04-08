@@ -44,6 +44,7 @@ export interface ActionResultContext {
   readonly flags: Record<string, unknown>;
   readonly input: unknown;
   readonly result: Result<unknown, Error>;
+  readonly topoName: string;
   readonly trail: AnyTrail;
 }
 
@@ -299,6 +300,7 @@ const createExecute =
         flags: parsedFlags,
         input: { ...parsedArgs, ...parsedFlags },
         result: merged,
+        topoName: app.name,
         trail: t,
       });
       return merged;
@@ -330,6 +332,7 @@ const createExecute =
       flags: parsedFlags,
       input: reportInput,
       result: finalResult,
+      topoName: app.name,
       trail: t,
     });
     return finalResult;

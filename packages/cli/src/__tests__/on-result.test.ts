@@ -32,6 +32,7 @@ describe('defaultOnResult', () => {
       flags: {},
       input: { name: 'test' },
       result: Result.ok('hello'),
+      topoName: 'test',
       trail: stubTrail(),
     };
     await defaultOnResult(ctx);
@@ -44,6 +45,7 @@ describe('defaultOnResult', () => {
       flags: { json: true },
       input: {},
       result: Result.ok({ id: 1 }),
+      topoName: 'test',
       trail: stubTrail(),
     };
     await defaultOnResult(ctx);
@@ -57,6 +59,7 @@ describe('defaultOnResult', () => {
       flags: {},
       input: {},
       result: Result.err(error),
+      topoName: 'test',
       trail: stubTrail(),
     };
     expect(defaultOnResult(ctx)).rejects.toThrow('something broke');

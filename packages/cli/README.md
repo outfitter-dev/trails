@@ -58,7 +58,7 @@ commands.
 | `toCommander(commands, options?)` | Connect `CliCommand[]` to a Commander program |
 | `deriveFlags(schema)` | Extract honest CLI flags from a Zod schema |
 | `output(data, mode)` | Format output as JSON, JSONL, or text |
-| `resolveOutputMode(options)` | Resolve output mode from flags and env vars |
+| `resolveOutputMode(flags, topoName)` | Resolve output mode from flags and topo-derived env vars (`<TOPO>_JSON`, `<TOPO>_JSONL`) |
 
 See the [API Reference](../../docs/api-reference.md) for the full list.
 
