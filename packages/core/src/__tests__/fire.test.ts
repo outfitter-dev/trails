@@ -285,6 +285,39 @@ describe('fire', () => {
     });
   });
 
+  describe('signal-value overload', () => {
+    test('ctx.fire(signal, payload) accepts a signal value and fans out', async () => {
+      const capture = createCapture();
+      const consumerA = makeConsumer('notify.email', capture);
+      const valueProducer = trail('order.create-by-value', {
+        blaze: async (input, ctx) => {
+          const fired = await ctx.fire?.(orderPlaced, {
+            orderId: input.orderId,
+            total: input.total,
+          });
+          return fired as Result<unknown, Error>;
+        },
+        fires: ['order.placed'],
+        input: z.object({ orderId: z.string(), total: z.number() }),
+      });
+      const app = topo('fire-signal-value', {
+        consumerA,
+        orderPlaced,
+        valueProducer,
+      });
+      const result = await run(app, 'order.create-by-value', {
+        orderId: 'o-value',
+        total: 99,
+      });
+      expect(result.isOk()).toBe(true);
+      expect(capture.invocations).toHaveLength(1);
+      expect(capture.invocations[0]?.payload).toEqual({
+        orderId: 'o-value',
+        total: 99,
+      });
+    });
+  });
+
   describe('option forwarding', () => {
     test('consumer inherits producer layers applied via options.layers', async () => {
       const layerCalls: string[] = [];
