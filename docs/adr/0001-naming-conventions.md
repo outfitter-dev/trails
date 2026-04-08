@@ -54,11 +54,19 @@ Bad:
 
 Trail-native terms are not reserved only for the most romantic concepts. They should cover the framework's core model end to end.
 
-**Trail-native:** `trail`, `blaze`, `topo`, `trailhead`, `run`, `cross`, `crosses`, `signal`, `fires`, `provision`, `provisions`, `gate`, `tracker`, `track`, `permit`, `loadout`, `warden`, `mount`, `pack`, `depot`
+**Branded (top-level):** `trail`, `trailhead`, `topo`, `warden`, `permit`
 
-**Standard:** `logger`, `config`, `context`, `Result`, `error`, `connector`, `build*`, `to*`, `connect*`
+**Branded (inside `trail()`):** `blaze`, `fires`, `on`, `detour`, `cross`, `crosses`, `signal`, `pin`
 
-The test is no longer "would another framework use this word?" The test is "does this concept belong to the story Trails tells?" If yes, give it the framework vocabulary.
+**Branded (compound/derived):** `mount`, `pack`, `depot`, `survey`, `guide`
+
+**Plain:** `run`, `layer`, `resource`, `resources`, `profile`, `tracing`, `TraceRecord`, `pattern`, `store`, `projection`, `logger`, `config`, `context`, `Result`, `error`, `connector`, `intent`, `meta`, `health`, `build*`, `to*`, `connect*`
+
+The test is sharper than "does this concept belong to the story Trails tells?" The current heuristic, set by [ADR-0023](0023-simplifying-the-trails-lexicon.md), is:
+
+> Brand when the standard word would shrink the concept in the developer's mind. Stay plain when the standard word accurately describes the scope and contract.
+
+Branding earns its keep when the standard word would anchor the developer to a narrower concept than what Trails actually provides. Plain wins when the standard word already carries the right meaning. See `docs/lexicon.md` for the full term-by-term rationale.
 
 ### `test*` for testing helpers
 
@@ -195,7 +203,12 @@ Zod remains the schema authoring language. Trails owns the surrounding language 
 
 ### A note on the ADR record
 
-This vocabulary cutover was applied retroactively across all accepted and draft ADRs in a single pass (`13b3d9c`). We made this one-time exception to the normal ADR process — rewriting existing decisions in place rather than superseding them — because the project is pre-release and the old vocabulary would only create confusion for people reading through the ADR history or for agents consuming the docs. The goal was to settle the language before Trails ships publicly. Moving forward, any vocabulary changes will have a corresponding ADR documenting the decision.
+The Trails lexicon has been cut over twice in the pre-1.0 window. Both cutovers were applied in place across the ADR record rather than threaded through supersession, because the project is still pre-release and the old terms would only create confusion for people reading through the ADR history or for agents consuming the docs. Each cutover has its own ADR documenting the decision; this section is a running log of where the in-place rewrites happened.
+
+- **Cutover 1** (`13b3d9c`): Initial vocabulary lockdown. Established `trail`, `blaze`, `topo`, `trailhead`, `provision`, `gate`, `tracker`, `loadout`, and the rest of the original Trails-native term set. Applied retroactively across all accepted and draft ADRs in a single pass.
+- **Cutover 2** ([ADR-0023](0023-simplifying-the-trails-lexicon.md)): Pre-1.0 simplification. Renamed `gate` → `layer`, `provision` → `resource`, `loadout` → `profile`, `tracker`/`Track` → `tracing`/`TraceRecord`. Split `fires` into producer (`fires:`) and consumer (`on:`). Renamed `docs/vocabulary.md` → `docs/lexicon.md` and reframed the document as the lexicon (not just a word list). Adopted the brand-vs-plain heuristic as the governing rule for new terms. Applied in place across the ADR record using the same precedent as Cutover 1.
+
+Moving forward, any lexicon changes will have a corresponding ADR documenting the decision and a new entry in this log.
 
 ## References
 
@@ -203,4 +216,4 @@ This vocabulary cutover was applied retroactively across all accepted and draft 
 - [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md)
 - [ADR-0013: Tracker](0013-tracker.md)
 - [API Reference](../api-reference.md)
-- [Vocabulary](../vocabulary.md)
+- [Vocabulary](../lexicon.md)

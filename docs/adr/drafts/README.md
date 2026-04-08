@@ -36,3 +36,6 @@ Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.
   - depends on [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md), [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md)
 - [Entity Trail Factories](20260401-entity-trail-factories.md)
   - depends on [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md), [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md), [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md), [Declarative Search](20260401-declarative-search.md)
+- [Documentation freshness SLAs](20260406-documentation-freshness.md)
+  - depends on [Documentation structure](20260406-documentation-structure.md)
+- [Documentation structure](20260406-documentation-structure.md)

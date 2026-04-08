@@ -273,7 +273,7 @@ The `provisions: [db]` declaration tells the topo which infrastructure this trai
 ## What's Next
 
 - [Architecture](./architecture.md) -- How the hexagonal model works
-- [Vocabulary](./vocabulary.md) -- All Trails terms defined
+- [Lexicon](./lexicon.md) -- All Trails terms defined
 - [Testing Guide](./testing.md) -- TDD approach, contract testing, harnesses
 - [CLI Trailhead Guide](./trailheads/cli.md) -- Flag derivation, output modes, gates
 - [MCP Trailhead Guide](./trailheads/mcp.md) -- Annotations, progress, tool naming

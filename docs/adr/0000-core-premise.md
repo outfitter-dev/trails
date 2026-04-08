@@ -198,6 +198,6 @@ But the trailheads Trails produces are universally consumable. A CLI built with 
 
 - [ADR-0001: Naming Conventions](0001-naming-conventions.md) — naming rules derived from these principles
 - [API Reference](../api-reference.md) — the canonical public API trailhead
-- [Vocabulary](../vocabulary.md) — the Trails vocabulary guide
+- [Vocabulary](../lexicon.md) — the Trails vocabulary guide
 - [Architecture](../architecture.md) — system architecture
 - [Why Trails](../why-trails.md) — the motivation behind the framework
