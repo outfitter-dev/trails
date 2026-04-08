@@ -11,10 +11,14 @@ type MutableTrailContext = {
  * implementation. The passthrough runs `fn` without recording anything so
  * direct `createTrailContext()` callers (tests, ad-hoc compositions) don't
  * crash when invoking `ctx.trace(...)`.
+ *
+ * Declared `async` so both synchronous throws and async rejections from `fn`
+ * propagate as a rejected promise to the caller — matching the real
+ * sink-writing implementation's error semantics.
  */
-const passthroughTrace: TraceFn = async <T>(
+export const passthroughTrace: TraceFn = async <T>(
   _label: string,
-  fn: () => Promise<T>
+  fn: () => T | Promise<T>
 ): Promise<T> => await fn();
 
 /**

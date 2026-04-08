@@ -164,15 +164,17 @@ const deriveOutcome = (
     ok: () => ({ errorCategory: undefined, status: 'ok' }),
   });
 
-/** Best-effort error category for a thrown (not Result.err) value. */
-const categorizeSpanError = (error: unknown): string | undefined => {
+/**
+ * Best-effort error category for a thrown (not Result.err) value.
+ *
+ * Unknown/non-Error throws normalize to `'internal'` so the trace record
+ * always carries a category when the trail unexpectedly throws.
+ */
+const categorizeSpanError = (error: unknown): string => {
   if (error instanceof TrailsError) {
     return error.category;
   }
-  if (error instanceof Error) {
-    return 'internal';
-  }
-  return undefined;
+  return 'internal';
 };
 
 /** Extract the permit identity fields for the trace record. */
@@ -207,9 +209,9 @@ const extractPermit = (
  * is implemented in a later phase. For Phase 1, sibling spans under the
  * trail's root are the supported shape.
  */
-const buildTraceFn = (parent: TraceContext): TraceFn => {
-  const sink = getTraceSink();
-  return async <T>(label: string, fn: () => Promise<T>): Promise<T> => {
+const buildTraceFn =
+  (parent: TraceContext, sink: ReturnType<typeof getTraceSink>): TraceFn =>
+  async <T>(label: string, fn: () => T | Promise<T>): Promise<T> => {
     const record = createSpanRecord(parent, label);
     try {
       const value = await fn();
@@ -223,12 +225,12 @@ const buildTraceFn = (parent: TraceContext): TraceFn => {
       throw error;
     }
   };
-};
 
 /** Build the root trace record + trace-enriched context for a trail run. */
 const buildTracedContext = (
   trail: AnyTrail,
-  ctx: TrailContext
+  ctx: TrailContext,
+  sink: ReturnType<typeof getTraceSink>
 ): { readonly record: TraceRecord; readonly tracedCtx: TrailContext } => {
   // If a parent trace context is present (set by an outer executeTrail when
   // the current trail was invoked via ctx.cross or ctx.fire), inherit its
@@ -263,7 +265,7 @@ const buildTracedContext = (
       ...ctx.extensions,
       [TRACE_CONTEXT_KEY]: rootTrace,
     },
-    trace: buildTraceFn(rootTrace),
+    trace: buildTraceFn(rootTrace, sink),
   };
 
   return { record, tracedCtx };
@@ -316,7 +318,7 @@ const runTrail = async (
   layers: readonly Layer[]
 ): Promise<Result<unknown, Error>> => {
   const sink = getTraceSink();
-  const { record, tracedCtx } = buildTracedContext(trail, ctx);
+  const { record, tracedCtx } = buildTracedContext(trail, ctx, sink);
   let prepared: ReturnType<typeof prepareRunImpl>;
 
   try {

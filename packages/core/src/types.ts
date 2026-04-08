@@ -30,7 +30,10 @@ export type ResourceLookup = <T = unknown>(
  * writes the completed span to the registered sink. Errors thrown by `fn`
  * are recorded on the span and then rethrown — tracing never swallows them.
  */
-export type TraceFn = <T>(label: string, fn: () => Promise<T>) => Promise<T>;
+export type TraceFn = <T>(
+  label: string,
+  fn: () => T | Promise<T>
+) => Promise<T>;
 
 /** Callback for reporting progress from long-running trails */
 export type ProgressCallback = (event: ProgressEvent) => void;
@@ -81,10 +84,12 @@ export interface TrailContext {
   /**
    * Wrap a callback in a child trace span.
    *
-   * Always present on contexts produced by `executeTrail`. Nested calls
-   * create nested spans under the current trail's root trace record.
+   * Always present on contexts produced by `executeTrail` or
+   * `createTrailContext`. Optional on the interface so manually constructed
+   * contexts (tests, ad-hoc compositions) don't have to supply one — call
+   * sites tolerate `undefined` by falling back to a no-op passthrough.
    */
-  readonly trace: TraceFn;
+  readonly trace?: TraceFn | undefined;
 }
 
 /**
