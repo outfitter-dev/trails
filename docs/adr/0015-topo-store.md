@@ -47,7 +47,7 @@ CREATE TABLE topo_saves (
   git_dirty INTEGER DEFAULT 0,
   trail_count INTEGER DEFAULT 0,
   signal_count INTEGER DEFAULT 0,
-  provision_count INTEGER DEFAULT 0,
+  resource_count INTEGER DEFAULT 0,
   created_at TEXT NOT NULL
 );
 
@@ -82,17 +82,17 @@ CREATE TABLE topo_crossings (
   FOREIGN KEY (save_id) REFERENCES topo_saves(id)
 );
 
--- Resources declared per trail
-CREATE TABLE topo_trail_provisions (
+-- Resources declared per trail [^adr23]
+CREATE TABLE topo_trail_resources (
   trail_id TEXT NOT NULL,
-  provision_id TEXT NOT NULL,
+  resource_id TEXT NOT NULL,
   save_id TEXT NOT NULL,
-  PRIMARY KEY (trail_id, provision_id, save_id),
+  PRIMARY KEY (trail_id, resource_id, save_id),
   FOREIGN KEY (save_id) REFERENCES topo_saves(id)
 );
 
--- Resource definitions
-CREATE TABLE topo_provisions (
+-- Resource definitions [^adr23]
+CREATE TABLE topo_resources (
   id TEXT NOT NULL,
   has_mock INTEGER DEFAULT 0,
   has_health INTEGER DEFAULT 0,

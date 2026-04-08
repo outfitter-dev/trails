@@ -1,11 +1,15 @@
 import type { SQLQueryBindings } from 'bun:sqlite';
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 
 import { NotFoundError } from './errors.js';
 import { resource } from './resource.js';
 import { Result } from './result.js';
 import type { TopoPinRecord, TopoSaveRecord } from './internal/topo-saves.js';
-import { getTopoPin } from './internal/topo-saves.js';
+import {
+  TOPO_SCHEMA_VERSION,
+  ensureTopoHistorySchema,
+  getTopoPin,
+} from './internal/topo-saves.js';
 import type {
   TopoStoreExportRecord,
   TopoStoreResourceRecord,
@@ -24,8 +28,136 @@ import {
   queryTopoStore,
   resolveTopoStoreSave,
 } from './internal/topo-store-read.js';
-import { openReadTrailsDb, resolveTrailsDbPath } from './internal/trails-db.js';
+import {
+  openReadTrailsDb,
+  openWriteTrailsDb,
+  resolveTrailsDbPath,
+} from './internal/trails-db.js';
 import type { TrailsDbLocationOptions } from './internal/trails-db.js';
+
+interface MigratedDbIdentity {
+  readonly mtimeMs: number;
+  readonly size: number;
+}
+
+const migratedTopoDbPaths = new Map<string, MigratedDbIdentity>();
+
+/**
+ * Test-only instrumentation counters. Incremented by the read-path migration
+ * check to let tests assert that a current-schema store does not escalate to
+ * a write-mode open, and that cache invalidation re-runs the check when the
+ * underlying file is replaced.
+ *
+ * @internal
+ */
+export const __topoStoreMigrationStats = {
+  peekCalls: 0,
+  writeEscalations: 0,
+};
+
+const peekTopoSchemaVersion = (
+  options: TrailsDbLocationOptions | undefined
+): number | undefined => {
+  let db: ReturnType<typeof openReadTrailsDb> | undefined;
+  try {
+    db = openReadTrailsDb(options);
+    const row = db
+      .query<{ version: number }, [string]>(
+        'SELECT version FROM meta_schema_versions WHERE subsystem = ?'
+      )
+      .get('topo');
+    return row?.version ?? 0;
+  } catch {
+    // Table missing or unexpected shape: caller will escalate to a write-mode
+    // open and run the migration, which rebuilds the schema.
+    return undefined;
+  } finally {
+    db?.close();
+  }
+};
+
+const statIdentity = (dbPath: string): MigratedDbIdentity | undefined => {
+  try {
+    const info = statSync(dbPath);
+    return { mtimeMs: info.mtimeMs, size: info.size };
+  } catch {
+    return undefined;
+  }
+};
+
+const identitiesEqual = (
+  a: MigratedDbIdentity,
+  b: MigratedDbIdentity
+): boolean => a.mtimeMs === b.mtimeMs && a.size === b.size;
+
+const runTopoMigrationEscalation = (
+  options: TrailsDbLocationOptions | undefined,
+  dbPath: string,
+  fallbackIdentity: MigratedDbIdentity
+): void => {
+  __topoStoreMigrationStats.writeEscalations += 1;
+  const db = openWriteTrailsDb(options);
+  try {
+    ensureTopoHistorySchema(db);
+  } finally {
+    db.close();
+  }
+  // Re-stat after the migration so the cached identity matches the file we
+  // just touched, avoiding a spurious second escalation on the next read.
+  const postIdentity = statIdentity(dbPath) ?? fallbackIdentity;
+  migratedTopoDbPaths.set(dbPath, postIdentity);
+};
+
+const resolveIdentityIfFresh = (
+  dbPath: string
+): MigratedDbIdentity | undefined => {
+  if (!existsSync(dbPath)) {
+    return undefined;
+  }
+  const identity = statIdentity(dbPath);
+  if (identity === undefined) {
+    return undefined;
+  }
+  const cached = migratedTopoDbPaths.get(dbPath);
+  if (cached !== undefined && identitiesEqual(cached, identity)) {
+    return undefined;
+  }
+  return identity;
+};
+
+/**
+ * Ensure the topo history schema is at the current version before any
+ * read-only access. Peeks the version through a read-only handle first and
+ * only escalates to a write-mode open + migration when the store is stale.
+ *
+ * Memoized per resolved DB path keyed on file identity (mtime + size) so a
+ * long-running process that deletes and recreates `trails.db` re-runs the
+ * migration check against the fresh file.
+ *
+ * If the DB file does not yet exist, this is a no-op — the downstream read
+ * path will surface its own NotFoundError.
+ */
+const ensureTopoMigratedIfExists = (
+  options?: TrailsDbLocationOptions
+): void => {
+  const dbPath = resolveTrailsDbPath(options);
+  const identity = resolveIdentityIfFresh(dbPath);
+  if (identity === undefined) {
+    return;
+  }
+
+  __topoStoreMigrationStats.peekCalls += 1;
+  const version = peekTopoSchemaVersion(options);
+  if (version !== undefined && version >= TOPO_SCHEMA_VERSION) {
+    // Already current — record identity and skip the write-mode open entirely,
+    // preserving the read-only contract for callers whose filesystem mounts
+    // `trails.db` read-only.
+    migratedTopoDbPaths.set(dbPath, identity);
+    return;
+  }
+
+  runTopoMigrationEscalation(options, dbPath, identity);
+};
 
 export type {
   TopoStoreExportRecord,
@@ -94,6 +226,7 @@ const requireReadDb = (
   if (!existsSync(dbPath)) {
     throw new NotFoundError(missingStoreMessage);
   }
+  ensureTopoMigratedIfExists(options);
   return openReadTrailsDb(options);
 };
 

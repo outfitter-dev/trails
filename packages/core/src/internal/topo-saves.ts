@@ -10,7 +10,7 @@ const TOPO_TABLE_STATEMENTS = [
     git_dirty INTEGER NOT NULL DEFAULT 0,
     trail_count INTEGER NOT NULL DEFAULT 0,
     signal_count INTEGER NOT NULL DEFAULT 0,
-    provision_count INTEGER NOT NULL DEFAULT 0,
+    resource_count INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS topo_pins (
@@ -39,14 +39,14 @@ const TOPO_TABLE_STATEMENTS = [
     PRIMARY KEY (source_id, target_id, save_id),
     FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
   )`,
-  `CREATE TABLE IF NOT EXISTS topo_trail_provisions (
+  `CREATE TABLE IF NOT EXISTS topo_trail_resources (
     trail_id TEXT NOT NULL,
-    provision_id TEXT NOT NULL,
+    resource_id TEXT NOT NULL,
     save_id TEXT NOT NULL,
-    PRIMARY KEY (trail_id, provision_id, save_id),
+    PRIMARY KEY (trail_id, resource_id, save_id),
     FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
   )`,
-  `CREATE TABLE IF NOT EXISTS topo_provisions (
+  `CREATE TABLE IF NOT EXISTS topo_resources (
     id TEXT NOT NULL,
     has_mock INTEGER NOT NULL DEFAULT 0,
     has_health INTEGER NOT NULL DEFAULT 0,
@@ -126,8 +126,8 @@ const TOPO_INDEX_STATEMENTS = [
   'CREATE INDEX IF NOT EXISTS idx_topo_pins_save_id ON topo_pins(save_id)',
   'CREATE INDEX IF NOT EXISTS idx_topo_trails_save_id ON topo_trails(save_id)',
   'CREATE INDEX IF NOT EXISTS idx_topo_crossings_save_id ON topo_crossings(save_id)',
-  'CREATE INDEX IF NOT EXISTS idx_topo_trail_provisions_save_id ON topo_trail_provisions(save_id)',
-  'CREATE INDEX IF NOT EXISTS idx_topo_provisions_save_id ON topo_provisions(save_id)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_trail_resources_save_id ON topo_trail_resources(save_id)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_resources_save_id ON topo_resources(save_id)',
   'CREATE INDEX IF NOT EXISTS idx_topo_signals_save_id ON topo_signals(save_id)',
   'CREATE INDEX IF NOT EXISTS idx_topo_trail_signals_save_id ON topo_trail_signals(save_id)',
   'CREATE INDEX IF NOT EXISTS idx_topo_trailheads_save_id ON topo_trailheads(save_id)',
@@ -144,7 +144,7 @@ interface TopoSaveRow {
   readonly git_dirty: number;
   readonly git_sha: string | null;
   readonly id: string;
-  readonly provision_count: number;
+  readonly resource_count: number;
   readonly signal_count: number;
   readonly trail_count: number;
 }
@@ -191,7 +191,7 @@ const rowToSave = (row: TopoSaveRow): TopoSaveRecord => ({
   createdAt: row.created_at,
   gitDirty: row.git_dirty === 1,
   id: row.id,
-  resourceCount: row.provision_count,
+  resourceCount: row.resource_count,
   signalCount: row.signal_count,
   trailCount: row.trail_count,
   ...(row.git_sha === null ? {} : { gitSha: row.git_sha }),
@@ -218,26 +218,164 @@ const runStatements = (db: Database, statements: readonly string[]): void => {
   }
 };
 
+const LEGACY_PROVISION_TABLES = [
+  'topo_provisions',
+  'topo_trail_provisions',
+] as const;
+
+const ALL_TOPO_TABLES = [
+  'topo_exports',
+  'topo_schemas',
+  'topo_examples',
+  'topo_trailheads',
+  'topo_trail_signals',
+  'topo_signals',
+  'topo_trail_on',
+  'topo_trail_fires',
+  'topo_resources',
+  'topo_trail_resources',
+  'topo_crossings',
+  'topo_trails',
+  'topo_pins',
+  'topo_saves',
+] as const;
+
+const notifyLegacyDrop = (savesCleared: boolean): void => {
+  // biome-ignore lint/suspicious/noConsole: one-shot migration notice
+  console.info(
+    savesCleared
+      ? 'topo store schema updated per ADR-0023; previous topo saves cleared'
+      : 'topo store schema updated per ADR-0023; legacy provision tables removed'
+  );
+};
+
+const topoSavesHasLegacyProvisionColumn = (db: Database): boolean => {
+  if (!tableExists(db, 'topo_saves')) {
+    return false;
+  }
+  const columns = db
+    .query<{ name: string }, []>('PRAGMA table_info(topo_saves)')
+    .all();
+  return columns.some((column) => column.name === 'provision_count');
+};
+
+const dropAllTopoTables = (db: Database): void => {
+  for (const table of ALL_TOPO_TABLES) {
+    db.run(`DROP TABLE IF EXISTS ${table}`);
+  }
+};
+
+const dropLegacyProvisionTables = (db: Database): boolean => {
+  let dropped = false;
+  for (const table of LEGACY_PROVISION_TABLES) {
+    if (tableExists(db, table)) {
+      db.run(`DROP TABLE IF EXISTS ${table}`);
+      dropped = true;
+    }
+  }
+  return dropped;
+};
+
+/**
+ * Drop legacy provision schema per ADR-0023.
+ *
+ * Returns `true` when anything legacy was dropped — either the orphan
+ * `topo_provisions` / `topo_trail_provisions` tables, or the full topo
+ * table set (because `topo_saves` still carried the legacy `provision_count`
+ * column). In either case the caller MUST recreate every table from scratch,
+ * regardless of the recorded subsystem version. The version-delta migration
+ * branches only add incremental tables and cannot be trusted to rebuild
+ * missing base tables.
+ *
+ * Pure-rename stores (v4 with `resource_count` already in place) return
+ * `false` and skip the rebuild path.
+ */
+const dropLegacyProvisionSchema = (db: Database): boolean => {
+  const droppedLegacyTables = dropLegacyProvisionTables(db);
+  const hasLegacyColumn = topoSavesHasLegacyProvisionColumn(db);
+  if (hasLegacyColumn) {
+    dropAllTopoTables(db);
+  }
+  const anyDropHappened = droppedLegacyTables || hasLegacyColumn;
+  if (anyDropHappened) {
+    notifyLegacyDrop(hasLegacyColumn);
+  }
+  return anyDropHappened;
+};
+
+const createAllTopoTables = (db: Database): void => {
+  runStatements(db, TOPO_TABLE_STATEMENTS);
+  runStatements(db, TOPO_INDEX_STATEMENTS);
+};
+
+const createSchemaCacheAndExportTables = (db: Database): void => {
+  // v2→v3: add schema cache and export tables
+  runStatements(db, TOPO_TABLE_STATEMENTS.slice(10, 12));
+  runStatements(db, TOPO_INDEX_STATEMENTS.slice(10, 12));
+};
+
+const createSignalEdgeTables = (db: Database): void => {
+  // v3→v4: add persisted signal edges (fires/on)
+  runStatements(db, TOPO_TABLE_STATEMENTS.slice(12));
+  runStatements(db, TOPO_INDEX_STATEMENTS.slice(12));
+};
+
+const runVersionDeltaMigration = (
+  db: Database,
+  currentVersion: number
+): void => {
+  if (currentVersion < 2) {
+    createAllTopoTables(db);
+    return;
+  }
+  if (currentVersion === 2) {
+    createSchemaCacheAndExportTables(db);
+  }
+  if (currentVersion < 4) {
+    createSignalEdgeTables(db);
+    return;
+  }
+  // currentVersion >= 4: (re)create all tables with the new resource*
+  // names. IF NOT EXISTS guards keep this safe when the store was already
+  // consistent.
+  createAllTopoTables(db);
+};
+
+const runTopoMigration = (db: Database, currentVersion: number): void => {
+  // v4→v5 (ADR-0023): drop any legacy `provision*` tables and rebuild
+  // `topo_saves` when it still carries the legacy `provision_count`
+  // column. Runs before the create-if-not-exists statements below so
+  // the new schema lands cleanly. Rows are not migrated.
+  const legacyDropHappened = dropLegacyProvisionSchema(db);
+
+  // When any legacy artifact was dropped — orphan provision tables OR the
+  // full topo table set — the version-delta branches can't be trusted to
+  // recreate the base tables (v2/v3 deltas only add incremental tables and
+  // would leave the store permanently missing `topo_resources`,
+  // `topo_trail_resources`, etc.). Rebuild everything from scratch and skip
+  // the old deltas.
+  if (legacyDropHappened) {
+    createAllTopoTables(db);
+    return;
+  }
+
+  runVersionDeltaMigration(db, currentVersion);
+};
+
+/**
+ * Current topo subsystem schema version. Exported so read-only callers can
+ * peek at `meta_schema_versions` and skip the write-mode migration escalation
+ * when the store is already current.
+ */
+export const TOPO_SCHEMA_VERSION = 5;
+
 export const ensureTopoHistorySchema = (db: Database): void => {
   ensureSubsystemSchema(db, {
     migrate: (currentVersion) => {
-      if (currentVersion < 2) {
-        runStatements(db, TOPO_TABLE_STATEMENTS);
-        runStatements(db, TOPO_INDEX_STATEMENTS);
-      }
-      if (currentVersion === 2) {
-        // v2→v3: add schema cache and export tables
-        runStatements(db, TOPO_TABLE_STATEMENTS.slice(10, 12));
-        runStatements(db, TOPO_INDEX_STATEMENTS.slice(10, 12));
-      }
-      if (currentVersion < 4 && currentVersion >= 2) {
-        // v3→v4: add persisted signal edges (fires/on)
-        runStatements(db, TOPO_TABLE_STATEMENTS.slice(12));
-        runStatements(db, TOPO_INDEX_STATEMENTS.slice(12));
-      }
+      runTopoMigration(db, currentVersion);
     },
     subsystem: TOPO_SUBSYSTEM,
-    version: 4,
+    version: TOPO_SCHEMA_VERSION,
   });
 };
 
@@ -257,7 +395,7 @@ export const insertTopoSaveRecord = (
 
   db.run(
     `INSERT INTO topo_saves (
-      id, git_sha, git_dirty, trail_count, signal_count, provision_count, created_at
+      id, git_sha, git_dirty, trail_count, signal_count, resource_count, created_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       record.id,
@@ -310,7 +448,7 @@ export const listTopoSaves = (db: Database): readonly TopoSaveRecord[] => {
   }
   const rows = db
     .query<TopoSaveRow, []>(
-      `SELECT id, git_sha, git_dirty, trail_count, signal_count, provision_count, created_at
+      `SELECT id, git_sha, git_dirty, trail_count, signal_count, resource_count, created_at
        FROM topo_saves
        ORDER BY created_at DESC, id DESC`
     )
@@ -365,7 +503,7 @@ export const getTopoSave = (
   }
   const row = db
     .query<TopoSaveRow, [string]>(
-      `SELECT id, git_sha, git_dirty, trail_count, signal_count, provision_count, created_at
+      `SELECT id, git_sha, git_dirty, trail_count, signal_count, resource_count, created_at
        FROM topo_saves
        WHERE id = ?`
     )

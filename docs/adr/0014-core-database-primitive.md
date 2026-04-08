@@ -101,7 +101,7 @@ CREATE TABLE topo_saves (
   git_dirty INTEGER,          -- 1 if working tree had uncommitted changes
   trail_count INTEGER,        -- summary stats for quick display
   signal_count INTEGER,
-  provision_count INTEGER,
+  resource_count INTEGER,
   created_at TEXT NOT NULL     -- ISO 8601
 );
 

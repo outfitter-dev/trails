@@ -5,7 +5,9 @@ import { join } from 'node:path';
 
 import { z } from 'zod';
 
+import { NotFoundError } from '../errors.js';
 import { Result, resource, signal, topo, trail } from '../index.js';
+import { __topoStoreMigrationStats, createTopoStore } from '../topo-store.js';
 import {
   ensureTopoHistorySchema,
   pinTopoSave,
@@ -221,8 +223,8 @@ const expectProjectionCounts = (
 ): void => {
   expect(countRows(db, 'topo_trails', saveId)).toBe(2);
   expect(countRows(db, 'topo_crossings', saveId)).toBe(1);
-  expect(countRows(db, 'topo_trail_provisions', saveId)).toBe(3);
-  expect(countRows(db, 'topo_provisions', saveId)).toBe(2);
+  expect(countRows(db, 'topo_trail_resources', saveId)).toBe(3);
+  expect(countRows(db, 'topo_resources', saveId)).toBe(2);
   expect(countRows(db, 'topo_signals', saveId)).toBe(1);
   expect(countRows(db, 'topo_trail_signals', saveId)).toBe(1);
   expect(countRows(db, 'topo_trailheads', saveId)).toBe(2);
@@ -347,6 +349,160 @@ const buildSignalPruneApp = () => {
   });
 };
 
+const seedLegacyProvisionSchema = (
+  db: ReturnType<typeof openWriteTrailsDb>,
+  legacyVersion = 4
+): void => {
+  db.run(
+    `INSERT INTO meta_schema_versions (subsystem, version, updated_at)
+     VALUES ('topo', ?, ?)`,
+    [legacyVersion, '2026-04-03T10:00:00.000Z']
+  );
+  db.run(`CREATE TABLE topo_saves (
+    id TEXT PRIMARY KEY,
+    git_sha TEXT,
+    git_dirty INTEGER NOT NULL DEFAULT 0,
+    trail_count INTEGER NOT NULL DEFAULT 0,
+    signal_count INTEGER NOT NULL DEFAULT 0,
+    provision_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+  )`);
+  db.run(`CREATE TABLE topo_provisions (
+    id TEXT NOT NULL,
+    save_id TEXT NOT NULL,
+    PRIMARY KEY (id, save_id)
+  )`);
+  db.run(`CREATE TABLE topo_trail_provisions (
+    trail_id TEXT NOT NULL,
+    provision_id TEXT NOT NULL,
+    save_id TEXT NOT NULL,
+    PRIMARY KEY (trail_id, provision_id, save_id)
+  )`);
+};
+
+const seedLegacyProvisionStoreWithRow = (rootDir: string): void => {
+  const db = openWriteTrailsDb({ rootDir });
+  try {
+    seedLegacyProvisionSchema(db, 4);
+    db.run(
+      `INSERT INTO topo_saves (
+        id, git_sha, git_dirty, trail_count, signal_count, provision_count, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ['legacy-save', 'sha', 0, 0, 0, 0, '2026-04-03T11:00:00.000Z']
+    );
+  } finally {
+    db.close();
+  }
+};
+
+const captureReadError = (run: () => unknown): unknown => {
+  try {
+    run();
+    return undefined;
+  } catch (error) {
+    return error;
+  }
+};
+
+const withWriteDb = (
+  rootDir: string,
+  run: (db: ReturnType<typeof openWriteTrailsDb>) => void
+): void => {
+  const db = openWriteTrailsDb({ rootDir });
+  try {
+    run(db);
+  } finally {
+    db.close();
+  }
+};
+
+const seedOrphanLegacyProvisionTables = (
+  db: ReturnType<typeof openWriteTrailsDb>
+): void => {
+  // Seed a v2 store with the new-style `resource_count` column but orphan
+  // legacy `topo_provisions` / `topo_trail_provisions` tables hanging around.
+  db.run(
+    `INSERT INTO meta_schema_versions (subsystem, version, updated_at)
+     VALUES ('topo', 2, ?)`,
+    ['2026-04-03T10:00:00.000Z']
+  );
+  db.run(`CREATE TABLE topo_saves (
+    id TEXT PRIMARY KEY,
+    git_sha TEXT,
+    git_dirty INTEGER NOT NULL DEFAULT 0,
+    trail_count INTEGER NOT NULL DEFAULT 0,
+    signal_count INTEGER NOT NULL DEFAULT 0,
+    resource_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+  )`);
+  db.run(`CREATE TABLE topo_provisions (
+    id TEXT NOT NULL,
+    save_id TEXT NOT NULL,
+    PRIMARY KEY (id, save_id)
+  )`);
+  db.run(`CREATE TABLE topo_trail_provisions (
+    trail_id TEXT NOT NULL,
+    provision_id TEXT NOT NULL,
+    save_id TEXT NOT NULL,
+    PRIMARY KEY (trail_id, provision_id, save_id)
+  )`);
+};
+
+const assertLegacyProvisionSchemaDropped = (
+  db: ReturnType<typeof openWriteTrailsDb>
+): void => {
+  expect(tableExists(db, 'topo_provisions')).toBe(false);
+  expect(tableExists(db, 'topo_trail_provisions')).toBe(false);
+  expect(tableExists(db, 'topo_resources')).toBe(true);
+  expect(tableExists(db, 'topo_trail_resources')).toBe(true);
+  const columns = db
+    .query<{ name: string }, []>('PRAGMA table_info(topo_saves)')
+    .all();
+  const columnNames = columns.map((column) => column.name);
+  expect(columnNames).toContain('resource_count');
+  expect(columnNames).not.toContain('provision_count');
+};
+
+const seedCurrentSchemaStore = (rootDir: string): void => {
+  const db = openWriteTrailsDb({ rootDir });
+  try {
+    ensureTopoHistorySchema(db);
+  } finally {
+    db.close();
+  }
+};
+
+const assertNoWriteEscalationOnReads = (rootDir: string): void => {
+  const baselineEscalations = __topoStoreMigrationStats.writeEscalations;
+  const baselinePeeks = __topoStoreMigrationStats.peekCalls;
+
+  // First read: peek must happen, no write-mode escalation.
+  const caught = captureReadError(() =>
+    createTopoStore({ rootDir }).saves.latest()
+  );
+  expect(caught).toBeInstanceOf(NotFoundError);
+  expect(__topoStoreMigrationStats.peekCalls).toBe(baselinePeeks + 1);
+  expect(__topoStoreMigrationStats.writeEscalations).toBe(baselineEscalations);
+
+  // Second read is served entirely from the memoized identity.
+  captureReadError(() => createTopoStore({ rootDir }).saves.latest());
+  expect(__topoStoreMigrationStats.peekCalls).toBe(baselinePeeks + 1);
+  expect(__topoStoreMigrationStats.writeEscalations).toBe(baselineEscalations);
+};
+
+const replaceStoreWithLegacyProvisionStore = async (
+  rootDir: string
+): Promise<void> => {
+  // Ensure mtime/size differs so the cached identity is invalidated even on
+  // filesystems with coarse mtime granularity.
+  const dbPath = join(rootDir, '.trails', 'trails.db');
+  rmSync(dbPath, { force: true });
+  rmSync(`${dbPath}-shm`, { force: true });
+  rmSync(`${dbPath}-wal`, { force: true });
+  await Bun.sleep(10);
+  seedLegacyProvisionStoreWithRow(rootDir);
+};
+
 const seedHistoryOnlyTopoSchema = (
   db: ReturnType<typeof openWriteTrailsDb>
 ): void => {
@@ -361,7 +517,7 @@ const seedHistoryOnlyTopoSchema = (
     git_dirty INTEGER NOT NULL DEFAULT 0,
     trail_count INTEGER NOT NULL DEFAULT 0,
     signal_count INTEGER NOT NULL DEFAULT 0,
-    provision_count INTEGER NOT NULL DEFAULT 0,
+    resource_count INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
   )`);
   db.run(`CREATE TABLE IF NOT EXISTS topo_pins (
@@ -371,7 +527,7 @@ const seedHistoryOnlyTopoSchema = (
   )`);
   db.run(
     `INSERT INTO topo_saves (
-      id, git_sha, git_dirty, trail_count, signal_count, provision_count, created_at
+      id, git_sha, git_dirty, trail_count, signal_count, resource_count, created_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ['seed-save', 'seed123', 0, 1, 0, 0, '2026-04-03T11:00:00.000Z']
   );
@@ -569,6 +725,102 @@ describe('topo store projection', () => {
     });
   });
 
+  describe('ADR-0023 legacy provision schema drop', () => {
+    test('drops legacy provision schema per ADR-0023 on first open', () => {
+      withProjectionDb((db) => {
+        seedLegacyProvisionSchema(db);
+        ensureTopoHistorySchema(db);
+        assertLegacyProvisionSchemaDropped(db);
+      });
+    });
+
+    // Regression: if dropLegacyProvisionSchema wipes every topo table because
+    // of a legacy provision_count column, the version-delta migration must
+    // not skip the base tables. A v2 or v3 store with provision_count would
+    // otherwise end up with no topo_saves / topo_resources / topo_trail_resources.
+    test('createTopoStore migrates a legacy v4 provision_count store on first read', () => {
+      const rootDir = makeRoot();
+      seedLegacyProvisionStoreWithRow(rootDir);
+
+      // Pre-fix: this throws SQLiteError "no such column: resource_count"
+      // because the read-only path SELECTs resource_count before any
+      // migration runs. Post-fix: the migration runs first, drops the
+      // legacy provision schema (per ADR-0023), and the empty post-migration
+      // store surfaces a NotFoundError instead of a SQLite error.
+      const caught = captureReadError(() =>
+        createTopoStore({ rootDir }).saves.latest()
+      );
+      expect(caught).toBeInstanceOf(NotFoundError);
+
+      withWriteDb(rootDir, (db) => {
+        assertLegacyProvisionSchemaDropped(db);
+      });
+    });
+
+    test('createTopoStore skips write-mode escalation when schema is current', () => {
+      const rootDir = makeRoot();
+      seedCurrentSchemaStore(rootDir);
+      assertNoWriteEscalationOnReads(rootDir);
+    });
+
+    test('createTopoStore re-migrates after trails.db is replaced at the same path', async () => {
+      const rootDir = makeRoot();
+
+      // Round 1: seed a current-schema store and read through createTopoStore
+      // to prime the migration cache.
+      seedCurrentSchemaStore(rootDir);
+      captureReadError(() => createTopoStore({ rootDir }).saves.latest());
+      const baselineEscalations = __topoStoreMigrationStats.writeEscalations;
+
+      await replaceStoreWithLegacyProvisionStore(rootDir);
+
+      // Round 2: a fresh createTopoStore call must detect the file swap,
+      // re-run the migration, and not surface a SQLiteError.
+      const caught = captureReadError(() =>
+        createTopoStore({ rootDir }).saves.latest()
+      );
+      expect(caught).toBeInstanceOf(NotFoundError);
+      expect(__topoStoreMigrationStats.writeEscalations).toBe(
+        baselineEscalations + 1
+      );
+      withWriteDb(rootDir, (db) => {
+        assertLegacyProvisionSchemaDropped(db);
+      });
+    });
+
+    test.each([2, 3] as const)(
+      'rebuilds all tables when legacy schema drop happens from v%i',
+      (legacyVersion) => {
+        withProjectionDb((db) => {
+          seedLegacyProvisionSchema(db, legacyVersion);
+          ensureTopoHistorySchema(db);
+          assertLegacyProvisionSchemaDropped(db);
+          expect(tableExists(db, 'topo_trails')).toBe(true);
+          expect(tableExists(db, 'topo_crossings')).toBe(true);
+          expect(tableExists(db, 'topo_pins')).toBe(true);
+        });
+      }
+    );
+
+    // Regression: if the store already has `resource_count` on `topo_saves`
+    // (e.g. from a partial manual migration) but orphan `topo_provisions` /
+    // `topo_trail_provisions` tables remain, dropLegacyProvisionSchema must
+    // still trigger a full rebuild. Previously this path fell through to the
+    // version-delta migration, which for v2/v3 only created incremental
+    // tables and left the store permanently missing topo_resources /
+    // topo_trail_resources.
+    test('rebuilds all tables when orphan legacy tables exist without legacy column', () => {
+      withProjectionDb((db) => {
+        seedOrphanLegacyProvisionTables(db);
+        ensureTopoHistorySchema(db);
+        assertLegacyProvisionSchemaDropped(db);
+        expect(tableExists(db, 'topo_trails')).toBe(true);
+        expect(tableExists(db, 'topo_crossings')).toBe(true);
+        expect(tableExists(db, 'topo_pins')).toBe(true);
+      });
+    });
+  });
+
   test('upgrades a history-only topo schema to the projected topo schema', () => {
     withProjectionDb((db) => {
       seedHistoryOnlyTopoSchema(db);
@@ -579,7 +831,7 @@ describe('topo store projection', () => {
             "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
           )
           .get()?.version
-      ).toBe(4);
+      ).toBe(5);
       for (const table of [
         'topo_trails',
         'topo_crossings',
