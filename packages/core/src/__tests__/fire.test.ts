@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import { NotFoundError, ValidationError } from '../errors';
+import type { Layer } from '../layer';
 import { Result } from '../result';
 import { run } from '../run';
 import { signal } from '../signal';
