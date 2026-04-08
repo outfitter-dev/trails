@@ -108,6 +108,6 @@ Every finding includes: the file, the violation, and the correction. Do not flag
 
 ## Reference
 
-- `docs/vocabulary.md` — the full lexicon
+- `docs/lexicon.md` — the full lexicon
 - `docs/adr/0001-naming-conventions.md` — the thirteen conventions with examples
 - `packages/core/src/errors.ts` — the error taxonomy (verify current classes)

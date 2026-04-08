@@ -140,6 +140,16 @@
           "fromPath": "docs/adr/drafts/20260401-entity-trail-factories.md"
         },
         {
+          "context": "- [ADR-0000: Core premise](../0000-core-premise.md) — \"author what's new, derive what's known\" applies to freshness: author the contract, derive the enforcement",
+          "from": "20260406",
+          "fromPath": "docs/adr/drafts/20260406-documentation-freshness.md"
+        },
+        {
+          "context": "- [ADR-0000: Core premise](../adr/0000-core-premise.md) — \"author what's new, derive what's known\" applies to documentation: author the source tree, derive the site",
+          "from": "20260406",
+          "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
+        },
+        {
           "context": "- **[ADR-0000: Core Premise](./adr/0000-core-premise.md)** — Why contracts, why Result, why derive",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -189,9 +199,19 @@
           "fromPath": "docs/adr/0021-draft-state-stays-out-of-the-resolved-graph.md"
         },
         {
+          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — the grammar rules this ADR extends. Singular/plural/verb conventions carry over verbatim; this ADR adds the brand-vs-plain heuristic a",
+          "from": "0023",
+          "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
+        },
+        {
           "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md): `create*` factory convention, `derive*` prefix for framework derivations, `build*`/`to*` trailhead wiring pattern",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
+        },
+        {
+          "context": "- [ADR-0001: Naming conventions](../adr/0001-naming-conventions.md) — naming principles that apply to documentation paths",
+          "from": "20260406",
+          "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
         },
         {
           "context": "Canonical public trailhead-facing reference. For naming conventions and decision history, see [ADR-0001](./adr/0001-naming-conventions.md).",
@@ -444,6 +464,11 @@
           "fromPath": "docs/adr/0013-tracker.md"
         },
         {
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — the pipeline that absorbs intrinsic tracing when `trackerGate` collapses.",
+          "from": "0023",
+          "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
+        },
+        {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- the execution pipeline runs for each concurrent branch; the pipeline is unchanged",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
@@ -666,6 +691,11 @@
           "fromPath": "docs/adr/0022-drizzle-store-connector.md"
         },
         {
+          "context": "- [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md) — to be revisited. `provision` → `resource`. API shape unchanged.",
+          "from": "0023",
+          "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
+        },
+        {
           "context": "- [ADR-0009: Provisions as a First-Class Primitive](../0009-first-class-provisions.md) — inbound trailheads depend on the provision primitive for infrastructure dependencies (stores, email, queue clie",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
@@ -744,6 +774,11 @@
       "depends_on": [],
       "inbound": [
         {
+          "context": "- [ADR-0011: Schema-Driven Config](../0011-schema-driven-config.md) — to be revisited. `loadout` → `profile`. Config resolution unchanged.",
+          "from": "0023",
+          "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
+        },
+        {
           "context": "- **[ADR-0011: Schema-Driven Config](./adr/0011-schema-driven-config.md)** — Typed configuration from schemas",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -810,6 +845,11 @@
           "context": "- [ADR-0013: Tracker](0013-tracker.md) — execution records that colocate with topo data for cross-cutting queries",
           "from": "0015",
           "fromPath": "docs/adr/0015-topo-store.md"
+        },
+        {
+          "context": "| `trackerGate` | Built-in tracing in `executeTrail` | No longer a separately attached gate/layer. Intrinsic to the execution pipeline. Partially supersedes [ADR-0013](../0013-tracker.md)'s \"provision",
+          "from": "0023",
+          "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
         {
           "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- tracker observes concurrent vs sequential spans to derive composition shape at runtime",
@@ -899,6 +939,11 @@
           "context": "- [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) — the `trails.db` foundation",
           "from": "0018",
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
+        },
+        {
+          "context": "- **[ADR-0014: Core Database Primitive](./adr/0014-core-database-primitive.md)** — Shared `trails.db`, subsystem schema versioning",
+          "from": "index",
+          "fromPath": "docs/index.md"
         }
       ],
       "number": "0014",
@@ -928,6 +973,11 @@
           "context": "- [ADR-0015: Topo Store](0015-topo-store.md) — the read-only provision that governance trails query",
           "from": "0018",
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
+        },
+        {
+          "context": "- **[ADR-0015: Topo Store](./adr/0015-topo-store.md)** — Queryable relational projection of the resolved graph",
+          "from": "index",
+          "fromPath": "docs/index.md"
         }
       ],
       "number": "0015",
@@ -957,6 +1007,11 @@
           "context": "[ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) defines the store model: the root package owns the durable `store(...)` declaration, and connectors bind that declaration ",
           "from": "0022",
           "fromPath": "docs/adr/0022-drizzle-store-connector.md"
+        },
+        {
+          "context": "- **[ADR-0016: Schema-Derived Persistence](./adr/0016-schema-derived-persistence.md)** — `store()` declaration, connector binding, fixtures",
+          "from": "index",
+          "fromPath": "docs/index.md"
         }
       ],
       "number": "0016",
@@ -991,6 +1046,11 @@
           "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — the resolved graph and lockfile must remain established and queryable",
           "from": "0021",
           "fromPath": "docs/adr/0021-draft-state-stays-out-of-the-resolved-graph.md"
+        },
+        {
+          "context": "- **[ADR-0017: The Serialized Topo Graph](./adr/0017-serialized-topo-graph.md)** — Lockfile as resolved graph",
+          "from": "index",
+          "fromPath": "docs/index.md"
         }
       ],
       "number": "0017",
@@ -1015,6 +1075,11 @@
           "context": "- [ADR-0018: Signal-Driven Governance](0018-signal-driven-governance.md) — how topo saves and pins drive downstream behavior",
           "from": "0015",
           "fromPath": "docs/adr/0015-topo-store.md"
+        },
+        {
+          "context": "- **[ADR-0018: Signal-Driven Governance](./adr/0018-signal-driven-governance.md)** — Governance through signals",
+          "from": "index",
+          "fromPath": "docs/index.md"
         }
       ],
       "number": "0018",
@@ -1039,6 +1104,11 @@
           "context": "- [ADR-0019: Hierarchical Command Trees from Trail IDs](0019-hierarchical-command-trees-from-trail-ids.md) — the companion decision for nested command paths",
           "from": "0020",
           "fromPath": "docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md"
+        },
+        {
+          "context": "- **[ADR-0019: Hierarchical Command Trees](./adr/0019-hierarchical-command-trees-from-trail-ids.md)** — Full CLI path derivation from dotted trail IDs",
+          "from": "index",
+          "fromPath": "docs/index.md"
         }
       ],
       "number": "0019",
@@ -1058,6 +1128,11 @@
           "context": "- [ADR-0020: Flags for Fields, Structured Input on the CLI](0020-flags-for-fields-structured-input-on-the-cli.md) — defines when CLI input derives to flags and when it uses structured channels",
           "from": "0008",
           "fromPath": "docs/adr/0008-deterministic-trailhead-derivation.md"
+        },
+        {
+          "context": "- **[ADR-0020: Structured CLI Input](./adr/0020-flags-for-fields-structured-input-on-the-cli.md)** — Flags for fields, JSON/file/stdin channels",
+          "from": "index",
+          "fromPath": "docs/index.md"
         }
       ],
       "number": "0020",
@@ -1072,7 +1147,18 @@
     {
       "created": "2026-04-03",
       "depends_on": ["17"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "- [ADR-0021](adr/0021-draft-state-stays-out-of-the-resolved-graph.md) — the decision and rationale",
+          "from": "draft-state",
+          "fromPath": "docs/draft-state.md"
+        },
+        {
+          "context": "- **[ADR-0021: Draft State Containment](./adr/0021-draft-state-stays-out-of-the-resolved-graph.md)** — Draft state stays out of the resolved graph",
+          "from": "index",
+          "fromPath": "docs/index.md"
+        }
+      ],
       "number": "0021",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0021-draft-state-stays-out-of-the-resolved-graph.md",
@@ -1100,6 +1186,19 @@
       "superseded_by": null,
       "title": "Drizzle Binds Schema-Derived Stores to SQLite",
       "updated": "2026-04-03"
+    },
+    {
+      "created": "2026-04-07",
+      "depends_on": ["1"],
+      "inbound": [],
+      "number": "0023",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0023-simplifying-the-trails-lexicon.md",
+      "slug": "simplifying-the-trails-lexicon",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Simplifying the Trails Lexicon",
+      "updated": "2026-04-07"
     }
   ],
   "version": 1

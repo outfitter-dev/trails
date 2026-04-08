@@ -140,4 +140,4 @@ The development store remains local SQLite. Production export remains an optiona
 - [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md)
 - [ADR-0009: Provisions as a First-Class Primitive](0009-first-class-provisions.md)
 - [ADR-0012: Connector-Agnostic Permits](0012-connector-agnostic-permits.md)
-- [Vocabulary](../vocabulary.md)
+- [Lexicon](../lexicon.md)

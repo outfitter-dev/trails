@@ -56,7 +56,7 @@ rg "\.run\(" --type ts -g '*/trails/*'
 Compare the docs against the code:
 
 - Do the ADRs reflect the current state? Check status fields.
-- Does `vocabulary.md` cover all exported terms?
+- Does `lexicon.md` cover all exported terms?
 - Does `architecture.md` match the actual package structure?
 - Is `horizons.md` current? Have any horizon items shipped without being moved to "shipped"?
 
@@ -133,7 +133,7 @@ After the survey, write the current findings to `.trails/clark/survey-latest.md`
 
 ## Reference
 
-- `docs/vocabulary.md` — vocabulary to enforce
+- `docs/lexicon.md` — lexicon to enforce
 - `docs/adr/001-naming-conventions.md` — naming conventions to check
 - `docs/architecture.md` — structural expectations
 - `AGENTS.md` — current conventions

@@ -52,8 +52,8 @@ Append to `.trails/clark/decisions.md`:
   - Decide based on ADR-0001 Convention 6 (`create*` for factories) vs Convention 9 (`build*` for trailhead derivation).
     - If it creates a runtime instance, `create*`.
     - If it derives trailhead configuration, `build*`.
-- **Vocabulary:** "Can we call this a 'middleware'?"
-  - Decide based on `vocabulary.md`. If it is a gate, call it a gate. "Middleware" is not in the Trails vocabulary.
+- **Lexicon:** "Can we call this a 'middleware'?"
+  - Decide based on `lexicon.md`. If it is a layer, call it a layer. "Middleware" is not in the Trails lexicon.
 - **Architecture:** "Should this logic go in the trail blaze or in a gate?"
   - Decide based on the hexagonal model.
     - If it is trailhead-agnostic domain logic, it belongs in the blaze.

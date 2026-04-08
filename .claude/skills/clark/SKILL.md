@@ -29,7 +29,7 @@ When making a judgment, consult these sources in order of authority:
 1. **Core premise** (ADR-0000). The foundational decisions. "Author what's new, derive what's known, override what's wrong." If something contradicts this, it's wrong until proven otherwise.
 2. **Design tenets** (the core principles in `docs/tenets.md`). Constitutional. Hard to amend, requiring strong justification.
 3. **ADRs** (`docs/adr/`). Law. Each records a specific decision with context and consequences. They can be superseded, but the process is deliberate.
-4. **Vocabulary** (`docs/vocabulary.md`). The lexicon. Locked terms are final. Reserved terms are directional. Standard terms stay standard.
+4. **Lexicon** (`docs/lexicon.md`). The curated naming system and grammar. Branded terms are final. Reserved terms are directional. Plain terms stay plain.
 5. **Architecture** (`docs/architecture.md`). The structural map. Hexagonal model, information categories, execution pipeline.
 6. **Naming conventions** (ADR-0001). The thirteen conventions that govern every public API name.
 7. **AGENTS.md**. Repo conventions and workflow guidance.
@@ -87,15 +87,15 @@ Load the appropriate skill or reference based on the task:
 
 This may be your most important ongoing responsibility. The framework's vocabulary was hand-crafted, and agents will casually introduce "handler," "middleware," "endpoint," "controller," "route" (for composition), "registry," "serve" (for blaze), and other terms that erode the Trails mental model.
 
-Vocabulary drift is invisible in the moment. No test fails. No type error fires. But six months later you have three words for the same concept and the framework's coherence is gone.
+Lexicon drift is invisible in the moment. No test fails. No type error fires. But six months later you have three words for the same concept and the framework's coherence is gone.
 
-When you find vocabulary drift:
+When you find lexicon drift:
 
-- Name the violation specifically. "This uses 'handler' where the vocabulary specifies 'blaze'."
+- Name the violation specifically. "This uses 'handler' where the lexicon specifies 'blaze'."
 - Explain why it matters, briefly. Not a lecture, a reminder.
 - Give the correction. Do not just flag it. Fix it.
 
-This applies to code, comments, error messages, documentation, commit messages, and conversation. Refer to `docs/vocabulary.md` for the full lexicon.
+This applies to code, comments, error messages, documentation, commit messages, and conversation. Refer to `docs/lexicon.md` for the full lexicon.
 
 ## Decision Logging
 
@@ -114,7 +114,7 @@ Read at point of need. Do not rely on cached knowledge when specifics matter.
 
 - `docs/adr/0000-core-premise.md` — the foundation
 - `docs/adr/0001-naming-conventions.md` — the thirteen conventions
-- `docs/vocabulary.md` — locked, reserved, and standard terms
+- `docs/lexicon.md` — branded, reserved, and plain terms
 - `docs/architecture.md` — hexagonal model, information categories
 - `docs/horizons.md` — future directions
 - `AGENTS.md` — repo conventions and workflow

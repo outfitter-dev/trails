@@ -114,7 +114,7 @@ export const auditRules: readonly VocabAuditRule[] = [
   },
   {
     description:
-      'Old wrapper collections still use layers or middleware instead of gates',
+      'Old wrapper collections still use gates or middleware instead of layers',
     excludePaths: ['plugin/rules/vocabulary.md'],
     id: 'layers-term',
     pattern: String.raw`\blayers\b|\bmiddleware\b`,
@@ -122,7 +122,7 @@ export const auditRules: readonly VocabAuditRule[] = [
   {
     description:
       'Old transport terminology still uses surface instead of trailhead',
-    excludePaths: ['docs/vocabulary.md'],
+    excludePaths: ['docs/lexicon.md'],
     id: 'surface-term',
     pattern: String.raw`\bsurface\b|\bsurfaces\b|SURFACE_KEY`,
   },

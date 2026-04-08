@@ -53,7 +53,7 @@ Use the project language consistently:
 - `provision`, not service or dependency
 - `gate`, not layer
 
-`mount` is reserved for cross-app composition. See `docs/vocabulary.md` for the full vocabulary guide.
+`mount` is reserved for cross-app composition. See `docs/lexicon.md` for the full lexicon.
 
 ## Trail Rules
 
@@ -143,7 +143,7 @@ To exit pre-release mode for a stable release: `bunx changeset pre exit`, then v
 
 - `docs/getting-started.md`
 - `docs/architecture.md`
-- `docs/vocabulary.md`
+- `docs/lexicon.md`
 - `docs/why-trails.md`
 - `docs/testing.md`
 

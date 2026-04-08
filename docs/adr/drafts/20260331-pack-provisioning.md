@@ -366,4 +366,4 @@ The warden gains provisions-aware rules:
 - ADR: The Serialized Topo Graph (draft) -- provisions state is captured in the lockfile graph; provisions occupy a section in `trails.lock`
 - [ADR-0013: Tracker](../0013-tracker.md) -- telemetry primitives that provisions can carry and trailhead
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- survey output provides the contract snapshots
-- [docs/vocabulary.md](../../vocabulary.md) -- `pack` reserved term; `provisions` to be added
+- [docs/lexicon.md](../../lexicon.md) -- `pack` reserved term; `provisions` to be added

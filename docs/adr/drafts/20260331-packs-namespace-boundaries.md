@@ -370,5 +370,5 @@ The warden enforces pack boundaries:
 - ADR: External Trailheads as Trail Contracts (draft) -- rigged trails compose into packs with the same layering pattern
 - [ADR-0013: Tracker](../0013-tracker.md) -- observability primitive; packs scope tracker emission boundaries
 - ADR: The Serialized Topo Graph (draft) -- lockfile records pack membership and trailhead bindings
-- [docs/vocabulary.md](../../vocabulary.md) -- `pack` reserved term
+- [docs/lexicon.md](../../lexicon.md) -- `pack` reserved term
 - [docs/horizons.md](../../horizons.md) -- packs listed as mid-term direction

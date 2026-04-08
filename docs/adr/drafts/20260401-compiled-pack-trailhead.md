@@ -326,5 +326,5 @@ If a pack doesn't make sense as a library, that's feedback on the pack design, n
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md): the derivation properties (pure, deterministic, explicit lookup tables, overridable) that the library trailhead must also follow
 - [ADR-0009: Services](../0009-first-class-provisions.md): provision lifecycle, factory/dispose/health/mock, and the execution model the library trailhead must project into consumer-facing runtime inputs
 - ADR: Typed Signal Emission (draft) -- event payload schemas and provenance model; the library trailhead's event projection depends on where that ADR lands
-- [Vocabulary: `pack`](../../vocabulary.md): the distributable capability bundle concept, sharpened here as a compilable library boundary
+- [Vocabulary: `pack`](../../lexicon.md): the distributable capability bundle concept, sharpened here as a compilable library boundary
 - [Horizons: Packs](../../horizons.md): the mid-term direction for packs as a distributable unit

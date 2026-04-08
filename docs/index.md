@@ -4,7 +4,7 @@
 
 1. **[Why Trails](./why-trails.md)** — The problem, the approach, why contracts beat conventions
 2. **[Getting Started](./getting-started.md)** — Install, define your first trail, open a CLI trailhead, test it
-3. **[Vocabulary](./vocabulary.md)** — The terms you'll use every day: trail, blaze, topo, trailhead, cross, provision, signal, gate, tracker
+3. **[Lexicon](./lexicon.md)** — The terms you'll use every day: trail, blaze, topo, trailhead, cross, resource, signal, layer, tracing
 
 ## Building something?
 
@@ -53,6 +53,7 @@
 - **[ADR-0020: Structured CLI Input](./adr/0020-flags-for-fields-structured-input-on-the-cli.md)** — Flags for fields, JSON/file/stdin channels
 - **[ADR-0021: Draft State Containment](./adr/0021-draft-state-stays-out-of-the-resolved-graph.md)** — Draft state stays out of the resolved graph
 - **[ADR-0022: Drizzle Store Connector](./adr/0022-drizzle-store-connector.md)** — Drizzle binds schema-derived stores to SQLite
+- **[ADR-0023: Simplifying the Trails Lexicon](./adr/0023-simplifying-the-trails-lexicon.md)** — Brand-vs-plain heuristic, four pre-1.0 renames, vocabulary → lexicon
 
 ## Where to next?
 
