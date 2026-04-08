@@ -75,6 +75,9 @@ describe('entity.updated signal flow', () => {
     expect(notifications).toHaveLength(1);
     expect(notifications[0]?.action).toBe('deleted');
     expect(notifications[0]?.entityName).toBe('Disposable');
+    // entityId should be the store-generated id, not the natural key.
+    expect(notifications[0]?.entityId).toBeString();
+    expect(notifications[0]?.entityId).not.toBe('Disposable');
   });
 });
 

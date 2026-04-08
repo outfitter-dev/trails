@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { createTrailContext } from '../context';
 import { Result } from '../result';
 import { resource } from '../resource';
+import { signal } from '../signal';
 import { trail } from '../trail';
 import type { TrailContext } from '../types';
 
@@ -256,6 +257,46 @@ describe('trail()', () => {
       const result = await promise;
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toBe(3);
+    });
+  });
+
+  describe('fires/on normalization', () => {
+    const orderPlaced = signal('order.placed', {
+      payload: z.object({ id: z.string() }),
+    });
+    const auditLogged = signal('audit.logged', {
+      payload: z.object({ actor: z.string() }),
+    });
+
+    test('Signal value in fires: is normalized to its id', () => {
+      const t = trail('checkout', {
+        blaze: () => Result.ok({}),
+        fires: [orderPlaced],
+        input: z.object({}),
+      });
+      expect(t.fires).toEqual(['order.placed']);
+    });
+
+    test('Signal value in on: is normalized to its id', () => {
+      const t = trail('notify', {
+        blaze: () => Result.ok({}),
+        input: z.object({}),
+        on: [orderPlaced],
+      });
+      expect(t.on).toEqual(['order.placed']);
+    });
+
+    test('mixed string + Signal value in fires: is normalized', () => {
+      const t = trail('checkout', {
+        blaze: () => Result.ok({}),
+        fires: ['metric.emitted', orderPlaced, auditLogged],
+        input: z.object({}),
+      });
+      expect(t.fires).toEqual([
+        'metric.emitted',
+        'order.placed',
+        'audit.logged',
+      ]);
     });
   });
 });

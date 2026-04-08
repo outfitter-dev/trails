@@ -146,4 +146,23 @@ trail('notify', {
       onReferencesExist.check(code, 'src/__tests__/notify.test.ts')
     ).toEqual([]);
   });
+
+  test('skips object-form Signal value references without error', () => {
+    const code = `
+import { trail, signal, Result } from '@ontrails/core';
+const orderPlaced = signal('order.placed', { payload: z.object({}) });
+trail('notify', {
+  on: [orderPlaced],
+  blaze: async (input, ctx) => Result.ok({}),
+});
+`;
+
+    // Even without registering 'order.placed' as known, the object-form entry
+    // is skipped — runtime normalization is the source of truth.
+    const diagnostics = onReferencesExist.checkWithContext(code, TEST_FILE, {
+      knownSignalIds: new Set(),
+      knownTrailIds: new Set(['notify']),
+    });
+    expect(diagnostics).toEqual([]);
+  });
 });

@@ -49,6 +49,16 @@ const getOnElements = (config: AstNode): readonly AstNode[] => {
   return elements ?? [];
 };
 
+/**
+ * Resolve an `on:` array element to a signal id when possible.
+ *
+ * Handles string literals and `const NAME = 'id'` identifier references.
+ * Object-form entries (e.g. `on: [someSignal]` where `someSignal` is a
+ * `Signal` value) cannot be statically resolved here and are skipped — the
+ * runtime normalizes them inside `trail()`, so skipping is safe. The tradeoff
+ * is that typo'd Signal imports won't be caught at lint time; the TypeScript
+ * compiler catches those instead.
+ */
 const extractOnElementId = (
   element: AstNode,
   sourceCode: string

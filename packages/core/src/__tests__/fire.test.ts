@@ -3,7 +3,6 @@ import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import { NotFoundError, ValidationError } from '../errors';
-import type { Layer } from '../layer';
 import { Result } from '../result';
 import { run } from '../run';
 import { signal } from '../signal';
@@ -54,80 +53,6 @@ const makeProducer = (fireResultKey: { result?: Result<void, Error> }) =>
     fires: ['order.placed'],
     input: z.object({ orderId: z.string(), total: z.number() }),
   });
-
-const cyclePayload = z.object({ id: z.string() });
-
-const resolveFireResult = (
-  fired: Result<void, Error> | undefined
-): Result<{ ok: true }, Error> =>
-  fired?.match({
-    err: (error) => Result.err(error),
-    ok: () => Result.ok({ ok: true }),
-  }) ?? Result.ok({ ok: true });
-
-const createCycleLogger = (
-  warnings: { message: string; signalId?: unknown }[]
-): Logger => {
-  const logger: Logger = {
-    ...noopLogger,
-    child() {
-      return logger;
-    },
-    warn(message, data) {
-      warnings.push({ message, signalId: data?.signalId });
-    },
-  };
-  return logger;
-};
-
-const createCycleConsumer = (
-  id: string,
-  onSignalId: string,
-  nextSignalId: string,
-  marker: string,
-  invocations: string[]
-) =>
-  trail(id, {
-    blaze: async (input: { readonly id: string }, ctx: TrailContext) => {
-      invocations.push(marker);
-      return resolveFireResult(await ctx.fire?.(nextSignalId, input));
-    },
-    input: cyclePayload,
-    on: [onSignalId],
-  });
-
-const createCycleScenario = (invocations: string[]) => {
-  const signalA = signal('loop.a', { payload: cyclePayload });
-  const signalB = signal('loop.b', { payload: cyclePayload });
-  const consumerA = createCycleConsumer(
-    'loop.consumer-a',
-    'loop.a',
-    'loop.b',
-    'a',
-    invocations
-  );
-  const consumerB = createCycleConsumer(
-    'loop.consumer-b',
-    'loop.b',
-    'loop.a',
-    'b',
-    invocations
-  );
-  const producer = trail('loop.producer', {
-    blaze: async (input: { readonly id: string }, ctx: TrailContext) =>
-      resolveFireResult(await ctx.fire?.('loop.a', input)),
-    fires: ['loop.a'],
-    input: cyclePayload,
-  });
-
-  return topo('fire-cycle', {
-    consumerA,
-    consumerB,
-    producer,
-    signalA,
-    signalB,
-  });
-};
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -219,26 +144,6 @@ describe('fire', () => {
       expect(result.isErr()).toBe(true);
       expect(result.error).toBeInstanceOf(ValidationError);
       expect(capture.invocations).toHaveLength(0);
-    });
-
-    test('invalid ctx.fire input returns Result.err(ValidationError)', async () => {
-      const badProducer = trail('bad.fire-input', {
-        blaze: async (_input, ctx) => {
-          const fire = ctx.fire as (
-            signalOrId: unknown,
-            payload: unknown
-          ) => Promise<Result<void, Error>>;
-          const fired = await fire(123, {});
-          return fired as Result<unknown, Error>;
-        },
-        input: z.object({}),
-      });
-
-      const app = topo('fire-bad-input', { badProducer, orderPlaced });
-      const result = await run(app, 'bad.fire-input', {});
-
-      expect(result.isErr()).toBe(true);
-      expect(result.error).toBeInstanceOf(ValidationError);
     });
   });
 

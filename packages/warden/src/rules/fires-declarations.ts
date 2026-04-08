@@ -40,7 +40,15 @@ const resolveIdentifierElement = (
   return resolveConstString(name, sourceCode);
 };
 
-/** Resolve an array element to a static signal ID when possible. */
+/**
+ * Resolve an array element to a static signal ID when possible.
+ *
+ * Returns null for entries the rule can't statically resolve — callers should
+ * treat "unresolved" as "trust the runtime" rather than a missing declaration.
+ * In particular, object-form references (e.g. `fires: [orderPlaced]` where
+ * `orderPlaced` is a `Signal` imported from elsewhere) resolve via runtime
+ * normalization in `trail()`, not at lint time.
+ */
 const resolveFireElementId = (
   element: AstNode,
   sourceCode: string
@@ -79,28 +87,46 @@ const getFiresElements = (config: AstNode): readonly AstNode[] | null => {
   return elements ?? null;
 };
 
-/** Collect string IDs from array elements, resolving identifiers when possible. */
-const collectStringIds = (
+interface DeclaredFires {
+  /** Statically resolved signal ids from string literals / const identifiers. */
+  readonly ids: ReadonlySet<string>;
+  /** True if any element could not be statically resolved (e.g. Signal value). */
+  readonly hasUnresolved: boolean;
+}
+
+/**
+ * Extract declared fires from a `fires: [...]` array.
+ *
+ * Object-form entries (`fires: [someSignal]`) cannot be resolved at lint time;
+ * they're normalized at runtime by `trail()`. When any entry is unresolved,
+ * the rule reports `hasUnresolved: true`, and callers should suppress the
+ * "undeclared" diagnostic since the declared set is incomplete from our view.
+ */
+const resolveDeclaredFiresElements = (
   elements: readonly AstNode[],
   sourceCode: string
-): Set<string> => {
+): DeclaredFires => {
   const ids = new Set<string>();
+  let hasUnresolved = false;
   for (const element of elements) {
     const resolved = resolveFireElementId(element, sourceCode);
     if (resolved) {
       ids.add(resolved);
+    } else {
+      hasUnresolved = true;
     }
   }
-  return ids;
+  return { hasUnresolved, ids };
 };
 
-/** Extract string literal elements from a `fires: [...]` array property. */
 const extractDeclaredFires = (
   config: AstNode,
   sourceCode: string
-): ReadonlySet<string> => {
+): DeclaredFires => {
   const elements = getFiresElements(config);
-  return elements ? collectStringIds(elements, sourceCode) : new Set();
+  return elements
+    ? resolveDeclaredFiresElements(elements, sourceCode)
+    : { hasUnresolved: false, ids: new Set() };
 };
 
 // ---------------------------------------------------------------------------
@@ -164,30 +190,173 @@ const isMemberFireCall = (
 /**
  * Check if a node is a `<ctxName>.fire(...)` call and return the string signal ID.
  *
- * Also matches bare `fire(...)` calls from destructuring.
+ * Also matches bare `<fireLocalName>(...)` calls, but only when the local name
+ * was verifiably destructured from the trail context (e.g. `const { fire } = ctx`
+ * or `const { fire: emit } = ctx`). Unrelated local `fire()` helpers are
+ * ignored — see `collectDestructuredFireNames`.
  */
+const isTrackedFireCallee = (
+  callee: AstNode,
+  ctxNames: ReadonlySet<string>,
+  fireLocalNames: ReadonlySet<string>
+): boolean => {
+  if (isMemberFireCall(callee, ctxNames)) {
+    return true;
+  }
+  const calleeName = identifierName(callee);
+  return !!calleeName && fireLocalNames.has(calleeName);
+};
+
 const extractFireCallId = (
   node: AstNode,
-  ctxNames: ReadonlySet<string>
+  ctxNames: ReadonlySet<string>,
+  fireLocalNames: ReadonlySet<string>
 ): string | null => {
   if (node.type !== 'CallExpression') {
     return null;
   }
-
   const callee = node['callee'] as AstNode | undefined;
   if (!callee) {
     return null;
   }
+  return isTrackedFireCallee(callee, ctxNames, fireLocalNames)
+    ? extractFirstStringArg(node)
+    : null;
+};
 
-  if (isMemberFireCall(callee, ctxNames)) {
-    return extractFirstStringArg(node);
+/**
+ * Walk a blaze body and collect local names bound to `ctx.fire` via destructure.
+ *
+ * Recognizes:
+ *   - `const { fire } = ctx;` → adds `fire`
+ *   - `const { fire: emit } = context;` → adds `emit`
+ *
+ * Only destructures whose init is one of the tracked ctx parameter names are
+ * accepted. This prevents unrelated local `fire` helpers from being treated as
+ * calls into the trail context.
+ */
+/** Extract the local name bound to `fire` inside an ObjectPattern Property. */
+const extractFireLocalName = (prop: AstNode): string | null => {
+  if (prop.type !== 'Property') {
+    return null;
   }
-
-  if (identifierName(callee) === 'fire') {
-    return extractFirstStringArg(node);
+  const { key } = prop as unknown as { key?: AstNode };
+  const { value } = prop as unknown as { value?: AstNode };
+  const keyName = identifierName(key);
+  if (keyName !== 'fire') {
+    return null;
   }
+  // `{ fire }` → key and value are the same Identifier (shorthand).
+  // `{ fire: emit }` → value is a distinct Identifier.
+  return identifierName(value) ?? keyName;
+};
 
-  return null;
+/** Collect `fire` local names from an ObjectPattern's properties into `names`. */
+const collectFireNamesFromPattern = (
+  pattern: AstNode,
+  names: Set<string>
+): void => {
+  const { properties } = pattern as unknown as {
+    properties?: readonly AstNode[];
+  };
+  if (!properties) {
+    return;
+  }
+  for (const prop of properties) {
+    const localName = extractFireLocalName(prop);
+    if (localName) {
+      names.add(localName);
+    }
+  }
+};
+
+/** Check if a VariableDeclarator destructures from a known ctx identifier. */
+const getCtxDestructurePattern = (
+  node: AstNode,
+  ctxNames: ReadonlySet<string>
+): AstNode | null => {
+  if (node.type !== 'VariableDeclarator') {
+    return null;
+  }
+  const { id, init } = node as unknown as {
+    readonly id?: AstNode;
+    readonly init?: AstNode;
+  };
+  if (!id || id.type !== 'ObjectPattern' || !init) {
+    return null;
+  }
+  const initName = identifierName(init);
+  if (!initName || !ctxNames.has(initName)) {
+    return null;
+  }
+  return id;
+};
+
+/**
+ * Collect `fire` local names destructured from ctx at the TOP LEVEL of the
+ * blaze body. Destructures inside nested functions are intentionally ignored
+ * to avoid leaking nested-scope bindings into the outer blaze scope — a
+ * `const { fire } = ctx` inside a nested helper should not cause an outer
+ * bare `fire('x')` to be treated as a ctx-bound call.
+ *
+ * Tradeoff: nested-scope destructures lose tracking entirely. Calls inside
+ * nested functions that rely on their own destructure will not be analyzed.
+ * This is a conservative precision loss; a full scope walker is a follow-up.
+ *
+ * Tradeoff: only `const` destructures are tracked. `let` and `var` bindings
+ * allow reassignment (`let { fire } = ctx; fire = other; fire('x')`) which
+ * this flow-insensitive walker cannot follow. Skipping them trades a small
+ * amount of precision — `let { fire } = ctx` is rare — for eliminating a
+ * class of false positives. The runtime + signal-id cross-check still
+ * validate real undeclared fires.
+ */
+/** Get the top-level statements of a blaze function's BlockStatement body. */
+const getTopLevelStatements = (body: AstNode): readonly AstNode[] => {
+  const blockBody = (body as unknown as { body?: AstNode }).body;
+  if (!blockBody || blockBody.type !== 'BlockStatement') {
+    return [];
+  }
+  return (blockBody as unknown as { body?: readonly AstNode[] }).body ?? [];
+};
+
+/** Collect fire-local names from a single top-level VariableDeclaration. */
+const collectFireNamesFromDeclaration = (
+  stmt: AstNode,
+  ctxNames: ReadonlySet<string>,
+  names: Set<string>
+): void => {
+  if (stmt.type !== 'VariableDeclaration') {
+    return;
+  }
+  // Only track `const` destructures. `let` and `var` allow reassignment that
+  // a single-pass walker cannot track, so `let { fire } = ctx; fire = other;
+  // fire('x')` would otherwise be a false positive. Skipping non-const is a
+  // small precision loss (see TSDoc on `collectDestructuredFireNames`) in
+  // exchange for eliminating that class of false positives.
+  const { kind } = stmt as unknown as { kind?: string };
+  if (kind !== 'const') {
+    return;
+  }
+  const declarations =
+    (stmt as unknown as { declarations?: readonly AstNode[] }).declarations ??
+    [];
+  for (const decl of declarations) {
+    const pattern = getCtxDestructurePattern(decl, ctxNames);
+    if (pattern) {
+      collectFireNamesFromPattern(pattern, names);
+    }
+  }
+};
+
+const collectDestructuredFireNames = (
+  body: AstNode,
+  ctxNames: ReadonlySet<string>
+): ReadonlySet<string> => {
+  const names = new Set<string>();
+  for (const stmt of getTopLevelStatements(body)) {
+    collectFireNamesFromDeclaration(stmt, ctxNames, names);
+  }
+  return names;
 };
 
 /**
@@ -236,9 +405,10 @@ const extractCalledFires = (config: AstNode): ReadonlySet<string> => {
 
   for (const body of findBlazeBodies(config)) {
     const ctxNames = buildCtxNames(body);
+    const fireLocalNames = collectDestructuredFireNames(body, ctxNames);
 
     walkScope(body, (node) => {
-      const id = extractFireCallId(node, ctxNames);
+      const id = extractFireCallId(node, ctxNames, fireLocalNames);
       if (id) {
         ids.add(id);
       }
@@ -337,15 +507,25 @@ const checkTrailDefinition = (
   const declared = extractDeclaredFires(def.config, sourceCode);
   const called = extractCalledFires(def.config);
 
-  if (declared.size === 0 && called.size === 0) {
+  if (declared.ids.size === 0 && !declared.hasUnresolved && called.size === 0) {
     return;
   }
 
   const line = offsetToLine(sourceCode, def.start);
   const ctx = { filePath, line, trailId: def.id };
 
-  reportUndeclared(called, declared, ctx, diagnostics);
-  reportUnused(declared, called, ctx, diagnostics);
+  // When the declared array contains object-form references we can't resolve,
+  // downgrade "undeclared" diagnostics from error to warn with a disclaimer
+  // instead of suppressing entirely. The developer still sees genuinely
+  // undeclared calls, but we can't statically prove the call isn't covered by
+  // a Signal-value entry the runtime will normalize.
+  reportUndeclared(
+    called,
+    declared.ids,
+    { ...ctx, softened: declared.hasUnresolved },
+    diagnostics
+  );
+  reportUnused(declared.ids, called, ctx, diagnostics);
 };
 
 // ---------------------------------------------------------------------------

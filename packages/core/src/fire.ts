@@ -42,52 +42,6 @@ const fanOutToConsumers = async (
   }
 };
 
-const resolveFireDispatch = (
-  topo: Topo,
-  signalId: string,
-  payload: unknown
-): Result<
-  { readonly consumers: readonly AnyTrail[]; readonly payload: unknown },
-  Error
-> => {
-  const signal = topo.signals.get(signalId);
-  if (signal === undefined) {
-    return Result.err(
-      new NotFoundError(`Signal "${signalId}" not found in topo "${topo.name}"`)
-    );
-  }
-  const parsed = signal.payload.safeParse(payload);
-  if (!parsed.success) {
-    return Result.err(
-      new ValidationError(
-        `Invalid payload for signal "${signalId}": ${parsed.error.message}`
-      )
-    );
-  }
-  return Result.ok({
-    consumers: topo.list().filter((trail) => trail.on.includes(signalId)),
-    payload: parsed.data,
-  });
-};
-
-const buildConsumerCtx = (
-  producerCtx: TrailContextInit | undefined,
-  signalId: string
-): MutableConsumerContext => {
-  const childLogger: Logger | undefined =
-    producerCtx?.logger?.child?.({ signalId }) ?? producerCtx?.logger;
-  return producerCtx
-    ? {
-        ...producerCtx,
-        extensions: {
-          ...producerCtx.extensions,
-          [FIRE_STACK_KEY]: [...getFireStack(producerCtx), signalId],
-        },
-        logger: childLogger,
-      }
-    : {};
-};
-
 /** Build a `FireFn` closure bound to a topo. */
 export const createFireFn = (topo: Topo, logger?: Logger): FireFn => {
   const fire: FireFn = async (signalId, payload) => {

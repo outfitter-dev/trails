@@ -144,14 +144,20 @@ export const add = trail('entity.add', {
 export const remove = trail('entity.delete', {
   blaze: async (input, ctx) => {
     const store = entityStoreProvision.from(ctx);
+    // Look up the entity first so we can emit its real id on the signal —
+    // `input.name` is a natural key, not the generated entity id.
+    const existing = await store.entities.get(input.name);
+    if (!existing) {
+      return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
+    }
     const deleted = await store.entities.remove(input.name);
     if (!deleted.deleted) {
       return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
     }
     await ctx.fire?.('entity.updated', {
       action: 'deleted',
-      entityId: input.name,
-      entityName: input.name,
+      entityId: existing.id,
+      entityName: existing.name,
       timestamp: new Date().toISOString(),
     });
     return Result.ok({ deleted: true, name: input.name });

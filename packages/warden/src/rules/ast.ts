@@ -149,6 +149,28 @@ export const getStringValue = (node: AstNode): string | null => {
   return typeof val === 'string' ? val : null;
 };
 
+/**
+ * Best-effort resolution of `const NAME = 'value'` declarations via regex.
+ *
+ * Returns the string value if a simple `const <name> = '...'` or `"..."` is
+ * found in the source. Returns null for anything more complex. Shared between
+ * warden rules that need to resolve identifier references to signal / trail
+ * IDs at lint time.
+ */
+export const resolveConstString = (
+  name: string,
+  sourceCode: string
+): string | null => {
+  const pattern = new RegExp(
+    `const\\s+${name}\\s*=\\s*(?:'([^']*)'|"([^"]*)")`
+  );
+  const match = pattern.exec(sourceCode);
+  if (!match) {
+    return null;
+  }
+  return match[1] ?? match[2] ?? null;
+};
+
 /** Extract a string literal value, or null when the node is not a string. */
 export const extractStringLiteral = (
   node: AstNode | undefined
@@ -318,11 +340,11 @@ export interface TrailDefinition {
 
 /**
  * Find all `trail("id", { ... })`, `trail({ id: "x", ... })`, and
- * `signal("id", { ... })` call sites.
+ * `signal("id", { ... })`, and legacy `event("id", { ... })` call sites.
  *
  * Returns the trail ID, kind, and config object node for each definition.
  */
-const TRAIL_CALLEE_NAMES = new Set(['trail', 'signal']);
+const TRAIL_CALLEE_NAMES = new Set(['event', 'signal', 'trail']);
 
 const getTrailCalleeName = (node: AstNode): string | null => {
   if (node.type !== 'CallExpression') {
