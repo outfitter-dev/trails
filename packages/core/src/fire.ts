@@ -49,6 +49,18 @@ const getFireStack = (
   return Array.isArray(value) ? (value as readonly string[]) : [];
 };
 
+/**
+ * Fan out a validated signal payload to its consumer trails.
+ *
+ * @remarks
+ * Consumers are awaited sequentially on purpose. Sequential execution gives
+ * deterministic ordering for tracing and tests and makes error attribution
+ * straightforward (each warn log pairs cleanly with the consumer that
+ * produced it). Parallelizing via `Promise.allSettled` is a deliberate
+ * future option — not an oversight — and would be worth revisiting once
+ * tracing and error-aggregation semantics are designed to handle
+ * interleaved consumer execution.
+ */
 const fanOutToConsumers = async (
   consumers: readonly AnyTrail[],
   payload: unknown,
@@ -115,15 +127,6 @@ const buildConsumerCtx = (
     : {};
 };
 
-/**
- * Build a `FireFn` closure bound to a topo.
- *
- * When `producerCtx` is provided, consumer trails activated via `on:`
- * inherit the producer's logger, extensions, resources, abortSignal,
- * requestId, env, workspaceRoot, and permit. `ctx.fire` on the consumer
- * is rebound to the same closure so consumers can emit downstream
- * signals naturally.
- */
 const resolveSignalId = (signalOrId: unknown): Result<string, Error> => {
   if (typeof signalOrId === 'string') {
     return Result.ok(signalOrId);
@@ -143,6 +146,15 @@ const resolveSignalId = (signalOrId: unknown): Result<string, Error> => {
   );
 };
 
+/**
+ * Build a `FireFn` closure bound to a topo.
+ *
+ * When `producerCtx` is provided, consumer trails activated via `on:`
+ * inherit the producer's logger, extensions, resources, abortSignal,
+ * requestId, env, workspaceRoot, and permit. `ctx.fire` on the consumer
+ * is rebound to the same closure so consumers can emit downstream
+ * signals naturally.
+ */
 export const createFireFn = (
   topo: Topo,
   producerCtx: TrailContextInit | undefined,
