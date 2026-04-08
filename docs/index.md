@@ -14,7 +14,7 @@
 - **[Store Guide](../packages/store/README.md)** — Declare schema-derived stores, bind them with Drizzle, use fixtures and read-only access
 - **[Config Guide](../packages/config/README.md)** — Schema-derived configuration, resolution stack, extensions, profiles
 - **[Permits Guide](../packages/permits/README.md)** — Scope-based authorization, auth connectors, permit governance
-- **[Tracker Guide](../packages/tracker/README.md)** — Execution recording, sinks, sampling, manual instrumentation
+- **[Tracing Guide](../packages/tracing/README.md)** — Execution recording, sinks, sampling, manual instrumentation
 - **[Testing Guide](./testing.md)** — TDD with examples, `testAll()`, contract testing, trailhead harnesses
 
 ## Adding a trailhead?
@@ -43,7 +43,7 @@
 - **[ADR-0010: Trails-Native Infrastructure](./adr/0010-native-infrastructure.md)** — Workspace layout, `.trails/` directory, shared database
 - **[ADR-0011: Schema-Driven Config](./adr/0011-schema-driven-config.md)** — Typed configuration from schemas
 - **[ADR-0012: Connector-Agnostic Permits](./adr/0012-connector-agnostic-permits.md)** — Permission model independent of trailhead
-- **[ADR-0013: Tracker](./adr/0013-tracker.md)** — Runtime recording primitive
+- **[ADR-0013: Tracing](./adr/0013-tracing.md)** — Runtime recording primitive
 - **[ADR-0014: Core Database Primitive](./adr/0014-core-database-primitive.md)** — Shared `trails.db`, subsystem schema versioning
 - **[ADR-0015: Topo Store](./adr/0015-topo-store.md)** — Queryable relational projection of the resolved graph
 - **[ADR-0016: Schema-Derived Persistence](./adr/0016-schema-derived-persistence.md)** — `store()` declaration, connector binding, fixtures
@@ -57,4 +57,4 @@
 
 ## Where to next?
 
-- **[Horizons](./horizons.md)** — HTTP trailhead, permits, mounts, tracker, and the road to v1 stable
+- **[Horizons](./horizons.md)** — HTTP trailhead, permits, mounts, tracing, and the road to v1 stable

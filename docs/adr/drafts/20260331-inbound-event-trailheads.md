@@ -41,8 +41,8 @@ The pattern: **time triggers trail execution, with optional input (the current t
 All three are inbound trailheads — they receive something from outside and run a trail. They share the same infrastructure needs as CLI/MCP/HTTP:
 
 - **Config**: endpoint URLs, secrets, queue connection strings
-- **Auth**: webhook signature verification, queue auth, cron doesn't need auth but needs permit context for tracker
-- **Tracker**: record what arrived, what was run, outcome, timing
+- **Auth**: webhook signature verification, queue auth, cron doesn't need auth but needs permit context for tracing
+- **Tracing**: record what arrived, what was run, outcome, timing
 - **Validation**: the incoming payload validates against the trail's input schema
 - **Error taxonomy**: webhook returns 400 on validation failure, 500 on internal error. Queue nacks on failure. Cron logs the error.
 
@@ -125,7 +125,7 @@ trailhead(app, {
 });
 ```
 
-Each message deserializes → validates against the trail's input schema → executes through the pipeline. Failed messages nack (or dead-letter). Tracker records each message processing.
+Each message deserializes → validates against the trail's input schema → executes through the pipeline. Failed messages nack (or dead-letter). Tracing records each message processing.
 
 **What the examples teach us:**
 
@@ -165,7 +165,7 @@ trailhead(app, {
 });
 ```
 
-The cron trailhead triggers trail execution on a schedule. Input can be static (configured in the schedule) or dynamic (the current time, a batch query). Tracker records each execution.
+The cron trailhead triggers trail execution on a schedule. Input can be static (configured in the schedule) or dynamic (the current time, a batch query). Tracing records each execution.
 
 **What the examples teach us:**
 
@@ -207,7 +207,7 @@ Worth noting in the infrastructure pattern doc: error taxonomy mappings should b
 `idempotent: true` on a trail spec is a declaration. But webhook trails and queue-consumed trails NEED idempotency — duplicate delivery is the norm. The framework should help:
 
 - An idempotency layer that deduplicates by request/message ID
-- A resource that stores processed IDs (could be the same SQLite store as tracker)
+- A resource that stores processed IDs (could be the same SQLite store as tracing)
 
 This is a layer + resource, following the infrastructure pattern.
 
@@ -252,5 +252,5 @@ Should this be on the trail spec (like `http: { path }` overrides) or on the tra
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — validates that the trailhead derivation model extends to event-driven inbound patterns
 - [ADR-0010: Trails-Native Infrastructure Pattern](../0010-native-infrastructure.md) — idempotency layer and deduplication store follow the infrastructure pattern (layer + resource)
 - [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) — webhook signature verification maps to the permit resolution model
-- [ADR-0013: Tracker](../0013-tracker.md) — inbound trailhead execution recording uses the tracker system
+- [ADR-0013: Tracing](../0013-tracing.md) — inbound trailhead execution recording uses the tracing system
 - ADR: Webhooks and Input Connectors (draft) — explores the webhook trailhead in more detail

@@ -95,7 +95,7 @@ Every piece of information in a Trails app has a clear ownership model. Six cate
 - **Projected:** Mechanically derived, guaranteed correct — CLI flags from Zod fields, MCP tool names from trail IDs, exit codes from error classes. Projections can't be wrong because they're computed from the source.
 - **Enforced:** Constrained by the type system — output schemas bound the return type, `Result<T, Error>` eliminates throw/catch, `TrailContext` scopes what the implementation can access. The compiler makes non-compliance an error.
 - **Inferred:** Detected by static analysis, best-effort — which trails a trail crosses (from `ctx.cross()` calls), error types returned (from `Result.err()` patterns). Warden verifies these. Useful for governance, not guaranteed.
-- **Observed:** Learned from runtime (future) — error distributions, latency profiles, resource usage patterns from the tracker system. Observations close the loop between declared intent and actual behavior.
+- **Observed:** Learned from runtime (future) — error distributions, latency profiles, resource usage patterns from the tracing system. Observations close the loop between declared intent and actual behavior.
 - **Overridden:** When derivation doesn't fit — any derived value can be explicitly set when the default is wrong. Overrides are escape hatches, visible in the trailhead map. If you're overriding everything, the derivation rules are wrong.
 
 The design heuristic: if the developer has to author information the framework already has, that's a framework bug. Derive it. If it can't be derived, it earns a place on the trail spec. If it can be derived but might be wrong sometimes, derive it with an override.

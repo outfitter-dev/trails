@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import { createTrack } from '../track.js';
+import { createTraceRecord } from '../trace-record.js';
 
-describe('createTrack', () => {
+describe('createTraceRecord', () => {
   test('generates unique id and traceId', () => {
-    const a = createTrack({ trailId: 'test.trail' });
-    const b = createTrack({ trailId: 'test.trail' });
+    const a = createTraceRecord({ trailId: 'test.trail' });
+    const b = createTraceRecord({ trailId: 'test.trail' });
 
     expect(a.id).toBeString();
     expect(a.traceId).toBeString();
@@ -14,7 +14,7 @@ describe('createTrack', () => {
   });
 
   test('uses provided traceId when given', () => {
-    const record = createTrack({
+    const record = createTraceRecord({
       traceId: 'trace-abc',
       trailId: 'test.trail',
     });
@@ -23,7 +23,7 @@ describe('createTrack', () => {
   });
 
   test('uses provided rootId when given', () => {
-    const record = createTrack({
+    const record = createTraceRecord({
       rootId: 'root-abc',
       trailId: 'test.trail',
     });
@@ -33,7 +33,7 @@ describe('createTrack', () => {
 
   test('sets startedAt to current time', () => {
     const before = Date.now();
-    const record = createTrack({ trailId: 'test.trail' });
+    const record = createTraceRecord({ trailId: 'test.trail' });
     const after = Date.now();
 
     expect(record.startedAt).toBeGreaterThanOrEqual(before);
@@ -41,13 +41,13 @@ describe('createTrack', () => {
   });
 
   test('sets status to ok initially', () => {
-    const record = createTrack({ trailId: 'test.trail' });
+    const record = createTraceRecord({ trailId: 'test.trail' });
 
     expect(record.status).toBe('ok');
   });
 
   test('includes trailId, intent, and trailhead when provided', () => {
-    const record = createTrack({
+    const record = createTraceRecord({
       intent: 'write',
       trailId: 'widget.create',
       trailhead: 'mcp',

@@ -14,7 +14,7 @@
 
 **Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. `authGate` extracts credentials from trailhead-specific sources, `AuthConnector` resolves them to a `Permit` (identity, scopes, roles), and scope enforcement rejects unauthorized access. Includes JWT connector, governance rules (`validatePermits`), and test helpers (`mintTestPermit`, `mintPermitForTrail`).
 
-**Tracker (`@ontrails/tracker`).** Telemetry recording with `createTrackerGate` capturing execution duration, errors, and trace context propagation for every trail invocation. Pluggable sinks: `createMemorySink` for testing, `createDevStore` for local development, `createOtelConnector` for production OpenTelemetry export. Sampling configuration controls recording volume.
+**Tracing (`@ontrails/tracing`).** Telemetry recording with `createTracingLayer` capturing execution duration, errors, and trace context propagation for every trail invocation. Pluggable sinks: `createMemorySink` for testing, `createDevStore` for local development, `createOtelConnector` for production OpenTelemetry export. Sampling configuration controls recording volume.
 
 ## Mid-term (v1.3+)
 
@@ -30,7 +30,7 @@
 
 **Progressive contract tightening.** A new trail starts loose — minimal schema, no examples. As it matures, the contract tightens: output schema added, examples written, error types specified. The framework tracks progression and suggests next steps.
 
-**Behavioral types from runtime observation.** The tracker system already records execution data. Over time, runtime data validates or challenges authored declarations. A trail declared `intent: 'read'` that triggers database writes has a contract violation. The framework reveals the discrepancy.
+**Behavioral types from runtime observation.** The tracing system already records execution data. Over time, runtime data validates or challenges authored declarations. A trail declared `intent: 'read'` that triggers database writes has a contract violation. The framework reveals the discrepancy.
 
 **SDK generation via guide.** Typed TypeScript clients generated from the topo. Each trail becomes a method with typed input/output. Working over HTTP or WebSocket.
 

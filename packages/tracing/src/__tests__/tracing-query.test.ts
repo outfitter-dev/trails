@@ -6,16 +6,16 @@ import { join } from 'node:path';
 import { createProvisionLookup } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 
-import type { Track } from '../track.js';
-import type { TrackerState } from '../tracker-state.js';
+import type { TraceRecord } from '../trace-record.js';
+import type { TrackerState } from '../tracing-state.js';
 import { DEFAULT_SAMPLING } from '../sampling.js';
 import type { DevStore } from '../stores/dev.js';
 import { createDevStore } from '../stores/dev.js';
-import { trackerQuery } from '../trails/tracker-query.js';
+import { trackerQuery } from '../trails/tracing-query.js';
 
 /** Build a TrailContext with trackerProvision resolved in extensions. */
 const buildCtx = (state: TrackerState): TrailContext => {
-  const extensions = { tracker: state };
+  const extensions = { tracing: state };
   const ctx: TrailContext = {
     abortSignal: AbortSignal.timeout(5000),
     cwd: '/tmp',
@@ -32,8 +32,8 @@ const buildCtx = (state: TrackerState): TrailContext => {
   return withLookup;
 };
 
-/** Build a minimal Track for testing. */
-const makeRecord = (overrides?: Partial<Track>): Track => ({
+/** Build a minimal TraceRecord for testing. */
+const makeRecord = (overrides?: Partial<TraceRecord>): TraceRecord => ({
   attrs: {},
   endedAt: Date.now(),
   id: `rec-${crypto.randomUUID()}`,
@@ -56,8 +56,8 @@ const noStoreState: TrackerState = {
 
 /** Create a temp DevStore and return with cleanup. */
 const createTestStore = (): { cleanup: () => void; store: DevStore } => {
-  const dir = mkdtempSync(join(tmpdir(), 'tracker-query-'));
-  const store = createDevStore({ path: join(dir, 'tracker.db') });
+  const dir = mkdtempSync(join(tmpdir(), 'tracing-query-'));
+  const store = createDevStore({ path: join(dir, 'tracing.db') });
   const cleanup = () => {
     store.close();
     rmSync(dir, { force: true, recursive: true });
@@ -72,10 +72,10 @@ const stateWithStore = (store: DevStore): TrackerState => ({
   store,
 });
 
-describe('tracker.query', () => {
+describe('tracing.query', () => {
   describe('contract', () => {
     test('has correct id', () => {
-      expect(trackerQuery.id).toBe('tracker.query');
+      expect(trackerQuery.id).toBe('tracing.query');
     });
 
     test('has read intent', () => {

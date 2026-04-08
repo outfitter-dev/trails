@@ -77,7 +77,7 @@ Beta 14 completes the vocabulary alignment started in beta 13. All framework-spe
 | `Layer` | `Layer` |
 | `dispatch()` | `run()` |
 | `adapter` | `connector` |
-| `@ontrails/crumbs` | `@ontrails/tracker` |
+| `@ontrails/crumbs` | `@ontrails/tracing` |
 
 ## New ADRs
 
@@ -107,7 +107,7 @@ All `@ontrails/*` packages ship at `1.0.0-beta.14`.
 | `@ontrails/warden` | Resource rules, draft state rules |
 | `@ontrails/config` | Resource and layer vocabulary |
 | `@ontrails/permits` | Resource and layer vocabulary |
-| `@ontrails/tracker` | Resource and layer vocabulary |
+| `@ontrails/tracing` | Resource and layer vocabulary |
 | `@ontrails/testing` | Resource-aware test utilities |
 | `@ontrails/http` | Trailhead vocabulary |
 | `@ontrails/mcp` | Trailhead vocabulary |

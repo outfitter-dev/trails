@@ -719,7 +719,7 @@ const gitStatus = rig('git.status', {
 });
 ```
 
-A rigged trail with a schedule trigger becomes a periodic monitoring probe. The rig captures the command output. The trigger activates it on a schedule. The parse function structures the output. `ctx.signal()` announces what was observed. Other trails trigger on the event. Tracker records every execution.
+A rigged trail with a schedule trigger becomes a periodic monitoring probe. The rig captures the command output. The trigger activates it on a schedule. The parse function structures the output. `ctx.signal()` announces what was observed. Other trails trigger on the event. Tracing records every execution.
 
 This is the "observe the external world and announce what you found" pattern. Rig provides the observation. Events provide the announcement. Triggers provide the activation. Each is a separate primitive. Together they form a monitoring pipeline from external command through typed observation through reactive response.
 
@@ -791,4 +791,4 @@ Rig lock state rolls up into the `rigs` section of `trails.lock`:
 - ADR: Typed Signal Emission (draft) -- rigged trails can emit events via `ctx.signal()`; the "observe and announce" pattern
 - ADR: Reactive Trail Activation (draft) -- rigged trails with schedule triggers become periodic monitoring probes
 - ADR: The Serialized Topo Graph (draft) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`
-- [ADR-0013: Tracker](../0013-tracker.md) -- rigged trail executions are recorded via tracker for observability
+- [ADR-0013: Tracing](../0013-tracing.md) -- rigged trail executions are recorded via tracing for observability

@@ -14,14 +14,14 @@ owners: ['[galligan](https://github.com/galligan)']
 
 Trails is Bun-native. Bun ships `bun:sqlite` as a first-class built-in: in-process, zero-latency, WAL-capable, with prepared statements and transactions. It adds no dependency. It's the same non-dependency as `node:fs`.
 
-Today the framework has exactly one SQLite usage: the tracker DevStore in `@ontrails/tracker`, which records execution tracks to `.trails/dev/tracker.db`.[^devstore] It's an island. The tracker writes to it; nothing else reads from it or benefits from its existence.
+Today the framework has exactly one SQLite usage: the tracing DevStore in `@ontrails/tracing`, which records execution tracks to `.trails/dev/tracing.db`.[^devstore] It's an island. The tracing writes to it; nothing else reads from it or benefits from its existence.
 
 Meanwhile, the framework generates and consumes several categories of structural and operational data that are persisted as JSON files or held in memory:
 
 - **The trailhead map** (`.trails/_trailhead.json`) — a deterministic manifest of every trail, signal, and resource in the topo. Generated at build time by `generateTrailheadMap()`.[^trailhead-map]
 - **The lockfile** (`.trails/trails.lock`) — a serialized record of the resolved topology for CI diffing.
 - **Schema derivations** — `zodToJsonSchema()` output computed fresh on every startup and build.
-- **Execution records** — the tracker DevStore, isolated from all structural data.
+- **Execution records** — the tracing DevStore, isolated from all structural data.
 
 These are different kinds of framework data with different lifecycles, but they share a need: structured storage with query access. JSON files optimize for serialization. In-memory Maps optimize for key lookup. Neither optimizes for the kinds of questions the framework increasingly needs to answer: graph traversals, filtered joins, aggregate queries, cross-cutting analysis of structure and behavior together.
 
@@ -37,7 +37,7 @@ This is the same principle behind `ReadonlyMap` on the topo. The topo is derived
 
 The framework maintains a single SQLite database at `.trails/trails.db`. This file is created on first use and managed entirely by the framework runtime and CLI tools.
 
-The `.trails/` directory is already established (the tracker DevStore uses `.trails/dev/tracker.db`). Consolidating into one database eliminates the isolated DevStore file and enables cross-cutting queries between structural and execution data.
+The `.trails/` directory is already established (the tracing DevStore uses `.trails/dev/tracing.db`). Consolidating into one database eliminates the isolated DevStore file and enables cross-cutting queries between structural and execution data.
 
 **WAL mode** is enabled by default for concurrent read access. **NORMAL synchronous** mode balances durability with performance for development data.
 
@@ -48,7 +48,7 @@ The database has two connection modes:
 **Write connection (framework-internal only):**
 
 - Used by the build system (topo population, schema cache)
-- Used by the tracker (execution recording)
+- Used by the tracing (execution recording)
 - Used by CLI commands that manage topo history and local framework state (`trails topo pin`, `trails dev clean`, `trails dev reset`)
 - Not exposed as a resource. Not available to trail blazes. Not importable by app code.
 
@@ -85,7 +85,7 @@ Tables in `trails.db` are organized by subsystem. Each subsystem owns its schema
 | Prefix | Subsystem | Lifecycle |
 |---|---|---|
 | `topo_*` | Topo store, topo save history, and pins | Rebuilt on build/refresh; pins are user-managed |
-| `track_*` | Tracker (execution records) | Append-only, pruned |
+| `track_*` | Tracing (execution records) | Append-only, pruned |
 | `cache_*` | Non-topo derivation caches and local framework caches | Populated on build, invalidated by content hash |
 
 This avoids collision as subsystems evolve independently. Each subsystem manages its own table creation, and a version table tracks schema versions per subsystem for safe migration.
@@ -129,14 +129,14 @@ Pins are durable names that point at saved topo states. They are not a second st
 
 - Pins persist until explicitly removed. They are deliberate developer landmarks.
 - Unpinned topo saves are pruned to the most recent N (configurable, default 50).
-- Tracker records are pruned to a configurable maximum (default 10,000) or age window (default 7 days), whichever is reached first.
+- Tracing records are pruned to a configurable maximum (default 10,000) or age window (default 7 days), whichever is reached first.
 
 ### Lifecycle by environment
 
 | Environment | Database exists? | Write behavior | Read behavior |
 |---|---|---|---|
 | **Production** | No | Nothing writes | Nothing reads. The in-memory topo is the execution engine. |
-| **Dev** | Yes | Topo populated on startup and file-watch refresh. Tracker appends on execution. Schema cache updated on build. | Read-only resource available. Dev intelligence queries. `trails dev stats`. |
+| **Dev** | Yes | Topo populated on startup and file-watch refresh. Tracing appends on execution. Schema cache updated on build. | Read-only resource available. Dev intelligence queries. `trails dev stats`. |
 | **CI** | Yes (ephemeral) | Topo populated at build time. Warden trails query it. Lockfile exported from it. | Read-only resource for warden trails. Discarded after the pipeline completes. |
 
 In production, the framework operates exactly as it does today: in-memory topo, no SQLite overhead, no database file. The database is a development and governance tool, not a runtime dependency.
@@ -203,10 +203,10 @@ All values have sensible defaults. Zero configuration required.
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — the trail is the product, everything else is a projection
 - [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the resource primitive that the read-only store resource builds on
-- [ADR-0013: Tracker](0013-tracker.md) — the execution recording primitive whose DevStore consolidates into this database
+- [ADR-0013: Tracing](0013-tracing.md) — the execution recording primitive whose DevStore consolidates into this database
 - [ADR-0015: Topo Store](0015-topo-store.md) — the structural graph projected into this database
 - [ADR-0018: Signal-Driven Governance](0018-signal-driven-governance.md) — the framework lifecycle as a topo
 - [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — app-level persistence building on the patterns established here
 
-[^devstore]: The DevStore default path is `.trails/dev/tracker.db`. See `packages/tracker/src/stores/dev.ts`.
+[^devstore]: The DevStore default path is `.trails/dev/tracing.db`. See `packages/tracing/src/stores/dev.ts`.
 [^trailhead-map]: The trailhead map is generated by `generateTrailheadMap()` in `@ontrails/schema` and written to `.trails/_trailhead.json` by `writeTrailheadMap()`. See [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md).

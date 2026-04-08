@@ -325,7 +325,7 @@ expect(result.isError).toBe(false);
 
 ## Testing with Infrastructure Resources
 
-The config, permits, and tracker packages each provide test-friendly primitives that work with `testAll(app)` and `testExamples(app)` without external dependencies.
+The config, permits, and tracing packages each provide test-friendly primitives that work with `testAll(app)` and `testExamples(app)` without external dependencies.
 
 **Config test profile.** Use `defineConfig()` with a `test` profile that uses safe defaults (port 0, debug enabled, in-memory stores). When the `TRAILS_ENV` environment variable is set to `test`, the test profile is selected automatically during resolution. Services with `config` schemas receive the test profile values through `svc.config`.
 
@@ -338,13 +338,13 @@ const permit = mintTestPermit({ scopes: ['entity:read'] });
 const trailPermit = mintPermitForTrail(showTrail);
 ```
 
-**Tracker memory layer.** `createMemorySink()` captures all tracker records in memory for assertion. Pair it with `createTrackerGate()` to verify that trails emit the expected telemetry without configuring a real exporter:
+**Tracing memory layer.** `createMemorySink()` captures all tracing records in memory for assertion. Pair it with `createTracingLayer()` to verify that trails emit the expected telemetry without configuring a real exporter:
 
 ```typescript
-import { createMemorySink, createTrackerGate } from '@ontrails/tracker';
+import { createMemorySink, createTracingLayer } from '@ontrails/tracing';
 
 const sink = createMemorySink();
-const layer = createTrackerGate(sink);
+const layer = createTracingLayer(sink);
 // ...run trails with the layer...
 expect(sink.records).toHaveLength(1);
 ```

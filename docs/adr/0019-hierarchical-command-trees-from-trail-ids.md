@@ -23,7 +23,7 @@ That forces the trail contract to bend around a shallow CLI model:
 - deeper command trees cannot be expressed cleanly
 - the CLI stops feeling like a rendering of the trail contract and starts feeling like a separate authoring system
 
-The tension shows up immediately in the accepted topo work. `topo`, `topo.pin`, `topo.verify`, and `tracker.query` are natural trail IDs. The current CLI can only render them awkwardly.
+The tension shows up immediately in the accepted topo work. `topo`, `topo.pin`, `topo.verify`, and `tracing.query` are natural trail IDs. The current CLI can only render them awkwardly.
 
 ## Decision
 
@@ -33,7 +33,7 @@ Trail IDs derive to **ordered command segments**, not `group + leaf`.
 topo                -> ["topo"]
 topo.pin            -> ["topo", "pin"]
 topo.pin.remove     -> ["topo", "pin", "remove"]
-tracker.query       -> ["tracker", "query"]
+tracing.query       -> ["tracing", "query"]
 ```
 
 ### The full dot path is the projection
@@ -115,7 +115,7 @@ No separate CLI authoring language is introduced. The override is still a projec
 
 ### Positive
 
-- **The CLI stops distorting trail IDs.** Trails can use natural IDs like `topo`, `topo.pin`, and `tracker.query` without fake `.show` leaves.
+- **The CLI stops distorting trail IDs.** Trails can use natural IDs like `topo`, `topo.pin`, and `tracing.query` without fake `.show` leaves.
 - **Nested subcommands become a normal rendering, not a workaround.** The CLI can represent the same hierarchy the trail IDs already express.
 - **Executable parents fit the model directly.** `trails topo` and `trails topo pin` no longer compete for the same namespace slot.
 - **The projection compounds across surfaces.** HTTP and CLI both benefit from the same segment story, even though they render it differently.

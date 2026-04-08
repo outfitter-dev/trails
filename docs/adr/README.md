@@ -19,7 +19,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0010](0010-native-infrastructure.md) | Trails-Native Infrastructure Pattern | Accepted |
 | [0011](0011-schema-driven-config.md) | Schema-Driven Config | Accepted |
 | [0012](0012-connector-agnostic-permits.md) | Connector-Agnostic Permits | Accepted |
-| [0013](0013-tracker.md) | Tracker — Runtime Recording Primitive | Accepted |
+| [0013](0013-tracing.md) | Tracing — Runtime Recording Primitive | Accepted |
 | [0014](0014-core-database-primitive.md) | Core Database Primitive | Accepted |
 | [0015](0015-topo-store.md) | Topo Store | Accepted |
 | [0016](0016-schema-derived-persistence.md) | Schema-Derived Persistence | Accepted |

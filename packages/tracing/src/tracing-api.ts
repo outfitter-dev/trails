@@ -1,9 +1,9 @@
-import type { Track } from './track.js';
+import type { TraceRecord } from './trace-record.js';
 import { getTraceContext } from './trace-context.js';
 
-/** Sink type re-declared to avoid circular import with tracker-gate. */
-interface TrackSinkLike {
-  readonly write: (record: Track) => void | Promise<void>;
+/** Sink type re-declared to avoid circular import with tracing-gate. */
+interface TraceSinkLike {
+  readonly write: (record: TraceRecord) => void | Promise<void>;
 }
 
 /** Key used to store the TrackerApi in ctx.extensions. */
@@ -34,7 +34,7 @@ const createSpanRecord = (
   parentId: string,
   rootId: string,
   name: string
-): Track => ({
+): TraceRecord => ({
   attrs: {},
   endedAt: undefined,
   errorCategory: undefined,
@@ -53,10 +53,10 @@ const createSpanRecord = (
 
 /** Mark a record as completed with timing and status. */
 const completeSpanRecord = (
-  record: Track,
+  record: TraceRecord,
   status: 'ok' | 'err',
   error?: unknown
-): Track => ({
+): TraceRecord => ({
   ...record,
   endedAt: Date.now(),
   errorCategory:
@@ -82,7 +82,7 @@ const mergeAnnotations = (
  */
 export const createTrackerApi = (
   ctx: { readonly extensions?: Readonly<Record<string, unknown>> | undefined },
-  sink: TrackSinkLike
+  sink: TraceSinkLike
 ): TrackerApiWithState => {
   const annotations: Record<string, unknown>[] = [];
 

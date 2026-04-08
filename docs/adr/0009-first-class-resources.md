@@ -168,7 +168,7 @@ Resource `create` factories return `Result`. Thrown exceptions are wrapped as `I
 
 Today, each trailhead creates its own `ctx.cross` function ad-hoc. With resources, cross needs to propagate the resolved resource scope through nested trail invocations. A core `createCross(topo, scope)` function — named per Convention 5 — centralizes this. All trailheads and `run()` use the same function.
 
-The execution scope is a lightweight object that `executeTrail` creates per root invocation. For v1, it holds the singleton resource cache. The scope is extensible — tracker will add `TrackScope` for trace propagation, and request-scoped resources (when they ship) will add per-request state. Designing the seam now avoids retrofitting it later.
+The execution scope is a lightweight object that `executeTrail` creates per root invocation. For v1, it holds the singleton resource cache. The scope is extensible — tracing will add `TrackScope` for trace propagation, and request-scoped resources (when they ship) will add per-request state. Designing the seam now avoids retrofitting it later.
 
 ### Singleton lifecycle in v1
 
@@ -303,7 +303,7 @@ The layer receives the resource definition as a parameter. It reads from context
 - **Resource-to-resource dependencies.** Whether one resource's factory can depend on another resource. The expected pattern when this is needed: resource factories receive a resource resolver alongside `ctx`, and resolution order is topologically sorted from the dependency graph. The graph is already queryable — this follows naturally. Config resolution will be the first instance of this.
 - **Composable config resolution.** The reserved `config` field on `ProvisionSpec` enables resources to declare their own config schemas. When `@ontrails/config` ships, resource config schemas compose into the app-level config automatically. The field is reserved now to prevent breaking changes.
 - **Specific connector port interfaces.** The architecture plans `IndexConnector`, `StorageConnector`, `CacheConnector`, and `AuthConnector` as port interfaces. Resources are the mechanism to register concrete implementations of these ports. Which ports ship first, and whether they live in core or in dedicated packages like `@ontrails/storage`, is separate from the resources primitive itself.
-- **Infrastructure resources pattern.** Config, permits, and tracker will each ship as a resource + layer + trails package following the pattern established by `@ontrails/logging`. The resources primitive enables this but doesn't prescribe it.
+- **Infrastructure resources pattern.** Config, permits, and tracing will each ship as a resource + layer + trails package following the pattern established by `@ontrails/logging`. The resources primitive enables this but doesn't prescribe it.
 
 ## References
 

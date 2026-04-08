@@ -2,10 +2,10 @@ import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import type { DevStoreQueryOptions } from '../stores/dev.js';
-import { trackerProvision } from '../tracker-provision.js';
+import { trackerProvision } from '../tracing-provision.js';
 
 /** Output schema for individual track records. */
-const trackRecordOutput = z.object({
+const traceRecordOutput = z.object({
   endedAt: z.number().optional(),
   id: z.string(),
   intent: z.string().optional(),
@@ -19,13 +19,13 @@ const trackRecordOutput = z.object({
   trailhead: z.string().optional(),
 });
 
-/** Output schema for the tracker.query trail. */
+/** Output schema for the tracing.query trail. */
 const trackerQueryOutput = z.object({
   count: z.number(),
-  records: z.array(trackRecordOutput),
+  records: z.array(traceRecordOutput),
 });
 
-/** Map a Track to the output shape, dropping internal fields. */
+/** Map a TraceRecord to the output shape, dropping internal fields. */
 const mapRecord = (r: {
   readonly endedAt?: number | undefined;
   readonly id: string;
@@ -66,12 +66,12 @@ const buildQueryOptions = (input: {
 });
 
 /**
- * Query execution history from the tracker dev store.
+ * Query execution history from the tracing dev store.
  *
  * Reads the store from the `trackerProvision` state. Returns an empty
  * result set when no store has been configured.
  */
-export const trackerQuery = trail('tracker.query', {
+export const trackerQuery = trail('tracing.query', {
   blaze: (input, ctx) => {
     const state = trackerProvision.from(ctx);
     if (!state.store) {

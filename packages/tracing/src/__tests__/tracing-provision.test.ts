@@ -5,9 +5,9 @@ import { join } from 'node:path';
 
 import { DEFAULT_SAMPLING } from '../sampling.js';
 import { createDevStore } from '../stores/dev.js';
-import type { TrackerState } from '../tracker-state.js';
-import { clearTrackerState, registerTrackerState } from '../tracker-state.js';
-import { trackerProvision } from '../tracker-provision.js';
+import type { TrackerState } from '../tracing-state.js';
+import { clearTrackerState, registerTrackerState } from '../tracing-state.js';
+import { trackerProvision } from '../tracing-provision.js';
 
 describe('trackerProvision', () => {
   let tmpDir: string | undefined;
@@ -21,7 +21,7 @@ describe('trackerProvision', () => {
   });
 
   test('has correct id', () => {
-    expect(trackerProvision.id).toBe('tracker');
+    expect(trackerProvision.id).toBe('tracing');
   });
 
   test('has resource kind', () => {
@@ -58,8 +58,8 @@ describe('trackerProvision', () => {
     });
 
     test('wraps a registered writable store with a read-only query surface', () => {
-      tmpDir = mkdtempSync(join(tmpdir(), 'tracker-provision-'));
-      const store = createDevStore({ path: join(tmpDir, 'tracker.db') });
+      tmpDir = mkdtempSync(join(tmpdir(), 'tracing-provision-'));
+      const store = createDevStore({ path: join(tmpDir, 'tracing.db') });
       registerTrackerState({
         active: true,
         sampling: DEFAULT_SAMPLING,

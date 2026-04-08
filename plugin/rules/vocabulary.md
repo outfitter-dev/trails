@@ -15,7 +15,7 @@ Use Trails-branded terms consistently. These are non-negotiable in code, docs, a
 | `provision` | provider, dependency |
 | `signal` | event, notification, message |
 | `gate` | layer, middleware |
-| `tracker` | telemetry recorder |
+| `tracing` | telemetry recorder |
 | `metadata` | annotations, tags |
 | `detours` | fallbacks, retries, recovery |
 | `warden` | linter, checker, validator |

@@ -250,6 +250,6 @@ Four new governance rules follow from this ADR:
 - [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- the trail spec that gains the `visibility` field
 - [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent drives HTTP verbs, MCP annotations, and now trailhead filtering
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- the derivation rules that visibility and intent filtering extend
-- [ADR-0013: Tracker](../0013-tracker.md) -- the observability system; visibility filtering events are observable through tracker
+- [ADR-0013: Tracing](../0013-tracing.md) -- the observability system; visibility filtering events are observable through tracing
 - ADR: The Serialized Topo Graph (draft) -- the lockfile captures resolved visibility state after all overrides are applied
 - ADR: Packs as Namespace Boundaries (draft) -- packs set default visibility for their trails; depends on this ADR

@@ -364,6 +364,6 @@ The warden gains resources-aware rules:
 - ADR: Packs as Namespace Boundaries (draft) -- the compositional primitive that resources distribute
 - ADR: Trail Visibility and Trailhead Filtering (draft) -- visibility inheritance that pack-level defaults enable
 - ADR: The Serialized Topo Graph (draft) -- resources state is captured in the lockfile graph; resources occupy a section in `trails.lock`
-- [ADR-0013: Tracker](../0013-tracker.md) -- telemetry primitives that resources can carry and trailhead
+- [ADR-0013: Tracing](../0013-tracing.md) -- telemetry primitives that resources can carry and trailhead
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- survey output provides the contract snapshots
 - [docs/lexicon.md](../../lexicon.md) -- `pack` reserved term; `resources` to be added

@@ -11,15 +11,15 @@ import {
 } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 
-import { tracker } from '../index.js';
+import { tracing } from '../index.js';
 import { createMemorySink } from '../memory-sink.js';
 import { getTraceContext, TRACE_CONTEXT_KEY } from '../trace-context.js';
 import type { TraceContext } from '../trace-context.js';
-import { createTrackerGate } from '../tracker-gate.js';
+import { createTracingLayer } from '../tracing-layer.js';
 
 const stubCtx: TrailContext = createTrailContext({
   abortSignal: AbortSignal.timeout(5000),
-  requestId: 'test-tracker',
+  requestId: 'test-tracing',
 });
 
 const echoTrail = trail('echo', {
@@ -36,10 +36,10 @@ const failTrail = trail('fail', {
 });
 
 // oxlint-disable max-statements -- integration tests with setup + assertions
-describe('trackerGate', () => {
+describe('tracingLayer', () => {
   test('records a successful trail execution', async () => {
     const sink = createMemorySink();
-    const layer = createTrackerGate(sink);
+    const layer = createTracingLayer(sink);
     const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
     const result = await wrapped({ value: 'hello' }, stubCtx);
@@ -51,7 +51,7 @@ describe('trackerGate', () => {
 
   test('records status err on failure', async () => {
     const sink = createMemorySink();
-    const layer = createTrackerGate(sink);
+    const layer = createTracingLayer(sink);
     const wrapped = layer.wrap(failTrail, failTrail.blaze);
 
     const result = await wrapped({}, stubCtx);
@@ -63,7 +63,7 @@ describe('trackerGate', () => {
 
   test('captures timing (endedAt > startedAt)', async () => {
     const sink = createMemorySink();
-    const layer = createTrackerGate(sink);
+    const layer = createTracingLayer(sink);
     const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
     await wrapped({ value: 'hello' }, stubCtx);
@@ -79,7 +79,7 @@ describe('trackerGate', () => {
 
   test('records trailId and intent from the trail', async () => {
     const sink = createMemorySink();
-    const layer = createTrackerGate(sink);
+    const layer = createTracingLayer(sink);
     const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
     await wrapped({ value: 'hello' }, stubCtx);
@@ -91,7 +91,7 @@ describe('trackerGate', () => {
 
   test('writes to the provided sink', async () => {
     const sink = createMemorySink();
-    const layer = createTrackerGate(sink);
+    const layer = createTracingLayer(sink);
     const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
     await wrapped({ value: 'a' }, stubCtx);
@@ -104,7 +104,7 @@ describe('trackerGate', () => {
   describe('trace context propagation', () => {
     test('creates root trace context for root invocations', async () => {
       const sink = createMemorySink();
-      const layer = createTrackerGate(sink);
+      const layer = createTracingLayer(sink);
       const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
       await wrapped({ value: 'hello' }, stubCtx);
@@ -126,7 +126,7 @@ describe('trackerGate', () => {
       });
 
       const sink = createMemorySink();
-      const layer = createTrackerGate(sink);
+      const layer = createTracingLayer(sink);
       const wrapped = layer.wrap(capturingTrail, capturingTrail.blaze);
 
       await wrapped({}, stubCtx);
@@ -139,7 +139,7 @@ describe('trackerGate', () => {
 
     test('child invocation inherits parent traceId and links to parent record id', async () => {
       const sink = createMemorySink();
-      const layer = createTrackerGate(sink);
+      const layer = createTracingLayer(sink);
 
       const childTrail = trail('child', {
         blaze: () => Result.ok({}),
@@ -181,7 +181,7 @@ describe('trackerGate', () => {
   describe('permit capture', () => {
     test('captures permit from ctx when present', async () => {
       const sink = createMemorySink();
-      const layer = createTrackerGate(sink);
+      const layer = createTracingLayer(sink);
       const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
       const ctxWithPermit: TrailContext = {
@@ -201,7 +201,7 @@ describe('trackerGate', () => {
   describe('trailhead capture', () => {
     test('captures the invoking trailhead from ctx.extensions', async () => {
       const sink = createMemorySink();
-      const layer = createTrackerGate(sink);
+      const layer = createTracingLayer(sink);
       const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
       const ctxWithSurface: TrailContext = {
@@ -219,7 +219,7 @@ describe('trackerGate', () => {
   });
 
   test('keeps trail result delivery when onSinkError throws', async () => {
-    const layer = createTrackerGate(
+    const layer = createTracingLayer(
       {
         write: async () => {
           await Promise.resolve();
@@ -249,7 +249,7 @@ describe('trackerGate', () => {
     test('sampled-out read trails are NOT written to sink', async () => {
       Math.random = () => 0.99;
       const sink = createMemorySink();
-      const layer = createTrackerGate(sink, { sampling: { read: 0.05 } });
+      const layer = createTracingLayer(sink, { sampling: { read: 0.05 } });
       const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
       const result = await wrapped({ value: 'hello' }, stubCtx);
@@ -261,7 +261,7 @@ describe('trackerGate', () => {
     test('error promotion writes sampled-out failing trails', async () => {
       Math.random = () => 0.99;
       const sink = createMemorySink();
-      const layer = createTrackerGate(sink, {
+      const layer = createTracingLayer(sink, {
         keepOnError: true,
         sampling: { read: 0.05 },
       });
@@ -284,7 +284,7 @@ describe('trackerGate', () => {
     test('empty sampling config preserves record-everything default', async () => {
       Math.random = () => 0.99;
       const sink = createMemorySink();
-      const layer = createTrackerGate(sink, { sampling: {} });
+      const layer = createTracingLayer(sink, { sampling: {} });
       const wrapped = layer.wrap(echoTrail, echoTrail.blaze);
 
       await wrapped({ value: 'hello' }, stubCtx);
@@ -303,7 +303,7 @@ describe('trackerGate', () => {
       output: z.object({ value: z.string() }),
     });
 
-    const layer = createTrackerGate(sink);
+    const layer = createTracingLayer(sink);
     const wrapped = layer.wrap(throwingTrail, throwingTrail.blaze);
     const result = await wrapped({}, stubCtx);
 
@@ -321,7 +321,7 @@ describe('trackerGate', () => {
       output: z.object({ value: z.string() }),
     });
 
-    const layer = createTrackerGate(sink);
+    const layer = createTracingLayer(sink);
     const wrapped = layer.wrap(cancelledTrail, cancelledTrail.blaze);
     const result = await wrapped({}, stubCtx);
 
@@ -331,11 +331,11 @@ describe('trackerGate', () => {
     expect(sink.records[0]?.errorCategory).toBe('cancelled');
   });
 
-  test('injects tracker.from(ctx).span so manual spans become child records', async () => {
+  test('injects tracing.from(ctx).span so manual spans become child records', async () => {
     const sink = createMemorySink();
     const instrumentedTrail = trail('instrumented', {
       blaze: async (_input, ctx) => {
-        const value = await tracker
+        const value = await tracing
           .from(ctx as TrailContext)
           .span('inner-span', () => 'done');
         return Result.ok({ value });
@@ -344,7 +344,7 @@ describe('trackerGate', () => {
       output: z.object({ value: z.string() }),
     });
 
-    const layer = createTrackerGate(sink);
+    const layer = createTracingLayer(sink);
     const wrapped = layer.wrap(instrumentedTrail, instrumentedTrail.blaze);
 
     const result = await wrapped({}, stubCtx);
@@ -362,14 +362,14 @@ describe('trackerGate', () => {
     expect(spanRecord?.traceId).toBe(trailRecord?.traceId);
   });
 
-  test('merges tracker.from(ctx).annotate attrs into the trail record', async () => {
+  test('merges tracing.from(ctx).annotate attrs into the trail record', async () => {
     const sink = createMemorySink();
     const annotatedTrail = trail('annotated', {
       blaze: (_input, ctx) => {
-        tracker
+        tracing
           .from(ctx as TrailContext)
           .annotate({ count: 1, stage: 'start' });
-        tracker
+        tracing
           .from(ctx as TrailContext)
           .annotate({ count: 2, detail: 'done' });
         return Result.ok({ value: 'ok' });
@@ -378,7 +378,7 @@ describe('trackerGate', () => {
       output: z.object({ value: z.string() }),
     });
 
-    const layer = createTrackerGate(sink);
+    const layer = createTracingLayer(sink);
     const wrapped = layer.wrap(annotatedTrail, annotatedTrail.blaze);
 
     const result = await wrapped({}, stubCtx);
