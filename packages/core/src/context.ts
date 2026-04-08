@@ -1,9 +1,25 @@
 import { createResourceLookup } from './resource.js';
-import type { TrailContext, TrailContextInit } from './types.js';
+import type { TrailContext, TrailContextInit, TraceFn } from './types.js';
 
 type MutableTrailContext = {
   -readonly [K in keyof TrailContext]: TrailContext[K];
 };
+
+/**
+ * Default passthrough `trace` used when a context is built outside
+ * `executeTrail`. `executeTrail` replaces this with a real sink-writing
+ * implementation. The passthrough runs `fn` without recording anything so
+ * direct `createTrailContext()` callers (tests, ad-hoc compositions) don't
+ * crash when invoking `ctx.trace(...)`.
+ *
+ * Declared `async` so both synchronous throws and async rejections from `fn`
+ * propagate as a rejected promise to the caller — matching the real
+ * sink-writing implementation's error semantics.
+ */
+export const passthroughTrace: TraceFn = async <T>(
+  _label: string,
+  fn: () => T | Promise<T>
+): Promise<T> => await fn();
 
 /**
  * Create a TrailContext with sensible defaults.
@@ -20,9 +36,13 @@ export const createTrailContext = (
     cwd: process.cwd(),
     env: process.env as Record<string, string | undefined>,
     requestId: Bun.randomUUIDv7(),
+    trace: passthroughTrace,
     ...overrides,
   } as MutableTrailContext;
   const lookup = overrides?.resource ?? createResourceLookup(() => ctx);
   ctx.resource = lookup;
+  if (ctx.trace === undefined) {
+    ctx.trace = passthroughTrace;
+  }
   return ctx;
 };

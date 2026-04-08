@@ -14,8 +14,7 @@ import {
   ensureTraceSchema,
 } from '../internal/dev-state.js';
 
-import type { TraceRecord } from '../trace-record.js';
-import type { TraceSink } from '../tracing-layer.js';
+import type { TraceRecord, TraceSink } from '@ontrails/core';
 
 /** Configuration for the SQLite dev store. */
 export interface DevStoreOptions {

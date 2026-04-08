@@ -42,7 +42,7 @@ export type {
 export { TRAILHEAD_KEY } from './types.js';
 
 // Context factory
-export { createTrailContext } from './context.js';
+export { createTrailContext, passthroughTrace } from './context.js';
 
 // Resource
 export {
@@ -127,6 +127,24 @@ export type { Field, FieldOverride } from './derive.js';
 // Execute
 export { executeTrail } from './execute.js';
 export type { ExecuteTrailOptions } from './execute.js';
+
+// Intrinsic tracing
+export {
+  TRACE_CONTEXT_KEY,
+  clearTraceSink,
+  completeRecord as completeTraceRecord,
+  createTraceRecord,
+  getTraceContext,
+  getTraceSink,
+  registerTraceSink,
+} from './internal/tracing.js';
+export type {
+  TraceContext,
+  TraceRecord,
+  TraceSink,
+  TraceSinkLike,
+} from './internal/tracing.js';
+export type { TraceFn } from './types.js';
 
 // Run
 export { run } from './run.js';

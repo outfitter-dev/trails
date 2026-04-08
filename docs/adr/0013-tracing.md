@@ -4,11 +4,13 @@ slug: tracing
 title: Tracing — Runtime Recording Primitive
 status: accepted
 created: 2026-03-30
-updated: 2026-04-02
+updated: 2026-04-08
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
 # ADR-0013: Tracing — Runtime Recording Primitive
+
+> **Status update (2026-04-08):** Originally landed as "Tracker" and renamed to "Tracing" by [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md), implemented via TRL-196. The tracker→tracing rename, the `tracingLayer` → intrinsic-in-`executeTrail` collapse, and the `ctx.trace(label, fn)` API replacing `tracker.from(ctx).track(...)` all land through that ADR. The underlying recording, sink, and sampling design described here still governs; only the attachment mechanism and naming changed.
 
 ## Context
 
@@ -43,7 +45,7 @@ Tracing now integrates in two ways:
 - **Intrinsic recording in `executeTrail`** writes a root `TraceRecord` for every trail execution automatically
 - **`ctx.trace(label, fn)`** gives trail implementations scoped manual spans for important internal work
 
-The automatic path is the default. The manual path exists for trails that need extra detail around internal work.
+The automatic path is the default. The manual path exists for trails that need extra detail around internal work inside the shared root trace.
 
 ```typescript
 const result = await ctx.trace('db-query', async () => {

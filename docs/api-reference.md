@@ -234,7 +234,7 @@ deprecated(schema, message)          // mark a field as deprecated with migratio
 
 // Resource & layer
 configResource                       // resource for resolved config state
-configLayer                          // layer for per-trail config context
+configGate                           // layer for per-trail config context
 
 // State management
 registerConfigState(state)           // register resolved config at bootstrap
@@ -279,33 +279,34 @@ PermitDiagnostic
 
 ## `@ontrails/tracing`
 
+Tracing is intrinsic in `executeTrail` — every trail execution produces a `TraceRecord` automatically. `ctx.trace(label, fn)` records nested spans. No layer attachment required.
+
 ```typescript
-// Resource & layer
-tracingResource                      // resource for tracing state
-tracing                              // accessor resource for manual instrumentation
-createTracingLayer(sink, options?)    // layer that records every trail invocation
+// Sink registration (from @ontrails/core or re-exported from @ontrails/tracing)
+registerTraceSink(sink)              // install a sink for trace records
+getTraceSink()                       // get the currently registered sink
+clearTraceSink()                     // revert to the default no-op sink
 
 // Sinks
 createMemorySink()                   // in-memory sink for testing
 createDevStore(options?)             // SQLite-backed persistent sink for development
 createOtelConnector(options?)        // OpenTelemetry span exporter
 
-// State management
-registerTracingState(state)          // register tracing state at bootstrap
+// Resource & trails
+tracingResource                      // resource for tracing state
+tracingStatus                        // trail: report tracing state and record count
+tracingQuery                         // trail: query execution history with filters
 
-// Trail definitions
-tracingStatus                        // report tracing state and record count
-tracingQuery                         // query execution history with filters
-
-// Context
-getTraceContext(ctx)                  // get current trace context
+// Context access (inside a trail blaze)
+ctx.trace(label, fn)                 // record a nested span around fn
+getTraceContext(ctx)                 // get current trace context
 childTraceContext(parent)            // create a child trace context
 
 // Sampling
 shouldSample(intent, config?)        // sampling decision based on intent
 DEFAULT_SAMPLING                     // default sampling rates by intent
 
-TraceRecord, TracingState, TraceSink, SamplingConfig, TraceContext
+TraceRecord, TraceSink, SamplingConfig, TraceContext, TraceFn
 ```
 
 ## `@ontrails/logging`

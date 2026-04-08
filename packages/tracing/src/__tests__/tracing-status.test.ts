@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createResourceLookup } from '@ontrails/core';
+import { createResourceLookup, passthroughTrace } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 
 import type { TracingState } from '../tracing-state.js';
@@ -16,6 +16,7 @@ const buildCtx = (state: TracingState): TrailContext => {
     extensions,
     requestId: 'test',
     resource: undefined as unknown as TrailContext['resource'],
+    trace: passthroughTrace,
     workspaceRoot: '/tmp',
   };
   const withLookup = {

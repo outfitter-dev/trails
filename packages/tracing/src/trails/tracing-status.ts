@@ -17,7 +17,7 @@ const tracingStatusOutput = z.object({
 /**
  * Reports the current status of the tracing telemetry subsystem.
  *
- * Returns whether tracking is active, the current record count, and
+ * Returns whether tracing is active, the current record count, and
  * the sampling configuration for each intent. Reads all values from
  * the `tracingResource` state.
  */

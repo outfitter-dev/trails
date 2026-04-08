@@ -8,7 +8,7 @@ import type {
   Topo,
   TrailContext,
 } from '@ontrails/core';
-import { Result, createResourceLookup } from '@ontrails/core';
+import { Result, createResourceLookup, passthroughTrace } from '@ontrails/core';
 
 import { createTestLogger } from './logger.js';
 import type { TestTrailContextOptions } from './types.js';
@@ -39,6 +39,7 @@ export const createTestContext = (
     extensions: undefined,
     logger: overrides?.logger ?? createTestLogger(),
     requestId: overrides?.requestId ?? 'test-request-001',
+    trace: overrides?.trace ?? passthroughTrace,
     workspaceRoot: cwd,
   } as MutableTrailContext;
   const lookup = createResourceLookup(() => ctx);

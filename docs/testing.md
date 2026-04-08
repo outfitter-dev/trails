@@ -338,15 +338,19 @@ const permit = mintTestPermit({ scopes: ['entity:read'] });
 const trailPermit = mintPermitForTrail(showTrail);
 ```
 
-**Tracing memory layer.** `createMemorySink()` captures all tracing records in memory for assertion. Pair it with `createTracingLayer()` to verify that trails emit the expected telemetry without configuring a real exporter:
+**Tracing memory sink.** Tracing is intrinsic to `executeTrail` — every trail execution produces a `TraceRecord` automatically. Register `createMemorySink()` to capture records in memory for assertion:
 
 ```typescript
-import { createMemorySink, createTracingLayer } from '@ontrails/tracing';
+import { createMemorySink, registerTraceSink, clearTraceSink } from '@ontrails/tracing';
 
 const sink = createMemorySink();
-const layer = createTracingLayer(sink);
-// ...run trails with the layer...
-expect(sink.records).toHaveLength(1);
+registerTraceSink(sink);
+try {
+  // ...run trails...
+  expect(sink.records).toHaveLength(1);
+} finally {
+  clearTraceSink();
+}
 ```
 
 ## Recommended Test Structure
