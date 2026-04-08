@@ -64,7 +64,6 @@ export interface TrailSpec<I, O> {
   readonly crosses?: readonly string[] | undefined;
   /** Resources this trail may access via resource.from(ctx) */
   readonly resources?: readonly AnyResource[] | undefined;
-  /** IDs of signals this trail emits via ctx.fire() */
   /**
    * Signals this trail emits via `ctx.fire()`.
    *
