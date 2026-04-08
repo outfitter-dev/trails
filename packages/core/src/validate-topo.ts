@@ -114,20 +114,20 @@ const checkCrosses = (
   return issues;
 };
 
-const checkProvisions = (
+const checkResources = (
   trails: ReadonlyMap<string, AnyTrail>,
   topo: Topo
 ): TopoIssue[] => {
   const issues: TopoIssue[] = [];
 
   for (const [id, trail] of trails) {
-    for (const declaredProvision of trail.resources) {
+    for (const declaredResource of trail.resources) {
       if (
-        !topo.hasResource(declaredProvision.id) &&
-        !isDraftId(declaredProvision.id)
+        !topo.hasResource(declaredResource.id) &&
+        !isDraftId(declaredResource.id)
       ) {
         issues.push({
-          message: `Resource "${declaredProvision.id}" is not in the topo`,
+          message: `Resource "${declaredResource.id}" is not in the topo`,
           rule: 'resource-exists',
           trailId: id,
         });
@@ -217,7 +217,7 @@ const checkSignalOrigins = (
 export const validateTopo = (topo: Topo): Result<void, ValidationError> => {
   const issues = [
     ...checkCrosses(topo.trails, topo),
-    ...checkProvisions(topo.trails, topo),
+    ...checkResources(topo.trails, topo),
     ...checkExamples(topo.trails),
     ...checkSignalOrigins(topo.signals, topo),
   ];

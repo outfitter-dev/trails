@@ -25,7 +25,7 @@ import {
 import { exportCurrentTopo } from './topo-store-support.js';
 
 export {
-  formatProvisionDetail,
+  formatResourceDetail,
   generateBriefReport,
   generateSurveyList,
   generateTrailDetail,
@@ -215,7 +215,7 @@ export const surveyTrail = trail('survey', {
           safety: z.string(),
         })
       ),
-      provisionCount: z.number(),
+      resourceCount: z.number(),
       resources: z.array(
         z.object({
           description: z.string().nullable(),

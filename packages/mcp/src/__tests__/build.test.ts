@@ -53,7 +53,7 @@ const exampleTrail = trail('with.examples', {
   input: z.object({ name: z.string() }),
 });
 
-const dbProvision = resource('db.main', {
+const dbResource = resource('db.main', {
   create: () =>
     Result.ok({
       source: 'factory',
@@ -378,16 +378,16 @@ describe('buildMcpTools', () => {
     });
 
     test('resource overrides are forwarded to executeTrail', async () => {
-      const provisionTrail = trail('resource.check', {
+      const resourceTrail = trail('resource.check', {
         blaze: (_input, ctx) =>
-          Result.ok({ source: dbProvision.from(ctx).source as string }),
+          Result.ok({ source: dbResource.from(ctx).source as string }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
-        resources: [dbProvision],
+        resources: [dbResource],
       });
 
       const tool = requireOnlyTool(
-        buildTools(topo('myapp', { dbProvision, provisionTrail }), {
+        buildTools(topo('myapp', { dbResource, resourceTrail }), {
           resources: { 'db.main': { source: 'override' } },
         })
       );

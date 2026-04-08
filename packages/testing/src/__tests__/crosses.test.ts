@@ -228,18 +228,18 @@ describe('testCrosses: nested cross chain (A → B → C)', () => {
   );
 });
 
-const mockDbProvision = resource('db.mock.crosses', {
+const mockDbResource = resource('db.mock.crosses', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
 const provisionLeafTrail = trail('resource.leaf', {
   blaze: (_input, ctx) =>
-    Result.ok({ childSource: mockDbProvision.from(ctx).source }),
+    Result.ok({ childSource: mockDbResource.from(ctx).source }),
   description: 'Leaf trail that reads from a resource',
   input: z.object({}),
   output: z.object({ childSource: z.string() }),
-  resources: [mockDbProvision],
+  resources: [mockDbResource],
 });
 
 const provisionRootTrail = trail('resource.root', {
@@ -257,7 +257,7 @@ const provisionRootTrail = trail('resource.root', {
 
     return Result.ok({
       childSource: childResult.value.childSource,
-      rootSource: mockDbProvision.from(ctx).source,
+      rootSource: mockDbResource.from(ctx).source,
     });
   },
   crosses: ['resource.leaf'],
@@ -265,35 +265,35 @@ const provisionRootTrail = trail('resource.root', {
     'Root trail that reads from a resource and crosses a child trail',
   input: z.object({}),
   output: z.object({ childSource: z.string(), rootSource: z.string() }),
-  resources: [mockDbProvision],
+  resources: [mockDbResource],
 });
 
 const provisionTrailsMap = new Map<string, AnyTrail>([
   ['resource.leaf', provisionLeafTrail],
 ]);
 
-const statefulMockDbProvision = resource('db.mock.crosses.stateful', {
+const statefulMockDbResource = resource('db.mock.crosses.stateful', {
   create: () => Result.ok({ count: 0 }),
   mock: () => ({ count: 0 }),
 });
 
-const statefulProvisionLeafTrail = trail('resource.stateful.leaf', {
+const statefulResourceLeafTrail = trail('resource.stateful.leaf', {
   blaze: (_input, ctx) =>
-    Result.ok({ childCount: statefulMockDbProvision.from(ctx).count }),
+    Result.ok({ childCount: statefulMockDbResource.from(ctx).count }),
   description: 'Leaf trail that observes the current mock resource state',
   input: z.object({}),
   output: z.object({ childCount: z.number() }),
-  resources: [statefulMockDbProvision],
+  resources: [statefulMockDbResource],
 });
 
-const statefulProvisionRootTrail = trail('resource.stateful.root', {
+const statefulResourceRootTrail = trail('resource.stateful.root', {
   blaze: async (_input, ctx: TrailContext) => {
     if (!ctx.cross) {
       return Result.err(new Error('cross not available'));
     }
 
-    const statefulProvision = statefulMockDbProvision.from(ctx);
-    statefulProvision.count += 1;
+    const statefulResource = statefulMockDbResource.from(ctx);
+    statefulResource.count += 1;
 
     const childResult = await ctx.cross<{ childCount: number }>(
       'resource.stateful.leaf',
@@ -305,7 +305,7 @@ const statefulProvisionRootTrail = trail('resource.stateful.root', {
 
     return Result.ok({
       childCount: childResult.value.childCount,
-      rootCount: statefulProvision.count,
+      rootCount: statefulResource.count,
     });
   },
   crosses: ['resource.stateful.leaf'],
@@ -313,25 +313,25 @@ const statefulProvisionRootTrail = trail('resource.stateful.root', {
     'Root trail that mutates a mocked resource and crosses a child trail',
   input: z.object({}),
   output: z.object({ childCount: z.number(), rootCount: z.number() }),
-  resources: [statefulMockDbProvision],
+  resources: [statefulMockDbResource],
 });
 
-const statefulProvisionTrailsMap = new Map<string, AnyTrail>([
-  ['resource.stateful.leaf', statefulProvisionLeafTrail],
+const statefulResourceTrailsMap = new Map<string, AnyTrail>([
+  ['resource.stateful.leaf', statefulResourceLeafTrail],
 ]);
 
-const scenarioStateProvision = resource('db.mock.scenarios', {
+const scenarioStateResource = resource('db.mock.scenarios', {
   create: () => Result.ok({ count: 0 }),
   mock: () => ({ count: 0 }),
 });
 
 const scenarioLeafTrail = trail('resource.scenario.leaf', {
   blaze: (_input, ctx) =>
-    Result.ok({ count: scenarioStateProvision.from(ctx).count }),
+    Result.ok({ count: scenarioStateResource.from(ctx).count }),
   description: 'Leaf trail that reads mutable scenario state',
   input: z.object({}),
   output: z.object({ count: z.number() }),
-  resources: [scenarioStateProvision],
+  resources: [scenarioStateResource],
 });
 
 const scenarioRootTrail = trail('resource.scenario.root', {
@@ -340,7 +340,7 @@ const scenarioRootTrail = trail('resource.scenario.root', {
       return Result.err(new Error('cross not available'));
     }
 
-    const state = scenarioStateProvision.from(ctx);
+    const state = scenarioStateResource.from(ctx);
     state.count += 1;
 
     const leafResult = await ctx.cross<{ count: number }>(
@@ -357,10 +357,10 @@ const scenarioRootTrail = trail('resource.scenario.root', {
   description: 'Root trail that mutates scenario state and crosses a leaf',
   input: z.object({}),
   output: z.object({ count: z.number() }),
-  resources: [scenarioStateProvision],
+  resources: [scenarioStateResource],
 });
 
-const scenarioProvisionTrailsMap = new Map<string, AnyTrail>([
+const scenarioResourceTrailsMap = new Map<string, AnyTrail>([
   ['resource.scenario.leaf', scenarioLeafTrail],
 ]);
 
@@ -399,21 +399,21 @@ const transformedCrossTrailsMap = new Map<string, AnyTrail>([
   ['cross.transformed.leaf', transformedCrossLeafTrail],
 ]);
 
-const undeclaredCrossProvision = resource('db.undeclared.crosses', {
+const undeclaredCrossResource = resource('db.undeclared.crosses', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
-const undeclaredProvisionLeafTrail = trail('resource.undeclared.leaf', {
+const undeclaredResourceLeafTrail = trail('resource.undeclared.leaf', {
   blaze: (_input, ctx) =>
-    Result.ok({ childSource: undeclaredCrossProvision.from(ctx).source }),
+    Result.ok({ childSource: undeclaredCrossResource.from(ctx).source }),
   description: 'Leaf trail that declares the shared resource',
   input: z.object({}),
   output: z.object({ childSource: z.string() }),
-  resources: [undeclaredCrossProvision],
+  resources: [undeclaredCrossResource],
 });
 
-const undeclaredProvisionRootTrail = trail('resource.undeclared.root', {
+const undeclaredResourceRootTrail = trail('resource.undeclared.root', {
   blaze: async (_input, ctx: TrailContext) => {
     if (!ctx.cross) {
       return Result.err(new Error('cross not available'));
@@ -429,7 +429,7 @@ const undeclaredProvisionRootTrail = trail('resource.undeclared.root', {
 
     return Result.ok({
       childSource: childResult.value.childSource,
-      rootSource: undeclaredCrossProvision.from(ctx).source,
+      rootSource: undeclaredCrossResource.from(ctx).source,
     });
   },
   crosses: ['resource.undeclared.leaf'],
@@ -438,28 +438,28 @@ const undeclaredProvisionRootTrail = trail('resource.undeclared.root', {
   output: z.object({ childSource: z.string(), rootSource: z.string() }),
 });
 
-const undeclaredProvisionTrailsMap = new Map<string, AnyTrail>([
-  ['resource.undeclared.leaf', undeclaredProvisionLeafTrail],
+const undeclaredResourceTrailsMap = new Map<string, AnyTrail>([
+  ['resource.undeclared.leaf', undeclaredResourceLeafTrail],
 ]);
 
-const unrelatedCrossProvision = resource('db.unrelated.crosses', {
+const unrelatedCrossResource = resource('db.unrelated.crosses', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => {
     throw new Error('unrelated mock should not be resolved');
   },
 });
 
-const unrelatedProvisionTrail = trail('resource.unrelated', {
+const unrelatedResourceTrail = trail('resource.unrelated', {
   blaze: (_input, ctx) =>
-    Result.ok({ source: unrelatedCrossProvision.from(ctx).source }),
+    Result.ok({ source: unrelatedCrossResource.from(ctx).source }),
   description: 'Trail that should not be traversed or mocked',
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  resources: [unrelatedCrossProvision],
+  resources: [unrelatedCrossResource],
 });
 
-const unrelatedProvisionTrailsMap = new Map<string, AnyTrail>([
-  ['resource.unrelated', unrelatedProvisionTrail],
+const unrelatedResourceTrailsMap = new Map<string, AnyTrail>([
+  ['resource.unrelated', unrelatedResourceTrail],
 ]);
 
 describe('testCrosses resource mocks', () => {
@@ -493,7 +493,7 @@ describe('testCrosses resource mocks are fresh per scenario', () => {
         input: {},
       },
     ],
-    { trails: scenarioProvisionTrailsMap }
+    { trails: scenarioResourceTrailsMap }
   );
 });
 
@@ -533,16 +533,16 @@ describe('testCrosses raw transformed input', () => {
 describe('testCrosses resource declarations', () => {
   // eslint-disable-next-line jest/require-hook
   testCrosses(
-    undeclaredProvisionRootTrail,
+    undeclaredResourceRootTrail,
     [
       {
         description: 'fails when the root trail omits a required resource',
         expectErr: InternalError,
-        expectErrMessage: undeclaredCrossProvision.id,
+        expectErrMessage: undeclaredCrossResource.id,
         input: {},
       },
     ],
-    { trails: undeclaredProvisionTrailsMap }
+    { trails: undeclaredResourceTrailsMap }
   );
 });
 
@@ -560,7 +560,7 @@ describe('testCrosses only resolves mocks for trails under test', () => {
     {
       trails: new Map<string, AnyTrail>([
         ...provisionTrailsMap.entries(),
-        ...unrelatedProvisionTrailsMap.entries(),
+        ...unrelatedResourceTrailsMap.entries(),
       ]),
     }
   );
@@ -569,7 +569,7 @@ describe('testCrosses only resolves mocks for trails under test', () => {
 describe('testCrosses fresh resource mocks per scenario', () => {
   // eslint-disable-next-line jest/require-hook
   testCrosses(
-    statefulProvisionRootTrail,
+    statefulResourceRootTrail,
     [
       {
         description: 'first scenario gets a fresh resource mock',
@@ -582,6 +582,6 @@ describe('testCrosses fresh resource mocks per scenario', () => {
         input: {},
       },
     ],
-    { trails: statefulProvisionTrailsMap }
+    { trails: statefulResourceTrailsMap }
   );
 });

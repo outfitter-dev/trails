@@ -23,7 +23,7 @@ import { z } from 'zod';
 
 import { app } from '../src/app.js';
 import * as entitySignals from '../src/signals/entity-signals.js';
-import * as demoProvisions from '../src/resources/entity-store.js';
+import * as demoResources from '../src/resources/entity-store.js';
 import * as notificationStoreResource from '../src/resources/notification-store.js';
 import * as entity from '../src/trails/entity.js';
 import * as kv from '../src/trails/kv.js';
@@ -119,13 +119,13 @@ describe('trailhead map generation', () => {
   });
 
   test('resource entries include their description', () => {
-    const provisionEntry = trailheadMap.entries.find(
+    const resourceEntry = trailheadMap.entries.find(
       (e) => e.id === 'demo.entity-store'
     );
-    expect(provisionEntry).toBeDefined();
-    if (provisionEntry) {
-      expect(provisionEntry.kind).toBe('resource');
-      expect(provisionEntry.description).toBe(
+    expect(resourceEntry).toBeDefined();
+    if (resourceEntry) {
+      expect(resourceEntry.kind).toBe('resource');
+      expect(resourceEntry.description).toBe(
         'Drizzle-backed in-memory entity store used by the demo trails app.'
       );
     }
@@ -199,7 +199,7 @@ const makeModifiedShow = (inputSchema: z.ZodType) =>
     input: inputSchema,
     intent: 'read',
     output: entityOutputSchema,
-    resources: [demoProvisions.entityStoreProvision],
+    resources: [demoResources.entityStoreResource],
   });
 
 /** Diff the baseline app against a modified app. */
@@ -223,7 +223,7 @@ describe('breaking change detection', () => {
       kv,
       notify,
       notificationStoreResource,
-      demoProvisions
+      demoResources
     );
 
     expect(diff.hasBreaking).toBe(true);
@@ -246,7 +246,7 @@ describe('breaking change detection', () => {
       kv,
       notify,
       notificationStoreResource,
-      demoProvisions
+      demoResources
     );
 
     expect(diff.hasBreaking).toBe(true);
@@ -282,7 +282,7 @@ describe('non-breaking change detection', () => {
       kv,
       notify,
       notificationStoreResource,
-      demoProvisions,
+      demoResources,
       { update }
     );
     expect(diff.hasBreaking).toBe(false);
@@ -307,7 +307,7 @@ describe('non-breaking change detection', () => {
       kv,
       notify,
       notificationStoreResource,
-      demoProvisions
+      demoResources
     );
     expect(diff.hasBreaking).toBe(false);
 

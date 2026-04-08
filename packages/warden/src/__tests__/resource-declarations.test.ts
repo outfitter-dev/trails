@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { provisionDeclarations } from '../rules/resource-declarations.js';
+import { resourceDeclarations } from '../rules/resource-declarations.js';
 
 const TEST_FILE = 'test.ts';
 
@@ -22,7 +22,7 @@ trail('entity.show', {
 });
 `;
 
-      const diagnostics = provisionDeclarations.check(code, TEST_FILE);
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
 
       expect(diagnostics.length).toBe(0);
     });
@@ -47,7 +47,7 @@ trail('entity.show', {
 });
 `;
 
-      const diagnostics = provisionDeclarations.check(code, TEST_FILE);
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
 
       expect(diagnostics.length).toBe(0);
     });
@@ -69,7 +69,7 @@ trail('entity.show', {
 });
 `;
 
-      const diagnostics = provisionDeclarations.check(code, TEST_FILE);
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
 
       expect(diagnostics.length).toBe(0);
     });
@@ -91,7 +91,7 @@ trail('entity.show', {
 });
 `;
 
-      const diagnostics = provisionDeclarations.check(code, TEST_FILE);
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
 
       expect(diagnostics.length).toBe(0);
     });
@@ -112,7 +112,7 @@ trail('entity.show', {
 });
 `;
 
-      const diagnostics = provisionDeclarations.check(code, TEST_FILE);
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
 
       expect(diagnostics.length).toBe(0);
     });
@@ -134,7 +134,7 @@ trail('entity.show', {
 });
 `;
 
-      const diagnostics = provisionDeclarations.check(code, TEST_FILE);
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
 
       expect(diagnostics.length).toBe(1);
       expect(diagnostics[0]?.severity).toBe('error');
@@ -152,7 +152,7 @@ trail('entity.show', {
 });
 `;
 
-      const diagnostics = provisionDeclarations.check(code, TEST_FILE);
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
 
       expect(diagnostics.length).toBe(1);
       expect(diagnostics[0]?.severity).toBe('error');
@@ -176,7 +176,7 @@ trail('entity.show', {
 });
 `;
 
-      const diagnostics = provisionDeclarations.check(code, TEST_FILE);
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
 
       expect(diagnostics.length).toBe(1);
       expect(diagnostics[0]?.severity).toBe('error');
@@ -198,7 +198,7 @@ trail('entity.show', {
 });
 `;
 
-      const diagnostics = provisionDeclarations.check(code, TEST_FILE);
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
 
       expect(diagnostics.length).toBe(1);
       expect(diagnostics[0]?.severity).toBe('error');
@@ -223,7 +223,7 @@ trail('entity.show', {
 });
 `;
 
-      const diagnostics = provisionDeclarations.check(code, TEST_FILE);
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
 
       expect(diagnostics.length).toBe(1);
       expect(diagnostics[0]?.severity).toBe('warn');
@@ -251,7 +251,7 @@ trail({
 });
 `;
 
-      const diagnostics = provisionDeclarations.check(code, TEST_FILE);
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
 
       expect(diagnostics.length).toBe(0);
     });
@@ -274,7 +274,7 @@ trail('entity.show', {
 });
 `;
 
-      const diagnostics = provisionDeclarations.check(code, TEST_FILE);
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
 
       expect(diagnostics.length).toBe(0);
     });
@@ -298,7 +298,7 @@ trail('entity.show', {
 });
 `;
 
-      const diagnostics = provisionDeclarations.check(code, TEST_FILE);
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
 
       expect(diagnostics.length).toBe(0);
     });
@@ -313,6 +313,6 @@ trail('entity.show', {
 });
 `;
 
-    expect(provisionDeclarations.check(code, 'entity.test.ts')).toEqual([]);
+    expect(resourceDeclarations.check(code, 'entity.test.ts')).toEqual([]);
   });
 });

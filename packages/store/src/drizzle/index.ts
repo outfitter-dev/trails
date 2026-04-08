@@ -10,7 +10,7 @@ export type {
   DrizzleMockSeed,
   DrizzleQueryContext,
   DrizzleStoreConnection,
-  DrizzleStoreProvision,
+  DrizzleStoreResource,
   DrizzleStoreSchema,
   ReadOnlyDrizzleOptions,
   ReadOnlyDrizzleStoreConnection,

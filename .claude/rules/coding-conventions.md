@@ -33,7 +33,7 @@ TSDoc explains the contract of exported APIs. Start there before reaching for in
 - Describe the contract a helper or trailhead exposes, especially derived names, validation boundaries, and `Result` behavior.
 - For APIs that return `Result`, document the success shape and the error types callers should expect.
 - Prefer examples that mirror how agents or trailhead connectors will actually consume the API.
-- For provision definitions, document the `create` factory's dependencies and the type it produces. Document `dispose` if cleanup is non-trivial. Skip `mock` TSDoc unless the mock behavior differs significantly from the real implementation.
+- For resource definitions, document the `create` factory's dependencies and the type it produces. Document `dispose` if cleanup is non-trivial. Skip `mock` TSDoc unless the mock behavior differs significantly from the real implementation.
 
 ## Code Shape Patterns
 

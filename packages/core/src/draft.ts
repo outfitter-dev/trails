@@ -109,7 +109,7 @@ const signalDependencies = (signal: AnySignal): DraftDependency[] => [
   ...dependencyFromTarget(signal.id, replacedByTarget(signal), 'replaced-by'),
 ];
 
-const provisionDependencies = (resource: AnyResource): DraftDependency[] =>
+const resourceDependencies = (resource: AnyResource): DraftDependency[] =>
   dependencyFromTarget(resource.id, replacedByTarget(resource), 'replaced-by');
 
 const nodeKind = (
@@ -283,7 +283,7 @@ const collectFindings = (
 const collectDependencies = (topo: Topo): DraftDependency[] => [
   ...[...topo.trails.values()].flatMap(trailDependencies),
   ...[...topo.signals.values()].flatMap(signalDependencies),
-  ...[...topo.resources.values()].flatMap(provisionDependencies),
+  ...[...topo.resources.values()].flatMap(resourceDependencies),
 ];
 
 export const analyzeDraftState = (topo: Topo): DraftStateAnalysis => {

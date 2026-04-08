@@ -1,13 +1,13 @@
-import { provisionExists } from '../rules/resource-exists.js';
+import { resourceExists } from '../rules/resource-exists.js';
 import { wrapRule } from './wrap-rule.js';
 
-export const provisionExistsTrail = wrapRule({
+export const resourceExistsTrail = wrapRule({
   examples: [
     {
       expected: { diagnostics: [] },
       input: {
         filePath: 'clean.ts',
-        knownProvisionIds: ['db.main'],
+        knownResourceIds: ['db.main'],
         knownTrailIds: ['entity.show'],
         sourceCode: `const db = resource("db.main", {
   create: () => Result.ok({ source: "factory" }),
@@ -23,5 +23,5 @@ trail("entity.show", {
       name: 'Declared resources resolve to known project resources',
     },
   ],
-  rule: provisionExists,
+  rule: resourceExists,
 });

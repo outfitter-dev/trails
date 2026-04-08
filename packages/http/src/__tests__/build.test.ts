@@ -62,7 +62,7 @@ const internalMetaTrail = trail('secret', {
   meta: { internal: true },
 });
 
-const dbProvision = resource('db.main', {
+const dbResource = resource('db.main', {
   create: () =>
     Result.ok({
       source: 'factory',
@@ -372,15 +372,15 @@ describe('buildHttpRoutes', () => {
     });
 
     test('forwards resource overrides into executeTrail', async () => {
-      const provisionTrail = trail('resource.check', {
+      const resourceTrail = trail('resource.check', {
         blaze: (_input, ctx) =>
-          Result.ok({ source: dbProvision.from(ctx).source as string }),
+          Result.ok({ source: dbResource.from(ctx).source as string }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
-        resources: [dbProvision],
+        resources: [dbResource],
       });
 
-      const app = topo('testapp', { dbProvision, provisionTrail });
+      const app = topo('testapp', { dbResource, resourceTrail });
       const buildResult = buildHttpRoutes(app, {
         resources: { 'db.main': { source: 'override' } },
       });

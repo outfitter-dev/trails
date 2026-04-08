@@ -14,7 +14,7 @@ const topoFrom = (...modules: Record<string, unknown>[]): Topo =>
   topo('test-app', ...modules);
 
 const noop = () => Result.ok(null as unknown);
-const dbProvision = resource('db.main', {
+const dbResource = resource('db.main', {
   create: () => Result.ok({ source: 'factory' }),
   description: 'Primary database',
   health: () => Result.ok({ ok: true }),
@@ -91,7 +91,7 @@ describe('generateTrailheadMap', () => {
         blaze: noop,
         input: z.object({ age: z.number(), name: z.string() }),
         output: z.object({ id: z.string(), name: z.string() }),
-        resources: [dbProvision],
+        resources: [dbResource],
       });
       const map = generateTrailheadMap(topoFrom({ t }));
       const entry = getFirstEntry(map);
@@ -155,7 +155,7 @@ describe('generateTrailheadMap', () => {
     });
 
     test('resource entries are included with description and healthcheck metadata', () => {
-      const map = generateTrailheadMap(topoFrom({ dbProvision }));
+      const map = generateTrailheadMap(topoFrom({ dbResource }));
       const entry = getFirstEntry(map);
 
       expect(entry.kind).toBe('resource');

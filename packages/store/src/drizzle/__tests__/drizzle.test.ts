@@ -45,7 +45,7 @@ const gistTable = {
   schema: gistSchema,
 } as const;
 
-const createProvisionInput = (rootDir: string) => ({
+const createResourceInput = (rootDir: string) => ({
   config: undefined,
   cwd: rootDir,
   env: {},
@@ -84,7 +84,7 @@ const createWritableDemoStore = (rootDir: string) =>
 const setupWritableDemoStore = async (rootDir: string) => {
   const db = createWritableDemoStore(rootDir);
   return {
-    created: await unwrapCreated(db.create(createProvisionInput(rootDir))),
+    created: await unwrapCreated(db.create(createResourceInput(rootDir))),
     db,
   };
 };
@@ -93,7 +93,7 @@ type WritableDemoStoreRuntime = Awaited<
   ReturnType<typeof setupWritableDemoStore>
 >['created'];
 
-const expectWritableProvisionDefinition = (
+const expectWritableResourceDefinition = (
   db: ReturnType<typeof createWritableDemoStore>
 ): void => {
   expect(db.kind).toBe('resource');
@@ -205,7 +205,7 @@ const expectWritableLifecycle = async (
   await expectMissingGistDelete(created);
 };
 
-const expectProvisionResolution = (
+const expectResourceResolution = (
   db: ReturnType<typeof createWritableDemoStore>,
   created: WritableDemoStoreRuntime
 ): void => {
@@ -264,7 +264,7 @@ const seedReadonlyFixture = async (
 ): Promise<z.output<typeof userSchema>> => {
   const writable = createWritableSeedStore(url);
   const seeded = await unwrapCreated(
-    writable.create(createProvisionInput(rootDir))
+    writable.create(createResourceInput(rootDir))
   );
   const inserted = await seeded.users.insert({ email: 'seed@example.com' });
   await writable.dispose?.(seeded);
@@ -285,7 +285,7 @@ const createReadonlyUserStore = (url: string) =>
 const setupReadonlyUserStore = async (url: string, rootDir: string) => {
   const db = createReadonlyUserStore(url);
   return {
-    created: await unwrapCreated(db.create(createProvisionInput(rootDir))),
+    created: await unwrapCreated(db.create(createResourceInput(rootDir))),
     db,
   };
 };
@@ -351,9 +351,9 @@ describe('@ontrails/store/drizzle', () => {
   test('binds a writable resource with CRUD accessors and one escape hatch', async () => {
     const rootDir = makeRoot();
     const { created, db } = await setupWritableDemoStore(rootDir);
-    expectWritableProvisionDefinition(db);
+    expectWritableResourceDefinition(db);
     await expectWritableLifecycle(created);
-    expectProvisionResolution(db, created);
+    expectResourceResolution(db, created);
     await db.dispose?.(created);
   });
 
@@ -399,7 +399,7 @@ describe('@ontrails/store/drizzle', () => {
     const rootDir = makeRoot();
     const db = createErrorStore(rootDir);
     const created = await unwrapCreated(
-      db.create(createProvisionInput(rootDir))
+      db.create(createResourceInput(rootDir))
     );
 
     await created.accounts.insert({

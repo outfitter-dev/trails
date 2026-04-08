@@ -160,7 +160,7 @@ export interface TopoSaveRecord {
   readonly gitDirty: boolean;
   readonly gitSha?: string;
   readonly id: string;
-  readonly provisionCount: number;
+  readonly resourceCount: number;
   readonly signalCount: number;
   readonly trailCount: number;
 }
@@ -170,7 +170,7 @@ export interface CreateTopoSaveInput {
   readonly gitDirty?: boolean;
   readonly gitSha?: string;
   readonly id?: string;
-  readonly provisionCount?: number;
+  readonly resourceCount?: number;
   readonly signalCount?: number;
   readonly trailCount?: number;
 }
@@ -191,7 +191,7 @@ const rowToSave = (row: TopoSaveRow): TopoSaveRecord => ({
   createdAt: row.created_at,
   gitDirty: row.git_dirty === 1,
   id: row.id,
-  provisionCount: row.provision_count,
+  resourceCount: row.provision_count,
   signalCount: row.signal_count,
   trailCount: row.trail_count,
   ...(row.git_sha === null ? {} : { gitSha: row.git_sha }),
@@ -249,7 +249,7 @@ export const insertTopoSaveRecord = (
     createdAt: input?.createdAt ?? new Date().toISOString(),
     gitDirty: input?.gitDirty ?? false,
     id: input?.id ?? Bun.randomUUIDv7(),
-    provisionCount: input?.provisionCount ?? 0,
+    resourceCount: input?.resourceCount ?? 0,
     signalCount: input?.signalCount ?? 0,
     trailCount: input?.trailCount ?? 0,
     ...(input?.gitSha === undefined ? {} : { gitSha: input.gitSha }),
@@ -265,7 +265,7 @@ export const insertTopoSaveRecord = (
       record.gitDirty ? 1 : 0,
       record.trailCount,
       record.signalCount,
-      record.provisionCount,
+      record.resourceCount,
       record.createdAt,
     ]
   );

@@ -67,14 +67,14 @@ const noExamplesTrail = trail('noexamples', {
   input: z.object({ x: z.number() }),
 });
 
-const mockDbProvision = resource('db.mock.examples', {
+const mockDbResource = resource('db.mock.examples', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
-const mockProvisionTrail = trail('resource.mocked', {
+const mockResourceTrail = trail('resource.mocked', {
   blaze: (_input, ctx) =>
-    Result.ok({ source: mockDbProvision.from(ctx).source }),
+    Result.ok({ source: mockDbResource.from(ctx).source }),
   description: 'Trail that reads from a mocked resource',
   examples: [
     {
@@ -85,12 +85,12 @@ const mockProvisionTrail = trail('resource.mocked', {
   ],
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  resources: [mockDbProvision],
+  resources: [mockDbResource],
 });
 
 const explicitOverrideTrail = trail('resource.override', {
   blaze: (_input, ctx) =>
-    Result.ok({ source: mockDbProvision.from(ctx).source }),
+    Result.ok({ source: mockDbResource.from(ctx).source }),
   description: 'Trail whose resource mock can be overridden explicitly',
   examples: [
     {
@@ -101,7 +101,7 @@ const explicitOverrideTrail = trail('resource.override', {
   ],
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  resources: [mockDbProvision],
+  resources: [mockDbResource],
 });
 
 const transformedInputTrail = trail('example.transformed', {
@@ -122,7 +122,7 @@ const transformedInputTrail = trail('example.transformed', {
 
 const ctxOverrideTrail = trail('resource.ctx-override', {
   blaze: (_input, ctx) =>
-    Result.ok({ source: mockDbProvision.from(ctx).source }),
+    Result.ok({ source: mockDbResource.from(ctx).source }),
   description: 'Trail whose resource mock can be overridden by ctx.extensions',
   examples: [
     {
@@ -133,17 +133,17 @@ const ctxOverrideTrail = trail('resource.ctx-override', {
   ],
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  resources: [mockDbProvision],
+  resources: [mockDbResource],
 });
 
-const undeclaredDbProvision = resource('db.undeclared.examples', {
+const undeclaredDbResource = resource('db.undeclared.examples', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
-const undeclaredProvisionTrail = trail('resource.undeclared.examples', {
+const undeclaredResourceTrail = trail('resource.undeclared.examples', {
   blaze: (_input, ctx) =>
-    Result.ok({ source: undeclaredDbProvision.from(ctx).source }),
+    Result.ok({ source: undeclaredDbResource.from(ctx).source }),
   description: 'Trail that uses a resource without declaring it',
   examples: [
     {
@@ -155,18 +155,18 @@ const undeclaredProvisionTrail = trail('resource.undeclared.examples', {
   input: z.object({}),
   output: z.object({ source: z.string() }),
 });
-const crossDbProvision = resource('db.mock.examples.crosses', {
+const crossDbResource = resource('db.mock.examples.crosses', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
 const crossLeafTrail = trail('resource.crosses.leaf', {
   blaze: (_input, ctx) =>
-    Result.ok({ childSource: crossDbProvision.from(ctx).source }),
+    Result.ok({ childSource: crossDbResource.from(ctx).source }),
   description: 'Leaf trail that resolves a resource inside a cross chain',
   input: z.object({}),
   output: z.object({ childSource: z.string() }),
-  resources: [crossDbProvision],
+  resources: [crossDbResource],
 });
 
 const crossRootTrail = trail('resource.crosses.root', {
@@ -183,7 +183,7 @@ const crossRootTrail = trail('resource.crosses.root', {
     }
     return Result.ok({
       childSource: childResult.value.childSource,
-      rootSource: crossDbProvision.from(ctx).source,
+      rootSource: crossDbResource.from(ctx).source,
     });
   },
   crosses: ['resource.crosses.leaf'],
@@ -197,7 +197,7 @@ const crossRootTrail = trail('resource.crosses.root', {
   ],
   input: z.object({}),
   output: z.object({ childSource: z.string(), rootSource: z.string() }),
-  resources: [crossDbProvision],
+  resources: [crossDbResource],
 });
 
 // ---------------------------------------------------------------------------
@@ -300,8 +300,8 @@ describe('testExamples resource mocks', () => {
   // eslint-disable-next-line jest/require-hook
   testExamples(
     topo('resource-mock-app', {
-      mockDbProvision,
-      mockProvisionTrail,
+      mockDbResource,
+      mockResourceTrail,
     } as Record<string, unknown>)
   );
 });
@@ -311,7 +311,7 @@ describe('testExamples explicit resource overrides', () => {
   testExamples(
     topo('resource-override-app', {
       explicitOverrideTrail,
-      mockDbProvision,
+      mockDbResource,
     } as Record<string, unknown>),
     {
       resources: { 'db.mock.examples': { source: 'override' } },
@@ -333,7 +333,7 @@ describe('testExamples context extension overrides', () => {
   testExamples(
     topo('ctx-override-app', {
       ctxOverrideTrail,
-      mockDbProvision,
+      mockDbResource,
     } as Record<string, unknown>),
     {
       ctx: {
@@ -347,8 +347,8 @@ describe('testExamples resource declarations', () => {
   // eslint-disable-next-line jest/require-hook
   testExamples(
     topo('undeclared-resource-app', {
-      undeclaredDbProvision,
-      undeclaredProvisionTrail,
+      undeclaredDbResource,
+      undeclaredResourceTrail,
     } as Record<string, unknown>)
   );
 });
@@ -368,7 +368,7 @@ describe('testExamples resource mocks through cross', () => {
   // eslint-disable-next-line jest/require-hook
   testExamples(
     topo('resource-cross-app', {
-      crossDbProvision,
+      crossDbResource,
       crossLeafTrail,
       crossRootTrail,
     } as Record<string, unknown>)

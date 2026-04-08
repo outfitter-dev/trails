@@ -55,7 +55,7 @@ interface CurrentTrailDetail {
   readonly safety: string;
 }
 
-interface CurrentProvisionDetail {
+interface CurrentResourceDetail {
   readonly description: string | null;
   readonly health: 'available' | 'none';
   readonly id: string;
@@ -106,11 +106,11 @@ const buildBriefReportFromStore = (
       ),
       examples: trails.some((trail) => trail.hasExamples),
       outputSchemas: trails.some((trail) => trail.hasOutput),
-      resources: save.provisionCount > 0,
+      resources: save.resourceCount > 0,
       signals: save.signalCount > 0,
     },
     name: app.name,
-    resources: save.provisionCount,
+    resources: save.resourceCount,
     signals: save.signalCount,
     trails: save.trailCount,
     version: REPORT_VERSION,
@@ -132,7 +132,7 @@ const buildSurveyListFromStore = (
       kind: trail.kind,
       safety: trail.safety,
     })),
-    provisionCount: resources.length,
+    resourceCount: resources.length,
     resources: resources.map((resource) => ({
       description: resource.description,
       health: resource.health,
@@ -158,11 +158,11 @@ const buildTrailDetailFromStore = (
   safety: detail?.safety ?? '-',
 });
 
-const buildProvisionDetailFromStore = (
+const buildResourceDetailFromStore = (
   resource: NonNullable<
     ReturnType<ReturnType<typeof createTopoStore>['resources']['get']>
   >
-): CurrentProvisionDetail => ({
+): CurrentResourceDetail => ({
   description: resource.description,
   health: resource.health,
   id: resource.id,
@@ -271,7 +271,7 @@ export const buildCurrentTopoDetail = (
   app: Topo,
   id: string,
   options?: { readonly rootDir?: string }
-): CurrentProvisionDetail | CurrentTrailDetail | undefined => {
+): CurrentResourceDetail | CurrentTrailDetail | undefined => {
   const rootDir = resolveRootDir(options?.rootDir);
   return withCurrentTopoStore(app, rootDir, (store, ref) => {
     const trail = store.trails.get(id, { save: ref });
@@ -282,7 +282,7 @@ export const buildCurrentTopoDetail = (
     const resource = store.resources.get(id, { save: ref });
     return resource === undefined
       ? undefined
-      : buildProvisionDetailFromStore(resource);
+      : buildResourceDetailFromStore(resource);
   });
 };
 

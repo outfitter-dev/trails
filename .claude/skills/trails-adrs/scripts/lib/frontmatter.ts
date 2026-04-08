@@ -9,7 +9,7 @@ export interface Frontmatter {
   updated?: string;
   owners?: string[];
   depends_on?: string[];
-  superseded_by?: number;
+  superseded_by?: string[];
   [key: string]: unknown;
 }
 
@@ -58,9 +58,15 @@ export const parseFrontmatter = (
     }
   }
 
-  // Normalize depends_on to strings (parser auto-coerces numeric values)
+  // Normalize ADR-id reference fields to strings — the parser above
+  // auto-coerces numeric list items (e.g. `['23']` → `[23]`) but the
+  // decision-map and downstream tooling expect string-array form for
+  // internal consistency with `depends_on`.
   if (Array.isArray(frontmatter.depends_on)) {
     frontmatter.depends_on = frontmatter.depends_on.map(String);
+  }
+  if (Array.isArray(frontmatter.superseded_by)) {
+    frontmatter.superseded_by = frontmatter.superseded_by.map(String);
   }
 
   return { body, frontmatter };
@@ -93,8 +99,9 @@ export const serializeFrontmatter = (fm: Frontmatter): string => {
   if (fm.depends_on && fm.depends_on.length > 0) {
     lines.push(`depends_on: [${fm.depends_on.join(', ')}]`);
   }
-  if (fm.superseded_by !== undefined) {
-    lines.push(`superseded_by: ${fm.superseded_by}`);
+  if (fm.superseded_by && fm.superseded_by.length > 0) {
+    const supersededStr = fm.superseded_by.map((n) => `'${n}'`).join(', ');
+    lines.push(`superseded_by: [${supersededStr}]`);
   }
   lines.push('---');
   return lines.join('\n');

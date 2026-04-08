@@ -88,7 +88,7 @@ console.log(wardenTopo.ids()); // ['warden.rule.no-throw-in-implementation', ...
 // Run all rule trails against a source file
 const diagnostics = await runWardenTrails(filePath, sourceCode, {
   knownTrailIds: myApp.ids(),
-  knownProvisionIds: myApp.resourceIds(),
+  knownResourceIds: myApp.resourceIds(),
 });
 ```
 

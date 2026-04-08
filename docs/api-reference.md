@@ -178,7 +178,7 @@ readonlyStore(tables, options?)              // convenience: define + connect re
 getSchema(binding)                           // expose raw derived Drizzle tables
 
 ConnectDrizzleOptions, ReadOnlyDrizzleOptions
-DrizzleStoreProvision, DrizzleStoreConnection, ReadOnlyDrizzleStoreConnection
+DrizzleStoreResource, DrizzleStoreConnection, ReadOnlyDrizzleStoreConnection
 DrizzleQueryContext, DrizzleStoreSchema, DrizzleMockSeed
 ```
 
@@ -253,7 +253,7 @@ DefineConfigOptions, ConfigState, ConfigFieldMeta, ConfigDiagnostic
 
 ```typescript
 // Resource & layer
-authProvision                        // resource for auth connector lifecycle
+authResource                         // resource for auth connector lifecycle
 authLayer                            // layer that enforces permit scopes on trails
 
 // Permits

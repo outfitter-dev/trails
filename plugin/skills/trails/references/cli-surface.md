@@ -111,7 +111,7 @@ trailhead(app, {
 
 ## Execution Pipeline
 
-The CLI trailhead delegates to `executeTrail()` from `@ontrails/core` — the same pipeline used by MCP, HTTP, and `run()`. Input is validated by Zod before the implementation runs. Gates are applied in order. The Result is mapped to an exit code and stdout/stderr by the trailhead; implementations never call `process.exit()` directly.
+The CLI trailhead delegates to `executeTrail()` from `@ontrails/core` — the same pipeline used by MCP, HTTP, and `run()`. Input is validated by Zod before the implementation runs. Layers are applied in order. The Result is mapped to an exit code and stdout/stderr by the trailhead; implementations never call `process.exit()` directly.
 
 ## Escape Hatch
 

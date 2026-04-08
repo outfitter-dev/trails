@@ -13,7 +13,7 @@ import {
 } from '@ontrails/core';
 import { z } from 'zod';
 
-import { entityStoreProvision } from '../resources/entity-store.js';
+import { entityStoreResource } from '../resources/entity-store.js';
 import type { Entity } from '../store.js';
 import { entitySchema } from '../store.js';
 
@@ -46,7 +46,7 @@ const toSummary = (entity: Entity) => ({
 
 export const show = trail('entity.show', {
   blaze: async (input, ctx) => {
-    const store = entityStoreProvision.from(ctx);
+    const store = entityStoreResource.from(ctx);
     const entity = await store.entities.get(input.name);
     if (!entity) {
       return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
@@ -75,7 +75,7 @@ export const show = trail('entity.show', {
   }),
   intent: 'read',
   output: entitySchema,
-  resources: [entityStoreProvision],
+  resources: [entityStoreResource],
 });
 
 // ---------------------------------------------------------------------------
@@ -84,7 +84,7 @@ export const show = trail('entity.show', {
 
 export const add = trail('entity.add', {
   blaze: async (input, ctx) => {
-    const store = entityStoreProvision.from(ctx);
+    const store = entityStoreResource.from(ctx);
     try {
       const entity = await store.entities.insert({
         name: input.name,
@@ -134,7 +134,7 @@ export const add = trail('entity.add', {
   }),
   intent: 'write',
   output: entitySchema,
-  resources: [entityStoreProvision],
+  resources: [entityStoreResource],
 });
 
 // ---------------------------------------------------------------------------
@@ -143,7 +143,7 @@ export const add = trail('entity.add', {
 
 export const remove = trail('entity.delete', {
   blaze: async (input, ctx) => {
-    const store = entityStoreProvision.from(ctx);
+    const store = entityStoreResource.from(ctx);
     // Look up the entity first so we can emit its real id on the signal —
     // `input.name` is a natural key, not the generated entity id.
     const existing = await store.entities.get(input.name);
@@ -185,7 +185,7 @@ export const remove = trail('entity.delete', {
     deleted: z.boolean(),
     name: z.string(),
   }),
-  resources: [entityStoreProvision],
+  resources: [entityStoreResource],
 });
 
 // ---------------------------------------------------------------------------
@@ -194,7 +194,7 @@ export const remove = trail('entity.delete', {
 
 export const list = trail('entity.list', {
   blaze: async (input, ctx) => {
-    const store = entityStoreProvision.from(ctx);
+    const store = entityStoreResource.from(ctx);
     const filters = input.type === undefined ? undefined : { type: input.type };
     const [entities, allMatching] = await Promise.all([
       store.entities.list(filters, {
@@ -231,5 +231,5 @@ export const list = trail('entity.list', {
     entities: z.array(entitySummarySchema),
     total: z.number(),
   }),
-  resources: [entityStoreProvision],
+  resources: [entityStoreResource],
 });

@@ -46,7 +46,7 @@ export interface ProjectContext {
   /** All known trail IDs in the project */
   readonly knownTrailIds: ReadonlySet<string>;
   /** All known resource IDs in the project */
-  readonly knownProvisionIds?: ReadonlySet<string>;
+  readonly knownResourceIds?: ReadonlySet<string>;
   /** All known signal IDs in the project */
   readonly knownSignalIds?: ReadonlySet<string>;
   /** All trail IDs referenced as detour targets across the project */

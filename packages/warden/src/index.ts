@@ -30,8 +30,8 @@ export { noSyncResultAssumption } from './rules/no-sync-result-assumption.js';
 export { implementationReturnsResult } from './rules/implementation-returns-result.js';
 export { noThrowInDetourTarget } from './rules/no-throw-in-detour-target.js';
 export { preferSchemaInference } from './rules/prefer-schema-inference.js';
-export { provisionDeclarations } from './rules/resource-declarations.js';
-export { provisionExists } from './rules/resource-exists.js';
+export { resourceDeclarations } from './rules/resource-declarations.js';
+export { resourceExists } from './rules/resource-exists.js';
 export { validDescribeRefs } from './rules/valid-describe-refs.js';
 
 // Rule registry
@@ -89,8 +89,8 @@ export {
   preferSchemaInferenceTrail,
   ruleInput,
   ruleOutput,
-  provisionDeclarationsTrail,
-  provisionExistsTrail,
+  resourceDeclarationsTrail,
+  resourceExistsTrail,
   validDescribeRefsTrail,
   validDetourRefsTrail,
 } from './trails/index.js';

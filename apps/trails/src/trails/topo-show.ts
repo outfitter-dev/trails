@@ -17,7 +17,7 @@ const trailDetailOutput = z.object({
   safety: z.string(),
 });
 
-const provisionDetailOutput = z.object({
+const resourceDetailOutput = z.object({
   description: z.string().nullable(),
   health: z.enum(['available', 'none']),
   id: z.string(),
@@ -54,5 +54,5 @@ export const topoShowTrail = trail('topo.show', {
     rootDir: z.string().optional().describe('Workspace root directory'),
   }),
   intent: 'read',
-  output: z.union([trailDetailOutput, provisionDetailOutput]),
+  output: z.union([trailDetailOutput, resourceDetailOutput]),
 });

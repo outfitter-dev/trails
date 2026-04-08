@@ -11,8 +11,8 @@ import { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
 import { onReferencesExist } from './on-references-exist.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
-import { provisionDeclarations } from './resource-declarations.js';
-import { provisionExists } from './resource-exists.js';
+import { resourceDeclarations } from './resource-declarations.js';
+import { resourceExists } from './resource-exists.js';
 import type { WardenRule } from './types.js';
 import { validDescribeRefs } from './valid-describe-refs.js';
 import { validDetourRefs } from './valid-detour-refs.js';
@@ -39,8 +39,8 @@ export { noSyncResultAssumption } from './no-sync-result-assumption.js';
 export { implementationReturnsResult } from './implementation-returns-result.js';
 export { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
 export { preferSchemaInference } from './prefer-schema-inference.js';
-export { provisionDeclarations } from './resource-declarations.js';
-export { provisionExists } from './resource-exists.js';
+export { resourceDeclarations } from './resource-declarations.js';
+export { resourceExists } from './resource-exists.js';
 export { validDescribeRefs } from './valid-describe-refs.js';
 
 /** All built-in warden rules, keyed by rule name. */
@@ -55,8 +55,8 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [draftVisibleDebt.name, draftVisibleDebt],
   [firesDeclarations.name, firesDeclarations],
   [onReferencesExist.name, onReferencesExist],
-  [provisionDeclarations.name, provisionDeclarations],
-  [provisionExists.name, provisionExists],
+  [resourceDeclarations.name, resourceDeclarations],
+  [resourceExists.name, resourceExists],
   [preferSchemaInference.name, preferSchemaInference],
   [validDescribeRefs.name, validDescribeRefs],
   [validDetourRefs.name, validDetourRefs],

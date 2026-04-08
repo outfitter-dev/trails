@@ -26,7 +26,7 @@ const dbDefinition = defineStore({
   },
 });
 
-const createDbProvision = (
+const createDbResource = (
   seed?: readonly {
     readonly id: string;
     readonly name: string;
@@ -40,7 +40,7 @@ const createDbProvision = (
   });
 
 const createOverrideStore = () => {
-  const { mock } = createDbProvision([
+  const { mock } = createDbResource([
     {
       id: 'seed-1',
       name: 'Override',
@@ -62,11 +62,11 @@ const createOverrideStore = () => {
   return created;
 };
 
-const mockDbProvision = createDbProvision();
+const mockDbResource = createDbResource();
 
 const mockedTrail = trail('resource.mocked.all', {
   blaze: async (_input, ctx) => {
-    const entity = await mockDbProvision.from(ctx).entities.get('seed-1');
+    const entity = await mockDbResource.from(ctx).entities.get('seed-1');
     if (entity === null) {
       return Result.err(new Error('expected seeded entity to exist'));
     }
@@ -84,12 +84,12 @@ const mockedTrail = trail('resource.mocked.all', {
   ],
   input: z.object({}),
   output: z.object({ name: z.string(), source: z.string() }),
-  resources: [mockDbProvision],
+  resources: [mockDbResource],
 });
 
 const overrideTrail = trail('resource.override.all', {
   blaze: async (_input, ctx) => {
-    const entity = await mockDbProvision.from(ctx).entities.get('seed-1');
+    const entity = await mockDbResource.from(ctx).entities.get('seed-1');
     if (entity === null) {
       return Result.err(new Error('expected overridden entity to exist'));
     }
@@ -106,14 +106,14 @@ const overrideTrail = trail('resource.override.all', {
   ],
   input: z.object({}),
   output: z.object({ name: z.string(), source: z.string() }),
-  resources: [mockDbProvision],
+  resources: [mockDbResource],
 });
 
 describe('testAll resource mocks', () => {
   // eslint-disable-next-line jest/require-hook
   testAll(
     topo('test-all-resource-mock-app', {
-      mockDbProvision,
+      mockDbResource,
       mockedTrail,
     } as Record<string, unknown>)
   );
@@ -123,7 +123,7 @@ describe('testAll explicit resource overrides', () => {
   // eslint-disable-next-line jest/require-hook
   testAll(
     topo('test-all-resource-override-app', {
-      mockDbProvision,
+      mockDbResource,
       overrideTrail,
     } as Record<string, unknown>),
     () => ({

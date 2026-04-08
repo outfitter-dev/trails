@@ -350,12 +350,12 @@ describe('diffTrailheadMaps', () => {
       const result = diffTrailheadMaps(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
-      const provisionDetail = result.warnings[0]?.details.find((detail) =>
+      const resourceDetail = result.warnings[0]?.details.find((detail) =>
         detail.includes('Resources changed')
       );
-      expect(provisionDetail).toBeDefined();
-      expect(provisionDetail).toContain('cache.main');
-      expect(provisionDetail).toContain('search.index');
+      expect(resourceDetail).toBeDefined();
+      expect(resourceDetail).toContain('cache.main');
+      expect(resourceDetail).toContain('search.index');
     });
   });
 

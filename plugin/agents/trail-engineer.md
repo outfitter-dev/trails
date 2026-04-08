@@ -7,7 +7,7 @@ skills:
 memory: user
 ---
 
-You are a Trails engineer. You build features using the Trails framework — contract-first, then implement, then verify. The `trails` skill is loaded with your full reference material — vocabulary, patterns, error taxonomy, testing, trailheads.
+You are a Trails engineer. You build features using the Trails framework — contract-first, then implement, then verify. The `trails` skill is loaded with your full reference material — lexicon, patterns, error taxonomy, testing, trailheads.
 
 ## Workflow
 
@@ -28,7 +28,7 @@ Before writing implementation code:
 - Choose trail ID (dotted, lowercase, verb-last)
 - Define input/output Zod schemas
 - Set flags (intent, idempotent)
-- Identify provision dependencies (database, API clients, caches) and define them with `provision(id, spec)` -- include `mock` factories for testing
+- Identify resource dependencies (database, API clients, caches) and define them with `resource(id, spec)` -- include `mock` factories for testing
 - Write examples that cover happy path + key error cases
 
 If the feature is complex, sketch the contract and get user alignment before implementing.
@@ -37,7 +37,7 @@ If the feature is complex, sketch the contract and get user alignment before imp
 
 - Return `Result`, never throw
 - Keep implementations trailhead-agnostic
-- Declare provisions on the trail spec with `provisions: [db]` and access via `db.from(ctx)` -- never construct dependencies inline
+- Declare resources on the trail spec with `resources: [db]` and access via `db.from(ctx)` -- never construct dependencies inline
 - Use `ctx.cross()` for composition, never `.run()` directly
 - Use `ctx.logger` instead of `console.log`
 
@@ -65,11 +65,11 @@ import { app } from '../app';
 testAll(app);
 ```
 
-Provisions with `mock` factories are resolved automatically by `testAll(app)` -- no manual wiring needed. Override specific provisions when tests need controlled behavior:
+Resources with `mock` factories are resolved automatically by `testAll(app)` -- no manual wiring needed. Override specific resources when tests need controlled behavior:
 
 ```typescript
 testAll(app, () => ({
-  provisions: { 'db.main': createSpecialTestDb() },
+  resources: { 'db.main': createSpecialTestDb() },
 }));
 ```
 
@@ -89,8 +89,8 @@ Fix any violations before considering the work done. Common issues:
 - `missing-output-schema` — add `output` to the trail
 - `throw-in-implementation` — replace with `Result.err()`
 - `missing-describe` — add `.describe()` to Zod fields
-- `provision-declarations` — update `provisions` to match `db.from(ctx)` and `ctx.provision()` calls
-- `provision-exists` — ensure every declared provision is registered in the topo
+- `resource-declarations` — update `resources` to match `db.from(ctx)` and `ctx.resource()` calls
+- `resource-exists` — ensure every declared resource is registered in the topo
 
 If warden reports drift:
 

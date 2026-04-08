@@ -15,10 +15,10 @@ import type {
 } from './internal/topo-store-read.js';
 import {
   getTopoStoreExport,
-  getTopoStoreProvision,
+  getTopoStoreResource,
   getTopoStoreTrail,
   listTopoStorePins,
-  listTopoStoreProvisions,
+  listTopoStoreResources,
   listTopoStoreSaves,
   listTopoStoreTrails,
   queryTopoStore,
@@ -253,12 +253,12 @@ export const createTopoStore = (
   resources: {
     get(id, queryOptions) {
       return withStoredTopoState(options, (db) =>
-        getTopoStoreProvision(db, id, queryOptions)
+        getTopoStoreResource(db, id, queryOptions)
       );
     },
     list(queryOptions) {
       return withStoredTopoState(options, (db) =>
-        listTopoStoreProvisions(db, queryOptions)
+        listTopoStoreResources(db, queryOptions)
       );
     },
   },

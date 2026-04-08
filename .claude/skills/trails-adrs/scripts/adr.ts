@@ -180,7 +180,7 @@ const cmdPromote = (args: Args): void => {
       const oldFm = {
         ...oldAdr.frontmatter,
         status: 'superseded',
-        superseded_by: num,
+        superseded_by: [String(num)],
         updated: today(),
       };
       const oldContent = `${serializeFrontmatter(oldFm as Frontmatter)}\n${oldAdr.body}`;

@@ -34,13 +34,13 @@ import type {
   ConnectDrizzleOptions,
   DrizzleMockSeed,
   DrizzleStoreConnection,
-  DrizzleStoreProvision,
+  DrizzleStoreResource,
   DrizzleStoreSchema,
   ReadOnlyDrizzleOptions,
   ReadOnlyDrizzleStoreConnection,
 } from './types.js';
 
-const defaultProvisionId = 'store';
+const defaultResourceId = 'store';
 const connectionClients = new WeakMap<object, Database>();
 
 const cloneValue = <T>(value: T): T => structuredClone(value);
@@ -678,7 +678,7 @@ const createWritableConnection = <TStore extends AnyStoreDefinition>(
   ) as DrizzleStoreConnection<TStore>;
 };
 
-const buildProvisionShape = <
+const buildResourceShape = <
   TStore extends AnyStoreDefinition,
   TConnection,
   TAccess extends StoreAccessMode,
@@ -687,7 +687,7 @@ const buildProvisionShape = <
   store: TStore,
   tables: DrizzleStoreSchema<TStore>,
   access: TAccess
-): DrizzleStoreProvision<TStore, TConnection, TAccess> =>
+): DrizzleStoreResource<TStore, TConnection, TAccess> =>
   Object.freeze({
     ...value,
     access,
@@ -728,15 +728,15 @@ const connectionHealth = (
 export const connectDrizzle = <const TStore extends AnyStoreDefinition>(
   definition: TStore,
   options: ConnectDrizzleOptions<TStore>
-): DrizzleStoreProvision<
+): DrizzleStoreResource<
   TStore,
   DrizzleStoreConnection<TStore>,
   'readwrite'
 > => {
   const tables = deriveDrizzleTables(definition);
 
-  return buildProvisionShape(
-    resource(options.id ?? defaultProvisionId, {
+  return buildResourceShape(
+    resource(options.id ?? defaultResourceId, {
       create: () => {
         try {
           const client = openSqliteDatabase(options.url, false);
@@ -788,15 +788,15 @@ export const connectDrizzle = <const TStore extends AnyStoreDefinition>(
 export const connectReadOnlyDrizzle = <const TStore extends AnyStoreDefinition>(
   definition: TStore,
   options: ReadOnlyDrizzleOptions
-): DrizzleStoreProvision<
+): DrizzleStoreResource<
   TStore,
   ReadOnlyDrizzleStoreConnection<TStore>,
   'readonly'
 > => {
   const tables = deriveDrizzleTables(definition);
 
-  return buildProvisionShape(
-    resource(options.id ?? defaultProvisionId, {
+  return buildResourceShape(
+    resource(options.id ?? defaultResourceId, {
       create: () => {
         try {
           const client = openSqliteDatabase(options.url, true);
@@ -830,7 +830,7 @@ export const connectReadOnlyDrizzle = <const TStore extends AnyStoreDefinition>(
 export const store = <const TTables extends StoreTablesInput>(
   tables: TTables,
   options: ConnectDrizzleOptions<ReturnType<typeof defineStore<TTables>>>
-): DrizzleStoreProvision<
+): DrizzleStoreResource<
   ReturnType<typeof defineStore<TTables>>,
   DrizzleStoreConnection<ReturnType<typeof defineStore<TTables>>>,
   'readwrite'
@@ -839,7 +839,7 @@ export const store = <const TTables extends StoreTablesInput>(
 export const readonlyStore = <const TTables extends StoreTablesInput>(
   tables: TTables,
   options: ReadOnlyDrizzleOptions
-): DrizzleStoreProvision<
+): DrizzleStoreResource<
   ReturnType<typeof defineStore<TTables>>,
   ReadOnlyDrizzleStoreConnection<ReturnType<typeof defineStore<TTables>>>,
   'readonly'
@@ -847,7 +847,7 @@ export const readonlyStore = <const TTables extends StoreTablesInput>(
 
 export const getSchema = <TStore extends AnyStoreDefinition>(
   binding: Pick<
-    DrizzleStoreProvision<TStore, unknown, StoreAccessMode>,
+    DrizzleStoreResource<TStore, unknown, StoreAccessMode>,
     'tables'
   >
 ): DrizzleStoreSchema<TStore> => binding.tables;

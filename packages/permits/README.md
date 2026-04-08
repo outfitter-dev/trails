@@ -2,7 +2,7 @@
 
 Scope-based authorization for Trails.
 
-The permits package owns the connector-agnostic `authProvision` and `authLayer`. Connector packages bind those declarations to concrete auth logic, just like a trailhead connector binds a topo to CLI, MCP, or HTTP.
+The permits package owns the connector-agnostic `authResource` and `authLayer`. Connector packages bind those declarations to concrete auth logic, just like a trailhead connector binds a topo to CLI, MCP, or HTTP.
 
 ## The core pattern
 

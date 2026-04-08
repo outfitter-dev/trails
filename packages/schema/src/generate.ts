@@ -173,7 +173,7 @@ const signalToEntry = (e: Signal<unknown>): TrailheadMapEntry => {
   return sortKeys(entry) as unknown as TrailheadMapEntry;
 };
 
-const provisionToEntry = (resource: AnyResource): TrailheadMapEntry => {
+const resourceToEntry = (resource: AnyResource): TrailheadMapEntry => {
   const entry: Record<string, unknown> = {
     exampleCount: 0,
     id: resource.id,
@@ -205,7 +205,7 @@ const collectEntries = (topo: Topo): TrailheadMapEntry[] => [
   ...[...topo.signals.values()].map((signal) =>
     signalToEntry(signal as Signal<unknown>)
   ),
-  ...[...topo.resources.values()].map((resource) => provisionToEntry(resource)),
+  ...[...topo.resources.values()].map((resource) => resourceToEntry(resource)),
 ];
 
 // ---------------------------------------------------------------------------

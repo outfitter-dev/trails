@@ -33,7 +33,7 @@ const result = await run(app, 'greet', { name: 'Alice' });
 testAll(app);            // Examples + governance in one line
 ```
 
-## Vocabulary
+## Lexicon
 
 Use these terms — they are non-negotiable in Trails codebases.
 

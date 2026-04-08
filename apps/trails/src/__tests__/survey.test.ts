@@ -66,14 +66,14 @@ const byeTrail = trail('bye', {
   output: z.object({ message: z.string() }),
 });
 
-const [dbProvision] = helloTrail.resources;
-if (!dbProvision) {
+const [dbResource] = helloTrail.resources;
+if (!dbResource) {
   throw new Error('Expected helloTrail to declare db.main');
 }
 
 const app = topo('test-app', {
   bye: byeTrail,
-  dbProvision,
+  dbResource,
   hello: helloTrail,
 });
 
@@ -256,7 +256,7 @@ describe('trails survey resources section', () => {
     const parsed = structuredClone(report) as SurveyListReport;
     const db = parsed.resources.find((entry) => entry.id === 'db.main');
 
-    expect(parsed.provisionCount).toBe(1);
+    expect(parsed.resourceCount).toBe(1);
     expect(db).toEqual({
       description: null,
       health: 'none',

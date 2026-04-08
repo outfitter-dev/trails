@@ -72,7 +72,7 @@ const transformedInputTrail = trail('contract.transformed', {
   output: z.object({ value: z.number() }),
 });
 
-const undeclaredContractDbProvision = resource('db.undeclared.contracts', {
+const undeclaredContractDbResource = resource('db.undeclared.contracts', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
@@ -80,28 +80,28 @@ const undeclaredContractDbProvision = resource('db.undeclared.contracts', {
 const undeclaredContractTrail = trail('resource.undeclared.contracts', {
   blaze: (_input, ctx) =>
     Result.ok({
-      hasInjectedProvision:
-        ctx.extensions?.[undeclaredContractDbProvision.id] !== undefined,
+      hasInjectedResource:
+        ctx.extensions?.[undeclaredContractDbResource.id] !== undefined,
     }),
   examples: [
     {
-      expected: { hasInjectedProvision: false },
+      expected: { hasInjectedResource: false },
       input: {},
       name: 'Undeclared resources are not preloaded into contract contexts',
     },
   ],
   input: z.object({}),
-  output: z.object({ hasInjectedProvision: z.literal(false) }),
+  output: z.object({ hasInjectedResource: z.literal(false) }),
 });
 
-const ctxOverrideContractProvision = resource('db.mock.contracts', {
+const ctxOverrideContractResource = resource('db.mock.contracts', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
 const ctxOverrideContractTrail = trail('resource.ctx.contracts', {
   blaze: (_input, ctx) =>
-    Result.ok({ source: ctxOverrideContractProvision.from(ctx).source }),
+    Result.ok({ source: ctxOverrideContractResource.from(ctx).source }),
   examples: [
     {
       expected: { source: 'ctx' },
@@ -111,7 +111,7 @@ const ctxOverrideContractTrail = trail('resource.ctx.contracts', {
   ],
   input: z.object({}),
   output: z.object({ source: z.literal('ctx') }),
-  resources: [ctxOverrideContractProvision],
+  resources: [ctxOverrideContractResource],
 });
 
 // ---------------------------------------------------------------------------
@@ -163,7 +163,7 @@ describe('testContracts: context extension overrides', () => {
   // eslint-disable-next-line jest/require-hook
   testContracts(
     topo('ctx-contract-app', {
-      ctxOverrideContractProvision,
+      ctxOverrideContractResource,
       ctxOverrideContractTrail,
     } as Record<string, unknown>),
     {
@@ -178,7 +178,7 @@ describe('testContracts resource declarations', () => {
   // eslint-disable-next-line jest/require-hook
   testContracts(
     topo('undeclared-contract-resource-app', {
-      undeclaredContractDbProvision,
+      undeclaredContractDbResource,
       undeclaredContractTrail,
     } as Record<string, unknown>)
   );

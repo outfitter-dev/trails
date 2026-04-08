@@ -28,7 +28,7 @@ const makeApp = (...trails: AnyTrail[]) => {
   return topo('test-app', mod);
 };
 
-const dbProvision = resource('db.main', {
+const dbResource = resource('db.main', {
   create: () =>
     Result.ok({
       name: 'factory',
@@ -65,7 +65,7 @@ describe('buildCliCommands path derivation', () => {
       blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
       input: z.object({ name: z.string() }),
     });
-    const app = topo('test-app', { 'db.main': dbProvision, [t.id]: t });
+    const app = topo('test-app', { 'db.main': dbResource, [t.id]: t });
     const commands = buildCliCommands(app);
     expect(commands).toHaveLength(1);
     expect(commands[0]?.path).toEqual(['greet']);
@@ -107,7 +107,7 @@ describe('buildCliCommands path derivation', () => {
       }),
     });
     const app = topo('test-app', {
-      'db.main': dbProvision,
+      'db.main': dbResource,
       [t.id]: t,
     });
     const { flags } = requireCommand(buildCliCommands(app));
@@ -490,13 +490,13 @@ describe('buildCliCommands resource overrides', () => {
   test('forwards resource overrides into executeTrail', async () => {
     const t = trail('resource-test', {
       blaze: (_input, ctx) =>
-        Result.ok({ name: dbProvision.from(ctx).name as string }),
+        Result.ok({ name: dbResource.from(ctx).name as string }),
       input: z.object({}),
       output: z.object({ name: z.string() }),
-      resources: [dbProvision],
+      resources: [dbResource],
     });
     const app = topo('test-app', {
-      'db.main': dbProvision,
+      'db.main': dbResource,
       [t.id]: t,
     });
     const commands = buildCliCommands(app, {

@@ -50,7 +50,7 @@ export type ReadOnlyDrizzleStoreConnection<TStore extends AnyStoreDefinition> =
 export type DrizzleStoreConnection<TStore extends AnyStoreDefinition> =
   StoreConnection<TStore> & ReadOnlyDrizzleStoreConnection<TStore>;
 
-export interface DrizzleStoreProvisionShape<
+export interface DrizzleStoreResourceShape<
   TStore extends AnyStoreDefinition,
   TConnection,
   TAccess extends StoreAccessMode,
@@ -62,9 +62,9 @@ export interface DrizzleStoreProvisionShape<
   readonly kind: 'resource';
 }
 
-export type DrizzleStoreProvision<
+export type DrizzleStoreResource<
   TStore extends AnyStoreDefinition,
   TConnection,
   TAccess extends StoreAccessMode,
 > = Resource<TConnection> &
-  DrizzleStoreProvisionShape<TStore, TConnection, TAccess>;
+  DrizzleStoreResourceShape<TStore, TConnection, TAccess>;

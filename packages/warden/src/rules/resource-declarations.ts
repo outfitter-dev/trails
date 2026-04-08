@@ -8,7 +8,7 @@
  */
 
 import {
-  collectNamedProvisionIds,
+  collectNamedResourceIds,
   extractFirstStringArg,
   findConfigProperty,
   findBlazeBodies,
@@ -28,12 +28,12 @@ import type { WardenDiagnostic, WardenRule } from './types.js';
 // Resource declaration extraction
 // ---------------------------------------------------------------------------
 
-interface DeclaredProvision {
+interface DeclaredResource {
   readonly id: string | null;
   readonly name: string | null;
 }
 
-interface CalledProvisions {
+interface CalledResources {
   readonly fromNames: ReadonlySet<string>;
   readonly lookupIds: ReadonlySet<string>;
   readonly lookupNames: ReadonlySet<string>;
@@ -60,7 +60,7 @@ const extractMemberPair = (
 };
 
 /** Check if a node is an inline `resource('id', ...)` call. */
-const isInlineProvisionCall = (node: AstNode): boolean => {
+const isInlineResourceCall = (node: AstNode): boolean => {
   if (node.type !== 'CallExpression') {
     return false;
   }
@@ -71,13 +71,13 @@ const isInlineProvisionCall = (node: AstNode): boolean => {
 };
 
 /** Get `resources` array elements from a trail config. */
-const getProvisionElements = (config: AstNode): readonly AstNode[] => {
-  const provisionsProp = findConfigProperty(config, 'resources');
-  if (!provisionsProp) {
+const getResourceElements = (config: AstNode): readonly AstNode[] => {
+  const resourcesProp = findConfigProperty(config, 'resources');
+  if (!resourcesProp) {
     return [];
   }
 
-  const arrayNode = provisionsProp.value;
+  const arrayNode = resourcesProp.value;
   if (!arrayNode || (arrayNode as AstNode).type !== 'ArrayExpression') {
     return [];
   }
@@ -89,14 +89,14 @@ const getProvisionElements = (config: AstNode): readonly AstNode[] => {
 };
 
 /** Extract one declared resource from a `resources` array element. */
-const extractDeclaredProvision = (
+const extractDeclaredResource = (
   element: AstNode,
-  provisionIdsByName: ReadonlyMap<string, string>
-): DeclaredProvision | null => {
+  resourceIdsByName: ReadonlyMap<string, string>
+): DeclaredResource | null => {
   if (element.type === 'Identifier') {
     const name = identifierName(element);
     return {
-      id: name ? (provisionIdsByName.get(name) ?? null) : null,
+      id: name ? (resourceIdsByName.get(name) ?? null) : null,
       name,
     };
   }
@@ -105,7 +105,7 @@ const extractDeclaredProvision = (
     return { id: getStringValue(element), name: null };
   }
 
-  if (isInlineProvisionCall(element)) {
+  if (isInlineResourceCall(element)) {
     return { id: extractFirstStringArg(element), name: null };
   }
 
@@ -113,12 +113,12 @@ const extractDeclaredProvision = (
 };
 
 /** Extract declared resources from a trail config's `resources` array. */
-const extractDeclaredProvisions = (
+const extractDeclaredResources = (
   config: AstNode,
-  provisionIdsByName: ReadonlyMap<string, string>
-): readonly DeclaredProvision[] =>
-  getProvisionElements(config).flatMap((element) => {
-    const resource = extractDeclaredProvision(element, provisionIdsByName);
+  resourceIdsByName: ReadonlyMap<string, string>
+): readonly DeclaredResource[] =>
+  getResourceElements(config).flatMap((element) => {
+    const resource = extractDeclaredResource(element, resourceIdsByName);
     return resource ? [resource] : [];
   });
 
@@ -190,7 +190,7 @@ const extractFromCallName = (
 };
 
 /** Check if a callee is a member-style `ctx.resource(...)` call. */
-const isMemberProvisionCall = (
+const isMemberResourceCall = (
   callee: AstNode,
   ctxNames: ReadonlySet<string>
 ): boolean => {
@@ -199,21 +199,21 @@ const isMemberProvisionCall = (
 };
 
 /** Extract `ctx.resource(db)` and destructured `resource(db)` lookup names. */
-const extractLookupProvisionName = (
+const extractLookupResourceName = (
   node: AstNode,
   ctxNames: ReadonlySet<string>,
-  provisionAliases: ReadonlySet<string>
+  resourceAliases: ReadonlySet<string>
 ): string | null => {
   const callee = extractCallCallee(node);
   if (!callee) {
     return null;
   }
 
-  if (isMemberProvisionCall(callee, ctxNames)) {
+  if (isMemberResourceCall(callee, ctxNames)) {
     return extractFirstIdentifierArg(node);
   }
 
-  if (provisionAliases.has(identifierName(callee) ?? '')) {
+  if (resourceAliases.has(identifierName(callee) ?? '')) {
     return extractFirstIdentifierArg(node);
   }
 
@@ -221,23 +221,23 @@ const extractLookupProvisionName = (
 };
 
 /** Extract `ctx.resource('id')` and destructured `resource('id')` lookup IDs. */
-const extractLookupProvisionId = (
+const extractLookupResourceId = (
   node: AstNode,
   ctxNames: ReadonlySet<string>,
-  provisionAliases: ReadonlySet<string>
+  resourceAliases: ReadonlySet<string>
 ): string | null => {
   const callee = extractCallCallee(node);
   if (!callee) {
     return null;
   }
 
-  if (isMemberProvisionCall(callee, ctxNames)) {
+  if (isMemberResourceCall(callee, ctxNames)) {
     return extractFirstStringArg(node);
   }
 
   const calleeName = identifierName(callee);
   const args = node['arguments'] as readonly AstNode[] | undefined;
-  if (calleeName && provisionAliases.has(calleeName) && args?.length === 1) {
+  if (calleeName && resourceAliases.has(calleeName) && args?.length === 1) {
     return extractFirstStringArg(node);
   }
 
@@ -245,7 +245,7 @@ const extractLookupProvisionId = (
 };
 
 /** Collect local aliases for the resource accessor (e.g. `const { resource } = ctx`). */
-const collectProvisionAliases = (
+const collectResourceAliases = (
   body: AstNode,
   ctxNames: ReadonlySet<string>
 ): ReadonlySet<string> => {
@@ -301,14 +301,14 @@ const collectProvisionAliases = (
 };
 
 /** Walk blaze bodies and collect resource access that can be resolved statically. */
-const extractCalledProvisions = (config: AstNode): CalledProvisions => {
+const extractCalledResources = (config: AstNode): CalledResources => {
   const fromNames = new Set<string>();
   const lookupIds = new Set<string>();
   const lookupNames = new Set<string>();
 
   for (const body of findBlazeBodies(config)) {
     const ctxNames = buildCtxNames(body);
-    const provisionAliases = collectProvisionAliases(body, ctxNames);
+    const resourceAliases = collectResourceAliases(body, ctxNames);
 
     walkScope(body, (node) => {
       const fromName = extractFromCallName(node, ctxNames);
@@ -316,19 +316,15 @@ const extractCalledProvisions = (config: AstNode): CalledProvisions => {
         fromNames.add(fromName);
       }
 
-      const lookupId = extractLookupProvisionId(
-        node,
-        ctxNames,
-        provisionAliases
-      );
+      const lookupId = extractLookupResourceId(node, ctxNames, resourceAliases);
       if (lookupId) {
         lookupIds.add(lookupId);
       }
 
-      const lookupName = extractLookupProvisionName(
+      const lookupName = extractLookupResourceName(
         node,
         ctxNames,
-        provisionAliases
+        resourceAliases
       );
       if (lookupName) {
         lookupNames.add(lookupName);
@@ -343,57 +339,57 @@ const extractCalledProvisions = (config: AstNode): CalledProvisions => {
 // Diagnostics
 // ---------------------------------------------------------------------------
 
-const renderDeclaredProvision = (resource: DeclaredProvision): string =>
+const renderDeclaredResource = (resource: DeclaredResource): string =>
   resource.name ?? resource.id ?? '<unknown>';
 
 const buildUndeclaredFromDiagnostic = (
   trailId: string,
-  provisionName: string,
+  resourceName: string,
   filePath: string,
   line: number
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}": ${provisionName}.from(ctx) called but '${provisionName}' is not declared in resources`,
+  message: `Trail "${trailId}": ${resourceName}.from(ctx) called but '${resourceName}' is not declared in resources`,
   rule: 'resource-declarations',
   severity: 'error',
 });
 
 const buildUndeclaredLookupDiagnostic = (
   trailId: string,
-  provisionId: string,
+  resourceId: string,
   filePath: string,
   line: number
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}": ctx.resource('${provisionId}') called but '${provisionId}' is not declared in resources`,
+  message: `Trail "${trailId}": ctx.resource('${resourceId}') called but '${resourceId}' is not declared in resources`,
   rule: 'resource-declarations',
   severity: 'error',
 });
 
 const buildUndeclaredLookupNameDiagnostic = (
   trailId: string,
-  provisionName: string,
+  resourceName: string,
   filePath: string,
   line: number
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}": ctx.resource(${provisionName}) called but '${provisionName}' is not declared in resources`,
+  message: `Trail "${trailId}": ctx.resource(${resourceName}) called but '${resourceName}' is not declared in resources`,
   rule: 'resource-declarations',
   severity: 'error',
 });
 
 const buildUnusedDiagnostic = (
   trailId: string,
-  declaredProvision: DeclaredProvision,
+  declaredResource: DeclaredResource,
   filePath: string,
   line: number
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}": '${renderDeclaredProvision(declaredProvision)}' declared in resources but never used`,
+  message: `Trail "${trailId}": '${renderDeclaredResource(declaredResource)}' declared in resources but never used`,
   rule: 'resource-declarations',
   severity: 'warn',
 });
@@ -402,21 +398,21 @@ const buildUnusedDiagnostic = (
 // Comparison
 // ---------------------------------------------------------------------------
 
-const provisionWasUsed = (
-  declaredProvision: DeclaredProvision,
-  calledProvisions: CalledProvisions
+const resourceWasUsed = (
+  declaredResource: DeclaredResource,
+  calledResources: CalledResources
 ): boolean => {
   if (
-    declaredProvision.name &&
-    (calledProvisions.fromNames.has(declaredProvision.name) ||
-      calledProvisions.lookupNames.has(declaredProvision.name))
+    declaredResource.name &&
+    (calledResources.fromNames.has(declaredResource.name) ||
+      calledResources.lookupNames.has(declaredResource.name))
   ) {
     return true;
   }
 
   if (
-    declaredProvision.id &&
-    calledProvisions.lookupIds.has(declaredProvision.id)
+    declaredResource.id &&
+    calledResources.lookupIds.has(declaredResource.id)
   ) {
     return true;
   }
@@ -425,33 +421,33 @@ const provisionWasUsed = (
 };
 
 const buildDeclaredNames = (
-  declaredProvisions: readonly DeclaredProvision[]
+  declaredResources: readonly DeclaredResource[]
 ): ReadonlySet<string> =>
   new Set(
-    declaredProvisions.flatMap((resource) =>
+    declaredResources.flatMap((resource) =>
       resource.name ? [resource.name] : []
     )
   );
 
 const buildDeclaredIds = (
-  declaredProvisions: readonly DeclaredProvision[]
+  declaredResources: readonly DeclaredResource[]
 ): ReadonlySet<string> =>
   new Set(
-    declaredProvisions.flatMap((resource) => (resource.id ? [resource.id] : []))
+    declaredResources.flatMap((resource) => (resource.id ? [resource.id] : []))
   );
 
 const reportUndeclaredFromCalls = (
   trailId: string,
   filePath: string,
   line: number,
-  calledProvisions: CalledProvisions,
+  calledResources: CalledResources,
   declaredNames: ReadonlySet<string>,
   diagnostics: WardenDiagnostic[]
 ): void => {
-  for (const provisionName of calledProvisions.fromNames) {
-    if (!declaredNames.has(provisionName)) {
+  for (const resourceName of calledResources.fromNames) {
+    if (!declaredNames.has(resourceName)) {
       diagnostics.push(
-        buildUndeclaredFromDiagnostic(trailId, provisionName, filePath, line)
+        buildUndeclaredFromDiagnostic(trailId, resourceName, filePath, line)
       );
     }
   }
@@ -461,19 +457,19 @@ const reportUndeclaredLookupCalls = (
   trailId: string,
   filePath: string,
   line: number,
-  calledProvisions: CalledProvisions,
+  calledResources: CalledResources,
   declaredIds: ReadonlySet<string>,
   declaredNames: ReadonlySet<string>,
   diagnostics: WardenDiagnostic[]
 ): void => {
-  for (const provisionName of calledProvisions.lookupNames) {
+  for (const resourceName of calledResources.lookupNames) {
     // Name-based lookup checks remain reliable even when an imported resource ID
     // cannot be resolved locally.
-    if (!declaredNames.has(provisionName)) {
+    if (!declaredNames.has(resourceName)) {
       diagnostics.push(
         buildUndeclaredLookupNameDiagnostic(
           trailId,
-          provisionName,
+          resourceName,
           filePath,
           line
         )
@@ -481,10 +477,10 @@ const reportUndeclaredLookupCalls = (
     }
   }
 
-  for (const provisionId of calledProvisions.lookupIds) {
-    if (!declaredIds.has(provisionId)) {
+  for (const resourceId of calledResources.lookupIds) {
+    if (!declaredIds.has(resourceId)) {
       diagnostics.push(
-        buildUndeclaredLookupDiagnostic(trailId, provisionId, filePath, line)
+        buildUndeclaredLookupDiagnostic(trailId, resourceId, filePath, line)
       );
     }
   }
@@ -494,54 +490,54 @@ const reportUnusedDeclarations = (
   trailId: string,
   filePath: string,
   line: number,
-  declaredProvisions: readonly DeclaredProvision[],
-  calledProvisions: CalledProvisions,
+  declaredResources: readonly DeclaredResource[],
+  calledResources: CalledResources,
   diagnostics: WardenDiagnostic[]
 ): void => {
-  for (const declaredProvision of declaredProvisions) {
-    if (provisionWasUsed(declaredProvision, calledProvisions)) {
+  for (const declaredResource of declaredResources) {
+    if (resourceWasUsed(declaredResource, calledResources)) {
       continue;
     }
 
-    if (declaredProvision.name && declaredProvision.id === null) {
+    if (declaredResource.name && declaredResource.id === null) {
       continue;
     }
 
     diagnostics.push(
-      buildUnusedDiagnostic(trailId, declaredProvision, filePath, line)
+      buildUnusedDiagnostic(trailId, declaredResource, filePath, line)
     );
   }
 };
 
-const hasNoProvisionActivity = (
-  declaredProvisions: readonly DeclaredProvision[],
-  calledProvisions: CalledProvisions
+const hasNoResourceActivity = (
+  declaredResources: readonly DeclaredResource[],
+  calledResources: CalledResources
 ): boolean =>
-  declaredProvisions.length === 0 &&
-  calledProvisions.fromNames.size === 0 &&
-  calledProvisions.lookupIds.size === 0 &&
-  calledProvisions.lookupNames.size === 0;
+  declaredResources.length === 0 &&
+  calledResources.fromNames.size === 0 &&
+  calledResources.lookupIds.size === 0 &&
+  calledResources.lookupNames.size === 0;
 
 const analyzeTrailServices = (
   def: { config: AstNode; start: number },
   sourceCode: string,
-  provisionIdsByName: ReadonlyMap<string, string>
+  resourceIdsByName: ReadonlyMap<string, string>
 ): {
-  readonly calledProvisions: CalledProvisions;
+  readonly calledResources: CalledResources;
   readonly declaredIds: ReadonlySet<string>;
   readonly declaredNames: ReadonlySet<string>;
-  readonly declaredProvisions: readonly DeclaredProvision[];
+  readonly declaredResources: readonly DeclaredResource[];
   readonly line: number;
 } => {
-  const declaredProvisions = extractDeclaredProvisions(
+  const declaredResources = extractDeclaredResources(
     def.config,
-    provisionIdsByName
+    resourceIdsByName
   );
   return {
-    calledProvisions: extractCalledProvisions(def.config),
-    declaredIds: buildDeclaredIds(declaredProvisions),
-    declaredNames: buildDeclaredNames(declaredProvisions),
-    declaredProvisions,
+    calledResources: extractCalledResources(def.config),
+    declaredIds: buildDeclaredIds(declaredResources),
+    declaredNames: buildDeclaredNames(declaredResources),
+    declaredResources,
     line: offsetToLine(sourceCode, def.start),
   };
 };
@@ -550,18 +546,18 @@ const checkTrailDefinition = (
   def: { id: string; config: AstNode; start: number },
   filePath: string,
   sourceCode: string,
-  provisionIdsByName: ReadonlyMap<string, string>,
+  resourceIdsByName: ReadonlyMap<string, string>,
   diagnostics: WardenDiagnostic[]
 ): void => {
   const {
-    calledProvisions,
+    calledResources,
     declaredIds,
     declaredNames,
-    declaredProvisions,
+    declaredResources,
     line,
-  } = analyzeTrailServices(def, sourceCode, provisionIdsByName);
+  } = analyzeTrailServices(def, sourceCode, resourceIdsByName);
 
-  if (hasNoProvisionActivity(declaredProvisions, calledProvisions)) {
+  if (hasNoResourceActivity(declaredResources, calledResources)) {
     return;
   }
 
@@ -569,7 +565,7 @@ const checkTrailDefinition = (
     def.id,
     filePath,
     line,
-    calledProvisions,
+    calledResources,
     declaredNames,
     diagnostics
   );
@@ -577,7 +573,7 @@ const checkTrailDefinition = (
     def.id,
     filePath,
     line,
-    calledProvisions,
+    calledResources,
     declaredIds,
     declaredNames,
     diagnostics
@@ -586,8 +582,8 @@ const checkTrailDefinition = (
     def.id,
     filePath,
     line,
-    declaredProvisions,
-    calledProvisions,
+    declaredResources,
+    calledResources,
     diagnostics
   );
 };
@@ -599,7 +595,7 @@ const checkTrailDefinition = (
 /**
  * Validates that resource access aligns with declared `resources` arrays.
  */
-export const provisionDeclarations: WardenRule = {
+export const resourceDeclarations: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
     if (isTestFile(filePath)) {
       return [];
@@ -611,14 +607,14 @@ export const provisionDeclarations: WardenRule = {
     }
 
     const diagnostics: WardenDiagnostic[] = [];
-    const provisionIdsByName = collectNamedProvisionIds(ast);
+    const resourceIdsByName = collectNamedResourceIds(ast);
 
     for (const def of findTrailDefinitions(ast)) {
       checkTrailDefinition(
         def,
         filePath,
         sourceCode,
-        provisionIdsByName,
+        resourceIdsByName,
         diagnostics
       );
     }
