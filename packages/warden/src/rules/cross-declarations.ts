@@ -7,6 +7,7 @@
  */
 
 import {
+  extractFirstStringArg,
   findConfigProperty,
   findBlazeBodies,
   findTrailDefinitions,
@@ -171,21 +172,6 @@ const extractMemberPair = (
   );
 
   return objName && propName ? { objName, propName } : null;
-};
-
-/** Extract the first argument string from a CallExpression's arguments list. */
-const extractFirstStringArg = (node: AstNode): string | null => {
-  const args = node['arguments'] as readonly AstNode[] | undefined;
-  if (!args || args.length === 0) {
-    return null;
-  }
-
-  const [firstArg] = args;
-  if (!firstArg || !isStringLiteral(firstArg)) {
-    return null;
-  }
-
-  return getStringValue(firstArg);
 };
 
 /**
