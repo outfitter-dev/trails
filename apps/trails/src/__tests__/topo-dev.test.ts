@@ -54,7 +54,7 @@ const writeAppFixture = (dir: string): void => {
   mkdirSync(join(dir, 'src'), { recursive: true });
   writeFileSync(
     join(dir, 'src', 'app.ts'),
-    `import { Result, provision, topo, trail } from '@ontrails/core';
+    `import { Result, resource, topo, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 const hello = trail('hello', {
@@ -64,8 +64,8 @@ const hello = trail('hello', {
   input: z.object({ name: z.string().optional() }),
   intent: 'read',
   output: z.object({ message: z.string() }),
-  provisions: [
-    provision('db.main', {
+  resources: [
+    resource('db.main', {
       create: () => Result.ok({ source: 'factory' }),
     }),
   ],
@@ -78,7 +78,7 @@ const goodbye = trail('goodbye', {
   output: z.object({ ok: z.boolean() }),
 });
 
-const [dbMain] = hello.provisions;
+const [dbMain] = hello.resources;
 if (!dbMain) {
   throw new Error('expected hello to declare db.main');
 }
@@ -109,7 +109,7 @@ describe('topo and dev trails', () => {
         } as never)
       );
       expect(detail.id).toBe('hello');
-      expect(detail.provisions).toEqual(['db.main']);
+      expect(detail.resources).toEqual(['db.main']);
 
       const exportResult = expectOk(
         await topoExportTrail.blaze(moduleInput, { cwd: dir } as never)
@@ -175,7 +175,7 @@ describe('topo and dev trails', () => {
         features: {
           examples: true,
           outputSchemas: true,
-          provisions: true,
+          resources: true,
         },
         name: 'fixture-app',
         trails: 2,
@@ -188,7 +188,7 @@ describe('topo and dev trails', () => {
       );
       expect(surveyDetail).toMatchObject({
         id: 'hello',
-        provisions: ['db.main'],
+        resources: ['db.main'],
       });
 
       const guideList = expectOk(

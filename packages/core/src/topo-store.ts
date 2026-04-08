@@ -2,7 +2,7 @@ import type { SQLQueryBindings } from 'bun:sqlite';
 import { existsSync } from 'node:fs';
 
 import { NotFoundError } from './errors.js';
-import { provision } from './provision.js';
+import { resource } from './resource.js';
 import { Result } from './result.js';
 import type { TopoPinRecord, TopoSaveRecord } from './internal/topo-saves.js';
 import { getTopoPin } from './internal/topo-saves.js';
@@ -47,7 +47,7 @@ export interface ReadOnlyTopoStore {
     sql: string,
     bindings?: readonly SQLQueryBindings[]
   ): readonly TRow[];
-  readonly provisions: {
+  readonly resources: {
     get(
       id: string,
       options?: { readonly save?: TopoStoreRef }
@@ -76,7 +76,7 @@ export interface ReadOnlyTopoStore {
 export interface MockTopoStoreSeed {
   readonly exports?: readonly TopoStoreExportRecord[];
   readonly pins?: readonly TopoPinRecord[];
-  readonly provisions?: readonly TopoStoreProvisionRecord[];
+  readonly resources?: readonly TopoStoreProvisionRecord[];
   readonly saves?: readonly TopoSaveRecord[];
   readonly trails?: readonly TopoStoreTrailDetailRecord[];
 }
@@ -122,7 +122,7 @@ const createSeedResolver = (seed?: MockTopoStoreSeed) => {
   const saves = [...(seed?.saves ?? [])];
   const pins = [...(seed?.pins ?? [])];
   const trails = [...(seed?.trails ?? [])];
-  const provisions = [...(seed?.provisions ?? [])];
+  const resources = [...(seed?.resources ?? [])];
   const exports = [...(seed?.exports ?? [])];
 
   const resolveSave = (ref?: TopoStoreRef): TopoSaveRecord | undefined => {
@@ -141,8 +141,8 @@ const createSeedResolver = (seed?: MockTopoStoreSeed) => {
   return {
     exports,
     pins,
-    provisions,
     resolveSave,
+    resources,
     saves,
     trails,
   };
@@ -170,10 +170,15 @@ export const createMockTopoStore = (
         return resolved.pins;
       },
     },
-    provisions: {
+    query() {
+      throw new NotFoundError(
+        'Mock topoStore.query() is unsupported. Seed typed accessors instead.'
+      );
+    },
+    resources: {
       get(id, options) {
         const save = resolved.resolveSave(options?.save);
-        return resolved.provisions.find(
+        return resolved.resources.find(
           (item) =>
             item.id === id && (save === undefined || item.saveId === save.id)
         );
@@ -182,13 +187,8 @@ export const createMockTopoStore = (
         const save = resolved.resolveSave(options?.save);
         return save === undefined
           ? []
-          : resolved.provisions.filter((item) => item.saveId === save.id);
+          : resolved.resources.filter((item) => item.saveId === save.id);
       },
-    },
-    query() {
-      throw new NotFoundError(
-        'Mock topoStore.query() is unsupported. Seed typed accessors instead.'
-      );
     },
     saves: {
       get(ref?: TopoStoreRef) {
@@ -242,7 +242,15 @@ export const createTopoStore = (
       return withStoredTopoState(options, (db) => listTopoStorePins(db));
     },
   },
-  provisions: {
+  query<TRow extends Record<string, unknown>>(
+    sql: string,
+    bindings?: readonly SQLQueryBindings[]
+  ) {
+    return withStoredTopoState(options, (db) =>
+      queryTopoStore<TRow>(db, sql, bindings)
+    );
+  },
+  resources: {
     get(id, queryOptions) {
       return withStoredTopoState(options, (db) =>
         getTopoStoreProvision(db, id, queryOptions)
@@ -253,14 +261,6 @@ export const createTopoStore = (
         listTopoStoreProvisions(db, queryOptions)
       );
     },
-  },
-  query<TRow extends Record<string, unknown>>(
-    sql: string,
-    bindings?: readonly SQLQueryBindings[]
-  ) {
-    return withStoredTopoState(options, (db) =>
-      queryTopoStore<TRow>(db, sql, bindings)
-    );
   },
   saves: {
     get(ref?: TopoStoreRef) {
@@ -289,7 +289,7 @@ export const createTopoStore = (
   },
 });
 
-export const topoStore = provision('topo.store', {
+export const topoStore = resource('topo.store', {
   create: (svc) =>
     Result.ok(
       createTopoStore({

@@ -1,17 +1,17 @@
 /**
- * Config provision — manages resolved config lifecycle.
+ * Config resource — manages resolved config lifecycle.
  *
  * The config is resolved during bootstrap (two-phase init per ADR-010)
- * and registered via `registerConfigState`. This provision reads from the
+ * and registered via `registerConfigState`. This resource reads from the
  * global registry so trails can access it through `configProvision.from(ctx)`.
  */
-import { InternalError, Result, provision } from '@ontrails/core';
+import { InternalError, Result, resource } from '@ontrails/core';
 import { z } from 'zod';
 
 import type { ConfigState } from './registry.js';
 import { getConfigState } from './registry.js';
 
-export const configProvision = provision<ConfigState>('config', {
+export const configProvision = resource<ConfigState>('config', {
   create: () => {
     const state = getConfigState();
     if (state === undefined) {

@@ -332,7 +332,7 @@ export const createDevStore = (options?: DevStoreOptions): DevStore => {
 /**
  * Read-only view of a TrackStore.
  *
- * `close()` is a no-op — consumers of this view (e.g. the tracker provision)
+ * `close()` is a no-op — consumers of this view (e.g. the tracker resource)
  * must not close the underlying connection they don't own.
  */
 export const toTrackStore = (store: TrackStore): TrackStore => ({

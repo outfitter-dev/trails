@@ -12,7 +12,7 @@ export interface ConfigState {
   readonly schema: z.ZodObject<Record<string, z.ZodType>>;
   readonly resolved: Record<string, unknown>;
   readonly base?: Record<string, unknown>;
-  readonly loadout?: Record<string, unknown>;
+  readonly profile?: Record<string, unknown>;
   readonly local?: Record<string, unknown>;
   readonly env?: Record<string, string | undefined>;
 }

@@ -1,6 +1,6 @@
 import { describe, test } from 'bun:test';
 
-import { NotFoundError, Result, provision, trail, topo } from '@ontrails/core';
+import { NotFoundError, Result, resource, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { testExamples } from '../examples.js';
@@ -67,41 +67,41 @@ const noExamplesTrail = trail('noexamples', {
   input: z.object({ x: z.number() }),
 });
 
-const mockDbProvision = provision('db.mock.examples', {
+const mockDbProvision = resource('db.mock.examples', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
-const mockProvisionTrail = trail('provision.mocked', {
+const mockProvisionTrail = trail('resource.mocked', {
   blaze: (_input, ctx) =>
     Result.ok({ source: mockDbProvision.from(ctx).source }),
-  description: 'Trail that reads from a mocked provision',
+  description: 'Trail that reads from a mocked resource',
   examples: [
     {
       expected: { source: 'mock' },
       input: {},
-      name: 'Uses auto-resolved provision mock',
+      name: 'Uses auto-resolved resource mock',
     },
   ],
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  provisions: [mockDbProvision],
+  resources: [mockDbProvision],
 });
 
-const explicitOverrideTrail = trail('provision.override', {
+const explicitOverrideTrail = trail('resource.override', {
   blaze: (_input, ctx) =>
     Result.ok({ source: mockDbProvision.from(ctx).source }),
-  description: 'Trail whose provision mock can be overridden explicitly',
+  description: 'Trail whose resource mock can be overridden explicitly',
   examples: [
     {
       expected: { source: 'override' },
       input: {},
-      name: 'Explicit provision override wins over mock factory',
+      name: 'Explicit resource override wins over mock factory',
     },
   ],
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  provisions: [mockDbProvision],
+  resources: [mockDbProvision],
 });
 
 const transformedInputTrail = trail('example.transformed', {
@@ -120,62 +120,62 @@ const transformedInputTrail = trail('example.transformed', {
   output: z.object({ value: z.number() }),
 });
 
-const ctxOverrideTrail = trail('provision.ctx-override', {
+const ctxOverrideTrail = trail('resource.ctx-override', {
   blaze: (_input, ctx) =>
     Result.ok({ source: mockDbProvision.from(ctx).source }),
-  description: 'Trail whose provision mock can be overridden by ctx.extensions',
+  description: 'Trail whose resource mock can be overridden by ctx.extensions',
   examples: [
     {
       expected: { source: 'ctx' },
       input: {},
-      name: 'Context extensions beat auto-resolved mock provisions',
+      name: 'Context extensions beat auto-resolved mock resources',
     },
   ],
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  provisions: [mockDbProvision],
+  resources: [mockDbProvision],
 });
 
-const undeclaredDbProvision = provision('db.undeclared.examples', {
+const undeclaredDbProvision = resource('db.undeclared.examples', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
-const undeclaredProvisionTrail = trail('provision.undeclared.examples', {
+const undeclaredProvisionTrail = trail('resource.undeclared.examples', {
   blaze: (_input, ctx) =>
     Result.ok({ source: undeclaredDbProvision.from(ctx).source }),
-  description: 'Trail that uses a provision without declaring it',
+  description: 'Trail that uses a resource without declaring it',
   examples: [
     {
       error: 'InternalError',
       input: {},
-      name: 'Undeclared provisions stay unavailable during example execution',
+      name: 'Undeclared resources stay unavailable during example execution',
     },
   ],
   input: z.object({}),
   output: z.object({ source: z.string() }),
 });
-const crossDbProvision = provision('db.mock.examples.crosses', {
+const crossDbProvision = resource('db.mock.examples.crosses', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
-const crossLeafTrail = trail('provision.crosses.leaf', {
+const crossLeafTrail = trail('resource.crosses.leaf', {
   blaze: (_input, ctx) =>
     Result.ok({ childSource: crossDbProvision.from(ctx).source }),
-  description: 'Leaf trail that resolves a provision inside a cross chain',
+  description: 'Leaf trail that resolves a resource inside a cross chain',
   input: z.object({}),
   output: z.object({ childSource: z.string() }),
-  provisions: [crossDbProvision],
+  resources: [crossDbProvision],
 });
 
-const crossRootTrail = trail('provision.crosses.root', {
+const crossRootTrail = trail('resource.crosses.root', {
   blaze: async (_input, ctx) => {
     if (!ctx.cross) {
       return Result.err(new Error('cross not available'));
     }
     const childResult = await ctx.cross<{ childSource: string }>(
-      'provision.crosses.leaf',
+      'resource.crosses.leaf',
       {}
     );
     if (childResult.isErr()) {
@@ -186,18 +186,18 @@ const crossRootTrail = trail('provision.crosses.root', {
       rootSource: crossDbProvision.from(ctx).source,
     });
   },
-  crosses: ['provision.crosses.leaf'],
-  description: 'Root trail that crosses a child trail using provisions',
+  crosses: ['resource.crosses.leaf'],
+  description: 'Root trail that crosses a child trail using resources',
   examples: [
     {
       expected: { childSource: 'mock', rootSource: 'mock' },
       input: {},
-      name: 'Propagates provision mocks through cross execution',
+      name: 'Propagates resource mocks through cross execution',
     },
   ],
   input: z.object({}),
   output: z.object({ childSource: z.string(), rootSource: z.string() }),
-  provisions: [crossDbProvision],
+  resources: [crossDbProvision],
 });
 
 // ---------------------------------------------------------------------------
@@ -296,25 +296,25 @@ describe('testExamples skips trails with no examples', () => {
   });
 });
 
-describe('testExamples provision mocks', () => {
+describe('testExamples resource mocks', () => {
   // eslint-disable-next-line jest/require-hook
   testExamples(
-    topo('provision-mock-app', {
+    topo('resource-mock-app', {
       mockDbProvision,
       mockProvisionTrail,
     } as Record<string, unknown>)
   );
 });
 
-describe('testExamples explicit provision overrides', () => {
+describe('testExamples explicit resource overrides', () => {
   // eslint-disable-next-line jest/require-hook
   testExamples(
-    topo('provision-override-app', {
+    topo('resource-override-app', {
       explicitOverrideTrail,
       mockDbProvision,
     } as Record<string, unknown>),
     {
-      provisions: { 'db.mock.examples': { source: 'override' } },
+      resources: { 'db.mock.examples': { source: 'override' } },
     }
   );
 });
@@ -343,10 +343,10 @@ describe('testExamples context extension overrides', () => {
   );
 });
 
-describe('testExamples provision declarations', () => {
+describe('testExamples resource declarations', () => {
   // eslint-disable-next-line jest/require-hook
   testExamples(
-    topo('undeclared-provision-app', {
+    topo('undeclared-resource-app', {
       undeclaredDbProvision,
       undeclaredProvisionTrail,
     } as Record<string, unknown>)
@@ -364,10 +364,10 @@ describe('testExamples crossing coverage for trails with crossings', () => {
   );
 });
 
-describe('testExamples provision mocks through cross', () => {
+describe('testExamples resource mocks through cross', () => {
   // eslint-disable-next-line jest/require-hook
   testExamples(
-    topo('provision-cross-app', {
+    topo('resource-cross-app', {
       crossDbProvision,
       crossLeafTrail,
       crossRootTrail,

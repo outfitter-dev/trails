@@ -5,9 +5,9 @@ import { z } from 'zod';
 
 import { run } from '../run';
 import { InternalError, NotFoundError, ValidationError } from '../errors';
-import type { Gate } from '../gate';
+import type { Layer } from '../layer';
 import { Result } from '../result';
-import { provision } from '../provision';
+import { resource } from '../resource';
 import { topo } from '../topo';
 import { trail } from '../trail';
 import type { TrailContext, TrailContextInit } from '../types';
@@ -44,25 +44,25 @@ describe('run', () => {
       expect(result.unwrap()).toEqual({ value: 'hello' });
     });
 
-    test('passes provision overrides through to executeTrail', async () => {
-      const id = `run.provision.${Bun.randomUUIDv7()}`;
-      const db = provision(id, {
+    test('passes resource overrides through to executeTrail', async () => {
+      const id = `run.resource.${Bun.randomUUIDv7()}`;
+      const db = resource(id, {
         create: () => Result.ok({ source: 'factory' }),
       });
       const searchTrail = trail('search', {
         blaze: (_input, ctx) => Result.ok({ source: db.from(ctx).source }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
-        provisions: [db],
+        resources: [db],
       });
-      const searchTopo = topo('provision-test', { searchTrail });
+      const searchTopo = topo('resource-test', { searchTrail });
 
       const result = await run(
         searchTopo,
         'search',
         {},
         {
-          provisions: { [id]: { source: 'override' } },
+          resources: { [id]: { source: 'override' } },
         }
       );
 
@@ -91,11 +91,11 @@ describe('run', () => {
     });
   });
 
-  describe('gates', () => {
-    test('gate composition works through run', async () => {
+  describe('layers', () => {
+    test('layer composition works through run', async () => {
       const log: string[] = [];
-      const gate: Gate = {
-        name: 'test-gate',
+      const layer: Layer = {
+        name: 'test-layer',
         wrap(_trail, impl) {
           return async (input, ctx) => {
             log.push('before');
@@ -110,7 +110,7 @@ describe('run', () => {
         testTopo,
         'echo',
         { value: 'x' },
-        { gates: [gate] }
+        { layers: [layer] }
       );
 
       expect(result.isOk()).toBe(true);

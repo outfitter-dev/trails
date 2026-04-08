@@ -14,7 +14,7 @@ owners: ['[galligan](https://github.com/galligan)']
 
 Trails needs an HTTP trailhead. It does not need to become a web framework.
 
-Hono, Express, Fastify, Koa — mature, well-tested HTTP frameworks already exist. They handle routing, gates, request parsing, and response serialization. Reimplementing any of that inside Trails would be wasted effort and a worse result than what's already available.
+Hono, Express, Fastify, Koa — mature, well-tested HTTP frameworks already exist. They handle routing, layers, request parsing, and response serialization. Reimplementing any of that inside Trails would be wasted effort and a worse result than what's already available.
 
 But Trails can't couple to any single one of them either. Coupling to Hono means every Trails user becomes a Hono user. Coupling to Express means dragging in a framework whose design predates async/await. Any hard dependency on a specific HTTP framework creates lock-in that limits adoption and constrains how people integrate Trails into their existing stacks.
 
@@ -44,7 +44,7 @@ The core function takes a topo and returns an array of framework-agnostic route 
 - **`inputSource`** — `query` for reads, `body` for writes, derived from the method
 - **`trailId`** — the trail's ID, for debugging and logging
 - **`trail`** — the full trail definition, for `meta` access
-- **`execute(input, requestId?, abortSignal?)`** — validates input, composes gates, runs the implementation, returns `Result`
+- **`execute(input, requestId?, abortSignal?)`** — validates input, composes layers, runs the implementation, returns `Result`
 
 The `execute` function is the important part. It does everything *except* touch HTTP framework types. It doesn't parse a `Request`. It doesn't construct a `Response`. It doesn't set status codes. It takes validated input, runs the trail, and returns a `Result`. Everything HTTP-specific happens in the connector.
 

@@ -257,7 +257,7 @@ An opt-in reactive mode follows the event chain:
 trails test --reactive
 ```
 
-In reactive mode, emitted events actually trigger listener trails (with mock provisions). The test verifies the full reactive chain. This catches integration bugs: "the event emits correctly but the listener trail's input schema doesn't match the event payload."
+In reactive mode, emitted events actually trigger listener trails (with mock resources). The test verifies the full reactive chain. This catches integration bugs: "the event emits correctly but the listener trail's input schema doesn't match the event payload."
 
 Reactive mode runs after standard mode passes. Standard mode validates each trail independently. Reactive mode validates the communication graph.
 
@@ -283,11 +283,11 @@ Reactive mode runs after standard mode passes. Standard mode validates each trai
 - **Schema is always present.** Derived from the emitter at stage 1, declared inline at stage 2, extracted to `signal()` at stage 3. No untyped events. Progressive disclosure without a schema gap.
 - **Trails decouple through events.** Packs communicate via events instead of direct crosses. The event schema is the contract. The topo validates compatibility.
 - **Framework lifecycle events unify observation.** The error taxonomy maps to categorized failure events. The reactive graph handles both authored and observed events uniformly.
-- **Dead events are visible at every layer.** Five gates of safety from one primitive: types (compile time), examples (test time), warden (lint time), tracker (runtime), survey (inspection time).
+- **Dead events are visible at every layer.** Five layers of safety from one primitive: types (compile time), examples (test time), warden (lint time), tracker (runtime), survey (inspection time).
 
 ### Tradeoffs
 
-- **New field on the trail spec.** `emits` joins `crosses`, `visibility`, `on`, `provisions`, and the rest. The justification: emission is genuinely new information that the framework can't derive from the implementation without static analysis.
+- **New field on the trail spec.** `emits` joins `crosses`, `visibility`, `on`, `resources`, and the rest. The justification: emission is genuinely new information that the framework can't derive from the implementation without static analysis.
 - **Fire-and-forget semantics.** The emitting trail doesn't know if the event was delivered. This is correct (the trail shouldn't couple to its listeners) but means delivery failures are only visible through tracker.
 - **Lifecycle events add volume.** Every trail execution produces at least one lifecycle event. Sampling is a future optimization.
 - **Event ordering is not guaranteed across listeners.** Multiple triggers on the same event activate concurrently. If ordering matters, use sequential `cross` composition.

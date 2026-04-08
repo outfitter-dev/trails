@@ -43,7 +43,7 @@ const onboard = trail('entity.onboard', {
 | --- | --- |
 | `trail(id, spec)` | Define a unit of work with typed input and `Result` output; use `crosses` for composition |
 | `signal(id, spec)` | Define a server-originated notification with a typed data schema |
-| `provision(id, spec)` | Define an infrastructure dependency with `create`, `dispose`, and optional `mock` |
+| `resource(id, spec)` | Define an infrastructure dependency with `create`, `dispose`, and optional `mock` |
 | `topo(name, ...modules)` | Collect trail modules into a queryable topology |
 | `validateTopo(topo)` | Structural validation: cross targets exist, no cycles, examples parse, output schemas present |
 
@@ -51,7 +51,7 @@ const onboard = trail('entity.onboard', {
 
 | Export | What it does |
 | --- | --- |
-| `executeTrail(trail, rawInput, options?)` | Centralized execution pipeline: validates input, builds context, composes gates, runs the implementation. Never throws -- exceptions become `Result.err(InternalError)`. |
+| `executeTrail(trail, rawInput, options?)` | Centralized execution pipeline: validates input, builds context, composes layers, runs the implementation. Never throws -- exceptions become `Result.err(InternalError)`. |
 | `run(topo, id, input, options?)` | Headless trail execution by ID. Looks up the trail in the topo, then delegates to `executeTrail`. Returns `Result.err(NotFoundError)` if the ID is not registered. |
 
 ```typescript
@@ -89,7 +89,7 @@ Beyond the `trail(id, spec)` builder, `Topo` exposes these accessors:
 
 | Type | What it describes |
 | --- | --- |
-| `ExecuteTrailOptions` | Options for `executeTrail`: `ctx`, `abortSignal`, `gates`, `createContext` |
+| `ExecuteTrailOptions` | Options for `executeTrail`: `ctx`, `abortSignal`, `layers`, `createContext` |
 | `RunOptions` | Same shape as `ExecuteTrailOptions`; forwarded by `run` |
 
 ### Result
@@ -137,7 +137,7 @@ The developer returns `Result.err(new NotFoundError(...))`. The framework maps i
 - **Resilience** -- `retry`, `withTimeout`, `shouldRetry`, `getBackoffDelay`
 - **Serialization** -- `serializeError`, `deserializeError`
 - **Branded types** -- `uuid`, `email`, `nonEmptyString`, `positiveInt`
-- **Gates** -- cross-cutting gates via `composeGates`
+- **Layers** -- cross-cutting layers via `composeLayers`
 - **Guards and collections** -- `isDefined`, `chunk`, `dedupe`, `groupBy`, `sortBy`
 - **Patterns** (`@ontrails/core/patterns`) -- reusable Zod schemas for pagination, bulk ops, timestamps, sorting
 - **Redaction** (`@ontrails/core/redaction`) -- strip sensitive data before logging

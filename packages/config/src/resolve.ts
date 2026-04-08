@@ -1,6 +1,6 @@
 /**
  * Config resolution engine — merges config from multiple sources through
- * a deterministic stack: defaults → base → loadout → local → env.
+ * a deterministic stack: defaults → base → profile → local → env.
  */
 
 import type { z } from 'zod';
@@ -19,8 +19,8 @@ import { zodDef } from './zod-utils.js';
 export interface ResolveConfigOptions<T extends z.ZodType> {
   readonly schema: T;
   readonly base?: Record<string, unknown> | undefined;
-  readonly loadouts?: Record<string, Record<string, unknown>> | undefined;
-  readonly loadout?: string | undefined;
+  readonly profiles?: Record<string, Record<string, unknown>> | undefined;
+  readonly profile?: string | undefined;
   readonly localOverrides?: Record<string, unknown> | undefined;
   readonly env?: Record<string, string | undefined> | undefined;
 }
@@ -219,11 +219,11 @@ const applyEnvOverrides = (
 // Merge pipeline
 // ---------------------------------------------------------------------------
 
-/** Apply the layered merge: base → loadout → local overrides. */
+/** Apply the layered merge: base → profile → local overrides. */
 const mergeLayers = (
   base: Record<string, unknown> | undefined,
-  loadouts: Record<string, Record<string, unknown>> | undefined,
-  loadout: string | undefined,
+  profiles: Record<string, Record<string, unknown>> | undefined,
+  profile: string | undefined,
   localOverrides: Record<string, unknown> | undefined
 ): Record<string, unknown> => {
   let merged: Record<string, unknown> = {};
@@ -231,7 +231,7 @@ const mergeLayers = (
     merged = deepMerge(merged, base);
   }
 
-  const selected = loadout && loadouts ? loadouts[loadout] : undefined;
+  const selected = profile && profiles ? profiles[profile] : undefined;
   if (selected) {
     merged = deepMerge(merged, selected);
   }
@@ -253,7 +253,7 @@ const formatValidationError = (
 // ---------------------------------------------------------------------------
 
 /**
- * Resolve config through the full stack: defaults → base → loadout → local → env.
+ * Resolve config through the full stack: defaults → base → profile → local → env.
  * Returns `Result.ok` with the validated config, or `Result.err` on validation failure.
  */
 export const resolveConfig = <T extends z.ZodType>(
@@ -261,8 +261,8 @@ export const resolveConfig = <T extends z.ZodType>(
 ): Result<z.infer<T>, Error> => {
   let merged = mergeLayers(
     options.base,
-    options.loadouts,
-    options.loadout,
+    options.profiles,
+    options.profile,
     options.localOverrides
   );
 

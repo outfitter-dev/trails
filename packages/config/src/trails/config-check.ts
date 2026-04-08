@@ -7,7 +7,7 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { configProvision } from '../config-provision.js';
+import { configProvision } from '../config-resource.js';
 import { checkConfig } from '../doctor.js';
 import { deepMerge } from '../merge.js';
 
@@ -56,5 +56,5 @@ export const configCheck = trail('config.check', {
   intent: 'read',
   meta: { category: 'infrastructure' },
   output: outputSchema,
-  provisions: [configProvision],
+  resources: [configProvision],
 });

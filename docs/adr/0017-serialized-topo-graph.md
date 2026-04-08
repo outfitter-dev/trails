@@ -15,13 +15,13 @@ depends_on: [7, 8]
 
 The framework currently produces `trailhead.lock` via `trails survey generate`. This file captures the derived trailhead shape (MCP tool names, CLI commands, HTTP routes) as a diffable, hashable artifact. CI compares it against the current topo to detect unintentional contract changes.
 
-As the framework grows, more resolved state needs the same treatment: trailheads, signals, fires, provisions, config, the reactive graph. Each is "resolved state of the system that should be diffable and governable." Splitting them into separate lockfiles creates multiple files to commit, multiple CI checks to configure, and multiple commands to remember.
+As the framework grows, more resolved state needs the same treatment: trailheads, signals, fires, resources, config, the reactive graph. Each is "resolved state of the system that should be diffable and governable." Splitting them into separate lockfiles creates multiple files to commit, multiple CI checks to configure, and multiple commands to remember.
 
-But the deeper issue is that these aren't independent concerns. A trail's trailhead derivation, its fire activations, its signal emissions, its provision dependencies, and its `crosses` declarations are all facets of the same graph. Trailheads reference trails. Fires reference signals. Signals reference emitters. Provisions reference config. The resolved state of the system is a single connected graph, not a collection of independent sections.
+But the deeper issue is that these aren't independent concerns. A trail's trailhead derivation, its fire activations, its signal emissions, its resource dependencies, and its `crosses` declarations are all facets of the same graph. Trailheads reference trails. Fires reference signals. Signals reference emitters. Resources reference config. The resolved state of the system is a single connected graph, not a collection of independent sections.
 
 ### The lockfile as the story
 
-An agent connecting to an unfamiliar Trails workspace should be able to read one file and understand the entire system: what trails exist, what activates them, what they signal, what provisions they need, how they compose, what trailheads expose them, and what permissions they require. That file is the lockfile.
+An agent connecting to an unfamiliar Trails workspace should be able to read one file and understand the entire system: what trails exist, what activates them, what they signal, what resources they need, how they compose, what trailheads expose them, and what permissions they require. That file is the lockfile.
 
 This aligns with the design tenet: *the contract is queryable*. The lockfile is the fully resolved, serialized form of the queryable contract. It's the topo graph with all derivations applied, all references resolved, all edges explicit.
 
@@ -39,7 +39,7 @@ The current `trailhead.lock` has no external consumers. It's generated, committe
 
 ### One lockfile: `.trails/trails.lock`
 
-All resolved framework state lives in `.trails/trails.lock`. The file is structured as a serialized topo graph. Every trail, provision, signal, and trailhead is a node. Relationships — fires, crosses, signals, consumes — are edges. The file is the compiled, resolved, deduplicated story of the workspace.
+All resolved framework state lives in `.trails/trails.lock`. The file is structured as a serialized topo graph. Every trail, resource, signal, and trailhead is a node. Relationships — fires, crosses, signals, consumes — are edges. The file is the compiled, resolved, deduplicated story of the workspace.
 
 ```json
 {
@@ -56,7 +56,7 @@ All resolved framework state lives in `.trails/trails.lock`. The file is structu
           "signals": ["booking.confirmed"],
           "crosses": ["availability.reserve", "billing.charge"],
           "fires": [{ "type": "webhook:stripe", "event": "payment_intent.succeeded" }],
-          "provisions": ["bookingStore", "billingService"],
+          "resources": ["bookingStore", "billingService"],
           "visibility": "public",
           "examples": 3,
           "trailheads": {
@@ -73,7 +73,7 @@ All resolved framework state lives in `.trails/trails.lock`. The file is structu
           "consumedBy": ["notify.booking-confirmed", "audit.log-write"]
         }
       },
-      "provisions": {
+      "resources": {
         "bookingStore": {
           "config": { /* resolved config schema */ },
           "consumedBy": ["booking.confirm", "booking.cancel", "booking.show"]
@@ -84,11 +84,11 @@ All resolved framework state lives in `.trails/trails.lock`. The file is structu
 }
 ```
 
-A single trail entry carries everything: input/output schemas, intent, permit requirements, signal emissions, `crosses` declarations, fire activations, provision dependencies, visibility, example count, and per-trailhead derivations. No duplication — the trail is the node, everything else is an edge or a property.
+A single trail entry carries everything: input/output schemas, intent, permit requirements, signal emissions, `crosses` declarations, fire activations, resource dependencies, visibility, example count, and per-trailhead derivations. No duplication — the trail is the node, everything else is an edge or a property.
 
 ### The graph, not sections
 
-The lockfile is not organized by concern (a trailheads section, an events section, a triggers section). It's organized by the topo graph: apps contain trails, signals, and provisions. Relationships between them are edges on the nodes.
+The lockfile is not organized by concern (a trailheads section, an events section, a triggers section). It's organized by the topo graph: apps contain trails, signals, and resources. Relationships between them are edges on the nodes.
 
 This means:
 
@@ -104,7 +104,7 @@ trails topo verify           # verify .trails/trails.lock matches current topo (
 trails topo diff --lock      # show lockfile drift against current topo
 ```
 
-`trails topo export` replaces the old lock-focused command shape. The command now centers on the thing being exported rather than on the artifact. `verify` is the CI gate. `diff --lock` is the developer feedback loop.
+`trails topo export` replaces the old lock-focused command shape. The command now centers on the thing being exported rather than on the artifact. `verify` is the CI layer. `diff --lock` is the developer feedback loop.
 
 The lockfile is:
 
@@ -150,7 +150,7 @@ webhook:stripe → booking.confirm → booking.confirmed → notify.booking-conf
 
 ### Positive
 
-- **One file to commit.** A PR that changes trail schemas, adds triggers, updates provisions, and modifies config produces one lockfile diff.
+- **One file to commit.** A PR that changes trail schemas, adds triggers, updates resources, and modifies config produces one lockfile diff.
 - **One CI check.** `trails topo verify` validates everything.
 - **Agent-readable.** An agent reads the lockfile to understand the entire system without source code. The contract is queryable.
 - **Graph-native.** Cross-cutting queries (orphan events, unreachable trails, trigger cycles) are natural graph traversals.
@@ -165,10 +165,10 @@ webhook:stripe → booking.confirm → booking.confirmed → notify.booking-conf
 
 ### What this does NOT decide
 
-- **The exact schema for each node type.** Trail nodes, signal nodes, and provision nodes will gain properties as their respective ADRs ship. The graph structure is stable; the node schemas evolve.
+- **The exact schema for each node type.** Trail nodes, signal nodes, and resource nodes will gain properties as their respective ADRs ship. The graph structure is stable; the node schemas evolve.
 - **Whether sections can be independently regenerated** (e.g., `trails topo export --only trailheads`). Future ergonomic improvement if needed.
 - **Whether the format is JSON, JSONC, or another structured format.** JSON is the default for machine-generated artifacts. If comments become valuable, JSONC is a backward-compatible extension.
-- **Provision contract snapshots.** How provisioned packs record their contract state in the lockfile. The provisions ADR defines this.
+- **Resource contract snapshots.** How provisioned packs record their contract state in the lockfile. The resources ADR defines this.
 - **Rig lock state.** How rigged external trailheads record their resolved state. The rig ADR defines this.
 
 ## References

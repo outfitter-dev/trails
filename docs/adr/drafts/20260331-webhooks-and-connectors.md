@@ -321,7 +321,7 @@ testWebhook(app, '/webhooks/stripe', {
 });
 ```
 
-`testWebhook` validates the full chain: verification passes, adaptation produces correct input, the trail executes, the response is correct. The mock provision factories provide test infrastructure. No real Stripe required.
+`testWebhook` validates the full chain: verification passes, adaptation produces correct input, the trail executes, the response is correct. The mock resource factories provide test infrastructure. No real Stripe required.
 
 ## Consequences
 
@@ -345,7 +345,7 @@ testWebhook(app, '/webhooks/stripe', {
 - **Outbound webhooks (sending webhooks to external systems).** This ADR covers inbound webhooks. Sending webhooks is a different concern: serialization, retry logic, delivery tracking, failure handling. That's future work, likely as a service or a pack pattern.
 - **Which providers get built-in verifiers and connectors.** Stripe, GitHub, and Linear are likely first candidates. The set grows based on ecosystem demand.
 - **Whether connectors should support streaming transformation.** Current connectors transform a complete payload. Streaming connectors (for large payloads or chunked delivery) are a future extension.
-- **Global webhook gates.** Rate limiting, IP allowlisting, payload size limits: these are HTTP gates concerns that apply to webhook endpoints. They're handled by the HTTP trailhead's existing layer model, not by the webhook config.
+- **Global webhook layers.** Rate limiting, IP allowlisting, payload size limits: these are HTTP layers concerns that apply to webhook endpoints. They're handled by the HTTP trailhead's existing layer model, not by the webhook config.
 
 ## References
 

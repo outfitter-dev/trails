@@ -59,11 +59,11 @@ export const db = connectDrizzle(definition, {
 });
 ```
 
-The bound store is a provision. Use it directly in trails:
+The bound store is a resource. Use it directly in trails:
 
 ```typescript
 export const list = trail('gist.list', {
-  provisions: [db],
+  resources: [db],
   intent: 'read',
   blaze: async (_input, ctx) => {
     const conn = db.from(ctx);
@@ -117,9 +117,9 @@ export const db = store({
 });
 ```
 
-When a connector binds the store, those fixtures feed the provision mock automatically. Connector options can also add or override seed data for tests.
+When a connector binds the store, those fixtures feed the resource mock automatically. Connector options can also add or override seed data for tests.
 
-That means `testAll(app)` can auto-resolve connector-bound store provisions without extra ceremony, as long as the provision is registered in the topo.
+That means `testAll(app)` can auto-resolve connector-bound store resources without extra ceremony, as long as the resource is registered in the topo.
 
 ## Read-only bindings
 

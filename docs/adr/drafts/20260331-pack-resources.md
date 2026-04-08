@@ -14,7 +14,7 @@ depends_on: [packs-namespace-boundaries]
 
 ### Packs need distribution
 
-The packs ADR defines `pack()` as a compositional primitive. A pack carries trails, provisions, signals, and config for a domain. But `pack()` says nothing about how packs travel between projects. A pack published to npm is consumed like any other dependency. A pack copied from a GitHub repo is owned source. The framework should support both modes and help developers manage the lifecycle of packs however they arrived.
+The packs ADR defines `pack()` as a compositional primitive. A pack carries trails, resources, signals, and config for a domain. But `pack()` says nothing about how packs travel between projects. A pack published to npm is consumed like any other dependency. A pack copied from a GitHub repo is owned source. The framework should support both modes and help developers manage the lifecycle of packs however they arrived.
 
 ### Two distribution modes
 
@@ -52,14 +52,14 @@ The identifier format disambiguates the source: `@ontrails/github` is npm, `outf
 | Term | What it is |
 | --- | --- |
 | `pack` | A capability bundle. The compositional unit. Defined by `pack()`. |
-| `provision` | A distributable unit that carries one or more packs. |
-| `provisions` | The packs a project carries. The collection and lifecycle layer. |
+| `resource` | A distributable unit that carries one or more packs. |
+| `resources` | The packs a project carries. The collection and lifecycle layer. |
 
-A provision is to packs what a package is to modules. One provision can contain multiple packs, just as one npm package can contain multiple module exports. The GitHub provider family is one provision (`@ontrails/github`) carrying four packs (`github.core`, `github.pull-requests`, `github.issues`, `github.checks`).
+A resource is to packs what a package is to modules. One resource can contain multiple packs, just as one npm package can contain multiple module exports. The GitHub provider family is one resource (`@ontrails/github`) carrying four packs (`github.core`, `github.pull-requests`, `github.issues`, `github.checks`).
 
-### `provision.json` (publisher manifest)
+### `resource.json` (publisher manifest)
 
-A project that publishes packs includes a `provision.json` at the package root, alongside `package.json`:
+A project that publishes packs includes a `resource.json` at the package root, alongside `package.json`:
 
 ```json
 {
@@ -90,17 +90,17 @@ A project that publishes packs includes a `provision.json` at the package root, 
 }
 ```
 
-`provision.json` is the Trails-native complement to `package.json`. It declares what packs this provision offers, their entry points, their default visibility, and their inter-pack dependencies.
+`resource.json` is the Trails-native complement to `package.json`. It declares what packs this resource offers, their entry points, their default visibility, and their inter-pack dependencies.
 
-The file can be generated. `trails provisions init` scans the project for `pack()` definitions and generates the manifest. The warden validates that `provision.json` stays in sync with the actual pack definitions. Drift between the manifest and the code is a governance error.
+The file can be generated. `trails resources init` scans the project for `pack()` definitions and generates the manifest. The warden validates that `resource.json` stays in sync with the actual pack definitions. Drift between the manifest and the code is a governance error.
 
-### `.trails/provisions.json` (consumer manifest)
+### `.trails/resources.json` (consumer manifest)
 
-A project that consumes packs declares its provisions in `.trails/provisions.json`:
+A project that consumes packs declares its resources in `.trails/resources.json`:
 
 ```json
 {
-  "provisions": {
+  "resources": {
     "@ontrails/github": {
       "packs": ["github.core", "github.pull-requests"],
       "scaffold": ["github.pull-requests"]
@@ -112,7 +112,7 @@ A project that consumes packs declares its provisions in `.trails/provisions.jso
 }
 ```
 
-This is the authored file. It declares intent: what provisions the project consumes, which packs from each, and which are scaffolded. Short, intentional, human-readable.
+This is the authored file. It declares intent: what resources the project consumes, which packs from each, and which are scaffolded. Short, intentional, human-readable.
 
 The identifier format routes to the source:
 
@@ -121,33 +121,33 @@ The identifier format routes to the source:
 
 Both support both modes. npm packages can be scaffolded (source extracted from the published tarball). GitHub repos can be installed as git dependencies. The source format is the default routing, not a constraint.
 
-### Provision modes
+### Resource modes
 
-**Dependency mode** (`trails provisions add`):
+**Dependency mode** (`trails resources add`):
 
 ```bash
-trails provisions add @ontrails/github
+trails resources add @ontrails/github
 ```
 
-Runs `npm install @ontrails/github`. Reads the provision's `provision.json`. Registers the provision in `.trails/provisions.json`. Records the resolved version in `.trails/trails.lock` under the provisions section.
+Runs `npm install @ontrails/github`. Reads the resource's `resource.json`. Registers the resource in `.trails/resources.json`. Records the resolved version in `.trails/trails.lock` under the resources section.
 
 The packs are consumed via normal imports. The source lives in `node_modules`. Updates via `npm update`.
 
-**Scaffold mode** (`trails provisions scaffold`):
+**Scaffold mode** (`trails resources scaffold`):
 
 ```bash
-trails provisions scaffold @ontrails/github --packs github.pull-requests
+trails resources scaffold @ontrails/github --packs github.pull-requests
 ```
 
-Copies the source for the specified packs into the project (default location: `src/packs/`). Installs the provision's npm dependencies into `package.json`. Installs non-scaffolded packs as dependencies (e.g., `github.core` stays in `node_modules`). Records the scaffold in `.trails/provisions.json`. Captures the contract snapshot in `.trails/trails.lock`.
+Copies the source for the specified packs into the project (default location: `src/packs/`). Installs the resource's npm dependencies into `package.json`. Installs non-scaffolded packs as dependencies (e.g., `github.core` stays in `node_modules`). Records the scaffold in `.trails/resources.json`. Captures the contract snapshot in `.trails/trails.lock`.
 
 The scaffolded source is owned. Modify freely. The non-scaffolded packs update via npm. The contract snapshot enables upgrade diffing.
 
-**Mixed mode** (per-pack within one provision):
+**Mixed mode** (per-pack within one resource):
 
 ```json
 {
-  "provisions": {
+  "resources": {
     "@ontrails/github": {
       "packs": ["github.core", "github.pull-requests"],
       "scaffold": ["github.pull-requests"]
@@ -156,15 +156,15 @@ The scaffolded source is owned. Modify freely. The non-scaffolded packs update v
 }
 ```
 
-`github.core` is a dependency. `github.pull-requests` is scaffolded. Same provision, different mode per pack. The SDK wrapper stays managed. The domain layer is owned.
+`github.core` is a dependency. `github.pull-requests` is scaffolded. Same resource, different mode per pack. The SDK wrapper stays managed. The domain layer is owned.
 
 ### Trigger overrides for provisioned packs
 
-When a consuming app installs a provision in dependency mode, it can override the `on` field for any of the pack's trails without forking the source. The override is declared in `.trails/provisions.json`:
+When a consuming app installs a resource in dependency mode, it can override the `on` field for any of the pack's trails without forking the source. The override is declared in `.trails/resources.json`:
 
 ```json
 {
-  "provisions": {
+  "resources": {
     "@ontrails/github": {
       "packs": ["github.core", "github.pull-requests"],
       "overrides": {
@@ -183,11 +183,11 @@ Trigger overrides apply only in dependency mode. Scaffolded packs are owned sour
 
 ### Contract snapshots for scaffolded packs
 
-When a pack is scaffolded, the provisions system captures a contract snapshot: the pack's survey output at the moment of scaffolding. This snapshot is stored in the `provisions` section of `.trails/trails.lock`:
+When a pack is scaffolded, the resources system captures a contract snapshot: the pack's survey output at the moment of scaffolding. This snapshot is stored in the `resources` section of `.trails/trails.lock`:
 
 ```json
 {
-  "provisions": {
+  "resources": {
     "@ontrails/github": {
       "version": "1.2.0",
       "packs": {
@@ -207,7 +207,7 @@ When a pack is scaffolded, the provisions system captures a contract snapshot: t
                 "crosses": []
               }
             },
-            "provisions": [],
+            "resources": [],
             "events": []
           }
         }
@@ -217,7 +217,7 @@ When a pack is scaffolded, the provisions system captures a contract snapshot: t
 }
 ```
 
-The snapshot captures trail shapes (schemas as JSON Schema), example counts, `crosses` declarations, provision declarations, and signal declarations. Not source code. The contract.
+The snapshot captures trail shapes (schemas as JSON Schema), example counts, `crosses` declarations, resource declarations, and signal declarations. Not source code. The contract.
 
 ### Why three-way diff is tractable here
 
@@ -227,7 +227,7 @@ Trails contracts are not unstructured text. They're structured data with known s
 
 - **Schema fields** have names. Upstream adds `currency`; you added `notes`. Non-conflicting — they're different keys. Upstream changes `amount` from `z.number()` to `z.number().positive()` while you didn't touch it — clean merge by field identity.
 - **Examples** have names. Upstream adds "Refund"; you added "Bulk". Non-conflicting set addition.
-- **Crosses, signals, provisions** are sets of identifiers. Both sides adding to the set is unambiguous.
+- **Crosses, signals, resources** are sets of identifiers. Both sides adding to the set is unambiguous.
 - **Intent, visibility, permit** are atomic values. One side changed it — clean. Both changed it — flag the conflict.
 
 The only truly unstructured part is the `run` function body. But that's the part the developer explicitly chose to own when they scaffolded. The contract is the framework's domain. The implementation is the developer's domain.
@@ -241,7 +241,7 @@ This is a direct consequence of the "contract is the product" principle. If ever
 Upgrading a scaffolded pack is a contract-level three-way diff:
 
 ```bash
-trails provisions diff github
+trails resources diff github
 ```
 
 Three states:
@@ -263,7 +263,7 @@ The diff is semantic, not textual:
 | You removed a trail upstream still has | Noted but not conflicted. Your decision stands. |
 
 ```bash
-trails provisions upgrade github
+trails resources upgrade github
 ```
 
 Applies the diff:
@@ -271,7 +271,7 @@ Applies the diff:
 1. Auto-applies clean additions and clean merges.
 2. Flags conflicts for manual resolution.
 3. Pulls new examples even for conflicted trails.
-4. Updates npm dependencies from the provision's manifest.
+4. Updates npm dependencies from the resource's manifest.
 5. Runs `testExamples` against the upgraded pack.
 6. Reports results: "3 trails auto-merged, 1 conflict on `github.pr.list` output schema, 2 new examples failing on `github.pr.show`."
 
@@ -282,7 +282,7 @@ Failing examples are the upgrade checklist. Each is a specific behavior that ups
 A scaffolded pack can return to dependency mode if the fork has converged with upstream:
 
 ```bash
-trails provisions eject github.pull-requests --to-dependency
+trails resources eject github.pull-requests --to-dependency
 ```
 
 Contract diff between current fork and upstream. If compatible, remove scaffolded source, install as npm dependency, update manifests. If incompatible, show divergences.
@@ -290,7 +290,7 @@ Contract diff between current fork and upstream. If compatible, remove scaffolde
 A dependency pack can be scaffolded at any time:
 
 ```bash
-trails provisions scaffold @ontrails/github --packs github.pull-requests
+trails resources scaffold @ontrails/github --packs github.pull-requests
 ```
 
 Extract source, capture contract snapshot, update manifests. The mode change is reversible.
@@ -299,39 +299,39 @@ Extract source, capture contract snapshot, update manifests. The mode change is 
 
 ```bash
 # What am I carrying?
-trails provisions
+trails resources
 
-# Search for available provisions
-trails provisions search github
+# Search for available resources
+trails resources search github
 
 # Inspect before adopting
-trails provisions inspect @ontrails/github
+trails resources inspect @ontrails/github
 ```
 
-`trails provisions` with no arguments lists all provisioned packs with their mode, version, and health status.
+`trails resources` with no arguments lists all provisioned packs with their mode, version, and health status.
 
-`trails provisions search` queries npm and/or GitHub for provisions (packages containing `provision.json`). This is a convenience over manual browsing, not a custom registry.
+`trails resources search` queries npm and/or GitHub for resources (packages containing `resource.json`). This is a convenience over manual browsing, not a custom registry.
 
-`trails provisions inspect` fetches the provision's `provision.json` and displays it in Trails-native terms: pack names, trail counts, provision counts, config schemas, requires. Richer than an npm README because it's structured data, not prose.
+`trails resources inspect` fetches the resource's `resource.json` and displays it in Trails-native terms: pack names, trail counts, resource counts, config schemas, requires. Richer than an npm README because it's structured data, not prose.
 
 ### Interaction with `trails.lock`
 
-Provisions occupy a section in `trails.lock` (see the unified lockfile ADR). The section captures:
+Resources occupy a section in `trails.lock` (see the unified lockfile ADR). The section captures:
 
-- Resolved versions for dependency provisions
+- Resolved versions for dependency resources
 - Contract snapshots for scaffolded packs
-- Dependency manifests (npm dependencies the provision requires)
+- Dependency manifests (npm dependencies the resource requires)
 
 `trails topo verify` in CI validates that provisioned packs match their recorded state. A scaffolded pack whose contract drifted from its recorded snapshot without an explicit upgrade triggers a warning (not an error, since deliberate modification is expected).
 
 ### Interaction with the warden
 
-The warden gains provisions-aware rules:
+The warden gains resources-aware rules:
 
 - **Stale scaffold.** A scaffolded pack's upstream has a newer version. Informational.
-- **Unresolved conflict.** A `trails provisions diff` showed conflicts that haven't been resolved. Warning.
-- **Manifest drift.** `.trails/provisions.json` lists a provision that isn't installed or scaffolded. Error.
-- **Orphaned scaffold.** Scaffolded source exists but isn't referenced in `.trails/provisions.json`. Warning.
+- **Unresolved conflict.** A `trails resources diff` showed conflicts that haven't been resolved. Warning.
+- **Manifest drift.** `.trails/resources.json` lists a resource that isn't installed or scaffolded. Error.
+- **Orphaned scaffold.** Scaffolded source exists but isn't referenced in `.trails/resources.json`. Warning.
 
 ## Consequences
 
@@ -339,31 +339,31 @@ The warden gains provisions-aware rules:
 
 - **Two modes, one system.** Dependency and scaffold are managed by the same tooling, same manifests, same lockfile. The developer picks the mode that fits, per pack.
 - **Contract-level upgrades.** Scaffolded packs upgrade via semantic contract diffing, not source merging. Examples verify behavioral compatibility. This is only possible because the framework already has survey, schema diffing, and testExamples.
-- **No custom infrastructure.** npm and GitHub are the distribution sources. No registry to build or maintain. The `provision.json` manifest is a convention, not a protocol.
-- **Mixed modes within one provision.** Own the domain layer, depend on the SDK layer. Same provision, different relationship with different packs. Granular control without multiple provisions.
-- **Existing primitives compose.** Survey provides contract snapshots. Schema diffing provides three-way merges. testExamples provides behavioral verification. The warden provides governance. Provisions is a workflow layer on top of machinery that already exists.
+- **No custom infrastructure.** npm and GitHub are the distribution sources. No registry to build or maintain. The `resource.json` manifest is a convention, not a protocol.
+- **Mixed modes within one resource.** Own the domain layer, depend on the SDK layer. Same resource, different relationship with different packs. Granular control without multiple resources.
+- **Existing primitives compose.** Survey provides contract snapshots. Schema diffing provides three-way merges. testExamples provides behavioral verification. The warden provides governance. Resources is a workflow layer on top of machinery that already exists.
 
 ### Tradeoffs
 
-- **Two manifests.** `provision.json` (publisher) and `.trails/provisions.json` (consumer) are different files for different roles. This is correct but means two concepts to learn: "I am a provision" vs "I have provisions."
+- **Two manifests.** `resource.json` (publisher) and `.trails/resources.json` (consumer) are different files for different roles. This is correct but means two concepts to learn: "I am a resource" vs "I have resources."
 - **Contract snapshots grow the lockfile.** Each scaffolded pack's contract (JSON Schema shapes for all trails) adds to `trails.lock`. For most projects this is manageable. Very large scaffolded packs could produce large snapshots.
-- **Scaffold upgrades are not automatic.** `trails provisions upgrade` applies clean merges automatically but requires manual resolution for conflicts. This is intentional (the developer owns the code) but means upgrades require attention.
-- **Discovery depends on ecosystem adoption.** `trails provisions search` is only useful if provisions have `provision.json` files. Early ecosystem growth requires examples and documentation to establish the convention.
+- **Scaffold upgrades are not automatic.** `trails resources upgrade` applies clean merges automatically but requires manual resolution for conflicts. This is intentional (the developer owns the code) but means upgrades require attention.
+- **Discovery depends on ecosystem adoption.** `trails resources search` is only useful if resources have `resource.json` files. Early ecosystem growth requires examples and documentation to establish the convention.
 
 ### What this does NOT decide
 
-- **A curated registry or index.** Provisions are discovered via npm search and GitHub search. A curated index (recommended provisions, compatibility ratings, quality scores) is a future ecosystem concern, not a framework decision.
-- **Private or enterprise provision sources.** The current sources are public npm and public GitHub. Private registries and GitHub Enterprise are natural extensions but not part of this decision.
+- **A curated registry or index.** Resources are discovered via npm search and GitHub search. A curated index (recommended resources, compatibility ratings, quality scores) is a future ecosystem concern, not a framework decision.
+- **Private or enterprise resource sources.** The current sources are public npm and public GitHub. Private registries and GitHub Enterprise are natural extensions but not part of this decision.
 - **Automated conflict resolution.** The upgrade workflow flags conflicts for manual resolution. AI-assisted conflict resolution (suggesting merges based on example analysis) is a future possibility.
-- **Provision templating.** `trails provisions scaffold` copies source verbatim. A template system (replacing placeholders, renaming namespaces) could improve the scaffold experience but adds complexity. Start with verbatim copy.
-- **Monorepo support for publishers.** A monorepo with multiple provisions needs one `provision.json` per publishable package. Whether the framework helps manage this (e.g., a root-level manifest that references package-level manifests) is future ergonomic work.
+- **Resource templating.** `trails resources scaffold` copies source verbatim. A template system (replacing placeholders, renaming namespaces) could improve the scaffold experience but adds complexity. Start with verbatim copy.
+- **Monorepo support for publishers.** A monorepo with multiple resources needs one `resource.json` per publishable package. Whether the framework helps manage this (e.g., a root-level manifest that references package-level manifests) is future ergonomic work.
 
 ## References
 
-- [ADR-0000: Core Premise](../0000-core-premise.md) -- "author what's new, derive what's known, override what's wrong"; provisions leverage derived contract data for upgrades
-- ADR: Packs as Namespace Boundaries (draft) -- the compositional primitive that provisions distribute
+- [ADR-0000: Core Premise](../0000-core-premise.md) -- "author what's new, derive what's known, override what's wrong"; resources leverage derived contract data for upgrades
+- ADR: Packs as Namespace Boundaries (draft) -- the compositional primitive that resources distribute
 - ADR: Trail Visibility and Trailhead Filtering (draft) -- visibility inheritance that pack-level defaults enable
-- ADR: The Serialized Topo Graph (draft) -- provisions state is captured in the lockfile graph; provisions occupy a section in `trails.lock`
-- [ADR-0013: Tracker](../0013-tracker.md) -- telemetry primitives that provisions can carry and trailhead
+- ADR: The Serialized Topo Graph (draft) -- resources state is captured in the lockfile graph; resources occupy a section in `trails.lock`
+- [ADR-0013: Tracker](../0013-tracker.md) -- telemetry primitives that resources can carry and trailhead
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- survey output provides the contract snapshots
-- [docs/lexicon.md](../../lexicon.md) -- `pack` reserved term; `provisions` to be added
+- [docs/lexicon.md](../../lexicon.md) -- `pack` reserved term; `resources` to be added

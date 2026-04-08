@@ -7,7 +7,7 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { configProvision } from '../config-provision.js';
+import { configProvision } from '../config-resource.js';
 import { describeConfig } from '../describe.js';
 
 const fieldSchema = z.object({
@@ -40,5 +40,5 @@ export const configDescribe = trail('config.describe', {
   intent: 'read',
   meta: { category: 'infrastructure' },
   output: outputSchema,
-  provisions: [configProvision],
+  resources: [configProvision],
 });

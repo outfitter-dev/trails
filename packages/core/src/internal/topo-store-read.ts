@@ -43,7 +43,7 @@ export interface TopoStoreTrailDetailRecord extends TopoStoreTrailRecord {
   readonly crosses: readonly string[];
   readonly detours: Readonly<Record<string, readonly string[]>> | null;
   readonly examples: readonly TopoStoreExampleRecord[];
-  readonly provisions: readonly string[];
+  readonly resources: readonly string[];
 }
 
 export interface TopoStoreProvisionRecord {
@@ -52,7 +52,7 @@ export interface TopoStoreProvisionRecord {
   readonly hasMock: boolean;
   readonly health: 'available' | 'none';
   readonly id: string;
-  readonly kind: 'provision';
+  readonly kind: 'resource';
   readonly lifetime: 'singleton';
   readonly saveId: string;
   readonly usedBy: readonly string[];
@@ -103,7 +103,7 @@ interface StoredTrailheadMapEntry {
   readonly detours?: Readonly<Record<string, readonly string[]>>;
   readonly healthcheck?: boolean;
   readonly id: string;
-  readonly kind: 'provision' | 'signal' | 'trail';
+  readonly kind: 'resource' | 'signal' | 'trail';
 }
 
 interface StoredTrailheadMap {
@@ -376,7 +376,7 @@ export const getTopoStoreTrail = (
     crosses: readTrailCrossings(db, save.id, trailId),
     detours: storedEntry?.detours ?? null,
     examples: readTrailExamples(db, save.id, trailId),
-    provisions: readTrailProvisionIds(db, save.id, trailId),
+    resources: readTrailProvisionIds(db, save.id, trailId),
   };
 };
 
@@ -393,7 +393,7 @@ const mapProvisionRow = (
       ? 'available'
       : 'none',
   id: row.id,
-  kind: 'provision',
+  kind: 'resource',
   lifetime: 'singleton',
   saveId: row.save_id,
   usedBy,
@@ -427,7 +427,7 @@ export const listTopoStoreProvisions = (
     mapProvisionRow(
       row,
       usage.get(row.id) ?? [],
-      entries.find((e) => e.kind === 'provision' && e.id === row.id)
+      entries.find((e) => e.kind === 'resource' && e.id === row.id)
     )
   );
 };
@@ -459,7 +459,7 @@ export const getTopoStoreProvision = (
   return mapProvisionRow(
     row,
     usage.get(provisionId) ?? [],
-    readStoredEntry(db, save.id, 'provision', provisionId)
+    readStoredEntry(db, save.id, 'resource', provisionId)
   );
 };
 

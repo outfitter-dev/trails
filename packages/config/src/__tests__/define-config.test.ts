@@ -46,21 +46,21 @@ const restoreEnv = (snapshot: EnvSnapshot): void => {
 };
 
 describe('defineConfig', () => {
-  test('returns an object with schema, base, and loadouts', () => {
+  test('returns an object with schema, base, and profiles', () => {
     const base = { host: 'example.com' };
-    const loadouts = { production: { port: 443 } };
+    const profiles = { production: { port: 443 } };
 
-    const config = defineConfig({ base, loadouts, schema });
+    const config = defineConfig({ base, profiles, schema });
 
     expect(config.schema).toBe(schema);
     expect(config.base).toBe(base);
-    expect(config.loadouts).toBe(loadouts);
+    expect(config.profiles).toBe(profiles);
   });
 
-  test('resolve() uses TRAILS_ENV to select loadout', async () => {
+  test('resolve() uses TRAILS_ENV to select profile', async () => {
     const config = defineConfig({
       base: { host: 'example.com' },
-      loadouts: {
+      profiles: {
         production: { host: 'prod.example.com', port: 443 },
         test: { host: 'test.example.com', port: 9999 },
       },
@@ -76,10 +76,10 @@ describe('defineConfig', () => {
     expect(result.unwrap().port).toBe(443);
   });
 
-  test('resolve() with explicit loadout option overrides TRAILS_ENV', async () => {
+  test('resolve() with explicit profile option overrides TRAILS_ENV', async () => {
     const config = defineConfig({
       base: { host: 'example.com' },
-      loadouts: {
+      profiles: {
         production: { host: 'prod.example.com' },
         test: { host: 'test.example.com' },
       },
@@ -88,7 +88,7 @@ describe('defineConfig', () => {
 
     const result = await config.resolve({
       env: { TRAILS_ENV: 'production' },
-      loadout: 'test',
+      profile: 'test',
     });
 
     expect(result.isOk()).toBe(true);
@@ -99,7 +99,7 @@ describe('defineConfig', () => {
     const config = defineConfig({
       base: { host: 'example.com' },
       envFromNodeEnv: true,
-      loadouts: {
+      profiles: {
         production: { host: 'prod.example.com', port: 443 },
       },
       schema,
@@ -123,7 +123,7 @@ describe('defineConfig', () => {
       const config = defineConfig({
         base: { host: 'example.com' },
         envFromNodeEnv: true,
-        loadouts: {
+        profiles: {
           production: { host: 'prod.example.com', port: 443 },
         },
         schema,
@@ -143,7 +143,7 @@ describe('defineConfig', () => {
     const config = defineConfig({
       base: { host: 'example.com' },
       envFromNodeEnv: true,
-      loadouts: {
+      profiles: {
         production: { host: 'prod.example.com' },
         test: { host: 'test.example.com' },
       },
@@ -158,10 +158,10 @@ describe('defineConfig', () => {
     expect(result.unwrap().host).toBe('test.example.com');
   });
 
-  test('test loadout works when TRAILS_ENV=test', async () => {
+  test('test profile works when TRAILS_ENV=test', async () => {
     const config = defineConfig({
       base: { port: 8080 },
-      loadouts: {
+      profiles: {
         test: { debug: true, port: 0 },
       },
       schema,
@@ -210,7 +210,7 @@ describe('defineConfig', () => {
       expect(result.unwrap().port).toBe(4444);
     });
 
-    test('local overrides applied between loadout and env', async () => {
+    test('local overrides applied between profile and env', async () => {
       const configDir = join(tempDir, '.trails', 'config');
       await mkdir(configDir, { recursive: true });
       await Bun.write(
@@ -220,17 +220,17 @@ describe('defineConfig', () => {
 
       const config = defineConfig({
         base: { port: 8080 },
-        loadouts: {
+        profiles: {
           dev: { port: 9090 },
         },
         schema,
       });
 
-      // Local overrides should win over loadout (9090)
+      // Local overrides should win over profile (9090)
       const result = await config.resolve({
         cwd: tempDir,
         env: { TRAILS_ENV: 'dev' },
-        loadout: 'dev',
+        profile: 'dev',
       });
 
       expect(result.isOk()).toBe(true);

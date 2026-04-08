@@ -6,9 +6,9 @@ import { z } from 'zod';
 import { InternalError, ValidationError } from '../errors';
 import { executeTrail } from '../execute';
 import { createTrailContext } from '../context';
-import type { Gate } from '../gate';
+import type { Layer } from '../layer';
 import { Result } from '../result';
-import { provision } from '../provision';
+import { resource } from '../resource';
 import { trail } from '../trail';
 import type { TrailContext, TrailContextInit } from '../types';
 
@@ -35,14 +35,14 @@ const throwingTrail = trail('throws', {
 });
 
 const nextProvisionId = (name: string): string =>
-  `test.provision.${name}.${Bun.randomUUIDv7()}`;
+  `test.resource.${name}.${Bun.randomUUIDv7()}`;
 
 const createResolvedValueProvision = (
   id: string,
   onCreate: () => void,
   value: number
 ) =>
-  provision(id, {
+  resource(id, {
     create: () => {
       onCreate();
       return Result.ok({ value });
@@ -54,47 +54,47 @@ const createEagerProvisionTrail = (
   counter: ReturnType<typeof createResolvedValueProvision>,
   onRun: (value: number) => void
 ) =>
-  trail('provision.eager', {
+  trail('resource.eager', {
     blaze: (_input, ctx) => {
-      const fromAccessor = ctx.provision<{ value: number }>(id);
+      const fromAccessor = ctx.resource<{ value: number }>(id);
       const fromDefinition = counter.from(ctx);
       onRun(fromDefinition.value);
       return Result.ok({ total: fromAccessor.value + 1 });
     },
     input: z.object({}),
     output: z.object({ total: z.number() }),
-    provisions: [counter],
+    resources: [counter],
   });
 
 const createProvisionProbeGate = (
   counter: ReturnType<typeof createResolvedValueProvision>,
   onResolve: (value: number) => void
-): Gate => ({
-  name: 'uses-provision',
+): Layer => ({
+  name: 'uses-resource',
   wrap(_trail, impl) {
     return async (input, ctx) => {
-      onResolve(ctx.provision<{ value: number }>(counter).value);
+      onResolve(ctx.resource<{ value: number }>(counter).value);
       return await impl(input, ctx);
     };
   },
 });
 
 const createSingletonProvision = (id: string, onCreate: () => number) =>
-  provision(id, {
+  resource(id, {
     create: () => Result.ok({ createdAtCall: onCreate() }),
   });
 
 const createSingletonTrail = (
   singleton: ReturnType<typeof createSingletonProvision>
 ) =>
-  trail('provision.singleton', {
+  trail('resource.singleton', {
     blaze: (_input, ctx) =>
       Result.ok({
         createdAtCall: singleton.from(ctx).createdAtCall,
       }),
     input: z.object({}),
     output: z.object({ createdAtCall: z.number() }),
-    provisions: [singleton],
+    resources: [singleton],
   });
 
 const unwrapExecution = async (
@@ -117,7 +117,7 @@ describe('executeTrail', () => {
       expect(result.unwrap()).toEqual({ value: 'hello' });
     });
 
-    test('eagerly resolves declared provisions before gates and implementation run', async () => {
+    test('eagerly resolves declared resources before layers and implementation run', async () => {
       const id = nextProvisionId('eager');
       const captures = {
         createCalls: 0,
@@ -134,11 +134,11 @@ describe('executeTrail', () => {
       const layeredTrail = createEagerProvisionTrail(id, counter, (value) => {
         captures.runResolved = value;
       });
-      const gate = createProvisionProbeGate(counter, (value) => {
+      const layer = createProvisionProbeGate(counter, (value) => {
         captures.gateResolved = value;
       });
 
-      const result = await executeTrail(layeredTrail, {}, { gates: [gate] });
+      const result = await executeTrail(layeredTrail, {}, { layers: [layer] });
 
       expect(result.unwrap()).toEqual({ total: 42 });
       expect(captures.createCalls).toBe(1);
@@ -146,19 +146,19 @@ describe('executeTrail', () => {
       expect(captures.runResolved).toBe(41);
     });
 
-    test('awaits async provision factories before running the trail', async () => {
-      const db = provision(nextProvisionId('async-factory'), {
+    test('awaits async resource factories before running the trail', async () => {
+      const db = resource(nextProvisionId('async-factory'), {
         create: async () => {
           await Bun.sleep(0);
           return Result.ok({ source: 'async-factory' });
         },
       });
-      const provisionTrail = trail('provision.async-factory', {
+      const provisionTrail = trail('resource.async-factory', {
         blaze: (_input, ctx) =>
           Result.ok({ source: db.from(ctx).source as string }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
-        provisions: [db],
+        resources: [db],
       });
 
       const result = await executeTrail(provisionTrail, {});
@@ -167,7 +167,7 @@ describe('executeTrail', () => {
       expect(result.unwrap()).toEqual({ source: 'async-factory' });
     });
 
-    test('reuses cached singleton provisions across executions', async () => {
+    test('reuses cached singleton resources across executions', async () => {
       const id = nextProvisionId('singleton');
       const captures = { createCalls: 0 };
       const singleton = createSingletonProvision(id, () => {
@@ -185,17 +185,17 @@ describe('executeTrail', () => {
       expect(captures.createCalls).toBe(1);
     });
 
-    test('scopes cached singleton provisions to compatible provision contexts', async () => {
+    test('scopes cached singleton resources to compatible resource contexts', async () => {
       const id = nextProvisionId('singleton-context');
-      const envAwareProvision = provision(id, {
+      const envAwareProvision = resource(id, {
         create: (ctx) => Result.ok({ value: String(ctx.env?.VAL) }),
       });
-      const envAwareTrail = trail('provision.singleton-context', {
+      const envAwareTrail = trail('resource.singleton-context', {
         blaze: (_input, ctx) =>
           Result.ok({ value: envAwareProvision.from(ctx).value }),
         input: z.object({}),
         output: z.object({ value: z.string() }),
-        provisions: [envAwareProvision],
+        resources: [envAwareProvision],
       });
 
       const first = await executeTrail(
@@ -233,11 +233,11 @@ describe('executeTrail', () => {
     });
   });
 
-  describe('gates', () => {
-    test('composes gates around execution', async () => {
+  describe('layers', () => {
+    test('composes layers around execution', async () => {
       const log: string[] = [];
-      const gate: Gate = {
-        name: 'test-gate',
+      const layer: Layer = {
+        name: 'test-layer',
         wrap(_trail, impl) {
           return async (input, ctx) => {
             log.push('before');
@@ -251,7 +251,7 @@ describe('executeTrail', () => {
       const result = await executeTrail(
         echoTrail,
         { value: 'x' },
-        { gates: [gate] }
+        { layers: [layer] }
       );
 
       expect(result.isOk()).toBe(true);
@@ -364,19 +364,19 @@ describe('executeTrail', () => {
       expect(captured?.extensions).toEqual({ store: 'db', userId: '123' });
     });
 
-    test('rebinds ctx.provision after merging extension overrides from createContext', async () => {
+    test('rebinds ctx.resource after merging extension overrides from createContext', async () => {
       let resolvedSource: string | undefined;
-      const db = provision(nextProvisionId('context-override'), {
+      const db = resource(nextProvisionId('context-override'), {
         create: () => Result.ok({ source: 'factory' }),
       });
-      const provisionTrail = trail('ctx.provision.override', {
+      const provisionTrail = trail('ctx.resource.override', {
         blaze: (_input, ctx) => {
-          resolvedSource = ctx.provision<{ source: string }>(db).source;
+          resolvedSource = ctx.resource<{ source: string }>(db).source;
           return Result.ok({ source: resolvedSource });
         },
         input: z.object({}),
         output: z.object({ source: z.string() }),
-        provisions: [db],
+        resources: [db],
       });
 
       const result = await executeTrail(
@@ -401,17 +401,17 @@ describe('executeTrail', () => {
       expect(resolvedSource).toBe('override-context');
     });
 
-    test('context factory seeds the provision accessor when omitted', async () => {
+    test('context factory seeds the resource accessor when omitted', async () => {
       let capturedCtx: TrailContext | undefined;
       const id = nextProvisionId('factory-seed');
       const widget = { id: 'widget-1' };
-      const widgetTrail = trail('provision.factory-seed', {
+      const widgetTrail = trail('resource.factory-seed', {
         blaze: (_input, ctx) => {
           capturedCtx = ctx;
           return Result.ok(null);
         },
         input: z.object({}),
-        provisions: [],
+        resources: [],
       });
 
       await executeTrail(
@@ -421,12 +421,12 @@ describe('executeTrail', () => {
           createContext: () => ({
             abortSignal: new AbortController().signal,
             extensions: { [id]: widget },
-            requestId: 'seeded-provision',
+            requestId: 'seeded-resource',
           }),
         }
       );
 
-      expect(capturedCtx?.provision(id)).toBe(widget);
+      expect(capturedCtx?.resource(id)).toBe(widget);
     });
   });
 
@@ -447,19 +447,19 @@ describe('executeTrail', () => {
       expect(result.error.message).toBe('kaboom');
     });
 
-    test('short-circuits when a provision factory returns Result.err', async () => {
-      const failingProvision = provision(nextProvisionId('factory-error'), {
+    test('short-circuits when a resource factory returns Result.err', async () => {
+      const failingProvision = resource(nextProvisionId('factory-error'), {
         create: () =>
           Result.err(new ValidationError('DATABASE_URL is required')),
       });
       let ran = false;
-      const provisionTrail = trail('provision.factory-error', {
+      const provisionTrail = trail('resource.factory-error', {
         blaze: () => {
           ran = true;
           return Result.ok(null);
         },
         input: z.object({}),
-        provisions: [failingProvision],
+        resources: [failingProvision],
       });
 
       const result = await executeTrail(provisionTrail, {});
@@ -470,16 +470,16 @@ describe('executeTrail', () => {
       expect(ran).toBe(false);
     });
 
-    test('wraps thrown provision factory exceptions with the provision ID in context', async () => {
-      const explodingProvision = provision(nextProvisionId('factory-throw'), {
+    test('wraps thrown resource factory exceptions with the resource ID in context', async () => {
+      const explodingProvision = resource(nextProvisionId('factory-throw'), {
         create: () => {
           throw new Error('boom');
         },
       });
-      const provisionTrail = trail('provision.factory-throw', {
+      const provisionTrail = trail('resource.factory-throw', {
         blaze: () => Result.ok(null),
         input: z.object({}),
-        provisions: [explodingProvision],
+        resources: [explodingProvision],
       });
 
       const result = await executeTrail(provisionTrail, {});
@@ -492,28 +492,28 @@ describe('executeTrail', () => {
       });
     });
 
-    test('prefers explicit provision overrides over cached or created instances', async () => {
+    test('prefers explicit resource overrides over cached or created instances', async () => {
       const id = nextProvisionId('override');
       let createCalls = 0;
-      const db = provision(id, {
+      const db = resource(id, {
         create: () => {
           createCalls += 1;
           return Result.ok({ source: 'factory' });
         },
       });
-      const provisionTrail = trail('provision.override', {
+      const provisionTrail = trail('resource.override', {
         blaze: (_input, ctx) =>
           Result.ok({ source: db.from(ctx).source as string }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
-        provisions: [db],
+        resources: [db],
       });
 
       const result = await executeTrail(
         provisionTrail,
         {},
         {
-          provisions: { [id]: { source: 'override' } },
+          resources: { [id]: { source: 'override' } },
         }
       );
 

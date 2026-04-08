@@ -182,7 +182,7 @@ But the trailheads Trails produces are universally consumable. A CLI built with 
 
 ### Tradeoffs
 
-- **No trailhead-specific logic in implementations.** If a trail needs to behave differently on CLI vs MCP, that logic lives in gates or trailhead connectors, not in the implementation.
+- **No trailhead-specific logic in implementations.** If a trail needs to behave differently on CLI vs MCP, that logic lives in layers or trailhead connectors, not in the implementation.
 - **Zod is the schema language.** The framework is built on Zod for schema definition. Swapping to a different schema library would be a major rearchitecture.
 - **Result is mandatory.** Implementations return Result, not exceptions. This is a hard requirement, not a suggestion. The warden enforces it.
 - **Bun is the development runtime.** The framework uses Bun APIs. Running in Node.js is not a goal (though the trailheads Trails produces are runtime-agnostic).

@@ -53,7 +53,7 @@ An agent connecting to an unfamiliar app can discover what's available, what inp
 
 Trails should reduce ceremony wherever the framework can truthfully carry the burden. If a core pattern requires users or agents to restate the same intent repeatedly, that repetition is design feedback, not an inherent cost of the domain.
 
-Repeated ceremony is a framework smell. When the same setup keeps appearing around a core capability, the framework should consider absorbing that burden into derivation, defaults, gates, first-party capabilities, or a stronger primitive.
+Repeated ceremony is a framework smell. When the same setup keeps appearing around a core capability, the framework should consider absorbing that burden into derivation, defaults, layers, first-party capabilities, or a stronger primitive.
 
 The goal is not smaller trailhead area for its own sake. The goal is a smaller user burden. The real cost of ceremony is not just typing. It is drift, boilerplate, and future refactor load. Simplicity at the trailhead must still rest on inspectable ground truth underneath.
 
@@ -141,11 +141,11 @@ The framework has a small set of core primitives. Everything else is either a sp
 ### The set
 
 - **`trail()`** is the unit of work. A defined path from typed input to Result output.
-- **`provision()`** is the unit of infrastructure dependency, with lifecycle, health, and mock. It earned its place because typed infrastructure dependencies with lifecycle and testability could not be expressed through any existing primitive.
+- **`resource()`** is the unit of infrastructure dependency, with lifecycle, health, and mock. It earned its place because typed infrastructure dependencies with lifecycle and testability could not be expressed through any existing primitive.
 - **`signal()`** is the unit of notification. A schema-typed push with provenance.
 - **`topo()`** assembles primitives into a queryable graph.
 - **`Result`** is the universal return type. Ok or Err, never throw.
-- **Gates** are cross-cutting wrappers around trail execution.
+- **Layers** are cross-cutting wrappers around trail execution.
 - **`cross()` / `crosses`** is the first-class compositional mechanism. `crosses` declares which trails a trail may compose, and `ctx.cross()` performs that composition at runtime. The warden verifies that declarations match actual usage.
 
 ### The bar for new primitives
@@ -164,7 +164,7 @@ When the same structural pattern keeps appearing with slightly different shapes,
 
 **Broaden built-in capability.** When a capability productively removes repeated ceremony across the system and compounds value across trailheads, testing, governance, and agent ergonomics, it is worth bringing in-house. This is not minimalism at all costs. It is deliberate growth with architectural discipline. The bar: a net win across the system, not just a convenience in one spot.
 
-The history validates this hierarchy. `provision()` was introduced because typed infrastructure dependencies with lifecycle and testability could not be expressed through any existing primitive. `derivePermit()` was dropped because plain authored objects handled the same need without a new abstraction.
+The history validates this hierarchy. `resource()` was introduced because typed infrastructure dependencies with lifecycle and testability could not be expressed through any existing primitive. `derivePermit()` was dropped because plain authored objects handled the same need without a new abstraction.
 
 ## Patterns
 
@@ -190,7 +190,7 @@ The authored default documents intent. The override enables reuse. The resolved 
 
 ### One graph, many views
 
-The system is a single graph: trails, provisions, signals, crossings, gates, and metadata. Different tools provide different views of the same underlying data.
+The system is a single graph: trails, resources, signals, crossings, layers, and metadata. Different tools provide different views of the same underlying data.
 
 Survey reveals what exists and how it connects. Guide explains how to use it. The warden reports what's missing and what's drifting. The lockfile captures the resolved state. The tracker system shows what's actually happening at runtime — live during execution, historical after the fact.
 

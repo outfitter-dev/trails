@@ -92,10 +92,10 @@ export const testContracts = (
         'contract: $name',
         async (example: TrailExample<unknown, unknown>) => {
           const resolved = normalizeTestExecutionOptions(resolveInput());
-          const provisions = mergeProvisionOverrides(
+          const resources = mergeProvisionOverrides(
             await resolveMockProvisions(app),
             resolved.ctx,
-            resolved.provisions
+            resolved.resources
           );
           const testCtx = mergeTestContext(resolved.ctx);
 
@@ -104,7 +104,7 @@ export const testContracts = (
 
           const result = await executeTrail(t, example.input, {
             ctx: testCtx,
-            provisions,
+            resources,
           });
           const resultValue = expectOk(result);
 

@@ -32,7 +32,7 @@ Everything else people want from "visibility" is either already derivable from i
 
 ### The intent axis
 
-Intent (`read`, `write`, `destroy`) is the most compounding property on a trail. It already drives HTTP verb derivation, MCP annotations, and will drive provision access narrowing. But trailheads can't currently filter by intent. An MCP trailhead that should only expose read operations has to enumerate every read trail in an `include` list, or enumerate every write/destroy trail in an `exclude` list. Both are fragile.
+Intent (`read`, `write`, `destroy`) is the most compounding property on a trail. It already drives HTTP verb derivation, MCP annotations, and will drive resource access narrowing. But trailheads can't currently filter by intent. An MCP trailhead that should only expose read operations has to enumerate every read trail in an `include` list, or enumerate every write/destroy trail in an `exclude` list. Both are fragile.
 
 Intent is authored on the trail. Filtering by intent at the trailhead is pure derivation.
 
@@ -148,13 +148,13 @@ CLI trailheads in local development show everything by default (implicit local a
 
 Each trailhead makes its own discovery decision using the same underlying data. The trail doesn't know which trailhead it's on. The hexagonal model holds.
 
-### Part 5: Environment-based trail activation via loadouts
+### Part 5: Environment-based trail activation via profiles
 
-Environment gating is a config concern, not a trail-level field. Loadouts (from the config ADR) can specify trail activation patterns:
+Environment gating is a config concern, not a trail-level field. Profiles (from the config ADR) can specify trail activation patterns:
 
 ```typescript
 export default defineConfig({
-  loadouts: {
+  profiles: {
     production: {
       exclude: ['dev.*'],
     },
@@ -168,9 +168,9 @@ export default defineConfig({
 });
 ```
 
-Loadout exclusions apply before trailhead-level blaze options. A trail excluded by the loadout is not in the topo for that environment. It can't be crossed, run, or exposed at a trailhead.
+Profile exclusions apply before trailhead-level blaze options. A trail excluded by the profile is not in the topo for that environment. It can't be crossed, run, or exposed at a trailhead.
 
-The warden validates loadout integrity: a loadout that excludes a trail crossed by an included trail is a dependency violation.
+The warden validates profile integrity: a profile that excludes a trail crossed by an included trail is a dependency violation.
 
 ### Part 6: CLI help hierarchy from namespaces
 
@@ -201,7 +201,7 @@ No new trail-level field. The trail IDs already encode hierarchy. The CLI trailh
 
 The filtering pipeline, in order:
 
-1. **Loadout exclusions** remove trails from the topo for the current environment.
+1. **Profile exclusions** remove trails from the topo for the current environment.
 2. **Visibility** removes `internal` trails from trailhead consideration.
 3. **Blaze `include`/`exclude` globs** narrow the trailhead to specific namespaces.
 4. **Blaze `intent` filter** narrows to specific behavioral classes.
@@ -216,7 +216,7 @@ The **lockfile** captures the resolved visibility state after the full pipeline 
 Four new governance rules follow from this ADR:
 
 - **Dead internal trail.** An `internal` trail with no crossings anywhere in the topo is unreachable. Warning.
-- **Loadout dependency violation.** A loadout excludes trail B, but trail A (included in that loadout) crosses B. Error.
+- **Profile dependency violation.** A profile excludes trail B, but trail A (included in that profile) crosses B. Error.
 - **Intent propagation.** A trail with `intent: 'read'` crosses a trail with `intent: 'write'` or `'destroy'`. The composite operation has side effects, but the entry point claims to be read-only. Warning.
 - **Missing visibility.** A trail that is only referenced in crossing declarations and never exposed at a trailhead could benefit from `visibility: 'internal'`. Coaching suggestion.
 
@@ -228,13 +228,13 @@ Four new governance rules follow from this ADR:
 - **Intent becomes a filtering axis.** One authored property, one more derivation. `trailhead(app, { intent: ['read'] })` creates a read-only trailhead from the same topo. No per-trail annotation.
 - **Permit-gated discovery compiles for free.** The MCP trailhead uses data it already has (permit scopes, trail intent) to filter the tool list. Agents see only what they can call. Zero ceremony.
 - **Namespace-aware filtering.** Glob patterns replace flat string lists. `exclude: ['dev.*']` scales from 5 dev trails to 50 without maintenance.
-- **Environment gating without trail pollution.** Loadouts handle activation per environment. The trail definition doesn't change across environments.
+- **Environment gating without trail pollution.** Profiles handle activation per environment. The trail definition doesn't change across environments.
 - **CLI discoverability from existing structure.** Help hierarchy derives from trail IDs that developers are already writing. No `meta` or annotations needed.
 
 ### Tradeoffs
 
 - **`visibility` is a new field on the trail spec.** This is a deliberate addition to the authored contract. It's justified because it captures genuinely new information (the trail's role) that the framework can't derive. But every addition to the trail spec is a cost.
-- **The filtering pipeline has five stages.** Each stage is simple and subtractive, but the interaction between loadout exclusions, visibility, blaze globs, intent filters, and permit-gated discovery could surprise users in edge cases. Clear documentation of the pipeline order mitigates this.
+- **The filtering pipeline has five stages.** Each stage is simple and subtractive, but the interaction between profile exclusions, visibility, blaze globs, intent filters, and permit-gated discovery could surprise users in edge cases. Clear documentation of the pipeline order mitigates this.
 - **Permit-gated discovery is trailhead-specific behavior.** HTTP and MCP handle discovery differently for the same trails. This is correct (different trailheads have different conventions) but means the answer to "will this trail appear?" depends on which trailhead you're asking about.
 
 ### What this does NOT decide

@@ -18,7 +18,7 @@ import { getAtPath, isZodObject, unwrapToBase, zodDef } from './zod-utils.js';
 export interface ProvenanceEntry {
   readonly path: string;
   readonly value: unknown;
-  readonly source: 'default' | 'base' | 'loadout' | 'local' | 'env';
+  readonly source: 'default' | 'base' | 'profile' | 'local' | 'env';
   readonly redacted: boolean;
 }
 
@@ -26,7 +26,7 @@ export interface ProvenanceEntry {
 export interface ExplainConfigOptions<T extends z.ZodType> {
   readonly schema: T;
   readonly base?: Record<string, unknown>;
-  readonly loadout?: Record<string, unknown>;
+  readonly profile?: Record<string, unknown>;
   readonly local?: Record<string, unknown>;
   readonly env?: Record<string, string | undefined>;
   readonly resolved: Record<string, unknown>;
@@ -146,7 +146,7 @@ export const explainConfig = <T extends z.ZodType>(
 
   const sources: readonly SourceEntry[] = [
     ['local', options.local],
-    ['loadout', options.loadout],
+    ['profile', options.profile],
     ['base', options.base],
   ];
 

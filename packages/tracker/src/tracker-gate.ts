@@ -1,5 +1,5 @@
 import type {
-  Gate,
+  Layer,
   Implementation,
   Result,
   Trail,
@@ -30,7 +30,7 @@ export interface TrackSink {
   readonly write: (record: Track) => void | Promise<void>;
 }
 
-/** Options for configuring the tracker gate. */
+/** Options for configuring the tracker layer. */
 export interface TrackerGateOptions {
   /** Intent-based sampling overrides. */
   readonly sampling?: Partial<SamplingConfig> | undefined;
@@ -224,7 +224,7 @@ const prepareExecution = <I, O>(
 };
 
 /**
- * Gate that automatically records every trail execution.
+ * Layer that automatically records every trail execution.
  *
  * Wraps each trail implementation to capture timing, status, and parentage,
  * then writes the completed record to the provided sink. Injects trace
@@ -234,7 +234,7 @@ const prepareExecution = <I, O>(
 export const createTrackerGate = (
   sink: TrackSink,
   options?: TrackerGateOptions
-): Gate => ({
+): Layer => ({
   description: 'Automatic trail execution recording',
   name: 'tracker',
   wrap:

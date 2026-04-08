@@ -15,7 +15,7 @@ export type JsonSchema = Readonly<Record<string, unknown>>;
 
 export interface TrailheadMapEntry {
   readonly id: string;
-  readonly kind: 'trail' | 'signal' | 'provision';
+  readonly kind: 'trail' | 'signal' | 'resource';
   readonly trailheads: readonly string[];
   readonly cli?:
     | {
@@ -29,7 +29,7 @@ export interface TrailheadMapEntry {
   readonly deprecated?: boolean | undefined;
   readonly replacedBy?: string | undefined;
   readonly crosses?: readonly string[] | undefined;
-  readonly provisions?: readonly string[] | undefined;
+  readonly resources?: readonly string[] | undefined;
   readonly detours?: Readonly<Record<string, readonly string[]>> | undefined;
   readonly healthcheck?: boolean | undefined;
   readonly exampleCount: number;
@@ -63,7 +63,7 @@ export type TrailheadLock = Readonly<Record<string, unknown>> & {
 
 export interface DiffEntry {
   readonly id: string;
-  readonly kind: 'trail' | 'signal' | 'provision';
+  readonly kind: 'trail' | 'signal' | 'resource';
   readonly change: 'added' | 'removed' | 'modified';
   readonly severity: 'info' | 'warning' | 'breaking';
   readonly details: readonly string[];

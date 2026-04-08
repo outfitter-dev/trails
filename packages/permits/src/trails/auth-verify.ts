@@ -2,7 +2,7 @@ import { Result, TRAILHEAD_KEY, trail } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
-import { authProvision } from '../auth-provision.js';
+import { authProvision } from '../auth-resource.js';
 import type { PermitExtractionInput } from '../extraction.js';
 import type { Permit } from '../permit.js';
 
@@ -97,5 +97,5 @@ export const authVerify = trail('auth.verify', {
     permit: permitSchema.optional(),
     valid: z.boolean(),
   }),
-  provisions: [authProvision],
+  resources: [authProvision],
 });

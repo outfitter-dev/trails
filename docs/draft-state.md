@@ -1,6 +1,6 @@
 # Draft State
 
-Draft state is Trails' controlled sketching mode. Model future trails, signals, and provisions before every dependency exists — without weakening the established graph that powers trailheads, lockfiles, and CI.
+Draft state is Trails' controlled sketching mode. Model future trails, signals, and resources before every dependency exists — without weakening the established graph that powers trailheads, lockfiles, and CI.
 
 ## Concept
 
@@ -18,7 +18,7 @@ Any authored ID may be marked as draft by prefixing it with `_draft.`:
 ```typescript
 '_draft.gist.fork'       // draft trail
 '_draft.auth.ready'      // draft signal
-'_draft.cache.redis'     // draft provision
+'_draft.cache.redis'     // draft resource
 ```
 
 The marker applies everywhere an ID appears: trail declarations, `crosses` references, signal `from` entries, detour targets.
@@ -163,5 +163,5 @@ If a draft trail is no longer needed:
 
 - `isDraftId(id)` — returns true if the ID starts with `_draft.`
 - `analyzeDraftState(topo)` — returns declared draft IDs, contaminated IDs, dependency graph, and findings
-- `validateEstablishedTopo(topo)` — hard gate that rejects draft contamination
+- `validateEstablishedTopo(topo)` — hard layer that rejects draft contamination
 - [ADR-0021](adr/0021-draft-state-stays-out-of-the-resolved-graph.md) — the decision and rationale

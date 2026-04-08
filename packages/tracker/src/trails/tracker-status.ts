@@ -40,5 +40,5 @@ export const trackerStatus = trail('tracker.status', {
   intent: 'read',
   meta: { category: 'infrastructure' },
   output: trackerStatusOutput,
-  provisions: [trackerProvision],
+  resources: [trackerProvision],
 });

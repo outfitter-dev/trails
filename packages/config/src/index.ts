@@ -31,8 +31,8 @@ export {
   generateExample,
   generateJsonSchema,
 } from './generate/index.js';
-export { configGate } from './config-gate.js';
-export { configProvision } from './config-provision.js';
+export { configGate } from './config-layer.js';
+export { configProvision } from './config-resource.js';
 export {
   clearConfigState,
   type ConfigState,

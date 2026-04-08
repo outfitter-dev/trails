@@ -8,7 +8,7 @@ import {
 } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-import { Result, provision, topo, trail } from '@ontrails/core';
+import { Result, resource, topo, trail } from '@ontrails/core';
 import {
   generateTrailheadMap,
   hashTrailheadMap,
@@ -52,8 +52,8 @@ const helloTrail = trail('hello', {
   input: z.object({ name: z.string().optional() }),
   intent: 'read',
   output: z.object({ message: z.string() }),
-  provisions: [
-    provision('db.main', {
+  resources: [
+    resource('db.main', {
       create: () => Result.ok({ source: 'factory' }),
     }),
   ],
@@ -66,7 +66,7 @@ const byeTrail = trail('bye', {
   output: z.object({ message: z.string() }),
 });
 
-const [dbProvision] = helloTrail.provisions;
+const [dbProvision] = helloTrail.resources;
 if (!dbProvision) {
   throw new Error('Expected helloTrail to declare db.main');
 }
@@ -88,7 +88,7 @@ const writeSurveyAppFixture = (dir: string): void => {
   mkdirSync(join(dir, 'src'), { recursive: true });
   writeFileSync(
     join(dir, 'src', 'app.ts'),
-    `import { Result, provision, topo, trail } from '@ontrails/core';
+    `import { Result, resource, topo, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 const hello = trail('hello', {
@@ -96,14 +96,14 @@ const hello = trail('hello', {
   input: z.object({ name: z.string().optional() }),
   intent: 'read',
   output: z.object({ message: z.string() }),
-  provisions: [
-    provision('db.main', {
+  resources: [
+    resource('db.main', {
       create: () => Result.ok({ source: 'factory' }),
     }),
   ],
 });
 
-const [dbMain] = hello.provisions;
+const [dbMain] = hello.resources;
 if (!dbMain) {
   throw new Error('expected hello to declare db.main');
 }
@@ -142,7 +142,7 @@ describe('trails survey', () => {
     expect(hello?.kind).toBe('trail');
     expect(hello?.intent).toBe('read');
     expect(hello?.exampleCount).toBe(1);
-    expect(hello?.provisions).toEqual(['db.main']);
+    expect(hello?.resources).toEqual(['db.main']);
   });
 
   test('JSON output is valid JSON', () => {
@@ -207,7 +207,7 @@ describe('trails survey --brief', () => {
     const report = generateBriefReport(app);
     expect(report.trails).toBe(2);
     expect(report.signals).toBe(0);
-    expect(report.provisions).toBe(1);
+    expect(report.resources).toBe(1);
   });
 
   test('detects features in use', () => {
@@ -216,7 +216,7 @@ describe('trails survey --brief', () => {
     expect(report.features.examples).toBe(true);
     expect(report.features.detours).toBe(true);
     expect(report.features.signals).toBe(false);
-    expect(report.features.provisions).toBe(true);
+    expect(report.features.resources).toBe(true);
   });
 
   test('JSON output is valid', () => {
@@ -225,7 +225,7 @@ describe('trails survey --brief', () => {
     const parsed = JSON.parse(json) as BriefReport;
     expect(parsed.name).toBe('test-app');
     expect(parsed.trails).toBe(2);
-    expect(parsed.provisions).toBe(1);
+    expect(parsed.resources).toBe(1);
   });
 
   test('empty app reports zero features', () => {
@@ -235,33 +235,33 @@ describe('trails survey --brief', () => {
     expect(report.features.outputSchemas).toBe(false);
     expect(report.features.examples).toBe(false);
     expect(report.features.detours).toBe(false);
-    expect(report.features.provisions).toBe(false);
+    expect(report.features.resources).toBe(false);
   });
 });
 
 describe('trails survey detail', () => {
-  test('trail detail includes declared provisions, crossings, and intent', () => {
+  test('trail detail includes declared resources, crossings, and intent', () => {
     const detail = generateTrailDetail(helloTrail);
     const parsed = structuredClone(detail) as TrailDetailReport;
 
     expect(parsed.crosses).toEqual([]);
     expect(parsed.intent).toBe('read');
-    expect(parsed.provisions).toEqual(['db.main']);
+    expect(parsed.resources).toEqual(['db.main']);
   });
 });
 
-describe('trails survey provisions section', () => {
-  test('list output includes provision lifetime and health status', () => {
+describe('trails survey resources section', () => {
+  test('list output includes resource lifetime and health status', () => {
     const report = generateSurveyList(app);
     const parsed = structuredClone(report) as SurveyListReport;
-    const db = parsed.provisions.find((entry) => entry.id === 'db.main');
+    const db = parsed.resources.find((entry) => entry.id === 'db.main');
 
     expect(parsed.provisionCount).toBe(1);
     expect(db).toEqual({
       description: null,
       health: 'none',
       id: 'db.main',
-      kind: 'provision',
+      kind: 'resource',
       lifetime: 'singleton',
       usedBy: ['hello'],
     });

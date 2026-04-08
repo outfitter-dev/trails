@@ -47,7 +47,7 @@
         {
           "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — \"the trail is the product,\" \"derive by default,\" and the information architecture",
           "from": "0009",
-          "fromPath": "docs/adr/0009-first-class-provisions.md"
+          "fromPath": "docs/adr/0009-first-class-resources.md"
         },
         {
           "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — \"the trail is the product,\" \"derive by default,\" and the information architecture that infrastructure trails inherit",
@@ -95,7 +95,7 @@
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"author what's new, derive what's known, override what's wrong\"; provisions leverage derived contract data for upgrades",
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"author what's new, derive what's known, override what's wrong\"; resources leverage derived contract data for upgrades",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-provisioning.md"
         },
@@ -243,9 +243,9 @@
           "fromPath": "docs/adr/0006-shared-execution-pipeline.md"
         },
         {
-          "context": "- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) — provision factories return Result, consistent with the error taxonomy",
+          "context": "- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) — resource factories return Result, consistent with the error taxonomy",
           "from": "0009",
-          "fromPath": "docs/adr/0009-first-class-provisions.md"
+          "fromPath": "docs/adr/0009-first-class-resources.md"
         },
         {
           "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent crossings",
@@ -282,9 +282,9 @@
           "fromPath": "docs/adr/0007-governance-as-trails.md"
         },
         {
-          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — provisions follow the same pattern: declaration on the spec, governance via warden",
+          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — resources follow the same pattern: declaration on the spec, governance via warden",
           "from": "0009",
-          "fromPath": "docs/adr/0009-first-class-provisions.md"
+          "fromPath": "docs/adr/0009-first-class-resources.md"
         },
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- \"composition is a property, not a type\"; parallel vs sequential is a runtime choice, not a contract distinction. The crossi",
@@ -346,9 +346,9 @@
       "depends_on": [],
       "inbound": [
         {
-          "context": "- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent compounds with the provision graph for security insights",
+          "context": "- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent compounds with the resource graph for security insights",
           "from": "0009",
-          "fromPath": "docs/adr/0009-first-class-provisions.md"
+          "fromPath": "docs/adr/0009-first-class-resources.md"
         },
         {
           "context": "- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent compounds with permit for governance; `destroy` + no permit is an error",
@@ -449,12 +449,12 @@
           "fromPath": "docs/adr/0007-governance-as-trails.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — provisions resolve within executeTrail, before gates compose",
+          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — resources resolve within executeTrail, before layers compose",
           "from": "0009",
-          "fromPath": "docs/adr/0009-first-class-provisions.md"
+          "fromPath": "docs/adr/0009-first-class-resources.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the `executeTrail` pipeline that infrastructure gates compose into",
+          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the `executeTrail` pipeline that infrastructure layers compose into",
           "from": "0010",
           "fromPath": "docs/adr/0010-native-infrastructure.md"
         },
@@ -499,7 +499,7 @@
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-gates-run; the library trailhead delegates to the same pi",
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-layers-run; the library trailhead delegates to the same pi",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
@@ -523,9 +523,9 @@
       "depends_on": [],
       "inbound": [
         {
-          "context": "- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — provision-declarations rule follows the same AST pattern",
+          "context": "- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — resource-declarations rule follows the same AST pattern",
           "from": "0009",
-          "fromPath": "docs/adr/0009-first-class-provisions.md"
+          "fromPath": "docs/adr/0009-first-class-resources.md"
         },
         {
           "context": "- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — the warden model that governs infrastructure trails alongside business trails",
@@ -656,83 +656,83 @@
       "depends_on": [],
       "inbound": [
         {
-          "context": "- [ADR-0009: Provisions as a First-Class Primitive](0009-first-class-provisions.md) — the provision primitive that infrastructure packages build on",
+          "context": "- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — the resource primitive that infrastructure packages build on",
           "from": "0010",
           "fromPath": "docs/adr/0010-native-infrastructure.md"
         },
         {
-          "context": "- [ADR-0009: Provisions as a First-Class Primitive](0009-first-class-provisions.md) — provisions declare config schemas via the reserved `config` field; config enriches `ProvisionContext`",
+          "context": "- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — resources declare config schemas via the reserved `config` field; config enriches `ProvisionContext`",
           "from": "0011",
           "fromPath": "docs/adr/0011-schema-driven-config.md"
         },
         {
-          "context": "- [ADR-0009: Provisions as a First-Class Primitive](0009-first-class-provisions.md) — auth connector is a service; auth layer consumes it via `provision.from(ctx)`",
+          "context": "- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — auth connector is a service; auth layer consumes it via `resource.from(ctx)`",
           "from": "0012",
           "fromPath": "docs/adr/0012-connector-agnostic-permits.md"
         },
         {
-          "context": "- [ADR-0009: Provisions as a First-Class Primitive](0009-first-class-provisions.md)",
+          "context": "- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md)",
           "from": "0013",
           "fromPath": "docs/adr/0013-tracker.md"
         },
         {
-          "context": "- [ADR-0009: First-Class Provisions](0009-first-class-provisions.md) — the provision primitive that the read-only store provision builds on",
+          "context": "- [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the resource primitive that the read-only store resource builds on",
           "from": "0014",
           "fromPath": "docs/adr/0014-core-database-primitive.md"
         },
         {
-          "context": "- [ADR-0009: First-Class Provisions](0009-first-class-provisions.md) — the provision primitive that the store builds on",
+          "context": "- [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the resource primitive that the store builds on",
           "from": "0016",
           "fromPath": "docs/adr/0016-schema-derived-persistence.md"
         },
         {
-          "context": "- [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md) — the provision lifecycle a bound store participates in",
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource lifecycle a bound store participates in",
           "from": "0022",
           "fromPath": "docs/adr/0022-drizzle-store-connector.md"
         },
         {
-          "context": "- [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md) — to be revisited. `provision` → `resource`. API shape unchanged.",
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — to be revisited. `resource` → `resource`. API shape unchanged.",
           "from": "0023",
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
         {
-          "context": "- [ADR-0009: Provisions as a First-Class Primitive](../0009-first-class-provisions.md) — inbound trailheads depend on the provision primitive for infrastructure dependencies (stores, email, queue clie",
+          "context": "- [ADR-0009: Resources as a First-Class Primitive](../0009-first-class-resources.md) — inbound trailheads depend on the resource primitive for infrastructure dependencies (stores, email, queue clie",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
         },
         {
-          "context": "- [ADR-0009: Provisions](../0009-first-class-provisions.md) -- the provision primitive that packs scope and compose",
+          "context": "- [ADR-0009: Resources](../0009-first-class-resources.md) -- the resource primitive that packs scope and compose",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- [ADR-0009: Services](../0009-first-class-provisions.md): provision lifecycle, factory/dispose/health/mock, and the execution model the library trailhead must project into consumer-facing runtime inp",
+          "context": "- [ADR-0009: Services](../0009-first-class-resources.md): resource lifecycle, factory/dispose/health/mock, and the execution model the library trailhead must project into consumer-facing runtime inp",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
         {
-          "context": "- [ADR-0009: Services](../0009-first-class-provisions.md) -- the service pattern for embedding providers",
+          "context": "- [ADR-0009: Services](../0009-first-class-resources.md) -- the service pattern for embedding providers",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
         },
         {
-          "context": "- **[ADR-0009: First-Class Provisions](./adr/0009-first-class-provisions.md)** — Dependency declarations, lifecycle, testing, governance",
+          "context": "- **[ADR-0009: First-Class Resources](./adr/0009-first-class-resources.md)** — Dependency declarations, lifecycle, testing, governance",
           "from": "index",
           "fromPath": "docs/index.md"
         },
         {
-          "context": "For the complete design decision, tradeoffs, and future directions (request-scoped provisions, composable config, intent-based type narrowing), see [ADR-0009: First-Class Provisions](./adr/0009-first-",
-          "from": "provisions",
-          "fromPath": "docs/provisions.md"
+          "context": "For the complete design decision, tradeoffs, and future directions (request-scoped resources, composable config, intent-based type narrowing), see [ADR-0009: First-Class Resources](./adr/0009-first-",
+          "from": "resources",
+          "fromPath": "docs/resources.md"
         }
       ],
       "number": "0009",
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0009-first-class-provisions.md",
-      "slug": "first-class-provisions",
+      "path": "docs/adr/0009-first-class-resources.md",
+      "slug": "first-class-resources",
       "status": "accepted",
       "superseded_by": null,
-      "title": "First-Class Provisions",
+      "title": "First-Class Resources",
       "updated": "2026-04-02"
     },
     {
@@ -740,7 +740,7 @@
       "depends_on": [],
       "inbound": [
         {
-          "context": "- [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — config is the first infrastructure package following the provision + gate + trails trifecta",
+          "context": "- [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — config is the first infrastructure package following the resource + layer + trails trifecta",
           "from": "0011",
           "fromPath": "docs/adr/0011-schema-driven-config.md"
         },
@@ -750,7 +750,7 @@
           "fromPath": "docs/adr/0012-connector-agnostic-permits.md"
         },
         {
-          "context": "- [ADR-0010: Trails-Native Infrastructure Pattern](../0010-native-infrastructure.md) — idempotency layer and deduplication store follow the infrastructure pattern (gate + provision)",
+          "context": "- [ADR-0010: Trails-Native Infrastructure Pattern](../0010-native-infrastructure.md) — idempotency layer and deduplication store follow the infrastructure pattern (layer + resource)",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
         },
@@ -774,7 +774,7 @@
       "depends_on": [],
       "inbound": [
         {
-          "context": "- [ADR-0011: Schema-Driven Config](../0011-schema-driven-config.md) — to be revisited. `loadout` → `profile`. Config resolution unchanged.",
+          "context": "- [ADR-0011: Schema-Driven Config](../0011-schema-driven-config.md) — to be revisited. `profile` → `profile`. Config resolution unchanged.",
           "from": "0023",
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
@@ -847,7 +847,7 @@
           "fromPath": "docs/adr/0015-topo-store.md"
         },
         {
-          "context": "| `trackerGate` | Built-in tracing in `executeTrail` | No longer a separately attached gate/layer. Intrinsic to the execution pipeline. Partially supersedes [ADR-0013](../0013-tracker.md)'s \"provision",
+          "context": "| `trackerGate` | Built-in tracing in `executeTrail` | No longer a separately attached layer/layer. Intrinsic to the execution pipeline. Partially supersedes [ADR-0013](../0013-tracker.md)'s \"resource",
           "from": "0023",
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
@@ -872,7 +872,7 @@
           "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- telemetry primitives that provisions can carry and trailhead",
+          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- telemetry primitives that resources can carry and trailhead",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-provisioning.md"
         },
@@ -970,7 +970,7 @@
           "fromPath": "docs/adr/0016-schema-derived-persistence.md"
         },
         {
-          "context": "- [ADR-0015: Topo Store](0015-topo-store.md) — the read-only provision that governance trails query",
+          "context": "- [ADR-0015: Topo Store](0015-topo-store.md) — the read-only resource that governance trails query",
           "from": "0018",
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
         },
@@ -999,7 +999,7 @@
           "fromPath": "docs/adr/0014-core-database-primitive.md"
         },
         {
-          "context": "- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — app-level persistence using the same provision patterns",
+          "context": "- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — app-level persistence using the same resource patterns",
           "from": "0018",
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
         },

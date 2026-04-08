@@ -4,8 +4,8 @@
 
 import { ValidationError } from './errors.js';
 import type { AnySignal } from './event.js';
-import type { AnyProvision } from './provision.js';
-import { isProvision } from './provision.js';
+import type { AnyProvision } from './resource.js';
+import { isProvision } from './resource.js';
 import type { AnyTrail } from './trail.js';
 
 // ---------------------------------------------------------------------------
@@ -16,7 +16,7 @@ export interface Topo {
   readonly name: string;
   readonly trails: ReadonlyMap<string, AnyTrail>;
   readonly signals: ReadonlyMap<string, AnySignal>;
-  readonly provisions: ReadonlyMap<string, AnyProvision>;
+  readonly resources: ReadonlyMap<string, AnyProvision>;
   readonly count: number;
   readonly provisionCount: number;
   get(id: string): AnyTrail | undefined;
@@ -52,20 +52,20 @@ const createTopo = (
   name: string,
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
-  provisions: ReadonlyMap<string, AnyProvision>
+  resources: ReadonlyMap<string, AnyProvision>
 ): Topo => ({
   count: trails.size,
   get(id: string): AnyTrail | undefined {
     return trails.get(id);
   },
   getProvision(id: string): AnyProvision | undefined {
-    return provisions.get(id);
+    return resources.get(id);
   },
   has(id: string): boolean {
     return trails.has(id);
   },
   hasProvision(id: string): boolean {
-    return provisions.has(id);
+    return resources.has(id);
   },
   ids(): string[] {
     return [...trails.keys()];
@@ -75,7 +75,7 @@ const createTopo = (
     return [...trails.values()];
   },
   listProvisions(): AnyProvision[] {
-    return [...provisions.values()];
+    return [...resources.values()];
   },
 
   listSignals(): AnySignal[] {
@@ -83,12 +83,12 @@ const createTopo = (
   },
 
   name,
-  provisionCount: provisions.size,
+  provisionCount: resources.size,
 
   provisionIds(): string[] {
-    return [...provisions.keys()];
+    return [...resources.keys()];
   },
-  provisions,
+  resources,
   signals,
   trails,
 });
@@ -102,15 +102,15 @@ const register = (
   value: Registrable,
   trails: Map<string, AnyTrail>,
   signals: Map<string, AnySignal>,
-  provisions: Map<string, AnyProvision>
+  resources: Map<string, AnyProvision>
 ): void => {
   const { id } = value as { id: string };
   const registrars: Record<string, () => void> = {
-    provision: () => {
-      if (provisions.has(id)) {
-        throw new ValidationError(`Duplicate provision ID: "${id}"`);
+    resource: () => {
+      if (resources.has(id)) {
+        throw new ValidationError(`Duplicate resource ID: "${id}"`);
       }
-      provisions.set(id, value as AnyProvision);
+      resources.set(id, value as AnyProvision);
     },
     signal: () => {
       if (signals.has(id)) {
@@ -146,10 +146,10 @@ const registerModuleValue = (
   value: unknown,
   trails: Map<string, AnyTrail>,
   signals: Map<string, AnySignal>,
-  provisions: Map<string, AnyProvision>
+  resources: Map<string, AnyProvision>
 ): void => {
   if (isProvision(value) || isRegistrable(value)) {
-    register(value, trails, signals, provisions);
+    register(value, trails, signals, resources);
   }
 };
 
@@ -157,14 +157,14 @@ const registerModuleValues = (
   mod: Record<string, unknown>,
   trails: Map<string, AnyTrail>,
   signals: Map<string, AnySignal>,
-  provisions: Map<string, AnyProvision>
+  resources: Map<string, AnyProvision>
 ): void => {
   const seenValues = new WeakSet<object>();
   for (const value of Object.values(mod)) {
     if (!markUniqueObject(value, seenValues)) {
       continue;
     }
-    registerModuleValue(value, trails, signals, provisions);
+    registerModuleValue(value, trails, signals, resources);
   }
 };
 
@@ -174,11 +174,11 @@ export const topo = (
 ): Topo => {
   const trails = new Map<string, AnyTrail>();
   const signals = new Map<string, AnySignal>();
-  const provisions = new Map<string, AnyProvision>();
+  const resources = new Map<string, AnyProvision>();
 
   for (const mod of modules) {
-    registerModuleValues(mod, trails, signals, provisions);
+    registerModuleValues(mod, trails, signals, resources);
   }
 
-  return createTopo(name, trails, signals, provisions);
+  return createTopo(name, trails, signals, resources);
 };

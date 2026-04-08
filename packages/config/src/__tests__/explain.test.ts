@@ -38,27 +38,27 @@ describe('explainConfig', () => {
     });
   });
 
-  describe('loadout overrides base', () => {
-    test('reports "loadout" when loadout provides winning value', () => {
+  describe('profile overrides base', () => {
+    test('reports "profile" when profile provides winning value', () => {
       const entries = explainConfig({
         base: { host: 'base.example.com' },
-        loadout: { host: 'loadout.example.com' },
-        resolved: { debug: false, host: 'loadout.example.com', port: 3000 },
+        profile: { host: 'profile.example.com' },
+        resolved: { debug: false, host: 'profile.example.com', port: 3000 },
         schema,
       });
 
       const host = entries.find((e) => e.path === 'host');
-      expect(host?.source).toBe('loadout');
-      expect(host?.value).toBe('loadout.example.com');
+      expect(host?.source).toBe('profile');
+      expect(host?.value).toBe('profile.example.com');
     });
   });
 
-  describe('local overrides loadout', () => {
+  describe('local overrides profile', () => {
     test('reports "local" when local provides winning value', () => {
       const entries = explainConfig({
         base: { host: 'base.example.com' },
-        loadout: { host: 'loadout.example.com' },
         local: { host: 'local.example.com' },
+        profile: { host: 'profile.example.com' },
         resolved: { debug: false, host: 'local.example.com', port: 3000 },
         schema,
       });

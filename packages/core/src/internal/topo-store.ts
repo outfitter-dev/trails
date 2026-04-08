@@ -2,7 +2,7 @@ import type { Database, SQLQueryBindings } from 'bun:sqlite';
 
 import { deriveCliPath } from '../derive.js';
 import { Result } from '../result.js';
-import type { AnyProvision } from '../provision.js';
+import type { AnyProvision } from '../resource.js';
 import type { AnySignal } from '../signal.js';
 import type { Topo } from '../topo.js';
 import type { AnyTrail } from '../trail.js';
@@ -13,7 +13,7 @@ import { ensureTopoHistorySchema, insertTopoSaveRecord } from './topo-saves.js';
 
 type TrailheadMapEntryRecord = Readonly<Record<string, unknown>> & {
   readonly id: string;
-  readonly kind: 'provision' | 'signal' | 'trail';
+  readonly kind: 'resource' | 'signal' | 'trail';
 };
 
 type TrailheadMapRecord = Readonly<{
@@ -136,7 +136,7 @@ interface MaterializedTopoArtifacts {
 interface NormalizedTopoProjection {
   readonly crossings: readonly TopoCrossingRow[];
   readonly examples: readonly TopoExampleRow[];
-  readonly provisions: readonly TopoProvisionRow[];
+  readonly resources: readonly TopoProvisionRow[];
   readonly signals: readonly TopoSignalRow[];
   readonly trailheads: readonly TopoTrailheadRow[];
   readonly trailProvisions: readonly TopoTrailProvisionRow[];
@@ -293,7 +293,7 @@ const normalizeTrailProvisionRows = (
   saveId: string
 ): readonly TopoTrailProvisionRow[] =>
   trails.flatMap((trail) =>
-    [...new Set(trail.provisions.map((provision) => provision.id))]
+    [...new Set(trail.resources.map((resource) => resource.id))]
       .toSorted()
       .map((provisionId) => ({
         provisionId,
@@ -303,13 +303,13 @@ const normalizeTrailProvisionRows = (
   );
 
 const normalizeProvisionRows = (
-  provisions: readonly AnyProvision[],
+  resources: readonly AnyProvision[],
   saveId: string
 ): readonly TopoProvisionRow[] =>
-  provisions.map((provision) => ({
-    hasHealth: provision.health === undefined ? 0 : 1,
-    hasMock: provision.mock === undefined ? 0 : 1,
-    id: provision.id,
+  resources.map((resource) => ({
+    hasHealth: resource.health === undefined ? 0 : 1,
+    hasMock: resource.mock === undefined ? 0 : 1,
+    id: resource.id,
     saveId,
   }));
 
@@ -385,7 +385,7 @@ const normalizeTopoProjection = (
   saveId: string
 ): NormalizedTopoProjection => {
   const trails = topo.list().toSorted((a, b) => a.id.localeCompare(b.id));
-  const provisions = topo
+  const resources = topo
     .listProvisions()
     .toSorted((a, b) => a.id.localeCompare(b.id));
   const signals = topo
@@ -395,7 +395,7 @@ const normalizeTopoProjection = (
   return {
     crossings: normalizeCrossingRows(trails, saveId),
     examples: normalizeExampleRows(trails, saveId),
-    provisions: normalizeProvisionRows(provisions, saveId),
+    resources: normalizeProvisionRows(resources, saveId),
     signals: normalizeSignalRows(signals, saveId),
     trailProvisions: normalizeTrailProvisionRows(trails, saveId),
     trailSignals: normalizeTrailSignalRows(signals, saveId),
@@ -653,9 +653,9 @@ const addTrailRelations = (
     entry['crosses'] = trail.crosses.toSorted();
   }
 
-  if (trail.provisions.length > 0) {
-    entry['provisions'] = trail.provisions
-      .map((provision) => provision.id)
+  if (trail.resources.length > 0) {
+    entry['resources'] = trail.resources
+      .map((resource) => resource.id)
       .toSorted();
   }
 };
@@ -737,20 +737,20 @@ const signalToEntryRecord = (
 };
 
 const provisionToEntryRecord = (
-  provision: AnyProvision
+  resource: AnyProvision
 ): TrailheadMapEntryRecord => {
   const entry: Record<string, unknown> = {
     exampleCount: 0,
-    id: provision.id,
-    kind: 'provision',
+    id: resource.id,
+    kind: 'resource',
     trailheads: [],
   };
 
-  if (provision.description !== undefined) {
-    entry['description'] = provision.description;
+  if (resource.description !== undefined) {
+    entry['description'] = resource.description;
   }
 
-  if (provision.health !== undefined) {
+  if (resource.health !== undefined) {
     entry['healthcheck'] = true;
   }
 
@@ -784,7 +784,7 @@ const requireSignalPayload = (
 
 const buildTrailheadMap = (
   generatedAt: string,
-  provisions: readonly AnyProvision[],
+  resources: readonly AnyProvision[],
   signalPayloads: ReadonlyMap<string, JsonRecord>,
   signals: readonly AnySignal[],
   trailSchemas: ReadonlyMap<
@@ -806,7 +806,7 @@ const buildTrailheadMap = (
         requireSignalPayload(signalPayloads, signal.id)
       )
     ),
-    ...provisions.map((provision) => provisionToEntryRecord(provision)),
+    ...resources.map((resource) => provisionToEntryRecord(resource)),
   ].toSorted((a, b) => a.id.localeCompare(b.id));
 
   return {
@@ -846,7 +846,7 @@ const buildSerializedLock = (
   sortKeys({
     apps: sortKeys({
       [topo.name]: sortKeys({
-        provisions: entriesForKind(trailheadMap.entries, 'provision'),
+        resources: entriesForKind(trailheadMap.entries, 'resource'),
         signals: entriesForKind(trailheadMap.entries, 'signal'),
         trails: entriesForKind(trailheadMap.entries, 'trail'),
       }),
@@ -862,7 +862,7 @@ const buildStoredTopoExport = (
   topo: Topo
 ): MaterializedTopoArtifacts => {
   const trails = topo.list().toSorted((a, b) => a.id.localeCompare(b.id));
-  const provisions = topo
+  const resources = topo
     .listProvisions()
     .toSorted((a, b) => a.id.localeCompare(b.id));
   const signals = topo
@@ -871,7 +871,7 @@ const buildStoredTopoExport = (
   const schemas = materializeSchemas(db, save.id, signals, trails);
   const trailheadMap = buildTrailheadMap(
     save.createdAt,
-    provisions,
+    resources,
     schemas.signalPayloads,
     signals,
     schemas.trailSchemas,
@@ -943,7 +943,7 @@ const insertProjectedRows = (
   );
   insertRows(
     db,
-    projection.provisions,
+    projection.resources,
     `INSERT INTO topo_provisions (id, has_mock, has_health, save_id)
      VALUES (?, ?, ?, ?)`,
     (row) => [row.id, row.hasMock, row.hasHealth, row.saveId]
@@ -1069,7 +1069,7 @@ export const persistEstablishedTopoSave = (
 
   const saveInput: CreateTopoSaveInput = {
     ...input,
-    provisionCount: input?.provisionCount ?? topo.provisions.size,
+    provisionCount: input?.provisionCount ?? topo.resources.size,
     signalCount: input?.signalCount ?? topo.signals.size,
     trailCount: input?.trailCount ?? topo.trails.size,
   };

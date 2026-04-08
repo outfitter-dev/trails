@@ -15,7 +15,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import type {
-  Gate,
+  Layer,
   ProvisionOverrideMap,
   Topo,
   TrailContextInit,
@@ -31,7 +31,7 @@ import { connectStdio } from './stdio.js';
 // ---------------------------------------------------------------------------
 
 export interface TrailheadMcpOptions {
-  /** Config values for provisions that declare a `config` schema, keyed by provision ID. */
+  /** Config values for resources that declare a `config` schema, keyed by resource ID. */
   readonly configValues?:
     | Readonly<Record<string, Record<string, unknown>>>
     | undefined;
@@ -40,8 +40,8 @@ export interface TrailheadMcpOptions {
     | undefined;
   readonly excludeTrails?: readonly string[] | undefined;
   readonly includeTrails?: readonly string[] | undefined;
-  readonly gates?: readonly Gate[] | undefined;
-  readonly provisions?: ProvisionOverrideMap | undefined;
+  readonly layers?: readonly Layer[] | undefined;
+  readonly resources?: ProvisionOverrideMap | undefined;
   readonly serverInfo?:
     | {
         readonly name?: string | undefined;
@@ -154,9 +154,9 @@ export const trailhead = async (
     configValues: options.configValues,
     createContext: options.createContext,
     excludeTrails: options.excludeTrails,
-    gates: options.gates,
     includeTrails: options.includeTrails,
-    provisions: options.provisions,
+    layers: options.layers,
+    resources: options.resources,
     validate: options.validate,
   });
 

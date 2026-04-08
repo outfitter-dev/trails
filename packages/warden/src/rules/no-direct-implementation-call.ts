@@ -31,7 +31,7 @@ export const noDirectImplementationCall: WardenRule = {
           filePath,
           line: offsetToLine(sourceCode, node.start),
           message:
-            'Use ctx.cross("trailId", input) instead of direct .blaze() calls. Direct implementation access bypasses validation, tracing, and gates.',
+            'Use ctx.cross("trailId", input) instead of direct .blaze() calls. Direct implementation access bypasses validation, tracing, and layers.',
           rule: 'no-direct-implementation-call',
           severity: 'warn',
         });

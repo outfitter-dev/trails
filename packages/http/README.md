@@ -60,9 +60,9 @@ Trail IDs map to paths: `entity.show` becomes `/entity/show`. Dots become slashe
 
 `buildHttpRoutes` detects when two trails would produce the same `(method, path)` pair and returns `Result.err(ValidationError)` describing both trail IDs. The `trailhead()` Hono connector throws on collision.
 
-## Provision resolution
+## Resource resolution
 
-Declared provisions on each trail are resolved into the context before the implementation runs.
+Declared resources on each trail are resolved into the context before the implementation runs.
 
 ## AbortSignal propagation
 
@@ -79,7 +79,7 @@ Each route definition produced by `buildHttpRoutes` includes:
 | `trailId` | `string` | The trail ID this route was derived from |
 | `inputSource` | `'query' \| 'body'` | Where to read input |
 | `trail` | `Trail` | The original trail definition |
-| `execute` | `(input, requestId?, abortSignal?) => Promise<Result>` | Validates, gates, and runs the implementation |
+| `execute` | `(input, requestId?, abortSignal?) => Promise<Result>` | Validates, layers, and runs the implementation |
 
 ## Installation
 

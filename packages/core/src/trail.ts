@@ -2,7 +2,7 @@ import type { z } from 'zod';
 
 import type { FieldOverride } from './derive.js';
 import type { Result } from './result.js';
-import type { AnyProvision } from './provision.js';
+import type { AnyProvision } from './resource.js';
 import type {
   Implementation,
   PermitRequirement,
@@ -61,8 +61,8 @@ export interface TrailSpec<I, O> {
   readonly fields?: Readonly<Record<string, FieldOverride>> | undefined;
   /** IDs of downstream trails this trail may invoke via ctx.cross() */
   readonly crosses?: readonly string[] | undefined;
-  /** Provisions this trail may access via provision.from(ctx) */
-  readonly provisions?: readonly AnyProvision[] | undefined;
+  /** Resources this trail may access via resource.from(ctx) */
+  readonly resources?: readonly AnyProvision[] | undefined;
   /** Auth requirement: scopes object, 'public', or omitted (undeclared) */
   readonly permit?: PermitRequirement | undefined;
 }
@@ -77,15 +77,15 @@ export type Intent = 'read' | 'write' | 'destroy';
 /** A fully-defined trail — the unit of work in the Trails system */
 export interface Trail<I, O> extends Omit<
   TrailSpec<I, O>,
-  'blaze' | 'crosses' | 'intent' | 'provisions'
+  'blaze' | 'crosses' | 'intent' | 'resources'
 > {
   readonly kind: 'trail';
   readonly id: string;
   readonly blaze: Implementation<I, O>;
   /** IDs of downstream trails this trail may invoke via ctx.cross() (always present, default []) */
   readonly crosses: readonly string[];
-  /** Provisions this trail may access via provision.from(ctx) (always present, default []) */
-  readonly provisions: readonly AnyProvision[];
+  /** Resources this trail may access via resource.from(ctx) (always present, default []) */
+  readonly resources: readonly AnyProvision[];
   /** What this trail does to the world (always present, default 'write') */
   readonly intent: Intent;
 }
@@ -137,10 +137,10 @@ export function trail<I, O>(
     blaze,
     crosses: rawCrosses,
     intent: rawIntent,
-    provisions: rawProvisions,
+    resources: rawProvisions,
     ...spec
   } = resolved.spec;
-  const provisions = Object.freeze([...(rawProvisions ?? [])]);
+  const resources = Object.freeze([...(rawProvisions ?? [])]);
 
   return Object.freeze({
     ...spec,
@@ -149,7 +149,7 @@ export function trail<I, O>(
     id: resolved.id,
     intent: rawIntent ?? 'write',
     kind: 'trail' as const,
-    provisions,
+    resources,
   });
 }
 

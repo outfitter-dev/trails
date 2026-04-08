@@ -14,7 +14,7 @@ import { Result, trail } from '@ontrails/core';
 import type { z } from 'zod';
 import { z as zod } from 'zod';
 
-import { configProvision } from '../config-provision.js';
+import { configProvision } from '../config-resource.js';
 import {
   generateEnvExample,
   generateExample,
@@ -92,5 +92,5 @@ export const configInit = trail('config.init', {
   intent: 'write',
   meta: { category: 'infrastructure' },
   output: outputSchema,
-  provisions: [configProvision],
+  resources: [configProvision],
 });

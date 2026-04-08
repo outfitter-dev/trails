@@ -96,7 +96,7 @@ type WritableDemoStoreRuntime = Awaited<
 const expectWritableProvisionDefinition = (
   db: ReturnType<typeof createWritableDemoStore>
 ): void => {
-  expect(db.kind).toBe('provision');
+  expect(db.kind).toBe('resource');
   expect(db.id).toBe('demo.store');
   expect(db.access).toBe('readwrite');
   expect(db.mock).toBeDefined();
@@ -348,7 +348,7 @@ describe('@ontrails/store/drizzle', () => {
     return tmpRoot;
   };
 
-  test('binds a writable provision with CRUD accessors and one escape hatch', async () => {
+  test('binds a writable resource with CRUD accessors and one escape hatch', async () => {
     const rootDir = makeRoot();
     const { created, db } = await setupWritableDemoStore(rootDir);
     expectWritableProvisionDefinition(db);
@@ -357,7 +357,7 @@ describe('@ontrails/store/drizzle', () => {
     await db.dispose?.(created);
   });
 
-  test('creates a writable mock provision seeded from fixtures', async () => {
+  test('creates a writable mock resource seeded from fixtures', async () => {
     const db = createFixtureBackedStore();
 
     const mock = await db.mock?.();

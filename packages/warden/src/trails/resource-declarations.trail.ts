@@ -1,4 +1,4 @@
-import { provisionDeclarations } from '../rules/provision-declarations.js';
+import { provisionDeclarations } from '../rules/resource-declarations.js';
 import { wrapRule } from './wrap-rule.js';
 
 export const provisionDeclarationsTrail = wrapRule({
@@ -7,18 +7,18 @@ export const provisionDeclarationsTrail = wrapRule({
       expected: { diagnostics: [] },
       input: {
         filePath: 'clean.ts',
-        sourceCode: `const db = provision("db.main", {
+        sourceCode: `const db = resource("db.main", {
   create: () => Result.ok({ source: "factory" }),
 });
 
 trail("entity.show", {
-  provisions: [db],
+  resources: [db],
   blaze: async (_input, ctx) => {
     return Result.ok(db.from(ctx));
   }
 })`,
       },
-      name: 'Matched provision declarations and usage',
+      name: 'Matched resource declarations and usage',
     },
   ],
   rule: provisionDeclarations,

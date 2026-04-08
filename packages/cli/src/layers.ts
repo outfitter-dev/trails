@@ -1,8 +1,8 @@
 /**
- * CLI-specific gates shipped with @ontrails/cli.
+ * CLI-specific layers shipped with @ontrails/cli.
  */
 
-import type { Gate, Implementation, Trail } from '@ontrails/core';
+import type { Layer, Implementation, Trail } from '@ontrails/core';
 import { Result } from '@ontrails/core';
 
 // ---------------------------------------------------------------------------
@@ -119,10 +119,10 @@ const collectAllPages = async <I, O>(
  * Automatically iterates paginated results when --all flag is present.
  *
  * When a trail's output matches the pagination pattern (items, hasMore,
- * nextCursor) and the input contains `all: true`, this gate repeatedly
+ * nextCursor) and the input contains `all: true`, this layer repeatedly
  * calls the implementation with incrementing cursors and collects all items.
  */
-export const autoIterateGate: Gate = {
+export const autoIterateGate: Layer = {
   description: 'Auto-paginate results when --all flag is set',
   name: 'autoIterate',
 
@@ -207,11 +207,11 @@ const expandDateFields = (
 /**
  * Expands date shortcut strings into ISO date ranges.
  *
- * When a trail's input has `since` or `until` fields, this gate
+ * When a trail's input has `since` or `until` fields, this layer
  * checks for shortcuts like "today", "yesterday", "7d", "30d",
  * "this-week", "this-month" and expands them to ISO 8601 dates.
  */
-export const dateShortcutsGate: Gate = {
+export const dateShortcutsGate: Layer = {
   description: 'Expand date shortcuts (today, 7d, etc.) to ISO dates',
   name: 'dateShortcuts',
 

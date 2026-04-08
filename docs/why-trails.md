@@ -73,7 +73,7 @@ await mcpTrailhead(app);
 
 One definition. Every trailhead. The rest is derived.
 
-Pure trails can return `Result` directly. Trails with `crosses` and I/O-bound trails can stay `async`. Core normalizes both forms to one awaitable runtime shape before trailheads and gates execute them.
+Pure trails can return `Result` directly. Trails with `crosses` and I/O-bound trails can stay `async`. Core normalizes both forms to one awaitable runtime shape before trailheads and layers execute them.
 
 ---
 
@@ -81,7 +81,7 @@ Pure trails can return `Result` directly. Trails with `crosses` and I/O-bound tr
 
 Pure trail functions are great until they need a database. The typical escape hatch — constructing clients inline or importing singletons — couples implementations to concrete infrastructure and makes testing painful.
 
-Trails solves this with `provision()` declarations. A provision defines its factory, a `mock` factory for tests, and an optional `dispose` hook for cleanup. Trails declare their dependencies with `provisions: [...]` and access them through `db.from(ctx)`. The framework manages the lifecycle, trailheads can inspect the dependency graph, and `testAll(app)` resolves mocks automatically.
+Trails solves this with `resource()` declarations. A resource defines its factory, a `mock` factory for tests, and an optional `dispose` hook for cleanup. Trails declare their dependencies with `resources: [...]` and access them through `db.from(ctx)`. The framework manages the lifecycle, trailheads can inspect the dependency graph, and `testAll(app)` resolves mocks automatically.
 
 The result: implementations stay pure (input in, `Result` out), infrastructure is declared rather than imported, and the entire app remains testable without configuration.
 
@@ -95,7 +95,7 @@ Every piece of information in a Trails app has a clear ownership model. Six cate
 - **Projected:** Mechanically derived, guaranteed correct — CLI flags from Zod fields, MCP tool names from trail IDs, exit codes from error classes. Projections can't be wrong because they're computed from the source.
 - **Enforced:** Constrained by the type system — output schemas bound the return type, `Result<T, Error>` eliminates throw/catch, `TrailContext` scopes what the implementation can access. The compiler makes non-compliance an error.
 - **Inferred:** Detected by static analysis, best-effort — which trails a trail crosses (from `ctx.cross()` calls), error types returned (from `Result.err()` patterns). Warden verifies these. Useful for governance, not guaranteed.
-- **Observed:** Learned from runtime (future) — error distributions, latency profiles, provision usage patterns from the tracker system. Observations close the loop between declared intent and actual behavior.
+- **Observed:** Learned from runtime (future) — error distributions, latency profiles, resource usage patterns from the tracker system. Observations close the loop between declared intent and actual behavior.
 - **Overridden:** When derivation doesn't fit — any derived value can be explicitly set when the default is wrong. Overrides are escape hatches, visible in the trailhead map. If you're overriding everything, the derivation rules are wrong.
 
 The design heuristic: if the developer has to author information the framework already has, that's a framework bug. Derive it. If it can't be derived, it earns a place on the trail spec. If it can be derived but might be wrong sometimes, derive it with an override.
@@ -147,7 +147,7 @@ One write, three reads. If someone changes the business rule, they change the ex
 
 Great tools already exist for each trailhead. tRPC, Hono, and Fastify are excellent for HTTP. Commander and oclif are battle-tested for CLIs. FastMCP and the official SDK make MCP server development straightforward. NestJS spans multiple transports with a mature ecosystem.
 
-Trails doesn't try to replace any of them. It occupies a different gate: the **contract layer** that sits above individual trailhead implementations. A trail definition captures the schema, examples, error types, intent and metadata, and composition graph in one place. Trailhead connectors — CLI, MCP, HTTP, WebSocket — project that contract into whatever runtime format the trailhead needs.
+Trails doesn't try to replace any of them. It occupies a different layer: the **contract layer** that sits above individual trailhead implementations. A trail definition captures the schema, examples, error types, intent and metadata, and composition graph in one place. Trailhead connectors — CLI, MCP, HTTP, WebSocket — project that contract into whatever runtime format the trailhead needs.
 
 The value isn't in being better at any single trailhead. It's in making the contract the source of truth so that every trailhead stays consistent with it — not because anyone was careful, but because the framework derives each trailhead from the same definition.
 
@@ -178,7 +178,7 @@ The answers became the principles: author what's new, derive what's known, overr
 
 The v1 implementation delivers the foundation: Result types, error taxonomy, trail and signal definitions, CLI and MCP trailheads, contract-driven testing, schema governance, and the warden. These establish the contract layer and prove the core loop — define once, trailhead everywhere.
 
-The architecture points toward capabilities that follow naturally — provision capability shaping, derived dependency graphs, cross-app contract negotiation, implementation synthesis from examples. Each follows from the same principle: if the information exists in the system, don't ask the developer to restate it.
+The architecture points toward capabilities that follow naturally — resource capability shaping, derived dependency graphs, cross-app contract negotiation, implementation synthesis from examples. Each follows from the same principle: if the information exists in the system, don't ask the developer to restate it.
 
 See [Horizons](./horizons.md) for the full roadmap of what this architecture unlocks.
 

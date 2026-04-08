@@ -1,5 +1,5 @@
 import { Result } from '@ontrails/core';
-import type { Gate } from '@ontrails/core';
+import type { Layer } from '@ontrails/core';
 
 import { PermitError } from './errors.js';
 import { getPermit } from './permit.js';
@@ -25,25 +25,25 @@ const findMissing = (
 ): readonly string[] => required.filter((s) => !held.includes(s));
 
 // ---------------------------------------------------------------------------
-// Auth gate
+// Auth layer
 // ---------------------------------------------------------------------------
 
 /**
- * A {@link Gate} that enforces permit scopes declared on trails.
+ * A {@link Layer} that enforces permit scopes declared on trails.
  *
- * The gate reads the trail's `permit` field (a `PermitRequirement`):
+ * The layer reads the trail's `permit` field (a `PermitRequirement`):
  *
- * - If `permit` is `'public'` or `undefined` the gate passes through.
- * - If `permit` has `scopes`, the gate checks that `ctx.permit` contains
+ * - If `permit` is `'public'` or `undefined` the layer passes through.
+ * - If `permit` has `scopes`, the layer checks that `ctx.permit` contains
  *   all required scopes. A superset is fine; missing scopes produce a
  *   `PermitError`.
  *
- * Because `ctx.cross()` re-enters `executeTrail` (which applies gates),
- * this gate automatically re-checks on every invocation in a crossing chain.
+ * Because `ctx.cross()` re-enters `executeTrail` (which applies layers),
+ * this layer automatically re-checks on every invocation in a crossing chain.
  * No special crossing-chain handling is needed — it is built into the
  * architecture.
  */
-export const authGate: Gate = {
+export const authGate: Layer = {
   description: 'Enforces permit scopes declared on trails',
   name: 'auth',
   wrap: (_trail, impl) => {

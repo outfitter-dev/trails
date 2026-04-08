@@ -7,7 +7,7 @@
 import { trail, Result } from '@ontrails/core';
 import { z } from 'zod';
 
-import { entityStoreProvision } from '../provisions/entity-store.js';
+import { entityStoreProvision } from '../resources/entity-store.js';
 
 // ---------------------------------------------------------------------------
 // search
@@ -66,5 +66,5 @@ export const search = trail('search', {
     ),
     total: z.number(),
   }),
-  provisions: [entityStoreProvision],
+  resources: [entityStoreProvision],
 });

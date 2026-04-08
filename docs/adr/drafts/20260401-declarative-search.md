@@ -102,7 +102,7 @@ search: {
 The embedding service is a standard Trails service (ADR-009):
 
 ```typescript
-export const embeddingService = provision('embedder', {
+export const embeddingService = resource('embedder', {
   create: () => ({
     embed: async (text: string): Promise<number[]> => {
       // OpenAI, local model, or any embedding provider
@@ -297,6 +297,6 @@ This is explicitly deferred. The initial implementation focuses on single-entity
 - ADR: Schema-Derived Persistence (draft) -- the store abstraction that search extends
 - ADR: Drizzle Store Connector (draft) -- the connector that implements FTS5 and vector indexing
 - ADR: Entity Trail Factories (draft) -- the `mark()` factory that auto-generates search trails
-- [ADR-0009: Services](../0009-first-class-provisions.md) -- the service pattern for embedding providers
+- [ADR-0009: Services](../0009-first-class-resources.md) -- the service pattern for embedding providers
 - [Architecture](../../architecture.md) -- information categories, right-side hexagonal connectors
 - Alex Garcia's hybrid search guide: <https://alexgarcia.xyz/blog/2024/sqlite-vec-hybrid-search/>

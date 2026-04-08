@@ -41,9 +41,9 @@ Option B is the right choice. The reasons:
 
 ### The foundation
 
-The framework already uses SQLite as its own internal database (see ADR: Core Database Primitive). The topo store projects the structural graph into `trails.db` for governance and introspection (see ADR: Topo Store). The patterns established there — Zod-to-SQLite type mapping, typed accessors, read-only provisions, escape hatches for complex queries — are proven by the framework's own usage.
+The framework already uses SQLite as its own internal database (see ADR: Core Database Primitive). The topo store projects the structural graph into `trails.db` for governance and introspection (see ADR: Topo Store). The patterns established there — Zod-to-SQLite type mapping, typed accessors, read-only resources, escape hatches for complex queries — are proven by the framework's own usage.
 
-`@ontrails/store` extends these patterns for app-level persistence. The framework dogfoods the query interface, provision integration, and connector model before exposing them to app developers.
+`@ontrails/store` extends these patterns for app-level persistence. The framework dogfoods the query interface, resource integration, and connector model before exposing them to app developers.
 
 ## Decision
 
@@ -128,9 +128,9 @@ Connector packages may also provide a convenience `store(...)` that collapses de
 - Update schemas (entity schema minus generated fields, all optional)
 - Typed accessor contracts (insert, get, list, update, remove) that concrete connectors realize at runtime
 
-### A bound store is a provision
+### A bound store is a resource
 
-The root declaration returned by `store()` is the schema-first model. Once a connector binds it, the resulting store is a Trails provision. It has `create`, `dispose`, `mock`, and `health` built in:
+The root declaration returned by `store()` is the schema-first model. Once a connector binds it, the resulting store is a Trails resource. It has `create`, `dispose`, `mock`, and `health` built in:
 
 ```typescript
 const definition = store({ /* tables */ });
@@ -138,9 +138,9 @@ const db = connectDrizzle(definition, { url: ':memory:' });
 
 // Use in trails directly:
 trail('gist.list', {
-  provisions: [db],
+  resources: [db],
   blaze: async (input, ctx) => {
-    const conn = db.from(ctx);  // typed, same as any provision
+    const conn = db.from(ctx);  // typed, same as any resource
     const gist = await conn.gists.insert(input);
     return Result.ok(gist);
   },
@@ -152,7 +152,7 @@ trail('gist.list', {
 - **`mock`**: creates an in-memory instance with the same schema, optionally seeded with fixtures
 - **`health`**: pings the connection
 
-This eliminates the ceremony of wrapping a database in a `provision()` call. The connector-bound store collapses provision definition, table definitions, and connection management into one runnable surface — the same collapse that `trailhead()` achieves for `buildCliCommands` + `toCommander` + `program.parse()`. The authored store definition and the bound runtime stay distinct so the root package remains connector-agnostic.
+This eliminates the ceremony of wrapping a database in a `resource()` call. The connector-bound store collapses resource definition, table definitions, and connection management into one runnable surface — the same collapse that `trailhead()` achieves for `buildCliCommands` + `toCommander` + `program.parse()`. The authored store definition and the bound runtime stay distinct so the root package remains connector-agnostic.
 
 ### Typed accessors
 
@@ -196,7 +196,7 @@ For queries that don't fit the CRUD pattern (joins, aggregations, window functio
 
 ```typescript
 trail('gist.search-with-files', {
-  provisions: [db],
+  resources: [db],
   blaze: async (input, ctx) => {
     const conn = db.from(ctx);
     const results = await conn.query(({ drizzle, tables }) =>
@@ -253,7 +253,7 @@ Fixtures are:
 - Validated against the entity schema at definition time
 - Visible to the warden for governance checks
 
-`testAll(app)` works with zero additional configuration. The mock store with fixtures resolves automatically when the provision context detects a test environment.
+`testAll(app)` works with zero additional configuration. The mock store with fixtures resolves automatically when the resource context detects a test environment.
 
 ### Read-only store variant
 
@@ -268,7 +268,7 @@ const analyticsDb = readonlyStore(
 );
 ```
 
-This is the same pattern used internally by the topo store provision (see ADR: Topo Store). The read-only variant:
+This is the same pattern used internally by the topo store resource (see ADR: Topo Store). The read-only variant:
 
 - Omits `insert`, `update`, and `remove` from the TypeScript connection type
 - Opens the SQLite connection with `readonly: true` (database-level enforcement)
@@ -324,11 +324,11 @@ Overrides are explicit and visible in the store definition. The framework derive
 
 - **~700 lines of store code per app eliminated.** Table definitions, CRUD functions, pagination helpers, and type definitions are all derived from Zod schemas.
 - **The trail contract drives persistence.** No reversed information flow. One schema, many projections.
-- **Framework-proven patterns.** The typed accessors, escape hatch, and provision integration are stress-tested by the framework's own topo store before app developers use them.
+- **Framework-proven patterns.** The typed accessors, escape hatch, and resource integration are stress-tested by the framework's own topo store before app developers use them.
 - **Fixtures solve the seed/example tension.** Deterministic IDs on the store definition, referenced by trail examples. No workarounds.
 - **Error mapping extends the taxonomy.** Database errors join the same deterministic mapping that trailheads use.
 - **Testing works unchanged.** `testAll(app)` uses the mock store automatically. Zero configuration.
-- **Read-only variant unifies internal and external patterns.** The topo store provision and an app's read-only database connection use the same API.
+- **Read-only variant unifies internal and external patterns.** The topo store resource and an app's read-only database connection use the same API.
 
 ### Tradeoffs
 
@@ -348,7 +348,7 @@ Overrides are explicit and visible in the store definition. The framework derive
 - [ADR-0000: Core Premise](0000-core-premise.md) — the trail is the product, everything else is a projection
 - [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) — the two-level architecture pattern this mirrors
 - [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — deterministic derivation, now extended to storage
-- [ADR-0009: First-Class Provisions](0009-first-class-provisions.md) — the provision primitive that the store builds on
+- [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the resource primitive that the store builds on
 - [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) — the `trails.db` foundation and patterns this extends
 - [ADR-0015: Topo Store](0015-topo-store.md) — the framework's own usage of the store patterns
 - ADR: Drizzle Store Connector (draft) — the first database connector

@@ -1,4 +1,4 @@
-import { createProvisionLookup } from './provision.js';
+import { createProvisionLookup } from './resource.js';
 import type { TrailContext, TrailContextInit } from './types.js';
 
 type MutableTrailContext = {
@@ -22,7 +22,7 @@ export const createTrailContext = (
     requestId: Bun.randomUUIDv7(),
     ...overrides,
   } as MutableTrailContext;
-  const lookup = overrides?.provision ?? createProvisionLookup(() => ctx);
-  ctx.provision = lookup;
+  const lookup = overrides?.resource ?? createProvisionLookup(() => ctx);
+  ctx.resource = lookup;
   return ctx;
 };

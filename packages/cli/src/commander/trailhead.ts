@@ -3,7 +3,7 @@
  */
 
 import type {
-  Gate,
+  Layer,
   ProvisionOverrideMap,
   Topo,
   TrailContextInit,
@@ -26,11 +26,11 @@ export interface TrailheadCliOptions {
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   description?: string | undefined;
-  gates?: Gate[] | undefined;
+  layers?: Layer[] | undefined;
   name?: string | undefined;
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
   presets?: CliFlag[][] | undefined;
-  provisions?: ProvisionOverrideMap | undefined;
+  resources?: ProvisionOverrideMap | undefined;
   resolveInput?: InputResolver | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
   validate?: boolean | undefined;
@@ -62,11 +62,11 @@ export const trailhead = async (
 ): Promise<void> => {
   const commands = buildCliCommands(app, {
     createContext: options.createContext,
-    gates: options.gates,
+    layers: options.layers,
     onResult: options.onResult ?? defaultOnResult,
     presets: options.presets,
-    provisions: options.provisions,
     resolveInput: options.resolveInput,
+    resources: options.resources,
     validate: options.validate,
   });
 

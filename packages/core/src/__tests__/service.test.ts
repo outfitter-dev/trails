@@ -6,10 +6,10 @@ import {
   createTrailContext,
   findDuplicateProvisionId,
   isProvision,
-  provision as defineProvision,
+  resource as defineProvision,
 } from '../index.js';
 import type {
-  Provision,
+  Resource,
   ProvisionContext,
   ProvisionSpec,
   TrailContext,
@@ -25,11 +25,11 @@ let disposedValue: number | undefined;
 
 const counterProvisionSpec: ProvisionSpec<number> = {
   create: () => Result.ok(3),
-  description: 'Counter provision',
-  dispose: (provision) => {
-    disposedValue = provision;
+  description: 'Counter resource',
+  dispose: (resource) => {
+    disposedValue = resource;
   },
-  health: (provision) => Result.ok({ healthy: provision > 0 }),
+  health: (resource) => Result.ok({ healthy: resource > 0 }),
   meta: { domain: 'data' },
   mock: () => 1,
 };
@@ -41,7 +41,7 @@ const resolvedServiceCtx = (id: string, instance: unknown): TrailContext =>
     requestId: `${id}-request`,
   });
 
-describe('provision types', () => {
+describe('resource types', () => {
   test('ProvisionContext exposes the stable process-scoped fields', () => {
     expect(provisionCtx.cwd).toBe('/tmp/trails');
     expect(provisionCtx.env?.DATABASE_URL).toBe('file::memory:');
@@ -49,7 +49,7 @@ describe('provision types', () => {
   });
 
   test('ProvisionSpec stores description and meta', () => {
-    expect(counterProvisionSpec.description).toBe('Counter provision');
+    expect(counterProvisionSpec.description).toBe('Counter resource');
     expect(counterProvisionSpec.meta).toEqual({ domain: 'data' });
   });
 
@@ -78,10 +78,10 @@ describe('provision types', () => {
     const result = await counterProvisionSpec.create(provisionCtx);
     expect(result.isOk()).toBe(true);
 
-    const provision = result.unwrap();
+    const resource = result.unwrap();
     expect(await counterProvisionSpec.mock?.()).toBe(1);
 
-    await counterProvisionSpec.dispose?.(provision);
+    await counterProvisionSpec.dispose?.(resource);
     expect(disposedValue).toBe(3);
   });
 
@@ -98,17 +98,17 @@ describe('provision types', () => {
     expect(result.unwrap()).toBe(7);
   });
 
-  test('Provision carries identity alongside the shared spec fields', async () => {
-    const counterProvision: Provision<number> = {
+  test('Resource carries identity alongside the shared spec fields', async () => {
+    const counterProvision: Resource<number> = {
       from(ctx) {
-        return ctx.provision(this);
+        return ctx.resource(this);
       },
       id: 'counter.main',
-      kind: 'provision',
+      kind: 'resource',
       ...counterProvisionSpec,
     };
 
-    expect(counterProvision.kind).toBe('provision');
+    expect(counterProvision.kind).toBe('resource');
     expect(counterProvision.id).toBe('counter.main');
 
     const created = await counterProvision.create(provisionCtx);
@@ -118,16 +118,16 @@ describe('provision types', () => {
   });
 });
 
-describe('provision()', () => {
-  test('returns a frozen provision object with kind and id', () => {
+describe('resource()', () => {
+  test('returns a frozen resource object with kind and id', () => {
     const counter = defineProvision('counter.main', counterProvisionSpec);
 
-    expect(counter.kind).toBe('provision');
+    expect(counter.kind).toBe('resource');
     expect(counter.id).toBe('counter.main');
     expect(Object.isFrozen(counter)).toBe(true);
   });
 
-  test('infers the provision type through from(ctx)', () => {
+  test('infers the resource type through from(ctx)', () => {
     const db = defineProvision('db.main', {
       create: () =>
         Result.ok({
@@ -149,34 +149,34 @@ describe('provision()', () => {
     expect(resolved.query('select 1')).toBe(8);
   });
 
-  test('from(ctx) throws when the provision is missing', () => {
+  test('from(ctx) throws when the resource is missing', () => {
     const counter = defineProvision('counter.main', counterProvisionSpec);
     const ctx = createTrailContext({
       abortSignal: new AbortController().signal,
-      requestId: 'missing-provision',
+      requestId: 'missing-resource',
     });
 
     expect(() => counter.from(ctx)).toThrow(
-      'Provision "counter.main" not found in trail context'
+      'Resource "counter.main" not found in trail context'
     );
   });
 
-  test('from(ctx) returns undefined when the provision key exists with an undefined value', () => {
+  test('from(ctx) returns undefined when the resource key exists with an undefined value', () => {
     const optional = defineProvision<undefined>('optional.main', {
       create: () => Result.ok<undefined>(),
     });
     const ctx = createTrailContext({
       abortSignal: new AbortController().signal,
       extensions: { [optional.id]: undefined },
-      requestId: 'undefined-provision',
+      requestId: 'undefined-resource',
     });
 
     expect(optional.from(ctx)).toBeUndefined();
   });
 });
 
-describe('provision helpers', () => {
-  test('isProvision identifies provision definitions', () => {
+describe('resource helpers', () => {
+  test('isProvision identifies resource definitions', () => {
     const counter = defineProvision('counter.main', counterProvisionSpec);
 
     expect(isProvision(counter)).toBe(true);

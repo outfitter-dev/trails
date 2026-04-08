@@ -84,7 +84,7 @@ const buildSurveyDetail = (
     return Result.ok(detail);
   }
   return Result.err(
-    new NotFoundError(`Trail or provision not found: ${trailId}`)
+    new NotFoundError(`Trail or resource not found: ${trailId}`)
   );
 };
 
@@ -216,12 +216,12 @@ export const surveyTrail = trail('survey', {
         })
       ),
       provisionCount: z.number(),
-      provisions: z.array(
+      resources: z.array(
         z.object({
           description: z.string().nullable(),
           health: z.enum(['available', 'none']),
           id: z.string(),
-          kind: z.literal('provision'),
+          kind: z.literal('resource'),
           lifetime: z.literal('singleton'),
           usedBy: z.array(z.string()),
         })
@@ -233,11 +233,11 @@ export const surveyTrail = trail('survey', {
         detours: z.boolean(),
         examples: z.boolean(),
         outputSchemas: z.boolean(),
-        provisions: z.boolean(),
+        resources: z.boolean(),
         signals: z.boolean(),
       }),
       name: z.string(),
-      provisions: z.number(),
+      resources: z.number(),
       signals: z.number(),
       trails: z.number(),
       version: z.string(),
@@ -256,14 +256,14 @@ export const surveyTrail = trail('survey', {
       id: z.string(),
       intent: z.enum(['read', 'write', 'destroy']),
       kind: z.string(),
-      provisions: z.array(z.string()),
+      resources: z.array(z.string()),
       safety: z.string(),
     }),
     z.object({
       description: z.string().nullable(),
       health: z.enum(['available', 'none']),
       id: z.string(),
-      kind: z.literal('provision'),
+      kind: z.literal('resource'),
       lifetime: z.literal('singleton'),
       usedBy: z.array(z.string()),
     }),

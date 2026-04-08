@@ -3,7 +3,7 @@ import { Result } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
-import { configGate } from '../config-gate.js';
+import { configGate } from '../config-layer.js';
 
 const stubTrail = {
   blaze: (_input: unknown, _ctx: TrailContext) => Result.ok({}),
@@ -19,7 +19,7 @@ const stubTrail = {
   kind: 'trail' as const,
   meta: undefined,
   output: undefined,
-  provisions: [],
+  resources: [],
 };
 
 describe('configGate', () => {

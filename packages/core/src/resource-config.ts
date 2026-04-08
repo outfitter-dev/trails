@@ -1,22 +1,22 @@
 /**
- * Provision resolution pipeline.
+ * Resource resolution pipeline.
  *
  * Extracted from execute.ts to keep both modules under the 400 LOC ceiling.
  * Handles config validation, singleton caching, concurrent-creation dedup,
- * and the full resolve-or-create flow for declared provisions.
+ * and the full resolve-or-create flow for declared resources.
  */
 
 import type {
   AnyProvision,
   ProvisionContext,
   ProvisionOverrideMap,
-} from './provision.js';
+} from './resource.js';
 import type { AnyTrail } from './trail.js';
 import type { TrailContext } from './types.js';
 
 import { InternalError, ValidationError } from './errors.js';
 import { Result } from './result.js';
-import { createProvisionLookup } from './provision.js';
+import { createProvisionLookup } from './resource.js';
 
 type MutableTrailContext = {
   -readonly [K in keyof TrailContext]: TrailContext[K];
@@ -30,7 +30,7 @@ type ConfigValues = Readonly<Record<string, Record<string, unknown>>>;
 
 const singletonProvisions = new WeakMap<AnyProvision, Map<string, unknown>>();
 
-/** In-flight provision creation promises, keyed by provision x context. */
+/** In-flight resource creation promises, keyed by resource x context. */
 const pendingCreations = new WeakMap<
   AnyProvision,
   Map<string, Promise<Result<unknown, Error>>>
@@ -64,7 +64,7 @@ const toProvisionContextKey = (ctx: ProvisionContext): string =>
 // Config validation
 // ---------------------------------------------------------------------------
 
-/** Validate and resolve a provision's config from the provided configValues map. */
+/** Validate and resolve a resource's config from the provided configValues map. */
 const resolveProvisionConfig = (
   declaredProvision: AnyProvision,
   configValues?: ConfigValues
@@ -76,7 +76,7 @@ const resolveProvisionConfig = (
   if (raw === undefined) {
     return Result.err(
       new ValidationError(
-        `Provision "${declaredProvision.id}" declares a config schema but no config was provided`
+        `Resource "${declaredProvision.id}" declares a config schema but no config was provided`
       )
     );
   }
@@ -84,7 +84,7 @@ const resolveProvisionConfig = (
   if (!parsed.success) {
     return Result.err(
       new ValidationError(
-        `Provision "${declaredProvision.id}" config validation failed: ${parsed.error.message}`
+        `Resource "${declaredProvision.id}" config validation failed: ${parsed.error.message}`
       )
     );
   }
@@ -199,7 +199,7 @@ const toInternalProvisionError = (
 ): InternalError => {
   const cause = error instanceof Error ? error : undefined;
   const message = cause?.message ?? String(error);
-  return new InternalError(`Provision "${id}" failed to resolve: ${message}`, {
+  return new InternalError(`Resource "${id}" failed to resolve: ${message}`, {
     ...(cause ? { cause } : {}),
     context: { provisionId: id },
   });
@@ -253,8 +253,8 @@ const trackPendingCreation = (
 };
 
 /**
- * Deduplicates concurrent creation of the same provision singleton.
- * If a creation is already in flight for this provision x context key,
+ * Deduplicates concurrent creation of the same resource singleton.
+ * If a creation is already in flight for this resource x context key,
  * returns the existing promise instead of spawning a second factory call.
  */
 const createProvisionInstance = async (
@@ -280,7 +280,7 @@ const createProvisionInstance = async (
   }
 };
 
-/** Validate config and resolve a single declared provision. */
+/** Validate config and resolve a single declared resource. */
 const resolveDeclaredProvision = async (
   declaredProvision: AnyProvision,
   ctx: TrailContext,
@@ -288,7 +288,7 @@ const resolveDeclaredProvision = async (
   configValues: ConfigValues | undefined
 ): Promise<Result<unknown, Error>> => {
   // Check overrides/extensions first — skip config validation entirely when
-  // a provision instance is already provided.
+  // a resource instance is already provided.
   const overrideOrExtension = getOverrideOrExtension(
     ctx,
     overrides,
@@ -299,7 +299,7 @@ const resolveDeclaredProvision = async (
   }
 
   // Resolve config before consulting the singleton cache so config-aware
-  // provisions use the same canonical context for cache reads and writes.
+  // resources use the same canonical context for cache reads and writes.
   const configAwareProvision = resolveConfigAwareProvidedProvision(
     ctx,
     declaredProvision,
@@ -322,7 +322,7 @@ const resolveDeclaredProvision = async (
 };
 
 // ---------------------------------------------------------------------------
-// Full trail provision resolution
+// Full trail resource resolution
 // ---------------------------------------------------------------------------
 
 const withResolvedProvisions = (
@@ -332,15 +332,15 @@ const withResolvedProvisions = (
   const extensions = { ...ctx.extensions, ...resolvedProvisions };
   const resolvedCtx = { ...ctx, extensions } as MutableTrailContext;
   const lookup = createProvisionLookup(() => resolvedCtx);
-  resolvedCtx.provision = lookup;
+  resolvedCtx.resource = lookup;
   return resolvedCtx;
 };
 
 /**
- * Resolve all declared provisions for a trail.
+ * Resolve all declared resources for a trail.
  *
- * Validates per-provision config, checks overrides and caches, and creates
- * new instances as needed. Returns an enriched context with all provision
+ * Validates per-resource config, checks overrides and caches, and creates
+ * new instances as needed. Returns an enriched context with all resource
  * instances injected into extensions.
  */
 export const resolveProvisions = async (
@@ -349,14 +349,14 @@ export const resolveProvisions = async (
   overrides?: ProvisionOverrideMap,
   configValues?: ConfigValues
 ): Promise<Result<TrailContext, Error>> => {
-  const { provisions } = trail;
-  if (provisions.length === 0) {
+  const { resources } = trail;
+  if (resources.length === 0) {
     return Result.ok(ctx);
   }
 
   const resolvedProvisions: Record<string, unknown> = {};
 
-  for (const declaredProvision of provisions) {
+  for (const declaredProvision of resources) {
     const resolved = await resolveDeclaredProvision(
       declaredProvision,
       ctx,

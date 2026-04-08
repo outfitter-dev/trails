@@ -2,7 +2,7 @@
  * Build framework-agnostic HTTP route definitions from a Trails topo.
  *
  * Each route definition describes the path, method, input source, and an
- * `execute` function that validates input, composes gates, and runs the
+ * `execute` function that validates input, composes layers, and runs the
  * implementation -- all without referencing any HTTP framework types.
  */
 
@@ -14,7 +14,7 @@ import {
   validateEstablishedTopo,
 } from '@ontrails/core';
 import type {
-  Gate,
+  Layer,
   ProvisionOverrideMap,
   Topo,
   Trail,
@@ -27,15 +27,15 @@ import type {
 
 export interface BuildHttpRoutesOptions {
   readonly basePath?: string | undefined;
-  /** Config values for provisions that declare a `config` schema, keyed by provision ID. */
+  /** Config values for resources that declare a `config` schema, keyed by resource ID. */
   readonly configValues?:
     | Readonly<Record<string, Record<string, unknown>>>
     | undefined;
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
-  readonly gates?: readonly Gate[] | undefined;
-  readonly provisions?: ProvisionOverrideMap | undefined;
+  readonly layers?: readonly Layer[] | undefined;
+  readonly resources?: ProvisionOverrideMap | undefined;
   /** Set to `false` to skip topo validation while building routes. */
   readonly validate?: boolean | undefined;
 }
@@ -52,7 +52,7 @@ export interface HttpRouteDefinition {
   readonly inputSource: InputSource;
   readonly trail: Trail<unknown, unknown>;
   /**
-   * Validate input, compose gates, and execute the trail implementation.
+   * Validate input, compose layers, and execute the trail implementation.
    *
    * The caller is responsible for parsing raw input from the request and
    * mapping the Result to an HTTP response. This function is framework-agnostic.
@@ -121,7 +121,7 @@ const withHttpTrailhead = (
 const createExecute =
   (
     t: Trail<unknown, unknown>,
-    gates: readonly Gate[],
+    layers: readonly Layer[],
     options: BuildHttpRoutesOptions
   ): HttpRouteDefinition['execute'] =>
   (input, requestId, abortSignal) =>
@@ -130,8 +130,8 @@ const createExecute =
       configValues: options.configValues,
       createContext: options.createContext,
       ctx: withHttpTrailhead(requestId),
-      gates,
-      provisions: options.provisions,
+      layers,
+      resources: options.resources,
     });
 
 // ---------------------------------------------------------------------------
@@ -146,13 +146,13 @@ const eligibleTrails = (app: Topo): Trail<unknown, unknown>[] =>
 const buildRoute = (
   trail: Trail<unknown, unknown>,
   basePath: string,
-  gates: readonly Gate[],
+  layers: readonly Layer[],
   options: BuildHttpRoutesOptions
 ): HttpRouteDefinition => {
   const method = deriveMethod(trail);
   const path = derivePath(basePath, trail.id);
   return {
-    execute: createExecute(trail, gates, options),
+    execute: createExecute(trail, layers, options),
     inputSource: deriveInputSource(method),
     method,
     path,
@@ -193,14 +193,14 @@ const registerRoute = (
 const accumulateRoutes = (
   trails: Trail<unknown, unknown>[],
   basePath: string,
-  gates: readonly Gate[],
+  layers: readonly Layer[],
   options: BuildHttpRoutesOptions
 ): Result<HttpRouteDefinition[], Error> => {
   const routes: HttpRouteDefinition[] = [];
   const seenRoutes = new Map<string, string>();
 
   for (const trail of trails) {
-    const route = buildRoute(trail, basePath, gates, options);
+    const route = buildRoute(trail, basePath, layers, options);
     const registered = registerRoute(route, seenRoutes, routes);
     if (registered.isErr()) {
       return registered;
@@ -221,7 +221,7 @@ const accumulateRoutes = (
  * - An HTTP method derived from intent (read -> GET, write -> POST, destroy -> DELETE)
  * - A path derived from the trail ID (dots become slashes)
  * - An input source derived from the method (GET -> query, others -> body)
- * - An `execute` function that validates, gates, and runs the implementation
+ * - An `execute` function that validates, layers, and runs the implementation
  *
  * Returns `Result.err(ValidationError)` if two trails derive the same
  * (method, path) pair. Returns `Result.ok(routes)` on success.
@@ -238,6 +238,6 @@ export const buildHttpRoutes = (
   }
 
   const basePath = (options.basePath ?? '').replace(/\/+$/, '');
-  const gates = options.gates ?? [];
-  return accumulateRoutes(eligibleTrails(app), basePath, gates, options);
+  const layers = options.layers ?? [];
+  return accumulateRoutes(eligibleTrails(app), basePath, layers, options);
 };

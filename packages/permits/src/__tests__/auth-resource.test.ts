@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import type { ProvisionContext } from '@ontrails/core';
 
 import type { AuthConnector } from '../connectors/connector.js';
-import { authProvision } from '../auth-provision.js';
+import { authProvision } from '../auth-resource.js';
 import type { PermitExtractionInput } from '../extraction.js';
 
 /** Minimal extraction input for tests. */
@@ -33,7 +33,7 @@ const testSvcCtx: ProvisionContext = {
 describe('authProvision', () => {
   test('has correct id and kind', () => {
     expect(authProvision.id).toBe('auth');
-    expect(authProvision.kind).toBe('provision');
+    expect(authProvision.kind).toBe('resource');
   });
 
   test('has infrastructure meta', () => {

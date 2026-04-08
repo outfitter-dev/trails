@@ -12,9 +12,9 @@ owners: ['[galligan](https://github.com/galligan)']
 
 ## Context
 
-Early implementations had each trailhead running its own execution path. CLI validated input, created a context, composed gates, ran the implementation, and wrapped errors. MCP did the same — slightly differently. HTTP would have done it a third time. Each trailhead reimplemented the same pipeline with small variations that became real problems.
+Early implementations had each trailhead running its own execution path. CLI validated input, created a context, composed layers, ran the implementation, and wrapped errors. MCP did the same — slightly differently. HTTP would have done it a third time. Each trailhead reimplemented the same pipeline with small variations that became real problems.
 
-The variations were subtle enough to miss in review but visible enough to confuse users. One trailhead validated input before composing gates. Another composed gates first. Error wrapping differed: CLI would catch an exception and format it as a user-facing message, MCP would catch the same exception and produce a different JSON-RPC error shape. The behavior gap widened every time someone touched one trailhead without updating the others.
+The variations were subtle enough to miss in review but visible enough to confuse users. One trailhead validated input before composing layers. Another composed layers first. Error wrapping differed: CLI would catch an exception and format it as a user-facing message, MCP would catch the same exception and produce a different JSON-RPC error shape. The behavior gap widened every time someone touched one trailhead without updating the others.
 
 This is exactly the kind of drift the framework exists to prevent. If the trail is the product and trailheads are renderings, the execution path that turns a trail definition into a result should be shared infrastructure — not copy-pasted per trailhead.
 
@@ -33,8 +33,8 @@ executeTrail(trail, rawInput, options?)
 The pipeline, in order:
 
 1. **Validate input** — parse `rawInput` against the trail's input schema via Zod. On failure, return `Result.err(new ValidationError(...))`.
-2. **Resolve context** — build `TrailContext` with logger, provisions, cross capability, and any trailhead-provided extensions.
-3. **Compose gates** — wrap the implementation with the trail's declared gates, in order.
+2. **Resolve context** — build `TrailContext` with logger, resources, cross capability, and any trailhead-provided extensions.
+3. **Compose layers** — wrap the implementation with the trail's declared layers, in order.
 4. **Run** — execute the composed implementation with validated input and resolved context.
 5. **Catch** — if the implementation throws (it shouldn't, but defensive code beats optimistic code), wrap the exception as `Result.err(new InternalError(...))`.
 
@@ -47,7 +47,7 @@ All four trailheads use it:
 - **HTTP:** parse request body/params into raw input → `executeTrail` → format output as HTTP response
 - **Headless (`run`):** accept raw input directly → `executeTrail` → return Result
 
-Each trailhead is a thin wrapper: parse trailhead-specific input, call `executeTrail`, format trailhead-specific output. The execution semantics — validation, gates, error handling — are framework concerns, not trailhead concerns.
+Each trailhead is a thin wrapper: parse trailhead-specific input, call `executeTrail`, format trailhead-specific output. The execution semantics — validation, layers, error handling — are framework concerns, not trailhead concerns.
 
 ### Part 2: Result-returning builders
 
@@ -70,7 +70,7 @@ This extends the Result model from runtime execution to framework wiring. The sa
 
 ### Positive
 
-- **Behavioral consistency.** Every trailhead validates, composes gates, and wraps errors in exactly the same order. A bug fix in `executeTrail` fixes all trailheads simultaneously.
+- **Behavioral consistency.** Every trailhead validates, composes layers, and wraps errors in exactly the same order. A bug fix in `executeTrail` fixes all trailheads simultaneously.
 - **One place for cross-cutting concerns.** Logging, tracing, metrics, and any future observability hooks have a single integration point. No per-trailhead instrumentation.
 - **Setup errors caught early.** Name collisions and route conflicts trailhead at boot, not when the first request hits a confusing runtime error.
 - **Result from boot to shutdown.** The framework's own wiring code follows the same error-handling pattern it requires of trail implementations. No philosophical inconsistency between "your code returns Result" and "our code throws."
@@ -82,7 +82,7 @@ This extends the Result model from runtime execution to framework wiring. The sa
 
 ### What this does NOT decide
 
-- Whether `executeTrail` will gain gates or interceptor hooks beyond the current layer model. Gates handle most cross-cutting concerns today. If that proves insufficient, a separate ADR will address it.
+- Whether `executeTrail` will gain layers or interceptor hooks beyond the current layer model. Layers handle most cross-cutting concerns today. If that proves insufficient, a separate ADR will address it.
 - The specific options trailhead on `executeTrail` beyond the current parameters. The function signature will grow as needs emerge.
 - How `trailhead()` handles builder failures in non-CLI contexts (e.g., programmatic embedding). That's a trailhead-level UX decision.
 

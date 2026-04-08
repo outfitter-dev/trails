@@ -14,13 +14,13 @@ const buildCtx = (state: TrackerState): TrailContext => {
     cwd: '/tmp',
     env: {},
     extensions,
-    provision: undefined as unknown as TrailContext['provision'],
     requestId: 'test',
+    resource: undefined as unknown as TrailContext['resource'],
     workspaceRoot: '/tmp',
   };
   const withLookup = {
     ...ctx,
-    provision: createProvisionLookup(() => withLookup),
+    resource: createProvisionLookup(() => withLookup),
   };
   return withLookup;
 };
@@ -51,9 +51,9 @@ describe('tracker.status', () => {
       expect(trackerStatus.examples?.length).toBeGreaterThan(0);
     });
 
-    test('declares trackerProvision in provisions', () => {
-      expect(trackerStatus.provisions).toBeDefined();
-      expect(trackerStatus.provisions?.length).toBe(1);
+    test('declares trackerProvision in resources', () => {
+      expect(trackerStatus.resources).toBeDefined();
+      expect(trackerStatus.resources?.length).toBe(1);
     });
   });
 

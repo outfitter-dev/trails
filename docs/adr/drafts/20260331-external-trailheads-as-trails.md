@@ -669,7 +669,7 @@ The entire probe, execute, capture, and check pipeline is built on Bun-native AP
 
 This follows ADR-0000: Bun-native, universally consumable. The rig package is Bun-native. The trails it produces are universally consumable on any trailhead.
 
-### Interaction with packs and provisions
+### Interaction with packs and resources
 
 Rigged trails compose into packs normally:
 
@@ -687,14 +687,14 @@ const gitPorcelain = pack('git.porcelain', {
 
 The `git.core` pack wraps the binary. The `git.porcelain` pack composes raw git operations into higher-level workflows. Same layering pattern as SDK wrapping: internal capability pack, public domain pack on top.
 
-Rig packs distribute as provisions:
+Rig packs distribute as resources:
 
 ```bash
-trails provisions add @community/trails-rig-git      # dependency mode
-trails provisions scaffold @community/trails-rig-git  # scaffold mode
+trails resources add @community/trails-rig-git      # dependency mode
+trails resources scaffold @community/trails-rig-git  # scaffold mode
 ```
 
-The provision includes the rig lock alongside the source. Consumers get the rig lock for version tracking. The scaffold-and-upgrade workflow handles rig packs the same as any other provision.
+The resource includes the rig lock alongside the source. Consumers get the rig lock for version tracking. The scaffold-and-upgrade workflow handles rig packs the same as any other resource.
 
 ### Interaction with events and triggers
 
@@ -759,7 +759,7 @@ Rig lock state rolls up into the `rigs` section of `trails.lock`:
 - **Version drift is tracked.** Rig locks record the external trailhead's shape at a point in time. Probes detect drift. Integration examples verify behavior. CI catches staleness. External dependencies become governed artifacts.
 - **The contract is the firewall.** When the external trailhead changes, the rig's parse function and examples absorb the change. Consumers of the rigged trail see a stable contract. The rig isolates the instability.
 - **Zero external dependencies.** The entire rig implementation (probe, execute, capture, check) uses Bun-native APIs: `Bun.which()`, `Bun.spawn()`, `Bun.$`, `Bun.Terminal`, `Bun.stripANSI()`. On Node the same functionality would require six or more npm packages. This keeps the supply chain trailhead minimal.
-- **Community rig packs are valuable.** A well-maintained `git` rig pack saves every Trails developer from writing git parsing. Provisions handle distribution. The contract-level upgrade workflow handles version changes.
+- **Community rig packs are valuable.** A well-maintained `git` rig pack saves every Trails developer from writing git parsing. Resources handle distribution. The contract-level upgrade workflow handles version changes.
 - **Progressive refinement.** Probe gives a raw discovery. Scaffold gives working code with the best available built-in parser (json if the tool supports it, table or lines otherwise). The developer tightens schemas, swaps parsers, adds mappers, authors examples. The same specify-satisfy-tighten cycle.
 
 ### Tradeoffs
@@ -787,7 +787,7 @@ Rig lock state rolls up into the `rigs` section of `trails.lock`:
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- rigged trails get trailhead derivation for free
 - ADR: Trail Visibility and Trailhead Filtering (draft) -- rigged SDK wrapper packs use `visibility: 'internal'`
 - ADR: Packs as Namespace Boundaries (draft) -- rigged trails compose into packs with the same layering pattern
-- ADR: Pack Provisioning (draft) -- rig packs distribute as provisions with the same lifecycle
+- ADR: Pack Provisioning (draft) -- rig packs distribute as resources with the same lifecycle
 - ADR: Typed Signal Emission (draft) -- rigged trails can emit events via `ctx.signal()`; the "observe and announce" pattern
 - ADR: Reactive Trail Activation (draft) -- rigged trails with schedule triggers become periodic monitoring probes
 - ADR: The Serialized Topo Graph (draft) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`

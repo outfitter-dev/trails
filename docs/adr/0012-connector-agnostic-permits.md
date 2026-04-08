@@ -20,7 +20,7 @@ owners: ['[galligan](https://github.com/galligan)']
 
 HTTP reads a bearer token from the `Authorization` header. MCP receives a session token from the transport handshake. CLI might pull credentials from a keyring or environment variable. Each trailhead has its own extraction mechanism, but the trail implementation shouldn't know or care which one ran. The implementation needs a single, trailhead-agnostic permit — or the knowledge that no permit was required.
 
-### Auth is a provision + gate hybrid
+### Auth is a resource + layer hybrid
 
 Auth doesn't fit cleanly into one primitive. The auth provider (JWT verification, external identity service) is a service — it has lifecycle, configuration, and state. But enforcement is a layer — it wraps execution, short-circuits on failure, and runs on every invocation. The permit model needs to account for both halves without forcing them into one shape.
 
@@ -76,7 +76,7 @@ The permit model separates into three distinct responsibilities:
 
 1. **Trail declaration.** `permit: { scopes: ['entity:write'] }` on the spec. Declares what's required.
 2. **Trailhead extraction.** Each trailhead normalizes raw credentials into `PermitExtractionInput`. No trailhead types cross into core.
-3. **Auth gate.** A shared gate that checks `ctx.permit.scopes` against the trail's declared scopes. Same gate, every trailhead.
+3. **Auth layer.** A shared layer that checks `ctx.permit.scopes` against the trail's declared scopes. Same layer, every trailhead.
 
 ### Normalized extraction input
 
@@ -104,9 +104,9 @@ interface AuthConnector {
 
 The port is deliberately narrow. No session management, no token refresh, no user lookup. Connectors can provide those as additional services outside the core interface. The framework needs exactly one capability: given credentials, produce a permit or an error.
 
-### Auth gate re-checks on every invocation including crosses
+### Auth layer re-checks on every invocation including crosses
 
-`ctx.cross()` doesn't bypass auth. If a parent trail crosses a child that declares its own `permit`, the auth gate re-checks. Defense in depth — composition doesn't create privilege escalation paths.
+`ctx.cross()` doesn't bypass auth. If a parent trail crosses a child that declares its own `permit`, the auth layer re-checks. Defense in depth — composition doesn't create privilege escalation paths.
 
 The warden statically validates that parent trail scopes are a superset of children's scopes. If `user.delete` requires `user:write` and crosses `audit.log` which requires `audit:write`, the parent must hold both. This is a compile-time guarantee, not a runtime hope.
 
@@ -144,7 +144,7 @@ No cookies. No session-based auth at the framework level. Session management via
 ### Positive
 
 - **Auth requirements are part of the trail contract.** Visible, verifiable, introspectable. An agent can query a topo and see every trail's auth posture without reading implementation code.
-- **Same auth gate works across all trailheads.** HTTP, MCP, CLI — one enforcement path. No trailhead-specific auth bugs.
+- **Same auth layer works across all trailheads.** HTTP, MCP, CLI — one enforcement path. No trailhead-specific auth bugs.
 - **Testing fails closed.** Auto-minted permits match declared scopes exactly. No silent privilege escalation in tests. Strict mode proves the full auth path.
 - **Warden catches unprotected destructive trails before deployment.** The `destroy` + no permit rule is a structural guarantee, not a code review convention.
 
@@ -164,5 +164,5 @@ No cookies. No session-based auth at the framework level. Session management via
 ## References
 
 - [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent compounds with permit for governance; `destroy` + no permit is an error
-- [ADR-0009: Provisions as a First-Class Primitive](0009-first-class-provisions.md) — auth connector is a service; auth layer consumes it via `provision.from(ctx)`
+- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — auth connector is a service; auth layer consumes it via `resource.from(ctx)`
 - [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — auth layer follows the shared layer model for cross-cutting enforcement
