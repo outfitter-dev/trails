@@ -53,13 +53,11 @@ describe('trailhead map generation', () => {
   });
 
   test('has exactly 11 entries (8 trails + 1 event + 2 resources)', () => {
+    const ids = trailheadMap.entries.map((e) => e.id);
+
     expect(trailheadMap.entries).toHaveLength(11);
-    expect(trailheadMap.entries.map((e) => e.id)).toContain(
-      'entity.notify-updated'
-    );
-    expect(trailheadMap.entries.map((e) => e.id)).toContain(
-      'demo.notification-store'
-    );
+    expect(ids).toContain('entity.notify-updated');
+    expect(ids).toContain('demo.notification-store');
   });
 
   test('entries are sorted alphabetically by id', () => {
