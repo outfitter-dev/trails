@@ -254,6 +254,9 @@ const RESET_FILES = [
   '.trails/dev/tracing.db',
   '.trails/dev/tracing.db-shm',
   '.trails/dev/tracing.db-wal',
+  '.trails/dev/tracker.db',
+  '.trails/dev/tracker.db-shm',
+  '.trails/dev/tracker.db-wal',
 ] as const;
 
 const presentResetFiles = (

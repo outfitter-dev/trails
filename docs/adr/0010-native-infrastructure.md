@@ -44,8 +44,8 @@ Every infrastructure package ships three kinds of primitives:
 
 | Primitive | Purpose | Config example | Permits example | Tracing example |
 |---|---|---|---|---|
-| **Resource** | Lifecycle (create, cache, dispose, health, mock) | `configResource` | `authResource` | `tracingResource` |
-| **Layer** | Cross-cutting execution wrapping | `configLayer` | `authGate` | `tracingLayer` |
+| **Resource** | Lifecycle (create, cache, dispose, health, mock) | `configResource` | `authProvision` | `tracingResource` |
+| **Layer** | Cross-cutting execution wrapping | `configLayer` | `authLayer` | `tracingLayer` |
 | **Trail** | Inspectable operations (`intent: 'read'` in v1) | `config.explain` | `auth.verify` | `tracing.status` |
 
 Resources manage the connector lifecycle. Layers inject behavior into the execution pipeline. Trails expose infrastructure operations as first-class contracts — queryable, testable, governable.
@@ -117,7 +117,7 @@ The built-in for each package is functional enough for development and simple pr
 The mock factory pattern from ADR-0009 makes zero-config testing possible for every infrastructure service:
 
 - Config resolves a test profile — minimal, deterministic, no env vars required.
-- Auth mints synthetic permits — valid tokens with minimal claims, enough to pass `authGate` without a real provider.
+- Auth mints synthetic permits — valid tokens with minimal claims, enough to pass `authLayer` without a real provider.
 - Tracing records to an in-memory store — spans are captured and queryable in assertions, nothing leaves the process.
 
 ```typescript

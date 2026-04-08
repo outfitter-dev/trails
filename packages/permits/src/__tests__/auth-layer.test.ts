@@ -5,7 +5,7 @@ import { Result, trail } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
-import { authGate } from '../auth-layer';
+import { authLayer } from '../auth-layer';
 import { PermitError } from '../errors';
 
 // ---------------------------------------------------------------------------
@@ -27,10 +27,10 @@ const okImpl = async () => Result.ok({ done: true });
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('authGate', () => {
+describe('authLayer', () => {
   test('has correct name and description', () => {
-    expect(authGate.name).toBe('auth');
-    expect(authGate.description).toBeDefined();
+    expect(authLayer.name).toBe('auth');
+    expect(authLayer.description).toBeDefined();
   });
 
   describe('pass-through cases', () => {
@@ -41,7 +41,7 @@ describe('authGate', () => {
         output: z.object({ done: z.boolean() }),
       });
 
-      const wrapped = authGate.wrap(t, okImpl);
+      const wrapped = authLayer.wrap(t, okImpl);
       const result = await wrapped({}, makeCtx());
 
       expect(result.isOk()).toBe(true);
@@ -56,7 +56,7 @@ describe('authGate', () => {
         permit: 'public',
       });
 
-      const wrapped = authGate.wrap(t, okImpl);
+      const wrapped = authLayer.wrap(t, okImpl);
       const result = await wrapped({}, makeCtx());
 
       expect(result.isOk()).toBe(true);
@@ -73,7 +73,7 @@ describe('authGate', () => {
     });
 
     test('passes when ctx.permit has matching scopes', async () => {
-      const wrapped = authGate.wrap(scopedTrail, okImpl);
+      const wrapped = authLayer.wrap(scopedTrail, okImpl);
       const result = await wrapped(
         {},
         makeCtx({ id: 'usr-1', scopes: ['user:read'] })
@@ -84,7 +84,7 @@ describe('authGate', () => {
     });
 
     test('returns error when ctx has no permit', async () => {
-      const wrapped = authGate.wrap(scopedTrail, okImpl);
+      const wrapped = authLayer.wrap(scopedTrail, okImpl);
       const result = await wrapped({}, makeCtx());
 
       expect(result.isErr()).toBe(true);
@@ -101,7 +101,7 @@ describe('authGate', () => {
         permit: { scopes: ['user:read', 'user:write'] },
       });
 
-      const wrapped = authGate.wrap(multiScopeTrail, okImpl);
+      const wrapped = authLayer.wrap(multiScopeTrail, okImpl);
       const result = await wrapped(
         {},
         makeCtx({ id: 'usr-1', scopes: ['user:read'] })
@@ -114,7 +114,7 @@ describe('authGate', () => {
     });
 
     test('passes when permit has superset of required scopes', async () => {
-      const wrapped = authGate.wrap(scopedTrail, okImpl);
+      const wrapped = authLayer.wrap(scopedTrail, okImpl);
       const result = await wrapped(
         {},
         makeCtx({

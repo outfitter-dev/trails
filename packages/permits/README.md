@@ -2,7 +2,7 @@
 
 Scope-based authorization for Trails.
 
-The permits package owns the connector-agnostic `authProvision` and `authGate`. Connector packages bind those declarations to concrete auth logic, just like a trailhead connector binds a topo to CLI, MCP, or HTTP.
+The permits package owns the connector-agnostic `authProvision` and `authLayer`. Connector packages bind those declarations to concrete auth logic, just like a trailhead connector binds a topo to CLI, MCP, or HTTP.
 
 ## The core pattern
 
@@ -12,7 +12,7 @@ The permits package owns the connector-agnostic `authProvision` and `authGate`. 
 export const create = trail('gist.create', {
   permit: { scopes: ['gist:write'] },
   blaze: async (input, ctx) => {
-    // authGate enforces scopes before blaze runs
+    // authLayer enforces scopes before blaze runs
     return Result.ok(newGist);
   },
 });
@@ -29,10 +29,10 @@ export const search = trail('gist.search', {
 ### 2. Register the auth layer
 
 ```typescript
-import { authGate } from '@ontrails/permits';
+import { authLayer } from '@ontrails/permits';
 
 export const app = topo('my-app', gistModule);
-// Register authGate with your trailhead
+// Register authLayer with your trailhead
 ```
 
 The layer reads each trail's `permit` field:

@@ -254,7 +254,7 @@ DefineConfigOptions, ConfigState, ConfigFieldMeta, ConfigDiagnostic
 ```typescript
 // Resource & layer
 authProvision                        // resource for auth connector lifecycle
-authGate                             // layer that enforces permit scopes on trails
+authLayer                            // layer that enforces permit scopes on trails
 
 // Permits
 getPermit(ctx)                       // extract the resolved permit from context

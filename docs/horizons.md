@@ -12,7 +12,7 @@
 
 **Config resolution (`@ontrails/config`).** `defineConfig()` provides schema-validated config with profiles (named environment profiles), env variable mapping, and `ResourceSpec.config` for resource-level config schemas. Includes diagnostics (`checkConfig`), introspection (`describeConfig`, `explainConfig`), and generation (`generateEnvExample`).
 
-**Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. `authGate` extracts credentials from trailhead-specific sources, `AuthConnector` resolves them to a `Permit` (identity, scopes, roles), and scope enforcement rejects unauthorized access. Includes JWT connector, governance rules (`validatePermits`), and test helpers (`mintTestPermit`, `mintPermitForTrail`).
+**Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. `authLayer` extracts credentials from trailhead-specific sources, `AuthConnector` resolves them to a `Permit` (identity, scopes, roles), and scope enforcement rejects unauthorized access. Includes JWT connector, governance rules (`validatePermits`), and test helpers (`mintTestPermit`, `mintPermitForTrail`).
 
 **Tracing (`@ontrails/tracing`).** Telemetry recording with `createTracingLayer` capturing execution duration, errors, and trace context propagation for every trail invocation. Pluggable sinks: `createMemorySink` for testing, `createDevStore` for local development, `createOtelConnector` for production OpenTelemetry export. Sampling configuration controls recording volume.
 

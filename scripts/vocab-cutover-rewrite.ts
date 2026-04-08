@@ -801,44 +801,6 @@ const safeRules: readonly VocabRewriteRule[] = [
     apply: (context) =>
       context.isCodeFile
         ? []
-        : [
-            ...collectRegexEdits(
-              context.source,
-              'crumbs-prose',
-              /\bcrumbs\b/gi,
-              (match) => replaceMatchedCase(match[0], 'tracker', 'Tracker')
-            ),
-          ],
-    description:
-      'Replace prose-only telemetry terminology from `crumbs` to `tracker` in non-code files.',
-    id: 'crumbs-prose',
-  },
-  {
-    apply: (context) =>
-      context.isCodeFile
-        ? []
-        : [
-            ...collectRegexEdits(
-              context.source,
-              'layers-prose',
-              /\blayers\b/gi,
-              (match) => replaceMatchedCase(match[0], 'layers', 'Layers')
-            ),
-            ...collectRegexEdits(
-              context.source,
-              'layers-prose',
-              /\bmiddleware\b/gi,
-              (match) => replaceMatchedCase(match[0], 'layers', 'Layers')
-            ),
-          ],
-    description:
-      'Replace prose-only wrapper terminology from `layers` / `middleware` to `layers` in non-code files.',
-    id: 'layers-prose',
-  },
-  {
-    apply: (context) =>
-      context.isCodeFile
-        ? []
         : collectRegexEdits(
             context.source,
             'entity-prose',
@@ -848,34 +810,6 @@ const safeRules: readonly VocabRewriteRule[] = [
     description:
       'Replace prose-only domain factory calls from `entity(...)` to `mark(...)` in non-code files.',
     id: 'entity-prose',
-  },
-  {
-    apply: (context) =>
-      context.isCodeFile
-        ? []
-        : [
-            ...collectRegexEdits(
-              context.source,
-              'layer-type-prose',
-              /\*\*Layer\*\*/g,
-              '**Layer**'
-            ),
-            ...collectRegexEdits(
-              context.source,
-              'layer-type-prose',
-              /\bLayer(?=\[\])/g,
-              'Layer'
-            ),
-            ...collectRegexEdits(
-              context.source,
-              'layer-type-prose',
-              /\bLayer(?=\s*=>)/g,
-              'Layer'
-            ),
-          ],
-    description:
-      'Replace code-like non-code wrapper type mentions from `Layer` to `Layer` where the swap is exact.',
-    id: 'layer-type-prose',
   },
   {
     apply: (context) =>

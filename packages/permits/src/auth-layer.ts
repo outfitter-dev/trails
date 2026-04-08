@@ -43,7 +43,7 @@ const findMissing = (
  * No special crossing-chain handling is needed — it is built into the
  * architecture.
  */
-export const authGate: Layer = {
+export const authLayer: Layer = {
   description: 'Enforces permit scopes declared on trails',
   name: 'auth',
   wrap: (_trail, impl) => {

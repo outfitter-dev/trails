@@ -109,10 +109,10 @@ Layers compose the same way as on CLI and MCP -- they wrap trail implementations
 
 ```typescript
 import { trailhead } from '@ontrails/http/hono';
-import { authGate, loggingGate } from './layers';
+import { authLayer, loggingLayer } from './layers';
 
 await trailhead(app, {
-  layers: [loggingGate, authGate],
+  layers: [loggingLayer, authLayer],
   port: 3000,
 });
 ```

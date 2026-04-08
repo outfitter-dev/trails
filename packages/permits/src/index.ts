@@ -7,7 +7,7 @@ export {
   createJwtConnector,
   type JwtConnectorOptions,
 } from './connectors/jwt.js';
-export { authGate } from './auth-layer.js';
+export { authLayer } from './auth-layer.js';
 export { authProvision } from './auth-resource.js';
 export { authVerify } from './trails/auth-verify.js';
 export { PermitError } from './errors.js';
