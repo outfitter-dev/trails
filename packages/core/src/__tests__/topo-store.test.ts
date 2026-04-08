@@ -13,6 +13,8 @@ import {
 } from '../internal/topo-saves.js';
 import {
   getStoredTopoExport,
+  normalizeFiresRows,
+  normalizeOnRows,
   persistEstablishedTopoSave,
 } from '../internal/topo-store.js';
 import { openWriteTrailsDb } from '../internal/trails-db.js';
@@ -446,6 +448,78 @@ describe('topo store projection', () => {
     });
   });
 
+  test('persists fires and on edges for signal-declaring trails', () => {
+    withProjectionDb((db) => {
+      const created = signal('entity.created', {
+        from: ['entity.create'],
+        payload: z.object({ id: z.string() }),
+      });
+      const updated = signal('entity.updated', {
+        from: ['entity.create'],
+        payload: z.object({ id: z.string() }),
+      });
+
+      const createTrail = trail('entity.create', {
+        blaze: () => Result.ok({ id: 'x' }),
+        fires: ['entity.created', 'entity.updated'],
+        input: z.object({}),
+        output: z.object({ id: z.string() }),
+      });
+      const indexTrail = trail('entity.index', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+        on: ['entity.created'],
+        output: z.object({ ok: z.boolean() }),
+      });
+      const auditTrail = trail('entity.audit', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+        on: ['entity.created', 'entity.updated'],
+        output: z.object({ ok: z.boolean() }),
+      });
+
+      const save = unwrap(
+        persistEstablishedTopoSave(
+          db,
+          topo('signal-edges-app', {
+            auditTrail,
+            createTrail,
+            created,
+            indexTrail,
+            updated,
+          })
+        )
+      );
+
+      const fires = db
+        .query<{ signal_id: string; trail_id: string }, [string]>(
+          `SELECT trail_id, signal_id
+           FROM topo_trail_fires
+           WHERE save_id = ?
+           ORDER BY trail_id ASC, signal_id ASC`
+        )
+        .all(save.id);
+      expect(fires).toEqual([
+        { signal_id: 'entity.created', trail_id: 'entity.create' },
+        { signal_id: 'entity.updated', trail_id: 'entity.create' },
+      ]);
+
+      const on = db
+        .query<{ signal_id: string; trail_id: string }, [string]>(
+          `SELECT trail_id, signal_id
+           FROM topo_trail_on
+           WHERE save_id = ?
+           ORDER BY trail_id ASC, signal_id ASC`
+        )
+        .all(save.id);
+      expect(on).toEqual([
+        { signal_id: 'entity.created', trail_id: 'entity.audit' },
+        { signal_id: 'entity.updated', trail_id: 'entity.audit' },
+        { signal_id: 'entity.created', trail_id: 'entity.index' },
+      ]);
+    });
+  });
+
   test('upgrades a history-only topo schema to the projected topo schema', () => {
     withProjectionDb((db) => {
       seedHistoryOnlyTopoSchema(db);
@@ -456,14 +530,75 @@ describe('topo store projection', () => {
             "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
           )
           .get()?.version
-      ).toBe(3);
-      expect(tableExists(db, 'topo_trails')).toBe(true);
-      expect(tableExists(db, 'topo_crossings')).toBe(true);
-      expect(tableExists(db, 'topo_examples')).toBe(true);
-      expect(tableExists(db, 'topo_exports')).toBe(true);
-      expect(tableExists(db, 'topo_schemas')).toBe(true);
+      ).toBe(4);
+      for (const table of [
+        'topo_trails',
+        'topo_crossings',
+        'topo_examples',
+        'topo_exports',
+        'topo_schemas',
+        'topo_trail_fires',
+        'topo_trail_on',
+      ]) {
+        expect(tableExists(db, table)).toBe(true);
+      }
       expect(countRows(db, 'topo_saves')).toBe(1);
       expect(countRows(db, 'topo_pins')).toBe(1);
     });
+  });
+});
+
+describe('signal edge normalizers', () => {
+  const makeTrail = (
+    id: string,
+    opts: {
+      readonly fires?: readonly string[];
+      readonly on?: readonly string[];
+    }
+  ) =>
+    trail(id, {
+      blaze: () => Result.ok({ ok: true }),
+      ...(opts.fires ? { fires: opts.fires } : {}),
+      input: z.object({}),
+      ...(opts.on ? { on: opts.on } : {}),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+  test('normalizeFiresRows produces one row per (trail, signal) pair', () => {
+    const trails = [
+      makeTrail('t.one', { fires: ['s.a', 's.b'] }),
+      makeTrail('t.two', { fires: ['s.a'] }),
+    ];
+    expect(normalizeFiresRows(trails, 'save-1')).toEqual([
+      { saveId: 'save-1', signalId: 's.a', trailId: 't.one' },
+      { saveId: 'save-1', signalId: 's.b', trailId: 't.one' },
+      { saveId: 'save-1', signalId: 's.a', trailId: 't.two' },
+    ]);
+  });
+
+  test('normalizeOnRows produces one row per (trail, signal) pair', () => {
+    const trails = [
+      makeTrail('t.one', { on: ['s.a', 's.b'] }),
+      makeTrail('t.two', { on: ['s.b'] }),
+    ];
+    expect(normalizeOnRows(trails, 'save-1')).toEqual([
+      { saveId: 'save-1', signalId: 's.a', trailId: 't.one' },
+      { saveId: 'save-1', signalId: 's.b', trailId: 't.one' },
+      { saveId: 'save-1', signalId: 's.b', trailId: 't.two' },
+    ]);
+  });
+
+  test('trails without fires/on produce no rows', () => {
+    const trails = [makeTrail('t.plain', {})];
+    expect(normalizeFiresRows(trails, 'save-1')).toEqual([]);
+    expect(normalizeOnRows(trails, 'save-1')).toEqual([]);
+  });
+
+  test('deduplicates and sorts signal ids', () => {
+    const trails = [makeTrail('t.one', { fires: ['s.b', 's.a', 's.b'] })];
+    expect(normalizeFiresRows(trails, 'save-1')).toEqual([
+      { saveId: 'save-1', signalId: 's.a', trailId: 't.one' },
+      { saveId: 'save-1', signalId: 's.b', trailId: 't.one' },
+    ]);
   });
 });

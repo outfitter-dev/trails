@@ -43,6 +43,18 @@ interface TopoCrossingRow {
   readonly targetId: string;
 }
 
+interface TopoFiresRow {
+  readonly saveId: string;
+  readonly signalId: string;
+  readonly trailId: string;
+}
+
+interface TopoOnRow {
+  readonly saveId: string;
+  readonly signalId: string;
+  readonly trailId: string;
+}
+
 interface TopoTrailProvisionRow {
   readonly provisionId: string;
   readonly saveId: string;
@@ -136,6 +148,8 @@ interface MaterializedTopoArtifacts {
 interface NormalizedTopoProjection {
   readonly crossings: readonly TopoCrossingRow[];
   readonly examples: readonly TopoExampleRow[];
+  readonly fires: readonly TopoFiresRow[];
+  readonly on: readonly TopoOnRow[];
   readonly resources: readonly TopoProvisionRow[];
   readonly signals: readonly TopoSignalRow[];
   readonly trailheads: readonly TopoTrailheadRow[];
@@ -288,6 +302,30 @@ const normalizeCrossingRows = (
     }))
   );
 
+export const normalizeFiresRows = (
+  trails: readonly AnyTrail[],
+  saveId: string
+): readonly TopoFiresRow[] =>
+  trails.flatMap((trail) =>
+    [...new Set(trail.fires)].toSorted().map((signalId) => ({
+      saveId,
+      signalId,
+      trailId: trail.id,
+    }))
+  );
+
+export const normalizeOnRows = (
+  trails: readonly AnyTrail[],
+  saveId: string
+): readonly TopoOnRow[] =>
+  trails.flatMap((trail) =>
+    [...new Set(trail.on)].toSorted().map((signalId) => ({
+      saveId,
+      signalId,
+      trailId: trail.id,
+    }))
+  );
+
 const normalizeTrailProvisionRows = (
   trails: readonly AnyTrail[],
   saveId: string
@@ -395,6 +433,8 @@ const normalizeTopoProjection = (
   return {
     crossings: normalizeCrossingRows(trails, saveId),
     examples: normalizeExampleRows(trails, saveId),
+    fires: normalizeFiresRows(trails, saveId),
+    on: normalizeOnRows(trails, saveId),
     resources: normalizeProvisionRows(resources, saveId),
     signals: normalizeSignalRows(signals, saveId),
     trailProvisions: normalizeTrailProvisionRows(trails, saveId),
@@ -958,6 +998,20 @@ const insertProjectedRows = (
     db,
     projection.trailSignals,
     `INSERT INTO topo_trail_signals (trail_id, signal_id, save_id)
+     VALUES (?, ?, ?)`,
+    (row) => [row.trailId, row.signalId, row.saveId]
+  );
+  insertRows(
+    db,
+    projection.fires,
+    `INSERT INTO topo_trail_fires (trail_id, signal_id, save_id)
+     VALUES (?, ?, ?)`,
+    (row) => [row.trailId, row.signalId, row.saveId]
+  );
+  insertRows(
+    db,
+    projection.on,
+    `INSERT INTO topo_trail_on (trail_id, signal_id, save_id)
      VALUES (?, ?, ?)`,
     (row) => [row.trailId, row.signalId, row.saveId]
   );
