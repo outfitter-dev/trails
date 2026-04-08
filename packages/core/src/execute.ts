@@ -10,6 +10,9 @@ import type { AnyTrail } from './trail.js';
 import type { Layer } from './layer.js';
 import type { ResourceOverrideMap } from './resource.js';
 import type { TraceContext, TraceRecord } from './internal/tracing.js';
+import type { Topo } from './topo.js';
+
+import { createFireFn } from './fire.js';
 import type {
   Implementation,
   TraceFn,
@@ -60,6 +63,8 @@ export interface ExecuteTrailOptions {
   readonly configValues?:
     | Readonly<Record<string, Record<string, unknown>>>
     | undefined;
+  /** Topo used for signal-driven activation; required for `ctx.fire()` to work. */
+  readonly topo?: Topo | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -296,30 +301,91 @@ const runImplWithRootRecord = async (
   }
 };
 
+const bindFireToCtx = (
+  ctx: TrailContext,
+  topo: Topo | undefined,
+  options: ExecuteTrailOptions | undefined
+): TrailContext => {
+  if (topo === undefined) {
+    return ctx;
+  }
+  // Forward the producer's execution options to consumers so resources,
+  // layers, configValues, and abortSignal propagate through signal fan-out.
+  // `createContext` is intentionally stripped — consumers inherit the
+  // already-resolved ctx via `consumerCtx`, and re-running the factory would
+  // clobber that.
+  const { createContext: _omit, ...forwarded } = options ?? {};
+  const fire = createFireFn(topo, ctx, (consumer, input, consumerCtx) =>
+    // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
+    executeTrail(consumer, input, {
+      ...forwarded,
+      ctx: consumerCtx,
+      topo,
+    })
+  );
+  return { ...ctx, fire };
+};
+
+const bindFireAtLayerBoundary = <I, O>(
+  implementation: Implementation<I, O>,
+  topo: Topo | undefined,
+  options: ExecuteTrailOptions | undefined
+): Implementation<I, O> => {
+  if (topo === undefined) {
+    return implementation;
+  }
+
+  return (input, ctx) =>
+    implementation(input, bindFireToCtx(ctx, topo, options));
+};
 const prepareRunImpl = (
   trail: AnyTrail,
-  layers: readonly Layer[]
+  ctx: TrailContext,
+  layers: readonly Layer[],
+  topo: Topo | undefined,
+  options: ExecuteTrailOptions | undefined
 ): {
+  readonly ctxWithFire: TrailContext;
   readonly impl: Implementation<unknown, unknown>;
-} => ({
-  impl: composeLayers([...layers], trail, trail.blaze) as Implementation<
-    unknown,
-    unknown
-  >,
-});
+} => {
+  const ctxWithFire = bindFireToCtx(ctx, topo, options);
+  let impl = bindFireAtLayerBoundary(
+    trail.blaze as Implementation<unknown, unknown>,
+    topo,
+    options
+  );
+
+  for (let i = layers.length - 1; i >= 0; i -= 1) {
+    const layer = layers[i];
+    if (layer) {
+      impl = bindFireAtLayerBoundary(
+        layer.wrap(trail, impl as never) as Implementation<unknown, unknown>,
+        topo,
+        options
+      );
+    }
+  }
+
+  return {
+    ctxWithFire,
+    impl,
+  };
+};
 
 const runTrail = async (
   trail: AnyTrail,
   input: unknown,
   ctx: TrailContext,
-  layers: readonly Layer[]
+  layers: readonly Layer[],
+  topo: Topo | undefined,
+  options: ExecuteTrailOptions | undefined
 ): Promise<Result<unknown, Error>> => {
   const sink = getTraceSink();
   const { record, tracedCtx } = buildTracedContext(trail, ctx, sink);
   let prepared: ReturnType<typeof prepareRunImpl>;
 
   try {
-    prepared = prepareRunImpl(trail, layers);
+    prepared = prepareRunImpl(trail, tracedCtx, layers, topo, options);
   } catch (error: unknown) {
     const status: TraceRecord['status'] =
       error instanceof CancelledError ? 'cancelled' : 'err';
@@ -333,7 +399,7 @@ const runTrail = async (
   return await runImplWithRootRecord(
     prepared.impl,
     input,
-    tracedCtx,
+    prepared.ctxWithFire,
     record,
     sink
   );
@@ -369,7 +435,9 @@ export const executeTrail = async (
       trail,
       validated.value,
       resolvedCtx.value,
-      options?.layers ?? []
+      options?.layers ?? [],
+      options?.topo,
+      options
     );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

@@ -274,6 +274,7 @@ const safeMergeInput = async (
 /** Create the execute function for a CLI command. */
 const createExecute =
   (
+    app: Topo,
     t: AnyTrail,
     fields: readonly Field[],
     metaFlagNames: ReadonlySet<string>,
@@ -310,6 +311,7 @@ const createExecute =
       ctx: withCliTrailhead(ctxOverrides),
       layers: options?.layers,
       resources: options?.resources,
+      topo: app,
     });
     const finalResult = maybeAddStructuredInputHint(
       result,
@@ -355,6 +357,7 @@ const buildFlags = (
 
 /** Convert a trail or route into a CLI command when it is publicly exposed. */
 const toCliCommand = (
+  app: Topo,
   t: AnyTrail,
   options?: BuildCliCommandsOptions
 ): CliCommand => {
@@ -379,6 +382,7 @@ const toCliCommand = (
     args: [],
     description: t.description,
     execute: createExecute(
+      app,
       t,
       fields,
       metaFlagNames,
@@ -401,7 +405,7 @@ const collectCommands = (
   app
     .list()
     .filter((trail) => trail.meta?.['internal'] !== true)
-    .map((trail) => toCliCommand(trail, options));
+    .map((trail) => toCliCommand(app, trail, options));
 
 export const buildCliCommands = (
   app: Topo,

@@ -5,7 +5,8 @@
 import { topo } from '@ontrails/core';
 
 import * as entitySignals from './signals/entity-signals.js';
-import * as demoProvisions from './resources/entity-store.js';
+import * as entityStore from './resources/entity-store.js';
+import * as notificationStore from './resources/notification-store.js';
 import * as entity from './trails/entity.js';
 import * as kv from './trails/kv.js';
 import * as notify from './trails/notify.js';
@@ -14,7 +15,8 @@ import * as search from './trails/search.js';
 
 export const app = topo(
   'demo',
-  demoProvisions,
+  entityStore,
+  notificationStore,
   entity,
   search,
   onboard,

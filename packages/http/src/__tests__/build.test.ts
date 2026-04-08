@@ -6,11 +6,12 @@ import {
   Result,
   TRAILHEAD_KEY,
   resource,
+  signal,
   ValidationError,
   trail,
   topo,
 } from '@ontrails/core';
-import type { Layer } from '@ontrails/core';
+import type { Layer, TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
 import { buildHttpRoutes } from '../build.js';
@@ -67,6 +68,17 @@ const dbProvision = resource('db.main', {
       source: 'factory',
     }),
 });
+
+const orderPlaced = signal('order.placed', {
+  payload: z.object({ orderId: z.string() }),
+});
+
+const requireFire = (fire: TrailContext['fire']) => {
+  if (!fire) {
+    throw new Error('Expected ctx.fire to be bound');
+  }
+  return fire;
+};
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -277,6 +289,41 @@ describe('buildHttpRoutes', () => {
       expect(result?.isErr()).toBe(true);
       expect(result?.error).toBeInstanceOf(InternalError);
       expect(result?.error?.message).toBe('context creation failed');
+    });
+
+    test('passes topo to executeTrail so HTTP-invoked producers can fan out', async () => {
+      const captured: string[] = [];
+      const consumer = trail('notify.email', {
+        blaze: (input: { orderId: string }) => {
+          captured.push(input.orderId);
+          return Result.ok({ delivered: true });
+        },
+        input: z.object({ orderId: z.string() }),
+        on: ['order.placed'],
+      });
+      const producer = trail('order.create', {
+        blaze: async (input: { orderId: string }, ctx) => {
+          const fired = await requireFire(ctx.fire)('order.placed', {
+            orderId: input.orderId,
+          });
+          return fired.match({
+            err: (error) => Result.err(error),
+            ok: () => Result.ok({ ok: true }),
+          });
+        },
+        fires: ['order.placed'],
+        input: z.object({ orderId: z.string() }),
+      });
+      const app = topo('signal-http', { consumer, orderPlaced, producer });
+      const buildResult = buildHttpRoutes(app);
+
+      expect(buildResult.isOk()).toBe(true);
+      const [route] = buildResult.value;
+
+      const result = await route?.execute({ orderId: 'o-http' });
+
+      expect(result?.isOk()).toBe(true);
+      expect(captured).toEqual(['o-http']);
     });
 
     test('passes requestId to context', async () => {

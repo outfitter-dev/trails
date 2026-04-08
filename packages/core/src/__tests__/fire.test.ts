@@ -8,6 +8,31 @@ import { run } from '../run';
 import { signal } from '../signal';
 import { topo } from '../topo';
 import { trail } from '../trail';
+import type { Logger, TrailContext } from '../types';
+
+const noopLogger: Logger = {
+  child() {
+    return noopLogger;
+  },
+  debug() {
+    // noop
+  },
+  error() {
+    // noop
+  },
+  fatal() {
+    // noop
+  },
+  info() {
+    // noop
+  },
+  trace() {
+    // noop
+  },
+  warn() {
+    // noop
+  },
+};
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -178,6 +203,190 @@ describe('fire', () => {
       const result = await executeTrail(standalone, {});
       expect(result.isOk()).toBe(true);
       expect((result.unwrap() as { hasFire: boolean }).hasFire).toBe(false);
+    });
+  });
+
+  describe('option forwarding', () => {
+    test('consumer inherits producer layers applied via options.layers', async () => {
+      const layerCalls: string[] = [];
+      const tagging: Layer = {
+        name: 'tag',
+        wrap: (_trail, implementation) => (input, ctx) => {
+          layerCalls.push('wrap');
+          return implementation(input, ctx);
+        },
+      };
+
+      const consumer = trail('layered.consumer', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({ orderId: z.string(), total: z.number() }),
+        on: ['order.placed'],
+      });
+      const fireBox: { result?: Result<void, Error> } = {};
+      const producer = makeProducer(fireBox);
+      const app = topo('fire-layer-forward', {
+        consumer,
+        orderPlaced,
+        producer,
+      });
+
+      const result = await run(
+        app,
+        'order.create',
+        { orderId: 'o-layer', total: 1 },
+        { layers: [tagging] }
+      );
+
+      expect(result.isOk()).toBe(true);
+      // Layer runs once for producer and once for consumer when forwarded.
+      expect(layerCalls.length).toBe(2);
+    });
+  });
+
+  describe('cycle detection', () => {
+    test('skips re-entrant signal cycles and logs a warning', async () => {
+      const warnings: { message: string; signalId?: unknown }[] = [];
+      const invocations: string[] = [];
+      const cycleLogger = createCycleLogger(warnings);
+      const app = createCycleScenario(invocations);
+
+      const result = await run(
+        app,
+        'loop.producer',
+        { id: 'loop-1' },
+        { ctx: { logger: cycleLogger } }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(invocations).toEqual(['a', 'b']);
+      expect(warnings).toEqual([
+        {
+          message: 'Signal cycle detected — skipping re-entrant fire',
+          signalId: 'loop.a',
+        },
+      ]);
+    });
+  });
+
+  describe('producer context inheritance', () => {
+    test('consumer inherits producer logger and requestId', async () => {
+      const captured: { requestId: string; loggerExists: boolean }[] = [];
+      const consumer = trail('inherit.consumer', {
+        blaze: (_input, ctx) => {
+          captured.push({
+            loggerExists: ctx.logger !== undefined,
+            requestId: ctx.requestId,
+          });
+          return Result.ok({ ok: true });
+        },
+        input: z.object({ orderId: z.string(), total: z.number() }),
+        on: ['order.placed'],
+      });
+      const fireBox: { result?: Result<void, Error> } = {};
+      const app = topo('fire-inherit', {
+        consumer,
+        orderPlaced,
+        producer: makeProducer(fireBox),
+      });
+      const result = await run(
+        app,
+        'order.create',
+        { orderId: 'o-inherit', total: 1 },
+        { ctx: { logger: noopLogger, requestId: 'producer-request-id' } }
+      );
+      expect(result.isOk()).toBe(true);
+      expect(captured).toHaveLength(1);
+      expect(captured[0]?.loggerExists).toBe(true);
+      expect(captured[0]?.requestId).toBe('producer-request-id');
+    });
+
+    test('consumer inherits layer-mutated producer requestId', async () => {
+      const captured: string[] = [];
+      const consumer = trail('inherit.layered.consumer', {
+        blaze: (_input, ctx) => {
+          captured.push(ctx.requestId);
+          return Result.ok({ ok: true });
+        },
+        input: z.object({ orderId: z.string(), total: z.number() }),
+        on: ['order.placed'],
+      });
+      const requestIdLayer: Layer = {
+        name: 'request-id-layer',
+        wrap: (_trail, implementation) => (input, ctx) =>
+          implementation(input, {
+            ...ctx,
+            requestId: 'layer-request-id',
+          }),
+      };
+      const fireBox: { result?: Result<void, Error> } = {};
+      const app = topo('fire-inherit-layered', {
+        consumer,
+        orderPlaced,
+        producer: makeProducer(fireBox),
+      });
+
+      const result = await run(
+        app,
+        'order.create',
+        { orderId: 'o-layered-inherit', total: 1 },
+        {
+          ctx: { requestId: 'producer-request-id' },
+          layers: [requestIdLayer],
+        }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(captured).toEqual(['layer-request-id']);
+    });
+
+    test('extracted fire inherits layer-mutated producer requestId', async () => {
+      const captured: string[] = [];
+      const consumer = trail('inherit.extracted.consumer', {
+        blaze: (_input, ctx) => {
+          captured.push(ctx.requestId);
+          return Result.ok({ ok: true });
+        },
+        input: z.object({ orderId: z.string(), total: z.number() }),
+        on: ['order.placed'],
+      });
+      const producer = trail('inherit.extracted.producer', {
+        blaze: async (input, ctx) => {
+          const { fire } = ctx;
+          const fired = await fire?.('order.placed', {
+            orderId: input.orderId,
+            total: input.total,
+          });
+          return fired as Result<unknown, Error>;
+        },
+        fires: ['order.placed'],
+        input: z.object({ orderId: z.string(), total: z.number() }),
+      });
+      const requestIdLayer: Layer = {
+        name: 'request-id-layer',
+        wrap: (_trail, implementation) => (input, ctx) =>
+          implementation(input, {
+            ...ctx,
+            requestId: 'layer-request-id',
+          }),
+      };
+      const app = topo('fire-inherit-extracted', {
+        consumer,
+        orderPlaced,
+        producer,
+      });
+
+      const result = await run(
+        app,
+        'inherit.extracted.producer',
+        { orderId: 'o-layered-inherit', total: 1 },
+        {
+          ctx: { requestId: 'producer-request-id' },
+          layers: [requestIdLayer],
+        }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(captured).toEqual(['layer-request-id']);
     });
   });
 });

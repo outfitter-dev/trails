@@ -9,9 +9,7 @@ import type { Topo } from './topo.js';
 import { executeTrail } from './execute.js';
 import type { ExecuteTrailOptions } from './execute.js';
 import { NotFoundError } from './errors.js';
-import { createFireFn } from './fire.js';
 import { Result } from './result.js';
-import type { TrailContextInit } from './types.js';
 
 // ---------------------------------------------------------------------------
 // Options
@@ -28,9 +26,10 @@ export type RunOptions = ExecuteTrailOptions;
  * Execute a trail by ID from a topo without mounting a trailhead.
  *
  * Resolves the trail from the topo, then runs it through the standard
- * `executeTrail` pipeline. Returns `Result.err(NotFoundError)` if the
- * trail ID is not registered. Never throws — unexpected exceptions are
- * returned as `Result.err(InternalError)`.
+ * `executeTrail` pipeline with `topo` threaded so `ctx.fire()` is bound
+ * to the producer's context inside `executeTrail`. Returns
+ * `Result.err(NotFoundError)` if the trail ID is not registered. Never
+ * throws — unexpected exceptions are returned as `Result.err(InternalError)`.
  *
  * @example
  * ```typescript
@@ -52,7 +51,5 @@ export const run = (
       )
     );
   }
-  const fire = createFireFn(topo, options?.ctx?.logger);
-  const ctxWithFire: Partial<TrailContextInit> = { ...options?.ctx, fire };
-  return executeTrail(trail, input, { ...options, ctx: ctxWithFire });
+  return executeTrail(trail, input, { ...options, topo });
 };

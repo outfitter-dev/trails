@@ -5,10 +5,11 @@ import {
   TRAILHEAD_KEY,
   createBlobRef,
   resource,
+  signal,
   trail,
   topo,
 } from '@ontrails/core';
-import type { Layer } from '@ontrails/core';
+import type { Layer, TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
 import { buildMcpTools } from '../build.js';
@@ -58,6 +59,17 @@ const dbProvision = resource('db.main', {
       source: 'factory',
     }),
 });
+
+const orderPlaced = signal('order.placed', {
+  payload: z.object({ orderId: z.string() }),
+});
+
+const requireFire = (fire: TrailContext['fire']) => {
+  if (!fire) {
+    throw new Error('Expected ctx.fire to be bound');
+  }
+  return fire;
+};
 
 const noExtra: McpExtra = {};
 
@@ -190,6 +202,40 @@ describe('buildMcpTools', () => {
       expect(parseJsonContent(result?.content[0])).toEqual({
         reply: 'hello',
       });
+    });
+
+    test('passes topo to executeTrail so MCP-invoked producers can fan out', async () => {
+      const captured: string[] = [];
+      const consumer = trail('notify.email', {
+        blaze: (input: { orderId: string }) => {
+          captured.push(input.orderId);
+          return Result.ok({ delivered: true });
+        },
+        input: z.object({ orderId: z.string() }),
+        on: ['order.placed'],
+      });
+      const producer = trail('order.create', {
+        blaze: async (input: { orderId: string }, ctx) => {
+          const fired = await requireFire(ctx.fire)('order.placed', {
+            orderId: input.orderId,
+          });
+          return fired.match({
+            err: (error) => Result.err(error),
+            ok: () => Result.ok({ ok: true }),
+          });
+        },
+        fires: ['order.placed'],
+        input: z.object({ orderId: z.string() }),
+      });
+      const tool = requireTool(
+        buildTools(topo('signal-mcp', { consumer, orderPlaced, producer })),
+        'signal_mcp_order_create'
+      );
+
+      const result = await tool.handler({ orderId: 'o-mcp' }, noExtra);
+
+      expect(result.isError).toBeUndefined();
+      expect(captured).toEqual(['o-mcp']);
     });
 
     test('handler maps errors to isError content', async () => {
