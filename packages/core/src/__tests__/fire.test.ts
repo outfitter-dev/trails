@@ -159,6 +159,81 @@ const makeProducer = (fireResultKey: { result?: Result<void, Error> }) =>
     input: z.object({ orderId: z.string(), total: z.number() }),
   });
 
+const cyclePayload = z.object({ id: z.string() });
+
+const loopA = signal('loop.a', { payload: cyclePayload });
+const loopB = signal('loop.b', { payload: cyclePayload });
+
+const createCycleLogger = (
+  warnings: { message: string; signalId?: unknown }[]
+): Logger => ({
+  child() {
+    return this;
+  },
+  debug() {
+    // noop
+  },
+  error() {
+    // noop
+  },
+  fatal() {
+    // noop
+  },
+  info() {
+    // noop
+  },
+  trace() {
+    // noop
+  },
+  warn(message, data) {
+    warnings.push({ message, signalId: data?.signalId });
+  },
+});
+
+const createCycleConsumer = (
+  id: string,
+  signalId: 'loop.a' | 'loop.b',
+  nextSignalId: 'loop.a' | 'loop.b',
+  invocations: string[]
+) =>
+  trail(id, {
+    blaze: async (input, ctx) => {
+      invocations.push(signalId === 'loop.a' ? 'a' : 'b');
+      const fired = await ctx.fire?.(nextSignalId, { id: input.id });
+      return fired as Result<unknown, Error>;
+    },
+    fires: [nextSignalId],
+    input: cyclePayload,
+    on: [signalId],
+  });
+
+const createCycleScenario = (invocations: string[]) =>
+  topo('fire-cycle', {
+    consumerA: createCycleConsumer(
+      'loop.consumer.a',
+      'loop.a',
+      'loop.b',
+      invocations
+    ),
+    consumerB: createCycleConsumer(
+      'loop.consumer.b',
+      'loop.b',
+      'loop.a',
+      invocations
+    ),
+    loopA,
+    loopB,
+    producer: trail('loop.producer', {
+      blaze: async (input, ctx) =>
+        (await ctx.fire?.('loop.a', { id: input.id })) as Result<
+          unknown,
+          Error
+        >,
+      fires: ['loop.a'],
+      input: cyclePayload,
+    }),
+  });
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
