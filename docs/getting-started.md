@@ -68,7 +68,7 @@ What you get from this single definition:
 - CLI flags derived from the Zod schema: `--name <value>`, `--loud`
 - An MCP tool with JSON Schema input and annotations (`readOnlyHint: true`)
 - Two examples that serve as agent documentation AND test cases
-- Sync authoring for pure work, with the runtime normalized to one awaitable execution shape for gates and trailheads
+- Sync authoring for pure work, with the runtime normalized to one awaitable execution shape for layers and trailheads
 
 ## Collect Into a Topo
 
@@ -168,8 +168,8 @@ That single `testAll(app)` call runs the full governance suite:
 
 No separate test files for the happy path. The examples ARE the tests.
 
-If your app declares provisions with `mock` factories, `testAll(app)` and
-`testExamples(app)` pick them up automatically. Use explicit `provisions`
+If your app declares resources with `mock` factories, `testAll(app)` and
+`testExamples(app)` pick them up automatically. Use explicit `resources`
 overrides only when you need a specific fake or fresh mutable state.
 
 For finer control, use `testExamples(app)` to run only example assertions without structural checks:
@@ -243,20 +243,20 @@ Trails declare their composition dependencies with `crosses` and invoke them wit
 
 ## Using Services
 
-When a trail needs an external dependency — a database, cache, or API client — declare it as a provision:
+When a trail needs an external dependency — a database, cache, or API client — declare it as a resource:
 
 ```typescript
-import { provision, trail, Result } from '@ontrails/core';
+import { resource, trail, Result } from '@ontrails/core';
 import { z } from 'zod';
 
-const db = provision('db', {
+const db = resource('db', {
   create: () => Result.ok(createPool(process.env.DATABASE_URL)),
   mock: () => createMockPool(),
   dispose: (pool) => pool.end(),
 });
 
 export const listUsers = trail('user.list', {
-  provisions: [db],
+  resources: [db],
   input: z.object({}),
   output: z.object({ users: z.array(UserSchema) }),
   intent: 'read',
@@ -268,12 +268,12 @@ export const listUsers = trail('user.list', {
 });
 ```
 
-The `provisions: [db]` declaration tells the topo which infrastructure this trail depends on. Access the provision instance through `db.from(ctx)` for typed access. When you run `testAll(app)`, the framework automatically resolves `mock` factories — no configuration needed for example-based tests.
+The `resources: [db]` declaration tells the topo which infrastructure this trail depends on. Access the resource instance through `db.from(ctx)` for typed access. When you run `testAll(app)`, the framework automatically resolves `mock` factories — no configuration needed for example-based tests.
 
 ## What's Next
 
 - [Architecture](./architecture.md) -- How the hexagonal model works
-- [Vocabulary](./vocabulary.md) -- All Trails terms defined
+- [Lexicon](./lexicon.md) -- All Trails terms defined
 - [Testing Guide](./testing.md) -- TDD approach, contract testing, harnesses
-- [CLI Trailhead Guide](./trailheads/cli.md) -- Flag derivation, output modes, gates
+- [CLI Trailhead Guide](./trailheads/cli.md) -- Flag derivation, output modes, layers
 - [MCP Trailhead Guide](./trailheads/mcp.md) -- Annotations, progress, tool naming

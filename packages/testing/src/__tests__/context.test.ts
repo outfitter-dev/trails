@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, provision, topo } from '@ontrails/core';
+import { Result, resource, topo } from '@ontrails/core';
 
 import {
   createCrossContext,
   createTestContext,
   mergeTestContext,
-  resolveMockProvisions,
+  resolveMockResources,
 } from '../context.js';
 import type { TestLogger } from '../types.js';
 
@@ -102,7 +102,7 @@ describe('createCrossContext', () => {
 });
 
 describe('mergeTestContext', () => {
-  test('merges provision overrides into extensions and the provision accessor', () => {
+  test('merges resource overrides into extensions and the resource accessor', () => {
     const ctx = mergeTestContext(
       {
         extensions: { existing: true },
@@ -114,14 +114,14 @@ describe('mergeTestContext', () => {
       'db.main': { source: 'mock' },
       existing: true,
     });
-    expect(ctx.provision<{ source: string }>('db.main').source).toBe('mock');
+    expect(ctx.resource<{ source: string }>('db.main').source).toBe('mock');
   });
 });
 
-describe('resolveMockProvisions', () => {
-  test('creates fresh mock provisions for each invocation', async () => {
+describe('resolveMockResources', () => {
+  test('creates fresh mock resources for each invocation', async () => {
     let mockCalls = 0;
-    const mockable = provision(`provision.mock.${Bun.randomUUIDv7()}`, {
+    const mockable = resource(`resource.mock.${Bun.randomUUIDv7()}`, {
       create: () => Result.ok({ source: 'factory' }),
       mock: () => {
         mockCalls += 1;
@@ -130,8 +130,8 @@ describe('resolveMockProvisions', () => {
     });
     const app = topo('mock-app', { mockable } as Record<string, unknown>);
 
-    const first = await resolveMockProvisions(app);
-    const second = await resolveMockProvisions(app);
+    const first = await resolveMockResources(app);
+    const second = await resolveMockResources(app);
 
     expect(first).toEqual({ [mockable.id]: { source: 'mock' } });
     expect(second).toEqual(first);
@@ -139,12 +139,12 @@ describe('resolveMockProvisions', () => {
     expect(mockCalls).toBe(2);
   });
 
-  test('skips provisions without mock factories', async () => {
-    const plain = provision(`provision.plain.${Bun.randomUUIDv7()}`, {
+  test('skips resources without mock factories', async () => {
+    const plain = resource(`resource.plain.${Bun.randomUUIDv7()}`, {
       create: () => Result.ok({ source: 'factory' }),
     });
     const app = topo('plain-app', { plain } as Record<string, unknown>);
 
-    expect(await resolveMockProvisions(app)).toEqual({});
+    expect(await resolveMockResources(app)).toEqual({});
   });
 });

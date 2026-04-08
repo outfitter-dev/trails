@@ -57,14 +57,14 @@ describe('createTrailContext', () => {
     expect(ctx.extensions?.['nested']).toEqual({ key: 'value' });
   });
 
-  test('provides a provision accessor backed by extensions', () => {
+  test('provides a resource accessor backed by extensions', () => {
     const widget = { id: 'widget-1' };
     const ctx = createTrailContext({
       extensions: { 'widget.main': widget },
     });
 
-    expect(ctx.provision('widget.main')).toBe(widget);
-    expect(ctx.provision<{ id: string }>({ id: 'widget.main' }).id).toBe(
+    expect(ctx.resource('widget.main')).toBe(widget);
+    expect(ctx.resource<{ id: string }>({ id: 'widget.main' }).id).toBe(
       'widget-1'
     );
   });

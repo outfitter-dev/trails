@@ -4,11 +4,11 @@
 
 import type {
   CrossFn,
-  ProvisionOverrideMap,
+  ResourceOverrideMap,
   Topo,
   TrailContext,
 } from '@ontrails/core';
-import { Result, createProvisionLookup } from '@ontrails/core';
+import { Result, createResourceLookup } from '@ontrails/core';
 
 import { createTestLogger } from './logger.js';
 import type { TestTrailContextOptions } from './types.js';
@@ -41,8 +41,8 @@ export const createTestContext = (
     requestId: overrides?.requestId ?? 'test-request-001',
     workspaceRoot: cwd,
   } as MutableTrailContext;
-  const lookup = createProvisionLookup(() => ctx);
-  ctx.provision = lookup;
+  const lookup = createResourceLookup(() => ctx);
+  ctx.resource = lookup;
   return ctx;
 };
 
@@ -70,7 +70,7 @@ export interface MintableTrail {
 
 export interface TestExecutionOptions {
   readonly ctx?: Partial<TrailContext> | undefined;
-  readonly provisions?: ProvisionOverrideMap | undefined;
+  readonly resources?: ResourceOverrideMap | undefined;
   /**
    * When true, disables automatic permit minting. Tests must provide
    * explicit permits.
@@ -137,7 +137,7 @@ const isTestExecutionOptions = (
 ): input is TestExecutionOptions =>
   input !== undefined &&
   (Object.hasOwn(input, 'ctx') ||
-    Object.hasOwn(input, 'provisions') ||
+    Object.hasOwn(input, 'resources') ||
     Object.hasOwn(input, 'strictPermits') ||
     Object.hasOwn(input, 'mintPermit'));
 
@@ -146,32 +146,30 @@ export const normalizeTestExecutionOptions = (
 ): TestExecutionOptions =>
   isTestExecutionOptions(input) ? input : { ctx: input };
 
-export const mergeProvisionOverrides = (
-  autoResolved: ProvisionOverrideMap,
+export const mergeResourceOverrides = (
+  autoResolved: ResourceOverrideMap,
   ctx: Partial<TrailContext> | undefined,
-  explicit: ProvisionOverrideMap | undefined
-): ProvisionOverrideMap => ({
+  explicit: ResourceOverrideMap | undefined
+): ResourceOverrideMap => ({
   ...autoResolved,
   ...ctx?.extensions,
   ...explicit,
 });
 
-const buildMockProvisions = async (
-  app: Topo
-): Promise<ProvisionOverrideMap> => {
-  const provisions: Record<string, unknown> = {};
-  for (const declaredProvision of app.listProvisions()) {
-    if (!declaredProvision.mock) {
+const buildMockResources = async (app: Topo): Promise<ResourceOverrideMap> => {
+  const resources: Record<string, unknown> = {};
+  for (const declaredResource of app.listResources()) {
+    if (!declaredResource.mock) {
       continue;
     }
-    provisions[declaredProvision.id] = await declaredProvision.mock();
+    resources[declaredResource.id] = await declaredResource.mock();
   }
-  return provisions;
+  return resources;
 };
 
-export const resolveMockProvisions = async (
+export const resolveMockResources = async (
   app: Topo
-): Promise<ProvisionOverrideMap> => await buildMockProvisions(app);
+): Promise<ResourceOverrideMap> => await buildMockResources(app);
 
 /**
  * Merge a Partial<TrailContext> into a test context.
@@ -179,20 +177,20 @@ export const resolveMockProvisions = async (
  */
 export const mergeTestContext = (
   ctx?: Partial<TrailContext>,
-  provisions?: ProvisionOverrideMap
+  resources?: ResourceOverrideMap
 ): TrailContext => {
   const base = createTestContext();
   const extensions = {
     ...base.extensions,
     ...ctx?.extensions,
-    ...provisions,
+    ...resources,
   };
   const merged = {
     ...base,
     ...ctx,
     extensions: Object.keys(extensions).length === 0 ? undefined : extensions,
   } as MutableTrailContext;
-  const lookup = createProvisionLookup(() => merged);
-  merged.provision = lookup;
+  const lookup = createResourceLookup(() => merged);
+  merged.resource = lookup;
   return merged;
 };

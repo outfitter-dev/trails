@@ -13,7 +13,7 @@ import {
 } from '@ontrails/core';
 import { z } from 'zod';
 
-import { entityStoreProvision } from '../provisions/entity-store.js';
+import { entityStoreProvision } from '../resources/entity-store.js';
 import type { Entity } from '../store.js';
 import { entitySchema } from '../store.js';
 
@@ -75,7 +75,7 @@ export const show = trail('entity.show', {
   }),
   intent: 'read',
   output: entitySchema,
-  provisions: [entityStoreProvision],
+  resources: [entityStoreProvision],
 });
 
 // ---------------------------------------------------------------------------
@@ -127,7 +127,7 @@ export const add = trail('entity.add', {
   }),
   intent: 'write',
   output: entitySchema,
-  provisions: [entityStoreProvision],
+  resources: [entityStoreProvision],
 });
 
 // ---------------------------------------------------------------------------
@@ -165,7 +165,7 @@ export const remove = trail('entity.delete', {
     deleted: z.boolean(),
     name: z.string(),
   }),
-  provisions: [entityStoreProvision],
+  resources: [entityStoreProvision],
 });
 
 // ---------------------------------------------------------------------------
@@ -211,5 +211,5 @@ export const list = trail('entity.list', {
     entities: z.array(entitySummarySchema),
     total: z.number(),
   }),
-  provisions: [entityStoreProvision],
+  resources: [entityStoreProvision],
 });

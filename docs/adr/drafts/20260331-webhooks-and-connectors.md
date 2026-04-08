@@ -237,7 +237,7 @@ For long-running trails, the webhook endpoint should respond quickly and run asy
 },
 ```
 
-When `async: true`, the endpoint verifies and validates, responds 202 (Accepted), and runs the trail in the background. The trail's Result is recorded by tracker but not returned to the webhook sender.
+When `async: true`, the endpoint verifies and validates, responds 202 (Accepted), and runs the trail in the background. The trail's Result is recorded by tracing but not returned to the webhook sender.
 
 Default is `false` (synchronous): verify, validate, execute, respond with the result status. This is simpler and correct for fast trails.
 
@@ -256,11 +256,11 @@ An optional idempotency layer checks the delivery ID against a store before disp
 },
 ```
 
-When `idempotent: true`, the trailhead checks `deliveryId` against the tracker store (or a dedicated idempotency store). If the delivery has already been processed, the trailhead returns 200 without re-dispatching. This is a trailhead-level concern, not a trail concern. The trail doesn't know about deduplication.
+When `idempotent: true`, the trailhead checks `deliveryId` against the tracing store (or a dedicated idempotency store). If the delivery has already been processed, the trailhead returns 200 without re-dispatching. This is a trailhead-level concern, not a trail concern. The trail doesn't know about deduplication.
 
 ### Interaction with triggers
 
-The activation ADR introduces `fires: [{ webhook: 'stripe', ... }]` on the trail spec. The fires declaration captures the activation intent. The webhook trailhead config in `trailhead()` handles the HTTP concerns. These are complementary:
+The activation ADR introduces `on: [{ webhook: 'stripe', ... }]` on the trail spec. The fires declaration captures the activation intent. The webhook trailhead config in `trailhead()` handles the HTTP concerns. These are complementary:
 
 - **The fires declaration** says "this trail is activated by Stripe webhooks." It's part of the trail's contract. Survey reports it. The warden governs it.
 - **The webhook config** says "Stripe webhooks arrive at `/webhooks/stripe`, verified with this function, adapted with this transformer." It's trailhead configuration.
@@ -321,7 +321,7 @@ testWebhook(app, '/webhooks/stripe', {
 });
 ```
 
-`testWebhook` validates the full chain: verification passes, adaptation produces correct input, the trail executes, the response is correct. The mock provision factories provide test infrastructure. No real Stripe required.
+`testWebhook` validates the full chain: verification passes, adaptation produces correct input, the trail executes, the response is correct. The mock resource factories provide test infrastructure. No real Stripe required.
 
 ## Consequences
 
@@ -337,15 +337,15 @@ testWebhook(app, '/webhooks/stripe', {
 
 - **Connector authoring is manual.** The developer writes the transform function. For common providers (Stripe, GitHub), built-in connectors or connector packs can amortize this. But each new provider integration needs a new connector.
 - **Two schemas per webhook.** The provider's payload schema (`from`) and the trail's input schema (`to`). Both must be maintained. If the provider changes their payload format, the connector needs updating. This is inherent to the problem: you're bridging two contracts.
-- **Webhook config in `trailhead()` is trailhead-side.** The endpoint path, verification function, and connector are configured on trailhead options, not on the trail spec. This is correct (the trail shouldn't know about HTTP paths) but means the webhook wiring is split between the trail (`fires: [{ webhook: '...' }]`) and the trailhead (`trailhead({ webhooks: ... })`). The warden validates consistency between the two.
-- **Async run adds complexity.** The `async: true` option introduces background execution, which means the webhook response doesn't reflect the trail's result. Tracker records the result, but the webhook sender only sees 202. This is standard for long-running webhook handlers but adds operational complexity.
+- **Webhook config in `trailhead()` is trailhead-side.** The endpoint path, verification function, and connector are configured on trailhead options, not on the trail spec. This is correct (the trail shouldn't know about HTTP paths) but means the webhook wiring is split between the trail (`on: [{ webhook: '...' }]`) and the trailhead (`trailhead({ webhooks: ... })`). The warden validates consistency between the two.
+- **Async run adds complexity.** The `async: true` option introduces background execution, which means the webhook response doesn't reflect the trail's result. Tracing records the result, but the webhook sender only sees 202. This is standard for long-running webhook handlers but adds operational complexity.
 
 ### What this does NOT decide
 
 - **Outbound webhooks (sending webhooks to external systems).** This ADR covers inbound webhooks. Sending webhooks is a different concern: serialization, retry logic, delivery tracking, failure handling. That's future work, likely as a service or a pack pattern.
 - **Which providers get built-in verifiers and connectors.** Stripe, GitHub, and Linear are likely first candidates. The set grows based on ecosystem demand.
 - **Whether connectors should support streaming transformation.** Current connectors transform a complete payload. Streaming connectors (for large payloads or chunked delivery) are a future extension.
-- **Global webhook gates.** Rate limiting, IP allowlisting, payload size limits: these are HTTP gates concerns that apply to webhook endpoints. They're handled by the HTTP trailhead's existing layer model, not by the webhook config.
+- **Global webhook layers.** Rate limiting, IP allowlisting, payload size limits: these are HTTP layers concerns that apply to webhook endpoints. They're handled by the HTTP trailhead's existing layer model, not by the webhook config.
 
 ## References
 
@@ -353,7 +353,7 @@ testWebhook(app, '/webhooks/stripe', {
 - [ADR-0005: Framework-Agnostic HTTP Route Model](../0005-framework-agnostic-http-route-model.md) -- webhooks extend the HTTP route model with verification and adaptation
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `executeTrail` runs the trail after verification and adaptation; the pipeline is unchanged
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- webhook endpoints are not derived from trail IDs; they're explicitly configured paths
-- [ADR-0013: Tracker](../0013-tracker.md) -- tracker records async trail results and provides the idempotency store for delivery deduplication
+- [ADR-0013: Tracing](../0013-tracing.md) -- tracing records async trail results and provides the idempotency store for delivery deduplication
 - ADR: The Serialized Topo Graph (draft) -- webhook secrets resolve through the config system; lockfile captures the resolved config shape
 - ADR: Reactive Trail Activation (draft) -- webhook triggers declare activation intent on the trail; webhook trailhead config handles HTTP concerns
 - ADR: Trail Visibility and Trailhead Filtering (draft) -- webhook-triggered trails may be internal (not surfaced on CLI or MCP)

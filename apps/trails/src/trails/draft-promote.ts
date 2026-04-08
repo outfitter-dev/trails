@@ -167,7 +167,7 @@ const replaceLiteralValue = (
 const collectOutputId = (
   app: Awaited<ReturnType<typeof loadApp>>,
   id: string
-) => app.get(id) ?? app.signals.get(id) ?? app.getProvision(id);
+) => app.get(id) ?? app.signals.get(id) ?? app.getResource(id);
 
 const toRelativeOutputPath = (rootDir: string, filePath: string): string =>
   relative(rootDir, filePath).replaceAll('\\', '/');

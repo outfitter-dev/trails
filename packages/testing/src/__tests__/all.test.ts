@@ -64,7 +64,7 @@ const createOverrideStore = () => {
 
 const mockDbProvision = createDbProvision();
 
-const mockedTrail = trail('provision.mocked.all', {
+const mockedTrail = trail('resource.mocked.all', {
   blaze: async (_input, ctx) => {
     const entity = await mockDbProvision.from(ctx).entities.get('seed-1');
     if (entity === null) {
@@ -74,20 +74,20 @@ const mockedTrail = trail('provision.mocked.all', {
     return Result.ok({ name: entity.name, source: entity.source });
   },
   description:
-    'Trail that uses a mocked connector-bound provision through testAll',
+    'Trail that uses a mocked connector-bound resource through testAll',
   examples: [
     {
       expected: { name: 'Alpha', source: 'mock' },
       input: {},
-      name: 'Uses auto-resolved provision mock',
+      name: 'Uses auto-resolved resource mock',
     },
   ],
   input: z.object({}),
   output: z.object({ name: z.string(), source: z.string() }),
-  provisions: [mockDbProvision],
+  resources: [mockDbProvision],
 });
 
-const overrideTrail = trail('provision.override.all', {
+const overrideTrail = trail('resource.override.all', {
   blaze: async (_input, ctx) => {
     const entity = await mockDbProvision.from(ctx).entities.get('seed-1');
     if (entity === null) {
@@ -101,33 +101,33 @@ const overrideTrail = trail('provision.override.all', {
     {
       expected: { name: 'Override', source: 'override' },
       input: {},
-      name: 'Explicit provision override wins',
+      name: 'Explicit resource override wins',
     },
   ],
   input: z.object({}),
   output: z.object({ name: z.string(), source: z.string() }),
-  provisions: [mockDbProvision],
+  resources: [mockDbProvision],
 });
 
-describe('testAll provision mocks', () => {
+describe('testAll resource mocks', () => {
   // eslint-disable-next-line jest/require-hook
   testAll(
-    topo('test-all-provision-mock-app', {
+    topo('test-all-resource-mock-app', {
       mockDbProvision,
       mockedTrail,
     } as Record<string, unknown>)
   );
 });
 
-describe('testAll explicit provision overrides', () => {
+describe('testAll explicit resource overrides', () => {
   // eslint-disable-next-line jest/require-hook
   testAll(
-    topo('test-all-provision-override-app', {
+    topo('test-all-resource-override-app', {
       mockDbProvision,
       overrideTrail,
     } as Record<string, unknown>),
     () => ({
-      provisions: {
+      resources: {
         'db.mock.all': createOverrideStore(),
       },
     })

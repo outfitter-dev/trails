@@ -102,7 +102,7 @@ search: {
 The embedding service is a standard Trails service (ADR-009):
 
 ```typescript
-export const embeddingService = provision('embedder', {
+export const embeddingService = resource('embedder', {
   create: () => ({
     embed: async (text: string): Promise<number[]> => {
       // OpenAI, local model, or any embedding provider
@@ -290,13 +290,13 @@ This is explicitly deferred. The initial implementation focuses on single-entity
 - **Query suggestion or autocomplete.** These are application-level features that build on search, not search primitives.
 - **Real-time search / streaming results.** The search accessor returns a paginated result set. Streaming or live-updating results are a future concern.
 - **Topo-level search.** Searching across trail descriptions and examples for agent discovery is a compelling future direction but is architecturally distinct from entity search. It would use the same search primitives but operates on the topo graph, not on stored entities.
-- **Relevance analytics.** Tracking which queries return good results, which return empty, and how users interact with search results is an observability concern (related to Tracker, ADR-0013) rather than a search concern.
+- **Relevance analytics.** Tracking which queries return good results, which return empty, and how users interact with search results is an observability concern (related to Tracing, ADR-0013) rather than a search concern.
 
 ## References
 
 - ADR: Schema-Derived Persistence (draft) -- the store abstraction that search extends
 - ADR: Drizzle Store Connector (draft) -- the connector that implements FTS5 and vector indexing
 - ADR: Entity Trail Factories (draft) -- the `mark()` factory that auto-generates search trails
-- [ADR-0009: Services](../0009-first-class-provisions.md) -- the service pattern for embedding providers
+- [ADR-0009: Services](../0009-first-class-resources.md) -- the service pattern for embedding providers
 - [Architecture](../../architecture.md) -- information categories, right-side hexagonal connectors
 - Alex Garcia's hybrid search guide: <https://alexgarcia.xyz/blog/2024/sqlite-vec-hybrid-search/>

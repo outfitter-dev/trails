@@ -45,8 +45,8 @@ const capitalize = (s: string): string =>
   `${s.charAt(0).toUpperCase()}${s.slice(1)}`;
 
 const labelForKind = (kind: TrailheadMapEntry['kind']): string => {
-  if (kind === 'provision') {
-    return 'Provision';
+  if (kind === 'resource') {
+    return 'Resource';
   }
   if (kind === 'signal') {
     return 'Signal';
@@ -311,7 +311,7 @@ const buildProvisionsMessage = (added: string[], removed: string[]): string => {
   if (removed.length > 0) {
     parts.push(`removed "${removed.join('", "')}"`);
   }
-  return `Provisions changed: ${parts.join(', ')}`;
+  return `Resources changed: ${parts.join(', ')}`;
 };
 
 /** Diff crosses arrays. */
@@ -333,19 +333,19 @@ const diffCrosses = (
   }
 };
 
-/** Diff declared provision arrays on trail entries. */
+/** Diff declared resource arrays on trail entries. */
 const diffProvisions = (
   acc: DetailAccumulator,
   prev: TrailheadMapEntry,
   curr: TrailheadMapEntry
 ): void => {
-  const prevProvisions = new Set(prev.provisions);
-  const currProvisions = new Set(curr.provisions);
+  const prevProvisions = new Set(prev.resources);
+  const currProvisions = new Set(curr.resources);
   const added = [...currProvisions]
-    .filter((provision) => !prevProvisions.has(provision))
+    .filter((resource) => !prevProvisions.has(resource))
     .toSorted();
   const removed = [...prevProvisions]
-    .filter((provision) => !currProvisions.has(provision))
+    .filter((resource) => !currProvisions.has(resource))
     .toSorted();
   if (added.length > 0 || removed.length > 0) {
     addDetail(acc, 'warning', buildProvisionsMessage(added, removed));

@@ -5,12 +5,12 @@ import {
   NotFoundError,
   Result,
   TRAILHEAD_KEY,
-  provision,
+  resource,
   ValidationError,
   trail,
   topo,
 } from '@ontrails/core';
-import type { Gate } from '@ontrails/core';
+import type { Layer } from '@ontrails/core';
 import { z } from 'zod';
 
 import { buildHttpRoutes } from '../build.js';
@@ -61,7 +61,7 @@ const internalMetaTrail = trail('secret', {
   meta: { internal: true },
 });
 
-const dbProvision = provision('db.main', {
+const dbProvision = resource('db.main', {
   create: () =>
     Result.ok({
       source: 'factory',
@@ -324,18 +324,18 @@ describe('buildHttpRoutes', () => {
       expect(capturedRequestId).not.toBe('');
     });
 
-    test('forwards provision overrides into executeTrail', async () => {
-      const provisionTrail = trail('provision.check', {
+    test('forwards resource overrides into executeTrail', async () => {
+      const provisionTrail = trail('resource.check', {
         blaze: (_input, ctx) =>
           Result.ok({ source: dbProvision.from(ctx).source as string }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
-        provisions: [dbProvision],
+        resources: [dbProvision],
       });
 
       const app = topo('testapp', { dbProvision, provisionTrail });
       const buildResult = buildHttpRoutes(app, {
-        provisions: { 'db.main': { source: 'override' } },
+        resources: { 'db.main': { source: 'override' } },
       });
 
       expect(buildResult.isOk()).toBe(true);
@@ -347,12 +347,12 @@ describe('buildHttpRoutes', () => {
     });
   });
 
-  describe('gates', () => {
-    test('gates compose around trail execution', async () => {
+  describe('layers', () => {
+    test('layers compose around trail execution', async () => {
       const calls: string[] = [];
 
-      const testGate: Gate = {
-        name: 'test-gate',
+      const testGate: Layer = {
+        name: 'test-layer',
         wrap(_trail, impl) {
           return async (input, ctx) => {
             calls.push('before');
@@ -364,7 +364,7 @@ describe('buildHttpRoutes', () => {
       };
 
       const app = topo('testapp', { echoTrail });
-      const buildResult = buildHttpRoutes(app, { gates: [testGate] });
+      const buildResult = buildHttpRoutes(app, { layers: [testGate] });
 
       expect(buildResult.isOk()).toBe(true);
       const [route] = buildResult.value;

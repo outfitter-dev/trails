@@ -4,7 +4,7 @@ import {
   Result,
   TRAILHEAD_KEY,
   createTrailContext,
-  provision,
+  resource,
   trail,
   topo,
 } from '@ontrails/core';
@@ -27,7 +27,7 @@ const makeApp = (...trails: AnyTrail[]) => {
   return topo('test-app', mod);
 };
 
-const dbProvision = provision('db.main', {
+const dbProvision = resource('db.main', {
   create: () =>
     Result.ok({
       name: 'factory',
@@ -238,7 +238,7 @@ describe('buildCliCommands execution', () => {
     expect(implCalled).toBe(false);
   });
 
-  test('applies gates in order', async () => {
+  test('applies layers in order', async () => {
     const order: string[] = [];
     const t = trail('layered', {
       blaze: (input: { x: string }) => {
@@ -249,7 +249,7 @@ describe('buildCliCommands execution', () => {
     });
     const app = makeApp(t);
     const commands = buildCliCommands(app, {
-      gates: [
+      layers: [
         {
           name: 'outer',
           wrap: (_trail, impl) => async (input, ctx) => {
@@ -440,21 +440,21 @@ describe('buildCliCommands execution', () => {
   });
 });
 
-describe('buildCliCommands provision overrides', () => {
-  test('forwards provision overrides into executeTrail', async () => {
-    const t = trail('provision-test', {
+describe('buildCliCommands resource overrides', () => {
+  test('forwards resource overrides into executeTrail', async () => {
+    const t = trail('resource-test', {
       blaze: (_input, ctx) =>
         Result.ok({ name: dbProvision.from(ctx).name as string }),
       input: z.object({}),
       output: z.object({ name: z.string() }),
-      provisions: [dbProvision],
+      resources: [dbProvision],
     });
     const app = topo('test-app', {
       'db.main': dbProvision,
       [t.id]: t,
     });
     const commands = buildCliCommands(app, {
-      provisions: { 'db.main': { name: 'override' } },
+      resources: { 'db.main': { name: 'override' } },
     });
 
     const result = await commands[0]?.execute({}, {});

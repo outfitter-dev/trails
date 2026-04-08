@@ -198,34 +198,34 @@ Rules for composition:
 
 ## Using Services
 
-When trails need infrastructure — databases, API clients, caches — declare them as provisions.
+When trails need infrastructure — databases, API clients, caches — declare them as resources.
 
-Define a provision in `src/provisions/db.ts`:
+Define a resource in `src/resources/db.ts`:
 
 ```typescript
-import { provision, Result } from '@ontrails/core';
+import { resource, Result } from '@ontrails/core';
 
-export const db = provision('db.main', {
+export const db = resource('db.main', {
   create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
   dispose: (conn) => conn.close(),
   mock: () => createInMemoryDb(),
 });
 ```
 
-Register provisions in the topo alongside trails:
+Register resources in the topo alongside trails:
 
 ```typescript
 import * as greetModule from './trails/greet';
-import * as provisions from './provisions/db';
+import * as resources from './resources/db';
 
-export const app = topo('myapp', greetModule, provisions);
+export const app = topo('myapp', greetModule, resources);
 ```
 
-Use in a trail by declaring `provisions` and accessing via `db.from(ctx)`:
+Use in a trail by declaring `resources` and accessing via `db.from(ctx)`:
 
 ```typescript
 const lookup = trail('lookup', {
-  provisions: [db],
+  resources: [db],
   input: z.object({ id: z.string().describe('Record ID') }),
   output: z.object({ name: z.string() }),
   intent: 'read',

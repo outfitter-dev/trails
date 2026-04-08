@@ -26,7 +26,7 @@ The core principle says: if the information exists in the system, don't ask the 
 
 ### Why the pack is the right compilation unit
 
-A trail is too granular for a library boundary. A single `validate` function doesn't form a useful package. The pack is the natural module: it owns the provision graph, the event topology, the namespace, and the configuration trailhead. It's the unit of coherence.
+A trail is too granular for a library boundary. A single `validate` function doesn't form a useful package. The pack is the natural module: it owns the resource graph, the event topology, the namespace, and the configuration trailhead. It's the unit of coherence.
 
 Compiling at the pack level means services resolve once at construction (not per-call), internal composition via follows stays hidden behind the public API, and the pack's namespace maps directly to the library's API trailhead. This matches how every real library works: you instantiate a client, then call methods.
 
@@ -55,7 +55,7 @@ The library trailhead follows the same derivation properties as every other trai
 
 #### Factory pattern (packs with services or config)
 
-When a pack declares services or config, the compiled library exports a factory function. The factory projects pack-level dependencies into consumer-supplied inputs. Config schemas become configuration parameters. The exact projection shape for services is intentionally left flexible so the compiler can map provision declarations into the most idiomatic constructor interface (concrete connector instances, config-driven creation, or some mix).
+When a pack declares services or config, the compiled library exports a factory function. The factory projects pack-level dependencies into consumer-supplied inputs. Config schemas become configuration parameters. The exact projection shape for services is intentionally left flexible so the compiler can map resource declarations into the most idiomatic constructor interface (concrete connector instances, config-driven creation, or some mix).
 
 ```typescript
 import { createEmailKit } from '@acme/email-kit'
@@ -113,7 +113,7 @@ When the compiled pack owns disposable resources, the generated instance exposes
 | Error classes (as standard Error subclasses) | TrailContext (dissolved into constructor params) |
 | JSDoc (from meta, descriptions, examples) | Follow declarations (internal wiring) |
 | `dispose()` when pack owns disposable resources | Warden rules (compile-time only) |
-| | Gates (internal pipeline concern) |
+| | Layers (internal pipeline concern) |
 
 The principle: **the framework disappears, the contract survives.** The primary library trailhead does not require consumers to know Zod, Trails, or any framework concept. They get typed functions, typed errors, and lifecycle management. That's a complete library.
 
@@ -300,7 +300,7 @@ If a pack doesn't make sense as a library, that's feedback on the pack design, n
 
 **JSON Schema fidelity.** Not all Zod features map cleanly to JSON Schema. Refinements, transforms, and complex discriminated unions may produce lossy conversions. The Zod schema (via `./schemas`) remains the source of truth. JSON Schema is a convenience projection.
 
-**Service-to-constructor mapping.** The factory needs to project provision declarations into something the consumer can provide. The right mapping depends on the service: some are best supplied as concrete instances, others as config that the factory uses to create them internally. The compiler needs to make this idiomatic, and the exact shape will emerge as the implementation matures. The consumer still needs to understand what each service expects, which is inherent to any library with infrastructure dependencies. Trails makes it explicit rather than hidden.
+**Service-to-constructor mapping.** The factory needs to project resource declarations into something the consumer can provide. The right mapping depends on the service: some are best supplied as concrete instances, others as config that the factory uses to create them internally. The compiler needs to make this idiomatic, and the exact shape will emerge as the implementation matures. The consumer still needs to understand what each service expects, which is inherent to any library with infrastructure dependencies. Trails makes it explicit rather than hidden.
 
 **Lifecycle responsibility.** When a compiled pack owns disposable services, the generated runtime instance is more than a function bundle. The consumer takes on the responsibility of calling `dispose()`. The alternative (not owning lifecycle) would push disposal back onto the consumer in a less structured way. Packs without disposable services don't carry this weight.
 
@@ -313,7 +313,7 @@ If a pack doesn't make sense as a library, that's feedback on the pack design, n
 - How versioning (post-v1.2) interacts with compiled library semver. Schema changes are detectable, so breaking-change detection is feasible, but the mechanism is not specified here
 - **Event subscription semantics.** The current `signal()` primitive defines payload schemas and provenance. Whether the compiled library exposes an `.on()` subscription interface depends on the runtime event model, which is being designed in a separate event ADR. This ADR does not promise event subscriptions at the library trailhead. Once the event ADR lands, this decision should be revisited to determine how (and whether) events project through the library trailhead as an additive capability
 - Whether `depot` (the pack registry concept) plays a role in library discovery or distribution
-- How service mocking works across the library boundary. The mock factory exists on the provision definition, but whether it's re-exported for consumer testing is a separate question
+- How service mocking works across the library boundary. The mock factory exists on the resource definition, but whether it's re-exported for consumer testing is a separate question
 - The exact JSON Schema format (single schema vs. per-trail schemas, OpenAPI vs. plain JSON Schema)
 - Whether non-TypeScript compilation targets (Python stubs, Go interfaces) are feasible as future trailheads
 - Whether a tiny `@ontrails/runtime` package eventually becomes worthwhile for shared error base classes or event primitives. The current decision is to inline/generate everything, but this may evolve
@@ -322,9 +322,9 @@ If a pack doesn't make sense as a library, that's feedback on the pack design, n
 
 - [ADR-0000: Core Premise](../0000-core-premise.md): "define once, trailhead everywhere" and the information architecture categories (authored, projected, overridden)
 - [ADR-0001: Naming Conventions](../0001-naming-conventions.md): `create*` factory convention, `derive*` prefix for framework derivations, `build*`/`to*` trailhead wiring pattern
-- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-gates-run; the library trailhead delegates to the same pipeline
+- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-layers-run; the library trailhead delegates to the same pipeline
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md): the derivation properties (pure, deterministic, explicit lookup tables, overridable) that the library trailhead must also follow
-- [ADR-0009: Services](../0009-first-class-provisions.md): provision lifecycle, factory/dispose/health/mock, and the execution model the library trailhead must project into consumer-facing runtime inputs
+- [ADR-0009: Services](../0009-first-class-resources.md): resource lifecycle, factory/dispose/health/mock, and the execution model the library trailhead must project into consumer-facing runtime inputs
 - ADR: Typed Signal Emission (draft) -- event payload schemas and provenance model; the library trailhead's event projection depends on where that ADR lands
-- [Vocabulary: `pack`](../../vocabulary.md): the distributable capability bundle concept, sharpened here as a compilable library boundary
+- [Vocabulary: `pack`](../../lexicon.md): the distributable capability bundle concept, sharpened here as a compilable library boundary
 - [Horizons: Packs](../../horizons.md): the mid-term direction for packs as a distributable unit

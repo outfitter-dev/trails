@@ -80,15 +80,15 @@ export const myTrail = trail('namespace.verb', {
   // Receives validated input and TrailContext.
   // Return Result — never throw.
   // Keep trailhead-agnostic: no process.exit(), no console.log().
-  // --- Provisions (optional) ---
+  // --- Resources (optional) ---
   // Declare external dependencies so the framework manages lifecycle and testing.
-  // provisions: [db],
+  // resources: [db],
 
   blaze: async (input, ctx) => {
     // Your logic here. Input types are guaranteed by the schema.
-    // Use ctx for provisions, logging, and following other trails.
+    // Use ctx for resources, logging, and following other trails.
 
-    // Access a declared provision — typed from the provision's create() return:
+    // Access a declared resource — typed from the resource's create() return:
     // const conn = db.from(ctx);
     // const record = await conn.findByName(input.name);
 

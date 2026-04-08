@@ -1,6 +1,6 @@
 import { ValidationError } from './errors.js';
 import type { AnySignal } from './event.js';
-import type { AnyProvision } from './provision.js';
+import type { AnyResource } from './resource.js';
 import { Result } from './result.js';
 import type { Topo } from './topo.js';
 import type { AnyTrail } from './trail.js';
@@ -10,7 +10,7 @@ export const DRAFT_ID_PREFIX = '_draft.';
 export type DraftDependencyKind =
   | 'cross'
   | 'detour'
-  | 'provision'
+  | 'resource'
   | 'replaced-by'
   | 'signal-from';
 
@@ -22,7 +22,7 @@ export interface DraftDependency {
 
 export interface DraftFinding {
   readonly id: string;
-  readonly kind: 'provision' | 'signal' | 'trail' | 'unknown';
+  readonly kind: 'resource' | 'signal' | 'trail' | 'unknown';
   readonly message: string;
   readonly rule: 'draft-contamination' | 'draft-id';
   readonly via?: DraftDependencyKind | undefined;
@@ -41,7 +41,7 @@ interface DraftReason {
   readonly via: DraftDependencyKind;
 }
 
-type TopoNode = AnyProvision | AnySignal | AnyTrail;
+type TopoNode = AnyResource | AnySignal | AnyTrail;
 
 const replacedByTarget = (value: TopoNode): string | undefined => {
   const raw = value as unknown as { replacedBy?: unknown };
@@ -94,8 +94,8 @@ const trailDependencies = (trail: AnyTrail): DraftDependency[] => {
     ...dependenciesFromIds(trail.id, trail.crosses, 'cross'),
     ...dependenciesFromIds(
       trail.id,
-      trail.provisions.map(({ id }) => id),
-      'provision'
+      trail.resources.map(({ id }) => id),
+      'resource'
     ),
     ...(detours === undefined
       ? []
@@ -109,18 +109,14 @@ const signalDependencies = (signal: AnySignal): DraftDependency[] => [
   ...dependencyFromTarget(signal.id, replacedByTarget(signal), 'replaced-by'),
 ];
 
-const provisionDependencies = (provision: AnyProvision): DraftDependency[] =>
-  dependencyFromTarget(
-    provision.id,
-    replacedByTarget(provision),
-    'replaced-by'
-  );
+const provisionDependencies = (resource: AnyResource): DraftDependency[] =>
+  dependencyFromTarget(resource.id, replacedByTarget(resource), 'replaced-by');
 
 const nodeKind = (
   id: string,
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
-  provisions: ReadonlyMap<string, AnyProvision>
+  resources: ReadonlyMap<string, AnyResource>
 ): DraftFinding['kind'] => {
   if (trails.has(id)) {
     return 'trail';
@@ -128,8 +124,8 @@ const nodeKind = (
   if (signals.has(id)) {
     return 'signal';
   }
-  if (provisions.has(id)) {
-    return 'provision';
+  if (resources.has(id)) {
+    return 'resource';
   }
   return 'unknown';
 };
@@ -144,7 +140,7 @@ const collectDeclaredDraftIds = (topo: Topo): ReadonlySet<string> =>
   new Set([
     ...draftIdsFromKeys(topo.trails.keys()),
     ...draftIdsFromKeys(topo.signals.keys()),
-    ...draftIdsFromKeys(topo.provisions.keys()),
+    ...draftIdsFromKeys(topo.resources.keys()),
   ]);
 
 const findingForDraftId = (
@@ -239,7 +235,7 @@ const contaminationFindingForId = (
   reasons: ReadonlyMap<string, DraftReason>,
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
-  provisions: ReadonlyMap<string, AnyProvision>
+  resources: ReadonlyMap<string, AnyResource>
 ): DraftFinding | undefined => {
   if (declaredDraftIds.has(id)) {
     return undefined;
@@ -252,7 +248,7 @@ const contaminationFindingForId = (
 
   return findingForContamination(
     id,
-    nodeKind(id, trails, signals, provisions),
+    nodeKind(id, trails, signals, resources),
     reason
   );
 };
@@ -263,12 +259,12 @@ const collectFindings = (
   reasons: ReadonlyMap<string, DraftReason>,
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
-  provisions: ReadonlyMap<string, AnyProvision>
+  resources: ReadonlyMap<string, AnyResource>
 ): DraftFinding[] => [
   ...[...declaredDraftIds]
     .toSorted()
     .map((id) =>
-      findingForDraftId(id, nodeKind(id, trails, signals, provisions))
+      findingForDraftId(id, nodeKind(id, trails, signals, resources))
     ),
   ...[...contaminatedIds].toSorted().flatMap((id) => {
     const finding = contaminationFindingForId(
@@ -277,7 +273,7 @@ const collectFindings = (
       reasons,
       trails,
       signals,
-      provisions
+      resources
     );
 
     return finding === undefined ? [] : [finding];
@@ -287,7 +283,7 @@ const collectFindings = (
 const collectDependencies = (topo: Topo): DraftDependency[] => [
   ...[...topo.trails.values()].flatMap(trailDependencies),
   ...[...topo.signals.values()].flatMap(signalDependencies),
-  ...[...topo.provisions.values()].flatMap(provisionDependencies),
+  ...[...topo.resources.values()].flatMap(provisionDependencies),
 ];
 
 export const analyzeDraftState = (topo: Topo): DraftStateAnalysis => {
@@ -303,7 +299,7 @@ export const analyzeDraftState = (topo: Topo): DraftStateAnalysis => {
     reasons,
     topo.trails,
     topo.signals,
-    topo.provisions
+    topo.resources
   );
 
   return {

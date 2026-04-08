@@ -1,7 +1,7 @@
 /**
  * Clack-backed input resolver for the Trails CLI.
  *
- * This stays at the app gate so @ontrails/cli remains prompt-library agnostic.
+ * This stays at the app layer so @ontrails/cli remains prompt-library agnostic.
  */
 
 import type { Field, InputResolver, ResolveInputOptions } from '@ontrails/cli';

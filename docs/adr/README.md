@@ -15,11 +15,11 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0006](0006-shared-execution-pipeline.md) | Shared Execution Pipeline with Result-Returning Builders | Accepted |
 | [0007](0007-governance-as-trails.md) | Governance as Trails with AST-Based Analysis | Accepted |
 | [0008](0008-deterministic-trailhead-derivation.md) | Deterministic Trailhead Derivation | Accepted |
-| [0009](0009-first-class-provisions.md) | First-Class Provisions | Accepted |
+| [0009](0009-first-class-resources.md) | First-Class Resources | Accepted |
 | [0010](0010-native-infrastructure.md) | Trails-Native Infrastructure Pattern | Accepted |
 | [0011](0011-schema-driven-config.md) | Schema-Driven Config | Accepted |
 | [0012](0012-connector-agnostic-permits.md) | Connector-Agnostic Permits | Accepted |
-| [0013](0013-tracker.md) | Tracker — Runtime Recording Primitive | Accepted |
+| [0013](0013-tracing.md) | Tracing — Runtime Recording Primitive | Accepted |
 | [0014](0014-core-database-primitive.md) | Core Database Primitive | Accepted |
 | [0015](0015-topo-store.md) | Topo Store | Accepted |
 | [0016](0016-schema-derived-persistence.md) | Schema-Derived Persistence | Accepted |
@@ -29,3 +29,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0020](0020-flags-for-fields-structured-input-on-the-cli.md) | Flags for Fields, Structured Input on the CLI | Accepted |
 | [0021](0021-draft-state-stays-out-of-the-resolved-graph.md) | Draft State Stays Out of the Resolved Graph | Accepted |
 | [0022](0022-drizzle-store-connector.md) | Drizzle Binds Schema-Derived Stores to SQLite | Accepted |
+| [0023](0023-simplifying-the-trails-lexicon.md) | Simplifying the Trails Lexicon | Accepted |

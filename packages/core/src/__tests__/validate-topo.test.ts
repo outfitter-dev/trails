@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { analyzeDraftState, isDraftId } from '../draft.js';
 import { validateEstablishedTopo } from '../validate-established-topo.js';
-import { provision } from '../provision.js';
+import { resource } from '../resource.js';
 import { Result } from '../result.js';
 import { topo } from '../topo.js';
 import type { TopoIssue } from '../validate-topo.js';
@@ -28,7 +28,7 @@ const mockTrail = (
       error?: string;
     }[];
     output?: z.ZodType;
-    provisions?: readonly ReturnType<typeof provision>[];
+    resources?: readonly ReturnType<typeof resource>[];
   }
 ) => ({
   blaze: noop,
@@ -36,12 +36,12 @@ const mockTrail = (
   id,
   input: z.object({ name: z.string() }),
   kind: 'trail' as const,
-  provisions: Object.freeze([...(overrides?.provisions ?? [])]),
+  resources: Object.freeze([...(overrides?.resources ?? [])]),
   ...overrides,
 });
 
 const mockProvision = (id: string) =>
-  provision(id, {
+  resource(id, {
     create: () => Result.ok({ id }),
   });
 
@@ -162,12 +162,12 @@ describe('validateTopo', () => {
     });
   });
 
-  describe('provision declarations', () => {
-    test('draft provision references are allowed in the authored graph', () => {
+  describe('resource declarations', () => {
+    test('draft resource references are allowed in the authored graph', () => {
       const db = mockProvision('_draft.db.main');
       const app = topo('app', {
         show: mockTrail('entity.show', {
-          provisions: [db],
+          resources: [db],
         }),
       });
 
@@ -175,12 +175,12 @@ describe('validateTopo', () => {
       expect(result.isOk()).toBe(true);
     });
 
-    test('trail declaring a registered provision passes', () => {
+    test('trail declaring a registered resource passes', () => {
       const db = mockProvision('db.main');
       const app = topo('app', {
         db,
         show: mockTrail('entity.show', {
-          provisions: [db],
+          resources: [db],
         }),
       });
 
@@ -188,11 +188,11 @@ describe('validateTopo', () => {
       expect(result.isOk()).toBe(true);
     });
 
-    test('trail declaring a missing provision fails', () => {
+    test('trail declaring a missing resource fails', () => {
       const db = mockProvision('db.main');
       const app = topo('app', {
         show: mockTrail('entity.show', {
-          provisions: [db],
+          resources: [db],
         }),
       });
 
@@ -201,7 +201,7 @@ describe('validateTopo', () => {
 
       const issues = extractIssues(result);
       expect(issues).toHaveLength(1);
-      expect(issues[0]?.rule).toBe('provision-exists');
+      expect(issues[0]?.rule).toBe('resource-exists');
       expect(issues[0]?.message).toContain('db.main');
     });
   });
@@ -330,7 +330,7 @@ describe('validateTopo', () => {
     const app = topo('app', {
       broken: mockTrail('entity.broken', { crosses: ['entity.missing'] }),
       missingService: mockTrail('entity.missing-service', {
-        provisions: [db],
+        resources: [db],
       }),
       show: mockTrail('entity.show', {
         examples: [{ input: { name: 123 }, name: 'Bad' }],
@@ -448,10 +448,10 @@ describe('validateEstablishedTopo', () => {
     expect(issues[0]?.rule).toBe('cross-exists');
   });
 
-  test('fails when provision declarations are not established in the topo', () => {
+  test('fails when resource declarations are not established in the topo', () => {
     const app = topo('app', {
       show: mockTrail('entity.show', {
-        provisions: [mockProvision('db.main')],
+        resources: [mockProvision('db.main')],
       }),
     });
 
@@ -460,7 +460,7 @@ describe('validateEstablishedTopo', () => {
 
     const issues = extractIssues(result);
     expect(issues).toHaveLength(1);
-    expect(issues[0]?.rule).toBe('provision-exists');
+    expect(issues[0]?.rule).toBe('resource-exists');
   });
 
   test('allows authoring-only example issues outside projection checks', () => {

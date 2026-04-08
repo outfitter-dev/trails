@@ -7,7 +7,7 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { configProvision } from '../config-provision.js';
+import { configResource } from '../config-resource.js';
 import type { ExplainConfigOptions } from '../explain.js';
 import { explainConfig } from '../explain.js';
 import type { ConfigState } from '../registry.js';
@@ -57,8 +57,8 @@ const enrichOptions = (
   if (state.env) {
     enriched = { ...enriched, env: state.env };
   }
-  if (state.loadout) {
-    enriched = { ...enriched, loadout: state.loadout };
+  if (state.profile) {
+    enriched = { ...enriched, profile: state.profile };
   }
   if (state.local) {
     enriched = { ...enriched, local: state.local };
@@ -68,7 +68,7 @@ const enrichOptions = (
 
 export const configExplain = trail('config.explain', {
   blaze: (input, ctx) => {
-    const state = configProvision.from(ctx);
+    const state = configResource.from(ctx);
     const options = enrichOptions(state, toExplainOptions(state));
     const entries = explainConfig(options);
     const filtered = filterByPath(entries, input.path);
@@ -89,5 +89,5 @@ export const configExplain = trail('config.explain', {
   intent: 'read',
   meta: { category: 'infrastructure' },
   output: outputSchema,
-  provisions: [configProvision],
+  resources: [configResource],
 });

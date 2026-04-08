@@ -12,8 +12,8 @@
 
 import { isTrailsError, statusCodeMap } from '@ontrails/core';
 import type {
-  Gate,
-  ProvisionOverrideMap,
+  Layer,
+  ResourceOverrideMap,
   Topo,
   TrailContextInit,
 } from '@ontrails/core';
@@ -31,7 +31,7 @@ import { buildHttpRoutes } from '../build.js';
 
 export interface TrailheadHttpOptions {
   readonly basePath?: string | undefined;
-  /** Config values for provisions that declare a `config` schema, keyed by provision ID. */
+  /** Config values for resources that declare a `config` schema, keyed by resource ID. */
   readonly configValues?:
     | Readonly<Record<string, Record<string, unknown>>>
     | undefined;
@@ -39,10 +39,10 @@ export interface TrailheadHttpOptions {
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   readonly hostname?: string | undefined;
-  readonly gates?: readonly Gate[] | undefined;
+  readonly layers?: readonly Layer[] | undefined;
   readonly name?: string | undefined;
   readonly port?: number | undefined;
-  readonly provisions?: ProvisionOverrideMap | undefined;
+  readonly resources?: ResourceOverrideMap | undefined;
   /** Set false to return the Hono app without starting a server. */
   readonly serve?: boolean | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
@@ -317,8 +317,8 @@ export const trailhead = async (
     basePath: options.basePath,
     configValues: options.configValues,
     createContext: options.createContext,
-    gates: options.gates,
-    provisions: options.provisions,
+    layers: options.layers,
+    resources: options.resources,
     validate: options.validate,
   });
 

@@ -109,7 +109,7 @@ testDetours(app);    // structural detour validation
 Services with a `mock` factory auto-resolve during `testAll`, `testExamples`, and `testContracts` — no configuration needed.
 
 ```typescript
-// Zero-config: mock factories on provision definitions are used automatically
+// Zero-config: mock factories on resource definitions are used automatically
 testAll(app);
 ```
 
@@ -117,7 +117,7 @@ Override explicitly when you need specific behavior:
 
 ```typescript
 testAll(app, () => ({
-  provisions: { 'db.main': createSpecialTestDb() },
+  resources: { 'db.main': createSpecialTestDb() },
 }));
 ```
 
@@ -127,11 +127,11 @@ The same override mechanism works with `run()`:
 
 ```typescript
 run(app, 'search', input, {
-  provisions: { 'db.main': testDb },
+  resources: { 'db.main': testDb },
 });
 ```
 
-If a provision definition omits `mock`, `testAll` requires an explicit override for any trail that uses it. Always define `mock` on provision definitions to keep the zero-config `testAll(app)` promise.
+If a resource definition omits `mock`, `testAll` requires an explicit override for any trail that uses it. Always define `mock` on resource definitions to keep the zero-config `testAll(app)` promise.
 
 ## Progressive Assertion Modes
 

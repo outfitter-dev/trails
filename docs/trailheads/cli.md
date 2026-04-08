@@ -206,13 +206,13 @@ trailhead(app, {
 });
 ```
 
-## Built-in Gates
+## Built-in Layers
 
-### `autoIterateGate`
+### `autoIterateLayer`
 
-For trails with paginated output (matching the pagination pattern from `@ontrails/core/patterns`), adds an `--all` flag. When set, the gate repeatedly calls the implementation with incrementing cursors and collects all items.
+For trails with paginated output (matching the pagination pattern from `@ontrails/core/patterns`), adds an `--all` flag. When set, the layer repeatedly calls the implementation with incrementing cursors and collects all items.
 
-### `dateShortcutsGate`
+### `dateShortcutsLayer`
 
 For trails with `since`/`until` date fields, expands shortcut strings:
 

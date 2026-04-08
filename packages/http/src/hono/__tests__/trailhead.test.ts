@@ -4,11 +4,11 @@ import {
   InternalError,
   NotFoundError,
   Result,
-  provision,
+  resource,
   trail,
   topo,
 } from '@ontrails/core';
-import type { Gate } from '@ontrails/core';
+import type { Layer } from '@ontrails/core';
 import { z } from 'zod';
 
 import { trailhead } from '../trailhead.js';
@@ -52,7 +52,7 @@ const internalTrail = trail('crash', {
   input: z.object({}),
 });
 
-const dbProvision = provision('db.main', {
+const dbProvision = resource('db.main', {
   create: () =>
     Result.ok({
       source: 'factory',
@@ -258,12 +258,12 @@ describe('trailhead (Hono connector)', () => {
     });
   });
 
-  describe('gates', () => {
-    test('gates compose around trail execution', async () => {
+  describe('layers', () => {
+    test('layers compose around trail execution', async () => {
       const calls: string[] = [];
 
-      const testGate: Gate = {
-        name: 'test-gate',
+      const testGate: Layer = {
+        name: 'test-layer',
         wrap(_trail, impl) {
           return async (input, ctx) => {
             calls.push('before');
@@ -275,7 +275,7 @@ describe('trailhead (Hono connector)', () => {
       };
 
       const app = topo('testapp', { echoTrail });
-      const hono = await trailhead(app, { gates: [testGate], serve: false });
+      const hono = await trailhead(app, { layers: [testGate], serve: false });
 
       const res = await request(hono, 'GET', '/echo?message=hi');
       expect(res.status).toBe(200);
@@ -501,23 +501,23 @@ describe('trailhead (Hono connector)', () => {
       expect(contextUsed).toBe(true);
     });
 
-    test('provision overrides reach the trail through trailhead()', async () => {
-      const provisionTrail = trail('provision.check', {
+    test('resource overrides reach the trail through trailhead()', async () => {
+      const provisionTrail = trail('resource.check', {
         blaze: (_input, ctx) =>
           Result.ok({ source: dbProvision.from(ctx).source as string }),
         input: z.object({}),
         intent: 'read',
         output: z.object({ source: z.string() }),
-        provisions: [dbProvision],
+        resources: [dbProvision],
       });
 
       const app = topo('testapp', { dbProvision, provisionTrail });
       const hono = await trailhead(app, {
-        provisions: { 'db.main': { source: 'override' } },
+        resources: { 'db.main': { source: 'override' } },
         serve: false,
       });
 
-      const res = await request(hono, 'GET', '/provision/check');
+      const res = await request(hono, 'GET', '/resource/check');
       expect(res.status).toBe(200);
 
       const json = await res.json();

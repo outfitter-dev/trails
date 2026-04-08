@@ -4,7 +4,7 @@ import {
   InternalError,
   Result,
   ValidationError,
-  provision,
+  resource,
 } from '@ontrails/core';
 import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
@@ -683,7 +683,7 @@ const buildProvisionShape = <
   TConnection,
   TAccess extends StoreAccessMode,
 >(
-  value: ReturnType<typeof provision<TConnection>>,
+  value: ReturnType<typeof resource<TConnection>>,
   store: TStore,
   tables: DrizzleStoreSchema<TStore>,
   access: TAccess
@@ -714,9 +714,9 @@ const connectionHealth = (
 };
 
 /**
- * Bind a store definition to a Drizzle-backed SQLite provision.
+ * Bind a store definition to a Drizzle-backed SQLite resource.
  *
- * The returned provision manages its own connection lifecycle. The `mock()`
+ * The returned resource manages its own connection lifecycle. The `mock()`
  * factory creates an in-memory SQLite database seeded with fixtures — callers
  * who obtain a mock connection are responsible for calling `closeConnection()`
  * when done, or letting the connection be garbage-collected (the underlying
@@ -736,7 +736,7 @@ export const connectDrizzle = <const TStore extends AnyStoreDefinition>(
   const tables = deriveDrizzleTables(definition);
 
   return buildProvisionShape(
-    provision(options.id ?? defaultProvisionId, {
+    resource(options.id ?? defaultProvisionId, {
       create: () => {
         try {
           const client = openSqliteDatabase(options.url, false);
@@ -796,7 +796,7 @@ export const connectReadOnlyDrizzle = <const TStore extends AnyStoreDefinition>(
   const tables = deriveDrizzleTables(definition);
 
   return buildProvisionShape(
-    provision(options.id ?? defaultProvisionId, {
+    resource(options.id ?? defaultProvisionId, {
       create: () => {
         try {
           const client = openSqliteDatabase(options.url, true);

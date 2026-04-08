@@ -33,7 +33,7 @@ export const projectAwareRuleInput = ruleInput.extend({
   knownProvisionIds: z
     .array(z.string())
     .optional()
-    .describe('Provision IDs known across the project'),
+    .describe('Resource IDs known across the project'),
   knownTrailIds: z
     .array(z.string())
     .optional()

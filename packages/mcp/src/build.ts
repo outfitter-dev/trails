@@ -2,7 +2,7 @@
  * Build MCP tool definitions from a Trails App.
  *
  * Iterates the topo, generates McpToolDefinition[] with handlers that
- * validate input, compose gates, execute the implementation, and map
+ * validate input, compose layers, execute the implementation, and map
  * Results to MCP responses.
  */
 
@@ -17,8 +17,8 @@ import {
 } from '@ontrails/core';
 import type {
   BlobRef,
-  Gate,
-  ProvisionOverrideMap,
+  Layer,
+  ResourceOverrideMap,
   Topo,
   Trail,
   TrailContextInit,
@@ -34,7 +34,7 @@ import { deriveToolName } from './tool-name.js';
 // ---------------------------------------------------------------------------
 
 export interface BuildMcpToolsOptions {
-  /** Config values for provisions that declare a `config` schema, keyed by provision ID. */
+  /** Config values for resources that declare a `config` schema, keyed by resource ID. */
   readonly configValues?:
     | Readonly<Record<string, Record<string, unknown>>>
     | undefined;
@@ -43,8 +43,8 @@ export interface BuildMcpToolsOptions {
     | undefined;
   readonly excludeTrails?: readonly string[] | undefined;
   readonly includeTrails?: readonly string[] | undefined;
-  readonly gates?: readonly Gate[] | undefined;
-  readonly provisions?: ProvisionOverrideMap | undefined;
+  readonly layers?: readonly Layer[] | undefined;
+  readonly resources?: ResourceOverrideMap | undefined;
   /** Set to `false` to skip topo validation while building tools. */
   readonly validate?: boolean | undefined;
 }
@@ -228,7 +228,7 @@ const withMcpTrailhead = (
 const createHandler =
   (
     t: Trail<unknown, unknown>,
-    gates: readonly Gate[],
+    layers: readonly Layer[],
     options: BuildMcpToolsOptions
   ): ((
     args: Record<string, unknown>,
@@ -241,8 +241,8 @@ const createHandler =
       configValues: options.configValues,
       createContext: options.createContext,
       ctx: withMcpTrailhead(progressCb),
-      gates,
-      provisions: options.provisions,
+      layers,
+      resources: options.resources,
     });
     if (result.isOk()) {
       return { content: await serializeOutput(result.value) };
@@ -261,7 +261,7 @@ const createHandler =
  * - A derived tool name (app-prefixed, underscore-delimited)
  * - JSON Schema input from zodToJsonSchema
  * - MCP annotations from trail meta
- * - A handler that validates, composes gates, executes, and maps results
+ * - A handler that validates, composes layers, executes, and maps results
  */
 /** Check if a trail should be included based on meta and filters. */
 const shouldInclude = (
@@ -305,7 +305,7 @@ const buildDescription = (
 const buildToolDefinition = (
   app: Topo,
   trail: Trail<unknown, unknown>,
-  gates: readonly Gate[],
+  layers: readonly Layer[],
   options: BuildMcpToolsOptions
 ): McpToolDefinition => {
   const rawAnnotations = deriveAnnotations(trail);
@@ -314,7 +314,7 @@ const buildToolDefinition = (
   return {
     annotations,
     description: buildDescription(trail),
-    handler: createHandler(trail, gates, options),
+    handler: createHandler(trail, layers, options),
     inputSchema: zodToJsonSchema(trail.input),
     name: deriveToolName(app.name, trail.id),
     trailId: trail.id,
@@ -325,7 +325,7 @@ const buildToolDefinition = (
 const registerTool = (
   app: Topo,
   trailItem: Trail<unknown, unknown>,
-  gates: readonly Gate[],
+  layers: readonly Layer[],
   options: BuildMcpToolsOptions,
   nameToTrailId: Map<string, string>,
   tools: McpToolDefinition[]
@@ -340,7 +340,7 @@ const registerTool = (
     );
   }
   nameToTrailId.set(toolName, trailItem.id);
-  tools.push(buildToolDefinition(app, trailItem, gates, options));
+  tools.push(buildToolDefinition(app, trailItem, layers, options));
   return Result.ok();
 };
 
@@ -366,7 +366,7 @@ const validateToolBuild = (
 const registerTools = (
   app: Topo,
   options: BuildMcpToolsOptions,
-  gates: readonly Gate[]
+  layers: readonly Layer[]
 ): Result<McpToolDefinition[], Error> => {
   const tools: McpToolDefinition[] = [];
   const nameToTrailId = new Map<string, string>();
@@ -375,7 +375,7 @@ const registerTools = (
     const registered = registerTool(
       app,
       trailItem,
-      gates,
+      layers,
       options,
       nameToTrailId,
       tools
@@ -397,5 +397,5 @@ export const buildMcpTools = (
     return validation;
   }
 
-  return registerTools(app, options, options.gates ?? []);
+  return registerTools(app, options, options.layers ?? []);
 };

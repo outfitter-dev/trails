@@ -4,8 +4,8 @@
 
 import type {
   Field,
-  Gate,
-  ProvisionOverrideMap,
+  Layer,
+  ResourceOverrideMap,
   Topo,
   TrailContext,
   TrailContextInit,
@@ -49,15 +49,15 @@ export interface ActionResultContext {
 
 /** Options for buildCliCommands. */
 export interface BuildCliCommandsOptions {
-  /** Config values for provisions that declare a `config` schema, keyed by provision ID. */
+  /** Config values for resources that declare a `config` schema, keyed by resource ID. */
   configValues?: Readonly<Record<string, Record<string, unknown>>> | undefined;
   createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
-  gates?: Gate[] | undefined;
+  layers?: Layer[] | undefined;
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
   presets?: CliFlag[][] | undefined;
-  provisions?: ProvisionOverrideMap | undefined;
+  resources?: ResourceOverrideMap | undefined;
   resolveInput?: InputResolver | undefined;
   /** Set to `false` to skip topo validation while building commands. */
   validate?: boolean | undefined;
@@ -308,8 +308,8 @@ const createExecute =
       configValues: options?.configValues,
       createContext: options?.createContext,
       ctx: withCliTrailhead(ctxOverrides),
-      gates: options?.gates,
-      provisions: options?.provisions,
+      layers: options?.layers,
+      resources: options?.resources,
     });
     const finalResult = maybeAddStructuredInputHint(
       result,
@@ -386,9 +386,9 @@ const toCliCommand = (
       options
     ),
     flags,
-    gates: options?.gates,
     idempotent: t.idempotent,
     intent: t.intent,
+    layers: options?.layers,
     path: deriveCliPath(t.id),
     trail: t,
   };

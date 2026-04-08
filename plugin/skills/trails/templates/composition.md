@@ -19,10 +19,10 @@ export const myComposite = trail('namespace.compound-verb', {
   // The warden verifies these match actual ctx.cross() calls.
   crosses: ['namespace.first', 'namespace.second'],
 
-  // --- Provisions (optional) ---
-  // Declare provisions the composite trail needs directly.
-  // Crossed trails declare their own provisions independently.
-  // provisions: [db],
+  // --- Resources (optional) ---
+  // Declare resources the composite trail needs directly.
+  // Crossed trails declare their own resources independently.
+  // resources: [db],
 
   // --- Input schema ---
   // The trail's own input — may differ from downstream trails' inputs.

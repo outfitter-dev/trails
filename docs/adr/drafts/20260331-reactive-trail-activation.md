@@ -16,7 +16,7 @@ depends_on: [3, 4, 13, typed-signal-emission]
 
 Every trail in a topo is callable: a trailhead or `run()` can invoke it with input and receive a Result. But the framework has no concept of *when* a trail should be invoked. Activation logic lives outside the contract: in trailhead configuration (trailhead options), in external schedulers (crontab), in application code (a webhook handler that calls `run()`), or in infrastructure (a queue consumer).
 
-This means the framework can't see the reactive graph. Survey reports what trails exist and what they cross. It can't report what activates them. The warden governs trail contracts and composition. It can't govern activation. Tracker records what happened. It can't attribute the execution to a trigger source.
+This means the framework can't see the reactive graph. Survey reports what trails exist and what they cross. It can't report what activates them. The warden governs trail contracts and composition. It can't govern activation. Tracing records what happened. It can't attribute the execution to a trigger source.
 
 ### Real applications are event-driven
 
@@ -48,7 +48,7 @@ A trail can declare what activates it with the `fires` field:
 
 ```typescript
 const confirmBooking = trail('booking.confirm', {
-  fires: [{
+  on: [{
     webhook: 'stripe',
     event: 'payment_intent.succeeded',
     verify: stripeSignatureVerifier,
@@ -75,23 +75,23 @@ This matters for packs. A pack declares `fires` for its trails. The consuming ap
 ```typescript
 // The pack trail declares its default trigger
 const notifyBooking = trail('notify.booking-confirmed', {
-  fires: [{ signal: 'booking.confirmed' }],
+  on: [{ signal: 'booking.confirmed' }],
   // ...
 });
 
 // The consuming app overrides activation
 app.override('notify.booking-confirmed', {
-  fires: [{ signal: 'reservation.finalized' }],
+  on: [{ signal: 'reservation.finalized' }],
 });
 
 // Or suppresses it entirely
 app.override('notify.booking-confirmed', {
-  fires: [], // disable default fire sources
+  on: [], // disable default fire sources
 });
 
 // Or adds additional fire sources
 app.override('notify.booking-confirmed', {
-  fires: [
+  on: [
     { signal: 'booking.confirmed' },     // keep default
     { signal: 'reservation.finalized' }, // add another
   ],
@@ -110,7 +110,7 @@ Time-based activation. Cron expressions for recurring schedules.
 
 ```typescript
 const archiveOld = trail('data.archive-old', {
-  fires: [{
+  on: [{
     schedule: '0 2 * * *',
     input: { olderThanDays: 90 },
   }],
@@ -130,7 +130,7 @@ Activation when a signal is emitted. This covers authored signals (via `ctx.sign
 
 ```typescript
 const notifyBooking = trail('notify.booking-confirmed', {
-  fires: [{ signal: 'booking.confirmed' }],
+  on: [{ signal: 'booking.confirmed' }],
   intent: 'write',
   input: BookingConfirmedSchema,
   blaze: async (input, ctx) => { /* ... */ },
@@ -141,7 +141,7 @@ const notifyBooking = trail('notify.booking-confirmed', {
 
 ```typescript
 const billingConflictResolve = trail('billing.conflict-resolve', {
-  fires: [{
+  on: [{
     signal: 'trail.failed.conflict',
     where: (signal) => signal.trailId.startsWith('billing.'),
   }],
@@ -159,7 +159,7 @@ Activation when an external system sends a webhook payload.
 
 ```typescript
 const githubEventReceived = trail('github.event.received', {
-  fires: [{
+  on: [{
     webhook: 'github',
     path: '/webhooks/github',
     verify: githubSignatureVerifier,
@@ -178,7 +178,7 @@ Fire sources can include a predicate that filters activations:
 
 ```typescript
 const highValueApproval = trail('approval.high-value', {
-  fires: [{
+  on: [{
     signal: 'order.completed',
     where: (payload) => payload.total > 10000,
   }],
@@ -194,9 +194,9 @@ const highValueApproval = trail('approval.high-value', {
 where: {
   predicate: (payload) => payload.total > 10000,
   examples: [
-    { payload: { total: 15000 }, fires: true },
-    { payload: { total: 5000 }, fires: false },
-    { payload: { total: 10000 }, fires: false },
+    { payload: { total: 15000 }, on: true },
+    { payload: { total: 5000 }, on: false },
+    { payload: { total: 10000 }, on: false },
   ],
 },
 ```
@@ -207,7 +207,7 @@ where: {
 
 ```typescript
 const healthCheck = trail('health.check-all', {
-  fires: [
+  on: [
     { schedule: '*/5 * * * *' },
     { signal: 'trail.failed.network' },
   ],
@@ -251,7 +251,7 @@ Invalid fire sources are caught at construction time:
 
 ### Fire-activated execution uses `run()`
 
-When a fire source ignites, the framework executes the trail through the full pipeline via `run(trailId, input)`. Tracker records the execution with fire provenance:
+When a fire source ignites, the framework executes the trail through the full pipeline via `run(trailId, input)`. Tracing records the execution with fire provenance:
 
 ```json
 {
@@ -266,7 +266,7 @@ When a fire source ignites, the framework executes the trail through the full pi
 }
 ```
 
-Tracker queries can filter by fire source type: "show me all scheduled executions," "show me all webhook-activated failures."
+Tracing queries can filter by fire source type: "show me all scheduled executions," "show me all webhook-activated failures."
 
 ### Warden rules for fires
 
@@ -290,7 +290,7 @@ Tracker queries can filter by fire source type: "show me all scheduled execution
 
 **With the error taxonomy.** The categorized failure signals map directly from the 13 error classes. One error class, multiple derivations.
 
-**With tracker.** Every fire activation is a track with provenance. Tracker can report: "this trail was activated 847 times by schedule last week, average duration 1.2s, 3 failures (all TimeoutError)."
+**With tracing.** Every fire activation is a track with provenance. Tracing can report: "this trail was activated 847 times by schedule last week, average duration 1.2s, 3 failures (all TimeoutError)."
 
 ## Consequences
 
@@ -306,7 +306,7 @@ Tracker queries can filter by fire source type: "show me all scheduled execution
 ### Tradeoffs
 
 - **New field on the trail spec.** `fires` adds a concept to learn. The justification: activation is genuinely new information that the framework can't derive.
-- **Fire resolution adds startup cost.** Topo construction resolves fires: register schedules, bind signal listeners, register webhook endpoints.
+- **Fire resolution adds startup cost.** Topo construction resolves on: register schedules, bind signal listeners, register webhook endpoints.
 - **Complex reactive chains.** Deep chains are inspectable via survey and the lockfile, and the warden detects cycles, but emergent behavior of long chains requires attention.
 - **Scheduled fires need runtime infrastructure.** `Bun.cron` for production, mock scheduler for testing.
 
@@ -316,14 +316,14 @@ Tracker queries can filter by fire source type: "show me all scheduled execution
 - **Whether fires support debouncing or throttling.** Future concern addressable with fire-source options.
 - **Whether fires support batching.** Batching changes timing and input shape. Not part of v1.
 - **Outbound signals (publishing to external systems).** Fires are about inbound activation. Publishing is a separate concern.
-- **Replay and reprocessing.** Replaying fires is future work that builds on tracker data.
+- **Replay and reprocessing.** Replaying fires is future work that builds on tracing data.
 
 ## References
 
 - [ADR-0000: Core Premise](../0000-core-premise.md) — "derive by default"; fires declare activation, the framework derives the reactive graph
 - [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — trails with fires are still trails. Activation is a property.
 - [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) — intent compounds with fires; lifecycle signals filter by intent
-- [ADR-0013: Tracker](../0013-tracker.md) — tracker records fire provenance on every activation
+- [ADR-0013: Tracing](../0013-tracing.md) — tracing records fire provenance on every activation
 - ADR: Typed Signal Emission (draft) — **this ADR depends on it**; provides `ctx.signal()`, lifecycle events, and the event routing pipeline
 - ADR: The Serialized Topo Graph (draft) — the lockfile captures the reactive graph
 - ADR: Trail Visibility and Trailhead Filtering (draft) — reactively fired trails can be internal

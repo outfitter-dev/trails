@@ -17,23 +17,23 @@ owners: ['[galligan](https://github.com/galligan)']
 Real apps need config. Database URLs, API keys, feature flags, sampling rates, JWT secrets, connection pool sizes. Today, services read raw environment variables via `svc.env`:
 
 ```typescript
-const db = provision('db.main', {
+const db = resource('db.main', {
   create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
 });
 ```
 
-This works. It's also manual parsing with no validation, no defaults, no documentation, and no type safety. Every provision duplicates the same pattern: read a string from `process.env`, hope it's there, cast it to the right type, move on.
+This works. It's also manual parsing with no validation, no defaults, no documentation, and no type safety. Every resource duplicates the same pattern: read a string from `process.env`, hope it's there, cast it to the right type, move on.
 
-Config feeds everything in a Trails app. Provision factories need connection strings. Auth gates need JWT secrets. Tracker needs sampling rates. The question isn't whether config needs a system — it's whether the system can follow the Trails pattern: author a typed contract, derive the rest.
+Config feeds everything in a Trails app. Resource factories need connection strings. Auth layers need JWT secrets. Tracing needs sampling rates. The question isn't whether config needs a system — it's whether the system can follow the Trails pattern: author a typed contract, derive the rest.
 
 ### What config touches
 
 Config is upstream of everything that runs:
 
-- **Provisions** — `svc.config.db.url` instead of `svc.env?.DATABASE_URL`
+- **Resources** — `svc.config.db.url` instead of `svc.env?.DATABASE_URL`
 - **Auth** — JWT secrets, issuer URLs, token lifetimes
-- **Tracker** — sampling rates, enabled/disabled, export targets
-- **Gates** — transaction boundaries, caching TTLs, rate limits
+- **Tracing** — sampling rates, enabled/disabled, export targets
+- **Layers** — transaction boundaries, caching TTLs, rate limits
 
 Today none of these have a typed contract. Each reads raw strings from the environment and parses them independently.
 
@@ -122,7 +122,7 @@ export default defineConfig({
       jwtSecret: secret(env(z.string(), 'JWT_SECRET')),
       issuer: z.string().default('https://auth.example.com'),
     }),
-    tracker: z.object({
+    tracing: z.object({
       enabled: z.boolean().default(true),
       samplingRate: z.number().default(1.0),
     }),
@@ -130,27 +130,27 @@ export default defineConfig({
   base: {
     db: { url: 'sqlite://dev.db' },
   },
-  loadouts: {
+  profiles: {
     production: { db: { poolSize: 20 } },
     test: { db: { url: 'sqlite://:memory:', poolSize: 1 } },
   },
 });
 ```
 
-Zod gives type safety at authoring time. `defineConfig()` infers the full config type from the schema. Loadouts are typed as `DeepPartial<SchemaInput>` — TypeScript knows what fields exist.
+Zod gives type safety at authoring time. `defineConfig()` infers the full config type from the schema. Profiles are typed as `DeepPartial<SchemaInput>` — TypeScript knows what fields exist.
 
-### Collapsed loadout model
+### Collapsed profile model
 
 Resolution stack (later overrides earlier):
 
 1. **Schema defaults** — `z.number().default(10)`
-2. **App-authored config** — `base` merged with the selected loadout, keyed by `TRAILS_ENV`
+2. **App-authored config** — `base` merged with the selected profile, keyed by `TRAILS_ENV`
 3. **Local overrides** — `.trails/config/local.ts`, gitignored, per-developer
 4. **Environment variables** — auto-mapped from `.env()` bindings on schema fields
 
-Five gates were considered. **CLI flag derivation from config was explicitly rejected.** Config flags would conflict with trail input flags on the same CLI trailhead. Environment variables are the command-line override mechanism.
+Five layers were considered. **CLI flag derivation from config was explicitly rejected.** Config flags would conflict with trail input flags on the same CLI trailhead. Environment variables are the command-line override mechanism.
 
-Loadouts are deep-partial overrides of `base`, not self-contained configs. Shared config lives in `base` once. Environment-specific deltas live in `loadouts`. Author the minimum new information.
+Profiles are deep-partial overrides of `base`, not self-contained configs. Shared config lives in `base` once. Environment-specific deltas live in `profiles`. Author the minimum new information.
 
 ### `env()` on the schema field
 
@@ -165,12 +165,12 @@ poolSize: env(z.number(), 'DB_POOL_SIZE').default(5),
 
 No separate mapping file that drifts from the schema. The warden lints env bindings for collisions. Survey reports them alongside field metadata. One source of truth.
 
-### Composable config from provisions
+### Composable config from resources
 
 Services declare their own config schemas via the reserved `config` field from ADR-0009:
 
 ```typescript
-const entityStore = provision('entity.store', {
+const entityStore = resource('entity.store', {
   config: z.object({
     url: env(z.string(), 'ENTITY_STORE_URL'),
     poolSize: z.number().default(5),
@@ -179,7 +179,7 @@ const entityStore = provision('entity.store', {
 });
 ```
 
-The framework composes provision config schemas under their provision IDs. The app's `trails.config.ts` fills in the values:
+The framework composes resource config schemas under their resource IDs. The app's `trails.config.ts` fills in the values:
 
 ```typescript
 export default defineConfig({
@@ -189,15 +189,15 @@ export default defineConfig({
 });
 ```
 
-If every field has a default, the provision works with zero config. Install a pack, its provisions declare what they need, the framework tells you what's missing at startup.
+If every field has a default, the resource works with zero config. Install a pack, its resources declare what they need, the framework tells you what's missing at startup.
 
-### Config enriches ProvisionContext
+### Config enriches ResourceContext
 
-`ProvisionContext` gains a typed `config` field. `svc.config.url` instead of `svc.env?.DATABASE_URL` with manual `parseInt` for numbers. Validated, defaulted, typed. The `env` field remains as a fallback for one-off values that don't warrant schema definition.
+`ResourceContext` gains a typed `config` field. `svc.config.url` instead of `svc.env?.DATABASE_URL` with manual `parseInt` for numbers. Validated, defaulted, typed. The `env` field remains as a fallback for one-off values that don't warrant schema definition.
 
 ### Config as runtime bootstrap, not topo
 
-Config does NOT live on `topo()`. Topo is the contract graph — trails, signals, and provisions. Config is deployment state. Mixing the two conflates what a system can do with how a specific deployment is configured.
+Config does NOT live on `topo()`. Topo is the contract graph — trails, signals, and resources. Config is deployment state. Mixing the two conflates what a system can do with how a specific deployment is configured.
 
 Config is resolved in `trailhead()` / `run()` options:
 
@@ -209,19 +209,19 @@ await run(app, 'search', input, { config });
 Resolution order:
 
 1. Resolve and validate config
-2. Attach config to `ProvisionContext`
-3. Resolve provisions (factories read `svc.config` instead of `svc.env`)
-4. Compose gates
+2. Attach config to `ResourceContext`
+3. Resolve resources (factories read `svc.config` instead of `svc.env`)
+4. Compose layers
 5. Execute
 
-Config resolution is synchronous and deterministic. Provision factories that follow may be sync or async — connecting to a remote database, validating credentials, or performing any other async initialization. The boundary is clean: config is fully resolved before any factory runs, and factories receive typed, validated config through `svc.config`.
+Config resolution is synchronous and deterministic. Resource factories that follow may be sync or async — connecting to a remote database, validating credentials, or performing any other async initialization. The boundary is clean: config is fully resolved before any factory runs, and factories receive typed, validated config through `svc.config`.
 
 ### `explain()` for debuggability
 
 Structured output showing which source won for each field:
 
 ```typescript
-const resolved = await resolveConfig(definition, { loadout: 'production' });
+const resolved = await resolveConfig(definition, { profile: 'production' });
 resolved.explain();
 ```
 
@@ -239,9 +239,9 @@ Secrets are redacted in `survey --config` output and `explain()` traces. Explici
 
 ### `TRAILS_ENV`
 
-Any string matching a loadout key. Unset means base config only — no loadout applied.
+Any string matching a profile key. Unset means base config only — no profile applied.
 
-Testing auto-resolves the `test` loadout when `TRAILS_ENV=test` (the default in test context). `testExamples(app)` ignores local overrides — tests must be hermetic.
+Testing auto-resolves the `test` profile when `TRAILS_ENV=test` (the default in test context). `testExamples(app)` ignores local overrides — tests must be hermetic.
 
 `TRAILS_ENV` is independent from `NODE_ENV`. Opt-in alignment via `envFromNodeEnv` on `defineConfig()` for teams that want a single knob.
 
@@ -249,7 +249,7 @@ Testing auto-resolves the `test` loadout when `TRAILS_ENV=test` (the default in 
 
 Every `appConfig` declaration generates three artifact types:
 
-**Example config files** in any supported format. For `defineConfig` (Trails' own config), the framework also generates `.trails/generated/.env.example` from composed provision config schemas:
+**Example config files** in any supported format. For `defineConfig` (Trails' own config), the framework also generates `.trails/generated/.env.example` from composed resource config schemas:
 
 ```bash
 # DATABASE_URL=           # required, string, secret
@@ -319,26 +319,26 @@ The framework knows the field path, the env binding, and the config file locatio
 
 No async. No top-level await. No network calls in v1. Computed values from `process.env` are fine. Remote secret managers are a future provider concern.
 
-This keeps config resolution predictable and fast. The entire config tree resolves before any provision factory runs.
+This keeps config resolution predictable and fast. The entire config tree resolves before any resource factory runs.
 
 ## Consequences
 
 ### Positive
 
 - **One schema defines everything.** Type, validation, defaults, env mapping, secret annotation, deprecation, descriptions, and value constraints — all co-located on the field definition.
-- **Provisions get typed config.** `svc.config.url` instead of raw env parsing and manual type coercion.
+- **Resources get typed config.** `svc.config.url` instead of raw env parsing and manual type coercion.
 - **Generated artifacts never drift.** Example files, JSON Schema, `.env.example` — all derived from the same schemas that validate at runtime.
 - **`explain()` makes debugging config trivial.** Structured provenance answers "where did this value come from?" without guessing.
 - **`describe()` makes introspection trivial.** Agents and CLI users can enumerate every config option without reading source code or documentation.
 - **JSON Schema gives IDE support for free.** Autocomplete and inline validation in config files, same experience as established tools.
-- **Composable config follows the pack model.** Install a pack, its provisions declare their config needs. The framework tells you what's missing.
+- **Composable config follows the pack model.** Install a pack, its resources declare their config needs. The framework tells you what's missing.
 - **`config.ref()` connects config to trail inputs.** Config values serve as defaults for trail inputs without coupling the two schemas. One source of truth for defaults, overridable per-invocation.
 - **`appConfig` is the same primitive Trails uses.** Not a second-class utility — the framework's own config runs on the same system apps use.
 
 ### Tradeoffs
 
 - **`env()` and `secret()` use Zod's metadata API.** Implementation depends on Zod 4's `globalRegistry` and `.meta()`. Wrapper functions compose metadata before transforms. If Zod's metadata model changes, this trailhead breaks.
-- **Composable config adds schema merging complexity.** Multiple provisions contributing config schemas means the framework must handle namespace scoping and conflict detection.
+- **Composable config adds schema merging complexity.** Multiple resources contributing config schemas means the framework must handle namespace scoping and conflict detection.
 - **No CLI flag derivation from config.** Environment variables are the only command-line override mechanism. Teams that want flags must set env vars or use wrapper scripts.
 
 ### What this does NOT decide
@@ -352,6 +352,6 @@ This keeps config resolution predictable and fast. The entire config tree resolv
 ## References
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — "one write, many reads" and "derive by default" — config derives discovery, validation, examples, and introspection from a single schema declaration
-- [ADR-0009: Provisions as a First-Class Primitive](0009-first-class-provisions.md) — provisions declare config schemas via the reserved `config` field; config enriches `ProvisionContext`
-- [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — config is the first infrastructure package following the provision + gate + trails trifecta
-- [ADR-0013: Tracker](0013-tracker.md) — tracker consume config for sampling rates and export targets
+- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — resources declare config schemas via the reserved `config` field; config enriches `ResourceContext`
+- [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — config is the first infrastructure package following the resource + layer + trails trifecta
+- [ADR-0013: Tracing](0013-tracing.md) — tracing consume config for sampling rates and export targets

@@ -48,7 +48,7 @@ For these fields, the happy path remains:
 
 ```bash
 trails topo pin --name before-auth
-trails tracker query --trail-id gist.create --limit 20
+trails tracing query --trail-id gist.create --limit 20
 ```
 
 ### Structured channels handle the full schema

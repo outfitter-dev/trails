@@ -41,8 +41,8 @@ The pattern: **time triggers trail execution, with optional input (the current t
 All three are inbound trailheads — they receive something from outside and run a trail. They share the same infrastructure needs as CLI/MCP/HTTP:
 
 - **Config**: endpoint URLs, secrets, queue connection strings
-- **Auth**: webhook signature verification, queue auth, cron doesn't need auth but needs permit context for tracker
-- **Tracker**: record what arrived, what was run, outcome, timing
+- **Auth**: webhook signature verification, queue auth, cron doesn't need auth but needs permit context for tracing
+- **Tracing**: record what arrived, what was run, outcome, timing
 - **Validation**: the incoming payload validates against the trail's input schema
 - **Error taxonomy**: webhook returns 400 on validation failure, 500 on internal error. Queue nacks on failure. Cron logs the error.
 
@@ -58,7 +58,7 @@ Webhooks are HTTP under the hood — they could be a mode of the existing HTTP t
 const paymentCompleted = trail('billing.payment-completed', {
   intent: 'write',
   input: StripePaymentEventSchema,
-  provisions: [bookingStore],
+  resources: [bookingStore],
   blaze: async (input, ctx) => {
     const booking = bookingStore.from(ctx);
     return booking.confirmPayment(input.paymentIntentId);
@@ -82,7 +82,7 @@ trailhead(app, {
 });
 ```
 
-The execution pipeline is identical to any other trailhead invocation — validate input against the trail's schema, resolve context (the verifier produces the Permit), compose gates, run. The warden can verify that webhook-bound trails have verifiers configured in at least one trailhead.
+The execution pipeline is identical to any other trailhead invocation — validate input against the trail's schema, resolve context (the verifier produces the Permit), compose layers, run. The warden can verify that webhook-bound trails have verifiers configured in at least one trailhead.
 
 **What the examples teach us:**
 
@@ -101,7 +101,7 @@ examples: [
 ],
 ```
 
-Webhook trails need idempotency examples. The same event may arrive multiple times. `testExamples` validates idempotency with mock provisions.
+Webhook trails need idempotency examples. The same event may arrive multiple times. `testExamples` validates idempotency with mock resources.
 
 ### Message queues
 
@@ -125,7 +125,7 @@ trailhead(app, {
 });
 ```
 
-Each message deserializes → validates against the trail's input schema → executes through the pipeline. Failed messages nack (or dead-letter). Tracker records each message processing.
+Each message deserializes → validates against the trail's input schema → executes through the pipeline. Failed messages nack (or dead-letter). Tracing records each message processing.
 
 **What the examples teach us:**
 
@@ -165,20 +165,20 @@ trailhead(app, {
 });
 ```
 
-The cron trailhead triggers trail execution on a schedule. Input can be static (configured in the schedule) or dynamic (the current time, a batch query). Tracker records each execution.
+The cron trailhead triggers trail execution on a schedule. Input can be static (configured in the schedule) or dynamic (the current time, a batch query). Tracing records each execution.
 
 **What the examples teach us:**
 
 ```typescript
 const sendReminders = trail('booking.send-reminders', {
   intent: 'write',
-  input: z.object({}),  // no input needed — reads from provision
+  input: z.object({}),  // no input needed — reads from resource
   output: z.object({ sent: z.number(), failed: z.number() }),
   examples: [
     { name: 'three bookings due', input: {}, expected: { sent: 3, failed: 0 } },
     { name: 'no bookings due', input: {}, expected: { sent: 0, failed: 0 } },
   ],
-  provisions: [bookingStore, emailService],
+  resources: [bookingStore, emailService],
   blaze: async (_input, ctx) => {
     const store = bookingStore.from(ctx);
     const email = emailService.from(ctx);
@@ -188,7 +188,7 @@ const sendReminders = trail('booking.send-reminders', {
 });
 ```
 
-Cron trails are testable via `testExamples` with mock provisions — no actual scheduler needed. The examples validate the business logic independent of timing.
+Cron trails are testable via `testExamples` with mock resources — no actual scheduler needed. The examples validate the business logic independent of timing.
 
 ### Implications for infrastructure ADRs
 
@@ -207,9 +207,9 @@ Worth noting in the infrastructure pattern doc: error taxonomy mappings should b
 `idempotent: true` on a trail spec is a declaration. But webhook trails and queue-consumed trails NEED idempotency — duplicate delivery is the norm. The framework should help:
 
 - An idempotency layer that deduplicates by request/message ID
-- A provision that stores processed IDs (could be the same SQLite store as tracker)
+- A resource that stores processed IDs (could be the same SQLite store as tracing)
 
-This is a gate + provision, following the infrastructure pattern.
+This is a layer + resource, following the infrastructure pattern.
 
 ### Inbound trailheads share the same `trailhead()` pattern
 
@@ -242,15 +242,15 @@ Should this be on the trail spec (like `http: { path }` overrides) or on the tra
 
 2. **Queue trailhead scope.** Should `@ontrails/queue` be generic (any message broker) or start with one concrete connector (`@ontrails/queue/kafka`, `@ontrails/queue/sqs`)? The port-connector pattern suggests a generic core with connector subpaths.
 
-3. **Cron trailhead vs cron gate.** A cron fire source could be a trailhead (`trailhead()` starts a scheduler) or a gate (wraps trails with scheduling metadata). Trailhead is cleaner for standalone use. Gate is better for embedding in an existing app.
+3. **Cron trailhead vs cron layer.** A cron fire source could be a trailhead (`trailhead()` starts a scheduler) or a layer (wraps trails with scheduling metadata). Trailhead is cleaner for standalone use. Layer is better for embedding in an existing app.
 
-4. **Dead letter handling.** When a queue message permanently fails, where does it go? A dead-letter trail? A provision? An event? This needs a pattern.
+4. **Dead letter handling.** When a queue message permanently fails, where does it go? A dead-letter trail? A resource? An event? This needs a pattern.
 
 ## References
 
-- [ADR-0009: Provisions as a First-Class Primitive](../0009-first-class-provisions.md) — inbound trailheads depend on the provision primitive for infrastructure dependencies (stores, email, queue clients)
+- [ADR-0009: Resources as a First-Class Primitive](../0009-first-class-resources.md) — inbound trailheads depend on the resource primitive for infrastructure dependencies (stores, email, queue clients)
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — validates that the trailhead derivation model extends to event-driven inbound patterns
-- [ADR-0010: Trails-Native Infrastructure Pattern](../0010-native-infrastructure.md) — idempotency layer and deduplication store follow the infrastructure pattern (gate + provision)
+- [ADR-0010: Trails-Native Infrastructure Pattern](../0010-native-infrastructure.md) — idempotency layer and deduplication store follow the infrastructure pattern (layer + resource)
 - [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) — webhook signature verification maps to the permit resolution model
-- [ADR-0013: Tracker](../0013-tracker.md) — inbound trailhead execution recording uses the tracker system
+- [ADR-0013: Tracing](../0013-tracing.md) — inbound trailhead execution recording uses the tracing system
 - ADR: Webhooks and Input Connectors (draft) — explores the webhook trailhead in more detail

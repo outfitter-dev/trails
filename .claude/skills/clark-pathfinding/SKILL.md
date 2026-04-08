@@ -63,4 +63,4 @@ Read these before or during pathfinding sessions as needed:
 - `docs/adr/000-core-premise.md` — the foundation everything traces to
 - `docs/horizons.md` — future directions already under consideration
 - `docs/architecture.md` — the structural constraints and possibilities
-- `docs/vocabulary.md` — existing terms and reservations
+- `docs/lexicon.md` — existing terms and reservations

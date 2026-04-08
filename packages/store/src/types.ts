@@ -287,7 +287,7 @@ export type StoreIdentifierOf<TTable extends AnyStoreTable> =
   EntityOf<TTable>[Extract<PrimaryKeyOf<TTable>, keyof EntityOf<TTable>>];
 
 /**
- * Access mode for a bound store connection or provision.
+ * Access mode for a bound store connection or resource.
  */
 export type StoreAccessMode = 'readonly' | 'readwrite';
 

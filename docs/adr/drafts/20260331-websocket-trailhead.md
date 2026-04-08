@@ -275,12 +275,12 @@ Event ID to subscription channel follows the same convention: the event ID is th
 | `intent` | `Intent[]` | all | Filter trails by intent |
 | `include` | `string[]` | all | Glob patterns for trail inclusion |
 | `exclude` | `string[]` | none | Glob patterns for trail exclusion |
-| `gates` | `Gate[]` | `[]` | Gates for trail execution |
+| `layers` | `Layer[]` | `[]` | Layers for trail execution |
 | `replayBuffer` | `number` | `1000` | Max events in replay buffer per connection |
 | `backpressure` | `BackpressureConfig` | defaults | Backpressure thresholds |
 | `authTimeout` | `number` | `5000` | Ms to wait for auth message before disconnecting |
 
-The options follow the same patterns as HTTP and MCP blaze options. Intent filtering, glob patterns, and gates work identically.
+The options follow the same patterns as HTTP and MCP blaze options. Intent filtering, glob patterns, and layers work identically.
 
 ### Package structure
 
@@ -316,7 +316,7 @@ The package depends on `@ontrails/core` and benefits from the Events Runtime for
 - **Event subscriptions use the Events Runtime.** No separate pub/sub system. `ctx.signal()` in any trail delivers to WebSocket subscribers through the same routing pipeline that serves triggers. One emission, multiple consumers.
 - **Replay on reconnect.** Per-connection cursor positions and sequence numbers mean clients don't miss events during brief disconnections. The trailhead reads forward from the client's last seen position. The client sends `lastSeenSeq`.
 - **Permit-scoped everything.** Trail discovery, event subscription, and invocation all respect the connection's permit. An agent sees exactly what it's authorized to use.
-- **Same trailhead patterns.** `trailhead()`, `build*` escape hatch, intent filtering, glob patterns, gates. Developers who know the HTTP or MCP trailhead already know how to configure WebSocket.
+- **Same trailhead patterns.** `trailhead()`, `build*` escape hatch, intent filtering, glob patterns, layers. Developers who know the HTTP or MCP trailhead already know how to configure WebSocket.
 
 ### Tradeoffs
 
@@ -338,7 +338,7 @@ The package depends on `@ontrails/core` and benefits from the Events Runtime for
 - [ADR-0000: Core Premise](../0000-core-premise.md) -- "trailheads are peers"; WebSocket is the fourth trailhead, following the same patterns as CLI, MCP, and HTTP
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- trail invocations over WebSocket execute through the pipeline
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- trail IDs map to WebSocket method names, event IDs map to subscription channels
-- [ADR-0013: Tracker](../0013-tracker.md) -- observability and replay buffer backing store
+- [ADR-0013: Tracing](../0013-tracing.md) -- observability and replay buffer backing store
 - ADR: Typed Signal Emission (draft) -- `ctx.signal()` provides the events that WebSocket subscriptions deliver
 - ADR: Trail Visibility and Trailhead Filtering (draft) -- visibility and intent filtering apply to WebSocket trail discovery and invocation
 - ADR: Reactive Trail Activation (draft) -- triggers and WebSocket subscriptions are both consumers of the event routing pipeline

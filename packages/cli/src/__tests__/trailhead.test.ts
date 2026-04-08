@@ -74,11 +74,11 @@ describe('trailhead', () => {
       })
     ).not.toThrow();
     const opts: Parameters<typeof trailhead>[1] = {
-      provisions: {},
+      resources: {},
       validate: false,
     };
     expect(opts.validate).toBe(false);
-    expect(opts.provisions).toEqual({});
+    expect(opts.resources).toEqual({});
   });
 
   test('trailhead returns a Promise (async signature)', () => {

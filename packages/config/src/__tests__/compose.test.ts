@@ -2,57 +2,57 @@ import { describe, expect, test } from 'bun:test';
 
 import { z } from 'zod';
 
-import { collectProvisionConfigs } from '../compose.js';
+import { collectResourceConfigs } from '../compose.js';
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('collectProvisionConfigs', () => {
-  test('extracts config schemas from provisions that declare them', () => {
+describe('collectResourceConfigs', () => {
+  test('extracts config schemas from resources that declare them', () => {
     const dbSchema = z.object({ url: z.string().url() });
     const cacheSchema = z.object({ ttl: z.number() });
 
-    const provisions = [
+    const resources = [
       { config: dbSchema, id: 'db.main' },
       { config: cacheSchema, id: 'cache.main' },
     ];
 
-    const entries = collectProvisionConfigs(provisions);
+    const entries = collectResourceConfigs(resources);
 
     expect(entries).toHaveLength(2);
-    expect(entries[0]).toEqual({ provisionId: 'db.main', schema: dbSchema });
+    expect(entries[0]).toEqual({ resourceId: 'db.main', schema: dbSchema });
     expect(entries[1]).toEqual({
-      provisionId: 'cache.main',
+      resourceId: 'cache.main',
       schema: cacheSchema,
     });
   });
 
-  test('excludes provisions without config', () => {
+  test('excludes resources without config', () => {
     const schema = z.object({ url: z.string() });
 
-    const provisions = [
+    const resources = [
       { config: schema, id: 'db.main' },
       { id: 'counter.main' },
       { config: undefined, id: 'logger.main' },
     ];
 
-    const entries = collectProvisionConfigs(provisions);
+    const entries = collectResourceConfigs(resources);
 
     expect(entries).toHaveLength(1);
-    expect(entries[0]?.provisionId).toBe('db.main');
+    expect(entries[0]?.resourceId).toBe('db.main');
   });
 
-  test('returns empty array when no provisions have config', () => {
-    const provisions = [{ id: 'counter.main' }, { id: 'logger.main' }];
+  test('returns empty array when no resources have config', () => {
+    const resources = [{ id: 'counter.main' }, { id: 'logger.main' }];
 
-    const entries = collectProvisionConfigs(provisions);
+    const entries = collectResourceConfigs(resources);
 
     expect(entries).toEqual([]);
   });
 
   test('returns empty array for empty input', () => {
-    const entries = collectProvisionConfigs([]);
+    const entries = collectResourceConfigs([]);
 
     expect(entries).toEqual([]);
   });

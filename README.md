@@ -141,7 +141,7 @@ $ myapp greet --name World
 | [`@ontrails/store`](./packages/store) | Schema-derived store definitions, typed accessors, Drizzle bindings, read-only stores |
 | [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testCrosses()`, contract testing, trailhead harnesses |
 | [`@ontrails/schema`](./packages/schema) | Trailhead maps, semantic diffing, lock files for CI governance |
-| [`@ontrails/tracker`](./packages/tracker) | Execution recording, `trails.db` dev-state storage, telemetry helpers |
+| [`@ontrails/tracing`](./packages/tracing) | Execution recording, `trails.db` dev-state storage, telemetry helpers |
 | [`@ontrails/warden`](./packages/warden) | AST-based convention rules, drift detection, CI formatters |
 | [`@ontrails/logging`](./packages/logging) | Structured logging — sinks, formatters, LogTape connector |
 
@@ -160,4 +160,4 @@ bun run typecheck      # TypeScript strict mode
 
 ## Status
 
-v1 beta. The contract layer, CLI/MCP/HTTP trailheads, `trails topo` and `trails dev` workflows, shared `trails.db`, tracker-backed developer state, schema-derived stores, and the Drizzle runtime are implemented and shipping. WebSocket trailhead is designed but not yet built. See [Horizons](./docs/horizons.md) for what's next.
+v1 beta. The contract layer, CLI/MCP/HTTP trailheads, `trails topo` and `trails dev` workflows, shared `trails.db`, tracing-backed developer state, schema-derived stores, and the Drizzle runtime are implemented and shipping. WebSocket trailhead is designed but not yet built. See [Horizons](./docs/horizons.md) for what's next.

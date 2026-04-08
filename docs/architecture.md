@@ -22,7 +22,7 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 |  signal() -> Signal   |
                 |  topo() -> Topo       |
                 |  Result, Errors       |
-                |  Gate, Topo           |
+                |  Layer, Topo           |
                 |                       |
                 +---------+-------------+
                           |
@@ -30,7 +30,7 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 |  Config (config)      |
                 |  Permits (permits)    |
                 |  Store (store/drizzle)|
-                |  Tracker (tracker)    |
+                |  Tracing (tracing)    |
                 |  Logging (logtape)    |
                 +-----------------------+
                 RIGHT SIDE (outbound)
@@ -47,7 +47,7 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 
 **Trailheads are peers.** No trailhead is privileged. CLI, MCP, HTTP, and WebSocket are all equal connectors reading from the same topo. Adding a trailhead is a `trailhead()` call, not an architecture change.
 
-**Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation does not know which trailhead invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before gates and trailheads run.
+**Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation does not know which trailhead invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before layers and trailheads run.
 
 **The framework defines ports -- everything concrete is a connector.** CLI framework (Commander, yargs), logging backend (LogTape, pino), storage engine, telemetry exporter -- all pluggable. The framework never imports a concrete implementation.
 
@@ -93,7 +93,7 @@ These are boundaries the compiler enforces on the implementation at development 
 | `Result<T, Error>` | Implementation cannot throw — must return `Result.ok()` or `Result.err()` |
 | `TrailContext` interface | Implementation receives only the fields the framework provides |
 | `crosses: [...]` on trails | Declares the composition graph; warden verifies `ctx.cross()` calls match |
-| `provisions: [...]` on trails | Declares infrastructure dependencies; warden verifies `provision.from(ctx)` / `ctx.provision()` usage match |
+| `resources: [...]` on trails | Declares infrastructure dependencies; warden verifies `resource.from(ctx)` / `ctx.resource()` usage match |
 
 ### Inferred — detected by static analysis, best-effort
 
@@ -109,7 +109,7 @@ Warden uses inference to verify that declarations match actual code. The trailhe
 
 ### Observed — learned from runtime
 
-The tracker (`@ontrails/tracker`) system captures what actually happens at runtime: execution duration, error distributions, trace context propagation. Observations close the loop -- declarations define intent, observations verify reality.
+The tracing (`@ontrails/tracing`) system captures what actually happens at runtime: execution duration, error distributions, trace context propagation. Observations close the loop -- declarations define intent, observations verify reality.
 
 ### Overridden — when derivation doesn't fit
 
@@ -128,11 +128,11 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 
 ---
 
-## Package Gates
+## Package Layers
 
 ### Foundation
 
-`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, `trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, gates, and connector port interfaces.
+`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, `trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, layers, and connector port interfaces.
 
 **The test:** if you are building a trailhead connector or ecosystem package, you should only need `@ontrails/core`.
 
@@ -149,11 +149,11 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 
 | Package | What it does | External dep |
 | --- | --- | --- |
-| `@ontrails/config` | Config resolution, loadouts, provision config schemas, diagnostics | None beyond core |
-| `@ontrails/permits` | Auth gate, permit model, JWT connector, scope enforcement | None beyond core |
+| `@ontrails/config` | Config resolution, profiles, resource config schemas, diagnostics | None beyond core |
+| `@ontrails/permits` | Auth layer, permit model, JWT connector, scope enforcement | None beyond core |
 | `@ontrails/store` | Connector-agnostic schema-derived store definitions | None beyond core |
 | `@ontrails/store/drizzle` | Drizzle SQLite connector, typed store bindings, read-only bindings | `drizzle-orm` (optional peer) |
-| `@ontrails/tracker` | Telemetry recording, trace context, `trails.db` dev-state sinks | None beyond core |
+| `@ontrails/tracing` | Telemetry recording, trace context, `trails.db` dev-state sinks | None beyond core |
 | `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
 | `@ontrails/logging/logtape` | LogTape sink connector | `@logtape/logtape` (optional peer) |
 
@@ -184,7 +184,7 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 @ontrails/permits (core)
 @ontrails/store (core)
 @ontrails/store/drizzle (store, drizzle-orm)
-@ontrails/tracker (core)
+@ontrails/tracing (core)
 @ontrails/logging (core)
 @ontrails/testing (core, cli, mcp, logging)
 @ontrails/schema (core)
@@ -193,7 +193,7 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 @ontrails/logging/logtape (logging, @logtape/logtape)
 @ontrails/warden (core, schema)
      ^
-apps/trails (cli/commander, schema, tracker)
+apps/trails (cli/commander, schema, tracing)
 ```
 
 Clean DAG. Core at the center. No cycles. Trailhead connectors depend only on core. Framework connectors depend on their parent package.
@@ -208,11 +208,11 @@ CLI input ("myapp entity show --name Alpha")
   -> CLI connector matches to trail via CliCommand model
   -> Zod validates input against trail's schema
   -> TrailContext created (requestId, logger, abortSignal, env, cwd)
-  -> Declared provisions resolved into ctx
-  -> Gates run (auth, rate limit, telemetry)
+  -> Declared resources resolved into ctx
+  -> Layers run (auth, rate limit, telemetry)
   -> implementation(validatedInput, ctx) called
   -> Result returned
-  -> Gates post-process
+  -> Layers post-process
   -> Result mapped to exit code + stdout output
 ```
 
@@ -223,7 +223,7 @@ MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
   -> MCP connector matches to trail
   -> Zod validates input
   -> TrailContext created
-  -> Declared provisions resolved into ctx
+  -> Declared resources resolved into ctx
   -> Same implementation(validatedInput, ctx) called
   -> Same Result returned
   -> Result mapped to MCP tool response
@@ -236,7 +236,7 @@ HTTP request (GET /entity/show?name=Alpha)
   -> Hono matches route derived from trail ID
   -> Zod validates input (query params for GET, JSON body for POST/DELETE)
   -> TrailContext created
-  -> Declared provisions resolved into ctx
+  -> Declared resources resolved into ctx
   -> Same implementation(validatedInput, ctx) called
   -> Same Result returned
   -> Result mapped to JSON response with status code from error taxonomy
@@ -265,13 +265,13 @@ All trailheads -- CLI, MCP, HTTP, and `run()` -- delegate to the same `executeTr
 executeTrail(trail, rawInput, options?)
   -> Zod validates rawInput against trail's input schema
   -> TrailContext resolved from options/createContext
-  -> Declared provisions resolved into ctx
-  -> Gates composed via composeGates()
+  -> Declared resources resolved into ctx
+  -> Layers composed via composeLayers()
   -> implementation(validatedInput, ctx) called
   -> Result returned
 ```
 
-This guarantees consistent validation, gate ordering, and error handling regardless of which trailhead initiated the call.
+This guarantees consistent validation, layer ordering, and error handling regardless of which trailhead initiated the call.
 
 ## Error Taxonomy
 

@@ -160,7 +160,7 @@ There's a real difference between "the framework computed this deterministically
 - **Projected.** Mechanically derived, guaranteed correct. MCP tool name from app name + trail ID. CLI flags from Zod fields. Exit codes from error classes. If the authored input exists, the projection is unambiguous.
 - **Enforced.** Constrained by the type system at compile time. Output schemas bind the return type. `Result<T, Error>` eliminates throw/catch. `TrailContext` scopes what the implementation can access. The compiler rejects non-compliance.
 - **Inferred.** Detected by static analysis, best-effort. Which trails a trail follows (from `ctx.cross()` calls). Which error types are returned (from `Result.err()` patterns). The warden uses inference to verify declarations match actual code. Useful for governance, but not compiler-guaranteed.
-- **Observed.** Learned from runtime. The tracker system captures what actually happens: execution duration, error distributions, latency profiles, usage patterns. Observations close the loop between declared intent and actual behavior.
+- **Observed.** Learned from runtime. The tracing system captures what actually happens: execution duration, error distributions, latency profiles, usage patterns. Observations close the loop between declared intent and actual behavior.
 - **Overridden.** When derivation doesn't fit. Any derived value can be explicitly set. Override the CLI command name when the default doesn't read well. Overrides are escape hatches — if you're overriding everything, the derivation rules are wrong.
 
 **The design heuristic:** when evaluating any new feature, ask "does this require the developer to author information the framework already has?" If yes, derive it. If it genuinely can't be derived, it earns a place on the trail spec. If it can be derived but might sometimes be wrong, derive it with an override.
@@ -182,7 +182,7 @@ But the trailheads Trails produces are universally consumable. A CLI built with 
 
 ### Tradeoffs
 
-- **No trailhead-specific logic in implementations.** If a trail needs to behave differently on CLI vs MCP, that logic lives in gates or trailhead connectors, not in the implementation.
+- **No trailhead-specific logic in implementations.** If a trail needs to behave differently on CLI vs MCP, that logic lives in layers or trailhead connectors, not in the implementation.
 - **Zod is the schema language.** The framework is built on Zod for schema definition. Swapping to a different schema library would be a major rearchitecture.
 - **Result is mandatory.** Implementations return Result, not exceptions. This is a hard requirement, not a suggestion. The warden enforces it.
 - **Bun is the development runtime.** The framework uses Bun APIs. Running in Node.js is not a goal (though the trailheads Trails produces are runtime-agnostic).
@@ -198,6 +198,6 @@ But the trailheads Trails produces are universally consumable. A CLI built with 
 
 - [ADR-0001: Naming Conventions](0001-naming-conventions.md) — naming rules derived from these principles
 - [API Reference](../api-reference.md) — the canonical public API trailhead
-- [Vocabulary](../vocabulary.md) — the Trails vocabulary guide
+- [Vocabulary](../lexicon.md) — the Trails vocabulary guide
 - [Architecture](../architecture.md) — system architecture
 - [Why Trails](../why-trails.md) — the motivation behind the framework

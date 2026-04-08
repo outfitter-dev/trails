@@ -43,16 +43,16 @@ export interface TopoStoreTrailDetailRecord extends TopoStoreTrailRecord {
   readonly crosses: readonly string[];
   readonly detours: Readonly<Record<string, readonly string[]>> | null;
   readonly examples: readonly TopoStoreExampleRecord[];
-  readonly provisions: readonly string[];
+  readonly resources: readonly string[];
 }
 
-export interface TopoStoreProvisionRecord {
+export interface TopoStoreResourceRecord {
   readonly description: string | null;
   readonly hasHealth: boolean;
   readonly hasMock: boolean;
   readonly health: 'available' | 'none';
   readonly id: string;
-  readonly kind: 'provision';
+  readonly kind: 'resource';
   readonly lifetime: 'singleton';
   readonly saveId: string;
   readonly usedBy: readonly string[];
@@ -103,7 +103,7 @@ interface StoredTrailheadMapEntry {
   readonly detours?: Readonly<Record<string, readonly string[]>>;
   readonly healthcheck?: boolean;
   readonly id: string;
-  readonly kind: 'provision' | 'signal' | 'trail';
+  readonly kind: 'provision' | 'resource' | 'signal' | 'trail';
 }
 
 interface StoredTrailheadMap {
@@ -178,7 +178,15 @@ const readStoredEntry = (
   }
 
   const map = JSON.parse(stored.trailheadMapJson) as StoredTrailheadMap;
-  return map.entries.find((entry) => entry.kind === kind && entry.id === id);
+  return map.entries.find((entry) => {
+    if (entry.id !== id) {
+      return false;
+    }
+    if (kind === 'resource') {
+      return entry.kind === 'resource' || entry.kind === 'provision';
+    }
+    return entry.kind === kind;
+  });
 };
 
 const mapTrailRow = (row: TopoTrailRow): TopoStoreTrailRecord => {
@@ -376,7 +384,7 @@ export const getTopoStoreTrail = (
     crosses: readTrailCrossings(db, save.id, trailId),
     detours: storedEntry?.detours ?? null,
     examples: readTrailExamples(db, save.id, trailId),
-    provisions: readTrailProvisionIds(db, save.id, trailId),
+    resources: readTrailProvisionIds(db, save.id, trailId),
   };
 };
 
@@ -384,7 +392,7 @@ const mapProvisionRow = (
   row: TopoProvisionRow,
   usedBy: readonly string[],
   storedEntry?: StoredTrailheadMapEntry
-): TopoStoreProvisionRecord => ({
+): TopoStoreResourceRecord => ({
   description: storedEntry?.description ?? null,
   hasHealth: row.has_health === 1,
   hasMock: row.has_mock === 1,
@@ -393,7 +401,7 @@ const mapProvisionRow = (
       ? 'available'
       : 'none',
   id: row.id,
-  kind: 'provision',
+  kind: 'resource',
   lifetime: 'singleton',
   saveId: row.save_id,
   usedBy,
@@ -402,7 +410,7 @@ const mapProvisionRow = (
 export const listTopoStoreProvisions = (
   db: Database,
   options?: { readonly save?: TopoStoreRef }
-): readonly TopoStoreProvisionRecord[] => {
+): readonly TopoStoreResourceRecord[] => {
   const save = resolveRefSave(db, options?.save);
   if (save === undefined) {
     return [];
@@ -427,7 +435,11 @@ export const listTopoStoreProvisions = (
     mapProvisionRow(
       row,
       usage.get(row.id) ?? [],
-      entries.find((e) => e.kind === 'provision' && e.id === row.id)
+      entries.find(
+        (entry) =>
+          entry.id === row.id &&
+          (entry.kind === 'resource' || entry.kind === 'provision')
+      )
     )
   );
 };
@@ -436,7 +448,7 @@ export const getTopoStoreProvision = (
   db: Database,
   provisionId: string,
   options?: { readonly save?: TopoStoreRef }
-): TopoStoreProvisionRecord | undefined => {
+): TopoStoreResourceRecord | undefined => {
   const save = resolveRefSave(db, options?.save);
   if (save === undefined) {
     return undefined;
@@ -459,7 +471,7 @@ export const getTopoStoreProvision = (
   return mapProvisionRow(
     row,
     usage.get(provisionId) ?? [],
-    readStoredEntry(db, save.id, 'provision', provisionId)
+    readStoredEntry(db, save.id, 'resource', provisionId)
   );
 };
 

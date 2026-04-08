@@ -49,7 +49,7 @@ Examples:
 
 - a draft trail ID
 - a draft signal ID
-- a draft provision ID
+- a draft resource ID
 - a `crosses` entry that points at a draft trail
 - a signal `from` entry that points at a draft trail
 
@@ -133,7 +133,7 @@ Draft state is a deliberate sketching tool, not an invisible shortcut.
 
 ### Positive
 
-- **Top-down sketching becomes safe.** A developer can model future trails, signals, and provisions before every dependency exists.
+- **Top-down sketching becomes safe.** A developer can model future trails, signals, and resources before every dependency exists.
 - **The resolved graph stays trustworthy.** Established outputs remain fully queryable and free of placeholder state.
 - **Draft state is obvious in code review.** Both IDs and filenames make draft-bearing authoring visible.
 - **Promotion has a clean path.** Drafts do not rely on ad hoc search-and-replace once the real shape exists.

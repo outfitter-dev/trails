@@ -154,7 +154,7 @@ await trailhead(app, {
     version: '1.0.0',
   },
   transport: 'stdio', // Only stdio for now; SSE/streamable HTTP planned
-  gates: [myAuthGate, myRateLimitGate],
+  layers: [myAuthGate, myRateLimitGate],
   createContext: () => createTrailContext({ logger: myLogger }),
 });
 ```
@@ -177,11 +177,11 @@ const longTask = trail('long.task', {
 });
 ```
 
-## Gates
+## Layers
 
-Gates compose identically to CLI. The MCP connector uses `composeGates()` from `@ontrails/core` to wrap the implementation.
+Layers compose identically to CLI. The MCP connector uses `composeLayers()` from `@ontrails/core` to wrap the implementation.
 
-No MCP-specific Gates ship in v1. The infrastructure is wired and ready for domain-specific Gates (rate limiting, caching, auth) to be added later.
+No MCP-specific Layers ship in v1. The infrastructure is wired and ready for domain-specific Layers (rate limiting, caching, auth) to be added later.
 
 ## Building Tools Without `trailhead()`
 

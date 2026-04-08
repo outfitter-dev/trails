@@ -4,11 +4,11 @@ import {
   Result,
   TRAILHEAD_KEY,
   createBlobRef,
-  provision,
+  resource,
   trail,
   topo,
 } from '@ontrails/core';
-import type { Gate } from '@ontrails/core';
+import type { Layer } from '@ontrails/core';
 import { z } from 'zod';
 
 import { buildMcpTools } from '../build.js';
@@ -52,7 +52,7 @@ const exampleTrail = trail('with.examples', {
   input: z.object({ name: z.string() }),
 });
 
-const dbProvision = provision('db.main', {
+const dbProvision = resource('db.main', {
   create: () =>
     Result.ok({
       source: 'factory',
@@ -254,11 +254,11 @@ describe('buildMcpTools', () => {
   });
 
   describe('composition', () => {
-    test('gates compose and execute around the implementation', async () => {
+    test('layers compose and execute around the implementation', async () => {
       const calls: string[] = [];
 
-      const testGate: Gate = {
-        name: 'test-gate',
+      const testGate: Layer = {
+        name: 'test-layer',
         wrap(_trail, impl) {
           return async (input, ctx) => {
             calls.push('before');
@@ -270,7 +270,7 @@ describe('buildMcpTools', () => {
       };
 
       const app = topo('myapp', { echoTrail });
-      const tool = requireOnlyTool(buildTools(app, { gates: [testGate] }));
+      const tool = requireOnlyTool(buildTools(app, { layers: [testGate] }));
 
       await tool.handler({ message: 'hi' }, noExtra);
       expect(calls).toEqual(['before', 'after']);
@@ -331,18 +331,18 @@ describe('buildMcpTools', () => {
       expect(trailheadMarkerUsed).toBe(true);
     });
 
-    test('provision overrides are forwarded to executeTrail', async () => {
-      const provisionTrail = trail('provision.check', {
+    test('resource overrides are forwarded to executeTrail', async () => {
+      const provisionTrail = trail('resource.check', {
         blaze: (_input, ctx) =>
           Result.ok({ source: dbProvision.from(ctx).source as string }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
-        provisions: [dbProvision],
+        resources: [dbProvision],
       });
 
       const tool = requireOnlyTool(
         buildTools(topo('myapp', { dbProvision, provisionTrail }), {
-          provisions: { 'db.main': { source: 'override' } },
+          resources: { 'db.main': { source: 'override' } },
         })
       );
 

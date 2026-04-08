@@ -140,16 +140,16 @@ const result = await ctx.cross('entity.add', { name: 'Beta', type: 'tool' });
 if (result.isErr()) return result;
 ```
 
-## Provision Declarations
+## Resource Declarations
 
-Trails declare infrastructure dependencies with `provisions: [...]`, parallel to `crosses` for composition.
+Trails declare infrastructure dependencies with `resources: [...]`, parallel to `crosses` for composition.
 
 ```typescript
 import { trail, Result } from '@ontrails/core';
-import { db } from '../provisions';
+import { db } from '../resources';
 
 const search = trail('search', {
-  provisions: [db],
+  resources: [db],
   input: z.object({ query: z.string().describe('Search term') }),
   output: z.array(z.object({ id: z.string(), title: z.string() })),
   blaze: async (input, ctx) => {
@@ -159,16 +159,16 @@ const search = trail('search', {
 });
 ```
 
-**`db.from(ctx)`** is the primary access pattern. The type is inferred from the provision's `create` factory — no generic annotation needed.
+**`db.from(ctx)`** is the primary access pattern. The type is inferred from the resource's `create` factory — no generic annotation needed.
 
-**`ctx.provision<Database>('db.main')`** is the escape hatch for dynamic or string-based lookups. Both resolve the same way at runtime.
+**`ctx.resource<Database>('db.main')`** is the escape hatch for dynamic or string-based lookups. Both resolve the same way at runtime.
 
 **When to use each:**
 
 - `db.from(ctx)` — default. Typed, statically analyzable, warden-verifiable.
-- `ctx.provision()` — when the provision ID is computed or comes from configuration.
+- `ctx.resource()` — when the resource ID is computed or comes from configuration.
 
-The warden enforces two rules: `provision-declarations` verifies that `db.from(ctx)` and `ctx.provision()` calls match the declared `provisions` array; `provision-exists` verifies that declared provision IDs resolve in the topo.
+The warden enforces two rules: `resource-declarations` verifies that `db.from(ctx)` and `ctx.resource()` calls match the declared `resources` array; `resource-exists` verifies that declared resource IDs resolve in the topo.
 
 ## Type Utilities
 

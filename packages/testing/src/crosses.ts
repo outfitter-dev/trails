@@ -10,7 +10,7 @@ import { describe, expect, test } from 'bun:test';
 import type {
   AnyTrail,
   CrossFn,
-  ProvisionOverrideMap,
+  ResourceOverrideMap,
   TrailContext,
 } from '@ontrails/core';
 import {
@@ -26,7 +26,7 @@ import {
   assertFullMatch,
   assertSchemaMatch,
 } from './assertions.js';
-import { mergeProvisionOverrides, mergeTestContext } from './context.js';
+import { mergeResourceOverrides, mergeTestContext } from './context.js';
 import type { CrossScenario } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -38,21 +38,21 @@ interface CrossRecord {
   readonly input: unknown;
 }
 
-const collectDeclaredProvisions = (
+const collectDeclaredResources = (
   trailDef: AnyTrail,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined
-): AnyTrail['provisions'] => {
-  const seenProvisionIds = new Set<string>();
+): AnyTrail['resources'] => {
+  const seenResourceIds = new Set<string>();
   const seenTrailIds = new Set<string>();
-  const provisions: AnyTrail['provisions'][number][] = [];
+  const resources: AnyTrail['resources'][number][] = [];
 
   const collect = (candidate: AnyTrail): void => {
-    for (const declaredProvision of candidate.provisions) {
-      if (seenProvisionIds.has(declaredProvision.id)) {
+    for (const declaredResource of candidate.resources) {
+      if (seenResourceIds.has(declaredResource.id)) {
         continue;
       }
-      seenProvisionIds.add(declaredProvision.id);
-      provisions.push(declaredProvision);
+      seenResourceIds.add(declaredResource.id);
+      resources.push(declaredResource);
     }
   };
 
@@ -71,26 +71,26 @@ const collectDeclaredProvisions = (
   };
 
   visit(trailDef);
-  return provisions;
+  return resources;
 };
 
-const resolveCrossMockProvisions = async (
+const resolveCrossMockResources = async (
   trailDef: AnyTrail,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined
-): Promise<ProvisionOverrideMap> => {
-  const provisions: Record<string, unknown> = {};
+): Promise<ResourceOverrideMap> => {
+  const resources: Record<string, unknown> = {};
 
-  for (const declaredProvision of collectDeclaredProvisions(
+  for (const declaredResource of collectDeclaredResources(
     trailDef,
     trailsMap
   )) {
-    if (!declaredProvision.mock) {
+    if (!declaredResource.mock) {
       continue;
     }
-    provisions[declaredProvision.id] = await declaredProvision.mock();
+    resources[declaredResource.id] = await declaredResource.mock();
   }
 
-  return provisions;
+  return resources;
 };
 
 // ---------------------------------------------------------------------------
@@ -151,7 +151,7 @@ const executeFromMap = (
   input: unknown,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
   ctx: TrailContext,
-  provisions: ProvisionOverrideMap | undefined,
+  resources: ResourceOverrideMap | undefined,
   cross?: CrossFn
 ): Result<unknown, Error> | Promise<Result<unknown, Error>> | undefined => {
   const trailDef = trailsMap?.get(id);
@@ -162,7 +162,7 @@ const executeFromMap = (
   const nestedCtx = cross ? { ...ctx, cross } : ctx;
   return executeTrail(trailDef, input, {
     ctx: nestedCtx,
-    provisions,
+    resources,
   });
 };
 
@@ -179,7 +179,7 @@ const createRecordingCross = (
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
   baseCross: CrossFn | undefined,
   ctx: TrailContext,
-  provisions: ProvisionOverrideMap | undefined
+  resources: ResourceOverrideMap | undefined
 ): CrossFn => {
   // The generic O on CrossFn is erased at runtime; the cast is safe
   // because callers narrow via isOk/isErr before accessing the value.
@@ -200,7 +200,7 @@ const createRecordingCross = (
       input,
       trailsMap,
       ctx,
-      provisions,
+      resources,
       cross as CrossFn
     );
     if (executed !== undefined) {
@@ -280,7 +280,7 @@ const buildTestContext = (
   scenario: CrossScenario,
   ctx: Partial<TrailContext> | undefined,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
-  provisions: ProvisionOverrideMap | undefined
+  resources: ResourceOverrideMap | undefined
 ): { trace: CrossRecord[]; testCtx: TrailContext } => {
   const trace: CrossRecord[] = [];
   const baseCtx = mergeTestContext(ctx);
@@ -290,7 +290,7 @@ const buildTestContext = (
     trailsMap,
     baseCtx.cross,
     baseCtx,
-    provisions
+    resources
   );
   return { testCtx: { ...baseCtx, cross }, trace };
 };
@@ -300,7 +300,7 @@ const runScenario = async (
   scenario: CrossScenario,
   ctx: Partial<TrailContext> | undefined,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
-  provisions: ProvisionOverrideMap | undefined
+  resources: ResourceOverrideMap | undefined
 ): Promise<void> => {
   const validated = validateInput(trailDef.input, scenario.input);
   if (handleValidationError(validated, scenario)) {
@@ -311,11 +311,11 @@ const runScenario = async (
     scenario,
     ctx,
     trailsMap,
-    provisions
+    resources
   );
   const result = await executeTrail(trailDef, scenario.input, {
     ctx: testCtx,
-    provisions,
+    resources,
   });
   assertCrossTrace(trace, scenario);
   assertScenarioResult(result, scenario, trailDef);
@@ -330,11 +330,11 @@ export interface TestCrossOptions {
   /** Partial context overrides. */
   readonly ctx?: Partial<TrailContext> | undefined;
   /**
-   * Explicit provision overrides merged on top of auto-resolved mocks for every
+   * Explicit resource overrides merged on top of auto-resolved mocks for every
    * scenario. Values are passed by reference — provide immutable objects, or
-   * use `mock()` on the provision definition to get a fresh instance per run.
+   * use `mock()` on the resource definition to get a fresh instance per run.
    */
-  readonly provisions?: ProvisionOverrideMap | undefined;
+  readonly resources?: ResourceOverrideMap | undefined;
   /** Map of trail ID to trail definition, used for injectFromExample. */
   readonly trails?: ReadonlyMap<string, AnyTrail> | undefined;
 }
@@ -359,23 +359,23 @@ export const testCrosses = (
   scenarios: readonly CrossScenario[],
   options?: TestCrossOptions
 ): void => {
-  const explicitProvisions = options?.provisions;
+  const explicitResources = options?.resources;
 
   describe(trailDef.id, () => {
     test.each([...scenarios])(
       '$description',
       async (scenario: CrossScenario) => {
-        const provisions = mergeProvisionOverrides(
-          await resolveCrossMockProvisions(trailDef, options?.trails),
+        const resources = mergeResourceOverrides(
+          await resolveCrossMockResources(trailDef, options?.trails),
           options?.ctx,
-          explicitProvisions
+          explicitResources
         );
         await runScenario(
           trailDef,
           scenario,
           options?.ctx,
           options?.trails,
-          provisions
+          resources
         );
       }
     );

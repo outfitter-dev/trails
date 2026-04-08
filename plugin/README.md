@@ -13,7 +13,7 @@ claude plugin install trails@trails
 
 ### Skill
 
-**`trails`** — The complete guide to building with Trails. Covers trail creation, provisions, trailheads, testing, debugging, migration, and governance in one skill with 11 reference files for deep dives.
+**`trails`** — The complete guide to building with Trails. Covers trail creation, resources, trailheads, testing, debugging, migration, and governance in one skill with 11 reference files for deep dives.
 
 ### Agent
 
@@ -23,7 +23,7 @@ claude plugin install trails@trails
 
 ### Rules
 
-- **vocabulary** — Enforces Trails-branded terms (trail, trailhead, topo, blaze, cross, provision, signal, gate, tracker)
+- **vocabulary** — Enforces Trails-branded terms (trail, trailhead, topo, blaze, cross, resource, signal, layer, tracing)
 - **patterns** — Core coding patterns (Result over throw, trailhead-agnostic implementations)
 
 ## License

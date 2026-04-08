@@ -1,4 +1,4 @@
-import type { Provision } from '@ontrails/core';
+import type { Resource } from '@ontrails/core';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import type { AnySQLiteTable } from 'drizzle-orm/sqlite-core';
 
@@ -58,13 +58,13 @@ export interface DrizzleStoreProvisionShape<
   readonly access: TAccess;
   readonly store: TStore;
   readonly tables: DrizzleStoreSchema<TStore>;
-  from(ctx: Parameters<Provision<TConnection>['from']>[0]): TConnection;
-  readonly kind: 'provision';
+  from(ctx: Parameters<Resource<TConnection>['from']>[0]): TConnection;
+  readonly kind: 'resource';
 }
 
 export type DrizzleStoreProvision<
   TStore extends AnyStoreDefinition,
   TConnection,
   TAccess extends StoreAccessMode,
-> = Provision<TConnection> &
+> = Resource<TConnection> &
   DrizzleStoreProvisionShape<TStore, TConnection, TAccess>;

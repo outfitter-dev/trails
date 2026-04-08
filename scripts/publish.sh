@@ -27,7 +27,7 @@ PACKAGES=(
   packages/schema
   packages/config
   packages/permits
-  packages/tracker
+  packages/tracing
   packages/cli
   packages/http
   packages/mcp

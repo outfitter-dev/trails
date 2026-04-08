@@ -12,11 +12,11 @@ const summaryOutput = z.object({
       detours: z.boolean(),
       examples: z.boolean(),
       outputSchemas: z.boolean(),
-      provisions: z.boolean(),
+      resources: z.boolean(),
       signals: z.boolean(),
     }),
     name: z.string(),
-    provisions: z.number(),
+    resources: z.number(),
     signals: z.number(),
     trails: z.number(),
     version: z.string(),
@@ -33,12 +33,12 @@ const summaryOutput = z.object({
       })
     ),
     provisionCount: z.number(),
-    provisions: z.array(
+    resources: z.array(
       z.object({
         description: z.string().nullable(),
         health: z.enum(['available', 'none']),
         id: z.string(),
-        kind: z.literal('provision'),
+        kind: z.literal('resource'),
         lifetime: z.literal('singleton'),
         usedBy: z.array(z.string()),
       })

@@ -26,7 +26,7 @@ Trails has `run()` as a programmatic API. It doesn't have a direct CLI command f
 
 ### `run()` is already the universal pipeline
 
-Every invocation path converges on `run()` which calls `executeTrail()`: validate input, resolve context, compose gates, run implementation, return Result. CLI trailheads call it. MCP trailheads call it. HTTP trailheads call it. Crossings call it. Triggers call it.
+Every invocation path converges on `run()` which calls `executeTrail()`: validate input, resolve context, compose layers, run implementation, return Result. CLI trailheads call it. MCP trailheads call it. HTTP trailheads call it. Crossings call it. Triggers call it.
 
 `trails run` is `run()` wired to stdin/stdout. The infrastructure is already there. The execution semantics are identical to every other invocation path. The trail doesn't know it's being run from `trails run` vs a blazed CLI trailhead vs an MCP tool call. The pipeline is the pipeline.
 
@@ -133,7 +133,7 @@ Two standard axes that every developer already has muscle memory for, plus one d
 ```bash
 --quiet     # just the value (success) or error message (failure). No Result wrapper.
 (default)   # the Result object. Enough to know what happened.
---verbose   # the Result + execution metadata: duration, provisions, permit, events.
+--verbose   # the Result + execution metadata: duration, resources, permit, events.
 ```
 
 These compose naturally:
@@ -155,36 +155,36 @@ trails run booking.confirm '{"slotId": "slot_1"}' --verbose
 # Result: ok
 # Value: { bookingId: "bk_123", status: "confirmed" }
 # Duration: 380ms
-# Provisions: bookingStore, billingService, emailService
+# Resources: bookingStore, billingService, emailService
 # Events: booking.confirmed (1 trigger, 0 subscriptions)
 # Permit: none (direct invocation)
 ```
 
 Standard stuff. Every developer knows these patterns from other tools. No new concepts.
 
-#### The tracker dimension (the journey, not just the destination)
+#### The tracing dimension (the journey, not just the destination)
 
-`--tracker` is not a verbosity level. It's a different kind of output entirely.
+`--tracing` is not a verbosity level. It's a different kind of output entirely.
 
-The format and verbosity flags control the *result*: what the trail returned, and how much context to show around it. `--tracker` adds the *journey*: the live execution narrative as the system works.
+The format and verbosity flags control the *result*: what the trail returned, and how much context to show around it. `--tracing` adds the *journey*: the live execution narrative as the system works.
 
 ```bash
-trails run booking.confirm '{"slotId": "slot_1"}' --tracker
+trails run booking.confirm '{"slotId": "slot_1"}' --tracing
 ```
 
-The tracker stream to stderr. The result goes to stdout. They don't interfere:
+The tracing stream to stderr. The result goes to stdout. They don't interfere:
 
 ```bash
-# Tracker stream to stderr, result pipes cleanly to jq
-trails run booking.confirm '{"slotId": "slot_1"}' --tracker | jq '.bookingId'
+# Tracing stream to stderr, result pipes cleanly to jq
+trails run booking.confirm '{"slotId": "slot_1"}' --tracing | jq '.bookingId'
 ```
 
 Same pattern as progress bars and log lines: narrative to stderr, data to stdout. Unix convention.
 
-**What the tracker stream looks like:**
+**What the tracing stream looks like:**
 
 ```bash
-$ trails run booking.confirm '{"slotId": "slot_1"}' --tracker
+$ trails run booking.confirm '{"slotId": "slot_1"}' --tracing
 
 ● booking.confirm
   ├── availability.reserve (slot_1)
@@ -203,11 +203,11 @@ $ trails run booking.confirm '{"slotId": "slot_1"}' --tracker
 
 The tree renders in real time. Each step appears when it starts. The checkmark and timing appear when it completes. Event emissions show as they fire. Triggered trails appear when activation starts. The tree grows as you watch. When everything is done, the final result prints to stdout.
 
-**Tracker composes with every standard flag:**
+**Tracing composes with every standard flag:**
 
 ```bash
-# Tracker + quiet: the journey, then just the value
-trails run booking.confirm '{"slotId": "slot_1"}' --tracker --quiet
+# Tracing + quiet: the journey, then just the value
+trails run booking.confirm '{"slotId": "slot_1"}' --tracing --quiet
 
 ● booking.confirm
   ├── availability.reserve ✓ 45ms
@@ -219,8 +219,8 @@ trails run booking.confirm '{"slotId": "slot_1"}' --tracker --quiet
 ```
 
 ```bash
-# Tracker + verbose: the journey AND the detailed summary
-trails run booking.confirm '{"slotId": "slot_1"}' --tracker --verbose
+# Tracing + verbose: the journey AND the detailed summary
+trails run booking.confirm '{"slotId": "slot_1"}' --tracing --verbose
 
 ● booking.confirm
   ├── availability.reserve ✓ 45ms
@@ -231,20 +231,20 @@ trails run booking.confirm '{"slotId": "slot_1"}' --tracker --verbose
 Result: ok
 Value: {"bookingId": "bk_123", "status": "confirmed"}
 Duration: 380ms
-Provisions: bookingStore, billingService, emailService
+Resources: bookingStore, billingService, emailService
 Events: booking.confirmed (1 trigger, 0 subscriptions)
 ```
 
 ```bash
-# Tracker + json: tree streams to stderr, structured tracker in JSON to stdout
-trails run booking.confirm '{"slotId": "slot_1"}' --tracker --json
+# Tracing + json: tree streams to stderr, structured tracing in JSON to stdout
+trails run booking.confirm '{"slotId": "slot_1"}' --tracing --json
 # stderr: the tree visualization (human-readable, real-time)
-# stdout: {"ok":true,"value":{...},"tracker":[...]}
+# stdout: {"ok":true,"value":{...},"tracing":[...]}
 ```
 
-`--tracker --json` includes the tracker as structured data in the JSON output while also streaming the human-readable tree to stderr. The machine gets structured tracker data. The human sees the real-time tree. Both from one invocation.
+`--tracing --json` includes the tracing as structured data in the JSON output while also streaming the human-readable tree to stderr. The machine gets structured tracing data. The human sees the real-time tree. Both from one invocation.
 
-**What tracker reveals that result output can't:**
+**What tracing reveals that result output can't:**
 
 Timing between steps and framework overhead:
 
@@ -294,23 +294,23 @@ Event delivery across trailheads:
 
 Events show their full delivery: which triggers fired, which WebSocket subscribers received it, which failed. The reactive graph executing in real time.
 
-**The relationship between `trails run --tracker` and `trails tracker`:**
+**The relationship between `trails run --tracing` and `trails tracing`:**
 
-`trails run --tracker` shows tracker in real time during a live execution. You're watching the tracker drop as the trail is walked.
+`trails run --tracing` shows tracing in real time during a live execution. You're watching the tracing drop as the trail is walked.
 
-`trails tracker` queries historical tracker from the tracker store. You're following tracker that were left behind earlier.
+`trails tracing` queries historical tracing from the tracing store. You're following tracing that were left behind earlier.
 
 Same data. Same vocabulary. Different time dimension. One is live. One is retrospective.
 
 ```bash
-# Live: watch the tracker drop
-trails run booking.confirm '{"slotId": "slot_1"}' --tracker
+# Live: watch the tracing drop
+trails run booking.confirm '{"slotId": "slot_1"}' --tracing
 
-# Historical: follow tracker from the last execution
-trails tracker --last
+# Historical: follow tracing from the last execution
+trails tracing --last
 
 # Historical: follow the chain for a specific execution
-trails tracker --chain exec_abc
+trails tracing --chain exec_abc
 ```
 
 ### Example-driven execution
@@ -363,7 +363,7 @@ Actual error: NotFoundError
 ✓ Match
 ```
 
-This bridges the gap between ad-hoc exploration and structured testing. The developer runs a specific example against real provisions (not mocks) to see if behavior matches. It's a single-example test outside the test harness.
+This bridges the gap between ad-hoc exploration and structured testing. The developer runs a specific example against real resources (not mocks) to see if behavior matches. It's a single-example test outside the test harness.
 
 **List available examples:**
 
@@ -403,9 +403,9 @@ trails run entity.list '{}' --jsonl
 
 Each output item is a separate JSON line. Pipeable to `jq`, `grep`, another `trails run`, or any JSONL-aware tool.
 
-### Provision resolution
+### Resource resolution
 
-`trails run` resolves provisions the same way any invocation does. In development, mock provisions resolve by default (from the `mock` factory on the provision definition). The developer gets production-equivalent behavior without production infrastructure.
+`trails run` resolves resources the same way any invocation does. In development, mock resources resolve by default (from the `mock` factory on the resource definition). The developer gets production-equivalent behavior without production infrastructure.
 
 ### Permit context
 
@@ -430,7 +430,7 @@ trails run booking.confirm '{"slotId": "slot_1"}' --dev-permit
 trails run entity.show '{"name": "Alpha"}' --watch
 ```
 
-Reruns the trail whenever the trail's source file, schema definitions, or provision implementations change. The developer edits the trail's `run` function, saves, and sees the new result immediately. Same hot-reload loop as `bun --watch` but scoped to one trail's execution.
+Reruns the trail whenever the trail's source file, schema definitions, or resource implementations change. The developer edits the trail's `run` function, saves, and sees the new result immediately. Same hot-reload loop as `bun --watch` but scoped to one trail's execution.
 
 Combined with `--example`:
 
@@ -440,13 +440,13 @@ trails run entity.show --example "Found" --watch
 
 Edit the implementation, save, the example reruns, match/mismatch updates instantly. This is TDD without leaving the terminal. The example is the assertion. The watch loop is the runner.
 
-Combined with `--tracker`:
+Combined with `--tracing`:
 
 ```bash
-trails run booking.confirm '{"slotId": "slot_1"}' --watch --tracker
+trails run booking.confirm '{"slotId": "slot_1"}' --watch --tracing
 ```
 
-Edit, save, and the full execution tree re-renders. The tracker shows whether a change in the implementation affected timing, crossing behavior, or event emission. The developer sees the ripple effects of every edit.
+Edit, save, and the full execution tree re-renders. The tracing shows whether a change in the implementation affected timing, crossing behavior, or event emission. The developer sees the ripple effects of every edit.
 
 ### Dry run
 
@@ -486,9 +486,9 @@ trails run health.check --app trails-api
 
 In watch mode, the topo reloads on file changes. The lockfile is the source of truth for resolution; `trails run` does not scan for entry points or apply convention-based discovery.
 
-### Interaction with tracker
+### Interaction with tracing
 
-Every `trails run` invocation leaves a tracker record with `type: 'direct'`. The record captures:
+Every `trails run` invocation leaves a tracing record with `type: 'direct'`. The record captures:
 
 ```json
 {
@@ -504,7 +504,7 @@ Every `trails run` invocation leaves a tracker record with `type: 'direct'`. The
 }
 ```
 
-In verbose mode, the record is displayed inline. In normal mode, it's recorded silently. Either way, `trails tracker --last` shows the most recent execution, including `trails run` invocations.
+In verbose mode, the record is displayed inline. In normal mode, it's recorded silently. Either way, `trails tracing --last` shows the most recent execution, including `trails run` invocations.
 
 This means the development workflow has full observability:
 
@@ -512,12 +512,12 @@ This means the development workflow has full observability:
 # Run a trail
 trails run booking.confirm '{"slotId": "slot_1"}'
 
-# Something went wrong, check the tracker
-trails tracker --last
+# Something went wrong, check the tracing
+trails tracing --last
 # Shows the full execution chain including crossings, events, and timing
 
 # Deep dive on a specific execution
-trails tracker --chain exec_abc
+trails tracing --chain exec_abc
 # Shows the full causal chain from this invocation through all crossings and triggers
 ```
 
@@ -529,9 +529,9 @@ When `trails run` invokes a trail that emits events, the events flow through the
 trails run booking.confirm '{"slotId": "slot_1"}'
 ```
 
-Could trigger `notify.booking-confirmed`, which could trigger `audit.log-write`, which could emit more events. The full reactive chain executes. With `--tracker`, the triggered trails appear in the execution tree as they fire.
+Could trigger `notify.booking-confirmed`, which could trigger `audit.log-write`, which could emit more events. The full reactive chain executes. With `--tracing`, the triggered trails appear in the execution tree as they fire.
 
-This is intentional. `trails run` is not an isolated sandbox. It's a direct invocation through the real pipeline. Mock provisions (the default) provide isolation. With `--tracker`, the triggered trails appear in the execution tree as they fire.
+This is intentional. `trails run` is not an isolated sandbox. It's a direct invocation through the real pipeline. Mock resources (the default) provide isolation. With `--tracing`, the triggered trails appear in the execution tree as they fire.
 
 ### Autocomplete
 
@@ -556,14 +556,14 @@ Trail IDs are completed from the topo. Example names are completed from the trai
 - **Zero-ceremony invocation.** Run any trail from the terminal with one command. No trailhead setup, no bin entry, no server. The topo is the interface.
 - **Examples become directly executable.** `--example` bridges exploration and testing. The developer runs a specific example, sees actual vs expected, adjusts the implementation. TDD in the terminal.
 - **Unix-native composition.** JSON in, JSON out, exit codes, pipes. `trails run` composes with `jq`, `xargs`, other `trails run` invocations, and any JSONL-aware tool. Trails become first-class Unix citizens.
-- **Full pipeline execution.** Validation, gates, provisions, events, triggers, tracker. Everything fires. The developer sees production-equivalent behavior without production infrastructure (via mock provisions).
+- **Full pipeline execution.** Validation, layers, resources, events, triggers, tracing. Everything fires. The developer sees production-equivalent behavior without production infrastructure (via mock resources).
 - **Watch mode tightens the loop.** Edit, save, see the result. Combined with `--example`, it's TDD without a test framework. The example is the assertion. The file system is the trigger.
-- **`--tracker` makes composition visible.** The live execution tree shows crossings, events, triggers, parallel branches, and timing as they happen. The developer understands the reactive chain without reading code. Tracker stream to stderr while the result goes to stdout, composing cleanly with standard flags and Unix pipes.
+- **`--tracing` makes composition visible.** The live execution tree shows crossings, events, triggers, parallel branches, and timing as they happen. The developer understands the reactive chain without reading code. Tracing stream to stderr while the result goes to stdout, composing cleanly with standard flags and Unix pipes.
 
 ### Tradeoffs
 
 - **Depends on the lockfile.** `trails run` resolves trails through `trails.lock`. The lockfile must be current. A stale lockfile could point to a trail that's been renamed or removed. `trails topo export` (or a pin-driven export workflow) becomes a prerequisite for accurate resolution.
-- **Reactive chains can cascade.** `trails run` with triggers enabled means one invocation could trigger a chain of trail executions. With `--tracker` this is visible. Without it, the cascading triggers are silent. A developer exploring a trail might not expect their invocation to trigger five downstream trails.
+- **Reactive chains can cascade.** `trails run` with triggers enabled means one invocation could trigger a chain of trail executions. With `--tracing` this is visible. Without it, the cascading triggers are silent. A developer exploring a trail might not expect their invocation to trigger five downstream trails.
 - **Watch mode requires file watching.** Adds a dependency on file system watching (Bun handles this natively). For large projects, file watching can be resource-intensive, though scoping to the trail's source file and its dependencies mitigates this.
 
 ### What this does NOT decide
@@ -571,10 +571,10 @@ Trail IDs are completed from the topo. Example names are completed from the trai
 - **REPL mode.** An interactive session where the developer can call multiple trails, inspect results, modify input, and retry without restarting. `trails run` is single-invocation. A REPL (`trails console` or `trails repl`) is a future extension that could use `Bun.repl` or a custom prompt backed by `run()`.
 - **Remote execution.** `trails run` invokes locally. Running a trail on a remote topo (via mount) would need `trails run --remote <url> <trail-id>`. That's tied to the mount ADR.
 - **Scheduled or delayed execution.** `trails run` is immediate. "Run this trail in 5 minutes" or "run this trail every hour" is the trigger system's job.
-- **Output formatting beyond JSON.** Tables, CSV, custom formats. The default is JSON. `--verbose` and `--tracker` are human-readable. If someone needs `trails run entity.list --format table`, that's a future enhancement.
+- **Output formatting beyond JSON.** Tables, CSV, custom formats. The default is JSON. `--verbose` and `--tracing` are human-readable. If someone needs `trails run entity.list --format table`, that's a future enhancement.
 - **Batch execution.** Running a trail against multiple inputs from a JSONL file. Sequential and parallel batch modes. A future extension that builds on the same pipeline.
 - **Interactive prompting.** Deriving an interactive input form from the trail's Zod schema (`--prompt`). A non-trivial UX project that can follow once the core invocation path is stable.
-- **Live provision resolution.** A `--live` or `--no-mocks` flag to bypass mock provisions and run against real infrastructure. Requires careful footgun guards (especially combined with batch mode).
+- **Live resource resolution.** A `--live` or `--no-mocks` flag to bypass mock resources and run against real infrastructure. Requires careful footgun guards (especially combined with batch mode).
 
 ## References
 
@@ -582,7 +582,7 @@ Trail IDs are completed from the topo. Example names are completed from the trai
 - [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- every trail is runnable, whether atomic or composite
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` executes through the pipeline, the same as every trailhead
 - ADR: Typed Signal Emission (draft) -- events emitted during `trails run` flow through normal routing, triggers fire
-- ADR: Concurrent Cross Composition (draft) -- `--tracker` renders concurrent crossings as parallel branches in the execution tree
+- ADR: Concurrent Cross Composition (draft) -- `--tracing` renders concurrent crossings as parallel branches in the execution tree
 - ADR: Trail Visibility and Trailhead Filtering (draft) -- `trails run` can invoke internal trails (it's programmatic, like `run()`)
 - ADR: Packs as Namespace Boundaries (draft) -- `trails run` can invoke any trail in any pack, regardless of visibility
-- [ADR-0013: Tracker](../0013-tracker.md) -- `--tracker` uses the tracker vocabulary; live tracker during `trails run`, historical tracker via `trails tracker`
+- [ADR-0013: Tracing](../0013-tracing.md) -- `--tracing` uses the tracing vocabulary; live tracing during `trails run`, historical tracing via `trails tracing`

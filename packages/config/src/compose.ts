@@ -1,7 +1,7 @@
 /**
- * Config composition utilities for provisions.
+ * Config composition utilities for resources.
  *
- * Collects config schemas from provision declarations so they can be
+ * Collects config schemas from resource declarations so they can be
  * composed into a unified config structure via `defineConfig`.
  */
 
@@ -11,17 +11,17 @@ import type { z } from 'zod';
 // Types
 // ---------------------------------------------------------------------------
 
-/** A provision config schema entry extracted from a provision declaration. */
-export interface ProvisionConfigEntry {
-  readonly provisionId: string;
+/** A resource config schema entry extracted from a resource declaration. */
+export interface ResourceConfigEntry {
+  readonly resourceId: string;
   readonly schema: z.ZodType;
 }
 
 /** Backward-compatible alias while the migration is in flight. */
-export type ServiceConfigEntry = ProvisionConfigEntry;
+export type ServiceConfigEntry = ResourceConfigEntry;
 
-/** Minimal shape needed to extract config from a provision-like object. */
-interface ProvisionWithOptionalConfig {
+/** Minimal shape needed to extract config from a resource-like object. */
+interface ResourceWithOptionalConfig {
   readonly id: string;
   readonly config?: z.ZodType | undefined;
 }
@@ -31,22 +31,22 @@ interface ProvisionWithOptionalConfig {
 // ---------------------------------------------------------------------------
 
 /**
- * Collect config schemas from provisions that declare them.
+ * Collect config schemas from resources that declare them.
  *
- * Returns entries keyed by provision ID for composition into `defineConfig`.
- * Provisions without a `config` schema are excluded.
+ * Returns entries keyed by resource ID for composition into `defineConfig`.
+ * Resources without a `config` schema are excluded.
  */
-export const collectProvisionConfigs = (
-  provisions: readonly ProvisionWithOptionalConfig[]
-): ProvisionConfigEntry[] =>
-  provisions
+export const collectResourceConfigs = (
+  resources: readonly ResourceWithOptionalConfig[]
+): ResourceConfigEntry[] =>
+  resources
     .filter(
       (
         svc
-      ): svc is ProvisionWithOptionalConfig & { readonly config: z.ZodType } =>
+      ): svc is ResourceWithOptionalConfig & { readonly config: z.ZodType } =>
         svc.config !== undefined
     )
-    .map((svc) => ({ provisionId: svc.id, schema: svc.config }));
+    .map((svc) => ({ resourceId: svc.id, schema: svc.config }));
 
 /** Backward-compatible alias while the migration is in flight. */
-export const collectServiceConfigs = collectProvisionConfigs;
+export const collectServiceConfigs = collectResourceConfigs;

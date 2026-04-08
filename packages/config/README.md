@@ -2,7 +2,7 @@
 
 Schema-derived configuration for Trails.
 
-The root package owns the connector-agnostic config declaration and resolution engine. Schemas define the contract; the provision and gate bind resolved values to the execution context.
+The root package owns the connector-agnostic config declaration and resolution engine. Schemas define the contract; the resource and layer bind resolved values to the execution context.
 
 ## The core pattern
 
@@ -24,7 +24,7 @@ export const config = defineConfig({
   base: {
     host: 'example.com',
   },
-  loadouts: {
+  profiles: {
     production: {
       debug: false,
       host: 'prod.example.com',
@@ -45,7 +45,7 @@ import { registerConfigState } from '@ontrails/config';
 
 const result = await config.resolve({
   cwd: process.cwd(),
-  loadout: process.env.TRAILS_ENV,
+  profile: process.env.TRAILS_ENV,
 });
 
 if (!result.isOk()) {
@@ -56,7 +56,7 @@ registerConfigState({
   resolved: result.unwrap(),
   schema: config.schema,
   base: config.base,
-  loadout: process.env.TRAILS_ENV,
+  profile: process.env.TRAILS_ENV,
   env: process.env,
 });
 ```
@@ -64,12 +64,12 @@ registerConfigState({
 ### 3. Access resolved config in trails
 
 ```typescript
-import { configProvision } from '@ontrails/config';
+import { configResource } from '@ontrails/config';
 
 export const getStatus = trail('status.get', {
-  provisions: [configProvision],
+  resources: [configResource],
   blaze: (_input, ctx) => {
-    const state = configProvision.from(ctx);
+    const state = configResource.from(ctx);
     return Result.ok({
       port: state.resolved.port,
       debug: state.resolved.debug,
@@ -83,7 +83,7 @@ export const getStatus = trail('status.get', {
 Config resolves through a deterministic priority order:
 
 ```text
-defaults (schema) → base → loadout → local → env
+defaults (schema) → base → profile → local → env
 ```
 
 Each layer overrides the previous. Environment variables always win.
@@ -133,31 +133,31 @@ const schema = z.object({
 });
 ```
 
-## The provision
+## The resource
 
-The config provision manages resolved config lifecycle:
+The config resource manages resolved config lifecycle:
 
 ```typescript
-import { configProvision } from '@ontrails/config';
+import { configResource } from '@ontrails/config';
 
 export const myTrail = trail('my.trail', {
-  provisions: [configProvision],
+  resources: [configResource],
   blaze: (_input, ctx) => {
-    const state = configProvision.from(ctx);
+    const state = configResource.from(ctx);
     return Result.ok(state.resolved);
   },
 });
 ```
 
-## The gate
+## The layer
 
-The config gate reserves a slot in the execution context for per-trail config validation:
+The config layer reserves a slot in the execution context for per-trail config validation:
 
 ```typescript
-import { configGate } from '@ontrails/config';
+import { configLayer } from '@ontrails/config';
 
 export const app = topo('my-app', configModule);
-// Register configGate with your trailhead
+// Register configLayer with your trailhead
 ```
 
 ## Trail definitions
@@ -172,7 +172,7 @@ Describe all fields in the schema — paths, types, defaults, env bindings, secr
 
 ### `config.explain`
 
-Show which source won for each config field — defaults, base, loadout, local, or env.
+Show which source won for each config field — defaults, base, profile, local, or env.
 
 ### `config.init`
 
@@ -180,13 +180,13 @@ Generate example config files in TOML, JSON, JSONC, or YAML. Optionally writes `
 
 ## Testing
 
-Trails that depend on `configProvision` auto-resolve with a mock when registered in the topo:
+Trails that depend on `configResource` auto-resolve with a mock when registered in the topo:
 
 ```typescript
 import { testAll } from '@ontrails/testing';
 
 const results = testAll(app);
-// configProvision.mock() is called automatically
+// configResource.mock() is called automatically
 ```
 
 For explicit test setup:

@@ -13,7 +13,7 @@ const trailDetailOutput = z.object({
   id: z.string(),
   intent: z.enum(['read', 'write', 'destroy']),
   kind: z.string(),
-  provisions: z.array(z.string()),
+  resources: z.array(z.string()),
   safety: z.string(),
 });
 
@@ -21,7 +21,7 @@ const provisionDetailOutput = z.object({
   description: z.string().nullable(),
   health: z.enum(['available', 'none']),
   id: z.string(),
-  kind: z.literal('provision'),
+  kind: z.literal('resource'),
   lifetime: z.literal('singleton'),
   usedBy: z.array(z.string()),
 });
@@ -35,10 +35,10 @@ export const topoShowTrail = trail('topo.show', {
       return Result.ok(detail);
     }
     return Result.err(
-      new NotFoundError(`Trail or provision not found: ${input.id}`)
+      new NotFoundError(`Trail or resource not found: ${input.id}`)
     );
   },
-  description: 'Show detail for a current trail or provision',
+  description: 'Show detail for a current trail or resource',
   examples: [
     {
       input: { id: 'topo' },
@@ -46,7 +46,7 @@ export const topoShowTrail = trail('topo.show', {
     },
   ],
   input: z.object({
-    id: z.string().describe('Trail or provision ID to inspect'),
+    id: z.string().describe('Trail or resource ID to inspect'),
     module: z
       .string()
       .default(DEFAULT_APP_MODULE)

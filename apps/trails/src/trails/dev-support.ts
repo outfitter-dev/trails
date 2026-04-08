@@ -16,10 +16,10 @@ import {
 import {
   DEFAULT_MAX_AGE,
   DEFAULT_MAX_RECORDS,
-  applyTrackCleanup,
-  countTrackRecords,
-  previewTrackCleanup,
-} from '@ontrails/tracker/internal/dev-state';
+  applyTraceCleanup,
+  countTraceRecords,
+  previewTraceCleanup,
+} from '@ontrails/tracing/internal/dev-state';
 
 import { resolveLockPath } from './topo-support.js';
 
@@ -56,7 +56,7 @@ export interface DevStatsReport {
     readonly prunableSaveCount: number;
     readonly saveCount: number;
   };
-  readonly tracker: {
+  readonly tracing: {
     readonly recordCount: number;
   };
 }
@@ -150,7 +150,7 @@ const emptyDevStats = (
     prunableSaveCount: 0,
     saveCount: 0,
   },
-  tracker: {
+  tracing: {
     recordCount: 0,
   },
 });
@@ -169,8 +169,8 @@ const liveDevStats = (
     prunableSaveCount: countPrunableTopoSaves(db, { keep: retention.saves }),
     saveCount: countTopoSaves(db),
   },
-  tracker: {
-    recordCount: countTrackRecords(db),
+  tracing: {
+    recordCount: countTraceRecords(db),
   },
 });
 
@@ -205,11 +205,11 @@ const cleanupTracks = (
   context: DevCleanupContext
 ) =>
   context.dryRun
-    ? previewTrackCleanup(db, {
+    ? previewTraceCleanup(db, {
         maxAge: context.retention.trackAgeMs,
         maxRecords: context.retention.tracks,
       })
-    : applyTrackCleanup(db, {
+    : applyTraceCleanup(db, {
         maxAge: context.retention.trackAgeMs,
         maxRecords: context.retention.tracks,
       });
@@ -251,6 +251,9 @@ const RESET_FILES = [
   '.trails/trails.db',
   '.trails/trails.db-shm',
   '.trails/trails.db-wal',
+  '.trails/dev/tracing.db',
+  '.trails/dev/tracing.db-shm',
+  '.trails/dev/tracing.db-wal',
   '.trails/dev/tracker.db',
   '.trails/dev/tracker.db-shm',
   '.trails/dev/tracker.db-wal',

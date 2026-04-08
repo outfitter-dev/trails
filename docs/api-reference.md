@@ -10,17 +10,17 @@ Canonical public trailhead-facing reference. For naming conventions and decision
 // Definitions
 trail(id, spec)                    // define a unit of work (with optional crosses for composition)
 signal(id, spec)                    // define a payload schema with provenance
-provision(id, spec)                  // define a first-class provision dependency
-createProvisionLookup(getContext)   // bind ctx.provision() to a specific context snapshot
-topo(name, ...modules)             // assemble trails, signals, and provisions into a queryable topology
-// Topo methods: .get(id), .has(id), .list(), .listEvents(), .ids(), .count
-//               .getProvision(id), .hasProvision(id), .listProvisions(), .provisionIds(), .provisionCount
+resource(id, spec)                  // define a first-class resource dependency
+createResourceLookup(getContext)   // bind ctx.resource() to a specific context snapshot
+topo(name, ...modules)             // assemble trails, signals, and resources into a queryable topology
+// Topo methods: .get(id), .has(id), .list(), .listSignals(), .ids(), .count
+//               .getResource(id), .hasResource(id), .listResources(), .resourceIds(), .resourceCount
 createTopoStore(options?), createMockTopoStore(seed?), topoStore
 
 // Types
-Trail<I, O>, Event<T>, Provision<T>, Topo, Intent
-TrailSpec<I, O>, EventSpec<T>, ProvisionSpec<T>, TrailExample<I, O>
-AnyTrail, AnyEvent, AnyProvision, ProvisionContext, ProvisionOverrideMap
+Trail<I, O>, Event<T>, Resource<T>, Topo, Intent
+TrailSpec<I, O>, EventSpec<T>, ResourceSpec<T>, TrailExample<I, O>
+AnyTrail, AnyEvent, AnyResource, ResourceContext, ResourceOverrideMap
 
 // Type utilities
 TrailInput<T>                      // extract input type from a Trail
@@ -43,16 +43,16 @@ ErrorCategory, isTrailsError(value?), isRetryable(error)
 // Implementation & context
 Implementation<I, O>              // (input, ctx) => Result | Promise<Result>
 TrailContext, createTrailContext(overrides?)
-CrossFn, ProvisionLookup, ProgressCallback, ProgressEvent, Logger, Trailhead
+CrossFn, ResourceLookup, ProgressCallback, ProgressEvent, Logger, Trailhead
 
 // Execution pipeline
-executeTrail(trail, rawInput, options?) // validate → resolve context → resolve provisions → compose gates → run
-run(topo, id, input, options?)    // look up and execute a trail by ID; accepts ctx/provision overrides
+executeTrail(trail, rawInput, options?) // validate → resolve context → resolve resources → compose layers → run
+run(topo, id, input, options?)    // look up and execute a trail by ID; accepts ctx/resource overrides
 RunOptions
 
-// Gates
-Gate                               // wrap(trail, implementation) → implementation
-composeGates(gates, trail, implementation)
+// Layers
+Layer                               // wrap(trail, implementation) → implementation
+composeLayers(layers, trail, implementation)
 
 // Validation
 validateInput(schema, data)        // → Result<T, ValidationError>
@@ -110,7 +110,7 @@ CliCommand, CliFlag, CliArg
 outputModePreset(), cwdPreset(), dryRunPreset()
 defaultOnResult(ctx), passthroughResolver, isInteractive(options?)
 InputResolver, ResolveInputOptions
-autoIterateGate, dateShortcutsGate
+autoIterateLayer, dateShortcutsLayer
 ```
 
 ## `@ontrails/mcp`
@@ -171,8 +171,8 @@ StoreTableAccessor<T>, ReadOnlyStoreTableAccessor<T>
 ## `@ontrails/store/drizzle`
 
 ```typescript
-connectDrizzle(definition, options?)         // bind a root store definition to a writable Drizzle provision
-connectReadOnlyDrizzle(definition, options?) // bind a root store definition to a read-only Drizzle provision
+connectDrizzle(definition, options?)         // bind a root store definition to a writable Drizzle resource
+connectReadOnlyDrizzle(definition, options?) // bind a root store definition to a read-only Drizzle resource
 store(tables, options?)                      // convenience: define + connect writable store
 readonlyStore(tables, options?)              // convenience: define + connect read-only store
 getSchema(binding)                           // expose raw derived Drizzle tables
@@ -224,7 +224,7 @@ ProjectAwareWardenRule, ProjectContext
 
 ```typescript
 // Schema & resolution
-defineConfig(options)                // define a config schema with base, loadouts, and extensions
+defineConfig(options)                // define a config schema with base, profiles, and extensions
 appConfig(name, options)             // lower-level config factory without Trails conventions
 
 // Extensions
@@ -232,9 +232,9 @@ env(schema, envVar)                  // bind a schema field to an environment va
 secret(schema)                       // mark a field as sensitive (redacted in output)
 deprecated(schema, message)          // mark a field as deprecated with migration guidance
 
-// Provision & gate
-configProvision                      // provision for resolved config state
-configGate                           // gate for per-trail config context
+// Resource & layer
+configResource                       // resource for resolved config state
+configLayer                          // layer for per-trail config context
 
 // State management
 registerConfigState(state)           // register resolved config at bootstrap
@@ -252,9 +252,9 @@ DefineConfigOptions, ConfigState, ConfigFieldMeta, ConfigDiagnostic
 ## `@ontrails/permits`
 
 ```typescript
-// Provision & gate
-authProvision                        // provision for auth connector lifecycle
-authGate                             // gate that enforces permit scopes on trails
+// Resource & layer
+authProvision                        // resource for auth connector lifecycle
+authLayer                            // layer that enforces permit scopes on trails
 
 // Permits
 getPermit(ctx)                       // extract the resolved permit from context
@@ -277,13 +277,13 @@ validatePermits(trails)              // check trails against permit governance r
 PermitDiagnostic
 ```
 
-## `@ontrails/tracker`
+## `@ontrails/tracing`
 
 ```typescript
-// Provision & gate
-trackerProvision                     // provision for tracker state
-tracker                              // accessor provision for manual instrumentation
-createTrackerGate(sink, options?)    // gate that records every trail invocation
+// Resource & layer
+tracingResource                      // resource for tracing state
+tracing                              // accessor resource for manual instrumentation
+createTracingLayer(sink, options?)    // layer that records every trail invocation
 
 // Sinks
 createMemorySink()                   // in-memory sink for testing
@@ -291,11 +291,11 @@ createDevStore(options?)             // SQLite-backed persistent sink for develo
 createOtelConnector(options?)        // OpenTelemetry span exporter
 
 // State management
-registerTrackerState(state)          // register tracker state at bootstrap
+registerTracingState(state)          // register tracing state at bootstrap
 
 // Trail definitions
-trackerStatus                        // report tracking state and record count
-trackerQuery                         // query execution history with filters
+tracingStatus                        // report tracing state and record count
+tracingQuery                         // query execution history with filters
 
 // Context
 getTraceContext(ctx)                  // get current trace context
@@ -305,7 +305,7 @@ childTraceContext(parent)            // create a child trace context
 shouldSample(intent, config?)        // sampling decision based on intent
 DEFAULT_SAMPLING                     // default sampling rates by intent
 
-Track, TrackerState, TrackSink, SamplingConfig, TraceContext
+TraceRecord, TracingState, TraceSink, SamplingConfig, TraceContext
 ```
 
 ## `@ontrails/logging`

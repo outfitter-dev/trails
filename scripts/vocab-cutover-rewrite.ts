@@ -364,99 +364,81 @@ const safeRules: readonly VocabRewriteRule[] = [
     apply: (context) => [
       ...collectRegexEdits(
         context.source,
-        'provision-api',
+        'resource-api',
         /\bservice\(/g,
-        'provision('
+        'resource('
       ),
       ...collectRegexEdits(
         context.source,
-        'provision-api',
+        'resource-api',
         /\bservices(?=\s*:)/g,
-        'provisions'
+        'resources'
       ),
     ],
     description:
-      'Replace infrastructure factory/declaration syntax from `service()` / `services:` to `provision()` / `provisions:`.',
-    id: 'provision-api',
+      'Replace infrastructure factory/declaration syntax from `service()` / `services:` to `resource()` / `resources:`.',
+    id: 'resource-api',
   },
   {
     apply: (context) => [
       ...collectRegexEdits(
         context.source,
-        'provision-symbols',
+        'resource-symbols',
         /\bconfigService\b/g,
         'configProvision'
       ),
       ...collectRegexEdits(
         context.source,
-        'provision-symbols',
+        'resource-symbols',
         /\bauthService\b/g,
         'authProvision'
       ),
       ...collectRegexEdits(
         context.source,
-        'provision-symbols',
+        'resource-symbols',
         /\btrackerService\b/g,
         'trackerProvision'
       ),
       ...collectRegexEdits(
         context.source,
-        'provision-symbols',
+        'resource-symbols',
         /\bcrumbsService\b/g,
         'trackerProvision'
       ),
       ...collectRegexEdits(
         context.source,
-        'provision-symbols',
-        /\bconfigLayer\b/g,
-        'configGate'
-      ),
-      ...collectRegexEdits(
-        context.source,
-        'provision-symbols',
-        /\bauthLayer\b/g,
-        'authGate'
-      ),
-      ...collectRegexEdits(
-        context.source,
-        'provision-symbols',
-        /\bcrumbsLayer\b/g,
-        'trackerGate'
-      ),
-      ...collectRegexEdits(
-        context.source,
-        'provision-symbols',
+        'resource-symbols',
         /\bconfig\.layer\b/g,
-        'config.gate'
+        'config.layer'
       ),
       ...collectRegexEdits(
         context.source,
-        'provision-symbols',
+        'resource-symbols',
         /\bcrumbs\.status\b/g,
         'tracker.status'
       ),
       ...collectRegexEdits(
         context.source,
-        'provision-symbols',
+        'resource-symbols',
         /\bcrumbs\.query\b/g,
         'tracker.query'
       ),
       ...collectRegexEdits(
         context.source,
-        'provision-symbols',
+        'resource-symbols',
         /\bauth-service\b/g,
-        'auth-provision'
+        'auth-resource'
       ),
       ...collectRegexEdits(
         context.source,
-        'provision-symbols',
+        'resource-symbols',
         /\btracker-service\b/g,
-        'tracker-provision'
+        'tracker-resource'
       ),
     ],
     description:
-      'Replace exact legacy service/layer symbol families with their provision/gate equivalents.',
-    id: 'provision-symbols',
+      'Replace exact legacy service/layer symbol families with their resource/layer equivalents.',
+    id: 'resource-symbols',
   },
   {
     apply: (context) => [
@@ -819,44 +801,6 @@ const safeRules: readonly VocabRewriteRule[] = [
     apply: (context) =>
       context.isCodeFile
         ? []
-        : [
-            ...collectRegexEdits(
-              context.source,
-              'crumbs-prose',
-              /\bcrumbs\b/gi,
-              (match) => replaceMatchedCase(match[0], 'tracker', 'Tracker')
-            ),
-          ],
-    description:
-      'Replace prose-only telemetry terminology from `crumbs` to `tracker` in non-code files.',
-    id: 'crumbs-prose',
-  },
-  {
-    apply: (context) =>
-      context.isCodeFile
-        ? []
-        : [
-            ...collectRegexEdits(
-              context.source,
-              'layers-prose',
-              /\blayers\b/gi,
-              (match) => replaceMatchedCase(match[0], 'gates', 'Gates')
-            ),
-            ...collectRegexEdits(
-              context.source,
-              'layers-prose',
-              /\bmiddleware\b/gi,
-              (match) => replaceMatchedCase(match[0], 'gates', 'Gates')
-            ),
-          ],
-    description:
-      'Replace prose-only wrapper terminology from `layers` / `middleware` to `gates` in non-code files.',
-    id: 'layers-prose',
-  },
-  {
-    apply: (context) =>
-      context.isCodeFile
-        ? []
         : collectRegexEdits(
             context.source,
             'entity-prose',
@@ -874,61 +818,33 @@ const safeRules: readonly VocabRewriteRule[] = [
         : [
             ...collectRegexEdits(
               context.source,
-              'gate-type-prose',
-              /\*\*Layer\*\*/g,
-              '**Gate**'
-            ),
-            ...collectRegexEdits(
-              context.source,
-              'gate-type-prose',
-              /\bLayer(?=\[\])/g,
-              'Gate'
-            ),
-            ...collectRegexEdits(
-              context.source,
-              'gate-type-prose',
-              /\bLayer(?=\s*=>)/g,
-              'Gate'
-            ),
-          ],
-    description:
-      'Replace code-like non-code wrapper type mentions from `Layer` to `Gate` where the swap is exact.',
-    id: 'gate-type-prose',
-  },
-  {
-    apply: (context) =>
-      context.isCodeFile
-        ? []
-        : [
-            ...collectRegexEdits(
-              context.source,
               'infra-prose',
               /\bctx\.service</g,
-              'ctx.provision<'
+              'ctx.resource<'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice\.from\(ctx\)/g,
-              'provision.from(ctx)'
+              'resource.from(ctx)'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice \+ layer \+ trails\b/g,
-              'provision + gate + trails'
+              'resource + layer + trails'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice \+ layer\b/g,
-              'provision + gate'
+              'resource + layer'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\blayer \+ service\b/g,
-              'gate + provision'
+              'layer + resource'
             ),
             ...collectRegexEdits(
               context.source,
@@ -951,138 +867,120 @@ const safeRules: readonly VocabRewriteRule[] = [
             ...collectRegexEdits(
               context.source,
               'infra-prose',
-              /\bconfigLayer\b/g,
-              'configGate'
-            ),
-            ...collectRegexEdits(
-              context.source,
-              'infra-prose',
-              /\bauthLayer\b/g,
-              'authGate'
-            ),
-            ...collectRegexEdits(
-              context.source,
-              'infra-prose',
-              /\bcrumbsLayer\b/g,
-              'trackerGate'
-            ),
-            ...collectRegexEdits(
-              context.source,
-              'infra-prose',
               /\*\*Service\*\*/g,
-              '**Provision**'
+              '**Resource**'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bServices as a First-Class Primitive\b/g,
-              'Provisions as a First-Class Primitive'
+              'Resources as a First-Class Primitive'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bfirst-class-services\.md\b/g,
-              'first-class-provisions.md'
+              'first-class-resources.md'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice-declarations\b/g,
-              'provision-declarations'
+              'resource-declarations'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice declarations\b/g,
-              'provision declarations'
+              'resource declarations'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice IDs\b/g,
-              'provision IDs'
+              'resource IDs'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice config schemas\b/g,
-              'provision config schemas'
+              'resource config schemas'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice graph\b/g,
-              'provision graph'
+              'resource graph'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice definitions\b/g,
-              'provision definitions'
+              'resource definitions'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice definition\b/g,
-              'provision definition'
+              'resource definition'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice factories\b/g,
-              'provision factories'
+              'resource factories'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice factory\b/g,
-              'provision factory'
+              'resource factory'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice lifecycle\b/g,
-              'provision lifecycle'
+              'resource lifecycle'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice context\b/g,
-              'provision context'
+              'resource context'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice primitive\b/g,
-              'provision primitive'
+              'resource primitive'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservices primitive\b/g,
-              'provisions primitive'
+              'resources primitive'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bServices manage\b/g,
-              'Provisions manage'
+              'Resources manage'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bLayers inject\b/g,
-              'Gates inject'
+              'Layers inject'
             ),
             ...collectRegexEdits(
               context.source,
               'infra-prose',
               /\bservice-compatible\b/g,
-              'provision-compatible'
+              'resource-compatible'
             ),
           ],
     description:
-      'Replace exact non-code infrastructure vocabulary examples and phrases from service/layer terminology to provision/gate terminology.',
+      'Replace exact non-code infrastructure vocabulary examples and phrases from service/layer terminology to resource/layer terminology.',
     id: 'infra-prose',
   },
 ];

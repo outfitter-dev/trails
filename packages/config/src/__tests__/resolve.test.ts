@@ -40,12 +40,12 @@ describe('resolveConfig', () => {
     });
   });
 
-  describe('loadouts', () => {
-    test('overrides base config for matching loadout', () => {
+  describe('profiles', () => {
+    test('overrides base config for matching profile', () => {
       const result = resolveConfig({
         base: { host: 'example.com', port: 8080 },
-        loadout: 'production',
-        loadouts: {
+        profile: 'production',
+        profiles: {
           production: { host: 'prod.example.com', port: 443 },
         },
         schema: baseSchema,
@@ -58,11 +58,11 @@ describe('resolveConfig', () => {
       expect(value.debug).toBe(false);
     });
 
-    test('silently ignores unrecognized loadout (base only)', () => {
+    test('silently ignores unrecognized profile (base only)', () => {
       const result = resolveConfig({
         base: { host: 'example.com' },
-        loadout: 'staging',
-        loadouts: {
+        profile: 'staging',
+        profiles: {
           production: { host: 'prod.example.com' },
         },
         schema: baseSchema,
@@ -74,7 +74,7 @@ describe('resolveConfig', () => {
   });
 
   describe('local overrides', () => {
-    test('deep-merge on top of loadout', () => {
+    test('deep-merge on top of profile', () => {
       const nestedSchema = z.object({
         db: z
           .object({
@@ -86,11 +86,11 @@ describe('resolveConfig', () => {
 
       const result = resolveConfig({
         base: { db: { host: 'db.example.com', port: 5432 } },
-        loadout: 'production',
-        loadouts: {
+        localOverrides: { db: { port: 9999 } },
+        profile: 'production',
+        profiles: {
           production: { db: { host: 'prod-db.example.com' } },
         },
-        localOverrides: { db: { port: 9999 } },
         schema: nestedSchema,
       });
 
@@ -220,11 +220,11 @@ describe('resolveConfig', () => {
         base: { name: 'my-app', port: 8080 },
         // env overrides debug and apiUrl
         env: { API_URL: 'https://api.prod.com', DEBUG: 'true' },
-        // loadout overrides port
-        loadout: 'production',
-        loadouts: { production: { port: 443 } },
         // local overrides local
         localOverrides: { local: 'my-local-value' },
+        // profile overrides port
+        profile: 'production',
+        profiles: { production: { port: 443 } },
         schema,
       });
 
@@ -234,7 +234,7 @@ describe('resolveConfig', () => {
       // (nothing left at just default — name was overridden by base)
       // Base
       expect(value.name).toBe('my-app');
-      // Loadout overrides base port
+      // Profile overrides base port
       expect(value.port).toBe(443);
       // Local overrides
       expect(value.local).toBe('my-local-value');

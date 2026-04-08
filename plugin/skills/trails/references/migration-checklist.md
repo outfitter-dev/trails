@@ -5,7 +5,7 @@ Detailed checklist for converting an existing codebase to Trails.
 ## Phase 1: Assessment
 
 - [ ] Identify all request handlers (routes, CLI commands, MCP tools)
-- [ ] Categorize each: trail candidate, gate candidate, signal candidate, or not applicable
+- [ ] Categorize each: trail candidate, layer candidate, signal candidate, or not applicable
 - [ ] Map the dependency graph — which handlers call other handlers?
 - [ ] Identify shared types and schemas that can be reused
 

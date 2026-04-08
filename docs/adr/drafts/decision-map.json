@@ -58,11 +58,11 @@
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260331-pack-provisioning.md",
-      "slug": "pack-provisioning",
+      "path": "docs/adr/drafts/20260331-pack-resources.md",
+      "slug": "pack-resources",
       "status": "draft",
       "superseded_by": null,
-      "title": "Pack Provisioning",
+      "title": "Pack Resources",
       "updated": "2026-04-02"
     },
     {
@@ -186,6 +186,38 @@
       "superseded_by": null,
       "title": "Entity Trail Factories",
       "updated": "2026-04-01"
+    },
+    {
+      "created": "2026-04-06",
+      "depends_on": ["documentation-structure"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260406-documentation-freshness.md",
+      "slug": "documentation-freshness",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Documentation freshness SLAs",
+      "updated": "2026-04-06"
+    },
+    {
+      "created": "2026-04-06",
+      "depends_on": [],
+      "inbound": [
+        {
+          "context": "- [ADR: Documentation structure](20260406-documentation-structure.md) — the section taxonomy and directory structure that SLA rules reference",
+          "from": "20260406",
+          "fromPath": "docs/adr/drafts/20260406-documentation-freshness.md"
+        }
+      ],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260406-documentation-structure.md",
+      "slug": "documentation-structure",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Documentation structure",
+      "updated": "2026-04-06"
     }
   ],
   "version": 1

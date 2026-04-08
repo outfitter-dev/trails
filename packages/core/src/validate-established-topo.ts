@@ -9,7 +9,7 @@ const PROJECTION_BLOCKING_RULES = new Set([
   'cross-cycle',
   'cross-exists',
   'no-self-cross',
-  'provision-exists',
+  'resource-exists',
   'signal-origin-exists',
 ]);
 

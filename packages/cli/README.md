@@ -114,12 +114,12 @@ beneath that path.
 
 ## Service resolution
 
-Declared provisions on each trail are resolved into the context before the implementation runs.
+Declared resources on each trail are resolved into the context before the implementation runs.
 
-## Gates
+## Layers
 
-- **`autoIterateGate`** -- adds `--all` for paginated trails, collects all pages
-- **`dateShortcutsGate`** -- expands `"today"`, `"7d"`, `"30d"` into ISO date ranges
+- **`autoIterateLayer`** -- adds `--all` for paginated trails, collects all pages
+- **`dateShortcutsLayer`** -- expands `"today"`, `"7d"`, `"30d"` into ISO date ranges
 
 ## Installation
 

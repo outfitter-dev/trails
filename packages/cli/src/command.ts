@@ -6,7 +6,7 @@
  * No Commander (or any other framework) imports here.
  */
 
-import type { Gate, Result, Trail, TrailContext } from '@ontrails/core';
+import type { Layer, Result, Trail, TrailContext } from '@ontrails/core';
 
 // ---------------------------------------------------------------------------
 // AnyTrail -- type-erased trail for the CLI boundary
@@ -59,7 +59,7 @@ export interface CliCommand {
   readonly flags: CliFlag[];
   readonly args: CliArg[];
   readonly trail: AnyTrail;
-  readonly gates?: Gate[] | undefined;
+  readonly layers?: Layer[] | undefined;
   readonly intent: 'read' | 'write' | 'destroy';
   readonly idempotent?: boolean | undefined;
 

@@ -1,6 +1,6 @@
 # Topo Store
 
-The topo store is Trails' queryable database of your application's topology — every trail, signal, provision, and their relationships. It lives in `.trails/trails.db` and is created automatically when you run topo commands.
+The topo store is Trails' queryable database of your application's topology — every trail, signal, resource, and their relationships. It lives in `.trails/trails.db` and is created automatically when you run topo commands.
 
 For the full SQLite schema and programmatic query API, see the [Topo Store Reference](./topo-store-reference.md).
 
@@ -27,7 +27,7 @@ Trails creates a `.trails/` directory in your workspace root on first use:
 
 ### Saves
 
-Every topo write creates a **save** — a snapshot of your topology at that moment. Each save records a unique ID, git SHA, dirty state, trail/signal/provision counts, and timestamp. Older unpinned saves are pruned automatically.
+Every topo write creates a **save** — a snapshot of your topology at that moment. Each save records a unique ID, git SHA, dirty state, trail/signal/resource counts, and timestamp. Older unpinned saves are pruned automatically.
 
 ### Pins
 
@@ -35,7 +35,7 @@ A **pin** is a durable, human-friendly name you assign to a save you care about.
 
 ### Metadata
 
-For each save, the database stores trail IDs, intents, descriptions, examples, crossings, signals, provisions, and their relationships. The schema cache avoids recomputing `zodToJsonSchema()` when schemas haven't changed.
+For each save, the database stores trail IDs, intents, descriptions, examples, crossings, signals, resources, and their relationships. The schema cache avoids recomputing `zodToJsonSchema()` when schemas haven't changed.
 
 ## Commands
 
@@ -60,7 +60,7 @@ trails topo unpin --name experimental-feature --yes
 
 ### `trails topo show`
 
-Display detailed information about a trail or provision — schema, examples, crossings, provisions.
+Display detailed information about a trail or resource — schema, examples, crossings, resources.
 
 ```bash
 trails topo show auth.login
@@ -111,13 +111,13 @@ trails topo export
 
 ### Querying from trails
 
-Use the `topoStore` provision for programmatic access:
+Use the `topoStore` resource for programmatic access:
 
 ```typescript
 import { topoStore } from '@ontrails/core';
 
 trail('warden.check-outputs', {
-  provisions: [topoStore],
+  resources: [topoStore],
   intent: 'read',
   blaze: async (_input, ctx) => {
     const store = topoStore.from(ctx);
@@ -128,4 +128,4 @@ trail('warden.check-outputs', {
 });
 ```
 
-The provision is read-only by design — available in dev and CI, not production.
+The resource is read-only by design — available in dev and CI, not production.

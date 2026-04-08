@@ -121,14 +121,14 @@ const checkProvisions = (
   const issues: TopoIssue[] = [];
 
   for (const [id, trail] of trails) {
-    for (const declaredProvision of trail.provisions) {
+    for (const declaredProvision of trail.resources) {
       if (
-        !topo.hasProvision(declaredProvision.id) &&
+        !topo.hasResource(declaredProvision.id) &&
         !isDraftId(declaredProvision.id)
       ) {
         issues.push({
-          message: `Provision "${declaredProvision.id}" is not in the topo`,
-          rule: 'provision-exists',
+          message: `Resource "${declaredProvision.id}" is not in the topo`,
+          rule: 'resource-exists',
           trailId: id,
         });
       }

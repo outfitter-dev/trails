@@ -36,7 +36,7 @@ const push = await ctx.cross('notify.push', { userId });
 
 This wastes time. If email takes 150ms, sms 180ms, and push 120ms, the sequential total is 450ms. Concurrent execution would take 180ms (the longest branch). For three notifications that's annoying. For twenty parallel API calls it's a real bottleneck.
 
-More importantly, the framework can't see the developer's intent. Survey reports three crossings. Tracker records three sequential spans. Neither knows the developer wanted concurrency. The code doesn't express what the developer means.
+More importantly, the framework can't see the developer's intent. Survey reports three crossings. Tracing records three sequential spans. Neither knows the developer wanted concurrency. The code doesn't express what the developer means.
 
 ### The composition patterns people actually build
 
@@ -169,20 +169,20 @@ The declaration lists every trail this trail might cross. Whether those crossing
 
 The warden's job is unchanged: verify that every ID in a `ctx.cross()` call (single or array form) appears in the crossing declaration. If you call something you didn't declare, error. If you declare something you never call, warning. Whether the crossing is sequential or concurrent doesn't affect the governance rule.
 
-### Tracker records what actually happens
+### Tracing records what actually happens
 
-Tracker doesn't need declaration hints to record composition shape. It observes it:
+Tracing doesn't need declaration hints to record composition shape. It observes it:
 
 - Single `ctx.cross()` call → child span under the current trail's span.
 - Array `ctx.cross()` call → sibling spans with concurrent timing under the current trail's span. Same parent, overlapping start timestamps.
 
-Tracker can derive "these three crossings ran concurrently in 180ms" vs "these two crossings ran sequentially totaling 300ms." The observation is ground truth, more accurate than any declaration would be.
+Tracing can derive "these three crossings ran concurrently in 180ms" vs "these two crossings ran sequentially totaling 300ms." The observation is ground truth, more accurate than any declaration would be.
 
-With tracker data available, survey can report observed composition patterns: "in the last 1000 executions, `notify.email`, `notify.sms`, and `notify.push` always run concurrently." That's observed information, not authored information.
+With tracing data available, survey can report observed composition patterns: "in the last 1000 executions, `notify.email`, `notify.sms`, and `notify.push` always run concurrently." That's observed information, not authored information.
 
 ### Scoping for concurrent branches
 
-Each concurrent branch gets an independent provision scope. Two parallel trails writing to the same transaction is a recipe for race conditions. If branches need shared state, the developer uses the sequential form.
+Each concurrent branch gets an independent resource scope. Two parallel trails writing to the same transaction is a recipe for race conditions. If branches need shared state, the developer uses the sequential form.
 
 The parent trail's `permit`, `logger`, and `signal` (AbortSignal) propagate to all branches. Cancellation via the signal cancels all running branches.
 
@@ -274,7 +274,7 @@ crosses: {
 },
 ```
 
-Weights for load balancing or priority across concurrent crossings. Rejected because this is a scheduling concern, not a composition concern. If a trail needs to route between providers based on load, latency, or preference, that logic belongs in the implementation or in a provision that manages provider selection. The crossing declaration is about what trails can be called, not how often or in what proportion.
+Weights for load balancing or priority across concurrent crossings. Rejected because this is a scheduling concern, not a composition concern. If a trail needs to route between providers based on load, latency, or preference, that logic belongs in the implementation or in a resource that manages provider selection. The crossing declaration is about what trails can be called, not how often or in what proportion.
 
 ### Automatic concurrency detection via static analysis
 
@@ -289,30 +289,30 @@ Rejected because implicit concurrency is a correctness hazard. Two crossings may
 - **No new vocabulary.** `ctx.cross()` is still the one composition primitive. The developer learns one method. The array overload is a natural extension of the existing signature.
 - **The declaration stays simple.** The `crosses` array is still a flat list of trail IDs. No structural annotations, no groups, no ordering constraints. The declaration is the vocabulary. The code is the grammar.
 - **Partial failure uses existing patterns.** The Result model handles optionality. The developer checks results and decides what's required vs optional. No new framework concept for optional crossings.
-- **Tracker observes composition shape.** Concurrent crossings produce sibling spans with overlapping timestamps. Sequential crossings produce sequential spans. The observation is ground truth, not declaration.
+- **Tracing observes composition shape.** Concurrent crossings produce sibling spans with overlapping timestamps. Sequential crossings produce sequential spans. The observation is ground truth, not declaration.
 - **Warden rules are unchanged.** The existing `crossing-declarations` rule validates that every ID in a `ctx.cross()` call appears in the crossing declaration. The rule works identically for single and array forms.
 - **Concurrency control is opt-in.** The `{ concurrency: N }` option handles backpressure for large fan-outs without affecting the common case.
 
 ### Tradeoffs
 
 - **Overloaded return type.** `ctx.cross()` returns `Result` for the single form and `Result[]` for the array form. TypeScript handles this with union discrimination, but the developer must know which form they used. In practice, the call site makes this unambiguous: if you destructure as an array, you used the array form.
-- **No framework-level composition introspection before runtime.** Survey reports a flat crossing list. It doesn't know which crossings are concurrent, optional, or conditional until tracker observes actual execution. This is a deliberate tradeoff: runtime observation is more accurate than static declaration. If static introspection of composition shape proves valuable, the structured declaration can be added later.
+- **No framework-level composition introspection before runtime.** Survey reports a flat crossing list. It doesn't know which crossings are concurrent, optional, or conditional until tracing observes actual execution. This is a deliberate tradeoff: runtime observation is more accurate than static declaration. If static introspection of composition shape proves valuable, the structured declaration can be added later.
 - **Concurrency limit is per-call, not per-topo.** If two trails both fan out to 20 branches with `{ concurrency: 5 }`, the topo may have 10 concurrent operations total. There's no global concurrency governor. This is acceptable for v1. If it becomes a problem, a topo-level concurrency limit would be a separate concern.
 
 ### What this does NOT decide
 
 - Whether the crossing declaration will gain structural annotations (groups, optional markers, ordering hints) in the future. The flat array is sufficient today. Real usage may reveal governance needs that require structure.
 - Whether `ctx.cross()` will gain additional overloads (e.g., streaming results, race semantics). The current two forms (single and array) cover the common patterns. Additional forms would need their own ADR.
-- How parallel crossings interact with request-scoped provisions if those are added in the future. The current decision (independent scopes per branch) is correct for singleton provisions and would need revisiting for shared mutable state.
+- How parallel crossings interact with request-scoped resources if those are added in the future. The current decision (independent scopes per branch) is correct for singleton resources and would need revisiting for shared mutable state.
 - Whether the concurrency limit should support more sophisticated strategies (e.g., adaptive concurrency based on error rates). A static limit is sufficient for v1.
 
 ## References
 
-- [ADR-0000: Core Premise](../0000-core-premise.md) -- "derive by default"; tracker observes composition shape rather than requiring it to be declared
+- [ADR-0000: Core Premise](../0000-core-premise.md) -- "derive by default"; tracing observes composition shape rather than requiring it to be declared
 - [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent crossings
 - [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- "composition is a property, not a type"; parallel vs sequential is a runtime choice, not a contract distinction. The crossing declaration stays flat, same as when `hike()` was unified into `trail()`.
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- the execution pipeline runs for each concurrent branch; the pipeline is unchanged
-- [ADR-0013: Tracker](../0013-tracker.md) -- tracker observes concurrent vs sequential spans to derive composition shape at runtime
+- [ADR-0013: Tracing](../0013-tracing.md) -- tracing observes concurrent vs sequential spans to derive composition shape at runtime
 - ADR: The Serialized Topo Graph (draft) -- the lockfile captures composition shapes including parallel crossing patterns
 - ADR: Trail Visibility and Trailhead Filtering (draft) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode
 - ADR: Packs as Namespace Boundaries (draft) -- concurrent crossings across pack boundaries work identically to sequential crossings; pack boundary governance is unchanged

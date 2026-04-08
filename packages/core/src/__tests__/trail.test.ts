@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { createTrailContext } from '../context';
 import { Result } from '../result';
-import { provision } from '../provision';
+import { resource } from '../resource';
 import { trail } from '../trail';
 import type { TrailContext } from '../types';
 
@@ -13,14 +13,14 @@ const stubCtx: TrailContext = createTrailContext({
   requestId: 'test-123',
 });
 
-const dbProvision = provision('db.main', {
+const dbProvision = resource('db.main', {
   create: () =>
     Result.ok({
       query(sql: string) {
         return sql.length;
       },
     }),
-  description: 'Primary database provision',
+  description: 'Primary database resource',
 });
 
 describe('trail()', () => {
@@ -137,33 +137,33 @@ describe('trail()', () => {
     });
   });
 
-  describe('provisions', () => {
+  describe('resources', () => {
     test('defaults to empty frozen array when omitted', () => {
       const minimal = trail('bare', {
         blaze: () => Result.ok(),
         input: z.object({}),
       });
-      expect(minimal.provisions).toEqual([]);
-      expect(Object.isFrozen(minimal.provisions)).toBe(true);
+      expect(minimal.resources).toEqual([]);
+      expect(Object.isFrozen(minimal.resources)).toBe(true);
     });
 
-    test('preserves declared provision objects', () => {
+    test('preserves declared resource objects', () => {
       const withProvisions = trail('search', {
         blaze: () => Result.ok(),
         input: z.object({}),
-        provisions: [dbProvision],
+        resources: [dbProvision],
       });
-      expect(withProvisions.provisions).toEqual([dbProvision]);
-      expect(withProvisions.provisions[0]).toBe(dbProvision);
+      expect(withProvisions.resources).toEqual([dbProvision]);
+      expect(withProvisions.resources[0]).toBe(dbProvision);
     });
 
-    test('provisions array is frozen', () => {
+    test('resources array is frozen', () => {
       const withProvisions = trail('search', {
         blaze: () => Result.ok(),
         input: z.object({}),
-        provisions: [dbProvision],
+        resources: [dbProvision],
       });
-      expect(Object.isFrozen(withProvisions.provisions)).toBe(true);
+      expect(Object.isFrozen(withProvisions.resources)).toBe(true);
     });
   });
 
@@ -225,12 +225,12 @@ describe('trail()', () => {
         input: inputSchema,
         intent: 'read',
         output: outputSchema,
-        provisions: [dbProvision],
+        resources: [dbProvision],
       });
       expect(t.description).toBe('A full trail');
       expect(t.intent).toBe('read');
       expect(t.examples).toHaveLength(1);
-      expect(t.provisions).toEqual([dbProvision]);
+      expect(t.resources).toEqual([dbProvision]);
     });
 
     test('implementation is callable', async () => {

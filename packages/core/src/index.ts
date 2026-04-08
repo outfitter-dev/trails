@@ -37,27 +37,27 @@ export type {
   ProgressCallback,
   ProgressEvent,
   Logger,
-  ProvisionLookup,
+  ResourceLookup,
 } from './types.js';
 export { TRAILHEAD_KEY } from './types.js';
 
 // Context factory
 export { createTrailContext } from './context.js';
 
-// Provision
+// Resource
 export {
-  createProvisionLookup,
-  findDuplicateProvisionId,
-  isProvision,
-  provision,
-} from './provision.js';
+  createResourceLookup,
+  findDuplicateResourceId,
+  isResource,
+  resource,
+} from './resource.js';
 export type {
-  AnyProvision,
-  Provision,
-  ProvisionContext,
-  ProvisionOverrideMap,
-  ProvisionSpec,
-} from './provision.js';
+  AnyResource,
+  Resource,
+  ResourceContext,
+  ResourceOverrideMap,
+  ResourceSpec,
+} from './resource.js';
 
 // Trail
 export { trail } from './trail.js';
@@ -91,7 +91,7 @@ export type {
   MockTopoStoreSeed,
   ReadOnlyTopoStore,
   TopoStoreExportRecord,
-  TopoStoreProvisionRecord,
+  TopoStoreResourceRecord,
   TopoStoreRef,
   TopoStoreTrailDetailRecord,
   TopoStoreTrailRecord,
@@ -116,9 +116,9 @@ export { validateTopo } from './validate-topo.js';
 export type { TopoIssue } from './validate-topo.js';
 export { validateEstablishedTopo } from './validate-established-topo.js';
 
-// Gate
-export { composeGates } from './gate.js';
-export type { Gate } from './gate.js';
+// Layer
+export { composeLayers } from './layer.js';
+export type { Layer } from './layer.js';
 
 // Derive
 export { deriveCliPath, deriveFields } from './derive.js';

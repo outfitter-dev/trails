@@ -38,10 +38,10 @@ app.delete('/projects/:id', async (req, res) => {
 ## After
 
 ```typescript
-// provisions/db.ts
-import { provision, Result } from '@ontrails/core';
+// resources/db.ts
+import { resource, Result } from '@ontrails/core';
 
-export const db = provision('db.main', {
+export const db = resource('db.main', {
   create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
   dispose: (conn) => conn.close(),
   health: (conn) => conn.ping(),
@@ -54,7 +54,7 @@ export const db = provision('db.main', {
 // trails/project.ts
 import { z } from 'zod';
 import { trail, Result, NotFoundError, PermissionError } from '@ontrails/core';
-import { db } from '../provisions/db.js';
+import { db } from '../resources/db.js';
 
 const ProjectId = z.object({ id: z.string().uuid() });
 const Project = z.object({ id: z.string(), name: z.string(), status: z.string() });
@@ -63,7 +63,7 @@ export const show = trail('project.show', {
   input: ProjectId,
   output: Project,
   intent: 'read',
-  provisions: [db],
+  resources: [db],
   description: 'Get a project by ID',
   examples: [{ name: 'existing', input: { id: '550e8400-e29b-41d4-a716-446655440000' } }],
   blaze: async (input, ctx) => {
@@ -78,7 +78,7 @@ export const destroy = trail('project.destroy', {
   input: ProjectId,
   output: z.object({ deleted: z.boolean() }),
   intent: 'destroy',
-  provisions: [db],
+  resources: [db],
   description: 'Delete a project',
   blaze: async (input, ctx) => {
     if (!ctx.permit) return Result.err(new PermissionError('Admin required'));
@@ -97,9 +97,9 @@ Wire to CLI or MCP with the same trails. The `db.mock()` factory is used automat
 import { topo } from '@ontrails/core';
 import { trailhead } from '@ontrails/cli/commander';
 import * as project from './trails/project.js';
-import * as provisions from './provisions/db.js';
+import * as resources from './resources/db.js';
 
-const app = topo('myapp', project, provisions);
+const app = topo('myapp', project, resources);
 trailhead(app); // "myapp project show --id ..."
 
 // mcp.ts

@@ -11,7 +11,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type {
   CrossFn,
-  ProvisionOverrideMap,
+  ResourceOverrideMap,
   Topo,
   TrailExample,
   Trail,
@@ -46,10 +46,10 @@ import {
 } from './assertions.js';
 import {
   defaultMintPermit,
-  mergeProvisionOverrides,
+  mergeResourceOverrides,
   mergeTestContext,
   normalizeTestExecutionOptions,
-  resolveMockProvisions,
+  resolveMockResources,
 } from './context.js';
 import type { MintableTrail, TestExecutionOptions } from './context.js';
 
@@ -160,7 +160,7 @@ const runExample = async (
   example: TrailExample<unknown, unknown>,
   output: z.ZodType | undefined,
   testCtx: TrailContext,
-  provisions?: ProvisionOverrideMap,
+  resources?: ResourceOverrideMap,
   opts?: TestExecutionOptions
 ): Promise<void> => {
   const validated = validateInput(t.input, example.input);
@@ -173,7 +173,7 @@ const runExample = async (
 
   const result = await executeTrail(t, example.input, {
     ctx,
-    provisions: provisions ?? opts?.provisions,
+    resources: resources ?? opts?.resources,
   });
   assertProgressiveMatch(result, example, output);
 };
@@ -194,7 +194,7 @@ const createCoverageCross = (
   baseCross: CrossFn | undefined,
   topo: Topo,
   ctx: TrailContext,
-  provisions?: ProvisionOverrideMap
+  resources?: ResourceOverrideMap
 ): CrossFn => {
   const cross = (id: string, input: unknown) => {
     called.add(id);
@@ -207,7 +207,7 @@ const createCoverageCross = (
     if (trailDef !== undefined) {
       return executeTrail(trailDef, input, {
         ctx: { ...ctx, cross },
-        provisions,
+        resources,
       });
     }
 
@@ -226,7 +226,7 @@ const runCompositionExample = async (
   baseCtx: TrailContext,
   called: Set<string>,
   topo: Topo,
-  provisions?: ProvisionOverrideMap,
+  resources?: ResourceOverrideMap,
   opts?: TestExecutionOptions
 ): Promise<void> => {
   const validated = validateInput(trailDef.input, example.input);
@@ -241,13 +241,13 @@ const runCompositionExample = async (
     mintedCtx.cross,
     topo,
     mintedCtx,
-    provisions
+    resources
   );
   const testCtx: TrailContext = { ...mintedCtx, cross };
 
   const result = await executeTrail(trailDef, example.input, {
     ctx: testCtx,
-    provisions: provisions ?? opts?.provisions,
+    resources: resources ?? opts?.resources,
   });
   assertProgressiveMatch(result, example, output);
 };
@@ -296,13 +296,13 @@ export const testExamples = (
         'example: $name',
         async (example: TrailExample<unknown, unknown>) => {
           const resolved = normalizeTestExecutionOptions(resolveInput());
-          const provisions = mergeProvisionOverrides(
-            await resolveMockProvisions(app),
+          const resources = mergeResourceOverrides(
+            await resolveMockResources(app),
             resolved.ctx,
-            resolved.provisions
+            resolved.resources
           );
           const testCtx = mergeTestContext(resolved.ctx);
-          await runExample(t, example, output, testCtx, provisions, resolved);
+          await runExample(t, example, output, testCtx, resources, resolved);
         }
       );
     });
@@ -322,10 +322,10 @@ export const testExamples = (
         'example: $name',
         async (example: TrailExample<unknown, unknown>) => {
           const resolved = normalizeTestExecutionOptions(resolveInput());
-          const provisions = mergeProvisionOverrides(
-            await resolveMockProvisions(app),
+          const resources = mergeResourceOverrides(
+            await resolveMockResources(app),
             resolved.ctx,
-            resolved.provisions
+            resolved.resources
           );
           const baseCtx = mergeTestContext(resolved.ctx);
           await runCompositionExample(
@@ -335,7 +335,7 @@ export const testExamples = (
             baseCtx,
             called,
             app,
-            provisions,
+            resources,
             resolved
           );
         }
