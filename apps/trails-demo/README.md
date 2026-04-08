@@ -245,3 +245,48 @@ trails survey --module ./src/app.ts
 ```
 
 Use `trails topo *` for the day-to-day operational flow: inspect the current topo, pin meaningful points, and export or verify the committed lock artifacts. `survey` remains the broader introspection surface for list, detail, diff, and OpenAPI output.
+
+## Signals
+
+The demo exercises the lexicon's reactive activation primitive end-to-end. A producer trail declares the signal it emits, calls `ctx.fire()` from its blaze, and any trail that lists the signal in `on:` runs automatically.
+
+```typescript
+// src/signals/entity-signals.ts
+export const updated = signal('entity.updated', {
+  from: ['entity.add', 'entity.delete'],
+  payload: z.object({
+    action: z.enum(['created', 'updated', 'deleted']),
+    entityId: z.string(),
+    entityName: z.string(),
+    timestamp: z.string(),
+  }),
+});
+
+// src/trails/entity.ts -- producer
+export const add = trail('entity.add', {
+  fires: ['entity.updated'],
+  blaze: async (input, ctx) => {
+    const entity = await store.entities.insert(input);
+    await ctx.fire?.('entity.updated', {
+      action: 'created',
+      entityId: entity.id,
+      entityName: entity.name,
+      timestamp: entity.createdAt,
+    });
+    return Result.ok(entity);
+  },
+  // ...
+});
+
+// src/trails/notify.ts -- consumer
+export const notifyEntityUpdated = trail('entity.notify-updated', {
+  on: ['entity.updated'],
+  blaze: (input, ctx) => {
+    // runs automatically whenever entity.updated fires
+    return Result.ok({ notified: true });
+  },
+  // ...
+});
+```
+
+The warden enforces that every `ctx.fire(id, ...)` call appears in the trail's `fires: [...]` declaration (and vice-versa), and that every `on:` reference resolves to a signal definition the topo actually knows about. See `__tests__/signals.test.ts` for the end-to-end proof.
