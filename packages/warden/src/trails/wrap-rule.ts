@@ -54,6 +54,9 @@ export function wrapRule(
           knownProvisionIds: input.knownProvisionIds
             ? new Set(input.knownProvisionIds)
             : undefined,
+          knownSignalIds: input.knownSignalIds
+            ? new Set(input.knownSignalIds)
+            : undefined,
           knownTrailIds: input.knownTrailIds
             ? new Set(input.knownTrailIds)
             : new Set<string>(),

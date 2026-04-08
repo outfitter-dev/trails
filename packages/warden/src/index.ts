@@ -21,6 +21,8 @@ export { noThrowInImplementation } from './rules/no-throw-in-implementation.js';
 export { contextNoTrailheadTypes } from './rules/context-no-trailhead-types.js';
 export { draftFileMarking } from './rules/draft-file-marking.js';
 export { draftVisibleDebt } from './rules/draft-visible-debt.js';
+export { firesDeclarations } from './rules/fires-declarations.js';
+export { onReferencesExist } from './rules/on-references-exist.js';
 export { validDetourRefs } from './rules/valid-detour-refs.js';
 export { noDirectImplInRoute } from './rules/no-direct-impl-in-route.js';
 export { noDirectImplementationCall } from './rules/no-direct-implementation-call.js';
@@ -76,12 +78,14 @@ export {
   contextNoTrailheadTypesTrail,
   crossDeclarationsTrail,
   diagnosticSchema,
+  firesDeclarationsTrail,
   implementationReturnsResultTrail,
   noDirectImplInRouteTrail,
   noDirectImplementationCallTrail,
   noSyncResultAssumptionTrail,
   noThrowInDetourTargetTrail,
   noThrowInImplementationTrail,
+  onReferencesExistTrail,
   preferSchemaInferenceTrail,
   ruleInput,
   ruleOutput,

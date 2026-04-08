@@ -13,6 +13,7 @@ import type { DriftResult } from './drift.js';
 import { checkDrift } from './drift.js';
 import {
   collectProvisionDefinitionIds,
+  collectSignalDefinitionIds,
   findConfigProperty,
   findTrailDefinitions,
   parse,
@@ -147,6 +148,20 @@ const collectKnownProvisionIds = (
   }
 };
 
+const collectKnownSignalIds = (
+  sourceCode: string,
+  filePath: string,
+  knownSignalIds: Set<string>
+): void => {
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return;
+  }
+  for (const id of collectSignalDefinitionIds(ast)) {
+    knownSignalIds.add(id);
+  }
+};
+
 const loadSourceFiles = async (
   rootDir: string
 ): Promise<readonly SourceFile[]> => {
@@ -191,11 +206,13 @@ const collectTopoDetourTargetTrailIds = (
 const buildProjectContextFromTopo = (appTopo: Topo): ProjectContext => {
   const knownTrailIds = new Set<string>(appTopo.trails.keys());
   const knownProvisionIds = new Set<string>(appTopo.resources.keys());
+  const knownSignalIds = new Set<string>(appTopo.signals.keys());
   const detourTargetTrailIds = collectTopoDetourTargetTrailIds(appTopo);
 
   return {
     detourTargetTrailIds,
     knownProvisionIds,
+    knownSignalIds,
     knownTrailIds,
   };
 };
@@ -205,6 +222,7 @@ const buildProjectContextFromFiles = (
 ): ProjectContext => {
   const knownTrailIds = new Set<string>();
   const knownProvisionIds = new Set<string>();
+  const knownSignalIds = new Set<string>();
   const detourTargetTrailIds = new Set<string>();
 
   for (const sourceFile of sourceFiles) {
@@ -218,6 +236,11 @@ const buildProjectContextFromFiles = (
       sourceFile.filePath,
       knownProvisionIds
     );
+    collectKnownSignalIds(
+      sourceFile.sourceCode,
+      sourceFile.filePath,
+      knownSignalIds
+    );
     collectDetourTargetTrailIds(
       sourceFile.sourceCode,
       sourceFile.filePath,
@@ -228,6 +251,7 @@ const buildProjectContextFromFiles = (
   return {
     detourTargetTrailIds,
     knownProvisionIds,
+    knownSignalIds,
     knownTrailIds,
   };
 };

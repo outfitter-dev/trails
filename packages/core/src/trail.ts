@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import type { FieldOverride } from './derive.js';
 import type { Result } from './result.js';
 import type { AnyResource } from './resource.js';
+import type { AnySignal } from './signal.js';
 import type {
   Implementation,
   PermitRequirement,
@@ -63,6 +64,25 @@ export interface TrailSpec<I, O> {
   readonly crosses?: readonly string[] | undefined;
   /** Resources this trail may access via resource.from(ctx) */
   readonly resources?: readonly AnyResource[] | undefined;
+  /**
+   * Signals this trail emits via `ctx.fire()`.
+   *
+   * Accepts either a string id or a `Signal` value. Both forms are
+   * normalized to the signal's id at trail definition time, so
+   * `trail.fires` is always `readonly string[]`.
+   *
+   * Note: `crosses` is still string-only — only signal references are
+   * loosened here because callers typically have the `Signal` value in
+   * scope at the definition site.
+   */
+  readonly fires?: readonly (string | AnySignal)[] | undefined;
+  /**
+   * Signals that activate this trail (framework auto-subscribes).
+   *
+   * Accepts either a string id or a `Signal` value. Both forms are
+   * normalized to the signal's id at trail definition time.
+   */
+  readonly on?: readonly (string | AnySignal)[] | undefined;
   /** Auth requirement: scopes object, 'public', or omitted (undeclared) */
   readonly permit?: PermitRequirement | undefined;
 }
@@ -77,7 +97,7 @@ export type Intent = 'read' | 'write' | 'destroy';
 /** A fully-defined trail — the unit of work in the Trails system */
 export interface Trail<I, O> extends Omit<
   TrailSpec<I, O>,
-  'blaze' | 'crosses' | 'intent' | 'resources'
+  'blaze' | 'crosses' | 'fires' | 'intent' | 'on' | 'resources'
 > {
   readonly kind: 'trail';
   readonly id: string;
@@ -86,6 +106,10 @@ export interface Trail<I, O> extends Omit<
   readonly crosses: readonly string[];
   /** Resources this trail may access via resource.from(ctx) (always present, default []) */
   readonly resources: readonly AnyResource[];
+  /** IDs of signals this trail emits via ctx.fire() (always present, default []) */
+  readonly fires: readonly string[];
+  /** IDs of signals that activate this trail (always present, default []) */
+  readonly on: readonly string[];
   /** What this trail does to the world (always present, default 'write') */
   readonly intent: Intent;
 }
@@ -93,6 +117,9 @@ export interface Trail<I, O> extends Omit<
 // ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
+
+const normalizeSignalRef = (entry: string | AnySignal): string =>
+  typeof entry === 'string' ? entry : entry.id;
 
 /**
  * Create a trail definition.
@@ -136,19 +163,25 @@ export function trail<I, O>(
   const {
     blaze,
     crosses: rawCrosses,
+    fires: rawFires,
     intent: rawIntent,
-    resources: rawProvisions,
+    on: rawOn,
+    resources: rawResources,
     ...spec
   } = resolved.spec;
-  const resources = Object.freeze([...(rawProvisions ?? [])]);
+  const resources = Object.freeze([...(rawResources ?? [])]);
+  const fires = Object.freeze((rawFires ?? []).map(normalizeSignalRef));
+  const on = Object.freeze((rawOn ?? []).map(normalizeSignalRef));
 
   return Object.freeze({
     ...spec,
     blaze: async (input: I, ctx: TrailContext) => await blaze(input, ctx),
     crosses: Object.freeze([...(rawCrosses ?? [])]),
+    fires,
     id: resolved.id,
     intent: rawIntent ?? 'write',
     kind: 'trail' as const,
+    on,
     resources,
   });
 }
