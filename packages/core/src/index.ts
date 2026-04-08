@@ -128,6 +128,27 @@ export type { Field, FieldOverride } from './derive.js';
 export { executeTrail } from './execute.js';
 export type { ExecuteTrailOptions } from './execute.js';
 
+// Intrinsic tracing
+export {
+  TRACE_CONTEXT_KEY,
+  clearTraceSink,
+  completeRecord as completeTraceRecord,
+  createRootTraceContext,
+  createSpanRecord,
+  createTraceRecord,
+  getTraceContext,
+  getTraceSink,
+  registerTraceSink,
+  writeToSink,
+} from './internal/tracing.js';
+export type {
+  TraceContext,
+  TraceRecord,
+  TraceSink,
+  TraceSinkLike,
+} from './internal/tracing.js';
+export type { TraceFn } from './types.js';
+
 // Run
 export { run } from './run.js';
 export type { RunOptions } from './run.js';

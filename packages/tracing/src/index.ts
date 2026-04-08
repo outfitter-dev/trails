@@ -1,5 +1,11 @@
 export { type TraceRecord, createTraceRecord } from './trace-record.js';
 export {
+  clearTraceSink,
+  getTraceSink,
+  registerTraceSink,
+  type TraceSinkLike,
+} from '@ontrails/core';
+export {
   createTracingLayer,
   type TrackerGateOptions,
   type TraceSink,

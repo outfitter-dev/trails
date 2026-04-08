@@ -1,19 +1,16 @@
-/** Trace context carried through trail execution. */
-export interface TraceContext {
-  readonly traceId: string;
-  readonly spanId: string;
-  readonly rootId: string;
-  readonly sampled: boolean;
-}
+/**
+ * Trace context primitives live in `@ontrails/core` as of Phase 1 of the
+ * tracing collapse. This module re-exports them so existing imports from
+ * `@ontrails/tracing` keep working, and retains `childTraceContext` as a
+ * local helper used by the soon-to-be-removed tracing layer.
+ */
+import type { TraceContext } from '@ontrails/core';
 
-/** Key used to store trace context in ctx.extensions. */
-export const TRACE_CONTEXT_KEY = '__tracker_trace';
-
-/** Read trace context from trail context extensions. */
-export const getTraceContext = (ctx: {
-  readonly extensions?: Readonly<Record<string, unknown>> | undefined;
-}): TraceContext | undefined =>
-  ctx.extensions?.[TRACE_CONTEXT_KEY] as TraceContext | undefined;
+export {
+  TRACE_CONTEXT_KEY,
+  getTraceContext,
+  type TraceContext,
+} from '@ontrails/core';
 
 /** Create a child trace context inheriting from a parent. */
 export const childTraceContext = (parent: TraceContext): TraceContext => ({

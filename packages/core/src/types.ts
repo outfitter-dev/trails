@@ -22,6 +22,16 @@ export type ProvisionLookup = <T = unknown>(
   provisionOrId: { readonly id: string } | string
 ) => T;
 
+/**
+ * Wrap the execution of `fn` in a child trace span.
+ *
+ * Creates a nested span under the current trail's root trace record, times
+ * the callback, records success or failure (including error category), and
+ * writes the completed span to the registered sink. Errors thrown by `fn`
+ * are recorded on the span and then rethrown — tracing never swallows them.
+ */
+export type TraceFn = <T>(label: string, fn: () => Promise<T>) => Promise<T>;
+
 /** Callback for reporting progress from long-running trails */
 export type ProgressCallback = (event: ProgressEvent) => void;
 
@@ -68,6 +78,13 @@ export interface TrailContext {
   readonly env?: Record<string, string | undefined> | undefined;
   readonly extensions?: Readonly<Record<string, unknown>> | undefined;
   readonly resource?: ProvisionLookup | undefined;
+  /**
+   * Wrap a callback in a child trace span.
+   *
+   * Always present on contexts produced by `executeTrail`. Nested calls
+   * create nested spans under the current trail's root trace record.
+   */
+  readonly trace: TraceFn;
 }
 
 /**
@@ -82,6 +99,7 @@ export type PermitRequirement =
   | 'public';
 
 /** Input shape used to seed a runtime TrailContext before resolution. */
-export type TrailContextInit = Omit<TrailContext, 'resource'> & {
+export type TrailContextInit = Omit<TrailContext, 'resource' | 'trace'> & {
   readonly resource?: ProvisionLookup | undefined;
+  readonly trace?: TraceFn | undefined;
 };

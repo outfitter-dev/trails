@@ -361,7 +361,10 @@ describe('executeTrail', () => {
           ctx: { extensions: { userId: '123' } },
         }
       );
-      expect(captured?.extensions).toEqual({ store: 'db', userId: '123' });
+      // Intrinsic tracing injects TRACE_CONTEXT_KEY into extensions; the
+      // user-authored keys must still be present and untouched.
+      expect(captured?.extensions?.store).toBe('db');
+      expect(captured?.extensions?.userId).toBe('123');
     });
 
     test('rebinds ctx.resource after merging extension overrides from createContext', async () => {
