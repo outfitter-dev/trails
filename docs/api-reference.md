@@ -110,7 +110,7 @@ CliCommand, CliFlag, CliArg
 outputModePreset(), cwdPreset(), dryRunPreset()
 defaultOnResult(ctx), passthroughResolver, isInteractive(options?)
 InputResolver, ResolveInputOptions
-autoIterateGate, dateShortcutsGate
+autoIterateLayer, dateShortcutsLayer
 ```
 
 ## `@ontrails/mcp`

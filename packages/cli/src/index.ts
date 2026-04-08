@@ -26,4 +26,4 @@ export { passthroughResolver, isInteractive } from './prompt.js';
 export type { Field, InputResolver, ResolveInputOptions } from './prompt.js';
 
 // Layers
-export { autoIterateGate, dateShortcutsGate } from './layers.js';
+export { autoIterateLayer, dateShortcutsLayer } from './layers.js';

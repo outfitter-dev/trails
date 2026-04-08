@@ -4,7 +4,7 @@ import { Result, createTrailContext, trail } from '@ontrails/core';
 import type { Implementation, Trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { autoIterateGate, dateShortcutsGate } from '../layers.js';
+import { autoIterateLayer, dateShortcutsLayer } from '../layers.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -27,7 +27,7 @@ const captureDateShortcutInput = async (
     return Promise.resolve(Result.ok(value));
   };
 
-  const wrapped = dateShortcutsGate.wrap(dateTrail, impl);
+  const wrapped = dateShortcutsLayer.wrap(dateTrail, impl);
   await wrapped(input, makeCtx());
 
   expect(receivedInput).toBeDefined();
@@ -43,10 +43,10 @@ const expectSameDate = (value: string | undefined, expected: Date) => {
 };
 
 // ---------------------------------------------------------------------------
-// autoIterateGate
+// autoIterateLayer
 // ---------------------------------------------------------------------------
 
-describe('autoIterateGate', () => {
+describe('autoIterateLayer', () => {
   const paginatedTrail = trail('list-items', {
     blaze: () => Result.ok({ hasMore: false, items: [] }),
     input: z.object({
@@ -81,7 +81,7 @@ describe('autoIterateGate', () => {
       return Promise.resolve(Result.ok(page));
     };
 
-    const wrapped = autoIterateGate.wrap(paginatedTrail, impl);
+    const wrapped = autoIterateLayer.wrap(paginatedTrail, impl);
     const result = await wrapped({ all: true }, makeCtx());
 
     expect(result.isOk()).toBe(true);
@@ -102,7 +102,7 @@ describe('autoIterateGate', () => {
       );
     };
 
-    const wrapped = autoIterateGate.wrap(paginatedTrail, impl);
+    const wrapped = autoIterateLayer.wrap(paginatedTrail, impl);
     const result = await wrapped({}, makeCtx());
 
     expect(callCount).toBe(1);
@@ -120,17 +120,17 @@ describe('autoIterateGate', () => {
       await Promise.resolve(Result.ok(input.name));
 
     // Should return the same implementation (no wrapping)
-    const wrapped = autoIterateGate.wrap(simpleTrail, impl);
+    const wrapped = autoIterateLayer.wrap(simpleTrail, impl);
     // Reference equality may not hold with async wrapper, just verify it works
     expect(wrapped).toBe(impl);
   });
 });
 
 // ---------------------------------------------------------------------------
-// dateShortcutsGate
+// dateShortcutsLayer
 // ---------------------------------------------------------------------------
 
-describe('dateShortcutsGate', () => {
+describe('dateShortcutsLayer', () => {
   const dateTrail = trail('events', {
     blaze: (input: {
       since?: string | undefined;
@@ -171,7 +171,7 @@ describe('dateShortcutsGate', () => {
     };
 
     const isoDate = '2025-01-15T00:00:00.000Z';
-    const wrapped = dateShortcutsGate.wrap(dateTrail, impl);
+    const wrapped = dateShortcutsLayer.wrap(dateTrail, impl);
     await wrapped({ since: isoDate }, makeCtx());
 
     const received = receivedInput as { since?: string };
@@ -187,7 +187,7 @@ describe('dateShortcutsGate', () => {
     const impl: Implementation<{ name: string }, string> = async (input) =>
       await Promise.resolve(Result.ok(input.name));
 
-    const wrapped = dateShortcutsGate.wrap(noDateTrail, impl);
+    const wrapped = dateShortcutsLayer.wrap(noDateTrail, impl);
     expect(wrapped).toBe(impl);
   });
 
@@ -201,7 +201,7 @@ describe('dateShortcutsGate', () => {
       return Promise.resolve(Result.ok(input));
     };
 
-    const wrapped = dateShortcutsGate.wrap(dateTrail, impl);
+    const wrapped = dateShortcutsLayer.wrap(dateTrail, impl);
     await wrapped({ since: 'yesterday' }, makeCtx());
 
     const received = receivedInput as { since?: string };

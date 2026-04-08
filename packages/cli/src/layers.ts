@@ -53,7 +53,7 @@ const hasDateRangeFields = (trail: Trail<any, any>): boolean => {
 };
 
 // ---------------------------------------------------------------------------
-// autoIterateGate
+// autoIterateLayer
 // ---------------------------------------------------------------------------
 
 interface PaginatedInput {
@@ -122,7 +122,7 @@ const collectAllPages = async <I, O>(
  * nextCursor) and the input contains `all: true`, this layer repeatedly
  * calls the implementation with incrementing cursors and collects all items.
  */
-export const autoIterateGate: Layer = {
+export const autoIterateLayer: Layer = {
   description: 'Auto-paginate results when --all flag is set',
   name: 'autoIterate',
 
@@ -147,7 +147,7 @@ export const autoIterateGate: Layer = {
 };
 
 // ---------------------------------------------------------------------------
-// dateShortcutsGate
+// dateShortcutsLayer
 // ---------------------------------------------------------------------------
 
 /** Build a date relative to today with a day offset. */
@@ -211,7 +211,7 @@ const expandDateFields = (
  * checks for shortcuts like "today", "yesterday", "7d", "30d",
  * "this-week", "this-month" and expands them to ISO 8601 dates.
  */
-export const dateShortcutsGate: Layer = {
+export const dateShortcutsLayer: Layer = {
   description: 'Expand date shortcuts (today, 7d, etc.) to ISO dates',
   name: 'dateShortcuts',
 
