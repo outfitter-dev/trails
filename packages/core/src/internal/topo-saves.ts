@@ -106,6 +106,20 @@ const TOPO_TABLE_STATEMENTS = [
     serialized_lock TEXT NOT NULL,
     FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
   )`,
+  `CREATE TABLE IF NOT EXISTS topo_trail_fires (
+    trail_id TEXT NOT NULL,
+    signal_id TEXT NOT NULL,
+    save_id TEXT NOT NULL,
+    PRIMARY KEY (trail_id, signal_id, save_id),
+    FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS topo_trail_on (
+    trail_id TEXT NOT NULL,
+    signal_id TEXT NOT NULL,
+    save_id TEXT NOT NULL,
+    PRIMARY KEY (trail_id, signal_id, save_id),
+    FOREIGN KEY (save_id) REFERENCES topo_saves(id) ON DELETE CASCADE
+  )`,
 ] as const;
 const TOPO_INDEX_STATEMENTS = [
   'CREATE INDEX IF NOT EXISTS idx_topo_saves_created_at ON topo_saves(created_at DESC)',
@@ -121,6 +135,8 @@ const TOPO_INDEX_STATEMENTS = [
   'CREATE INDEX IF NOT EXISTS idx_topo_schemas_save_id ON topo_schemas(save_id)',
   `CREATE INDEX IF NOT EXISTS idx_topo_schemas_lookup
    ON topo_schemas(owner_id, owner_kind, schema_kind, zod_hash)`,
+  'CREATE INDEX IF NOT EXISTS idx_topo_trail_fires_save_id ON topo_trail_fires(save_id)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_trail_on_save_id ON topo_trail_on(save_id)',
 ] as const;
 
 interface TopoSaveRow {
@@ -211,12 +227,17 @@ export const ensureTopoHistorySchema = (db: Database): void => {
       }
       if (currentVersion === 2) {
         // v2→v3: add schema cache and export tables
-        runStatements(db, TOPO_TABLE_STATEMENTS.slice(10));
-        runStatements(db, TOPO_INDEX_STATEMENTS.slice(10));
+        runStatements(db, TOPO_TABLE_STATEMENTS.slice(10, 12));
+        runStatements(db, TOPO_INDEX_STATEMENTS.slice(10, 12));
+      }
+      if (currentVersion < 4 && currentVersion >= 2) {
+        // v3→v4: add persisted signal edges (fires/on)
+        runStatements(db, TOPO_TABLE_STATEMENTS.slice(12));
+        runStatements(db, TOPO_INDEX_STATEMENTS.slice(12));
       }
     },
     subsystem: TOPO_SUBSYSTEM,
-    version: 3,
+    version: 4,
   });
 };
 
