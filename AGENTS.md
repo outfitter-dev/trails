@@ -50,8 +50,8 @@ Use the project language consistently:
 - `topo`, not registry or collection
 - `cross`, not follow (for composition declaration and runtime invocation)
 - `trailhead`, not transport terminology
-- `provision`, not service or dependency
-- `gate`, not layer
+- `resource`, not service or dependency
+- `layer`, not middleware
 
 `mount` is reserved for cross-app composition. See `docs/lexicon.md` for the full lexicon.
 
@@ -68,10 +68,10 @@ Use the project language consistently:
 - Use `detours` for recovery strategies instead of inline retry logic.
 - Prefer the most specific `TrailsError` subclass available.
 - Keep error taxonomy behavior aligned across trailheads so CLI, HTTP, and JSON-RPC mappings stay coherent.
-- Trails that use external dependencies declare them with `provisions: [...]`.
-- Access provisions through `db.from(ctx)` or `ctx.provision()`, never by constructing dependencies inline.
-- Keep `crosses` declarations for composition and `provisions` declarations for infrastructure — they serve different purposes.
-- Every provision should define a `mock` factory so `testAll(app)` works without configuration.
+- Trails that use external dependencies declare them with `resources: [...]`.
+- Access resources through `db.from(ctx)` or `ctx.resource()`, never by constructing dependencies inline.
+- Keep `crosses` declarations for composition and `resources` declarations for infrastructure — they serve different purposes.
+- Every resource should define a `mock` factory so `testAll(app)` works without configuration.
 
 ## Draft State
 

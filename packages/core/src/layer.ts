@@ -2,11 +2,11 @@ import type { Trail } from './trail.js';
 import type { Implementation } from './types.js';
 
 // ---------------------------------------------------------------------------
-// Gate interface
+// Layer interface
 // ---------------------------------------------------------------------------
 
-/** A composable gate that wraps trail implementations. */
-export interface Gate {
+/** A composable layer that wraps trail implementations. */
+export interface Layer {
   readonly name: string;
   readonly description?: string | undefined;
 
@@ -22,22 +22,22 @@ export interface Gate {
 // ---------------------------------------------------------------------------
 
 /**
- * Apply gates outermost-first: gates[0] wraps gates[1] wraps ... wraps
+ * Apply layers outermost-first: layers[0] wraps layers[1] wraps ... wraps
  * the base implementation.
  *
- * An empty gates array returns the implementation unchanged.
+ * An empty layers array returns the implementation unchanged.
  */
-export const composeGates = <I, O>(
-  gates: readonly Gate[],
+export const composeLayers = <I, O>(
+  layers: readonly Layer[],
   trail: Trail<I, O>,
   implementation: Implementation<I, O>
 ): Implementation<I, O> => {
-  // Fold right so gates[0] is the outermost wrapper.
+  // Fold right so layers[0] is the outermost wrapper.
   let result = implementation;
-  for (let i = gates.length - 1; i >= 0; i -= 1) {
-    const gate = gates[i];
-    if (gate) {
-      result = gate.wrap(trail, result);
+  for (let i = layers.length - 1; i >= 0; i -= 1) {
+    const layer = layers[i];
+    if (layer) {
+      result = layer.wrap(trail, result);
     }
   }
   return result;

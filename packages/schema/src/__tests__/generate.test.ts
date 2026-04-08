@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 
-import { signal, provision, Result, topo, trail } from '@ontrails/core';
+import { signal, resource, Result, topo, trail } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -14,7 +14,7 @@ const topoFrom = (...modules: Record<string, unknown>[]): Topo =>
   topo('test-app', ...modules);
 
 const noop = () => Result.ok(null as unknown);
-const dbProvision = provision('db.main', {
+const dbProvision = resource('db.main', {
   create: () => Result.ok({ source: 'factory' }),
   description: 'Primary database',
   health: () => Result.ok({ ok: true }),
@@ -91,7 +91,7 @@ describe('generateTrailheadMap', () => {
         blaze: noop,
         input: z.object({ age: z.number(), name: z.string() }),
         output: z.object({ id: z.string(), name: z.string() }),
-        provisions: [dbProvision],
+        resources: [dbProvision],
       });
       const map = generateTrailheadMap(topoFrom({ t }));
       const entry = getFirstEntry(map);
@@ -107,7 +107,7 @@ describe('generateTrailheadMap', () => {
         id: { type: 'string' },
         name: { type: 'string' },
       });
-      expect(entry.provisions).toEqual(['db.main']);
+      expect(entry.resources).toEqual(['db.main']);
     });
 
     test('trail without output schema has output undefined', () => {
@@ -154,11 +154,11 @@ describe('generateTrailheadMap', () => {
       expect(entry.input).toBeDefined();
     });
 
-    test('provision entries are included with description and healthcheck metadata', () => {
+    test('resource entries are included with description and healthcheck metadata', () => {
       const map = generateTrailheadMap(topoFrom({ dbProvision }));
       const entry = getFirstEntry(map);
 
-      expect(entry.kind).toBe('provision');
+      expect(entry.kind).toBe('resource');
       expect(entry.id).toBe('db.main');
       expect(entry.description).toBe('Primary database');
       expect(entry.healthcheck).toBe(true);

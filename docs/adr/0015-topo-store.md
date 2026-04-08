@@ -13,11 +13,11 @@ depends_on: [14]
 
 ## Context
 
-The resolved topology — all trails, their schemas, crossings, provisions, signals, trailhead mappings, and metadata — exists in two forms today. In memory, it's a `ReadonlyMap<string, AnyTrail>` with parallel maps for signals and provisions. On disk, it's a JSON file (the trailhead map at `.trails/_trailhead.json`).[^trailhead-map] Both are flat serializations of a graph structure.
+The resolved topology — all trails, their schemas, crossings, resources, signals, trailhead mappings, and metadata — exists in two forms today. In memory, it's a `ReadonlyMap<string, AnyTrail>` with parallel maps for signals and resources. On disk, it's a JSON file (the trailhead map at `.trails/_trailhead.json`).[^trailhead-map] Both are flat serializations of a graph structure.
 
 When something wants to query the topo, it traverses these structures imperatively. The warden iterates all trails to check governance rules. The `survey` command iterates all trails to produce a human-readable summary. The `guide` command searches trails by ID or metadata. An agent connecting to an MCP trailhead gets a flat list of tools. These are all graph queries wearing imperative clothing.
 
-"Which trails cross this trail?" is a join. "What provisions does the crossing closure of `onboard.user` need?" is a recursive CTE. "Show me all write-intent trails exposed on HTTP" is a filtered join. Today, each consumer re-implements its own traversal logic.
+"Which trails cross this trail?" is a join. "What resources does the crossing closure of `onboard.user` need?" is a recursive CTE. "Show me all write-intent trails exposed on HTTP" is a filtered join. Today, each consumer re-implements its own traversal logic.
 
 The core premise says "the contract is queryable." Today it's queryable in the sense that you can write TypeScript traversal code. With the topo projected into SQLite, it's queryable in the sense that you can ask questions in a language designed for asking questions.
 
@@ -25,7 +25,7 @@ The core premise says "the contract is queryable." Today it's queryable in the s
 
 **Warden rule authors:** A governance rule becomes a typed accessor call or a SQL query with expected results, instead of a TypeScript function that traverses Maps. "Every write-intent trail must declare an output schema" is `conn.trails.list({ intent: 'write' })` filtered by output presence. No traversal logic.
 
-**Agents:** An MCP-connected agent can query the topo store to understand crossing graphs, find trails by intent, check which provisions a trail needs — all through structured queries rather than parsing TypeScript source.
+**Agents:** An MCP-connected agent can query the topo store to understand crossing graphs, find trails by intent, check which resources a trail needs — all through structured queries rather than parsing TypeScript source.
 
 **CI pipelines:** The lockfile becomes an export of the topo store rather than a parallel serialization. Semantic diffing becomes a database operation: compare saved topo states or diff current topo against a pin.
 
@@ -82,7 +82,7 @@ CREATE TABLE topo_crossings (
   FOREIGN KEY (save_id) REFERENCES topo_saves(id)
 );
 
--- Provisions declared per trail
+-- Resources declared per trail
 CREATE TABLE topo_trail_provisions (
   trail_id TEXT NOT NULL,
   provision_id TEXT NOT NULL,
@@ -91,7 +91,7 @@ CREATE TABLE topo_trail_provisions (
   FOREIGN KEY (save_id) REFERENCES topo_saves(id)
 );
 
--- Provision definitions
+-- Resource definitions
 CREATE TABLE topo_provisions (
   id TEXT NOT NULL,
   has_mock INTEGER DEFAULT 0,
@@ -201,15 +201,15 @@ The refresh emits a `topo.saved` signal (see ADR: Signal-Driven Governance), whi
 
 The topo store does not exist. The in-memory topo is the execution engine. No SQLite overhead.
 
-### Read-only provision
+### Read-only resource
 
-The topo store is exposed as a framework-provided read-only provision:
+The topo store is exposed as a framework-provided read-only resource:
 
 ```typescript
 import { topoStore } from '@ontrails/core';
 
 trail('warden.write-needs-output', {
-  provisions: [topoStore],
+  resources: [topoStore],
   intent: 'read',
   blaze: async (input, ctx) => {
     const conn = topoStore.from(ctx);
@@ -231,7 +231,7 @@ trail('warden.write-needs-output', {
 });
 ```
 
-The provision connection type does not expose write methods. This is enforced at both the TypeScript level (the type omits `insert`/`update`/`remove`) and the SQLite level (`readonly: true` on the connection).
+The resource connection type does not expose write methods. This is enforced at both the TypeScript level (the type omits `insert`/`update`/`remove`) and the SQLite level (`readonly: true` on the connection).
 
 **Escape hatch for complex queries:**
 
@@ -331,7 +331,7 @@ The structural graph (what's declared) and the execution record (what happened) 
 - **Evolution is trackable.** Save-tagged rows create a time series of structural changes. Pins are developer-controlled durable references into that history.
 - **The warden becomes simpler.** Governance rules become typed accessor calls or SQL queries with expected results, not Map traversal functions.
 - **Dev intelligence gets structure.** Joining topo data with tracker data answers questions neither could answer alone.
-- **Agents get deep introspection.** An agent can query the crossing graph, provision dependencies, and intent classifications without parsing TypeScript.
+- **Agents get deep introspection.** An agent can query the crossing graph, resource dependencies, and intent classifications without parsing TypeScript.
 
 ### Tradeoffs
 
@@ -343,7 +343,7 @@ The structural graph (what's declared) and the execution record (what happened) 
 
 - How signals drive lockfile generation and warden execution (see ADR: Signal-Driven Governance)
 - How app-level persistence works (see ADR: Schema-Derived Persistence)
-- Specific warden rule implementations (the warden package evolves to use the topo store provision, but the migration is incremental)
+- Specific warden rule implementations (the warden package evolves to use the topo store resource, but the migration is incremental)
 - FTS5 or vector search on topo data (future: agent discovery could benefit, but not in scope)
 
 ## References

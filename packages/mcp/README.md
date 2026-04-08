@@ -67,9 +67,9 @@ No manual annotation definitions. The contract is the source of truth.
 
 Trail IDs become MCP tool names with the app prefix: `entity.show` in app `myapp` becomes `myapp_entity_show`. Dots and hyphens become underscores, everything lowercase.
 
-## Provision resolution
+## Resource resolution
 
-Declared provisions on each trail are resolved into the context before the implementation runs.
+Declared resources on each trail are resolved into the context before the implementation runs.
 
 ## Progress bridge
 

@@ -47,12 +47,12 @@ describe('diffTrailheadMaps', () => {
       expect(result.info).toHaveLength(1);
     });
 
-    test('added provision detected as info', () => {
+    test('added resource detected as info', () => {
       const prev = trailheadMap([]);
-      const curr = trailheadMap([entry({ id: 'db.main', kind: 'provision' })]);
+      const curr = trailheadMap([entry({ id: 'db.main', kind: 'resource' })]);
       const result = diffTrailheadMaps(prev, curr);
 
-      expect(result.entries[0]?.details).toContain('Provision "db.main" added');
+      expect(result.entries[0]?.details).toContain('Resource "db.main" added');
       expect(result.info).toHaveLength(1);
     });
 
@@ -67,13 +67,13 @@ describe('diffTrailheadMaps', () => {
       expect(result.hasBreaking).toBe(true);
     });
 
-    test('removed provision detected as breaking', () => {
-      const prev = trailheadMap([entry({ id: 'db.main', kind: 'provision' })]);
+    test('removed resource detected as breaking', () => {
+      const prev = trailheadMap([entry({ id: 'db.main', kind: 'resource' })]);
       const curr = trailheadMap([]);
       const result = diffTrailheadMaps(prev, curr);
 
       expect(result.entries[0]?.details).toContain(
-        'Provision "db.main" removed'
+        'Resource "db.main" removed'
       );
       expect(result.hasBreaking).toBe(true);
     });
@@ -334,24 +334,24 @@ describe('diffTrailheadMaps', () => {
       expect(crossesDetail).toContain('lookup');
     });
 
-    test('declared provisions changed produces warning', () => {
+    test('declared resources changed produces warning', () => {
       const prev = trailheadMap([
         entry({
           id: 'user.update',
-          provisions: ['db.main', 'search.index'],
+          resources: ['db.main', 'search.index'],
         }),
       ]);
       const curr = trailheadMap([
         entry({
           id: 'user.update',
-          provisions: ['db.main', 'cache.main'],
+          resources: ['db.main', 'cache.main'],
         }),
       ]);
       const result = diffTrailheadMaps(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
       const provisionDetail = result.warnings[0]?.details.find((detail) =>
-        detail.includes('Provisions changed')
+        detail.includes('Resources changed')
       );
       expect(provisionDetail).toBeDefined();
       expect(provisionDetail).toContain('cache.main');

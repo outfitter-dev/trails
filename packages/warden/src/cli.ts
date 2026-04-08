@@ -190,7 +190,7 @@ const collectTopoDetourTargetTrailIds = (
 
 const buildProjectContextFromTopo = (appTopo: Topo): ProjectContext => {
   const knownTrailIds = new Set<string>(appTopo.trails.keys());
-  const knownProvisionIds = new Set<string>(appTopo.provisions.keys());
+  const knownProvisionIds = new Set<string>(appTopo.resources.keys());
   const detourTargetTrailIds = collectTopoDetourTargetTrailIds(appTopo);
 
   return {

@@ -1,4 +1,4 @@
-import { Result, provision } from '@ontrails/core';
+import { Result, resource } from '@ontrails/core';
 
 import type { TrackerState } from './tracker-state.js';
 import { getTrackerState } from './tracker-state.js';
@@ -13,7 +13,7 @@ const defaultState: TrackerState = {
 };
 
 /**
- * Telemetry recording and query provision.
+ * Telemetry recording and query resource.
  *
  * Wraps the tracker store, sampling config, and active flag as a single
  * `TrackerState` accessible to trails via `trackerProvision.from(ctx)`.
@@ -21,7 +21,7 @@ const defaultState: TrackerState = {
  * Unlike config, tracker gracefully defaults when no state is registered —
  * telemetry should never fail to start.
  */
-export const trackerProvision = provision<TrackerState>('tracker', {
+export const trackerProvision = resource<TrackerState>('tracker', {
   create: () => {
     const state = getTrackerState() ?? defaultState;
     return Result.ok({
@@ -29,7 +29,7 @@ export const trackerProvision = provision<TrackerState>('tracker', {
       store: state.store ? toTrackStore(state.store) : undefined,
     });
   },
-  description: 'Telemetry recording and query provision',
+  description: 'Telemetry recording and query resource',
   meta: { category: 'infrastructure' },
   mock: (): TrackerState => ({ ...defaultState }),
 });

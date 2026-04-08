@@ -133,10 +133,8 @@ const trailToEntry = (t: Trail<unknown, unknown>): TrailheadMapEntry => {
   if (t.crosses.length > 0) {
     entry['crosses'] = t.crosses.toSorted();
   }
-  if (t.provisions.length > 0) {
-    entry['provisions'] = t.provisions
-      .map((provision) => provision.id)
-      .toSorted();
+  if (t.resources.length > 0) {
+    entry['resources'] = t.resources.map((resource) => resource.id).toSorted();
   }
 
   return sortKeys(entry) as unknown as TrailheadMapEntry;
@@ -175,18 +173,18 @@ const signalToEntry = (e: Signal<unknown>): TrailheadMapEntry => {
   return sortKeys(entry) as unknown as TrailheadMapEntry;
 };
 
-const provisionToEntry = (provision: AnyProvision): TrailheadMapEntry => {
+const provisionToEntry = (resource: AnyProvision): TrailheadMapEntry => {
   const entry: Record<string, unknown> = {
     exampleCount: 0,
-    id: provision.id,
-    kind: 'provision',
+    id: resource.id,
+    kind: 'resource',
     trailheads: [],
   };
 
-  if (provision.description !== undefined) {
-    entry['description'] = provision.description;
+  if (resource.description !== undefined) {
+    entry['description'] = resource.description;
   }
-  if (provision.health !== undefined) {
+  if (resource.health !== undefined) {
     entry['healthcheck'] = true;
   }
 
@@ -207,9 +205,7 @@ const collectEntries = (topo: Topo): TrailheadMapEntry[] => [
   ...[...topo.signals.values()].map((signal) =>
     signalToEntry(signal as Signal<unknown>)
   ),
-  ...[...topo.provisions.values()].map((provision) =>
-    provisionToEntry(provision)
-  ),
+  ...[...topo.resources.values()].map((resource) => provisionToEntry(resource)),
 ];
 
 // ---------------------------------------------------------------------------

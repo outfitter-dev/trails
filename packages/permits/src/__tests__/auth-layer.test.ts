@@ -1,11 +1,11 @@
-/* oxlint-disable require-await -- gate wrappers satisfy async interfaces without awaiting */
+/* oxlint-disable require-await -- layer wrappers satisfy async interfaces without awaiting */
 import { describe, expect, test } from 'bun:test';
 
 import { Result, trail } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
-import { authGate } from '../auth-gate';
+import { authGate } from '../auth-layer';
 import { PermitError } from '../errors';
 
 // ---------------------------------------------------------------------------

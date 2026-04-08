@@ -83,12 +83,12 @@ describe('trailhead', () => {
     expect(['resolved', 'timeout']).toContain(result);
   });
 
-  test('TrailheadMcpOptions accepts provision overrides', () => {
+  test('TrailheadMcpOptions accepts resource overrides', () => {
     const opts: Parameters<typeof trailhead>[1] = {
-      provisions: {},
+      resources: {},
       validate: false,
     };
-    expect(opts.provisions).toEqual({});
+    expect(opts.resources).toEqual({});
   });
 
   test('createMcpServer registers tools that can be listed', () => {

@@ -26,7 +26,7 @@ export const search = trail('gist.search', {
 });
 ```
 
-### 2. Register the auth gate
+### 2. Register the auth layer
 
 ```typescript
 import { authGate } from '@ontrails/permits';
@@ -35,10 +35,10 @@ export const app = topo('my-app', gistModule);
 // Register authGate with your trailhead
 ```
 
-The gate reads each trail's `permit` field:
+The layer reads each trail's `permit` field:
 
-- `'public'` or `undefined` — gate passes through
-- `{ scopes: [...] }` — gate checks that `ctx.permit` contains all required scopes
+- `'public'` or `undefined` — layer passes through
+- `{ scopes: [...] }` — layer checks that `ctx.permit` contains all required scopes
 
 ### 3. Bind a connector at bootstrap
 

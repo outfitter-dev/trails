@@ -7,7 +7,7 @@ export interface BriefReport {
   readonly version: string;
   readonly contractVersion: string;
   readonly features: {
-    readonly provisions: boolean;
+    readonly resources: boolean;
     readonly outputSchemas: boolean;
     readonly examples: boolean;
     readonly detours: boolean;
@@ -15,7 +15,7 @@ export interface BriefReport {
   };
   readonly trails: number;
   readonly signals: number;
-  readonly provisions: number;
+  readonly resources: number;
 }
 
 export interface SurveyListReport {
@@ -27,11 +27,11 @@ export interface SurveyListReport {
     readonly safety: string;
   }[];
   readonly provisionCount: number;
-  readonly provisions: readonly {
+  readonly resources: readonly {
     readonly description: string | null;
     readonly health: 'available' | 'none';
     readonly id: string;
-    readonly kind: 'provision';
+    readonly kind: 'resource';
     readonly lifetime: 'singleton';
     readonly usedBy: readonly string[];
   }[];
@@ -46,7 +46,7 @@ export interface TrailDetailReport {
   readonly intent: 'read' | 'write' | 'destroy';
   readonly kind: string;
   readonly safety: string;
-  readonly provisions: readonly string[];
+  readonly resources: readonly string[];
 }
 
 const trailHas = (raw: Record<string, unknown>, key: string): boolean => {
@@ -73,8 +73,8 @@ const detectFeatures = (
     hasOutputSchemas: trails.some((r) => trailHas(r, 'output')),
     hasProvisions: trails.some(
       (r) =>
-        Array.isArray(r['provisions']) &&
-        (r['provisions'] as unknown[]).length > 0
+        Array.isArray(r['resources']) &&
+        (r['resources'] as unknown[]).length > 0
     ),
   };
 };
@@ -89,11 +89,11 @@ export const generateBriefReport = (app: Topo): BriefReport => {
       detours: hasDetours,
       examples: hasExamples,
       outputSchemas: hasOutputSchemas,
-      provisions: hasProvisions,
+      resources: hasProvisions,
       signals: app.signals.size > 0,
     },
     name: app.name,
-    provisions: app.provisions.size,
+    resources: app.resources.size,
     signals: app.signals.size,
     trails: app.trails.size,
     version: REPORT_VERSION,
@@ -121,7 +121,7 @@ const buildProvisionUsage = (
   const usage = new Map<string, string[]>();
 
   for (const trailDef of app.list()) {
-    for (const declaredProvision of trailDef.provisions) {
+    for (const declaredProvision of trailDef.resources) {
       const users = usage.get(declaredProvision.id) ?? [];
       users.push(trailDef.id);
       usage.set(declaredProvision.id, users);
@@ -133,10 +133,10 @@ const buildProvisionUsage = (
   );
 };
 
-const provisionHealthStatus = (provision: {
+const provisionHealthStatus = (resource: {
   health?: unknown;
 }): 'available' | 'none' =>
-  provision.health === undefined ? 'none' : 'available';
+  resource.health === undefined ? 'none' : 'available';
 
 export const formatProvisionDetail = (
   app: Topo,
@@ -149,23 +149,23 @@ export const formatProvisionDetail = (
     description: item?.description ?? null,
     health: item ? provisionHealthStatus(item) : 'none',
     id: provisionId,
-    kind: 'provision',
+    kind: 'resource',
     lifetime: 'singleton',
     usedBy,
   };
 };
 
-const formatProvisionList = (app: Topo): SurveyListReport['provisions'] => {
+const formatProvisionList = (app: Topo): SurveyListReport['resources'] => {
   const usage = buildProvisionUsage(app);
   return app
     .listProvisions()
-    .map((provision) => ({
-      description: provision.description ?? null,
-      health: provisionHealthStatus(provision),
-      id: provision.id,
-      kind: provision.kind,
+    .map((resource) => ({
+      description: resource.description ?? null,
+      health: provisionHealthStatus(resource),
+      id: resource.id,
+      kind: resource.kind,
       lifetime: 'singleton' as const,
-      usedBy: usage.get(provision.id) ?? [],
+      usedBy: usage.get(resource.id) ?? [],
     }))
     .toSorted((a, b) => a.id.localeCompare(b.id));
 };
@@ -190,13 +190,13 @@ export const generateSurveyList = (app: Topo): SurveyListReport => {
     };
   });
 
-  const provisions = formatProvisionList(app);
+  const resources = formatProvisionList(app);
 
   return {
     count: items.length,
     entries,
-    provisionCount: provisions.length,
-    provisions,
+    provisionCount: resources.length,
+    resources,
   };
 };
 
@@ -215,7 +215,7 @@ export const generateTrailDetail = (
     id: item.id,
     intent: item.intent,
     kind: item.kind,
-    provisions: item.provisions.map((provision) => provision.id).toSorted(),
+    resources: item.resources.map((resource) => resource.id).toSorted(),
     safety,
   };
 };

@@ -20,13 +20,13 @@ const buildCtx = (state: ConfigState): TrailContext => {
     cwd: '/tmp',
     env: {},
     extensions,
-    provision: undefined as unknown as TrailContext['provision'],
     requestId: 'test',
+    resource: undefined as unknown as TrailContext['resource'],
     workspaceRoot: '/tmp',
   };
   const withLookup = {
     ...ctx,
-    provision: createProvisionLookup(() => withLookup),
+    resource: createProvisionLookup(() => withLookup),
   };
   return withLookup;
 };
@@ -64,8 +64,8 @@ describe('config.init trail', () => {
     });
 
     test('declares configProvision dependency', () => {
-      expect(configInit.provisions).toBeDefined();
-      expect(configInit.provisions?.length).toBe(1);
+      expect(configInit.resources).toBeDefined();
+      expect(configInit.resources?.length).toBe(1);
     });
   });
 

@@ -5,9 +5,9 @@ import { z } from 'zod';
 
 import { executeTrail } from '../execute.js';
 import { Result } from '../result.js';
-import { provision } from '../provision.js';
+import { resource } from '../resource.js';
 import { trail } from '../trail.js';
-import type { ProvisionContext } from '../provision.js';
+import type { ProvisionContext } from '../resource.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -18,7 +18,7 @@ const nextId = (name: string): string =>
 
 const createSingletonConfigTrail = (id: string) => {
   const captures = { createCalls: 0 };
-  const svc = provision(id, {
+  const svc = resource(id, {
     config: z.object({ key: z.string() }),
     create: (ctx: ProvisionContext<{ key: string }>) => {
       captures.createCalls += 1;
@@ -39,7 +39,7 @@ const createSingletonConfigTrail = (id: string) => {
         }),
       input: z.object({}),
       output: z.object({ createCall: z.number(), key: z.string() }),
-      provisions: [svc],
+      resources: [svc],
     }),
   };
 };
@@ -49,11 +49,11 @@ const createSingletonConfigTrail = (id: string) => {
 // ---------------------------------------------------------------------------
 
 describe('ProvisionContext.config', () => {
-  test('provision with config schema receives validated config in svc.config', async () => {
+  test('resource with config schema receives validated config in svc.config', async () => {
     const id = nextId('typed-config');
     let capturedConfig: unknown;
 
-    const db = provision(id, {
+    const db = resource(id, {
       config: z.object({ poolSize: z.number(), url: z.string().url() }),
       create: (svc: ProvisionContext<{ url: string; poolSize: number }>) => {
         capturedConfig = svc.config;
@@ -65,7 +65,7 @@ describe('ProvisionContext.config', () => {
       blaze: (_input, ctx) => Result.ok({ connected: db.from(ctx).connected }),
       input: z.object({}),
       output: z.object({ connected: z.boolean() }),
-      provisions: [db],
+      resources: [db],
     });
 
     const result = await executeTrail(
@@ -82,11 +82,11 @@ describe('ProvisionContext.config', () => {
     expect(capturedConfig).toEqual({ poolSize: 5, url: 'https://example.com' });
   });
 
-  test('provision without config still works — svc.config is undefined', async () => {
+  test('resource without config still works — svc.config is undefined', async () => {
     const id = nextId('no-config');
     let capturedConfig: unknown = 'sentinel';
 
-    const counter = provision(id, {
+    const counter = resource(id, {
       create: (svc) => {
         capturedConfig = svc.config;
         return Result.ok(42);
@@ -96,7 +96,7 @@ describe('ProvisionContext.config', () => {
     const counterTrail = trail('svc-config.no-config', {
       blaze: (_input, ctx) => Result.ok({ value: counter.from(ctx) }),
       input: z.object({}),
-      provisions: [counter],
+      resources: [counter],
     });
 
     const result = await executeTrail(counterTrail, {});
@@ -105,10 +105,10 @@ describe('ProvisionContext.config', () => {
     expect(capturedConfig).toBeUndefined();
   });
 
-  test('config validation failure returns Result.err at provision creation time', async () => {
+  test('config validation failure returns Result.err at resource creation time', async () => {
     const id = nextId('invalid-config');
 
-    const db = provision(id, {
+    const db = resource(id, {
       config: z.object({ url: z.string().url() }),
       create: () => Result.ok({ connected: true }),
     });
@@ -116,7 +116,7 @@ describe('ProvisionContext.config', () => {
     const dbTrail = trail('svc-config.invalid', {
       blaze: () => Result.ok(null),
       input: z.object({}),
-      provisions: [db],
+      resources: [db],
     });
 
     const result = await executeTrail(
@@ -133,10 +133,10 @@ describe('ProvisionContext.config', () => {
     expect(result.error.message).toContain(id);
   });
 
-  test('missing configValues for a provision with config schema returns Result.err', async () => {
+  test('missing configValues for a resource with config schema returns Result.err', async () => {
     const id = nextId('missing-config');
 
-    const db = provision(id, {
+    const db = resource(id, {
       config: z.object({ url: z.string().url() }),
       create: () => Result.ok({ connected: true }),
     });
@@ -144,7 +144,7 @@ describe('ProvisionContext.config', () => {
     const dbTrail = trail('svc-config.missing', {
       blaze: () => Result.ok(null),
       input: z.object({}),
-      provisions: [db],
+      resources: [db],
     });
 
     const result = await executeTrail(dbTrail, {});
@@ -153,10 +153,10 @@ describe('ProvisionContext.config', () => {
     expect(result.error.message).toContain(id);
   });
 
-  test('provision override bypasses config validation', async () => {
+  test('resource override bypasses config validation', async () => {
     const id = nextId('override-bypass');
 
-    const db = provision(id, {
+    const db = resource(id, {
       config: z.object({ url: z.string().url() }),
       create: () => Result.ok({ connected: true }),
     });
@@ -165,15 +165,11 @@ describe('ProvisionContext.config', () => {
       blaze: (_input, ctx) => Result.ok({ value: db.from(ctx) as number }),
       input: z.object({}),
       output: z.object({ value: z.number() }),
-      provisions: [db],
+      resources: [db],
     });
 
-    // Provide the provision via overrides without any configValues — should NOT fail
-    const result = await executeTrail(
-      dbTrail,
-      {},
-      { provisions: { [id]: 42 } }
-    );
+    // Provide the resource via overrides without any configValues — should NOT fail
+    const result = await executeTrail(dbTrail, {}, { resources: { [id]: 42 } });
 
     expect(result.isOk()).toBe(true);
     expect(result.unwrap()).toEqual({ value: 42 });
@@ -182,7 +178,7 @@ describe('ProvisionContext.config', () => {
     const id = nextId('options-config');
     const captures: unknown[] = [];
 
-    const svc = provision(id, {
+    const svc = resource(id, {
       config: z.object({ key: z.string() }),
       create: (ctx: ProvisionContext<{ key: string }>) => {
         captures.push(ctx.config);
@@ -194,7 +190,7 @@ describe('ProvisionContext.config', () => {
       blaze: (_input, ctx) => Result.ok({ key: svc.from(ctx).key }),
       input: z.object({}),
       output: z.object({ key: z.string() }),
-      provisions: [svc],
+      resources: [svc],
     });
 
     const result = await executeTrail(
@@ -210,7 +206,7 @@ describe('ProvisionContext.config', () => {
     expect(captures).toEqual([{ key: 'hello' }]);
   });
 
-  test('config-aware singleton provisions reuse the cached instance', async () => {
+  test('config-aware singleton resources reuse the cached instance', async () => {
     const id = nextId('singleton-config');
     const { captures, trail: singletonTrail } = createSingletonConfigTrail(id);
     const options = {

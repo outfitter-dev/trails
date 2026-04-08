@@ -1,6 +1,6 @@
 /**
  * Trails-specific config wrapper — `appConfig('trails', ...)` with
- * framework conventions for loadout selection and local overrides.
+ * framework conventions for profile selection and local overrides.
  */
 
 import { existsSync } from 'node:fs';
@@ -19,14 +19,14 @@ import { resolveConfig } from './resolve.js';
 export interface DefineConfigOptions<T extends z.ZodType> {
   readonly schema: T;
   readonly base?: Partial<z.infer<T>>;
-  readonly loadouts?: Record<string, Partial<z.infer<T>>>;
+  readonly profiles?: Record<string, Partial<z.infer<T>>>;
   /** When true, fall back to `NODE_ENV` when `TRAILS_ENV` is unset. */
   readonly envFromNodeEnv?: boolean;
 }
 
 /** Options passed to `resolve()` on a defined config. */
 interface DefineConfigResolveOptions {
-  readonly loadout?: string;
+  readonly profile?: string;
   readonly env?: Record<string, string | undefined>;
   /** Working directory for local overrides discovery. Defaults to `process.cwd()`. */
   readonly cwd?: string;
@@ -70,7 +70,7 @@ const discoverLocalOverrides = async (
  * Define Trails app config.
  *
  * This is `appConfig('trails', ...)` with the framework's own conventions:
- * `TRAILS_ENV` selects the loadout. When `envFromNodeEnv` is true,
+ * `TRAILS_ENV` selects the profile. When `envFromNodeEnv` is true,
  * `NODE_ENV` is used as a fallback when `TRAILS_ENV` is unset.
  *
  * @example
@@ -81,7 +81,7 @@ const discoverLocalOverrides = async (
  *     debug: z.boolean().default(false),
  *   }),
  *   base: { port: 8080 },
- *   loadouts: {
+ *   profiles: {
  *     production: { debug: false },
  *     test: { debug: true, port: 0 },
  *   },
@@ -101,7 +101,7 @@ export const defineConfig = <T extends z.ZodType>(
   return {
     ...config,
     base: options.base,
-    loadouts: options.loadouts,
+    profiles: options.profiles,
     resolve: async (resolveOpts?: DefineConfigResolveOptions) => {
       const envRecord = {
         ...(resolveOpts?.env ?? process.env),
@@ -121,11 +121,11 @@ export const defineConfig = <T extends z.ZodType>(
       return resolveConfig({
         base: options.base as Record<string, unknown> | undefined,
         env: envRecord,
-        loadout: resolveOpts?.loadout ?? envRecord['TRAILS_ENV'],
-        loadouts: options.loadouts as
+        localOverrides,
+        profile: resolveOpts?.profile ?? envRecord['TRAILS_ENV'],
+        profiles: options.profiles as
           | Record<string, Record<string, unknown>>
           | undefined,
-        localOverrides,
         schema: options.schema,
       });
     },

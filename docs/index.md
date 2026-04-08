@@ -8,11 +8,11 @@
 
 ## Building something?
 
-- **[Architecture](./architecture.md)** — Hexagonal model, package gates, how data flows from trail to trailhead
+- **[Architecture](./architecture.md)** — Hexagonal model, package layers, how data flows from trail to trailhead
 - **[API Reference](./api-reference.md)** — Every public export across all packages
-- **[Provisions Guide](./provisions.md)** — Define provisions, declare them on trails, test with mock factories
+- **[Resources Guide](./resources.md)** — Define resources, declare them on trails, test with mock factories
 - **[Store Guide](../packages/store/README.md)** — Declare schema-derived stores, bind them with Drizzle, use fixtures and read-only access
-- **[Config Guide](../packages/config/README.md)** — Schema-derived configuration, resolution stack, extensions, loadouts
+- **[Config Guide](../packages/config/README.md)** — Schema-derived configuration, resolution stack, extensions, profiles
 - **[Permits Guide](../packages/permits/README.md)** — Scope-based authorization, auth connectors, permit governance
 - **[Tracker Guide](../packages/tracker/README.md)** — Execution recording, sinks, sampling, manual instrumentation
 - **[Testing Guide](./testing.md)** — TDD with examples, `testAll()`, contract testing, trailhead harnesses
@@ -39,7 +39,7 @@
 - **[ADR-0006: Shared Execution Pipeline](./adr/0006-shared-execution-pipeline.md)** — One `executeTrail`, Result-returning builders
 - **[ADR-0007: Governance as Trails](./adr/0007-governance-as-trails.md)** — Warden rules are trails, AST-based analysis
 - **[ADR-0008: Deterministic Trailhead Derivation](./adr/0008-deterministic-trailhead-derivation.md)** — Explicit lookup tables for every trailhead
-- **[ADR-0009: First-Class Provisions](./adr/0009-first-class-provisions.md)** — Dependency declarations, lifecycle, testing, governance
+- **[ADR-0009: First-Class Resources](./adr/0009-first-class-resources.md)** — Dependency declarations, lifecycle, testing, governance
 - **[ADR-0010: Trails-Native Infrastructure](./adr/0010-native-infrastructure.md)** — Workspace layout, `.trails/` directory, shared database
 - **[ADR-0011: Schema-Driven Config](./adr/0011-schema-driven-config.md)** — Typed configuration from schemas
 - **[ADR-0012: Connector-Agnostic Permits](./adr/0012-connector-agnostic-permits.md)** — Permission model independent of trailhead

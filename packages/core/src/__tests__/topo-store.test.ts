@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { z } from 'zod';
 
-import { Result, provision, signal, topo, trail } from '../index.js';
+import { Result, resource, signal, topo, trail } from '../index.js';
 import {
   ensureTopoHistorySchema,
   pinTopoSave,
@@ -60,14 +60,14 @@ const tableExists = (
 };
 
 const exampleApp = () => {
-  const dbMain = provision('db.main', {
+  const dbMain = resource('db.main', {
     create: () => Result.ok({ source: 'factory' }),
     description: 'Primary database',
     health: () => Result.ok({ ok: true }),
     mock: () => ({ source: 'mock' }),
   });
 
-  const searchIndex = provision('search.index', {
+  const searchIndex = resource('search.index', {
     create: () => Result.ok({ source: 'factory' }),
     mock: () => ({ source: 'mock' }),
   });
@@ -97,7 +97,7 @@ const exampleApp = () => {
     input: z.object({ name: z.string() }),
     meta: { owner: 'core', tags: ['write', 'entity'] },
     output: z.object({ id: z.string(), ok: z.boolean() }),
-    provisions: [dbMain, searchIndex],
+    resources: [dbMain, searchIndex],
   });
 
   const entityList = trail('entity.list', {
@@ -108,7 +108,7 @@ const exampleApp = () => {
     input: z.object({}),
     intent: 'read',
     output: z.object({ items: z.array(z.string()) }),
-    provisions: [dbMain],
+    resources: [dbMain],
   });
 
   return topo('projection-app', {
@@ -382,7 +382,7 @@ describe('topo store projection', () => {
       expect(JSON.parse(stored.lockContent)).toMatchObject({
         apps: {
           'projection-app': {
-            provisions: expect.any(Object),
+            resources: expect.any(Object),
             signals: expect.any(Object),
             trails: expect.any(Object),
           },

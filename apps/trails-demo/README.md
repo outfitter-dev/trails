@@ -1,6 +1,6 @@
 # trails-demo
 
-A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `crosses`, a first-class provision dependency, a schema-derived store, a signal, examples, metadata, detours, idempotent upsert, and trailhead entrypoints on CLI, MCP, and HTTP.
+A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `crosses`, a first-class resource dependency, a schema-derived store, a signal, examples, metadata, detours, idempotent upsert, and trailhead entrypoints on CLI, MCP, and HTTP.
 
 ## What this app does
 
@@ -18,7 +18,7 @@ Entity management -- a small CRUD + search system with enough depth to exercise 
 
 Plus one signal: `entity.updated` (fired by `entity.add` and `entity.delete`).
 
-Plus one provision: `demo.entity-store` (a Drizzle-backed in-memory entity store derived from a root `store(...)` definition).
+Plus one resource: `demo.entity-store` (a Drizzle-backed in-memory entity store derived from a root `store(...)` definition).
 
 ## Running the CLI
 
@@ -80,7 +80,7 @@ This exposes MCP tools: `demo_entity_show`, `demo_entity_add`, `demo_entity_dele
 ### Trail definition: `entity.show`
 
 ```typescript
-import { entityStoreProvision } from '../src/provisions/entity-store.js';
+import { entityStoreProvision } from '../src/resources/entity-store.js';
 
 export const show = trail('entity.show', {
   description: 'Show an entity by name',
@@ -88,7 +88,7 @@ export const show = trail('entity.show', {
   output: entitySchema,
   intent: 'read',
   detours: { NotFoundError: ['search'] },
-  provisions: [entityStoreProvision],
+  resources: [entityStoreProvision],
   examples: [
     {
       name: 'Show entity by name',
@@ -143,10 +143,10 @@ export const onboard = trail('entity.onboard', {
 ```typescript
 import { testAll } from '@ontrails/testing';
 import { app } from '../src/app.js';
-import { createMockEntityStore, entityStoreProvision } from '../src/provisions/entity-store.js';
+import { createMockEntityStore, entityStoreProvision } from '../src/resources/entity-store.js';
 
 testAll(app, () => ({
-  provisions: {
+  resources: {
     [entityStoreProvision.id]: createMockEntityStore(),
   },
 }));
@@ -159,7 +159,7 @@ testAll(app, () => ({
 3. **`testContracts`** -- output schema verification for every success example.
 4. **`testDetours`** -- detour targets reference real trails in the topo.
 
-Pass a factory function (not a plain object) when your explicit provision overrides contain mutable state like an in-memory SQLite store, so each test gets a fresh copy.
+Pass a factory function (not a plain object) when your explicit resource overrides contain mutable state like an in-memory SQLite store, so each test gets a fresh copy.
 
 ### Progressive assertion
 
@@ -172,7 +172,7 @@ Pass a factory function (not a plain object) when your explicit provision overri
 ```typescript
 import { createStore } from '../src/store.js';
 import { testTrail } from '@ontrails/testing';
-import { entityStoreProvision } from '../src/provisions/entity-store.js';
+import { entityStoreProvision } from '../src/resources/entity-store.js';
 
 testTrail(
   show,
@@ -231,7 +231,7 @@ Checks governance rules: every trail has examples, destructive trails declare `i
 ## Inspecting the app
 
 ```bash
-# Inspect one trail or provision
+# Inspect one trail or resource
 trails topo show --module ./src/app.ts --id entity.show
 
 # See saved topo history and pins

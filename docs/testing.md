@@ -59,17 +59,17 @@ import { app } from '../app';
 testAll(app);
 ```
 
-When trails declare provisions, the testing helpers respect them in two ways:
+When trails declare resources, the testing helpers respect them in two ways:
 
-- Provisions with a `mock` factory auto-resolve during `testAll`, `testExamples`, and `testContracts`.
-- Explicit `provisions` overrides let you inject a specific test double when you need one.
+- Resources with a `mock` factory auto-resolve during `testAll`, `testExamples`, and `testContracts`.
+- Explicit `resources` overrides let you inject a specific test double when you need one.
 
 ```typescript
-import { provision, Result } from '@ontrails/core';
+import { resource, Result } from '@ontrails/core';
 import { testAll } from '@ontrails/testing';
 import { app } from '../app';
 
-const db = provision('db.main', {
+const db = resource('db.main', {
   create: () => Result.ok(connectToDatabase()),
   mock: () => createInMemoryDb(),
 });
@@ -78,7 +78,7 @@ const db = provision('db.main', {
 testAll(app); // auto-resolves db.main from db.mock()
 
 testAll(app, () => ({
-  provisions: { 'db.main': createInMemoryDb() },
+  resources: { 'db.main': createInMemoryDb() },
 }));
 ```
 
@@ -254,7 +254,7 @@ const ctx = createTestContext({
 
 Defaults: deterministic request ID, test logger (captures entries), a non-aborted `abortSignal`.
 
-If you need a provision override at the context level, pass it through `provisions` to `testAll()` / `testExamples()` / `testContracts()`, or attach it to `extensions` under the provision ID when calling a single trail helper like `testTrail()`. `testTrail()` accepts a raw context object, so provision injection there bypasses the normal pipeline resolution step and goes directly through `extensions`.
+If you need a resource override at the context level, pass it through `resources` to `testAll()` / `testExamples()` / `testContracts()`, or attach it to `extensions` under the resource ID when calling a single trail helper like `testTrail()`. `testTrail()` accepts a raw context object, so resource injection there bypasses the normal pipeline resolution step and goes directly through `extensions`.
 
 ### `createCrossContext(options?)`
 
@@ -323,11 +323,11 @@ const result = await harness.callTool('myapp_entity_show', { name: 'Alpha' });
 expect(result.isError).toBe(false);
 ```
 
-## Testing with Infrastructure Provisions
+## Testing with Infrastructure Resources
 
 The config, permits, and tracker packages each provide test-friendly primitives that work with `testAll(app)` and `testExamples(app)` without external dependencies.
 
-**Config test loadout.** Use `defineConfig()` with a `test` loadout that uses safe defaults (port 0, debug enabled, in-memory stores). When the `TRAILS_ENV` environment variable is set to `test`, the test loadout is selected automatically during resolution. Services with `config` schemas receive the test loadout values through `svc.config`.
+**Config test profile.** Use `defineConfig()` with a `test` profile that uses safe defaults (port 0, debug enabled, in-memory stores). When the `TRAILS_ENV` environment variable is set to `test`, the test profile is selected automatically during resolution. Services with `config` schemas receive the test profile values through `svc.config`.
 
 **Synthetic permit minting.** `mintTestPermit()` creates a `Permit` with exactly the scopes you specify -- no admin privileges, no wildcards. `mintPermitForTrail()` reads a trail's `permit` declaration and mints a permit with exactly the declared scopes, so tests exercise the real authorization path without a running auth provider:
 
@@ -338,14 +338,14 @@ const permit = mintTestPermit({ scopes: ['entity:read'] });
 const trailPermit = mintPermitForTrail(showTrail);
 ```
 
-**Tracker memory gate.** `createMemorySink()` captures all tracker records in memory for assertion. Pair it with `createTrackerGate()` to verify that trails emit the expected telemetry without configuring a real exporter:
+**Tracker memory layer.** `createMemorySink()` captures all tracker records in memory for assertion. Pair it with `createTrackerGate()` to verify that trails emit the expected telemetry without configuring a real exporter:
 
 ```typescript
 import { createMemorySink, createTrackerGate } from '@ontrails/tracker';
 
 const sink = createMemorySink();
-const gate = createTrackerGate(sink);
-// ...run trails with the gate...
+const layer = createTrackerGate(sink);
+// ...run trails with the layer...
 expect(sink.records).toHaveLength(1);
 ```
 

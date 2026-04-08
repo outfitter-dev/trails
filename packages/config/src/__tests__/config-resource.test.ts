@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
-import { configProvision } from '../config-provision.js';
+import { configResource } from '../config-resource.js';
 import type { ConfigState } from '../registry.js';
 import { clearConfigState, registerConfigState } from '../registry.js';
 
@@ -23,8 +23,8 @@ describe('configProvision', () => {
       expect(configProvision.id).toBe('config');
     });
 
-    test('has kind "provision"', () => {
-      expect(configProvision.kind).toBe('provision');
+    test('has kind "resource"', () => {
+      expect(configResource.kind).toBe('resource');
     });
 
     test('has infrastructure meta', () => {

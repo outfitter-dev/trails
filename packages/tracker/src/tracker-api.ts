@@ -21,7 +21,7 @@ export interface TrackerApi {
   readonly annotate: (attrs: Record<string, unknown>) => void;
 }
 
-/** TrackerApi bundled with internal state the gate needs after execution. */
+/** TrackerApi bundled with internal state the layer needs after execution. */
 export interface TrackerApiWithState {
   readonly api: TrackerApi;
   /** Retrieve all accumulated annotations, merged into a single object. */
@@ -77,7 +77,7 @@ const mergeAnnotations = (
  *
  * Reads trace context from `ctx.extensions` so manual spans become
  * children of the trail's automatic record. Returns the API alongside
- * a `getAnnotations` accessor the gate uses to merge attrs into the
+ * a `getAnnotations` accessor the layer uses to merge attrs into the
  * completed record.
  */
 export const createTrackerApi = (

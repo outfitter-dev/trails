@@ -17,7 +17,7 @@ export type CrossFn = <O>(
   input: unknown
 ) => Promise<Result<O, Error>>;
 
-/** Resolve a provision instance from the current trail context. */
+/** Resolve a resource instance from the current trail context. */
 export type ProvisionLookup = <T = unknown>(
   provisionOrId: { readonly id: string } | string
 ) => T;
@@ -67,7 +67,7 @@ export interface TrailContext {
   readonly cwd?: string | undefined;
   readonly env?: Record<string, string | undefined> | undefined;
   readonly extensions?: Readonly<Record<string, unknown>> | undefined;
-  readonly provision?: ProvisionLookup | undefined;
+  readonly resource?: ProvisionLookup | undefined;
 }
 
 /**
@@ -82,6 +82,6 @@ export type PermitRequirement =
   | 'public';
 
 /** Input shape used to seed a runtime TrailContext before resolution. */
-export type TrailContextInit = Omit<TrailContext, 'provision'> & {
-  readonly provision?: ProvisionLookup | undefined;
+export type TrailContextInit = Omit<TrailContext, 'resource'> & {
+  readonly resource?: ProvisionLookup | undefined;
 };

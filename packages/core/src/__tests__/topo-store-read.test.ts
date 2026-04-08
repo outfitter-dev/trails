@@ -8,7 +8,7 @@ import { z } from 'zod';
 import {
   createMockTopoStore,
   createTopoStore,
-  provision,
+  resource,
   Result,
   signal,
   topo,
@@ -40,7 +40,7 @@ const requireValue = <T>(value: T | undefined, message: string): T => {
 };
 
 const exampleApp = () => {
-  const dbMain = provision('db.main', {
+  const dbMain = resource('db.main', {
     create: () => Result.ok({ source: 'factory' }),
     description: 'Primary database',
     health: () => Result.ok({ ok: true }),
@@ -66,7 +66,7 @@ const exampleApp = () => {
     ],
     input: z.object({ name: z.string() }),
     output: z.object({ id: z.string(), ok: z.boolean() }),
-    provisions: [dbMain],
+    resources: [dbMain],
   });
 
   const entityList = trail('entity.list', {
@@ -80,7 +80,7 @@ const exampleApp = () => {
     input: z.object({}),
     intent: 'read',
     output: z.object({ ok: z.boolean() }),
-    provisions: [dbMain],
+    resources: [dbMain],
   });
 
   return topo('projection-app', {
@@ -129,7 +129,7 @@ describe('read-only topo store', () => {
     }
   };
 
-  test('lists save-scoped trails and provisions through typed accessors', () => {
+  test('lists save-scoped trails and resources through typed accessors', () => {
     const { rootDir, save } = seedStore();
     const store = createTopoStore({ rootDir });
 
@@ -153,7 +153,7 @@ describe('read-only topo store', () => {
       }),
     ]);
 
-    expect(store.provisions.list({ save: { saveId: save.id } })).toEqual([
+    expect(store.resources.list({ save: { saveId: save.id } })).toEqual([
       expect.objectContaining({
         description: 'Primary database',
         health: 'available',
@@ -194,7 +194,7 @@ describe('read-only topo store', () => {
         crosses: ['entity.add'],
         detours: { ConflictError: ['entity.add'] },
         id: 'entity.list',
-        provisions: ['db.main'],
+        resources: ['db.main'],
       })
     );
     expect(detail?.examples).toEqual([]);
@@ -219,7 +219,7 @@ describe('read-only topo store', () => {
     expect(() => store.exports.get()).toThrow('No saved topo state found');
   });
 
-  test('exposes a provision factory and mock for topoStore', async () => {
+  test('exposes a resource factory and mock for topoStore', async () => {
     const { rootDir } = seedStore();
 
     const created = await expectOk(

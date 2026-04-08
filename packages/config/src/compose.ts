@@ -1,7 +1,7 @@
 /**
- * Config composition utilities for provisions.
+ * Config composition utilities for resources.
  *
- * Collects config schemas from provision declarations so they can be
+ * Collects config schemas from resource declarations so they can be
  * composed into a unified config structure via `defineConfig`.
  */
 
@@ -11,7 +11,7 @@ import type { z } from 'zod';
 // Types
 // ---------------------------------------------------------------------------
 
-/** A provision config schema entry extracted from a provision declaration. */
+/** A resource config schema entry extracted from a resource declaration. */
 export interface ProvisionConfigEntry {
   readonly provisionId: string;
   readonly schema: z.ZodType;
@@ -20,7 +20,7 @@ export interface ProvisionConfigEntry {
 /** Backward-compatible alias while the migration is in flight. */
 export type ServiceConfigEntry = ProvisionConfigEntry;
 
-/** Minimal shape needed to extract config from a provision-like object. */
+/** Minimal shape needed to extract config from a resource-like object. */
 interface ProvisionWithOptionalConfig {
   readonly id: string;
   readonly config?: z.ZodType | undefined;
@@ -31,15 +31,15 @@ interface ProvisionWithOptionalConfig {
 // ---------------------------------------------------------------------------
 
 /**
- * Collect config schemas from provisions that declare them.
+ * Collect config schemas from resources that declare them.
  *
- * Returns entries keyed by provision ID for composition into `defineConfig`.
- * Provisions without a `config` schema are excluded.
+ * Returns entries keyed by resource ID for composition into `defineConfig`.
+ * Resources without a `config` schema are excluded.
  */
-export const collectProvisionConfigs = (
-  provisions: readonly ProvisionWithOptionalConfig[]
-): ProvisionConfigEntry[] =>
-  provisions
+export const collectResourceConfigs = (
+  resources: readonly ResourceWithOptionalConfig[]
+): ResourceConfigEntry[] =>
+  resources
     .filter(
       (
         svc

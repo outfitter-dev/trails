@@ -7,8 +7,8 @@ export { noSyncResultAssumptionTrail } from './no-sync-result-assumption.trail.j
 export { noThrowInDetourTargetTrail } from './no-throw-in-detour-target.trail.js';
 export { noThrowInImplementationTrail } from './no-throw-in-implementation.trail.js';
 export { preferSchemaInferenceTrail } from './prefer-schema-inference.trail.js';
-export { provisionDeclarationsTrail } from './provision-declarations.trail.js';
-export { provisionExistsTrail } from './provision-exists.trail.js';
+export { provisionDeclarationsTrail } from './resource-declarations.trail.js';
+export { provisionExistsTrail } from './resource-exists.trail.js';
 export { validDescribeRefsTrail } from './valid-describe-refs.trail.js';
 export { validDetourRefsTrail } from './valid-detour-refs.trail.js';
 

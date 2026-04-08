@@ -60,7 +60,7 @@ describe('getPermit()', () => {
     expect(result).toBeUndefined();
   });
 
-  test('preserves extended permit fields from the auth gate', () => {
+  test('preserves extended permit fields from the auth layer', () => {
     const ctx = {
       permit: {
         id: 'usr_2',

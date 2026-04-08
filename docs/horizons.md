@@ -8,9 +8,9 @@
 
 **OpenAPI generation (`@ontrails/schema`).** `generateOpenApiSpec()` produces a complete OpenAPI 3.1 spec from the topo. The topo already carries everything OpenAPI needs.
 
-**Provisions (`provision()` and trail `provisions: [...]`).** Trails now declare infrastructure dependencies explicitly. `executeTrail()` resolves app-scoped singletons before gates and implementations run. Testing can auto-resolve `mock` factories, and survey / schema tooling exposes the full provision graph.
+**Resources (`resource()` and trail `resources: [...]`).** Trails now declare infrastructure dependencies explicitly. `executeTrail()` resolves app-scoped singletons before layers and implementations run. Testing can auto-resolve `mock` factories, and survey / schema tooling exposes the full resource graph.
 
-**Config resolution (`@ontrails/config`).** `defineConfig()` provides schema-validated config with loadouts (named environment profiles), env variable mapping, and `ProvisionSpec.config` for provision-level config schemas. Includes diagnostics (`checkConfig`), introspection (`describeConfig`, `explainConfig`), and generation (`generateEnvExample`).
+**Config resolution (`@ontrails/config`).** `defineConfig()` provides schema-validated config with profiles (named environment profiles), env variable mapping, and `ProvisionSpec.config` for resource-level config schemas. Includes diagnostics (`checkConfig`), introspection (`describeConfig`, `explainConfig`), and generation (`generateEnvExample`).
 
 **Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. `authGate` extracts credentials from trailhead-specific sources, `AuthConnector` resolves them to a `Permit` (identity, scopes, roles), and scope enforcement rejects unauthorized access. Includes JWT connector, governance rules (`validatePermits`), and test helpers (`mintTestPermit`, `mintPermitForTrail`).
 
@@ -18,13 +18,13 @@
 
 ## Mid-term (v1.3+)
 
-**Derived dependency graphs.** Instead of hand-maintaining `crosses` declarations, the framework infers them from `ctx.cross()` calls in the implementation via static analysis. The same idea could eventually extend beyond today's declared `provisions: [...]` model to richer provision capability inference. The trailhead lock captures the graph. Changes show up in diffs.
+**Derived dependency graphs.** Instead of hand-maintaining `crosses` declarations, the framework infers them from `ctx.cross()` calls in the implementation via static analysis. The same idea could eventually extend beyond today's declared `resources: [...]` model to richer resource capability inference. The trailhead lock captures the graph. Changes show up in diffs.
 
 **Implementation synthesis from examples.** For trails with comprehensive examples that fully specify behavior (pure transformations, mapping logic, validation rules), an agent could synthesize the implementation from the examples alone. The examples become the source of truth; the code becomes the derived artifact.
 
 **Cross-app composition (mount).** One Trails app consumes another's trails over a connector boundary. Contract compatibility verified at startup — input schemas match, expected errors exist, required trails are present. Version compatibility becomes structural, not documentary.
 
-**Packs.** Distributable capability bundles. A pack carries trails, provisions, events, and config for a domain. The unit of sharing and reuse across apps.
+**Packs.** Distributable capability bundles. A pack carries trails, resources, events, and config for a domain. The unit of sharing and reuse across apps.
 
 ## Long-term (v2+)
 

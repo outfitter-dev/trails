@@ -23,10 +23,10 @@ import type {
 const isProvisionCall = (node: AstNode): boolean =>
   node.type === 'CallExpression' &&
   identifierName((node as unknown as { callee?: AstNode }).callee) ===
-    'provision';
+    'resource';
 
 const getProvisionElements = (config: AstNode): readonly AstNode[] => {
-  const provisionsProp = findConfigProperty(config, 'provisions');
+  const provisionsProp = findConfigProperty(config, 'resources');
   if (!provisionsProp) {
     return [];
   }
@@ -78,8 +78,8 @@ const buildMissingProvisionDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}" declares provision "${provisionId}" which is not defined in the project.`,
-  rule: 'provision-exists',
+  message: `Trail "${trailId}" declares resource "${provisionId}" which is not defined in the project.`,
+  rule: 'resource-exists',
   severity: 'error',
 });
 
@@ -148,7 +148,7 @@ const checkProvisionsExist = (
 };
 
 /**
- * Checks that all declared provisions resolve to known provision definitions.
+ * Checks that all declared resources resolve to known resource definitions.
  */
 export const provisionExists: ProjectAwareWardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
@@ -178,7 +178,7 @@ export const provisionExists: ProjectAwareWardenRule = {
     );
   },
   description:
-    'Ensure every provision declared on a trail resolves to a known provision definition.',
-  name: 'provision-exists',
+    'Ensure every resource declared on a trail resolves to a known resource definition.',
+  name: 'resource-exists',
   severity: 'error',
 };

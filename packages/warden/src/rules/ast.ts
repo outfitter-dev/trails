@@ -92,7 +92,7 @@ const walkScopeInner: WalkFn = (node, visit) => {
 /**
  * Walk an AST node tree without descending into nested function scopes.
  * The root node is always traversed; only inner function boundaries are skipped.
- * Useful for provision-access analysis where inner functions may shadow
+ * Useful for resource-access analysis where inner functions may shadow
  * the trail context parameter name.
  */
 export const walkScope: WalkFn = (node, visit) => {
@@ -208,7 +208,7 @@ const isProvisionCall = (node: AstNode | undefined): boolean =>
   !!node &&
   node.type === 'CallExpression' &&
   identifierName((node as unknown as { callee?: AstNode }).callee) ===
-    'provision';
+    'resource';
 
 const extractBindingName = (node: AstNode | undefined): string | null => {
   if (!node) {
@@ -223,7 +223,7 @@ const extractBindingName = (node: AstNode | undefined): string | null => {
   return null;
 };
 
-/** Collect `const foo = provision('id', ...)` bindings from a parsed file. */
+/** Collect `const foo = resource('id', ...)` bindings from a parsed file. */
 export const collectNamedProvisionIds = (
   ast: AstNode
 ): ReadonlyMap<string, string> => {
@@ -252,7 +252,7 @@ export const collectNamedProvisionIds = (
   return ids;
 };
 
-/** Collect all inline `provision('id', ...)` definition IDs from a parsed file. */
+/** Collect all inline `resource('id', ...)` definition IDs from a parsed file. */
 export const collectProvisionDefinitionIds = (
   ast: AstNode
 ): ReadonlySet<string> => {

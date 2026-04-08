@@ -2,7 +2,7 @@
 
 AST-based code convention rules for Trails. 15 lint rules that catch contract violations at development time, plus lock drift detection and CI formatters.
 
-Structural checks (cross target existence, declared provision existence, recursive crossing, example schema validation) live in `validateTopo()` from `@ontrails/core`. Warden handles the code-level rules that need AST analysis.
+Structural checks (cross target existence, declared resource existence, recursive crossing, example schema validation) live in `validateTopo()` from `@ontrails/core`. Warden handles the code-level rules that need AST analysis.
 
 ## Usage
 
@@ -38,8 +38,8 @@ console.log(formatWardenReport(report));
 | `no-direct-impl-in-route` | warn | Direct `.blaze()` calls inside trail bodies with `crosses` |
 | `prefer-schema-inference` | warn | Redundant field overrides already derivable from the schema |
 | `cross-declarations` | error/warn | `ctx.cross()` calls that drift from declared `crosses: [...]` |
-| `provision-declarations` | error/warn | `provision.from(ctx)` / `ctx.provision()` usage that drifts from declared `provisions: [...]` |
-| `provision-exists` | error | Declared or referenced provision IDs that do not resolve in project context |
+| `resource-declarations` | error/warn | `resource.from(ctx)` / `ctx.resource()` usage that drifts from declared `resources: [...]` |
+| `resource-exists` | error | Declared or referenced resource IDs that do not resolve in project context |
 | `valid-describe-refs` | warn | `@see` refs in `.describe()` that do not resolve |
 | `draft-file-marking` | error | Draft-bearing files missing `_draft.*` or `*.draft.*` filename markers |
 | `draft-visible-debt` | warn | Draft IDs remaining in source files that need promotion or removal |

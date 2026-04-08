@@ -119,7 +119,7 @@ export const currentGitState = (
 export const topoCounts = (
   app: Topo
 ): Pick<TopoSaveRecord, 'provisionCount' | 'signalCount' | 'trailCount'> => ({
-  provisionCount: app.provisions.size,
+  provisionCount: app.resources.size,
   signalCount: app.signals.size,
   trailCount: app.trails.size,
 });

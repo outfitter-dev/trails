@@ -42,7 +42,7 @@ export const createTestContext = (
     workspaceRoot: cwd,
   } as MutableTrailContext;
   const lookup = createProvisionLookup(() => ctx);
-  ctx.provision = lookup;
+  ctx.resource = lookup;
   return ctx;
 };
 
@@ -70,7 +70,7 @@ export interface MintableTrail {
 
 export interface TestExecutionOptions {
   readonly ctx?: Partial<TrailContext> | undefined;
-  readonly provisions?: ProvisionOverrideMap | undefined;
+  readonly resources?: ProvisionOverrideMap | undefined;
   /**
    * When true, disables automatic permit minting. Tests must provide
    * explicit permits.
@@ -137,7 +137,7 @@ const isTestExecutionOptions = (
 ): input is TestExecutionOptions =>
   input !== undefined &&
   (Object.hasOwn(input, 'ctx') ||
-    Object.hasOwn(input, 'provisions') ||
+    Object.hasOwn(input, 'resources') ||
     Object.hasOwn(input, 'strictPermits') ||
     Object.hasOwn(input, 'mintPermit'));
 
@@ -159,14 +159,14 @@ export const mergeProvisionOverrides = (
 const buildMockProvisions = async (
   app: Topo
 ): Promise<ProvisionOverrideMap> => {
-  const provisions: Record<string, unknown> = {};
+  const resources: Record<string, unknown> = {};
   for (const declaredProvision of app.listProvisions()) {
     if (!declaredProvision.mock) {
       continue;
     }
-    provisions[declaredProvision.id] = await declaredProvision.mock();
+    resources[declaredProvision.id] = await declaredProvision.mock();
   }
-  return provisions;
+  return resources;
 };
 
 export const resolveMockProvisions = async (
@@ -179,13 +179,13 @@ export const resolveMockProvisions = async (
  */
 export const mergeTestContext = (
   ctx?: Partial<TrailContext>,
-  provisions?: ProvisionOverrideMap
+  resources?: ProvisionOverrideMap
 ): TrailContext => {
   const base = createTestContext();
   const extensions = {
     ...base.extensions,
     ...ctx?.extensions,
-    ...provisions,
+    ...resources,
   };
   const merged = {
     ...base,
@@ -193,6 +193,6 @@ export const mergeTestContext = (
     extensions: Object.keys(extensions).length === 0 ? undefined : extensions,
   } as MutableTrailContext;
   const lookup = createProvisionLookup(() => merged);
-  merged.provision = lookup;
+  merged.resource = lookup;
   return merged;
 };

@@ -8,7 +8,7 @@ import {
 } from '@ontrails/core';
 
 import type { AuthConnector } from '../connectors/connector.js';
-import { authProvision } from '../auth-provision.js';
+import { authProvision } from '../auth-resource.js';
 import { createJwtConnector } from '../connectors/jwt.js';
 import type { Permit } from '../permit.js';
 import { authVerify } from '../trails/auth-verify.js';
@@ -59,7 +59,7 @@ const TEST_SECRET = 'test-secret-for-hmac-256';
 const jwtConnector = (): AuthConnector =>
   createJwtConnector({ secret: TEST_SECRET });
 
-/** Execute auth.verify with a given connector injected as the auth provision. */
+/** Execute auth.verify with a given connector injected as the auth resource. */
 const runVerify = async (
   token: string,
   connector: AuthConnector,
@@ -95,7 +95,7 @@ const runVerify = async (
         options?.trailhead === undefined
           ? undefined
           : { extensions: { [TRAILHEAD_KEY]: options.trailhead } },
-      provisions: { [authProvision.id]: connector },
+      resources: { [authProvision.id]: connector },
     }
   );
   return result as Result<
@@ -135,8 +135,8 @@ describe('auth.verify trail', () => {
     });
 
     test('declares authProvision dependency', () => {
-      expect(authVerify.provisions).toHaveLength(1);
-      expect(authVerify.provisions[0]?.id).toBe('auth');
+      expect(authVerify.resources).toHaveLength(1);
+      expect(authVerify.resources[0]?.id).toBe('auth');
     });
   });
 
@@ -267,7 +267,7 @@ describe('auth.verify trail', () => {
         authVerify,
         { token: '' },
         {
-          provisions: { [authProvision.id]: jwtConnector() },
+          resources: { [authProvision.id]: jwtConnector() },
         }
       );
 

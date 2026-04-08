@@ -95,5 +95,5 @@ export const trackerQuery = trail('tracker.query', {
   intent: 'read',
   meta: { category: 'infrastructure' },
   output: trackerQueryOutput,
-  provisions: [trackerProvision],
+  resources: [trackerProvision],
 });

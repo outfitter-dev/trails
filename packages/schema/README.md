@@ -55,7 +55,7 @@ The typical exported artifact pair is:
 
 | Export | What it does |
 | --- | --- |
-| `generateTrailheadMap(topo)` | Deterministic trailhead map of every established trail, signal, and provision |
+| `generateTrailheadMap(topo)` | Deterministic trailhead map of every established trail, signal, and resource |
 | `hashTrailheadMap(map)` | Stable SHA-256 hash of the map |
 | `diffTrailheadMaps(prev, curr)` | Semantic diff with `breaking`, `warning`, and `info` classifications |
 | `writeTrailheadMap(map, options?)` | Write `.trails/_trailhead.json` |
@@ -79,10 +79,10 @@ The diff classifies every change by severity:
 | Safety property changed | warning |
 | Trail deprecated | warning |
 | Crosses changed | warning |
-| Declared provisions changed | warning |
-| Provision removed | breaking |
+| Declared resources changed | warning |
+| Resource removed | breaking |
 | Trail added | info |
-| Provision added | info |
+| Resource added | info |
 | Optional input field added | info |
 | Output field added | info |
 

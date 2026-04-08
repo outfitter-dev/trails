@@ -4,7 +4,7 @@ import { Result, createTrailContext, trail } from '@ontrails/core';
 import type { Implementation, Trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { autoIterateGate, dateShortcutsGate } from '../gates.js';
+import { autoIterateGate, dateShortcutsGate } from '../layers.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

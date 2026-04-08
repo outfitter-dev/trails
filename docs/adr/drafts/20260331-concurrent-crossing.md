@@ -182,7 +182,7 @@ With tracker data available, survey can report observed composition patterns: "i
 
 ### Scoping for concurrent branches
 
-Each concurrent branch gets an independent provision scope. Two parallel trails writing to the same transaction is a recipe for race conditions. If branches need shared state, the developer uses the sequential form.
+Each concurrent branch gets an independent resource scope. Two parallel trails writing to the same transaction is a recipe for race conditions. If branches need shared state, the developer uses the sequential form.
 
 The parent trail's `permit`, `logger`, and `signal` (AbortSignal) propagate to all branches. Cancellation via the signal cancels all running branches.
 
@@ -274,7 +274,7 @@ crosses: {
 },
 ```
 
-Weights for load balancing or priority across concurrent crossings. Rejected because this is a scheduling concern, not a composition concern. If a trail needs to route between providers based on load, latency, or preference, that logic belongs in the implementation or in a provision that manages provider selection. The crossing declaration is about what trails can be called, not how often or in what proportion.
+Weights for load balancing or priority across concurrent crossings. Rejected because this is a scheduling concern, not a composition concern. If a trail needs to route between providers based on load, latency, or preference, that logic belongs in the implementation or in a resource that manages provider selection. The crossing declaration is about what trails can be called, not how often or in what proportion.
 
 ### Automatic concurrency detection via static analysis
 
@@ -303,7 +303,7 @@ Rejected because implicit concurrency is a correctness hazard. Two crossings may
 
 - Whether the crossing declaration will gain structural annotations (groups, optional markers, ordering hints) in the future. The flat array is sufficient today. Real usage may reveal governance needs that require structure.
 - Whether `ctx.cross()` will gain additional overloads (e.g., streaming results, race semantics). The current two forms (single and array) cover the common patterns. Additional forms would need their own ADR.
-- How parallel crossings interact with request-scoped provisions if those are added in the future. The current decision (independent scopes per branch) is correct for singleton provisions and would need revisiting for shared mutable state.
+- How parallel crossings interact with request-scoped resources if those are added in the future. The current decision (independent scopes per branch) is correct for singleton resources and would need revisiting for shared mutable state.
 - Whether the concurrency limit should support more sophisticated strategies (e.g., adaptive concurrency based on error rates). A static limit is sufficient for v1.
 
 ## References

@@ -12,7 +12,7 @@ const writeLoadAppFixture = (cwd: string, name: string): void => {
   name: '${name}',
   trails: new Map(),
   signals: new Map(),
-  provisions: new Map()
+  resources: new Map()
 };`
   );
 };

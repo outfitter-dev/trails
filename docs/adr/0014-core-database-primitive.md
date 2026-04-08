@@ -18,7 +18,7 @@ Today the framework has exactly one SQLite usage: the tracker DevStore in `@ontr
 
 Meanwhile, the framework generates and consumes several categories of structural and operational data that are persisted as JSON files or held in memory:
 
-- **The trailhead map** (`.trails/_trailhead.json`) — a deterministic manifest of every trail, signal, and provision in the topo. Generated at build time by `generateTrailheadMap()`.[^trailhead-map]
+- **The trailhead map** (`.trails/_trailhead.json`) — a deterministic manifest of every trail, signal, and resource in the topo. Generated at build time by `generateTrailheadMap()`.[^trailhead-map]
 - **The lockfile** (`.trails/trails.lock`) — a serialized record of the resolved topology for CI diffing.
 - **Schema derivations** — `zodToJsonSchema()` output computed fresh on every startup and build.
 - **Execution records** — the tracker DevStore, isolated from all structural data.
@@ -27,7 +27,7 @@ These are different kinds of framework data with different lifecycles, but they 
 
 ### The write restriction principle
 
-The framework's internal database is infrastructure, not an API surface. Application trails should never write to it. The database captures what the framework knows about itself: the contract graph, execution observations, cached derivations. Application code reads this data (through governed provisions) but never modifies it.
+The framework's internal database is infrastructure, not an API surface. Application trails should never write to it. The database captures what the framework knows about itself: the contract graph, execution observations, cached derivations. Application code reads this data (through governed resources) but never modifies it.
 
 This is the same principle behind `ReadonlyMap` on the topo. The topo is derived from module exports and frozen. The database is derived from the topo and execution, and is write-restricted to the framework.
 
@@ -50,13 +50,13 @@ The database has two connection modes:
 - Used by the build system (topo population, schema cache)
 - Used by the tracker (execution recording)
 - Used by CLI commands that manage topo history and local framework state (`trails topo pin`, `trails dev clean`, `trails dev reset`)
-- Not exposed as a provision. Not available to trail blazes. Not importable by app code.
+- Not exposed as a resource. Not available to trail blazes. Not importable by app code.
 
-**Read connection (provision, governed):**
+**Read connection (resource, governed):**
 
-- Exposed as a read-only provision for warden trails and dev tooling
+- Exposed as a read-only resource for warden trails and dev tooling
 - Opened with SQLite's `readonly: true` flag (database-level enforcement, not just a type)
-- The provision's type surface exposes `list`, `get`, and `query` but not `insert`, `update`, or `remove`
+- The resource's type surface exposes `list`, `get`, and `query` but not `insert`, `update`, or `remove`
 - Available in dev and CI. Not loaded in production (the database may not exist).
 
 ```typescript
@@ -64,11 +64,11 @@ The database has two connection modes:
 // Actual internal paths: @ontrails/core/internal/trails-db (openWriteTrailsDb)
 import { getWriteConnection } from '@ontrails/core/internal/db';
 
-// Provision for warden trails and dev tooling
+// Resource for warden trails and dev tooling
 import { topoStore } from '@ontrails/core';
 
 trail('warden.write-needs-output', {
-  provisions: [topoStore],
+  resources: [topoStore],
   intent: 'read',
   blaze: async (input, ctx) => {
     const conn = topoStore.from(ctx);
@@ -136,8 +136,8 @@ Pins are durable names that point at saved topo states. They are not a second st
 | Environment | Database exists? | Write behavior | Read behavior |
 |---|---|---|---|
 | **Production** | No | Nothing writes | Nothing reads. The in-memory topo is the execution engine. |
-| **Dev** | Yes | Topo populated on startup and file-watch refresh. Tracker appends on execution. Schema cache updated on build. | Read-only provision available. Dev intelligence queries. `trails dev stats`. |
-| **CI** | Yes (ephemeral) | Topo populated at build time. Warden trails query it. Lockfile exported from it. | Read-only provision for warden trails. Discarded after the pipeline completes. |
+| **Dev** | Yes | Topo populated on startup and file-watch refresh. Tracker appends on execution. Schema cache updated on build. | Read-only resource available. Dev intelligence queries. `trails dev stats`. |
+| **CI** | Yes (ephemeral) | Topo populated at build time. Warden trails query it. Lockfile exported from it. | Read-only resource for warden trails. Discarded after the pipeline completes. |
 
 In production, the framework operates exactly as it does today: in-memory topo, no SQLite overhead, no database file. The database is a development and governance tool, not a runtime dependency.
 
@@ -202,7 +202,7 @@ All values have sensible defaults. Zero configuration required.
 ## References
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — the trail is the product, everything else is a projection
-- [ADR-0009: First-Class Provisions](0009-first-class-provisions.md) — the provision primitive that the read-only store provision builds on
+- [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the resource primitive that the read-only store resource builds on
 - [ADR-0013: Tracker](0013-tracker.md) — the execution recording primitive whose DevStore consolidates into this database
 - [ADR-0015: Topo Store](0015-topo-store.md) — the structural graph projected into this database
 - [ADR-0018: Signal-Driven Governance](0018-signal-driven-governance.md) — the framework lifecycle as a topo

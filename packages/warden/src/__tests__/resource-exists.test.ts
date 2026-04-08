@@ -1,21 +1,21 @@
 import { describe, expect, test } from 'bun:test';
 
-import { provisionExists } from '../rules/provision-exists.js';
+import { provisionExists } from '../rules/resource-exists.js';
 
 const TEST_FILE = 'entity.ts';
 
-describe('provision-exists', () => {
-  test('passes when a locally declared provision exists', () => {
+describe('resource-exists', () => {
+  test('passes when a locally declared resource exists', () => {
     const code = `
-import { Result, provision, trail } from '@ontrails/core';
-import type { Provision } from '@ontrails/core';
+import { Result, resource, trail } from '@ontrails/core';
+import type { Resource } from '@ontrails/core';
 
-const db: Provision<{ source: string }> = provision('db.main', {
+const db: Resource<{ source: string }> = resource('db.main', {
   create: () => Result.ok({ source: 'factory' }),
 });
 
 trail('entity.show', {
-  provisions: [db],
+  resources: [db],
   blaze: async (_input, ctx) => Result.ok(db.from(ctx)),
 });
 `;
@@ -23,16 +23,16 @@ trail('entity.show', {
     expect(provisionExists.check(code, TEST_FILE)).toEqual([]);
   });
 
-  test('ignores commented-out provision declarations when resolving local ids', () => {
+  test('ignores commented-out resource declarations when resolving local ids', () => {
     const code = `
 import { Result, trail } from '@ontrails/core';
 
 trail('entity.show', {
-  provisions: ['db.main'],
-  blaze: async (_input, ctx) => Result.ok(ctx.provision('db.main')),
+  resources: ['db.main'],
+  blaze: async (_input, ctx) => Result.ok(ctx.resource('db.main')),
 });
 
-// const db = provision('db.main', {
+// const db = resource('db.main', {
 //   create: () => Result.ok({ source: 'factory' }),
 // });
 `;
@@ -40,20 +40,20 @@ trail('entity.show', {
     const diagnostics = provisionExists.check(code, TEST_FILE);
 
     expect(diagnostics).toHaveLength(1);
-    expect(diagnostics[0]?.rule).toBe('provision-exists');
+    expect(diagnostics[0]?.rule).toBe('resource-exists');
     expect(diagnostics[0]?.message).toContain('db.main');
   });
 
-  test('flags a declared provision missing from project context', () => {
+  test('flags a declared resource missing from project context', () => {
     const code = `
-import { Result, provision, trail } from '@ontrails/core';
+import { Result, resource, trail } from '@ontrails/core';
 
-const db = provision('db.main', {
+const db = resource('db.main', {
   create: () => Result.ok({ source: 'factory' }),
 });
 
 trail('entity.show', {
-  provisions: [db],
+  resources: [db],
   blaze: async (_input, ctx) => Result.ok(db.from(ctx)),
 });
 `;
@@ -64,20 +64,20 @@ trail('entity.show', {
     });
 
     expect(diagnostics).toHaveLength(1);
-    expect(diagnostics[0]?.rule).toBe('provision-exists');
+    expect(diagnostics[0]?.rule).toBe('resource-exists');
     expect(diagnostics[0]?.message).toContain('db.main');
   });
 
-  test('passes when project context includes the declared provision', () => {
+  test('passes when project context includes the declared resource', () => {
     const code = `
-import { Result, provision, trail } from '@ontrails/core';
+import { Result, resource, trail } from '@ontrails/core';
 
-const db = provision('db.main', {
+const db = resource('db.main', {
   create: () => Result.ok({ source: 'factory' }),
 });
 
 trail('entity.show', {
-  provisions: [db],
+  resources: [db],
   blaze: async (_input, ctx) => Result.ok(db.from(ctx)),
 });
 `;
@@ -90,13 +90,13 @@ trail('entity.show', {
     expect(diagnostics).toEqual([]);
   });
 
-  test('skips unresolved imported provisions instead of guessing', () => {
+  test('skips unresolved imported resources instead of guessing', () => {
     const code = `
 import { trail } from '@ontrails/core';
-import { db } from './provisions';
+import { db } from './resources';
 
 trail('entity.show', {
-  provisions: [db],
+  resources: [db],
   blaze: async (_input, ctx) => Result.ok(db.from(ctx)),
 });
 `;
@@ -112,8 +112,8 @@ trail('entity.show', {
   test('skips test files', () => {
     const code = `
 trail('entity.show', {
-  provisions: ['db.main'],
-  blaze: async (_input, ctx) => Result.ok(ctx.provision('db.main')),
+  resources: ['db.main'],
+  blaze: async (_input, ctx) => Result.ok(ctx.resource('db.main')),
 });
 `;
 

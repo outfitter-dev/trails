@@ -1,6 +1,6 @@
 import { describe, test } from 'bun:test';
 
-import { Result, provision, trail, topo } from '@ontrails/core';
+import { Result, resource, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { testContracts } from '../contracts.js';
@@ -72,12 +72,12 @@ const transformedInputTrail = trail('contract.transformed', {
   output: z.object({ value: z.number() }),
 });
 
-const undeclaredContractDbProvision = provision('db.undeclared.contracts', {
+const undeclaredContractDbProvision = resource('db.undeclared.contracts', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
-const undeclaredContractTrail = trail('provision.undeclared.contracts', {
+const undeclaredContractTrail = trail('resource.undeclared.contracts', {
   blaze: (_input, ctx) =>
     Result.ok({
       hasInjectedProvision:
@@ -87,31 +87,31 @@ const undeclaredContractTrail = trail('provision.undeclared.contracts', {
     {
       expected: { hasInjectedProvision: false },
       input: {},
-      name: 'Undeclared provisions are not preloaded into contract contexts',
+      name: 'Undeclared resources are not preloaded into contract contexts',
     },
   ],
   input: z.object({}),
   output: z.object({ hasInjectedProvision: z.literal(false) }),
 });
 
-const ctxOverrideContractProvision = provision('db.mock.contracts', {
+const ctxOverrideContractProvision = resource('db.mock.contracts', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
-const ctxOverrideContractTrail = trail('provision.ctx.contracts', {
+const ctxOverrideContractTrail = trail('resource.ctx.contracts', {
   blaze: (_input, ctx) =>
     Result.ok({ source: ctxOverrideContractProvision.from(ctx).source }),
   examples: [
     {
       expected: { source: 'ctx' },
       input: {},
-      name: 'Context extensions beat auto-resolved contract provision mocks',
+      name: 'Context extensions beat auto-resolved contract resource mocks',
     },
   ],
   input: z.object({}),
   output: z.object({ source: z.literal('ctx') }),
-  provisions: [ctxOverrideContractProvision],
+  resources: [ctxOverrideContractProvision],
 });
 
 // ---------------------------------------------------------------------------
@@ -174,10 +174,10 @@ describe('testContracts: context extension overrides', () => {
   );
 });
 
-describe('testContracts provision declarations', () => {
+describe('testContracts resource declarations', () => {
   // eslint-disable-next-line jest/require-hook
   testContracts(
-    topo('undeclared-contract-provision-app', {
+    topo('undeclared-contract-resource-app', {
       undeclaredContractDbProvision,
       undeclaredContractTrail,
     } as Record<string, unknown>)

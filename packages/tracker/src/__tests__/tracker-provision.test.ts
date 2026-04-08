@@ -24,8 +24,8 @@ describe('trackerProvision', () => {
     expect(trackerProvision.id).toBe('tracker');
   });
 
-  test('has provision kind', () => {
-    expect(trackerProvision.kind).toBe('provision');
+  test('has resource kind', () => {
+    expect(trackerProvision.kind).toBe('resource');
   });
 
   test('has infrastructure meta', () => {

@@ -66,7 +66,7 @@ CREATE TABLE topo_crossings (
 
 ### `topo_provisions`
 
-Provision definitions.
+Resource definitions.
 
 ```sql
 CREATE TABLE topo_provisions (
@@ -80,7 +80,7 @@ CREATE TABLE topo_provisions (
 
 ### `topo_trail_provisions`
 
-Which provisions each trail declares.
+Which resources each trail declares.
 
 ```sql
 CREATE TABLE topo_trail_provisions (
@@ -189,7 +189,7 @@ WHERE save_id = ? AND intent = ?
 ORDER BY id ASC
 ```
 
-### Find trails using a specific provision
+### Find trails using a specific resource
 
 ```sql
 SELECT DISTINCT t.id, t.intent
@@ -244,7 +244,7 @@ import { createTopoStore } from '@ontrails/core';
 
 const store = createTopoStore({ rootDir: '/path/to/workspace' });
 store.trails.list({ intent: 'write' });
-store.provisions.get('db.main');
+store.resources.get('db.main');
 store.pins.list();
 store.saves.latest();
 ```
@@ -258,23 +258,23 @@ import { createMockTopoStore } from '@ontrails/core';
 
 const mock = createMockTopoStore({
   trails: [{ id: 'auth.login', intent: 'write', hasOutput: true, ... }],
-  provisions: [{ id: 'db.main', hasMock: true, ... }],
+  resources: [{ id: 'db.main', hasMock: true, ... }],
   pins: [{ name: 'baseline', saveId: 'save-1', ... }],
 });
 ```
 
-### `topoStore` provision
+### `topoStore` resource
 
-Read-only provision for accessing the topo store in trails.
+Read-only resource for accessing the topo store in trails.
 
 ```typescript
 import { topoStore } from '@ontrails/core';
 
 trail('warden.check', {
-  provisions: [topoStore],
+  resources: [topoStore],
   blaze: async (_input, ctx) => {
     const store = topoStore.from(ctx);
-    // store.trails, store.provisions, store.pins, store.saves, store.query()
+    // store.trails, store.resources, store.pins, store.saves, store.query()
   },
 });
 ```
@@ -316,14 +316,14 @@ interface TopoStoreRef {
 
 ### `TopoStoreTrailDetailRecord`
 
-Extends trail record with `crosses`, `detours`, `provisions`, and `examples` arrays.
+Extends trail record with `crosses`, `detours`, `resources`, and `examples` arrays.
 
 ### `TopoStoreProvisionRecord`
 
 ```typescript
 {
   id: string;
-  kind: 'provision';
+  kind: 'resource';
   lifetime: 'singleton';
   health: 'available' | 'none';
   description: string | null;

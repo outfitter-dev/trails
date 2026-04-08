@@ -1,11 +1,11 @@
 /**
- * Provision-backed entity store for the trails-demo app.
+ * Resource-backed entity store for the trails-demo app.
  *
- * Keeps runtime defaults and test mocks close to the provision definition so
+ * Keeps runtime defaults and test mocks close to the resource definition so
  * trails and helpers can resolve the same dependency model everywhere.
  */
 
-import { Result, provision } from '@ontrails/core';
+import { Result, resource } from '@ontrails/core';
 import { createStore } from '../store.js';
 
 const runtimeSeed = [
@@ -21,7 +21,7 @@ const mockSeed = [
 
 export const createMockEntityStore = () => createStore(mockSeed);
 
-export const entityStoreProvision = provision('demo.entity-store', {
+export const entityStoreProvision = resource('demo.entity-store', {
   create: () => Result.ok(createStore(runtimeSeed)),
   description:
     'Drizzle-backed in-memory entity store used by the demo trails app.',

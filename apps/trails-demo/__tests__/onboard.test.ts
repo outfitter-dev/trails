@@ -15,7 +15,7 @@ import {
 import { expectErr } from '@ontrails/testing';
 import type { Trail, TrailContext } from '@ontrails/core';
 
-import { entityStoreProvision } from '../src/provisions/entity-store.js';
+import { entityStoreProvision } from '../src/resources/entity-store.js';
 import type { EntityStore } from '../src/store.js';
 import { createStore } from '../src/store.js';
 import { add } from '../src/trails/entity.js';

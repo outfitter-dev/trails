@@ -6,7 +6,7 @@ Released 2026-04-04. 14 PRs (#64–#77), 453 files changed, 34,899 insertions.
 
 ### Topo store
 
-The resolved topology is now queryable via SQLite. `.trails/trails.db` stores every topo snapshot with trails, signals, provisions, crossings, and their relationships. Pin important versions, diff between states, verify lockfiles in CI, and run governance queries directly against the relational store.
+The resolved topology is now queryable via SQLite. `.trails/trails.db` stores every topo snapshot with trails, signals, resources, crossings, and their relationships. Pin important versions, diff between states, verify lockfiles in CI, and run governance queries directly against the relational store.
 
 New commands: `topo pin`, `topo unpin`, `topo show`, `topo history`, `topo export`, `topo verify`.
 
@@ -40,14 +40,14 @@ Channels merge with individual flags in a deterministic priority order.
 
 ### Draft state containment
 
-The `_draft.` ID prefix marks trails, signals, and provisions as draft. Draft state lives in the authored graph but is excluded from established outputs — trailheads, lockfiles, topo exports. `trails draft promote` converts draft IDs to established with full reference rewriting.
+The `_draft.` ID prefix marks trails, signals, and resources as draft. Draft state lives in the authored graph but is excluded from established outputs — trailheads, lockfiles, topo exports. `trails draft promote` converts draft IDs to established with full reference rewriting.
 
 **ADR:** [0021](../adr/0021-draft-state-stays-out-of-the-resolved-graph.md)  
 **Guide:** [Draft State](../draft-state.md)
 
 ### Serialized topo graph
 
-The lockfile is now the serialized, resolved topology — a deterministic snapshot of every trail, signal, provision, and their relationships. CI can diff lockfiles to detect topology drift.
+The lockfile is now the serialized, resolved topology — a deterministic snapshot of every trail, signal, resource, and their relationships. CI can diff lockfiles to detect topology drift.
 
 **ADR:** [0017](../adr/0017-serialized-topo-graph.md)
 
@@ -99,16 +99,16 @@ All `@ontrails/*` packages ship at `1.0.0-beta.14`.
 
 | Package | What changed |
 | --- | --- |
-| `@ontrails/core` | Topo store, draft state, provisions vocabulary |
+| `@ontrails/core` | Topo store, draft state, resources vocabulary |
 | `@ontrails/cli` | Hierarchical commands, structured input |
 | `@ontrails/store` | **New** — schema-derived persistence |
 | `@ontrails/store/drizzle` | **New** — Drizzle connector (subpath export of `@ontrails/store`) |
 | `@ontrails/schema` | Topo export, schema cache |
-| `@ontrails/warden` | Provision rules, draft state rules |
-| `@ontrails/config` | Provision and gate vocabulary |
-| `@ontrails/permits` | Provision and gate vocabulary |
-| `@ontrails/tracker` | Provision and gate vocabulary |
-| `@ontrails/testing` | Provision-aware test utilities |
+| `@ontrails/warden` | Resource rules, draft state rules |
+| `@ontrails/config` | Resource and layer vocabulary |
+| `@ontrails/permits` | Resource and layer vocabulary |
+| `@ontrails/tracker` | Resource and layer vocabulary |
+| `@ontrails/testing` | Resource-aware test utilities |
 | `@ontrails/http` | Trailhead vocabulary |
 | `@ontrails/mcp` | Trailhead vocabulary |
 | `@ontrails/logging` | No changes |

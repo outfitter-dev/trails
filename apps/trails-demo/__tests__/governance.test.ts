@@ -23,7 +23,7 @@ import { z } from 'zod';
 
 import { app } from '../src/app.js';
 import * as entitySignals from '../src/signals/entity-signals.js';
-import * as demoProvisions from '../src/provisions/entity-store.js';
+import * as demoProvisions from '../src/resources/entity-store.js';
 import * as entity from '../src/trails/entity.js';
 import * as kv from '../src/trails/kv.js';
 import * as onboard from '../src/trails/onboard.js';
@@ -36,7 +36,7 @@ import * as search from '../src/trails/search.js';
 describe('trailhead map generation', () => {
   const trailheadMap = generateTrailheadMap(app);
 
-  test('contains all expected trail, event, and provision IDs', () => {
+  test('contains all expected trail, event, and resource IDs', () => {
     const ids = trailheadMap.entries.map((e) => e.id);
 
     expect(ids).toContain('entity.show');
@@ -50,7 +50,7 @@ describe('trailhead map generation', () => {
     expect(ids).toContain('demo.entity-store');
   });
 
-  test('has exactly 9 entries (7 trails + 1 event + 1 provision)', () => {
+  test('has exactly 9 entries (7 trails + 1 event + 1 resource)', () => {
     expect(trailheadMap.entries).toHaveLength(9);
   });
 
@@ -63,7 +63,7 @@ describe('trailhead map generation', () => {
   test('each entry has the expected fields', () => {
     for (const entry of trailheadMap.entries) {
       expect(entry.id).toBeString();
-      expect(entry.kind).toBeOneOf(['trail', 'signal', 'provision']);
+      expect(entry.kind).toBeOneOf(['trail', 'signal', 'resource']);
       expect(entry.exampleCount).toBeNumber();
       expect(Array.isArray(entry.trailheads)).toBe(true);
     }
@@ -112,13 +112,13 @@ describe('trailhead map generation', () => {
     }
   });
 
-  test('provision entries include their description', () => {
+  test('resource entries include their description', () => {
     const provisionEntry = trailheadMap.entries.find(
       (e) => e.id === 'demo.entity-store'
     );
     expect(provisionEntry).toBeDefined();
     if (provisionEntry) {
-      expect(provisionEntry.kind).toBe('provision');
+      expect(provisionEntry.kind).toBe('resource');
       expect(provisionEntry.description).toBe(
         'Drizzle-backed in-memory entity store used by the demo trails app.'
       );
@@ -193,7 +193,7 @@ const makeModifiedShow = (inputSchema: z.ZodType) =>
     input: inputSchema,
     intent: 'read',
     output: entityOutputSchema,
-    provisions: [demoProvisions.entityStoreProvision],
+    resources: [demoProvisions.entityStoreProvision],
   });
 
 /** Diff the baseline app against a modified app. */

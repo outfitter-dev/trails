@@ -3,7 +3,7 @@ import { describe, test, expect } from 'bun:test';
 import { z } from 'zod';
 
 import { ValidationError } from '../errors.js';
-import { provision } from '../provision.js';
+import { resource } from '../resource.js';
 import { Result } from '../result.js';
 import { topo } from '../topo.js';
 
@@ -30,9 +30,9 @@ const mockEvent = (id: string) => ({
 });
 
 const mockProvision = (id: string) =>
-  provision(id, {
+  resource(id, {
     create: () => Result.ok({ id }),
-    description: `${id} provision`,
+    description: `${id} resource`,
   });
 
 // ---------------------------------------------------------------------------
@@ -65,7 +65,7 @@ describe('topo', () => {
 
       expect(t.trails.size).toBe(2);
       expect(t.signals.size).toBe(1);
-      expect(t.provisions.size).toBe(1);
+      expect(t.resources.size).toBe(1);
     });
 
     test('collects from multiple modules', () => {
@@ -90,7 +90,7 @@ describe('topo', () => {
 
       expect(t.trails.size).toBe(1);
       expect(t.signals.size).toBe(0);
-      expect(t.provisions.size).toBe(0);
+      expect(t.resources.size).toBe(0);
     });
 
     test('trail with crossings registers correctly', () => {
@@ -102,12 +102,12 @@ describe('topo', () => {
       expect(registered?.crosses).toEqual(['trail-2']);
     });
 
-    test('collects provisions from modules', () => {
+    test('collects resources from modules', () => {
       const mod = { db: mockProvision('db.main') };
       const t = topo('app', mod);
 
-      expect(t.provisions.size).toBe(1);
-      expect(t.provisions.get('db.main')).toBe(mod.db);
+      expect(t.resources.size).toBe(1);
+      expect(t.resources.get('db.main')).toBe(mod.db);
     });
   });
 
@@ -132,13 +132,13 @@ describe('topo', () => {
       );
     });
 
-    test('rejects duplicate provision IDs', () => {
+    test('rejects duplicate resource IDs', () => {
       const mod1 = { a: mockProvision('dup') };
       const mod2 = { b: mockProvision('dup') };
 
       expect(() => topo('app', mod1, mod2)).toThrow(ValidationError);
       expect(() => topo('app', mod1, mod2)).toThrow(
-        'Duplicate provision ID: "dup"'
+        'Duplicate resource ID: "dup"'
       );
     });
   });
@@ -162,7 +162,7 @@ describe('topo accessors', () => {
     expect(app.count).toBe(1);
   });
 
-  test('provisionCount returns number of provisions', () => {
+  test('provisionCount returns number of resources', () => {
     const db = mockProvision('db.main');
     const cache = mockProvision('cache.main');
     const app = topo('test', { cache, db });
@@ -177,7 +177,7 @@ describe('topo accessors', () => {
     expect(app.provisionIds()).toEqual([]);
   });
 
-  test('provisionIds() returns all provision IDs', () => {
+  test('provisionIds() returns all resource IDs', () => {
     const db = mockProvision('db.main');
     const cache = mockProvision('cache.main');
     const app = topo('test', { cache, db });
@@ -192,7 +192,7 @@ describe('topo accessors', () => {
 describe('Topo', () => {
   const mod = {
     e1: mockEvent('event-1'),
-    p1: mockProvision('provision-1'),
+    p1: mockProvision('resource-1'),
     t1: mockTrail('trail-1'),
     t2: mockTrail('trail-2'),
     t3: mockTrail('trail-3', ['trail-1']),
@@ -234,22 +234,22 @@ describe('Topo', () => {
   });
 
   describe('getProvision()', () => {
-    test('retrieves provision by ID', () => {
-      expect(app.getProvision('provision-1')).toBe(mod.p1);
+    test('retrieves resource by ID', () => {
+      expect(app.getProvision('resource-1')).toBe(mod.p1);
     });
 
-    test('returns undefined for unknown provision ID', () => {
-      expect(app.getProvision('missing-provision')).toBeUndefined();
+    test('returns undefined for unknown resource ID', () => {
+      expect(app.getProvision('missing-resource')).toBeUndefined();
     });
   });
 
   describe('hasProvision()', () => {
-    test('returns true for known provision', () => {
-      expect(app.hasProvision('provision-1')).toBe(true);
+    test('returns true for known resource', () => {
+      expect(app.hasProvision('resource-1')).toBe(true);
     });
 
-    test('returns false for unknown provision', () => {
-      expect(app.hasProvision('missing-provision')).toBe(false);
+    test('returns false for unknown resource', () => {
+      expect(app.hasProvision('missing-resource')).toBe(false);
     });
   });
 
@@ -268,7 +268,7 @@ describe('Topo', () => {
       expect(items).toContain(mod.e1);
     });
 
-    test('listProvisions() returns all provisions', () => {
+    test('listProvisions() returns all resources', () => {
       const items = app.listProvisions();
       expect(items).toHaveLength(1);
       expect(items).toContain(mod.p1);

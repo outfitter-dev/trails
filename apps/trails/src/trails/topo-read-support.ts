@@ -40,7 +40,7 @@ import {
 
 interface StoredTrailheadMapEntry {
   readonly detours?: Readonly<Record<string, readonly string[]>>;
-  readonly kind: 'provision' | 'signal' | 'trail';
+  readonly kind: 'resource' | 'signal' | 'trail';
 }
 
 interface CurrentTrailDetail {
@@ -51,7 +51,7 @@ interface CurrentTrailDetail {
   readonly id: string;
   readonly intent: 'destroy' | 'read' | 'write';
   readonly kind: string;
-  readonly provisions: string[];
+  readonly resources: string[];
   readonly safety: string;
 }
 
@@ -59,7 +59,7 @@ interface CurrentProvisionDetail {
   readonly description: string | null;
   readonly health: 'available' | 'none';
   readonly id: string;
-  readonly kind: 'provision';
+  readonly kind: 'resource';
   readonly lifetime: 'singleton';
   readonly usedBy: string[];
 }
@@ -106,11 +106,11 @@ const buildBriefReportFromStore = (
       ),
       examples: trails.some((trail) => trail.hasExamples),
       outputSchemas: trails.some((trail) => trail.hasOutput),
-      provisions: save.provisionCount > 0,
+      resources: save.provisionCount > 0,
       signals: save.signalCount > 0,
     },
     name: app.name,
-    provisions: save.provisionCount,
+    resources: save.provisionCount,
     signals: save.signalCount,
     trails: save.trailCount,
     version: REPORT_VERSION,
@@ -122,7 +122,7 @@ const buildSurveyListFromStore = (
   ref: ReturnType<typeof topoStoreRef>
 ): SurveyListReport => {
   const trails = store.trails.list({ save: ref });
-  const provisions = store.provisions.list({ save: ref });
+  const resources = store.resources.list({ save: ref });
 
   return {
     count: trails.length,
@@ -132,14 +132,14 @@ const buildSurveyListFromStore = (
       kind: trail.kind,
       safety: trail.safety,
     })),
-    provisionCount: provisions.length,
-    provisions: provisions.map((provision) => ({
-      description: provision.description,
-      health: provision.health,
-      id: provision.id,
-      kind: provision.kind,
-      lifetime: provision.lifetime,
-      usedBy: provision.usedBy,
+    provisionCount: resources.length,
+    resources: resources.map((resource) => ({
+      description: resource.description,
+      health: resource.health,
+      id: resource.id,
+      kind: resource.kind,
+      lifetime: resource.lifetime,
+      usedBy: resource.usedBy,
     })),
   };
 };
@@ -154,21 +154,21 @@ const buildTrailDetailFromStore = (
   id: detail?.id ?? '',
   intent: detail?.intent ?? 'write',
   kind: detail?.kind ?? 'trail',
-  provisions: [...(detail?.provisions ?? [])],
+  resources: [...(detail?.resources ?? [])],
   safety: detail?.safety ?? '-',
 });
 
 const buildProvisionDetailFromStore = (
-  provision: NonNullable<
-    ReturnType<ReturnType<typeof createTopoStore>['provisions']['get']>
+  resource: NonNullable<
+    ReturnType<ReturnType<typeof createTopoStore>['resources']['get']>
   >
 ): CurrentProvisionDetail => ({
-  description: provision.description,
-  health: provision.health,
-  id: provision.id,
-  kind: provision.kind,
-  lifetime: provision.lifetime,
-  usedBy: [...provision.usedBy],
+  description: resource.description,
+  health: resource.health,
+  id: resource.id,
+  kind: resource.kind,
+  lifetime: resource.lifetime,
+  usedBy: [...resource.usedBy],
 });
 
 // ---------------------------------------------------------------------------
@@ -279,10 +279,10 @@ export const buildCurrentTopoDetail = (
       return buildTrailDetailFromStore(trail);
     }
 
-    const provision = store.provisions.get(id, { save: ref });
-    return provision === undefined
+    const resource = store.resources.get(id, { save: ref });
+    return resource === undefined
       ? undefined
-      : buildProvisionDetailFromStore(provision);
+      : buildProvisionDetailFromStore(resource);
   });
 };
 

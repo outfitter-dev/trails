@@ -103,21 +103,21 @@ Status codes come directly from the error taxonomy -- the same mapping used acro
 
 Unrecognized errors (non-`TrailsError` exceptions) return 500 with `category: 'internal'`.
 
-## Gates as Gates
+## Layers as Layers
 
-Gates compose the same way as on CLI and MCP -- they wrap trail implementations:
+Layers compose the same way as on CLI and MCP -- they wrap trail implementations:
 
 ```typescript
 import { trailhead } from '@ontrails/http/hono';
-import { authGate, loggingGate } from './gates';
+import { authGate, loggingGate } from './layers';
 
 await trailhead(app, {
-  gates: [loggingGate, authGate],
+  layers: [loggingGate, authGate],
   port: 3000,
 });
 ```
 
-Gates run in order, wrapping the implementation. They have access to the trail and its context, so they can inspect intent, metadata, and markers.
+Layers run in order, wrapping the implementation. They have access to the trail and its context, so they can inspect intent, metadata, and markers.
 
 ## TrailheadHttpOptions
 
@@ -126,7 +126,7 @@ Gates run in order, wrapping the implementation. They have access to the trail a
 | `basePath`      | `string`                               | `''`          | Prefix for all route paths                           |
 | `createContext`  | `() => TrailContext \| Promise<TrailContext>` | default context | Factory for per-request TrailContext           |
 | `hostname`      | `string`                               | `'0.0.0.0'`  | Bind address                                         |
-| `gates`         | `readonly Gate[]`                      | `[]`          | Gates to compose around implementations              |
+| `layers`         | `readonly Layer[]`                      | `[]`          | Layers to compose around implementations              |
 | `name`          | `string`                               | *none*        | Server name for logging                              |
 | `port`          | `number`                               | `3000`        | Listen port                                          |
 | `serve`         | `boolean`                              | `true`        | Set `false` to return the Hono app without starting  |
@@ -137,7 +137,7 @@ The handler reads `X-Request-ID` from inbound requests and passes it through to 
 
 ## Escape Hatch
 
-For custom setups, use `buildHttpRoutes()` from the base package to get framework-agnostic route definitions. Each route has an `execute` function that validates input, composes Gates, and runs the trail -- you wire it into whatever HTTP framework you use:
+For custom setups, use `buildHttpRoutes()` from the base package to get framework-agnostic route definitions. Each route has an `execute` function that validates input, composes Layers, and runs the trail -- you wire it into whatever HTTP framework you use:
 
 ```typescript
 import { buildHttpRoutes } from '@ontrails/http';

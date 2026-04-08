@@ -1,18 +1,18 @@
-/* oxlint-disable require-await -- gate wrappers satisfy async interfaces without awaiting */
+/* oxlint-disable require-await -- layer wrappers satisfy async interfaces without awaiting */
 import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
 
 import { createTrailContext } from '../context';
-import { composeGates } from '../gate';
-import type { Gate } from '../gate';
+import { composeLayers } from '../layer';
+import type { Layer } from '../layer';
 import { Result } from '../result';
 import { trail } from '../trail';
 import type { TrailContext } from '../types';
 
 const stubCtx: TrailContext = createTrailContext({
   abortSignal: AbortSignal.timeout(5000),
-  requestId: 'test-gate',
+  requestId: 'test-layer',
 });
 
 const echoTrail = trail('echo', {
@@ -23,12 +23,12 @@ const echoTrail = trail('echo', {
 });
 
 // ---------------------------------------------------------------------------
-// Gate tests
+// Layer tests
 // ---------------------------------------------------------------------------
 
-describe('Gate', () => {
-  test('single gate wraps implementation', async () => {
-    const prefixGate: Gate = {
+describe('Layer', () => {
+  test('single layer wraps implementation', async () => {
+    const prefixGate: Layer = {
       name: 'prefix',
       wrap(_trail, impl) {
         return async (input, ctx) => {
@@ -41,17 +41,17 @@ describe('Gate', () => {
       },
     };
 
-    const wrapped = composeGates([prefixGate], echoTrail, echoTrail.blaze);
+    const wrapped = composeLayers([prefixGate], echoTrail, echoTrail.blaze);
     const result = await wrapped({ value: 'hello' }, stubCtx);
 
     expect(result.isOk()).toBe(true);
     expect(result.unwrap()).toEqual({ value: 'prefixed:hello' });
   });
 
-  test('multiple gates compose in outermost-first order', async () => {
+  test('multiple layers compose in outermost-first order', async () => {
     const log: string[] = [];
 
-    const outer: Gate = {
+    const outer: Layer = {
       name: 'outer',
       wrap(_trail, impl) {
         return async (input, ctx) => {
@@ -63,7 +63,7 @@ describe('Gate', () => {
       },
     };
 
-    const inner: Gate = {
+    const inner: Layer = {
       name: 'inner',
       wrap(_trail, impl) {
         return async (input, ctx) => {
@@ -75,7 +75,7 @@ describe('Gate', () => {
       },
     };
 
-    const wrapped = composeGates([outer, inner], echoTrail, echoTrail.blaze);
+    const wrapped = composeLayers([outer, inner], echoTrail, echoTrail.blaze);
     await wrapped({ value: 'x' }, stubCtx);
 
     expect(log).toEqual([
@@ -86,15 +86,15 @@ describe('Gate', () => {
     ]);
   });
 
-  test('gate can short-circuit without calling inner implementation', async () => {
-    const shortCircuit: Gate = {
+  test('layer can short-circuit without calling inner implementation', async () => {
+    const shortCircuit: Layer = {
       name: 'short-circuit',
       wrap() {
         return async () => Result.err(new Error('blocked'));
       },
     };
 
-    const wrapped = composeGates([shortCircuit], echoTrail, echoTrail.blaze);
+    const wrapped = composeLayers([shortCircuit], echoTrail, echoTrail.blaze);
     const result = await wrapped({ value: 'hello' }, stubCtx);
 
     expect(result.isErr()).toBe(true);
@@ -102,10 +102,10 @@ describe('Gate', () => {
     expect(err.error.message).toBe('blocked');
   });
 
-  test('gate can inspect trail meta', () => {
+  test('layer can inspect trail meta', () => {
     let capturedDomain: unknown;
 
-    const inspectGate: Gate = {
+    const inspectGate: Layer = {
       name: 'inspect',
       wrap(t, impl) {
         capturedDomain = t.meta?.['domain'];
@@ -113,13 +113,13 @@ describe('Gate', () => {
       },
     };
 
-    composeGates([inspectGate], echoTrail, echoTrail.blaze);
+    composeLayers([inspectGate], echoTrail, echoTrail.blaze);
 
     expect(capturedDomain).toBe('test');
   });
 
-  test('empty gates array returns implementation unchanged', () => {
-    const wrapped = composeGates([], echoTrail, echoTrail.blaze);
+  test('empty layers array returns implementation unchanged', () => {
+    const wrapped = composeLayers([], echoTrail, echoTrail.blaze);
     expect(wrapped).toBe(echoTrail.blaze);
   });
 });

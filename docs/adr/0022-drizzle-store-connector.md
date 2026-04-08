@@ -21,7 +21,7 @@ The connector should stay subordinate to the root `store(...)` declaration. It s
 
 The first connector also needs to be useful enough for real application work and for framework dogfooding:
 
-- bind a store definition to a concrete provision
+- bind a store definition to a concrete resource
 - derive real database tables from the authored schema
 - expose typed CRUD accessors
 - provide a truthful escape hatch for complex queries
@@ -104,20 +104,20 @@ That means the current connector decides:
 
 It does **not** decide that every future connector must use SQLite. It only decides the first concrete implementation.
 
-### The connector binds stores as provisions
+### The connector binds stores as resources
 
-A bound Drizzle store is a Trails provision. It exposes:
+A bound Drizzle store is a Trails resource. It exposes:
 
 - `create` to open the SQLite database and ensure the derived schema exists
 - `dispose` to close the client
 - `mock` to build an in-memory store seeded from definition fixtures and optional connector-level seed data
 - `health` to verify the underlying client is alive
 
-That means a connector-bound store can participate in trails exactly like any other provision:
+That means a connector-bound store can participate in trails exactly like any other resource:
 
 ```typescript
 trail('gist.list', {
-  provisions: [db],
+  resources: [db],
   blaze: async (_input, ctx) => {
     const conn = db.from(ctx);
     return Result.ok(await conn.gists.list());
@@ -167,7 +167,7 @@ This keeps external tooling such as migration workflows or local inspection alig
 - **No second schema language.** The connector consumes the same Zod-first contract the rest of Trails already uses.
 - **The happy path is typed and small.** Most application code uses the generated CRUD accessors.
 - **The escape hatch is already familiar.** Complex queries use Drizzle itself instead of a Trails-specific abstraction.
-- **Testing stays first-class.** Connector-bound stores participate in provision mocks and fixture seeding, so contract testing still works without ceremony.
+- **Testing stays first-class.** Connector-bound stores participate in resource mocks and fixture seeding, so contract testing still works without ceremony.
 
 ### Tradeoffs
 
@@ -185,6 +185,6 @@ This keeps external tooling such as migration workflows or local inspection alig
 ## References
 
 - [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the root store model this connector binds
-- [ADR-0009: First-Class Provisions](../0009-first-class-provisions.md) — the provision lifecycle a bound store participates in
+- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource lifecycle a bound store participates in
 - [docs/tenets.md](../tenets.md) — governing design principles for derived, queryable, contract-first systems
 - Drizzle ORM documentation: <https://orm.drizzle.team>
