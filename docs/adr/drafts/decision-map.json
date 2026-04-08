@@ -58,11 +58,11 @@
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260331-pack-provisioning.md",
-      "slug": "pack-provisioning",
+      "path": "docs/adr/drafts/20260331-pack-resources.md",
+      "slug": "pack-resources",
       "status": "draft",
       "superseded_by": null,
-      "title": "Pack Provisioning",
+      "title": "Pack Resources",
       "updated": "2026-04-02"
     },
     {

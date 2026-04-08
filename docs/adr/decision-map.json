@@ -97,7 +97,7 @@
         {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"author what's new, derive what's known, override what's wrong\"; resources leverage derived contract data for upgrades",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-pack-provisioning.md"
+          "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
         },
         {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; packs group trails into capability boundaries",
@@ -145,7 +145,7 @@
           "fromPath": "docs/adr/drafts/20260406-documentation-freshness.md"
         },
         {
-          "context": "- [ADR-0000: Core premise](../adr/0000-core-premise.md) — \"author what's new, derive what's known\" applies to documentation: author the source tree, derive the site",
+          "context": "- [ADR-0000: Core premise](../0000-core-premise.md) — \"author what's new, derive what's known\" applies to documentation: author the source tree, derive the site",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
         },
@@ -209,7 +209,7 @@
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
         {
-          "context": "- [ADR-0001: Naming conventions](../adr/0001-naming-conventions.md) — naming principles that apply to documentation paths",
+          "context": "- [ADR-0001: Naming conventions](../0001-naming-conventions.md) — naming principles that apply to documentation paths",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
         },
@@ -222,6 +222,11 @@
           "context": "- **[ADR-0001: Naming Conventions](./adr/0001-naming-conventions.md)** — How and why we chose every term",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "See [ADR-0023: Simplifying the Trails Lexicon](adr/0023-simplifying-the-trails-lexicon.md) for the decision that produced the current shape, and [ADR-0001: Naming Conventions](adr/0001-naming-conventi",
+          "from": "lexicon",
+          "fromPath": "docs/lexicon.md"
         }
       ],
       "number": "0001",
@@ -499,7 +504,7 @@
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-layers-run; the library trailhead delegates to the same pi",
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-layers-run; the library trailhead delegates to the same p",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
@@ -614,7 +619,7 @@
         {
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- survey output provides the contract snapshots",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-pack-provisioning.md"
+          "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
         },
         {
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- the derivation rules that visibility and intent filtering extend",
@@ -691,12 +696,12 @@
           "fromPath": "docs/adr/0022-drizzle-store-connector.md"
         },
         {
-          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — to be revisited. `provision` → `resource`. API shape unchanged.",
+          "context": "- [ADR-0009: Resources as a First-Class Primitive](../0009-first-class-resources.md) — to be revisited. `provision` → `resource`. API shape unchanged.",
           "from": "0023",
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
         {
-          "context": "- [ADR-0009: Resources as a First-Class Primitive](../0009-first-class-resources.md) — inbound trailheads depend on the resource primitive for infrastructure dependencies (stores, email, queue clie",
+          "context": "- [ADR-0009: Resources as a First-Class Primitive](../0009-first-class-resources.md) — inbound trailheads depend on the resource primitive for infrastructure dependencies (stores, email, queue clients",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
         },
@@ -706,7 +711,7 @@
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- [ADR-0009: Services](../0009-first-class-resources.md): resource lifecycle, factory/dispose/health/mock, and the execution model the library trailhead must project into consumer-facing runtime inp",
+          "context": "- [ADR-0009: Services](../0009-first-class-resources.md): resource lifecycle, factory/dispose/health/mock, and the execution model the library trailhead must project into consumer-facing runtime input",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
@@ -721,7 +726,7 @@
           "fromPath": "docs/index.md"
         },
         {
-          "context": "For the complete design decision, tradeoffs, and future directions (request-scoped resources, composable config, intent-based type narrowing), see [ADR-0009: First-Class Resources](./adr/0009-first-",
+          "context": "For the complete design decision, tradeoffs, and future directions (request-scoped resources, composable config, intent-based type narrowing), see [ADR-0009: First-Class Resources](./adr/0009-first-cl",
           "from": "resources",
           "fromPath": "docs/resources.md"
         }
@@ -774,7 +779,7 @@
       "depends_on": [],
       "inbound": [
         {
-          "context": "- [ADR-0011: Schema-Driven Config](../0011-schema-driven-config.md) — to be revisited. `profile` → `profile`. Config resolution unchanged.",
+          "context": "- [ADR-0011: Schema-Driven Config](../0011-schema-driven-config.md) — to be revisited. `loadout` → `profile`. Config resolution unchanged.",
           "from": "0023",
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
@@ -847,7 +852,7 @@
           "fromPath": "docs/adr/0015-topo-store.md"
         },
         {
-          "context": "| `tracingLayer` | Built-in tracing in `executeTrail` | No longer a separately attached gate/layer. Intrinsic to the execution pipeline. Partially supersedes [ADR-0013](../0013-tracing.md)'s \"resource",
+          "context": "| `tracingLayer` | Built-in tracing in `executeTrail` | No longer a separately attached gate/layer. Intrinsic to the execution pipeline. Partially supersedes [ADR-0013](../0013-tracing.md)'s \"layer pl",
           "from": "0023",
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
@@ -874,7 +879,7 @@
         {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- telemetry primitives that resources can carry and trailhead",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-pack-provisioning.md"
+          "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
         },
         {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- observability primitive; packs scope tracing emission boundaries",
@@ -1190,7 +1195,23 @@
     {
       "created": "2026-04-07",
       "depends_on": ["1"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "The test is sharper than \"does this concept belong to the story Trails tells?\" The current heuristic, set by [ADR-0023](0023-simplifying-the-trails-lexicon.md), is:",
+          "from": "0001",
+          "fromPath": "docs/adr/0001-naming-conventions.md"
+        },
+        {
+          "context": "- **[ADR-0023: Simplifying the Trails Lexicon](./adr/0023-simplifying-the-trails-lexicon.md)** — Brand-vs-plain heuristic, four pre-1.0 renames, vocabulary → lexicon",
+          "from": "index",
+          "fromPath": "docs/index.md"
+        },
+        {
+          "context": "See [ADR-0023: Simplifying the Trails Lexicon](adr/0023-simplifying-the-trails-lexicon.md) for the decision that produced the current shape, and [ADR-0001: Naming Conventions](adr/0001-naming-conventi",
+          "from": "lexicon",
+          "fromPath": "docs/lexicon.md"
+        }
+      ],
       "number": "0023",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0023-simplifying-the-trails-lexicon.md",

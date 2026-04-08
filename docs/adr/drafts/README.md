@@ -13,7 +13,7 @@ Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.
   - depends on [Packs as Namespace Boundaries](20260331-packs-namespace-boundaries.md)
 - [Inbound Event Trailheads](20260331-inbound-event-trailheads.md)
   - depends on [ADR-0009: First-Class Resources](../0009-first-class-resources.md), [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md), [Webhooks and Connectors](20260331-webhooks-and-connectors.md)
-- [Pack Provisioning](20260331-pack-provisioning.md)
+- [Pack Resources](20260331-pack-resources.md)
   - depends on [Packs as Namespace Boundaries](20260331-packs-namespace-boundaries.md)
 - [Packs as Namespace Boundaries](20260331-packs-namespace-boundaries.md)
   - depends on [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md), [ADR-0009: First-Class Resources](../0009-first-class-resources.md)

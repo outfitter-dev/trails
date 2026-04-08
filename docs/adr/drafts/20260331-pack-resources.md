@@ -1,6 +1,6 @@
 ---
-slug: pack-provisioning
-title: Pack Provisioning
+slug: pack-resources
+title: Pack Resources
 status: draft
 created: 2026-03-31
 updated: 2026-04-02
@@ -8,7 +8,7 @@ owners: ['[galligan](https://github.com/galligan)']
 depends_on: [packs-namespace-boundaries]
 ---
 
-# ADR: Pack Provisioning
+# ADR: Pack Resources
 
 ## Context
 
