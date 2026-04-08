@@ -74,7 +74,7 @@ interface LegacyStoreFixture {
   readonly tableName: string;
 }
 
-const writeLegacyTrackerDb = (
+const writeLegacyTracingDb = (
   rootDir: string,
   fixture: LegacyStoreFixture,
   records: readonly TraceRecord[]
@@ -386,7 +386,7 @@ describe('createDevStore', () => {
         }),
       ];
 
-      writeLegacyTrackerDb(
+      writeLegacyTracingDb(
         dir,
         { fileName: 'tracing.db', tableName: 'tracing' },
         legacyRecords
@@ -397,35 +397,6 @@ describe('createDevStore', () => {
       expect(existsSync(join(dir, '.trails', 'trails.db'))).toBe(true);
       expect(queryIds(store)).toEqual(['legacy-b', 'legacy-a']);
       expect(existsSync(join(dir, '.trails', 'dev', 'tracing.db'))).toBe(false);
-    });
-
-    test('migrates legacy .trails/dev/tracker.db records into shared trails.db', () => {
-      const dir = makeTmpDir();
-      const now = Date.now();
-      const legacyRecords = [
-        makeRecord({
-          id: 'legacy-tracker-a',
-          startedAt: now - 2000,
-          trailId: 'user.create',
-        }),
-        makeRecord({
-          id: 'legacy-tracker-b',
-          startedAt: now - 1000,
-          trailId: 'user.list',
-        }),
-      ];
-
-      writeLegacyTrackerDb(
-        dir,
-        { fileName: 'tracker.db', tableName: 'tracker' },
-        legacyRecords
-      );
-
-      store = createDevStore({ maxRecords: 10, rootDir: dir });
-
-      expect(existsSync(join(dir, '.trails', 'trails.db'))).toBe(true);
-      expect(queryIds(store)).toEqual(['legacy-tracker-b', 'legacy-tracker-a']);
-      expect(existsSync(join(dir, '.trails', 'dev', 'tracker.db'))).toBe(false);
     });
   });
 
