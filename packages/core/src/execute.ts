@@ -9,14 +9,24 @@
 import type { AnyTrail } from './trail.js';
 import type { Layer } from './layer.js';
 import type { ResourceOverrideMap } from './resource.js';
-import type { TrailContext, TrailContextInit } from './types.js';
+import type { TraceContext, TraceRecord } from './internal/tracing.js';
+import type { TraceFn, TrailContext, TrailContextInit } from './types.js';
 
 import { createTrailContext } from './context.js';
-import { InternalError } from './errors.js';
 import { composeLayers } from './layer.js';
+import { CancelledError, InternalError, TrailsError } from './errors.js';
+import {
+  TRACE_CONTEXT_KEY,
+  completeRecord,
+  createSpanRecord,
+  createTraceRecord,
+  getTraceSink,
+  writeToSink,
+} from './internal/tracing.js';
 import { Result } from './result.js';
 import { createResourceLookup } from './resource.js';
 import { resolveResources } from './resource-config.js';
+import { TRAILHEAD_KEY } from './types.js';
 import { validateInput } from './validation.js';
 
 type MutableTrailContext = {
@@ -117,14 +127,150 @@ const prepareContext = async (
   );
 };
 
+// ---------------------------------------------------------------------------
+// Intrinsic tracing
+// ---------------------------------------------------------------------------
+
+/** Derive the status + error category fields from a trail result. */
+const deriveResultErrorCategory = (error: Error): string | undefined => {
+  if (error instanceof TrailsError) {
+    return error.category;
+  }
+  if (error instanceof Error) {
+    return 'internal';
+  }
+  return undefined;
+};
+
+const deriveOutcome = (
+  result: Result<unknown, Error>
+): {
+  readonly status: TraceRecord['status'];
+  readonly errorCategory: string | undefined;
+} =>
+  result.match<{
+    readonly status: TraceRecord['status'];
+    readonly errorCategory: string | undefined;
+  }>({
+    err: (error) => ({
+      errorCategory: deriveResultErrorCategory(error),
+      status: error instanceof CancelledError ? 'cancelled' : 'err',
+    }),
+    ok: () => ({ errorCategory: undefined, status: 'ok' }),
+  });
+
+/** Best-effort error category for a thrown (not Result.err) value. */
+const categorizeSpanError = (error: unknown): string | undefined => {
+  if (error instanceof TrailsError) {
+    return error.category;
+  }
+  if (error instanceof Error) {
+    return 'internal';
+  }
+  return undefined;
+};
+
+/** Extract the permit identity fields for the trace record. */
+const extractPermit = (
+  ctx: TrailContext
+): { readonly id: string; readonly tenantId?: string } | undefined => {
+  if (ctx.permit === undefined) {
+    return undefined;
+  }
+  const tenantId =
+    'tenantId' in ctx.permit
+      ? (ctx.permit as { tenantId?: string }).tenantId
+      : undefined;
+  return tenantId === undefined
+    ? { id: ctx.permit.id }
+    : { id: ctx.permit.id, tenantId };
+};
+
+/**
+ * Build a `ctx.trace` function bound to a parent trace context.
+ *
+ * Each call creates a child span under the parent, times the callback,
+ * records success/failure with the appropriate error category, writes the
+ * completed span to the sink, and returns the callback result. Errors
+ * thrown by the callback are recorded and then rethrown.
+ *
+ * The returned function reads the *current* trace context from its captured
+ * parent. That means direct nesting (`ctx.trace('a', () => ctx.trace('b',
+ * ...))`) produces siblings under `a`'s parent, not children of `a`. For
+ * true child nesting, callers should cross into another trail (which gets
+ * its own root record parented by this one) — full cross-trail parenting
+ * is implemented in a later phase. For Phase 1, sibling spans under the
+ * trail's root are the supported shape.
+ */
+const buildTraceFn = (parent: TraceContext): TraceFn => {
+  const sink = getTraceSink();
+  return async <T>(label: string, fn: () => Promise<T>): Promise<T> => {
+    const record = createSpanRecord(parent, label);
+    try {
+      const value = await fn();
+      await writeToSink(sink, completeRecord(record, 'ok'));
+      return value;
+    } catch (error: unknown) {
+      const errorCategory = categorizeSpanError(error);
+      const status: TraceRecord['status'] =
+        error instanceof CancelledError ? 'cancelled' : 'err';
+      await writeToSink(sink, completeRecord(record, status, errorCategory));
+      throw error;
+    }
+  };
+};
+
+// oxlint-disable-next-line max-statements -- trace lifecycle is clearer when kept inline
 const runTrail = async (
   trail: AnyTrail,
   input: unknown,
   ctx: TrailContext,
   layers: readonly Layer[]
 ): Promise<Result<unknown, Error>> => {
+  const sink = getTraceSink();
+  // If a parent trace context is present (set by an outer executeTrail when
+  // the current trail was invoked via ctx.cross or ctx.fire), inherit its
+  // traceId/rootId so the trace tree spans trail boundaries. Otherwise this
+  // execution becomes a fresh root.
+  const parent = ctx.extensions?.[TRACE_CONTEXT_KEY] as
+    | TraceContext
+    | undefined;
+
+  const record = createTraceRecord({
+    intent: trail.intent,
+    parentId: parent?.spanId,
+    permit: extractPermit(ctx),
+    rootId: parent?.rootId,
+    traceId: parent?.traceId,
+    trailId: trail.id,
+    trailhead: ctx.extensions?.[TRAILHEAD_KEY] as TraceRecord['trailhead'],
+  });
+
+  const rootTrace: TraceContext = {
+    rootId: parent?.rootId ?? record.id,
+    sampled: true,
+    spanId: record.id,
+    traceId: record.traceId,
+  };
+
+  const tracedCtx: TrailContext = {
+    ...ctx,
+    extensions: {
+      ...ctx.extensions,
+      [TRACE_CONTEXT_KEY]: rootTrace,
+    },
+    trace: buildTraceFn(rootTrace),
+  };
+
   const impl = composeLayers([...layers], trail, trail.blaze);
-  return await impl(input, ctx);
+  const result = await impl(input, tracedCtx);
+
+  const outcome = deriveOutcome(result);
+  await writeToSink(
+    sink,
+    completeRecord(record, outcome.status, outcome.errorCategory)
+  );
+  return result;
 };
 
 // ---------------------------------------------------------------------------
