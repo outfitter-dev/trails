@@ -13,6 +13,9 @@ import type { DevStore } from '../stores/dev.js';
 import { createDevStore } from '../stores/dev.js';
 import { tracingQuery } from '../trails/tracing-query.js';
 
+const passthroughTrace: TrailContext['trace'] = async (_label, fn) =>
+  await fn();
+
 /** Build a TrailContext with tracingResource resolved in extensions. */
 const buildCtx = (state: TracingState): TrailContext => {
   const extensions = { tracing: state };
@@ -23,6 +26,7 @@ const buildCtx = (state: TracingState): TrailContext => {
     extensions,
     requestId: 'test',
     resource: undefined as unknown as TrailContext['resource'],
+    trace: passthroughTrace,
     workspaceRoot: '/tmp',
   };
   const withLookup = {

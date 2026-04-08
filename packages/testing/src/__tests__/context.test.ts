@@ -22,6 +22,7 @@ describe('createTestContext', () => {
     expect(ctx.abortSignal).toBeDefined();
     expect(ctx.abortSignal.aborted).toBe(false);
     expect(ctx.logger).toBeDefined();
+    expect(ctx.trace).toBeDefined();
     expect(ctx.workspaceRoot).toBe(process.cwd());
   });
 
@@ -65,6 +66,25 @@ describe('createTestContext', () => {
     });
     const env = ctx['env'] as Record<string, string>;
     expect(env).toEqual({ CUSTOM: '1', NODE_ENV: 'test' });
+  });
+
+  test('default trace passthrough resolves the callback result', async () => {
+    const ctx = createTestContext();
+    const result = await ctx.trace('test-span', () => Promise.resolve('ok'));
+    expect(result).toBe('ok');
+  });
+
+  test('overrides trace', async () => {
+    const calls: string[] = [];
+    const ctx = createTestContext({
+      trace: async (label, fn) => {
+        calls.push(label);
+        return await fn();
+      },
+    });
+
+    await ctx.trace('custom-span', () => Promise.resolve('done'));
+    expect(calls).toEqual(['custom-span']);
   });
 });
 

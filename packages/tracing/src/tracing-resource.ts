@@ -13,10 +13,10 @@ const defaultState: TracingState = {
 };
 
 /**
- * Telemetry recording and query resource.
+ * Telemetry query resource.
  *
- * Wraps the tracing store, sampling config, and active flag as a single
- * `TracingState` accessible to trails via `tracingResource.from(ctx)`.
+ * Exposes the current tracing store, sampling config, and active flag as a
+ * single `TracingState` accessible to trails via `tracingResource.from(ctx)`.
  *
  * Unlike config, tracing gracefully defaults when no state is registered —
  * telemetry should never fail to start.
@@ -29,7 +29,7 @@ export const tracingResource = resource<TracingState>('tracing', {
       store: state.store ? toTraceStore(state.store) : undefined,
     });
   },
-  description: 'Telemetry recording and query resource',
+  description: 'Telemetry query resource',
   meta: { category: 'infrastructure' },
   mock: (): TracingState => ({ ...defaultState }),
 });

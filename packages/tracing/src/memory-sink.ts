@@ -1,5 +1,4 @@
-import type { TraceSink } from './tracing-layer.js';
-import type { TraceRecord } from './trace-record.js';
+import type { TraceRecord, TraceSink } from '@ontrails/core';
 
 /** In-memory sink for testing — captures all written records. */
 export const createMemorySink = (): TraceSink & {

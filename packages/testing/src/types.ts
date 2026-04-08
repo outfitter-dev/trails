@@ -2,7 +2,7 @@
  * Shared types for @ontrails/testing.
  */
 
-import type { Logger, Topo } from '@ontrails/core';
+import type { Logger, Topo, TraceFn } from '@ontrails/core';
 import type { LogLevel, LogRecord } from '@ontrails/logging';
 
 // ---------------------------------------------------------------------------
@@ -66,6 +66,7 @@ export interface TestTrailContextOptions {
   readonly logger?: Logger | undefined;
   readonly requestId?: string | undefined;
   readonly abortSignal?: AbortSignal | undefined;
+  readonly trace?: TraceFn | undefined;
 }
 
 // ---------------------------------------------------------------------------

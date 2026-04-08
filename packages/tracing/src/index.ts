@@ -1,37 +1,34 @@
-export { type TraceRecord, createTraceRecord } from './trace-record.js';
+// Core tracing primitives — re-exported from @ontrails/core so existing
+// imports of these symbols from @ontrails/tracing keep working.
 export {
+  TRACE_CONTEXT_KEY,
+  type TraceContext,
+  type TraceFn,
+  type TraceRecord,
+  type TraceSink,
+  type TraceSinkLike,
   clearTraceSink,
+  createTraceRecord,
+  getTraceContext,
   getTraceSink,
   registerTraceSink,
-  type TraceSinkLike,
 } from '@ontrails/core';
-export {
-  createTracingLayer,
-  type TracingLayerOptions,
-  type TraceSink,
-} from './tracing-layer.js';
+
+// Tracing-package-owned utilities
 export { createMemorySink } from './memory-sink.js';
-export {
-  type TraceContext,
-  getTraceContext,
-  childTraceContext,
-  TRACE_CONTEXT_KEY,
-} from './trace-context.js';
+export { childTraceContext } from './trace-context.js';
 export {
   shouldSample,
   DEFAULT_SAMPLING,
   type SamplingConfig,
 } from './sampling.js';
-export {
-  createTracingApi,
-  TRACING_API_KEY,
-  type TracingApi,
-  type TracingApiWithState,
-} from './tracing-api.js';
-export { tracing } from './tracing-accessor.js';
+
+// Public resource + trails
 export { tracingResource } from './tracing-resource.js';
 export { tracingStatus } from './trails/tracing-status.js';
 export { tracingQuery } from './trails/tracing-query.js';
+
+// Bootstrap state registry
 export {
   clearTraceStore,
   clearTracingState,
@@ -41,6 +38,8 @@ export {
   registerTracingState,
   type TracingState,
 } from './tracing-state.js';
+
+// Dev store
 export {
   createDevStore,
   type DevStore,
@@ -49,6 +48,8 @@ export {
   type TraceStore,
   toTraceStore,
 } from './stores/dev.js';
+
+// OTel connector
 export {
   createOtelConnector,
   type OtelConnectorOptions,

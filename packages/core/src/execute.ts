@@ -10,7 +10,12 @@ import type { AnyTrail } from './trail.js';
 import type { Layer } from './layer.js';
 import type { ResourceOverrideMap } from './resource.js';
 import type { TraceContext, TraceRecord } from './internal/tracing.js';
-import type { TraceFn, TrailContext, TrailContextInit } from './types.js';
+import type {
+  Implementation,
+  TraceFn,
+  TrailContext,
+  TrailContextInit,
+} from './types.js';
 
 import { createTrailContext } from './context.js';
 import { composeLayers } from './layer.js';
@@ -220,14 +225,11 @@ const buildTraceFn = (parent: TraceContext): TraceFn => {
   };
 };
 
-// oxlint-disable-next-line max-statements -- trace lifecycle is clearer when kept inline
-const runTrail = async (
+/** Build the root trace record + trace-enriched context for a trail run. */
+const buildTracedContext = (
   trail: AnyTrail,
-  input: unknown,
-  ctx: TrailContext,
-  layers: readonly Layer[]
-): Promise<Result<unknown, Error>> => {
-  const sink = getTraceSink();
+  ctx: TrailContext
+): { readonly record: TraceRecord; readonly tracedCtx: TrailContext } => {
   // If a parent trace context is present (set by an outer executeTrail when
   // the current trail was invoked via ctx.cross or ctx.fire), inherit its
   // traceId/rootId so the trace tree spans trail boundaries. Otherwise this
@@ -246,6 +248,8 @@ const runTrail = async (
     trailhead: ctx.extensions?.[TRAILHEAD_KEY] as TraceRecord['trailhead'],
   });
 
+  // Root trace context for this trail's span. When inheriting a parent, the
+  // traceId/rootId carry forward and only spanId advances to the new record.
   const rootTrace: TraceContext = {
     rootId: parent?.rootId ?? record.id,
     sampled: true,
@@ -262,15 +266,78 @@ const runTrail = async (
     trace: buildTraceFn(rootTrace),
   };
 
-  const impl = composeLayers([...layers], trail, trail.blaze);
-  const result = await impl(input, tracedCtx);
+  return { record, tracedCtx };
+};
 
-  const outcome = deriveOutcome(result);
-  await writeToSink(
-    sink,
-    completeRecord(record, outcome.status, outcome.errorCategory)
+/** Run the composed implementation and write the root record on any outcome. */
+const runImplWithRootRecord = async (
+  impl: Implementation<unknown, unknown>,
+  input: unknown,
+  tracedCtx: TrailContext,
+  record: TraceRecord,
+  sink: ReturnType<typeof getTraceSink>
+): Promise<Result<unknown, Error>> => {
+  try {
+    const result = await impl(input, tracedCtx);
+    const outcome = deriveOutcome(result);
+    await writeToSink(
+      sink,
+      completeRecord(record, outcome.status, outcome.errorCategory)
+    );
+    return result;
+  } catch (error: unknown) {
+    // Normalize unexpected throws so the root record still reflects the error
+    // outcome. The outer executeTrail try/catch converts the thrown value into
+    // a Result.err(InternalError) for the caller.
+    const status: TraceRecord['status'] =
+      error instanceof CancelledError ? 'cancelled' : 'err';
+    const errorCategory = categorizeSpanError(error);
+    await writeToSink(sink, completeRecord(record, status, errorCategory));
+    throw error;
+  }
+};
+
+const prepareRunImpl = (
+  trail: AnyTrail,
+  layers: readonly Layer[]
+): {
+  readonly impl: Implementation<unknown, unknown>;
+} => ({
+  impl: composeLayers([...layers], trail, trail.blaze) as Implementation<
+    unknown,
+    unknown
+  >,
+});
+
+const runTrail = async (
+  trail: AnyTrail,
+  input: unknown,
+  ctx: TrailContext,
+  layers: readonly Layer[]
+): Promise<Result<unknown, Error>> => {
+  const sink = getTraceSink();
+  const { record, tracedCtx } = buildTracedContext(trail, ctx);
+  let prepared: ReturnType<typeof prepareRunImpl>;
+
+  try {
+    prepared = prepareRunImpl(trail, layers);
+  } catch (error: unknown) {
+    const status: TraceRecord['status'] =
+      error instanceof CancelledError ? 'cancelled' : 'err';
+    await writeToSink(
+      sink,
+      completeRecord(record, status, categorizeSpanError(error))
+    );
+    throw error;
+  }
+
+  return await runImplWithRootRecord(
+    prepared.impl,
+    input,
+    tracedCtx,
+    record,
+    sink
   );
-  return result;
 };
 
 // ---------------------------------------------------------------------------

@@ -17,6 +17,9 @@ type MutableTrailContext = {
   -readonly [K in keyof TrailContext]: TrailContext[K];
 };
 
+const passthroughTrace: TrailContext['trace'] = async (_label, fn) =>
+  await fn();
+
 // ---------------------------------------------------------------------------
 // createTestContext
 // ---------------------------------------------------------------------------
@@ -39,6 +42,7 @@ export const createTestContext = (
     extensions: undefined,
     logger: overrides?.logger ?? createTestLogger(),
     requestId: overrides?.requestId ?? 'test-request-001',
+    trace: overrides?.trace ?? passthroughTrace,
     workspaceRoot: cwd,
   } as MutableTrailContext;
   const lookup = createResourceLookup(() => ctx);

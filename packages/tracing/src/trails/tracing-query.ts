@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { DevStoreQueryOptions } from '../stores/dev.js';
 import { tracingResource } from '../tracing-resource.js';
 
-/** Output schema for individual track records. */
+/** Output schema for individual trace records. */
 const traceRecordOutput = z.object({
   endedAt: z.number().optional(),
   id: z.string(),

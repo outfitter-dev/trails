@@ -6,6 +6,9 @@ import type { TracingState } from '../tracing-state.js';
 import { DEFAULT_SAMPLING } from '../sampling.js';
 import { tracingStatus } from '../trails/tracing-status.js';
 
+const passthroughTrace: TrailContext['trace'] = async (_label, fn) =>
+  await fn();
+
 /** Build a TrailContext with tracingResource resolved in extensions. */
 const buildCtx = (state: TracingState): TrailContext => {
   const extensions = { tracing: state };
@@ -16,6 +19,7 @@ const buildCtx = (state: TracingState): TrailContext => {
     extensions,
     requestId: 'test',
     resource: undefined as unknown as TrailContext['resource'],
+    trace: passthroughTrace,
     workspaceRoot: '/tmp',
   };
   const withLookup = {
