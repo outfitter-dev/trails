@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import { NotFoundError, ValidationError } from '../errors';
+import type { Layer } from '../layer';
 import { Result } from '../result';
 import { run } from '../run';
 import { signal } from '../signal';
@@ -32,85 +33,6 @@ const noopLogger: Logger = {
   warn() {
     // noop
   },
-};
-
-const createCycleLogger = (
-  warnings: { message: string; signalId?: unknown }[]
-): Logger => {
-  const logger: Logger = {
-    child() {
-      return logger;
-    },
-    debug() {
-      // noop
-    },
-    error() {
-      // noop
-    },
-    fatal() {
-      // noop
-    },
-    info() {
-      // noop
-    },
-    trace() {
-      // noop
-    },
-    warn(message, meta) {
-      const entry: { message: string; signalId?: unknown } = {
-        message: String(message),
-      };
-      if (
-        meta !== undefined &&
-        meta !== null &&
-        typeof meta === 'object' &&
-        'signalId' in meta
-      ) {
-        entry.signalId = (meta as { signalId: unknown }).signalId;
-      }
-      warnings.push(entry);
-    },
-  };
-  return logger;
-};
-
-const loopA = signal('loop.a', { payload: z.object({ id: z.string() }) });
-const loopB = signal('loop.b', { payload: z.object({ id: z.string() }) });
-
-const createCycleScenario = (invocations: string[]) => {
-  const producer = trail('loop.producer', {
-    blaze: async (_input, ctx) => {
-      await ctx.fire(loopA, { id: 'loop-1' });
-      return Result.ok();
-    },
-    input: z.object({ id: z.string() }),
-  });
-  const consumerA = trail('loop.consumer.a', {
-    blaze: async (_input, ctx) => {
-      invocations.push('a');
-      await ctx.fire(loopB, { id: 'loop-1' });
-      return Result.ok();
-    },
-    input: z.object({ id: z.string() }),
-    on: [loopA],
-  });
-  const consumerB = trail('loop.consumer.b', {
-    blaze: async (_input, ctx) => {
-      invocations.push('b');
-      // Re-fire loop.a to trigger cycle detection.
-      await ctx.fire(loopA, { id: 'loop-1' });
-      return Result.ok();
-    },
-    input: z.object({ id: z.string() }),
-    on: [loopB],
-  });
-  return topo('fire-cycle', {
-    consumerA,
-    consumerB,
-    loopA,
-    loopB,
-    producer,
-  });
 };
 
 // ---------------------------------------------------------------------------
@@ -156,6 +78,81 @@ const makeProducer = (fireResultKey: { result?: Result<void, Error> }) =>
     },
     fires: ['order.placed'],
     input: z.object({ orderId: z.string(), total: z.number() }),
+  });
+
+const cyclePayload = z.object({ id: z.string() });
+
+const loopA = signal('loop.a', { payload: cyclePayload });
+const loopB = signal('loop.b', { payload: cyclePayload });
+
+const createCycleLogger = (
+  warnings: { message: string; signalId?: unknown }[]
+): Logger => ({
+  child() {
+    return this;
+  },
+  debug() {
+    // noop
+  },
+  error() {
+    // noop
+  },
+  fatal() {
+    // noop
+  },
+  info() {
+    // noop
+  },
+  trace() {
+    // noop
+  },
+  warn(message, data) {
+    warnings.push({ message, signalId: data?.signalId });
+  },
+});
+
+const createCycleConsumer = (
+  id: string,
+  signalId: 'loop.a' | 'loop.b',
+  nextSignalId: 'loop.a' | 'loop.b',
+  invocations: string[]
+) =>
+  trail(id, {
+    blaze: async (input, ctx) => {
+      invocations.push(signalId === 'loop.a' ? 'a' : 'b');
+      const fired = await ctx.fire?.(nextSignalId, { id: input.id });
+      return fired as Result<unknown, Error>;
+    },
+    fires: [nextSignalId],
+    input: cyclePayload,
+    on: [signalId],
+  });
+
+const createCycleScenario = (invocations: string[]) =>
+  topo('fire-cycle', {
+    consumerA: createCycleConsumer(
+      'loop.consumer.a',
+      'loop.a',
+      'loop.b',
+      invocations
+    ),
+    consumerB: createCycleConsumer(
+      'loop.consumer.b',
+      'loop.b',
+      'loop.a',
+      invocations
+    ),
+    loopA,
+    loopB,
+    producer: trail('loop.producer', {
+      blaze: async (input, ctx) =>
+        (await ctx.fire?.('loop.a', { id: input.id })) as Result<
+          unknown,
+          Error
+        >,
+      fires: ['loop.a'],
+      input: cyclePayload,
+    }),
   });
 
 // ---------------------------------------------------------------------------
@@ -282,6 +279,39 @@ describe('fire', () => {
       const result = await executeTrail(standalone, {});
       expect(result.isOk()).toBe(true);
       expect((result.unwrap() as { hasFire: boolean }).hasFire).toBe(false);
+    });
+  });
+
+  describe('signal-value overload', () => {
+    test('ctx.fire(signal, payload) accepts a signal value and fans out', async () => {
+      const capture = createCapture();
+      const consumerA = makeConsumer('notify.email', capture);
+      const valueProducer = trail('order.create-by-value', {
+        blaze: async (input, ctx) => {
+          const fired = await ctx.fire?.(orderPlaced, {
+            orderId: input.orderId,
+            total: input.total,
+          });
+          return fired as Result<unknown, Error>;
+        },
+        fires: ['order.placed'],
+        input: z.object({ orderId: z.string(), total: z.number() }),
+      });
+      const app = topo('fire-signal-value', {
+        consumerA,
+        orderPlaced,
+        valueProducer,
+      });
+      const result = await run(app, 'order.create-by-value', {
+        orderId: 'o-value',
+        total: 99,
+      });
+      expect(result.isOk()).toBe(true);
+      expect(capture.invocations).toHaveLength(1);
+      expect(capture.invocations[0]?.payload).toEqual({
+        orderId: 'o-value',
+        total: 99,
+      });
     });
   });
 
