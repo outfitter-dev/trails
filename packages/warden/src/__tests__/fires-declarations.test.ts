@@ -398,7 +398,6 @@ trail('onboard', {
       const diagnostics = firesDeclarations.check(code, TEST_FILE);
       expect(diagnostics.length).toBe(0);
     });
-
     test('nested-scope destructure does not leak to outer blaze scope', () => {
       const code = `
 trail('outer', {

@@ -165,17 +165,83 @@ const extractFirstStringArg = (node: AstNode): string | null => {
 };
 
 /**
- * Extract the second parameter name from a blaze function node.
+ * Extract the second parameter node from a blaze function node.
  *
- * Handles `(input, ctx) => ...`, `async (input, context) => ...`, and
- * `function(input, ctx) { ... }` forms.
+ * Handles `(input, ctx) => ...`, `async (input, context) => ...`,
+ * `function(input, ctx) { ... }`, and parameter-level destructuring
+ * like `(input, { fire }) => ...`.
  */
-const extractContextParamName = (blazeBody: AstNode): string | null => {
+const extractContextParamNode = (blazeBody: AstNode): AstNode | null => {
   const params = blazeBody['params'] as readonly AstNode[] | undefined;
   if (!params || params.length < 2) {
     return null;
   }
-  return identifierName(params[1]);
+  return params[1] ?? null;
+};
+
+/** Extract the local name bound to `fire` inside an ObjectPattern Property. */
+const extractFireLocalName = (prop: AstNode): string | null => {
+  if (prop.type !== 'Property') {
+    return null;
+  }
+  const { key } = prop as unknown as { key?: AstNode };
+  const { value } = prop as unknown as { value?: AstNode };
+  const keyName = identifierName(key);
+  if (keyName !== 'fire') {
+    return null;
+  }
+  // `{ fire }` → key and value are the same Identifier (shorthand).
+  // `{ fire: emit }` → value is a distinct Identifier.
+  return identifierName(value) ?? keyName;
+};
+
+/** Collect `fire` local names from an ObjectPattern's properties into `names`. */
+const collectFireNamesFromPattern = (
+  pattern: AstNode,
+  names: Set<string>
+): void => {
+  const { properties } = pattern as unknown as {
+    properties?: readonly AstNode[];
+  };
+  if (!properties) {
+    return;
+  }
+  for (const prop of properties) {
+    const localName = extractFireLocalName(prop);
+    if (localName) {
+      names.add(localName);
+    }
+  }
+};
+
+/**
+ * Extract the second parameter name from a blaze function node.
+ *
+ * Returns null when the parameter is not a plain Identifier (e.g. when the
+ * author destructures `{ fire }` in the parameter list). Parameter-level
+ * destructuring is handled separately by `collectParamFireNames`.
+ */
+const extractContextParamName = (blazeBody: AstNode): string | null => {
+  const param = extractContextParamNode(blazeBody);
+  return param ? identifierName(param) : null;
+};
+
+/**
+ * Collect `fire` local names bound via parameter-level destructuring.
+ *
+ * Recognizes `(input, { fire }) => ...` and `(input, { fire: emit }) => ...`.
+ * When the blaze author destructures in the parameter list, there is no
+ * enclosing `ctx` identifier to track — we seed the fire local set directly
+ * from the ObjectPattern in `params[1]`.
+ */
+const collectParamFireNames = (body: AstNode): ReadonlySet<string> => {
+  const param = extractContextParamNode(body);
+  if (!param || param.type !== 'ObjectPattern') {
+    return new Set();
+  }
+  const names = new Set<string>();
+  collectFireNamesFromPattern(param, names);
+  return names;
 };
 
 /** Check if a callee is a member-style fire call: <ctxName>.fire(...). */
@@ -235,41 +301,6 @@ const extractFireCallId = (
  * accepted. This prevents unrelated local `fire` helpers from being treated as
  * calls into the trail context.
  */
-/** Extract the local name bound to `fire` inside an ObjectPattern Property. */
-const extractFireLocalName = (prop: AstNode): string | null => {
-  if (prop.type !== 'Property') {
-    return null;
-  }
-  const { key } = prop as unknown as { key?: AstNode };
-  const { value } = prop as unknown as { value?: AstNode };
-  const keyName = identifierName(key);
-  if (keyName !== 'fire') {
-    return null;
-  }
-  // `{ fire }` → key and value are the same Identifier (shorthand).
-  // `{ fire: emit }` → value is a distinct Identifier.
-  return identifierName(value) ?? keyName;
-};
-
-/** Collect `fire` local names from an ObjectPattern's properties into `names`. */
-const collectFireNamesFromPattern = (
-  pattern: AstNode,
-  names: Set<string>
-): void => {
-  const { properties } = pattern as unknown as {
-    properties?: readonly AstNode[];
-  };
-  if (!properties) {
-    return;
-  }
-  for (const prop of properties) {
-    const localName = extractFireLocalName(prop);
-    if (localName) {
-      names.add(localName);
-    }
-  }
-};
-
 /** Check if a VariableDeclarator destructures from a known ctx identifier. */
 const getCtxDestructurePattern = (
   node: AstNode,
@@ -405,7 +436,12 @@ const extractCalledFires = (config: AstNode): ReadonlySet<string> => {
 
   for (const body of findBlazeBodies(config)) {
     const ctxNames = buildCtxNames(body);
-    const fireLocalNames = collectDestructuredFireNames(body, ctxNames);
+    const bodyFireNames = collectDestructuredFireNames(body, ctxNames);
+    const paramFireNames = collectParamFireNames(body);
+    const fireLocalNames = new Set<string>([
+      ...bodyFireNames,
+      ...paramFireNames,
+    ]);
 
     walkScope(body, (node) => {
       const id = extractFireCallId(node, ctxNames, fireLocalNames);
