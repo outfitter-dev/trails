@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { Track } from '../track.js';
+import type { TraceRecord } from '../trace-record.js';
 import { createOtelConnector } from '../connectors/otel.js';
 import type { OtelSpan } from '../connectors/otel.js';
 
-/** Build a minimal Track for testing with sensible defaults. */
-const makeRecord = (overrides: Partial<Track> = {}): Track => ({
+/** Build a minimal TraceRecord for testing with sensible defaults. */
+const makeRecord = (overrides: Partial<TraceRecord> = {}): TraceRecord => ({
   attrs: {},
   endedAt: 1000,
   id: 'span-1',

@@ -12,7 +12,7 @@ import { join, resolve } from 'node:path';
 
 import type { Result } from '@ontrails/core';
 import { openReadTrailsDb } from '@ontrails/core/internal/trails-db';
-import { createDevStore } from '@ontrails/tracker';
+import { createDevStore } from '@ontrails/tracing';
 
 import { devCleanTrail } from '../trails/dev-clean.js';
 import { devResetTrail } from '../trails/dev-reset.js';
@@ -337,7 +337,7 @@ describe('topo and dev trails', () => {
         await devStatsTrail.blaze({}, { cwd: dir } as never)
       );
       expect(stats.topo.pinCount).toBe(1);
-      expect(stats.tracker.recordCount).toBe(2);
+      expect(stats.tracing.recordCount).toBe(2);
 
       const cleanPreview = expectOk(
         await devCleanTrail.blaze({ dryRun: true, saves: 0, trackAgeMs: 0 }, {

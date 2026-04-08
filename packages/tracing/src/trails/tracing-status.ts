@@ -1,9 +1,9 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { trackerProvision } from '../tracker-provision.js';
+import { trackerProvision } from '../tracing-provision.js';
 
-/** Output schema for the tracker.status trail. */
+/** Output schema for the tracing.status trail. */
 const trackerStatusOutput = z.object({
   active: z.boolean(),
   recordCount: z.number(),
@@ -15,13 +15,13 @@ const trackerStatusOutput = z.object({
 });
 
 /**
- * Reports the current status of the tracker telemetry subsystem.
+ * Reports the current status of the tracing telemetry subsystem.
  *
  * Returns whether tracking is active, the current record count, and
  * the sampling configuration for each intent. Reads all values from
  * the `trackerProvision` state.
  */
-export const trackerStatus = trail('tracker.status', {
+export const trackerStatus = trail('tracing.status', {
   blaze: (_input, ctx) => {
     const state = trackerProvision.from(ctx);
     return Result.ok({
@@ -33,7 +33,7 @@ export const trackerStatus = trail('tracker.status', {
   examples: [
     {
       input: {},
-      name: 'Check tracker status',
+      name: 'Check tracing status',
     },
   ],
   input: z.object({}),

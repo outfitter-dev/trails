@@ -11,7 +11,7 @@ Core defines ports. Everything on the edges is a connector.
             |  CLI (commander)   |          |  Provisions (core) |
             |  MCP (sdk)         |          |  Config (config)   |
             |  HTTP (hono)       |          |  Permits (permits) |
-            |  WebSocket (plan.) |          |  Tracker (tracker) |
+            |  WebSocket (plan.) |          |  Tracing (tracing) |
             |                    |          |  Logging (logtape) |
             +---------+----------+          +---------+----------+
                       |                               |
@@ -97,7 +97,7 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
 |---------|---------|-------------|
 | `@ontrails/config` | Config resolution, loadouts, provision config schemas, diagnostics | None beyond core |
 | `@ontrails/permits` | Auth gate, permit model, JWT connector, scope enforcement | None beyond core |
-| `@ontrails/tracker` | Telemetry recording, trace context, memory/OTel sinks | None beyond core |
+| `@ontrails/tracing` | Telemetry recording, trace context, memory/OTel sinks | None beyond core |
 | `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
 | `@ontrails/logging/logtape` | LogTape sink connector | `@logtape/logtape` (peer) |
 
@@ -118,7 +118,7 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
   <- @ontrails/http (core, hono peer)
   <- @ontrails/config (core)
   <- @ontrails/permits (core)
-  <- @ontrails/tracker (core)
+  <- @ontrails/tracing (core)
   <- @ontrails/logging (core)
   <- @ontrails/testing (core, cli, mcp, logging)
   <- @ontrails/schema (core)

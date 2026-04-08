@@ -1,5 +1,5 @@
-import type { Track } from '../track.js';
-import type { TrackSink } from '../tracker-gate.js';
+import type { TraceRecord } from '../trace-record.js';
+import type { TraceSink } from '../tracing-layer.js';
 
 /** OTel span representation produced by the connector. */
 export interface OtelSpan {
@@ -23,8 +23,8 @@ export interface OtelConnectorOptions {
   readonly batchSize?: number;
 }
 
-/** Map from Track status to OTel status. */
-const STATUS_MAP: Record<Track['status'], OtelSpan['status']> = {
+/** Map from TraceRecord status to OTel status. */
+const STATUS_MAP: Record<TraceRecord['status'], OtelSpan['status']> = {
   cancelled: 'UNSET',
   err: 'ERROR',
   ok: 'OK',
@@ -37,7 +37,7 @@ const deriveKind = (parentId: string | undefined): OtelSpan['kind'] =>
 /** Attribute mapping: record field → OTel attribute key + extractor. */
 const ATTR_MAP: readonly {
   key: string;
-  get: (r: Track) => string | undefined;
+  get: (r: TraceRecord) => string | undefined;
 }[] = [
   { get: (r) => r.trailId, key: 'trails.trail.id' },
   { get: (r) => r.intent, key: 'trails.intent' },
@@ -46,9 +46,9 @@ const ATTR_MAP: readonly {
   { get: (r) => r.permit?.tenantId, key: 'trails.permit.tenant_id' },
 ];
 
-/** Build the trails-namespaced attributes from a Track. */
+/** Build the trails-namespaced attributes from a TraceRecord. */
 const buildAttributes = (
-  record: Track
+  record: TraceRecord
 ): Record<string, string | number | boolean> => {
   const attrs: Record<string, string | number | boolean> = {};
   for (const { key, get } of ATTR_MAP) {
@@ -69,8 +69,8 @@ const buildAttributes = (
   return attrs;
 };
 
-/** Translate a Track into an OTel span. */
-const toOtelSpan = (record: Track): OtelSpan => ({
+/** Translate a TraceRecord into an OTel span. */
+const toOtelSpan = (record: TraceRecord): OtelSpan => ({
   attributes: buildAttributes(record),
   endTime: record.endedAt,
   kind: deriveKind(record.parentId),
@@ -82,14 +82,14 @@ const toOtelSpan = (record: Track): OtelSpan => ({
   traceId: record.traceId,
 });
 
-/** A TrackSink extended with an explicit flush for shutdown. */
-export interface OtelSink extends TrackSink {
+/** A TraceSink extended with an explicit flush for shutdown. */
+export interface OtelSink extends TraceSink {
   /** Flush any remaining buffered spans to the exporter. */
   readonly flush: () => Promise<void>;
 }
 
 /**
- * Create a TrackSink that translates Tracker to OTel spans.
+ * Create a TraceSink that translates Tracing to OTel spans.
  *
  * The connector maps Trails-native fields to OpenTelemetry span attributes
  * under a `trails.*` namespace. Pass any OTel-compatible exporter callback
@@ -120,7 +120,7 @@ export const createOtelConnector = (
 
   return {
     flush,
-    write: async (record: Track): Promise<void> => {
+    write: async (record: TraceRecord): Promise<void> => {
       buffer.push(toOtelSpan(record));
       if (buffer.length >= batchSize) {
         await flush();

@@ -338,7 +338,7 @@ The package depends on `@ontrails/core` and benefits from the Events Runtime for
 - [ADR-0000: Core Premise](../0000-core-premise.md) -- "trailheads are peers"; WebSocket is the fourth trailhead, following the same patterns as CLI, MCP, and HTTP
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- trail invocations over WebSocket execute through the pipeline
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- trail IDs map to WebSocket method names, event IDs map to subscription channels
-- [ADR-0013: Tracker](../0013-tracker.md) -- observability and replay buffer backing store
+- [ADR-0013: Tracing](../0013-tracing.md) -- observability and replay buffer backing store
 - ADR: Typed Signal Emission (draft) -- `ctx.signal()` provides the events that WebSocket subscriptions deliver
 - ADR: Trail Visibility and Trailhead Filtering (draft) -- visibility and intent filtering apply to WebSocket trail discovery and invocation
 - ADR: Reactive Trail Activation (draft) -- triggers and WebSocket subscriptions are both consumers of the event routing pipeline

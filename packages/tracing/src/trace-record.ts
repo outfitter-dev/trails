@@ -1,5 +1,5 @@
 /** Evidence of a single trail execution or manual span. */
-export interface Track {
+export interface TraceRecord {
   readonly id: string;
   readonly traceId: string;
   readonly rootId: string;
@@ -19,21 +19,23 @@ export interface Track {
   readonly attrs: Readonly<Record<string, unknown>>;
 }
 
-/** Options for creating a trail-scoped Track. */
-interface CreateTrackOptions {
+/** Options for creating a trail-scoped TraceRecord. */
+interface CreateTraceRecordOptions {
   readonly trailId: string;
   readonly traceId?: string | undefined;
   readonly parentId?: string | undefined;
   readonly rootId?: string | undefined;
-  readonly trailhead?: Track['trailhead'];
-  readonly intent?: Track['intent'];
+  readonly trailhead?: TraceRecord['trailhead'];
+  readonly intent?: TraceRecord['intent'];
   readonly permit?:
     | { readonly id: string; readonly tenantId?: string }
     | undefined;
 }
 
-/** Create a fresh Track for a trail execution. */
-export const createTrack = (options: CreateTrackOptions): Track => {
+/** Create a fresh TraceRecord for a trail execution. */
+export const createTraceRecord = (
+  options: CreateTraceRecordOptions
+): TraceRecord => {
   const id = Bun.randomUUIDv7();
   const traceId = options.traceId ?? Bun.randomUUIDv7();
 

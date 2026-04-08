@@ -298,7 +298,7 @@ The topo store is the queryable source of truth. The lockfile is its text projec
 
 ### Dev intelligence joins
 
-Because the topo store and tracker records colocate in `trails.db`, cross-cutting queries become joins:
+Because the topo store and tracing records colocate in `trails.db`, cross-cutting queries become joins:
 
 ```sql
 -- Latency by intent (structure + behavior)
@@ -330,7 +330,7 @@ The structural graph (what's declared) and the execution record (what happened) 
 - **Schema cache eliminates redundant computation.** The most expensive startup operation (`zodToJsonSchema`) runs once per schema change, not once per build.
 - **Evolution is trackable.** Save-tagged rows create a time series of structural changes. Pins are developer-controlled durable references into that history.
 - **The warden becomes simpler.** Governance rules become typed accessor calls or SQL queries with expected results, not Map traversal functions.
-- **Dev intelligence gets structure.** Joining topo data with tracker data answers questions neither could answer alone.
+- **Dev intelligence gets structure.** Joining topo data with tracing data answers questions neither could answer alone.
 - **Agents get deep introspection.** An agent can query the crossing graph, resource dependencies, and intent classifications without parsing TypeScript.
 
 ### Tradeoffs
@@ -350,7 +350,7 @@ The structural graph (what's declared) and the execution record (what happened) 
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — "the contract is queryable"
 - [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — the trailhead map that the topo store subsumes
-- [ADR-0013: Tracker](0013-tracker.md) — execution records that colocate with topo data for cross-cutting queries
+- [ADR-0013: Tracing](0013-tracing.md) — execution records that colocate with topo data for cross-cutting queries
 - [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) — the `trails.db` foundation this builds on
 - [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — the lockfile projection exported from topo state
 - [ADR-0018: Signal-Driven Governance](0018-signal-driven-governance.md) — how topo saves and pins drive downstream behavior

@@ -80,7 +80,7 @@
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"derive by default\"; tracker observes composition shape rather than requiring it to be declared",
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"derive by default\"; tracing observes composition shape rather than requiring it to be declared",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
         },
@@ -358,7 +358,7 @@
         {
           "context": "- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md)",
           "from": "0013",
-          "fromPath": "docs/adr/0013-tracker.md"
+          "fromPath": "docs/adr/0013-tracing.md"
         },
         {
           "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- rigged trails declare intent; HTTP method mapping and MCP annotations work identically",
@@ -461,10 +461,10 @@
         {
           "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md)",
           "from": "0013",
-          "fromPath": "docs/adr/0013-tracker.md"
+          "fromPath": "docs/adr/0013-tracing.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — the pipeline that absorbs intrinsic tracing when `trackerGate` collapses.",
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — the pipeline that absorbs intrinsic tracing when `tracingLayer` collapses.",
           "from": "0023",
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
@@ -673,7 +673,7 @@
         {
           "context": "- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md)",
           "from": "0013",
-          "fromPath": "docs/adr/0013-tracker.md"
+          "fromPath": "docs/adr/0013-tracing.md"
         },
         {
           "context": "- [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the resource primitive that the read-only store resource builds on",
@@ -800,7 +800,7 @@
         {
           "context": "- [ADR-0012: Connector-Agnostic Permits](0012-connector-agnostic-permits.md)",
           "from": "0013",
-          "fromPath": "docs/adr/0013-tracker.md"
+          "fromPath": "docs/adr/0013-tracing.md"
         },
         {
           "context": "- [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) — webhook signature verification maps to the permit resolution model",
@@ -827,98 +827,98 @@
       "depends_on": [],
       "inbound": [
         {
-          "context": "- [ADR-0013: Tracker](0013-tracker.md)",
+          "context": "- [ADR-0013: Tracing](0013-tracing.md)",
           "from": "0001",
           "fromPath": "docs/adr/0001-naming-conventions.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](0013-tracker.md) — tracker consume config for sampling rates and export targets",
+          "context": "- [ADR-0013: Tracing](0013-tracing.md) — tracing consume config for sampling rates and export targets",
           "from": "0011",
           "fromPath": "docs/adr/0011-schema-driven-config.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](0013-tracker.md) — the execution recording primitive whose DevStore consolidates into this database",
+          "context": "- [ADR-0013: Tracing](0013-tracing.md) — the execution recording primitive whose DevStore consolidates into this database",
           "from": "0014",
           "fromPath": "docs/adr/0014-core-database-primitive.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](0013-tracker.md) — execution records that colocate with topo data for cross-cutting queries",
+          "context": "- [ADR-0013: Tracing](0013-tracing.md) — execution records that colocate with topo data for cross-cutting queries",
           "from": "0015",
           "fromPath": "docs/adr/0015-topo-store.md"
         },
         {
-          "context": "| `trackerGate` | Built-in tracing in `executeTrail` | No longer a separately attached layer/layer. Intrinsic to the execution pipeline. Partially supersedes [ADR-0013](../0013-tracker.md)'s \"resource",
+          "context": "| `tracingLayer` | Built-in tracing in `executeTrail` | No longer a separately attached gate/layer. Intrinsic to the execution pipeline. Partially supersedes [ADR-0013](../0013-tracing.md)'s \"resource",
           "from": "0023",
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- tracker observes concurrent vs sequential spans to derive composition shape at runtime",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- tracing observes concurrent vs sequential spans to derive composition shape at runtime",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- `--tracker` uses the tracker vocabulary; live tracker during `trails run`, historical tracker via `trails tracker`",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- `--tracing` uses the tracing vocabulary; live tracing during `trails run`, historical tracing via `trails tracing`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- rigged trail executions are recorded via tracker for observability",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- rigged trail executions are recorded via tracing for observability",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](../0013-tracker.md) — inbound trailhead execution recording uses the tracker system",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) — inbound trailhead execution recording uses the tracing system",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- telemetry primitives that resources can carry and trailhead",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- telemetry primitives that resources can carry and trailhead",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-provisioning.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- observability primitive; packs scope tracker emission boundaries",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- observability primitive; packs scope tracing emission boundaries",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](../0013-tracker.md) — tracker records fire provenance on every activation",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) — tracing records fire provenance on every activation",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](../0013-tracker.md) — tracker records emission and delivery metadata",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) — tracing records emission and delivery metadata",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- the observability system; visibility filtering events are observable through tracker",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- the observability system; visibility filtering events are observable through tracing",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- tracker records async trail results and provides the idempotency store for delivery deduplication",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- tracing records async trail results and provides the idempotency store for delivery deduplication",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-webhooks-and-connectors.md"
         },
         {
-          "context": "- [ADR-0013: Tracker](../0013-tracker.md) -- observability and replay buffer backing store",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- observability and replay buffer backing store",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
         },
         {
-          "context": "- **[ADR-0013: Tracker](./adr/0013-tracker.md)** — Runtime recording primitive",
+          "context": "- **[ADR-0013: Tracing](./adr/0013-tracing.md)** — Runtime recording primitive",
           "from": "index",
           "fromPath": "docs/index.md"
         }
       ],
       "number": "0013",
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0013-tracker.md",
-      "slug": "tracker",
+      "path": "docs/adr/0013-tracing.md",
+      "slug": "tracing",
       "status": "accepted",
       "superseded_by": null,
-      "title": "Tracker — Runtime Recording Primitive",
+      "title": "Tracing — Runtime Recording Primitive",
       "updated": "2026-04-02"
     },
     {

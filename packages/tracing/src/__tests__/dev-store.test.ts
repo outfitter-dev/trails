@@ -4,12 +4,12 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import type { Track } from '../track.js';
+import type { TraceRecord } from '../trace-record.js';
 import type { DevStore } from '../stores/dev.js';
 import { createDevStore } from '../stores/dev.js';
 
-/** Build a minimal Track for testing. */
-const makeRecord = (overrides?: Partial<Track>): Track => ({
+/** Build a minimal TraceRecord for testing. */
+const makeRecord = (overrides?: Partial<TraceRecord>): TraceRecord => ({
   attrs: {},
   endedAt: Date.now(),
   id: `rec-${crypto.randomUUID()}`,
@@ -25,7 +25,8 @@ const makeRecord = (overrides?: Partial<Track>): Track => ({
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const LEGACY_CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS tracker (
+const LEGACY_CREATE_TABLE_SQL = (tableName: string): string =>
+  `CREATE TABLE IF NOT EXISTS ${tableName} (
   id TEXT PRIMARY KEY,
   trace_id TEXT NOT NULL,
   root_id TEXT NOT NULL,
@@ -44,7 +45,8 @@ const LEGACY_CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS tracker (
   attrs TEXT
 )`;
 
-const LEGACY_UPSERT_SQL = `INSERT INTO tracker (
+const LEGACY_UPSERT_SQL = (tableName: string): string =>
+  `INSERT INTO ${tableName} (
   id, trace_id, root_id, parent_id,
   kind, name, trail_id, trailhead,
   intent, started_at, ended_at, status,
@@ -69,9 +71,9 @@ ON CONFLICT(id) DO UPDATE SET
 
 const writeLegacyTrackerDb = (
   rootDir: string,
-  records: readonly Track[]
+  records: readonly TraceRecord[]
 ): void => {
-  const path = join(rootDir, '.trails', 'dev', 'tracker.db');
+  const path = join(rootDir, '.trails', 'dev', fixture.fileName);
   mkdirSync(join(rootDir, '.trails', 'dev'), { recursive: true });
   const db = new Database(path, { create: true });
 
@@ -106,8 +108,8 @@ const writeLegacyTrackerDb = (
 };
 
 const makeOrderedRecords = (): {
-  readonly newer: Track;
-  readonly older: Track;
+  readonly newer: TraceRecord;
+  readonly older: TraceRecord;
 } => {
   const now = Date.now();
   return {
@@ -124,7 +126,10 @@ const makeOrderedRecords = (): {
   };
 };
 
-const writeRecords = (store: DevStore, records: readonly Track[]): void => {
+const writeRecords = (
+  store: DevStore,
+  records: readonly TraceRecord[]
+): void => {
   for (const record of records) {
     store.write(record);
   }
@@ -162,7 +167,7 @@ describe('createDevStore', () => {
 
     test('creates a database file at the specified path', () => {
       const dir = makeTmpDir();
-      const dbPath = join(dir, 'tracker.db');
+      const dbPath = join(dir, 'tracing.db');
 
       store = createDevStore({ path: dbPath });
 
@@ -171,7 +176,7 @@ describe('createDevStore', () => {
 
     test('close() closes the database connection', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracker.db') });
+      store = createDevStore({ path: join(dir, 'tracing.db') });
       store.write(makeRecord());
 
       store.close();
@@ -184,9 +189,9 @@ describe('createDevStore', () => {
   });
 
   describe('write()', () => {
-    test('persists a Track', () => {
+    test('persists a TraceRecord', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracker.db') });
+      store = createDevStore({ path: join(dir, 'tracing.db') });
       const record = makeRecord();
 
       store.write(record);
@@ -199,7 +204,7 @@ describe('createDevStore', () => {
 
     test('persists attrs as JSON', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracker.db') });
+      store = createDevStore({ path: join(dir, 'tracing.db') });
       const record = makeRecord({ attrs: { count: 42, key: 'value' } });
 
       store.write(record);
@@ -210,7 +215,7 @@ describe('createDevStore', () => {
 
     test('persists permit fields', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracker.db') });
+      store = createDevStore({ path: join(dir, 'tracing.db') });
       const record = makeRecord({
         permit: { id: 'permit-1', tenantId: 'tenant-1' },
       });
@@ -226,7 +231,7 @@ describe('createDevStore', () => {
 
     test('upserts duplicate record ids instead of throwing', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracker.db') });
+      store = createDevStore({ path: join(dir, 'tracing.db') });
 
       store.write(makeRecord({ id: 'dup', name: 'first' }));
       store.write(makeRecord({ id: 'dup', name: 'updated' }));
@@ -240,7 +245,7 @@ describe('createDevStore', () => {
   describe('query()', () => {
     test('returns persisted records ordered by startedAt descending', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracker.db') });
+      store = createDevStore({ path: join(dir, 'tracing.db') });
       const { newer, older } = makeOrderedRecords();
 
       writeRecords(store, [older, newer]);
@@ -249,7 +254,7 @@ describe('createDevStore', () => {
 
     test('filters by trailId', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracker.db') });
+      store = createDevStore({ path: join(dir, 'tracing.db') });
 
       store.write(makeRecord({ id: 'a', trailId: 'users.list' }));
       store.write(makeRecord({ id: 'b', trailId: 'users.get' }));
@@ -263,7 +268,7 @@ describe('createDevStore', () => {
 
     test('filters by traceId', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracker.db') });
+      store = createDevStore({ path: join(dir, 'tracing.db') });
 
       store.write(makeRecord({ id: 'a', traceId: 'trace-abc' }));
       store.write(makeRecord({ id: 'b', traceId: 'trace-xyz' }));
@@ -276,7 +281,7 @@ describe('createDevStore', () => {
 
     test('filters by errorsOnly', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracker.db') });
+      store = createDevStore({ path: join(dir, 'tracing.db') });
 
       store.write(makeRecord({ id: 'ok-1', status: 'ok' }));
       store.write(
@@ -296,7 +301,7 @@ describe('createDevStore', () => {
 
     test('limits results', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracker.db') });
+      store = createDevStore({ path: join(dir, 'tracing.db') });
 
       for (let i = 0; i < 10; i += 1) {
         store.write(makeRecord({ id: `rec-${String(i)}` }));
@@ -311,7 +316,7 @@ describe('createDevStore', () => {
   describe('retention', () => {
     test('defaults maxAge to seven days when not provided explicitly', () => {
       const dir = makeTmpDir();
-      store = createDevStore({ path: join(dir, 'tracker.db') });
+      store = createDevStore({ path: join(dir, 'tracing.db') });
 
       store.write(
         makeRecord({ id: 'old', startedAt: Date.now() - 8 * DAY_MS })
@@ -327,7 +332,7 @@ describe('createDevStore', () => {
       const dir = makeTmpDir();
       store = createDevStore({
         maxRecords: 5,
-        path: join(dir, 'tracker.db'),
+        path: join(dir, 'tracing.db'),
       });
 
       const now = Date.now();
@@ -346,7 +351,7 @@ describe('createDevStore', () => {
       const dir = makeTmpDir();
       store = createDevStore({
         maxAge: 1000,
-        path: join(dir, 'tracker.db'),
+        path: join(dir, 'tracing.db'),
       });
 
       store.write(makeRecord({ id: 'old', startedAt: Date.now() - 5000 }));
@@ -359,7 +364,7 @@ describe('createDevStore', () => {
   });
 
   describe('legacy migration', () => {
-    test('migrates legacy .trails/dev/tracker.db records into shared trails.db', () => {
+    test('migrates legacy .trails/dev/tracing.db records into shared trails.db', () => {
       const dir = makeTmpDir();
       const now = Date.now();
       const legacyRecords = [
@@ -389,7 +394,7 @@ describe('createDevStore', () => {
       const dir = makeTmpDir();
       store = createDevStore({
         maxRecords: 2,
-        path: join(dir, 'tracker.db'),
+        path: join(dir, 'tracing.db'),
       });
       const now = Date.now();
 

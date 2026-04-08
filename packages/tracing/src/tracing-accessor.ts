@@ -1,7 +1,7 @@
-import { TRACKER_API_KEY } from './tracker-api.js';
-import type { TrackerApi } from './tracker-api.js';
+import { TRACKER_API_KEY } from './tracing-api.js';
+import type { TrackerApi } from './tracing-api.js';
 
-/** No-op TrackerApi returned when the tracker layer is not active. */
+/** No-op TrackerApi returned when the tracing layer is not active. */
 const noopApi: TrackerApi = {
   // oxlint-disable-next-line no-empty-function -- intentional no-op
   annotate: () => {},
@@ -13,10 +13,10 @@ const noopApi: TrackerApi = {
 /**
  * Typed accessor for the TrackerApi on a trail context.
  *
- * Returns a no-op implementation when the tracker layer is not active,
+ * Returns a no-op implementation when the tracing layer is not active,
  * so callers never need null-checks.
  */
-export const tracker = {
+export const tracing = {
   from: (ctx: {
     readonly extensions?: Readonly<Record<string, unknown>> | undefined;
   }): TrackerApi => {

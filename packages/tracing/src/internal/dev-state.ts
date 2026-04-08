@@ -38,14 +38,14 @@ const CREATE_INDEXES_SQL = [
   `CREATE INDEX IF NOT EXISTS idx_${TRACK_TABLE}_started_at ON ${TRACK_TABLE}(started_at)`,
 ];
 
-export interface TrackCleanupReport {
+export interface TraceCleanupReport {
   readonly removedByAge: number;
   readonly removedByCount: number;
   readonly removedTotal: number;
   readonly remaining: number;
 }
 
-const trackTableExists = (db: Database): boolean => {
+const traceTableExists = (db: Database): boolean => {
   const row = db
     .query<{ name: string }, [string]>(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?"
@@ -54,7 +54,7 @@ const trackTableExists = (db: Database): boolean => {
   return row?.name === TRACK_TABLE;
 };
 
-export const ensureTrackSchema = (db: Database): void => {
+export const ensureTraceSchema = (db: Database): void => {
   ensureSubsystemSchema(db, {
     migrate: () => {
       db.run(CREATE_TABLE_SQL);
@@ -67,8 +67,8 @@ export const ensureTrackSchema = (db: Database): void => {
   });
 };
 
-export const countTrackRecords = (db: Database): number => {
-  if (!trackTableExists(db)) {
+export const countTraceRecords = (db: Database): number => {
+  if (!traceTableExists(db)) {
     return 0;
   }
   const result = db
@@ -80,7 +80,7 @@ export const countTrackRecords = (db: Database): number => {
 };
 
 const countOldTracks = (db: Database, maxAge: number): number => {
-  if (!trackTableExists(db)) {
+  if (!traceTableExists(db)) {
     return 0;
   }
   const threshold = Date.now() - maxAge;
@@ -97,7 +97,7 @@ const countOverflowTracks = (
   maxRecords: number,
   maxAge: number
 ): number => {
-  const total = countTrackRecords(db);
+  const total = countTraceRecords(db);
   const remainingAfterAge = total - countOldTracks(db, maxAge);
   return Math.max(remainingAfterAge - maxRecords, 0);
 };
@@ -111,7 +111,7 @@ const deleteOldTracks = (db: Database, maxAge: number): number => {
 };
 
 const deleteOverflowTracks = (db: Database, maxRecords: number): number => {
-  const excess = Math.max(countTrackRecords(db) - maxRecords, 0);
+  const excess = Math.max(countTraceRecords(db) - maxRecords, 0);
   if (excess === 0) {
     return 0;
   }
@@ -129,17 +129,17 @@ const toCleanupReport = (
   db: Database,
   removedByAge: number,
   removedByCount: number
-): TrackCleanupReport => ({
-  remaining: countTrackRecords(db),
+): TraceCleanupReport => ({
+  remaining: countTraceRecords(db),
   removedByAge,
   removedByCount,
   removedTotal: removedByAge + removedByCount,
 });
 
-export const previewTrackCleanup = (
+export const previewTraceCleanup = (
   db: Database,
   options?: Pick<DevStoreOptions, 'maxAge' | 'maxRecords'>
-): TrackCleanupReport => {
+): TraceCleanupReport => {
   const maxRecords = options?.maxRecords ?? DEFAULT_MAX_RECORDS;
   const maxAge = options?.maxAge ?? DEFAULT_MAX_AGE;
   const removedByAge = countOldTracks(db, maxAge);
@@ -147,11 +147,11 @@ export const previewTrackCleanup = (
   return toCleanupReport(db, removedByAge, removedByCount);
 };
 
-export const applyTrackCleanup = (
+export const applyTraceCleanup = (
   db: Database,
   options?: Pick<DevStoreOptions, 'maxAge' | 'maxRecords'>
-): TrackCleanupReport => {
-  if (!trackTableExists(db)) {
+): TraceCleanupReport => {
+  if (!traceTableExists(db)) {
     return toCleanupReport(db, 0, 0);
   }
   const maxRecords = options?.maxRecords ?? DEFAULT_MAX_RECORDS;
@@ -161,7 +161,7 @@ export const applyTrackCleanup = (
   return toCleanupReport(db, removedByAge, removedByCount);
 };
 
-export const withTrackStoreDb = <T>(
+export const withTraceStoreDb = <T>(
   options: Pick<DevStoreOptions, 'path' | 'rootDir'> | undefined,
   run: (db: Database) => T
 ): T => {
@@ -171,7 +171,7 @@ export const withTrackStoreDb = <T>(
   });
 
   try {
-    ensureTrackSchema(db);
+    ensureTraceSchema(db);
     return run(db);
   } finally {
     db.close();

@@ -77,7 +77,7 @@ Six categories describe how information flows through the system. Understanding 
 
 **Inferred.** Detected by static analysis, best-effort. Which trails a trail follows, which error types are returned. Useful for governance, but not compiler-guaranteed.
 
-**Observed.** Learned from runtime. The tracker system captures what actually happens: execution duration, error distributions, latency profiles, usage patterns. Observations close the loop between declared intent and actual behavior.
+**Observed.** Learned from runtime. The tracing system captures what actually happens: execution duration, error distributions, latency profiles, usage patterns. Observations close the loop between declared intent and actual behavior.
 
 **Overridden.** When derivation doesn't fit. Any projected value can be explicitly set. Overrides are escape hatches, visible in the resolved graph. If you're overriding everything, the derivation rules are wrong.
 
@@ -192,7 +192,7 @@ The authored default documents intent. The override enables reuse. The resolved 
 
 The system is a single graph: trails, resources, signals, crossings, layers, and metadata. Different tools provide different views of the same underlying data.
 
-Survey reveals what exists and how it connects. Guide explains how to use it. The warden reports what's missing and what's drifting. The lockfile captures the resolved state. The tracker system shows what's actually happening at runtime — live during execution, historical after the fact.
+Survey reveals what exists and how it connects. Guide explains how to use it. The warden reports what's missing and what's drifting. The lockfile captures the resolved state. The tracing system shows what's actually happening at runtime — live during execution, historical after the fact.
 
 No separate data sources, no sync problems.
 

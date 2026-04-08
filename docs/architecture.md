@@ -30,7 +30,7 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 |  Config (config)      |
                 |  Permits (permits)    |
                 |  Store (store/drizzle)|
-                |  Tracker (tracker)    |
+                |  Tracing (tracing)    |
                 |  Logging (logtape)    |
                 +-----------------------+
                 RIGHT SIDE (outbound)
@@ -109,7 +109,7 @@ Warden uses inference to verify that declarations match actual code. The trailhe
 
 ### Observed — learned from runtime
 
-The tracker (`@ontrails/tracker`) system captures what actually happens at runtime: execution duration, error distributions, trace context propagation. Observations close the loop -- declarations define intent, observations verify reality.
+The tracing (`@ontrails/tracing`) system captures what actually happens at runtime: execution duration, error distributions, trace context propagation. Observations close the loop -- declarations define intent, observations verify reality.
 
 ### Overridden — when derivation doesn't fit
 
@@ -153,7 +153,7 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 | `@ontrails/permits` | Auth layer, permit model, JWT connector, scope enforcement | None beyond core |
 | `@ontrails/store` | Connector-agnostic schema-derived store definitions | None beyond core |
 | `@ontrails/store/drizzle` | Drizzle SQLite connector, typed store bindings, read-only bindings | `drizzle-orm` (optional peer) |
-| `@ontrails/tracker` | Telemetry recording, trace context, `trails.db` dev-state sinks | None beyond core |
+| `@ontrails/tracing` | Telemetry recording, trace context, `trails.db` dev-state sinks | None beyond core |
 | `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
 | `@ontrails/logging/logtape` | LogTape sink connector | `@logtape/logtape` (optional peer) |
 
@@ -184,7 +184,7 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 @ontrails/permits (core)
 @ontrails/store (core)
 @ontrails/store/drizzle (store, drizzle-orm)
-@ontrails/tracker (core)
+@ontrails/tracing (core)
 @ontrails/logging (core)
 @ontrails/testing (core, cli, mcp, logging)
 @ontrails/schema (core)
@@ -193,7 +193,7 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 @ontrails/logging/logtape (logging, @logtape/logtape)
 @ontrails/warden (core, schema)
      ^
-apps/trails (cli/commander, schema, tracker)
+apps/trails (cli/commander, schema, tracing)
 ```
 
 Clean DAG. Core at the center. No cycles. Trailhead connectors depend only on core. Framework connectors depend on their parent package.

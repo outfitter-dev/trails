@@ -57,7 +57,7 @@ export const devStatsTrail = trail('dev.stats', {
       prunableSaveCount: z.number(),
       saveCount: z.number(),
     }),
-    tracker: z.object({
+    tracing: z.object({
       recordCount: z.number(),
     }),
   }),

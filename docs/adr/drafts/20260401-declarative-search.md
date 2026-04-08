@@ -290,7 +290,7 @@ This is explicitly deferred. The initial implementation focuses on single-entity
 - **Query suggestion or autocomplete.** These are application-level features that build on search, not search primitives.
 - **Real-time search / streaming results.** The search accessor returns a paginated result set. Streaming or live-updating results are a future concern.
 - **Topo-level search.** Searching across trail descriptions and examples for agent discovery is a compelling future direction but is architecturally distinct from entity search. It would use the same search primitives but operates on the topo graph, not on stored entities.
-- **Relevance analytics.** Tracking which queries return good results, which return empty, and how users interact with search results is an observability concern (related to Tracker, ADR-0013) rather than a search concern.
+- **Relevance analytics.** Tracking which queries return good results, which return empty, and how users interact with search results is an observability concern (related to Tracing, ADR-0013) rather than a search concern.
 
 ## References
 

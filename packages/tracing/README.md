@@ -1,37 +1,37 @@
-# @ontrails/tracker
+# @ontrails/tracing
 
 Automatic trail execution recording — just add a gate.
 
-Tracker wraps every trail invocation to capture timing, status, and parentage, then writes records to a sink. Supports intent-based sampling, manual instrumentation through spans and annotations, and multiple backends (memory, SQLite dev store, OpenTelemetry).
+Tracing wraps every trail invocation to capture timing, status, and parentage, then writes records to a sink. Supports intent-based sampling, manual instrumentation through spans and annotations, and multiple backends (memory, SQLite dev store, OpenTelemetry).
 
 ## The core pattern
 
 ### 1. Create a sink
 
 ```typescript
-import { createMemorySink } from '@ontrails/tracker';
+import { createMemorySink } from '@ontrails/tracing';
 
 const sink = createMemorySink();
 ```
 
-Sinks receive completed Track records. Use a memory sink for testing, a dev store for local development, or an OTel connector to forward to your collector.
+Sinks receive completed TraceRecord records. Use a memory sink for testing, a dev store for local development, or an OTel connector to forward to your collector.
 
 ### 2. Create a gate and register it
 
 ```typescript
-import { createTrackerGate } from '@ontrails/tracker';
+import { createTracingLayer } from '@ontrails/tracing';
 
-const gate = createTrackerGate(sink);
+const gate = createTracingLayer(sink);
 ```
 
 The gate intercepts every trail and wraps its execution. No trails need to change — tracking is automatic.
 
-## The tracker provision
+## The tracing provision
 
-Access tracker state from any trail:
+Access tracing state from any trail:
 
 ```typescript
-import { trackerProvision } from '@ontrails/tracker';
+import { trackerProvision } from '@ontrails/tracing';
 
 export const checkStatus = trail('status.check', {
   provisions: [trackerProvision],
@@ -47,11 +47,11 @@ export const checkStatus = trail('status.check', {
 
 ## Trail definitions
 
-### `tracker.status`
+### `tracing.status`
 
 Reports the current tracking state — active status, record count, sampling config.
 
-### `tracker.query`
+### `tracing.query`
 
 Query execution history from the dev store:
 
@@ -62,7 +62,7 @@ The trail accepts these inputs:
 - `traceId` — retrieve a full trace tree
 - `limit` — cap the number of results
 
-Use `run()` or `ctx.cross('tracker.query', { trailId: 'user.create' })` to invoke it programmatically.
+Use `run()` or `ctx.cross('tracing.query', { trailId: 'user.create' })` to invoke it programmatically.
 
 ## Sinks
 
@@ -72,7 +72,7 @@ For testing and demos:
 
 ```typescript
 const sink = createMemorySink();
-const gate = createTrackerGate(sink);
+const gate = createTracingLayer(sink);
 
 // ... run trails ...
 
@@ -85,7 +85,7 @@ expect(sink.records[0]?.status).toBe('ok');
 SQLite-backed persistence for local development:
 
 ```typescript
-import { createDevStore } from '@ontrails/tracker';
+import { createDevStore } from '@ontrails/tracing';
 
 const store = createDevStore({
   path: './debug.db',
@@ -93,7 +93,7 @@ const store = createDevStore({
   maxAge: 1000 * 60 * 60 * 24 * 30,
 });
 
-const gate = createTrackerGate(store);
+const gate = createTracingLayer(store);
 ```
 
 The dev store uses WAL mode and prunes automatically.
@@ -103,7 +103,7 @@ The dev store uses WAL mode and prunes automatically.
 Export traces to any OTel-compatible collector:
 
 ```typescript
-import { createOtelConnector } from '@ontrails/tracker';
+import { createOtelConnector } from '@ontrails/tracing';
 
 const sink = createOtelConnector({
   exporter: async (spans) => {
@@ -113,11 +113,11 @@ const sink = createOtelConnector({
 });
 ```
 
-The connector translates Track records to OTel spans with Trails-namespaced attributes (`trails.trail.id`, `trails.intent`, `trails.trailhead`, `trails.permit.id`).
+The connector translates TraceRecord records to OTel spans with Trails-namespaced attributes (`trails.trail.id`, `trails.intent`, `trails.trailhead`, `trails.permit.id`).
 
 ## Sampling
 
-By default, tracker samples traces based on intent:
+By default, tracing samples traces based on intent:
 
 - `read` operations: sampled (low rate)
 - `write` operations: 100%
@@ -126,7 +126,7 @@ By default, tracker samples traces based on intent:
 Override sampling per gate:
 
 ```typescript
-const gate = createTrackerGate(sink, {
+const gate = createTracingLayer(sink, {
   sampling: { read: 0.1, write: 1.0, destroy: 1.0 },
   keepOnError: true, // Promote sampled-out traces if they fail
 });
@@ -139,11 +139,11 @@ const gate = createTrackerGate(sink, {
 Create child spans within a trail to break timing into segments:
 
 ```typescript
-import { tracker } from '@ontrails/tracker';
+import { tracing } from '@ontrails/tracing';
 
 export const processUser = trail('user.process', {
   blaze: async (input, ctx) => {
-    const api = tracker.from(ctx);
+    const api = tracing.from(ctx);
     const user = await api.span('load-user', async () => {
       return await db.users.get(input.userId);
     });
@@ -157,19 +157,19 @@ export const processUser = trail('user.process', {
 Add context to a trail's record:
 
 ```typescript
-const api = tracker.from(ctx);
+const api = tracing.from(ctx);
 api.annotate({ userId: input.userId, dataSize: bytes });
 ```
 
 ## Testing
 
 ```typescript
-import { createMemorySink, createTrackerGate } from '@ontrails/tracker';
+import { createMemorySink, createTracingLayer } from '@ontrails/tracing';
 import { testAll } from '@ontrails/testing';
 
 const sink = createMemorySink();
 const results = testAll(app, {
-  gates: [createTrackerGate(sink)],
+  gates: [createTracingLayer(sink)],
 });
 
 expect(sink.records).toHaveLength(5);
@@ -179,5 +179,5 @@ expect(sink.records.filter((r) => r.status === 'err')).toHaveLength(0);
 ## Installation
 
 ```bash
-bun add @ontrails/tracker
+bun add @ontrails/tracing
 ```

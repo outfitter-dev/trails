@@ -42,7 +42,7 @@ At every stage, a schema exists. The question is only where it's authored.
 
 ### The framework already observes things worth announcing
 
-Every time `executeTrail` runs, the framework knows what happened: which trail, what input, what result, how long, what errors. This is information the framework observes but currently only records to tracker. If the framework emits lifecycle events for these observations, the reactive graph becomes much richer without any developer authoring:
+Every time `executeTrail` runs, the framework knows what happened: which trail, what input, what result, how long, what errors. This is information the framework observes but currently only records to tracing. If the framework emits lifecycle events for these observations, the reactive graph becomes much richer without any developer authoring:
 
 - Trail completed → `trail.completed` event
 - Trail failed → `trail.failed` event (with error class and category)
@@ -53,7 +53,7 @@ Authored events (the developer says "this happened") and observed events (the fr
 
 An event emitted to zero listeners is a silent failure. The trail succeeded. The Result is ok. But the announcement went nowhere.
 
-The framework must make dead events visible at every layer: compile time (types catch wrong payloads), test time (examples verify emissions), lint time (warden catches missing listeners), runtime (tracker records delivery counts), and inspection time (survey shows the event graph).
+The framework must make dead events visible at every layer: compile time (types catch wrong payloads), test time (examples verify emissions), lint time (warden catches missing listeners), runtime (tracing records delivery counts), and inspection time (survey shows the event graph).
 
 ## Decision
 
@@ -188,11 +188,11 @@ The 13 error classes become event vocabulary. The error taxonomy, designed for t
 
 When `ctx.signal()` fires or the framework emits a lifecycle event:
 
-1. **Validate.** The payload validates against the event's schema. Invalid payloads produce an `InternalError` logged to tracker (the emission is dropped, not the trail).
-2. **Record.** Tracker records the emission: event ID, payload, source trail, execution ID, timestamp.
+1. **Validate.** The payload validates against the event's schema. Invalid payloads produce an `InternalError` logged to tracing (the emission is dropped, not the trail).
+2. **Record.** Tracing records the emission: event ID, payload, source trail, execution ID, timestamp.
 3. **Route internally.** The signal bus notifies fire listeners. Trails with matching `fires: [{ signal: '...' }]` activate via `run()`.
 4. **Route externally.** Subscription listeners (WebSocket clients, SSE streams, future outbound webhooks) receive the event through their trailhead's delivery mechanism.
-5. **Record delivery.** Tracker records delivery outcomes: how many triggers fired, how many subscriptions received the event, how many failed.
+5. **Record delivery.** Tracing records delivery outcomes: how many triggers fired, how many subscriptions received the event, how many failed.
 
 Steps 3 and 4 are independent. Internal routing (triggers) and external routing (subscriptions) happen concurrently. Neither blocks the emitting trail (emission is fire-and-forget).
 
@@ -209,7 +209,7 @@ When an event-triggered trail fails, the error class determines whether redelive
 
 The initial in-process routing pipeline does not retry (at-most-once within a process). But the mapping is defined so that trailheads and infrastructure with stronger delivery guarantees can derive retry and dead-letter behavior from the error class without per-trail configuration.
 
-Tracker records the error category on every failed trigger activation. Over time, query patterns emerge: "80% of `notify.booking-confirmed` failures are `NetworkError` — the email service is flaky" vs "`billing.refund` failures are all `ConflictError` — a logic bug, not a delivery problem."
+Tracing records the error category on every failed trigger activation. Over time, query patterns emerge: "80% of `notify.booking-confirmed` failures are `NetworkError` — the email service is flaky" vs "`billing.refund` failures are all `ConflictError` — a logic bug, not a delivery problem."
 
 ### Dead event detection
 
@@ -227,13 +227,13 @@ Every emission is recorded with delivery metadata:
 }
 ```
 
-When delivery counts are zero, the event went nowhere. Tracker records this. In development, the framework trailheads it:
+When delivery counts are zero, the event went nowhere. Tracing records this. In development, the framework trailheads it:
 
 ```text
 ⚠ Event 'user.created' emitted by user.create → 0 listeners
 ```
 
-This is a runtime observation, not a static analysis. The warden checks statically ("this event has no listeners in the topo"). Tracker checks dynamically ("this event was emitted and nothing consumed it"). Both are necessary because the static check can't see dynamic subscribers (WebSocket clients) and the runtime check can't see configuration mistakes before they happen.
+This is a runtime observation, not a static analysis. The warden checks statically ("this event has no listeners in the topo"). Tracing checks dynamically ("this event was emitted and nothing consumed it"). Both are necessary because the static check can't see dynamic subscribers (WebSocket clients) and the runtime check can't see configuration mistakes before they happen.
 
 ### Warden rules for events
 
@@ -267,7 +267,7 @@ Reactive mode runs after standard mode passes. Standard mode validates each trai
 
 **With the error taxonomy.** The 13 error classes map to categorized failure events. One error class, multiple derivations: HTTP status, exit code, JSON-RPC error, and now reactive event vocabulary.
 
-**With tracker.** Tracker records every emission with delivery metadata. Tracker queries can answer: "show me all events emitted in the last hour with zero deliveries." Events enrich the observability model.
+**With tracing.** Tracing records every emission with delivery metadata. Tracing queries can answer: "show me all events emitted in the last hour with zero deliveries." Events enrich the observability model.
 
 **With visibility.** Event-triggered trails can be `visibility: 'internal'`. They don't appear on trailheads. They activate reactively. Background workers, compensators, and audit trails are internal trails triggered by events.
 
@@ -279,16 +279,16 @@ Reactive mode runs after standard mode passes. Standard mode validates each trai
 
 ### Positive
 
-- **Events become a runtime primitive.** The `signal()` declaration gains `ctx.signal()` for emission, delivery routing, and tracker recording. The primitive evolves from structural metadata to a live communication channel.
+- **Events become a runtime primitive.** The `signal()` declaration gains `ctx.signal()` for emission, delivery routing, and tracing recording. The primitive evolves from structural metadata to a live communication channel.
 - **Schema is always present.** Derived from the emitter at stage 1, declared inline at stage 2, extracted to `signal()` at stage 3. No untyped events. Progressive disclosure without a schema gap.
 - **Trails decouple through events.** Packs communicate via events instead of direct crosses. The event schema is the contract. The topo validates compatibility.
 - **Framework lifecycle events unify observation.** The error taxonomy maps to categorized failure events. The reactive graph handles both authored and observed events uniformly.
-- **Dead events are visible at every layer.** Five layers of safety from one primitive: types (compile time), examples (test time), warden (lint time), tracker (runtime), survey (inspection time).
+- **Dead events are visible at every layer.** Five layers of safety from one primitive: types (compile time), examples (test time), warden (lint time), tracing (runtime), survey (inspection time).
 
 ### Tradeoffs
 
 - **New field on the trail spec.** `emits` joins `crosses`, `visibility`, `on`, `resources`, and the rest. The justification: emission is genuinely new information that the framework can't derive from the implementation without static analysis.
-- **Fire-and-forget semantics.** The emitting trail doesn't know if the event was delivered. This is correct (the trail shouldn't couple to its listeners) but means delivery failures are only visible through tracker.
+- **Fire-and-forget semantics.** The emitting trail doesn't know if the event was delivered. This is correct (the trail shouldn't couple to its listeners) but means delivery failures are only visible through tracing.
 - **Lifecycle events add volume.** Every trail execution produces at least one lifecycle event. Sampling is a future optimization.
 - **Event ordering is not guaranteed across listeners.** Multiple triggers on the same event activate concurrently. If ordering matters, use sequential `cross` composition.
 
@@ -307,7 +307,7 @@ Reactive mode runs after standard mode passes. Standard mode validates each trai
 - [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — `emits` is a new property on the trail spec
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — lifecycle events are emitted by `executeTrail`
 - [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — warden rules for event declarations
-- [ADR-0013: Tracker](../0013-tracker.md) — tracker records emission and delivery metadata
+- [ADR-0013: Tracing](../0013-tracing.md) — tracing records emission and delivery metadata
 - ADR: The Serialized Topo Graph (draft) — events as nodes in the topo graph
 - ADR: Trail Visibility and Trailhead Filtering (draft) — event-triggered trails can be internal
 - ADR: Packs as Namespace Boundaries (draft) — events are the decoupling mechanism between packs

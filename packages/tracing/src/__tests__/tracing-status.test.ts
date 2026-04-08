@@ -2,13 +2,13 @@ import { describe, expect, test } from 'bun:test';
 import { createProvisionLookup } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 
-import type { TrackerState } from '../tracker-state.js';
+import type { TrackerState } from '../tracing-state.js';
 import { DEFAULT_SAMPLING } from '../sampling.js';
-import { trackerStatus } from '../trails/tracker-status.js';
+import { trackerStatus } from '../trails/tracing-status.js';
 
 /** Build a TrailContext with trackerProvision resolved in extensions. */
 const buildCtx = (state: TrackerState): TrailContext => {
-  const extensions = { tracker: state };
+  const extensions = { tracing: state };
   const ctx: TrailContext = {
     abortSignal: AbortSignal.timeout(5000),
     cwd: '/tmp',
@@ -32,10 +32,10 @@ const defaultState: TrackerState = {
   store: undefined,
 };
 
-describe('tracker.status', () => {
+describe('tracing.status', () => {
   describe('contract', () => {
     test('has correct id', () => {
-      expect(trackerStatus.id).toBe('tracker.status');
+      expect(trackerStatus.id).toBe('tracing.status');
     });
 
     test('has read intent', () => {

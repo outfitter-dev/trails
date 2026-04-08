@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { createMemorySink } from '../memory-sink.js';
 import { TRACE_CONTEXT_KEY } from '../trace-context.js';
 import type { TraceContext } from '../trace-context.js';
-import { createTrackerApi } from '../tracker-api.js';
+import { createTrackerApi } from '../tracing-api.js';
 
 /** Build a stub ctx with trace context in extensions. */
 const makeCtx = (

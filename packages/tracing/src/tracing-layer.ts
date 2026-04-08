@@ -13,12 +13,12 @@ import {
   TrailsError,
 } from '@ontrails/core';
 
-import type { Track } from './track.js';
-import { createTrack } from './track.js';
+import type { TraceRecord } from './trace-record.js';
+import { createTraceRecord } from './trace-record.js';
 import type { SamplingConfig } from './sampling.js';
 import { shouldSample } from './sampling.js';
 import type { TraceContext } from './trace-context.js';
-import { createTrackerApi, TRACKER_API_KEY } from './tracker-api.js';
+import { createTrackerApi, TRACKER_API_KEY } from './tracing-api.js';
 import {
   TRACE_CONTEXT_KEY,
   childTraceContext,
@@ -26,11 +26,11 @@ import {
 } from './trace-context.js';
 
 /** Sink that receives completed tracks. */
-export interface TrackSink {
-  readonly write: (record: Track) => void | Promise<void>;
+export interface TraceSink {
+  readonly write: (record: TraceRecord) => void | Promise<void>;
 }
 
-/** Options for configuring the tracker layer. */
+/** Options for configuring the tracing layer. */
 export interface TrackerGateOptions {
   /** Intent-based sampling overrides. */
   readonly sampling?: Partial<SamplingConfig> | undefined;
@@ -41,14 +41,14 @@ export interface TrackerGateOptions {
 }
 
 /** Outcome fields derived from a trail execution result. */
-interface TrackOutcome {
-  readonly status: Track['status'];
+interface TraceOutcome {
+  readonly status: TraceRecord['status'];
   readonly errorCategory: string | undefined;
 }
 
 /** Derive status and errorCategory from a trail result. */
-const deriveOutcome = (result: Result<unknown, Error>): TrackOutcome =>
-  result.match<TrackOutcome>({
+const deriveOutcome = (result: Result<unknown, Error>): TraceOutcome =>
+  result.match<TraceOutcome>({
     err: (error) => ({
       errorCategory: error instanceof TrailsError ? error.category : undefined,
       status: error instanceof CancelledError ? 'cancelled' : 'err',
@@ -80,9 +80,9 @@ const createRootTrace = (sampled: boolean): TraceContext => {
 
 /** Build a completed record from a base record and execution result. */
 const completeRecord = (
-  record: Track,
+  record: TraceRecord,
   result: Result<unknown, Error>
-): Track => ({
+): TraceRecord => ({
   ...record,
   ...deriveOutcome(result),
   endedAt: Date.now(),
@@ -90,9 +90,9 @@ const completeRecord = (
 
 /** Merge manual annotations into a completed trail record. */
 const mergeAnnotations = (
-  record: Track,
+  record: TraceRecord,
   attrs: Readonly<Record<string, unknown>>
-): Track =>
+): TraceRecord =>
   Object.keys(attrs).length === 0
     ? record
     : {
@@ -132,7 +132,7 @@ const enrichExtensions = (
 
 /** Decide whether a completed record should be written to the sink. */
 const shouldWrite = (
-  record: Track,
+  record: TraceRecord,
   sampled: boolean,
   keepOnError: boolean
 ): boolean => {
@@ -183,7 +183,7 @@ const notifySinkError = (
 const prepareExecution = <I, O>(
   trail: Trail<I, O>,
   ctx: TrailContext,
-  sink: TrackSink,
+  sink: TraceSink,
   options?: TrackerGateOptions
 ) => {
   const parentTrace = getTraceContext(ctx);
@@ -191,14 +191,14 @@ const prepareExecution = <I, O>(
   const trace = resolveTrace(parentTrace, sampled);
   const isRoot = parentTrace === undefined;
 
-  const record = createTrack({
+  const record = createTraceRecord({
     intent: trail.intent,
     parentId: parentTrace?.spanId,
     permit: extractPermit(ctx),
     rootId: isRoot ? undefined : trace.rootId,
     traceId: trace.traceId,
     trailId: trail.id,
-    trailhead: ctx.extensions?.[TRAILHEAD_KEY] as Track['trailhead'],
+    trailhead: ctx.extensions?.[TRAILHEAD_KEY] as TraceRecord['trailhead'],
   });
 
   const enrichedTrace: TraceContext = {
@@ -231,12 +231,12 @@ const prepareExecution = <I, O>(
  * context into `ctx.extensions` so child trails inherit the trace. Supports
  * intent-based sampling and error promotion for sampled-out traces.
  */
-export const createTrackerGate = (
-  sink: TrackSink,
+export const createTracingLayer = (
+  sink: TraceSink,
   options?: TrackerGateOptions
 ): Layer => ({
   description: 'Automatic trail execution recording',
-  name: 'tracker',
+  name: 'tracing',
   wrap:
     <I, O>(trail: Trail<I, O>, impl: Implementation<I, O>) =>
     async (input: I, ctx) => {

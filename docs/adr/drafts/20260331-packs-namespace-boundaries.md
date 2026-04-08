@@ -368,7 +368,7 @@ The warden enforces pack boundaries:
 - ADR: Typed Signal Emission (draft) -- events are the primary decoupling mechanism between packs
 - ADR: Reactive Trail Activation (draft) -- packs carry trigger declarations; activation registers when the pack composes into a topo
 - ADR: External Trailheads as Trail Contracts (draft) -- rigged trails compose into packs with the same layering pattern
-- [ADR-0013: Tracker](../0013-tracker.md) -- observability primitive; packs scope tracker emission boundaries
+- [ADR-0013: Tracing](../0013-tracing.md) -- observability primitive; packs scope tracing emission boundaries
 - ADR: The Serialized Topo Graph (draft) -- lockfile records pack membership and trailhead bindings
 - [docs/lexicon.md](../../lexicon.md) -- `pack` reserved term
 - [docs/horizons.md](../../horizons.md) -- packs listed as mid-term direction

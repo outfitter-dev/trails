@@ -277,13 +277,13 @@ validatePermits(trails)              // check trails against permit governance r
 PermitDiagnostic
 ```
 
-## `@ontrails/tracker`
+## `@ontrails/tracing`
 
 ```typescript
 // Resource & layer
-trackerProvision                     // resource for tracker state
-tracker                              // accessor resource for manual instrumentation
-createTrackerGate(sink, options?)    // layer that records every trail invocation
+trackerProvision                     // resource for tracing state
+tracing                              // accessor resource for manual instrumentation
+createTracingLayer(sink, options?)    // layer that records every trail invocation
 
 // Sinks
 createMemorySink()                   // in-memory sink for testing
@@ -291,7 +291,7 @@ createDevStore(options?)             // SQLite-backed persistent sink for develo
 createOtelConnector(options?)        // OpenTelemetry span exporter
 
 // State management
-registerTrackerState(state)          // register tracker state at bootstrap
+registerTrackerState(state)          // register tracing state at bootstrap
 
 // Trail definitions
 trackerStatus                        // report tracking state and record count
@@ -305,7 +305,7 @@ childTraceContext(parent)            // create a child trace context
 shouldSample(intent, config?)        // sampling decision based on intent
 DEFAULT_SAMPLING                     // default sampling rates by intent
 
-Track, TrackerState, TrackSink, SamplingConfig, TraceContext
+TraceRecord, TrackerState, TraceSink, SamplingConfig, TraceContext
 ```
 
 ## `@ontrails/logging`

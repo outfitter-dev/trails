@@ -23,7 +23,7 @@ claude plugin install trails@trails
 
 ### Rules
 
-- **vocabulary** — Enforces Trails-branded terms (trail, trailhead, topo, blaze, cross, provision, signal, gate, tracker)
+- **vocabulary** — Enforces Trails-branded terms (trail, trailhead, topo, blaze, cross, resource, signal, layer, tracing)
 - **patterns** — Core coding patterns (Result over throw, trailhead-agnostic implementations)
 
 ## License

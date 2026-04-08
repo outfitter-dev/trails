@@ -9,13 +9,13 @@ import {
   DEFAULT_MAX_AGE,
   DEFAULT_MAX_RECORDS,
   TRACK_TABLE,
-  applyTrackCleanup,
-  countTrackRecords,
-  ensureTrackSchema,
+  applyTraceCleanup,
+  countTraceRecords,
+  ensureTraceSchema,
 } from '../internal/dev-state.js';
 
-import type { Track } from '../track.js';
-import type { TrackSink } from '../tracker-gate.js';
+import type { TraceRecord } from '../trace-record.js';
+import type { TraceSink } from '../tracing-layer.js';
 
 /** Configuration for the SQLite dev store. */
 export interface DevStoreOptions {
@@ -38,9 +38,9 @@ export interface DevStoreQueryOptions {
 }
 
 /** Read-only query surface over persisted track records. */
-export interface TrackStore {
+export interface TraceStore {
   /** Query recent traces with optional filters. */
-  readonly query: (options?: DevStoreQueryOptions) => readonly Track[];
+  readonly query: (options?: DevStoreQueryOptions) => readonly TraceRecord[];
   /** Return the total number of stored records. */
   readonly count: () => number;
   /** Close the database connection. */
@@ -48,10 +48,10 @@ export interface TrackStore {
 }
 
 /** SQLite-backed dev store for persisting and querying track records. */
-export interface DevStore extends TrackStore, TrackSink {}
+export interface DevStore extends TraceStore, TraceSink {}
 
-/** Shape of a row returned from the tracker table. */
-interface TrackRow {
+/** Shape of a row returned from the tracing table. */
+interface TraceRow {
   readonly id: string;
   readonly trace_id: string;
   readonly root_id: string;
@@ -74,7 +74,7 @@ interface TrackRow {
 const buildPermit = (
   permitId: string | null,
   tenantId: string | null
-): Track['permit'] => {
+): TraceRecord['permit'] => {
   if (permitId === null) {
     return undefined;
   }
@@ -85,23 +85,23 @@ const buildPermit = (
 const parseAttrs = (raw: string | null): Readonly<Record<string, unknown>> =>
   raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
 
-/** Reconstruct a Track from a database row. */
-const rowToRecord = (row: TrackRow): Track => ({
+/** Reconstruct a TraceRecord from a database row. */
+const rowToRecord = (row: TraceRow): TraceRecord => ({
   attrs: parseAttrs(row.attrs),
   endedAt: row.ended_at ?? undefined,
   errorCategory: row.error_category ?? undefined,
   id: row.id,
-  intent: (row.intent ?? undefined) as Track['intent'],
-  kind: row.kind as Track['kind'],
+  intent: (row.intent ?? undefined) as TraceRecord['intent'],
+  kind: row.kind as TraceRecord['kind'],
   name: row.name,
   parentId: row.parent_id ?? undefined,
   permit: buildPermit(row.permit_id, row.permit_tenant_id),
   rootId: row.root_id,
   startedAt: row.started_at,
-  status: row.status as Track['status'],
+  status: row.status as TraceRecord['status'],
   traceId: row.trace_id,
   trailId: row.trail_id ?? undefined,
-  trailhead: (row.trailhead ?? undefined) as Track['trailhead'],
+  trailhead: (row.trailhead ?? undefined) as TraceRecord['trailhead'],
 });
 
 /** Filter definition: column condition and optional bound value. */
@@ -156,8 +156,8 @@ const serializeAttrs = (
 ): string | null =>
   Object.keys(attrs).length > 0 ? JSON.stringify(attrs) : null;
 
-/** Serialize a Track into positional INSERT parameters. */
-const recordToParams = (record: Track): SQLQueryBindings[] => [
+/** Serialize a TraceRecord into positional INSERT parameters. */
+const recordToParams = (record: TraceRecord): SQLQueryBindings[] => [
   record.id,
   record.traceId,
   record.rootId,
@@ -206,40 +206,73 @@ const createWriter = (
   insertStmt: ReturnType<Database['prepare']>,
   maxRecords: number,
   maxAge: number | undefined
-): ((record: Track) => void) =>
-  db.transaction((record: Track) => {
+): ((record: TraceRecord) => void) =>
+  db.transaction((record: TraceRecord) => {
     insertStmt.run(...recordToParams(record));
-    applyTrackCleanup(db, {
+    applyTraceCleanup(db, {
       maxRecords,
       ...(maxAge === undefined ? {} : { maxAge }),
     });
   });
 
-const resolveLegacyPath = (rootDir?: string): string =>
-  join(rootDir ?? process.cwd(), '.trails', 'dev', 'tracker.db');
+interface LegacyStoreCandidate {
+  readonly path: string;
+  readonly tableName: string;
+}
+
+const resolveLegacyCandidates = (
+  rootDir?: string
+): readonly LegacyStoreCandidate[] => {
+  const devDir = join(rootDir ?? process.cwd(), '.trails', 'dev');
+  return [
+    { path: join(devDir, 'tracing.db'), tableName: 'tracing' },
+    { path: join(devDir, 'tracker.db'), tableName: 'tracker' },
+  ];
+};
 
 const hasLegacyTrackerTable = (db: Database): boolean => {
   const row = db
-    .query<{ name: string }, []>(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'tracker'"
+    .query<{ name: string }, [string]>(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?"
     )
-    .get();
-  return row?.name === 'tracker';
+    .get(tableName);
+  return row?.name === tableName;
 };
 
 const shouldSkipLegacyMigration = (
   db: Database,
   _options: DevStoreOptions | undefined
-): boolean => countTrackRecords(db) > 0;
+): boolean => countTraceRecords(db) > 0;
 
-const readLegacyRows = (legacyDb: Database): readonly TrackRow[] => {
-  if (!hasLegacyTrackerTable(legacyDb)) {
-    return [];
+interface LegacyCandidateRows {
+  readonly matched: boolean;
+  readonly rows: readonly TraceRow[];
+}
+
+const readLegacyCandidateRows = (
+  candidate: LegacyStoreCandidate
+): LegacyCandidateRows => {
+  if (!existsSync(candidate.path)) {
+    return { matched: false, rows: [] };
   }
 
-  return legacyDb
-    .query<TrackRow, []>('SELECT * FROM tracker ORDER BY started_at ASC')
-    .all();
+  const legacyDb = new Database(candidate.path, { readonly: true });
+  try {
+    if (!hasLegacyTable(legacyDb, candidate.tableName)) {
+      return { matched: false, rows: [] };
+    }
+
+    return {
+      matched: true,
+      rows: legacyDb
+        .query<TraceRow, []>(
+          `SELECT * FROM ${candidate.tableName} ORDER BY started_at ASC`
+        )
+        .all(),
+    };
+  } finally {
+    legacyDb.close();
+  }
 };
 
 const openLegacyDb = (
@@ -253,18 +286,17 @@ const openLegacyDb = (
   return new Database(legacyPath, { readonly: true });
 };
 
-/** Read rows from the legacy DB and close it. Returns empty array if no legacy DB. */
-const drainLegacyRows = (
-  options: DevStoreOptions | undefined
-): readonly TrackRow[] => {
-  const legacyDb = openLegacyDb(options);
-  if (legacyDb === undefined) {
-    return [];
-  }
-  try {
-    return readLegacyRows(legacyDb);
-  } finally {
-    legacyDb.close();
+const removeLegacyDbFiles = (paths: readonly string[]): void => {
+  for (const path of paths) {
+    if (existsSync(path)) {
+      unlinkSync(path);
+    }
+    for (const suffix of ['-wal', '-shm']) {
+      const sidecar = `${path}${suffix}`;
+      if (existsSync(sidecar)) {
+        unlinkSync(sidecar);
+      }
+    }
   }
 };
 
@@ -282,7 +314,7 @@ const removeLegacyDbFiles = (options: DevStoreOptions | undefined): void => {
 const migrateLegacyStoreIfPresent = (
   db: Database,
   options: DevStoreOptions | undefined,
-  write: (record: Track) => void
+  write: (record: TraceRecord) => void
 ): void => {
   if (shouldSkipLegacyMigration(db, options)) {
     return;
@@ -297,14 +329,14 @@ const migrateLegacyStoreIfPresent = (
   removeLegacyDbFiles(options);
 };
 
-const createReadApi = (db: Database, defaultLimit: number): TrackStore => ({
+const createReadApi = (db: Database, defaultLimit: number): TraceStore => ({
   close: () => {
     db.close();
   },
-  count: () => countTrackRecords(db),
-  query: (queryOptions?: DevStoreQueryOptions): readonly Track[] => {
+  count: () => countTraceRecords(db),
+  query: (queryOptions?: DevStoreQueryOptions): readonly TraceRecord[] => {
     const { sql, params } = buildQuery(defaultLimit, queryOptions);
-    const rows = db.query<TrackRow, SQLQueryBindings[]>(sql).all(...params);
+    const rows = db.query<TraceRow, SQLQueryBindings[]>(sql).all(...params);
     return rows.map(rowToRecord);
   },
 });
@@ -322,7 +354,7 @@ export const createDevStore = (options?: DevStoreOptions): DevStore => {
     ...(options?.path === undefined ? {} : { path: options.path }),
     ...(options?.rootDir === undefined ? {} : { rootDir: options.rootDir }),
   });
-  ensureTrackSchema(db);
+  ensureTraceSchema(db);
   const insertStmt = db.prepare(UPSERT_SQL);
   const write = createWriter(db, insertStmt, maxRecords, maxAge);
   migrateLegacyStoreIfPresent(db, options, write);
@@ -330,12 +362,12 @@ export const createDevStore = (options?: DevStoreOptions): DevStore => {
 };
 
 /**
- * Read-only view of a TrackStore.
+ * Read-only view of a TraceStore.
  *
- * `close()` is a no-op — consumers of this view (e.g. the tracker resource)
+ * `close()` is a no-op — consumers of this view (e.g. the tracing resource)
  * must not close the underlying connection they don't own.
  */
-export const toTrackStore = (store: TrackStore): TrackStore => ({
+export const toTraceStore = (store: TraceStore): TraceStore => ({
   close: () => {
     // Intentional no-op: read-only view must not close the underlying DB.
   },

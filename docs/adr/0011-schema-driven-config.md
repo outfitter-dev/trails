@@ -24,7 +24,7 @@ const db = resource('db.main', {
 
 This works. It's also manual parsing with no validation, no defaults, no documentation, and no type safety. Every resource duplicates the same pattern: read a string from `process.env`, hope it's there, cast it to the right type, move on.
 
-Config feeds everything in a Trails app. Resource factories need connection strings. Auth layers need JWT secrets. Tracker needs sampling rates. The question isn't whether config needs a system — it's whether the system can follow the Trails pattern: author a typed contract, derive the rest.
+Config feeds everything in a Trails app. Resource factories need connection strings. Auth layers need JWT secrets. Tracing needs sampling rates. The question isn't whether config needs a system — it's whether the system can follow the Trails pattern: author a typed contract, derive the rest.
 
 ### What config touches
 
@@ -32,7 +32,7 @@ Config is upstream of everything that runs:
 
 - **Resources** — `svc.config.db.url` instead of `svc.env?.DATABASE_URL`
 - **Auth** — JWT secrets, issuer URLs, token lifetimes
-- **Tracker** — sampling rates, enabled/disabled, export targets
+- **Tracing** — sampling rates, enabled/disabled, export targets
 - **Layers** — transaction boundaries, caching TTLs, rate limits
 
 Today none of these have a typed contract. Each reads raw strings from the environment and parses them independently.
@@ -122,7 +122,7 @@ export default defineConfig({
       jwtSecret: secret(env(z.string(), 'JWT_SECRET')),
       issuer: z.string().default('https://auth.example.com'),
     }),
-    tracker: z.object({
+    tracing: z.object({
       enabled: z.boolean().default(true),
       samplingRate: z.number().default(1.0),
     }),
@@ -354,4 +354,4 @@ This keeps config resolution predictable and fast. The entire config tree resolv
 - [ADR-0000: Core Premise](0000-core-premise.md) — "one write, many reads" and "derive by default" — config derives discovery, validation, examples, and introspection from a single schema declaration
 - [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — resources declare config schemas via the reserved `config` field; config enriches `ProvisionContext`
 - [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — config is the first infrastructure package following the resource + layer + trails trifecta
-- [ADR-0013: Tracker](0013-tracker.md) — tracker consume config for sampling rates and export targets
+- [ADR-0013: Tracing](0013-tracing.md) — tracing consume config for sampling rates and export targets

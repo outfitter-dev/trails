@@ -1,9 +1,9 @@
-export { type Track, createTrack } from './track.js';
+export { type TraceRecord, createTraceRecord } from './trace-record.js';
 export {
-  createTrackerGate,
+  createTracingLayer,
   type TrackerGateOptions,
-  type TrackSink,
-} from './tracker-gate.js';
+  type TraceSink,
+} from './tracing-layer.js';
 export { createMemorySink } from './memory-sink.js';
 export {
   type TraceContext,
@@ -21,27 +21,27 @@ export {
   TRACKER_API_KEY,
   type TrackerApi,
   type TrackerApiWithState,
-} from './tracker-api.js';
-export { tracker } from './tracker-accessor.js';
-export { trackerProvision } from './tracker-provision.js';
-export { trackerStatus } from './trails/tracker-status.js';
-export { trackerQuery } from './trails/tracker-query.js';
+} from './tracing-api.js';
+export { tracing } from './tracing-accessor.js';
+export { trackerProvision } from './tracing-provision.js';
+export { trackerStatus } from './trails/tracing-status.js';
+export { trackerQuery } from './trails/tracing-query.js';
 export {
-  clearTrackStore,
+  clearTraceStore,
   clearTrackerState,
-  getTrackStore,
+  getTraceStore,
   getTrackerState,
-  registerTrackStore,
+  registerTraceStore,
   registerTrackerState,
   type TrackerState,
-} from './tracker-state.js';
+} from './tracing-state.js';
 export {
   createDevStore,
   type DevStore,
   type DevStoreOptions,
   type DevStoreQueryOptions,
-  type TrackStore,
-  toTrackStore,
+  type TraceStore,
+  toTraceStore,
 } from './stores/dev.js';
 export {
   createOtelConnector,
