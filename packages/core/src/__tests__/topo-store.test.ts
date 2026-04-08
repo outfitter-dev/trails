@@ -302,6 +302,51 @@ const simpleProjectionApp = (withList: boolean) =>
       : {}),
   });
 
+const expectDisposableSaveCascaded = (
+  db: ReturnType<typeof openWriteTrailsDb>,
+  disposableId: string
+): void => {
+  expect(countRows(db, 'topo_trails', disposableId)).toBe(0);
+  expect(countRows(db, 'topo_crossings', disposableId)).toBe(0);
+  expect(countRows(db, 'topo_examples', disposableId)).toBe(0);
+  expect(countRows(db, 'topo_schemas', disposableId)).toBe(0);
+  expect(countRows(db, 'topo_trail_fires', disposableId)).toBe(0);
+  expect(countRows(db, 'topo_trail_on', disposableId)).toBe(0);
+};
+
+const expectSignalEdgeCounts = (
+  db: ReturnType<typeof openWriteTrailsDb>,
+  saveId: string,
+  count: number
+): void => {
+  expect(countRows(db, 'topo_trail_fires', saveId)).toBe(count);
+  expect(countRows(db, 'topo_trail_on', saveId)).toBe(count);
+};
+
+const buildSignalPruneApp = () => {
+  const created = signal('entity.created', {
+    from: ['entity.create'],
+    payload: z.object({ id: z.string() }),
+  });
+  const createTrail = trail('entity.create', {
+    blaze: () => Result.ok({ id: 'x' }),
+    fires: ['entity.created'],
+    input: z.object({}),
+    output: z.object({ id: z.string() }),
+  });
+  const indexTrail = trail('entity.index', {
+    blaze: () => Result.ok({ ok: true }),
+    input: z.object({}),
+    on: ['entity.created'],
+    output: z.object({ ok: z.boolean() }),
+  });
+  return topo('prune-signal-app', {
+    createTrail,
+    created,
+    indexTrail,
+  });
+};
+
 const seedHistoryOnlyTopoSchema = (
   db: ReturnType<typeof openWriteTrailsDb>
 ): void => {
@@ -425,26 +470,30 @@ describe('topo store projection', () => {
 
   test("pruning an unpinned save removes only that save's projected rows", () => {
     withProjectionDb((db) => {
-      const app = exampleApp();
       const pinned = unwrap(
-        persistEstablishedTopoSave(db, app, {
+        persistEstablishedTopoSave(db, buildSignalPruneApp(), {
           createdAt: '2026-04-03T12:00:00.000Z',
         })
       );
       pinTopoSave(db, { name: 'before-auth', saveId: pinned.id });
 
       const disposable = unwrap(
-        persistEstablishedTopoSave(db, app, {
+        persistEstablishedTopoSave(db, buildSignalPruneApp(), {
           createdAt: '2026-04-03T12:05:00.000Z',
         })
       );
 
+      // Pre-prune: both saves have fires/on rows so the cascade is non-vacuous.
+      expectSignalEdgeCounts(db, pinned.id, 1);
+      expectSignalEdgeCounts(db, disposable.id, 1);
+
       expect(pruneUnpinnedTopoSaves(db, { keep: 0 })).toBe(1);
-      expectProjectionCounts(db, pinned.id);
-      expect(countRows(db, 'topo_trails', disposable.id)).toBe(0);
-      expect(countRows(db, 'topo_crossings', disposable.id)).toBe(0);
-      expect(countRows(db, 'topo_examples', disposable.id)).toBe(0);
-      expect(countRows(db, 'topo_schemas', disposable.id)).toBe(0);
+
+      // Pinned save retains its projected rows, including fires/on edges.
+      expect(countRows(db, 'topo_trails', pinned.id)).toBe(2);
+      expectSignalEdgeCounts(db, pinned.id, 1);
+
+      expectDisposableSaveCascaded(db, disposable.id);
     });
   });
 
