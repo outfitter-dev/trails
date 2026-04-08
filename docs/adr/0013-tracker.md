@@ -10,6 +10,8 @@ owners: ['[galligan](https://github.com/galligan)']
 
 # ADR-0013: Tracker — Runtime Recording Primitive
 
+> **Status update (2026-04-08):** Partially superseded by [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) and implemented via TRL-196. The tracker→tracing rename, the trackerGate → intrinsic-in-`executeTrail` collapse, and the `ctx.trace(label, fn)` API replacing `tracker.from(ctx).track(...)` all land through that ADR. The underlying recording, sink, and sampling design described here still governs; only the attachment mechanism and naming changed.
+
 ## Context
 
 The framework can already declare what a trail is, what it needs, and how it behaves. What it still needs is a first-class record of what actually happened at runtime:

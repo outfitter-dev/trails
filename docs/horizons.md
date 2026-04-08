@@ -14,7 +14,7 @@
 
 **Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. `authGate` extracts credentials from trailhead-specific sources, `AuthConnector` resolves them to a `Permit` (identity, scopes, roles), and scope enforcement rejects unauthorized access. Includes JWT connector, governance rules (`validatePermits`), and test helpers (`mintTestPermit`, `mintPermitForTrail`).
 
-**Tracing (`@ontrails/tracing`).** Telemetry recording with `createTracingLayer` capturing execution duration, errors, and trace context propagation for every trail invocation. Pluggable sinks: `createMemorySink` for testing, `createDevStore` for local development, `createOtelConnector` for production OpenTelemetry export. Sampling configuration controls recording volume.
+**Tracing (intrinsic in `@ontrails/core`, sinks in `@ontrails/tracing`).** Every `executeTrail` invocation produces a `TraceRecord` automatically — no layer attachment required. `ctx.trace(label, fn)` records nested spans inside a trail blaze. Pluggable sinks register via `registerTraceSink()`: `createMemorySink` for testing, `createDevStore` for local development, `createOtelConnector` for production OpenTelemetry export. Sampling configuration controls recording volume.
 
 ## Mid-term (v1.3+)
 

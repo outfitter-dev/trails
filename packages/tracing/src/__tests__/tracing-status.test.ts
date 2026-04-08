@@ -2,12 +2,12 @@ import { describe, expect, test } from 'bun:test';
 import { createProvisionLookup } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 
-import type { TrackerState } from '../tracing-state.js';
+import type { TracingState } from '../tracing-state.js';
 import { DEFAULT_SAMPLING } from '../sampling.js';
-import { trackerStatus } from '../trails/tracing-status.js';
+import { tracingStatus } from '../trails/tracing-status.js';
 
-/** Build a TrailContext with trackerProvision resolved in extensions. */
-const buildCtx = (state: TrackerState): TrailContext => {
+/** Build a TrailContext with tracingProvision resolved in extensions. */
+const buildCtx = (state: TracingState): TrailContext => {
   const extensions = { tracing: state };
   const ctx: TrailContext = {
     abortSignal: AbortSignal.timeout(5000),
@@ -26,7 +26,7 @@ const buildCtx = (state: TrackerState): TrailContext => {
 };
 
 /** Default test state. */
-const defaultState: TrackerState = {
+const defaultState: TracingState = {
   active: true,
   sampling: DEFAULT_SAMPLING,
   store: undefined,
@@ -35,32 +35,32 @@ const defaultState: TrackerState = {
 describe('tracing.status', () => {
   describe('contract', () => {
     test('has correct id', () => {
-      expect(trackerStatus.id).toBe('tracing.status');
+      expect(tracingStatus.id).toBe('tracing.status');
     });
 
     test('has read intent', () => {
-      expect(trackerStatus.intent).toBe('read');
+      expect(tracingStatus.intent).toBe('read');
     });
 
     test('has infrastructure meta', () => {
-      expect(trackerStatus.meta).toEqual({ category: 'infrastructure' });
+      expect(tracingStatus.meta).toEqual({ category: 'infrastructure' });
     });
 
     test('has examples', () => {
-      expect(trackerStatus.examples).toBeDefined();
-      expect(trackerStatus.examples?.length).toBeGreaterThan(0);
+      expect(tracingStatus.examples).toBeDefined();
+      expect(tracingStatus.examples?.length).toBeGreaterThan(0);
     });
 
-    test('declares trackerProvision in resources', () => {
-      expect(trackerStatus.resources).toBeDefined();
-      expect(trackerStatus.resources?.length).toBe(1);
+    test('declares tracingProvision in resources', () => {
+      expect(tracingStatus.resources).toBeDefined();
+      expect(tracingStatus.resources?.length).toBe(1);
     });
   });
 
   describe('run', () => {
     test('returns active from state', async () => {
       const ctx = buildCtx(defaultState);
-      const result = await trackerStatus.blaze({}, ctx);
+      const result = await tracingStatus.blaze({}, ctx);
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
       expect(value.active).toBe(true);
@@ -68,21 +68,21 @@ describe('tracing.status', () => {
 
     test('returns inactive when state says so', async () => {
       const ctx = buildCtx({ ...defaultState, active: false });
-      const result = await trackerStatus.blaze({}, ctx);
+      const result = await tracingStatus.blaze({}, ctx);
       const value = result.unwrap();
       expect(value.active).toBe(false);
     });
 
     test('returns recordCount of 0 for v1', async () => {
       const ctx = buildCtx(defaultState);
-      const result = await trackerStatus.blaze({}, ctx);
+      const result = await tracingStatus.blaze({}, ctx);
       const value = result.unwrap();
       expect(value.recordCount).toBe(0);
     });
 
     test('returns sampling config from state', async () => {
       const ctx = buildCtx(defaultState);
-      const result = await trackerStatus.blaze({}, ctx);
+      const result = await tracingStatus.blaze({}, ctx);
       const value = result.unwrap();
       expect(value.samplingConfig).toEqual({
         destroy: DEFAULT_SAMPLING.destroy,
@@ -94,7 +94,7 @@ describe('tracing.status', () => {
     test('returns custom sampling when state overrides defaults', async () => {
       const custom = { destroy: 0.5, read: 0.1, write: 0.9 };
       const ctx = buildCtx({ ...defaultState, sampling: custom });
-      const result = await trackerStatus.blaze({}, ctx);
+      const result = await tracingStatus.blaze({}, ctx);
       const value = result.unwrap();
       expect(value.samplingConfig).toEqual(custom);
     });

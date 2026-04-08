@@ -1,35 +1,35 @@
 import { Result, resource } from '@ontrails/core';
 
-import type { TrackerState } from './tracing-state.js';
-import { getTrackerState } from './tracing-state.js';
+import type { TracingState } from './tracing-state.js';
+import { getTracingState } from './tracing-state.js';
 import { DEFAULT_SAMPLING } from './sampling.js';
 import { toTraceStore } from './stores/dev.js';
 
 /** Default state when no explicit state has been registered. */
-const defaultState: TrackerState = {
+const defaultState: TracingState = {
   active: true,
   sampling: DEFAULT_SAMPLING,
   store: undefined,
 };
 
 /**
- * Telemetry recording and query resource.
+ * Telemetry query resource.
  *
- * Wraps the tracing store, sampling config, and active flag as a single
- * `TrackerState` accessible to trails via `trackerProvision.from(ctx)`.
+ * Exposes the current tracing store, sampling config, and active flag as a
+ * single `TracingState` accessible to trails via `tracingProvision.from(ctx)`.
  *
  * Unlike config, tracing gracefully defaults when no state is registered —
  * telemetry should never fail to start.
  */
-export const trackerProvision = resource<TrackerState>('tracing', {
+export const tracingProvision = resource<TracingState>('tracing', {
   create: () => {
-    const state = getTrackerState() ?? defaultState;
+    const state = getTracingState() ?? defaultState;
     return Result.ok({
       ...state,
       store: state.store ? toTraceStore(state.store) : undefined,
     });
   },
-  description: 'Telemetry recording and query resource',
+  description: 'Telemetry query resource',
   meta: { category: 'infrastructure' },
-  mock: (): TrackerState => ({ ...defaultState }),
+  mock: (): TracingState => ({ ...defaultState }),
 });

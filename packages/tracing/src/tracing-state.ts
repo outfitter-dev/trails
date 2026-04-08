@@ -2,31 +2,32 @@ import { DEFAULT_SAMPLING } from './sampling.js';
 import type { SamplingConfig } from './sampling.js';
 import type { TraceStore } from './stores/dev.js';
 
-/** Full telemetry subsystem state carried by trackerProvision. */
-export interface TrackerState {
+/** Full telemetry subsystem state carried by tracingProvision. */
+export interface TracingState {
   readonly active: boolean;
   readonly sampling: SamplingConfig;
   readonly store: TraceStore | undefined;
 }
 
-let state: TrackerState | undefined;
+// oxlint-disable-next-line eslint-plugin-jest/require-hook -- module-level state registry, not test setup
+let state: TracingState | undefined;
 
 /** Register telemetry state at bootstrap. */
-export const registerTrackerState = (s: TrackerState): void => {
+export const registerTracingState = (s: TracingState): void => {
   state = s;
 };
 
 /** Read the registered telemetry state. Returns `undefined` before registration. */
-export const getTrackerState = (): TrackerState | undefined => state;
+export const getTracingState = (): TracingState | undefined => state;
 
 /** Clear registered state. Primarily useful in tests. */
-export const clearTrackerState = (): void => {
+export const clearTracingState = (): void => {
   state = undefined;
 };
 
-// --- Backward-compatible convenience wrappers ---
+// --- Convenience wrappers for store-only registration ---
 
-/** Register a track store instance for use by the tracing.query trail. */
+/** Register a trace store instance for use by the tracing.query trail. */
 export const registerTraceStore = (s: TraceStore): void => {
   state = {
     active: state?.active ?? true,
@@ -35,7 +36,7 @@ export const registerTraceStore = (s: TraceStore): void => {
   };
 };
 
-/** Retrieve the currently registered track store, if any. */
+/** Retrieve the currently registered trace store, if any. */
 export const getTraceStore = (): TraceStore | undefined => state?.store;
 
 /** Clear the registered store. Useful for testing teardown. */

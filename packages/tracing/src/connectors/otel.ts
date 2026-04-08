@@ -1,5 +1,4 @@
-import type { TraceRecord } from '../trace-record.js';
-import type { TraceSink } from '../tracing-layer.js';
+import type { TraceRecord, TraceSink } from '@ontrails/core';
 
 /** OTel span representation produced by the connector. */
 export interface OtelSpan {

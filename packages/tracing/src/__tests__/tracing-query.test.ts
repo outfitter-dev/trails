@@ -7,14 +7,14 @@ import { createProvisionLookup } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 
 import type { TraceRecord } from '../trace-record.js';
-import type { TrackerState } from '../tracing-state.js';
+import type { TracingState } from '../tracing-state.js';
 import { DEFAULT_SAMPLING } from '../sampling.js';
 import type { DevStore } from '../stores/dev.js';
 import { createDevStore } from '../stores/dev.js';
-import { trackerQuery } from '../trails/tracing-query.js';
+import { tracingQuery } from '../trails/tracing-query.js';
 
-/** Build a TrailContext with trackerProvision resolved in extensions. */
-const buildCtx = (state: TrackerState): TrailContext => {
+/** Build a TrailContext with tracingProvision resolved in extensions. */
+const buildCtx = (state: TracingState): TrailContext => {
   const extensions = { tracing: state };
   const ctx: TrailContext = {
     abortSignal: AbortSignal.timeout(5000),
@@ -48,7 +48,7 @@ const makeRecord = (overrides?: Partial<TraceRecord>): TraceRecord => ({
 });
 
 /** Default state without a store. */
-const noStoreState: TrackerState = {
+const noStoreState: TracingState = {
   active: true,
   sampling: DEFAULT_SAMPLING,
   store: undefined,
@@ -65,8 +65,8 @@ const createTestStore = (): { cleanup: () => void; store: DevStore } => {
   return { cleanup, store };
 };
 
-/** Build a TrackerState with a real store. */
-const stateWithStore = (store: DevStore): TrackerState => ({
+/** Build a TracingState with a real store. */
+const stateWithStore = (store: DevStore): TracingState => ({
   active: true,
   sampling: DEFAULT_SAMPLING,
   store,
@@ -75,25 +75,25 @@ const stateWithStore = (store: DevStore): TrackerState => ({
 describe('tracing.query', () => {
   describe('contract', () => {
     test('has correct id', () => {
-      expect(trackerQuery.id).toBe('tracing.query');
+      expect(tracingQuery.id).toBe('tracing.query');
     });
 
     test('has read intent', () => {
-      expect(trackerQuery.intent).toBe('read');
+      expect(tracingQuery.intent).toBe('read');
     });
 
     test('has infrastructure meta', () => {
-      expect(trackerQuery.meta).toEqual({ category: 'infrastructure' });
+      expect(tracingQuery.meta).toEqual({ category: 'infrastructure' });
     });
 
     test('has examples', () => {
-      expect(trackerQuery.examples).toBeDefined();
-      expect(trackerQuery.examples?.length).toBeGreaterThanOrEqual(3);
+      expect(tracingQuery.examples).toBeDefined();
+      expect(tracingQuery.examples?.length).toBeGreaterThanOrEqual(3);
     });
 
-    test('declares trackerProvision in resources', () => {
-      expect(trackerQuery.resources).toBeDefined();
-      expect(trackerQuery.resources?.length).toBe(1);
+    test('declares tracingProvision in resources', () => {
+      expect(tracingQuery.resources).toBeDefined();
+      expect(tracingQuery.resources?.length).toBe(1);
     });
   });
 
@@ -107,7 +107,7 @@ describe('tracing.query', () => {
 
     test('returns empty records when state has no store', async () => {
       const ctx = buildCtx(noStoreState);
-      const result = await trackerQuery.blaze({}, ctx);
+      const result = await tracingQuery.blaze({}, ctx);
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
       expect(value.count).toBe(0);
@@ -129,7 +129,7 @@ describe('tracing.query', () => {
       );
 
       const ctx = buildCtx(stateWithStore(testStore.store));
-      const result = await trackerQuery.blaze({}, ctx);
+      const result = await tracingQuery.blaze({}, ctx);
       const value = result.unwrap();
 
       expect(value.count).toBe(1);
@@ -152,7 +152,7 @@ describe('tracing.query', () => {
       testStore.store.write(makeRecord({ id: 'b', trailId: 'user.list' }));
 
       const ctx = buildCtx(stateWithStore(testStore.store));
-      const result = await trackerQuery.blaze({ trailId: 'user.create' }, ctx);
+      const result = await tracingQuery.blaze({ trailId: 'user.create' }, ctx);
       const value = result.unwrap();
 
       expect(value.count).toBe(1);
@@ -166,7 +166,7 @@ describe('tracing.query', () => {
       testStore.store.write(makeRecord({ id: 'err-1', status: 'err' }));
 
       const ctx = buildCtx(stateWithStore(testStore.store));
-      const result = await trackerQuery.blaze({ errorsOnly: true }, ctx);
+      const result = await tracingQuery.blaze({ errorsOnly: true }, ctx);
       const value = result.unwrap();
 
       expect(value.count).toBe(1);

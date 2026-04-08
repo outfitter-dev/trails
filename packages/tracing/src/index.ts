@@ -1,46 +1,45 @@
-export { type TraceRecord, createTraceRecord } from './trace-record.js';
+// Core tracing primitives — re-exported from @ontrails/core so existing
+// imports of these symbols from @ontrails/tracing keep working.
 export {
+  TRACE_CONTEXT_KEY,
+  type TraceContext,
+  type TraceFn,
+  type TraceRecord,
+  type TraceSink,
+  type TraceSinkLike,
   clearTraceSink,
+  createTraceRecord,
+  getTraceContext,
   getTraceSink,
   registerTraceSink,
-  type TraceSinkLike,
 } from '@ontrails/core';
-export {
-  createTracingLayer,
-  type TrackerGateOptions,
-  type TraceSink,
-} from './tracing-layer.js';
+
+// Tracing-package-owned utilities
 export { createMemorySink } from './memory-sink.js';
-export {
-  type TraceContext,
-  getTraceContext,
-  childTraceContext,
-  TRACE_CONTEXT_KEY,
-} from './trace-context.js';
+export { childTraceContext } from './trace-context.js';
 export {
   shouldSample,
   DEFAULT_SAMPLING,
   type SamplingConfig,
 } from './sampling.js';
-export {
-  createTrackerApi,
-  TRACKER_API_KEY,
-  type TrackerApi,
-  type TrackerApiWithState,
-} from './tracing-api.js';
-export { tracing } from './tracing-accessor.js';
-export { trackerProvision } from './tracing-provision.js';
-export { trackerStatus } from './trails/tracing-status.js';
-export { trackerQuery } from './trails/tracing-query.js';
+
+// Public provision + trails
+export { tracingProvision } from './tracing-provision.js';
+export { tracingStatus } from './trails/tracing-status.js';
+export { tracingQuery } from './trails/tracing-query.js';
+
+// Bootstrap state registry
 export {
   clearTraceStore,
-  clearTrackerState,
+  clearTracingState,
   getTraceStore,
-  getTrackerState,
+  getTracingState,
   registerTraceStore,
-  registerTrackerState,
-  type TrackerState,
+  registerTracingState,
+  type TracingState,
 } from './tracing-state.js';
+
+// Dev store
 export {
   createDevStore,
   type DevStore,
@@ -49,6 +48,8 @@ export {
   type TraceStore,
   toTraceStore,
 } from './stores/dev.js';
+
+// OTel connector
 export {
   createOtelConnector,
   type OtelConnectorOptions,

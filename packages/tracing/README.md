@@ -1,42 +1,63 @@
 # @ontrails/tracing
 
-Automatic trail execution recording — just add a gate.
+Sinks and query trails for the intrinsic tracing that ships in `@ontrails/core`.
 
-Tracing wraps every trail invocation to capture timing, status, and parentage, then writes records to a sink. Supports intent-based sampling, manual instrumentation through spans and annotations, and multiple backends (memory, SQLite dev store, OpenTelemetry).
+Tracing is built into `executeTrail` — every trail execution produces a `TraceRecord` automatically. This package provides the pluggable sinks, manual span API via `ctx.trace()`, and query trails that let you inspect recorded history. See [ADR-0023](../../docs/adr/0023-simplifying-the-trails-lexicon.md) for the design rationale.
 
 ## The core pattern
 
-### 1. Create a sink
+### 1. Register a sink
 
 ```typescript
-import { createMemorySink } from '@ontrails/tracing';
+import { createMemorySink, registerTraceSink } from '@ontrails/tracing';
 
 const sink = createMemorySink();
+registerTraceSink(sink);
 ```
 
-Sinks receive completed TraceRecord records. Use a memory sink for testing, a dev store for local development, or an OTel connector to forward to your collector.
+Sinks receive completed `TraceRecord` records. The default sink is a no-op — tracing always works without configuration, but records are dropped until you register a real sink. Use a memory sink for testing, a dev store for local development, or an OTel connector to forward to your collector.
 
-### 2. Create a gate and register it
+### 2. Run trails
+
+Tracing happens automatically. No layer attachment, no per-trail wiring.
 
 ```typescript
-import { createTracingLayer } from '@ontrails/tracing';
+await run(app, 'user.create', { name: 'alice' });
 
-const gate = createTracingLayer(sink);
+// sink.records now contains a root TraceRecord for the execution
 ```
 
-The gate intercepts every trail and wraps its execution. No trails need to change — tracking is automatic.
+### 3. Manual spans inside a blaze
 
-## The tracing provision
-
-Access tracing state from any trail:
+Use `ctx.trace(label, fn)` to record nested spans for substeps:
 
 ```typescript
-import { trackerProvision } from '@ontrails/tracing';
+export const processUser = trail('user.process', {
+  blaze: async (input, ctx) => {
+    const user = await ctx.trace('load-user', async () => {
+      return await db.users.get(input.userId);
+    });
+    const enriched = await ctx.trace('enrich', async () => {
+      return await enrich(user);
+    });
+    return Result.ok(enriched);
+  },
+});
+```
+
+Each `ctx.trace()` call creates a child span under the trail's root trace record. Spans time their callback, record errors, and flush to the registered sink.
+
+## The tracing resource
+
+Access tracing state from any trail — for example, to report status or count records:
+
+```typescript
+import { tracingProvision } from '@ontrails/tracing';
 
 export const checkStatus = trail('status.check', {
-  provisions: [trackerProvision],
+  resources: [tracingProvision],
   blaze: (_input, ctx) => {
-    const state = trackerProvision.from(ctx);
+    const state = tracingProvision.from(ctx);
     return Result.ok({
       active: state.active,
       recordCount: state.store?.count() ?? 0,
@@ -45,24 +66,22 @@ export const checkStatus = trail('status.check', {
 });
 ```
 
-## Trail definitions
+## Built-in query trails
 
-### `tracing.status`
+### `tracingStatus`
 
-Reports the current tracking state — active status, record count, sampling config.
+Reports the current tracing state — active status, record count, sampling config.
 
-### `tracing.query`
+### `tracingQuery`
 
-Query execution history from the dev store:
-
-The trail accepts these inputs:
+Query execution history from the dev store. Accepts:
 
 - `trailId` — filter by trail ID
 - `errorsOnly` — show only failed executions
 - `traceId` — retrieve a full trace tree
 - `limit` — cap the number of results
 
-Use `run()` or `ctx.cross('tracing.query', { trailId: 'user.create' })` to invoke it programmatically.
+Invoke programmatically via `run()` or `ctx.cross('tracing.query', { trailId: 'user.create' })`.
 
 ## Sinks
 
@@ -71,13 +90,17 @@ Use `run()` or `ctx.cross('tracing.query', { trailId: 'user.create' })` to invok
 For testing and demos:
 
 ```typescript
+import { createMemorySink, registerTraceSink, clearTraceSink } from '@ontrails/tracing';
+
 const sink = createMemorySink();
-const gate = createTracingLayer(sink);
-
-// ... run trails ...
-
-expect(sink.records).toHaveLength(3);
-expect(sink.records[0]?.status).toBe('ok');
+registerTraceSink(sink);
+try {
+  // ... run trails ...
+  expect(sink.records).toHaveLength(3);
+  expect(sink.records[0]?.status).toBe('ok');
+} finally {
+  clearTraceSink();
+}
 ```
 
 ### Dev store
@@ -85,15 +108,14 @@ expect(sink.records[0]?.status).toBe('ok');
 SQLite-backed persistence for local development:
 
 ```typescript
-import { createDevStore } from '@ontrails/tracing';
+import { createDevStore, toTraceStore, registerTraceSink } from '@ontrails/tracing';
 
 const store = createDevStore({
   path: './debug.db',
   maxRecords: 50000,
   maxAge: 1000 * 60 * 60 * 24 * 30,
 });
-
-const gate = createTracingLayer(store);
+registerTraceSink(toTraceStore(store));
 ```
 
 The dev store uses WAL mode and prunes automatically.
@@ -103,7 +125,7 @@ The dev store uses WAL mode and prunes automatically.
 Export traces to any OTel-compatible collector:
 
 ```typescript
-import { createOtelConnector } from '@ontrails/tracing';
+import { createOtelConnector, registerTraceSink } from '@ontrails/tracing';
 
 const sink = createOtelConnector({
   exporter: async (spans) => {
@@ -111,69 +133,43 @@ const sink = createOtelConnector({
   },
   batchSize: 50,
 });
+registerTraceSink(sink);
 ```
 
-The connector translates TraceRecord records to OTel spans with Trails-namespaced attributes (`trails.trail.id`, `trails.intent`, `trails.trailhead`, `trails.permit.id`).
+The connector translates `TraceRecord` records to OTel spans with Trails-namespaced attributes (`trails.trail.id`, `trails.intent`, `trails.trailhead`, `trails.permit.id`).
 
 ## Sampling
 
-By default, tracing samples traces based on intent:
+Sampling configuration controls recording volume per intent:
 
-- `read` operations: sampled (low rate)
+- `read` operations: sampled (low rate by default)
 - `write` operations: 100%
 - `destroy` operations: 100%
 
-Override sampling per gate:
-
 ```typescript
-const gate = createTracingLayer(sink, {
-  sampling: { read: 0.1, write: 1.0, destroy: 1.0 },
-  keepOnError: true, // Promote sampled-out traces if they fail
-});
-```
+import { shouldSample, DEFAULT_SAMPLING } from '@ontrails/tracing';
 
-## Manual instrumentation
-
-### Spans
-
-Create child spans within a trail to break timing into segments:
-
-```typescript
-import { tracing } from '@ontrails/tracing';
-
-export const processUser = trail('user.process', {
-  blaze: async (input, ctx) => {
-    const api = tracing.from(ctx);
-    const user = await api.span('load-user', async () => {
-      return await db.users.get(input.userId);
-    });
-    return Result.ok(user);
-  },
-});
-```
-
-### Annotations
-
-Add context to a trail's record:
-
-```typescript
-const api = tracing.from(ctx);
-api.annotate({ userId: input.userId, dataSize: bytes });
+const config = { ...DEFAULT_SAMPLING, read: 0.1 };
+if (shouldSample('read', config)) {
+  // ...record
+}
 ```
 
 ## Testing
 
 ```typescript
-import { createMemorySink, createTracingLayer } from '@ontrails/tracing';
+import { createMemorySink, registerTraceSink, clearTraceSink } from '@ontrails/tracing';
 import { testAll } from '@ontrails/testing';
 
 const sink = createMemorySink();
-const results = testAll(app, {
-  gates: [createTracingLayer(sink)],
-});
-
-expect(sink.records).toHaveLength(5);
-expect(sink.records.filter((r) => r.status === 'err')).toHaveLength(0);
+registerTraceSink(sink);
+try {
+  const results = await testAll(app);
+  expect(sink.records).toHaveLength(5);
+  expect(sink.records.filter((r) => r.status === 'err')).toHaveLength(0);
+} finally {
+  clearTraceSink();
+}
 ```
 
 ## Installation

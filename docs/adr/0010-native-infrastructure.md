@@ -44,7 +44,7 @@ Every infrastructure package ships three kinds of primitives:
 
 | Primitive | Purpose | Config example | Permits example | Tracing example |
 |---|---|---|---|---|
-| **Resource** | Lifecycle (create, cache, dispose, health, mock) | `configProvision` | `authProvision` | `trackerProvision` |
+| **Resource** | Lifecycle (create, cache, dispose, health, mock) | `configProvision` | `authProvision` | `tracingProvision` |
 | **Layer** | Cross-cutting execution wrapping | `configGate` | `authGate` | `tracingLayer` |
 | **Trail** | Inspectable operations (`intent: 'read'` in v1) | `config.explain` | `auth.verify` | `tracing.status` |
 

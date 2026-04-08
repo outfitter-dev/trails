@@ -10,7 +10,12 @@ import type { AnyTrail } from './trail.js';
 import type { Layer } from './layer.js';
 import type { ProvisionOverrideMap } from './resource.js';
 import type { TraceContext, TraceRecord } from './internal/tracing.js';
-import type { TraceFn, TrailContext, TrailContextInit } from './types.js';
+import type {
+  Implementation,
+  TraceFn,
+  TrailContext,
+  TrailContextInit,
+} from './types.js';
 
 import { composeLayers } from './layer.js';
 import { createTrailContext } from './context.js';
@@ -18,7 +23,6 @@ import { CancelledError, InternalError, TrailsError } from './errors.js';
 import {
   TRACE_CONTEXT_KEY,
   completeRecord,
-  createRootTraceContext,
   createSpanRecord,
   createTraceRecord,
   getTraceSink,
@@ -219,14 +223,11 @@ const buildTraceFn = (parent: TraceContext): TraceFn => {
  * layered pipeline, and writes the completed root record to the sink
  * regardless of success or failure.
  */
-const runTrail = async (
+/** Build the root trace record + trace-enriched context for a trail run. */
+const buildTracedContext = (
   trail: AnyTrail,
-  input: unknown,
-  ctx: TrailContext,
-  layers: readonly Layer[]
-): Promise<Result<unknown, Error>> => {
-  const sink = getTraceSink();
-  const traceCtx = createRootTraceContext();
+  ctx: TrailContext
+): { readonly record: TraceRecord; readonly tracedCtx: TrailContext } => {
   const record = createTraceRecord({
     intent: trail.intent,
     permit: extractPermit(ctx),
@@ -234,10 +235,13 @@ const runTrail = async (
     trailhead: ctx.extensions?.[TRAILHEAD_KEY] as TraceRecord['trailhead'],
   });
 
+  // Root trace context aligns traceId/rootId/spanId to the root record id so
+  // child spans created via ctx.trace parent correctly to the visible record.
   const rootTrace: TraceContext = {
-    ...traceCtx,
     rootId: record.id,
+    sampled: true,
     spanId: record.id,
+    traceId: record.traceId,
   };
 
   const tracedCtx: TrailContext = {
@@ -249,15 +253,53 @@ const runTrail = async (
     trace: buildTraceFn(rootTrace),
   };
 
-  const impl = composeLayers([...layers], trail, trail.blaze);
-  const result = await impl(input, tracedCtx);
+  return { record, tracedCtx };
+};
 
-  const outcome = deriveOutcome(result);
-  await writeToSink(
-    sink,
-    completeRecord(record, outcome.status, outcome.errorCategory)
+/** Run the composed implementation and write the root record on any outcome. */
+const runImplWithRootRecord = async (
+  impl: Implementation<unknown, unknown>,
+  input: unknown,
+  tracedCtx: TrailContext,
+  record: TraceRecord,
+  sink: ReturnType<typeof getTraceSink>
+): Promise<Result<unknown, Error>> => {
+  try {
+    const result = await impl(input, tracedCtx);
+    const outcome = deriveOutcome(result);
+    await writeToSink(
+      sink,
+      completeRecord(record, outcome.status, outcome.errorCategory)
+    );
+    return result;
+  } catch (error: unknown) {
+    // Normalize unexpected throws so the root record still reflects the error
+    // outcome. The outer executeTrail try/catch converts the thrown value into
+    // a Result.err(InternalError) for the caller.
+    const status: TraceRecord['status'] =
+      error instanceof CancelledError ? 'cancelled' : 'err';
+    const errorCategory = categorizeSpanError(error);
+    await writeToSink(sink, completeRecord(record, status, errorCategory));
+    throw error;
+  }
+};
+
+const runTrail = async (
+  trail: AnyTrail,
+  input: unknown,
+  ctx: TrailContext,
+  layers: readonly Layer[]
+): Promise<Result<unknown, Error>> => {
+  const sink = getTraceSink();
+  const { record, tracedCtx } = buildTracedContext(trail, ctx);
+  const impl = composeLayers([...layers], trail, trail.blaze);
+  return await runImplWithRootRecord(
+    impl as Implementation<unknown, unknown>,
+    input,
+    tracedCtx,
+    record,
+    sink
   );
-  return result;
 };
 
 // ---------------------------------------------------------------------------
