@@ -87,45 +87,77 @@ const fanOutToConsumers = async (
  * is rebound to the same closure so consumers can emit downstream
  * signals naturally.
  */
+const resolveSignalId = (signalOrId: unknown): string => {
+  if (typeof signalOrId === 'string') {
+    return signalOrId;
+  }
+  if (
+    typeof signalOrId === 'object' &&
+    signalOrId !== null &&
+    'id' in signalOrId &&
+    typeof (signalOrId as { id: unknown }).id === 'string'
+  ) {
+    return (signalOrId as { id: string }).id;
+  }
+  throw new TypeError(
+    'ctx.fire() requires a signal id string or a Signal value'
+  );
+};
+
+const dispatchFire = async (
+  topo: Topo,
+  producerCtx: TrailContext | undefined,
+  executor: ConsumerExecutor,
+  self: FireFn,
+  signalId: string,
+  payload: unknown
+): Promise<Result<void, Error>> => {
+  const signal = topo.signals.get(signalId);
+  if (signal === undefined) {
+    return Result.err(
+      new NotFoundError(`Signal "${signalId}" not found in topo "${topo.name}"`)
+    );
+  }
+  const parsed = signal.payload.safeParse(payload);
+  if (!parsed.success) {
+    return Result.err(
+      new ValidationError(
+        `Invalid payload for signal "${signalId}": ${parsed.error.message}`
+      )
+    );
+  }
+  const consumers = topo.list().filter((trail) => trail.on.includes(signalId));
+  const consumerCtx = buildConsumerCtx(producerCtx, self, signalId);
+  await fanOutToConsumers(
+    consumers,
+    parsed.data,
+    signalId,
+    consumerCtx,
+    executor,
+    producerCtx?.logger
+  );
+  return Result.ok();
+};
+
 export const createFireFn = (
   topo: Topo,
   producerCtx: TrailContext | undefined,
   executor: ConsumerExecutor
 ): FireFn => {
-  const fire: FireFn = async (signalId, payload) => {
-    const signal = topo.signals.get(signalId);
-    if (signal === undefined) {
-      return Result.err(
-        new NotFoundError(
-          `Signal "${signalId}" not found in topo "${topo.name}"`
-        )
-      );
-    }
-
-    const parsed = signal.payload.safeParse(payload);
-    if (!parsed.success) {
-      return Result.err(
-        new ValidationError(
-          `Invalid payload for signal "${signalId}": ${parsed.error.message}`
-        )
-      );
-    }
-
-    const consumers = topo
-      .list()
-      .filter((trail) => trail.on.includes(signalId));
-    const consumerCtx = buildConsumerCtx(producerCtx, fire, signalId);
-    await fanOutToConsumers(
-      consumers,
-      parsed.data,
-      signalId,
-      consumerCtx,
+  // Holder bag so the closure body can reference the final FireFn without
+  // triggering eslint(no-use-before-define). The bag is populated on the
+  // line after the closure is built; by the time the closure runs, the
+  // bag's `fn` field holds the same FireFn that was returned.
+  const holder: { fn: FireFn | undefined } = { fn: undefined };
+  const fireImpl = (signalOrId: unknown, payload: unknown) =>
+    dispatchFire(
+      topo,
+      producerCtx,
       executor,
-      producerCtx?.logger
+      holder.fn as FireFn,
+      resolveSignalId(signalOrId),
+      payload
     );
-
-    return Result.ok();
-  };
-
-  return fire;
+  holder.fn = fireImpl as FireFn;
+  return holder.fn;
 };

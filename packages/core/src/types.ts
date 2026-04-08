@@ -18,17 +18,32 @@ export type CrossFn = <O>(
 ) => Promise<Result<O, Error>>;
 
 /**
- * Emit a signal by id — used for signal-driven activation.
+ * Emit a signal — used for signal-driven activation.
  *
  * Fan-out to consumer trails (those with the signal in their `on:` array) is
  * the framework's responsibility. Producers get `Result.ok(undefined)` unless
  * the signal id is unknown or the payload fails schema validation. Consumer
  * errors are logged but do not propagate back to the producer.
+ *
+ * Two call shapes are supported:
+ *
+ * - **By id** (base shape): `ctx.fire('order.placed', { ... })`. Matches
+ *   the shape of `ctx.cross`; payload is typed as `unknown` and validated
+ *   against the signal's schema at the fire boundary.
+ * - **By signal value** (progressive disclosure): `ctx.fire(orderPlaced, payload)`
+ *   where `orderPlaced` is a `Signal<T>`. The compiler enforces that
+ *   `payload` matches the signal's declared schema type at the call site,
+ *   on top of the runtime validation.
  */
-export type FireFn = (
-  signalId: string,
-  payload: unknown
-) => Promise<Result<void, Error>>;
+export interface FireFn {
+  <T>(
+    signal: { readonly id: string; readonly kind: 'signal' } & {
+      readonly payload: { _output?: T };
+    },
+    payload: T
+  ): Promise<Result<void, Error>>;
+  (signalId: string, payload: unknown): Promise<Result<void, Error>>;
+}
 
 /** Resolve a resource instance from the current trail context. */
 export type ProvisionLookup = <T = unknown>(
