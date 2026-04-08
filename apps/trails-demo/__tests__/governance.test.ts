@@ -24,6 +24,7 @@ import { z } from 'zod';
 import { app } from '../src/app.js';
 import * as entitySignals from '../src/signals/entity-signals.js';
 import * as demoProvisions from '../src/resources/entity-store.js';
+import * as notificationStoreResource from '../src/resources/notification-store.js';
 import * as entity from '../src/trails/entity.js';
 import * as kv from '../src/trails/kv.js';
 import * as notify from '../src/trails/notify.js';
@@ -51,8 +52,12 @@ describe('trailhead map generation', () => {
     expect(ids).toContain('demo.entity-store');
   });
 
-  test('has exactly 10 entries (8 trails + 1 event + 1 resource)', () => {
-    expect(trailheadMap.entries).toHaveLength(10);
+  test('has exactly 11 entries (8 trails + 1 event + 2 resources)', () => {
+    const ids = trailheadMap.entries.map((e) => e.id);
+
+    expect(trailheadMap.entries).toHaveLength(11);
+    expect(ids).toContain('entity.notify-updated');
+    expect(ids).toContain('demo.notification-store');
   });
 
   test('entries are sorted alphabetically by id', () => {
@@ -217,6 +222,7 @@ describe('breaking change detection', () => {
       entitySignals,
       kv,
       notify,
+      notificationStoreResource,
       demoProvisions
     );
 
@@ -239,6 +245,7 @@ describe('breaking change detection', () => {
       entitySignals,
       kv,
       notify,
+      notificationStoreResource,
       demoProvisions
     );
 
@@ -274,6 +281,7 @@ describe('non-breaking change detection', () => {
       entitySignals,
       kv,
       notify,
+      notificationStoreResource,
       demoProvisions,
       { update }
     );
@@ -298,6 +306,7 @@ describe('non-breaking change detection', () => {
       entitySignals,
       kv,
       notify,
+      notificationStoreResource,
       demoProvisions
     );
     expect(diff.hasBreaking).toBe(false);

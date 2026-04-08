@@ -5,6 +5,7 @@ import {
   TRAILHEAD_KEY,
   createTrailContext,
   resource,
+  signal,
   trail,
   topo,
 } from '@ontrails/core';
@@ -34,6 +35,10 @@ const dbProvision = resource('db.main', {
     }),
 });
 
+const orderPlaced = signal('order.placed', {
+  payload: z.object({ orderId: z.string() }),
+});
+
 const requireCommand = (commands: ReturnType<typeof buildCliCommands>) => {
   const [command] = commands;
   expect(command).toBeDefined();
@@ -41,6 +46,13 @@ const requireCommand = (commands: ReturnType<typeof buildCliCommands>) => {
     throw new Error('Expected command');
   }
   return command;
+};
+
+const requireFire = (fire: TrailContext['fire']) => {
+  if (!fire) {
+    throw new Error('Expected ctx.fire to be bound');
+  }
+  return fire;
 };
 
 // ---------------------------------------------------------------------------
@@ -441,6 +453,40 @@ describe('buildCliCommands execution', () => {
 });
 
 describe('buildCliCommands resource overrides', () => {
+  test('passes topo to executeTrail so CLI-invoked producers can fan out', async () => {
+    const captured: string[] = [];
+    const consumer = trail('notify.email', {
+      blaze: (input: { orderId: string }) => {
+        captured.push(input.orderId);
+        return Result.ok({ delivered: true });
+      },
+      input: z.object({ orderId: z.string() }),
+      on: ['order.placed'],
+    });
+    const producer = trail('order.create', {
+      blaze: async (input: { orderId: string }, ctx) => {
+        const fired = await requireFire(ctx.fire)('order.placed', {
+          orderId: input.orderId,
+        });
+        return fired.match({
+          err: (error) => Result.err(error),
+          ok: () => Result.ok({ ok: true }),
+        });
+      },
+      fires: ['order.placed'],
+      input: z.object({ orderId: z.string() }),
+    });
+    const app = topo('signal-cli', { consumer, orderPlaced, producer });
+
+    const result = await requireCommand(buildCliCommands(app)).execute(
+      {},
+      { orderId: 'o-cli' }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(captured).toEqual(['o-cli']);
+  });
+
   test('forwards resource overrides into executeTrail', async () => {
     const t = trail('resource-test', {
       blaze: (_input, ctx) =>

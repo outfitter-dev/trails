@@ -120,6 +120,7 @@ const withHttpTrailhead = (
  */
 const createExecute =
   (
+    app: Topo,
     t: Trail<unknown, unknown>,
     layers: readonly Layer[],
     options: BuildHttpRoutesOptions
@@ -132,6 +133,7 @@ const createExecute =
       ctx: withHttpTrailhead(requestId),
       layers,
       resources: options.resources,
+      topo: app,
     });
 
 // ---------------------------------------------------------------------------
@@ -144,6 +146,7 @@ const eligibleTrails = (app: Topo): Trail<unknown, unknown>[] =>
 
 /** Build a single route definition from a trail. */
 const buildRoute = (
+  app: Topo,
   trail: Trail<unknown, unknown>,
   basePath: string,
   layers: readonly Layer[],
@@ -152,7 +155,7 @@ const buildRoute = (
   const method = deriveMethod(trail);
   const path = derivePath(basePath, trail.id);
   return {
-    execute: createExecute(trail, layers, options),
+    execute: createExecute(app, trail, layers, options),
     inputSource: deriveInputSource(method),
     method,
     path,
@@ -191,6 +194,7 @@ const registerRoute = (
 
 /** Accumulate route definitions, returning early on the first collision. */
 const accumulateRoutes = (
+  app: Topo,
   trails: Trail<unknown, unknown>[],
   basePath: string,
   layers: readonly Layer[],
@@ -200,7 +204,7 @@ const accumulateRoutes = (
   const seenRoutes = new Map<string, string>();
 
   for (const trail of trails) {
-    const route = buildRoute(trail, basePath, layers, options);
+    const route = buildRoute(app, trail, basePath, layers, options);
     const registered = registerRoute(route, seenRoutes, routes);
     if (registered.isErr()) {
       return registered;
@@ -239,5 +243,5 @@ export const buildHttpRoutes = (
 
   const basePath = (options.basePath ?? '').replace(/\/+$/, '');
   const layers = options.layers ?? [];
-  return accumulateRoutes(eligibleTrails(app), basePath, layers, options);
+  return accumulateRoutes(app, eligibleTrails(app), basePath, layers, options);
 };

@@ -227,6 +227,7 @@ const withMcpTrailhead = (
 
 const createHandler =
   (
+    app: Topo,
     t: Trail<unknown, unknown>,
     layers: readonly Layer[],
     options: BuildMcpToolsOptions
@@ -243,6 +244,7 @@ const createHandler =
       ctx: withMcpTrailhead(progressCb),
       layers,
       resources: options.resources,
+      topo: app,
     });
     if (result.isOk()) {
       return { content: await serializeOutput(result.value) };
@@ -314,7 +316,7 @@ const buildToolDefinition = (
   return {
     annotations,
     description: buildDescription(trail),
-    handler: createHandler(trail, layers, options),
+    handler: createHandler(app, trail, layers, options),
     inputSchema: zodToJsonSchema(trail.input),
     name: deriveToolName(app.name, trail.id),
     trailId: trail.id,
