@@ -704,7 +704,7 @@ Rigged trails can signal and declare fires like any other trail:
 const gitStatus = rig('git.status', {
   source: { type: 'cli', command: 'git status', binary: 'git' },
   intent: 'read',
-  fires: [{ schedule: '*/5 * * * *' }],
+  on: [{ schedule: '*/5 * * * *' }],
   signals: [uncommittedChangesDetected],
   input: z.object({}),
   output: GitStatusSchema,

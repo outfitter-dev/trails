@@ -76,7 +76,7 @@ The lockfile generator becomes a trail that fires on topo saves and pins:
 
 ```typescript
 trail('framework.lock.export', {
-  fires: [topoSaved],
+  on: [topoSaved],
   resources: [topoStore],
   intent: 'write',
   blaze: async (input, ctx) => {
@@ -99,7 +99,7 @@ trail('framework.lock.export', {
 
 The lockfile is a projection of a signal. Same execution model as any other trail. Testable. Governable. Has examples.
 
-**Dev vs CI behavior.** In CI, this trail fires on every `topo.saved` signal. In dev, it fires only on `topo.pinned` — explicit developer landmarks, not every file-save refresh. The CI topo includes the lockfile trail with `fires: [topoSaved]`. The dev topo includes it with `fires: [topoPinned]`. This is configuration, not conditional logic.
+**Dev vs CI behavior.** In CI, this trail fires on every `topo.saved` signal. In dev, it fires only on `topo.pinned` — explicit developer landmarks, not every file-save refresh. The CI topo includes the lockfile trail with `on: [topoSaved]`. The dev topo includes it with `on: [topoPinned]`. This is configuration, not conditional logic.
 
 ### Warden rules as trails
 

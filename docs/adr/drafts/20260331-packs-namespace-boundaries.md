@@ -198,10 +198,10 @@ A pack's trails may declare `on` triggers as authored defaults. When a consuming
 const app = topo('firewatch',
   githubCore,
   githubPullRequests.resource({
-    fires: {
-      'github.pr.list': { fires: ['cron:every-5m'] },       // replace authored fire sources
-      'github.pr.show': { fires: [] },                       // suppress all fire sources
-      'github.pr.submit-review': { fires: { add: ['event:review.requested'] } }, // add to existing
+    on: {
+      'github.pr.list': { on: ['cron:every-5m'] },       // replace authored fire sources
+      'github.pr.show': { on: [] },                       // suppress all fire sources
+      'github.pr.submit-review': { on: { add: ['event:review.requested'] } }, // add to existing
     },
   }),
 );
