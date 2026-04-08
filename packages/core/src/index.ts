@@ -32,6 +32,7 @@ export type {
   TrailContext,
   TrailContextInit,
   CrossFn,
+  FireFn,
   BasePermit,
   PermitRequirement,
   ProgressCallback,

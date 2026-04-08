@@ -9,7 +9,9 @@ import type { Topo } from './topo.js';
 import { executeTrail } from './execute.js';
 import type { ExecuteTrailOptions } from './execute.js';
 import { NotFoundError } from './errors.js';
+import { createFireFn } from './fire.js';
 import { Result } from './result.js';
+import type { TrailContextInit } from './types.js';
 
 // ---------------------------------------------------------------------------
 // Options
@@ -50,5 +52,7 @@ export const run = (
       )
     );
   }
-  return executeTrail(trail, input, options);
+  const fire = createFireFn(topo, options?.ctx?.logger);
+  const ctxWithFire: Partial<TrailContextInit> = { ...options?.ctx, fire };
+  return executeTrail(trail, input, { ...options, ctx: ctxWithFire });
 };

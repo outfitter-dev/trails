@@ -17,6 +17,19 @@ export type CrossFn = <O>(
   input: unknown
 ) => Promise<Result<O, Error>>;
 
+/**
+ * Emit a signal by id — used for signal-driven activation.
+ *
+ * Fan-out to consumer trails (those with the signal in their `on:` array) is
+ * the framework's responsibility. Producers get `Result.ok(undefined)` unless
+ * the signal id is unknown or the payload fails schema validation. Consumer
+ * errors are logged but do not propagate back to the producer.
+ */
+export type FireFn = (
+  signalId: string,
+  payload: unknown
+) => Promise<Result<void, Error>>;
+
 /** Resolve a resource instance from the current trail context. */
 export type ProvisionLookup = <T = unknown>(
   provisionOrId: { readonly id: string } | string
@@ -70,6 +83,12 @@ export interface TrailContext {
   readonly requestId: string;
   readonly abortSignal: AbortSignal;
   readonly cross?: CrossFn | undefined;
+  /**
+   * Emit a signal by id. Fans out to every trail with the signal in its
+   * `on:` declaration. Bound by the runner that holds the topo (typically
+   * `run()`); undefined when a context is constructed without topo access.
+   */
+  readonly fire?: FireFn | undefined;
   readonly permit?: BasePermit;
   readonly workspaceRoot?: string | undefined;
   readonly logger?: Logger | undefined;
