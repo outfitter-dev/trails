@@ -2,12 +2,14 @@ import { contextNoTrailheadTypes } from './context-no-trailhead-types.js';
 import { crossDeclarations } from './cross-declarations.js';
 import { draftFileMarking } from './draft-file-marking.js';
 import { draftVisibleDebt } from './draft-visible-debt.js';
+import { firesDeclarations } from './fires-declarations.js';
 import { implementationReturnsResult } from './implementation-returns-result.js';
 import { noDirectImplInRoute } from './no-direct-impl-in-route.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
 import { noSyncResultAssumption } from './no-sync-result-assumption.js';
 import { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
+import { onReferencesExist } from './on-references-exist.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
 import { provisionDeclarations } from './resource-declarations.js';
 import { provisionExists } from './resource-exists.js';
@@ -28,6 +30,8 @@ export { contextNoTrailheadTypes } from './context-no-trailhead-types.js';
 export { crossDeclarations } from './cross-declarations.js';
 export { draftFileMarking } from './draft-file-marking.js';
 export { draftVisibleDebt } from './draft-visible-debt.js';
+export { firesDeclarations } from './fires-declarations.js';
+export { onReferencesExist } from './on-references-exist.js';
 export { validDetourRefs } from './valid-detour-refs.js';
 export { noDirectImplInRoute } from './no-direct-impl-in-route.js';
 export { noDirectImplementationCall } from './no-direct-implementation-call.js';
@@ -49,6 +53,8 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [crossDeclarations.name, crossDeclarations],
   [draftFileMarking.name, draftFileMarking],
   [draftVisibleDebt.name, draftVisibleDebt],
+  [firesDeclarations.name, firesDeclarations],
+  [onReferencesExist.name, onReferencesExist],
   [provisionDeclarations.name, provisionDeclarations],
   [provisionExists.name, provisionExists],
   [preferSchemaInference.name, preferSchemaInference],
