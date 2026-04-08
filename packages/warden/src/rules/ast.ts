@@ -462,6 +462,24 @@ export const findBlazeBodies = (node: AstNode): AstNode[] => {
   return bodies;
 };
 
+/**
+ * Collect all `signal('id', { ... })` / `signal({ id: 'x', ... })` definition IDs.
+ *
+ * Uses `findTrailDefinitions` under the hood — it already recognizes both
+ * `trail` and `signal` call sites, distinguished by the `kind` field.
+ */
+export const collectSignalDefinitionIds = (
+  ast: AstNode
+): ReadonlySet<string> => {
+  const ids = new Set<string>();
+  for (const def of findTrailDefinitions(ast)) {
+    if (def.kind === 'signal' || def.kind === 'event') {
+      ids.add(def.id);
+    }
+  }
+  return ids;
+};
+
 // ---------------------------------------------------------------------------
 // Misc helpers
 // ---------------------------------------------------------------------------
