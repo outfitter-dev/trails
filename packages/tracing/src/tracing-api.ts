@@ -1,16 +1,16 @@
 import type { TraceRecord } from './trace-record.js';
 import { getTraceContext } from './trace-context.js';
 
-/** Sink type re-declared to avoid circular import with tracing-gate. */
+/** Sink type re-declared to avoid circular import with tracing-layer. */
 interface TraceSinkLike {
   readonly write: (record: TraceRecord) => void | Promise<void>;
 }
 
-/** Key used to store the TrackerApi in ctx.extensions. */
-export const TRACKER_API_KEY = '__tracker_api';
+/** Key used to store the TracingApi in ctx.extensions. */
+export const TRACING_API_KEY = '__tracing_api';
 
 /** Manual instrumentation API for trail implementations. */
-export interface TrackerApi {
+export interface TracingApi {
   /**
    * Create a timed child span. Callback-only to guarantee spans close.
    * No raw startSpan/endSpan to prevent forgotten closures.
@@ -21,9 +21,9 @@ export interface TrackerApi {
   readonly annotate: (attrs: Record<string, unknown>) => void;
 }
 
-/** TrackerApi bundled with internal state the layer needs after execution. */
-export interface TrackerApiWithState {
-  readonly api: TrackerApi;
+/** TracingApi bundled with internal state the layer needs after execution. */
+export interface TracingApiWithState {
+  readonly api: TracingApi;
   /** Retrieve all accumulated annotations, merged into a single object. */
   readonly getAnnotations: () => Record<string, unknown>;
 }
@@ -73,17 +73,17 @@ const mergeAnnotations = (
   Object.assign({}, ...annotations) as Record<string, unknown>;
 
 /**
- * Create a TrackerApi bound to a specific execution context and sink.
+ * Create a TracingApi bound to a specific execution context and sink.
  *
  * Reads trace context from `ctx.extensions` so manual spans become
  * children of the trail's automatic record. Returns the API alongside
  * a `getAnnotations` accessor the layer uses to merge attrs into the
  * completed record.
  */
-export const createTrackerApi = (
+export const createTracingApi = (
   ctx: { readonly extensions?: Readonly<Record<string, unknown>> | undefined },
   sink: TraceSinkLike
-): TrackerApiWithState => {
+): TracingApiWithState => {
   const annotations: Record<string, unknown>[] = [];
 
   const trace = getTraceContext(ctx);

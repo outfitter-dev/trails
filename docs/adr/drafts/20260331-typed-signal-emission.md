@@ -190,7 +190,7 @@ When `ctx.signal()` fires or the framework emits a lifecycle event:
 
 1. **Validate.** The payload validates against the event's schema. Invalid payloads produce an `InternalError` logged to tracing (the emission is dropped, not the trail).
 2. **Record.** Tracing records the emission: event ID, payload, source trail, execution ID, timestamp.
-3. **Route internally.** The signal bus notifies fire listeners. Trails with matching `fires: [{ signal: '...' }]` activate via `run()`.
+3. **Route internally.** The signal bus notifies fire listeners. Trails with matching `on: [{ signal: '...' }]` activate via `run()`.
 4. **Route externally.** Subscription listeners (WebSocket clients, SSE streams, future outbound webhooks) receive the event through their trailhead's delivery mechanism.
 5. **Record delivery.** Tracing records delivery outcomes: how many triggers fired, how many subscriptions received the event, how many failed.
 

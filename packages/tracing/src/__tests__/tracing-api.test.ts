@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { createMemorySink } from '../memory-sink.js';
 import { TRACE_CONTEXT_KEY } from '../trace-context.js';
 import type { TraceContext } from '../trace-context.js';
-import { createTrackerApi } from '../tracing-api.js';
+import { createTracingApi } from '../tracing-api.js';
 
 /** Build a stub ctx with trace context in extensions. */
 const makeCtx = (
@@ -20,11 +20,11 @@ const makeCtx = (
   return { extensions: { [TRACE_CONTEXT_KEY]: trace } };
 };
 
-describe('createTrackerApi', () => {
+describe('createTracingApi', () => {
   describe('span()', () => {
     test('creates a child record in the sink', async () => {
       const sink = createMemorySink();
-      const { api } = createTrackerApi(makeCtx(), sink);
+      const { api } = createTracingApi(makeCtx(), sink);
 
       await api.span('my-span', () => 'done');
 
@@ -39,7 +39,7 @@ describe('createTrackerApi', () => {
 
     test('returns the callback result', async () => {
       const sink = createMemorySink();
-      const { api } = createTrackerApi(makeCtx(), sink);
+      const { api } = createTracingApi(makeCtx(), sink);
 
       const result = await api.span('op', () => 42);
 
@@ -48,7 +48,7 @@ describe('createTrackerApi', () => {
 
     test('returns the async callback result', async () => {
       const sink = createMemorySink();
-      const { api } = createTrackerApi(makeCtx(), sink);
+      const { api } = createTracingApi(makeCtx(), sink);
 
       const result = await api.span('async-op', () =>
         Promise.resolve('async-value')
@@ -59,7 +59,7 @@ describe('createTrackerApi', () => {
 
     test('times the execution (endedAt >= startedAt)', async () => {
       const sink = createMemorySink();
-      const { api } = createTrackerApi(makeCtx(), sink);
+      const { api } = createTracingApi(makeCtx(), sink);
 
       await api.span('timed', () => 'ok');
 
@@ -73,7 +73,7 @@ describe('createTrackerApi', () => {
 
     test('marks record as err when callback throws', async () => {
       const sink = createMemorySink();
-      const { api } = createTrackerApi(makeCtx(), sink);
+      const { api } = createTracingApi(makeCtx(), sink);
 
       try {
         await api.span('failing', () => {
@@ -89,7 +89,7 @@ describe('createTrackerApi', () => {
 
     test('re-throws the callback error after recording', async () => {
       const sink = createMemorySink();
-      const { api } = createTrackerApi(makeCtx(), sink);
+      const { api } = createTracingApi(makeCtx(), sink);
 
       await expect(
         api.span('failing', () => {
@@ -102,7 +102,7 @@ describe('createTrackerApi', () => {
 
     test('multiple spans create independent records', async () => {
       const sink = createMemorySink();
-      const { api } = createTrackerApi(makeCtx(), sink);
+      const { api } = createTracingApi(makeCtx(), sink);
 
       await api.span('first', () => 1);
       await api.span('second', () => 2);
@@ -115,7 +115,7 @@ describe('createTrackerApi', () => {
 
     test('skips sink writes when trace sampling is disabled', async () => {
       const sink = createMemorySink();
-      const { api } = createTrackerApi(makeCtx({ sampled: false }), sink);
+      const { api } = createTracingApi(makeCtx({ sampled: false }), sink);
 
       const result = await api.span('unsampled', () => 'done');
 
@@ -127,14 +127,14 @@ describe('createTrackerApi', () => {
   describe('annotate()', () => {
     test('collects attributes without throwing', () => {
       const sink = createMemorySink();
-      const { api } = createTrackerApi(makeCtx(), sink);
+      const { api } = createTracingApi(makeCtx(), sink);
 
       expect(() => api.annotate({ count: 42, key: 'value' })).not.toThrow();
     });
 
     test('getAnnotations returns merged attrs from annotate calls', () => {
       const sink = createMemorySink();
-      const { api, getAnnotations } = createTrackerApi(makeCtx(), sink);
+      const { api, getAnnotations } = createTracingApi(makeCtx(), sink);
 
       api.annotate({ first: 1 });
       api.annotate({ second: 2 });
@@ -144,14 +144,14 @@ describe('createTrackerApi', () => {
 
     test('getAnnotations returns empty object when no annotations', () => {
       const sink = createMemorySink();
-      const { getAnnotations } = createTrackerApi(makeCtx(), sink);
+      const { getAnnotations } = createTracingApi(makeCtx(), sink);
 
       expect(getAnnotations()).toEqual({});
     });
 
     test('later annotations override earlier ones with same key', () => {
       const sink = createMemorySink();
-      const { api, getAnnotations } = createTrackerApi(makeCtx(), sink);
+      const { api, getAnnotations } = createTracingApi(makeCtx(), sink);
 
       api.annotate({ key: 'old' });
       api.annotate({ key: 'new' });

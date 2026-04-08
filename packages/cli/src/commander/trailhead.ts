@@ -4,7 +4,7 @@
 
 import type {
   Layer,
-  ProvisionOverrideMap,
+  ResourceOverrideMap,
   Topo,
   TrailContextInit,
 } from '@ontrails/core';
@@ -30,7 +30,7 @@ export interface TrailheadCliOptions {
   name?: string | undefined;
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
   presets?: CliFlag[][] | undefined;
-  resources?: ProvisionOverrideMap | undefined;
+  resources?: ResourceOverrideMap | undefined;
   resolveInput?: InputResolver | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
   validate?: boolean | undefined;

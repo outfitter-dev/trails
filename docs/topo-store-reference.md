@@ -318,7 +318,7 @@ interface TopoStoreRef {
 
 Extends trail record with `crosses`, `detours`, `resources`, and `examples` arrays.
 
-### `TopoStoreProvisionRecord`
+### `TopoStoreResourceRecord`
 
 ```typescript
 {

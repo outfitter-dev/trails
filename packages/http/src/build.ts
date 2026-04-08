@@ -15,7 +15,7 @@ import {
 } from '@ontrails/core';
 import type {
   Layer,
-  ProvisionOverrideMap,
+  ResourceOverrideMap,
   Topo,
   Trail,
   TrailContextInit,
@@ -35,7 +35,7 @@ export interface BuildHttpRoutesOptions {
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   readonly layers?: readonly Layer[] | undefined;
-  readonly resources?: ProvisionOverrideMap | undefined;
+  readonly resources?: ResourceOverrideMap | undefined;
   /** Set to `false` to skip topo validation while building routes. */
   readonly validate?: boolean | undefined;
 }

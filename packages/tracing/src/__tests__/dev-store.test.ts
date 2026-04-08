@@ -69,8 +69,14 @@ ON CONFLICT(id) DO UPDATE SET
   permit_tenant_id = excluded.permit_tenant_id,
   attrs = excluded.attrs`;
 
+interface LegacyStoreFixture {
+  readonly fileName: string;
+  readonly tableName: string;
+}
+
 const writeLegacyTrackerDb = (
   rootDir: string,
+  fixture: LegacyStoreFixture,
   records: readonly TraceRecord[]
 ): void => {
   const path = join(rootDir, '.trails', 'dev', fixture.fileName);
@@ -78,8 +84,8 @@ const writeLegacyTrackerDb = (
   const db = new Database(path, { create: true });
 
   try {
-    db.run(LEGACY_CREATE_TABLE_SQL);
-    const stmt = db.prepare(LEGACY_UPSERT_SQL);
+    db.run(LEGACY_CREATE_TABLE_SQL(fixture.tableName));
+    const stmt = db.prepare(LEGACY_UPSERT_SQL(fixture.tableName));
     for (const record of records) {
       stmt.run(
         record.id,
@@ -380,12 +386,46 @@ describe('createDevStore', () => {
         }),
       ];
 
-      writeLegacyTrackerDb(dir, legacyRecords);
+      writeLegacyTrackerDb(
+        dir,
+        { fileName: 'tracing.db', tableName: 'tracing' },
+        legacyRecords
+      );
 
       store = createDevStore({ maxRecords: 10, rootDir: dir });
 
       expect(existsSync(join(dir, '.trails', 'trails.db'))).toBe(true);
       expect(queryIds(store)).toEqual(['legacy-b', 'legacy-a']);
+      expect(existsSync(join(dir, '.trails', 'dev', 'tracing.db'))).toBe(false);
+    });
+
+    test('migrates legacy .trails/dev/tracker.db records into shared trails.db', () => {
+      const dir = makeTmpDir();
+      const now = Date.now();
+      const legacyRecords = [
+        makeRecord({
+          id: 'legacy-tracker-a',
+          startedAt: now - 2000,
+          trailId: 'user.create',
+        }),
+        makeRecord({
+          id: 'legacy-tracker-b',
+          startedAt: now - 1000,
+          trailId: 'user.list',
+        }),
+      ];
+
+      writeLegacyTrackerDb(
+        dir,
+        { fileName: 'tracker.db', tableName: 'tracker' },
+        legacyRecords
+      );
+
+      store = createDevStore({ maxRecords: 10, rootDir: dir });
+
+      expect(existsSync(join(dir, '.trails', 'trails.db'))).toBe(true);
+      expect(queryIds(store)).toEqual(['legacy-tracker-b', 'legacy-tracker-a']);
+      expect(existsSync(join(dir, '.trails', 'dev', 'tracker.db'))).toBe(false);
     });
   });
 

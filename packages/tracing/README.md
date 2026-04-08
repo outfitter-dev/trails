@@ -1,6 +1,6 @@
 # @ontrails/tracing
 
-Automatic trail execution recording — just add a gate.
+Automatic trail execution recording — just add a layer.
 
 Tracing wraps every trail invocation to capture timing, status, and parentage, then writes records to a sink. Supports intent-based sampling, manual instrumentation through spans and annotations, and multiple backends (memory, SQLite dev store, OpenTelemetry).
 
@@ -16,27 +16,27 @@ const sink = createMemorySink();
 
 Sinks receive completed TraceRecord records. Use a memory sink for testing, a dev store for local development, or an OTel connector to forward to your collector.
 
-### 2. Create a gate and register it
+### 2. Create a layer and register it
 
 ```typescript
 import { createTracingLayer } from '@ontrails/tracing';
 
-const gate = createTracingLayer(sink);
+const layer = createTracingLayer(sink);
 ```
 
-The gate intercepts every trail and wraps its execution. No trails need to change — tracking is automatic.
+The layer intercepts every trail and wraps its execution. No trails need to change — tracing is automatic.
 
-## The tracing provision
+## The tracing resource
 
 Access tracing state from any trail:
 
 ```typescript
-import { trackerProvision } from '@ontrails/tracing';
+import { tracingResource } from '@ontrails/tracing';
 
 export const checkStatus = trail('status.check', {
-  provisions: [trackerProvision],
+  resources: [tracingResource],
   blaze: (_input, ctx) => {
-    const state = trackerProvision.from(ctx);
+    const state = tracingResource.from(ctx);
     return Result.ok({
       active: state.active,
       recordCount: state.store?.count() ?? 0,
@@ -72,7 +72,7 @@ For testing and demos:
 
 ```typescript
 const sink = createMemorySink();
-const gate = createTracingLayer(sink);
+const layer = createTracingLayer(sink);
 
 // ... run trails ...
 
@@ -93,7 +93,7 @@ const store = createDevStore({
   maxAge: 1000 * 60 * 60 * 24 * 30,
 });
 
-const gate = createTracingLayer(store);
+const layer = createTracingLayer(store);
 ```
 
 The dev store uses WAL mode and prunes automatically.
@@ -123,10 +123,10 @@ By default, tracing samples traces based on intent:
 - `write` operations: 100%
 - `destroy` operations: 100%
 
-Override sampling per gate:
+Override sampling per layer:
 
 ```typescript
-const gate = createTracingLayer(sink, {
+const layer = createTracingLayer(sink, {
   sampling: { read: 0.1, write: 1.0, destroy: 1.0 },
   keepOnError: true, // Promote sampled-out traces if they fail
 });

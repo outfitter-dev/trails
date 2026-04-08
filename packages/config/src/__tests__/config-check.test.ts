@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createProvisionLookup } from '@ontrails/core';
+import { createResourceLookup } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -7,7 +7,7 @@ import { configCheck } from '../trails/config-check.js';
 import type { ConfigState } from '../registry.js';
 
 /**
- * Build a TrailContext with configProvision resolved in extensions.
+ * Build a TrailContext with configResource resolved in extensions.
  */
 const buildCtx = (state: ConfigState): TrailContext => {
   const extensions = { config: state };
@@ -22,7 +22,7 @@ const buildCtx = (state: ConfigState): TrailContext => {
   };
   const withLookup = {
     ...ctx,
-    resource: createProvisionLookup(() => withLookup),
+    resource: createResourceLookup(() => withLookup),
   };
   return withLookup;
 };
@@ -49,7 +49,7 @@ describe('config.check trail', () => {
       expect(configCheck.output).toBeDefined();
     });
 
-    test('declares configProvision dependency', () => {
+    test('declares configResource dependency', () => {
       expect(configCheck.resources).toBeDefined();
       expect(configCheck.resources?.length).toBe(1);
     });

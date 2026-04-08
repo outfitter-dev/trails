@@ -33,7 +33,7 @@ const mergeValues = (
 
 export const configCheck = trail('config.check', {
   blaze: (input, ctx) => {
-    const state = configProvision.from(ctx);
+    const state = configResource.from(ctx);
     const effective = mergeValues(state.resolved, input.values);
     const checked = checkConfig(state.schema, effective);
     return Result.ok({

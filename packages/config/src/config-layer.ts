@@ -8,7 +8,7 @@
  */
 import type { Layer } from '@ontrails/core';
 
-export const configGate: Layer = {
+export const configLayer: Layer = {
   description: 'Ensures resolved config is available in the execution context',
   name: 'config',
   wrap: (_trail, impl) => (input, ctx) => impl(input, ctx),

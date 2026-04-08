@@ -44,8 +44,8 @@ Every infrastructure package ships three kinds of primitives:
 
 | Primitive | Purpose | Config example | Permits example | Tracing example |
 |---|---|---|---|---|
-| **Resource** | Lifecycle (create, cache, dispose, health, mock) | `configProvision` | `authProvision` | `trackerProvision` |
-| **Layer** | Cross-cutting execution wrapping | `configGate` | `authGate` | `tracingLayer` |
+| **Resource** | Lifecycle (create, cache, dispose, health, mock) | `configResource` | `authResource` | `tracingResource` |
+| **Layer** | Cross-cutting execution wrapping | `configLayer` | `authGate` | `tracingLayer` |
 | **Trail** | Inspectable operations (`intent: 'read'` in v1) | `config.explain` | `auth.verify` | `tracing.status` |
 
 Resources manage the connector lifecycle. Layers inject behavior into the execution pipeline. Trails expose infrastructure operations as first-class contracts — queryable, testable, governable.

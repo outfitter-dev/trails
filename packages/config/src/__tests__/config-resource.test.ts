@@ -5,7 +5,7 @@ import { configResource } from '../config-resource.js';
 import type { ConfigState } from '../registry.js';
 import { clearConfigState, registerConfigState } from '../registry.js';
 
-/** Stub ProvisionContext for create calls. */
+/** Stub ResourceContext for create calls. */
 const stubSvcCtx = {
   config: undefined,
   cwd: '/tmp',
@@ -13,14 +13,14 @@ const stubSvcCtx = {
   workspaceRoot: '/tmp',
 };
 
-describe('configProvision', () => {
+describe('configResource', () => {
   afterEach(() => {
     clearConfigState();
   });
 
   describe('identity', () => {
     test('has id "config"', () => {
-      expect(configProvision.id).toBe('config');
+      expect(configResource.id).toBe('config');
     });
 
     test('has kind "resource"', () => {
@@ -28,17 +28,17 @@ describe('configProvision', () => {
     });
 
     test('has infrastructure meta', () => {
-      expect(configProvision.meta).toEqual({ category: 'infrastructure' });
+      expect(configResource.meta).toEqual({ category: 'infrastructure' });
     });
 
     test('has description', () => {
-      expect(configProvision.description).toBeDefined();
+      expect(configResource.description).toBeDefined();
     });
   });
 
   describe('mock', () => {
     test('returns a ConfigState with empty schema and resolved', () => {
-      const value = configProvision.mock?.() as ConfigState;
+      const value = configResource.mock?.() as ConfigState;
       expect(value).toBeDefined();
       expect(value.resolved).toEqual({});
       expect(value.schema).toBeDefined();
@@ -51,7 +51,7 @@ describe('configProvision', () => {
       const state: ConfigState = { resolved: { port: 3000 }, schema };
       registerConfigState(state);
 
-      const result = await configProvision.create(stubSvcCtx);
+      const result = await configResource.create(stubSvcCtx);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap() as ConfigState;
@@ -69,7 +69,7 @@ describe('configProvision', () => {
       };
       registerConfigState(state);
 
-      const result = await configProvision.create(stubSvcCtx);
+      const result = await configResource.create(stubSvcCtx);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap() as ConfigState;
@@ -78,7 +78,7 @@ describe('configProvision', () => {
     });
 
     test('returns Result.err when no state is registered', async () => {
-      const result = await configProvision.create(stubSvcCtx);
+      const result = await configResource.create(stubSvcCtx);
 
       expect(result.isErr()).toBe(true);
       expect(result.error.message).toContain('Config state not registered');

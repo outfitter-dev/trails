@@ -11,16 +11,16 @@ Canonical public trailhead-facing reference. For naming conventions and decision
 trail(id, spec)                    // define a unit of work (with optional crosses for composition)
 signal(id, spec)                    // define a payload schema with provenance
 resource(id, spec)                  // define a first-class resource dependency
-createProvisionLookup(getContext)   // bind ctx.resource() to a specific context snapshot
+createResourceLookup(getContext)   // bind ctx.resource() to a specific context snapshot
 topo(name, ...modules)             // assemble trails, signals, and resources into a queryable topology
-// Topo methods: .get(id), .has(id), .list(), .listEvents(), .ids(), .count
-//               .getProvision(id), .hasProvision(id), .listProvisions(), .provisionIds(), .provisionCount
+// Topo methods: .get(id), .has(id), .list(), .listSignals(), .ids(), .count
+//               .getResource(id), .hasResource(id), .listResources(), .resourceIds(), .resourceCount
 createTopoStore(options?), createMockTopoStore(seed?), topoStore
 
 // Types
 Trail<I, O>, Event<T>, Resource<T>, Topo, Intent
-TrailSpec<I, O>, EventSpec<T>, ProvisionSpec<T>, TrailExample<I, O>
-AnyTrail, AnyEvent, AnyProvision, ProvisionContext, ProvisionOverrideMap
+TrailSpec<I, O>, EventSpec<T>, ResourceSpec<T>, TrailExample<I, O>
+AnyTrail, AnyEvent, AnyResource, ResourceContext, ResourceOverrideMap
 
 // Type utilities
 TrailInput<T>                      // extract input type from a Trail
@@ -43,7 +43,7 @@ ErrorCategory, isTrailsError(value?), isRetryable(error)
 // Implementation & context
 Implementation<I, O>              // (input, ctx) => Result | Promise<Result>
 TrailContext, createTrailContext(overrides?)
-CrossFn, ProvisionLookup, ProgressCallback, ProgressEvent, Logger, Trailhead
+CrossFn, ResourceLookup, ProgressCallback, ProgressEvent, Logger, Trailhead
 
 // Execution pipeline
 executeTrail(trail, rawInput, options?) // validate → resolve context → resolve resources → compose layers → run
@@ -234,7 +234,7 @@ deprecated(schema, message)          // mark a field as deprecated with migratio
 
 // Resource & layer
 configResource                       // resource for resolved config state
-configGate                           // layer for per-trail config context
+configLayer                          // layer for per-trail config context
 
 // State management
 registerConfigState(state)           // register resolved config at bootstrap
@@ -281,7 +281,7 @@ PermitDiagnostic
 
 ```typescript
 // Resource & layer
-trackerProvision                     // resource for tracing state
+tracingResource                      // resource for tracing state
 tracing                              // accessor resource for manual instrumentation
 createTracingLayer(sink, options?)    // layer that records every trail invocation
 
@@ -291,11 +291,11 @@ createDevStore(options?)             // SQLite-backed persistent sink for develo
 createOtelConnector(options?)        // OpenTelemetry span exporter
 
 // State management
-registerTrackerState(state)          // register tracing state at bootstrap
+registerTracingState(state)          // register tracing state at bootstrap
 
 // Trail definitions
-trackerStatus                        // report tracking state and record count
-trackerQuery                         // query execution history with filters
+tracingStatus                        // report tracing state and record count
+tracingQuery                         // query execution history with filters
 
 // Context
 getTraceContext(ctx)                  // get current trace context
@@ -305,7 +305,7 @@ childTraceContext(parent)            // create a child trace context
 shouldSample(intent, config?)        // sampling decision based on intent
 DEFAULT_SAMPLING                     // default sampling rates by intent
 
-TraceRecord, TrackerState, TraceSink, SamplingConfig, TraceContext
+TraceRecord, TracingState, TraceSink, SamplingConfig, TraceContext
 ```
 
 ## `@ontrails/logging`

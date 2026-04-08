@@ -22,13 +22,13 @@ The type of the resource instance is inferred from the `create` factory return. 
 
 | Field | Purpose |
 | --- | --- |
-| `create` | Factory returning `Result<T, Error>`. Receives a `ProvisionContext` with `env`, `cwd`, and `workspaceRoot` only -- not the full `TrailContext`. |
+| `create` | Factory returning `Result<T, Error>`. Receives a `ResourceContext` with `env`, `cwd`, and `workspaceRoot` only -- not the full `TrailContext`. |
 | `dispose` | Optional cleanup on shutdown. Database pools close, API clients disconnect. |
 | `health` | Optional readiness probe. Feeds into topo and survey reporting plus operational checks. |
 | `mock` | Optional test factory. When present, `testExamples(app)` uses it automatically. |
 | `description` | Human-readable label for topo or survey output and agent introspection. |
 
-The `create` factory receives `ProvisionContext` -- a narrow subset of `TrailContext` -- because resources are singletons resolved once per process. Request-scoped fields like `requestId` would be stale after the first resolution.
+The `create` factory receives `ResourceContext` -- a narrow subset of `TrailContext` -- because resources are singletons resolved once per process. Request-scoped fields like `requestId` would be stale after the first resolution.
 
 ## Resource Config Schemas
 

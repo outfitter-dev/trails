@@ -1,7 +1,7 @@
 export { type TraceRecord, createTraceRecord } from './trace-record.js';
 export {
   createTracingLayer,
-  type TrackerGateOptions,
+  type TracingLayerOptions,
   type TraceSink,
 } from './tracing-layer.js';
 export { createMemorySink } from './memory-sink.js';
@@ -17,23 +17,23 @@ export {
   type SamplingConfig,
 } from './sampling.js';
 export {
-  createTrackerApi,
-  TRACKER_API_KEY,
-  type TrackerApi,
-  type TrackerApiWithState,
+  createTracingApi,
+  TRACING_API_KEY,
+  type TracingApi,
+  type TracingApiWithState,
 } from './tracing-api.js';
 export { tracing } from './tracing-accessor.js';
-export { trackerProvision } from './tracing-provision.js';
-export { trackerStatus } from './trails/tracing-status.js';
-export { trackerQuery } from './trails/tracing-query.js';
+export { tracingResource } from './tracing-resource.js';
+export { tracingStatus } from './trails/tracing-status.js';
+export { tracingQuery } from './trails/tracing-query.js';
 export {
   clearTraceStore,
-  clearTrackerState,
+  clearTracingState,
   getTraceStore,
-  getTrackerState,
+  getTracingState,
   registerTraceStore,
-  registerTrackerState,
-  type TrackerState,
+  registerTracingState,
+  type TracingState,
 } from './tracing-state.js';
 export {
   createDevStore,

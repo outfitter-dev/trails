@@ -5,7 +5,7 @@
 import type {
   Field,
   Layer,
-  ProvisionOverrideMap,
+  ResourceOverrideMap,
   Topo,
   TrailContext,
   TrailContextInit,
@@ -57,7 +57,7 @@ export interface BuildCliCommandsOptions {
   layers?: Layer[] | undefined;
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
   presets?: CliFlag[][] | undefined;
-  resources?: ProvisionOverrideMap | undefined;
+  resources?: ResourceOverrideMap | undefined;
   resolveInput?: InputResolver | undefined;
   /** Set to `false` to skip topo validation while building commands. */
   validate?: boolean | undefined;

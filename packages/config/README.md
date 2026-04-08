@@ -64,12 +64,12 @@ registerConfigState({
 ### 3. Access resolved config in trails
 
 ```typescript
-import { configProvision } from '@ontrails/config';
+import { configResource } from '@ontrails/config';
 
 export const getStatus = trail('status.get', {
   resources: [configResource],
   blaze: (_input, ctx) => {
-    const state = configProvision.from(ctx);
+    const state = configResource.from(ctx);
     return Result.ok({
       port: state.resolved.port,
       debug: state.resolved.debug,
@@ -138,12 +138,12 @@ const schema = z.object({
 The config resource manages resolved config lifecycle:
 
 ```typescript
-import { configProvision } from '@ontrails/config';
+import { configResource } from '@ontrails/config';
 
 export const myTrail = trail('my.trail', {
   resources: [configResource],
   blaze: (_input, ctx) => {
-    const state = configProvision.from(ctx);
+    const state = configResource.from(ctx);
     return Result.ok(state.resolved);
   },
 });
@@ -154,10 +154,10 @@ export const myTrail = trail('my.trail', {
 The config layer reserves a slot in the execution context for per-trail config validation:
 
 ```typescript
-import { configGate } from '@ontrails/config';
+import { configLayer } from '@ontrails/config';
 
 export const app = topo('my-app', configModule);
-// Register configGate with your trailhead
+// Register configLayer with your trailhead
 ```
 
 ## Trail definitions
@@ -180,13 +180,13 @@ Generate example config files in TOML, JSON, JSONC, or YAML. Optionally writes `
 
 ## Testing
 
-Trails that depend on `configProvision` auto-resolve with a mock when registered in the topo:
+Trails that depend on `configResource` auto-resolve with a mock when registered in the topo:
 
 ```typescript
 import { testAll } from '@ontrails/testing';
 
 const results = testAll(app);
-// configProvision.mock() is called automatically
+// configResource.mock() is called automatically
 ```
 
 For explicit test setup:

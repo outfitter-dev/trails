@@ -1,6 +1,6 @@
 import { NotFoundError } from './errors.js';
 import type { Result } from './result.js';
-import type { ProvisionLookup, TrailContext } from './types.js';
+import type { ResourceLookup, TrailContext } from './types.js';
 import type { z } from 'zod';
 
 /**
@@ -10,7 +10,7 @@ import type { z } from 'zod';
  * the full per-request TrailContext. When a resource declares a `config` schema,
  * the validated config is passed as `svc.config`.
  */
-export type ProvisionContext<C = unknown> = Pick<
+export type ResourceContext<C = unknown> = Pick<
   TrailContext,
   'cwd' | 'env' | 'workspaceRoot'
 > & {
@@ -21,12 +21,12 @@ export type ProvisionContext<C = unknown> = Pick<
  * Everything needed to describe a resource before a factory is introduced.
  *
  * When `config` is a Zod schema, the `create` callback receives
- * `ProvisionContext<C>` with the validated config value.
+ * `ResourceContext<C>` with the validated config value.
  */
-export interface ProvisionSpec<T, C = unknown> {
+export interface ResourceSpec<T, C = unknown> {
   /** Create the resource instance from stable process-scoped context. */
   readonly create: (
-    svc: ProvisionContext<C>
+    svc: ResourceContext<C>
   ) => Result<T, Error> | Promise<Result<T, Error>>;
   /** Config schema — when present, config is validated and passed to `create`. */
   readonly config?: z.ZodType<C> | undefined;
@@ -47,7 +47,7 @@ export interface ProvisionSpec<T, C = unknown> {
 }
 
 /** A typed resource definition. */
-export interface Resource<T> extends ProvisionSpec<T> {
+export interface Resource<T> extends ResourceSpec<T> {
   readonly kind: 'resource';
   readonly id: string;
   /** Read the resolved resource instance from a trail context. */
@@ -62,42 +62,41 @@ export interface Resource<T> extends ProvisionSpec<T> {
  * existential here.
  */
 // oxlint-disable-next-line no-explicit-any -- existential type for heterogeneous resource collections
-export type AnyProvision = Resource<any>;
+export type AnyResource = Resource<any>;
 
 /** Explicit runtime overrides keyed by resource ID. */
-export type ProvisionOverrideMap = Readonly<Record<string, unknown>>;
+export type ResourceOverrideMap = Readonly<Record<string, unknown>>;
 
-const getProvisionId = <T>(
-  provisionOrId: string | Pick<Resource<T>, 'id'>
+const getResourceId = <T>(
+  resourceOrId: string | Pick<Resource<T>, 'id'>
 ): string =>
-  typeof provisionOrId === 'string' ? provisionOrId : provisionOrId.id;
+  typeof resourceOrId === 'string' ? resourceOrId : resourceOrId.id;
 
-const getProvisionInstance = <T>(
+const getResourceInstance = <T>(
   ctx: Pick<TrailContext, 'extensions'>,
-  provisionOrId: string | Pick<Resource<T>, 'id'>
+  resourceOrId: string | Pick<Resource<T>, 'id'>
 ): T => {
-  const id = getProvisionId(provisionOrId);
+  const id = getResourceId(resourceOrId);
   return ctx.extensions?.[id] as T;
 };
 
-const hasProvisionInstance = (
+const hasResourceInstance = (
   ctx: Pick<TrailContext, 'extensions'>,
-  provisionOrId: string | Pick<AnyProvision, 'id'>
-): boolean =>
-  Object.hasOwn(ctx.extensions ?? {}, getProvisionId(provisionOrId));
+  resourceOrId: string | Pick<AnyResource, 'id'>
+): boolean => Object.hasOwn(ctx.extensions ?? {}, getResourceId(resourceOrId));
 
 /** Create a `ctx.resource(...)` accessor bound to a concrete context snapshot. */
-export const createProvisionLookup = (
+export const createResourceLookup = (
   getContext: () => Pick<TrailContext, 'extensions'>
-): ProvisionLookup =>
-  ((provisionOrId: string | Pick<AnyProvision, 'id'>) => {
-    const id = getProvisionId(provisionOrId);
+): ResourceLookup =>
+  ((resourceOrId: string | Pick<AnyResource, 'id'>) => {
+    const id = getResourceId(resourceOrId);
     const ctx = getContext();
-    if (!hasProvisionInstance(ctx, id)) {
+    if (!hasResourceInstance(ctx, id)) {
       throw new NotFoundError(`Resource "${id}" not found in trail context`);
     }
-    return getProvisionInstance(ctx, id);
-  }) as ProvisionLookup;
+    return getResourceInstance(ctx, id);
+  }) as ResourceLookup;
 
 /**
  * Create a typed resource definition.
@@ -105,11 +104,11 @@ export const createProvisionLookup = (
  * The resource object is inert until a later execution branch resolves concrete
  * instances into TrailContext extensions.
  */
-export const resource = <T>(id: string, spec: ProvisionSpec<T>): Resource<T> =>
+export const resource = <T>(id: string, spec: ResourceSpec<T>): Resource<T> =>
   Object.freeze({
     ...spec,
     from(ctx: TrailContext): T {
-      const lookup = ctx.resource ?? createProvisionLookup(() => ctx);
+      const lookup = ctx.resource ?? createResourceLookup(() => ctx);
       return lookup(this);
     },
     id,
@@ -117,7 +116,7 @@ export const resource = <T>(id: string, spec: ProvisionSpec<T>): Resource<T> =>
   });
 
 /** Narrow unknown values to resource definitions during topo discovery. */
-export const isProvision = (value: unknown): value is AnyProvision => {
+export const isResource = (value: unknown): value is AnyResource => {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
@@ -131,8 +130,8 @@ export const isProvision = (value: unknown): value is AnyProvision => {
  * This supports later topo registration without each caller duplicating the
  * same scan logic.
  */
-export const findDuplicateProvisionId = (
-  resources: readonly Pick<AnyProvision, 'id'>[]
+export const findDuplicateResourceId = (
+  resources: readonly Pick<AnyResource, 'id'>[]
 ): string | undefined => {
   const seen = new Set<string>();
   for (const candidate of resources) {

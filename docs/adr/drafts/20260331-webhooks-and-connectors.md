@@ -260,7 +260,7 @@ When `idempotent: true`, the trailhead checks `deliveryId` against the tracing s
 
 ### Interaction with triggers
 
-The activation ADR introduces `fires: [{ webhook: 'stripe', ... }]` on the trail spec. The fires declaration captures the activation intent. The webhook trailhead config in `trailhead()` handles the HTTP concerns. These are complementary:
+The activation ADR introduces `on: [{ webhook: 'stripe', ... }]` on the trail spec. The fires declaration captures the activation intent. The webhook trailhead config in `trailhead()` handles the HTTP concerns. These are complementary:
 
 - **The fires declaration** says "this trail is activated by Stripe webhooks." It's part of the trail's contract. Survey reports it. The warden governs it.
 - **The webhook config** says "Stripe webhooks arrive at `/webhooks/stripe`, verified with this function, adapted with this transformer." It's trailhead configuration.
@@ -337,7 +337,7 @@ testWebhook(app, '/webhooks/stripe', {
 
 - **Connector authoring is manual.** The developer writes the transform function. For common providers (Stripe, GitHub), built-in connectors or connector packs can amortize this. But each new provider integration needs a new connector.
 - **Two schemas per webhook.** The provider's payload schema (`from`) and the trail's input schema (`to`). Both must be maintained. If the provider changes their payload format, the connector needs updating. This is inherent to the problem: you're bridging two contracts.
-- **Webhook config in `trailhead()` is trailhead-side.** The endpoint path, verification function, and connector are configured on trailhead options, not on the trail spec. This is correct (the trail shouldn't know about HTTP paths) but means the webhook wiring is split between the trail (`fires: [{ webhook: '...' }]`) and the trailhead (`trailhead({ webhooks: ... })`). The warden validates consistency between the two.
+- **Webhook config in `trailhead()` is trailhead-side.** The endpoint path, verification function, and connector are configured on trailhead options, not on the trail spec. This is correct (the trail shouldn't know about HTTP paths) but means the webhook wiring is split between the trail (`on: [{ webhook: '...' }]`) and the trailhead (`trailhead({ webhooks: ... })`). The warden validates consistency between the two.
 - **Async run adds complexity.** The `async: true` option introduces background execution, which means the webhook response doesn't reflect the trail's result. Tracing records the result, but the webhook sender only sees 202. This is standard for long-running webhook handlers but adds operational complexity.
 
 ### What this does NOT decide

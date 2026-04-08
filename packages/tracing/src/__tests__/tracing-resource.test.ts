@@ -5,15 +5,15 @@ import { join } from 'node:path';
 
 import { DEFAULT_SAMPLING } from '../sampling.js';
 import { createDevStore } from '../stores/dev.js';
-import type { TrackerState } from '../tracing-state.js';
-import { clearTrackerState, registerTrackerState } from '../tracing-state.js';
-import { trackerProvision } from '../tracing-provision.js';
+import type { TracingState } from '../tracing-state.js';
+import { clearTracingState, registerTracingState } from '../tracing-state.js';
+import { tracingResource } from '../tracing-resource.js';
 
-describe('trackerProvision', () => {
+describe('tracingResource', () => {
   let tmpDir: string | undefined;
 
   afterEach(() => {
-    clearTrackerState();
+    clearTracingState();
     if (tmpDir) {
       rmSync(tmpDir, { force: true, recursive: true });
       tmpDir = undefined;
@@ -21,20 +21,20 @@ describe('trackerProvision', () => {
   });
 
   test('has correct id', () => {
-    expect(trackerProvision.id).toBe('tracing');
+    expect(tracingResource.id).toBe('tracing');
   });
 
   test('has resource kind', () => {
-    expect(trackerProvision.kind).toBe('resource');
+    expect(tracingResource.kind).toBe('resource');
   });
 
   test('has infrastructure meta', () => {
-    expect(trackerProvision.meta).toEqual({ category: 'infrastructure' });
+    expect(tracingResource.meta).toEqual({ category: 'infrastructure' });
   });
 
   describe('mock', () => {
-    test('returns TrackerState with default sampling', () => {
-      const value = trackerProvision.mock?.() as TrackerState;
+    test('returns TracingState with default sampling', () => {
+      const value = tracingResource.mock?.() as TracingState;
       expect(value.active).toBe(true);
       expect(value.sampling).toEqual(DEFAULT_SAMPLING);
       expect(value.store).toBeUndefined();
@@ -42,16 +42,16 @@ describe('trackerProvision', () => {
   });
 
   describe('create', () => {
-    test('returns Result.ok with default TrackerState when no state registered', () => {
+    test('returns Result.ok with default TracingState when no state registered', () => {
       const ctx = {
         config: undefined,
         cwd: '/tmp',
         env: {},
         workspaceRoot: '/tmp',
       };
-      const result = trackerProvision.create(ctx);
+      const result = tracingResource.create(ctx);
       expect(result.isOk()).toBe(true);
-      const value = result.unwrap() as TrackerState;
+      const value = result.unwrap() as TracingState;
       expect(value.active).toBe(true);
       expect(value.sampling).toEqual(DEFAULT_SAMPLING);
       expect(value.store).toBeUndefined();
@@ -60,7 +60,7 @@ describe('trackerProvision', () => {
     test('wraps a registered writable store with a read-only query surface', () => {
       tmpDir = mkdtempSync(join(tmpdir(), 'tracing-provision-'));
       const store = createDevStore({ path: join(tmpDir, 'tracing.db') });
-      registerTrackerState({
+      registerTracingState({
         active: true,
         sampling: DEFAULT_SAMPLING,
         store,
@@ -72,10 +72,10 @@ describe('trackerProvision', () => {
         env: {},
         workspaceRoot: tmpDir,
       };
-      const result = trackerProvision.create(ctx);
+      const result = tracingResource.create(ctx);
 
       expect(result.isOk()).toBe(true);
-      const value = result.unwrap() as TrackerState;
+      const value = result.unwrap() as TracingState;
       expect(value.store).toBeDefined();
       expect('write' in (value.store as object)).toBe(false);
       value.store?.close();

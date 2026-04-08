@@ -7,7 +7,7 @@ import {
   validateDraftFreeTopo,
   zodToJsonSchema,
 } from '@ontrails/core';
-import type { AnyProvision, Signal, Topo, Trail } from '@ontrails/core';
+import type { AnyResource, Signal, Topo, Trail } from '@ontrails/core';
 
 import type { JsonSchema, TrailheadMap, TrailheadMapEntry } from './types.js';
 
@@ -173,7 +173,7 @@ const signalToEntry = (e: Signal<unknown>): TrailheadMapEntry => {
   return sortKeys(entry) as unknown as TrailheadMapEntry;
 };
 
-const provisionToEntry = (resource: AnyProvision): TrailheadMapEntry => {
+const provisionToEntry = (resource: AnyResource): TrailheadMapEntry => {
   const entry: Record<string, unknown> = {
     exampleCount: 0,
     id: resource.id,

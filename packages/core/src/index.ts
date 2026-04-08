@@ -37,7 +37,7 @@ export type {
   ProgressCallback,
   ProgressEvent,
   Logger,
-  ProvisionLookup,
+  ResourceLookup,
 } from './types.js';
 export { TRAILHEAD_KEY } from './types.js';
 
@@ -46,17 +46,17 @@ export { createTrailContext } from './context.js';
 
 // Resource
 export {
-  createProvisionLookup,
-  findDuplicateProvisionId,
-  isProvision,
+  createResourceLookup,
+  findDuplicateResourceId,
+  isResource,
   resource,
 } from './resource.js';
 export type {
-  AnyProvision,
+  AnyResource,
   Resource,
-  ProvisionContext,
-  ProvisionOverrideMap,
-  ProvisionSpec,
+  ResourceContext,
+  ResourceOverrideMap,
+  ResourceSpec,
 } from './resource.js';
 
 // Trail
@@ -91,7 +91,7 @@ export type {
   MockTopoStoreSeed,
   ReadOnlyTopoStore,
   TopoStoreExportRecord,
-  TopoStoreProvisionRecord,
+  TopoStoreResourceRecord,
   TopoStoreRef,
   TopoStoreTrailDetailRecord,
   TopoStoreTrailRecord,

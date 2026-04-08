@@ -4,18 +4,18 @@ import { z } from 'zod';
 import {
   Result,
   createTrailContext,
-  findDuplicateProvisionId,
-  isProvision,
+  findDuplicateResourceId,
+  isResource,
   resource as defineProvision,
 } from '../index.js';
 import type {
   Resource,
-  ProvisionContext,
-  ProvisionSpec,
+  ResourceContext,
+  ResourceSpec,
   TrailContext,
 } from '../index.js';
 
-const provisionCtx: ProvisionContext = {
+const provisionCtx: ResourceContext = {
   cwd: '/tmp/trails',
   env: { DATABASE_URL: 'file::memory:' },
   workspaceRoot: '/tmp',
@@ -23,7 +23,7 @@ const provisionCtx: ProvisionContext = {
 
 let disposedValue: number | undefined;
 
-const counterProvisionSpec: ProvisionSpec<number> = {
+const counterProvisionSpec: ResourceSpec<number> = {
   create: () => Result.ok(3),
   description: 'Counter resource',
   dispose: (resource) => {
@@ -42,20 +42,20 @@ const resolvedServiceCtx = (id: string, instance: unknown): TrailContext =>
   });
 
 describe('resource types', () => {
-  test('ProvisionContext exposes the stable process-scoped fields', () => {
+  test('ResourceContext exposes the stable process-scoped fields', () => {
     expect(provisionCtx.cwd).toBe('/tmp/trails');
     expect(provisionCtx.env?.DATABASE_URL).toBe('file::memory:');
     expect(provisionCtx.workspaceRoot).toBe('/tmp');
   });
 
-  test('ProvisionSpec stores description and meta', () => {
+  test('ResourceSpec stores description and meta', () => {
     expect(counterProvisionSpec.description).toBe('Counter resource');
     expect(counterProvisionSpec.meta).toEqual({ domain: 'data' });
   });
 
-  test('ProvisionSpec can reserve a config schema for future composition', () => {
+  test('ResourceSpec can reserve a config schema for future composition', () => {
     const config = z.object({ url: z.string().url() });
-    const spec: ProvisionSpec<number> = {
+    const spec: ResourceSpec<number> = {
       config,
       create: () => Result.ok(1),
     };
@@ -63,7 +63,7 @@ describe('resource types', () => {
     expect(spec.config).toBe(config);
   });
 
-  test('ProvisionSpec create and health callbacks are callable', async () => {
+  test('ResourceSpec create and health callbacks are callable', async () => {
     const result = await counterProvisionSpec.create(provisionCtx);
     expect(result.isOk()).toBe(true);
     expect(result.unwrap()).toBe(3);
@@ -73,7 +73,7 @@ describe('resource types', () => {
     expect(health?.unwrap()).toEqual({ healthy: true });
   });
 
-  test('ProvisionSpec mock and dispose callbacks are callable', async () => {
+  test('ResourceSpec mock and dispose callbacks are callable', async () => {
     disposedValue = undefined;
     const result = await counterProvisionSpec.create(provisionCtx);
     expect(result.isOk()).toBe(true);
@@ -85,8 +85,8 @@ describe('resource types', () => {
     expect(disposedValue).toBe(3);
   });
 
-  test('ProvisionSpec create can be async', async () => {
-    const spec: ProvisionSpec<number> = {
+  test('ResourceSpec create can be async', async () => {
+    const spec: ResourceSpec<number> = {
       create: async () => {
         await Bun.sleep(0);
         return Result.ok(7);
@@ -176,21 +176,21 @@ describe('resource()', () => {
 });
 
 describe('resource helpers', () => {
-  test('isProvision identifies resource definitions', () => {
+  test('isResource identifies resource definitions', () => {
     const counter = defineProvision('counter.main', counterProvisionSpec);
 
-    expect(isProvision(counter)).toBe(true);
-    expect(isProvision({ id: 'counter.main', kind: 'trail' })).toBe(false);
-    expect(isProvision(null)).toBe(false);
+    expect(isResource(counter)).toBe(true);
+    expect(isResource({ id: 'counter.main', kind: 'trail' })).toBe(false);
+    expect(isResource(null)).toBe(false);
   });
 
-  test('findDuplicateProvisionId returns the first repeated ID', () => {
+  test('findDuplicateResourceId returns the first repeated ID', () => {
     const first = defineProvision('counter.main', counterProvisionSpec);
     const duplicate = defineProvision('counter.main', counterProvisionSpec);
     const other = defineProvision('counter.secondary', counterProvisionSpec);
 
-    expect(findDuplicateProvisionId([first, other])).toBeUndefined();
-    expect(findDuplicateProvisionId([first, other, duplicate])).toBe(
+    expect(findDuplicateResourceId([first, other])).toBeUndefined();
+    expect(findDuplicateResourceId([first, other, duplicate])).toBe(
       'counter.main'
     );
   });

@@ -48,7 +48,7 @@ A trail can declare what activates it with the `fires` field:
 
 ```typescript
 const confirmBooking = trail('booking.confirm', {
-  fires: [{
+  on: [{
     webhook: 'stripe',
     event: 'payment_intent.succeeded',
     verify: stripeSignatureVerifier,
@@ -75,23 +75,23 @@ This matters for packs. A pack declares `fires` for its trails. The consuming ap
 ```typescript
 // The pack trail declares its default trigger
 const notifyBooking = trail('notify.booking-confirmed', {
-  fires: [{ signal: 'booking.confirmed' }],
+  on: [{ signal: 'booking.confirmed' }],
   // ...
 });
 
 // The consuming app overrides activation
 app.override('notify.booking-confirmed', {
-  fires: [{ signal: 'reservation.finalized' }],
+  on: [{ signal: 'reservation.finalized' }],
 });
 
 // Or suppresses it entirely
 app.override('notify.booking-confirmed', {
-  fires: [], // disable default fire sources
+  on: [], // disable default fire sources
 });
 
 // Or adds additional fire sources
 app.override('notify.booking-confirmed', {
-  fires: [
+  on: [
     { signal: 'booking.confirmed' },     // keep default
     { signal: 'reservation.finalized' }, // add another
   ],
@@ -110,7 +110,7 @@ Time-based activation. Cron expressions for recurring schedules.
 
 ```typescript
 const archiveOld = trail('data.archive-old', {
-  fires: [{
+  on: [{
     schedule: '0 2 * * *',
     input: { olderThanDays: 90 },
   }],
@@ -130,7 +130,7 @@ Activation when a signal is emitted. This covers authored signals (via `ctx.sign
 
 ```typescript
 const notifyBooking = trail('notify.booking-confirmed', {
-  fires: [{ signal: 'booking.confirmed' }],
+  on: [{ signal: 'booking.confirmed' }],
   intent: 'write',
   input: BookingConfirmedSchema,
   blaze: async (input, ctx) => { /* ... */ },
@@ -141,7 +141,7 @@ const notifyBooking = trail('notify.booking-confirmed', {
 
 ```typescript
 const billingConflictResolve = trail('billing.conflict-resolve', {
-  fires: [{
+  on: [{
     signal: 'trail.failed.conflict',
     where: (signal) => signal.trailId.startsWith('billing.'),
   }],
@@ -159,7 +159,7 @@ Activation when an external system sends a webhook payload.
 
 ```typescript
 const githubEventReceived = trail('github.event.received', {
-  fires: [{
+  on: [{
     webhook: 'github',
     path: '/webhooks/github',
     verify: githubSignatureVerifier,
@@ -178,7 +178,7 @@ Fire sources can include a predicate that filters activations:
 
 ```typescript
 const highValueApproval = trail('approval.high-value', {
-  fires: [{
+  on: [{
     signal: 'order.completed',
     where: (payload) => payload.total > 10000,
   }],
@@ -194,9 +194,9 @@ const highValueApproval = trail('approval.high-value', {
 where: {
   predicate: (payload) => payload.total > 10000,
   examples: [
-    { payload: { total: 15000 }, fires: true },
-    { payload: { total: 5000 }, fires: false },
-    { payload: { total: 10000 }, fires: false },
+    { payload: { total: 15000 }, on: true },
+    { payload: { total: 5000 }, on: false },
+    { payload: { total: 10000 }, on: false },
   ],
 },
 ```
@@ -207,7 +207,7 @@ where: {
 
 ```typescript
 const healthCheck = trail('health.check-all', {
-  fires: [
+  on: [
     { schedule: '*/5 * * * *' },
     { signal: 'trail.failed.network' },
   ],
@@ -306,7 +306,7 @@ Tracing queries can filter by fire source type: "show me all scheduled execution
 ### Tradeoffs
 
 - **New field on the trail spec.** `fires` adds a concept to learn. The justification: activation is genuinely new information that the framework can't derive.
-- **Fire resolution adds startup cost.** Topo construction resolves fires: register schedules, bind signal listeners, register webhook endpoints.
+- **Fire resolution adds startup cost.** Topo construction resolves on: register schedules, bind signal listeners, register webhook endpoints.
 - **Complex reactive chains.** Deep chains are inspectable via survey and the lockfile, and the warden detects cycles, but emergent behavior of long chains requires attention.
 - **Scheduled fires need runtime infrastructure.** `Bun.cron` for production, mock scheduler for testing.
 

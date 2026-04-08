@@ -3,7 +3,7 @@ import { Result } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
-import { configGate } from '../config-layer.js';
+import { configLayer } from '../config-layer.js';
 
 const stubTrail = {
   blaze: (_input: unknown, _ctx: TrailContext) => Result.ok({}),
@@ -22,14 +22,14 @@ const stubTrail = {
   resources: [],
 };
 
-describe('configGate', () => {
+describe('configLayer', () => {
   describe('identity', () => {
     test('has name "config"', () => {
-      expect(configGate.name).toBe('config');
+      expect(configLayer.name).toBe('config');
     });
 
     test('has a description', () => {
-      expect(configGate.description).toBeDefined();
+      expect(configLayer.description).toBeDefined();
     });
   });
 
@@ -38,7 +38,7 @@ describe('configGate', () => {
       const impl = (_input: unknown, _ctx: TrailContext) =>
         Result.ok({ called: true });
 
-      const wrapped = configGate.wrap(stubTrail, impl);
+      const wrapped = configLayer.wrap(stubTrail, impl);
       const ctx = {
         cwd: '/tmp',
         env: {},

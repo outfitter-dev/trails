@@ -4,8 +4,8 @@
 
 import { ValidationError } from './errors.js';
 import type { AnySignal } from './event.js';
-import type { AnyProvision } from './resource.js';
-import { isProvision } from './resource.js';
+import type { AnyResource } from './resource.js';
+import { isResource } from './resource.js';
 import type { AnyTrail } from './trail.js';
 
 // ---------------------------------------------------------------------------
@@ -16,25 +16,25 @@ export interface Topo {
   readonly name: string;
   readonly trails: ReadonlyMap<string, AnyTrail>;
   readonly signals: ReadonlyMap<string, AnySignal>;
-  readonly resources: ReadonlyMap<string, AnyProvision>;
+  readonly resources: ReadonlyMap<string, AnyResource>;
   readonly count: number;
-  readonly provisionCount: number;
+  readonly resourceCount: number;
   get(id: string): AnyTrail | undefined;
-  getProvision(id: string): AnyProvision | undefined;
+  getResource(id: string): AnyResource | undefined;
   has(id: string): boolean;
-  hasProvision(id: string): boolean;
+  hasResource(id: string): boolean;
   ids(): string[];
-  provisionIds(): string[];
+  resourceIds(): string[];
   list(): AnyTrail[];
   listSignals(): AnySignal[];
-  listProvisions(): AnyProvision[];
+  listResources(): AnyResource[];
 }
 
 // ---------------------------------------------------------------------------
 // Kind discriminant check
 // ---------------------------------------------------------------------------
 
-type Registrable = AnyTrail | AnySignal | AnyProvision;
+type Registrable = AnyTrail | AnySignal | AnyResource;
 
 const isRegistrable = (value: unknown): value is Registrable => {
   if (typeof value !== 'object' || value === null) {
@@ -52,19 +52,19 @@ const createTopo = (
   name: string,
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
-  resources: ReadonlyMap<string, AnyProvision>
+  resources: ReadonlyMap<string, AnyResource>
 ): Topo => ({
   count: trails.size,
   get(id: string): AnyTrail | undefined {
     return trails.get(id);
   },
-  getProvision(id: string): AnyProvision | undefined {
+  getResource(id: string): AnyResource | undefined {
     return resources.get(id);
   },
   has(id: string): boolean {
     return trails.has(id);
   },
-  hasProvision(id: string): boolean {
+  hasResource(id: string): boolean {
     return resources.has(id);
   },
   ids(): string[] {
@@ -74,7 +74,7 @@ const createTopo = (
   list(): AnyTrail[] {
     return [...trails.values()];
   },
-  listProvisions(): AnyProvision[] {
+  listResources(): AnyResource[] {
     return [...resources.values()];
   },
 
@@ -83,9 +83,8 @@ const createTopo = (
   },
 
   name,
-  provisionCount: resources.size,
-
-  provisionIds(): string[] {
+  resourceCount: resources.size,
+  resourceIds(): string[] {
     return [...resources.keys()];
   },
   resources,
@@ -102,7 +101,7 @@ const register = (
   value: Registrable,
   trails: Map<string, AnyTrail>,
   signals: Map<string, AnySignal>,
-  resources: Map<string, AnyProvision>
+  resources: Map<string, AnyResource>
 ): void => {
   const { id } = value as { id: string };
   const registrars: Record<string, () => void> = {
@@ -110,7 +109,7 @@ const register = (
       if (resources.has(id)) {
         throw new ValidationError(`Duplicate resource ID: "${id}"`);
       }
-      resources.set(id, value as AnyProvision);
+      resources.set(id, value as AnyResource);
     },
     signal: () => {
       if (signals.has(id)) {
@@ -146,9 +145,9 @@ const registerModuleValue = (
   value: unknown,
   trails: Map<string, AnyTrail>,
   signals: Map<string, AnySignal>,
-  resources: Map<string, AnyProvision>
+  resources: Map<string, AnyResource>
 ): void => {
-  if (isProvision(value) || isRegistrable(value)) {
+  if (isResource(value) || isRegistrable(value)) {
     register(value, trails, signals, resources);
   }
 };
@@ -157,7 +156,7 @@ const registerModuleValues = (
   mod: Record<string, unknown>,
   trails: Map<string, AnyTrail>,
   signals: Map<string, AnySignal>,
-  resources: Map<string, AnyProvision>
+  resources: Map<string, AnyResource>
 ): void => {
   const seenValues = new WeakSet<object>();
   for (const value of Object.values(mod)) {
@@ -174,7 +173,7 @@ export const topo = (
 ): Topo => {
   const trails = new Map<string, AnyTrail>();
   const signals = new Map<string, AnySignal>();
-  const resources = new Map<string, AnyProvision>();
+  const resources = new Map<string, AnyResource>();
 
   for (const mod of modules) {
     registerModuleValues(mod, trails, signals, resources);

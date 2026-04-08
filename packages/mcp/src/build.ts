@@ -18,7 +18,7 @@ import {
 import type {
   BlobRef,
   Layer,
-  ProvisionOverrideMap,
+  ResourceOverrideMap,
   Topo,
   Trail,
   TrailContextInit,
@@ -44,7 +44,7 @@ export interface BuildMcpToolsOptions {
   readonly excludeTrails?: readonly string[] | undefined;
   readonly includeTrails?: readonly string[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
-  readonly resources?: ProvisionOverrideMap | undefined;
+  readonly resources?: ResourceOverrideMap | undefined;
   /** Set to `false` to skip topo validation while building tools. */
   readonly validate?: boolean | undefined;
 }

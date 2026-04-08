@@ -933,24 +933,6 @@ const safeRules: readonly VocabRewriteRule[] = [
             ...collectRegexEdits(
               context.source,
               'infra-prose',
-              /\bconfigLayer\b/g,
-              'configGate'
-            ),
-            ...collectRegexEdits(
-              context.source,
-              'infra-prose',
-              /\bauthLayer\b/g,
-              'authGate'
-            ),
-            ...collectRegexEdits(
-              context.source,
-              'infra-prose',
-              /\bcrumbsLayer\b/g,
-              'trackerGate'
-            ),
-            ...collectRegexEdits(
-              context.source,
-              'infra-prose',
               /\*\*Service\*\*/g,
               '**Resource**'
             ),

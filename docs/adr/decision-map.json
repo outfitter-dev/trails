@@ -661,7 +661,7 @@
           "fromPath": "docs/adr/0010-native-infrastructure.md"
         },
         {
-          "context": "- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — resources declare config schemas via the reserved `config` field; config enriches `ProvisionContext`",
+          "context": "- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — resources declare config schemas via the reserved `config` field; config enriches `ResourceContext`",
           "from": "0011",
           "fromPath": "docs/adr/0011-schema-driven-config.md"
         },

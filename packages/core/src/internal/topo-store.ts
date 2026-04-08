@@ -2,7 +2,7 @@ import type { Database, SQLQueryBindings } from 'bun:sqlite';
 
 import { deriveCliPath } from '../derive.js';
 import { Result } from '../result.js';
-import type { AnyProvision } from '../resource.js';
+import type { AnyResource } from '../resource.js';
 import type { AnySignal } from '../signal.js';
 import type { Topo } from '../topo.js';
 import type { AnyTrail } from '../trail.js';
@@ -303,7 +303,7 @@ const normalizeTrailProvisionRows = (
   );
 
 const normalizeProvisionRows = (
-  resources: readonly AnyProvision[],
+  resources: readonly AnyResource[],
   saveId: string
 ): readonly TopoProvisionRow[] =>
   resources.map((resource) => ({
@@ -386,7 +386,7 @@ const normalizeTopoProjection = (
 ): NormalizedTopoProjection => {
   const trails = topo.list().toSorted((a, b) => a.id.localeCompare(b.id));
   const resources = topo
-    .listProvisions()
+    .listResources()
     .toSorted((a, b) => a.id.localeCompare(b.id));
   const signals = topo
     .listSignals()
@@ -737,7 +737,7 @@ const signalToEntryRecord = (
 };
 
 const provisionToEntryRecord = (
-  resource: AnyProvision
+  resource: AnyResource
 ): TrailheadMapEntryRecord => {
   const entry: Record<string, unknown> = {
     exampleCount: 0,
@@ -784,7 +784,7 @@ const requireSignalPayload = (
 
 const buildTrailheadMap = (
   generatedAt: string,
-  resources: readonly AnyProvision[],
+  resources: readonly AnyResource[],
   signalPayloads: ReadonlyMap<string, JsonRecord>,
   signals: readonly AnySignal[],
   trailSchemas: ReadonlyMap<
@@ -863,7 +863,7 @@ const buildStoredTopoExport = (
 ): MaterializedTopoArtifacts => {
   const trails = topo.list().toSorted((a, b) => a.id.localeCompare(b.id));
   const resources = topo
-    .listProvisions()
+    .listResources()
     .toSorted((a, b) => a.id.localeCompare(b.id));
   const signals = topo
     .listSignals()

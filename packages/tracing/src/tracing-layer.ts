@@ -18,7 +18,7 @@ import { createTraceRecord } from './trace-record.js';
 import type { SamplingConfig } from './sampling.js';
 import { shouldSample } from './sampling.js';
 import type { TraceContext } from './trace-context.js';
-import { createTrackerApi, TRACKER_API_KEY } from './tracing-api.js';
+import { createTracingApi, TRACING_API_KEY } from './tracing-api.js';
 import {
   TRACE_CONTEXT_KEY,
   childTraceContext,
@@ -31,7 +31,7 @@ export interface TraceSink {
 }
 
 /** Options for configuring the tracing layer. */
-export interface TrackerGateOptions {
+export interface TracingLayerOptions {
   /** Intent-based sampling overrides. */
   readonly sampling?: Partial<SamplingConfig> | undefined;
   /** Promote sampled-out traces to sampled on error. Default true. */
@@ -169,7 +169,7 @@ const extractPermit = (
 
 /** Notify sink observers without letting secondary failures escape. */
 const notifySinkError = (
-  options: TrackerGateOptions | undefined,
+  options: TracingLayerOptions | undefined,
   error: unknown
 ): void => {
   try {
@@ -184,7 +184,7 @@ const prepareExecution = <I, O>(
   trail: Trail<I, O>,
   ctx: TrailContext,
   sink: TraceSink,
-  options?: TrackerGateOptions
+  options?: TracingLayerOptions
 ) => {
   const parentTrace = getTraceContext(ctx);
   const sampled = resolveSampled(parentTrace, trail.intent, options?.sampling);
@@ -207,17 +207,17 @@ const prepareExecution = <I, O>(
     spanId: record.id,
   };
   const traceCtx = enrichExtensions(ctx, enrichedTrace);
-  const trackerApi = createTrackerApi(traceCtx, sink);
+  const tracingApi = createTracingApi(traceCtx, sink);
 
   return {
     ctx: {
       ...traceCtx,
       extensions: {
         ...traceCtx.extensions,
-        [TRACKER_API_KEY]: trackerApi.api,
+        [TRACING_API_KEY]: tracingApi.api,
       },
     },
-    getAnnotations: trackerApi.getAnnotations,
+    getAnnotations: tracingApi.getAnnotations,
     record,
     sampled,
   };
@@ -233,7 +233,7 @@ const prepareExecution = <I, O>(
  */
 export const createTracingLayer = (
   sink: TraceSink,
-  options?: TrackerGateOptions
+  options?: TracingLayerOptions
 ): Layer => ({
   description: 'Automatic trail execution recording',
   name: 'tracing',

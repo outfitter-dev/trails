@@ -10,7 +10,7 @@
 
 **Resources (`resource()` and trail `resources: [...]`).** Trails now declare infrastructure dependencies explicitly. `executeTrail()` resolves app-scoped singletons before layers and implementations run. Testing can auto-resolve `mock` factories, and survey / schema tooling exposes the full resource graph.
 
-**Config resolution (`@ontrails/config`).** `defineConfig()` provides schema-validated config with profiles (named environment profiles), env variable mapping, and `ProvisionSpec.config` for resource-level config schemas. Includes diagnostics (`checkConfig`), introspection (`describeConfig`, `explainConfig`), and generation (`generateEnvExample`).
+**Config resolution (`@ontrails/config`).** `defineConfig()` provides schema-validated config with profiles (named environment profiles), env variable mapping, and `ResourceSpec.config` for resource-level config schemas. Includes diagnostics (`checkConfig`), introspection (`describeConfig`, `explainConfig`), and generation (`generateEnvExample`).
 
 **Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. `authGate` extracts credentials from trailhead-specific sources, `AuthConnector` resolves them to a `Permit` (identity, scopes, roles), and scope enforcement rejects unauthorized access. Includes JWT connector, governance rules (`validatePermits`), and test helpers (`mintTestPermit`, `mintPermitForTrail`).
 

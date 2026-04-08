@@ -8,14 +8,15 @@
 
 import type { AnyTrail } from './trail.js';
 import type { Layer } from './layer.js';
-import type { ProvisionOverrideMap } from './resource.js';
+import type { ResourceOverrideMap } from './resource.js';
 import type { TrailContext, TrailContextInit } from './types.js';
 
 import { createTrailContext } from './context.js';
 import { InternalError } from './errors.js';
+import { composeLayers } from './layer.js';
 import { Result } from './result.js';
-import { createProvisionLookup } from './resource.js';
-import { resolveProvisions } from './resource-config.js';
+import { createResourceLookup } from './resource.js';
+import { resolveResources } from './resource-config.js';
 import { validateInput } from './validation.js';
 
 type MutableTrailContext = {
@@ -39,7 +40,7 @@ export interface ExecuteTrailOptions {
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   /** Explicit resource instance overrides keyed by resource ID. */
-  readonly resources?: ProvisionOverrideMap | undefined;
+  readonly resources?: ResourceOverrideMap | undefined;
   /** Config values for resources that declare a `config` schema, keyed by resource ID. */
   readonly configValues?:
     | Readonly<Record<string, Record<string, unknown>>>
@@ -67,7 +68,7 @@ const applyContextOverrides = (
     : withOverrides;
 };
 
-const bindProvisionLookup = (
+const bindResourceLookup = (
   resolved: TrailContextInit,
   options?: ExecuteTrailOptions
 ): TrailContext => {
@@ -79,7 +80,7 @@ const bindProvisionLookup = (
   }
 
   const bound = { ...resolved } as MutableTrailContext;
-  const lookup = createProvisionLookup(() => bound);
+  const lookup = createResourceLookup(() => bound);
   bound.resource = lookup;
   return bound;
 };
@@ -100,7 +101,7 @@ const resolveContext = async (
     : undefined;
   const base = createTrailContext(seed);
   const resolved = applyContextOverrides(base, options);
-  return bindProvisionLookup(resolved, options);
+  return bindResourceLookup(resolved, options);
 };
 
 const prepareContext = async (
@@ -108,7 +109,7 @@ const prepareContext = async (
   options?: ExecuteTrailOptions
 ): Promise<Result<TrailContext, Error>> => {
   const baseCtx = await resolveContext(options);
-  return await resolveProvisions(
+  return await resolveResources(
     trail,
     baseCtx,
     options?.resources,

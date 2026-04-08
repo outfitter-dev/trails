@@ -8,9 +8,9 @@ export {
 } from './app-config.js';
 export { collectConfigMeta } from './collect.js';
 export {
-  collectProvisionConfigs,
+  collectResourceConfigs,
   collectServiceConfigs,
-  type ProvisionConfigEntry,
+  type ResourceConfigEntry,
   type ServiceConfigEntry,
 } from './compose.js';
 export { defineConfig, type DefineConfigOptions } from './define-config.js';
@@ -31,7 +31,7 @@ export {
   generateExample,
   generateJsonSchema,
 } from './generate/index.js';
-export { configGate } from './config-layer.js';
+export { configLayer } from './config-layer.js';
 export { configResource } from './config-resource.js';
 export {
   clearConfigState,

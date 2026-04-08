@@ -1,10 +1,10 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { trackerProvision } from '../tracing-provision.js';
+import { tracingResource } from '../tracing-resource.js';
 
 /** Output schema for the tracing.status trail. */
-const trackerStatusOutput = z.object({
+const tracingStatusOutput = z.object({
   active: z.boolean(),
   recordCount: z.number(),
   samplingConfig: z.object({
@@ -19,11 +19,11 @@ const trackerStatusOutput = z.object({
  *
  * Returns whether tracking is active, the current record count, and
  * the sampling configuration for each intent. Reads all values from
- * the `trackerProvision` state.
+ * the `tracingResource` state.
  */
-export const trackerStatus = trail('tracing.status', {
+export const tracingStatus = trail('tracing.status', {
   blaze: (_input, ctx) => {
-    const state = trackerProvision.from(ctx);
+    const state = tracingResource.from(ctx);
     return Result.ok({
       active: state.active,
       recordCount: state.store?.count() ?? 0,
@@ -39,6 +39,6 @@ export const trackerStatus = trail('tracing.status', {
   input: z.object({}),
   intent: 'read',
   meta: { category: 'infrastructure' },
-  output: trackerStatusOutput,
-  resources: [trackerProvision],
+  output: tracingStatusOutput,
+  resources: [tracingResource],
 });

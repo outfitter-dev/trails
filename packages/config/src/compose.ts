@@ -12,16 +12,16 @@ import type { z } from 'zod';
 // ---------------------------------------------------------------------------
 
 /** A resource config schema entry extracted from a resource declaration. */
-export interface ProvisionConfigEntry {
-  readonly provisionId: string;
+export interface ResourceConfigEntry {
+  readonly resourceId: string;
   readonly schema: z.ZodType;
 }
 
 /** Backward-compatible alias while the migration is in flight. */
-export type ServiceConfigEntry = ProvisionConfigEntry;
+export type ServiceConfigEntry = ResourceConfigEntry;
 
 /** Minimal shape needed to extract config from a resource-like object. */
-interface ProvisionWithOptionalConfig {
+interface ResourceWithOptionalConfig {
   readonly id: string;
   readonly config?: z.ZodType | undefined;
 }
@@ -43,10 +43,10 @@ export const collectResourceConfigs = (
     .filter(
       (
         svc
-      ): svc is ProvisionWithOptionalConfig & { readonly config: z.ZodType } =>
+      ): svc is ResourceWithOptionalConfig & { readonly config: z.ZodType } =>
         svc.config !== undefined
     )
-    .map((svc) => ({ provisionId: svc.id, schema: svc.config }));
+    .map((svc) => ({ resourceId: svc.id, schema: svc.config }));
 
 /** Backward-compatible alias while the migration is in flight. */
-export const collectServiceConfigs = collectProvisionConfigs;
+export const collectServiceConfigs = collectResourceConfigs;

@@ -2,7 +2,7 @@ import type { z } from 'zod';
 
 import type { FieldOverride } from './derive.js';
 import type { Result } from './result.js';
-import type { AnyProvision } from './resource.js';
+import type { AnyResource } from './resource.js';
 import type {
   Implementation,
   PermitRequirement,
@@ -62,7 +62,7 @@ export interface TrailSpec<I, O> {
   /** IDs of downstream trails this trail may invoke via ctx.cross() */
   readonly crosses?: readonly string[] | undefined;
   /** Resources this trail may access via resource.from(ctx) */
-  readonly resources?: readonly AnyProvision[] | undefined;
+  readonly resources?: readonly AnyResource[] | undefined;
   /** Auth requirement: scopes object, 'public', or omitted (undeclared) */
   readonly permit?: PermitRequirement | undefined;
 }
@@ -85,7 +85,7 @@ export interface Trail<I, O> extends Omit<
   /** IDs of downstream trails this trail may invoke via ctx.cross() (always present, default []) */
   readonly crosses: readonly string[];
   /** Resources this trail may access via resource.from(ctx) (always present, default []) */
-  readonly resources: readonly AnyProvision[];
+  readonly resources: readonly AnyResource[];
   /** What this trail does to the world (always present, default 'write') */
   readonly intent: Intent;
 }

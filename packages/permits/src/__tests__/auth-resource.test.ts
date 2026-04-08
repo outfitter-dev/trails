@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { ProvisionContext } from '@ontrails/core';
+import type { ResourceContext } from '@ontrails/core';
 
 import type { AuthConnector } from '../connectors/connector.js';
 import { authProvision } from '../auth-resource.js';
@@ -19,7 +19,7 @@ const testInput = (
 // Helpers
 // ---------------------------------------------------------------------------
 
-const testSvcCtx: ProvisionContext = {
+const testSvcCtx: ResourceContext = {
   config: undefined,
   cwd: '/tmp',
   env: {},

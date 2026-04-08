@@ -488,7 +488,7 @@ describe('executeTrail', () => {
       expect(result.error).toBeInstanceOf(InternalError);
       expect(result.error.message).toContain(explodingProvision.id);
       expect(result.error.context).toEqual({
-        provisionId: explodingProvision.id,
+        resourceId: explodingProvision.id,
       });
     });
 

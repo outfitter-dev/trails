@@ -26,7 +26,7 @@ const outputSchema = z.object({
 
 export const configDescribe = trail('config.describe', {
   blaze: (_input, ctx) => {
-    const state = configProvision.from(ctx);
+    const state = configResource.from(ctx);
     const fields = describeConfig(state.schema);
     return Result.ok({ fields: [...fields] });
   },

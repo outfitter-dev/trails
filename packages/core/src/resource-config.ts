@@ -7,16 +7,16 @@
  */
 
 import type {
-  AnyProvision,
-  ProvisionContext,
-  ProvisionOverrideMap,
+  AnyResource,
+  ResourceContext,
+  ResourceOverrideMap,
 } from './resource.js';
 import type { AnyTrail } from './trail.js';
 import type { TrailContext } from './types.js';
 
 import { InternalError, ValidationError } from './errors.js';
 import { Result } from './result.js';
-import { createProvisionLookup } from './resource.js';
+import { createResourceLookup } from './resource.js';
 
 type MutableTrailContext = {
   -readonly [K in keyof TrailContext]: TrailContext[K];
@@ -28,11 +28,11 @@ type ConfigValues = Readonly<Record<string, Record<string, unknown>>>;
 // Singleton caches
 // ---------------------------------------------------------------------------
 
-const singletonProvisions = new WeakMap<AnyProvision, Map<string, unknown>>();
+const singletonResources = new WeakMap<AnyResource, Map<string, unknown>>();
 
 /** In-flight resource creation promises, keyed by resource x context. */
 const pendingCreations = new WeakMap<
-  AnyProvision,
+  AnyResource,
   Map<string, Promise<Result<unknown, Error>>>
 >();
 
@@ -40,17 +40,17 @@ const pendingCreations = new WeakMap<
 // Context helpers
 // ---------------------------------------------------------------------------
 
-const toProvisionContext = (
+const toResourceContext = (
   ctx: TrailContext,
   config?: unknown
-): ProvisionContext => ({
+): ResourceContext => ({
   config,
   cwd: ctx.cwd,
   env: ctx.env,
   workspaceRoot: ctx.workspaceRoot,
 });
 
-const toProvisionContextKey = (ctx: ProvisionContext): string =>
+const toResourceContextKey = (ctx: ResourceContext): string =>
   JSON.stringify({
     config: ctx.config,
     cwd: ctx.cwd,
@@ -65,26 +65,26 @@ const toProvisionContextKey = (ctx: ProvisionContext): string =>
 // ---------------------------------------------------------------------------
 
 /** Validate and resolve a resource's config from the provided configValues map. */
-const resolveProvisionConfig = (
-  declaredProvision: AnyProvision,
+const resolveResourceConfig = (
+  declaredResource: AnyResource,
   configValues?: ConfigValues
 ): Result<unknown, Error> => {
-  if (declaredProvision.config === undefined) {
+  if (declaredResource.config === undefined) {
     return Result.ok();
   }
-  const raw = configValues?.[declaredProvision.id];
+  const raw = configValues?.[declaredResource.id];
   if (raw === undefined) {
     return Result.err(
       new ValidationError(
-        `Resource "${declaredProvision.id}" declares a config schema but no config was provided`
+        `Resource "${declaredResource.id}" declares a config schema but no config was provided`
       )
     );
   }
-  const parsed = declaredProvision.config.safeParse(raw);
+  const parsed = declaredResource.config.safeParse(raw);
   if (!parsed.success) {
     return Result.err(
       new ValidationError(
-        `Resource "${declaredProvision.id}" config validation failed: ${parsed.error.message}`
+        `Resource "${declaredResource.id}" config validation failed: ${parsed.error.message}`
       )
     );
   }
@@ -95,22 +95,22 @@ const resolveProvisionConfig = (
 // Override / cache lookups
 // ---------------------------------------------------------------------------
 
-const hasOwnProvisionOverride = (
-  overrides: ProvisionOverrideMap | undefined,
+const hasOwnResourceOverride = (
+  overrides: ResourceOverrideMap | undefined,
   id: string
-): overrides is ProvisionOverrideMap =>
+): overrides is ResourceOverrideMap =>
   overrides !== undefined && Object.hasOwn(overrides, id);
 
-const getCachedSingletonProvision = (
-  declaredProvision: AnyProvision,
-  provisionContext: ProvisionContext
+const getCachedSingletonResource = (
+  declaredResource: AnyResource,
+  resourceContext: ResourceContext
 ): { readonly found: boolean; readonly value: unknown } => {
-  const scopedCache = singletonProvisions.get(declaredProvision);
+  const scopedCache = singletonResources.get(declaredResource);
   if (scopedCache === undefined) {
     return { found: false, value: undefined };
   }
 
-  const key = toProvisionContextKey(provisionContext);
+  const key = toResourceContextKey(resourceContext);
   if (!scopedCache.has(key)) {
     return { found: false, value: undefined };
   }
@@ -121,14 +121,14 @@ const getCachedSingletonProvision = (
   };
 };
 
-const getProvidedProvision = (
+const getProvidedResource = (
   ctx: TrailContext,
-  overrides: ProvisionOverrideMap | undefined,
-  declaredProvision: AnyProvision,
-  provisionContext: ProvisionContext
+  overrides: ResourceOverrideMap | undefined,
+  declaredResource: AnyResource,
+  resourceContext: ResourceContext
 ): Result<unknown, Error> | undefined => {
-  const { id } = declaredProvision;
-  if (hasOwnProvisionOverride(overrides, id)) {
+  const { id } = declaredResource;
+  if (hasOwnResourceOverride(overrides, id)) {
     return Result.ok(overrides[id]);
   }
 
@@ -136,10 +136,7 @@ const getProvidedProvision = (
     return Result.ok(ctx.extensions?.[id]);
   }
 
-  const cached = getCachedSingletonProvision(
-    declaredProvision,
-    provisionContext
-  );
+  const cached = getCachedSingletonResource(declaredResource, resourceContext);
   if (cached.found) {
     return Result.ok(cached.value);
   }
@@ -149,106 +146,98 @@ const getProvidedProvision = (
 
 const getOverrideOrExtension = (
   ctx: TrailContext,
-  overrides: ProvisionOverrideMap | undefined,
-  declaredProvision: AnyProvision
+  overrides: ResourceOverrideMap | undefined,
+  declaredResource: AnyResource
 ): Result<unknown, Error> | undefined =>
-  getProvidedProvision(
-    ctx,
-    overrides,
-    declaredProvision,
-    toProvisionContext(ctx)
-  );
+  getProvidedResource(ctx, overrides, declaredResource, toResourceContext(ctx));
 
 type ConfigAwareResolution =
   | Result<{ readonly kind: 'provided'; readonly value: unknown }, Error>
   | Result<
-      { readonly kind: 'context'; readonly provisionContext: ProvisionContext },
+      { readonly kind: 'context'; readonly resourceContext: ResourceContext },
       Error
     >;
 
-const resolveConfigAwareProvidedProvision = (
+const resolveConfigAwareProvidedResource = (
   ctx: TrailContext,
-  declaredProvision: AnyProvision,
+  declaredResource: AnyResource,
   configValues: ConfigValues | undefined
 ): ConfigAwareResolution => {
-  const configResult = resolveProvisionConfig(declaredProvision, configValues);
+  const configResult = resolveResourceConfig(declaredResource, configValues);
   if (configResult.isErr()) {
     return configResult;
   }
 
-  const provisionContext = toProvisionContext(ctx, configResult.value);
-  const provided = getProvidedProvision(
+  const resourceContext = toResourceContext(ctx, configResult.value);
+  const provided = getProvidedResource(
     ctx,
     undefined,
-    declaredProvision,
-    provisionContext
+    declaredResource,
+    resourceContext
   );
 
   return provided
     ? Result.ok({ kind: 'provided', value: provided.unwrap() })
-    : Result.ok({ kind: 'context', provisionContext });
+    : Result.ok({ kind: 'context', resourceContext });
 };
 
 // ---------------------------------------------------------------------------
 // Instance creation
 // ---------------------------------------------------------------------------
 
-const toInternalProvisionError = (
-  id: string,
-  error: unknown
-): InternalError => {
+const toInternalResourceError = (id: string, error: unknown): InternalError => {
   const cause = error instanceof Error ? error : undefined;
   const message = cause?.message ?? String(error);
   return new InternalError(`Resource "${id}" failed to resolve: ${message}`, {
     ...(cause ? { cause } : {}),
-    context: { provisionId: id },
+    context: { resourceId: id },
   });
 };
 
-const getSingletonProvisionCache = (
-  declaredProvision: AnyProvision
+const getSingletonResourceCache = (
+  declaredResource: AnyResource
 ): Map<string, unknown> => {
-  const existing = singletonProvisions.get(declaredProvision);
+  const existing = singletonResources.get(declaredResource);
   if (existing !== undefined) {
     return existing;
   }
 
   const created = new Map<string, unknown>();
-  singletonProvisions.set(declaredProvision, created);
+  singletonResources.set(declaredResource, created);
   return created;
 };
 
-const doCreateProvisionInstance = async (
-  declaredProvision: AnyProvision,
-  provisionContext: ProvisionContext
+const doCreateResourceInstance = async (
+  declaredResource: AnyResource,
+  resourceContext: ResourceContext
 ): Promise<Result<unknown, Error>> => {
   try {
-    const created = await declaredProvision.create(provisionContext);
+    const created = await declaredResource.create(resourceContext);
     if (created.isErr()) {
       return Result.err(created.error);
     }
 
     const instance = created.unwrap();
-    getSingletonProvisionCache(declaredProvision).set(
-      toProvisionContextKey(provisionContext),
+    getSingletonResourceCache(declaredResource).set(
+      toResourceContextKey(resourceContext),
       instance
     );
     return Result.ok(instance);
   } catch (error: unknown) {
-    return Result.err(toInternalProvisionError(declaredProvision.id, error));
+    return Result.err(toInternalResourceError(declaredResource.id, error));
   }
 };
 
 const trackPendingCreation = (
-  declaredProvision: AnyProvision,
+  declaredResource: AnyResource,
   key: string,
   promise: Promise<Result<unknown, Error>>
 ): void => {
-  const pending = pendingCreations.get(declaredProvision);
+  const pending = pendingCreations.get(declaredResource);
   if (pending) {
     pending.set(key, promise);
   } else {
-    pendingCreations.set(declaredProvision, new Map([[key, promise]]));
+    pendingCreations.set(declaredResource, new Map([[key, promise]]));
   }
 };
 
@@ -257,34 +246,31 @@ const trackPendingCreation = (
  * If a creation is already in flight for this resource x context key,
  * returns the existing promise instead of spawning a second factory call.
  */
-const createProvisionInstance = async (
-  declaredProvision: AnyProvision,
-  provisionContext: ProvisionContext
+const createResourceInstance = async (
+  declaredResource: AnyResource,
+  resourceContext: ResourceContext
 ): Promise<Result<unknown, Error>> => {
-  const key = toProvisionContextKey(provisionContext);
-  const inflight = pendingCreations.get(declaredProvision)?.get(key);
+  const key = toResourceContextKey(resourceContext);
+  const inflight = pendingCreations.get(declaredResource)?.get(key);
   if (inflight) {
     return inflight;
   }
 
-  const promise = doCreateProvisionInstance(
-    declaredProvision,
-    provisionContext
-  );
-  trackPendingCreation(declaredProvision, key, promise);
+  const promise = doCreateResourceInstance(declaredResource, resourceContext);
+  trackPendingCreation(declaredResource, key, promise);
 
   try {
     return await promise;
   } finally {
-    pendingCreations.get(declaredProvision)?.delete(key);
+    pendingCreations.get(declaredResource)?.delete(key);
   }
 };
 
 /** Validate config and resolve a single declared resource. */
-const resolveDeclaredProvision = async (
-  declaredProvision: AnyProvision,
+const resolveDeclaredResource = async (
+  declaredResource: AnyResource,
   ctx: TrailContext,
-  overrides: ProvisionOverrideMap | undefined,
+  overrides: ResourceOverrideMap | undefined,
   configValues: ConfigValues | undefined
 ): Promise<Result<unknown, Error>> => {
   // Check overrides/extensions first — skip config validation entirely when
@@ -292,7 +278,7 @@ const resolveDeclaredProvision = async (
   const overrideOrExtension = getOverrideOrExtension(
     ctx,
     overrides,
-    declaredProvision
+    declaredResource
   );
   if (overrideOrExtension !== undefined) {
     return overrideOrExtension;
@@ -300,24 +286,24 @@ const resolveDeclaredProvision = async (
 
   // Resolve config before consulting the singleton cache so config-aware
   // resources use the same canonical context for cache reads and writes.
-  const configAwareProvision = resolveConfigAwareProvidedProvision(
+  const configAwareResource = resolveConfigAwareProvidedResource(
     ctx,
-    declaredProvision,
+    declaredResource,
     configValues
   );
-  if (configAwareProvision.isErr()) {
-    return configAwareProvision;
+  if (configAwareResource.isErr()) {
+    return configAwareResource;
   }
 
   // No provided instance — create via factory.
-  const resolved = configAwareProvision.unwrap();
+  const resolved = configAwareResource.unwrap();
   if (resolved.kind === 'provided') {
     return Result.ok(resolved.value);
   }
 
-  return await createProvisionInstance(
-    declaredProvision,
-    resolved.provisionContext
+  return await createResourceInstance(
+    declaredResource,
+    resolved.resourceContext
   );
 };
 
@@ -325,13 +311,13 @@ const resolveDeclaredProvision = async (
 // Full trail resource resolution
 // ---------------------------------------------------------------------------
 
-const withResolvedProvisions = (
+const withResolvedResources = (
   ctx: TrailContext,
-  resolvedProvisions: Record<string, unknown>
+  resolvedResources: Record<string, unknown>
 ): TrailContext => {
-  const extensions = { ...ctx.extensions, ...resolvedProvisions };
+  const extensions = { ...ctx.extensions, ...resolvedResources };
   const resolvedCtx = { ...ctx, extensions } as MutableTrailContext;
-  const lookup = createProvisionLookup(() => resolvedCtx);
+  const lookup = createResourceLookup(() => resolvedCtx);
   resolvedCtx.resource = lookup;
   return resolvedCtx;
 };
@@ -343,10 +329,10 @@ const withResolvedProvisions = (
  * new instances as needed. Returns an enriched context with all resource
  * instances injected into extensions.
  */
-export const resolveProvisions = async (
+export const resolveResources = async (
   trail: AnyTrail,
   ctx: TrailContext,
-  overrides?: ProvisionOverrideMap,
+  overrides?: ResourceOverrideMap,
   configValues?: ConfigValues
 ): Promise<Result<TrailContext, Error>> => {
   const { resources } = trail;
@@ -354,11 +340,11 @@ export const resolveProvisions = async (
     return Result.ok(ctx);
   }
 
-  const resolvedProvisions: Record<string, unknown> = {};
+  const resolvedResources: Record<string, unknown> = {};
 
-  for (const declaredProvision of resources) {
-    const resolved = await resolveDeclaredProvision(
-      declaredProvision,
+  for (const declaredResource of resources) {
+    const resolved = await resolveDeclaredResource(
+      declaredResource,
       ctx,
       overrides,
       configValues
@@ -366,8 +352,8 @@ export const resolveProvisions = async (
     if (resolved.isErr()) {
       return resolved;
     }
-    resolvedProvisions[declaredProvision.id] = resolved.unwrap();
+    resolvedResources[declaredResource.id] = resolved.unwrap();
   }
 
-  return Result.ok(withResolvedProvisions(ctx, resolvedProvisions));
+  return Result.ok(withResolvedResources(ctx, resolvedResources));
 };

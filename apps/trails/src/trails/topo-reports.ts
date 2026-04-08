@@ -142,7 +142,7 @@ export const formatProvisionDetail = (
   app: Topo,
   provisionId: string
 ): object => {
-  const item = app.getProvision(provisionId);
+  const item = app.getResource(provisionId);
   const usedBy = buildProvisionUsage(app).get(provisionId) ?? [];
 
   return {
@@ -158,7 +158,7 @@ export const formatProvisionDetail = (
 const formatProvisionList = (app: Topo): SurveyListReport['resources'] => {
   const usage = buildProvisionUsage(app);
   return app
-    .listProvisions()
+    .listResources()
     .map((resource) => ({
       description: resource.description ?? null,
       health: provisionHealthStatus(resource),

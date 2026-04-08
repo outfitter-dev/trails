@@ -49,13 +49,13 @@ export const auditRules: readonly VocabAuditRule[] = [
   },
   {
     description:
-      'Old infrastructure primitive still uses service(...) instead of provision(...)',
+      'Old infrastructure primitive still uses service(...) instead of resource(...)',
     id: 'service-factory',
     pattern: String.raw`\bservice\(`,
   },
   {
     description:
-      'Old infrastructure declarations still use services: [...] instead of provisions: [...]',
+      'Old infrastructure declarations still use services: [...] instead of resources: [...]',
     id: 'services-field',
     pattern: String.raw`\bservices\s*:`,
   },
@@ -85,10 +85,10 @@ export const auditRules: readonly VocabAuditRule[] = [
   },
   {
     description:
-      'Old activation declarations still use on: [...] instead of fires: [...]',
+      'Semantic split from legacy consumer-side `fires:` to current `on:` requires manual review; mechanical matching is disabled.',
     excludePaths: ['docs/adr/drafts/20260401-entity-trail-factories.md'],
     id: 'on-field',
-    pattern: String.raw`(?:^|[{,])\s*on\s*:`,
+    pattern: String.raw`(?!)`,
   },
   {
     description:
@@ -108,16 +108,16 @@ export const auditRules: readonly VocabAuditRule[] = [
     pattern: String.raw`\bcrumbs\b|@ontrails/crumbs`,
   },
   {
-    description: 'Old wrapper primitive still uses Layer instead of gate',
+    description: 'Old wrapper primitive still uses Gate instead of Layer',
     id: 'layer-type',
-    pattern: String.raw`\bLayer\b(?!\s+\d)`,
+    pattern: String.raw`\bGate\b(?!\s+\d)`,
   },
   {
     description:
       'Old wrapper collections still use gates or middleware instead of layers',
     excludePaths: ['plugin/rules/vocabulary.md'],
     id: 'layers-term',
-    pattern: String.raw`\blayers\b|\bmiddleware\b`,
+    pattern: String.raw`\bgates\b|\bmiddleware\b`,
   },
   {
     description:

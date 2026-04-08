@@ -162,26 +162,26 @@ describe('topo accessors', () => {
     expect(app.count).toBe(1);
   });
 
-  test('provisionCount returns number of resources', () => {
+  test('resourceCount returns number of resources', () => {
     const db = mockProvision('db.main');
     const cache = mockProvision('cache.main');
     const app = topo('test', { cache, db });
-    expect(app.provisionCount).toBe(2);
+    expect(app.resourceCount).toBe(2);
   });
 
   test('empty topo has zero count and empty ids', () => {
     const app = topo('empty');
     expect(app.count).toBe(0);
     expect(app.ids()).toEqual([]);
-    expect(app.provisionCount).toBe(0);
-    expect(app.provisionIds()).toEqual([]);
+    expect(app.resourceCount).toBe(0);
+    expect(app.resourceIds()).toEqual([]);
   });
 
-  test('provisionIds() returns all resource IDs', () => {
+  test('resourceIds() returns all resource IDs', () => {
     const db = mockProvision('db.main');
     const cache = mockProvision('cache.main');
     const app = topo('test', { cache, db });
-    expect(app.provisionIds().toSorted()).toEqual(['cache.main', 'db.main']);
+    expect(app.resourceIds().toSorted()).toEqual(['cache.main', 'db.main']);
   });
 });
 
@@ -233,23 +233,23 @@ describe('Topo', () => {
     });
   });
 
-  describe('getProvision()', () => {
+  describe('getResource()', () => {
     test('retrieves resource by ID', () => {
-      expect(app.getProvision('resource-1')).toBe(mod.p1);
+      expect(app.getResource('resource-1')).toBe(mod.p1);
     });
 
     test('returns undefined for unknown resource ID', () => {
-      expect(app.getProvision('missing-resource')).toBeUndefined();
+      expect(app.getResource('missing-resource')).toBeUndefined();
     });
   });
 
-  describe('hasProvision()', () => {
+  describe('hasResource()', () => {
     test('returns true for known resource', () => {
-      expect(app.hasProvision('resource-1')).toBe(true);
+      expect(app.hasResource('resource-1')).toBe(true);
     });
 
     test('returns false for unknown resource', () => {
-      expect(app.hasProvision('missing-resource')).toBe(false);
+      expect(app.hasResource('missing-resource')).toBe(false);
     });
   });
 
@@ -268,8 +268,8 @@ describe('Topo', () => {
       expect(items).toContain(mod.e1);
     });
 
-    test('listProvisions() returns all resources', () => {
-      const items = app.listProvisions();
+    test('listResources() returns all resources', () => {
+      const items = app.listResources();
       expect(items).toHaveLength(1);
       expect(items).toContain(mod.p1);
     });

@@ -1,6 +1,6 @@
 import { ValidationError } from './errors.js';
 import type { AnySignal } from './event.js';
-import type { AnyProvision } from './resource.js';
+import type { AnyResource } from './resource.js';
 import { Result } from './result.js';
 import type { Topo } from './topo.js';
 import type { AnyTrail } from './trail.js';
@@ -41,7 +41,7 @@ interface DraftReason {
   readonly via: DraftDependencyKind;
 }
 
-type TopoNode = AnyProvision | AnySignal | AnyTrail;
+type TopoNode = AnyResource | AnySignal | AnyTrail;
 
 const replacedByTarget = (value: TopoNode): string | undefined => {
   const raw = value as unknown as { replacedBy?: unknown };
@@ -109,14 +109,14 @@ const signalDependencies = (signal: AnySignal): DraftDependency[] => [
   ...dependencyFromTarget(signal.id, replacedByTarget(signal), 'replaced-by'),
 ];
 
-const provisionDependencies = (resource: AnyProvision): DraftDependency[] =>
+const provisionDependencies = (resource: AnyResource): DraftDependency[] =>
   dependencyFromTarget(resource.id, replacedByTarget(resource), 'replaced-by');
 
 const nodeKind = (
   id: string,
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
-  resources: ReadonlyMap<string, AnyProvision>
+  resources: ReadonlyMap<string, AnyResource>
 ): DraftFinding['kind'] => {
   if (trails.has(id)) {
     return 'trail';
@@ -235,7 +235,7 @@ const contaminationFindingForId = (
   reasons: ReadonlyMap<string, DraftReason>,
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
-  resources: ReadonlyMap<string, AnyProvision>
+  resources: ReadonlyMap<string, AnyResource>
 ): DraftFinding | undefined => {
   if (declaredDraftIds.has(id)) {
     return undefined;
@@ -259,7 +259,7 @@ const collectFindings = (
   reasons: ReadonlyMap<string, DraftReason>,
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
-  resources: ReadonlyMap<string, AnyProvision>
+  resources: ReadonlyMap<string, AnyResource>
 ): DraftFinding[] => [
   ...[...declaredDraftIds]
     .toSorted()

@@ -11,7 +11,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type {
   CrossFn,
-  ProvisionOverrideMap,
+  ResourceOverrideMap,
   Topo,
   TrailExample,
   Trail,
@@ -46,10 +46,10 @@ import {
 } from './assertions.js';
 import {
   defaultMintPermit,
-  mergeProvisionOverrides,
+  mergeResourceOverrides,
   mergeTestContext,
   normalizeTestExecutionOptions,
-  resolveMockProvisions,
+  resolveMockResources,
 } from './context.js';
 import type { MintableTrail, TestExecutionOptions } from './context.js';
 
@@ -160,7 +160,7 @@ const runExample = async (
   example: TrailExample<unknown, unknown>,
   output: z.ZodType | undefined,
   testCtx: TrailContext,
-  resources?: ProvisionOverrideMap,
+  resources?: ResourceOverrideMap,
   opts?: TestExecutionOptions
 ): Promise<void> => {
   const validated = validateInput(t.input, example.input);
@@ -194,7 +194,7 @@ const createCoverageCross = (
   baseCross: CrossFn | undefined,
   topo: Topo,
   ctx: TrailContext,
-  resources?: ProvisionOverrideMap
+  resources?: ResourceOverrideMap
 ): CrossFn => {
   const cross = (id: string, input: unknown) => {
     called.add(id);
@@ -226,7 +226,7 @@ const runCompositionExample = async (
   baseCtx: TrailContext,
   called: Set<string>,
   topo: Topo,
-  resources?: ProvisionOverrideMap,
+  resources?: ResourceOverrideMap,
   opts?: TestExecutionOptions
 ): Promise<void> => {
   const validated = validateInput(trailDef.input, example.input);
@@ -296,8 +296,8 @@ export const testExamples = (
         'example: $name',
         async (example: TrailExample<unknown, unknown>) => {
           const resolved = normalizeTestExecutionOptions(resolveInput());
-          const resources = mergeProvisionOverrides(
-            await resolveMockProvisions(app),
+          const resources = mergeResourceOverrides(
+            await resolveMockResources(app),
             resolved.ctx,
             resolved.resources
           );
@@ -322,8 +322,8 @@ export const testExamples = (
         'example: $name',
         async (example: TrailExample<unknown, unknown>) => {
           const resolved = normalizeTestExecutionOptions(resolveInput());
-          const resources = mergeProvisionOverrides(
-            await resolveMockProvisions(app),
+          const resources = mergeResourceOverrides(
+            await resolveMockResources(app),
             resolved.ctx,
             resolved.resources
           );

@@ -6,7 +6,7 @@ import type { AuthConnector } from './connectors/connector.js';
  * Auth resource — manages the auth connector lifecycle.
  *
  * The v1 factory returns a no-op connector that always succeeds (null permit).
- * Real connector configuration will come through `ProvisionSpec.config`
+ * Real connector configuration will come through `ResourceSpec.config`
  * (TRL-91). The mock factory provides a synthetic connector that always
  * succeeds.
  */

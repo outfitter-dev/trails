@@ -123,7 +123,7 @@ const checkProvisions = (
   for (const [id, trail] of trails) {
     for (const declaredProvision of trail.resources) {
       if (
-        !topo.hasProvision(declaredProvision.id) &&
+        !topo.hasResource(declaredProvision.id) &&
         !isDraftId(declaredProvision.id)
       ) {
         issues.push({

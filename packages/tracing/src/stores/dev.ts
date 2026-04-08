@@ -230,7 +230,7 @@ const resolveLegacyCandidates = (
   ];
 };
 
-const hasLegacyTrackerTable = (db: Database): boolean => {
+const hasLegacyTable = (db: Database, tableName: string): boolean => {
   const row = db
     .query<{ name: string }, [string]>(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?"
@@ -275,15 +275,26 @@ const readLegacyCandidateRows = (
   }
 };
 
-const openLegacyDb = (
-  options: DevStoreOptions | undefined
-): Database | undefined => {
-  const legacyPath = resolveLegacyPath(options?.rootDir);
-  if (!existsSync(legacyPath)) {
-    return undefined;
+interface LegacyRows {
+  readonly paths: readonly string[];
+  readonly rows: readonly TraceRow[];
+}
+
+/** Read rows from all supported legacy stores and track which files were consumed. */
+const drainLegacyRows = (options: DevStoreOptions | undefined): LegacyRows => {
+  const rows: TraceRow[] = [];
+  const paths: string[] = [];
+
+  for (const candidate of resolveLegacyCandidates(options?.rootDir)) {
+    const candidateRows = readLegacyCandidateRows(candidate);
+    if (!candidateRows.matched) {
+      continue;
+    }
+    paths.push(candidate.path);
+    rows.push(...candidateRows.rows);
   }
 
-  return new Database(legacyPath, { readonly: true });
+  return { paths, rows };
 };
 
 const removeLegacyDbFiles = (paths: readonly string[]): void => {
@@ -300,14 +311,12 @@ const removeLegacyDbFiles = (paths: readonly string[]): void => {
   }
 };
 
-const removeLegacyDbFiles = (options: DevStoreOptions | undefined): void => {
-  const legacyPath = resolveLegacyPath(options?.rootDir);
-  unlinkSync(legacyPath);
-  for (const suffix of ['-wal', '-shm']) {
-    const sidecar = `${legacyPath}${suffix}`;
-    if (existsSync(sidecar)) {
-      unlinkSync(sidecar);
-    }
+const migrateLegacyRows = (
+  rows: readonly TraceRow[],
+  write: (record: TraceRecord) => void
+): void => {
+  for (const row of rows) {
+    write(rowToRecord(row));
   }
 };
 
@@ -319,14 +328,12 @@ const migrateLegacyStoreIfPresent = (
   if (shouldSkipLegacyMigration(db, options)) {
     return;
   }
-  const rows = drainLegacyRows(options);
-  if (rows.length === 0) {
+  const { paths, rows } = drainLegacyRows(options);
+  if (paths.length === 0) {
     return;
   }
-  for (const row of rows) {
-    write(rowToRecord(row));
-  }
-  removeLegacyDbFiles(options);
+  migrateLegacyRows(rows, write);
+  removeLegacyDbFiles(paths);
 };
 
 const createReadApi = (db: Database, defaultLimit: number): TraceStore => ({

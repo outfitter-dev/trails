@@ -68,14 +68,14 @@ const db = resource('db.main', {
   mock: () => createInMemoryDb(),
   description: 'Primary database connection',
 });
-// svc is ProvisionContext — env, cwd, workspaceRoot only. Not the full TrailContext.
+// svc is ResourceContext — env, cwd, workspaceRoot only. Not the full TrailContext.
 ```
 
 The type is inferred from the `create` factory's return value. `db` knows it produces a `Database` instance. No manual generic annotation needed.
 
 The fields:
 
-- **`create`** — factory that returns `Result<T, Error>`. Receives a narrowed `ProvisionContext` — not the full `TrailContext` — containing only stable, process-scoped fields: `env`, `cwd`, `workspaceRoot`. Singleton resources are resolved once and cached; request-specific fields like `requestId` or `signal` would reflect the first resolution and be stale for every subsequent call. The narrowed type makes this constraint structural rather than documentary. Named `create` per Convention 5 (`create*` for runtime instances).
+- **`create`** — factory that returns `Result<T, Error>`. Receives a narrowed `ResourceContext` — not the full `TrailContext` — containing only stable, process-scoped fields: `env`, `cwd`, `workspaceRoot`. Singleton resources are resolved once and cached; request-specific fields like `requestId` or `signal` would reflect the first resolution and be stale for every subsequent call. The narrowed type makes this constraint structural rather than documentary. Named `create` per Convention 5 (`create*` for runtime instances).
 - **`dispose`** — optional cleanup called on shutdown. Database pools close, API clients disconnect.
 - **`health`** — optional check returning `Result`. Feeds into topo and survey reporting plus operational readiness. A database resource can report whether it's connected; an API client can report whether the upstream is reachable.
 - **`mock`** — optional factory for testing. When present, `testExamples(app)` uses it automatically with no configuration.
@@ -103,7 +103,7 @@ const app = topo('myapp', entity, { db, cache });
 
 Duplicate resource IDs fail topo construction, same as duplicate trail IDs. No implicit override. Pack authors namespace with dot-separated IDs (`db.primary`, `entity.store`).
 
-Topo gains resource-specific accessors — `getProvision`, `hasProvision`, `listProvisions`, `provisionIds` — while existing trail accessors remain unchanged.
+Topo gains resource-specific accessors — `getResource`, `hasResource`, `listResources`, `resourceIds` — while existing trail accessors remain unchanged.
 
 ### Trails declare resource dependencies
 
@@ -301,7 +301,7 @@ The layer receives the resource definition as a parameter. It reads from context
 - **Request-scoped resources.** Deferred until a concrete use case demands it. The singleton model is sufficient for v1. The execution scope introduced here is extensible for request-scoped state when needed — the `createCross` mechanism already propagates scope through cross chains.
 - **Intent-based type narrowing.** `intent: 'read'` returning a read-only projection of a resource is powerful but complex. Deferred.
 - **Resource-to-resource dependencies.** Whether one resource's factory can depend on another resource. The expected pattern when this is needed: resource factories receive a resource resolver alongside `ctx`, and resolution order is topologically sorted from the dependency graph. The graph is already queryable — this follows naturally. Config resolution will be the first instance of this.
-- **Composable config resolution.** The reserved `config` field on `ProvisionSpec` enables resources to declare their own config schemas. When `@ontrails/config` ships, resource config schemas compose into the app-level config automatically. The field is reserved now to prevent breaking changes.
+- **Composable config resolution.** The reserved `config` field on `ResourceSpec` enables resources to declare their own config schemas. When `@ontrails/config` ships, resource config schemas compose into the app-level config automatically. The field is reserved now to prevent breaking changes.
 - **Specific connector port interfaces.** The architecture plans `IndexConnector`, `StorageConnector`, `CacheConnector`, and `AuthConnector` as port interfaces. Resources are the mechanism to register concrete implementations of these ports. Which ports ship first, and whether they live in core or in dedicated packages like `@ontrails/storage`, is separate from the resources primitive itself.
 - **Infrastructure resources pattern.** Config, permits, and tracing will each ship as a resource + layer + trails package following the pattern established by `@ontrails/logging`. The resources primitive enables this but doesn't prescribe it.
 

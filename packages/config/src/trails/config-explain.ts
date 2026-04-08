@@ -68,7 +68,7 @@ const enrichOptions = (
 
 export const configExplain = trail('config.explain', {
   blaze: (input, ctx) => {
-    const state = configProvision.from(ctx);
+    const state = configResource.from(ctx);
     const options = enrichOptions(state, toExplainOptions(state));
     const entries = explainConfig(options);
     const filtered = filterByPath(entries, input.path);

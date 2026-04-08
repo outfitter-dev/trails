@@ -3,7 +3,7 @@
  *
  * The config is resolved during bootstrap (two-phase init per ADR-010)
  * and registered via `registerConfigState`. This resource reads from the
- * global registry so trails can access it through `configProvision.from(ctx)`.
+ * global registry so trails can access it through `configResource.from(ctx)`.
  */
 import { InternalError, Result, resource } from '@ontrails/core';
 import { z } from 'zod';

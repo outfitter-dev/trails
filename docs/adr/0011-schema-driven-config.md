@@ -191,9 +191,9 @@ export default defineConfig({
 
 If every field has a default, the resource works with zero config. Install a pack, its resources declare what they need, the framework tells you what's missing at startup.
 
-### Config enriches ProvisionContext
+### Config enriches ResourceContext
 
-`ProvisionContext` gains a typed `config` field. `svc.config.url` instead of `svc.env?.DATABASE_URL` with manual `parseInt` for numbers. Validated, defaulted, typed. The `env` field remains as a fallback for one-off values that don't warrant schema definition.
+`ResourceContext` gains a typed `config` field. `svc.config.url` instead of `svc.env?.DATABASE_URL` with manual `parseInt` for numbers. Validated, defaulted, typed. The `env` field remains as a fallback for one-off values that don't warrant schema definition.
 
 ### Config as runtime bootstrap, not topo
 
@@ -209,7 +209,7 @@ await run(app, 'search', input, { config });
 Resolution order:
 
 1. Resolve and validate config
-2. Attach config to `ProvisionContext`
+2. Attach config to `ResourceContext`
 3. Resolve resources (factories read `svc.config` instead of `svc.env`)
 4. Compose layers
 5. Execute
@@ -352,6 +352,6 @@ This keeps config resolution predictable and fast. The entire config tree resolv
 ## References
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — "one write, many reads" and "derive by default" — config derives discovery, validation, examples, and introspection from a single schema declaration
-- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — resources declare config schemas via the reserved `config` field; config enriches `ProvisionContext`
+- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — resources declare config schemas via the reserved `config` field; config enriches `ResourceContext`
 - [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — config is the first infrastructure package following the resource + layer + trails trifecta
 - [ADR-0013: Tracing](0013-tracing.md) — tracing consume config for sampling rates and export targets

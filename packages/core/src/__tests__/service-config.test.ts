@@ -7,7 +7,7 @@ import { executeTrail } from '../execute.js';
 import { Result } from '../result.js';
 import { resource } from '../resource.js';
 import { trail } from '../trail.js';
-import type { ProvisionContext } from '../resource.js';
+import type { ResourceContext } from '../resource.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -20,7 +20,7 @@ const createSingletonConfigTrail = (id: string) => {
   const captures = { createCalls: 0 };
   const svc = resource(id, {
     config: z.object({ key: z.string() }),
-    create: (ctx: ProvisionContext<{ key: string }>) => {
+    create: (ctx: ResourceContext<{ key: string }>) => {
       captures.createCalls += 1;
       return Result.ok({
         createCall: captures.createCalls,
@@ -48,14 +48,14 @@ const createSingletonConfigTrail = (id: string) => {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('ProvisionContext.config', () => {
+describe('ResourceContext.config', () => {
   test('resource with config schema receives validated config in svc.config', async () => {
     const id = nextId('typed-config');
     let capturedConfig: unknown;
 
     const db = resource(id, {
       config: z.object({ poolSize: z.number(), url: z.string().url() }),
-      create: (svc: ProvisionContext<{ url: string; poolSize: number }>) => {
+      create: (svc: ResourceContext<{ url: string; poolSize: number }>) => {
         capturedConfig = svc.config;
         return Result.ok({ connected: true });
       },
@@ -180,7 +180,7 @@ describe('ProvisionContext.config', () => {
 
     const svc = resource(id, {
       config: z.object({ key: z.string() }),
-      create: (ctx: ProvisionContext<{ key: string }>) => {
+      create: (ctx: ResourceContext<{ key: string }>) => {
         captures.push(ctx.config);
         return Result.ok({ key: ctx.config.key });
       },

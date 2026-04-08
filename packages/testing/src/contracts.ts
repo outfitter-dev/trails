@@ -14,10 +14,10 @@ import type { z } from 'zod';
 
 import { expectOk } from './assertions.js';
 import {
-  mergeProvisionOverrides,
+  mergeResourceOverrides,
   mergeTestContext,
   normalizeTestExecutionOptions,
-  resolveMockProvisions,
+  resolveMockResources,
 } from './context.js';
 import type { TestExecutionOptions } from './context.js';
 
@@ -92,8 +92,8 @@ export const testContracts = (
         'contract: $name',
         async (example: TrailExample<unknown, unknown>) => {
           const resolved = normalizeTestExecutionOptions(resolveInput());
-          const resources = mergeProvisionOverrides(
-            await resolveMockProvisions(app),
+          const resources = mergeResourceOverrides(
+            await resolveMockResources(app),
             resolved.ctx,
             resolved.resources
           );

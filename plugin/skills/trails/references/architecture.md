@@ -8,7 +8,7 @@ Core defines ports. Everything on the edges is a connector.
             LEFT SIDE (inbound)             RIGHT SIDE (outbound)
             How the world calls in          How the framework calls out
             +--------------------+          +--------------------+
-            |  CLI (commander)   |          |  Provisions (core) |
+            |  CLI (commander)   |          |  Resources (core)  |
             |  MCP (sdk)         |          |  Config (config)   |
             |  HTTP (hono)       |          |  Permits (permits) |
             |  WebSocket (plan.) |          |  Tracing (tracing) |
@@ -17,8 +17,8 @@ Core defines ports. Everything on the edges is a connector.
                       |                               |
                       +-------> @ontrails/core <------+
                                 trail() signal()
-                                provision() topo()
-                                Result Errors Gate
+                                resource() topo()
+                                Result Errors Layers
 ```
 
 **Core principles:**
@@ -63,7 +63,7 @@ Every piece of information has a clear ownership model.
 | `Result<T, Error>` | Cannot throw — must return `Result.ok()` or `Result.err()` |
 | `TrailContext` interface | Implementation receives only framework-provided fields |
 | `crosses: [...]` on trail | Warden verifies `ctx.cross()` calls match |
-| `provisions: [...]` on trail | Warden verifies `db.from(ctx)` / `ctx.provision()` calls match |
+| `resources: [...]` on trail | Warden verifies `resource.from(ctx)` / `ctx.resource()` calls match |
 
 ### Inferred — detected by static analysis, best-effort
 
@@ -75,11 +75,11 @@ Every piece of information has a clear ownership model.
 
 Warden uses inference to verify declarations match actual code. The trailhead map captures inferred information for CI governance.
 
-## Package Gates
+## Package Layout
 
 ### Foundation
 
-`@ontrails/core` — only external dependency is `zod`. Contains Result, error taxonomy, `trail()`/`signal()`, `topo()`, validation, gates, connector port interfaces, `executeTrail()` (the shared pipeline), and `run()` (headless execution by trail ID).
+`@ontrails/core` — only external dependency is `zod`. Contains Result, error taxonomy, `trail()`/`signal()`, `topo()`, validation, layers, connector port interfaces, `executeTrail()` (the shared pipeline), and `run()` (headless execution by trail ID).
 
 ### Trailhead Connectors (left side)
 
@@ -95,8 +95,8 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
 
 | Package | Purpose | External dep |
 |---------|---------|-------------|
-| `@ontrails/config` | Config resolution, loadouts, provision config schemas, diagnostics | None beyond core |
-| `@ontrails/permits` | Auth gate, permit model, JWT connector, scope enforcement | None beyond core |
+| `@ontrails/config` | Config resolution, profiles, resource config schemas, diagnostics | None beyond core |
+| `@ontrails/permits` | Auth layer, permit model, JWT connector, scope enforcement | None beyond core |
 | `@ontrails/tracing` | Telemetry recording, trace context, memory/OTel sinks | None beyond core |
 | `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
 | `@ontrails/logging/logtape` | LogTape sink connector | `@logtape/logtape` (peer) |
@@ -131,14 +131,14 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
 
 ### Shared Execution Pipeline
 
-All trailheads delegate to `executeTrail(trail, rawInput, options)` from `@ontrails/core`. It is the single implementation of the validate-context-gates-run pipeline:
+All trailheads delegate to `executeTrail(trail, rawInput, options)` from `@ontrails/core`. It is the single implementation of the validate-context-layers-run pipeline:
 
 ```text
 executeTrail(trail, rawInput, options)
   -> Zod validates input against trail's schema  -> Result.err(ValidationError) on failure
-  -> TrailContext created (requestId, logger, signal)
-  -> Services resolved (create singletons or retrieve cached)
-  -> Gates composed around implementation (gates can access provisions)
+  -> TrailContext created (requestId, logger, abortSignal)
+  -> Resources resolved (create singletons or retrieve cached)
+  -> Layers composed around implementation (layers can access resources)
   -> implementation(validatedInput, ctx) called
   -> Result returned (never throws)
 ```
@@ -151,7 +151,7 @@ Trailheads only differ in how they parse inbound requests and map Results to the
 CLI input ("myapp entity show --name Alpha")
   -> Commander parses args/flags
   -> CLI connector matches trail via CliCommand model
-  -> Delegates to executeTrail(trail, parsedInput, { gates, ... })
+  -> Delegates to executeTrail(trail, parsedInput, { layers, ... })
   -> Result mapped to exit code + stdout
 ```
 
@@ -160,7 +160,7 @@ CLI input ("myapp entity show --name Alpha")
 ```text
 MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
   -> MCP connector matches trail
-  -> Delegates to executeTrail(trail, args, { gates, signal, ... })
+  -> Delegates to executeTrail(trail, args, { layers, signal, ... })
   -> Result mapped to MCP tool response (content[], isError)
 ```
 
@@ -170,7 +170,7 @@ MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
 HTTP request (GET /entity/show?name=Alpha)
   -> Hono matches route derived from trail ID
   -> Parses input (query params for GET, JSON body for POST/DELETE)
-  -> Delegates to executeTrail(trail, parsedInput, { gates, ... })
+  -> Delegates to executeTrail(trail, parsedInput, { layers, ... })
   -> Result mapped to JSON response with status code from error taxonomy
 ```
 

@@ -63,7 +63,7 @@ const writeArtifacts = async (
 
 export const configInit = trail('config.init', {
   blaze: async (input, ctx) => {
-    const state = configProvision.from(ctx);
+    const state = configResource.from(ctx);
     const schema = state.schema as z.ZodObject<Record<string, z.ZodType>>;
     const content = generateExample(schema, input.format);
 

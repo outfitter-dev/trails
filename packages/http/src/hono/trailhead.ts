@@ -13,7 +13,7 @@
 import { isTrailsError, statusCodeMap } from '@ontrails/core';
 import type {
   Layer,
-  ProvisionOverrideMap,
+  ResourceOverrideMap,
   Topo,
   TrailContextInit,
 } from '@ontrails/core';
@@ -42,7 +42,7 @@ export interface TrailheadHttpOptions {
   readonly layers?: readonly Layer[] | undefined;
   readonly name?: string | undefined;
   readonly port?: number | undefined;
-  readonly resources?: ProvisionOverrideMap | undefined;
+  readonly resources?: ResourceOverrideMap | undefined;
   /** Set false to return the Hono app without starting a server. */
   readonly serve?: boolean | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */

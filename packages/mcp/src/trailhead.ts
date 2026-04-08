@@ -16,7 +16,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import type {
   Layer,
-  ProvisionOverrideMap,
+  ResourceOverrideMap,
   Topo,
   TrailContextInit,
 } from '@ontrails/core';
@@ -41,7 +41,7 @@ export interface TrailheadMcpOptions {
   readonly excludeTrails?: readonly string[] | undefined;
   readonly includeTrails?: readonly string[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
-  readonly resources?: ProvisionOverrideMap | undefined;
+  readonly resources?: ResourceOverrideMap | undefined;
   readonly serverInfo?:
     | {
         readonly name?: string | undefined;

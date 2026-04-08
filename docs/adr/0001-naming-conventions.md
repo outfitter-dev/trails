@@ -214,6 +214,6 @@ Moving forward, any lexicon changes will have a corresponding ADR documenting th
 
 - [ADR-0000: Core Premise](0000-core-premise.md)
 - [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md)
-- [ADR-0013: Tracker](0013-tracker.md)
+- [ADR-0013: Tracing](0013-tracing.md)
 - [API Reference](../api-reference.md)
 - [Vocabulary](../lexicon.md)

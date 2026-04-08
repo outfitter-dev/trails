@@ -8,7 +8,7 @@ import type { TopoPinRecord, TopoSaveRecord } from './internal/topo-saves.js';
 import { getTopoPin } from './internal/topo-saves.js';
 import type {
   TopoStoreExportRecord,
-  TopoStoreProvisionRecord,
+  TopoStoreResourceRecord,
   TopoStoreRef,
   TopoStoreTrailDetailRecord,
   TopoStoreTrailRecord,
@@ -29,7 +29,7 @@ import type { TrailsDbLocationOptions } from './internal/trails-db.js';
 
 export type {
   TopoStoreExportRecord,
-  TopoStoreProvisionRecord,
+  TopoStoreResourceRecord,
   TopoStoreRef,
   TopoStoreTrailDetailRecord,
   TopoStoreTrailRecord,
@@ -51,10 +51,10 @@ export interface ReadOnlyTopoStore {
     get(
       id: string,
       options?: { readonly save?: TopoStoreRef }
-    ): TopoStoreProvisionRecord | undefined;
+    ): TopoStoreResourceRecord | undefined;
     list(options?: {
       readonly save?: TopoStoreRef;
-    }): readonly TopoStoreProvisionRecord[];
+    }): readonly TopoStoreResourceRecord[];
   };
   readonly saves: {
     get(ref?: TopoStoreRef): TopoSaveRecord | undefined;
