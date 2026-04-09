@@ -96,7 +96,7 @@ const deriveInputSource = (method: HttpMethod): InputSource =>
 
 /** Check if a trail should be included (skip internal trails). */
 const shouldInclude = (trail: Trail<unknown, unknown>): boolean =>
-  trail.meta?.['internal'] !== true;
+  trail.meta?.['internal'] !== true && trail.on.length === 0;
 
 /** Build per-request context overrides with the HTTP trailhead marker. */
 const withHttpTrailhead = (

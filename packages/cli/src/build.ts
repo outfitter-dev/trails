@@ -407,7 +407,9 @@ const collectCommands = (
 ): CliCommand[] =>
   app
     .list()
-    .filter((trail) => trail.meta?.['internal'] !== true)
+    .filter(
+      (trail) => trail.meta?.['internal'] !== true && trail.on.length === 0
+    )
     .map((trail) => toCliCommand(app, trail, options));
 
 export const buildCliCommands = (
