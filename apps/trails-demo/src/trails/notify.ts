@@ -7,13 +7,13 @@
  *
  * Consumer trails inherit the producer's full context, including
  * resources, so the notification side-effect lives in a real
- * `notificationStoreProvision` resource rather than a module-level array.
+ * `notificationStoreResource` resource rather than a module-level array.
  */
 
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { notificationStoreProvision } from '../resources/notification-store.js';
+import { notificationStoreResource } from '../resources/notification-store.js';
 
 // ---------------------------------------------------------------------------
 // entity.notify-updated
@@ -29,7 +29,7 @@ import { notificationStoreProvision } from '../resources/notification-store.js';
  */
 export const notifyEntityUpdated = trail('entity.notify-updated', {
   blaze: (input, ctx) => {
-    const store = notificationStoreProvision.from(ctx);
+    const store = notificationStoreResource.from(ctx);
     store.push({
       action: input.action,
       entityId: input.entityId,
@@ -65,5 +65,5 @@ export const notifyEntityUpdated = trail('entity.notify-updated', {
   intent: 'write',
   on: ['entity.updated'],
   output: z.object({ notified: z.boolean() }),
-  resources: [notificationStoreProvision],
+  resources: [notificationStoreResource],
 });

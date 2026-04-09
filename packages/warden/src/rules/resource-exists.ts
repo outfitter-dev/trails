@@ -1,8 +1,8 @@
 import { isDraftId } from '@ontrails/core';
 
 import {
-  collectNamedProvisionIds,
-  collectProvisionDefinitionIds,
+  collectNamedResourceIds,
+  collectResourceDefinitionIds,
   extractFirstStringArg,
   findConfigProperty,
   findTrailDefinitions,
@@ -20,18 +20,18 @@ import type {
   WardenDiagnostic,
 } from './types.js';
 
-const isProvisionCall = (node: AstNode): boolean =>
+const isResourceCall = (node: AstNode): boolean =>
   node.type === 'CallExpression' &&
   identifierName((node as unknown as { callee?: AstNode }).callee) ===
     'resource';
 
-const getProvisionElements = (config: AstNode): readonly AstNode[] => {
-  const provisionsProp = findConfigProperty(config, 'resources');
-  if (!provisionsProp) {
+const getResourceElements = (config: AstNode): readonly AstNode[] => {
+  const resourcesProp = findConfigProperty(config, 'resources');
+  if (!resourcesProp) {
     return [];
   }
 
-  const arrayNode = provisionsProp.value;
+  const arrayNode = resourcesProp.value;
   if (!arrayNode || (arrayNode as AstNode).type !== 'ArrayExpression') {
     return [];
   }
@@ -42,93 +42,93 @@ const getProvisionElements = (config: AstNode): readonly AstNode[] => {
   return elements ?? [];
 };
 
-const extractDeclaredProvisionId = (
+const extractDeclaredResourceId = (
   element: AstNode,
-  provisionIdsByName: ReadonlyMap<string, string>
+  resourceIdsByName: ReadonlyMap<string, string>
 ): string | null => {
   if (element.type === 'Identifier') {
     const name = identifierName(element);
-    return name ? (provisionIdsByName.get(name) ?? null) : null;
+    return name ? (resourceIdsByName.get(name) ?? null) : null;
   }
 
   if (isStringLiteral(element)) {
     return getStringValue(element);
   }
 
-  return isProvisionCall(element) ? extractFirstStringArg(element) : null;
+  return isResourceCall(element) ? extractFirstStringArg(element) : null;
 };
 
-const extractDeclaredProvisionIds = (
+const extractDeclaredResourceIds = (
   config: AstNode,
-  provisionIdsByName: ReadonlyMap<string, string>
+  resourceIdsByName: ReadonlyMap<string, string>
 ): readonly string[] => [
   ...new Set(
-    getProvisionElements(config).flatMap((element) => {
-      const id = extractDeclaredProvisionId(element, provisionIdsByName);
+    getResourceElements(config).flatMap((element) => {
+      const id = extractDeclaredResourceId(element, resourceIdsByName);
       return id ? [id] : [];
     })
   ),
 ];
 
-const buildMissingProvisionDiagnostic = (
+const buildMissingResourceDiagnostic = (
   trailId: string,
-  provisionId: string,
+  resourceId: string,
   filePath: string,
   line: number
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}" declares resource "${provisionId}" which is not defined in the project.`,
+  message: `Trail "${trailId}" declares resource "${resourceId}" which is not defined in the project.`,
   rule: 'resource-exists',
   severity: 'error',
 });
 
-const reportMissingProvisions = (
+const reportMissingResources = (
   def: { id: string; config: AstNode; start: number },
   sourceCode: string,
-  provisionIdsByName: ReadonlyMap<string, string>,
+  resourceIdsByName: ReadonlyMap<string, string>,
   filePath: string,
-  knownProvisionIds: ReadonlySet<string>,
+  knownResourceIds: ReadonlySet<string>,
   diagnostics: WardenDiagnostic[]
 ): void => {
   const line = offsetToLine(sourceCode, def.start);
-  for (const provisionId of extractDeclaredProvisionIds(
+  for (const resourceId of extractDeclaredResourceIds(
     def.config,
-    provisionIdsByName
+    resourceIdsByName
   )) {
-    if (!knownProvisionIds.has(provisionId) && !isDraftId(provisionId)) {
+    if (!knownResourceIds.has(resourceId) && !isDraftId(resourceId)) {
       diagnostics.push(
-        buildMissingProvisionDiagnostic(def.id, provisionId, filePath, line)
+        buildMissingResourceDiagnostic(def.id, resourceId, filePath, line)
       );
     }
   }
 };
 
-const buildProvisionDiagnostics = (
+const buildResourceDiagnostics = (
   ast: AstNode,
   sourceCode: string,
   filePath: string,
-  knownProvisionIds: ReadonlySet<string>
+  knownResourceIds: ReadonlySet<string>
 ): readonly WardenDiagnostic[] => {
   const diagnostics: WardenDiagnostic[] = [];
-  const provisionIdsByName = collectNamedProvisionIds(ast);
+  const resourceIdsByName = collectNamedResourceIds(ast);
   for (const def of findTrailDefinitions(ast)) {
-    reportMissingProvisions(
+    reportMissingResources(
       def,
       sourceCode,
-      provisionIdsByName,
+      resourceIdsByName,
       filePath,
-      knownProvisionIds,
+      knownResourceIds,
       diagnostics
     );
   }
   return diagnostics;
 };
 
-const checkProvisionsExist = (
+const checkResourcesExist = (
   sourceCode: string,
   filePath: string,
-  knownProvisionIds: ReadonlySet<string>
+  knownResourceIds: ReadonlySet<string>
 ): readonly WardenDiagnostic[] => {
   if (isTestFile(filePath)) {
     return [];
@@ -139,27 +139,22 @@ const checkProvisionsExist = (
     return [];
   }
 
-  return buildProvisionDiagnostics(
-    ast,
-    sourceCode,
-    filePath,
-    knownProvisionIds
-  );
+  return buildResourceDiagnostics(ast, sourceCode, filePath, knownResourceIds);
 };
 
 /**
  * Checks that all declared resources resolve to known resource definitions.
  */
-export const provisionExists: ProjectAwareWardenRule = {
+export const resourceExists: ProjectAwareWardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
     const ast = parse(filePath, sourceCode);
     if (!ast) {
       return [];
     }
-    return checkProvisionsExist(
+    return checkResourcesExist(
       sourceCode,
       filePath,
-      collectProvisionDefinitionIds(ast)
+      collectResourceDefinitionIds(ast)
     );
   },
   checkWithContext(
@@ -168,13 +163,13 @@ export const provisionExists: ProjectAwareWardenRule = {
     context: ProjectContext
   ): readonly WardenDiagnostic[] {
     const ast = parse(filePath, sourceCode);
-    const localProvisionIds = ast
-      ? collectProvisionDefinitionIds(ast)
+    const localResourceIds = ast
+      ? collectResourceDefinitionIds(ast)
       : new Set<string>();
-    return checkProvisionsExist(
+    return checkResourcesExist(
       sourceCode,
       filePath,
-      context.knownProvisionIds ?? localProvisionIds
+      context.knownResourceIds ?? localResourceIds
     );
   },
   description:

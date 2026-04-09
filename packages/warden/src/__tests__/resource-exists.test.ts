@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { provisionExists } from '../rules/resource-exists.js';
+import { resourceExists } from '../rules/resource-exists.js';
 
 const TEST_FILE = 'entity.ts';
 
@@ -20,7 +20,7 @@ trail('entity.show', {
 });
 `;
 
-    expect(provisionExists.check(code, TEST_FILE)).toEqual([]);
+    expect(resourceExists.check(code, TEST_FILE)).toEqual([]);
   });
 
   test('ignores commented-out resource declarations when resolving local ids', () => {
@@ -37,7 +37,7 @@ trail('entity.show', {
 // });
 `;
 
-    const diagnostics = provisionExists.check(code, TEST_FILE);
+    const diagnostics = resourceExists.check(code, TEST_FILE);
 
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.rule).toBe('resource-exists');
@@ -58,8 +58,8 @@ trail('entity.show', {
 });
 `;
 
-    const diagnostics = provisionExists.checkWithContext(code, TEST_FILE, {
-      knownProvisionIds: new Set(['db.other']),
+    const diagnostics = resourceExists.checkWithContext(code, TEST_FILE, {
+      knownResourceIds: new Set(['db.other']),
       knownTrailIds: new Set(['entity.show']),
     });
 
@@ -82,8 +82,8 @@ trail('entity.show', {
 });
 `;
 
-    const diagnostics = provisionExists.checkWithContext(code, TEST_FILE, {
-      knownProvisionIds: new Set(['db.main']),
+    const diagnostics = resourceExists.checkWithContext(code, TEST_FILE, {
+      knownResourceIds: new Set(['db.main']),
       knownTrailIds: new Set(['entity.show']),
     });
 
@@ -102,8 +102,8 @@ trail('entity.show', {
 `;
 
     expect(
-      provisionExists.checkWithContext(code, TEST_FILE, {
-        knownProvisionIds: new Set(['db.main']),
+      resourceExists.checkWithContext(code, TEST_FILE, {
+        knownResourceIds: new Set(['db.main']),
         knownTrailIds: new Set(['entity.show']),
       })
     ).toEqual([]);
@@ -117,6 +117,6 @@ trail('entity.show', {
 });
 `;
 
-    expect(provisionExists.check(code, 'entity.test.ts')).toEqual([]);
+    expect(resourceExists.check(code, 'entity.test.ts')).toEqual([]);
   });
 });

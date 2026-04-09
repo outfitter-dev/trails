@@ -21,12 +21,12 @@
 
 ## Service Access
 
-Declare infrastructure dependencies as provisions. Access them through `db.from(ctx)`.
+Declare infrastructure dependencies as resources. Access them through `db.from(ctx)`.
 
 ```typescript
-// Correct: declare and access via provision definition
+// Correct: declare and access via resource definition
 const search = trail('search', {
-  provisions: [db],
+  resources: [db],
   blaze: async (input, ctx) => {
     const conn = db.from(ctx);
     return Result.ok(await conn.search(input.query));
@@ -50,7 +50,7 @@ const search = trail('search', {
 });
 ```
 
-Provision factories receive `ProvisionContext` (env, cwd, workspaceRoot) — not the full `TrailContext`. Keep them trailhead-agnostic.
+Resource factories receive `ResourceContext` (env, cwd, workspaceRoot) — not the full `TrailContext`. Keep them trailhead-agnostic.
 
 ## Code Shape
 

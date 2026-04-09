@@ -31,7 +31,7 @@ export const topoSaveOutput = z.object({
   gitDirty: z.boolean(),
   gitSha: z.string().optional(),
   id: z.string(),
-  provisionCount: z.number(),
+  resourceCount: z.number(),
   signalCount: z.number(),
   trailCount: z.number(),
 });
@@ -118,8 +118,8 @@ export const currentGitState = (
 
 export const topoCounts = (
   app: Topo
-): Pick<TopoSaveRecord, 'provisionCount' | 'signalCount' | 'trailCount'> => ({
-  provisionCount: app.resources.size,
+): Pick<TopoSaveRecord, 'resourceCount' | 'signalCount' | 'trailCount'> => ({
+  resourceCount: app.resources.size,
   signalCount: app.signals.size,
   trailCount: app.trails.size,
 });

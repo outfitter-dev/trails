@@ -1,7 +1,7 @@
-import { provisionDeclarations } from '../rules/resource-declarations.js';
+import { resourceDeclarations } from '../rules/resource-declarations.js';
 import { wrapRule } from './wrap-rule.js';
 
-export const provisionDeclarationsTrail = wrapRule({
+export const resourceDeclarationsTrail = wrapRule({
   examples: [
     {
       expected: { diagnostics: [] },
@@ -21,5 +21,5 @@ trail("entity.show", {
       name: 'Matched resource declarations and usage',
     },
   ],
-  rule: provisionDeclarations,
+  rule: resourceDeclarations,
 });

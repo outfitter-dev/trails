@@ -7,7 +7,7 @@
 import { trail, Result } from '@ontrails/core';
 import { z } from 'zod';
 
-import { entityStoreProvision } from '../resources/entity-store.js';
+import { entityStoreResource } from '../resources/entity-store.js';
 
 // ---------------------------------------------------------------------------
 // search
@@ -15,7 +15,7 @@ import { entityStoreProvision } from '../resources/entity-store.js';
 
 export const search = trail('search', {
   blaze: async (input, ctx) => {
-    const store = entityStoreProvision.from(ctx);
+    const store = entityStoreResource.from(ctx);
     const query = input.query.toLowerCase();
     const entities = await store.entities.list();
     const results = entities.filter(
@@ -66,5 +66,5 @@ export const search = trail('search', {
     ),
     total: z.number(),
   }),
-  resources: [entityStoreProvision],
+  resources: [entityStoreResource],
 });

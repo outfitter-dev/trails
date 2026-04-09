@@ -32,7 +32,7 @@ const summaryOutput = z.object({
         safety: z.string(),
       })
     ),
-    provisionCount: z.number(),
+    resourceCount: z.number(),
     resources: z.array(
       z.object({
         description: z.string().nullable(),

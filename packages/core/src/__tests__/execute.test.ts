@@ -34,10 +34,10 @@ const throwingTrail = trail('throws', {
   input: z.object({}),
 });
 
-const nextProvisionId = (name: string): string =>
+const nextResourceId = (name: string): string =>
   `test.resource.${name}.${Bun.randomUUIDv7()}`;
 
-const createResolvedValueProvision = (
+const createResolvedValueResource = (
   id: string,
   onCreate: () => void,
   value: number
@@ -49,9 +49,9 @@ const createResolvedValueProvision = (
     },
   });
 
-const createEagerProvisionTrail = (
+const createEagerResourceTrail = (
   id: string,
-  counter: ReturnType<typeof createResolvedValueProvision>,
+  counter: ReturnType<typeof createResolvedValueResource>,
   onRun: (value: number) => void
 ) =>
   trail('resource.eager', {
@@ -66,8 +66,8 @@ const createEagerProvisionTrail = (
     resources: [counter],
   });
 
-const createProvisionProbeGate = (
-  counter: ReturnType<typeof createResolvedValueProvision>,
+const createResourceProbeGate = (
+  counter: ReturnType<typeof createResolvedValueResource>,
   onResolve: (value: number) => void
 ): Layer => ({
   name: 'uses-resource',
@@ -79,13 +79,13 @@ const createProvisionProbeGate = (
   },
 });
 
-const createSingletonProvision = (id: string, onCreate: () => number) =>
+const createSingletonResource = (id: string, onCreate: () => number) =>
   resource(id, {
     create: () => Result.ok({ createdAtCall: onCreate() }),
   });
 
 const createSingletonTrail = (
-  singleton: ReturnType<typeof createSingletonProvision>
+  singleton: ReturnType<typeof createSingletonResource>
 ) =>
   trail('resource.singleton', {
     blaze: (_input, ctx) =>
@@ -118,23 +118,23 @@ describe('executeTrail', () => {
     });
 
     test('eagerly resolves declared resources before layers and implementation run', async () => {
-      const id = nextProvisionId('eager');
+      const id = nextResourceId('eager');
       const captures = {
         createCalls: 0,
         gateResolved: undefined as number | undefined,
         runResolved: undefined as number | undefined,
       };
-      const counter = createResolvedValueProvision(
+      const counter = createResolvedValueResource(
         id,
         () => {
           captures.createCalls += 1;
         },
         41
       );
-      const layeredTrail = createEagerProvisionTrail(id, counter, (value) => {
+      const layeredTrail = createEagerResourceTrail(id, counter, (value) => {
         captures.runResolved = value;
       });
-      const layer = createProvisionProbeGate(counter, (value) => {
+      const layer = createResourceProbeGate(counter, (value) => {
         captures.gateResolved = value;
       });
 
@@ -147,13 +147,13 @@ describe('executeTrail', () => {
     });
 
     test('awaits async resource factories before running the trail', async () => {
-      const db = resource(nextProvisionId('async-factory'), {
+      const db = resource(nextResourceId('async-factory'), {
         create: async () => {
           await Bun.sleep(0);
           return Result.ok({ source: 'async-factory' });
         },
       });
-      const provisionTrail = trail('resource.async-factory', {
+      const resourceTrail = trail('resource.async-factory', {
         blaze: (_input, ctx) =>
           Result.ok({ source: db.from(ctx).source as string }),
         input: z.object({}),
@@ -161,16 +161,16 @@ describe('executeTrail', () => {
         resources: [db],
       });
 
-      const result = await executeTrail(provisionTrail, {});
+      const result = await executeTrail(resourceTrail, {});
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toEqual({ source: 'async-factory' });
     });
 
     test('reuses cached singleton resources across executions', async () => {
-      const id = nextProvisionId('singleton');
+      const id = nextResourceId('singleton');
       const captures = { createCalls: 0 };
-      const singleton = createSingletonProvision(id, () => {
+      const singleton = createSingletonResource(id, () => {
         captures.createCalls += 1;
         return captures.createCalls;
       });
@@ -186,16 +186,16 @@ describe('executeTrail', () => {
     });
 
     test('scopes cached singleton resources to compatible resource contexts', async () => {
-      const id = nextProvisionId('singleton-context');
-      const envAwareProvision = resource(id, {
+      const id = nextResourceId('singleton-context');
+      const envAwareResource = resource(id, {
         create: (ctx) => Result.ok({ value: String(ctx.env?.VAL) }),
       });
       const envAwareTrail = trail('resource.singleton-context', {
         blaze: (_input, ctx) =>
-          Result.ok({ value: envAwareProvision.from(ctx).value }),
+          Result.ok({ value: envAwareResource.from(ctx).value }),
         input: z.object({}),
         output: z.object({ value: z.string() }),
-        resources: [envAwareProvision],
+        resources: [envAwareResource],
       });
 
       const first = await executeTrail(
@@ -369,10 +369,10 @@ describe('executeTrail', () => {
 
     test('rebinds ctx.resource after merging extension overrides from createContext', async () => {
       let resolvedSource: string | undefined;
-      const db = resource(nextProvisionId('context-override'), {
+      const db = resource(nextResourceId('context-override'), {
         create: () => Result.ok({ source: 'factory' }),
       });
-      const provisionTrail = trail('ctx.resource.override', {
+      const resourceTrail = trail('ctx.resource.override', {
         blaze: (_input, ctx) => {
           resolvedSource = ctx.resource<{ source: string }>(db).source;
           return Result.ok({ source: resolvedSource });
@@ -383,7 +383,7 @@ describe('executeTrail', () => {
       });
 
       const result = await executeTrail(
-        provisionTrail,
+        resourceTrail,
         {},
         {
           createContext: () =>
@@ -406,7 +406,7 @@ describe('executeTrail', () => {
 
     test('context factory seeds the resource accessor when omitted', async () => {
       let capturedCtx: TrailContext | undefined;
-      const id = nextProvisionId('factory-seed');
+      const id = nextResourceId('factory-seed');
       const widget = { id: 'widget-1' };
       const widgetTrail = trail('resource.factory-seed', {
         blaze: (_input, ctx) => {
@@ -451,21 +451,21 @@ describe('executeTrail', () => {
     });
 
     test('short-circuits when a resource factory returns Result.err', async () => {
-      const failingProvision = resource(nextProvisionId('factory-error'), {
+      const failingResource = resource(nextResourceId('factory-error'), {
         create: () =>
           Result.err(new ValidationError('DATABASE_URL is required')),
       });
       let ran = false;
-      const provisionTrail = trail('resource.factory-error', {
+      const resourceTrail = trail('resource.factory-error', {
         blaze: () => {
           ran = true;
           return Result.ok(null);
         },
         input: z.object({}),
-        resources: [failingProvision],
+        resources: [failingResource],
       });
 
-      const result = await executeTrail(provisionTrail, {});
+      const result = await executeTrail(resourceTrail, {});
 
       expect(result.isErr()).toBe(true);
       expect(result.error).toBeInstanceOf(ValidationError);
@@ -474,29 +474,29 @@ describe('executeTrail', () => {
     });
 
     test('wraps thrown resource factory exceptions with the resource ID in context', async () => {
-      const explodingProvision = resource(nextProvisionId('factory-throw'), {
+      const explodingResource = resource(nextResourceId('factory-throw'), {
         create: () => {
           throw new Error('boom');
         },
       });
-      const provisionTrail = trail('resource.factory-throw', {
+      const resourceTrail = trail('resource.factory-throw', {
         blaze: () => Result.ok(null),
         input: z.object({}),
-        resources: [explodingProvision],
+        resources: [explodingResource],
       });
 
-      const result = await executeTrail(provisionTrail, {});
+      const result = await executeTrail(resourceTrail, {});
 
       expect(result.isErr()).toBe(true);
       expect(result.error).toBeInstanceOf(InternalError);
-      expect(result.error.message).toContain(explodingProvision.id);
+      expect(result.error.message).toContain(explodingResource.id);
       expect(result.error.context).toEqual({
-        resourceId: explodingProvision.id,
+        resourceId: explodingResource.id,
       });
     });
 
     test('prefers explicit resource overrides over cached or created instances', async () => {
-      const id = nextProvisionId('override');
+      const id = nextResourceId('override');
       let createCalls = 0;
       const db = resource(id, {
         create: () => {
@@ -504,7 +504,7 @@ describe('executeTrail', () => {
           return Result.ok({ source: 'factory' });
         },
       });
-      const provisionTrail = trail('resource.override', {
+      const resourceTrail = trail('resource.override', {
         blaze: (_input, ctx) =>
           Result.ok({ source: db.from(ctx).source as string }),
         input: z.object({}),
@@ -513,7 +513,7 @@ describe('executeTrail', () => {
       });
 
       const result = await executeTrail(
-        provisionTrail,
+        resourceTrail,
         {},
         {
           resources: { [id]: { source: 'override' } },

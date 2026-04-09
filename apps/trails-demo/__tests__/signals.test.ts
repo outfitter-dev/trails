@@ -21,10 +21,10 @@ import { run } from '@ontrails/core';
 import { firesDeclarations, onReferencesExist } from '@ontrails/warden';
 
 import { app } from '../src/app.js';
-import { entityStoreProvision } from '../src/resources/entity-store.js';
+import { entityStoreResource } from '../src/resources/entity-store.js';
 import {
   createNotificationStore,
-  notificationStoreProvision,
+  notificationStoreResource,
 } from '../src/resources/notification-store.js';
 import { createStore } from '../src/store.js';
 
@@ -40,8 +40,8 @@ const buildCtxExtensions = (
   entityStore: ReturnType<typeof createStore>,
   notificationStore: ReturnType<typeof createNotificationStore>
 ) => ({
-  [entityStoreProvision.id]: entityStore,
-  [notificationStoreProvision.id]: notificationStore,
+  [entityStoreResource.id]: entityStore,
+  [notificationStoreResource.id]: notificationStore,
 });
 
 // ---------------------------------------------------------------------------

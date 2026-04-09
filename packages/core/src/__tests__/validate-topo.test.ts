@@ -40,7 +40,7 @@ const mockTrail = (
   ...overrides,
 });
 
-const mockProvision = (id: string) =>
+const mockResource = (id: string) =>
   resource(id, {
     create: () => Result.ok({ id }),
   });
@@ -164,7 +164,7 @@ describe('validateTopo', () => {
 
   describe('resource declarations', () => {
     test('draft resource references are allowed in the authored graph', () => {
-      const db = mockProvision('_draft.db.main');
+      const db = mockResource('_draft.db.main');
       const app = topo('app', {
         show: mockTrail('entity.show', {
           resources: [db],
@@ -176,7 +176,7 @@ describe('validateTopo', () => {
     });
 
     test('trail declaring a registered resource passes', () => {
-      const db = mockProvision('db.main');
+      const db = mockResource('db.main');
       const app = topo('app', {
         db,
         show: mockTrail('entity.show', {
@@ -189,7 +189,7 @@ describe('validateTopo', () => {
     });
 
     test('trail declaring a missing resource fails', () => {
-      const db = mockProvision('db.main');
+      const db = mockResource('db.main');
       const app = topo('app', {
         show: mockTrail('entity.show', {
           resources: [db],
@@ -326,7 +326,7 @@ describe('validateTopo', () => {
   });
 
   test('collects multiple issues', () => {
-    const db = mockProvision('db.main');
+    const db = mockResource('db.main');
     const app = topo('app', {
       broken: mockTrail('entity.broken', { crosses: ['entity.missing'] }),
       missingService: mockTrail('entity.missing-service', {
@@ -451,7 +451,7 @@ describe('validateEstablishedTopo', () => {
   test('fails when resource declarations are not established in the topo', () => {
     const app = topo('app', {
       show: mockTrail('entity.show', {
-        resources: [mockProvision('db.main')],
+        resources: [mockResource('db.main')],
       }),
     });
 

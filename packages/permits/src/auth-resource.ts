@@ -10,7 +10,7 @@ import type { AuthConnector } from './connectors/connector.js';
  * (TRL-91). The mock factory provides a synthetic connector that always
  * succeeds.
  */
-export const authProvision = resource<AuthConnector>('auth', {
+export const authResource = resource<AuthConnector>('auth', {
   create: (_svc) =>
     Result.ok({
       // oxlint-disable-next-line require-await -- stub connector satisfies async interface

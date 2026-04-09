@@ -29,9 +29,9 @@ blaze: async (input) => {
 
 ## 3. Calling .run() directly
 
-**Symptom:** Tests or composite trails call `myTrail.run(input)` and skip validation, gates, and tracing.
+**Symptom:** Tests or composite trails call `myTrail.run(input)` and skip validation, layers, and tracing.
 
-**Why it's wrong:** Direct calls bypass the framework pipeline. Input isn't validated, gates don't run, and traces aren't recorded.
+**Why it's wrong:** Direct calls bypass the framework pipeline. Input isn't validated, layers don't run, and traces aren't recorded.
 
 **Fix:** In composite trails, use `ctx.cross('trail.id', input)` (pass the string ID, not the trail object). In tests, use `testAll()` or the test harness.
 

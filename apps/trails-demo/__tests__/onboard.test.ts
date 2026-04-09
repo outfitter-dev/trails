@@ -15,7 +15,7 @@ import {
 import { expectErr } from '@ontrails/testing';
 import type { Trail, TrailContext } from '@ontrails/core';
 
-import { entityStoreProvision } from '../src/resources/entity-store.js';
+import { entityStoreResource } from '../src/resources/entity-store.js';
 import type { EntityStore } from '../src/store.js';
 import { createStore } from '../src/store.js';
 import { add } from '../src/trails/entity.js';
@@ -50,7 +50,7 @@ const createCrossFn = (ctx: TrailContext) => {
 
 const makeCtx = (store: EntityStore): TrailContext => {
   const base = createTrailContext({
-    extensions: { [entityStoreProvision.id]: store },
+    extensions: { [entityStoreResource.id]: store },
   });
   const ctx: TrailContext = { ...base, cross: createCrossFn(base) };
   return ctx;

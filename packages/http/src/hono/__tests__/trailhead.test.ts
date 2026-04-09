@@ -52,7 +52,7 @@ const internalTrail = trail('crash', {
   input: z.object({}),
 });
 
-const dbProvision = resource('db.main', {
+const dbResource = resource('db.main', {
   create: () =>
     Result.ok({
       source: 'factory',
@@ -502,16 +502,16 @@ describe('trailhead (Hono connector)', () => {
     });
 
     test('resource overrides reach the trail through trailhead()', async () => {
-      const provisionTrail = trail('resource.check', {
+      const resourceTrail = trail('resource.check', {
         blaze: (_input, ctx) =>
-          Result.ok({ source: dbProvision.from(ctx).source as string }),
+          Result.ok({ source: dbResource.from(ctx).source as string }),
         input: z.object({}),
         intent: 'read',
         output: z.object({ source: z.string() }),
-        resources: [dbProvision],
+        resources: [dbResource],
       });
 
-      const app = topo('testapp', { dbProvision, provisionTrail });
+      const app = topo('testapp', { dbResource, resourceTrail });
       const hono = await trailhead(app, {
         resources: { 'db.main': { source: 'override' } },
         serve: false,

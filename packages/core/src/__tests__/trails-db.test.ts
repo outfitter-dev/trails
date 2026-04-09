@@ -149,7 +149,7 @@ describe('topo save primitives', () => {
       createdAt: '2026-04-01T00:00:00.000Z',
       gitDirty: false,
       gitSha: 'abc123',
-      provisionCount: 2,
+      resourceCount: 2,
       signalCount: 1,
       trailCount: 3,
     });
@@ -157,7 +157,7 @@ describe('topo save primitives', () => {
       createdAt: '2026-04-02T00:00:00.000Z',
       gitDirty: true,
       gitSha: 'def456',
-      provisionCount: 3,
+      resourceCount: 3,
       signalCount: 2,
       trailCount: 4,
     });

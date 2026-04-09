@@ -303,7 +303,7 @@ const buildCrossesMessage = (added: string[], removed: string[]): string => {
   return `Crosses changed: ${parts.join(', ')}`;
 };
 
-const buildProvisionsMessage = (added: string[], removed: string[]): string => {
+const buildResourcesMessage = (added: string[], removed: string[]): string => {
   const parts: string[] = [];
   if (added.length > 0) {
     parts.push(`added "${added.join('", "')}"`);
@@ -334,21 +334,21 @@ const diffCrosses = (
 };
 
 /** Diff declared resource arrays on trail entries. */
-const diffProvisions = (
+const diffResources = (
   acc: DetailAccumulator,
   prev: TrailheadMapEntry,
   curr: TrailheadMapEntry
 ): void => {
-  const prevProvisions = new Set(prev.resources);
-  const currProvisions = new Set(curr.resources);
-  const added = [...currProvisions]
-    .filter((resource) => !prevProvisions.has(resource))
+  const prevResources = new Set(prev.resources);
+  const currResources = new Set(curr.resources);
+  const added = [...currResources]
+    .filter((resource) => !prevResources.has(resource))
     .toSorted();
-  const removed = [...prevProvisions]
-    .filter((resource) => !currProvisions.has(resource))
+  const removed = [...prevResources]
+    .filter((resource) => !currResources.has(resource))
     .toSorted();
   if (added.length > 0 || removed.length > 0) {
-    addDetail(acc, 'warning', buildProvisionsMessage(added, removed));
+    addDetail(acc, 'warning', buildResourcesMessage(added, removed));
   }
 };
 
@@ -363,7 +363,7 @@ const diffEntryDetails = (
   diffCliPath(acc, prev, curr);
   diffMetadata(acc, prev, curr);
   diffCrosses(acc, prev, curr);
-  diffProvisions(acc, prev, curr);
+  diffResources(acc, prev, curr);
 };
 
 const diffEntry = (

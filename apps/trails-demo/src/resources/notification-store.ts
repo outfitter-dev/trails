@@ -36,7 +36,7 @@ export const createNotificationStore = (): NotificationStore => {
   };
 };
 
-export const notificationStoreProvision = resource('demo.notification-store', {
+export const notificationStoreResource = resource('demo.notification-store', {
   create: () => Result.ok(createNotificationStore()),
   description:
     'In-memory notification store consumed by the entity.notify-updated trail.',

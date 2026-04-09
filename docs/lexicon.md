@@ -105,7 +105,7 @@ const create = trail('entity.create', {
 });
 ```
 
-Pairs with `blaze` for vocabulary coherence. Combined with `signal`, the resonance is mnemonic: signal fire.
+Pairs with `blaze` for lexicon coherence. Combined with `signal`, the resonance is mnemonic: signal fire.
 
 ### `on`
 
@@ -273,7 +273,7 @@ A mechanically derived output from authored information. The topo store is a rel
 
 ## Compound and Derived Terms
 
-Built from the vocabulary above.
+Built from the lexicon above.
 
 | Term | Composed of | Usage |
 | --- | --- | --- |

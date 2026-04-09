@@ -41,7 +41,7 @@ The architecture is designed to make consistency easier than drift. Agents build
    - Future directions for Trails are outlined in speculative or [draft ADRs](docs/adr/drafts/README.md).
 3. We keep a log of our working notes, session recaps, learnings, etc. in `.agents/notes/` (gitignored — local only) as a historical record of our journey.
 
-## Vocabulary
+## Lexicon
 
 Use the project language consistently:
 

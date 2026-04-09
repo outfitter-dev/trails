@@ -30,7 +30,7 @@ export const ruleInput = z.object({
  * files.
  */
 export const projectAwareRuleInput = ruleInput.extend({
-  knownProvisionIds: z
+  knownResourceIds: z
     .array(z.string())
     .optional()
     .describe('Resource IDs known across the project'),

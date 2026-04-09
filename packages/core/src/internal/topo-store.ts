@@ -55,13 +55,13 @@ interface TopoOnRow {
   readonly trailId: string;
 }
 
-interface TopoTrailProvisionRow {
-  readonly provisionId: string;
+interface TopoTrailResourceRow {
+  readonly resourceId: string;
   readonly saveId: string;
   readonly trailId: string;
 }
 
-interface TopoProvisionRow {
+interface TopoResourceRow {
   readonly hasHealth: number;
   readonly hasMock: number;
   readonly id: string;
@@ -150,10 +150,10 @@ interface NormalizedTopoProjection {
   readonly examples: readonly TopoExampleRow[];
   readonly fires: readonly TopoFiresRow[];
   readonly on: readonly TopoOnRow[];
-  readonly resources: readonly TopoProvisionRow[];
+  readonly resources: readonly TopoResourceRow[];
   readonly signals: readonly TopoSignalRow[];
   readonly trailheads: readonly TopoTrailheadRow[];
-  readonly trailProvisions: readonly TopoTrailProvisionRow[];
+  readonly trailResources: readonly TopoTrailResourceRow[];
   readonly trailSignals: readonly TopoTrailSignalRow[];
   readonly trails: readonly TopoTrailRow[];
 }
@@ -326,24 +326,24 @@ export const normalizeOnRows = (
     }))
   );
 
-const normalizeTrailProvisionRows = (
+const normalizeTrailResourceRows = (
   trails: readonly AnyTrail[],
   saveId: string
-): readonly TopoTrailProvisionRow[] =>
+): readonly TopoTrailResourceRow[] =>
   trails.flatMap((trail) =>
     [...new Set(trail.resources.map((resource) => resource.id))]
       .toSorted()
-      .map((provisionId) => ({
-        provisionId,
+      .map((resourceId) => ({
+        resourceId,
         saveId,
         trailId: trail.id,
       }))
   );
 
-const normalizeProvisionRows = (
+const normalizeResourceRows = (
   resources: readonly AnyResource[],
   saveId: string
-): readonly TopoProvisionRow[] =>
+): readonly TopoResourceRow[] =>
   resources.map((resource) => ({
     hasHealth: resource.health === undefined ? 0 : 1,
     hasMock: resource.mock === undefined ? 0 : 1,
@@ -435,9 +435,9 @@ const normalizeTopoProjection = (
     examples: normalizeExampleRows(trails, saveId),
     fires: normalizeFiresRows(trails, saveId),
     on: normalizeOnRows(trails, saveId),
-    resources: normalizeProvisionRows(resources, saveId),
+    resources: normalizeResourceRows(resources, saveId),
     signals: normalizeSignalRows(signals, saveId),
-    trailProvisions: normalizeTrailProvisionRows(trails, saveId),
+    trailResources: normalizeTrailResourceRows(trails, saveId),
     trailSignals: normalizeTrailSignalRows(signals, saveId),
     trailheads: normalizeTrailheadRows(trails, saveId),
     trails: normalizeTrailRows(trails, saveId),
@@ -776,7 +776,7 @@ const signalToEntryRecord = (
   return sortKeys(entry) as TrailheadMapEntryRecord;
 };
 
-const provisionToEntryRecord = (
+const resourceToEntryRecord = (
   resource: AnyResource
 ): TrailheadMapEntryRecord => {
   const entry: Record<string, unknown> = {
@@ -846,7 +846,7 @@ const buildTrailheadMap = (
         requireSignalPayload(signalPayloads, signal.id)
       )
     ),
-    ...resources.map((resource) => provisionToEntryRecord(resource)),
+    ...resources.map((resource) => resourceToEntryRecord(resource)),
   ].toSorted((a, b) => a.id.localeCompare(b.id));
 
   return {
@@ -976,10 +976,10 @@ const insertProjectedRows = (
   );
   insertRows(
     db,
-    projection.trailProvisions,
+    projection.trailResources,
     `INSERT INTO topo_trail_provisions (trail_id, provision_id, save_id)
      VALUES (?, ?, ?)`,
-    (row) => [row.trailId, row.provisionId, row.saveId]
+    (row) => [row.trailId, row.resourceId, row.saveId]
   );
   insertRows(
     db,
@@ -1123,7 +1123,7 @@ export const persistEstablishedTopoSave = (
 
   const saveInput: CreateTopoSaveInput = {
     ...input,
-    provisionCount: input?.provisionCount ?? topo.resources.size,
+    resourceCount: input?.resourceCount ?? topo.resources.size,
     signalCount: input?.signalCount ?? topo.signals.size,
     trailCount: input?.trailCount ?? topo.trails.size,
   };

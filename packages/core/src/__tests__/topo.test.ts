@@ -29,7 +29,7 @@ const mockEvent = (id: string) => ({
   payload: z.object({ payload: z.string() }),
 });
 
-const mockProvision = (id: string) =>
+const mockResource = (id: string) =>
   resource(id, {
     create: () => Result.ok({ id }),
     description: `${id} resource`,
@@ -57,7 +57,7 @@ describe('topo', () => {
     test('auto-scans exports by kind discriminant', () => {
       const mod = {
         event1: mockEvent('e1'),
-        provision1: mockProvision('s1'),
+        resource1: mockResource('s1'),
         trail1: mockTrail('t1'),
         trail2: mockTrail('t2', ['t1']),
       };
@@ -103,7 +103,7 @@ describe('topo', () => {
     });
 
     test('collects resources from modules', () => {
-      const mod = { db: mockProvision('db.main') };
+      const mod = { db: mockResource('db.main') };
       const t = topo('app', mod);
 
       expect(t.resources.size).toBe(1);
@@ -133,8 +133,8 @@ describe('topo', () => {
     });
 
     test('rejects duplicate resource IDs', () => {
-      const mod1 = { a: mockProvision('dup') };
-      const mod2 = { b: mockProvision('dup') };
+      const mod1 = { a: mockResource('dup') };
+      const mod2 = { b: mockResource('dup') };
 
       expect(() => topo('app', mod1, mod2)).toThrow(ValidationError);
       expect(() => topo('app', mod1, mod2)).toThrow(
@@ -163,8 +163,8 @@ describe('topo accessors', () => {
   });
 
   test('resourceCount returns number of resources', () => {
-    const db = mockProvision('db.main');
-    const cache = mockProvision('cache.main');
+    const db = mockResource('db.main');
+    const cache = mockResource('cache.main');
     const app = topo('test', { cache, db });
     expect(app.resourceCount).toBe(2);
   });
@@ -178,8 +178,8 @@ describe('topo accessors', () => {
   });
 
   test('resourceIds() returns all resource IDs', () => {
-    const db = mockProvision('db.main');
-    const cache = mockProvision('cache.main');
+    const db = mockResource('db.main');
+    const cache = mockResource('cache.main');
     const app = topo('test', { cache, db });
     expect(app.resourceIds().toSorted()).toEqual(['cache.main', 'db.main']);
   });
@@ -192,7 +192,7 @@ describe('topo accessors', () => {
 describe('Topo', () => {
   const mod = {
     e1: mockEvent('event-1'),
-    p1: mockProvision('resource-1'),
+    p1: mockResource('resource-1'),
     t1: mockTrail('trail-1'),
     t2: mockTrail('trail-2'),
     t3: mockTrail('trail-3', ['trail-1']),

@@ -8,7 +8,7 @@ import {
 } from '@ontrails/core';
 
 import type { AuthConnector } from '../connectors/connector.js';
-import { authProvision } from '../auth-resource.js';
+import { authResource } from '../auth-resource.js';
 import { createJwtConnector } from '../connectors/jwt.js';
 import type { Permit } from '../permit.js';
 import { authVerify } from '../trails/auth-verify.js';
@@ -95,7 +95,7 @@ const runVerify = async (
         options?.trailhead === undefined
           ? undefined
           : { extensions: { [TRAILHEAD_KEY]: options.trailhead } },
-      resources: { [authProvision.id]: connector },
+      resources: { [authResource.id]: connector },
     }
   );
   return result as Result<
@@ -134,7 +134,7 @@ describe('auth.verify trail', () => {
       expect(authVerify.examples?.length).toBeGreaterThan(0);
     });
 
-    test('declares authProvision dependency', () => {
+    test('declares authResource dependency', () => {
       expect(authVerify.resources).toHaveLength(1);
       expect(authVerify.resources[0]?.id).toBe('auth');
     });
@@ -267,7 +267,7 @@ describe('auth.verify trail', () => {
         authVerify,
         { token: '' },
         {
-          resources: { [authProvision.id]: jwtConnector() },
+          resources: { [authResource.id]: jwtConnector() },
         }
       );
 

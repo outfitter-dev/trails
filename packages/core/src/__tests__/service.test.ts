@@ -6,7 +6,7 @@ import {
   createTrailContext,
   findDuplicateResourceId,
   isResource,
-  resource as defineProvision,
+  resource,
 } from '../index.js';
 import type {
   Resource,
@@ -15,7 +15,7 @@ import type {
   TrailContext,
 } from '../index.js';
 
-const provisionCtx: ResourceContext = {
+const resourceCtx: ResourceContext = {
   cwd: '/tmp/trails',
   env: { DATABASE_URL: 'file::memory:' },
   workspaceRoot: '/tmp',
@@ -23,13 +23,13 @@ const provisionCtx: ResourceContext = {
 
 let disposedValue: number | undefined;
 
-const counterProvisionSpec: ResourceSpec<number> = {
+const counterResourceSpec: ResourceSpec<number> = {
   create: () => Result.ok(3),
   description: 'Counter resource',
-  dispose: (resource) => {
-    disposedValue = resource;
+  dispose: (value) => {
+    disposedValue = value;
   },
-  health: (resource) => Result.ok({ healthy: resource > 0 }),
+  health: (value) => Result.ok({ healthy: value > 0 }),
   meta: { domain: 'data' },
   mock: () => 1,
 };
@@ -43,14 +43,14 @@ const resolvedServiceCtx = (id: string, instance: unknown): TrailContext =>
 
 describe('resource types', () => {
   test('ResourceContext exposes the stable process-scoped fields', () => {
-    expect(provisionCtx.cwd).toBe('/tmp/trails');
-    expect(provisionCtx.env?.DATABASE_URL).toBe('file::memory:');
-    expect(provisionCtx.workspaceRoot).toBe('/tmp');
+    expect(resourceCtx.cwd).toBe('/tmp/trails');
+    expect(resourceCtx.env?.DATABASE_URL).toBe('file::memory:');
+    expect(resourceCtx.workspaceRoot).toBe('/tmp');
   });
 
   test('ResourceSpec stores description and meta', () => {
-    expect(counterProvisionSpec.description).toBe('Counter resource');
-    expect(counterProvisionSpec.meta).toEqual({ domain: 'data' });
+    expect(counterResourceSpec.description).toBe('Counter resource');
+    expect(counterResourceSpec.meta).toEqual({ domain: 'data' });
   });
 
   test('ResourceSpec can reserve a config schema for future composition', () => {
@@ -64,24 +64,24 @@ describe('resource types', () => {
   });
 
   test('ResourceSpec create and health callbacks are callable', async () => {
-    const result = await counterProvisionSpec.create(provisionCtx);
+    const result = await counterResourceSpec.create(resourceCtx);
     expect(result.isOk()).toBe(true);
     expect(result.unwrap()).toBe(3);
 
-    const health = await counterProvisionSpec.health?.(result.unwrap());
+    const health = await counterResourceSpec.health?.(result.unwrap());
     expect(health?.isOk()).toBe(true);
     expect(health?.unwrap()).toEqual({ healthy: true });
   });
 
   test('ResourceSpec mock and dispose callbacks are callable', async () => {
     disposedValue = undefined;
-    const result = await counterProvisionSpec.create(provisionCtx);
+    const result = await counterResourceSpec.create(resourceCtx);
     expect(result.isOk()).toBe(true);
 
-    const resource = result.unwrap();
-    expect(await counterProvisionSpec.mock?.()).toBe(1);
+    const instance = result.unwrap();
+    expect(await counterResourceSpec.mock?.()).toBe(1);
 
-    await counterProvisionSpec.dispose?.(resource);
+    await counterResourceSpec.dispose?.(instance);
     expect(disposedValue).toBe(3);
   });
 
@@ -93,34 +93,34 @@ describe('resource types', () => {
       },
     };
 
-    const result = await spec.create(provisionCtx);
+    const result = await spec.create(resourceCtx);
     expect(result.isOk()).toBe(true);
     expect(result.unwrap()).toBe(7);
   });
 
   test('Resource carries identity alongside the shared spec fields', async () => {
-    const counterProvision: Resource<number> = {
+    const counterResource: Resource<number> = {
       from(ctx) {
         return ctx.resource(this);
       },
       id: 'counter.main',
       kind: 'resource',
-      ...counterProvisionSpec,
+      ...counterResourceSpec,
     };
 
-    expect(counterProvision.kind).toBe('resource');
-    expect(counterProvision.id).toBe('counter.main');
+    expect(counterResource.kind).toBe('resource');
+    expect(counterResource.id).toBe('counter.main');
 
-    const created = await counterProvision.create(provisionCtx);
+    const created = await counterResource.create(resourceCtx);
     expect(created.isOk()).toBe(true);
     expect(created.unwrap()).toBe(3);
-    expect(await counterProvision.mock?.()).toBe(1);
+    expect(await counterResource.mock?.()).toBe(1);
   });
 });
 
 describe('resource()', () => {
   test('returns a frozen resource object with kind and id', () => {
-    const counter = defineProvision('counter.main', counterProvisionSpec);
+    const counter = resource('counter.main', counterResourceSpec);
 
     expect(counter.kind).toBe('resource');
     expect(counter.id).toBe('counter.main');
@@ -128,7 +128,7 @@ describe('resource()', () => {
   });
 
   test('infers the resource type through from(ctx)', () => {
-    const db = defineProvision('db.main', {
+    const db = resource('db.main', {
       create: () =>
         Result.ok({
           query(sql: string) {
@@ -150,7 +150,7 @@ describe('resource()', () => {
   });
 
   test('from(ctx) throws when the resource is missing', () => {
-    const counter = defineProvision('counter.main', counterProvisionSpec);
+    const counter = resource('counter.main', counterResourceSpec);
     const ctx = createTrailContext({
       abortSignal: new AbortController().signal,
       requestId: 'missing-resource',
@@ -162,7 +162,7 @@ describe('resource()', () => {
   });
 
   test('from(ctx) returns undefined when the resource key exists with an undefined value', () => {
-    const optional = defineProvision<undefined>('optional.main', {
+    const optional = resource<undefined>('optional.main', {
       create: () => Result.ok<undefined>(),
     });
     const ctx = createTrailContext({
@@ -177,7 +177,7 @@ describe('resource()', () => {
 
 describe('resource helpers', () => {
   test('isResource identifies resource definitions', () => {
-    const counter = defineProvision('counter.main', counterProvisionSpec);
+    const counter = resource('counter.main', counterResourceSpec);
 
     expect(isResource(counter)).toBe(true);
     expect(isResource({ id: 'counter.main', kind: 'trail' })).toBe(false);
@@ -185,9 +185,9 @@ describe('resource helpers', () => {
   });
 
   test('findDuplicateResourceId returns the first repeated ID', () => {
-    const first = defineProvision('counter.main', counterProvisionSpec);
-    const duplicate = defineProvision('counter.main', counterProvisionSpec);
-    const other = defineProvision('counter.secondary', counterProvisionSpec);
+    const first = resource('counter.main', counterResourceSpec);
+    const duplicate = resource('counter.main', counterResourceSpec);
+    const other = resource('counter.secondary', counterResourceSpec);
 
     expect(findDuplicateResourceId([first, other])).toBeUndefined();
     expect(findDuplicateResourceId([first, other, duplicate])).toBe(

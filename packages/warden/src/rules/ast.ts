@@ -226,7 +226,7 @@ export const extractFirstStringArg = (node: AstNode): string | null => {
   return extractStringLiteral(firstArg);
 };
 
-const isProvisionCall = (node: AstNode | undefined): boolean =>
+const isResourceCall = (node: AstNode | undefined): boolean =>
   !!node &&
   node.type === 'CallExpression' &&
   identifierName((node as unknown as { callee?: AstNode }).callee) ===
@@ -246,7 +246,7 @@ const extractBindingName = (node: AstNode | undefined): string | null => {
 };
 
 /** Collect `const foo = resource('id', ...)` bindings from a parsed file. */
-export const collectNamedProvisionIds = (
+export const collectNamedResourceIds = (
   ast: AstNode
 ): ReadonlyMap<string, string> => {
   const ids = new Map<string, string>();
@@ -260,14 +260,14 @@ export const collectNamedProvisionIds = (
       readonly id?: AstNode;
       readonly init?: AstNode;
     };
-    if (!isProvisionCall(init)) {
+    if (!isResourceCall(init)) {
       return;
     }
 
     const name = extractBindingName(id);
-    const provisionId = init ? extractFirstStringArg(init) : null;
-    if (name && provisionId) {
-      ids.set(name, provisionId);
+    const resourceId = init ? extractFirstStringArg(init) : null;
+    if (name && resourceId) {
+      ids.set(name, resourceId);
     }
   });
 
@@ -275,13 +275,13 @@ export const collectNamedProvisionIds = (
 };
 
 /** Collect all inline `resource('id', ...)` definition IDs from a parsed file. */
-export const collectProvisionDefinitionIds = (
+export const collectResourceDefinitionIds = (
   ast: AstNode
 ): ReadonlySet<string> => {
   const ids = new Set<string>();
 
   walk(ast, (node) => {
-    if (!isProvisionCall(node)) {
+    if (!isResourceCall(node)) {
       return;
     }
 
@@ -295,9 +295,9 @@ export const collectProvisionDefinitionIds = (
 };
 
 /** Backward-compatible aliases while the migration is in flight. */
-export const collectNamedServiceIds = collectNamedProvisionIds;
+export const collectNamedServiceIds = collectNamedResourceIds;
 /** Backward-compatible aliases while the migration is in flight. */
-export const collectServiceDefinitionIds = collectProvisionDefinitionIds;
+export const collectServiceDefinitionIds = collectResourceDefinitionIds;
 
 // ---------------------------------------------------------------------------
 // Config property extraction helpers

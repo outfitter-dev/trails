@@ -14,7 +14,7 @@ const stubCtx: TrailContext = createTrailContext({
   requestId: 'test-123',
 });
 
-const dbProvision = resource('db.main', {
+const dbResource = resource('db.main', {
   create: () =>
     Result.ok({
       query(sql: string) {
@@ -149,22 +149,22 @@ describe('trail()', () => {
     });
 
     test('preserves declared resource objects', () => {
-      const withProvisions = trail('search', {
+      const withResources = trail('search', {
         blaze: () => Result.ok(),
         input: z.object({}),
-        resources: [dbProvision],
+        resources: [dbResource],
       });
-      expect(withProvisions.resources).toEqual([dbProvision]);
-      expect(withProvisions.resources[0]).toBe(dbProvision);
+      expect(withResources.resources).toEqual([dbResource]);
+      expect(withResources.resources[0]).toBe(dbResource);
     });
 
     test('resources array is frozen', () => {
-      const withProvisions = trail('search', {
+      const withResources = trail('search', {
         blaze: () => Result.ok(),
         input: z.object({}),
-        resources: [dbProvision],
+        resources: [dbResource],
       });
-      expect(Object.isFrozen(withProvisions.resources)).toBe(true);
+      expect(Object.isFrozen(withResources.resources)).toBe(true);
     });
   });
 
@@ -226,12 +226,12 @@ describe('trail()', () => {
         input: inputSchema,
         intent: 'read',
         output: outputSchema,
-        resources: [dbProvision],
+        resources: [dbResource],
       });
       expect(t.description).toBe('A full trail');
       expect(t.intent).toBe('read');
       expect(t.examples).toHaveLength(1);
-      expect(t.resources).toEqual([dbProvision]);
+      expect(t.resources).toEqual([dbResource]);
     });
 
     test('implementation is callable', async () => {

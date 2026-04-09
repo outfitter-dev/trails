@@ -100,7 +100,7 @@ describe('topo and dev trails', () => {
       );
       expect(summary.app.name).toBe('fixture-app');
       expect(summary.list.count).toBe(2);
-      expect(summary.list.provisionCount).toBe(1);
+      expect(summary.list.resourceCount).toBe(1);
       expect(summary.lockExists).toBe(false);
 
       const detail = expectOk(
@@ -163,7 +163,7 @@ describe('topo and dev trails', () => {
       );
       expect(surveyList).toMatchObject({
         count: 2,
-        provisionCount: 1,
+        resourceCount: 1,
       });
 
       const surveyBrief = expectOk(

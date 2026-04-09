@@ -175,7 +175,7 @@ Calls to IDs not registered in `responses` return `Result.err` with a descriptiv
 
 ## `run()` -- Headless Testing Against a Topo
 
-For integration-style tests that verify the full pipeline (validation, gates, implementation) without mounting a trailhead, use `run()` from `@ontrails/core`:
+For integration-style tests that verify the full pipeline (validation, layers, implementation) without mounting a trailhead, use `run()` from `@ontrails/core`:
 
 ```typescript
 import { run } from '@ontrails/core';

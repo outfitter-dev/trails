@@ -80,7 +80,7 @@ This exposes MCP tools: `demo_entity_show`, `demo_entity_add`, `demo_entity_dele
 ### Trail definition: `entity.show`
 
 ```typescript
-import { entityStoreProvision } from '../src/resources/entity-store.js';
+import { entityStoreResource } from '../src/resources/entity-store.js';
 
 export const show = trail('entity.show', {
   description: 'Show an entity by name',
@@ -88,7 +88,7 @@ export const show = trail('entity.show', {
   output: entitySchema,
   intent: 'read',
   detours: { NotFoundError: ['search'] },
-  resources: [entityStoreProvision],
+  resources: [entityStoreResource],
   examples: [
     {
       name: 'Show entity by name',
@@ -104,7 +104,7 @@ export const show = trail('entity.show', {
     },
   ],
   blaze: async (input, ctx) => {
-    const store = entityStoreProvision.from(ctx);
+    const store = entityStoreResource.from(ctx);
     /* ... */
   },
 });
@@ -143,11 +143,11 @@ export const onboard = trail('entity.onboard', {
 ```typescript
 import { testAll } from '@ontrails/testing';
 import { app } from '../src/app.js';
-import { createMockEntityStore, entityStoreProvision } from '../src/resources/entity-store.js';
+import { createMockEntityStore, entityStoreResource } from '../src/resources/entity-store.js';
 
 testAll(app, () => ({
   resources: {
-    [entityStoreProvision.id]: createMockEntityStore(),
+    [entityStoreResource.id]: createMockEntityStore(),
   },
 }));
 ```
@@ -172,7 +172,7 @@ Pass a factory function (not a plain object) when your explicit resource overrid
 ```typescript
 import { createStore } from '../src/store.js';
 import { testTrail } from '@ontrails/testing';
-import { entityStoreProvision } from '../src/resources/entity-store.js';
+import { entityStoreResource } from '../src/resources/entity-store.js';
 
 testTrail(
   show,
@@ -185,7 +185,7 @@ testTrail(
   ],
   {
     extensions: {
-      [entityStoreProvision.id]: createStore([
+      [entityStoreResource.id]: createStore([
         { name: 'Alpha', tags: ['core'], type: 'concept' },
       ]),
     },

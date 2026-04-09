@@ -6,10 +6,10 @@ import { wrapRule } from '../trails/wrap-rule.js';
 import type { ProjectAwareWardenRule } from '../rules/types.js';
 
 describe('wrapRule', () => {
-  test('preserves undefined knownProvisionIds and defaults knownTrailIds to empty set', async () => {
+  test('preserves undefined knownResourceIds and defaults knownTrailIds to empty set', async () => {
     let capturedContext:
       | {
-          readonly knownProvisionIds?: ReadonlySet<string>;
+          readonly knownResourceIds?: ReadonlySet<string>;
           readonly knownTrailIds?: ReadonlySet<string>;
         }
       | undefined;
@@ -34,7 +34,7 @@ describe('wrapRule', () => {
     expect(result.isOk()).toBe(true);
     expect(result.unwrap()).toEqual({ diagnostics: [] });
     expect(capturedContext).toEqual({
-      knownProvisionIds: undefined,
+      knownResourceIds: undefined,
       knownTrailIds: new Set<string>(),
     });
   });

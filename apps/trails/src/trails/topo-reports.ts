@@ -26,7 +26,7 @@ export interface SurveyListReport {
     readonly kind: string;
     readonly safety: string;
   }[];
-  readonly provisionCount: number;
+  readonly resourceCount: number;
   readonly resources: readonly {
     readonly description: string | null;
     readonly health: 'available' | 'none';
@@ -62,7 +62,7 @@ const detectFeatures = (
   hasDetours: boolean;
   hasExamples: boolean;
   hasOutputSchemas: boolean;
-  hasProvisions: boolean;
+  hasResources: boolean;
 } => {
   const trails = [...app.trails.values()].map(
     (item) => item as unknown as Record<string, unknown>
@@ -71,7 +71,7 @@ const detectFeatures = (
     hasDetours: trails.some((r) => trailHas(r, 'detours')),
     hasExamples: trails.some((r) => trailHas(r, 'examples')),
     hasOutputSchemas: trails.some((r) => trailHas(r, 'output')),
-    hasProvisions: trails.some(
+    hasResources: trails.some(
       (r) =>
         Array.isArray(r['resources']) &&
         (r['resources'] as unknown[]).length > 0
@@ -80,7 +80,7 @@ const detectFeatures = (
 };
 
 export const generateBriefReport = (app: Topo): BriefReport => {
-  const { hasDetours, hasExamples, hasOutputSchemas, hasProvisions } =
+  const { hasDetours, hasExamples, hasOutputSchemas, hasResources } =
     detectFeatures(app);
 
   return {
@@ -89,7 +89,7 @@ export const generateBriefReport = (app: Topo): BriefReport => {
       detours: hasDetours,
       examples: hasExamples,
       outputSchemas: hasOutputSchemas,
-      resources: hasProvisions,
+      resources: hasResources,
       signals: app.signals.size > 0,
     },
     name: app.name,
@@ -115,16 +115,16 @@ const safetyLabel = (entry: {
   return '-';
 };
 
-const buildProvisionUsage = (
+const buildResourceUsage = (
   app: Topo
 ): ReadonlyMap<string, readonly string[]> => {
   const usage = new Map<string, string[]>();
 
   for (const trailDef of app.list()) {
-    for (const declaredProvision of trailDef.resources) {
-      const users = usage.get(declaredProvision.id) ?? [];
+    for (const declaredResource of trailDef.resources) {
+      const users = usage.get(declaredResource.id) ?? [];
       users.push(trailDef.id);
-      usage.set(declaredProvision.id, users);
+      usage.set(declaredResource.id, users);
     }
   }
 
@@ -133,35 +133,32 @@ const buildProvisionUsage = (
   );
 };
 
-const provisionHealthStatus = (resource: {
+const resourceHealthStatus = (resource: {
   health?: unknown;
 }): 'available' | 'none' =>
   resource.health === undefined ? 'none' : 'available';
 
-export const formatProvisionDetail = (
-  app: Topo,
-  provisionId: string
-): object => {
-  const item = app.getResource(provisionId);
-  const usedBy = buildProvisionUsage(app).get(provisionId) ?? [];
+export const formatResourceDetail = (app: Topo, resourceId: string): object => {
+  const item = app.getResource(resourceId);
+  const usedBy = buildResourceUsage(app).get(resourceId) ?? [];
 
   return {
     description: item?.description ?? null,
-    health: item ? provisionHealthStatus(item) : 'none',
-    id: provisionId,
+    health: item ? resourceHealthStatus(item) : 'none',
+    id: resourceId,
     kind: 'resource',
     lifetime: 'singleton',
     usedBy,
   };
 };
 
-const formatProvisionList = (app: Topo): SurveyListReport['resources'] => {
-  const usage = buildProvisionUsage(app);
+const formatResourceList = (app: Topo): SurveyListReport['resources'] => {
+  const usage = buildResourceUsage(app);
   return app
     .listResources()
     .map((resource) => ({
       description: resource.description ?? null,
-      health: provisionHealthStatus(resource),
+      health: resourceHealthStatus(resource),
       id: resource.id,
       kind: resource.kind,
       lifetime: 'singleton' as const,
@@ -190,12 +187,12 @@ export const generateSurveyList = (app: Topo): SurveyListReport => {
     };
   });
 
-  const resources = formatProvisionList(app);
+  const resources = formatResourceList(app);
 
   return {
     count: items.length,
     entries,
-    provisionCount: resources.length,
+    resourceCount: resources.length,
     resources,
   };
 };

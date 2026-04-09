@@ -21,7 +21,7 @@ claude plugin install trails@trails
 npx skills outfitter-dev/trails
 ```
 
-The skill gives your agent the full Trails reference: vocabulary, patterns, error taxonomy, trailhead wiring, testing, and before/after migration examples.
+The skill gives your agent the full Trails reference: lexicon, patterns, error taxonomy, trailhead wiring, testing, and before/after migration examples.
 
 ### With code
 
@@ -97,7 +97,7 @@ Each declaration you add to a trail unlocks derived behavior across every trailh
 | `intent: 'destroy'` | MCP `destructiveHint`, CLI auto-adds `--dry-run`, HTTP DELETE |
 | `examples` | Tests (happy + error path), agent guidance, documentation |
 | `crosses` | Composition graph, cycle detection, cross coverage in tests |
-| `provisions: [db]` | Singleton lifecycle, test mock auto-resolution, warden governance |
+| `resources: [db]` | Singleton lifecycle, test mock auto-resolution, warden governance |
 | `detours` | Recovery paths, warden validates targets exist |
 
 The value isn't any single feature. It's that they multiply — each declaration makes every trailhead smarter without additional wiring.

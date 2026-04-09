@@ -78,7 +78,7 @@ interface TopoCrossingRow {
   readonly target_id: string;
 }
 
-interface TopoTrailProvisionRow {
+interface TopoTrailResourceRow {
   readonly provision_id: string;
 }
 
@@ -91,7 +91,7 @@ interface TopoExampleRow {
   readonly ordinal: number;
 }
 
-interface TopoProvisionRow {
+interface TopoResourceRow {
   readonly has_health: number;
   readonly has_mock: number;
   readonly id: string;
@@ -222,13 +222,13 @@ const readTrailCrossings = (
     .all(saveId, trailId)
     .map((row) => row.target_id);
 
-const readTrailProvisionIds = (
+const readTrailResourceIds = (
   db: Database,
   saveId: string,
   trailId: string
 ): readonly string[] =>
   db
-    .query<TopoTrailProvisionRow, [string, string]>(
+    .query<TopoTrailResourceRow, [string, string]>(
       `SELECT provision_id
        FROM topo_trail_provisions
        WHERE save_id = ? AND trail_id = ?
@@ -259,7 +259,7 @@ const readTrailExamples = (
       ordinal: row.ordinal,
     }));
 
-const readProvisionUsage = (
+const readResourceUsage = (
   db: Database,
   saveId: string
 ): ReadonlyMap<string, readonly string[]> => {
@@ -384,12 +384,12 @@ export const getTopoStoreTrail = (
     crosses: readTrailCrossings(db, save.id, trailId),
     detours: storedEntry?.detours ?? null,
     examples: readTrailExamples(db, save.id, trailId),
-    resources: readTrailProvisionIds(db, save.id, trailId),
+    resources: readTrailResourceIds(db, save.id, trailId),
   };
 };
 
-const mapProvisionRow = (
-  row: TopoProvisionRow,
+const mapResourceRow = (
+  row: TopoResourceRow,
   usedBy: readonly string[],
   storedEntry?: StoredTrailheadMapEntry
 ): TopoStoreResourceRecord => ({
@@ -407,7 +407,7 @@ const mapProvisionRow = (
   usedBy,
 });
 
-export const listTopoStoreProvisions = (
+export const listTopoStoreResources = (
   db: Database,
   options?: { readonly save?: TopoStoreRef }
 ): readonly TopoStoreResourceRecord[] => {
@@ -416,9 +416,9 @@ export const listTopoStoreProvisions = (
     return [];
   }
 
-  const usage = readProvisionUsage(db, save.id);
+  const usage = readResourceUsage(db, save.id);
   const rows = db
-    .query<TopoProvisionRow, [string]>(
+    .query<TopoResourceRow, [string]>(
       `SELECT id, has_mock, has_health, save_id
        FROM topo_provisions
        WHERE save_id = ?
@@ -432,7 +432,7 @@ export const listTopoStoreProvisions = (
     : [];
 
   return rows.map((row) =>
-    mapProvisionRow(
+    mapResourceRow(
       row,
       usage.get(row.id) ?? [],
       entries.find(
@@ -444,9 +444,9 @@ export const listTopoStoreProvisions = (
   );
 };
 
-export const getTopoStoreProvision = (
+export const getTopoStoreResource = (
   db: Database,
-  provisionId: string,
+  resourceId: string,
   options?: { readonly save?: TopoStoreRef }
 ): TopoStoreResourceRecord | undefined => {
   const save = resolveRefSave(db, options?.save);
@@ -455,23 +455,23 @@ export const getTopoStoreProvision = (
   }
 
   const row = db
-    .query<TopoProvisionRow, [string, string]>(
+    .query<TopoResourceRow, [string, string]>(
       `SELECT id, has_mock, has_health, save_id
        FROM topo_provisions
        WHERE save_id = ? AND id = ?
        LIMIT 1`
     )
-    .get(save.id, provisionId);
+    .get(save.id, resourceId);
 
   if (row === null || row === undefined) {
     return undefined;
   }
 
-  const usage = readProvisionUsage(db, save.id);
-  return mapProvisionRow(
+  const usage = readResourceUsage(db, save.id);
+  return mapResourceRow(
     row,
-    usage.get(provisionId) ?? [],
-    readStoredEntry(db, save.id, 'resource', provisionId)
+    usage.get(resourceId) ?? [],
+    readStoredEntry(db, save.id, 'resource', resourceId)
   );
 };
 

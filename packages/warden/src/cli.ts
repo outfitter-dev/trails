@@ -12,7 +12,7 @@ import type { Topo } from '@ontrails/core';
 import type { DriftResult } from './drift.js';
 import { checkDrift } from './drift.js';
 import {
-  collectProvisionDefinitionIds,
+  collectResourceDefinitionIds,
   collectSignalDefinitionIds,
   findConfigProperty,
   findTrailDefinitions,
@@ -134,17 +134,17 @@ const collectDetourTargetTrailIds = (
   }
 };
 
-const collectKnownProvisionIds = (
+const collectKnownResourceIds = (
   sourceCode: string,
   filePath: string,
-  knownProvisionIds: Set<string>
+  knownResourceIds: Set<string>
 ): void => {
   const ast = parse(filePath, sourceCode);
   if (!ast) {
     return;
   }
-  for (const id of collectProvisionDefinitionIds(ast)) {
-    knownProvisionIds.add(id);
+  for (const id of collectResourceDefinitionIds(ast)) {
+    knownResourceIds.add(id);
   }
 };
 
@@ -205,13 +205,13 @@ const collectTopoDetourTargetTrailIds = (
 
 const buildProjectContextFromTopo = (appTopo: Topo): ProjectContext => {
   const knownTrailIds = new Set<string>(appTopo.trails.keys());
-  const knownProvisionIds = new Set<string>(appTopo.resources.keys());
+  const knownResourceIds = new Set<string>(appTopo.resources.keys());
   const knownSignalIds = new Set<string>(appTopo.signals.keys());
   const detourTargetTrailIds = collectTopoDetourTargetTrailIds(appTopo);
 
   return {
     detourTargetTrailIds,
-    knownProvisionIds,
+    knownResourceIds,
     knownSignalIds,
     knownTrailIds,
   };
@@ -221,7 +221,7 @@ const buildProjectContextFromFiles = (
   sourceFiles: readonly SourceFile[]
 ): ProjectContext => {
   const knownTrailIds = new Set<string>();
-  const knownProvisionIds = new Set<string>();
+  const knownResourceIds = new Set<string>();
   const knownSignalIds = new Set<string>();
   const detourTargetTrailIds = new Set<string>();
 
@@ -231,10 +231,10 @@ const buildProjectContextFromFiles = (
       sourceFile.filePath,
       knownTrailIds
     );
-    collectKnownProvisionIds(
+    collectKnownResourceIds(
       sourceFile.sourceCode,
       sourceFile.filePath,
-      knownProvisionIds
+      knownResourceIds
     );
     collectKnownSignalIds(
       sourceFile.sourceCode,
@@ -250,7 +250,7 @@ const buildProjectContextFromFiles = (
 
   return {
     detourTargetTrailIds,
-    knownProvisionIds,
+    knownResourceIds,
     knownSignalIds,
     knownTrailIds,
   };

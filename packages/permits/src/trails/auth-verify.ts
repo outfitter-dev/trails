@@ -2,7 +2,7 @@ import { Result, TRAILHEAD_KEY, trail } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
-import { authProvision } from '../auth-resource.js';
+import { authResource } from '../auth-resource.js';
 import type { PermitExtractionInput } from '../extraction.js';
 import type { Permit } from '../permit.js';
 
@@ -45,13 +45,13 @@ const getTrailhead = (
 /**
  * Infrastructure trail that verifies a bearer token and returns the resolved permit.
  *
- * Reads the auth connector from `authProvision` — the connector is configured
+ * Reads the auth connector from `authResource` — the connector is configured
  * at bootstrap (e.g. JWT with HMAC secret). The mock connector always
  * succeeds with a null permit, so `testAll(app)` works without configuration.
  */
 export const authVerify = trail('auth.verify', {
   blaze: async (input, ctx) => {
-    const connector = authProvision.from(ctx);
+    const connector = authResource.from(ctx);
     const result = await connector.authenticate({
       bearerToken: input.token,
       requestId: ctx.requestId,
@@ -97,5 +97,5 @@ export const authVerify = trail('auth.verify', {
     permit: permitSchema.optional(),
     valid: z.boolean(),
   }),
-  resources: [authProvision],
+  resources: [authResource],
 });
