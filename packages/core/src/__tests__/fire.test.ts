@@ -155,6 +155,46 @@ const createCycleScenario = (invocations: string[]) =>
     }),
   });
 
+const createDepthChainScenario = (chainLength: number) => {
+  const chainPayload = z.object({ n: z.number() });
+  const signals = Array.from({ length: chainLength }, (_, i) =>
+    signal(`chain.${i}`, { payload: chainPayload })
+  );
+  const [firstSignal] = signals;
+  const consumers = Object.fromEntries(
+    signals.slice(0, -1).map((sig, i) => [
+      `consumer${i}`,
+      trail(`chain.consumer.${i}`, {
+        blaze: async (_input, ctx) => {
+          const next = signals[i + 1];
+          await ctx.fire?.(next?.id ?? '', { n: i + 1 });
+          return Result.ok({ step: i });
+        },
+        fires: [signals[i + 1]?.id ?? ''],
+        input: chainPayload,
+        on: [sig.id],
+      }),
+    ])
+  );
+  const signalEntries = Object.fromEntries(
+    signals.map((s) => [s.id.replace('.', '_'), s])
+  );
+  return {
+    app: topo('fire-depth', {
+      ...consumers,
+      ...signalEntries,
+      producer: trail('chain.start', {
+        blaze: async (input: { n: number }, ctx) => {
+          await ctx.fire?.(firstSignal?.id ?? '', input);
+          return Result.ok({ started: true });
+        },
+        fires: [firstSignal?.id ?? ''],
+        input: chainPayload,
+      }),
+    }),
+  };
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -374,6 +414,25 @@ describe('fire', () => {
           signalId: 'loop.a',
         },
       ]);
+    });
+
+    test('stops at max depth for distinct-signal chains', async () => {
+      const warnings: { message: string; signalId?: unknown }[] = [];
+      const logger = createCycleLogger(warnings);
+      const { app } = createDepthChainScenario(20);
+
+      const result = await run(
+        app,
+        'chain.start',
+        { n: 0 },
+        { ctx: { logger } }
+      );
+
+      expect(result.isOk()).toBe(true);
+      const depthWarning = warnings.find((w) =>
+        w.message.includes('depth limit')
+      );
+      expect(depthWarning).toBeDefined();
     });
   });
 
