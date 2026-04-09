@@ -79,7 +79,7 @@ interface TopoCrossingRow {
 }
 
 interface TopoTrailResourceRow {
-  readonly provision_id: string;
+  readonly resource_id: string;
 }
 
 interface TopoExampleRow {
@@ -103,7 +103,7 @@ interface StoredTrailheadMapEntry {
   readonly detours?: Readonly<Record<string, readonly string[]>>;
   readonly healthcheck?: boolean;
   readonly id: string;
-  readonly kind: 'provision' | 'resource' | 'signal' | 'trail';
+  readonly kind: 'resource' | 'signal' | 'trail';
 }
 
 interface StoredTrailheadMap {
@@ -178,15 +178,7 @@ const readStoredEntry = (
   }
 
   const map = JSON.parse(stored.trailheadMapJson) as StoredTrailheadMap;
-  return map.entries.find((entry) => {
-    if (entry.id !== id) {
-      return false;
-    }
-    if (kind === 'resource') {
-      return entry.kind === 'resource' || entry.kind === 'provision';
-    }
-    return entry.kind === kind;
-  });
+  return map.entries.find((entry) => entry.id === id && entry.kind === kind);
 };
 
 const mapTrailRow = (row: TopoTrailRow): TopoStoreTrailRecord => {
@@ -229,13 +221,13 @@ const readTrailResourceIds = (
 ): readonly string[] =>
   db
     .query<TopoTrailResourceRow, [string, string]>(
-      `SELECT provision_id
-       FROM topo_trail_provisions
+      `SELECT resource_id
+       FROM topo_trail_resources
        WHERE save_id = ? AND trail_id = ?
-       ORDER BY provision_id ASC`
+       ORDER BY resource_id ASC`
     )
     .all(saveId, trailId)
-    .map((row) => row.provision_id);
+    .map((row) => row.resource_id);
 
 const readTrailExamples = (
   db: Database,
@@ -264,19 +256,19 @@ const readResourceUsage = (
   saveId: string
 ): ReadonlyMap<string, readonly string[]> => {
   const rows = db
-    .query<{ provision_id: string; trail_id: string }, [string]>(
-      `SELECT provision_id, trail_id
-       FROM topo_trail_provisions
+    .query<{ resource_id: string; trail_id: string }, [string]>(
+      `SELECT resource_id, trail_id
+       FROM topo_trail_resources
        WHERE save_id = ?
-       ORDER BY provision_id ASC, trail_id ASC`
+       ORDER BY resource_id ASC, trail_id ASC`
     )
     .all(saveId);
 
   const usage = new Map<string, string[]>();
   for (const row of rows) {
-    const trails = usage.get(row.provision_id) ?? [];
+    const trails = usage.get(row.resource_id) ?? [];
     trails.push(row.trail_id);
-    usage.set(row.provision_id, trails);
+    usage.set(row.resource_id, trails);
   }
 
   return new Map(
@@ -420,7 +412,7 @@ export const listTopoStoreResources = (
   const rows = db
     .query<TopoResourceRow, [string]>(
       `SELECT id, has_mock, has_health, save_id
-       FROM topo_provisions
+       FROM topo_resources
        WHERE save_id = ?
        ORDER BY id ASC`
     )
@@ -435,11 +427,7 @@ export const listTopoStoreResources = (
     mapResourceRow(
       row,
       usage.get(row.id) ?? [],
-      entries.find(
-        (entry) =>
-          entry.id === row.id &&
-          (entry.kind === 'resource' || entry.kind === 'provision')
-      )
+      entries.find((entry) => entry.id === row.id && entry.kind === 'resource')
     )
   );
 };
@@ -457,7 +445,7 @@ export const getTopoStoreResource = (
   const row = db
     .query<TopoResourceRow, [string, string]>(
       `SELECT id, has_mock, has_health, save_id
-       FROM topo_provisions
+       FROM topo_resources
        WHERE save_id = ? AND id = ?
        LIMIT 1`
     )

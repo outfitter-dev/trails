@@ -15,7 +15,7 @@ CREATE TABLE topo_saves (
   git_dirty INTEGER NOT NULL,
   trail_count INTEGER NOT NULL,
   signal_count INTEGER NOT NULL,
-  provision_count INTEGER NOT NULL,
+  resource_count INTEGER NOT NULL,
   created_at TEXT NOT NULL
 );
 ```
@@ -64,12 +64,12 @@ CREATE TABLE topo_crossings (
 );
 ```
 
-### `topo_provisions`
+### `topo_resources`
 
-Resource definitions.
+Resource definitions. Renamed from `topo_provisions` per ADR-0023.
 
 ```sql
-CREATE TABLE topo_provisions (
+CREATE TABLE topo_resources (
   id TEXT NOT NULL,
   has_mock INTEGER NOT NULL,
   has_health INTEGER NOT NULL,
@@ -78,16 +78,16 @@ CREATE TABLE topo_provisions (
 );
 ```
 
-### `topo_trail_provisions`
+### `topo_trail_resources`
 
-Which resources each trail declares.
+Which resources each trail declares. Renamed from `topo_trail_provisions` per ADR-0023.
 
 ```sql
-CREATE TABLE topo_trail_provisions (
+CREATE TABLE topo_trail_resources (
   trail_id TEXT NOT NULL,
-  provision_id TEXT NOT NULL,
+  resource_id TEXT NOT NULL,
   save_id TEXT NOT NULL,
-  PRIMARY KEY (trail_id, provision_id, save_id)
+  PRIMARY KEY (trail_id, resource_id, save_id)
 );
 ```
 
@@ -194,8 +194,8 @@ ORDER BY id ASC
 ```sql
 SELECT DISTINCT t.id, t.intent
 FROM topo_trails t
-JOIN topo_trail_provisions tp ON t.id = tp.trail_id AND t.save_id = tp.save_id
-WHERE t.save_id = ? AND tp.provision_id = ?
+JOIN topo_trail_resources tp ON t.id = tp.trail_id AND t.save_id = tp.save_id
+WHERE t.save_id = ? AND tp.resource_id = ?
 ```
 
 ### Find incoming callers

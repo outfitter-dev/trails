@@ -17,10 +17,7 @@ import {
 } from '../index.js';
 import { pinTopoSave } from '../internal/topo-saves.js';
 import type { TopoSaveRecord } from '../internal/topo-saves.js';
-import {
-  getStoredTopoExport,
-  persistEstablishedTopoSave,
-} from '../internal/topo-store.js';
+import { persistEstablishedTopoSave } from '../internal/topo-store.js';
 import { openWriteTrailsDb } from '../internal/trails-db.js';
 
 const noop = () => Result.ok({ ok: true });
@@ -40,37 +37,6 @@ const requireValue = <T>(value: T | undefined, message: string): T => {
     throw new Error(message);
   }
   return value;
-};
-
-const rewriteStoredResourceKind = (
-  rootDir: string,
-  saveId: string,
-  resourceId: string
-): void => {
-  const db = openWriteTrailsDb({ rootDir });
-
-  try {
-    const stored = requireValue(
-      getStoredTopoExport(db, saveId),
-      `Expected stored topo export for save "${saveId}"`
-    );
-    const map = JSON.parse(stored.trailheadMapJson) as {
-      entries: { id: string; kind: string }[];
-    };
-    const entry = map.entries.find((candidate) => candidate.id === resourceId);
-    if (!entry) {
-      throw new Error(
-        `Expected stored trailhead entry for resource "${resourceId}"`
-      );
-    }
-
-    entry.kind = 'provision';
-    db.query<{ changes: number }, [string, string]>(
-      'UPDATE topo_exports SET trailhead_map = ? WHERE save_id = ?'
-    ).run(JSON.stringify(map), saveId);
-  } finally {
-    db.close();
-  }
 };
 
 const exampleApp = () => {
@@ -186,22 +152,6 @@ describe('read-only topo store', () => {
         safety: 'read',
       }),
     ]);
-
-    expect(store.resources.list({ save: { saveId: save.id } })).toEqual([
-      expect.objectContaining({
-        description: 'Primary database',
-        health: 'available',
-        id: 'db.main',
-        usedBy: ['entity.add', 'entity.list'],
-      }),
-    ]);
-  });
-
-  test('reads legacy stored provision entries through the resources accessor', () => {
-    const { rootDir, save } = seedStore();
-    rewriteStoredResourceKind(rootDir, save.id, 'db.main');
-
-    const store = createTopoStore({ rootDir });
 
     expect(store.resources.list({ save: { saveId: save.id } })).toEqual([
       expect.objectContaining({

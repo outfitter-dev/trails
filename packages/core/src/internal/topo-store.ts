@@ -977,14 +977,14 @@ const insertProjectedRows = (
   insertRows(
     db,
     projection.trailResources,
-    `INSERT INTO topo_trail_provisions (trail_id, provision_id, save_id)
+    `INSERT INTO topo_trail_resources (trail_id, resource_id, save_id)
      VALUES (?, ?, ?)`,
     (row) => [row.trailId, row.resourceId, row.saveId]
   );
   insertRows(
     db,
     projection.resources,
-    `INSERT INTO topo_provisions (id, has_mock, has_health, save_id)
+    `INSERT INTO topo_resources (id, has_mock, has_health, save_id)
      VALUES (?, ?, ?, ?)`,
     (row) => [row.id, row.hasMock, row.hasHealth, row.saveId]
   );
