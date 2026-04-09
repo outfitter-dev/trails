@@ -921,10 +921,10 @@
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0013-tracing.md",
       "slug": "tracing",
-      "status": "accepted",
-      "superseded_by": null,
+      "status": "partially-superseded",
+      "superseded_by": ["23"],
       "title": "Tracing — Runtime Recording Primitive",
-      "updated": "2026-04-02"
+      "updated": "2026-04-08"
     },
     {
       "created": "2026-04-02",

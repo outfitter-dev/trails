@@ -2,7 +2,8 @@
 id: 13
 slug: tracing
 title: Tracing — Runtime Recording Primitive
-status: accepted
+status: partially-superseded
+superseded_by: ['23']
 created: 2026-03-30
 updated: 2026-04-08
 owners: ['[galligan](https://github.com/galligan)']

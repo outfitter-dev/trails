@@ -39,7 +39,7 @@ export interface DecisionMapEntry {
   path: string;
   owners: string[];
   depends_on: string[];
-  superseded_by: number | null;
+  superseded_by: string[] | null;
   inbound: InboundRef[];
 }
 
@@ -153,7 +153,7 @@ const buildNumberedEntries = (allFiles: AdrFile[]): DecisionMapEntry[] =>
       path: `docs/adr/${adr.filename}`,
       slug,
       status: String(adr.frontmatter.status ?? 'unknown'),
-      superseded_by: (adr.frontmatter.superseded_by as number) ?? null,
+      superseded_by: (adr.frontmatter.superseded_by as string[]) ?? null,
       title: adr.title.replace(/^ADR-\d+:\s*/, ''),
       updated: String(adr.frontmatter.updated ?? ''),
     };
