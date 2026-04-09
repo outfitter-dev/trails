@@ -223,10 +223,7 @@ const resolveLegacyCandidates = (
   rootDir?: string
 ): readonly LegacyStoreCandidate[] => {
   const devDir = join(rootDir ?? process.cwd(), '.trails', 'dev');
-  return [
-    { path: join(devDir, 'tracing.db'), tableName: 'tracing' },
-    { path: join(devDir, 'tracker.db'), tableName: 'tracker' },
-  ];
+  return [{ path: join(devDir, 'tracing.db'), tableName: 'tracing' }];
 };
 
 const hasLegacyTable = (db: Database, tableName: string): boolean => {
