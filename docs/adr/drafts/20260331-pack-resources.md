@@ -208,7 +208,7 @@ When a pack is scaffolded, the resources system captures a contract snapshot: th
               }
             },
             "resources": [],
-            "events": []
+            "signals": []
           }
         }
       }
@@ -364,6 +364,9 @@ The warden gains resources-aware rules:
 - ADR: Packs as Namespace Boundaries (draft) -- the compositional primitive that resources distribute
 - ADR: Trail Visibility and Trailhead Filtering (draft) -- visibility inheritance that pack-level defaults enable
 - ADR: The Serialized Topo Graph (draft) -- resources state is captured in the lockfile graph; resources occupy a section in `trails.lock`
-- [ADR-0013: Tracing](../0013-tracing.md) -- telemetry primitives that resources can carry and trailhead
+- [ADR-0013: Tracing](../0013-tracing.md) -- tracing primitives that resources can carry
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- survey output provides the contract snapshots
-- [docs/lexicon.md](../../lexicon.md) -- `pack` reserved term; `resources` to be added
+- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) -- the lexicon renames; note that `resource` in this ADR refers to the distribution unit, distinct from `resource()` the infrastructure primitive
+- [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) -- the bundling mechanism for connector and pack resources; addresses how packs distribute resource groups with overridable defaults
+- [ADR: Connector Extraction and the `with-*` Packaging Model](20260409-connector-extraction-and-the-with-packaging-model.md) (draft) -- connectors move to `@ontrails/with-*` packages; affects how connector resources are distributed
+- [docs/lexicon.md](../../lexicon.md) -- `pack` reserved term; `resource` as infrastructure primitive vs. distribution unit needs reconciliation

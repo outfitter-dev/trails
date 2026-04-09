@@ -3,7 +3,7 @@ slug: visibility-and-filtering
 title: Trail Visibility and Trailhead Filtering
 status: draft
 created: 2026-03-31
-updated: 2026-04-02
+updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [packs-namespace-boundaries]
 ---
@@ -251,5 +251,6 @@ Four new governance rules follow from this ADR:
 - [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent drives HTTP verbs, MCP annotations, and now trailhead filtering
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- the derivation rules that visibility and intent filtering extend
 - [ADR-0013: Tracing](../0013-tracing.md) -- the observability system; visibility filtering events are observable through tracing
-- ADR: The Serialized Topo Graph (draft) -- the lockfile captures resolved visibility state after all overrides are applied
+- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- the lockfile captures resolved visibility state after all overrides are applied
+- [ADR: Typed Trail Composition](20260409-typed-trail-composition.md) (draft) -- `crossInput` relates to internal visibility; a trail with required `crossInput` fields should declare `visibility: 'internal'`
 - ADR: Packs as Namespace Boundaries (draft) -- packs set default visibility for their trails; depends on this ADR

@@ -3,7 +3,7 @@ slug: documentation-freshness
 title: Documentation freshness SLAs
 status: draft
 created: 2026-04-06
-updated: 2026-04-06
+updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: ['documentation-structure']
 ---

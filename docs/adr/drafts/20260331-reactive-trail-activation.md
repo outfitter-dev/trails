@@ -3,7 +3,7 @@ slug: reactive-trail-activation
 title: Reactive Trail Activation
 status: draft
 created: 2026-03-31
-updated: 2026-04-02
+updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [3, 4, 13, typed-signal-emission]
 ---
@@ -36,15 +36,15 @@ Triggers activate trails. That's the boundary. A trigger does not compose trails
 
 If someone wants "when X happens, do A then B then C with branching," the answer is: put a trigger on a trail that crosses into A, B, and C with normal imperative composition. The trigger is the activation layer. The trail is the execution layer. These stay separate.
 
-### Depends on: Signals Runtime
+### Depends on: Typed Signal Emission
 
-The Events Runtime ADR establishes `ctx.signal()`, the `emits` declaration, and framework lifecycle events (`trail.completed`, `trail.failed`, `trail.failed.<category>`). Triggers consume the event routing pipeline. Trail completions and failures are lifecycle events emitted by the framework. Rather than implementing separate trigger types for these, the trigger system listens for events — both authored and framework-emitted — through one mechanism.
+The Typed Signal Emission ADR establishes `ctx.signal()`, the `fires` declaration, and framework lifecycle signals (`trail.completed`, `trail.failed`, `trail.failed.<category>`). Activation sources consume the signal routing pipeline. Trail completions and failures are lifecycle signals emitted by the framework. Rather than implementing separate activation types for these, the `on:` system listens for signals — both authored and framework-emitted — through one mechanism.
 
 ## Decision
 
-### `fires` field on the trail spec
+### `on` field on the trail spec
 
-A trail can declare what activates it with the `fires` field:
+A trail can declare what activates it with the `on` field:
 
 ```typescript
 const confirmBooking = trail('booking.confirm', {
@@ -62,15 +62,15 @@ const confirmBooking = trail('booking.confirm', {
 });
 ```
 
-`fires` is optional. Most trails don't have it. They're invoked explicitly via trailheads or `run()`. `fires` adds reactive activation without changing anything about how the trail works.
+`on` is optional. Most trails don't have it. They're invoked explicitly via trailheads or `run()`. `on` adds reactive activation without changing anything about how the trail works.
 
-A trail with `fires` is still a normal trail. It still has an input schema, output schema, examples, intent, and implementation. It's still callable via `run()`, `ctx.cross()`, or trailheads. The fire source is an *additional* invocation path, not the only one.
+A trail with `on` is still a normal trail. It still has an input schema, output schema, examples, intent, and blaze. It's still callable via `run()`, `ctx.cross()`, or trailheads. The activation source is an *additional* invocation path, not the only one.
 
 ### Authored defaults, overridable in context
 
-The `fires` field is part of the trail's contract — the author's stated design for what activates this trail. It follows the same pattern as `visibility` and `intent`: authored default on the trail, overridable at the pack or app level.
+The `on` field is part of the trail's contract — the author's stated design for what activates this trail. It follows the same pattern as `visibility` and `intent`: authored default on the trail, overridable at the pack or app level.
 
-This matters for packs. A pack declares `fires` for its trails. The consuming app may need different activation:
+This matters for packs. A pack declares `on` for its trails. The consuming app may need different activation:
 
 ```typescript
 // The pack trail declares its default trigger
@@ -86,10 +86,10 @@ app.override('notify.booking-confirmed', {
 
 // Or suppresses it entirely
 app.override('notify.booking-confirmed', {
-  on: [], // disable default fire sources
+  on: [], // disable default activation sources
 });
 
-// Or adds additional fire sources
+// Or adds additional activation sources
 app.override('notify.booking-confirmed', {
   on: [
     { signal: 'booking.confirmed' },     // keep default
@@ -98,7 +98,7 @@ app.override('notify.booking-confirmed', {
 });
 ```
 
-The authored `fires` documents intent: "I was designed to respond to this." The override enables reuse: "in my app, I need you to respond to that instead." The lockfile resolves the final state. The warden can flag overrides that contradict the original intent.
+The authored `on` documents intent: "I was designed to respond to this." The override enables reuse: "in my app, I need you to respond to that instead." The lockfile resolves the final state. The warden can flag overrides that contradict the original intent.
 
 ### Fire source types
 
@@ -151,7 +151,7 @@ const billingConflictResolve = trail('billing.conflict-resolve', {
 });
 ```
 
-The Events Runtime emits categorized failure signals: `trail.failed.conflict`, `trail.failed.auth`, `trail.failed.timeout`, etc. Each maps to an error taxonomy category. The fire source binds to a specific category and filters further with `where`. The error taxonomy compounds with fire sources: the 13 error classes become signal vocabulary for reactive error handling.
+The execution pipeline emits categorized failure signals: `trail.failed.conflict`, `trail.failed.auth`, `trail.failed.timeout`, etc. Each maps to an error taxonomy category. The fire source binds to a specific category and filters further with `where`. The error taxonomy compounds with fire sources: the 13 error classes become signal vocabulary for reactive error handling.
 
 #### Webhook fire sources
 
@@ -230,8 +230,8 @@ When a topo is constructed, the framework resolves all fire sources. The lockfil
 The lockfile records every fire source on every trail, including overrides. This makes the reactive graph inspectable without running the app:
 
 ```bash
-$ trails survey --fires
-Fires:
+$ trails survey --on
+Activation:
   booking.confirm          ← webhook:stripe (payment_intent.succeeded)
   booking.send-reminders   ← schedule (0 * * * *)
   billing.conflict-resolve ← signal (trail.failed.conflict, where: billing.*)
@@ -268,65 +268,68 @@ When a fire source ignites, the framework executes the trail through the full pi
 
 Tracing queries can filter by fire source type: "show me all scheduled executions," "show me all webhook-activated failures."
 
-### Warden rules for fires
+### Warden rules for activation
 
-- **Orphan signal fire source.** A fire source references a signal ID that no trail declares and that isn't a framework lifecycle signal. Warning.
-- **Schema mismatch.** A fire source's signal payload schema is incompatible with the trail's input schema. Error.
-- **Dangerous scheduled destroy.** A trail with `intent: 'destroy'` and a scheduled fire source. Warning.
-- **Fire cycle.** Trail A fires on a signal emitted by trail B, which fires on a signal emitted by trail A. Error.
-- **Missing where examples.** A fire source with a `where` predicate but no examples. Coaching suggestion.
-- **Unreachable trail.** A trail with `visibility: 'internal'` that has no `fires` declaration and no crossings. Warning.
-- **Override contradicts intent.** An app overrides a trail's `fires` in a way that changes the activation semantics (for example, overriding a signal fire source with a schedule fire source on a trail whose examples assume signal-shaped input). Warning.
+- **Orphan signal source.** An `on:` source references a signal ID that no trail declares and that isn't a framework lifecycle signal. Warning.
+- **Schema mismatch.** An `on:` source's signal payload schema is incompatible with the trail's input schema. Error.
+- **Dangerous scheduled destroy.** A trail with `intent: 'destroy'` and a scheduled `on:` source. Warning.
+- **Activation cycle.** Trail A activates on a signal fired by trail B, which activates on a signal fired by trail A. Error.
+- **Missing where examples.** An `on:` source with a `where` predicate but no examples. Coaching suggestion.
+- **Unreachable trail.** A trail with `visibility: 'internal'` that has no `on` declaration and no crossings. Warning.
+- **Override contradicts intent.** An app overrides a trail's `on` in a way that changes the activation semantics (for example, overriding a signal source with a schedule source on a trail whose examples assume signal-shaped input). Warning.
 
-### How fires compound with existing features
+### How activation compounds with existing features
 
-**With packs.** A pack declares fires on its trails. When the pack composes into a topo, those fire sources register automatically. The pack author declared the activation. The app author overrides only when needed.
+**With packs.** A pack declares `on:` for its trails. When the pack composes into a topo, those activation sources register automatically. The pack author declared the activation. The app author overrides only when needed.
 
 **With visibility.** Reactively fired trails can be `visibility: 'internal'`. They don't appear on trailheads. They activate reactively. Background workers, compensators, and audit trails.
 
 **With parallel composition.** An activated trail can use the array form of `ctx.cross()` for concurrent work. The activation model and the composition model compose without knowing about each other.
 
-**With the Events Runtime.** Fire sources consume the signal routing pipeline. Authored signals, framework lifecycle signals, and webhook fires all flow through the same mechanism.
+**With the signal runtime.** Activation sources consume the signal routing pipeline. Authored signals, framework lifecycle signals, and webhook sources all flow through the same mechanism.
 
 **With the error taxonomy.** The categorized failure signals map directly from the 13 error classes. One error class, multiple derivations.
 
-**With tracing.** Every fire activation is a track with provenance. Tracing can report: "this trail was activated 847 times by schedule last week, average duration 1.2s, 3 failures (all TimeoutError)."
+**With tracing.** Every activation is a trace with provenance. Tracing can report: "this trail was activated 847 times by schedule last week, average duration 1.2s, 3 failures (all TimeoutError)."
 
 ## Consequences
 
 ### Positive
 
-- **Activation is part of the contract.** Fires are declared on the trail, visible to survey, governed by the warden, testable via examples.
+- **Activation is part of the contract.** `on:` sources are declared on the trail, visible to survey, governed by the warden, testable via examples.
 - **Authored defaults with overrides.** The trail declares what activates it. The consuming app can override, extend, or suppress. The lockfile resolves the final state.
 - **Three fire source types cover the full space.** Schedule (time), signal (authored + lifecycle + error category), webhook (external inbound). Fewer concepts, one routing mechanism.
-- **The framework sees the full picture.** The static call graph (crossings) and the reactive activation graph (fires) together describe the system's behavior. Both are in the lockfile.
+- **The framework sees the full picture.** The static call graph (crossings) and the reactive activation graph (`on:` sources) together describe the system's behavior. Both are in the lockfile.
 - **Fire conditions are testable.** `where` predicates with examples are tested by `testExamples`.
 - **No workflow engine.** Fire sources activate trails. Trails handle composition through crossings. The activation layer and the execution layer stay separate.
 
 ### Tradeoffs
 
-- **New field on the trail spec.** `fires` adds a concept to learn. The justification: activation is genuinely new information that the framework can't derive.
-- **Fire resolution adds startup cost.** Topo construction resolves on: register schedules, bind signal listeners, register webhook endpoints.
+- **New field on the trail spec.** `on` adds a concept to learn. The justification: activation is genuinely new information that the framework can't derive.
+- **Activation resolution adds startup cost.** Topo construction resolves `on:` sources: register schedules, bind signal listeners, register webhook endpoints.
 - **Complex reactive chains.** Deep chains are inspectable via survey and the lockfile, and the warden detects cycles, but emergent behavior of long chains requires attention.
-- **Scheduled fires need runtime infrastructure.** `Bun.cron` for production, mock scheduler for testing.
+- **Scheduled activation needs runtime infrastructure.** `Bun.cron` for production, mock scheduler for testing.
 
 ### What this does NOT decide
 
-- **How webhook fire sources interact with the HTTP trailhead.** The webhook ADR covers input connectors, signature verification, and endpoint registration.
-- **Whether fires support debouncing or throttling.** Future concern addressable with fire-source options.
-- **Whether fires support batching.** Batching changes timing and input shape. Not part of v1.
-- **Outbound signals (publishing to external systems).** Fires are about inbound activation. Publishing is a separate concern.
-- **Replay and reprocessing.** Replaying fires is future work that builds on tracing data.
+- **How webhook activation sources interact with the HTTP trailhead.** The webhook trailhead design covers signature verification and endpoint registration.
+- **Whether activation sources support debouncing or throttling.** Future concern addressable with source options.
+- **Whether activation sources support batching.** Batching changes timing and input shape. Not part of v1.
+- **Outbound signals (publishing to external systems).** `on:` is about inbound activation. Publishing is a separate concern.
+- **Replay and reprocessing.** Replaying activations is future work that builds on tracing data.
 
 ## References
 
-- [ADR-0000: Core Premise](../0000-core-premise.md) — "derive by default"; fires declare activation, the framework derives the reactive graph
-- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — trails with fires are still trails. Activation is a property.
-- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) — intent compounds with fires; lifecycle signals filter by intent
-- [ADR-0013: Tracing](../0013-tracing.md) — tracing records fire provenance on every activation
-- ADR: Typed Signal Emission (draft) — **this ADR depends on it**; provides `ctx.signal()`, lifecycle events, and the event routing pipeline
+- [ADR-0000: Core Premise](../0000-core-premise.md) — "derive by default"; `on:` declares activation, the framework derives the reactive graph
+- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — trails with `on:` are still trails. Activation is a property.
+- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) — intent compounds with activation; lifecycle signals filter by intent
+- [ADR-0013: Tracing](../0013-tracing.md) — tracing records activation provenance on every execution
+- [ADR: Typed Signal Emission](20260331-typed-signal-emission.md) (draft) — **this ADR depends on it**; provides `ctx.signal()`, the `fires` declaration, lifecycle signals, and the signal routing pipeline
+- [ADR: Error Taxonomy as Transport-Independent Behavior Contract](20260409-error-taxonomy-as-transport-independent-behavior-contract.md) (draft) — signal delivery semantics (retry, dead-letter, discard) for activation failures derive from the error taxonomy
+- [ADR: Unified Observability](20260409-unified-observability.md) (draft) — tracing moves into core; activation provenance is recorded intrinsically by the execution pipeline
+- [ADR: Typed Trail Composition](20260409-typed-trail-composition.md) (draft) — typed `ctx.cross()` complements signal-based activation; `on:` is for reactive decoupling, `crosses` is for direct composition
+- [ADR: Layer Evolution](20260409-layer-evolution.md) (draft) — pipeline stages (auth, recording) apply automatically to activated trails
 - ADR: The Serialized Topo Graph (draft) — the lockfile captures the reactive graph
-- ADR: Trail Visibility and Trailhead Filtering (draft) — reactively fired trails can be internal
-- ADR: Packs as Namespace Boundaries (draft) — packs carry fires declarations; overridable in consuming apps
-- ADR: Webhooks and Input Connectors (draft) — webhook fires delegate to the webhook trailhead
+- ADR: Trail Visibility and Trailhead Filtering (draft) — reactively activated trails can be internal
+- ADR: Packs as Namespace Boundaries (draft) — packs carry `on:` declarations; overridable in consuming apps
 - ADR: Concurrent Cross Composition (draft) — activated trails can use concurrent crossing
