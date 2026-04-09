@@ -508,7 +508,16 @@ const reportUndeclared = (
   }
 };
 
-/** Emit warning for each declared ID not present in called set. */
+/**
+ * Emit warning for each declared ID not present in called set.
+ *
+ * Note: unlike `reportUndeclared`, this function does NOT soften its
+ * diagnostics when `hasUnresolved` is true. The asymmetry is intentional —
+ * softening only applies to the undeclared direction because unresolved
+ * Signal-value entries might cover an unknown set of called IDs. In the
+ * unused direction, a declared string-literal that is never called is
+ * genuinely unused regardless of whether other entries are unresolved.
+ */
 const reportUnused = (
   declared: ReadonlySet<string>,
   called: ReadonlySet<string>,
