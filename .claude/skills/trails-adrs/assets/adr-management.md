@@ -30,7 +30,7 @@ Manual instructions for ADR lifecycle operations when the `../scripts/adr.ts` sc
 ## Superseding an ADR
 
 1. Create a new ADR (the successor) following the normal process
-2. In the old ADR's frontmatter, set `status: superseded` and add `superseded_by: NNNN`
+2. In the old ADR's frontmatter, set `status: superseded` and add `superseded_by: ['NNNN']`
 3. Update the old ADR's index entry status to `Superseded`
 4. In the new ADR's References, link to the predecessor
 
