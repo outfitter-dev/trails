@@ -22,6 +22,6 @@ export const defaultOnResult = async (
     throw ctx.result.error;
   }
 
-  const { mode } = resolveOutputMode(ctx.flags);
+  const { mode } = resolveOutputMode(ctx.flags, ctx.topoName);
   await output(ctx.result.value, mode);
 };

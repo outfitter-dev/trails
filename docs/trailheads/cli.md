@@ -158,14 +158,16 @@ await output('Hello', 'text'); // Plain text
 
 ### Output Mode Resolution
 
-`resolveOutputMode(flags)` determines the format from flags and environment:
+`resolveOutputMode(flags, topoName)` determines the format from flags and topo-derived environment variables:
 
 1. `--json` flag (highest priority)
 2. `--jsonl` flag
 3. `--output <mode>` flag
-4. `TRAILS_JSON=1` env var
-5. `TRAILS_JSONL=1` env var
+4. `<TOPO>_JSON=1` env var (topo-derived — e.g., `STASH_JSON=1` for a topo named `stash`)
+5. `<TOPO>_JSONL=1` env var
 6. Default: `"text"`
+
+The `<TOPO>` prefix is derived from the topo name: uppercased, with non-alphanumerics replaced by `_`. Names starting with a digit get an `_` prefix so the result is a valid identifier (e.g., `1app` → `_1APP_JSON`). The topo name is threaded through the CLI trailhead automatically and appears on `ActionResultContext.topoName` for custom result handlers.
 
 ## Error Handling
 
@@ -200,7 +202,7 @@ trailhead(app, {
       console.error(`Failed: ${ctx.trail.id}`);
       throw ctx.result.error;
     }
-    const { mode } = resolveOutputMode(ctx.flags);
+    const { mode } = resolveOutputMode(ctx.flags, ctx.topoName);
     await output(ctx.result.value, mode);
   },
 });

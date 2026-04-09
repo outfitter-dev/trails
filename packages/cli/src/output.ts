@@ -69,33 +69,52 @@ const resolveFlagMode = (
   return undefined;
 };
 
-/** Resolve mode from environment variables. */
-const resolveEnvMode = (): OutputMode | undefined => {
-  if (process.env['TRAILS_JSON'] === '1') {
+/**
+ * Convert a topo name into the env var prefix used for per-topo output mode.
+ *
+ * Derivation rules:
+ * - Uppercased
+ * - Non-alphanumerics replaced with `_`
+ * - Leading digits prefixed with `_` so the result is a valid identifier
+ */
+const topoNameToEnvPrefix = (topoName: string): string => {
+  const normalized = topoName.toUpperCase().replaceAll(/[^A-Z0-9]+/g, '_');
+  return /^\d/.test(normalized) ? `_${normalized}` : normalized;
+};
+
+/** Resolve mode from topo-derived environment variables. */
+const resolveEnvMode = (topoName: string): OutputMode | undefined => {
+  const prefix = topoNameToEnvPrefix(topoName);
+  if (process.env[`${prefix}_JSON`] === '1') {
     return 'json';
   }
-  if (process.env['TRAILS_JSONL'] === '1') {
+  if (process.env[`${prefix}_JSONL`] === '1') {
     return 'jsonl';
   }
   return undefined;
 };
 
 /**
- * Determine the output mode from parsed CLI flags and environment.
+ * Determine the output mode from parsed CLI flags and topo-derived env vars.
  *
  * Resolution order (highest priority wins):
  * 1. `flags.json === true` -> "json"
  * 2. `flags.jsonl === true` -> "jsonl"
  * 3. `flags.output` as string -> validate against OutputMode
- * 4. `TRAILS_JSON=1` env var -> "json"
- * 5. `TRAILS_JSONL=1` env var -> "jsonl"
+ * 4. `<TOPO>_JSON=1` env var -> "json"
+ * 5. `<TOPO>_JSONL=1` env var -> "jsonl"
  * 6. Default: "text"
+ *
+ * `<TOPO>` is derived from the topo name per ADR-0023: uppercased, with
+ * non-alphanumerics replaced by underscores. A topo named `stash` reads
+ * `STASH_JSON` / `STASH_JSONL`.
  */
 export const resolveOutputMode = (
-  flags: Record<string, unknown>
+  flags: Record<string, unknown>,
+  topoName: string
 ): {
   mode: OutputMode;
 } => {
-  const mode = resolveFlagMode(flags) ?? resolveEnvMode() ?? 'text';
+  const mode = resolveFlagMode(flags) ?? resolveEnvMode(topoName) ?? 'text';
   return { mode };
 };
