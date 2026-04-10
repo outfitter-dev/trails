@@ -1,11 +1,23 @@
-import { describe } from 'bun:test';
+import { afterAll, describe, expect, mock } from 'bun:test';
 
-import { Result, trail, topo } from '@ontrails/core';
+import { contour, Result, trail, topo } from '@ontrails/core';
 import { connectDrizzle } from '@ontrails/with-drizzle';
 import { z } from 'zod';
 
 import { testAll } from '../all.js';
 import { store as defineStore } from '@ontrails/store';
+
+const requireContourExample = (
+  contourDef: { examples?: readonly Record<string, unknown>[] },
+  index: number
+) => {
+  const example = contourDef.examples?.[index];
+  expect(example).toBeDefined();
+  if (!example) {
+    throw new Error(`Expected contour example at index ${index}`);
+  }
+  return example;
+};
 
 const dbDefinition = defineStore({
   entities: {
@@ -40,7 +52,7 @@ const createDbResource = (
   });
 
 const createOverrideStore = () => {
-  const { mock } = createDbResource([
+  const { mock: mockFactory } = createDbResource([
     {
       id: 'seed-1',
       name: 'Override',
@@ -48,11 +60,11 @@ const createOverrideStore = () => {
     },
   ]);
 
-  if (mock === undefined) {
+  if (mockFactory === undefined) {
     throw new Error('Expected drizzle test store to expose a mock factory');
   }
 
-  const created = mock();
+  const created = mockFactory();
   if (created instanceof Promise) {
     throw new TypeError(
       'Expected drizzle test store mock to resolve synchronously'
@@ -109,6 +121,35 @@ const overrideTrail = trail('resource.override.all', {
   resources: [mockDbResource],
 });
 
+const contourFixture = contour(
+  'allFixture',
+  {
+    id: z.string().uuid(),
+    name: z.string(),
+  },
+  {
+    examples: [
+      {
+        id: 'f46b837e-6c8d-42ec-8539-536f4e6daf0e',
+        name: 'Contour-derived governance fixture',
+      },
+    ],
+    identity: 'id',
+  }
+);
+
+const contourDerivedBlaze = mock(() =>
+  Result.ok(requireContourExample(contourFixture, 0))
+);
+
+const contourDerivedTrail = trail('contour.derived.all', {
+  blaze: () => contourDerivedBlaze(),
+  contours: [contourFixture],
+  description: 'Trail that relies on contour-derived fixtures inside testAll',
+  input: z.object({ id: contourFixture.shape.id }),
+  output: contourFixture,
+});
+
 describe('testAll resource mocks', () => {
   // eslint-disable-next-line jest/require-hook
   testAll(
@@ -132,4 +173,18 @@ describe('testAll explicit resource overrides', () => {
       },
     })
   );
+});
+
+describe('testAll contour-derived fixtures', () => {
+  // eslint-disable-next-line jest/require-hook
+  testAll(
+    topo('test-all-contour-derived-app', {
+      contourDerivedTrail,
+      contourFixture,
+    } as Record<string, unknown>)
+  );
+
+  afterAll(() => {
+    expect(contourDerivedBlaze).toHaveBeenCalledTimes(2);
+  });
 });

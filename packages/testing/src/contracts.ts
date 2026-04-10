@@ -20,6 +20,7 @@ import {
   resolveMockResources,
 } from './context.js';
 import type { TestExecutionOptions } from './context.js';
+import { resolveTrailExamples } from './effective-examples.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -71,14 +72,19 @@ export const testContracts = (
 ): void => {
   const resolveInput =
     typeof ctxOrFactory === 'function' ? ctxOrFactory : () => ctxOrFactory;
-  const allEntries = app.list() as Trail<unknown, unknown, unknown>[];
+  const allEntries = (app.list() as Trail<unknown, unknown, unknown>[]).map(
+    (trailDef) => ({
+      ...trailDef,
+      examples: resolveTrailExamples(trailDef),
+    })
+  );
 
   describe('contracts', () => {
     describe.each(allEntries)('$id', (t) => {
       if (t.output === undefined) {
         return;
       }
-      if (t.examples === undefined || t.examples.length === 0) {
+      if (t.examples.length === 0) {
         return;
       }
       if (needsCrossContext(t, resolveInput)) {
