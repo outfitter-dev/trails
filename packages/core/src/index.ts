@@ -108,6 +108,10 @@ export type { AnySignal, Signal, SignalSpec } from './signal.js';
 export { event } from './event.js';
 export type { AnyEvent, Event, EventSpec } from './event.js';
 
+// Contour
+export { contour } from './contour.js';
+export type { AnyContour, Contour, ContourOptions } from './contour.js';
+
 // Topo
 export { topo } from './topo.js';
 export type { Topo } from './topo.js';
