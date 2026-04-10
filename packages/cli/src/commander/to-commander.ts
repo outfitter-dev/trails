@@ -2,7 +2,7 @@
  * Adapt framework-agnostic CliCommand[] to a Commander program.
  */
 
-import { exitCodeMap, isTrailsError } from '@ontrails/core';
+import { isTrailsError, mapTransportError } from '@ontrails/core';
 import { Command, InvalidArgumentError, Option } from 'commander';
 
 import type { CliCommand, CliFlag } from '../command.js';
@@ -113,7 +113,7 @@ const handleError = (error: unknown): void => {
   if (error instanceof Error) {
     process.stderr.write(`Error: ${error.message}\n`);
     if (isTrailsError(error)) {
-      process.exit(exitCodeMap[error.category]);
+      process.exit(mapTransportError('cli', error));
     }
   } else {
     process.stderr.write(`Error: ${String(error)}\n`);

@@ -1,5 +1,6 @@
 export { contextNoTrailheadTypesTrail } from './context-no-trailhead-types.trail.js';
 export { crossDeclarationsTrail } from './cross-declarations.trail.js';
+export { errorMappingCompletenessTrail } from './error-mapping-completeness.trail.js';
 export { firesDeclarationsTrail } from './fires-declarations.trail.js';
 export { implementationReturnsResultTrail } from './implementation-returns-result.trail.js';
 export { onReferencesExistTrail } from './on-references-exist.trail.js';
