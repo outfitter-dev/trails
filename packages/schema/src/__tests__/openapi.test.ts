@@ -405,7 +405,7 @@ const registerMetadataAndStructureTests = () => {
   });
 
   describe('internal trails', () => {
-    test('trails with meta.internal are skipped', () => {
+    test('trails with visibility internal are skipped', () => {
       const pub = trail('entity.show', {
         blaze: noop,
         input: z.object({ id: z.string() }),
@@ -414,7 +414,7 @@ const registerMetadataAndStructureTests = () => {
       const internal = trail('internal.helper', {
         blaze: noop,
         input: z.object({}),
-        meta: { internal: true },
+        visibility: 'internal',
       });
       const spec = generateOpenApiSpec(topoFrom({ internal, pub }));
 

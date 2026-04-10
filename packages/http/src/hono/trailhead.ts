@@ -38,7 +38,9 @@ export interface TrailheadHttpOptions {
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
+  readonly exclude?: readonly string[] | undefined;
   readonly hostname?: string | undefined;
+  readonly include?: readonly string[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly name?: string | undefined;
   readonly port?: number | undefined;
@@ -317,6 +319,8 @@ export const trailhead = async (
     basePath: options.basePath,
     configValues: options.configValues,
     createContext: options.createContext,
+    exclude: options.exclude,
+    include: options.include,
     layers: options.layers,
     resources: options.resources,
     validate: options.validate,

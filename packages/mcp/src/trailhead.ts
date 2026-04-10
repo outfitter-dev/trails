@@ -38,7 +38,9 @@ export interface TrailheadMcpOptions {
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
+  readonly exclude?: readonly string[] | undefined;
   readonly excludeTrails?: readonly string[] | undefined;
+  readonly include?: readonly string[] | undefined;
   readonly includeTrails?: readonly string[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
@@ -153,7 +155,9 @@ export const trailhead = async (
   const toolsResult = buildMcpTools(app, {
     configValues: options.configValues,
     createContext: options.createContext,
+    exclude: options.exclude,
     excludeTrails: options.excludeTrails,
+    include: options.include,
     includeTrails: options.includeTrails,
     layers: options.layers,
     resources: options.resources,

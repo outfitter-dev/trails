@@ -6,6 +6,7 @@
  */
 
 import {
+  filterTrailheadTrails,
   statusCodeMap,
   validateDraftFreeTopo,
   zodToJsonSchema,
@@ -281,21 +282,6 @@ const buildOperation = (
 // Path collection
 // ---------------------------------------------------------------------------
 
-/** Check whether a trail should be included in the spec (skip signals, internal, and consumer trails). */
-const isPublicTrail = (t: Trail<unknown, unknown, unknown>): boolean => {
-  if (t.kind !== 'trail') {
-    return false;
-  }
-  // Consumer trails (activated by signals via `on`) are not HTTP-addressable
-  if (t.on.length > 0) {
-    return false;
-  }
-  const { meta } = t as unknown as {
-    meta?: Record<string, unknown>;
-  };
-  return meta?.['internal'] !== true;
-};
-
 /** Collect all paths from public trails in the topo. */
 const collectPaths = (
   app: Topo,
@@ -303,11 +289,7 @@ const collectPaths = (
 ): Record<string, Record<string, unknown>> => {
   const paths: Record<string, Record<string, unknown>> = {};
 
-  for (const item of app.list()) {
-    const t = item as Trail<unknown, unknown, unknown>;
-    if (!isPublicTrail(t)) {
-      continue;
-    }
+  for (const t of filterTrailheadTrails(app.list())) {
     const method = intentToMethod[t.intent] ?? 'post';
     paths[trailIdToPath(t.id, basePath)] = {
       [method]: buildOperation(t, method),

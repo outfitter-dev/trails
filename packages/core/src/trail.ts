@@ -70,6 +70,8 @@ export interface TrailSpec<I, O, CI = never> {
   readonly intent?: 'read' | 'write' | 'destroy' | undefined;
   /** Trail is idempotent (safe to retry) */
   readonly idempotent?: boolean | undefined;
+  /** Whether trailheads expose this trail by default. */
+  readonly visibility?: TrailVisibility | undefined;
   /** Arbitrary meta for tooling and filtering */
   readonly meta?: Readonly<Record<string, unknown>> | undefined;
   /** Named sets of downstream trail IDs that may be invoked */
@@ -120,6 +122,9 @@ export interface TrailSpec<I, O, CI = never> {
 /** Intent describes what a trail does to the world */
 export type Intent = 'read' | 'write' | 'destroy';
 
+/** Whether trailheads expose a trail by default. */
+export type TrailVisibility = 'public' | 'internal';
+
 /** A fully-defined trail — the unit of work in the Trails system */
 export interface Trail<I, O, CI = never> extends Omit<
   TrailSpec<I, O, CI>,
@@ -147,6 +152,8 @@ export interface Trail<I, O, CI = never> extends Omit<
   readonly on: readonly string[];
   /** What this trail does to the world (always present, default 'write') */
   readonly intent: Intent;
+  /** Whether trailheads expose this trail by default (always present, default 'public'). */
+  readonly visibility: TrailVisibility;
   /** Primary input fields and their order (always present, default undefined) */
   readonly args?: readonly string[] | false | undefined;
 }
@@ -213,6 +220,7 @@ export function trail<I, O, CI = never>(
     intent: rawIntent,
     on: rawOn,
     resources: rawResources,
+    visibility: rawVisibility,
     ...spec
   } = resolved.spec;
   const resources = Object.freeze([...(rawResources ?? [])]);
@@ -233,6 +241,7 @@ export function trail<I, O, CI = never>(
     kind: 'trail' as const,
     on,
     resources,
+    visibility: rawVisibility ?? 'public',
   });
 }
 

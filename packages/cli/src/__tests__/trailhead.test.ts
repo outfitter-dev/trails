@@ -74,9 +74,13 @@ describe('trailhead', () => {
       })
     ).not.toThrow();
     const opts: Parameters<typeof trailhead>[1] = {
+      exclude: ['entity.secret'],
+      include: ['entity.show'],
       resources: {},
       validate: false,
     };
+    expect(opts.exclude).toEqual(['entity.secret']);
+    expect(opts.include).toEqual(['entity.show']);
     expect(opts.validate).toBe(false);
     expect(opts.resources).toEqual({});
   });

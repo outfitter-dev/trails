@@ -11,6 +11,7 @@ import {
   TRAILHEAD_KEY,
   ValidationError,
   executeTrail,
+  filterTrailheadTrails,
   validateEstablishedTopo,
 } from '@ontrails/core';
 import type {
@@ -34,6 +35,8 @@ export interface BuildHttpRoutesOptions {
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
+  readonly exclude?: readonly string[] | undefined;
+  readonly include?: readonly string[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   /** Set to `false` to skip topo validation while building routes. */
@@ -94,10 +97,6 @@ const derivePath = (basePath: string, trailId: string): string => {
 const deriveInputSource = (method: HttpMethod): InputSource =>
   method === 'GET' ? 'query' : 'body';
 
-/** Check if a trail should be included (skip internal and consumer trails). */
-const shouldInclude = (trail: Trail<unknown, unknown, unknown>): boolean =>
-  trail.meta?.['internal'] !== true && trail.on.length === 0;
-
 /** Build per-request context overrides with the HTTP trailhead marker. */
 const withHttpTrailhead = (
   requestId: string | undefined
@@ -141,8 +140,14 @@ const createExecute =
 // ---------------------------------------------------------------------------
 
 /** Filter topo items to eligible trails. */
-const eligibleTrails = (app: Topo): Trail<unknown, unknown, unknown>[] =>
-  app.list().filter((trail) => shouldInclude(trail));
+const eligibleTrails = (
+  app: Topo,
+  options: BuildHttpRoutesOptions
+): Trail<unknown, unknown, unknown>[] =>
+  filterTrailheadTrails(app.list(), {
+    exclude: options.exclude,
+    include: options.include,
+  });
 
 /** Build a single route definition from a trail. */
 const buildRoute = (
@@ -243,5 +248,11 @@ export const buildHttpRoutes = (
 
   const basePath = (options.basePath ?? '').replace(/\/+$/, '');
   const layers = options.layers ?? [];
-  return accumulateRoutes(app, eligibleTrails(app), basePath, layers, options);
+  return accumulateRoutes(
+    app,
+    eligibleTrails(app, options),
+    basePath,
+    layers,
+    options
+  );
 };

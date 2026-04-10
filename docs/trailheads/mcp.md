@@ -134,16 +134,18 @@ Not every trail should be exposed as an MCP tool. Use include/exclude filters:
 
 ```typescript
 await trailhead(app, {
-  includeTrails: ['entity.show', 'entity.add', 'search'],
+  include: ['entity.**', 'search'],
 });
 
 // Or exclude specific trails
 await trailhead(app, {
-  excludeTrails: ['internal.debug', 'admin.reset'],
+  exclude: ['internal.debug', 'admin.reset'],
 });
 ```
 
-`includeTrails` takes precedence over `excludeTrails`.
+`*` matches one dotted namespace segment and `**` matches any depth. Excludes
+apply before include narrowing, and trails marked `visibility: 'internal'` stay
+hidden unless you include their exact trail ID.
 
 ## Server Configuration
 
@@ -191,7 +193,7 @@ For advanced use cases, build the tool definitions directly:
 import { buildMcpTools } from '@ontrails/mcp';
 
 const result = buildMcpTools(app, {
-  includeTrails: ['entity.show', 'search'],
+  include: ['entity.**', 'search'],
 });
 
 if (result.isErr()) {

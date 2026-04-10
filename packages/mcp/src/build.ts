@@ -11,6 +11,7 @@ import {
   TRAILHEAD_KEY,
   ValidationError,
   executeTrail,
+  filterTrailheadTrails,
   isBlobRef,
   validateEstablishedTopo,
   zodToJsonSchema,
@@ -41,7 +42,9 @@ export interface BuildMcpToolsOptions {
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
+  readonly exclude?: readonly string[] | undefined;
   readonly excludeTrails?: readonly string[] | undefined;
+  readonly include?: readonly string[] | undefined;
   readonly includeTrails?: readonly string[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
@@ -265,24 +268,12 @@ const createHandler =
  * - MCP annotations from trail meta
  * - A handler that validates, composes layers, executes, and maps results
  */
-/** Check if a trail should be included based on meta and filters. */
-const shouldInclude = (
-  trail: Trail<unknown, unknown, unknown>,
-  options: BuildMcpToolsOptions
-): boolean => {
-  if (trail.meta?.['internal'] === true || trail.on.length > 0) {
-    return false;
-  }
-  if (options.includeTrails !== undefined && options.includeTrails.length > 0) {
-    return options.includeTrails.includes(trail.id);
-  }
-  if (
-    options.excludeTrails !== undefined &&
-    options.excludeTrails.includes(trail.id)
-  ) {
-    return false;
-  }
-  return true;
+const dedupePatterns = (
+  patterns: readonly string[] | undefined,
+  legacyPatterns: readonly string[] | undefined
+): string[] | undefined => {
+  const merged = [...(patterns ?? []), ...(legacyPatterns ?? [])];
+  return merged.length > 0 ? [...new Set(merged)] : undefined;
 };
 
 /** Build a description with optional example input appended. */
@@ -351,7 +342,10 @@ const eligibleTrails = (
   app: Topo,
   options: BuildMcpToolsOptions
 ): Trail<unknown, unknown, unknown>[] =>
-  app.list().filter((trail) => shouldInclude(trail, options));
+  filterTrailheadTrails(app.list(), {
+    exclude: dedupePatterns(options.exclude, options.excludeTrails),
+    include: dedupePatterns(options.include, options.includeTrails),
+  });
 
 const validateToolBuild = (
   app: Topo,

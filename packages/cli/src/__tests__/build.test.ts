@@ -513,6 +513,61 @@ describe('buildCliCommands resource overrides', () => {
 });
 
 describe('buildCliCommands filtering', () => {
+  test('internal trails are excluded by default', () => {
+    const publicTrail = trail('entity.show', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+    });
+    const internalTrail = trail('entity.secret.rotate', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      visibility: 'internal',
+    });
+    const commands = buildCliCommands(makeApp(publicTrail, internalTrail));
+
+    expect(commands.map((command) => command.trail.id)).toEqual([
+      'entity.show',
+    ]);
+  });
+
+  test('exact include can expose an internal trail', () => {
+    const publicTrail = trail('entity.show', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+    });
+    const internalTrail = trail('entity.secret.rotate', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      visibility: 'internal',
+    });
+    const commands = buildCliCommands(makeApp(publicTrail, internalTrail), {
+      include: ['entity.secret.rotate'],
+    });
+
+    expect(commands.map((command) => command.trail.id)).toEqual([
+      'entity.secret.rotate',
+    ]);
+  });
+
+  test('exclude patterns apply before include narrowing', () => {
+    const show = trail('entity.show', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+    });
+    const remove = trail('entity.remove', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+    });
+    const commands = buildCliCommands(makeApp(show, remove), {
+      exclude: ['entity.remove'],
+      include: ['entity.*'],
+    });
+
+    expect(commands.map((command) => command.trail.id)).toEqual([
+      'entity.show',
+    ]);
+  });
+
   test('consumer trails (on: [...]) are excluded', () => {
     const producer = trail('order.create', {
       blaze: () => Result.ok({ ok: true }),
