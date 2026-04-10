@@ -2,28 +2,45 @@ import { describe, expect, test } from 'bun:test';
 
 import { z } from 'zod';
 
-import { contour } from '../contour.js';
+import { contour, getContourIdMetadata } from '../contour.js';
+
+const user = contour(
+  'user',
+  {
+    email: z.string().email(),
+    id: z.string().uuid(),
+    name: z.string(),
+  },
+  {
+    examples: [
+      {
+        email: 'ada@example.com',
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        name: 'Ada',
+      },
+    ],
+    identity: 'id',
+  }
+);
+
+const gist = contour(
+  'gist',
+  {
+    id: z.string().uuid(),
+    ownerId: user.id(),
+    title: z.string(),
+  },
+  { identity: 'id' }
+);
+
+type UserId = z.infer<ReturnType<typeof user.id>>;
+type GistId = z.infer<ReturnType<typeof gist.id>>;
+
+const _ownerId: z.infer<typeof gist.shape.ownerId> = {} as UserId;
+// @ts-expect-error distinct contour ids should not be assignable
+const _mixedIds: UserId = {} as GistId;
 
 describe('contour()', () => {
-  const user = contour(
-    'user',
-    {
-      email: z.string().email(),
-      id: z.string().uuid(),
-      name: z.string(),
-    },
-    {
-      examples: [
-        {
-          email: 'ada@example.com',
-          id: '550e8400-e29b-41d4-a716-446655440000',
-          name: 'Ada',
-        },
-      ],
-      identity: 'id',
-    }
-  );
-
   describe('basics', () => {
     test("returns kind 'contour'", () => {
       expect(user.kind).toBe('contour');
@@ -51,6 +68,21 @@ describe('contour()', () => {
 
     test('exposes the identity field schema', () => {
       expect(user.identitySchema).toBe(user.shape.id);
+    });
+
+    test('returns a branded identity schema', () => {
+      const schema = user.id();
+      expect(
+        schema.safeParse('550e8400-e29b-41d4-a716-446655440000').success
+      ).toBe(true);
+      expect(schema).toBe(user.id());
+    });
+
+    test('attaches contour metadata to branded identity schemas', () => {
+      expect(getContourIdMetadata(user.id())).toEqual({
+        contour: 'user',
+        identity: 'id',
+      });
     });
 
     test('rejects identity keys that are not in the shape', () => {
@@ -121,6 +153,20 @@ describe('contour()', () => {
           },
         ]).success
       ).toBe(true);
+    });
+
+    test('supports cross-contour references via .id()', () => {
+      expect(
+        gist.safeParse({
+          id: '0f31f6ba-6ff0-41ce-9f6b-8d132b6c4b81',
+          ownerId: '550e8400-e29b-41d4-a716-446655440000',
+          title: 'Hello',
+        }).success
+      ).toBe(true);
+      expect(getContourIdMetadata(gist.shape.ownerId)).toEqual({
+        contour: 'user',
+        identity: 'id',
+      });
     });
   });
 });
