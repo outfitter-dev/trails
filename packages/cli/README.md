@@ -115,6 +115,28 @@ auto-promotion entirely, or `undefined` (omit) for the heuristic.
 myapp file copy ./readme.md --dest /tmp/readme.md
 ```
 
+## App auto-discovery
+
+When running from the workspace root without an explicit `--module` flag, the CLI
+automatically discovers your app entry point:
+
+1. `src/app.ts` (single-app layout)
+2. `apps/*/src/app.ts` (monorepo convention)
+
+If exactly one candidate is found, it is used automatically. If multiple
+candidates are found, the CLI lists them and asks you to choose with `--module`.
+
+```bash
+# Auto-discovers src/app.ts — no --module needed
+myapp topo
+
+# Explicit when multiple apps exist
+myapp topo --module ./apps/api/src/app.ts
+```
+
+Use `discoverAppModules(cwd)` and `resolveAppModule(cwd, explicit?)` directly
+for programmatic access.
+
 ## Structured input
 
 For every non-empty object input schema, the CLI also exposes:

@@ -270,6 +270,15 @@ export const listUsers = trail('user.list', {
 
 The `resources: [db]` declaration tells the topo which infrastructure this trail depends on. Access the resource instance through `db.from(ctx)` for typed access. When you run `testAll(app)`, the framework automatically resolves `mock` factories — no configuration needed for example-based tests.
 
+## Trails CLI Auto-Discovery
+
+The `trails` CLI commands (`topo`, `survey`, `guide`, etc.) automatically discover your app entry point when run from the workspace root. No `--module` flag needed if your app follows one of these layouts:
+
+- **Single-app:** `src/app.ts`
+- **Monorepo:** `apps/*/src/app.ts`
+
+If multiple candidates are found, the CLI lists them and asks you to select one with `--module`.
+
 ## What's Next
 
 - [Architecture](./architecture.md) -- How the hexagonal model works

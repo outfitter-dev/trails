@@ -3,6 +3,7 @@ import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import type { Topo } from '@ontrails/core';
+import { resolveAppModule } from '@ontrails/cli';
 
 const URL_SCHEME = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 
@@ -73,13 +74,18 @@ const importFreshModule = async (
   }
 };
 
+const DEFAULT_MODULE_PATHS = new Set(['./src/app.ts', 'src/app.ts']);
+
 /** Load a Topo export from a module path relative to cwd. */
 export const loadApp = async (
   modulePath: string,
   cwd: string,
   options: { fresh?: boolean | undefined } = {}
 ): Promise<Topo> => {
-  const resolvedModulePath = resolveAbsoluteModulePath(modulePath, cwd);
+  const effectivePath = DEFAULT_MODULE_PATHS.has(modulePath)
+    ? resolveAppModule(cwd)
+    : modulePath;
+  const resolvedModulePath = resolveAbsoluteModulePath(effectivePath, cwd);
   const mod =
     options.fresh === true
       ? await importFreshModule(modulePath, cwd)
@@ -92,7 +98,7 @@ export const loadApp = async (
   const app = (mod['default'] ?? mod['app']) as Topo | undefined;
   if (!app?.trails) {
     throw new Error(
-      `Could not find a Topo export in "${modulePath}". ` +
+      `Could not find a Topo export in "${effectivePath}". ` +
         "Expected a default or named 'app' export created with topo()."
     );
   }
