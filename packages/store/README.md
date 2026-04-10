@@ -14,13 +14,13 @@ import { store } from '@ontrails/store';
 export const db = store({
   gists: {
     schema: gistSchema,
-    primaryKey: 'id',
+    identity: 'id',
     generated: ['id', 'createdAt', 'updatedAt'],
-    indexes: ['owner', 'createdAt'],
+    indexed: ['owner', 'createdAt'],
   },
   files: {
     schema: fileSchema,
-    primaryKey: 'id',
+    identity: 'id',
     generated: ['id'],
     references: { gistId: 'gists' },
   },
@@ -33,8 +33,9 @@ This declaration is pure metadata:
 - insert schema
 - update schema
 - fixture schema
+- identity field
 - generated-field metadata
-- indexes
+- indexed markers
 - references
 
 No database connection is opened here. The returned value is the durable authored source of truth.
@@ -48,7 +49,7 @@ import { connectDrizzle } from '@ontrails/with-drizzle';
 const definition = store({
   gists: {
     schema: gistSchema,
-    primaryKey: 'id',
+    identity: 'id',
     generated: ['id', 'createdAt', 'updatedAt'],
   },
 });
@@ -108,7 +109,7 @@ Fixtures belong on the root definition:
 export const db = store({
   gists: {
     schema: gistSchema,
-    primaryKey: 'id',
+    identity: 'id',
     generated: ['id', 'createdAt', 'updatedAt'],
     fixtures: [
       { id: 'g_1', owner: 'matt', description: 'Seed gist' },
@@ -137,7 +138,7 @@ const auditLog = readonlyStore(
   {
     entries: {
       schema: auditEntrySchema,
-      primaryKey: 'id',
+      identity: 'id',
       generated: ['id', 'createdAt'],
     },
   },
@@ -174,7 +175,7 @@ export const writable = store(
   {
     gists: {
       schema: gistSchema,
-      primaryKey: 'id',
+      identity: 'id',
       generated: ['id', 'createdAt', 'updatedAt'],
     },
   },
@@ -185,7 +186,7 @@ export const readonly = readonlyStore(
   {
     gists: {
       schema: gistSchema,
-      primaryKey: 'id',
+      identity: 'id',
       generated: ['id', 'createdAt', 'updatedAt'],
     },
   },
