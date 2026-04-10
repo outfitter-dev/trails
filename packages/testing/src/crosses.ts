@@ -7,8 +7,6 @@
 
 import { describe, expect, test } from 'bun:test';
 
-import { z } from 'zod';
-
 import type {
   AnyTrail,
   CrossFn,
@@ -28,7 +26,11 @@ import {
   assertFullMatch,
   assertSchemaMatch,
 } from './assertions.js';
-import { mergeResourceOverrides, mergeTestContext } from './context.js';
+import {
+  buildCrossValidationSchema,
+  mergeResourceOverrides,
+  mergeTestContext,
+} from './context.js';
 import type { CrossScenario } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -143,25 +145,6 @@ const tryInjectError = (
     );
   }
   return Result.err(new Error(errorName));
-};
-
-/**
- * Execute a trail from the map, validating input first.
- */
-/**
- * Build the validation schema for a cross-invoked trail.
- *
- * When the target trail declares `crossInput`, the cross caller passes both
- * public input and composition-only fields. The merged schema validates the
- * combined shape so `executeTrail` doesn't reject the extra fields.
- */
-const buildCrossValidationSchema = (
-  trailDef: AnyTrail
-): z.ZodType | undefined => {
-  if (!trailDef.crossInput) {
-    return undefined;
-  }
-  return z.intersection(trailDef.input, trailDef.crossInput);
 };
 
 const executeFromMap = (

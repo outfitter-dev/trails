@@ -1,6 +1,7 @@
 import type { Result } from './result.js';
 import type { Signal } from './signal.js';
-import type { Trail } from './trail.js';
+import type { AnyTrail } from './trail.js';
+import type { CrossInput, TrailOutput } from './type-utils.js';
 
 /**
  * Trail implementation — sync or async.
@@ -24,7 +25,10 @@ export type Implementation<I, O> = (
  *   — returns `Result<O, Error>` where `O` defaults to `unknown`.
  */
 export interface CrossFn {
-  <I, O>(trail: Trail<I, O>, input: I): Promise<Result<O, Error>>;
+  <T extends AnyTrail>(
+    trail: T,
+    input: CrossInput<T>
+  ): Promise<Result<TrailOutput<T>, Error>>;
   <O = unknown>(id: string, input: unknown): Promise<Result<O, Error>>;
 }
 

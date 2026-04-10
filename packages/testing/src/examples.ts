@@ -45,6 +45,7 @@ import {
   assertSchemaMatch,
 } from './assertions.js';
 import {
+  buildCrossValidationSchema,
   defaultMintPermit,
   mergeResourceOverrides,
   mergeTestContext,
@@ -213,6 +214,7 @@ const createCoverageCross = (
       return executeTrail(trailDef, input, {
         ctx: { ...ctx, cross },
         resources,
+        validationSchema: buildCrossValidationSchema(trailDef),
       });
     }
 

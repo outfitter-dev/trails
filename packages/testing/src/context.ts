@@ -2,7 +2,10 @@
  * Test context factory for creating TrailContext instances suitable for testing.
  */
 
+import { z } from 'zod';
+
 import type {
+  AnyTrail,
   CrossFn,
   ResourceOverrideMap,
   Topo,
@@ -176,6 +179,22 @@ const buildMockResources = async (app: Topo): Promise<ResourceOverrideMap> => {
 export const resolveMockResources = async (
   app: Topo
 ): Promise<ResourceOverrideMap> => await buildMockResources(app);
+
+/**
+ * Build the validation schema for a cross-invoked trail.
+ *
+ * When the target trail declares `crossInput`, the cross caller passes both
+ * public input and composition-only fields. The merged schema validates the
+ * combined shape so `executeTrail` doesn't reject the extra fields.
+ */
+export const buildCrossValidationSchema = (
+  trailDef: AnyTrail
+): z.ZodType | undefined => {
+  if (!trailDef.crossInput) {
+    return undefined;
+  }
+  return z.intersection(trailDef.input, trailDef.crossInput);
+};
 
 /**
  * Merge a Partial<TrailContext> into a test context.
