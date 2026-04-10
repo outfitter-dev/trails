@@ -1,5 +1,5 @@
 {
-  "name": "@ontrails/http",
+  "name": "@ontrails/with-hono",
   "version": "1.0.0-beta.14",
   "type": "module",
   "exports": {
@@ -14,9 +14,11 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@ontrails/core": "workspace:^"
+    "@ontrails/core": "workspace:^",
+    "hono": "^4.7.0"
   },
   "peerDependencies": {
+    "@ontrails/http": "workspace:^",
     "zod": "catalog:"
   }
 }

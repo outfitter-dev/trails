@@ -69,8 +69,8 @@
         "@ontrails/mcp": "workspace:^",
         "@ontrails/store": "workspace:^",
         "@ontrails/with-drizzle": "workspace:^",
+        "@ontrails/with-hono": "workspace:^",
         "commander": "catalog:",
-        "hono": "^4.7.0",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -88,6 +88,18 @@
       },
       "peerDependencies": {
         "@ontrails/store": "workspace:^",
+        "zod": "catalog:",
+      },
+    },
+    "connectors/hono": {
+      "name": "@ontrails/with-hono",
+      "version": "1.0.0-beta.14",
+      "dependencies": {
+        "@ontrails/core": "workspace:^",
+        "hono": "^4.7.0",
+      },
+      "peerDependencies": {
+        "@ontrails/http": "workspace:^",
         "zod": "catalog:",
       },
     },
@@ -127,12 +139,8 @@
         "@ontrails/core": "workspace:^",
       },
       "peerDependencies": {
-        "hono": "^4.7.0",
         "zod": "catalog:",
       },
-      "optionalPeers": [
-        "hono",
-      ],
     },
     "packages/logging": {
       "name": "@ontrails/logging",
@@ -317,6 +325,8 @@
     "@ontrails/warden": ["@ontrails/warden@workspace:packages/warden"],
 
     "@ontrails/with-drizzle": ["@ontrails/with-drizzle@workspace:connectors/drizzle"],
+
+    "@ontrails/with-hono": ["@ontrails/with-hono@workspace:connectors/hono"],
 
     "@oxc-parser/binding-android-arm-eabi": ["@oxc-parser/binding-android-arm-eabi@0.121.0", "", { "os": "android", "cpu": "arm" }, "sha512-n07FQcySwOlzap424/PLMtOkbS7xOu8nsJduKL8P3COGHKgKoDYXwoAHCbChfgFpHnviehrLWIPX0lKGtbEk/A=="],
 

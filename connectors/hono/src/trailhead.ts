@@ -23,8 +23,8 @@ import type { Context as HonoContext } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { z } from 'zod';
 
-import type { HttpMethod, HttpRouteDefinition } from '../build.js';
-import { buildHttpRoutes } from '../build.js';
+import { buildHttpRoutes } from '@ontrails/http';
+import type { HttpMethod, HttpRouteDefinition } from '@ontrails/http';
 
 // ---------------------------------------------------------------------------
 // Options

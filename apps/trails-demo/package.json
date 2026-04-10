@@ -22,8 +22,8 @@
     "@ontrails/mcp": "workspace:^",
     "@ontrails/store": "workspace:^",
     "@ontrails/with-drizzle": "workspace:^",
+    "@ontrails/with-hono": "workspace:^",
     "commander": "catalog:",
-    "hono": "^4.7.0",
     "zod": "catalog:"
   },
   "devDependencies": {
