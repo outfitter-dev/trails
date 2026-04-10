@@ -111,10 +111,8 @@ export const createCrossContext = (
   options?: CreateCrossContextOptions
 ): CrossFn => {
   const responses = options?.responses ?? {};
-  // Accepts either a trail object (typed cross) or a string id (untyped).
-  return <O>(
-    idOrTrail: string | { readonly id: string },
-    _input: unknown
+  const respondToCross = <O>(
+    idOrTrail: string | { readonly id: string }
   ): Promise<Result<O, Error>> => {
     const id = typeof idOrTrail === 'string' ? idOrTrail : idOrTrail.id;
     const response = responses[id];
@@ -128,6 +126,22 @@ export const createCrossContext = (
     }
     return Promise.resolve(response as Result<O, Error>);
   };
+  const cross = (async (
+    idOrTrail:
+      | string
+      | { readonly id: string }
+      | readonly (readonly [string | { readonly id: string }, unknown])[],
+    _input?: unknown
+  ) => {
+    if (Array.isArray(idOrTrail)) {
+      return await Promise.all(
+        idOrTrail.map(([target]) => respondToCross(target))
+      );
+    }
+
+    return await respondToCross(idOrTrail as string | { readonly id: string });
+  }) as CrossFn;
+  return cross;
 };
 
 /**

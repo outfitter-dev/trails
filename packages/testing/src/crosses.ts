@@ -203,30 +203,55 @@ const createRecordingCross = (
 ): CrossFn => {
   // The generic O on CrossFn is erased at runtime; the cast is safe
   // because callers narrow via isOk/isErr before accessing the value.
-  // Accepts either a trail object (typed cross) or a string id (untyped).
-  const cross = (
+  const invokeCross = async (
     idOrTrail: string | { readonly id: string },
-    input: unknown
+    input: unknown,
+    self: CrossFn
   ) => {
     const id = resolveCrossId(idOrTrail);
     trace.push({ id, input });
 
     const injected = tryInjectError(id, scenario, trailsMap);
     if (injected !== undefined) {
-      return Promise.resolve(injected);
+      return injected;
     }
 
-    return delegateCross(
+    return await delegateCross(
       id,
       input,
       baseCross,
       trailsMap,
       ctx,
       resources,
-      cross as CrossFn
+      self
     );
   };
-  return cross as CrossFn;
+
+  // Accepts either a trail object (typed cross), a string id (untyped),
+  // or a batch of `[target, input]` tuples.
+  const cross = async function cross(
+    idOrTrail:
+      | string
+      | { readonly id: string }
+      | readonly (readonly [string | { readonly id: string }, unknown])[],
+    input?: unknown
+  ) {
+    if (Array.isArray(idOrTrail)) {
+      return await Promise.all(
+        idOrTrail.map(([target, batchInput]) =>
+          invokeCross(target, batchInput, cross as CrossFn)
+        )
+      );
+    }
+
+    return await invokeCross(
+      idOrTrail as string | { readonly id: string },
+      input,
+      cross as CrossFn
+    );
+  } as CrossFn;
+
+  return cross;
 };
 
 // ---------------------------------------------------------------------------
