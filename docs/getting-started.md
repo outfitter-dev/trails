@@ -107,7 +107,7 @@ $ bun src/cli.ts greet --name World --loud
 { "message": "HELLO, WORLD!" }
 
 $ bun src/cli.ts greet --help
-Usage: myapp greet [options] [name]
+Usage: myapp greet [options] <name>
 
 Greet someone by name
 
@@ -115,8 +115,8 @@ Arguments:
   name            Who to greet
 
 Options:
+  --name <value>  Who to greet
   --loud          Shout the greeting (default: false)
-  -o, --output <mode>  Output format (choices: "text", "json", "jsonl", default: "text")
   -h, --help      display help for command
 ```
 

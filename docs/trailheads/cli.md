@@ -83,8 +83,9 @@ Arguments:
   query             Search query
 
 Options:
+  --query <value>   Search query
   --limit [value]   Max results (default: 10)
-  --format <value>  (choices: "json", "table", default: "json")
+  --format [value]  (choices: "json", "table", default: "json")
 ```
 
 ## Positional Args
