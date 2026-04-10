@@ -1,4 +1,5 @@
 ---
+id: 25
 slug: composition-testing
 title: Composition Testing
 status: accepted
@@ -8,7 +9,7 @@ owners: ['[galligan](https://github.com/galligan)']
 depends_on: [3, 7, 24]
 ---
 
-# ADR: Composition Testing
+# ADR-0025: Composition Testing
 
 ## Context
 

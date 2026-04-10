@@ -1,4 +1,5 @@
 ---
+id: 24
 slug: typed-trail-composition
 title: Typed Trail Composition
 status: accepted

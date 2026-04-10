@@ -17,6 +17,7 @@ export {
   InternalError,
   AuthError,
   CancelledError,
+  errorCategories,
   exitCodeMap,
   statusCodeMap,
   jsonRpcCodeMap,
@@ -25,6 +26,19 @@ export {
   isTrailsError,
 } from './errors.js';
 export type { ErrorCategory } from './errors.js';
+export {
+  createTransportErrorMapper,
+  mapTransportError,
+  transportErrorMap,
+  transportErrorRegistry,
+  transportNames,
+} from './transport-error-map.js';
+export type {
+  TransportErrorCode,
+  TransportErrorMapper,
+  TransportErrorMappings,
+  TransportName,
+} from './transport-error-map.js';
 
 // Types
 export type {
