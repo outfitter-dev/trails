@@ -380,12 +380,22 @@ const collectExplicitPositionals = (
 };
 
 /** Auto-promote heuristic: exactly one required string field with no default. */
-const inferPositionalName = (fields: readonly Field[]): ReadonlySet<string> => {
+const inferPositionalName = (
+  fields: readonly Field[],
+  fieldOverrides?: Readonly<Record<string, FieldOverride>>
+): ReadonlySet<string> => {
   const candidates = fields.filter(
     (f) => f.type === 'string' && f.required && f.default === undefined
   );
   const [sole] = candidates;
-  return candidates.length === 1 && sole ? new Set([sole.name]) : new Set();
+  if (candidates.length !== 1 || !sole) {
+    return new Set();
+  }
+  // Allow suppressing auto-promotion with positional: false
+  if (fieldOverrides?.[sole.name]?.positional === false) {
+    return new Set();
+  }
+  return new Set([sole.name]);
 };
 
 /** Convert a field to a positional CliArg. */
@@ -409,7 +419,7 @@ const derivePositionalArgs = (
 ): { readonly args: CliArg[]; readonly remainingFields: readonly Field[] } => {
   const explicit = collectExplicitPositionals(fields, fieldOverrides);
   const positionalNames =
-    explicit.size > 0 ? explicit : inferPositionalName(fields);
+    explicit.size > 0 ? explicit : inferPositionalName(fields, fieldOverrides);
 
   if (positionalNames.size === 0) {
     return { args: [], remainingFields: fields };
