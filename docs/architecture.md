@@ -144,7 +144,8 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 | `@ontrails/cli` | Framework-agnostic command model, flag derivation, output formatting | None beyond core |
 | `@ontrails/cli/commander` | Commander connector, `trailhead()` | `commander` (optional peer) |
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `trailhead()` | `@modelcontextprotocol/sdk` |
-| `@ontrails/http` | HTTP routes, error mapping, `trailhead()` | `hono` |
+| `@ontrails/http` | HTTP routes and error mapping | None beyond core |
+| `@ontrails/with-hono` | Hono connector, `trailhead()` | `hono` |
 
 ### Infrastructure Connectors (right side)
 
@@ -153,7 +154,7 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 | `@ontrails/config` | Config resolution, profiles, resource config schemas, diagnostics | None beyond core |
 | `@ontrails/permits` | Auth layer, permit model, JWT connector, scope enforcement | None beyond core |
 | `@ontrails/store` | Connector-agnostic schema-derived store definitions | None beyond core |
-| `@ontrails/store/drizzle` | Drizzle SQLite connector, typed store bindings, read-only bindings | `drizzle-orm` (optional peer) |
+| `@ontrails/with-drizzle` | Drizzle SQLite connector, typed store bindings, read-only bindings | `drizzle-orm` |
 | `@ontrails/tracing` | Telemetry recording, trace context, `trails.db` dev-state sinks | None beyond core |
 | `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
 | `@ontrails/logging/logtape` | LogTape sink connector | `@logtape/logtape` (optional peer) |
@@ -180,17 +181,18 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
      ^
 @ontrails/cli (core)
 @ontrails/mcp (core, @modelcontextprotocol/sdk)
-@ontrails/http (core, hono)
+@ontrails/http (core)
 @ontrails/config (core)
 @ontrails/permits (core)
 @ontrails/store (core)
-@ontrails/store/drizzle (store, drizzle-orm)
+@ontrails/with-drizzle (store, drizzle-orm)
 @ontrails/tracing (core)
 @ontrails/logging (core)
 @ontrails/testing (core, cli, mcp, logging)
 @ontrails/schema (core)
      ^
 @ontrails/cli/commander (cli, commander)
+@ontrails/with-hono (http, hono)
 @ontrails/logging/logtape (logging, @logtape/logtape)
 @ontrails/warden (core, schema)
      ^

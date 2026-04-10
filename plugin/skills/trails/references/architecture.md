@@ -89,7 +89,7 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
 | `@ontrails/cli/commander` | Commander connector, `trailhead()` | `commander` (peer) |
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `trailhead()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP route definitions (framework-agnostic) | None beyond core |
-| `@ontrails/http/hono` | Hono connector, `trailhead()` | `hono` (peer) |
+| `@ontrails/with-hono` | Hono connector, `trailhead()` | `hono` |
 
 ### Infrastructure Connectors (right side)
 
