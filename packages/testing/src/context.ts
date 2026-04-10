@@ -193,6 +193,15 @@ export const buildCrossValidationSchema = (
   if (!trailDef.crossInput) {
     return undefined;
   }
+  // Prefer .merge() for ZodObject pairs — it produces a proper merged object
+  // schema that strips unknown keys and exposes .shape. Fall back to
+  // z.intersection for non-object schemas.
+  if (
+    trailDef.input instanceof z.ZodObject &&
+    trailDef.crossInput instanceof z.ZodObject
+  ) {
+    return trailDef.input.merge(trailDef.crossInput);
+  }
   return z.intersection(trailDef.input, trailDef.crossInput);
 };
 
