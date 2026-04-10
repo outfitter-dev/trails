@@ -381,8 +381,11 @@ const derivePositionalArgs = (
   trail: AnyTrail,
   fields: readonly Field[]
 ): { readonly args: CliArg[] } => {
-  // Explicit suppression
-  if (trail.args === false) {
+  // Explicit suppression (false or empty array)
+  if (
+    trail.args === false ||
+    (Array.isArray(trail.args) && trail.args.length === 0)
+  ) {
     return { args: [] };
   }
 
