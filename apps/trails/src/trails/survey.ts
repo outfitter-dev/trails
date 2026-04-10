@@ -196,10 +196,7 @@ export const surveyTrail = trail('survey', {
       .boolean()
       .default(false)
       .describe('Generate trailhead map and lock file'),
-    module: z
-      .string()
-      .default('./src/app.ts')
-      .describe('Path to the app module'),
+    module: z.string().optional().describe('Path to the app module'),
     openapi: z.boolean().default(false).describe('Output OpenAPI 3.1 spec'),
     trailId: z.string().optional().describe('Trail ID for detail view'),
   }),

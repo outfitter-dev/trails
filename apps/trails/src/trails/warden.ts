@@ -24,7 +24,7 @@ export const wardenTrail = trail('warden', {
   blaze: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
     // oxlint-disable-next-line prefer-await-to-then -- catch converts rejection to undefined cleanly
-    const topo = await loadApp('./src/app.ts', rootDir).catch(
+    const topo = await loadApp(undefined, rootDir).catch(
       (): undefined => undefined
     );
 

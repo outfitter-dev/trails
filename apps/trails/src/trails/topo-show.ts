@@ -3,7 +3,6 @@ import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
 import { buildCurrentTopoDetail } from './topo-read-support.js';
-import { DEFAULT_APP_MODULE } from './topo-support.js';
 
 const trailDetailOutput = z.object({
   crosses: z.array(z.string()),
@@ -47,10 +46,7 @@ export const topoShowTrail = trail('topo.show', {
   ],
   input: z.object({
     id: z.string().describe('Trail or resource ID to inspect'),
-    module: z
-      .string()
-      .default(DEFAULT_APP_MODULE)
-      .describe('Path to the app module'),
+    module: z.string().optional().describe('Path to the app module'),
     rootDir: z.string().optional().describe('Workspace root directory'),
   }),
   intent: 'read',

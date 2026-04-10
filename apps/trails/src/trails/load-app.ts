@@ -74,17 +74,14 @@ const importFreshModule = async (
   }
 };
 
-const DEFAULT_MODULE_PATHS = new Set(['./src/app.ts', 'src/app.ts']);
-
 /** Load a Topo export from a module path relative to cwd. */
 export const loadApp = async (
-  modulePath: string,
+  modulePath: string | undefined,
   cwd: string,
   options: { fresh?: boolean | undefined } = {}
 ): Promise<Topo> => {
-  const effectivePath = DEFAULT_MODULE_PATHS.has(modulePath)
-    ? resolveAppModule(cwd)
-    : modulePath;
+  const effectivePath =
+    modulePath === undefined ? resolveAppModule(cwd) : modulePath;
   const resolvedModulePath = resolveAbsoluteModulePath(effectivePath, cwd);
   const mod =
     options.fresh === true

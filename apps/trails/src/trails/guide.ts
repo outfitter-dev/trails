@@ -62,10 +62,7 @@ export const guideTrail = trail('guide', {
     },
   ],
   input: z.object({
-    module: z
-      .string()
-      .default('./src/app.ts')
-      .describe('Path to the app module'),
+    module: z.string().optional().describe('Path to the app module'),
     trailId: z.string().optional().describe('Trail ID for detailed guidance'),
   }),
   intent: 'read',

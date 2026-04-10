@@ -3,11 +3,7 @@ import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
 import { exportCurrentTopo } from './topo-store-support.js';
-import {
-  DEFAULT_APP_MODULE,
-  isolatedExampleInput,
-  topoSaveOutput,
-} from './topo-support.js';
+import { isolatedExampleInput, topoSaveOutput } from './topo-support.js';
 
 export const topoExportTrail = trail('topo.export', {
   blaze: async (input, ctx) => {
@@ -23,10 +19,7 @@ export const topoExportTrail = trail('topo.export', {
     },
   ],
   input: z.object({
-    module: z
-      .string()
-      .default(DEFAULT_APP_MODULE)
-      .describe('Path to the app module'),
+    module: z.string().optional().describe('Path to the app module'),
     rootDir: z.string().optional().describe('Workspace root directory'),
   }),
   intent: 'write',
