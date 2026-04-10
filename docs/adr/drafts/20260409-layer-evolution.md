@@ -165,8 +165,8 @@ Not all layers belong everywhere. Where you attach a layer determines its scope.
 
 ```typescript
 trail('gist.create', {
-  contour: gist,
-  feature: crud.create,
+  contours: [gist],
+  pattern: 'crud.create',
   layers: [dryRun, audit],
   blaze: async (input, ctx) => { /* ... */ },
 });

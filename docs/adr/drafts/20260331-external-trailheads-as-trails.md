@@ -705,7 +705,7 @@ const gitStatus = rig('git.status', {
   source: { type: 'cli', command: 'git status', binary: 'git' },
   intent: 'read',
   on: [{ schedule: '*/5 * * * *' }],
-  signals: [uncommittedChangesDetected],
+  fires: [uncommittedChangesDetected],
   input: z.object({}),
   output: GitStatusSchema,
   parse: parse.lines(parseStatusLine),

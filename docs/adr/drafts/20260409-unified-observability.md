@@ -6,6 +6,7 @@ created: 2026-04-09
 updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [6, 13]
+supersedes: ['13']
 ---
 
 # ADR: Unified Observability
