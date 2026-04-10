@@ -298,5 +298,16 @@ describe('trail()', () => {
         'audit.logged',
       ]);
     });
+
+    test('defaults to empty frozen arrays when omitted', () => {
+      const minimal = trail('bare', {
+        blaze: () => Result.ok(),
+        input: z.object({}),
+      });
+      expect(minimal.fires).toEqual([]);
+      expect(Object.isFrozen(minimal.fires)).toBe(true);
+      expect(minimal.on).toEqual([]);
+      expect(Object.isFrozen(minimal.on)).toBe(true);
+    });
   });
 });
