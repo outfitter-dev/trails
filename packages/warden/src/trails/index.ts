@@ -1,7 +1,10 @@
+export { circularRefsTrail } from './circular-refs.trail.js';
+export { contourExistsTrail } from './contour-exists.trail.js';
 export { contextNoTrailheadTypesTrail } from './context-no-trailhead-types.trail.js';
 export { crossDeclarationsTrail } from './cross-declarations.trail.js';
 export { deadInternalTrailTrail } from './dead-internal-trail.trail.js';
 export { errorMappingCompletenessTrail } from './error-mapping-completeness.trail.js';
+export { exampleValidTrail } from './example-valid.trail.js';
 export { firesDeclarationsTrail } from './fires-declarations.trail.js';
 export { implementationReturnsResultTrail } from './implementation-returns-result.trail.js';
 export { intentPropagationTrail } from './intent-propagation.trail.js';
@@ -13,6 +16,7 @@ export { noSyncResultAssumptionTrail } from './no-sync-result-assumption.trail.j
 export { noThrowInDetourTargetTrail } from './no-throw-in-detour-target.trail.js';
 export { noThrowInImplementationTrail } from './no-throw-in-implementation.trail.js';
 export { preferSchemaInferenceTrail } from './prefer-schema-inference.trail.js';
+export { referenceExistsTrail } from './reference-exists.trail.js';
 export { resourceDeclarationsTrail } from './resource-declarations.trail.js';
 export { resourceExistsTrail } from './resource-exists.trail.js';
 export { validDescribeRefsTrail } from './valid-describe-refs.trail.js';

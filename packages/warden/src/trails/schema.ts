@@ -30,6 +30,10 @@ export const ruleInput = z.object({
  * files.
  */
 export const projectAwareRuleInput = ruleInput.extend({
+  contourReferencesByName: z
+    .record(z.string(), z.array(z.string()))
+    .optional()
+    .describe('Declared contour references keyed by source contour name'),
   crossTargetTrailIds: z
     .array(z.string())
     .optional()
@@ -38,6 +42,10 @@ export const projectAwareRuleInput = ruleInput.extend({
     .array(z.string())
     .optional()
     .describe('Trail IDs referenced as detour targets across the project'),
+  knownContourIds: z
+    .array(z.string())
+    .optional()
+    .describe('Contour names known across the project'),
   knownResourceIds: z
     .array(z.string())
     .optional()

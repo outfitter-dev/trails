@@ -28,8 +28,12 @@ const appendDiagnostics = (
 const hasProjectOptions = (
   options:
     | {
+        readonly contourReferencesByName?: Readonly<
+          Record<string, readonly string[]>
+        >;
         readonly crossTargetTrailIds?: readonly string[];
         readonly detourTargetTrailIds?: readonly string[];
+        readonly knownContourIds?: readonly string[];
         readonly knownResourceIds?: readonly string[];
         readonly knownSignalIds?: readonly string[];
         readonly knownTrailIds?: readonly string[];
@@ -40,8 +44,10 @@ const hasProjectOptions = (
     | undefined
 ): boolean =>
   Boolean(
+    options?.contourReferencesByName ||
     options?.crossTargetTrailIds ||
     options?.detourTargetTrailIds ||
+    options?.knownContourIds ||
     options?.knownResourceIds ||
     options?.knownSignalIds ||
     options?.knownTrailIds ||
@@ -53,8 +59,12 @@ const buildRuleInput = (
   sourceCode: string,
   options:
     | {
+        readonly contourReferencesByName?: Readonly<
+          Record<string, readonly string[]>
+        >;
         readonly crossTargetTrailIds?: readonly string[];
         readonly detourTargetTrailIds?: readonly string[];
+        readonly knownContourIds?: readonly string[];
         readonly knownResourceIds?: readonly string[];
         readonly knownSignalIds?: readonly string[];
         readonly knownTrailIds?: readonly string[];
@@ -69,9 +79,13 @@ const buildRuleInput = (
       readonly sourceCode: string;
     }
   | {
+      readonly contourReferencesByName?: Readonly<
+        Record<string, readonly string[]>
+      >;
       readonly crossTargetTrailIds?: readonly string[];
       readonly detourTargetTrailIds?: readonly string[];
       readonly filePath: string;
+      readonly knownContourIds?: readonly string[];
       readonly knownResourceIds?: readonly string[];
       readonly knownSignalIds?: readonly string[];
       readonly knownTrailIds?: readonly string[];
@@ -87,11 +101,17 @@ const buildRuleInput = (
 
   return {
     ...base,
+    ...(options?.contourReferencesByName
+      ? { contourReferencesByName: options.contourReferencesByName }
+      : {}),
     ...(options?.crossTargetTrailIds
       ? { crossTargetTrailIds: options.crossTargetTrailIds }
       : {}),
     ...(options?.detourTargetTrailIds
       ? { detourTargetTrailIds: options.detourTargetTrailIds }
+      : {}),
+    ...(options?.knownContourIds
+      ? { knownContourIds: options.knownContourIds }
       : {}),
     ...(options?.knownResourceIds
       ? { knownResourceIds: options.knownResourceIds }
@@ -110,8 +130,12 @@ export const runWardenTrails = async (
   filePath: string,
   sourceCode: string,
   options?: {
+    readonly contourReferencesByName?: Readonly<
+      Record<string, readonly string[]>
+    >;
     readonly crossTargetTrailIds?: readonly string[];
     readonly detourTargetTrailIds?: readonly string[];
+    readonly knownContourIds?: readonly string[];
     readonly knownResourceIds?: readonly string[];
     readonly knownSignalIds?: readonly string[];
     readonly knownTrailIds?: readonly string[];
