@@ -287,7 +287,7 @@ The `trails` CLI commands (`topo`, `survey`, `guide`, etc.) automatically discov
 - **Single-app:** `src/app.ts`
 - **Monorepo:** `apps/*/src/app.ts`
 
-If multiple candidates are found, the CLI lists them and asks you to select one with `--module`.
+If multiple candidates are found, the CLI exits with an error listing them; pass `--module` to specify which one to use.
 
 ## What's Next
 
