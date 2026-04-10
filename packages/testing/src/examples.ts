@@ -196,30 +196,55 @@ const createCoverageCross = (
   ctx: TrailContext,
   resources?: ResourceOverrideMap
 ): CrossFn => {
-  // Accepts either a trail object (typed cross) or a string id (untyped).
-  const cross = (
+  const invokeCross = async (
     idOrTrail: string | { readonly id: string },
-    input: unknown
+    input: unknown,
+    self: CrossFn
   ) => {
     const id = typeof idOrTrail === 'string' ? idOrTrail : idOrTrail.id;
     called.add(id);
 
     if (baseCross !== undefined) {
-      return baseCross(id, input);
+      return await baseCross(id, input);
     }
 
     const trailDef = topo.get(id);
     if (trailDef !== undefined) {
-      return executeTrail(trailDef, input, {
-        ctx: { ...ctx, cross },
+      return await executeTrail(trailDef, input, {
+        ctx: { ...ctx, cross: self },
         resources,
         validationSchema: buildCrossValidationSchema(trailDef),
       });
     }
 
-    return Promise.resolve(Result.ok());
+    return Result.ok();
   };
-  return cross as CrossFn;
+
+  // Accepts either a trail object (typed cross), a string id (untyped),
+  // or a batch of `[target, input]` tuples.
+  const cross = async function cross(
+    idOrTrail:
+      | string
+      | { readonly id: string }
+      | readonly (readonly [string | { readonly id: string }, unknown])[],
+    input?: unknown
+  ) {
+    if (Array.isArray(idOrTrail)) {
+      return await Promise.all(
+        idOrTrail.map(([target, batchInput]) =>
+          invokeCross(target, batchInput, cross as CrossFn)
+        )
+      );
+    }
+
+    return await invokeCross(
+      idOrTrail as string | { readonly id: string },
+      input,
+      cross as CrossFn
+    );
+  } as CrossFn;
+
+  return cross;
 };
 
 /**

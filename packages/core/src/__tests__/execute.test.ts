@@ -292,6 +292,139 @@ describe('executeTrail', () => {
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toEqual({ summary: 'abc123:entity.run' });
     });
+
+    test('executes batch ctx.cross() calls concurrently and preserves tuple order', async () => {
+      const completionOrder: string[] = [];
+      const slow = trail('entity.slow', {
+        blaze: async () => {
+          await Bun.sleep(10);
+          completionOrder.push('slow');
+          return Result.ok({ id: 'slow' });
+        },
+        input: z.object({}),
+        output: z.object({ id: z.string() }),
+        visibility: 'internal',
+      });
+      const fast = trail('entity.fast', {
+        blaze: async () => {
+          await Bun.sleep(0);
+          completionOrder.push('fast');
+          return Result.ok({ id: 'fast' });
+        },
+        input: z.object({}),
+        output: z.object({ id: z.string() }),
+        visibility: 'internal',
+      });
+      const entry = trail('entity.batch', {
+        blaze: async (_input, ctx) => {
+          const crossed = await requireCross(ctx)([
+            ['entity.slow', {}],
+            ['entity.fast', {}],
+          ]);
+          return Result.ok({
+            completionOrder,
+            resultOrder: crossed.map((result) =>
+              result.match({
+                err: () => 'err',
+                ok: (value) => value.id,
+              })
+            ),
+          });
+        },
+        crosses: ['entity.fast', 'entity.slow'],
+        input: z.object({}),
+        output: z.object({
+          completionOrder: z.array(z.string()),
+          resultOrder: z.array(z.string()),
+        }),
+      });
+      const app = topo('cross-batch-topo', { entry, fast, slow });
+
+      const result = await executeTrail(entry, {}, { topo: app });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toEqual({
+        completionOrder: ['fast', 'slow'],
+        resultOrder: ['slow', 'fast'],
+      });
+    });
+
+    test('returns every batch cross result without short-circuiting on errors', async () => {
+      const completions: string[] = [];
+      const failing = trail('entity.fail', {
+        blaze: async () => {
+          await Bun.sleep(0);
+          completions.push('fail');
+          return Result.err(new ValidationError('nope'));
+        },
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+        visibility: 'internal',
+      });
+      const succeeding = trail('entity.ok', {
+        blaze: async () => {
+          await Bun.sleep(5);
+          completions.push('ok');
+          return Result.ok({ ok: true });
+        },
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+        visibility: 'internal',
+      });
+      const entry = trail('entity.batch.errors', {
+        blaze: async (_input, ctx) => {
+          const crossed = await requireCross(ctx)([
+            [failing, {}],
+            [succeeding, {}],
+          ] as const);
+          return Result.ok({
+            completions,
+            statuses: crossed.map((result) =>
+              result.match({
+                err: () => 'err',
+                ok: () => 'ok',
+              })
+            ),
+          });
+        },
+        crosses: [failing, succeeding],
+        input: z.object({}),
+        output: z.object({
+          completions: z.array(z.string()),
+          statuses: z.array(z.string()),
+        }),
+      });
+      const app = topo('cross-batch-errors-topo', {
+        entry,
+        failing,
+        succeeding,
+      });
+
+      const result = await executeTrail(entry, {}, { topo: app });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toEqual({
+        completions: ['fail', 'ok'],
+        statuses: ['err', 'ok'],
+      });
+    });
+
+    test('returns an empty array for empty batch ctx.cross() calls', async () => {
+      const entry = trail('entity.batch.empty', {
+        blaze: async (_input, ctx) => {
+          const crossed = await requireCross(ctx)([]);
+          return Result.ok({ count: crossed.length });
+        },
+        input: z.object({}),
+        output: z.object({ count: z.number() }),
+      });
+      const app = topo('cross-batch-empty-topo', { entry });
+
+      const result = await executeTrail(entry, {}, { topo: app });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toEqual({ count: 0 });
+    });
   });
 
   describe('validation', () => {

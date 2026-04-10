@@ -348,6 +348,27 @@ const resolveCrossTarget = (
       );
 };
 
+const executeCrossTarget = async (
+  trailOrId: AnyTrail | string,
+  input: unknown,
+  ctx: TrailContext,
+  topo: Topo | undefined,
+  forwarded: Omit<ExecuteTrailOptions, 'createContext' | 'validationSchema'>
+): Promise<Result<unknown, Error>> => {
+  const target = resolveCrossTarget(trailOrId, topo);
+  if (target.isErr()) {
+    return target;
+  }
+
+  return await // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
+  executeTrail(target.value, input, {
+    ...forwarded,
+    ctx,
+    topo,
+    validationSchema: buildCrossValidationSchema(target.value),
+  });
+};
+
 const bindCrossToCtx = (
   ctx: TrailContext,
   topo: Topo | undefined,
@@ -362,23 +383,29 @@ const bindCrossToCtx = (
     validationSchema: _omitSchema,
     ...forwarded
   } = options ?? {};
-  const cross: CrossFn = async (
-    trailOrId: AnyTrail | string,
-    input: unknown
+  const cross = (async (
+    trailOrCalls:
+      | AnyTrail
+      | string
+      | readonly (readonly [AnyTrail | string, unknown])[],
+    input?: unknown
   ) => {
-    const target = resolveCrossTarget(trailOrId, topo);
-    if (target.isErr()) {
-      return target;
+    if (Array.isArray(trailOrCalls)) {
+      return await Promise.all(
+        trailOrCalls.map(([trailOrId, batchInput]) =>
+          executeCrossTarget(trailOrId, batchInput, ctx, topo, forwarded)
+        )
+      );
     }
 
-    return await // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
-    executeTrail(target.value, input, {
-      ...forwarded,
+    return await executeCrossTarget(
+      trailOrCalls as AnyTrail | string,
+      input,
       ctx,
       topo,
-      validationSchema: buildCrossValidationSchema(target.value),
-    });
-  };
+      forwarded
+    );
+  }) as CrossFn;
 
   return {
     ...ctx,

@@ -25,6 +25,26 @@ const t = trail('onboard', {
       expect(diagnostics.length).toBe(0);
     });
 
+    test('resolves batch ctx.cross() calls with string literals', () => {
+      const code = `
+trail('onboard', {
+  crosses: ['entity.add', 'search'],
+  input: z.object({ name: z.string() }),
+  blaze: async (input, ctx) => {
+    await ctx.cross([
+      ['entity.add', { name: input.name }],
+      ['search', { query: input.name }],
+    ]);
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = crossDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(0);
+    });
+
     test('no crosses declaration and no ctx.cross() calls', () => {
       const code = `
 trail('simple', {
@@ -60,6 +80,28 @@ trail('onboard', {
       expect(diagnostics[0]?.rule).toBe('cross-declarations');
       expect(diagnostics[0]?.message).toContain("ctx.cross('entity.add')");
       expect(diagnostics[0]?.message).toContain('not declared in crosses');
+    });
+
+    test('undeclared batch crossings still report an error', () => {
+      const code = `
+trail('onboard', {
+  crosses: ['entity.add'],
+  input: z.object({ name: z.string() }),
+  blaze: async (input, ctx) => {
+    await ctx.cross([
+      ['entity.add', { name: input.name }],
+      ['search', { query: input.name }],
+    ]);
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = crossDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('error');
+      expect(diagnostics[0]?.message).toContain("ctx.cross('search')");
     });
   });
 

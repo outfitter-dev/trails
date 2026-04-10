@@ -178,25 +178,47 @@ const createScenarioCross = (
   app: Topo,
   resources?: ResourceOverrideMap
 ): CrossFn => {
-  const cross: CrossFn = ((
+  const invokeCross = async (
     idOrTrail: string | { readonly id: string },
-    input: unknown
+    input: unknown,
+    self: CrossFn
   ) => {
     const id = typeof idOrTrail === 'string' ? idOrTrail : idOrTrail.id;
     const trailDef: AnyTrail | undefined = app.get(id);
     if (trailDef === undefined) {
-      return Promise.resolve(
-        R.err(new InternalError(`cross: trail "${id}" not found in topo`))
-      );
+      return R.err(new InternalError(`cross: trail "${id}" not found in topo`));
     }
     const baseCtx = createTestContext();
-    return executeTrail(trailDef, input, {
-      ctx: { ...baseCtx, cross },
+    return await executeTrail(trailDef, input, {
+      ctx: { ...baseCtx, cross: self },
       resources,
       topo: app,
       validationSchema: buildCrossValidationSchema(trailDef),
     });
-  }) as CrossFn;
+  };
+
+  const cross = async function cross(
+    idOrTrail:
+      | string
+      | { readonly id: string }
+      | readonly (readonly [string | { readonly id: string }, unknown])[],
+    input?: unknown
+  ) {
+    if (Array.isArray(idOrTrail)) {
+      return await Promise.all(
+        idOrTrail.map(([target, batchInput]) =>
+          invokeCross(target, batchInput, cross as CrossFn)
+        )
+      );
+    }
+
+    return await invokeCross(
+      idOrTrail as string | { readonly id: string },
+      input,
+      cross as CrossFn
+    );
+  } as CrossFn;
+
   return cross;
 };
 
