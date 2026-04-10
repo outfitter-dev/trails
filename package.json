@@ -6,6 +6,7 @@
   },
   "workspaces": [
     "packages/*",
+    "connectors/*",
     "apps/*"
   ],
   "scripts": {
