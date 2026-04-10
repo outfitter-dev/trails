@@ -23,9 +23,14 @@ import { loadApp } from './load-app.js';
 export const wardenTrail = trail('warden', {
   blaze: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
-    // oxlint-disable-next-line prefer-await-to-then -- catch converts rejection to undefined cleanly
+    // oxlint-disable-next-line prefer-await-to-then -- catch preserves graceful degradation
     const topo = await loadApp(input.module, rootDir).catch(
-      (): undefined => undefined
+      (error: unknown): undefined => {
+        ctx.logger?.warn('Could not load app for topo-aware governance', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return undefined;
+      }
     );
 
     const report = await runWarden({
