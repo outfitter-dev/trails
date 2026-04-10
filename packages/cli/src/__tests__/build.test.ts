@@ -585,11 +585,11 @@ describe('positional arg derivation', () => {
     expect(cmd.flags.find((f) => f.name === 'limit')).toBeDefined();
   });
 
-  test('explicit positional override promotes field even with multiple strings', () => {
+  test('explicit args promotes field even with multiple strings', () => {
     const t = trail('file.copy', {
+      args: ['src'],
       blaze: (input: { dest: string; src: string }) =>
         Result.ok({ dest: input.dest, src: input.src }),
-      fields: { src: { positional: true } },
       input: z.object({ dest: z.string(), src: z.string() }),
     });
     const app = makeApp(t);
@@ -602,20 +602,46 @@ describe('positional arg derivation', () => {
     expect(cmd.flags.find((f) => f.name === 'dest')).toBeDefined();
   });
 
-  test('multiple explicit positionals preserve schema declaration order', () => {
+  test('multiple explicit args preserve declared order', () => {
     const t = trail('file.copy', {
+      args: ['src', 'dest'],
       blaze: (input: { dest: string; src: string }) =>
         Result.ok({ dest: input.dest, src: input.src }),
-      fields: { dest: { positional: true }, src: { positional: true } },
-      // Positionals follow schema declaration order (alphabetical after formatting)
       input: z.object({ dest: z.string(), src: z.string() }),
     });
     const app = makeApp(t);
     const cmd = requireCommand(buildCliCommands(app));
 
     expect(cmd.args).toHaveLength(2);
-    expect(cmd.args[0]?.name).toBe('dest');
-    expect(cmd.args[1]?.name).toBe('src');
+    expect(cmd.args[0]?.name).toBe('src');
+    expect(cmd.args[1]?.name).toBe('dest');
+  });
+
+  test('args: false suppresses auto-promotion', () => {
+    const t = trail('file.read', {
+      args: false,
+      blaze: (input: { path: string }) => Result.ok(input.path),
+      input: z.object({ path: z.string() }),
+    });
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCliCommands(app));
+
+    // Single required string would normally be auto-promoted, but args: false suppresses it
+    expect(cmd.args).toHaveLength(0);
+    expect(cmd.flags.find((f) => f.name === 'path')).toBeDefined();
+  });
+
+  test('args with non-existent field name is silently ignored', () => {
+    const t = trail('file.read', {
+      args: ['path', 'nonexistent'],
+      blaze: (input: { path: string }) => Result.ok(input.path),
+      input: z.object({ path: z.string() }),
+    });
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCliCommands(app));
+
+    expect(cmd.args).toHaveLength(1);
+    expect(cmd.args[0]).toMatchObject({ name: 'path', required: true });
   });
 
   test('no positional args when no required string fields exist', () => {

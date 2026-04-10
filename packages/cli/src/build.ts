@@ -4,7 +4,6 @@
 
 import type {
   Field,
-  FieldOverride,
   Layer,
   ResourceOverrideMap,
   Topo,
@@ -359,45 +358,6 @@ const buildFlags = (
   return flags;
 };
 
-/** Collect field names explicitly marked as positional (string fields only). */
-const collectExplicitPositionals = (
-  fields: readonly Field[],
-  overrides?: Readonly<Record<string, FieldOverride>>
-): ReadonlySet<string> => {
-  if (!overrides) {
-    return new Set();
-  }
-  const stringFieldNames = new Set(
-    fields.filter((f) => f.type === 'string').map((f) => f.name)
-  );
-  return new Set(
-    Object.entries(overrides)
-      .filter(
-        ([name, o]) => o.positional === true && stringFieldNames.has(name)
-      )
-      .map(([name]) => name)
-  );
-};
-
-/** Auto-promote heuristic: exactly one required string field with no default. */
-const inferPositionalName = (
-  fields: readonly Field[],
-  fieldOverrides?: Readonly<Record<string, FieldOverride>>
-): ReadonlySet<string> => {
-  const candidates = fields.filter(
-    (f) => f.type === 'string' && f.required && f.default === undefined
-  );
-  const [sole] = candidates;
-  if (candidates.length !== 1 || !sole) {
-    return new Set();
-  }
-  // Allow suppressing auto-promotion with positional: false
-  if (fieldOverrides?.[sole.name]?.positional === false) {
-    return new Set();
-  }
-  return new Set([sole.name]);
-};
-
 /** Convert a field to a positional CliArg. */
 const fieldToArg = (field: Field): CliArg => ({
   description: field.label,
@@ -407,44 +367,47 @@ const fieldToArg = (field: Field): CliArg => ({
 });
 
 /**
- * Derive positional args from fields and overrides.
+ * Derive positional args from a trail's `args` declaration and fields.
  *
- * Explicit: any field with `positional: true` in overrides becomes positional.
- * Heuristic: if no explicit overrides and exactly one required string field
- * with no default exists, auto-promote it to positional.
+ * - `args: false` — explicit suppression, no positional args.
+ * - `args: string[]` — use the declared order; only string fields are kept.
+ * - `args: undefined` — heuristic: if exactly one required string field with
+ *   no default exists, auto-promote it to positional.
  *
- * Positional args preserve schema declaration order (not alphabetical) because
+ * Positional args preserve `trail.args` order (not alphabetical) because
  * position is semantically meaningful in CLI usage.
  */
 const derivePositionalArgs = (
-  fields: readonly Field[],
-  schemaKeyOrder: readonly string[],
-  fieldOverrides?: Readonly<Record<string, FieldOverride>>
+  trail: AnyTrail,
+  fields: readonly Field[]
 ): { readonly args: CliArg[] } => {
-  const explicit = collectExplicitPositionals(fields, fieldOverrides);
-  const positionalNames =
-    explicit.size > 0 ? explicit : inferPositionalName(fields, fieldOverrides);
-
-  if (positionalNames.size === 0) {
+  // Explicit suppression
+  if (trail.args === false) {
     return { args: [] };
   }
 
-  // Sort positional args by schema declaration order, not alphabetical
-  const orderMap = new Map(schemaKeyOrder.map((name, i) => [name, i]));
-  const positionalFields = fields.filter((f) => positionalNames.has(f.name));
-  positionalFields.sort(
-    (a, b) => (orderMap.get(a.name) ?? 0) - (orderMap.get(b.name) ?? 0)
-  );
-  return { args: positionalFields.map(fieldToArg) };
-};
+  // Explicit args declaration — use the order from the array
+  if (trail.args !== undefined && trail.args.length > 0) {
+    const stringFieldNames = new Set(
+      fields.filter((f) => f.type === 'string').map((f) => f.name)
+    );
+    const validArgs = trail.args
+      .filter((name) => stringFieldNames.has(name))
+      .map((name) => fields.find((f) => f.name === name))
+      .filter((f): f is Field => f !== undefined)
+      .map(fieldToArg);
+    return { args: validArgs };
+  }
 
-/** Extract schema key order from a Zod object schema (preserves declaration order). */
-const extractSchemaKeyOrder = (schema: unknown): readonly string[] => {
-  const s = schema as unknown as {
-    _zod?: { def?: { shape?: Record<string, unknown> } };
-  };
-  const shape = s._zod?.def?.shape;
-  return shape ? Object.keys(shape) : [];
+  // Heuristic: single required string with no default
+  const candidates = fields.filter(
+    (f) => f.type === 'string' && f.required && f.default === undefined
+  );
+  if (candidates.length === 1 && candidates[0]) {
+    return { args: [fieldToArg(candidates[0])] };
+  }
+
+  return { args: [] };
 };
 
 /** Convert a trail or route into a CLI command when it is publicly exposed. */
@@ -454,11 +417,7 @@ const toCliCommand = (
   options?: BuildCliCommandsOptions
 ): CliCommand => {
   const fields = deriveFields(t.input, t.fields);
-  const { args } = derivePositionalArgs(
-    fields,
-    extractSchemaKeyOrder(t.input),
-    t.fields
-  );
+  const { args } = derivePositionalArgs(t, fields);
   // All fields generate flags — positional fields keep their --flag alias
   const flags = buildFlags(t, fields, t.intent, options);
   const derivedFlagNames = new Set(

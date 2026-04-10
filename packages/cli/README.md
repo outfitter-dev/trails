@@ -98,15 +98,18 @@ myapp greet --name World   # flag form still works via structured input
 ```
 
 The heuristic is intentionally conservative: multiple required strings stay as
-flags. To override, mark a field explicitly via `fields`:
+flags. To override, declare `args` on the trail:
 
 ```typescript
 const copy = trail('file.copy', {
   input: z.object({ src: z.string(), dest: z.string() }),
-  fields: { src: { positional: true } },
+  args: ['src'],
   blaze: (input) => Result.ok({ src: input.src, dest: input.dest }),
 });
 ```
+
+`args` accepts `string[]` for explicit positional order, `false` to suppress
+auto-promotion entirely, or `undefined` (omit) for the heuristic.
 
 ```bash
 myapp file copy ./readme.md --dest /tmp/readme.md

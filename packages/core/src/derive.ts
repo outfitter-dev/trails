@@ -48,8 +48,6 @@ export interface FieldOverride {
         hint?: string | undefined;
       }[]
     | undefined;
-  /** Mark this field as a CLI positional argument instead of a flag. */
-  readonly positional?: boolean | undefined;
 }
 
 // ---------------------------------------------------------------------------
