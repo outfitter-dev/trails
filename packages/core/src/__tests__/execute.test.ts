@@ -352,318 +352,452 @@ const createSiblingFailureScopeScenario = () => {
   };
 };
 
+const createConcurrencyWorkerScenario = () => {
+  const captures = {
+    active: 0,
+    completionOrder: [] as string[],
+    maxActive: 0,
+  };
+  const worker = trail('entity.concurrent.worker', {
+    blaze: async (input: { delayMs: number; label: string }) => {
+      captures.active += 1;
+      captures.maxActive = Math.max(captures.maxActive, captures.active);
+      await Bun.sleep(input.delayMs);
+      captures.completionOrder.push(input.label);
+      captures.active -= 1;
+      return Result.ok({ label: input.label });
+    },
+    input: z.object({
+      delayMs: z.number(),
+      label: z.string(),
+    }),
+    output: z.object({ label: z.string() }),
+    visibility: 'internal',
+  });
+
+  return { captures, worker };
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe('executeTrail', () => {
   describe('happy path', () => {
-    test('validates input and executes trail', async () => {
-      const result = await executeTrail(echoTrail, { value: 'hello' });
+    describe('execution and resources', () => {
+      test('validates input and executes trail', async () => {
+        const result = await executeTrail(echoTrail, { value: 'hello' });
 
-      expect(result.isOk()).toBe(true);
-      expect(result.unwrap()).toEqual({ value: 'hello' });
-    });
+        expect(result.isOk()).toBe(true);
+        expect(result.unwrap()).toEqual({ value: 'hello' });
+      });
 
-    test('eagerly resolves declared resources before layers and implementation run', async () => {
-      const id = nextResourceId('eager');
-      const captures = {
-        createCalls: 0,
-        gateResolved: undefined as number | undefined,
-        runResolved: undefined as number | undefined,
-      };
-      const counter = createResolvedValueResource(
-        id,
-        () => {
+      test('eagerly resolves declared resources before layers and implementation run', async () => {
+        const id = nextResourceId('eager');
+        const captures = {
+          createCalls: 0,
+          gateResolved: undefined as number | undefined,
+          runResolved: undefined as number | undefined,
+        };
+        const counter = createResolvedValueResource(
+          id,
+          () => {
+            captures.createCalls += 1;
+          },
+          41
+        );
+        const layeredTrail = createEagerResourceTrail(id, counter, (value) => {
+          captures.runResolved = value;
+        });
+        const layer = createResourceProbeGate(counter, (value) => {
+          captures.gateResolved = value;
+        });
+
+        const result = await executeTrail(
+          layeredTrail,
+          {},
+          { layers: [layer] }
+        );
+
+        expect(result.unwrap()).toEqual({ total: 42 });
+        expect(captures.createCalls).toBe(1);
+        expect(captures.gateResolved).toBe(41);
+        expect(captures.runResolved).toBe(41);
+      });
+
+      test('awaits async resource factories before running the trail', async () => {
+        const db = resource(nextResourceId('async-factory'), {
+          create: async () => {
+            await Bun.sleep(0);
+            return Result.ok({ source: 'async-factory' });
+          },
+        });
+        const resourceTrail = trail('resource.async-factory', {
+          blaze: (_input, ctx) =>
+            Result.ok({ source: db.from(ctx).source as string }),
+          input: z.object({}),
+          output: z.object({ source: z.string() }),
+          resources: [db],
+        });
+
+        const result = await executeTrail(resourceTrail, {});
+
+        expect(result.isOk()).toBe(true);
+        expect(result.unwrap()).toEqual({ source: 'async-factory' });
+      });
+
+      test('reuses cached singleton resources across executions', async () => {
+        const id = nextResourceId('singleton');
+        const captures = { createCalls: 0 };
+        const singleton = createSingletonResource(id, () => {
           captures.createCalls += 1;
-        },
-        41
-      );
-      const layeredTrail = createEagerResourceTrail(id, counter, (value) => {
-        captures.runResolved = value;
-      });
-      const layer = createResourceProbeGate(counter, (value) => {
-        captures.gateResolved = value;
-      });
+          return captures.createCalls;
+        });
+        const singletonTrail = createSingletonTrail(singleton);
 
-      const result = await executeTrail(layeredTrail, {}, { layers: [layer] });
+        const outputs = [
+          await unwrapExecution(singletonTrail),
+          await unwrapExecution(singletonTrail),
+        ];
 
-      expect(result.unwrap()).toEqual({ total: 42 });
-      expect(captures.createCalls).toBe(1);
-      expect(captures.gateResolved).toBe(41);
-      expect(captures.runResolved).toBe(41);
-    });
-
-    test('awaits async resource factories before running the trail', async () => {
-      const db = resource(nextResourceId('async-factory'), {
-        create: async () => {
-          await Bun.sleep(0);
-          return Result.ok({ source: 'async-factory' });
-        },
-      });
-      const resourceTrail = trail('resource.async-factory', {
-        blaze: (_input, ctx) =>
-          Result.ok({ source: db.from(ctx).source as string }),
-        input: z.object({}),
-        output: z.object({ source: z.string() }),
-        resources: [db],
+        expect(outputs).toEqual([{ createdAtCall: 1 }, { createdAtCall: 1 }]);
+        expect(captures.createCalls).toBe(1);
       });
 
-      const result = await executeTrail(resourceTrail, {});
+      test('scopes cached singleton resources to compatible resource contexts', async () => {
+        const id = nextResourceId('singleton-context');
+        const envAwareResource = resource(id, {
+          create: (ctx) => Result.ok({ value: String(ctx.env?.VAL) }),
+        });
+        const envAwareTrail = trail('resource.singleton-context', {
+          blaze: (_input, ctx) =>
+            Result.ok({ value: envAwareResource.from(ctx).value }),
+          input: z.object({}),
+          output: z.object({ value: z.string() }),
+          resources: [envAwareResource],
+        });
 
-      expect(result.isOk()).toBe(true);
-      expect(result.unwrap()).toEqual({ source: 'async-factory' });
-    });
+        const first = await executeTrail(
+          envAwareTrail,
+          {},
+          {
+            createContext: () =>
+              createTrailContext({
+                env: { VAL: 'first' },
+              }),
+          }
+        );
+        const second = await executeTrail(
+          envAwareTrail,
+          {},
+          {
+            createContext: () =>
+              createTrailContext({
+                env: { VAL: 'second' },
+              }),
+          }
+        );
 
-    test('reuses cached singleton resources across executions', async () => {
-      const id = nextResourceId('singleton');
-      const captures = { createCalls: 0 };
-      const singleton = createSingletonResource(id, () => {
-        captures.createCalls += 1;
-        return captures.createCalls;
-      });
-      const singletonTrail = createSingletonTrail(singleton);
-
-      const outputs = [
-        await unwrapExecution(singletonTrail),
-        await unwrapExecution(singletonTrail),
-      ];
-
-      expect(outputs).toEqual([{ createdAtCall: 1 }, { createdAtCall: 1 }]);
-      expect(captures.createCalls).toBe(1);
-    });
-
-    test('scopes cached singleton resources to compatible resource contexts', async () => {
-      const id = nextResourceId('singleton-context');
-      const envAwareResource = resource(id, {
-        create: (ctx) => Result.ok({ value: String(ctx.env?.VAL) }),
-      });
-      const envAwareTrail = trail('resource.singleton-context', {
-        blaze: (_input, ctx) =>
-          Result.ok({ value: envAwareResource.from(ctx).value }),
-        input: z.object({}),
-        output: z.object({ value: z.string() }),
-        resources: [envAwareResource],
-      });
-
-      const first = await executeTrail(
-        envAwareTrail,
-        {},
-        {
-          createContext: () =>
-            createTrailContext({
-              env: { VAL: 'first' },
-            }),
-        }
-      );
-      const second = await executeTrail(
-        envAwareTrail,
-        {},
-        {
-          createContext: () =>
-            createTrailContext({
-              env: { VAL: 'second' },
-            }),
-        }
-      );
-
-      expect(first.unwrap()).toEqual({ value: 'first' });
-      expect(second.unwrap()).toEqual({ value: 'second' });
-    });
-
-    test('binds ctx.cross when topo access is available', async () => {
-      const helper = trail('entity.secret.rotate', {
-        blaze: (input: { id: string }) => Result.ok({ rotated: input.id }),
-        input: z.object({ id: z.string() }),
-        output: z.object({ rotated: z.string() }),
-        visibility: 'internal',
-      });
-      const entry = trail('entity.rotate', {
-        blaze: async (input: { id: string }, ctx) => {
-          const crossed = await requireCross(ctx)(
-            'entity.secret.rotate',
-            input
-          );
-          return crossed.match({
-            err: (error) => Result.err(error),
-            ok: (value) => Result.ok(value),
-          });
-        },
-        crosses: ['entity.secret.rotate'],
-        input: z.object({ id: z.string() }),
-        output: z.object({ rotated: z.string() }),
-      });
-      const app = topo('cross-topo', { entry, helper });
-
-      const result = await executeTrail(entry, { id: 'abc123' }, { topo: app });
-
-      expect(result.isOk()).toBe(true);
-      expect(result.unwrap()).toEqual({ rotated: 'abc123' });
-    });
-
-    test('validates merged crossInput fields when invoking through ctx.cross', async () => {
-      const helper = trail('entity.prepare', {
-        blaze: (input: { forkedFrom: string; id: string }) =>
-          Result.ok({ summary: `${input.id}:${input.forkedFrom}` }),
-        crossInput: z.object({ forkedFrom: z.string() }),
-        input: z.object({ id: z.string() }),
-        output: z.object({ summary: z.string() }),
-        visibility: 'internal',
-      });
-      const entry = trail('entity.run', {
-        blaze: async (input: { id: string }, ctx) => {
-          const crossed = await requireCross(ctx)(helper, {
-            forkedFrom: 'entity.run',
-            id: input.id,
-          });
-          return crossed.match({
-            err: (error) => Result.err(error),
-            ok: (value) => Result.ok(value),
-          });
-        },
-        crosses: [helper],
-        input: z.object({ id: z.string() }),
-        output: z.object({ summary: z.string() }),
-      });
-      const app = topo('cross-input-topo', { entry, helper });
-
-      const result = await executeTrail(entry, { id: 'abc123' }, { topo: app });
-
-      expect(result.isOk()).toBe(true);
-      expect(result.unwrap()).toEqual({ summary: 'abc123:entity.run' });
-    });
-
-    test('executes batch ctx.cross() calls concurrently and preserves tuple order', async () => {
-      const completionOrder: string[] = [];
-      const slow = trail('entity.slow', {
-        blaze: async () => {
-          await Bun.sleep(10);
-          completionOrder.push('slow');
-          return Result.ok({ id: 'slow' });
-        },
-        input: z.object({}),
-        output: z.object({ id: z.string() }),
-        visibility: 'internal',
-      });
-      const fast = trail('entity.fast', {
-        blaze: async () => {
-          await Bun.sleep(0);
-          completionOrder.push('fast');
-          return Result.ok({ id: 'fast' });
-        },
-        input: z.object({}),
-        output: z.object({ id: z.string() }),
-        visibility: 'internal',
-      });
-      const entry = trail('entity.batch', {
-        blaze: async (_input, ctx) => {
-          const crossed = await requireCross(ctx)([
-            ['entity.slow', {}],
-            ['entity.fast', {}],
-          ]);
-          return Result.ok({
-            completionOrder,
-            resultOrder: crossed.map((result) =>
-              result.match({
-                err: () => 'err',
-                ok: (value) => (value as { id: string }).id,
-              })
-            ),
-          });
-        },
-        crosses: ['entity.fast', 'entity.slow'],
-        input: z.object({}),
-        output: z.object({
-          completionOrder: z.array(z.string()),
-          resultOrder: z.array(z.string()),
-        }),
-      });
-      const app = topo('cross-batch-topo', { entry, fast, slow });
-
-      const result = await executeTrail(entry, {}, { topo: app });
-
-      expect(result.isOk()).toBe(true);
-      expect(result.unwrap()).toEqual({
-        completionOrder: ['fast', 'slow'],
-        resultOrder: ['slow', 'fast'],
+        expect(first.unwrap()).toEqual({ value: 'first' });
+        expect(second.unwrap()).toEqual({ value: 'second' });
       });
     });
 
-    test('returns every batch cross result without short-circuiting on errors', async () => {
-      const completions: string[] = [];
-      const failing = trail('entity.fail', {
-        blaze: async () => {
-          await Bun.sleep(0);
-          completions.push('fail');
-          return Result.err(new ValidationError('nope'));
-        },
-        input: z.object({}),
-        output: z.object({ ok: z.boolean() }),
-        visibility: 'internal',
-      });
-      const succeeding = trail('entity.ok', {
-        blaze: async () => {
-          await Bun.sleep(5);
-          completions.push('ok');
-          return Result.ok({ ok: true });
-        },
-        input: z.object({}),
-        output: z.object({ ok: z.boolean() }),
-        visibility: 'internal',
-      });
-      const entry = trail('entity.batch.errors', {
-        blaze: async (_input, ctx) => {
-          const crossed = await requireCross(ctx)([
-            [failing, {}],
-            [succeeding, {}],
-          ] as const);
-          return Result.ok({
-            completions,
-            statuses: crossed.map((result) =>
-              result.match({
-                err: () => 'err',
-                ok: () => 'ok',
-              })
-            ),
-          });
-        },
-        crosses: [failing, succeeding],
-        input: z.object({}),
-        output: z.object({
-          completions: z.array(z.string()),
-          statuses: z.array(z.string()),
-        }),
-      });
-      const app = topo('cross-batch-errors-topo', {
-        entry,
-        failing,
-        succeeding,
+    describe('crossing execution', () => {
+      test('binds ctx.cross when topo access is available', async () => {
+        const helper = trail('entity.secret.rotate', {
+          blaze: (input: { id: string }) => Result.ok({ rotated: input.id }),
+          input: z.object({ id: z.string() }),
+          output: z.object({ rotated: z.string() }),
+          visibility: 'internal',
+        });
+        const entry = trail('entity.rotate', {
+          blaze: async (input: { id: string }, ctx) => {
+            const crossed = await requireCross(ctx)(
+              'entity.secret.rotate',
+              input
+            );
+            return crossed.match({
+              err: (error) => Result.err(error),
+              ok: (value) => Result.ok(value),
+            });
+          },
+          crosses: ['entity.secret.rotate'],
+          input: z.object({ id: z.string() }),
+          output: z.object({ rotated: z.string() }),
+        });
+        const app = topo('cross-topo', { entry, helper });
+
+        const result = await executeTrail(
+          entry,
+          { id: 'abc123' },
+          { topo: app }
+        );
+
+        expect(result.isOk()).toBe(true);
+        expect(result.unwrap()).toEqual({ rotated: 'abc123' });
       });
 
-      const result = await executeTrail(entry, {}, { topo: app });
+      test('validates merged crossInput fields when invoking through ctx.cross', async () => {
+        const helper = trail('entity.prepare', {
+          blaze: (input: { forkedFrom: string; id: string }) =>
+            Result.ok({ summary: `${input.id}:${input.forkedFrom}` }),
+          crossInput: z.object({ forkedFrom: z.string() }),
+          input: z.object({ id: z.string() }),
+          output: z.object({ summary: z.string() }),
+          visibility: 'internal',
+        });
+        const entry = trail('entity.run', {
+          blaze: async (input: { id: string }, ctx) => {
+            const crossed = await requireCross(ctx)(helper, {
+              forkedFrom: 'entity.run',
+              id: input.id,
+            });
+            return crossed.match({
+              err: (error) => Result.err(error),
+              ok: (value) => Result.ok(value),
+            });
+          },
+          crosses: [helper],
+          input: z.object({ id: z.string() }),
+          output: z.object({ summary: z.string() }),
+        });
+        const app = topo('cross-input-topo', { entry, helper });
 
-      expect(result.isOk()).toBe(true);
-      expect(result.unwrap()).toEqual({
-        completions: ['fail', 'ok'],
-        statuses: ['err', 'ok'],
+        const result = await executeTrail(
+          entry,
+          { id: 'abc123' },
+          { topo: app }
+        );
+
+        expect(result.isOk()).toBe(true);
+        expect(result.unwrap()).toEqual({ summary: 'abc123:entity.run' });
       });
-    });
 
-    test('returns an empty array for empty batch ctx.cross() calls', async () => {
-      const entry = trail('entity.batch.empty', {
-        blaze: async (_input, ctx) => {
-          const crossed = await requireCross(ctx)([]);
-          return Result.ok({ count: crossed.length });
-        },
-        input: z.object({}),
-        output: z.object({ count: z.number() }),
+      test('executes batch ctx.cross() calls concurrently and preserves tuple order', async () => {
+        const completionOrder: string[] = [];
+        const slow = trail('entity.slow', {
+          blaze: async () => {
+            await Bun.sleep(10);
+            completionOrder.push('slow');
+            return Result.ok({ id: 'slow' });
+          },
+          input: z.object({}),
+          output: z.object({ id: z.string() }),
+          visibility: 'internal',
+        });
+        const fast = trail('entity.fast', {
+          blaze: async () => {
+            await Bun.sleep(0);
+            completionOrder.push('fast');
+            return Result.ok({ id: 'fast' });
+          },
+          input: z.object({}),
+          output: z.object({ id: z.string() }),
+          visibility: 'internal',
+        });
+        const entry = trail('entity.batch', {
+          blaze: async (_input, ctx) => {
+            const crossed = await requireCross(ctx)([
+              ['entity.slow', {}],
+              ['entity.fast', {}],
+            ]);
+            return Result.ok({
+              completionOrder,
+              resultOrder: crossed.map((result) =>
+                result.match({
+                  err: () => 'err',
+                  ok: (value) => value.id,
+                })
+              ),
+            });
+          },
+          crosses: ['entity.fast', 'entity.slow'],
+          input: z.object({}),
+          output: z.object({
+            completionOrder: z.array(z.string()),
+            resultOrder: z.array(z.string()),
+          }),
+        });
+        const app = topo('cross-batch-topo', { entry, fast, slow });
+
+        const result = await executeTrail(entry, {}, { topo: app });
+
+        expect(result.isOk()).toBe(true);
+        expect(result.unwrap()).toEqual({
+          completionOrder: ['fast', 'slow'],
+          resultOrder: ['slow', 'fast'],
+        });
       });
-      const app = topo('cross-batch-empty-topo', { entry });
 
-      const result = await executeTrail(entry, {}, { topo: app });
+      test('returns every batch cross result without short-circuiting on errors', async () => {
+        const completions: string[] = [];
+        const failing = trail('entity.fail', {
+          blaze: async () => {
+            await Bun.sleep(0);
+            completions.push('fail');
+            return Result.err(new ValidationError('nope'));
+          },
+          input: z.object({}),
+          output: z.object({ ok: z.boolean() }),
+          visibility: 'internal',
+        });
+        const succeeding = trail('entity.ok', {
+          blaze: async () => {
+            await Bun.sleep(5);
+            completions.push('ok');
+            return Result.ok({ ok: true });
+          },
+          input: z.object({}),
+          output: z.object({ ok: z.boolean() }),
+          visibility: 'internal',
+        });
+        const entry = trail('entity.batch.errors', {
+          blaze: async (_input, ctx) => {
+            const crossed = await requireCross(ctx)([
+              [failing, {}],
+              [succeeding, {}],
+            ] as const);
+            return Result.ok({
+              completions,
+              statuses: crossed.map((result) =>
+                result.match({
+                  err: () => 'err',
+                  ok: () => 'ok',
+                })
+              ),
+            });
+          },
+          crosses: [failing, succeeding],
+          input: z.object({}),
+          output: z.object({
+            completions: z.array(z.string()),
+            statuses: z.array(z.string()),
+          }),
+        });
+        const app = topo('cross-batch-errors-topo', {
+          entry,
+          failing,
+          succeeding,
+        });
 
-      expect(result.isOk()).toBe(true);
-      expect(result.unwrap()).toEqual({ count: 0 });
+        const result = await executeTrail(entry, {}, { topo: app });
+
+        expect(result.isOk()).toBe(true);
+        expect(result.unwrap()).toEqual({
+          completions: ['fail', 'ok'],
+          statuses: ['err', 'ok'],
+        });
+      });
+
+      test('returns an empty array for empty batch ctx.cross() calls', async () => {
+        const entry = trail('entity.batch.empty', {
+          blaze: async (_input, ctx) => {
+            const crossed = await requireCross(ctx)([]);
+            return Result.ok({ count: crossed.length });
+          },
+          input: z.object({}),
+          output: z.object({ count: z.number() }),
+        });
+        const app = topo('cross-batch-empty-topo', { entry });
+
+        const result = await executeTrail(entry, {}, { topo: app });
+
+        expect(result.isOk()).toBe(true);
+        expect(result.unwrap()).toEqual({ count: 0 });
+      });
+
+      test('limits batch ctx.cross() execution to sequential flow when concurrency is 1', async () => {
+        const { captures, worker } = createConcurrencyWorkerScenario();
+        const entry = trail('entity.batch.sequential-limit', {
+          blaze: async (_input, ctx) => {
+            const crossed = await requireCross(ctx)(
+              [
+                [worker, { delayMs: 5, label: 'first' }],
+                [worker, { delayMs: 0, label: 'second' }],
+                [worker, { delayMs: 0, label: 'third' }],
+              ] as const,
+              { concurrency: 1 }
+            );
+            return Result.ok({
+              completionOrder: captures.completionOrder,
+              maxActive: captures.maxActive,
+              resultOrder: crossed.map((result) =>
+                result.match({
+                  err: () => 'err',
+                  ok: (value) => value.label,
+                })
+              ),
+            });
+          },
+          crosses: [worker],
+          input: z.object({}),
+          output: z.object({
+            completionOrder: z.array(z.string()),
+            maxActive: z.number(),
+            resultOrder: z.array(z.string()),
+          }),
+        });
+        const app = topo('cross-batch-sequential-limit-topo', {
+          entry,
+          worker,
+        });
+
+        const result = await executeTrail(entry, {}, { topo: app });
+
+        expect(result.isOk()).toBe(true);
+        expect(result.unwrap()).toEqual({
+          completionOrder: ['first', 'second', 'third'],
+          maxActive: 1,
+          resultOrder: ['first', 'second', 'third'],
+        });
+      });
+
+      test('caps concurrent batch ctx.cross() execution and preserves input order', async () => {
+        const { captures, worker } = createConcurrencyWorkerScenario();
+        const labels = Array.from(
+          { length: 10 },
+          (_, index) => `task-${index}`
+        );
+        const entry = trail('entity.batch.concurrent-limit', {
+          blaze: async (_input, ctx) => {
+            const crossed = await requireCross(ctx)(
+              labels.map((label) => [worker, { delayMs: 5, label }] as const),
+              { concurrency: 3 }
+            );
+            return Result.ok({
+              completionCount: captures.completionOrder.length,
+              maxActive: captures.maxActive,
+              resultOrder: crossed.map((result) =>
+                result.match({
+                  err: () => 'err',
+                  ok: (value) => value.label,
+                })
+              ),
+            });
+          },
+          crosses: [worker],
+          input: z.object({}),
+          output: z.object({
+            completionCount: z.number(),
+            maxActive: z.number(),
+            resultOrder: z.array(z.string()),
+          }),
+        });
+        const app = topo('cross-batch-concurrent-limit-topo', {
+          entry,
+          worker,
+        });
+
+        const result = await executeTrail(entry, {}, { topo: app });
+
+        expect(result.isOk()).toBe(true);
+        expect(result.unwrap()).toEqual({
+          completionCount: 10,
+          maxActive: 3,
+          resultOrder: labels,
+        });
+      });
     });
   });
 

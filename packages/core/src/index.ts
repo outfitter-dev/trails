@@ -45,6 +45,7 @@ export type {
   Implementation,
   TrailContext,
   TrailContextInit,
+  CrossBatchOptions,
   CrossFn,
   FireFn,
   BasePermit,
