@@ -509,6 +509,27 @@ describe('buildCliCommands resource overrides', () => {
   });
 });
 
+describe('buildCliCommands filtering', () => {
+  test('consumer trails (on: [...]) are excluded', () => {
+    const producer = trail('order.create', {
+      blaze: () => Result.ok({ ok: true }),
+      fires: ['order.placed'],
+      input: z.object({ orderId: z.string() }),
+    });
+    const consumer = trail('notify.email', {
+      blaze: (input: { orderId: string }) =>
+        Result.ok({ delivered: true, orderId: input.orderId }),
+      input: z.object({ orderId: z.string() }),
+      on: ['order.placed'],
+    });
+    const app = topo('test-app', { consumer, orderPlaced, producer });
+    const commands = buildCliCommands(app);
+
+    expect(commands).toHaveLength(1);
+    expect(commands[0]?.trail.id).toBe('order.create');
+  });
+});
+
 describe('buildCliCommands established graph enforcement', () => {
   test('throws when draft contamination remains', () => {
     const draftTrail = trail('entity.export', {
