@@ -170,7 +170,7 @@ const isBodyRequired = (schema: JsonSchema): boolean => {
 
 /** Build the input portion of an operation (parameters or requestBody). */
 const buildInputSpec = (
-  t: Trail<unknown, unknown>,
+  t: Trail<unknown, unknown, unknown>,
   method: string
 ): Record<string, unknown> => {
   if (!t.input) {
@@ -224,7 +224,7 @@ const errorResponseSchema: JsonSchema = {
 
 /** Build the 200 response entry. */
 const buildSuccessResponse = (
-  t: Trail<unknown, unknown>
+  t: Trail<unknown, unknown, unknown>
 ): Record<string, unknown> => {
   if (!t.output) {
     return { '200': { description: 'Success' } };
@@ -253,7 +253,7 @@ const validationErrorResponse: Record<
 
 /** Build all responses (success + error) for a trail. */
 const buildResponses = (
-  t: Trail<unknown, unknown>
+  t: Trail<unknown, unknown, unknown>
 ): Record<string, unknown> => {
   const examples = (t.examples ?? []) as readonly {
     error?: string | undefined;
@@ -267,7 +267,7 @@ const buildResponses = (
 
 /** Build a complete OpenAPI operation for a trail. */
 const buildOperation = (
-  t: Trail<unknown, unknown>,
+  t: Trail<unknown, unknown, unknown>,
   method: string
 ): Record<string, unknown> => ({
   operationId: t.id.replaceAll('.', '_'),
@@ -282,7 +282,7 @@ const buildOperation = (
 // ---------------------------------------------------------------------------
 
 /** Check whether a trail should be included in the spec. */
-const isPublicTrail = (t: Trail<unknown, unknown>): boolean => {
+const isPublicTrail = (t: Trail<unknown, unknown, unknown>): boolean => {
   if (t.kind !== 'trail') {
     return false;
   }
@@ -300,7 +300,7 @@ const collectPaths = (
   const paths: Record<string, Record<string, unknown>> = {};
 
   for (const item of app.list()) {
-    const t = item as Trail<unknown, unknown>;
+    const t = item as Trail<unknown, unknown, unknown>;
     if (!isPublicTrail(t)) {
       continue;
     }

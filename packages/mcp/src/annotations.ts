@@ -27,7 +27,10 @@ export interface McpAnnotations {
  * Omitted hints let the MCP SDK use its defaults.
  */
 export const deriveAnnotations = (
-  trail: Pick<Trail<unknown, unknown>, 'intent' | 'idempotent' | 'description'>
+  trail: Pick<
+    Trail<unknown, unknown, unknown>,
+    'intent' | 'idempotent' | 'description'
+  >
 ): McpAnnotations => {
   const annotations: Record<string, unknown> = {};
 

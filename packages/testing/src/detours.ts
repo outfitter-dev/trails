@@ -21,7 +21,7 @@ export const testDetours = (app: Topo): void => {
 
   describe('detours', () => {
     describe.each(trailEntries)('%s', (_id, trailDef) => {
-      const t = trailDef as Trail<unknown, unknown>;
+      const t = trailDef as Trail<unknown, unknown, unknown>;
 
       if (t.detours === undefined) {
         return;

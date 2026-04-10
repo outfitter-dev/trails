@@ -228,7 +228,7 @@ const withMcpTrailhead = (
 const createHandler =
   (
     app: Topo,
-    t: Trail<unknown, unknown>,
+    t: Trail<unknown, unknown, unknown>,
     layers: readonly Layer[],
     options: BuildMcpToolsOptions
   ): ((
@@ -267,7 +267,7 @@ const createHandler =
  */
 /** Check if a trail should be included based on meta and filters. */
 const shouldInclude = (
-  trail: Trail<unknown, unknown>,
+  trail: Trail<unknown, unknown, unknown>,
   options: BuildMcpToolsOptions
 ): boolean => {
   if (trail.meta?.['internal'] === true || trail.on.length > 0) {
@@ -287,7 +287,7 @@ const shouldInclude = (
 
 /** Build a description with optional example input appended. */
 const buildDescription = (
-  trail: Trail<unknown, unknown>
+  trail: Trail<unknown, unknown, unknown>
 ): string | undefined => {
   let { description } = trail;
   if (
@@ -306,7 +306,7 @@ const buildDescription = (
 /** Build a single MCP tool definition from a trail. */
 const buildToolDefinition = (
   app: Topo,
-  trail: Trail<unknown, unknown>,
+  trail: Trail<unknown, unknown, unknown>,
   layers: readonly Layer[],
   options: BuildMcpToolsOptions
 ): McpToolDefinition => {
@@ -326,7 +326,7 @@ const buildToolDefinition = (
 /** Register a trail as an MCP tool, checking for name collisions. */
 const registerTool = (
   app: Topo,
-  trailItem: Trail<unknown, unknown>,
+  trailItem: Trail<unknown, unknown, unknown>,
   layers: readonly Layer[],
   options: BuildMcpToolsOptions,
   nameToTrailId: Map<string, string>,
@@ -350,7 +350,7 @@ const registerTool = (
 const eligibleTrails = (
   app: Topo,
   options: BuildMcpToolsOptions
-): Trail<unknown, unknown>[] =>
+): Trail<unknown, unknown, unknown>[] =>
   app.list().filter((trail) => shouldInclude(trail, options));
 
 const validateToolBuild = (

@@ -157,7 +157,7 @@ const applyAutoMint = (
  * Handles validation, execution, and assertions.
  */
 const runExample = async (
-  t: Trail<unknown, unknown>,
+  t: Trail<unknown, unknown, unknown>,
   example: TrailExample<unknown, unknown>,
   output: z.ZodType | undefined,
   testCtx: TrailContext,
@@ -227,7 +227,7 @@ const createCoverageCross = (
  * Run a single example against a trail with crossings, recording cross calls.
  */
 const runCompositionExample = async (
-  trailDef: Trail<unknown, unknown>,
+  trailDef: Trail<unknown, unknown, unknown>,
   example: TrailExample<unknown, unknown>,
   output: z.ZodType | undefined,
   baseCtx: TrailContext,
@@ -283,7 +283,7 @@ export const testExamples = (
 ): void => {
   const resolveInput =
     typeof ctxOrFactory === 'function' ? ctxOrFactory : () => ctxOrFactory;
-  const allTrails = app.list() as Trail<unknown, unknown>[];
+  const allTrails = app.list() as Trail<unknown, unknown, unknown>[];
 
   const withExamples = allTrails.filter(
     (t) => t.examples !== undefined && t.examples.length > 0

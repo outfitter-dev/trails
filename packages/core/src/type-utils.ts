@@ -2,8 +2,6 @@
  * Type utilities for extracting input/output types from trails.
  */
 
-import type { z } from 'zod';
-
 import type { Result } from './result.js';
 import type { AnyTrail, Trail } from './trail.js';
 
@@ -15,11 +13,11 @@ import type { AnyTrail, Trail } from './trail.js';
 
 /** Extract the input type from a Trail. */
 export type TrailInput<T extends AnyTrail> =
-  T extends Trail<infer I, any> ? I : never;
+  T extends Trail<infer I, any, any> ? I : never;
 
 /** Extract the output type from a Trail. */
 export type TrailOutput<T extends AnyTrail> =
-  T extends Trail<any, infer O> ? O : never;
+  T extends Trail<any, infer O, any> ? O : never;
 
 /**
  * Extract the cross-callable input type from a trail.
@@ -29,11 +27,12 @@ export type TrailOutput<T extends AnyTrail> =
  * merges both schemas so the compiler enforces the full shape at the call
  * site. Falls back to plain `TrailInput<T>` when no `crossInput` exists.
  */
-export type CrossInput<T extends AnyTrail> = T extends {
-  crossInput: z.ZodType<infer CI>;
-}
-  ? TrailInput<T> & CI
-  : TrailInput<T>;
+export type CrossInput<T extends AnyTrail> =
+  T extends Trail<infer I, any, infer CI>
+    ? [CI] extends [never]
+      ? I
+      : I & CI
+    : never;
 
 /**
  * Extracts the full `Result<Output, Error>` type from a trail definition.

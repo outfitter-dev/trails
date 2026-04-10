@@ -59,7 +59,7 @@ const extractTrailheads = (raw: Record<string, unknown>): string[] =>
 /** Add optional schemas to an entry. */
 const addSchemas = (
   entry: Record<string, unknown>,
-  t: Trail<unknown, unknown>
+  t: Trail<unknown, unknown, unknown>
 ): void => {
   if (t.input) {
     entry['input'] = toSortedJsonSchema(t.input);
@@ -72,7 +72,7 @@ const addSchemas = (
 /** Add safety markers to an entry. */
 const addSafetyMarkers = (
   entry: Record<string, unknown>,
-  t: Trail<unknown, unknown>
+  t: Trail<unknown, unknown, unknown>
 ): void => {
   if (t.intent !== 'write') {
     entry['intent'] = t.intent;
@@ -85,7 +85,7 @@ const addSafetyMarkers = (
 /** Add deprecation and detours to an entry. */
 const addExtendedMetadata = (
   entry: Record<string, unknown>,
-  t: Trail<unknown, unknown>,
+  t: Trail<unknown, unknown, unknown>,
   raw: Record<string, unknown>
 ): void => {
   if (raw['deprecated'] === true) {
@@ -106,7 +106,7 @@ const addExtendedMetadata = (
 /** Add optional meta fields to an entry. */
 const addMetadata = (
   entry: Record<string, unknown>,
-  t: Trail<unknown, unknown>,
+  t: Trail<unknown, unknown, unknown>,
   raw: Record<string, unknown>
 ): void => {
   if (t.description !== undefined) {
@@ -116,7 +116,9 @@ const addMetadata = (
   addExtendedMetadata(entry, t, raw);
 };
 
-const trailToEntry = (t: Trail<unknown, unknown>): TrailheadMapEntry => {
+const trailToEntry = (
+  t: Trail<unknown, unknown, unknown>
+): TrailheadMapEntry => {
   const raw = t as unknown as Record<string, unknown>;
   const trailheads = extractTrailheads(raw);
   const entry: Record<string, unknown> = {
@@ -200,7 +202,7 @@ const assertEstablishedTopo = (topo: Topo): void => {
 
 const collectEntries = (topo: Topo): TrailheadMapEntry[] => [
   ...[...topo.trails.values()].map((trail) =>
-    trailToEntry(trail as Trail<unknown, unknown>)
+    trailToEntry(trail as Trail<unknown, unknown, unknown>)
   ),
   ...[...topo.signals.values()].map((signal) =>
     signalToEntry(signal as Signal<unknown>)

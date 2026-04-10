@@ -11,8 +11,8 @@ export interface Layer {
   readonly description?: string | undefined;
 
   /** Wrap a trail's implementation, returning a new implementation. */
-  wrap<I, O>(
-    trail: Trail<I, O>,
+  wrap<I, O, CI = never>(
+    trail: Trail<I, O, CI>,
     implementation: Implementation<I, O>
   ): Implementation<I, O>;
 }
@@ -27,9 +27,9 @@ export interface Layer {
  *
  * An empty layers array returns the implementation unchanged.
  */
-export const composeLayers = <I, O>(
+export const composeLayers = <I, O, CI = never>(
   layers: readonly Layer[],
-  trail: Trail<I, O>,
+  trail: Trail<I, O, CI>,
   implementation: Implementation<I, O>
 ): Implementation<I, O> => {
   // Fold right so layers[0] is the outermost wrapper.

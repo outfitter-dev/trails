@@ -50,7 +50,7 @@ export interface HttpRouteDefinition {
   readonly path: string;
   readonly trailId: string;
   readonly inputSource: InputSource;
-  readonly trail: Trail<unknown, unknown>;
+  readonly trail: Trail<unknown, unknown, unknown>;
   /**
    * Validate input, compose layers, and execute the trail implementation.
    *
@@ -80,7 +80,7 @@ const intentToMethod: Record<string, HttpMethod> = {
 };
 
 /** Derive HTTP method from trail intent. */
-const deriveMethod = (trail: Trail<unknown, unknown>): HttpMethod =>
+const deriveMethod = (trail: Trail<unknown, unknown, unknown>): HttpMethod =>
   intentToMethod[trail.intent] ?? 'POST';
 
 /** Derive HTTP path from trail ID: `entity.show` -> `/entity/show`. */
@@ -95,7 +95,7 @@ const deriveInputSource = (method: HttpMethod): InputSource =>
   method === 'GET' ? 'query' : 'body';
 
 /** Check if a trail should be included (skip internal and consumer trails). */
-const shouldInclude = (trail: Trail<unknown, unknown>): boolean =>
+const shouldInclude = (trail: Trail<unknown, unknown, unknown>): boolean =>
   trail.meta?.['internal'] !== true && trail.on.length === 0;
 
 /** Build per-request context overrides with the HTTP trailhead marker. */
@@ -121,7 +121,7 @@ const withHttpTrailhead = (
 const createExecute =
   (
     app: Topo,
-    t: Trail<unknown, unknown>,
+    t: Trail<unknown, unknown, unknown>,
     layers: readonly Layer[],
     options: BuildHttpRoutesOptions
   ): HttpRouteDefinition['execute'] =>
@@ -141,13 +141,13 @@ const createExecute =
 // ---------------------------------------------------------------------------
 
 /** Filter topo items to eligible trails. */
-const eligibleTrails = (app: Topo): Trail<unknown, unknown>[] =>
+const eligibleTrails = (app: Topo): Trail<unknown, unknown, unknown>[] =>
   app.list().filter((trail) => shouldInclude(trail));
 
 /** Build a single route definition from a trail. */
 const buildRoute = (
   app: Topo,
-  trail: Trail<unknown, unknown>,
+  trail: Trail<unknown, unknown, unknown>,
   basePath: string,
   layers: readonly Layer[],
   options: BuildHttpRoutesOptions
@@ -195,7 +195,7 @@ const registerRoute = (
 /** Accumulate route definitions, returning early on the first collision. */
 const accumulateRoutes = (
   app: Topo,
-  trails: Trail<unknown, unknown>[],
+  trails: Trail<unknown, unknown, unknown>[],
   basePath: string,
   layers: readonly Layer[],
   options: BuildHttpRoutesOptions

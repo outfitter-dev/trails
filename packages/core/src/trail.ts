@@ -39,7 +39,7 @@ export interface TrailExample<I, O> {
 // ---------------------------------------------------------------------------
 
 /** Everything needed to define a trail (minus the id) */
-export interface TrailSpec<I, O> {
+export interface TrailSpec<I, O, CI = never> {
   /** Zod schema for validating input */
   readonly input: z.ZodType<I>;
   /** Zod schema for validating output (optional — some trails are fire-and-forget) */
@@ -70,7 +70,7 @@ export interface TrailSpec<I, O> {
    * MCP tool parameters, or HTTP request bodies. Use for data that only makes
    * sense when one trail crosses another (e.g. `forkedFrom`).
    */
-  readonly crossInput?: z.ZodType | undefined;
+  readonly crossInput?: z.ZodType<CI> | undefined;
   /** Resources this trail may access via resource.from(ctx) */
   readonly resources?: readonly AnyResource[] | undefined;
   /**
@@ -106,8 +106,8 @@ export interface TrailSpec<I, O> {
 export type Intent = 'read' | 'write' | 'destroy';
 
 /** A fully-defined trail — the unit of work in the Trails system */
-export interface Trail<I, O> extends Omit<
-  TrailSpec<I, O>,
+export interface Trail<I, O, CI = never> extends Omit<
+  TrailSpec<I, O, CI>,
   | 'args'
   | 'blaze'
   | 'crosses'
@@ -123,7 +123,7 @@ export interface Trail<I, O> extends Omit<
   /** IDs of downstream trails this trail may invoke via ctx.cross() (always present, default []) */
   readonly crosses: readonly string[];
   /** Composition-only input schema, merged with `input` for ctx.cross() calls (optional) */
-  readonly crossInput?: z.ZodType | undefined;
+  readonly crossInput?: z.ZodType<CI> | undefined;
   /** Resources this trail may access via resource.from(ctx) (always present, default []) */
   readonly resources: readonly AnyResource[];
   /** IDs of signals this trail emits via ctx.fire() (always present, default []) */
@@ -169,14 +169,17 @@ const normalizeCrossRef = (entry: string | AnyTrail): string =>
  * });
  * ```
  */
-export function trail<I, O>(id: string, spec: TrailSpec<I, O>): Trail<I, O>;
-export function trail<I, O>(
-  spec: TrailSpec<I, O> & { readonly id: string }
-): Trail<I, O>;
-export function trail<I, O>(
-  idOrSpec: string | (TrailSpec<I, O> & { readonly id: string }),
-  maybeSpec?: TrailSpec<I, O>
-): Trail<I, O> {
+export function trail<I, O, CI = never>(
+  id: string,
+  spec: TrailSpec<I, O, CI>
+): Trail<I, O, CI>;
+export function trail<I, O, CI = never>(
+  spec: TrailSpec<I, O, CI> & { readonly id: string }
+): Trail<I, O, CI>;
+export function trail<I, O, CI = never>(
+  idOrSpec: string | (TrailSpec<I, O, CI> & { readonly id: string }),
+  maybeSpec?: TrailSpec<I, O, CI>
+): Trail<I, O, CI> {
   const resolved =
     typeof idOrSpec === 'string'
       ? { id: idOrSpec, spec: maybeSpec }
@@ -219,6 +222,6 @@ export function trail<I, O>(
 
 // Re-export types that callers of trail() will need
 // oxlint-disable-next-line no-explicit-any -- existential type for heterogeneous collections; `any` is correct here because Implementation is contravariant in I
-export type AnyTrail = Trail<any, any>;
+export type AnyTrail = Trail<any, any, any>;
 
 export type { Implementation, TrailContext, Result };

@@ -18,7 +18,7 @@ import type { Layer, Result, Trail, TrailContext } from '@ontrails/core';
  * Using `any` here is intentional -- the Zod schema validates at runtime.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyTrail = Trail<any, any>;
+export type AnyTrail = Trail<any, any, any>;
 
 // ---------------------------------------------------------------------------
 // CliFlag
