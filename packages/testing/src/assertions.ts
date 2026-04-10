@@ -50,6 +50,40 @@ export const expectErr = <T, E>(result: Result<T, E>): E => {
 };
 
 // ---------------------------------------------------------------------------
+// Result Match Tokens
+// ---------------------------------------------------------------------------
+
+export interface OkResultMatch {
+  readonly __resultMatch: 'ok';
+  readonly value?: unknown | undefined;
+}
+
+export interface ErrResultMatch {
+  readonly __resultMatch: 'err';
+  readonly error?: unknown | undefined;
+}
+
+type ResultMatchToken = OkResultMatch | ErrResultMatch;
+
+/**
+ * Create a partial-match token for `Result.ok(...)` values nested inside
+ * arrays or objects, such as the `Result[]` returned by batch `ctx.cross()`.
+ */
+export const okResultMatch = (value?: unknown): OkResultMatch => ({
+  __resultMatch: 'ok',
+  value,
+});
+
+/**
+ * Create a partial-match token for `Result.err(...)` values nested inside
+ * arrays or objects, such as mixed-success batch `ctx.cross()`.
+ */
+export const errResultMatch = (error?: unknown): ErrResultMatch => ({
+  __resultMatch: 'err',
+  error,
+});
+
+// ---------------------------------------------------------------------------
 // Full Match
 // ---------------------------------------------------------------------------
 
@@ -94,6 +128,28 @@ export const assertSchemaMatch = (
 /** Format a path for error messages. */
 const formatLoc = (path: readonly string[]): string =>
   path.length > 0 ? path.join('.') : 'root';
+
+interface ResultLike {
+  readonly error?: unknown;
+  isErr(): boolean;
+  isOk(): boolean;
+  readonly value?: unknown;
+}
+
+const isResultMatchToken = (value: unknown): value is ResultMatchToken =>
+  typeof value === 'object' &&
+  value !== null &&
+  '__resultMatch' in value &&
+  ((value as Record<string, unknown>)['__resultMatch'] === 'ok' ||
+    (value as Record<string, unknown>)['__resultMatch'] === 'err');
+
+const isResultLike = (value: unknown): value is ResultLike =>
+  typeof value === 'object' &&
+  value !== null &&
+  'isOk' in value &&
+  typeof (value as Record<string, unknown>)['isOk'] === 'function' &&
+  'isErr' in value &&
+  typeof (value as Record<string, unknown>)['isErr'] === 'function';
 
 /** Find an unconsumed actual element that deep-matches the expected object. */
 const findObjectMatch = (
@@ -189,6 +245,12 @@ const assertSubset = (
     return;
   }
 
+  if (isResultMatchToken(expected)) {
+    // oxlint-disable-next-line no-use-before-define -- result token matching delegates back into assertSubset
+    assertResultTokenMatch(actual, expected, path);
+    return;
+  }
+
   if (Array.isArray(expected)) {
     if (!Array.isArray(actual)) {
       throw new TypeError(`at ${loc}: expected an array, got ${typeof actual}`);
@@ -218,6 +280,52 @@ const assertSubset = (
       `at ${loc}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
     );
   }
+};
+
+const assertOkResultTokenMatch = (
+  actual: ResultLike,
+  expected: OkResultMatch,
+  loc: string,
+  path: readonly string[]
+): void => {
+  if (!actual.isOk()) {
+    throw new Error(`at ${loc}: expected Result.ok(...), got Result.err(...)`);
+  }
+  if (expected.value !== undefined) {
+    assertSubset(actual.value, expected.value, [...path, 'value']);
+  }
+};
+
+const assertErrResultTokenMatch = (
+  actual: ResultLike,
+  expected: ErrResultMatch,
+  loc: string,
+  path: readonly string[]
+): void => {
+  if (!actual.isErr()) {
+    throw new Error(`at ${loc}: expected Result.err(...), got Result.ok(...)`);
+  }
+  if (expected.error !== undefined) {
+    assertSubset(actual.error, expected.error, [...path, 'error']);
+  }
+};
+
+const assertResultTokenMatch = (
+  actual: unknown,
+  expected: ResultMatchToken,
+  path: readonly string[]
+): void => {
+  const loc = formatLoc(path);
+  if (!isResultLike(actual)) {
+    throw new TypeError(`at ${loc}: expected a Result-like value`);
+  }
+
+  if (expected.__resultMatch === 'ok') {
+    assertOkResultTokenMatch(actual, expected, loc, path);
+    return;
+  }
+
+  assertErrResultTokenMatch(actual, expected, loc, path);
 };
 
 /**
