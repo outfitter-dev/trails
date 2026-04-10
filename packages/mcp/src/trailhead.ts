@@ -15,6 +15,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import type {
+  Intent,
   Layer,
   ResourceOverrideMap,
   Topo,
@@ -42,6 +43,7 @@ export interface TrailheadMcpOptions {
   readonly excludeTrails?: readonly string[] | undefined;
   readonly include?: readonly string[] | undefined;
   readonly includeTrails?: readonly string[] | undefined;
+  readonly intent?: readonly Intent[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   readonly serverInfo?:
@@ -159,6 +161,7 @@ export const trailhead = async (
     excludeTrails: options.excludeTrails,
     include: options.include,
     includeTrails: options.includeTrails,
+    intent: options.intent,
     layers: options.layers,
     resources: options.resources,
     validate: options.validate,

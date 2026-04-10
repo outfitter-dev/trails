@@ -219,6 +219,27 @@ describe('buildHttpRoutes', () => {
       expect(result.value.map((route) => route.trailId)).toEqual(['echo']);
     });
 
+    test('intent filters narrow the route table', () => {
+      const app = topo('testapp', { deleteTrail, echoTrail });
+      const result = buildHttpRoutes(app, { intent: ['read'] });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.value.map((route) => route.trailId)).toEqual(['echo']);
+    });
+
+    test('intent filters compose with include patterns using AND logic', () => {
+      const app = topo('testapp', { deleteTrail, echoTrail });
+      const result = buildHttpRoutes(app, {
+        include: ['item.*', 'echo'],
+        intent: ['destroy'],
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.value.map((route) => route.trailId)).toEqual([
+        'item.delete',
+      ]);
+    });
+
     test('consumer trails (on: [...]) are skipped', () => {
       const consumerTrail = trail('notify.email', {
         blaze: (input: { orderId: string }) =>

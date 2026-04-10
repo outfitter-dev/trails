@@ -12,6 +12,7 @@
 
 import { isTrailsError, mapTransportError } from '@ontrails/core';
 import type {
+  Intent,
   Layer,
   ResourceOverrideMap,
   Topo,
@@ -41,6 +42,7 @@ export interface TrailheadHttpOptions {
   readonly exclude?: readonly string[] | undefined;
   readonly hostname?: string | undefined;
   readonly include?: readonly string[] | undefined;
+  readonly intent?: readonly Intent[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly name?: string | undefined;
   readonly port?: number | undefined;
@@ -321,6 +323,7 @@ export const trailhead = async (
     createContext: options.createContext,
     exclude: options.exclude,
     include: options.include,
+    intent: options.intent,
     layers: options.layers,
     resources: options.resources,
     validate: options.validate,

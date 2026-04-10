@@ -11,7 +11,7 @@ import {
   validateDraftFreeTopo,
   zodToJsonSchema,
 } from '@ontrails/core';
-import type { Topo, Trail } from '@ontrails/core';
+import type { Intent, Topo, Trail } from '@ontrails/core';
 
 import type { JsonSchema } from './types.js';
 
@@ -33,16 +33,9 @@ export interface OpenApiOptions {
   readonly servers?: readonly OpenApiServer[] | undefined;
   /** Prefix for all paths. Default: `''` */
   readonly basePath?: string | undefined;
-  /**
-   * Glob patterns that keep only matching trail IDs in the generated spec.
-   * Mirrors the `include` option on other trailhead builders.
-   */
-  readonly include?: readonly string[] | undefined;
-  /**
-   * Glob patterns that remove matching trail IDs from the generated spec.
-   * Mirrors the `exclude` option on other trailhead builders.
-   */
   readonly exclude?: readonly string[] | undefined;
+  readonly include?: readonly string[] | undefined;
+  readonly intent?: readonly Intent[] | undefined;
 }
 
 /** Minimal OpenAPI 3.1 spec shape — intentionally plain objects, no heavy library. */
@@ -303,6 +296,7 @@ const collectPaths = (
   for (const t of filterTrailheadTrails(app.list(), {
     exclude: options?.exclude,
     include: options?.include,
+    intent: options?.intent,
   })) {
     const method = intentToMethod[t.intent] ?? 'post';
     paths[trailIdToPath(t.id, basePath)] = {

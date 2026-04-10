@@ -29,6 +29,27 @@ interface WrapProjectAwareRuleOptions {
   readonly examples: Trail<ProjectAwareRuleInput, RuleOutput>['examples'];
 }
 
+const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
+  knownTrailIds: input.knownTrailIds
+    ? new Set(input.knownTrailIds)
+    : new Set<string>(),
+  ...(input.crossTargetTrailIds
+    ? { crossTargetTrailIds: new Set(input.crossTargetTrailIds) }
+    : {}),
+  ...(input.detourTargetTrailIds
+    ? { detourTargetTrailIds: new Set(input.detourTargetTrailIds) }
+    : {}),
+  ...(input.knownResourceIds
+    ? { knownResourceIds: new Set(input.knownResourceIds) }
+    : {}),
+  ...(input.knownSignalIds
+    ? { knownSignalIds: new Set(input.knownSignalIds) }
+    : {}),
+  ...(input.trailIntentsById
+    ? { trailIntentsById: new Map(Object.entries(input.trailIntentsById)) }
+    : {}),
+});
+
 /**
  * Wrap an existing `WardenRule` as a trail with typed input/output.
  *
@@ -50,21 +71,10 @@ export function wrapRule(
     const projectAwareRule = rule as ProjectAwareWardenRule;
     return trail(`warden.rule.${rule.name}`, {
       blaze: (input: ProjectAwareRuleInput) => {
-        const context = {
-          knownResourceIds: input.knownResourceIds
-            ? new Set(input.knownResourceIds)
-            : undefined,
-          knownSignalIds: input.knownSignalIds
-            ? new Set(input.knownSignalIds)
-            : undefined,
-          knownTrailIds: input.knownTrailIds
-            ? new Set(input.knownTrailIds)
-            : new Set<string>(),
-        } as ProjectContext;
         const diagnostics = projectAwareRule.checkWithContext(
           input.sourceCode,
           input.filePath,
-          context
+          buildProjectContext(input)
         );
         return Result.ok({ diagnostics: [...diagnostics] });
       },

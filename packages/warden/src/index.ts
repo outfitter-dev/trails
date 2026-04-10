@@ -19,10 +19,13 @@ export type {
 // Individual rules
 export { noThrowInImplementation } from './rules/no-throw-in-implementation.js';
 export { contextNoTrailheadTypes } from './rules/context-no-trailhead-types.js';
+export { deadInternalTrail } from './rules/dead-internal-trail.js';
 export { draftFileMarking } from './rules/draft-file-marking.js';
 export { draftVisibleDebt } from './rules/draft-visible-debt.js';
 export { errorMappingCompleteness } from './rules/error-mapping-completeness.js';
 export { firesDeclarations } from './rules/fires-declarations.js';
+export { intentPropagation } from './rules/intent-propagation.js';
+export { missingVisibility } from './rules/missing-visibility.js';
 export { onReferencesExist } from './rules/on-references-exist.js';
 export { validDetourRefs } from './rules/valid-detour-refs.js';
 export { noDirectImplInRoute } from './rules/no-direct-impl-in-route.js';
@@ -78,10 +81,13 @@ export { runWardenTrails } from './trails/run.js';
 export {
   contextNoTrailheadTypesTrail,
   crossDeclarationsTrail,
+  deadInternalTrailTrail,
   diagnosticSchema,
   errorMappingCompletenessTrail,
   firesDeclarationsTrail,
   implementationReturnsResultTrail,
+  intentPropagationTrail,
+  missingVisibilityTrail,
   noDirectImplInRouteTrail,
   noDirectImplementationCallTrail,
   noSyncResultAssumptionTrail,
