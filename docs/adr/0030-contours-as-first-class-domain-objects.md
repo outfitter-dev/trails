@@ -1,14 +1,15 @@
 ---
+id: 30
 slug: contours-as-first-class-domain-objects
 title: Contours as First-Class Domain Objects
-status: draft
+status: accepted
 created: 2026-04-09
-updated: 2026-04-09
+updated: 2026-04-10
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [0, 1, 3, 9, 16, 23]
 ---
 
-# ADR: Contours as First-Class Domain Objects
+# ADR-0030: Contours as First-Class Domain Objects
 
 ## Context
 

@@ -135,7 +135,7 @@ The return type is identical. The topo registration is identical. The trail's `r
 ## Non-decisions
 
 - **Whether `connector()` becomes a framework primitive.** Platform connectors with shared lifecycle might benefit from framework-level support, but the bar for new primitives is high[^2]. This ADR extracts connectors without deciding their runtime shape.
-- **How trails subpaths work on connectors.** Connectors that contribute trails (health checks, platform-optimized operations) may export them at `@ontrails/with-*/trails`. The design depends on [ADR: Contours as First-Class Domain Objects](20260409-contours-as-first-class-domain-objects.md) (draft) and the `deriveTrail()` helper.
+- **How trails subpaths work on connectors.** Connectors that contribute trails (health checks, platform-optimized operations) may export them at `@ontrails/with-*/trails`. The design depends on [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md) and the `deriveTrail()` helper.
 - **Connector lifecycle hooks.** How connectors report readiness, perform health checks, and handle graceful shutdown. Resource bundling is addressed by [ADR: Resource Bundles](20260409-resource-bundles.md) (draft); lifecycle hooks remain deferred.
 
 ## References
@@ -144,7 +144,7 @@ The return type is identical. The topo registration is identical. The trail's `r
 - [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract that connectors bind to concrete backends
 - [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md) — the first connector implementation, currently a subpath of `@ontrails/store`
 - [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the naming heuristic that `with-*` follows
-- [ADR: Contours as First-Class Domain Objects](20260409-contours-as-first-class-domain-objects.md) (draft) — upstream of the `/trails` subpath design on connectors
+- [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md) — upstream of the `/trails` subpath design on connectors
 - [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) — the bundling mechanism for connector and pack resources
 
 [^1]: [ADR-0009: First-Class Resources](../0009-first-class-resources.md)

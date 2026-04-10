@@ -296,7 +296,7 @@ This is explicitly deferred. The initial implementation focuses on single-entity
 
 - [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) -- the store abstraction that search extends
 - [ADR-0009: First-Class Resources](../0009-first-class-resources.md) -- the resource pattern for embedding providers
-- [ADR: Contours as First-Class Domain Objects](20260409-contours-as-first-class-domain-objects.md) (draft) -- contours provide the domain object schemas that search declarations annotate
+- [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) -- contours provide the domain object schemas that search declarations annotate
 - [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) -- the `crud()` factory that auto-generates search trails
 - [ADR: Backend-Agnostic Store Schemas](20260409-backend-agnostic-store-schemas.md) (draft) -- the store schema abstraction that search declarations extend
 - ADR: Drizzle Store Connector (draft) -- the connector that implements FTS5 and vector indexing
