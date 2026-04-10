@@ -85,6 +85,39 @@ Options:
   --format <value>  (choices: "json", "table", default: "json")
 ```
 
+## Positional Args
+
+By default, if a trail has exactly one required string field with no default, the CLI auto-promotes it to a positional arg:
+
+```bash
+myapp topo pin v1.0          # instead of: myapp topo pin --name v1.0
+```
+
+For multiple positional args, declare `args` on the trail spec:
+
+```typescript
+trail('file.copy', {
+  input: z.object({ src: z.string(), dest: z.string(), recursive: z.boolean() }),
+  args: ['src', 'dest'],
+  intent: 'write',
+});
+```
+
+```bash
+myapp file copy source.txt dest.txt --recursive
+```
+
+The `args` array controls which fields are positional and their order. Fields not in `args` become flags. Positional fields also keep their flag alias (`--src` still works).
+
+To suppress auto-promotion entirely:
+
+```typescript
+trail('config.set', {
+  input: z.object({ key: z.string(), value: z.string() }),
+  args: false,  // both stay as --key and --value flags
+});
+```
+
 ## Structured Input
 
 Every non-empty object input schema also gets three structured input channels:

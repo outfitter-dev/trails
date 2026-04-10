@@ -110,11 +110,13 @@ describe('buildCliCommands path derivation', () => {
       'db.main': dbResource,
       [t.id]: t,
     });
-    const { flags } = requireCommand(buildCliCommands(app));
+    const { flags, args } = requireCommand(buildCliCommands(app));
 
-    const queryFlag = flags.find((f) => f.name === 'query');
+    // Single required string → auto-promoted to positional arg + kept as flag alias
+    expect(args).toHaveLength(1);
+    expect(args[0]).toMatchObject({ name: 'query', required: false });
+    expect(flags.find((f) => f.name === 'query')).toBeDefined();
     const limitFlag = flags.find((f) => f.name === 'limit');
-    expect(queryFlag?.required).toBe(true);
     expect(limitFlag?.required).toBe(false);
   });
 
@@ -126,11 +128,12 @@ describe('buildCliCommands path derivation', () => {
       }),
     });
     const app = makeApp(t);
-    const { flags } = requireCommand(buildCliCommands(app));
+    const { flags, args } = requireCommand(buildCliCommands(app));
 
-    expect(flags.map((flag) => flag.name)).toEqual(
-      expect.arrayContaining(['input-file', 'input-json', 'stdin', 'query'])
-    );
+    // query is auto-promoted to positional AND kept as --query flag alias
+    expect(args).toHaveLength(1);
+    expect(args[0]).toMatchObject({ name: 'query' });
+    expect(flags.find((f) => f.name === 'query')).toBeDefined();
   });
 
   test('adds --dry-run for destroy intent trails', () => {
@@ -527,6 +530,141 @@ describe('buildCliCommands filtering', () => {
 
     expect(commands).toHaveLength(1);
     expect(commands[0]?.trail.id).toBe('order.create');
+  });
+});
+
+describe('positional arg derivation', () => {
+  test('auto-promotes single required string field to positional arg', () => {
+    const t = trail('file.read', {
+      blaze: (input: { path: string }) => Result.ok(input.path),
+      input: z.object({ path: z.string() }),
+    });
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCliCommands(app));
+
+    expect(cmd.args).toHaveLength(1);
+    expect(cmd.args[0]).toMatchObject({
+      name: 'path',
+      required: false,
+      variadic: false,
+    });
+    // The positional field is kept as a --path flag alias
+    expect(cmd.flags.find((f) => f.name === 'path')).toBeDefined();
+  });
+
+  test('does not auto-promote when multiple required string fields exist', () => {
+    const t = trail('file.copy', {
+      blaze: (input: { dest: string; src: string }) =>
+        Result.ok({ dest: input.dest, src: input.src }),
+      input: z.object({ dest: z.string(), src: z.string() }),
+    });
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCliCommands(app));
+
+    expect(cmd.args).toHaveLength(0);
+    // Both should remain as flags
+    expect(cmd.flags.find((f) => f.name === 'dest')).toBeDefined();
+    expect(cmd.flags.find((f) => f.name === 'src')).toBeDefined();
+  });
+
+  test('auto-promotes single required string alongside other optional fields', () => {
+    const t = trail('search', {
+      blaze: () => Result.ok([]),
+      input: z.object({
+        limit: z.number().optional(),
+        query: z.string(),
+      }),
+    });
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCliCommands(app));
+
+    expect(cmd.args).toHaveLength(1);
+    expect(cmd.args[0]).toMatchObject({ name: 'query', required: false });
+    // query kept as flag alias, limit also present
+    expect(cmd.flags.find((f) => f.name === 'query')).toBeDefined();
+    expect(cmd.flags.find((f) => f.name === 'limit')).toBeDefined();
+  });
+
+  test('explicit args promotes field even with multiple strings', () => {
+    const t = trail('file.copy', {
+      args: ['src'],
+      blaze: (input: { dest: string; src: string }) =>
+        Result.ok({ dest: input.dest, src: input.src }),
+      input: z.object({ dest: z.string(), src: z.string() }),
+    });
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCliCommands(app));
+
+    expect(cmd.args).toHaveLength(1);
+    expect(cmd.args[0]).toMatchObject({ name: 'src', required: false });
+    // src kept as flag alias, dest also present
+    expect(cmd.flags.find((f) => f.name === 'src')).toBeDefined();
+    expect(cmd.flags.find((f) => f.name === 'dest')).toBeDefined();
+  });
+
+  test('multiple explicit args preserve declared order', () => {
+    const t = trail('file.copy', {
+      args: ['src', 'dest'],
+      blaze: (input: { dest: string; src: string }) =>
+        Result.ok({ dest: input.dest, src: input.src }),
+      input: z.object({ dest: z.string(), src: z.string() }),
+    });
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCliCommands(app));
+
+    expect(cmd.args).toHaveLength(2);
+    expect(cmd.args[0]?.name).toBe('src');
+    expect(cmd.args[1]?.name).toBe('dest');
+  });
+
+  test('args: false suppresses auto-promotion', () => {
+    const t = trail('file.read', {
+      args: false,
+      blaze: (input: { path: string }) => Result.ok(input.path),
+      input: z.object({ path: z.string() }),
+    });
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCliCommands(app));
+
+    // Single required string would normally be auto-promoted, but args: false suppresses it
+    expect(cmd.args).toHaveLength(0);
+    expect(cmd.flags.find((f) => f.name === 'path')).toBeDefined();
+  });
+
+  test('args with non-existent field name is silently ignored', () => {
+    const t = trail('file.read', {
+      args: ['path', 'nonexistent'],
+      blaze: (input: { path: string }) => Result.ok(input.path),
+      input: z.object({ path: z.string() }),
+    });
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCliCommands(app));
+
+    expect(cmd.args).toHaveLength(1);
+    expect(cmd.args[0]).toMatchObject({ name: 'path', required: false });
+  });
+
+  test('no positional args when no required string fields exist', () => {
+    const t = trail('config.set', {
+      blaze: (input: { count: number; verbose: boolean }) =>
+        Result.ok({ count: input.count, verbose: input.verbose }),
+      input: z.object({ count: z.number(), verbose: z.boolean() }),
+    });
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCliCommands(app));
+
+    expect(cmd.args).toHaveLength(0);
+  });
+
+  test('does not auto-promote a required string field that has a default', () => {
+    const t = trail('greet', {
+      blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
+      input: z.object({ name: z.string().default('World') }),
+    });
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCliCommands(app));
+
+    expect(cmd.args).toHaveLength(0);
   });
 });
 

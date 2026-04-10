@@ -20,7 +20,7 @@ import {
   validateEstablishedTopo,
 } from '@ontrails/core';
 
-import type { AnyTrail, CliCommand, CliFlag } from './command.js';
+import type { AnyTrail, CliArg, CliCommand, CliFlag } from './command.js';
 import { dryRunPreset, toFlags } from './flags.js';
 import type { InputResolver } from './prompt.js';
 import {
@@ -124,10 +124,13 @@ const mergeArgsAndFlags = (
   parsedArgs: Record<string, unknown>,
   parsedFlags: Record<string, unknown>
 ): Record<string, unknown> => {
-  const mergedInput: Record<string, unknown> = {
-    ...structuredInput,
-    ...parsedArgs,
-  };
+  const mergedInput: Record<string, unknown> = { ...structuredInput };
+  // Only merge defined positional args — undefined means the user omitted it
+  for (const [key, value] of Object.entries(parsedArgs)) {
+    if (value !== undefined) {
+      mergedInput[key] = value;
+    }
+  }
   for (const [key, value] of Object.entries(parsedFlags)) {
     if (!metaFlagNames.has(key) && value !== undefined) {
       mergedInput[key] = value;
@@ -358,6 +361,62 @@ const buildFlags = (
   return flags;
 };
 
+/** Convert a field to a positional CliArg. */
+/** Convert a field to a positional CliArg. Always optional because the flag alias is an alternative. */
+const fieldToArg = (field: Field): CliArg => ({
+  description: field.label,
+  name: field.name,
+  required: false,
+  variadic: false,
+});
+
+/**
+ * Derive positional args from a trail's `args` declaration and fields.
+ *
+ * - `args: false` — explicit suppression, no positional args.
+ * - `args: string[]` — use the declared order; only string fields are kept.
+ * - `args: undefined` — heuristic: if exactly one required string field with
+ *   no default exists, auto-promote it to positional.
+ *
+ * Positional args preserve `trail.args` order (not alphabetical) because
+ * position is semantically meaningful in CLI usage.
+ */
+const derivePositionalArgs = (
+  trail: AnyTrail,
+  fields: readonly Field[]
+): { readonly args: CliArg[] } => {
+  // Explicit suppression (false or empty array)
+  if (
+    trail.args === false ||
+    (Array.isArray(trail.args) && trail.args.length === 0)
+  ) {
+    return { args: [] };
+  }
+
+  // Explicit args declaration — use the order from the array
+  if (trail.args !== undefined && trail.args.length > 0) {
+    const stringFieldNames = new Set(
+      fields.filter((f) => f.type === 'string').map((f) => f.name)
+    );
+    const validArgs = trail.args
+      .filter((name) => stringFieldNames.has(name))
+      .map((name) => fields.find((f) => f.name === name))
+      .filter((f): f is Field => f !== undefined)
+      .map(fieldToArg);
+    return { args: validArgs };
+  }
+
+  // Heuristic: single required string with no default
+  const candidates = fields.filter(
+    (f) => f.type === 'string' && f.required && f.default === undefined
+  );
+  if (candidates.length === 1 && candidates[0]) {
+    return { args: [fieldToArg(candidates[0])] };
+  }
+
+  return { args: [] };
+};
+
 /** Convert a trail or route into a CLI command when it is publicly exposed. */
 const toCliCommand = (
   app: Topo,
@@ -365,6 +424,8 @@ const toCliCommand = (
   options?: BuildCliCommandsOptions
 ): CliCommand => {
   const fields = deriveFields(t.input, t.fields);
+  const { args } = derivePositionalArgs(t, fields);
+  // All fields generate flags — positional fields keep their --flag alias
   const flags = buildFlags(t, fields, t.intent, options);
   const derivedFlagNames = new Set(
     toFlags(fields).map((flag) => kebabToCamel(flag.name))
@@ -382,7 +443,7 @@ const toCliCommand = (
   );
 
   return {
-    args: [],
+    args,
     description: t.description,
     execute: createExecute(
       app,

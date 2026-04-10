@@ -85,6 +85,8 @@ export interface TrailSpec<I, O> {
   readonly on?: readonly (string | AnySignal)[] | undefined;
   /** Auth requirement: scopes object, 'public', or omitted (undeclared) */
   readonly permit?: PermitRequirement | undefined;
+  /** Primary input fields and their order. CLI projects as positional args. */
+  readonly args?: readonly string[] | false | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -97,7 +99,7 @@ export type Intent = 'read' | 'write' | 'destroy';
 /** A fully-defined trail — the unit of work in the Trails system */
 export interface Trail<I, O> extends Omit<
   TrailSpec<I, O>,
-  'blaze' | 'crosses' | 'fires' | 'intent' | 'on' | 'resources'
+  'args' | 'blaze' | 'crosses' | 'fires' | 'intent' | 'on' | 'resources'
 > {
   readonly kind: 'trail';
   readonly id: string;
@@ -112,6 +114,8 @@ export interface Trail<I, O> extends Omit<
   readonly on: readonly string[];
   /** What this trail does to the world (always present, default 'write') */
   readonly intent: Intent;
+  /** Primary input fields and their order (always present, default undefined) */
+  readonly args?: readonly string[] | false | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -161,6 +165,7 @@ export function trail<I, O>(
   }
 
   const {
+    args: rawArgs,
     blaze,
     crosses: rawCrosses,
     fires: rawFires,
@@ -172,9 +177,11 @@ export function trail<I, O>(
   const resources = Object.freeze([...(rawResources ?? [])]);
   const fires = Object.freeze((rawFires ?? []).map(normalizeSignalRef));
   const on = Object.freeze((rawOn ?? []).map(normalizeSignalRef));
+  const args = Array.isArray(rawArgs) ? Object.freeze([...rawArgs]) : rawArgs;
 
   return Object.freeze({
     ...spec,
+    args,
     blaze: async (input: I, ctx: TrailContext) => await blaze(input, ctx),
     crosses: Object.freeze([...(rawCrosses ?? [])]),
     fires,
