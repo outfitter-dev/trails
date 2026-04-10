@@ -1,14 +1,15 @@
 ---
+id: 26
 slug: error-taxonomy-as-transport-independent-behavior-contract
 title: Error Taxonomy as Transport-Independent Behavior Contract
-status: draft
+status: accepted
 created: 2026-04-09
-updated: 2026-04-09
+updated: 2026-04-10
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [2, 6]
 ---
 
-# ADR: Error Taxonomy as Transport-Independent Behavior Contract
+# ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract
 
 ## Context
 

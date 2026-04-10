@@ -10,17 +10,20 @@
 // Category
 // ---------------------------------------------------------------------------
 
-export type ErrorCategory =
-  | 'validation'
-  | 'not_found'
-  | 'conflict'
-  | 'permission'
-  | 'timeout'
-  | 'rate_limit'
-  | 'network'
-  | 'internal'
-  | 'auth'
-  | 'cancelled';
+export const errorCategories = [
+  'validation',
+  'not_found',
+  'conflict',
+  'permission',
+  'timeout',
+  'rate_limit',
+  'network',
+  'internal',
+  'auth',
+  'cancelled',
+] as const;
+
+export type ErrorCategory = (typeof errorCategories)[number];
 
 // ---------------------------------------------------------------------------
 // Base class
@@ -190,7 +193,7 @@ export const isTrailsError = (error?: unknown): error is TrailsError =>
 /** Returns true if the error is retryable (TrailsError with retryable category). */
 export const isRetryable = (error: Error): boolean => {
   if (isTrailsError(error)) {
-    return retryableMap[error.category];
+    return error.retryable;
   }
   return false;
 };
