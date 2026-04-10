@@ -328,7 +328,13 @@ const bindFireToCtx = (
   // `createContext` is intentionally stripped — consumers inherit the
   // already-resolved ctx via `consumerCtx`, and re-running the factory would
   // clobber that.
-  const { createContext: _omit, ...forwarded } = options ?? {};
+  // Strip createContext (consumers inherit resolved ctx) and validationSchema
+  // (consumers validate against their own schema, not the producer's cross schema).
+  const {
+    createContext: _omit,
+    validationSchema: _omitSchema,
+    ...forwarded
+  } = options ?? {};
   const fire = createFireFn(topo, ctx, (consumer, input, consumerCtx) =>
     // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
     executeTrail(consumer, input, {
