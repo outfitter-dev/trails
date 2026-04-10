@@ -6,8 +6,6 @@ Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.
 
 ## 2026-03
 
-- [Concurrent Trail Crossing](20260331-concurrent-crossing.md)
-  - depends on [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md)
 - [Direct Trail Invocation (`trails run`)](20260331-direct-invocation.md)
   - depends on [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md)
 - [External Trailheads as Trails](20260331-external-trailheads-as-trails.md)

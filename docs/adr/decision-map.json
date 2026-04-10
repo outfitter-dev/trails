@@ -91,8 +91,8 @@
         },
         {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"derive by default\"; tracing observes composition shape rather than requiring it to be declared",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
+          "from": "0028",
+          "fromPath": "docs/adr/0028-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; `trails run` makes every trail directly invocable without trailhead ceremony",
@@ -274,8 +274,8 @@
         },
         {
           "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent crossings",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
+          "from": "0028",
+          "fromPath": "docs/adr/0028-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the error taxonomy maps to categorized failure events",
@@ -333,8 +333,8 @@
         },
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- \"composition is a property, not a type\"; parallel vs sequential is a runtime choice, not a contract distinction. The crossi",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
+          "from": "0028",
+          "fromPath": "docs/adr/0028-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- every trail is runnable, whether atomic or composite",
@@ -520,8 +520,8 @@
         },
         {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- the execution pipeline runs for each concurrent branch; the pipeline is unchanged",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
+          "from": "0028",
+          "fromPath": "docs/adr/0028-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` executes through the pipeline, the same as every trailhead",
@@ -933,8 +933,8 @@
         },
         {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- tracing observes concurrent vs sequential spans to derive composition shape at runtime",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
+          "from": "0028",
+          "fromPath": "docs/adr/0028-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- the tracing primitive; live tracing during `trails run`, historical tracing via `trails trace`",
@@ -1169,8 +1169,8 @@
         },
         {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- the lockfile captures composition shapes including parallel crossing patterns",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
+          "from": "0028",
+          "fromPath": "docs/adr/0028-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`",
@@ -1427,8 +1427,8 @@
         },
         {
           "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- typed `ctx.cross()` that the array overload extends; parallel crossing with typed results is a non-decision there, deferred",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
+          "from": "0028",
+          "fromPath": "docs/adr/0028-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` complements signal-based activation; `on:` is for reactive decoupling, `crosses` is for direct compositi",
@@ -1468,7 +1468,13 @@
     {
       "created": "2026-04-09",
       "depends_on": ["3", "7", "24"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "- [ADR-0025: Composition Testing](0025-composition-testing.md) -- `scenario()` and `expectedMatch` for testing concurrent composition flows",
+          "from": "0028",
+          "fromPath": "docs/adr/0028-concurrent-crossing.md"
+        }
+      ],
       "number": "0025",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0025-composition-testing.md",
@@ -1517,9 +1523,9 @@
           "fromPath": "docs/adr/0024-typed-trail-composition.md"
         },
         {
-          "context": "- [ADR: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) (draft) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
+          "context": "- [ADR-0027: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode",
+          "from": "0028",
+          "fromPath": "docs/adr/0028-concurrent-crossing.md"
         },
         {
           "context": "- [ADR: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) (draft) -- `trails run` can invoke internal trails (it's programmatic, like `run()`)",
@@ -1544,6 +1550,25 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Trail Visibility and Trailhead Filtering",
+      "updated": "2026-04-10"
+    },
+    {
+      "created": "2026-03-31",
+      "depends_on": ["3"],
+      "inbound": [
+        {
+          "context": "- [ADR: Concurrent Trail Crossing](0028-concurrent-crossing.md) (draft) -- `--trace` renders concurrent crossings as parallel branches in the execution tree",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
+        }
+      ],
+      "number": "0028",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0028-concurrent-crossing.md",
+      "slug": "concurrent-crossing",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Concurrent Trail Crossing",
       "updated": "2026-04-10"
     }
   ],
