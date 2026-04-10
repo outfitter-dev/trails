@@ -6,12 +6,7 @@ import {
   ValidationError,
   resource,
 } from '@ontrails/core';
-import { and, eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/bun-sqlite';
-import type { AnySQLiteColumn, AnySQLiteTable } from 'drizzle-orm/sqlite-core';
-import type { z } from 'zod';
-
-import { store as defineStore } from '../store.js';
+import { store as defineStore } from '@ontrails/store';
 import type {
   AnyStoreDefinition,
   AnyStoreTable,
@@ -24,7 +19,12 @@ import type {
   StoreFieldKey,
   StoreTablesInput,
   UpdateOf,
-} from '../types.js';
+} from '@ontrails/store';
+import { and, eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/bun-sqlite';
+import type { AnySQLiteColumn, AnySQLiteTable } from 'drizzle-orm/sqlite-core';
+import type { z } from 'zod';
+
 import {
   createSqliteSchemaStatements,
   describeField,

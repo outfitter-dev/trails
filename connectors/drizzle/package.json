@@ -1,5 +1,5 @@
 {
-  "name": "@ontrails/testing",
+  "name": "@ontrails/with-drizzle",
   "version": "1.0.0-beta.14",
   "type": "module",
   "exports": {
@@ -13,15 +13,12 @@
     "lint": "oxlint ./src",
     "clean": "rm -rf dist *.tsbuildinfo"
   },
-  "devDependencies": {
-    "@ontrails/store": "workspace:^",
-    "@ontrails/with-drizzle": "workspace:^"
+  "dependencies": {
+    "@ontrails/core": "workspace:^",
+    "drizzle-orm": "^0.45.2"
   },
   "peerDependencies": {
-    "@ontrails/cli": "workspace:^",
-    "@ontrails/core": "workspace:^",
-    "@ontrails/logging": "workspace:^",
-    "@ontrails/mcp": "workspace:^",
+    "@ontrails/store": "workspace:^",
     "zod": "catalog:"
   }
 }

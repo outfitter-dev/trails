@@ -1,14 +1,13 @@
 import type { Resource } from '@ontrails/core';
-import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
-import type { AnySQLiteTable } from 'drizzle-orm/sqlite-core';
-
 import type {
   AnyStoreDefinition,
   FixtureInputOf,
   ReadOnlyStoreConnection,
   StoreAccessMode,
   StoreConnection,
-} from '../types.js';
+} from '@ontrails/store';
+import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
+import type { AnySQLiteTable } from 'drizzle-orm/sqlite-core';
 
 export type DrizzleStoreSchema<TStore extends AnyStoreDefinition> = {
   readonly [TName in keyof TStore['tables']]: AnySQLiteTable<{

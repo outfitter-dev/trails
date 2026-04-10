@@ -7,6 +7,7 @@ import {
   sqliteTable,
   text,
 } from 'drizzle-orm/sqlite-core';
+import type { AnyStoreDefinition, AnyStoreTable } from '@ontrails/store';
 import type {
   AnySQLiteColumn,
   AnySQLiteTable,
@@ -14,7 +15,6 @@ import type {
 } from 'drizzle-orm/sqlite-core';
 import type { z } from 'zod';
 
-import type { AnyStoreDefinition, AnyStoreTable } from '../types.js';
 import type { DrizzleStoreSchema } from './types.js';
 
 const dateText = customType<{ data: Date; driverData: string }>({
