@@ -65,7 +65,7 @@ export const greet = trail('greet', {
 What you get from this single definition:
 
 - A typed implementation that receives validated input and returns `Result`
-- CLI flags derived from the Zod schema: `--name <value>`, `--loud`
+- CLI derivation: `name` auto-promoted to a positional arg (sole required string), `--loud` as a flag
 - An MCP tool with JSON Schema input and annotations (`readOnlyHint: true`)
 - Two examples that serve as agent documentation AND test cases
 - Sync authoring for pure work, with the runtime normalized to one awaitable execution shape for layers and trailheads
@@ -97,23 +97,34 @@ trailhead(app);
 Run it:
 
 ```bash
-$ bun src/cli.ts greet --name World
+# Positional arg — `name` is the sole required string field,
+# so the CLI auto-promotes it to a positional argument.
+$ bun src/cli.ts greet World
 { "message": "Hello, World!" }
 
+# Flags still work as an alternative.
 $ bun src/cli.ts greet --name World --loud
 { "message": "HELLO, WORLD!" }
 
 $ bun src/cli.ts greet --help
-Usage: myapp greet [options]
+Usage: myapp greet [options] [name]
 
 Greet someone by name
+
+Arguments:
+  name            Who to greet
 
 Options:
   --name <value>  Who to greet
   --loud          Shout the greeting (default: false)
-  -o, --output <mode>  Output format (choices: "text", "json", "jsonl", default: "text")
   -h, --help      display help for command
 ```
+
+When a trail has exactly one required string field with no default, the CLI
+automatically promotes it to a positional argument. You can still pass it as a
+flag (`--name World`), but the positional form is shorter. To suppress
+auto-promotion, set `args: false` on the trail definition (see the
+[CLI trailhead guide](./trailheads/cli.md#positional-args)).
 
 ## Open an MCP Trailhead
 
@@ -277,7 +288,7 @@ The `trails` CLI commands (`topo`, `survey`, `guide`, etc.) automatically discov
 - **Single-app:** `src/app.ts`
 - **Monorepo:** `apps/*/src/app.ts`
 
-If multiple candidates are found, the CLI lists them and asks you to select one with `--module`.
+If multiple candidates are found, the CLI exits with an error listing them; pass `--module` to specify which one to use.
 
 ## What's Next
 
