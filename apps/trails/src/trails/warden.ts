@@ -24,7 +24,7 @@ export const wardenTrail = trail('warden', {
   blaze: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
     // oxlint-disable-next-line prefer-await-to-then -- catch converts rejection to undefined cleanly
-    const topo = await loadApp('./src/app.ts', rootDir).catch(
+    const topo = await loadApp(input.module, rootDir).catch(
       (): undefined => undefined
     );
 
@@ -76,6 +76,10 @@ export const wardenTrail = trail('warden', {
       .default('text')
       .describe('Output format: text, json, github, or summary'),
     lintOnly: z.boolean().default(false).describe('Only run lint rules'),
+    module: z
+      .string()
+      .optional()
+      .describe('App module path (auto-discovered if omitted)'),
     rootDir: z.string().optional().describe('Root directory to scan'),
   }),
   intent: 'read',

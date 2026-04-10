@@ -3,7 +3,6 @@ import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
 import { verifyCurrentTopo } from './topo-read-support.js';
-import { DEFAULT_APP_MODULE } from './topo-support.js';
 
 export const topoVerifyTrail = trail('topo.verify', {
   blaze: async (input, ctx) => {
@@ -13,10 +12,7 @@ export const topoVerifyTrail = trail('topo.verify', {
   },
   description: 'Verify that the committed lockfile matches the current topo',
   input: z.object({
-    module: z
-      .string()
-      .default(DEFAULT_APP_MODULE)
-      .describe('Path to the app module'),
+    module: z.string().optional().describe('Path to the app module'),
     rootDir: z.string().optional().describe('Workspace root directory'),
   }),
   intent: 'read',

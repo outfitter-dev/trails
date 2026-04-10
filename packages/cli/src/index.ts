@@ -25,5 +25,8 @@ export { defaultOnResult } from './on-result.js';
 export { passthroughResolver, isInteractive } from './prompt.js';
 export type { Field, InputResolver, ResolveInputOptions } from './prompt.js';
 
+// Discovery
+export { discoverAppModules, resolveAppModule } from './discover.js';
+
 // Layers
 export { autoIterateLayer, dateShortcutsLayer } from './layers.js';

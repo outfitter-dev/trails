@@ -3,7 +3,6 @@ import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
 import {
-  DEFAULT_APP_MODULE,
   isolatedExampleInput,
   pinCurrentTopo,
   topoPinOutput,
@@ -27,10 +26,7 @@ export const topoPinTrail = trail('topo.pin', {
     },
   ],
   input: z.object({
-    module: z
-      .string()
-      .default(DEFAULT_APP_MODULE)
-      .describe('Path to the app module'),
+    module: z.string().optional().describe('Path to the app module'),
     name: z.string().describe('Pin name'),
     rootDir: z.string().optional().describe('Workspace root directory'),
   }),
