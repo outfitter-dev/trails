@@ -32,7 +32,7 @@ const makeTempDir = (): string => {
   return dir;
 };
 
-describe('runWarden', () => {
+describe('runWarden basics', () => {
   test('produces a report with diagnostics for bad code', async () => {
     const dir = makeTempDir();
     try {
@@ -99,7 +99,9 @@ describe('runWarden', () => {
       rmSync(dir, { force: true, recursive: true });
     }
   });
+});
 
+describe('runWarden project context', () => {
   test('uses project context for detour references across files', async () => {
     const dir = makeTempDir();
     try {
@@ -165,6 +167,80 @@ describe('runWarden', () => {
     }
   });
 
+  test('uses project context for contour references across files', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'user.ts'),
+        `import { contour } from '@ontrails/core';
+import { z } from 'zod';
+
+export const user = contour('user', {
+  id: z.string().uuid(),
+}, { identity: 'id' });`
+      );
+      writeFileSync(
+        join(dir, 'gist.ts'),
+        `import { contour } from '@ontrails/core';
+import { z } from 'zod';
+import { user } from './user';
+
+export const gist = contour('gist', {
+  id: z.string().uuid(),
+  ownerId: user.id(),
+}, { identity: 'id' });`
+      );
+
+      const report = await runWarden({ rootDir: dir });
+      const referenceErrors = report.diagnostics.filter(
+        (diagnostic) => diagnostic.rule === 'reference-exists'
+      );
+
+      expect(referenceErrors).toHaveLength(0);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('warns on contour cycles declared across files', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'user.ts'),
+        `import { contour } from '@ontrails/core';
+import { z } from 'zod';
+import { gist } from './gist';
+
+export const user = contour('user', {
+  gistId: gist.id(),
+  id: z.string().uuid(),
+}, { identity: 'id' });`
+      );
+      writeFileSync(
+        join(dir, 'gist.ts'),
+        `import { contour } from '@ontrails/core';
+import { z } from 'zod';
+import { user } from './user';
+
+export const gist = contour('gist', {
+  id: z.string().uuid(),
+  ownerId: user.id(),
+}, { identity: 'id' });`
+      );
+
+      const report = await runWarden({ rootDir: dir });
+      const circularWarnings = report.diagnostics.filter(
+        (diagnostic) => diagnostic.rule === 'circular-refs'
+      );
+
+      expect(circularWarnings.length).toBeGreaterThan(0);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+});
+
+describe('runWarden draft markers', () => {
   test('requires draft-bearing files to be visibly marked', async () => {
     const dir = makeTempDir();
     try {

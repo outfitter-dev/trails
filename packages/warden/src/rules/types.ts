@@ -43,8 +43,12 @@ export interface WardenRule {
  * Options for cross-file rules that need knowledge of all trail IDs in a project.
  */
 export interface ProjectContext {
+  /** All known contour names in the project. */
+  readonly knownContourIds?: ReadonlySet<string>;
   /** All known trail IDs in the project */
   readonly knownTrailIds: ReadonlySet<string>;
+  /** Declared contour references keyed by source contour name. */
+  readonly contourReferencesByName?: ReadonlyMap<string, readonly string[]>;
   /** All known resource IDs in the project */
   readonly knownResourceIds?: ReadonlySet<string>;
   /** All known signal IDs in the project */
