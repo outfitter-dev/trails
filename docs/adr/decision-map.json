@@ -80,34 +80,14 @@
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise — The information architecture](0000-core-premise.md) — the authored/projected/enforced categories that `crossInput` extends with composition scope",
+          "context": "- [ADR-0000: Core Premise — The information architecture](../0000-core-premise.md) — the authored/projected/enforced categories that `crossInput` extends with composition scope",
           "from": "0024",
           "fromPath": "docs/adr/0024-typed-trail-composition.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) -- \"derive by default, override deliberately\"; the information architecture categories",
-          "from": "0027",
-          "fromPath": "docs/adr/0027-visibility-and-filtering.md"
-        },
-        {
-          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) -- \"derive by default\"; tracing observes composition shape rather than requiring it to be declared",
-          "from": "0028",
-          "fromPath": "docs/adr/0028-concurrent-crossing.md"
-        },
-        {
-          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — the information architecture categories (authored, projected, enforced) that contour leverages",
-          "from": "0030",
-          "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
-        },
-        {
-          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — the information architecture and \"one write, many reads\" principle that `deriveTrail()` operationalizes",
-          "from": "0032",
-          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
-        },
-        {
-          "context": "[ADR-0000's premise that the contract is queryable](0000-core-premise.md#the-contract-is-queryable) depends on declarations being load-bearing at runtime. When a field exists on the trail spec but doe",
-          "from": "0033",
-          "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"derive by default\"; tracing observes composition shape rather than requiring it to be declared",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; `trails run` makes every trail directly invocable without trailhead ceremony",
@@ -140,6 +120,11 @@
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"derive by default, override deliberately\"; the information architecture categories",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
+        },
+        {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"trailheads are peers\"; WebSocket is the fourth trailhead, following the same patterns as CLI, MCP, and HTTP",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
@@ -158,6 +143,16 @@
           "context": "- [ADR-0000: Core premise](../0000-core-premise.md) — \"author what's new, derive what's known\" applies to documentation: author the source tree, derive the site",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
+        },
+        {
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — the information architecture categories (authored, projected, enforced) that contour leverages",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md"
+        },
+        {
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — the information architecture and \"one write, many reads\" principle that `deriveTrail()` operationalizes",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
         },
         {
           "context": "- **[ADR-0000: Core Premise](./adr/0000-core-premise.md)** — Why contracts, why Result, why derive",
@@ -209,19 +204,9 @@
           "fromPath": "docs/adr/0021-draft-state-stays-out-of-the-resolved-graph.md"
         },
         {
-          "context": "- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — the grammar rules this ADR extends. Singular/plural/verb conventions carry over verbatim; this ADR adds the brand-vs-plain heuristic and ",
+          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — the grammar rules this ADR extends. Singular/plural/verb conventions carry over verbatim; this ADR adds the brand-vs-plain heuristic a",
           "from": "0023",
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
-        },
-        {
-          "context": "- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — the vocabulary rules that `contour()` follows as a bare-noun primitive",
-          "from": "0030",
-          "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
-        },
-        {
-          "context": "- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — the verb+noun helper convention that `deriveTrail()` follows",
-          "from": "0032",
-          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
         {
           "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md): `create*` factory convention, `derive*` prefix for framework derivations, `build*`/`to*` trailhead wiring pattern",
@@ -232,6 +217,16 @@
           "context": "- [ADR-0001: Naming conventions](../0001-naming-conventions.md) — naming principles that apply to documentation paths",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
+        },
+        {
+          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — the vocabulary rules that `contour()` follows as a bare-noun primitive",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md"
+        },
+        {
+          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — the verb+noun helper convention that `deriveTrail()` follows",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
         },
         {
           "context": "Canonical public trailhead-facing reference. For naming conventions and decision history, see [ADR-0001](./adr/0001-naming-conventions.md).",
@@ -273,24 +268,19 @@
           "fromPath": "docs/adr/0009-first-class-resources.md"
         },
         {
-          "context": "- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) — established the original taxonomy and HTTP/CLI/JSON-RPC mappings",
-          "from": "0026",
-          "fromPath": "docs/adr/0026-error-taxonomy-as-transport-independent-behavior-contract.md"
-        },
-        {
-          "context": "- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent crossings",
-          "from": "0028",
-          "fromPath": "docs/adr/0028-concurrent-crossing.md"
-        },
-        {
-          "context": "- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) — detours match on `Result.err(TrailsError)` values, preserving the throw-free pipeline invariant.",
-          "from": "0033",
-          "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
+          "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent crossings",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the error taxonomy maps to categorized failure events",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
+        },
+        {
+          "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — established the 13-class taxonomy and HTTP/CLI/JSON-RPC mappings",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-error-taxonomy-as-transport-independent-behavior-contract.md"
         },
         {
           "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the Result and error taxonomy that gains `VersionNotSupportedError`",
@@ -327,34 +317,19 @@
           "fromPath": "docs/adr/0009-first-class-resources.md"
         },
         {
-          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the unified trail/hike primitive with `crosses` and `ctx.cross()`",
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the unified trail/hike primitive with `crosses` and `ctx.cross()`",
           "from": "0024",
           "fromPath": "docs/adr/0024-typed-trail-composition.md"
         },
         {
-          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the `crosses` / `ctx.cross()` composition mechanism that composite testing targets",
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the `crosses` / `ctx.cross()` composition mechanism that composite testing targets",
           "from": "0025",
           "fromPath": "docs/adr/0025-composition-testing.md"
         },
         {
-          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) -- the trail spec that gains the `visibility` field",
-          "from": "0027",
-          "fromPath": "docs/adr/0027-visibility-and-filtering.md"
-        },
-        {
-          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) -- \"composition is a property, not a type\"; parallel vs sequential is a runtime choice, not a contract distinction. The crossing ",
-          "from": "0028",
-          "fromPath": "docs/adr/0028-concurrent-crossing.md"
-        },
-        {
-          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the merge test applied to contour vs. trail (conclusion: they're different enough to stay separate)",
-          "from": "0030",
-          "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
-        },
-        {
-          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the trail primitive that factories produce",
-          "from": "0032",
-          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- \"composition is a property, not a type\"; parallel vs sequential is a runtime choice, not a contract distinction. The crossi",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- every trail is runnable, whether atomic or composite",
@@ -380,6 +355,21 @@
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — `fires` is a new property on the trail spec",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
+        },
+        {
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- the trail spec that gains the `visibility` field",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
+        },
+        {
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the merge test applied to contour vs. trail (conclusion: they're different enough to stay separate)",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md"
+        },
+        {
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the trail primitive that factories produce",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
         },
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the trail as the single unit of work, the unit that versioning targets",
@@ -421,11 +411,6 @@
           "fromPath": "docs/adr/0013-tracing.md"
         },
         {
-          "context": "- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) -- intent drives HTTP verbs, MCP annotations, and now trailhead filtering",
-          "from": "0027",
-          "fromPath": "docs/adr/0027-visibility-and-filtering.md"
-        },
-        {
           "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- rigged trails declare intent; HTTP method mapping and MCP annotations work identically",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
@@ -434,6 +419,11 @@
           "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) — intent compounds with activation; lifecycle signals filter by intent",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
+        },
+        {
+          "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent drives HTTP verbs, MCP annotations, and now trailhead filtering",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
           "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent compounds with layers for surface derivation and governance",
@@ -519,24 +509,14 @@
           "fromPath": "docs/adr/0013-tracing.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the pipeline that absorbs intrinsic tracing when `tracingLayer` collapses.",
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — the pipeline that absorbs intrinsic tracing when `tracingLayer` collapses.",
           "from": "0023",
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](0006-shared-execution-pipeline.md) — the execution pipeline that produces Results with typed errors",
-          "from": "0026",
-          "fromPath": "docs/adr/0026-error-taxonomy-as-transport-independent-behavior-contract.md"
-        },
-        {
-          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) -- the execution pipeline runs for each concurrent branch; the pipeline is unchanged",
-          "from": "0028",
-          "fromPath": "docs/adr/0028-concurrent-crossing.md"
-        },
-        {
-          "context": "What hasn't existed is **runtime execution**. No component of [`executeTrail`](0006-shared-execution-pipeline.md) reads the `detours:` field today. A trail can declare a detour for `ConflictError`, bu",
-          "from": "0033",
-          "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- the execution pipeline runs for each concurrent branch; the pipeline is unchanged",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` executes through the pipeline, the same as every trailhead",
@@ -562,6 +542,11 @@
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-layers-run; the library trailhead delegates to the same p",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
+        },
+        {
+          "context": "- [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md) — the execution pipeline that produces Results with typed errors",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-error-taxonomy-as-transport-independent-behavior-contract.md"
         },
         {
           "context": "- [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md) -- the execution pipeline that layers currently compose into",
@@ -608,12 +593,12 @@
           "fromPath": "docs/adr/0017-serialized-topo-graph.md"
         },
         {
-          "context": "- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — the warden's `cross-declarations` rule that this extends",
+          "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — the warden's `cross-declarations` rule that this extends",
           "from": "0024",
           "fromPath": "docs/adr/0024-typed-trail-composition.md"
         },
         {
-          "context": "- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — the warden rules that `composite-example-coverage` and `scenario-coverage` extend",
+          "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — the warden rules that `composite-example-coverage` and `scenario-coverage` extend",
           "from": "0025",
           "fromPath": "docs/adr/0025-composition-testing.md"
         },
@@ -677,14 +662,9 @@
           "fromPath": "docs/adr/0019-hierarchical-command-trees-from-trail-ids.md"
         },
         {
-          "context": "- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — this keeps CLI derivation deterministic while refusing lossy projections",
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — the deterministic derivation model that `args` extends",
           "from": "0020",
           "fromPath": "docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md"
-        },
-        {
-          "context": "- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) -- the derivation rules that visibility and intent filtering extend",
-          "from": "0027",
-          "fromPath": "docs/adr/0027-visibility-and-filtering.md"
         },
         {
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- rigged trails get trailhead derivation for free",
@@ -695,6 +675,11 @@
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- survey output provides the contract snapshots",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
+        },
+        {
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- the derivation rules that visibility and intent filtering extend",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- trail IDs map to WebSocket method names, event IDs map to subscription channels",
@@ -761,29 +746,14 @@
           "fromPath": "docs/adr/0016-schema-derived-persistence.md"
         },
         {
-          "context": "- [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the resource lifecycle a bound store participates in",
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource lifecycle a bound store participates in",
           "from": "0022",
           "fromPath": "docs/adr/0022-drizzle-store-connector.md"
         },
         {
-          "context": "- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — to be revisited. `provision` → `resource`. API shape unchanged.",
+          "context": "- [ADR-0009: Resources as a First-Class Primitive](../0009-first-class-resources.md) — to be revisited. `provision` → `resource`. API shape unchanged.",
           "from": "0023",
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
-        },
-        {
-          "context": "- [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the `resource()` primitive that connectors produce and trails consume",
-          "from": "0029",
-          "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
-        },
-        {
-          "context": "- [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the resource primitive that contours relate to through the store binding",
-          "from": "0030",
-          "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
-        },
-        {
-          "context": "- [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the resource primitive that connectors produce and stores bind through",
-          "from": "0031",
-          "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
         },
         {
           "context": "- [ADR-0009: Resources](../0009-first-class-resources.md) -- the resource primitive that packs scope and compose",
@@ -799,6 +769,21 @@
           "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) -- the resource pattern for embedding providers",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
+        },
+        {
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource primitive that connectors produce and stores bind through",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
+        },
+        {
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the `resource()` primitive that connectors produce and trails consume",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource primitive that contours relate to through the store binding",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md"
         },
         {
           "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource primitive that bundles group and distribute",
@@ -859,7 +844,7 @@
       "depends_on": [],
       "inbound": [
         {
-          "context": "- [ADR-0011: Schema-Driven Config](0011-schema-driven-config.md) — to be revisited. `loadout` → `profile`. Config resolution unchanged.",
+          "context": "- [ADR-0011: Schema-Driven Config](../0011-schema-driven-config.md) — to be revisited. `loadout` → `profile`. Config resolution unchanged.",
           "from": "0023",
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
@@ -888,9 +873,9 @@
           "fromPath": "docs/adr/0013-tracing.md"
         },
         {
-          "context": "[^4]: [ADR-0012: Connector-Agnostic Permits](0012-connector-agnostic-permits.md) — verification as permit resolution",
-          "from": "0032",
-          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
+          "context": "[^4]: [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) — verification as permit resolution",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
         },
         {
           "context": "- [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) -- permit declarations that become pipeline-enforced",
@@ -937,19 +922,14 @@
           "fromPath": "docs/adr/0015-topo-store.md"
         },
         {
-          "context": "| `tracingLayer` | Built-in tracing in `executeTrail` | No longer a separately attached gate/layer. Intrinsic to the execution pipeline. Partially supersedes [ADR-0013](0013-tracing.md)'s \"layer plus ",
+          "context": "| `tracingLayer` | Built-in tracing in `executeTrail` | No longer a separately attached gate/layer. Intrinsic to the execution pipeline. Partially supersedes [ADR-0013](../0013-tracing.md)'s \"layer pl",
           "from": "0023",
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
         {
-          "context": "- [ADR-0013: Tracing](0013-tracing.md) -- the observability system; visibility filtering events are observable through tracing",
-          "from": "0027",
-          "fromPath": "docs/adr/0027-visibility-and-filtering.md"
-        },
-        {
-          "context": "- [ADR-0013: Tracing](0013-tracing.md) -- tracing observes concurrent vs sequential spans to derive composition shape at runtime",
-          "from": "0028",
-          "fromPath": "docs/adr/0028-concurrent-crossing.md"
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- tracing observes concurrent vs sequential spans to derive composition shape at runtime",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- the tracing primitive; live tracing during `trails run`, historical tracing via `trails trace`",
@@ -980,6 +960,11 @@
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) — tracing records emission and delivery metadata",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- the observability system; visibility filtering events are observable through tracing",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- observability and replay buffer backing store",
@@ -1036,9 +1021,9 @@
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
         },
         {
-          "context": "- [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) — the database primitive that store builds on",
-          "from": "0031",
-          "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
+          "context": "- [ADR-0014: Core Database Primitive](../0014-core-database-primitive.md) — the database primitive that store builds on",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
         },
         {
           "context": "- **[ADR-0014: Core Database Primitive](./adr/0014-core-database-primitive.md)** — Shared `trails.db`, subsystem schema versioning",
@@ -1104,34 +1089,34 @@
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
         },
         {
-          "context": "[ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) defines the store model: the root package owns the durable `store(...)` declaration, and connectors bind that declaration to ",
+          "context": "[ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) defines the store model: the root package owns the durable `store(...)` declaration, and connectors bind that declaration ",
           "from": "0022",
           "fromPath": "docs/adr/0022-drizzle-store-connector.md"
-        },
-        {
-          "context": "- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — the store contract that connectors bind to concrete backends",
-          "from": "0029",
-          "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
-        },
-        {
-          "context": "- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — the store contract that can derive from contours instead of standalone schemas",
-          "from": "0030",
-          "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
-        },
-        {
-          "context": "[ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) established `store()` as the persistence declaration and schema-to-table derivation as the mechanism. [ADR-0022: Drizzle Bind",
-          "from": "0031",
-          "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
-        },
-        {
-          "context": "- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — the store schema that `deriveTrail()` reads from",
-          "from": "0032",
-          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
         {
           "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) -- the store abstraction that search extends",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
+        },
+        {
+          "context": "[ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) established `store()` as the persistence declaration and schema-to-table derivation as the mechanism. [ADR-0022: Drizzle B",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
+        },
+        {
+          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract that connectors bind to concrete backends",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
+          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract that can derive from contours instead of standalone schemas",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md"
+        },
+        {
+          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store schema that `deriveTrail()` reads from",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
         },
         {
           "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract that bundle resources satisfy",
@@ -1178,19 +1163,19 @@
           "fromPath": "docs/adr/0021-draft-state-stays-out-of-the-resolved-graph.md"
         },
         {
-          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) -- the lockfile captures resolved visibility state after all overrides are applied",
-          "from": "0027",
-          "fromPath": "docs/adr/0027-visibility-and-filtering.md"
-        },
-        {
-          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) -- the lockfile captures composition shapes including parallel crossing patterns",
-          "from": "0028",
-          "fromPath": "docs/adr/0028-concurrent-crossing.md"
+          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- the lockfile captures composition shapes including parallel crossing patterns",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
+        },
+        {
+          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- the lockfile captures resolved visibility state after all overrides are applied",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- captures WebSocket trailhead configuration in the resolved topo graph",
@@ -1297,7 +1282,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Flags for Fields, Structured Input on the CLI",
-      "updated": "2026-04-03"
+      "updated": "2026-04-10"
     },
     {
       "created": "2026-04-03",
@@ -1328,14 +1313,14 @@
       "depends_on": ["16", "9"],
       "inbound": [
         {
-          "context": "- [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](0022-drizzle-store-connector.md) — the first connector implementation, currently a subpath of `@ontrails/store`",
-          "from": "0029",
-          "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
+          "context": "[ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) established `store()` as the persistence declaration and schema-to-table derivation as the mechanism. [ADR-0022: Drizzle B",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
         },
         {
-          "context": "[ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) established `store()` as the persistence declaration and schema-to-table derivation as the mechanism. [ADR-0022: Drizzle Bind",
-          "from": "0031",
-          "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
+          "context": "- [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md) — the first connector implementation, currently a subpath of `@ontrails/store`",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-connector-extraction-and-the-with-packaging-model.md"
         },
         {
           "context": "- [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md) — the first connector, now understood as a single-resource bundle",
@@ -1372,26 +1357,6 @@
           "fromPath": "docs/adr/0013-tracing.md"
         },
         {
-          "context": "- [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — the naming heuristic that `with-*` follows",
-          "from": "0029",
-          "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
-        },
-        {
-          "context": "- [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — the naming heuristic and `pattern` as the trail's declared operational shape",
-          "from": "0030",
-          "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
-        },
-        {
-          "context": "- [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — the `pattern` field and `derive*` grammar rule",
-          "from": "0032",
-          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
-        },
-        {
-          "context": "Detours are already in the Trails lexicon as a trail-level field: *\"recovery paths when the trail is blocked or fails. The trail blazes forward; if blocked, it detours.\"* See [ADR-0023](0023-simplifyi",
-          "from": "0033",
-          "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
-        },
-        {
           "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) -- the lexicon renames; note that `resource` in this ADR refers to the distribution unit, distinct from `resourc",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
@@ -1410,6 +1375,21 @@
           "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the vocabulary→lexicon rename that this structure codifies",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
+        },
+        {
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the naming heuristic that `with-*` follows",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the naming heuristic and `pattern` as the trail's declared operational shape",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md"
+        },
+        {
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the `pattern` field and `derive*` grammar rule",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
         },
         {
           "context": "- **[ADR-0023: Simplifying the Trails Lexicon](./adr/0023-simplifying-the-trails-lexicon.md)** — Brand-vs-plain heuristic, four pre-1.0 renames, vocabulary → lexicon",
@@ -1436,19 +1416,14 @@
       "depends_on": ["3", "7"],
       "inbound": [
         {
-          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) — typed `ctx.cross()` and `crossInput` that scenarios exercise",
+          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` and `crossInput` that scenarios exercise",
           "from": "0025",
           "fromPath": "docs/adr/0025-composition-testing.md"
         },
         {
-          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) -- `crossInput` relates to internal visibility; a trail with required `crossInput` fields should declare `visibility: 'internal'`",
-          "from": "0027",
-          "fromPath": "docs/adr/0027-visibility-and-filtering.md"
-        },
-        {
-          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) -- typed `ctx.cross()` that the array overload extends; parallel crossing with typed results is a non-decision there, deferred he",
-          "from": "0028",
-          "fromPath": "docs/adr/0028-concurrent-crossing.md"
+          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- typed `ctx.cross()` that the array overload extends; parallel crossing with typed results is a non-decision there, deferred",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
         },
         {
           "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` complements signal-based activation; `on:` is for reactive decoupling, `crosses` is for direct compositi",
@@ -1459,6 +1434,11 @@
           "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` complements signal-based decoupling; signals are for loose coupling, crosses are for typed direct compos",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
+        },
+        {
+          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- `crossInput` relates to internal visibility; a trail with required `crossInput` fields should declare `visibility: 'interna",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
           "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- `crossInput` follows the same \"compose schemas, project the union\" pattern as layer input schemas",
@@ -1488,330 +1468,15 @@
     {
       "created": "2026-04-09",
       "depends_on": ["3", "7", "24"],
-      "inbound": [
-        {
-          "context": "- [ADR-0025: Composition Testing](0025-composition-testing.md) -- `scenario()` and `expectedMatch` for testing concurrent composition flows",
-          "from": "0028",
-          "fromPath": "docs/adr/0028-concurrent-crossing.md"
-        }
-      ],
+      "inbound": [],
       "number": "0025",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0025-composition-testing.md",
       "slug": "composition-testing",
       "status": "accepted",
       "superseded_by": null,
-      "title": "Composition Testing",
+      "title": "ADR: Composition Testing",
       "updated": "2026-04-09"
-    },
-    {
-      "created": "2026-04-09",
-      "depends_on": ["2", "6"],
-      "inbound": [
-        {
-          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) — signal delivery semantics (retry, dead-letter, discard) ",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
-        },
-        {
-          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) — signal delivery semantics (retry, dead-letter, discard) ",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
-        },
-        {
-          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) -- WebSocket close code mapping deferred there; the error ",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
-        }
-      ],
-      "number": "0026",
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0026-error-taxonomy-as-transport-independent-behavior-contract.md",
-      "slug": "error-taxonomy-as-transport-independent-behavior-contract",
-      "status": "accepted",
-      "superseded_by": null,
-      "title": "Error Taxonomy as Transport-Independent Behavior Contract",
-      "updated": "2026-04-13"
-    },
-    {
-      "created": "2026-03-31",
-      "depends_on": ["packs-namespace-boundaries"],
-      "inbound": [
-        {
-          "context": "[^3]: See [ADR-0027: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md)",
-          "from": "0024",
-          "fromPath": "docs/adr/0024-typed-trail-composition.md"
-        },
-        {
-          "context": "- [ADR-0027: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode",
-          "from": "0028",
-          "fromPath": "docs/adr/0028-concurrent-crossing.md"
-        },
-        {
-          "context": "- [ADR: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) (draft) -- `trails run` can invoke internal trails (it's programmatic, like `run()`)",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
-        },
-        {
-          "context": "- [ADR: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) (draft) -- rigged SDK wrapper packs use `visibility: 'internal'`",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
-        },
-        {
-          "context": "- [ADR-0027: Trail Visibility and Trailhead Filtering](../0027-visibility-and-filtering.md) -- visibility and intent filtering apply to WebSocket trail discovery and invocation",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
-        }
-      ],
-      "number": "0027",
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0027-visibility-and-filtering.md",
-      "slug": "visibility-and-filtering",
-      "status": "accepted",
-      "superseded_by": null,
-      "title": "Trail Visibility and Trailhead Filtering",
-      "updated": "2026-04-10"
-    },
-    {
-      "created": "2026-03-31",
-      "depends_on": ["3"],
-      "inbound": [
-        {
-          "context": "- [ADR-0028: Concurrent Trail Crossing](../0028-concurrent-crossing.md) -- `--trace` renders concurrent crossings as parallel branches in the execution tree",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
-        }
-      ],
-      "number": "0028",
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0028-concurrent-crossing.md",
-      "slug": "concurrent-crossing",
-      "status": "accepted",
-      "superseded_by": null,
-      "title": "Concurrent Trail Crossing",
-      "updated": "2026-04-10"
-    },
-    {
-      "created": "2026-04-09",
-      "depends_on": ["9", "16", "22", "23"],
-      "inbound": [
-        {
-          "context": "The Hono connector lives in its own workspace package (originally shipped as the `@ontrails/http/hono` subpath; see [ADR-0029](./0029-connector-extraction-and-the-with-packaging-model.md)). Two functi",
-          "from": "0005",
-          "fromPath": "docs/adr/0005-framework-agnostic-http-route-model.md"
-        },
-        {
-          "context": "> Originally shipped as the `@ontrails/store/drizzle` subpath; [ADR-0029](./0029-connector-extraction-and-the-with-packaging-model.md) promoted connectors to their own workspace packages.",
-          "from": "0022",
-          "fromPath": "docs/adr/0022-drizzle-store-connector.md"
-        },
-        {
-          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the connector extraction that contour-derived stores will bind through",
-          "from": "0030",
-          "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
-        },
-        {
-          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model connectors live in",
-          "from": "0031",
-          "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
-        },
-        {
-          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector-contributed `/trails` subpaths",
-          "from": "0032",
-          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
-        },
-        {
-          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](../0029-connector-extraction-and-the-with-packaging-model.md) -- the packaging model for connector-contributed capabilities that rig",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
-        },
-        {
-          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) -- connectors move to `@ontrails/with-*` packages; affects how connector ",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
-        },
-        {
-          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](../0029-connector-extraction-and-the-with-packaging-model.md) -- connectors are extracted from core packages; packs compose with con",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
-        },
-        {
-          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) -- connectors as `@ontrails/with-*` packages; compiled packs may depend o",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
-        },
-        {
-          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector bundles",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
-        }
-      ],
-      "number": "0029",
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md",
-      "slug": "connector-extraction-and-the-with-packaging-model",
-      "status": "accepted",
-      "superseded_by": null,
-      "title": "Connector Extraction and the with-* Packaging Model",
-      "updated": "2026-04-13"
-    },
-    {
-      "created": "2026-04-09",
-      "depends_on": ["0", "1", "3", "9", "16", "23"],
-      "inbound": [
-        {
-          "context": "- [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md) — contour-aware `deriveTrail()` that may auto-generate `crossInput`",
-          "from": "0024",
-          "fromPath": "docs/adr/0024-typed-trail-composition.md"
-        },
-        {
-          "context": "- **How trails subpaths work on connectors.** Connectors that contribute trails (health checks, platform-optimized operations) may export them at `@ontrails/with-*/trails`. The design depends on [ADR-",
-          "from": "0029",
-          "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
-        },
-        {
-          "context": "- **Contour integration.** How `deriveTrail()` interacts with contour declarations — deriving input schemas from contours rather than store schemas — depends on [ADR-0030: Contours as First-Class Doma",
-          "from": "0032",
-          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
-        },
-        {
-          "context": "- [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) -- contours define the domain objects that pack trails operate on",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
-        },
-        {
-          "context": "- [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) -- contours as the domain objects pack trails operate on; schema reuse feeds the compiled librar",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
-        },
-        {
-          "context": "- [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) -- contours provide the domain object schemas that search declarations annotate",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
-        },
-        {
-          "context": "- [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) — contours feed store schemas within bundles",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
-        }
-      ],
-      "number": "0030",
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0030-contours-as-first-class-domain-objects.md",
-      "slug": "contours-as-first-class-domain-objects",
-      "status": "accepted",
-      "superseded_by": null,
-      "title": "Contours as First-Class Domain Objects",
-      "updated": "2026-04-10"
-    },
-    {
-      "created": "2026-04-09",
-      "depends_on": ["9", "14", "16", "22", "29"],
-      "inbound": [
-        {
-          "context": "- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store-kind model that makes first-party backends meaningful",
-          "from": "0029",
-          "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
-        },
-        {
-          "context": "- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store schema that `deriveTrail()` reads from",
-          "from": "0032",
-          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
-        },
-        {
-          "context": "[ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) established the store as a backend-agnostic persistence domain. It defined the kind taxonomy (tabular, document, file",
-          "from": "0034",
-          "fromPath": "docs/adr/0034-store-accessor-contract-refinement-lessons-from-two-backends.md"
-        },
-        {
-          "context": "- [ADR-0031: Backend-Agnostic Store Schemas](../0031-backend-agnostic-store-schemas.md) -- the store schema abstraction that search declarations extend",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
-        },
-        {
-          "context": "- [ADR-0031: Backend-Agnostic Store Schemas](../0031-backend-agnostic-store-schemas.md) — the store schemas that bundle resources bind to concrete backends",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
-        }
-      ],
-      "number": "0031",
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0031-backend-agnostic-store-schemas.md",
-      "slug": "backend-agnostic-store-schemas",
-      "status": "accepted",
-      "superseded_by": null,
-      "title": "Backend-Agnostic Store Schemas",
-      "updated": "2026-04-10"
-    },
-    {
-      "created": "2026-04-09",
-      "depends_on": ["0", "1", "3", "16", "23", "30"],
-      "inbound": [
-        {
-          "context": "- **Pattern shapes at 1.0.** Toggle and CRUD are clear candidates. Transition, collection, and counter can follow. Which patterns ship initially is a separate design decision — see [ADR-0032: `deriveT",
-          "from": "0030",
-          "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
-        },
-        {
-          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](0032-derivetrail-and-trail-factories.md) — trail factories that compose with store schemas (`crud`, `sync`, `reconcile`)",
-          "from": "0031",
-          "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
-        },
-        {
-          "context": "- **Future `deriveTrail` detour synthesis.** [ADR-0032](0032-derivetrail-and-trail-factories.md) makes `deriveTrail` synthesize default blazes for standard CRUD operations. A natural extension is synt",
-          "from": "0033",
-          "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
-        },
-        {
-          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](0032-derivetrail-and-trail-factories.md) — trail factories that compose against the accessor protocol",
-          "from": "0034",
-          "fromPath": "docs/adr/0034-store-accessor-contract-refinement-lessons-from-two-backends.md"
-        },
-        {
-          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- `deriveTrail()` and `ingest()` factory that produces trails from external input shapes",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
-        },
-        {
-          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- `ingest()` factory for webhook-to-trail flows that can feed events to WebSocket subscribers",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
-        }
-      ],
-      "number": "0032",
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0032-derivetrail-and-trail-factories.md",
-      "slug": "derivetrail-and-trail-factories",
-      "status": "accepted",
-      "superseded_by": null,
-      "title": "deriveTrail() and Trail Factories",
-      "updated": "2026-04-10"
-    },
-    {
-      "created": "2026-04-11",
-      "depends_on": ["2", "6", "23", "32"],
-      "inbound": [],
-      "number": "0033",
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0033-detour-execution-for-recovery.md",
-      "slug": "detour-execution-for-recovery",
-      "status": "accepted",
-      "superseded_by": null,
-      "title": "Detour Execution for Recovery",
-      "updated": "2026-04-13"
-    },
-    {
-      "created": "2026-04-12",
-      "depends_on": ["31"],
-      "inbound": [],
-      "number": "0034",
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0034-store-accessor-contract-refinement-lessons-from-two-backends.md",
-      "slug": "store-accessor-contract-refinement-lessons-from-two-backends",
-      "status": "accepted",
-      "superseded_by": null,
-      "title": "Store Accessor Contract Refinement: Lessons from Two Backends",
-      "updated": "2026-04-13"
     }
   ],
   "version": 1
