@@ -24,6 +24,16 @@ type CrossBatchResults<TCalls extends readonly CrossBatchCall[]> = {
     : never;
 };
 
+/** Runtime options for batch `ctx.cross([...])` calls. */
+export interface CrossBatchOptions {
+  /**
+   * Maximum number of branches to execute concurrently.
+   *
+   * Omit for unbounded concurrency. `1` is equivalent to sequential execution.
+   */
+  readonly concurrency?: number | undefined;
+}
+
 /**
  * Trail implementation — sync or async.
  *
@@ -46,11 +56,14 @@ export type Implementation<I, O> = (
  *   — returns `Result<O, Error>` where `O` defaults to `unknown`.
  * - **By batch**: `ctx.cross([[showGist, { id }], ['audit.log', payload]])`
  *   — executes every crossing concurrently and resolves once all results are
- *   available. Result ordering always matches the input tuple ordering.
+ *   available. Result ordering always matches the input tuple ordering. Pass
+ *   `{ concurrency: N }` as the second argument to limit how many branches
+ *   run at once.
  */
 export interface CrossFn {
   <const TCalls extends readonly CrossBatchCall[]>(
-    calls: TCalls
+    calls: TCalls,
+    options?: CrossBatchOptions
   ): Promise<CrossBatchResults<TCalls>>;
   <T extends AnyTrail>(
     trail: T,
