@@ -51,6 +51,10 @@ export interface ProjectContext {
   readonly knownSignalIds?: ReadonlySet<string>;
   /** All trail IDs referenced as detour targets across the project */
   readonly detourTargetTrailIds?: ReadonlySet<string>;
+  /** All trail IDs referenced by declared crosses arrays across the project. */
+  readonly crossTargetTrailIds?: ReadonlySet<string>;
+  /** Normalized trail intents by trail ID across the project. */
+  readonly trailIntentsById?: ReadonlyMap<string, 'destroy' | 'read' | 'write'>;
 }
 
 /**

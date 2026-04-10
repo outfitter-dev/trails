@@ -30,6 +30,14 @@ export const ruleInput = z.object({
  * files.
  */
 export const projectAwareRuleInput = ruleInput.extend({
+  crossTargetTrailIds: z
+    .array(z.string())
+    .optional()
+    .describe('Trail IDs referenced by crosses arrays across the project'),
+  detourTargetTrailIds: z
+    .array(z.string())
+    .optional()
+    .describe('Trail IDs referenced as detour targets across the project'),
   knownResourceIds: z
     .array(z.string())
     .optional()
@@ -42,6 +50,10 @@ export const projectAwareRuleInput = ruleInput.extend({
     .array(z.string())
     .optional()
     .describe('Trail IDs known across the project'),
+  trailIntentsById: z
+    .record(z.string(), z.enum(['read', 'write', 'destroy']))
+    .optional()
+    .describe('Normalized trail intents keyed by trail ID'),
 });
 
 /** Output returned by every warden rule trail. */

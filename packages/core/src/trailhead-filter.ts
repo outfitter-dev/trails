@@ -1,4 +1,4 @@
-import type { Trail } from './trail.js';
+import type { Intent, Trail } from './trail.js';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -9,6 +9,8 @@ export interface TrailheadFilterOptions {
   readonly include?: readonly string[] | undefined;
   /** Glob patterns that remove matching trail IDs. */
   readonly exclude?: readonly string[] | undefined;
+  /** Allowed intents for exposed trailheads. Empty arrays act as no filter. */
+  readonly intent?: readonly Intent[] | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -121,6 +123,12 @@ const passesIncludeFilter = (
   include.length === 0 ||
   matchesAnyPattern(trailId, include);
 
+const passesIntentFilter = (
+  trail: Trail<unknown, unknown, unknown>,
+  intent: readonly Intent[] | undefined
+): boolean =>
+  intent === undefined || intent.length === 0 || intent.includes(trail.intent);
+
 export const shouldIncludeTrailForTrailhead = (
   trail: Trail<unknown, unknown, unknown>,
   options: TrailheadFilterOptions = {}
@@ -129,7 +137,7 @@ export const shouldIncludeTrailForTrailhead = (
     return false;
   }
 
-  const { exclude, include } = options;
+  const { exclude, include, intent } = options;
   if (!isVisibleToTrailheads(trail, include)) {
     return false;
   }
@@ -138,7 +146,9 @@ export const shouldIncludeTrailForTrailhead = (
     return false;
   }
 
-  return passesIncludeFilter(trail.id, include);
+  return (
+    passesIncludeFilter(trail.id, include) && passesIntentFilter(trail, intent)
+  );
 };
 
 export const filterTrailheadTrails = (

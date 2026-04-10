@@ -351,6 +351,25 @@ describe('buildMcpTools', () => {
 
       expect(tools.map((tool) => tool.trailId)).toEqual(['echo']);
     });
+
+    test('intent filters narrow the tool list', () => {
+      const app = topo('myapp', { deleteTrail, echoTrail, failTrail });
+      const tools = buildTools(app, {
+        intent: ['read'],
+      });
+
+      expect(tools.map((tool) => tool.trailId)).toEqual(['echo']);
+    });
+
+    test('intent filters compose with include patterns using AND logic', () => {
+      const app = topo('myapp', { deleteTrail, echoTrail });
+      const tools = buildTools(app, {
+        include: ['item.*', 'echo'],
+        intent: ['destroy'],
+      });
+
+      expect(tools.map((tool) => tool.trailId)).toEqual(['item.delete']);
+    });
   });
 
   describe('composition', () => {

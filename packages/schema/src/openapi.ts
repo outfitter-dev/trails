@@ -11,7 +11,7 @@ import {
   validateDraftFreeTopo,
   zodToJsonSchema,
 } from '@ontrails/core';
-import type { Topo, Trail } from '@ontrails/core';
+import type { Intent, Topo, Trail } from '@ontrails/core';
 
 import type { JsonSchema } from './types.js';
 
@@ -33,6 +33,9 @@ export interface OpenApiOptions {
   readonly servers?: readonly OpenApiServer[] | undefined;
   /** Prefix for all paths. Default: `''` */
   readonly basePath?: string | undefined;
+  readonly exclude?: readonly string[] | undefined;
+  readonly include?: readonly string[] | undefined;
+  readonly intent?: readonly Intent[] | undefined;
 }
 
 /** Minimal OpenAPI 3.1 spec shape — intentionally plain objects, no heavy library. */
@@ -285,11 +288,16 @@ const buildOperation = (
 /** Collect all paths from public trails in the topo. */
 const collectPaths = (
   app: Topo,
-  basePath: string
+  basePath: string,
+  options?: OpenApiOptions
 ): Record<string, Record<string, unknown>> => {
   const paths: Record<string, Record<string, unknown>> = {};
 
-  for (const t of filterTrailheadTrails(app.list())) {
+  for (const t of filterTrailheadTrails(app.list(), {
+    exclude: options?.exclude,
+    include: options?.include,
+    intent: options?.intent,
+  })) {
     const method = intentToMethod[t.intent] ?? 'post';
     paths[trailIdToPath(t.id, basePath)] = {
       [method]: buildOperation(t, method),
@@ -333,7 +341,11 @@ export const generateOpenApiSpec = (
     components: { schemas: {} },
     info: buildInfo(app.name, options),
     openapi: '3.1.0',
-    paths: collectPaths(app, (options?.basePath ?? '').replace(/\/+$/, '')),
+    paths: collectPaths(
+      app,
+      (options?.basePath ?? '').replace(/\/+$/, ''),
+      options
+    ),
     ...(options?.servers && options.servers.length > 0
       ? { servers: options.servers }
       : {}),

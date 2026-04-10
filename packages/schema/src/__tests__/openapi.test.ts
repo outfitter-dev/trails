@@ -445,6 +445,47 @@ const registerMetadataAndStructureTests = () => {
       expect(spec.paths['/entity/show']).toBeDefined();
       expect(spec.paths['/entity/onChanged']).toBeUndefined();
     });
+
+    test('intent filters narrow the generated paths', () => {
+      const readTrail = trail('entity.show', {
+        blaze: noop,
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+      });
+      const destroyTrail = trail('entity.remove', {
+        blaze: noop,
+        input: z.object({ id: z.string() }),
+        intent: 'destroy',
+      });
+
+      const spec = generateOpenApiSpec(topoFrom({ destroyTrail, readTrail }), {
+        intent: ['read'],
+      });
+
+      expect(spec.paths['/entity/show']).toBeDefined();
+      expect(spec.paths['/entity/remove']).toBeUndefined();
+    });
+
+    test('intent filters compose with include patterns using AND logic', () => {
+      const readTrail = trail('entity.show', {
+        blaze: noop,
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+      });
+      const destroyTrail = trail('entity.remove', {
+        blaze: noop,
+        input: z.object({ id: z.string() }),
+        intent: 'destroy',
+      });
+
+      const spec = generateOpenApiSpec(topoFrom({ destroyTrail, readTrail }), {
+        include: ['entity.*'],
+        intent: ['destroy'],
+      });
+
+      expect(spec.paths['/entity/show']).toBeUndefined();
+      expect(spec.paths['/entity/remove']).toBeDefined();
+    });
   });
 
   describe('spec structure', () => {

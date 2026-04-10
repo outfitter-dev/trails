@@ -12,8 +12,10 @@ import type { Topo } from '@ontrails/core';
 import type { DriftResult } from './drift.js';
 import { checkDrift } from './drift.js';
 import {
+  collectCrossTargetTrailIds,
   collectResourceDefinitionIds,
   collectSignalDefinitionIds,
+  collectTrailIntentsById,
   findConfigProperty,
   findTrailDefinitions,
   parse,
@@ -93,6 +95,24 @@ interface SourceFile {
   readonly sourceCode: string;
 }
 
+interface MutableProjectContext {
+  crossTargetTrailIds: Set<string>;
+  detourTargetTrailIds: Set<string>;
+  knownResourceIds: Set<string>;
+  knownSignalIds: Set<string>;
+  knownTrailIds: Set<string>;
+  trailIntentsById: Map<string, 'destroy' | 'read' | 'write'>;
+}
+
+const createMutableProjectContext = (): MutableProjectContext => ({
+  crossTargetTrailIds: new Set<string>(),
+  detourTargetTrailIds: new Set<string>(),
+  knownResourceIds: new Set<string>(),
+  knownSignalIds: new Set<string>(),
+  knownTrailIds: new Set<string>(),
+  trailIntentsById: new Map<string, 'destroy' | 'read' | 'write'>(),
+});
+
 const collectKnownTrailIds = (
   sourceCode: string,
   filePath: string,
@@ -134,6 +154,20 @@ const collectDetourTargetTrailIds = (
   }
 };
 
+const collectCrossedTrailIds = (
+  sourceCode: string,
+  filePath: string,
+  crossTargetTrailIds: Set<string>
+): void => {
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return;
+  }
+  for (const id of collectCrossTargetTrailIds(ast, sourceCode)) {
+    crossTargetTrailIds.add(id);
+  }
+};
+
 const collectKnownResourceIds = (
   sourceCode: string,
   filePath: string,
@@ -159,6 +193,20 @@ const collectKnownSignalIds = (
   }
   for (const id of collectSignalDefinitionIds(ast)) {
     knownSignalIds.add(id);
+  }
+};
+
+const collectTrailIntents = (
+  sourceCode: string,
+  filePath: string,
+  trailIntentsById: Map<string, 'destroy' | 'read' | 'write'>
+): void => {
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return;
+  }
+  for (const [id, intent] of collectTrailIntentsById(ast)) {
+    trailIntentsById.set(id, intent);
   }
 };
 
@@ -203,57 +251,105 @@ const collectTopoDetourTargetTrailIds = (
   return detourTargetTrailIds;
 };
 
-const buildProjectContextFromTopo = (appTopo: Topo): ProjectContext => {
-  const knownTrailIds = new Set<string>(appTopo.trails.keys());
-  const knownResourceIds = new Set<string>(appTopo.resources.keys());
-  const knownSignalIds = new Set<string>(appTopo.signals.keys());
-  const detourTargetTrailIds = collectTopoDetourTargetTrailIds(appTopo);
+const collectTopoKnownIds = (
+  appTopo: Topo,
+  context: MutableProjectContext
+): void => {
+  for (const id of appTopo.trails.keys()) {
+    context.knownTrailIds.add(id);
+  }
 
-  return {
-    detourTargetTrailIds,
-    knownResourceIds,
-    knownSignalIds,
-    knownTrailIds,
-  };
+  for (const id of appTopo.resources.keys()) {
+    context.knownResourceIds.add(id);
+  }
+
+  for (const id of appTopo.signals.keys()) {
+    context.knownSignalIds.add(id);
+  }
+};
+
+const collectTopoDetourIds = (
+  appTopo: Topo,
+  context: MutableProjectContext
+): void => {
+  for (const id of collectTopoDetourTargetTrailIds(appTopo)) {
+    context.detourTargetTrailIds.add(id);
+  }
+};
+
+const collectTopoCrossesAndIntents = (
+  appTopo: Topo,
+  context: MutableProjectContext
+): void => {
+  for (const trail of appTopo.trails.values()) {
+    context.trailIntentsById.set(trail.id, trail.intent);
+    for (const crossedTrailId of trail.crosses) {
+      context.crossTargetTrailIds.add(crossedTrailId);
+    }
+  }
+};
+
+const collectTopoTrailContext = (
+  appTopo: Topo,
+  context: MutableProjectContext
+): void => {
+  collectTopoKnownIds(appTopo, context);
+  collectTopoDetourIds(appTopo, context);
+  collectTopoCrossesAndIntents(appTopo, context);
+};
+
+const buildProjectContextFromTopo = (appTopo: Topo): ProjectContext => {
+  const context = createMutableProjectContext();
+  collectTopoTrailContext(appTopo, context);
+  return context;
+};
+
+const collectFileProjectContext = (
+  sourceFile: SourceFile,
+  context: MutableProjectContext
+): void => {
+  collectKnownTrailIds(
+    sourceFile.sourceCode,
+    sourceFile.filePath,
+    context.knownTrailIds
+  );
+  collectKnownResourceIds(
+    sourceFile.sourceCode,
+    sourceFile.filePath,
+    context.knownResourceIds
+  );
+  collectKnownSignalIds(
+    sourceFile.sourceCode,
+    sourceFile.filePath,
+    context.knownSignalIds
+  );
+  collectCrossedTrailIds(
+    sourceFile.sourceCode,
+    sourceFile.filePath,
+    context.crossTargetTrailIds
+  );
+  collectDetourTargetTrailIds(
+    sourceFile.sourceCode,
+    sourceFile.filePath,
+    context.detourTargetTrailIds
+  );
+  collectTrailIntents(
+    sourceFile.sourceCode,
+    sourceFile.filePath,
+    context.trailIntentsById
+  );
 };
 
 const buildProjectContextFromFiles = (
   sourceFiles: readonly SourceFile[]
 ): ProjectContext => {
-  const knownTrailIds = new Set<string>();
-  const knownResourceIds = new Set<string>();
-  const knownSignalIds = new Set<string>();
-  const detourTargetTrailIds = new Set<string>();
+  const context = createMutableProjectContext();
 
   for (const sourceFile of sourceFiles) {
-    collectKnownTrailIds(
-      sourceFile.sourceCode,
-      sourceFile.filePath,
-      knownTrailIds
-    );
-    collectKnownResourceIds(
-      sourceFile.sourceCode,
-      sourceFile.filePath,
-      knownResourceIds
-    );
-    collectKnownSignalIds(
-      sourceFile.sourceCode,
-      sourceFile.filePath,
-      knownSignalIds
-    );
-    collectDetourTargetTrailIds(
-      sourceFile.sourceCode,
-      sourceFile.filePath,
-      detourTargetTrailIds
-    );
+    collectFileProjectContext(sourceFile, context);
   }
 
-  return {
-    detourTargetTrailIds,
-    knownResourceIds,
-    knownSignalIds,
-    knownTrailIds,
-  };
+  return context;
 };
 
 const isProjectAwareRule = (rule: WardenRule): rule is ProjectAwareWardenRule =>

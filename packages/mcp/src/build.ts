@@ -18,6 +18,7 @@ import {
 } from '@ontrails/core';
 import type {
   BlobRef,
+  Intent,
   Layer,
   ResourceOverrideMap,
   Topo,
@@ -46,6 +47,7 @@ export interface BuildMcpToolsOptions {
   readonly excludeTrails?: readonly string[] | undefined;
   readonly include?: readonly string[] | undefined;
   readonly includeTrails?: readonly string[] | undefined;
+  readonly intent?: readonly Intent[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   /** Set to `false` to skip topo validation while building tools. */
@@ -345,6 +347,7 @@ const eligibleTrails = (
   filterTrailheadTrails(app.list(), {
     exclude: dedupePatterns(options.exclude, options.excludeTrails),
     include: dedupePatterns(options.include, options.includeTrails),
+    intent: options.intent,
   });
 
 const validateToolBuild = (

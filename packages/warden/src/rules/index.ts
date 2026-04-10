@@ -1,10 +1,13 @@
 import { contextNoTrailheadTypes } from './context-no-trailhead-types.js';
 import { crossDeclarations } from './cross-declarations.js';
+import { deadInternalTrail } from './dead-internal-trail.js';
 import { draftFileMarking } from './draft-file-marking.js';
 import { draftVisibleDebt } from './draft-visible-debt.js';
 import { errorMappingCompleteness } from './error-mapping-completeness.js';
 import { firesDeclarations } from './fires-declarations.js';
 import { implementationReturnsResult } from './implementation-returns-result.js';
+import { intentPropagation } from './intent-propagation.js';
+import { missingVisibility } from './missing-visibility.js';
 import { noDirectImplInRoute } from './no-direct-impl-in-route.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
 import { noSyncResultAssumption } from './no-sync-result-assumption.js';
@@ -29,10 +32,13 @@ export type {
 export { noThrowInImplementation } from './no-throw-in-implementation.js';
 export { contextNoTrailheadTypes } from './context-no-trailhead-types.js';
 export { crossDeclarations } from './cross-declarations.js';
+export { deadInternalTrail } from './dead-internal-trail.js';
 export { draftFileMarking } from './draft-file-marking.js';
 export { draftVisibleDebt } from './draft-visible-debt.js';
 export { errorMappingCompleteness } from './error-mapping-completeness.js';
 export { firesDeclarations } from './fires-declarations.js';
+export { intentPropagation } from './intent-propagation.js';
+export { missingVisibility } from './missing-visibility.js';
 export { onReferencesExist } from './on-references-exist.js';
 export { validDetourRefs } from './valid-detour-refs.js';
 export { noDirectImplInRoute } from './no-direct-impl-in-route.js';
@@ -53,10 +59,13 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [noThrowInImplementation.name, noThrowInImplementation],
   [contextNoTrailheadTypes.name, contextNoTrailheadTypes],
   [crossDeclarations.name, crossDeclarations],
+  [deadInternalTrail.name, deadInternalTrail],
   [draftFileMarking.name, draftFileMarking],
   [draftVisibleDebt.name, draftVisibleDebt],
   [errorMappingCompleteness.name, errorMappingCompleteness],
   [firesDeclarations.name, firesDeclarations],
+  [intentPropagation.name, intentPropagation],
+  [missingVisibility.name, missingVisibility],
   [onReferencesExist.name, onReferencesExist],
   [resourceDeclarations.name, resourceDeclarations],
   [resourceExists.name, resourceExists],

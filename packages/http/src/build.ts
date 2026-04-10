@@ -15,6 +15,7 @@ import {
   validateEstablishedTopo,
 } from '@ontrails/core';
 import type {
+  Intent,
   Layer,
   ResourceOverrideMap,
   Topo,
@@ -37,6 +38,7 @@ export interface BuildHttpRoutesOptions {
     | undefined;
   readonly exclude?: readonly string[] | undefined;
   readonly include?: readonly string[] | undefined;
+  readonly intent?: readonly Intent[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   /** Set to `false` to skip topo validation while building routes. */
@@ -147,6 +149,7 @@ const eligibleTrails = (
   filterTrailheadTrails(app.list(), {
     exclude: options.exclude,
     include: options.include,
+    intent: options.intent,
   });
 
 /** Build a single route definition from a trail. */

@@ -9,6 +9,7 @@ import { createTrailContext } from '../context';
 import type { Layer } from '../layer';
 import { Result } from '../result';
 import { resource } from '../resource';
+import { topo } from '../topo';
 import { trail } from '../trail';
 import type { TrailContext, TrailContextInit } from '../types';
 
@@ -102,6 +103,13 @@ const unwrapExecution = async (
 ) => {
   const result = await executeTrail(target, {});
   return result.unwrap();
+};
+
+const requireCross = (
+  ctx: TrailContext
+): NonNullable<TrailContext['cross']> => {
+  expect(ctx.cross).toBeDefined();
+  return ctx.cross as NonNullable<TrailContext['cross']>;
 };
 
 // ---------------------------------------------------------------------------
@@ -221,6 +229,68 @@ describe('executeTrail', () => {
 
       expect(first.unwrap()).toEqual({ value: 'first' });
       expect(second.unwrap()).toEqual({ value: 'second' });
+    });
+
+    test('binds ctx.cross when topo access is available', async () => {
+      const helper = trail('entity.secret.rotate', {
+        blaze: (input: { id: string }) => Result.ok({ rotated: input.id }),
+        input: z.object({ id: z.string() }),
+        output: z.object({ rotated: z.string() }),
+        visibility: 'internal',
+      });
+      const entry = trail('entity.rotate', {
+        blaze: async (input: { id: string }, ctx) => {
+          const crossed = await requireCross(ctx)(
+            'entity.secret.rotate',
+            input
+          );
+          return crossed.match({
+            err: (error) => Result.err(error),
+            ok: (value) => Result.ok(value),
+          });
+        },
+        crosses: ['entity.secret.rotate'],
+        input: z.object({ id: z.string() }),
+        output: z.object({ rotated: z.string() }),
+      });
+      const app = topo('cross-topo', { entry, helper });
+
+      const result = await executeTrail(entry, { id: 'abc123' }, { topo: app });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toEqual({ rotated: 'abc123' });
+    });
+
+    test('validates merged crossInput fields when invoking through ctx.cross', async () => {
+      const helper = trail('entity.prepare', {
+        blaze: (input: { forkedFrom: string; id: string }) =>
+          Result.ok({ summary: `${input.id}:${input.forkedFrom}` }),
+        crossInput: z.object({ forkedFrom: z.string() }),
+        input: z.object({ id: z.string() }),
+        output: z.object({ summary: z.string() }),
+        visibility: 'internal',
+      });
+      const entry = trail('entity.run', {
+        blaze: async (input: { id: string }, ctx) => {
+          const crossed = await requireCross(ctx)(helper, {
+            forkedFrom: 'entity.run',
+            id: input.id,
+          });
+          return crossed.match({
+            err: (error) => Result.err(error),
+            ok: (value) => Result.ok(value),
+          });
+        },
+        crosses: [helper],
+        input: z.object({ id: z.string() }),
+        output: z.object({ summary: z.string() }),
+      });
+      const app = topo('cross-input-topo', { entry, helper });
+
+      const result = await executeTrail(entry, { id: 'abc123' }, { topo: app });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toEqual({ summary: 'abc123:entity.run' });
     });
   });
 

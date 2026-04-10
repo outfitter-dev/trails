@@ -17,11 +17,13 @@ const orderPlaced = signal('order.placed', {
 const publicTrail = trail('entity.show', {
   blaze: () => Result.ok({ ok: true }),
   input: z.object({}),
+  intent: 'read',
 });
 
 const nestedTrail = trail('entity.admin.audit', {
   blaze: () => Result.ok({ ok: true }),
   input: z.object({}),
+  intent: 'destroy',
 });
 
 const internalTrail = trail('entity.secret.rotate', {
@@ -95,6 +97,37 @@ describe('filterTrailheadTrails', () => {
         include: ['entity.*'],
       })
     ).toEqual([publicTrail]);
+  });
+
+  test('intent filtering narrows visible trails by behavior class', () => {
+    expect(
+      filterTrailheadTrails([publicTrail, nestedTrail], {
+        intent: ['read'],
+      })
+    ).toEqual([publicTrail]);
+
+    expect(
+      filterTrailheadTrails([publicTrail, nestedTrail], {
+        intent: ['destroy'],
+      })
+    ).toEqual([nestedTrail]);
+  });
+
+  test('intent filtering composes with glob include patterns using AND logic', () => {
+    expect(
+      filterTrailheadTrails([publicTrail, nestedTrail], {
+        include: ['entity.**'],
+        intent: ['read'],
+      })
+    ).toEqual([publicTrail]);
+  });
+
+  test('empty intent filters behave like no filter', () => {
+    expect(
+      filterTrailheadTrails([publicTrail, nestedTrail], {
+        intent: [],
+      })
+    ).toEqual([publicTrail, nestedTrail]);
   });
 
   test('consumer trails are never exposed on trailheads', () => {

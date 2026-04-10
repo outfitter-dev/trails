@@ -1,8 +1,11 @@
 export { contextNoTrailheadTypesTrail } from './context-no-trailhead-types.trail.js';
 export { crossDeclarationsTrail } from './cross-declarations.trail.js';
+export { deadInternalTrailTrail } from './dead-internal-trail.trail.js';
 export { errorMappingCompletenessTrail } from './error-mapping-completeness.trail.js';
 export { firesDeclarationsTrail } from './fires-declarations.trail.js';
 export { implementationReturnsResultTrail } from './implementation-returns-result.trail.js';
+export { intentPropagationTrail } from './intent-propagation.trail.js';
+export { missingVisibilityTrail } from './missing-visibility.trail.js';
 export { onReferencesExistTrail } from './on-references-exist.trail.js';
 export { noDirectImplInRouteTrail } from './no-direct-impl-in-route.trail.js';
 export { noDirectImplementationCallTrail } from './no-direct-implementation-call.trail.js';
