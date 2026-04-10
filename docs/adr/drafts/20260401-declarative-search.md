@@ -3,7 +3,7 @@ slug: declarative-search
 title: Declarative Search
 status: draft
 created: 2026-04-01
-updated: 2026-04-01
+updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [16, 9]
 ---
@@ -87,7 +87,7 @@ The store connector creates the appropriate full-text index:
 
 FTS requires no external infrastructure. It works with `bun:sqlite` out of the box.
 
-**Vector (opt-in, requires embedding service):**
+**Vector (opt-in, requires embedding resource):**
 
 ```typescript
 search: {
@@ -99,7 +99,7 @@ search: {
 }
 ```
 
-The embedding service is a standard Trails service (ADR-009):
+The embedding resource is a standard Trails resource (ADR-0009):
 
 ```typescript
 export const embeddingService = resource('embedder', {
@@ -117,7 +117,7 @@ export const embeddingService = resource('embedder', {
 });
 ```
 
-The mock embedding service means `testAll` works without calling an embedding API. The embed-on-write hooks use the service from context, so production uses the real embedder and tests use the mock.
+The mock embedding resource means `testAll` works without calling an embedding API. The embed-on-write hooks use the resource from context, so production uses the real embedder and tests use the mock.
 
 The store connector creates the vector index:
 
@@ -194,16 +194,16 @@ The store connector maintains search indexes automatically as CRUD operations oc
 
 For FTS, this uses database-native mechanisms (FTS5 content tables with triggers for SQLite, trigger-based `tsvector` updates for Postgres).
 
-For vector embeddings, the embed-on-write hook calls the embedding service asynchronously within the same transaction. If embedding fails, the insert/update still succeeds but the vector index entry is not created. A future `warden` rule could detect entities with missing embeddings.
+For vector embeddings, the embed-on-write hook calls the embedding resource asynchronously within the same transaction. If embedding fails, the insert/update still succeeds but the vector index entry is not created. A future `warden` rule could detect entities with missing embeddings.
 
 Cross-table search fields (e.g., `'files.content'` declared on `gists`) require the connector to join child records when building the FTS/vector content. The connector handles this via content triggers or materialized search documents, depending on the database dialect.
 
-### 5. `mark()` auto-generates a search trail
+### 5. Trail factories auto-generate a search trail
 
-When search is declared on a store entity and the developer uses `mark()` (see the Entity Trail Factories draft), a search trail is automatically included:
+When search is declared on a store entity and the developer uses `crud()` (see the [`deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) draft), a search trail is automatically included:
 
 ```typescript
-export const { create, show, list, update, remove, search } = mark('gist', db.gists, {
+export const [create, show, list, update, remove, search] = crud(db.gists, {
   // CRUD config...
   search: {
     examples: [
@@ -222,11 +222,11 @@ The derived search trail:
 - Intent: `read`
 - Implementation: `conn.table.search(input.query, options)` wrapped in `Result.ok()`
 
-If the developer doesn't want the auto-generated search trail, they omit `search` from the `mark()` config and hand-author a search trail instead:
+If the developer doesn't want the auto-generated search trail, they omit `search` from the factory config and hand-author a search trail instead:
 
 ```typescript
 // Only generate CRUD, not search
-export const { create, show, list, update, remove } = mark('gist', db.gists, { ... });
+export const noteTrails = crud(db.gists, { search: false });
 
 // Hand-authored search with custom logic
 export const search = trail('gist.search', {
@@ -272,21 +272,21 @@ This is explicitly deferred. The initial implementation focuses on single-entity
 ### Positive
 
 - **Search is zero-code for the common case.** Declare `search: ['description']` on a store entity; get FTS indexing, sync hooks, a typed `search()` accessor, and optionally a derived search trail. The Stash dogfood's ~80 lines of FTS code become a single-line declaration.
-- **The testing story extends to search.** Mock embedding services mean vector search tests run without API calls. `testAll` covers search trail examples. Search is not a testing gap.
+- **The testing story extends to search.** Mock embedding resources mean vector search tests run without API calls. `testAll` covers search trail examples. Search is not a testing gap.
 - **Search compounds with everything.** Trailheads derive search commands and tools. Survey reports searchable entities. Warden can verify that searchable fields have `.describe()`. Guide documents search capabilities. Every existing feature gets smarter.
-- **Progressive complexity matches progressive need.** Start with `fts: true` (zero infrastructure). Add `vector` when you need semantic search (one service). Add `hybrid` when you want both (one config option). The declaration grows with the requirement.
+- **Progressive complexity matches progressive need.** Start with `fts: true` (zero infrastructure). Add `vector` when you need semantic search (one resource). Add `hybrid` when you want both (one config option). The declaration grows with the requirement.
 - **Index maintenance is invisible.** Developers never write FTS sync triggers or embedding-on-write hooks. The store connector handles it as part of the CRUD operations. Insert a gist; the search index updates.
 
 ### Tradeoffs
 
 - **FTS5 and pgvector are database extensions.** FTS5 is built into SQLite, so it's truly zero-config. But `sqlite-vec` for vector search and `pgvector` for Postgres vector search are extensions that must be installed separately. The framework can detect their absence and provide clear error messages, but it can't install them.
-- **Embedding quality is outside Trails' control.** The framework calls the embedding service; it doesn't evaluate the quality of embeddings. Poor embedding models produce poor vector search results. Trails can document best practices but can't prevent bad choices.
+- **Embedding quality is outside Trails' control.** The framework calls the embedding resource; it doesn't evaluate the quality of embeddings. Poor embedding models produce poor vector search results. Trails can document best practices but can't prevent bad choices.
 - **Cross-table search fields add complexity.** Declaring `'files.content'` as a search field on `gists` requires the connector to join across tables when building search content. This is mechanically straightforward but increases the trailhead area of the sync logic.
 - **Hybrid search tuning is domain-specific.** The RRF weights and k constant affect result quality. Trails provides sensible defaults, but optimal values depend on the dataset and use case. There's no universal "correct" configuration.
 
 ### What this does NOT decide
 
-- **Embedding model recommendations.** Trails does not ship or recommend a specific embedding model. The service pattern lets developers bring any provider (OpenAI, local models, etc.).
+- **Embedding model recommendations.** Trails does not ship or recommend a specific embedding model. The resource pattern lets developers bring any provider (OpenAI, local models, etc.).
 - **Query suggestion or autocomplete.** These are application-level features that build on search, not search primitives.
 - **Real-time search / streaming results.** The search accessor returns a paginated result set. Streaming or live-updating results are a future concern.
 - **Topo-level search.** Searching across trail descriptions and examples for agent discovery is a compelling future direction but is architecturally distinct from entity search. It would use the same search primitives but operates on the topo graph, not on stored entities.
@@ -294,9 +294,11 @@ This is explicitly deferred. The initial implementation focuses on single-entity
 
 ## References
 
-- ADR: Schema-Derived Persistence (draft) -- the store abstraction that search extends
+- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) -- the store abstraction that search extends
+- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) -- the resource pattern for embedding providers
+- [ADR: Contours as First-Class Domain Objects](20260409-contours-as-first-class-domain-objects.md) (draft) -- contours provide the domain object schemas that search declarations annotate
+- [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) -- the `crud()` factory that auto-generates search trails
+- [ADR: Backend-Agnostic Store Schemas](20260409-backend-agnostic-store-schemas.md) (draft) -- the store schema abstraction that search declarations extend
 - ADR: Drizzle Store Connector (draft) -- the connector that implements FTS5 and vector indexing
-- ADR: Entity Trail Factories (draft) -- the `mark()` factory that auto-generates search trails
-- [ADR-0009: Services](../0009-first-class-resources.md) -- the service pattern for embedding providers
 - [Architecture](../../architecture.md) -- information categories, right-side hexagonal connectors
 - Alex Garcia's hybrid search guide: <https://alexgarcia.xyz/blog/2024/sqlite-vec-hybrid-search/>

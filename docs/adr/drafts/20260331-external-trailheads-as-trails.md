@@ -3,7 +3,7 @@ slug: external-trailheads-as-trails
 title: External Trailheads as Trails
 status: draft
 created: 2026-03-31
-updated: 2026-04-02
+updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [packs-namespace-boundaries]
 ---
@@ -169,7 +169,7 @@ source: {
 
 The implementation starts the MCP server (or connects to a running one), calls the named tool with the input, and returns the result. Input and output schemas can be derived from the MCP tool's JSON Schema definitions. No parse function needed unless the developer wants to reshape the output.
 
-MCP rigs manage server lifecycle: start on first use, keep alive for subsequent calls, dispose on topo shutdown. This maps to the service model: the MCP client connection is a service with `create` (connect), `dispose` (disconnect), and `health` (ping).
+MCP rigs manage server lifecycle: start on first use, keep alive for subsequent calls, dispose on topo shutdown. This maps to the resource model: the MCP client connection is a resource with `create` (connect), `dispose` (disconnect), and `health` (ping).
 
 #### HTTP rigs
 
@@ -618,7 +618,7 @@ The warden gains rig-aware governance:
 - **Missing mock.** A rigged trail without a mock function cannot run in `testExamples` without the external binary. Warning.
 - **Stale rig lock.** The rig lock's binary version doesn't match the installed binary version. Warning.
 - **Captured example staleness.** Integration examples were captured against version X but the rig lock now records version Y. Warning: re-capture recommended.
-- **Rig chain depth.** A trail follows a rigged trail that follows another rigged trail. Each hop adds latency and failure trailhead. Informational.
+- **Rig chain depth.** A trail crosses a rigged trail that crosses another rigged trail. Each hop adds latency and failure surface. Informational.
 - **Rig without integration examples.** A rigged trail has mock examples but no captured integration examples. Coaching suggestion: captured examples validate the parse function against real output.
 - **Impure intent.** A rigged CLI trail with `intent: 'read'` shells out to a command that may have side effects (the warden can't verify purity of external binaries). Informational: rig trails inherently can't guarantee purity.
 
@@ -705,7 +705,7 @@ const gitStatus = rig('git.status', {
   source: { type: 'cli', command: 'git status', binary: 'git' },
   intent: 'read',
   on: [{ schedule: '*/5 * * * *' }],
-  signals: [uncommittedChangesDetected],
+  fires: [uncommittedChangesDetected],
   input: z.object({}),
   output: GitStatusSchema,
   parse: parse.lines(parseStatusLine),
@@ -768,14 +768,14 @@ Rig lock state rolls up into the `rigs` section of `trails.lock`:
 - **CLI probing is heuristic.** `--help` parsing works for well-behaved CLIs (GNU-style flags, consistent formatting). Unusual help formats produce incomplete or incorrect discoveries. `Bun.Terminal` provides a PTY fallback for tools that render differently in non-TTY mode, but the probe remains best-effort. The scaffold is a starting point, not a guarantee.
 - **External binary availability.** Integration tests require the actual binary, MCP server, or API. CI environments need the tools installed. Mock examples provide a fallback but don't validate parse functions.
 - **Parse functions are manual for non-standard formats.** The built-in parsers (json, jsonl, lines, table, csv, regex, markdown) cover the majority of CLI output patterns. For tools with unusual output formats, the developer authors a custom parse function. Community rig packs amortize this effort for popular tools.
-- **Rig meta adds weight.** Every rigged trail carries rig meta. Follow chains accumulate rig dependency information. Survey output grows. This is informational overhead in exchange for dependency visibility.
+- **Rig meta adds weight.** Every rigged trail carries rig meta. Cross chains accumulate rig dependency information. Survey output grows. This is informational overhead in exchange for dependency visibility.
 
 ### What this does NOT decide
 
 - **Auto-generation of custom parse functions.** Built-in parsers handle standard formats (JSON, JSONL, lines, table, CSV, regex, markdown). For non-standard output, an agent could plausibly generate a custom parse function from a schema and sample output. This is a valuable future capability but not part of the rig primitive.
 - **Binary sandboxing.** Rigged CLI trails trust the binary. They run it in the same context as the Trails process. Sandboxing (containers, permissions, resource limits) is an operational concern, not a framework decision.
-- **MCP server lifecycle management.** Whether rigged MCP connections are singletons, pooled, or per-request is a service-level decision. The rig declares the server. The service model manages the lifecycle.
-- **HTTP authentication patterns beyond permits.** OAuth flows, API key rotation, token refresh: these are concerns of the HTTP rig's `headers` function and potentially a service. The rig framework provides the hook, not the implementation.
+- **MCP server lifecycle management.** Whether rigged MCP connections are singletons, pooled, or per-request is a resource-level decision. The rig declares the server. The resource model manages the lifecycle.
+- **HTTP authentication patterns beyond permits.** OAuth flows, API key rotation, token refresh: these are concerns of the HTTP rig's `headers` function and potentially a resource. The rig framework provides the hook, not the implementation.
 - **A standard library of rig packs.** Which tools get official rig packs (`git`, `docker`, `kubectl`) is an ecosystem decision. The framework provides the tooling. The community (or the outfitter-dev org) provides the packs.
 
 ## References
@@ -785,10 +785,12 @@ Rig lock state rolls up into the `rigs` section of `trails.lock`:
 - [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- rigged trails declare intent; HTTP method mapping and MCP annotations work identically
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- rigged trails execute through the same pipeline
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- rigged trails get trailhead derivation for free
-- ADR: Trail Visibility and Trailhead Filtering (draft) -- rigged SDK wrapper packs use `visibility: 'internal'`
+- [ADR: Trail Visibility and Trailhead Filtering](20260331-visibility-and-filtering.md) (draft) -- rigged SDK wrapper packs use `visibility: 'internal'`
+- [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) -- `deriveTrail()` and `ingest()` factory that produces trails from external input shapes
+- [ADR: Connector Extraction and the `with-*` Packaging Model](20260409-connector-extraction-and-the-with-packaging-model.md) (draft) -- the packaging model for connector-contributed capabilities that rig packs may use
 - ADR: Packs as Namespace Boundaries (draft) -- rigged trails compose into packs with the same layering pattern
 - ADR: Pack Provisioning (draft) -- rig packs distribute as resources with the same lifecycle
 - ADR: Typed Signal Emission (draft) -- rigged trails can emit events via `ctx.signal()`; the "observe and announce" pattern
 - ADR: Reactive Trail Activation (draft) -- rigged trails with schedule triggers become periodic monitoring probes
-- ADR: The Serialized Topo Graph (draft) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`
+- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`
 - [ADR-0013: Tracing](../0013-tracing.md) -- rigged trail executions are recorded via tracing for observability

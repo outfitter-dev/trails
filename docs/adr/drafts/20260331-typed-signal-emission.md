@@ -3,7 +3,7 @@ slug: typed-signal-emission
 title: Typed Signal Emission
 status: draft
 created: 2026-03-31
-updated: 2026-04-01
+updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [2, 3, 6, 7, 13]
 ---
@@ -35,7 +35,7 @@ A trail that calls `ctx.signal('booking.confirmed', payload)` is passing a typed
 This means events follow the same progressive disclosure as everything else in Trails:
 
 1. **Derived.** The trail emits with a typed payload. The schema is captured from the emitter. No separate declaration needed.
-2. **Declared inline.** The developer adds a schema to the `emits` declaration for documentation or stricter validation. Optional tightening.
+2. **Declared inline.** The developer adds a schema to the `fires` declaration for documentation or stricter validation. Optional tightening.
 3. **Extracted to `signal()`.** Multiple emitters or cross-pack consumption warrant a standalone declaration. The schema lives on the topo as a first-class node. The CLI can automate this: `trails extract signal booking.confirmed`.
 
 At every stage, a schema exists. The question is only where it's authored.
@@ -66,7 +66,7 @@ const confirmBooking = trail('booking.confirm', {
   intent: 'write',
   input: BookingInputSchema,
   output: BookingSchema,
-  signals: [bookingConfirmed],
+  fires: [bookingConfirmed],
   blaze: async (input, ctx) => {
     const booking = await confirmInStore(input);
 
@@ -85,29 +85,29 @@ const confirmBooking = trail('booking.confirm', {
 
 `ctx.signal()` is available in any trail, including within `cross` chains. A crossed trail's emissions flow through the same routing as the root trail's emissions.
 
-### The `emits` declaration
+### The `fires` declaration
 
-A trail declares which events it may emit:
+A trail declares which signals it may fire:
 
 ```typescript
-signals: [bookingConfirmed, bookingCancelled],
+fires: [bookingConfirmed, bookingCancelled],
 ```
 
 This is analogous to `crosses` declaring which trails may be called. The warden verifies alignment:
 
-- A `ctx.signal(someEvent)` call in the implementation without a corresponding entry in `emits`: error. Undeclared emission.
-- An event in `emits` that is never emitted in the implementation: warning. Unused declaration.
-- A trail with `intent: 'read'` that declares `emits`: warning. Read trails observe, they shouldn't announce state changes.
+- A `ctx.signal(someEvent)` call in the blaze without a corresponding entry in `fires`: error. Undeclared emission.
+- A signal in `fires` that is never emitted in the blaze: warning. Unused declaration.
+- A trail with `intent: 'read'` that declares `fires`: warning. Read trails observe, they shouldn't announce state changes.
 
-The `emits` declaration is optional. A trail without `emits` cannot call `ctx.signal()` (the warden catches this). Progressive adoption: add `emits` when the trail needs to announce something.
+The `fires` declaration is optional. A trail without `fires` cannot call `ctx.signal()` (the warden catches this). Progressive adoption: add `fires` when the trail needs to announce something.
 
 ### Progressive event schema ownership
 
 Events follow the same progressive disclosure pattern as every other Trails concept:
 
-**Stage 1: Derived from emitter.** When only one trail emits an event, the event's schema is derived from the typed payload in that trail's `ctx.signal()` call. The lockfile captures the derived schema. No separate `signal()` declaration needed.
+**Stage 1: Derived from emitter.** When only one trail fires a signal, the signal's schema is derived from the typed payload in that trail's `ctx.signal()` call. The lockfile captures the derived schema. No separate `signal()` declaration needed.
 
-**Stage 2: Declared inline.** The developer adds an explicit schema to the `emits` entry for documentation, stricter validation, or to decouple from implementation details. The declared schema takes precedence over the derived one.
+**Stage 2: Declared inline.** The developer adds an explicit schema to the `fires` entry for documentation, stricter validation, or to decouple from implementation details. The declared schema takes precedence over the derived one.
 
 **Stage 3: Extracted to `signal()`.** When multiple trails emit the same event or when cross-pack consumption warrants a shared contract, the event graduates to a standalone `signal()` declaration on the topo. The warden flags the opportunity: "Two trails emit `booking.confirmed` — consider extracting to a shared signal declaration." The CLI automates it: `trails extract signal booking.confirmed`.
 
@@ -115,10 +115,10 @@ At stage 3, the `signal()` declaration owns the schema. Emitting trails referenc
 
 The warden's role at each stage:
 
-- Stage 1: "This trail emits `booking.confirmed` with no explicit schema. Schema derived from emission payload."
+- Stage 1: "This trail fires `booking.confirmed` with no explicit schema. Schema derived from emission payload."
 - Stage 2: "Schema declared. Validated against emission usage."
-- Stage 3 (opportunity): "Two trails emit `booking.confirmed`. Schemas match. Consider extracting to a shared `signal()` declaration."
-- Stage 3 (conflict): "Two trails emit `booking.confirmed`. Schemas differ. Resolution required before extraction."
+- Stage 3 (opportunity): "Two trails fire `booking.confirmed`. Schemas match. Consider extracting to a shared `signal()` declaration."
+- Stage 3 (conflict): "Two trails fire `booking.confirmed`. Schemas differ. Resolution required before extraction."
 
 ### Emission examples
 
@@ -143,7 +143,7 @@ examples: [
 ],
 ```
 
-`testExamples` captures all emissions during execution and validates them against the example's `emits` assertions. The second example is significant: `signals: []` asserts that the idempotent case does NOT emit a duplicate event.
+`testExamples` captures all emissions during execution and validates them against the example's `signals` assertions. The second example is significant: `signals: []` asserts that the idempotent case does NOT emit a duplicate event.
 
 ### Consumption-side examples
 
@@ -162,7 +162,7 @@ trail.completed    → { trailId, input, output, duration, permit }
 trail.failed       → { trailId, input, error, duration, permit }
 ```
 
-Lifecycle events are emitted after the trail's `run` function returns, as part of the `executeTrail` pipeline. They flow through the same event routing as authored events.
+Lifecycle events are emitted after the trail's blaze returns, as part of the `executeTrail` pipeline. They flow through the same event routing as authored events.
 
 #### Categorized error events
 
@@ -190,7 +190,7 @@ When `ctx.signal()` fires or the framework emits a lifecycle event:
 
 1. **Validate.** The payload validates against the event's schema. Invalid payloads produce an `InternalError` logged to tracing (the emission is dropped, not the trail).
 2. **Record.** Tracing records the emission: event ID, payload, source trail, execution ID, timestamp.
-3. **Route internally.** The signal bus notifies fire listeners. Trails with matching `on: [{ signal: '...' }]` activate via `run()`.
+3. **Route internally.** The signal bus notifies listeners. Trails with matching `on: [{ signal: '...' }]` activate via `run()`.
 4. **Route externally.** Subscription listeners (WebSocket clients, SSE streams, future outbound webhooks) receive the event through their trailhead's delivery mechanism.
 5. **Record delivery.** Tracing records delivery outcomes: how many triggers fired, how many subscriptions received the event, how many failed.
 
@@ -237,14 +237,14 @@ This is a runtime observation, not a static analysis. The warden checks statical
 
 ### Warden rules for events
 
-- **Undeclared emission.** A trail calls `ctx.signal(event)` without declaring the event in `emits`. Error.
-- **Unused emission declaration.** A trail declares `signals: [someEvent]` but never emits it. Warning.
-- **Dead event.** An event is emitted by at least one trail but no trail triggers on it and no trailhead subscribes to it. Warning.
-- **Schema mismatch.** A trail triggers on an event whose schema is incompatible with the trail's input schema. Error at topo construction.
-- **Read trail emitting.** A trail with `intent: 'read'` declares `emits`. Warning.
-- **Missing emission examples.** A trail declares `emits` but no example includes an `emits` assertion. Coaching suggestion.
-- **Multi-emitter schema drift.** Two trails emit the same event with incompatible derived schemas. Error: extract to a shared `signal()` declaration.
-- **Error handler emitting events.** A trail triggered by `trail.failed.*` that declares `emits`. Warning: risk of reactive error cascades.
+- **Undeclared emission.** A trail calls `ctx.signal(event)` without declaring the signal in `fires`. Error.
+- **Unused fires declaration.** A trail declares `fires: [someEvent]` but never emits it. Warning.
+- **Dead signal.** A signal is fired by at least one trail but no trail activates on it and no trailhead subscribes to it. Warning.
+- **Schema mismatch.** A trail activates on a signal whose schema is incompatible with the trail's input schema. Error at topo construction.
+- **Read trail firing.** A trail with `intent: 'read'` declares `fires`. Warning.
+- **Missing emission examples.** A trail declares `fires` but no example includes a `signals` assertion. Coaching suggestion.
+- **Multi-emitter schema drift.** Two trails fire the same signal with incompatible derived schemas. Error: extract to a shared `signal()` declaration.
+- **Error handler firing signals.** A trail activated by `trail.failed.*` that declares `fires`. Warning: risk of reactive signal cascades.
 - **Missing idempotency examples.** An event-triggered trail with no duplicate-delivery example. Coaching suggestion.
 
 ### Reactive test mode
@@ -273,13 +273,13 @@ Reactive mode runs after standard mode passes. Standard mode validates each trai
 
 **With parallel composition.** Multiple trigger-listening trails activate concurrently from the same event (they're independent). The framework handles concurrent activation the same way the array form of `ctx.cross()` handles concurrent composition.
 
-**Dead-letter handling through composition.** When an event-triggered trail permanently fails, the framework emits a `trail.failed.<category>` lifecycle event with trigger provenance. Another trail can trigger on that lifecycle event to handle the dead letter — no dedicated dead-letter infrastructure needed. The `signals: []` declaration on the dead-letter handler is load-bearing: the warden enforces that error handlers don't emit events (avoiding infinite cascades).
+**Dead-letter handling through composition.** When an event-triggered trail permanently fails, the framework emits a `trail.failed.<category>` lifecycle event with trigger provenance. Another trail can trigger on that lifecycle event to handle the dead letter — no dedicated dead-letter infrastructure needed. The `fires: []` declaration on the dead-letter handler is load-bearing: the warden enforces that error handlers don't fire signals (avoiding infinite cascades).
 
 ## Consequences
 
 ### Positive
 
-- **Events become a runtime primitive.** The `signal()` declaration gains `ctx.signal()` for emission, delivery routing, and tracing recording. The primitive evolves from structural metadata to a live communication channel.
+- **Signals become a runtime primitive.** The `signal()` declaration gains `ctx.signal()` for emission, delivery routing, and tracing recording. The primitive evolves from structural metadata to a live communication channel.
 - **Schema is always present.** Derived from the emitter at stage 1, declared inline at stage 2, extracted to `signal()` at stage 3. No untyped events. Progressive disclosure without a schema gap.
 - **Trails decouple through events.** Packs communicate via events instead of direct crosses. The event schema is the contract. The topo validates compatibility.
 - **Framework lifecycle events unify observation.** The error taxonomy maps to categorized failure events. The reactive graph handles both authored and observed events uniformly.
@@ -287,7 +287,7 @@ Reactive mode runs after standard mode passes. Standard mode validates each trai
 
 ### Tradeoffs
 
-- **New field on the trail spec.** `emits` joins `crosses`, `visibility`, `on`, `resources`, and the rest. The justification: emission is genuinely new information that the framework can't derive from the implementation without static analysis.
+- **New field on the trail spec.** `fires` joins `crosses`, `visibility`, `on`, `resources`, and the rest. The justification: emission is genuinely new information that the framework can't derive from the implementation without static analysis.
 - **Fire-and-forget semantics.** The emitting trail doesn't know if the event was delivered. This is correct (the trail shouldn't couple to its listeners) but means delivery failures are only visible through tracing.
 - **Lifecycle events add volume.** Every trail execution produces at least one lifecycle event. Sampling is a future optimization.
 - **Event ordering is not guaranteed across listeners.** Multiple triggers on the same event activate concurrently. If ordering matters, use sequential `cross` composition.
@@ -304,12 +304,14 @@ Reactive mode runs after standard mode passes. Standard mode validates each trai
 
 - [ADR-0000: Core Premise](../0000-core-premise.md) — "derive by default"; framework lifecycle events are derived from execution observation
 - [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the error taxonomy maps to categorized failure events
-- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — `emits` is a new property on the trail spec
+- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — `fires` is a new property on the trail spec
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — lifecycle events are emitted by `executeTrail`
 - [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — warden rules for event declarations
 - [ADR-0013: Tracing](../0013-tracing.md) — tracing records emission and delivery metadata
-- ADR: The Serialized Topo Graph (draft) — events as nodes in the topo graph
-- ADR: Trail Visibility and Trailhead Filtering (draft) — event-triggered trails can be internal
-- ADR: Packs as Namespace Boundaries (draft) — events are the decoupling mechanism between packs
-- ADR: Reactive Trail Activation (draft) — depends on this ADR; triggers consume events for reactive activation
-- ADR: Webhooks and Input Connectors (draft) — inbound webhooks produce events that flow through the event runtime
+- [ADR: Unified Observability](20260409-unified-observability.md) (draft) — tracing moves into core; signal delivery outcomes are recorded intrinsically by the execution pipeline
+- [ADR: Error Taxonomy as Transport-Independent Behavior Contract](20260409-error-taxonomy-as-transport-independent-behavior-contract.md) (draft) — signal delivery semantics (retry, dead-letter, discard) derive from the error taxonomy's `retryable` flag
+- [ADR: Typed Trail Composition](20260409-typed-trail-composition.md) (draft) — typed `ctx.cross()` complements signal-based decoupling; signals are for loose coupling, crosses are for typed direct composition
+- ADR: The Serialized Topo Graph (draft) — signals as nodes in the topo graph
+- ADR: Trail Visibility and Trailhead Filtering (draft) — signal-activated trails can be internal
+- ADR: Packs as Namespace Boundaries (draft) — signals are the decoupling mechanism between packs
+- [ADR: Reactive Trail Activation](20260331-reactive-trail-activation.md) (draft) — depends on this ADR; `on:` declarations consume signals for reactive activation

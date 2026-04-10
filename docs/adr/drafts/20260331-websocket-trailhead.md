@@ -3,7 +3,7 @@ slug: websocket-trailhead
 title: WebSocket Trailhead
 status: draft
 created: 2026-03-31
-updated: 2026-04-02
+updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [typed-signal-emission]
 ---
@@ -306,7 +306,7 @@ The package depends on `@ontrails/core` and benefits from the Events Runtime for
 
 **With permit-gated discovery.** The connection's permit scopes trail visibility AND event subscription. An agent connected with `booking:read` scope sees booking read trails and can subscribe to booking events. Write trails and admin events are invisible.
 
-**With observability.** WebSocket connections are observed: connection established, authentication result, subscriptions, disconnection, replay requests. Combined with event delivery tracking from the Events Runtime, the tracking layer provides full observability of the WebSocket trailhead.
+**With observability.** WebSocket connections are observed: connection established, authentication result, subscriptions, disconnection, replay requests. Combined with event delivery tracking from the Events Runtime, the tracing system provides full observability of the WebSocket trailhead.
 
 ## Consequences
 
@@ -339,8 +339,10 @@ The package depends on `@ontrails/core` and benefits from the Events Runtime for
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- trail invocations over WebSocket execute through the pipeline
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- trail IDs map to WebSocket method names, event IDs map to subscription channels
 - [ADR-0013: Tracing](../0013-tracing.md) -- observability and replay buffer backing store
+- [ADR: Error Taxonomy as Transport-Independent Behavior Contract](20260409-error-taxonomy-as-transport-independent-behavior-contract.md) (draft) -- WebSocket close code mapping deferred there; the error taxonomy extends to WebSocket as a transport
+- [ADR: Unified Observability](20260409-unified-observability.md) (draft) -- tracing system that provides WebSocket connection observability
 - ADR: Typed Signal Emission (draft) -- `ctx.signal()` provides the events that WebSocket subscriptions deliver
-- ADR: Trail Visibility and Trailhead Filtering (draft) -- visibility and intent filtering apply to WebSocket trail discovery and invocation
+- [ADR: Trail Visibility and Trailhead Filtering](20260331-visibility-and-filtering.md) (draft) -- visibility and intent filtering apply to WebSocket trail discovery and invocation
 - ADR: Reactive Trail Activation (draft) -- triggers and WebSocket subscriptions are both consumers of the event routing pipeline
-- ADR: Webhooks and Input Connectors (draft) -- webhook to trail to event to WebSocket is a complete reactive pipeline from external input to external output
-- ADR: The Serialized Topo Graph (draft) -- captures WebSocket trailhead configuration in the resolved topo graph
+- [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) -- `ingest()` factory for webhook-to-trail flows that can feed events to WebSocket subscribers
+- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- captures WebSocket trailhead configuration in the resolved topo graph

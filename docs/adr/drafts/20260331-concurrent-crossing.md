@@ -3,8 +3,9 @@ slug: concurrent-crossing
 title: Concurrent Trail Crossing
 status: draft
 created: 2026-03-31
-updated: 2026-04-02
+updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
+depends_on: [3]
 ---
 
 # ADR: Concurrent Trail Crossing
@@ -313,6 +314,8 @@ Rejected because implicit concurrency is a correctness hazard. Two crossings may
 - [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- "composition is a property, not a type"; parallel vs sequential is a runtime choice, not a contract distinction. The crossing declaration stays flat, same as when `hike()` was unified into `trail()`.
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- the execution pipeline runs for each concurrent branch; the pipeline is unchanged
 - [ADR-0013: Tracing](../0013-tracing.md) -- tracing observes concurrent vs sequential spans to derive composition shape at runtime
-- ADR: The Serialized Topo Graph (draft) -- the lockfile captures composition shapes including parallel crossing patterns
-- ADR: Trail Visibility and Trailhead Filtering (draft) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode
+- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- the lockfile captures composition shapes including parallel crossing patterns
+- [ADR: Trail Visibility and Trailhead Filtering](20260331-visibility-and-filtering.md) (draft) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode
+- [ADR: Typed Trail Composition](20260409-typed-trail-composition.md) (draft) -- typed `ctx.cross()` that the array overload extends; parallel crossing with typed results is a non-decision there, deferred here
+- [ADR: Composition Testing](20260409-composition-testing.md) (draft) -- `scenario()` and `expectedMatch` for testing concurrent composition flows
 - ADR: Packs as Namespace Boundaries (draft) -- concurrent crossings across pack boundaries work identically to sequential crossings; pack boundary governance is unchanged

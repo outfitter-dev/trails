@@ -105,7 +105,7 @@
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — \"derive by default\"; fires declare activation, the framework derives the reactive graph",
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — \"derive by default\"; `on:` declares activation, the framework derives the reactive graph",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
@@ -120,11 +120,6 @@
           "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"author what's new, derive what's known\"; the trail's input schema is the clean contract, the connector transforms the messy external world",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-webhooks-and-connectors.md"
-        },
-        {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"trailheads are peers\"; WebSocket is the fourth trailhead, following the same patterns as CLI, MCP, and HTTP",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
@@ -135,11 +130,6 @@
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- author what's new, derive what's known",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-entity-trail-factories.md"
-        },
-        {
           "context": "- [ADR-0000: Core premise](../0000-core-premise.md) — \"author what's new, derive what's known\" applies to freshness: author the contract, derive the enforcement",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-freshness.md"
@@ -148,6 +138,21 @@
           "context": "- [ADR-0000: Core premise](../0000-core-premise.md) — \"author what's new, derive what's known\" applies to documentation: author the source tree, derive the site",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
+        },
+        {
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — the information architecture categories (authored, projected, enforced) that contour leverages",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md"
+        },
+        {
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — the information architecture and \"one write, many reads\" principle that `deriveTrail()` operationalizes",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
+        },
+        {
+          "context": "- [ADR-0000: Core Premise — The information architecture](../0000-core-premise.md) — the authored/projected/enforced categories that `crossInput` extends with composition scope",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-typed-trail-composition.md"
         },
         {
           "context": "- **[ADR-0000: Core Premise](./adr/0000-core-premise.md)** — Why contracts, why Result, why derive",
@@ -214,6 +219,16 @@
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
         },
         {
+          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — the vocabulary rules that `contour()` follows as a bare-noun primitive",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md"
+        },
+        {
+          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — the verb+noun helper convention that `deriveTrail()` follows",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
+        },
+        {
           "context": "Canonical public trailhead-facing reference. For naming conventions and decision history, see [ADR-0001](./adr/0001-naming-conventions.md).",
           "from": "api-reference",
           "fromPath": "docs/api-reference.md"
@@ -261,6 +276,16 @@
           "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the error taxonomy maps to categorized failure events",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
+        },
+        {
+          "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — established the 13-class taxonomy and HTTP/CLI/JSON-RPC mappings",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-error-taxonomy-as-transport-independent-behavior-contract.md"
+        },
+        {
+          "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the Result and error taxonomy that gains `VersionNotSupportedError`",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-trail-versioning.md"
         },
         {
           "context": "- **[ADR-0002: Built-In Result Type](./adr/0002-built-in-result-type.md)** — Own the Result primitive, zero dependencies",
@@ -312,12 +337,12 @@
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — trails with fires are still trails. Activation is a property.",
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — trails with `on:` are still trails. Activation is a property.",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
         {
-          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — `emits` is a new property on the trail spec",
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — `fires` is a new property on the trail spec",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
@@ -327,9 +352,29 @@
           "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
-          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- patterns produce standard trails",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-entity-trail-factories.md"
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the `crosses` / `ctx.cross()` composition mechanism that composite testing targets",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-composition-testing.md"
+        },
+        {
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the merge test applied to contour vs. trail (conclusion: they're different enough to stay separate)",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md"
+        },
+        {
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the trail primitive that factories produce",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
+        },
+        {
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the trail as the single unit of work, the unit that versioning targets",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-trail-versioning.md"
+        },
+        {
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the unified trail/hike primitive with `crosses` and `ctx.cross()`",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-typed-trail-composition.md"
         },
         {
           "context": "- **[ADR-0003: Unified Trail Primitive](./adr/0003-unified-trail-primitive.md)** — One `trail()`, composition as a property",
@@ -371,7 +416,7 @@
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) — intent compounds with fires; lifecycle signals filter by intent",
+          "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) — intent compounds with activation; lifecycle signals filter by intent",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
@@ -381,9 +426,9 @@
           "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
-          "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intents are derived per operation",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-entity-trail-factories.md"
+          "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent compounds with layers for surface derivation and governance",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-layer-evolution.md"
         },
         {
           "context": "- **[ADR-0004: Intent as a First-Class Property](./adr/0004-intent-as-first-class-property.md)** — One field drives all trailhead behavior",
@@ -413,11 +458,6 @@
           "context": "- [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) — the two-level architecture pattern this mirrors",
           "from": "0016",
           "fromPath": "docs/adr/0016-schema-derived-persistence.md"
-        },
-        {
-          "context": "- [ADR-0005: Framework-Agnostic HTTP Route Model](../0005-framework-agnostic-http-route-model.md) -- webhooks extend the HTTP route model with verification and adaptation",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-webhooks-and-connectors.md"
         },
         {
           "context": "- **[ADR-0005: Framework-Agnostic HTTP Route Model](./adr/0005-framework-agnostic-http-route-model.md)** — `HttpRoute[]` with thin connector subpaths",
@@ -494,11 +534,6 @@
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `executeTrail` runs the trail after verification and adaptation; the pipeline is unchanged",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-webhooks-and-connectors.md"
-        },
-        {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- trail invocations over WebSocket execute through the pipeline",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
@@ -507,6 +542,21 @@
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-layers-run; the library trailhead delegates to the same p",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
+        },
+        {
+          "context": "- [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md) — the execution pipeline that produces Results with typed errors",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-error-taxonomy-as-transport-independent-behavior-contract.md"
+        },
+        {
+          "context": "- [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md) -- the execution pipeline that layers currently compose into",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-layer-evolution.md"
+        },
+        {
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — `executeTrail` is the chokepoint where tracing wraps. Moving tracing into core puts it next to the pipeline it instrumen",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-unified-observability.md"
         },
         {
           "context": "- **[ADR-0006: Shared Execution Pipeline](./adr/0006-shared-execution-pipeline.md)** — One `executeTrail`, Result-returning builders",
@@ -546,6 +596,16 @@
           "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — warden rules for event declarations",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
+        },
+        {
+          "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — the warden rules that `composite-example-coverage` and `scenario-coverage` extend",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-composition-testing.md"
+        },
+        {
+          "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — the warden's `cross-declarations` rule that this extends",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-typed-trail-composition.md"
         },
         {
           "context": "- **[ADR-0007: Governance as Trails](./adr/0007-governance-as-trails.md)** — Warden rules are trails, AST-based analysis",
@@ -612,11 +672,6 @@
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — validates that the trailhead derivation model extends to event-driven inbound patterns",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
-        },
-        {
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- survey output provides the contract snapshots",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
@@ -627,11 +682,6 @@
           "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
-          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- webhook endpoints are not derived from trail IDs; they're explicitly configured paths",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-webhooks-and-connectors.md"
-        },
-        {
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- trail IDs map to WebSocket method names, event IDs map to subscription channels",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
@@ -640,6 +690,11 @@
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md): the derivation properties (pure, deterministic, explicit lookup tables, overridable) that the library t",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
+        },
+        {
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — derivation rules that versioned trailhead projections extend",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-trail-versioning.md"
         },
         {
           "context": "- **[ADR-0008: Deterministic Trailhead Derivation](./adr/0008-deterministic-trailhead-derivation.md)** — Explicit lookup tables for every trailhead",
@@ -701,24 +756,39 @@
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
         {
-          "context": "- [ADR-0009: Resources as a First-Class Primitive](../0009-first-class-resources.md) — inbound trailheads depend on the resource primitive for infrastructure dependencies (stores, email, queue clients",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
-        },
-        {
           "context": "- [ADR-0009: Resources](../0009-first-class-resources.md) -- the resource primitive that packs scope and compose",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- [ADR-0009: Services](../0009-first-class-resources.md): resource lifecycle, factory/dispose/health/mock, and the execution model the library trailhead must project into consumer-facing runtime input",
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md): resource lifecycle, factory/dispose/health/mock, and the execution model the library trailhead must project into consumer-facing ",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
         {
-          "context": "- [ADR-0009: Services](../0009-first-class-resources.md) -- the service pattern for embedding providers",
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) -- the resource pattern for embedding providers",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
+        },
+        {
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource primitive that connectors produce and stores bind through",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
+        },
+        {
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the `resource()` primitive that connectors produce and trails consume",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource primitive that contours relate to through the store binding",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md"
+        },
+        {
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource primitive that bundles group and distribute",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
         },
         {
           "context": "- **[ADR-0009: First-Class Resources](./adr/0009-first-class-resources.md)** — Dependency declarations, lifecycle, testing, governance",
@@ -753,11 +823,6 @@
           "context": "- [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — auth layer follows the shared layer model for cross-cutting enforcement",
           "from": "0012",
           "fromPath": "docs/adr/0012-connector-agnostic-permits.md"
-        },
-        {
-          "context": "- [ADR-0010: Trails-Native Infrastructure Pattern](../0010-native-infrastructure.md) — idempotency layer and deduplication store follow the infrastructure pattern (layer + resource)",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
         },
         {
           "context": "- **[ADR-0010: Trails-Native Infrastructure](./adr/0010-native-infrastructure.md)** — Workspace layout, `.trails/` directory, shared database",
@@ -808,9 +873,14 @@
           "fromPath": "docs/adr/0013-tracing.md"
         },
         {
-          "context": "- [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) — webhook signature verification maps to the permit resolution model",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
+          "context": "[^4]: [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) — verification as permit resolution",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
+        },
+        {
+          "context": "- [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) -- permit declarations that become pipeline-enforced",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-layer-evolution.md"
         },
         {
           "context": "- **[ADR-0012: Connector-Agnostic Permits](./adr/0012-connector-agnostic-permits.md)** — Permission model independent of trailhead",
@@ -862,7 +932,7 @@
           "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
         },
         {
-          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- `--tracing` uses the tracing vocabulary; live tracing during `trails run`, historical tracing via `trails tracing`",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- the tracing primitive; live tracing during `trails run`, historical tracing via `trails trace`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         },
@@ -872,12 +942,7 @@
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- [ADR-0013: Tracing](../0013-tracing.md) — inbound trailhead execution recording uses the tracing system",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-inbound-event-trailheads.md"
-        },
-        {
-          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- telemetry primitives that resources can carry and trailhead",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- tracing primitives that resources can carry",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
         },
@@ -887,7 +952,7 @@
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- [ADR-0013: Tracing](../0013-tracing.md) — tracing records fire provenance on every activation",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) — tracing records activation provenance on every execution",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
@@ -902,14 +967,24 @@
           "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
-          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- tracing records async trail results and provides the idempotency store for delivery deduplication",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-webhooks-and-connectors.md"
-        },
-        {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- observability and replay buffer backing store",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracing -- Runtime Recording Primitive](../0013-tracing.md) -- recording that becomes a pipeline stage",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-layer-evolution.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) — runtime recording that powers version traffic monitoring",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-trail-versioning.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) — the decision this supersedes. The architectural choices (flat records, callback-only manual API, root-level sampling, crossing propagation through execution",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-unified-observability.md"
         },
         {
           "context": "- **[ADR-0013: Tracing](./adr/0013-tracing.md)** — Runtime recording primitive",
@@ -944,6 +1019,11 @@
           "context": "- [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) — the `trails.db` foundation",
           "from": "0018",
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
+        },
+        {
+          "context": "- [ADR-0014: Core Database Primitive](../0014-core-database-primitive.md) — the database primitive that store builds on",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
         },
         {
           "context": "- **[ADR-0014: Core Database Primitive](./adr/0014-core-database-primitive.md)** — Shared `trails.db`, subsystem schema versioning",
@@ -1014,6 +1094,36 @@
           "fromPath": "docs/adr/0022-drizzle-store-connector.md"
         },
         {
+          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) -- the store abstraction that search extends",
+          "from": "20260401",
+          "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
+        },
+        {
+          "context": "[ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) established `store()` as the persistence declaration and schema-to-table derivation as the mechanism. [ADR-0022: Drizzle B",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
+        },
+        {
+          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract that connectors bind to concrete backends",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
+          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract that can derive from contours instead of standalone schemas",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md"
+        },
+        {
+          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store schema that `deriveTrail()` reads from",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
+        },
+        {
+          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract that bundle resources satisfy",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
+        },
+        {
           "context": "- **[ADR-0016: Schema-Derived Persistence](./adr/0016-schema-derived-persistence.md)** — `store()` declaration, connector binding, fixtures",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1051,6 +1161,31 @@
           "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — the resolved graph and lockfile must remain established and queryable",
           "from": "0021",
           "fromPath": "docs/adr/0021-draft-state-stays-out-of-the-resolved-graph.md"
+        },
+        {
+          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- the lockfile captures composition shapes including parallel crossing patterns",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
+        },
+        {
+          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
+        },
+        {
+          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- the lockfile captures resolved visibility state after all overrides are applied",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
+        },
+        {
+          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- captures WebSocket trailhead configuration in the resolved topo graph",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        },
+        {
+          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — the lockfile that captures version state",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-trail-versioning.md"
         },
         {
           "context": "- **[ADR-0017: The Serialized Topo Graph](./adr/0017-serialized-topo-graph.md)** — Lockfile as resolved graph",
@@ -1178,6 +1313,21 @@
       "depends_on": ["16", "9"],
       "inbound": [
         {
+          "context": "[ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) established `store()` as the persistence declaration and schema-to-table derivation as the mechanism. [ADR-0022: Drizzle B",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
+        },
+        {
+          "context": "- [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md) — the first connector implementation, currently a subpath of `@ontrails/store`",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
+          "context": "- [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md) — the first connector, now understood as a single-resource bundle",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
+        },
+        {
           "context": "- **[ADR-0022: Drizzle Store Connector](./adr/0022-drizzle-store-connector.md)** — Drizzle binds schema-derived stores to SQLite",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1200,6 +1350,46 @@
           "context": "The test is sharper than \"does this concept belong to the story Trails tells?\" The current heuristic, set by [ADR-0023](0023-simplifying-the-trails-lexicon.md), is:",
           "from": "0001",
           "fromPath": "docs/adr/0001-naming-conventions.md"
+        },
+        {
+          "context": "> **Status update (2026-04-08):** Originally landed as \"Tracker\" and renamed to \"Tracing\" by [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md), implemented via TRL-196",
+          "from": "0013",
+          "fromPath": "docs/adr/0013-tracing.md"
+        },
+        {
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) -- the lexicon renames; note that `resource` in this ADR refers to the distribution unit, distinct from `resourc",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
+        },
+        {
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) -- the lexicon renames that apply to pack field names (`events` → `signals`, `services` → `resources`)",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
+        },
+        {
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md): the lexicon renames that apply here (`services` → `resources`, `follow` → `cross`, `events` → `signals`)",
+          "from": "20260401",
+          "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
+        },
+        {
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the vocabulary→lexicon rename that this structure codifies",
+          "from": "20260406",
+          "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
+        },
+        {
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the naming heuristic that `with-*` follows",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the naming heuristic and `pattern` as the trail's declared operational shape",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md"
+        },
+        {
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the `pattern` field and `derive*` grammar rule",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
         },
         {
           "context": "- **[ADR-0023: Simplifying the Trails Lexicon](./adr/0023-simplifying-the-trails-lexicon.md)** — Brand-vs-plain heuristic, four pre-1.0 renames, vocabulary → lexicon",

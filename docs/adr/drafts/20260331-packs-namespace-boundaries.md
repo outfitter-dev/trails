@@ -5,7 +5,7 @@ status: draft
 created: 2026-03-31
 updated: 2026-04-02
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [3, 9]
+depends_on: [3, 9, 23]
 ---
 
 # ADR: Packs as Namespace Boundaries
@@ -14,9 +14,9 @@ depends_on: [3, 9]
 
 ### The gap between trails and apps
 
-Trails has two compositional units: the trail (atomic operation) and the topo (the app). A trail defines typed input-to-Result behavior. A topo collects trails, events, and services into a queryable topology that trailheads can render.
+Trails has two compositional units: the trail (atomic operation) and the topo (the app). A trail defines typed input-to-Result behavior. A topo collects trails, signals, and resources into a queryable topology that trailheads can render.
 
-Between these two, there's a missing layer. Real applications organize capability into domains: GitHub operations, inbox management, billing, notifications. Each domain has its own trails, resources, config requirements, and events. Today, these domains are plain TypeScript modules passed to `topo()`. The framework discovers trails and events via module scanning. It works, but the module has no identity, no boundary, and no meta. The framework doesn't know "these 12 trails and 2 resources belong together as the GitHub capability."
+Between these two, there's a missing layer. Real applications organize capability into domains: GitHub operations, inbox management, billing, notifications. Each domain has its own trails, resources, config requirements, and signals. Today, these domains are plain TypeScript modules passed to `topo()`. The framework discovers trails and signals via module scanning. It works, but the module has no identity, no boundary, and no meta. The framework doesn't know "these 12 trails and 2 resources belong together as the GitHub capability."
 
 This matters because:
 
@@ -47,7 +47,7 @@ This pattern (from the Graphite/Git analogy) requires two things from packs:
 
 ### Why `pack()` now
 
-Config composition, visibility defaults, resource namespacing, event ownership, and testing boundaries all point to the same missing concept: a named container between trail and topo that carries identity and metadata. Each of these patterns has emerged independently — developers namespace resources by convention, config schemas scope by prefix, visibility annotations repeat across related trails. This ADR introduces `pack()` as a new primitive to formalize the boundary these patterns already imply.
+Config composition, visibility defaults, resource namespacing, signal ownership, and testing boundaries all point to the same missing concept: a named container between trail and topo that carries identity and metadata. Each of these patterns has emerged independently — developers namespace resources by convention, config schemas scope by prefix, visibility annotations repeat across related trails. This ADR introduces `pack()` as a new primitive to formalize the boundary these patterns already imply.
 
 ## Decision
 
@@ -63,7 +63,7 @@ export const githubCore = pack('github.core', {
   config: githubConfigSchema,
   resources: [githubClient],
   trails: [authenticate, verifyWebhook, listRepos, getUser],
-  events: [webhookReceived],
+  signals: [webhookReceived],
 });
 ```
 
@@ -77,7 +77,7 @@ The first argument is the pack name, following the dotted namespace convention. 
 | `config` | `ZodObject` | `undefined` | Pack-level config schema. Composed into app config under the pack name. |
 | `resources` | `Resource[]` | `[]` | Resources this pack provides. |
 | `trails` | `Trail[]` | `[]` | Trails this pack contains. |
-| `events` | `Event[]` | `[]` | Events this pack declares. |
+| `signals` | `Signal[]` | `[]` | Signals this pack declares. |
 | `requires` | `Pack[]` | `[]` | Other packs this pack depends on. Validated at topo construction. |
 
 All fields except the name are optional. A minimal pack is just a name and some trails:
@@ -136,7 +136,7 @@ The dependency is by pack identity (the Pack object), not by name string. This i
 
 `requires` supports two patterns:
 
-**Self-contained packs** provide their own services and have no requires. They compose into any topo independently.
+**Self-contained packs** provide their own resources and have no requires. They compose into any topo independently.
 
 **Layered packs** require a foundation pack. The domain pack `github.pull-requests` requires the SDK pack `github.core` for its client resource. The product pack `firewatch.inbox` requires domain packs for its cross-provider composition. Each layer adds its opinion on top of the previous layer's capability.
 
@@ -186,7 +186,7 @@ const app = topo('firewatch',
 );
 ```
 
-Internally, `topo()` unpacks each Pack: registers its trails, resources, and events, composes its config schema, and validates its `requires`. The resulting Topo is the same flat topology that trailheads, survey, and the warden operate on. Packs are a composition-time concept, not a runtime concept.
+Internally, `topo()` unpacks each Pack: registers its trails, resources, and signals, composes its config schema, and validates its `requires`. The resulting Topo is the same flat topology that trailheads, survey, and the warden operate on. Packs are a composition-time concept, not a runtime concept.
 
 However, the topo retains pack membership meta. Survey can report "this trail belongs to the `github.core` pack." The warden can enforce pack boundaries. CLI help can group by pack. The information is preserved for introspection without changing the runtime model.
 
@@ -209,19 +209,19 @@ const app = topo('firewatch',
 
 The pack author provides sensible defaults. The consuming app adapts activation to its operational context without forking the pack. Survey reports which triggers are overridden and by whom.
 
-### Event ownership and namespace scoping
+### Signal ownership and namespace scoping
 
-Events are pack-scoped. A pack owns events in its namespace. This is non-negotiable — it's what makes packs portable and self-contained.
+Signals are pack-scoped. A pack owns signals in its namespace. This is non-negotiable — it's what makes packs portable and self-contained.
 
-The `billing` pack owns `billing.*` events. The `notification` pack owns `notification.*` events. Composing both into a topo cannot produce namespace collisions because each pack owns its vocabulary. If a consuming app needs to map an event to a different name, that's an override at the app level, not a reason to hoist events out of the pack.
+The `billing` pack owns `billing.*` signals. The `notification` pack owns `notification.*` signals. Composing both into a topo cannot produce namespace collisions because each pack owns its vocabulary. If a consuming app needs to map a signal to a different name, that's an override at the app level, not a reason to hoist signals out of the pack.
 
-Events within a pack follow the same progressive disclosure as everything else:
+Signals within a pack follow the same progressive disclosure as everything else:
 
 ```typescript
 // Stage 1: Event is derived from the emitting trail
 // The schema is captured from the typed payload in ctx.signal()
 const processWebhook = trail('github.webhook.process', {
-  signals: ['github.webhook.received'],
+  fires: ['github.webhook.received'],
   blaze: async (input, ctx) => {
     ctx.signal('github.webhook.received', { action: input.action, payload: input.body });
     return Result.ok({ processed: true });
@@ -235,12 +235,12 @@ const webhookReceived = signal('github.webhook.received', {
 });
 
 const githubCore = pack('github.core', {
-  events: [webhookReceived],
+  signals: [webhookReceived],
   trails: [processWebhook],
 });
 ```
 
-Pack-level `signal()` declarations signal "this event is part of the pack's public contract" the same way trail visibility signals "this trail is part of the pack's public API." Events that are only emitted and consumed within the pack don't need extraction — they're internal implementation details.
+Pack-level `signal()` declarations indicate "this signal is part of the pack's public contract" the same way trail visibility indicates "this trail is part of the pack's public API." Signals that are only emitted and consumed within the pack don't need extraction — they're internal implementation details.
 
 ### The SDK wrapping pattern
 
@@ -306,7 +306,7 @@ Packs are testable in isolation:
 import { testExamples } from '@ontrails/testing';
 
 testExamples(githubCore);         // tests the SDK wrapper pack
-testExamples(githubPullRequests); // tests the domain pack (mock services from required packs)
+testExamples(githubPullRequests); // tests the domain pack (mock resources from required packs)
 testExamples(firewatchInbox);     // tests the product pack
 ```
 
@@ -339,8 +339,8 @@ The warden enforces pack boundaries:
 - **Progressive adoption.** A bare module still works. `topo('myapp', myModule)` keeps working. Packs are opt-in. Wrapping a module in `pack()` adds boundary semantics without changing the trails.
 - **Visibility defaults compound.** An SDK wrapper pack with `visibility: 'internal'` eliminates per-trail annotation for the common case. The visibility ADR and the pack ADR multiply each other's value.
 - **Config composition is formalized.** The pack-level config scoping from the config ADR gains a proper container. Config schemas, env prefixes, and generated artifacts all key off the pack boundary.
-- **Reuse is realistic.** A pack carries everything needed for independent use: trails, resources, config, events, requires. Publishing a pack (as an npm package or a scaffoldable template) is publishing capability, not just code.
-- **Events decouple packs.** Packs that need to communicate don't need direct crossing dependencies. A billing pack emits `billing.payment-completed`. A notification pack triggers on it. Neither imports the other. They're connected by the event contract in the topo. The Events Runtime provides the emission and routing. Packs provide the boundaries.
+- **Reuse is realistic.** A pack carries everything needed for independent use: trails, resources, config, signals, requires. Publishing a pack (as an npm package or a scaffoldable template) is publishing capability, not just code.
+- **Signals decouple packs.** Packs that need to communicate don't need direct crossing dependencies. A billing pack fires `billing.payment-completed`. A notification pack activates on it. Neither imports the other. They're connected by the signal contract in the topo. The signal system provides the emission and routing. Packs provide the boundaries.
 - **The SDK wrapping pattern is clean.** Internal SDK trails, public domain trails, and product-level composition all have natural homes. Each layer adds opinion without ceremony.
 
 ### Tradeoffs
@@ -356,7 +356,7 @@ The warden enforces pack boundaries:
 
 - **Whether `requires` can specify version constraints.** Currently, `requires` is by pack identity (the imported Pack object). Version compatibility is a distribution concern, not a composition concern.
 - **The `depot` or registry concept.** Pack discovery and ecosystem tooling are separate from the pack primitive. The pack definition must carry enough information for distribution, but the distribution mechanism is a separate decision.
-- **Whether packs support sub-packs or nesting.** A pack is flat: it contains trails, resources, and events. A pack can require other packs, but it doesn't contain them. Nesting would add complexity without clear benefit.
+- **Whether packs support sub-packs or nesting.** A pack is flat: it contains trails, resources, and signals. A pack can require other packs, but it doesn't contain them. Nesting would add complexity without clear benefit.
 
 ## References
 
@@ -365,10 +365,15 @@ The warden enforces pack boundaries:
 - [ADR-0009: Resources](../0009-first-class-resources.md) -- the resource primitive that packs scope and compose
 - ADR: Trail Visibility and Trailhead Filtering (draft) -- packs set default visibility; this ADR depends on it
 - ADR: Pack Provisioning (draft) -- distribution mechanism for packs; depends on this ADR
-- ADR: Typed Signal Emission (draft) -- events are the primary decoupling mechanism between packs
+- ADR: Typed Signal Emission (draft) -- signals are the primary decoupling mechanism between packs
 - ADR: Reactive Trail Activation (draft) -- packs carry trigger declarations; activation registers when the pack composes into a topo
-- ADR: External Trailheads as Trail Contracts (draft) -- rigged trails compose into packs with the same layering pattern
+- ADR: External Trailheads as Trails (draft) -- rigged trails compose into packs with the same layering pattern
 - [ADR-0013: Tracing](../0013-tracing.md) -- observability primitive; packs scope tracing emission boundaries
+- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) -- the lexicon renames that apply to pack field names (`events` → `signals`, `services` → `resources`)
+- [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) -- the bundling mechanism for pack and connector resources; packs distribute bundles
+- [ADR: Contours as First-Class Domain Objects](20260409-contours-as-first-class-domain-objects.md) (draft) -- contours define the domain objects that pack trails operate on
+- [ADR: Connector Extraction and the `with-*` Packaging Model](20260409-connector-extraction-and-the-with-packaging-model.md) (draft) -- connectors are extracted from core packages; packs compose with connectors via bundles
+- [ADR: Layer Evolution](20260409-layer-evolution.md) (draft) -- layers gain input schemas and three attachment levels; packs can carry trail-level layers
 - ADR: The Serialized Topo Graph (draft) -- lockfile records pack membership and trailhead bindings
 - [docs/lexicon.md](../../lexicon.md) -- `pack` reserved term
 - [docs/horizons.md](../../horizons.md) -- packs listed as mid-term direction

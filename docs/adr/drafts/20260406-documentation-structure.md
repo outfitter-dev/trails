@@ -3,7 +3,7 @@ slug: documentation-structure
 title: Documentation structure
 status: draft
 created: 2026-04-06
-updated: 2026-04-06
+updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -305,4 +305,5 @@ This replaces numeric ordering. Documents can be inserted by updating the `prev`
 
 - [Tenets](../../tenets.md) — documentation tiers: Tenets → Decisions → Fieldguides → Trail Notes
 - [ADR-0001: Naming conventions](../0001-naming-conventions.md) — naming principles that apply to documentation paths
+- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the vocabulary→lexicon rename that this structure codifies
 - [ADR-0000: Core premise](../0000-core-premise.md) — "author what's new, derive what's known" applies to documentation: author the source tree, derive the site

@@ -5,7 +5,7 @@ status: draft
 created: 2026-04-01
 updated: 2026-04-02
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [8, 9, 6]
+depends_on: [6, 8, 9, 23]
 ---
 
 # ADR: Compiled Pack Trailhead
@@ -26,9 +26,9 @@ The core principle says: if the information exists in the system, don't ask the 
 
 ### Why the pack is the right compilation unit
 
-A trail is too granular for a library boundary. A single `validate` function doesn't form a useful package. The pack is the natural module: it owns the resource graph, the event topology, the namespace, and the configuration trailhead. It's the unit of coherence.
+A trail is too granular for a library boundary. A single `validate` function doesn't form a useful package. The pack is the natural module: it owns the resource graph, the signal topology, the namespace, and the configuration trailhead. It's the unit of coherence.
 
-Compiling at the pack level means services resolve once at construction (not per-call), internal composition via follows stays hidden behind the public API, and the pack's namespace maps directly to the library's API trailhead. This matches how every real library works: you instantiate a client, then call methods.
+Compiling at the pack level means resources resolve once at construction (not per-call), internal composition via crosses stays hidden behind the public API, and the pack's namespace maps directly to the library's API trailhead. This matches how every real library works: you instantiate a client, then call methods.
 
 A topo without pack structure can still compile, but the pack is where this design wants to go. If a pack doesn't make sense as a library, that's useful feedback on the pack design.
 
@@ -44,7 +44,7 @@ The library trailhead compiles a pack (or topo) into a publishable npm package. 
 
 The compile step walks the pack and signals:
 
-- A **factory function** (when the pack declares services or config) or **bare exports** (when it doesn't)
+- A **factory function** (when the pack declares resources or config) or **bare exports** (when it doesn't)
 - A **method per trail**, typed from input/output schemas, with JSDoc derived from meta and examples
 - **TypeScript declarations** (`.d.ts`)
 - **Error classes** re-exported from the error taxonomy, mapped to standard throws
@@ -53,9 +53,9 @@ The library trailhead follows the same derivation properties as every other trai
 
 ### Part 2: The runtime shape
 
-#### Factory pattern (packs with services or config)
+#### Factory pattern (packs with resources or config)
 
-When a pack declares services or config, the compiled library exports a factory function. The factory projects pack-level dependencies into consumer-supplied inputs. Config schemas become configuration parameters. The exact projection shape for services is intentionally left flexible so the compiler can map resource declarations into the most idiomatic constructor interface (concrete connector instances, config-driven creation, or some mix).
+When a pack declares resources or config, the compiled library exports a factory function. The factory projects pack-level dependencies into consumer-supplied inputs. Config schemas become configuration parameters. The exact projection shape for resources is intentionally left flexible so the compiler can map resource declarations into the most idiomatic constructor interface (concrete connector instances, config-driven creation, or some mix).
 
 ```typescript
 import { createEmailKit } from '@acme/email-kit'
@@ -71,9 +71,9 @@ await email.send({ to: '...', body: '...' })
 
 The factory name follows the `create*` convention from ADR-001. Method names come from trail IDs. The returned instance is a **runtime instance** with lifecycle ownership, not just a bag of functions.
 
-#### Bare exports (packs with no services or config)
+#### Bare exports (packs with no resources or config)
 
-When a pack has no service or config declarations, the compiled library exports bare async functions. No factory, no construction step. Just import and call.
+When a pack has no resource or config declarations, the compiled library exports bare async functions. No factory, no construction step. Just import and call.
 
 ```typescript
 import { validate, normalize } from '@acme/email-utils'
@@ -85,11 +85,11 @@ The compiler determines which pattern to use from the pack's declarations. No co
 
 #### Lifecycle ownership
 
-When a pack declares services with disposal, the generated runtime instance owns their lifecycle. This means:
+When a pack declares resources with disposal, the generated runtime instance owns their lifecycle. This means:
 
-- The factory (`createEmailKit(...)`) initializes services
+- The factory (`createEmailKit(...)`) initializes resources
 - The instance exposes `dispose()` for teardown
-- Service health and startup failures trailhead as thrown errors from the factory (consistent with how `trailhead()` handles builder failures on other trailheads)
+- Resource health and startup failures surface as thrown errors from the factory (consistent with how `trailhead()` handles builder failures on other trailheads)
 
 ```typescript
 const email = createEmailKit({ smtp, db })
@@ -101,9 +101,9 @@ await email.send({ to: '...', body: '...' })
 await email.dispose()
 ```
 
-This makes the compiled library instance effectively a generated connector runtime. That's okay. The consumer sees a client with typed methods and a disposal hook. Internally, it's a pack with trailheads stripped away and services wired through.
+This makes the compiled library instance effectively a generated connector runtime. That's okay. The consumer sees a client with typed methods and a disposal hook. Internally, it's a pack with trailheads stripped away and resources wired through.
 
-When the compiled pack owns disposable resources, the generated instance exposes `dispose()`. Packs with no owned teardown do not project lifecycle they do not need.
+When the compiled pack owns disposable resources, the generated instance exposes `dispose()`. Packs with no owned disposal do not project lifecycle they do not need.
 
 ### Part 3: What crosses the boundary, and what doesn't
 
@@ -111,7 +111,7 @@ When the compiled pack owns disposable resources, the generated instance exposes
 | --- | --- |
 | TypeScript types (input, output) | Result type (unwrapped to return/throw) |
 | Error classes (as standard Error subclasses) | TrailContext (dissolved into constructor params) |
-| JSDoc (from meta, descriptions, examples) | Follow declarations (internal wiring) |
+| JSDoc (from meta, descriptions, examples) | Cross declarations (internal wiring) |
 | `dispose()` when pack owns disposable resources | Warden rules (compile-time only) |
 | | Layers (internal pipeline concern) |
 
@@ -121,7 +121,7 @@ The principle: **the framework disappears, the contract survives.** The primary 
 
 The compiled library should not require consumers to install `@ontrails/*` packages. Error classes, type utilities, and any runtime shims needed should be generated or inlined into the compiled output.
 
-This is a strong preference, not a sacred law. There may be value in a tiny stable runtime shim for error base classes or event subscription primitives in the future. But the default posture is: the compiler output stands alone.
+This is a strong preference, not a sacred law. There may be value in a tiny stable runtime shim for error base classes or signal subscription primitives in the future. But the default posture is: the compiler output stands alone.
 
 ### Part 4: Schema exports as opt-in secondary paths
 
@@ -250,7 +250,7 @@ The `package.json` is itself a projection of the pack:
 
 - Pack name gives the package name
 - Trail IDs give the method names
-- Service declarations inform the types (and potential peer dependencies)
+- Resource declarations inform the types (and potential peer dependencies)
 - Zod version constraint flows from the framework
 - The `exports` map is deterministic from the compile configuration
 - If CLI is bundled, `bin` is derived from the pack name
@@ -281,16 +281,16 @@ All derived. The developer authored trails. The framework emitted a package.
 
 **A CLI they didn't have to build.** If the library ships a CLI companion, the consumer can use it from scripts, CI, or the terminal. No installation required. Same contract, different trailhead.
 
-**They don't need to know about Trails.** The consumer never sees Result, TrailContext, `crosses` declarations, or warden rules. The framework is invisible.
+**They don't need to know about Trails.** The consumer never sees `Result`, `TrailContext`, `crosses` declarations, or warden rules. The framework is invisible.
 
 ### What this sharpens about packs
 
 This decision gives a stronger definition to the pack concept. A pack is not just "a scoped group of trails for organization." A pack is a **compilable capability boundary.** This creates useful design pressure:
 
 - **Pack scope = API trailhead.** Which trails are public? The pack boundary answers this.
-- **Pack services = constructor dependencies.** Are services scoped coherently? The factory signature reveals whether the dependency graph makes sense to an outsider.
+- **Pack resources = constructor dependencies.** Are resources scoped coherently? The factory signature reveals whether the dependency graph makes sense to an outsider.
 - **Pack config = configuration parameters.** Does the config schema produce a reasonable constructor interface?
-- **Pack events = future observable interface.** Which events are part of the external contract vs. internal announcements?
+- **Pack signals = future observable interface.** Which signals are part of the external contract vs. internal announcements?
 
 If a pack doesn't make sense as a library, that's feedback on the pack design, not on the library trailhead.
 
@@ -300,9 +300,9 @@ If a pack doesn't make sense as a library, that's feedback on the pack design, n
 
 **JSON Schema fidelity.** Not all Zod features map cleanly to JSON Schema. Refinements, transforms, and complex discriminated unions may produce lossy conversions. The Zod schema (via `./schemas`) remains the source of truth. JSON Schema is a convenience projection.
 
-**Service-to-constructor mapping.** The factory needs to project resource declarations into something the consumer can provide. The right mapping depends on the service: some are best supplied as concrete instances, others as config that the factory uses to create them internally. The compiler needs to make this idiomatic, and the exact shape will emerge as the implementation matures. The consumer still needs to understand what each service expects, which is inherent to any library with infrastructure dependencies. Trails makes it explicit rather than hidden.
+**Resource-to-constructor mapping.** The factory needs to project resource declarations into something the consumer can provide. The right mapping depends on the resource: some are best supplied as concrete instances, others as config that the factory uses to create them internally. The compiler needs to make this idiomatic, and the exact shape will emerge as the implementation matures. The consumer still needs to understand what each resource expects, which is inherent to any library with infrastructure dependencies. Trails makes it explicit rather than hidden.
 
-**Lifecycle responsibility.** When a compiled pack owns disposable services, the generated runtime instance is more than a function bundle. The consumer takes on the responsibility of calling `dispose()`. The alternative (not owning lifecycle) would push disposal back onto the consumer in a less structured way. Packs without disposable services don't carry this weight.
+**Lifecycle responsibility.** When a compiled pack owns disposable resources, the generated runtime instance is more than a function bundle. The consumer takes on the responsibility of calling `dispose()`. The alternative (not owning lifecycle) would push disposal back onto the consumer in a less structured way. Packs without disposable resources don't carry this weight.
 
 **Compiler complexity.** The conceptual model is straightforward. The engineering difficulty lies in flattening a rich pack graph into a standalone package without leaking internal types, runtime assumptions, or framework dependencies. In practice, declaration flattening for clean `.d.ts` output, shared-type resolution so internal types don't trailhead awkwardly, extracting just enough execution runtime for the validate-resolve-compose-run pipeline, and lifecycle behavior in short-lived or serverless environments are likely to be the hardest parts of the compiler. Generated code also has a maintenance cost even when the generation is automated: the output needs to be correct, readable, and debuggable.
 
@@ -311,12 +311,12 @@ If a pack doesn't make sense as a library, that's feedback on the pack design, n
 - The specific CLI command or API for triggering compilation (e.g., `trails compile`, a `blaze` variant, or a separate tool)
 - Whether the library trailhead ships as a new `@ontrails/library` package or extends an existing package
 - How versioning (post-v1.2) interacts with compiled library semver. Schema changes are detectable, so breaking-change detection is feasible, but the mechanism is not specified here
-- **Event subscription semantics.** The current `signal()` primitive defines payload schemas and provenance. Whether the compiled library exposes an `.on()` subscription interface depends on the runtime event model, which is being designed in a separate event ADR. This ADR does not promise event subscriptions at the library trailhead. Once the event ADR lands, this decision should be revisited to determine how (and whether) events project through the library trailhead as an additive capability
+- **Signal subscription semantics.** The current `signal()` primitive defines payload schemas and provenance. Whether the compiled library exposes an `.on()` subscription interface depends on the runtime signal model, which is being designed in a separate ADR. This ADR does not promise signal subscriptions at the library trailhead. Once that ADR lands, this decision should be revisited to determine how (and whether) signals project through the library trailhead as an additive capability
 - Whether `depot` (the pack registry concept) plays a role in library discovery or distribution
-- How service mocking works across the library boundary. The mock factory exists on the resource definition, but whether it's re-exported for consumer testing is a separate question
+- How resource mocking works across the library boundary. The mock factory exists on the resource definition, but whether it's re-exported for consumer testing is a separate question
 - The exact JSON Schema format (single schema vs. per-trail schemas, OpenAPI vs. plain JSON Schema)
 - Whether non-TypeScript compilation targets (Python stubs, Go interfaces) are feasible as future trailheads
-- Whether a tiny `@ontrails/runtime` package eventually becomes worthwhile for shared error base classes or event primitives. The current decision is to inline/generate everything, but this may evolve
+- Whether a tiny `@ontrails/runtime` package eventually becomes worthwhile for shared error base classes or signal primitives. The current decision is to inline/generate everything, but this may evolve
 
 ## References
 
@@ -324,7 +324,12 @@ If a pack doesn't make sense as a library, that's feedback on the pack design, n
 - [ADR-0001: Naming Conventions](../0001-naming-conventions.md): `create*` factory convention, `derive*` prefix for framework derivations, `build*`/`to*` trailhead wiring pattern
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-layers-run; the library trailhead delegates to the same pipeline
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md): the derivation properties (pure, deterministic, explicit lookup tables, overridable) that the library trailhead must also follow
-- [ADR-0009: Services](../0009-first-class-resources.md): resource lifecycle, factory/dispose/health/mock, and the execution model the library trailhead must project into consumer-facing runtime inputs
-- ADR: Typed Signal Emission (draft) -- event payload schemas and provenance model; the library trailhead's event projection depends on where that ADR lands
-- [Vocabulary: `pack`](../../lexicon.md): the distributable capability bundle concept, sharpened here as a compilable library boundary
+- [ADR-0009: First-Class Resources](../0009-first-class-resources.md): resource lifecycle, factory/dispose/health/mock, and the execution model the library trailhead must project into consumer-facing runtime inputs
+- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md): the lexicon renames that apply here (`services` → `resources`, `follow` → `cross`, `events` → `signals`)
+- ADR: Typed Signal Emission (draft) -- signal payload schemas and provenance model; the library trailhead's signal projection depends on where that ADR lands
+- [ADR: Connector Extraction and the `with-*` Packaging Model](20260409-connector-extraction-and-the-with-packaging-model.md) (draft) -- connectors as `@ontrails/with-*` packages; compiled packs may depend on connectors
+- [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) -- the bundling mechanism for resources; compiled packs project bundles into constructor parameters
+- [ADR: Contours as First-Class Domain Objects](20260409-contours-as-first-class-domain-objects.md) (draft) -- contours as the domain objects pack trails operate on; schema reuse feeds the compiled library's type exports
+- [ADR: Layer Evolution](20260409-layer-evolution.md) (draft) -- layers gain input schemas; the compiled library trailhead must project layer inputs alongside trail inputs
+- [Lexicon: `pack`](../../lexicon.md): the distributable capability bundle concept, sharpened here as a compilable library boundary
 - [Horizons: Packs](../../horizons.md): the mid-term direction for packs as a distributable unit
