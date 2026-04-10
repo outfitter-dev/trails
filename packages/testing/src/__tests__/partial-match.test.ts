@@ -85,6 +85,36 @@ describe('assertPartialMatch', () => {
       });
       expect(() => assertPartialMatch(result, { tags: ['a', 'z'] })).toThrow();
     });
+
+    test('fails when expected has duplicate but actual has only one match', () => {
+      const result = Result.ok({
+        tags: ['a', 'b'],
+      });
+      expect(() => assertPartialMatch(result, { tags: ['a', 'a'] })).toThrow();
+    });
+
+    test('passes when expected has duplicate and actual has enough matches', () => {
+      const result = Result.ok({
+        tags: ['a', 'a', 'b'],
+      });
+      assertPartialMatch(result, { tags: ['a', 'a'] });
+    });
+
+    test('fails when expected objects have duplicates but actual has only one', () => {
+      const result = Result.ok({
+        items: [{ id: 1 }],
+      });
+      expect(() =>
+        assertPartialMatch(result, { items: [{ id: 1 }, { id: 1 }] })
+      ).toThrow();
+    });
+
+    test('passes when expected objects have duplicates and actual has enough', () => {
+      const result = Result.ok({
+        items: [{ id: 1 }, { id: 1 }, { id: 2 }],
+      });
+      assertPartialMatch(result, { items: [{ id: 1 }, { id: 1 }] });
+    });
   });
 
   describe('error on non-ok result', () => {

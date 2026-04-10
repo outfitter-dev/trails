@@ -8,8 +8,10 @@
 
 import { describe, test } from 'bun:test';
 
-import type { Result, Topo } from '@ontrails/core';
-import { executeTrail } from '@ontrails/core';
+import type { AnyTrail, CrossFn, Result, Topo } from '@ontrails/core';
+import { executeTrail, InternalError, Result as R } from '@ontrails/core';
+
+import { buildCrossValidationSchema } from './context.js';
 
 import { assertPartialMatch, expectOk } from './assertions.js';
 import type { RefToken, ScenarioStep } from './types.js';
@@ -159,6 +161,32 @@ const assertStepExpectations = async (
 };
 
 /**
+ * Build a cross function that resolves trails from the topo and executes
+ * them through the standard pipeline. Mirrors the pattern in crosses.ts
+ * `executeFromMap` but without recording or injection.
+ */
+const createScenarioCross = (app: Topo): CrossFn => {
+  const cross: CrossFn = ((
+    idOrTrail: string | { readonly id: string },
+    input: unknown
+  ) => {
+    const id = typeof idOrTrail === 'string' ? idOrTrail : idOrTrail.id;
+    const trailDef: AnyTrail | undefined = app.get(id);
+    if (trailDef === undefined) {
+      return Promise.resolve(
+        R.err(new InternalError(`cross: trail "${id}" not found in topo`))
+      );
+    }
+    return executeTrail(trailDef, input, {
+      ctx: { cross },
+      topo: app,
+      validationSchema: buildCrossValidationSchema(trailDef),
+    });
+  }) as CrossFn;
+  return cross;
+};
+
+/**
  * Execute a single scenario step: run the trail, assert expectations,
  * and record outputs.
  */
@@ -168,8 +196,12 @@ const executeStep = async (
   app: Topo,
   outputs: Map<string, unknown>
 ): Promise<void> => {
+  const scenarioCross = createScenarioCross(app);
   const resolvedInput = resolveRefs(step.input, outputs);
-  const result = await executeTrail(step.cross, resolvedInput, { topo: app });
+  const result = await executeTrail(step.cross, resolvedInput, {
+    ctx: { cross: scenarioCross },
+    topo: app,
+  });
 
   if (result.isErr()) {
     throw new Error(

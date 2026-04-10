@@ -95,35 +95,53 @@ export const assertSchemaMatch = (
 const formatLoc = (path: readonly string[]): string =>
   path.length > 0 ? path.join('.') : 'root';
 
-/** Assert that every element in `expected` exists in `actual` (order-independent). */
+/** Find an unconsumed actual element that deep-matches the expected object. */
+const findObjectMatch = (
+  actual: unknown[],
+  elem: object,
+  consumed: ReadonlySet<number>,
+  path: readonly string[],
+  index: number
+): number =>
+  actual.findIndex((a, idx) => {
+    if (consumed.has(idx)) {
+      return false;
+    }
+    try {
+      // oxlint-disable-next-line no-use-before-define -- mutual recursion with assertSubset
+      assertSubset(a, elem, [...path, `[${String(index)}]`]);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
+/**
+ * Assert that every element in `expected` exists in `actual` (order-independent).
+ *
+ * Tracks consumed indices so that duplicate expected elements each require a
+ * distinct actual element — `['a', 'a']` does not match `['a']`.
+ */
 const assertArraySubset = (
   actual: unknown[],
   expected: unknown[],
   path: readonly string[],
   loc: string
 ): void => {
+  const consumed = new Set<number>();
   for (let i = 0; i < expected.length; i += 1) {
     const elem = expected[i];
-    if (typeof elem === 'object' && elem !== null) {
-      const found = actual.some((a) => {
-        try {
-          // oxlint-disable-next-line no-use-before-define -- mutual recursion with assertSubset
-          assertSubset(a, elem, [...path, `[${String(i)}]`]);
-          return true;
-        } catch {
-          return false;
-        }
-      });
-      if (!found) {
-        throw new Error(
-          `at ${loc}[${String(i)}]: expected array to contain ${JSON.stringify(elem)}`
-        );
-      }
-    } else if (!actual.includes(elem)) {
+    const matchIndex =
+      typeof elem === 'object' && elem !== null
+        ? findObjectMatch(actual, elem, consumed, path, i)
+        : actual.findIndex((a, idx) => !consumed.has(idx) && a === elem);
+
+    if (matchIndex === -1) {
       throw new Error(
-        `at ${loc}: expected array to contain ${JSON.stringify(elem)}`
+        `at ${loc}[${String(i)}]: expected array to contain ${JSON.stringify(elem)}`
       );
     }
+    consumed.add(matchIndex);
   }
 };
 

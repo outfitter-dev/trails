@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
+import type { TrailContext } from '@ontrails/core';
 import { Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -31,8 +32,24 @@ const failTrail = trail('item.fail', {
   output: z.object({}),
 });
 
+/** A trail that uses ctx.cross() to delegate to item.create. */
+const createViaProxy = trail('item.create-via-proxy', {
+  blaze: (input: { name: string }, ctx: TrailContext) => {
+    const crossFn = ctx.cross;
+    if (!crossFn) {
+      return Promise.resolve(Result.err(new Error('ctx.cross is undefined')));
+    }
+    return crossFn(createTrail, input);
+  },
+  crosses: [createTrail],
+  description: 'Delegates to item.create via ctx.cross()',
+  input: z.object({ name: z.string() }),
+  output: z.object({ id: z.string(), name: z.string() }),
+});
+
 const app = topo('scenario-test-app', {
   createTrail,
+  createViaProxy,
   failTrail,
   showTrail,
 } as Record<string, unknown>);
@@ -83,6 +100,16 @@ describe('scenario()', () => {
       cross: createTrail,
       expectedMatch: { name: 'Partial' },
       input: { name: 'Partial' },
+    },
+  ]);
+
+  // oxlint-disable-next-line jest/require-hook -- scenario() registers describe/test blocks, not setup code
+  scenario('step that uses ctx.cross() receives a bound cross function', app, [
+    {
+      as: 'proxied',
+      cross: createViaProxy,
+      expectedMatch: { id: 'g1', name: 'CrossTest' },
+      input: { name: 'CrossTest' },
     },
   ]);
 
