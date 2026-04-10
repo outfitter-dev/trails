@@ -160,9 +160,8 @@ const assertStepExpectations = async (
   const value = expectOk(result);
   if (step.expected !== undefined) {
     const { expect } = await import('bun:test');
-    expect(value).toEqual(step.expected);
-  }
-  if (step.expectedMatch !== undefined) {
+    expect(value).toEqual(resolveRefs(step.expected, outputs));
+  } else if (step.expectedMatch !== undefined) {
     assertPartialMatch(result, resolveRefs(step.expectedMatch, outputs));
   }
   if (step.as !== undefined) {
