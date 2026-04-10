@@ -20,7 +20,7 @@ This means:
 
 ## Branded — Top-Level Primitives
 
-Five terms a developer must internalize before reading a Trails app.
+Six terms a developer must internalize before reading a Trails app.
 
 ### `trail`
 
@@ -57,6 +57,20 @@ const app = topo('myapp', entityModule, searchModule);
 ```
 
 The topo is the center of gravity for discovery, validation, and runtime wiring. More than a registry — it is the queryable graph of everything: trails, relationships, signals, resources.
+
+### `contour`
+
+A first-class domain object with schema, identity, and examples. `contour()` defines the shape of a thing in the domain so trails, stores, tests, and topology tooling can all derive from the same authored source.
+
+```typescript
+const gist = contour('gist', {
+  id: shortId(),
+  description: z.string(),
+  content: z.string(),
+});
+```
+
+A contour is a node in the domain graph. Trails operate on contours. Stores persist contours. Survey and governance can reason about contours as nouns rather than inferring them from repeated trail prefixes.
 
 ### `warden`
 

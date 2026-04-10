@@ -192,64 +192,13 @@
     },
     {
       "created": "2026-04-09",
-      "depends_on": ["0", "1", "3", "9", "16", "23"],
+      "depends_on": ["0", "1", "3", "16", "23", "30"],
       "inbound": [
         {
-          "context": "- [ADR: Contours as First-Class Domain Objects](20260409-contours-as-first-class-domain-objects.md) (draft) — contour-aware `deriveTrail()` that may auto-generate `crossInput`",
-          "from": "0024",
-          "fromPath": "docs/adr/0024-typed-trail-composition.md"
+          "context": "- **Pattern shapes at 1.0.** Toggle and CRUD are clear candidates. Transition, collection, and counter can follow. Which patterns ship initially is a separate design decision — see [ADR: `deriveTrail(",
+          "from": "0030",
+          "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
         },
-        {
-          "context": "- **How trails subpaths work on connectors.** Connectors that contribute trails (health checks, platform-optimized operations) may export them at `@ontrails/with-*/trails`. The design depends on [ADR:",
-          "from": "0029",
-          "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
-        },
-        {
-          "context": "- [ADR: Contours as First-Class Domain Objects](20260409-contours-as-first-class-domain-objects.md) (draft) -- contours define the domain objects that pack trails operate on",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
-        },
-        {
-          "context": "- [ADR: Contours as First-Class Domain Objects](20260409-contours-as-first-class-domain-objects.md) (draft) -- contours as the domain objects pack trails operate on; schema reuse feeds the compiled li",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
-        },
-        {
-          "context": "- [ADR: Contours as First-Class Domain Objects](20260409-contours-as-first-class-domain-objects.md) (draft) -- contours provide the domain object schemas that search declarations annotate",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
-        },
-        {
-          "context": "- **Contour integration.** How `deriveTrail()` interacts with contour declarations — deriving input schemas from contours rather than store schemas — depends on [ADR: Contours as First-Class Domain Ob",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
-        },
-        {
-          "context": "- [ADR: Contours as First-Class Domain Objects](20260409-contours-as-first-class-domain-objects.md) (draft) — contours feed store schemas within bundles",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
-        }
-      ],
-      "number": null,
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md",
-      "slug": "contours-as-first-class-domain-objects",
-      "status": "draft",
-      "superseded_by": null,
-      "title": "Contours as First-Class Domain Objects",
-      "updated": "2026-04-09"
-    },
-    {
-      "created": "2026-04-09",
-      "depends_on": [
-        "0",
-        "1",
-        "3",
-        "16",
-        "23",
-        "contours-as-first-class-domain-objects"
-      ],
-      "inbound": [
         {
           "context": "- [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) -- `deriveTrail()` and `ingest()` factory that produces trails from external input shapes",
           "from": "20260331",
@@ -269,11 +218,6 @@
           "context": "- [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) — trail factories that compose with store schemas (`crud`, `sync`, `reconcile`)",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
-        },
-        {
-          "context": "- **Pattern shapes at 1.0.** Toggle and CRUD are clear candidates. Transition, collection, and counter can follow. Which patterns ship initially is a separate design decision — see [ADR: `deriveTrail(",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md"
         },
         {
           "context": "- [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) — trail factories that produce trails carried by pack bundles",

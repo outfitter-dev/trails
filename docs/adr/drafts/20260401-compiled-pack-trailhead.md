@@ -329,7 +329,7 @@ If a pack doesn't make sense as a library, that's feedback on the pack design, n
 - ADR: Typed Signal Emission (draft) -- signal payload schemas and provenance model; the library trailhead's signal projection depends on where that ADR lands
 - [ADR-0029: Connector Extraction and the `with-*` Packaging Model](../0029-connector-extraction-and-the-with-packaging-model.md) -- connectors as `@ontrails/with-*` packages; compiled packs may depend on connectors
 - [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) -- the bundling mechanism for resources; compiled packs project bundles into constructor parameters
-- [ADR: Contours as First-Class Domain Objects](20260409-contours-as-first-class-domain-objects.md) (draft) -- contours as the domain objects pack trails operate on; schema reuse feeds the compiled library's type exports
+- [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) -- contours as the domain objects pack trails operate on; schema reuse feeds the compiled library's type exports
 - [ADR: Layer Evolution](20260409-layer-evolution.md) (draft) -- layers gain input schemas; the compiled library trailhead must project layer inputs alongside trail inputs
 - [Lexicon: `pack`](../../lexicon.md): the distributable capability bundle concept, sharpened here as a compilable library boundary
 - [Horizons: Packs](../../horizons.md): the mid-term direction for packs as a distributable unit
