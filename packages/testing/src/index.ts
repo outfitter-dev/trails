@@ -12,8 +12,10 @@ export {
   assertFullMatch,
   assertPartialMatch,
   assertSchemaMatch,
+  errResultMatch,
   expectErr,
   expectOk,
+  okResultMatch,
 } from './assertions.js';
 
 // Scenario testing
