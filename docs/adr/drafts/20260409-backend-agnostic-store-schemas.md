@@ -253,7 +253,7 @@ Sync between local files and the database index uses sync trails reacting to cha
 - [ADR-0014: Core Database Primitive](../0014-core-database-primitive.md) — the database primitive that store builds on
 - [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract this ADR generalizes to be backend-agnostic
 - [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md) — the first connector implementation, validating the schema-to-backend pattern
-- [ADR: Connector Extraction and the `with-*` Packaging Model](20260409-connector-extraction-and-the-with-packaging-model.md) (draft) — the packaging model connectors live in
+- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) — the packaging model connectors live in
 - [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) — the bundling mechanism for connector and pack resources, including profile-based overrides
 - [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) — trail factories that compose with store schemas (`crud`, `sync`, `reconcile`)
 - [Tenets: One write, many reads](../../tenets.md) — the governing principle extended to persistence
