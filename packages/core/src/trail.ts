@@ -94,9 +94,8 @@ export interface TrailSpec<I, O, CI = never> {
    * normalized to the signal's id at trail definition time, so
    * `trail.fires` is always `readonly string[]`.
    *
-   * Note: `crosses` is still string-only — only signal references are
-   * loosened here because callers typically have the `Signal` value in
-   * scope at the definition site.
+   * Note: `crosses` also accepts trail objects (normalized to IDs),
+   * following the same pattern as signal references here.
    */
   readonly fires?: readonly (string | AnySignal)[] | undefined;
   /**

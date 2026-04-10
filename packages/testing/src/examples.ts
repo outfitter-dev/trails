@@ -255,6 +255,7 @@ const runCompositionExample = async (
   const result = await executeTrail(trailDef, example.input, {
     ctx: testCtx,
     resources: resources ?? opts?.resources,
+    validationSchema: buildCrossValidationSchema(trailDef),
   });
   assertProgressiveMatch(result, example, output);
 };
