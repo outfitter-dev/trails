@@ -1,7 +1,7 @@
 ---
 slug: composition-testing
 title: Composition Testing
-status: draft
+status: accepted
 created: 2026-04-09
 updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']

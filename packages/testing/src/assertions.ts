@@ -88,6 +88,133 @@ export const assertSchemaMatch = (
 };
 
 // ---------------------------------------------------------------------------
+// Partial Match
+// ---------------------------------------------------------------------------
+
+/** Format a path for error messages. */
+const formatLoc = (path: readonly string[]): string =>
+  path.length > 0 ? path.join('.') : 'root';
+
+/** Assert that every element in `expected` exists in `actual` (order-independent). */
+const assertArraySubset = (
+  actual: unknown[],
+  expected: unknown[],
+  path: readonly string[],
+  loc: string
+): void => {
+  for (let i = 0; i < expected.length; i += 1) {
+    const elem = expected[i];
+    if (typeof elem === 'object' && elem !== null) {
+      const found = actual.some((a) => {
+        try {
+          // oxlint-disable-next-line no-use-before-define -- mutual recursion with assertSubset
+          assertSubset(a, elem, [...path, `[${String(i)}]`]);
+          return true;
+        } catch {
+          return false;
+        }
+      });
+      if (!found) {
+        throw new Error(
+          `at ${loc}[${String(i)}]: expected array to contain ${JSON.stringify(elem)}`
+        );
+      }
+    } else if (!actual.includes(elem)) {
+      throw new Error(
+        `at ${loc}: expected array to contain ${JSON.stringify(elem)}`
+      );
+    }
+  }
+};
+
+/** Assert that every key in `expected` exists in `actual` with a matching value. */
+const assertObjectSubset = (
+  actual: Record<string, unknown>,
+  expected: Record<string, unknown>,
+  path: readonly string[]
+): void => {
+  for (const key of Object.keys(expected)) {
+    if (!(key in actual)) {
+      throw new Error(
+        `at ${[...path, key].join('.')}: key not found in actual`
+      );
+    }
+    // oxlint-disable-next-line no-use-before-define -- mutual recursion with assertSubset
+    assertSubset(actual[key], expected[key], [...path, key]);
+  }
+};
+
+/**
+ * Recursively assert that `actual` is a superset of `expected`.
+ *
+ * - **Scalars:** strict equality.
+ * - **Objects:** every key in `expected` must exist in `actual` with a matching
+ *   value. Extra keys in `actual` are ignored.
+ * - **Arrays:** every element in `expected` must exist in `actual`
+ *   (order-independent subset check).
+ * - **Nested objects:** recursive subset matching.
+ */
+// oxlint-disable-next-line max-statements -- recursive dispatch across four type branches
+const assertSubset = (
+  actual: unknown,
+  expected: unknown,
+  path: readonly string[]
+): void => {
+  const loc = formatLoc(path);
+
+  if (expected === null || expected === undefined) {
+    if (actual !== expected) {
+      throw new Error(
+        `at ${loc}: expected ${String(expected)}, got ${String(actual)}`
+      );
+    }
+    return;
+  }
+
+  if (Array.isArray(expected)) {
+    if (!Array.isArray(actual)) {
+      throw new TypeError(`at ${loc}: expected an array, got ${typeof actual}`);
+    }
+    assertArraySubset(actual, expected, path, loc);
+    return;
+  }
+
+  if (typeof expected === 'object') {
+    if (
+      typeof actual !== 'object' ||
+      actual === null ||
+      Array.isArray(actual)
+    ) {
+      throw new Error(`at ${loc}: expected an object, got ${typeof actual}`);
+    }
+    assertObjectSubset(
+      actual as Record<string, unknown>,
+      expected as Record<string, unknown>,
+      path
+    );
+    return;
+  }
+
+  if (actual !== expected) {
+    throw new Error(
+      `at ${loc}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
+  }
+};
+
+/**
+ * Assert that the result is ok and its value is a superset of the expected
+ * partial output. Declared fields must match; extra fields are ignored.
+ */
+export const assertPartialMatch = (
+  result: Result<unknown, Error>,
+  expectedMatch: unknown
+): void => {
+  const value = expectOk(result);
+  assertSubset(value, expectedMatch, []);
+};
+
+// ---------------------------------------------------------------------------
 // Error Match
 // ---------------------------------------------------------------------------
 

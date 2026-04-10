@@ -2,7 +2,7 @@
  * Shared types for @ontrails/testing.
  */
 
-import type { Logger, Topo, TraceFn } from '@ontrails/core';
+import type { AnyTrail, Logger, Topo, TraceFn } from '@ontrails/core';
 import type { LogLevel, LogRecord } from '@ontrails/logging';
 
 // ---------------------------------------------------------------------------
@@ -115,4 +115,23 @@ export interface McpHarness {
 export interface McpHarnessResult {
   readonly content: unknown;
   readonly isError: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Scenario (for composition testing)
+// ---------------------------------------------------------------------------
+
+/** Marker for cross-step references in scenario inputs. */
+export interface RefToken {
+  readonly __ref: true;
+  readonly path: string;
+}
+
+/** A single step in a scenario. */
+export interface ScenarioStep {
+  readonly cross: AnyTrail;
+  readonly input: Record<string, unknown>;
+  readonly as?: string | undefined;
+  readonly expected?: unknown | undefined;
+  readonly expectedMatch?: Record<string, unknown> | undefined;
 }

@@ -140,9 +140,29 @@ examples: [
 
 Asserts `result.isOk()` and `result.value` deep-equals `expected`.
 
+### Partial Match
+
+Example has `expectedMatch` — asserts the output contains the declared fields with matching values, ignoring extra keys. Ideal for composite trails where some output fields are generated or unpredictable:
+
+```typescript
+examples: [
+  {
+    name: 'Fork preserves content',
+    input: { id: 'g1' },
+    expectedMatch: {
+      content: '# Hello',
+      forkedFrom: 'g1',
+    },
+    // id, createdAt, etc. are NOT asserted — they're generated
+  },
+];
+```
+
+Asserts `result.isOk()` and that `result.value` is a superset of `expectedMatch`. Scalars match strictly, objects match recursively (extra keys ignored), arrays match as order-independent subsets.
+
 ### Schema-Only Match
 
-Example has no `expected` and no `error`:
+Example has no `expected`, no `expectedMatch`, and no `error`:
 
 ```typescript
 examples: [{ name: 'Returns something valid', input: { name: 'Alpha' } }];
@@ -236,6 +256,35 @@ import { testDetours } from '@ontrails/testing';
 testDetours(app);
 // Fails: Trail "entity.show" has detour target "entity.search" which does not exist in the topo
 ```
+
+## `scenario(name, app, steps)`
+
+Multi-step journey testing for flows that span multiple trail invocations. Scenarios live in test files alongside `testAll` — they test how trails compose, not what individual trails do.
+
+```typescript
+import { ref, scenario } from '@ontrails/testing';
+
+scenario('Fork flow', app, [
+  {
+    cross: createGist,
+    input: { description: 'Original', content: '# Hello' },
+    as: 'original',
+  },
+  {
+    cross: forkGist,
+    input: { id: ref('original.id') },
+    as: 'forked',
+    expectedMatch: {
+      content: '# Hello',
+      forkedFrom: ref('original.id'),
+    },
+  },
+]);
+```
+
+Each step executes through the normal pipeline (validation, layers, resources, tracing). `ref()` resolves cross-step references from prior step outputs. If a step fails, the scenario reports which step and why.
+
+`expectedMatch` on steps uses the same subset matching as trail examples. `expected` is also supported for exact matching.
 
 ## Test Context and Mocks
 
