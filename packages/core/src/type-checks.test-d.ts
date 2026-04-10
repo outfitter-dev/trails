@@ -54,6 +54,43 @@ export type Fallback = [AssertFallback1, AssertFallback2] extends [true, true]
   : never;
 
 // ---------------------------------------------------------------------------
+// BlazeInput: blaze receives crossInput fields when declared
+// ---------------------------------------------------------------------------
+
+/**
+ * When a trail has crossInput, the blaze's first parameter must include
+ * both the public input fields AND the crossInput fields. Before the fix,
+ * blaze was typed as Implementation<I, O>, losing the CI fields.
+ */
+type CrossBlazeParam = Parameters<CrossTrail['blaze']>[0];
+
+type AssertBlazeHasCrossFields = CrossBlazeParam extends {
+  name: string;
+  forkedFrom: string;
+}
+  ? true
+  : false;
+export type BlazeWithCross = [AssertBlazeHasCrossFields] extends [true]
+  ? 'pass'
+  : never;
+
+// Plain trail blaze should only receive the public input type.
+type PlainBlazeParam = Parameters<PlainTrail['blaze']>[0];
+
+type AssertPlainBlazeIsInput = PlainBlazeParam extends { name: string }
+  ? true
+  : false;
+type AssertPlainBlazeNoExtra = { name: string } extends PlainBlazeParam
+  ? true
+  : false;
+export type BlazeWithoutCross = [
+  AssertPlainBlazeIsInput,
+  AssertPlainBlazeNoExtra,
+] extends [true, true]
+  ? 'pass'
+  : never;
+
+// ---------------------------------------------------------------------------
 // CI = never default preserves backward compat
 // ---------------------------------------------------------------------------
 

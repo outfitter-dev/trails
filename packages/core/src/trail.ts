@@ -35,6 +35,20 @@ export interface TrailExample<I, O> {
 }
 
 // ---------------------------------------------------------------------------
+// Blaze input — merges crossInput when declared
+// ---------------------------------------------------------------------------
+
+/**
+ * The input type received by a trail's blaze function.
+ *
+ * When a trail declares `crossInput`, the runtime merges those fields into
+ * the input object before calling blaze. This type makes the compiler aware
+ * of the merged shape so developers can access crossInput fields without a
+ * cast. Falls back to plain `I` when `CI` is `never` (the default).
+ */
+export type BlazeInput<I, CI> = [CI] extends [never] ? I : I & CI;
+
+// ---------------------------------------------------------------------------
 // Trail spec
 // ---------------------------------------------------------------------------
 
@@ -45,7 +59,7 @@ export interface TrailSpec<I, O, CI = never> {
   /** Zod schema for validating output (optional — some trails are fire-and-forget) */
   readonly output?: z.ZodType<O> | undefined;
   /** The pure function that does the work (sync or async authoring) */
-  readonly blaze: Implementation<I, O>;
+  readonly blaze: Implementation<BlazeInput<I, CI>, O>;
   /** Human-readable description */
   readonly description?: string | undefined;
   /** Named examples for docs and testing */
@@ -119,7 +133,7 @@ export interface Trail<I, O, CI = never> extends Omit<
 > {
   readonly kind: 'trail';
   readonly id: string;
-  readonly blaze: Implementation<I, O>;
+  readonly blaze: Implementation<BlazeInput<I, CI>, O>;
   /** IDs of downstream trails this trail may invoke via ctx.cross() (always present, default []) */
   readonly crosses: readonly string[];
   /** Composition-only input schema, merged with `input` for ctx.cross() calls (optional) */
@@ -208,7 +222,8 @@ export function trail<I, O, CI = never>(
   return Object.freeze({
     ...spec,
     args,
-    blaze: async (input: I, ctx: TrailContext) => await blaze(input, ctx),
+    blaze: async (input: BlazeInput<I, CI>, ctx: TrailContext) =>
+      await blaze(input, ctx),
     crossInput,
     crosses: Object.freeze((rawCrosses ?? []).map(normalizeCrossRef)),
     fires,
@@ -221,7 +236,12 @@ export function trail<I, O, CI = never>(
 }
 
 // Re-export types that callers of trail() will need
-// oxlint-disable-next-line no-explicit-any -- existential type for heterogeneous collections; `any` is correct here because Implementation is contravariant in I
-export type AnyTrail = Trail<any, any, any>;
+// The Omit+override avoids a TypeScript limitation where BlazeInput's conditional type
+// makes Trail<any, any, any> structurally incompatible with Trail<I, O, never>.
+/* oxlint-disable no-explicit-any -- existential type for heterogeneous collections */
+export type AnyTrail = Omit<Trail<any, any, any>, 'blaze'> & {
+  readonly blaze: Implementation<any, any>;
+};
+/* oxlint-enable no-explicit-any */
 
 export type { Implementation, TrailContext, Result };

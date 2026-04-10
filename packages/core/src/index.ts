@@ -64,6 +64,7 @@ export type {
 export { trail } from './trail.js';
 export type {
   AnyTrail,
+  BlazeInput,
   Intent,
   Trail,
   TrailSpec,
