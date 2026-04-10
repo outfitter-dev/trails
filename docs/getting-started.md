@@ -122,8 +122,9 @@ Options:
 
 When a trail has exactly one required string field with no default, the CLI
 automatically promotes it to a positional argument. You can still pass it as a
-flag (`--name World`), but the positional form is shorter. If you need to
-override this heuristic, use `fields` in the CLI trailhead config.
+flag (`--name World`), but the positional form is shorter. To suppress
+auto-promotion, set `args: false` on the trail definition (see the
+[CLI trailhead guide](./trailheads/cli.md#positional-args)).
 
 ## Open an MCP Trailhead
 
