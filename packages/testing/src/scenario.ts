@@ -23,7 +23,7 @@ import {
 } from '@ontrails/core';
 
 import { assertPartialMatch, expectOk } from './assertions.js';
-import { resolveMockResources } from './context.js';
+import { createTestContext, resolveMockResources } from './context.js';
 import type { RefToken, ScenarioStep } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -190,8 +190,9 @@ const createScenarioCross = (
         R.err(new InternalError(`cross: trail "${id}" not found in topo`))
       );
     }
+    const baseCtx = createTestContext();
     return executeTrail(trailDef, input, {
-      ctx: { cross },
+      ctx: { ...baseCtx, cross },
       resources,
       topo: app,
       validationSchema: buildCrossValidationSchema(trailDef),
@@ -218,9 +219,10 @@ const executeStep = async (
   }
 
   const scenarioCross = createScenarioCross(app, resources);
+  const baseCtx = createTestContext();
   const resolvedInput = resolveRefs(step.input, outputs);
   const result = await executeTrail(step.cross, resolvedInput, {
-    ctx: { cross: scenarioCross },
+    ctx: { ...baseCtx, cross: scenarioCross },
     resources,
     topo: app,
   });
