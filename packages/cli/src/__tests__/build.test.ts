@@ -114,7 +114,7 @@ describe('buildCliCommands path derivation', () => {
 
     // Single required string → auto-promoted to positional arg + kept as flag alias
     expect(args).toHaveLength(1);
-    expect(args[0]).toMatchObject({ name: 'query', required: true });
+    expect(args[0]).toMatchObject({ name: 'query', required: false });
     expect(flags.find((f) => f.name === 'query')).toBeDefined();
     const limitFlag = flags.find((f) => f.name === 'limit');
     expect(limitFlag?.required).toBe(false);
@@ -545,7 +545,7 @@ describe('positional arg derivation', () => {
     expect(cmd.args).toHaveLength(1);
     expect(cmd.args[0]).toMatchObject({
       name: 'path',
-      required: true,
+      required: false,
       variadic: false,
     });
     // The positional field is kept as a --path flag alias
@@ -579,7 +579,7 @@ describe('positional arg derivation', () => {
     const cmd = requireCommand(buildCliCommands(app));
 
     expect(cmd.args).toHaveLength(1);
-    expect(cmd.args[0]).toMatchObject({ name: 'query', required: true });
+    expect(cmd.args[0]).toMatchObject({ name: 'query', required: false });
     // query kept as flag alias, limit also present
     expect(cmd.flags.find((f) => f.name === 'query')).toBeDefined();
     expect(cmd.flags.find((f) => f.name === 'limit')).toBeDefined();
@@ -596,7 +596,7 @@ describe('positional arg derivation', () => {
     const cmd = requireCommand(buildCliCommands(app));
 
     expect(cmd.args).toHaveLength(1);
-    expect(cmd.args[0]).toMatchObject({ name: 'src', required: true });
+    expect(cmd.args[0]).toMatchObject({ name: 'src', required: false });
     // src kept as flag alias, dest also present
     expect(cmd.flags.find((f) => f.name === 'src')).toBeDefined();
     expect(cmd.flags.find((f) => f.name === 'dest')).toBeDefined();
@@ -641,7 +641,7 @@ describe('positional arg derivation', () => {
     const cmd = requireCommand(buildCliCommands(app));
 
     expect(cmd.args).toHaveLength(1);
-    expect(cmd.args[0]).toMatchObject({ name: 'path', required: true });
+    expect(cmd.args[0]).toMatchObject({ name: 'path', required: false });
   });
 
   test('no positional args when no required string fields exist', () => {

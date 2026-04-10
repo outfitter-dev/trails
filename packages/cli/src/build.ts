@@ -359,10 +359,11 @@ const buildFlags = (
 };
 
 /** Convert a field to a positional CliArg. */
+/** Convert a field to a positional CliArg. Always optional because the flag alias is an alternative. */
 const fieldToArg = (field: Field): CliArg => ({
   description: field.label,
   name: field.name,
-  required: field.required,
+  required: false,
   variadic: false,
 });
 
