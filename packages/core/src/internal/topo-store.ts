@@ -92,6 +92,7 @@ interface TopoExampleRow {
   readonly description: string | null;
   readonly error: string | null;
   readonly expected: string | null;
+  readonly expectedMatch: string | null;
   readonly id: string;
   readonly input: string;
   readonly name: string;
@@ -409,6 +410,10 @@ const normalizeExampleRows = (
       error: example.error ?? null,
       expected:
         example.expected === undefined ? null : stableJson(example.expected),
+      expectedMatch:
+        example.expectedMatch === undefined
+          ? null
+          : stableJson(example.expectedMatch),
       id: buildExampleId(saveId, trail.id, index),
       input: stableJson(example.input),
       name: example.name,
