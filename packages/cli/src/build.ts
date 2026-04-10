@@ -412,24 +412,39 @@ const fieldToArg = (field: Field): CliArg => ({
  * Explicit: any field with `positional: true` in overrides becomes positional.
  * Heuristic: if no explicit overrides and exactly one required string field
  * with no default exists, auto-promote it to positional.
+ *
+ * Positional args preserve schema declaration order (not alphabetical) because
+ * position is semantically meaningful in CLI usage.
  */
 const derivePositionalArgs = (
   fields: readonly Field[],
+  schemaKeyOrder: readonly string[],
   fieldOverrides?: Readonly<Record<string, FieldOverride>>
-): { readonly args: CliArg[]; readonly remainingFields: readonly Field[] } => {
+): { readonly args: CliArg[] } => {
   const explicit = collectExplicitPositionals(fields, fieldOverrides);
   const positionalNames =
     explicit.size > 0 ? explicit : inferPositionalName(fields, fieldOverrides);
 
   if (positionalNames.size === 0) {
-    return { args: [], remainingFields: fields };
+    return { args: [] };
   }
 
-  const args = fields
-    .filter((f) => positionalNames.has(f.name))
-    .map(fieldToArg);
-  const remainingFields = fields.filter((f) => !positionalNames.has(f.name));
-  return { args, remainingFields };
+  // Sort positional args by schema declaration order, not alphabetical
+  const orderMap = new Map(schemaKeyOrder.map((name, i) => [name, i]));
+  const positionalFields = fields.filter((f) => positionalNames.has(f.name));
+  positionalFields.sort(
+    (a, b) => (orderMap.get(a.name) ?? 0) - (orderMap.get(b.name) ?? 0)
+  );
+  return { args: positionalFields.map(fieldToArg) };
+};
+
+/** Extract schema key order from a Zod object schema (preserves declaration order). */
+const extractSchemaKeyOrder = (schema: unknown): readonly string[] => {
+  const s = schema as unknown as {
+    _zod?: { def?: { shape?: Record<string, unknown> } };
+  };
+  const shape = s._zod?.def?.shape;
+  return shape ? Object.keys(shape) : [];
 };
 
 /** Convert a trail or route into a CLI command when it is publicly exposed. */
@@ -439,7 +454,11 @@ const toCliCommand = (
   options?: BuildCliCommandsOptions
 ): CliCommand => {
   const fields = deriveFields(t.input, t.fields);
-  const { args } = derivePositionalArgs(fields, t.fields);
+  const { args } = derivePositionalArgs(
+    fields,
+    extractSchemaKeyOrder(t.input),
+    t.fields
+  );
   // All fields generate flags — positional fields keep their --flag alias
   const flags = buildFlags(t, fields, t.intent, options);
   const derivedFlagNames = new Set(

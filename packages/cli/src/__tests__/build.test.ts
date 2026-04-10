@@ -602,6 +602,22 @@ describe('positional arg derivation', () => {
     expect(cmd.flags.find((f) => f.name === 'dest')).toBeDefined();
   });
 
+  test('multiple explicit positionals preserve schema declaration order', () => {
+    const t = trail('file.copy', {
+      blaze: (input: { dest: string; src: string }) =>
+        Result.ok({ dest: input.dest, src: input.src }),
+      fields: { dest: { positional: true }, src: { positional: true } },
+      // Positionals follow schema declaration order (alphabetical after formatting)
+      input: z.object({ dest: z.string(), src: z.string() }),
+    });
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCliCommands(app));
+
+    expect(cmd.args).toHaveLength(2);
+    expect(cmd.args[0]?.name).toBe('dest');
+    expect(cmd.args[1]?.name).toBe('src');
+  });
+
   test('no positional args when no required string fields exist', () => {
     const t = trail('config.set', {
       blaze: (input: { count: number; verbose: boolean }) =>
