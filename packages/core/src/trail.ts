@@ -60,8 +60,17 @@ export interface TrailSpec<I, O> {
   readonly detours?: Readonly<Record<string, readonly string[]>> | undefined;
   /** Per-field overrides for deriveFields() (labels, hints, options) */
   readonly fields?: Readonly<Record<string, FieldOverride>> | undefined;
-  /** IDs of downstream trails this trail may invoke via ctx.cross() */
-  readonly crosses?: readonly string[] | undefined;
+  /** IDs or trail objects of downstream trails this trail may invoke via ctx.cross() */
+  readonly crosses?: readonly (string | AnyTrail)[] | undefined;
+  /**
+   * Composition-only input schema — merged with `input` for `ctx.cross()` calls,
+   * invisible to public trailheads (CLI, MCP, HTTP).
+   *
+   * Fields here are available in the blaze but are not derived into CLI flags,
+   * MCP tool parameters, or HTTP request bodies. Use for data that only makes
+   * sense when one trail crosses another (e.g. `forkedFrom`).
+   */
+  readonly crossInput?: z.ZodType | undefined;
   /** Resources this trail may access via resource.from(ctx) */
   readonly resources?: readonly AnyResource[] | undefined;
   /**
@@ -99,13 +108,22 @@ export type Intent = 'read' | 'write' | 'destroy';
 /** A fully-defined trail — the unit of work in the Trails system */
 export interface Trail<I, O> extends Omit<
   TrailSpec<I, O>,
-  'args' | 'blaze' | 'crosses' | 'fires' | 'intent' | 'on' | 'resources'
+  | 'args'
+  | 'blaze'
+  | 'crosses'
+  | 'crossInput'
+  | 'fires'
+  | 'intent'
+  | 'on'
+  | 'resources'
 > {
   readonly kind: 'trail';
   readonly id: string;
   readonly blaze: Implementation<I, O>;
   /** IDs of downstream trails this trail may invoke via ctx.cross() (always present, default []) */
   readonly crosses: readonly string[];
+  /** Composition-only input schema, merged with `input` for ctx.cross() calls (optional) */
+  readonly crossInput?: z.ZodType | undefined;
   /** Resources this trail may access via resource.from(ctx) (always present, default []) */
   readonly resources: readonly AnyResource[];
   /** IDs of signals this trail emits via ctx.fire() (always present, default []) */
@@ -123,6 +141,10 @@ export interface Trail<I, O> extends Omit<
 // ---------------------------------------------------------------------------
 
 const normalizeSignalRef = (entry: string | AnySignal): string =>
+  typeof entry === 'string' ? entry : entry.id;
+
+/** Normalize a crosses entry — trail objects are reduced to their id. */
+const normalizeCrossRef = (entry: string | AnyTrail): string =>
   typeof entry === 'string' ? entry : entry.id;
 
 /**
@@ -167,6 +189,7 @@ export function trail<I, O>(
   const {
     args: rawArgs,
     blaze,
+    crossInput,
     crosses: rawCrosses,
     fires: rawFires,
     intent: rawIntent,
@@ -183,7 +206,8 @@ export function trail<I, O>(
     ...spec,
     args,
     blaze: async (input: I, ctx: TrailContext) => await blaze(input, ctx),
-    crosses: Object.freeze([...(rawCrosses ?? [])]),
+    crossInput,
+    crosses: Object.freeze((rawCrosses ?? []).map(normalizeCrossRef)),
     fires,
     id: resolved.id,
     intent: rawIntent ?? 'write',

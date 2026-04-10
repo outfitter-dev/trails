@@ -5,7 +5,7 @@ status: draft
 created: 2026-04-09
 updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [3, 7, typed-trail-composition]
+depends_on: [3, 7, 24]
 ---
 
 # ADR: Composition Testing
@@ -192,7 +192,7 @@ These are coaching rules — suggestions, not errors. They guide the developer t
 
 - [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the `crosses` / `ctx.cross()` composition mechanism that composite testing targets
 - [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — the warden rules that `composite-example-coverage` and `scenario-coverage` extend
-- [ADR: Typed Trail Composition](20260409-typed-trail-composition.md) (draft) — typed `ctx.cross()` and `crossInput` that scenarios exercise
+- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` and `crossInput` that scenarios exercise
 - [Testing guide](../../testing.md) — the existing testing story that `expectedMatch` and `scenario()` extend
 - [Tenets: Examples are structured data](../../tenets.md) — the governing principle; `expectedMatch` and `scenario()` keep composition tests as structured data
 

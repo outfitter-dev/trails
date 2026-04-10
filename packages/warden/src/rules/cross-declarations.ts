@@ -126,28 +126,50 @@ const getCrossElements = (config: AstNode): readonly AstNode[] | null => {
   return elements ?? null;
 };
 
-/** Collect string IDs from array elements, resolving identifiers when possible. */
-const collectStringIds = (
+interface DeclaredCrosses {
+  /** Statically resolved trail IDs from string literals / const identifiers. */
+  readonly ids: ReadonlySet<string>;
+  /**
+   * True if any element could not be statically resolved (e.g. trail object
+   * reference like `crosses: [showGist]`). When true, "undeclared" diagnostics
+   * are softened from error to warn since the declared set is incomplete.
+   */
+  readonly hasUnresolved: boolean;
+}
+
+/**
+ * Collect string IDs from array elements, resolving identifiers when possible.
+ *
+ * Trail-object references (`crosses: [showGist]`) cannot be resolved at lint
+ * time; they're normalized at runtime by `trail()`. When any entry is
+ * unresolved, `hasUnresolved` is set so callers can soften diagnostics.
+ */
+const resolveDeclaredCrossElements = (
   elements: readonly AstNode[],
   sourceCode: string
-): Set<string> => {
+): DeclaredCrosses => {
   const ids = new Set<string>();
+  let hasUnresolved = false;
   for (const element of elements) {
     const resolved = resolveCrossElementId(element, sourceCode);
     if (resolved) {
       ids.add(resolved);
+    } else {
+      hasUnresolved = true;
     }
   }
-  return ids;
+  return { hasUnresolved, ids };
 };
 
-/** Extract string literal elements from a `crosses: [...]` array property. */
+/** Extract declared crosses from a `crosses: [...]` array. */
 const extractDeclaredCrosses = (
   config: AstNode,
   sourceCode: string
-): ReadonlySet<string> => {
+): DeclaredCrosses => {
   const elements = getCrossElements(config);
-  return elements ? collectStringIds(elements, sourceCode) : new Set();
+  return elements
+    ? resolveDeclaredCrossElements(elements, sourceCode)
+    : { hasUnresolved: false, ids: new Set() };
 };
 
 // ---------------------------------------------------------------------------
@@ -262,13 +284,16 @@ const buildUndeclaredDiagnostic = (
   trailId: string,
   crossedId: string,
   filePath: string,
-  line: number
+  line: number,
+  softened = false
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}": ctx.cross('${crossedId}') called but '${crossedId}' is not declared in crosses`,
+  message: softened
+    ? `Trail "${trailId}": ctx.cross('${crossedId}') called but '${crossedId}' is not declared in crosses (may be declared via trail object references)`
+    : `Trail "${trailId}": ctx.cross('${crossedId}') called but '${crossedId}' is not declared in crosses`,
   rule: 'cross-declarations',
-  severity: 'error',
+  severity: softened ? 'warn' : 'error',
 });
 
 const buildUnusedDiagnostic = (
@@ -292,13 +317,24 @@ const buildUnusedDiagnostic = (
 const reportUndeclared = (
   called: ReadonlySet<string>,
   declared: ReadonlySet<string>,
-  ctx: { trailId: string; filePath: string; line: number },
+  ctx: {
+    trailId: string;
+    filePath: string;
+    line: number;
+    softened?: boolean;
+  },
   diagnostics: WardenDiagnostic[]
 ): void => {
   for (const id of called) {
     if (!declared.has(id)) {
       diagnostics.push(
-        buildUndeclaredDiagnostic(ctx.trailId, id, ctx.filePath, ctx.line)
+        buildUndeclaredDiagnostic(
+          ctx.trailId,
+          id,
+          ctx.filePath,
+          ctx.line,
+          ctx.softened
+        )
       );
     }
   }
@@ -329,15 +365,24 @@ const checkTrailDefinition = (
   const declared = extractDeclaredCrosses(def.config, sourceCode);
   const called = extractCalledCrosses(def.config);
 
-  if (declared.size === 0 && called.size === 0) {
+  if (declared.ids.size === 0 && !declared.hasUnresolved && called.size === 0) {
     return;
   }
 
   const line = offsetToLine(sourceCode, def.start);
   const ctx = { filePath, line, trailId: def.id };
 
-  reportUndeclared(called, declared, ctx, diagnostics);
-  reportUnused(declared, called, ctx, diagnostics);
+  // When the declared array contains trail object references we can't resolve,
+  // downgrade "undeclared" diagnostics from error to warn. The developer still
+  // sees genuinely undeclared calls, but we can't statically prove the call
+  // isn't covered by a trail object entry the runtime will normalize.
+  reportUndeclared(
+    called,
+    declared.ids,
+    { ...ctx, softened: declared.hasUnresolved },
+    diagnostics
+  );
+  reportUnused(declared.ids, called, ctx, diagnostics);
 };
 
 // ---------------------------------------------------------------------------

@@ -106,7 +106,12 @@ export const createCrossContext = (
   options?: CreateCrossContextOptions
 ): CrossFn => {
   const responses = options?.responses ?? {};
-  return <O>(id: string, _input: unknown): Promise<Result<O, Error>> => {
+  // Accepts either a trail object (typed cross) or a string id (untyped).
+  return <O>(
+    idOrTrail: string | { readonly id: string },
+    _input: unknown
+  ): Promise<Result<O, Error>> => {
+    const id = typeof idOrTrail === 'string' ? idOrTrail : idOrTrail.id;
     const response = responses[id];
     if (response === undefined) {
       return Promise.resolve(

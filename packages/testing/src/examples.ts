@@ -196,7 +196,12 @@ const createCoverageCross = (
   ctx: TrailContext,
   resources?: ResourceOverrideMap
 ): CrossFn => {
-  const cross = (id: string, input: unknown) => {
+  // Accepts either a trail object (typed cross) or a string id (untyped).
+  const cross = (
+    idOrTrail: string | { readonly id: string },
+    input: unknown
+  ) => {
+    const id = typeof idOrTrail === 'string' ? idOrTrail : idOrTrail.id;
     called.add(id);
 
     if (baseCross !== undefined) {

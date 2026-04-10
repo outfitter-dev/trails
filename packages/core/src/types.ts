@@ -1,5 +1,6 @@
 import type { Result } from './result.js';
 import type { Signal } from './signal.js';
+import type { Trail } from './trail.js';
 
 /**
  * Trail implementation — sync or async.
@@ -12,11 +13,20 @@ export type Implementation<I, O> = (
   ctx: TrailContext
 ) => Result<O, Error> | Promise<Result<O, Error>>;
 
-/** Invoke another trail by id — used for trail composition */
-export type CrossFn = <O>(
-  id: string,
-  input: unknown
-) => Promise<Result<O, Error>>;
+/**
+ * Invoke another trail — used for trail composition.
+ *
+ * Two call shapes:
+ *
+ * - **By trail object** (typed): `ctx.cross(showGist, { id })` — the compiler
+ *   infers `I` and `O` from the trail's schemas, so the result is fully typed.
+ * - **By string id** (untyped escape hatch): `ctx.cross('gist.show', { id })`
+ *   — returns `Result<O, Error>` where `O` defaults to `unknown`.
+ */
+export interface CrossFn {
+  <I, O>(trail: Trail<I, O>, input: I): Promise<Result<O, Error>>;
+  <O = unknown>(id: string, input: unknown): Promise<Result<O, Error>>;
+}
 
 /**
  * Emit a signal — used for signal-driven activation.

@@ -6,6 +6,8 @@
  * of reimplementing the pipeline.
  */
 
+import type { z } from 'zod';
+
 import type { AnyTrail } from './trail.js';
 import type { Layer } from './layer.js';
 import type { ResourceOverrideMap } from './resource.js';
@@ -64,6 +66,19 @@ export interface ExecuteTrailOptions {
     | undefined;
   /** Topo used for signal-driven activation; required for `ctx.fire()` to work. */
   readonly topo?: Topo | undefined;
+  /**
+   * Override the validation schema used for input validation.
+   *
+   * When a trail is invoked via `ctx.cross()` and the target declares
+   * `crossInput`, the cross function merges `trail.input` with
+   * `trail.crossInput` and passes the merged schema here so validation
+   * accepts both public and composition-only fields.
+   *
+   * Used by the cross execution path; not part of the public API.
+   *
+   * @internal
+   */
+  readonly validationSchema?: z.ZodType | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -420,7 +435,10 @@ export const executeTrail = async (
   options?: ExecuteTrailOptions
 ): Promise<Result<unknown, Error>> => {
   try {
-    const validated = validateInput(trail.input, rawInput);
+    const validated = validateInput(
+      options?.validationSchema ?? trail.input,
+      rawInput
+    );
     if (validated.isErr()) {
       return validated;
     }

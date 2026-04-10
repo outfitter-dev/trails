@@ -7,6 +7,8 @@
 
 import { describe, expect, test } from 'bun:test';
 
+import { z } from 'zod';
+
 import type {
   AnyTrail,
   CrossFn,
@@ -146,6 +148,22 @@ const tryInjectError = (
 /**
  * Execute a trail from the map, validating input first.
  */
+/**
+ * Build the validation schema for a cross-invoked trail.
+ *
+ * When the target trail declares `crossInput`, the cross caller passes both
+ * public input and composition-only fields. The merged schema validates the
+ * combined shape so `executeTrail` doesn't reject the extra fields.
+ */
+const buildCrossValidationSchema = (
+  trailDef: AnyTrail
+): z.ZodType | undefined => {
+  if (!trailDef.crossInput) {
+    return undefined;
+  }
+  return z.intersection(trailDef.input, trailDef.crossInput);
+};
+
 const executeFromMap = (
   id: string,
   input: unknown,
@@ -163,12 +181,34 @@ const executeFromMap = (
   return executeTrail(trailDef, input, {
     ctx: nestedCtx,
     resources,
+    validationSchema: buildCrossValidationSchema(trailDef),
   });
 };
+
+/** Extract trail ID from either a trail object or a string. */
+const resolveCrossId = (idOrTrail: string | { readonly id: string }): string =>
+  typeof idOrTrail === 'string' ? idOrTrail : idOrTrail.id;
 
 // ---------------------------------------------------------------------------
 // Cross factory
 // ---------------------------------------------------------------------------
+
+/** Delegate to baseCross, executeFromMap, or fall back to Result.ok(). */
+const delegateCross = (
+  id: string,
+  input: unknown,
+  baseCross: CrossFn | undefined,
+  trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
+  ctx: TrailContext,
+  resources: ResourceOverrideMap | undefined,
+  self: CrossFn
+): Promise<Result<unknown, Error>> => {
+  if (baseCross !== undefined) {
+    return baseCross(id, input);
+  }
+  const executed = executeFromMap(id, input, trailsMap, ctx, resources, self);
+  return Promise.resolve(executed ?? Result.ok());
+};
 
 /**
  * Build a recording cross function that optionally injects errors.
@@ -183,7 +223,12 @@ const createRecordingCross = (
 ): CrossFn => {
   // The generic O on CrossFn is erased at runtime; the cast is safe
   // because callers narrow via isOk/isErr before accessing the value.
-  const cross = (id: string, input: unknown) => {
+  // Accepts either a trail object (typed cross) or a string id (untyped).
+  const cross = (
+    idOrTrail: string | { readonly id: string },
+    input: unknown
+  ) => {
+    const id = resolveCrossId(idOrTrail);
     trace.push({ id, input });
 
     const injected = tryInjectError(id, scenario, trailsMap);
@@ -191,23 +236,15 @@ const createRecordingCross = (
       return Promise.resolve(injected);
     }
 
-    if (baseCross !== undefined) {
-      return baseCross(id, input);
-    }
-
-    const executed = executeFromMap(
+    return delegateCross(
       id,
       input,
+      baseCross,
       trailsMap,
       ctx,
       resources,
       cross as CrossFn
     );
-    if (executed !== undefined) {
-      return Promise.resolve(executed);
-    }
-
-    return Promise.resolve(Result.ok());
   };
   return cross as CrossFn;
 };

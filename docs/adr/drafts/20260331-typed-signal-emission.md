@@ -310,7 +310,7 @@ Reactive mode runs after standard mode passes. Standard mode validates each trai
 - [ADR-0013: Tracing](../0013-tracing.md) — tracing records emission and delivery metadata
 - [ADR: Unified Observability](20260409-unified-observability.md) (draft) — tracing moves into core; signal delivery outcomes are recorded intrinsically by the execution pipeline
 - [ADR: Error Taxonomy as Transport-Independent Behavior Contract](20260409-error-taxonomy-as-transport-independent-behavior-contract.md) (draft) — signal delivery semantics (retry, dead-letter, discard) derive from the error taxonomy's `retryable` flag
-- [ADR: Typed Trail Composition](20260409-typed-trail-composition.md) (draft) — typed `ctx.cross()` complements signal-based decoupling; signals are for loose coupling, crosses are for typed direct composition
+- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` complements signal-based decoupling; signals are for loose coupling, crosses are for typed direct composition
 - ADR: The Serialized Topo Graph (draft) — signals as nodes in the topo graph
 - ADR: Trail Visibility and Trailhead Filtering (draft) — signal-activated trails can be internal
 - ADR: Packs as Namespace Boundaries (draft) — signals are the decoupling mechanism between packs

@@ -136,6 +136,50 @@ describe('trail()', () => {
       });
       expect(Object.isFrozen(withCrosses.crosses)).toBe(true);
     });
+
+    test('trail object in crosses is normalized to its id', () => {
+      const target = trail('target.trail', {
+        blaze: () => Result.ok(),
+        input: z.object({}),
+      });
+      const composed = trail('composed', {
+        blaze: () => Result.ok(),
+        crosses: [target],
+        input: z.object({}),
+      });
+      expect(composed.crosses).toEqual(['target.trail']);
+    });
+
+    test('mixed string and trail object in crosses normalizes correctly', () => {
+      const target = trail('target.trail', {
+        blaze: () => Result.ok(),
+        input: z.object({}),
+      });
+      const composed = trail('composed', {
+        blaze: () => Result.ok(),
+        crosses: ['string-id', target],
+        input: z.object({}),
+      });
+      expect(composed.crosses).toEqual(['string-id', 'target.trail']);
+    });
+
+    test('crossInput is stored on the trail', () => {
+      const crossInputSchema = z.object({ forkedFrom: z.string().optional() });
+      const t = trail('gist.create', {
+        blaze: () => Result.ok(),
+        crossInput: crossInputSchema,
+        input: z.object({ content: z.string() }),
+      });
+      expect(t.crossInput).toBe(crossInputSchema);
+    });
+
+    test('crossInput is undefined when omitted', () => {
+      const t = trail('bare', {
+        blaze: () => Result.ok(),
+        input: z.object({}),
+      });
+      expect(t.crossInput).toBeUndefined();
+    });
   });
 
   describe('resources', () => {

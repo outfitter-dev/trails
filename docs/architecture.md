@@ -92,7 +92,8 @@ These are boundaries the compiler enforces on the implementation at development 
 | `output: z.object({...})` | Implementation return type must match the schema shape |
 | `Result<T, Error>` | Implementation cannot throw — must return `Result.ok()` or `Result.err()` |
 | `TrailContext` interface | Implementation receives only the fields the framework provides |
-| `crosses: [...]` on trails | Declares the composition graph; warden verifies `ctx.cross()` calls match |
+| `crosses: [...]` on trails | Declares the composition graph; trail objects give typed `ctx.cross()` — warden verifies calls match |
+| `crossInput: z.object({...})` | Composition-only input merged for `ctx.cross()`, invisible to public trailheads |
 | `resources: [...]` on trails | Declares infrastructure dependencies; warden verifies `resource.from(ctx)` / `ctx.resource()` usage match |
 
 ### Inferred — detected by static analysis, best-effort
