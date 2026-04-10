@@ -1,0 +1,5 @@
+{
+  "permissions": {
+    "allow": ["Skill(stack-and-ship)", "Skill(stack-and-ship:*)"]
+  }
+}

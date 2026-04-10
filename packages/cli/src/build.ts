@@ -4,6 +4,7 @@
 
 import type {
   Field,
+  FieldOverride,
   Layer,
   ResourceOverrideMap,
   Topo,
@@ -20,7 +21,7 @@ import {
   validateEstablishedTopo,
 } from '@ontrails/core';
 
-import type { AnyTrail, CliCommand, CliFlag } from './command.js';
+import type { AnyTrail, CliArg, CliCommand, CliFlag } from './command.js';
 import { dryRunPreset, toFlags } from './flags.js';
 import type { InputResolver } from './prompt.js';
 import {
@@ -358,6 +359,63 @@ const buildFlags = (
   return flags;
 };
 
+/** Collect field names explicitly marked as positional in overrides. */
+const collectExplicitPositionals = (
+  overrides?: Readonly<Record<string, FieldOverride>>
+): ReadonlySet<string> => {
+  if (!overrides) {
+    return new Set();
+  }
+  return new Set(
+    Object.entries(overrides)
+      .filter(([, o]) => o.positional === true)
+      .map(([name]) => name)
+  );
+};
+
+/** Auto-promote heuristic: exactly one required string field with no default. */
+const inferPositionalName = (fields: readonly Field[]): ReadonlySet<string> => {
+  const candidates = fields.filter(
+    (f) => f.type === 'string' && f.required && f.default === undefined
+  );
+  const [sole] = candidates;
+  return candidates.length === 1 && sole ? new Set([sole.name]) : new Set();
+};
+
+/** Convert a field to a positional CliArg. */
+const fieldToArg = (field: Field): CliArg => ({
+  description: field.label,
+  name: field.name,
+  required: field.required,
+  variadic: false,
+});
+
+/**
+ * Derive positional args from fields and overrides.
+ *
+ * Explicit: any field with `positional: true` in overrides becomes positional.
+ * Heuristic: if no explicit overrides and exactly one required string field
+ * with no default exists, auto-promote it to positional.
+ */
+const derivePositionalArgs = (
+  fields: readonly Field[],
+  fieldOverrides?: Readonly<Record<string, FieldOverride>>
+): { readonly args: CliArg[]; readonly remainingFields: readonly Field[] } => {
+  const explicit = collectExplicitPositionals(fieldOverrides);
+  const positionalNames =
+    explicit.size > 0 ? explicit : inferPositionalName(fields);
+
+  if (positionalNames.size === 0) {
+    return { args: [], remainingFields: fields };
+  }
+
+  const args = fields
+    .filter((f) => positionalNames.has(f.name))
+    .map(fieldToArg);
+  const remainingFields = fields.filter((f) => !positionalNames.has(f.name));
+  return { args, remainingFields };
+};
+
 /** Convert a trail or route into a CLI command when it is publicly exposed. */
 const toCliCommand = (
   app: Topo,
@@ -365,10 +423,13 @@ const toCliCommand = (
   options?: BuildCliCommandsOptions
 ): CliCommand => {
   const fields = deriveFields(t.input, t.fields);
-  const flags = buildFlags(t, fields, t.intent, options);
-  const derivedFlagNames = new Set(
-    toFlags(fields).map((flag) => kebabToCamel(flag.name))
-  );
+  const { args, remainingFields } = derivePositionalArgs(fields, t.fields);
+  const flags = buildFlags(t, remainingFields, t.intent, options);
+  const positionalArgNames = new Set(args.map((a) => a.name));
+  const derivedFlagNames = new Set([
+    ...toFlags(remainingFields).map((flag) => kebabToCamel(flag.name)),
+    ...positionalArgNames,
+  ]);
   const metaFlagNames = new Set(
     flags
       .map((flag) => kebabToCamel(flag.name))
@@ -382,7 +443,7 @@ const toCliCommand = (
   );
 
   return {
-    args: [],
+    args,
     description: t.description,
     execute: createExecute(
       app,

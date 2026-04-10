@@ -80,6 +80,38 @@ represented truthfully on the command line. No manual flag definitions.
 Nested objects and arrays of objects are intentionally omitted from automatic
 flag derivation. The CLI prefers fewer flags over dishonest flags.
 
+## Positional arguments
+
+When a trail's input schema has exactly one required `string` field with no
+default, the CLI auto-promotes it to a positional argument instead of a flag:
+
+```typescript
+const greet = trail('greet', {
+  input: z.object({ name: z.string().describe('Who to greet') }),
+  blaze: (input) => Result.ok(`Hello, ${input.name}!`),
+});
+```
+
+```bash
+myapp greet World          # positional
+myapp greet --name World   # flag form still works via structured input
+```
+
+The heuristic is intentionally conservative: multiple required strings stay as
+flags. To override, mark a field explicitly via `fields`:
+
+```typescript
+const copy = trail('file.copy', {
+  input: z.object({ src: z.string(), dest: z.string() }),
+  fields: { src: { positional: true } },
+  blaze: (input) => Result.ok({ src: input.src, dest: input.dest }),
+});
+```
+
+```bash
+myapp file copy ./readme.md --dest /tmp/readme.md
+```
+
 ## Structured input
 
 For every non-empty object input schema, the CLI also exposes:
