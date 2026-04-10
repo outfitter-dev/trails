@@ -252,10 +252,11 @@ const runCompositionExample = async (
   );
   const testCtx: TrailContext = { ...mintedCtx, cross };
 
+  // Top-level trail validates against trail.input (not merged crossInput).
+  // Merged validation only applies to cross targets in executeFromMap/createCoverageCross.
   const result = await executeTrail(trailDef, example.input, {
     ctx: testCtx,
     resources: resources ?? opts?.resources,
-    validationSchema: buildCrossValidationSchema(trailDef),
   });
   assertProgressiveMatch(result, example, output);
 };
