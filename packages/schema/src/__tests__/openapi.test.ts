@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, topo, trail } from '@ontrails/core';
+import { Result, signal, topo, trail } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -421,6 +421,29 @@ const registerMetadataAndStructureTests = () => {
       expect(Object.keys(spec.paths)).toHaveLength(1);
       expect(spec.paths['/entity/show']).toBeDefined();
       expect(spec.paths['/internal/helper']).toBeUndefined();
+    });
+  });
+
+  describe('consumer trails', () => {
+    test('trails with on (signal consumers) are excluded', () => {
+      const changed = signal('entity.changed', {
+        payload: z.object({ id: z.string() }),
+      });
+      const pub = trail('entity.show', {
+        blaze: noop,
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+      });
+      const consumer = trail('entity.onChanged', {
+        blaze: noop,
+        input: z.object({ id: z.string() }),
+        on: [changed],
+      });
+      const spec = generateOpenApiSpec(topoFrom({ changed, consumer, pub }));
+
+      expect(Object.keys(spec.paths)).toHaveLength(1);
+      expect(spec.paths['/entity/show']).toBeDefined();
+      expect(spec.paths['/entity/onChanged']).toBeUndefined();
     });
   });
 

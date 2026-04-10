@@ -9,5 +9,6 @@ dist/
 .agents/plans/
 .agents/notes/
 .claude/agent-memory/
+.claude/scheduled_tasks.lock
 .npmrc
 .envrc

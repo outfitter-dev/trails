@@ -281,9 +281,13 @@ const buildOperation = (
 // Path collection
 // ---------------------------------------------------------------------------
 
-/** Check whether a trail should be included in the spec. */
+/** Check whether a trail should be included in the spec (skip signals, internal, and consumer trails). */
 const isPublicTrail = (t: Trail<unknown, unknown, unknown>): boolean => {
   if (t.kind !== 'trail') {
+    return false;
+  }
+  // Consumer trails (activated by signals via `on`) are not HTTP-addressable
+  if (t.on.length > 0) {
     return false;
   }
   const { meta } = t as unknown as {
