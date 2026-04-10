@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 
-import { signal, resource, Result, topo, trail } from '@ontrails/core';
+import { contour, signal, resource, Result, topo, trail } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -19,6 +19,23 @@ const dbResource = resource('db.main', {
   description: 'Primary database',
   health: () => Result.ok({ ok: true }),
 });
+const userContour = contour(
+  'user',
+  {
+    id: z.string().uuid(),
+    name: z.string(),
+  },
+  { identity: 'id' }
+);
+const gistContour = contour(
+  'gist',
+  {
+    id: z.string().uuid(),
+    ownerId: userContour.id(),
+    title: z.string(),
+  },
+  { identity: 'id' }
+);
 
 const getFirstEntry = (map: ReturnType<typeof generateTrailheadMap>) => {
   const [entry] = map.entries;
@@ -110,6 +127,19 @@ describe('generateTrailheadMap', () => {
       expect(entry.resources).toEqual(['db.main']);
     });
 
+    test('trail entries include declared contours when present', () => {
+      const t = trail('gist.create', {
+        blaze: noop,
+        contours: [gistContour, userContour],
+        input: z.object({}),
+      });
+      const entry = generateTrailheadMap(topoFrom({ t })).entries.find(
+        (candidate) => candidate.id === 'gist.create'
+      );
+
+      expect(entry?.contours).toEqual(['gist', 'user']);
+    });
+
     test('trail without output schema has output undefined', () => {
       const t = trail('fire.forget', {
         blaze: noop,
@@ -163,6 +193,28 @@ describe('generateTrailheadMap', () => {
       expect(entry.description).toBe('Primary database');
       expect(entry.healthcheck).toBe(true);
       expect(entry.trailheads).toEqual([]);
+    });
+
+    test('contour entries are included with schema and references', () => {
+      const entry = generateTrailheadMap(
+        topoFrom({ gistContour, userContour })
+      ).entries.find((candidate) => candidate.id === 'gist');
+
+      expect(entry).toBeDefined();
+      expect(entry?.kind).toBe('contour');
+      expect(entry?.identity).toBe('id');
+      expect(entry?.references).toEqual([
+        {
+          contour: 'user',
+          field: 'ownerId',
+          identity: 'id',
+        },
+      ]);
+      expectSchemaProperties(entry?.schema, {
+        id: { type: 'string' },
+        ownerId: { type: 'string' },
+        title: { type: 'string' },
+      });
     });
   });
 

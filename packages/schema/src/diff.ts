@@ -45,6 +45,9 @@ const capitalize = (s: string): string =>
   `${s.charAt(0).toUpperCase()}${s.slice(1)}`;
 
 const labelForKind = (kind: TrailheadMapEntry['kind']): string => {
+  if (kind === 'contour') {
+    return 'Contour';
+  }
   if (kind === 'resource') {
     return 'Resource';
   }
@@ -100,17 +103,32 @@ const inferSchemaType = (schema: JsonSchema): string => {
 const getType = (schema: JsonSchema | undefined): string =>
   schema ? inferSchemaType(schema) : 'unknown';
 
+const getAddedFieldLabel = (
+  direction: 'contour' | 'input' | 'output'
+): string => {
+  if (direction === 'output') {
+    return 'Output';
+  }
+  if (direction === 'contour') {
+    return 'Optional contour';
+  }
+  return 'Optional input';
+};
+
 /** Diff a single field that was added. */
 const diffAddedField = (
   acc: DetailAccumulator,
-  direction: 'input' | 'output',
+  direction: 'contour' | 'input' | 'output',
   key: string,
   currRequired: ReadonlySet<string>
 ): void => {
-  if (direction === 'input' && currRequired.has(key)) {
+  if (
+    (direction === 'contour' || direction === 'input') &&
+    currRequired.has(key)
+  ) {
     addDetail(acc, 'breaking', `Required ${direction} field "${key}" added`);
   } else {
-    const label = direction === 'input' ? `Optional ${direction}` : 'Output';
+    const label = getAddedFieldLabel(direction);
     addDetail(acc, 'info', `${label} field "${key}" added`);
   }
 };
@@ -118,7 +136,7 @@ const diffAddedField = (
 /** Diff a single field present in both prev and curr. */
 const diffModifiedField = (
   acc: DetailAccumulator,
-  direction: 'input' | 'output',
+  direction: 'contour' | 'input' | 'output',
   key: string,
   prevProps: Record<string, JsonSchema>,
   currProps: Record<string, JsonSchema>,
@@ -135,14 +153,14 @@ const diffModifiedField = (
     );
   }
   if (
-    direction === 'input' &&
+    (direction === 'contour' || direction === 'input') &&
     !prevRequired.has(key) &&
     currRequired.has(key)
   ) {
     addDetail(
       acc,
       'breaking',
-      `Input field "${key}" changed from optional to required`
+      `${capitalize(direction)} field "${key}" changed from optional to required`
     );
   }
 };
@@ -150,7 +168,7 @@ const diffModifiedField = (
 /** Diff a single key across prev/curr schemas. */
 const diffKey = (
   acc: DetailAccumulator,
-  direction: 'input' | 'output',
+  direction: 'contour' | 'input' | 'output',
   key: string,
   prevProps: Record<string, JsonSchema>,
   currProps: Record<string, JsonSchema>,
@@ -182,7 +200,7 @@ const diffKey = (
 
 const diffSchemaFields = (
   acc: DetailAccumulator,
-  direction: 'input' | 'output',
+  direction: 'contour' | 'input' | 'output',
   prev: JsonSchema | undefined,
   curr: JsonSchema | undefined
 ): void => {
@@ -314,6 +332,17 @@ const buildResourcesMessage = (added: string[], removed: string[]): string => {
   return `Resources changed: ${parts.join(', ')}`;
 };
 
+const buildContoursMessage = (added: string[], removed: string[]): string => {
+  const parts: string[] = [];
+  if (added.length > 0) {
+    parts.push(`added "${added.join('", "')}"`);
+  }
+  if (removed.length > 0) {
+    parts.push(`removed "${removed.join('", "')}"`);
+  }
+  return `Contours changed: ${parts.join(', ')}`;
+};
+
 /** Diff crosses arrays. */
 const diffCrosses = (
   acc: DetailAccumulator,
@@ -352,18 +381,110 @@ const diffResources = (
   }
 };
 
-const diffEntryDetails = (
+/** Diff declared contour arrays on trail entries. */
+const diffContours = (
+  acc: DetailAccumulator,
+  prev: TrailheadMapEntry,
+  curr: TrailheadMapEntry
+): void => {
+  const prevContours = new Set(prev.contours);
+  const currContours = new Set(curr.contours);
+  const added = [...currContours]
+    .filter((contour) => !prevContours.has(contour))
+    .toSorted();
+  const removed = [...prevContours]
+    .filter((contour) => !currContours.has(contour))
+    .toSorted();
+  if (added.length > 0 || removed.length > 0) {
+    addDetail(acc, 'warning', buildContoursMessage(added, removed));
+  }
+};
+
+const diffContourSchema = (
+  acc: DetailAccumulator,
+  prev: TrailheadMapEntry,
+  curr: TrailheadMapEntry
+): void => {
+  diffSchemaFields(acc, 'contour', prev.schema, curr.schema);
+
+  if (prev.identity !== curr.identity) {
+    addDetail(
+      acc,
+      'breaking',
+      `Contour identity changed: ${String(prev.identity ?? '(none)')} -> ${String(curr.identity ?? '(none)')}`
+    );
+  }
+};
+
+const referenceLabel = (reference: {
+  readonly contour: string;
+  readonly field: string;
+  readonly identity: string;
+}): string => `${reference.field}:${reference.contour}.${reference.identity}`;
+
+const diffContourReferences = (
+  acc: DetailAccumulator,
+  prev: TrailheadMapEntry,
+  curr: TrailheadMapEntry
+): void => {
+  const prevReferences = new Set(
+    (prev.references ?? []).map((reference) => referenceLabel(reference))
+  );
+  const currReferences = new Set(
+    (curr.references ?? []).map((reference) => referenceLabel(reference))
+  );
+  const added = [...currReferences]
+    .filter((reference) => !prevReferences.has(reference))
+    .toSorted();
+  const removed = [...prevReferences]
+    .filter((reference) => !currReferences.has(reference))
+    .toSorted();
+
+  if (added.length > 0) {
+    addDetail(
+      acc,
+      'warning',
+      `Contour references added: "${added.join('", "')}"`
+    );
+  }
+
+  if (removed.length > 0) {
+    addDetail(
+      acc,
+      'breaking',
+      `Contour references removed: "${removed.join('", "')}"`
+    );
+  }
+};
+
+const diffTrailEntryDetails = (
   acc: DetailAccumulator,
   prev: TrailheadMapEntry,
   curr: TrailheadMapEntry
 ): void => {
   diffSchemaFields(acc, 'input', prev.input, curr.input);
   diffSchemaFields(acc, 'output', prev.output, curr.output);
-  diffTrailheads(acc, prev, curr);
   diffCliPath(acc, prev, curr);
-  diffMetadata(acc, prev, curr);
   diffCrosses(acc, prev, curr);
+  diffContours(acc, prev, curr);
   diffResources(acc, prev, curr);
+};
+
+const diffEntryDetails = (
+  acc: DetailAccumulator,
+  prev: TrailheadMapEntry,
+  curr: TrailheadMapEntry
+): void => {
+  diffTrailheads(acc, prev, curr);
+  diffMetadata(acc, prev, curr);
+
+  if (curr.kind === 'contour') {
+    diffContourSchema(acc, prev, curr);
+    diffContourReferences(acc, prev, curr);
+    return;
+  }
+
+  diffTrailEntryDetails(acc, prev, curr);
 };
 
 const diffEntry = (

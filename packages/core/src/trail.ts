@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 
+import type { AnyContour } from './contour.js';
 import type { FieldOverride } from './derive.js';
 import type { Result } from './result.js';
 import type { AnyResource } from './resource.js';
@@ -78,6 +79,8 @@ export interface TrailSpec<I, O, CI = never> {
   readonly detours?: Readonly<Record<string, readonly string[]>> | undefined;
   /** Per-field overrides for deriveFields() (labels, hints, options) */
   readonly fields?: Readonly<Record<string, FieldOverride>> | undefined;
+  /** Contours this trail operates on. */
+  readonly contours?: readonly AnyContour[] | undefined;
   /** IDs or trail objects of downstream trails this trail may invoke via ctx.cross() */
   readonly crosses?: readonly (string | AnyTrail)[] | undefined;
   /**
@@ -130,6 +133,7 @@ export interface Trail<I, O, CI = never> extends Omit<
   TrailSpec<I, O, CI>,
   | 'args'
   | 'blaze'
+  | 'contours'
   | 'crosses'
   | 'crossInput'
   | 'fires'
@@ -140,6 +144,8 @@ export interface Trail<I, O, CI = never> extends Omit<
   readonly kind: 'trail';
   readonly id: string;
   readonly blaze: Implementation<BlazeInput<I, CI>, O>;
+  /** Contours this trail operates on (always present, default []). */
+  readonly contours: readonly AnyContour[];
   /** IDs of downstream trails this trail may invoke via ctx.cross() (always present, default []) */
   readonly crosses: readonly string[];
   /** Composition-only input schema, merged with `input` for ctx.cross() calls (optional) */
@@ -214,6 +220,7 @@ export function trail<I, O, CI = never>(
   const {
     args: rawArgs,
     blaze,
+    contours: rawContours,
     crossInput,
     crosses: rawCrosses,
     fires: rawFires,
@@ -223,6 +230,7 @@ export function trail<I, O, CI = never>(
     visibility: rawVisibility,
     ...spec
   } = resolved.spec;
+  const contours = Object.freeze([...(rawContours ?? [])]);
   const resources = Object.freeze([...(rawResources ?? [])]);
   const fires = Object.freeze((rawFires ?? []).map(normalizeSignalRef));
   const on = Object.freeze((rawOn ?? []).map(normalizeSignalRef));
@@ -233,6 +241,7 @@ export function trail<I, O, CI = never>(
     args,
     blaze: async (input: BlazeInput<I, CI>, ctx: TrailContext) =>
       await blaze(input, ctx),
+    contours,
     crossInput,
     crosses: Object.freeze((rawCrosses ?? []).map(normalizeCrossRef)),
     fires,

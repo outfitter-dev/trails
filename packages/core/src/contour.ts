@@ -42,6 +42,14 @@ export interface ContourIdMetadata<
   readonly identity: TIdentity;
 }
 
+/** A structural contour reference declared by another contour field schema. */
+export interface ContourReference<
+  TName extends string = string,
+  TIdentity extends string = string,
+> extends ContourIdMetadata<TName, TIdentity> {
+  readonly field: string;
+}
+
 /** Symbol used to tag branded contour reference schemas at runtime. */
 export const CONTOUR_ID_METADATA = Symbol.for('@ontrails/core/contour-id');
 
@@ -203,6 +211,30 @@ export const getContourIdMetadata = (
     schema as Partial<Record<typeof CONTOUR_ID_METADATA, ContourIdMetadata>>
   )[CONTOUR_ID_METADATA];
 };
+
+/** Inspect a contour schema for fields that reference other contours via `.id()`. */
+export const getContourReferences = (
+  contour: AnyContour
+): readonly ContourReference[] =>
+  Object.entries(contour.shape)
+    .flatMap(([field, schema]) => {
+      const metadata = getContourIdMetadata(schema);
+      if (
+        metadata === undefined ||
+        (field === contour.identity &&
+          metadata.contour === contour.name &&
+          metadata.identity === contour.identity)
+      ) {
+        return [];
+      }
+
+      return [{ field, ...metadata }];
+    })
+    .toSorted((left, right) =>
+      left.field === right.field
+        ? left.contour.localeCompare(right.contour)
+        : left.field.localeCompare(right.field)
+    );
 
 /**
  * Create a contour definition from a raw Zod object shape.

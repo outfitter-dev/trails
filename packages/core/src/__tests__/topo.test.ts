@@ -2,6 +2,7 @@ import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
 
+import { contour } from '../contour.js';
 import { ValidationError } from '../errors.js';
 import { resource } from '../resource.js';
 import { Result } from '../result.js';
@@ -14,8 +15,23 @@ import { topo } from '../topo.js';
 // oxlint-disable-next-line require-await -- satisfies async interface without needing await
 const noop = async () => Result.ok();
 
-const mockTrail = (id: string, crosses?: readonly string[]) => ({
+const mockContour = (name: string) =>
+  contour(
+    name,
+    {
+      id: z.string().uuid(),
+      value: z.string(),
+    },
+    { identity: 'id' }
+  );
+
+const mockTrail = (
+  id: string,
+  crosses?: readonly string[],
+  contours?: readonly ReturnType<typeof mockContour>[]
+) => ({
   blaze: noop,
+  contours: Object.freeze([...(contours ?? [])]),
   crosses: Object.freeze([...(crosses ?? [])]),
   id,
   input: z.object({ x: z.number() }),
@@ -109,6 +125,24 @@ describe('topo', () => {
       expect(t.resources.size).toBe(1);
       expect(t.resources.get('db.main')).toBe(mod.db);
     });
+
+    test('collects contours exported directly from modules', () => {
+      const user = mockContour('user');
+      const t = topo('app', { user });
+
+      expect(t.contours.size).toBe(1);
+      expect(t.getContour('user')).toBe(user);
+    });
+
+    test('registers contours declared on trails into the topo graph', () => {
+      const user = mockContour('user');
+      const t = topo('app', {
+        createUser: mockTrail('user.create', [], [user]),
+      });
+
+      expect(t.contours.size).toBe(1);
+      expect(t.getContour('user')).toBe(user);
+    });
   });
 
   describe('duplicate rejection', () => {
@@ -141,6 +175,16 @@ describe('topo', () => {
         'Duplicate resource ID: "dup"'
       );
     });
+
+    test('rejects duplicate contour names', () => {
+      const mod1 = { a: mockContour('user') };
+      const mod2 = { b: mockContour('user') };
+
+      expect(() => topo('app', mod1, mod2)).toThrow(ValidationError);
+      expect(() => topo('app', mod1, mod2)).toThrow(
+        'Duplicate contour name: "user"'
+      );
+    });
   });
 });
 
@@ -169,9 +213,18 @@ describe('topo accessors', () => {
     expect(app.resourceCount).toBe(2);
   });
 
+  test('contourCount returns number of contours', () => {
+    const gist = mockContour('gist');
+    const user = mockContour('user');
+    const app = topo('test', { gist, user });
+    expect(app.contourCount).toBe(2);
+  });
+
   test('empty topo has zero count and empty ids', () => {
     const app = topo('empty');
     expect(app.count).toBe(0);
+    expect(app.contourCount).toBe(0);
+    expect(app.contourIds()).toEqual([]);
     expect(app.ids()).toEqual([]);
     expect(app.resourceCount).toBe(0);
     expect(app.resourceIds()).toEqual([]);
@@ -182,6 +235,13 @@ describe('topo accessors', () => {
     const cache = mockResource('cache.main');
     const app = topo('test', { cache, db });
     expect(app.resourceIds().toSorted()).toEqual(['cache.main', 'db.main']);
+  });
+
+  test('contourIds() returns all contour names', () => {
+    const gist = mockContour('gist');
+    const user = mockContour('user');
+    const app = topo('test', { gist, user });
+    expect(app.contourIds().toSorted()).toEqual(['gist', 'user']);
   });
 });
 
@@ -202,6 +262,13 @@ describe('Topo', () => {
   const app = topo('app', mod);
 
   describe('get()', () => {
+    test('retrieves contour by name', () => {
+      const user = mockContour('user');
+      const contourApp = topo('app', { user });
+
+      expect(contourApp.getContour('user')).toBe(user);
+    });
+
     test('retrieves trail by ID', () => {
       expect(app.get('trail-1')).toBe(mod.t1);
     });
@@ -216,6 +283,13 @@ describe('Topo', () => {
   });
 
   describe('has()', () => {
+    test('returns true for known contour', () => {
+      const user = mockContour('user');
+      const contourApp = topo('app', { user });
+
+      expect(contourApp.hasContour('user')).toBe(true);
+    });
+
     test('returns true for known trail', () => {
       expect(app.has('trail-1')).toBe(true);
     });
@@ -226,6 +300,12 @@ describe('Topo', () => {
 
     test('returns false for unknown ID', () => {
       expect(app.has('nope')).toBe(false);
+    });
+
+    test('returns false for unknown contour', () => {
+      const contourApp = topo('app');
+
+      expect(contourApp.hasContour('missing')).toBe(false);
     });
 
     test('returns false for event ID (signals are not trails)', () => {
@@ -272,6 +352,14 @@ describe('Topo', () => {
       const items = app.listResources();
       expect(items).toHaveLength(1);
       expect(items).toContain(mod.p1);
+    });
+
+    test('listContours() returns all contours', () => {
+      const gist = mockContour('gist');
+      const user = mockContour('user');
+      const contourApp = topo('app', { gist, user });
+
+      expect(contourApp.listContours()).toEqual([gist, user]);
     });
   });
 });

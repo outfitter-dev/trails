@@ -110,7 +110,11 @@ export type { AnyEvent, Event, EventSpec } from './event.js';
 
 // Contour
 export { contour } from './contour.js';
-export { CONTOUR_ID_METADATA, getContourIdMetadata } from './contour.js';
+export {
+  CONTOUR_ID_METADATA,
+  getContourIdMetadata,
+  getContourReferences,
+} from './contour.js';
 export type {
   AnyContour,
   Contour,
@@ -119,6 +123,7 @@ export type {
   ContourIdSchema,
   ContourIdValue,
   ContourOptions,
+  ContourReference,
 } from './contour.js';
 
 // Topo

@@ -24,6 +24,7 @@ export type {
   DiffEntry,
   DiffResult,
   JsonSchema,
+  TrailheadContourReference,
   WriteOptions,
   ReadOptions,
 } from './types.js';
