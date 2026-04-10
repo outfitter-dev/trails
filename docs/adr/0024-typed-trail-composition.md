@@ -212,4 +212,4 @@ The existing `cross-declarations` rule gains awareness of `crossInput`: if a `ct
 
 [^1]: [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — `crosses` and `ctx.cross()` as the composition mechanism
 [^2]: [ADR-0000: Core Premise — The information architecture](../0000-core-premise.md)
-[^3]: See [Trail Visibility and Trailhead Filtering](20260331-visibility-and-filtering.md) (draft)
+[^3]: See [Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) (draft)

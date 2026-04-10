@@ -83,7 +83,14 @@ export type {
   Trail,
   TrailSpec,
   TrailExample,
+  TrailVisibility,
 } from './trail.js';
+export {
+  filterTrailheadTrails,
+  matchesTrailPattern,
+  shouldIncludeTrailForTrailhead,
+} from './trailhead-filter.js';
+export type { TrailheadFilterOptions } from './trailhead-filter.js';
 
 // Type utilities
 export type {

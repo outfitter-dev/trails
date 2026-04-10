@@ -246,6 +246,23 @@ describe('trail()', () => {
       });
       expect(t.idempotent).toBe(true);
     });
+
+    test('visibility defaults to public', () => {
+      const minimal = trail('visible', {
+        blaze: () => Result.ok(),
+        input: z.object({}),
+      });
+      expect(minimal.visibility).toBe('public');
+    });
+
+    test('visibility is preserved when set', () => {
+      const t = trail('internal.helper', {
+        blaze: () => Result.ok(),
+        input: z.object({}),
+        visibility: 'internal',
+      });
+      expect(t.visibility).toBe('internal');
+    });
   });
 
   describe('single-object overload', () => {

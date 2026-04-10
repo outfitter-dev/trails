@@ -111,45 +111,6 @@
     },
     {
       "created": "2026-03-31",
-      "depends_on": ["packs-namespace-boundaries"],
-      "inbound": [
-        {
-          "context": "[^3]: See [Trail Visibility and Trailhead Filtering](20260331-visibility-and-filtering.md) (draft)",
-          "from": "0024",
-          "fromPath": "docs/adr/0024-typed-trail-composition.md"
-        },
-        {
-          "context": "- [ADR: Trail Visibility and Trailhead Filtering](20260331-visibility-and-filtering.md) (draft) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
-        },
-        {
-          "context": "- [ADR: Trail Visibility and Trailhead Filtering](20260331-visibility-and-filtering.md) (draft) -- `trails run` can invoke internal trails (it's programmatic, like `run()`)",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
-        },
-        {
-          "context": "- [ADR: Trail Visibility and Trailhead Filtering](20260331-visibility-and-filtering.md) (draft) -- rigged SDK wrapper packs use `visibility: 'internal'`",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
-        },
-        {
-          "context": "- [ADR: Trail Visibility and Trailhead Filtering](20260331-visibility-and-filtering.md) (draft) -- visibility and intent filtering apply to WebSocket trail discovery and invocation",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
-        }
-      ],
-      "number": null,
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260331-visibility-and-filtering.md",
-      "slug": "visibility-and-filtering",
-      "status": "draft",
-      "superseded_by": null,
-      "title": "Trail Visibility and Trailhead Filtering",
-      "updated": "2026-04-09"
-    },
-    {
-      "created": "2026-03-31",
       "depends_on": ["typed-signal-emission"],
       "inbound": [],
       "number": null,

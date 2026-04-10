@@ -17,6 +17,7 @@ import {
   deriveCliPath,
   deriveFields,
   executeTrail,
+  filterTrailheadTrails,
   validateEstablishedTopo,
 } from '@ontrails/core';
 
@@ -55,6 +56,8 @@ export interface BuildCliCommandsOptions {
   createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
+  exclude?: readonly string[] | undefined;
+  include?: readonly string[] | undefined;
   layers?: Layer[] | undefined;
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
   presets?: CliFlag[][] | undefined;
@@ -466,12 +469,10 @@ const collectCommands = (
   app: Topo,
   options?: BuildCliCommandsOptions
 ): CliCommand[] =>
-  app
-    .list()
-    .filter(
-      (trail) => trail.meta?.['internal'] !== true && trail.on.length === 0
-    )
-    .map((trail) => toCliCommand(app, trail, options));
+  filterTrailheadTrails(app.list(), {
+    exclude: options?.exclude,
+    include: options?.include,
+  }).map((trail) => toCliCommand(app, trail, options));
 
 export const buildCliCommands = (
   app: Topo,

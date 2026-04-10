@@ -46,6 +46,12 @@ const notFoundTrail = trail('item.get', {
   intent: 'read',
 });
 
+const hiddenTrail = trail('internal.secret', {
+  blaze: () => Result.ok({ ok: true }),
+  input: z.object({}),
+  visibility: 'internal',
+});
+
 const internalTrail = trail('crash', {
   blaze: () => Result.err(new InternalError('Something broke')),
   description: 'Always fails with internal error',
@@ -177,6 +183,18 @@ describe('trailhead (Hono connector)', () => {
 
       const json = await res.json();
       expect(json.error.category).toBe('validation');
+    });
+
+    test('exact include can expose an internal route', async () => {
+      const app = topo('testapp', { echoTrail, hiddenTrail });
+      const hono = await trailhead(app, {
+        include: ['internal.secret'],
+        serve: false,
+      });
+
+      const res = await request(hono, 'POST', '/internal/secret', {});
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ data: { ok: true } });
     });
 
     test('POST with empty input schema succeeds without a body', async () => {

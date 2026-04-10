@@ -90,9 +90,12 @@ const importTrail = trail('data.import', {
 ## Filtering
 
 ```typescript
-await trailhead(app, { includeTrails: ['entity.show', 'search'] });
-await trailhead(app, { excludeTrails: ['internal.debug'] });
+await trailhead(app, { include: ['entity.**', 'search'] });
+await trailhead(app, { exclude: ['internal.debug'] });
 ```
+
+`*` matches one dotted segment and `**` matches any depth. Trails declared with
+`visibility: 'internal'` stay hidden unless you include their exact trail ID.
 
 ## Installation
 

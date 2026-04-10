@@ -85,6 +85,11 @@
           "fromPath": "docs/adr/0024-typed-trail-composition.md"
         },
         {
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"derive by default, override deliberately\"; the information architecture categories",
+          "from": "0027",
+          "fromPath": "docs/adr/0027-visibility-and-filtering.md"
+        },
+        {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"derive by default\"; tracing observes composition shape rather than requiring it to be declared",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
@@ -118,11 +123,6 @@
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — \"derive by default\"; framework lifecycle events are derived from execution observation",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
-        },
-        {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"derive by default, override deliberately\"; the information architecture categories",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"trailheads are peers\"; WebSocket is the fourth trailhead, following the same patterns as CLI, MCP, and HTTP",
@@ -327,6 +327,11 @@
           "fromPath": "docs/adr/0025-composition-testing.md"
         },
         {
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- the trail spec that gains the `visibility` field",
+          "from": "0027",
+          "fromPath": "docs/adr/0027-visibility-and-filtering.md"
+        },
+        {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- \"composition is a property, not a type\"; parallel vs sequential is a runtime choice, not a contract distinction. The crossi",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
@@ -355,11 +360,6 @@
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — `fires` is a new property on the trail spec",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
-        },
-        {
-          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- the trail spec that gains the `visibility` field",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the merge test applied to contour vs. trail (conclusion: they're different enough to stay separate)",
@@ -411,6 +411,11 @@
           "fromPath": "docs/adr/0013-tracing.md"
         },
         {
+          "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent drives HTTP verbs, MCP annotations, and now trailhead filtering",
+          "from": "0027",
+          "fromPath": "docs/adr/0027-visibility-and-filtering.md"
+        },
+        {
           "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- rigged trails declare intent; HTTP method mapping and MCP annotations work identically",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
@@ -419,11 +424,6 @@
           "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) — intent compounds with activation; lifecycle signals filter by intent",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
-        },
-        {
-          "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent drives HTTP verbs, MCP annotations, and now trailhead filtering",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
           "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent compounds with layers for surface derivation and governance",
@@ -667,6 +667,11 @@
           "fromPath": "docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md"
         },
         {
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- the derivation rules that visibility and intent filtering extend",
+          "from": "0027",
+          "fromPath": "docs/adr/0027-visibility-and-filtering.md"
+        },
+        {
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- rigged trails get trailhead derivation for free",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
@@ -675,11 +680,6 @@
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- survey output provides the contract snapshots",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
-        },
-        {
-          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- the derivation rules that visibility and intent filtering extend",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- trail IDs map to WebSocket method names, event IDs map to subscription channels",
@@ -927,6 +927,11 @@
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
         {
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- the observability system; visibility filtering events are observable through tracing",
+          "from": "0027",
+          "fromPath": "docs/adr/0027-visibility-and-filtering.md"
+        },
+        {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- tracing observes concurrent vs sequential spans to derive composition shape at runtime",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
@@ -960,11 +965,6 @@
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) — tracing records emission and delivery metadata",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
-        },
-        {
-          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- the observability system; visibility filtering events are observable through tracing",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- observability and replay buffer backing store",
@@ -1163,6 +1163,11 @@
           "fromPath": "docs/adr/0021-draft-state-stays-out-of-the-resolved-graph.md"
         },
         {
+          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- the lockfile captures resolved visibility state after all overrides are applied",
+          "from": "0027",
+          "fromPath": "docs/adr/0027-visibility-and-filtering.md"
+        },
+        {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- the lockfile captures composition shapes including parallel crossing patterns",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
@@ -1171,11 +1176,6 @@
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
-        },
-        {
-          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- the lockfile captures resolved visibility state after all overrides are applied",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- captures WebSocket trailhead configuration in the resolved topo graph",
@@ -1421,6 +1421,11 @@
           "fromPath": "docs/adr/0025-composition-testing.md"
         },
         {
+          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- `crossInput` relates to internal visibility; a trail with required `crossInput` fields should declare `visibility: 'interna",
+          "from": "0027",
+          "fromPath": "docs/adr/0027-visibility-and-filtering.md"
+        },
+        {
           "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- typed `ctx.cross()` that the array overload extends; parallel crossing with typed results is a non-decision there, deferred",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
@@ -1434,11 +1439,6 @@
           "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` complements signal-based decoupling; signals are for loose coupling, crosses are for typed direct compos",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
-        },
-        {
-          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- `crossInput` relates to internal visibility; a trail with required `crossInput` fields should declare `visibility: 'interna",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
           "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- `crossInput` follows the same \"compose schemas, project the union\" pattern as layer input schemas",
@@ -1489,17 +1489,17 @@
       "depends_on": ["2", "6"],
       "inbound": [
         {
-          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) — signal delivery semantics (retry, dead-letter, discard) ",
+          "context": "- [ADR: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md) (draft) — signal delivery semantics (retry, dead-letter, discard) ",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
         {
-          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) — signal delivery semantics (retry, dead-letter, discard) ",
+          "context": "- [ADR: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md) (draft) — signal delivery semantics (retry, dead-letter, discard) ",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
-          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) -- WebSocket close code mapping deferred there; the error ",
+          "context": "- [ADR: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md) (draft) -- WebSocket close code mapping deferred there; the error ",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
         }
@@ -1511,7 +1511,46 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Error Taxonomy as Transport-Independent Behavior Contract",
-      "updated": "2026-04-13"
+      "updated": "2026-04-10"
+    },
+    {
+      "created": "2026-03-31",
+      "depends_on": ["packs-namespace-boundaries"],
+      "inbound": [
+        {
+          "context": "[^3]: See [Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) (draft)",
+          "from": "0024",
+          "fromPath": "docs/adr/0024-typed-trail-composition.md"
+        },
+        {
+          "context": "- [ADR: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) (draft) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
+        },
+        {
+          "context": "- [ADR: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) (draft) -- `trails run` can invoke internal trails (it's programmatic, like `run()`)",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
+        },
+        {
+          "context": "- [ADR: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) (draft) -- rigged SDK wrapper packs use `visibility: 'internal'`",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
+        },
+        {
+          "context": "- [ADR: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) (draft) -- visibility and intent filtering apply to WebSocket trail discovery and invocation",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        }
+      ],
+      "number": "0027",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0027-visibility-and-filtering.md",
+      "slug": "visibility-and-filtering",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Trail Visibility and Trailhead Filtering",
+      "updated": "2026-04-10"
     }
   ],
   "version": 1

@@ -173,6 +173,17 @@ beneath that path.
 
 Declared resources on each trail are resolved into the context before the implementation runs.
 
+## Filtering
+
+```typescript
+trailhead(app, { include: ['entity.**'] });
+trailhead(app, { exclude: ['dev.**'] });
+```
+
+`*` matches one dotted segment and `**` matches any depth. Trails declared
+with `visibility: 'internal'` stay hidden unless you include their exact trail
+ID intentionally.
+
 ## Layers
 
 - **`autoIterateLayer`** -- adds `--all` for paginated trails, collects all pages

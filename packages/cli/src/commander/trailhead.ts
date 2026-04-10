@@ -26,6 +26,8 @@ export interface TrailheadCliOptions {
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   description?: string | undefined;
+  exclude?: readonly string[] | undefined;
+  include?: readonly string[] | undefined;
   layers?: Layer[] | undefined;
   name?: string | undefined;
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
@@ -62,6 +64,8 @@ export const trailhead = async (
 ): Promise<void> => {
   const commands = buildCliCommands(app, {
     createContext: options.createContext,
+    exclude: options.exclude,
+    include: options.include,
     layers: options.layers,
     onResult: options.onResult ?? defaultOnResult,
     presets: options.presets,
