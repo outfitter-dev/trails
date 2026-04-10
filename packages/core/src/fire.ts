@@ -42,6 +42,15 @@ type MutableConsumerContext = {
 
 const FIRE_STACK_KEY = '__trails_fire_stack';
 
+/**
+ * Maximum depth for signal fan-out chains.
+ *
+ * Cycle detection catches re-entrant fires of the same signal ID (A→B→A),
+ * but a chain of distinct signals (A→B→C→D→...) bypasses it. This limit
+ * prevents runaway fan-out in pathological topologies.
+ */
+const MAX_FIRE_DEPTH = 16;
+
 const getFireStack = (
   ctx: Pick<TrailContextInit, 'extensions'> | undefined
 ): readonly string[] => {
@@ -191,6 +200,28 @@ export const createFireFn = (
     return Result.ok();
   };
 
+  /** Return an early Result if the fire should be suppressed, or null to proceed. */
+  const guardFire = (
+    signalId: string,
+    stack: readonly string[]
+  ): Result<void, Error> | null => {
+    if (stack.length >= MAX_FIRE_DEPTH) {
+      producerCtx?.logger?.warn(
+        'Signal fan-out depth limit reached — skipping fire',
+        { depth: stack.length, signalId }
+      );
+      return Result.ok();
+    }
+    if (stack.includes(signalId)) {
+      producerCtx?.logger?.warn(
+        'Signal cycle detected — skipping re-entrant fire',
+        { signalId }
+      );
+      return Result.ok();
+    }
+    return null;
+  };
+
   const fireImpl: FireFn = async (
     signalOrId: unknown,
     payload: unknown
@@ -199,12 +230,9 @@ export const createFireFn = (
     if (resolved.isErr()) {
       return Result.err(resolved.error);
     }
-    if (getFireStack(producerCtx).includes(resolved.value)) {
-      producerCtx?.logger?.warn(
-        'Signal cycle detected — skipping re-entrant fire',
-        { signalId: resolved.value }
-      );
-      return Result.ok();
+    const suppressed = guardFire(resolved.value, getFireStack(producerCtx));
+    if (suppressed) {
+      return suppressed;
     }
     return await dispatchFire(resolved.value, payload);
   };
