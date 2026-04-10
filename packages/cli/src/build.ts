@@ -359,16 +359,22 @@ const buildFlags = (
   return flags;
 };
 
-/** Collect field names explicitly marked as positional in overrides. */
+/** Collect field names explicitly marked as positional (string fields only). */
 const collectExplicitPositionals = (
+  fields: readonly Field[],
   overrides?: Readonly<Record<string, FieldOverride>>
 ): ReadonlySet<string> => {
   if (!overrides) {
     return new Set();
   }
+  const stringFieldNames = new Set(
+    fields.filter((f) => f.type === 'string').map((f) => f.name)
+  );
   return new Set(
     Object.entries(overrides)
-      .filter(([, o]) => o.positional === true)
+      .filter(
+        ([name, o]) => o.positional === true && stringFieldNames.has(name)
+      )
       .map(([name]) => name)
   );
 };
@@ -401,7 +407,7 @@ const derivePositionalArgs = (
   fields: readonly Field[],
   fieldOverrides?: Readonly<Record<string, FieldOverride>>
 ): { readonly args: CliArg[]; readonly remainingFields: readonly Field[] } => {
-  const explicit = collectExplicitPositionals(fieldOverrides);
+  const explicit = collectExplicitPositionals(fields, fieldOverrides);
   const positionalNames =
     explicit.size > 0 ? explicit : inferPositionalName(fields);
 
