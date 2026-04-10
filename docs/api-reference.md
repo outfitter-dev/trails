@@ -131,11 +131,17 @@ McpToolResult, McpContent, McpExtra, McpAnnotations
 ## `@ontrails/http`
 
 ```typescript
-trailhead(topo, options?)              // one-liner HTTP server
 buildHttpRoutes(topo, options?)    // escape hatch: route definitions without server; returns Result<HttpRouteDefinition[], Error>
 
-TrailheadHttpOptions, BuildHttpRoutesOptions
-HttpMethod, HttpRouteDefinition
+BuildHttpRoutesOptions, HttpMethod, HttpRouteDefinition, InputSource
+```
+
+## `@ontrails/with-hono`
+
+```typescript
+trailhead(topo, options?)              // one-liner Hono HTTP server
+
+TrailheadHttpOptions
 ```
 
 ## `@ontrails/schema`
@@ -168,7 +174,7 @@ StoreConnection<T>, ReadOnlyStoreConnection<T>
 StoreTableAccessor<T>, ReadOnlyStoreTableAccessor<T>
 ```
 
-## `@ontrails/store/drizzle`
+## `@ontrails/with-drizzle`
 
 ```typescript
 connectDrizzle(definition, options?)         // bind a root store definition to a writable Drizzle resource
