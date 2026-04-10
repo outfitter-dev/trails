@@ -124,10 +124,13 @@ const mergeArgsAndFlags = (
   parsedArgs: Record<string, unknown>,
   parsedFlags: Record<string, unknown>
 ): Record<string, unknown> => {
-  const mergedInput: Record<string, unknown> = {
-    ...structuredInput,
-    ...parsedArgs,
-  };
+  const mergedInput: Record<string, unknown> = { ...structuredInput };
+  // Only merge defined positional args — undefined means the user omitted it
+  for (const [key, value] of Object.entries(parsedArgs)) {
+    if (value !== undefined) {
+      mergedInput[key] = value;
+    }
+  }
   for (const [key, value] of Object.entries(parsedFlags)) {
     if (!metaFlagNames.has(key) && value !== undefined) {
       mergedInput[key] = value;
