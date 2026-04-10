@@ -1,9 +1,21 @@
-import { describe, test } from 'bun:test';
+import { afterAll, describe, expect, mock, test } from 'bun:test';
 
-import { Result, resource, trail, topo } from '@ontrails/core';
+import { contour, Result, resource, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { testContracts } from '../contracts.js';
+
+const requireContourExample = (
+  contourDef: { examples?: readonly Record<string, unknown>[] },
+  index: number
+) => {
+  const example = contourDef.examples?.[index];
+  expect(example).toBeDefined();
+  if (!example) {
+    throw new Error(`Expected contour example at index ${index}`);
+  }
+  return example;
+};
 
 // ---------------------------------------------------------------------------
 // Test trails
@@ -114,6 +126,34 @@ const ctxOverrideContractTrail = trail('resource.ctx.contracts', {
   resources: [ctxOverrideContractResource],
 });
 
+const derivedContractContour = contour(
+  'contractFixture',
+  {
+    id: z.string().uuid(),
+    name: z.string(),
+  },
+  {
+    examples: [
+      {
+        id: '03a5873c-0ca6-43c4-9201-3cb3c07ca6bf',
+        name: 'Contour contract fixture',
+      },
+    ],
+    identity: 'id',
+  }
+);
+
+const derivedContractBlaze = mock(() =>
+  Result.ok(requireContourExample(derivedContractContour, 0))
+);
+
+const derivedContractTrail = trail('contract.derived', {
+  blaze: () => derivedContractBlaze(),
+  contours: [derivedContractContour],
+  input: z.object({ id: derivedContractContour.shape.id }),
+  output: derivedContractContour,
+});
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -182,4 +222,18 @@ describe('testContracts resource declarations', () => {
       undeclaredContractTrail,
     } as Record<string, unknown>)
   );
+});
+
+describe('testContracts derives contour examples when trail examples are absent', () => {
+  // eslint-disable-next-line jest/require-hook
+  testContracts(
+    topo('derived-contract-app', {
+      derivedContractContour,
+      derivedContractTrail,
+    } as Record<string, unknown>)
+  );
+
+  afterAll(() => {
+    expect(derivedContractBlaze).toHaveBeenCalledTimes(1);
+  });
 });

@@ -54,6 +54,7 @@ import {
   resolveMockResources,
 } from './context.js';
 import type { MintableTrail, TestExecutionOptions } from './context.js';
+import { resolveTrailExamples } from './effective-examples.js';
 
 // ---------------------------------------------------------------------------
 // Error class name -> constructor map
@@ -309,11 +310,12 @@ export const testExamples = (
 ): void => {
   const resolveInput =
     typeof ctxOrFactory === 'function' ? ctxOrFactory : () => ctxOrFactory;
-  const allTrails = app.list() as Trail<unknown, unknown, unknown>[];
-
-  const withExamples = allTrails.filter(
-    (t) => t.examples !== undefined && t.examples.length > 0
-  );
+  const withExamples = (app.list() as Trail<unknown, unknown, unknown>[])
+    .map((trailDef) => ({
+      ...trailDef,
+      examples: resolveTrailExamples(trailDef),
+    }))
+    .filter((trailDef) => trailDef.examples.length > 0);
   const simpleTrails = withExamples.filter((t) => t.crosses.length === 0);
   const compositionTrails = withExamples.filter((t) => t.crosses.length > 0);
 
