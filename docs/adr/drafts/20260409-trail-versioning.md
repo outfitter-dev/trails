@@ -418,11 +418,11 @@ A resource interface is an internal contract between the framework and the imple
 - [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — the lockfile that captures version state
 - [ADR-0013: Tracing](../0013-tracing.md) — runtime recording that powers version traffic monitoring
 - [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the Result and error taxonomy that gains `VersionNotSupportedError`
-- [ADR: Typed Trail Composition](20260409-typed-trail-composition.md) (draft) — `crossInput` and its interaction with versioning
+- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — `crossInput` and its interaction with versioning
 - [Tenets: The trail is the product](../../tenets.md) — the governing principle; if the trail is the unit of contract, it is the unit of versioning
 
 [^1]: [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the trail as the single primitive
 [^2]: [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — deterministic derivation rules
 [^3]: [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — the lockfile as resolved state
 [^4]: [ADR-0013: Tracing](../0013-tracing.md) — runtime recording primitive
-[^5]: [ADR: Typed Trail Composition](20260409-typed-trail-composition.md) (draft) — the `crossInput` field
+[^5]: [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — the `crossInput` field

@@ -13,11 +13,26 @@ import type { AnyTrail, Trail } from './trail.js';
 
 /** Extract the input type from a Trail. */
 export type TrailInput<T extends AnyTrail> =
-  T extends Trail<infer I, any> ? I : never;
+  T extends Trail<infer I, any, any> ? I : never;
 
 /** Extract the output type from a Trail. */
 export type TrailOutput<T extends AnyTrail> =
-  T extends Trail<any, infer O> ? O : never;
+  T extends Trail<any, infer O, any> ? O : never;
+
+/**
+ * Extract the cross-callable input type from a trail.
+ *
+ * When a trail declares `crossInput`, callers via `ctx.cross()` must pass
+ * both the public input fields and the composition-only fields. This type
+ * merges both schemas so the compiler enforces the full shape at the call
+ * site. Falls back to plain `TrailInput<T>` when no `crossInput` exists.
+ */
+export type CrossInput<T extends AnyTrail> =
+  T extends Trail<infer I, any, infer CI>
+    ? [CI] extends [never]
+      ? I
+      : I & CI
+    : never;
 
 /**
  * Extracts the full `Result<Output, Error>` type from a trail definition.

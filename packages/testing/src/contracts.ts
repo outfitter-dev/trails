@@ -71,7 +71,7 @@ export const testContracts = (
 ): void => {
   const resolveInput =
     typeof ctxOrFactory === 'function' ? ctxOrFactory : () => ctxOrFactory;
-  const allEntries = app.list() as Trail<unknown, unknown>[];
+  const allEntries = app.list() as Trail<unknown, unknown, unknown>[];
 
   describe('contracts', () => {
     describe.each(allEntries)('$id', (t) => {

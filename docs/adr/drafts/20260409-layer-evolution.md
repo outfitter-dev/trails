@@ -312,7 +312,7 @@ The name change from `layers` to `middleware` is intentional. `layers` implied f
 - [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) -- permit declarations that become pipeline-enforced
 - [ADR-0013: Tracing -- Runtime Recording Primitive](../0013-tracing.md) -- recording that becomes a pipeline stage
 - [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent compounds with layers for surface derivation and governance
-- [ADR: Typed Trail Composition](20260409-typed-trail-composition.md) (draft) -- `crossInput` follows the same "compose schemas, project the union" pattern as layer input schemas
+- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- `crossInput` follows the same "compose schemas, project the union" pattern as layer input schemas
 - [Tenets: One write, many reads](../../tenets.md) -- layer input schemas exemplify one authoring point feeding CLI flags, MCP parameters, HTTP query params, and lockfile diffing simultaneously
 
 [^1]: [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `executeTrail` and the current layer composition step

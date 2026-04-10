@@ -6,6 +6,8 @@
  * of reimplementing the pipeline.
  */
 
+import type { z } from 'zod';
+
 import type { AnyTrail } from './trail.js';
 import type { Layer } from './layer.js';
 import type { ResourceOverrideMap } from './resource.js';
@@ -64,6 +66,19 @@ export interface ExecuteTrailOptions {
     | undefined;
   /** Topo used for signal-driven activation; required for `ctx.fire()` to work. */
   readonly topo?: Topo | undefined;
+  /**
+   * Override the validation schema used for input validation.
+   *
+   * When a trail is invoked via `ctx.cross()` and the target declares
+   * `crossInput`, the cross function merges `trail.input` with
+   * `trail.crossInput` and passes the merged schema here so validation
+   * accepts both public and composition-only fields.
+   *
+   * Used by the cross execution path; not part of the public API.
+   *
+   * @internal
+   */
+  readonly validationSchema?: z.ZodType | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -313,7 +328,13 @@ const bindFireToCtx = (
   // `createContext` is intentionally stripped — consumers inherit the
   // already-resolved ctx via `consumerCtx`, and re-running the factory would
   // clobber that.
-  const { createContext: _omit, ...forwarded } = options ?? {};
+  // Strip createContext (consumers inherit resolved ctx) and validationSchema
+  // (consumers validate against their own schema, not the producer's cross schema).
+  const {
+    createContext: _omit,
+    validationSchema: _omitSchema,
+    ...forwarded
+  } = options ?? {};
   const fire = createFireFn(topo, ctx, (consumer, input, consumerCtx) =>
     // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
     executeTrail(consumer, input, {
@@ -420,7 +441,10 @@ export const executeTrail = async (
   options?: ExecuteTrailOptions
 ): Promise<Result<unknown, Error>> => {
   try {
-    const validated = validateInput(trail.input, rawInput);
+    const validated = validateInput(
+      options?.validationSchema ?? trail.input,
+      rawInput
+    );
     if (validated.isErr()) {
       return validated;
     }

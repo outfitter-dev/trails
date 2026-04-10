@@ -30,3 +30,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0021](0021-draft-state-stays-out-of-the-resolved-graph.md) | Draft State Stays Out of the Resolved Graph | Accepted |
 | [0022](0022-drizzle-store-connector.md) | Drizzle Binds Schema-Derived Stores to SQLite | Accepted |
 | [0023](0023-simplifying-the-trails-lexicon.md) | Simplifying the Trails Lexicon | Accepted |
+| [0024](0024-typed-trail-composition.md) | Typed Trail Composition | Accepted |

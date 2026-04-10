@@ -35,17 +35,31 @@ export interface TrailExample<I, O> {
 }
 
 // ---------------------------------------------------------------------------
+// Blaze input — merges crossInput when declared
+// ---------------------------------------------------------------------------
+
+/**
+ * The input type received by a trail's blaze function.
+ *
+ * When a trail declares `crossInput`, the runtime merges those fields into
+ * the input object before calling blaze. This type makes the compiler aware
+ * of the merged shape so developers can access crossInput fields without a
+ * cast. Falls back to plain `I` when `CI` is `never` (the default).
+ */
+export type BlazeInput<I, CI> = [CI] extends [never] ? I : I & CI;
+
+// ---------------------------------------------------------------------------
 // Trail spec
 // ---------------------------------------------------------------------------
 
 /** Everything needed to define a trail (minus the id) */
-export interface TrailSpec<I, O> {
+export interface TrailSpec<I, O, CI = never> {
   /** Zod schema for validating input */
   readonly input: z.ZodType<I>;
   /** Zod schema for validating output (optional — some trails are fire-and-forget) */
   readonly output?: z.ZodType<O> | undefined;
   /** The pure function that does the work (sync or async authoring) */
-  readonly blaze: Implementation<I, O>;
+  readonly blaze: Implementation<BlazeInput<I, CI>, O>;
   /** Human-readable description */
   readonly description?: string | undefined;
   /** Named examples for docs and testing */
@@ -60,8 +74,17 @@ export interface TrailSpec<I, O> {
   readonly detours?: Readonly<Record<string, readonly string[]>> | undefined;
   /** Per-field overrides for deriveFields() (labels, hints, options) */
   readonly fields?: Readonly<Record<string, FieldOverride>> | undefined;
-  /** IDs of downstream trails this trail may invoke via ctx.cross() */
-  readonly crosses?: readonly string[] | undefined;
+  /** IDs or trail objects of downstream trails this trail may invoke via ctx.cross() */
+  readonly crosses?: readonly (string | AnyTrail)[] | undefined;
+  /**
+   * Composition-only input schema — merged with `input` for `ctx.cross()` calls,
+   * invisible to public trailheads (CLI, MCP, HTTP).
+   *
+   * Fields here are available in the blaze but are not derived into CLI flags,
+   * MCP tool parameters, or HTTP request bodies. Use for data that only makes
+   * sense when one trail crosses another (e.g. `forkedFrom`).
+   */
+  readonly crossInput?: z.ZodType<CI> | undefined;
   /** Resources this trail may access via resource.from(ctx) */
   readonly resources?: readonly AnyResource[] | undefined;
   /**
@@ -71,9 +94,8 @@ export interface TrailSpec<I, O> {
    * normalized to the signal's id at trail definition time, so
    * `trail.fires` is always `readonly string[]`.
    *
-   * Note: `crosses` is still string-only — only signal references are
-   * loosened here because callers typically have the `Signal` value in
-   * scope at the definition site.
+   * Note: `crosses` also accepts trail objects (normalized to IDs),
+   * following the same pattern as signal references here.
    */
   readonly fires?: readonly (string | AnySignal)[] | undefined;
   /**
@@ -97,15 +119,24 @@ export interface TrailSpec<I, O> {
 export type Intent = 'read' | 'write' | 'destroy';
 
 /** A fully-defined trail — the unit of work in the Trails system */
-export interface Trail<I, O> extends Omit<
-  TrailSpec<I, O>,
-  'args' | 'blaze' | 'crosses' | 'fires' | 'intent' | 'on' | 'resources'
+export interface Trail<I, O, CI = never> extends Omit<
+  TrailSpec<I, O, CI>,
+  | 'args'
+  | 'blaze'
+  | 'crosses'
+  | 'crossInput'
+  | 'fires'
+  | 'intent'
+  | 'on'
+  | 'resources'
 > {
   readonly kind: 'trail';
   readonly id: string;
-  readonly blaze: Implementation<I, O>;
+  readonly blaze: Implementation<BlazeInput<I, CI>, O>;
   /** IDs of downstream trails this trail may invoke via ctx.cross() (always present, default []) */
   readonly crosses: readonly string[];
+  /** Composition-only input schema, merged with `input` for ctx.cross() calls (optional) */
+  readonly crossInput?: z.ZodType<CI> | undefined;
   /** Resources this trail may access via resource.from(ctx) (always present, default []) */
   readonly resources: readonly AnyResource[];
   /** IDs of signals this trail emits via ctx.fire() (always present, default []) */
@@ -123,6 +154,10 @@ export interface Trail<I, O> extends Omit<
 // ---------------------------------------------------------------------------
 
 const normalizeSignalRef = (entry: string | AnySignal): string =>
+  typeof entry === 'string' ? entry : entry.id;
+
+/** Normalize a crosses entry — trail objects are reduced to their id. */
+const normalizeCrossRef = (entry: string | AnyTrail): string =>
   typeof entry === 'string' ? entry : entry.id;
 
 /**
@@ -147,14 +182,17 @@ const normalizeSignalRef = (entry: string | AnySignal): string =>
  * });
  * ```
  */
-export function trail<I, O>(id: string, spec: TrailSpec<I, O>): Trail<I, O>;
-export function trail<I, O>(
-  spec: TrailSpec<I, O> & { readonly id: string }
-): Trail<I, O>;
-export function trail<I, O>(
-  idOrSpec: string | (TrailSpec<I, O> & { readonly id: string }),
-  maybeSpec?: TrailSpec<I, O>
-): Trail<I, O> {
+export function trail<I, O, CI = never>(
+  id: string,
+  spec: TrailSpec<I, O, CI>
+): Trail<I, O, CI>;
+export function trail<I, O, CI = never>(
+  spec: TrailSpec<I, O, CI> & { readonly id: string }
+): Trail<I, O, CI>;
+export function trail<I, O, CI = never>(
+  idOrSpec: string | (TrailSpec<I, O, CI> & { readonly id: string }),
+  maybeSpec?: TrailSpec<I, O, CI>
+): Trail<I, O, CI> {
   const resolved =
     typeof idOrSpec === 'string'
       ? { id: idOrSpec, spec: maybeSpec }
@@ -167,6 +205,7 @@ export function trail<I, O>(
   const {
     args: rawArgs,
     blaze,
+    crossInput,
     crosses: rawCrosses,
     fires: rawFires,
     intent: rawIntent,
@@ -182,8 +221,10 @@ export function trail<I, O>(
   return Object.freeze({
     ...spec,
     args,
-    blaze: async (input: I, ctx: TrailContext) => await blaze(input, ctx),
-    crosses: Object.freeze([...(rawCrosses ?? [])]),
+    blaze: async (input: BlazeInput<I, CI>, ctx: TrailContext) =>
+      await blaze(input, ctx),
+    crossInput,
+    crosses: Object.freeze((rawCrosses ?? []).map(normalizeCrossRef)),
     fires,
     id: resolved.id,
     intent: rawIntent ?? 'write',
@@ -194,7 +235,12 @@ export function trail<I, O>(
 }
 
 // Re-export types that callers of trail() will need
-// oxlint-disable-next-line no-explicit-any -- existential type for heterogeneous collections; `any` is correct here because Implementation is contravariant in I
-export type AnyTrail = Trail<any, any>;
+// The Omit+override avoids a TypeScript limitation where BlazeInput's conditional type
+// makes Trail<any, any, any> structurally incompatible with Trail<I, O, never>.
+/* oxlint-disable no-explicit-any -- existential type for heterogeneous collections */
+export type AnyTrail = Omit<Trail<any, any, any>, 'blaze'> & {
+  readonly blaze: Implementation<any, any>;
+};
+/* oxlint-enable no-explicit-any */
 
 export type { Implementation, TrailContext, Result };

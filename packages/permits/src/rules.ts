@@ -16,7 +16,7 @@ export interface PermitDiagnostic {
 // Helpers
 // ---------------------------------------------------------------------------
 
-type AnyTrail = Trail<unknown, unknown>;
+type AnyTrail = Trail<unknown, unknown, unknown>;
 type Rule = (trails: readonly AnyTrail[]) => readonly PermitDiagnostic[];
 
 /** Check whether a trail has any permit declaration (scopes object or 'public'). */
@@ -179,5 +179,5 @@ const allRules: readonly Rule[] = [
  * means the topo passes all permit governance checks.
  */
 export const validatePermits = (
-  trails: readonly Trail<unknown, unknown>[]
+  trails: readonly Trail<unknown, unknown, unknown>[]
 ): readonly PermitDiagnostic[] => allRules.flatMap((rule) => rule(trails));

@@ -126,28 +126,50 @@ const getCrossElements = (config: AstNode): readonly AstNode[] | null => {
   return elements ?? null;
 };
 
-/** Collect string IDs from array elements, resolving identifiers when possible. */
-const collectStringIds = (
+interface DeclaredCrosses {
+  /** Statically resolved trail IDs from string literals / const identifiers. */
+  readonly ids: ReadonlySet<string>;
+  /**
+   * True if any element could not be statically resolved (e.g. trail object
+   * reference like `crosses: [showGist]`). When true, "undeclared" diagnostics
+   * are softened from error to warn since the declared set is incomplete.
+   */
+  readonly hasUnresolved: boolean;
+}
+
+/**
+ * Collect string IDs from array elements, resolving identifiers when possible.
+ *
+ * Trail-object references (`crosses: [showGist]`) cannot be resolved at lint
+ * time; they're normalized at runtime by `trail()`. When any entry is
+ * unresolved, `hasUnresolved` is set so callers can soften diagnostics.
+ */
+const resolveDeclaredCrossElements = (
   elements: readonly AstNode[],
   sourceCode: string
-): Set<string> => {
+): DeclaredCrosses => {
   const ids = new Set<string>();
+  let hasUnresolved = false;
   for (const element of elements) {
     const resolved = resolveCrossElementId(element, sourceCode);
     if (resolved) {
       ids.add(resolved);
+    } else {
+      hasUnresolved = true;
     }
   }
-  return ids;
+  return { hasUnresolved, ids };
 };
 
-/** Extract string literal elements from a `crosses: [...]` array property. */
+/** Extract declared crosses from a `crosses: [...]` array. */
 const extractDeclaredCrosses = (
   config: AstNode,
   sourceCode: string
-): ReadonlySet<string> => {
+): DeclaredCrosses => {
   const elements = getCrossElements(config);
-  return elements ? collectStringIds(elements, sourceCode) : new Set();
+  return elements
+    ? resolveDeclaredCrossElements(elements, sourceCode)
+    : { hasUnresolved: false, ids: new Set() };
 };
 
 // ---------------------------------------------------------------------------
@@ -197,15 +219,21 @@ const isMemberCrossCall = (
   return !!pair && ctxNames.has(pair.objName) && pair.propName === 'cross';
 };
 
+/** Sentinel indicating a cross call was found but the first arg is not a string literal. */
+const UNRESOLVED_CROSS = Symbol('unresolved-cross');
+
 /**
  * Check if a node is a `<ctxName>.cross(...)` call and return the string trail ID.
  *
- * Also matches bare `cross(...)` calls from destructuring.
+ * Also matches bare `cross(...)` calls from destructuring. When the first
+ * argument is a non-string expression (e.g. a trail object identifier like
+ * `ctx.cross(showGist, input)`), returns `UNRESOLVED_CROSS` so callers can
+ * track that a cross call exists but its target cannot be statically resolved.
  */
 const extractCrossCallId = (
   node: AstNode,
   ctxNames: ReadonlySet<string>
-): string | null => {
+): string | typeof UNRESOLVED_CROSS | null => {
   if (node.type !== 'CallExpression') {
     return null;
   }
@@ -215,15 +243,14 @@ const extractCrossCallId = (
     return null;
   }
 
-  if (isMemberCrossCall(callee, ctxNames)) {
-    return extractFirstStringArg(node);
+  const isCrossCall =
+    isMemberCrossCall(callee, ctxNames) || identifierName(callee) === 'cross';
+
+  if (!isCrossCall) {
+    return null;
   }
 
-  if (identifierName(callee) === 'cross') {
-    return extractFirstStringArg(node);
-  }
-
-  return null;
+  return extractFirstStringArg(node) ?? UNRESOLVED_CROSS;
 };
 
 /** Build the set of context parameter names to match against. */
@@ -236,22 +263,49 @@ const buildCtxNames = (body: AstNode): ReadonlySet<string> => {
   return ctxNames;
 };
 
+interface CalledCrosses {
+  /** Statically resolved trail IDs from string literal arguments. */
+  readonly ids: ReadonlySet<string>;
+  /**
+   * True if any `ctx.cross()` call used a non-string first argument (e.g.
+   * `ctx.cross(showGist, input)`). When true, "unused declaration"
+   * diagnostics are softened since the call may target a declared entry.
+   */
+  readonly hasUnresolved: boolean;
+}
+
+/** Collect cross call results from a single blaze body. */
+const collectCrossCallsFromBody = (
+  body: AstNode,
+  ids: Set<string>
+): boolean => {
+  const ctxNames = buildCtxNames(body);
+  let foundUnresolved = false;
+
+  walk(body, (node) => {
+    const id = extractCrossCallId(node, ctxNames);
+    if (id === UNRESOLVED_CROSS) {
+      foundUnresolved = true;
+    } else if (id) {
+      ids.add(id);
+    }
+  });
+
+  return foundUnresolved;
+};
+
 /** Walk blaze bodies and collect all statically resolvable ctx.cross() trail IDs. */
-const extractCalledCrosses = (config: AstNode): ReadonlySet<string> => {
+const extractCalledCrosses = (config: AstNode): CalledCrosses => {
   const ids = new Set<string>();
+  let hasUnresolved = false;
 
   for (const body of findBlazeBodies(config)) {
-    const ctxNames = buildCtxNames(body);
-
-    walk(body, (node) => {
-      const id = extractCrossCallId(node, ctxNames);
-      if (id) {
-        ids.add(id);
-      }
-    });
+    if (collectCrossCallsFromBody(body, ids)) {
+      hasUnresolved = true;
+    }
   }
 
-  return ids;
+  return { hasUnresolved, ids };
 };
 
 // ---------------------------------------------------------------------------
@@ -262,13 +316,16 @@ const buildUndeclaredDiagnostic = (
   trailId: string,
   crossedId: string,
   filePath: string,
-  line: number
+  line: number,
+  softened = false
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}": ctx.cross('${crossedId}') called but '${crossedId}' is not declared in crosses`,
+  message: softened
+    ? `Trail "${trailId}": ctx.cross('${crossedId}') called but '${crossedId}' is not declared in crosses (may be declared via trail object references)`
+    : `Trail "${trailId}": ctx.cross('${crossedId}') called but '${crossedId}' is not declared in crosses`,
   rule: 'cross-declarations',
-  severity: 'error',
+  severity: softened ? 'warn' : 'error',
 });
 
 const buildUnusedDiagnostic = (
@@ -292,13 +349,24 @@ const buildUnusedDiagnostic = (
 const reportUndeclared = (
   called: ReadonlySet<string>,
   declared: ReadonlySet<string>,
-  ctx: { trailId: string; filePath: string; line: number },
+  ctx: {
+    trailId: string;
+    filePath: string;
+    line: number;
+    softened?: boolean;
+  },
   diagnostics: WardenDiagnostic[]
 ): void => {
   for (const id of called) {
     if (!declared.has(id)) {
       diagnostics.push(
-        buildUndeclaredDiagnostic(ctx.trailId, id, ctx.filePath, ctx.line)
+        buildUndeclaredDiagnostic(
+          ctx.trailId,
+          id,
+          ctx.filePath,
+          ctx.line,
+          ctx.softened
+        )
       );
     }
   }
@@ -329,15 +397,35 @@ const checkTrailDefinition = (
   const declared = extractDeclaredCrosses(def.config, sourceCode);
   const called = extractCalledCrosses(def.config);
 
-  if (declared.size === 0 && called.size === 0) {
+  if (
+    declared.ids.size === 0 &&
+    !declared.hasUnresolved &&
+    called.ids.size === 0 &&
+    !called.hasUnresolved
+  ) {
     return;
   }
 
   const line = offsetToLine(sourceCode, def.start);
   const ctx = { filePath, line, trailId: def.id };
 
-  reportUndeclared(called, declared, ctx, diagnostics);
-  reportUnused(declared, called, ctx, diagnostics);
+  // When the declared array contains trail object references we can't resolve,
+  // downgrade "undeclared" diagnostics from error to warn. The developer still
+  // sees genuinely undeclared calls, but we can't statically prove the call
+  // isn't covered by a trail object entry the runtime will normalize.
+  reportUndeclared(
+    called.ids,
+    declared.ids,
+    { ...ctx, softened: declared.hasUnresolved },
+    diagnostics
+  );
+
+  // When ctx.cross() calls include typed trail object references we can't
+  // resolve (e.g. ctx.cross(showGist, input)), suppress "unused declaration"
+  // warnings — the unresolved call may target any declared entry.
+  if (!called.hasUnresolved) {
+    reportUnused(declared.ids, called.ids, ctx, diagnostics);
+  }
 };
 
 // ---------------------------------------------------------------------------

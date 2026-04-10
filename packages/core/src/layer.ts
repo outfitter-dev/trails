@@ -1,4 +1,4 @@
-import type { Trail } from './trail.js';
+import type { AnyTrail } from './trail.js';
 import type { Implementation } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -10,9 +10,15 @@ export interface Layer {
   readonly name: string;
   readonly description?: string | undefined;
 
-  /** Wrap a trail's implementation, returning a new implementation. */
+  /**
+   * Wrap a trail's implementation, returning a new implementation.
+   *
+   * The trail is passed for metadata inspection (intent, schema, etc.).
+   * The implementation and return type are generic over the input/output
+   * types so layers remain type-safe when composed.
+   */
   wrap<I, O>(
-    trail: Trail<I, O>,
+    trail: AnyTrail,
     implementation: Implementation<I, O>
   ): Implementation<I, O>;
 }
@@ -29,7 +35,7 @@ export interface Layer {
  */
 export const composeLayers = <I, O>(
   layers: readonly Layer[],
-  trail: Trail<I, O>,
+  trail: AnyTrail,
   implementation: Implementation<I, O>
 ): Implementation<I, O> => {
   // Fold right so layers[0] is the outermost wrapper.

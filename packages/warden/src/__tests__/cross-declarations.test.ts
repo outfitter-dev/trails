@@ -237,6 +237,128 @@ trail('onboard', {
     });
   });
 
+  describe('trail object references in crosses', () => {
+    test('unresolvable identifier in crosses softens undeclared to warn', () => {
+      const code = `
+import { showGist } from '../gist/show';
+trail('gist.fork', {
+  crosses: [showGist],
+  input: z.object({ id: z.string() }),
+  blaze: async (input, ctx) => {
+    await ctx.cross('gist.create', { id: input.id });
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = crossDeclarations.check(code, TEST_FILE);
+
+      // 'gist.create' called but can't prove showGist doesn't cover it
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('warn');
+      expect(diagnostics[0]?.message).toContain('trail object references');
+    });
+
+    test('mixed string and trail object references: resolved string still validated', () => {
+      const code = `
+import { showGist } from '../gist/show';
+trail('gist.fork', {
+  crosses: ['gist.create', showGist],
+  input: z.object({ id: z.string() }),
+  blaze: async (input, ctx) => {
+    await ctx.cross('gist.create', { id: input.id });
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = crossDeclarations.check(code, TEST_FILE);
+
+      // gist.create declared and called — clean. showGist unresolved but declared, not called by string — no unused warning for unresolved entries.
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('trail object only in crosses with no string cross calls is clean', () => {
+      const code = `
+import { showGist } from '../gist/show';
+trail('gist.fork', {
+  crosses: [showGist],
+  input: z.object({ id: z.string() }),
+  blaze: async (input, ctx) => {
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = crossDeclarations.check(code, TEST_FILE);
+
+      // No string-resolved IDs and no string cross calls — clean
+      expect(diagnostics.length).toBe(0);
+    });
+  });
+
+  describe('typed ctx.cross(trailObj) calls', () => {
+    test('typed cross call with trail object does not produce undeclared error', () => {
+      const code = `
+import { showGist } from '../gist/show';
+trail('gist.fork', {
+  crosses: [showGist],
+  input: z.object({ id: z.string() }),
+  blaze: async (input, ctx) => {
+    await ctx.cross(showGist, { id: input.id });
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = crossDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('typed cross call suppresses unused-declaration warning for matching entry', () => {
+      const code = `
+import { showGist } from '../gist/show';
+trail('gist.fork', {
+  crosses: ['gist.create', showGist],
+  input: z.object({ id: z.string() }),
+  blaze: async (input, ctx) => {
+    await ctx.cross('gist.create', { id: input.id });
+    await ctx.cross(showGist, { id: input.id });
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = crossDeclarations.check(code, TEST_FILE);
+
+      // showGist is unresolvable in crosses but the typed cross call covers it
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('undeclared string cross alongside typed cross still reports error (softened)', () => {
+      const code = `
+import { showGist } from '../gist/show';
+trail('gist.fork', {
+  crosses: [showGist],
+  input: z.object({ id: z.string() }),
+  blaze: async (input, ctx) => {
+    await ctx.cross(showGist, { id: input.id });
+    await ctx.cross('undeclared.trail', { id: input.id });
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = crossDeclarations.check(code, TEST_FILE);
+
+      // 'undeclared.trail' not declared — softened because showGist is unresolvable
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('warn');
+      expect(diagnostics[0]?.message).toContain('undeclared.trail');
+    });
+  });
+
   describe('edge cases', () => {
     test('dynamic cross IDs are skipped', () => {
       const code = `

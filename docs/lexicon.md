@@ -145,6 +145,30 @@ const onboard = trail('entity.onboard', {
 
 The noun is a crossing: a place where one trail intentionally steps onto another trail and returns.
 
+`crosses` accepts trail objects in addition to string IDs. When you pass the trail object, `ctx.cross()` becomes fully typed — the compiler infers input and output from the trail's schemas.
+
+### `crossInput`
+
+Composition-only input schema. Declares fields available through `ctx.cross()` but invisible to public trailheads (CLI, MCP, HTTP).
+
+```typescript
+const create = trail('gist.create', {
+  input: z.object({
+    description: z.string(),
+    content: z.string(),
+  }),
+  crossInput: z.object({
+    forkedFrom: z.string().optional(),
+  }),
+  blaze: async (input, ctx) => {
+    // input.forkedFrom is available here (undefined from trailheads)
+    return Result.ok({ id: '1' });
+  },
+});
+```
+
+`crossInput` fields are merged with `input` for the blaze. When invoked via a trailhead, `crossInput` fields are absent. When invoked via `ctx.cross()`, the caller can pass both. See [ADR-0024](adr/0024-typed-trail-composition.md).
+
 ### `signal`
 
 A typed notification primitive defined by schema. Signals are part of the contract graph and can be fired by trails at runtime.

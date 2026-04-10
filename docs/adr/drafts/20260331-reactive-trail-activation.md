@@ -327,7 +327,7 @@ Tracing queries can filter by fire source type: "show me all scheduled execution
 - [ADR: Typed Signal Emission](20260331-typed-signal-emission.md) (draft) — **this ADR depends on it**; provides `ctx.signal()`, the `fires` declaration, lifecycle signals, and the signal routing pipeline
 - [ADR: Error Taxonomy as Transport-Independent Behavior Contract](20260409-error-taxonomy-as-transport-independent-behavior-contract.md) (draft) — signal delivery semantics (retry, dead-letter, discard) for activation failures derive from the error taxonomy
 - [ADR: Unified Observability](20260409-unified-observability.md) (draft) — tracing moves into core; activation provenance is recorded intrinsically by the execution pipeline
-- [ADR: Typed Trail Composition](20260409-typed-trail-composition.md) (draft) — typed `ctx.cross()` complements signal-based activation; `on:` is for reactive decoupling, `crosses` is for direct composition
+- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` complements signal-based activation; `on:` is for reactive decoupling, `crosses` is for direct composition
 - [ADR: Layer Evolution](20260409-layer-evolution.md) (draft) — pipeline stages (auth, recording) apply automatically to activated trails
 - ADR: The Serialized Topo Graph (draft) — the lockfile captures the reactive graph
 - ADR: Trail Visibility and Trailhead Filtering (draft) — reactively activated trails can be internal

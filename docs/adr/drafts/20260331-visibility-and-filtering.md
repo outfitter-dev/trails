@@ -252,5 +252,5 @@ Four new governance rules follow from this ADR:
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- the derivation rules that visibility and intent filtering extend
 - [ADR-0013: Tracing](../0013-tracing.md) -- the observability system; visibility filtering events are observable through tracing
 - [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- the lockfile captures resolved visibility state after all overrides are applied
-- [ADR: Typed Trail Composition](20260409-typed-trail-composition.md) (draft) -- `crossInput` relates to internal visibility; a trail with required `crossInput` fields should declare `visibility: 'internal'`
+- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- `crossInput` relates to internal visibility; a trail with required `crossInput` fields should declare `visibility: 'internal'`
 - ADR: Packs as Namespace Boundaries (draft) -- packs set default visibility for their trails; depends on this ADR

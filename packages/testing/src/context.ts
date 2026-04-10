@@ -2,7 +2,10 @@
  * Test context factory for creating TrailContext instances suitable for testing.
  */
 
+import { z } from 'zod';
+
 import type {
+  AnyTrail,
   CrossFn,
   ResourceOverrideMap,
   Topo,
@@ -106,7 +109,12 @@ export const createCrossContext = (
   options?: CreateCrossContextOptions
 ): CrossFn => {
   const responses = options?.responses ?? {};
-  return <O>(id: string, _input: unknown): Promise<Result<O, Error>> => {
+  // Accepts either a trail object (typed cross) or a string id (untyped).
+  return <O>(
+    idOrTrail: string | { readonly id: string },
+    _input: unknown
+  ): Promise<Result<O, Error>> => {
+    const id = typeof idOrTrail === 'string' ? idOrTrail : idOrTrail.id;
     const response = responses[id];
     if (response === undefined) {
       return Promise.resolve(
@@ -171,6 +179,31 @@ const buildMockResources = async (app: Topo): Promise<ResourceOverrideMap> => {
 export const resolveMockResources = async (
   app: Topo
 ): Promise<ResourceOverrideMap> => await buildMockResources(app);
+
+/**
+ * Build the validation schema for a cross-invoked trail.
+ *
+ * When the target trail declares `crossInput`, the cross caller passes both
+ * public input and composition-only fields. The merged schema validates the
+ * combined shape so `executeTrail` doesn't reject the extra fields.
+ */
+export const buildCrossValidationSchema = (
+  trailDef: AnyTrail
+): z.ZodType | undefined => {
+  if (!trailDef.crossInput) {
+    return undefined;
+  }
+  // Prefer .merge() for ZodObject pairs — it produces a proper merged object
+  // schema that strips unknown keys and exposes .shape. Fall back to
+  // z.intersection for non-object schemas.
+  if (
+    trailDef.input instanceof z.ZodObject &&
+    trailDef.crossInput instanceof z.ZodObject
+  ) {
+    return trailDef.input.merge(trailDef.crossInput);
+  }
+  return z.intersection(trailDef.input, trailDef.crossInput);
+};
 
 /**
  * Merge a Partial<TrailContext> into a test context.

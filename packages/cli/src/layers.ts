@@ -2,7 +2,7 @@
  * CLI-specific layers shipped with @ontrails/cli.
  */
 
-import type { Layer, Implementation, Trail } from '@ontrails/core';
+import type { AnyTrail, Layer, Implementation, Trail } from '@ontrails/core';
 import { Result } from '@ontrails/core';
 
 // ---------------------------------------------------------------------------
@@ -17,7 +17,7 @@ interface ZodInternals {
 
 /** Check if a trail's output schema looks like a paginated response. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isPaginatedOutput = (trail: Trail<any, any>): boolean => {
+const isPaginatedOutput = (trail: AnyTrail): boolean => {
   if (!trail.output) {
     return false;
   }
@@ -37,7 +37,7 @@ const isPaginatedOutput = (trail: Trail<any, any>): boolean => {
 
 /** Check if a trail's input schema has since/until fields. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const hasDateRangeFields = (trail: Trail<any, any>): boolean => {
+const hasDateRangeFields = (trail: AnyTrail): boolean => {
   const s = trail.input as unknown as ZodInternals;
   const defType = s._zod.def['type'] as string;
   if (defType !== 'object') {

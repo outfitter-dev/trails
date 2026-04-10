@@ -45,6 +45,7 @@ import {
   assertSchemaMatch,
 } from './assertions.js';
 import {
+  buildCrossValidationSchema,
   defaultMintPermit,
   mergeResourceOverrides,
   mergeTestContext,
@@ -156,7 +157,7 @@ const applyAutoMint = (
  * Handles validation, execution, and assertions.
  */
 const runExample = async (
-  t: Trail<unknown, unknown>,
+  t: Trail<unknown, unknown, unknown>,
   example: TrailExample<unknown, unknown>,
   output: z.ZodType | undefined,
   testCtx: TrailContext,
@@ -196,7 +197,12 @@ const createCoverageCross = (
   ctx: TrailContext,
   resources?: ResourceOverrideMap
 ): CrossFn => {
-  const cross = (id: string, input: unknown) => {
+  // Accepts either a trail object (typed cross) or a string id (untyped).
+  const cross = (
+    idOrTrail: string | { readonly id: string },
+    input: unknown
+  ) => {
+    const id = typeof idOrTrail === 'string' ? idOrTrail : idOrTrail.id;
     called.add(id);
 
     if (baseCross !== undefined) {
@@ -208,6 +214,7 @@ const createCoverageCross = (
       return executeTrail(trailDef, input, {
         ctx: { ...ctx, cross },
         resources,
+        validationSchema: buildCrossValidationSchema(trailDef),
       });
     }
 
@@ -220,7 +227,7 @@ const createCoverageCross = (
  * Run a single example against a trail with crossings, recording cross calls.
  */
 const runCompositionExample = async (
-  trailDef: Trail<unknown, unknown>,
+  trailDef: Trail<unknown, unknown, unknown>,
   example: TrailExample<unknown, unknown>,
   output: z.ZodType | undefined,
   baseCtx: TrailContext,
@@ -245,6 +252,8 @@ const runCompositionExample = async (
   );
   const testCtx: TrailContext = { ...mintedCtx, cross };
 
+  // Top-level trail validates against trail.input (not merged crossInput).
+  // Merged validation only applies to cross targets in executeFromMap/createCoverageCross.
   const result = await executeTrail(trailDef, example.input, {
     ctx: testCtx,
     resources: resources ?? opts?.resources,
@@ -276,7 +285,7 @@ export const testExamples = (
 ): void => {
   const resolveInput =
     typeof ctxOrFactory === 'function' ? ctxOrFactory : () => ctxOrFactory;
-  const allTrails = app.list() as Trail<unknown, unknown>[];
+  const allTrails = app.list() as Trail<unknown, unknown, unknown>[];
 
   const withExamples = allTrails.filter(
     (t) => t.examples !== undefined && t.examples.length > 0

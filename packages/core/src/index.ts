@@ -64,6 +64,7 @@ export type {
 export { trail } from './trail.js';
 export type {
   AnyTrail,
+  BlazeInput,
   Intent,
   Trail,
   TrailSpec,
@@ -71,7 +72,12 @@ export type {
 } from './trail.js';
 
 // Type utilities
-export type { TrailInput, TrailOutput, TrailResult } from './type-utils.js';
+export type {
+  CrossInput,
+  TrailInput,
+  TrailOutput,
+  TrailResult,
+} from './type-utils.js';
 export { inputOf, outputOf } from './type-utils.js';
 
 // Signal

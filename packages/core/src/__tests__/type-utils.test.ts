@@ -4,7 +4,12 @@ import { z } from 'zod';
 
 import { Result } from '../result';
 import { trail } from '../trail';
-import type { TrailInput, TrailOutput, TrailResult } from '../type-utils';
+import type {
+  CrossInput,
+  TrailInput,
+  TrailOutput,
+  TrailResult,
+} from '../type-utils';
 import { inputOf, outputOf } from '../type-utils';
 
 const greetTrail = trail('greet', {
@@ -65,6 +70,29 @@ describe('type-utils', () => {
       // If this compiles, the type is correct
       const _output: TrailOutput<typeof greetTrail> = { message: 'hello' };
       expect(_output.message).toBe('hello');
+    });
+  });
+
+  describe('CrossInput', () => {
+    test('returns base input when no crossInput defined', () => {
+      type Input = CrossInput<typeof greetTrail>;
+      const _input: Input = { name: 'test' };
+      expect(_input.name).toBe('test');
+    });
+
+    test('merges crossInput with base input when crossInput defined', () => {
+      const crossTrail = trail('cross.test', {
+        blaze: (input) => Result.ok({ name: input.name }),
+        crossInput: z.object({ forkedFrom: z.string() }),
+        input: z.object({ name: z.string() }),
+        output: z.object({ name: z.string() }),
+      });
+
+      type Input = CrossInput<typeof crossTrail>;
+      // If this compiles, the type correctly merges both schemas
+      const _input: Input = { forkedFrom: 'origin', name: 'test' };
+      expect(_input.name).toBe('test');
+      expect(_input.forkedFrom).toBe('origin');
     });
   });
 

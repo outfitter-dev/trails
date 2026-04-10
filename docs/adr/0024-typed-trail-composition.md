@@ -1,14 +1,14 @@
 ---
 slug: typed-trail-composition
 title: Typed Trail Composition
-status: draft
+status: accepted
 created: 2026-04-09
 updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [3, 7]
 ---
 
-# ADR: Typed Trail Composition
+# ADR-0024: Typed Trail Composition
 
 ## Context
 
