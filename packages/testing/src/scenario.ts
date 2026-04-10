@@ -8,7 +8,13 @@
 
 import { describe, test } from 'bun:test';
 
-import type { AnyTrail, CrossFn, Result, Topo } from '@ontrails/core';
+import type {
+  AnyTrail,
+  CrossFn,
+  ResourceOverrideMap,
+  Result,
+  Topo,
+} from '@ontrails/core';
 import {
   buildCrossValidationSchema,
   executeTrail,
@@ -17,6 +23,7 @@ import {
 } from '@ontrails/core';
 
 import { assertPartialMatch, expectOk } from './assertions.js';
+import { resolveMockResources } from './context.js';
 import type { RefToken, ScenarioStep } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -168,7 +175,10 @@ const assertStepExpectations = async (
  * them through the standard pipeline. Mirrors the pattern in crosses.ts
  * `executeFromMap` but without recording or injection.
  */
-const createScenarioCross = (app: Topo): CrossFn => {
+const createScenarioCross = (
+  app: Topo,
+  resources?: ResourceOverrideMap
+): CrossFn => {
   const cross: CrossFn = ((
     idOrTrail: string | { readonly id: string },
     input: unknown
@@ -182,6 +192,7 @@ const createScenarioCross = (app: Topo): CrossFn => {
     }
     return executeTrail(trailDef, input, {
       ctx: { cross },
+      resources,
       topo: app,
       validationSchema: buildCrossValidationSchema(trailDef),
     });
@@ -197,12 +208,20 @@ const executeStep = async (
   step: ScenarioStep,
   index: number,
   app: Topo,
-  outputs: Map<string, unknown>
+  outputs: Map<string, unknown>,
+  resources?: ResourceOverrideMap
 ): Promise<void> => {
-  const scenarioCross = createScenarioCross(app);
+  if (step.as !== undefined && outputs.has(step.as)) {
+    throw new Error(
+      `scenario: duplicate step alias "${step.as}" — each alias must be unique`
+    );
+  }
+
+  const scenarioCross = createScenarioCross(app, resources);
   const resolvedInput = resolveRefs(step.input, outputs);
   const result = await executeTrail(step.cross, resolvedInput, {
     ctx: { cross: scenarioCross },
+    resources,
     topo: app,
   });
 
@@ -215,6 +234,24 @@ const executeStep = async (
   await assertStepExpectations(step, result, outputs);
 };
 
+/**
+ * Execute scenario steps sequentially, resolving mock resources once upfront.
+ *
+ * Exported for direct use in tests that need to assert on step execution
+ * without the describe/test wrapper that `scenario()` provides.
+ */
+export const executeScenarioSteps = async (
+  app: Topo,
+  steps: readonly ScenarioStep[]
+): Promise<void> => {
+  const outputs = new Map<string, unknown>();
+  const resources = await resolveMockResources(app);
+
+  for (const [index, step] of steps.entries()) {
+    await executeStep(step, index, app, outputs, resources);
+  }
+};
+
 export const scenario = (
   name: string,
   app: Topo,
@@ -222,11 +259,7 @@ export const scenario = (
 ): void => {
   describe(name, () => {
     test('executes all steps', async () => {
-      const outputs = new Map<string, unknown>();
-
-      for (const [index, step] of steps.entries()) {
-        await executeStep(step, index, app, outputs);
-      }
+      await executeScenarioSteps(app, steps);
     });
   });
 };

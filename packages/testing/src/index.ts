@@ -17,7 +17,7 @@ export {
 } from './assertions.js';
 
 // Scenario testing
-export { ref, scenario } from './scenario.js';
+export { executeScenarioSteps, ref, scenario } from './scenario.js';
 
 // Mock factories
 export {

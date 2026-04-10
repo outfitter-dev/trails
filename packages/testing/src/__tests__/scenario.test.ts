@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { TrailContext } from '@ontrails/core';
-import { Result, trail, topo } from '@ontrails/core';
+import { resource, Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { ref, scenario } from '../scenario.js';
+import type { ScenarioStep } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Test trails
@@ -47,10 +48,30 @@ const createViaProxy = trail('item.create-via-proxy', {
   output: z.object({ id: z.string(), name: z.string() }),
 });
 
+/** A resource with a mock factory. */
+const db = resource<{ query: (sql: string) => string }>('db', {
+  create: () => Result.err(new Error('not wired in tests')),
+  mock: () => ({ query: (sql: string) => `mock:${sql}` }),
+});
+
+/** A trail that uses a resource via ctx.resource(). */
+const queryTrail = trail('item.query', {
+  blaze: (_input: { sql: string }, ctx: TrailContext) => {
+    const instance = db.from(ctx);
+    return Result.ok({ result: instance.query(_input.sql) });
+  },
+  description: 'Run a query via the db resource',
+  input: z.object({ sql: z.string() }),
+  output: z.object({ result: z.string() }),
+  resources: [db],
+});
+
 const app = topo('scenario-test-app', {
   createTrail,
   createViaProxy,
+  db,
   failTrail,
+  queryTrail,
   showTrail,
 } as Record<string, unknown>);
 
@@ -113,6 +134,16 @@ describe('scenario()', () => {
     },
   ]);
 
+  // Resource mock forwarding
+  // oxlint-disable-next-line jest/require-hook -- scenario() registers describe/test blocks, not setup code
+  scenario('step with resource receives mock from topo', app, [
+    {
+      cross: queryTrail,
+      expected: { result: 'mock:SELECT 1' },
+      input: { sql: 'SELECT 1' },
+    },
+  ]);
+
   // Step failure reporting
   describe('step failure reporting', () => {
     test('reports which step failed', async () => {
@@ -125,6 +156,23 @@ describe('scenario()', () => {
       const { executeTrail } = await import('@ontrails/core');
       const result = await executeTrail(failTrail, {}, { topo: app });
       expect(result.isErr()).toBe(true);
+    });
+  });
+
+  // Duplicate alias guard
+  describe('duplicate alias guard', () => {
+    test('throws on duplicate step alias', async () => {
+      // Import executeScenarioSteps to test the guard directly.
+      const { executeScenarioSteps } = await import('../scenario.js');
+
+      const steps: ScenarioStep[] = [
+        { as: 'dup', cross: createTrail, input: { name: 'A' } },
+        { as: 'dup', cross: createTrail, input: { name: 'B' } },
+      ];
+
+      await expect(executeScenarioSteps(app, steps)).rejects.toThrow(
+        'duplicate step alias "dup"'
+      );
     });
   });
 });
