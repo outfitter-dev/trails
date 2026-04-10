@@ -85,7 +85,7 @@ export const loadApp = async (
   const resolvedModulePath = resolveAbsoluteModulePath(effectivePath, cwd);
   const mod =
     options.fresh === true
-      ? await importFreshModule(effectivePath, cwd)
+      ? await importFreshModule(resolvedModulePath, cwd)
       : ((await import(
           URL_SCHEME.test(resolvedModulePath) &&
             !resolvedModulePath.startsWith('/')

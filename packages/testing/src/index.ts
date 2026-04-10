@@ -10,10 +10,14 @@ export { testDetours } from './detours.js';
 export {
   assertErrorMatch,
   assertFullMatch,
+  assertPartialMatch,
   assertSchemaMatch,
   expectErr,
   expectOk,
 } from './assertions.js';
+
+// Scenario testing
+export { executeScenarioSteps, ref, scenario } from './scenario.js';
 
 // Mock factories
 export {
@@ -38,6 +42,8 @@ export type { TestCrossOptions } from './crosses.js';
 
 export type {
   CrossScenario,
+  RefToken,
+  ScenarioStep,
   TestScenario,
   TestLogger,
   TestTrailContextOptions,

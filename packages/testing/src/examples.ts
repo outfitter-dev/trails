@@ -23,6 +23,7 @@ import {
   AmbiguousError,
   AssertionError,
   AuthError,
+  buildCrossValidationSchema,
   CancelledError,
   ConflictError,
   InternalError,
@@ -42,10 +43,10 @@ import type { z } from 'zod';
 import {
   assertErrorMatch,
   assertFullMatch,
+  assertPartialMatch,
   assertSchemaMatch,
 } from './assertions.js';
 import {
-  buildCrossValidationSchema,
   defaultMintPermit,
   mergeResourceOverrides,
   mergeTestContext,
@@ -92,16 +93,14 @@ const assertProgressiveMatch = (
   output: z.ZodType | undefined
 ): void => {
   if (example.expected !== undefined) {
-    assertFullMatch(result, example.expected);
-    return;
+    return assertFullMatch(result, example.expected);
   }
-
+  if (example.expectedMatch !== undefined) {
+    return assertPartialMatch(result, example.expectedMatch);
+  }
   if (example.error !== undefined) {
-    const errorClass = resolveErrorClass(example.error);
-    assertErrorMatch(result, errorClass);
-    return;
+    return assertErrorMatch(result, resolveErrorClass(example.error));
   }
-
   assertSchemaMatch(result, output);
 };
 

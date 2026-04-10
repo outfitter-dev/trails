@@ -129,6 +129,8 @@ const getCrossElements = (config: AstNode): readonly AstNode[] | null => {
 interface DeclaredCrosses {
   /** Statically resolved trail IDs from string literals / const identifiers. */
   readonly ids: ReadonlySet<string>;
+  /** IDs that were declared as string literals (not resolved from identifiers). */
+  readonly literalIds: ReadonlySet<string>;
   /**
    * True if any element could not be statically resolved (e.g. trail object
    * reference like `crosses: [showGist]`). When true, "undeclared" diagnostics
@@ -144,21 +146,38 @@ interface DeclaredCrosses {
  * time; they're normalized at runtime by `trail()`. When any entry is
  * unresolved, `hasUnresolved` is set so callers can soften diagnostics.
  */
+/** Classify a single element and accumulate into the id sets. */
+const classifyCrossElement = (
+  element: AstNode,
+  sourceCode: string,
+  ids: Set<string>,
+  literalIds: Set<string>
+): boolean => {
+  const resolved = resolveCrossElementId(element, sourceCode);
+  if (!resolved) {
+    // Element could not be statically resolved
+    return true;
+  }
+  ids.add(resolved);
+  if (isStringLiteral(element)) {
+    literalIds.add(resolved);
+  }
+  return false;
+};
+
 const resolveDeclaredCrossElements = (
   elements: readonly AstNode[],
   sourceCode: string
 ): DeclaredCrosses => {
   const ids = new Set<string>();
+  const literalIds = new Set<string>();
   let hasUnresolved = false;
   for (const element of elements) {
-    const resolved = resolveCrossElementId(element, sourceCode);
-    if (resolved) {
-      ids.add(resolved);
-    } else {
+    if (classifyCrossElement(element, sourceCode, ids, literalIds)) {
       hasUnresolved = true;
     }
   }
-  return { hasUnresolved, ids };
+  return { hasUnresolved, ids, literalIds };
 };
 
 /** Extract declared crosses from a `crosses: [...]` array. */
@@ -169,7 +188,7 @@ const extractDeclaredCrosses = (
   const elements = getCrossElements(config);
   return elements
     ? resolveDeclaredCrossElements(elements, sourceCode)
-    : { hasUnresolved: false, ids: new Set() };
+    : { hasUnresolved: false, ids: new Set(), literalIds: new Set() };
 };
 
 // ---------------------------------------------------------------------------
@@ -421,11 +440,13 @@ const checkTrailDefinition = (
   );
 
   // When ctx.cross() calls include typed trail object references we can't
-  // resolve (e.g. ctx.cross(showGist, input)), suppress "unused declaration"
-  // warnings — the unresolved call may target any declared entry.
-  if (!called.hasUnresolved) {
-    reportUnused(declared.ids, called.ids, ctx, diagnostics);
-  }
+  // resolve (e.g. ctx.cross(showGist, input)), limit "unused declaration"
+  // warnings to string-literal declarations only — unresolved calls may
+  // target any non-literal declared entry but cannot match a literal.
+  const unusedCandidates = called.hasUnresolved
+    ? declared.literalIds
+    : declared.ids;
+  reportUnused(unusedCandidates, called.ids, ctx, diagnostics);
 };
 
 // ---------------------------------------------------------------------------

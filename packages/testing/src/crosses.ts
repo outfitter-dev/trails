@@ -14,6 +14,7 @@ import type {
   TrailContext,
 } from '@ontrails/core';
 import {
+  buildCrossValidationSchema,
   executeTrail,
   InternalError,
   Result,
@@ -26,11 +27,7 @@ import {
   assertFullMatch,
   assertSchemaMatch,
 } from './assertions.js';
-import {
-  buildCrossValidationSchema,
-  mergeResourceOverrides,
-  mergeTestContext,
-} from './context.js';
+import { mergeResourceOverrides, mergeTestContext } from './context.js';
 import type { CrossScenario } from './types.js';
 
 // ---------------------------------------------------------------------------

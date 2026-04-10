@@ -28,8 +28,10 @@ export interface TrailExample<I, O> {
   readonly description?: string | undefined;
   /** The input value — fields with schema defaults may be omitted */
   readonly input: Partial<I>;
-  /** Expected output for success-path examples */
+  /** Expected output for success-path examples (deep equality) */
   readonly expected?: O | undefined;
+  /** Partial output assertion — declared fields must match, others ignored */
+  readonly expectedMatch?: Partial<O> | undefined;
   /** Error class name for error-path examples */
   readonly error?: string | undefined;
 }

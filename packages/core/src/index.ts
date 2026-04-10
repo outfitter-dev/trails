@@ -131,6 +131,9 @@ export type { Layer } from './layer.js';
 export { deriveCliPath, deriveFields } from './derive.js';
 export type { Field, FieldOverride } from './derive.js';
 
+// Cross schema
+export { buildCrossValidationSchema } from './cross-schema.js';
+
 // Execute
 export { executeTrail } from './execute.js';
 export type { ExecuteTrailOptions } from './execute.js';

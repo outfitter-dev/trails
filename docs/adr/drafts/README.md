@@ -36,8 +36,6 @@ Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.
 - [Documentation structure](20260406-documentation-structure.md)
 - [Backend-Agnostic Store Schemas](20260409-backend-agnostic-store-schemas.md)
   - depends on [ADR-0009: First-Class Resources](../0009-first-class-resources.md), [ADR-0014: Core Database Primitive](../0014-core-database-primitive.md), [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md), [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md), [Connector Extraction and the with-* Packaging Model](20260409-connector-extraction-and-the-with-packaging-model.md)
-- [Composition Testing](20260409-composition-testing.md)
-  - depends on [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md), [ADR-0007: Governance as Trails with AST-Based Analysis](../0007-governance-as-trails.md), [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md)
 - [Connector Extraction and the with-* Packaging Model](20260409-connector-extraction-and-the-with-packaging-model.md)
   - depends on [ADR-0009: First-Class Resources](../0009-first-class-resources.md), [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md), [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md), [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md)
 - [Contours as First-Class Domain Objects](20260409-contours-as-first-class-domain-objects.md)
