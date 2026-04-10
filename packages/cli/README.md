@@ -94,7 +94,7 @@ const greet = trail('greet', {
 
 ```bash
 myapp greet World          # positional
-myapp greet --name World   # flag form still works via structured input
+myapp greet --name World   # flag alias is kept for backward compatibility
 ```
 
 The heuristic is intentionally conservative: multiple required strings stay as

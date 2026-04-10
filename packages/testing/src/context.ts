@@ -2,16 +2,18 @@
  * Test context factory for creating TrailContext instances suitable for testing.
  */
 
-import { z } from 'zod';
-
 import type {
-  AnyTrail,
   CrossFn,
   ResourceOverrideMap,
   Topo,
   TrailContext,
 } from '@ontrails/core';
-import { Result, createResourceLookup, passthroughTrace } from '@ontrails/core';
+import {
+  Result,
+  buildCrossValidationSchema,
+  createResourceLookup,
+  passthroughTrace,
+} from '@ontrails/core';
 
 import { createTestLogger } from './logger.js';
 import type { TestTrailContextOptions } from './types.js';
@@ -180,30 +182,8 @@ export const resolveMockResources = async (
   app: Topo
 ): Promise<ResourceOverrideMap> => await buildMockResources(app);
 
-/**
- * Build the validation schema for a cross-invoked trail.
- *
- * When the target trail declares `crossInput`, the cross caller passes both
- * public input and composition-only fields. The merged schema validates the
- * combined shape so `executeTrail` doesn't reject the extra fields.
- */
-export const buildCrossValidationSchema = (
-  trailDef: AnyTrail
-): z.ZodType | undefined => {
-  if (!trailDef.crossInput) {
-    return undefined;
-  }
-  // Prefer .merge() for ZodObject pairs — it produces a proper merged object
-  // schema that strips unknown keys and exposes .shape. Fall back to
-  // z.intersection for non-object schemas.
-  if (
-    trailDef.input instanceof z.ZodObject &&
-    trailDef.crossInput instanceof z.ZodObject
-  ) {
-    return trailDef.input.merge(trailDef.crossInput);
-  }
-  return z.intersection(trailDef.input, trailDef.crossInput);
-};
+// Re-export from core so existing consumers of this module continue to work.
+export { buildCrossValidationSchema };
 
 /**
  * Merge a Partial<TrailContext> into a test context.

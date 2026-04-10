@@ -23,6 +23,7 @@ import {
   AmbiguousError,
   AssertionError,
   AuthError,
+  buildCrossValidationSchema,
   CancelledError,
   ConflictError,
   InternalError,
@@ -46,7 +47,6 @@ import {
   assertSchemaMatch,
 } from './assertions.js';
 import {
-  buildCrossValidationSchema,
   defaultMintPermit,
   mergeResourceOverrides,
   mergeTestContext,

@@ -9,9 +9,12 @@
 import { describe, test } from 'bun:test';
 
 import type { AnyTrail, CrossFn, Result, Topo } from '@ontrails/core';
-import { executeTrail, InternalError, Result as R } from '@ontrails/core';
-
-import { buildCrossValidationSchema } from './context.js';
+import {
+  buildCrossValidationSchema,
+  executeTrail,
+  InternalError,
+  Result as R,
+} from '@ontrails/core';
 
 import { assertPartialMatch, expectOk } from './assertions.js';
 import type { RefToken, ScenarioStep } from './types.js';
