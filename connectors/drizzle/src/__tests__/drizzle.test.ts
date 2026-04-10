@@ -333,7 +333,7 @@ const createErrorStore = (rootDir: string) =>
     }
   );
 
-describe('@ontrails/store/drizzle', () => {
+describe('@ontrails/with-drizzle', () => {
   let tmpRoot: string | undefined;
 
   afterEach(() => {

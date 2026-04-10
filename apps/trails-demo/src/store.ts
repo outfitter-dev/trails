@@ -3,11 +3,11 @@
  *
  * The demo still uses an in-memory SQLite database for easy local runs, but
  * the storage contract itself is now authored once and projected through
- * `@ontrails/store/drizzle`.
+ * `@ontrails/with-drizzle`.
  */
 
 import { store as defineStore } from '@ontrails/store';
-import { store as bindDrizzleStore } from '@ontrails/store/drizzle';
+import { store as bindDrizzleStore } from '@ontrails/with-drizzle';
 import { z } from 'zod';
 
 export const entitySchema = z.object({

@@ -68,6 +68,7 @@
         "@ontrails/logging": "workspace:^",
         "@ontrails/mcp": "workspace:^",
         "@ontrails/store": "workspace:^",
+        "@ontrails/with-drizzle": "workspace:^",
         "commander": "catalog:",
         "hono": "^4.7.0",
         "zod": "catalog:",
@@ -76,6 +77,18 @@
         "@ontrails/schema": "workspace:^",
         "@ontrails/testing": "workspace:^",
         "@ontrails/warden": "workspace:^",
+      },
+    },
+    "connectors/drizzle": {
+      "name": "@ontrails/with-drizzle",
+      "version": "1.0.0-beta.14",
+      "dependencies": {
+        "@ontrails/core": "workspace:^",
+        "drizzle-orm": "^0.45.2",
+      },
+      "peerDependencies": {
+        "@ontrails/store": "workspace:^",
+        "zod": "catalog:",
       },
     },
     "packages/cli": {
@@ -162,18 +175,15 @@
         "@ontrails/core": "workspace:^",
       },
       "peerDependencies": {
-        "drizzle-orm": "^0.45.2",
         "zod": "catalog:",
       },
-      "optionalPeers": [
-        "drizzle-orm",
-      ],
     },
     "packages/testing": {
       "name": "@ontrails/testing",
       "version": "1.0.0-beta.14",
       "devDependencies": {
         "@ontrails/store": "workspace:^",
+        "@ontrails/with-drizzle": "workspace:^",
       },
       "peerDependencies": {
         "@ontrails/cli": "workspace:^",
@@ -305,6 +315,8 @@
     "@ontrails/trails": ["@ontrails/trails@workspace:apps/trails"],
 
     "@ontrails/warden": ["@ontrails/warden@workspace:packages/warden"],
+
+    "@ontrails/with-drizzle": ["@ontrails/with-drizzle@workspace:connectors/drizzle"],
 
     "@oxc-parser/binding-android-arm-eabi": ["@oxc-parser/binding-android-arm-eabi@0.121.0", "", { "os": "android", "cpu": "arm" }, "sha512-n07FQcySwOlzap424/PLMtOkbS7xOu8nsJduKL8P3COGHKgKoDYXwoAHCbChfgFpHnviehrLWIPX0lKGtbEk/A=="],
 

@@ -18,7 +18,7 @@
     "noUnusedParameters": true,
     "skipLibCheck": true,
     "paths": {
-      "@ontrails/with-*": ["connectors/*/src/index.ts"]
+      "@ontrails/with-*": ["node_modules/@ontrails/with-*"]
     },
     "outDir": "dist",
     "rootDir": "src"
