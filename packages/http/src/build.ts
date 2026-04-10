@@ -94,9 +94,9 @@ const derivePath = (basePath: string, trailId: string): string => {
 const deriveInputSource = (method: HttpMethod): InputSource =>
   method === 'GET' ? 'query' : 'body';
 
-/** Check if a trail should be included (skip internal trails). */
+/** Check if a trail should be included (skip internal and consumer trails). */
 const shouldInclude = (trail: Trail<unknown, unknown>): boolean =>
-  trail.meta?.['internal'] !== true;
+  trail.meta?.['internal'] !== true && trail.on.length === 0;
 
 /** Build per-request context overrides with the HTTP trailhead marker. */
 const withHttpTrailhead = (

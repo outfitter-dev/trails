@@ -238,6 +238,26 @@ describe('buildMcpTools', () => {
       expect(captured).toEqual(['o-mcp']);
     });
 
+    test('consumer trails with on: are not exposed as MCP tools', () => {
+      const consumer = trail('notify.email', {
+        blaze: () => Result.ok({ delivered: true }),
+        input: z.object({ orderId: z.string() }),
+        on: ['order.placed'],
+      });
+      const producer = trail('order.create', {
+        blaze: () => Result.ok({ ok: true }),
+        fires: ['order.placed'],
+        input: z.object({ orderId: z.string() }),
+      });
+      const tools = buildTools(
+        topo('signal-mcp', { consumer, orderPlaced, producer })
+      );
+      const toolNames = tools.map((t) => t.name);
+
+      expect(toolNames).toContain('signal_mcp_order_create');
+      expect(toolNames).not.toContain('signal_mcp_notify_email');
+    });
+
     test('handler maps errors to isError content', async () => {
       const app = topo('myapp', { failTrail });
       const tool = requireOnlyTool(buildTools(app));

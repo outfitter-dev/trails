@@ -187,6 +187,23 @@ describe('buildHttpRoutes', () => {
       expect(routes).toHaveLength(1);
       expect(routes[0]?.trailId).toBe('echo');
     });
+
+    test('consumer trails (on: [...]) are skipped', () => {
+      const consumerTrail = trail('notify.email', {
+        blaze: (input: { orderId: string }) =>
+          Result.ok({ delivered: true, orderId: input.orderId }),
+        description: 'Send email on order placed',
+        input: z.object({ orderId: z.string() }),
+        on: ['order.placed'],
+      });
+      const app = topo('testapp', { consumerTrail, echoTrail, orderPlaced });
+      const result = buildHttpRoutes(app);
+
+      expect(result.isOk()).toBe(true);
+      const routes = result.value;
+      expect(routes).toHaveLength(1);
+      expect(routes[0]?.trailId).toBe('echo');
+    });
   });
 
   describe('route definition shape', () => {

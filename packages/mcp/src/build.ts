@@ -270,7 +270,7 @@ const shouldInclude = (
   trail: Trail<unknown, unknown>,
   options: BuildMcpToolsOptions
 ): boolean => {
-  if (trail.meta?.['internal'] === true) {
+  if (trail.meta?.['internal'] === true || trail.on.length > 0) {
     return false;
   }
   if (options.includeTrails !== undefined && options.includeTrails.length > 0) {
