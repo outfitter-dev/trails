@@ -756,6 +756,11 @@
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
         {
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the `resource()` primitive that connectors produce and trails consume",
+          "from": "0029",
+          "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
           "context": "- [ADR-0009: Resources](../0009-first-class-resources.md) -- the resource primitive that packs scope and compose",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
@@ -774,11 +779,6 @@
           "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource primitive that connectors produce and stores bind through",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
-        },
-        {
-          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the `resource()` primitive that connectors produce and trails consume",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-connector-extraction-and-the-with-packaging-model.md"
         },
         {
           "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource primitive that contours relate to through the store binding",
@@ -1094,6 +1094,11 @@
           "fromPath": "docs/adr/0022-drizzle-store-connector.md"
         },
         {
+          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract that connectors bind to concrete backends",
+          "from": "0029",
+          "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
           "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) -- the store abstraction that search extends",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
@@ -1102,11 +1107,6 @@
           "context": "[ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) established `store()` as the persistence declaration and schema-to-table derivation as the mechanism. [ADR-0022: Drizzle B",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
-        },
-        {
-          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract that connectors bind to concrete backends",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-connector-extraction-and-the-with-packaging-model.md"
         },
         {
           "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract that can derive from contours instead of standalone schemas",
@@ -1313,14 +1313,14 @@
       "depends_on": ["16", "9"],
       "inbound": [
         {
+          "context": "- [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md) — the first connector implementation, currently a subpath of `@ontrails/store`",
+          "from": "0029",
+          "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
           "context": "[ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) established `store()` as the persistence declaration and schema-to-table derivation as the mechanism. [ADR-0022: Drizzle B",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
-        },
-        {
-          "context": "- [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md) — the first connector implementation, currently a subpath of `@ontrails/store`",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-connector-extraction-and-the-with-packaging-model.md"
         },
         {
           "context": "- [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md) — the first connector, now understood as a single-resource bundle",
@@ -1357,6 +1357,11 @@
           "fromPath": "docs/adr/0013-tracing.md"
         },
         {
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the naming heuristic that `with-*` follows",
+          "from": "0029",
+          "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
           "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) -- the lexicon renames; note that `resource` in this ADR refers to the distribution unit, distinct from `resourc",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
@@ -1375,11 +1380,6 @@
           "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the vocabulary→lexicon rename that this structure codifies",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
-        },
-        {
-          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the naming heuristic that `with-*` follows",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-connector-extraction-and-the-with-packaging-model.md"
         },
         {
           "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the naming heuristic and `pattern` as the trail's declared operational shape",
@@ -1570,6 +1570,60 @@
       "superseded_by": null,
       "title": "Concurrent Trail Crossing",
       "updated": "2026-04-10"
+    },
+    {
+      "created": "2026-04-09",
+      "depends_on": ["9", "16", "22", "23"],
+      "inbound": [
+        {
+          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) -- the packaging model for connector-contributed capabilities that rig",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
+        },
+        {
+          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) -- connectors move to `@ontrails/with-*` packages; affects how connect",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
+        },
+        {
+          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) -- connectors are extracted from core packages; packs compose with con",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
+        },
+        {
+          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) -- connectors as `@ontrails/with-*` packages; compiled packs may depen",
+          "from": "20260401",
+          "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
+        },
+        {
+          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) — the packaging model connectors live in",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
+        },
+        {
+          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) — the connector extraction that contour-derived stores will bind throu",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md"
+        },
+        {
+          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) — the packaging model for connector-contributed `/trails` subpaths",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
+        },
+        {
+          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) — the packaging model for connector bundles",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
+        }
+      ],
+      "number": "0029",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md",
+      "slug": "connector-extraction-and-the-with-packaging-model",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Connector Extraction and the with-* Packaging Model",
+      "updated": "2026-04-13"
     }
   ],
   "version": 1

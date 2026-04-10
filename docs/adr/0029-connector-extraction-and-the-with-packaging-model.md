@@ -1,14 +1,15 @@
 ---
+id: 29
 slug: connector-extraction-and-the-with-packaging-model
 title: Connector Extraction and the with-* Packaging Model
-status: draft
+status: accepted
 created: 2026-04-09
-updated: 2026-04-09
+updated: 2026-04-13
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [9, 16, 22, 23]
 ---
 
-# ADR: Connector Extraction and the with-* Packaging Model
+# ADR-0029: Connector Extraction and the with-* Packaging Model
 
 ## Context
 
