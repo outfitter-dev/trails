@@ -96,6 +96,48 @@ trail('entity.show', {
       expect(diagnostics.length).toBe(0);
     });
 
+    test('recognizes parameter-level destructured resource() calls', () => {
+      const code = `
+import { Result, resource, trail } from '@ontrails/core';
+
+const db = resource('db.main', {
+  create: () => Result.ok({ source: 'factory' }),
+});
+
+trail('entity.show', {
+  resources: [db],
+  blaze: async (_input, { resource }) => {
+    return Result.ok(resource('db.main'));
+  },
+});
+`;
+
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('recognizes parameter-level renamed resource() calls', () => {
+      const code = `
+import { Result, resource, trail } from '@ontrails/core';
+
+const db = resource('db.main', {
+  create: () => Result.ok({ source: 'factory' }),
+});
+
+trail('entity.show', {
+  resources: [db],
+  blaze: async (_input, { resource: r }) => {
+    return Result.ok(r('db.main'));
+  },
+});
+`;
+
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(0);
+    });
+
     test('recognizes ctx.resource(db) lookups by declared resource object', () => {
       const code = `
 import { Result, resource, trail } from '@ontrails/core';

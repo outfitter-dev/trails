@@ -126,13 +126,66 @@ const extractDeclaredResources = (
 // Called service extraction
 // ---------------------------------------------------------------------------
 
-/** Extract the second parameter name from a blaze function node. */
-const extractContextParamName = (blazeBody: AstNode): string | null => {
+/** Extract the raw second parameter node from a blaze function. */
+const extractContextParamNode = (blazeBody: AstNode): AstNode | null => {
   const params = blazeBody['params'] as readonly AstNode[] | undefined;
   if (!params || params.length < 2) {
     return null;
   }
-  return identifierName(params[1]);
+  return params[1] ?? null;
+};
+
+/**
+ * Extract the second parameter name from a blaze function node.
+ *
+ * Returns null when the parameter is not a plain Identifier (e.g. when the
+ * author destructures `{ resource }` in the parameter list). Parameter-level
+ * destructuring is handled separately by `collectParamResourceAliases`.
+ */
+const extractContextParamName = (blazeBody: AstNode): string | null => {
+  const param = extractContextParamNode(blazeBody);
+  return param ? identifierName(param) : null;
+};
+
+/** Extract the alias name from a Property node whose key is `resource`. */
+const extractResourceAlias = (property: AstNode): string | null => {
+  if (property.type !== 'Property') {
+    return null;
+  }
+  const keyName = identifierName(
+    (property as unknown as { key?: AstNode }).key
+  );
+  if (keyName !== 'resource') {
+    return null;
+  }
+  return (
+    identifierName((property as unknown as { value?: AstNode }).value) ??
+    keyName
+  );
+};
+
+/**
+ * Collect `resource` aliases bound via parameter-level destructuring.
+ *
+ * Recognizes `(input, { resource }) => ...` and `(input, { resource: r }) => ...`.
+ * When the blaze author destructures in the parameter list, there is no
+ * enclosing `ctx` identifier to track — we seed the resource alias set directly
+ * from the ObjectPattern in `params[1]`.
+ */
+const collectParamResourceAliases = (body: AstNode): ReadonlySet<string> => {
+  const param = extractContextParamNode(body);
+  if (!param || param.type !== 'ObjectPattern') {
+    return new Set();
+  }
+  const aliases = new Set<string>();
+  const properties = param['properties'] as readonly AstNode[] | undefined;
+  for (const property of properties ?? []) {
+    const alias = extractResourceAlias(property);
+    if (alias) {
+      aliases.add(alias);
+    }
+  }
+  return aliases;
 };
 
 /** Build the set of context parameter names to match against. */
@@ -308,7 +361,9 @@ const extractCalledResources = (config: AstNode): CalledResources => {
 
   for (const body of findBlazeBodies(config)) {
     const ctxNames = buildCtxNames(body);
-    const resourceAliases = collectResourceAliases(body, ctxNames);
+    const paramAliases = collectParamResourceAliases(body);
+    const bodyAliases = collectResourceAliases(body, ctxNames);
+    const resourceAliases = new Set([...paramAliases, ...bodyAliases]);
 
     walkScope(body, (node) => {
       const fromName = extractFromCallName(node, ctxNames);
