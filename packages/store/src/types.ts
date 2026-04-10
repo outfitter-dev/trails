@@ -1,6 +1,18 @@
 import type { z } from 'zod';
 
 /**
+ * Backend-agnostic persistence shapes that a connector can interpret.
+ */
+export type StoreKind = 'tabular' | 'document' | 'file' | 'kv' | 'cache';
+
+/**
+ * Store-level options applied to the authored definition.
+ */
+export interface StoreOptions {
+  readonly kind?: StoreKind;
+}
+
+/**
  * Object schema accepted by the store definition layer.
  */
 export type StoreObjectSchema = z.ZodObject<Record<string, z.ZodType>>;
@@ -71,7 +83,7 @@ export type StoreFixtureRow<
 export type StoreSearchDefinition = Readonly<Record<string, unknown>>;
 
 /**
- * Authored metadata for one store table.
+ * Authored metadata for one store entity.
  */
 export interface StoreTableInput<
   TSchema extends StoreObjectSchema = StoreObjectSchema,
@@ -81,8 +93,10 @@ export interface StoreTableInput<
 > {
   readonly fixtures?: readonly StoreFixtureInput<TSchema, TGenerated>[];
   readonly generated?: TGenerated;
+  readonly identity?: StoreFieldKey<TSchema>;
+  readonly indexed?: readonly StoreFieldKey<TSchema>[];
   readonly indexes?: readonly StoreFieldKey<TSchema>[];
-  readonly primaryKey: StoreFieldKey<TSchema>;
+  readonly primaryKey?: StoreFieldKey<TSchema>;
   readonly references?: Readonly<
     Partial<Record<StoreFieldKey<TSchema>, string>>
   >;
@@ -110,12 +124,32 @@ export type GeneratedFieldsOfInput<TInput extends StoreTableInput> =
     : readonly [];
 
 /**
- * Preserve index fields when present, otherwise normalize to an empty tuple.
+ * Preserve the authored identity field.
+ */
+export type IdentityFieldOfInput<TInput extends StoreTableInput> =
+  TInput['identity'] extends StoreFieldKey<TInput['schema']>
+    ? TInput['identity']
+    : TInput['primaryKey'] extends StoreFieldKey<TInput['schema']>
+      ? TInput['primaryKey']
+      : never;
+
+/**
+ * Preserve indexed fields when present, otherwise normalize to an empty tuple.
+ */
+export type IndexedFieldsOfInput<TInput extends StoreTableInput> =
+  TInput['indexed'] extends readonly StoreFieldKey<TInput['schema']>[]
+    ? TInput['indexed']
+    : TInput['indexes'] extends readonly StoreFieldKey<TInput['schema']>[]
+      ? TInput['indexes']
+      : readonly [];
+
+/**
+ * Backward-compatible alias for code that still uses the SQL-shaped name.
  */
 export type IndexFieldsOfInput<TInput extends StoreTableInput> =
   TInput['indexes'] extends readonly StoreFieldKey<TInput['schema']>[]
     ? TInput['indexes']
-    : readonly [];
+    : IndexedFieldsOfInput<TInput>;
 
 /**
  * Preserve references when present, otherwise normalize to an empty object.
@@ -151,10 +185,12 @@ export interface StoreTable<
   readonly fixtureSchema: StoreObjectSchema;
   readonly fixtures: FixturesOfInput<TInput>;
   readonly generated: GeneratedFieldsOfInput<TInput>;
-  readonly indexes: IndexFieldsOfInput<TInput>;
+  readonly identity: IdentityFieldOfInput<TInput>;
+  readonly indexed: IndexedFieldsOfInput<TInput>;
+  readonly indexes: IndexedFieldsOfInput<TInput>;
   readonly insertSchema: StoreObjectSchema;
   readonly name: TName;
-  readonly primaryKey: TInput['primaryKey'];
+  readonly primaryKey: IdentityFieldOfInput<TInput>;
   readonly references: ReferencesOfInput<TInput>;
   readonly schema: TInput['schema'];
   readonly search?: TInput['search'];
@@ -170,7 +206,7 @@ export interface StoreDefinition<
   readonly get: <TName extends Extract<keyof TTables, string>>(
     name: TName
   ) => StoreTable<TTables[TName], TName>;
-  readonly kind: 'store';
+  readonly kind: StoreKind;
   readonly tableNames: readonly Extract<keyof TTables, string>[];
   readonly tables: {
     readonly [TName in keyof TTables]: StoreTable<
@@ -178,6 +214,7 @@ export interface StoreDefinition<
       Extract<TName, string>
     >;
   };
+  readonly type: 'store';
 }
 
 /**
@@ -191,6 +228,8 @@ export interface AnyStoreTable {
   readonly fixtureSchema: StoreObjectSchema;
   readonly fixtures: readonly Record<string, unknown>[];
   readonly generated: readonly string[];
+  readonly identity: string;
+  readonly indexed: readonly string[];
   readonly indexes: readonly string[];
   readonly insertSchema: StoreObjectSchema;
   readonly name: string;
@@ -205,9 +244,10 @@ export interface AnyStoreTable {
  * Structural view of any normalized store definition.
  */
 export interface AnyStoreDefinition {
-  readonly kind: 'store';
+  readonly kind: StoreKind;
   readonly tableNames: readonly string[];
   readonly tables: Readonly<Record<string, AnyStoreTable>>;
+  readonly type: 'store';
 }
 
 type GeneratedFieldKeysOf<TTable extends AnyStoreTable> = readonly Extract<
@@ -237,9 +277,14 @@ export type FixtureOf<TTable extends AnyStoreTable> = StoreFixtureRow<
 >;
 
 /**
+ * Identity field name for one store entity.
+ */
+export type IdentityOf<TTable extends AnyStoreTable> = TTable['identity'];
+
+/**
  * Primary-key field name for one store table.
  */
-export type PrimaryKeyOf<TTable extends AnyStoreTable> = TTable['primaryKey'];
+export type PrimaryKeyOf<TTable extends AnyStoreTable> = IdentityOf<TTable>;
 
 /**
  * Server-managed fields for one store table.
@@ -284,7 +329,7 @@ export interface StoreListOptions {
  * Shared identifier type for read/write accessors.
  */
 export type StoreIdentifierOf<TTable extends AnyStoreTable> =
-  EntityOf<TTable>[Extract<PrimaryKeyOf<TTable>, keyof EntityOf<TTable>>];
+  EntityOf<TTable>[Extract<IdentityOf<TTable>, keyof EntityOf<TTable>>];
 
 /**
  * Access mode for a bound store connection or resource.
