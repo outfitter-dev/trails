@@ -56,6 +56,15 @@ describe('diffTrailheadMaps', () => {
       expect(result.info).toHaveLength(1);
     });
 
+    test('added contour detected as info', () => {
+      const prev = trailheadMap([]);
+      const curr = trailheadMap([entry({ id: 'user', kind: 'contour' })]);
+      const result = diffTrailheadMaps(prev, curr);
+
+      expect(result.entries[0]?.details).toContain('Contour "user" added');
+      expect(result.info).toHaveLength(1);
+    });
+
     test('removed trail detected as breaking', () => {
       const prev = trailheadMap([entry({ id: 'user.delete' })]);
       const curr = trailheadMap([]);

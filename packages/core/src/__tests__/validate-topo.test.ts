@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import { analyzeDraftState, isDraftId } from '../draft.js';
+import { contour } from '../contour.js';
 import { validateEstablishedTopo } from '../validate-established-topo.js';
 import { resource } from '../resource.js';
 import { Result } from '../result.js';
@@ -21,6 +22,7 @@ const mockTrail = (
   id: string,
   overrides?: {
     crosses?: readonly string[];
+    contours?: readonly ReturnType<typeof contour>[];
     examples?: readonly {
       name: string;
       input: unknown;
@@ -32,6 +34,7 @@ const mockTrail = (
   }
 ) => ({
   blaze: noop,
+  contours: Object.freeze([...(overrides?.contours ?? [])]),
   crosses: Object.freeze([...(overrides?.crosses ?? [])]),
   id,
   input: z.object({ name: z.string() }),
@@ -391,6 +394,63 @@ describe('draft state analysis', () => {
     expect(analysis.contaminatedIds.has('entity.export')).toBe(true);
     expect(exportFinding).toBeDefined();
     expect(exportFinding?.rule).toBe('draft-contamination');
+  });
+
+  test('detects draft contour declarations and schema-reference contamination', () => {
+    const draftUser = contour(
+      '_draft.user',
+      {
+        id: z.string().uuid(),
+      },
+      { identity: 'id' }
+    );
+    const gist = contour(
+      'gist',
+      {
+        id: z.string().uuid(),
+        ownerId: draftUser.id(),
+      },
+      { identity: 'id' }
+    );
+
+    const app = topo('app', {
+      draftUser,
+      gist,
+    });
+
+    const analysis = analyzeDraftState(app);
+    expect(analysis.declaredDraftIds.has('_draft.user')).toBe(true);
+    expect(analysis.contaminatedIds.has('gist')).toBe(true);
+    expect(analysis.dependencies).toContainEqual({
+      fromId: 'gist',
+      kind: 'schema-reference',
+      toId: '_draft.user',
+    });
+  });
+
+  test('propagates contamination through trail contour dependencies', () => {
+    const draftUser = contour(
+      '_draft.user',
+      {
+        id: z.string().uuid(),
+      },
+      { identity: 'id' }
+    );
+
+    const app = topo('app', {
+      createGist: mockTrail('gist.create', {
+        contours: [draftUser],
+      }),
+      draftUser,
+    });
+
+    const analysis = analyzeDraftState(app);
+    const finding = analysis.findings.find(
+      (entry) => entry.id === 'gist.create'
+    );
+
+    expect(analysis.contaminatedIds.has('gist.create')).toBe(true);
+    expect(finding?.via).toBe('contour');
   });
 });
 

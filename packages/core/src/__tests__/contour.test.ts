@@ -2,7 +2,11 @@ import { describe, expect, test } from 'bun:test';
 
 import { z } from 'zod';
 
-import { contour, getContourIdMetadata } from '../contour.js';
+import {
+  contour,
+  getContourIdMetadata,
+  getContourReferences,
+} from '../contour.js';
 
 const user = contour(
   'user',
@@ -167,6 +171,16 @@ describe('contour()', () => {
         contour: 'user',
         identity: 'id',
       });
+    });
+
+    test('lists declared contour references', () => {
+      expect(getContourReferences(gist)).toEqual([
+        {
+          contour: 'user',
+          field: 'ownerId',
+          identity: 'id',
+        },
+      ]);
     });
   });
 });

@@ -2,6 +2,7 @@ import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
 
+import { contour } from '../contour';
 import { createTrailContext } from '../context';
 import { Result } from '../result';
 import { resource } from '../resource';
@@ -23,6 +24,15 @@ const dbResource = resource('db.main', {
     }),
   description: 'Primary database resource',
 });
+
+const userContour = contour(
+  'user',
+  {
+    id: z.string().uuid(),
+    name: z.string(),
+  },
+  { identity: 'id' }
+);
 
 describe('trail()', () => {
   const inputSchema = z.object({ name: z.string() });
@@ -182,6 +192,36 @@ describe('trail()', () => {
     });
   });
 
+  describe('contours', () => {
+    test('defaults to empty frozen array when omitted', () => {
+      const minimal = trail('bare', {
+        blaze: () => Result.ok(),
+        input: z.object({}),
+      });
+      expect(minimal.contours).toEqual([]);
+      expect(Object.isFrozen(minimal.contours)).toBe(true);
+    });
+
+    test('preserves declared contour objects', () => {
+      const withContours = trail('user.create', {
+        blaze: () => Result.ok(),
+        contours: [userContour],
+        input: z.object({}),
+      });
+      expect(withContours.contours).toEqual([userContour]);
+      expect(withContours.contours[0]).toBe(userContour);
+    });
+
+    test('contours array is frozen', () => {
+      const withContours = trail('user.create', {
+        blaze: () => Result.ok(),
+        contours: [userContour],
+        input: z.object({}),
+      });
+      expect(Object.isFrozen(withContours.contours)).toBe(true);
+    });
+  });
+
   describe('resources', () => {
     test('defaults to empty frozen array when omitted', () => {
       const minimal = trail('bare', {
@@ -320,55 +360,51 @@ describe('trail()', () => {
       expect(result.unwrap()).toBe(3);
     });
   });
+});
 
-  describe('fires/on normalization', () => {
-    const orderPlaced = signal('order.placed', {
-      payload: z.object({ id: z.string() }),
-    });
-    const auditLogged = signal('audit.logged', {
-      payload: z.object({ actor: z.string() }),
-    });
+describe('trail() fires/on normalization', () => {
+  const orderPlaced = signal('order.placed', {
+    payload: z.object({ id: z.string() }),
+  });
+  const auditLogged = signal('audit.logged', {
+    payload: z.object({ actor: z.string() }),
+  });
 
-    test('Signal value in fires: is normalized to its id', () => {
-      const t = trail('checkout', {
-        blaze: () => Result.ok({}),
-        fires: [orderPlaced],
-        input: z.object({}),
-      });
-      expect(t.fires).toEqual(['order.placed']);
+  test('Signal value in fires: is normalized to its id', () => {
+    const t = trail('checkout', {
+      blaze: () => Result.ok({}),
+      fires: [orderPlaced],
+      input: z.object({}),
     });
+    expect(t.fires).toEqual(['order.placed']);
+  });
 
-    test('Signal value in on: is normalized to its id', () => {
-      const t = trail('notify', {
-        blaze: () => Result.ok({}),
-        input: z.object({}),
-        on: [orderPlaced],
-      });
-      expect(t.on).toEqual(['order.placed']);
+  test('Signal value in on: is normalized to its id', () => {
+    const t = trail('notify', {
+      blaze: () => Result.ok({}),
+      input: z.object({}),
+      on: [orderPlaced],
     });
+    expect(t.on).toEqual(['order.placed']);
+  });
 
-    test('mixed string + Signal value in fires: is normalized', () => {
-      const t = trail('checkout', {
-        blaze: () => Result.ok({}),
-        fires: ['metric.emitted', orderPlaced, auditLogged],
-        input: z.object({}),
-      });
-      expect(t.fires).toEqual([
-        'metric.emitted',
-        'order.placed',
-        'audit.logged',
-      ]);
+  test('mixed string + Signal value in fires: is normalized', () => {
+    const t = trail('checkout', {
+      blaze: () => Result.ok({}),
+      fires: ['metric.emitted', orderPlaced, auditLogged],
+      input: z.object({}),
     });
+    expect(t.fires).toEqual(['metric.emitted', 'order.placed', 'audit.logged']);
+  });
 
-    test('defaults to empty frozen arrays when omitted', () => {
-      const minimal = trail('bare', {
-        blaze: () => Result.ok(),
-        input: z.object({}),
-      });
-      expect(minimal.fires).toEqual([]);
-      expect(Object.isFrozen(minimal.fires)).toBe(true);
-      expect(minimal.on).toEqual([]);
-      expect(Object.isFrozen(minimal.on)).toBe(true);
+  test('defaults to empty frozen arrays when omitted', () => {
+    const minimal = trail('bare', {
+      blaze: () => Result.ok(),
+      input: z.object({}),
     });
+    expect(minimal.fires).toEqual([]);
+    expect(Object.isFrozen(minimal.fires)).toBe(true);
+    expect(minimal.on).toEqual([]);
+    expect(Object.isFrozen(minimal.on)).toBe(true);
   });
 });

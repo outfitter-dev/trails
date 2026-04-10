@@ -9,13 +9,19 @@
 /** A JSON Schema object produced by zodToJsonSchema. */
 export type JsonSchema = Readonly<Record<string, unknown>>;
 
+export interface TrailheadContourReference {
+  readonly contour: string;
+  readonly field: string;
+  readonly identity: string;
+}
+
 // ---------------------------------------------------------------------------
 // Trailhead Map
 // ---------------------------------------------------------------------------
 
 export interface TrailheadMapEntry {
   readonly id: string;
-  readonly kind: 'trail' | 'signal' | 'resource';
+  readonly kind: 'contour' | 'trail' | 'signal' | 'resource';
   readonly trailheads: readonly string[];
   readonly cli?:
     | {
@@ -29,6 +35,10 @@ export interface TrailheadMapEntry {
   readonly deprecated?: boolean | undefined;
   readonly replacedBy?: string | undefined;
   readonly crosses?: readonly string[] | undefined;
+  readonly contours?: readonly string[] | undefined;
+  readonly schema?: JsonSchema | undefined;
+  readonly identity?: string | undefined;
+  readonly references?: readonly TrailheadContourReference[] | undefined;
   readonly resources?: readonly string[] | undefined;
   readonly detours?: Readonly<Record<string, readonly string[]>> | undefined;
   readonly healthcheck?: boolean | undefined;
@@ -63,7 +73,7 @@ export type TrailheadLock = Readonly<Record<string, unknown>> & {
 
 export interface DiffEntry {
   readonly id: string;
-  readonly kind: 'trail' | 'signal' | 'resource';
+  readonly kind: 'contour' | 'trail' | 'signal' | 'resource';
   readonly change: 'added' | 'removed' | 'modified';
   readonly severity: 'info' | 'warning' | 'breaking';
   readonly details: readonly string[];

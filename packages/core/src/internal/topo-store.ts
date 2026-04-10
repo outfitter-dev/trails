@@ -1,7 +1,9 @@
 import type { Database, SQLQueryBindings } from 'bun:sqlite';
 
+import { getContourReferences } from '../contour.js';
 import { deriveCliPath } from '../derive.js';
 import { Result } from '../result.js';
+import type { AnyContour } from '../contour.js';
 import type { AnyResource } from '../resource.js';
 import type { AnySignal } from '../signal.js';
 import type { Topo } from '../topo.js';
@@ -13,7 +15,7 @@ import { ensureTopoHistorySchema, insertTopoSaveRecord } from './topo-saves.js';
 
 type TrailheadMapEntryRecord = Readonly<Record<string, unknown>> & {
   readonly id: string;
-  readonly kind: 'resource' | 'signal' | 'trail';
+  readonly kind: 'contour' | 'resource' | 'signal' | 'trail';
 };
 
 type TrailheadMapRecord = Readonly<{
@@ -698,6 +700,12 @@ const addTrailRelations = (
     entry['crosses'] = trail.crosses.toSorted();
   }
 
+  if (trail.contours.length > 0) {
+    entry['contours'] = trail.contours
+      .map((contour) => contour.name)
+      .toSorted();
+  }
+
   if (trail.resources.length > 0) {
     entry['resources'] = trail.resources
       .map((resource) => resource.id)
@@ -802,6 +810,25 @@ const resourceToEntryRecord = (
   return sortKeys(entry) as TrailheadMapEntryRecord;
 };
 
+const contourToEntryRecord = (contour: AnyContour): TrailheadMapEntryRecord => {
+  const schema = sortedJsonSchema(contour);
+  const entry: Record<string, unknown> = {
+    exampleCount: contour.examples?.length ?? 0,
+    id: contour.name,
+    identity: contour.identity,
+    kind: 'contour',
+    schema: schema.value,
+    trailheads: [],
+  };
+
+  const references = getContourReferences(contour);
+  if (references.length > 0) {
+    entry['references'] = references;
+  }
+
+  return sortKeys(entry) as TrailheadMapEntryRecord;
+};
+
 const requireTrailSchema = (
   trailSchemas: MaterializedSchemas['trailSchemas'],
   trailId: string
@@ -828,6 +855,7 @@ const requireSignalPayload = (
 };
 
 const buildTrailheadMap = (
+  contours: readonly AnyContour[],
   generatedAt: string,
   resources: readonly AnyResource[],
   signalPayloads: ReadonlyMap<string, JsonRecord>,
@@ -842,6 +870,7 @@ const buildTrailheadMap = (
   trails: readonly AnyTrail[]
 ): TrailheadMapRecord => {
   const entries = [
+    ...contours.map((contour) => contourToEntryRecord(contour)),
     ...trails.map((trail) =>
       trailToEntryRecord(trail, requireTrailSchema(trailSchemas, trail.id))
     ),
@@ -891,6 +920,7 @@ const buildSerializedLock = (
   sortKeys({
     apps: sortKeys({
       [topo.name]: sortKeys({
+        contours: entriesForKind(trailheadMap.entries, 'contour'),
         resources: entriesForKind(trailheadMap.entries, 'resource'),
         signals: entriesForKind(trailheadMap.entries, 'signal'),
         trails: entriesForKind(trailheadMap.entries, 'trail'),
@@ -906,6 +936,9 @@ const buildStoredTopoExport = (
   save: TopoSaveRecord,
   topo: Topo
 ): MaterializedTopoArtifacts => {
+  const contours = topo
+    .listContours()
+    .toSorted((a, b) => a.name.localeCompare(b.name));
   const trails = topo.list().toSorted((a, b) => a.id.localeCompare(b.id));
   const resources = topo
     .listResources()
@@ -915,6 +948,7 @@ const buildStoredTopoExport = (
     .toSorted((a, b) => a.id.localeCompare(b.id));
   const schemas = materializeSchemas(db, save.id, signals, trails);
   const trailheadMap = buildTrailheadMap(
+    contours,
     save.createdAt,
     resources,
     schemas.signalPayloads,
