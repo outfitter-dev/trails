@@ -423,13 +423,12 @@ const toCliCommand = (
   options?: BuildCliCommandsOptions
 ): CliCommand => {
   const fields = deriveFields(t.input, t.fields);
-  const { args, remainingFields } = derivePositionalArgs(fields, t.fields);
-  const flags = buildFlags(t, remainingFields, t.intent, options);
-  const positionalArgNames = new Set(args.map((a) => a.name));
-  const derivedFlagNames = new Set([
-    ...toFlags(remainingFields).map((flag) => kebabToCamel(flag.name)),
-    ...positionalArgNames,
-  ]);
+  const { args } = derivePositionalArgs(fields, t.fields);
+  // All fields generate flags — positional fields keep their --flag alias
+  const flags = buildFlags(t, fields, t.intent, options);
+  const derivedFlagNames = new Set(
+    toFlags(fields).map((flag) => kebabToCamel(flag.name))
+  );
   const metaFlagNames = new Set(
     flags
       .map((flag) => kebabToCamel(flag.name))

@@ -112,10 +112,10 @@ describe('buildCliCommands path derivation', () => {
     });
     const { flags, args } = requireCommand(buildCliCommands(app));
 
-    // Single required string → auto-promoted to positional arg
+    // Single required string → auto-promoted to positional arg + kept as flag alias
     expect(args).toHaveLength(1);
     expect(args[0]).toMatchObject({ name: 'query', required: true });
-    expect(flags.find((f) => f.name === 'query')).toBeUndefined();
+    expect(flags.find((f) => f.name === 'query')).toBeDefined();
     const limitFlag = flags.find((f) => f.name === 'limit');
     expect(limitFlag?.required).toBe(false);
   });
@@ -130,13 +130,10 @@ describe('buildCliCommands path derivation', () => {
     const app = makeApp(t);
     const { flags, args } = requireCommand(buildCliCommands(app));
 
-    // query is auto-promoted to positional, so only structured input flags remain
+    // query is auto-promoted to positional AND kept as --query flag alias
     expect(args).toHaveLength(1);
     expect(args[0]).toMatchObject({ name: 'query' });
-    expect(flags.map((flag) => flag.name)).toEqual(
-      expect.arrayContaining(['input-file', 'input-json', 'stdin'])
-    );
-    expect(flags.find((f) => f.name === 'query')).toBeUndefined();
+    expect(flags.find((f) => f.name === 'query')).toBeDefined();
   });
 
   test('adds --dry-run for destroy intent trails', () => {
