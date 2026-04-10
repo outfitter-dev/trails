@@ -46,7 +46,7 @@ describe('discoverAppModules', () => {
 
     const result = discoverAppModules(tempDir);
 
-    expect(result).toEqual([join(tempDir, 'src/app.ts')]);
+    expect(result).toEqual(['src/app.ts']);
   });
 
   test('finds apps/*/src/app.ts in monorepo layout', () => {
@@ -54,7 +54,7 @@ describe('discoverAppModules', () => {
 
     const result = discoverAppModules(tempDir);
 
-    expect(result).toEqual([join(tempDir, 'apps/myapp/src/app.ts')]);
+    expect(result).toEqual(['apps/myapp/src/app.ts']);
   });
 
   test('returns empty array when nothing found', () => {
@@ -71,9 +71,9 @@ describe('discoverAppModules', () => {
     const result = discoverAppModules(tempDir);
 
     expect(result).toHaveLength(3);
-    expect(result).toContain(join(tempDir, 'src/app.ts'));
-    expect(result).toContain(join(tempDir, 'apps/alpha/src/app.ts'));
-    expect(result).toContain(join(tempDir, 'apps/beta/src/app.ts'));
+    expect(result).toContain('src/app.ts');
+    expect(result).toContain('apps/alpha/src/app.ts');
+    expect(result).toContain('apps/beta/src/app.ts');
   });
 
   test('returns single-app candidate first', () => {
@@ -82,7 +82,7 @@ describe('discoverAppModules', () => {
 
     const result = discoverAppModules(tempDir);
 
-    expect(result[0]).toBe(join(tempDir, 'src/app.ts'));
+    expect(result[0]).toBe('src/app.ts');
   });
 });
 
@@ -112,7 +112,7 @@ describe('resolveAppModule', () => {
 
     const result = resolveAppModule(tempDir);
 
-    expect(result).toBe(join(tempDir, 'src/app.ts'));
+    expect(result).toBe('src/app.ts');
   });
 
   test('throws AmbiguousError for multiple candidates', () => {
