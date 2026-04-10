@@ -766,6 +766,11 @@
           "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
         },
         {
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource primitive that connectors produce and stores bind through",
+          "from": "0031",
+          "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
+        },
+        {
           "context": "- [ADR-0009: Resources](../0009-first-class-resources.md) -- the resource primitive that packs scope and compose",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
@@ -779,11 +784,6 @@
           "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) -- the resource pattern for embedding providers",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
-        },
-        {
-          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource primitive that connectors produce and stores bind through",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
         },
         {
           "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource primitive that bundles group and distribute",
@@ -1022,8 +1022,8 @@
         },
         {
           "context": "- [ADR-0014: Core Database Primitive](../0014-core-database-primitive.md) — the database primitive that store builds on",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
+          "from": "0031",
+          "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
         },
         {
           "context": "- **[ADR-0014: Core Database Primitive](./adr/0014-core-database-primitive.md)** — Shared `trails.db`, subsystem schema versioning",
@@ -1104,14 +1104,14 @@
           "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
         },
         {
+          "context": "[ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) established `store()` as the persistence declaration and schema-to-table derivation as the mechanism. [ADR-0022: Drizzle B",
+          "from": "0031",
+          "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
+        },
+        {
           "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) -- the store abstraction that search extends",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
-        },
-        {
-          "context": "[ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) established `store()` as the persistence declaration and schema-to-table derivation as the mechanism. [ADR-0022: Drizzle B",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
         },
         {
           "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store schema that `deriveTrail()` reads from",
@@ -1319,8 +1319,8 @@
         },
         {
           "context": "[ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) established `store()` as the persistence declaration and schema-to-table derivation as the mechanism. [ADR-0022: Drizzle B",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
+          "from": "0031",
+          "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
         },
         {
           "context": "- [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md) — the first connector, now understood as a single-resource bundle",
@@ -1576,42 +1576,42 @@
       "depends_on": ["9", "16", "22", "23"],
       "inbound": [
         {
-          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) — the connector extraction that contour-derived stores will bind throu",
+          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the connector extraction that contour-derived stores will bind through",
           "from": "0030",
           "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
         },
         {
-          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) -- the packaging model for connector-contributed capabilities that rig",
+          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model connectors live in",
+          "from": "0031",
+          "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
+        },
+        {
+          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) -- the packaging model for connector-contributed capabilities that rig pa",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) -- connectors move to `@ontrails/with-*` packages; affects how connect",
+          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) -- connectors move to `@ontrails/with-*` packages; affects how connector ",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
         },
         {
-          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) -- connectors are extracted from core packages; packs compose with con",
+          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) -- connectors are extracted from core packages; packs compose with connec",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) -- connectors as `@ontrails/with-*` packages; compiled packs may depen",
+          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) -- connectors as `@ontrails/with-*` packages; compiled packs may depend o",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
         {
-          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) — the packaging model connectors live in",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
-        },
-        {
-          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) — the packaging model for connector-contributed `/trails` subpaths",
+          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector-contributed `/trails` subpaths",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
         },
         {
-          "context": "- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) — the packaging model for connector bundles",
+          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector bundles",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
         }
@@ -1672,6 +1672,41 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Contours as First-Class Domain Objects",
+      "updated": "2026-04-10"
+    },
+    {
+      "created": "2026-04-09",
+      "depends_on": [
+        "9",
+        "14",
+        "16",
+        "22",
+        "connector-extraction-and-the-with-packaging-model"
+      ],
+      "inbound": [
+        {
+          "context": "- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) -- the store schema abstraction that search declarations extend",
+          "from": "20260401",
+          "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
+        },
+        {
+          "context": "- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store schema that `deriveTrail()` reads from",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
+        },
+        {
+          "context": "- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store schemas that bundle resources bind to concrete backends",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
+        }
+      ],
+      "number": "0031",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0031-backend-agnostic-store-schemas.md",
+      "slug": "backend-agnostic-store-schemas",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Backend-Agnostic Store Schemas",
       "updated": "2026-04-10"
     }
   ],

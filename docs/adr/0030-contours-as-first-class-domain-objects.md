@@ -286,7 +286,7 @@ Contour is a declaration-time concept. By the time a trail executes, the contour
 - [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract that can derive from contours instead of standalone schemas
 - [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the naming heuristic and `pattern` as the trail's declared operational shape
 - [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) — the derivation helper that composes with contours
-- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) — the connector extraction that contour-derived stores will bind through
+- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the connector extraction that contour-derived stores will bind through
 - [Tenets: The trail is the product](../../tenets.md) — contours make trails smarter without changing what trails are
 - [Tenets: One write, many reads](../../tenets.md) — the governing principle contours extend to domain objects
 - [Tenets: The bar for new primitives](../../tenets.md#the-bar-for-new-primitives) — the justification standard contour must meet
