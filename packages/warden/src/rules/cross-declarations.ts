@@ -432,11 +432,13 @@ const checkTrailDefinition = (
     diagnostics
   );
 
-  // Always report unused declarations — even when some ctx.cross() calls use
-  // unresolvable trail object references. Unresolvable *declared* entries
-  // (trail object references in `crosses`) are already absent from
-  // `declared.ids`, so only statically-resolved declarations are checked.
-  reportUnused(declared.ids, called.ids, ctx, diagnostics);
+  // When all ctx.cross() calls are statically resolved, report unused
+  // declarations. When some calls use trail object references (unresolved),
+  // skip — a declared string like 'gist.show' might be the target of an
+  // unresolved `ctx.cross(showGist)` call, producing false positives.
+  if (!called.hasUnresolved) {
+    reportUnused(declared.ids, called.ids, ctx, diagnostics);
+  }
 };
 
 // ---------------------------------------------------------------------------

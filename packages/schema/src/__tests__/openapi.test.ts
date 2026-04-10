@@ -427,7 +427,7 @@ const registerMetadataAndStructureTests = () => {
   describe('consumer trails', () => {
     test('trails with on (signal consumers) are excluded', () => {
       const changed = signal('entity.changed', {
-        schema: z.object({ id: z.string() }),
+        payload: z.object({ id: z.string() }),
       });
       const pub = trail('entity.show', {
         blaze: noop,
