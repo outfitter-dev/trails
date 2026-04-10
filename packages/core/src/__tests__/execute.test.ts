@@ -3,7 +3,7 @@ import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
 
-import { InternalError, ValidationError } from '../errors';
+import { CancelledError, InternalError, ValidationError } from '../errors';
 import { executeTrail } from '../execute';
 import { createTrailContext } from '../context';
 import type { Layer } from '../layer';
@@ -110,6 +110,246 @@ const requireCross = (
 ): NonNullable<TrailContext['cross']> => {
   expect(ctx.cross).toBeDefined();
   return ctx.cross as NonNullable<TrailContext['cross']>;
+};
+
+const waitForAbort = async (signal: AbortSignal): Promise<void> => {
+  if (signal.aborted) {
+    return;
+  }
+
+  const { promise, resolve } = Promise.withResolvers<undefined>();
+  signal.addEventListener('abort', () => resolve(), { once: true });
+  await promise;
+};
+
+const createConcurrentBranchResourceScopeScenario = () => {
+  const id = nextResourceId('branch-scope');
+  const captures = { createCalls: 0 };
+  const scopedResource = resource(id, {
+    create: () => {
+      captures.createCalls += 1;
+      return Result.ok({ source: `branch-scope-${captures.createCalls}` });
+    },
+  });
+  const createReader = (trailId: string) =>
+    trail(trailId, {
+      blaze: (_input, ctx) =>
+        Result.ok({ source: scopedResource.from(ctx).source }),
+      input: z.object({}),
+      output: z.object({ source: z.string() }),
+      resources: [scopedResource],
+      visibility: 'internal',
+    });
+  const left = createReader('entity.branch.left');
+  const right = createReader('entity.branch.right');
+  const entry = trail('entity.branch.resource-scope', {
+    blaze: async (_input, ctx) => {
+      const crossed = await requireCross(ctx)([
+        [left, {}],
+        [right, {}],
+      ] as const);
+      return Result.ok({
+        sources: crossed.map((result) =>
+          result.match({
+            err: () => 'err',
+            ok: (value) => value.source,
+          })
+        ),
+      });
+    },
+    crosses: [left, right],
+    input: z.object({}),
+    output: z.object({ sources: z.array(z.string()) }),
+  });
+
+  return {
+    app: topo('cross-branch-resource-scope-topo', {
+      entry,
+      left,
+      right,
+      scopedResource,
+    }),
+    captures,
+    entry,
+    id,
+  };
+};
+
+const createAbortSignalScenario = (seenSignals: AbortSignal[]) => {
+  const createCancellable = (id: string) =>
+    trail(id, {
+      blaze: async (_input, ctx) => {
+        seenSignals.push(ctx.abortSignal);
+        await waitForAbort(ctx.abortSignal);
+        return Result.err(
+          new CancelledError(`${id} cancelled by shared abort signal`)
+        );
+      },
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+      visibility: 'internal',
+    });
+  const left = createCancellable('entity.cancel.left');
+  const right = createCancellable('entity.cancel.right');
+  const entry = trail('entity.branch.abort-signal', {
+    blaze: async (_input, ctx) => {
+      const crossed = await requireCross(ctx)([
+        [left, {}],
+        [right, {}],
+      ] as const);
+      return Result.ok({
+        statuses: crossed.map((result) =>
+          result.match({
+            err: (error) =>
+              error instanceof CancelledError ? error.category : 'err',
+            ok: () => 'ok',
+          })
+        ),
+      });
+    },
+    crosses: [left, right],
+    input: z.object({}),
+    output: z.object({ statuses: z.array(z.string()) }),
+  });
+
+  return {
+    app: topo('cross-branch-abort-signal-topo', {
+      entry,
+      left,
+      right,
+    }),
+    entry,
+  };
+};
+
+interface PermitCapture {
+  readonly permitId: string;
+  readonly sameReference: boolean;
+}
+
+const createPermitScenario = (
+  permit: { readonly id: string; readonly scopes: readonly string[] },
+  captures: PermitCapture[]
+) => {
+  const createChild = (id: string) =>
+    trail(id, {
+      blaze: (_input, ctx) => {
+        const branchPermit = ctx.permit as typeof permit;
+        const permitCapture = {
+          permitId: branchPermit.id,
+          sameReference: branchPermit === permit,
+        };
+        captures.push(permitCapture);
+        return Result.ok(permitCapture);
+      },
+      input: z.object({}),
+      output: z.object({
+        permitId: z.string(),
+        sameReference: z.boolean(),
+      }),
+      visibility: 'internal',
+    });
+  const left = createChild('entity.permit.left');
+  const right = createChild('entity.permit.right');
+  const entry = trail('entity.branch.permit', {
+    blaze: async (_input, ctx) => {
+      const crossed = await requireCross(ctx)([
+        [left, {}],
+        [right, {}],
+      ] as const);
+      return Result.ok({
+        permits: crossed.map((result) =>
+          result.match({
+            err: () => ({ permitId: 'err', sameReference: false }),
+            ok: (value) => value,
+          })
+        ),
+      });
+    },
+    crosses: [left, right],
+    input: z.object({}),
+    output: z.object({
+      permits: z.array(
+        z.object({
+          permitId: z.string(),
+          sameReference: z.boolean(),
+        })
+      ),
+    }),
+  });
+
+  return {
+    app: topo('cross-branch-permit-topo', {
+      entry,
+      left,
+      right,
+    }),
+    entry,
+  };
+};
+
+const createSiblingFailureScopeScenario = () => {
+  const failingId = nextResourceId('branch-fail');
+  const succeedingId = nextResourceId('branch-success');
+  const failingResource = resource(failingId, {
+    create: () =>
+      Result.err(new ValidationError('failing branch scope exploded')),
+  });
+  const succeedingResource = resource(succeedingId, {
+    create: () => Result.ok({ source: 'sibling-branch-scope' }),
+  });
+  const failing = trail('entity.scope.fail', {
+    blaze: () => Result.ok({ ok: true }),
+    input: z.object({}),
+    output: z.object({ ok: z.boolean() }),
+    resources: [failingResource],
+    visibility: 'internal',
+  });
+  const succeeding = trail('entity.scope.ok', {
+    blaze: (_input, ctx) =>
+      Result.ok({ source: succeedingResource.from(ctx).source }),
+    input: z.object({}),
+    output: z.object({ source: z.string() }),
+    resources: [succeedingResource],
+    visibility: 'internal',
+  });
+  const entry = trail('entity.branch.failure-scope', {
+    blaze: async (_input, ctx) => {
+      const [failed, succeeded] = await requireCross(ctx)([
+        [failing, {}],
+        [succeeding, {}],
+      ] as const);
+      return Result.ok({
+        failed: failed.match({
+          err: (error) => error.message,
+          ok: () => 'ok',
+        }),
+        succeeded: succeeded.match({
+          err: () => 'err',
+          ok: (value) => value.source,
+        }),
+      });
+    },
+    crosses: [failing, succeeding],
+    input: z.object({}),
+    output: z.object({
+      failed: z.string(),
+      succeeded: z.string(),
+    }),
+  });
+
+  return {
+    app: topo('cross-branch-failure-scope-topo', {
+      entry,
+      failing,
+      failingResource,
+      succeeding,
+      succeedingResource,
+    }),
+    entry,
+    failingId,
+    succeedingId,
+  };
 };
 
 // ---------------------------------------------------------------------------
@@ -424,6 +664,94 @@ describe('executeTrail', () => {
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toEqual({ count: 0 });
+    });
+  });
+
+  describe('concurrent crossings', () => {
+    test('resolves concurrent branch resources from branch scope instead of inheriting parent resources', async () => {
+      const { app, captures, entry, id } =
+        createConcurrentBranchResourceScopeScenario();
+
+      const result = await executeTrail(
+        entry,
+        {},
+        {
+          ctx: { extensions: { [id]: { source: 'parent-scope' } } },
+          topo: app,
+        }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toEqual({
+        sources: ['branch-scope-1', 'branch-scope-1'],
+      });
+      expect(captures.createCalls).toBe(1);
+    });
+
+    test('propagates the same AbortSignal to every concurrent branch', async () => {
+      const seenSignals: AbortSignal[] = [];
+      const { app, entry } = createAbortSignalScenario(seenSignals);
+      const abortSignal = AbortSignal.timeout(5);
+
+      const result = await executeTrail(entry, {}, { abortSignal, topo: app });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toEqual({
+        statuses: ['cancelled', 'cancelled'],
+      });
+      expect(seenSignals).toEqual([abortSignal, abortSignal]);
+    });
+
+    test('propagates the parent permit to every concurrent branch', async () => {
+      const permit = Object.freeze({
+        id: 'permit-orders',
+        scopes: ['orders:read'] as const,
+      });
+      const captures: PermitCapture[] = [];
+      const { app, entry } = createPermitScenario(permit, captures);
+
+      const result = await executeTrail(
+        entry,
+        {},
+        { ctx: { permit }, topo: app }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toEqual({
+        permits: [
+          { permitId: 'permit-orders', sameReference: true },
+          { permitId: 'permit-orders', sameReference: true },
+        ],
+      });
+      expect(captures).toEqual([
+        { permitId: 'permit-orders', sameReference: true },
+        { permitId: 'permit-orders', sameReference: true },
+      ]);
+    });
+
+    test("keeps one branch's failure from poisoning sibling branch scopes", async () => {
+      const { app, entry, failingId, succeedingId } =
+        createSiblingFailureScopeScenario();
+
+      const result = await executeTrail(
+        entry,
+        {},
+        {
+          ctx: {
+            extensions: {
+              [failingId]: { source: 'parent-failing-scope' },
+              [succeedingId]: { source: 'parent-success-scope' },
+            },
+          },
+          topo: app,
+        }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toEqual({
+        failed: 'failing branch scope exploded',
+        succeeded: 'sibling-branch-scope',
+      });
     });
   });
 
