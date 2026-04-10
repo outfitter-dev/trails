@@ -133,5 +133,5 @@ export interface ScenarioStep {
   readonly input: Record<string, unknown>;
   readonly as?: string | undefined;
   readonly expected?: unknown | undefined;
-  readonly expectedMatch?: Record<string, unknown> | undefined;
+  readonly expectedMatch?: unknown | undefined;
 }
