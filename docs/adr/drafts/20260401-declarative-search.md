@@ -298,7 +298,7 @@ This is explicitly deferred. The initial implementation focuses on single-entity
 - [ADR-0009: First-Class Resources](../0009-first-class-resources.md) -- the resource pattern for embedding providers
 - [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) -- contours provide the domain object schemas that search declarations annotate
 - [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) -- the `crud()` factory that auto-generates search trails
-- [ADR: Backend-Agnostic Store Schemas](20260409-backend-agnostic-store-schemas.md) (draft) -- the store schema abstraction that search declarations extend
+- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) -- the store schema abstraction that search declarations extend
 - ADR: Drizzle Store Connector (draft) -- the connector that implements FTS5 and vector indexing
 - [Architecture](../../architecture.md) -- information categories, right-side hexagonal connectors
 - Alex Garcia's hybrid search guide: <https://alexgarcia.xyz/blog/2024/sqlite-vec-hybrid-search/>
