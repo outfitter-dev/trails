@@ -1,4 +1,4 @@
-import { describe, expect, mock, test } from 'bun:test';
+import { beforeEach, describe, expect, mock, test } from 'bun:test';
 import {
   ConflictError,
   Result,
@@ -15,7 +15,14 @@ import type {
   UpsertOf,
 } from '../index.js';
 import { store } from '../index.js';
-import { reconcile, sync } from '../trails/index.js';
+import {
+  ReconcileRetryExhaustedError,
+  reconcile,
+  sync,
+} from '../trails/index.js';
+
+const cloneOrNull = <T>(value: T | undefined): T | null =>
+  value === undefined ? null : structuredClone(value);
 
 const noteSchema = z.object({
   body: z.string(),
@@ -246,12 +253,10 @@ const sourceResource = resource<SourceConnection>('db.source', {
   }),
 });
 
-const targetRecords = new Map<string, EntityOf<TargetTable>>();
-
 const targetResource = resource<TargetConnection>('db.target', {
   create: () =>
     Result.ok({
-      notes: createTargetAccessor(targetRecords),
+      notes: createTargetAccessor(new Map<string, EntityOf<TargetTable>>()),
     }),
   mock: () => ({
     notes: createTargetAccessor(new Map<string, EntityOf<TargetTable>>()),
@@ -304,8 +309,13 @@ const expectSyncShape = (
 };
 
 describe('sync()', () => {
+  let targetRecords: Map<string, EntityOf<TargetTable>>;
+
+  beforeEach(() => {
+    targetRecords = new Map<string, EntityOf<TargetTable>>();
+  });
+
   test('reads from the source resource and writes to the target resource', async () => {
-    targetRecords.clear();
     const syncNote = sync({
       from: {
         resource: sourceResource,
@@ -509,5 +519,114 @@ describe('reconcile()', () => {
         table: plainNoteDefinition.tables.notes,
       })
     ).toThrow(ValidationError);
+  });
+
+  test('requires `version` in the derived input schema for versioned tables', () => {
+    const reconcileNote = reconcile({
+      resource: resource<VersionedConnection>('db.notes.versioned.required', {
+        create: () =>
+          Result.ok({
+            notes: createConflictAccessor([]),
+          }),
+        mock: () => ({
+          notes: createConflictAccessor([]),
+        }),
+      }),
+      strategy: 'last-write-wins',
+      table: versionedNoteDefinition.tables.notes,
+    });
+
+    const withoutVersion = reconcileNote.input.safeParse({
+      body: 'Incoming body',
+      id: versionedFixture.id,
+      title: 'Incoming title',
+    });
+    expect(withoutVersion.success).toBe(false);
+
+    const withVersion = reconcileNote.input.safeParse({
+      body: 'Incoming body',
+      id: versionedFixture.id,
+      title: 'Incoming title',
+      version: 1,
+    });
+    expect(withVersion.success).toBe(true);
+  });
+
+  test('surfaces ReconcileRetryExhaustedError when the retry also conflicts', async () => {
+    // Accessor that always throws ConflictError on upsert, mirroring a
+    // concurrent writer that races the retry path. The retry in
+    // recoverConflict produces a second ConflictError, which the blaze
+    // wraps in ReconcileRetryExhaustedError so callers can distinguish
+    // "retry reconcile at a higher level" from "reconcile lost the race".
+    const stubbornCurrent = {
+      body: 'Current body',
+      createdAt: versionedFixture.createdAt,
+      id: versionedFixture.id,
+      title: 'Current title',
+      version: 99,
+    } satisfies EntityOf<VersionedNotesTable>;
+
+    const stubbornById = new Map<string, typeof stubbornCurrent>([
+      [stubbornCurrent.id, stubbornCurrent],
+    ]);
+    const stubbornAccessor: StoreAccessor<VersionedNotesTable> = {
+      get: async (id) => {
+        await Promise.resolve();
+        return cloneOrNull(stubbornById.get(id));
+      },
+      list: async () => {
+        await Promise.resolve();
+        return [structuredClone(stubbornCurrent)];
+      },
+      remove: async () => {
+        await Promise.resolve();
+        return { deleted: false };
+      },
+      upsert: () => {
+        throw new ConflictError(`Version conflict for "${stubbornCurrent.id}"`);
+      },
+    };
+
+    const reconcileNote = reconcile({
+      resource: resource<VersionedConnection>('db.notes.stubborn', {
+        create: () =>
+          Result.ok({
+            notes: stubbornAccessor,
+          }),
+        mock: () => ({
+          notes: stubbornAccessor,
+        }),
+      }),
+      strategy: 'last-write-wins',
+      table: versionedNoteDefinition.tables.notes,
+    });
+
+    const result = await reconcileNote.blaze(
+      {
+        body: 'Incoming body',
+        createdAt: versionedFixture.createdAt,
+        id: versionedFixture.id,
+        title: 'Incoming title',
+        version: 1,
+      },
+      createTrailContext({
+        extensions: {
+          'db.notes.stubborn': {
+            notes: stubbornAccessor,
+          },
+        },
+      })
+    );
+
+    const err = result.match({
+      err: (e) => e,
+      ok: () => {
+        throw new Error('expected reconcile to fail after retry');
+      },
+    });
+    expect(err).toBeInstanceOf(ReconcileRetryExhaustedError);
+    // Subclass of ConflictError so callers that catch the base class
+    // still catch it.
+    expect(err).toBeInstanceOf(ConflictError);
   });
 });

@@ -66,6 +66,7 @@ Use the project language consistently:
 - Every trail exposed on MCP or HTTP trailheads must define an `output` schema.
 - Use `metadata` for annotations and ownership data.
 - Use `detours` for recovery strategies instead of inline retry logic.
+  - **Narrow factory carve-out.** Detours execute at runtime. Factory-built trails such as the store's `reconcile` factory (`packages/store/src/trails/reconcile.ts`) may still keep a tightly-scoped inline recovery bridge when the current detour model cannot yet express the required store-specific behavior. Prefer detours first; treat inline recovery as a local exception, not the default pattern.
 - Prefer the most specific `TrailsError` subclass available.
 - Keep error taxonomy behavior aligned across trailheads so CLI, HTTP, and JSON-RPC mappings stay coherent.
 - Trails that use external dependencies declare them with `resources: [...]`.

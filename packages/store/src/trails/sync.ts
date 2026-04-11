@@ -1,13 +1,5 @@
-import {
-  contour,
-  InternalError,
-  isTrailsError,
-  NotFoundError,
-  Result,
-  trail,
-} from '@ontrails/core';
+import { InternalError, NotFoundError, Result, trail } from '@ontrails/core';
 import type {
-  AnyContour,
   AnySignal,
   Resource,
   Trail,
@@ -24,6 +16,7 @@ import type {
   StoreIdentifierOf,
   UpsertOf,
 } from '../types.js';
+import { createTableContour, mapStoreTrailError } from './utils.js';
 
 type IdentityInputOf<TTable extends AnyStoreTable> = Readonly<
   Record<Extract<TTable['identity'], string>, StoreIdentifierOf<TTable>>
@@ -67,35 +60,6 @@ export interface SyncOptions<
   readonly transform?: SyncTransform<TSourceTable, TTargetTable>;
 }
 
-const contourCache = new WeakMap<AnyStoreTable, AnyContour>();
-
-const createTableContour = <TTable extends AnyStoreTable>(
-  table: TTable
-): AnyContour => {
-  const cached = contourCache.get(table);
-  if (cached) {
-    return cached;
-  }
-
-  const clonedShape = Object.fromEntries(
-    Object.entries(table.schema.shape).map(([field, schema]) => [
-      field,
-      schema.clone(),
-    ])
-  );
-  const derived = contour(
-    table.name,
-    clonedShape as Record<string, z.ZodType>,
-    {
-      examples: table.fixtures as readonly Record<string, unknown>[],
-      identity: table.identity,
-    }
-  ) as AnyContour;
-
-  contourCache.set(table, derived);
-  return derived;
-};
-
 const resolveSourceAccessor = <
   TTable extends AnyStoreTable,
   TConnection extends SourceConnection<TTable>,
@@ -120,20 +84,6 @@ const resolveTargetAccessor = <
   return connection[
     endpoint.table.name as keyof TConnection
   ] as StoreAccessor<TTable>;
-};
-
-const asError = (error: unknown): Error =>
-  error instanceof Error ? error : new Error(String(error));
-
-const mapSyncError = (trailId: string, error: unknown): Error => {
-  if (isTrailsError(error)) {
-    return error;
-  }
-
-  const resolved = asError(error);
-  return new InternalError(`${trailId} failed: ${resolved.message}`, {
-    cause: resolved,
-  });
 };
 
 const sourceMissingError = <TTable extends AnyStoreTable>(
@@ -229,6 +179,7 @@ export const sync = <
   const targetContour = createTableContour(options.to.table);
 
   return trail<IdentityInputOf<TSourceTable>, EntityOf<TTargetTable>>(id, {
+    // oxlint-disable-next-line max-statements -- sync blaze reads more clearly as one try/catch with schema validation, transform, and accessor call inline
     blaze: async (input, ctx) => {
       try {
         const identifier = input[
@@ -242,17 +193,36 @@ export const sync = <
           return Result.err(sourceMissingError(options.from.table, identifier));
         }
 
+        // No-transform path: the source entity is upserted directly into
+        // the target table. The generic signature does not require the two
+        // tables to be structurally compatible, so validate `next` against
+        // the target table's fixture schema at runtime. This catches
+        // accidentally omitted transforms before the underlying store sees
+        // a mismatched payload.
         const next =
           options.transform === undefined
-            ? (sourceEntity as unknown as UpsertOf<TTargetTable>)
+            ? options.to.table.fixtureSchema.safeParse(sourceEntity)
+            : undefined;
+
+        if (next !== undefined && !next.success) {
+          return Result.err(
+            new InternalError(
+              `${id} produced an invalid target entity: ${next.error.message}`
+            )
+          );
+        }
+
+        const payload =
+          options.transform === undefined
+            ? (next?.data as unknown as UpsertOf<TTargetTable>)
             : await options.transform(sourceEntity, ctx);
 
         const synced = await resolveTargetAccessor(options.to, ctx).upsert(
-          next
+          payload
         );
         return Result.ok(synced);
       } catch (error) {
-        return Result.err(mapSyncError(id, error));
+        return Result.err(mapStoreTrailError(id, error));
       }
     },
     contours: [sourceContour, targetContour],

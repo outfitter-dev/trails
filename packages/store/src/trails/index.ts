@@ -1,6 +1,6 @@
 export { crud } from './crud.js';
 export type { CrudBlazeOverrides, CrudOptions, CrudTrails } from './crud.js';
-export { reconcile } from './reconcile.js';
+export { ReconcileRetryExhaustedError, reconcile } from './reconcile.js';
 export type {
   ReconcileConflict,
   ReconcileOptions,
