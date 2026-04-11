@@ -94,6 +94,17 @@ securePath, isPathSafe, resolveSafePath
 findWorkspaceRoot, isInsideWorkspace, getRelativePath
 ```
 
+## `@ontrails/core/trails`
+
+```typescript
+deriveTrail(contour, operation, spec) // derive CRUD-shaped trail contract pieces from a contour
+
+DeriveTrailOperation                  // 'create' | 'read' | 'update' | 'delete' | 'list'
+DeriveTrailInput<TContour, TOp, TGenerated>
+DeriveTrailOutput<TContour, TOp>
+DeriveTrailSpec<TContour, TOp, TGenerated>
+```
+
 ## `@ontrails/cli`
 
 ```typescript
