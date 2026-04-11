@@ -14,7 +14,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
 
-import { getSchema, readonlyStore, store } from '../index.js';
+import {
+  connectDrizzle,
+  connectReadOnlyDrizzle,
+  getSchema,
+  readonlyStore,
+  store,
+} from '../index.js';
 
 const userSchema = z.object({
   email: z.string().email(),
@@ -779,6 +785,47 @@ describe('@ontrails/with-drizzle edge cases', () => {
 
     const idColumn = col.id as unknown as { columnType: string };
     expect(idColumn.columnType).toBe('SQLiteInteger');
+  });
+
+  test('rejects non-tabular store definitions with a clear error', () => {
+    const documentStore = defineStore(
+      {
+        documents: {
+          generated: ['id'],
+          primaryKey: 'id',
+          schema: z.object({
+            body: z.string(),
+            id: z.string(),
+          }),
+        },
+      },
+      { kind: 'document' }
+    );
+    const rootDir = tmp.makeRoot();
+
+    const expectKindMismatch = (run: () => unknown) => {
+      try {
+        run();
+        throw new Error(
+          'expected connector binding to reject a non-tabular store'
+        );
+      } catch (error) {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect((error as Error).message).toContain('kind "tabular"');
+        expect((error as Error).message).toContain('"document"');
+      }
+    };
+
+    expectKindMismatch(() =>
+      connectDrizzle(documentStore, {
+        url: join(rootDir, 'document.sqlite'),
+      })
+    );
+    expectKindMismatch(() =>
+      connectReadOnlyDrizzle(documentStore, {
+        url: join(rootDir, 'document-readonly.sqlite'),
+      })
+    );
   });
 
   test('update returns null for a non-existent ID', async () => {

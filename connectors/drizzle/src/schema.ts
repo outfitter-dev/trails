@@ -525,6 +525,16 @@ const createTableSql = (
 const createIndexSql = (table: AnyStoreTable, field: string): string =>
   `CREATE INDEX IF NOT EXISTS ${quoteIdentifier(`${table.name}_${field}_idx`)} ON ${quoteIdentifier(table.name)} (${quoteIdentifier(field)})`;
 
+const assertTabularStoreKind = (definition: AnyStoreDefinition): void => {
+  if (definition.kind === 'tabular') {
+    return;
+  }
+
+  throw new ValidationError(
+    `@ontrails/with-drizzle only supports store definitions with kind "tabular". Received "${definition.kind}".`
+  );
+};
+
 const definedTables = (
   definition: AnyStoreDefinition
 ): readonly AnyStoreTable[] =>
@@ -543,6 +553,7 @@ const createIndexStatements = (
 export const deriveDrizzleTables = <TStore extends AnyStoreDefinition>(
   definition: TStore
 ): DrizzleStoreSchema<TStore> => {
+  assertTabularStoreKind(definition);
   const tables: Record<string, AnySQLiteTable> = {};
 
   for (const table of definedTables(definition)) {
@@ -568,10 +579,12 @@ export const deriveDrizzleTables = <TStore extends AnyStoreDefinition>(
 
 export const createSqliteSchemaStatements = (
   definition: AnyStoreDefinition
-): readonly string[] =>
-  Object.freeze([
+): readonly string[] => {
+  assertTabularStoreKind(definition);
+  return Object.freeze([
     ...definedTables(definition).map((table) =>
       createTableSql(table, definition)
     ),
     ...createIndexStatements(definition),
   ]);
+};
