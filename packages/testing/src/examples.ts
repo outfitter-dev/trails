@@ -54,7 +54,10 @@ import {
   resolveMockResources,
 } from './context.js';
 import type { MintableTrail, TestExecutionOptions } from './context.js';
-import { resolveTrailExamples } from './effective-examples.js';
+import {
+  isDerivedExample,
+  resolveTrailExamples,
+} from './effective-examples.js';
 
 // ---------------------------------------------------------------------------
 // Error class name -> constructor map
@@ -343,7 +346,15 @@ export const testExamples = (
     });
   }
 
-  // Composition trails: use recording cross and check coverage
+  // Composition trails: use recording cross and check coverage.
+  //
+  // Crossing coverage only runs against AUTHORED examples. Contour-derived
+  // fixtures are opportunistic coverage that may not exercise every
+  // `ctx.cross()` branch in the trail, so asserting coverage against them
+  // would produce false failures for trails whose authored intent was a
+  // single path. When a trail has zero authored examples the coverage
+  // assertion is skipped entirely — the derived-example runs still
+  // execute, but they are not required to cover declared crossings.
   if (compositionTrails.length > 0) {
     describe.each(compositionTrails)('$id', (t) => {
       const { examples, output } = t;
@@ -351,7 +362,20 @@ export const testExamples = (
         return;
       }
 
-      const called = new Set<string>();
+      const calledFromAuthored = new Set<string>();
+      const hasAuthoredExamples = examples.some(
+        (example) => !isDerivedExample(example)
+      );
+
+      // Only record cross calls from authored examples. Derived fixtures
+      // execute normally but do not contribute to coverage — the sink map
+      // routes each example to the right bucket without an inline
+      // conditional inside the test body.
+      const discardSink = new Set<string>();
+      const pickCoverageSink = (
+        example: TrailExample<unknown, unknown>
+      ): Set<string> =>
+        isDerivedExample(example) ? discardSink : calledFromAuthored;
 
       test.each([...examples])(
         'example: $name',
@@ -368,7 +392,7 @@ export const testExamples = (
             example,
             output,
             baseCtx,
-            called,
+            pickCoverageSink(example),
             app,
             resources,
             resolved
@@ -376,10 +400,14 @@ export const testExamples = (
         }
       );
 
-      test('crossing coverage', () => {
-        const uncovered = t.crosses.filter((id) => !called.has(id));
-        expect(uncovered).toEqual([]);
-      });
+      if (hasAuthoredExamples) {
+        test('crossing coverage', () => {
+          const uncovered = t.crosses.filter(
+            (id) => !calledFromAuthored.has(id)
+          );
+          expect(uncovered).toEqual([]);
+        });
+      }
     });
   }
 };

@@ -96,10 +96,16 @@ describe('resolveTrailExamples', () => {
 
     const examples = resolveTrailExamples(trailDef);
     expect(examples).toHaveLength(2);
+    const firstRecord = firstUserExample as Record<string, unknown>;
     expect(examples[0]).toEqual(
       expect.objectContaining({
         expected: firstUserExample,
-        input: expect.objectContaining(firstUserExample),
+        // Input is projected down to the keys `trail.input` declares, so
+        // only `email` and `name` (from `.pick`) survive.
+        input: {
+          email: firstRecord.email,
+          name: firstRecord.name,
+        },
       })
     );
   });
@@ -131,31 +137,67 @@ describe('resolveTrailExamples', () => {
 
     const examples = resolveTrailExamples(trailDef);
     expect(examples).toHaveLength(2);
+    // No contour fixture parses as the output schema on its own (the
+    // output expects `gistId` and `userId`, but the fixtures expose
+    // `id`, `ownerId`, etc.), so derived examples are left without an
+    // `expected` and fall back to schema-only validation at runtime.
     expect(examples).toEqual([
       {
-        expected: {
+        input: {
           gistId: '8f7ef40d-8234-4f73-8de8-4bb8366cf5c0',
           userId: '550e8400-e29b-41d4-a716-446655440000',
         },
-        input: expect.objectContaining({
-          gistId: '8f7ef40d-8234-4f73-8de8-4bb8366cf5c0',
-          gistOwnerId: '550e8400-e29b-41d4-a716-446655440000',
-          userId: '550e8400-e29b-41d4-a716-446655440000',
-        }),
         name: expect.stringContaining('Derived fixture 1'),
       },
       {
-        expected: {
+        input: {
           gistId: 'f104f457-b3fd-4643-87b9-d872c54b8a79',
           userId: '0f31f6ba-6ff0-41ce-9f6b-8d132b6c4b81',
         },
-        input: expect.objectContaining({
-          gistId: 'f104f457-b3fd-4643-87b9-d872c54b8a79',
-          gistOwnerId: '0f31f6ba-6ff0-41ce-9f6b-8d132b6c4b81',
-          userId: '0f31f6ba-6ff0-41ce-9f6b-8d132b6c4b81',
-        }),
         name: expect.stringContaining('Derived fixture 2'),
       },
     ]);
+  });
+
+  test('derives fixtures for strict input schemas by projecting to known keys', () => {
+    const firstUserExample = requireContourExample(userContour, 0);
+
+    const trailDef = trail('user.strict-create', {
+      blaze: (input: { email: string; name: string }) => Result.ok(input),
+      contours: [userContour],
+      input: z.object({ email: z.string().email(), name: z.string() }).strict(),
+      output: z.object({ email: z.string().email(), name: z.string() }),
+    });
+
+    const examples = resolveTrailExamples(trailDef);
+    expect(examples).toHaveLength(2);
+    expect(examples[0]?.input).toEqual({
+      email: (firstUserExample as { email: string }).email,
+      name: (firstUserExample as { name: string }).name,
+    });
+  });
+
+  test('does not infer expected from merged input when no contour fixture matches the output', () => {
+    // The output schema is a subset of the input shape, so the merged
+    // derived input would parse as the output if we tried to infer from
+    // it — but that inference is semantically wrong because input and
+    // output have distinct meanings. Since no contour fixture matches
+    // the output schema (userContour fixtures carry id+email+name, and
+    // the strict output only accepts email+name), `expected` must be
+    // omitted entirely.
+    const trailDef = trail('user.create-strict-output', {
+      blaze: (input: { email: string; name: string }) => Result.ok(input),
+      contours: [userContour],
+      input: z.object({ email: z.string().email(), name: z.string() }),
+      output: z
+        .object({ email: z.string().email(), name: z.string() })
+        .strict(),
+    });
+
+    const examples = resolveTrailExamples(trailDef);
+    expect(examples.length).toBeGreaterThan(0);
+    for (const example of examples) {
+      expect(example.expected).toBeUndefined();
+    }
   });
 });

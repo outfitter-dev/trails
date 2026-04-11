@@ -1,7 +1,27 @@
 import type { AnyContour, Trail, TrailExample } from '@ontrails/core';
 import { getContourReferences } from '@ontrails/core';
+import { z } from 'zod';
 
 type ExampleRecord = Readonly<Record<string, unknown>>;
+
+/**
+ * Tracks examples that `resolveTrailExamples` synthesizes from contour
+ * fixtures. Authored examples are passed through untouched and never
+ * appear here, so consumers can distinguish the two by identity.
+ *
+ * Exposed via `isDerivedExample` so downstream testing helpers (e.g.
+ * `testExamples` crossing coverage) can relax invariants that only make
+ * sense for authored inputs.
+ */
+const derivedExamples = new WeakSet<TrailExample<unknown, unknown>>();
+
+/**
+ * Returns `true` if the given example was synthesized from contour fixtures
+ * by `resolveTrailExamples`, `false` if it was authored on the trail.
+ */
+export const isDerivedExample = (
+  example: TrailExample<unknown, unknown>
+): boolean => derivedExamples.has(example);
 
 interface ContourFixture {
   readonly contour: AnyContour;
@@ -140,6 +160,22 @@ const selectContourFixtures = (
   return matchingFixtures;
 };
 
+/**
+ * Merge selected contour fixtures into a single candidate input object.
+ *
+ * The resulting record contains:
+ * - `<contour>`: the full fixture payload keyed by contour name.
+ * - `<contour><Identity>`: the fixture's identity value on a prefixed key.
+ * - `<contour><Field>`: every fixture field on a prefixed key.
+ * - Unqualified `<field>` keys: first-write-wins across contours.
+ *
+ * The first-write-wins behaviour on unqualified keys is intentional but can
+ * silently drop a later contour's value when two contours share a field name
+ * (e.g. both declare `id`). The prefixed aliases above are unambiguous and
+ * always written, so schemas that consume the prefixed form are unaffected;
+ * schemas that rely on the bare field name should disambiguate via the
+ * prefixed alias instead.
+ */
 const buildDerivedInput = (
   fixtures: readonly ContourFixture[]
 ): Record<string, unknown> => {
@@ -163,10 +199,57 @@ const buildDerivedInput = (
   return candidate;
 };
 
-const parseContourExpectedValue = (
-  outputSchema: NonNullable<Trail<unknown, unknown, unknown>['output']>,
+/**
+ * Project the merged candidate input down to keys the trail's input schema
+ * knows about.
+ *
+ * `buildDerivedInput` emits synthesized prefixed aliases (e.g. `userEmail`)
+ * alongside bare field names. Strict schemas (`z.object(...).strict()`)
+ * reject any unknown key, which means an otherwise valid derived fixture
+ * would silently fail `safeParse` just because of the synthesized aliases.
+ * When the input is a `ZodObject`, trim the candidate to its declared keys
+ * before validation. Non-object inputs pass through unchanged — they are
+ * validated as-is and can decide for themselves.
+ */
+const projectInputForSchema = (
+  inputSchema: Trail<unknown, unknown, unknown>['input'],
+  candidate: Record<string, unknown>
+): Record<string, unknown> => {
+  if (!(inputSchema instanceof z.ZodObject)) {
+    return candidate;
+  }
+
+  const known = Object.keys(inputSchema.shape);
+  const projected: Record<string, unknown> = {};
+  for (const key of known) {
+    if (Object.hasOwn(candidate, key)) {
+      projected[key] = candidate[key];
+    }
+  }
+  return projected;
+};
+
+/**
+ * Derive an expected output value from the selected contour fixtures when
+ * exactly one fixture's payload satisfies the trail's output schema.
+ *
+ * Returns `undefined` when the trail has no output schema, when no fixture
+ * matches, or when more than one matches — callers should then leave the
+ * derived example without an `expected` and fall back to schema-only
+ * validation. We intentionally do **not** infer `expected` from the merged
+ * candidate input: input and output schemas frequently overlap structurally
+ * but represent different semantics, so inferring from the input would
+ * produce false deep-equality failures.
+ */
+const deriveExpectedValue = (
+  trail: Trail<unknown, unknown, unknown>,
   fixtures: readonly ContourFixture[]
 ): unknown => {
+  if (trail.output === undefined) {
+    return undefined;
+  }
+
+  const outputSchema = trail.output;
   const contourMatches = fixtures
     .map((fixture) => outputSchema.safeParse(fixture.example))
     .filter((candidate) => candidate.success);
@@ -176,33 +259,10 @@ const parseContourExpectedValue = (
   }
 
   const [singleMatch] = contourMatches;
-  return singleMatch?.data;
-};
-
-const parseMergedExpectedValue = (
-  outputSchema: NonNullable<Trail<unknown, unknown, unknown>['output']>,
-  input: Record<string, unknown>
-): unknown => {
-  const mergedMatch = outputSchema.safeParse(input);
-  return mergedMatch.success ? mergedMatch.data : undefined;
-};
-
-const deriveExpectedValue = (
-  trail: Trail<unknown, unknown, unknown>,
-  fixtures: readonly ContourFixture[],
-  input: Record<string, unknown>
-): unknown => {
-  if (trail.output === undefined) {
+  if (singleMatch === undefined) {
     return undefined;
   }
-
-  const outputSchema = trail.output;
-  const contourExpected = parseContourExpectedValue(outputSchema, fixtures);
-  if (contourExpected !== undefined) {
-    return contourExpected;
-  }
-
-  return parseMergedExpectedValue(outputSchema, input);
+  return singleMatch.data;
 };
 
 const formatFixtureName = (
@@ -225,8 +285,24 @@ const formatFixtureName = (
 /**
  * Prefer authored trail examples and fall back to contour-derived fixtures.
  *
- * Contour examples stay as the raw input payload so Trails validation/transforms
- * still happen exactly once inside the normal test execution path.
+ * Examples returned by this helper come from one of two provenances:
+ * - **Authored.** When `trail.examples` is non-empty, its entries are
+ *   returned verbatim. These are the developer's stated intent and carry
+ *   full invariants — including crossing-coverage assertions in
+ *   `testExamples`.
+ * - **Derived.** When there are no authored examples but the trail has
+ *   contours with examples, candidate inputs are synthesized from contour
+ *   fixtures and validated against `trail.input`. These are opportunistic
+ *   coverage that exists to let `testAll(app)` exercise contour-backed
+ *   trails without per-test setup; they are not guaranteed to exercise
+ *   every composition branch, so consumers should relax invariants that
+ *   only make sense for authored inputs (see `isDerivedExample`).
+ *
+ * Contour examples stay as the raw input payload so Trails validation /
+ * transforms still happen exactly once inside the normal test execution
+ * path. Derived examples are additionally tagged via a module-level
+ * `WeakSet` so consumers can detect them without widening the public
+ * `TrailExample` shape.
  */
 export const resolveTrailExamples = (
   trail: Trail<unknown, unknown, unknown>
@@ -255,19 +331,20 @@ export const resolveTrailExamples = (
   );
 
   return fixtureSets.flatMap((fixtures, index) => {
-    const input = buildDerivedInput(fixtures);
+    const merged = buildDerivedInput(fixtures);
+    const input = projectInputForSchema(trail.input, merged);
     const validated = trail.input.safeParse(input);
     if (!validated.success) {
       return [];
     }
 
-    const expected = deriveExpectedValue(trail, fixtures, input);
-    return [
-      {
-        ...(expected === undefined ? {} : { expected }),
-        input,
-        name: formatFixtureName(fixtures, index),
-      } satisfies TrailExample<unknown, unknown>,
-    ];
+    const expected = deriveExpectedValue(trail, fixtures);
+    const derived: TrailExample<unknown, unknown> = {
+      ...(expected === undefined ? {} : { expected }),
+      input,
+      name: formatFixtureName(fixtures, index),
+    };
+    derivedExamples.add(derived);
+    return [derived];
   });
 };
