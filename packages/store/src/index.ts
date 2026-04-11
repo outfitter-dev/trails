@@ -38,6 +38,7 @@ export type {
   StoreOptions,
   StoreSearchDefinition,
   StoreTable,
+  StoreTableSignals,
   StoreTableAccessor,
   StoreTableConnection,
   StoreTableInput,

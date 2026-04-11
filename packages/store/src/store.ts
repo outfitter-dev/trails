@@ -1,4 +1,5 @@
-import { ValidationError } from '@ontrails/core';
+import { signal, ValidationError } from '@ontrails/core';
+import type { AnySignal } from '@ontrails/core';
 import { z } from 'zod';
 
 import type {
@@ -7,6 +8,7 @@ import type {
   StoreOptions,
   StoreObjectSchema,
   StoreTable,
+  StoreTableSignals,
   StoreTableInput,
   StoreTablesInput,
 } from './types.js';
@@ -111,6 +113,25 @@ const deriveFixtureSchema = <TSchema extends StoreObjectSchema>(
   schema: TSchema,
   generated: readonly string[]
 ): StoreObjectSchema => partialFields(schema, generated);
+
+const createTableSignals = (
+  tableName: string,
+  schema: StoreObjectSchema
+): StoreTableSignals<unknown> =>
+  Object.freeze({
+    created: signal(`${tableName}.created`, {
+      description: `Fired after a "${tableName}" entity is created.`,
+      payload: schema,
+    }),
+    removed: signal(`${tableName}.removed`, {
+      description: `Fired after a "${tableName}" entity is removed.`,
+      payload: schema,
+    }),
+    updated: signal(`${tableName}.updated`, {
+      description: `Fired after a "${tableName}" entity is updated.`,
+      payload: schema,
+    }),
+  });
 
 /**
  * Strip `default` wrappers from a Zod type so that partial update schemas
@@ -359,6 +380,7 @@ const freezeNormalizedTable = <
     readonly insertSchema: StoreObjectSchema;
     readonly references: Readonly<Partial<Record<string, string>>>;
     readonly schema: StoreObjectSchema;
+    readonly signals: StoreTable<TInput, TName>['signals'];
     readonly versioned: boolean;
   }
 ): StoreTable<TInput, TName> =>
@@ -375,23 +397,33 @@ const freezeNormalizedTable = <
     references: resolved.references,
     schema: resolved.schema,
     ...(input.search === undefined ? {} : { search: input.search }),
+    signals: resolved.signals,
     updateSchema: deriveUpdateSchema(resolved.insertSchema, resolved.identity),
     versioned: resolved.versioned,
   }) as StoreTable<TInput, TName>;
 
-const normalizeTable = <
-  TName extends string,
+interface NormalizedTableState {
+  readonly generated: readonly string[];
+  readonly identity: string;
+  readonly indexed: readonly string[];
+  readonly references: Readonly<Partial<Record<string, string>>>;
+  readonly schema: StoreObjectSchema;
+  readonly versioned: boolean;
+}
+
+const resolveNormalizedTableState = <
   TInput extends StoreTableInput<StoreObjectSchema>,
 >(
-  name: TName,
+  name: string,
   input: TInput,
   tableNames: readonly string[]
-): StoreTable<TInput, TName> => {
+): NormalizedTableState => {
   const { schema, versioned } = resolveTableSchema(name, input);
   const identity = resolveIdentity(name, input);
   const generated = resolveGeneratedFields(input, versioned);
   const indexed = resolveIndexed(input);
   const references = normalizeReferences(input.references);
+
   validateTableInput(
     name,
     schema,
@@ -402,27 +434,107 @@ const normalizeTable = <
     tableNames
   );
 
-  const insertSchema = deriveInsertSchema(schema, generated);
-  const fixtureSchema = deriveFixtureSchema(schema, generated);
-  const fixtures = normalizeFixtures(
-    name,
-    identity,
-    fixtureSchema,
-    input.fixtures
-  );
-
-  return freezeNormalizedTable(name, input, {
-    fixtureSchema,
-    fixtures,
+  return {
     generated,
     identity,
     indexed,
-    insertSchema,
     references,
     schema,
     versioned,
+  };
+};
+
+const resolveNormalizedTableArtifacts = <
+  TName extends string,
+  TInput extends StoreTableInput<StoreObjectSchema>,
+>(
+  name: TName,
+  input: TInput,
+  resolved: NormalizedTableState
+): {
+  readonly fixtureSchema: StoreObjectSchema;
+  readonly fixtures: StoreTable<TInput>['fixtures'];
+  readonly generated: readonly string[];
+  readonly identity: string;
+  readonly indexed: readonly string[];
+  readonly insertSchema: StoreObjectSchema;
+  readonly references: Readonly<Partial<Record<string, string>>>;
+  readonly schema: StoreObjectSchema;
+  readonly signals: StoreTable<TInput, TName>['signals'];
+} => {
+  const insertSchema = deriveInsertSchema(resolved.schema, resolved.generated);
+  const fixtureSchema = deriveFixtureSchema(
+    resolved.schema,
+    resolved.generated
+  );
+  const fixtures = normalizeFixtures(
+    name,
+    resolved.identity,
+    fixtureSchema,
+    input.fixtures
+  );
+  const signals = createTableSignals(name, resolved.schema) as StoreTable<
+    TInput,
+    TName
+  >['signals'];
+
+  return {
+    fixtureSchema,
+    fixtures,
+    generated: resolved.generated,
+    identity: resolved.identity,
+    indexed: resolved.indexed,
+    insertSchema,
+    references: resolved.references,
+    schema: resolved.schema,
+    signals,
+  };
+};
+
+const normalizeTable = <
+  TName extends string,
+  TInput extends StoreTableInput<StoreObjectSchema>,
+>(
+  name: TName,
+  input: TInput,
+  tableNames: readonly string[]
+): StoreTable<TInput, TName> => {
+  const resolved = resolveNormalizedTableState(name, input, tableNames);
+
+  return freezeNormalizedTable(name, input, {
+    ...resolveNormalizedTableArtifacts(name, input, resolved),
+    versioned: resolved.versioned,
   });
 };
+
+const normalizeTables = <const TTables extends StoreTablesInput>(
+  tables: TTables,
+  tableNames: readonly Extract<keyof TTables, string>[]
+): MutableTables<TTables> => {
+  const normalized = {} as MutableTables<TTables>;
+
+  for (const name of tableNames) {
+    const input = tables[name];
+    if (input !== undefined) {
+      normalized[name] = normalizeTable(name, input, tableNames);
+    }
+  }
+
+  return normalized;
+};
+
+const collectStoreSignals = <const TTables extends StoreTablesInput>(
+  normalized: MutableTables<TTables>,
+  tableNames: readonly Extract<keyof TTables, string>[]
+): readonly AnySignal[] =>
+  Object.freeze(
+    tableNames.flatMap((name) => {
+      const table = normalized[name];
+      return table === undefined
+        ? []
+        : [table.signals.created, table.signals.updated, table.signals.removed];
+    })
+  );
 
 /**
  * Declare a connector-agnostic store definition from entity schemas and
@@ -439,24 +551,15 @@ export const store = <const TTables extends StoreTablesInput>(
   const tableNames = Object.freeze(
     Object.keys(tables).toSorted()
   ) as readonly Extract<keyof TTables, string>[];
-
-  const normalized = {} as MutableTables<TTables>;
-  for (const name of tableNames) {
-    const input = tables[name];
-
-    if (input === undefined) {
-      continue;
-    }
-
-    normalized[name] = normalizeTable(name, input, tableNames);
-  }
-
+  const normalized = normalizeTables(tables, tableNames);
   const get = <TName extends Extract<keyof TTables, string>>(name: TName) =>
     normalized[name];
+  const signals = collectStoreSignals(normalized, tableNames);
 
   return Object.freeze({
     get,
     kind,
+    signals,
     tableNames,
     tables: Object.freeze(normalized),
     type: 'store' as const,

@@ -1,5 +1,6 @@
 import { NotFoundError } from './errors.js';
 import type { Result } from './result.js';
+import type { AnySignal } from './signal.js';
 import type { ResourceLookup, TrailContext } from './types.js';
 import type { z } from 'zod';
 
@@ -44,6 +45,8 @@ export interface ResourceSpec<T, C = unknown> {
   readonly description?: string | undefined;
   /** Arbitrary meta for tooling and filtering. */
   readonly meta?: Readonly<Record<string, unknown>> | undefined;
+  /** Signals projected or owned by this resource. */
+  readonly signals?: readonly AnySignal[] | undefined;
 }
 
 /** A typed resource definition. */

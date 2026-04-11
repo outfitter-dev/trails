@@ -45,10 +45,14 @@ const mockEvent = (id: string) => ({
   payload: z.object({ payload: z.string() }),
 });
 
-const mockResource = (id: string) =>
+const mockResource = (
+  id: string,
+  signals?: readonly ReturnType<typeof mockEvent>[]
+) =>
   resource(id, {
     create: () => Result.ok({ id }),
     description: `${id} resource`,
+    signals,
   });
 
 // ---------------------------------------------------------------------------
@@ -124,6 +128,16 @@ describe('topo', () => {
 
       expect(t.resources.size).toBe(1);
       expect(t.resources.get('db.main')).toBe(mod.db);
+    });
+
+    test('registers signals declared on resources into the topo graph', () => {
+      const usersCreated = mockEvent('users.created');
+      const t = topo('app', {
+        db: mockResource('db.main', [usersCreated]),
+      });
+
+      expect(t.signals.size).toBe(1);
+      expect(t.listSignals()).toContain(usersCreated);
     });
 
     test('collects contours exported directly from modules', () => {

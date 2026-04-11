@@ -18,6 +18,7 @@ import type {
   StoreAccessMode,
   StoreFieldKey,
   StoreIdentifierOf,
+  StoreTableAccessor,
   StoreTableConnection,
   StoreTablesInput,
   UpsertOf,
@@ -27,6 +28,7 @@ import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import type { AnySQLiteColumn, AnySQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { z } from 'zod';
+import type { TrailContext } from '@ontrails/core';
 
 import {
   createSqliteSchemaStatements,
@@ -956,6 +958,129 @@ const createWritableConnection = <TStore extends AnyStoreDefinition>(
   ) as DrizzleStoreConnection<TStore>;
 };
 
+type BoundFireFn = NonNullable<TrailContext['fire']>;
+
+const fireDerivedSignal = async <TTable extends AnyStoreTable>(
+  fire: BoundFireFn,
+  signalId: string,
+  entity: EntityOf<TTable>
+): Promise<void> => {
+  const fired = await fire(signalId, entity);
+  if (fired.isErr()) {
+    throw fired.error;
+  }
+};
+
+const inputIdentity = <TTable extends AnyStoreTable>(
+  table: TTable,
+  input: UpsertOf<TTable>
+): StoreIdentifierOf<TTable> | undefined =>
+  input[table.identity as keyof UpsertOf<TTable> & string] as
+    | StoreIdentifierOf<TTable>
+    | undefined;
+
+const changedEntity = <TTable extends AnyStoreTable>(
+  previous: EntityOf<TTable> | null,
+  next: EntityOf<TTable> | null
+): next is EntityOf<TTable> =>
+  previous !== null && next !== null && !Bun.deepEquals(previous, next);
+
+const bindWritableAccessorSignals = <TTable extends AnyStoreTable>(
+  table: TTable,
+  accessor: StoreTableAccessor<TTable>,
+  fire: BoundFireFn
+): StoreTableAccessor<TTable> =>
+  Object.freeze({
+    ...accessor,
+    async insert(input: InsertOf<TTable>) {
+      const created = await accessor.insert(input);
+      await fireDerivedSignal(fire, table.signals.created.id, created);
+      return created;
+    },
+    async remove(id: StoreIdentifierOf<TTable>) {
+      const existing = await accessor.get(id);
+      const removed = await accessor.remove(id);
+      if (removed.deleted && existing !== null) {
+        await fireDerivedSignal(fire, table.signals.removed.id, existing);
+      }
+      return removed;
+    },
+    async update(id: StoreIdentifierOf<TTable>, input: UpdateOf<TTable>) {
+      const existing = await accessor.get(id);
+      const updated = await accessor.update(id, input);
+      if (changedEntity(existing, updated)) {
+        await fireDerivedSignal(fire, table.signals.updated.id, updated);
+      }
+      return updated;
+    },
+    async upsert(input: UpsertOf<TTable>) {
+      const existingId = inputIdentity(table, input);
+      const existing =
+        existingId === undefined ? null : await accessor.get(existingId);
+      const written = await accessor.upsert(input);
+
+      if (existing === null) {
+        await fireDerivedSignal(fire, table.signals.created.id, written);
+        return written;
+      }
+
+      if (changedEntity(existing, written)) {
+        await fireDerivedSignal(fire, table.signals.updated.id, written);
+      }
+      return written;
+    },
+  });
+
+const bindWritableConnectionSignals = <TStore extends AnyStoreDefinition>(
+  definition: TStore,
+  connection: DrizzleStoreConnection<TStore>,
+  fire: BoundFireFn
+): DrizzleStoreConnection<TStore> => {
+  const bound = {
+    query: connection.query,
+  } as DrizzleStoreConnection<TStore>;
+
+  for (const tableName of storeTableNames(definition)) {
+    const table = definition.tables[tableName];
+    const accessor = connection[tableName];
+    if (table === undefined || accessor === undefined) {
+      continue;
+    }
+
+    Object.defineProperty(bound, tableName, {
+      enumerable: true,
+      value: bindWritableAccessorSignals(
+        table,
+        accessor as StoreTableAccessor<typeof table>,
+        fire
+      ),
+    });
+  }
+
+  return Object.freeze(bound);
+};
+
+const bindResourceConnection = <
+  TStore extends AnyStoreDefinition,
+  TConnection,
+  TAccess extends StoreAccessMode,
+>(
+  access: TAccess,
+  definition: TStore,
+  connection: TConnection,
+  fire: TrailContext['fire']
+): TConnection => {
+  if (access !== 'readwrite' || fire === undefined) {
+    return connection;
+  }
+
+  return bindWritableConnectionSignals(
+    definition,
+    connection as DrizzleStoreConnection<TStore>,
+    fire
+  ) as TConnection;
+};
+
 const buildResourceShape = <
   TStore extends AnyStoreDefinition,
   TConnection,
@@ -969,6 +1094,10 @@ const buildResourceShape = <
   Object.freeze({
     ...value,
     access,
+    from(ctx: TrailContext) {
+      return bindResourceConnection(access, store, value.from(ctx), ctx.fire);
+    },
+    signals: store.signals,
     store,
     tables,
   });

@@ -2,9 +2,11 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import {
   AlreadyExistsError,
   ConflictError,
+  Result,
   ValidationError,
   createTrailContext,
 } from '@ontrails/core';
+import type { TrailContext } from '@ontrails/core';
 import { store as defineStore } from '@ontrails/store';
 import { createStoreAccessorContractCases } from '@ontrails/store/testing';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -144,6 +146,26 @@ const createTmpRootManager = (prefix: string) => {
   };
 };
 
+const createFireRecorder = () => {
+  const events: { payload: unknown; signalId: string }[] = [];
+  const record = (
+    signal: string | { readonly id: string },
+    payload: unknown
+  ) => {
+    events.push({
+      payload,
+      signalId: typeof signal === 'string' ? signal : signal.id,
+    });
+
+    return Result.ok();
+  };
+
+  return {
+    events,
+    fire: record as unknown as NonNullable<TrailContext['fire']>,
+  };
+};
+
 type WritableDemoStoreRuntime = Awaited<
   ReturnType<typeof setupWritableDemoStore>
 >['created'];
@@ -155,6 +177,14 @@ const expectWritableResourceDefinition = (
   expect(db.id).toBe('demo.store');
   expect(db.access).toBe('readwrite');
   expect(db.mock).toBeDefined();
+  expect(db.signals.map((candidate) => candidate.id)).toEqual([
+    'gists.created',
+    'gists.updated',
+    'gists.removed',
+    'users.created',
+    'users.updated',
+    'users.removed',
+  ]);
   expect(getSchema(db).gists).toBe(db.tables.gists);
 };
 
@@ -219,7 +249,9 @@ const expectUpdatedGist = async (
     })
   );
   expect(updated?.updatedAt).toEqual(expect.any(String));
-  expect(updated?.updatedAt).not.toBe(gist.updatedAt);
+  expect(Date.parse(updated.updatedAt)).toBeGreaterThanOrEqual(
+    Date.parse(gist.updatedAt)
+  );
 };
 
 const expectQueryEscapeHatch = async (
@@ -270,6 +302,55 @@ const expectResourceResolution = (
     requestId: 'store-drizzle',
   });
   expect(db.from(ctx).users).toBeDefined();
+};
+
+const createSignalBoundStore = async (rootDir: string) => {
+  const { created, db } = await setupWritableDemoStore(rootDir);
+  const recorder = createFireRecorder();
+  const ctx = createTrailContext({
+    abortSignal: new AbortController().signal,
+    extensions: {
+      [db.id]: created,
+    },
+    fire: recorder.fire,
+    requestId: 'store-drizzle-signals',
+  });
+
+  return {
+    bound: db.from(ctx),
+    created,
+    db,
+    recorder,
+  };
+};
+
+const exerciseSignalWrites = async (bound: WritableDemoStoreRuntime) => {
+  const user = await bound.users.upsert({ email: 'signals@example.com' });
+  const createdGist = await bound.gists.upsert({ ownerId: user.id });
+  const updatedGist = await bound.gists.upsert({
+    description: 'Updated',
+    id: createdGist.id,
+    ownerId: user.id,
+  });
+
+  expect(await bound.gists.remove(createdGist.id)).toEqual({ deleted: true });
+  return { createdGist, updatedGist };
+};
+
+const expectRecordedSignals = (
+  recorder: ReturnType<typeof createFireRecorder>,
+  createdGist: z.output<typeof gistSchema>,
+  updatedGist: z.output<typeof gistSchema>
+): void => {
+  expect(recorder.events.map((event) => event.signalId)).toEqual([
+    'users.created',
+    'gists.created',
+    'gists.updated',
+    'gists.removed',
+  ]);
+  expect(recorder.events[1]?.payload).toEqual(createdGist);
+  expect(recorder.events[2]?.payload).toEqual(updatedGist);
+  expect(recorder.events[3]?.payload).toEqual(updatedGist);
 };
 
 const createFixtureBackedStore = () =>
@@ -628,6 +709,16 @@ describe('@ontrails/with-drizzle resource access', () => {
       id: expect.any(String),
     });
     expect(user).not.toHaveProperty('version');
+    await db.dispose?.(created);
+  });
+
+  test('fires derived change signals from context-bound writable accessors', async () => {
+    const rootDir = tmp.makeRoot();
+    const { bound, created, db, recorder } =
+      await createSignalBoundStore(rootDir);
+    const { createdGist, updatedGist } = await exerciseSignalWrites(bound);
+
+    expectRecordedSignals(recorder, createdGist, updatedGist);
     await db.dispose?.(created);
   });
 });

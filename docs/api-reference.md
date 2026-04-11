@@ -166,8 +166,10 @@ entitySchemaOf(table)              // normalized full entity schema
 insertSchemaOf(table)              // entity schema minus generated fields
 updateSchemaOf(table)              // partial update schema
 fixtureSchemaOf(table)             // fixture schema with generated fields optional
+// every normalized table derives:
+// table.signals.created | table.signals.updated | table.signals.removed
 
-StoreDefinition, StoreTable, StoreTablesInput, StoreTableInput
+StoreDefinition, StoreTable, StoreTableSignals, StoreTablesInput, StoreTableInput
 EntityOf<T>, InsertOf<T>, UpdateOf<T>, UpsertOf<T>, FixtureInputOf<T>, FixtureOf<T>
 FiltersOf<T>, StoreListOptions
 StoreConnection<T>, StoreTableConnection<T>, ReadOnlyStoreConnection<T>
@@ -175,6 +177,7 @@ StoreAccessor<T>, StoreTableAccessor<T>, ReadOnlyStoreTableAccessor<T>
 
 // `versioned: true` on a store table adds a framework-managed integer `version`
 // field to returned entities and allows `upsert()` optimistic concurrency.
+// writable store resources fire the derived signals when accessed through `db.from(ctx)`.
 ```
 
 ## `@ontrails/store/testing`
