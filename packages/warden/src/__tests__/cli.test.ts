@@ -3,6 +3,8 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { topo } from '@ontrails/core';
+
 import { formatWardenReport, runWarden } from '../cli.js';
 
 const isDraftFileMarking = (rule: string): boolean =>
@@ -197,6 +199,35 @@ export const gist = contour('gist', {
       );
 
       expect(referenceErrors).toHaveLength(0);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('preserves empty topo resource sets instead of falling back to file-local ids', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'entity.ts'),
+        `import { Result, resource, trail } from '@ontrails/core';
+
+const db = resource('db.main', {
+  create: () => Result.ok({ source: 'factory' }),
+});
+
+trail('entity.show', {
+  resources: [db],
+  blaze: async (_input, ctx) => Result.ok(db.from(ctx)),
+});`
+      );
+
+      const report = await runWarden({ rootDir: dir, topo: topo('empty-app') });
+      const resourceErrors = report.diagnostics.filter(
+        (diagnostic) => diagnostic.rule === 'resource-exists'
+      );
+
+      expect(resourceErrors).toHaveLength(1);
+      expect(resourceErrors[0]?.message).toContain('db.main');
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

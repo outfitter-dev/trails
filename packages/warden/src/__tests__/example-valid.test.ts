@@ -70,4 +70,32 @@ const user = contour('user', {
 
     expect(exampleValid.check(code, TEST_FILE)).toEqual([]);
   });
+
+  test('keeps dependent contour validation alive when base contours omit options', () => {
+    const code = `
+import { contour } from '@ontrails/core';
+import { z } from 'zod';
+
+const base = contour('base', {
+  id: z.string().uuid(),
+});
+
+const child = contour('child', {
+  id: z.string().uuid(),
+  baseId: base.id(),
+}, {
+  examples: [{
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    baseId: 'not-a-uuid',
+  }],
+  identity: 'id',
+});
+`;
+
+    const diagnostics = exampleValid.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.rule).toBe('example-valid');
+    expect(diagnostics[0]?.message).toContain('child');
+  });
 });

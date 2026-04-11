@@ -59,10 +59,22 @@ type ContourNodeEvaluator = (
   env: ContourEvaluationEnvironment
 ) => unknown;
 
-// oxlint-disable-next-line require-hook -- evaluator placeholder is module-scope wiring, not test setup
-let evaluateNode: ContourNodeEvaluator = (): never => {
+// The evaluator table is declared before `evaluateNode` so the recursive
+// dispatch can read it at call time without any forward references. Entries
+// are registered below once each per-type evaluator is defined.
+const contourNodeEvaluators = new Map<string, ContourNodeEvaluator>();
+
+const evaluateNode: ContourNodeEvaluator = (
+  node: AstNode,
+  env: ContourEvaluationEnvironment
+): unknown => {
+  const evaluator = contourNodeEvaluators.get(node.type);
+  if (evaluator) {
+    return evaluator(node, env);
+  }
+
   throw new UnsupportedContourEvaluationError(
-    'Contour evaluator not initialized.'
+    `Unsupported AST node "${node.type}" in contour evaluation.`
   );
 };
 
@@ -149,22 +161,52 @@ const evaluateCallArguments = (
     evaluateNode(arg, env)
   );
 
+const resolveContourFallbackOptions = (
+  shape: unknown
+): Parameters<typeof contour>[2] | null =>
+  typeof shape === 'object' &&
+  shape !== null &&
+  Object.hasOwn(shape, 'id') &&
+  (shape as z.ZodRawShape)['id'] !== undefined
+    ? ({ identity: 'id' } as Parameters<typeof contour>[2])
+    : null;
+
+const resolveContourOptions = (
+  shape: unknown,
+  options: unknown
+): Parameters<typeof contour>[2] => {
+  if (options === undefined) {
+    const fallbackOptions = resolveContourFallbackOptions(shape);
+    if (fallbackOptions !== null) {
+      return fallbackOptions;
+    }
+
+    throw new UnsupportedContourEvaluationError(
+      'Contour evaluator requires literal options, or an `id` field when options are omitted.'
+    );
+  }
+
+  if (typeof options !== 'object' || options === null) {
+    throw new UnsupportedContourEvaluationError(
+      'Contour evaluator requires literal options when provided.'
+    );
+  }
+
+  return options as Parameters<typeof contour>[2];
+};
+
 const evaluateContourCall = (args: readonly unknown[]): unknown => {
   const [name, shape, options] = args;
-  if (
-    typeof name !== 'string' ||
-    typeof options !== 'object' ||
-    options === null
-  ) {
+  if (typeof name !== 'string') {
     throw new UnsupportedContourEvaluationError(
-      'Contour evaluator requires literal name and options.'
+      'Contour evaluator requires a literal name.'
     );
   }
 
   return contour(
     name,
     shape as z.ZodRawShape,
-    options as Parameters<typeof contour>[2]
+    resolveContourOptions(shape, options)
   );
 };
 
@@ -226,7 +268,10 @@ const evaluateCallExpression: ContourNodeEvaluator = (
   return evaluateMemberCall(callee, args, env);
 };
 
-const contourNodeEvaluators = new Map<string, ContourNodeEvaluator>([
+const EVALUATOR_REGISTRATIONS: readonly (readonly [
+  string,
+  ContourNodeEvaluator,
+])[] = [
   ['ArrayExpression', evaluateArrayExpression],
   ['BooleanLiteral', evaluateLiteralExpression],
   ['Literal', evaluateLiteralExpression],
@@ -239,18 +284,11 @@ const contourNodeEvaluators = new Map<string, ContourNodeEvaluator>([
   ['ParenthesizedExpression', evaluateWrappedExpression],
   ['TSAsExpression', evaluateWrappedExpression],
   ['TSSatisfiesExpression', evaluateWrappedExpression],
-]);
+];
 
-evaluateNode = (node: AstNode, env: ContourEvaluationEnvironment): unknown => {
-  const evaluator = contourNodeEvaluators.get(node.type);
-  if (evaluator) {
-    return evaluator(node, env);
-  }
-
-  throw new UnsupportedContourEvaluationError(
-    `Unsupported AST node "${node.type}" in contour evaluation.`
-  );
-};
+for (const [type, evaluator] of EVALUATOR_REGISTRATIONS) {
+  contourNodeEvaluators.set(type, evaluator);
+}
 
 const hasExamples = (definition: ContourDefinition): boolean =>
   definition.options !== null &&

@@ -26,6 +26,7 @@ trail('user.create', {
   test('flags a missing contour declaration', () => {
     const code = `
 import { Result, trail } from '@ontrails/core';
+import { user } from './contours';
 
 trail('user.create', {
   contours: [user],
@@ -33,11 +34,33 @@ trail('user.create', {
 });
 `;
 
-    const diagnostics = contourExists.check(code, TEST_FILE);
+    const diagnostics = contourExists.checkWithContext(code, TEST_FILE, {
+      knownContourIds: new Set<string>(),
+      knownTrailIds: new Set(['user.create']),
+    });
 
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.rule).toBe('contour-exists');
     expect(diagnostics[0]?.message).toContain('user');
+  });
+
+  test('resolves aliased imports to the original contour name', () => {
+    const code = `
+import { Result, trail } from '@ontrails/core';
+import { user as userModel } from './contours';
+
+trail('user.create', {
+  contours: [userModel],
+  blaze: async () => Result.ok({ ok: true }),
+});
+`;
+
+    expect(
+      contourExists.checkWithContext(code, TEST_FILE, {
+        knownContourIds: new Set(['user']),
+        knownTrailIds: new Set(['user.create']),
+      })
+    ).toEqual([]);
   });
 
   test('passes when project context includes an imported contour', () => {

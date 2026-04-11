@@ -4,6 +4,7 @@ import {
   offsetToLine,
   parse,
 } from './ast.js';
+import type { AstNode } from './ast.js';
 import { isTestFile } from './scan.js';
 import type {
   ProjectAwareWardenRule,
@@ -87,16 +88,12 @@ const buildCircularReferenceDiagnostic = (
 });
 
 const checkCircularReferences = (
+  ast: AstNode,
   sourceCode: string,
   filePath: string,
   graph: ReadonlyMap<string, readonly string[]>
 ): readonly WardenDiagnostic[] => {
   if (isTestFile(filePath)) {
-    return [];
-  }
-
-  const ast = parse(filePath, sourceCode);
-  if (!ast) {
     return [];
   }
 
@@ -128,7 +125,7 @@ export const circularRefs: ProjectAwareWardenRule = {
     }
 
     const graph = collectContourReferenceTargetsByName(ast);
-    return checkCircularReferences(sourceCode, filePath, graph);
+    return checkCircularReferences(ast, sourceCode, filePath, graph);
   },
   checkWithContext(
     sourceCode: string,
@@ -145,6 +142,7 @@ export const circularRefs: ProjectAwareWardenRule = {
       context.knownContourIds
     );
     return checkCircularReferences(
+      ast,
       sourceCode,
       filePath,
       mergeReferenceGraphs(localGraph, context.contourReferencesByName)

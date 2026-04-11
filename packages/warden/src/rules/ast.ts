@@ -579,6 +579,54 @@ export const collectNamedContourIds = (
   return ids;
 };
 
+const extractImportSpecifierAlias = (
+  specifier: AstNode
+): { readonly localName: string; readonly importedName: string } | null => {
+  if (specifier.type !== 'ImportSpecifier') {
+    return null;
+  }
+
+  const { imported } = specifier as unknown as { imported?: AstNode };
+  const { local } = specifier as unknown as { local?: AstNode };
+  const localName = identifierName(local);
+  if (!localName) {
+    return null;
+  }
+
+  const importedName = imported
+    ? (identifierName(imported) ?? extractStringLiteral(imported))
+    : null;
+  return { importedName: importedName ?? localName, localName };
+};
+
+/**
+ * Collect `import { foo as bar } from '...'` specifier mappings keyed by
+ * local binding name. The value is the original exported name. Bindings
+ * without an alias map to themselves.
+ */
+export const collectImportAliasMap = (
+  ast: AstNode
+): ReadonlyMap<string, string> => {
+  const aliases = new Map<string, string>();
+
+  walk(ast, (node) => {
+    if (node.type !== 'ImportDeclaration') {
+      return;
+    }
+
+    const specifiers =
+      (node['specifiers'] as readonly AstNode[] | undefined) ?? [];
+    for (const specifier of specifiers) {
+      const alias = extractImportSpecifierAlias(specifier);
+      if (alias) {
+        aliases.set(alias.localName, alias.importedName);
+      }
+    }
+  });
+
+  return aliases;
+};
+
 export interface ContourReferenceSite {
   /** Field on the source contour that declares the reference. */
   readonly field: string;
@@ -603,29 +651,77 @@ const getPropertyName = (node: unknown): string | null => {
   return isAstNode(node) ? extractStringLiteral(node) : null;
 };
 
-const resolveContourIdentifierName = (
+const stripContourSuffix = (name: string): string => {
+  const suffix = 'Contour';
+  return name.endsWith(suffix) ? name.slice(0, -suffix.length) : name;
+};
+
+const resolveKnownContourName = (
+  name: string,
+  knownContourIds?: ReadonlySet<string>
+): string | null => {
+  if (knownContourIds?.has(name)) {
+    return name;
+  }
+
+  // Support the common `const userContour = contour('user', ...)` naming
+  // pattern when callers refer to the binding name instead of the contour ID.
+  // Exact matches always win; suffix stripping is a fallback only.
+  const stripped = stripContourSuffix(name);
+  if (stripped !== name && knownContourIds?.has(stripped)) {
+    return stripped;
+  }
+
+  return null;
+};
+
+/**
+ * Resolve a local binding name to a contour ID, honoring import aliases.
+ *
+ * Strategies, in order:
+ * 1. Local `const foo = contour('name', ...)` binding → the contour name.
+ * 2. `knownContourIds` membership on the binding name itself (or the
+ *    conventional `Contour` suffix strip).
+ * 3. `import { foo as bar }` → use the original exported name `foo`
+ *    (and apply strategy 2 / suffix-stripping against it so aliased imports
+ *    resolve correctly). If the imported name still isn't recognized, the
+ *    imported name is returned so the caller can report it missing.
+ *
+ * Returns `null` only when the name belongs to no known resolution path —
+ * no local binding, no known contour ID, no import, and no suffix match.
+ * Returning `null` means "this identifier is not a contour reference we can
+ * reason about" (e.g. a bare undeclared variable), as opposed to
+ * "a contour reference whose target is missing".
+ */
+export const resolveContourIdentifierName = (
   bindingName: string,
   namedContourIds: ReadonlyMap<string, string>,
-  knownContourIds?: ReadonlySet<string>
+  knownContourIds?: ReadonlySet<string>,
+  importAliases?: ReadonlyMap<string, string>
 ): string | null => {
   const localName = namedContourIds.get(bindingName);
   if (localName) {
     return localName;
   }
 
-  if (knownContourIds?.has(bindingName)) {
-    return bindingName;
+  const known = resolveKnownContourName(bindingName, knownContourIds);
+  if (known) {
+    return known;
   }
 
-  const suffix = 'Contour';
-  if (
-    bindingName.endsWith(suffix) &&
-    knownContourIds?.has(bindingName.slice(0, -suffix.length))
-  ) {
-    return bindingName.slice(0, -suffix.length);
+  // If the binding came from an import, use the original exported name as
+  // the resolution target. This lets `import { foo as bar }` resolve to
+  // the exported `foo` rather than the local alias `bar`. If the imported
+  // name still isn't recognized, return it so callers can report it as
+  // missing under its original name.
+  const importedName = importAliases?.get(bindingName);
+  if (importedName) {
+    return (
+      resolveKnownContourName(importedName, knownContourIds) ?? importedName
+    );
   }
 
-  return bindingName;
+  return null;
 };
 
 const getContourReferenceMember = (
@@ -647,7 +743,8 @@ const getContourReferenceMember = (
 const getContourReferenceTargetFromObject = (
   object: AstNode,
   namedContourIds: ReadonlyMap<string, string>,
-  knownContourIds?: ReadonlySet<string>
+  knownContourIds?: ReadonlySet<string>,
+  importAliases?: ReadonlyMap<string, string>
 ): string | null => {
   if (object.type === 'Identifier') {
     const bindingName = identifierName(object);
@@ -655,7 +752,8 @@ const getContourReferenceTargetFromObject = (
       ? resolveContourIdentifierName(
           bindingName,
           namedContourIds,
-          knownContourIds
+          knownContourIds,
+          importAliases
         )
       : null;
   }
@@ -680,14 +778,16 @@ const getContourIdCallObject = (node: AstNode | undefined): AstNode | null => {
 const extractContourReferenceTarget = (
   node: AstNode | undefined,
   namedContourIds: ReadonlyMap<string, string>,
-  knownContourIds?: ReadonlySet<string>
+  knownContourIds?: ReadonlySet<string>,
+  importAliases?: ReadonlyMap<string, string>
 ): string | null => {
   const object = getContourIdCallObject(node);
   return object
     ? getContourReferenceTargetFromObject(
         object,
         namedContourIds,
-        knownContourIds
+        knownContourIds,
+        importAliases
       )
     : null;
 };
@@ -701,7 +801,8 @@ const buildContourReferenceSite = (
   definition: ContourDefinition,
   property: AstNode,
   namedContourIds: ReadonlyMap<string, string>,
-  knownContourIds?: ReadonlySet<string>
+  knownContourIds?: ReadonlySet<string>,
+  importAliases?: ReadonlyMap<string, string>
 ): ContourReferenceSite | null => {
   if (property.type !== 'Property') {
     return null;
@@ -711,7 +812,8 @@ const buildContourReferenceSite = (
   const target = extractContourReferenceTarget(
     property.value as AstNode | undefined,
     namedContourIds,
-    knownContourIds
+    knownContourIds,
+    importAliases
   );
   if (!field || !target) {
     return null;
@@ -728,14 +830,16 @@ const buildContourReferenceSite = (
 const findContourReferenceSitesForDefinition = (
   definition: ContourDefinition,
   namedContourIds: ReadonlyMap<string, string>,
-  knownContourIds?: ReadonlySet<string>
+  knownContourIds?: ReadonlySet<string>,
+  importAliases?: ReadonlyMap<string, string>
 ): readonly ContourReferenceSite[] =>
   getContourShapeProperties(definition).flatMap((property) => {
     const reference = buildContourReferenceSite(
       definition,
       property,
       namedContourIds,
-      knownContourIds
+      knownContourIds,
+      importAliases
     );
     return reference ? [reference] : [];
   });
@@ -746,11 +850,13 @@ export const collectContourReferenceSites = (
   knownContourIds?: ReadonlySet<string>
 ): readonly ContourReferenceSite[] => {
   const namedContourIds = collectNamedContourIds(ast);
+  const importAliases = collectImportAliasMap(ast);
   return findContourDefinitions(ast).flatMap((definition) =>
     findContourReferenceSitesForDefinition(
       definition,
       namedContourIds,
-      knownContourIds
+      knownContourIds,
+      importAliases
     )
   );
 };

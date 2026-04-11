@@ -1,5 +1,6 @@
 import {
   collectContourDefinitionIds,
+  collectImportAliasMap,
   collectNamedContourIds,
   extractFirstStringArg,
   findConfigProperty,
@@ -7,8 +8,9 @@ import {
   identifierName,
   offsetToLine,
   parse,
+  resolveContourIdentifierName,
 } from './ast.js';
-import type { AstNode } from './ast.js';
+import type { AstNode, TrailDefinition } from './ast.js';
 import { isTestFile } from './scan.js';
 import type {
   ProjectAwareWardenRule,
@@ -20,31 +22,6 @@ const isContourCall = (node: AstNode): boolean =>
   node.type === 'CallExpression' &&
   identifierName((node as unknown as { callee?: AstNode }).callee) ===
     'contour';
-
-const resolveContourIdentifierName = (
-  name: string,
-  contourIdsByName: ReadonlyMap<string, string>,
-  knownContourIds?: ReadonlySet<string>
-): string | null => {
-  const localName = contourIdsByName.get(name);
-  if (localName) {
-    return localName;
-  }
-
-  if (knownContourIds?.has(name)) {
-    return name;
-  }
-
-  const suffix = 'Contour';
-  if (
-    name.endsWith(suffix) &&
-    knownContourIds?.has(name.slice(0, -suffix.length))
-  ) {
-    return name.slice(0, -suffix.length);
-  }
-
-  return name;
-};
 
 const getContourElements = (config: AstNode): readonly AstNode[] => {
   const contoursProp = findConfigProperty(config, 'contours');
@@ -66,12 +43,18 @@ const getContourElements = (config: AstNode): readonly AstNode[] => {
 const resolveDeclaredContourName = (
   element: AstNode,
   contourIdsByName: ReadonlyMap<string, string>,
-  knownContourIds?: ReadonlySet<string>
+  knownContourIds?: ReadonlySet<string>,
+  importAliases?: ReadonlyMap<string, string>
 ): string | null => {
   if (element.type === 'Identifier') {
     const name = identifierName(element);
     return name
-      ? resolveContourIdentifierName(name, contourIdsByName, knownContourIds)
+      ? resolveContourIdentifierName(
+          name,
+          contourIdsByName,
+          knownContourIds,
+          importAliases
+        )
       : null;
   }
 
@@ -81,14 +64,16 @@ const resolveDeclaredContourName = (
 const extractDeclaredContourNames = (
   config: AstNode,
   contourIdsByName: ReadonlyMap<string, string>,
-  knownContourIds?: ReadonlySet<string>
+  knownContourIds?: ReadonlySet<string>,
+  importAliases?: ReadonlyMap<string, string>
 ): readonly string[] => [
   ...new Set(
     getContourElements(config).flatMap((element) => {
       const contourName = resolveDeclaredContourName(
         element,
         contourIdsByName,
-        knownContourIds
+        knownContourIds,
+        importAliases
       );
       return contourName ? [contourName] : [];
     })
@@ -108,53 +93,66 @@ const buildMissingContourDiagnostic = (
   severity: 'error',
 });
 
+const buildDiagnosticsForDefinition = (
+  definition: TrailDefinition,
+  sourceCode: string,
+  filePath: string,
+  knownContourIds: ReadonlySet<string>,
+  contourIdsByName: ReadonlyMap<string, string>,
+  importAliases: ReadonlyMap<string, string>
+): readonly WardenDiagnostic[] => {
+  if (definition.kind !== 'trail') {
+    return [];
+  }
+
+  const line = offsetToLine(sourceCode, definition.start);
+  return extractDeclaredContourNames(
+    definition.config,
+    contourIdsByName,
+    knownContourIds,
+    importAliases
+  ).flatMap((contourName) =>
+    knownContourIds.has(contourName)
+      ? []
+      : [
+          buildMissingContourDiagnostic(
+            definition.id,
+            contourName,
+            filePath,
+            line
+          ),
+        ]
+  );
+};
+
 const buildContourDiagnostics = (
   ast: AstNode,
   sourceCode: string,
   filePath: string,
   knownContourIds: ReadonlySet<string>
 ): readonly WardenDiagnostic[] => {
-  const diagnostics: WardenDiagnostic[] = [];
   const contourIdsByName = collectNamedContourIds(ast);
+  const importAliases = collectImportAliasMap(ast);
 
-  for (const definition of findTrailDefinitions(ast)) {
-    if (definition.kind !== 'trail') {
-      continue;
-    }
-
-    const line = offsetToLine(sourceCode, definition.start);
-    for (const contourName of extractDeclaredContourNames(
-      definition.config,
+  return findTrailDefinitions(ast).flatMap((definition) =>
+    buildDiagnosticsForDefinition(
+      definition,
+      sourceCode,
+      filePath,
+      knownContourIds,
       contourIdsByName,
-      knownContourIds
-    )) {
-      if (!knownContourIds.has(contourName)) {
-        diagnostics.push(
-          buildMissingContourDiagnostic(
-            definition.id,
-            contourName,
-            filePath,
-            line
-          )
-        );
-      }
-    }
-  }
-
-  return diagnostics;
+      importAliases
+    )
+  );
 };
 
 const checkContourDeclarations = (
+  ast: AstNode,
   sourceCode: string,
   filePath: string,
   knownContourIds: ReadonlySet<string>
 ): readonly WardenDiagnostic[] => {
   if (isTestFile(filePath)) {
-    return [];
-  }
-
-  const ast = parse(filePath, sourceCode);
-  if (!ast) {
     return [];
   }
 
@@ -173,6 +171,7 @@ export const contourExists: ProjectAwareWardenRule = {
     }
 
     return checkContourDeclarations(
+      ast,
       sourceCode,
       filePath,
       collectContourDefinitionIds(ast)
@@ -184,10 +183,13 @@ export const contourExists: ProjectAwareWardenRule = {
     context: ProjectContext
   ): readonly WardenDiagnostic[] {
     const ast = parse(filePath, sourceCode);
-    const localContourIds = ast
-      ? collectContourDefinitionIds(ast)
-      : new Set<string>();
+    if (!ast) {
+      return [];
+    }
+
+    const localContourIds = collectContourDefinitionIds(ast);
     return checkContourDeclarations(
+      ast,
       sourceCode,
       filePath,
       context.knownContourIds ?? localContourIds

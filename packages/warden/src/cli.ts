@@ -146,17 +146,11 @@ const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
         ),
       }
     : {}),
-  ...(context.knownContourIds.size > 0
-    ? { knownContourIds: context.knownContourIds }
-    : {}),
-  ...(context.knownResourceIds.size > 0
-    ? { knownResourceIds: context.knownResourceIds }
-    : {}),
-  ...(context.knownSignalIds.size > 0
-    ? { knownSignalIds: context.knownSignalIds }
-    : {}),
   crossTargetTrailIds: context.crossTargetTrailIds,
   detourTargetTrailIds: context.detourTargetTrailIds,
+  knownContourIds: context.knownContourIds,
+  knownResourceIds: context.knownResourceIds,
+  knownSignalIds: context.knownSignalIds,
   knownTrailIds: context.knownTrailIds,
   trailIntentsById: context.trailIntentsById,
 });

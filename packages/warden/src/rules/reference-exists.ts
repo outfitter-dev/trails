@@ -4,6 +4,7 @@ import {
   offsetToLine,
   parse,
 } from './ast.js';
+import type { AstNode } from './ast.js';
 import { isTestFile } from './scan.js';
 import type {
   ProjectAwareWardenRule,
@@ -26,16 +27,12 @@ const buildMissingReferenceDiagnostic = (
 });
 
 const checkContourReferences = (
+  ast: AstNode,
   sourceCode: string,
   filePath: string,
   knownContourIds: ReadonlySet<string>
 ): readonly WardenDiagnostic[] => {
   if (isTestFile(filePath)) {
-    return [];
-  }
-
-  const ast = parse(filePath, sourceCode);
-  if (!ast) {
     return [];
   }
 
@@ -69,6 +66,7 @@ export const referenceExists: ProjectAwareWardenRule = {
     }
 
     return checkContourReferences(
+      ast,
       sourceCode,
       filePath,
       collectContourDefinitionIds(ast)
@@ -80,10 +78,13 @@ export const referenceExists: ProjectAwareWardenRule = {
     context: ProjectContext
   ): readonly WardenDiagnostic[] {
     const ast = parse(filePath, sourceCode);
-    const localContourIds = ast
-      ? collectContourDefinitionIds(ast)
-      : new Set<string>();
+    if (!ast) {
+      return [];
+    }
+
+    const localContourIds = collectContourDefinitionIds(ast);
     return checkContourReferences(
+      ast,
       sourceCode,
       filePath,
       context.knownContourIds ?? localContourIds
