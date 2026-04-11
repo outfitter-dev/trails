@@ -85,7 +85,7 @@ export type StoreSearchDefinition = Readonly<Record<string, unknown>>;
 /**
  * Shared fields for all store table input variants.
  */
-export interface StoreTableInput<
+interface StoreTableInputBase<
   TSchema extends StoreObjectSchema = StoreObjectSchema,
   TGenerated extends readonly StoreFieldKey<TSchema>[] | undefined =
     | readonly StoreFieldKey<TSchema>[]
@@ -101,6 +101,29 @@ export interface StoreTableInput<
   readonly schema: TSchema;
   readonly search?: StoreSearchDefinition;
 }
+
+/**
+ * Authored metadata for one store entity.
+ *
+ * At least one of `identity` or `primaryKey` must be provided. Omitting both
+ * is a compile-time error — `resolveIdentity` would throw at runtime without
+ * this guard.
+ */
+export type StoreTableInput<
+  TSchema extends StoreObjectSchema = StoreObjectSchema,
+  TGenerated extends readonly StoreFieldKey<TSchema>[] | undefined =
+    | readonly StoreFieldKey<TSchema>[]
+    | undefined,
+  TVersioned extends boolean | undefined = boolean | undefined,
+> =
+  | (StoreTableInputBase<TSchema, TGenerated, TVersioned> & {
+      readonly identity: StoreFieldKey<TSchema>;
+      readonly primaryKey?: StoreFieldKey<TSchema>;
+    })
+  | (StoreTableInputBase<TSchema, TGenerated, TVersioned> & {
+      readonly identity?: StoreFieldKey<TSchema>;
+      readonly primaryKey: StoreFieldKey<TSchema>;
+    });
 
 /**
  * Record of authored tables passed to `store(...)`.

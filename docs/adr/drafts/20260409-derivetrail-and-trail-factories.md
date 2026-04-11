@@ -289,7 +289,11 @@ Start small. Ship store trail factories and composition trail factories in their
 - [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store schema that `deriveTrail()` reads from
 - [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the `pattern` field and `derive*` grammar rule
 - [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) — the upstream domain noun that feeds `deriveTrail()`
+<<<<<<< HEAD
 - [ADR-0029: Connector Extraction and the `with-*` Packaging Model](../0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector-contributed `/trails` subpaths
+=======
+- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector-contributed `/trails` subpaths
+>>>>>>> a5c624a7 (fix(pr-144): address review feedback)
 - [ADR-0031: Backend-Agnostic Store Schemas](../0031-backend-agnostic-store-schemas.md) — the store schema that `deriveTrail()` reads from
 - [Tenets: Reduce ceremony, not clarity](../../tenets.md) — the governing principle; trail factories are ceremony reduction that rests on inspectable ground truth
 - [Tenets: The bar for new primitives](../../tenets.md#the-bar-for-new-primitives) — `deriveTrail()` passes because it strengthens existing primitives rather than adding new ones
