@@ -252,6 +252,42 @@ describe('crud()', () => {
     );
   });
 
+  test('keeps CRUD outputs strict even when fixtures omit generated fields', () => {
+    const [create, read, update, remove, list] = createPartialCrudTrails();
+
+    expect(create.id).toBe('notes.create');
+    expect(read.id).toBe('notes.read');
+    expect(update.id).toBe('notes.update');
+    expect(remove.id).toBe('notes.delete');
+    expect(list.id).toBe('notes.list');
+
+    // Identity input must stay required even though the contour fixture shape
+    // relaxes generated non-identity fields for example validation.
+    expect(read.input.safeParse({}).success).toBe(false);
+    expect(read.input.safeParse({ id: 'note-1' }).success).toBe(true);
+    expect(
+      create.output?.safeParse({ id: 'note-1', title: 'First note' }).success
+    ).toBe(false);
+    expect(
+      list.output?.safeParse([{ id: 'note-1', title: 'First note' }]).success
+    ).toBe(false);
+  });
+
+  test('drops output-bearing examples sourced from relaxed fixtures', () => {
+    const [create, read, update, remove, list] = createPartialCrudTrails();
+
+    expect(create.examples).toBeUndefined();
+    expect(read.examples).toBeUndefined();
+    expect(update.examples).toBeUndefined();
+    expect(list.examples).toBeUndefined();
+    expect(remove.examples).toEqual([
+      {
+        input: { id: 'note-1' },
+        name: 'Delete notes note-1',
+      },
+    ]);
+  });
+
   test('accepts per-operation blaze overrides', async () => {
     const createOverride = mock((input: InsertOf<NotesTable>) =>
       Result.ok({

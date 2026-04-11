@@ -13,7 +13,7 @@ depends_on: [16, 9]
 
 ## Context
 
-[ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) defines the store model: the root package owns the durable `store(...)` declaration, and connectors bind that declaration to a concrete runtime later.
+[ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) defines the store model: the root package owns the durable `store(...)` declaration, and connectors bind that declaration to a concrete runtime later.
 
 That leaves one practical decision open: what should the first concrete connector be?
 
@@ -186,7 +186,7 @@ This keeps external tooling such as migration workflows or local inspection alig
 
 ## References
 
-- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the root store model this connector binds
-- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource lifecycle a bound store participates in
+- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — the root store model this connector binds
+- [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the resource lifecycle a bound store participates in
 - [docs/tenets.md](../tenets.md) — governing design principles for derived, queryable, contract-first systems
 - Drizzle ORM documentation: <https://orm.drizzle.team>

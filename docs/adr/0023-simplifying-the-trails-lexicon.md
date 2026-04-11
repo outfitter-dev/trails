@@ -123,7 +123,7 @@ Built from the vocabulary above:
 | `loadout` | `profile` | Rename. Config resolution unchanged. |
 | `tracker` / `Track` | `tracing` / `TraceRecord` | Merge into core + `@ontrails/observe`. `ctx.trace(label, fn)` replaces `tracker.from(ctx).track(label, fn)` with the same label + function shape. Internal type is `TraceRecord`; developer-facing word is just "trace." |
 | `composeGates()` | `composeLayers()` | Follows gate → layer rename. |
-| `tracingLayer` | Built-in tracing in `executeTrail` | No longer a separately attached gate/layer. Intrinsic to the execution pipeline. Partially supersedes [ADR-0013](../0013-tracing.md)'s "layer plus accessor hybrid" decision — the resource/accessor side remains; the layer side collapses into the pipeline. |
+| `tracingLayer` | Built-in tracing in `executeTrail` | No longer a separately attached gate/layer. Intrinsic to the execution pipeline. Partially supersedes [ADR-0013](0013-tracing.md)'s "layer plus accessor hybrid" decision — the resource/accessor side remains; the layer side collapses into the pipeline. |
 | `fires` (consumer/activation) | `fires` (producer) + `on` (consumer) | Semantic split. `fires:` is now the producer side ("this trail fires these signals"). `on:` is the consumer side ("this trail activates on this signal"). |
 | `TRAILS_JSON` / `TRAILS_JSONL` | Derived from topo name (e.g. `STASH_JSON`) | Framework transparency fix. |
 
@@ -183,10 +183,10 @@ Rename `docs/vocabulary.md` to `docs/lexicon.md`. Update every reference across 
 
 ## References
 
-- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — the grammar rules this ADR extends. Singular/plural/verb conventions carry over verbatim; this ADR adds the brand-vs-plain heuristic and updates the Trail-native term enumeration in place.
-- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — the pipeline that absorbs intrinsic tracing when `tracingLayer` collapses.
-- [ADR-0013: Tracing](../0013-tracing.md) — partially superseded. The resource/accessor side stays; the layer side collapses into the execution pipeline, and `tracker`/`Track` becomes `tracing`/`TraceRecord` with `ctx.trace()` replacing `tracker.from(ctx).track()`.
-- [ADR-0009: Resources as a First-Class Primitive](../0009-first-class-resources.md) — to be revisited. `provision` → `resource`. API shape unchanged.
-- [ADR-0011: Schema-Driven Config](../0011-schema-driven-config.md) — to be revisited. `loadout` → `profile`. Config resolution unchanged.
+- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — the grammar rules this ADR extends. Singular/plural/verb conventions carry over verbatim; this ADR adds the brand-vs-plain heuristic and updates the Trail-native term enumeration in place.
+- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the pipeline that absorbs intrinsic tracing when `tracingLayer` collapses.
+- [ADR-0013: Tracing](0013-tracing.md) — partially superseded. The resource/accessor side stays; the layer side collapses into the execution pipeline, and `tracker`/`Track` becomes `tracing`/`TraceRecord` with `ctx.trace()` replacing `tracker.from(ctx).track()`.
+- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — to be revisited. `provision` → `resource`. API shape unchanged.
+- [ADR-0011: Schema-Driven Config](0011-schema-driven-config.md) — to be revisited. `loadout` → `profile`. Config resolution unchanged.
 - [Trails Tenets](../tenets.md) — the heuristic here operationalizes "reduce ceremony, not clarity" at the naming layer.
 - [Lexicon doc (current)](../lexicon.md) — renamed from `docs/vocabulary.md` as part of this ADR's adoption.

@@ -8,6 +8,7 @@
     "./internal/topo-saves": "./src/internal/topo-saves.ts",
     "./internal/topo-store": "./src/internal/topo-store.ts",
     "./internal/trails-db": "./src/internal/trails-db.ts",
+    "./internal/zod-wrappers": "./src/internal/zod-wrappers.ts",
     "./patterns": "./src/patterns/index.ts",
     "./redaction": "./src/redaction/index.ts",
     "./trails": "./src/trails/index.ts",

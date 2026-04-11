@@ -1,5 +1,6 @@
 import { signal, ValidationError } from '@ontrails/core';
 import type { AnySignal } from '@ontrails/core';
+import { stripDefaultsFromShape } from '@ontrails/core/internal/zod-wrappers';
 import { z } from 'zod';
 
 import type {
@@ -137,46 +138,6 @@ const createTableSignals = (
       payload: schema,
     }),
   });
-
-/**
- * Strip `default` wrappers from a Zod type so that partial update schemas
- * do not silently re-materialize defaults. Walks through all wrapper layers
- * (default, optional, nullable), strips defaults, and re-applies non-default
- * wrappers to preserve the nullable constraint.
- */
-const stripDefaultWrappers = (schema: z.ZodType): z.ZodType => {
-  const wrappers: ('optional' | 'nullable')[] = [];
-  let current = schema;
-
-  while (
-    current.def.type === 'default' ||
-    current.def.type === 'optional' ||
-    current.def.type === 'nullable'
-  ) {
-    const type = current.def.type as 'default' | 'optional' | 'nullable';
-    if (type !== 'default') {
-      wrappers.push(type);
-    }
-    current = (current.def as unknown as Record<string, unknown>)[
-      'innerType'
-    ] as z.ZodType;
-  }
-
-  // Re-apply nullable wrappers (optional is dropped — .partial() re-adds it)
-  return wrappers.includes('nullable') ? current.nullable() : current;
-};
-
-const stripDefaultsFromShape = (
-  schema: StoreObjectSchema
-): Record<string, z.ZodType> => {
-  const stripped: Record<string, z.ZodType> = {};
-
-  for (const [field, value] of Object.entries(schema.shape)) {
-    stripped[field] = stripDefaultWrappers(value);
-  }
-
-  return stripped;
-};
 
 const deriveUpdateSchema = (
   schema: StoreObjectSchema,

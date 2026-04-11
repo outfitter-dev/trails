@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import type { AnyContour } from '../contour.js';
+import { stripDefaultsFromShape } from '../internal/zod-wrappers.js';
 import type { AnyResource } from '../resource.js';
 import { trail } from '../trail.js';
 import type { Trail, TrailExample, TrailSpec } from '../trail.js';
@@ -169,76 +170,6 @@ const pickFields = (
   asObjectSchema(schema).pick(
     buildFieldMask(fields)
   ) as unknown as AnyObjectSchema;
-
-/**
- * Strip default wrappers before `.partial()` so filter/update schemas do not
- * silently re-materialize defaults during validation.
- */
-const isWrapperType = (
-  type: string
-): type is 'default' | 'nullable' | 'optional' =>
-  type === 'default' || type === 'nullable' || type === 'optional';
-
-const readInnerType = (schema: z.ZodType): z.ZodType =>
-  (schema.def as unknown as { innerType: z.ZodType }).innerType;
-
-const applyWrapper = (
-  schema: z.ZodType,
-  wrapper: 'nullable' | 'optional'
-): z.ZodType =>
-  wrapper === 'nullable' ? schema.nullable() : schema.optional();
-
-const collectWrappers = (
-  schema: z.ZodType
-): {
-  readonly current: z.ZodType;
-  readonly wrappers: readonly ('nullable' | 'optional')[];
-} => {
-  const wrappers: ('nullable' | 'optional')[] = [];
-  let current = schema;
-
-  while (isWrapperType(current.def.type)) {
-    const { type } = current.def;
-    if (type !== 'default') {
-      wrappers.push(type);
-    }
-
-    current = readInnerType(current);
-  }
-
-  return { current, wrappers };
-};
-
-const applyWrappers = (
-  schema: z.ZodType,
-  wrappers: readonly ('nullable' | 'optional')[]
-): z.ZodType => {
-  let rebuilt = schema;
-
-  for (const wrapper of wrappers) {
-    rebuilt = applyWrapper(rebuilt, wrapper);
-  }
-
-  return rebuilt;
-};
-
-const stripDefaultWrappers = (schema: z.ZodType): z.ZodType => {
-  const { current, wrappers } = collectWrappers(schema);
-  return applyWrappers(current, wrappers);
-};
-
-const stripDefaultsFromShape = (
-  schema: z.ZodType
-): Record<string, z.ZodType> => {
-  const stripped: Record<string, z.ZodType> = {};
-  const objectSchema = asObjectSchema(schema);
-
-  for (const [field, value] of Object.entries(objectSchema.shape)) {
-    stripped[field] = stripDefaultWrappers(value);
-  }
-
-  return stripped;
-};
 
 const toPartialSchema = (schema: z.ZodType): AnyObjectSchema =>
   asObjectSchema(schema)

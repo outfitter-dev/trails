@@ -96,6 +96,37 @@ export interface CrudOptions<TTable extends AnyStoreTable> {
 
 const contourCache = new WeakMap<AnyStoreTable, AnyContour>();
 
+/**
+ * Build a contour view of a store table.
+ *
+ * Contour validates every example against the schema shape passed in, so
+ * the shape must match how fixtures are actually shaped. Store fixtures may
+ * omit framework-generated fields (`createdAt`, `version`, ...) because the
+ * connector populates them, so we mirror `fixtureSchema`'s treatment of
+ * generated fields: generated, non-identity fields are made optional; the
+ * identity field stays required because read/delete/update all derive their
+ * input from it. Previously this helper passed `table.schema.shape` directly
+ * and crashed when a fixture omitted `createdAt` or another generated field.
+ */
+const buildContourShape = (table: AnyStoreTable): Record<string, z.ZodType> => {
+  const shape = table.schema.shape as unknown as Record<string, z.ZodType>;
+  const generatedNonIdentity = new Set(
+    table.generated.filter((field) => field !== table.identity)
+  );
+
+  if (generatedNonIdentity.size === 0) {
+    return shape;
+  }
+
+  const next: Record<string, z.ZodType> = {};
+  for (const [field, fieldSchema] of Object.entries(shape)) {
+    next[field] = generatedNonIdentity.has(field)
+      ? fieldSchema.optional()
+      : fieldSchema;
+  }
+  return next;
+};
+
 const createTableContour = <TTable extends AnyStoreTable>(
   table: TTable
 ): AnyContour => {
@@ -104,14 +135,10 @@ const createTableContour = <TTable extends AnyStoreTable>(
     return cached;
   }
 
-  const derived = contour(
-    table.name,
-    table.schema.shape as unknown as Record<string, z.ZodType>,
-    {
-      examples: table.fixtures as readonly Record<string, unknown>[],
-      identity: table.identity,
-    }
-  ) as AnyContour;
+  const derived = contour(table.name, buildContourShape(table), {
+    examples: table.fixtures as readonly Record<string, unknown>[],
+    identity: table.identity,
+  }) as AnyContour;
 
   contourCache.set(table, derived);
   return derived;
@@ -302,6 +329,13 @@ export const crud = <
   options: CrudOptions<TTable> = {}
 ): CrudTrails<TTable> => {
 
+  // The `as never` casts below are a follow-up from PR #150 reviewer
+  // feedback: `createTableContour` currently returns `AnyContour`, which
+  // erases the typed field names from `TTable['schema']`, so the typed
+  // `deriveTrail` argument must be coerced per call site. Replacing the
+  // coercion requires `createTableContour` to return a typed contour
+  // parameterized on the table's schema and identity — non-trivial and
+  // tracked as a separate refactor to land after the API stabilizes.
   return Object.freeze([
     deriveTrail(entityContour, 'create', {
       blaze: options.blaze?.create ?? defaultCreateBlaze(table, resource),

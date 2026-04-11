@@ -204,12 +204,12 @@ The existing `cross-declarations` rule gains awareness of `crossInput`: if a `ct
 
 ## References
 
-- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the unified trail/hike primitive with `crosses` and `ctx.cross()`
-- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — the warden's `cross-declarations` rule that this extends
-- [ADR-0000: Core Premise — The information architecture](../0000-core-premise.md) — the authored/projected/enforced categories that `crossInput` extends with composition scope
+- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the unified trail/hike primitive with `crosses` and `ctx.cross()`
+- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — the warden's `cross-declarations` rule that this extends
+- [ADR-0000: Core Premise — The information architecture](0000-core-premise.md) — the authored/projected/enforced categories that `crossInput` extends with composition scope
 - [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md) — contour-aware `deriveTrail()` that may auto-generate `crossInput`
-- [Tenets: One schema, one Result, one error taxonomy](../../tenets.md) — `crossInput` preserves the "one schema" principle by scoping rather than splitting
+- [Tenets: One schema, one Result, one error taxonomy](../tenets.md) — `crossInput` preserves the "one schema" principle by scoping rather than splitting
 
-[^1]: [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — `crosses` and `ctx.cross()` as the composition mechanism
-[^2]: [ADR-0000: Core Premise — The information architecture](../0000-core-premise.md)
+[^1]: [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — `crosses` and `ctx.cross()` as the composition mechanism
+[^2]: [ADR-0000: Core Premise — The information architecture](0000-core-premise.md)
 [^3]: See [ADR-0027: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md)

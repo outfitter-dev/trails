@@ -191,10 +191,10 @@ These are coaching rules — suggestions, not errors. They guide the developer t
 
 ## References
 
-- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the `crosses` / `ctx.cross()` composition mechanism that composite testing targets
-- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — the warden rules that `composite-example-coverage` and `scenario-coverage` extend
-- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` and `crossInput` that scenarios exercise
+- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the `crosses` / `ctx.cross()` composition mechanism that composite testing targets
+- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — the warden rules that `composite-example-coverage` and `scenario-coverage` extend
+- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) — typed `ctx.cross()` and `crossInput` that scenarios exercise
 - [Testing guide](../../testing.md) — the existing testing story that `expectedMatch` and `scenario()` extend
-- [Tenets: Examples are structured data](../../tenets.md) — the governing principle; `expectedMatch` and `scenario()` keep composition tests as structured data
+- [Tenets: Examples are structured data](../tenets.md) — the governing principle; `expectedMatch` and `scenario()` keep composition tests as structured data
 
-[^1]: [Tenets: One write, many reads](../../tenets.md) — the principle that examples operationalize
+[^1]: [Tenets: One write, many reads](../tenets.md) — the principle that examples operationalize

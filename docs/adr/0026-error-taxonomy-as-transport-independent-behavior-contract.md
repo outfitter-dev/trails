@@ -122,8 +122,8 @@ The deliberate friction from ADR-0002 applies: adding a new error class to the t
 
 ## References
 
-- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — established the 13-class taxonomy and HTTP/CLI/JSON-RPC mappings
-- [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md) — the execution pipeline that produces Results with typed errors
-- [Tenets: One schema, one Result, one error taxonomy](../../tenets.md) — the governing principle; drift across transports is structurally harder than alignment
+- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) — established the original taxonomy and HTTP/CLI/JSON-RPC mappings
+- [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](0006-shared-execution-pipeline.md) — the execution pipeline that produces Results with typed errors
+- [Tenets: One schema, one Result, one error taxonomy](../tenets.md) — the governing principle; drift across transports is structurally harder than alignment
 
-[^1]: [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the error taxonomy with HTTP, CLI, and JSON-RPC mappings
+[^1]: [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) — the error taxonomy with HTTP, CLI, and JSON-RPC mappings
