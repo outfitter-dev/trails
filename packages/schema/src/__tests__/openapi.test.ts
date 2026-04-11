@@ -535,6 +535,44 @@ const registerMetadataAndStructureTests = () => {
       );
     });
   });
+
+  describe('include / exclude filters', () => {
+    test('include narrows the generated spec to matching trails', () => {
+      const publicShow = trail('public.show', {
+        blaze: noop,
+        input: z.object({}),
+        intent: 'read',
+      });
+      const privateShow = trail('private.show', {
+        blaze: noop,
+        input: z.object({}),
+        intent: 'read',
+      });
+      const spec = generateOpenApiSpec(topoFrom({ privateShow, publicShow }), {
+        include: ['public.*'],
+      });
+
+      expect(Object.keys(spec.paths)).toEqual(['/public/show']);
+    });
+
+    test('exclude removes matching trails from the generated spec', () => {
+      const publicShow = trail('public.show', {
+        blaze: noop,
+        input: z.object({}),
+        intent: 'read',
+      });
+      const publicHide = trail('public.hide', {
+        blaze: noop,
+        input: z.object({}),
+        intent: 'read',
+      });
+      const spec = generateOpenApiSpec(topoFrom({ publicHide, publicShow }), {
+        exclude: ['public.hide'],
+      });
+
+      expect(Object.keys(spec.paths).toSorted()).toEqual(['/public/show']);
+    });
+  });
 };
 
 // ---------------------------------------------------------------------------

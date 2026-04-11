@@ -30,6 +30,22 @@ const internalTrail = trail('entity.secret.rotate', {
   visibility: 'internal',
 });
 
+const legacyInternalTrail = trail('entity.legacy.rotate', {
+  blaze: () => Result.ok({ ok: true }),
+  input: z.object({}),
+  meta: { internal: true },
+});
+
+const bareEntityTrail = trail('entity', {
+  blaze: () => Result.ok({ ok: true }),
+  input: z.object({}),
+});
+
+const otherTrail = trail('other', {
+  blaze: () => Result.ok({ ok: true }),
+  input: z.object({}),
+});
+
 const consumerTrail = trail('notify.email', {
   blaze: () => Result.ok({ ok: true }),
   input: z.object({}),
@@ -49,6 +65,15 @@ describe('matchesTrailPattern', () => {
   test('** matches any remaining dotted depth', () => {
     expect(matchesTrailPattern('entity.admin.show', 'entity.**')).toBe(true);
     expect(matchesTrailPattern('entity.show', 'entity.**')).toBe(true);
+  });
+
+  test('** terminal segment matches entity and all descendants', () => {
+    // Zero-remaining-segments case: bare parent matches entity.**.
+    expect(matchesTrailPattern('entity', 'entity.**')).toBe(true);
+    // One-remaining-segment case for completeness.
+    expect(matchesTrailPattern('entity.read', 'entity.**')).toBe(true);
+    // Sibling namespace must not match entity.**.
+    expect(matchesTrailPattern('other', 'entity.**')).toBe(false);
   });
 });
 
@@ -103,5 +128,31 @@ describe('filterTrailheadTrails', () => {
         include: ['notify.email'],
       })
     ).toEqual([]);
+  });
+
+  test('legacy meta.internal is treated as internal visibility', () => {
+    // Default filter: legacy internal trails must not leak out.
+    expect(filterTrailheadTrails([legacyInternalTrail])).toEqual([]);
+
+    // Wildcard include must also refuse to expose the legacy internal trail.
+    expect(
+      filterTrailheadTrails([legacyInternalTrail], { include: ['entity.**'] })
+    ).toEqual([]);
+
+    // Explicit exact-id include is the documented escape hatch.
+    expect(
+      filterTrailheadTrails([legacyInternalTrail], {
+        include: ['entity.legacy.rotate'],
+      })
+    ).toEqual([legacyInternalTrail]);
+  });
+
+  test('entity.** include matches bare entity and descendants', () => {
+    // Regression guard for the ** terminal-segment zero-depth case.
+    expect(
+      filterTrailheadTrails([bareEntityTrail, publicTrail, otherTrail], {
+        include: ['entity.**'],
+      })
+    ).toEqual([bareEntityTrail, publicTrail]);
   });
 });

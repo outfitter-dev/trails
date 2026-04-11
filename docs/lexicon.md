@@ -218,6 +218,8 @@ const db = resource('db.main', {
 });
 ```
 
+Trails declare their infrastructure needs with `resources: [...]` and access them through `db.from(ctx)` or `ctx.resource()`.
+
 ### `visibility`
 
 Whether a trail is exposed as a public verb on trailheads or kept as an internal
@@ -234,8 +236,6 @@ const normalizePayload = trail('github.normalize-payload', {
 
 `'public'` is the default. `'internal'` keeps the trail off trailheads unless a
 specific trailhead includes that exact trail ID intentionally.
-
-Trails declare their infrastructure needs with `resources: [...]` and access them through `db.from(ctx)` or `ctx.resource()`.
 
 ### `profile`
 

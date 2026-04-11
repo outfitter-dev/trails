@@ -33,6 +33,16 @@ export interface OpenApiOptions {
   readonly servers?: readonly OpenApiServer[] | undefined;
   /** Prefix for all paths. Default: `''` */
   readonly basePath?: string | undefined;
+  /**
+   * Glob patterns that keep only matching trail IDs in the generated spec.
+   * Mirrors the `include` option on other trailhead builders.
+   */
+  readonly include?: readonly string[] | undefined;
+  /**
+   * Glob patterns that remove matching trail IDs from the generated spec.
+   * Mirrors the `exclude` option on other trailhead builders.
+   */
+  readonly exclude?: readonly string[] | undefined;
 }
 
 /** Minimal OpenAPI 3.1 spec shape — intentionally plain objects, no heavy library. */
@@ -285,11 +295,15 @@ const buildOperation = (
 /** Collect all paths from public trails in the topo. */
 const collectPaths = (
   app: Topo,
-  basePath: string
+  basePath: string,
+  options?: OpenApiOptions
 ): Record<string, Record<string, unknown>> => {
   const paths: Record<string, Record<string, unknown>> = {};
 
-  for (const t of filterTrailheadTrails(app.list())) {
+  for (const t of filterTrailheadTrails(app.list(), {
+    exclude: options?.exclude,
+    include: options?.include,
+  })) {
     const method = intentToMethod[t.intent] ?? 'post';
     paths[trailIdToPath(t.id, basePath)] = {
       [method]: buildOperation(t, method),
@@ -333,7 +347,11 @@ export const generateOpenApiSpec = (
     components: { schemas: {} },
     info: buildInfo(app.name, options),
     openapi: '3.1.0',
-    paths: collectPaths(app, (options?.basePath ?? '').replace(/\/+$/, '')),
+    paths: collectPaths(
+      app,
+      (options?.basePath ?? '').replace(/\/+$/, ''),
+      options
+    ),
     ...(options?.servers && options.servers.length > 0
       ? { servers: options.servers }
       : {}),

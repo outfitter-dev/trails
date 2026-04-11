@@ -106,11 +106,35 @@ const isExplicitInternalInclude = (
   include: readonly string[] | undefined
 ): boolean => include !== undefined && include.includes(trailId);
 
+/**
+ * Resolve the effective visibility for a trail.
+ *
+ * Returns `'internal'` when either the explicit `visibility` field is
+ * `'internal'` or the legacy `meta.internal === true` convention is set.
+ * Honoring the legacy flag keeps trails authored before the visibility
+ * field was introduced (e.g. `meta: { internal: true }`) off trailheads.
+ *
+ * The runtime always fills in `visibility: 'public'` when the spec did not
+ * declare it, so we cannot distinguish explicit `'public'` from the default.
+ * This means a trail that sets both `meta.internal = true` and
+ * `visibility: 'public'` will still be treated as internal — that
+ * combination has never been a documented override and, if the author
+ * really means "public", they should remove the legacy flag.
+ */
+const effectiveVisibility = (
+  trail: Trail<unknown, unknown, unknown>
+): 'public' | 'internal' => {
+  if (trail.visibility === 'internal') {
+    return 'internal';
+  }
+  return trail.meta?.['internal'] === true ? 'internal' : 'public';
+};
+
 const isVisibleToTrailheads = (
   trail: Trail<unknown, unknown, unknown>,
   include: readonly string[] | undefined
 ): boolean =>
-  trail.visibility !== 'internal' ||
+  effectiveVisibility(trail) !== 'internal' ||
   isExplicitInternalInclude(trail.id, include);
 
 const passesIncludeFilter = (

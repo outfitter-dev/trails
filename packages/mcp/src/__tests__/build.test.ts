@@ -351,6 +351,18 @@ describe('buildMcpTools', () => {
 
       expect(tools.map((tool) => tool.trailId)).toEqual(['echo']);
     });
+
+    test('legacy includeTrails wins over excludeTrails for overlapping ids', () => {
+      const app = topo('myapp', { deleteTrail, echoTrail, failTrail });
+      const tools = buildTools(app, {
+        excludeTrails: ['fail'],
+        includeTrails: ['echo', 'fail'],
+      });
+
+      // Historical MCP semantics: include wins when both list the same id.
+      const ids = tools.map((tool) => tool.trailId).toSorted();
+      expect(ids).toEqual(['echo', 'fail']);
+    });
   });
 
   describe('composition', () => {
