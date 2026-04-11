@@ -1,11 +1,14 @@
 import {
+  collectImportAliasMap,
   collectNamedContourIds,
   collectNamedStoreTableIds,
   getStringValue,
   identifierName,
+  isNamedCall,
   isStringLiteral,
   offsetToLine,
   parse,
+  resolveStoreTableId,
   walk,
 } from './ast.js';
 import type { AstNode } from './ast.js';
@@ -15,44 +18,14 @@ import type { WardenDiagnostic, WardenRule } from './types.js';
 const CRUD_OPERATIONS = ['create', 'read', 'update', 'delete', 'list'] as const;
 const CRUD_OPERATION_SET = new Set<string>(CRUD_OPERATIONS);
 
+/** Sentinel entity id prefix for contours imported from another module. */
+const IMPORTED_CONTOUR_PREFIX = 'imported:';
+
 interface CrudCoverage {
   readonly entityId: string;
   readonly line: number;
   readonly operations: Set<string>;
 }
-
-const isNamedCall = (node: AstNode | undefined, name: string): boolean =>
-  !!node &&
-  node.type === 'CallExpression' &&
-  identifierName((node as unknown as { callee?: AstNode }).callee) === name;
-
-const getMemberExpression = (
-  node: AstNode | undefined
-): { readonly object?: AstNode; readonly property?: AstNode } | null => {
-  if (
-    !node ||
-    (node.type !== 'MemberExpression' && node.type !== 'StaticMemberExpression')
-  ) {
-    return null;
-  }
-
-  return node as unknown as {
-    readonly object?: AstNode;
-    readonly property?: AstNode;
-  };
-};
-
-const getPropertyName = (node: AstNode | undefined): string | null => {
-  if (node?.type === 'Identifier') {
-    return identifierName(node);
-  }
-
-  if (node && isStringLiteral(node)) {
-    return getStringValue(node);
-  }
-
-  return null;
-};
 
 const extractInlineContourId = (node: AstNode | undefined): string | null => {
   if (!isNamedCall(node, 'contour')) {
@@ -64,9 +37,43 @@ const extractInlineContourId = (node: AstNode | undefined): string | null => {
   return nameArg && isStringLiteral(nameArg) ? getStringValue(nameArg) : null;
 };
 
+/**
+ * Resolve an identifier reference (bound contour or imported alias) to a
+ * stable entity id. Imported identifiers return a `pending-resolution`
+ * sentinel so coverage is still tracked instead of silently dropped.
+ */
+const resolveContourIdentifier = (
+  name: string,
+  namedContourIds: ReadonlyMap<string, string>,
+  importAliases: ReadonlyMap<string, string>
+): string | null => {
+  const local = namedContourIds.get(name);
+  if (local) {
+    return local;
+  }
+
+  if (importAliases.has(name)) {
+    return `${IMPORTED_CONTOUR_PREFIX}${importAliases.get(name) ?? name}`;
+  }
+
+  return null;
+};
+
+/**
+ * Resolve a `deriveTrail` contour argument to a stable entity id.
+ *
+ * Resolution order:
+ *   1. Inline `contour('name', …)` call — use the authored name.
+ *   2. Local identifier bound to `contour('name', …)` via `namedContourIds`.
+ *   3. Identifier imported from another module — mark as a pending
+ *      `imported:<local>` coverage observation so the rule still tracks the
+ *      entity across the file instead of silently dropping it. The prefix is
+ *      stripped from diagnostic output for readability.
+ */
 const resolveContourId = (
   node: AstNode | undefined,
-  namedContourIds: ReadonlyMap<string, string>
+  namedContourIds: ReadonlyMap<string, string>,
+  importAliases: ReadonlyMap<string, string>
 ): string | null => {
   if (!node) {
     return null;
@@ -74,39 +81,12 @@ const resolveContourId = (
 
   if (node.type === 'Identifier') {
     const name = identifierName(node);
-    return name ? (namedContourIds.get(name) ?? null) : null;
+    return name
+      ? resolveContourIdentifier(name, namedContourIds, importAliases)
+      : null;
   }
 
   return extractInlineContourId(node);
-};
-
-const extractStoreTableIdFromMember = (
-  node: AstNode | undefined
-): string | null => {
-  const member = getMemberExpression(node);
-  const tableId = member ? getPropertyName(member.property) : null;
-  const tablesMember = member ? getMemberExpression(member.object) : null;
-  if (!tableId || !tablesMember) {
-    return null;
-  }
-
-  return getPropertyName(tablesMember.property) === 'tables' ? tableId : null;
-};
-
-const resolveStoreTableId = (
-  node: AstNode | undefined,
-  namedStoreTableIds: ReadonlyMap<string, string>
-): string | null => {
-  if (!node) {
-    return null;
-  }
-
-  if (node.type === 'Identifier') {
-    const name = identifierName(node);
-    return name ? (namedStoreTableIds.get(name) ?? null) : null;
-  }
-
-  return extractStoreTableIdFromMember(node);
 };
 
 const ensureCoverage = (
@@ -139,7 +119,8 @@ const extractCrudOperation = (node: AstNode | undefined): string | null => {
 
 const extractDerivedCrudEntry = (
   node: AstNode,
-  namedContourIds: ReadonlyMap<string, string>
+  namedContourIds: ReadonlyMap<string, string>,
+  importAliases: ReadonlyMap<string, string>
 ): { readonly entityId: string; readonly operation: string } | null => {
   if (!isNamedCall(node, 'deriveTrail')) {
     return null;
@@ -151,7 +132,7 @@ const extractDerivedCrudEntry = (
     }
   ).arguments ?? []) as readonly AstNode[];
   const operation = extractCrudOperation(operationArg);
-  const entityId = resolveContourId(contourArg, namedContourIds);
+  const entityId = resolveContourId(contourArg, namedContourIds, importAliases);
   return operation && entityId ? { entityId, operation } : null;
 };
 
@@ -161,9 +142,10 @@ const collectDerivedCrudCoverage = (
 ): ReadonlyMap<string, CrudCoverage> => {
   const coverageByEntityId = new Map<string, CrudCoverage>();
   const namedContourIds = collectNamedContourIds(ast);
+  const importAliases = collectImportAliasMap(ast);
 
   walk(ast, (node) => {
-    const entry = extractDerivedCrudEntry(node, namedContourIds);
+    const entry = extractDerivedCrudEntry(node, namedContourIds, importAliases);
     if (!entry) {
       return;
     }
@@ -181,6 +163,10 @@ const collectDerivedCrudCoverage = (
 const collectTupleOperations = (
   elements: readonly AstNode[]
 ): readonly string[] =>
+  // Array-pattern elisions are represented as null by OXC today; the truthy
+  // check below intentionally treats those the same as out-of-bounds slots.
+  // If OXC ever switches to a non-null placeholder node, update this to an
+  // explicit null check so elisions still count as absent.
   CRUD_OPERATIONS.flatMap((operation, index) =>
     elements[index] ? [operation] : []
   );
@@ -265,6 +251,11 @@ const collectIncompleteCoverage = (
       coverage.operations.size < CRUD_OPERATIONS.length
   );
 
+const formatEntityLabel = (entityId: string): string =>
+  entityId.startsWith(IMPORTED_CONTOUR_PREFIX)
+    ? `${entityId.slice(IMPORTED_CONTOUR_PREFIX.length)} (imported, pending-resolution)`
+    : entityId;
+
 const buildIncompleteCrudDiagnostic = (
   coverage: CrudCoverage,
   filePath: string
@@ -279,7 +270,7 @@ const buildIncompleteCrudDiagnostic = (
   return {
     filePath,
     line: coverage.line,
-    message: `Factory coverage for "${coverage.entityId}" is incomplete: found ${present.join(', ')} but missing ${missing.join(', ')}. Prefer the full CRUD set or document the intentional omission.`,
+    message: `Factory coverage for "${formatEntityLabel(coverage.entityId)}" is incomplete: found ${present.join(', ')} but missing ${missing.join(', ')}. Prefer the full CRUD set or document the intentional omission.`,
     rule: 'incomplete-crud',
     severity: 'warn',
   };

@@ -73,6 +73,57 @@ const reconcileNote = reconcile({
     expect(missingReconcile.check(code, TEST_FILE)).toEqual([]);
   });
 
+  test('tracks two stores with colliding table names independently', () => {
+    const code = `
+import { Result, resource } from '@ontrails/core';
+import { store } from '@ontrails/store';
+import { crud, reconcile } from '@ontrails/store/trails';
+import { z } from 'zod';
+
+const primary = store({
+  notes: {
+    identity: 'id',
+    schema: z.object({ id: z.string(), title: z.string() }),
+    versioned: true,
+  },
+});
+
+const archive = store({
+  notes: {
+    identity: 'id',
+    schema: z.object({ id: z.string(), title: z.string() }),
+    versioned: true,
+  },
+});
+
+const primaryResource = resource('db.primary', {
+  create: () => Result.ok({}),
+  mock: () => ({}),
+});
+const archiveResource = resource('db.archive', {
+  create: () => Result.ok({}),
+  mock: () => ({}),
+});
+
+// primary gets both crud and reconcile — should be quiet
+const primaryCrud = crud(primary.tables.notes, primaryResource);
+const primaryReconcile = reconcile({
+  resource: primaryResource,
+  table: primary.tables.notes,
+});
+
+// archive only gets crud — should warn ONCE for archive (not primary)
+const archiveCrud = crud(archive.tables.notes, archiveResource);
+`;
+
+    const diagnostics = missingReconcile.check(code, TEST_FILE);
+
+    // Only archive should warn; primary's reconcile is correctly paired.
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.rule).toBe('missing-reconcile');
+    expect(diagnostics[0]?.message).toContain('notes');
+  });
+
   test('stays quiet for non-versioned tables even when crud() is present', () => {
     const code = `
 import { Result, resource } from '@ontrails/core';

@@ -41,8 +41,8 @@ const checkMissingReconcile = (
   for (const definition of findStoreTableDefinitions(ast)) {
     if (
       !definition.versioned ||
-      !crudTableIds.has(definition.name) ||
-      reconcileTableIds.has(definition.name)
+      !crudTableIds.has(definition.key) ||
+      reconcileTableIds.has(definition.key)
     ) {
       continue;
     }

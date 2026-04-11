@@ -6,10 +6,12 @@ export const missingReconcileTrail = wrapRule({
     {
       expected: { diagnostics: [] },
       input: {
-        crudTableIds: ['notes'],
+        // Composite keys: `${storeBinding}:${tableName}` so two stores with
+        // the same table name don't collide.
+        crudTableIds: ['definition:notes'],
         filePath: 'clean.ts',
         knownTrailIds: ['notes.reconcile'],
-        reconcileTableIds: ['notes'],
+        reconcileTableIds: ['definition:notes'],
         sourceCode: `import { store } from '@ontrails/store';
 import { z } from 'zod';
 

@@ -36,6 +36,21 @@ const getMissingSignalIds = (
     (signalId) => !onTargetSignalIds.has(signalId)
   );
 
+/**
+ * Strip the `${storeBinding}:` prefix from a composite signal id for display.
+ * Keeps diagnostic messages readable while keeping keys composite internally.
+ */
+const stripStoreBinding = (
+  signalId: string,
+  storeBinding: string | null
+): string => {
+  if (!storeBinding) {
+    return signalId;
+  }
+  const prefix = `${storeBinding}:`;
+  return signalId.startsWith(prefix) ? signalId.slice(prefix.length) : signalId;
+};
+
 const buildDefinitionDiagnostic = (
   definition: ReturnType<typeof findStoreTableDefinitions>[number],
   sourceCode: string,
@@ -43,19 +58,21 @@ const buildDefinitionDiagnostic = (
   crudTableIds: ReadonlySet<string>,
   onTargetSignalIds: ReadonlySet<string>
 ): WardenDiagnostic | null => {
-  if (!crudTableIds.has(definition.name)) {
+  if (!crudTableIds.has(definition.key)) {
     return null;
   }
 
   const missingSignalIds = getMissingSignalIds(
-    definition.name,
+    definition.key,
     onTargetSignalIds
   );
   return missingSignalIds.length === 0
     ? null
     : buildOrphanedSignalDiagnostic(
         definition.name,
-        missingSignalIds,
+        missingSignalIds.map((id) =>
+          stripStoreBinding(id, definition.storeBinding)
+        ),
         filePath,
         offsetToLine(sourceCode, definition.start)
       );

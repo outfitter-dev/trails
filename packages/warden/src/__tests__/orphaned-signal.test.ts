@@ -58,16 +58,62 @@ const definition = store({
 `;
 
     const diagnostics = orphanedSignal.checkWithContext(code, TEST_FILE, {
-      crudTableIds: new Set(['notes']),
+      // Keys are composite (`${storeBinding}:${tableName}`) so two stores
+      // that share a table name don't collide across files.
+      crudTableIds: new Set(['definition:notes']),
       knownTrailIds: new Set(['notes.notify']),
       onTargetSignalIds: new Set([
-        'notes.created',
-        'notes.updated',
-        'notes.removed',
+        'definition:notes.created',
+        'definition:notes.updated',
+        'definition:notes.removed',
       ]),
     });
 
     expect(diagnostics).toEqual([]);
+  });
+
+  test('tracks two stores with colliding table names independently', () => {
+    const code = `
+import { Result, resource } from '@ontrails/core';
+import { store } from '@ontrails/store';
+import { crud } from '@ontrails/store/trails';
+import { z } from 'zod';
+
+const primary = store({
+  notes: {
+    identity: 'id',
+    schema: z.object({ id: z.string(), title: z.string() }),
+  },
+});
+
+const archive = store({
+  notes: {
+    identity: 'id',
+    schema: z.object({ id: z.string(), title: z.string() }),
+  },
+});
+
+const primaryResource = resource('db.primary', {
+  create: () => Result.ok({}),
+  mock: () => ({}),
+});
+const archiveResource = resource('db.archive', {
+  create: () => Result.ok({}),
+  mock: () => ({}),
+});
+
+const primaryTrails = crud(primary.tables.notes, primaryResource);
+const archiveTrails = crud(archive.tables.notes, archiveResource);
+`;
+
+    const diagnostics = orphanedSignal.check(code, TEST_FILE);
+
+    // Both stores warn, but independently — not one combined message.
+    expect(diagnostics).toHaveLength(2);
+    for (const diagnostic of diagnostics) {
+      expect(diagnostic.rule).toBe('orphaned-signal');
+      expect(diagnostic.message).toContain('notes');
+    }
   });
 
   test('stays quiet when the table is not used with crud()', () => {

@@ -107,4 +107,107 @@ const [createNote, readNote, updateNote, deleteNote, listNote] = crud(
 
     expect(incompleteCrud.check(code, TEST_FILE)).toEqual([]);
   });
+
+  test('tracks deriveTrail coverage for imported contours as pending-resolution', () => {
+    const code = `
+import { Result, resource } from '@ontrails/core';
+import { deriveTrail } from '@ontrails/core/trails';
+import { note } from './shared/contours.js';
+
+const notesResource = resource('db.notes', {
+  create: () => Result.ok({}),
+  mock: () => ({}),
+});
+
+export const createNote = deriveTrail(note, 'create', {
+  blaze: async () => Result.ok({}),
+  resource: notesResource,
+});
+
+export const readNote = deriveTrail(note, 'read', {
+  blaze: async () => Result.ok({}),
+  resource: notesResource,
+});
+`;
+
+    const diagnostics = incompleteCrud.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.rule).toBe('incomplete-crud');
+    // Imported contours surface as pending-resolution so coverage is still tracked.
+    expect(diagnostics[0]?.message).toContain('note');
+    expect(diagnostics[0]?.message).toContain('pending-resolution');
+    expect(diagnostics[0]?.message).toContain('create');
+    expect(diagnostics[0]?.message).toContain('read');
+  });
+
+  test('does not warn when imported contour covers the full CRUD set', () => {
+    const code = `
+import { Result, resource } from '@ontrails/core';
+import { deriveTrail } from '@ontrails/core/trails';
+import { note } from './shared/contours.js';
+
+const notesResource = resource('db.notes', {
+  create: () => Result.ok({}),
+  mock: () => ({}),
+});
+
+export const createNote = deriveTrail(note, 'create', { blaze: async () => Result.ok({}), resource: notesResource });
+export const readNote = deriveTrail(note, 'read', { blaze: async () => Result.ok({}), resource: notesResource });
+export const updateNote = deriveTrail(note, 'update', { blaze: async () => Result.ok({}), resource: notesResource });
+export const deleteNote = deriveTrail(note, 'delete', { blaze: async () => Result.ok({}), resource: notesResource });
+export const listNote = deriveTrail(note, 'list', { blaze: async () => Result.ok({}), resource: notesResource });
+`;
+
+    expect(incompleteCrud.check(code, TEST_FILE)).toEqual([]);
+  });
+
+  test('tracks two stores with colliding table names independently', () => {
+    const code = `
+import { Result, resource } from '@ontrails/core';
+import { store } from '@ontrails/store';
+import { crud } from '@ontrails/store/trails';
+import { z } from 'zod';
+
+const primary = store({
+  notes: {
+    identity: 'id',
+    schema: z.object({ id: z.string(), title: z.string() }),
+  },
+});
+
+const archive = store({
+  notes: {
+    identity: 'id',
+    schema: z.object({ id: z.string(), title: z.string() }),
+  },
+});
+
+const primaryResource = resource('db.primary', {
+  create: () => Result.ok({}),
+  mock: () => ({}),
+});
+const archiveResource = resource('db.archive', {
+  create: () => Result.ok({}),
+  mock: () => ({}),
+});
+
+// primary is fully covered
+const [createPrimary, readPrimary, updatePrimary, deletePrimary, listPrimary] =
+  crud(primary.tables.notes, primaryResource);
+
+// archive is partially covered — the warning should target only archive
+const [createArchive, readArchive] = crud(archive.tables.notes, archiveResource);
+`;
+
+    const diagnostics = incompleteCrud.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.rule).toBe('incomplete-crud');
+    // Stores are keyed by their local binding, so the colliding bare name
+    // `notes` does not cause archive coverage to leak into primary.
+    expect(diagnostics[0]?.message).toContain('archive:notes');
+    expect(diagnostics[0]?.message).toContain('create');
+    expect(diagnostics[0]?.message).toContain('read');
+  });
 });

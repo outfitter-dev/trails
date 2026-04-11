@@ -6,10 +6,16 @@ export const orphanedSignalTrail = wrapRule({
     {
       expected: { diagnostics: [] },
       input: {
-        crudTableIds: ['notes'],
+        // Composite keys: `${storeBinding}:${tableName}` so two stores with
+        // the same table name don't collide.
+        crudTableIds: ['definition:notes'],
         filePath: 'clean.ts',
         knownTrailIds: ['notes.notify'],
-        onTargetSignalIds: ['notes.created', 'notes.updated', 'notes.removed'],
+        onTargetSignalIds: [
+          'definition:notes.created',
+          'definition:notes.updated',
+          'definition:notes.removed',
+        ],
         sourceCode: `import { store } from '@ontrails/store';
 import { z } from 'zod';
 
