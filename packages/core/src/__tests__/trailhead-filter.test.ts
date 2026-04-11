@@ -80,112 +80,120 @@ describe('matchesTrailPattern', () => {
 });
 
 describe('filterTrailheadTrails', () => {
-  test('includes public trails by default', () => {
-    expect(filterTrailheadTrails([publicTrail])).toEqual([publicTrail]);
+  describe('visibility defaults', () => {
+    test('includes public trails by default', () => {
+      expect(filterTrailheadTrails([publicTrail])).toEqual([publicTrail]);
+    });
+
+    test('excludes internal trails by default', () => {
+      expect(filterTrailheadTrails([internalTrail])).toEqual([]);
+    });
+
+    test('does not expose internal trails for wildcard includes', () => {
+      expect(
+        filterTrailheadTrails([internalTrail], { include: ['entity.**'] })
+      ).toEqual([]);
+    });
+
+    test('allows exact include to expose an internal trail', () => {
+      expect(
+        filterTrailheadTrails([internalTrail], {
+          include: ['entity.secret.rotate'],
+        })
+      ).toEqual([internalTrail]);
+    });
+
+    test('legacy meta.internal is treated as internal visibility', () => {
+      // Default filter: legacy internal trails must not leak out.
+      expect(filterTrailheadTrails([legacyInternalTrail])).toEqual([]);
+
+      // Wildcard include must also refuse to expose the legacy internal trail.
+      expect(
+        filterTrailheadTrails([legacyInternalTrail], { include: ['entity.**'] })
+      ).toEqual([]);
+
+      // Explicit exact-id include is the documented escape hatch.
+      expect(
+        filterTrailheadTrails([legacyInternalTrail], {
+          include: ['entity.legacy.rotate'],
+        })
+      ).toEqual([legacyInternalTrail]);
+    });
   });
 
-  test('excludes internal trails by default', () => {
-    expect(filterTrailheadTrails([internalTrail])).toEqual([]);
+  describe('include and exclude patterns', () => {
+    test('exclude patterns remove matches before include narrowing', () => {
+      expect(
+        filterTrailheadTrails([publicTrail], {
+          exclude: ['entity.*'],
+          include: ['entity.show'],
+        })
+      ).toEqual([]);
+    });
+
+    test('include patterns narrow the visible trail set', () => {
+      expect(
+        filterTrailheadTrails([publicTrail, nestedTrail], {
+          include: ['entity.**'],
+        })
+      ).toEqual([publicTrail, nestedTrail]);
+      expect(
+        filterTrailheadTrails([publicTrail, nestedTrail], {
+          include: ['entity.*'],
+        })
+      ).toEqual([publicTrail]);
+    });
+
+    test('entity.** include matches bare entity and descendants', () => {
+      // Regression guard for the ** terminal-segment zero-depth case.
+      expect(
+        filterTrailheadTrails([bareEntityTrail, publicTrail, otherTrail], {
+          include: ['entity.**'],
+        })
+      ).toEqual([bareEntityTrail, publicTrail]);
+    });
   });
 
-  test('does not expose internal trails for wildcard includes', () => {
-    expect(
-      filterTrailheadTrails([internalTrail], { include: ['entity.**'] })
-    ).toEqual([]);
+  describe('intent filtering', () => {
+    test('intent filtering narrows visible trails by behavior class', () => {
+      expect(
+        filterTrailheadTrails([publicTrail, nestedTrail], {
+          intent: ['read'],
+        })
+      ).toEqual([publicTrail]);
+
+      expect(
+        filterTrailheadTrails([publicTrail, nestedTrail], {
+          intent: ['destroy'],
+        })
+      ).toEqual([nestedTrail]);
+    });
+
+    test('intent filtering composes with glob include patterns using AND logic', () => {
+      expect(
+        filterTrailheadTrails([publicTrail, nestedTrail], {
+          include: ['entity.**'],
+          intent: ['read'],
+        })
+      ).toEqual([publicTrail]);
+    });
+
+    test('empty intent filters behave like no filter', () => {
+      expect(
+        filterTrailheadTrails([publicTrail, nestedTrail], {
+          intent: [],
+        })
+      ).toEqual([publicTrail, nestedTrail]);
+    });
   });
 
-  test('allows exact include to expose an internal trail', () => {
-    expect(
-      filterTrailheadTrails([internalTrail], {
-        include: ['entity.secret.rotate'],
-      })
-    ).toEqual([internalTrail]);
-  });
-
-  test('exclude patterns remove matches before include narrowing', () => {
-    expect(
-      filterTrailheadTrails([publicTrail], {
-        exclude: ['entity.*'],
-        include: ['entity.show'],
-      })
-    ).toEqual([]);
-  });
-
-  test('include patterns narrow the visible trail set', () => {
-    expect(
-      filterTrailheadTrails([publicTrail, nestedTrail], {
-        include: ['entity.**'],
-      })
-    ).toEqual([publicTrail, nestedTrail]);
-    expect(
-      filterTrailheadTrails([publicTrail, nestedTrail], {
-        include: ['entity.*'],
-      })
-    ).toEqual([publicTrail]);
-  });
-
-  test('intent filtering narrows visible trails by behavior class', () => {
-    expect(
-      filterTrailheadTrails([publicTrail, nestedTrail], {
-        intent: ['read'],
-      })
-    ).toEqual([publicTrail]);
-
-    expect(
-      filterTrailheadTrails([publicTrail, nestedTrail], {
-        intent: ['destroy'],
-      })
-    ).toEqual([nestedTrail]);
-  });
-
-  test('intent filtering composes with glob include patterns using AND logic', () => {
-    expect(
-      filterTrailheadTrails([publicTrail, nestedTrail], {
-        include: ['entity.**'],
-        intent: ['read'],
-      })
-    ).toEqual([publicTrail]);
-  });
-
-  test('empty intent filters behave like no filter', () => {
-    expect(
-      filterTrailheadTrails([publicTrail, nestedTrail], {
-        intent: [],
-      })
-    ).toEqual([publicTrail, nestedTrail]);
-  });
-
-  test('consumer trails are never exposed on trailheads', () => {
-    expect(
-      filterTrailheadTrails([consumerTrail], {
-        include: ['notify.email'],
-      })
-    ).toEqual([]);
-  });
-
-  test('legacy meta.internal is treated as internal visibility', () => {
-    // Default filter: legacy internal trails must not leak out.
-    expect(filterTrailheadTrails([legacyInternalTrail])).toEqual([]);
-
-    // Wildcard include must also refuse to expose the legacy internal trail.
-    expect(
-      filterTrailheadTrails([legacyInternalTrail], { include: ['entity.**'] })
-    ).toEqual([]);
-
-    // Explicit exact-id include is the documented escape hatch.
-    expect(
-      filterTrailheadTrails([legacyInternalTrail], {
-        include: ['entity.legacy.rotate'],
-      })
-    ).toEqual([legacyInternalTrail]);
-  });
-
-  test('entity.** include matches bare entity and descendants', () => {
-    // Regression guard for the ** terminal-segment zero-depth case.
-    expect(
-      filterTrailheadTrails([bareEntityTrail, publicTrail, otherTrail], {
-        include: ['entity.**'],
-      })
-    ).toEqual([bareEntityTrail, publicTrail]);
+  describe('consumer trails', () => {
+    test('consumer trails are never exposed on trailheads', () => {
+      expect(
+        filterTrailheadTrails([consumerTrail], {
+          include: ['notify.email'],
+        })
+      ).toEqual([]);
+    });
   });
 });
