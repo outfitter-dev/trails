@@ -1,5 +1,5 @@
 import { ValidationError } from '@ontrails/core';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 import type {
   StoreDefinition,
@@ -14,6 +14,9 @@ import type {
 const isStoreObjectSchema = (schema: z.ZodType): schema is StoreObjectSchema =>
   schema.def.type === 'object' && 'shape' in schema.def;
 
+const versionFieldName = 'version';
+const versionFieldSchema = z.number().int().positive();
+
 const uniqueStrings = <T extends string>(
   values: readonly T[] | undefined
 ): readonly T[] =>
@@ -25,6 +28,11 @@ const uniqueMergedStrings = <T extends string>(
 
 const hasField = (schema: StoreObjectSchema, field: string): boolean =>
   Object.hasOwn(schema.shape, field);
+
+const versionedSchema = (schema: StoreObjectSchema): StoreObjectSchema =>
+  schema.extend({
+    [versionFieldName]: versionFieldSchema,
+  }) as StoreObjectSchema;
 
 const validateFieldList = (
   tableName: string,
@@ -211,6 +219,20 @@ const validatePrimaryKey = (
   );
 };
 
+const validateVersioning = (
+  tableName: string,
+  schema: StoreObjectSchema,
+  versioned: boolean
+): void => {
+  if (!versioned || !hasField(schema, versionFieldName)) {
+    return;
+  }
+
+  throw new ValidationError(
+    `Store table "${tableName}" cannot declare a "${versionFieldName}" field when versioned storage is enabled because the framework manages that field.`
+  );
+};
+
 const resolveStoreObjectSchema = (
   tableName: string,
   schema: StoreTableInput['schema']
@@ -245,6 +267,9 @@ const resolveIdentity = (tableName: string, input: StoreTableInput): string => {
 
 const resolveIndexed = (input: StoreTableInput): readonly string[] =>
   uniqueMergedStrings(input.indexed, input.indexes);
+
+const resolveVersioned = (input: StoreTableInput): boolean =>
+  input.versioned === true;
 
 const validateTableInput = (
   tableName: string,
@@ -292,6 +317,68 @@ const normalizeFixtures = <TInput extends StoreTableInput>(
   return Object.freeze(normalized) as StoreTable<TInput>['fixtures'];
 };
 
+const resolveTableSchema = <TInput extends StoreTableInput<StoreObjectSchema>>(
+  tableName: string,
+  input: TInput
+): {
+  readonly schema: StoreObjectSchema;
+  readonly versioned: boolean;
+} => {
+  const authoredSchema = resolveStoreObjectSchema(tableName, input.schema);
+  const versioned = resolveVersioned(input);
+  validateVersioning(tableName, authoredSchema, versioned);
+
+  return {
+    schema: versioned ? versionedSchema(authoredSchema) : authoredSchema,
+    versioned,
+  };
+};
+
+const resolveGeneratedFields = <
+  TInput extends StoreTableInput<StoreObjectSchema>,
+>(
+  input: TInput,
+  versioned: boolean
+): readonly string[] =>
+  versioned
+    ? uniqueMergedStrings(input.generated, [versionFieldName])
+    : uniqueStrings(input.generated);
+
+const freezeNormalizedTable = <
+  TName extends string,
+  TInput extends StoreTableInput<StoreObjectSchema>,
+>(
+  name: TName,
+  input: TInput,
+  resolved: {
+    readonly fixtureSchema: StoreObjectSchema;
+    readonly fixtures: StoreTable<TInput>['fixtures'];
+    readonly generated: readonly string[];
+    readonly identity: string;
+    readonly indexed: readonly string[];
+    readonly insertSchema: StoreObjectSchema;
+    readonly references: Readonly<Partial<Record<string, string>>>;
+    readonly schema: StoreObjectSchema;
+    readonly versioned: boolean;
+  }
+): StoreTable<TInput, TName> =>
+  Object.freeze({
+    fixtureSchema: resolved.fixtureSchema,
+    fixtures: resolved.fixtures,
+    generated: resolved.generated,
+    identity: resolved.identity,
+    indexed: resolved.indexed,
+    indexes: resolved.indexed,
+    insertSchema: resolved.insertSchema,
+    name,
+    primaryKey: resolved.identity,
+    references: resolved.references,
+    schema: resolved.schema,
+    ...(input.search === undefined ? {} : { search: input.search }),
+    updateSchema: deriveUpdateSchema(resolved.insertSchema, resolved.identity),
+    versioned: resolved.versioned,
+  }) as StoreTable<TInput, TName>;
+
 const normalizeTable = <
   TName extends string,
   TInput extends StoreTableInput<StoreObjectSchema>,
@@ -300,9 +387,9 @@ const normalizeTable = <
   input: TInput,
   tableNames: readonly string[]
 ): StoreTable<TInput, TName> => {
-  const schema = resolveStoreObjectSchema(name, input.schema);
+  const { schema, versioned } = resolveTableSchema(name, input);
   const identity = resolveIdentity(name, input);
-  const generated = uniqueStrings(input.generated);
+  const generated = resolveGeneratedFields(input, versioned);
   const indexed = resolveIndexed(input);
   const references = normalizeReferences(input.references);
   validateTableInput(
@@ -324,21 +411,17 @@ const normalizeTable = <
     input.fixtures
   );
 
-  return Object.freeze({
+  return freezeNormalizedTable(name, input, {
     fixtureSchema,
     fixtures,
     generated,
     identity,
     indexed,
-    indexes: indexed,
     insertSchema,
-    name,
-    primaryKey: identity,
     references,
     schema,
-    ...(input.search === undefined ? {} : { search: input.search }),
-    updateSchema: deriveUpdateSchema(insertSchema, identity),
-  }) as StoreTable<TInput, TName>;
+    versioned,
+  });
 };
 
 /**

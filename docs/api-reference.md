@@ -172,6 +172,9 @@ EntityOf<T>, InsertOf<T>, UpdateOf<T>, UpsertOf<T>, FixtureInputOf<T>, FixtureOf
 FiltersOf<T>, StoreListOptions
 StoreConnection<T>, StoreTableConnection<T>, ReadOnlyStoreConnection<T>
 StoreAccessor<T>, StoreTableAccessor<T>, ReadOnlyStoreTableAccessor<T>
+
+// `versioned: true` on a store table adds a framework-managed integer `version`
+// field to returned entities and allows `upsert()` optimistic concurrency.
 ```
 
 ## `@ontrails/store/testing`

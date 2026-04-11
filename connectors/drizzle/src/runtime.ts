@@ -1,6 +1,7 @@
 import { Database } from 'bun:sqlite';
 import {
   AlreadyExistsError,
+  ConflictError,
   InternalError,
   Result,
   ValidationError,
@@ -87,6 +88,7 @@ const mapDatabaseError = (tableName: string, error: unknown): Error => {
   if (
     error instanceof ValidationError ||
     error instanceof AlreadyExistsError ||
+    error instanceof ConflictError ||
     error instanceof InternalError
   ) {
     return error;
@@ -160,6 +162,7 @@ const TIMESTAMP_FIELD_NAMES = new Set([
   'created_at',
   'updated_at',
 ]);
+const versionFieldName = 'version';
 
 const ID_FIELD_SUFFIX_RE = /[Ii]d$/;
 
@@ -194,13 +197,22 @@ const generatedTextValue = (tableName: string, fieldName: string): unknown => {
   );
 };
 
-const generatedValueForInsert = <TTable extends AnyStoreTable>(
-  table: TTable,
-  field: StoreFieldKey<TTable['schema']>
-): unknown => {
-  const fieldName = field as string;
-  const kind = baseFieldKind(table, field);
+const generatedVersionValue = (tableName: string, kind: string): number => {
+  if (kind === 'integer') {
+    return 1;
+  }
 
+  throw new ValidationError(
+    `Store table "${tableName}" manages "${versionFieldName}" as an integer field.`
+  );
+};
+
+const generatedFallbackValue = <TTable extends AnyStoreTable>(
+  table: TTable,
+  field: StoreFieldKey<TTable['schema']>,
+  fieldName: string,
+  kind: string
+): unknown => {
   if (field === table.primaryKey && kind === 'integer') {
     return undefined;
   }
@@ -210,9 +222,24 @@ const generatedValueForInsert = <TTable extends AnyStoreTable>(
   if (kind === 'text') {
     return generatedTextValue(table.name, fieldName);
   }
+
   throw new ValidationError(
     `Store table "${table.name}" has a generated field "${fieldName}" of unrecognized type "${kind}". Only "integer" (primary key), "text", and timestamp fields are supported as generated fields. Supply a value or add a Zod default.`
   );
+};
+
+const generatedValueForInsert = <TTable extends AnyStoreTable>(
+  table: TTable,
+  field: StoreFieldKey<TTable['schema']>
+): unknown => {
+  const fieldName = field as string;
+  const kind = baseFieldKind(table, field);
+
+  if (fieldName === versionFieldName) {
+    return generatedVersionValue(table.name, kind);
+  }
+
+  return generatedFallbackValue(table, field, fieldName, kind);
 };
 
 const materializeGeneratedFields = <TTable extends AnyStoreTable>(
@@ -281,6 +308,143 @@ const applyGeneratedUpdateFields = <TTable extends AnyStoreTable>(
       input[updatedAtKey] ??
       (kind === 'date' ? new Date() : new Date().toISOString()),
   });
+};
+
+const versionFromEntity = <TTable extends AnyStoreTable>(
+  table: TTable,
+  entity: EntityOf<TTable>
+): number => {
+  const version = (entity as Record<string, unknown>)[versionFieldName];
+  if (typeof version === 'number' && Number.isInteger(version) && version > 0) {
+    return version;
+  }
+
+  throw new InternalError(
+    `Drizzle store for table "${table.name}" returned a versioned entity without a valid integer "${versionFieldName}" field.`
+  );
+};
+
+const versionConflictError = (
+  tableName: string,
+  id: string | number,
+  expectedVersion: number,
+  actualVersion: number | null
+): ConflictError =>
+  new ConflictError(
+    actualVersion === null
+      ? `Store table "${tableName}" expected version ${expectedVersion} for "${String(id)}" but found no existing row.`
+      : `Store table "${tableName}" expected version ${expectedVersion} for "${String(id)}" but found ${actualVersion}.`
+  );
+
+const expectedVersionFromInput = (
+  input: Record<string, unknown>
+): number | undefined => {
+  const candidate = input[versionFieldName];
+  return typeof candidate === 'number' &&
+    Number.isInteger(candidate) &&
+    candidate > 0
+    ? candidate
+    : undefined;
+};
+
+const requireUpdateFields = (
+  tableName: string,
+  input: Record<string, unknown>
+): Record<string, unknown> => {
+  const userFields = normalizeWriteInput(input);
+  if (Object.keys(userFields).length > 0) {
+    return userFields;
+  }
+
+  throw new ValidationError(
+    `Store table "${tableName}" update requires at least one field to set.`
+  );
+};
+
+const assertExpectedVersionMatch = <TTable extends AnyStoreTable>(
+  table: TTable,
+  id: string | number,
+  existing: EntityOf<TTable>,
+  expectedVersion?: number
+): void => {
+  if (!table.versioned || expectedVersion === undefined) {
+    return;
+  }
+
+  const currentVersion = versionFromEntity(table, existing);
+  if (currentVersion !== expectedVersion) {
+    throw versionConflictError(table.name, id, expectedVersion, currentVersion);
+  }
+};
+
+const applyVersionedUpdateFields = <TTable extends AnyStoreTable>(
+  table: TTable,
+  existing: EntityOf<TTable>,
+  userFields: Record<string, unknown>
+): Record<string, unknown> => {
+  const fields = applyGeneratedUpdateFields(table, userFields);
+  return table.versioned
+    ? {
+        ...fields,
+        [versionFieldName]: versionFromEntity(table, existing) + 1,
+      }
+    : fields;
+};
+
+const resolveUpsertWithoutPatch = <
+  TTable extends AnyStoreTable,
+  TIdentifier extends StoreIdentifierOf<TTable>,
+>(
+  table: TTable,
+  identifier: TIdentifier,
+  input: Record<string, unknown>,
+  expectedVersion: number | undefined,
+  readEntity: (id: TIdentifier) => EntityOf<TTable> | null,
+  insertEntity: (input: Record<string, unknown>) => EntityOf<TTable>
+): EntityOf<TTable> => {
+  const existing = readEntity(identifier);
+  if (existing === null) {
+    if (expectedVersion !== undefined) {
+      throw versionConflictError(
+        table.name,
+        identifier as string | number,
+        expectedVersion,
+        null
+      );
+    }
+
+    return insertEntity(input);
+  }
+
+  assertExpectedVersionMatch(
+    table,
+    identifier as string | number,
+    existing,
+    expectedVersion
+  );
+  return existing;
+};
+
+const resolveUpsertAfterMissingUpdate = <
+  TTable extends AnyStoreTable,
+  TIdentifier extends StoreIdentifierOf<TTable>,
+>(
+  table: TTable,
+  identifier: TIdentifier,
+  input: Record<string, unknown>,
+  expectedVersion: number | undefined,
+  insertEntity: (input: Record<string, unknown>) => EntityOf<TTable>
+): EntityOf<TTable> => {
+  if (expectedVersion !== undefined) {
+    throw versionConflictError(
+      table.name,
+      identifier as string | number,
+      expectedVersion,
+      null
+    );
+  }
+
+  return insertEntity(input);
 };
 
 interface VisitFrame {
@@ -505,16 +669,26 @@ const createWritableAccessor = <
 
   const updateEntity = (
     id: Identifier,
-    input: Record<string, unknown>
+    input: Record<string, unknown>,
+    expectedVersion?: number
   ): EntityOf<Table> | null => {
-    const userFields = normalizeWriteInput(input);
-    if (Object.keys(userFields).length === 0) {
-      throw new ValidationError(
-        `Store table "${definitionTable.name}" update requires at least one field to set.`
-      );
+    const userFields = requireUpdateFields(definitionTable.name, input);
+    const existing = readEntity(id);
+    if (existing === null) {
+      return null;
     }
 
-    const fields = applyGeneratedUpdateFields(definitionTable, userFields);
+    assertExpectedVersionMatch(
+      definitionTable,
+      id as string | number,
+      existing,
+      expectedVersion
+    );
+    const fields = applyVersionedUpdateFields(
+      definitionTable,
+      existing,
+      userFields
+    );
     const row = db
       .update(drizzleTable)
       .set(fields as never)
@@ -538,7 +712,9 @@ const createWritableAccessor = <
     Object.fromEntries(
       Object.entries(input).filter(
         ([field, value]) =>
-          field !== definitionTable.identity && value !== undefined
+          field !== definitionTable.identity &&
+          field !== versionFieldName &&
+          value !== undefined
       )
     );
 
@@ -546,17 +722,42 @@ const createWritableAccessor = <
     const identifier = input[definitionTable.identity] as
       | Identifier
       | undefined;
+    const expectedVersion = definitionTable.versioned
+      ? expectedVersionFromInput(input)
+      : undefined;
 
     if (identifier === undefined) {
+      if (expectedVersion !== undefined) {
+        throw new ValidationError(
+          `Store table "${definitionTable.name}" cannot accept an expected version without an identity during upsert.`
+        );
+      }
+
       return insertEntity(input);
     }
 
     const patch = patchFromUpsert(input);
     if (Object.keys(patch).length === 0) {
-      return readEntity(identifier) ?? insertEntity(input);
+      return resolveUpsertWithoutPatch(
+        definitionTable,
+        identifier,
+        input,
+        expectedVersion,
+        readEntity,
+        insertEntity
+      );
     }
 
-    return updateEntity(identifier, patch) ?? insertEntity(input);
+    return (
+      updateEntity(identifier, patch, expectedVersion) ??
+      resolveUpsertAfterMissingUpdate(
+        definitionTable,
+        identifier,
+        input,
+        expectedVersion,
+        insertEntity
+      )
+    );
   };
 
   return {

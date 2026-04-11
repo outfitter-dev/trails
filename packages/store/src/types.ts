@@ -25,9 +25,18 @@ export type StoreFieldKey<TSchema extends StoreObjectSchema> = Extract<
   string
 >;
 
+type VersionedSchema<
+  TSchema extends StoreObjectSchema,
+  TVersioned extends boolean | undefined,
+> = TVersioned extends true
+  ? TSchema extends z.ZodObject<infer TShape>
+    ? z.ZodObject<TShape & { version: z.ZodNumber }>
+    : never
+  : TSchema;
+
 type GeneratedFieldNames<
   TSchema extends StoreObjectSchema,
-  TGenerated extends readonly StoreFieldKey<TSchema>[] | undefined,
+  TGenerated extends readonly string[] | undefined,
 > = TGenerated extends readonly StoreFieldKey<TSchema>[]
   ? TGenerated[number]
   : never;
@@ -41,8 +50,8 @@ type GeneratedFieldNames<
  */
 export type StoreFixtureInput<
   TSchema extends StoreObjectSchema,
-  TGenerated extends readonly StoreFieldKey<TSchema>[] | undefined =
-    | readonly StoreFieldKey<TSchema>[]
+  TGenerated extends readonly string[] | undefined =
+    | readonly string[]
     | undefined,
 > = Omit<
   z.input<TSchema>,
@@ -60,8 +69,8 @@ export type StoreFixtureInput<
  */
 export type StoreFixtureRow<
   TSchema extends StoreObjectSchema,
-  TGenerated extends readonly StoreFieldKey<TSchema>[] | undefined =
-    | readonly StoreFieldKey<TSchema>[]
+  TGenerated extends readonly string[] | undefined =
+    | readonly string[]
     | undefined,
 > = Omit<
   z.output<TSchema>,
@@ -90,8 +99,12 @@ export interface StoreTableInput<
   TGenerated extends readonly StoreFieldKey<TSchema>[] | undefined =
     | readonly StoreFieldKey<TSchema>[]
     | undefined,
+  TVersioned extends boolean | undefined = boolean | undefined,
 > {
-  readonly fixtures?: readonly StoreFixtureInput<TSchema, TGenerated>[];
+  readonly fixtures?: readonly StoreFixtureInput<
+    VersionedSchema<TSchema, TVersioned>,
+    GeneratedFieldsOfShape<TSchema, TGenerated, TVersioned>
+  >[];
   readonly generated?: TGenerated;
   readonly identity?: StoreFieldKey<TSchema>;
   readonly indexed?: readonly StoreFieldKey<TSchema>[];
@@ -102,6 +115,7 @@ export interface StoreTableInput<
   >;
   readonly schema: TSchema;
   readonly search?: StoreSearchDefinition;
+  readonly versioned?: TVersioned;
 }
 
 /**
@@ -111,17 +125,48 @@ export type StoreTablesInput = Record<
   string,
   StoreTableInput<
     StoreObjectSchema,
-    readonly StoreFieldKey<StoreObjectSchema>[] | undefined
+    readonly StoreFieldKey<StoreObjectSchema>[] | undefined,
+    boolean | undefined
   >
+>;
+
+type DeclaredGeneratedFieldsOfInput<TInput extends StoreTableInput> =
+  TInput['generated'] extends readonly StoreFieldKey<TInput['schema']>[]
+    ? TInput['generated']
+    : readonly [];
+
+type GeneratedFieldsOfShape<
+  TSchema extends StoreObjectSchema,
+  TGenerated extends readonly StoreFieldKey<TSchema>[] | undefined,
+  TVersioned extends boolean | undefined,
+> = TVersioned extends true
+  ? readonly [
+      ...(TGenerated extends readonly StoreFieldKey<TSchema>[]
+        ? TGenerated
+        : readonly []),
+      'version',
+    ]
+  : TGenerated extends readonly StoreFieldKey<TSchema>[]
+    ? TGenerated
+    : readonly [];
+
+type VersionedFieldsOfInput<TInput extends StoreTableInput> =
+  TInput['versioned'] extends true ? true : false;
+
+type SchemaOfInput<TInput extends StoreTableInput> = VersionedSchema<
+  TInput['schema'],
+  VersionedFieldsOfInput<TInput>
 >;
 
 /**
  * Preserve generated fields when present, otherwise normalize to an empty tuple.
  */
 export type GeneratedFieldsOfInput<TInput extends StoreTableInput> =
-  TInput['generated'] extends readonly StoreFieldKey<TInput['schema']>[]
-    ? TInput['generated']
-    : readonly [];
+  GeneratedFieldsOfShape<
+    TInput['schema'],
+    DeclaredGeneratedFieldsOfInput<TInput>,
+    VersionedFieldsOfInput<TInput>
+  >;
 
 /**
  * Preserve the authored identity field.
@@ -166,11 +211,11 @@ export type ReferencesOfInput<TInput extends StoreTableInput> =
  */
 export type FixturesOfInput<TInput extends StoreTableInput> =
   TInput['fixtures'] extends readonly StoreFixtureInput<
-    TInput['schema'],
+    SchemaOfInput<TInput>,
     GeneratedFieldsOfInput<TInput>
   >[]
     ? readonly StoreFixtureRow<
-        TInput['schema'],
+        SchemaOfInput<TInput>,
         GeneratedFieldsOfInput<TInput>
       >[]
     : readonly [];
@@ -192,9 +237,10 @@ export interface StoreTable<
   readonly name: TName;
   readonly primaryKey: IdentityFieldOfInput<TInput>;
   readonly references: ReferencesOfInput<TInput>;
-  readonly schema: TInput['schema'];
+  readonly schema: SchemaOfInput<TInput>;
   readonly search?: TInput['search'];
   readonly updateSchema: StoreObjectSchema;
+  readonly versioned: VersionedFieldsOfInput<TInput>;
 }
 
 /**
@@ -238,6 +284,7 @@ export interface AnyStoreTable {
   readonly schema: StoreObjectSchema;
   readonly search?: StoreSearchDefinition | undefined;
   readonly updateSchema: StoreObjectSchema;
+  readonly versioned: boolean;
 }
 
 /**
