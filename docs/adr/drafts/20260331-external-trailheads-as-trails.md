@@ -786,7 +786,7 @@ Rig lock state rolls up into the `rigs` section of `trails.lock`:
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- rigged trails execute through the same pipeline
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- rigged trails get trailhead derivation for free
 - [ADR: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) (draft) -- rigged SDK wrapper packs use `visibility: 'internal'`
-- [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) -- `deriveTrail()` and `ingest()` factory that produces trails from external input shapes
+- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- `deriveTrail()` and `ingest()` factory that produces trails from external input shapes
 - [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) -- the packaging model for connector-contributed capabilities that rig packs may use
 - ADR: Packs as Namespace Boundaries (draft) -- rigged trails compose into packs with the same layering pattern
 - ADR: Pack Provisioning (draft) -- rig packs distribute as resources with the same lifecycle

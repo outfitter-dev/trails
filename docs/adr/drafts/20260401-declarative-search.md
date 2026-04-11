@@ -200,7 +200,7 @@ Cross-table search fields (e.g., `'files.content'` declared on `gists`) require 
 
 ### 5. Trail factories auto-generate a search trail
 
-When search is declared on a store entity and the developer uses `crud()` (see the [`deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) draft), a search trail is automatically included:
+When search is declared on a store entity and the developer uses `crud()` (see [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md)), a search trail is automatically included:
 
 ```typescript
 export const [create, show, list, update, remove, search] = crud(db.gists, {
@@ -297,7 +297,7 @@ This is explicitly deferred. The initial implementation focuses on single-entity
 - [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) -- the store abstraction that search extends
 - [ADR-0009: First-Class Resources](../0009-first-class-resources.md) -- the resource pattern for embedding providers
 - [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) -- contours provide the domain object schemas that search declarations annotate
-- [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) -- the `crud()` factory that auto-generates search trails
+- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- the `crud()` factory that auto-generates search trails
 - [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) -- the store schema abstraction that search declarations extend
 - ADR: Drizzle Store Connector (draft) -- the connector that implements FTS5 and vector indexing
 - [Architecture](../../architecture.md) -- information categories, right-side hexagonal connectors

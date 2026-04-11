@@ -240,7 +240,7 @@ Register the bundle and you get the resources *and* the health trails. The conne
 - [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md) — the first connector, now understood as a single-resource bundle
 - [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector bundles
 - [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store schemas that bundle resources bind to concrete backends
-- [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) — trail factories that produce trails carried by pack bundles
+- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) — trail factories that produce trails carried by pack bundles
 - [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) — contours feed store schemas within bundles
 - [Tenets: One write, many reads](../../tenets.md) — bundles distribute authored resources to multiple consumers
 - [Tenets: The bar for new primitives](../../tenets.md#the-bar-for-new-primitives) — bundles are a pattern, not a new primitive
