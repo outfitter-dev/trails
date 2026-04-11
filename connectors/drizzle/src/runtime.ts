@@ -21,6 +21,7 @@ import type {
   StoreAccessMode,
   StoreFieldKey,
   StoreIdentifierOf,
+  StoreTableAccessor,
   StoreTableConnection,
   StoreTablesInput,
   UpsertOf,
@@ -30,6 +31,7 @@ import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import type { AnySQLiteColumn, AnySQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { z } from 'zod';
+import type { TrailContext } from '@ontrails/core';
 
 import {
   createSqliteSchemaStatements,
@@ -1022,6 +1024,154 @@ const createReadonlyMockConnection = <TStore extends AnyStoreDefinition>(
   }
 };
 
+type BoundFireFn = NonNullable<TrailContext['fire']>;
+
+/**
+ * Best-effort signal emission after a successful DB write.
+ *
+ * Signal errors are caught and logged rather than re-thrown so that a
+ * listener failure does not mask a successful database mutation. The
+ * caller already holds the write result; surfacing a signal error here
+ * would discard it and confuse error handling upstream.
+ */
+const fireDerivedSignal = async <TTable extends AnyStoreTable>(
+  fire: BoundFireFn,
+  signalId: string,
+  entity: EntityOf<TTable>
+): Promise<void> => {
+  try {
+    const fired = await fire(signalId, entity);
+    if (fired.isErr()) {
+      console.warn(
+        `[drizzle] signal "${signalId}" emission failed:`,
+        fired.error
+      );
+    }
+  } catch (error) {
+    console.warn(`[drizzle] signal "${signalId}" emission threw:`, error);
+  }
+};
+
+const inputIdentity = <TTable extends AnyStoreTable>(
+  table: TTable,
+  input: UpsertOf<TTable>
+): StoreIdentifierOf<TTable> | undefined =>
+  input[table.identity as keyof UpsertOf<TTable> & string] as
+    | StoreIdentifierOf<TTable>
+    | undefined;
+
+const changedEntity = <TTable extends AnyStoreTable>(
+  previous: EntityOf<TTable> | null,
+  next: EntityOf<TTable> | null
+): next is EntityOf<TTable> =>
+  previous !== null && next !== null && !Bun.deepEquals(previous, next);
+
+const bindWritableAccessorSignals = <TTable extends AnyStoreTable>(
+  table: TTable,
+  accessor: StoreTableAccessor<TTable>,
+  fire: BoundFireFn
+): StoreTableAccessor<TTable> =>
+  Object.freeze({
+    ...accessor,
+    async insert(input: InsertOf<TTable>) {
+      const created = await accessor.insert(input);
+      await fireDerivedSignal(fire, table.signals.created.id, created);
+      return created;
+    },
+    async remove(id: StoreIdentifierOf<TTable>) {
+      // Snapshot taken before delete. May be stale under concurrent writes
+      // since StoreAccessor.remove returns `{ deleted: boolean }` without a
+      // post-delete returning clause. Acceptable for signal consumers that
+      // tolerate eventual consistency; revisit if strict ordering is needed.
+      const existing = await accessor.get(id);
+      const removed = await accessor.remove(id);
+      if (removed.deleted && existing !== null) {
+        await fireDerivedSignal(fire, table.signals.removed.id, existing);
+      }
+      return removed;
+    },
+    async update(id: StoreIdentifierOf<TTable>, input: UpdateOf<TTable>) {
+      const existing = await accessor.get(id);
+      const updated = await accessor.update(id, input);
+      // On versioned tables the version column auto-increments on every
+      // write, so `changedEntity` will always detect a diff even when the
+      // caller-supplied fields are identical. This means `updated` fires on
+      // every successful update for versioned tables — expected behavior,
+      // not a bug. Consumers should treat the signal as "a write occurred"
+      // rather than "user-visible data changed."
+      if (changedEntity(existing, updated)) {
+        await fireDerivedSignal(fire, table.signals.updated.id, updated);
+      }
+      return updated;
+    },
+    async upsert(input: UpsertOf<TTable>) {
+      const existingId = inputIdentity(table, input);
+      const existing =
+        existingId === undefined ? null : await accessor.get(existingId);
+      const written = await accessor.upsert(input);
+
+      if (existing === null) {
+        await fireDerivedSignal(fire, table.signals.created.id, written);
+        return written;
+      }
+
+      if (changedEntity(existing, written)) {
+        await fireDerivedSignal(fire, table.signals.updated.id, written);
+      }
+      return written;
+    },
+  });
+
+const bindWritableConnectionSignals = <TStore extends AnyStoreDefinition>(
+  definition: TStore,
+  connection: DrizzleStoreConnection<TStore>,
+  fire: BoundFireFn
+): DrizzleStoreConnection<TStore> => {
+  const bound = {
+    query: connection.query,
+  } as DrizzleStoreConnection<TStore>;
+
+  for (const tableName of storeTableNames(definition)) {
+    const table = definition.tables[tableName];
+    const accessor = connection[tableName];
+    if (table === undefined || accessor === undefined) {
+      continue;
+    }
+
+    Object.defineProperty(bound, tableName, {
+      enumerable: true,
+      value: bindWritableAccessorSignals(
+        table,
+        accessor as StoreTableAccessor<typeof table>,
+        fire
+      ),
+    });
+  }
+
+  return Object.freeze(bound);
+};
+
+const bindResourceConnection = <
+  TStore extends AnyStoreDefinition,
+  TConnection,
+  TAccess extends StoreAccessMode,
+>(
+  access: TAccess,
+  definition: TStore,
+  connection: TConnection,
+  fire: TrailContext['fire']
+): TConnection => {
+  if (access !== 'readwrite' || fire === undefined) {
+    return connection;
+  }
+
+  return bindWritableConnectionSignals(
+    definition,
+    connection as DrizzleStoreConnection<TStore>,
+    fire
+  ) as TConnection;
+};
+
 const buildResourceShape = <
   TStore extends AnyStoreDefinition,
   TConnection,
@@ -1035,6 +1185,10 @@ const buildResourceShape = <
   Object.freeze({
     ...value,
     access,
+    from(ctx: TrailContext) {
+      return bindResourceConnection(access, store, value.from(ctx), ctx.fire);
+    },
+    signals: store.signals,
     store,
     tables,
   });

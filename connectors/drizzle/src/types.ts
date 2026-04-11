@@ -59,6 +59,7 @@ export interface DrizzleStoreResourceShape<
 > {
   readonly access: TAccess;
   readonly store: TStore;
+  readonly signals: TStore['signals'];
   readonly tables: DrizzleStoreSchema<TStore>;
   from(ctx: Parameters<Resource<TConnection>['from']>[0]): TConnection;
   readonly kind: 'resource';

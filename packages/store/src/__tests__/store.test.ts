@@ -49,6 +49,30 @@ const createStoreDefinition = () =>
     },
   });
 
+const expectGistSignals = (
+  table: ReturnType<typeof createStoreDefinition>['tables']['gists']
+) => {
+  expect(table.signals.created.id).toBe('gists.created');
+  expect(table.signals.updated.id).toBe('gists.updated');
+  expect(table.signals.removed.id).toBe('gists.removed');
+  expect(
+    table.signals.created.payload.parse({
+      createdAt: '2026-04-03T12:00:00.000Z',
+      id: 'gist-1',
+      ownerId: 'user-1',
+      updatedAt: '2026-04-03T12:00:00.000Z',
+    })
+  ).toEqual({
+    createdAt: '2026-04-03T12:00:00.000Z',
+    description: null,
+    id: 'gist-1',
+    isPublic: true,
+    ownerId: 'user-1',
+    tags: [],
+    updatedAt: '2026-04-03T12:00:00.000Z',
+  });
+};
+
 const expectNormalizedGistTable = (
   table: ReturnType<typeof createStoreDefinition>['tables']['gists']
 ) => {
@@ -60,6 +84,7 @@ const expectNormalizedGistTable = (
   expect(table.indexes).toEqual(['ownerId']);
   expect(table.references).toEqual({ ownerId: 'users' });
   expect(table.search).toEqual({ fts: true });
+  expectGistSignals(table);
 };
 
 const expectDerivedSchemas = (
@@ -184,6 +209,14 @@ describe('@ontrails/store', () => {
     const db = createStoreDefinition();
 
     expect(db.kind).toBe('tabular');
+    expect(db.signals.map((candidate) => candidate.id)).toEqual([
+      'gists.created',
+      'gists.updated',
+      'gists.removed',
+      'users.created',
+      'users.updated',
+      'users.removed',
+    ]);
     expect(db.tableNames).toEqual(['gists', 'users']);
     expect(db.type).toBe('store');
 
@@ -266,6 +299,24 @@ describe('@ontrails/store', () => {
     expect(db.tables.gists.schema.parse(samples.entity)).toEqual(
       samples.entity
     );
+    expect(
+      db.tables.gists.signals.updated.payload.parse({
+        createdAt: '2026-04-03T12:00:00.000Z',
+        id: 'gist-1',
+        ownerId: 'user-1',
+        updatedAt: '2026-04-03T12:00:00.000Z',
+        version: 2,
+      })
+    ).toEqual({
+      createdAt: '2026-04-03T12:00:00.000Z',
+      description: null,
+      id: 'gist-1',
+      isPublic: true,
+      ownerId: 'user-1',
+      tags: [],
+      updatedAt: '2026-04-03T12:00:00.000Z',
+      version: 2,
+    });
     expectVersionedFixtureDefaults(db);
   });
 

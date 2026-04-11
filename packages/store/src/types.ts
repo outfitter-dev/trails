@@ -1,3 +1,4 @@
+import type { Signal } from '@ontrails/core';
 import type { z } from 'zod';
 
 /**
@@ -90,6 +91,15 @@ export type StoreFixtureRow<
  * here and interpreted by a concrete connector later.
  */
 export type StoreSearchDefinition = Readonly<Record<string, unknown>>;
+
+/**
+ * Change signals projected from one store entity definition.
+ */
+export interface StoreTableSignals<TPayload> {
+  readonly created: Signal<TPayload>;
+  readonly updated: Signal<TPayload>;
+  readonly removed: Signal<TPayload>;
+}
 
 /**
  * Shared fields for all store table input variants.
@@ -266,6 +276,7 @@ export interface StoreTable<
   readonly references: ReferencesOfInput<TInput>;
   readonly schema: SchemaOfInput<TInput>;
   readonly search?: TInput['search'];
+  readonly signals: StoreTableSignals<z.output<SchemaOfInput<TInput>>>;
   readonly updateSchema: StoreObjectSchema;
   readonly versioned: VersionedFieldsOfInput<TInput>;
 }
@@ -280,6 +291,7 @@ export interface StoreDefinition<
     name: TName
   ) => StoreTable<TTables[TName], TName>;
   readonly kind: StoreKind;
+  readonly signals: readonly Signal<unknown>[];
   readonly tableNames: readonly Extract<keyof TTables, string>[];
   readonly tables: {
     readonly [TName in keyof TTables]: StoreTable<
@@ -310,6 +322,7 @@ export interface AnyStoreTable {
   readonly references: Readonly<Partial<Record<string, string>>>;
   readonly schema: StoreObjectSchema;
   readonly search?: StoreSearchDefinition | undefined;
+  readonly signals: StoreTableSignals<unknown>;
   readonly updateSchema: StoreObjectSchema;
   readonly versioned: boolean;
 }
@@ -319,6 +332,7 @@ export interface AnyStoreTable {
  */
 export interface AnyStoreDefinition {
   readonly kind: StoreKind;
+  readonly signals: readonly Signal<unknown>[];
   readonly tableNames: readonly string[];
   readonly tables: Readonly<Record<string, AnyStoreTable>>;
   readonly type: 'store';
