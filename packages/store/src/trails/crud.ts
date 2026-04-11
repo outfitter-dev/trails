@@ -1,16 +1,10 @@
-import {
-  contour,
-  InternalError,
-  isTrailsError,
-  NotFoundError,
-  Result,
-} from '@ontrails/core';
 import type {
   AnyContour,
   Implementation,
   Resource,
   Trail,
 } from '@ontrails/core';
+import { contour } from '@ontrails/core';
 import { deriveTrail } from '@ontrails/core/trails';
 import type { z } from 'zod';
 
@@ -21,9 +15,7 @@ import type {
   InsertOf,
   StoreAccessor,
   StoreIdentifierOf,
-  StoreTableAccessor,
   UpdateOf,
-  UpsertOf,
 } from '../types.js';
 
 type IdentityInputOf<TTable extends AnyStoreTable> = Readonly<
@@ -97,16 +89,13 @@ export interface CrudOptions<TTable extends AnyStoreTable> {
 const contourCache = new WeakMap<AnyStoreTable, AnyContour>();
 
 /**
- * Build a contour view of a store table.
+ * Build the contour shape view of a store table.
  *
- * Contour validates every example against the schema shape passed in, so
- * the shape must match how fixtures are actually shaped. Store fixtures may
- * omit framework-generated fields (`createdAt`, `version`, ...) because the
- * connector populates them, so we mirror `fixtureSchema`'s treatment of
- * generated fields: generated, non-identity fields are made optional; the
- * identity field stays required because read/delete/update all derive their
- * input from it. Previously this helper passed `table.schema.shape` directly
- * and crashed when a fixture omitted `createdAt` or another generated field.
+ * Generated non-identity fields are wrapped in `.optional()` so fixtures can
+ * omit values the connector populates (e.g. `createdAt`, `version`). The
+ * identity field stays required because read/update/delete all derive their
+ * input from it. This mirrors `fixtureSchema` at runtime without needing a
+ * separate schema instance.
  */
 const buildContourShape = (table: AnyStoreTable): Record<string, z.ZodType> => {
   const shape = table.schema.shape as unknown as Record<string, z.ZodType>;
@@ -127,14 +116,13 @@ const buildContourShape = (table: AnyStoreTable): Record<string, z.ZodType> => {
   return next;
 };
 
-const createTableContour = <TTable extends AnyStoreTable>(
-  table: TTable
-): AnyContour => {
+const createTableContour = (table: AnyStoreTable): AnyContour => {
   const cached = contourCache.get(table);
   if (cached) {
     return cached;
   }
 
+  // oxlint-disable-next-line @typescript-eslint/consistent-type-assertions -- `contour()` infers a fresh typed Contour from the untyped shape produced by `buildContourShape`, and we re-widen to `AnyContour` at this one cache boundary. The runtime construction is provably correct and TypeScript cannot bridge zod shape inference in one hop.
   const derived = contour(table.name, buildContourShape(table), {
     examples: table.fixtures as readonly Record<string, unknown>[],
     identity: table.identity,
@@ -144,181 +132,134 @@ const createTableContour = <TTable extends AnyStoreTable>(
   return derived;
 };
 
-const resolveAccessor = <
+const normalizeExampleForOutput = <TInput, TOutput>(
+  example: TrailExampleOf<TInput, TOutput>,
+  output: z.ZodType<TOutput>
+): TrailExampleOf<TInput, TOutput> | undefined => {
+  if (example.expected === undefined) {
+    return example;
+  }
+
+  const parsed = output.safeParse(example.expected);
+  return parsed.success
+    ? {
+        ...example,
+        expected: parsed.data,
+      }
+    : undefined;
+};
+
+const normalizeExamplesForOutput = <TInput, TOutput>(
+  base: Trail<TInput, TOutput>,
+  output: z.ZodType<TOutput>
+): Trail<TInput, TOutput>['examples'] => {
+  const { examples } = base;
+  if (examples === undefined || examples.length === 0) {
+    return undefined;
+  }
+
+  const next = examples
+    .map((example) => normalizeExampleForOutput(example, output))
+    .filter(
+      (example): example is TrailExampleOf<TInput, TOutput> =>
+        example !== undefined
+    );
+
+  return next.length === 0
+    ? undefined
+    : (Object.freeze(next) as Trail<TInput, TOutput>['examples']);
+};
+
+const finalizeTrail = <TInput, TOutput>(
+  base: Trail<TInput, TOutput>,
+  options: {
+    readonly blaze?: Implementation<TInput, TOutput> | undefined;
+    readonly output?: z.ZodType<TOutput> | undefined;
+  } = {}
+): Trail<TInput, TOutput> =>
+  Object.freeze({
+    ...base,
+    ...(options.blaze === undefined ? {} : { blaze: options.blaze }),
+    ...(options.output === undefined
+      ? {}
+      : {
+          examples: normalizeExamplesForOutput(base, options.output),
+          output: options.output,
+        }),
+  }) as Trail<TInput, TOutput>;
+
+const deriveCrudBaseTrails = <
   TTable extends AnyStoreTable,
   TConnection extends CrudConnection<TTable>,
 >(
   table: TTable,
-  resource: Resource<TConnection>,
-  ctx: Parameters<Resource<TConnection>['from']>[0]
-): StoreAccessor<TTable> => {
-  const connection = resource.from(ctx);
-  return connection[table.name as keyof TConnection] as StoreAccessor<TTable>;
-};
-
-const asError = (error: unknown): Error =>
-  error instanceof Error ? error : new Error(String(error));
-
-const mapCrudError = (
-  tableName: string,
-  operation: 'create' | 'delete' | 'list' | 'read' | 'update',
-  error: unknown
-): Error => {
-  if (isTrailsError(error)) {
-    return error;
-  }
-
-  const resolved = asError(error);
-  return new InternalError(
-    `crud("${tableName}").${operation} failed: ${resolved.message}`,
-    { cause: resolved }
-  );
-};
-
-const missingEntityError = <TTable extends AnyStoreTable>(
-  table: TTable,
-  id: StoreIdentifierOf<TTable>
-): NotFoundError =>
-  new NotFoundError(
-    `Store table "${table.name}" could not find entity "${String(id)}"`
-  );
-
-const hasInsert = <TTable extends AnyStoreTable>(
-  accessor: StoreAccessor<TTable>
-): accessor is StoreTableAccessor<TTable> =>
-  'insert' in accessor && typeof accessor.insert === 'function';
-
-const hasUpdate = <TTable extends AnyStoreTable>(
-  accessor: StoreAccessor<TTable>
-): accessor is StoreTableAccessor<TTable> =>
-  'update' in accessor && typeof accessor.update === 'function';
-
-const splitUpdateInput = <TTable extends AnyStoreTable>(
-  table: TTable,
-  input: IdentityInputOf<TTable> & UpdateOf<TTable>
-): {
-  readonly id: StoreIdentifierOf<TTable>;
-  readonly patch: UpdateOf<TTable>;
-} => {
-  const record = input as Record<string, unknown>;
-  const id = record[table.identity] as StoreIdentifierOf<TTable>;
-  const patch = Object.fromEntries(
-    Object.entries(record).filter(([field]) => field !== table.identity)
-  );
+  resource: Resource<TConnection>
+): CrudBaseTrails<TTable> => {
+  const entityContour = createTableContour(table);
+  const generated = table.generated as readonly string[];
 
   return {
-    id,
-    patch: patch as UpdateOf<TTable>,
+    createBase: deriveTrail(entityContour, 'create', {
+      generated,
+      resource,
+    }) as unknown as CreateTrailOf<TTable>,
+    deleteBase: deriveTrail(entityContour, 'delete', {
+      resource,
+    }) as unknown as DeleteTrailOf<TTable>,
+    listBase: deriveTrail(entityContour, 'list', {
+      resource,
+    }) as unknown as ListTrailOf<TTable>,
+    readBase: deriveTrail(entityContour, 'read', {
+      resource,
+    }) as unknown as ReadTrailOf<TTable>,
+    // The `update` blaze synthesized by `deriveTrail` handles the partial-patch
+    // concern: when the accessor lacks a native `update`, the fallback path in
+    // `derive-trail.ts` (`updateViaReadAndUpsert`) reads the current entity,
+    // merges the patch, strips the `version` field, then calls `upsert` with
+    // the full merged payload — so no fields are silently lost.
+    updateBase: deriveTrail(entityContour, 'update', {
+      generated,
+      resource,
+    }) as unknown as UpdateTrailOf<TTable>,
   };
 };
 
-const defaultCreateBlaze =
-  <TTable extends AnyStoreTable, TConnection extends CrudConnection<TTable>>(
-    table: TTable,
-    resource: Resource<TConnection>
-  ): Implementation<InsertOf<TTable>, EntityOf<TTable>> =>
-  async (input, ctx) => {
-    try {
-      const accessor = resolveAccessor(table, resource, ctx);
-      const created = hasInsert(accessor)
-        ? await accessor.insert(input)
-        : await accessor.upsert(input as unknown as UpsertOf<TTable>);
-
-      return Result.ok(created);
-    } catch (error) {
-      return Result.err(mapCrudError(table.name, 'create', error));
-    }
-  };
-
-const defaultReadBlaze =
-  <TTable extends AnyStoreTable, TConnection extends CrudConnection<TTable>>(
-    table: TTable,
-    resource: Resource<TConnection>
-  ): Implementation<IdentityInputOf<TTable>, EntityOf<TTable>> =>
-  async (input, ctx) => {
-    try {
-      const id = input[
-        table.identity as keyof typeof input
-      ] as StoreIdentifierOf<TTable>;
-      const entity = await resolveAccessor(table, resource, ctx).get(id);
-
-      return entity === null
-        ? Result.err(missingEntityError(table, id))
-        : Result.ok(entity);
-    } catch (error) {
-      return Result.err(mapCrudError(table.name, 'read', error));
-    }
-  };
-
-const defaultUpdateBlaze =
-  <TTable extends AnyStoreTable, TConnection extends CrudConnection<TTable>>(
-    table: TTable,
-    resource: Resource<TConnection>
-  ): Implementation<
-    IdentityInputOf<TTable> & UpdateOf<TTable>,
-    EntityOf<TTable>
-  > =>
-  async (input, ctx) => {
-    try {
-      const accessor = resolveAccessor(table, resource, ctx);
-      if (hasUpdate(accessor)) {
-        const { id, patch } = splitUpdateInput(table, input);
-        const updated = await accessor.update(id, patch);
-
-        return updated === null
-          ? Result.err(missingEntityError(table, id))
-          : Result.ok(updated);
-      }
-
-      return Result.ok(
-        await accessor.upsert(input as unknown as UpsertOf<TTable>)
-      );
-    } catch (error) {
-      return Result.err(mapCrudError(table.name, 'update', error));
-    }
-  };
-
-const defaultDeleteBlaze =
-  <TTable extends AnyStoreTable, TConnection extends CrudConnection<TTable>>(
-    table: TTable,
-    resource: Resource<TConnection>
-  ): Implementation<IdentityInputOf<TTable>, undefined> =>
-  async (input, ctx) => {
-    try {
-      const id = input[
-        table.identity as keyof typeof input
-      ] as StoreIdentifierOf<TTable>;
-      const removed = await resolveAccessor(table, resource, ctx).remove(id);
-
-      return removed.deleted
-        ? Result.ok()
-        : Result.err(missingEntityError(table, id));
-    } catch (error) {
-      return Result.err(mapCrudError(table.name, 'delete', error));
-    }
-  };
-
-const defaultListBlaze =
-  <TTable extends AnyStoreTable, TConnection extends CrudConnection<TTable>>(
-    table: TTable,
-    resource: Resource<TConnection>
-  ): Implementation<FiltersOf<TTable>, EntityOf<TTable>[]> =>
-  async (input, ctx) => {
-    try {
-      const listed = await resolveAccessor(table, resource, ctx).list(input);
-      return Result.ok([...listed]);
-    } catch (error) {
-      return Result.err(mapCrudError(table.name, 'list', error));
-    }
-  };
+const buildCrudTrails = <TTable extends AnyStoreTable>(
+  baseTrails: CrudBaseTrails<TTable>,
+  overrides: CrudBlazeOverrides<TTable>,
+  entityOutput: z.ZodType<EntityOf<TTable>>,
+  listOutput: z.ZodType<EntityOf<TTable>[]>
+): CrudTrails<TTable> =>
+  Object.freeze([
+    finalizeTrail(baseTrails.createBase, {
+      ...(overrides.create === undefined ? {} : { blaze: overrides.create }),
+      output: entityOutput,
+    }),
+    finalizeTrail(baseTrails.readBase, {
+      ...(overrides.read === undefined ? {} : { blaze: overrides.read }),
+      output: entityOutput,
+    }),
+    finalizeTrail(baseTrails.updateBase, {
+      ...(overrides.update === undefined ? {} : { blaze: overrides.update }),
+      output: entityOutput,
+    }),
+    overrides.delete === undefined
+      ? finalizeTrail(baseTrails.deleteBase)
+      : finalizeTrail(baseTrails.deleteBase, { blaze: overrides.delete }),
+    finalizeTrail(baseTrails.listBase, {
+      ...(overrides.list === undefined ? {} : { blaze: overrides.list }),
+      output: listOutput,
+    }),
+  ]) as CrudTrails<TTable>;
 
 /**
  * Produce the standard CRUD trail tuple for one normalized store table.
  *
  * The factory derives schemas, examples, resources, and contour linkage from
- * the table metadata, while defaulting the blaze layer to the connector-agnostic
- * store accessor contract. Per-operation blaze overrides stay available for
- * callers that need custom persistence behavior.
+ * the table metadata. Blazes default to the connector-agnostic store accessor
+ * contract via `deriveTrail()`'s single-resource synthesis path. Per-operation
+ * blaze overrides stay available for callers that need custom persistence
+ * behavior and are layered onto the derived trails in a single pass.
  */
 export const crud = <
   TTable extends AnyStoreTable,
@@ -328,36 +269,12 @@ export const crud = <
   resource: Resource<TConnection>,
   options: CrudOptions<TTable> = {}
 ): CrudTrails<TTable> => {
+  const overrides = options.blaze ?? {};
+  const baseTrails = deriveCrudBaseTrails(table, resource);
+  const entityOutput = table.schema as unknown as z.ZodType<EntityOf<TTable>>;
+  const listOutput = table.schema.array() as unknown as z.ZodType<
+    EntityOf<TTable>[]
+  >;
 
-  // The `as never` casts below are a follow-up from PR #150 reviewer
-  // feedback: `createTableContour` currently returns `AnyContour`, which
-  // erases the typed field names from `TTable['schema']`, so the typed
-  // `deriveTrail` argument must be coerced per call site. Replacing the
-  // coercion requires `createTableContour` to return a typed contour
-  // parameterized on the table's schema and identity — non-trivial and
-  // tracked as a separate refactor to land after the API stabilizes.
-  return Object.freeze([
-    deriveTrail(entityContour, 'create', {
-      blaze: options.blaze?.create ?? defaultCreateBlaze(table, resource),
-      generated,
-      resource,
-    } as never) as unknown as CreateTrailOf<TTable>,
-    deriveTrail(entityContour, 'read', {
-      blaze: options.blaze?.read ?? defaultReadBlaze(table, resource),
-      resource,
-    } as never) as unknown as ReadTrailOf<TTable>,
-    deriveTrail(entityContour, 'update', {
-      blaze: options.blaze?.update ?? defaultUpdateBlaze(table, resource),
-      generated,
-      resource,
-    } as never) as unknown as UpdateTrailOf<TTable>,
-    deriveTrail(entityContour, 'delete', {
-      blaze: options.blaze?.delete ?? defaultDeleteBlaze(table, resource),
-      resource,
-    } as never) as unknown as DeleteTrailOf<TTable>,
-    deriveTrail(entityContour, 'list', {
-      blaze: options.blaze?.list ?? defaultListBlaze(table, resource),
-      resource,
-    } as never) as unknown as ListTrailOf<TTable>,
-  ]) as CrudTrails<TTable>;
+  return buildCrudTrails(baseTrails, overrides, entityOutput, listOutput);
 };

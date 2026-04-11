@@ -116,6 +116,11 @@ export class InternalError extends TrailsError {
   readonly retryable = false as const;
 }
 
+export class DerivationError extends TrailsError {
+  readonly category = 'internal' as const;
+  readonly retryable = false as const;
+}
+
 export class AuthError extends TrailsError {
   readonly category = 'auth' as const;
   readonly retryable = false as const;

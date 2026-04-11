@@ -1,10 +1,19 @@
 import { z } from 'zod';
 
 import type { AnyContour } from '../contour.js';
+import {
+  DerivationError,
+  InternalError,
+  isTrailsError,
+  NotFoundError,
+} from '../errors.js';
 import { stripDefaultsFromShape } from '../internal/zod-wrappers.js';
 import type { AnyResource } from '../resource.js';
+import { Result } from '../result.js';
+import type { StoreAccessorProtocol } from '../store/accessor-protocol.js';
 import { trail } from '../trail.js';
 import type { Trail, TrailExample, TrailSpec } from '../trail.js';
+import type { Implementation, TrailContext } from '../types.js';
 
 /**
  * CRUD-shaped operations the base trail derivation helper understands.
@@ -87,6 +96,11 @@ export type DeriveTrailOutput<
 /**
  * Extra authored data accepted by `deriveTrail()` in addition to the
  * operation-derived contract pieces.
+ *
+ * `blaze` is optional for single-resource calls: when omitted, the helper
+ * synthesizes a default blaze that delegates to the resource's accessor via
+ * the structural {@link StoreAccessorProtocol}. When multiple resources are
+ * declared, an explicit `blaze` is required.
  */
 export interface DeriveTrailSpec<
   TContour extends AnyContour,
@@ -99,15 +113,32 @@ export interface DeriveTrailSpec<
     DeriveTrailInput<TContour, TOperation, TGenerated>,
     DeriveTrailOutput<TContour, TOperation>
   >,
-  'contours' | 'examples' | 'input' | 'intent' | 'output' | 'resources'
+  | 'blaze'
+  | 'contours'
+  | 'examples'
+  | 'input'
+  | 'intent'
+  | 'output'
+  | 'resources'
 > {
+  /**
+   * Implementation of the trail. Optional for single-resource calls: when
+   * omitted, the helper derives a default blaze from the resource accessor
+   * for standard CRUD operations.
+   */
+  readonly blaze?: Implementation<
+    DeriveTrailInput<TContour, TOperation, TGenerated>,
+    DeriveTrailOutput<TContour, TOperation>
+  >;
   /**
    * Server-managed fields that should not be writable through derived create
    * and update inputs.
    */
   readonly generated?: TGenerated;
   /**
-   * Resource dependency declared on the derived trail.
+   * Resource dependency declared on the derived trail. Pass a single
+   * resource for default-blaze synthesis, or an array for multi-resource
+   * trails that must provide an explicit `blaze`.
    */
   readonly resource: AnyResource | readonly AnyResource[];
 }
@@ -147,7 +178,7 @@ const asObjectSchema = (schema: z.ZodType): AnyObjectSchema =>
   schema as unknown as AnyObjectSchema;
 
 const unsupportedOperation = (operation: never): never => {
-  throw new TypeError(
+  throw new DerivationError(
     `Unsupported deriveTrail() operation: ${String(operation)}`
   );
 };
@@ -400,8 +431,323 @@ const deriveExamples = (
   );
 };
 
+// ---------------------------------------------------------------------------
+// Default-blaze synthesis
+// ---------------------------------------------------------------------------
+
+type GenericAccessor = StoreAccessorProtocol<
+  unknown,
+  unknown,
+  unknown,
+  unknown
+>;
+
+const wrapUnexpected = (
+  contourName: string,
+  operation: DeriveTrailOperation,
+  error: unknown
+): Error => {
+  if (isTrailsError(error)) {
+    return error;
+  }
+  const cause = error instanceof Error ? error : new Error(String(error));
+  return new InternalError(
+    `deriveTrail("${contourName}.${operation}") synthesized blaze failed: ${cause.message}`,
+    { cause }
+  );
+};
+
+const notFoundError = (contourName: string, id: unknown): NotFoundError =>
+  new NotFoundError(
+    `deriveTrail("${contourName}"): entity "${String(id)}" not found`
+  );
+
+const resolveAccessor = (
+  contour: AnyContour,
+  operation: DeriveTrailOperation,
+  resource: AnyResource,
+  ctx: TrailContext
+): GenericAccessor | Error => {
+  try {
+    const connection = resource.from(ctx) as
+      | Readonly<Record<string, GenericAccessor>>
+      | undefined;
+    if (connection === undefined || connection === null) {
+      return new InternalError(
+        `deriveTrail("${contour.name}.${operation}"): resource "${resource.id}" produced no connection`
+      );
+    }
+    const accessor = connection[contour.name];
+    if (accessor === undefined) {
+      return new InternalError(
+        `deriveTrail("${contour.name}.${operation}"): resource "${resource.id}" does not expose an accessor for "${contour.name}"`
+      );
+    }
+    return accessor;
+  } catch (error) {
+    return wrapUnexpected(contour.name, operation, error);
+  }
+};
+
+const extractIdentity = (contour: AnyContour, input: unknown): unknown => {
+  const record = input as Record<string, unknown>;
+  return record[contour.identity];
+};
+
+const callRead = async (
+  contour: AnyContour,
+  accessor: GenericAccessor,
+  input: unknown
+): Promise<Result<unknown, Error>> => {
+  if (typeof accessor.get !== 'function') {
+    return Result.err(
+      new InternalError(
+        `deriveTrail("${contour.name}.read"): accessor is missing a \`get\` method`
+      )
+    );
+  }
+  try {
+    const id = extractIdentity(contour, input);
+    const entity = await accessor.get(id);
+    if (entity === null || entity === undefined) {
+      return Result.err(notFoundError(contour.name, id));
+    }
+    return Result.ok(entity);
+  } catch (error) {
+    return Result.err(wrapUnexpected(contour.name, 'read', error));
+  }
+};
+
+const callCreate = async (
+  contour: AnyContour,
+  accessor: GenericAccessor,
+  input: unknown,
+  ctx: TrailContext
+): Promise<Result<unknown, Error>> => {
+  try {
+    if (typeof accessor.insert === 'function') {
+      const created = await accessor.insert(input);
+      return Result.ok(created);
+    }
+
+    // Fallback: tabular contract allows `upsert` when `insert` is absent.
+    // The warden flags this at build time via a pattern rule (trl-251).
+    ctx.logger?.debug(
+      `deriveTrail("${contour.name}.create"): accessor has no \`insert\`; falling back to \`upsert\``
+    );
+    if (typeof accessor.upsert !== 'function') {
+      return Result.err(
+        new InternalError(
+          `deriveTrail("${contour.name}.create"): accessor is missing both \`insert\` and \`upsert\``
+        )
+      );
+    }
+    const created = await accessor.upsert(input);
+    return Result.ok(created);
+  } catch (error) {
+    return Result.err(wrapUnexpected(contour.name, 'create', error));
+  }
+};
+
+/**
+ * Strip framework-managed generated fields from a merged payload so that
+ * the update-via-upsert fallback doesn't carry stale managed values.
+ *
+ * Only strips fields that appear in the `generated` array — user-defined
+ * fields with the same name (e.g. an API `version` string) are preserved.
+ */
+const stripGeneratedFields = (
+  payload: Record<string, unknown>,
+  generated: readonly string[],
+  identity: string
+): Record<string, unknown> => {
+  if (generated.length === 0) {
+    return payload;
+  }
+  const managedKeys = new Set(generated);
+  return Object.fromEntries(
+    Object.entries(payload).filter(
+      ([key]) => key === identity || !managedKeys.has(key)
+    )
+  );
+};
+
+/**
+ * Fallback for accessors that lack a native `update`: read the current
+ * entity, merge the patch, strip any `version` field so versioned tables
+ * keep `update`'s "does not participate in optimistic concurrency" semantic,
+ * then `upsert`.
+ */
+const updateViaReadAndUpsert = async (
+  contour: AnyContour,
+  accessor: GenericAccessor,
+  id: unknown,
+  patch: Record<string, unknown>,
+  generated: readonly string[]
+): Promise<Result<unknown, Error>> => {
+  if (typeof accessor.get !== 'function') {
+    return Result.err(
+      new InternalError(
+        `deriveTrail("${contour.name}.update"): accessor is missing both \`update\` and \`get\``
+      )
+    );
+  }
+  if (typeof accessor.upsert !== 'function') {
+    return Result.err(
+      new InternalError(
+        `deriveTrail("${contour.name}.update"): accessor is missing both \`update\` and \`upsert\``
+      )
+    );
+  }
+  const current = await accessor.get(id);
+  if (current === null || current === undefined) {
+    return Result.err(notFoundError(contour.name, id));
+  }
+  const merged = stripGeneratedFields(
+    { ...(current as Record<string, unknown>), ...patch },
+    generated,
+    contour.identity
+  );
+  const updated = await accessor.upsert(merged);
+  return Result.ok(updated);
+};
+
+const callUpdate = async (
+  contour: AnyContour,
+  accessor: GenericAccessor,
+  input: unknown,
+  generated: readonly string[]
+): Promise<Result<unknown, Error>> => {
+  const id = extractIdentity(contour, input);
+  const patch = Object.fromEntries(
+    Object.entries(input as Record<string, unknown>).filter(
+      ([field]) => field !== contour.identity
+    )
+  );
+
+  try {
+    if (typeof accessor.update === 'function') {
+      const updated = await accessor.update(id, patch);
+      if (updated === null || updated === undefined) {
+        return Result.err(notFoundError(contour.name, id));
+      }
+      return Result.ok(updated);
+    }
+    return await updateViaReadAndUpsert(
+      contour,
+      accessor,
+      id,
+      patch,
+      generated
+    );
+  } catch (error) {
+    return Result.err(wrapUnexpected(contour.name, 'update', error));
+  }
+};
+
+const callDelete = async (
+  contour: AnyContour,
+  accessor: GenericAccessor,
+  input: unknown
+): Promise<Result<undefined, Error>> => {
+  if (typeof accessor.remove !== 'function') {
+    return Result.err(
+      new InternalError(
+        `deriveTrail("${contour.name}.delete"): accessor is missing a \`remove\` method`
+      )
+    );
+  }
+  try {
+    const id = extractIdentity(contour, input);
+    await accessor.remove(id);
+    // `{ deleted: false }` is a no-op on an absent row, not an error —
+    // matches the accessor's documented semantic.
+    return Result.ok();
+  } catch (error) {
+    return Result.err(wrapUnexpected(contour.name, 'delete', error));
+  }
+};
+
+/**
+ * Default `list` synthesis passes the entire input as the filter bag. The
+ * derived input type is `Partial<ContourInput>` which matches the accessor's
+ * filter shape field-for-field. Pagination controls are not derived — callers
+ * that need pagination must provide an explicit blaze.
+ */
+const callList = async (
+  contour: AnyContour,
+  accessor: GenericAccessor,
+  input: unknown
+): Promise<Result<unknown[], Error>> => {
+  if (typeof accessor.list !== 'function') {
+    return Result.err(
+      new InternalError(
+        `deriveTrail("${contour.name}.list"): accessor is missing a \`list\` method`
+      )
+    );
+  }
+  try {
+    const listed = await accessor.list(input);
+    return Result.ok([...listed]);
+  } catch (error) {
+    return Result.err(wrapUnexpected(contour.name, 'list', error));
+  }
+};
+
+const synthesizeDefaultBlaze = <
+  TContour extends AnyContour,
+  TOperation extends DeriveTrailOperation,
+  TGenerated extends readonly ContourFieldKey<TContour>[] | undefined,
+>(
+  contour: TContour,
+  operation: TOperation,
+  resource: AnyResource,
+  generated: readonly string[]
+): Implementation<
+  DeriveTrailInput<TContour, TOperation, TGenerated>,
+  DeriveTrailOutput<TContour, TOperation>
+> => {
+  const impl: Implementation<unknown, unknown> = (input, ctx) => {
+    const accessor = resolveAccessor(contour, operation, resource, ctx);
+    if (accessor instanceof Error) {
+      return Promise.resolve(Result.err(accessor));
+    }
+    switch (operation) {
+      case 'create': {
+        return callCreate(contour, accessor, input, ctx);
+      }
+      case 'read': {
+        return callRead(contour, accessor, input);
+      }
+      case 'update': {
+        return callUpdate(contour, accessor, input, generated);
+      }
+      case 'delete': {
+        return callDelete(contour, accessor, input);
+      }
+      case 'list': {
+        return callList(contour, accessor, input);
+      }
+      default: {
+        return unsupportedOperation(operation);
+      }
+    }
+  };
+
+  return impl as Implementation<
+    DeriveTrailInput<TContour, TOperation, TGenerated>,
+    DeriveTrailOutput<TContour, TOperation>
+  >;
+};
+
 /**
  * Mechanically project one CRUD-shaped trail from a contour declaration.
+ *
+ * When `spec.blaze` is omitted and the call declares a single resource, the
+ * helper derives a default blaze that dispatches to the resource accessor
+ * through the structural {@link StoreAccessorProtocol}. Multi-resource calls
+ * must supply an explicit blaze and are rejected with {@link DerivationError}
+ * at construction time when they do not.
  */
 export const deriveTrail = <
   TContour extends AnyContour,
@@ -417,15 +763,38 @@ export const deriveTrail = <
   DeriveTrailInput<TContour, TOperation, TGenerated>,
   DeriveTrailOutput<TContour, TOperation>
 > => {
-  if (typeof spec.blaze !== 'function') {
-    throw new TypeError(
-      `deriveTrail("${contour.name}.${operation}") requires a blaze implementation`
+  const resources = normalizeResources(spec.resource);
+  const generated = uniqueStrings(
+    spec.generated as readonly string[] | undefined
+  );
+
+  let blaze: Implementation<
+    DeriveTrailInput<TContour, TOperation, TGenerated>,
+    DeriveTrailOutput<TContour, TOperation>
+  >;
+  if (typeof spec.blaze === 'function') {
+    ({ blaze } = spec);
+  } else if (resources.length === 1) {
+    blaze = synthesizeDefaultBlaze<TContour, TOperation, TGenerated>(
+      contour,
+      operation,
+      resources[0] as AnyResource,
+      generated
+    );
+  } else {
+    throw new DerivationError(
+      `deriveTrail("${contour.name}.${operation}") requires an explicit \`blaze\` when ${describeDeriveTrailResourceDeclaration(resources.length)} — default synthesis is single-resource only`
     );
   }
-  const resources = normalizeResources(spec.resource);
-  const { resource: _resource, generated: _generated, ...trailSpec } = spec;
+  const {
+    blaze: _blaze,
+    resource: _resource,
+    generated: _generated,
+    ...trailSpec
+  } = spec;
   const derivedSpec = {
     ...trailSpec,
+    blaze,
     contours: [contour],
     examples: deriveExamples(contour, operation, generated),
     input: deriveInputSchema<TContour, TOperation, TGenerated>(

@@ -11,6 +11,7 @@
     "./internal/zod-wrappers": "./src/internal/zod-wrappers.ts",
     "./patterns": "./src/patterns/index.ts",
     "./redaction": "./src/redaction/index.ts",
+    "./store": "./src/store/index.ts",
     "./trails": "./src/trails/index.ts",
     "./package.json": "./package.json"
   },
