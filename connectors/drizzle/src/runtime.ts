@@ -787,7 +787,7 @@ export const connectDrizzle = <const TStore extends AnyStoreDefinition>(
 
 export const connectReadOnlyDrizzle = <const TStore extends AnyStoreDefinition>(
   definition: TStore,
-  options: ReadOnlyDrizzleOptions
+  options: ReadOnlyDrizzleOptions<TStore>
 ): DrizzleStoreResource<
   TStore,
   ReadOnlyDrizzleStoreConnection<TStore>,
@@ -820,6 +820,8 @@ export const connectReadOnlyDrizzle = <const TStore extends AnyStoreDefinition>(
         closeConnection(connection);
       },
       health: connectionHealth,
+      mock: () =>
+        createReadonlyMockConnection(definition, tables, options.mockSeed),
     }),
     definition,
     tables,
@@ -838,7 +840,7 @@ export const store = <const TTables extends StoreTablesInput>(
 
 export const readonlyStore = <const TTables extends StoreTablesInput>(
   tables: TTables,
-  options: ReadOnlyDrizzleOptions
+  options: ReadOnlyDrizzleOptions<ReturnType<typeof defineStore<TTables>>>
 ): DrizzleStoreResource<
   ReturnType<typeof defineStore<TTables>>,
   ReadOnlyDrizzleStoreConnection<ReturnType<typeof defineStore<TTables>>>,

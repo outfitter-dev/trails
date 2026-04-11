@@ -1,5 +1,11 @@
 {
   "permissions": {
-    "allow": ["Skill(stack-and-ship)", "Skill(stack-and-ship:*)"]
+    "allow": [
+      "Skill(stack-and-ship)",
+      "Skill(stack-and-ship:*)",
+      "Bash(rm .git/info/lefthook-unstaged.patch)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
   }
 }

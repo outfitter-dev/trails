@@ -163,13 +163,7 @@
     },
     {
       "created": "2026-04-09",
-      "depends_on": [
-        "9",
-        "14",
-        "16",
-        "22",
-        "connector-extraction-and-the-with-packaging-model"
-      ],
+      "depends_on": ["9", "14", "16", "22", "29"],
       "inbound": [
         {
           "context": "- [ADR: Backend-Agnostic Store Schemas](20260409-backend-agnostic-store-schemas.md) (draft) -- the store schema abstraction that search declarations extend",
@@ -327,13 +321,7 @@
     },
     {
       "created": "2026-04-09",
-      "depends_on": [
-        "9",
-        "16",
-        "22",
-        "connector-extraction-and-the-with-packaging-model",
-        "backend-agnostic-store-schemas"
-      ],
+      "depends_on": ["9", "16", "22", "29", "backend-agnostic-store-schemas"],
       "inbound": [
         {
           "context": "- **Defining the connector lifecycle contract.** How a connector declares what it bridges, what lifecycle hooks it supports, and how it reports health — that's a separate decision. This ADR moves the ",

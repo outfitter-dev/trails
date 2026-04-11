@@ -39,15 +39,17 @@ Drizzle is the best first connector. It keeps the store story honest: the develo
 
 ## Decision
 
-### Lives at `@ontrails/store/drizzle`
+### Lives at `@ontrails/with-drizzle`
 
-The first concrete connector lives at the connector subpath:
+The first concrete connector lives in its own workspace package:
 
 ```typescript
-import { connectDrizzle } from '@ontrails/store/drizzle';
+import { connectDrizzle } from '@ontrails/with-drizzle';
 ```
 
-This follows the same architectural pattern as trailhead connectors. The root package owns the connector-agnostic model. The subpath binds it to a concrete runtime.
+This follows the same architectural pattern as trailhead connectors. The root package owns the connector-agnostic model. The `with-*` package binds it to a concrete runtime.
+
+> Originally shipped as the `@ontrails/store/drizzle` subpath; [ADR-0029](./0029-connector-extraction-and-the-with-packaging-model.md) promoted connectors to their own workspace packages.
 
 ### The root package keeps the durable `store(...)` primitive
 
@@ -68,7 +70,7 @@ const definition = store({
 The Drizzle connector binds that definition later:
 
 ```typescript
-import { connectDrizzle } from '@ontrails/store/drizzle';
+import { connectDrizzle } from '@ontrails/with-drizzle';
 
 export const db = connectDrizzle(definition, {
   id: 'db.main',
@@ -152,7 +154,7 @@ The escape hatch is honest. Trails does not invent a second query language. It h
 The connector exports `getSchema(binding)` so tooling can access the derived Drizzle tables directly:
 
 ```typescript
-import { getSchema } from '@ontrails/store/drizzle';
+import { getSchema } from '@ontrails/with-drizzle';
 
 const schema = getSchema(db);
 ```

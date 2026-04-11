@@ -33,9 +33,12 @@ export interface ConnectDrizzleOptions<TStore extends AnyStoreDefinition> {
   readonly url: string;
 }
 
-export interface ReadOnlyDrizzleOptions {
+export interface ReadOnlyDrizzleOptions<
+  TStore extends AnyStoreDefinition = AnyStoreDefinition,
+> {
   readonly description?: string;
   readonly id?: string;
+  readonly mockSeed?: DrizzleMockSeed<TStore>;
   readonly url: string;
 }
 

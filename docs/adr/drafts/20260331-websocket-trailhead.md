@@ -53,7 +53,7 @@ trailhead(app, { port: 3001 });
 Or sharing a port with the HTTP trailhead via upgrade:
 
 ```typescript
-import { trailhead as trailheadHttp } from '@ontrails/http/hono';
+import { trailhead as trailheadHttp } from '@ontrails/with-hono';
 import { trailhead as trailheadWs } from '@ontrails/ws';
 
 const http = blazeHttp(app, { port: 3000, serve: false });

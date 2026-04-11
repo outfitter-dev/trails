@@ -372,7 +372,7 @@ The warden enforces pack boundaries:
 - [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) -- the lexicon renames that apply to pack field names (`events` → `signals`, `services` → `resources`)
 - [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) -- the bundling mechanism for pack and connector resources; packs distribute bundles
 - [ADR: Contours as First-Class Domain Objects](20260409-contours-as-first-class-domain-objects.md) (draft) -- contours define the domain objects that pack trails operate on
-- [ADR: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) (draft) -- connectors are extracted from core packages; packs compose with connectors via bundles
+- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](../0029-connector-extraction-and-the-with-packaging-model.md) -- connectors are extracted from core packages; packs compose with connectors via bundles
 - [ADR: Layer Evolution](20260409-layer-evolution.md) (draft) -- layers gain input schemas and three attachment levels; packs can carry trail-level layers
 - ADR: The Serialized Topo Graph (draft) -- lockfile records pack membership and trailhead bindings
 - [docs/lexicon.md](../../lexicon.md) -- `pack` reserved term
