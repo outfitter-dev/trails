@@ -1468,14 +1468,20 @@
     {
       "created": "2026-04-09",
       "depends_on": ["3", "7", "24"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "- [ADR: Composition Testing](../0025-composition-testing.md) -- `scenario()` and `expectedMatch` for testing concurrent composition flows",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
+        }
+      ],
       "number": "0025",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0025-composition-testing.md",
       "slug": "composition-testing",
       "status": "accepted",
       "superseded_by": null,
-      "title": "ADR: Composition Testing",
+      "title": "Composition Testing",
       "updated": "2026-04-09"
     },
     {

@@ -9,8 +9,20 @@ export type TransportErrorMapper<T> = (error: TrailsError) => T;
 
 export type TransportErrorMappings<T> = Record<ErrorCategory, T>;
 
-export type TransportErrorCode<TTransport extends TransportName> =
-  (typeof transportErrorMap)[TTransport][ErrorCategory];
+/**
+ * Union of every transport-specific error code emitted by {@link transportErrorMap}.
+ *
+ * @remarks
+ * Previously parameterised by transport (`TransportErrorCode<'cli'>` etc.), but
+ * the generic collapsed to `number` because the underlying maps were typed as
+ * `Record<ErrorCategory, number>`. With `as const satisfies` on the maps the
+ * per-transport literals are now observable, but TypeScript cannot narrow
+ * `transportErrorMap[transport][error.category]` through a generic
+ * `TTransport` without an unsound cast. The non-generic union honestly reflects
+ * what `mapTransportError` returns at the call site.
+ */
+export type TransportErrorCode =
+  (typeof transportErrorMap)[TransportName][ErrorCategory];
 
 export const createTransportErrorMapper =
   <T>(mappings: TransportErrorMappings<T>): TransportErrorMapper<T> =>
@@ -38,8 +50,7 @@ export const transportErrorRegistry = {
   },
 } as const;
 
-export const mapTransportError = <TTransport extends TransportName>(
-  transport: TTransport,
+export const mapTransportError = (
+  transport: TransportName,
   error: TrailsError
-): TransportErrorCode<TTransport> =>
-  transportErrorRegistry[transport].map(error);
+): TransportErrorCode => transportErrorMap[transport][error.category];

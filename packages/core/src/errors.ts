@@ -130,7 +130,7 @@ export class CancelledError extends TrailsError {
 // Taxonomy maps
 // ---------------------------------------------------------------------------
 
-export const exitCodeMap: Record<ErrorCategory, number> = {
+export const exitCodeMap = {
   auth: 9,
   cancelled: 130,
   conflict: 3,
@@ -141,9 +141,9 @@ export const exitCodeMap: Record<ErrorCategory, number> = {
   rate_limit: 6,
   timeout: 5,
   validation: 1,
-} as const;
+} as const satisfies Record<ErrorCategory, number>;
 
-export const statusCodeMap: Record<ErrorCategory, number> = {
+export const statusCodeMap = {
   auth: 401,
   cancelled: 499,
   conflict: 409,
@@ -154,9 +154,9 @@ export const statusCodeMap: Record<ErrorCategory, number> = {
   rate_limit: 429,
   timeout: 504,
   validation: 400,
-} as const;
+} as const satisfies Record<ErrorCategory, number>;
 
-export const jsonRpcCodeMap: Record<ErrorCategory, number> = {
+export const jsonRpcCodeMap = {
   auth: -32_600,
   cancelled: -32_603,
   conflict: -32_603,
@@ -167,7 +167,7 @@ export const jsonRpcCodeMap: Record<ErrorCategory, number> = {
   rate_limit: -32_603,
   timeout: -32_603,
   validation: -32_602,
-} as const;
+} as const satisfies Record<ErrorCategory, number>;
 
 export const retryableMap: Record<ErrorCategory, boolean> = {
   auth: false,
