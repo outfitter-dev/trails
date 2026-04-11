@@ -343,9 +343,12 @@ describe('executeScenarioSteps concurrent crossing support', () => {
         return Result.ok({
           startedBeforeRelease,
           startedOverall: [...startedIds],
-          successIds: results
-            .filter((result) => result.isOk())
-            .map((result) => result.value.id),
+          successIds: results.flatMap((result) =>
+            result.match({
+              err: () => [] as string[],
+              ok: (value) => [value.id],
+            })
+          ),
         });
       },
       crosses: [slowTrail, fastTrail, queuedTrail],

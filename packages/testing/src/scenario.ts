@@ -21,8 +21,12 @@ import {
   executeTrail,
   InternalError,
   Result as R,
-  ValidationError,
 } from '@ontrails/core';
+import {
+  claimNextCrossBatchIndex,
+  createCrossBatchValidationResults,
+  normalizeCrossBatchConcurrency,
+} from '@ontrails/core/internal/cross-batch';
 
 import { assertPartialMatch, expectOk } from './assertions.js';
 import { createTestContext, resolveMockResources } from './context.js';
@@ -174,43 +178,6 @@ const assertStepExpectations = async (
   }
 };
 
-const normalizeCrossBatchConcurrency = (
-  options: CrossBatchOptions | undefined
-): Result<number | undefined, Error> => {
-  const concurrency = options?.concurrency;
-  if (concurrency === undefined) {
-    return R.ok();
-  }
-
-  if (!Number.isInteger(concurrency) || concurrency < 1) {
-    return R.err(
-      new ValidationError(
-        'ctx.cross() batch concurrency must be a positive integer'
-      )
-    );
-  }
-
-  return R.ok(concurrency);
-};
-
-const createCrossBatchValidationResults = (
-  calls: readonly ScenarioCrossCall[],
-  error: Error
-): Result<unknown, Error>[] => calls.map(() => R.err(error));
-
-const claimNextCrossBatchIndex = (
-  nextIndex: { value: number },
-  calls: readonly ScenarioCrossCall[]
-): number | undefined => {
-  if (nextIndex.value >= calls.length) {
-    return undefined;
-  }
-
-  const branchIndex = nextIndex.value;
-  nextIndex.value += 1;
-  return branchIndex;
-};
-
 const executeUnlimitedCrossBatch = async (
   calls: readonly ScenarioCrossCall[],
   runCall: (
@@ -242,7 +209,16 @@ const executeLimitedCrossBatch = async (
 
       const call = calls[branchIndex];
       if (call === undefined) {
-        return;
+        // Defensive: `claimNextCrossBatchIndex` only returns indices within
+        // bounds, so this slot should always be populated. If it ever isn't,
+        // surface a clear InternalError in place of the missing slot and keep
+        // the worker loop running so sibling branches still get processed.
+        results[branchIndex] = R.err(
+          new InternalError(
+            `unreachable: concurrent cross batch call missing at index ${branchIndex}`
+          )
+        );
+        continue;
       }
 
       results[branchIndex] = await runCall(call, branchIndex);

@@ -798,6 +798,84 @@ describe('executeTrail', () => {
           resultOrder: labels,
         });
       });
+
+      describe.each([
+        { label: '0', value: 0 },
+        { label: '-1', value: -1 },
+        { label: '1.5', value: 1.5 },
+        { label: 'NaN', value: Number.NaN },
+      ])(
+        'rejects batch ctx.cross() calls with invalid concurrency $label',
+        ({ value }) => {
+          test('produces a ValidationError for every branch without running any', async () => {
+            const branchRuns: string[] = [];
+            const child = trail('entity.batch.invalid-concurrency.child', {
+              blaze: async () => {
+                branchRuns.push('ran');
+                return Result.ok({ id: 'child' });
+              },
+              input: z.object({}),
+              output: z.object({ id: z.string() }),
+              visibility: 'internal',
+            });
+            const entry = trail('entity.batch.invalid-concurrency.entry', {
+              blaze: async (_input, ctx) => {
+                const crossed = await requireCross(ctx)(
+                  [
+                    [child, {}],
+                    [child, {}],
+                  ] as const,
+                  { concurrency: value }
+                );
+                return Result.ok({
+                  statuses: crossed.map((result) =>
+                    result.match({
+                      err: (error) => ({
+                        isValidation: error instanceof ValidationError,
+                        message: error.message,
+                      }),
+                      ok: () => ({ isValidation: false, message: 'ok' }),
+                    })
+                  ),
+                });
+              },
+              crosses: [child],
+              input: z.object({}),
+              output: z.object({
+                statuses: z.array(
+                  z.object({
+                    isValidation: z.boolean(),
+                    message: z.string(),
+                  })
+                ),
+              }),
+            });
+            const app = topo(
+              `cross-batch-invalid-concurrency-${String(value)}-topo`,
+              { child, entry }
+            );
+
+            const result = await executeTrail(entry, {}, { topo: app });
+
+            expect(result.isOk()).toBe(true);
+            expect(result.unwrap()).toEqual({
+              statuses: [
+                {
+                  isValidation: true,
+                  message:
+                    'ctx.cross() batch concurrency must be a positive integer',
+                },
+                {
+                  isValidation: true,
+                  message:
+                    'ctx.cross() batch concurrency must be a positive integer',
+                },
+              ],
+            });
+            expect(branchRuns).toEqual([]);
+          });
+        }
+      );
     });
   });
 
