@@ -37,6 +37,7 @@ const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
         ),
       }
     : {}),
+  ...(input.crudTableIds ? { crudTableIds: new Set(input.crudTableIds) } : {}),
   ...(input.knownContourIds
     ? { knownContourIds: new Set(input.knownContourIds) }
     : {}),
@@ -54,6 +55,12 @@ const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
     : {}),
   ...(input.knownSignalIds
     ? { knownSignalIds: new Set(input.knownSignalIds) }
+    : {}),
+  ...(input.onTargetSignalIds
+    ? { onTargetSignalIds: new Set(input.onTargetSignalIds) }
+    : {}),
+  ...(input.reconcileTableIds
+    ? { reconcileTableIds: new Set(input.reconcileTableIds) }
     : {}),
   ...(input.trailIntentsById
     ? { trailIntentsById: new Map(Object.entries(input.trailIntentsById)) }

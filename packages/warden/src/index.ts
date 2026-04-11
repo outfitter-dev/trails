@@ -27,8 +27,10 @@ export { draftVisibleDebt } from './rules/draft-visible-debt.js';
 export { errorMappingCompleteness } from './rules/error-mapping-completeness.js';
 export { exampleValid } from './rules/example-valid.js';
 export { firesDeclarations } from './rules/fires-declarations.js';
+export { incompleteCrud } from './rules/incomplete-crud.js';
 export { intentPropagation } from './rules/intent-propagation.js';
 export { missingVisibility } from './rules/missing-visibility.js';
+export { missingReconcile } from './rules/missing-reconcile.js';
 export { onReferencesExist } from './rules/on-references-exist.js';
 export { validDetourRefs } from './rules/valid-detour-refs.js';
 export { noDirectImplInRoute } from './rules/no-direct-impl-in-route.js';
@@ -36,6 +38,7 @@ export { noDirectImplementationCall } from './rules/no-direct-implementation-cal
 export { noSyncResultAssumption } from './rules/no-sync-result-assumption.js';
 export { implementationReturnsResult } from './rules/implementation-returns-result.js';
 export { noThrowInDetourTarget } from './rules/no-throw-in-detour-target.js';
+export { orphanedSignal } from './rules/orphaned-signal.js';
 export { preferSchemaInference } from './rules/prefer-schema-inference.js';
 export { referenceExists } from './rules/reference-exists.js';
 export { resourceDeclarations } from './rules/resource-declarations.js';
@@ -93,14 +96,17 @@ export {
   exampleValidTrail,
   firesDeclarationsTrail,
   implementationReturnsResultTrail,
+  incompleteCrudTrail,
   intentPropagationTrail,
   missingVisibilityTrail,
+  missingReconcileTrail,
   noDirectImplInRouteTrail,
   noDirectImplementationCallTrail,
   noSyncResultAssumptionTrail,
   noThrowInDetourTargetTrail,
   noThrowInImplementationTrail,
   onReferencesExistTrail,
+  orphanedSignalTrail,
   preferSchemaInferenceTrail,
   referenceExistsTrail,
   ruleInput,

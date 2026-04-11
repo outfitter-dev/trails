@@ -1090,6 +1090,364 @@ export const collectTrailIntentsById = (
 };
 
 // ---------------------------------------------------------------------------
+// Store / factory pattern extraction
+// ---------------------------------------------------------------------------
+
+export interface StoreTableDefinition {
+  /** Table name declared inside store({ ... }). */
+  readonly name: string;
+  /** Start offset of the table property declaration. */
+  readonly start: number;
+  /** Whether the authored table opts into version tracking. */
+  readonly versioned: boolean;
+}
+
+const isBooleanLiteral = (node: AstNode | undefined): boolean =>
+  Boolean(
+    node &&
+    ((node.type === 'BooleanLiteral' &&
+      (node as unknown as { value?: unknown }).value === true) ||
+      (node.type === 'Literal' &&
+        (node as unknown as { value?: unknown }).value === true))
+  );
+
+const isNamedCall = (node: AstNode | undefined, name: string): boolean =>
+  !!node &&
+  node.type === 'CallExpression' &&
+  identifierName((node as unknown as { callee?: AstNode }).callee) === name;
+
+const getMemberExpression = (
+  node: AstNode | undefined
+): { readonly object?: AstNode; readonly property?: AstNode } | null => {
+  if (
+    !node ||
+    (node.type !== 'MemberExpression' && node.type !== 'StaticMemberExpression')
+  ) {
+    return null;
+  }
+
+  return node as unknown as {
+    readonly object?: AstNode;
+    readonly property?: AstNode;
+  };
+};
+
+const extractStoreTableNameFromMember = (
+  node: AstNode | undefined
+): string | null => {
+  const member = getMemberExpression(node);
+  const tableName = member ? getPropertyName(member.property) : null;
+  const tablesMember = member ? getMemberExpression(member.object) : null;
+  if (!tableName || !tablesMember) {
+    return null;
+  }
+
+  return getPropertyName(tablesMember.property) === 'tables' ? tableName : null;
+};
+
+export const collectNamedStoreTableIds = (
+  ast: AstNode
+): ReadonlyMap<string, string> => {
+  const ids = new Map<string, string>();
+
+  walk(ast, (node) => {
+    if (node.type !== 'VariableDeclarator') {
+      return;
+    }
+
+    const { id, init } = node as unknown as {
+      readonly id?: AstNode;
+      readonly init?: AstNode;
+    };
+    const name = extractBindingName(id);
+    const tableId = extractStoreTableNameFromMember(init);
+    if (name && tableId) {
+      ids.set(name, tableId);
+    }
+  });
+
+  return ids;
+};
+
+const resolveStoreTableId = (
+  node: AstNode | undefined,
+  namedStoreTableIds: ReadonlyMap<string, string>
+): string | null => {
+  if (!node) {
+    return null;
+  }
+
+  if (node.type === 'Identifier') {
+    const name = identifierName(node);
+    return name ? (namedStoreTableIds.get(name) ?? null) : null;
+  }
+
+  return extractStoreTableNameFromMember(node);
+};
+
+const extractStoreTableDefinitions = (
+  node: AstNode
+): readonly StoreTableDefinition[] => {
+  if (!isNamedCall(node, 'store')) {
+    return [];
+  }
+
+  const [tablesArg] = ((node as unknown as { arguments?: readonly AstNode[] })
+    .arguments ?? []) as readonly AstNode[];
+  if (!tablesArg || tablesArg.type !== 'ObjectExpression') {
+    return [];
+  }
+
+  const properties = tablesArg['properties'] as readonly AstNode[] | undefined;
+  if (!properties) {
+    return [];
+  }
+
+  return properties.flatMap((property) => {
+    if (property.type !== 'Property') {
+      return [];
+    }
+
+    const name = getPropertyName(property.key);
+    const value = property.value as AstNode | undefined;
+    if (!name || value?.type !== 'ObjectExpression') {
+      return [];
+    }
+
+    const versionedProp = findConfigProperty(value, 'versioned');
+    return [
+      {
+        name,
+        start: property.start,
+        versioned: isBooleanLiteral(
+          versionedProp?.value as AstNode | undefined
+        ),
+      },
+    ];
+  });
+};
+
+export const findStoreTableDefinitions = (
+  ast: AstNode
+): readonly StoreTableDefinition[] => {
+  const definitions: StoreTableDefinition[] = [];
+
+  walk(ast, (node) => {
+    definitions.push(...extractStoreTableDefinitions(node));
+  });
+
+  return definitions;
+};
+
+export const collectVersionedStoreTableIds = (
+  ast: AstNode
+): ReadonlySet<string> =>
+  new Set(
+    findStoreTableDefinitions(ast).flatMap((definition) =>
+      definition.versioned ? [definition.name] : []
+    )
+  );
+
+export const collectCrudTableIds = (ast: AstNode): ReadonlySet<string> => {
+  const ids = new Set<string>();
+  const namedStoreTableIds = collectNamedStoreTableIds(ast);
+
+  walk(ast, (node) => {
+    if (!isNamedCall(node, 'crud')) {
+      return;
+    }
+
+    const [tableArg] = ((node as unknown as { arguments?: readonly AstNode[] })
+      .arguments ?? []) as readonly AstNode[];
+    const tableId = resolveStoreTableId(tableArg, namedStoreTableIds);
+    if (tableId) {
+      ids.add(tableId);
+    }
+  });
+
+  return ids;
+};
+
+export const collectReconcileTableIds = (ast: AstNode): ReadonlySet<string> => {
+  const ids = new Set<string>();
+  const namedStoreTableIds = collectNamedStoreTableIds(ast);
+
+  walk(ast, (node) => {
+    if (!isNamedCall(node, 'reconcile')) {
+      return;
+    }
+
+    const [configArg] = ((
+      node as unknown as {
+        arguments?: readonly AstNode[];
+      }
+    ).arguments ?? []) as readonly AstNode[];
+    if (!configArg || configArg.type !== 'ObjectExpression') {
+      return;
+    }
+
+    const tableProp = findConfigProperty(configArg, 'table');
+    const tableId = resolveStoreTableId(
+      tableProp?.value as AstNode | undefined,
+      namedStoreTableIds
+    );
+    if (tableId) {
+      ids.add(tableId);
+    }
+  });
+
+  return ids;
+};
+
+const STORE_SIGNAL_OPERATIONS = new Set(['created', 'removed', 'updated']);
+
+const extractStoreSignalIdFromMember = (
+  node: AstNode | undefined,
+  namedStoreTableIds: ReadonlyMap<string, string>
+): string | null => {
+  const member = getMemberExpression(node);
+  const operation = member ? getPropertyName(member.property) : null;
+  if (!operation || !STORE_SIGNAL_OPERATIONS.has(operation)) {
+    return null;
+  }
+
+  const signalsMember = member ? getMemberExpression(member.object) : null;
+  if (!signalsMember || getPropertyName(signalsMember.property) !== 'signals') {
+    return null;
+  }
+
+  const tableId = resolveStoreTableId(signalsMember.object, namedStoreTableIds);
+  return tableId ? `${tableId}.${operation}` : null;
+};
+
+const collectNamedStoreSignalIds = (
+  ast: AstNode,
+  namedStoreTableIds: ReadonlyMap<string, string>
+): ReadonlyMap<string, string> => {
+  const ids = new Map<string, string>();
+
+  walk(ast, (node) => {
+    if (node.type !== 'VariableDeclarator') {
+      return;
+    }
+
+    const { id, init } = node as unknown as {
+      readonly id?: AstNode;
+      readonly init?: AstNode;
+    };
+    const name = extractBindingName(id);
+    const signalId = extractStoreSignalIdFromMember(init, namedStoreTableIds);
+    if (name && signalId) {
+      ids.set(name, signalId);
+    }
+  });
+
+  return ids;
+};
+
+const getOnElements = (config: AstNode): readonly AstNode[] => {
+  const onProp = findConfigProperty(config, 'on');
+  if (!onProp) {
+    return [];
+  }
+
+  const arrayNode = onProp.value;
+  if (!arrayNode || (arrayNode as AstNode).type !== 'ArrayExpression') {
+    return [];
+  }
+
+  const elements = (arrayNode as AstNode)['elements'] as
+    | readonly AstNode[]
+    | undefined;
+  return elements ?? [];
+};
+
+const resolveNamedOnSignalId = (
+  element: AstNode,
+  sourceCode: string,
+  namedStoreSignalIds: ReadonlyMap<string, string>
+): string | null => {
+  if (element.type !== 'Identifier') {
+    return null;
+  }
+
+  const name = identifierName(element);
+  return name
+    ? (namedStoreSignalIds.get(name) ?? resolveConstString(name, sourceCode))
+    : null;
+};
+
+const resolveInlineOnSignalId = (element: AstNode): string | null => {
+  const definition = extractTrailDefinition(element);
+  return definition?.kind === 'signal' || definition?.kind === 'event'
+    ? definition.id
+    : null;
+};
+
+const resolveOnElementSignalId = (
+  element: AstNode,
+  sourceCode: string,
+  namedStoreSignalIds: ReadonlyMap<string, string>,
+  namedStoreTableIds: ReadonlyMap<string, string>
+): string | null => {
+  if (isStringLiteral(element)) {
+    return getStringValue(element);
+  }
+
+  return (
+    extractStoreSignalIdFromMember(element, namedStoreTableIds) ??
+    resolveNamedOnSignalId(element, sourceCode, namedStoreSignalIds) ??
+    resolveInlineOnSignalId(element)
+  );
+};
+
+const addOnTargetSignalIds = (
+  config: AstNode,
+  ids: Set<string>,
+  sourceCode: string,
+  namedStoreSignalIds: ReadonlyMap<string, string>,
+  namedStoreTableIds: ReadonlyMap<string, string>
+): void => {
+  for (const element of getOnElements(config)) {
+    const signalId = resolveOnElementSignalId(
+      element,
+      sourceCode,
+      namedStoreSignalIds,
+      namedStoreTableIds
+    );
+    if (signalId) {
+      ids.add(signalId);
+    }
+  }
+};
+
+export const collectOnTargetSignalIds = (
+  ast: AstNode,
+  sourceCode: string
+): ReadonlySet<string> => {
+  const ids = new Set<string>();
+  const namedStoreTableIds = collectNamedStoreTableIds(ast);
+  const namedStoreSignalIds = collectNamedStoreSignalIds(
+    ast,
+    namedStoreTableIds
+  );
+
+  for (const definition of findTrailDefinitions(ast)) {
+    if (definition.kind === 'trail') {
+      addOnTargetSignalIds(
+        definition.config,
+        ids,
+        sourceCode,
+        namedStoreSignalIds,
+        namedStoreTableIds
+      );
+    }
+  }
+
+  return ids;
+};
+
+// ---------------------------------------------------------------------------
 // Misc helpers
 // ---------------------------------------------------------------------------
 

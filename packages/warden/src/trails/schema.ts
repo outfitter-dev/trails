@@ -38,6 +38,10 @@ export const projectAwareRuleInput = ruleInput.extend({
     .array(z.string())
     .optional()
     .describe('Trail IDs referenced by crosses arrays across the project'),
+  crudTableIds: z
+    .array(z.string())
+    .optional()
+    .describe('Store table IDs used with CRUD factories across the project'),
   detourTargetTrailIds: z
     .array(z.string())
     .optional()
@@ -58,6 +62,14 @@ export const projectAwareRuleInput = ruleInput.extend({
     .array(z.string())
     .optional()
     .describe('Trail IDs known across the project'),
+  onTargetSignalIds: z
+    .array(z.string())
+    .optional()
+    .describe('Signal IDs referenced by trail on arrays across the project'),
+  reconcileTableIds: z
+    .array(z.string())
+    .optional()
+    .describe('Store table IDs used with reconcile trails across the project'),
   trailIntentsById: z
     .record(z.string(), z.enum(['read', 'write', 'destroy']))
     .optional()

@@ -15,7 +15,10 @@ import { checkDrift } from './drift.js';
 import {
   collectContourDefinitionIds,
   collectContourReferenceTargetsByName,
+  collectCrudTableIds as collectCrudTableIdsFromAst,
   collectCrossTargetTrailIds,
+  collectOnTargetSignalIds as collectOnTargetSignalIdsFromAst,
+  collectReconcileTableIds as collectReconcileTableIdsFromAst,
   collectResourceDefinitionIds,
   collectSignalDefinitionIds,
   collectTrailIntentsById,
@@ -98,23 +101,29 @@ interface SourceFile {
 
 interface MutableProjectContext {
   contourReferencesByName: Map<string, Set<string>>;
+  crudTableIds: Set<string>;
   crossTargetTrailIds: Set<string>;
   detourTargetTrailIds: Set<string>;
   knownContourIds: Set<string>;
   knownResourceIds: Set<string>;
   knownSignalIds: Set<string>;
   knownTrailIds: Set<string>;
+  onTargetSignalIds: Set<string>;
+  reconcileTableIds: Set<string>;
   trailIntentsById: Map<string, 'destroy' | 'read' | 'write'>;
 }
 
 const createMutableProjectContext = (): MutableProjectContext => ({
   contourReferencesByName: new Map<string, Set<string>>(),
   crossTargetTrailIds: new Set<string>(),
+  crudTableIds: new Set<string>(),
   detourTargetTrailIds: new Set<string>(),
   knownContourIds: new Set<string>(),
   knownResourceIds: new Set<string>(),
   knownSignalIds: new Set<string>(),
   knownTrailIds: new Set<string>(),
+  onTargetSignalIds: new Set<string>(),
+  reconcileTableIds: new Set<string>(),
   trailIntentsById: new Map<string, 'destroy' | 'read' | 'write'>(),
 });
 
@@ -144,12 +153,21 @@ const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
         ),
       }
     : {}),
+  ...(context.crudTableIds.size > 0
+    ? { crudTableIds: context.crudTableIds }
+    : {}),
   crossTargetTrailIds: context.crossTargetTrailIds,
   detourTargetTrailIds: context.detourTargetTrailIds,
   knownContourIds: context.knownContourIds,
   knownResourceIds: context.knownResourceIds,
   knownSignalIds: context.knownSignalIds,
   knownTrailIds: context.knownTrailIds,
+  ...(context.onTargetSignalIds.size > 0
+    ? { onTargetSignalIds: context.onTargetSignalIds }
+    : {}),
+  ...(context.reconcileTableIds.size > 0
+    ? { reconcileTableIds: context.reconcileTableIds }
+    : {}),
   trailIntentsById: context.trailIntentsById,
 });
 
@@ -250,6 +268,48 @@ const collectTrailIntents = (
   }
 };
 
+const collectCrudTableIds = (
+  sourceCode: string,
+  filePath: string,
+  crudTableIds: Set<string>
+): void => {
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return;
+  }
+  for (const id of collectCrudTableIdsFromAst(ast)) {
+    crudTableIds.add(id);
+  }
+};
+
+const collectOnTargetSignalIds = (
+  sourceCode: string,
+  filePath: string,
+  onTargetSignalIds: Set<string>
+): void => {
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return;
+  }
+  for (const id of collectOnTargetSignalIdsFromAst(ast, sourceCode)) {
+    onTargetSignalIds.add(id);
+  }
+};
+
+const collectReconcileTableIds = (
+  sourceCode: string,
+  filePath: string,
+  reconcileTableIds: Set<string>
+): void => {
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return;
+  }
+  for (const id of collectReconcileTableIdsFromAst(ast)) {
+    reconcileTableIds.add(id);
+  }
+};
+
 const loadSourceFiles = async (
   rootDir: string
 ): Promise<readonly SourceFile[]> => {
@@ -341,12 +401,6 @@ const collectTopoTrailContext = (
   collectTopoContourReferences(appTopo, context);
 };
 
-const buildProjectContextFromTopo = (appTopo: Topo): ProjectContext => {
-  const context = createMutableProjectContext();
-  collectTopoTrailContext(appTopo, context);
-  return toProjectContext(context);
-};
-
 const collectFileProjectContext = (
   sourceFile: SourceFile,
   context: MutableProjectContext
@@ -386,6 +440,21 @@ const collectFileProjectContext = (
     sourceFile.filePath,
     context.trailIntentsById
   );
+  collectCrudTableIds(
+    sourceFile.sourceCode,
+    sourceFile.filePath,
+    context.crudTableIds
+  );
+  collectOnTargetSignalIds(
+    sourceFile.sourceCode,
+    sourceFile.filePath,
+    context.onTargetSignalIds
+  );
+  collectReconcileTableIds(
+    sourceFile.sourceCode,
+    sourceFile.filePath,
+    context.reconcileTableIds
+  );
 };
 
 const collectFileContourReferences = (
@@ -406,8 +475,9 @@ const collectFileContourReferences = (
   }
 };
 
-const buildProjectContextFromFiles = (
-  sourceFiles: readonly SourceFile[]
+const buildProjectContext = (
+  sourceFiles: readonly SourceFile[],
+  appTopo?: Topo | undefined
 ): ProjectContext => {
   const context = createMutableProjectContext();
 
@@ -417,6 +487,10 @@ const buildProjectContextFromFiles = (
 
   for (const sourceFile of sourceFiles) {
     collectFileContourReferences(sourceFile, context);
+  }
+
+  if (appTopo) {
+    collectTopoTrailContext(appTopo, context);
   }
 
   return toProjectContext(context);
@@ -434,9 +508,7 @@ const lintFiles = async (
 ): Promise<WardenDiagnostic[]> => {
   const allDiagnostics: WardenDiagnostic[] = [];
   const sourceFiles = await loadSourceFiles(rootDir);
-  const context = appTopo
-    ? buildProjectContextFromTopo(appTopo)
-    : buildProjectContextFromFiles(sourceFiles);
+  const context = buildProjectContext(sourceFiles, appTopo);
 
   for (const sourceFile of sourceFiles) {
     for (const rule of wardenRules.values()) {

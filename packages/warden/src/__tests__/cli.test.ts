@@ -270,6 +270,84 @@ export const gist = contour('gist', {
       rmSync(dir, { force: true, recursive: true });
     }
   });
+
+  test('uses project context for store factory completeness across files', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'store.ts'),
+        `import { Result, resource } from '@ontrails/core';
+import { store } from '@ontrails/store';
+import { crud } from '@ontrails/store/trails';
+import { z } from 'zod';
+
+export const definition = store({
+  notes: {
+    identity: 'id',
+    schema: z.object({
+      id: z.string(),
+      title: z.string(),
+    }),
+    versioned: true,
+  },
+});
+
+const notesResource = resource('db.notes', {
+  create: () => Result.ok({}),
+  mock: () => ({}),
+});
+
+const noteTrails = crud(definition.tables.notes, notesResource);`
+      );
+      writeFileSync(
+        join(dir, 'reconcile.ts'),
+        `import { Result, resource } from '@ontrails/core';
+import { reconcile } from '@ontrails/store/trails';
+import { definition } from './store';
+
+const notesResource = resource('db.notes', {
+  create: () => Result.ok({}),
+  mock: () => ({}),
+});
+
+const reconcileNotes = reconcile({
+  resource: notesResource,
+  table: definition.tables.notes,
+});`
+      );
+      writeFileSync(
+        join(dir, 'listener.ts'),
+        `import { Result, trail } from '@ontrails/core';
+import { definition } from './store';
+import { z } from 'zod';
+
+trail('notes.notify', {
+  on: [
+    definition.tables.notes.signals.created,
+    definition.tables.notes.signals.updated,
+    definition.tables.notes.signals.removed,
+  ],
+  blaze: async () => Result.ok({ ok: true }),
+  output: z.object({ ok: z.boolean() }),
+});`
+      );
+
+      const report = await runWarden({ rootDir: dir });
+
+      expect(
+        report.diagnostics.filter(
+          (diagnostic) => diagnostic.rule === 'missing-reconcile'
+        )
+      ).toHaveLength(0);
+      expect(
+        report.diagnostics.filter(
+          (diagnostic) => diagnostic.rule === 'orphaned-signal'
+        )
+      ).toHaveLength(0);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
 });
 
 describe('runWarden draft markers', () => {
