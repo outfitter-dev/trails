@@ -100,6 +100,11 @@
           "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
         },
         {
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — the information architecture and \"one write, many reads\" principle that `deriveTrail()` operationalizes",
+          "from": "0032",
+          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
+        },
+        {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; `trails run` makes every trail directly invocable without trailhead ceremony",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -148,11 +153,6 @@
           "context": "- [ADR-0000: Core premise](../0000-core-premise.md) — \"author what's new, derive what's known\" applies to documentation: author the source tree, derive the site",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
-        },
-        {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — the information architecture and \"one write, many reads\" principle that `deriveTrail()` operationalizes",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
         },
         {
           "context": "- **[ADR-0000: Core Premise](./adr/0000-core-premise.md)** — Why contracts, why Result, why derive",
@@ -214,6 +214,11 @@
           "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
         },
         {
+          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — the verb+noun helper convention that `deriveTrail()` follows",
+          "from": "0032",
+          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
+        },
+        {
           "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md): `create*` factory convention, `derive*` prefix for framework derivations, `build*`/`to*` trailhead wiring pattern",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
@@ -222,11 +227,6 @@
           "context": "- [ADR-0001: Naming conventions](../0001-naming-conventions.md) — naming principles that apply to documentation paths",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
-        },
-        {
-          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — the verb+noun helper convention that `deriveTrail()` follows",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
         },
         {
           "context": "Canonical public trailhead-facing reference. For naming conventions and decision history, see [ADR-0001](./adr/0001-naming-conventions.md).",
@@ -342,6 +342,11 @@
           "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
         },
         {
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the trail primitive that factories produce",
+          "from": "0032",
+          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
+        },
+        {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- every trail is runnable, whether atomic or composite",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -365,11 +370,6 @@
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — `fires` is a new property on the trail spec",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
-        },
-        {
-          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the trail primitive that factories produce",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
         },
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the trail as the single unit of work, the unit that versioning targets",
@@ -874,8 +874,8 @@
         },
         {
           "context": "[^4]: [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) — verification as permit resolution",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
+          "from": "0032",
+          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
         {
           "context": "- [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) -- permit declarations that become pipeline-enforced",
@@ -1109,14 +1109,14 @@
           "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
         },
         {
+          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store schema that `deriveTrail()` reads from",
+          "from": "0032",
+          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
+        },
+        {
           "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) -- the store abstraction that search extends",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
-        },
-        {
-          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store schema that `deriveTrail()` reads from",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
         },
         {
           "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract that bundle resources satisfy",
@@ -1367,6 +1367,11 @@
           "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
         },
         {
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the `pattern` field and `derive*` grammar rule",
+          "from": "0032",
+          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
+        },
+        {
           "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) -- the lexicon renames; note that `resource` in this ADR refers to the distribution unit, distinct from `resourc",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
@@ -1385,11 +1390,6 @@
           "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the vocabulary→lexicon rename that this structure codifies",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
-        },
-        {
-          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the `pattern` field and `derive*` grammar rule",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
         },
         {
           "context": "- **[ADR-0023: Simplifying the Trails Lexicon](./adr/0023-simplifying-the-trails-lexicon.md)** — Brand-vs-plain heuristic, four pre-1.0 renames, vocabulary → lexicon",
@@ -1596,6 +1596,11 @@
           "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
         },
         {
+          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector-contributed `/trails` subpaths",
+          "from": "0032",
+          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
+        },
+        {
           "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) -- the packaging model for connector-contributed capabilities that rig pa",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
@@ -1615,12 +1620,6 @@
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
-        {
-          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](../0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector-contributed `/trails` subpaths",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
-        },
-        {
           "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector bundles",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
@@ -1650,6 +1649,11 @@
           "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
         },
         {
+          "context": "- **Contour integration.** How `deriveTrail()` interacts with contour declarations — deriving input schemas from contours rather than store schemas — depends on [ADR-0030: Contours as First-Class Doma",
+          "from": "0032",
+          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
+        },
+        {
           "context": "- [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) -- contours define the domain objects that pack trails operate on",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
@@ -1663,11 +1667,6 @@
           "context": "- [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) -- contours provide the domain object schemas that search declarations annotate",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
-        },
-        {
-          "context": "- **Contour integration.** How `deriveTrail()` interacts with contour declarations — deriving input schemas from contours rather than store schemas — depends on [ADR-0030: Contours as First-Class Doma",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
         },
         {
           "context": "- [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) — contours feed store schemas within bundles",
@@ -1700,14 +1699,14 @@
           "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
         },
         {
+          "context": "- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store schema that `deriveTrail()` reads from",
+          "from": "0032",
+          "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
+        },
+        {
           "context": "- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) -- the store schema abstraction that search declarations extend",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
-        },
-        {
-          "context": "- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store schema that `deriveTrail()` reads from",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
         },
         {
           "context": "- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store schemas that bundle resources bind to concrete backends",
@@ -1722,6 +1721,50 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Backend-Agnostic Store Schemas",
+      "updated": "2026-04-10"
+    },
+    {
+      "created": "2026-04-09",
+      "depends_on": ["0", "1", "3", "16", "23", "30"],
+      "inbound": [
+        {
+          "context": "- **Pattern shapes at 1.0.** Toggle and CRUD are clear candidates. Transition, collection, and counter can follow. Which patterns ship initially is a separate design decision — see [ADR-0032: `deriveT",
+          "from": "0030",
+          "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
+        },
+        {
+          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](0032-derivetrail-and-trail-factories.md) — trail factories that compose with store schemas (`crud`, `sync`, `reconcile`)",
+          "from": "0031",
+          "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
+        },
+        {
+          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- `deriveTrail()` and `ingest()` factory that produces trails from external input shapes",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
+        },
+        {
+          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- `ingest()` factory for webhook-to-trail flows that can feed events to WebSocket subscribers",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        },
+        {
+          "context": "When search is declared on a store entity and the developer uses `crud()` (see [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md)), a search trail is automatic",
+          "from": "20260401",
+          "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
+        },
+        {
+          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) — trail factories that produce trails carried by pack bundles",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
+        }
+      ],
+      "number": "0032",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0032-derivetrail-and-trail-factories.md",
+      "slug": "derivetrail-and-trail-factories",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "deriveTrail() and Trail Factories",
       "updated": "2026-04-10"
     }
   ],
