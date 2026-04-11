@@ -10,7 +10,7 @@ import {
   ValidationError,
   resource,
 } from '@ontrails/core';
-import { store as defineStore } from '@ontrails/store';
+import { store as defineStore, versionFieldName } from '@ontrails/store';
 import type {
   AnyStoreDefinition,
   AnyStoreTable,
@@ -27,7 +27,7 @@ import type {
   UpsertOf,
   UpdateOf,
 } from '@ontrails/store';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import type { AnySQLiteColumn, AnySQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { z } from 'zod';
@@ -180,9 +180,19 @@ const TIMESTAMP_FIELD_NAMES = new Set([
   'created_at',
   'updated_at',
 ]);
-const versionFieldName = 'version';
 
 const ID_FIELD_SUFFIX_RE = /[Ii]d$/;
+
+/**
+ * Returns true when the given field on `table` is the framework-managed
+ * version column. Used by insert and upsert paths to gate behavior that
+ * only applies to versioned tables, preventing silent data loss when a
+ * non-versioned table happens to have a user field named `version`.
+ */
+const isVersionManagedField = <TTable extends AnyStoreTable>(
+  table: TTable,
+  fieldName: string
+): boolean => table.versioned && fieldName === versionFieldName;
 
 /**
  * Synthesize a value for a generated field during insert.
@@ -221,7 +231,7 @@ const generatedVersionValue = (tableName: string, kind: string): number => {
   }
 
   throw new ValidationError(
-    `Store table "${tableName}" manages "${versionFieldName}" as an integer field.`
+    `Store table "${tableName}" has a versioned "${versionFieldName}" field of type "${kind}", but the framework requires it to be an integer. Ensure the schema uses z.number().int() for the version field.`
   );
 };
 
@@ -253,7 +263,7 @@ const generatedValueForInsert = <TTable extends AnyStoreTable>(
   const fieldName = field as string;
   const kind = baseFieldKind(table, field);
 
-  if (fieldName === versionFieldName) {
+  if (isVersionManagedField(table, fieldName)) {
     return generatedVersionValue(table.name, kind);
   }
 
@@ -393,20 +403,6 @@ const assertExpectedVersionMatch = <TTable extends AnyStoreTable>(
   if (currentVersion !== expectedVersion) {
     throw versionConflictError(table.name, id, expectedVersion, currentVersion);
   }
-};
-
-const applyVersionedUpdateFields = <TTable extends AnyStoreTable>(
-  table: TTable,
-  existing: EntityOf<TTable>,
-  userFields: Record<string, unknown>
-): Record<string, unknown> => {
-  const fields = applyGeneratedUpdateFields(table, userFields);
-  return table.versioned
-    ? {
-        ...fields,
-        [versionFieldName]: versionFromEntity(table, existing) + 1,
-      }
-    : fields;
 };
 
 const resolveUpsertWithoutPatch = <
@@ -685,43 +681,57 @@ const createWritableAccessor = <
     return cloneValue(parseEntity(definitionTable, row)) as EntityOf<Table>;
   };
 
+  const versionColumn = definitionTable.versioned
+    ? primaryKeyColumn(drizzleTable, versionFieldName)
+    : undefined;
+
+  // oxlint-disable-next-line max-statements -- atomic UPDATE ... WHERE with version guard and conflict diagnosis reads more clearly as one function
   const updateEntity = (
     id: Identifier,
     input: Record<string, unknown>,
     expectedVersion?: number
   ): EntityOf<Table> | null => {
-    const userFields = requireUpdateFields(definitionTable.name, input);
-    const existing = readEntity(id);
-    if (existing === null) {
-      return null;
-    }
-
-    assertExpectedVersionMatch(
+    const base = applyGeneratedUpdateFields(
       definitionTable,
-      id as string | number,
-      existing,
-      expectedVersion
+      requireUpdateFields(definitionTable.name, input)
     );
-    const fields = applyVersionedUpdateFields(
-      definitionTable,
-      existing,
-      userFields
-    );
+    // Atomic increment via SQL expression — avoids the read-then-write race
+    // on optimistic-concurrency updates.
+    const fields =
+      definitionTable.versioned && versionColumn !== undefined
+        ? { ...base, [versionFieldName]: sql`${versionColumn} + 1` }
+        : base;
+    const idColumn = primaryKeyColumn(drizzleTable, definitionTable.primaryKey);
+    const idCondition = eq(idColumn, id as never);
+    const condition =
+      definitionTable.versioned &&
+      versionColumn !== undefined &&
+      expectedVersion !== undefined
+        ? and(idCondition, eq(versionColumn, expectedVersion as never))
+        : idCondition;
     const row = db
       .update(drizzleTable)
       .set(fields as never)
-      .where(
-        eq(
-          primaryKeyColumn(drizzleTable, definitionTable.primaryKey),
-          id as never
-        )
-      )
+      .where(condition)
       .returning()
-      .get();
-
-    return row === undefined
-      ? null
-      : (cloneValue(parseEntity(definitionTable, row)) as EntityOf<Table>);
+      .get() as Record<string, unknown> | undefined;
+    if (row !== undefined) {
+      return cloneValue(parseEntity(definitionTable, row)) as EntityOf<Table>;
+    }
+    if (
+      !definitionTable.versioned ||
+      versionColumn === undefined ||
+      expectedVersion === undefined
+    ) {
+      return null;
+    }
+    const existing = readEntity(id);
+    throw versionConflictError(
+      definitionTable.name,
+      id as string | number,
+      expectedVersion,
+      existing === null ? null : versionFromEntity(definitionTable, existing)
+    );
   };
 
   const patchFromUpsert = (
@@ -731,7 +741,7 @@ const createWritableAccessor = <
       Object.entries(input).filter(
         ([field, value]) =>
           field !== definitionTable.identity &&
-          field !== versionFieldName &&
+          !isVersionManagedField(definitionTable, field) &&
           value !== undefined
       )
     );
@@ -1188,7 +1198,7 @@ const buildResourceShape = <
     from(ctx: TrailContext) {
       return bindResourceConnection(access, store, value.from(ctx), ctx.fire);
     },
-    signals: store.signals,
+    ...(access === 'readwrite' ? { signals: store.signals } : {}),
     store,
     tables,
   });

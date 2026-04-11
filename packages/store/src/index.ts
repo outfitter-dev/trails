@@ -4,6 +4,7 @@ export {
   insertSchemaOf,
   store,
   updateSchemaOf,
+  versionFieldName,
 } from './store.js';
 export type {
   AnyStoreDefinition,

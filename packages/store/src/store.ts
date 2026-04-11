@@ -16,7 +16,12 @@ import type {
 const isStoreObjectSchema = (schema: z.ZodType): schema is StoreObjectSchema =>
   schema.def.type === 'object' && 'shape' in schema.def;
 
-const versionFieldName = 'version';
+/**
+ * Name of the framework-managed version column used by versioned tables for
+ * optimistic concurrency control. Exported so connectors can gate their own
+ * version-handling logic without duplicating the literal.
+ */
+export const versionFieldName = 'version';
 const versionFieldSchema = z.number().int().positive();
 
 const uniqueStrings = <T extends string>(

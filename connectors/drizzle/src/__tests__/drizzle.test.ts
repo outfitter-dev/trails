@@ -671,7 +671,6 @@ describe('@ontrails/with-drizzle resource access', () => {
     );
   });
 
-
   test('manages versioned writes and rejects stale optimistic-concurrency updates', async () => {
     const rootDir = tmp.makeRoot();
     const { created, db } = await setupVersionedUserStore(rootDir);
@@ -817,6 +816,7 @@ describe('@ontrails/with-drizzle read-only resource access', () => {
     );
     expect(readOnly.access).toBe('readonly');
     expect(readOnly.mock).toBeDefined();
+    expect(readOnly.signals).toBeUndefined();
     await expectReadonlyReads(created, inserted);
     await expectReadonlyWriteFailure(created);
     await readOnly.dispose?.(created);
@@ -841,6 +841,7 @@ describe('@ontrails/with-drizzle read-only resource access', () => {
       }
     );
     expect(db.access).toBe('readonly');
+    expect(db.signals).toBeUndefined();
 
     const mockFactory = db.mock;
     expect(mockFactory).toBeDefined();

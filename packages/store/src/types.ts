@@ -493,6 +493,15 @@ export interface StoreTableAccessor<
   /**
    * Patch an entity by identity with partial fields. Returns the updated
    * entity, or `null` when no row with that ID exists.
+   *
+   * @remarks
+   * On versioned tables, `update` does **not** participate in optimistic
+   * concurrency control. The `UpdateOf<TTable>` shape is derived by omitting
+   * generated fields — including the framework-managed `version` column — so
+   * any `version` value is dropped before reaching the connector and the
+   * connector always auto-increments without comparing. Callers that need
+   * lost-update protection must use {@link StoreAccessor.upsert | `upsert`}
+   * instead and pass the expected `version` in the payload.
    */
   update(
     id: StoreIdentifierOf<TTable>,
