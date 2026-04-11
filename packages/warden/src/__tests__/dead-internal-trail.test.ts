@@ -64,4 +64,18 @@ trail('entity.audit', {
 
     expect(deadInternalTrail.check(code, TEST_FILE)).toEqual([]);
   });
+
+  test('stays quiet when on: is a module-level identifier reference', () => {
+    const code = `
+const activationSignals = ['entity.created', 'entity.updated'];
+
+trail('entity.audit', {
+  visibility: 'internal',
+  on: activationSignals,
+  blaze: async () => Result.ok({}),
+});
+`;
+
+    expect(deadInternalTrail.check(code, TEST_FILE)).toEqual([]);
+  });
 });

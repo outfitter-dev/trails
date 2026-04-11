@@ -1,14 +1,14 @@
+import type { Intent } from '@ontrails/core';
 import {
   collectNamedTrailIds,
   collectTrailIntentsById,
+  extractDefinitionCrossTargetIds,
   findConfigProperty,
   findTrailDefinitions,
   getStringValue,
-  identifierName,
   isStringLiteral,
   offsetToLine,
   parse,
-  resolveConstString,
 } from './ast.js';
 import type { AstNode } from './ast.js';
 import { isTestFile } from './scan.js';
@@ -18,109 +18,7 @@ import type {
   WardenDiagnostic,
 } from './types.js';
 
-type TrailIntent = 'destroy' | 'read' | 'write';
-
-const getCrossElements = (config: AstNode): readonly AstNode[] => {
-  const crossesProp = findConfigProperty(config, 'crosses');
-  if (!crossesProp) {
-    return [];
-  }
-
-  const crossesValue = crossesProp.value as AstNode | undefined;
-  if (!crossesValue || crossesValue.type !== 'ArrayExpression') {
-    return [];
-  }
-
-  const elements = crossesValue['elements'] as readonly AstNode[] | undefined;
-  return elements ?? [];
-};
-
-const getTrailCallConfigNode = (
-  firstArg: AstNode,
-  secondArg: AstNode | undefined
-): AstNode | null => {
-  if (firstArg.type === 'ObjectExpression') {
-    return firstArg;
-  }
-
-  if (secondArg?.type === 'ObjectExpression') {
-    return secondArg;
-  }
-
-  return null;
-};
-
-const extractTrailIdFromConfigNode = (
-  configNode: AstNode | null
-): string | null => {
-  if (!configNode) {
-    return null;
-  }
-
-  const idProp = findConfigProperty(configNode, 'id');
-  const idValue = idProp?.value as AstNode | undefined;
-  return idValue && isStringLiteral(idValue) ? getStringValue(idValue) : null;
-};
-
-const isInlineTrailFactoryCall = (node: AstNode): boolean =>
-  identifierName((node as unknown as { callee?: AstNode }).callee) === 'trail';
-
-const getTrailCallArgs = (
-  node: AstNode
-): readonly [AstNode | undefined, AstNode | undefined] => {
-  const args = node['arguments'] as readonly AstNode[] | undefined;
-  const [firstArg, secondArg] = args ?? [];
-  return [firstArg, secondArg];
-};
-
-const extractInlineTrailId = (node: AstNode): string | null => {
-  if (node.type !== 'CallExpression' || !isInlineTrailFactoryCall(node)) {
-    return null;
-  }
-
-  const [firstArg, secondArg] = getTrailCallArgs(node);
-  if (!firstArg) {
-    return null;
-  }
-
-  return isStringLiteral(firstArg)
-    ? getStringValue(firstArg)
-    : extractTrailIdFromConfigNode(getTrailCallConfigNode(firstArg, secondArg));
-};
-
-const resolveCrossedTrailId = (
-  element: AstNode,
-  sourceCode: string,
-  namedTrailIds: ReadonlyMap<string, string>
-): string | null => {
-  if (isStringLiteral(element)) {
-    return getStringValue(element);
-  }
-
-  if (element.type === 'Identifier') {
-    const name = identifierName(element);
-    return name
-      ? (namedTrailIds.get(name) ?? resolveConstString(name, sourceCode))
-      : null;
-  }
-
-  return extractInlineTrailId(element);
-};
-
-const extractCrossTargetIds = (
-  config: AstNode,
-  sourceCode: string,
-  namedTrailIds: ReadonlyMap<string, string>
-): readonly string[] => [
-  ...new Set(
-    getCrossElements(config).flatMap((element) => {
-      const id = resolveCrossedTrailId(element, sourceCode, namedTrailIds);
-      return id ? [id] : [];
-    })
-  ),
-];
-
-const extractTrailIntent = (config: AstNode): TrailIntent => {
+const extractTrailIntent = (config: AstNode): Intent => {
   const intentProp = findConfigProperty(config, 'intent');
   const intentValue = intentProp?.value as AstNode | undefined;
   if (!intentValue || !isStringLiteral(intentValue)) {
@@ -134,7 +32,7 @@ const extractTrailIntent = (config: AstNode): TrailIntent => {
 const buildIntentPropagationDiagnostic = (
   trailId: string,
   targetTrailId: string,
-  targetIntent: Exclude<TrailIntent, 'read'>,
+  targetIntent: Exclude<Intent, 'read'>,
   filePath: string,
   line: number
 ): WardenDiagnostic => ({
@@ -150,7 +48,7 @@ const buildDiagnosticsForCrossTargets = (
   targetTrailIds: readonly string[],
   filePath: string,
   line: number,
-  trailIntentsById: ReadonlyMap<string, TrailIntent>
+  trailIntentsById: ReadonlyMap<string, Intent>
 ): readonly WardenDiagnostic[] =>
   targetTrailIds.flatMap((targetTrailId) => {
     const targetIntent = trailIntentsById.get(targetTrailId);
@@ -174,7 +72,7 @@ const buildDiagnosticsForTrail = (
   sourceCode: string,
   filePath: string,
   namedTrailIds: ReadonlyMap<string, string>,
-  trailIntentsById: ReadonlyMap<string, TrailIntent>
+  trailIntentsById: ReadonlyMap<string, Intent>
 ): readonly WardenDiagnostic[] => {
   if (def.kind !== 'trail' || extractTrailIntent(def.config) !== 'read') {
     return [];
@@ -182,7 +80,7 @@ const buildDiagnosticsForTrail = (
 
   return buildDiagnosticsForCrossTargets(
     def.id,
-    extractCrossTargetIds(def.config, sourceCode, namedTrailIds),
+    extractDefinitionCrossTargetIds(def.config, sourceCode, namedTrailIds),
     filePath,
     offsetToLine(sourceCode, def.start),
     trailIntentsById
@@ -193,7 +91,7 @@ const checkIntentPropagation = (
   ast: AstNode | null,
   sourceCode: string,
   filePath: string,
-  trailIntentsById: ReadonlyMap<string, TrailIntent>
+  trailIntentsById: ReadonlyMap<string, Intent>
 ): readonly WardenDiagnostic[] => {
   if (isTestFile(filePath) || !ast) {
     return [];
@@ -218,7 +116,7 @@ export const intentPropagation: ProjectAwareWardenRule = {
       ast,
       sourceCode,
       filePath,
-      ast ? collectTrailIntentsById(ast) : new Map<string, TrailIntent>()
+      ast ? collectTrailIntentsById(ast) : new Map<string, Intent>()
     );
   },
   checkWithContext(
@@ -229,7 +127,7 @@ export const intentPropagation: ProjectAwareWardenRule = {
     const ast = parse(filePath, sourceCode);
     const localTrailIntentsById = ast
       ? collectTrailIntentsById(ast)
-      : new Map<string, TrailIntent>();
+      : new Map<string, Intent>();
     return checkIntentPropagation(
       ast,
       sourceCode,

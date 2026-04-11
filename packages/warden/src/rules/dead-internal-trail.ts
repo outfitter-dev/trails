@@ -15,19 +15,24 @@ import type {
   WardenDiagnostic,
 } from './types.js';
 
-const hasOnActivation = (config: AstNode): boolean => {
-  const onProp = findConfigProperty(config, 'on');
-  if (!onProp) {
+const isNonEmptyActivationValue = (onValue: AstNode): boolean => {
+  // Identifier reference (e.g. `on: signalsArray`) — conservatively treat as
+  // having activation to avoid false positives. We can't cheaply resolve what
+  // the identifier binds to, so assume it's a non-empty activation.
+  if (onValue.type === 'Identifier') {
+    return true;
+  }
+  if (onValue.type !== 'ArrayExpression') {
     return false;
   }
-
-  const onValue = onProp.value as AstNode | undefined;
-  if (!onValue || onValue.type !== 'ArrayExpression') {
-    return false;
-  }
-
   const elements = onValue['elements'] as readonly AstNode[] | undefined;
   return (elements?.length ?? 0) > 0;
+};
+
+const hasOnActivation = (config: AstNode): boolean => {
+  const onProp = findConfigProperty(config, 'on');
+  const onValue = onProp?.value as AstNode | undefined;
+  return onValue ? isNonEmptyActivationValue(onValue) : false;
 };
 
 const hasExplicitInternalVisibility = (config: AstNode): boolean => {

@@ -545,7 +545,8 @@ export const collectNamedTrailIds = (
   return ids;
 };
 
-const getCrossElements = (config: AstNode): readonly AstNode[] => {
+/** Extract the raw `crosses: [...]` array elements from a trail config. */
+export const getCrossElements = (config: AstNode): readonly AstNode[] => {
   const crossesProp = findConfigProperty(config, 'crosses');
   if (!crossesProp) {
     return [];
@@ -562,7 +563,13 @@ const getCrossElements = (config: AstNode): readonly AstNode[] => {
   return elements ?? [];
 };
 
-const resolveCrossElementId = (
+/**
+ * Resolve a single `crosses: [...]` element to its target trail ID.
+ *
+ * Handles string literals, identifier references (via `namedTrailIds` map or
+ * `const NAME = '...'` resolution), and inline `trail(...)` call expressions.
+ */
+export const resolveCrossElementId = (
   element: AstNode,
   sourceCode: string,
   namedTrailIds: ReadonlyMap<string, string>
@@ -582,6 +589,23 @@ const resolveCrossElementId = (
   return inlineDef?.kind === 'trail' ? inlineDef.id : null;
 };
 
+/**
+ * Collect all trail IDs referenced by a single trail definition's
+ * `crosses: [...]` array, deduplicated.
+ */
+export const extractDefinitionCrossTargetIds = (
+  config: AstNode,
+  sourceCode: string,
+  namedTrailIds: ReadonlyMap<string, string>
+): readonly string[] => [
+  ...new Set(
+    getCrossElements(config).flatMap((element) => {
+      const id = resolveCrossElementId(element, sourceCode, namedTrailIds);
+      return id ? [id] : [];
+    })
+  ),
+];
+
 /** Collect all trail IDs referenced by declared `crosses: [...]` arrays. */
 export const collectCrossTargetTrailIds = (
   ast: AstNode,
@@ -595,11 +619,12 @@ export const collectCrossTargetTrailIds = (
       continue;
     }
 
-    for (const element of getCrossElements(def.config)) {
-      const id = resolveCrossElementId(element, sourceCode, namedTrailIds);
-      if (id) {
-        ids.add(id);
-      }
+    for (const id of extractDefinitionCrossTargetIds(
+      def.config,
+      sourceCode,
+      namedTrailIds
+    )) {
+      ids.add(id);
     }
   }
 
