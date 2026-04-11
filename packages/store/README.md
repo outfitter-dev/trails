@@ -76,30 +76,33 @@ export const list = trail('gist.list', {
 
 ## Typed accessors
 
-Every table on a bound connection exposes typed CRUD accessors:
+Every writable table on a bound connection exposes the connector-agnostic accessor contract:
 
 ```typescript
 const conn = db.from(ctx);
 
-const created = await conn.gists.insert({
-  owner: 'matt',
+const created = await conn.gists.upsert({
+  ownerId: 'matt',
   description: 'Hello, Trails',
 });
 
 const found = await conn.gists.get(created.id);
-const page = await conn.gists.list({ owner: 'matt' }, { limit: 20, offset: 0 });
-const updated = await conn.gists.update(created.id, {
+const page = await conn.gists.list({ ownerId: 'matt' }, { limit: 20, offset: 0 });
+const updated = await conn.gists.upsert({
   description: 'Updated description',
+  id: created.id,
+  ownerId: 'matt',
 });
 const removed = await conn.gists.remove(created.id);
 ```
 
 Types are derived from the Zod schema:
 
-- `insert()` uses the entity schema minus generated fields
-- `update()` uses the entity schema minus generated fields, then makes it partial
+- `upsert()` uses the fixture/entity shape with generated fields optional
 - `get()` returns `Entity | null`
 - `list()` accepts typed partial filters and pagination options
+
+Tabular connectors such as `@ontrails/with-drizzle` also expose `insert()` and `update()` as convenience methods when the backend natively distinguishes create and patch operations.
 
 ## Fixtures and mocks
 
@@ -112,7 +115,7 @@ export const db = store({
     identity: 'id',
     generated: ['id', 'createdAt', 'updatedAt'],
     fixtures: [
-      { id: 'g_1', owner: 'matt', description: 'Seed gist' },
+      { id: 'g_1', ownerId: 'matt', description: 'Seed gist' },
     ],
   },
 });
@@ -146,7 +149,17 @@ const auditLog = readonlyStore(
 );
 ```
 
-Read-only bindings expose `get()`, `list()`, and `query()`, but not `insert()`, `update()`, or `remove()`.
+Read-only bindings expose `get()`, `list()`, and `query()`, but not `upsert()`, `remove()`, `insert()`, or `update()`.
+
+## Accessor contract testing
+
+Connectors can reuse the shared writable-accessor contract tests from `@ontrails/store/testing`:
+
+```typescript
+import { createStoreAccessorContractCases } from '@ontrails/store/testing';
+```
+
+That helper provides reusable cases for the baseline `get()`, `list()`, `upsert()`, and `remove()` behavior so connector suites only need to wrap them with their normal `test(...)` calls and add backend-specific coverage on top.
 
 ## Drizzle escape hatch
 

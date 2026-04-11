@@ -22,6 +22,7 @@ export type {
   InsertOf,
   PrimaryKeyOf,
   ReadOnlyStoreConnection,
+  StoreAccessor,
   ReadOnlyStoreTableAccessor,
   ReferencesOfInput,
   StoreAccessMode,
@@ -38,7 +39,9 @@ export type {
   StoreSearchDefinition,
   StoreTable,
   StoreTableAccessor,
+  StoreTableConnection,
   StoreTableInput,
   StoreTablesInput,
+  UpsertOf,
   UpdateOf,
 } from './types.js';

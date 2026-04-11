@@ -4,7 +4,7 @@ import type {
   FixtureInputOf,
   ReadOnlyStoreConnection,
   StoreAccessMode,
-  StoreConnection,
+  StoreTableConnection,
 } from '@ontrails/store';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import type { AnySQLiteTable } from 'drizzle-orm/sqlite-core';
@@ -47,7 +47,7 @@ export type ReadOnlyDrizzleStoreConnection<TStore extends AnyStoreDefinition> =
   };
 
 export type DrizzleStoreConnection<TStore extends AnyStoreDefinition> =
-  StoreConnection<TStore> & ReadOnlyDrizzleStoreConnection<TStore>;
+  StoreTableConnection<TStore> & ReadOnlyDrizzleStoreConnection<TStore>;
 
 export interface DrizzleStoreResourceShape<
   TStore extends AnyStoreDefinition,
