@@ -311,6 +311,15 @@ export type UpdateOf<TTable extends AnyStoreTable> = Partial<
 >;
 
 /**
+ * Upsert shape: entity payload with generated fields remaining optional.
+ *
+ * This matches the connector-agnostic "create or replace" contract while
+ * still allowing connectors to synthesize generated values like IDs and
+ * timestamps when the caller omits them.
+ */
+export type UpsertOf<TTable extends AnyStoreTable> = FixtureInputOf<TTable>;
+
+/**
  * Typed filter shape for list operations.
  */
 export type FiltersOf<TTable extends AnyStoreTable> = Partial<EntityOf<TTable>>;
@@ -338,7 +347,7 @@ export type StoreAccessMode = 'readonly' | 'readwrite';
  * Read-only table operations that every bound store must expose.
  */
 export interface ReadOnlyStoreTableAccessor<TTable extends AnyStoreTable> {
-  /** Retrieve a single entity by primary key. Returns `null` when not found. */
+  /** Retrieve a single entity by identity. Returns `null` when not found. */
   get(id: StoreIdentifierOf<TTable>): Promise<EntityOf<TTable> | null>;
   /**
    * List entities, optionally filtered. Returns all rows when no filters are
@@ -351,13 +360,13 @@ export interface ReadOnlyStoreTableAccessor<TTable extends AnyStoreTable> {
 }
 
 /**
- * Writable table operations layered on top of the read contract.
+ * Connector-agnostic writable operations layered on top of the read contract.
  */
-export interface StoreTableAccessor<
+export interface StoreAccessor<
   TTable extends AnyStoreTable,
 > extends ReadOnlyStoreTableAccessor<TTable> {
   /**
-   * Insert a new entity.
+   * Create or replace one entity using the store's identity field.
    *
    * @throws {AlreadyExistsError} On primary key or unique constraint violation.
    *
@@ -365,18 +374,34 @@ export interface StoreTableAccessor<
    * This is an intentional throw-based boundary: store connectors throw typed
    * errors (`AlreadyExistsError`) rather than returning `Result`. Trail
    * implementations that call store accessors should catch and convert to
-   * `Result.err()` at their level. A future `safeInsert` returning `Result`
+   * `Result.err()` at their level. A future safe variant returning `Result`
    * is planned but deferred to avoid cascading changes across all connectors.
    */
-  insert(input: InsertOf<TTable>): Promise<EntityOf<TTable>>;
+  upsert(input: UpsertOf<TTable>): Promise<EntityOf<TTable>>;
   /**
-   * Remove an entity by primary key. Returns `{ deleted: true }` when the
+   * Remove an entity by identity. Returns `{ deleted: true }` when the
    * row was found and removed, `{ deleted: false }` when no matching row
    * existed (not an error).
    */
   remove(id: StoreIdentifierOf<TTable>): Promise<{ readonly deleted: boolean }>;
+}
+
+/**
+ * Tabular writable operations layered on top of the connector-agnostic
+ * contract.
+ */
+export interface StoreTableAccessor<
+  TTable extends AnyStoreTable,
+> extends StoreAccessor<TTable> {
   /**
-   * Patch an entity by primary key with partial fields. Returns the updated
+   * Insert a new entity.
+   *
+   * Tabular connectors can expose this convenience when the backend has a
+   * native distinction between create and update.
+   */
+  insert(input: InsertOf<TTable>): Promise<EntityOf<TTable>>;
+  /**
+   * Patch an entity by identity with partial fields. Returns the updated
    * entity, or `null` when no row with that ID exists.
    */
   update(
@@ -395,9 +420,19 @@ export type ReadOnlyStoreConnection<TStore extends AnyStoreDefinition> = {
 };
 
 /**
- * Connection shape exposed by a writable bound store.
+ * Connector-agnostic connection shape exposed by a writable bound store.
  */
 export type StoreConnection<TStore extends AnyStoreDefinition> = {
+  readonly [TName in keyof TStore['tables']]: StoreAccessor<
+    TStore['tables'][TName]
+  >;
+};
+
+/**
+ * Tabular connection shape exposed by connectors that distinguish insert and
+ * patch operations from the generalized `upsert` contract.
+ */
+export type StoreTableConnection<TStore extends AnyStoreDefinition> = {
   readonly [TName in keyof TStore['tables']]: StoreTableAccessor<
     TStore['tables'][TName]
   >;
