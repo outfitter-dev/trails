@@ -204,6 +204,17 @@ export type { TraceFn } from './types.js';
 export { run } from './run.js';
 export type { RunOptions } from './run.js';
 
+// Trail factories
+export { deriveTrail, ingest } from './trails/index.js';
+export type {
+  DeriveTrailInput,
+  DeriveTrailOperation,
+  DeriveTrailOutput,
+  DeriveTrailSpec,
+  IngestOptions,
+  IngestTransform,
+} from './trails/index.js';
+
 // Validation
 export {
   validateInput,
