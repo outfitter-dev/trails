@@ -33,6 +33,8 @@ PACKAGES=(
   packages/mcp
   packages/testing
   packages/warden
+  connectors/drizzle
+  connectors/hono
   apps/trails
 )
 
