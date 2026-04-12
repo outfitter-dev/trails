@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, mock, test } from 'bun:test';
 import {
   ConflictError,
   Result,
+  RetryExhaustedError,
   ValidationError,
   createTrailContext,
+  executeTrail,
   resource,
 } from '@ontrails/core';
 import { z } from 'zod';
@@ -15,11 +17,7 @@ import type {
   UpsertOf,
 } from '../index.js';
 import { store } from '../index.js';
-import {
-  ReconcileRetryExhaustedError,
-  reconcile,
-  sync,
-} from '../trails/index.js';
+import { reconcile, sync } from '../trails/index.js';
 
 const cloneOrNull = <T>(value: T | undefined): T | null =>
   value === undefined ? null : structuredClone(value);
@@ -395,7 +393,8 @@ describe('reconcile()', () => {
       table: versionedNoteDefinition.tables.notes,
     });
 
-    const result = await reconcileNote.blaze(
+    const result = await executeTrail(
+      reconcileNote,
       {
         body: 'Incoming body',
         createdAt: versionedFixture.createdAt,
@@ -403,13 +402,15 @@ describe('reconcile()', () => {
         title: 'Incoming title',
         version: 1,
       },
-      createTrailContext({
-        extensions: {
-          'db.notes.versioned': {
-            notes: createConflictAccessor(calls),
+      {
+        ctx: {
+          extensions: {
+            'db.notes.versioned': {
+              notes: createConflictAccessor(calls),
+            },
           },
         },
-      })
+      }
     );
 
     expect(reconcileNote.id).toBe('notes.reconcile');
@@ -478,7 +479,8 @@ describe('reconcile()', () => {
       table: versionedNoteDefinition.tables.notes,
     });
 
-    const result = await reconcileNote.blaze(
+    const result = await executeTrail(
+      reconcileNote,
       {
         body: 'Incoming body',
         createdAt: versionedFixture.createdAt,
@@ -486,13 +488,15 @@ describe('reconcile()', () => {
         title: 'Incoming title',
         version: 1,
       },
-      createTrailContext({
-        extensions: {
-          'db.notes.strategy': {
-            notes: createConflictAccessor(calls),
+      {
+        ctx: {
+          extensions: {
+            'db.notes.strategy': {
+              notes: createConflictAccessor(calls),
+            },
           },
         },
-      })
+      }
     );
 
     expect(strategy).toHaveBeenCalledTimes(1);
@@ -552,12 +556,11 @@ describe('reconcile()', () => {
     expect(withVersion.success).toBe(true);
   });
 
-  test('surfaces ReconcileRetryExhaustedError when the retry also conflicts', async () => {
+  test('surfaces RetryExhaustedError when the retry also conflicts', async () => {
     // Accessor that always throws ConflictError on upsert, mirroring a
-    // concurrent writer that races the retry path. The retry in
-    // recoverConflict produces a second ConflictError, which the blaze
-    // wraps in ReconcileRetryExhaustedError so callers can distinguish
-    // "retry reconcile at a higher level" from "reconcile lost the race".
+    // concurrent writer that races the retry path. The detour loop
+    // exhausts after one recovery attempt and wraps in
+    // RetryExhaustedError<ConflictError>.
     const stubbornCurrent = {
       body: 'Current body',
       createdAt: versionedFixture.createdAt,
@@ -587,8 +590,9 @@ describe('reconcile()', () => {
       },
     };
 
-    const reconcileNote = reconcile({
-      resource: resource<VersionedConnection>('db.notes.stubborn', {
+    const stubbornResource = resource<VersionedConnection>(
+      'db.notes.stubborn',
+      {
         create: () =>
           Result.ok({
             notes: stubbornAccessor,
@@ -596,12 +600,17 @@ describe('reconcile()', () => {
         mock: () => ({
           notes: stubbornAccessor,
         }),
-      }),
+      }
+    );
+
+    const reconcileNote = reconcile({
+      resource: stubbornResource,
       strategy: 'last-write-wins',
       table: versionedNoteDefinition.tables.notes,
     });
 
-    const result = await reconcileNote.blaze(
+    const result = await executeTrail(
+      reconcileNote,
       {
         body: 'Incoming body',
         createdAt: versionedFixture.createdAt,
@@ -609,13 +618,15 @@ describe('reconcile()', () => {
         title: 'Incoming title',
         version: 1,
       },
-      createTrailContext({
-        extensions: {
-          'db.notes.stubborn': {
-            notes: stubbornAccessor,
+      {
+        ctx: {
+          extensions: {
+            'db.notes.stubborn': {
+              notes: stubbornAccessor,
+            },
           },
         },
-      })
+      }
     );
 
     const err = result.match({
@@ -624,9 +635,10 @@ describe('reconcile()', () => {
         throw new Error('expected reconcile to fail after retry');
       },
     });
-    expect(err).toBeInstanceOf(ReconcileRetryExhaustedError);
-    // Subclass of ConflictError so callers that catch the base class
-    // still catch it.
-    expect(err).toBeInstanceOf(ConflictError);
+    expect(err).toBeInstanceOf(RetryExhaustedError);
+    // Inherits the conflict category for trailhead mapping.
+    expect((err as RetryExhaustedError).category).toBe('conflict');
+    // The cause is the original ConflictError.
+    expect(err.cause).toBeInstanceOf(ConflictError);
   });
 });

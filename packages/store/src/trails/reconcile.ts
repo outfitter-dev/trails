@@ -1,10 +1,12 @@
 import { ConflictError, Result, ValidationError, trail } from '@ontrails/core';
 import type {
   AnySignal,
+  Detour,
   Resource,
   Trail,
   TrailContext,
   TrailExample,
+  TrailsError,
 } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -43,15 +45,6 @@ export interface ReconcileOptions<
   readonly strategy?: ReconcileStrategy<TTable>;
   readonly table: TTable;
 }
-
-/**
- * Surfaced when `reconcile` exhausts its single retry after a second
- * `ConflictError` from the underlying store. Extends `ConflictError` so
- * callers that catch `ConflictError` still catch it, while still allowing
- * "I should retry reconcile at a higher level" to be distinguished from
- * "reconcile tried and lost the race".
- */
-export class ReconcileRetryExhaustedError extends ConflictError {}
 
 const versionFieldName = 'version';
 
@@ -149,16 +142,7 @@ const resolveStrategy = async <TTable extends AnyStoreTable>(
     ? lastWriteWins(conflict)
     : await strategy(conflict, ctx);
 
-/**
- * Single-retry conflict recovery.
- *
- * `recoverConflict` retries `upsert` exactly once after resolving the
- * conflict through the configured strategy. A concurrent writer between
- * retries produces a second `ConflictError`, which is wrapped in a
- * `ReconcileRetryExhaustedError` by the blaze so callers can distinguish
- * "I should retry reconcile at a higher level" from "reconcile tried and
- * lost the race".
- */
+/** Resolve a version conflict through the configured strategy and retry the upsert. */
 const recoverConflict = async <TTable extends AnyStoreTable>(
   table: TTable,
   input: UpsertOf<TTable>,
@@ -175,24 +159,6 @@ const recoverConflict = async <TTable extends AnyStoreTable>(
   const resolved = await resolveStrategy(strategy, conflict, ctx);
   const normalized = normalizeResolvedInput(table, conflict.current, resolved);
   return Result.ok(await accessor.upsert(normalized));
-};
-
-const wrapRetryExhaustion = (
-  trailId: string,
-  error: unknown
-): ReconcileRetryExhaustedError | Error => {
-  if (!(error instanceof ConflictError)) {
-    return mapStoreTrailError(trailId, error);
-  }
-
-  if (error instanceof ReconcileRetryExhaustedError) {
-    return error;
-  }
-
-  return new ReconcileRetryExhaustedError(
-    `${trailId} retry exhausted after second conflict: ${error.message}`,
-    { cause: error }
-  );
 };
 
 /**
@@ -212,68 +178,68 @@ const buildReconcileInputSchema = <TTable extends AnyStoreTable>(
     [versionFieldName]: z.number().int(),
   }) as unknown as z.ZodType<UpsertOf<TTable>>;
 
-/**
- * Conflict recovery uses inline try/catch rather than `detours` because
- * detours are declarative-only today — there is no execution machinery to
- * wire recovery strategies to versioned upserts yet. Factory-provided trails
- * like `reconcile` need working recovery at runtime, so the inline path is
- * the pragmatic bridge until a detour execution primitive lands. See the
- * "Factory-provided trails" carve-out in the repo-root `AGENTS.md`.
- */
+/** The blaze performs only the initial upsert; conflict recovery is handled by the detour. */
 const createReconcileBlaze =
   <
     TTable extends AnyStoreTable,
     TConnection extends ReconcileConnection<TTable>,
   >(
     options: ReconcileOptions<TTable, TConnection>,
-    id: string,
-    strategy: ReconcileStrategy<TTable>
+    id: string
   ) =>
   async (input: UpsertOf<TTable>, ctx: TrailContext) => {
     try {
       const accessor = resolveAccessor(options.table, options.resource, ctx);
-
-      try {
-        return Result.ok(await accessor.upsert(input));
-      } catch (error) {
-        if (!(error instanceof ConflictError)) {
-          return Result.err(mapStoreTrailError(id, error));
-        }
-
-        try {
-          return await recoverConflict(
-            options.table,
-            input,
-            accessor,
-            error,
-            strategy,
-            ctx
-          );
-        } catch (conflictError) {
-          return Result.err(wrapRetryExhaustion(id, conflictError));
-        }
-      }
+      return Result.ok(await accessor.upsert(input));
     } catch (error) {
+      if (error instanceof ConflictError) {
+        return Result.err(error);
+      }
       return Result.err(mapStoreTrailError(id, error));
     }
   };
+
+/** Build the detour that handles ConflictError recovery via the configured strategy. */
+const createReconcileDetour = <
+  TTable extends AnyStoreTable,
+  TConnection extends ReconcileConnection<TTable>,
+>(
+  options: ReconcileOptions<TTable, TConnection>,
+  id: string,
+  strategy: ReconcileStrategy<TTable>
+): Detour<UpsertOf<TTable>, EntityOf<TTable>, TrailsError> => ({
+  maxAttempts: 1,
+  on: ConflictError,
+  recover: async (attempt, ctx) => {
+    const conflictError = attempt.error as ConflictError;
+    try {
+      const accessor = resolveAccessor(options.table, options.resource, ctx);
+      return await recoverConflict(
+        options.table,
+        attempt.input,
+        accessor,
+        conflictError,
+        strategy,
+        ctx
+      );
+    } catch (error) {
+      if (error instanceof ConflictError) {
+        return Result.err(error);
+      }
+      return Result.err(mapStoreTrailError(id, error) as TrailsError);
+    }
+  },
+});
 
 /**
  * Produce one trail that retries a versioned upsert with a conflict strategy
  * when the incoming entity is stale.
  *
- * Reconcile is bounded to a single retry. If a concurrent writer races the
- * retry and produces a second `ConflictError`, the blaze surfaces a
- * `ReconcileRetryExhaustedError` (a `ConflictError` subclass) so callers can
- * distinguish "retry reconcile at a higher level" from "reconcile tried and
- * lost the race".
- *
- * Conflict recovery is inline rather than delegated to a `detour` because
- * detours are declarative-only today — there is no execution machinery for
- * them yet. Factory-provided trails need working recovery at runtime, so
- * the inline path is the pragmatic bridge until a detour execution primitive
- * lands. See the "Factory-provided trails" carve-out in the repo-root
- * `AGENTS.md`.
+ * Reconcile is bounded to a single retry via a declarative `detour`. If a
+ * concurrent writer races the retry and produces a second `ConflictError`,
+ * the detour loop wraps it in `RetryExhaustedError<ConflictError>` so
+ * callers can distinguish "retry reconcile at a higher level" from
+ * "reconcile tried and lost the race".
  *
  * @remarks
  * For versioned tables, the derived input schema requires an explicit
@@ -299,11 +265,12 @@ export const reconcile = <
   const strategy = options.strategy ?? 'last-write-wins';
 
   return trail<UpsertOf<TTable>, EntityOf<TTable>>(id, {
-    blaze: createReconcileBlaze(options, id, strategy),
+    blaze: createReconcileBlaze(options, id),
     contours: [entityContour],
     description:
       options.description ??
       `Reconcile version conflicts for "${options.table.name}" entities.`,
+    detours: [createReconcileDetour(options, id, strategy)],
     examples: deriveExamples(options.table),
     input: buildReconcileInputSchema(options.table),
     intent: 'write',
