@@ -286,6 +286,32 @@
       "superseded_by": null,
       "title": "Unified Observability",
       "updated": "2026-04-09"
+    },
+    {
+      "created": "2026-04-11",
+      "depends_on": ["2", "6", "23", "32"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260411-detour-execution-for-recovery.md",
+      "slug": "detour-execution-for-recovery",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Detour Execution for Recovery",
+      "updated": "2026-04-11"
+    },
+    {
+      "created": "2026-04-12",
+      "depends_on": [],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260412-store-accessor-contract-refinement-lessons-from-two-backends.md",
+      "slug": "store-accessor-contract-refinement-lessons-from-two-backends",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Store Accessor Contract Refinement: Lessons from Two Backends",
+      "updated": "2026-04-12"
     }
   ],
   "version": 1

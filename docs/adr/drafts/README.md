@@ -38,3 +38,6 @@ Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.
   - depends on [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md), [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md), [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md)
 - [Unified Observability](20260409-unified-observability.md)
   - depends on [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md), [ADR-0013: Tracing — Runtime Recording Primitive](../0013-tracing.md)
+- [Detour Execution for Recovery](20260411-detour-execution-for-recovery.md)
+  - depends on [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md), [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md), [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md), [ADR-0032: deriveTrail() and Trail Factories](../0032-derivetrail-and-trail-factories.md)
+- [Store Accessor Contract Refinement: Lessons from Two Backends](20260412-store-accessor-contract-refinement-lessons-from-two-backends.md)
