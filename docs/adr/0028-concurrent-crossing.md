@@ -292,7 +292,7 @@ Rejected because implicit concurrency is a correctness hazard. Two crossings may
 - **The declaration stays simple.** The `crosses` array is still a flat list of trail IDs. No structural annotations, no groups, no ordering constraints. The declaration is the vocabulary. The code is the grammar.
 - **Partial failure uses existing patterns.** The Result model handles optionality. The developer checks results and decides what's required vs optional. No new framework concept for optional crossings.
 - **Tracing observes composition shape.** Concurrent crossings produce sibling spans with overlapping timestamps. Sequential crossings produce sequential spans. The observation is ground truth, not declaration.
-- **Warden rules are unchanged.** The existing `crossing-declarations` rule validates that every ID in a `ctx.cross()` call appears in the crossing declaration. The rule works identically for single and array forms.
+- **Warden rules are unchanged.** The existing `cross-declarations` rule validates that every ID in a `ctx.cross()` call appears in the crossing declaration. The rule works identically for single and array forms.
 - **Concurrency control is opt-in.** The `{ concurrency: N }` option handles backpressure for large fan-outs without affecting the common case. The option is specified here; the initial implementation lands the unbounded array overload first and adds the `{ concurrency: N }` option in a follow-up slice (PR #130).
 
 ### Tradeoffs

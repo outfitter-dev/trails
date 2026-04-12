@@ -566,7 +566,7 @@ describe('executeTrail', () => {
             resultOrder: crossed.map((result) =>
               result.match({
                 err: () => 'err',
-                ok: (value) => value.id,
+                ok: (value) => (value as { id: string }).id,
               })
             ),
           });
