@@ -355,6 +355,17 @@ const formatExampleName = (
   return `${titleCase(operation)} ${contour.name} ${suffix}`;
 };
 
+/**
+ * Derive a single trail example from a contour fixture.
+ *
+ * @remarks
+ * For `list` operations, each derived example wraps a single fixture in an
+ * array (`expected: [example]`) and uses the fixture's identity as input
+ * filters. This means the expected output is always a one-element array,
+ * which may not match the real accessor behavior when multiple fixtures
+ * share the same filter. A custom `blaze` with hand-authored examples is
+ * required for multi-result list assertions.
+ */
 const deriveExample = (
   contour: AnyContour,
   operation: DeriveTrailOperation,

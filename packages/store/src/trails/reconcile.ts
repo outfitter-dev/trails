@@ -16,6 +16,7 @@ import type {
   StoreAccessor,
   UpsertOf,
 } from '../types.js';
+import { versionFieldName } from '../store.js';
 import { createTableContour, mapStoreTrailError } from './utils.js';
 
 type ReconcileConnection<TTable extends AnyStoreTable> = Readonly<
@@ -45,8 +46,6 @@ export interface ReconcileOptions<
   readonly strategy?: ReconcileStrategy<TTable>;
   readonly table: TTable;
 }
-
-const versionFieldName = 'version';
 
 const resolveAccessor = <
   TTable extends AnyStoreTable,

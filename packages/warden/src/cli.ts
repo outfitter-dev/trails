@@ -457,6 +457,27 @@ const collectFileProjectContext = (
   );
 };
 
+const collectFileSupplementalProjectContext = (
+  sourceFile: SourceFile,
+  context: MutableProjectContext
+): void => {
+  collectCrudTableIds(
+    sourceFile.sourceCode,
+    sourceFile.filePath,
+    context.crudTableIds
+  );
+  collectOnTargetSignalIds(
+    sourceFile.sourceCode,
+    sourceFile.filePath,
+    context.onTargetSignalIds
+  );
+  collectReconcileTableIds(
+    sourceFile.sourceCode,
+    sourceFile.filePath,
+    context.reconcileTableIds
+  );
+};
+
 const collectFileContourReferences = (
   sourceFile: SourceFile,
   context: MutableProjectContext
@@ -481,16 +502,19 @@ const buildProjectContext = (
 ): ProjectContext => {
   const context = createMutableProjectContext();
 
-  for (const sourceFile of sourceFiles) {
-    collectFileProjectContext(sourceFile, context);
+  if (appTopo) {
+    collectTopoTrailContext(appTopo, context);
+    for (const sourceFile of sourceFiles) {
+      collectFileSupplementalProjectContext(sourceFile, context);
+    }
+  } else {
+    for (const sourceFile of sourceFiles) {
+      collectFileProjectContext(sourceFile, context);
+    }
   }
 
   for (const sourceFile of sourceFiles) {
     collectFileContourReferences(sourceFile, context);
-  }
-
-  if (appTopo) {
-    collectTopoTrailContext(appTopo, context);
   }
 
   return toProjectContext(context);
