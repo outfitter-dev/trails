@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { contour } from '../contour';
 import { createTrailContext } from '../context';
+import { ConflictError } from '../errors';
 import { Result } from '../result';
 import { resource } from '../resource';
 import { signal } from '../signal';
@@ -106,16 +107,21 @@ describe('trail()', () => {
     test('detours are stored', () => {
       const withDetours = trail('orchestrator', {
         blaze: () => Result.ok(),
-        detours: {
-          onFailure: ['alert'],
-          onSuccess: ['notify', 'audit'],
-        },
+        /* oxlint-disable-next-line require-await -- test stub */
+        detours: [{ on: ConflictError, recover: async () => Result.ok() }],
         input: z.object({}),
       });
-      expect(withDetours.detours).toEqual({
-        onFailure: ['alert'],
-        onSuccess: ['notify', 'audit'],
+      expect(withDetours.detours).toHaveLength(1);
+      expect(withDetours.detours[0]?.on).toBe(ConflictError);
+    });
+
+    test('detours default to empty frozen array when omitted', () => {
+      const noDetours = trail('bare', {
+        blaze: () => Result.ok(),
+        input: z.object({}),
       });
+      expect(noDetours.detours).toEqual([]);
+      expect(Object.isFrozen(noDetours.detours)).toBe(true);
     });
   });
 

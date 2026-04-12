@@ -1,6 +1,6 @@
 import { describe, test } from 'bun:test';
 
-import { Result, trail, topo } from '@ontrails/core';
+import { ConflictError, Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { testDetours } from '../detours.js';
@@ -11,15 +11,14 @@ import { testDetours } from '../detours.js';
 
 const showTrail = trail('entity.show', {
   blaze: (input: { id: string }) => Result.ok({ id: input.id }),
-  detours: {
-    related: ['entity.list'],
-  },
+  detours: [
+    {
+      on: ConflictError,
+      /* oxlint-disable-next-line require-await -- test stub */
+      recover: async () => Result.ok({ id: 'recovered' }),
+    },
+  ],
   input: z.object({ id: z.string() }),
-});
-
-const listTrail = trail('entity.list', {
-  blaze: () => Result.ok([]),
-  input: z.object({}),
 });
 
 const noDetoursTrail = trail('entity.plain', {
@@ -31,11 +30,10 @@ const noDetoursTrail = trail('entity.plain', {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('testDetours: all targets exist', () => {
+describe('testDetours: all detour declarations are valid', () => {
   // eslint-disable-next-line jest/require-hook
   testDetours(
     topo('test-app', {
-      listTrail,
       showTrail,
     } as Record<string, unknown>)
   );

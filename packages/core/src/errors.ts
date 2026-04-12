@@ -131,6 +131,35 @@ export class CancelledError extends TrailsError {
   readonly retryable = false as const;
 }
 
+/**
+ * Returned when a detour exhausts all recovery attempts.
+ *
+ * Inherits the wrapped error's category for trailhead mapping (e.g. a
+ * `RetryExhaustedError<ConflictError>` maps to HTTP 409), but always
+ * sets `retryable = false` to prevent amplification across `ctx.cross()`
+ * boundaries or stacked layers.
+ */
+export class RetryExhaustedError<
+  TErr extends TrailsError = TrailsError,
+> extends TrailsError {
+  declare readonly category: ErrorCategory;
+  readonly retryable = false as const;
+  declare readonly cause: TErr;
+
+  constructor(
+    wrapped: TErr,
+    metadata: { readonly attempts: number; readonly detour: string }
+  ) {
+    super(
+      `Recovery exhausted after ${metadata.attempts} attempts: ${wrapped.message}`,
+      { cause: wrapped }
+    );
+    this.cause = wrapped;
+    // Dynamic — inherited from wrapped error at construction time
+    (this as { category: ErrorCategory }).category = wrapped.category;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Taxonomy maps
 // ---------------------------------------------------------------------------

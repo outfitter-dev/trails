@@ -285,27 +285,12 @@ const loadSourceFiles = async (
   return sourceFiles;
 };
 
-const collectTopoDetourTargetTrailIds = (
-  appTopo: Topo
-): ReadonlySet<string> => {
-  const detourTargetTrailIds = new Set<string>();
-
-  for (const trail of appTopo.trails.values()) {
-    const detours = (trail as unknown as Record<string, unknown>)['detours'] as
-      | Readonly<Record<string, readonly string[]>>
-      | undefined;
-    if (!detours) {
-      continue;
-    }
-    for (const targets of Object.values(detours)) {
-      for (const id of targets) {
-        detourTargetTrailIds.add(id);
-      }
-    }
-  }
-
-  return detourTargetTrailIds;
-};
+/**
+ * Detours no longer reference trail IDs — they match on error classes.
+ * Kept as a stub so downstream context population still compiles.
+ */
+const collectTopoDetourTargetTrailIds = (_appTopo: Topo): ReadonlySet<string> =>
+  new Set();
 
 const collectTopoKnownIds = (
   appTopo: Topo,

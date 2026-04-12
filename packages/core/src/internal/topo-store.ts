@@ -683,12 +683,11 @@ const addExtendedMetadata = (
     entry['replacedBy'] = raw['replacedBy'];
   }
 
-  if (trail.detours !== undefined) {
-    const detours: Record<string, readonly string[]> = {};
-    for (const key of Object.keys(trail.detours).toSorted()) {
-      detours[key] = (trail.detours[key] ?? []).toSorted();
-    }
-    entry['detours'] = detours;
+  if (trail.detours.length > 0) {
+    entry['detours'] = trail.detours.map((d) => ({
+      maxAttempts: Math.max(1, Math.min(d.maxAttempts ?? 1, 5)),
+      on: d.on.name,
+    }));
   }
 };
 

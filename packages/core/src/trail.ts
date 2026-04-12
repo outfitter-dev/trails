@@ -5,7 +5,9 @@ import type { FieldOverride } from './derive.js';
 import type { Result } from './result.js';
 import type { AnyResource } from './resource.js';
 import type { AnySignal } from './signal.js';
+import type { TrailsError } from './errors.js';
 import type {
+  Detour,
   Implementation,
   PermitRequirement,
   TrailContext,
@@ -75,8 +77,8 @@ export interface TrailSpec<I, O, CI = never> {
   readonly visibility?: TrailVisibility | undefined;
   /** Arbitrary meta for tooling and filtering */
   readonly meta?: Readonly<Record<string, unknown>> | undefined;
-  /** Named sets of downstream trail IDs that may be invoked */
-  readonly detours?: Readonly<Record<string, readonly string[]>> | undefined;
+  /** Recovery paths activated when blaze fails with a matching error class. */
+  readonly detours?: readonly Detour<I, O, TrailsError>[] | undefined;
   /** Per-field overrides for deriveFields() (labels, hints, options) */
   readonly fields?: Readonly<Record<string, FieldOverride>> | undefined;
   /** Contours this trail operates on. */
@@ -136,6 +138,7 @@ export interface Trail<I, O, CI = never> extends Omit<
   | 'contours'
   | 'crosses'
   | 'crossInput'
+  | 'detours'
   | 'fires'
   | 'intent'
   | 'on'
@@ -150,6 +153,8 @@ export interface Trail<I, O, CI = never> extends Omit<
   readonly crosses: readonly string[];
   /** Composition-only input schema, merged with `input` for ctx.cross() calls (optional) */
   readonly crossInput?: z.ZodType<CI> | undefined;
+  /** Recovery paths activated when blaze fails with a matching error (always present, default []). */
+  readonly detours: readonly Detour<I, O, TrailsError>[];
   /** Resources this trail may access via resource.from(ctx) (always present, default []) */
   readonly resources: readonly AnyResource[];
   /** IDs of signals this trail emits via ctx.fire() (always present, default []) */
@@ -174,6 +179,25 @@ const normalizeSignalRef = (entry: string | AnySignal): string =>
 /** Normalize a crosses entry — trail objects are reduced to their id. */
 const normalizeCrossRef = (entry: string | AnyTrail): string =>
   typeof entry === 'string' ? entry : entry.id;
+
+/** Freeze and normalize all collection fields from a trail spec. */
+const normalizeCollections = <I, O, CI>(
+  spec: TrailSpec<I, O, CI>
+): {
+  readonly args: readonly string[] | false | undefined;
+  readonly contours: readonly AnyContour[];
+  readonly detours: readonly Detour<I, O, TrailsError>[];
+  readonly fires: readonly string[];
+  readonly on: readonly string[];
+  readonly resources: readonly AnyResource[];
+} => ({
+  args: Array.isArray(spec.args) ? Object.freeze([...spec.args]) : spec.args,
+  contours: Object.freeze([...(spec.contours ?? [])]),
+  detours: Object.freeze([...(spec.detours ?? [])]),
+  fires: Object.freeze((spec.fires ?? []).map(normalizeSignalRef)),
+  on: Object.freeze((spec.on ?? []).map(normalizeSignalRef)),
+  resources: Object.freeze([...(spec.resources ?? [])]),
+});
 
 /**
  * Create a trail definition.
@@ -218,38 +242,32 @@ export function trail<I, O, CI = never>(
   }
 
   const {
-    args: rawArgs,
     blaze,
-    contours: rawContours,
     crossInput,
     crosses: rawCrosses,
-    fires: rawFires,
     intent: rawIntent,
-    on: rawOn,
-    resources: rawResources,
     visibility: rawVisibility,
+    // Destructure away fields handled by normalizeCollections
+    args: _a,
+    contours: _c,
+    detours: _d,
+    fires: _f,
+    on: _o,
+    resources: _r,
     ...spec
   } = resolved.spec;
-  const contours = Object.freeze([...(rawContours ?? [])]);
-  const resources = Object.freeze([...(rawResources ?? [])]);
-  const fires = Object.freeze((rawFires ?? []).map(normalizeSignalRef));
-  const on = Object.freeze((rawOn ?? []).map(normalizeSignalRef));
-  const args = Array.isArray(rawArgs) ? Object.freeze([...rawArgs]) : rawArgs;
+  const collections = normalizeCollections(resolved.spec);
 
   return Object.freeze({
     ...spec,
-    args,
+    ...collections,
     blaze: async (input: BlazeInput<I, CI>, ctx: TrailContext) =>
       await blaze(input, ctx),
-    contours,
     crossInput,
     crosses: Object.freeze((rawCrosses ?? []).map(normalizeCrossRef)),
-    fires,
     id: resolved.id,
     intent: rawIntent ?? 'write',
     kind: 'trail' as const,
-    on,
-    resources,
     visibility: rawVisibility ?? 'public',
   });
 }

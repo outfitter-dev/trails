@@ -108,12 +108,11 @@ const addExtendedMetadata = (
   if (typeof raw['replacedBy'] === 'string') {
     entry['replacedBy'] = raw['replacedBy'];
   }
-  if (t.detours) {
-    const detoursSorted: Record<string, readonly string[]> = {};
-    for (const key of Object.keys(t.detours).toSorted()) {
-      detoursSorted[key] = (t.detours[key] ?? []).toSorted();
-    }
-    entry['detours'] = detoursSorted;
+  if (t.detours.length > 0) {
+    entry['detours'] = t.detours.map((d) => ({
+      maxAttempts: Math.max(1, Math.min(d.maxAttempts ?? 1, 5)),
+      on: d.on.name,
+    }));
   }
 };
 

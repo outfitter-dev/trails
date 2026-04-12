@@ -54,9 +54,6 @@ export const show = trail('entity.show', {
     return Result.ok(toEntity(entity));
   },
   description: 'Show an entity by name',
-  detours: {
-    NotFoundError: ['search'],
-  },
   examples: [
     {
       description: 'Look up an existing entity by its exact name',

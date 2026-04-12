@@ -23,6 +23,7 @@ export {
   statusCodeMap,
   jsonRpcCodeMap,
   retryableMap,
+  RetryExhaustedError,
   isRetryable,
   isTrailsError,
 } from './errors.js';
@@ -43,6 +44,8 @@ export type {
 
 // Types
 export type {
+  Detour,
+  DetourAttempt,
   Implementation,
   TrailContext,
   TrailContextInit,

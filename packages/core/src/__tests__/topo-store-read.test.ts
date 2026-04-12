@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { z } from 'zod';
 
 import {
+  ConflictError,
   createMockTopoStore,
   createTopoStore,
   resource,
@@ -73,9 +74,8 @@ const exampleApp = () => {
     blaze: noop,
     crosses: ['entity.add'],
     description: 'List entities',
-    detours: {
-      ConflictError: ['entity.add'],
-    },
+    /* oxlint-disable-next-line require-await -- test stub */
+    detours: [{ on: ConflictError, recover: async () => Result.ok() }],
     idempotent: true,
     input: z.object({}),
     intent: 'read',
@@ -192,7 +192,7 @@ describe('read-only topo store', () => {
     expect(detail).toEqual(
       expect.objectContaining({
         crosses: ['entity.add'],
-        detours: { ConflictError: ['entity.add'] },
+        detours: [{ maxAttempts: 1, on: 'ConflictError' }],
         id: 'entity.list',
         resources: ['db.main'],
       })
