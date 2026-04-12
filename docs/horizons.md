@@ -24,6 +24,8 @@
 
 **Cross-app composition (mount).** One Trails app consumes another's trails over a connector boundary. Contract compatibility verified at startup — input schemas match, expected errors exist, required trails are present. Version compatibility becomes structural, not documentary.
 
+**Resource-level recovery declarations.** A mechanism for resources to declare their own recovery policies that apply uniformly to every trail using them — for cases where the recovery is not uniform retry (handled by the framework retry layer on `retryable` errors), not derivable from store declarations (handled by `deriveTrail` synthesis), and not domain-specific (handled by authored trail-level `detours:`). The motivating cases are third-party connectors with protocol-specific recovery semantics — OAuth token refresh on 401, idiosyncratic retry windows in API response bodies, credential-aware recovery actions. Deferred from ADR-0033 pending a concrete case; prerequisite is a backend-agnostic taxonomy extension. The `detours` vocabulary is trail-specific per ADR-0023 — if this lands, it needs its own word.
+
 **Packs.** Distributable capability bundles. A pack carries trails, resources, events, and config for a domain. The unit of sharing and reuse across apps.
 
 ## Long-term (v2+)
