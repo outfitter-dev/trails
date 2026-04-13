@@ -554,9 +554,6 @@ const callCreate = async (
 
     // Fallback: tabular contract allows `upsert` when `insert` is absent.
     // The warden flags this at build time via a pattern rule (trl-251).
-    ctx.logger?.debug(
-      `deriveTrail("${contour.name}.create"): accessor has no \`insert\`; falling back to \`upsert\``
-    );
     if (typeof accessor.upsert !== 'function') {
       return Result.err(
         new InternalError(
@@ -564,6 +561,9 @@ const callCreate = async (
         )
       );
     }
+    ctx.logger?.debug(
+      `deriveTrail("${contour.name}.create"): accessor has no \`insert\`; falling back to \`upsert\``
+    );
     const created = await accessor.upsert(input);
     return Result.ok(created);
   } catch (error) {
