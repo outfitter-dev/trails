@@ -108,6 +108,10 @@ describe('contour()', () => {
       });
       // admin still has its own id() accessor
       expect(admin.id()).toBeDefined();
+
+      // Neither contour should emit its own identity as a cross-contour reference
+      expect(getContourReferences(baseUser)).toEqual([]);
+      expect(getContourReferences(admin)).toEqual([]);
     });
 
     test('rejects identity keys that are not in the shape', () => {

@@ -270,13 +270,11 @@ export const getContourReferences = (
 ): readonly ContourReference[] =>
   Object.entries(contour.shape)
     .flatMap(([field, schema]) => {
+      if (field === contour.identity) {
+        return [];
+      }
       const metadata = getContourIdMetadata(schema);
-      if (
-        metadata === undefined ||
-        (field === contour.identity &&
-          metadata.contour === contour.name &&
-          metadata.identity === contour.identity)
-      ) {
+      if (metadata === undefined) {
         return [];
       }
 
