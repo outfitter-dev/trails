@@ -291,21 +291,26 @@ const result = await run(app, 'entity.show', { id: '123' });
 
 ### `store`
 
-A persistence declaration. `store(definition)` declares tables with schemas, primary keys, generated fields, indexes, references, and fixtures. The store itself is connector-agnostic — bind it to a runtime (e.g., Drizzle + SQLite) to get typed accessors.
+A persistence declaration. `store(definition)` declares what is persisted for a domain object — schema, identity, generated fields, relationships, and fixtures — without choosing how that persistence is realized. The store itself is connector-agnostic. A connector binding interprets it for a specific backend and persistence shape.
 
 ```typescript
 const db = store({
   gists: {
     schema: gistSchema,
-    primaryKey: 'id',
-    generated: ['id', 'createdAt', 'updatedAt'],
-    indexes: ['owner'],
+    identity: 'id',
+    generated: ['id', 'createdAt'],
     fixtures: [{ owner: 'matt', description: 'Seed' }],
   },
 });
 ```
 
 A store is infrastructure declared as data. A resource is how that infrastructure reaches trail implementations. A store becomes usable through a resource; they are complementary, not interchangeable.
+
+### `kind`
+
+The plain word for the persistence shape a connector binds a store through. Current examples include `tabular`, `document`, `file`, `kv`, and `cache`.
+
+The store declaration stays kind-agnostic. The connector or binding chooses the kind and interprets the store schema accordingly.
 
 ### `projection`
 

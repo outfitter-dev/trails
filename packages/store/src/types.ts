@@ -1,6 +1,18 @@
 import type { z } from 'zod';
 
 /**
+ * Backend-agnostic persistence shapes that a connector can interpret.
+ */
+export type StoreKind = 'tabular' | 'document' | 'file' | 'kv' | 'cache';
+
+/**
+ * Store-level options applied to the authored definition.
+ */
+export interface StoreOptions {
+  readonly kind?: StoreKind;
+}
+
+/**
  * Object schema accepted by the store definition layer.
  */
 export type StoreObjectSchema = z.ZodObject<Record<string, z.ZodType>>;
@@ -71,24 +83,49 @@ export type StoreFixtureRow<
 export type StoreSearchDefinition = Readonly<Record<string, unknown>>;
 
 /**
- * Authored metadata for one store table.
+ * Shared fields for all store table input variants.
  */
-export interface StoreTableInput<
+interface StoreTableInputBase<
   TSchema extends StoreObjectSchema = StoreObjectSchema,
   TGenerated extends readonly StoreFieldKey<TSchema>[] | undefined =
     | readonly StoreFieldKey<TSchema>[]
     | undefined,
+  TVersioned extends boolean | undefined = boolean | undefined,
 > {
   readonly fixtures?: readonly StoreFixtureInput<TSchema, TGenerated>[];
   readonly generated?: TGenerated;
+  readonly indexed?: readonly StoreFieldKey<TSchema>[];
   readonly indexes?: readonly StoreFieldKey<TSchema>[];
-  readonly primaryKey: StoreFieldKey<TSchema>;
   readonly references?: Readonly<
     Partial<Record<StoreFieldKey<TSchema>, string>>
   >;
   readonly schema: TSchema;
   readonly search?: StoreSearchDefinition;
+  readonly versioned?: TVersioned;
 }
+
+/**
+ * Authored metadata for one store entity.
+ *
+ * At least one of `identity` or `primaryKey` must be provided. Omitting both
+ * is a compile-time error — `resolveIdentity` would throw at runtime without
+ * this guard.
+ */
+export type StoreTableInput<
+  TSchema extends StoreObjectSchema = StoreObjectSchema,
+  TGenerated extends readonly StoreFieldKey<TSchema>[] | undefined =
+    | readonly StoreFieldKey<TSchema>[]
+    | undefined,
+  TVersioned extends boolean | undefined = boolean | undefined,
+> =
+  | (StoreTableInputBase<TSchema, TGenerated, TVersioned> & {
+      readonly identity: StoreFieldKey<TSchema>;
+      readonly primaryKey?: StoreFieldKey<TSchema>;
+    })
+  | (StoreTableInputBase<TSchema, TGenerated, TVersioned> & {
+      readonly identity?: StoreFieldKey<TSchema>;
+      readonly primaryKey: StoreFieldKey<TSchema>;
+    });
 
 /**
  * Record of authored tables passed to `store(...)`.
@@ -110,12 +147,38 @@ export type GeneratedFieldsOfInput<TInput extends StoreTableInput> =
     : readonly [];
 
 /**
- * Preserve index fields when present, otherwise normalize to an empty tuple.
+ * Preserve the authored identity field.
+ */
+export type IdentityFieldOfInput<TInput extends StoreTableInput> =
+  TInput['identity'] extends StoreFieldKey<TInput['schema']>
+    ? TInput['identity']
+    : TInput['primaryKey'] extends StoreFieldKey<TInput['schema']>
+      ? TInput['primaryKey']
+      : never;
+
+/**
+ * Preserve indexed fields when present, otherwise normalize to an empty tuple.
+ *
+ * At runtime `resolveIndexed` merges both `indexed` and `indexes` arrays, so
+ * this type mirrors that behavior: when both are present, the result is the
+ * union of both tuples. When only one is provided, it is used directly.
+ */
+export type IndexedFieldsOfInput<TInput extends StoreTableInput> =
+  TInput['indexed'] extends readonly StoreFieldKey<TInput['schema']>[]
+    ? TInput['indexes'] extends readonly StoreFieldKey<TInput['schema']>[]
+      ? readonly [...TInput['indexed'], ...TInput['indexes']]
+      : TInput['indexed']
+    : TInput['indexes'] extends readonly StoreFieldKey<TInput['schema']>[]
+      ? TInput['indexes']
+      : readonly [];
+
+/**
+ * Backward-compatible alias for code that still uses the SQL-shaped name.
  */
 export type IndexFieldsOfInput<TInput extends StoreTableInput> =
   TInput['indexes'] extends readonly StoreFieldKey<TInput['schema']>[]
     ? TInput['indexes']
-    : readonly [];
+    : IndexedFieldsOfInput<TInput>;
 
 /**
  * Preserve references when present, otherwise normalize to an empty object.
@@ -151,10 +214,12 @@ export interface StoreTable<
   readonly fixtureSchema: StoreObjectSchema;
   readonly fixtures: FixturesOfInput<TInput>;
   readonly generated: GeneratedFieldsOfInput<TInput>;
-  readonly indexes: IndexFieldsOfInput<TInput>;
+  readonly identity: IdentityFieldOfInput<TInput>;
+  readonly indexed: IndexedFieldsOfInput<TInput>;
+  readonly indexes: IndexedFieldsOfInput<TInput>;
   readonly insertSchema: StoreObjectSchema;
   readonly name: TName;
-  readonly primaryKey: TInput['primaryKey'];
+  readonly primaryKey: IdentityFieldOfInput<TInput>;
   readonly references: ReferencesOfInput<TInput>;
   readonly schema: TInput['schema'];
   readonly search?: TInput['search'];
@@ -170,7 +235,7 @@ export interface StoreDefinition<
   readonly get: <TName extends Extract<keyof TTables, string>>(
     name: TName
   ) => StoreTable<TTables[TName], TName>;
-  readonly kind: 'store';
+  readonly kind: StoreKind;
   readonly tableNames: readonly Extract<keyof TTables, string>[];
   readonly tables: {
     readonly [TName in keyof TTables]: StoreTable<
@@ -178,6 +243,7 @@ export interface StoreDefinition<
       Extract<TName, string>
     >;
   };
+  readonly type: 'store';
 }
 
 /**
@@ -191,6 +257,8 @@ export interface AnyStoreTable {
   readonly fixtureSchema: StoreObjectSchema;
   readonly fixtures: readonly Record<string, unknown>[];
   readonly generated: readonly string[];
+  readonly identity: string;
+  readonly indexed: readonly string[];
   readonly indexes: readonly string[];
   readonly insertSchema: StoreObjectSchema;
   readonly name: string;
@@ -205,9 +273,10 @@ export interface AnyStoreTable {
  * Structural view of any normalized store definition.
  */
 export interface AnyStoreDefinition {
-  readonly kind: 'store';
+  readonly kind: StoreKind;
   readonly tableNames: readonly string[];
   readonly tables: Readonly<Record<string, AnyStoreTable>>;
+  readonly type: 'store';
 }
 
 type GeneratedFieldKeysOf<TTable extends AnyStoreTable> = readonly Extract<
@@ -237,9 +306,14 @@ export type FixtureOf<TTable extends AnyStoreTable> = StoreFixtureRow<
 >;
 
 /**
+ * Identity field name for one store entity.
+ */
+export type IdentityOf<TTable extends AnyStoreTable> = TTable['identity'];
+
+/**
  * Primary-key field name for one store table.
  */
-export type PrimaryKeyOf<TTable extends AnyStoreTable> = TTable['primaryKey'];
+export type PrimaryKeyOf<TTable extends AnyStoreTable> = IdentityOf<TTable>;
 
 /**
  * Server-managed fields for one store table.
@@ -268,6 +342,15 @@ export type UpdateOf<TTable extends AnyStoreTable> = Partial<
 >;
 
 /**
+ * Upsert shape: entity payload with generated fields remaining optional.
+ *
+ * This matches the connector-agnostic "create or replace" contract while
+ * still allowing connectors to synthesize generated values like IDs and
+ * timestamps when the caller omits them.
+ */
+export type UpsertOf<TTable extends AnyStoreTable> = FixtureInputOf<TTable>;
+
+/**
  * Typed filter shape for list operations.
  */
 export type FiltersOf<TTable extends AnyStoreTable> = Partial<EntityOf<TTable>>;
@@ -284,7 +367,7 @@ export interface StoreListOptions {
  * Shared identifier type for read/write accessors.
  */
 export type StoreIdentifierOf<TTable extends AnyStoreTable> =
-  EntityOf<TTable>[Extract<PrimaryKeyOf<TTable>, keyof EntityOf<TTable>>];
+  EntityOf<TTable>[Extract<IdentityOf<TTable>, keyof EntityOf<TTable>>];
 
 /**
  * Access mode for a bound store connection or resource.
@@ -295,7 +378,7 @@ export type StoreAccessMode = 'readonly' | 'readwrite';
  * Read-only table operations that every bound store must expose.
  */
 export interface ReadOnlyStoreTableAccessor<TTable extends AnyStoreTable> {
-  /** Retrieve a single entity by primary key. Returns `null` when not found. */
+  /** Retrieve a single entity by identity. Returns `null` when not found. */
   get(id: StoreIdentifierOf<TTable>): Promise<EntityOf<TTable> | null>;
   /**
    * List entities, optionally filtered. Returns all rows when no filters are
@@ -308,13 +391,13 @@ export interface ReadOnlyStoreTableAccessor<TTable extends AnyStoreTable> {
 }
 
 /**
- * Writable table operations layered on top of the read contract.
+ * Connector-agnostic writable operations layered on top of the read contract.
  */
-export interface StoreTableAccessor<
+export interface StoreAccessor<
   TTable extends AnyStoreTable,
 > extends ReadOnlyStoreTableAccessor<TTable> {
   /**
-   * Insert a new entity.
+   * Create or replace one entity using the store's identity field.
    *
    * @throws {AlreadyExistsError} On primary key or unique constraint violation.
    *
@@ -322,18 +405,34 @@ export interface StoreTableAccessor<
    * This is an intentional throw-based boundary: store connectors throw typed
    * errors (`AlreadyExistsError`) rather than returning `Result`. Trail
    * implementations that call store accessors should catch and convert to
-   * `Result.err()` at their level. A future `safeInsert` returning `Result`
+   * `Result.err()` at their level. A future safe variant returning `Result`
    * is planned but deferred to avoid cascading changes across all connectors.
    */
-  insert(input: InsertOf<TTable>): Promise<EntityOf<TTable>>;
+  upsert(input: UpsertOf<TTable>): Promise<EntityOf<TTable>>;
   /**
-   * Remove an entity by primary key. Returns `{ deleted: true }` when the
+   * Remove an entity by identity. Returns `{ deleted: true }` when the
    * row was found and removed, `{ deleted: false }` when no matching row
    * existed (not an error).
    */
   remove(id: StoreIdentifierOf<TTable>): Promise<{ readonly deleted: boolean }>;
+}
+
+/**
+ * Tabular writable operations layered on top of the connector-agnostic
+ * contract.
+ */
+export interface StoreTableAccessor<
+  TTable extends AnyStoreTable,
+> extends StoreAccessor<TTable> {
   /**
-   * Patch an entity by primary key with partial fields. Returns the updated
+   * Insert a new entity.
+   *
+   * Tabular connectors can expose this convenience when the backend has a
+   * native distinction between create and update.
+   */
+  insert(input: InsertOf<TTable>): Promise<EntityOf<TTable>>;
+  /**
+   * Patch an entity by identity with partial fields. Returns the updated
    * entity, or `null` when no row with that ID exists.
    */
   update(
@@ -352,9 +451,19 @@ export type ReadOnlyStoreConnection<TStore extends AnyStoreDefinition> = {
 };
 
 /**
- * Connection shape exposed by a writable bound store.
+ * Connector-agnostic connection shape exposed by a writable bound store.
  */
 export type StoreConnection<TStore extends AnyStoreDefinition> = {
+  readonly [TName in keyof TStore['tables']]: StoreAccessor<
+    TStore['tables'][TName]
+  >;
+};
+
+/**
+ * Tabular connection shape exposed by connectors that distinguish insert and
+ * patch operations from the generalized `upsert` contract.
+ */
+export type StoreTableConnection<TStore extends AnyStoreDefinition> = {
   readonly [TName in keyof TStore['tables']]: StoreTableAccessor<
     TStore['tables'][TName]
   >;

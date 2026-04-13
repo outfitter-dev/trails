@@ -18,9 +18,11 @@ import type {
   InsertOf,
   ReadOnlyStoreConnection,
   StoreAccessMode,
-  StoreConnection,
   StoreFieldKey,
+  StoreIdentifierOf,
+  StoreTableConnection,
   StoreTablesInput,
+  UpsertOf,
   UpdateOf,
 } from '@ontrails/store';
 import { and, eq } from 'drizzle-orm';
@@ -483,86 +485,161 @@ const createWritableAccessor = <
   definitionTable: TStore['tables'][TName],
   drizzleTable: DrizzleStoreSchema<TStore>[TName],
   db: ReturnType<typeof drizzle<DrizzleStoreSchema<TStore>>>
-): StoreConnection<TStore>[TName] => ({
-  ...createReadOnlyAccessor(definitionTable, drizzleTable, db),
-  insert(input) {
-    try {
-      const parsed = definitionTable.insertSchema.parse(input) as InsertOf<
-        TStore['tables'][TName]
-      >;
-      const row = db
-        .insert(drizzleTable)
-        .values(
-          applyGeneratedInsertFields(
-            definitionTable,
-            parsed as Record<string, unknown>
-          ) as never
-        )
-        .returning()
-        .get();
+): StoreTableConnection<TStore>[TName] => {
+  type Table = TStore['tables'][TName];
+  type Identifier = StoreIdentifierOf<Table>;
 
-      return Promise.resolve(cloneValue(parseEntity(definitionTable, row)));
-    } catch (error) {
-      return Promise.reject(mapDatabaseError(definitionTable.name, error));
-    }
-  },
-  remove(id) {
-    try {
-      const deleted = db
-        .delete(drizzleTable)
-        .where(
-          eq(
-            primaryKeyColumn(drizzleTable, definitionTable.primaryKey),
-            id as never
-          )
+  const findRowById = (id: Identifier): Record<string, unknown> | undefined =>
+    db
+      .select()
+      .from(drizzleTable)
+      .where(
+        eq(
+          primaryKeyColumn(drizzleTable, definitionTable.primaryKey),
+          id as never
         )
-        .returning({
-          deletedId: primaryKeyColumn(drizzleTable, definitionTable.primaryKey),
-        })
-        .get();
+      )
+      .get() as Record<string, unknown> | undefined;
 
-      return Promise.resolve({ deleted: deleted !== undefined });
-    } catch (error) {
-      return Promise.reject(mapDatabaseError(definitionTable.name, error));
+  const readEntity = (id: Identifier): EntityOf<Table> | null => {
+    const existing = findRowById(id);
+
+    return existing === undefined
+      ? null
+      : (cloneValue(parseEntity(definitionTable, existing)) as EntityOf<Table>);
+  };
+
+  const insertEntity = (input: Record<string, unknown>): EntityOf<Table> => {
+    const row = db
+      .insert(drizzleTable)
+      .values(applyGeneratedInsertFields(definitionTable, input) as never)
+      .returning()
+      .get();
+
+    return cloneValue(parseEntity(definitionTable, row)) as EntityOf<Table>;
+  };
+
+  const updateEntity = (
+    id: Identifier,
+    input: Record<string, unknown>
+  ): EntityOf<Table> | null => {
+    const userFields = normalizeWriteInput(input);
+    if (Object.keys(userFields).length === 0) {
+      throw new ValidationError(
+        `Store table "${definitionTable.name}" update requires at least one field to set.`
+      );
     }
-  },
-  update(id, input) {
-    try {
-      const parsed = definitionTable.updateSchema.parse(input) as UpdateOf<
-        TStore['tables'][TName]
-      >;
-      const userFields = normalizeWriteInput(parsed as Record<string, unknown>);
-      if (Object.keys(userFields).length === 0) {
-        return Promise.reject(
-          new ValidationError(
-            `Store table "${definitionTable.name}" update requires at least one field to set.`
-          )
-        );
+
+    const fields = applyGeneratedUpdateFields(definitionTable, userFields);
+    const row = db
+      .update(drizzleTable)
+      .set(fields as never)
+      .where(
+        eq(
+          primaryKeyColumn(drizzleTable, definitionTable.primaryKey),
+          id as never
+        )
+      )
+      .returning()
+      .get();
+
+    return row === undefined
+      ? null
+      : (cloneValue(parseEntity(definitionTable, row)) as EntityOf<Table>);
+  };
+
+  const patchFromUpsert = (
+    input: Record<string, unknown>
+  ): Record<string, unknown> =>
+    Object.fromEntries(
+      Object.entries(input).filter(
+        ([field, value]) =>
+          field !== definitionTable.identity && value !== undefined
+      )
+    );
+
+  const upsertEntity = (input: Record<string, unknown>): EntityOf<Table> => {
+    const identifier = input[definitionTable.identity] as
+      | Identifier
+      | undefined;
+
+    if (identifier === undefined) {
+      return insertEntity(input);
+    }
+
+    const patch = patchFromUpsert(input);
+    if (Object.keys(patch).length === 0) {
+      return readEntity(identifier) ?? insertEntity(input);
+    }
+
+    return updateEntity(identifier, patch) ?? insertEntity(input);
+  };
+
+  return {
+    ...createReadOnlyAccessor(definitionTable, drizzleTable, db),
+    insert(input) {
+      try {
+        const parsed = definitionTable.insertSchema.parse(
+          input
+        ) as InsertOf<Table>;
+
+        return Promise.resolve(insertEntity(parsed as Record<string, unknown>));
+      } catch (error) {
+        return Promise.reject(mapDatabaseError(definitionTable.name, error));
       }
-      const fields = applyGeneratedUpdateFields(
-        definitionTable,
-        parsed as Record<string, unknown>
-      );
-      const row = db
-        .update(drizzleTable)
-        .set(fields as never)
-        .where(
-          eq(
-            primaryKeyColumn(drizzleTable, definitionTable.primaryKey),
-            id as never
+    },
+    remove(id) {
+      try {
+        const deleted = db
+          .delete(drizzleTable)
+          .where(
+            eq(
+              primaryKeyColumn(drizzleTable, definitionTable.primaryKey),
+              id as never
+            )
           )
-        )
-        .returning()
-        .get();
+          .returning({
+            deletedId: primaryKeyColumn(
+              drizzleTable,
+              definitionTable.primaryKey
+            ),
+          })
+          .get();
 
-      return Promise.resolve(
-        row === undefined ? null : cloneValue(parseEntity(definitionTable, row))
-      );
-    } catch (error) {
-      return Promise.reject(mapDatabaseError(definitionTable.name, error));
-    }
-  },
-});
+        return Promise.resolve({ deleted: deleted !== undefined });
+      } catch (error) {
+        return Promise.reject(mapDatabaseError(definitionTable.name, error));
+      }
+    },
+    update(id, input) {
+      try {
+        const parsed = definitionTable.updateSchema.parse(
+          input
+        ) as UpdateOf<Table>;
+
+        return Promise.resolve(
+          updateEntity(id as Identifier, parsed as Record<string, unknown>)
+        );
+      } catch (error) {
+        return Promise.reject(mapDatabaseError(definitionTable.name, error));
+      }
+    },
+    upsert(input) {
+      try {
+        const parsed = definitionTable.fixtureSchema.parse(
+          input
+        ) as UpsertOf<Table>;
+        const normalized = normalizeWriteInput(
+          parsed as Record<string, unknown>
+        );
+
+        return Promise.resolve(upsertEntity(normalized));
+      } catch (error) {
+        return Promise.reject(mapDatabaseError(definitionTable.name, error));
+      }
+    },
+  };
+};
 
 /** Collect non-empty fixture arrays keyed by table name. */
 const collectFixtures = <TStore extends AnyStoreDefinition>(

@@ -36,15 +36,15 @@ const createStoreDefinition = () =>
   store({
     gists: {
       generated: ['id', 'createdAt', 'updatedAt'],
-      indexes: ['ownerId'],
-      primaryKey: 'id',
+      identity: 'id',
+      indexed: ['ownerId'],
       references: { ownerId: 'users' },
       schema: gistSchema,
       search: { fts: true },
     },
     users: {
       generated: ['id'],
-      primaryKey: 'id',
+      identity: 'id',
       schema: userSchema,
     },
   });
@@ -53,8 +53,10 @@ const expectNormalizedGistTable = (
   table: ReturnType<typeof createStoreDefinition>['tables']['gists']
 ) => {
   expect(table.name).toBe('gists');
+  expect(table.identity).toBe('id');
   expect(table.primaryKey).toBe('id');
   expect(table.generated).toEqual(['id', 'createdAt', 'updatedAt']);
+  expect(table.indexed).toEqual(['ownerId']);
   expect(table.indexes).toEqual(['ownerId']);
   expect(table.references).toEqual({ ownerId: 'users' });
   expect(table.search).toEqual({ fts: true });
@@ -92,7 +94,7 @@ const createTypeTestStore = () =>
   store({
     gists: {
       generated: ['id', 'createdAt', 'updatedAt'],
-      primaryKey: 'id',
+      identity: 'id',
       schema: gistSchema,
     },
   });
@@ -122,13 +124,29 @@ describe('@ontrails/store', () => {
   test('normalizes tables and derives insert/update schemas', () => {
     const db = createStoreDefinition();
 
-    expect(db.kind).toBe('store');
+    expect(db.kind).toBe('tabular');
     expect(db.tableNames).toEqual(['gists', 'users']);
+    expect(db.type).toBe('store');
 
     const table = db.tables.gists;
     expectNormalizedGistTable(table);
     expect(db.get('users')).toBe(db.tables.users);
     expectDerivedSchemas(table);
+  });
+
+  test('accepts an explicit backend-agnostic kind', () => {
+    const db = store(
+      {
+        gists: {
+          identity: 'id',
+          schema: gistSchema,
+        },
+      },
+      { kind: 'document' }
+    );
+
+    expect(db.kind).toBe('document');
+    expect(db.tables.gists.identity).toBe('id');
   });
 
   test('normalizes fixtures through the derived fixture schema', () => {
@@ -141,7 +159,7 @@ describe('@ontrails/store', () => {
           },
         ],
         generated: ['id', 'createdAt', 'updatedAt'],
-        primaryKey: 'id',
+        identity: 'id',
         schema: gistSchema,
       },
     });
@@ -189,7 +207,7 @@ describe('@ontrails/store', () => {
             },
           ],
           generated: ['id', 'createdAt', 'updatedAt'],
-          primaryKey: 'id',
+          identity: 'id',
           schema: gistSchema,
         },
       })
@@ -204,7 +222,7 @@ describe('@ontrails/store', () => {
     expect(() =>
       store({
         broken: {
-          primaryKey: 'id' as never,
+          identity: 'id' as never,
           schema: z.string() as never,
         },
       })
@@ -215,13 +233,13 @@ describe('@ontrails/store', () => {
     expect(() =>
       store({
         gists: {
-          primaryKey: 'slug' as never,
+          identity: 'slug' as never,
           schema: gistSchema,
         },
       })
     ).toThrow(
       new ValidationError(
-        'Store table "gists" declares primaryKey "slug" that is not present on the schema'
+        'Store table "gists" declares identity "slug" that is not present on the schema'
       )
     );
 
@@ -229,7 +247,7 @@ describe('@ontrails/store', () => {
       store({
         gists: {
           generated: ['missing'] as const as never,
-          primaryKey: 'id',
+          identity: 'id',
           schema: gistSchema,
         },
       })
@@ -242,14 +260,14 @@ describe('@ontrails/store', () => {
     expect(() =>
       store({
         gists: {
-          indexes: ['missing'] as const as never,
-          primaryKey: 'id',
+          identity: 'id',
+          indexed: ['missing'] as const as never,
           schema: gistSchema,
         },
       })
     ).toThrow(
       new ValidationError(
-        'Store table "gists" declares index field "missing" that is not present on the schema'
+        'Store table "gists" declares indexed field "missing" that is not present on the schema'
       )
     );
 
@@ -258,7 +276,7 @@ describe('@ontrails/store', () => {
         gists: {
           fixtures: [{ id: 'gist-seed' } as never],
           generated: ['id', 'createdAt', 'updatedAt'],
-          primaryKey: 'id',
+          identity: 'id',
           schema: gistSchema,
         },
       })
@@ -273,12 +291,12 @@ describe('@ontrails/store', () => {
     expect(() =>
       store({
         gists: {
-          primaryKey: 'id',
+          identity: 'id',
           references: { missing: 'users' } as never,
           schema: gistSchema,
         },
         users: {
-          primaryKey: 'id',
+          identity: 'id',
           schema: userSchema,
         },
       })
@@ -291,12 +309,12 @@ describe('@ontrails/store', () => {
     expect(() =>
       store({
         gists: {
-          primaryKey: 'id',
+          identity: 'id',
           references: { ownerId: 'accounts' },
           schema: gistSchema,
         },
         users: {
-          primaryKey: 'id',
+          identity: 'id',
           schema: userSchema,
         },
       })
@@ -305,6 +323,23 @@ describe('@ontrails/store', () => {
         'Store table "gists" references unknown table "accounts"'
       )
     );
+  });
+
+  test('keeps tabular aliases working for existing stores', () => {
+    const db = store({
+      gists: {
+        generated: ['id'],
+        indexes: ['ownerId'],
+        primaryKey: 'id',
+        schema: gistSchema,
+      },
+    });
+
+    expect(db.kind).toBe('tabular');
+    expect(db.tables.gists.identity).toBe('id');
+    expect(db.tables.gists.primaryKey).toBe('id');
+    expect(db.tables.gists.indexed).toEqual(['ownerId']);
+    expect(db.tables.gists.indexes).toEqual(['ownerId']);
   });
 
   test('type-level helpers expose connector-facing contracts', () => {

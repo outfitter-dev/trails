@@ -168,10 +168,18 @@ updateSchemaOf(table)              // partial update schema
 fixtureSchemaOf(table)             // fixture schema with generated fields optional
 
 StoreDefinition, StoreTable, StoreTablesInput, StoreTableInput
-EntityOf<T>, InsertOf<T>, UpdateOf<T>, FixtureInputOf<T>, FixtureOf<T>
+EntityOf<T>, InsertOf<T>, UpdateOf<T>, UpsertOf<T>, FixtureInputOf<T>, FixtureOf<T>
 FiltersOf<T>, StoreListOptions
-StoreConnection<T>, ReadOnlyStoreConnection<T>
-StoreTableAccessor<T>, ReadOnlyStoreTableAccessor<T>
+StoreConnection<T>, StoreTableConnection<T>, ReadOnlyStoreConnection<T>
+StoreAccessor<T>, StoreTableAccessor<T>, ReadOnlyStoreTableAccessor<T>
+```
+
+## `@ontrails/store/testing`
+
+```typescript
+createStoreAccessorContractCases(options) // shared writable accessor contract cases
+
+StoreAccessorContractOptions<T>, StoreAccessorContractSubject<T>
 ```
 
 ## `@ontrails/with-drizzle`

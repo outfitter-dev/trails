@@ -3,6 +3,8 @@ import type { z } from 'zod';
 
 import type {
   StoreDefinition,
+  StoreKind,
+  StoreOptions,
   StoreObjectSchema,
   StoreTable,
   StoreTableInput,
@@ -16,6 +18,10 @@ const uniqueStrings = <T extends string>(
   values: readonly T[] | undefined
 ): readonly T[] =>
   Object.freeze([...(values === undefined ? [] : new Set(values))]);
+
+const uniqueMergedStrings = <T extends string>(
+  ...groups: readonly (readonly T[] | undefined)[]
+): readonly T[] => uniqueStrings(groups.flatMap((group) => [...(group ?? [])]));
 
 const hasField = (schema: StoreObjectSchema, field: string): boolean =>
   Object.hasOwn(schema.shape, field);
@@ -140,14 +146,14 @@ const stripDefaultsFromShape = (
 
 const deriveUpdateSchema = (
   schema: StoreObjectSchema,
-  primaryKey: string
+  identity: string
 ): StoreObjectSchema => {
   const partial = schema
     .extend(stripDefaultsFromShape(schema))
     .partial() as StoreObjectSchema;
-  // Only omit the primaryKey if it's still present (it may already be in `generated`)
-  return hasField(partial, primaryKey)
-    ? omitFields(partial, [primaryKey])
+  // Only omit the identity field if it's still present (it may already be in `generated`)
+  return hasField(partial, identity)
+    ? omitFields(partial, [identity])
     : partial;
 };
 
@@ -156,13 +162,13 @@ const formatFixtureIssues = (issues: readonly { readonly message: string }[]) =>
 
 const validateFixturePrimaryKeys = (
   tableName: string,
-  primaryKey: string,
+  identity: string,
   fixtures: readonly Record<string, unknown>[]
 ): void => {
   const seen = new Set<unknown>();
 
   for (const [index, fixture] of fixtures.entries()) {
-    const identifier = fixture[primaryKey];
+    const identifier = fixture[identity];
     if (identifier === undefined) {
       continue;
     }
@@ -194,29 +200,64 @@ const normalizeReferences = (
 const validatePrimaryKey = (
   tableName: string,
   schema: StoreObjectSchema,
-  primaryKey: string
+  identity: string
 ): void => {
-  if (hasField(schema, primaryKey)) {
+  if (hasField(schema, identity)) {
     return;
   }
 
   throw new ValidationError(
-    `Store table "${tableName}" declares primaryKey "${primaryKey}" that is not present on the schema`
+    `Store table "${tableName}" declares identity "${identity}" that is not present on the schema`
   );
 };
+
+const resolveStoreObjectSchema = (
+  tableName: string,
+  schema: StoreTableInput['schema']
+): StoreObjectSchema => {
+  if (isStoreObjectSchema(schema)) {
+    return schema;
+  }
+
+  throw new ValidationError(
+    `Store table "${tableName}" must use a Zod object schema`
+  );
+};
+
+const resolveIdentity = (tableName: string, input: StoreTableInput): string => {
+  if (
+    input.identity !== undefined &&
+    input.primaryKey !== undefined &&
+    input.identity !== input.primaryKey
+  ) {
+    throw new ValidationError(
+      `Store table "${tableName}" declares conflicting identity "${input.identity}" and primaryKey "${input.primaryKey}"`
+    );
+  }
+
+  const identity = input.identity ?? input.primaryKey;
+  if (identity !== undefined) {
+    return identity;
+  }
+
+  throw new ValidationError(`Store table "${tableName}" must declare identity`);
+};
+
+const resolveIndexed = (input: StoreTableInput): readonly string[] =>
+  uniqueMergedStrings(input.indexed, input.indexes);
 
 const validateTableInput = (
   tableName: string,
   schema: StoreObjectSchema,
-  primaryKey: string,
+  identity: string,
   generated: readonly string[],
-  indexes: readonly string[],
+  indexed: readonly string[],
   references: Readonly<Partial<Record<string, string>>>,
   tableNames: readonly string[]
 ): void => {
-  validatePrimaryKey(tableName, schema, primaryKey);
+  validatePrimaryKey(tableName, schema, identity);
   validateFieldList(tableName, schema, generated, 'generated');
-  validateFieldList(tableName, schema, indexes, 'index');
+  validateFieldList(tableName, schema, indexed, 'indexed');
   validateReferences(tableName, schema, references, tableNames);
 };
 
@@ -224,30 +265,45 @@ type MutableTables<TTables extends StoreTablesInput> = {
   -readonly [TName in keyof TTables]: StoreDefinition<TTables>['tables'][TName];
 };
 
+const fixtureListFrom = (
+  fixtures: StoreTableInput['fixtures']
+): readonly unknown[] => (Array.isArray(fixtures) ? fixtures : []);
+
+const parseFixture = (
+  tableName: string,
+  fixtureSchema: StoreObjectSchema,
+  fixture: unknown,
+  index: number
+): Readonly<Record<string, unknown>> => {
+  const parsed = fixtureSchema.safeParse(fixture);
+  if (!parsed.success) {
+    throw new ValidationError(
+      `Store table "${tableName}" fixture ${index + 1} is invalid: ${formatFixtureIssues(parsed.error.issues)}`
+    );
+  }
+
+  return Object.freeze(parsed.data);
+};
+
 const normalizeFixtures = <TInput extends StoreTableInput>(
   tableName: string,
-  primaryKey: string,
+  identity: string,
   fixtureSchema: StoreObjectSchema,
   fixtures: TInput['fixtures']
 ): StoreTable<TInput>['fixtures'] => {
-  if (fixtures === undefined || fixtures.length === 0) {
+  const fixtureList = fixtureListFrom(fixtures);
+
+  if (fixtureList.length === 0) {
     return Object.freeze([]) as StoreTable<TInput>['fixtures'];
   }
 
-  const normalized = [];
+  const normalized: Record<string, unknown>[] = [];
 
-  for (const [index, fixture] of fixtures.entries()) {
-    const parsed = fixtureSchema.safeParse(fixture);
-    if (!parsed.success) {
-      throw new ValidationError(
-        `Store table "${tableName}" fixture ${index + 1} is invalid: ${formatFixtureIssues(parsed.error.issues)}`
-      );
-    }
-
-    normalized.push(Object.freeze(parsed.data));
+  for (const [index, fixture] of fixtureList.entries()) {
+    normalized.push(parseFixture(tableName, fixtureSchema, fixture, index));
   }
 
-  validateFixturePrimaryKeys(tableName, primaryKey, normalized);
+  validateFixturePrimaryKeys(tableName, identity, normalized);
   return Object.freeze(normalized) as StoreTable<TInput>['fixtures'];
 };
 
@@ -259,30 +315,26 @@ const normalizeTable = <
   input: TInput,
   tableNames: readonly string[]
 ): StoreTable<TInput, TName> => {
-  if (!isStoreObjectSchema(input.schema)) {
-    throw new ValidationError(
-      `Store table "${name}" must use a Zod object schema`
-    );
-  }
-
+  const schema = resolveStoreObjectSchema(name, input.schema);
+  const identity = resolveIdentity(name, input);
   const generated = uniqueStrings(input.generated);
-  const indexes = uniqueStrings(input.indexes);
+  const indexed = resolveIndexed(input);
   const references = normalizeReferences(input.references);
   validateTableInput(
     name,
-    input.schema,
-    input.primaryKey,
+    schema,
+    identity,
     generated,
-    indexes,
+    indexed,
     references,
     tableNames
   );
 
-  const insertSchema = deriveInsertSchema(input.schema, generated);
-  const fixtureSchema = deriveFixtureSchema(input.schema, generated);
+  const insertSchema = deriveInsertSchema(schema, generated);
+  const fixtureSchema = deriveFixtureSchema(schema, generated);
   const fixtures = normalizeFixtures(
     name,
-    input.primaryKey,
+    identity,
     fixtureSchema,
     input.fixtures
   );
@@ -291,14 +343,16 @@ const normalizeTable = <
     fixtureSchema,
     fixtures,
     generated,
-    indexes,
+    identity,
+    indexed,
+    indexes: indexed,
     insertSchema,
     name,
-    primaryKey: input.primaryKey,
+    primaryKey: identity,
     references,
-    schema: input.schema,
+    schema,
     ...(input.search === undefined ? {} : { search: input.search }),
-    updateSchema: deriveUpdateSchema(insertSchema, input.primaryKey),
+    updateSchema: deriveUpdateSchema(insertSchema, identity),
   }) as StoreTable<TInput, TName>;
 };
 
@@ -310,8 +364,10 @@ const normalizeTable = <
  * bind to a concrete runtime later.
  */
 export const store = <const TTables extends StoreTablesInput>(
-  tables: TTables
+  tables: TTables,
+  options: StoreOptions = {}
 ): StoreDefinition<TTables> => {
+  const kind: StoreKind = options.kind ?? 'tabular';
   const tableNames = Object.freeze(
     Object.keys(tables).toSorted()
   ) as readonly Extract<keyof TTables, string>[];
@@ -332,9 +388,10 @@ export const store = <const TTables extends StoreTablesInput>(
 
   return Object.freeze({
     get,
-    kind: 'store' as const,
+    kind,
     tableNames,
     tables: Object.freeze(normalized),
+    type: 'store' as const,
   });
 };
 

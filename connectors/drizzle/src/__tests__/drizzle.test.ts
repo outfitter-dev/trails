@@ -4,6 +4,8 @@ import {
   ValidationError,
   createTrailContext,
 } from '@ontrails/core';
+import { store as defineStore } from '@ontrails/store';
+import { createStoreAccessorContractCases } from '@ontrails/store/testing';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -50,6 +52,11 @@ const createResourceInput = (rootDir: string) => ({
   cwd: rootDir,
   env: {},
   workspaceRoot: rootDir,
+});
+
+const writableDemoDefinition = defineStore({
+  gists: gistTable,
+  users: userTable,
 });
 
 const expectOk = async <T>(value: PromiseLike<T> | T): Promise<T> =>
@@ -127,15 +134,11 @@ const seedWritableRecords = async (
   readonly user: z.output<typeof userSchema>;
 }> => {
   const user = await expectOk(
-    created.users.insert({ email: 'alice@example.com' })
+    created.users.upsert({ email: 'alice@example.com' })
   );
   expect(user.id).toEqual(expect.any(String));
 
-  const gist = await expectOk(
-    created.gists.insert({
-      ownerId: user.id,
-    })
-  );
+  const gist = await expectOk(created.gists.upsert({ ownerId: user.id }));
   expectInsertedGist(gist, user.id);
   return { gist, user };
 };
@@ -161,8 +164,10 @@ const expectUpdatedGist = async (
   gist: z.output<typeof gistSchema>
 ): Promise<void> => {
   const updated = await expectOk(
-    created.gists.update(gist.id, {
+    created.gists.upsert({
       description: 'Updated',
+      id: gist.id,
+      ownerId: gist.ownerId,
     })
   );
 
@@ -339,6 +344,65 @@ const createErrorStore = (rootDir: string) =>
       url: join(rootDir, 'errors.sqlite'),
     }
   );
+
+describe('writable user accessor contract', () => {
+  let tmpRoot: string | undefined;
+
+  afterEach(() => {
+    if (tmpRoot !== undefined) {
+      rmSync(tmpRoot, { force: true, recursive: true });
+      tmpRoot = undefined;
+    }
+  });
+
+  const makeRoot = (): string => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'store-drizzle-'));
+    return tmpRoot;
+  };
+
+  const contractCases = createStoreAccessorContractCases({
+    createInput: () => ({ email: 'contract@example.com' }),
+    async createSubject() {
+      const rootDir = makeRoot();
+      const { created, db } = await setupWritableDemoStore(rootDir);
+
+      return {
+        accessor: created.users,
+        dispose: async () => {
+          await db.dispose?.(created);
+        },
+      };
+    },
+    expectCreated(entity, input) {
+      expect(entity).toEqual(
+        expect.objectContaining({
+          email: input.email,
+          id: expect.any(String),
+        })
+      );
+    },
+    expectUpdated(entity, previous, input) {
+      expect(entity).toEqual({
+        email: input.email,
+        id: previous.id,
+      });
+    },
+    missingId: 'missing-user-id',
+    table: writableDemoDefinition.tables.users,
+    updateInput(existing) {
+      return {
+        email: 'contract+updated@example.com',
+        id: existing.id,
+      };
+    },
+  });
+
+  test.each(
+    contractCases.map((contractCase) => [contractCase.name, contractCase.run])
+  )('%s', async (_name, run) => {
+    await run();
+  });
+});
 
 describe('@ontrails/with-drizzle', () => {
   let tmpRoot: string | undefined;

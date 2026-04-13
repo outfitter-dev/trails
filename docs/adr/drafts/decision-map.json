@@ -163,41 +163,17 @@
     },
     {
       "created": "2026-04-09",
-      "depends_on": ["9", "14", "16", "22", "29"],
-      "inbound": [
-        {
-          "context": "- [ADR: Backend-Agnostic Store Schemas](20260409-backend-agnostic-store-schemas.md) (draft) -- the store schema abstraction that search declarations extend",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
-        },
-        {
-          "context": "- [ADR: Backend-Agnostic Store Schemas](20260409-backend-agnostic-store-schemas.md) (draft) — the store schema that `deriveTrail()` reads from",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
-        },
-        {
-          "context": "- [ADR: Backend-Agnostic Store Schemas](20260409-backend-agnostic-store-schemas.md) (draft) — the store schemas that bundle resources bind to concrete backends",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
-        }
-      ],
-      "number": null,
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md",
-      "slug": "backend-agnostic-store-schemas",
-      "status": "draft",
-      "superseded_by": null,
-      "title": "Backend-Agnostic Store Schemas",
-      "updated": "2026-04-09"
-    },
-    {
-      "created": "2026-04-09",
       "depends_on": ["0", "1", "3", "16", "23", "30"],
       "inbound": [
         {
           "context": "- **Pattern shapes at 1.0.** Toggle and CRUD are clear candidates. Transition, collection, and counter can follow. Which patterns ship initially is a separate design decision — see [ADR: `deriveTrail(",
           "from": "0030",
           "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
+        },
+        {
+          "context": "- [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) — trail factories that compose with store schemas (`crud`, `sync`, `reconcile`)",
+          "from": "0031",
+          "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
         },
         {
           "context": "- [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) -- `deriveTrail()` and `ingest()` factory that produces trails from external input shapes",
@@ -213,11 +189,6 @@
           "context": "When search is declared on a store entity and the developer uses `crud()` (see the [`deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) draft), a search trail is automati",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
-        },
-        {
-          "context": "- [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) — trail factories that compose with store schemas (`crud`, `sync`, `reconcile`)",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
         },
         {
           "context": "- [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) — trail factories that produce trails carried by pack bundles",
@@ -265,12 +236,23 @@
     },
     {
       "created": "2026-04-09",
-      "depends_on": ["9", "16", "22", "29", "backend-agnostic-store-schemas"],
+      "depends_on": [
+        "9",
+        "16",
+        "22",
+        "connector-extraction-and-the-with-packaging-model",
+        "backend-agnostic-store-schemas"
+      ],
       "inbound": [
         {
           "context": "- **Defining the connector lifecycle contract.** How a connector declares what it bridges, what lifecycle hooks it supports, and how it reports health — that's a separate decision. This ADR moves the ",
           "from": "0029",
           "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
+          "context": "- **Profile selects the loadout.** How a deployment profile chooses which connector backs which resource is a configuration concern. Deferred to [ADR: Resource Bundles](20260409-resource-bundles.md) (",
+          "from": "0031",
+          "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
         },
         {
           "context": "- [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) -- the bundling mechanism for connector and pack resources; addresses how packs distribute resource groups with overridable defaults",
@@ -286,11 +268,6 @@
           "context": "- [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) -- the bundling mechanism for resources; compiled packs project bundles into constructor parameters",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
-        },
-        {
-          "context": "- **Profile selects the loadout.** How a deployment profile chooses which connector backs which resource is a configuration concern. Deferred to [ADR: Resource Bundles](20260409-resource-bundles.md) (",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-backend-agnostic-store-schemas.md"
         },
         {
           "context": "- **Connector-contributed factories.** Whether connectors export optimized trail factories (e.g., D1 batch CRUD) via their `/trails` subpath depends on [ADR: Resource Bundles](20260409-resource-bundle",
