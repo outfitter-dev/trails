@@ -4,6 +4,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./jsonfile": "./src/jsonfile/index.ts",
     "./trails": "./src/trails/index.ts",
     "./testing": "./src/testing.ts",
     "./package.json": "./package.json"
