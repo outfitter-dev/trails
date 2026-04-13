@@ -265,27 +265,42 @@ type MutableTables<TTables extends StoreTablesInput> = {
   -readonly [TName in keyof TTables]: StoreDefinition<TTables>['tables'][TName];
 };
 
+const fixtureListFrom = (
+  fixtures: StoreTableInput['fixtures']
+): readonly unknown[] => (Array.isArray(fixtures) ? fixtures : []);
+
+const parseFixture = (
+  tableName: string,
+  fixtureSchema: StoreObjectSchema,
+  fixture: unknown,
+  index: number
+): Readonly<Record<string, unknown>> => {
+  const parsed = fixtureSchema.safeParse(fixture);
+  if (!parsed.success) {
+    throw new ValidationError(
+      `Store table "${tableName}" fixture ${index + 1} is invalid: ${formatFixtureIssues(parsed.error.issues)}`
+    );
+  }
+
+  return Object.freeze(parsed.data);
+};
+
 const normalizeFixtures = <TInput extends StoreTableInput>(
   tableName: string,
   identity: string,
   fixtureSchema: StoreObjectSchema,
   fixtures: TInput['fixtures']
 ): StoreTable<TInput>['fixtures'] => {
-  if (fixtures === undefined || fixtures.length === 0) {
+  const fixtureList = fixtureListFrom(fixtures);
+
+  if (fixtureList.length === 0) {
     return Object.freeze([]) as StoreTable<TInput>['fixtures'];
   }
 
-  const normalized = [];
+  const normalized: Record<string, unknown>[] = [];
 
-  for (const [index, fixture] of fixtures.entries()) {
-    const parsed = fixtureSchema.safeParse(fixture);
-    if (!parsed.success) {
-      throw new ValidationError(
-        `Store table "${tableName}" fixture ${index + 1} is invalid: ${formatFixtureIssues(parsed.error.issues)}`
-      );
-    }
-
-    normalized.push(Object.freeze(parsed.data));
+  for (const [index, fixture] of fixtureList.entries()) {
+    normalized.push(parseFixture(tableName, fixtureSchema, fixture, index));
   }
 
   validateFixturePrimaryKeys(tableName, identity, normalized);

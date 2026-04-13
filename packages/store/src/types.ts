@@ -90,6 +90,7 @@ interface StoreTableInputBase<
   TGenerated extends readonly StoreFieldKey<TSchema>[] | undefined =
     | readonly StoreFieldKey<TSchema>[]
     | undefined,
+  TVersioned extends boolean | undefined = boolean | undefined,
 > {
   readonly fixtures?: readonly StoreFixtureInput<TSchema, TGenerated>[];
   readonly generated?: TGenerated;
@@ -100,6 +101,7 @@ interface StoreTableInputBase<
   >;
   readonly schema: TSchema;
   readonly search?: StoreSearchDefinition;
+  readonly versioned?: TVersioned;
 }
 
 /**
