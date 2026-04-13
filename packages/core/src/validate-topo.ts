@@ -6,6 +6,8 @@
  * issues collected into a single ValidationError.
  */
 
+import type { AnyContour } from './contour.js';
+import { getContourReferences } from './contour.js';
 import { ValidationError } from './errors.js';
 import { isDraftId } from './draft.js';
 import type { AnySignal } from './event.js';
@@ -203,6 +205,27 @@ const checkSignalOrigins = (
   return issues;
 };
 
+const checkContourReferences = (
+  contours: ReadonlyMap<string, AnyContour>,
+  topo: Topo
+): TopoIssue[] => {
+  const issues: TopoIssue[] = [];
+
+  for (const [name, contourDef] of contours) {
+    for (const ref of getContourReferences(contourDef)) {
+      if (!topo.hasContour(ref.contour) && !isDraftId(ref.contour)) {
+        issues.push({
+          message: `Contour "${name}" references "${ref.contour}" which is not in the topo`,
+          rule: 'contour-reference-exists',
+          trailId: name,
+        });
+      }
+    }
+  }
+
+  return issues;
+};
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -218,6 +241,7 @@ export const validateTopo = (topo: Topo): Result<void, ValidationError> => {
   const issues = [
     ...checkCrosses(topo.trails, topo),
     ...checkResources(topo.trails, topo),
+    ...checkContourReferences(topo.contours, topo),
     ...checkExamples(topo.trails),
     ...checkSignalOrigins(topo.signals, topo),
   ];

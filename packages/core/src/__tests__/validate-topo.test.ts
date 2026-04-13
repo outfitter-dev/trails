@@ -303,6 +303,68 @@ describe('validateTopo', () => {
     });
   });
 
+  describe('contour references', () => {
+    test('contour referencing a registered contour passes', () => {
+      const user = contour(
+        'user',
+        { id: z.string().uuid(), name: z.string() },
+        { identity: 'id' }
+      );
+      const post = contour(
+        'post',
+        { authorId: user.id(), id: z.string().uuid() },
+        { identity: 'id' }
+      );
+
+      const app = topo('app', { post, user });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
+    });
+
+    test('contour referencing a missing contour fails', () => {
+      const user = contour(
+        'user',
+        { id: z.string().uuid(), name: z.string() },
+        { identity: 'id' }
+      );
+      const post = contour(
+        'post',
+        { authorId: user.id(), id: z.string().uuid() },
+        { identity: 'id' }
+      );
+
+      // Only register post, not user — the reference is dangling
+      const app = topo('app', { post });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issues = extractIssues(result);
+      expect(issues).toHaveLength(1);
+      expect(issues[0]?.rule).toBe('contour-reference-exists');
+      expect(issues[0]?.message).toContain('user');
+    });
+
+    test('draft contour references are allowed', () => {
+      const draftUser = contour(
+        '_draft.user',
+        { id: z.string().uuid() },
+        { identity: 'id' }
+      );
+      const post = contour(
+        'post',
+        { authorId: draftUser.id(), id: z.string().uuid() },
+        { identity: 'id' }
+      );
+
+      const app = topo('app', { post });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
+    });
+  });
+
   describe('event origins', () => {
     test('event with non-existent origin fails', () => {
       const app = topo('app', {
