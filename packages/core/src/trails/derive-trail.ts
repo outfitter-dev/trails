@@ -419,21 +419,13 @@ const deriveExamples = (
   }
 
   // List examples use a single example with all fixtures in expected,
-  // since input: {} returns the full set from a seeded mock.
+  // since input: {} returns the full set from a seeded mock. Expected
+  // values keep generated fields (createdAt, etc.) because the mock
+  // populates them — stripping them would fail output schema validation.
   if (operation === 'list') {
-    const generatedSet = new Set(
-      generated.filter((k) => k !== contour.identity)
-    );
-    const allExpected = contour.examples.map((ex) =>
-      Object.fromEntries(
-        Object.entries(ex as ExampleRecord).filter(
-          ([k]) => !generatedSet.has(k)
-        )
-      )
-    );
     return Object.freeze([
       {
-        expected: allExpected,
+        expected: contour.examples,
         input: {},
         name: `${contour.name} list example`,
       },
