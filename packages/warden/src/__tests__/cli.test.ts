@@ -3,6 +3,8 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { topo } from '@ontrails/core';
+
 import { formatWardenReport, runWarden } from '../cli.js';
 
 const isDraftFileMarking = (rule: string): boolean =>
@@ -32,7 +34,7 @@ const makeTempDir = (): string => {
   return dir;
 };
 
-describe('runWarden', () => {
+describe('runWarden basics', () => {
   test('produces a report with diagnostics for bad code', async () => {
     const dir = makeTempDir();
     try {
@@ -99,7 +101,9 @@ describe('runWarden', () => {
       rmSync(dir, { force: true, recursive: true });
     }
   });
+});
 
+describe('runWarden project context', () => {
   test('uses project context for detour references across files', async () => {
     const dir = makeTempDir();
     try {
@@ -165,6 +169,109 @@ describe('runWarden', () => {
     }
   });
 
+  test('uses project context for contour references across files', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'user.ts'),
+        `import { contour } from '@ontrails/core';
+import { z } from 'zod';
+
+export const user = contour('user', {
+  id: z.string().uuid(),
+}, { identity: 'id' });`
+      );
+      writeFileSync(
+        join(dir, 'gist.ts'),
+        `import { contour } from '@ontrails/core';
+import { z } from 'zod';
+import { user } from './user';
+
+export const gist = contour('gist', {
+  id: z.string().uuid(),
+  ownerId: user.id(),
+}, { identity: 'id' });`
+      );
+
+      const report = await runWarden({ rootDir: dir });
+      const referenceErrors = report.diagnostics.filter(
+        (diagnostic) => diagnostic.rule === 'reference-exists'
+      );
+
+      expect(referenceErrors).toHaveLength(0);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('preserves empty topo resource sets instead of falling back to file-local ids', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'entity.ts'),
+        `import { Result, resource, trail } from '@ontrails/core';
+
+const db = resource('db.main', {
+  create: () => Result.ok({ source: 'factory' }),
+});
+
+trail('entity.show', {
+  resources: [db],
+  blaze: async (_input, ctx) => Result.ok(db.from(ctx)),
+});`
+      );
+
+      const report = await runWarden({ rootDir: dir, topo: topo('empty-app') });
+      const resourceErrors = report.diagnostics.filter(
+        (diagnostic) => diagnostic.rule === 'resource-exists'
+      );
+
+      expect(resourceErrors).toHaveLength(1);
+      expect(resourceErrors[0]?.message).toContain('db.main');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('warns on contour cycles declared across files', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'user.ts'),
+        `import { contour } from '@ontrails/core';
+import { z } from 'zod';
+import { gist } from './gist';
+
+export const user = contour('user', {
+  gistId: gist.id(),
+  id: z.string().uuid(),
+}, { identity: 'id' });`
+      );
+      writeFileSync(
+        join(dir, 'gist.ts'),
+        `import { contour } from '@ontrails/core';
+import { z } from 'zod';
+import { user } from './user';
+
+export const gist = contour('gist', {
+  id: z.string().uuid(),
+  ownerId: user.id(),
+}, { identity: 'id' });`
+      );
+
+      const report = await runWarden({ rootDir: dir });
+      const circularWarnings = report.diagnostics.filter(
+        (diagnostic) => diagnostic.rule === 'circular-refs'
+      );
+
+      expect(circularWarnings.length).toBeGreaterThan(0);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+});
+
+describe('runWarden draft markers', () => {
   test('requires draft-bearing files to be visibly marked', async () => {
     const dir = makeTempDir();
     try {

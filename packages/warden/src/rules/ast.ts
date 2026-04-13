@@ -451,6 +451,439 @@ export const findTrailDefinitions = (ast: AstNode): TrailDefinition[] => {
 };
 
 // ---------------------------------------------------------------------------
+// Contour definition extraction
+// ---------------------------------------------------------------------------
+
+export interface ContourDefinition {
+  /** Local binding name when the contour is assigned to a variable. */
+  readonly bindingName?: string;
+  /** Contour name string, e.g. "user". */
+  readonly name: string;
+  /** Original call expression for the contour declaration. */
+  readonly call: AstNode;
+  /** Options object argument passed to contour(), when present. */
+  readonly options: AstNode | null;
+  /** Shape object argument passed to contour(). */
+  readonly shape: AstNode;
+  /** Start offset of the call expression. */
+  readonly start: number;
+}
+
+const getContourCalleeName = (node: AstNode): string | null => {
+  if (node.type !== 'CallExpression') {
+    return null;
+  }
+  const callee = node['callee'] as AstNode | undefined;
+  if (!callee || callee.type !== 'Identifier') {
+    return null;
+  }
+  const { name } = callee as unknown as { name?: string };
+  return name === 'contour' ? name : null;
+};
+
+const extractContourDefinition = (
+  node: AstNode
+): Omit<ContourDefinition, 'bindingName'> | null => {
+  if (!getContourCalleeName(node)) {
+    return null;
+  }
+
+  const args = node['arguments'] as readonly AstNode[] | undefined;
+  const [nameArg, shapeArg, optionsArg] = args ?? [];
+  const name = extractStringLiteral(nameArg);
+  if (!name || shapeArg?.type !== 'ObjectExpression') {
+    return null;
+  }
+
+  return {
+    call: node,
+    name,
+    options: optionsArg?.type === 'ObjectExpression' ? optionsArg : null,
+    shape: shapeArg,
+    start: node.start,
+  };
+};
+
+export const findContourDefinitions = (ast: AstNode): ContourDefinition[] => {
+  const definitions: ContourDefinition[] = [];
+  const seenStarts = new Set<number>();
+
+  const addContourDefinition = (definition: ContourDefinition): void => {
+    if (seenStarts.has(definition.start)) {
+      return;
+    }
+
+    definitions.push(definition);
+    seenStarts.add(definition.start);
+  };
+
+  const addNamedContourDefinition = (
+    id: AstNode | undefined,
+    init: AstNode | undefined
+  ): void => {
+    if (!init) {
+      return;
+    }
+
+    const definition = extractContourDefinition(init);
+    if (!definition) {
+      return;
+    }
+
+    const bindingName = extractBindingName(id);
+    if (bindingName) {
+      addContourDefinition({ ...definition, bindingName });
+      return;
+    }
+
+    addContourDefinition(definition);
+  };
+
+  walk(ast, (node) => {
+    if (node.type === 'VariableDeclarator') {
+      const { id, init } = node as unknown as {
+        readonly id?: AstNode;
+        readonly init?: AstNode;
+      };
+      addNamedContourDefinition(id, init);
+      return;
+    }
+
+    const definition = extractContourDefinition(node);
+    if (definition) {
+      addContourDefinition(definition);
+    }
+  });
+
+  return definitions.toSorted((left, right) => left.start - right.start);
+};
+
+/** Collect all inline `contour('name', ...)` definition names from a parsed file. */
+export const collectContourDefinitionIds = (
+  ast: AstNode
+): ReadonlySet<string> =>
+  new Set(findContourDefinitions(ast).map((def) => def.name));
+
+/** Collect `const foo = contour('name', ...)` bindings from a parsed file. */
+export const collectNamedContourIds = (
+  ast: AstNode
+): ReadonlyMap<string, string> => {
+  const ids = new Map<string, string>();
+
+  for (const def of findContourDefinitions(ast)) {
+    if (def.bindingName) {
+      ids.set(def.bindingName, def.name);
+    }
+  }
+
+  return ids;
+};
+
+const extractImportSpecifierAlias = (
+  specifier: AstNode
+): { readonly localName: string; readonly importedName: string } | null => {
+  if (specifier.type !== 'ImportSpecifier') {
+    return null;
+  }
+
+  const { imported } = specifier as unknown as { imported?: AstNode };
+  const { local } = specifier as unknown as { local?: AstNode };
+  const localName = identifierName(local);
+  if (!localName) {
+    return null;
+  }
+
+  const importedName = imported
+    ? (identifierName(imported) ?? extractStringLiteral(imported))
+    : null;
+  return { importedName: importedName ?? localName, localName };
+};
+
+/**
+ * Collect `import { foo as bar } from '...'` specifier mappings keyed by
+ * local binding name. The value is the original exported name. Bindings
+ * without an alias map to themselves.
+ */
+export const collectImportAliasMap = (
+  ast: AstNode
+): ReadonlyMap<string, string> => {
+  const aliases = new Map<string, string>();
+
+  walk(ast, (node) => {
+    if (node.type !== 'ImportDeclaration') {
+      return;
+    }
+
+    const specifiers =
+      (node['specifiers'] as readonly AstNode[] | undefined) ?? [];
+    for (const specifier of specifiers) {
+      const alias = extractImportSpecifierAlias(specifier);
+      if (alias) {
+        aliases.set(alias.localName, alias.importedName);
+      }
+    }
+  });
+
+  return aliases;
+};
+
+export interface ContourReferenceSite {
+  /** Field on the source contour that declares the reference. */
+  readonly field: string;
+  /** Source contour name. */
+  readonly source: string;
+  /** Start offset of the field declaration. */
+  readonly start: number;
+  /** Target contour name. */
+  readonly target: string;
+}
+
+const getPropertyName = (node: unknown): string | null => {
+  if (typeof node !== 'object' || node === null) {
+    return null;
+  }
+
+  const { name } = node as { readonly name?: unknown };
+  if (typeof name === 'string') {
+    return name;
+  }
+
+  return isAstNode(node) ? extractStringLiteral(node) : null;
+};
+
+const stripContourSuffix = (name: string): string => {
+  const suffix = 'Contour';
+  return name.endsWith(suffix) ? name.slice(0, -suffix.length) : name;
+};
+
+const resolveKnownContourName = (
+  name: string,
+  knownContourIds?: ReadonlySet<string>
+): string | null => {
+  if (knownContourIds?.has(name)) {
+    return name;
+  }
+
+  // Support the common `const userContour = contour('user', ...)` naming
+  // pattern when callers refer to the binding name instead of the contour ID.
+  // Exact matches always win; suffix stripping is a fallback only.
+  const stripped = stripContourSuffix(name);
+  if (stripped !== name && knownContourIds?.has(stripped)) {
+    return stripped;
+  }
+
+  return null;
+};
+
+/**
+ * Resolve a local binding name to a contour ID, honoring import aliases.
+ *
+ * Strategies, in order:
+ * 1. Local `const foo = contour('name', ...)` binding → the contour name.
+ * 2. `knownContourIds` membership on the binding name itself (or the
+ *    conventional `Contour` suffix strip).
+ * 3. `import { foo as bar }` → use the original exported name `foo`
+ *    (and apply strategy 2 / suffix-stripping against it so aliased imports
+ *    resolve correctly). If the imported name still isn't recognized, the
+ *    imported name is returned so the caller can report it missing.
+ *
+ * Returns `null` only when the name belongs to no known resolution path —
+ * no local binding, no known contour ID, no import, and no suffix match.
+ * Returning `null` means "this identifier is not a contour reference we can
+ * reason about" (e.g. a bare undeclared variable), as opposed to
+ * "a contour reference whose target is missing".
+ */
+export const resolveContourIdentifierName = (
+  bindingName: string,
+  namedContourIds: ReadonlyMap<string, string>,
+  knownContourIds?: ReadonlySet<string>,
+  importAliases?: ReadonlyMap<string, string>
+): string | null => {
+  const localName = namedContourIds.get(bindingName);
+  if (localName) {
+    return localName;
+  }
+
+  const known = resolveKnownContourName(bindingName, knownContourIds);
+  if (known) {
+    return known;
+  }
+
+  // If the binding came from an import, use the original exported name as
+  // the resolution target. This lets `import { foo as bar }` resolve to
+  // the exported `foo` rather than the local alias `bar`. If the imported
+  // name still isn't recognized, return it so callers can report it as
+  // missing under its original name.
+  const importedName = importAliases?.get(bindingName);
+  if (importedName) {
+    return (
+      resolveKnownContourName(importedName, knownContourIds) ?? importedName
+    );
+  }
+
+  return null;
+};
+
+const getContourReferenceMember = (
+  node: AstNode
+): { readonly object?: AstNode; readonly property?: AstNode } | null => {
+  if (
+    node.type !== 'MemberExpression' &&
+    node.type !== 'StaticMemberExpression'
+  ) {
+    return null;
+  }
+
+  return node as unknown as {
+    readonly object?: AstNode;
+    readonly property?: AstNode;
+  };
+};
+
+const getContourReferenceTargetFromObject = (
+  object: AstNode,
+  namedContourIds: ReadonlyMap<string, string>,
+  knownContourIds?: ReadonlySet<string>,
+  importAliases?: ReadonlyMap<string, string>
+): string | null => {
+  if (object.type === 'Identifier') {
+    const bindingName = identifierName(object);
+    return bindingName
+      ? resolveContourIdentifierName(
+          bindingName,
+          namedContourIds,
+          knownContourIds,
+          importAliases
+        )
+      : null;
+  }
+
+  return extractContourDefinition(object)?.name ?? null;
+};
+
+const getContourIdCallObject = (node: AstNode | undefined): AstNode | null => {
+  if (!node || node.type !== 'CallExpression') {
+    return null;
+  }
+
+  const callee = node['callee'] as AstNode | undefined;
+  const member = callee ? getContourReferenceMember(callee) : null;
+  if (!member || identifierName(member.property) !== 'id') {
+    return null;
+  }
+
+  return member.object ?? null;
+};
+
+const extractContourReferenceTarget = (
+  node: AstNode | undefined,
+  namedContourIds: ReadonlyMap<string, string>,
+  knownContourIds?: ReadonlySet<string>,
+  importAliases?: ReadonlyMap<string, string>
+): string | null => {
+  const object = getContourIdCallObject(node);
+  return object
+    ? getContourReferenceTargetFromObject(
+        object,
+        namedContourIds,
+        knownContourIds,
+        importAliases
+      )
+    : null;
+};
+
+const getContourShapeProperties = (
+  definition: ContourDefinition
+): readonly AstNode[] =>
+  (definition.shape['properties'] as readonly AstNode[] | undefined) ?? [];
+
+const buildContourReferenceSite = (
+  definition: ContourDefinition,
+  property: AstNode,
+  namedContourIds: ReadonlyMap<string, string>,
+  knownContourIds?: ReadonlySet<string>,
+  importAliases?: ReadonlyMap<string, string>
+): ContourReferenceSite | null => {
+  if (property.type !== 'Property') {
+    return null;
+  }
+
+  const field = getPropertyName(property.key);
+  const target = extractContourReferenceTarget(
+    property.value as AstNode | undefined,
+    namedContourIds,
+    knownContourIds,
+    importAliases
+  );
+  if (!field || !target) {
+    return null;
+  }
+
+  return {
+    field,
+    source: definition.name,
+    start: property.start,
+    target,
+  };
+};
+
+const findContourReferenceSitesForDefinition = (
+  definition: ContourDefinition,
+  namedContourIds: ReadonlyMap<string, string>,
+  knownContourIds?: ReadonlySet<string>,
+  importAliases?: ReadonlyMap<string, string>
+): readonly ContourReferenceSite[] =>
+  getContourShapeProperties(definition).flatMap((property) => {
+    const reference = buildContourReferenceSite(
+      definition,
+      property,
+      namedContourIds,
+      knownContourIds,
+      importAliases
+    );
+    return reference ? [reference] : [];
+  });
+
+/** Collect all contour field references declared via `.id()` in a parsed file. */
+export const collectContourReferenceSites = (
+  ast: AstNode,
+  knownContourIds?: ReadonlySet<string>
+): readonly ContourReferenceSite[] => {
+  const namedContourIds = collectNamedContourIds(ast);
+  const importAliases = collectImportAliasMap(ast);
+  return findContourDefinitions(ast).flatMap((definition) =>
+    findContourReferenceSitesForDefinition(
+      definition,
+      namedContourIds,
+      knownContourIds,
+      importAliases
+    )
+  );
+};
+
+/** Collect contour reference targets keyed by source contour name. */
+export const collectContourReferenceTargetsByName = (
+  ast: AstNode,
+  knownContourIds?: ReadonlySet<string>
+): ReadonlyMap<string, readonly string[]> => {
+  const targetsByName = new Map<string, Set<string>>();
+
+  for (const reference of collectContourReferenceSites(ast, knownContourIds)) {
+    const existing = targetsByName.get(reference.source);
+    if (existing) {
+      existing.add(reference.target);
+      continue;
+    }
+
+    targetsByName.set(reference.source, new Set([reference.target]));
+  }
+
+  return new Map(
+    [...targetsByName.entries()].map(([name, targets]) => [name, [...targets]])
+  );
+};
+
+// ---------------------------------------------------------------------------
 // Blaze body extraction
 // ---------------------------------------------------------------------------
 

@@ -8,10 +8,13 @@
 import { resolve } from 'node:path';
 
 import type { Topo } from '@ontrails/core';
+import { getContourReferences } from '@ontrails/core';
 
 import type { DriftResult } from './drift.js';
 import { checkDrift } from './drift.js';
 import {
+  collectContourDefinitionIds,
+  collectContourReferenceTargetsByName,
   collectCrossTargetTrailIds,
   collectResourceDefinitionIds,
   collectSignalDefinitionIds,
@@ -96,8 +99,10 @@ interface SourceFile {
 }
 
 interface MutableProjectContext {
+  contourReferencesByName: Map<string, Set<string>>;
   crossTargetTrailIds: Set<string>;
   detourTargetTrailIds: Set<string>;
+  knownContourIds: Set<string>;
   knownResourceIds: Set<string>;
   knownSignalIds: Set<string>;
   knownTrailIds: Set<string>;
@@ -105,13 +110,64 @@ interface MutableProjectContext {
 }
 
 const createMutableProjectContext = (): MutableProjectContext => ({
+  contourReferencesByName: new Map<string, Set<string>>(),
   crossTargetTrailIds: new Set<string>(),
   detourTargetTrailIds: new Set<string>(),
+  knownContourIds: new Set<string>(),
   knownResourceIds: new Set<string>(),
   knownSignalIds: new Set<string>(),
   knownTrailIds: new Set<string>(),
   trailIntentsById: new Map<string, 'destroy' | 'read' | 'write'>(),
 });
+
+const addContourReferenceTargets = (
+  context: MutableProjectContext,
+  contourName: string,
+  targets: readonly string[]
+): void => {
+  const existing = context.contourReferencesByName.get(contourName);
+  if (existing) {
+    for (const target of targets) {
+      existing.add(target);
+    }
+    return;
+  }
+
+  context.contourReferencesByName.set(contourName, new Set(targets));
+};
+
+const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
+  ...(context.contourReferencesByName.size > 0
+    ? {
+        contourReferencesByName: new Map(
+          [...context.contourReferencesByName.entries()].map(
+            ([name, targets]) => [name, [...targets]]
+          )
+        ),
+      }
+    : {}),
+  crossTargetTrailIds: context.crossTargetTrailIds,
+  detourTargetTrailIds: context.detourTargetTrailIds,
+  knownContourIds: context.knownContourIds,
+  knownResourceIds: context.knownResourceIds,
+  knownSignalIds: context.knownSignalIds,
+  knownTrailIds: context.knownTrailIds,
+  trailIntentsById: context.trailIntentsById,
+});
+
+const collectKnownContourIds = (
+  sourceCode: string,
+  filePath: string,
+  knownContourIds: Set<string>
+): void => {
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return;
+  }
+  for (const id of collectContourDefinitionIds(ast)) {
+    knownContourIds.add(id);
+  }
+};
 
 const collectKnownTrailIds = (
   sourceCode: string,
@@ -255,6 +311,10 @@ const collectTopoKnownIds = (
   appTopo: Topo,
   context: MutableProjectContext
 ): void => {
+  for (const name of appTopo.contours.keys()) {
+    context.knownContourIds.add(name);
+  }
+
   for (const id of appTopo.trails.keys()) {
     context.knownTrailIds.add(id);
   }
@@ -289,6 +349,19 @@ const collectTopoCrossesAndIntents = (
   }
 };
 
+const collectTopoContourReferences = (
+  appTopo: Topo,
+  context: MutableProjectContext
+): void => {
+  for (const contour of appTopo.listContours()) {
+    addContourReferenceTargets(
+      context,
+      contour.name,
+      getContourReferences(contour).map((reference) => reference.contour)
+    );
+  }
+};
+
 const collectTopoTrailContext = (
   appTopo: Topo,
   context: MutableProjectContext
@@ -296,18 +369,24 @@ const collectTopoTrailContext = (
   collectTopoKnownIds(appTopo, context);
   collectTopoDetourIds(appTopo, context);
   collectTopoCrossesAndIntents(appTopo, context);
+  collectTopoContourReferences(appTopo, context);
 };
 
 const buildProjectContextFromTopo = (appTopo: Topo): ProjectContext => {
   const context = createMutableProjectContext();
   collectTopoTrailContext(appTopo, context);
-  return context;
+  return toProjectContext(context);
 };
 
 const collectFileProjectContext = (
   sourceFile: SourceFile,
   context: MutableProjectContext
 ): void => {
+  collectKnownContourIds(
+    sourceFile.sourceCode,
+    sourceFile.filePath,
+    context.knownContourIds
+  );
   collectKnownTrailIds(
     sourceFile.sourceCode,
     sourceFile.filePath,
@@ -340,6 +419,24 @@ const collectFileProjectContext = (
   );
 };
 
+const collectFileContourReferences = (
+  sourceFile: SourceFile,
+  context: MutableProjectContext
+): void => {
+  const ast = parse(sourceFile.filePath, sourceFile.sourceCode);
+  if (!ast) {
+    return;
+  }
+
+  const referencesByName = collectContourReferenceTargetsByName(
+    ast,
+    context.knownContourIds
+  );
+  for (const [contourName, targets] of referencesByName) {
+    addContourReferenceTargets(context, contourName, targets);
+  }
+};
+
 const buildProjectContextFromFiles = (
   sourceFiles: readonly SourceFile[]
 ): ProjectContext => {
@@ -349,7 +446,11 @@ const buildProjectContextFromFiles = (
     collectFileProjectContext(sourceFile, context);
   }
 
-  return context;
+  for (const sourceFile of sourceFiles) {
+    collectFileContourReferences(sourceFile, context);
+  }
+
+  return toProjectContext(context);
 };
 
 const isProjectAwareRule = (rule: WardenRule): rule is ProjectAwareWardenRule =>

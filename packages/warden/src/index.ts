@@ -18,11 +18,14 @@ export type {
 
 // Individual rules
 export { noThrowInImplementation } from './rules/no-throw-in-implementation.js';
+export { circularRefs } from './rules/circular-refs.js';
+export { contourExists } from './rules/contour-exists.js';
 export { contextNoTrailheadTypes } from './rules/context-no-trailhead-types.js';
 export { deadInternalTrail } from './rules/dead-internal-trail.js';
 export { draftFileMarking } from './rules/draft-file-marking.js';
 export { draftVisibleDebt } from './rules/draft-visible-debt.js';
 export { errorMappingCompleteness } from './rules/error-mapping-completeness.js';
+export { exampleValid } from './rules/example-valid.js';
 export { firesDeclarations } from './rules/fires-declarations.js';
 export { intentPropagation } from './rules/intent-propagation.js';
 export { missingVisibility } from './rules/missing-visibility.js';
@@ -34,6 +37,7 @@ export { noSyncResultAssumption } from './rules/no-sync-result-assumption.js';
 export { implementationReturnsResult } from './rules/implementation-returns-result.js';
 export { noThrowInDetourTarget } from './rules/no-throw-in-detour-target.js';
 export { preferSchemaInference } from './rules/prefer-schema-inference.js';
+export { referenceExists } from './rules/reference-exists.js';
 export { resourceDeclarations } from './rules/resource-declarations.js';
 export { resourceExists } from './rules/resource-exists.js';
 export { validDescribeRefs } from './rules/valid-describe-refs.js';
@@ -79,11 +83,14 @@ export type { AstNode, StringLiteralMatch } from './rules/ast.js';
 export { wardenTopo } from './trails/topo.js';
 export { runWardenTrails } from './trails/run.js';
 export {
+  circularRefsTrail,
+  contourExistsTrail,
   contextNoTrailheadTypesTrail,
   crossDeclarationsTrail,
   deadInternalTrailTrail,
   diagnosticSchema,
   errorMappingCompletenessTrail,
+  exampleValidTrail,
   firesDeclarationsTrail,
   implementationReturnsResultTrail,
   intentPropagationTrail,
@@ -95,6 +102,7 @@ export {
   noThrowInImplementationTrail,
   onReferencesExistTrail,
   preferSchemaInferenceTrail,
+  referenceExistsTrail,
   ruleInput,
   ruleOutput,
   resourceDeclarationsTrail,

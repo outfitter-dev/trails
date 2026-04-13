@@ -1,9 +1,12 @@
+import { circularRefs } from './circular-refs.js';
+import { contourExists } from './contour-exists.js';
 import { contextNoTrailheadTypes } from './context-no-trailhead-types.js';
 import { crossDeclarations } from './cross-declarations.js';
 import { deadInternalTrail } from './dead-internal-trail.js';
 import { draftFileMarking } from './draft-file-marking.js';
 import { draftVisibleDebt } from './draft-visible-debt.js';
 import { errorMappingCompleteness } from './error-mapping-completeness.js';
+import { exampleValid } from './example-valid.js';
 import { firesDeclarations } from './fires-declarations.js';
 import { implementationReturnsResult } from './implementation-returns-result.js';
 import { intentPropagation } from './intent-propagation.js';
@@ -15,6 +18,7 @@ import { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
 import { onReferencesExist } from './on-references-exist.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
+import { referenceExists } from './reference-exists.js';
 import { resourceDeclarations } from './resource-declarations.js';
 import { resourceExists } from './resource-exists.js';
 import type { WardenRule } from './types.js';
@@ -30,12 +34,15 @@ export type {
 } from './types.js';
 
 export { noThrowInImplementation } from './no-throw-in-implementation.js';
+export { circularRefs } from './circular-refs.js';
+export { contourExists } from './contour-exists.js';
 export { contextNoTrailheadTypes } from './context-no-trailhead-types.js';
 export { crossDeclarations } from './cross-declarations.js';
 export { deadInternalTrail } from './dead-internal-trail.js';
 export { draftFileMarking } from './draft-file-marking.js';
 export { draftVisibleDebt } from './draft-visible-debt.js';
 export { errorMappingCompleteness } from './error-mapping-completeness.js';
+export { exampleValid } from './example-valid.js';
 export { firesDeclarations } from './fires-declarations.js';
 export { intentPropagation } from './intent-propagation.js';
 export { missingVisibility } from './missing-visibility.js';
@@ -47,6 +54,7 @@ export { noSyncResultAssumption } from './no-sync-result-assumption.js';
 export { implementationReturnsResult } from './implementation-returns-result.js';
 export { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
 export { preferSchemaInference } from './prefer-schema-inference.js';
+export { referenceExists } from './reference-exists.js';
 export { resourceDeclarations } from './resource-declarations.js';
 export { resourceExists } from './resource-exists.js';
 export { validDescribeRefs } from './valid-describe-refs.js';
@@ -57,17 +65,21 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   WardenRule
 >([
   [noThrowInImplementation.name, noThrowInImplementation],
+  [circularRefs.name, circularRefs],
+  [contourExists.name, contourExists],
   [contextNoTrailheadTypes.name, contextNoTrailheadTypes],
   [crossDeclarations.name, crossDeclarations],
   [deadInternalTrail.name, deadInternalTrail],
   [draftFileMarking.name, draftFileMarking],
   [draftVisibleDebt.name, draftVisibleDebt],
   [errorMappingCompleteness.name, errorMappingCompleteness],
+  [exampleValid.name, exampleValid],
   [firesDeclarations.name, firesDeclarations],
   [intentPropagation.name, intentPropagation],
   [missingVisibility.name, missingVisibility],
   [onReferencesExist.name, onReferencesExist],
   [resourceDeclarations.name, resourceDeclarations],
+  [referenceExists.name, referenceExists],
   [resourceExists.name, resourceExists],
   [preferSchemaInference.name, preferSchemaInference],
   [validDescribeRefs.name, validDescribeRefs],

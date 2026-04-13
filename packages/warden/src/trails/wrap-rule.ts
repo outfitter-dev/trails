@@ -30,6 +30,16 @@ interface WrapProjectAwareRuleOptions {
 }
 
 const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
+  ...(input.contourReferencesByName
+    ? {
+        contourReferencesByName: new Map(
+          Object.entries(input.contourReferencesByName)
+        ),
+      }
+    : {}),
+  ...(input.knownContourIds
+    ? { knownContourIds: new Set(input.knownContourIds) }
+    : {}),
   knownTrailIds: input.knownTrailIds
     ? new Set(input.knownTrailIds)
     : new Set<string>(),
