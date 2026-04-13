@@ -3,6 +3,27 @@ import type { Signal } from './signal.js';
 import type { AnyTrail } from './trail.js';
 import type { CrossInput, TrailOutput } from './type-utils.js';
 
+type CrossBatchCall<TTarget extends AnyTrail | string = AnyTrail | string> =
+  TTarget extends AnyTrail
+    ? readonly [trail: TTarget, input: CrossInput<TTarget>]
+    : readonly [id: string, input: unknown];
+
+type CrossBatchResult<TTarget extends AnyTrail | string> =
+  TTarget extends AnyTrail
+    ? Result<TrailOutput<TTarget>, Error>
+    : Result<unknown, Error>;
+
+type CrossBatchResults<TCalls extends readonly CrossBatchCall[]> = {
+  readonly [K in keyof TCalls]: TCalls[K] extends readonly [
+    infer TTarget,
+    unknown,
+  ]
+    ? TTarget extends AnyTrail | string
+      ? CrossBatchResult<TTarget>
+      : never
+    : never;
+};
+
 /**
  * Trail implementation — sync or async.
  *
@@ -23,8 +44,14 @@ export type Implementation<I, O> = (
  *   infers `I` and `O` from the trail's schemas, so the result is fully typed.
  * - **By string id** (untyped escape hatch): `ctx.cross('gist.show', { id })`
  *   — returns `Result<O, Error>` where `O` defaults to `unknown`.
+ * - **By batch**: `ctx.cross([[showGist, { id }], ['audit.log', payload]])`
+ *   — executes every crossing concurrently and resolves once all results are
+ *   available. Result ordering always matches the input tuple ordering.
  */
 export interface CrossFn {
+  <const TCalls extends readonly CrossBatchCall[]>(
+    calls: TCalls
+  ): Promise<CrossBatchResults<TCalls>>;
   <T extends AnyTrail>(
     trail: T,
     input: CrossInput<T>

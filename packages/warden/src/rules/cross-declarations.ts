@@ -7,7 +7,6 @@
  */
 
 import {
-  extractFirstStringArg,
   findConfigProperty,
   findBlazeBodies,
   findTrailDefinitions,
@@ -231,38 +230,135 @@ const isMemberCrossCall = (
   return !!pair && ctxNames.has(pair.objName) && pair.propName === 'cross';
 };
 
-/** Sentinel indicating a cross call was found but the first arg is not a string literal. */
-const UNRESOLVED_CROSS = Symbol('unresolved-cross');
+interface ExtractedCrossCall {
+  readonly ids: readonly string[];
+  readonly hasUnresolved: boolean;
+}
 
-/**
- * Check if a node is a `<ctxName>.cross(...)` call and return the string trail ID.
- *
- * Also matches bare `cross(...)` calls from destructuring. When the first
- * argument is a non-string expression (e.g. a trail object identifier like
- * `ctx.cross(showGist, input)`), returns `UNRESOLVED_CROSS` so callers can
- * track that a cross call exists but its target cannot be statically resolved.
- */
-const extractCrossCallId = (
+const unresolvedCross = (): ExtractedCrossCall => ({
+  hasUnresolved: true,
+  ids: [],
+});
+
+const resolveBatchCrossTupleTarget = (
+  element: AstNode,
+  sourceCode: string
+): string | null => {
+  if (element.type !== 'ArrayExpression') {
+    return null;
+  }
+
+  const tupleElements = element['elements'] as readonly AstNode[] | undefined;
+  const [target] = tupleElements ?? [];
+  return target ? resolveCrossElementId(target, sourceCode) : null;
+};
+
+const collectBatchCrossId = (
+  element: AstNode,
+  sourceCode: string,
+  ids: string[]
+): boolean => {
+  const resolved = resolveBatchCrossTupleTarget(element, sourceCode);
+  if (!resolved) {
+    return true;
+  }
+  ids.push(resolved);
+  return false;
+};
+
+/** Extract statically-resolved trail IDs from `ctx.cross([[trail, input], ...])`. */
+const extractBatchCrossIds = (
+  firstArg: AstNode | undefined,
+  sourceCode: string
+): ExtractedCrossCall | null => {
+  if (firstArg?.type !== 'ArrayExpression') {
+    return null;
+  }
+
+  const elements = firstArg['elements'] as readonly AstNode[] | undefined;
+  const ids: string[] = [];
+  let hasUnresolved = false;
+
+  for (const element of elements ?? []) {
+    if (collectBatchCrossId(element, sourceCode, ids)) {
+      hasUnresolved = true;
+    }
+  }
+
+  return { hasUnresolved, ids };
+};
+
+const extractDirectCrossIds = (
+  firstArg: AstNode | undefined
+): ExtractedCrossCall | null => {
+  if (!firstArg || !isStringLiteral(firstArg)) {
+    return null;
+  }
+
+  const value = getStringValue(firstArg);
+  return value ? { hasUnresolved: false, ids: [value] } : unresolvedCross();
+};
+
+const isCrossCallExpression = (
+  callee: AstNode,
+  ctxNames: ReadonlySet<string>
+): boolean =>
+  isMemberCrossCall(callee, ctxNames) || identifierName(callee) === 'cross';
+
+const extractCrossFirstArg = (node: AstNode): AstNode | undefined => {
+  const args = node['arguments'] as readonly AstNode[] | undefined;
+  return args?.[0];
+};
+
+const resolveCrossCallNode = (
   node: AstNode,
   ctxNames: ReadonlySet<string>
-): string | typeof UNRESOLVED_CROSS | null => {
+): AstNode | null => {
   if (node.type !== 'CallExpression') {
     return null;
   }
 
   const callee = node['callee'] as AstNode | undefined;
-  if (!callee) {
+  if (!callee || !isCrossCallExpression(callee, ctxNames)) {
     return null;
   }
 
-  const isCrossCall =
-    isMemberCrossCall(callee, ctxNames) || identifierName(callee) === 'cross';
+  return node;
+};
 
-  if (!isCrossCall) {
+const resolveCrossCallTargets = (
+  firstArg: AstNode | undefined,
+  sourceCode: string
+): ExtractedCrossCall => {
+  const direct = extractDirectCrossIds(firstArg);
+  if (direct) {
+    return direct;
+  }
+
+  const batch = extractBatchCrossIds(firstArg, sourceCode);
+  return batch ?? unresolvedCross();
+};
+
+/**
+ * Check if a node is a `<ctxName>.cross(...)` call and return any statically
+ * resolvable target IDs.
+ *
+ * Also matches bare `cross(...)` calls from destructuring. When the first
+ * argument is a non-string expression (e.g. a trail object identifier like
+ * `ctx.cross(showGist, input)`), marks the call as unresolved so callers can
+ * track that a cross call exists but its target cannot be statically resolved.
+ */
+const extractCrossCall = (
+  node: AstNode,
+  ctxNames: ReadonlySet<string>,
+  sourceCode: string
+): ExtractedCrossCall | null => {
+  const crossCall = resolveCrossCallNode(node, ctxNames);
+  if (!crossCall) {
     return null;
   }
 
-  return extractFirstStringArg(node) ?? UNRESOLVED_CROSS;
+  return resolveCrossCallTargets(extractCrossFirstArg(crossCall), sourceCode);
 };
 
 /** Build the set of context parameter names to match against. */
@@ -289,16 +385,23 @@ interface CalledCrosses {
 /** Collect cross call results from a single blaze body. */
 const collectCrossCallsFromBody = (
   body: AstNode,
-  ids: Set<string>
+  ids: Set<string>,
+  sourceCode: string
 ): boolean => {
   const ctxNames = buildCtxNames(body);
   let foundUnresolved = false;
 
   walk(body, (node) => {
-    const id = extractCrossCallId(node, ctxNames);
-    if (id === UNRESOLVED_CROSS) {
+    const extracted = extractCrossCall(node, ctxNames, sourceCode);
+    if (!extracted) {
+      return;
+    }
+
+    if (extracted.hasUnresolved) {
       foundUnresolved = true;
-    } else if (id) {
+    }
+
+    for (const id of extracted.ids) {
       ids.add(id);
     }
   });
@@ -307,12 +410,15 @@ const collectCrossCallsFromBody = (
 };
 
 /** Walk blaze bodies and collect all statically resolvable ctx.cross() trail IDs. */
-const extractCalledCrosses = (config: AstNode): CalledCrosses => {
+const extractCalledCrosses = (
+  config: AstNode,
+  sourceCode: string
+): CalledCrosses => {
   const ids = new Set<string>();
   let hasUnresolved = false;
 
   for (const body of findBlazeBodies(config)) {
-    if (collectCrossCallsFromBody(body, ids)) {
+    if (collectCrossCallsFromBody(body, ids, sourceCode)) {
       hasUnresolved = true;
     }
   }
@@ -407,7 +513,7 @@ const checkTrailDefinition = (
   diagnostics: WardenDiagnostic[]
 ): void => {
   const declared = extractDeclaredCrosses(def.config, sourceCode);
-  const called = extractCalledCrosses(def.config);
+  const called = extractCalledCrosses(def.config, sourceCode);
 
   if (
     declared.ids.size === 0 &&

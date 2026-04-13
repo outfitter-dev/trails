@@ -348,6 +348,99 @@ const resolveCrossTarget = (
       );
 };
 
+const collectConcurrentBranchResourceIds = (
+  target: AnyTrail,
+  topo: Topo | undefined
+): Set<string> =>
+  new Set(
+    topo?.resourceIds() ?? target.resources.map((resource) => resource.id)
+  );
+
+const stripInheritedResourceExtensions = (
+  ctx: TrailContext,
+  target: AnyTrail,
+  topo: Topo | undefined
+): Record<string, unknown> => {
+  const resourceIds = collectConcurrentBranchResourceIds(target, topo);
+  const entries = Object.entries(ctx.extensions ?? {}).filter(
+    ([key]) => !resourceIds.has(key)
+  );
+  return Object.fromEntries(entries);
+};
+
+const deriveConcurrentBranchLogger = (
+  ctx: TrailContext,
+  target: AnyTrail,
+  branchIndex: number
+) =>
+  ctx.logger?.child?.({
+    branchIndex,
+    crossedTrailId: target.id,
+  }) ?? ctx.logger;
+
+/**
+ * Build a child context for one concurrent crossing branch.
+ *
+ * Concurrent crossings should not inherit already-resolved resource instances
+ * from the parent execution scope. Stripping resource IDs from extensions
+ * forces each branch to resolve its own scope while still carrying forward
+ * request-scoped values like tracing, trailhead identity, permits, and the
+ * shared AbortSignal.
+ *
+ * `cross`, `fire`, and `resource` are cleared so the child execution can
+ * rebind them to the branch-local context instead of reusing closures that
+ * capture the parent scope.
+ */
+const buildConcurrentBranchContext = (
+  ctx: TrailContext,
+  target: AnyTrail,
+  topo: Topo | undefined,
+  branchIndex: number
+): TrailContext => ({
+  ...ctx,
+  cross: undefined,
+  extensions: stripInheritedResourceExtensions(ctx, target, topo),
+  fire: undefined,
+  logger: deriveConcurrentBranchLogger(ctx, target, branchIndex),
+  resource: undefined,
+});
+
+const executeResolvedCrossTarget = async (
+  target: AnyTrail,
+  input: unknown,
+  ctx: TrailContext,
+  topo: Topo | undefined,
+  forwarded: Omit<ExecuteTrailOptions, 'createContext' | 'validationSchema'>
+): Promise<Result<unknown, Error>> =>
+  await // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
+  executeTrail(target, input, {
+    ...forwarded,
+    ctx,
+    topo,
+    validationSchema: buildCrossValidationSchema(target),
+  });
+
+const executeCrossTarget = async (
+  trailOrId: AnyTrail | string,
+  input: unknown,
+  ctx: TrailContext,
+  topo: Topo | undefined,
+  forwarded: Omit<ExecuteTrailOptions, 'createContext' | 'validationSchema'>
+): Promise<Result<unknown, Error>> => {
+  const target = resolveCrossTarget(trailOrId, topo);
+  if (target.isErr()) {
+    return target;
+  }
+
+  return await executeResolvedCrossTarget(
+    target.value,
+    input,
+    ctx,
+    topo,
+    forwarded
+  );
+};
+
 const bindCrossToCtx = (
   ctx: TrailContext,
   topo: Topo | undefined,
@@ -362,23 +455,40 @@ const bindCrossToCtx = (
     validationSchema: _omitSchema,
     ...forwarded
   } = options ?? {};
-  const cross: CrossFn = async (
-    trailOrId: AnyTrail | string,
-    input: unknown
+  const cross = (async (
+    trailOrCalls:
+      | AnyTrail
+      | string
+      | readonly (readonly [AnyTrail | string, unknown])[],
+    input?: unknown
   ) => {
-    const target = resolveCrossTarget(trailOrId, topo);
-    if (target.isErr()) {
-      return target;
+    if (Array.isArray(trailOrCalls)) {
+      return await Promise.all(
+        trailOrCalls.map(async ([trailOrId, batchInput], branchIndex) => {
+          const target = resolveCrossTarget(trailOrId, topo);
+          if (target.isErr()) {
+            return target;
+          }
+
+          return await executeResolvedCrossTarget(
+            target.value,
+            batchInput,
+            buildConcurrentBranchContext(ctx, target.value, topo, branchIndex),
+            topo,
+            forwarded
+          );
+        })
+      );
     }
 
-    return await // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
-    executeTrail(target.value, input, {
-      ...forwarded,
+    return await executeCrossTarget(
+      trailOrCalls as AnyTrail | string,
+      input,
       ctx,
       topo,
-      validationSchema: buildCrossValidationSchema(target.value),
-    });
-  };
+      forwarded
+    );
+  }) as CrossFn;
 
   return {
     ...ctx,

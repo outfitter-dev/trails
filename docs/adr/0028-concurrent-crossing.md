@@ -1,14 +1,15 @@
 ---
+id: 28
 slug: concurrent-crossing
 title: Concurrent Trail Crossing
-status: draft
+status: accepted
 created: 2026-03-31
-updated: 2026-04-09
+updated: 2026-04-10
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [3]
 ---
 
-# ADR: Concurrent Trail Crossing
+# ADR-0028: Concurrent Trail Crossing
 
 ## Context
 
@@ -291,8 +292,8 @@ Rejected because implicit concurrency is a correctness hazard. Two crossings may
 - **The declaration stays simple.** The `crosses` array is still a flat list of trail IDs. No structural annotations, no groups, no ordering constraints. The declaration is the vocabulary. The code is the grammar.
 - **Partial failure uses existing patterns.** The Result model handles optionality. The developer checks results and decides what's required vs optional. No new framework concept for optional crossings.
 - **Tracing observes composition shape.** Concurrent crossings produce sibling spans with overlapping timestamps. Sequential crossings produce sequential spans. The observation is ground truth, not declaration.
-- **Warden rules are unchanged.** The existing `crossing-declarations` rule validates that every ID in a `ctx.cross()` call appears in the crossing declaration. The rule works identically for single and array forms.
-- **Concurrency control is opt-in.** The `{ concurrency: N }` option handles backpressure for large fan-outs without affecting the common case.
+- **Warden rules are unchanged.** The existing `cross-declarations` rule validates that every ID in a `ctx.cross()` call appears in the crossing declaration. The rule works identically for single and array forms.
+- **Concurrency control is opt-in.** The `{ concurrency: N }` option handles backpressure for large fan-outs without affecting the common case. The option is specified here; the initial implementation lands the unbounded array overload first and adds the `{ concurrency: N }` option in a follow-up slice (PR #130).
 
 ### Tradeoffs
 
@@ -309,13 +310,13 @@ Rejected because implicit concurrency is a correctness hazard. Two crossings may
 
 ## References
 
-- [ADR-0000: Core Premise](../0000-core-premise.md) -- "derive by default"; tracing observes composition shape rather than requiring it to be declared
-- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent crossings
-- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- "composition is a property, not a type"; parallel vs sequential is a runtime choice, not a contract distinction. The crossing declaration stays flat, same as when `hike()` was unified into `trail()`.
-- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- the execution pipeline runs for each concurrent branch; the pipeline is unchanged
-- [ADR-0013: Tracing](../0013-tracing.md) -- tracing observes concurrent vs sequential spans to derive composition shape at runtime
-- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- the lockfile captures composition shapes including parallel crossing patterns
-- [ADR-0027: Trail Visibility and Trailhead Filtering](../0027-visibility-and-filtering.md) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode
-- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- typed `ctx.cross()` that the array overload extends; parallel crossing with typed results is a non-decision there, deferred here
-- [ADR: Composition Testing](../0025-composition-testing.md) -- `scenario()` and `expectedMatch` for testing concurrent composition flows
+- [ADR-0000: Core Premise](0000-core-premise.md) -- "derive by default"; tracing observes composition shape rather than requiring it to be declared
+- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent crossings
+- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) -- "composition is a property, not a type"; parallel vs sequential is a runtime choice, not a contract distinction. The crossing declaration stays flat, same as when `hike()` was unified into `trail()`.
+- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) -- the execution pipeline runs for each concurrent branch; the pipeline is unchanged
+- [ADR-0013: Tracing](0013-tracing.md) -- tracing observes concurrent vs sequential spans to derive composition shape at runtime
+- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) -- the lockfile captures composition shapes including parallel crossing patterns
+- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) -- typed `ctx.cross()` that the array overload extends; parallel crossing with typed results is a non-decision there, deferred here
+- [ADR-0025: Composition Testing](0025-composition-testing.md) -- `scenario()` and `expectedMatch` for testing concurrent composition flows
+- [ADR-0027: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode
 - ADR: Packs as Namespace Boundaries (draft) -- concurrent crossings across pack boundaries work identically to sequential crossings; pack boundary governance is unchanged

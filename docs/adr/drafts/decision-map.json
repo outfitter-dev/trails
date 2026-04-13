@@ -2,25 +2,6 @@
   "entries": [
     {
       "created": "2026-03-31",
-      "depends_on": ["3"],
-      "inbound": [
-        {
-          "context": "- [ADR: Concurrent Trail Crossing](20260331-concurrent-crossing.md) (draft) -- `--trace` renders concurrent crossings as parallel branches in the execution tree",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
-        }
-      ],
-      "number": null,
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260331-concurrent-crossing.md",
-      "slug": "concurrent-crossing",
-      "status": "draft",
-      "superseded_by": null,
-      "title": "Concurrent Trail Crossing",
-      "updated": "2026-04-09"
-    },
-    {
-      "created": "2026-03-31",
       "depends_on": ["17"],
       "inbound": [],
       "number": null,
