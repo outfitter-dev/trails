@@ -136,7 +136,7 @@ describe('runWarden project context', () => {
     }
   });
 
-  test('flags throws in detour targets declared in another file', async () => {
+  test('detour target collection is dormant (detours use error classes, not trail IDs)', async () => {
     const dir = makeTempDir();
     try {
       writeFileSync(
@@ -162,8 +162,9 @@ describe('runWarden project context', () => {
         (diagnostic) => diagnostic.rule === 'no-throw-in-detour-target'
       );
 
-      expect(detourThrowRules).toHaveLength(1);
-      expect(detourThrowRules[0]?.message).toContain('entity.search');
+      // Detour target collection is dormant — detours now use error class
+      // constructors, not string trail IDs. See TRL-273 for the replacement rule.
+      expect(detourThrowRules).toHaveLength(0);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
