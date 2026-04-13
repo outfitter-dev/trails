@@ -15,7 +15,7 @@ import type {
 /** Check legacy `meta: { internal: true }` convention (mirrors runtime effectiveVisibility). */
 const hasLegacyMetaInternal = (spec: TrailLikeSpec): boolean => {
   const meta = spec.properties.get('meta')?.value ?? '';
-  return /internal\s*:\s*true/.test(meta);
+  return /(?:^|[{,])\s*internal\s*:\s*true/.test(meta);
 };
 
 const trailVisibility = (spec: TrailLikeSpec): 'internal' | 'public' => {

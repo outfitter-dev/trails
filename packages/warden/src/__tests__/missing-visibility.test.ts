@@ -25,6 +25,43 @@ trail('entity.resolve', {
     expect(diagnostics[0]?.message).toContain("visibility: 'internal'");
   });
 
+  describe('hasLegacyMetaInternal detection', () => {
+    test('treats trail with meta: { internal: true } as internal', () => {
+      const code = `
+trail('entity.resolve', {
+  meta: { internal: true },
+  crossInput: z.object({ forkedFrom: z.string() }),
+  blaze: async () => Result.ok({}),
+});
+`;
+
+      expect(
+        missingVisibility.checkWithContext(code, TEST_FILE, {
+          crossTargetTrailIds: new Set(['entity.resolve']),
+          knownTrailIds: new Set(['entity.resolve']),
+        })
+      ).toEqual([]);
+    });
+
+    test('does not false-positive on string values containing "internal: true"', () => {
+      const code = `
+trail('entity.resolve', {
+  meta: { description: "this has internal: true in it" },
+  crossInput: z.object({ forkedFrom: z.string() }),
+  blaze: async () => Result.ok({}),
+});
+`;
+
+      const diagnostics = missingVisibility.checkWithContext(code, TEST_FILE, {
+        crossTargetTrailIds: new Set(['entity.resolve']),
+        knownTrailIds: new Set(['entity.resolve']),
+      });
+
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0]?.rule).toBe('missing-visibility');
+    });
+  });
+
   test('stays quiet when the crossed trail is already internal', () => {
     const code = `
 trail('entity.resolve', {
