@@ -158,10 +158,16 @@ export type IdentityFieldOfInput<TInput extends StoreTableInput> =
 
 /**
  * Preserve indexed fields when present, otherwise normalize to an empty tuple.
+ *
+ * At runtime `resolveIndexed` merges both `indexed` and `indexes` arrays, so
+ * this type mirrors that behavior: when both are present, the result is the
+ * union of both tuples. When only one is provided, it is used directly.
  */
 export type IndexedFieldsOfInput<TInput extends StoreTableInput> =
   TInput['indexed'] extends readonly StoreFieldKey<TInput['schema']>[]
-    ? TInput['indexed']
+    ? TInput['indexes'] extends readonly StoreFieldKey<TInput['schema']>[]
+      ? readonly [...TInput['indexed'], ...TInput['indexes']]
+      : TInput['indexed']
     : TInput['indexes'] extends readonly StoreFieldKey<TInput['schema']>[]
       ? TInput['indexes']
       : readonly [];

@@ -130,6 +130,9 @@ export const createStoreAccessorContractCases = <TTable extends AnyStoreTable>(
           expect(
             await accessor.get(updated[identity] as StoreIdentifierOf<TTable>)
           ).toEqual(updated);
+          expect(
+            await listByIdentity(options.table, accessor, updated)
+          ).toEqual([updated]);
         });
       },
     },
@@ -148,6 +151,14 @@ export const createStoreAccessorContractCases = <TTable extends AnyStoreTable>(
           expect(
             await accessor.get(existing[identity] as StoreIdentifierOf<TTable>)
           ).toBeNull();
+        });
+      },
+    },
+    {
+      name: 'get returns null for a missing identity',
+      run: async () => {
+        await withSubject(options.createSubject, async ({ accessor }) => {
+          expect(await accessor.get(options.missingId)).toBeNull();
         });
       },
     },
