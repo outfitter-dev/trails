@@ -1,4 +1,4 @@
-export { connectJsonFile, store } from './runtime.js';
+export { connectJsonFile, jsonFile, jsonFile as store } from './runtime.js';
 export type {
   JsonFileConnection,
   JsonFileMockSeed,

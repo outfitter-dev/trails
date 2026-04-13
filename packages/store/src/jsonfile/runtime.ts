@@ -1,5 +1,4 @@
 import { ConflictError, InternalError, Result, resource } from '@ontrails/core';
-import { versionFieldName } from '@ontrails/store';
 import type {
   AnyStoreDefinition,
   AnyStoreTable,
@@ -10,7 +9,8 @@ import type {
   StoreIdentifierOf,
   StoreListOptions,
   UpsertOf,
-} from '@ontrails/store';
+} from '../types.js';
+import { versionFieldName } from '../store.js';
 
 import type {
   JsonFileConnection,
@@ -543,7 +543,7 @@ export const connectJsonFile = async <TStore extends AnyStoreDefinition>(
  * Returns a `Resource` that can be registered in a topo and resolved from
  * trail context via `db.from(ctx)`.
  */
-export const store = <TStore extends AnyStoreDefinition>(
+export const jsonFile = <TStore extends AnyStoreDefinition>(
   definition: TStore,
   options: JsonFileStoreOptions<TStore>
 ): JsonFileStoreResource<TStore['tables']> =>
@@ -583,3 +583,5 @@ export const store = <TStore extends AnyStoreDefinition>(
       return connection;
     },
   });
+
+export { jsonFile as store };

@@ -6,7 +6,7 @@ import { store as defineStore } from '@ontrails/store';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
-import { connectJsonFile } from '../runtime.js';
+import { connectJsonFile, jsonFile } from '../jsonfile/index.js';
 
 // ---------------------------------------------------------------------------
 // Fixtures

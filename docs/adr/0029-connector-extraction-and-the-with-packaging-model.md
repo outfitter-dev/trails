@@ -25,9 +25,9 @@ A connector bridges a Trails app with an external system, library, or platform. 
 
 ## Decision
 
-### Own packages with `with-*` naming
+### External connectors use `with-*` naming
 
-Every connector gets its own package under the `@ontrails/with-*` namespace:
+Every external or platform connector gets its own package under the `@ontrails/with-*` namespace:
 
 ```text
 @ontrails/with-drizzle        Drizzle ORM connector
@@ -50,6 +50,33 @@ Reads as a sentence: *"My Trails app, with Cloudflare."* The dependency list bec
 ```
 
 "This app uses Trails core and store, with Cloudflare and Drizzle."
+
+### First-party built-in store backends stay under `@ontrails/store/*`
+
+`with-*` is the right home for integrations that bridge Trails to an external
+library, service, or platform. It is not the right home for every concrete
+runtime.
+
+Some backends are part of the store story itself: local, first-party, opt-in
+backends that ship with no third-party integration boundary and primarily exist
+to make the contract useful quickly. Those stay as subpath exports on the
+owning package:
+
+```text
+@ontrails/store/jsonfile      first-party file-backed store
+@ontrails/store/bun-sqlite    reserved for a future Bun-native SQLite store
+```
+
+This is an explicit carve-out, not a loophole. The rule becomes:
+
+- `@ontrails/store` root stays connector-agnostic.
+- `@ontrails/store/*` is reserved for first-party built-in backends owned by the
+  store package.
+- `@ontrails/with-*` is reserved for external adapters and platform bindings.
+
+That preserves the one-way dependency arrow at the root package while still
+letting Trails ship "quick win" backends as part of the first-party store
+experience.
 
 ### Simple and platform connectors
 
@@ -84,15 +111,18 @@ Each connector is its own workspace package. This provides:
 - **Independent versioning.** A Hono major version bump doesn't publish the Drizzle connector.
 - **Governance boundary.** `packages/` gets tight maintainer review via CODEOWNERS. `connectors/` has a lower contribution bar — community members can own specific connectors without understanding framework internals.
 
-### Migration from subpaths
+### Migration from subpaths and the store carve-out
 
 | Current | Becomes |
 | --- | --- |
 | `@ontrails/store/drizzle` | `@ontrails/with-drizzle` |
+| `@ontrails/with-jsonfile` | `@ontrails/store/jsonfile` |
 | `@ontrails/cli/commander` | `@ontrails/with-commander` |
 | `@ontrails/http/hono` | `@ontrails/with-hono` |
 
-This is a breaking change in import paths. The subpath exports in core packages are removed. The connector packages re-export the same public API under the new namespace.
+This is a breaking change in import paths. External connector subpaths in core
+packages are removed. First-party built-in store backends remain available as
+opt-in `@ontrails/store/*` subpaths.
 
 ### The resource boundary is unchanged
 
@@ -122,6 +152,7 @@ The return type is identical. The topo registration is identical. The trail's `r
 ### Positive
 
 - **Core packages become pure contracts.** `@ontrails/store` is the persistence contract. `@ontrails/core` is the framework contract. No third-party transitive dependencies leak through.
+- **Built-in backends stay discoverable.** A developer can start with `@ontrails/store/jsonfile` without learning the external connector catalog first.
 - **Independent release cadence.** Connectors version and publish independently. A Drizzle update doesn't block a store feature.
 - **Bounded contributions.** A new connector is a self-contained package: implement the interface, write tests against the store accessor contract, provide a mock factory. Contributors don't need to understand framework internals.
 - **Clear dependency direction.** The one-way arrow from connectors to core is enforceable at the workspace level. Circular dependencies become structurally impossible.
@@ -130,7 +161,7 @@ The return type is identical. The topo registration is identical. The trail's `r
 
 - **Migration cost.** Every existing import of `@ontrails/store/drizzle`, `@ontrails/cli/commander`, and `@ontrails/http/hono` must change. This is mechanical but touches every app.
 - **More packages to maintain.** Each connector is a workspace package with its own `package.json`, build config, and test suite. The repo grows wider.
-- **Discovery.** Developers need to know that `@ontrails/with-drizzle` exists. The `with-*` naming convention helps — it's guessable — but package discovery still matters.
+- **Packaging rules are more nuanced.** `with-*` is no longer the answer for every concrete runtime. The distinction is now architectural: built-in first-party backends vs external adapters.
 
 ## Non-decisions
 
@@ -145,6 +176,7 @@ The return type is identical. The topo registration is identical. The trail's `r
 - [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](0022-drizzle-store-connector.md) — the first connector implementation, currently a subpath of `@ontrails/store`
 - [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — the naming heuristic that `with-*` follows
 - [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md) — upstream of the `/trails` subpath design on connectors
+- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store-kind model that makes first-party backends meaningful
 - [ADR: Resource Bundles](drafts/20260409-resource-bundles.md) (draft) — the bundling mechanism for connector and pack resources
 
 [^1]: [ADR-0009: First-Class Resources](0009-first-class-resources.md)

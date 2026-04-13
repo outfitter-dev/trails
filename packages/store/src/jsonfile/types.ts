@@ -1,5 +1,10 @@
 import type { Resource } from '@ontrails/core';
-import type { AnyStoreTable, StoreAccessor } from '@ontrails/store';
+import type {
+  AnyStoreDefinition,
+  AnyStoreTable,
+  FixtureInputOf,
+  StoreAccessor,
+} from '../types.js';
 
 /** Connection shape: one StoreAccessor per table name. */
 export type JsonFileConnection<TStore extends Record<string, AnyStoreTable>> =

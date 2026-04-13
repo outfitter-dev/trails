@@ -77,6 +77,27 @@ export const list = trail('gist.list', {
 });
 ```
 
+### Built-in local backend
+
+For a zero-extra-package local backend, use the first-party JSON file binding:
+
+```typescript
+import { store } from '@ontrails/store';
+import { jsonFile } from '@ontrails/store/jsonfile';
+
+const definition = store({
+  gists: {
+    schema: gistSchema,
+    identity: 'id',
+    generated: ['id', 'createdAt', 'updatedAt'],
+  },
+});
+
+export const db = jsonFile(definition, {
+  dir: './data',
+});
+```
+
 ## Typed accessors
 
 Every writable table on a bound connection exposes the connector-agnostic accessor contract:

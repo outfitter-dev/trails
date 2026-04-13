@@ -100,7 +100,7 @@ A developer's persistence choices evolve as their project matures. The store sch
 **Stage 1: JSON files.** Quick and simple. Good for prototyping.
 
 ```typescript
-import { jsonFile } from '@ontrails/with-jsonfile';
+import { jsonFile } from '@ontrails/store/jsonfile';
 const gists = jsonFile(db, { dir: './data' });
 ```
 
