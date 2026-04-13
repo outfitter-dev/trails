@@ -5,3 +5,5 @@ export type {
   DeriveTrailOutput,
   DeriveTrailSpec,
 } from './derive-trail.js';
+export { ingest } from './ingest.js';
+export type { IngestOptions, IngestTransform } from './ingest.js';

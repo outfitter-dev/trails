@@ -1,10 +1,4 @@
-import type {
-  AnyContour,
-  Implementation,
-  Resource,
-  Trail,
-} from '@ontrails/core';
-import { contour } from '@ontrails/core';
+import type { Implementation, Resource, Trail } from '@ontrails/core';
 import { deriveTrail } from '@ontrails/core/trails';
 import type { z } from 'zod';
 
@@ -17,6 +11,7 @@ import type {
   StoreIdentifierOf,
   UpdateOf,
 } from '../types.js';
+import { createTableContour } from './utils.js';
 
 type IdentityInputOf<TTable extends AnyStoreTable> = Readonly<
   Record<Extract<TTable['identity'], string>, StoreIdentifierOf<TTable>>
@@ -85,52 +80,6 @@ export interface CrudBlazeOverrides<TTable extends AnyStoreTable> {
 export interface CrudOptions<TTable extends AnyStoreTable> {
   readonly blaze?: CrudBlazeOverrides<TTable>;
 }
-
-const contourCache = new WeakMap<AnyStoreTable, AnyContour>();
-
-/**
- * Build the contour shape view of a store table.
- *
- * Generated non-identity fields are wrapped in `.optional()` so fixtures can
- * omit values the connector populates (e.g. `createdAt`, `version`). The
- * identity field stays required because read/update/delete all derive their
- * input from it. This mirrors `fixtureSchema` at runtime without needing a
- * separate schema instance.
- */
-const buildContourShape = (table: AnyStoreTable): Record<string, z.ZodType> => {
-  const shape = table.schema.shape as unknown as Record<string, z.ZodType>;
-  const generatedNonIdentity = new Set(
-    table.generated.filter((field) => field !== table.identity)
-  );
-
-  if (generatedNonIdentity.size === 0) {
-    return shape;
-  }
-
-  const next: Record<string, z.ZodType> = {};
-  for (const [field, fieldSchema] of Object.entries(shape)) {
-    next[field] = generatedNonIdentity.has(field)
-      ? fieldSchema.optional()
-      : fieldSchema;
-  }
-  return next;
-};
-
-const createTableContour = (table: AnyStoreTable): AnyContour => {
-  const cached = contourCache.get(table);
-  if (cached) {
-    return cached;
-  }
-
-  // oxlint-disable-next-line @typescript-eslint/consistent-type-assertions -- `contour()` infers a fresh typed Contour from the untyped shape produced by `buildContourShape`, and we re-widen to `AnyContour` at this one cache boundary. The runtime construction is provably correct and TypeScript cannot bridge zod shape inference in one hop.
-  const derived = contour(table.name, buildContourShape(table), {
-    examples: table.fixtures as readonly Record<string, unknown>[],
-    identity: table.identity,
-  }) as AnyContour;
-
-  contourCache.set(table, derived);
-  return derived;
-};
 
 const normalizeExampleForOutput = <TInput, TOutput>(
   example: TrailExampleOf<TInput, TOutput>,
