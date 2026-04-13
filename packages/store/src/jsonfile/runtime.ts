@@ -567,6 +567,9 @@ export const jsonFile = <TStore extends AnyStoreDefinition>(
         const { rm } = await import('node:fs/promises');
         await rm(tmpDir, { force: true, recursive: true });
         mockTmpDirs.delete(connection as object);
+        for (const tableName of definition.tableNames) {
+          tableRegistry.delete(jsonFilePath(tmpDir, tableName));
+        }
       }
     },
     mock: async () => {
