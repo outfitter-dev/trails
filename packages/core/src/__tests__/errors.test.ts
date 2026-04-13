@@ -15,6 +15,7 @@ import {
   InternalError,
   AuthError,
   CancelledError,
+  RetryExhaustedError,
   exitCodeMap,
   statusCodeMap,
   jsonRpcCodeMap,
@@ -305,5 +306,114 @@ describe('isTrailsError', () => {
     expect(isTrailsError('string')).toBe(false);
     expect(isTrailsError(42)).toBe(false);
     expect(isTrailsError({})).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// RetryExhaustedError
+// ---------------------------------------------------------------------------
+
+describe('RetryExhaustedError', () => {
+  describe('category and retryability', () => {
+    test('inherits category from wrapped error', () => {
+      const err = new RetryExhaustedError(new ConflictError('conflict'), {
+        attempts: 1,
+        detour: 'ConflictError',
+      });
+      expect(err.category).toBe('conflict');
+    });
+
+    test('inherits category from retryable error class', () => {
+      const err = new RetryExhaustedError(new TimeoutError('timed out'), {
+        attempts: 3,
+        detour: 'TimeoutError',
+      });
+      expect(err.category).toBe('timeout');
+    });
+
+    test('retryable is always false regardless of wrapped category', () => {
+      const fromTimeout = new RetryExhaustedError(
+        new TimeoutError('timed out'),
+        { attempts: 3, detour: 'TimeoutError' }
+      );
+      expect(fromTimeout.retryable).toBe(false);
+
+      const fromNetwork = new RetryExhaustedError(
+        new NetworkError('disconnected'),
+        { attempts: 2, detour: 'NetworkError' }
+      );
+      expect(fromNetwork.retryable).toBe(false);
+    });
+
+    test('isRetryable returns false even when wrapping a retryable error', () => {
+      const err = new RetryExhaustedError(new TimeoutError('timed out'), {
+        attempts: 3,
+        detour: 'TimeoutError',
+      });
+      expect(isRetryable(err)).toBe(false);
+    });
+  });
+
+  describe('metadata properties', () => {
+    test('cause preserves the original error', () => {
+      const original = new ConflictError('version mismatch');
+      const err = new RetryExhaustedError(original, {
+        attempts: 1,
+        detour: 'ConflictError',
+      });
+      expect(err.cause).toBe(original);
+    });
+
+    test('exposes attempts as a typed readonly property', () => {
+      const err = new RetryExhaustedError(
+        new ConflictError('version mismatch'),
+        { attempts: 3, detour: 'ConflictError' }
+      );
+      expect(err.attempts).toBe(3);
+    });
+
+    test('exposes detour as a typed readonly property', () => {
+      const err = new RetryExhaustedError(new TimeoutError('timed out'), {
+        attempts: 2,
+        detour: 'TimeoutRetry',
+      });
+      expect(err.detour).toBe('TimeoutRetry');
+    });
+
+    test('message includes attempt count and wrapped message', () => {
+      const err = new RetryExhaustedError(
+        new ConflictError('version mismatch'),
+        { attempts: 3, detour: 'ConflictError' }
+      );
+      expect(err.message).toBe(
+        'Recovery exhausted after 3 attempts: version mismatch'
+      );
+    });
+  });
+
+  describe('identity', () => {
+    test('name is RetryExhaustedError', () => {
+      const err = new RetryExhaustedError(new ConflictError('x'), {
+        attempts: 1,
+        detour: 'ConflictError',
+      });
+      expect(err.name).toBe('RetryExhaustedError');
+    });
+
+    test('is instanceof TrailsError', () => {
+      const err = new RetryExhaustedError(new ConflictError('x'), {
+        attempts: 1,
+        detour: 'ConflictError',
+      });
+      expect(err).toBeInstanceOf(TrailsError);
+    });
+
+    test('is instanceof Error', () => {
+      const err = new RetryExhaustedError(new ConflictError('x'), {
+        attempts: 1,
+        detour: 'ConflictError',
+      });
+      expect(err).toBeInstanceOf(Error);
+    });
   });
 });

@@ -41,7 +41,9 @@ export interface TopoStoreExampleRecord {
 
 export interface TopoStoreTrailDetailRecord extends TopoStoreTrailRecord {
   readonly crosses: readonly string[];
-  readonly detours: Readonly<Record<string, readonly string[]>> | null;
+  readonly detours:
+    | readonly { readonly on: string; readonly maxAttempts: number }[]
+    | null;
   readonly examples: readonly TopoStoreExampleRecord[];
   readonly resources: readonly string[];
 }
@@ -100,7 +102,10 @@ interface TopoResourceRow {
 
 interface StoredTrailheadMapEntry {
   readonly description?: string;
-  readonly detours?: Readonly<Record<string, readonly string[]>>;
+  readonly detours?: readonly {
+    readonly on: string;
+    readonly maxAttempts: number;
+  }[];
   readonly healthcheck?: boolean;
   readonly id: string;
   readonly kind: 'contour' | 'resource' | 'signal' | 'trail';

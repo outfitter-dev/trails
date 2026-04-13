@@ -3,7 +3,16 @@ import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
 
-import { CancelledError, InternalError, ValidationError } from '../errors';
+import {
+  CancelledError,
+  ConflictError,
+  InternalError,
+  NetworkError,
+  NotFoundError,
+  RetryExhaustedError,
+  TrailsError,
+  ValidationError,
+} from '../errors';
 import { executeTrail } from '../execute';
 import { createTrailContext } from '../context';
 import type { Layer } from '../layer';
@@ -1266,6 +1275,267 @@ describe('executeTrail', () => {
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toEqual({ source: 'override' });
       expect(createCalls).toBe(0);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Detour execution
+  // ---------------------------------------------------------------------------
+
+  describe('detour execution', () => {
+    test('detour recovers successfully from matching error', async () => {
+      const detourTrail = trail('detour.recover', {
+        blaze: () => Result.err(new ConflictError('version mismatch')),
+        detours: [
+          {
+            on: ConflictError,
+            recover: async () => Result.ok({ recovered: true }),
+          },
+        ],
+        input: z.object({}),
+        output: z.object({ recovered: z.boolean() }),
+      });
+
+      const result = await executeTrail(detourTrail, {});
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toEqual({ recovered: true });
+    });
+
+    test('exhaustion produces RetryExhaustedError with category inheritance', async () => {
+      const detourTrail = trail('detour.exhaust', {
+        blaze: () => Result.err(new ConflictError('version mismatch')),
+        detours: [
+          {
+            maxAttempts: 2,
+            on: ConflictError,
+            recover: async () =>
+              Result.err(new ConflictError('still conflicting')),
+          },
+        ],
+        input: z.object({}),
+      });
+
+      const result = await executeTrail(detourTrail, {});
+
+      expect(result.isErr()).toBe(true);
+      const { error } = result;
+      expect(error).toBeInstanceOf(RetryExhaustedError);
+      const exhausted = error as RetryExhaustedError;
+      expect(exhausted.category).toBe('conflict');
+      expect(exhausted.retryable).toBe(false);
+      expect(exhausted.cause).toBeInstanceOf(ConflictError);
+    });
+
+    test('non-matching error passes through unchanged', async () => {
+      const detourTrail = trail('detour.nomatch', {
+        blaze: () => Result.err(new NotFoundError('missing')),
+        detours: [
+          {
+            on: ConflictError,
+            recover: async () => Result.ok({ recovered: true }),
+          },
+        ],
+        input: z.object({}),
+      });
+
+      const result = await executeTrail(detourTrail, {});
+
+      expect(result.isErr()).toBe(true);
+      expect(result.error).toBeInstanceOf(NotFoundError);
+    });
+
+    test('declaration-order matching — first matching detour wins', async () => {
+      const calls: string[] = [];
+      const detourTrail = trail('detour.order', {
+        blaze: () => Result.err(new ConflictError('conflict')),
+        detours: [
+          {
+            on: TrailsError,
+            recover: async () => {
+              calls.push('TrailsError');
+              return Result.ok({ winner: 'superclass' });
+            },
+          },
+          {
+            on: ConflictError,
+            recover: async () => {
+              calls.push('ConflictError');
+              return Result.ok({ winner: 'subclass' });
+            },
+          },
+        ],
+        input: z.object({}),
+        output: z.object({ winner: z.string() }),
+      });
+
+      const result = await executeTrail(detourTrail, {});
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toEqual({ winner: 'superclass' });
+      expect(calls).toEqual(['TrailsError']);
+    });
+
+    test('multi-attempt success on 2nd try', async () => {
+      let recoverCalls = 0;
+      const responses: Result<{ attempt: number }, TrailsError>[] = [
+        Result.err(new ConflictError('still conflicting')),
+        Result.ok({ attempt: 2 }),
+      ];
+      const detourTrail = trail('detour.multi', {
+        blaze: () => Result.err(new ConflictError('conflict')),
+        detours: [
+          {
+            maxAttempts: 3,
+            on: ConflictError,
+            recover: async () => {
+              recoverCalls += 1;
+              return responses.shift() as Result<never, TrailsError>;
+            },
+          },
+        ],
+        input: z.object({}),
+        output: z.object({ attempt: z.number() }),
+      });
+
+      const result = await executeTrail(detourTrail, {});
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toEqual({ attempt: 2 });
+      expect(recoverCalls).toBe(2);
+    });
+
+    test('non-TrailsError throw inside recover becomes InternalError', async () => {
+      const detourTrail = trail('detour.throw', {
+        blaze: () => Result.err(new ConflictError('conflict')),
+        detours: [
+          {
+            on: ConflictError,
+            recover: async () => {
+              throw new Error('plain error in recover');
+            },
+          },
+        ],
+        input: z.object({}),
+      });
+
+      const result = await executeTrail(detourTrail, {});
+
+      expect(result.isErr()).toBe(true);
+      expect(result.error).toBeInstanceOf(InternalError);
+    });
+
+    test('maxAttempts hard cap at 5', async () => {
+      let recoverCalls = 0;
+      const detourTrail = trail('detour.cap', {
+        blaze: () => Result.err(new ConflictError('conflict')),
+        detours: [
+          {
+            maxAttempts: 100,
+            on: ConflictError,
+            recover: async () => {
+              recoverCalls += 1;
+              return Result.err(new ConflictError('still conflicting'));
+            },
+          },
+        ],
+        input: z.object({}),
+      });
+
+      const result = await executeTrail(detourTrail, {});
+
+      expect(result.isErr()).toBe(true);
+      expect(result.error).toBeInstanceOf(RetryExhaustedError);
+      expect(recoverCalls).toBe(5);
+    });
+
+    test('no detours declared — baseline unchanged', async () => {
+      const noDetourTrail = trail('detour.none', {
+        blaze: () => Result.err(new ConflictError('conflict')),
+        input: z.object({}),
+      });
+
+      const result = await executeTrail(noDetourTrail, {});
+
+      expect(result.isErr()).toBe(true);
+      expect(result.error).toBeInstanceOf(ConflictError);
+    });
+
+    test('cross-detour termination — different error type stops recovery', async () => {
+      const detourTrail = trail('detour.cross-terminate', {
+        blaze: () => Result.err(new ConflictError('conflict')),
+        detours: [
+          {
+            maxAttempts: 3,
+            on: ConflictError,
+            recover: async () => Result.err(new NetworkError('disconnected')),
+          },
+        ],
+        input: z.object({}),
+      });
+
+      const result = await executeTrail(detourTrail, {});
+
+      expect(result.isErr()).toBe(true);
+      expect(result.error).toBeInstanceOf(NetworkError);
+    });
+
+    describe('layer interaction', () => {
+      const createCountingLayer = () => {
+        let wrapCalls = 0;
+        let execCalls = 0;
+        const layer: Layer = {
+          name: 'counting',
+          wrap(_trail, impl) {
+            wrapCalls += 1;
+            return async (input, ctx) => {
+              execCalls += 1;
+              return await impl(input, ctx);
+            };
+          },
+        };
+        return {
+          execCalls: () => execCalls,
+          layer,
+          wrapCalls: () => wrapCalls,
+        };
+      };
+
+      test('layer wraps once per logical execution, not per attempt', async () => {
+        const counting = createCountingLayer();
+        let recoverCalls = 0;
+        const responses: Result<{ done: boolean }, TrailsError>[] = [
+          Result.err(new ConflictError('still conflicting')),
+          Result.err(new ConflictError('still conflicting')),
+          Result.ok({ done: true }),
+        ];
+        const detourTrail = trail('detour.layer-count', {
+          blaze: () => Result.err(new ConflictError('conflict')),
+          detours: [
+            {
+              maxAttempts: 3,
+              on: ConflictError,
+              recover: async () => {
+                recoverCalls += 1;
+                return responses.shift() as Result<never, TrailsError>;
+              },
+            },
+          ],
+          input: z.object({}),
+          output: z.object({ done: z.boolean() }),
+        });
+
+        const result = await executeTrail(
+          detourTrail,
+          {},
+          { layers: [counting.layer] }
+        );
+
+        expect(result.isOk()).toBe(true);
+        expect(counting.wrapCalls()).toBe(1);
+        expect(counting.execCalls()).toBe(1);
+        expect(recoverCalls).toBe(3);
+      });
     });
   });
 });

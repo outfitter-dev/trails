@@ -18,6 +18,7 @@ import { createFireFn } from './fire.js';
 import type {
   CrossBatchOptions,
   CrossFn,
+  Detour,
   Implementation,
   TraceFn,
   TrailContext,
@@ -30,6 +31,7 @@ import {
   CancelledError,
   InternalError,
   NotFoundError,
+  RetryExhaustedError,
   TrailsError,
 } from './errors.js';
 import {
@@ -653,6 +655,158 @@ const bindFireAtLayerBoundary = <I, O>(
   return (input, ctx) =>
     implementation(input, bindFireToCtx(ctx, topo, options));
 };
+
+// ---------------------------------------------------------------------------
+// Detour loop
+// ---------------------------------------------------------------------------
+
+const DETOUR_MAX_ATTEMPTS_CAP = 5;
+
+/**
+ * Find the first detour whose `on` class matches the error via `instanceof`.
+ *
+ * Declaration order wins — no most-specific-first hierarchy walking.
+ */
+const findMatchingDetour = (
+  /* oxlint-disable-next-line no-explicit-any -- existential detour array from AnyTrail */
+  detours: readonly Detour<any, any, TrailsError>[],
+  error: TrailsError
+  /* oxlint-disable-next-line no-explicit-any -- matched detour carries runtime generics */
+): Detour<any, any, TrailsError> | undefined =>
+  detours.find((d) => error instanceof d.on);
+
+/** Execute a single detour recovery attempt, routing through ctx.trace when available. */
+const executeDetourAttempt = async (
+  /* oxlint-disable-next-line no-explicit-any -- existential detour from AnyTrail */
+  detour: Detour<any, any, TrailsError>,
+  attempt: number,
+  lastError: TrailsError,
+  input: unknown,
+  ctx: TrailContext
+): Promise<Result<unknown, Error>> => {
+  const run = async () =>
+    await detour.recover({ attempt, error: lastError, input }, ctx);
+
+  return ctx.trace
+    ? await ctx.trace(`detour:${detour.on.name}:${attempt}`, run)
+    : await run();
+};
+
+/** Classify a detour attempt result: continue the loop, or return early. */
+const classifyDetourResult = (
+  result: Result<unknown, Error>,
+  /* oxlint-disable-next-line no-explicit-any -- existential detour from AnyTrail */
+  detour: Detour<any, any, TrailsError>
+):
+  | { readonly done: true; readonly result: Result<unknown, Error> }
+  | { readonly done: false; readonly nextError: TrailsError } => {
+  if (result.isOk()) {
+    return { done: true, result };
+  }
+  const recoverError = result.error;
+  if (
+    !(recoverError instanceof TrailsError) ||
+    !(recoverError instanceof detour.on)
+  ) {
+    return { done: true, result };
+  }
+  return { done: false, nextError: recoverError };
+};
+
+/** Resolve effective maxAttempts, warning if the declared value exceeds the hard cap. */
+const resolveMaxAttempts = (
+  /* oxlint-disable-next-line no-explicit-any -- existential detour from AnyTrail */
+  detour: Detour<any, any, TrailsError>,
+  ctx: TrailContext
+): number => {
+  const declared = detour.maxAttempts ?? 1;
+  const clamped = Math.max(1, Math.min(declared, DETOUR_MAX_ATTEMPTS_CAP));
+  if (clamped === declared) {
+    return clamped;
+  }
+  ctx.logger?.warn('detour maxAttempts clamped', {
+    declared,
+    detour: detour.on.name,
+    effective: clamped,
+  });
+  return clamped;
+};
+
+/** Run the detour recovery loop for a single matched detour. */
+const runDetourRecovery = async (
+  /* oxlint-disable-next-line no-explicit-any -- existential detour from AnyTrail */
+  detour: Detour<any, any, TrailsError>,
+  error: TrailsError,
+  input: unknown,
+  ctx: TrailContext
+): Promise<Result<unknown, Error>> => {
+  const maxAttempts = resolveMaxAttempts(detour, ctx);
+  let lastError: TrailsError = error;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    ctx.logger?.debug('detour recovery attempt', {
+      attempt,
+      errorClass: lastError.name,
+      matchedDetour: detour.on.name,
+      maxAttempts,
+    });
+    const result = await executeDetourAttempt(
+      detour,
+      attempt,
+      lastError,
+      input,
+      ctx
+    );
+    const classification = classifyDetourResult(result, detour);
+    if (classification.done) {
+      return classification.result;
+    }
+    lastError = classification.nextError;
+  }
+
+  return Result.err(
+    new RetryExhaustedError(lastError, {
+      attempts: maxAttempts,
+      detour: detour.on.name,
+    })
+  );
+};
+
+/**
+ * Wrap a blaze with the detour recovery loop.
+ *
+ * If the trail has no detours, returns the blaze unchanged (no wrapper overhead).
+ * The detour loop runs inside the layer stack, closest to the blaze.
+ */
+const wrapWithDetours = (
+  blaze: Implementation<unknown, unknown>,
+  /* oxlint-disable-next-line no-explicit-any -- existential detour array from AnyTrail */
+  detours: readonly Detour<any, any, TrailsError>[]
+): Implementation<unknown, unknown> => {
+  if (detours.length === 0) {
+    return blaze;
+  }
+
+  return async (input, ctx) => {
+    const result = await blaze(input, ctx);
+    if (result.isOk()) {
+      return result;
+    }
+
+    const { error } = result;
+    if (!(error instanceof TrailsError)) {
+      return result;
+    }
+
+    const matched = findMatchingDetour(detours, error);
+    if (matched === undefined) {
+      return result;
+    }
+
+    return await runDetourRecovery(matched, error, input, ctx);
+  };
+};
+
 const prepareRunImpl = (
   trail: AnyTrail,
   ctx: TrailContext,
@@ -668,14 +822,18 @@ const prepareRunImpl = (
     topo,
     options
   );
-  let impl = bindFireAtLayerBoundary(
-    bindCrossAtLayerBoundary(
-      trail.blaze as Implementation<unknown, unknown>,
+  // Detour loop wraps the blaze (inside layer stack, closest to blaze)
+  let impl = wrapWithDetours(
+    bindFireAtLayerBoundary(
+      bindCrossAtLayerBoundary(
+        trail.blaze as Implementation<unknown, unknown>,
+        topo,
+        options
+      ),
       topo,
       options
     ),
-    topo,
-    options
+    trail.detours
   );
 
   for (let i = layers.length - 1; i >= 0; i -= 1) {

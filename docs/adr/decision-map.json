@@ -105,6 +105,11 @@
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
         {
+          "context": "[ADR-0000's premise that the contract is queryable](0000-core-premise.md#the-contract-is-queryable) depends on declarations being load-bearing at runtime. When a field exists on the trail spec but doe",
+          "from": "0033",
+          "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
+        },
+        {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; `trails run` makes every trail directly invocable without trailhead ceremony",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -276,6 +281,11 @@
           "context": "- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent crossings",
           "from": "0028",
           "fromPath": "docs/adr/0028-concurrent-crossing.md"
+        },
+        {
+          "context": "- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) — detours match on `Result.err(TrailsError)` values, preserving the throw-free pipeline invariant.",
+          "from": "0033",
+          "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
         },
         {
           "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the error taxonomy maps to categorized failure events",
@@ -522,6 +532,11 @@
           "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) -- the execution pipeline runs for each concurrent branch; the pipeline is unchanged",
           "from": "0028",
           "fromPath": "docs/adr/0028-concurrent-crossing.md"
+        },
+        {
+          "context": "What hasn't existed is **runtime execution**. No component of [`executeTrail`](0006-shared-execution-pipeline.md) reads the `detours:` field today. A trail can declare a detour for `ConflictError`, bu",
+          "from": "0033",
+          "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
         },
         {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` executes through the pipeline, the same as every trailhead",
@@ -1372,6 +1387,11 @@
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
         {
+          "context": "Detours are already in the Trails lexicon as a trail-level field: *\"recovery paths when the trail is blocked or fails. The trail blazes forward; if blocked, it detours.\"* See [ADR-0023](0023-simplifyi",
+          "from": "0033",
+          "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
+        },
+        {
           "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) -- the lexicon renames; note that `resource` in this ADR refers to the distribution unit, distinct from `resourc",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
@@ -1728,6 +1748,11 @@
           "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
         },
         {
+          "context": "- **Future `deriveTrail` detour synthesis.** [ADR-0032](0032-derivetrail-and-trail-factories.md) makes `deriveTrail` synthesize default blazes for standard CRUD operations. A natural extension is synt",
+          "from": "0033",
+          "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
+        },
+        {
           "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- `deriveTrail()` and `ingest()` factory that produces trails from external input shapes",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
@@ -1746,6 +1771,19 @@
       "superseded_by": null,
       "title": "deriveTrail() and Trail Factories",
       "updated": "2026-04-10"
+    },
+    {
+      "created": "2026-04-11",
+      "depends_on": ["2", "6", "23", "32"],
+      "inbound": [],
+      "number": "0033",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0033-detour-execution-for-recovery.md",
+      "slug": "detour-execution-for-recovery",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Detour Execution for Recovery",
+      "updated": "2026-04-13"
     }
   ],
   "version": 1

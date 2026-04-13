@@ -39,14 +39,19 @@ import {
 // ---------------------------------------------------------------------------
 
 interface StoredTrailheadMapEntry {
-  readonly detours?: Readonly<Record<string, readonly string[]>>;
+  readonly detours?: readonly {
+    readonly on: string;
+    readonly maxAttempts: number;
+  }[];
   readonly kind: 'resource' | 'signal' | 'trail';
 }
 
 interface CurrentTrailDetail {
   readonly crosses: string[];
   readonly description: string | null;
-  readonly detours: Readonly<Record<string, readonly string[]>> | null;
+  readonly detours:
+    | readonly { readonly on: string; readonly maxAttempts: number }[]
+    | null;
   readonly examples: unknown[];
   readonly id: string;
   readonly intent: 'destroy' | 'read' | 'write';
@@ -101,9 +106,7 @@ const buildBriefReportFromStore = (
   return {
     contractVersion: REPORT_CONTRACT_VERSION,
     features: {
-      detours: trailEntries.some(
-        (entry) => (Object.keys(entry.detours ?? {}).length ?? 0) > 0
-      ),
+      detours: trailEntries.some((entry) => (entry.detours ?? []).length > 0),
       examples: trails.some((trail) => trail.hasExamples),
       outputSchemas: trails.some((trail) => trail.hasOutput),
       resources: save.resourceCount > 0,

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { AnyTrail } from '@ontrails/core';
-import { trail, topo, Result } from '@ontrails/core';
+import { ConflictError, trail, topo, Result } from '@ontrails/core';
 import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
@@ -14,9 +14,13 @@ const helloTrail = trail('hello', {
     return Result.ok({ message: `Hello, ${name}!` });
   },
   description: 'Say hello',
-  detours: {
-    NotFoundError: ['search'],
-  },
+  detours: [
+    {
+      on: ConflictError,
+      /* oxlint-disable-next-line require-await -- test stub */
+      recover: async () => Result.ok({ message: 'recovered' }),
+    },
+  ],
   examples: [
     {
       expected: { message: 'Hello, world!' },
@@ -86,6 +90,7 @@ describe('trails guide', () => {
   test('detours are accessible on trail', () => {
     const t = app.get('hello') as AnyTrail;
     expect(t).toBeDefined();
-    expect(t.detours?.['NotFoundError']).toEqual(['search']);
+    expect(t.detours).toHaveLength(1);
+    expect(t.detours[0]?.on).toBe(ConflictError);
   });
 });

@@ -1,7 +1,33 @@
+import type { TrailsError } from './errors.js';
 import type { Result } from './result.js';
 import type { Signal } from './signal.js';
 import type { AnyTrail } from './trail.js';
 import type { CrossInput, TrailOutput } from './type-utils.js';
+
+// ---------------------------------------------------------------------------
+// Detour
+// ---------------------------------------------------------------------------
+
+/** A recovery path that activates when a trail's blaze fails with a matching error. */
+export interface Detour<Input, Output, TErr extends TrailsError = TrailsError> {
+  /* oxlint-disable-next-line no-explicit-any -- standard pattern for matching abstract+concrete class constructors */
+  readonly on: abstract new (...args: any[]) => TErr;
+  readonly maxAttempts?: number | undefined;
+  readonly recover: (
+    attempt: DetourAttempt<Input, TErr>,
+    ctx: TrailContext
+  ) => Promise<Result<Output, TrailsError>>;
+}
+
+/** Context passed to a detour's recover function on each attempt. */
+export interface DetourAttempt<Input, TErr extends TrailsError = TrailsError> {
+  /** 1-indexed attempt number */
+  readonly attempt: number;
+  /** The matched error */
+  readonly error: TErr;
+  /** Original trail input */
+  readonly input: Input;
+}
 
 type CrossBatchCall<TTarget extends AnyTrail | string = AnyTrail | string> =
   TTarget extends AnyTrail

@@ -1,5 +1,5 @@
 /**
- * testDetours — verify that all detour targets exist in the topo.
+ * testDetours — verify that all declared detours have valid error class targets.
  *
  * Pure structural validation. No implementation execution needed.
  */
@@ -13,8 +13,8 @@ import type { Topo, Trail } from '@ontrails/core';
 // ---------------------------------------------------------------------------
 
 /**
- * Verify that every trail's detour targets reference trails that
- * actually exist in the app's topo.
+ * Verify that every trail's detour declarations reference valid error classes
+ * (i.e. `on` is a constructor function with a name).
  */
 export const testDetours = (app: Topo): void => {
   const trailEntries = [...app.trails];
@@ -23,20 +23,19 @@ export const testDetours = (app: Topo): void => {
     describe.each(trailEntries)('%s', (_id, trailDef) => {
       const t = trailDef as Trail<unknown, unknown, unknown>;
 
-      if (t.detours === undefined) {
+      if (t.detours.length === 0) {
         return;
       }
 
-      const { detours } = t;
-      const testCases = Object.entries(detours).flatMap(
-        ([detourName, targets]) =>
-          targets.map((targetId) => ({ detourName, targetId }))
-      );
+      const testCases = t.detours.map((d, i) => ({
+        errorClass: d.on.name,
+        index: i,
+      }));
 
       test.each(testCases)(
-        'detour "$detourName" -> "$targetId" exists',
-        ({ targetId }) => {
-          expect(app.has(targetId)).toBe(true);
+        'detour[$index] on $errorClass has a valid error class',
+        ({ errorClass }) => {
+          expect(errorClass).toBeTruthy();
         }
       );
     });

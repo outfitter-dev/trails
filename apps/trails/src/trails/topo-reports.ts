@@ -39,7 +39,9 @@ export interface SurveyListReport {
 
 export interface TrailDetailReport {
   readonly description: string | null;
-  readonly detours: Trail<unknown, unknown>['detours'] | null;
+  readonly detours:
+    | readonly { readonly on: string; readonly maxAttempts: number }[]
+    | null;
   readonly examples: readonly unknown[];
   readonly crosses: readonly string[];
   readonly id: string;
@@ -50,7 +52,7 @@ export interface TrailDetailReport {
 }
 
 const trailHas = (raw: Record<string, unknown>, key: string): boolean => {
-  if (key === 'examples') {
+  if (key === 'examples' || key === 'detours') {
     return Array.isArray(raw[key]) && (raw[key] as unknown[]).length > 0;
   }
   return Boolean(raw[key]);
@@ -207,7 +209,13 @@ export const generateTrailDetail = (
   return {
     crosses: item.crosses.toSorted(),
     description: item.description ?? null,
-    detours: item.detours ?? null,
+    detours:
+      item.detours.length > 0
+        ? item.detours.map((d) => ({
+            maxAttempts: d.maxAttempts ?? 1,
+            on: d.on.name,
+          }))
+        : null,
     examples: item.examples ?? [],
     id: item.id,
     intent: item.intent,

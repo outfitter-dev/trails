@@ -12,7 +12,6 @@ export const DRAFT_ID_PREFIX = '_draft.';
 export type DraftDependencyKind =
   | 'cross'
   | 'contour'
-  | 'detour'
   | 'resource'
   | 'replaced-by'
   | 'schema-reference'
@@ -81,37 +80,20 @@ const dependencyFromTarget = (
         },
       ];
 
-const dependenciesFromDetours = (
-  fromId: string,
-  detours: Record<string, string[]>
-): DraftDependency[] =>
-  Object.values(detours).flatMap((targets) =>
-    dependenciesFromIds(fromId, targets, 'detour')
-  );
-
-const trailDependencies = (trail: AnyTrail): DraftDependency[] => {
-  const { detours } = trail as unknown as {
-    detours?: Record<string, string[]>;
-  };
-
-  return [
-    ...dependenciesFromIds(
-      trail.id,
-      (trail.contours ?? []).map((contour) => contour.name),
-      'contour'
-    ),
-    ...dependenciesFromIds(trail.id, trail.crosses, 'cross'),
-    ...dependenciesFromIds(
-      trail.id,
-      trail.resources.map(({ id }) => id),
-      'resource'
-    ),
-    ...(detours === undefined
-      ? []
-      : dependenciesFromDetours(trail.id, detours)),
-    ...dependencyFromTarget(trail.id, replacedByTarget(trail), 'replaced-by'),
-  ];
-};
+const trailDependencies = (trail: AnyTrail): DraftDependency[] => [
+  ...dependenciesFromIds(
+    trail.id,
+    (trail.contours ?? []).map((contour) => contour.name),
+    'contour'
+  ),
+  ...dependenciesFromIds(trail.id, trail.crosses, 'cross'),
+  ...dependenciesFromIds(
+    trail.id,
+    trail.resources.map(({ id }) => id),
+    'resource'
+  ),
+  ...dependencyFromTarget(trail.id, replacedByTarget(trail), 'replaced-by'),
+];
 
 const contourDependencies = (contour: AnyContour): DraftDependency[] =>
   dependenciesFromIds(

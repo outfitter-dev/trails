@@ -40,7 +40,9 @@ export interface TrailheadMapEntry {
   readonly identity?: string | undefined;
   readonly references?: readonly TrailheadContourReference[] | undefined;
   readonly resources?: readonly string[] | undefined;
-  readonly detours?: Readonly<Record<string, readonly string[]>> | undefined;
+  readonly detours?:
+    | readonly { readonly on: string; readonly maxAttempts: number }[]
+    | undefined;
   readonly healthcheck?: boolean | undefined;
   readonly exampleCount: number;
   readonly description?: string | undefined;

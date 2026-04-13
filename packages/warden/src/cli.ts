@@ -19,10 +19,8 @@ import {
   collectResourceDefinitionIds,
   collectSignalDefinitionIds,
   collectTrailIntentsById,
-  findConfigProperty,
   findTrailDefinitions,
   parse,
-  walk,
 } from './rules/ast.js';
 import { wardenRules } from './rules/index.js';
 import type {
@@ -183,32 +181,18 @@ const collectKnownTrailIds = (
   }
 };
 
+/**
+ * Detours no longer reference trail IDs — they match on error classes.
+ * This collector is dormant until the unreachable-detour warden rule ships
+ * (see TRL-273 and ADR-0033). Kept as a stub for parity with
+ * `collectTopoDetourTargetTrailIds`.
+ */
 const collectDetourTargetTrailIds = (
-  sourceCode: string,
-  filePath: string,
-  detourTargetTrailIds: Set<string>
-): void => {
-  const ast = parse(filePath, sourceCode);
-  if (!ast) {
-    return;
-  }
-  for (const def of findTrailDefinitions(ast)) {
-    const detoursProp = findConfigProperty(def.config, 'detours');
-    if (!detoursProp) {
-      continue;
-    }
-    // Walk the detours value for string literals that look like trail IDs
-    walk(detoursProp, (node) => {
-      if (node.type !== 'Literal') {
-        return;
-      }
-      const val = (node as unknown as { value?: string }).value;
-      if (val && val.includes('.')) {
-        detourTargetTrailIds.add(val);
-      }
-    });
-  }
-};
+  _sourceCode: string,
+  _filePath: string,
+  _detourTargetTrailIds: Set<string>
+  // eslint-disable-next-line @typescript-eslint/no-empty-function -- dormant until TRL-273
+): void => {};
 
 const collectCrossedTrailIds = (
   sourceCode: string,
@@ -285,27 +269,12 @@ const loadSourceFiles = async (
   return sourceFiles;
 };
 
-const collectTopoDetourTargetTrailIds = (
-  appTopo: Topo
-): ReadonlySet<string> => {
-  const detourTargetTrailIds = new Set<string>();
-
-  for (const trail of appTopo.trails.values()) {
-    const detours = (trail as unknown as Record<string, unknown>)['detours'] as
-      | Readonly<Record<string, readonly string[]>>
-      | undefined;
-    if (!detours) {
-      continue;
-    }
-    for (const targets of Object.values(detours)) {
-      for (const id of targets) {
-        detourTargetTrailIds.add(id);
-      }
-    }
-  }
-
-  return detourTargetTrailIds;
-};
+/**
+ * Detours no longer reference trail IDs — they match on error classes.
+ * Kept as a stub so downstream context population still compiles.
+ */
+const collectTopoDetourTargetTrailIds = (_appTopo: Topo): ReadonlySet<string> =>
+  new Set();
 
 const collectTopoKnownIds = (
   appTopo: Topo,

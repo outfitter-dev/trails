@@ -1,6 +1,14 @@
 import { describe, test, expect } from 'bun:test';
 
-import { contour, signal, resource, Result, topo, trail } from '@ontrails/core';
+import {
+  ConflictError,
+  contour,
+  signal,
+  resource,
+  Result,
+  topo,
+  trail,
+} from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -249,21 +257,22 @@ describe('generateTrailheadMap', () => {
       expect(map.entries[0]?.exampleCount).toBe(3);
     });
 
-    test('detours are included and sorted', () => {
+    test('detours are included with error class names', () => {
       const t = trail('with.detours', {
         blaze: noop,
-        detours: {
-          onError: ['notify.admin', 'log.error'],
-          onSuccess: ['cache.invalidate'],
-        },
+        detours: [
+          {
+            maxAttempts: 2,
+            on: ConflictError,
+            /* oxlint-disable-next-line require-await -- test stub, no real async work */
+            recover: async () => Result.ok(),
+          },
+        ],
         input: z.object({}),
       });
       const entry = getFirstEntry(generateTrailheadMap(topoFrom({ t })));
 
-      expect(entry.detours).toEqual({
-        onError: ['log.error', 'notify.admin'],
-        onSuccess: ['cache.invalidate'],
-      });
+      expect(entry.detours).toEqual([{ maxAttempts: 2, on: 'ConflictError' }]);
     });
 
     test('description is included when present', () => {

@@ -8,7 +8,7 @@ import {
 } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-import { Result, resource, topo, trail } from '@ontrails/core';
+import { ConflictError, Result, resource, topo, trail } from '@ontrails/core';
 import {
   generateTrailheadMap,
   hashTrailheadMap,
@@ -39,9 +39,13 @@ const helloTrail = trail('hello', {
     return Result.ok({ message: `Hello, ${name}!` });
   },
   description: 'Say hello',
-  detours: {
-    NotFoundError: ['search'],
-  },
+  detours: [
+    {
+      on: ConflictError,
+      /* oxlint-disable-next-line require-await -- test stub */
+      recover: async () => Result.ok({ message: 'recovered' }),
+    },
+  ],
   examples: [
     {
       expected: { message: 'Hello, world!' },
