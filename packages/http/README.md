@@ -64,6 +64,19 @@ Trail IDs map to paths: `entity.show` becomes `/entity/show`. Dots become slashe
 
 Declared resources on each trail are resolved into the context before the implementation runs.
 
+## Filtering
+
+```typescript
+const result = buildHttpRoutes(app, {
+  include: ['entity.**'],
+  exclude: ['dev.**'],
+});
+```
+
+`*` matches one dotted segment and `**` matches any depth. Trails declared
+with `visibility: 'internal'` stay hidden unless you include their exact trail
+ID intentionally.
+
 ## AbortSignal propagation
 
 The `execute` function on each `HttpRouteDefinition` accepts an optional `abortSignal`. The Hono connector extracts `signal` from `c.req.raw` and forwards it as `abortSignal`, so client disconnects propagate into trail execution.

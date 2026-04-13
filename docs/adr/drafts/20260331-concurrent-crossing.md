@@ -315,7 +315,7 @@ Rejected because implicit concurrency is a correctness hazard. Two crossings may
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- the execution pipeline runs for each concurrent branch; the pipeline is unchanged
 - [ADR-0013: Tracing](../0013-tracing.md) -- tracing observes concurrent vs sequential spans to derive composition shape at runtime
 - [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- the lockfile captures composition shapes including parallel crossing patterns
-- [ADR: Trail Visibility and Trailhead Filtering](20260331-visibility-and-filtering.md) (draft) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode
+- [ADR-0027: Trail Visibility and Trailhead Filtering](../0027-visibility-and-filtering.md) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode
 - [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- typed `ctx.cross()` that the array overload extends; parallel crossing with typed results is a non-decision there, deferred here
 - [ADR: Composition Testing](../0025-composition-testing.md) -- `scenario()` and `expectedMatch` for testing concurrent composition flows
 - ADR: Packs as Namespace Boundaries (draft) -- concurrent crossings across pack boundaries work identically to sequential crossings; pack boundary governance is unchanged

@@ -1,14 +1,15 @@
 ---
+id: 27
 slug: visibility-and-filtering
 title: Trail Visibility and Trailhead Filtering
-status: draft
+status: accepted
 created: 2026-03-31
-updated: 2026-04-09
+updated: 2026-04-10
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [packs-namespace-boundaries]
 ---
 
-# ADR: Trail Visibility and Trailhead Filtering
+# ADR-0027: Trail Visibility and Trailhead Filtering
 
 ## Context
 

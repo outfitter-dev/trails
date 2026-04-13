@@ -53,6 +53,12 @@ const exampleTrail = trail('with.examples', {
   input: z.object({ name: z.string() }),
 });
 
+const internalTrail = trail('internal.secret', {
+  blaze: () => Result.ok({ ok: true }),
+  input: z.object({}),
+  visibility: 'internal',
+});
+
 const dbResource = resource('db.main', {
   create: () =>
     Result.ok({
@@ -287,7 +293,7 @@ describe('buildMcpTools', () => {
     test('include filter limits which trails become tools', () => {
       const app = topo('myapp', { deleteTrail, echoTrail, failTrail });
       const tools = buildTools(app, {
-        includeTrails: ['echo'],
+        include: ['echo'],
       });
 
       expect(tools).toHaveLength(1);
@@ -297,7 +303,7 @@ describe('buildMcpTools', () => {
     test('exclude filter removes specific trails', () => {
       const app = topo('myapp', { deleteTrail, echoTrail, failTrail });
       const tools = buildTools(app, {
-        excludeTrails: ['fail'],
+        exclude: ['fail'],
       });
 
       expect(tools).toHaveLength(2);
@@ -305,17 +311,57 @@ describe('buildMcpTools', () => {
       expect(names).not.toContain('myapp_fail');
     });
 
-    test('include takes precedence over exclude', () => {
+    test('exclude patterns apply before include narrowing', () => {
+      const app = topo('myapp', { deleteTrail, echoTrail, failTrail });
+      const tools = buildTools(app, {
+        exclude: ['fail'],
+        include: ['echo', 'fail'],
+      });
+
+      expect(tools).toHaveLength(1);
+      const names = tools.map((t) => t.name);
+      expect(names).toContain('myapp_echo');
+      expect(names).not.toContain('myapp_fail');
+    });
+
+    test('exact include can expose an internal trail', () => {
+      const app = topo('myapp', { echoTrail, internalTrail });
+      const tools = buildTools(app, {
+        include: ['internal.secret'],
+      });
+
+      expect(tools.map((tool) => tool.trailId)).toEqual(['internal.secret']);
+    });
+
+    test('wildcard include does not expose internal trails', () => {
+      const app = topo('myapp', { echoTrail, internalTrail });
+      const tools = buildTools(app, {
+        include: ['**'],
+      });
+
+      expect(tools.map((tool) => tool.trailId)).toEqual(['echo']);
+    });
+
+    test('legacy includeTrails and excludeTrails options still work', () => {
+      const app = topo('myapp', { deleteTrail, echoTrail, failTrail });
+      const tools = buildTools(app, {
+        excludeTrails: ['fail'],
+        includeTrails: ['echo'],
+      });
+
+      expect(tools.map((tool) => tool.trailId)).toEqual(['echo']);
+    });
+
+    test('legacy includeTrails wins over excludeTrails for overlapping ids', () => {
       const app = topo('myapp', { deleteTrail, echoTrail, failTrail });
       const tools = buildTools(app, {
         excludeTrails: ['fail'],
         includeTrails: ['echo', 'fail'],
       });
 
-      expect(tools).toHaveLength(2);
-      const names = tools.map((t) => t.name);
-      expect(names).toContain('myapp_echo');
-      expect(names).toContain('myapp_fail');
+      // Historical MCP semantics: include wins when both list the same id.
+      const ids = tools.map((tool) => tool.trailId).toSorted();
+      expect(ids).toEqual(['echo', 'fail']);
     });
   });
 

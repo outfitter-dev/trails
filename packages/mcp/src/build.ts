@@ -11,6 +11,7 @@ import {
   TRAILHEAD_KEY,
   ValidationError,
   executeTrail,
+  filterTrailheadTrails,
   isBlobRef,
   validateEstablishedTopo,
   zodToJsonSchema,
@@ -41,7 +42,9 @@ export interface BuildMcpToolsOptions {
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
+  readonly exclude?: readonly string[] | undefined;
   readonly excludeTrails?: readonly string[] | undefined;
+  readonly include?: readonly string[] | undefined;
   readonly includeTrails?: readonly string[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
@@ -265,24 +268,39 @@ const createHandler =
  * - MCP annotations from trail meta
  * - A handler that validates, composes layers, executes, and maps results
  */
-/** Check if a trail should be included based on meta and filters. */
-const shouldInclude = (
-  trail: Trail<unknown, unknown, unknown>,
-  options: BuildMcpToolsOptions
-): boolean => {
-  if (trail.meta?.['internal'] === true || trail.on.length > 0) {
-    return false;
+const dedupePatterns = (
+  patterns: readonly string[] | undefined,
+  legacyPatterns: readonly string[] | undefined
+): string[] | undefined => {
+  const merged = [...(patterns ?? []), ...(legacyPatterns ?? [])];
+  return merged.length > 0 ? [...new Set(merged)] : undefined;
+};
+
+/**
+ * Compute the legacy "include wins over exclude" allowlist.
+ *
+ * Preserves historical MCP semantics: trails named in `includeTrails` are
+ * kept even when they also match `excludeTrails`. Only trails that appear
+ * in `excludeTrails` without also appearing in `includeTrails` are removed.
+ *
+ * Returns the set of trail IDs that should bypass exclude-filter processing,
+ * or `undefined` when no legacy options were supplied.
+ */
+const computeLegacyIncludeOverrides = (
+  includeTrails: readonly string[] | undefined,
+  excludeTrails: readonly string[] | undefined
+): ReadonlySet<string> | undefined => {
+  if (includeTrails === undefined || excludeTrails === undefined) {
+    return undefined;
   }
-  if (options.includeTrails !== undefined && options.includeTrails.length > 0) {
-    return options.includeTrails.includes(trail.id);
+  const excludes = new Set(excludeTrails);
+  const overrides = new Set<string>();
+  for (const id of includeTrails) {
+    if (excludes.has(id)) {
+      overrides.add(id);
+    }
   }
-  if (
-    options.excludeTrails !== undefined &&
-    options.excludeTrails.includes(trail.id)
-  ) {
-    return false;
-  }
-  return true;
+  return overrides.size > 0 ? overrides : undefined;
 };
 
 /** Build a description with optional example input appended. */
@@ -346,12 +364,50 @@ const registerTool = (
   return Result.ok();
 };
 
+/**
+ * Restore legacy "include wins over exclude" semantics: for any trail id
+ * that appears in both legacy include and exclude, re-include it even
+ * though the unified filter would have dropped it on the exclude pass.
+ * We reuse filterTrailheadTrails (without the legacy exclude) so that
+ * visibility rules, `on: [...]` consumer trails, and new-style exclude
+ * globs still apply.
+ */
+const mergeLegacyIncludeOverrides = (
+  app: Topo,
+  filtered: Trail<unknown, unknown, unknown>[],
+  legacyOverrides: ReadonlySet<string>,
+  options: BuildMcpToolsOptions
+): Trail<unknown, unknown, unknown>[] => {
+  const overrideCandidates = filterTrailheadTrails(app.list(), {
+    exclude: options.exclude,
+    include: options.includeTrails,
+  }).filter((t) => legacyOverrides.has(t.id));
+  if (overrideCandidates.length === 0) {
+    return filtered;
+  }
+  const filteredIds = new Set(filtered.map((t) => t.id));
+  const additions = overrideCandidates.filter((t) => !filteredIds.has(t.id));
+  return [...filtered, ...additions];
+};
+
 /** Filter topo items to eligible trails. */
 const eligibleTrails = (
   app: Topo,
   options: BuildMcpToolsOptions
-): Trail<unknown, unknown, unknown>[] =>
-  app.list().filter((trail) => shouldInclude(trail, options));
+): Trail<unknown, unknown, unknown>[] => {
+  const legacyOverrides = computeLegacyIncludeOverrides(
+    options.includeTrails,
+    options.excludeTrails
+  );
+  const filtered = filterTrailheadTrails(app.list(), {
+    exclude: dedupePatterns(options.exclude, options.excludeTrails),
+    include: dedupePatterns(options.include, options.includeTrails),
+  });
+  if (legacyOverrides === undefined) {
+    return filtered;
+  }
+  return mergeLegacyIncludeOverrides(app, filtered, legacyOverrides, options);
+};
 
 const validateToolBuild = (
   app: Topo,

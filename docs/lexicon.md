@@ -220,6 +220,23 @@ const db = resource('db.main', {
 
 Trails declare their infrastructure needs with `resources: [...]` and access them through `db.from(ctx)` or `ctx.resource()`.
 
+### `visibility`
+
+Whether a trail is exposed as a public verb on trailheads or kept as an internal
+composition target.
+
+```typescript
+const normalizePayload = trail('github.normalize-payload', {
+  visibility: 'internal',
+  input: PayloadSchema,
+  output: NormalizedSchema,
+  blaze: async (input) => Result.ok(input),
+});
+```
+
+`'public'` is the default. `'internal'` keeps the trail off trailheads unless a
+specific trailhead includes that exact trail ID intentionally.
+
 ### `profile`
 
 A named config set for a deployment environment. "Dev profile, staging profile, production profile" — universal language.

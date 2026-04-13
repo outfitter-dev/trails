@@ -55,11 +55,11 @@ const internalTrail = trail('crash', {
   input: z.object({}),
 });
 
-const internalMetaTrail = trail('secret', {
+const internalVisibilityTrail = trail('secret', {
   blaze: () => Result.ok({ ok: true }),
   description: 'Internal trail that should be skipped',
   input: z.object({}),
-  meta: { internal: true },
+  visibility: 'internal',
 });
 
 const dbResource = resource('db.main', {
@@ -179,13 +179,44 @@ describe('buildHttpRoutes', () => {
 
   describe('filtering', () => {
     test('internal trails are skipped', () => {
-      const app = topo('testapp', { echoTrail, internalMetaTrail });
+      const app = topo('testapp', { echoTrail, internalVisibilityTrail });
       const result = buildHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
       const routes = result.value;
       expect(routes).toHaveLength(1);
       expect(routes[0]?.trailId).toBe('echo');
+    });
+
+    test('exact include can expose an internal trail', () => {
+      const app = topo('testapp', { echoTrail, internalVisibilityTrail });
+      const result = buildHttpRoutes(app, { include: ['secret'] });
+
+      expect(result.isOk()).toBe(true);
+      const routes = result.value;
+      expect(routes).toHaveLength(1);
+      expect(routes[0]?.trailId).toBe('secret');
+    });
+
+    test('wildcard include does not expose internal trails', () => {
+      const app = topo('testapp', { echoTrail, internalVisibilityTrail });
+      const result = buildHttpRoutes(app, { include: ['**'] });
+
+      expect(result.isOk()).toBe(true);
+      const routes = result.value;
+      expect(routes).toHaveLength(1);
+      expect(routes[0]?.trailId).toBe('echo');
+    });
+
+    test('exclude patterns win before include narrowing', () => {
+      const app = topo('testapp', { deleteTrail, echoTrail });
+      const result = buildHttpRoutes(app, {
+        exclude: ['item.**'],
+        include: ['echo', 'item.delete'],
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.value.map((route) => route.trailId)).toEqual(['echo']);
     });
 
     test('consumer trails (on: [...]) are skipped', () => {
