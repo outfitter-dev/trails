@@ -103,7 +103,7 @@ interface StoredTrailheadMapEntry {
   readonly detours?: Readonly<Record<string, readonly string[]>>;
   readonly healthcheck?: boolean;
   readonly id: string;
-  readonly kind: 'resource' | 'signal' | 'trail';
+  readonly kind: 'contour' | 'resource' | 'signal' | 'trail';
 }
 
 interface StoredTrailheadMap {

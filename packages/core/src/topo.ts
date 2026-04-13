@@ -2,6 +2,7 @@
  * Application entry point — scans module exports to build a topology graph.
  */
 
+import type { AnyContour } from './contour.js';
 import { ValidationError } from './errors.js';
 import type { AnySignal } from './event.js';
 import type { AnyResource } from './resource.js';
@@ -14,17 +15,23 @@ import type { AnyTrail } from './trail.js';
 
 export interface Topo {
   readonly name: string;
+  readonly contours: ReadonlyMap<string, AnyContour>;
   readonly trails: ReadonlyMap<string, AnyTrail>;
   readonly signals: ReadonlyMap<string, AnySignal>;
   readonly resources: ReadonlyMap<string, AnyResource>;
   readonly count: number;
+  readonly contourCount: number;
   readonly resourceCount: number;
+  getContour(name: string): AnyContour | undefined;
   get(id: string): AnyTrail | undefined;
   getResource(id: string): AnyResource | undefined;
+  hasContour(name: string): boolean;
   has(id: string): boolean;
   hasResource(id: string): boolean;
+  contourIds(): string[];
   ids(): string[];
   resourceIds(): string[];
+  listContours(): AnyContour[];
   list(): AnyTrail[];
   listSignals(): AnySignal[];
   listResources(): AnyResource[];
@@ -34,14 +41,14 @@ export interface Topo {
 // Kind discriminant check
 // ---------------------------------------------------------------------------
 
-type Registrable = AnyTrail | AnySignal | AnyResource;
+type Registrable = AnyContour | AnyTrail | AnySignal | AnyResource;
 
 const isRegistrable = (value: unknown): value is Registrable => {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
   const { kind } = value as Record<string, unknown>;
-  return kind === 'trail' || kind === 'signal';
+  return kind === 'contour' || kind === 'trail' || kind === 'signal';
 };
 
 // ---------------------------------------------------------------------------
@@ -50,19 +57,31 @@ const isRegistrable = (value: unknown): value is Registrable => {
 
 const createTopo = (
   name: string,
+  contours: ReadonlyMap<string, AnyContour>,
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
   resources: ReadonlyMap<string, AnyResource>
 ): Topo => ({
+  contourCount: contours.size,
+  contourIds(): string[] {
+    return [...contours.keys()];
+  },
+  contours,
   count: trails.size,
   get(id: string): AnyTrail | undefined {
     return trails.get(id);
+  },
+  getContour(contourName: string): AnyContour | undefined {
+    return contours.get(contourName);
   },
   getResource(id: string): AnyResource | undefined {
     return resources.get(id);
   },
   has(id: string): boolean {
     return trails.has(id);
+  },
+  hasContour(contourName: string): boolean {
+    return contours.has(contourName);
   },
   hasResource(id: string): boolean {
     return resources.has(id);
@@ -73,6 +92,9 @@ const createTopo = (
 
   list(): AnyTrail[] {
     return [...trails.values()];
+  },
+  listContours(): AnyContour[] {
+    return [...contours.values()];
   },
   listResources(): AnyResource[] {
     return [...resources.values()];
@@ -96,35 +118,106 @@ const createTopo = (
 // topo()
 // ---------------------------------------------------------------------------
 
+const registerUnique = <T>(
+  collection: Map<string, T>,
+  id: string,
+  value: T,
+  duplicateMessage: string
+): void => {
+  const existing = collection.get(id);
+  if (existing === value) {
+    return;
+  }
+  if (existing !== undefined) {
+    throw new ValidationError(duplicateMessage);
+  }
+  collection.set(id, value);
+};
+
+const registerContour = (
+  contour: AnyContour,
+  contours: Map<string, AnyContour>
+): void => {
+  registerUnique(
+    contours,
+    contour.name,
+    contour,
+    `Duplicate contour name: "${contour.name}"`
+  );
+};
+
+const registerResourceValue = (
+  resource: AnyResource,
+  resources: Map<string, AnyResource>
+): void => {
+  registerUnique(
+    resources,
+    resource.id,
+    resource,
+    `Duplicate resource ID: "${resource.id}"`
+  );
+};
+
+const registerSignal = (
+  signal: AnySignal,
+  signals: Map<string, AnySignal>
+): void => {
+  registerUnique(
+    signals,
+    signal.id,
+    signal,
+    `Duplicate signal ID: "${signal.id}"`
+  );
+};
+
+const registerTrail = (
+  trail: AnyTrail,
+  trails: Map<string, AnyTrail>
+): void => {
+  registerUnique(trails, trail.id, trail, `Duplicate trail ID: "${trail.id}"`);
+};
+
 /** Register a single registrable value into the appropriate map. */
 const register = (
   value: Registrable,
+  contours: Map<string, AnyContour>,
   trails: Map<string, AnyTrail>,
   signals: Map<string, AnySignal>,
   resources: Map<string, AnyResource>
 ): void => {
-  const { id } = value as { id: string };
-  const registrars: Record<string, () => void> = {
-    resource: () => {
-      if (resources.has(id)) {
-        throw new ValidationError(`Duplicate resource ID: "${id}"`);
-      }
-      resources.set(id, value as AnyResource);
-    },
-    signal: () => {
-      if (signals.has(id)) {
-        throw new ValidationError(`Duplicate signal ID: "${id}"`);
-      }
-      signals.set(id, value as AnySignal);
-    },
-    trail: () => {
-      if (trails.has(id)) {
-        throw new ValidationError(`Duplicate trail ID: "${id}"`);
-      }
-      trails.set(id, value as AnyTrail);
-    },
-  };
-  registrars[value.kind]?.();
+  switch (value.kind) {
+    case 'contour': {
+      registerContour(value as AnyContour, contours);
+      break;
+    }
+    case 'resource': {
+      registerResourceValue(value as AnyResource, resources);
+      break;
+    }
+    case 'signal': {
+      registerSignal(value as AnySignal, signals);
+      break;
+    }
+    case 'trail': {
+      registerTrail(value as AnyTrail, trails);
+      break;
+    }
+    default: {
+      throw new ValidationError('Unsupported registrable value in topo()');
+    }
+  }
+};
+
+const registerTrailContours = (
+  trail: AnyTrail,
+  contours: Map<string, AnyContour>,
+  trails: Map<string, AnyTrail>,
+  signals: Map<string, AnySignal>,
+  resources: Map<string, AnyResource>
+): void => {
+  for (const contour of trail.contours ?? []) {
+    register(contour, contours, trails, signals, resources);
+  }
 };
 
 const markUniqueObject = (
@@ -143,17 +236,33 @@ const markUniqueObject = (
 
 const registerModuleValue = (
   value: unknown,
+  contours: Map<string, AnyContour>,
   trails: Map<string, AnyTrail>,
   signals: Map<string, AnySignal>,
   resources: Map<string, AnyResource>
 ): void => {
   if (isResource(value) || isRegistrable(value)) {
-    register(value, trails, signals, resources);
+    register(value, contours, trails, signals, resources);
+  }
+
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    (value as { kind?: unknown }).kind === 'trail'
+  ) {
+    registerTrailContours(
+      value as AnyTrail,
+      contours,
+      trails,
+      signals,
+      resources
+    );
   }
 };
 
 const registerModuleValues = (
   mod: Record<string, unknown>,
+  contours: Map<string, AnyContour>,
   trails: Map<string, AnyTrail>,
   signals: Map<string, AnySignal>,
   resources: Map<string, AnyResource>
@@ -163,7 +272,7 @@ const registerModuleValues = (
     if (!markUniqueObject(value, seenValues)) {
       continue;
     }
-    registerModuleValue(value, trails, signals, resources);
+    registerModuleValue(value, contours, trails, signals, resources);
   }
 };
 
@@ -171,13 +280,14 @@ export const topo = (
   name: string,
   ...modules: Record<string, unknown>[]
 ): Topo => {
+  const contours = new Map<string, AnyContour>();
   const trails = new Map<string, AnyTrail>();
   const signals = new Map<string, AnySignal>();
   const resources = new Map<string, AnyResource>();
 
   for (const mod of modules) {
-    registerModuleValues(mod, trails, signals, resources);
+    registerModuleValues(mod, contours, trails, signals, resources);
   }
 
-  return createTopo(name, trails, signals, resources);
+  return createTopo(name, contours, trails, signals, resources);
 };

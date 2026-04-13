@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { z } from 'zod';
 
 import { NotFoundError } from '../errors.js';
-import { Result, resource, signal, topo, trail } from '../index.js';
+import { contour, Result, resource, signal, topo, trail } from '../index.js';
 import { __topoStoreMigrationStats, createTopoStore } from '../topo-store.js';
 import {
   ensureTopoHistorySchema,
@@ -64,6 +64,15 @@ const tableExists = (
 };
 
 const exampleApp = () => {
+  const entityContour = contour(
+    'entity',
+    {
+      id: z.string(),
+      name: z.string(),
+    },
+    { identity: 'id' }
+  );
+
   const dbMain = resource('db.main', {
     create: () => Result.ok({ source: 'factory' }),
     description: 'Primary database',
@@ -85,6 +94,7 @@ const exampleApp = () => {
   const entityAdd = trail('entity.add', {
     blaze: (input: { readonly name: string }) =>
       Result.ok({ id: input.name.toLowerCase(), ok: true }),
+    contours: [entityContour],
     description: 'Add a new entity',
     examples: [
       {
@@ -106,6 +116,7 @@ const exampleApp = () => {
 
   const entityList = trail('entity.list', {
     blaze: () => Result.ok({ items: ['ada'] }),
+    contours: [entityContour],
     crosses: ['entity.add'],
     description: 'List entities',
     idempotent: true,
@@ -119,6 +130,7 @@ const exampleApp = () => {
     dbMain,
     entityAdd,
     entityAdded,
+    entityContour,
     entityList,
     searchIndex,
   });
@@ -215,6 +227,14 @@ const requireStoredExport = (
     throw new Error(`Expected stored topo export for save "${saveId}"`);
   }
   return stored;
+};
+
+const hasContourTrailheadEntry = (entry: unknown, id: string): boolean => {
+  if (typeof entry !== 'object' || entry === null) {
+    return false;
+  }
+  const candidate = entry as { id?: string; kind?: string };
+  return candidate.id === id && candidate.kind === 'contour';
 };
 
 const expectProjectionCounts = (
@@ -577,14 +597,26 @@ describe('topo store projection', () => {
       expectProjectedFixtureRows(db, save.id);
 
       const stored = requireStoredExport(db, save.id);
-      expect(JSON.parse(stored.trailheadMapJson)).toMatchObject({
+      const trailheadMap = JSON.parse(stored.trailheadMapJson);
+      const { entries } = trailheadMap as { entries?: unknown[] };
+      expect(trailheadMap).toMatchObject({
         entries: expect.any(Array),
         generatedAt: '2026-04-03T12:00:00.000Z',
         version: '1.0',
       });
+      expect(Array.isArray(entries)).toBe(true);
+      expect(
+        entries?.some((entry) => hasContourTrailheadEntry(entry, 'entity'))
+      ).toBe(true);
+
       expect(JSON.parse(stored.lockContent)).toMatchObject({
         apps: {
           'projection-app': {
+            contours: {
+              entity: expect.objectContaining({
+                identity: 'id',
+              }),
+            },
             resources: expect.any(Object),
             signals: expect.any(Object),
             trails: expect.any(Object),

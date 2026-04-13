@@ -1,14 +1,15 @@
 ---
+id: 30
 slug: contours-as-first-class-domain-objects
 title: Contours as First-Class Domain Objects
-status: draft
+status: accepted
 created: 2026-04-09
-updated: 2026-04-09
+updated: 2026-04-10
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [0, 1, 3, 9, 16, 23]
 ---
 
-# ADR: Contours as First-Class Domain Objects
+# ADR-0030: Contours as First-Class Domain Objects
 
 ## Context
 
@@ -272,25 +273,25 @@ Contour is a declaration-time concept. By the time a trail executes, the contour
 
 ## Non-decisions
 
-- **Pattern shapes at 1.0.** Toggle and CRUD are clear candidates. Transition, collection, and counter can follow. Which patterns ship initially is a separate design decision — see [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft).
+- **Pattern shapes at 1.0.** Toggle and CRUD are clear candidates. Transition, collection, and counter can follow. Which patterns ship initially is a separate design decision — see [ADR: `deriveTrail()` and Trail Factories](drafts/20260409-derivetrail-and-trail-factories.md) (draft).
 - **Schema derivation rules.** When and how the framework derives input/output schemas from contours + patterns. Deferred until `deriveTrail()` design lands.
 - **1.0 scope.** Contour is shippable for 1.0. Whether patterns also need to ship, or whether contour alone is the 1.0 primitive and patterns follow, is a sequencing question.
 
 ## References
 
-- [ADR-0000: Core Premise](../0000-core-premise.md) — the information architecture categories (authored, projected, enforced) that contour leverages
-- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — the vocabulary rules that `contour()` follows as a bare-noun primitive
-- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the merge test applied to contour vs. trail (conclusion: they're different enough to stay separate)
-- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource primitive that contours relate to through the store binding
-- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract that can derive from contours instead of standalone schemas
-- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the naming heuristic and `pattern` as the trail's declared operational shape
-- [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) — the derivation helper that composes with contours
-- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](../0029-connector-extraction-and-the-with-packaging-model.md) — the connector extraction that contour-derived stores will bind through
-- [Tenets: The trail is the product](../../tenets.md) — contours make trails smarter without changing what trails are
-- [Tenets: One write, many reads](../../tenets.md) — the governing principle contours extend to domain objects
-- [Tenets: The bar for new primitives](../../tenets.md#the-bar-for-new-primitives) — the justification standard contour must meet
+- [ADR-0000: Core Premise](0000-core-premise.md) — the information architecture categories (authored, projected, enforced) that contour leverages
+- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — the vocabulary rules that `contour()` follows as a bare-noun primitive
+- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the merge test applied to contour vs. trail (conclusion: they're different enough to stay separate)
+- [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the resource primitive that contours relate to through the store binding
+- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — the store contract that can derive from contours instead of standalone schemas
+- [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — the naming heuristic and `pattern` as the trail's declared operational shape
+- [ADR: `deriveTrail()` and Trail Factories](drafts/20260409-derivetrail-and-trail-factories.md) (draft) — the derivation helper that composes with contours
+- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the connector extraction that contour-derived stores will bind through
+- [Tenets: The trail is the product](../tenets.md) — contours make trails smarter without changing what trails are
+- [Tenets: One write, many reads](../tenets.md) — the governing principle contours extend to domain objects
+- [Tenets: The bar for new primitives](../tenets.md#the-bar-for-new-primitives) — the justification standard contour must meet
 
-[^1]: [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — `pattern` as the declared operational shape on a trail
-[^2]: [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md)
-[^3]: [ADR-0000: Core Premise — The information architecture](../0000-core-premise.md)
-[^4]: See the evaluation hierarchy in [Tenets: Primitives](../../tenets.md#the-bar-for-new-primitives)
+[^1]: [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — `pattern` as the declared operational shape on a trail
+[^2]: [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md)
+[^3]: [ADR-0000: Core Premise — The information architecture](0000-core-premise.md)
+[^4]: See the evaluation hierarchy in [Tenets: Primitives](../tenets.md#the-bar-for-new-primitives)

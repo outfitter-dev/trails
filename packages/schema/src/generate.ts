@@ -4,10 +4,17 @@
 
 import {
   deriveCliPath,
+  getContourReferences,
   validateDraftFreeTopo,
   zodToJsonSchema,
 } from '@ontrails/core';
-import type { AnyResource, Signal, Topo, Trail } from '@ontrails/core';
+import type {
+  AnyContour,
+  AnyResource,
+  Signal,
+  Topo,
+  Trail,
+} from '@ontrails/core';
 
 import type { JsonSchema, TrailheadMap, TrailheadMapEntry } from './types.js';
 
@@ -69,6 +76,13 @@ const addSchemas = (
   }
 };
 
+const addContourSchema = (
+  entry: Record<string, unknown>,
+  contour: AnyContour
+): void => {
+  entry['schema'] = toSortedJsonSchema(contour);
+};
+
 /** Add safety markers to an entry. */
 const addSafetyMarkers = (
   entry: Record<string, unknown>,
@@ -116,6 +130,21 @@ const addMetadata = (
   addExtendedMetadata(entry, t, raw);
 };
 
+const addTrailRelations = (
+  entry: Record<string, unknown>,
+  t: Trail<unknown, unknown, unknown>
+): void => {
+  if (t.crosses.length > 0) {
+    entry['crosses'] = t.crosses.toSorted();
+  }
+  if (t.contours.length > 0) {
+    entry['contours'] = t.contours.map((contour) => contour.name).toSorted();
+  }
+  if (t.resources.length > 0) {
+    entry['resources'] = t.resources.map((resource) => resource.id).toSorted();
+  }
+};
+
 const trailToEntry = (
   t: Trail<unknown, unknown, unknown>
 ): TrailheadMapEntry => {
@@ -131,13 +160,7 @@ const trailToEntry = (
 
   addSchemas(entry, t);
   addMetadata(entry, t, raw);
-
-  if (t.crosses.length > 0) {
-    entry['crosses'] = t.crosses.toSorted();
-  }
-  if (t.resources.length > 0) {
-    entry['resources'] = t.resources.map((resource) => resource.id).toSorted();
-  }
+  addTrailRelations(entry, t);
 
   return sortKeys(entry) as unknown as TrailheadMapEntry;
 };
@@ -193,6 +216,25 @@ const resourceToEntry = (resource: AnyResource): TrailheadMapEntry => {
   return sortKeys(entry) as unknown as TrailheadMapEntry;
 };
 
+const contourToEntry = (contour: AnyContour): TrailheadMapEntry => {
+  const entry: Record<string, unknown> = {
+    exampleCount: contour.examples?.length ?? 0,
+    id: contour.name,
+    identity: contour.identity,
+    kind: 'contour',
+    trailheads: [],
+  };
+
+  addContourSchema(entry, contour);
+
+  const references = getContourReferences(contour);
+  if (references.length > 0) {
+    entry['references'] = references;
+  }
+
+  return sortKeys(entry) as unknown as TrailheadMapEntry;
+};
+
 const assertEstablishedTopo = (topo: Topo): void => {
   const validated = validateDraftFreeTopo(topo);
   if (validated.isErr()) {
@@ -201,6 +243,7 @@ const assertEstablishedTopo = (topo: Topo): void => {
 };
 
 const collectEntries = (topo: Topo): TrailheadMapEntry[] => [
+  ...[...topo.contours.values()].map((contour) => contourToEntry(contour)),
   ...[...topo.trails.values()].map((trail) =>
     trailToEntry(trail as Trail<unknown, unknown, unknown>)
   ),
