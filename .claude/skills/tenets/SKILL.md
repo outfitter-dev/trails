@@ -20,8 +20,8 @@ For deeper architectural judgment, vocabulary enforcement, or to challenge a ten
 
 ---
 
-!`cat references/tenets.md`
+!`cat "$(pwd)/docs/tenets.md"`
 
 ---
 
-!`cat references/adr-000.md`
+!`cat "$(pwd)/docs/adr/0000-core-premise.md"`
