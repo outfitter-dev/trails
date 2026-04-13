@@ -220,7 +220,7 @@ describe('deriveTrail()', () => {
       {
         expected: [note.examples?.[0]],
         input: {},
-        name: 'List note note-1',
+        name: 'note list example',
       },
     ]);
   });
