@@ -1709,6 +1709,11 @@
       "depends_on": ["9", "14", "16", "22", "29"],
       "inbound": [
         {
+          "context": "- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store-kind model that makes first-party backends meaningful",
+          "from": "0029",
+          "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
           "context": "- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store schema that `deriveTrail()` reads from",
           "from": "0032",
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"

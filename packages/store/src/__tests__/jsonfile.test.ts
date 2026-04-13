@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { copyFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ConflictError } from '@ontrails/core';
@@ -29,6 +29,13 @@ const timestampedSchema = z.object({
   id: z.string(),
 });
 
+const fullTimestampSchema = z.object({
+  body: z.string(),
+  createdAt: z.string(),
+  id: z.string(),
+  updatedAt: z.string(),
+});
+
 const itemStore = defineStore({
   items: { identity: 'id', schema: itemSchema },
 });
@@ -53,6 +60,14 @@ const timestampedStore = defineStore({
   },
 });
 
+const fullTimestampStore = defineStore({
+  entries: {
+    generated: ['createdAt', 'updatedAt'] as const,
+    identity: 'id',
+    schema: fullTimestampSchema,
+  },
+});
+
 // ---------------------------------------------------------------------------
 // Test setup
 // ---------------------------------------------------------------------------
@@ -66,6 +81,21 @@ beforeEach(async () => {
 afterEach(async () => {
   await rm(dir, { force: true, recursive: true });
 });
+
+/** Copy a JSON table file into a fresh directory and load it via a new connection. */
+const reloadAndList = async (
+  sourceDir: string,
+  fileName: string
+): Promise<readonly z.infer<typeof itemSchema>[]> => {
+  const reloadDir = await mkdtemp(join(tmpdir(), 'jsonfile-reload-'));
+  try {
+    await copyFile(join(sourceDir, fileName), join(reloadDir, fileName));
+    const conn = await connectJsonFile(itemStore, { dir: reloadDir });
+    return await conn.items.list();
+  } finally {
+    await rm(reloadDir, { force: true, recursive: true });
+  }
+};
 
 const createMockConnection = async <TConnection>(
   factory: (() => Promise<TConnection>) | undefined
@@ -133,6 +163,39 @@ describe('jsonfile connector', () => {
       expect(filtered).toHaveLength(2);
       expect(filtered.every((e) => e.category === 'x')).toBe(true);
     });
+
+    test('limit restricts number of results', async () => {
+      const conn = await connectJsonFile(itemStore, { dir });
+      await conn.items.upsert({ id: '1', name: 'A' });
+      await conn.items.upsert({ id: '2', name: 'B' });
+      await conn.items.upsert({ id: '3', name: 'C' });
+
+      const limited = await conn.items.list(undefined, { limit: 2 });
+      expect(limited).toHaveLength(2);
+    });
+
+    test('offset skips first N results', async () => {
+      const conn = await connectJsonFile(itemStore, { dir });
+      await conn.items.upsert({ id: '1', name: 'A' });
+      await conn.items.upsert({ id: '2', name: 'B' });
+      await conn.items.upsert({ id: '3', name: 'C' });
+
+      const skipped = await conn.items.list(undefined, { offset: 1 });
+      expect(skipped).toHaveLength(2);
+    });
+
+    test('limit and offset together paginate correctly', async () => {
+      const conn = await connectJsonFile(itemStore, { dir });
+      await conn.items.upsert({ id: '1', name: 'A' });
+      await conn.items.upsert({ id: '2', name: 'B' });
+      await conn.items.upsert({ id: '3', name: 'C' });
+      await conn.items.upsert({ id: '4', name: 'D' });
+
+      const page = await conn.items.list(undefined, { limit: 2, offset: 1 });
+      expect(page).toHaveLength(2);
+      expect(page[0]?.name).toBe('B');
+      expect(page[1]?.name).toBe('C');
+    });
   });
 
   describe('remove', () => {
@@ -188,6 +251,22 @@ describe('jsonfile connector', () => {
       expect(raw).toHaveLength(1);
       expect(raw[0].name).toBe('Persisted');
     });
+
+    test('fresh connection loads data from disk', async () => {
+      // Write data through the first connection.
+      const conn1 = await connectJsonFile(itemStore, { dir });
+      await conn1.items.upsert({ id: '1', name: 'First' });
+      await conn1.items.upsert({ id: '2', name: 'Second' });
+
+      // Create a second temp directory and copy the persisted JSON file into
+      // it. Because the module-level tableRegistry is keyed by resolved file
+      // path, pointing connectJsonFile at a new directory produces a fresh
+      // accessor that must load from disk rather than returning a cached
+      // in-memory instance.
+      const all = await reloadAndList(dir, 'items.json');
+      expect(all).toHaveLength(2);
+      expect(all.map((e) => e.name).toSorted()).toEqual(['First', 'Second']);
+    });
   });
 
   describe('identity generation', () => {
@@ -207,6 +286,22 @@ describe('jsonfile connector', () => {
       const result = await conn.notes.upsert({ body: 'Hello', id: 'n1' });
       expect(result.createdAt).toBeDefined();
       expect(typeof result.createdAt).toBe('string');
+    });
+
+    test('assigns updatedAt on update', async () => {
+      const conn = await connectJsonFile(fullTimestampStore, { dir });
+      const created = await conn.entries.upsert({ body: 'Hello', id: 'e1' });
+      expect(created.updatedAt).toBeDefined();
+
+      // Small delay so timestamps differ
+      await Bun.sleep(5);
+
+      const updated = await conn.entries.upsert({
+        body: 'Revised',
+        id: 'e1',
+      });
+      expect(updated.updatedAt).toBeDefined();
+      expect(updated.updatedAt).not.toBe(created.updatedAt);
     });
   });
 
