@@ -688,7 +688,7 @@ const executeDetourAttempt = async (
     await detour.recover({ attempt, error: lastError, input }, ctx);
 
   return ctx.trace
-    ? await ctx.trace(`detour:${detour.on.name}`, run)
+    ? await ctx.trace(`detour:${detour.on.name}:${attempt}`, run)
     : await run();
 };
 
