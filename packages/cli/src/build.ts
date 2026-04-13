@@ -4,6 +4,7 @@
 
 import type {
   Field,
+  Intent,
   Layer,
   ResourceOverrideMap,
   Topo,
@@ -58,6 +59,7 @@ export interface BuildCliCommandsOptions {
     | undefined;
   exclude?: readonly string[] | undefined;
   include?: readonly string[] | undefined;
+  intent?: readonly Intent[] | undefined;
   layers?: Layer[] | undefined;
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
   presets?: CliFlag[][] | undefined;
@@ -472,6 +474,7 @@ const collectCommands = (
   filterTrailheadTrails(app.list(), {
     exclude: options?.exclude,
     include: options?.include,
+    intent: options?.intent,
   }).map((trail) => toCliCommand(app, trail, options));
 
 export const buildCliCommands = (

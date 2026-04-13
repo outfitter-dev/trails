@@ -16,6 +16,7 @@ import type { Topo } from './topo.js';
 
 import { createFireFn } from './fire.js';
 import type {
+  CrossFn,
   Implementation,
   TraceFn,
   TrailContext,
@@ -23,7 +24,13 @@ import type {
 } from './types.js';
 
 import { createTrailContext } from './context.js';
-import { CancelledError, InternalError, TrailsError } from './errors.js';
+import { buildCrossValidationSchema } from './cross-schema.js';
+import {
+  CancelledError,
+  InternalError,
+  NotFoundError,
+  TrailsError,
+} from './errors.js';
 import {
   TRACE_CONTEXT_KEY,
   completeRecord,
@@ -315,6 +322,70 @@ const runImplWithRootRecord = async (
   }
 };
 
+const resolveCrossTarget = (
+  trailOrId: AnyTrail | string,
+  topo: Topo | undefined
+): Result<AnyTrail, Error> => {
+  if (typeof trailOrId !== 'string') {
+    return Result.ok(trailOrId);
+  }
+
+  if (topo === undefined) {
+    return Result.err(
+      new NotFoundError(
+        `Trail "${trailOrId}" cannot be crossed without topo access`
+      )
+    );
+  }
+
+  const target = topo.get(trailOrId);
+  return target
+    ? Result.ok(target)
+    : Result.err(
+        new NotFoundError(
+          `Trail "${trailOrId}" not found in topo "${topo.name}"`
+        )
+      );
+};
+
+const bindCrossToCtx = (
+  ctx: TrailContext,
+  topo: Topo | undefined,
+  options: ExecuteTrailOptions | undefined
+): TrailContext => {
+  if (ctx.cross !== undefined) {
+    return ctx;
+  }
+
+  const {
+    createContext: _omit,
+    validationSchema: _omitSchema,
+    ...forwarded
+  } = options ?? {};
+  const cross: CrossFn = async (
+    trailOrId: AnyTrail | string,
+    input: unknown
+  ) => {
+    const target = resolveCrossTarget(trailOrId, topo);
+    if (target.isErr()) {
+      return target;
+    }
+
+    return await // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
+    executeTrail(target.value, input, {
+      ...forwarded,
+      ctx,
+      topo,
+      validationSchema: buildCrossValidationSchema(target.value),
+    });
+  };
+
+  return {
+    ...ctx,
+    cross,
+  };
+};
+
 const bindFireToCtx = (
   ctx: TrailContext,
   topo: Topo | undefined,
@@ -346,6 +417,15 @@ const bindFireToCtx = (
   return { ...ctx, fire };
 };
 
+const bindCrossAtLayerBoundary =
+  <I, O>(
+    implementation: Implementation<I, O>,
+    topo: Topo | undefined,
+    options: ExecuteTrailOptions | undefined
+  ): Implementation<I, O> =>
+  (input, ctx) =>
+    implementation(input, bindCrossToCtx(ctx, topo, options));
+
 const bindFireAtLayerBoundary = <I, O>(
   implementation: Implementation<I, O>,
   topo: Topo | undefined,
@@ -365,12 +445,20 @@ const prepareRunImpl = (
   topo: Topo | undefined,
   options: ExecuteTrailOptions | undefined
 ): {
-  readonly ctxWithFire: TrailContext;
+  readonly ctxWithIntrinsics: TrailContext;
   readonly impl: Implementation<unknown, unknown>;
 } => {
-  const ctxWithFire = bindFireToCtx(ctx, topo, options);
+  const ctxWithIntrinsics = bindFireToCtx(
+    bindCrossToCtx(ctx, topo, options),
+    topo,
+    options
+  );
   let impl = bindFireAtLayerBoundary(
-    trail.blaze as Implementation<unknown, unknown>,
+    bindCrossAtLayerBoundary(
+      trail.blaze as Implementation<unknown, unknown>,
+      topo,
+      options
+    ),
     topo,
     options
   );
@@ -379,7 +467,11 @@ const prepareRunImpl = (
     const layer = layers[i];
     if (layer) {
       impl = bindFireAtLayerBoundary(
-        layer.wrap(trail, impl as never) as Implementation<unknown, unknown>,
+        bindCrossAtLayerBoundary(
+          layer.wrap(trail, impl as never) as Implementation<unknown, unknown>,
+          topo,
+          options
+        ),
         topo,
         options
       );
@@ -387,7 +479,7 @@ const prepareRunImpl = (
   }
 
   return {
-    ctxWithFire,
+    ctxWithIntrinsics,
     impl,
   };
 };
@@ -419,7 +511,7 @@ const runTrail = async (
   return await runImplWithRootRecord(
     prepared.impl,
     input,
-    prepared.ctxWithFire,
+    prepared.ctxWithIntrinsics,
     record,
     sink
   );

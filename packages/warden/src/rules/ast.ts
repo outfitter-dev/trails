@@ -16,10 +16,18 @@ export interface AstNode {
   readonly start: number;
   readonly end: number;
   readonly key?: { readonly name?: string };
-  readonly value?: AstNode;
+  readonly value?: unknown;
   readonly body?: AstNode | readonly AstNode[];
   readonly [key: string]: unknown;
 }
+
+interface StringLiteralNode extends AstNode {
+  readonly type: 'Literal' | 'StringLiteral';
+  readonly value?: unknown;
+}
+
+const isAstNode = (value: unknown): value is AstNode =>
+  Boolean(value && typeof value === 'object' && (value as AstNode).type);
 
 // ---------------------------------------------------------------------------
 // Parser
@@ -130,7 +138,9 @@ export const identifierName = (node: AstNode | undefined): string | null => {
 };
 
 /** Check if a node is a string literal. */
-export const isStringLiteral = (node: AstNode | undefined): node is AstNode => {
+export const isStringLiteral = (
+  node: AstNode | undefined
+): node is StringLiteralNode => {
   if (!node) {
     return false;
   }
@@ -456,7 +466,11 @@ const extractBlazeFromConfig = (config: AstNode): AstNode[] => {
     return bodies;
   }
   for (const prop of properties) {
-    if (prop.type === 'Property' && prop.key?.name === 'blaze' && prop.value) {
+    if (
+      prop.type === 'Property' &&
+      prop.key?.name === 'blaze' &&
+      isAstNode(prop.value)
+    ) {
       bodies.push(prop.value);
     }
   }
@@ -500,6 +514,146 @@ export const collectSignalDefinitionIds = (
     }
   }
   return ids;
+};
+
+/** Collect `const foo = trail('id', ...)` bindings from a parsed file. */
+export const collectNamedTrailIds = (
+  ast: AstNode
+): ReadonlyMap<string, string> => {
+  const ids = new Map<string, string>();
+
+  walk(ast, (node) => {
+    if (node.type !== 'VariableDeclarator') {
+      return;
+    }
+
+    const { id, init } = node as unknown as {
+      readonly id?: AstNode;
+      readonly init?: AstNode;
+    };
+    if (!init) {
+      return;
+    }
+
+    const def = extractTrailDefinition(init);
+    const name = extractBindingName(id);
+    if (def?.kind === 'trail' && name) {
+      ids.set(name, def.id);
+    }
+  });
+
+  return ids;
+};
+
+/** Extract the raw `crosses: [...]` array elements from a trail config. */
+export const getCrossElements = (config: AstNode): readonly AstNode[] => {
+  const crossesProp = findConfigProperty(config, 'crosses');
+  if (!crossesProp) {
+    return [];
+  }
+
+  const arrayNode = crossesProp.value;
+  if (!arrayNode || (arrayNode as AstNode).type !== 'ArrayExpression') {
+    return [];
+  }
+
+  const elements = (arrayNode as AstNode)['elements'] as
+    | readonly AstNode[]
+    | undefined;
+  return elements ?? [];
+};
+
+/**
+ * Resolve a single `crosses: [...]` element to its target trail ID.
+ *
+ * Handles string literals, identifier references (via `namedTrailIds` map or
+ * `const NAME = '...'` resolution), and inline `trail(...)` call expressions.
+ */
+export const resolveCrossElementId = (
+  element: AstNode,
+  sourceCode: string,
+  namedTrailIds: ReadonlyMap<string, string>
+): string | null => {
+  if (isStringLiteral(element)) {
+    return getStringValue(element);
+  }
+
+  if (element.type === 'Identifier') {
+    const name = identifierName(element);
+    return name
+      ? (namedTrailIds.get(name) ?? resolveConstString(name, sourceCode))
+      : null;
+  }
+
+  const inlineDef = extractTrailDefinition(element);
+  return inlineDef?.kind === 'trail' ? inlineDef.id : null;
+};
+
+/**
+ * Collect all trail IDs referenced by a single trail definition's
+ * `crosses: [...]` array, deduplicated.
+ */
+export const extractDefinitionCrossTargetIds = (
+  config: AstNode,
+  sourceCode: string,
+  namedTrailIds: ReadonlyMap<string, string>
+): readonly string[] => [
+  ...new Set(
+    getCrossElements(config).flatMap((element) => {
+      const id = resolveCrossElementId(element, sourceCode, namedTrailIds);
+      return id ? [id] : [];
+    })
+  ),
+];
+
+/** Collect all trail IDs referenced by declared `crosses: [...]` arrays. */
+export const collectCrossTargetTrailIds = (
+  ast: AstNode,
+  sourceCode: string
+): ReadonlySet<string> => {
+  const ids = new Set<string>();
+  const namedTrailIds = collectNamedTrailIds(ast);
+
+  for (const def of findTrailDefinitions(ast)) {
+    if (def.kind !== 'trail') {
+      continue;
+    }
+
+    for (const id of extractDefinitionCrossTargetIds(
+      def.config,
+      sourceCode,
+      namedTrailIds
+    )) {
+      ids.add(id);
+    }
+  }
+
+  return ids;
+};
+
+const extractTrailIntent = (config: AstNode): 'destroy' | 'read' | 'write' => {
+  const intentProp = findConfigProperty(config, 'intent');
+  if (!intentProp || !isStringLiteral(intentProp.value as AstNode)) {
+    return 'write';
+  }
+
+  const value = getStringValue(intentProp.value as AstNode);
+  return value === 'destroy' || value === 'read' ? value : 'write';
+};
+
+/** Collect the normalized intent for every trail definition in a parsed file. */
+export const collectTrailIntentsById = (
+  ast: AstNode
+): ReadonlyMap<string, 'destroy' | 'read' | 'write'> => {
+  const intents = new Map<string, 'destroy' | 'read' | 'write'>();
+
+  for (const def of findTrailDefinitions(ast)) {
+    if (def.kind === 'trail') {
+      intents.set(def.id, extractTrailIntent(def.config));
+    }
+  }
+
+  return intents;
 };
 
 // ---------------------------------------------------------------------------

@@ -568,6 +568,49 @@ describe('buildCliCommands filtering', () => {
     ]);
   });
 
+  test('intent filters narrow the command set', () => {
+    const show = trail('entity.show', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      intent: 'read',
+    });
+    const remove = trail('entity.remove', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      intent: 'destroy',
+    });
+
+    const commands = buildCliCommands(makeApp(show, remove), {
+      intent: ['read'],
+    });
+
+    expect(commands.map((command) => command.trail.id)).toEqual([
+      'entity.show',
+    ]);
+  });
+
+  test('intent filters compose with include patterns using AND logic', () => {
+    const show = trail('entity.show', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      intent: 'read',
+    });
+    const remove = trail('entity.remove', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      intent: 'destroy',
+    });
+
+    const commands = buildCliCommands(makeApp(show, remove), {
+      include: ['entity.*'],
+      intent: ['destroy'],
+    });
+
+    expect(commands.map((command) => command.trail.id)).toEqual([
+      'entity.remove',
+    ]);
+  });
+
   test('consumer trails (on: [...]) are excluded', () => {
     const producer = trail('order.create', {
       blaze: () => Result.ok({ ok: true }),
@@ -585,6 +628,39 @@ describe('buildCliCommands filtering', () => {
 
     expect(commands).toHaveLength(1);
     expect(commands[0]?.trail.id).toBe('order.create');
+  });
+
+  test('internal trails remain crossable even when they stay hidden', async () => {
+    const helper = trail('entity.secret.rotate', {
+      blaze: (input: { id: string }) => Result.ok({ rotated: input.id }),
+      input: z.object({ id: z.string() }),
+      intent: 'read',
+      output: z.object({ rotated: z.string() }),
+      visibility: 'internal',
+    });
+    const entry = trail('entity.rotate', {
+      blaze: async (input: { id: string }, ctx) => {
+        const result = await ctx.cross('entity.secret.rotate', input);
+        return result.match({
+          err: (error) => Result.err(error),
+          ok: (value) => Result.ok(value),
+        });
+      },
+      crosses: ['entity.secret.rotate'],
+      input: z.object({ id: z.string() }),
+      intent: 'read',
+      output: z.object({ rotated: z.string() }),
+    });
+
+    const commands = buildCliCommands(makeApp(entry, helper));
+
+    expect(commands.map((command) => command.trail.id)).toEqual([
+      'entity.rotate',
+    ]);
+
+    const result = await commands[0]?.execute({}, { id: 'abc123' });
+    expect(result?.isOk()).toBe(true);
+    expect(result?.unwrap()).toEqual({ rotated: 'abc123' });
   });
 });
 

@@ -197,6 +197,22 @@ describe('trailhead (Hono connector)', () => {
       expect(await res.json()).toEqual({ data: { ok: true } });
     });
 
+    test('intent filters only register matching routes', async () => {
+      const app = topo('testapp', { createTrail, echoTrail });
+      const hono = await trailhead(app, {
+        intent: ['read'],
+        serve: false,
+      });
+
+      const readRes = await request(hono, 'GET', '/echo?message=hello');
+      expect(readRes.status).toBe(200);
+
+      const writeRes = await request(hono, 'POST', '/item/create', {
+        name: 'Widget',
+      });
+      expect(writeRes.status).toBe(404);
+    });
+
     test('POST with empty input schema succeeds without a body', async () => {
       const emptyWriteTrail = trail('empty.write', {
         blaze: () => Result.ok({ ok: true }),
