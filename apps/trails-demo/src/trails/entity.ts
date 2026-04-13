@@ -1,8 +1,8 @@
 /**
  * Entity trails -- CRUD operations for the demo domain.
  *
- * Demonstrates: intent (read/destroy), detours, examples with full-match
- * and error-path assertions.
+ * Demonstrates: intent (read/destroy), examples with full-match and
+ * error-path assertions.
  */
 
 import {

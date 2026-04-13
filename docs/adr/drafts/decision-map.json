@@ -286,19 +286,6 @@
       "superseded_by": null,
       "title": "Unified Observability",
       "updated": "2026-04-09"
-    },
-    {
-      "created": "2026-04-11",
-      "depends_on": [],
-      "inbound": [],
-      "number": null,
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260411-detour-execution-for-recovery.md",
-      "slug": "detour-execution-for-recovery",
-      "status": "draft",
-      "superseded_by": null,
-      "title": "Detour Execution for Recovery",
-      "updated": "2026-04-11"
     }
   ],
   "version": 1

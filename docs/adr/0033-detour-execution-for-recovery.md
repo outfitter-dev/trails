@@ -1,14 +1,15 @@
 ---
+id: 33
 slug: detour-execution-for-recovery
 title: Detour Execution for Recovery
-status: draft
+status: accepted
 created: 2026-04-11
-updated: 2026-04-11
+updated: 2026-04-13
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [2, 6, 23, 32]
 ---
 
-# ADR: Detour Execution for Recovery
+# ADR-0033: Detour Execution for Recovery
 
 ## Context
 
