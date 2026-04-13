@@ -113,7 +113,7 @@ result.unwrapOr(fallback);   // Value or fallback
 
 ### Error taxonomy
 
-13 error classes across 10 categories. Each maps deterministically to exit codes, HTTP status, and JSON-RPC codes on every trailhead.
+14 error classes across 10 categories. Each maps deterministically to exit codes, HTTP status, and JSON-RPC codes on every trailhead.
 
 | Category | Classes | HTTP | Retryable |
 | --- | --- | --- | --- |
@@ -124,7 +124,7 @@ result.unwrapOr(fallback);   // Value or fallback
 | `timeout` | `TimeoutError` | 504 | Yes |
 | `rate_limit` | `RateLimitError` | 429 | Yes |
 | `network` | `NetworkError` | 502 | Yes |
-| `internal` | `InternalError` | 500 | No |
+| `internal` | `InternalError`, `DerivationError` | 500 | No |
 | `auth` | `AuthError` | 401 | No |
 | `cancelled` | `CancelledError` | 499 | No |
 
