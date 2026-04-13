@@ -8,8 +8,16 @@ import {
   executeTrail,
   registerTraceSink,
   trail,
+  topo,
 } from '@ontrails/core';
-import type { Layer, TraceContext, TraceRecord } from '@ontrails/core';
+import type {
+  AnyTrail,
+  CrossBatchOptions,
+  Layer,
+  TraceContext,
+  TraceRecord,
+  TrailContext,
+} from '@ontrails/core';
 import { z } from 'zod';
 
 import { createMemorySink } from '../memory-sink.js';
@@ -22,6 +30,11 @@ import { createMemorySink } from '../memory-sink.js';
  */
 
 const emptyIO = z.object({});
+const completedOutput = z.object({ completed: z.boolean() });
+const SIGNAL = 'signal';
+
+type Signal = typeof SIGNAL;
+type SignalController = ReturnType<typeof Promise.withResolvers<Signal>>;
 
 const okTrail = trail('intrinsic.ok', {
   blaze: () => Result.ok({ value: 1 }),
@@ -116,6 +129,236 @@ const firstSpanRecord = (records: readonly TraceRecord[]): TraceRecord => {
   const found = records.find((r) => r.kind === 'span');
   expect(found).toBeDefined();
   return found as TraceRecord;
+};
+
+const trailRecord = (
+  records: readonly TraceRecord[],
+  trailId: string
+): TraceRecord => {
+  const found = records.find((record) => record.trailId === trailId);
+  expect(found).toBeDefined();
+  return found as TraceRecord;
+};
+
+const requireCross = (
+  ctx: TrailContext
+): NonNullable<TrailContext['cross']> => {
+  expect(ctx.cross).toBeDefined();
+  return ctx.cross as NonNullable<TrailContext['cross']>;
+};
+
+const recordsOverlap = (left: TraceRecord, right: TraceRecord): boolean => {
+  expect(left.endedAt).toBeDefined();
+  expect(right.endedAt).toBeDefined();
+  return (
+    left.startedAt <= (right.endedAt as number) &&
+    right.startedAt <= (left.endedAt as number)
+  );
+};
+
+const createSignalController = (): SignalController =>
+  Promise.withResolvers<Signal>();
+
+const waitForSignalPair = async (
+  left: Promise<unknown>,
+  right: Promise<unknown>
+): Promise<void> => {
+  await left;
+  await right;
+};
+
+const createReleasedSignal = (): Promise<Signal> => {
+  const signal = createSignalController();
+  signal.resolve(SIGNAL);
+  return signal.promise;
+};
+
+const createBatchCrossParent = (
+  id: string,
+  children: readonly [AnyTrail, ...AnyTrail[]],
+  options?: CrossBatchOptions
+) =>
+  trail(id, {
+    blaze: async (_input, ctx) => {
+      const calls = children.map((child) => [child, {}] as const);
+      await requireCross(ctx)(calls, options);
+      return Result.ok({ completed: true });
+    },
+    crosses: [...children],
+    input: emptyIO,
+    output: completedOutput,
+  });
+
+const createGatedCrossChild = (
+  id: string,
+  started: SignalController,
+  gate: Promise<unknown>
+) =>
+  trail(id, {
+    blaze: async () => {
+      started.resolve(SIGNAL);
+      await gate;
+      return Result.ok({ ok: true });
+    },
+    input: emptyIO,
+    output: z.object({ ok: z.boolean() }),
+    visibility: 'internal',
+  });
+
+const createTimedCrossChild = (
+  id: string,
+  startedIds: string[],
+  started: SignalController,
+  gate: Promise<unknown>,
+  delayMs: number
+) =>
+  trail(id, {
+    blaze: async () => {
+      startedIds.push(id);
+      started.resolve(SIGNAL);
+      await gate;
+      await Bun.sleep(delayMs);
+      return Result.ok({ id });
+    },
+    input: emptyIO,
+    output: z.object({ id: z.string() }),
+    visibility: 'internal',
+  });
+
+const createConcurrentCrossBatchScenario = () => {
+  const leftStarted = createSignalController();
+  const rightStarted = createSignalController();
+  const release = createSignalController();
+  const left = createGatedCrossChild(
+    'trace.cross.concurrent.left',
+    leftStarted,
+    waitForSignalPair(rightStarted.promise, release.promise)
+  );
+  const right = createGatedCrossChild(
+    'trace.cross.concurrent.right',
+    rightStarted,
+    waitForSignalPair(leftStarted.promise, release.promise)
+  );
+  const parent = createBatchCrossParent('trace.cross.concurrent.parent', [
+    left,
+    right,
+  ]);
+  const app = topo('trace-cross-concurrent-topo', { left, parent, right });
+
+  return {
+    app,
+    left,
+    parent,
+    release,
+    right,
+    started: waitForSignalPair(leftStarted.promise, rightStarted.promise),
+  };
+};
+
+const createLimitedCrossBatchChildren = (
+  startedIds: string[],
+  releaseFirstBatch: Promise<unknown>
+) => {
+  const slowStarted = createSignalController();
+  const fastStarted = createSignalController();
+  const queuedStarted = createSignalController();
+  const slow = createTimedCrossChild(
+    'trace.cross.limited.slow',
+    startedIds,
+    slowStarted,
+    releaseFirstBatch,
+    20
+  );
+  const fast = createTimedCrossChild(
+    'trace.cross.limited.fast',
+    startedIds,
+    fastStarted,
+    releaseFirstBatch,
+    1
+  );
+  const queued = createTimedCrossChild(
+    'trace.cross.limited.queued',
+    startedIds,
+    queuedStarted,
+    createReleasedSignal(),
+    1
+  );
+
+  return {
+    fast,
+    fastStarted,
+    queued,
+    queuedStarted,
+    slow,
+    slowStarted,
+  };
+};
+
+const createLimitedCrossBatchScenario = () => {
+  const releaseFirstBatch = createSignalController();
+  const startedIds: string[] = [];
+  const { fast, fastStarted, queued, queuedStarted, slow, slowStarted } =
+    createLimitedCrossBatchChildren(startedIds, releaseFirstBatch.promise);
+  const parent = createBatchCrossParent(
+    'trace.cross.limited.parent',
+    [slow, fast, queued],
+    { concurrency: 2 }
+  );
+  const app = topo('trace-cross-limited-topo', {
+    fast,
+    parent,
+    queued,
+    slow,
+  });
+
+  return {
+    app,
+    fast,
+    firstBatchStarted: waitForSignalPair(
+      slowStarted.promise,
+      fastStarted.promise
+    ),
+    parent,
+    queued,
+    queuedStarted: queuedStarted.promise,
+    releaseFirstBatch,
+    slow,
+    startedIds,
+  };
+};
+
+const expectSiblingCrossTrailOverlap = (
+  records: readonly TraceRecord[],
+  parentTrailId: string,
+  leftTrailId: string,
+  rightTrailId: string
+) => {
+  const parentRecord = trailRecord(records, parentTrailId);
+  const leftRecord = trailRecord(records, leftTrailId);
+  const rightRecord = trailRecord(records, rightTrailId);
+  expect(leftRecord.parentId).toBe(parentRecord.id);
+  expect(rightRecord.parentId).toBe(parentRecord.id);
+  expect(recordsOverlap(leftRecord, rightRecord)).toBe(true);
+};
+
+const expectLimitedCrossTrailWaveShape = (
+  records: readonly TraceRecord[],
+  parentTrailId: string,
+  slowTrailId: string,
+  fastTrailId: string,
+  queuedTrailId: string
+) => {
+  const parentRecord = trailRecord(records, parentTrailId);
+  const slowRecord = trailRecord(records, slowTrailId);
+  const fastRecord = trailRecord(records, fastTrailId);
+  const queuedRecord = trailRecord(records, queuedTrailId);
+  expect(slowRecord.parentId).toBe(parentRecord.id);
+  expect(fastRecord.parentId).toBe(parentRecord.id);
+  expect(queuedRecord.parentId).toBe(parentRecord.id);
+  expect(queuedRecord.startedAt).toBeGreaterThanOrEqual(
+    fastRecord.endedAt as number
+  );
+  expect(recordsOverlap(slowRecord, queuedRecord)).toBe(true);
 };
 
 describe('intrinsic tracing via executeTrail + ctx.trace', () => {
@@ -266,6 +509,70 @@ describe('intrinsic tracing via executeTrail + ctx.trace', () => {
       expect(child?.traceId).toBe('parent-trace');
       expect(child?.rootId).toBe('parent-root');
       expect(child?.parentId).toBe('parent-span');
+    });
+  });
+
+  describe('cross-trail tracing', () => {
+    test('single ctx.cross() produces a child trail record under the parent trail', async () => {
+      const crossed = trail('trace.cross.single.child', {
+        blaze: () => Result.ok({ ok: true }),
+        input: emptyIO,
+        output: z.object({ ok: z.boolean() }),
+        visibility: 'internal',
+      });
+      const parent = trail('trace.cross.single.parent', {
+        blaze: async (_input, ctx) => {
+          const result = await requireCross(ctx)(crossed, {});
+          return result.match({
+            err: (error) => Result.err(error),
+            ok: (value) => Result.ok(value),
+          });
+        },
+        crosses: [crossed],
+        input: emptyIO,
+        output: z.object({ ok: z.boolean() }),
+      });
+      const app = topo('trace-cross-single-topo', { crossed, parent });
+
+      await executeTrail(parent, {}, { topo: app });
+
+      const parentRecord = trailRecord(sink.records, parent.id);
+      const childRecord = trailRecord(sink.records, crossed.id);
+      expect(childRecord.parentId).toBe(parentRecord.id);
+      expect(childRecord.rootId).toBe(parentRecord.id);
+      expect(childRecord.traceId).toBe(parentRecord.traceId);
+    });
+
+    test('batch ctx.cross([...]) produces sibling child trail records with overlapping timings', async () => {
+      const scenario = createConcurrentCrossBatchScenario();
+      const run = executeTrail(scenario.parent, {}, { topo: scenario.app });
+      await scenario.started;
+      scenario.release.resolve(SIGNAL);
+      await run;
+      expectSiblingCrossTrailOverlap(
+        sink.records,
+        scenario.parent.id,
+        scenario.left.id,
+        scenario.right.id
+      );
+    });
+
+    test('concurrency-limited batch crossings emit a second wave only after a slot frees up', async () => {
+      const scenario = createLimitedCrossBatchScenario();
+      const run = executeTrail(scenario.parent, {}, { topo: scenario.app });
+      await scenario.firstBatchStarted;
+      expect(scenario.startedIds).toEqual([scenario.slow.id, scenario.fast.id]);
+      scenario.releaseFirstBatch.resolve(SIGNAL);
+      await scenario.queuedStarted;
+      await run;
+
+      expectLimitedCrossTrailWaveShape(
+        sink.records,
+        scenario.parent.id,
+        scenario.slow.id,
+        scenario.fast.id,
+        scenario.queued.id
+      );
     });
   });
 

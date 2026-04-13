@@ -4,7 +4,8 @@ import type { TrailContext } from '@ontrails/core';
 import { resource, Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { ref, scenario } from '../scenario.js';
+import { errResultMatch, okResultMatch } from '../assertions.js';
+import { executeScenarioSteps, ref, scenario } from '../scenario.js';
 import type { ScenarioStep } from '../types.js';
 
 // ---------------------------------------------------------------------------
@@ -74,6 +75,28 @@ const app = topo('scenario-test-app', {
   queryTrail,
   showTrail,
 } as Record<string, unknown>);
+
+const readySignal = 'ready';
+type ReadySignal = typeof readySignal;
+
+const concurrentBatchOutput = z.object({ results: z.array(z.unknown()) });
+
+const createReadyController = () => Promise.withResolvers<ReadySignal>();
+
+const requireCrossFn = (
+  ctx: TrailContext
+): NonNullable<TrailContext['cross']> => {
+  expect(ctx.cross).toBeDefined();
+  return ctx.cross as NonNullable<TrailContext['cross']>;
+};
+
+const waitForReadyPair = async (
+  first: Promise<ReadySignal>,
+  second: Promise<ReadySignal>
+): Promise<void> => {
+  await first;
+  await second;
+};
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -162,9 +185,6 @@ describe('scenario()', () => {
   // Duplicate alias guard
   describe('duplicate alias guard', () => {
     test('throws on duplicate step alias', async () => {
-      // Import executeScenarioSteps to test the guard directly.
-      const { executeScenarioSteps } = await import('../scenario.js');
-
       const steps: ScenarioStep[] = [
         { as: 'dup', cross: createTrail, input: { name: 'A' } },
         { as: 'dup', cross: createTrail, input: { name: 'B' } },
@@ -174,5 +194,188 @@ describe('scenario()', () => {
         'duplicate step alias "dup"'
       );
     });
+  });
+});
+
+describe('executeScenarioSteps concurrent crossing support', () => {
+  test('matches concurrent fan-out arrays with ok result helpers', async () => {
+    const alphaTrail = trail('scenario.batch.alpha', {
+      blaze: () => Result.ok({ label: 'alpha' }),
+      input: z.object({}),
+      output: z.object({ label: z.string() }),
+      visibility: 'internal',
+    });
+    const betaTrail = trail('scenario.batch.beta', {
+      blaze: () => Result.ok({ label: 'beta' }),
+      input: z.object({}),
+      output: z.object({ label: z.string() }),
+      visibility: 'internal',
+    });
+    const fanoutTrail = trail('scenario.batch.fanout', {
+      blaze: async (_input, ctx) => {
+        const results = await requireCrossFn(ctx)([
+          [alphaTrail, {}],
+          [betaTrail, {}],
+        ] as const);
+        return Result.ok({ results });
+      },
+      crosses: [alphaTrail, betaTrail],
+      input: z.object({}),
+      output: concurrentBatchOutput,
+    });
+    const fanoutApp = topo('scenario-concurrent-fanout-app', {
+      alphaTrail,
+      betaTrail,
+      fanoutTrail,
+    } as Record<string, unknown>);
+
+    await executeScenarioSteps(fanoutApp, [
+      {
+        cross: fanoutTrail,
+        expectedMatch: {
+          results: [
+            okResultMatch({ label: 'alpha' }),
+            okResultMatch({ label: 'beta' }),
+          ],
+        },
+        input: {},
+      },
+    ]);
+  });
+
+  test('matches mixed ok/err batch results for partial failure scenarios', async () => {
+    const successTrail = trail('scenario.batch.partial.success', {
+      blaze: () => Result.ok({ label: 'success' }),
+      input: z.object({}),
+      output: z.object({ label: z.string() }),
+      visibility: 'internal',
+    });
+    const failureTrail = trail('scenario.batch.partial.failure', {
+      blaze: () => Result.err(new Error('branch failure')),
+      input: z.object({}),
+      output: z.object({}),
+      visibility: 'internal',
+    });
+    const partialTrail = trail('scenario.batch.partial.root', {
+      blaze: async (_input, ctx) => {
+        const results = await requireCrossFn(ctx)([
+          [successTrail, {}],
+          [failureTrail, {}],
+        ] as const);
+        return Result.ok({ results });
+      },
+      crosses: [successTrail, failureTrail],
+      input: z.object({}),
+      output: concurrentBatchOutput,
+    });
+    const partialApp = topo('scenario-partial-failure-app', {
+      failureTrail,
+      partialTrail,
+      successTrail,
+    } as Record<string, unknown>);
+
+    await executeScenarioSteps(partialApp, [
+      {
+        cross: partialTrail,
+        expectedMatch: {
+          results: [
+            okResultMatch({ label: 'success' }),
+            errResultMatch({ message: 'branch failure' }),
+          ],
+        },
+        input: {},
+      },
+    ]);
+  });
+
+  test('respects concurrency limits for scenario ctx.cross batch flows', async () => {
+    const slowStarted = createReadyController();
+    const fastStarted = createReadyController();
+    const releaseFirstBatch = createReadyController();
+    const startedIds: string[] = [];
+    const slowTrail = trail('scenario.batch.limited.slow', {
+      blaze: async () => {
+        startedIds.push('slow');
+        slowStarted.resolve(readySignal);
+        await releaseFirstBatch.promise;
+        await Bun.sleep(20);
+        return Result.ok({ id: 'slow' });
+      },
+      input: z.object({}),
+      output: z.object({ id: z.string() }),
+      visibility: 'internal',
+    });
+    const fastTrail = trail('scenario.batch.limited.fast', {
+      blaze: async () => {
+        startedIds.push('fast');
+        fastStarted.resolve(readySignal);
+        await releaseFirstBatch.promise;
+        await Bun.sleep(1);
+        return Result.ok({ id: 'fast' });
+      },
+      input: z.object({}),
+      output: z.object({ id: z.string() }),
+      visibility: 'internal',
+    });
+    const queuedTrail = trail('scenario.batch.limited.queued', {
+      blaze: () => {
+        startedIds.push('queued');
+        return Result.ok({ id: 'queued' });
+      },
+      input: z.object({}),
+      output: z.object({ id: z.string() }),
+      visibility: 'internal',
+    });
+    const limitedTrail = trail('scenario.batch.limited.root', {
+      blaze: async (_input, ctx) => {
+        const run = requireCrossFn(ctx)(
+          [
+            [slowTrail, {}],
+            [fastTrail, {}],
+            [queuedTrail, {}],
+          ] as const,
+          { concurrency: 2 }
+        );
+        await waitForReadyPair(slowStarted.promise, fastStarted.promise);
+        const startedBeforeRelease = [...startedIds];
+        releaseFirstBatch.resolve(readySignal);
+        const results = await run;
+        return Result.ok({
+          startedBeforeRelease,
+          startedOverall: [...startedIds],
+          successIds: results.flatMap((result) =>
+            result.match({
+              err: () => [] as string[],
+              ok: (value) => [value.id],
+            })
+          ),
+        });
+      },
+      crosses: [slowTrail, fastTrail, queuedTrail],
+      input: z.object({}),
+      output: z.object({
+        startedBeforeRelease: z.array(z.string()),
+        startedOverall: z.array(z.string()),
+        successIds: z.array(z.string()),
+      }),
+    });
+    const limitedApp = topo('scenario-concurrency-limited-app', {
+      fastTrail,
+      limitedTrail,
+      queuedTrail,
+      slowTrail,
+    } as Record<string, unknown>);
+
+    await executeScenarioSteps(limitedApp, [
+      {
+        cross: limitedTrail,
+        expected: {
+          startedBeforeRelease: ['slow', 'fast'],
+          startedOverall: ['slow', 'fast', 'queued'],
+          successIds: ['slow', 'fast', 'queued'],
+        },
+        input: {},
+      },
+    ]);
   });
 });

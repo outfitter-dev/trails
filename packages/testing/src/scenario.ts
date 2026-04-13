@@ -10,6 +10,7 @@ import { describe, test } from 'bun:test';
 
 import type {
   AnyTrail,
+  CrossBatchOptions,
   CrossFn,
   ResourceOverrideMap,
   Result,
@@ -21,10 +22,18 @@ import {
   InternalError,
   Result as R,
 } from '@ontrails/core';
+import {
+  claimNextCrossBatchIndex,
+  createCrossBatchValidationResults,
+  normalizeCrossBatchConcurrency,
+} from '@ontrails/core/internal/cross-batch';
 
 import { assertPartialMatch, expectOk } from './assertions.js';
 import { createTestContext, resolveMockResources } from './context.js';
 import type { RefToken, ScenarioStep } from './types.js';
+
+type ScenarioCrossTarget = string | { readonly id: string };
+type ScenarioCrossCall = readonly [ScenarioCrossTarget, unknown];
 
 // ---------------------------------------------------------------------------
 // ref() — cross-step reference marker
@@ -169,6 +178,57 @@ const assertStepExpectations = async (
   }
 };
 
+const executeUnlimitedCrossBatch = async (
+  calls: readonly ScenarioCrossCall[],
+  runCall: (
+    call: ScenarioCrossCall,
+    branchIndex: number
+  ) => Promise<Result<unknown, Error>>
+): Promise<Result<unknown, Error>[]> =>
+  await Promise.all(
+    calls.map((call, branchIndex) => runCall(call, branchIndex))
+  );
+
+const executeLimitedCrossBatch = async (
+  calls: readonly ScenarioCrossCall[],
+  runCall: (
+    call: ScenarioCrossCall,
+    branchIndex: number
+  ) => Promise<Result<unknown, Error>>,
+  limit: number
+): Promise<Result<unknown, Error>[]> => {
+  const results = Array.from<Result<unknown, Error>>({ length: calls.length });
+  const nextIndex = { value: 0 };
+
+  const runWorker = async () => {
+    while (true) {
+      const branchIndex = claimNextCrossBatchIndex(nextIndex, calls);
+      if (branchIndex === undefined) {
+        return;
+      }
+
+      const call = calls[branchIndex];
+      if (call === undefined) {
+        // Defensive: `claimNextCrossBatchIndex` only returns indices within
+        // bounds, so this slot should always be populated. If it ever isn't,
+        // surface a clear InternalError in place of the missing slot and keep
+        // the worker loop running so sibling branches still get processed.
+        results[branchIndex] = R.err(
+          new InternalError(
+            `unreachable: concurrent cross batch call missing at index ${branchIndex}`
+          )
+        );
+        continue;
+      }
+
+      results[branchIndex] = await runCall(call, branchIndex);
+    }
+  };
+
+  await Promise.all(Array.from({ length: limit }, runWorker));
+  return results;
+};
+
 /**
  * Build a cross function that resolves trails from the topo and executes
  * them through the standard pipeline. Mirrors the pattern in crosses.ts
@@ -179,7 +239,7 @@ const createScenarioCross = (
   resources?: ResourceOverrideMap
 ): CrossFn => {
   const invokeCross = async (
-    idOrTrail: string | { readonly id: string },
+    idOrTrail: ScenarioCrossTarget,
     input: unknown,
     self: CrossFn
   ) => {
@@ -197,24 +257,46 @@ const createScenarioCross = (
     });
   };
 
+  const executeCrossBatch = async (
+    calls: readonly ScenarioCrossCall[],
+    self: CrossFn,
+    options?: CrossBatchOptions
+  ): Promise<Result<unknown, Error>[]> => {
+    if (calls.length === 0) {
+      return [];
+    }
+
+    const concurrency = normalizeCrossBatchConcurrency(options);
+    if (concurrency.isErr()) {
+      return createCrossBatchValidationResults(calls, concurrency.error);
+    }
+
+    const runCall = async (
+      [target, batchInput]: ScenarioCrossCall,
+      _branchIndex: number
+    ) => await invokeCross(target, batchInput, self);
+
+    const limit = concurrency.value ?? calls.length;
+    return limit >= calls.length
+      ? await executeUnlimitedCrossBatch(calls, runCall)
+      : await executeLimitedCrossBatch(calls, runCall, limit);
+  };
+
   const cross = async function cross(
-    idOrTrail:
-      | string
-      | { readonly id: string }
-      | readonly (readonly [string | { readonly id: string }, unknown])[],
-    input?: unknown
+    idOrTrail: ScenarioCrossTarget | readonly ScenarioCrossCall[],
+    inputOrOptions?: unknown
   ) {
     if (Array.isArray(idOrTrail)) {
-      return await Promise.all(
-        idOrTrail.map(([target, batchInput]) =>
-          invokeCross(target, batchInput, cross as CrossFn)
-        )
+      return await executeCrossBatch(
+        idOrTrail,
+        cross as CrossFn,
+        inputOrOptions as CrossBatchOptions | undefined
       );
     }
 
     return await invokeCross(
-      idOrTrail as string | { readonly id: string },
-      input,
+      idOrTrail as ScenarioCrossTarget,
+      inputOrOptions,
       cross as CrossFn
     );
   } as CrossFn;

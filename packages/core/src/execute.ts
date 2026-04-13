@@ -16,6 +16,7 @@ import type { Topo } from './topo.js';
 
 import { createFireFn } from './fire.js';
 import type {
+  CrossBatchOptions,
   CrossFn,
   Implementation,
   TraceFn,
@@ -31,6 +32,11 @@ import {
   NotFoundError,
   TrailsError,
 } from './errors.js';
+import {
+  claimNextCrossBatchIndex,
+  createCrossBatchValidationResults,
+  normalizeCrossBatchConcurrency,
+} from './internal/cross-batch.js';
 import {
   TRACE_CONTEXT_KEY,
   completeRecord,
@@ -441,6 +447,114 @@ const executeCrossTarget = async (
   );
 };
 
+type CrossBatchCall = readonly [AnyTrail | string, unknown];
+
+const executeConcurrentCrossBatchCall = async (
+  call: CrossBatchCall,
+  branchIndex: number,
+  ctx: TrailContext,
+  topo: Topo | undefined,
+  forwarded: Omit<ExecuteTrailOptions, 'createContext' | 'validationSchema'>
+): Promise<Result<unknown, Error>> => {
+  const [trailOrId, batchInput] = call;
+  const target = resolveCrossTarget(trailOrId, topo);
+  if (target.isErr()) {
+    return target;
+  }
+
+  return await executeResolvedCrossTarget(
+    target.value,
+    batchInput,
+    buildConcurrentBranchContext(ctx, target.value, topo, branchIndex),
+    topo,
+    forwarded
+  );
+};
+
+const executeUnlimitedCrossBatch = async (
+  calls: readonly CrossBatchCall[],
+  ctx: TrailContext,
+  topo: Topo | undefined,
+  forwarded: Omit<ExecuteTrailOptions, 'createContext' | 'validationSchema'>
+): Promise<Result<unknown, Error>[]> =>
+  await Promise.all(
+    calls.map((call, branchIndex) =>
+      executeConcurrentCrossBatchCall(call, branchIndex, ctx, topo, forwarded)
+    )
+  );
+
+const createCrossBatchResults = (
+  calls: readonly CrossBatchCall[]
+): Result<unknown, Error>[] =>
+  Array.from<Result<unknown, Error>>({ length: calls.length });
+
+const executeLimitedCrossBatch = async (
+  calls: readonly CrossBatchCall[],
+  ctx: TrailContext,
+  topo: Topo | undefined,
+  forwarded: Omit<ExecuteTrailOptions, 'createContext' | 'validationSchema'>,
+  limit: number
+): Promise<Result<unknown, Error>[]> => {
+  const results = createCrossBatchResults(calls);
+  const nextIndex = { value: 0 };
+
+  const runWorker = async () => {
+    while (true) {
+      const branchIndex = claimNextCrossBatchIndex(nextIndex, calls);
+      if (branchIndex === undefined) {
+        return;
+      }
+
+      const call = calls[branchIndex];
+      if (call === undefined) {
+        // Defensive: `claimNextCrossBatchIndex` only returns indices within
+        // bounds, so this slot should always be populated. If it ever isn't,
+        // surface a clear InternalError in place of the missing slot and keep
+        // the worker loop running so sibling branches still get processed.
+        results[branchIndex] = Result.err(
+          new InternalError(
+            `unreachable: concurrent cross batch call missing at index ${branchIndex}`
+          )
+        );
+        continue;
+      }
+
+      results[branchIndex] = await executeConcurrentCrossBatchCall(
+        call,
+        branchIndex,
+        ctx,
+        topo,
+        forwarded
+      );
+    }
+  };
+
+  await Promise.all(Array.from({ length: limit }, runWorker));
+  return results;
+};
+
+const executeCrossBatch = async (
+  calls: readonly CrossBatchCall[],
+  ctx: TrailContext,
+  topo: Topo | undefined,
+  forwarded: Omit<ExecuteTrailOptions, 'createContext' | 'validationSchema'>,
+  batchOptions?: CrossBatchOptions
+): Promise<Result<unknown, Error>[]> => {
+  if (calls.length === 0) {
+    return [];
+  }
+
+  const concurrency = normalizeCrossBatchConcurrency(batchOptions);
+  if (concurrency.isErr()) {
+    return createCrossBatchValidationResults(calls, concurrency.error);
+  }
+
+  const limit = concurrency.value ?? calls.length;
+  return limit >= calls.length
+    ? await executeUnlimitedCrossBatch(calls, ctx, topo, forwarded)
+    : await executeLimitedCrossBatch(calls, ctx, topo, forwarded, limit);
+};
+
 const bindCrossToCtx = (
   ctx: TrailContext,
   topo: Topo | undefined,
@@ -460,30 +574,21 @@ const bindCrossToCtx = (
       | AnyTrail
       | string
       | readonly (readonly [AnyTrail | string, unknown])[],
-    input?: unknown
+    inputOrOptions?: CrossBatchOptions | unknown
   ) => {
     if (Array.isArray(trailOrCalls)) {
-      return await Promise.all(
-        trailOrCalls.map(async ([trailOrId, batchInput], branchIndex) => {
-          const target = resolveCrossTarget(trailOrId, topo);
-          if (target.isErr()) {
-            return target;
-          }
-
-          return await executeResolvedCrossTarget(
-            target.value,
-            batchInput,
-            buildConcurrentBranchContext(ctx, target.value, topo, branchIndex),
-            topo,
-            forwarded
-          );
-        })
+      return await executeCrossBatch(
+        trailOrCalls,
+        ctx,
+        topo,
+        forwarded,
+        inputOrOptions as CrossBatchOptions | undefined
       );
     }
 
     return await executeCrossTarget(
       trailOrCalls as AnyTrail | string,
-      input,
+      inputOrOptions,
       ctx,
       topo,
       forwarded
