@@ -146,6 +146,12 @@ export class RetryExhaustedError<
   readonly retryable = false as const;
   declare readonly cause: TErr;
 
+  /** Number of recovery attempts made before exhaustion. */
+  readonly attempts: number;
+
+  /** Name of the detour whose recovery was exhausted. */
+  readonly detour: string;
+
   constructor(
     wrapped: TErr,
     metadata: { readonly attempts: number; readonly detour: string }
@@ -155,6 +161,8 @@ export class RetryExhaustedError<
       { cause: wrapped }
     );
     this.cause = wrapped;
+    this.attempts = metadata.attempts;
+    this.detour = metadata.detour;
     // Dynamic — inherited from wrapped error at construction time
     (this as { category: ErrorCategory }).category = wrapped.category;
   }
