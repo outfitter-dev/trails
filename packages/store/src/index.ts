@@ -4,6 +4,7 @@ export {
   insertSchemaOf,
   store,
   updateSchemaOf,
+  versionFieldName,
 } from './store.js';
 export type {
   AnyStoreDefinition,
@@ -38,6 +39,7 @@ export type {
   StoreOptions,
   StoreSearchDefinition,
   StoreTable,
+  StoreTableSignals,
   StoreTableAccessor,
   StoreTableConnection,
   StoreTableInput,

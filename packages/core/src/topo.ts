@@ -170,6 +170,15 @@ const registerSignal = (
   );
 };
 
+const registerResourceSignals = (
+  resource: AnyResource,
+  signals: Map<string, AnySignal>
+): void => {
+  for (const derived of resource.signals ?? []) {
+    registerSignal(derived, signals);
+  }
+};
+
 const registerTrail = (
   trail: AnyTrail,
   trails: Map<string, AnyTrail>
@@ -243,6 +252,10 @@ const registerModuleValue = (
 ): void => {
   if (isResource(value) || isRegistrable(value)) {
     register(value, contours, trails, signals, resources);
+  }
+
+  if (isResource(value)) {
+    registerResourceSignals(value, signals);
   }
 
   if (

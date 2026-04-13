@@ -4,12 +4,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   AlreadyExistsError,
+  ConflictError,
   InternalError,
   Result,
   ValidationError,
   resource,
 } from '@ontrails/core';
-import { store as defineStore } from '@ontrails/store';
+import { store as defineStore, versionFieldName } from '@ontrails/store';
 import type {
   AnyStoreDefinition,
   AnyStoreTable,
@@ -20,15 +21,17 @@ import type {
   StoreAccessMode,
   StoreFieldKey,
   StoreIdentifierOf,
+  StoreTableAccessor,
   StoreTableConnection,
   StoreTablesInput,
   UpsertOf,
   UpdateOf,
 } from '@ontrails/store';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import type { AnySQLiteColumn, AnySQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { z } from 'zod';
+import type { TrailContext } from '@ontrails/core';
 
 import {
   createSqliteSchemaStatements,
@@ -103,6 +106,7 @@ const mapDatabaseError = (tableName: string, error: unknown): Error => {
   if (
     error instanceof ValidationError ||
     error instanceof AlreadyExistsError ||
+    error instanceof ConflictError ||
     error instanceof InternalError
   ) {
     return error;
@@ -180,6 +184,17 @@ const TIMESTAMP_FIELD_NAMES = new Set([
 const ID_FIELD_SUFFIX_RE = /[Ii]d$/;
 
 /**
+ * Returns true when the given field on `table` is the framework-managed
+ * version column. Used by insert and upsert paths to gate behavior that
+ * only applies to versioned tables, preventing silent data loss when a
+ * non-versioned table happens to have a user field named `version`.
+ */
+const isVersionManagedField = <TTable extends AnyStoreTable>(
+  table: TTable,
+  fieldName: string
+): boolean => table.versioned && fieldName === versionFieldName;
+
+/**
  * Synthesize a value for a generated field during insert.
  *
  * The connector recognizes these conventions for generated fields:
@@ -210,13 +225,22 @@ const generatedTextValue = (tableName: string, fieldName: string): unknown => {
   );
 };
 
-const generatedValueForInsert = <TTable extends AnyStoreTable>(
-  table: TTable,
-  field: StoreFieldKey<TTable['schema']>
-): unknown => {
-  const fieldName = field as string;
-  const kind = baseFieldKind(table, field);
+const generatedVersionValue = (tableName: string, kind: string): number => {
+  if (kind === 'integer') {
+    return 1;
+  }
 
+  throw new ValidationError(
+    `Store table "${tableName}" has a versioned "${versionFieldName}" field of type "${kind}", but the framework requires it to be an integer. Ensure the schema uses z.number().int() for the version field.`
+  );
+};
+
+const generatedFallbackValue = <TTable extends AnyStoreTable>(
+  table: TTable,
+  field: StoreFieldKey<TTable['schema']>,
+  fieldName: string,
+  kind: string
+): unknown => {
   if (field === table.primaryKey && kind === 'integer') {
     return undefined;
   }
@@ -226,9 +250,24 @@ const generatedValueForInsert = <TTable extends AnyStoreTable>(
   if (kind === 'text') {
     return generatedTextValue(table.name, fieldName);
   }
+
   throw new ValidationError(
     `Store table "${table.name}" has a generated field "${fieldName}" of unrecognized type "${kind}". Only "integer" (primary key), "text", and timestamp fields are supported as generated fields. Supply a value or add a Zod default.`
   );
+};
+
+const generatedValueForInsert = <TTable extends AnyStoreTable>(
+  table: TTable,
+  field: StoreFieldKey<TTable['schema']>
+): unknown => {
+  const fieldName = field as string;
+  const kind = baseFieldKind(table, field);
+
+  if (isVersionManagedField(table, fieldName)) {
+    return generatedVersionValue(table.name, kind);
+  }
+
+  return generatedFallbackValue(table, field, fieldName, kind);
 };
 
 const materializeGeneratedFields = <TTable extends AnyStoreTable>(
@@ -297,6 +336,129 @@ const applyGeneratedUpdateFields = <TTable extends AnyStoreTable>(
       input[updatedAtKey] ??
       (kind === 'date' ? new Date() : new Date().toISOString()),
   });
+};
+
+const versionFromEntity = <TTable extends AnyStoreTable>(
+  table: TTable,
+  entity: EntityOf<TTable>
+): number => {
+  const version = (entity as Record<string, unknown>)[versionFieldName];
+  if (typeof version === 'number' && Number.isInteger(version) && version > 0) {
+    return version;
+  }
+
+  throw new InternalError(
+    `Drizzle store for table "${table.name}" returned a versioned entity without a valid integer "${versionFieldName}" field.`
+  );
+};
+
+const versionConflictError = (
+  tableName: string,
+  id: string | number,
+  expectedVersion: number,
+  actualVersion: number | null
+): ConflictError =>
+  new ConflictError(
+    actualVersion === null
+      ? `Store table "${tableName}" expected version ${expectedVersion} for "${String(id)}" but found no existing row.`
+      : `Store table "${tableName}" expected version ${expectedVersion} for "${String(id)}" but found ${actualVersion}.`
+  );
+
+const expectedVersionFromInput = (
+  input: Record<string, unknown>
+): number | undefined => {
+  const candidate = input[versionFieldName];
+  return typeof candidate === 'number' &&
+    Number.isInteger(candidate) &&
+    candidate > 0
+    ? candidate
+    : undefined;
+};
+
+const requireUpdateFields = (
+  tableName: string,
+  input: Record<string, unknown>
+): Record<string, unknown> => {
+  const userFields = normalizeWriteInput(input);
+  if (Object.keys(userFields).length > 0) {
+    return userFields;
+  }
+
+  throw new ValidationError(
+    `Store table "${tableName}" update requires at least one field to set.`
+  );
+};
+
+const assertExpectedVersionMatch = <TTable extends AnyStoreTable>(
+  table: TTable,
+  id: string | number,
+  existing: EntityOf<TTable>,
+  expectedVersion?: number
+): void => {
+  if (!table.versioned || expectedVersion === undefined) {
+    return;
+  }
+
+  const currentVersion = versionFromEntity(table, existing);
+  if (currentVersion !== expectedVersion) {
+    throw versionConflictError(table.name, id, expectedVersion, currentVersion);
+  }
+};
+
+const resolveUpsertWithoutPatch = <
+  TTable extends AnyStoreTable,
+  TIdentifier extends StoreIdentifierOf<TTable>,
+>(
+  table: TTable,
+  identifier: TIdentifier,
+  input: Record<string, unknown>,
+  expectedVersion: number | undefined,
+  readEntity: (id: TIdentifier) => EntityOf<TTable> | null,
+  insertEntity: (input: Record<string, unknown>) => EntityOf<TTable>
+): EntityOf<TTable> => {
+  const existing = readEntity(identifier);
+  if (existing === null) {
+    if (expectedVersion !== undefined) {
+      throw versionConflictError(
+        table.name,
+        identifier as string | number,
+        expectedVersion,
+        null
+      );
+    }
+
+    return insertEntity(input);
+  }
+
+  assertExpectedVersionMatch(
+    table,
+    identifier as string | number,
+    existing,
+    expectedVersion
+  );
+  return existing;
+};
+
+const resolveUpsertAfterMissingUpdate = <
+  TTable extends AnyStoreTable,
+  TIdentifier extends StoreIdentifierOf<TTable>,
+>(
+  table: TTable,
+  identifier: TIdentifier,
+  input: Record<string, unknown>,
+  expectedVersion: number | undefined,
+  insertEntity: (input: Record<string, unknown>) => EntityOf<TTable>
+): EntityOf<TTable> => {
+  if (expectedVersion !== undefined) {
+    throw versionConflictError(
+      table.name,
+      identifier as string | number,
+      expectedVersion,
+      null
+    );
+  }
+
+  return insertEntity(input);
 };
 
 interface VisitFrame {
@@ -519,33 +681,57 @@ const createWritableAccessor = <
     return cloneValue(parseEntity(definitionTable, row)) as EntityOf<Table>;
   };
 
+  const versionColumn = definitionTable.versioned
+    ? primaryKeyColumn(drizzleTable, versionFieldName)
+    : undefined;
+
+  // oxlint-disable-next-line max-statements -- atomic UPDATE ... WHERE with version guard and conflict diagnosis reads more clearly as one function
   const updateEntity = (
     id: Identifier,
-    input: Record<string, unknown>
+    input: Record<string, unknown>,
+    expectedVersion?: number
   ): EntityOf<Table> | null => {
-    const userFields = normalizeWriteInput(input);
-    if (Object.keys(userFields).length === 0) {
-      throw new ValidationError(
-        `Store table "${definitionTable.name}" update requires at least one field to set.`
-      );
-    }
-
-    const fields = applyGeneratedUpdateFields(definitionTable, userFields);
+    const base = applyGeneratedUpdateFields(
+      definitionTable,
+      requireUpdateFields(definitionTable.name, input)
+    );
+    // Atomic increment via SQL expression — avoids the read-then-write race
+    // on optimistic-concurrency updates.
+    const fields =
+      definitionTable.versioned && versionColumn !== undefined
+        ? { ...base, [versionFieldName]: sql`${versionColumn} + 1` }
+        : base;
+    const idColumn = primaryKeyColumn(drizzleTable, definitionTable.primaryKey);
+    const idCondition = eq(idColumn, id as never);
+    const condition =
+      definitionTable.versioned &&
+      versionColumn !== undefined &&
+      expectedVersion !== undefined
+        ? and(idCondition, eq(versionColumn, expectedVersion as never))
+        : idCondition;
     const row = db
       .update(drizzleTable)
       .set(fields as never)
-      .where(
-        eq(
-          primaryKeyColumn(drizzleTable, definitionTable.primaryKey),
-          id as never
-        )
-      )
+      .where(condition)
       .returning()
-      .get();
-
-    return row === undefined
-      ? null
-      : (cloneValue(parseEntity(definitionTable, row)) as EntityOf<Table>);
+      .get() as Record<string, unknown> | undefined;
+    if (row !== undefined) {
+      return cloneValue(parseEntity(definitionTable, row)) as EntityOf<Table>;
+    }
+    if (
+      !definitionTable.versioned ||
+      versionColumn === undefined ||
+      expectedVersion === undefined
+    ) {
+      return null;
+    }
+    const existing = readEntity(id);
+    throw versionConflictError(
+      definitionTable.name,
+      id as string | number,
+      expectedVersion,
+      existing === null ? null : versionFromEntity(definitionTable, existing)
+    );
   };
 
   const patchFromUpsert = (
@@ -554,7 +740,9 @@ const createWritableAccessor = <
     Object.fromEntries(
       Object.entries(input).filter(
         ([field, value]) =>
-          field !== definitionTable.identity && value !== undefined
+          field !== definitionTable.identity &&
+          !isVersionManagedField(definitionTable, field) &&
+          value !== undefined
       )
     );
 
@@ -562,17 +750,42 @@ const createWritableAccessor = <
     const identifier = input[definitionTable.identity] as
       | Identifier
       | undefined;
+    const expectedVersion = definitionTable.versioned
+      ? expectedVersionFromInput(input)
+      : undefined;
 
     if (identifier === undefined) {
+      if (expectedVersion !== undefined) {
+        throw new ValidationError(
+          `Store table "${definitionTable.name}" cannot accept an expected version without an identity during upsert.`
+        );
+      }
+
       return insertEntity(input);
     }
 
     const patch = patchFromUpsert(input);
     if (Object.keys(patch).length === 0) {
-      return readEntity(identifier) ?? insertEntity(input);
+      return resolveUpsertWithoutPatch(
+        definitionTable,
+        identifier,
+        input,
+        expectedVersion,
+        readEntity,
+        insertEntity
+      );
     }
 
-    return updateEntity(identifier, patch) ?? insertEntity(input);
+    return (
+      updateEntity(identifier, patch, expectedVersion) ??
+      resolveUpsertAfterMissingUpdate(
+        definitionTable,
+        identifier,
+        input,
+        expectedVersion,
+        insertEntity
+      )
+    );
   };
 
   return {
@@ -821,6 +1034,162 @@ const createReadonlyMockConnection = <TStore extends AnyStoreDefinition>(
   }
 };
 
+type BoundFireFn = NonNullable<TrailContext['fire']>;
+
+/**
+ * Best-effort signal emission after a successful DB write.
+ *
+ * Signal errors are caught and logged rather than re-thrown so that a
+ * listener failure does not mask a successful database mutation. The
+ * caller already holds the write result; surfacing a signal error here
+ * would discard it and confuse error handling upstream.
+ */
+const fireDerivedSignal = async <TTable extends AnyStoreTable>(
+  fire: BoundFireFn,
+  signalId: string,
+  entity: EntityOf<TTable>
+): Promise<void> => {
+  try {
+    const fired = await fire(signalId, entity);
+    if (fired.isErr()) {
+      console.warn(
+        `[drizzle] signal "${signalId}" emission failed:`,
+        fired.error
+      );
+    }
+  } catch (error) {
+    console.warn(`[drizzle] signal "${signalId}" emission threw:`, error);
+  }
+};
+
+const inputIdentity = <TTable extends AnyStoreTable>(
+  table: TTable,
+  input: UpsertOf<TTable>
+): StoreIdentifierOf<TTable> | undefined =>
+  input[table.identity as keyof UpsertOf<TTable> & string] as
+    | StoreIdentifierOf<TTable>
+    | undefined;
+
+const changedEntity = <TTable extends AnyStoreTable>(
+  previous: EntityOf<TTable> | null,
+  next: EntityOf<TTable> | null
+): next is EntityOf<TTable> =>
+  previous !== null && next !== null && !Bun.deepEquals(previous, next);
+
+const bindWritableAccessorSignals = <TTable extends AnyStoreTable>(
+  table: TTable,
+  accessor: StoreTableAccessor<TTable>,
+  fire: BoundFireFn
+): StoreTableAccessor<TTable> =>
+  Object.freeze({
+    ...accessor,
+    async insert(input: InsertOf<TTable>) {
+      const created = await accessor.insert(input);
+      await fireDerivedSignal(fire, table.signals.created.id, created);
+      return created;
+    },
+    async remove(id: StoreIdentifierOf<TTable>) {
+      // Snapshot taken before delete. May be stale under concurrent writes
+      // since StoreAccessor.remove returns `{ deleted: boolean }` without a
+      // post-delete returning clause. Acceptable for signal consumers that
+      // tolerate eventual consistency; revisit if strict ordering is needed.
+      const existing = await accessor.get(id);
+      const removed = await accessor.remove(id);
+      if (removed.deleted && existing !== null) {
+        await fireDerivedSignal(fire, table.signals.removed.id, existing);
+      }
+      return removed;
+    },
+    async update(id: StoreIdentifierOf<TTable>, input: UpdateOf<TTable>) {
+      if (table.versioned) {
+        // Versioned tables auto-increment the version column on every write,
+        // so changedEntity always detects a diff. Skip the redundant pre-read
+        // and fire unconditionally on successful update.
+        const updated = await accessor.update(id, input);
+        if (updated !== null) {
+          await fireDerivedSignal(fire, table.signals.updated.id, updated);
+        }
+        return updated;
+      }
+      const existing = await accessor.get(id);
+      const updated = await accessor.update(id, input);
+      if (changedEntity(existing, updated)) {
+        await fireDerivedSignal(fire, table.signals.updated.id, updated);
+      }
+      return updated;
+    },
+    async upsert(input: UpsertOf<TTable>) {
+      const existingId = inputIdentity(table, input);
+      // NOTE: pre-read is not transactional with the write below. Under
+      // concurrent deletes, `existing` may be non-null while `accessor.upsert`
+      // actually inserts. `created` vs `updated` signal discrimination is
+      // best-effort — matches the same caveat documented on `remove`.
+      const existing =
+        existingId === undefined ? null : await accessor.get(existingId);
+      const written = await accessor.upsert(input);
+
+      if (existing === null) {
+        await fireDerivedSignal(fire, table.signals.created.id, written);
+        return written;
+      }
+
+      if (changedEntity(existing, written)) {
+        await fireDerivedSignal(fire, table.signals.updated.id, written);
+      }
+      return written;
+    },
+  });
+
+const bindWritableConnectionSignals = <TStore extends AnyStoreDefinition>(
+  definition: TStore,
+  connection: DrizzleStoreConnection<TStore>,
+  fire: BoundFireFn
+): DrizzleStoreConnection<TStore> => {
+  const bound = {
+    query: connection.query,
+  } as DrizzleStoreConnection<TStore>;
+
+  for (const tableName of storeTableNames(definition)) {
+    const table = definition.tables[tableName];
+    const accessor = connection[tableName];
+    if (table === undefined || accessor === undefined) {
+      continue;
+    }
+
+    Object.defineProperty(bound, tableName, {
+      enumerable: true,
+      value: bindWritableAccessorSignals(
+        table,
+        accessor as StoreTableAccessor<typeof table>,
+        fire
+      ),
+    });
+  }
+
+  return Object.freeze(bound);
+};
+
+const bindResourceConnection = <
+  TStore extends AnyStoreDefinition,
+  TConnection,
+  TAccess extends StoreAccessMode,
+>(
+  access: TAccess,
+  definition: TStore,
+  connection: TConnection,
+  fire: TrailContext['fire']
+): TConnection => {
+  if (access !== 'readwrite' || fire === undefined) {
+    return connection;
+  }
+
+  return bindWritableConnectionSignals(
+    definition,
+    connection as DrizzleStoreConnection<TStore>,
+    fire
+  ) as TConnection;
+};
+
 const buildResourceShape = <
   TStore extends AnyStoreDefinition,
   TConnection,
@@ -834,6 +1203,10 @@ const buildResourceShape = <
   Object.freeze({
     ...value,
     access,
+    from(ctx: TrailContext) {
+      return bindResourceConnection(access, store, value.from(ctx), ctx.fire);
+    },
+    ...(access === 'readwrite' ? { signals: store.signals } : {}),
     store,
     tables,
   });

@@ -49,6 +49,30 @@ const createStoreDefinition = () =>
     },
   });
 
+const expectGistSignals = (
+  table: ReturnType<typeof createStoreDefinition>['tables']['gists']
+) => {
+  expect(table.signals.created.id).toBe('gists.created');
+  expect(table.signals.updated.id).toBe('gists.updated');
+  expect(table.signals.removed.id).toBe('gists.removed');
+  expect(
+    table.signals.created.payload.parse({
+      createdAt: '2026-04-03T12:00:00.000Z',
+      id: 'gist-1',
+      ownerId: 'user-1',
+      updatedAt: '2026-04-03T12:00:00.000Z',
+    })
+  ).toEqual({
+    createdAt: '2026-04-03T12:00:00.000Z',
+    description: null,
+    id: 'gist-1',
+    isPublic: true,
+    ownerId: 'user-1',
+    tags: [],
+    updatedAt: '2026-04-03T12:00:00.000Z',
+  });
+};
+
 const expectNormalizedGistTable = (
   table: ReturnType<typeof createStoreDefinition>['tables']['gists']
 ) => {
@@ -60,6 +84,7 @@ const expectNormalizedGistTable = (
   expect(table.indexes).toEqual(['ownerId']);
   expect(table.references).toEqual({ ownerId: 'users' });
   expect(table.search).toEqual({ fts: true });
+  expectGistSignals(table);
 };
 
 const expectDerivedSchemas = (
@@ -99,6 +124,20 @@ const createTypeTestStore = () =>
     },
   });
 
+const createVersionedStoreDefinition = () =>
+  store({
+    gists: {
+      generated: ['id', 'createdAt', 'updatedAt'],
+      identity: 'id',
+      schema: gistSchema,
+      versioned: true,
+    },
+  });
+
+type VersionedGistTable = ReturnType<
+  typeof createVersionedStoreDefinition
+>['tables']['gists'];
+
 const createGistEntity = <
   TTable extends Parameters<typeof entitySchemaOf>[0],
 >() =>
@@ -120,11 +159,64 @@ const requireFixture = <T>(fixture: T | undefined): T => {
   return fixture;
 };
 
+const createVersionedGistTypeSamples = (): {
+  readonly entity: EntityOf<VersionedGistTable>;
+  readonly fixtureInput: FixtureInputOf<VersionedGistTable>;
+  readonly insertInput: InsertOf<VersionedGistTable>;
+} => ({
+  entity: {
+    createdAt: '2026-04-03T12:00:00.000Z',
+    description: null,
+    id: 'gist-1',
+    isPublic: true,
+    ownerId: 'user-1',
+    tags: ['core'],
+    updatedAt: '2026-04-03T12:00:00.000Z',
+    version: 1,
+  },
+  fixtureInput: {
+    ownerId: 'user-2',
+    version: 2,
+  },
+  insertInput: {
+    ownerId: 'user-3',
+  },
+});
+
+const expectVersionedGistTypeSamples = ({
+  entity,
+  fixtureInput,
+  insertInput,
+}: ReturnType<typeof createVersionedGistTypeSamples>): void => {
+  expect(entity.version).toBe(1);
+  expect(fixtureInput.version).toBe(2);
+  expect(insertInput.ownerId).toBe('user-3');
+};
+
+const expectVersionedFixtureDefaults = (
+  db: ReturnType<typeof createVersionedStoreDefinition>
+): void => {
+  expect(db.tables.gists.fixtureSchema.parse({ ownerId: 'user-4' })).toEqual({
+    description: null,
+    isPublic: true,
+    ownerId: 'user-4',
+    tags: [],
+  });
+};
+
 describe('@ontrails/store', () => {
   test('normalizes tables and derives insert/update schemas', () => {
     const db = createStoreDefinition();
 
     expect(db.kind).toBe('tabular');
+    expect(db.signals.map((candidate) => candidate.id)).toEqual([
+      'gists.created',
+      'gists.updated',
+      'gists.removed',
+      'users.created',
+      'users.updated',
+      'users.removed',
+    ]);
     expect(db.tableNames).toEqual(['gists', 'users']);
     expect(db.type).toBe('store');
 
@@ -192,6 +284,42 @@ describe('@ontrails/store', () => {
     });
   });
 
+  test('normalizes versioned tables with a framework-managed version field', () => {
+    const db = createVersionedStoreDefinition();
+    const samples = createVersionedGistTypeSamples();
+
+    expect(db.tables.gists.versioned).toBe(true);
+    expect(db.tables.gists.generated).toEqual([
+      'id',
+      'createdAt',
+      'updatedAt',
+      'version',
+    ]);
+    expectVersionedGistTypeSamples(samples);
+    expect(db.tables.gists.schema.parse(samples.entity)).toEqual(
+      samples.entity
+    );
+    expect(
+      db.tables.gists.signals.updated.payload.parse({
+        createdAt: '2026-04-03T12:00:00.000Z',
+        id: 'gist-1',
+        ownerId: 'user-1',
+        updatedAt: '2026-04-03T12:00:00.000Z',
+        version: 2,
+      })
+    ).toEqual({
+      createdAt: '2026-04-03T12:00:00.000Z',
+      description: null,
+      id: 'gist-1',
+      isPublic: true,
+      ownerId: 'user-1',
+      tags: [],
+      updatedAt: '2026-04-03T12:00:00.000Z',
+      version: 2,
+    });
+    expectVersionedFixtureDefaults(db);
+  });
+
   test('rejects duplicate fixture primary keys when they are explicitly provided', () => {
     expect(() =>
       store({
@@ -254,6 +382,20 @@ describe('@ontrails/store', () => {
     ).toThrow(
       new ValidationError(
         'Store table "gists" declares generated field "missing" that is not present on the schema'
+      )
+    );
+
+    expect(() =>
+      store({
+        gists: {
+          identity: 'id',
+          schema: gistSchema.extend({ version: z.number().int() }),
+          versioned: true,
+        },
+      })
+    ).toThrow(
+      new ValidationError(
+        'Store table "gists" cannot declare a "version" field when versioned storage is enabled because the framework manages that field.'
       )
     );
 

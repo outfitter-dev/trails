@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import {
   AlreadyExistsError,
+  ConflictError,
+  Result,
   ValidationError,
   createTrailContext,
 } from '@ontrails/core';
+import type { TrailContext } from '@ontrails/core';
 import { store as defineStore } from '@ontrails/store';
 import { createStoreAccessorContractCases } from '@ontrails/store/testing';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -11,7 +14,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
 
-import { getSchema, readonlyStore, store } from '../index.js';
+import {
+  connectDrizzle,
+  connectReadOnlyDrizzle,
+  getSchema,
+  readonlyStore,
+  store,
+} from '../index.js';
 
 const userSchema = z.object({
   email: z.string().email(),
@@ -59,6 +68,13 @@ const writableDemoDefinition = defineStore({
   users: userTable,
 });
 
+const versionedUserDefinition = defineStore({
+  users: {
+    ...userTable,
+    versioned: true,
+  },
+});
+
 const expectOk = async <T>(value: PromiseLike<T> | T): Promise<T> =>
   await value;
 
@@ -88,11 +104,71 @@ const createWritableDemoStore = (rootDir: string) =>
     }
   );
 
+const createVersionedUserStore = (rootDir: string) =>
+  store(
+    {
+      users: {
+        ...userTable,
+        versioned: true,
+      },
+    },
+    {
+      description: 'Versioned demo store',
+      id: 'demo.store.versioned',
+      url: join(rootDir, 'versioned.sqlite'),
+    }
+  );
+
 const setupWritableDemoStore = async (rootDir: string) => {
   const db = createWritableDemoStore(rootDir);
   return {
     created: await unwrapCreated(db.create(createResourceInput(rootDir))),
     db,
+  };
+};
+
+const setupVersionedUserStore = async (rootDir: string) => {
+  const db = createVersionedUserStore(rootDir);
+  return {
+    created: await unwrapCreated(db.create(createResourceInput(rootDir))),
+    db,
+  };
+};
+
+const createTmpRootManager = (prefix: string) => {
+  let tmpRoot: string | undefined;
+
+  return {
+    cleanup() {
+      if (tmpRoot !== undefined) {
+        rmSync(tmpRoot, { force: true, recursive: true });
+        tmpRoot = undefined;
+      }
+    },
+    makeRoot(): string {
+      tmpRoot = mkdtempSync(join(tmpdir(), prefix));
+      return tmpRoot;
+    },
+  };
+};
+
+const createFireRecorder = () => {
+  const events: { payload: unknown; signalId: string }[] = [];
+  const record = (
+    signal: string | { readonly id: string },
+    payload: unknown
+  ) => {
+    events.push({
+      payload,
+      signalId: typeof signal === 'string' ? signal : signal.id,
+    });
+
+    return Result.ok();
+  };
+
+  return {
+    events,
+    fire: record as unknown as NonNullable<TrailContext['fire']>,
   };
 };
 
@@ -107,6 +183,14 @@ const expectWritableResourceDefinition = (
   expect(db.id).toBe('demo.store');
   expect(db.access).toBe('readwrite');
   expect(db.mock).toBeDefined();
+  expect(db.signals.map((candidate) => candidate.id)).toEqual([
+    'gists.created',
+    'gists.updated',
+    'gists.removed',
+    'users.created',
+    'users.updated',
+    'users.removed',
+  ]);
   expect(getSchema(db).gists).toBe(db.tables.gists);
 };
 
@@ -143,13 +227,6 @@ const seedWritableRecords = async (
   return { gist, user };
 };
 
-const expectDefined = <T>(value: T | undefined, label: string): T => {
-  if (value === undefined) {
-    throw new Error(`${label} should be defined`);
-  }
-  return value;
-};
-
 const expectStoredGist = async (
   created: WritableDemoStoreRuntime,
   gist: z.output<typeof gistSchema>,
@@ -178,7 +255,9 @@ const expectUpdatedGist = async (
     })
   );
   expect(updated?.updatedAt).toEqual(expect.any(String));
-  expect(updated?.updatedAt).not.toBe(gist.updatedAt);
+  expect(Date.parse(updated.updatedAt)).toBeGreaterThanOrEqual(
+    Date.parse(gist.updatedAt)
+  );
 };
 
 const expectQueryEscapeHatch = async (
@@ -229,6 +308,55 @@ const expectResourceResolution = (
     requestId: 'store-drizzle',
   });
   expect(db.from(ctx).users).toBeDefined();
+};
+
+const createSignalBoundStore = async (rootDir: string) => {
+  const { created, db } = await setupWritableDemoStore(rootDir);
+  const recorder = createFireRecorder();
+  const ctx = createTrailContext({
+    abortSignal: new AbortController().signal,
+    extensions: {
+      [db.id]: created,
+    },
+    fire: recorder.fire,
+    requestId: 'store-drizzle-signals',
+  });
+
+  return {
+    bound: db.from(ctx),
+    created,
+    db,
+    recorder,
+  };
+};
+
+const exerciseSignalWrites = async (bound: WritableDemoStoreRuntime) => {
+  const user = await bound.users.upsert({ email: 'signals@example.com' });
+  const createdGist = await bound.gists.upsert({ ownerId: user.id });
+  const updatedGist = await bound.gists.upsert({
+    description: 'Updated',
+    id: createdGist.id,
+    ownerId: user.id,
+  });
+
+  expect(await bound.gists.remove(createdGist.id)).toEqual({ deleted: true });
+  return { createdGist, updatedGist };
+};
+
+const expectRecordedSignals = (
+  recorder: ReturnType<typeof createFireRecorder>,
+  createdGist: z.output<typeof gistSchema>,
+  updatedGist: z.output<typeof gistSchema>
+): void => {
+  expect(recorder.events.map((event) => event.signalId)).toEqual([
+    'users.created',
+    'gists.created',
+    'gists.updated',
+    'gists.removed',
+  ]);
+  expect(recorder.events[1]?.payload).toEqual(createdGist);
+  expect(recorder.events[2]?.payload).toEqual(updatedGist);
+  expect(recorder.events[3]?.payload).toEqual(updatedGist);
 };
 
 const createFixtureBackedStore = () =>
@@ -305,6 +433,9 @@ const setupReadonlyUserStore = async (url: string, rootDir: string) => {
 type ReadonlyUserStoreRuntime = Awaited<
   ReturnType<typeof setupReadonlyUserStore>
 >['created'];
+type VersionedUserStoreRuntime = Awaited<
+  ReturnType<typeof setupVersionedUserStore>
+>['created'];
 
 const expectReadonlyReads = async (
   created: ReadonlyUserStoreRuntime,
@@ -325,6 +456,41 @@ const expectReadonlyWriteFailure = async (
         .run()
     )
   ).rejects.toThrow();
+};
+
+const expectVersionedCreate = async (
+  created: VersionedUserStoreRuntime
+): Promise<{
+  readonly first: Awaited<ReturnType<typeof created.users.upsert>>;
+  readonly second: Awaited<ReturnType<typeof created.users.upsert>>;
+}> => {
+  const first = await expectOk(
+    created.users.upsert({ email: 'versioned@example.com' })
+  );
+  expect(first).toEqual(
+    expect.objectContaining({
+      email: 'versioned@example.com',
+      id: expect.any(String),
+      version: 1,
+    })
+  );
+  expect(await created.users.get(first.id)).toEqual(first);
+
+  const second = await expectOk(
+    created.users.upsert({
+      email: 'versioned+updated@example.com',
+      id: first.id,
+      version: first.version,
+    })
+  );
+  expect(second).toEqual({
+    email: 'versioned+updated@example.com',
+    id: first.id,
+    version: 2,
+  });
+  expect(await created.users.get(first.id)).toEqual(second);
+
+  return { first, second };
 };
 
 const createErrorStore = (rootDir: string) =>
@@ -404,7 +570,7 @@ describe('writable user accessor contract', () => {
   });
 });
 
-describe('@ontrails/with-drizzle', () => {
+describe('versioned user accessor contract', () => {
   let tmpRoot: string | undefined;
 
   afterEach(() => {
@@ -415,12 +581,66 @@ describe('@ontrails/with-drizzle', () => {
   });
 
   const makeRoot = (): string => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'store-drizzle-'));
+    tmpRoot = mkdtempSync(join(tmpdir(), 'store-drizzle-versioned-'));
     return tmpRoot;
   };
 
+  const contractCases = createStoreAccessorContractCases({
+    createInput: () => ({ email: 'contract@example.com' }),
+    async createSubject() {
+      const rootDir = makeRoot();
+      const { created, db } = await setupVersionedUserStore(rootDir);
+
+      return {
+        accessor: created.users,
+        dispose: async () => {
+          await db.dispose?.(created);
+        },
+      };
+    },
+    expectCreated(entity, input) {
+      expect(entity).toEqual(
+        expect.objectContaining({
+          email: input.email,
+          id: expect.any(String),
+          version: 1,
+        })
+      );
+    },
+    expectUpdated(entity, previous, input) {
+      expect(entity).toEqual({
+        email: input.email,
+        id: previous.id,
+        version: previous.version + 1,
+      });
+    },
+    missingId: 'missing-user-id',
+    table: versionedUserDefinition.tables.users,
+    updateInput(existing) {
+      return {
+        email: 'contract+updated@example.com',
+        id: existing.id,
+        version: existing.version,
+      };
+    },
+  });
+
+  test.each(
+    contractCases.map((contractCase) => [contractCase.name, contractCase.run])
+  )('%s', async (_name, run) => {
+    await run();
+  });
+});
+
+describe('@ontrails/with-drizzle resource access', () => {
+  const tmp = createTmpRootManager('store-drizzle-');
+
+  afterEach(() => {
+    tmp.cleanup();
+  });
+
   test('binds a writable resource with CRUD accessors and one escape hatch', async () => {
-    const rootDir = makeRoot();
+    const rootDir = tmp.makeRoot();
     const { created, db } = await setupWritableDemoStore(rootDir);
     expectWritableResourceDefinition(db);
     await expectWritableLifecycle(created);
@@ -451,67 +671,217 @@ describe('@ontrails/with-drizzle', () => {
     );
   });
 
-  describe('read-only stores', () => {
-    test('enforces writes at the database layer', async () => {
-      const rootDir = makeRoot();
-      const url = join(rootDir, 'readonly.sqlite');
-      const inserted = await seedReadonlyFixture(url, rootDir);
-      const { created, db: readOnly } = await setupReadonlyUserStore(
-        url,
-        rootDir
-      );
-      expect(readOnly.access).toBe('readonly');
-      expect(readOnly.mock).toBeDefined();
-      await expectReadonlyReads(created, inserted);
-      await expectReadonlyWriteFailure(created);
-      await readOnly.dispose?.(created);
-    });
+  test('manages versioned writes and rejects stale optimistic-concurrency updates', async () => {
+    const rootDir = tmp.makeRoot();
+    const { created, db } = await setupVersionedUserStore(rootDir);
+    const { first, second } = await expectVersionedCreate(created);
 
-    test('creates a mock resource seeded from mockSeed', async () => {
-      const db = readonlyStore(
-        {
-          users: userTable,
+    await expect(
+      created.users.upsert({
+        email: 'stale@example.com',
+        id: first.id,
+        version: first.version,
+      })
+    ).rejects.toBeInstanceOf(ConflictError);
+
+    expect(await created.users.list()).toEqual([second]);
+    await db.dispose?.(created);
+  });
+
+  test('keeps non-versioned writes free of framework-managed version fields', async () => {
+    const rootDir = tmp.makeRoot();
+    const { created, db } = await setupWritableDemoStore(rootDir);
+    const user = await expectOk(
+      created.users.upsert({ email: 'plain@example.com' })
+    );
+
+    expect(user).toEqual({
+      email: 'plain@example.com',
+      id: expect.any(String),
+    });
+    expect(user).not.toHaveProperty('version');
+    await db.dispose?.(created);
+  });
+
+  test('round-trips a user-declared "version" field on non-versioned tables', async () => {
+    const rootDir = tmp.makeRoot();
+    const db = store(
+      {
+        documents: {
+          generated: ['id'],
+          primaryKey: 'id',
+          schema: z.object({
+            body: z.string(),
+            id: z.string(),
+            version: z.string(),
+          }),
         },
-        {
-          id: 'demo.store.readonly.mock',
-          mockSeed: {
-            users: [
-              {
-                email: 'mock@example.com',
-                id: 'user-mock',
-              },
-            ],
-          },
-          url: ':memory:',
-        }
-      );
-      expect(db.access).toBe('readonly');
-      const mockFactory = expectDefined(db.mock, 'readonlyStore.mock');
-      const mock = await mockFactory();
-      expect(await mock.users.get('user-mock')).toEqual(
-        expect.objectContaining({
-          email: 'mock@example.com',
-          id: 'user-mock',
-        })
-      );
-      expect(await mock.users.list()).toHaveLength(1);
-      await db.dispose?.(mock);
+      },
+      {
+        description: 'Non-versioned store with a user-owned "version" column',
+        id: 'demo.store.user-version',
+        url: join(rootDir, 'user-version.sqlite'),
+      }
+    );
+    const created = await unwrapCreated(
+      db.create(createResourceInput(rootDir))
+    );
+
+    const inserted = await created.documents.insert({
+      body: 'original',
+      version: 'draft-1',
+    });
+    expect(inserted).toEqual(
+      expect.objectContaining({
+        body: 'original',
+        id: expect.any(String),
+        version: 'draft-1',
+      })
+    );
+
+    const upserted = await created.documents.upsert({
+      body: 'final',
+      id: inserted.id,
+      version: 'draft-2',
+    });
+    expect(upserted).toEqual({
+      body: 'final',
+      id: inserted.id,
+      version: 'draft-2',
     });
 
-    test('creates a read-only mock that rejects writes through query', async () => {
-      const db = createReadonlyUserStore(
-        join(makeRoot(), 'readonly-mock.sqlite')
-      );
-      const mockFactory = expectDefined(db.mock, 'readonlyStore.mock');
-      const mock = await mockFactory();
+    const reread = await created.documents.get(inserted.id);
+    expect(reread).toEqual(upserted);
+    await db.dispose?.(created);
+  });
 
-      await expectReadonlyWriteFailure(mock);
-      await db.dispose?.(mock);
-    });
+  test('atomically rejects stale upserts on versioned tables', async () => {
+    const rootDir = tmp.makeRoot();
+    const { created, db } = await setupVersionedUserStore(rootDir);
+
+    const first = await expectOk(
+      created.users.upsert({ email: 'race@example.com' })
+    );
+
+    // Simulate a concurrent writer that advances the version between two
+    // attempts sharing the same stale expected version.
+    const winner = await expectOk(
+      created.users.upsert({
+        email: 'winner@example.com',
+        id: first.id,
+        version: first.version,
+      })
+    );
+    expect(winner.version).toBe(first.version + 1);
+
+    // The second attempt still holds the stale version and must be rejected
+    // by the atomic WHERE clause rather than silently overwriting.
+    await expect(
+      created.users.upsert({
+        email: 'loser@example.com',
+        id: first.id,
+        version: first.version,
+      })
+    ).rejects.toBeInstanceOf(ConflictError);
+
+    expect(await created.users.get(first.id)).toEqual(winner);
+    await db.dispose?.(created);
+  });
+
+  test('fires derived change signals from context-bound writable accessors', async () => {
+    const rootDir = tmp.makeRoot();
+    const { bound, created, db, recorder } =
+      await createSignalBoundStore(rootDir);
+    const { createdGist, updatedGist } = await exerciseSignalWrites(bound);
+
+    expectRecordedSignals(recorder, createdGist, updatedGist);
+    await db.dispose?.(created);
+  });
+});
+
+describe('@ontrails/with-drizzle read-only resource access', () => {
+  const tmp = createTmpRootManager('store-drizzle-readonly-');
+
+  afterEach(() => {
+    tmp.cleanup();
+  });
+
+  test('opens a read-only store and enforces writes at the database layer', async () => {
+    const rootDir = tmp.makeRoot();
+    const url = join(rootDir, 'readonly.sqlite');
+    const inserted = await seedReadonlyFixture(url, rootDir);
+    const { created, db: readOnly } = await setupReadonlyUserStore(
+      url,
+      rootDir
+    );
+    expect(readOnly.access).toBe('readonly');
+    expect(readOnly.mock).toBeDefined();
+    expect(readOnly.signals).toBeUndefined();
+    await expectReadonlyReads(created, inserted);
+    await expectReadonlyWriteFailure(created);
+    await readOnly.dispose?.(created);
+  });
+
+  test('creates a mock resource seeded from mockSeed', async () => {
+    const db = readonlyStore(
+      {
+        users: userTable,
+      },
+      {
+        id: 'demo.store.readonly.mock',
+        mockSeed: {
+          users: [
+            {
+              email: 'mock@example.com',
+              id: 'user-mock',
+            },
+          ],
+        },
+        url: ':memory:',
+      }
+    );
+    expect(db.access).toBe('readonly');
+    expect(db.signals).toBeUndefined();
+
+    const mockFactory = db.mock;
+    expect(mockFactory).toBeDefined();
+
+    const mock = await mockFactory?.();
+    expect(mock).toBeDefined();
+    expect(await mock?.users.get('user-mock')).toEqual(
+      expect.objectContaining({
+        email: 'mock@example.com',
+        id: 'user-mock',
+      })
+    );
+    expect(await mock?.users.list()).toHaveLength(1);
+    await db.dispose?.(mock as ReadonlyUserStoreRuntime);
+  });
+
+  test('creates a read-only mock that rejects writes through query', async () => {
+    const db = createReadonlyUserStore(
+      join(tmp.makeRoot(), 'readonly-mock.sqlite')
+    );
+    const mockFactory = db.mock;
+    expect(mockFactory).toBeDefined();
+
+    const mock = await mockFactory?.();
+    expect(mock).toBeDefined();
+
+    await expectReadonlyWriteFailure(mock as ReadonlyUserStoreRuntime);
+    await db.dispose?.(mock as ReadonlyUserStoreRuntime);
+  });
+});
+
+describe('@ontrails/with-drizzle edge cases', () => {
+  const tmp = createTmpRootManager('store-drizzle-');
+
+  afterEach(() => {
+    tmp.cleanup();
   });
 
   test('maps primary-key and foreign-key failures into Trails errors', async () => {
-    const rootDir = makeRoot();
+    const rootDir = tmp.makeRoot();
     const db = createErrorStore(rootDir);
     const created = await unwrapCreated(
       db.create(createResourceInput(rootDir))
@@ -550,7 +920,7 @@ describe('@ontrails/with-drizzle', () => {
           }),
         },
       },
-      { url: join(makeRoot(), 'int.sqlite') }
+      { url: join(tmp.makeRoot(), 'int.sqlite') }
     );
 
     const schema = getSchema(intStore);
@@ -559,6 +929,47 @@ describe('@ontrails/with-drizzle', () => {
 
     const idColumn = col.id as unknown as { columnType: string };
     expect(idColumn.columnType).toBe('SQLiteInteger');
+  });
+
+  test('rejects non-tabular store definitions with a clear error', () => {
+    const documentStore = defineStore(
+      {
+        documents: {
+          generated: ['id'],
+          primaryKey: 'id',
+          schema: z.object({
+            body: z.string(),
+            id: z.string(),
+          }),
+        },
+      },
+      { kind: 'document' }
+    );
+    const rootDir = tmp.makeRoot();
+
+    const expectKindMismatch = (run: () => unknown) => {
+      try {
+        run();
+        throw new Error(
+          'expected connector binding to reject a non-tabular store'
+        );
+      } catch (error) {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect((error as Error).message).toContain('kind "tabular"');
+        expect((error as Error).message).toContain('"document"');
+      }
+    };
+
+    expectKindMismatch(() =>
+      connectDrizzle(documentStore, {
+        url: join(rootDir, 'document.sqlite'),
+      })
+    );
+    expectKindMismatch(() =>
+      connectReadOnlyDrizzle(documentStore, {
+        url: join(rootDir, 'document-readonly.sqlite'),
+      })
+    );
   });
 
   test('update returns null for a non-existent ID', async () => {

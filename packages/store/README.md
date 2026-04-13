@@ -17,6 +17,7 @@ export const db = store({
     identity: 'id',
     generated: ['id', 'createdAt', 'updatedAt'],
     indexed: ['owner', 'createdAt'],
+    versioned: true,
   },
   files: {
     schema: fileSchema,
@@ -33,8 +34,10 @@ This declaration is pure metadata:
 - insert schema
 - update schema
 - fixture schema
+- derived change signals (`table.signals.created|updated|removed`)
 - identity field
 - generated-field metadata
+- optional framework-managed version tracking
 - indexed markers
 - references
 
@@ -101,6 +104,17 @@ Types are derived from the Zod schema:
 - `upsert()` uses the fixture/entity shape with generated fields optional
 - `get()` returns `Entity | null`
 - `list()` accepts typed partial filters and pagination options
+- `versioned: true` adds a framework-managed `version` field to returned entities and lets `upsert()` accept an expected `version` for optimistic concurrency
+
+Each normalized table also derives typed change signals from the same schema:
+
+```typescript
+const created = definition.tables.gists.signals.created;
+const updated = definition.tables.gists.signals.updated;
+const removed = definition.tables.gists.signals.removed;
+```
+
+Writable bindings fire those signals automatically when you access the resource through `db.from(ctx)` inside a trail context.
 
 Tabular connectors such as `@ontrails/with-drizzle` also expose `insert()` and `update()` as convenience methods when the backend natively distinguishes create and patch operations.
 
