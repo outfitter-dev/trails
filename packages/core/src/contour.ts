@@ -72,7 +72,8 @@ export type ContourIdSchema<
   TName extends string = string,
   TIdentity extends string = string,
 > = BrandedSchema<TSchema, ContourIdBrand<TName>> & {
-  readonly [CONTOUR_ID_METADATA]: ContourIdMetadata<TName, TIdentity>;
+  /** @deprecated Use `getContourIdMetadata()` — metadata lives in a WeakMap, not on the schema. */
+  readonly [CONTOUR_ID_METADATA]?: ContourIdMetadata<TName, TIdentity>;
 };
 
 /**
