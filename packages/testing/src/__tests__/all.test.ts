@@ -1,11 +1,11 @@
 import { describe } from 'bun:test';
 
 import { Result, trail, topo } from '@ontrails/core';
+import { connectDrizzle } from '@ontrails/with-drizzle';
 import { z } from 'zod';
 
 import { testAll } from '../all.js';
 import { store as defineStore } from '@ontrails/store';
-import { connectDrizzle } from '@ontrails/store/drizzle';
 
 const dbDefinition = defineStore({
   entities: {

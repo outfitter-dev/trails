@@ -95,7 +95,7 @@ A connector consumes the declaration and binds it to a concrete runtime:
 
 ```typescript
 import { store } from '@ontrails/store';
-import { connectDrizzle } from '@ontrails/store/drizzle';
+import { connectDrizzle } from '@ontrails/with-drizzle';
 
 const definition = store({
   gists: {
@@ -260,7 +260,7 @@ Fixtures are:
 Stores can be created as read-only, exposing only `get`, `list`, and `query` on the connection type:
 
 ```typescript
-import { readonlyStore } from '@ontrails/store/drizzle';
+import { readonlyStore } from '@ontrails/with-drizzle';
 
 const analyticsDb = readonlyStore(
   { events: { schema: eventSchema, primaryKey: 'id' } },
@@ -272,7 +272,8 @@ This is the same pattern used internally by the topo store resource (see ADR: To
 
 - Omits `insert`, `update`, and `remove` from the TypeScript connection type
 - Opens the SQLite connection with `readonly: true` (database-level enforcement)
-- Has no `mock` factory (read-only stores are backed by real data, not fixtures)
+- May provide a `mock` factory for test and governance workflows, but the runtime
+  connection itself remains read-only
 
 Use cases: connecting to an external analytics database, reading from a shared data source, querying the topo store or another framework-managed database from an app trail.
 

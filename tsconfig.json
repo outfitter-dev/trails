@@ -3,6 +3,7 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "baseUrl": ".",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -16,6 +17,9 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "skipLibCheck": true,
+    "paths": {
+      "@ontrails/with-*": ["node_modules/@ontrails/with-*"]
+    },
     "outDir": "dist",
     "rootDir": "src"
   },

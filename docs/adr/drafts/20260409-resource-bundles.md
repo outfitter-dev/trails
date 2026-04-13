@@ -5,7 +5,7 @@ status: draft
 created: 2026-04-09
 updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [9, 16, 22, connector-extraction-and-the-with-packaging-model, backend-agnostic-store-schemas]
+depends_on: [9, 16, 22, 29, backend-agnostic-store-schemas]
 ---
 
 # ADR: Resource Bundles
@@ -238,7 +238,7 @@ Register the bundle and you get the resources *and* the health trails. The conne
 - [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource primitive that bundles group and distribute
 - [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract that bundle resources satisfy
 - [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md) — the first connector, now understood as a single-resource bundle
-- [ADR: Connector Extraction and the `with-*` Packaging Model](20260409-connector-extraction-and-the-with-packaging-model.md) (draft) — the packaging model for connector bundles
+- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](../0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector bundles
 - [ADR: Backend-Agnostic Store Schemas](20260409-backend-agnostic-store-schemas.md) (draft) — the store schemas that bundle resources bind to concrete backends
 - [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) — trail factories that produce trails carried by pack bundles
 - [ADR: Contours as First-Class Domain Objects](20260409-contours-as-first-class-domain-objects.md) (draft) — contours feed store schemas within bundles

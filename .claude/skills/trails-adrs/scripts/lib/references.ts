@@ -4,6 +4,8 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ADR_DIR, ROOT } from './paths.ts';
 import { listNumberedAdrs, listDrafts } from './discovery.ts';
+import { serializeFrontmatter } from './frontmatter.ts';
+import type { Frontmatter } from './frontmatter.ts';
 
 /**
  * Fix cross-references after number padding changes.
@@ -124,5 +126,73 @@ export const rewriteDraftLinks = (
         `  ${file.filename}: ${oldDraftFilename} → ${newNumberedFilename}`
       );
     }
+  }
+};
+
+/** Fields in frontmatter that may contain slug references to other ADRs. */
+const SLUG_REF_FIELDS = ['depends_on', 'superseded_by'] as const;
+
+/**
+ * Rewrite a single frontmatter object's slug-based references to numeric
+ * references. Returns a new frontmatter object and a `changed` flag so
+ * callers can decide whether to rewrite the file on disk.
+ *
+ * Pure helper extracted for testability.
+ */
+export const rewriteSlugRefsInFrontmatter = (
+  fm: Frontmatter,
+  promotedSlug: string,
+  promotedNumber: number
+): { frontmatter: Frontmatter; changed: boolean } => {
+  const numericRef = String(promotedNumber);
+  const updated: Frontmatter = { ...fm };
+  let changed = false;
+
+  for (const field of SLUG_REF_FIELDS) {
+    const current = updated[field];
+    if (!Array.isArray(current)) {
+      continue;
+    }
+    const rewritten = current.map((entry) =>
+      typeof entry === 'string' && entry === promotedSlug ? numericRef : entry
+    );
+    const hasChange = rewritten.some((entry, idx) => entry !== current[idx]);
+    if (hasChange) {
+      (updated as Record<string, unknown>)[field] = rewritten;
+      changed = true;
+    }
+  }
+
+  return { changed, frontmatter: updated };
+};
+
+/**
+ * Rewrite frontmatter references from a promoted draft's slug to its new
+ * numeric id. Scans all remaining drafts and rewrites entries in their
+ * `depends_on`, `superseded_by`, and any array fields that may reference
+ * ADRs by slug.
+ *
+ * The rewrite is a structural fix: without it, promoting a draft leaves
+ * every other draft that referenced it by slug pointing at a decision the
+ * generated decision map can no longer resolve.
+ */
+export const rewriteFrontmatterSlugRefs = (
+  promotedSlug: string,
+  promotedNumber: number
+): void => {
+  for (const draft of listDrafts()) {
+    const { frontmatter, changed } = rewriteSlugRefsInFrontmatter(
+      draft.frontmatter,
+      promotedSlug,
+      promotedNumber
+    );
+    if (!changed) {
+      continue;
+    }
+    const content = `${serializeFrontmatter(frontmatter)}\n${draft.body}`;
+    writeFileSync(draft.path, content, 'utf8');
+    console.log(
+      `  ${draft.filename}: frontmatter refs ${promotedSlug} → ${promotedNumber}`
+    );
   }
 };

@@ -15,7 +15,7 @@ New commands: `topo pin`, `topo unpin`, `topo show`, `topo history`, `topo expor
 
 ### Store package
 
-`@ontrails/store` provides schema-derived persistence. Declare tables with Zod schemas, primary keys, generated fields, indexes, references, and fixtures. Bind to a runtime with `@ontrails/store/drizzle` for typed CRUD accessors, fixtures-as-mocks, and read-only bindings.
+`@ontrails/store` provides schema-derived persistence. Declare tables with Zod schemas, primary keys, generated fields, indexes, references, and fixtures. Bind to a runtime with `@ontrails/with-drizzle` for typed CRUD accessors, fixtures-as-mocks, and read-only bindings.
 
 **ADRs:** [0016](../adr/0016-schema-derived-persistence.md), [0022](../adr/0022-drizzle-store-connector.md)  
 **Guide:** [Store README](../../packages/store/README.md)
@@ -102,7 +102,7 @@ All `@ontrails/*` packages ship at `1.0.0-beta.14`.
 | `@ontrails/core` | Topo store, draft state, resources vocabulary |
 | `@ontrails/cli` | Hierarchical commands, structured input |
 | `@ontrails/store` | **New** — schema-derived persistence |
-| `@ontrails/store/drizzle` | **New** — Drizzle connector (subpath export of `@ontrails/store`) |
+| `@ontrails/with-drizzle` | **New** — Drizzle connector (extracted to its own workspace package; see ADR-0029) |
 | `@ontrails/schema` | Topo export, schema cache |
 | `@ontrails/warden` | Resource rules, draft state rules |
 | `@ontrails/config` | Resource and layer vocabulary |

@@ -2,16 +2,16 @@
 
 The HTTP trailhead connector turns every trail into an endpoint. Routes are derived from trail IDs, HTTP verbs from intent, input parsing from the method, and error responses from the error taxonomy. One `trailhead()` call starts a Hono server.
 
-The package separates framework-agnostic route building (`@ontrails/http`) from the Hono connector (`@ontrails/http/hono`), following the same pattern as `@ontrails/cli` and `@ontrails/cli/commander`.
+The package separates framework-agnostic route building (`@ontrails/http`) from the Hono connector (`@ontrails/with-hono`), following the same connector extraction pattern as the rest of the `with-*` ecosystem.
 
 ## Setup
 
 ```bash
-bun add @ontrails/http hono
+bun add @ontrails/http @ontrails/with-hono
 ```
 
 ```typescript
-import { trailhead } from '@ontrails/http/hono';
+import { trailhead } from '@ontrails/with-hono';
 import { app } from './app';
 
 await trailhead(app, { port: 3000 });
@@ -108,7 +108,7 @@ Unrecognized errors (non-`TrailsError` exceptions) return 500 with `category: 'i
 Layers compose the same way as on CLI and MCP -- they wrap trail implementations:
 
 ```typescript
-import { trailhead } from '@ontrails/http/hono';
+import { trailhead } from '@ontrails/with-hono';
 import { authLayer, loggingLayer } from './layers';
 
 await trailhead(app, {
@@ -193,7 +193,7 @@ const longTask = trail('report.generate', {
 
 ```typescript
 import { createTrailContext } from '@ontrails/core';
-import { trailhead } from '@ontrails/http/hono';
+import { trailhead } from '@ontrails/with-hono';
 import { app } from './app';
 import { createStore } from './store';
 

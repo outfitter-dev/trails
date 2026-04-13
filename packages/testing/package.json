@@ -14,7 +14,8 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "devDependencies": {
-    "@ontrails/store": "workspace:^"
+    "@ontrails/store": "workspace:^",
+    "@ontrails/with-drizzle": "workspace:^"
   },
   "peerDependencies": {
     "@ontrails/cli": "workspace:^",

@@ -48,9 +48,9 @@ The core function takes a topo and returns an array of framework-agnostic route 
 
 The `execute` function is the important part. It does everything *except* touch HTTP framework types. It doesn't parse a `Request`. It doesn't construct a `Response`. It doesn't set status codes. It takes validated input, runs the trail, and returns a `Result`. Everything HTTP-specific happens in the connector.
 
-### Hono is the first connector at `@ontrails/http/hono`
+### Hono is the first connector at `@ontrails/with-hono`
 
-The Hono connector lives in a subpath export, not in the main package entry. Two functions:
+The Hono connector lives in its own workspace package (originally shipped as the `@ontrails/http/hono` subpath; see [ADR-0029](./0029-connector-extraction-and-the-with-packaging-model.md)). Two functions:
 
 - **`toHono(routes, options?)`** — takes `HttpRouteDefinition[]` and returns a Hono app with routes registered. The developer owns the app lifecycle.
 - **`trailhead(topo, options?)`** — collapses the pipeline into one call for the standalone case. Calls `buildHttpRoutes`, then `toHono`, then starts listening.

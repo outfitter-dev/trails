@@ -41,7 +41,11 @@ import type { Frontmatter } from './lib/frontmatter.ts';
 import { gitMove } from './lib/git.ts';
 import { rebuildIndex } from './lib/index.ts';
 import { ADR_DIR, DRAFTS_DIR, INDEX_PATH, MAP_PATH } from './lib/paths.ts';
-import { fixCrossReferences, rewriteDraftLinks } from './lib/references.ts';
+import {
+  fixCrossReferences,
+  rewriteDraftLinks,
+  rewriteFrontmatterSlugRefs,
+} from './lib/references.ts';
 
 // ---------------------------------------------------------------------------
 // Commands
@@ -173,6 +177,12 @@ const cmdPromote = (args: Args): void => {
   // Rewrite all references from draft filename to new numbered filename
   console.log('Rewriting draft references...');
   rewriteDraftLinks(adr.filename, newFilename);
+
+  // Rewrite frontmatter depends_on/superseded_by references in peer drafts
+  // from the promoted slug to the new numeric id, so the decision map keeps
+  // resolving the dependency after promotion.
+  console.log('Rewriting peer draft frontmatter references...');
+  rewriteFrontmatterSlugRefs(slug, num);
 
   if (args.supersedes) {
     const oldAdr = resolveAdr(args.supersedes);

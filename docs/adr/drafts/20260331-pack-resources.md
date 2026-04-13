@@ -368,5 +368,5 @@ The warden gains resources-aware rules:
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- survey output provides the contract snapshots
 - [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) -- the lexicon renames; note that `resource` in this ADR refers to the distribution unit, distinct from `resource()` the infrastructure primitive
 - [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) -- the bundling mechanism for connector and pack resources; addresses how packs distribute resource groups with overridable defaults
-- [ADR: Connector Extraction and the `with-*` Packaging Model](20260409-connector-extraction-and-the-with-packaging-model.md) (draft) -- connectors move to `@ontrails/with-*` packages; affects how connector resources are distributed
+- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](../0029-connector-extraction-and-the-with-packaging-model.md) -- connectors move to `@ontrails/with-*` packages; affects how connector resources are distributed
 - [docs/lexicon.md](../../lexicon.md) -- `pack` reserved term; `resource` as infrastructure primitive vs. distribution unit needs reconciliation

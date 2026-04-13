@@ -140,6 +140,13 @@ const seedWritableRecords = async (
   return { gist, user };
 };
 
+const expectDefined = <T>(value: T | undefined, label: string): T => {
+  if (value === undefined) {
+    throw new Error(`${label} should be defined`);
+  }
+  return value;
+};
+
 const expectStoredGist = async (
   created: WritableDemoStoreRuntime,
   gist: z.output<typeof gistSchema>,
@@ -333,7 +340,7 @@ const createErrorStore = (rootDir: string) =>
     }
   );
 
-describe('@ontrails/store/drizzle', () => {
+describe('@ontrails/with-drizzle', () => {
   let tmpRoot: string | undefined;
 
   afterEach(() => {
@@ -380,19 +387,63 @@ describe('@ontrails/store/drizzle', () => {
     );
   });
 
-  test('opens a read-only store without a mock and enforces writes at the database layer', async () => {
-    const rootDir = makeRoot();
-    const url = join(rootDir, 'readonly.sqlite');
-    const inserted = await seedReadonlyFixture(url, rootDir);
-    const { created, db: readOnly } = await setupReadonlyUserStore(
-      url,
-      rootDir
-    );
-    expect(readOnly.access).toBe('readonly');
-    expect(readOnly.mock).toBeUndefined();
-    await expectReadonlyReads(created, inserted);
-    await expectReadonlyWriteFailure(created);
-    await readOnly.dispose?.(created);
+  describe('read-only stores', () => {
+    test('enforces writes at the database layer', async () => {
+      const rootDir = makeRoot();
+      const url = join(rootDir, 'readonly.sqlite');
+      const inserted = await seedReadonlyFixture(url, rootDir);
+      const { created, db: readOnly } = await setupReadonlyUserStore(
+        url,
+        rootDir
+      );
+      expect(readOnly.access).toBe('readonly');
+      expect(readOnly.mock).toBeDefined();
+      await expectReadonlyReads(created, inserted);
+      await expectReadonlyWriteFailure(created);
+      await readOnly.dispose?.(created);
+    });
+
+    test('creates a mock resource seeded from mockSeed', async () => {
+      const db = readonlyStore(
+        {
+          users: userTable,
+        },
+        {
+          id: 'demo.store.readonly.mock',
+          mockSeed: {
+            users: [
+              {
+                email: 'mock@example.com',
+                id: 'user-mock',
+              },
+            ],
+          },
+          url: ':memory:',
+        }
+      );
+      expect(db.access).toBe('readonly');
+      const mockFactory = expectDefined(db.mock, 'readonlyStore.mock');
+      const mock = await mockFactory();
+      expect(await mock.users.get('user-mock')).toEqual(
+        expect.objectContaining({
+          email: 'mock@example.com',
+          id: 'user-mock',
+        })
+      );
+      expect(await mock.users.list()).toHaveLength(1);
+      await db.dispose?.(mock);
+    });
+
+    test('creates a read-only mock that rejects writes through query', async () => {
+      const db = createReadonlyUserStore(
+        join(makeRoot(), 'readonly-mock.sqlite')
+      );
+      const mockFactory = expectDefined(db.mock, 'readonlyStore.mock');
+      const mock = await mockFactory();
+
+      await expectReadonlyWriteFailure(mock);
+      await db.dispose?.(mock);
+    });
   });
 
   test('maps primary-key and foreign-key failures into Trails errors', async () => {

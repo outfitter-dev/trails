@@ -1,12 +1,12 @@
 # @ontrails/http
 
-HTTP trailhead connector. One `trailhead()` call turns a topo into a Hono-based HTTP server with routes, input validation, and error mapping -- all derived from the trail contracts.
+Framework-agnostic HTTP route derivation for Trails. Pair this package with `@ontrails/with-hono` when you want the Hono trailhead connector.
 
 ## Usage
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
-import { trailhead } from '@ontrails/http/hono';
+import { trailhead } from '@ontrails/with-hono';
 import { z } from 'zod';
 
 const greet = trail('greet', {
@@ -41,7 +41,6 @@ for (const route of result.value) {
 | Export | What it does |
 | --- | --- |
 | `buildHttpRoutes(app, options?)` | Build framework-agnostic route definitions from a topo |
-| `trailhead(app, options?)` (`@ontrails/http/hono`) | Start a Hono HTTP server with all trails as routes |
 
 ## Route derivation
 
@@ -58,7 +57,7 @@ Trail IDs map to paths: `entity.show` becomes `/entity/show`. Dots become slashe
 
 ## Collision detection
 
-`buildHttpRoutes` detects when two trails would produce the same `(method, path)` pair and returns `Result.err(ValidationError)` describing both trail IDs. The `trailhead()` Hono connector throws on collision.
+`buildHttpRoutes` detects when two trails would produce the same `(method, path)` pair and returns `Result.err(ValidationError)` describing both trail IDs. The `trailhead()` helper from `@ontrails/with-hono` throws on collision.
 
 ## Resource resolution
 
@@ -97,5 +96,12 @@ Each route definition produced by `buildHttpRoutes` includes:
 ## Installation
 
 ```bash
-bun add @ontrails/http hono
+bun add @ontrails/http @ontrails/with-hono
 ```
+
+## Migration
+
+Hono integration now lives in `@ontrails/with-hono`.
+
+- Replace `import { trailhead } from '@ontrails/http/hono'` with `import { trailhead } from '@ontrails/with-hono'`
+- Keep `buildHttpRoutes()` and the route model imports on `@ontrails/http`

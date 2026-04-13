@@ -1,5 +1,5 @@
 {
-  "name": "@ontrails/http",
+  "name": "@ontrails/with-drizzle",
   "version": "1.0.0-beta.14",
   "type": "module",
   "exports": {
@@ -14,9 +14,11 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@ontrails/core": "workspace:^"
+    "@ontrails/core": "workspace:^",
+    "drizzle-orm": "^0.45.2"
   },
   "peerDependencies": {
+    "@ontrails/store": "workspace:^",
     "zod": "catalog:"
   }
 }
