@@ -1,6 +1,13 @@
 import { describe, test } from 'bun:test';
 
-import { NotFoundError, Result, resource, trail, topo } from '@ontrails/core';
+import {
+  contour,
+  NotFoundError,
+  Result,
+  resource,
+  trail,
+  topo,
+} from '@ontrails/core';
 import { z } from 'zod';
 
 import { testExamples } from '../examples.js';
@@ -531,4 +538,68 @@ describe('testExamples auto-minting permits', () => {
       { strictPermits: true }
     );
   });
+});
+
+// ---------------------------------------------------------------------------
+// Derived-fixture crossing coverage regression
+// ---------------------------------------------------------------------------
+//
+// A composition trail whose only examples come from contour-derived
+// fixtures must not fail crossing-coverage — derived inputs are not
+// guaranteed to exercise every declared cross.
+
+const itemContour = contour(
+  'item',
+  {
+    id: z.string(),
+    name: z.string(),
+  },
+  {
+    examples: [{ id: 'abc', name: 'Widget' }],
+    identity: 'id',
+  }
+);
+
+const helperTrail = trail('derived.helper', {
+  blaze: (input: { id: string }) => Result.ok({ id: input.id, ok: true }),
+  description: 'Helper referenced by a conditional cross',
+  input: z.object({ id: z.string() }),
+  output: z.object({ id: z.string(), ok: z.boolean() }),
+});
+
+const conditionalCrossTrail = trail('derived.conditional', {
+  blaze: async (input: { id: string; name: string }, ctx) => {
+    // The conditional cross is never taken for derived fixtures because
+    // `shouldCross` is always false in the synthesized input. This is
+    // exactly the case the provenance gate exists to protect: if we
+    // asserted crossing coverage against derived examples, this trail
+    // would fail even though its declaration is accurate for authored
+    // use.
+    const { shouldCross } = input as { shouldCross?: boolean };
+    if (shouldCross && ctx.cross) {
+      const result = await ctx.cross<{ id: string; ok: boolean }>(
+        'derived.helper',
+        { id: input.id }
+      );
+      if (result.isErr()) {
+        return result;
+      }
+    }
+    return Result.ok({ id: input.id, name: input.name });
+  },
+  contours: [itemContour],
+  crosses: ['derived.helper'],
+  description: 'Composition trail with a cross that derived fixtures skip',
+  input: z.object({ id: z.string(), name: z.string() }),
+  output: z.object({ id: z.string(), name: z.string() }),
+});
+
+describe('testExamples derived-fixture crossing coverage is gated', () => {
+  // eslint-disable-next-line jest/require-hook
+  testExamples(
+    topo('derived-coverage-app', {
+      conditionalCrossTrail,
+      helperTrail,
+    } as Record<string, unknown>)
+  );
 });
