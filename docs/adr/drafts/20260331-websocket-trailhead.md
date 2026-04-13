@@ -344,5 +344,5 @@ The package depends on `@ontrails/core` and benefits from the Events Runtime for
 - ADR: Typed Signal Emission (draft) -- `ctx.signal()` provides the events that WebSocket subscriptions deliver
 - [ADR-0027: Trail Visibility and Trailhead Filtering](../0027-visibility-and-filtering.md) -- visibility and intent filtering apply to WebSocket trail discovery and invocation
 - ADR: Reactive Trail Activation (draft) -- triggers and WebSocket subscriptions are both consumers of the event routing pipeline
-- [ADR: `deriveTrail()` and Trail Factories](20260409-derivetrail-and-trail-factories.md) (draft) -- `ingest()` factory for webhook-to-trail flows that can feed events to WebSocket subscribers
+- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- `ingest()` factory for webhook-to-trail flows that can feed events to WebSocket subscribers
 - [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- captures WebSocket trailhead configuration in the resolved topo graph

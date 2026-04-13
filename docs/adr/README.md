@@ -38,3 +38,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0029](0029-connector-extraction-and-the-with-packaging-model.md) | Connector Extraction and the with-* Packaging Model | Accepted |
 | [0030](0030-contours-as-first-class-domain-objects.md) | Contours as First-Class Domain Objects | Accepted |
 | [0031](0031-backend-agnostic-store-schemas.md) | Backend-Agnostic Store Schemas | Accepted |
+| [0032](0032-derivetrail-and-trail-factories.md) | deriveTrail() and Trail Factories | Accepted |

@@ -15,6 +15,7 @@ export {
   RateLimitError,
   NetworkError,
   InternalError,
+  DerivationError,
   AuthError,
   CancelledError,
   errorCategories,

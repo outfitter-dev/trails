@@ -45,6 +45,7 @@ const onboard = trail('entity.onboard', {
 | `signal(id, spec)` | Define a server-originated notification with a typed data schema |
 | `resource(id, spec)` | Define an infrastructure dependency with `create`, `dispose`, and optional `mock` |
 | `topo(name, ...modules)` | Collect trail modules into a queryable topology |
+| `deriveTrail(contour, operation, spec)` | Derive CRUD-shaped trail contracts from a contour on the `@ontrails/core/trails` subpath |
 | `validateTopo(topo)` | Structural validation: cross targets exist, no cycles, examples parse, output schemas present |
 
 ### Execution
@@ -112,7 +113,7 @@ result.unwrapOr(fallback);   // Value or fallback
 
 ### Error taxonomy
 
-13 error classes across 10 categories. Each maps deterministically to exit codes, HTTP status, and JSON-RPC codes on every trailhead.
+14 error classes across 10 categories. Each maps deterministically to exit codes, HTTP status, and JSON-RPC codes on every trailhead.
 
 | Category | Classes | HTTP | Retryable |
 | --- | --- | --- | --- |
@@ -123,7 +124,7 @@ result.unwrapOr(fallback);   // Value or fallback
 | `timeout` | `TimeoutError` | 504 | Yes |
 | `rate_limit` | `RateLimitError` | 429 | Yes |
 | `network` | `NetworkError` | 502 | Yes |
-| `internal` | `InternalError` | 500 | No |
+| `internal` | `InternalError`, `DerivationError` | 500 | No |
 | `auth` | `AuthError` | 401 | No |
 | `cancelled` | `CancelledError` | 499 | No |
 
@@ -140,6 +141,7 @@ The developer returns `Result.err(new NotFoundError(...))`. The framework maps i
 - **Layers** -- cross-cutting layers via `composeLayers`
 - **Guards and collections** -- `isDefined`, `chunk`, `dedupe`, `groupBy`, `sortBy`
 - **Patterns** (`@ontrails/core/patterns`) -- reusable Zod schemas for pagination, bulk ops, timestamps, sorting
+- **Trail factories** (`@ontrails/core/trails`) -- derive CRUD-shaped trail contracts from contours without re-authoring IDs, schemas, examples, or intents
 - **Redaction** (`@ontrails/core/redaction`) -- strip sensitive data before logging
 
 See the [API Reference](../../docs/api-reference.md) for the full list.

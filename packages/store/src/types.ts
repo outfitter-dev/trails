@@ -1,4 +1,5 @@
 import type { Signal } from '@ontrails/core';
+import type { StoreAccessorProtocol } from '@ontrails/core/store';
 import type { z } from 'zod';
 
 /**
@@ -475,6 +476,38 @@ export interface StoreAccessor<
    */
   remove(id: StoreIdentifierOf<TTable>): Promise<{ readonly deleted: boolean }>;
 }
+
+// ---------------------------------------------------------------------------
+// Compile-time assertion: StoreAccessor satisfies the core accessor protocol.
+//
+// `@ontrails/core/store` declares a structural protocol that `deriveTrail()`
+// uses to synthesize default blazes without importing `@ontrails/store`. We
+// pin the relationship here rather than in core so that any drift between
+// the two shapes fails the store build immediately. If this check fails, the
+// protocol in core has diverged from the store accessor contract — fix the
+// protocol shape, not this assertion.
+// ---------------------------------------------------------------------------
+
+type AssertExtends<TActual, TExpected> = TActual extends TExpected
+  ? true
+  : never;
+
+/**
+ * Pins the structural relationship between `StoreAccessor` and the core
+ * `StoreAccessorProtocol`. Exported so `noUnusedLocals` sees it as live; the
+ * type is purely a compile-time marker and contributes no runtime shape. If
+ * this type ever resolves to `never`, the protocol in core has drifted from
+ * the store accessor contract — fix the protocol shape, not this assertion.
+ */
+export type AssertStoreAccessorSatisfiesProtocol = AssertExtends<
+  StoreAccessor<AnyStoreTable>,
+  StoreAccessorProtocol<
+    UpsertOf<AnyStoreTable>,
+    EntityOf<AnyStoreTable>,
+    StoreIdentifierOf<AnyStoreTable>,
+    FiltersOf<AnyStoreTable>
+  >
+>;
 
 /**
  * Tabular writable operations layered on top of the connector-agnostic

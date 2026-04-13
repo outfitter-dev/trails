@@ -30,8 +30,6 @@ Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.
 - [Documentation freshness SLAs](20260406-documentation-freshness.md)
   - depends on [Documentation structure](20260406-documentation-structure.md)
 - [Documentation structure](20260406-documentation-structure.md)
-- [deriveTrail() and Trail Factories](20260409-derivetrail-and-trail-factories.md)
-  - depends on [ADR-0000: Core Premise — Contract-First, Trailhead-Agnostic Design](../0000-core-premise.md), [ADR-0001: Naming Conventions — Guessable API Through Structural Rules](../0001-naming-conventions.md), [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md), [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md), [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md), [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md)
 - [Layer Evolution](20260409-layer-evolution.md)
   - depends on [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md), [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md)
 - [Resource Bundles](20260409-resource-bundles.md)

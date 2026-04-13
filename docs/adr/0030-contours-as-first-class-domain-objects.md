@@ -273,7 +273,7 @@ Contour is a declaration-time concept. By the time a trail executes, the contour
 
 ## Non-decisions
 
-- **Pattern shapes at 1.0.** Toggle and CRUD are clear candidates. Transition, collection, and counter can follow. Which patterns ship initially is a separate design decision — see [ADR: `deriveTrail()` and Trail Factories](drafts/20260409-derivetrail-and-trail-factories.md) (draft).
+- **Pattern shapes at 1.0.** Toggle and CRUD are clear candidates. Transition, collection, and counter can follow. Which patterns ship initially is a separate design decision — see [ADR-0032: `deriveTrail()` and Trail Factories](0032-derivetrail-and-trail-factories.md).
 - **Schema derivation rules.** When and how the framework derives input/output schemas from contours + patterns. Deferred until `deriveTrail()` design lands.
 - **1.0 scope.** Contour is shippable for 1.0. Whether patterns also need to ship, or whether contour alone is the 1.0 primitive and patterns follow, is a sequencing question.
 
@@ -285,7 +285,7 @@ Contour is a declaration-time concept. By the time a trail executes, the contour
 - [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the resource primitive that contours relate to through the store binding
 - [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — the store contract that can derive from contours instead of standalone schemas
 - [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — the naming heuristic and `pattern` as the trail's declared operational shape
-- [ADR: `deriveTrail()` and Trail Factories](drafts/20260409-derivetrail-and-trail-factories.md) (draft) — the derivation helper that composes with contours
+- [ADR-0032: `deriveTrail()` and Trail Factories](0032-derivetrail-and-trail-factories.md) — the derivation helper that composes with contours
 - [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the connector extraction that contour-derived stores will bind through
 - [Tenets: The trail is the product](../tenets.md) — contours make trails smarter without changing what trails are
 - [Tenets: One write, many reads](../tenets.md) — the governing principle contours extend to domain objects
