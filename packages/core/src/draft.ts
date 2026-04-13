@@ -12,7 +12,6 @@ export const DRAFT_ID_PREFIX = '_draft.';
 export type DraftDependencyKind =
   | 'cross'
   | 'contour'
-  | 'detour'
   | 'resource'
   | 'replaced-by'
   | 'schema-reference'
