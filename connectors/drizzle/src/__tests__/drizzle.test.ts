@@ -433,6 +433,17 @@ describe('@ontrails/with-drizzle', () => {
       expect(await mock.users.list()).toHaveLength(1);
       await db.dispose?.(mock);
     });
+
+    test('creates a read-only mock that rejects writes through query', async () => {
+      const db = createReadonlyUserStore(
+        join(makeRoot(), 'readonly-mock.sqlite')
+      );
+      const mockFactory = expectDefined(db.mock, 'readonlyStore.mock');
+      const mock = await mockFactory();
+
+      await expectReadonlyWriteFailure(mock);
+      await db.dispose?.(mock);
+    });
   });
 
   test('maps primary-key and foreign-key failures into Trails errors', async () => {

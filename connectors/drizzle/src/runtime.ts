@@ -1,4 +1,7 @@
 import { Database } from 'bun:sqlite';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   AlreadyExistsError,
   InternalError,
@@ -42,6 +45,7 @@ import type {
 
 const defaultResourceId = 'store';
 const connectionClients = new WeakMap<object, Database>();
+const connectionTempDirs = new WeakMap<object, string>();
 
 const cloneValue = <T>(value: T): T => structuredClone(value);
 
@@ -70,16 +74,28 @@ const storeTableNames = <TStore extends AnyStoreDefinition>(
 
 const registerConnection = <TConnection extends object>(
   connection: TConnection,
-  client: Database
+  client: Database,
+  tempDir?: string
 ): TConnection => {
   connectionClients.set(connection, client);
+  if (tempDir !== undefined) {
+    connectionTempDirs.set(connection, tempDir);
+  }
   return connection;
 };
 
 const closeConnection = (connection: object): void => {
   connectionClients.get(connection)?.close();
   connectionClients.delete(connection);
+  const tempDir = connectionTempDirs.get(connection);
+  if (tempDir !== undefined) {
+    rmSync(tempDir, { force: true, recursive: true });
+    connectionTempDirs.delete(connection);
+  }
 };
+
+const createReadonlyMockTempDir = (): string =>
+  mkdtempSync(join(tmpdir(), 'trails-drizzle-readonly-'));
 
 const mapDatabaseError = (tableName: string, error: unknown): Error => {
   if (
@@ -614,7 +630,8 @@ const createReadOnlyConnection = <TStore extends AnyStoreDefinition>(
   definition: TStore,
   tables: DrizzleStoreSchema<TStore>,
   db: ReturnType<typeof drizzle<DrizzleStoreSchema<TStore>>>,
-  client: Database
+  client: Database,
+  tempDir?: string
 ): ReadOnlyDrizzleStoreConnection<TStore> => {
   const connection = {
     async query(run) {
@@ -640,7 +657,7 @@ const createReadOnlyConnection = <TStore extends AnyStoreDefinition>(
   }
 
   return Object.freeze(
-    registerConnection(connection, client)
+    registerConnection(connection, client, tempDir)
   ) as ReadOnlyDrizzleStoreConnection<TStore>;
 };
 
@@ -676,6 +693,55 @@ const createWritableConnection = <TStore extends AnyStoreDefinition>(
   return Object.freeze(
     registerConnection(connection, client)
   ) as DrizzleStoreConnection<TStore>;
+};
+
+const seedReadonlyMockDatabase = <TStore extends AnyStoreDefinition>(
+  definition: TStore,
+  tables: DrizzleStoreSchema<TStore>,
+  url: string,
+  seed?: DrizzleMockSeed<TStore>
+): void => {
+  const writableClient = openSqliteDatabase(url, false);
+  try {
+    ensureSqliteSchema(writableClient, definition);
+    const writableDb = drizzle({ client: writableClient, schema: tables });
+    seedFixtures(definition, tables, writableDb, seed);
+  } finally {
+    writableClient.close();
+  }
+};
+
+const openReadonlyMockConnection = <TStore extends AnyStoreDefinition>(
+  definition: TStore,
+  tables: DrizzleStoreSchema<TStore>,
+  url: string,
+  tempDir: string
+): ReadOnlyDrizzleStoreConnection<TStore> => {
+  const client = openSqliteDatabase(url, true);
+  try {
+    const db = drizzle({ client, schema: tables });
+    return createReadOnlyConnection(definition, tables, db, client, tempDir);
+  } catch (error) {
+    client.close();
+    throw error;
+  }
+};
+
+const createReadonlyMockConnection = <TStore extends AnyStoreDefinition>(
+  definition: TStore,
+  tables: DrizzleStoreSchema<TStore>,
+  seed?: DrizzleMockSeed<TStore>
+): ReadOnlyDrizzleStoreConnection<TStore> => {
+  const tempDir = createReadonlyMockTempDir();
+  const url = join(tempDir, 'mock.sqlite');
+
+  try {
+    seedReadonlyMockDatabase(definition, tables, url, seed);
+    return openReadonlyMockConnection(definition, tables, url, tempDir);
+  } catch (error) {
+    rmSync(tempDir, { force: true, recursive: true });
+    throw error;
+  }
 };
 
 const buildResourceShape = <
