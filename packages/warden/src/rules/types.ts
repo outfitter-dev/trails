@@ -45,6 +45,8 @@ export interface WardenRule {
 export interface ProjectContext {
   /** All known contour names in the project. */
   readonly knownContourIds?: ReadonlySet<string>;
+  /** Store table IDs used with the CRUD factory across the project. */
+  readonly crudTableIds?: ReadonlySet<string>;
   /** All known trail IDs in the project */
   readonly knownTrailIds: ReadonlySet<string>;
   /** Declared contour references keyed by source contour name. */
@@ -57,6 +59,10 @@ export interface ProjectContext {
   readonly detourTargetTrailIds?: ReadonlySet<string>;
   /** All trail IDs referenced by declared crosses arrays across the project. */
   readonly crossTargetTrailIds?: ReadonlySet<string>;
+  /** Signal IDs referenced by trail `on` arrays across the project. */
+  readonly onTargetSignalIds?: ReadonlySet<string>;
+  /** Store table IDs used with reconcile trails across the project. */
+  readonly reconcileTableIds?: ReadonlySet<string>;
   /** Normalized trail intents by trail ID across the project. */
   readonly trailIntentsById?: ReadonlyMap<string, 'destroy' | 'read' | 'write'>;
 }

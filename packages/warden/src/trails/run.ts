@@ -25,124 +25,78 @@ const appendDiagnostics = (
   }
 };
 
-const hasProjectOptions = (
-  options:
-    | {
-        readonly contourReferencesByName?: Readonly<
-          Record<string, readonly string[]>
-        >;
-        readonly crossTargetTrailIds?: readonly string[];
-        readonly detourTargetTrailIds?: readonly string[];
-        readonly knownContourIds?: readonly string[];
-        readonly knownResourceIds?: readonly string[];
-        readonly knownSignalIds?: readonly string[];
-        readonly knownTrailIds?: readonly string[];
-        readonly trailIntentsById?: Readonly<
-          Record<string, 'destroy' | 'read' | 'write'>
-        >;
-      }
-    | undefined
-): boolean =>
+type TrailIntentMap = Readonly<Record<string, 'destroy' | 'read' | 'write'>>;
+
+interface ProjectRuleOptions {
+  readonly contourReferencesByName?: Readonly<
+    Record<string, readonly string[]>
+  >;
+  readonly crossTargetTrailIds?: readonly string[];
+  readonly crudTableIds?: readonly string[];
+  readonly detourTargetTrailIds?: readonly string[];
+  readonly knownContourIds?: readonly string[];
+  readonly knownResourceIds?: readonly string[];
+  readonly knownSignalIds?: readonly string[];
+  readonly knownTrailIds?: readonly string[];
+  readonly onTargetSignalIds?: readonly string[];
+  readonly reconcileTableIds?: readonly string[];
+  readonly trailIntentsById?: TrailIntentMap;
+}
+
+const PROJECT_OPTION_KEYS = [
+  'contourReferencesByName',
+  'crossTargetTrailIds',
+  'crudTableIds',
+  'detourTargetTrailIds',
+  'knownContourIds',
+  'knownResourceIds',
+  'knownSignalIds',
+  'knownTrailIds',
+  'onTargetSignalIds',
+  'reconcileTableIds',
+  'trailIntentsById',
+] as const satisfies readonly (keyof ProjectRuleOptions)[];
+
+const hasProjectOptions = (options?: ProjectRuleOptions): boolean =>
   Boolean(
-    options?.contourReferencesByName ||
-    options?.crossTargetTrailIds ||
-    options?.detourTargetTrailIds ||
-    options?.knownContourIds ||
-    options?.knownResourceIds ||
-    options?.knownSignalIds ||
-    options?.knownTrailIds ||
-    options?.trailIntentsById
+    options && PROJECT_OPTION_KEYS.some((key) => options[key] !== undefined)
   );
+
+const collectProjectOptions = (
+  options?: ProjectRuleOptions
+): ProjectRuleOptions => {
+  if (!options) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    PROJECT_OPTION_KEYS.flatMap((key) => {
+      const value = options[key];
+      return value === undefined ? [] : [[key, value] as const];
+    })
+  ) as ProjectRuleOptions;
+};
 
 const buildRuleInput = (
   filePath: string,
   sourceCode: string,
-  options:
-    | {
-        readonly contourReferencesByName?: Readonly<
-          Record<string, readonly string[]>
-        >;
-        readonly crossTargetTrailIds?: readonly string[];
-        readonly detourTargetTrailIds?: readonly string[];
-        readonly knownContourIds?: readonly string[];
-        readonly knownResourceIds?: readonly string[];
-        readonly knownSignalIds?: readonly string[];
-        readonly knownTrailIds?: readonly string[];
-        readonly trailIntentsById?: Readonly<
-          Record<string, 'destroy' | 'read' | 'write'>
-        >;
-      }
-    | undefined
-):
-  | {
-      readonly filePath: string;
-      readonly sourceCode: string;
-    }
-  | {
-      readonly contourReferencesByName?: Readonly<
-        Record<string, readonly string[]>
-      >;
-      readonly crossTargetTrailIds?: readonly string[];
-      readonly detourTargetTrailIds?: readonly string[];
-      readonly filePath: string;
-      readonly knownContourIds?: readonly string[];
-      readonly knownResourceIds?: readonly string[];
-      readonly knownSignalIds?: readonly string[];
-      readonly knownTrailIds?: readonly string[];
-      readonly sourceCode: string;
-      readonly trailIntentsById?: Readonly<
-        Record<string, 'destroy' | 'read' | 'write'>
-      >;
-    } => {
+  options?: ProjectRuleOptions
+): {
+  readonly filePath: string;
+  readonly sourceCode: string;
+} & ProjectRuleOptions => {
   const base = { filePath, sourceCode };
   if (!hasProjectOptions(options)) {
     return base;
   }
 
-  return {
-    ...base,
-    ...(options?.contourReferencesByName
-      ? { contourReferencesByName: options.contourReferencesByName }
-      : {}),
-    ...(options?.crossTargetTrailIds
-      ? { crossTargetTrailIds: options.crossTargetTrailIds }
-      : {}),
-    ...(options?.detourTargetTrailIds
-      ? { detourTargetTrailIds: options.detourTargetTrailIds }
-      : {}),
-    ...(options?.knownContourIds
-      ? { knownContourIds: options.knownContourIds }
-      : {}),
-    ...(options?.knownResourceIds
-      ? { knownResourceIds: options.knownResourceIds }
-      : {}),
-    ...(options?.knownSignalIds
-      ? { knownSignalIds: options.knownSignalIds }
-      : {}),
-    ...(options?.knownTrailIds ? { knownTrailIds: options.knownTrailIds } : {}),
-    ...(options?.trailIntentsById
-      ? { trailIntentsById: options.trailIntentsById }
-      : {}),
-  };
+  return { ...base, ...collectProjectOptions(options) };
 };
 
 export const runWardenTrails = async (
   filePath: string,
   sourceCode: string,
-  options?: {
-    readonly contourReferencesByName?: Readonly<
-      Record<string, readonly string[]>
-    >;
-    readonly crossTargetTrailIds?: readonly string[];
-    readonly detourTargetTrailIds?: readonly string[];
-    readonly knownContourIds?: readonly string[];
-    readonly knownResourceIds?: readonly string[];
-    readonly knownSignalIds?: readonly string[];
-    readonly knownTrailIds?: readonly string[];
-    readonly trailIntentsById?: Readonly<
-      Record<string, 'destroy' | 'read' | 'write'>
-    >;
-  }
+  options?: ProjectRuleOptions
 ): Promise<readonly WardenDiagnostic[]> => {
   const allDiagnostics: WardenDiagnostic[] = [];
   const input = buildRuleInput(filePath, sourceCode, options);

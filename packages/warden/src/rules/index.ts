@@ -9,14 +9,17 @@ import { errorMappingCompleteness } from './error-mapping-completeness.js';
 import { exampleValid } from './example-valid.js';
 import { firesDeclarations } from './fires-declarations.js';
 import { implementationReturnsResult } from './implementation-returns-result.js';
+import { incompleteCrud } from './incomplete-crud.js';
 import { intentPropagation } from './intent-propagation.js';
 import { missingVisibility } from './missing-visibility.js';
+import { missingReconcile } from './missing-reconcile.js';
 import { noDirectImplInRoute } from './no-direct-impl-in-route.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
 import { noSyncResultAssumption } from './no-sync-result-assumption.js';
 import { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
 import { onReferencesExist } from './on-references-exist.js';
+import { orphanedSignal } from './orphaned-signal.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
 import { referenceExists } from './reference-exists.js';
 import { resourceDeclarations } from './resource-declarations.js';
@@ -44,8 +47,10 @@ export { draftVisibleDebt } from './draft-visible-debt.js';
 export { errorMappingCompleteness } from './error-mapping-completeness.js';
 export { exampleValid } from './example-valid.js';
 export { firesDeclarations } from './fires-declarations.js';
+export { incompleteCrud } from './incomplete-crud.js';
 export { intentPropagation } from './intent-propagation.js';
 export { missingVisibility } from './missing-visibility.js';
+export { missingReconcile } from './missing-reconcile.js';
 export { onReferencesExist } from './on-references-exist.js';
 export { validDetourRefs } from './valid-detour-refs.js';
 export { noDirectImplInRoute } from './no-direct-impl-in-route.js';
@@ -53,6 +58,7 @@ export { noDirectImplementationCall } from './no-direct-implementation-call.js';
 export { noSyncResultAssumption } from './no-sync-result-assumption.js';
 export { implementationReturnsResult } from './implementation-returns-result.js';
 export { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
+export { orphanedSignal } from './orphaned-signal.js';
 export { preferSchemaInference } from './prefer-schema-inference.js';
 export { referenceExists } from './reference-exists.js';
 export { resourceDeclarations } from './resource-declarations.js';
@@ -75,9 +81,12 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [errorMappingCompleteness.name, errorMappingCompleteness],
   [exampleValid.name, exampleValid],
   [firesDeclarations.name, firesDeclarations],
+  [incompleteCrud.name, incompleteCrud],
   [intentPropagation.name, intentPropagation],
   [missingVisibility.name, missingVisibility],
+  [missingReconcile.name, missingReconcile],
   [onReferencesExist.name, onReferencesExist],
+  [orphanedSignal.name, orphanedSignal],
   [resourceDeclarations.name, resourceDeclarations],
   [referenceExists.name, referenceExists],
   [resourceExists.name, resourceExists],
