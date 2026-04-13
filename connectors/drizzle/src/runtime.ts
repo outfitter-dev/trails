@@ -1120,6 +1120,10 @@ const bindWritableAccessorSignals = <TTable extends AnyStoreTable>(
     },
     async upsert(input: UpsertOf<TTable>) {
       const existingId = inputIdentity(table, input);
+      // NOTE: pre-read is not transactional with the write below. Under
+      // concurrent deletes, `existing` may be non-null while `accessor.upsert`
+      // actually inserts. `created` vs `updated` signal discrimination is
+      // best-effort — matches the same caveat documented on `remove`.
       const existing =
         existingId === undefined ? null : await accessor.get(existingId);
       const written = await accessor.upsert(input);
