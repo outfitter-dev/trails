@@ -433,6 +433,17 @@ const buildAndRegisterTable = <TTable extends AnyStoreTable>(
   return instance;
 };
 
+/**
+ * Return a cached or freshly-built table instance for the given path.
+ *
+ * @remarks
+ * First-writer-wins: if a table for this path already exists in the registry,
+ * the cached instance is returned and `options.generateIdentity` from the new
+ * call is silently ignored. In practice this is fine — each resource creates
+ * one connection per directory — but callers should not rely on passing
+ * different generators for the same path across multiple `connectJsonFile`
+ * calls.
+ */
 const createJsonFileTable = <TTable extends AnyStoreTable>(
   options: JsonFileTableOptions
 ): LoadableTable<TTable> => {
