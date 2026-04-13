@@ -219,7 +219,7 @@ describe('deriveTrail()', () => {
     expect(listed.examples).toEqual([
       {
         expected: [note.examples?.[0]],
-        input: { id: 'note-1' },
+        input: {},
         name: 'List note note-1',
       },
     ]);

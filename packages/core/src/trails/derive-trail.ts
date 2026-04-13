@@ -399,7 +399,7 @@ const deriveExample = (
     case 'list': {
       return {
         expected: [example],
-        input: identity,
+        input: {},
         name,
       };
     }
