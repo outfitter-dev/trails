@@ -89,6 +89,27 @@ describe('contour()', () => {
       });
     });
 
+    test('preserves first-write metadata when identity schemas are shared', () => {
+      const baseUser = contour(
+        'user',
+        { id: z.string().uuid(), name: z.string() },
+        { identity: 'id' }
+      );
+      const admin = contour(
+        'admin',
+        { id: baseUser.shape.id, role: z.string() },
+        { identity: 'id' }
+      );
+
+      // The first contour to brand the schema wins — user, not admin.
+      expect(getContourIdMetadata(baseUser.id())).toEqual({
+        contour: 'user',
+        identity: 'id',
+      });
+      // admin still has its own id() accessor
+      expect(admin.id()).toBeDefined();
+    });
+
     test('rejects identity keys that are not in the shape', () => {
       expect(() =>
         contour(

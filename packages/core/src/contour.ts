@@ -54,6 +54,16 @@ export interface ContourReference<
 export const CONTOUR_ID_METADATA = Symbol.for('@ontrails/core/contour-id');
 
 /**
+ * Module-level WeakMap storing contour identity metadata keyed by schema object.
+ *
+ * First-write-wins: when multiple contours share the same underlying schema
+ * (e.g. `contour('admin', { id: user.shape.id }, ...)`), the first contour to
+ * brand the schema claims it. Subsequent calls skip the write to prevent
+ * silent metadata corruption.
+ */
+const contourIdMetadata = new WeakMap<object, ContourIdMetadata>();
+
+/**
  * A contour identity schema branded for one contour and tagged with runtime
  * metadata so the topo layer can recognize declared references later on.
  */
@@ -144,12 +154,17 @@ const brandIdentitySchema = <
   const branded = (schema as BrandableSchema<TSchema>).brand<
     ContourIdBrand<TName>
   >();
-  Object.defineProperty(branded, CONTOUR_ID_METADATA, {
-    configurable: true,
-    enumerable: false,
-    value: { contour, identity } satisfies ContourIdMetadata<TName, TIdentity>,
-    writable: false,
-  });
+
+  // First-write-wins: if another contour already claimed this schema object
+  // (possible when Zod v4 brand() returns `this`), preserve the original
+  // metadata rather than silently overwriting it.
+  if (!contourIdMetadata.has(branded)) {
+    contourIdMetadata.set(branded, {
+      contour,
+      identity,
+    } satisfies ContourIdMetadata<TName, TIdentity>);
+  }
+
   return branded as ContourIdSchema<TSchema, TName, TIdentity>;
 };
 
@@ -201,12 +216,10 @@ const attachContourMetadata = <
   });
 };
 
-/** Read the `CONTOUR_ID_METADATA` symbol from a schema object, if present. */
+/** Read contour identity metadata from the module-level WeakMap, if present. */
 const readMetadata = (schema: unknown): ContourIdMetadata | undefined =>
   typeof schema === 'object' && schema !== null
-    ? (
-        schema as Partial<Record<typeof CONTOUR_ID_METADATA, ContourIdMetadata>>
-      )[CONTOUR_ID_METADATA]
+    ? contourIdMetadata.get(schema)
     : undefined;
 
 /** Resolve the inner schema from a Zod wrapper (ZodOptional, ZodNullable, etc.). */
