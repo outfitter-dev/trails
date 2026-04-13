@@ -205,10 +205,10 @@ Runtime treats both uniformly. The detour loop doesn't know or care whether a de
 
 ### Tradeoffs
 
-- **The error taxonomy gains instance-level state.** `TrailsError.retryable` becomes optional at the instance level. For normal errors this is a no-op (undefined falls through to the category default), but the taxonomy model is now mildly bi-level. The alternative (hard-coding retry machinery to recognize `RetryExhaustedError`) was worse.
+- **The error taxonomy gains an explicit `retryable` override in `RetryExhaustedError`.** `TrailsError.retryable` remains a required `boolean` on all concrete subclasses. `RetryExhaustedError` sets it to `false` at the class level regardless of the wrapped error's category, preventing category-level retry machinery from re-retrying an already-exhausted recovery loop.
 - **`RetryExhaustedError` has a dynamic category.** Usually error classes have static categories determined at class definition. `RetryExhaustedError` is unusual in that its category is copied from the wrapped error at construction time. Tests must exercise this behavior explicitly.
 - **The layer stack gains a fixed position.** The detour loop sits at a specific location relative to layers (inside the layer stack, just outside the blaze). Authors don't choose where it goes. This removes a degree of flexibility but eliminates a whole class of ordering bugs.
-- **Declaration-order matching requires discipline.** Authors who declare a supertype detour before a subtype detour get a warden warning, not a runtime surprise. The warden rule must ship with the runtime.
+- **Declaration-order matching requires discipline.** Authors who declare a supertype detour before a subtype detour will get a warden warning once the unreachable-detour rule ships as a follow-up. Until then, mis-ordered detours are a silent no-op at runtime.
 
 ### What this does NOT decide
 
@@ -224,7 +224,7 @@ Runtime treats both uniformly. The detour loop doesn't know or care whether a de
 
 - **Multi-process retry coordination.** Detour retries are in-memory only. If the process dies mid-retry, the operation is lost. This mirrors the single-process stance of the built-in `@ontrails/store/jsonfile` backend. Durable retry across process restarts is not a goal.
 
-- **Warden rules beyond unreachable-detour detection.** Additional rules (e.g., "layers that `instanceof`-check errors are drift toward undeclared detours," "every declared detour has an example that triggers it") are worth building but are not defined by this ADR. The declaration-order unreachability check ships alongside the runtime; others follow.
+- **Warden rules beyond unreachable-detour detection.** Additional rules (e.g., "layers that `instanceof`-check errors are drift toward undeclared detours," "every declared detour has an example that triggers it") are worth building but are not defined by this ADR. The declaration-order unreachability check is planned as a follow-up (see Tradeoffs); others follow.
 
 ## References
 
