@@ -145,6 +145,7 @@ const brandIdentitySchema = <
     ContourIdBrand<TName>
   >();
   Object.defineProperty(branded, CONTOUR_ID_METADATA, {
+    configurable: true,
     enumerable: false,
     value: { contour, identity } satisfies ContourIdMetadata<TName, TIdentity>,
     writable: false,
@@ -200,41 +201,55 @@ const attachContourMetadata = <
   });
 };
 
+/** Read the `CONTOUR_ID_METADATA` symbol from a schema object, if present. */
+const readMetadata = (schema: unknown): ContourIdMetadata | undefined =>
+  typeof schema === 'object' && schema !== null
+    ? (
+        schema as Partial<Record<typeof CONTOUR_ID_METADATA, ContourIdMetadata>>
+      )[CONTOUR_ID_METADATA]
+    : undefined;
+
+/** Resolve the inner schema from a Zod wrapper (ZodOptional, ZodNullable, etc.). */
+const unwrapInner = (schema: unknown): unknown => {
+  const def = (schema as { _def?: Record<string, unknown> })._def;
+  return (def?.['innerType'] ?? def?.['schema']) as unknown;
+};
+
+/**
+ * Walk through Zod wrapper layers searching for `CONTOUR_ID_METADATA`.
+ *
+ * `.nullish()` produces `ZodOptional<ZodNullable<T>>` — two wrapper levels —
+ * so a single-step unwrap is insufficient. This iterates until it finds the
+ * metadata or exhausts all wrapper layers.
+ */
+const unwrapToMetadata = (schema: unknown): ContourIdMetadata | undefined => {
+  let current: unknown = schema;
+  while (typeof current === 'object' && current !== null) {
+    const inner = unwrapInner(current);
+    if (typeof inner !== 'object' || inner === null) {
+      return undefined;
+    }
+    const metadata = readMetadata(inner);
+    if (metadata !== undefined) {
+      return metadata;
+    }
+    current = inner;
+  }
+  return undefined;
+};
+
 /**
  * Read contour-reference metadata from a schema returned by `contour.id()`.
  *
  * When the schema is wrapped by Zod combinators (`.optional()`, `.nullable()`,
- * `.default()`, etc.) the `CONTOUR_ID_METADATA` symbol lives on the inner
- * schema, not on the wrapper. We unwrap one level so that
- * `user.id().optional()` is still recognized as a contour reference.
+ * `.default()`, `.nullish()`, etc.) the `CONTOUR_ID_METADATA` symbol lives on
+ * the inner schema, not on the wrapper. The unwrap handles arbitrarily nested
+ * wrapper levels.
  */
 export const getContourIdMetadata = (
   schema: unknown
-): ContourIdMetadata | undefined => {
-  if (typeof schema !== 'object' || schema === null) {
-    return undefined;
-  }
-
-  // Direct hit — the common case when the schema is a bare `contour.id()`.
-  const direct = (
-    schema as Partial<Record<typeof CONTOUR_ID_METADATA, ContourIdMetadata>>
-  )[CONTOUR_ID_METADATA];
-  if (direct !== undefined) {
-    return direct;
-  }
-
-  // Unwrap one level of Zod wrappers (ZodOptional, ZodNullable, ZodDefault,
-  // ZodReadonly, ZodCatch, ZodPipe, etc.) which stash the inner type in
-  // `_def.innerType` or `_def.schema`.
-  const def = (schema as { _def?: Record<string, unknown> })._def;
-  const inner = (def?.['innerType'] ?? def?.['schema']) as unknown;
-  if (typeof inner !== 'object' || inner === null) {
-    return undefined;
-  }
-  return (
-    inner as Partial<Record<typeof CONTOUR_ID_METADATA, ContourIdMetadata>>
-  )[CONTOUR_ID_METADATA];
-};
+): ContourIdMetadata | undefined =>
+  readMetadata(schema) ?? unwrapToMetadata(schema);
 
 /** Inspect a contour schema for fields that reference other contours via `.id()`. */
 export const getContourReferences = (

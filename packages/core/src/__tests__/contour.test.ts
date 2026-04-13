@@ -183,4 +183,56 @@ describe('contour()', () => {
       ]);
     });
   });
+
+  describe('wrapper unwrapping', () => {
+    test('resolves .optional() contour id metadata', () => {
+      expect(getContourIdMetadata(user.id().optional())).toEqual({
+        contour: 'user',
+        identity: 'id',
+      });
+    });
+
+    test('resolves .nullable() contour id metadata', () => {
+      expect(getContourIdMetadata(user.id().nullable())).toEqual({
+        contour: 'user',
+        identity: 'id',
+      });
+    });
+
+    test('resolves .nullish() contour id metadata (two-level wrapper)', () => {
+      expect(getContourIdMetadata(user.id().nullish())).toEqual({
+        contour: 'user',
+        identity: 'id',
+      });
+    });
+
+    test('resolves deeply nested wrappers', () => {
+      expect(
+        getContourIdMetadata(user.id().nullable().optional().default(null))
+      ).toEqual({
+        contour: 'user',
+        identity: 'id',
+      });
+    });
+
+    test('detects references through .nullish() wrappers in contour shapes', () => {
+      const comment = contour(
+        'comment',
+        {
+          authorId: user.id().nullish(),
+          id: z.string().uuid(),
+          text: z.string(),
+        },
+        { identity: 'id' }
+      );
+
+      expect(getContourReferences(comment)).toEqual([
+        {
+          contour: 'user',
+          field: 'authorId',
+          identity: 'id',
+        },
+      ]);
+    });
+  });
 });
