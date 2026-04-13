@@ -10,7 +10,7 @@
  * ```
  */
 
-import { isTrailsError, statusCodeMap } from '@ontrails/core';
+import { isTrailsError, mapTransportError } from '@ontrails/core';
 import type {
   Layer,
   ResourceOverrideMap,
@@ -173,7 +173,7 @@ const mapErrorResponse = (
           message: error.message,
         },
       },
-      status: statusCodeMap[error.category] as ContentfulStatusCode,
+      status: mapTransportError('http', error) as ContentfulStatusCode,
     };
   }
   return {

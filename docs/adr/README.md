@@ -19,7 +19,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0010](0010-native-infrastructure.md) | Trails-Native Infrastructure Pattern | Accepted |
 | [0011](0011-schema-driven-config.md) | Schema-Driven Config | Accepted |
 | [0012](0012-connector-agnostic-permits.md) | Connector-Agnostic Permits | Accepted |
-| [0013](0013-tracing.md) | Tracing — Runtime Recording Primitive | Partially superseded by [0023](0023-simplifying-the-trails-lexicon.md) |
+| [0013](0013-tracing.md) | Tracing — Runtime Recording Primitive | Partially-superseded |
 | [0014](0014-core-database-primitive.md) | Core Database Primitive | Accepted |
 | [0015](0015-topo-store.md) | Topo Store | Accepted |
 | [0016](0016-schema-derived-persistence.md) | Schema-Derived Persistence | Accepted |
@@ -32,3 +32,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0023](0023-simplifying-the-trails-lexicon.md) | Simplifying the Trails Lexicon | Accepted |
 | [0024](0024-typed-trail-composition.md) | Typed Trail Composition | Accepted |
 | [0025](0025-composition-testing.md) | Composition Testing | Accepted |
+| [0026](0026-error-taxonomy-as-transport-independent-behavior-contract.md) | Error Taxonomy as Transport-Independent Behavior Contract | Accepted |

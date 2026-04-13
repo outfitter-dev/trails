@@ -1,6 +1,6 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, mock, test } from 'bun:test';
 
-import { Result, trail, topo } from '@ontrails/core';
+import { NotFoundError, Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { buildCliCommands } from '../build.js';
@@ -91,6 +91,50 @@ const buildExecutableParentProgram = (calls: string[]) => {
   const program = toCommander(commands, { name: 'test' });
   program.exitOverride();
   return program;
+};
+
+const makeCliExit = () =>
+  mock((code?: number) => {
+    throw new Error(`EXIT ${String(code)}`);
+  }) as unknown as typeof process.exit;
+
+const buildFailingProgram = () => {
+  const failTrail = trail('fail', {
+    blaze: () => Result.ok('ok'),
+    input: z.object({}),
+  });
+
+  return toCommander([
+    {
+      args: [],
+      execute: () => {
+        throw new NotFoundError('missing');
+      },
+      flags: [],
+      intent: 'read' as const,
+      path: ['fail'] as const,
+      trail: failTrail,
+    },
+  ]);
+};
+
+const withMockedProcess = async (
+  run: () => Promise<void> | void
+): Promise<void> => {
+  const originalExit = process.exit;
+  const originalWrite = process.stderr.write;
+
+  process.exit = makeCliExit();
+  process.stderr.write = mock(
+    () => true
+  ) as unknown as typeof process.stderr.write;
+
+  try {
+    await run();
+  } finally {
+    process.exit = originalExit;
+    process.stderr.write = originalWrite;
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -434,19 +478,13 @@ describe('toCommander option wiring', () => {
     expect(program.description()).toBe('A test app');
   });
 
-  test('error handling maps categories to exit codes', () => {
-    // This test verifies the error handling structure exists.
-    // Full integration would need process.exit mocking.
-    const t = trail('fail', {
-      blaze: () => Result.ok('ok'),
-      input: z.object({}),
+  test('error handling maps categories to exit codes', async () => {
+    await withMockedProcess(async () => {
+      const program = buildFailingProgram();
+      await expect(
+        program.parseAsync(['node', 'test', 'fail'], { from: 'node' })
+      ).rejects.toThrow('EXIT 2');
+      expect(process.stderr.write).toHaveBeenCalledWith('Error: missing\n');
     });
-    const app = makeApp(t);
-    const commands = buildCliCommands(app);
-    const program = toCommander(commands);
-
-    // Verify the program was created (error handling is wired in action)
-    expect(program).toBeDefined();
-    expect(program.commands).toHaveLength(1);
   });
 });

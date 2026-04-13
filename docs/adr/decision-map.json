@@ -80,6 +80,11 @@
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
         },
         {
+          "context": "- [ADR-0000: Core Premise — The information architecture](../0000-core-premise.md) — the authored/projected/enforced categories that `crossInput` extends with composition scope",
+          "from": "0024",
+          "fromPath": "docs/adr/0024-typed-trail-composition.md"
+        },
+        {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"derive by default\"; tracing observes composition shape rather than requiring it to be declared",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
@@ -148,11 +153,6 @@
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — the information architecture and \"one write, many reads\" principle that `deriveTrail()` operationalizes",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-derivetrail-and-trail-factories.md"
-        },
-        {
-          "context": "- [ADR-0000: Core Premise — The information architecture](../0000-core-premise.md) — the authored/projected/enforced categories that `crossInput` extends with composition scope",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-typed-trail-composition.md"
         },
         {
           "context": "- **[ADR-0000: Core Premise](./adr/0000-core-premise.md)** — Why contracts, why Result, why derive",
@@ -268,6 +268,11 @@
           "fromPath": "docs/adr/0009-first-class-resources.md"
         },
         {
+          "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — established the 13-class taxonomy and HTTP/CLI/JSON-RPC mappings",
+          "from": "0026",
+          "fromPath": "docs/adr/0026-error-taxonomy-as-transport-independent-behavior-contract.md"
+        },
+        {
           "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent crossings",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
@@ -276,11 +281,6 @@
           "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the error taxonomy maps to categorized failure events",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
-        },
-        {
-          "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — established the 13-class taxonomy and HTTP/CLI/JSON-RPC mappings",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-error-taxonomy-as-transport-independent-behavior-contract.md"
         },
         {
           "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the Result and error taxonomy that gains `VersionNotSupportedError`",
@@ -315,6 +315,16 @@
           "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — resources follow the same pattern: declaration on the spec, governance via warden",
           "from": "0009",
           "fromPath": "docs/adr/0009-first-class-resources.md"
+        },
+        {
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the unified trail/hike primitive with `crosses` and `ctx.cross()`",
+          "from": "0024",
+          "fromPath": "docs/adr/0024-typed-trail-composition.md"
+        },
+        {
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the `crosses` / `ctx.cross()` composition mechanism that composite testing targets",
+          "from": "0025",
+          "fromPath": "docs/adr/0025-composition-testing.md"
         },
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- \"composition is a property, not a type\"; parallel vs sequential is a runtime choice, not a contract distinction. The crossi",
@@ -352,11 +362,6 @@
           "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
         },
         {
-          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the `crosses` / `ctx.cross()` composition mechanism that composite testing targets",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-composition-testing.md"
-        },
-        {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the merge test applied to contour vs. trail (conclusion: they're different enough to stay separate)",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-contours-as-first-class-domain-objects.md"
@@ -370,11 +375,6 @@
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the trail as the single unit of work, the unit that versioning targets",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-trail-versioning.md"
-        },
-        {
-          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the unified trail/hike primitive with `crosses` and `ctx.cross()`",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-typed-trail-composition.md"
         },
         {
           "context": "- **[ADR-0003: Unified Trail Primitive](./adr/0003-unified-trail-primitive.md)** — One `trail()`, composition as a property",
@@ -514,6 +514,11 @@
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
         {
+          "context": "- [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md) — the execution pipeline that produces Results with typed errors",
+          "from": "0026",
+          "fromPath": "docs/adr/0026-error-taxonomy-as-transport-independent-behavior-contract.md"
+        },
+        {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- the execution pipeline runs for each concurrent branch; the pipeline is unchanged",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
@@ -542,11 +547,6 @@
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-layers-run; the library trailhead delegates to the same p",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
-        },
-        {
-          "context": "- [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md) — the execution pipeline that produces Results with typed errors",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-error-taxonomy-as-transport-independent-behavior-contract.md"
         },
         {
           "context": "- [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md) -- the execution pipeline that layers currently compose into",
@@ -593,19 +593,19 @@
           "fromPath": "docs/adr/0017-serialized-topo-graph.md"
         },
         {
-          "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — warden rules for event declarations",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
+          "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — the warden's `cross-declarations` rule that this extends",
+          "from": "0024",
+          "fromPath": "docs/adr/0024-typed-trail-composition.md"
         },
         {
           "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — the warden rules that `composite-example-coverage` and `scenario-coverage` extend",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-composition-testing.md"
+          "from": "0025",
+          "fromPath": "docs/adr/0025-composition-testing.md"
         },
         {
-          "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — the warden's `cross-declarations` rule that this extends",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-typed-trail-composition.md"
+          "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — warden rules for event declarations",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
           "context": "- **[ADR-0007: Governance as Trails](./adr/0007-governance-as-trails.md)** — Warden rules are trails, AST-based analysis",
@@ -1410,6 +1410,108 @@
       "superseded_by": null,
       "title": "Simplifying the Trails Lexicon",
       "updated": "2026-04-07"
+    },
+    {
+      "created": "2026-04-09",
+      "depends_on": ["3", "7"],
+      "inbound": [
+        {
+          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` and `crossInput` that scenarios exercise",
+          "from": "0025",
+          "fromPath": "docs/adr/0025-composition-testing.md"
+        },
+        {
+          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- typed `ctx.cross()` that the array overload extends; parallel crossing with typed results is a non-decision there, deferred",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
+        },
+        {
+          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` complements signal-based activation; `on:` is for reactive decoupling, `crosses` is for direct compositi",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
+        },
+        {
+          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` complements signal-based decoupling; signals are for loose coupling, crosses are for typed direct compos",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
+        },
+        {
+          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- `crossInput` relates to internal visibility; a trail with required `crossInput` fields should declare `visibility: 'interna",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-visibility-and-filtering.md"
+        },
+        {
+          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- `crossInput` follows the same \"compose schemas, project the union\" pattern as layer input schemas",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-layer-evolution.md"
+        },
+        {
+          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — `crossInput` and its interaction with versioning",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-trail-versioning.md"
+        },
+        {
+          "context": "`crossInput` fields are merged with `input` for the blaze. When invoked via a trailhead, `crossInput` fields are absent. When invoked via `ctx.cross()`, the caller can pass both. See [ADR-0024](adr/00",
+          "from": "lexicon",
+          "fromPath": "docs/lexicon.md"
+        }
+      ],
+      "number": "0024",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0024-typed-trail-composition.md",
+      "slug": "typed-trail-composition",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Typed Trail Composition",
+      "updated": "2026-04-09"
+    },
+    {
+      "created": "2026-04-09",
+      "depends_on": ["3", "7", "24"],
+      "inbound": [
+        {
+          "context": "- [ADR: Composition Testing](../0025-composition-testing.md) -- `scenario()` and `expectedMatch` for testing concurrent composition flows",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-concurrent-crossing.md"
+        }
+      ],
+      "number": "0025",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0025-composition-testing.md",
+      "slug": "composition-testing",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Composition Testing",
+      "updated": "2026-04-09"
+    },
+    {
+      "created": "2026-04-09",
+      "depends_on": ["2", "6"],
+      "inbound": [
+        {
+          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) — signal delivery semantics (retry, dead-letter, discard) ",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
+        },
+        {
+          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) — signal delivery semantics (retry, dead-letter, discard) ",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
+        },
+        {
+          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) -- WebSocket close code mapping deferred there; the error ",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        }
+      ],
+      "number": "0026",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0026-error-taxonomy-as-transport-independent-behavior-contract.md",
+      "slug": "error-taxonomy-as-transport-independent-behavior-contract",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Error Taxonomy as Transport-Independent Behavior Contract",
+      "updated": "2026-04-13"
     }
   ],
   "version": 1
