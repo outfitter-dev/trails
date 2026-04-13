@@ -40,6 +40,10 @@ const itemStore = defineStore({
   items: { identity: 'id', schema: itemSchema },
 });
 
+const autoIdStore = defineStore({
+  items: { generated: ['id'] as const, identity: 'id', schema: itemSchema },
+});
+
 const fixtureStore = defineStore({
   items: {
     fixtures: [{ id: 'fixture-1', name: 'Fixture row' }],
@@ -271,7 +275,7 @@ describe('jsonfile connector', () => {
 
   describe('identity generation', () => {
     test('generates id when not provided', async () => {
-      const conn = await connectJsonFile(itemStore, {
+      const conn = await connectJsonFile(autoIdStore, {
         dir,
         generateIdentity: () => 'generated-id',
       });
