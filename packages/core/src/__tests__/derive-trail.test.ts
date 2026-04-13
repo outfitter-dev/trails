@@ -505,7 +505,7 @@ describe('deriveTrail() default blaze synthesis — read', () => {
       createTrailContext({ extensions: {} })
     );
 
-    expect(expectErr(result)).toBeInstanceOf(NotFoundError);
+    expect(expectErr(result)).toBeInstanceOf(InternalError);
   });
 });
 

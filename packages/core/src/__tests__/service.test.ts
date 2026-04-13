@@ -157,7 +157,7 @@ describe('resource()', () => {
     });
 
     expect(() => counter.from(ctx)).toThrow(
-      'Resource "counter.main" not found in trail context'
+      'Resource "counter.main" not provisioned in context'
     );
   });
 

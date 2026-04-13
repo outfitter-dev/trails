@@ -1,4 +1,4 @@
-import { NotFoundError } from './errors.js';
+import { InternalError } from './errors.js';
 import type { Result } from './result.js';
 import type { AnySignal } from './signal.js';
 import type { ResourceLookup, TrailContext } from './types.js';
@@ -96,7 +96,7 @@ export const createResourceLookup = (
     const id = getResourceId(resourceOrId);
     const ctx = getContext();
     if (!hasResourceInstance(ctx, id)) {
-      throw new NotFoundError(`Resource "${id}" not found in trail context`);
+      throw new InternalError(`Resource "${id}" not provisioned in context`);
     }
     return getResourceInstance(ctx, id);
   }) as ResourceLookup;
