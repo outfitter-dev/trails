@@ -1101,14 +1101,18 @@ const bindWritableAccessorSignals = <TTable extends AnyStoreTable>(
       return removed;
     },
     async update(id: StoreIdentifierOf<TTable>, input: UpdateOf<TTable>) {
+      if (table.versioned) {
+        // Versioned tables auto-increment the version column on every write,
+        // so changedEntity always detects a diff. Skip the redundant pre-read
+        // and fire unconditionally on successful update.
+        const updated = await accessor.update(id, input);
+        if (updated !== null) {
+          await fireDerivedSignal(fire, table.signals.updated.id, updated);
+        }
+        return updated;
+      }
       const existing = await accessor.get(id);
       const updated = await accessor.update(id, input);
-      // On versioned tables the version column auto-increments on every
-      // write, so `changedEntity` will always detect a diff even when the
-      // caller-supplied fields are identical. This means `updated` fires on
-      // every successful update for versioned tables — expected behavior,
-      // not a bug. Consumers should treat the signal as "a write occurred"
-      // rather than "user-visible data changed."
       if (changedEntity(existing, updated)) {
         await fireDerivedSignal(fire, table.signals.updated.id, updated);
       }
