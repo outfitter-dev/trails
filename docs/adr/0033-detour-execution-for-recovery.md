@@ -15,9 +15,9 @@ depends_on: [2, 6, 23, 32]
 
 ### The declarative-only state
 
-Detours are already in the Trails lexicon as a trail-level field: *"recovery paths when the trail is blocked or fails. The trail blazes forward; if blocked, it detours."* See [ADR-0023](../0023-simplifying-the-trails-lexicon.md) for the vocabulary definition and the deliberate `blaze`-pair metaphor. The shape of `TrailSpec.detours` — an array of `{ on: ErrorClass, recover: Function }` — has existed as a declarative-only concept since the earliest iterations of the trail primitive.
+Detours are already in the Trails lexicon as a trail-level field: *"recovery paths when the trail is blocked or fails. The trail blazes forward; if blocked, it detours."* See [ADR-0023](0023-simplifying-the-trails-lexicon.md) for the vocabulary definition and the deliberate `blaze`-pair metaphor. The shape of `TrailSpec.detours` — an array of `{ on: ErrorClass, recover: Function }` — has existed as a declarative-only concept since the earliest iterations of the trail primitive.
 
-What hasn't existed is **runtime execution**. No component of [`executeTrail`](../0006-shared-execution-pipeline.md) reads the `detours:` field today. A trail can declare a detour for `ConflictError`, but if the blaze returns `Result.err(new ConflictError(...))`, the framework propagates the error unchanged. The detour is a comment with type safety attached.
+What hasn't existed is **runtime execution**. No component of [`executeTrail`](0006-shared-execution-pipeline.md) reads the `detours:` field today. A trail can declare a detour for `ConflictError`, but if the blaze returns `Result.err(new ConflictError(...))`, the framework propagates the error unchanged. The detour is a comment with type safety attached.
 
 This has two concrete consequences:
 
@@ -27,7 +27,7 @@ This has two concrete consequences:
 
 ### Why this matters for the queryable-contract tenet
 
-[ADR-0000's premise that the contract is queryable](../0000-core-premise.md#the-contract-is-queryable) depends on declarations being load-bearing at runtime. When a field exists on the trail spec but does nothing, readers can't trust the contract. The framework has said "recovery lives here" and then not honored it.
+[ADR-0000's premise that the contract is queryable](0000-core-premise.md#the-contract-is-queryable) depends on declarations being load-bearing at runtime. When a field exists on the trail spec but does nothing, readers can't trust the contract. The framework has said "recovery lives here" and then not honored it.
 
 The framework has already done the authoring work: `TrailSpec.detours` is a typed field, authors can fill it in, the TypeScript compiler enforces the shape. What's missing is the projection step — reading the authored data and executing it. That's what this ADR settles.
 
@@ -37,7 +37,7 @@ Three workstreams converge on this need:
 
 - **Reconcile factory refactor.** The inline try/catch has to retire so `AGENTS.md` can delete the carve-out. Requires detour runtime.
 - **Reconcile retry exhaustion.** Today the factory uses `ReconcileRetryExhaustedError`, a local error class meaningful only to reconcile. A framework-level runtime needs a general-purpose `RetryExhaustedError` in the taxonomy.
-- **Future `deriveTrail` detour synthesis.** [ADR-0032](../0032-derivetrail-and-trail-factories.md) makes `deriveTrail` synthesize default blazes for standard CRUD operations. A natural extension is synthesizing default detours from store declarations (e.g., `ConflictError` recovery for versioned tables). That extension is out of scope for this ADR, but requires a runtime that treats detours uniformly regardless of source.
+- **Future `deriveTrail` detour synthesis.** [ADR-0032](0032-derivetrail-and-trail-factories.md) makes `deriveTrail` synthesize default blazes for standard CRUD operations. A natural extension is synthesizing default detours from store declarations (e.g., `ConflictError` recovery for versioned tables). That extension is out of scope for this ADR, but requires a runtime that treats detours uniformly regardless of source.
 
 ## Decision
 
@@ -93,7 +93,7 @@ interface DetourAttempt<Input, TErr extends TrailsError> {
 
 **`ctx` is single-valued across attempts.** The same `TrailContext`, the same `ctx.logger`, the same tracing spans. Layer state (auth tokens, rate-limit counters, log scopes) fires once per logical execution, not per retry attempt. This is deliberate: telemetry of a trail run should show one logical operation with internal retries, not N independent runs.
 
-**Non-`TrailsError` throws never reach detours.** If the blaze throws a plain `Error`, step 5 of the [shared execution pipeline](../0006-shared-execution-pipeline.md) wraps it in `InternalError` at the outermost boundary. That wrapping happens *outside* the detour loop, so detours can only match against explicit `Result.err(TrailsError)` returns. This preserves the existing pipeline contract.
+**Non-`TrailsError` throws never reach detours.** If the blaze throws a plain `Error`, step 5 of the [shared execution pipeline](0006-shared-execution-pipeline.md) wraps it in `InternalError` at the outermost boundary. That wrapping happens *outside* the detour loop, so detours can only match against explicit `Result.err(TrailsError)` returns. This preserves the existing pipeline contract.
 
 ### `maxAttempts` counts recovery attempts, not total
 
@@ -107,11 +107,11 @@ When multiple detours could match an error, the framework runs the first one dec
 2. **No runtime reflection.** Most-specific-first requires walking `instanceof` chains to compare distances. The framework does not otherwise inspect the class hierarchy at runtime and should not start here.
 3. **The warden catches the drift case.** When detour A's `on:` type is a supertype of detour B's `on:` type and A is declared before B, B is unreachable. This is a lint-time diagnostic, not a runtime behavior. Authors who get the order wrong get an error at build time, not a silent mismatch at runtime. A warden rule for detecting unreachable detours is planned as a follow-up.
 
+If `recover` returns an error whose class does not match the same detour's `on:` type (e.g., a `ConflictError` detour whose `recover` returns `NetworkError`), the framework returns that error to the caller directly. The detour loop terminates; no further matching happens.
+
 ### No cross-detour recovery
 
 If a detour's `recover` function returns `Err` with a *different* error type, a different detour does **not** match and run. Detour recovery only re-enters the same detour's own attempt loop. Otherwise nested recovery chains become impossible to reason about: any error becomes potentially reachable from any starting error class, and reasoning about *"what happens if X fails"* requires walking a dynamic graph.
-
-If `recover` returns an error whose class does not match the same detour's `on:` type (e.g., a `ConflictError` detour whose `recover` returns `NetworkError`), the framework returns that error to the caller directly. The detour loop terminates; no further matching happens.
 
 Non-`TrailsError` throws inside `recover` follow the same rule as the blaze: they get wrapped in `InternalError` at the outermost pipeline boundary and terminate the loop without re-entering matching.
 
@@ -196,7 +196,7 @@ Runtime treats both uniformly. The detour loop doesn't know or care whether a de
 
 ### Positive
 
-- **Declarative recovery is load-bearing at runtime.** The `detours:` field is no longer a comment; it's a projection input. The [queryable-contract tenet](../0000-core-premise.md#the-contract-is-queryable) now covers recovery paths alongside schemas, examples, and crosses.
+- **Declarative recovery is load-bearing at runtime.** The `detours:` field is no longer a comment; it's a projection input. The [queryable-contract tenet](0000-core-premise.md#the-contract-is-queryable) now covers recovery paths alongside schemas, examples, and crosses.
 - **The reconcile factory's inline try/catch retires.** The `AGENTS.md` carve-out permitting inline recovery for factory-provided trails deletes. Replaced by a declarative `detours: [{ on: ConflictError, maxAttempts: 1, recover: ... }]` on the reconcile trail's spec.
 - **`ReconcileRetryExhaustedError` retires** in favor of the framework-level generic `RetryExhaustedError<TErr>`. Consumers of reconcile see a standard framework error with the wrapped `ConflictError`'s category preserved.
 - **Detours compose with `ctx.cross()` transparently.** When trail A crosses trail B, and B fails with an error that matches A's detour, B's full pipeline runs first (including B's detours). Whatever error escapes B is seen by A's blaze as an `Err` and enters A's detour loop. Recursive composition works without any special casing.
@@ -214,9 +214,9 @@ Runtime treats both uniformly. The detour loop doesn't know or care whether a de
 
 - **Framework retry layer for `retryable: true` errors.** The taxonomy already carries a `retryable` flag per category (`timeout`, `network`, `rate_limit` are retryable; `conflict`, `permission`, `validation` are not). A framework-provided layer — default-on in every topo, positioned just outside the detour loop — is expected to honor this flag with configurable backoff. **This ADR does not define that layer.** Detours handle typed recovery keyed by specific error classes; the retry layer handles category-level retry for errors with no domain-specific recovery. The two compose by construction — detours match on class, the retry layer matches on category, and `RetryExhaustedError` always sets `retryable: false` at the instance level to prevent amplification across `ctx.cross()` boundaries or stacked layers.
 
-- **Resource-level recovery declarations.** A mechanism for resources to declare their own recovery policies that would apply uniformly to every trail using them is deliberately out of scope. The current set of concrete failure modes in the Trails ecosystem is adequately served by (a) the framework retry layer for retryable errors, (b) authored trail-level detours for domain-specific recovery, and (c) `deriveTrail` synthesis for store-implied recovery. When resource-specific recovery semantics emerge as a concrete need — particularly for third-party connectors with protocol-specific retry, OAuth token refresh on 401, or other credential-aware recovery actions — a future ADR should address it directly, building on the trail-level runtime defined here. The `detours` vocabulary is pinned to trails by [ADR-0023](../0023-simplifying-the-trails-lexicon.md) ("the trail blazes forward; if blocked, it detours"); if resource-level recovery lands, it needs its own word. A prerequisite is that framework errors remain backend-agnostic — no `SqliteBusyError`, no `DbBusyError`, backend-specific conditions must normalize at the connector boundary.
+- **Resource-level recovery declarations.** A mechanism for resources to declare their own recovery policies that would apply uniformly to every trail using them is deliberately out of scope. The current set of concrete failure modes in the Trails ecosystem is adequately served by (a) the framework retry layer for retryable errors, (b) authored trail-level detours for domain-specific recovery, and (c) `deriveTrail` synthesis for store-implied recovery. When resource-specific recovery semantics emerge as a concrete need — particularly for third-party connectors with protocol-specific retry, OAuth token refresh on 401, or other credential-aware recovery actions — a future ADR should address it directly, building on the trail-level runtime defined here. The `detours` vocabulary is pinned to trails by [ADR-0023](0023-simplifying-the-trails-lexicon.md) ("the trail blazes forward; if blocked, it detours"); if resource-level recovery lands, it needs its own word. A prerequisite is that framework errors remain backend-agnostic — no `SqliteBusyError`, no `DbBusyError`, backend-specific conditions must normalize at the connector boundary.
 
-- **`deriveTrail` synthesis of detours.** A future ADR, extending or companioning [ADR-0032](../0032-derivetrail-and-trail-factories.md), will specify when `deriveTrail` synthesizes detours from store declarations. Likely targets: versioned tables synthesizing `ConflictError` recovery with a default merge strategy (server-generated fields preserved from current, user-authored fields merged from incoming). This ADR ensures the runtime treats derived detours the same as authored detours; the synthesis rules themselves are deferred.
+- **`deriveTrail` synthesis of detours.** A future ADR, extending or companioning [ADR-0032](0032-derivetrail-and-trail-factories.md), will specify when `deriveTrail` synthesizes detours from store declarations. Likely targets: versioned tables synthesizing `ConflictError` recovery with a default merge strategy (server-generated fields preserved from current, user-authored fields merged from incoming). This ADR ensures the runtime treats derived detours the same as authored detours; the synthesis rules themselves are deferred.
 
 - **Scenario-based testing.** A future ADR may introduce scenario syntax on trail examples (e.g., *"given this resource fails on the first call, verify the detour recovers"*). Because detours are declarative, such scenarios fall out as a pure extension of the existing examples model. This ADR makes no commitment about their shape.
 
@@ -228,10 +228,10 @@ Runtime treats both uniformly. The detour loop doesn't know or care whether a de
 
 ## References
 
-- [ADR-0000: The contract is queryable](../0000-core-premise.md#the-contract-is-queryable) — the tenet that obligates declarative recovery to be load-bearing at runtime.
-- [ADR-0000: Validate at the boundary, trust internally](../0000-core-premise.md#validate-at-the-boundary-trust-internally) — detours operate inside the validated-input contract; `recover` receives trusted input.
-- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — detours match on `Result.err(TrailsError)` values, preserving the throw-free pipeline invariant.
-- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — the pipeline this ADR extends. The detour loop inserts between layer composition and the non-`TrailsError` error wrap.
-- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the vocabulary ruling that pins `detour` to trails via the `blaze`-pair metaphor.
-- [ADR-0032: deriveTrail and Trail Factories](../0032-derivetrail-and-trail-factories.md) — the synthesis mechanism that may populate `TrailSpec.detours` from store declarations in a future extension.
-- [AGENTS.md — factory-provided trails carve-out](../../../AGENTS.md) — the temporary exemption for inline recovery in factory-provided trails, retiring when the reconcile factory refactors to declarative detours.
+- [ADR-0000: The contract is queryable](0000-core-premise.md#the-contract-is-queryable) — the tenet that obligates declarative recovery to be load-bearing at runtime.
+- [ADR-0000: Validate at the boundary, trust internally](0000-core-premise.md#validate-at-the-boundary-trust-internally) — detours operate inside the validated-input contract; `recover` receives trusted input.
+- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) — detours match on `Result.err(TrailsError)` values, preserving the throw-free pipeline invariant.
+- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the pipeline this ADR extends. The detour loop inserts between layer composition and the non-`TrailsError` error wrap.
+- [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — the vocabulary ruling that pins `detour` to trails via the `blaze`-pair metaphor.
+- [ADR-0032: deriveTrail and Trail Factories](0032-derivetrail-and-trail-factories.md) — the synthesis mechanism that may populate `TrailSpec.detours` from store declarations in a future extension.
+- [AGENTS.md — Trail Rules](../../AGENTS.md) — repository guidance that detours are the default recovery mechanism for trails.

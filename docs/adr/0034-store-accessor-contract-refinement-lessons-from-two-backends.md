@@ -1,18 +1,19 @@
 ---
+id: 34
 slug: store-accessor-contract-refinement-lessons-from-two-backends
-title: "Store Accessor Contract Refinement: Lessons from Two Backends"
-status: draft
+title: Store Accessor Contract Refinement: Lessons from Two Backends
+status: accepted
 created: 2026-04-12
-updated: 2026-04-12
+updated: 2026-04-13
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [31]
 ---
 
-# ADR: Store Accessor Contract Refinement: Lessons from Two Backends
+# ADR-0034: Store Accessor Contract Refinement: Lessons from Two Backends
 
 ## Context
 
-[ADR-0031: Backend-Agnostic Store Schemas](../0031-backend-agnostic-store-schemas.md) established the store as a backend-agnostic persistence domain. It defined the kind taxonomy (tabular, document, file, kv, cache) and promised that one store schema could project into different backends via connectors. At the time, only the Drizzle connector existed.
+[ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) established the store as a backend-agnostic persistence domain. It defined the kind taxonomy (tabular, document, file, kv, cache) and promised that one store schema could project into different backends via connectors. At the time, only the Drizzle connector existed.
 
 Building the first-party jsonfile backend (`@ontrails/store/jsonfile`) provided the second data point. Two concrete implementations — one SQL-backed (Drizzle/SQLite), one file-backed (JSON arrays on disk) — reveal which parts of the accessor contract are truly universal and which are tabular-specific. This ADR captures those findings and tightens the contract accordingly.
 
@@ -108,10 +109,10 @@ Both connectors validate this: Drizzle uses SQL defaults and application-side ma
 
 ## References
 
-- [ADR-0031: Backend-Agnostic Store Schemas](../0031-backend-agnostic-store-schemas.md) — the parent ADR this refines
-- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) — trail factories that compose against the accessor protocol
+- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the parent ADR this refines
+- [ADR-0032: `deriveTrail()` and Trail Factories](0032-derivetrail-and-trail-factories.md) — trail factories that compose against the accessor protocol
 - `packages/store/src/types.ts` — `StoreAccessor`, `StoreTableAccessor`, and the compile-time assertion
 - `packages/core/src/store/accessor-protocol.ts` — `StoreAccessorProtocol` type-only protocol
 - `packages/store/src/jsonfile/runtime.ts` — jsonfile backend implementing `StoreAccessor`
 - `connectors/drizzle/src/runtime.ts` — Drizzle connector implementing `StoreTableAccessor`
-- [Tenets: One write, many reads](../../tenets.md) — the governing principle that accessor tiers operationalize
+- [Tenets: One write, many reads](../tenets.md) — the governing principle that accessor tiers operationalize

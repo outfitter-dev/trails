@@ -160,11 +160,6 @@
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
         },
         {
-          "context": "[ADR-0000's premise that the contract is queryable](../0000-core-premise.md#the-contract-is-queryable) depends on declarations being load-bearing at runtime. When a field exists on the trail spec but ",
-          "from": "20260411",
-          "fromPath": "docs/adr/drafts/20260411-detour-execution-for-recovery.md"
-        },
-        {
           "context": "- **[ADR-0000: Core Premise](./adr/0000-core-premise.md)** — Why contracts, why Result, why derive",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -301,11 +296,6 @@
           "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the Result and error taxonomy that gains `VersionNotSupportedError`",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-trail-versioning.md"
-        },
-        {
-          "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — detours match on `Result.err(TrailsError)` values, preserving the throw-free pipeline invariant.",
-          "from": "20260411",
-          "fromPath": "docs/adr/drafts/20260411-detour-execution-for-recovery.md"
         },
         {
           "context": "- **[ADR-0002: Built-In Result Type](./adr/0002-built-in-result-type.md)** — Own the Result primitive, zero dependencies",
@@ -582,11 +572,6 @@
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — `executeTrail` is the chokepoint where tracing wraps. Moving tracing into core puts it next to the pipeline it instrumen",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-unified-observability.md"
-        },
-        {
-          "context": "What hasn't existed is **runtime execution**. No component of [`executeTrail`](../0006-shared-execution-pipeline.md) reads the `detours:` field today. A trail can declare a detour for `ConflictError`,",
-          "from": "20260411",
-          "fromPath": "docs/adr/drafts/20260411-detour-execution-for-recovery.md"
         },
         {
           "context": "- **[ADR-0006: Shared Execution Pipeline](./adr/0006-shared-execution-pipeline.md)** — One `executeTrail`, Result-returning builders",
@@ -1427,11 +1412,6 @@
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
         },
         {
-          "context": "Detours are already in the Trails lexicon as a trail-level field: *\"recovery paths when the trail is blocked or fails. The trail blazes forward; if blocked, it detours.\"* See [ADR-0023](../0023-simpli",
-          "from": "20260411",
-          "fromPath": "docs/adr/drafts/20260411-detour-execution-for-recovery.md"
-        },
-        {
           "context": "- **[ADR-0023: Simplifying the Trails Lexicon](./adr/0023-simplifying-the-trails-lexicon.md)** — Brand-vs-plain heuristic, four pre-1.0 renames, vocabulary → lexicon",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1734,6 +1714,11 @@
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
         {
+          "context": "[ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) established the store as a backend-agnostic persistence domain. It defined the kind taxonomy (tabular, document, file",
+          "from": "0034",
+          "fromPath": "docs/adr/0034-store-accessor-contract-refinement-lessons-from-two-backends.md"
+        },
+        {
           "context": "- [ADR-0031: Backend-Agnostic Store Schemas](../0031-backend-agnostic-store-schemas.md) -- the store schema abstraction that search declarations extend",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
@@ -1773,6 +1758,11 @@
           "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
         },
         {
+          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](0032-derivetrail-and-trail-factories.md) — trail factories that compose against the accessor protocol",
+          "from": "0034",
+          "fromPath": "docs/adr/0034-store-accessor-contract-refinement-lessons-from-two-backends.md"
+        },
+        {
           "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- `deriveTrail()` and `ingest()` factory that produces trails from external input shapes",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
@@ -1781,11 +1771,6 @@
           "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- `ingest()` factory for webhook-to-trail flows that can feed events to WebSocket subscribers",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
-        },
-        {
-          "context": "- **Future `deriveTrail` detour synthesis.** [ADR-0032](../0032-derivetrail-and-trail-factories.md) makes `deriveTrail` synthesize default blazes for standard CRUD operations. A natural extension is s",
-          "from": "20260411",
-          "fromPath": "docs/adr/drafts/20260411-detour-execution-for-recovery.md"
         }
       ],
       "number": "0032",
@@ -1808,6 +1793,19 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Detour Execution for Recovery",
+      "updated": "2026-04-13"
+    },
+    {
+      "created": "2026-04-12",
+      "depends_on": ["31"],
+      "inbound": [],
+      "number": "0034",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0034-store-accessor-contract-refinement-lessons-from-two-backends.md",
+      "slug": "store-accessor-contract-refinement-lessons-from-two-backends",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Store Accessor Contract Refinement: Lessons from Two Backends",
       "updated": "2026-04-13"
     }
   ],
