@@ -33,7 +33,11 @@ const getMissingSignalIds = (
   onTargetSignalIds: ReadonlySet<string>
 ): readonly string[] =>
   CHANGE_SIGNAL_OPERATIONS.map((operation) => `${tableId}.${operation}`).filter(
-    (signalId) => !onTargetSignalIds.has(signalId)
+    (signalId) =>
+      !onTargetSignalIds.has(signalId) &&
+      // Bare-name fallback: string-literal `on:` consumers store the signal
+      // without the composite `${storeBinding}:` prefix.
+      !onTargetSignalIds.has(signalId.replace(/^[^:]+:/, ''))
   );
 
 /**
