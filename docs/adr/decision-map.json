@@ -100,7 +100,7 @@
           "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — the information architecture and \"one write, many reads\" principle that `deriveTrail()` operationalizes",
+          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — the information architecture and \"one write, many reads\" principle that `deriveTrail()` operationalizes",
           "from": "0032",
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
@@ -219,7 +219,7 @@
           "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
         },
         {
-          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — the verb+noun helper convention that `deriveTrail()` follows",
+          "context": "- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — the verb+noun helper convention that `deriveTrail()` follows",
           "from": "0032",
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
@@ -352,7 +352,7 @@
           "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
         },
         {
-          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the trail primitive that factories produce",
+          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the trail primitive that factories produce",
           "from": "0032",
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
@@ -888,7 +888,7 @@
           "fromPath": "docs/adr/0013-tracing.md"
         },
         {
-          "context": "[^4]: [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) — verification as permit resolution",
+          "context": "[^4]: [ADR-0012: Connector-Agnostic Permits](0012-connector-agnostic-permits.md) — verification as permit resolution",
           "from": "0032",
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
@@ -1124,7 +1124,7 @@
           "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
         },
         {
-          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store schema that `deriveTrail()` reads from",
+          "context": "- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — the store schema that `deriveTrail()` reads from",
           "from": "0032",
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
@@ -1382,7 +1382,7 @@
           "fromPath": "docs/adr/0030-contours-as-first-class-domain-objects.md"
         },
         {
-          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the `pattern` field and `derive*` grammar rule",
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — the `pattern` field and `derive*` grammar rule",
           "from": "0032",
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
@@ -1616,7 +1616,7 @@
           "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
         },
         {
-          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](../0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector-contributed `/trails` subpaths",
+          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector-contributed `/trails` subpaths",
           "from": "0032",
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
@@ -1719,7 +1719,7 @@
           "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
         },
         {
-          "context": "- [ADR-0031: Backend-Agnostic Store Schemas](../0031-backend-agnostic-store-schemas.md) — the store schema that `deriveTrail()` reads from",
+          "context": "- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store schema that `deriveTrail()` reads from",
           "from": "0032",
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },

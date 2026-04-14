@@ -279,23 +279,23 @@ Start small. Ship store trail factories and composition trail factories in their
 ## Non-decisions
 
 - **Pattern shapes at 1.0.** Which patterns (`crud`, `toggle`, `sync`, `reconcile`, `fanout`, `gate`, `transition`, `ingest`) ship in the first release. This depends on which ones prove out in the dogfooding app.
-- **Contour integration.** How `deriveTrail()` interacts with contour declarations — deriving input schemas from contours rather than store schemas — depends on [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md).
+- **Contour integration.** How `deriveTrail()` interacts with contour declarations — deriving input schemas from contours rather than store schemas — depends on [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md).
 - **Connector-contributed factories.** Whether connectors export optimized trail factories (e.g., D1 batch CRUD) via their `/trails` subpath depends on [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) and how bundles carry trails alongside resources.
 
 ## References
 
-- [ADR-0000: Core Premise](../0000-core-premise.md) — the information architecture and "one write, many reads" principle that `deriveTrail()` operationalizes
-- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — the verb+noun helper convention that `deriveTrail()` follows
-- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the trail primitive that factories produce
-- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store schema that `deriveTrail()` reads from
-- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the `pattern` field and `derive*` grammar rule
-- [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) — the upstream domain noun that feeds `deriveTrail()`
-- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](../0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector-contributed `/trails` subpaths
-- [ADR-0031: Backend-Agnostic Store Schemas](../0031-backend-agnostic-store-schemas.md) — the store schema that `deriveTrail()` reads from
-- [Tenets: Reduce ceremony, not clarity](../../tenets.md) — the governing principle; trail factories are ceremony reduction that rests on inspectable ground truth
-- [Tenets: The bar for new primitives](../../tenets.md#the-bar-for-new-primitives) — `deriveTrail()` passes because it strengthens existing primitives rather than adding new ones
+- [ADR-0000: Core Premise](0000-core-premise.md) — the information architecture and "one write, many reads" principle that `deriveTrail()` operationalizes
+- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — the verb+noun helper convention that `deriveTrail()` follows
+- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the trail primitive that factories produce
+- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — the store schema that `deriveTrail()` reads from
+- [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — the `pattern` field and `derive*` grammar rule
+- [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md) — the upstream domain noun that feeds `deriveTrail()`
+- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector-contributed `/trails` subpaths
+- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store schema that `deriveTrail()` reads from
+- [Tenets: Reduce ceremony, not clarity](../tenets.md) — the governing principle; trail factories are ceremony reduction that rests on inspectable ground truth
+- [Tenets: The bar for new primitives](../tenets.md#the-bar-for-new-primitives) — `deriveTrail()` passes because it strengthens existing primitives rather than adding new ones
 
-[^1]: [ADR-0023: Simplifying the Trails Lexicon — Grammar rules](../0023-simplifying-the-trails-lexicon.md)
-[^2]: [Tenets: Reduce ceremony, not clarity](../../tenets.md)
-[^3]: [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — `pattern` as the declared operational shape
-[^4]: [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) — verification as permit resolution
+[^1]: [ADR-0023: Simplifying the Trails Lexicon — Grammar rules](0023-simplifying-the-trails-lexicon.md)
+[^2]: [Tenets: Reduce ceremony, not clarity](../tenets.md)
+[^3]: [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — `pattern` as the declared operational shape
+[^4]: [ADR-0012: Connector-Agnostic Permits](0012-connector-agnostic-permits.md) — verification as permit resolution
