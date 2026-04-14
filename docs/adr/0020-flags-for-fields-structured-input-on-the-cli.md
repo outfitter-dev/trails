@@ -4,7 +4,7 @@ slug: flags-for-fields-structured-input-on-the-cli
 title: Flags for Fields, Structured Input on the CLI
 status: accepted
 created: 2026-04-03
-updated: 2026-04-10
+updated: 2026-04-13
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [8, 19]
 ---
@@ -150,7 +150,7 @@ The framework does not impose ceremony before it becomes necessary.
 - [ADR-0019: Hierarchical Command Trees from Trail IDs](0019-hierarchical-command-trees-from-trail-ids.md) — the companion decision for nested command paths
 - [Trails Design Tenets](../tenets.md) — especially "derive by default, declare to tighten, override when wrong" and "schema always exists"
 - [CLI Input Presentation Model](../../.scratch/2026-04-10-cli-input-presentation-model.md) — design notes covering the full four-layer model including globals and app conventions
-- [ADR: Contours as First-Class Domain Objects](drafts/20260409-contours-as-first-class-domain-objects.md) (draft) — contour-aware `deriveTrail()` that can carry `args` conventions
-- [ADR: `deriveTrail()` and Trail Factories](drafts/20260409-derivetrail-and-trail-factories.md) (draft) — reusable patterns that absorb `args` and `fields` declarations
+- [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md) — contour-aware `deriveTrail()` that can carry `args` conventions
+- [ADR-0032: `deriveTrail()` and Trail Factories](0032-derivetrail-and-trail-factories.md) — reusable patterns that absorb `args` and `fields` declarations
 
 [^retro]: The Stash dogfood retro identified `gist.create` as the first practical place where flat flag derivation fails for nested input.
