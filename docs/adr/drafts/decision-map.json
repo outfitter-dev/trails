@@ -211,7 +211,7 @@
           "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
         },
         {
-          "context": "- **Connector-contributed factories.** Whether connectors export optimized trail factories (e.g., D1 batch CRUD) via their `/trails` subpath depends on [ADR: Resource Bundles](20260409-resource-bundle",
+          "context": "- **Connector-contributed factories.** Whether connectors export optimized trail factories (e.g., D1 batch CRUD) via their `/trails` subpath depends on [ADR: Resource Bundles](drafts/20260409-resource",
           "from": "0032",
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },

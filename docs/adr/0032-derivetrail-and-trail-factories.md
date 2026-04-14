@@ -280,7 +280,7 @@ Start small. Ship store trail factories and composition trail factories in their
 
 - **Pattern shapes at 1.0.** Which patterns (`crud`, `toggle`, `sync`, `reconcile`, `fanout`, `gate`, `transition`, `ingest`) ship in the first release. This depends on which ones prove out in the dogfooding app.
 - **Contour integration.** How `deriveTrail()` interacts with contour declarations — deriving input schemas from contours rather than store schemas — depends on [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md).
-- **Connector-contributed factories.** Whether connectors export optimized trail factories (e.g., D1 batch CRUD) via their `/trails` subpath depends on [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) and how bundles carry trails alongside resources.
+- **Connector-contributed factories.** Whether connectors export optimized trail factories (e.g., D1 batch CRUD) via their `/trails` subpath depends on [ADR: Resource Bundles](drafts/20260409-resource-bundles.md) (draft) and how bundles carry trails alongside resources.
 
 ## References
 

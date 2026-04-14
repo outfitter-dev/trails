@@ -149,7 +149,6 @@ The framework does not impose ceremony before it becomes necessary.
 - [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — the deterministic derivation model that `args` extends
 - [ADR-0019: Hierarchical Command Trees from Trail IDs](0019-hierarchical-command-trees-from-trail-ids.md) — the companion decision for nested command paths
 - [Trails Design Tenets](../tenets.md) — especially "derive by default, declare to tighten, override when wrong" and "schema always exists"
-- [CLI Input Presentation Model](../../.scratch/2026-04-10-cli-input-presentation-model.md) — design notes covering the full four-layer model including globals and app conventions
 - [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md) — contour-aware `deriveTrail()` that can carry `args` conventions
 - [ADR-0032: `deriveTrail()` and Trail Factories](0032-derivetrail-and-trail-factories.md) — reusable patterns that absorb `args` and `fields` declarations
 
