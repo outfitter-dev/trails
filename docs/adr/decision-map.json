@@ -1709,9 +1709,19 @@
       "depends_on": ["9", "14", "16", "22", "29"],
       "inbound": [
         {
+          "context": "- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store-kind model that makes first-party backends meaningful",
+          "from": "0029",
+          "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
           "context": "- [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store schema that `deriveTrail()` reads from",
           "from": "0032",
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
+        },
+        {
+          "context": "[ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) established the store as a backend-agnostic persistence domain. It defined the kind taxonomy (tabular, document, file",
+          "from": "0034",
+          "fromPath": "docs/adr/0034-store-accessor-contract-refinement-lessons-from-two-backends.md"
         },
         {
           "context": "- [ADR-0031: Backend-Agnostic Store Schemas](../0031-backend-agnostic-store-schemas.md) -- the store schema abstraction that search declarations extend",
@@ -1753,6 +1763,11 @@
           "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
         },
         {
+          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](0032-derivetrail-and-trail-factories.md) — trail factories that compose against the accessor protocol",
+          "from": "0034",
+          "fromPath": "docs/adr/0034-store-accessor-contract-refinement-lessons-from-two-backends.md"
+        },
+        {
           "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- `deriveTrail()` and `ingest()` factory that produces trails from external input shapes",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
@@ -1783,6 +1798,19 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Detour Execution for Recovery",
+      "updated": "2026-04-13"
+    },
+    {
+      "created": "2026-04-12",
+      "depends_on": ["31"],
+      "inbound": [],
+      "number": "0034",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0034-store-accessor-contract-refinement-lessons-from-two-backends.md",
+      "slug": "store-accessor-contract-refinement-lessons-from-two-backends",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Store Accessor Contract Refinement: Lessons from Two Backends",
       "updated": "2026-04-13"
     }
   ],

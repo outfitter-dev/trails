@@ -54,7 +54,7 @@ A new package provides the framework-agnostic store model. It follows the same t
 | | Left side (trailheads) | Right side (store) |
 |---|---|---|
 | Framework-agnostic model | `CliCommand[]`, `McpTool[]`, `HttpRoute[]` | Store definitions, derived schemas, accessor contracts |
-| Connector subpath | `/commander`, `/hono` | `/drizzle` (see the Drizzle Store Connector draft) |
+| Binding package | `/commander`, `/hono` | `@ontrails/with-drizzle`, plus built-in backends such as `@ontrails/store/jsonfile` |
 | One-liner | `trailhead(app)` | `store({...})` |
 | Escape hatch | `buildCliCommands()` then manual wiring | connector-native query access such as `conn.query()` |
 | Derived from | Zod input schema + intent | Zod entity schema + persistence meta |
