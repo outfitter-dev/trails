@@ -677,7 +677,7 @@
           "fromPath": "docs/adr/0019-hierarchical-command-trees-from-trail-ids.md"
         },
         {
-          "context": "- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — this keeps CLI derivation deterministic while refusing lossy projections",
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — the deterministic derivation model that `args` extends",
           "from": "0020",
           "fromPath": "docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md"
         },
@@ -1297,7 +1297,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Flags for Fields, Structured Input on the CLI",
-      "updated": "2026-04-03"
+      "updated": "2026-04-13"
     },
     {
       "created": "2026-04-03",
@@ -1660,6 +1660,11 @@
       "depends_on": ["0", "1", "3", "9", "16", "23"],
       "inbound": [
         {
+          "context": "- [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md) — contour-aware `deriveTrail()` that can carry `args` conventions",
+          "from": "0020",
+          "fromPath": "docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md"
+        },
+        {
           "context": "- [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md) — contour-aware `deriveTrail()` that may auto-generate `crossInput`",
           "from": "0024",
           "fromPath": "docs/adr/0024-typed-trail-composition.md"
@@ -1747,6 +1752,11 @@
       "created": "2026-04-09",
       "depends_on": ["0", "1", "3", "16", "23", "30"],
       "inbound": [
+        {
+          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](0032-derivetrail-and-trail-factories.md) — reusable patterns that absorb `args` and `fields` declarations",
+          "from": "0020",
+          "fromPath": "docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md"
+        },
         {
           "context": "- **Pattern shapes at 1.0.** Toggle and CRUD are clear candidates. Transition, collection, and counter can follow. Which patterns ship initially is a separate design decision — see [ADR-0032: `deriveT",
           "from": "0030",
