@@ -15,10 +15,5 @@
   },
   "peerDependencies": {
     "@ontrails/logging": "workspace:^"
-  },
-  "peerDependenciesMeta": {
-    "@logtape/logtape": {
-      "optional": true
-    }
   }
 }
