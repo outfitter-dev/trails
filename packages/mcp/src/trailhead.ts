@@ -60,14 +60,27 @@ export interface TrailheadMcpOptions {
 
 /**
  * Create an MCP Server instance and register all tools.
+ *
+ * When provided, `info.description` is forwarded to the MCP SDK as the
+ * server's `instructions` field — the SDK's documented channel for
+ * "optional instructions describing how to use the server and its features."
  */
 export const createMcpServer = (
   tools: McpToolDefinition[],
-  info: { readonly name: string; readonly version: string }
+  info: {
+    readonly name: string;
+    readonly version: string;
+    readonly description?: string | undefined;
+  }
 ): Server => {
   const server = new Server(
     { name: info.name, version: info.version },
-    { capabilities: { tools: {} } }
+    {
+      capabilities: { tools: {} },
+      ...(info.description === undefined
+        ? {}
+        : { instructions: info.description }),
+    }
   );
 
   // Build a lookup map for tool dispatch
@@ -169,6 +182,7 @@ export const trailhead = async (
   }
 
   const server = createMcpServer(toolsResult.value, {
+    description: options.description ?? app.description,
     name: options.name ?? app.name,
     version: options.version ?? app.version ?? '0.1.0',
   });

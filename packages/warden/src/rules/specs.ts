@@ -31,7 +31,11 @@ export interface SchemaFieldInfo {
   readonly required: boolean;
 }
 
-const TRAIL_LIKE_PATTERN = /\b(trail|signal)\s*\(/g;
+// Match `trail(...)` / `signal(...)` declaration sites, not method calls.
+// The negative lookbehind excludes `foo.signal(...)`, `foo?.signal(...)`, and
+// similar member-expression call sites (including optional chaining with
+// whitespace) where `signal` / `trail` is a property name, not a factory.
+const TRAIL_LIKE_PATTERN = /(?<![.?])\b(trail|signal)\s*\(/g;
 
 const PROPERTY_PATTERN =
   /^(?:readonly\s+)?(?:(["'`])([^"'`]+)\1|([A-Za-z_$][\w$]*))\s*:\s*([\s\S]+)$/;
