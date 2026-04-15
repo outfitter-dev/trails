@@ -14,7 +14,11 @@ import * as onboard from './trails/onboard.js';
 import * as search from './trails/search.js';
 
 export const app = topo(
-  'demo',
+  {
+    description: 'Trails demo application',
+    name: 'demo',
+    version: '0.1.0',
+  },
   entityStore,
   notificationStore,
   entity,

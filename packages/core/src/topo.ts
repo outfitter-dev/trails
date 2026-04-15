@@ -13,8 +13,16 @@ import type { AnyTrail } from './trail.js';
 // Public types
 // ---------------------------------------------------------------------------
 
+export interface TopoIdentity {
+  readonly name: string;
+  readonly version?: string;
+  readonly description?: string;
+}
+
 export interface Topo {
   readonly name: string;
+  readonly version?: string;
+  readonly description?: string;
   readonly contours: ReadonlyMap<string, AnyContour>;
   readonly trails: ReadonlyMap<string, AnyTrail>;
   readonly signals: ReadonlyMap<string, AnySignal>;
@@ -56,7 +64,7 @@ const isRegistrable = (value: unknown): value is Registrable => {
 // ---------------------------------------------------------------------------
 
 const createTopo = (
-  name: string,
+  identity: TopoIdentity,
   contours: ReadonlyMap<string, AnyContour>,
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
@@ -104,7 +112,11 @@ const createTopo = (
     return [...signals.values()];
   },
 
-  name,
+  name: identity.name,
+  ...(identity.version !== undefined && { version: identity.version }),
+  ...(identity.description !== undefined && {
+    description: identity.description,
+  }),
   resourceCount: resources.size,
   resourceIds(): string[] {
     return [...resources.keys()];
@@ -290,9 +302,14 @@ const registerModuleValues = (
 };
 
 export const topo = (
-  name: string,
+  nameOrIdentity: string | TopoIdentity,
   ...modules: Record<string, unknown>[]
 ): Topo => {
+  const identity: TopoIdentity =
+    typeof nameOrIdentity === 'string'
+      ? { name: nameOrIdentity }
+      : nameOrIdentity;
+
   const contours = new Map<string, AnyContour>();
   const trails = new Map<string, AnyTrail>();
   const signals = new Map<string, AnySignal>();
@@ -302,5 +319,5 @@ export const topo = (
     registerModuleValues(mod, contours, trails, signals, resources);
   }
 
-  return createTopo(name, contours, trails, signals, resources);
+  return createTopo(identity, contours, trails, signals, resources);
 };

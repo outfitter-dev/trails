@@ -57,4 +57,24 @@ trail("entity.show", {
 
     expect(diagnostics).toHaveLength(0);
   });
+
+  test('does not treat legacy event declarations as valid trail refs', () => {
+    const code = `
+event("entity.updated", {
+  payload: z.object({ id: z.string() }),
+})
+
+trail("entity.show", {
+  input: z.object({
+    query: z.string().describe("Search query. @see entity.updated"),
+  }),
+  blaze: (input) => Result.ok(input),
+})`;
+
+    const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.rule).toBe('valid-describe-refs');
+    expect(diagnostics[0]?.message).toContain('entity.updated');
+  });
 });

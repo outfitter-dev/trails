@@ -85,10 +85,17 @@ describe('trailhead', () => {
 
   test('TrailheadMcpOptions accepts resource overrides', () => {
     const opts: Parameters<typeof trailhead>[1] = {
+      description: 'Test MCP server',
+      name: 'testapp',
       resources: {},
       validate: false,
+      version: '1.2.3',
     };
+    expect(opts.description).toBe('Test MCP server');
+    expect(opts.name).toBe('testapp');
     expect(opts.resources).toEqual({});
+    expect(opts.validate).toBe(false);
+    expect(opts.version).toBe('1.2.3');
   });
 
   test('createMcpServer registers tools that can be listed', () => {

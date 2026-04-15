@@ -151,15 +151,17 @@ hidden unless you include their exact trail ID.
 
 ```typescript
 await trailhead(app, {
-  serverInfo: {
-    name: 'myapp',
-    version: '1.0.0',
-  },
+  name: 'myapp',
+  version: '1.0.0',
   transport: 'stdio', // Only stdio for now; SSE/streamable HTTP planned
   layers: [myAuthGate, myRateLimitGate],
   createContext: () => createTrailContext({ logger: myLogger }),
 });
 ```
+
+`trailhead(app)` already derives the MCP server name and version from the
+topo identity. Pass `name` or `version` only when a specific trailhead instance
+needs to override them.
 
 ## AbortSignal Propagation
 

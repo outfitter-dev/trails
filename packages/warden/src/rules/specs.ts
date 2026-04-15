@@ -31,7 +31,7 @@ export interface SchemaFieldInfo {
   readonly required: boolean;
 }
 
-const TRAIL_LIKE_PATTERN = /\b(trail|event)\s*\(/g;
+const TRAIL_LIKE_PATTERN = /\b(trail|signal)\s*\(/g;
 
 const PROPERTY_PATTERN =
   /^(?:readonly\s+)?(?:(["'`])([^"'`]+)\1|([A-Za-z_$][\w$]*))\s*:\s*([\s\S]+)$/;

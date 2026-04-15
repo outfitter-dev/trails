@@ -39,22 +39,19 @@ export interface TrailheadMcpOptions {
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
+  readonly description?: string | undefined;
   readonly exclude?: readonly string[] | undefined;
   readonly excludeTrails?: readonly string[] | undefined;
   readonly include?: readonly string[] | undefined;
   readonly includeTrails?: readonly string[] | undefined;
   readonly intent?: readonly Intent[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
+  readonly name?: string | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
-  readonly serverInfo?:
-    | {
-        readonly name?: string | undefined;
-        readonly version?: string | undefined;
-      }
-    | undefined;
   readonly transport?: 'stdio' | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
   readonly validate?: boolean | undefined;
+  readonly version?: string | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -172,8 +169,8 @@ export const trailhead = async (
   }
 
   const server = createMcpServer(toolsResult.value, {
-    name: options.serverInfo?.name ?? app.name,
-    version: options.serverInfo?.version ?? '0.1.0',
+    name: options.name ?? app.name,
+    version: options.version ?? app.version ?? '0.1.0',
   });
 
   await connectStdio(server);

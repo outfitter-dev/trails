@@ -9,6 +9,4 @@ import { trailhead } from '@ontrails/mcp';
 
 import { app } from './app.js';
 
-await trailhead(app, {
-  serverInfo: { name: 'demo', version: '0.1.0' },
-});
+await trailhead(app);

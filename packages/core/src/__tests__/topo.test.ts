@@ -60,6 +60,20 @@ const mockResource = (
 // ---------------------------------------------------------------------------
 
 describe('topo', () => {
+  describe('identity', () => {
+    test('preserves object identity metadata', () => {
+      const t = topo({
+        description: 'Demo topo',
+        name: 'my-app',
+        version: '1.2.3',
+      });
+
+      expect(t.name).toBe('my-app');
+      expect(t.version).toBe('1.2.3');
+      expect(t.description).toBe('Demo topo');
+    });
+  });
+
   describe('collection', () => {
     test('returns Topo with name', () => {
       const t = topo('my-app');
