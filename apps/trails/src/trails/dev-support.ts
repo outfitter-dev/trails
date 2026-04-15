@@ -174,7 +174,7 @@ const liveDevStats = (
   },
 });
 
-const resolveDevStatsContext = (options?: DevRetentionOptions) => {
+const deriveDevStatsContext = (options?: DevRetentionOptions) => {
   const rootDir = deriveRootDir(options?.rootDir);
   const dbPath = deriveTrailsDbPath({ rootDir });
   const trailsDir = deriveTrailsDir({ rootDir });
@@ -188,7 +188,7 @@ const resolveDevStatsContext = (options?: DevRetentionOptions) => {
   };
 };
 
-const resolveDevCleanupContext = (
+const deriveDevCleanupContext = (
   options?: DevRetentionOptions & { readonly dryRun?: boolean }
 ): DevCleanupContext => {
   const rootDir = deriveRootDir(options?.rootDir);
@@ -268,7 +268,7 @@ export const buildDevStats = (
   options?: DevRetentionOptions
 ): DevStatsReport => {
   const { dbExists, dbPath, lockPath, retention, rootDir } =
-    resolveDevStatsContext(options);
+    deriveDevStatsContext(options);
 
   if (!dbExists) {
     return emptyDevStats(dbPath, lockPath, retention);
@@ -286,7 +286,7 @@ export const buildDevStats = (
 export const cleanDevState = (
   options?: DevRetentionOptions & { readonly dryRun?: boolean }
 ): DevCleanReport => {
-  const context = resolveDevCleanupContext(options);
+  const context = deriveDevCleanupContext(options);
   if (!existsSync(context.dbPath)) {
     return emptyDevClean(context.retention, context.dryRun);
   }
