@@ -1,7 +1,7 @@
 import { ValidationError } from './errors.js';
 import { Result } from './result.js';
 import type { Topo } from './topo.js';
-import { validateEstablishedTopo as validateDraftFreeTopo } from './draft.js';
+import { validateDraftFreeTopo } from './draft.js';
 import type { TopoIssue } from './validate-topo.js';
 import { validateTopo } from './validate-topo.js';
 

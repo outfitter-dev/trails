@@ -2,7 +2,7 @@ import { describe, test, expect } from 'bun:test';
 import { resolve, join } from 'node:path';
 
 import { PermissionError } from '../errors.js';
-import { securePath, isPathSafe, resolveSafePath } from '../path-security.js';
+import { securePath, isPathSafe, deriveSafePath } from '../path-security.js';
 
 // ---------------------------------------------------------------------------
 // securePath
@@ -81,33 +81,33 @@ describe('isPathSafe', () => {
 });
 
 // ---------------------------------------------------------------------------
-// resolveSafePath
+// deriveSafePath
 // ---------------------------------------------------------------------------
 
-describe('resolveSafePath', () => {
+describe('deriveSafePath', () => {
   const base = '/project/workspace';
 
   test('joins multiple segments safely', () => {
-    const result = resolveSafePath(base, 'src', 'lib', 'utils.ts');
+    const result = deriveSafePath(base, 'src', 'lib', 'utils.ts');
     expect(result.isOk()).toBe(true);
     expect(result.unwrap()).toBe(join(resolve(base), 'src', 'lib', 'utils.ts'));
   });
 
   test('rejects when segments escape the base', () => {
-    const result = resolveSafePath(base, 'src', '../../../etc');
+    const result = deriveSafePath(base, 'src', '../../../etc');
     expect(result.isErr()).toBe(true);
     const err = result as unknown as { error: PermissionError };
     expect(err.error).toBeInstanceOf(PermissionError);
   });
 
   test('handles single segment', () => {
-    const result = resolveSafePath(base, 'file.txt');
+    const result = deriveSafePath(base, 'file.txt');
     expect(result.isOk()).toBe(true);
     expect(result.unwrap()).toBe(resolve(base, 'file.txt'));
   });
 
   test('handles empty segments', () => {
-    const result = resolveSafePath(base);
+    const result = deriveSafePath(base);
     expect(result.isOk()).toBe(true);
     expect(result.unwrap()).toBe(resolve(base));
   });

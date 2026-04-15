@@ -10,8 +10,8 @@ import {
 import {
   openReadTrailsDb,
   openWriteTrailsDb,
-  resolveTrailsDbPath,
-  resolveTrailsDir,
+  deriveTrailsDbPath,
+  deriveTrailsDir,
 } from '@ontrails/core/internal/trails-db';
 import {
   DEFAULT_MAX_AGE,
@@ -176,8 +176,8 @@ const liveDevStats = (
 
 const resolveDevStatsContext = (options?: DevRetentionOptions) => {
   const rootDir = resolveRootDir(options?.rootDir);
-  const dbPath = resolveTrailsDbPath({ rootDir });
-  const trailsDir = resolveTrailsDir({ rootDir });
+  const dbPath = deriveTrailsDbPath({ rootDir });
+  const trailsDir = deriveTrailsDir({ rootDir });
   const lockPath = resolveLockPath(trailsDir);
   return {
     dbExists: existsSync(dbPath),
@@ -193,7 +193,7 @@ const resolveDevCleanupContext = (
 ): DevCleanupContext => {
   const rootDir = resolveRootDir(options?.rootDir);
   return {
-    dbPath: resolveTrailsDbPath({ rootDir }),
+    dbPath: deriveTrailsDbPath({ rootDir }),
     dryRun: options?.dryRun ?? false,
     retention: buildRetention(options),
     rootDir,

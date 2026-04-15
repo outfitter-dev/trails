@@ -16,6 +16,7 @@ import type {
 } from '../index.js';
 
 const resourceCtx: ResourceContext = {
+  config: {},
   cwd: '/tmp/trails',
   env: { DATABASE_URL: 'file::memory:' },
   workspaceRoot: '/tmp',

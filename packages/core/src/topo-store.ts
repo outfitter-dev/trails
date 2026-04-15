@@ -31,7 +31,7 @@ import {
 import {
   openReadTrailsDb,
   openWriteTrailsDb,
-  resolveTrailsDbPath,
+  deriveTrailsDbPath,
 } from './internal/trails-db.js';
 import type { TrailsDbLocationOptions } from './internal/trails-db.js';
 
@@ -140,7 +140,7 @@ const resolveIdentityIfFresh = (
 const ensureTopoMigratedIfExists = (
   options?: TrailsDbLocationOptions
 ): void => {
-  const dbPath = resolveTrailsDbPath(options);
+  const dbPath = deriveTrailsDbPath(options);
   const identity = resolveIdentityIfFresh(dbPath);
   if (identity === undefined) {
     return;
@@ -222,7 +222,7 @@ const resolveStoreRootDir = (options?: TrailsDbLocationOptions): string =>
 const requireReadDb = (
   options?: TrailsDbLocationOptions
 ): ReturnType<typeof openReadTrailsDb> => {
-  const dbPath = resolveTrailsDbPath(options);
+  const dbPath = deriveTrailsDbPath(options);
   if (!existsSync(dbPath)) {
     throw new NotFoundError(missingStoreMessage);
   }

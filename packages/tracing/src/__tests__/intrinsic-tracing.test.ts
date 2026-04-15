@@ -3,13 +3,13 @@ import {
   InternalError,
   NotFoundError,
   Result,
-  TRACE_CONTEXT_KEY,
   clearTraceSink,
   executeTrail,
   registerTraceSink,
   trail,
   topo,
 } from '@ontrails/core';
+import { TRACE_CONTEXT_KEY } from '@ontrails/core/internal/tracing';
 import type {
   AnyTrail,
   CrossBatchOptions,

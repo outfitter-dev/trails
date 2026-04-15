@@ -7,7 +7,7 @@ import { NotFoundError } from '../errors.js';
 import {
   findWorkspaceRoot,
   isInsideWorkspace,
-  getRelativePath,
+  deriveRelativePath,
 } from '../workspace.js';
 
 // ---------------------------------------------------------------------------
@@ -162,22 +162,22 @@ describe('isInsideWorkspace', () => {
 });
 
 // ---------------------------------------------------------------------------
-// getRelativePath
+// deriveRelativePath
 // ---------------------------------------------------------------------------
 
-describe('getRelativePath', () => {
+describe('deriveRelativePath', () => {
   test('returns relative path from workspace root', () => {
     expect(
-      getRelativePath('/project/packages/core/src/index.ts', '/project')
+      deriveRelativePath('/project/packages/core/src/index.ts', '/project')
     ).toBe('packages/core/src/index.ts');
   });
 
   test('returns .. segments for paths outside workspace', () => {
-    const rel = getRelativePath('/other/file.ts', '/project');
+    const rel = deriveRelativePath('/other/file.ts', '/project');
     expect(rel.startsWith('..')).toBe(true);
   });
 
   test('returns empty string for the root itself', () => {
-    expect(getRelativePath('/project', '/project')).toBe('');
+    expect(deriveRelativePath('/project', '/project')).toBe('');
   });
 });

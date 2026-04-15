@@ -8,7 +8,7 @@ import {
   nonEmptyString,
   positiveInt,
   shortId,
-  hashId,
+  deriveIdHash,
 } from '../branded';
 
 describe('branded', () => {
@@ -131,18 +131,18 @@ describe('branded', () => {
     });
   });
 
-  describe('hashId()', () => {
+  describe('deriveIdHash()', () => {
     test('returns a hex string', () => {
-      const id = hashId('test');
+      const id = deriveIdHash('test');
       expect(id).toMatch(/^[0-9a-f]{8}$/);
     });
 
     test('is deterministic', () => {
-      expect(hashId('hello')).toBe(hashId('hello'));
+      expect(deriveIdHash('hello')).toBe(deriveIdHash('hello'));
     });
 
     test('different inputs produce different outputs', () => {
-      expect(hashId('a')).not.toBe(hashId('b'));
+      expect(deriveIdHash('a')).not.toBe(deriveIdHash('b'));
     });
   });
 });

@@ -71,7 +71,7 @@ export const isInsideWorkspace = (
 /**
  * Returns the relative path from `workspaceRoot` to `filePath`.
  */
-export const getRelativePath = (
+export const deriveRelativePath = (
   filePath: string,
   workspaceRoot: string
 ): string => relative(resolve(workspaceRoot), resolve(filePath));

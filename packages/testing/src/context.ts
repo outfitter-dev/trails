@@ -192,7 +192,7 @@ const buildMockResources = async (app: Topo): Promise<ResourceOverrideMap> => {
   return resources;
 };
 
-export const resolveMockResources = async (
+export const createMockResources = async (
   app: Topo
 ): Promise<ResourceOverrideMap> => await buildMockResources(app);
 

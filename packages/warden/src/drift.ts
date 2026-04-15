@@ -15,7 +15,7 @@ import {
   NotFoundError,
   ValidationError,
 } from '@ontrails/core';
-import { resolveTrailsDir } from '@ontrails/core/internal/trails-db';
+import { deriveTrailsDir } from '@ontrails/core/internal/trails-db';
 import {
   generateTrailheadMap,
   hashTrailheadMap,
@@ -46,7 +46,7 @@ export const checkDrift = async (
   topo?: Topo | undefined
 ): Promise<DriftResult> => {
   try {
-    const trailsDir = resolveTrailsDir({ rootDir });
+    const trailsDir = deriveTrailsDir({ rootDir });
     const committedLock =
       existsSync(rootDir) && statSync(rootDir).isDirectory()
         ? await readTrailheadLockData({ dir: trailsDir })

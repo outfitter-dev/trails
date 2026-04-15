@@ -6,7 +6,7 @@ import {
   createCrossContext,
   createTestContext,
   mergeTestContext,
-  resolveMockResources,
+  createMockResources,
 } from '../context.js';
 import type { TestLogger } from '../types.js';
 
@@ -138,7 +138,7 @@ describe('mergeTestContext', () => {
   });
 });
 
-describe('resolveMockResources', () => {
+describe('createMockResources', () => {
   test('creates fresh mock resources for each invocation', async () => {
     let mockCalls = 0;
     const mockable = resource(`resource.mock.${Bun.randomUUIDv7()}`, {
@@ -150,8 +150,8 @@ describe('resolveMockResources', () => {
     });
     const app = topo('mock-app', { mockable } as Record<string, unknown>);
 
-    const first = await resolveMockResources(app);
-    const second = await resolveMockResources(app);
+    const first = await createMockResources(app);
+    const second = await createMockResources(app);
 
     expect(first).toEqual({ [mockable.id]: { source: 'mock' } });
     expect(second).toEqual(first);
@@ -165,6 +165,6 @@ describe('resolveMockResources', () => {
     });
     const app = topo('plain-app', { plain } as Record<string, unknown>);
 
-    expect(await resolveMockResources(app)).toEqual({});
+    expect(await createMockResources(app)).toEqual({});
   });
 });

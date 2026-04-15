@@ -120,7 +120,7 @@ export const shortId = (length = 8): string => {
  * Produce a deterministic hex hash from an input string.
  * Uses a simple FNV-1a 32-bit hash — good enough for non-cryptographic IDs.
  */
-export const hashId = (input: string): string => {
+export const deriveIdHash = (input: string): string => {
   // FNV offset basis
   let hash = 2_166_136_261;
   for (let i = 0; i < input.length; i += 1) {

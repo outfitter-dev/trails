@@ -11,7 +11,7 @@ import {
   retry,
   withTimeout,
   shouldRetry,
-  getBackoffDelay,
+  deriveBackoffDelay,
 } from '../resilience.js';
 import { Result } from '../result.js';
 
@@ -37,20 +37,20 @@ describe('shouldRetry', () => {
 });
 
 // ---------------------------------------------------------------------------
-// getBackoffDelay
+// deriveBackoffDelay
 // ---------------------------------------------------------------------------
 
-describe('getBackoffDelay', () => {
+describe('deriveBackoffDelay', () => {
   test('returns a number >= 0', () => {
     for (let i = 0; i < 20; i += 1) {
-      const delay = getBackoffDelay(0);
+      const delay = deriveBackoffDelay(0);
       expect(delay).toBeGreaterThanOrEqual(0);
     }
   });
 
   test('respects maxDelay cap', () => {
     for (let i = 0; i < 20; i += 1) {
-      const delay = getBackoffDelay(10, { maxDelay: 100 });
+      const delay = deriveBackoffDelay(10, { maxDelay: 100 });
       expect(delay).toBeLessThanOrEqual(100);
     }
   });
@@ -59,7 +59,7 @@ describe('getBackoffDelay', () => {
     // With attempt=0, exponential = base * factor^0 = base
     // Jitter is [0, base], so delay <= base
     for (let i = 0; i < 20; i += 1) {
-      const delay = getBackoffDelay(0, { backoffFactor: 3, baseDelay: 500 });
+      const delay = deriveBackoffDelay(0, { backoffFactor: 3, baseDelay: 500 });
       expect(delay).toBeLessThanOrEqual(500);
     }
   });
@@ -67,10 +67,10 @@ describe('getBackoffDelay', () => {
   test('scales with attempt number', () => {
     // Higher attempts should have higher caps (on average)
     const samples0 = Array.from({ length: 100 }, () =>
-      getBackoffDelay(0, { baseDelay: 100 })
+      deriveBackoffDelay(0, { baseDelay: 100 })
     );
     const samples3 = Array.from({ length: 100 }, () =>
-      getBackoffDelay(3, { baseDelay: 100 })
+      deriveBackoffDelay(3, { baseDelay: 100 })
     );
     const avg0 = samples0.reduce((a, b) => a + b, 0) / samples0.length;
     const avg3 = samples3.reduce((a, b) => a + b, 0) / samples3.length;

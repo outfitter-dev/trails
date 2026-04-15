@@ -7,11 +7,8 @@
  */
 import type { TraceContext } from '@ontrails/core';
 
-export {
-  TRACE_CONTEXT_KEY,
-  getTraceContext,
-  type TraceContext,
-} from '@ontrails/core';
+export { getTraceContext, type TraceContext } from '@ontrails/core';
+export { TRACE_CONTEXT_KEY } from '@ontrails/core/internal/tracing';
 
 /** Create a child trace context inheriting from a parent. */
 export const childTraceContext = (parent: TraceContext): TraceContext => ({

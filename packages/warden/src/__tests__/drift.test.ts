@@ -7,7 +7,7 @@ import { createTopoStore, trail, topo, Result } from '@ontrails/core';
 import { persistEstablishedTopoSave } from '@ontrails/core/internal/topo-store';
 import {
   openWriteTrailsDb,
-  resolveTrailsDir,
+  deriveTrailsDir,
 } from '@ontrails/core/internal/trails-db';
 import {
   hashTrailheadMap,
@@ -34,7 +34,7 @@ const createTempDir = (): string => {
 };
 
 const committedLockDir = (dir: string): string => {
-  const trailsDir = resolveTrailsDir({ rootDir: dir });
+  const trailsDir = deriveTrailsDir({ rootDir: dir });
   mkdirSync(trailsDir, { recursive: true });
   return trailsDir;
 };

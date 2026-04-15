@@ -51,7 +51,7 @@ import {
   mergeResourceOverrides,
   mergeTestContext,
   normalizeTestExecutionOptions,
-  resolveMockResources,
+  createMockResources,
 } from './context.js';
 import type { MintableTrail, TestExecutionOptions } from './context.js';
 import {
@@ -335,7 +335,7 @@ export const testExamples = (
         async (example: TrailExample<unknown, unknown>) => {
           const resolved = normalizeTestExecutionOptions(resolveInput());
           const resources = mergeResourceOverrides(
-            await resolveMockResources(app),
+            await createMockResources(app),
             resolved.ctx,
             resolved.resources
           );
@@ -382,7 +382,7 @@ export const testExamples = (
         async (example: TrailExample<unknown, unknown>) => {
           const resolved = normalizeTestExecutionOptions(resolveInput());
           const resources = mergeResourceOverrides(
-            await resolveMockResources(app),
+            await createMockResources(app),
             resolved.ctx,
             resolved.resources
           );

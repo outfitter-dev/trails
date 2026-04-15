@@ -29,7 +29,7 @@ import {
 } from '@ontrails/core/internal/cross-batch';
 
 import { assertPartialMatch, expectOk } from './assertions.js';
-import { createTestContext, resolveMockResources } from './context.js';
+import { createTestContext, createMockResources } from './context.js';
 import type { RefToken, ScenarioStep } from './types.js';
 
 type ScenarioCrossTarget = string | { readonly id: string };
@@ -350,7 +350,7 @@ export const executeScenarioSteps = async (
   steps: readonly ScenarioStep[]
 ): Promise<void> => {
   const outputs = new Map<string, unknown>();
-  const resources = await resolveMockResources(app);
+  const resources = await createMockResources(app);
 
   for (const [index, step] of steps.entries()) {
     await executeStep(step, index, app, outputs, resources);

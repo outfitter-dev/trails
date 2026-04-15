@@ -4,4 +4,5 @@
  * existing imports from `@ontrails/tracing` keep working without
  * duplicating the definition.
  */
-export { createTraceRecord, type TraceRecord } from '@ontrails/core';
+export { type TraceRecord } from '@ontrails/core';
+export { createTraceRecord } from '@ontrails/core/internal/tracing';

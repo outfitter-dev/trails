@@ -15,7 +15,7 @@ import {
 } from '@ontrails/core/internal/topo-store';
 import {
   openWriteTrailsDb,
-  resolveTrailsDir,
+  deriveTrailsDir,
 } from '@ontrails/core/internal/trails-db';
 import type { TrailheadLock, TrailheadMap } from '@ontrails/schema';
 import { writeTrailheadLock, writeTrailheadMap } from '@ontrails/schema';
@@ -87,7 +87,7 @@ export const exportCurrentTopo = async (
     const { save, storedExport } = persisted.value;
     const artifacts = await writeStoredExportArtifacts(
       storedExport,
-      resolveTrailsDir({ rootDir })
+      deriveTrailsDir({ rootDir })
     );
     return Result.ok({ ...artifacts, save });
   } finally {

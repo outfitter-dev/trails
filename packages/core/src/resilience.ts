@@ -61,11 +61,11 @@ const sleep = (ms: number, signal?: AbortSignal): Promise<void> =>
 export const shouldRetry = (error: Error): boolean => isRetryable(error);
 
 // ---------------------------------------------------------------------------
-// getBackoffDelay
+// deriveBackoffDelay
 // ---------------------------------------------------------------------------
 
 /** Compute exponential backoff delay with full jitter. */
-export const getBackoffDelay = (
+export const deriveBackoffDelay = (
   attempt: number,
   options?: Pick<RetryOptions, 'baseDelay' | 'maxDelay' | 'backoffFactor'>
 ): number => {
@@ -108,7 +108,7 @@ const tryAttempt = async <T>(
   if (isLast || !retryPredicate(result.error)) {
     return { done: true, result };
   }
-  const delay = getBackoffDelay(attempt, options);
+  const delay = deriveBackoffDelay(attempt, options);
   if (delay > 0) {
     await sleep(delay, options?.signal);
   }

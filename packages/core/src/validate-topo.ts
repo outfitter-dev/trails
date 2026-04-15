@@ -10,7 +10,7 @@ import type { AnyContour } from './contour.js';
 import { getContourReferences } from './contour.js';
 import { ValidationError } from './errors.js';
 import { isDraftId } from './draft.js';
-import type { AnySignal } from './event.js';
+import type { AnySignal } from './signal.js';
 import { Result } from './result.js';
 import type { Topo } from './topo.js';
 import type { AnyTrail } from './trail.js';
