@@ -328,7 +328,7 @@ const buildInfo = (
  * paths, operations, parameters, and response schemas derived from
  * the trail contract.
  */
-export const generateOpenApiSpec = (
+export const deriveOpenApiSpec = (
   app: Topo,
   options?: OpenApiOptions
 ): OpenApiSpec => {

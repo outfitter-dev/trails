@@ -9,10 +9,13 @@ import type { z } from 'zod';
 
 import type { CheckResult } from './doctor.js';
 import { checkConfig } from './doctor.js';
-import type { FieldDescription } from './describe.js';
-import { describeConfig } from './describe.js';
-import type { ExplainConfigOptions, ProvenanceEntry } from './explain.js';
-import { explainConfig } from './explain.js';
+import type { FieldDescription } from './derive-fields.js';
+import { deriveConfigFields } from './derive-fields.js';
+import type {
+  DeriveConfigProvenanceOptions,
+  ProvenanceEntry,
+} from './derive-provenance.js';
+import { deriveConfigProvenance } from './derive-provenance.js';
 import type { ConfigRef } from './ref.js';
 import { configRef } from './ref.js';
 
@@ -39,8 +42,8 @@ export interface ResolveOptions {
 }
 
 /** Options for the `explain()` method on AppConfig, excluding schema. */
-export type AppConfigExplainOptions = Omit<
-  ExplainConfigOptions<z.ZodType>,
+export type AppConfigDeriveProvenanceOptions = Omit<
+  DeriveConfigProvenanceOptions<z.ZodType>,
   'schema'
 >;
 
@@ -62,7 +65,9 @@ export interface AppConfig<T extends z.ZodType> {
   ): CheckResult;
 
   /** Show which source won for each config field. */
-  explain(options: AppConfigExplainOptions): readonly ProvenanceEntry[];
+  explain(
+    options: AppConfigDeriveProvenanceOptions
+  ): readonly ProvenanceEntry[];
 
   /** Create a lazy reference to a config field for use as a trail input default. */
   ref(fieldPath: string): ConfigRef;
@@ -225,7 +230,7 @@ const discoverConfigFile = async (
 };
 
 /** Resolve a config file — either from an explicit path or via discovery. */
-const resolveConfig = async <T extends z.ZodType>(
+const resolveAppConfigFile = async <T extends z.ZodType>(
   name: string,
   schema: T,
   formats: readonly ConfigFormat[],
@@ -292,16 +297,17 @@ export const appConfig = <T extends z.ZodType>(
   return {
     check: (values, checkOpts) => checkConfig(schema, values, checkOpts),
     describe: () =>
-      describeConfig(
+      deriveConfigFields(
         schema as unknown as z.ZodObject<Record<string, z.ZodType>>
       ),
     dotfile,
-    explain: (explainOpts) => explainConfig({ ...explainOpts, schema }),
+    explain: (explainOpts) =>
+      deriveConfigProvenance({ ...explainOpts, schema }),
     formats,
     name,
     ref: (fieldPath) => configRef(fieldPath),
     resolve: (resolveOptions?: ResolveOptions) =>
-      resolveConfig(name, schema, formats, dotfile, resolveOptions),
+      resolveAppConfigFile(name, schema, formats, dotfile, resolveOptions),
     schema,
   };
 };

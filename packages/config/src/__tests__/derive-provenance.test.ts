@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import { env, secret } from '../extensions.js';
-import { explainConfig } from '../explain.js';
+import { deriveConfigProvenance } from '../derive-provenance.js';
 
 const schema = z.object({
   debug: z.boolean().default(false),
@@ -10,10 +10,10 @@ const schema = z.object({
   port: z.number().default(3000),
 });
 
-describe('explainConfig', () => {
+describe('deriveConfigProvenance', () => {
   describe('default source', () => {
     test('reports "default" when no other source provides value', () => {
-      const entries = explainConfig({
+      const entries = deriveConfigProvenance({
         resolved: { debug: false, host: 'localhost', port: 3000 },
         schema,
       });
@@ -26,7 +26,7 @@ describe('explainConfig', () => {
 
   describe('base overrides default', () => {
     test('reports "base" when base provides value', () => {
-      const entries = explainConfig({
+      const entries = deriveConfigProvenance({
         base: { host: 'base.example.com' },
         resolved: { debug: false, host: 'base.example.com', port: 3000 },
         schema,
@@ -40,7 +40,7 @@ describe('explainConfig', () => {
 
   describe('profile overrides base', () => {
     test('reports "profile" when profile provides winning value', () => {
-      const entries = explainConfig({
+      const entries = deriveConfigProvenance({
         base: { host: 'base.example.com' },
         profile: { host: 'profile.example.com' },
         resolved: { debug: false, host: 'profile.example.com', port: 3000 },
@@ -55,7 +55,7 @@ describe('explainConfig', () => {
 
   describe('local overrides profile', () => {
     test('reports "local" when local provides winning value', () => {
-      const entries = explainConfig({
+      const entries = deriveConfigProvenance({
         base: { host: 'base.example.com' },
         local: { host: 'local.example.com' },
         profile: { host: 'profile.example.com' },
@@ -75,7 +75,7 @@ describe('explainConfig', () => {
         port: z.number().default(3000),
       });
 
-      const entries = explainConfig({
+      const entries = deriveConfigProvenance({
         base: { host: 'base.example.com' },
         env: { APP_HOST: 'env.example.com' },
         resolved: { host: 'env.example.com', port: 3000 },
@@ -96,7 +96,7 @@ describe('explainConfig', () => {
           .optional(),
       });
 
-      const entries = explainConfig({
+      const entries = deriveConfigProvenance({
         env: { DB_HOST: 'env.example.com' },
         resolved: { db: { host: 'env.example.com' } },
         schema: envSchema,
@@ -115,7 +115,7 @@ describe('explainConfig', () => {
         host: z.string().default('localhost'),
       });
 
-      const entries = explainConfig({
+      const entries = deriveConfigProvenance({
         env: { API_KEY: 'super-secret-key' },
         resolved: { apiKey: 'super-secret-key', host: 'localhost' },
         schema: secretSchema,
@@ -127,7 +127,7 @@ describe('explainConfig', () => {
     });
 
     test('does not redact non-secret fields', () => {
-      const entries = explainConfig({
+      const entries = deriveConfigProvenance({
         resolved: { debug: false, host: 'localhost', port: 3000 },
         schema,
       });

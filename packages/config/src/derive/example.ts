@@ -216,7 +216,7 @@ const formatters: Record<
  *
  * Includes descriptions as comments, defaults shown, deprecated fields annotated.
  */
-export const generateExample = (
+export const deriveConfigExample = (
   schema: z.ZodObject<Record<string, z.ZodType>>,
   format: ExampleFormat
 ): string => formatters[format](schema);

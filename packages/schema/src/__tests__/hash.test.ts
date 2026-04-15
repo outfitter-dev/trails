@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 
-import { hashTrailheadMap } from '../hash.js';
+import { deriveSurfaceMapHash } from '../hash.js';
 import type { TrailheadMap } from '../types.js';
 
 // ---------------------------------------------------------------------------
@@ -35,16 +35,16 @@ const makeTrailheadMap = (overrides?: Partial<TrailheadMap>): TrailheadMap => ({
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('hashTrailheadMap', () => {
+describe('deriveSurfaceMapHash', () => {
   test('produces a valid SHA-256 hex string (64 characters)', () => {
-    const hash = hashTrailheadMap(makeTrailheadMap());
+    const hash = deriveSurfaceMapHash(makeTrailheadMap());
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
   test('same trailhead map produces the same hash (deterministic)', () => {
     const map = makeTrailheadMap();
-    const hash1 = hashTrailheadMap(map);
-    const hash2 = hashTrailheadMap(map);
+    const hash1 = deriveSurfaceMapHash(map);
+    const hash2 = deriveSurfaceMapHash(map);
     expect(hash1).toBe(hash2);
   });
 
@@ -62,19 +62,19 @@ describe('hashTrailheadMap', () => {
       ],
     });
 
-    expect(hashTrailheadMap(map1)).not.toBe(hashTrailheadMap(map2));
+    expect(deriveSurfaceMapHash(map1)).not.toBe(deriveSurfaceMapHash(map2));
   });
 
   test('generatedAt does not affect the hash', () => {
     const map1 = makeTrailheadMap({ generatedAt: '2025-01-01T00:00:00.000Z' });
     const map2 = makeTrailheadMap({ generatedAt: '2099-12-31T23:59:59.999Z' });
 
-    expect(hashTrailheadMap(map1)).toBe(hashTrailheadMap(map2));
+    expect(deriveSurfaceMapHash(map1)).toBe(deriveSurfaceMapHash(map2));
   });
 
   test('hash is stable across invocations', () => {
     const map = makeTrailheadMap();
-    const hashes = Array.from({ length: 10 }, () => hashTrailheadMap(map));
+    const hashes = Array.from({ length: 10 }, () => deriveSurfaceMapHash(map));
     const unique = new Set(hashes);
     expect(unique.size).toBe(1);
   });
@@ -110,6 +110,6 @@ describe('hashTrailheadMap', () => {
       ],
     });
 
-    expect(hashTrailheadMap(map1)).toBe(hashTrailheadMap(map2));
+    expect(deriveSurfaceMapHash(map1)).toBe(deriveSurfaceMapHash(map2));
   });
 });

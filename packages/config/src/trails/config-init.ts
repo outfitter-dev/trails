@@ -16,10 +16,10 @@ import { z as zod } from 'zod';
 
 import { configResource } from '../config-resource.js';
 import {
-  generateEnvExample,
-  generateExample,
-  generateJsonSchema,
-} from '../generate/index.js';
+  deriveConfigEnvExample,
+  deriveConfigExample,
+  deriveConfigJsonSchema,
+} from '../derive/index.js';
 
 const formatEnum = zod.enum(['toml', 'json', 'jsonc', 'yaml']);
 
@@ -34,13 +34,13 @@ const collectArtifacts = (
   schema: z.ZodObject<Record<string, z.ZodType>>
 ): [string, string][] => {
   const artifacts: [string, string][] = [];
-  const envContent = generateEnvExample(schema);
+  const envContent = deriveConfigEnvExample(schema);
   if (envContent.length > 0) {
     artifacts.push(['.env.example', envContent]);
   }
   artifacts.push([
     '.schema.json',
-    JSON.stringify(generateJsonSchema(schema), null, 2),
+    JSON.stringify(deriveConfigJsonSchema(schema), null, 2),
   ]);
   return artifacts;
 };
@@ -65,7 +65,7 @@ export const configInit = trail('config.init', {
   blaze: async (input, ctx) => {
     const state = configResource.from(ctx);
     const schema = state.schema as z.ZodObject<Record<string, z.ZodType>>;
-    const content = generateExample(schema, input.format);
+    const content = deriveConfigExample(schema, input.format);
 
     if (input.dir) {
       const writtenFiles = await writeArtifacts(input.dir, schema);

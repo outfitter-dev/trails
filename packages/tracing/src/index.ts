@@ -17,7 +17,7 @@ export {
 
 // Tracing-package-owned utilities
 export { createMemorySink } from './memory-sink.js';
-export { childTraceContext } from './trace-context.js';
+export { createChildTraceContext } from './trace-context.js';
 export {
   shouldSample,
   DEFAULT_SAMPLING,

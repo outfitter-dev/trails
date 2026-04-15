@@ -4,7 +4,7 @@ import { Result, signal, topo, trail } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { generateOpenApiSpec } from '../openapi.js';
+import { deriveOpenApiSpec } from '../openapi.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -17,7 +17,7 @@ const noop = () => Result.ok(null as unknown);
 
 /** Extract an operation from a spec by path and method. */
 const getOperation = (
-  spec: ReturnType<typeof generateOpenApiSpec>,
+  spec: ReturnType<typeof deriveOpenApiSpec>,
   path: string,
   method: string
 ): Record<string, unknown> =>
@@ -40,7 +40,7 @@ const registerPathAndMethodTests = () => {
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
 
       expect(spec.paths['/entity/show']).toBeDefined();
     });
@@ -51,7 +51,7 @@ const registerPathAndMethodTests = () => {
         input: z.object({ q: z.string() }),
         intent: 'read',
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
 
       expect(spec.paths['/search']).toBeDefined();
     });
@@ -62,7 +62,7 @@ const registerPathAndMethodTests = () => {
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
 
       expect(spec.paths['/entity/show']?.['get']).toBeDefined();
     });
@@ -73,7 +73,7 @@ const registerPathAndMethodTests = () => {
         input: z.object({ id: z.string() }),
         intent: 'destroy',
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
 
       expect(spec.paths['/entity/remove']?.['delete']).toBeDefined();
     });
@@ -83,7 +83,7 @@ const registerPathAndMethodTests = () => {
         blaze: noop,
         input: z.object({ name: z.string() }),
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
 
       expect(spec.paths['/entity/create']?.['post']).toBeDefined();
     });
@@ -94,7 +94,7 @@ const registerPathAndMethodTests = () => {
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }), {
+      const spec = deriveOpenApiSpec(topoFrom({ t }), {
         basePath: '/api/v1',
       });
 
@@ -107,7 +107,7 @@ const registerPathAndMethodTests = () => {
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }), {
+      const spec = deriveOpenApiSpec(topoFrom({ t }), {
         basePath: '/api/v1/',
       });
 
@@ -125,7 +125,7 @@ const registerGetQueryParameterTests = () => {
         input: z.object({ id: z.string(), verbose: z.boolean().optional() }),
         intent: 'read',
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
       return op['parameters'] as Record<string, unknown>[];
     };
@@ -155,7 +155,7 @@ const registerRequestBodyTests = () => {
         blaze: noop,
         input: z.object({}),
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/action/trigger']?.['post'] as Record<
         string,
         unknown
@@ -169,7 +169,7 @@ const registerRequestBodyTests = () => {
         blaze: noop,
         input: z.object({ name: z.string() }),
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/create']?.['post'] as Record<
         string,
         unknown
@@ -190,7 +190,7 @@ const registerRequestBodyTests = () => {
           tag: z.string().optional(),
         }),
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/update']?.['post'] as Record<
         string,
         unknown
@@ -208,7 +208,7 @@ const registerRequestBodyTests = () => {
           tag: z.string().optional(),
         }),
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/create']?.['post'] as Record<
         string,
         unknown
@@ -229,7 +229,7 @@ const registerResponseTests = () => {
         intent: 'read',
         output: z.object({ id: z.string(), name: z.string() }),
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const success = (
         getOperation(spec, '/entity/show', 'get')['responses'] as Record<
           string,
@@ -252,7 +252,7 @@ const registerResponseTests = () => {
         blaze: noop,
         input: z.object({ msg: z.string() }),
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/fire/forget']?.['post'] as Record<
         string,
         unknown
@@ -279,7 +279,7 @@ const registerResponseTests = () => {
         intent: 'read',
         output: z.object({ id: z.string() }),
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
       const responses = op['responses'] as Record<string, unknown>;
 
@@ -293,7 +293,7 @@ const registerResponseTests = () => {
         intent: 'read',
         output: z.object({ id: z.string() }),
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
       const fourHundred = (op['responses'] as Record<string, unknown>)[
         '400'
@@ -316,7 +316,7 @@ const registerResponseTests = () => {
         intent: 'read',
         output: z.object({ id: z.string() }),
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
       const responses = op['responses'] as Record<string, unknown>;
 
@@ -334,7 +334,7 @@ const registerMetadataAndStructureTests = () => {
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
 
       expect(op['operationId']).toBe('entity_show');
@@ -346,7 +346,7 @@ const registerMetadataAndStructureTests = () => {
         input: z.object({ q: z.string() }),
         intent: 'read',
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/search']?.['get'] as Record<string, unknown>;
 
       expect(op['operationId']).toBe('search');
@@ -360,7 +360,7 @@ const registerMetadataAndStructureTests = () => {
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
 
       expect(op['tags']).toEqual(['entity']);
@@ -372,7 +372,7 @@ const registerMetadataAndStructureTests = () => {
         input: z.object({ q: z.string() }),
         intent: 'read',
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/search']?.['get'] as Record<string, unknown>;
 
       expect(op['tags']).toEqual(['search']);
@@ -395,7 +395,7 @@ const registerMetadataAndStructureTests = () => {
         input: z.object({ id: z.string() }),
         intent: 'destroy',
       });
-      const spec = generateOpenApiSpec(topoFrom({ a, b, c }));
+      const spec = deriveOpenApiSpec(topoFrom({ a, b, c }));
 
       expect(Object.keys(spec.paths)).toHaveLength(3);
       expect(spec.paths['/entity/create']?.['post']).toBeDefined();
@@ -416,7 +416,7 @@ const registerMetadataAndStructureTests = () => {
         input: z.object({}),
         visibility: 'internal',
       });
-      const spec = generateOpenApiSpec(topoFrom({ internal, pub }));
+      const spec = deriveOpenApiSpec(topoFrom({ internal, pub }));
 
       expect(Object.keys(spec.paths)).toHaveLength(1);
       expect(spec.paths['/entity/show']).toBeDefined();
@@ -439,7 +439,7 @@ const registerMetadataAndStructureTests = () => {
         input: z.object({ id: z.string() }),
         on: [changed],
       });
-      const spec = generateOpenApiSpec(topoFrom({ changed, consumer, pub }));
+      const spec = deriveOpenApiSpec(topoFrom({ changed, consumer, pub }));
 
       expect(Object.keys(spec.paths)).toHaveLength(1);
       expect(spec.paths['/entity/show']).toBeDefined();
@@ -458,7 +458,7 @@ const registerMetadataAndStructureTests = () => {
         intent: 'destroy',
       });
 
-      const spec = generateOpenApiSpec(topoFrom({ destroyTrail, readTrail }), {
+      const spec = deriveOpenApiSpec(topoFrom({ destroyTrail, readTrail }), {
         intent: ['read'],
       });
 
@@ -478,7 +478,7 @@ const registerMetadataAndStructureTests = () => {
         intent: 'destroy',
       });
 
-      const spec = generateOpenApiSpec(topoFrom({ destroyTrail, readTrail }), {
+      const spec = deriveOpenApiSpec(topoFrom({ destroyTrail, readTrail }), {
         include: ['entity.*'],
         intent: ['destroy'],
       });
@@ -490,20 +490,20 @@ const registerMetadataAndStructureTests = () => {
 
   describe('spec structure', () => {
     test('openapi version is 3.1.0', () => {
-      const spec = generateOpenApiSpec(topoFrom({}));
+      const spec = deriveOpenApiSpec(topoFrom({}));
 
       expect(spec.openapi).toBe('3.1.0');
     });
 
     test('info defaults from topo name', () => {
-      const spec = generateOpenApiSpec(topoFrom({}));
+      const spec = deriveOpenApiSpec(topoFrom({}));
 
       expect(spec.info.title).toBe('test-app');
       expect(spec.info.version).toBe('1.0.0');
     });
 
     test('info uses options when provided', () => {
-      const spec = generateOpenApiSpec(topoFrom({}), {
+      const spec = deriveOpenApiSpec(topoFrom({}), {
         description: 'Test API',
         title: 'My API',
         version: '2.0.0',
@@ -515,7 +515,7 @@ const registerMetadataAndStructureTests = () => {
     });
 
     test('servers included when provided', () => {
-      const spec = generateOpenApiSpec(topoFrom({}), {
+      const spec = deriveOpenApiSpec(topoFrom({}), {
         servers: [{ description: 'Local', url: 'http://localhost:3000' }],
       });
 
@@ -524,13 +524,13 @@ const registerMetadataAndStructureTests = () => {
     });
 
     test('servers omitted when not provided', () => {
-      const spec = generateOpenApiSpec(topoFrom({}));
+      const spec = deriveOpenApiSpec(topoFrom({}));
 
       expect(spec.servers).toBeUndefined();
     });
 
     test('components.schemas is present (empty)', () => {
-      const spec = generateOpenApiSpec(topoFrom({}));
+      const spec = deriveOpenApiSpec(topoFrom({}));
 
       expect(spec.components.schemas).toEqual({});
     });
@@ -544,7 +544,7 @@ const registerMetadataAndStructureTests = () => {
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
 
       expect(op['summary']).toBe('Show an entity by ID');
@@ -556,7 +556,7 @@ const registerMetadataAndStructureTests = () => {
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
-      const spec = generateOpenApiSpec(topoFrom({ t }));
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
 
       expect(op['summary']).toBeUndefined();
@@ -571,7 +571,7 @@ const registerMetadataAndStructureTests = () => {
         input: z.object({}),
       });
 
-      expect(() => generateOpenApiSpec(topoFrom({ exportTrail }))).toThrowError(
+      expect(() => deriveOpenApiSpec(topoFrom({ exportTrail }))).toThrowError(
         /draft/i
       );
     });
@@ -589,7 +589,7 @@ const registerMetadataAndStructureTests = () => {
         input: z.object({}),
         intent: 'read',
       });
-      const spec = generateOpenApiSpec(topoFrom({ privateShow, publicShow }), {
+      const spec = deriveOpenApiSpec(topoFrom({ privateShow, publicShow }), {
         include: ['public.*'],
       });
 
@@ -607,7 +607,7 @@ const registerMetadataAndStructureTests = () => {
         input: z.object({}),
         intent: 'read',
       });
-      const spec = generateOpenApiSpec(topoFrom({ publicHide, publicShow }), {
+      const spec = deriveOpenApiSpec(topoFrom({ publicHide, publicShow }), {
         exclude: ['public.hide'],
       });
 
@@ -620,7 +620,7 @@ const registerMetadataAndStructureTests = () => {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('generateOpenApiSpec', () => [
+describe('deriveOpenApiSpec', () => [
   registerPathAndMethodTests(),
   registerGetQueryParameterTests(),
   registerRequestBodyTests(),

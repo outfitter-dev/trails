@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 
-import { shouldLog, resolveCategory, LEVEL_PRIORITY } from '../levels.js';
+import { shouldLog, deriveCategory, LEVEL_PRIORITY } from '../levels.js';
 
 // ---------------------------------------------------------------------------
 // LEVEL_PRIORITY
@@ -46,37 +46,37 @@ describe('shouldLog', () => {
 });
 
 // ---------------------------------------------------------------------------
-// resolveCategory
+// deriveCategory
 // ---------------------------------------------------------------------------
 
-describe('resolveCategory', () => {
+describe('deriveCategory', () => {
   test('returns exact match for a full category name', () => {
     const levels = { 'app.db.queries': 'debug' as const };
-    expect(resolveCategory('app.db.queries', levels, 'info')).toBe('debug');
+    expect(deriveCategory('app.db.queries', levels, 'info')).toBe('debug');
   });
 
   test('walks up hierarchy: app.db.queries -> app.db -> app', () => {
     const levels = { app: 'warn' as const, 'app.db': 'debug' as const };
     // "app.db.queries" not found, falls to "app.db"
-    expect(resolveCategory('app.db.queries', levels, 'info')).toBe('debug');
+    expect(deriveCategory('app.db.queries', levels, 'info')).toBe('debug');
   });
 
   test('walks all the way to parent prefix', () => {
     const levels = { app: 'error' as const };
-    expect(resolveCategory('app.db.queries', levels, 'info')).toBe('error');
+    expect(deriveCategory('app.db.queries', levels, 'info')).toBe('error');
   });
 
   test('returns fallback when no prefix matches', () => {
     const levels = { other: 'debug' as const };
-    expect(resolveCategory('app.db.queries', levels, 'info')).toBe('info');
+    expect(deriveCategory('app.db.queries', levels, 'info')).toBe('info');
   });
 
   test('returns fallback when levels is undefined', () => {
-    expect(resolveCategory('app.db', undefined, 'warn')).toBe('warn');
+    expect(deriveCategory('app.db', undefined, 'warn')).toBe('warn');
   });
 
   test('returns fallback when category has no dots and no match', () => {
     const levels = { other: 'debug' as const };
-    expect(resolveCategory('app', levels, 'info')).toBe('info');
+    expect(deriveCategory('app', levels, 'info')).toBe('info');
   });
 });

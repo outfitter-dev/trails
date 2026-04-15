@@ -3,10 +3,10 @@ import { z } from 'zod';
 
 import { deprecated, env, secret } from '../extensions.js';
 import {
-  generateEnvExample,
-  generateExample,
-  generateJsonSchema,
-} from '../generate/index.js';
+  deriveConfigEnvExample,
+  deriveConfigExample,
+  deriveConfigJsonSchema,
+} from '../derive/index.js';
 
 /** Shared test schema used across generator tests. */
 const testSchema = z.object({
@@ -39,10 +39,10 @@ const nestedSchema = z.object({
   }),
 });
 
-describe('generateExample()', () => {
+describe('deriveConfigExample()', () => {
   describe('TOML format', () => {
     test('produces valid TOML with comments for descriptions', () => {
-      const result = generateExample(testSchema, 'toml');
+      const result = deriveConfigExample(testSchema, 'toml');
 
       expect(result).toContain('# The server hostname');
       expect(result).toContain('host = "localhost"');
@@ -53,13 +53,13 @@ describe('generateExample()', () => {
     });
 
     test('annotates deprecated fields in TOML', () => {
-      const result = generateExample(annotatedSchema, 'toml');
+      const result = deriveConfigExample(annotatedSchema, 'toml');
 
       expect(result).toContain('# DEPRECATED: Use newEndpoint instead');
     });
 
     test('handles nested objects as TOML sections', () => {
-      const result = generateExample(nestedSchema, 'toml');
+      const result = deriveConfigExample(nestedSchema, 'toml');
 
       expect(result).toContain('[db]');
       expect(result).toContain('[server]');
@@ -70,7 +70,7 @@ describe('generateExample()', () => {
 
   describe('JSON format', () => {
     test('produces valid JSON without comments', () => {
-      const result = generateExample(testSchema, 'json');
+      const result = deriveConfigExample(testSchema, 'json');
       const parsed = JSON.parse(result);
 
       expect(parsed).toEqual({
@@ -81,7 +81,7 @@ describe('generateExample()', () => {
     });
 
     test('handles nested objects', () => {
-      const result = generateExample(nestedSchema, 'json');
+      const result = deriveConfigExample(nestedSchema, 'json');
       const parsed = JSON.parse(result);
 
       expect(parsed).toHaveProperty('db');
@@ -92,7 +92,7 @@ describe('generateExample()', () => {
 
   describe('JSONC format', () => {
     test('produces JSON with // comments for descriptions', () => {
-      const result = generateExample(testSchema, 'jsonc');
+      const result = deriveConfigExample(testSchema, 'jsonc');
 
       expect(result).toContain('// The server hostname');
       expect(result).toContain('"host"');
@@ -100,13 +100,13 @@ describe('generateExample()', () => {
     });
 
     test('annotates deprecated fields in JSONC', () => {
-      const result = generateExample(annotatedSchema, 'jsonc');
+      const result = deriveConfigExample(annotatedSchema, 'jsonc');
 
       expect(result).toContain('// DEPRECATED: Use newEndpoint instead');
     });
 
     test('handles nested objects', () => {
-      const result = generateExample(nestedSchema, 'jsonc');
+      const result = deriveConfigExample(nestedSchema, 'jsonc');
 
       expect(result).toContain('"db"');
       expect(result).toContain('"host"');
@@ -117,7 +117,7 @@ describe('generateExample()', () => {
 
   describe('YAML format', () => {
     test('produces valid YAML with comments for descriptions', () => {
-      const result = generateExample(testSchema, 'yaml');
+      const result = deriveConfigExample(testSchema, 'yaml');
 
       expect(result).toContain('# The server hostname');
       expect(result).toContain('host: "localhost"');
@@ -128,13 +128,13 @@ describe('generateExample()', () => {
     });
 
     test('annotates deprecated fields in YAML', () => {
-      const result = generateExample(annotatedSchema, 'yaml');
+      const result = deriveConfigExample(annotatedSchema, 'yaml');
 
       expect(result).toContain('# DEPRECATED: Use newEndpoint instead');
     });
 
     test('handles nested objects', () => {
-      const result = generateExample(nestedSchema, 'yaml');
+      const result = deriveConfigExample(nestedSchema, 'yaml');
 
       expect(result).toContain('db:');
       expect(result).toContain('  host: "localhost"');
@@ -143,9 +143,9 @@ describe('generateExample()', () => {
   });
 });
 
-describe('generateJsonSchema()', () => {
+describe('deriveConfigJsonSchema()', () => {
   test('produces valid JSON Schema with $schema, type, and properties', () => {
-    const result = generateJsonSchema(testSchema);
+    const result = deriveConfigJsonSchema(testSchema);
 
     expect(result.$schema).toBe('https://json-schema.org/draft/2020-12/schema');
     expect(result.type).toBe('object');
@@ -153,7 +153,7 @@ describe('generateJsonSchema()', () => {
   });
 
   test('includes title and description from options', () => {
-    const result = generateJsonSchema(testSchema, {
+    const result = deriveConfigJsonSchema(testSchema, {
       description: 'Server configuration',
       title: 'ServerConfig',
     });
@@ -163,7 +163,7 @@ describe('generateJsonSchema()', () => {
   });
 
   test('includes descriptions from .describe()', () => {
-    const result = generateJsonSchema(testSchema);
+    const result = deriveConfigJsonSchema(testSchema);
     const props = result.properties as Record<string, Record<string, unknown>>;
 
     expect(props['host']?.description).toBe('The server hostname');
@@ -171,7 +171,7 @@ describe('generateJsonSchema()', () => {
   });
 
   test('includes defaults', () => {
-    const result = generateJsonSchema(testSchema);
+    const result = deriveConfigJsonSchema(testSchema);
     const props = result.properties as Record<string, Record<string, unknown>>;
 
     expect(props['host']?.default).toBe('localhost');
@@ -187,7 +187,7 @@ describe('generateJsonSchema()', () => {
       name: z.string().describe('A name'),
     });
 
-    const result = generateJsonSchema(enumSchema);
+    const result = deriveConfigJsonSchema(enumSchema);
     const props = result.properties as Record<string, Record<string, unknown>>;
 
     expect(props['name']?.type).toBe('string');
@@ -197,21 +197,21 @@ describe('generateJsonSchema()', () => {
   });
 
   test('marks deprecated fields', () => {
-    const result = generateJsonSchema(annotatedSchema);
+    const result = deriveConfigJsonSchema(annotatedSchema);
     const props = result.properties as Record<string, Record<string, unknown>>;
 
     expect(props['oldEndpoint']?.deprecated).toBe(true);
   });
 
   test('lists required fields (those without defaults or optional)', () => {
-    const result = generateJsonSchema(annotatedSchema);
+    const result = deriveConfigJsonSchema(annotatedSchema);
 
     expect(result.required).toContain('apiKey');
     expect(result.required).toContain('oldEndpoint');
   });
 
   test('recurses into nested object fields', () => {
-    const result = generateJsonSchema(nestedSchema);
+    const result = deriveConfigJsonSchema(nestedSchema);
     const props = result.properties as Record<string, Record<string, unknown>>;
 
     expect(props['db']?.type).toBe('object');
@@ -232,9 +232,9 @@ describe('generateJsonSchema()', () => {
   });
 });
 
-describe('generateEnvExample()', () => {
+describe('deriveConfigEnvExample()', () => {
   test('lists env vars with type info', () => {
-    const result = generateEnvExample(testSchema);
+    const result = deriveConfigEnvExample(testSchema);
 
     expect(result).toContain('HOST=');
     expect(result).toContain('PORT=');
@@ -243,14 +243,14 @@ describe('generateEnvExample()', () => {
   });
 
   test('annotates secrets', () => {
-    const result = generateEnvExample(annotatedSchema);
+    const result = deriveConfigEnvExample(annotatedSchema);
 
     expect(result).toContain('API_KEY=');
     expect(result).toContain('secret');
   });
 
   test('shows defaults as comments', () => {
-    const result = generateEnvExample(testSchema);
+    const result = deriveConfigEnvExample(testSchema);
 
     expect(result).toContain('default: "localhost"');
     expect(result).toContain('default: 3000');
@@ -262,7 +262,7 @@ describe('generateEnvExample()', () => {
       verbose: z.boolean().default(false),
     });
 
-    const result = generateEnvExample(noEnvSchema);
+    const result = deriveConfigEnvExample(noEnvSchema);
 
     expect(result).toBe('');
   });

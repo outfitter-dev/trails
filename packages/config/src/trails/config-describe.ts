@@ -8,7 +8,7 @@ import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { configResource } from '../config-resource.js';
-import { describeConfig } from '../describe.js';
+import { deriveConfigFields } from '../derive-fields.js';
 
 const fieldSchema = z.object({
   deprecated: z.string().optional(),
@@ -27,7 +27,7 @@ const outputSchema = z.object({
 export const configDescribe = trail('config.describe', {
   blaze: (_input, ctx) => {
     const state = configResource.from(ctx);
-    const fields = describeConfig(state.schema);
+    const fields = deriveConfigFields(state.schema);
     return Result.ok({ fields: [...fields] });
   },
   examples: [

@@ -112,7 +112,7 @@ const buildSchemaProperties = (
  * Includes descriptions, defaults, deprecated annotations, and constraints.
  * Produces JSON Schema Draft 2020-12.
  */
-export const generateJsonSchema = (
+export const deriveConfigJsonSchema = (
   schema: z.ZodObject<Record<string, z.ZodType>>,
   options?: { readonly description?: string; readonly title?: string }
 ): Record<string, unknown> => {

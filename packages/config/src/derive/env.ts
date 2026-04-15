@@ -15,7 +15,7 @@ import {
   formatValue,
   getDefault,
   getDescription,
-  resolveFieldByPath,
+  deriveFieldByPath,
   unwrap,
   zodTypeName,
   zodTypeToJsonSchema,
@@ -76,7 +76,7 @@ const collectEnvEntries = (
     if (!fieldMeta.env) {
       continue;
     }
-    const fieldSchema = resolveFieldByPath(schema, path);
+    const fieldSchema = deriveFieldByPath(schema, path);
     if (!fieldSchema) {
       continue;
     }
@@ -96,7 +96,7 @@ const collectEnvEntries = (
  * Lists each env var with its type, default, and whether it is a secret.
  * Returns an empty string when no env bindings are present.
  */
-export const generateEnvExample = (
+export const deriveConfigEnvExample = (
   schema: z.ZodObject<Record<string, z.ZodType>>
 ): string => {
   const entries = collectEnvEntries(schema, collectConfigMeta(schema));

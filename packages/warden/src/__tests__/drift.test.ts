@@ -10,8 +10,8 @@ import {
   deriveTrailsDir,
 } from '@ontrails/core/internal/trails-db';
 import {
-  hashTrailheadMap,
-  generateTrailheadMap,
+  deriveSurfaceMapHash,
+  deriveSurfaceMap,
   writeTrailheadLock,
 } from '@ontrails/schema';
 import { z } from 'zod';
@@ -91,7 +91,7 @@ describe('checkDrift', () => {
     const dir = createTempDir();
     try {
       const tp = makeTopo();
-      const hash = hashTrailheadMap(generateTrailheadMap(tp));
+      const hash = deriveSurfaceMapHash(deriveSurfaceMap(tp));
       await writeTrailheadLock(
         { hash, version: 1 },
         { dir: committedLockDir(dir) }

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   TRACE_CONTEXT_KEY,
-  childTraceContext,
+  createChildTraceContext,
   getTraceContext,
 } from '../trace-context.js';
 import type { TraceContext } from '../trace-context.js';
@@ -31,7 +31,7 @@ describe('getTraceContext', () => {
   });
 });
 
-describe('childTraceContext', () => {
+describe('createChildTraceContext', () => {
   test('inherits traceId from parent', () => {
     const parent: TraceContext = {
       rootId: 'root-span',
@@ -39,7 +39,7 @@ describe('childTraceContext', () => {
       spanId: 'parent-span',
       traceId: 'trace-abc',
     };
-    const child = childTraceContext(parent);
+    const child = createChildTraceContext(parent);
 
     expect(child.traceId).toBe('trace-abc');
   });
@@ -51,7 +51,7 @@ describe('childTraceContext', () => {
       spanId: 'parent-span',
       traceId: 'trace-abc',
     };
-    const child = childTraceContext(parent);
+    const child = createChildTraceContext(parent);
 
     expect(child.spanId).toBeString();
     expect(child.spanId).not.toBe(parent.spanId);
@@ -71,8 +71,8 @@ describe('childTraceContext', () => {
       traceId: 'trace-2',
     };
 
-    expect(childTraceContext(sampledParent).sampled).toBe(true);
-    expect(childTraceContext(unsampledParent).sampled).toBe(false);
+    expect(createChildTraceContext(sampledParent).sampled).toBe(true);
+    expect(createChildTraceContext(unsampledParent).sampled).toBe(false);
   });
 
   test('inherits rootId from parent (not spanId)', () => {
@@ -82,7 +82,7 @@ describe('childTraceContext', () => {
       spanId: 'parent-span',
       traceId: 'trace-abc',
     };
-    const child = childTraceContext(parent);
+    const child = createChildTraceContext(parent);
 
     expect(child.rootId).toBe('the-root');
     expect(child.rootId).not.toBe(child.spanId);

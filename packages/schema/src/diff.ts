@@ -578,7 +578,7 @@ const collectDiffEntries = (
   ...findModified(prevById, currById),
 ];
 
-export const diffTrailheadMaps = (
+export const deriveSurfaceMapDiff = (
   prev: TrailheadMap,
   curr: TrailheadMap
 ): DiffResult => {

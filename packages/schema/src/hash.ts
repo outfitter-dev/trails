@@ -38,7 +38,7 @@ const canonicalize = (value: unknown): unknown => {
  * The `generatedAt` field is excluded so that identical topos always
  * produce the same hash regardless of when they were generated.
  */
-export const hashTrailheadMap = (trailheadMap: TrailheadMap): string => {
+export const deriveSurfaceMapHash = (trailheadMap: TrailheadMap): string => {
   // Strip generatedAt before hashing
   const { generatedAt: _unused, ...rest } = trailheadMap;
 

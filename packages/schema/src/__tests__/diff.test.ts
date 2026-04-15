@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 
-import { diffTrailheadMaps } from '../diff.js';
+import { deriveSurfaceMapDiff } from '../diff.js';
 import type { TrailheadMap, TrailheadMapEntry } from '../types.js';
 
 // ---------------------------------------------------------------------------
@@ -26,11 +26,11 @@ const trailheadMap = (entries: TrailheadMapEntry[]): TrailheadMap => ({
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('diffTrailheadMaps', () => {
+describe('deriveSurfaceMapDiff', () => {
   describe('top-level changes', () => {
     test('empty diff for identical maps', () => {
       const e = entry({ id: 'user.create' });
-      const result = diffTrailheadMaps(trailheadMap([e]), trailheadMap([e]));
+      const result = deriveSurfaceMapDiff(trailheadMap([e]), trailheadMap([e]));
 
       expect(result.entries).toHaveLength(0);
       expect(result.hasBreaking).toBe(false);
@@ -39,7 +39,7 @@ describe('diffTrailheadMaps', () => {
     test('added trail detected as info', () => {
       const prev = trailheadMap([]);
       const curr = trailheadMap([entry({ id: 'user.create' })]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.entries).toHaveLength(1);
       expect(result.entries[0]?.change).toBe('added');
@@ -50,7 +50,7 @@ describe('diffTrailheadMaps', () => {
     test('added resource detected as info', () => {
       const prev = trailheadMap([]);
       const curr = trailheadMap([entry({ id: 'db.main', kind: 'resource' })]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.entries[0]?.details).toContain('Resource "db.main" added');
       expect(result.info).toHaveLength(1);
@@ -59,7 +59,7 @@ describe('diffTrailheadMaps', () => {
     test('added contour detected as info', () => {
       const prev = trailheadMap([]);
       const curr = trailheadMap([entry({ id: 'user', kind: 'contour' })]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.entries[0]?.details).toContain('Contour "user" added');
       expect(result.info).toHaveLength(1);
@@ -68,7 +68,7 @@ describe('diffTrailheadMaps', () => {
     test('removed trail detected as breaking', () => {
       const prev = trailheadMap([entry({ id: 'user.delete' })]);
       const curr = trailheadMap([]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.entries).toHaveLength(1);
       expect(result.entries[0]?.change).toBe('removed');
@@ -79,7 +79,7 @@ describe('diffTrailheadMaps', () => {
     test('removed resource detected as breaking', () => {
       const prev = trailheadMap([entry({ id: 'db.main', kind: 'resource' })]);
       const curr = trailheadMap([]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.entries[0]?.details).toContain(
         'Resource "db.main" removed'
@@ -90,7 +90,7 @@ describe('diffTrailheadMaps', () => {
     test('DiffResult.hasBreaking is true when any breaking entries exist', () => {
       const prev = trailheadMap([entry({ id: 'user.delete' })]);
       const curr = trailheadMap([]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(result.breaking.length).toBeGreaterThan(0);
@@ -122,7 +122,7 @@ describe('diffTrailheadMaps', () => {
           },
         }),
       ]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(result.breaking).toHaveLength(1);
@@ -159,7 +159,7 @@ describe('diffTrailheadMaps', () => {
           },
         }),
       ]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.info).toHaveLength(1);
       const [infoEntry] = result.info;
@@ -195,7 +195,7 @@ describe('diffTrailheadMaps', () => {
           },
         }),
       ]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(
@@ -224,7 +224,7 @@ describe('diffTrailheadMaps', () => {
           },
         }),
       ]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(
@@ -243,7 +243,7 @@ describe('diffTrailheadMaps', () => {
       const curr = trailheadMap([
         entry({ id: 'user.list', trailheads: ['mcp'] }),
       ]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(
@@ -260,7 +260,7 @@ describe('diffTrailheadMaps', () => {
       const curr = trailheadMap([
         entry({ cli: { path: ['topo', 'save'] }, id: 'topo.pin' }),
       ]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(
@@ -275,7 +275,7 @@ describe('diffTrailheadMaps', () => {
       const curr = trailheadMap([
         entry({ id: 'data.wipe', intent: 'destroy' }),
       ]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
       expect(
@@ -290,7 +290,7 @@ describe('diffTrailheadMaps', () => {
       const curr = trailheadMap([
         entry({ description: 'Fetch a user by ID', id: 'user.get' }),
       ]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.info).toHaveLength(1);
       expect(
@@ -307,7 +307,7 @@ describe('diffTrailheadMaps', () => {
           replacedBy: 'entity.show',
         }),
       ]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
       expect(
@@ -332,7 +332,7 @@ describe('diffTrailheadMaps', () => {
           kind: 'trail',
         }),
       ]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
       const crossesDetail = result.warnings[0]?.details.find((d) =>
@@ -356,7 +356,7 @@ describe('diffTrailheadMaps', () => {
           resources: ['db.main', 'cache.main'],
         }),
       ]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
       const resourceDetail = result.warnings[0]?.details.find((detail) =>
@@ -393,7 +393,7 @@ describe('diffTrailheadMaps', () => {
         }),
         entry({ id: 'b.trail' }),
       ]);
-      const result = diffTrailheadMaps(prev, curr);
+      const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.entries.length).toBeGreaterThanOrEqual(2);
 

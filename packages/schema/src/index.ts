@@ -1,10 +1,10 @@
 // Generation
-export { generateTrailheadMap } from './generate.js';
-export { hashTrailheadMap } from './hash.js';
-export { diffTrailheadMaps } from './diff.js';
+export { deriveSurfaceMap } from './derive.js';
+export { deriveSurfaceMapHash } from './hash.js';
+export { deriveSurfaceMapDiff } from './diff.js';
 
 // OpenAPI
-export { generateOpenApiSpec } from './openapi.js';
+export { deriveOpenApiSpec } from './openapi.js';
 export type { OpenApiOptions, OpenApiSpec, OpenApiServer } from './openapi.js';
 
 // File I/O
