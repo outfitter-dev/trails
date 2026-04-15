@@ -572,6 +572,9 @@ export const jsonFile = <TStore extends AnyStoreDefinition>(
         );
       }
     },
+    description:
+      options.description ??
+      'JSON-file-backed store bound from an @ontrails/store definition.',
     dispose: async (connection) => {
       const tmpDir = mockTmpDirs.get(connection as object);
       if (tmpDir !== undefined) {
