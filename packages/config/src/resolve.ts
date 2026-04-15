@@ -253,7 +253,7 @@ const formatValidationError = (
 // ---------------------------------------------------------------------------
 
 /**
- * Resolve config through the full stack: defaults → base → profile → local → env.
+ * Derive config through the full stack: defaults → base → profile → local → env.
  * Returns `Result.ok` with the validated config, or `Result.err` on validation failure.
  */
 export const deriveConfig = <T extends z.ZodType>(

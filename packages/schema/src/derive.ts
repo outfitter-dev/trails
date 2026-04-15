@@ -1,5 +1,5 @@
 /**
- * Generate a deterministic trailhead map from a Topo.
+ * Derive a deterministic trailhead map from a Topo.
  */
 
 import {
@@ -257,7 +257,7 @@ const collectEntries = (topo: Topo): TrailheadMapEntry[] => [
 // ---------------------------------------------------------------------------
 
 /**
- * Generate a deterministic trailhead map from a Topo.
+ * Derive a deterministic trailhead map from a Topo.
  *
  * Entries are sorted alphabetically by id. Object keys within each entry
  * are sorted lexicographically for stable serialization.
