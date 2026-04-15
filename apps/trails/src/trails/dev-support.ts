@@ -25,7 +25,7 @@ import { resolveLockPath } from './topo-support.js';
 
 export const DEFAULT_TOPO_SAVE_RETENTION = 50;
 
-const resolveRootDir = (cwd?: string): string => cwd ?? process.cwd();
+const deriveRootDir = (cwd?: string): string => cwd ?? process.cwd();
 
 const removeIfPresent = (filePath: string): boolean => {
   if (!existsSync(filePath)) {
@@ -175,7 +175,7 @@ const liveDevStats = (
 });
 
 const resolveDevStatsContext = (options?: DevRetentionOptions) => {
-  const rootDir = resolveRootDir(options?.rootDir);
+  const rootDir = deriveRootDir(options?.rootDir);
   const dbPath = deriveTrailsDbPath({ rootDir });
   const trailsDir = deriveTrailsDir({ rootDir });
   const lockPath = resolveLockPath(trailsDir);
@@ -191,7 +191,7 @@ const resolveDevStatsContext = (options?: DevRetentionOptions) => {
 const resolveDevCleanupContext = (
   options?: DevRetentionOptions & { readonly dryRun?: boolean }
 ): DevCleanupContext => {
-  const rootDir = resolveRootDir(options?.rootDir);
+  const rootDir = deriveRootDir(options?.rootDir);
   return {
     dbPath: deriveTrailsDbPath({ rootDir }),
     dryRun: options?.dryRun ?? false,
@@ -306,7 +306,7 @@ export const resetDevState = (options?: {
   readonly dryRun?: boolean;
   readonly rootDir?: string;
 }): DevResetReport => {
-  const rootDir = resolveRootDir(options?.rootDir);
+  const rootDir = deriveRootDir(options?.rootDir);
   const files = presentResetFiles(rootDir);
 
   if (options?.dryRun === true) {

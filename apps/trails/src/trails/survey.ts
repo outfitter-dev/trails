@@ -25,10 +25,10 @@ import {
 import { exportCurrentTopo } from './topo-store-support.js';
 
 export {
-  formatResourceDetail,
-  generateBriefReport,
-  generateSurveyList,
-  generateTrailDetail,
+  deriveBriefReport,
+  deriveResourceDetail,
+  deriveSurveyList,
+  deriveTrailDetail,
 } from './topo-reports.js';
 export type {
   BriefReport,

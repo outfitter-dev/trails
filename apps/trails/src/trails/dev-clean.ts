@@ -2,7 +2,7 @@ import { Result, ValidationError, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { cleanDevState, DEFAULT_TOPO_SAVE_RETENTION } from './dev-support.js';
-import { isolatedExampleInput } from './topo-support.js';
+import { createIsolatedExampleInput } from './topo-support.js';
 
 export const devCleanTrail = trail('dev.clean', {
   blaze: (input, ctx) => {
@@ -30,7 +30,7 @@ export const devCleanTrail = trail('dev.clean', {
     {
       input: {
         dryRun: true,
-        rootDir: isolatedExampleInput('dev-clean').rootDir,
+        rootDir: createIsolatedExampleInput('dev-clean').rootDir,
       },
       name: 'Preview local cleanup',
     },

@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
 import {
-  isolatedExampleInput,
+  createIsolatedExampleInput,
   pinCurrentTopo,
   topoPinOutput,
   topoSaveOutput,
@@ -19,7 +19,7 @@ export const topoPinTrail = trail('topo.pin', {
   examples: [
     {
       input: {
-        ...isolatedExampleInput('topo-pin'),
+        ...createIsolatedExampleInput('topo-pin'),
         name: 'before-auth-refactor',
       },
       name: 'Pin the current topo',

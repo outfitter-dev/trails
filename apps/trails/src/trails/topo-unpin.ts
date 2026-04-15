@@ -2,7 +2,7 @@ import { Result, ValidationError, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import {
-  isolatedExampleInput,
+  createIsolatedExampleInput,
   removeTopoPin,
   topoPinOutput,
 } from './topo-support.js';
@@ -26,7 +26,7 @@ export const topoUnpinTrail = trail('topo.unpin', {
   examples: [
     {
       input: {
-        ...isolatedExampleInput('topo-unpin'),
+        ...createIsolatedExampleInput('topo-unpin'),
         dryRun: true,
         name: 'before-auth-refactor',
       },

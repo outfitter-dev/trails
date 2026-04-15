@@ -90,7 +90,7 @@ export interface TopoVerifyReport {
   readonly stale: false;
 }
 
-export const resolveRootDir = (cwd?: string): string => cwd ?? process.cwd();
+export const deriveRootDir = (cwd?: string): string => cwd ?? process.cwd();
 
 const safeGit = (cwd: string, args: readonly string[]): string | undefined => {
   const proc = Bun.spawnSync({
@@ -105,7 +105,7 @@ const safeGit = (cwd: string, args: readonly string[]): string | undefined => {
   return text.length === 0 ? undefined : text;
 };
 
-export const currentGitState = (
+export const readGitState = (
   rootDir: string
 ): { readonly gitDirty: boolean; readonly gitSha?: string } => {
   const gitSha = safeGit(rootDir, ['rev-parse', 'HEAD']);
@@ -116,7 +116,7 @@ export const currentGitState = (
   };
 };
 
-export const topoCounts = (
+export const deriveTopoCounts = (
   app: Topo
 ): Pick<TopoSaveRecord, 'resourceCount' | 'signalCount' | 'trailCount'> => ({
   resourceCount: app.resources.size,
@@ -163,7 +163,7 @@ const removeTopoPinWithDb = (
     ? { dryRun: true, pin, removed: false }
     : { dryRun: false, pin, removed: unpinTopoSave(db, input.name) };
 
-export const isolatedExampleInput = (
+export const createIsolatedExampleInput = (
   name: string
 ): { readonly module: string; readonly rootDir: string } => {
   const rootDir = join(tmpdir(), 'ontrails-trails-examples', name);
@@ -179,13 +179,13 @@ export const createCurrentTopoSave = (
   app: Topo,
   options?: { readonly rootDir?: string }
 ): TopoSaveRecord => {
-  const rootDir = resolveRootDir(options?.rootDir);
+  const rootDir = deriveRootDir(options?.rootDir);
   const db = openWriteTrailsDb({ rootDir });
 
   try {
     const result = persistEstablishedTopoSave(db, app, {
-      ...currentGitState(rootDir),
-      ...topoCounts(app),
+      ...readGitState(rootDir),
+      ...deriveTopoCounts(app),
     });
     if (result.isErr()) {
       throw result.error;
@@ -200,7 +200,7 @@ export const listTopoHistory = (options?: {
   readonly limit?: number;
   readonly rootDir?: string;
 }): TopoHistoryReport => {
-  const rootDir = resolveRootDir(options?.rootDir);
+  const rootDir = deriveRootDir(options?.rootDir);
   const limit = options?.limit ?? DEFAULT_TOPO_HISTORY_LIMIT;
   const dbPath = deriveTrailsDbPath({ rootDir });
   if (!existsSync(dbPath)) {
@@ -224,13 +224,13 @@ export const pinCurrentTopo = (
   app: Topo,
   input: { readonly name: string; readonly rootDir?: string }
 ): { readonly pin: TopoPinRecord; readonly save: TopoSaveRecord } => {
-  const rootDir = resolveRootDir(input.rootDir);
+  const rootDir = deriveRootDir(input.rootDir);
   const db = openWriteTrailsDb({ rootDir });
 
   try {
     const result = persistEstablishedTopoSave(db, app, {
-      ...currentGitState(rootDir),
-      ...topoCounts(app),
+      ...readGitState(rootDir),
+      ...deriveTopoCounts(app),
     });
     if (result.isErr()) {
       throw result.error;
@@ -254,7 +254,7 @@ export const removeTopoPin = (input: {
   readonly pin?: TopoPinRecord;
   readonly removed: boolean;
 } => {
-  const rootDir = resolveRootDir(input.rootDir);
+  const rootDir = deriveRootDir(input.rootDir);
   if (!existsSync(deriveTrailsDbPath({ rootDir }))) {
     return { dryRun: input.dryRun, removed: false };
   }

@@ -30,8 +30,8 @@ import type { TopoSummaryReport, TopoVerifyReport } from './topo-support.js';
 import { REPORT_CONTRACT_VERSION, REPORT_VERSION } from './topo-constants.js';
 import {
   createCurrentTopoSave,
+  deriveRootDir,
   LOCK_PATH,
-  resolveRootDir,
 } from './topo-support.js';
 
 // ---------------------------------------------------------------------------
@@ -219,7 +219,7 @@ export const buildTopoSummary = (
   app: Topo,
   options?: { readonly rootDir?: string }
 ): TopoSummaryReport => {
-  const rootDir = resolveRootDir(options?.rootDir);
+  const rootDir = deriveRootDir(options?.rootDir);
   const trailsDir = deriveTrailsDir({ rootDir });
   return withCurrentTopoStore(app, rootDir, (store, ref, save) => ({
     app: buildBriefReportFromStore(app, store, ref, save),
@@ -234,7 +234,7 @@ export const buildCurrentTopoBrief = (
   app: Topo,
   options?: { readonly rootDir?: string }
 ): BriefReport => {
-  const rootDir = resolveRootDir(options?.rootDir);
+  const rootDir = deriveRootDir(options?.rootDir);
   return withCurrentTopoStore(app, rootDir, (store, ref, save) =>
     buildBriefReportFromStore(app, store, ref, save)
   );
@@ -244,7 +244,7 @@ export const buildCurrentTopoList = (
   app: Topo,
   options?: { readonly rootDir?: string }
 ): SurveyListReport => {
-  const rootDir = resolveRootDir(options?.rootDir);
+  const rootDir = deriveRootDir(options?.rootDir);
   return withCurrentTopoStore(app, rootDir, (store, ref) =>
     buildSurveyListFromStore(store, ref)
   );
@@ -259,7 +259,7 @@ export const buildCurrentGuideEntries = (
   readonly id: string;
   readonly kind: string;
 }[] => {
-  const rootDir = resolveRootDir(options?.rootDir);
+  const rootDir = deriveRootDir(options?.rootDir);
   return withCurrentTopoStore(app, rootDir, (store, ref) =>
     store.trails.list({ save: ref }).map((trail) => ({
       description: trail.description ?? '(no description)',
@@ -275,7 +275,7 @@ export const buildCurrentTopoDetail = (
   id: string,
   options?: { readonly rootDir?: string }
 ): CurrentResourceDetail | CurrentTrailDetail | undefined => {
-  const rootDir = resolveRootDir(options?.rootDir);
+  const rootDir = deriveRootDir(options?.rootDir);
   return withCurrentTopoStore(app, rootDir, (store, ref) => {
     const trail = store.trails.get(id, { save: ref });
     if (trail !== undefined) {
@@ -293,7 +293,7 @@ export const verifyCurrentTopo = async (
   app: Topo,
   options?: { readonly rootDir?: string }
 ): Promise<Result<TopoVerifyReport, Error>> => {
-  const rootDir = resolveRootDir(options?.rootDir);
+  const rootDir = deriveRootDir(options?.rootDir);
   const committedLock = await readTrailheadLockData({
     dir: deriveTrailsDir({ rootDir }),
   });
