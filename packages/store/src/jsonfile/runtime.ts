@@ -583,6 +583,7 @@ export const jsonFile = <TStore extends AnyStoreDefinition>(
         }
       }
     },
+    meta: options.meta,
     mock: async () => {
       const { mkdtemp } = await import('node:fs/promises');
       const { join } = await import('node:path');

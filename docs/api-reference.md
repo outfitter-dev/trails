@@ -204,13 +204,11 @@ StoreAccessorContractOptions<T>, StoreAccessorContractSubject<T>
 ```typescript
 connectDrizzle(definition, options?)         // bind a root store definition to a writable Drizzle resource
 connectReadOnlyDrizzle(definition, options?) // bind a root store definition to a read-only Drizzle resource
-store(tables, options?)                      // convenience: define + connect writable store
-readonlyStore(tables, options?)              // convenience: define + connect read-only store
-getSchema(binding)                           // expose raw derived Drizzle tables
+binding.tables                               // expose raw derived Drizzle tables on the bound resource
 
-ConnectDrizzleOptions, ReadOnlyDrizzleOptions
+DrizzleStoreOptions
 DrizzleStoreResource, DrizzleStoreConnection, ReadOnlyDrizzleStoreConnection
-DrizzleQueryContext, DrizzleStoreSchema, DrizzleMockSeed
+DrizzleQueryContext, DrizzleStoreSchema
 ```
 
 ## `@ontrails/testing`

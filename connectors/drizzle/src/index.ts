@@ -1,17 +1,9 @@
-export {
-  connectDrizzle,
-  connectReadOnlyDrizzle,
-  getSchema,
-  readonlyStore,
-  store,
-} from './runtime.js';
+export { connectDrizzle, connectReadOnlyDrizzle } from './runtime.js';
 export type {
-  ConnectDrizzleOptions,
-  DrizzleMockSeed,
   DrizzleQueryContext,
   DrizzleStoreConnection,
+  DrizzleStoreOptions,
   DrizzleStoreResource,
   DrizzleStoreSchema,
-  ReadOnlyDrizzleOptions,
   ReadOnlyDrizzleStoreConnection,
 } from './types.js';

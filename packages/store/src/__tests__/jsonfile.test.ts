@@ -347,5 +347,14 @@ describe('jsonfile connector', () => {
 
       await store.dispose?.(mock);
     });
+
+    test('preserves connector metadata on the resource definition', () => {
+      const store = jsonFile(fixtureStore, {
+        dir,
+        meta: { domain: 'fixtures' },
+      });
+
+      expect(store.meta).toEqual({ domain: 'fixtures' });
+    });
   });
 });

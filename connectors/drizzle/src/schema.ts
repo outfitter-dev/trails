@@ -206,7 +206,7 @@ const inferFieldKind = (
   }
 };
 
-export const describeField = (
+export const deriveFieldSpec = (
   field: string,
   schema: z.ZodType
 ): SqliteFieldSpec => {
@@ -416,7 +416,7 @@ const deriveColumnBuilder = (
   tables: Record<string, AnySQLiteTable>
 ): SqliteColumnBuilder => {
   const schema = table.schema.shape[field] as z.ZodType;
-  const spec = describeField(field, schema);
+  const spec = deriveFieldSpec(field, schema);
   const isPrimaryKey = field === table.primaryKey;
   const isGenerated = table.generated.includes(field);
   const baseBuilder = createBaseColumnBuilder(field, spec);
@@ -491,7 +491,7 @@ const createColumnSqlParts = (
   table: AnyStoreTable,
   definition: AnyStoreDefinition
 ): string[] => {
-  const spec = describeField(field, schema);
+  const spec = deriveFieldSpec(field, schema);
   const parts = [quoteIdentifier(field), toSqlType(spec.kind)];
   appendPrimaryKeySql(parts, field, table, spec);
   appendDefaultSql(parts, spec);
@@ -577,7 +577,7 @@ export const deriveDrizzleTables = <TStore extends AnyStoreDefinition>(
   return Object.freeze(tables) as DrizzleStoreSchema<TStore>;
 };
 
-export const createSqliteSchemaStatements = (
+export const deriveSqliteSchemaStatements = (
   definition: AnyStoreDefinition
 ): readonly string[] => {
   assertTabularStoreKind(definition);

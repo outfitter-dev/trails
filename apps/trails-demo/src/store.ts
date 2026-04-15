@@ -7,7 +7,7 @@
  */
 
 import { store as defineStore } from '@ontrails/store';
-import { store as bindDrizzleStore } from '@ontrails/drizzle';
+import { connectDrizzle } from '@ontrails/drizzle';
 import { z } from 'zod';
 
 export const entitySchema = z.object({
@@ -61,7 +61,7 @@ const normalizeSeed = (seed: EntitySeed): MutableEntitySeed => ({
 });
 
 const createBoundEntityStore = (seed?: readonly EntitySeed[]) =>
-  bindDrizzleStore(entityTables, {
+  connectDrizzle(entityStoreDefinition, {
     id: 'demo.entity-store',
     ...(seed === undefined
       ? {}
