@@ -99,7 +99,7 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
 | `@ontrails/permits` | Auth layer, permit model, JWT connector, scope enforcement | None beyond core |
 | `@ontrails/tracing` | Telemetry recording, trace context, memory/OTel sinks | None beyond core |
 | `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
-| `@ontrails/logtape` | LogTape sink connector | `@logtape/logtape` (peer) |
+| `@ontrails/logtape` | LogTape sink connector | None (accepts any LogTape-shaped logger via a structural interface) |
 
 ### Ecosystem
 
@@ -123,7 +123,7 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
   <- @ontrails/testing (core, cli, mcp, logging)
   <- @ontrails/schema (core)
      <- @ontrails/cli/commander (cli, commander)
-     <- @ontrails/logtape (logging, @logtape/logtape)
+     <- @ontrails/logtape (logging)
      <- @ontrails/warden (core, schema)
 ```
 

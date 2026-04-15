@@ -86,7 +86,7 @@ const logger = createLogger({
 });
 ```
 
-`@logtape/logtape` is an optional peer dependency of `@ontrails/logtape`.
+`@ontrails/logtape` does not depend on `@logtape/logtape`. It uses a structural `LogtapeLoggerLike` interface to accept any object shaped like a LogTape logger, so consumers only install `@logtape/logtape` if their own code uses it directly.
 
 ## Installation
 

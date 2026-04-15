@@ -157,7 +157,7 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 | `@ontrails/drizzle` | Drizzle SQLite connector, typed store bindings, read-only bindings | `drizzle-orm` |
 | `@ontrails/tracing` | Telemetry recording, trace context, `trails.db` dev-state sinks | None beyond core |
 | `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
-| `@ontrails/logtape` | LogTape sink connector | `@logtape/logtape` (optional peer) |
+| `@ontrails/logtape` | LogTape sink connector | None (accepts any LogTape-shaped logger via a structural interface) |
 
 ### Ecosystem
 
@@ -193,7 +193,7 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
      ^
 @ontrails/cli/commander (cli, commander)
 @ontrails/hono (http, hono)
-@ontrails/logtape (logging, @logtape/logtape)
+@ontrails/logtape (logging)
 @ontrails/warden (core, schema)
      ^
 apps/trails (cli/commander, schema, tracing)
