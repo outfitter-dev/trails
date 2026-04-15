@@ -1,4 +1,4 @@
-// Generation
+// Derivation
 export { deriveSurfaceMap } from './derive.js';
 export { deriveSurfaceMapHash } from './hash.js';
 export { deriveSurfaceMapDiff } from './diff.js';

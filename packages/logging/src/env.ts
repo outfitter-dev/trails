@@ -15,7 +15,7 @@ const isValidLogLevel = (value: string): value is LogLevel =>
 // ---------------------------------------------------------------------------
 
 /**
- * Resolve log level from environment variables.
+ * Derive log level from environment variables.
  *
  * 1. `TRAILS_LOG_LEVEL` -- explicit override (if valid).
  * 2. `TRAILS_ENV` profile defaults:
