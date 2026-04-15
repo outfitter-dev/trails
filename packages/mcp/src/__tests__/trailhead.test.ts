@@ -83,7 +83,7 @@ describe('trailhead', () => {
     expect(['resolved', 'timeout']).toContain(result);
   });
 
-  test('TrailheadMcpOptions accepts resource overrides', () => {
+  test('TrailheadMcpOptions accepts flattened identity and resource fields', () => {
     const opts: Parameters<typeof trailhead>[1] = {
       description: 'Test MCP server',
       name: 'testapp',

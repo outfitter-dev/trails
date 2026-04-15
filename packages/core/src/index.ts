@@ -129,7 +129,7 @@ export type {
 
 // Topo
 export { topo } from './topo.js';
-export type { Topo } from './topo.js';
+export type { Topo, TopoIdentity } from './topo.js';
 export {
   createMockTopoStore,
   createTopoStore,
