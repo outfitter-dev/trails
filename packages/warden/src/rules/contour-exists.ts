@@ -8,7 +8,7 @@ import {
   identifierName,
   offsetToLine,
   parse,
-  resolveContourIdentifierName,
+  deriveContourIdentifierName,
 } from './ast.js';
 import type { AstNode, TrailDefinition } from './ast.js';
 import { isTestFile } from './scan.js';
@@ -49,7 +49,7 @@ const resolveDeclaredContourName = (
   if (element.type === 'Identifier') {
     const name = identifierName(element);
     return name
-      ? resolveContourIdentifierName(
+      ? deriveContourIdentifierName(
           name,
           contourIdsByName,
           knownContourIds,

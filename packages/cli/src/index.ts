@@ -15,7 +15,7 @@ export {
 } from './flags.js';
 
 // Output
-export { output, resolveOutputMode } from './output.js';
+export { output, deriveOutputMode } from './output.js';
 export type { OutputMode } from './output.js';
 
 // onResult
@@ -26,7 +26,7 @@ export { passthroughResolver, isInteractive } from './prompt.js';
 export type { Field, InputResolver, ResolveInputOptions } from './prompt.js';
 
 // Discovery
-export { discoverAppModules, resolveAppModule } from './discover.js';
+export { findAppModuleCandidates, findAppModule } from './discover.js';
 
 // Layers
 export { autoIterateLayer, dateShortcutsLayer } from './layers.js';

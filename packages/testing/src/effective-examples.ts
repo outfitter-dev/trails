@@ -5,7 +5,7 @@ import { z } from 'zod';
 type ExampleRecord = Readonly<Record<string, unknown>>;
 
 /**
- * Tracks examples that `resolveTrailExamples` synthesizes from contour
+ * Tracks examples that `deriveTrailExamples` synthesizes from contour
  * fixtures. Authored examples are passed through untouched and never
  * appear here, so consumers can distinguish the two by identity.
  *
@@ -17,7 +17,7 @@ const derivedExamples = new WeakSet<TrailExample<unknown, unknown>>();
 
 /**
  * Returns `true` if the given example was synthesized from contour fixtures
- * by `resolveTrailExamples`, `false` if it was authored on the trail.
+ * by `deriveTrailExamples`, `false` if it was authored on the trail.
  */
 export const isDerivedExample = (
   example: TrailExample<unknown, unknown>
@@ -304,7 +304,7 @@ const formatFixtureName = (
  * `WeakSet` so consumers can detect them without widening the public
  * `TrailExample` shape.
  */
-export const resolveTrailExamples = (
+export const deriveTrailExamples = (
   trail: Trail<unknown, unknown, unknown>
 ): readonly TrailExample<unknown, unknown>[] => {
   if (trail.examples !== undefined && trail.examples.length > 0) {

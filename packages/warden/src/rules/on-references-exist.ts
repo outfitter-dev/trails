@@ -18,7 +18,7 @@ import {
   isStringLiteral,
   offsetToLine,
   parse,
-  resolveConstString,
+  deriveConstString,
 } from './ast.js';
 import type { AstNode } from './ast.js';
 import { isTestFile } from './scan.js';
@@ -65,7 +65,7 @@ const extractOnElementId = (
 ): string | null => {
   if (element.type === 'Identifier') {
     const name = identifierName(element);
-    return name ? resolveConstString(name, sourceCode) : null;
+    return name ? deriveConstString(name, sourceCode) : null;
   }
 
   if (isStringLiteral(element)) {

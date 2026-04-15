@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { contour, Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { resolveTrailExamples } from '../effective-examples.js';
+import { deriveTrailExamples } from '../effective-examples.js';
 
 const requireContourExample = (
   contourDef: { examples?: readonly Record<string, unknown>[] },
@@ -65,7 +65,7 @@ const gistContour = contour(
   }
 );
 
-describe('resolveTrailExamples', () => {
+describe('deriveTrailExamples', () => {
   test('prefers authored trail examples over contour-derived fixtures', () => {
     const authoredExample = {
       expected: { email: 'manual@example.com', name: 'Manual' },
@@ -81,7 +81,7 @@ describe('resolveTrailExamples', () => {
       output: z.object({ email: z.string().email(), name: z.string() }),
     });
 
-    expect(resolveTrailExamples(trailDef)).toEqual([authoredExample]);
+    expect(deriveTrailExamples(trailDef)).toEqual([authoredExample]);
   });
 
   test('derives single-contour fixtures and preserves full contour output', () => {
@@ -94,7 +94,7 @@ describe('resolveTrailExamples', () => {
       output: userContour,
     });
 
-    const examples = resolveTrailExamples(trailDef);
+    const examples = deriveTrailExamples(trailDef);
     expect(examples).toHaveLength(2);
     const firstRecord = firstUserExample as Record<string, unknown>;
     expect(examples[0]).toEqual(
@@ -118,7 +118,7 @@ describe('resolveTrailExamples', () => {
       output: z.object({ slug: z.string() }),
     });
 
-    expect(resolveTrailExamples(trailDef)).toEqual([]);
+    expect(deriveTrailExamples(trailDef)).toEqual([]);
   });
 
   test('matches cross-contour references and exposes contour-prefixed aliases', () => {
@@ -135,7 +135,7 @@ describe('resolveTrailExamples', () => {
       }),
     });
 
-    const examples = resolveTrailExamples(trailDef);
+    const examples = deriveTrailExamples(trailDef);
     expect(examples).toHaveLength(2);
     // No contour fixture parses as the output schema on its own (the
     // output expects `gistId` and `userId`, but the fixtures expose
@@ -169,7 +169,7 @@ describe('resolveTrailExamples', () => {
       output: z.object({ email: z.string().email(), name: z.string() }),
     });
 
-    const examples = resolveTrailExamples(trailDef);
+    const examples = deriveTrailExamples(trailDef);
     expect(examples).toHaveLength(2);
     expect(examples[0]?.input).toEqual({
       email: (firstUserExample as { email: string }).email,
@@ -194,7 +194,7 @@ describe('resolveTrailExamples', () => {
         .strict(),
     });
 
-    const examples = resolveTrailExamples(trailDef);
+    const examples = deriveTrailExamples(trailDef);
     expect(examples.length).toBeGreaterThan(0);
     for (const example of examples) {
       expect(example.expected).toBeUndefined();

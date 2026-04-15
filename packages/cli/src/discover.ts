@@ -13,7 +13,7 @@ import { AmbiguousError, NotFoundError } from '@ontrails/core';
  * Returns relative candidate paths in priority order: single-app layout
  * first, then monorepo entries in filesystem scan order.
  */
-export const discoverAppModules = (cwd: string): string[] => {
+export const findAppModuleCandidates = (cwd: string): string[] => {
   const candidates: string[] = [];
 
   if (existsSync(join(cwd, 'src/app.ts'))) {
@@ -28,13 +28,13 @@ export const discoverAppModules = (cwd: string): string[] => {
   return candidates;
 };
 
-/** Resolve the app module path, using discovery when no explicit path is provided. */
-export const resolveAppModule = (cwd: string, explicit?: string): string => {
+/** Find the app module path, using discovery when no explicit path is provided. */
+export const findAppModule = (cwd: string, explicit?: string): string => {
   if (explicit !== undefined) {
     return explicit;
   }
 
-  const candidates = discoverAppModules(cwd);
+  const candidates = findAppModuleCandidates(cwd);
 
   const [first] = candidates;
   if (candidates.length === 1 && first !== undefined) {

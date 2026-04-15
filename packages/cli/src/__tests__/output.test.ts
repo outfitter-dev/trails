@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
-import { output, resolveOutputMode } from '../output.js';
+import { output, deriveOutputMode } from '../output.js';
 
 describe('output', () => {
   let written: string[];
@@ -50,7 +50,7 @@ describe('output', () => {
   });
 });
 
-describe('resolveOutputMode', () => {
+describe('deriveOutputMode', () => {
   let originalEnv: NodeJS.ProcessEnv;
 
   beforeEach(() => {
@@ -63,27 +63,27 @@ describe('resolveOutputMode', () => {
 
   describe('flag precedence', () => {
     test('--json flag returns json', () => {
-      const result = resolveOutputMode({ json: true }, 'stash');
+      const result = deriveOutputMode({ json: true }, 'stash');
       expect(result.mode).toBe('json');
     });
 
     test('--jsonl flag returns jsonl', () => {
-      const result = resolveOutputMode({ jsonl: true }, 'stash');
+      const result = deriveOutputMode({ jsonl: true }, 'stash');
       expect(result.mode).toBe('jsonl');
     });
 
     test('--json takes priority over --jsonl', () => {
-      const result = resolveOutputMode({ json: true, jsonl: true }, 'stash');
+      const result = deriveOutputMode({ json: true, jsonl: true }, 'stash');
       expect(result.mode).toBe('json');
     });
 
     test('--output flag returns specified mode', () => {
-      const result = resolveOutputMode({ output: 'jsonl' }, 'stash');
+      const result = deriveOutputMode({ output: 'jsonl' }, 'stash');
       expect(result.mode).toBe('jsonl');
     });
 
     test('--json takes priority over --output', () => {
-      const result = resolveOutputMode({ json: true, output: 'text' }, 'stash');
+      const result = deriveOutputMode({ json: true, output: 'text' }, 'stash');
       expect(result.mode).toBe('json');
     });
   });
@@ -91,48 +91,48 @@ describe('resolveOutputMode', () => {
   describe('topo-derived environment fallback', () => {
     test('<TOPO>_JSON=1 env var returns json', () => {
       process.env['STASH_JSON'] = '1';
-      const result = resolveOutputMode({}, 'stash');
+      const result = deriveOutputMode({}, 'stash');
       expect(result.mode).toBe('json');
     });
 
     test('<TOPO>_JSONL=1 env var returns jsonl', () => {
       process.env['STASH_JSONL'] = '1';
-      const result = resolveOutputMode({}, 'stash');
+      const result = deriveOutputMode({}, 'stash');
       expect(result.mode).toBe('jsonl');
     });
 
     test('flags take priority over env vars', () => {
       process.env['STASH_JSON'] = '1';
-      const result = resolveOutputMode({ jsonl: true }, 'stash');
+      const result = deriveOutputMode({ jsonl: true }, 'stash');
       expect(result.mode).toBe('jsonl');
     });
 
     test('defaults to text when nothing specified', () => {
-      const result = resolveOutputMode({}, 'stash');
+      const result = deriveOutputMode({}, 'stash');
       expect(result.mode).toBe('text');
     });
 
     test('env var for a different topo does not leak', () => {
       process.env['OTHER_JSON'] = '1';
-      const result = resolveOutputMode({}, 'stash');
+      const result = deriveOutputMode({}, 'stash');
       expect(result.mode).toBe('text');
     });
 
     test('legacy TRAILS_JSON is no longer honored', () => {
       process.env['TRAILS_JSON'] = '1';
-      const result = resolveOutputMode({}, 'stash');
+      const result = deriveOutputMode({}, 'stash');
       expect(result.mode).toBe('text');
     });
 
     test('topo name with hyphens is normalized to underscores', () => {
       process.env['MY_APP_JSON'] = '1';
-      const result = resolveOutputMode({}, 'my-app');
+      const result = deriveOutputMode({}, 'my-app');
       expect(result.mode).toBe('json');
     });
 
     test('topo name starting with a digit gets underscore prefix', () => {
       process.env['_1APP_JSON'] = '1';
-      const result = resolveOutputMode({}, '1app');
+      const result = deriveOutputMode({}, '1app');
       expect(result.mode).toBe('json');
     });
   });

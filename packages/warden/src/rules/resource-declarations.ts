@@ -123,7 +123,7 @@ const extractDeclaredResources = (
   });
 
 // ---------------------------------------------------------------------------
-// Called service extraction
+// Called resource extraction
 // ---------------------------------------------------------------------------
 
 /** Extract the raw second parameter node from a blaze function. */

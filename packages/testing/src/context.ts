@@ -60,14 +60,14 @@ export interface CreateCrossContextOptions {
   readonly responses?: Record<string, Result<unknown, Error>> | undefined;
 }
 
-/** Minimal permit shape returned by the mint function. */
-export interface MintedPermit {
+/** Minimal permit shape returned by the create function. */
+export interface MinimalPermit {
   readonly id: string;
   readonly scopes: readonly string[];
 }
 
-/** Trail shape consumed by the mint function — avoids importing permits. */
-export interface MintableTrail {
+/** Trail shape consumed by the create function — avoids importing permits. */
+export interface PermittedTrail {
   readonly permit?:
     | { readonly scopes: readonly string[] }
     | 'public'
@@ -78,19 +78,19 @@ export interface TestExecutionOptions {
   readonly ctx?: Partial<TrailContext> | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   /**
-   * When true, disables automatic permit minting. Tests must provide
+   * When true, disables automatic permit creation. Tests must provide
    * explicit permits.
    */
   readonly strictPermits?: boolean | undefined;
   /**
-   * Optional function to mint a test permit for a trail. When provided,
+   * Optional function to create a test permit for a trail. When provided,
    * called for each trail with a non-public `permit` requirement.
-   * Returning `undefined` skips minting for that trail.
+   * Returning `undefined` skips creation for that trail.
    *
    * A default inline implementation is used when this is not provided,
    * keeping the testing package free of a hard dependency on `@ontrails/permits`.
    */
-  readonly mintPermit?: (trail: MintableTrail) => MintedPermit | undefined;
+  readonly createPermit?: (trail: PermittedTrail) => MinimalPermit | undefined;
 }
 
 /**
@@ -145,12 +145,12 @@ export const createCrossContext = (
 };
 
 /**
- * Default permit minter — reads `trail.permit.scopes` and produces a
+ * Default permit creator — reads `trail.permit.scopes` and produces a
  * minimal permit object. No dependency on `@ontrails/permits`.
  */
-export const defaultMintPermit = (
-  trail: MintableTrail
-): MintedPermit | undefined => {
+export const defaultCreatePermit = (
+  trail: PermittedTrail
+): MinimalPermit | undefined => {
   if (!trail.permit || trail.permit === 'public') {
     return undefined;
   }
@@ -164,7 +164,7 @@ const isTestExecutionOptions = (
   (Object.hasOwn(input, 'ctx') ||
     Object.hasOwn(input, 'resources') ||
     Object.hasOwn(input, 'strictPermits') ||
-    Object.hasOwn(input, 'mintPermit'));
+    Object.hasOwn(input, 'createPermit'));
 
 export const normalizeTestExecutionOptions = (
   input?: Partial<TrailContext> | TestExecutionOptions

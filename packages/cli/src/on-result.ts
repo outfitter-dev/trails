@@ -3,7 +3,7 @@
  */
 
 import type { ActionResultContext } from './build.js';
-import { output, resolveOutputMode } from './output.js';
+import { output, deriveOutputMode } from './output.js';
 
 // ---------------------------------------------------------------------------
 // defaultOnResult
@@ -22,6 +22,6 @@ export const defaultOnResult = async (
     throw ctx.result.error;
   }
 
-  const { mode } = resolveOutputMode(ctx.flags, ctx.topoName);
+  const { mode } = deriveOutputMode(ctx.flags, ctx.topoName);
   await output(ctx.result.value, mode);
 };

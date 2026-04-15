@@ -309,8 +309,8 @@ createJwtConnector(options)          // built-in HS256 JWT connector (from @ontr
 authVerify                           // verify a bearer token and return a permit
 
 // Testing
-mintTestPermit(overrides?)           // create a permit for tests
-mintPermitForTrail(trail)            // mint a permit matching a trail's requirements
+createTestPermit(overrides?)         // create a permit for tests
+createPermitForTrail(trail)          // create a permit matching a trail's requirements
 
 // Governance
 validatePermits(trails)              // check trails against permit governance rules

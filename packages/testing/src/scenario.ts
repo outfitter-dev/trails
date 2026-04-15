@@ -117,7 +117,7 @@ const resolvePath = (path: string, outputs: Map<string, unknown>): unknown => {
 /**
  * Recursively walk a value, replacing RefToken instances with resolved values.
  */
-export const resolveRefs = (
+export const deriveRefs = (
   value: unknown,
   outputs: Map<string, unknown>
 ): unknown => {
@@ -126,13 +126,13 @@ export const resolveRefs = (
   }
 
   if (Array.isArray(value)) {
-    return value.map((item) => resolveRefs(item, outputs));
+    return value.map((item) => deriveRefs(item, outputs));
   }
 
   if (typeof value === 'object' && value !== null) {
     const result: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(value)) {
-      result[key] = resolveRefs(val, outputs);
+      result[key] = deriveRefs(val, outputs);
     }
     return result;
   }
@@ -169,9 +169,9 @@ const assertStepExpectations = async (
   const value = expectOk(result);
   if (step.expected !== undefined) {
     const { expect } = await import('bun:test');
-    expect(value).toEqual(resolveRefs(step.expected, outputs));
+    expect(value).toEqual(deriveRefs(step.expected, outputs));
   } else if (step.expectedMatch !== undefined) {
-    assertPartialMatch(result, resolveRefs(step.expectedMatch, outputs));
+    assertPartialMatch(result, deriveRefs(step.expectedMatch, outputs));
   }
   if (step.as !== undefined) {
     outputs.set(step.as, value);
@@ -323,7 +323,7 @@ const executeStep = async (
 
   const scenarioCross = createScenarioCross(app, resources);
   const baseCtx = createTestContext();
-  const resolvedInput = resolveRefs(step.input, outputs);
+  const resolvedInput = deriveRefs(step.input, outputs);
   const result = await executeTrail(step.cross, resolvedInput, {
     ctx: { ...baseCtx, cross: scenarioCross },
     resources,

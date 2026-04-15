@@ -45,7 +45,7 @@ export const output = (value: unknown, mode: OutputMode): void => {
 };
 
 // ---------------------------------------------------------------------------
-// resolveOutputMode()
+// deriveOutputMode()
 // ---------------------------------------------------------------------------
 
 const VALID_MODES = new Set<OutputMode>(['text', 'json', 'jsonl']);
@@ -109,7 +109,7 @@ const resolveEnvMode = (topoName: string): OutputMode | undefined => {
  * non-alphanumerics replaced by underscores. A topo named `stash` reads
  * `STASH_JSON` / `STASH_JSONL`.
  */
-export const resolveOutputMode = (
+export const deriveOutputMode = (
   flags: Record<string, unknown>,
   topoName: string
 ): {

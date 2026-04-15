@@ -61,10 +61,7 @@ const getStringValue = (node: AstNode): string | null => {
  * Returns the string value if a simple `const <name> = '...'` or `"..."` is
  * found in the source. Returns null for anything more complex.
  */
-const resolveConstString = (
-  name: string,
-  sourceCode: string
-): string | null => {
+const deriveConstString = (name: string, sourceCode: string): string | null => {
   const pattern = new RegExp(
     `const\\s+${name}\\s*=\\s*(?:'([^']*)'|"([^"]*)")`
   );
@@ -84,11 +81,11 @@ const resolveIdentifierElement = (
   if (!name) {
     return null;
   }
-  return resolveConstString(name, sourceCode);
+  return deriveConstString(name, sourceCode);
 };
 
 /** Resolve an array element to a static trail ID when possible. */
-const resolveCrossElementId = (
+const deriveCrossElementId = (
   element: AstNode,
   sourceCode: string
 ): string | null => {
@@ -149,7 +146,7 @@ const classifyCrossElement = (
   sourceCode: string,
   ids: Set<string>
 ): boolean => {
-  const resolved = resolveCrossElementId(element, sourceCode);
+  const resolved = deriveCrossElementId(element, sourceCode);
   if (!resolved) {
     // Element could not be statically resolved
     return true;
@@ -250,7 +247,7 @@ const resolveBatchCrossTupleTarget = (
 
   const tupleElements = element['elements'] as readonly AstNode[] | undefined;
   const [target] = tupleElements ?? [];
-  return target ? resolveCrossElementId(target, sourceCode) : null;
+  return target ? deriveCrossElementId(target, sourceCode) : null;
 };
 
 const collectBatchCrossId = (
