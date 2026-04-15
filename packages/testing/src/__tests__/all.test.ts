@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, mock } from 'bun:test';
 
 import { contour, Result, trail, topo } from '@ontrails/core';
-import { connectDrizzle } from '@ontrails/with-drizzle';
+import { connectDrizzle } from '@ontrails/drizzle';
 import { z } from 'zod';
 
 import { testAll } from '../all.js';

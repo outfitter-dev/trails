@@ -1,4 +1,4 @@
-# @ontrails/with-drizzle
+# @ontrails/drizzle
 
 Drizzle connector for Trails stores. Use this package to bind a connector-agnostic `store(...)` definition from `@ontrails/store` to a concrete Drizzle runtime.
 
@@ -6,7 +6,7 @@ Drizzle connector for Trails stores. Use this package to bind a connector-agnost
 
 ```typescript
 import { store } from '@ontrails/store';
-import { connectDrizzle } from '@ontrails/with-drizzle';
+import { connectDrizzle } from '@ontrails/drizzle';
 
 const definition = store({
   gists: {
@@ -25,7 +25,7 @@ export const db = connectDrizzle(definition, {
 ## Installation
 
 ```bash
-bun add @ontrails/store @ontrails/with-drizzle zod
+bun add @ontrails/store @ontrails/drizzle zod
 ```
 
 ## Migration
@@ -33,4 +33,4 @@ bun add @ontrails/store @ontrails/with-drizzle zod
 This package replaces the old `@ontrails/store/drizzle` subpath.
 
 - Before: `import { connectDrizzle } from '@ontrails/store/drizzle'`
-- After: `import { connectDrizzle } from '@ontrails/with-drizzle'`
+- After: `import { connectDrizzle } from '@ontrails/drizzle'`

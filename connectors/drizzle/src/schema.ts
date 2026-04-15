@@ -531,7 +531,7 @@ const assertTabularStoreKind = (definition: AnyStoreDefinition): void => {
   }
 
   throw new ValidationError(
-    `@ontrails/with-drizzle only supports store definitions with kind "tabular". Received "${definition.kind}".`
+    `@ontrails/drizzle only supports store definitions with kind "tabular". Received "${definition.kind}".`
   );
 };
 

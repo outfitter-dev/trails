@@ -112,7 +112,7 @@ await trailhead(app);
 **HTTP**: Routes from trail IDs (dots become path segments), verbs from intent, error responses from taxonomy.
 
 ```typescript
-import { trailhead } from '@ontrails/with-hono';
+import { trailhead } from '@ontrails/hono';
 await trailhead(app, { port: 3000 });
 ```
 

@@ -147,7 +147,7 @@ buildHttpRoutes(topo, options?)    // escape hatch: route definitions without se
 BuildHttpRoutesOptions, HttpMethod, HttpRouteDefinition, InputSource
 ```
 
-## `@ontrails/with-hono`
+## `@ontrails/hono`
 
 ```typescript
 trailhead(topo, options?)              // one-liner Hono HTTP server
@@ -199,7 +199,7 @@ createStoreAccessorContractCases(options) // shared writable accessor contract c
 StoreAccessorContractOptions<T>, StoreAccessorContractSubject<T>
 ```
 
-## `@ontrails/with-drizzle`
+## `@ontrails/drizzle`
 
 ```typescript
 connectDrizzle(definition, options?)         // bind a root store definition to a writable Drizzle resource

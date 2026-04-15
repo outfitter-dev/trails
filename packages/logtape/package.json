@@ -1,5 +1,5 @@
 {
-  "name": "@ontrails/logging",
+  "name": "@ontrails/logtape",
   "version": "1.0.0-beta.14",
   "type": "module",
   "exports": {
@@ -14,6 +14,11 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "peerDependencies": {
-    "@ontrails/core": "workspace:^"
+    "@ontrails/logging": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@logtape/logtape": {
+      "optional": true
+    }
   }
 }

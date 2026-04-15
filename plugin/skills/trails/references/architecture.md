@@ -89,7 +89,7 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
 | `@ontrails/cli/commander` | Commander connector, `trailhead()` | `commander` (peer) |
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `trailhead()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP route definitions (framework-agnostic) | None beyond core |
-| `@ontrails/with-hono` | Hono connector, `trailhead()` | `hono` |
+| `@ontrails/hono` | Hono connector, `trailhead()` | `hono` |
 
 ### Infrastructure Connectors (right side)
 
@@ -99,7 +99,7 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
 | `@ontrails/permits` | Auth layer, permit model, JWT connector, scope enforcement | None beyond core |
 | `@ontrails/tracing` | Telemetry recording, trace context, memory/OTel sinks | None beyond core |
 | `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
-| `@ontrails/logging/logtape` | LogTape sink connector | `@logtape/logtape` (peer) |
+| `@ontrails/logtape` | LogTape sink connector | `@logtape/logtape` (peer) |
 
 ### Ecosystem
 
@@ -123,7 +123,7 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
   <- @ontrails/testing (core, cli, mcp, logging)
   <- @ontrails/schema (core)
      <- @ontrails/cli/commander (cli, commander)
-     <- @ontrails/logging/logtape (logging, @logtape/logtape)
+     <- @ontrails/logtape (logging, @logtape/logtape)
      <- @ontrails/warden (core, schema)
 ```
 
