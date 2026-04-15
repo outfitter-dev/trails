@@ -394,7 +394,7 @@ describe('validateTopo', () => {
     const db = mockResource('db.main');
     const app = topo('app', {
       broken: mockTrail('entity.broken', { crosses: ['entity.missing'] }),
-      missingResource: mockTrail('entity.missing-service', {
+      missingResource: mockTrail('entity.missing-resource', {
         resources: [db],
       }),
       show: mockTrail('entity.show', {

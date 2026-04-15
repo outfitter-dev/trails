@@ -35,7 +35,7 @@ const counterResourceSpec: ResourceSpec<number> = {
   mock: () => 1,
 };
 
-const resolvedServiceCtx = (id: string, instance: unknown): TrailContext =>
+const resolvedResourceCtx = (id: string, instance: unknown): TrailContext =>
   createTrailContext({
     abortSignal: new AbortController().signal,
     extensions: { [id]: instance },
@@ -136,7 +136,7 @@ describe('resource()', () => {
             return sql.length;
           },
         }),
-      description: 'Typed database service',
+      description: 'Typed database resource',
     });
 
     const store = {
@@ -144,7 +144,7 @@ describe('resource()', () => {
         return sql.length;
       },
     };
-    const ctx = resolvedServiceCtx('db.main', store);
+    const ctx = resolvedResourceCtx('db.main', store);
 
     const resolved = db.from(ctx);
     expect(resolved.query('select 1')).toBe(8);
