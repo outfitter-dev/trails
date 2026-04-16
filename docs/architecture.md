@@ -45,7 +45,7 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 
 **Drift is structurally harder than alignment.** One schema, one `Result` type, one error taxonomy. You cannot have different parameter names across trailheads because there is only one schema.
 
-**Trailheads are peers.** No trailhead is privileged. CLI, MCP, HTTP, and WebSocket are all equal connectors reading from the same topo. Adding a trailhead is a `trailhead()` call, not an architecture change.
+**Trailheads are peers.** No trailhead is privileged. CLI, MCP, HTTP, and WebSocket are all equal connectors reading from the same topo. Adding a trailhead is a `surface()` call, not an architecture change.
 
 **Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation does not know which trailhead invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before layers and trailheads run.
 
@@ -142,10 +142,10 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 | Package | What it does | External dep |
 | --- | --- | --- |
 | `@ontrails/cli` | Framework-agnostic command model, flag derivation, output formatting | None beyond core |
-| `@ontrails/cli/commander` | Commander connector, `trailhead()` | `commander` (optional peer) |
-| `@ontrails/mcp` | MCP tools, annotations, progress bridge, `trailhead()` | `@modelcontextprotocol/sdk` |
+| `@ontrails/cli/commander` | Commander connector, `surface()` | `commander` (optional peer) |
+| `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP routes and error mapping | None beyond core |
-| `@ontrails/hono` | Hono connector, `trailhead()` | `hono` |
+| `@ontrails/hono` | Hono connector, `surface()` | `hono` |
 
 ### Infrastructure Connectors (right side)
 

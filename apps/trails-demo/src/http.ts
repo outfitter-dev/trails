@@ -5,10 +5,10 @@
  *   bun run src/http.ts
  */
 
-import { trailhead } from '@ontrails/hono';
+import { surface } from '@ontrails/hono';
 
 import { app } from './app.js';
 
-await trailhead(app, {
+await surface(app, {
   port: 3000,
 });

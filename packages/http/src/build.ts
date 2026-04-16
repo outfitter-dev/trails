@@ -259,8 +259,3 @@ export const deriveHttpRoutes = (
     options
   );
 };
-
-export const buildHttpRoutes = (
-  app: Topo,
-  options: DeriveHttpRoutesOptions = {}
-): Result<HttpRouteDefinition[], Error> => deriveHttpRoutes(app, options);

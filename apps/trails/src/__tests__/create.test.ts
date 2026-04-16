@@ -208,8 +208,8 @@ const assertMcpTrailhead = (dir: string): void => {
   expectPaths(dir, ['src/mcp.ts'], true);
   expectPaths(dir, ['src/cli.ts'], false);
   expectContainsAll(readText(dir, 'src/mcp.ts'), [
-    "import { trailhead } from '@ontrails/mcp'",
-    'await trailhead(app)',
+    "import { surface } from '@ontrails/mcp'",
+    'await surface(app)',
   ]);
 
   const deps = readJson(dir, 'package.json')['dependencies'] as Record<
@@ -296,7 +296,7 @@ describe('trails create', () => {
         expect(result.dependency).toBe('@ontrails/mcp');
         expectPaths(dir, ['src/mcp.ts'], true);
         expectContainsAll(readText(dir, 'src/mcp.ts'), [
-          "import { trailhead } from '@ontrails/mcp'",
+          "import { surface } from '@ontrails/mcp'",
         ]);
         const deps = readJson(dir, 'package.json')['dependencies'] as Record<
           string,

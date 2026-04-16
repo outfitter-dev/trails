@@ -20,7 +20,7 @@ export type {
 export { noThrowInImplementation } from './rules/no-throw-in-implementation.js';
 export { circularRefs } from './rules/circular-refs.js';
 export { contourExists } from './rules/contour-exists.js';
-export { contextNoTrailheadTypes } from './rules/context-no-trailhead-types.js';
+export { contextNoSurfaceTypes } from './rules/context-no-surface-types.js';
 export { deadInternalTrail } from './rules/dead-internal-trail.js';
 export { draftFileMarking } from './rules/draft-file-marking.js';
 export { draftVisibleDebt } from './rules/draft-visible-debt.js';
@@ -88,7 +88,7 @@ export { runWardenTrails } from './trails/run.js';
 export {
   circularRefsTrail,
   contourExistsTrail,
-  contextNoTrailheadTypesTrail,
+  contextNoSurfaceTypesTrail,
   crossDeclarationsTrail,
   deadInternalTrailTrail,
   diagnosticSchema,

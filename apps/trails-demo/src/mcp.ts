@@ -5,8 +5,8 @@
  *   bun run src/mcp.ts
  */
 
-import { trailhead } from '@ontrails/mcp';
+import { surface } from '@ontrails/mcp';
 
 import { app } from './app.js';
 
-await trailhead(app);
+await surface(app);

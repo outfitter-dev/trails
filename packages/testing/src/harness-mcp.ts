@@ -5,7 +5,7 @@
  * and returns the MCP tool response.
  */
 
-import { buildMcpTools } from '@ontrails/mcp';
+import { deriveMcpTools } from '@ontrails/mcp';
 import type { McpToolDefinition } from '@ontrails/mcp';
 
 import type {
@@ -31,7 +31,7 @@ import type {
  * ```
  */
 export const createMcpHarness = (options: McpHarnessOptions): McpHarness => {
-  const toolsResult = buildMcpTools(options.app);
+  const toolsResult = deriveMcpTools(options.app);
   if (toolsResult.isErr()) {
     throw toolsResult.error;
   }

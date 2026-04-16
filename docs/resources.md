@@ -25,7 +25,7 @@ The type of the resource instance is inferred from the `create` factory return. 
 | `create` | Factory returning `Result<T, Error>`. Receives a `ResourceContext` with `env`, `cwd`, and `workspaceRoot` only -- not the full `TrailContext`. |
 | `dispose` | Optional cleanup on shutdown. Database pools close, API clients disconnect. |
 | `health` | Optional readiness probe. Feeds into topo and survey reporting plus operational checks. |
-| `mock` | Optional test factory. When present, `testExamples(app)` uses it automatically. |
+| `mock` | Optional test factory. When present, `testExamples(graph)` uses it automatically. |
 | `description` | Human-readable label for topo or survey output and agent introspection. |
 
 The `create` factory receives `ResourceContext` -- a narrow subset of `TrailContext` -- because resources are singletons resolved once per process. Request-scoped fields like `requestId` would be stale after the first resolution.
@@ -101,7 +101,7 @@ Resolution happens eagerly during `executeTrail`, after input validation and bef
 
 This means failures surface at the boundary -- a missing `DATABASE_URL` fails before the implementation runs, not on line 47. It also means layers can access resources via `db.from(ctx)` because resolution is already complete.
 
-Shutdown signaling differs by trailhead. CLI tools dispose after the command completes. Long-running servers (MCP, HTTP) dispose on `SIGTERM`/`SIGINT`. The trailhead's `trailhead()` owns the lifecycle.
+Shutdown signaling differs by trailhead. CLI tools dispose after the command completes. Long-running servers (MCP, HTTP) dispose on `SIGTERM`/`SIGINT`. The trailhead's `surface()` owns the lifecycle.
 
 ## Testing with Resources
 
@@ -109,30 +109,30 @@ Resources with a `mock` factory auto-resolve during `testAll`, `testExamples`, a
 
 ```typescript
 import { testAll } from '@ontrails/testing';
-import { app } from '../app';
+import { graph } from '../app';
 
 // db.mock() is used automatically -- no configuration
-testAll(app);
+testAll(graph);
 ```
 
 Override explicitly when you need specific behavior:
 
 ```typescript
-testAll(app, () => ({
+testAll(graph, () => ({
   resources: { 'db.main': createSpecialTestDb() },
 }));
 ```
 
 Pass a factory (the `() => ({...})` form) when overrides contain mutable state, so each test gets a fresh instance. This prevents test pollution from shared in-memory stores.
 
-The same override mechanism works with `run` and `trailhead`:
+The same override mechanism works with `run` and `surface()`:
 
 ```typescript
-run(app, 'search', input, {
+run(graph, 'search', input, {
   resources: { 'db.main': testDb },
 });
 
-trailhead(app, {
+surface(graph, {
   resources: { 'db.main': stagingDb },
 });
 ```
@@ -148,7 +148,7 @@ import { topo } from '@ontrails/core';
 import * as entityTrails from './trails/entity';
 import * as resources from './services';
 
-const app = topo('myapp', entityTrails, resources);
+const graph = topo('myapp', entityTrails, resources);
 // app.resources -- Map<id, Resource>
 ```
 

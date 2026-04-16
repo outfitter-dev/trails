@@ -2,7 +2,7 @@
  * Framework-agnostic CLI command model.
  *
  * These interfaces are the intermediate representation that
- * `buildCliCommands()` produces and framework connectors consume.
+ * `deriveCliCommands()` produces and framework connectors consume.
  * No Commander (or any other framework) imports here.
  */
 

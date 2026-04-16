@@ -95,14 +95,14 @@ Wire to CLI or MCP with the same trails. The `db.mock()` factory is used automat
 ```typescript
 // cli.ts
 import { topo } from '@ontrails/core';
-import { trailhead } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/cli/commander';
 import * as project from './trails/project.js';
 import * as resources from './resources/db.js';
 
-const app = topo('myapp', project, resources);
-trailhead(app); // "myapp project show --id ..."
+const graph = topo('myapp', project, resources);
+surface(graph); // "myapp project show --id ..."
 
 // mcp.ts
-import { trailhead } from '@ontrails/mcp';
-trailhead(app); // tool: myapp_project_show, myapp_project_destroy
+import { surface } from '@ontrails/mcp';
+surface(graph); // tool: myapp_project_show, myapp_project_destroy
 ```

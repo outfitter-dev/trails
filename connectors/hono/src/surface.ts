@@ -30,7 +30,7 @@ import type { HttpMethod, HttpRouteDefinition } from '@ontrails/http';
 // Options
 // ---------------------------------------------------------------------------
 
-export interface TrailheadHttpOptions {
+export interface CreateAppOptions {
   readonly basePath?: string | undefined;
   /** Config values for resources that declare a `config` schema, keyed by resource ID. */
   readonly configValues?:
@@ -47,16 +47,9 @@ export interface TrailheadHttpOptions {
   readonly name?: string | undefined;
   readonly port?: number | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
-  /** Set false to return the Hono app without starting a server. */
-  readonly serve?: boolean | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
   readonly validate?: boolean | undefined;
 }
-
-export type CreateAppOptions = Omit<
-  TrailheadHttpOptions,
-  'hostname' | 'port' | 'serve'
->;
 
 export interface SurfaceHttpResult {
   readonly close: () => Promise<void>;
@@ -342,7 +335,7 @@ export const createApp = (app: Topo, options: CreateAppOptions = {}): Hono => {
 
 const startServer = (
   hono: Hono,
-  options: TrailheadHttpOptions
+  options: CreateAppOptions
 ): SurfaceHttpResult => {
   const server = Bun.serve({
     fetch: hono.fetch,
@@ -364,42 +357,15 @@ const startServer = (
 
 /**
  * Build a Hono app from a topo and start serving it with Bun.
+ *
+ * @remarks Always starts a Bun server. Use `createApp(graph)` for an
+ * unserved Hono app that you can wire into your own server.
  */
 export const surface = async (
   app: Topo,
-  options: TrailheadHttpOptions = {}
+  options: CreateAppOptions = {}
 ): Promise<SurfaceHttpResult> => {
-  if (options.serve === false) {
-    throw new Error(
-      'surface() always serves the HTTP app; use createApp(graph) for an unserved Hono app'
-    );
-  }
-
   // oxlint-disable-next-line require-await -- async ensures createApp() throws become rejected promises, not uncaught exceptions
   const hono = createApp(app, options);
   return startServer(hono, options);
-};
-
-// ---------------------------------------------------------------------------
-// trailhead
-// ---------------------------------------------------------------------------
-
-/**
- * Build HTTP routes from a topo, create a Hono app, and optionally start serving.
- *
- * Topo validation runs before route construction — pass `validate: false`
- * to skip it (e.g. during hot-reload or progressive startup).
- */
-// oxlint-disable-next-line require-await -- async for consistency with other trailhead() entrypoints
-export const trailhead = async (
-  app: Topo,
-  options: TrailheadHttpOptions = {}
-): Promise<Hono> => {
-  const hono = createApp(app, options);
-
-  if (options.serve !== false) {
-    startServer(hono, options);
-  }
-
-  return hono;
 };

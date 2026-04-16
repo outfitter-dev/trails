@@ -389,8 +389,3 @@ export const deriveMcpTools = (
 
   return registerTools(app, options, options.layers ?? []);
 };
-
-export const buildMcpTools = (
-  app: Topo,
-  options: DeriveMcpToolsOptions = {}
-): Result<McpToolDefinition[], Error> => deriveMcpTools(app, options);

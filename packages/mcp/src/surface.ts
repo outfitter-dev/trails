@@ -1,12 +1,5 @@
 /**
- * trailhead() -- the one-liner MCP server launcher.
- *
- * Three lines to expose trails as MCP tools:
- *
- * ```ts
- * const app = topo("myapp", entity);
- * await trailhead(app);
- * ```
+ * Surface helpers for exposing a topo over MCP.
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -30,7 +23,7 @@ import { connectStdio } from './stdio.js';
 // Options
 // ---------------------------------------------------------------------------
 
-export interface TrailheadMcpOptions {
+export interface CreateServerOptions {
   /** Config values for resources that declare a `config` schema, keyed by resource ID. */
   readonly configValues?:
     | Readonly<Record<string, Record<string, unknown>>>
@@ -50,8 +43,6 @@ export interface TrailheadMcpOptions {
   readonly version?: string | undefined;
 }
 
-export type CreateServerOptions = TrailheadMcpOptions;
-
 export interface SurfaceMcpResult {
   readonly close: () => Promise<void>;
 }
@@ -67,7 +58,7 @@ export interface SurfaceMcpResult {
  * server's `instructions` field — the SDK's documented channel for
  * "optional instructions describing how to use the server and its features."
  */
-export const createMcpServer = (
+const createMcpServer = (
   tools: McpToolDefinition[],
   info: {
     readonly name: string;
@@ -187,10 +178,13 @@ export const createServer = (
 
 /**
  * Build MCP tools from a topo, create a server, and connect via stdio.
+ *
+ * @remarks Opens the MCP server on stdio. For custom transports, use
+ * `createServer(graph)` with `connectStdio` or your own connector.
  */
 export const surface = async (
   app: Topo,
-  options: TrailheadMcpOptions = {}
+  options: CreateServerOptions = {}
 ): Promise<SurfaceMcpResult> => {
   const server = createServer(app, options);
   await connectStdio(server);
@@ -200,18 +194,4 @@ export const surface = async (
       await server.close();
     },
   };
-};
-
-// ---------------------------------------------------------------------------
-// trailhead
-// ---------------------------------------------------------------------------
-
-/**
- * Build MCP tools from a topo, create a server, and connect via stdio.
- */
-export const trailhead = async (
-  app: Topo,
-  options: TrailheadMcpOptions = {}
-): Promise<void> => {
-  await surface(app, options);
 };

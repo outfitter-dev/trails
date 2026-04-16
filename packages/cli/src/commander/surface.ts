@@ -21,7 +21,7 @@ import { toCommander } from './to-commander.js';
 // Options
 // ---------------------------------------------------------------------------
 
-export interface TrailheadCliOptions {
+export interface CreateProgramOptions {
   createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
@@ -39,8 +39,6 @@ export interface TrailheadCliOptions {
   version?: string | undefined;
 }
 
-export type CreateProgramOptions = TrailheadCliOptions;
-
 export interface SurfaceCliResult {
   readonly exitCode: number;
 }
@@ -51,7 +49,7 @@ export interface SurfaceCliResult {
 
 const deriveCommanderOptions = (
   app: Topo,
-  options: TrailheadCliOptions
+  options: CreateProgramOptions
 ): ToCommanderOptions => {
   const commanderOpts: ToCommanderOptions = {
     name: options.name ?? app.name,
@@ -107,36 +105,10 @@ export const createProgram = (
  */
 export const surface = async (
   app: Topo,
-  options: TrailheadCliOptions = {}
+  options: CreateProgramOptions = {}
 ): Promise<SurfaceCliResult> => {
   const program = createProgram(app, options);
   await program.parseAsync();
   const { exitCode } = process;
   return { exitCode: typeof exitCode === 'number' ? exitCode : 0 };
-};
-
-// ---------------------------------------------------------------------------
-// trailhead
-// ---------------------------------------------------------------------------
-
-/**
- * Wire an App to Commander and parse argv in one call.
- *
- * Validation is handled by `buildCliCommands` — pass `validate: false`
- * to skip it (e.g. during hot-reload or progressive startup).
- *
- * ```ts
- * import { topo } from "@ontrails/core";
- * import { trailhead } from "@ontrails/cli/commander";
- * import * as entity from "./trails/entity.ts";
- *
- * const app = topo("myapp", entity);
- * trailhead(app);
- * ```
- */
-export const trailhead = async (
-  app: Topo,
-  options: TrailheadCliOptions = {}
-): Promise<void> => {
-  await surface(app, options);
 };

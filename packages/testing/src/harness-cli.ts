@@ -5,7 +5,7 @@
  * and captures stdout/stderr.
  */
 
-import { buildCliCommands } from '@ontrails/cli';
+import { deriveCliCommands } from '@ontrails/cli';
 import type { CliCommand } from '@ontrails/cli';
 
 import { createTestContext } from './context.js';
@@ -278,7 +278,11 @@ const runCommand = async (
  * ```
  */
 export const createCliHarness = (options: CliHarnessOptions): CliHarness => {
-  const commands = buildCliCommands(options.app);
+  const commandsResult = deriveCliCommands(options.app);
+  if (commandsResult.isErr()) {
+    throw commandsResult.error;
+  }
+  const commands = commandsResult.value;
 
   return {
     run: (commandString: string) => runCommand(commands, commandString),

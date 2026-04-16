@@ -26,7 +26,7 @@ Zod fields on a trail's `input` schema become CLI flags automatically.
 CLI trailheads support `--output text|json|jsonl` for structured output.
 
 ```typescript
-trailhead(app, {
+surface(graph, {
   presets: [outputModePreset()],
 });
 ```
@@ -74,7 +74,7 @@ Groups are created automatically from the dot-separated prefix.
 When a trail has `intent: 'destroy'`, the CLI trailhead automatically adds a `--dry-run` flag. The `ctx.dryRun` boolean is available inside the implementation. You can also add this explicitly:
 
 ```typescript
-trailhead(app, {
+surface(graph, {
   presets: [dryRunPreset()],
 });
 ```
@@ -90,7 +90,7 @@ Presets add common flags and behavior to all commands:
 | `dryRunPreset()` | `--dry-run` flag on `intent: 'destroy'` trails |
 
 ```typescript
-trailhead(app, {
+surface(graph, {
   presets: [outputModePreset(), cwdPreset()],
 });
 ```
@@ -98,7 +98,7 @@ trailhead(app, {
 ## Blaze Options
 
 ```typescript
-trailhead(app, {
+surface(graph, {
   name: 'myapp',           // CLI binary name (defaults to topo name)
   version: '1.0.0',        // --version output
   description: 'My app',   // Top-level help text
@@ -115,14 +115,17 @@ The CLI trailhead delegates to `executeTrail()` from `@ontrails/core` — the sa
 
 ## Escape Hatch
 
-For full control over the Commander.js program, use `buildCliCommands()` to get the command tree, then call `toCommander()`:
+For full control over the Commander.js program, use `deriveCliCommands()` to get the command tree, then call `toCommander()`:
 
 ```typescript
-import { buildCliCommands, toCommander } from '@ontrails/cli/commander';
-import { app } from './app';
+import { deriveCliCommands } from '@ontrails/cli';
+import { toCommander } from '@ontrails/cli/commander';
+import { graph } from './app';
 
-const commands = buildCliCommands(app);
-const program = toCommander(commands, {
+const commands = deriveCliCommands(graph);
+if (commands.isErr()) throw commands.error;
+
+const program = toCommander(commands.value, {
   name: 'myapp',
   version: '1.0.0',
 });

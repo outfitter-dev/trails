@@ -1,12 +1,12 @@
 # @ontrails/mcp
 
-MCP trailhead connector. One `trailhead()` call turns a topo into an MCP server with tool definitions, annotations, and progress bridging -- all derived from the trail contracts.
+MCP surface connector. One `surface()` call turns a topo into an MCP server with tool definitions, annotations, and progress bridging -- all derived from the trail contracts.
 
 ## Usage
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
-import { trailhead } from '@ontrails/mcp';
+import { surface } from '@ontrails/mcp';
 import { z } from 'zod';
 
 const greet = trail('greet', {
@@ -15,8 +15,8 @@ const greet = trail('greet', {
   blaze: (input) => Result.ok(`Hello, ${input.name}!`),
 });
 
-const app = topo('myapp', { greet });
-await trailhead(app);
+const graph = topo('myapp', { greet });
+await surface(graph);
 ```
 
 This starts an MCP server over stdio with a `myapp_greet` tool. The tool gets `readOnlyHint: true` and a JSON Schema input -- both derived from the trail definition.
@@ -24,9 +24,9 @@ This starts an MCP server over stdio with a `myapp_greet` tool. The tool gets `r
 For more control, build the tools yourself:
 
 ```typescript
-import { buildMcpTools } from '@ontrails/mcp';
+import { deriveMcpTools } from '@ontrails/mcp';
 
-const result = buildMcpTools(app);
+const result = deriveMcpTools(graph);
 if (result.isErr()) throw result.error; // ValidationError on tool-name collision
 for (const tool of result.value) {
   server.registerTool(tool.name, tool.handler, {
@@ -36,14 +36,14 @@ for (const tool of result.value) {
 }
 ```
 
-`buildMcpTools` returns `Result<McpToolDefinition[], Error>` rather than a bare array. It returns `Result.err(ValidationError)` if two trails derive the same MCP tool name. Each `McpToolDefinition` includes a `trailId` field that records which trail the tool was derived from.
+`deriveMcpTools` returns `Result<McpToolDefinition[], Error>` rather than a bare array. It returns `Result.err(ValidationError)` if two trails derive the same MCP tool name. Each `McpToolDefinition` includes a `trailId` field that records which trail the tool was derived from.
 
 ## API
 
 | Export | What it does |
 | --- | --- |
-| `trailhead(app, options?)` | Start an MCP server with all trails as tools |
-| `buildMcpTools(app, options?)` | Build tool definitions without starting a server |
+| `surface(graph, options?)` | Start an MCP server with all trails as tools |
+| `deriveMcpTools(graph, options?)` | Build tool definitions without starting a server |
 | `deriveToolName(appName, trailId)` | Compute the MCP tool name from app and trail IDs |
 | `deriveAnnotations(trail)` | Extract MCP annotations from trail intent and metadata |
 | `createMcpProgressCallback(server)` | Bridge `ctx.progress` to MCP `notifications/progress` |
@@ -90,8 +90,8 @@ const importTrail = trail('data.import', {
 ## Filtering
 
 ```typescript
-await trailhead(app, { include: ['entity.**', 'search'] });
-await trailhead(app, { exclude: ['internal.debug'] });
+await surface(graph, { include: ['entity.**', 'search'] });
+await surface(graph, { exclude: ['internal.debug'] });
 ```
 
 `*` matches one dotted segment and `**` matches any depth. Trails declared with

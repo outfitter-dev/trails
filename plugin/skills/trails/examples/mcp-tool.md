@@ -77,11 +77,11 @@ One line to expose as MCP tools:
 ```typescript
 // mcp.ts
 import { topo } from '@ontrails/core';
-import { trailhead } from '@ontrails/mcp';
+import { surface } from '@ontrails/mcp';
 import * as docs from './trails/docs.js';
 
-const app = topo('docs', docs);
-await trailhead(app);
+const graph = topo('docs', docs);
+await surface(graph);
 // Tool name: docs_docs_search
 // Annotations derived from trail:
 //   readOnlyHint: true    (intent: 'read')

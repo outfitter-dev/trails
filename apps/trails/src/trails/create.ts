@@ -2,7 +2,7 @@
  * `create` route -- Create a new Trails project.
  *
  * Composes create.scaffold, add.trailhead, and add.verify sub-trails
- * via ctx.cross().
+ * via ctx.cross.
  */
 
 import type { CrossFn } from '@ontrails/core';
@@ -153,7 +153,6 @@ export const createRoute = trail('create', {
     }
     return await runCreate(ctx.cross, input);
   },
-  crosses: ['create.scaffold', 'add.trailhead', 'add.verify'],
   description: 'Create a new Trails project',
   fields: {
     starter: {
