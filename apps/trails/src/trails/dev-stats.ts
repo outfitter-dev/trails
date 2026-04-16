@@ -2,7 +2,7 @@ import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { buildDevStats, DEFAULT_TOPO_SAVE_RETENTION } from './dev-support.js';
-import { isolatedExampleInput } from './topo-support.js';
+import { createIsolatedExampleInput } from './topo-support.js';
 
 export const devStatsTrail = trail('dev.stats', {
   blaze: (input, ctx) => {
@@ -19,7 +19,7 @@ export const devStatsTrail = trail('dev.stats', {
   description: 'Show local Trails workspace state and retention',
   examples: [
     {
-      input: { rootDir: isolatedExampleInput('dev-stats').rootDir },
+      input: { rootDir: createIsolatedExampleInput('dev-stats').rootDir },
       name: 'Show local dev state',
     },
   ],

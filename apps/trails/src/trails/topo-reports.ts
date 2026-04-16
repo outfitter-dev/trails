@@ -81,7 +81,7 @@ const detectFeatures = (
   };
 };
 
-export const generateBriefReport = (app: Topo): BriefReport => {
+export const deriveBriefReport = (app: Topo): BriefReport => {
   const { hasDetours, hasExamples, hasOutputSchemas, hasResources } =
     detectFeatures(app);
 
@@ -140,7 +140,7 @@ const resourceHealthStatus = (resource: {
 }): 'available' | 'none' =>
   resource.health === undefined ? 'none' : 'available';
 
-export const formatResourceDetail = (app: Topo, resourceId: string): object => {
+export const deriveResourceDetail = (app: Topo, resourceId: string): object => {
   const item = app.getResource(resourceId);
   const usedBy = buildResourceUsage(app).get(resourceId) ?? [];
 
@@ -169,7 +169,7 @@ const formatResourceList = (app: Topo): SurveyListReport['resources'] => {
     .toSorted((a, b) => a.id.localeCompare(b.id));
 };
 
-export const generateSurveyList = (app: Topo): SurveyListReport => {
+export const deriveSurveyList = (app: Topo): SurveyListReport => {
   const items = app.list();
   const entries = items.map((item) => {
     const safety = safetyLabel(
@@ -199,7 +199,7 @@ export const generateSurveyList = (app: Topo): SurveyListReport => {
   };
 };
 
-export const generateTrailDetail = (
+export const deriveTrailDetail = (
   item: Trail<unknown, unknown>
 ): TrailDetailReport => {
   const safety = safetyLabel(

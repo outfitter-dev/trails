@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
 import { exportCurrentTopo } from './topo-store-support.js';
-import { isolatedExampleInput, topoSaveOutput } from './topo-support.js';
+import { createIsolatedExampleInput, topoSaveOutput } from './topo-support.js';
 
 export const topoExportTrail = trail('topo.export', {
   blaze: async (input, ctx) => {
@@ -14,7 +14,7 @@ export const topoExportTrail = trail('topo.export', {
   description: 'Export the current topo to .trails artifacts',
   examples: [
     {
-      input: isolatedExampleInput('topo-export'),
+      input: createIsolatedExampleInput('topo-export'),
       name: 'Write the current topo export',
     },
   ],

@@ -25,10 +25,10 @@ import {
 import { exportCurrentTopo } from './topo-store-support.js';
 
 export {
-  formatResourceDetail,
-  generateBriefReport,
-  generateSurveyList,
-  generateTrailDetail,
+  deriveBriefReport,
+  deriveResourceDetail,
+  deriveSurveyList,
+  deriveTrailDetail,
 } from './topo-reports.js';
 export type {
   BriefReport,
@@ -124,7 +124,7 @@ const modeChecks: readonly [(input: SurveyInput) => boolean, SurveyMode][] = [
 ];
 
 /** Determine which survey mode was requested, falling back to 'list'. */
-const resolveSurveyMode = (input: SurveyInput): SurveyMode =>
+const deriveSurveyMode = (input: SurveyInput): SurveyMode =>
   modeChecks.find(([predicate]) => predicate(input))?.[1] ?? 'list';
 
 type SurveyHandler = (
@@ -152,7 +152,7 @@ const dispatchSurvey = (
   input: SurveyInput,
   rootDir: string
 ): Result<object, Error> | Promise<Result<object, Error>> => {
-  const mode = resolveSurveyMode(input);
+  const mode = deriveSurveyMode(input);
   const handler = surveyHandlers[mode];
   return handler(app, input, rootDir);
 };

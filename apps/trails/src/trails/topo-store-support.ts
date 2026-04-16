@@ -21,7 +21,11 @@ import type { TrailheadLock, TrailheadMap } from '@ontrails/schema';
 import { writeTrailheadLock, writeTrailheadMap } from '@ontrails/schema';
 
 import type { TopoExportReport } from './topo-support.js';
-import { currentGitState, resolveRootDir, topoCounts } from './topo-support.js';
+import {
+  deriveRootDir,
+  deriveTopoCounts,
+  readGitState,
+} from './topo-support.js';
 
 const persistAndReadStoredExport = (
   app: Topo,
@@ -29,8 +33,8 @@ const persistAndReadStoredExport = (
   rootDir: string
 ): Result<{ save: TopoSaveRecord; storedExport: StoredTopoExport }, Error> => {
   const saveResult = persistEstablishedTopoSave(db, app, {
-    ...currentGitState(rootDir),
-    ...topoCounts(app),
+    ...readGitState(rootDir),
+    ...deriveTopoCounts(app),
   });
   if (saveResult.isErr()) {
     return saveResult;
@@ -75,7 +79,7 @@ export const exportCurrentTopo = async (
   app: Topo,
   options?: { readonly rootDir?: string }
 ): Promise<Result<TopoExportReport, Error>> => {
-  const rootDir = resolveRootDir(options?.rootDir);
+  const rootDir = deriveRootDir(options?.rootDir);
   const db = openWriteTrailsDb({ rootDir });
 
   try {

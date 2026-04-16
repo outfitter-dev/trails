@@ -18,9 +18,9 @@ import type { TrailheadMap } from '@ontrails/schema';
 import { z } from 'zod';
 
 import {
-  generateBriefReport,
-  generateSurveyList,
-  generateTrailDetail,
+  deriveBriefReport,
+  deriveSurveyList,
+  deriveTrailDetail,
   surveyTrail,
 } from '../trails/survey.js';
 import type {
@@ -202,20 +202,20 @@ describe('trails survey', () => {
 
 describe('trails survey --brief', () => {
   test('produces a valid capability report', () => {
-    const report = generateBriefReport(app);
+    const report = deriveBriefReport(app);
     expect(report.name).toBe('test-app');
     expect(report.contractVersion).toBe('2026-03');
   });
 
   test('report includes correct trail count', () => {
-    const report = generateBriefReport(app);
+    const report = deriveBriefReport(app);
     expect(report.trails).toBe(2);
     expect(report.signals).toBe(0);
     expect(report.resources).toBe(1);
   });
 
   test('detects features in use', () => {
-    const report = generateBriefReport(app);
+    const report = deriveBriefReport(app);
     expect(report.features.outputSchemas).toBe(true);
     expect(report.features.examples).toBe(true);
     expect(report.features.detours).toBe(true);
@@ -224,7 +224,7 @@ describe('trails survey --brief', () => {
   });
 
   test('JSON output is valid', () => {
-    const report = generateBriefReport(app);
+    const report = deriveBriefReport(app);
     const json = JSON.stringify(report, null, 2);
     const parsed = JSON.parse(json) as BriefReport;
     expect(parsed.name).toBe('test-app');
@@ -234,7 +234,7 @@ describe('trails survey --brief', () => {
 
   test('empty app reports zero features', () => {
     const emptyApp = topo('empty', {});
-    const report = generateBriefReport(emptyApp);
+    const report = deriveBriefReport(emptyApp);
     expect(report.trails).toBe(0);
     expect(report.features.outputSchemas).toBe(false);
     expect(report.features.examples).toBe(false);
@@ -245,7 +245,7 @@ describe('trails survey --brief', () => {
 
 describe('trails survey detail', () => {
   test('trail detail includes declared resources, crossings, and intent', () => {
-    const detail = generateTrailDetail(helloTrail);
+    const detail = deriveTrailDetail(helloTrail);
     const parsed = structuredClone(detail) as TrailDetailReport;
 
     expect(parsed.crosses).toEqual([]);
@@ -256,7 +256,7 @@ describe('trails survey detail', () => {
 
 describe('trails survey resources section', () => {
   test('list output includes resource lifetime and health status', () => {
-    const report = generateSurveyList(app);
+    const report = deriveSurveyList(app);
     const parsed = structuredClone(report) as SurveyListReport;
     const db = parsed.resources.find((entry) => entry.id === 'db.main');
 

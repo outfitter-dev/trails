@@ -2,7 +2,7 @@ import { Result, ValidationError, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { resetDevState } from './dev-support.js';
-import { isolatedExampleInput } from './topo-support.js';
+import { createIsolatedExampleInput } from './topo-support.js';
 
 export const devResetTrail = trail('dev.reset', {
   blaze: (input, ctx) => {
@@ -22,7 +22,7 @@ export const devResetTrail = trail('dev.reset', {
     {
       input: {
         dryRun: true,
-        rootDir: isolatedExampleInput('dev-reset').rootDir,
+        rootDir: createIsolatedExampleInput('dev-reset').rootDir,
       },
       name: 'Preview local reset',
     },

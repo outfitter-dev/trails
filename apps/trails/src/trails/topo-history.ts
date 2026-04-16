@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import {
   DEFAULT_TOPO_HISTORY_LIMIT,
-  isolatedExampleInput,
+  createIsolatedExampleInput,
   listTopoHistory,
   topoPinOutput,
   topoSaveOutput,
@@ -17,7 +17,7 @@ export const topoHistoryTrail = trail('topo.history', {
   description: 'List saved topo metadata, including pins and recent autosaves',
   examples: [
     {
-      input: isolatedExampleInput('topo-history'),
+      input: createIsolatedExampleInput('topo-history'),
       name: 'Show topo history',
     },
   ],
