@@ -167,7 +167,7 @@ export const getStringValue = (node: AstNode): string | null => {
  * warden rules that need to resolve identifier references to signal / trail
  * IDs at lint time.
  */
-export const resolveConstString = (
+export const deriveConstString = (
   name: string,
   sourceCode: string
 ): string | null => {
@@ -699,7 +699,7 @@ const resolveKnownContourName = (
  * reason about" (e.g. a bare undeclared variable), as opposed to
  * "a contour reference whose target is missing".
  */
-export const resolveContourIdentifierName = (
+export const deriveContourIdentifierName = (
   bindingName: string,
   namedContourIds: ReadonlyMap<string, string>,
   knownContourIds?: ReadonlySet<string>,
@@ -755,7 +755,7 @@ const getContourReferenceTargetFromObject = (
   if (object.type === 'Identifier') {
     const bindingName = identifierName(object);
     return bindingName
-      ? resolveContourIdentifierName(
+      ? deriveContourIdentifierName(
           bindingName,
           namedContourIds,
           knownContourIds,
@@ -1008,7 +1008,7 @@ export const getCrossElements = (config: AstNode): readonly AstNode[] => {
  * Handles string literals, identifier references (via `namedTrailIds` map or
  * `const NAME = '...'` resolution), and inline `trail(...)` call expressions.
  */
-export const resolveCrossElementId = (
+export const deriveCrossElementId = (
   element: AstNode,
   sourceCode: string,
   namedTrailIds: ReadonlyMap<string, string>
@@ -1020,7 +1020,7 @@ export const resolveCrossElementId = (
   if (element.type === 'Identifier') {
     const name = identifierName(element);
     return name
-      ? (namedTrailIds.get(name) ?? resolveConstString(name, sourceCode))
+      ? (namedTrailIds.get(name) ?? deriveConstString(name, sourceCode))
       : null;
   }
 
@@ -1039,7 +1039,7 @@ export const extractDefinitionCrossTargetIds = (
 ): readonly string[] => [
   ...new Set(
     getCrossElements(config).flatMap((element) => {
-      const id = resolveCrossElementId(element, sourceCode, namedTrailIds);
+      const id = deriveCrossElementId(element, sourceCode, namedTrailIds);
       return id ? [id] : [];
     })
   ),
@@ -1255,7 +1255,7 @@ export const collectNamedStoreTableIds = (
  *   - direct member access: `db.tables.notes`
  *   - identifier reference: `const notesTable = db.tables.notes; crud(notesTable, …)`
  */
-export const resolveStoreTableId = (
+export const deriveStoreTableId = (
   node: AstNode | undefined,
   namedStoreTableIds: ReadonlyMap<string, string>
 ): string | null => {
@@ -1376,7 +1376,7 @@ export const collectCrudTableIds = (ast: AstNode): ReadonlySet<string> => {
 
     const [tableArg] = ((node as unknown as { arguments?: readonly AstNode[] })
       .arguments ?? []) as readonly AstNode[];
-    const tableId = resolveStoreTableId(tableArg, namedStoreTableIds);
+    const tableId = deriveStoreTableId(tableArg, namedStoreTableIds);
     if (tableId) {
       ids.add(tableId);
     }
@@ -1404,7 +1404,7 @@ export const collectReconcileTableIds = (ast: AstNode): ReadonlySet<string> => {
     }
 
     const tableProp = findConfigProperty(configArg, 'table');
-    const tableId = resolveStoreTableId(
+    const tableId = deriveStoreTableId(
       tableProp?.value as AstNode | undefined,
       namedStoreTableIds
     );
@@ -1433,7 +1433,7 @@ const extractStoreSignalIdFromMember = (
     return null;
   }
 
-  const tableId = resolveStoreTableId(signalsMember.object, namedStoreTableIds);
+  const tableId = deriveStoreTableId(signalsMember.object, namedStoreTableIds);
   return tableId ? `${tableId}.${operation}` : null;
 };
 
@@ -1490,7 +1490,7 @@ const resolveNamedOnSignalId = (
 
   const name = identifierName(element);
   return name
-    ? (namedStoreSignalIds.get(name) ?? resolveConstString(name, sourceCode))
+    ? (namedStoreSignalIds.get(name) ?? deriveConstString(name, sourceCode))
     : null;
 };
 

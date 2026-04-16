@@ -20,7 +20,7 @@ import {
   createMockResources,
 } from './context.js';
 import type { TestExecutionOptions } from './context.js';
-import { resolveTrailExamples } from './effective-examples.js';
+import { deriveTrailExamples } from './effective-examples.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -75,7 +75,7 @@ export const testContracts = (
   const allEntries = (app.list() as Trail<unknown, unknown, unknown>[]).map(
     (trailDef) => ({
       ...trailDef,
-      examples: resolveTrailExamples(trailDef),
+      examples: deriveTrailExamples(trailDef),
     })
   );
 

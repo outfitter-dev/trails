@@ -18,7 +18,7 @@ import {
   identifierName,
   offsetToLine,
   parse,
-  resolveConstString,
+  deriveConstString,
   walkScope,
 } from './ast.js';
 import type { AstNode } from './ast.js';
@@ -38,7 +38,7 @@ const resolveIdentifierElement = (
   if (!name) {
     return null;
   }
-  return resolveConstString(name, sourceCode);
+  return deriveConstString(name, sourceCode);
 };
 
 /**

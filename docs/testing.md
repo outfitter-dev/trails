@@ -378,13 +378,13 @@ The config, permits, and tracing packages each provide test-friendly primitives 
 
 **Config test profile.** Use `defineConfig()` with a `test` profile that uses safe defaults (port 0, debug enabled, in-memory stores). When the `TRAILS_ENV` environment variable is set to `test`, the test profile is selected automatically during resolution. Services with `config` schemas receive the test profile values through `svc.config`.
 
-**Synthetic permit minting.** `mintTestPermit()` creates a `Permit` with exactly the scopes you specify -- no admin privileges, no wildcards. `mintPermitForTrail()` reads a trail's `permit` declaration and mints a permit with exactly the declared scopes, so tests exercise the real authorization path without a running auth provider:
+**Synthetic permit creation.** `createTestPermit()` creates a `Permit` with exactly the scopes you specify -- no admin privileges, no wildcards. `createPermitForTrail()` reads a trail's `permit` declaration and creates a permit with exactly the declared scopes, so tests exercise the real authorization path without a running auth provider:
 
 ```typescript
-import { mintTestPermit, mintPermitForTrail } from '@ontrails/permits';
+import { createTestPermit, createPermitForTrail } from '@ontrails/permits';
 
-const permit = mintTestPermit({ scopes: ['entity:read'] });
-const trailPermit = mintPermitForTrail(showTrail);
+const permit = createTestPermit({ scopes: ['entity:read'] });
+const trailPermit = createPermitForTrail(showTrail);
 ```
 
 **Tracing memory sink.** Tracing is intrinsic to `executeTrail` — every trail execution produces a `TraceRecord` automatically. Register `createMemorySink()` to capture records in memory for assertion:

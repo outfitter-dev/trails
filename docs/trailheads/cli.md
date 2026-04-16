@@ -185,7 +185,7 @@ Adds `--dry-run` flag. Automatically added for trails with `intent: 'destroy'`.
 The `output()` function writes values to stdout in the specified format:
 
 ```typescript
-import { output, resolveOutputMode } from '@ontrails/cli';
+import { output, deriveOutputMode } from '@ontrails/cli';
 
 await output({ name: 'Alpha' }, 'json'); // Pretty JSON to stdout
 await output(items, 'jsonl'); // One JSON line per item
@@ -194,7 +194,7 @@ await output('Hello', 'text'); // Plain text
 
 ### Output Mode Resolution
 
-`resolveOutputMode(flags, topoName)` determines the format from flags and topo-derived environment variables:
+`deriveOutputMode(flags, topoName)` determines the format from flags and topo-derived environment variables:
 
 1. `--json` flag (highest priority)
 2. `--jsonl` flag
@@ -230,7 +230,7 @@ Override the default result handler for custom formatting, logging, or metrics:
 
 ```typescript
 import { trailhead } from '@ontrails/cli/commander';
-import { output, resolveOutputMode } from '@ontrails/cli';
+import { output, deriveOutputMode } from '@ontrails/cli';
 
 trailhead(app, {
   onResult: async (ctx) => {
@@ -238,7 +238,7 @@ trailhead(app, {
       console.error(`Failed: ${ctx.trail.id}`);
       throw ctx.result.error;
     }
-    const { mode } = resolveOutputMode(ctx.flags, ctx.topoName);
+    const { mode } = deriveOutputMode(ctx.flags, ctx.topoName);
     await output(ctx.result.value, mode);
   },
 });

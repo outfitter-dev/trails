@@ -25,7 +25,7 @@ export { executeScenarioSteps, ref, scenario } from './scenario.js';
 export {
   createCrossContext,
   createTestContext,
-  defaultMintPermit,
+  defaultCreatePermit,
 } from './context.js';
 export { createTestLogger } from './logger.js';
 
@@ -36,8 +36,8 @@ export { createMcpHarness } from './harness-mcp.js';
 // Types
 export type { CreateCrossContextOptions } from './context.js';
 export type {
-  MintableTrail,
-  MintedPermit,
+  PermittedTrail,
+  MinimalPermit,
   TestExecutionOptions,
 } from './context.js';
 export type { TestCrossOptions } from './crosses.js';

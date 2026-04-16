@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import { resolveContourIdentifierName } from '../rules/ast.js';
+import { deriveContourIdentifierName } from '../rules/ast.js';
 
-describe('resolveContourIdentifierName', () => {
+describe('deriveContourIdentifierName', () => {
   test('supports the common *Contour binding suffix when resolving known contours', () => {
     expect(
-      resolveContourIdentifierName(
+      deriveContourIdentifierName(
         'userContour',
         new Map<string, string>(),
         new Set(['user'])
@@ -15,7 +15,7 @@ describe('resolveContourIdentifierName', () => {
 
   test('prefers exact contour ids over the *Contour fallback', () => {
     expect(
-      resolveContourIdentifierName(
+      deriveContourIdentifierName(
         'userContour',
         new Map<string, string>(),
         new Set(['user', 'userContour'])

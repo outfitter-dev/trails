@@ -114,7 +114,7 @@ validateCliCommands(commands)      // validate command tree shape and collisions
 toCommander(commands, options?)    // escape hatch step 2
 deriveFlags(schema, overrides?)    // Zod → CLI flags
 output(value, mode)                // write to stdout in text/json/jsonl
-resolveOutputMode(flags, topoName) // determine output format from flags/topo-derived env
+deriveOutputMode(flags, topoName)  // determine output format from flags/topo-derived env
 
 BuildCliCommandsOptions, ActionResultContext, OutputMode
 CliCommand, CliFlag, CliArg
@@ -309,8 +309,8 @@ createJwtConnector(options)          // built-in HS256 JWT connector (from @ontr
 authVerify                           // verify a bearer token and return a permit
 
 // Testing
-mintTestPermit(overrides?)           // create a permit for tests
-mintPermitForTrail(trail)            // mint a permit matching a trail's requirements
+createTestPermit(overrides?)         // create a permit for tests
+createPermitForTrail(trail)          // create a permit matching a trail's requirements
 
 // Governance
 validatePermits(trails)              // check trails against permit governance rules

@@ -8,7 +8,7 @@ import {
   isStringLiteral,
   offsetToLine,
   parse,
-  resolveStoreTableId,
+  deriveStoreTableId,
   walk,
 } from './ast.js';
 import type { AstNode } from './ast.js';
@@ -192,7 +192,7 @@ const extractCrudTuplePattern = (
 
   const [tableArg] = ((init as unknown as { arguments?: readonly AstNode[] })
     .arguments ?? []) as readonly AstNode[];
-  const entityId = resolveStoreTableId(tableArg, namedStoreTableIds);
+  const entityId = deriveStoreTableId(tableArg, namedStoreTableIds);
   const { elements } = id as unknown as { elements?: readonly AstNode[] };
   return entityId && elements ? { elements, entityId } : null;
 };

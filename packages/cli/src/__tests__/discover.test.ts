@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { describe, expect, test, beforeEach, afterEach } from 'bun:test';
 import { AmbiguousError, NotFoundError } from '@ontrails/core';
 
-import { discoverAppModules, resolveAppModule } from '../discover.js';
+import { findAppModuleCandidates, findAppModule } from '../discover.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -27,10 +27,10 @@ const touchFile = (dir: string, relativePath: string): void => {
 };
 
 // ---------------------------------------------------------------------------
-// discoverAppModules
+// findAppModuleCandidates
 // ---------------------------------------------------------------------------
 
-describe('discoverAppModules', () => {
+describe('findAppModuleCandidates', () => {
   let tempDir: string;
 
   beforeEach(() => {
@@ -44,7 +44,7 @@ describe('discoverAppModules', () => {
   test('finds src/app.ts in single-app layout', () => {
     touchFile(tempDir, 'src/app.ts');
 
-    const result = discoverAppModules(tempDir);
+    const result = findAppModuleCandidates(tempDir);
 
     expect(result).toEqual(['src/app.ts']);
   });
@@ -52,13 +52,13 @@ describe('discoverAppModules', () => {
   test('finds apps/*/src/app.ts in monorepo layout', () => {
     touchFile(tempDir, 'apps/myapp/src/app.ts');
 
-    const result = discoverAppModules(tempDir);
+    const result = findAppModuleCandidates(tempDir);
 
     expect(result).toEqual(['apps/myapp/src/app.ts']);
   });
 
   test('returns empty array when nothing found', () => {
-    const result = discoverAppModules(tempDir);
+    const result = findAppModuleCandidates(tempDir);
 
     expect(result).toEqual([]);
   });
@@ -68,7 +68,7 @@ describe('discoverAppModules', () => {
     touchFile(tempDir, 'apps/alpha/src/app.ts');
     touchFile(tempDir, 'apps/beta/src/app.ts');
 
-    const result = discoverAppModules(tempDir);
+    const result = findAppModuleCandidates(tempDir);
 
     expect(result).toHaveLength(3);
     expect(result).toContain('src/app.ts');
@@ -80,17 +80,17 @@ describe('discoverAppModules', () => {
     touchFile(tempDir, 'src/app.ts');
     touchFile(tempDir, 'apps/myapp/src/app.ts');
 
-    const result = discoverAppModules(tempDir);
+    const result = findAppModuleCandidates(tempDir);
 
     expect(result[0]).toBe('src/app.ts');
   });
 });
 
 // ---------------------------------------------------------------------------
-// resolveAppModule
+// findAppModule
 // ---------------------------------------------------------------------------
 
-describe('resolveAppModule', () => {
+describe('findAppModule', () => {
   let tempDir: string;
 
   beforeEach(() => {
@@ -102,7 +102,7 @@ describe('resolveAppModule', () => {
   });
 
   test('returns explicit module path when provided', () => {
-    const result = resolveAppModule(tempDir, './custom/entry.ts');
+    const result = findAppModule(tempDir, './custom/entry.ts');
 
     expect(result).toBe('./custom/entry.ts');
   });
@@ -110,7 +110,7 @@ describe('resolveAppModule', () => {
   test('returns single discovered module', () => {
     touchFile(tempDir, 'src/app.ts');
 
-    const result = resolveAppModule(tempDir);
+    const result = findAppModule(tempDir);
 
     expect(result).toBe('src/app.ts');
   });
@@ -119,7 +119,7 @@ describe('resolveAppModule', () => {
     touchFile(tempDir, 'src/app.ts');
     touchFile(tempDir, 'apps/alpha/src/app.ts');
 
-    expect(() => resolveAppModule(tempDir)).toThrow(AmbiguousError);
+    expect(() => findAppModule(tempDir)).toThrow(AmbiguousError);
   });
 
   test('ambiguous error message lists candidates and suggests --module', () => {
@@ -127,7 +127,7 @@ describe('resolveAppModule', () => {
     touchFile(tempDir, 'apps/alpha/src/app.ts');
 
     try {
-      resolveAppModule(tempDir);
+      findAppModule(tempDir);
       expect.unreachable('should have thrown');
     } catch (error) {
       expect(error).toBeInstanceOf(AmbiguousError);
@@ -139,12 +139,12 @@ describe('resolveAppModule', () => {
   });
 
   test('throws NotFoundError when no candidates found', () => {
-    expect(() => resolveAppModule(tempDir)).toThrow(NotFoundError);
+    expect(() => findAppModule(tempDir)).toThrow(NotFoundError);
   });
 
   test('not-found error message is helpful', () => {
     try {
-      resolveAppModule(tempDir);
+      findAppModule(tempDir);
       expect.unreachable('should have thrown');
     } catch (error) {
       expect(error).toBeInstanceOf(NotFoundError);

@@ -47,17 +47,14 @@ import {
   assertSchemaMatch,
 } from './assertions.js';
 import {
-  defaultMintPermit,
+  defaultCreatePermit,
   mergeResourceOverrides,
   mergeTestContext,
   normalizeTestExecutionOptions,
   createMockResources,
 } from './context.js';
-import type { MintableTrail, TestExecutionOptions } from './context.js';
-import {
-  isDerivedExample,
-  resolveTrailExamples,
-} from './effective-examples.js';
+import type { PermittedTrail, TestExecutionOptions } from './context.js';
+import { isDerivedExample, deriveTrailExamples } from './effective-examples.js';
 
 // ---------------------------------------------------------------------------
 // Error class name -> constructor map
@@ -133,12 +130,12 @@ const handleValidationError = (
 };
 
 /**
- * Apply auto-minting: if the trail declares scoped permits and the context
- * doesn't already have a permit, mint one and merge it into the context.
+ * Apply auto-permit: if the trail declares scoped permits and the context
+ * doesn't already have a permit, create one and merge it into the context.
  */
-const applyAutoMint = (
+const applyAutoPermit = (
   ctx: TrailContext,
-  trailDef: MintableTrail,
+  trailDef: PermittedTrail,
   opts: TestExecutionOptions
 ): TrailContext => {
   if (opts.strictPermits) {
@@ -147,8 +144,8 @@ const applyAutoMint = (
   if (ctx.permit !== undefined) {
     return ctx;
   }
-  const mint = opts.mintPermit ?? defaultMintPermit;
-  const permit = mint(trailDef);
+  const create = opts.createPermit ?? defaultCreatePermit;
+  const permit = create(trailDef);
   if (!permit) {
     return ctx;
   }
@@ -173,7 +170,7 @@ const runExample = async (
     return;
   }
 
-  const ctx = opts ? applyAutoMint(testCtx, t, opts) : testCtx;
+  const ctx = opts ? applyAutoPermit(testCtx, t, opts) : testCtx;
 
   const result = await executeTrail(t, example.input, {
     ctx,
@@ -270,15 +267,17 @@ const runCompositionExample = async (
     return;
   }
 
-  const mintedCtx = opts ? applyAutoMint(baseCtx, trailDef, opts) : baseCtx;
+  const permittedCtx = opts
+    ? applyAutoPermit(baseCtx, trailDef, opts)
+    : baseCtx;
   const cross = createCoverageCross(
     called,
-    mintedCtx.cross,
+    permittedCtx.cross,
     topo,
-    mintedCtx,
+    permittedCtx,
     resources
   );
-  const testCtx: TrailContext = { ...mintedCtx, cross };
+  const testCtx: TrailContext = { ...permittedCtx, cross };
 
   // Top-level trail validates against trail.input (not merged crossInput).
   // Merged validation only applies to cross targets in executeFromMap/createCoverageCross.
@@ -316,7 +315,7 @@ export const testExamples = (
   const withExamples = (app.list() as Trail<unknown, unknown, unknown>[])
     .map((trailDef) => ({
       ...trailDef,
-      examples: resolveTrailExamples(trailDef),
+      examples: deriveTrailExamples(trailDef),
     }))
     .filter((trailDef) => trailDef.examples.length > 0);
   const simpleTrails = withExamples.filter((t) => t.crosses.length === 0);

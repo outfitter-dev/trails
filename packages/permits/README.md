@@ -135,19 +135,19 @@ import { authVerify } from '@ontrails/permits';
 
 ## Testing with mock permits
 
-Use `mintTestPermit()` and `mintPermitForTrail()` in tests:
+Use `createTestPermit()` and `createPermitForTrail()` in tests:
 
 ```typescript
-import { mintTestPermit, mintPermitForTrail } from '@ontrails/permits';
+import { createTestPermit, createPermitForTrail } from '@ontrails/permits';
 
-const permit = mintTestPermit({
+const permit = createTestPermit({
   id: 'user-123',
   scopes: ['gist:read', 'gist:write'],
   roles: ['editor'],
 });
 
-// Mint a permit matching a trail's requirements
-const trailPermit = mintPermitForTrail(myTrail);
+// Create a permit matching a trail's requirements
+const trailPermit = createPermitForTrail(myTrail);
 // { id: 'test-...', scopes: ['gist:write'] }
 ```
 

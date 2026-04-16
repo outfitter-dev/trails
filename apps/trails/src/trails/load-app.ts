@@ -3,7 +3,7 @@ import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import type { Topo } from '@ontrails/core';
-import { resolveAppModule } from '@ontrails/cli';
+import { findAppModule } from '@ontrails/cli';
 
 const URL_SCHEME = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 
@@ -81,7 +81,7 @@ export const loadApp = async (
   options: { fresh?: boolean | undefined } = {}
 ): Promise<Topo> => {
   const effectivePath =
-    modulePath === undefined ? resolveAppModule(cwd) : modulePath;
+    modulePath === undefined ? findAppModule(cwd) : modulePath;
   const resolvedModulePath = resolveAbsoluteModulePath(effectivePath, cwd);
   const mod =
     options.fresh === true
