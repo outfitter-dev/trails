@@ -4,16 +4,17 @@ import { z } from 'zod';
 import { loadApp } from './load-app.js';
 import {
   createIsolatedExampleInput,
-  pinCurrentTopo,
-  topoPinOutput,
-  topoSaveOutput,
+  pinCurrentTopoSnapshot,
+  topoSnapshotOutput,
 } from './topo-support.js';
 
 export const topoPinTrail = trail('topo.pin', {
   blaze: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
     const app = await loadApp(input.module, rootDir);
-    return Result.ok(pinCurrentTopo(app, { name: input.name, rootDir }));
+    return Result.ok(
+      pinCurrentTopoSnapshot(app, { name: input.name, rootDir })
+    );
   },
   description: 'Pin the current topo under a durable name',
   examples: [
@@ -32,7 +33,6 @@ export const topoPinTrail = trail('topo.pin', {
   }),
   intent: 'write',
   output: z.object({
-    pin: topoPinOutput,
-    save: topoSaveOutput,
+    snapshot: topoSnapshotOutput,
   }),
 });

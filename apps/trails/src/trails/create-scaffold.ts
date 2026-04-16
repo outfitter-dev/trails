@@ -73,7 +73,7 @@ const TSCONFIG_CONTENT = JSON.stringify(
 const GITIGNORE_CONTENT = `node_modules/
 dist/
 *.tsbuildinfo
-.trails/_trailhead.json
+.trails/_surface.json
 `;
 
 const OXLINTRC_CONTENT = JSON.stringify(

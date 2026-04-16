@@ -10,13 +10,12 @@ import {
   deriveTrailsDbPath,
 } from '../internal/trails-db.js';
 import {
-  createTopoSave,
-  ensureTopoHistorySchema,
-  listTopoPins,
-  listTopoSaves,
-  pinTopoSave,
-  pruneUnpinnedTopoSaves,
-} from '../internal/topo-saves.js';
+  createTopoSnapshot,
+  ensureTopoSnapshotSchema,
+  listTopoSnapshots,
+  pinTopoSnapshot,
+  pruneUnpinnedSnapshots,
+} from '../internal/topo-snapshots.js';
 
 describe('trails db foundation', () => {
   let tmpRoot: string | undefined;
@@ -127,7 +126,7 @@ describe('trails db foundation', () => {
   });
 });
 
-describe('topo save primitives', () => {
+describe('topo snapshot primitives', () => {
   let tmpRoot: string | undefined;
 
   afterEach(() => {
@@ -138,14 +137,14 @@ describe('topo save primitives', () => {
   });
 
   const makeRoot = (): string => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'topo-saves-'));
+    tmpRoot = mkdtempSync(join(tmpdir(), 'topo-snapshots-'));
     return tmpRoot;
   };
 
   const seedHistory = (db: ReturnType<typeof openWriteTrailsDb>) => {
-    ensureTopoHistorySchema(db);
+    ensureTopoSnapshotSchema(db);
 
-    const pinned = createTopoSave(db, {
+    const pinned = createTopoSnapshot(db, {
       createdAt: '2026-04-01T00:00:00.000Z',
       gitDirty: false,
       gitSha: 'abc123',
@@ -153,7 +152,7 @@ describe('topo save primitives', () => {
       signalCount: 1,
       trailCount: 3,
     });
-    const disposable = createTopoSave(db, {
+    const disposable = createTopoSnapshot(db, {
       createdAt: '2026-04-02T00:00:00.000Z',
       gitDirty: true,
       gitSha: 'def456',
@@ -164,26 +163,34 @@ describe('topo save primitives', () => {
 
     return {
       disposable,
-      pin: pinTopoSave(db, { name: 'before-auth', saveId: pinned.id }),
       pinned,
+      pinnedSnapshot: pinTopoSnapshot(db, {
+        id: pinned.id,
+        name: 'before-auth',
+      }),
     };
   };
 
-  test('creates saves, pins them, and prunes only unpinned history', () => {
+  test('creates snapshots, pins them, and prunes only unpinned history', () => {
     const rootDir = makeRoot();
     const db = openWriteTrailsDb({ rootDir });
 
     try {
-      const { disposable, pin, pinned } = seedHistory(db);
+      const { disposable, pinned, pinnedSnapshot } = seedHistory(db);
 
-      expect(listTopoPins(db)).toEqual([pin]);
-      expect(listTopoSaves(db).map((save) => save.id)).toEqual([
+      expect(pinnedSnapshot?.pinnedAs).toBe('before-auth');
+      expect(
+        listTopoSnapshots(db, { pinned: true }).map((snapshot) => snapshot.id)
+      ).toEqual([pinned.id]);
+      expect(listTopoSnapshots(db).map((snapshot) => snapshot.id)).toEqual([
         disposable.id,
         pinned.id,
       ]);
 
-      expect(pruneUnpinnedTopoSaves(db, { keep: 0 })).toBe(1);
-      expect(listTopoSaves(db).map((save) => save.id)).toEqual([pinned.id]);
+      expect(pruneUnpinnedSnapshots(db, { keep: 0 })).toBe(1);
+      expect(listTopoSnapshots(db).map((snapshot) => snapshot.id)).toEqual([
+        pinned.id,
+      ]);
     } finally {
       db.close();
     }

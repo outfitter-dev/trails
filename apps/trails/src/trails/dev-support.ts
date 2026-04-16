@@ -2,11 +2,11 @@ import { existsSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 import {
-  countPrunableTopoSaves,
-  countTopoPins,
-  countTopoSaves,
-  pruneUnpinnedTopoSaves,
-} from '@ontrails/core/internal/topo-saves';
+  countPinnedSnapshots,
+  countPrunableSnapshots,
+  countTopoSnapshots,
+  pruneUnpinnedSnapshots,
+} from '@ontrails/core/internal/topo-snapshots';
 import {
   openReadTrailsDb,
   openWriteTrailsDb,
@@ -21,9 +21,7 @@ import {
   previewTraceCleanup,
 } from '@ontrails/tracing/internal/dev-state';
 
-import { resolveLockPath } from './topo-support.js';
-
-export const DEFAULT_TOPO_SAVE_RETENTION = 50;
+export const DEFAULT_TOPO_SNAPSHOT_RETENTION = 50;
 
 const deriveRootDir = (cwd?: string): string => cwd ?? process.cwd();
 
@@ -47,14 +45,14 @@ export interface DevStatsReport {
     readonly path: string;
   };
   readonly retention: {
-    readonly saves: number;
-    readonly trackAgeMs: number;
-    readonly tracks: number;
+    readonly snapshots: number;
+    readonly traceAgeMs: number;
+    readonly traces: number;
   };
   readonly topo: {
-    readonly pinCount: number;
-    readonly prunableSaveCount: number;
-    readonly saveCount: number;
+    readonly pinnedCount: number;
+    readonly prunableSnapshotCount: number;
+    readonly snapshotCount: number;
   };
   readonly tracing: {
     readonly recordCount: number;
@@ -64,18 +62,18 @@ export interface DevStatsReport {
 export interface DevCleanReport {
   readonly dryRun: boolean;
   readonly remaining: {
-    readonly pinCount: number;
-    readonly saveCount: number;
-    readonly trackCount: number;
+    readonly pinnedCount: number;
+    readonly snapshotCount: number;
+    readonly traceCount: number;
   };
   readonly removed: {
-    readonly topoSaves: number;
-    readonly trackRecords: number;
+    readonly topoSnapshots: number;
+    readonly traceRecords: number;
   };
   readonly retention: {
-    readonly saves: number;
-    readonly trackAgeMs: number;
-    readonly tracks: number;
+    readonly snapshots: number;
+    readonly traceAgeMs: number;
+    readonly traces: number;
   };
 }
 
@@ -89,7 +87,7 @@ interface DevRetentionOptions {
   readonly maxAge?: number;
   readonly maxRecords?: number;
   readonly rootDir?: string;
-  readonly saveRetention?: number;
+  readonly snapshotRetention?: number;
 }
 
 interface DevCleanupContext {
@@ -100,9 +98,9 @@ interface DevCleanupContext {
 }
 
 const buildRetention = (options?: DevRetentionOptions) => ({
-  saves: options?.saveRetention ?? DEFAULT_TOPO_SAVE_RETENTION,
-  trackAgeMs: options?.maxAge ?? DEFAULT_MAX_AGE,
-  tracks: options?.maxRecords ?? DEFAULT_MAX_RECORDS,
+  snapshots: options?.snapshotRetention ?? DEFAULT_TOPO_SNAPSHOT_RETENTION,
+  traceAgeMs: options?.maxAge ?? DEFAULT_MAX_AGE,
+  traces: options?.maxRecords ?? DEFAULT_MAX_RECORDS,
 });
 
 const emptyDevClean = (
@@ -111,13 +109,13 @@ const emptyDevClean = (
 ): DevCleanReport => ({
   dryRun,
   remaining: {
-    pinCount: 0,
-    saveCount: 0,
-    trackCount: 0,
+    pinnedCount: 0,
+    snapshotCount: 0,
+    traceCount: 0,
   },
   removed: {
-    topoSaves: 0,
-    trackRecords: 0,
+    topoSnapshots: 0,
+    traceRecords: 0,
   },
   retention,
 });
@@ -146,9 +144,9 @@ const emptyDevStats = (
   lock: buildLockStats(lockPath),
   retention,
   topo: {
-    pinCount: 0,
-    prunableSaveCount: 0,
-    saveCount: 0,
+    pinnedCount: 0,
+    prunableSnapshotCount: 0,
+    snapshotCount: 0,
   },
   tracing: {
     recordCount: 0,
@@ -156,7 +154,7 @@ const emptyDevStats = (
 });
 
 const liveDevStats = (
-  db: Parameters<typeof countTopoPins>[0],
+  db: Parameters<typeof countPinnedSnapshots>[0],
   dbPath: string,
   lockPath: string,
   retention: DevStatsReport['retention']
@@ -165,9 +163,11 @@ const liveDevStats = (
   lock: buildLockStats(lockPath),
   retention,
   topo: {
-    pinCount: countTopoPins(db),
-    prunableSaveCount: countPrunableTopoSaves(db, { keep: retention.saves }),
-    saveCount: countTopoSaves(db),
+    pinnedCount: countPinnedSnapshots(db),
+    prunableSnapshotCount: countPrunableSnapshots(db, {
+      keep: retention.snapshots,
+    }),
+    snapshotCount: countTopoSnapshots(db),
   },
   tracing: {
     recordCount: countTraceRecords(db),
@@ -178,7 +178,7 @@ const deriveDevStatsContext = (options?: DevRetentionOptions) => {
   const rootDir = deriveRootDir(options?.rootDir);
   const dbPath = deriveTrailsDbPath({ rootDir });
   const trailsDir = deriveTrailsDir({ rootDir });
-  const lockPath = resolveLockPath(trailsDir);
+  const lockPath = join(trailsDir, 'trails.lock');
   return {
     dbExists: existsSync(dbPath),
     dbPath,
@@ -200,48 +200,50 @@ const deriveDevCleanupContext = (
   };
 };
 
-const cleanupTracks = (
-  db: Parameters<typeof countTopoPins>[0],
+const cleanupTraces = (
+  db: Parameters<typeof countPinnedSnapshots>[0],
   context: DevCleanupContext
 ) =>
   context.dryRun
     ? previewTraceCleanup(db, {
-        maxAge: context.retention.trackAgeMs,
-        maxRecords: context.retention.tracks,
+        maxAge: context.retention.traceAgeMs,
+        maxRecords: context.retention.traces,
       })
     : applyTraceCleanup(db, {
-        maxAge: context.retention.trackAgeMs,
-        maxRecords: context.retention.tracks,
+        maxAge: context.retention.traceAgeMs,
+        maxRecords: context.retention.traces,
       });
 
-const cleanupTopoSaves = (
-  db: Parameters<typeof countTopoPins>[0],
+const cleanupTopoSnapshots = (
+  db: Parameters<typeof countPinnedSnapshots>[0],
   context: DevCleanupContext
 ): number =>
   context.dryRun
-    ? countPrunableTopoSaves(db, { keep: context.retention.saves })
-    : pruneUnpinnedTopoSaves(db, { keep: context.retention.saves });
+    ? countPrunableSnapshots(db, { keep: context.retention.snapshots })
+    : pruneUnpinnedSnapshots(db, { keep: context.retention.snapshots });
 
 const buildCleanReport = (
-  db: Parameters<typeof countTopoPins>[0],
+  db: Parameters<typeof countPinnedSnapshots>[0],
   context: DevCleanupContext
 ): DevCleanReport => {
-  const trackReport = cleanupTracks(db, context);
-  const topoRemoved = cleanupTopoSaves(db, context);
-  const saveCount = countTopoSaves(db);
+  const traceReport = cleanupTraces(db, context);
+  const topoRemoved = cleanupTopoSnapshots(db, context);
+  const snapshotCount = countTopoSnapshots(db);
 
   return {
     dryRun: context.dryRun,
     remaining: {
-      pinCount: countTopoPins(db),
-      saveCount: context.dryRun ? saveCount - topoRemoved : saveCount,
-      trackCount: context.dryRun
-        ? trackReport.remaining - trackReport.removedTotal
-        : trackReport.remaining,
+      pinnedCount: countPinnedSnapshots(db),
+      snapshotCount: context.dryRun
+        ? snapshotCount - topoRemoved
+        : snapshotCount,
+      traceCount: context.dryRun
+        ? traceReport.remaining - traceReport.removedTotal
+        : traceReport.remaining,
     },
     removed: {
-      topoSaves: topoRemoved,
-      trackRecords: trackReport.removedTotal,
+      topoSnapshots: topoRemoved,
+      traceRecords: traceReport.removedTotal,
     },
     retention: context.retention,
   };
@@ -254,9 +256,6 @@ const RESET_FILES = [
   '.trails/dev/tracing.db',
   '.trails/dev/tracing.db-shm',
   '.trails/dev/tracing.db-wal',
-  '.trails/dev/tracker.db',
-  '.trails/dev/tracker.db-shm',
-  '.trails/dev/tracker.db-wal',
 ] as const;
 
 const presentResetFiles = (

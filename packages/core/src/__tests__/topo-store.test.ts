@@ -9,15 +9,15 @@ import { NotFoundError } from '../errors.js';
 import { contour, Result, resource, signal, topo, trail } from '../index.js';
 import { __topoStoreMigrationStats, createTopoStore } from '../topo-store.js';
 import {
-  ensureTopoHistorySchema,
-  pinTopoSave,
-  pruneUnpinnedTopoSaves,
-} from '../internal/topo-saves.js';
+  ensureTopoSnapshotSchema,
+  pinTopoSnapshot,
+  pruneUnpinnedSnapshots,
+} from '../internal/topo-snapshots.js';
 import {
+  createTopoSnapshot,
   getStoredTopoExport,
   normalizeFiresRows,
   normalizeOnRows,
-  persistEstablishedTopoSave,
 } from '../internal/topo-store.js';
 import { openWriteTrailsDb } from '../internal/trails-db.js';
 
@@ -34,10 +34,10 @@ const unwrap = <T>(result: Result<T, Error>): T => {
 const countRows = (
   db: ReturnType<typeof openWriteTrailsDb>,
   tableName: string,
-  saveId?: string
+  snapshotId?: string
 ): number => {
   const row =
-    saveId === undefined
+    snapshotId === undefined
       ? db
           .query<{ count: number }, []>(
             `SELECT COUNT(*) as count FROM ${tableName}`
@@ -45,9 +45,9 @@ const countRows = (
           .get()
       : db
           .query<{ count: number }, [string]>(
-            `SELECT COUNT(*) as count FROM ${tableName} WHERE save_id = ?`
+            `SELECT COUNT(*) as count FROM ${tableName} WHERE snapshot_id = ?`
           )
-          .get(saveId);
+          .get(snapshotId);
   return row?.count ?? 0;
 };
 
@@ -138,7 +138,7 @@ const exampleApp = () => {
 
 const readTrailRows = (
   db: ReturnType<typeof openWriteTrailsDb>,
-  saveId: string
+  snapshotId: string
 ) =>
   db
     .query<
@@ -155,39 +155,39 @@ const readTrailRows = (
     >(
       `SELECT id, intent, idempotent, has_output, example_count, description, meta
        FROM topo_trails
-       WHERE save_id = ?
+       WHERE snapshot_id = ?
        ORDER BY id ASC`
     )
-    .all(saveId);
+    .all(snapshotId);
 
 const readTrailSignalRows = (
   db: ReturnType<typeof openWriteTrailsDb>,
-  saveId: string
+  snapshotId: string
 ) =>
   db
     .query<{ signal_id: string; trail_id: string }, [string]>(
       `SELECT trail_id, signal_id
        FROM topo_trail_signals
-       WHERE save_id = ?`
+       WHERE snapshot_id = ?`
     )
-    .all(saveId);
+    .all(snapshotId);
 
-const readTrailheadRows = (
+const readSurfaceRows = (
   db: ReturnType<typeof openWriteTrailsDb>,
-  saveId: string
+  snapshotId: string
 ) =>
   db
     .query<{ derived_name: string; trail_id: string }, [string]>(
       `SELECT trail_id, derived_name
-       FROM topo_trailheads
-       WHERE save_id = ?
+       FROM topo_surfaces
+       WHERE snapshot_id = ?
        ORDER BY trail_id ASC`
     )
-    .all(saveId);
+    .all(snapshotId);
 
 const readExampleRows = (
   db: ReturnType<typeof openWriteTrailsDb>,
-  saveId: string
+  snapshotId: string
 ) =>
   db
     .query<
@@ -202,29 +202,29 @@ const readExampleRows = (
     >(
       `SELECT ordinal, name, input, expected, error
        FROM topo_examples
-       WHERE save_id = ?
+       WHERE snapshot_id = ?
        ORDER BY ordinal ASC`
     )
-    .all(saveId);
+    .all(snapshotId);
 
 const readProjectedTrailIds = (
   db: ReturnType<typeof openWriteTrailsDb>,
-  saveId: string
+  snapshotId: string
 ) =>
   db
     .query<{ id: string }, [string]>(
-      'SELECT id FROM topo_trails WHERE save_id = ? ORDER BY id ASC'
+      'SELECT id FROM topo_trails WHERE snapshot_id = ? ORDER BY id ASC'
     )
-    .all(saveId)
+    .all(snapshotId)
     .map((row) => row.id);
 
 const requireStoredExport = (
   db: ReturnType<typeof openWriteTrailsDb>,
-  saveId: string
+  snapshotId: string
 ) => {
-  const stored = getStoredTopoExport(db, saveId);
+  const stored = getStoredTopoExport(db, snapshotId);
   if (stored === undefined) {
-    throw new Error(`Expected stored topo export for save "${saveId}"`);
+    throw new Error(`Expected stored topo export for snapshot "${snapshotId}"`);
   }
   return stored;
 };
@@ -239,25 +239,25 @@ const hasContourTrailheadEntry = (entry: unknown, id: string): boolean => {
 
 const expectProjectionCounts = (
   db: ReturnType<typeof openWriteTrailsDb>,
-  saveId: string
+  snapshotId: string
 ): void => {
-  expect(countRows(db, 'topo_trails', saveId)).toBe(2);
-  expect(countRows(db, 'topo_crossings', saveId)).toBe(1);
-  expect(countRows(db, 'topo_trail_resources', saveId)).toBe(3);
-  expect(countRows(db, 'topo_resources', saveId)).toBe(2);
-  expect(countRows(db, 'topo_signals', saveId)).toBe(1);
-  expect(countRows(db, 'topo_trail_signals', saveId)).toBe(1);
-  expect(countRows(db, 'topo_trailheads', saveId)).toBe(2);
-  expect(countRows(db, 'topo_examples', saveId)).toBe(2);
-  expect(countRows(db, 'topo_schemas', saveId)).toBe(5);
+  expect(countRows(db, 'topo_trails', snapshotId)).toBe(2);
+  expect(countRows(db, 'topo_crossings', snapshotId)).toBe(1);
+  expect(countRows(db, 'topo_trail_resources', snapshotId)).toBe(3);
+  expect(countRows(db, 'topo_resources', snapshotId)).toBe(2);
+  expect(countRows(db, 'topo_signals', snapshotId)).toBe(1);
+  expect(countRows(db, 'topo_trail_signals', snapshotId)).toBe(1);
+  expect(countRows(db, 'topo_surfaces', snapshotId)).toBe(2);
+  expect(countRows(db, 'topo_examples', snapshotId)).toBe(2);
+  expect(countRows(db, 'topo_schemas', snapshotId)).toBe(5);
   expect(countRows(db, 'topo_exports')).toBeGreaterThanOrEqual(1);
 };
 
 const expectProjectedFixtureRows = (
   db: ReturnType<typeof openWriteTrailsDb>,
-  saveId: string
+  snapshotId: string
 ): void => {
-  expect(readTrailRows(db, saveId)).toEqual([
+  expect(readTrailRows(db, snapshotId)).toEqual([
     {
       description: 'Add a new entity',
       example_count: 2,
@@ -280,14 +280,14 @@ const expectProjectedFixtureRows = (
       meta: null,
     },
   ]);
-  expect(readTrailSignalRows(db, saveId)).toEqual([
+  expect(readTrailSignalRows(db, snapshotId)).toEqual([
     { signal_id: 'entity.added', trail_id: 'entity.add' },
   ]);
-  expect(readTrailheadRows(db, saveId)).toEqual([
+  expect(readSurfaceRows(db, snapshotId)).toEqual([
     { derived_name: 'entity add', trail_id: 'entity.add' },
     { derived_name: 'entity list', trail_id: 'entity.list' },
   ]);
-  expect(readExampleRows(db, saveId)).toEqual([
+  expect(readExampleRows(db, snapshotId)).toEqual([
     {
       error: null,
       expected: JSON.stringify({ id: 'ada', ok: true }),
@@ -338,11 +338,11 @@ const expectDisposableSaveCascaded = (
 
 const expectSignalEdgeCounts = (
   db: ReturnType<typeof openWriteTrailsDb>,
-  saveId: string,
+  snapshotId: string,
   count: number
 ): void => {
-  expect(countRows(db, 'topo_trail_fires', saveId)).toBe(count);
-  expect(countRows(db, 'topo_trail_on', saveId)).toBe(count);
+  expect(countRows(db, 'topo_trail_fires', snapshotId)).toBe(count);
+  expect(countRows(db, 'topo_trail_on', snapshotId)).toBe(count);
 };
 
 const buildSignalPruneApp = () => {
@@ -369,52 +369,6 @@ const buildSignalPruneApp = () => {
   });
 };
 
-const seedLegacyProvisionSchema = (
-  db: ReturnType<typeof openWriteTrailsDb>,
-  legacyVersion = 4
-): void => {
-  db.run(
-    `INSERT INTO meta_schema_versions (subsystem, version, updated_at)
-     VALUES ('topo', ?, ?)`,
-    [legacyVersion, '2026-04-03T10:00:00.000Z']
-  );
-  db.run(`CREATE TABLE topo_saves (
-    id TEXT PRIMARY KEY,
-    git_sha TEXT,
-    git_dirty INTEGER NOT NULL DEFAULT 0,
-    trail_count INTEGER NOT NULL DEFAULT 0,
-    signal_count INTEGER NOT NULL DEFAULT 0,
-    provision_count INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL
-  )`);
-  db.run(`CREATE TABLE topo_provisions (
-    id TEXT NOT NULL,
-    save_id TEXT NOT NULL,
-    PRIMARY KEY (id, save_id)
-  )`);
-  db.run(`CREATE TABLE topo_trail_provisions (
-    trail_id TEXT NOT NULL,
-    provision_id TEXT NOT NULL,
-    save_id TEXT NOT NULL,
-    PRIMARY KEY (trail_id, provision_id, save_id)
-  )`);
-};
-
-const seedLegacyProvisionStoreWithRow = (rootDir: string): void => {
-  const db = openWriteTrailsDb({ rootDir });
-  try {
-    seedLegacyProvisionSchema(db, 4);
-    db.run(
-      `INSERT INTO topo_saves (
-        id, git_sha, git_dirty, trail_count, signal_count, provision_count, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      ['legacy-save', 'sha', 0, 0, 0, 0, '2026-04-03T11:00:00.000Z']
-    );
-  } finally {
-    db.close();
-  }
-};
-
 const captureReadError = (run: () => unknown): unknown => {
   try {
     run();
@@ -436,57 +390,10 @@ const withWriteDb = (
   }
 };
 
-const seedOrphanLegacyProvisionTables = (
-  db: ReturnType<typeof openWriteTrailsDb>
-): void => {
-  // Seed a v2 store with the new-style `resource_count` column but orphan
-  // legacy `topo_provisions` / `topo_trail_provisions` tables hanging around.
-  db.run(
-    `INSERT INTO meta_schema_versions (subsystem, version, updated_at)
-     VALUES ('topo', 2, ?)`,
-    ['2026-04-03T10:00:00.000Z']
-  );
-  db.run(`CREATE TABLE topo_saves (
-    id TEXT PRIMARY KEY,
-    git_sha TEXT,
-    git_dirty INTEGER NOT NULL DEFAULT 0,
-    trail_count INTEGER NOT NULL DEFAULT 0,
-    signal_count INTEGER NOT NULL DEFAULT 0,
-    resource_count INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL
-  )`);
-  db.run(`CREATE TABLE topo_provisions (
-    id TEXT NOT NULL,
-    save_id TEXT NOT NULL,
-    PRIMARY KEY (id, save_id)
-  )`);
-  db.run(`CREATE TABLE topo_trail_provisions (
-    trail_id TEXT NOT NULL,
-    provision_id TEXT NOT NULL,
-    save_id TEXT NOT NULL,
-    PRIMARY KEY (trail_id, provision_id, save_id)
-  )`);
-};
-
-const assertLegacyProvisionSchemaDropped = (
-  db: ReturnType<typeof openWriteTrailsDb>
-): void => {
-  expect(tableExists(db, 'topo_provisions')).toBe(false);
-  expect(tableExists(db, 'topo_trail_provisions')).toBe(false);
-  expect(tableExists(db, 'topo_resources')).toBe(true);
-  expect(tableExists(db, 'topo_trail_resources')).toBe(true);
-  const columns = db
-    .query<{ name: string }, []>('PRAGMA table_info(topo_saves)')
-    .all();
-  const columnNames = columns.map((column) => column.name);
-  expect(columnNames).toContain('resource_count');
-  expect(columnNames).not.toContain('provision_count');
-};
-
 const seedCurrentSchemaStore = (rootDir: string): void => {
   const db = openWriteTrailsDb({ rootDir });
   try {
-    ensureTopoHistorySchema(db);
+    ensureTopoSnapshotSchema(db);
   } finally {
     db.close();
   }
@@ -498,29 +405,16 @@ const assertNoWriteEscalationOnReads = (rootDir: string): void => {
 
   // First read: peek must happen, no write-mode escalation.
   const caught = captureReadError(() =>
-    createTopoStore({ rootDir }).saves.latest()
+    createTopoStore({ rootDir }).snapshots.latest()
   );
   expect(caught).toBeInstanceOf(NotFoundError);
   expect(__topoStoreMigrationStats.peekCalls).toBe(baselinePeeks + 1);
   expect(__topoStoreMigrationStats.writeEscalations).toBe(baselineEscalations);
 
   // Second read is served entirely from the memoized identity.
-  captureReadError(() => createTopoStore({ rootDir }).saves.latest());
+  captureReadError(() => createTopoStore({ rootDir }).snapshots.latest());
   expect(__topoStoreMigrationStats.peekCalls).toBe(baselinePeeks + 1);
   expect(__topoStoreMigrationStats.writeEscalations).toBe(baselineEscalations);
-};
-
-const replaceStoreWithLegacyProvisionStore = async (
-  rootDir: string
-): Promise<void> => {
-  // Ensure mtime/size differs so the cached identity is invalidated even on
-  // filesystems with coarse mtime granularity.
-  const dbPath = join(rootDir, '.trails', 'trails.db');
-  rmSync(dbPath, { force: true });
-  rmSync(`${dbPath}-shm`, { force: true });
-  rmSync(`${dbPath}-wal`, { force: true });
-  await Bun.sleep(10);
-  seedLegacyProvisionStoreWithRow(rootDir);
 };
 
 const seedHistoryOnlyTopoSchema = (
@@ -558,6 +452,52 @@ const seedHistoryOnlyTopoSchema = (
   ]);
 };
 
+/**
+ * Seed a pre-v7 projection store that still uses the `topo_trailheads`
+ * table and the `save_id` foreign-key column. The fresh migration should drop
+ * these before recreating the snapshot-first schema.
+ */
+const seedLegacyProjectionStore = (
+  db: ReturnType<typeof openWriteTrailsDb>
+): void => {
+  db.run(
+    `INSERT INTO meta_schema_versions (subsystem, version, updated_at)
+     VALUES ('topo', 6, ?)`,
+    ['2026-04-03T11:00:00.000Z']
+  );
+  db.run(`CREATE TABLE IF NOT EXISTS topo_trailheads (
+    trail_id TEXT NOT NULL,
+    trailhead TEXT NOT NULL,
+    derived_name TEXT NOT NULL,
+    method TEXT,
+    save_id TEXT NOT NULL,
+    PRIMARY KEY (trail_id, trailhead, save_id)
+  )`);
+  db.run(
+    `INSERT INTO topo_trailheads (trail_id, trailhead, derived_name, save_id)
+     VALUES (?, ?, ?, ?)`,
+    ['entity.add', 'cli', 'entity add', 'legacy-save']
+  );
+};
+
+const replaceStoreWithHistoryOnlyStore = async (
+  rootDir: string
+): Promise<void> => {
+  // Ensure mtime/size differs so the cached identity is invalidated even on
+  // filesystems with coarse mtime granularity.
+  const dbPath = join(rootDir, '.trails', 'trails.db');
+  rmSync(dbPath, { force: true });
+  rmSync(`${dbPath}-shm`, { force: true });
+  rmSync(`${dbPath}-wal`, { force: true });
+  await Bun.sleep(10);
+  const db = openWriteTrailsDb({ rootDir });
+  try {
+    seedHistoryOnlyTopoSchema(db);
+  } finally {
+    db.close();
+  }
+};
+
 describe('topo store projection', () => {
   let tmpRoot: string | undefined;
 
@@ -584,22 +524,22 @@ describe('topo store projection', () => {
     }
   };
 
-  test('projects a save-scoped relational topo from the established app graph', () => {
+  test('projects a snapshot-scoped relational topo from the established app graph', () => {
     withProjectionDb((db) => {
-      const save = unwrap(
-        persistEstablishedTopoSave(db, exampleApp(), {
+      const snapshot = unwrap(
+        createTopoSnapshot(db, exampleApp(), {
           createdAt: '2026-04-03T12:00:00.000Z',
           gitDirty: false,
           gitSha: 'abc123',
         })
       );
-      expectProjectionCounts(db, save.id);
-      expectProjectedFixtureRows(db, save.id);
+      expectProjectionCounts(db, snapshot.id);
+      expectProjectedFixtureRows(db, snapshot.id);
 
-      const stored = requireStoredExport(db, save.id);
-      const trailheadMap = JSON.parse(stored.trailheadMapJson);
-      const { entries } = trailheadMap as { entries?: unknown[] };
-      expect(trailheadMap).toMatchObject({
+      const stored = requireStoredExport(db, snapshot.id);
+      const surfaceMap = JSON.parse(stored.surfaceMapJson);
+      const { entries } = surfaceMap as { entries?: unknown[] };
+      expect(surfaceMap).toMatchObject({
         entries: expect.any(Array),
         generatedAt: '2026-04-03T12:00:00.000Z',
         version: '1.0',
@@ -623,61 +563,63 @@ describe('topo store projection', () => {
           },
         },
         generatedAt: '2026-04-03T12:00:00.000Z',
-        hash: stored.trailheadHash,
+        hash: stored.surfaceHash,
         version: 1,
       });
     });
   });
 
-  test('keeps projected rows isolated across successive saves', () => {
+  test('keeps projected rows isolated across successive snapshots', () => {
     withProjectionDb((db) => {
-      const firstSave = unwrap(
-        persistEstablishedTopoSave(db, simpleProjectionApp(false), {
+      const firstSnapshot = unwrap(
+        createTopoSnapshot(db, simpleProjectionApp(false), {
           createdAt: '2026-04-03T12:00:00.000Z',
         })
       );
-      const secondSave = unwrap(
-        persistEstablishedTopoSave(db, simpleProjectionApp(true), {
+      const secondSnapshot = unwrap(
+        createTopoSnapshot(db, simpleProjectionApp(true), {
           createdAt: '2026-04-03T12:05:00.000Z',
         })
       );
 
-      expect(firstSave.id).not.toBe(secondSave.id);
-      expect(countRows(db, 'topo_trails', firstSave.id)).toBe(1);
-      expect(countRows(db, 'topo_trails', secondSave.id)).toBe(2);
-      expect(readProjectedTrailIds(db, firstSave.id)).toEqual(['entity.add']);
-      expect(readProjectedTrailIds(db, secondSave.id)).toEqual([
+      expect(firstSnapshot.id).not.toBe(secondSnapshot.id);
+      expect(countRows(db, 'topo_trails', firstSnapshot.id)).toBe(1);
+      expect(countRows(db, 'topo_trails', secondSnapshot.id)).toBe(2);
+      expect(readProjectedTrailIds(db, firstSnapshot.id)).toEqual([
+        'entity.add',
+      ]);
+      expect(readProjectedTrailIds(db, secondSnapshot.id)).toEqual([
         'entity.add',
         'entity.list',
       ]);
-      expect(requireStoredExport(db, firstSave.id).trailheadHash).not.toBe(
-        requireStoredExport(db, secondSave.id).trailheadHash
+      expect(requireStoredExport(db, firstSnapshot.id).surfaceHash).not.toBe(
+        requireStoredExport(db, secondSnapshot.id).surfaceHash
       );
     });
   });
 
-  test("pruning an unpinned save removes only that save's projected rows", () => {
+  test("pruning an unpinned snapshot removes only that snapshot's projected rows", () => {
     withProjectionDb((db) => {
       const pinned = unwrap(
-        persistEstablishedTopoSave(db, buildSignalPruneApp(), {
+        createTopoSnapshot(db, buildSignalPruneApp(), {
           createdAt: '2026-04-03T12:00:00.000Z',
         })
       );
-      pinTopoSave(db, { name: 'before-auth', saveId: pinned.id });
+      pinTopoSnapshot(db, { id: pinned.id, name: 'before-auth' });
 
       const disposable = unwrap(
-        persistEstablishedTopoSave(db, buildSignalPruneApp(), {
+        createTopoSnapshot(db, buildSignalPruneApp(), {
           createdAt: '2026-04-03T12:05:00.000Z',
         })
       );
 
-      // Pre-prune: both saves have fires/on rows so the cascade is non-vacuous.
+      // Pre-prune: both snapshots have fires/on rows so the cascade is non-vacuous.
       expectSignalEdgeCounts(db, pinned.id, 1);
       expectSignalEdgeCounts(db, disposable.id, 1);
 
-      expect(pruneUnpinnedTopoSaves(db, { keep: 0 })).toBe(1);
+      expect(pruneUnpinnedSnapshots(db, { keep: 0 })).toBe(1);
 
-      // Pinned save retains its projected rows, including fires/on edges.
+      // Pinned snapshot retains its projected rows, including fires/on edges.
       expect(countRows(db, 'topo_trails', pinned.id)).toBe(2);
       expectSignalEdgeCounts(db, pinned.id, 1);
 
@@ -715,8 +657,8 @@ describe('topo store projection', () => {
         output: z.object({ ok: z.boolean() }),
       });
 
-      const save = unwrap(
-        persistEstablishedTopoSave(
+      const snapshot = unwrap(
+        createTopoSnapshot(
           db,
           topo('signal-edges-app', {
             auditTrail,
@@ -732,10 +674,10 @@ describe('topo store projection', () => {
         .query<{ signal_id: string; trail_id: string }, [string]>(
           `SELECT trail_id, signal_id
            FROM topo_trail_fires
-           WHERE save_id = ?
+           WHERE snapshot_id = ?
            ORDER BY trail_id ASC, signal_id ASC`
         )
-        .all(save.id);
+        .all(snapshot.id);
       expect(fires).toEqual([
         { signal_id: 'entity.created', trail_id: 'entity.create' },
         { signal_id: 'entity.updated', trail_id: 'entity.create' },
@@ -745,10 +687,10 @@ describe('topo store projection', () => {
         .query<{ signal_id: string; trail_id: string }, [string]>(
           `SELECT trail_id, signal_id
            FROM topo_trail_on
-           WHERE save_id = ?
+           WHERE snapshot_id = ?
            ORDER BY trail_id ASC, signal_id ASC`
         )
-        .all(save.id);
+        .all(snapshot.id);
       expect(on).toEqual([
         { signal_id: 'entity.created', trail_id: 'entity.audit' },
         { signal_id: 'entity.updated', trail_id: 'entity.audit' },
@@ -757,42 +699,57 @@ describe('topo store projection', () => {
     });
   });
 
-  describe('ADR-0023 legacy provision schema drop', () => {
-    test('drops legacy provision schema per ADR-0023 on first open', () => {
-      withProjectionDb((db) => {
-        seedLegacyProvisionSchema(db);
-        ensureTopoHistorySchema(db);
-        assertLegacyProvisionSchemaDropped(db);
-      });
-    });
-
-    // Regression: if dropLegacyProvisionSchema wipes every topo table because
-    // of a legacy provision_count column, the version-delta migration must
-    // not skip the base tables. A v2 or v3 store with provision_count would
-    // otherwise end up with no topo_saves / topo_resources / topo_trail_resources.
-    test('createTopoStore migrates a legacy v4 provision_count store on first read', () => {
-      const rootDir = makeRoot();
-      seedLegacyProvisionStoreWithRow(rootDir);
-
-      // Pre-fix: this throws SQLiteError "no such column: resource_count"
-      // because the read-only path SELECTs resource_count before any
-      // migration runs. Post-fix: the migration runs first, drops the
-      // legacy provision schema (per ADR-0023), and the empty post-migration
-      // store surfaces a NotFoundError instead of a SQLite error.
-      const caught = captureReadError(() =>
-        createTopoStore({ rootDir }).saves.latest()
-      );
-      expect(caught).toBeInstanceOf(NotFoundError);
-
-      withWriteDb(rootDir, (db) => {
-        assertLegacyProvisionSchemaDropped(db);
-      });
-    });
-
+  describe('snapshot schema migration guardrails', () => {
     test('createTopoStore skips write-mode escalation when schema is current', () => {
       const rootDir = makeRoot();
       seedCurrentSchemaStore(rootDir);
       assertNoWriteEscalationOnReads(rootDir);
+    });
+
+    test('createTopoStore resets a legacy history-only store during cutover', () => {
+      const rootDir = makeRoot();
+      withWriteDb(rootDir, (db) => {
+        seedHistoryOnlyTopoSchema(db);
+      });
+
+      const caught = captureReadError(() =>
+        createTopoStore({ rootDir }).snapshots.latest()
+      );
+      expect(caught).toBeInstanceOf(NotFoundError);
+
+      withWriteDb(rootDir, (db) => {
+        expect(tableExists(db, 'topo_snapshots')).toBe(true);
+        expect(tableExists(db, 'topo_trails')).toBe(true);
+        expect(tableExists(db, 'topo_resources')).toBe(true);
+        expect(tableExists(db, 'topo_surfaces')).toBe(true);
+        expect(tableExists(db, 'topo_saves')).toBe(false);
+        expect(tableExists(db, 'topo_pins')).toBe(false);
+        expect(tableExists(db, 'topo_trailheads')).toBe(false);
+        expect(
+          db
+            .query<{ version: number }, []>(
+              "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
+            )
+            .get()?.version
+        ).toBe(7);
+        expect(countRows(db, 'topo_snapshots')).toBe(0);
+      });
+    });
+
+    test('createTopoSnapshot succeeds after resetting a legacy projection store', () => {
+      withProjectionDb((db) => {
+        seedLegacyProjectionStore(db);
+
+        const snapshot = unwrap(
+          createTopoSnapshot(db, exampleApp(), {
+            createdAt: '2026-04-03T12:00:00.000Z',
+          })
+        );
+
+        expect(tableExists(db, 'topo_saves')).toBe(false);
+        expect(countRows(db, 'topo_snapshots')).toBe(1);
+        expectProjectionCounts(db, snapshot.id);
+      });
     });
 
     test('createTopoStore re-migrates after trails.db is replaced at the same path', async () => {
@@ -801,82 +758,57 @@ describe('topo store projection', () => {
       // Round 1: seed a current-schema store and read through createTopoStore
       // to prime the migration cache.
       seedCurrentSchemaStore(rootDir);
-      captureReadError(() => createTopoStore({ rootDir }).saves.latest());
+      captureReadError(() => createTopoStore({ rootDir }).snapshots.latest());
       const baselineEscalations = __topoStoreMigrationStats.writeEscalations;
 
-      await replaceStoreWithLegacyProvisionStore(rootDir);
+      await replaceStoreWithHistoryOnlyStore(rootDir);
 
       // Round 2: a fresh createTopoStore call must detect the file swap,
-      // re-run the migration, and not surface a SQLiteError.
+      // re-run the migration, and keep surfacing the empty-store NotFound.
       const caught = captureReadError(() =>
-        createTopoStore({ rootDir }).saves.latest()
+        createTopoStore({ rootDir }).snapshots.latest()
       );
       expect(caught).toBeInstanceOf(NotFoundError);
       expect(__topoStoreMigrationStats.writeEscalations).toBe(
         baselineEscalations + 1
       );
       withWriteDb(rootDir, (db) => {
-        assertLegacyProvisionSchemaDropped(db);
-      });
-    });
-
-    test.each([2, 3] as const)(
-      'rebuilds all tables when legacy schema drop happens from v%i',
-      (legacyVersion) => {
-        withProjectionDb((db) => {
-          seedLegacyProvisionSchema(db, legacyVersion);
-          ensureTopoHistorySchema(db);
-          assertLegacyProvisionSchemaDropped(db);
-          expect(tableExists(db, 'topo_trails')).toBe(true);
-          expect(tableExists(db, 'topo_crossings')).toBe(true);
-          expect(tableExists(db, 'topo_pins')).toBe(true);
-        });
-      }
-    );
-
-    // Regression: if the store already has `resource_count` on `topo_saves`
-    // (e.g. from a partial manual migration) but orphan `topo_provisions` /
-    // `topo_trail_provisions` tables remain, dropLegacyProvisionSchema must
-    // still trigger a full rebuild. Previously this path fell through to the
-    // version-delta migration, which for v2/v3 only created incremental
-    // tables and left the store permanently missing topo_resources /
-    // topo_trail_resources.
-    test('rebuilds all tables when orphan legacy tables exist without legacy column', () => {
-      withProjectionDb((db) => {
-        seedOrphanLegacyProvisionTables(db);
-        ensureTopoHistorySchema(db);
-        assertLegacyProvisionSchemaDropped(db);
-        expect(tableExists(db, 'topo_trails')).toBe(true);
-        expect(tableExists(db, 'topo_crossings')).toBe(true);
-        expect(tableExists(db, 'topo_pins')).toBe(true);
+        expect(tableExists(db, 'topo_snapshots')).toBe(true);
+        expect(countRows(db, 'topo_snapshots')).toBe(0);
       });
     });
   });
 
-  test('upgrades a history-only topo schema to the projected topo schema', () => {
+  test('history-only topo stores are reset instead of translated into snapshots', () => {
     withProjectionDb((db) => {
       seedHistoryOnlyTopoSchema(db);
-      ensureTopoHistorySchema(db);
+      ensureTopoSnapshotSchema(db);
       expect(
         db
           .query<{ version: number }, []>(
             "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
           )
           .get()?.version
-      ).toBe(5);
+      ).toBe(7);
       for (const table of [
+        'topo_snapshots',
         'topo_trails',
         'topo_crossings',
         'topo_examples',
         'topo_exports',
         'topo_schemas',
+        'topo_surfaces',
         'topo_trail_fires',
         'topo_trail_on',
       ]) {
         expect(tableExists(db, table)).toBe(true);
       }
-      expect(countRows(db, 'topo_saves')).toBe(1);
-      expect(countRows(db, 'topo_pins')).toBe(1);
+      expect(countRows(db, 'topo_snapshots')).toBe(0);
+      // Legacy history and trailhead tables are dropped during the migration,
+      // never translated into the new snapshot-first schema.
+      expect(tableExists(db, 'topo_saves')).toBe(false);
+      expect(tableExists(db, 'topo_pins')).toBe(false);
+      expect(tableExists(db, 'topo_trailheads')).toBe(false);
     });
   });
 });
@@ -902,10 +834,10 @@ describe('signal edge normalizers', () => {
       makeTrail('t.one', { fires: ['s.a', 's.b'] }),
       makeTrail('t.two', { fires: ['s.a'] }),
     ];
-    expect(normalizeFiresRows(trails, 'save-1')).toEqual([
-      { saveId: 'save-1', signalId: 's.a', trailId: 't.one' },
-      { saveId: 'save-1', signalId: 's.b', trailId: 't.one' },
-      { saveId: 'save-1', signalId: 's.a', trailId: 't.two' },
+    expect(normalizeFiresRows(trails, 'snap-1')).toEqual([
+      { signalId: 's.a', snapshotId: 'snap-1', trailId: 't.one' },
+      { signalId: 's.b', snapshotId: 'snap-1', trailId: 't.one' },
+      { signalId: 's.a', snapshotId: 'snap-1', trailId: 't.two' },
     ]);
   });
 
@@ -914,24 +846,24 @@ describe('signal edge normalizers', () => {
       makeTrail('t.one', { on: ['s.a', 's.b'] }),
       makeTrail('t.two', { on: ['s.b'] }),
     ];
-    expect(normalizeOnRows(trails, 'save-1')).toEqual([
-      { saveId: 'save-1', signalId: 's.a', trailId: 't.one' },
-      { saveId: 'save-1', signalId: 's.b', trailId: 't.one' },
-      { saveId: 'save-1', signalId: 's.b', trailId: 't.two' },
+    expect(normalizeOnRows(trails, 'snap-1')).toEqual([
+      { signalId: 's.a', snapshotId: 'snap-1', trailId: 't.one' },
+      { signalId: 's.b', snapshotId: 'snap-1', trailId: 't.one' },
+      { signalId: 's.b', snapshotId: 'snap-1', trailId: 't.two' },
     ]);
   });
 
   test('trails without fires/on produce no rows', () => {
     const trails = [makeTrail('t.plain', {})];
-    expect(normalizeFiresRows(trails, 'save-1')).toEqual([]);
-    expect(normalizeOnRows(trails, 'save-1')).toEqual([]);
+    expect(normalizeFiresRows(trails, 'snap-1')).toEqual([]);
+    expect(normalizeOnRows(trails, 'snap-1')).toEqual([]);
   });
 
   test('deduplicates and sorts signal ids', () => {
     const trails = [makeTrail('t.one', { fires: ['s.b', 's.a', 's.b'] })];
-    expect(normalizeFiresRows(trails, 'save-1')).toEqual([
-      { saveId: 'save-1', signalId: 's.a', trailId: 't.one' },
-      { saveId: 'save-1', signalId: 's.b', trailId: 't.one' },
+    expect(normalizeFiresRows(trails, 'snap-1')).toEqual([
+      { signalId: 's.a', snapshotId: 'snap-1', trailId: 't.one' },
+      { signalId: 's.b', snapshotId: 'snap-1', trailId: 't.one' },
     ]);
   });
 });

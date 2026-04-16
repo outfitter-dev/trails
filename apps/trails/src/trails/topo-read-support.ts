@@ -8,18 +8,16 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { Topo } from '@ontrails/core';
 import {
   ConflictError,
   createTopoStore,
   InternalError,
+  listTopoSnapshots,
   NotFoundError,
   Result,
 } from '@ontrails/core';
-import type { TopoSaveRecord } from '@ontrails/core/internal/topo-saves';
-import { listTopoSaves } from '@ontrails/core/internal/topo-saves';
+import type { Topo, TopoSnapshot } from '@ontrails/core';
 import {
-  openReadTrailsDb,
   deriveTrailsDbPath,
   deriveTrailsDir,
 } from '@ontrails/core/internal/trails-db';
@@ -29,7 +27,7 @@ import type { BriefReport, SurveyListReport } from './topo-reports.js';
 import type { TopoSummaryReport, TopoVerifyReport } from './topo-support.js';
 import { REPORT_CONTRACT_VERSION, REPORT_VERSION } from './topo-constants.js';
 import {
-  createCurrentTopoSave,
+  createCurrentTopoSnapshot,
   deriveRootDir,
   LOCK_PATH,
 } from './topo-support.js';
@@ -73,16 +71,16 @@ interface CurrentResourceDetail {
 // Store helpers
 // ---------------------------------------------------------------------------
 
-const topoStoreRef = (saveId: string) => ({ saveId }) as const;
+const topoStoreRef = (snapshotId: string) => ({ snapshotId }) as const;
 
 const hasCommittedLock = (trailsDir: string): boolean =>
   existsSync(join(trailsDir, 'trails.lock'));
 
 const readSurfaceEntries = (
-  trailheadMapJson: string
+  surfaceMapJson: string
 ): readonly StoredSurfaceMapEntry[] =>
   (
-    JSON.parse(trailheadMapJson) as {
+    JSON.parse(surfaceMapJson) as {
       readonly entries: readonly StoredSurfaceMapEntry[];
     }
   ).entries;
@@ -91,14 +89,14 @@ const buildBriefReportFromStore = (
   app: Topo,
   store: ReturnType<typeof createTopoStore>,
   ref: ReturnType<typeof topoStoreRef>,
-  save: TopoSaveRecord
+  snapshot: TopoSnapshot
 ): BriefReport => {
-  const trails = store.trails.list({ save: ref });
+  const trails = store.trails.list({ snapshot: ref });
   const exportRecord = store.exports.get(ref);
   const trailEntries =
     exportRecord === undefined
       ? []
-      : readSurfaceEntries(exportRecord.trailheadMapJson).filter(
+      : readSurfaceEntries(exportRecord.surfaceMapJson).filter(
           (entry) => entry.kind === 'trail'
         );
 
@@ -108,13 +106,13 @@ const buildBriefReportFromStore = (
       detours: trailEntries.some((entry) => (entry.detours ?? []).length > 0),
       examples: trails.some((trail) => trail.hasExamples),
       outputSchemas: trails.some((trail) => trail.hasOutput),
-      resources: save.resourceCount > 0,
-      signals: save.signalCount > 0,
+      resources: snapshot.resourceCount > 0,
+      signals: snapshot.signalCount > 0,
     },
     name: app.name,
-    resources: save.resourceCount,
-    signals: save.signalCount,
-    trails: save.trailCount,
+    resources: snapshot.resourceCount,
+    signals: snapshot.signalCount,
+    trails: snapshot.trailCount,
     version: REPORT_VERSION,
   };
 };
@@ -123,8 +121,8 @@ const buildSurveyListFromStore = (
   store: ReturnType<typeof createTopoStore>,
   ref: ReturnType<typeof topoStoreRef>
 ): SurveyListReport => {
-  const trails = store.trails.list({ save: ref });
-  const resources = store.resources.list({ save: ref });
+  const trails = store.trails.list({ snapshot: ref });
+  const resources = store.resources.list({ snapshot: ref });
 
   return {
     count: trails.length,
@@ -180,8 +178,9 @@ const buildResourceDetailFromStore = (
 /**
  * Run a read callback against the latest topo store state.
  *
- * Uses the most recent existing save when available, only creating a new save
- * when no prior save exists. This avoids unbounded save accumulation from
+ * Uses the most recent existing snapshot when available, only creating a new
+ * snapshot when no prior snapshot exists. This avoids unbounded snapshot
+ * accumulation from
  * read-only operations like survey, guide, and show.
  */
 const withCurrentTopoStore = <T>(
@@ -190,24 +189,14 @@ const withCurrentTopoStore = <T>(
   read: (
     store: ReturnType<typeof createTopoStore>,
     ref: ReturnType<typeof topoStoreRef>,
-    save: TopoSaveRecord
+    snapshot: TopoSnapshot
   ) => T
 ): T => {
-  const dbPath = deriveTrailsDbPath({ rootDir });
-  const existingSave = existsSync(dbPath)
-    ? (() => {
-        const db = openReadTrailsDb({ rootDir });
-        try {
-          return listTopoSaves(db)[0];
-        } finally {
-          db.close();
-        }
-      })()
-    : undefined;
-
-  const save = existingSave ?? createCurrentTopoSave(app, { rootDir });
+  const [existingSnapshot] = listTopoSnapshots({ limit: 1, rootDir });
+  const snapshot =
+    existingSnapshot ?? createCurrentTopoSnapshot(app, { rootDir });
   const store = createTopoStore({ rootDir });
-  return read(store, topoStoreRef(save.id), save);
+  return read(store, topoStoreRef(snapshot.id), snapshot);
 };
 
 // ---------------------------------------------------------------------------
@@ -220,8 +209,8 @@ export const buildTopoSummary = (
 ): TopoSummaryReport => {
   const rootDir = deriveRootDir(options?.rootDir);
   const trailsDir = deriveTrailsDir({ rootDir });
-  return withCurrentTopoStore(app, rootDir, (store, ref, save) => ({
-    app: buildBriefReportFromStore(app, store, ref, save),
+  return withCurrentTopoStore(app, rootDir, (store, ref, snapshot) => ({
+    app: buildBriefReportFromStore(app, store, ref, snapshot),
     dbPath: deriveTrailsDbPath({ rootDir }),
     list: buildSurveyListFromStore(store, ref),
     lockExists: hasCommittedLock(trailsDir),
@@ -234,8 +223,8 @@ export const buildCurrentTopoBrief = (
   options?: { readonly rootDir?: string }
 ): BriefReport => {
   const rootDir = deriveRootDir(options?.rootDir);
-  return withCurrentTopoStore(app, rootDir, (store, ref, save) =>
-    buildBriefReportFromStore(app, store, ref, save)
+  return withCurrentTopoStore(app, rootDir, (store, ref, snapshot) =>
+    buildBriefReportFromStore(app, store, ref, snapshot)
   );
 };
 
@@ -260,7 +249,7 @@ export const buildCurrentGuideEntries = (
 }[] => {
   const rootDir = deriveRootDir(options?.rootDir);
   return withCurrentTopoStore(app, rootDir, (store, ref) =>
-    store.trails.list({ save: ref }).map((trail) => ({
+    store.trails.list({ snapshot: ref }).map((trail) => ({
       description: trail.description ?? '(no description)',
       exampleCount: trail.exampleCount,
       id: trail.id,
@@ -276,12 +265,12 @@ export const buildCurrentTopoDetail = (
 ): CurrentResourceDetail | CurrentTrailDetail | undefined => {
   const rootDir = deriveRootDir(options?.rootDir);
   return withCurrentTopoStore(app, rootDir, (store, ref) => {
-    const trail = store.trails.get(id, { save: ref });
+    const trail = store.trails.get(id, { snapshot: ref });
     if (trail !== undefined) {
       return buildTrailDetailFromStore(trail);
     }
 
-    const resource = store.resources.get(id, { save: ref });
+    const resource = store.resources.get(id, { snapshot: ref });
     return resource === undefined
       ? undefined
       : buildResourceDetailFromStore(resource);
@@ -308,12 +297,14 @@ export const verifyCurrentTopo = async (
   const currentHash = withCurrentTopoStore(
     app,
     rootDir,
-    (store, ref) => store.exports.get(ref)?.trailheadHash
+    (store, ref) => store.exports.get(ref)?.surfaceHash
   );
 
   if (currentHash === undefined) {
     return Result.err(
-      new InternalError('No stored topo export found for the current topo save')
+      new InternalError(
+        'No stored topo export found for the current topo snapshot'
+      )
     );
   }
 

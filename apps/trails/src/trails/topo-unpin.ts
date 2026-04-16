@@ -3,8 +3,8 @@ import { z } from 'zod';
 
 import {
   createIsolatedExampleInput,
-  removeTopoPin,
-  topoPinOutput,
+  removePinnedTopoSnapshot,
+  topoSnapshotOutput,
 } from './topo-support.js';
 
 export const topoUnpinTrail = trail('topo.unpin', {
@@ -19,7 +19,11 @@ export const topoUnpinTrail = trail('topo.unpin', {
 
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
     return Result.ok(
-      removeTopoPin({ dryRun: input.dryRun, name: input.name, rootDir })
+      removePinnedTopoSnapshot({
+        dryRun: input.dryRun,
+        name: input.name,
+        rootDir,
+      })
     );
   },
   description: 'Remove a named topo pin',
@@ -45,7 +49,7 @@ export const topoUnpinTrail = trail('topo.unpin', {
   intent: 'destroy',
   output: z.object({
     dryRun: z.boolean(),
-    pin: topoPinOutput.optional(),
     removed: z.boolean(),
+    snapshot: topoSnapshotOutput.optional(),
   }),
 });

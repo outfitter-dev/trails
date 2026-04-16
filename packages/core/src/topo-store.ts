@@ -2,14 +2,21 @@ import type { SQLQueryBindings } from 'bun:sqlite';
 import { existsSync, statSync } from 'node:fs';
 
 import { NotFoundError } from './errors.js';
+import type { Topo } from './topo.js';
 import { resource } from './resource.js';
 import { Result } from './result.js';
-import type { TopoPinRecord, TopoSaveRecord } from './internal/topo-saves.js';
 import {
   TOPO_SCHEMA_VERSION,
-  ensureTopoHistorySchema,
-  getTopoPin,
-} from './internal/topo-saves.js';
+  ensureTopoSnapshotSchema,
+  listTopoSnapshots as listStoredTopoSnapshots,
+  pinTopoSnapshot as pinStoredTopoSnapshot,
+  unpinTopoSnapshot as unpinStoredTopoSnapshot,
+} from './internal/topo-snapshots.js';
+import type {
+  CreateTopoSnapshotInput,
+  ListTopoSnapshotsOptions,
+  TopoSnapshot,
+} from './internal/topo-snapshots.js';
 import type {
   TopoStoreExportRecord,
   TopoStoreResourceRecord,
@@ -21,13 +28,13 @@ import {
   getTopoStoreExport,
   getTopoStoreResource,
   getTopoStoreTrail,
-  listTopoStorePins,
   listTopoStoreResources,
-  listTopoStoreSaves,
+  listTopoStoreSnapshots,
   listTopoStoreTrails,
   queryTopoStore,
-  resolveTopoStoreSave,
+  readTopoStoreSnapshot,
 } from './internal/topo-store-read.js';
+import { createTopoSnapshot as storeTopoSnapshot } from './internal/topo-store.js';
 import {
   openReadTrailsDb,
   openWriteTrailsDb,
@@ -98,7 +105,7 @@ const runTopoMigrationEscalation = (
   __topoStoreMigrationStats.writeEscalations += 1;
   const db = openWriteTrailsDb(options);
   try {
-    ensureTopoHistorySchema(db);
+    ensureTopoSnapshotSchema(db);
   } finally {
     db.close();
   }
@@ -126,7 +133,7 @@ const resolveIdentityIfFresh = (
 };
 
 /**
- * Ensure the topo history schema is at the current version before any
+ * Ensure the topo snapshot schema is at the current version before any
  * read-only access. Peeks the version through a read-only handle first and
  * only escalates to a write-mode open + migration when the store is stale.
  *
@@ -166,14 +173,15 @@ export type {
   TopoStoreTrailDetailRecord,
   TopoStoreTrailRecord,
 } from './internal/topo-store-read.js';
+export type {
+  CreateTopoSnapshotInput,
+  ListTopoSnapshotsOptions,
+  TopoSnapshot,
+} from './internal/topo-snapshots.js';
 
 export interface ReadOnlyTopoStore {
   readonly exports: {
     get(ref?: TopoStoreRef): TopoStoreExportRecord | undefined;
-  };
-  readonly pins: {
-    get(name: string): TopoPinRecord | undefined;
-    list(): readonly TopoPinRecord[];
   };
   query<TRow extends Record<string, unknown>>(
     sql: string,
@@ -182,34 +190,33 @@ export interface ReadOnlyTopoStore {
   readonly resources: {
     get(
       id: string,
-      options?: { readonly save?: TopoStoreRef }
+      options?: { readonly snapshot?: TopoStoreRef }
     ): TopoStoreResourceRecord | undefined;
     list(options?: {
-      readonly save?: TopoStoreRef;
+      readonly snapshot?: TopoStoreRef;
     }): readonly TopoStoreResourceRecord[];
   };
-  readonly saves: {
-    get(ref?: TopoStoreRef): TopoSaveRecord | undefined;
-    latest(): TopoSaveRecord | undefined;
-    list(): readonly TopoSaveRecord[];
+  readonly snapshots: {
+    get(ref?: TopoStoreRef): TopoSnapshot | undefined;
+    latest(): TopoSnapshot | undefined;
+    list(options?: ListTopoSnapshotsOptions): readonly TopoSnapshot[];
   };
   readonly trails: {
     get(
       id: string,
-      options?: { readonly save?: TopoStoreRef }
+      options?: { readonly snapshot?: TopoStoreRef }
     ): TopoStoreTrailDetailRecord | undefined;
     list(options?: {
       readonly intent?: TopoStoreTrailRecord['intent'];
-      readonly save?: TopoStoreRef;
+      readonly snapshot?: TopoStoreRef;
     }): readonly TopoStoreTrailRecord[];
   };
 }
 
 export interface MockTopoStoreSeed {
   readonly exports?: readonly TopoStoreExportRecord[];
-  readonly pins?: readonly TopoPinRecord[];
   readonly resources?: readonly TopoStoreResourceRecord[];
-  readonly saves?: readonly TopoSaveRecord[];
+  readonly snapshots?: readonly TopoSnapshot[];
   readonly trails?: readonly TopoStoreTrailDetailRecord[];
 }
 
@@ -233,7 +240,7 @@ const requireReadDb = (
 const requireSavedTopoState = (
   db: ReturnType<typeof openReadTrailsDb>
 ): void => {
-  if (resolveTopoStoreSave(db) === undefined) {
+  if (readTopoStoreSnapshot(db) === undefined) {
     throw new NotFoundError(missingStoreMessage);
   }
 };
@@ -252,31 +259,26 @@ const withStoredTopoState = <T>(
 };
 
 const createSeedResolver = (seed?: MockTopoStoreSeed) => {
-  const saves = [...(seed?.saves ?? [])];
-  const pins = [...(seed?.pins ?? [])];
+  const snapshots = [...(seed?.snapshots ?? [])];
   const trails = [...(seed?.trails ?? [])];
   const resources = [...(seed?.resources ?? [])];
   const exports = [...(seed?.exports ?? [])];
 
-  const resolveSave = (ref?: TopoStoreRef): TopoSaveRecord | undefined => {
-    if (ref?.saveId !== undefined) {
-      return saves.find((save) => save.id === ref.saveId);
+  const resolveSnapshot = (ref?: TopoStoreRef): TopoSnapshot | undefined => {
+    if (ref?.snapshotId !== undefined) {
+      return snapshots.find((snapshot) => snapshot.id === ref.snapshotId);
     }
     if (ref?.pin !== undefined) {
-      const pin = pins.find((candidate) => candidate.name === ref.pin);
-      return pin === undefined
-        ? undefined
-        : saves.find((save) => save.id === pin.saveId);
+      return snapshots.find((snapshot) => snapshot.pinnedAs === ref.pin);
     }
-    return saves[0];
+    return snapshots[0];
   };
 
   return {
     exports,
-    pins,
-    resolveSave,
+    resolveSnapshot,
     resources,
-    saves,
+    snapshots,
     trails,
   };
 };
@@ -289,18 +291,10 @@ export const createMockTopoStore = (
   return {
     exports: {
       get(ref?: TopoStoreRef) {
-        const save = resolved.resolveSave(ref);
-        return save === undefined
+        const snapshot = resolved.resolveSnapshot(ref);
+        return snapshot === undefined
           ? undefined
-          : resolved.exports.find((entry) => entry.save.id === save.id);
-      },
-    },
-    pins: {
-      get(name: string) {
-        return resolved.pins.find((pin) => pin.name === name);
-      },
-      list() {
-        return resolved.pins;
+          : resolved.exports.find((entry) => entry.snapshot.id === snapshot.id);
       },
     },
     query() {
@@ -310,48 +304,62 @@ export const createMockTopoStore = (
     },
     resources: {
       get(id, options) {
-        const save = resolved.resolveSave(options?.save);
+        const snapshot = resolved.resolveSnapshot(options?.snapshot);
         return resolved.resources.find(
           (item) =>
-            item.id === id && (save === undefined || item.saveId === save.id)
+            item.id === id &&
+            (snapshot === undefined || item.snapshotId === snapshot.id)
         );
       },
       list(options) {
-        const save = resolved.resolveSave(options?.save);
-        return save === undefined
+        const snapshot = resolved.resolveSnapshot(options?.snapshot);
+        return snapshot === undefined
           ? []
-          : resolved.resources.filter((item) => item.saveId === save.id);
+          : resolved.resources.filter(
+              (item) => item.snapshotId === snapshot.id
+            );
       },
     },
-    saves: {
+    snapshots: {
       get(ref?: TopoStoreRef) {
-        return resolved.resolveSave(ref);
+        return resolved.resolveSnapshot(ref);
       },
       latest() {
-        return resolved.saves[0];
+        return resolved.snapshots[0];
       },
-      list() {
-        return resolved.saves;
+      list(options) {
+        const snapshots =
+          options?.pinned === undefined
+            ? resolved.snapshots
+            : resolved.snapshots.filter((snapshot) =>
+                options.pinned
+                  ? snapshot.pinnedAs !== undefined
+                  : snapshot.pinnedAs === undefined
+              );
+        if (options?.limit === undefined) {
+          return snapshots;
+        }
+        return snapshots.slice(0, options.limit);
       },
     },
     trails: {
       get(id, options) {
-        const save = resolved.resolveSave(options?.save);
-        if (save === undefined) {
+        const snapshot = resolved.resolveSnapshot(options?.snapshot);
+        if (snapshot === undefined) {
           return;
         }
         return resolved.trails.find(
-          (trail) => trail.id === id && trail.saveId === save.id
+          (trail) => trail.id === id && trail.snapshotId === snapshot.id
         );
       },
       list(options) {
-        const save = resolved.resolveSave(options?.save);
-        if (save === undefined) {
+        const snapshot = resolved.resolveSnapshot(options?.snapshot);
+        if (snapshot === undefined) {
           return [];
         }
         return resolved.trails.filter(
           (trail) =>
-            trail.saveId === save.id &&
+            trail.snapshotId === snapshot.id &&
             (options?.intent === undefined || trail.intent === options.intent)
         );
       },
@@ -365,14 +373,6 @@ export const createTopoStore = (
   exports: {
     get(ref?: TopoStoreRef) {
       return withStoredTopoState(options, (db) => getTopoStoreExport(db, ref));
-    },
-  },
-  pins: {
-    get(name: string) {
-      return withStoredTopoState(options, (db) => getTopoPin(db, name));
-    },
-    list() {
-      return withStoredTopoState(options, (db) => listTopoStorePins(db));
     },
   },
   query<TRow extends Record<string, unknown>>(
@@ -395,17 +395,19 @@ export const createTopoStore = (
       );
     },
   },
-  saves: {
+  snapshots: {
     get(ref?: TopoStoreRef) {
       return withStoredTopoState(options, (db) =>
-        resolveTopoStoreSave(db, ref)
+        readTopoStoreSnapshot(db, ref)
       );
     },
     latest() {
-      return withStoredTopoState(options, (db) => resolveTopoStoreSave(db));
+      return withStoredTopoState(options, (db) => readTopoStoreSnapshot(db));
     },
-    list() {
-      return withStoredTopoState(options, (db) => listTopoStoreSaves(db));
+    list(snapshotOptions) {
+      return withStoredTopoState(options, (db) =>
+        listTopoStoreSnapshots(db, snapshotOptions)
+      );
     },
   },
   trails: {
@@ -421,6 +423,70 @@ export const createTopoStore = (
     },
   },
 });
+
+export const createTopoSnapshot = (
+  topo: Topo,
+  options?: TrailsDbLocationOptions & CreateTopoSnapshotInput
+): Result<TopoSnapshot, Error> => {
+  const db = openWriteTrailsDb(options);
+  try {
+    return storeTopoSnapshot(db, topo, options);
+  } finally {
+    db.close();
+  }
+};
+
+export const listTopoSnapshots = (
+  options?: TrailsDbLocationOptions & ListTopoSnapshotsOptions
+): readonly TopoSnapshot[] => {
+  const dbPath = deriveTrailsDbPath(options);
+  if (!existsSync(dbPath)) {
+    return [];
+  }
+
+  ensureTopoMigratedIfExists(options);
+  const db = openReadTrailsDb(options);
+  try {
+    return listStoredTopoSnapshots(db, options);
+  } finally {
+    db.close();
+  }
+};
+
+export const pinTopoSnapshot = (
+  id: string,
+  name: string,
+  options?: TrailsDbLocationOptions
+): TopoSnapshot | undefined => {
+  const dbPath = deriveTrailsDbPath(options);
+  if (!existsSync(dbPath)) {
+    return undefined;
+  }
+
+  const db = openWriteTrailsDb(options);
+  try {
+    return pinStoredTopoSnapshot(db, { id, name });
+  } finally {
+    db.close();
+  }
+};
+
+export const unpinTopoSnapshot = (
+  nameOrId: string,
+  options?: TrailsDbLocationOptions
+): TopoSnapshot | undefined => {
+  const dbPath = deriveTrailsDbPath(options);
+  if (!existsSync(dbPath)) {
+    return undefined;
+  }
+
+  const db = openWriteTrailsDb(options);
+  try {
+    return unpinStoredTopoSnapshot(db, nameOrId);
+  } finally {
+    db.close();
+  }
+};
 
 export const topoStore = resource('topo.store', {
   create: (svc) =>

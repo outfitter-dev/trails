@@ -3,7 +3,10 @@ import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
 import { exportCurrentTopo } from './topo-store-support.js';
-import { createIsolatedExampleInput, topoSaveOutput } from './topo-support.js';
+import {
+  createIsolatedExampleInput,
+  topoSnapshotOutput,
+} from './topo-support.js';
 
 export const topoExportTrail = trail('topo.export', {
   blaze: async (input, ctx) => {
@@ -27,6 +30,6 @@ export const topoExportTrail = trail('topo.export', {
     hash: z.string(),
     lockPath: z.string(),
     mapPath: z.string(),
-    save: topoSaveOutput,
+    snapshot: topoSnapshotOutput,
   }),
 });

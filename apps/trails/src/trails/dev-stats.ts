@@ -1,7 +1,10 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { buildDevStats, DEFAULT_TOPO_SAVE_RETENTION } from './dev-support.js';
+import {
+  buildDevStats,
+  DEFAULT_TOPO_SNAPSHOT_RETENTION,
+} from './dev-support.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 
 export const devStatsTrail = trail('dev.stats', {
@@ -9,10 +12,10 @@ export const devStatsTrail = trail('dev.stats', {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
     return Result.ok(
       buildDevStats({
-        maxAge: input.trackAgeMs,
-        maxRecords: input.tracks,
+        maxAge: input.traceAgeMs,
+        maxRecords: input.traces,
         rootDir,
-        saveRetention: input.saves,
+        snapshotRetention: input.snapshots,
       })
     );
   },
@@ -25,15 +28,15 @@ export const devStatsTrail = trail('dev.stats', {
   ],
   input: z.object({
     rootDir: z.string().optional().describe('Workspace root directory'),
-    saves: z
+    snapshots: z
       .number()
-      .default(DEFAULT_TOPO_SAVE_RETENTION)
-      .describe('Unpinned topo saves to retain'),
-    trackAgeMs: z
+      .default(DEFAULT_TOPO_SNAPSHOT_RETENTION)
+      .describe('Unpinned topo snapshots to retain'),
+    traceAgeMs: z
       .number()
       .default(7 * 24 * 60 * 60 * 1000)
-      .describe('Maximum retained track age in milliseconds'),
-    tracks: z.number().default(10_000).describe('Maximum retained track count'),
+      .describe('Maximum retained trace age in milliseconds'),
+    traces: z.number().default(10_000).describe('Maximum retained trace count'),
   }),
   intent: 'read',
   output: z.object({
@@ -48,14 +51,14 @@ export const devStatsTrail = trail('dev.stats', {
       path: z.string(),
     }),
     retention: z.object({
-      saves: z.number(),
-      trackAgeMs: z.number(),
-      tracks: z.number(),
+      snapshots: z.number(),
+      traceAgeMs: z.number(),
+      traces: z.number(),
     }),
     topo: z.object({
-      pinCount: z.number(),
-      prunableSaveCount: z.number(),
-      saveCount: z.number(),
+      pinnedCount: z.number(),
+      prunableSnapshotCount: z.number(),
+      snapshotCount: z.number(),
     }),
     tracing: z.object({
       recordCount: z.number(),

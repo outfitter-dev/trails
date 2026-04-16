@@ -1,19 +1,21 @@
 import type { Database, SQLQueryBindings } from 'bun:sqlite';
 
 import { ValidationError } from '../errors.js';
-import type { TopoPinRecord, TopoSaveRecord } from './topo-saves.js';
+import type {
+  ListTopoSnapshotsOptions,
+  TopoSnapshot,
+} from './topo-snapshots.js';
 import {
-  getTopoPin,
-  getTopoSave,
-  listTopoPins,
-  listTopoSaves,
-} from './topo-saves.js';
+  listTopoSnapshots,
+  readPinnedTopoSnapshot,
+  readTopoSnapshot,
+} from './topo-snapshots.js';
 import type { StoredTopoExport } from './topo-store.js';
 import { getStoredTopoExport } from './topo-store.js';
 
 export interface TopoStoreRef {
   readonly pin?: string;
-  readonly saveId?: string;
+  readonly snapshotId?: string;
 }
 
 export interface TopoStoreTrailRecord {
@@ -27,7 +29,7 @@ export interface TopoStoreTrailRecord {
   readonly kind: 'trail';
   readonly meta: Readonly<Record<string, unknown>> | null;
   readonly safety: '-' | 'destroy' | 'read' | 'write';
-  readonly saveId: string;
+  readonly snapshotId: string;
 }
 
 export interface TopoStoreExampleRecord {
@@ -56,12 +58,12 @@ export interface TopoStoreResourceRecord {
   readonly id: string;
   readonly kind: 'resource';
   readonly lifetime: 'singleton';
-  readonly saveId: string;
+  readonly snapshotId: string;
   readonly usedBy: readonly string[];
 }
 
 export interface TopoStoreExportRecord extends StoredTopoExport {
-  readonly save: TopoSaveRecord;
+  readonly snapshot: TopoSnapshot;
 }
 
 interface TopoTrailRow {
@@ -73,7 +75,7 @@ interface TopoTrailRow {
   readonly idempotent: number;
   readonly intent: string | null;
   readonly meta: string | null;
-  readonly save_id: string;
+  readonly snapshot_id: string;
 }
 
 interface TopoCrossingRow {
@@ -97,10 +99,10 @@ interface TopoResourceRow {
   readonly has_health: number;
   readonly has_mock: number;
   readonly id: string;
-  readonly save_id: string;
+  readonly snapshot_id: string;
 }
 
-interface StoredTrailheadMapEntry {
+interface StoredSurfaceMapEntry {
   readonly description?: string;
   readonly detours?: readonly {
     readonly on: string;
@@ -111,14 +113,14 @@ interface StoredTrailheadMapEntry {
   readonly kind: 'contour' | 'resource' | 'signal' | 'trail';
 }
 
-interface StoredTrailheadMap {
-  readonly entries: readonly StoredTrailheadMapEntry[];
+interface StoredSurfaceMap {
+  readonly entries: readonly StoredSurfaceMapEntry[];
 }
 
 const ensureSingleRefSelector = (ref?: TopoStoreRef): void => {
-  if (ref?.pin !== undefined && ref.saveId !== undefined) {
+  if (ref?.pin !== undefined && ref.snapshotId !== undefined) {
     throw new ValidationError(
-      'Topo store references may use pin or saveId, not both'
+      'Topo store references may use pin or snapshotId, not both'
     );
   }
 };
@@ -153,36 +155,35 @@ const parseMeta = (
 
 const parseJson = (value: string): unknown => JSON.parse(value) as unknown;
 
-const resolveRefSave = (
+const readSnapshotRef = (
   db: Database,
   ref?: TopoStoreRef
-): TopoSaveRecord | undefined => {
+): TopoSnapshot | undefined => {
   ensureSingleRefSelector(ref);
 
-  if (ref?.saveId !== undefined) {
-    return getTopoSave(db, ref.saveId);
+  if (ref?.snapshotId !== undefined) {
+    return readTopoSnapshot(db, ref.snapshotId);
   }
 
   if (ref?.pin !== undefined) {
-    const pin = getTopoPin(db, ref.pin);
-    return pin === undefined ? undefined : getTopoSave(db, pin.saveId);
+    return readPinnedTopoSnapshot(db, ref.pin);
   }
 
-  return listTopoSaves(db)[0];
+  return listTopoSnapshots(db, { limit: 1 })[0];
 };
 
 const readStoredEntry = (
   db: Database,
-  saveId: string,
-  kind: StoredTrailheadMapEntry['kind'],
+  snapshotId: string,
+  kind: StoredSurfaceMapEntry['kind'],
   id: string
-): StoredTrailheadMapEntry | undefined => {
-  const stored = getStoredTopoExport(db, saveId);
+): StoredSurfaceMapEntry | undefined => {
+  const stored = getStoredTopoExport(db, snapshotId);
   if (stored === undefined) {
     return undefined;
   }
 
-  const map = JSON.parse(stored.trailheadMapJson) as StoredTrailheadMap;
+  const map = JSON.parse(stored.surfaceMapJson) as StoredSurfaceMap;
   return map.entries.find((entry) => entry.id === id && entry.kind === kind);
 };
 
@@ -200,53 +201,53 @@ const mapTrailRow = (row: TopoTrailRow): TopoStoreTrailRecord => {
     kind: 'trail',
     meta: parseMeta(row.meta),
     safety: safetyForIntent(intent),
-    saveId: row.save_id,
+    snapshotId: row.snapshot_id,
   };
 };
 
 const readTrailCrossings = (
   db: Database,
-  saveId: string,
+  snapshotId: string,
   trailId: string
 ): readonly string[] =>
   db
     .query<TopoCrossingRow, [string, string]>(
       `SELECT target_id
        FROM topo_crossings
-       WHERE save_id = ? AND source_id = ?
+       WHERE snapshot_id = ? AND source_id = ?
        ORDER BY target_id ASC`
     )
-    .all(saveId, trailId)
+    .all(snapshotId, trailId)
     .map((row) => row.target_id);
 
 const readTrailResourceIds = (
   db: Database,
-  saveId: string,
+  snapshotId: string,
   trailId: string
 ): readonly string[] =>
   db
     .query<TopoTrailResourceRow, [string, string]>(
       `SELECT resource_id
        FROM topo_trail_resources
-       WHERE save_id = ? AND trail_id = ?
+       WHERE snapshot_id = ? AND trail_id = ?
        ORDER BY resource_id ASC`
     )
-    .all(saveId, trailId)
+    .all(snapshotId, trailId)
     .map((row) => row.resource_id);
 
 const readTrailExamples = (
   db: Database,
-  saveId: string,
+  snapshotId: string,
   trailId: string
 ): readonly TopoStoreExampleRecord[] =>
   db
     .query<TopoExampleRow, [string, string]>(
       `SELECT ordinal, name, description, input, expected, error
        FROM topo_examples
-       WHERE save_id = ? AND trail_id = ?
+       WHERE snapshot_id = ? AND trail_id = ?
        ORDER BY ordinal ASC`
     )
-    .all(saveId, trailId)
+    .all(snapshotId, trailId)
     .map((row) => ({
       description: row.description,
       error: row.error,
@@ -258,16 +259,16 @@ const readTrailExamples = (
 
 const readResourceUsage = (
   db: Database,
-  saveId: string
+  snapshotId: string
 ): ReadonlyMap<string, readonly string[]> => {
   const rows = db
     .query<{ resource_id: string; trail_id: string }, [string]>(
       `SELECT resource_id, trail_id
        FROM topo_trail_resources
-       WHERE save_id = ?
+       WHERE snapshot_id = ?
        ORDER BY resource_id ASC, trail_id ASC`
     )
-    .all(saveId);
+    .all(snapshotId);
 
   const usage = new Map<string, string[]>();
   for (const row of rows) {
@@ -281,34 +282,33 @@ const readResourceUsage = (
   );
 };
 
-export const resolveTopoStoreSave = (
+export const readTopoStoreSnapshot = (
   db: Database,
   ref?: TopoStoreRef
-): TopoSaveRecord | undefined => resolveRefSave(db, ref);
+): TopoSnapshot | undefined => readSnapshotRef(db, ref);
 
-export const listTopoStorePins = (db: Database): readonly TopoPinRecord[] =>
-  listTopoPins(db);
-
-export const listTopoStoreSaves = (db: Database): readonly TopoSaveRecord[] =>
-  listTopoSaves(db);
+export const listTopoStoreSnapshots = (
+  db: Database,
+  options?: ListTopoSnapshotsOptions
+): readonly TopoSnapshot[] => listTopoSnapshots(db, options);
 
 export const getTopoStoreExport = (
   db: Database,
   ref?: TopoStoreRef
 ): TopoStoreExportRecord | undefined => {
-  const save = resolveRefSave(db, ref);
-  if (save === undefined) {
+  const snapshot = readSnapshotRef(db, ref);
+  if (snapshot === undefined) {
     return undefined;
   }
 
-  const stored = getStoredTopoExport(db, save.id);
+  const stored = getStoredTopoExport(db, snapshot.id);
   if (stored === undefined) {
     return undefined;
   }
 
   return {
     ...stored,
-    save,
+    snapshot,
   };
 };
 
@@ -316,36 +316,36 @@ export const listTopoStoreTrails = (
   db: Database,
   options?: {
     readonly intent?: TopoStoreTrailRecord['intent'];
-    readonly save?: TopoStoreRef;
+    readonly snapshot?: TopoStoreRef;
   }
 ): readonly TopoStoreTrailRecord[] => {
-  const save = resolveRefSave(db, options?.save);
-  if (save === undefined) {
+  const snapshot = readSnapshotRef(db, options?.snapshot);
+  if (snapshot === undefined) {
     return [];
   }
 
-  const baseQuery = `SELECT id, intent, idempotent, has_output, has_examples, example_count, description, meta, save_id
+  const baseQuery = `SELECT id, intent, idempotent, has_output, has_examples, example_count, description, meta, snapshot_id
              FROM topo_trails`;
 
   let rows: TopoTrailRow[];
   if (options?.intent === undefined) {
     rows = db
       .query<TopoTrailRow, [string]>(
-        `${baseQuery} WHERE save_id = ? ORDER BY id ASC`
+        `${baseQuery} WHERE snapshot_id = ? ORDER BY id ASC`
       )
-      .all(save.id);
+      .all(snapshot.id);
   } else if (options.intent === 'write') {
     rows = db
       .query<TopoTrailRow, [string]>(
-        `${baseQuery} WHERE save_id = ? AND intent = 'write' ORDER BY id ASC`
+        `${baseQuery} WHERE snapshot_id = ? AND intent = 'write' ORDER BY id ASC`
       )
-      .all(save.id);
+      .all(snapshot.id);
   } else {
     rows = db
       .query<TopoTrailRow, [string, string]>(
-        `${baseQuery} WHERE save_id = ? AND intent = ? ORDER BY id ASC`
+        `${baseQuery} WHERE snapshot_id = ? AND intent = ? ORDER BY id ASC`
       )
-      .all(save.id, options.intent);
+      .all(snapshot.id, options.intent);
   }
 
   return rows.map(mapTrailRow);
@@ -354,41 +354,41 @@ export const listTopoStoreTrails = (
 export const getTopoStoreTrail = (
   db: Database,
   trailId: string,
-  options?: { readonly save?: TopoStoreRef }
+  options?: { readonly snapshot?: TopoStoreRef }
 ): TopoStoreTrailDetailRecord | undefined => {
-  const save = resolveRefSave(db, options?.save);
-  if (save === undefined) {
+  const snapshot = readSnapshotRef(db, options?.snapshot);
+  if (snapshot === undefined) {
     return undefined;
   }
 
   const row = db
     .query<TopoTrailRow, [string, string]>(
-      `SELECT id, intent, idempotent, has_output, has_examples, example_count, description, meta, save_id
+      `SELECT id, intent, idempotent, has_output, has_examples, example_count, description, meta, snapshot_id
        FROM topo_trails
-       WHERE save_id = ? AND id = ?
+       WHERE snapshot_id = ? AND id = ?
        LIMIT 1`
     )
-    .get(save.id, trailId);
+    .get(snapshot.id, trailId);
 
   if (row === null || row === undefined) {
     return undefined;
   }
 
-  const storedEntry = readStoredEntry(db, save.id, 'trail', trailId);
+  const storedEntry = readStoredEntry(db, snapshot.id, 'trail', trailId);
 
   return {
     ...mapTrailRow(row),
-    crosses: readTrailCrossings(db, save.id, trailId),
+    crosses: readTrailCrossings(db, snapshot.id, trailId),
     detours: storedEntry?.detours ?? null,
-    examples: readTrailExamples(db, save.id, trailId),
-    resources: readTrailResourceIds(db, save.id, trailId),
+    examples: readTrailExamples(db, snapshot.id, trailId),
+    resources: readTrailResourceIds(db, snapshot.id, trailId),
   };
 };
 
 const mapResourceRow = (
   row: TopoResourceRow,
   usedBy: readonly string[],
-  storedEntry?: StoredTrailheadMapEntry
+  storedEntry?: StoredSurfaceMapEntry
 ): TopoStoreResourceRecord => ({
   description: storedEntry?.description ?? null,
   hasHealth: row.has_health === 1,
@@ -400,32 +400,32 @@ const mapResourceRow = (
   id: row.id,
   kind: 'resource',
   lifetime: 'singleton',
-  saveId: row.save_id,
+  snapshotId: row.snapshot_id,
   usedBy,
 });
 
 export const listTopoStoreResources = (
   db: Database,
-  options?: { readonly save?: TopoStoreRef }
+  options?: { readonly snapshot?: TopoStoreRef }
 ): readonly TopoStoreResourceRecord[] => {
-  const save = resolveRefSave(db, options?.save);
-  if (save === undefined) {
+  const snapshot = readSnapshotRef(db, options?.snapshot);
+  if (snapshot === undefined) {
     return [];
   }
 
-  const usage = readResourceUsage(db, save.id);
+  const usage = readResourceUsage(db, snapshot.id);
   const rows = db
     .query<TopoResourceRow, [string]>(
-      `SELECT id, has_mock, has_health, save_id
+      `SELECT id, has_mock, has_health, snapshot_id
        FROM topo_resources
-       WHERE save_id = ?
+       WHERE snapshot_id = ?
        ORDER BY id ASC`
     )
-    .all(save.id);
+    .all(snapshot.id);
 
-  const stored = getStoredTopoExport(db, save.id);
+  const stored = getStoredTopoExport(db, snapshot.id);
   const entries = stored
-    ? (JSON.parse(stored.trailheadMapJson) as StoredTrailheadMap).entries
+    ? (JSON.parse(stored.surfaceMapJson) as StoredSurfaceMap).entries
     : [];
 
   return rows.map((row) =>
@@ -440,31 +440,31 @@ export const listTopoStoreResources = (
 export const getTopoStoreResource = (
   db: Database,
   resourceId: string,
-  options?: { readonly save?: TopoStoreRef }
+  options?: { readonly snapshot?: TopoStoreRef }
 ): TopoStoreResourceRecord | undefined => {
-  const save = resolveRefSave(db, options?.save);
-  if (save === undefined) {
+  const snapshot = readSnapshotRef(db, options?.snapshot);
+  if (snapshot === undefined) {
     return undefined;
   }
 
   const row = db
     .query<TopoResourceRow, [string, string]>(
-      `SELECT id, has_mock, has_health, save_id
+      `SELECT id, has_mock, has_health, snapshot_id
        FROM topo_resources
-       WHERE save_id = ? AND id = ?
+       WHERE snapshot_id = ? AND id = ?
        LIMIT 1`
     )
-    .get(save.id, resourceId);
+    .get(snapshot.id, resourceId);
 
   if (row === null || row === undefined) {
     return undefined;
   }
 
-  const usage = readResourceUsage(db, save.id);
+  const usage = readResourceUsage(db, snapshot.id);
   return mapResourceRow(
     row,
     usage.get(resourceId) ?? [],
-    readStoredEntry(db, save.id, 'resource', resourceId)
+    readStoredEntry(db, snapshot.id, 'resource', resourceId)
   );
 };
 

@@ -5,8 +5,7 @@ import {
   DEFAULT_TOPO_HISTORY_LIMIT,
   createIsolatedExampleInput,
   listTopoHistory,
-  topoPinOutput,
-  topoSaveOutput,
+  topoSnapshotOutput,
 } from './topo-support.js';
 
 export const topoHistoryTrail = trail('topo.history', {
@@ -14,7 +13,7 @@ export const topoHistoryTrail = trail('topo.history', {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
     return Result.ok(listTopoHistory({ limit: input.limit, rootDir }));
   },
-  description: 'List saved topo metadata, including pins and recent autosaves',
+  description: 'List saved topo snapshots, including pinned references',
   examples: [
     {
       input: createIsolatedExampleInput('topo-history'),
@@ -25,16 +24,15 @@ export const topoHistoryTrail = trail('topo.history', {
     limit: z
       .number()
       .default(DEFAULT_TOPO_HISTORY_LIMIT)
-      .describe('Maximum number of autosaves to return'),
+      .describe('Maximum number of snapshots to return'),
     rootDir: z.string().optional().describe('Workspace root directory'),
   }),
   intent: 'read',
   output: z.object({
     dbPath: z.string(),
     limit: z.number(),
-    pinCount: z.number(),
-    pins: z.array(topoPinOutput),
-    saveCount: z.number(),
-    saves: z.array(topoSaveOutput),
+    pinnedCount: z.number(),
+    snapshotCount: z.number(),
+    snapshots: z.array(topoSnapshotOutput),
   }),
 });
