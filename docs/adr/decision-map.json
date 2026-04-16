@@ -110,6 +110,11 @@
           "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
         },
         {
+          "context": "[ADR-0000](0000-core-premise.md). The purity rule governs trail execution.",
+          "from": "0035",
+          "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
+        },
+        {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; `trails run` makes every trail directly invocable without trailhead ceremony",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -224,6 +229,11 @@
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
         {
+          "context": "- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — the verb and",
+          "from": "0035",
+          "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
+        },
+        {
           "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md): `create*` factory convention, `derive*` prefix for framework derivations, `build*`/`to*` trailhead wiring pattern",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
@@ -256,7 +266,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Naming Conventions — Guessable API Through Structural Rules",
-      "updated": "2026-04-02"
+      "updated": "2026-04-16"
     },
     {
       "created": "2026-03-29",
@@ -470,6 +480,11 @@
           "fromPath": "docs/adr/0016-schema-derived-persistence.md"
         },
         {
+          "context": "- [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md)",
+          "from": "0035",
+          "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
+        },
+        {
           "context": "- **[ADR-0005: Framework-Agnostic HTTP Route Model](./adr/0005-framework-agnostic-http-route-model.md)** — `HttpRoute[]` with thin connector subpaths",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -537,6 +552,11 @@
           "context": "What hasn't existed is **runtime execution**. No component of [`executeTrail`](0006-shared-execution-pipeline.md) reads the `detours:` field today. A trail can declare a detour for `ConflictError`, bu",
           "from": "0033",
           "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
+        },
+        {
+          "context": "- [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](0006-shared-execution-pipeline.md)",
+          "from": "0035",
+          "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
         },
         {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` executes through the pipeline, the same as every trailhead",
@@ -685,6 +705,11 @@
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) -- the derivation rules that visibility and intent filtering extend",
           "from": "0027",
           "fromPath": "docs/adr/0027-visibility-and-filtering.md"
+        },
+        {
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md)",
+          "from": "0035",
+          "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
         },
         {
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- rigged trails get trailhead derivation for free",
@@ -1328,7 +1353,7 @@
       "depends_on": ["16", "9"],
       "inbound": [
         {
-          "context": "- [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](0022-drizzle-store-connector.md) — the first connector implementation, currently a subpath of `@ontrails/store`",
+          "context": "- [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](0022-drizzle-store-connector.md) — the first extracted store binding that motivated the packaging model",
           "from": "0029",
           "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
         },
@@ -1372,7 +1397,7 @@
           "fromPath": "docs/adr/0013-tracing.md"
         },
         {
-          "context": "- [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — the naming heuristic that `with-*` follows",
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — the naming heuristic that now favors clear owned-integration names over prefix magic",
           "from": "0029",
           "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
         },
@@ -1621,6 +1646,11 @@
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
         {
+          "context": "- [ADR-0029: Connector Extraction and Composition Around Core Contracts](0029-connector-extraction-and-the-with-packaging-model.md)",
+          "from": "0035",
+          "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
+        },
+        {
           "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](../0029-connector-extraction-and-the-with-packaging-model.md) -- the packaging model for connector-contributed capabilities that rig",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
@@ -1652,8 +1682,8 @@
       "slug": "connector-extraction-and-the-with-packaging-model",
       "status": "accepted",
       "superseded_by": null,
-      "title": "Connector Extraction and the with-* Packaging Model",
-      "updated": "2026-04-13"
+      "title": "Connector Extraction and Composition Around Core Contracts",
+      "updated": "2026-04-16"
     },
     {
       "created": "2026-04-09",
@@ -1670,7 +1700,7 @@
           "fromPath": "docs/adr/0024-typed-trail-composition.md"
         },
         {
-          "context": "- **How trails subpaths work on connectors.** Connectors that contribute trails (health checks, platform-optimized operations) may export them at `@ontrails/with-*/trails`. The design depends on [ADR-",
+          "context": "[ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md)",
           "from": "0029",
           "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
         },
@@ -1822,6 +1852,30 @@
       "superseded_by": null,
       "title": "Store Accessor Contract Refinement: Lessons from Two Backends",
       "updated": "2026-04-13"
+    },
+    {
+      "created": "2026-04-16",
+      "depends_on": ["0", "1", "5", "6", "8", "29"],
+      "inbound": [
+        {
+          "context": "- **Cutover 3** ([ADR-0035](0035-surface-apis-render-the-graph.md)): Surface API cleanup. Retired `trailhead()` as the canonical one-liner in favor of `surface()`. Reframed `build*` helpers as `derive",
+          "from": "0001",
+          "fromPath": "docs/adr/0001-naming-conventions.md"
+        },
+        {
+          "context": "- [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md) — the surface composition ladder that extracted runtime adapters build on",
+          "from": "0029",
+          "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
+        }
+      ],
+      "number": "0035",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0035-surface-apis-render-the-graph.md",
+      "slug": "surface-apis-render-the-graph",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Surface APIs Render the Graph",
+      "updated": "2026-04-16"
     }
   ],
   "version": 1

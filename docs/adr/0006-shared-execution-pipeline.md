@@ -18,7 +18,7 @@ The variations were subtle enough to miss in review but visible enough to confus
 
 This is exactly the kind of drift the framework exists to prevent. If the trail is the product and trailheads are renderings, the execution path that turns a trail definition into a result should be shared infrastructure — not copy-pasted per trailhead.
 
-A second, related problem: trailhead builder functions. `buildMcpTools(topo)` originally threw on setup errors like MCP tool name collisions. `buildHttpRoutes(topo)` threw on route collisions (same method + path). This meant the framework's own wiring code used exceptions for predictable, recoverable errors — directly contradicting the "Result everywhere" principle that trail implementations follow. Builders that throw force callers into try/catch at the framework boundary, which is the one place where Result should be most natural.
+A second, related problem: trailhead builder functions. `deriveMcpTools(topo)` originally threw on setup errors like MCP tool name collisions. `deriveHttpRoutes(topo)` threw on route collisions (same method + path). This meant the framework's own wiring code used exceptions for predictable, recoverable errors — directly contradicting the "Result everywhere" principle that trail implementations follow. Builders that throw force callers into try/catch at the framework boundary, which is the one place where Result should be most natural.
 
 ## Decision
 
@@ -54,17 +54,17 @@ Each trailhead is a thin wrapper: parse trailhead-specific input, call `executeT
 Trailhead builder functions return `Result` instead of throwing:
 
 ```typescript
-buildMcpTools(topo)   → Result<McpToolDefinition[], Error>
-buildHttpRoutes(topo) → Result<HttpRouteDefinition[], Error>
+deriveMcpTools(topo)   → Result<McpToolDefinition[], Error>
+deriveHttpRoutes(topo) → Result<HttpRouteDefinition[], Error>
 ```
 
-`buildMcpTools` returns `ValidationError` when two trails produce the same MCP tool name. `buildHttpRoutes` returns `ValidationError` when two trails map to the same method + path combination.
+`deriveMcpTools` returns `ValidationError` when two trails produce the same MCP tool name. `deriveHttpRoutes` returns `ValidationError` when two trails map to the same method + path combination.
 
 Setup errors are surfaced before the server starts, not at request time. A caller that checks the Result at boot gets a clear, typed error explaining the collision — which trails conflict, what the derived name was, and what to do about it. No stack trace, no catch block, no ambiguity about whether the error is recoverable.
 
 This extends the Result model from runtime execution to framework wiring. The same error-handling pattern works from boot to shutdown: check the Result, branch on success or failure, handle errors with full type information.
 
-`trailhead()` — the one-liner that collapses build + wire into a single call — handles the Result internally. If the build fails, `trailhead` logs the error and exits (CLI) or returns a startup failure (programmatic). The Result is there for developers who use the two-step `build*` → `to*` escape hatch and want explicit control.
+`surface()` — the one-liner that collapses derive + wire into a single call — handles the Result internally. If the derivation fails, `surface` logs the error and exits (CLI) or returns a startup failure (programmatic). The Result is there for developers who use the two-step `derive*` → `to*` escape hatch and want explicit control.
 
 ## Consequences
 
@@ -72,7 +72,7 @@ This extends the Result model from runtime execution to framework wiring. The sa
 
 - **Behavioral consistency.** Every trailhead validates, composes layers, and wraps errors in exactly the same order. A bug fix in `executeTrail` fixes all trailheads simultaneously.
 - **One place for cross-cutting concerns.** Logging, tracing, metrics, and any future observability hooks have a single integration point. No per-trailhead instrumentation.
-- **Setup errors caught early.** Name collisions and route conflicts trailhead at boot, not when the first request hits a confusing runtime error.
+- **Setup errors caught early.** Name collisions and route conflicts surface at boot, not when the first request hits a confusing runtime error.
 - **Result from boot to shutdown.** The framework's own wiring code follows the same error-handling pattern it requires of trail implementations. No philosophical inconsistency between "your code returns Result" and "our code throws."
 
 ### Tradeoffs
@@ -84,10 +84,14 @@ This extends the Result model from runtime execution to framework wiring. The sa
 
 - Whether `executeTrail` will gain layers or interceptor hooks beyond the current layer model. Layers handle most cross-cutting concerns today. If that proves insufficient, a separate ADR will address it.
 - The specific options trailhead on `executeTrail` beyond the current parameters. The function signature will grow as needs emerge.
-- How `trailhead()` handles builder failures in non-CLI contexts (e.g., programmatic embedding). That's a trailhead-level UX decision.
+- How `surface()` handles builder failures in non-CLI contexts (e.g., programmatic embedding). That's a trailhead-level UX decision.
 
 ## References
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions this pipeline serves, especially "implementations are pure" and "trailheads are peers"
 - [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) — the Result model that `executeTrail` and builders both return
-- [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) — the route derivation model that `buildHttpRoutes` implements
+- [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) — the route derivation model that `deriveHttpRoutes` implements
+
+### Amendment log
+
+- 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — `trailhead(` → `surface(`, `build*` → `derive*`.

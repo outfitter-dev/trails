@@ -15,7 +15,7 @@ depends_on: [packs-namespace-boundaries]
 
 ### The problem at small scale
 
-A simple Trails app has 5-10 trails. Every trail is a public verb. `trailhead(app)` trailheads all of them on CLI, MCP, and HTTP. This is correct. Progressive disclosure isn't needed when there's nothing to disclose progressively.
+A simple Trails app has 5-10 trails. Every trail is a public verb. `surface(app)` trailheads all of them on CLI, MCP, and HTTP. This is correct. Progressive disclosure isn't needed when there's nothing to disclose progressively.
 
 ### The problem at pack scale
 
@@ -74,13 +74,13 @@ On the frozen Trail object, `visibility` is always present (defaulted to `'publi
 
 ```typescript
 // Exclude all dev trails
-trailhead(app, { exclude: ['dev.*'] });
+surface(app, { exclude: ['dev.*'] });
 
 // Include only github and inbox namespaces
-trailhead(app, { include: ['github.*', 'inbox.*'] });
+surface(app, { include: ['github.*', 'inbox.*'] });
 
 // Mix of specific trails and patterns
-trailhead(app, { exclude: ['dev.*', 'debug.*', 'search.reindex'] });
+surface(app, { exclude: ['dev.*', 'debug.*', 'search.reindex'] });
 ```
 
 Patterns match against trail IDs using standard glob semantics. `*` matches one segment. `**` matches any depth. This replaces flat string enumeration with namespace-aware filtering.
@@ -89,7 +89,7 @@ Patterns match against trail IDs using standard glob semantics. `*` matches one 
 
 ```typescript
 // This promotes a specific internal trail to public on this trailhead
-trailhead(app, { include: ['github.core.verify-webhook'] });
+surface(app, { include: ['github.core.verify-webhook'] });
 ```
 
 This is an override, visible and intentional. The default (internal trails are not exposed at a trailhead) holds unless explicitly overridden by exact ID.
@@ -100,20 +100,20 @@ Trailhead options accept an `intent` filter:
 
 ```typescript
 // Read-only MCP trailhead for agents
-trailhead(app, { intent: ['read'] });
+surface(app, { intent: ['read'] });
 
 // Public API: read and write, no destroy
-trailhead(app, { intent: ['read', 'write'] });
+surface(app, { intent: ['read', 'write'] });
 
 // Operator CLI: everything (default, no filter)
-trailhead(app);
+surface(app);
 ```
 
 Intent filtering and glob patterns compose with AND logic:
 
 ```typescript
 // Read-only GitHub trails for a scoped agent
-trailhead(app, {
+surface(app, {
   include: ['github.*'],
   intent: ['read'],
 });
@@ -226,7 +226,7 @@ Four new governance rules follow from this ADR:
 ### Positive
 
 - **One authored field for the one thing only the author knows.** `visibility: 'internal'` captures "this is not a public verb" directly on the trail. No trailhead-side bookkeeping.
-- **Intent becomes a filtering axis.** One authored property, one more derivation. `trailhead(app, { intent: ['read'] })` creates a read-only trailhead from the same topo. No per-trail annotation.
+- **Intent becomes a filtering axis.** One authored property, one more derivation. `surface(app, { intent: ['read'] })` creates a read-only trailhead from the same topo. No per-trail annotation.
 - **Permit-gated discovery compiles for free.** The MCP trailhead uses data it already has (permit scopes, trail intent) to filter the tool list. Agents see only what they can call. Zero ceremony.
 - **Namespace-aware filtering.** Glob patterns replace flat string lists. `exclude: ['dev.*']` scales from 5 dev trails to 50 without maintenance.
 - **Environment gating without trail pollution.** Profiles handle activation per environment. The trail definition doesn't change across environments.
@@ -255,3 +255,7 @@ Four new governance rules follow from this ADR:
 - [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) -- the lockfile captures resolved visibility state after all overrides are applied
 - [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) -- `crossInput` relates to internal visibility; a trail with required `crossInput` fields should declare `visibility: 'internal'`
 - ADR: Packs as Namespace Boundaries (draft) -- packs set default visibility for their trails; depends on this ADR
+
+### Amendment log
+
+- 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — `trailhead(` → `surface(` in code examples.

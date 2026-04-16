@@ -59,7 +59,7 @@ One critical addition: `walkShallow()`. Standard `walk()` descends into everythi
 |---|---|---|---|
 | `no-throw-in-implementation` | error | basic | No `throw` statements inside `blaze:` bodies |
 | `implementation-returns-result` | error | basic | `blaze:` bodies return `Result.ok()` or `Result.err()`, not raw values |
-| `context-no-trailhead-types` | error | basic | No imports of `Request`, `Response`, `McpSession`, etc. in trail files |
+| `context-no-surface-types` | error | basic | No imports of `Request`, `Response`, `McpSession`, etc. in trail files |
 | `cross-declarations` | error | basic | `ctx.cross()` calls match the declared `crosses` array |
 | `no-sync-result-assumption` | error | basic | `.trailhead()` results are awaited, not treated as synchronous |
 | `no-direct-implementation-call` | warn | basic | Application code uses `ctx.cross()`, not direct `.trailhead()` calls |
@@ -96,5 +96,9 @@ Basic rules analyze a single file. Project-aware rules receive a `ProjectContext
 - [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions; warden is the governance arm of "author, derive, declare — guard against drift"
 - [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the trail contract model that rules are now wrapped in
 - [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the shared execution pipeline that runs rule trails
+
+### Amendment log
+
+- 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — `context-no-trailhead-types` → `context-no-surface-types`.
 
 [^oxc]: [oxc-parser](https://oxc.rs/) — Rust-compiled JavaScript/TypeScript toolchain with native bindings and WASM fallback

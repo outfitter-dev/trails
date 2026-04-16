@@ -13,7 +13,7 @@ depends_on: [14]
 
 ## Context
 
-The resolved topology — all trails, their schemas, crossings, resources, signals, trailhead mappings, and metadata — exists in two forms today. In memory, it's a `ReadonlyMap<string, AnyTrail>` with parallel maps for signals and resources. On disk, it's a JSON file (the trailhead map at `.trails/_trailhead.json`).[^trailhead-map] Both are flat serializations of a graph structure.
+The resolved topology — all trails, their schemas, crossings, resources, signals, trailhead mappings, and metadata — exists in two forms today. In memory, it's a `ReadonlyMap<string, AnyTrail>` with parallel maps for signals and resources. On disk, it's a JSON file (the surface map at `.trails/_surface.json`).[^surface-map] Both are flat serializations of a graph structure.
 
 When something wants to query the topo, it traverses these structures imperatively. The warden iterates all trails to check governance rules. The `survey` command iterates all trails to produce a human-readable summary. The `guide` command searches trails by ID or metadata. An agent connecting to an MCP trailhead gets a flat list of tools. These are all graph queries wearing imperative clothing.
 
@@ -36,26 +36,21 @@ The core premise says "the contract is queryable." Today it's queryable in the s
 ### Table schema
 
 The topo store projects the resolved topology into relational tables within `trails.db`:
-The foundational `topo_saves` and `topo_pins` tables intentionally restate ADR-0014's
+The foundational `topo_snapshots` table intentionally restates ADR-0014's
 core database primitive so this ADR can present the full topo store schema as a
-self-contained unit.
+self-contained unit. Snapshots unify the previously separate `topo_saves` and
+`topo_pins` tables — a snapshot with a non-null `pinned_as` is a pin.
 
 ```sql
-CREATE TABLE topo_saves (
+CREATE TABLE topo_snapshots (
   id TEXT PRIMARY KEY,            -- UUIDv7
+  pinned_as TEXT UNIQUE,          -- developer-chosen durable name (null for autosaves)
   git_sha TEXT,
   git_dirty INTEGER DEFAULT 0,
   trail_count INTEGER DEFAULT 0,
   signal_count INTEGER DEFAULT 0,
   resource_count INTEGER DEFAULT 0,
   created_at TEXT NOT NULL
-);
-
-CREATE TABLE topo_pins (
-  name TEXT PRIMARY KEY,          -- developer-chosen durable name
-  save_id TEXT NOT NULL UNIQUE,
-  created_at TEXT NOT NULL,
-  FOREIGN KEY (save_id) REFERENCES topo_saves(id)
 );
 
 -- Core trail metadata
@@ -68,27 +63,27 @@ CREATE TABLE topo_trails (
   example_count INTEGER DEFAULT 0,
   description TEXT,
   meta TEXT,                      -- JSON blob for arbitrary metadata
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (id, save_id),
-  FOREIGN KEY (save_id) REFERENCES topo_saves(id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (id, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id)
 );
 
 -- Trail crossings (composition graph)
 CREATE TABLE topo_crossings (
   source_id TEXT NOT NULL,
   target_id TEXT NOT NULL,
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (source_id, target_id, save_id),
-  FOREIGN KEY (save_id) REFERENCES topo_saves(id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (source_id, target_id, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id)
 );
 
 -- Resources declared per trail [^adr23]
 CREATE TABLE topo_trail_resources (
   trail_id TEXT NOT NULL,
   resource_id TEXT NOT NULL,
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (trail_id, resource_id, save_id),
-  FOREIGN KEY (save_id) REFERENCES topo_saves(id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (trail_id, resource_id, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id)
 );
 
 -- Resource definitions [^adr23]
@@ -96,27 +91,27 @@ CREATE TABLE topo_resources (
   id TEXT NOT NULL,
   has_mock INTEGER DEFAULT 0,
   has_health INTEGER DEFAULT 0,
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (id, save_id),
-  FOREIGN KEY (save_id) REFERENCES topo_saves(id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (id, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id)
 );
 
 -- Signal definitions
 CREATE TABLE topo_signals (
   id TEXT NOT NULL,
   description TEXT,
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (id, save_id),
-  FOREIGN KEY (save_id) REFERENCES topo_saves(id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (id, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id)
 );
 
 -- Signal emissions declared per trail
 CREATE TABLE topo_trail_signals (
   trail_id TEXT NOT NULL,
   signal_id TEXT NOT NULL,
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (trail_id, signal_id, save_id),
-  FOREIGN KEY (save_id) REFERENCES topo_saves(id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (trail_id, signal_id, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id)
 );
 
 -- Fire declarations (what activates a trail)
@@ -124,9 +119,9 @@ CREATE TABLE topo_fires (
   trail_id TEXT NOT NULL,
   source_type TEXT NOT NULL,      -- 'signal' | 'schedule' | 'lifecycle'
   source_id TEXT,                 -- signal ID, cron expression, or lifecycle event
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (trail_id, source_type, source_id, save_id),
-  FOREIGN KEY (save_id) REFERENCES topo_saves(id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (trail_id, source_type, source_id, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id)
 );
 
 -- Trailhead mappings (which trailheads expose which trails)
@@ -135,9 +130,9 @@ CREATE TABLE topo_trailheads (
   trailhead TEXT NOT NULL,        -- 'cli' | 'mcp' | 'http'
   derived_name TEXT NOT NULL,     -- CLI command path, MCP tool name, HTTP route
   method TEXT,                    -- HTTP method (null for CLI/MCP)
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (trail_id, trailhead, save_id),
-  FOREIGN KEY (save_id) REFERENCES topo_saves(id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (trail_id, trailhead, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id)
 );
 
 -- Examples stored per trail
@@ -149,8 +144,8 @@ CREATE TABLE topo_examples (
   input TEXT NOT NULL,            -- JSON
   expected TEXT,                  -- JSON (null for schema-only validation)
   error TEXT,                     -- error class name (null for success cases)
-  save_id TEXT NOT NULL,
-  FOREIGN KEY (save_id) REFERENCES topo_saves(id)
+  snapshot_id TEXT NOT NULL,
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id)
 );
 ```
 
@@ -164,9 +159,9 @@ CREATE TABLE topo_schemas (
   kind TEXT NOT NULL,             -- 'input' | 'output'
   zod_hash TEXT NOT NULL,         -- content hash of the Zod schema's ._def tree
   json_schema TEXT NOT NULL,      -- pre-computed JSON Schema (zodToJsonSchema output)
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (trail_id, kind, save_id),
-  FOREIGN KEY (save_id) REFERENCES topo_saves(id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (trail_id, kind, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id)
 );
 ```
 
@@ -245,44 +240,44 @@ const closure = await conn.query(sql`
     UNION
     SELECT c.target_id FROM topo_crossings c
     JOIN closure cl ON c.source_id = cl.id
-    WHERE c.save_id = ${currentSaveId}
+    WHERE c.snapshot_id = ${currentSnapshotId}
   )
   SELECT t.* FROM topo_trails t
-  WHERE t.id IN closure AND t.save_id = ${currentSaveId}
+  WHERE t.id IN closure AND t.snapshot_id = ${currentSnapshotId}
 `);
 ```
 
 ### Evolution tracking
 
-Because every topo row carries a `save_id`, the database contains a time series of the app's structural evolution. Pins turn selected saves into durable references. This enables queries that no other tool can answer:
+Because every topo row carries a `snapshot_id`, the database contains a time series of the app's structural evolution. Pins turn selected snapshots into durable references. This enables queries that no other tool can answer:
 
 ```sql
 -- Trails added since a named pin
 SELECT t.id FROM topo_trails t
-WHERE t.save_id = :current
+WHERE t.snapshot_id = :current
   AND t.id NOT IN (
     SELECT id FROM topo_trails
-    WHERE save_id = (SELECT save_id FROM topo_pins WHERE name = :pin)
+    WHERE snapshot_id = (SELECT id FROM topo_snapshots WHERE pinned_as = :pin)
   );
 
 -- Trails that changed intent
 SELECT c.id, c.intent as current_intent, p.intent as previous_intent
 FROM topo_trails c
 JOIN topo_trails p ON c.id = p.id
-WHERE c.save_id = :current AND p.save_id = :previous
+WHERE c.snapshot_id = :current AND p.snapshot_id = :previous
   AND c.intent IS NOT p.intent;
 
--- Crossing graph diff between two saved topo states
+-- Crossing graph diff between two snapshot states
 SELECT source_id, target_id, 'added' as change
-FROM topo_crossings WHERE save_id = :current
-EXCEPT SELECT source_id, target_id, 'added' FROM topo_crossings WHERE save_id = :previous
+FROM topo_crossings WHERE snapshot_id = :current
+EXCEPT SELECT source_id, target_id, 'added' FROM topo_crossings WHERE snapshot_id = :previous
 UNION ALL
 SELECT source_id, target_id, 'removed' as change
-FROM topo_crossings WHERE save_id = :previous
-EXCEPT SELECT source_id, target_id, 'removed' FROM topo_crossings WHERE save_id = :current;
+FROM topo_crossings WHERE snapshot_id = :previous
+EXCEPT SELECT source_id, target_id, 'removed' FROM topo_crossings WHERE snapshot_id = :current;
 ```
 
-This is the `trails topo diff` concept made continuous. The lockfile captures the latest state as a text file for git. The topo store captures autosave history and pins for queryable analysis.
+This is the `trails topo diff` concept made continuous. The lockfile captures the latest state as a text file for git. The topo store captures snapshot history and pins for queryable analysis.
 
 ### Lockfile as an export
 
@@ -307,7 +302,7 @@ SELECT t.intent,
   ROUND(AVG(tr.ended_at - tr.started_at), 1) as avg_ms
 FROM topo_trails t
 JOIN track_records tr ON t.id = tr.trail_id
-WHERE t.save_id = :current AND tr.ended_at IS NOT NULL
+WHERE t.snapshot_id = :current AND tr.ended_at IS NOT NULL
 GROUP BY t.intent;
 
 -- Error rates for trails that cross user.get
@@ -315,7 +310,7 @@ SELECT tr.trail_id, COUNT(*) as errors
 FROM track_records tr
 WHERE tr.status = 'err' AND tr.trail_id IN (
   SELECT source_id FROM topo_crossings
-  WHERE target_id = 'user.get' AND save_id = :current
+  WHERE target_id = 'user.get' AND snapshot_id = :current
 )
 GROUP BY tr.trail_id ORDER BY errors DESC;
 ```
@@ -337,7 +332,7 @@ The structural graph (what's declared) and the execution record (what happened) 
 
 - **Two representations of the topo.** The in-memory `ReadonlyMap` stays for execution. The SQLite store exists for querying. They derive from the same source but could theoretically diverge if the population step has bugs. Mitigated: `testAll` can verify consistency.
 - **Startup cost in dev.** Populating the topo store adds time to `trails dev` startup. For a 100-trail app, this is estimated at sub-100ms (100 INSERTs with indexes). Subsequent refreshes are incremental diffs.
-- **Save accumulation.** Autosaves are pruned by the retention policy (see ADR: Core Database Primitive). Pins persist until removed.
+- **Snapshot accumulation.** Unpinned snapshots are pruned by the retention policy (see ADR: Core Database Primitive). Pinned snapshots persist until explicitly unpinned.
 
 ### What this does NOT decide
 
@@ -349,10 +344,14 @@ The structural graph (what's declared) and the execution record (what happened) 
 ## References
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — "the contract is queryable"
-- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — the trailhead map that the topo store subsumes
+- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — the surface map that the topo store subsumes
 - [ADR-0013: Tracing](0013-tracing.md) — execution records that colocate with topo data for cross-cutting queries
 - [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) — the `trails.db` foundation this builds on
 - [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — the lockfile projection exported from topo state
-- [ADR-0018: Signal-Driven Governance](0018-signal-driven-governance.md) — how topo saves and pins drive downstream behavior
+- [ADR-0018: Signal-Driven Governance](0018-signal-driven-governance.md) — how topo snapshots and pins drive downstream behavior
 
-[^trailhead-map]: The trailhead map is generated by `generateTrailheadMap()` in `@ontrails/schema` and written to `.trails/_trailhead.json` by `writeTrailheadMap()`. See `packages/schema/src/io.ts`.
+### Amendment log
+
+- 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — `generateTrailheadMap` → `deriveSurfaceMap`, `writeTrailheadMap` → `writeSurfaceMap`, `_trailhead.json` → `_surface.json`, `trailhead map` → `surface map`. Schema tables updated: `topo_saves` + `topo_pins` collapsed into `topo_snapshots` with nullable `pinned_as` column; `save_id` → `snapshot_id` throughout.
+
+[^surface-map]: The surface map is generated by `deriveSurfaceMap()` in `@ontrails/schema` and written to `.trails/_surface.json` by `writeSurfaceMap()`. See `packages/schema/src/io.ts`.

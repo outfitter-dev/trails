@@ -108,7 +108,7 @@ trails topo diff --lock      # show lockfile drift against current topo
 
 The lockfile is:
 
-- **Generated** by `trails topo export` from the current code. In manual workflows this is explicit, like `bun install` generating `bun.lock`. Signal-driven flows can invoke the same trail automatically from topo saves or pins.
+- **Generated** by `trails topo export` from the current code. In manual workflows this is explicit, like `bun install` generating `bun.lock`. Signal-driven flows can invoke the same trail automatically from topo snapshots or pins.
 - **Checked in** to source control. A PR that changes trail contracts produces a lockfile diff.
 - **CI-diffable.** `trails topo verify` fails if the lockfile doesn't match the current code. Drift between code and lockfile is caught before merge.
 - **The saved record of resolved state.** Not a cache, not a convenience. A commitment: "this is the resolved state of the system at this point in time."
@@ -180,3 +180,7 @@ webhook:stripe → booking.confirm → booking.confirmed → notify.booking-conf
 - ADR: Packs as Namespace Boundaries (draft) — pack boundaries as subgraphs within the topo
 - ADR: Pack Provisioning (draft) — provisioned pack state recorded in the graph
 - ADR: Trail Run (draft) — trail ID resolution via the lockfile
+
+### Amendment log
+
+- 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — `topo saves` → `topo snapshots`.

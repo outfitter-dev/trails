@@ -145,7 +145,7 @@ Rename `docs/vocabulary.md` to `docs/lexicon.md`. Update every reference across 
 - **`create*` for runtime instances:** `createLogger()`, `createConsoleLogger()`
 - **`derive*` for derivations:** `deriveFields()`, `deriveFlags()`
 - **`validate*` for verification:** `validateInput()`, `validateTopo()`
-- **`build*` then `to*`/`connect*` for trailhead wiring:** `buildCliCommands()`, `toCommander()`
+- **`derive*` then `to*`/`connect*` for trailhead wiring:** `deriveCliCommands()`, `toCommander()`
 
 ## Non-goals
 
@@ -190,3 +190,7 @@ Rename `docs/vocabulary.md` to `docs/lexicon.md`. Update every reference across 
 - [ADR-0011: Schema-Driven Config](0011-schema-driven-config.md) — to be revisited. `loadout` → `profile`. Config resolution unchanged.
 - [Trails Tenets](../tenets.md) — the heuristic here operationalizes "reduce ceremony, not clarity" at the naming layer.
 - [Lexicon doc (current)](../lexicon.md) — renamed from `docs/vocabulary.md` as part of this ADR's adoption.
+
+### Amendment log
+
+- 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — `build*` → `derive*` in grammar rules.

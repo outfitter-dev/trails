@@ -199,10 +199,10 @@ If every field has a default, the resource works with zero config. Install a pac
 
 Config does NOT live on `topo()`. Topo is the contract graph — trails, signals, and resources. Config is deployment state. Mixing the two conflates what a system can do with how a specific deployment is configured.
 
-Config is resolved in `trailhead()` / `run()` options:
+Config is resolved in `surface()` / `run()` options:
 
 ```typescript
-await trailhead(app, { config });
+await surface(app, { config });
 await run(app, 'search', input, { config });
 ```
 
@@ -355,3 +355,7 @@ This keeps config resolution predictable and fast. The entire config tree resolv
 - [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — resources declare config schemas via the reserved `config` field; config enriches `ResourceContext`
 - [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — config is the first infrastructure package following the resource + layer + trails trifecta
 - [ADR-0013: Tracing](0013-tracing.md) — tracing consume config for sampling rates and export targets
+
+### Amendment log
+
+- 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — `trailhead(` → `surface(`.
