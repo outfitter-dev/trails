@@ -1,13 +1,13 @@
 /**
- * Semantic diffing of trailhead maps.
+ * Semantic diffing of surface maps.
  */
 
 import type {
   DiffEntry,
   DiffResult,
   JsonSchema,
-  TrailheadMap,
-  TrailheadMapEntry,
+  SurfaceMap,
+  SurfaceMapEntry,
 } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -44,7 +44,7 @@ const addDetail = (
 const capitalize = (s: string): string =>
   `${s.charAt(0).toUpperCase()}${s.slice(1)}`;
 
-const labelForKind = (kind: TrailheadMapEntry['kind']): string => {
+const labelForKind = (kind: SurfaceMapEntry['kind']): string => {
   if (kind === 'contour') {
     return 'Contour';
   }
@@ -233,8 +233,8 @@ const diffSchemaFields = (
 /** Diff trailhead additions and removals. */
 const diffTrailheads = (
   acc: DetailAccumulator,
-  prev: TrailheadMapEntry,
-  curr: TrailheadMapEntry
+  prev: SurfaceMapEntry,
+  curr: SurfaceMapEntry
 ): void => {
   const prevTrailheads = new Set(prev.trailheads);
   const currTrailheads = new Set(curr.trailheads);
@@ -253,8 +253,8 @@ const diffTrailheads = (
 /** Diff safety markers, description, and deprecation. */
 const diffMetadata = (
   acc: DetailAccumulator,
-  prev: TrailheadMapEntry,
-  curr: TrailheadMapEntry
+  prev: SurfaceMapEntry,
+  curr: SurfaceMapEntry
 ): void => {
   if (prev.intent !== curr.intent) {
     addDetail(
@@ -285,8 +285,8 @@ const diffMetadata = (
 
 const diffCliPath = (
   acc: DetailAccumulator,
-  prev: TrailheadMapEntry,
-  curr: TrailheadMapEntry
+  prev: SurfaceMapEntry,
+  curr: SurfaceMapEntry
 ): void => {
   const prevPath = prev.cli?.path.join(' ');
   const currPath = curr.cli?.path.join(' ');
@@ -346,8 +346,8 @@ const buildContoursMessage = (added: string[], removed: string[]): string => {
 /** Diff crosses arrays. */
 const diffCrosses = (
   acc: DetailAccumulator,
-  prev: TrailheadMapEntry,
-  curr: TrailheadMapEntry
+  prev: SurfaceMapEntry,
+  curr: SurfaceMapEntry
 ): void => {
   const prevCrosses = new Set(prev.crosses);
   const currCrosses = new Set(curr.crosses);
@@ -365,8 +365,8 @@ const diffCrosses = (
 /** Diff declared resource arrays on trail entries. */
 const diffResources = (
   acc: DetailAccumulator,
-  prev: TrailheadMapEntry,
-  curr: TrailheadMapEntry
+  prev: SurfaceMapEntry,
+  curr: SurfaceMapEntry
 ): void => {
   const prevResources = new Set(prev.resources);
   const currResources = new Set(curr.resources);
@@ -384,8 +384,8 @@ const diffResources = (
 /** Diff declared contour arrays on trail entries. */
 const diffContours = (
   acc: DetailAccumulator,
-  prev: TrailheadMapEntry,
-  curr: TrailheadMapEntry
+  prev: SurfaceMapEntry,
+  curr: SurfaceMapEntry
 ): void => {
   const prevContours = new Set(prev.contours);
   const currContours = new Set(curr.contours);
@@ -402,8 +402,8 @@ const diffContours = (
 
 const diffContourSchema = (
   acc: DetailAccumulator,
-  prev: TrailheadMapEntry,
-  curr: TrailheadMapEntry
+  prev: SurfaceMapEntry,
+  curr: SurfaceMapEntry
 ): void => {
   diffSchemaFields(acc, 'contour', prev.schema, curr.schema);
 
@@ -424,8 +424,8 @@ const referenceLabel = (reference: {
 
 const diffContourReferences = (
   acc: DetailAccumulator,
-  prev: TrailheadMapEntry,
-  curr: TrailheadMapEntry
+  prev: SurfaceMapEntry,
+  curr: SurfaceMapEntry
 ): void => {
   const prevReferences = new Set(
     (prev.references ?? []).map((reference) => referenceLabel(reference))
@@ -459,8 +459,8 @@ const diffContourReferences = (
 
 const diffTrailEntryDetails = (
   acc: DetailAccumulator,
-  prev: TrailheadMapEntry,
-  curr: TrailheadMapEntry
+  prev: SurfaceMapEntry,
+  curr: SurfaceMapEntry
 ): void => {
   diffSchemaFields(acc, 'input', prev.input, curr.input);
   diffSchemaFields(acc, 'output', prev.output, curr.output);
@@ -472,8 +472,8 @@ const diffTrailEntryDetails = (
 
 const diffEntryDetails = (
   acc: DetailAccumulator,
-  prev: TrailheadMapEntry,
-  curr: TrailheadMapEntry
+  prev: SurfaceMapEntry,
+  curr: SurfaceMapEntry
 ): void => {
   diffTrailheads(acc, prev, curr);
   diffMetadata(acc, prev, curr);
@@ -488,8 +488,8 @@ const diffEntryDetails = (
 };
 
 const diffEntry = (
-  prev: TrailheadMapEntry,
-  curr: TrailheadMapEntry
+  prev: SurfaceMapEntry,
+  curr: SurfaceMapEntry
 ): DiffEntry | undefined => {
   const acc: DetailAccumulator = { details: [], severity: 'info' };
 
@@ -513,7 +513,7 @@ const diffEntry = (
 // ---------------------------------------------------------------------------
 
 /**
- * Compute a semantic diff between two trailhead maps.
+ * Compute a semantic diff between two surface maps.
  *
  * Classifies each change with a severity:
  * - `info`: new trail, optional field added, output field added, description change
@@ -522,8 +522,8 @@ const diffEntry = (
  */
 /** Find entries added in curr that don't exist in prev. */
 const findAdded = (
-  prevById: Map<string, TrailheadMapEntry>,
-  currById: Map<string, TrailheadMapEntry>
+  prevById: Map<string, SurfaceMapEntry>,
+  currById: Map<string, SurfaceMapEntry>
 ): DiffEntry[] =>
   [...currById.entries()]
     .filter(([id]) => !prevById.has(id))
@@ -537,8 +537,8 @@ const findAdded = (
 
 /** Find entries removed from prev that don't exist in curr. */
 const findRemoved = (
-  prevById: Map<string, TrailheadMapEntry>,
-  currById: Map<string, TrailheadMapEntry>
+  prevById: Map<string, SurfaceMapEntry>,
+  currById: Map<string, SurfaceMapEntry>
 ): DiffEntry[] =>
   [...prevById.entries()]
     .filter(([id]) => !currById.has(id))
@@ -552,8 +552,8 @@ const findRemoved = (
 
 /** Find entries modified between prev and curr. */
 const findModified = (
-  prevById: Map<string, TrailheadMapEntry>,
-  currById: Map<string, TrailheadMapEntry>
+  prevById: Map<string, SurfaceMapEntry>,
+  currById: Map<string, SurfaceMapEntry>
 ): DiffEntry[] => {
   const results: DiffEntry[] = [];
   for (const [id, currEntry] of currById) {
@@ -570,8 +570,8 @@ const findModified = (
 
 /** Collect all diff entries (added, removed, modified) between two maps. */
 const collectDiffEntries = (
-  prevById: Map<string, TrailheadMapEntry>,
-  currById: Map<string, TrailheadMapEntry>
+  prevById: Map<string, SurfaceMapEntry>,
+  currById: Map<string, SurfaceMapEntry>
 ): DiffEntry[] => [
   ...findAdded(prevById, currById),
   ...findRemoved(prevById, currById),
@@ -579,8 +579,8 @@ const collectDiffEntries = (
 ];
 
 export const deriveSurfaceMapDiff = (
-  prev: TrailheadMap,
-  curr: TrailheadMap
+  prev: SurfaceMap,
+  curr: SurfaceMap
 ): DiffResult => {
   const prevById = new Map(prev.entries.map((e) => [e.id, e]));
   const currById = new Map(curr.entries.map((e) => [e.id, e]));

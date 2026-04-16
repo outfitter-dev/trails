@@ -1,14 +1,14 @@
 # @ontrails/schema
 
-Deterministic trailhead maps, lockfile helpers, and semantic diffing for Trails.
+Deterministic surface maps, lockfile helpers, and semantic diffing for Trails.
 
 Most applications reach this package through `trails topo export` and `trails topo verify`. Those CLI trails layer workspace and topo-store behavior on top of the low-level building blocks in `@ontrails/schema`.
 
 ## What it owns
 
-- deterministic trailhead-map generation from an established topo
+- deterministic surface-map generation from an established topo
 - stable hashing for CI drift detection
-- semantic diffing between two trailhead maps
+- semantic diffing between two surface maps
 - file I/O helpers for `.trails/_trailhead.json` and `.trails/trails.lock`
 - OpenAPI generation from the same topo contract
 
@@ -22,15 +22,15 @@ import {
   deriveSurfaceMap,
   deriveSurfaceMapDiff,
   deriveSurfaceMapHash,
-  writeTrailheadLock,
-  writeTrailheadMap,
+  writeSurfaceLock,
+  writeSurfaceMap,
 } from '@ontrails/schema';
 
 const map = deriveSurfaceMap(app);
 const hash = deriveSurfaceMapHash(map);
 
-await writeTrailheadMap(map);
-await writeTrailheadLock({ hash });
+await writeSurfaceMap(map);
+await writeSurfaceLock({ hash });
 
 // Later, after changes:
 const nextMap = deriveSurfaceMap(app);
@@ -58,14 +58,14 @@ The typical exported artifact pair is:
 
 | Export | What it does |
 | --- | --- |
-| `deriveSurfaceMap(topo)` | Deterministic trailhead map of every established trail, signal, and resource |
+| `deriveSurfaceMap(topo)` | Deterministic surface map of every established trail, signal, and resource |
 | `deriveSurfaceMapHash(map)` | Stable SHA-256 hash of the map |
 | `deriveSurfaceMapDiff(prev, curr)` | Semantic diff with `breaking`, `warning`, and `info` classifications |
-| `writeTrailheadMap(map, options?)` | Write `.trails/_trailhead.json` |
-| `readTrailheadMap(options?)` | Read `.trails/_trailhead.json` |
-| `writeTrailheadLock(lock, options?)` | Write `.trails/trails.lock` as either structured JSON or legacy hash text |
-| `readTrailheadLockData(options?)` | Read the full normalized lock payload from `.trails/trails.lock` |
-| `readTrailheadLock(options?)` | Read just the committed lock hash |
+| `writeSurfaceMap(map, options?)` | Write `.trails/_trailhead.json` |
+| `readSurfaceMap(options?)` | Read `.trails/_trailhead.json` |
+| `writeSurfaceLock(lock, options?)` | Write `.trails/trails.lock` as either structured JSON or legacy hash text |
+| `readSurfaceLockData(options?)` | Read the full normalized lock payload from `.trails/trails.lock` |
+| `readSurfaceLock(options?)` | Read just the committed lock hash |
 | `deriveOpenApiSpec(topo, options?)` | Generate an OpenAPI 3.1 document from the topo |
 
 ## Breaking change detection
@@ -94,10 +94,10 @@ Because CLI paths are now full hierarchical command paths, command-tree changes 
 ## Drift detection with warden
 
 ```typescript
-import { deriveSurfaceMap, deriveSurfaceMapHash, readTrailheadLock } from '@ontrails/schema';
+import { deriveSurfaceMap, deriveSurfaceMapHash, readSurfaceLock } from '@ontrails/schema';
 
 const current = deriveSurfaceMapHash(deriveSurfaceMap(app));
-const committed = await readTrailheadLock();
+const committed = await readSurfaceLock();
 
 if (committed !== current) {
   // lock file is stale -- topo has changed

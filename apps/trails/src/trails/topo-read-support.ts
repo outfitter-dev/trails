@@ -23,7 +23,7 @@ import {
   deriveTrailsDbPath,
   deriveTrailsDir,
 } from '@ontrails/core/internal/trails-db';
-import { readTrailheadLockData } from '@ontrails/schema';
+import { readSurfaceLockData } from '@ontrails/schema';
 
 import type { BriefReport, SurveyListReport } from './topo-reports.js';
 import type { TopoSummaryReport, TopoVerifyReport } from './topo-support.js';
@@ -38,7 +38,7 @@ import {
 // Internal types
 // ---------------------------------------------------------------------------
 
-interface StoredTrailheadMapEntry {
+interface StoredSurfaceMapEntry {
   readonly detours?: readonly {
     readonly on: string;
     readonly maxAttempts: number;
@@ -79,12 +79,12 @@ const hasCommittedLock = (trailsDir: string): boolean =>
   existsSync(join(trailsDir, 'trails.lock')) ||
   existsSync(join(trailsDir, 'trailhead.lock'));
 
-const readTrailheadEntries = (
+const readSurfaceEntries = (
   trailheadMapJson: string
-): readonly StoredTrailheadMapEntry[] =>
+): readonly StoredSurfaceMapEntry[] =>
   (
     JSON.parse(trailheadMapJson) as {
-      readonly entries: readonly StoredTrailheadMapEntry[];
+      readonly entries: readonly StoredSurfaceMapEntry[];
     }
   ).entries;
 
@@ -99,7 +99,7 @@ const buildBriefReportFromStore = (
   const trailEntries =
     exportRecord === undefined
       ? []
-      : readTrailheadEntries(exportRecord.trailheadMapJson).filter(
+      : readSurfaceEntries(exportRecord.trailheadMapJson).filter(
           (entry) => entry.kind === 'trail'
         );
 
@@ -294,7 +294,7 @@ export const verifyCurrentTopo = async (
   options?: { readonly rootDir?: string }
 ): Promise<Result<TopoVerifyReport, Error>> => {
   const rootDir = deriveRootDir(options?.rootDir);
-  const committedLock = await readTrailheadLockData({
+  const committedLock = await readSurfaceLockData({
     dir: deriveTrailsDir({ rootDir }),
   });
 

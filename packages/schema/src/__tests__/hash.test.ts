@@ -1,13 +1,13 @@
 import { describe, test, expect } from 'bun:test';
 
 import { deriveSurfaceMapHash } from '../hash.js';
-import type { TrailheadMap } from '../types.js';
+import type { SurfaceMap } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
 
-const makeTrailheadMap = (overrides?: Partial<TrailheadMap>): TrailheadMap => ({
+const makeSurfaceMap = (overrides?: Partial<SurfaceMap>): SurfaceMap => ({
   entries: [
     {
       exampleCount: 2,
@@ -37,20 +37,20 @@ const makeTrailheadMap = (overrides?: Partial<TrailheadMap>): TrailheadMap => ({
 
 describe('deriveSurfaceMapHash', () => {
   test('produces a valid SHA-256 hex string (64 characters)', () => {
-    const hash = deriveSurfaceMapHash(makeTrailheadMap());
+    const hash = deriveSurfaceMapHash(makeSurfaceMap());
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  test('same trailhead map produces the same hash (deterministic)', () => {
-    const map = makeTrailheadMap();
+  test('same surface map produces the same hash (deterministic)', () => {
+    const map = makeSurfaceMap();
     const hash1 = deriveSurfaceMapHash(map);
     const hash2 = deriveSurfaceMapHash(map);
     expect(hash1).toBe(hash2);
   });
 
-  test('different trailhead maps produce different hashes', () => {
-    const map1 = makeTrailheadMap();
-    const map2 = makeTrailheadMap({
+  test('different surface maps produce different hashes', () => {
+    const map1 = makeSurfaceMap();
+    const map2 = makeSurfaceMap({
       entries: [
         {
           exampleCount: 0,
@@ -66,14 +66,14 @@ describe('deriveSurfaceMapHash', () => {
   });
 
   test('generatedAt does not affect the hash', () => {
-    const map1 = makeTrailheadMap({ generatedAt: '2025-01-01T00:00:00.000Z' });
-    const map2 = makeTrailheadMap({ generatedAt: '2099-12-31T23:59:59.999Z' });
+    const map1 = makeSurfaceMap({ generatedAt: '2025-01-01T00:00:00.000Z' });
+    const map2 = makeSurfaceMap({ generatedAt: '2099-12-31T23:59:59.999Z' });
 
     expect(deriveSurfaceMapHash(map1)).toBe(deriveSurfaceMapHash(map2));
   });
 
   test('hash is stable across invocations', () => {
-    const map = makeTrailheadMap();
+    const map = makeSurfaceMap();
     const hashes = Array.from({ length: 10 }, () => deriveSurfaceMapHash(map));
     const unique = new Set(hashes);
     expect(unique.size).toBe(1);
@@ -81,7 +81,7 @@ describe('deriveSurfaceMapHash', () => {
 
   test('key order in entry does not affect hash', () => {
     // Build two maps with same data but different insertion order
-    const map1 = makeTrailheadMap({
+    const map1 = makeSurfaceMap({
       entries: [
         {
           exampleCount: 0,
@@ -95,7 +95,7 @@ describe('deriveSurfaceMapHash', () => {
         },
       ],
     });
-    const map2 = makeTrailheadMap({
+    const map2 = makeSurfaceMap({
       entries: [
         {
           exampleCount: 0,

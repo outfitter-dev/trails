@@ -1,5 +1,5 @@
 /**
- * File I/O for trailhead maps and lock files.
+ * File I/O for surface maps and lock files.
  */
 
 import { mkdir } from 'node:fs/promises';
@@ -7,8 +7,8 @@ import { join } from 'node:path';
 
 import type {
   ReadOptions,
-  TrailheadLock,
-  TrailheadMap,
+  SurfaceLock,
+  SurfaceMap,
   WriteOptions,
 } from './types.js';
 
@@ -17,9 +17,8 @@ import type {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_DIR = '.trails';
-const TRAILHEAD_MAP_FILE = '_trailhead.json';
-const TRAILHEAD_LOCK_FILE = 'trails.lock';
-const LEGACY_TRAILHEAD_LOCK_FILE = 'trailhead.lock';
+const SURFACE_MAP_FILE = '_trailhead.json';
+const SURFACE_LOCK_FILE = 'trails.lock';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -52,7 +51,7 @@ const readFirstExistingText = async (
   return null;
 };
 
-const isTrailheadLock = (value: unknown): value is TrailheadLock => {
+const isSurfaceLock = (value: unknown): value is SurfaceLock => {
   const lock = value as Record<string, unknown>;
   return (
     typeof value === 'object' &&
@@ -61,10 +60,10 @@ const isTrailheadLock = (value: unknown): value is TrailheadLock => {
   );
 };
 
-const parseTrailheadLock = (content: string): TrailheadLock => {
+const parseSurfaceLock = (content: string): SurfaceLock => {
   try {
     const parsed: unknown = JSON.parse(content);
-    if (isTrailheadLock(parsed)) {
+    if (isSurfaceLock(parsed)) {
       return parsed;
     }
     if (typeof parsed === 'string') {
@@ -78,39 +77,39 @@ const parseTrailheadLock = (content: string): TrailheadLock => {
 };
 
 // ---------------------------------------------------------------------------
-// Trailhead Map
+// Surface Map
 // ---------------------------------------------------------------------------
 
 /**
- * Write a trailhead map to `<dir>/_trailhead.json`.
+ * Write a surface map to `<dir>/_trailhead.json`.
  *
  * Creates the directory if it doesn't exist. Returns the file path.
  */
-export const writeTrailheadMap = async (
-  trailheadMap: TrailheadMap,
+export const writeSurfaceMap = async (
+  surfaceMap: SurfaceMap,
   options?: WriteOptions
 ): Promise<string> => {
   const dir = resolveDir(options);
   await ensureDir(dir);
-  const filePath = join(dir, TRAILHEAD_MAP_FILE);
-  const json = `${JSON.stringify(trailheadMap, null, 2)}\n`;
+  const filePath = join(dir, SURFACE_MAP_FILE);
+  const json = `${JSON.stringify(surfaceMap, null, 2)}\n`;
   await Bun.write(filePath, json);
   return filePath;
 };
 
 /**
- * Read a trailhead map from `<dir>/_trailhead.json`.
+ * Read a surface map from `<dir>/_trailhead.json`.
  */
-export const readTrailheadMap = async (
+export const readSurfaceMap = async (
   options?: ReadOptions
-): Promise<TrailheadMap | null> => {
+): Promise<SurfaceMap | null> => {
   const dir = resolveDir(options);
-  const content = await readFirstExistingText([join(dir, TRAILHEAD_MAP_FILE)]);
-  return content ? (JSON.parse(content) as TrailheadMap) : null;
+  const content = await readFirstExistingText([join(dir, SURFACE_MAP_FILE)]);
+  return content ? (JSON.parse(content) as SurfaceMap) : null;
 };
 
 // ---------------------------------------------------------------------------
-// Trailhead Lock
+// Surface Lock
 // ---------------------------------------------------------------------------
 
 /**
@@ -119,13 +118,13 @@ export const readTrailheadMap = async (
  * String input preserves the legacy single-line hash format. Structured input
  * is serialized as JSON. Creates the directory if it doesn't exist.
  */
-export const writeTrailheadLock = async (
-  lock: string | TrailheadLock,
+export const writeSurfaceLock = async (
+  lock: string | SurfaceLock,
   options?: WriteOptions
 ): Promise<string> => {
   const dir = resolveDir(options);
   await ensureDir(dir);
-  const filePath = join(dir, TRAILHEAD_LOCK_FILE);
+  const filePath = join(dir, SURFACE_LOCK_FILE);
 
   if (typeof lock === 'string') {
     await Bun.write(filePath, `${lock}\n`);
@@ -137,30 +136,25 @@ export const writeTrailheadLock = async (
 };
 
 /**
- * Read the committed lock from `<dir>/trails.lock`, falling back to the
- * legacy `<dir>/trailhead.lock` during migration.
+ * Read the committed lock from `<dir>/trails.lock`.
  *
  * Structured JSON locks are normalized to expose their committed hash while
  * preserving additional metadata.
  */
-export const readTrailheadLockData = async (
+export const readSurfaceLockData = async (
   options?: ReadOptions
-): Promise<TrailheadLock | null> => {
+): Promise<SurfaceLock | null> => {
   const dir = resolveDir(options);
-  const content = await readFirstExistingText([
-    join(dir, TRAILHEAD_LOCK_FILE),
-    join(dir, LEGACY_TRAILHEAD_LOCK_FILE),
-  ]);
-  return content ? parseTrailheadLock(content) : null;
+  const content = await readFirstExistingText([join(dir, SURFACE_LOCK_FILE)]);
+  return content ? parseSurfaceLock(content) : null;
 };
 
 /**
- * Read the committed lock hash from `<dir>/trails.lock`, falling back to the
- * legacy `<dir>/trailhead.lock` during migration.
+ * Read the committed lock hash from `<dir>/trails.lock`.
  */
-export const readTrailheadLock = async (
+export const readSurfaceLock = async (
   options?: ReadOptions
 ): Promise<string | null> => {
-  const lock = await readTrailheadLockData(options);
+  const lock = await readSurfaceLockData(options);
   return lock?.hash ?? null;
 };

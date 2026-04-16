@@ -14,7 +14,7 @@ import {
   deriveSurfaceMapHash,
   deriveSurfaceMapDiff,
 } from '@ontrails/schema';
-import type { TrailheadMap } from '@ontrails/schema';
+import type { SurfaceMap } from '@ontrails/schema';
 import { z } from 'zod';
 
 import {
@@ -130,17 +130,17 @@ const repoTempDir = (): string =>
 
 describe('trails survey', () => {
   test('deriveSurfaceMap includes all trails', () => {
-    const trailheadMap = deriveSurfaceMap(app);
-    expect(trailheadMap.entries.length).toBe(3);
-    const ids = trailheadMap.entries.map((e) => e.id);
+    const surfaceMap = deriveSurfaceMap(app);
+    expect(surfaceMap.entries.length).toBe(3);
+    const ids = surfaceMap.entries.map((e) => e.id);
     expect(ids).toContain('hello');
     expect(ids).toContain('bye');
     expect(ids).toContain('db.main');
   });
 
-  test('trailhead map entries have expected fields', () => {
-    const trailheadMap = deriveSurfaceMap(app);
-    const hello = trailheadMap.entries.find((e) => e.id === 'hello');
+  test('surface map entries have expected fields', () => {
+    const surfaceMap = deriveSurfaceMap(app);
+    const hello = surfaceMap.entries.find((e) => e.id === 'hello');
     expect(hello).toBeDefined();
     expect(hello?.cli?.path).toEqual(['hello']);
     expect(hello?.kind).toBe('trail');
@@ -150,17 +150,17 @@ describe('trails survey', () => {
   });
 
   test('JSON output is valid JSON', () => {
-    const trailheadMap = deriveSurfaceMap(app);
-    const json = JSON.stringify(trailheadMap, null, 2);
-    const parsed = JSON.parse(json) as TrailheadMap;
+    const surfaceMap = deriveSurfaceMap(app);
+    const json = JSON.stringify(surfaceMap, null, 2);
+    const parsed = JSON.parse(json) as SurfaceMap;
     expect(parsed.version).toBe('1.0');
     expect(parsed.entries.length).toBe(3);
   });
 
   test('deriveSurfaceMapHash produces stable hash', () => {
-    const trailheadMap = deriveSurfaceMap(app);
-    const hash1 = deriveSurfaceMapHash(trailheadMap);
-    const hash2 = deriveSurfaceMapHash(trailheadMap);
+    const surfaceMap = deriveSurfaceMap(app);
+    const hash1 = deriveSurfaceMapHash(surfaceMap);
+    const hash2 = deriveSurfaceMapHash(surfaceMap);
     expect(hash1).toBe(hash2);
     // SHA-256 hex
     expect(hash1.length).toBe(64);

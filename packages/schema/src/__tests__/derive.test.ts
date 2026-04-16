@@ -49,7 +49,7 @@ const getFirstEntry = (map: ReturnType<typeof deriveSurfaceMap>) => {
   const [entry] = map.entries;
   expect(entry).toBeDefined();
   if (!entry) {
-    throw new Error('Expected trailhead map entry');
+    throw new Error('Expected surface map entry');
   }
   return entry;
 };

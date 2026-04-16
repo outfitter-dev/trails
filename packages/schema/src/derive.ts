@@ -1,5 +1,5 @@
 /**
- * Derive a deterministic trailhead map from a Topo.
+ * Derive a deterministic surface map from a Topo.
  */
 
 import {
@@ -16,7 +16,7 @@ import type {
   Trail,
 } from '@ontrails/core';
 
-import type { JsonSchema, TrailheadMap, TrailheadMapEntry } from './types.js';
+import type { JsonSchema, SurfaceMap, SurfaceMapEntry } from './types.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -144,9 +144,7 @@ const addTrailRelations = (
   }
 };
 
-const trailToEntry = (
-  t: Trail<unknown, unknown, unknown>
-): TrailheadMapEntry => {
+const trailToEntry = (t: Trail<unknown, unknown, unknown>): SurfaceMapEntry => {
   const raw = t as unknown as Record<string, unknown>;
   const trailheads = extractTrailheads(raw);
   const entry: Record<string, unknown> = {
@@ -161,7 +159,7 @@ const trailToEntry = (
   addMetadata(entry, t, raw);
   addTrailRelations(entry, t);
 
-  return sortKeys(entry) as unknown as TrailheadMapEntry;
+  return sortKeys(entry) as unknown as SurfaceMapEntry;
 };
 
 /** Add optional event-specific fields. */
@@ -184,7 +182,7 @@ const addEventFields = (
   }
 };
 
-const signalToEntry = (e: Signal<unknown>): TrailheadMapEntry => {
+const signalToEntry = (e: Signal<unknown>): SurfaceMapEntry => {
   const raw = e as unknown as Record<string, unknown>;
   const trailheads = extractTrailheads(raw);
   const entry: Record<string, unknown> = {
@@ -194,10 +192,10 @@ const signalToEntry = (e: Signal<unknown>): TrailheadMapEntry => {
     trailheads,
   };
   addEventFields(entry, e, raw);
-  return sortKeys(entry) as unknown as TrailheadMapEntry;
+  return sortKeys(entry) as unknown as SurfaceMapEntry;
 };
 
-const resourceToEntry = (resource: AnyResource): TrailheadMapEntry => {
+const resourceToEntry = (resource: AnyResource): SurfaceMapEntry => {
   const entry: Record<string, unknown> = {
     exampleCount: 0,
     id: resource.id,
@@ -212,10 +210,10 @@ const resourceToEntry = (resource: AnyResource): TrailheadMapEntry => {
     entry['healthcheck'] = true;
   }
 
-  return sortKeys(entry) as unknown as TrailheadMapEntry;
+  return sortKeys(entry) as unknown as SurfaceMapEntry;
 };
 
-const contourToEntry = (contour: AnyContour): TrailheadMapEntry => {
+const contourToEntry = (contour: AnyContour): SurfaceMapEntry => {
   const entry: Record<string, unknown> = {
     exampleCount: contour.examples?.length ?? 0,
     id: contour.name,
@@ -231,7 +229,7 @@ const contourToEntry = (contour: AnyContour): TrailheadMapEntry => {
     entry['references'] = references;
   }
 
-  return sortKeys(entry) as unknown as TrailheadMapEntry;
+  return sortKeys(entry) as unknown as SurfaceMapEntry;
 };
 
 const assertEstablishedTopo = (topo: Topo): void => {
@@ -241,7 +239,7 @@ const assertEstablishedTopo = (topo: Topo): void => {
   }
 };
 
-const collectEntries = (topo: Topo): TrailheadMapEntry[] => [
+const collectEntries = (topo: Topo): SurfaceMapEntry[] => [
   ...[...topo.contours.values()].map((contour) => contourToEntry(contour)),
   ...[...topo.trails.values()].map((trail) =>
     trailToEntry(trail as Trail<unknown, unknown, unknown>)
@@ -257,12 +255,12 @@ const collectEntries = (topo: Topo): TrailheadMapEntry[] => [
 // ---------------------------------------------------------------------------
 
 /**
- * Derive a deterministic trailhead map from a Topo.
+ * Derive a deterministic surface map from a Topo.
  *
  * Entries are sorted alphabetically by id. Object keys within each entry
  * are sorted lexicographically for stable serialization.
  */
-export const deriveSurfaceMap = (topo: Topo): TrailheadMap => {
+export const deriveSurfaceMap = (topo: Topo): SurfaceMap => {
   assertEstablishedTopo(topo);
   const sorted = collectEntries(topo).toSorted((a, b) =>
     a.id.localeCompare(b.id)
