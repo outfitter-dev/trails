@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { z } from 'zod';
 
-import { analyzeDraftState, isDraftId } from '../draft.js';
+import { deriveDraftReport, isDraftId } from '../draft.js';
 import { contour } from '../contour.js';
 import { validateEstablishedTopo } from '../validate-established-topo.js';
 import { resource } from '../resource.js';
@@ -394,7 +394,7 @@ describe('validateTopo', () => {
     const db = mockResource('db.main');
     const app = topo('app', {
       broken: mockTrail('entity.broken', { crosses: ['entity.missing'] }),
-      missingService: mockTrail('entity.missing-service', {
+      missingResource: mockTrail('entity.missing-resource', {
         resources: [db],
       }),
       show: mockTrail('entity.show', {
@@ -428,7 +428,7 @@ describe('draft state analysis', () => {
       draftTrail: mockTrail('_draft.entity.prepare'),
     });
 
-    const analysis = analyzeDraftState(app);
+    const analysis = deriveDraftReport(app);
 
     expect(analysis.declaredDraftIds.has('_draft.entity.prepare')).toBe(true);
     expect(analysis.contaminatedIds.has('_draft.entity.prepare')).toBe(true);
@@ -447,7 +447,7 @@ describe('draft state analysis', () => {
       }),
     });
 
-    const analysis = analyzeDraftState(app);
+    const analysis = deriveDraftReport(app);
     const exportFinding = analysis.findings.find(
       (finding) => finding.id === 'entity.export'
     );
@@ -480,7 +480,7 @@ describe('draft state analysis', () => {
       gist,
     });
 
-    const analysis = analyzeDraftState(app);
+    const analysis = deriveDraftReport(app);
     expect(analysis.declaredDraftIds.has('_draft.user')).toBe(true);
     expect(analysis.contaminatedIds.has('gist')).toBe(true);
     expect(analysis.dependencies).toContainEqual({
@@ -506,7 +506,7 @@ describe('draft state analysis', () => {
       draftUser,
     });
 
-    const analysis = analyzeDraftState(app);
+    const analysis = deriveDraftReport(app);
     const finding = analysis.findings.find(
       (entry) => entry.id === 'gist.create'
     );

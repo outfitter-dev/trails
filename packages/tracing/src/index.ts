@@ -1,18 +1,19 @@
 // Core tracing primitives — re-exported from @ontrails/core so existing
 // imports of these symbols from @ontrails/tracing keep working.
 export {
-  TRACE_CONTEXT_KEY,
   type TraceContext,
   type TraceFn,
   type TraceRecord,
   type TraceSink,
-  type TraceSinkLike,
   clearTraceSink,
-  createTraceRecord,
   getTraceContext,
   getTraceSink,
   registerTraceSink,
 } from '@ontrails/core';
+export {
+  TRACE_CONTEXT_KEY,
+  createTraceRecord,
+} from '@ontrails/core/internal/tracing';
 
 // Tracing-package-owned utilities
 export { createMemorySink } from './memory-sink.js';

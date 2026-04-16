@@ -15,7 +15,6 @@ export {
   RateLimitError,
   NetworkError,
   InternalError,
-  DerivationError,
   AuthError,
   CancelledError,
   errorCategories,
@@ -109,8 +108,6 @@ export { inputOf, outputOf } from './type-utils.js';
 // Signal
 export { signal } from './signal.js';
 export type { AnySignal, Signal, SignalSpec } from './signal.js';
-export { event } from './event.js';
-export type { AnyEvent, Event, EventSpec } from './event.js';
 
 // Contour
 export { contour } from './contour.js';
@@ -151,15 +148,15 @@ export type {
 // Draft state
 export {
   DRAFT_ID_PREFIX,
-  analyzeDraftState,
+  deriveDraftReport,
   isDraftId,
-  validateEstablishedTopo as validateDraftFreeTopo,
+  validateDraftFreeTopo,
 } from './draft.js';
 export type {
   DraftDependency,
   DraftDependencyKind,
   DraftFinding,
-  DraftStateAnalysis,
+  DraftReport,
 } from './draft.js';
 
 // Topo validation
@@ -184,10 +181,7 @@ export type { ExecuteTrailOptions } from './execute.js';
 
 // Intrinsic tracing
 export {
-  TRACE_CONTEXT_KEY,
   clearTraceSink,
-  completeRecord as completeTraceRecord,
-  createTraceRecord,
   getTraceContext,
   getTraceSink,
   registerTraceSink,
@@ -196,7 +190,6 @@ export type {
   TraceContext,
   TraceRecord,
   TraceSink,
-  TraceSinkLike,
 } from './internal/tracing.js';
 export type { TraceFn } from './types.js';
 
@@ -232,7 +225,7 @@ export {
   retry,
   withTimeout,
   shouldRetry,
-  getBackoffDelay,
+  deriveBackoffDelay,
 } from './resilience.js';
 export type { RetryOptions } from './resilience.js';
 
@@ -247,7 +240,7 @@ export {
   nonEmptyString,
   positiveInt,
   shortId,
-  hashId,
+  deriveIdHash,
 } from './branded.js';
 export type {
   Branded,
@@ -258,13 +251,13 @@ export type {
 } from './branded.js';
 
 // Path Security
-export { securePath, isPathSafe, resolveSafePath } from './path-security.js';
+export { securePath, isPathSafe, deriveSafePath } from './path-security.js';
 
 // Workspace
 export {
   findWorkspaceRoot,
   isInsideWorkspace,
-  getRelativePath,
+  deriveRelativePath,
 } from './workspace.js';
 
 // Blob

@@ -20,8 +20,8 @@ import type { TopoSaveRecord } from '@ontrails/core/internal/topo-saves';
 import { listTopoSaves } from '@ontrails/core/internal/topo-saves';
 import {
   openReadTrailsDb,
-  resolveTrailsDbPath,
-  resolveTrailsDir,
+  deriveTrailsDbPath,
+  deriveTrailsDir,
 } from '@ontrails/core/internal/trails-db';
 import { readTrailheadLockData } from '@ontrails/schema';
 
@@ -194,7 +194,7 @@ const withCurrentTopoStore = <T>(
     save: TopoSaveRecord
   ) => T
 ): T => {
-  const dbPath = resolveTrailsDbPath({ rootDir });
+  const dbPath = deriveTrailsDbPath({ rootDir });
   const existingSave = existsSync(dbPath)
     ? (() => {
         const db = openReadTrailsDb({ rootDir });
@@ -220,10 +220,10 @@ export const buildTopoSummary = (
   options?: { readonly rootDir?: string }
 ): TopoSummaryReport => {
   const rootDir = resolveRootDir(options?.rootDir);
-  const trailsDir = resolveTrailsDir({ rootDir });
+  const trailsDir = deriveTrailsDir({ rootDir });
   return withCurrentTopoStore(app, rootDir, (store, ref, save) => ({
     app: buildBriefReportFromStore(app, store, ref, save),
-    dbPath: resolveTrailsDbPath({ rootDir }),
+    dbPath: deriveTrailsDbPath({ rootDir }),
     list: buildSurveyListFromStore(store, ref),
     lockExists: hasCommittedLock(trailsDir),
     lockPath: LOCK_PATH,
@@ -295,7 +295,7 @@ export const verifyCurrentTopo = async (
 ): Promise<Result<TopoVerifyReport, Error>> => {
   const rootDir = resolveRootDir(options?.rootDir);
   const committedLock = await readTrailheadLockData({
-    dir: resolveTrailsDir({ rootDir }),
+    dir: deriveTrailsDir({ rootDir }),
   });
 
   if (committedLock === null) {

@@ -22,23 +22,6 @@ trail('notify', {
     expect(onReferencesExist.check(code, TEST_FILE)).toEqual([]);
   });
 
-  test('passes when a locally defined legacy event alias is referenced', () => {
-    const code = `
-import { event, trail, Result } from '@ontrails/core';
-import { z } from 'zod';
-
-const created = event('entity.created', { payload: z.object({ id: z.string() }) });
-
-trail('notify', {
-  on: ['entity.created'],
-  input: z.object({ id: z.string() }),
-  blaze: async (input, ctx) => Result.ok({}),
-});
-`;
-
-    expect(onReferencesExist.check(code, TEST_FILE)).toEqual([]);
-  });
-
   test('flags an on: reference missing from project context', () => {
     const code = `
 import { trail, Result } from '@ontrails/core';

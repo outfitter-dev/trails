@@ -4,7 +4,7 @@ import { basename, dirname, join, relative } from 'node:path';
 import {
   Result,
   ValidationError,
-  analyzeDraftState,
+  deriveDraftReport,
   isDraftId,
   trail,
 } from '@ontrails/core';
@@ -562,7 +562,7 @@ const buildUnverifiedPromotionResult = (
 
 const buildVerifiedPromotionResult = (
   rootDir: string,
-  analysis: ReturnType<typeof analyzeDraftState>,
+  analysis: ReturnType<typeof deriveDraftReport>,
   promotedEstablished: boolean,
   renames: readonly FileRename[],
   updatedSourceFiles: Set<string>,
@@ -595,7 +595,7 @@ const buildVerifiedPromotionResultFromApp = (
   appModule: string | null,
   toId: string
 ) => {
-  const analysis = analyzeDraftState(loadedApp);
+  const analysis = deriveDraftReport(loadedApp);
   const promotedNode = collectOutputId(loadedApp, toId);
   const promotedEstablished =
     promotedNode !== undefined && !analysis.contaminatedIds.has(toId);

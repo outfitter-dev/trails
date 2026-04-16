@@ -18,9 +18,9 @@ topo(name, ...modules)             // assemble trails, signals, and resources in
 createTopoStore(options?), createMockTopoStore(seed?), topoStore
 
 // Types
-Trail<I, O>, Event<T>, Resource<T>, Topo, Intent
-TrailSpec<I, O>, EventSpec<T>, ResourceSpec<T>, TrailExample<I, O>
-AnyTrail, AnyEvent, AnyResource, ResourceContext, ResourceOverrideMap
+Trail<I, O>, Signal<T>, Resource<T>, Topo, Intent
+TrailSpec<I, O>, SignalSpec<T>, ResourceSpec<T>, TrailExample<I, O>
+AnyTrail, AnySignal, AnyResource, ResourceContext, ResourceOverrideMap
 
 // Type utilities
 TrailInput<T>                      // extract input type from a Trail
@@ -67,14 +67,14 @@ deriveCliPath(trailId)             // trail ID → hierarchical CLI command path
 Field, FieldOverride
 
 // Draft state
-DRAFT_ID_PREFIX, isDraftId(value), analyzeDraftState(topo)
+DRAFT_ID_PREFIX, isDraftId(value), deriveDraftReport(topo)
 validateDraftFreeTopo(topo)        // alias of validateEstablishedTopo
 
 // Resilience
 retry(fn, options?), withTimeout(fn, ms, signal?), RetryOptions
 
 // Branded types
-brand, unbrand, uuid, email, nonEmptyString, positiveInt, shortId, hashId
+brand, unbrand, uuid, email, nonEmptyString, positiveInt, shortId, deriveIdHash
 Branded<T, Tag>, UUID, Email, NonEmptyString, PositiveInt
 
 // Guards
@@ -90,8 +90,8 @@ serializeError(error), deserializeError(data)
 SerializedError, zodToJsonSchema(schema)
 
 // Path security & workspace
-securePath, isPathSafe, resolveSafePath
-findWorkspaceRoot, isInsideWorkspace, getRelativePath
+securePath, isPathSafe, deriveSafePath
+findWorkspaceRoot, isInsideWorkspace, deriveRelativePath
 ```
 
 ## `@ontrails/core/trails`
@@ -331,7 +331,7 @@ tracingQuery                         // trail: query execution history with filt
 // Context access (inside a trail blaze)
 ctx.trace(label, fn)                 // record a nested span around fn
 getTraceContext(ctx)                 // get current trace context
-childTraceContext(parent)            // create a child trace context
+createChildTraceContext(parent)      // create a child trace context
 
 // Sampling
 shouldSample(intent, config?)        // sampling decision based on intent

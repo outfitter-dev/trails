@@ -7,7 +7,7 @@ import {
   ensureSubsystemSchema,
   openReadTrailsDb,
   openWriteTrailsDb,
-  resolveTrailsDbPath,
+  deriveTrailsDbPath,
 } from '../internal/trails-db.js';
 import {
   createTopoSave,
@@ -40,9 +40,9 @@ describe('trails db foundation', () => {
     expect(existsSync(join(rootDir, '.trails', 'generated'))).toBe(true);
   };
 
-  test('resolveTrailsDbPath places the database in .trails/trails.db', () => {
+  test('deriveTrailsDbPath places the database in .trails/trails.db', () => {
     const rootDir = '/tmp/example-app';
-    expect(resolveTrailsDbPath({ rootDir })).toBe(
+    expect(deriveTrailsDbPath({ rootDir })).toBe(
       '/tmp/example-app/.trails/trails.db'
     );
   });
@@ -52,7 +52,7 @@ describe('trails db foundation', () => {
     const db = openWriteTrailsDb({ rootDir });
 
     try {
-      expect(existsSync(resolveTrailsDbPath({ rootDir }))).toBe(true);
+      expect(existsSync(deriveTrailsDbPath({ rootDir }))).toBe(true);
       expectWorkspaceLayout(rootDir);
 
       const journal = db

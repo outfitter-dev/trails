@@ -49,7 +49,7 @@ import {
 } from './internal/tracing.js';
 import { Result } from './result.js';
 import { createResourceLookup } from './resource.js';
-import { resolveResources } from './resource-config.js';
+import { createResources } from './resource-config.js';
 import { TRAILHEAD_KEY } from './types.js';
 import { validateInput } from './validation.js';
 
@@ -158,7 +158,7 @@ const prepareContext = async (
   options?: ExecuteTrailOptions
 ): Promise<Result<TrailContext, Error>> => {
   const baseCtx = await resolveContext(options);
-  return await resolveResources(
+  return await createResources(
     trail,
     baseCtx,
     options?.resources,

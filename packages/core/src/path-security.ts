@@ -70,7 +70,7 @@ export const isPathSafe = (basePath: string, userPath: string): boolean => {
  * Joins multiple path segments, resolves them against `basePath`, and
  * validates the result stays within the base directory.
  */
-export const resolveSafePath = (
+export const deriveSafePath = (
   basePath: string,
   ...segments: string[]
 ): Result<string, PermissionError> => {

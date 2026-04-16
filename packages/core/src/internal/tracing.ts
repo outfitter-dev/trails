@@ -41,12 +41,9 @@ export interface TraceRecord {
  * `@ontrails/observe`, and user code can all satisfy it without
  * additional dependencies.
  */
-export interface TraceSinkLike {
+export interface TraceSink {
   readonly write: (record: TraceRecord) => void | Promise<void>;
 }
-
-/** Public alias for {@link TraceSinkLike}. */
-export type TraceSink = TraceSinkLike;
 
 /** Trace context carried through trail execution via `ctx.extensions`. */
 export interface TraceContext {
@@ -70,13 +67,13 @@ export const getTraceContext = (ctx: {
 // ---------------------------------------------------------------------------
 
 /** No-op sink installed by default so core never crashes without configuration. */
-const noopSink: TraceSinkLike = {
+const noopSink: TraceSink = {
   // oxlint-disable-next-line no-empty-function -- intentional no-op
   write: () => {},
 };
 
 // oxlint-disable-next-line eslint-plugin-jest/require-hook -- module-level sink registry, not test setup
-let currentSink: TraceSinkLike = noopSink;
+let currentSink: TraceSink = noopSink;
 
 /**
  * Register a trace sink globally.
@@ -86,12 +83,12 @@ let currentSink: TraceSinkLike = noopSink;
  * Registering `undefined` or calling {@link clearTraceSink} resets back to
  * the default no-op sink.
  */
-export const registerTraceSink = (sink: TraceSinkLike | undefined): void => {
+export const registerTraceSink = (sink: TraceSink | undefined): void => {
   currentSink = sink ?? noopSink;
 };
 
 /** Retrieve the currently registered sink (never undefined). */
-export const getTraceSink = (): TraceSinkLike => currentSink;
+export const getTraceSink = (): TraceSink => currentSink;
 
 /** Reset the sink registry back to the default no-op sink. */
 export const clearTraceSink = (): void => {
@@ -175,7 +172,7 @@ export const completeRecord = (
 
 /** Best-effort sink write that never throws. */
 export const writeToSink = async (
-  sink: TraceSinkLike,
+  sink: TraceSink,
   record: TraceRecord
 ): Promise<void> => {
   try {

@@ -1,7 +1,7 @@
 import type { AnyContour } from './contour.js';
 import { getContourReferences } from './contour.js';
 import { ValidationError } from './errors.js';
-import type { AnySignal } from './event.js';
+import type { AnySignal } from './signal.js';
 import type { AnyResource } from './resource.js';
 import { Result } from './result.js';
 import type { Topo } from './topo.js';
@@ -32,7 +32,7 @@ export interface DraftFinding {
   readonly dependsOn?: string | undefined;
 }
 
-export interface DraftStateAnalysis {
+export interface DraftReport {
   readonly contaminatedIds: ReadonlySet<string>;
   readonly declaredDraftIds: ReadonlySet<string>;
   readonly dependencies: readonly DraftDependency[];
@@ -293,7 +293,7 @@ const collectDependencies = (topo: Topo): DraftDependency[] => [
   ...[...topo.resources.values()].flatMap(resourceDependencies),
 ];
 
-export const analyzeDraftState = (topo: Topo): DraftStateAnalysis => {
+export const deriveDraftReport = (topo: Topo): DraftReport => {
   const declaredDraftIds = collectDeclaredDraftIds(topo);
   const dependencies = collectDependencies(topo);
   const { contaminatedIds, reasons } = propagateContaminatedIds(
@@ -318,10 +318,10 @@ export const analyzeDraftState = (topo: Topo): DraftStateAnalysis => {
   };
 };
 
-export const validateEstablishedTopo = (
+export const validateDraftFreeTopo = (
   topo: Topo
 ): Result<void, ValidationError> => {
-  const analysis = analyzeDraftState(topo);
+  const analysis = deriveDraftReport(topo);
 
   if (analysis.findings.length === 0) {
     return Result.ok();

@@ -43,15 +43,13 @@ interface SchemaVersionRow {
 const resolveRootDir = (rootDir?: string): string =>
   resolve(rootDir ?? process.cwd());
 
-export const resolveTrailsDir = (options?: TrailsDbLocationOptions): string =>
+export const deriveTrailsDir = (options?: TrailsDbLocationOptions): string =>
   join(resolveRootDir(options?.rootDir), TRAILS_DIR);
 
-export const resolveTrailsDbPath = (
-  options?: TrailsDbLocationOptions
-): string =>
+export const deriveTrailsDbPath = (options?: TrailsDbLocationOptions): string =>
   options?.path
     ? resolve(options.path)
-    : join(resolveTrailsDir(options), TRAILS_DB_FILE);
+    : join(deriveTrailsDir(options), TRAILS_DB_FILE);
 
 const ensureDbParentDir = (dbPath: string): void => {
   mkdirSync(dirname(dbPath), { recursive: true });
@@ -91,7 +89,7 @@ const ensureWorkspaceGitignore = (trailsDir: string): void => {
 };
 
 const ensureWorkspaceDir = (rootDir: string): void => {
-  const trailsDir = resolveTrailsDir({ rootDir });
+  const trailsDir = deriveTrailsDir({ rootDir });
   mkdirSync(trailsDir, { recursive: true });
   for (const subdir of WORKSPACE_SUBDIRS) {
     mkdirSync(join(trailsDir, subdir), { recursive: true });
@@ -141,7 +139,7 @@ export const openWriteTrailsDb = (
   options?: TrailsDbLocationOptions
 ): Database => {
   const rootDir = resolveRootDir(options?.rootDir);
-  const dbPath = resolveTrailsDbPath(
+  const dbPath = deriveTrailsDbPath(
     options?.path ? { path: options.path, rootDir } : { rootDir }
   );
 
@@ -160,7 +158,7 @@ export const openWriteTrailsDb = (
 export const openReadTrailsDb = (
   options?: TrailsDbLocationOptions
 ): Database => {
-  const dbPath = resolveTrailsDbPath(options);
+  const dbPath = deriveTrailsDbPath(options);
   if (!existsSync(dbPath)) {
     throw new NotFoundError(
       `Trails database not found at "${dbPath}". Run a write operation first to initialize it.`

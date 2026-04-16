@@ -17,7 +17,7 @@ import {
   mergeResourceOverrides,
   mergeTestContext,
   normalizeTestExecutionOptions,
-  resolveMockResources,
+  createMockResources,
 } from './context.js';
 import type { TestExecutionOptions } from './context.js';
 import { resolveTrailExamples } from './effective-examples.js';
@@ -99,7 +99,7 @@ export const testContracts = (
         async (example: TrailExample<unknown, unknown>) => {
           const resolved = normalizeTestExecutionOptions(resolveInput());
           const resources = mergeResourceOverrides(
-            await resolveMockResources(app),
+            await createMockResources(app),
             resolved.ctx,
             resolved.resources
           );

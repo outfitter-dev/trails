@@ -19,7 +19,7 @@ import { persistEstablishedTopoSave } from '@ontrails/core/internal/topo-store';
 import {
   openReadTrailsDb,
   openWriteTrailsDb,
-  resolveTrailsDbPath,
+  deriveTrailsDbPath,
 } from '@ontrails/core/internal/trails-db';
 import { z } from 'zod';
 
@@ -202,7 +202,7 @@ export const listTopoHistory = (options?: {
 }): TopoHistoryReport => {
   const rootDir = resolveRootDir(options?.rootDir);
   const limit = options?.limit ?? DEFAULT_TOPO_HISTORY_LIMIT;
-  const dbPath = resolveTrailsDbPath({ rootDir });
+  const dbPath = deriveTrailsDbPath({ rootDir });
   if (!existsSync(dbPath)) {
     return emptyTopoHistory(dbPath, limit);
   }
@@ -255,7 +255,7 @@ export const removeTopoPin = (input: {
   readonly removed: boolean;
 } => {
   const rootDir = resolveRootDir(input.rootDir);
-  if (!existsSync(resolveTrailsDbPath({ rootDir }))) {
+  if (!existsSync(deriveTrailsDbPath({ rootDir }))) {
     return { dryRun: input.dryRun, removed: false };
   }
   const db = input.dryRun

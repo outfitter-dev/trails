@@ -350,11 +350,11 @@ export interface TrailDefinition {
 
 /**
  * Find all `trail("id", { ... })`, `trail({ id: "x", ... })`, and
- * `signal("id", { ... })`, and legacy `event("id", { ... })` call sites.
+ * `signal("id", { ... })` call sites.
  *
  * Returns the trail ID, kind, and config object node for each definition.
  */
-const TRAIL_CALLEE_NAMES = new Set(['event', 'signal', 'trail']);
+const TRAIL_CALLEE_NAMES = new Set(['signal', 'trail']);
 
 const getTrailCalleeName = (node: AstNode): string | null => {
   if (node.type !== 'CallExpression') {
@@ -948,7 +948,7 @@ export const collectSignalDefinitionIds = (
 ): ReadonlySet<string> => {
   const ids = new Set<string>();
   for (const def of findTrailDefinitions(ast)) {
-    if (def.kind === 'signal' || def.kind === 'event') {
+    if (def.kind === 'signal') {
       ids.add(def.id);
     }
   }
@@ -1496,9 +1496,7 @@ const resolveNamedOnSignalId = (
 
 const resolveInlineOnSignalId = (element: AstNode): string | null => {
   const definition = extractTrailDefinition(element);
-  return definition?.kind === 'signal' || definition?.kind === 'event'
-    ? definition.id
-    : null;
+  return definition?.kind === 'signal' ? definition.id : null;
 };
 
 const resolveOnElementSignalId = (

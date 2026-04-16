@@ -329,7 +329,7 @@ const withResolvedResources = (
  * new instances as needed. Returns an enriched context with all resource
  * instances injected into extensions.
  */
-export const resolveResources = async (
+export const createResources = async (
   trail: AnyTrail,
   ctx: TrailContext,
   overrides?: ResourceOverrideMap,
