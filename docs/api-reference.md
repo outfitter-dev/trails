@@ -116,7 +116,7 @@ deriveFlags(schema, overrides?)    // Zod → CLI flags
 output(value, mode)                // write to stdout in text/json/jsonl
 deriveOutputMode(flags, topoName)  // determine output format from flags/topo-derived env
 
-BuildCliCommandsOptions, ActionResultContext, OutputMode
+DeriveCliCommandsOptions, ActionResultContext, OutputMode
 CliCommand, CliFlag, CliArg
 outputModePreset(), cwdPreset(), dryRunPreset()
 defaultOnResult(ctx), passthroughResolver, isInteractive(options?)
@@ -134,7 +134,7 @@ deriveToolName(appName, trailId)   // tool name derivation
 deriveAnnotations(trail)           // MCP annotations from intent and metadata
 createMcpProgressCallback(extra)   // progress bridge
 
-TrailheadMcpOptions, BuildMcpToolsOptions
+TrailheadMcpOptions, DeriveMcpToolsOptions
 McpToolDefinition,                 // includes trailId: string
 McpToolResult, McpContent, McpExtra, McpAnnotations
 ```
@@ -144,7 +144,7 @@ McpToolResult, McpContent, McpExtra, McpAnnotations
 ```typescript
 buildHttpRoutes(topo, options?)    // escape hatch: route definitions without server; returns Result<HttpRouteDefinition[], Error>
 
-BuildHttpRoutesOptions, HttpMethod, HttpRouteDefinition, InputSource
+DeriveHttpRoutesOptions, HttpMethod, HttpRouteDefinition, InputSource
 ```
 
 ## `@ontrails/hono`

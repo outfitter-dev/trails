@@ -3,10 +3,18 @@ import { describe, expect, test } from 'bun:test';
 import { Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { buildCliCommands } from '../build.js';
-import { trailhead } from '../commander/trailhead.js';
+import { buildCliCommands, deriveCliCommands } from '../build.js';
+import { createProgram, trailhead } from '../commander/trailhead.js';
 import { toCommander } from '../commander/to-commander.js';
 import { defaultOnResult } from '../on-result.js';
+
+const unwrapOk = <T>(result: Result<T, Error>): T =>
+  result.match({
+    err: (error) => {
+      throw error;
+    },
+    ok: (value) => value,
+  });
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -48,6 +56,26 @@ describe('trailhead', () => {
     expect(program.commands[0]?.name()).toBe('echo');
   });
 
+  test('deriveCliCommands returns Result and createProgram wires the new surface API', () => {
+    const t = trail('greet', {
+      blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}!`),
+      input: z.object({ name: z.string() }),
+    });
+    const app = topo('surface-api', { greet: t });
+
+    const commands = unwrapOk(
+      deriveCliCommands(app, {
+        onResult: defaultOnResult,
+      })
+    );
+    expect(commands).toHaveLength(1);
+
+    const program = createProgram(app, { description: 'Surface API smoke' });
+    expect(program.name()).toBe('surface-api');
+    expect(program.description()).toBe('Surface API smoke');
+    expect(program.commands[0]?.name()).toBe('greet');
+  });
+
   test('trailhead throws on invalid topo', async () => {
     const t = trail('broken', {
       blaze: () => Result.ok({}),
@@ -83,6 +111,19 @@ describe('trailhead', () => {
     expect(opts.include).toEqual(['entity.show']);
     expect(opts.validate).toBe(false);
     expect(opts.resources).toEqual({});
+  });
+
+  test('deriveCliCommands returns Err on invalid topo', () => {
+    const t = trail('broken', {
+      blaze: () => Result.ok({}),
+      crosses: ['nonexistent.trail'],
+      input: z.object({}),
+      output: z.object({}),
+    });
+    const app = topo('invalid-cli', { t });
+
+    const result = deriveCliCommands(app, { validate: true });
+    expect(result.isErr()).toBe(true);
   });
 
   test('trailhead returns a Promise (async signature)', () => {

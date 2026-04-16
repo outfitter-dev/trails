@@ -21,10 +21,9 @@ import type {
   Topo,
   TrailContextInit,
 } from '@ontrails/core';
-import { validateEstablishedTopo } from '@ontrails/core';
 
 import type { McpToolDefinition } from './build.js';
-import { buildMcpTools } from './build.js';
+import { deriveMcpTools } from './build.js';
 import { connectStdio } from './stdio.js';
 
 // ---------------------------------------------------------------------------
@@ -41,9 +40,7 @@ export interface TrailheadMcpOptions {
     | undefined;
   readonly description?: string | undefined;
   readonly exclude?: readonly string[] | undefined;
-  readonly excludeTrails?: readonly string[] | undefined;
   readonly include?: readonly string[] | undefined;
-  readonly includeTrails?: readonly string[] | undefined;
   readonly intent?: readonly Intent[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly name?: string | undefined;
@@ -52,6 +49,12 @@ export interface TrailheadMcpOptions {
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
   readonly validate?: boolean | undefined;
   readonly version?: string | undefined;
+}
+
+export type CreateServerOptions = TrailheadMcpOptions;
+
+export interface SurfaceMcpResult {
+  readonly close: () => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -147,30 +150,21 @@ export const createMcpServer = (
 };
 
 // ---------------------------------------------------------------------------
-// trailhead
+// createServer
 // ---------------------------------------------------------------------------
 
 /**
- * Build MCP tools from an App, create a server, and connect via stdio.
+ * Build MCP tools from a topo and create an MCP server.
  */
-export const trailhead = async (
+export const createServer = (
   app: Topo,
-  options: TrailheadMcpOptions = {}
-): Promise<void> => {
-  if (options.validate !== false) {
-    const validated = validateEstablishedTopo(app);
-    if (validated.isErr()) {
-      throw validated.error;
-    }
-  }
-
-  const toolsResult = buildMcpTools(app, {
+  options: CreateServerOptions = {}
+): Server => {
+  const toolsResult = deriveMcpTools(app, {
     configValues: options.configValues,
     createContext: options.createContext,
     exclude: options.exclude,
-    excludeTrails: options.excludeTrails,
     include: options.include,
-    includeTrails: options.includeTrails,
     intent: options.intent,
     layers: options.layers,
     resources: options.resources,
@@ -181,11 +175,48 @@ export const trailhead = async (
     throw toolsResult.error;
   }
 
-  const server = createMcpServer(toolsResult.value, {
+  return createMcpServer(toolsResult.value, {
     description: options.description ?? app.description,
     name: options.name ?? app.name,
     version: options.version ?? app.version ?? '0.1.0',
   });
+};
 
+// ---------------------------------------------------------------------------
+// surface
+// ---------------------------------------------------------------------------
+
+/**
+ * Build MCP tools from a topo, create a server, and connect via stdio.
+ */
+export const surface = async (
+  app: Topo,
+  options: TrailheadMcpOptions = {}
+): Promise<SurfaceMcpResult> => {
+  if ((options.transport ?? 'stdio') !== 'stdio') {
+    throw new Error(`Unsupported MCP transport: ${options.transport}`);
+  }
+
+  const server = createServer(app, options);
   await connectStdio(server);
+
+  return {
+    close: async () => {
+      await server.close();
+    },
+  };
+};
+
+// ---------------------------------------------------------------------------
+// trailhead
+// ---------------------------------------------------------------------------
+
+/**
+ * Build MCP tools from a topo, create a server, and connect via stdio.
+ */
+export const trailhead = async (
+  app: Topo,
+  options: TrailheadMcpOptions = {}
+): Promise<void> => {
+  await surface(app, options);
 };

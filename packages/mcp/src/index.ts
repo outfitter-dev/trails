@@ -1,7 +1,8 @@
 // Build
 export {
+  deriveMcpTools,
   buildMcpTools,
-  type BuildMcpToolsOptions,
+  type DeriveMcpToolsOptions,
   type McpToolDefinition,
   type McpToolResult,
   type McpContent,
@@ -18,7 +19,14 @@ export { deriveAnnotations, type McpAnnotations } from './annotations.js';
 export { createMcpProgressCallback } from './progress.js';
 
 // Trailhead
-export { trailhead, type TrailheadMcpOptions } from './trailhead.js';
+export {
+  createServer,
+  surface,
+  trailhead,
+  type CreateServerOptions,
+  type SurfaceMcpResult,
+  type TrailheadMcpOptions,
+} from './trailhead.js';
 
 // Transport
 export { connectStdio } from './stdio.js';

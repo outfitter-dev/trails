@@ -2,8 +2,8 @@
 export type { AnyTrail, CliCommand, CliFlag, CliArg } from './command.js';
 
 // Build
-export { buildCliCommands } from './build.js';
-export type { BuildCliCommandsOptions, ActionResultContext } from './build.js';
+export { buildCliCommands, deriveCliCommands } from './build.js';
+export type { DeriveCliCommandsOptions, ActionResultContext } from './build.js';
 export { validateCliCommands } from './validate.js';
 
 // Flags
@@ -30,3 +30,11 @@ export { findAppModuleCandidates, findAppModule } from './discover.js';
 
 // Layers
 export { autoIterateLayer, dateShortcutsLayer } from './layers.js';
+
+// Surface helpers (also available from @ontrails/cli/commander)
+export { createProgram, surface } from './commander/trailhead.js';
+export type {
+  CreateProgramOptions,
+  SurfaceCliResult,
+  TrailheadCliOptions,
+} from './commander/trailhead.js';
