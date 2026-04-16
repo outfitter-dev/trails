@@ -1,6 +1,6 @@
 # Trails Design Tenets
 
-> Capabilities as contracts: define once, trailhead everywhere.
+> Capabilities as contracts: define once, surface everywhere.
 
 This is the stable doctrinal layer for the Trails framework. It governs. Where the repo may at times drift from this document, it's the repo that should be brought into alignment, not our tenets.
 
@@ -19,15 +19,15 @@ These are the foundational beliefs of the framework. Every feature, ADR, and API
 
 ### The trail is the product
 
-A trail definition is the source of truth. Trailheads (CLI, MCP, HTTP, WebSocket) are renderings of the trail contract, not separate implementations. One trail, many trailheads, zero divergence.
+A trail definition is the source of truth. Surfaces (CLI, MCP, HTTP, WebSocket) are renderings of the trail contract, not separate implementations. One trail, many surfaces, zero divergence.
 
 The trail is the unit of everything. Testing targets the trail. Governance targets the trail. Composition follows the trail. As the framework matures, versioning, permissions, and triggers will target the trail too. The trail is where capability lives.
 
 ### One schema, one Result, one error taxonomy
 
-Every trail has one input schema and one output schema. Every implementation returns one Result type. Every error belongs to a taxonomy that maps deterministically to every trailhead's error representation.
+Every trail has one input schema and one output schema. Every implementation returns one Result type. Every error belongs to a taxonomy that maps deterministically to every surface's error representation.
 
-Drift across trailheads is structurally harder than alignment. You cannot have different parameter names across trailheads because there is only one schema.
+Drift across surfaces is structurally harder than alignment. You cannot have different parameter names across surfaces because there is only one schema.
 
 ### Schema always exists
 
@@ -55,15 +55,15 @@ Trails should reduce ceremony wherever the framework can truthfully carry the bu
 
 Repeated ceremony is a framework smell. When the same setup keeps appearing around a core capability, the framework should consider absorbing that burden into derivation, defaults, layers, first-party capabilities, or a stronger primitive.
 
-The goal is not smaller trailhead area for its own sake. The goal is a smaller user burden. The real cost of ceremony is not just typing. It is drift, boilerplate, and future refactor load. Simplicity at the trailhead must still rest on inspectable ground truth underneath.
+The goal is not smaller surface area for its own sake. The goal is a smaller user burden. The real cost of ceremony is not just typing. It is drift, boilerplate, and future refactor load. Simplicity at the surface must still rest on inspectable ground truth underneath.
 
 ### Add with intent, not trend
 
 New built-in capability should be added only when it reinforces the broader Trails story. Additions must strengthen the existing principles, primitives, and patterns rather than fragment them.
 
-Good additions reduce ceremony, lower drift potential, impose an acceptable footprint cost, create a stronger operating contract, and compound value across trailheads, testing, governance, and agent ergonomics. Additions without deep consideration are just future tech debt.
+Good additions reduce ceremony, lower drift potential, impose an acceptable footprint cost, create a stronger operating contract, and compound value across surfaces, testing, governance, and agent ergonomics. Additions without deep consideration are just future tech debt.
 
-This does not preclude experimentation. Trails itself was formed through iteration, refinement, and repeated shaping over time. The key is that experimentation should feed the core story, not bypass it. Broadening the built-in trailhead is worth doing when it is a net win across the system. It is not worth doing to chase a trend or accumulate trailhead area.
+This does not preclude experimentation. Trails itself was formed through iteration, refinement, and repeated shaping over time. The key is that experimentation should feed the core story, not bypass it. Broadening the built-in surface is worth doing when it is a net win across the system. It is not worth doing to chase a trend or accumulate surface area.
 
 ### The information architecture
 
@@ -108,17 +108,17 @@ When derivation doesn't fit, override it. Overrides are visible in the resolved 
 
 Every tightening declaration is a place where the stated contract can drift from reality. The framework must make that drift structurally difficult (the compiler catches it), immediately visible (tests catch it), or governable (the warden catches it). If none of these catch it, the feature needs redesign.
 
-### Trailheads are peers
+### Surfaces are peers
 
-CLI, MCP, HTTP, and WebSocket are equal connectors over the same topology. No trailhead is privileged. The trail doesn't know which trailhead invoked it. The execution pipeline is identical regardless of entry point.
+CLI, MCP, HTTP, and WebSocket are equal surfaces over the same graph. No surface is privileged. The trail doesn't know which surface invoked it. The execution pipeline is identical regardless of entry point.
 
-New trailheads don't require new trail code. They derive from the contract. If a trail works on one trailhead, it works on all of them.
+New surfaces don't require new trail code. They derive from the contract. If a trail works on one surface, it works on all of them.
 
 ### Implementations are pure
 
-Input in, Result out. No process exits, no direct console output, no trailhead-specific request or response types in domain logic. The implementation does not know which trailhead invoked it.
+Input in, Result out. No process exits, no direct console output, no surface-specific request or response types in domain logic. The implementation does not know which surface invoked it.
 
-Purity is what makes trailhead-agnosticism possible. If an implementation touches stdout, it can't run on MCP. If it reads from a request object, it can't run on CLI. Side effects happen through structured, trailhead-agnostic channels.
+Purity is what makes surface-agnosticism possible. If an implementation touches stdout, it can't run on MCP. If it reads from a request object, it can't run on CLI. Side effects happen through structured, surface-agnostic channels.
 
 ### Validate at the boundary, trust internally
 
@@ -128,11 +128,11 @@ Validation is a framework guarantee enforced once at the boundary, not a develop
 
 ### The resolved graph is the story
 
-The lockfile is the serialized topology: the compiled, resolved, deduplicated story of a Trails application. Every trail, service, event, and trailhead is a node. Relationships are edges. An agent reading just the lockfile can understand the entire system without source code.
+The lockfile is the serialized topology: the compiled, resolved, deduplicated story of a Trails application. Every trail, service, event, and surface is a node. Relationships are edges. An agent reading just the lockfile can understand the entire system without source code.
 
 The lockfile is generated, checked in, and CI-diffable. Drift between code and lockfile is a governance finding.
 
-> The trailhead map provides the foundation today: trailhead map generation and semantic diffing. The full lockfile-as-resolved-graph, capturing the complete topology with all nodes and edges, is the target architecture. The principle holds now; the scope expands as the schema package matures.
+> The surface map provides the foundation today: surface map generation and semantic diffing. The full lockfile-as-resolved-graph, capturing the complete topology with all nodes and edges, is the target architecture. The principle holds now; the scope expands as the schema package matures.
 
 ## Primitives
 
@@ -158,11 +158,11 @@ When the same structural pattern keeps appearing with slightly different shapes,
 
 **Strengthen an existing primitive.** Can an existing primitive absorb this capability without losing coherence? This is always the best outcome. It compounds the value of everything that already uses that primitive.
 
-**Codify a pattern.** If no primitive fits, does the need map to a recurring structural pattern that can be documented and reused? Patterns are cheaper than primitives. They guide usage without expanding the API trailhead.
+**Codify a pattern.** If no primitive fits, does the need map to a recurring structural pattern that can be documented and reused? Patterns are cheaper than primitives. They guide usage without expanding the public surface.
 
 **Introduce a new primitive.** Only when no existing primitive can absorb the concept and no pattern can express it. The new primitive must compound with the existing set. It should make every other primitive smarter, not just add to a list.
 
-**Broaden built-in capability.** When a capability productively removes repeated ceremony across the system and compounds value across trailheads, testing, governance, and agent ergonomics, it is worth bringing in-house. This is not minimalism at all costs. It is deliberate growth with architectural discipline. The bar: a net win across the system, not just a convenience in one spot.
+**Broaden built-in capability.** When a capability productively removes repeated ceremony across the system and compounds value across surfaces, testing, governance, and agent ergonomics, it is worth bringing in-house. This is not minimalism at all costs. It is deliberate growth with architectural discipline. The bar: a net win across the system, not just a convenience in one spot.
 
 The history validates this hierarchy. `resource()` was introduced because typed infrastructure dependencies with lifecycle and testability could not be expressed through any existing primitive. `derivePermit()` was dropped because plain authored objects handled the same need without a new abstraction.
 
@@ -184,7 +184,7 @@ The framework should not impose ceremony before it becomes necessary. The warden
 
 ### Authored defaults, overridable in context
 
-A trail declares its defaults: intent, error behavior, crossing declarations, metadata. These are the author's stated design. The consuming context (the app, trailhead config, or a future composition layer) can override them.
+A trail declares its defaults: intent, error behavior, crossing declarations, metadata. These are the author's stated design. The consuming context (the app, surface config, or a future composition layer) can override them.
 
 The authored default documents intent. The override enables reuse. The resolved graph captures the final state. Governance can flag overrides that contradict intent.
 
@@ -214,13 +214,13 @@ Trails makes deliberate choices about where it is opinionated, where it defers t
 
 The framework uses its target runtime where doing so materially improves the development experience. The authoring side is opinionated.
 
-The outputs are not. A CLI works in any shell. An MCP server works with any MCP client. An HTTP trailhead serves standard HTTP. The trailheads Trails produces are universally consumable through standard protocols and formats. Standards live at the boundary.
+The outputs are not. A CLI works in any shell. An MCP server works with any MCP client. An HTTP surface serves standard HTTP. The surfaces Trails produces are universally consumable through standard protocols and formats. Standards live at the boundary.
 
 ### Opinionated authoring, standard outputs
 
 Trails is opinionated about how developers author contracts: schemas, Result types, the error taxonomy, the execution pipeline. These opinions exist because they make drift structurally harder than alignment and make one-write-many-reads possible.
 
-Trails is unopinionated about what consumes the result. Trailheads produce standard outputs. Agents, browsers, CLIs, and other services interact with Trails apps through protocols they already understand.
+Trails is unopinionated about what consumes the result. Surfaces produce standard outputs. Agents, browsers, CLIs, and other services interact with Trails apps through protocols they already understand.
 
 ### Performance is DX
 
