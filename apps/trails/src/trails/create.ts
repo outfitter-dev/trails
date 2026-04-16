@@ -1,7 +1,7 @@
 /**
  * `create` route -- Create a new Trails project.
  *
- * Composes create.scaffold, add.trailhead, and add.verify sub-trails
+ * Composes create.scaffold, add.surface, and add.verify sub-trails
  * via ctx.cross.
  */
 
@@ -14,13 +14,13 @@ import { z } from 'zod';
 // ---------------------------------------------------------------------------
 
 type Starter = 'empty' | 'entity' | 'hello';
-type Trailhead = 'cli' | 'mcp';
+type Surface = 'cli' | 'mcp';
 
 interface CreateInput {
   readonly dir?: string | undefined;
   readonly name: string;
   readonly starter: Starter;
-  readonly trailheads: readonly Trailhead[];
+  readonly trailheads: readonly Surface[];
   readonly verify: boolean;
 }
 
@@ -48,9 +48,9 @@ const buildScaffoldInput = (input: ScaffoldRequest) => ({
   starter: input.starter,
 });
 
-const buildTrailheadInput = (dir: string, trailhead: string) => ({
+const buildSurfaceInput = (dir: string, surface: string) => ({
   dir,
-  trailhead,
+  surface,
 });
 
 const buildVerifyInput = (input: VerifyRequest) => ({
@@ -64,17 +64,17 @@ const scaffoldProject = (
 ): Promise<Result<ScaffoldedProject, Error>> =>
   cross('create.scaffold', buildScaffoldInput(input));
 
-const addTrailheadFiles = async (
+const addSurfaceFiles = async (
   cross: CrossFn,
   dir: string,
   trailheads: readonly string[]
 ): Promise<Result<string[], Error>> => {
   const created: string[] = [];
 
-  for (const trailhead of trailheads) {
+  for (const surface of trailheads) {
     const result = await cross<{ created: string; dependency: string }>(
-      'add.trailhead',
-      buildTrailheadInput(dir, trailhead)
+      'add.surface',
+      buildSurfaceInput(dir, surface)
     );
     if (result.isErr()) {
       return Result.err(result.error);
@@ -117,7 +117,7 @@ const runCreate = async (
     return Result.err(scaffolded.error);
   }
 
-  const trailheadResults = await addTrailheadFiles(
+  const trailheadResults = await addSurfaceFiles(
     cross,
     scaffolded.value.dir,
     input.trailheads
@@ -195,7 +195,7 @@ export const createRoute = trail('create', {
     trailheads: z
       .array(z.enum(['cli', 'mcp']))
       .default(['cli'])
-      .describe('Trailheads'),
+      .describe('Surfaces'),
     verify: z.boolean().default(true).describe('Include testing + warden'),
   }),
   output: z.object({

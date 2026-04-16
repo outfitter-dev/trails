@@ -11,14 +11,14 @@ import { basename, dirname, join } from 'node:path';
 
 import { Result } from '@ontrails/core';
 
-import { addTrailhead } from '../trails/add-trailhead.js';
+import { addSurface } from '../trails/add-surface.js';
 import { addVerify } from '../trails/add-verify.js';
 import { createRoute } from '../trails/create.js';
 import { createScaffold } from '../trails/create-scaffold.js';
 import { isInsideProject } from '../trails/project.js';
 
 type Starter = 'empty' | 'entity' | 'hello';
-type Trailhead = 'cli' | 'mcp';
+type Surface = 'cli' | 'mcp';
 
 const makeTempProject = (): string =>
   join(
@@ -76,8 +76,8 @@ const runCross = async (
     case 'create.scaffold': {
       return await createScaffold.blaze(input as never, {} as never);
     }
-    case 'add.trailhead': {
-      return await addTrailhead.blaze(input as never, {} as never);
+    case 'add.surface': {
+      return await addSurface.blaze(input as never, {} as never);
     }
     case 'add.verify': {
       return await addVerify.blaze(input as never, {} as never);
@@ -92,7 +92,7 @@ const runCreate = (
   projectDir: string,
   overrides?: Partial<{
     starter: Starter;
-    trailheads: readonly Trailhead[];
+    trailheads: readonly Surface[];
     verify: boolean;
   }>
 ) =>
@@ -204,7 +204,7 @@ const assertEntityStarter = (dir: string): void => {
   ]);
 };
 
-const assertMcpTrailhead = (dir: string): void => {
+const assertMcpSurface = (dir: string): void => {
   expectPaths(dir, ['src/mcp.ts'], true);
   expectPaths(dir, ['src/cli.ts'], false);
   expectContainsAll(readText(dir, 'src/mcp.ts'), [
@@ -262,10 +262,10 @@ describe('trails create', () => {
       });
     });
 
-    test('generates with MCP trailhead', async () => {
+    test('generates with MCP surface', async () => {
       await withTempProject(async (dir) => {
         expectOk(await runCreate(dir, { trailheads: ['mcp'] }));
-        assertMcpTrailhead(dir);
+        assertMcpSurface(dir);
       });
     });
 
@@ -284,12 +284,12 @@ describe('trails create', () => {
     });
   });
 
-  describe('add-trailhead mode', () => {
+  describe('add-surface mode', () => {
     test('adds MCP to existing project', async () => {
       await withTempProject(async (dir) => {
         setupMinimalProject(dir);
         const result = expectOk(
-          await addTrailhead.blaze({ dir, trailhead: 'mcp' }, {} as never)
+          await addSurface.blaze({ dir, surface: 'mcp' }, {} as never)
         );
 
         expect(result.created).toBe('src/mcp.ts');
@@ -306,17 +306,17 @@ describe('trails create', () => {
       });
     });
 
-    test('detects existing trailhead entrypoint', async () => {
+    test('detects existing surface entrypoint', async () => {
       await withTempProject(async (dir) => {
         mkdirSync(join(dir, 'src'), { recursive: true });
         mkdirSync(join(dir, '.trails'), { recursive: true });
         writeFileSync(join(dir, 'src', 'mcp.ts'), 'existing content');
 
         const error = expectErr(
-          await addTrailhead.blaze({ dir, trailhead: 'mcp' }, {} as never)
+          await addSurface.blaze({ dir, surface: 'mcp' }, {} as never)
         );
         expect(error.message).toBe(
-          'MCP trailhead already exists. Nothing to do.'
+          'MCP surface already exists. Nothing to do.'
         );
       });
     });

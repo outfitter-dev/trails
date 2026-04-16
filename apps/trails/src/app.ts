@@ -1,6 +1,6 @@
 import { topo } from '@ontrails/core';
 
-import * as addTrailhead from './trails/add-trailhead.js';
+import * as addSurface from './trails/add-surface.js';
 import * as addTrail from './trails/add-trail.js';
 import * as addVerify from './trails/add-verify.js';
 import * as create from './trails/create.js';
@@ -38,7 +38,7 @@ export const app = topo(
   warden,
   create,
   createScaffold,
-  addTrailhead,
+  addSurface,
   addVerify,
   addTrail
 );
