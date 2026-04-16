@@ -1,6 +1,6 @@
 # Trails API Reference
 
-Canonical public trailhead-facing reference. For naming conventions and decision history, see [ADR-0001](./adr/0001-naming-conventions.md).
+Canonical public surface-facing reference. For naming conventions and decision history, see [ADR-0001](./adr/0001-naming-conventions.md).
 
 ---
 
@@ -43,7 +43,7 @@ ErrorCategory, isTrailsError(value?), isRetryable(error)
 // Implementation & context
 Implementation<I, O>              // (input, ctx) => Result | Promise<Result>
 TrailContext, createTrailContext(overrides?)
-CrossFn, ResourceLookup, ProgressCallback, ProgressEvent, Logger, Trailhead
+CrossFn, ResourceLookup, ProgressCallback, ProgressEvent, Logger
 
 // Execution pipeline
 executeTrail(trail, rawInput, options?) // validate → resolve context → resolve resources → compose layers → run
@@ -370,7 +370,7 @@ ConsoleSinkOptions, FileSinkOptions, PrettyFormatterOptions
 | Name | Intent |
 | --- | --- |
 | `trailblaze(topo, options?)` | Full hosted runtime |
-| `trailhead` | Static entry point / discovery |
+| `trailhead` | Conceptual boundary where a graph becomes reachable (reserved noun) |
 | `scout` | Agent-side runtime discovery |
 | `validateExample`, `validateCross` | Contract verification family |
 | `generateDocs`, `generateOpenApi`, `generateLlmsTxt` | Build-time doc generation |

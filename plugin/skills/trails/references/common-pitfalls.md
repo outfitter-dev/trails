@@ -2,9 +2,9 @@
 
 ## 1. Throwing in implementations
 
-**Symptom:** Unhandled exception crashes the trailhead connector. Stack trace instead of structured error.
+**Symptom:** Unhandled exception crashes the surface connector. Stack trace instead of structured error.
 
-**Why it's wrong:** Trail implementations must return `Result`, never throw. Trailheads expect `Result.ok` or `Result.err` — a thrown exception bypasses error mapping, exit codes, and serialization.
+**Why it's wrong:** Trail implementations must return `Result`, never throw. Surfaces expect `Result.ok` or `Result.err` — a thrown exception bypasses error mapping, exit codes, and serialization.
 
 **Fix:** Wrap risky code with try/catch and return `Result.err`:
 
@@ -19,13 +19,13 @@ blaze: async (input) => {
 }
 ```
 
-## 2. Importing trailhead types
+## 2. Importing surface types
 
 **Symptom:** Implementation depends on `Request`, `Response`, `McpSession`, or `process`.
 
-**Why it's wrong:** Implementations must be trailhead-agnostic. Importing trailhead types couples logic to a specific transport and breaks portability.
+**Why it's wrong:** Implementations must be surface-agnostic. Importing surface types couples logic to a specific transport and breaks portability.
 
-**Fix:** Keep implementations pure: `(input, ctx) => Result`. Access trailhead-specific features through `ctx` only.
+**Fix:** Keep implementations pure: `(input, ctx) => Result`. Access surface-specific features through `ctx` only.
 
 ## 3. Calling .run() directly
 
@@ -37,9 +37,9 @@ blaze: async (input) => {
 
 ## 4. Missing output schema
 
-**Symptom:** MCP trailhead rejects the trail. HTTP trailhead returns untyped JSON.
+**Symptom:** MCP surface rejects the trail. HTTP surface returns untyped JSON.
 
-**Why it's wrong:** MCP and HTTP trailheads require output schemas to generate tool descriptions and validate responses.
+**Why it's wrong:** MCP and HTTP surfaces require output schemas to generate tool descriptions and validate responses.
 
 **Fix:** Always define `output` in the trail definition:
 
@@ -88,7 +88,7 @@ trail('onboard', {
 
 **Symptom:** Debug output interleaved with CLI formatted output. JSON output corrupted.
 
-**Why it's wrong:** `console.log` writes to stdout, which CLI trailheads own for structured output. It breaks JSON mode, table formatting, and piped output.
+**Why it's wrong:** `console.log` writes to stdout, which CLI surfaces own for structured output. It breaks JSON mode, table formatting, and piped output.
 
 **Fix:** Use `ctx.logger` for debug output:
 
@@ -147,13 +147,13 @@ const db = resource('db.main', {
 });
 ```
 
-## 11. Importing trailhead types into resource factories
+## 11. Importing surface types into resource factories
 
-**Symptom:** A resource factory imports `Request`, `McpSession`, or reads `process.argv`. It works on one trailhead but breaks on others.
+**Symptom:** A resource factory imports `Request`, `McpSession`, or reads `process.argv`. It works on one surface but breaks on others.
 
-**Why it's wrong:** Resource factories receive `ResourceContext` — a narrow subset with `env`, `cwd`, and `workspaceRoot` only. Resources are singletons resolved once per process, not per request. Trailhead-specific state would be stale after the first resolution.
+**Why it's wrong:** Resource factories receive `ResourceContext` — a narrow subset with `env`, `cwd`, and `workspaceRoot` only. Resources are singletons resolved once per process, not per request. Surface-specific state would be stale after the first resolution.
 
-**Fix:** Keep resource factories trailhead-agnostic. Use `svc.env` for configuration:
+**Fix:** Keep resource factories surface-agnostic. Use `svc.env` for configuration:
 
 ```typescript
 const api = resource('api.client', {

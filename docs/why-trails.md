@@ -6,9 +6,9 @@
 
 When you define a trail, you author the things only you know: the input schema, the output schema, the implementation, and the examples that specify behavior. Everything else — CLI flags, MCP tool definitions, test assertions, error codes, command names — is derived from what you already wrote. If the derivation is wrong for your case, you override it.
 
-This is DRY applied not just to code, but to information. Frameworks have always been good at eliminating duplicate code. Trails extends that principle to duplicate authorship — across the entire trailhead area of a project, from the implementation to the CLI to the MCP tools to the tests to the agent documentation.
+This is DRY applied not just to code, but to information. Frameworks have always been good at eliminating duplicate code. Trails extends that principle to duplicate authorship — across the entire surface area of a project, from the implementation to the CLI to the MCP tools to the tests to the agent documentation.
 
-Trails is Bun-native — the framework uses Bun APIs throughout for I/O, hashing, discovery, and storage. But the trailheads it produces are universally consumable: CLI binaries, MCP servers, and HTTP endpoints work with any runtime on the consuming side.
+Trails is Bun-native — the framework uses Bun APIs throughout for I/O, hashing, discovery, and storage. But the surfaces it produces are universally consumable: CLI binaries, MCP servers, and HTTP endpoints work with any runtime on the consuming side.
 
 ---
 
@@ -20,7 +20,7 @@ An agent that builds `users` routes on Monday and `billing` routes on Thursday p
 
 The problem isn't speed. The problem is that every decision is freeform. Parameter names, error shapes, validation placement, response formatting — an agent using Express or Fastify makes all of these choices from scratch, every time, in every file.
 
-Trails eliminates the freeform decisions. An agent writing a trail can't use different parameter names across CLI and MCP — there's one Zod schema. It can't return unstructured errors — `Result<T, Error>` is the only return path. It can't forget input validation — Zod runs at the boundary for every trailhead, every time.
+Trails eliminates the freeform decisions. An agent writing a trail can't use different parameter names across CLI and MCP — there's one Zod schema. It can't return unstructured errors — `Result<T, Error>` is the only return path. It can't forget input validation — Zod runs at the boundary for every surface, every time.
 
 These aren't lint rules. They're structural constraints. The framework makes inconsistency require more effort than consistency. That's the principle we call: **drift is structurally harder than alignment.**
 
@@ -57,7 +57,7 @@ export const show = trail('entity.show', {
 });
 ```
 
-Collect trails into an app with `topo()`. Open it on any trailhead with `surface()`:
+Collect trails into an app with `topo()`. Open it on any surface with `surface()`:
 
 ```typescript
 const graph = topo('myapp', entityModule, searchModule);
@@ -71,9 +71,9 @@ import { surface as mcpSurface } from '@ontrails/mcp';
 await mcpSurface(graph);
 ```
 
-One definition. Every trailhead. The rest is derived.
+One definition. Every surface. The rest is derived.
 
-Pure trails can return `Result` directly. Trails with `crosses` and I/O-bound trails can stay `async`. Core normalizes both forms to one awaitable runtime shape before trailheads and layers execute them.
+Pure trails can return `Result` directly. Trails with `crosses` and I/O-bound trails can stay `async`. Core normalizes both forms to one awaitable runtime shape before surfaces and layers execute them.
 
 ---
 
@@ -81,7 +81,7 @@ Pure trails can return `Result` directly. Trails with `crosses` and I/O-bound tr
 
 Pure trail functions are great until they need a database. The typical escape hatch — constructing clients inline or importing singletons — couples implementations to concrete infrastructure and makes testing painful.
 
-Trails solves this with `resource()` declarations. A resource defines its factory, a `mock` factory for tests, and an optional `dispose` hook for cleanup. Trails declare their dependencies with `resources: [...]` and access them through `db.from(ctx)`. The framework manages the lifecycle, trailheads can inspect the dependency graph, and `testAll(graph)` resolves mocks automatically.
+Trails solves this with `resource()` declarations. A resource defines its factory, a `mock` factory for tests, and an optional `dispose` hook for cleanup. Trails declare their dependencies with `resources: [...]` and access them through `db.from(ctx)`. The framework manages the lifecycle, surfaces can inspect the dependency graph, and `testAll(graph)` resolves mocks automatically.
 
 The result: implementations stay pure (input in, `Result` out), infrastructure is declared rather than imported, and the entire app remains testable without configuration.
 
@@ -96,7 +96,7 @@ Every piece of information in a Trails app has a clear ownership model. Six cate
 - **Enforced:** Constrained by the type system — output schemas bound the return type, `Result<T, Error>` eliminates throw/catch, `TrailContext` scopes what the implementation can access. The compiler makes non-compliance an error.
 - **Inferred:** Detected by static analysis, best-effort — which trails a trail crosses (from `ctx.cross()` calls), error types returned (from `Result.err()` patterns). Warden verifies these. Useful for governance, not guaranteed.
 - **Observed:** Learned from runtime (future) — error distributions, latency profiles, resource usage patterns from the tracing system. Observations close the loop between declared intent and actual behavior.
-- **Overridden:** When derivation doesn't fit — any derived value can be explicitly set when the default is wrong. Overrides are escape hatches, visible in the trailhead map. If you're overriding everything, the derivation rules are wrong.
+- **Overridden:** When derivation doesn't fit — any derived value can be explicitly set when the default is wrong. Overrides are escape hatches, visible in the surface map. If you're overriding everything, the derivation rules are wrong.
 
 The design heuristic: if the developer has to author information the framework already has, that's a framework bug. Derive it. If it can't be derived, it earns a place on the trail spec. If it can be derived but might be wrong sometimes, derive it with an override.
 
@@ -111,7 +111,7 @@ Trails makes a different tradeoff. The trail declaration creates a bounded envir
 - **`output: schema`** constrains the return type. The implementation can't return data the contract doesn't describe.
 - **`Result<T, Error>`** eliminates throw/catch. Every code path returns a typed result.
 - **`examples`** specify concrete inputs plus expected results or error classes. `testExamples(graph)` runs them as assertions. One authoring act — three purposes: specification for builders, documentation for consumers, test coverage for CI.
-- **`intent` / `idempotent`** are behavioral assertions that trailheads honor. `intent: 'read'` means no confirmation prompts on CLI, `readOnlyHint` on MCP, GET on HTTP. These aren't suggestions — they're projections.
+- **`intent` / `idempotent`** are behavioral assertions that surfaces honor. `intent: 'read'` means no confirmation prompts on CLI, `readOnlyHint` on MCP, GET on HTTP. These aren't suggestions — they're projections.
 
 The implementation satisfies the specification. The framework enforces the boundaries. An agent building a trail writes the irreducible information — schema, examples, logic — and the framework handles the rest.
 
@@ -145,11 +145,11 @@ One write, three reads. If someone changes the business rule, they change the ex
 
 ## Where Trails Fits
 
-Great tools already exist for each trailhead. tRPC, Hono, and Fastify are excellent for HTTP. Commander and oclif are battle-tested for CLIs. FastMCP and the official SDK make MCP server development straightforward. NestJS spans multiple transports with a mature ecosystem.
+Great tools already exist for each surface. tRPC, Hono, and Fastify are excellent for HTTP. Commander and oclif are battle-tested for CLIs. FastMCP and the official SDK make MCP server development straightforward. NestJS spans multiple transports with a mature ecosystem.
 
-Trails doesn't try to replace any of them. It occupies a different layer: the **contract layer** that sits above individual trailhead implementations. A trail definition captures the schema, examples, error types, intent and metadata, and composition graph in one place. Trailhead connectors — CLI, MCP, HTTP, WebSocket — project that contract into whatever runtime format the trailhead needs.
+Trails doesn't try to replace any of them. It occupies a different layer: the **contract layer** that sits above individual surface implementations. A trail definition captures the schema, examples, error types, intent and metadata, and composition graph in one place. Surface connectors — CLI, MCP, HTTP, WebSocket — project that contract into whatever runtime format the surface needs.
 
-The value isn't in being better at any single trailhead. It's in making the contract the source of truth so that every trailhead stays consistent with it — not because anyone was careful, but because the framework derives each trailhead from the same definition.
+The value isn't in being better at any single surface. It's in making the contract the source of truth so that every surface stays consistent with it — not because anyone was careful, but because the framework derives each surface from the same definition.
 
 ---
 
@@ -176,7 +176,7 @@ The answers became the principles: author what's new, derive what's known, overr
 
 ## What's Next
 
-The v1 implementation delivers the foundation: Result types, error taxonomy, trail and signal definitions, CLI and MCP trailheads, contract-driven testing, schema governance, and the warden. These establish the contract layer and prove the core loop — define once, trailhead everywhere.
+The v1 implementation delivers the foundation: Result types, error taxonomy, trail and signal definitions, CLI and MCP surfaces, contract-driven testing, schema governance, and the warden. These establish the contract layer and prove the core loop — define once, surface everywhere.
 
 The architecture points toward capabilities that follow naturally — resource capability shaping, derived dependency graphs, cross-app contract negotiation, implementation synthesis from examples. Each follows from the same principle: if the information exists in the system, don't ask the developer to restate it.
 

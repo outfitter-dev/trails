@@ -11,7 +11,7 @@ bunx @ontrails/trails create
 # Or install manually
 bun add @ontrails/core @ontrails/cli
 bun add commander                    # Commander connector
-bun add @ontrails/mcp                # MCP trailhead (optional)
+bun add @ontrails/mcp                # MCP surface (optional)
 bun add -d @ontrails/testing         # Testing (dev)
 ```
 
@@ -101,7 +101,7 @@ import { graph } from './app';
 await surface(graph);
 ```
 
-Same trail, same implementation, different trailhead. The MCP server exposes `myapp_greet` with JSON Schema input, `readOnlyHint: true`, and examples for agent planning.
+Same trail, same implementation, different surface. The MCP server exposes `myapp_greet` with JSON Schema input, `readOnlyHint: true`, and examples for agent planning.
 
 ## Test with testAll
 

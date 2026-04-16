@@ -175,7 +175,7 @@ Calls to IDs not registered in `responses` return `Result.err` with a descriptiv
 
 ## `run()` -- Headless Testing Against a Topo
 
-For integration-style tests that verify the full pipeline (validation, layers, implementation) without mounting a trailhead, use `run()` from `@ontrails/core`:
+For integration-style tests that verify the full pipeline (validation, layers, implementation) without opening a surface, use `run()` from `@ontrails/core`:
 
 ```typescript
 import { run } from '@ontrails/core';
@@ -202,7 +202,7 @@ logger.find(r => r.level === 'error'); // filtered entries
 logger.clear(); // reset captured entries
 ```
 
-## Trailhead Harnesses
+## Surface Harnesses
 
 ### CLI Harness
 
@@ -242,4 +242,4 @@ src/__tests__/
 
 - `governance.test.ts` is the minimum. One file, one line, full coverage of examples and contracts.
 - Add `*.test.ts` files per domain when edge cases accumulate beyond what examples cover.
-- Trailhead harness tests are optional but valuable for verifying flag parsing, output formatting, and tool naming.
+- Surface harness tests are optional but valuable for verifying flag parsing, output formatting, and tool naming.

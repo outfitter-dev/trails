@@ -3,7 +3,7 @@
 ## Run Functions
 
 - Return `Result`, never throw. Use `Result.ok(value)` and `Result.err(new XError(...))`.
-- Keep run functions trailhead-agnostic. No `process.exit()`, no `console.log()`, no `Request`/`Response`.
+- Keep run functions surface-agnostic. No `process.exit()`, no `console.log()`, no `Request`/`Response`.
 - Run functions receive `(input, ctx)` — validated input and `TrailContext`.
 - Sync authoring is fine for pure work. The runtime normalizes to async.
 
@@ -50,7 +50,7 @@ const search = trail('search', {
 });
 ```
 
-Resource factories receive `ResourceContext` (env, cwd, workspaceRoot) — not the full `TrailContext`. Keep them trailhead-agnostic.
+Resource factories receive `ResourceContext` (env, cwd, workspaceRoot) — not the full `TrailContext`. Keep them surface-agnostic.
 
 ## Code Shape
 

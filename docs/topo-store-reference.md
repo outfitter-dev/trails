@@ -4,50 +4,40 @@ Schema definitions, query patterns, and programmatic API for the topo store. For
 
 ## SQLite Schema
 
-### `topo_saves`
+### `topo_snapshots`
 
-Every topo snapshot.
+Every topo snapshot. Pinned snapshots have a non-null `pinned_as` name.
 
 ```sql
-CREATE TABLE topo_saves (
+CREATE TABLE topo_snapshots (
   id TEXT PRIMARY KEY,
   git_sha TEXT,
-  git_dirty INTEGER NOT NULL,
-  trail_count INTEGER NOT NULL,
-  signal_count INTEGER NOT NULL,
-  resource_count INTEGER NOT NULL,
-  created_at TEXT NOT NULL
-);
-```
-
-### `topo_pins`
-
-Named references to important saves.
-
-```sql
-CREATE TABLE topo_pins (
-  name TEXT PRIMARY KEY,
-  save_id TEXT NOT NULL,
+  git_dirty INTEGER NOT NULL DEFAULT 0,
+  trail_count INTEGER NOT NULL DEFAULT 0,
+  signal_count INTEGER NOT NULL DEFAULT 0,
+  resource_count INTEGER NOT NULL DEFAULT 0,
+  pinned_as TEXT,
   created_at TEXT NOT NULL
 );
 ```
 
 ### `topo_trails`
 
-Trail definitions for each save.
+Trail definitions for each snapshot.
 
 ```sql
 CREATE TABLE topo_trails (
   id TEXT NOT NULL,
   intent TEXT,
-  idempotent INTEGER NOT NULL,
-  has_output INTEGER NOT NULL,
-  has_examples INTEGER NOT NULL,
-  example_count INTEGER NOT NULL,
+  idempotent INTEGER NOT NULL DEFAULT 0,
+  has_output INTEGER NOT NULL DEFAULT 0,
+  has_examples INTEGER NOT NULL DEFAULT 0,
+  example_count INTEGER NOT NULL DEFAULT 0,
   description TEXT,
   meta TEXT,
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (id, save_id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (id, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
 );
 ```
 
@@ -59,8 +49,9 @@ Trail composition graph.
 CREATE TABLE topo_crossings (
   source_id TEXT NOT NULL,
   target_id TEXT NOT NULL,
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (source_id, target_id, save_id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (source_id, target_id, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
 );
 ```
 
@@ -71,10 +62,11 @@ Resource definitions. Renamed from `topo_provisions` per ADR-0023.
 ```sql
 CREATE TABLE topo_resources (
   id TEXT NOT NULL,
-  has_mock INTEGER NOT NULL,
-  has_health INTEGER NOT NULL,
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (id, save_id)
+  has_mock INTEGER NOT NULL DEFAULT 0,
+  has_health INTEGER NOT NULL DEFAULT 0,
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (id, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
 );
 ```
 
@@ -86,8 +78,9 @@ Which resources each trail declares. Renamed from `topo_trail_provisions` per AD
 CREATE TABLE topo_trail_resources (
   trail_id TEXT NOT NULL,
   resource_id TEXT NOT NULL,
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (trail_id, resource_id, save_id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (trail_id, resource_id, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
 );
 ```
 
@@ -99,8 +92,9 @@ Signal definitions.
 CREATE TABLE topo_signals (
   id TEXT NOT NULL,
   description TEXT,
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (id, save_id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (id, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
 );
 ```
 
@@ -112,8 +106,9 @@ Which signals each trail can emit.
 CREATE TABLE topo_trail_signals (
   trail_id TEXT NOT NULL,
   signal_id TEXT NOT NULL,
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (trail_id, signal_id, save_id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (trail_id, signal_id, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
 );
 ```
 
@@ -131,35 +126,38 @@ CREATE TABLE topo_examples (
   input TEXT NOT NULL,
   expected TEXT,
   error TEXT,
-  save_id TEXT NOT NULL
+  snapshot_id TEXT NOT NULL,
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
 );
 ```
 
-### `topo_trailheads`
+### `topo_surfaces`
 
-Which trailheads expose which trails.
+Which surfaces expose which trails.
 
 ```sql
-CREATE TABLE topo_trailheads (
+CREATE TABLE topo_surfaces (
   trail_id TEXT NOT NULL,
-  trailhead TEXT NOT NULL,
+  surface TEXT NOT NULL,
   derived_name TEXT NOT NULL,
   method TEXT,
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (trail_id, trailhead, save_id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (trail_id, surface, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
 );
 ```
 
 ### `topo_exports`
 
-Serialized trailhead maps and lockfiles.
+Serialized surface maps and lockfiles.
 
 ```sql
 CREATE TABLE topo_exports (
-  save_id TEXT PRIMARY KEY,
-  trailhead_map TEXT NOT NULL,
-  trailhead_hash TEXT NOT NULL,
-  serialized_lock TEXT NOT NULL
+  snapshot_id TEXT PRIMARY KEY,
+  surface_map TEXT NOT NULL,
+  surface_hash TEXT NOT NULL,
+  serialized_lock TEXT NOT NULL,
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
 );
 ```
 
@@ -174,8 +172,9 @@ CREATE TABLE topo_schemas (
   schema_kind TEXT NOT NULL,
   zod_hash TEXT NOT NULL,
   json_schema TEXT NOT NULL,
-  save_id TEXT NOT NULL,
-  PRIMARY KEY (owner_id, owner_kind, schema_kind, save_id)
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (owner_id, owner_kind, schema_kind, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
 );
 ```
 
@@ -185,7 +184,7 @@ CREATE TABLE topo_schemas (
 
 ```sql
 SELECT id, intent, description FROM topo_trails
-WHERE save_id = ? AND intent = ?
+WHERE snapshot_id = ? AND intent = ?
 ORDER BY id ASC
 ```
 
@@ -194,30 +193,30 @@ ORDER BY id ASC
 ```sql
 SELECT DISTINCT t.id, t.intent
 FROM topo_trails t
-JOIN topo_trail_resources tp ON t.id = tp.trail_id AND t.save_id = tp.save_id
-WHERE t.save_id = ? AND tp.resource_id = ?
+JOIN topo_trail_resources tp ON t.id = tp.trail_id AND t.snapshot_id = tp.snapshot_id
+WHERE t.snapshot_id = ? AND tp.resource_id = ?
 ```
 
 ### Find incoming callers
 
 ```sql
 SELECT source_id FROM topo_crossings
-WHERE save_id = ? AND target_id = ?
+WHERE snapshot_id = ? AND target_id = ?
 ```
 
 ### Trails without output schemas
 
 ```sql
 SELECT id, intent FROM topo_trails
-WHERE save_id = ? AND has_output = 0
+WHERE snapshot_id = ? AND has_output = 0
 ```
 
-### Compare two saves (trails added)
+### Compare two snapshots (trails added)
 
 ```sql
-SELECT id FROM topo_trails WHERE save_id = ?
+SELECT id FROM topo_trails WHERE snapshot_id = ?
 EXCEPT
-SELECT id FROM topo_trails WHERE save_id = ?
+SELECT id FROM topo_trails WHERE snapshot_id = ?
 ```
 
 ### Crossing closure (recursive)
@@ -228,7 +227,7 @@ WITH RECURSIVE closure(id) AS (
   UNION
   SELECT c.target_id FROM topo_crossings c
   JOIN closure cl ON c.source_id = cl.id
-  WHERE c.save_id = ?
+  WHERE c.snapshot_id = ?
 )
 SELECT id FROM closure
 ```
@@ -245,8 +244,8 @@ import { createTopoStore } from '@ontrails/core';
 const store = createTopoStore({ rootDir: '/path/to/workspace' });
 store.trails.list({ intent: 'write' });
 store.resources.get('db.main');
-store.pins.list();
-store.saves.latest();
+store.snapshots.list({ pinned: true });
+store.snapshots.latest();
 ```
 
 ### `createMockTopoStore(seed?)`
@@ -259,7 +258,6 @@ import { createMockTopoStore } from '@ontrails/core';
 const mock = createMockTopoStore({
   trails: [{ id: 'auth.login', intent: 'write', hasOutput: true, ... }],
   resources: [{ id: 'db.main', hasMock: true, ... }],
-  pins: [{ name: 'baseline', saveId: 'save-1', ... }],
 });
 ```
 
@@ -274,25 +272,25 @@ trail('warden.check', {
   resources: [topoStore],
   blaze: async (_input, ctx) => {
     const store = topoStore.from(ctx);
-    // store.trails, store.resources, store.pins, store.saves, store.query()
+    // store.trails, store.resources, store.snapshots, store.query()
   },
 });
 ```
 
 ### `TopoStoreRef`
 
-Reference type for querying by save or pin:
+Reference type for querying by snapshot or pin:
 
 ```typescript
 interface TopoStoreRef {
   readonly pin?: string;
-  readonly saveId?: string;
+  readonly snapshotId?: string;
 }
 ```
 
-- `{ pin: 'v1.0' }` — look up save by pin name
-- `{ saveId: 'uuid' }` — use exact save ID
-- `{}` — use the latest save
+- `{ pin: 'v1.0' }` — look up snapshot by pin name
+- `{ snapshotId: 'uuid' }` — use exact snapshot ID
+- `{}` — use the latest snapshot
 
 ## Record Types
 
@@ -310,7 +308,7 @@ interface TopoStoreRef {
   exampleCount: number;
   description: string | null;
   meta: Readonly<Record<string, unknown>> | null;
-  saveId: string;
+  snapshotId: string;
 }
 ```
 
@@ -329,7 +327,7 @@ Extends trail record with `crosses`, `detours`, `resources`, and `examples` arra
   description: string | null;
   hasMock: boolean;
   hasHealth: boolean;
-  saveId: string;
+  snapshotId: string;
   usedBy: readonly string[];
 }
 ```

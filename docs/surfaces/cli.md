@@ -1,6 +1,6 @@
-# CLI Trailhead
+# CLI Surface
 
-The CLI trailhead connector turns every trail into a command. Flags are
+The CLI surface connector turns every trail into a command. Flags are
 derived from faithfully representable Zod schema fields, and structured JSON
 channels are available when the input shape is richer than flags can express
 honestly. Output formatting, error handling, and exit codes are handled
@@ -203,7 +203,7 @@ await output('Hello', 'text'); // Plain text
 5. `<TOPO>_JSONL=1` env var
 6. Default: `"text"`
 
-The `<TOPO>` prefix is derived from the topo name: uppercased, with non-alphanumerics replaced by `_`. Names starting with a digit get an `_` prefix so the result is a valid identifier (e.g., `1app` → `_1APP_JSON`). The topo name is threaded through the CLI trailhead automatically and appears on `ActionResultContext.topoName` for custom result handlers.
+The `<TOPO>` prefix is derived from the topo name: uppercased, with non-alphanumerics replaced by `_`. Names starting with a digit get an `_` prefix so the result is a valid identifier (e.g., `1app` → `_1APP_JSON`). The topo name is threaded through the CLI surface automatically and appears on `ActionResultContext.topoName` for custom result handlers.
 
 ## Error Handling
 

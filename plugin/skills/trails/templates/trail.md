@@ -12,7 +12,7 @@ import { z } from 'zod';
 
 const outputSchema = z.object({
   // Define the shape of successful results.
-  // This schema is required for MCP and HTTP trailheads.
+  // This schema is required for MCP and HTTP surfaces.
   id: z.string(),
   name: z.string(),
 });
@@ -43,7 +43,7 @@ export const myTrail = trail('namespace.verb', {
   // --- Intent and flags ---
   // intent: 'read',       // No side effects — safe for agents to call freely
   // intent: 'destroy',    // Irreversible — CLI auto-adds --dry-run flag
-  // idempotent: true,     // Safe to retry — trailheads may auto-retry on failure
+  // idempotent: true,     // Safe to retry — surfaces may auto-retry on failure
   // Omit intent for standard create/update operations.
 
   // --- Detours (optional) ---
@@ -79,7 +79,7 @@ export const myTrail = trail('namespace.verb', {
   // --- Run ---
   // Receives validated input and TrailContext.
   // Return Result — never throw.
-  // Keep trailhead-agnostic: no process.exit(), no console.log().
+  // Keep surface-agnostic: no process.exit(), no console.log().
   // --- Resources (optional) ---
   // Declare external dependencies so the framework manages lifecycle and testing.
   // resources: [db],

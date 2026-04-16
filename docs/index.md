@@ -3,30 +3,30 @@
 ## New to Trails?
 
 1. **[Why Trails](./why-trails.md)** — The problem, the approach, why contracts beat conventions
-2. **[Getting Started](./getting-started.md)** — Install, define your first trail, open a CLI trailhead, test it
-3. **[Lexicon](./lexicon.md)** — The terms you'll use every day: trail, blaze, topo, trailhead, cross, resource, signal, layer, tracing
+2. **[Getting Started](./getting-started.md)** — Install, define your first trail, open a CLI surface, test it
+3. **[Lexicon](./lexicon.md)** — The terms you'll use every day: trail, blaze, topo, surface, cross, resource, signal, layer, tracing
 
 ## Building something?
 
-- **[Architecture](./architecture.md)** — Hexagonal model, package layers, how data flows from trail to trailhead
+- **[Architecture](./architecture.md)** — Hexagonal model, package layers, how data flows from trail to surface
 - **[API Reference](./api-reference.md)** — Every public export across all packages
 - **[Resources Guide](./resources.md)** — Define resources, declare them on trails, test with mock factories
 - **[Store Guide](../packages/store/README.md)** — Declare schema-derived stores, bind them with Drizzle, use fixtures and read-only access
 - **[Config Guide](../packages/config/README.md)** — Schema-derived configuration, resolution stack, extensions, profiles
 - **[Permits Guide](../packages/permits/README.md)** — Scope-based authorization, auth connectors, permit governance
 - **[Tracing Guide](../packages/tracing/README.md)** — Execution recording, sinks, sampling, manual instrumentation
-- **[Testing Guide](./testing.md)** — TDD with examples, `testAll()`, contract testing, trailhead harnesses
+- **[Testing Guide](./testing.md)** — TDD with examples, `testAll()`, contract testing, surface harnesses
 
-## Adding a trailhead?
+## Adding a surface?
 
-- **[CLI Trailhead](./trailheads/cli.md)** — Flag derivation, output modes, exit codes, `--dry-run`
-- **[MCP Trailhead](./trailheads/mcp.md)** — Tool naming, annotations, progress bridge
-- **[HTTP Trailhead](./trailheads/http.md)** — Route derivation, verb mapping, error responses, Hono connector
+- **[CLI Surface](./surfaces/cli.md)** — Flag derivation, output modes, exit codes, `--dry-run`
+- **[MCP Surface](./surfaces/mcp.md)** — Tool naming, annotations, progress bridge
+- **[HTTP Surface](./surfaces/http.md)** — Route derivation, verb mapping, error responses, Hono connector
 
 ## Governing your codebase?
 
 - **[Warden](../packages/warden/README.md)** — AST-based convention rules, drift detection, CI integration
-- **[Schema](../packages/schema/README.md)** — Trailhead maps, topo export helpers, semantic diffing, lock files
+- **[Schema](../packages/schema/README.md)** — Surface maps, topo export helpers, semantic diffing, lock files
 
 ## Design decisions
 

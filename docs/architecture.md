@@ -41,13 +41,13 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 
 ## Core Principles
 
-**The trail is the product, not the trailhead.** A trail is a typed function with a Zod schema, error taxonomy, examples, and metadata. CLI commands, MCP tools, and HTTP endpoints are projections of that trail onto trailheads.
+**The trail is the product, not the surface.** A trail is a typed function with a Zod schema, error taxonomy, examples, and metadata. CLI commands, MCP tools, and HTTP endpoints are projections of that trail onto surfaces.
 
-**Drift is structurally harder than alignment.** One schema, one `Result` type, one error taxonomy. You cannot have different parameter names across trailheads because there is only one schema.
+**Drift is structurally harder than alignment.** One schema, one `Result` type, one error taxonomy. You cannot have different parameter names across surfaces because there is only one schema.
 
-**Trailheads are peers.** No trailhead is privileged. CLI, MCP, HTTP, and WebSocket are all equal connectors reading from the same topo. Adding a trailhead is a `surface()` call, not an architecture change.
+**Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, and WebSocket are all equal connectors reading from the same topo. Adding a surface is a `surface()` call, not an architecture change.
 
-**Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation does not know which trailhead invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before layers and trailheads run.
+**Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation does not know which surface invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before layers and surfaces run.
 
 **The framework defines ports -- everything concrete is a connector.** CLI framework (Commander, yargs), logging backend (LogTape, pino), storage engine, telemetry exporter -- all pluggable. The framework never imports a concrete implementation.
 
@@ -93,7 +93,7 @@ These are boundaries the compiler enforces on the implementation at development 
 | `Result<T, Error>` | Implementation cannot throw — must return `Result.ok()` or `Result.err()` |
 | `TrailContext` interface | Implementation receives only the fields the framework provides |
 | `crosses: [...]` on trails | Declares the composition graph; trail objects give typed `ctx.cross()` — warden verifies calls match |
-| `crossInput: z.object({...})` | Composition-only input merged for `ctx.cross()`, invisible to public trailheads |
+| `crossInput: z.object({...})` | Composition-only input merged for `ctx.cross()`, invisible to public surfaces |
 | `resources: [...]` on trails | Declares infrastructure dependencies; warden verifies `resource.from(ctx)` / `ctx.resource()` usage match |
 
 ### Inferred — detected by static analysis, best-effort
@@ -104,9 +104,9 @@ These are derived from the implementation code itself. Useful for governance and
 | ---------------------------- | ------------------------------------------ |
 | Which trails a trail crosses | `ctx.cross()` calls in the implementation |
 | Error types returned | `Result.err(new XError(...))` patterns |
-| Trailhead map entries and lock metadata | All of the above, canonicalized |
+| Surface map entries and lock metadata | All of the above, canonicalized |
 
-Warden uses inference to verify that declarations match actual code. The trailhead map captures inferred information for CI governance.
+Warden uses inference to verify that declarations match actual code. The surface map captures inferred information for CI governance.
 
 ### Observed — learned from runtime
 
@@ -123,7 +123,7 @@ Any derived value can be overridden when the default is wrong for your case:
 | Flag name or description | Zod field name doesn't make a good flag |
 | `crosses` list | Lock the composition boundary tighter than the code implies |
 
-Overrides are escape hatches. They're visible in the trailhead map as explicit deviations from derivation. They should be rare — if you're overriding everything, the derivation rules are wrong.
+Overrides are escape hatches. They're visible in the surface map as explicit deviations from derivation. They should be rare — if you're overriding everything, the derivation rules are wrong.
 
 **The design heuristic:** when evaluating any new feature, ask "does this require the developer to author information the framework already has?" If yes, derive it. If it genuinely can't be derived, it earns a place on the trail spec. If it can be derived but might be wrong sometimes, derive it with an override.
 
@@ -135,9 +135,9 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 
 `@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, `trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, layers, and connector port interfaces.
 
-**The test:** if you are building a trailhead connector or ecosystem package, you should only need `@ontrails/core`.
+**The test:** if you are building a surface connector or ecosystem package, you should only need `@ontrails/core`.
 
-### Trailhead Connectors (left side)
+### Surface Connectors (left side)
 
 | Package | What it does | External dep |
 | --- | --- | --- |
@@ -146,6 +146,7 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP routes and error mapping | None beyond core |
 | `@ontrails/hono` | Hono connector, `surface()` | `hono` |
+| `@ontrails/vite` | Vite dev server integration, `surface()` | `vite` |
 
 ### Infrastructure Connectors (right side)
 
@@ -163,8 +164,8 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
 
 | Package | What it does |
 | --- | --- |
-| `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, trailhead harnesses |
-| `@ontrails/schema` | Trailhead maps, semantic diffing, OpenAPI generation, lock helpers |
+| `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, surface harnesses |
+| `@ontrails/schema` | Surface maps, semantic diffing, OpenAPI generation, lock helpers |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 
 ### Apps
@@ -193,13 +194,14 @@ Overrides are escape hatches. They're visible in the trailhead map as explicit d
      ^
 @ontrails/cli/commander (cli, commander)
 @ontrails/hono (http, hono)
+@ontrails/vite (http, vite)
 @ontrails/logtape (logging)
 @ontrails/warden (core, schema)
      ^
 apps/trails (cli/commander, schema, tracing)
 ```
 
-Clean DAG. Core at the center. No cycles. Trailhead connectors depend only on core. Framework connectors depend on their parent package.
+Clean DAG. Core at the center. No cycles. Surface connectors depend only on core. Framework connectors depend on their parent package.
 
 ## Data Flow
 
@@ -249,7 +251,7 @@ The implementation is identical. Only the edges change.
 
 ### Headless Execution via `run()`
 
-`run()` is the headless path -- no trailhead connector needed:
+`run()` is the headless path -- no surface connector needed:
 
 ```text
 run(topo, 'entity.show', { name: 'Alpha' }, options?)
@@ -258,11 +260,11 @@ run(topo, 'entity.show', { name: 'Alpha' }, options?)
   -> Result returned, never throws
 ```
 
-This is useful for server-side composition, background workers, and test harnesses that need to invoke trails by ID without wiring a trailhead.
+This is useful for server-side composition, background workers, and test harnesses that need to invoke trails by ID without opening a surface.
 
 ### The Shared `executeTrail()` Pipeline
 
-All trailheads -- CLI, MCP, HTTP, and `run()` -- delegate to the same `executeTrail()` function in `@ontrails/core`:
+All surfaces -- CLI, MCP, HTTP, and `run()` -- delegate to the same `executeTrail()` function in `@ontrails/core`:
 
 ```text
 executeTrail(trail, rawInput, options?)
@@ -274,7 +276,7 @@ executeTrail(trail, rawInput, options?)
   -> Result returned
 ```
 
-This guarantees consistent validation, layer ordering, and error handling regardless of which trailhead initiated the call.
+This guarantees consistent validation, layer ordering, and error handling regardless of which surface initiated the call.
 
 ## Error Taxonomy
 
@@ -297,8 +299,8 @@ All extend `TrailsError` (direct class inheritance). Pattern matching uses `inst
 
 ## Runtime Strategy
 
-**Trails is Bun-native. Trailheads are universally consumable.**
+**Trails is Bun-native. Surfaces are universally consumable.**
 
 All packages use Bun APIs where they improve the developer experience: `Bun.file()` for I/O, `Bun.Glob` for discovery, `Bun.randomUUIDv7()` for IDs, `Bun.CryptoHasher` for hashing, `bun:sqlite` for storage.
 
-The trailheads Trails produces (CLI commands, MCP tools, HTTP endpoints) are protocol-based. Consumers interact via standard protocols -- they don't need Bun. A Node project can add Trails by installing Bun alongside Node. Bun runs Node code, so everything coexists.
+The surfaces Trails produces (CLI commands, MCP tools, HTTP endpoints) are protocol-based. Consumers interact via standard protocols -- they don't need Bun. A Node project can add Trails by installing Bun alongside Node. Bun runs Node code, so everything coexists.

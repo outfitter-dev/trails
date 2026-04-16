@@ -1,6 +1,6 @@
 # Getting Started
 
-Install the core packages, define your first trail, open trailheads on CLI and MCP, and test it with one line.
+Install the core packages, define your first trail, open surfaces on CLI and MCP, and test it with one line.
 
 ## Installation
 
@@ -16,7 +16,7 @@ bun add @ontrails/core @ontrails/cli
 # Add Commander connector (for the /commander subpath)
 bun add commander
 
-# Add MCP trailhead (optional)
+# Add MCP surface (optional)
 bun add @ontrails/mcp
 
 # Add testing (dev dependency)
@@ -68,7 +68,7 @@ What you get from this single definition:
 - CLI derivation: `name` auto-promoted to a positional arg (sole required string), `--loud` as a flag
 - An MCP tool with JSON Schema input and annotations (`readOnlyHint: true`)
 - Two examples that serve as agent documentation AND test cases
-- Sync authoring for pure work, with the runtime normalized to one awaitable execution shape for layers and trailheads
+- Sync authoring for pure work, with the runtime normalized to one awaitable execution shape for layers and surfaces
 
 ## Collect Into a Topo
 
@@ -124,7 +124,7 @@ When a trail has exactly one required string field with no default, the CLI
 automatically promotes it to a positional argument. You can still pass it as a
 flag (`--name World`), but the positional form is shorter. To suppress
 auto-promotion, set `args: false` on the trail definition (see the
-[CLI trailhead guide](./trailheads/cli.md#positional-args)).
+[CLI surface guide](./surfaces/cli.md#positional-args)).
 
 ## Open an MCP Surface
 
@@ -137,13 +137,13 @@ import { graph } from './app';
 await surface(graph);
 ```
 
-Same trail. Same implementation. Different trailhead. The MCP server exposes a `myapp_greet` tool with:
+Same trail. Same implementation. Different surface. The MCP server exposes a `myapp_greet` tool with:
 
 - JSON Schema input derived from the Zod schema
 - `readOnlyHint: true` annotation from `intent: 'read'`
 - Examples available for agent planning
 
-Pure trails can return `Result` directly. Trails with `crosses` and I/O-heavy trails can stay `async`; Trails normalizes both forms before connectors run them.
+Pure trails can return `Result` directly. Trails with `crosses` and I/O-heavy trails can stay `async`; Trails normalizes both forms before surfaces run them.
 
 ## Test with `testAll`
 
@@ -295,5 +295,5 @@ If multiple candidates are found, the CLI exits with an error listing them; pass
 - [Architecture](./architecture.md) -- How the hexagonal model works
 - [Lexicon](./lexicon.md) -- All Trails terms defined
 - [Testing Guide](./testing.md) -- TDD approach, contract testing, harnesses
-- [CLI Trailhead Guide](./trailheads/cli.md) -- Flag derivation, output modes, layers
-- [MCP Trailhead Guide](./trailheads/mcp.md) -- Annotations, progress, tool naming
+- [CLI Surface Guide](./surfaces/cli.md) -- Flag derivation, output modes, layers
+- [MCP Surface Guide](./surfaces/mcp.md) -- Annotations, progress, tool naming

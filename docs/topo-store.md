@@ -16,12 +16,12 @@ Trails creates a `.trails/` directory in your workspace root on first use:
 ├── generated/             # Generated artifacts (gitignored)
 ├── trails.db              # SQLite database (topology store)
 ├── trails.lock            # Lockfile (text, git-tracked)
-└── _trailhead.json        # Full trailhead map (generated on export)
+└── _surface.json          # Full surface map (generated on export)
 ```
 
 - **`trails.db`** — SQLite database containing all topo saves, pins, and schema cache. Not git-tracked.
 - **`trails.lock`** — Committed lockfile. Text format, git-tracked. This is your contract's current state for CI.
-- **`_trailhead.json`** — Full trailhead map with all metadata, generated on export.
+- **`_surface.json`** — Full surface map with all metadata, generated on export.
 
 ## What trails.db contains
 
@@ -76,7 +76,7 @@ trails topo history --limit 20
 
 ### `trails topo export`
 
-Export the current topo to `.trails/trails.lock` and `.trails/_trailhead.json`.
+Export the current topo to `.trails/trails.lock` and `.trails/_surface.json`.
 
 ```bash
 trails topo export
