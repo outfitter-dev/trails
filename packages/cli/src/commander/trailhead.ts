@@ -77,11 +77,11 @@ export const trailhead = async (
   const commanderOpts: ToCommanderOptions = {
     name: options.name ?? app.name,
   };
-  if (options.version !== undefined) {
-    commanderOpts.version = options.version;
+  if (options.version !== undefined || app.version !== undefined) {
+    commanderOpts.version = options.version ?? app.version;
   }
-  if (options.description !== undefined) {
-    commanderOpts.description = options.description;
+  if (options.description !== undefined || app.description !== undefined) {
+    commanderOpts.description = options.description ?? app.description;
   }
 
   const program = toCommander(commands, commanderOpts);

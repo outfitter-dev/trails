@@ -82,7 +82,7 @@ These outputs reject draft state at runtime via `validateEstablishedTopo()`:
 3. Rewrites every string literal matching `fromId` → `toId`
 4. Renames draft-marked files if they no longer contain draft IDs
 5. Updates relative imports that reference renamed files
-6. Loads the topo fresh and runs `analyzeDraftState()` to verify
+6. Loads the topo fresh and runs `deriveDraftReport()` to verify
 
 ### Example
 
@@ -146,7 +146,7 @@ Warns when draft IDs remain in source. Intentionally a warning — the hard reje
 
 When multiple draft IDs form a dependency chain, promote the deepest first:
 
-1. Run `analyzeDraftState(topo)` to see the full contamination graph
+1. Run `deriveDraftReport(topo)` to see the full contamination graph
 2. Start with draft IDs that have no draft dependencies
 3. Promote each, verify, then move up the chain
 
@@ -162,6 +162,6 @@ If a draft trail is no longer needed:
 ## Reference
 
 - `isDraftId(id)` — returns true if the ID starts with `_draft.`
-- `analyzeDraftState(topo)` — returns declared draft IDs, contaminated IDs, dependency graph, and findings
+- `deriveDraftReport(topo)` — returns declared draft IDs, contaminated IDs, dependency graph, and findings
 - `validateEstablishedTopo(topo)` — hard layer that rejects draft contamination
 - [ADR-0021](adr/0021-draft-state-stays-out-of-the-resolved-graph.md) — the decision and rationale
