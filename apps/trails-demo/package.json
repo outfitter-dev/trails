@@ -17,12 +17,12 @@
   "dependencies": {
     "@ontrails/cli": "workspace:^",
     "@ontrails/core": "workspace:^",
+    "@ontrails/drizzle": "workspace:^",
+    "@ontrails/hono": "workspace:^",
     "@ontrails/http": "workspace:^",
     "@ontrails/logging": "workspace:^",
     "@ontrails/mcp": "workspace:^",
     "@ontrails/store": "workspace:^",
-    "@ontrails/with-drizzle": "workspace:^",
-    "@ontrails/with-hono": "workspace:^",
     "commander": "catalog:",
     "zod": "catalog:"
   },

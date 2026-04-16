@@ -1,12 +1,12 @@
 # @ontrails/http
 
-Framework-agnostic HTTP route derivation for Trails. Pair this package with `@ontrails/with-hono` when you want the Hono trailhead connector.
+Framework-agnostic HTTP route derivation for Trails. Pair this package with `@ontrails/hono` when you want the Hono trailhead connector.
 
 ## Usage
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
-import { trailhead } from '@ontrails/with-hono';
+import { trailhead } from '@ontrails/hono';
 import { z } from 'zod';
 
 const greet = trail('greet', {
@@ -57,7 +57,7 @@ Trail IDs map to paths: `entity.show` becomes `/entity/show`. Dots become slashe
 
 ## Collision detection
 
-`buildHttpRoutes` detects when two trails would produce the same `(method, path)` pair and returns `Result.err(ValidationError)` describing both trail IDs. The `trailhead()` helper from `@ontrails/with-hono` throws on collision.
+`buildHttpRoutes` detects when two trails would produce the same `(method, path)` pair and returns `Result.err(ValidationError)` describing both trail IDs. The `trailhead()` helper from `@ontrails/hono` throws on collision.
 
 ## Resource resolution
 
@@ -96,12 +96,12 @@ Each route definition produced by `buildHttpRoutes` includes:
 ## Installation
 
 ```bash
-bun add @ontrails/http @ontrails/with-hono
+bun add @ontrails/http @ontrails/hono
 ```
 
 ## Migration
 
-Hono integration now lives in `@ontrails/with-hono`.
+Hono integration now lives in `@ontrails/hono`.
 
-- Replace `import { trailhead } from '@ontrails/http/hono'` with `import { trailhead } from '@ontrails/with-hono'`
+- Replace `import { trailhead } from '@ontrails/http/hono'` with `import { trailhead } from '@ontrails/hono'`
 - Keep `buildHttpRoutes()` and the route model imports on `@ontrails/http`

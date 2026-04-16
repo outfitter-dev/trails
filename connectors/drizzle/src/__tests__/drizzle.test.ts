@@ -632,7 +632,7 @@ describe('versioned user accessor contract', () => {
   });
 });
 
-describe('@ontrails/with-drizzle resource access', () => {
+describe('@ontrails/drizzle resource access', () => {
   const tmp = createTmpRootManager('store-drizzle-');
 
   afterEach(() => {
@@ -799,7 +799,7 @@ describe('@ontrails/with-drizzle resource access', () => {
   });
 });
 
-describe('@ontrails/with-drizzle read-only resource access', () => {
+describe('@ontrails/drizzle read-only resource access', () => {
   const tmp = createTmpRootManager('store-drizzle-readonly-');
 
   afterEach(() => {
@@ -873,7 +873,7 @@ describe('@ontrails/with-drizzle read-only resource access', () => {
   });
 });
 
-describe('@ontrails/with-drizzle edge cases', () => {
+describe('@ontrails/drizzle edge cases', () => {
   const tmp = createTmpRootManager('store-drizzle-');
 
   afterEach(() => {

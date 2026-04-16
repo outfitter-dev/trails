@@ -64,12 +64,12 @@
       "dependencies": {
         "@ontrails/cli": "workspace:^",
         "@ontrails/core": "workspace:^",
+        "@ontrails/drizzle": "workspace:^",
+        "@ontrails/hono": "workspace:^",
         "@ontrails/http": "workspace:^",
         "@ontrails/logging": "workspace:^",
         "@ontrails/mcp": "workspace:^",
         "@ontrails/store": "workspace:^",
-        "@ontrails/with-drizzle": "workspace:^",
-        "@ontrails/with-hono": "workspace:^",
         "commander": "catalog:",
         "zod": "catalog:",
       },
@@ -80,7 +80,7 @@
       },
     },
     "connectors/drizzle": {
-      "name": "@ontrails/with-drizzle",
+      "name": "@ontrails/drizzle",
       "version": "1.0.0-beta.14",
       "dependencies": {
         "@ontrails/core": "workspace:^",
@@ -92,7 +92,7 @@
       },
     },
     "connectors/hono": {
-      "name": "@ontrails/with-hono",
+      "name": "@ontrails/hono",
       "version": "1.0.0-beta.14",
       "dependencies": {
         "@ontrails/core": "workspace:^",
@@ -149,6 +149,13 @@
         "@ontrails/core": "workspace:^",
       },
     },
+    "packages/logtape": {
+      "name": "@ontrails/logtape",
+      "version": "1.0.0-beta.14",
+      "peerDependencies": {
+        "@ontrails/logging": "workspace:^",
+      },
+    },
     "packages/mcp": {
       "name": "@ontrails/mcp",
       "version": "1.0.0-beta.14",
@@ -190,8 +197,8 @@
       "name": "@ontrails/testing",
       "version": "1.0.0-beta.14",
       "devDependencies": {
+        "@ontrails/drizzle": "workspace:^",
         "@ontrails/store": "workspace:^",
-        "@ontrails/with-drizzle": "workspace:^",
       },
       "peerDependencies": {
         "@ontrails/cli": "workspace:^",
@@ -304,9 +311,15 @@
 
     "@ontrails/core": ["@ontrails/core@workspace:packages/core"],
 
+    "@ontrails/drizzle": ["@ontrails/drizzle@workspace:connectors/drizzle"],
+
+    "@ontrails/hono": ["@ontrails/hono@workspace:connectors/hono"],
+
     "@ontrails/http": ["@ontrails/http@workspace:packages/http"],
 
     "@ontrails/logging": ["@ontrails/logging@workspace:packages/logging"],
+
+    "@ontrails/logtape": ["@ontrails/logtape@workspace:packages/logtape"],
 
     "@ontrails/mcp": ["@ontrails/mcp@workspace:packages/mcp"],
 
@@ -323,10 +336,6 @@
     "@ontrails/trails": ["@ontrails/trails@workspace:apps/trails"],
 
     "@ontrails/warden": ["@ontrails/warden@workspace:packages/warden"],
-
-    "@ontrails/with-drizzle": ["@ontrails/with-drizzle@workspace:connectors/drizzle"],
-
-    "@ontrails/with-hono": ["@ontrails/with-hono@workspace:connectors/hono"],
 
     "@oxc-parser/binding-android-arm-eabi": ["@oxc-parser/binding-android-arm-eabi@0.121.0", "", { "os": "android", "cpu": "arm" }, "sha512-n07FQcySwOlzap424/PLMtOkbS7xOu8nsJduKL8P3COGHKgKoDYXwoAHCbChfgFpHnviehrLWIPX0lKGtbEk/A=="],
 

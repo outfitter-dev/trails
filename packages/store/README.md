@@ -2,7 +2,7 @@
 
 Schema-derived persistence for Trails.
 
-The root package owns the connector-agnostic `store(...)` declaration. External connector packages such as `@ontrails/with-drizzle` bind that declaration to a concrete runtime, and first-party built-ins such as `@ontrails/store/jsonfile` live as opt-in subpaths on the same package.
+The root package owns the connector-agnostic `store(...)` declaration. External connector packages such as `@ontrails/drizzle` bind that declaration to a concrete runtime, and first-party built-ins such as `@ontrails/store/jsonfile` live as opt-in subpaths on the same package.
 
 ## The two layers
 
@@ -47,7 +47,7 @@ No database connection is opened here. The returned value is the durable authore
 
 ```typescript
 import { store } from '@ontrails/store';
-import { connectDrizzle } from '@ontrails/with-drizzle';
+import { connectDrizzle } from '@ontrails/drizzle';
 
 const definition = store({
   gists: {
@@ -137,7 +137,7 @@ const removed = definition.tables.gists.signals.removed;
 
 Writable bindings fire those signals automatically when you access the resource through `db.from(ctx)` inside a trail context.
 
-Tabular connectors such as `@ontrails/with-drizzle` also expose `insert()` and `update()` as convenience methods when the backend natively distinguishes create and patch operations.
+Tabular connectors such as `@ontrails/drizzle` also expose `insert()` and `update()` as convenience methods when the backend natively distinguishes create and patch operations.
 
 ## Fixtures and mocks
 
@@ -165,7 +165,7 @@ That means `testAll(app)` can auto-resolve connector-bound store resources witho
 Use the Drizzle connector's read-only helpers when a trail should inspect persisted state without exposing writes:
 
 ```typescript
-import { connectReadOnlyDrizzle, readonlyStore } from '@ontrails/with-drizzle';
+import { connectReadOnlyDrizzle, readonlyStore } from '@ontrails/drizzle';
 
 const analytics = connectReadOnlyDrizzle(definition, {
   id: 'analytics.db',
@@ -214,10 +214,10 @@ This keeps the default happy path derived and typed, while still giving you full
 
 ## Connector conveniences
 
-`@ontrails/with-drizzle` also exports one-line conveniences when you want declaration and binding together:
+`@ontrails/drizzle` also exports one-line conveniences when you want declaration and binding together:
 
 ```typescript
-import { store, readonlyStore } from '@ontrails/with-drizzle';
+import { store, readonlyStore } from '@ontrails/drizzle';
 
 export const writable = store(
   {
@@ -249,7 +249,7 @@ These are conveniences, not the architectural source of truth. The root package 
 If you need the raw derived Drizzle tables for tooling such as `drizzle-kit`, use `getSchema()`:
 
 ```typescript
-import { getSchema } from '@ontrails/with-drizzle';
+import { getSchema } from '@ontrails/drizzle';
 
 const schema = getSchema(db);
 ```
@@ -263,12 +263,12 @@ bun add @ontrails/store zod
 Add Drizzle only when you want the external SQLite/ORM connector:
 
 ```bash
-bun add @ontrails/with-drizzle
+bun add @ontrails/drizzle
 ```
 
 ## Migration
 
-The Drizzle binding now lives in `@ontrails/with-drizzle`.
+The Drizzle binding now lives in `@ontrails/drizzle`.
 
-- Replace `import { ... } from '@ontrails/store/drizzle'` with `import { ... } from '@ontrails/with-drizzle'`
+- Replace `import { ... } from '@ontrails/store/drizzle'` with `import { ... } from '@ontrails/drizzle'`
 - Keep connector-agnostic store declarations on `@ontrails/store`

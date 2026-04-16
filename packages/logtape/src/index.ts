@@ -1,4 +1,4 @@
-import type { LogRecord, LogSink } from '../types.js';
+import type { LogRecord, LogSink } from '@ontrails/logging';
 
 // ---------------------------------------------------------------------------
 // Minimal logtape logger interface (avoids importing @logtape/logtape)

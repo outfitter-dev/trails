@@ -1,5 +1,5 @@
 {
-  "name": "@ontrails/with-drizzle",
+  "name": "@ontrails/drizzle",
   "version": "1.0.0-beta.14",
   "type": "module",
   "exports": {

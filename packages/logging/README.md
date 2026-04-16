@@ -74,10 +74,10 @@ logger.info('Auth', { user: 'admin', password: 'hunter2' });
 
 ## LogTape connector
 
-Bridge to an existing LogTape setup via the `/logtape` subpath:
+Bridge to an existing LogTape setup via the dedicated `@ontrails/logtape` package:
 
 ```typescript
-import { logtapeSink } from '@ontrails/logging/logtape';
+import { logtapeSink } from '@ontrails/logtape';
 import { getLogger } from '@logtape/logtape';
 
 const logger = createLogger({
@@ -86,7 +86,7 @@ const logger = createLogger({
 });
 ```
 
-`@logtape/logtape` is an optional peer dependency.
+`@ontrails/logtape` does not depend on `@logtape/logtape`. It uses a structural `LogtapeLoggerLike` interface to accept any object shaped like a LogTape logger, so consumers only install `@logtape/logtape` if their own code uses it directly.
 
 ## Installation
 

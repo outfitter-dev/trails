@@ -5,7 +5,7 @@
  *   bun run src/http.ts
  */
 
-import { trailhead } from '@ontrails/with-hono';
+import { trailhead } from '@ontrails/hono';
 
 import { app } from './app.js';
 

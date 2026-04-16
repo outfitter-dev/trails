@@ -24,6 +24,7 @@ PACKAGES=(
   packages/core
   packages/store
   packages/logging
+  packages/logtape
   packages/schema
   packages/config
   packages/permits
