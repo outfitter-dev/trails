@@ -17,8 +17,8 @@ import {
 } from '@ontrails/core';
 import { deriveTrailsDir } from '@ontrails/core/internal/trails-db';
 import {
-  generateTrailheadMap,
-  hashTrailheadMap,
+  deriveSurfaceMap,
+  deriveSurfaceMapHash,
   readTrailheadLockData,
 } from '@ontrails/schema';
 
@@ -67,7 +67,7 @@ export const checkDrift = async (
       storedHash ??
       (topo === undefined
         ? 'unknown'
-        : hashTrailheadMap(generateTrailheadMap(topo)));
+        : deriveSurfaceMapHash(deriveSurfaceMap(topo)));
 
     return {
       committedHash: committedLock?.hash ?? null,

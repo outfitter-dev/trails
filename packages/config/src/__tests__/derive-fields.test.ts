@@ -2,9 +2,9 @@ import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import { deprecated, env, secret } from '../extensions.js';
-import { describeConfig } from '../describe.js';
+import { deriveConfigFields } from '../derive-fields.js';
 
-describe('describeConfig', () => {
+describe('deriveConfigFields', () => {
   describe('basic field descriptions', () => {
     test('returns path, type, and required for each field', () => {
       const schema = z.object({
@@ -13,7 +13,7 @@ describe('describeConfig', () => {
         port: z.number(),
       });
 
-      const fields = describeConfig(schema);
+      const fields = deriveConfigFields(schema);
 
       expect(fields).toHaveLength(3);
       const host = fields.find((f) => f.path === 'host');
@@ -32,7 +32,7 @@ describe('describeConfig', () => {
         host: z.string().describe('The server hostname'),
       });
 
-      const fields = describeConfig(schema);
+      const fields = deriveConfigFields(schema);
       const host = fields.find((f) => f.path === 'host');
       expect(host?.description).toBe('The server hostname');
     });
@@ -47,7 +47,7 @@ describe('describeConfig', () => {
         ),
       });
 
-      const fields = describeConfig(schema);
+      const fields = deriveConfigFields(schema);
 
       const apiKey = fields.find((f) => f.path === 'apiKey');
       expect(apiKey?.env).toBe('API_KEY');
@@ -65,7 +65,7 @@ describe('describeConfig', () => {
         port: z.number().default(3000),
       });
 
-      const fields = describeConfig(schema);
+      const fields = deriveConfigFields(schema);
 
       const port = fields.find((f) => f.path === 'port');
       expect(port?.default).toBe(3000);
@@ -85,7 +85,7 @@ describe('describeConfig', () => {
         }),
       });
 
-      const fields = describeConfig(schema);
+      const fields = deriveConfigFields(schema);
 
       const dbHost = fields.find((f) => f.path === 'db.host');
       expect(dbHost?.type).toBe('string');
@@ -106,7 +106,7 @@ describe('describeConfig', () => {
           .optional(),
       });
 
-      const fields = describeConfig(schema);
+      const fields = deriveConfigFields(schema);
 
       expect(fields).toEqual([
         expect.objectContaining({ path: 'db.host', required: true }),
@@ -121,7 +121,7 @@ describe('describeConfig', () => {
         env: z.enum(['development', 'production', 'test']),
       });
 
-      const fields = describeConfig(schema);
+      const fields = deriveConfigFields(schema);
       const envField = fields.find((f) => f.path === 'env');
       expect(envField?.type).toBe('enum');
       expect(envField?.constraints?.values).toEqual([
@@ -136,7 +136,7 @@ describe('describeConfig', () => {
         port: z.number().min(1).max(65_535),
       });
 
-      const fields = describeConfig(schema);
+      const fields = deriveConfigFields(schema);
       const port = fields.find((f) => f.path === 'port');
       expect(port?.constraints?.min).toBe(1);
       expect(port?.constraints?.max).toBe(65_535);
@@ -150,7 +150,7 @@ describe('describeConfig', () => {
         nickname: z.string().optional(),
       });
 
-      const fields = describeConfig(schema);
+      const fields = deriveConfigFields(schema);
       const nickname = fields.find((f) => f.path === 'nickname');
       expect(nickname?.required).toBe(false);
     });

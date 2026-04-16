@@ -18,29 +18,32 @@ The package does not own topo history, pins, or `trails.db`. Those higher-level 
 
 ```typescript
 import {
-  diffTrailheadMaps,
-  generateTrailheadMap,
-  hashTrailheadMap,
+  deriveOpenApiSpec,
+  deriveSurfaceMap,
+  deriveSurfaceMapDiff,
+  deriveSurfaceMapHash,
   writeTrailheadLock,
   writeTrailheadMap,
 } from '@ontrails/schema';
 
-const map = generateTrailheadMap(app);
-const hash = hashTrailheadMap(map);
+const map = deriveSurfaceMap(app);
+const hash = deriveSurfaceMapHash(map);
 
 await writeTrailheadMap(map);
 await writeTrailheadLock({ hash });
 
 // Later, after changes:
-const nextMap = generateTrailheadMap(app);
-const diff = diffTrailheadMaps(map, nextMap);
+const nextMap = deriveSurfaceMap(app);
+const diff = deriveSurfaceMapDiff(map, nextMap);
 
 if (diff.hasBreaking) {
   console.error('Breaking changes:', diff.breaking);
 }
+
+const openApi = deriveOpenApiSpec(app);
 ```
 
-`generateTrailheadMap()` rejects draft-contaminated topos. Only established state can be serialized into the committed artifacts.
+`deriveSurfaceMap()` rejects draft-contaminated topos. Only established state can be serialized into the committed artifacts.
 
 ## File outputs
 
@@ -55,15 +58,15 @@ The typical exported artifact pair is:
 
 | Export | What it does |
 | --- | --- |
-| `generateTrailheadMap(topo)` | Deterministic trailhead map of every established trail, signal, and resource |
-| `hashTrailheadMap(map)` | Stable SHA-256 hash of the map |
-| `diffTrailheadMaps(prev, curr)` | Semantic diff with `breaking`, `warning`, and `info` classifications |
+| `deriveSurfaceMap(topo)` | Deterministic trailhead map of every established trail, signal, and resource |
+| `deriveSurfaceMapHash(map)` | Stable SHA-256 hash of the map |
+| `deriveSurfaceMapDiff(prev, curr)` | Semantic diff with `breaking`, `warning`, and `info` classifications |
 | `writeTrailheadMap(map, options?)` | Write `.trails/_trailhead.json` |
 | `readTrailheadMap(options?)` | Read `.trails/_trailhead.json` |
 | `writeTrailheadLock(lock, options?)` | Write `.trails/trails.lock` as either structured JSON or legacy hash text |
 | `readTrailheadLockData(options?)` | Read the full normalized lock payload from `.trails/trails.lock` |
 | `readTrailheadLock(options?)` | Read just the committed lock hash |
-| `generateOpenApiSpec(topo, options?)` | Generate an OpenAPI 3.1 document from the topo |
+| `deriveOpenApiSpec(topo, options?)` | Generate an OpenAPI 3.1 document from the topo |
 
 ## Breaking change detection
 
@@ -91,9 +94,9 @@ Because CLI paths are now full hierarchical command paths, command-tree changes 
 ## Drift detection with warden
 
 ```typescript
-import { generateTrailheadMap, hashTrailheadMap, readTrailheadLock } from '@ontrails/schema';
+import { deriveSurfaceMap, deriveSurfaceMapHash, readTrailheadLock } from '@ontrails/schema';
 
-const current = hashTrailheadMap(generateTrailheadMap(app));
+const current = deriveSurfaceMapHash(deriveSurfaceMap(app));
 const committed = await readTrailheadLock();
 
 if (committed !== current) {

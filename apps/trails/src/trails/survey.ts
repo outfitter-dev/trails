@@ -9,9 +9,9 @@ import type { Topo } from '@ontrails/core';
 import { NotFoundError, Result, trail } from '@ontrails/core';
 import type { DiffResult } from '@ontrails/schema';
 import {
-  diffTrailheadMaps,
-  generateOpenApiSpec,
-  generateTrailheadMap,
+  deriveSurfaceMapDiff,
+  deriveOpenApiSpec,
+  deriveSurfaceMap,
   readTrailheadMap,
 } from '@ontrails/schema';
 import { z } from 'zod';
@@ -51,7 +51,7 @@ const buildSurveyDiff = async (
   app: Topo,
   breakingOnly: boolean
 ): Promise<Result<object, Error>> => {
-  const currentMap = generateTrailheadMap(app);
+  const currentMap = deriveSurfaceMap(app);
   const previousMap = await readTrailheadMap();
   if (!previousMap) {
     return Result.err(
@@ -61,7 +61,7 @@ const buildSurveyDiff = async (
     );
   }
 
-  const diff = diffTrailheadMaps(previousMap, currentMap);
+  const diff = deriveSurfaceMapDiff(previousMap, currentMap);
   return Result.ok(
     breakingOnly
       ? formatDiff({
@@ -143,7 +143,7 @@ const surveyHandlers: Record<SurveyMode, SurveyHandler> = {
   generate: (app, _input, rootDir) => buildSurveyGenerate(app, rootDir),
   list: (app, _input, rootDir) =>
     Result.ok(buildCurrentTopoList(app, { rootDir })),
-  openapi: (app) => Result.ok(generateOpenApiSpec(app)),
+  openapi: (app) => Result.ok(deriveOpenApiSpec(app)),
 };
 
 /** Dispatch to the appropriate survey sub-command based on input flags. */

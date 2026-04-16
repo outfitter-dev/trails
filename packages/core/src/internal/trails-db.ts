@@ -40,11 +40,11 @@ interface SchemaVersionRow {
   readonly version: number;
 }
 
-const resolveRootDir = (rootDir?: string): string =>
+const deriveRootDir = (rootDir?: string): string =>
   resolve(rootDir ?? process.cwd());
 
 export const deriveTrailsDir = (options?: TrailsDbLocationOptions): string =>
-  join(resolveRootDir(options?.rootDir), TRAILS_DIR);
+  join(deriveRootDir(options?.rootDir), TRAILS_DIR);
 
 export const deriveTrailsDbPath = (options?: TrailsDbLocationOptions): string =>
   options?.path
@@ -138,7 +138,7 @@ const writeSubsystemVersion = (
 export const openWriteTrailsDb = (
   options?: TrailsDbLocationOptions
 ): Database => {
-  const rootDir = resolveRootDir(options?.rootDir);
+  const rootDir = deriveRootDir(options?.rootDir);
   const dbPath = deriveTrailsDbPath(
     options?.path ? { path: options.path, rootDir } : { rootDir }
   );

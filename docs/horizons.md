@@ -6,11 +6,11 @@
 
 **HTTP trailhead (`@ontrails/http`).** The third trailhead connector. `intent: 'read'` maps to GET, mutations to POST, `'destroy'` to DELETE. Route paths derived from trail IDs. Error taxonomy maps to HTTP status codes. One `trailhead()` call, same pattern as CLI and MCP. Built on Hono.
 
-**OpenAPI generation (`@ontrails/schema`).** `generateOpenApiSpec()` produces a complete OpenAPI 3.1 spec from the topo. The topo already carries everything OpenAPI needs.
+**OpenAPI generation (`@ontrails/schema`).** `deriveOpenApiSpec()` produces a complete OpenAPI 3.1 spec from the topo. The topo already carries everything OpenAPI needs.
 
 **Resources (`resource()` and trail `resources: [...]`).** Trails now declare infrastructure dependencies explicitly. `executeTrail()` resolves app-scoped singletons before layers and implementations run. Testing can auto-resolve `mock` factories, and survey / schema tooling exposes the full resource graph.
 
-**Config resolution (`@ontrails/config`).** `defineConfig()` provides schema-validated config with profiles (named environment profiles), env variable mapping, and `ResourceSpec.config` for resource-level config schemas. Includes diagnostics (`checkConfig`), introspection (`describeConfig`, `explainConfig`), and generation (`generateEnvExample`).
+**Config resolution (`@ontrails/config`).** `defineConfig()` provides schema-validated config with profiles (named environment profiles), env variable mapping, and `ResourceSpec.config` for resource-level config schemas. Includes diagnostics (`checkConfig`), introspection (`deriveConfigFields`, `deriveConfigProvenance`), and generation (`deriveConfigEnvExample`).
 
 **Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. `authLayer` extracts credentials from trailhead-specific sources, `AuthConnector` resolves them to a `Permit` (identity, scopes, roles), and scope enforcement rejects unauthorized access. Includes JWT connector, governance rules (`validatePermits`), and test helpers (`mintTestPermit`, `mintPermitForTrail`).
 

@@ -9,10 +9,10 @@ export { createConsoleSink, createFileSink } from './sinks.js';
 export { createJsonFormatter, createPrettyFormatter } from './formatters.js';
 
 // Level resolution
-export { resolveLogLevel } from './env.js';
+export { deriveLogLevel } from './env.js';
 
 // Levels
-export { LEVEL_PRIORITY, shouldLog, resolveCategory } from './levels.js';
+export { LEVEL_PRIORITY, shouldLog, deriveCategory } from './levels.js';
 
 // Types
 export type {

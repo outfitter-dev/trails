@@ -228,7 +228,7 @@ const walkShapeLevel = (
  *
  * Returns a structured catalog suitable for CLI rendering or agent inspection.
  */
-export const describeConfig = (
+export const deriveConfigFields = (
   schema: z.ZodObject<Record<string, z.ZodType>>
 ): readonly FieldDescription[] => {
   const configMeta = collectConfigMeta(schema);

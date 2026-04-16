@@ -12,7 +12,7 @@ import {
 import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { generateTrailheadMap } from '../generate.js';
+import { deriveSurfaceMap } from '../derive.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -45,7 +45,7 @@ const gistContour = contour(
   { identity: 'id' }
 );
 
-const getFirstEntry = (map: ReturnType<typeof generateTrailheadMap>) => {
+const getFirstEntry = (map: ReturnType<typeof deriveSurfaceMap>) => {
   const [entry] = map.entries;
   expect(entry).toBeDefined();
   if (!entry) {
@@ -70,7 +70,7 @@ const expectSchemaProperties = (
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('generateTrailheadMap', () => {
+describe('deriveSurfaceMap', () => {
   describe('entries', () => {
     test('produces entries for all trails in the topo', () => {
       const a = trail('a.create', {
@@ -82,7 +82,7 @@ describe('generateTrailheadMap', () => {
         input: z.object({}),
       });
       const tp = topoFrom({ a, b });
-      const map = generateTrailheadMap(tp);
+      const map = deriveSurfaceMap(tp);
 
       expect(map.entries).toHaveLength(2);
       expect(map.entries.map((e) => e.id)).toEqual(['a.create', 'b.list']);
@@ -102,7 +102,7 @@ describe('generateTrailheadMap', () => {
         input: z.object({}),
       });
       const tp = topoFrom({ a2, m2, z2 });
-      const map = generateTrailheadMap(tp);
+      const map = deriveSurfaceMap(tp);
 
       expect(map.entries.map((e) => e.id)).toEqual([
         'a.trail',
@@ -118,7 +118,7 @@ describe('generateTrailheadMap', () => {
         output: z.object({ id: z.string(), name: z.string() }),
         resources: [dbResource],
       });
-      const map = generateTrailheadMap(topoFrom({ t }));
+      const map = deriveSurfaceMap(topoFrom({ t }));
       const entry = getFirstEntry(map);
 
       expect(entry.input).toBeDefined();
@@ -141,7 +141,7 @@ describe('generateTrailheadMap', () => {
         contours: [gistContour, userContour],
         input: z.object({}),
       });
-      const entry = generateTrailheadMap(topoFrom({ t })).entries.find(
+      const entry = deriveSurfaceMap(topoFrom({ t })).entries.find(
         (candidate) => candidate.id === 'gist.create'
       );
 
@@ -154,7 +154,7 @@ describe('generateTrailheadMap', () => {
         input: z.object({ msg: z.string() }),
       });
       const tp = topoFrom({ t });
-      const map = generateTrailheadMap(tp);
+      const map = deriveSurfaceMap(tp);
 
       expect(map.entries[0]?.output).toBeUndefined();
     });
@@ -170,7 +170,7 @@ describe('generateTrailheadMap', () => {
         input: z.object({ id: z.string(), name: z.string() }),
       });
       const tp = topoFrom({ base, r });
-      const map = generateTrailheadMap(tp);
+      const map = deriveSurfaceMap(tp);
       const crossesEntry = map.entries.find((e) => e.id === 'user.update');
       expect(crossesEntry).toBeDefined();
 
@@ -184,7 +184,7 @@ describe('generateTrailheadMap', () => {
         description: 'A user was created',
         payload: z.object({ userId: z.string() }),
       });
-      const entry = getFirstEntry(generateTrailheadMap(topoFrom({ e })));
+      const entry = getFirstEntry(deriveSurfaceMap(topoFrom({ e })));
 
       expect(entry.kind).toBe('signal');
       expect(entry.id).toBe('user.created');
@@ -193,7 +193,7 @@ describe('generateTrailheadMap', () => {
     });
 
     test('resource entries are included with description and healthcheck metadata', () => {
-      const map = generateTrailheadMap(topoFrom({ dbResource }));
+      const map = deriveSurfaceMap(topoFrom({ dbResource }));
       const entry = getFirstEntry(map);
 
       expect(entry.kind).toBe('resource');
@@ -204,7 +204,7 @@ describe('generateTrailheadMap', () => {
     });
 
     test('contour entries are included with schema and references', () => {
-      const entry = generateTrailheadMap(
+      const entry = deriveSurfaceMap(
         topoFrom({ gistContour, userContour })
       ).entries.find((candidate) => candidate.id === 'gist');
 
@@ -234,7 +234,7 @@ describe('generateTrailheadMap', () => {
         input: z.object({}),
         intent: 'read',
       });
-      const entry = getFirstEntry(generateTrailheadMap(topoFrom({ t })));
+      const entry = getFirstEntry(deriveSurfaceMap(topoFrom({ t })));
 
       expect(entry.intent).toBe('read');
       expect(entry.idempotent).toBe(true);
@@ -252,7 +252,7 @@ describe('generateTrailheadMap', () => {
         output: z.object({ y: z.number() }),
       });
       const tp = topoFrom({ t });
-      const map = generateTrailheadMap(tp);
+      const map = deriveSurfaceMap(tp);
 
       expect(map.entries[0]?.exampleCount).toBe(3);
     });
@@ -270,7 +270,7 @@ describe('generateTrailheadMap', () => {
         ],
         input: z.object({}),
       });
-      const entry = getFirstEntry(generateTrailheadMap(topoFrom({ t })));
+      const entry = getFirstEntry(deriveSurfaceMap(topoFrom({ t })));
 
       expect(entry.detours).toEqual([{ maxAttempts: 2, on: 'ConflictError' }]);
     });
@@ -282,7 +282,7 @@ describe('generateTrailheadMap', () => {
         input: z.object({}),
       });
       const tp = topoFrom({ t });
-      const map = generateTrailheadMap(tp);
+      const map = deriveSurfaceMap(tp);
 
       expect(map.entries[0]?.description).toBe('A described trail');
     });
@@ -299,8 +299,8 @@ describe('generateTrailheadMap', () => {
       });
       const tp = topoFrom({ t });
 
-      const map1 = generateTrailheadMap(tp);
-      const map2 = generateTrailheadMap(tp);
+      const map1 = deriveSurfaceMap(tp);
+      const map2 = deriveSurfaceMap(tp);
 
       expect(map1.entries).toEqual(map2.entries);
       expect(map1.version).toBe(map2.version);
@@ -312,7 +312,7 @@ describe('generateTrailheadMap', () => {
         input: z.object({}),
       });
       const tp = topoFrom({ t });
-      const map = generateTrailheadMap(tp);
+      const map = deriveSurfaceMap(tp);
 
       expect(map.version).toBe('1.0');
     });
@@ -323,7 +323,7 @@ describe('generateTrailheadMap', () => {
         input: z.object({}),
       });
       const tp = topoFrom({ t });
-      const map = generateTrailheadMap(tp);
+      const map = deriveSurfaceMap(tp);
 
       expect(new Date(map.generatedAt).toISOString()).toBe(map.generatedAt);
     });
@@ -337,9 +337,9 @@ describe('generateTrailheadMap', () => {
         input: z.object({}),
       });
 
-      expect(() =>
-        generateTrailheadMap(topoFrom({ exportTrail }))
-      ).toThrowError(/draft/i);
+      expect(() => deriveSurfaceMap(topoFrom({ exportTrail }))).toThrowError(
+        /draft/i
+      );
     });
   });
 });

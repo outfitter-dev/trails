@@ -10,9 +10,9 @@ import { join, resolve } from 'node:path';
 
 import { ConflictError, Result, resource, topo, trail } from '@ontrails/core';
 import {
-  generateTrailheadMap,
-  hashTrailheadMap,
-  diffTrailheadMaps,
+  deriveSurfaceMap,
+  deriveSurfaceMapHash,
+  deriveSurfaceMapDiff,
 } from '@ontrails/schema';
 import type { TrailheadMap } from '@ontrails/schema';
 import { z } from 'zod';
@@ -129,8 +129,8 @@ const repoTempDir = (): string =>
 // ---------------------------------------------------------------------------
 
 describe('trails survey', () => {
-  test('generateTrailheadMap includes all trails', () => {
-    const trailheadMap = generateTrailheadMap(app);
+  test('deriveSurfaceMap includes all trails', () => {
+    const trailheadMap = deriveSurfaceMap(app);
     expect(trailheadMap.entries.length).toBe(3);
     const ids = trailheadMap.entries.map((e) => e.id);
     expect(ids).toContain('hello');
@@ -139,7 +139,7 @@ describe('trails survey', () => {
   });
 
   test('trailhead map entries have expected fields', () => {
-    const trailheadMap = generateTrailheadMap(app);
+    const trailheadMap = deriveSurfaceMap(app);
     const hello = trailheadMap.entries.find((e) => e.id === 'hello');
     expect(hello).toBeDefined();
     expect(hello?.cli?.path).toEqual(['hello']);
@@ -150,26 +150,26 @@ describe('trails survey', () => {
   });
 
   test('JSON output is valid JSON', () => {
-    const trailheadMap = generateTrailheadMap(app);
+    const trailheadMap = deriveSurfaceMap(app);
     const json = JSON.stringify(trailheadMap, null, 2);
     const parsed = JSON.parse(json) as TrailheadMap;
     expect(parsed.version).toBe('1.0');
     expect(parsed.entries.length).toBe(3);
   });
 
-  test('hashTrailheadMap produces stable hash', () => {
-    const trailheadMap = generateTrailheadMap(app);
-    const hash1 = hashTrailheadMap(trailheadMap);
-    const hash2 = hashTrailheadMap(trailheadMap);
+  test('deriveSurfaceMapHash produces stable hash', () => {
+    const trailheadMap = deriveSurfaceMap(app);
+    const hash1 = deriveSurfaceMapHash(trailheadMap);
+    const hash2 = deriveSurfaceMapHash(trailheadMap);
     expect(hash1).toBe(hash2);
     // SHA-256 hex
     expect(hash1.length).toBe(64);
   });
 
-  test('diffTrailheadMaps detects added trails', () => {
-    const prev = generateTrailheadMap(topo('test', { hello: helloTrail }));
-    const curr = generateTrailheadMap(app);
-    const diff = diffTrailheadMaps(prev, curr);
+  test('deriveSurfaceMapDiff detects added trails', () => {
+    const prev = deriveSurfaceMap(topo('test', { hello: helloTrail }));
+    const curr = deriveSurfaceMap(app);
+    const diff = deriveSurfaceMapDiff(prev, curr);
 
     expect(diff.info.length).toBeGreaterThan(0);
     const addedBye = diff.info.find((e) => e.id === 'bye');
@@ -177,10 +177,10 @@ describe('trails survey', () => {
     expect(addedBye?.change).toBe('added');
   });
 
-  test('diffTrailheadMaps detects removed trails', () => {
-    const prev = generateTrailheadMap(app);
-    const curr = generateTrailheadMap(topo('test', { hello: helloTrail }));
-    const diff = diffTrailheadMaps(prev, curr);
+  test('deriveSurfaceMapDiff detects removed trails', () => {
+    const prev = deriveSurfaceMap(app);
+    const curr = deriveSurfaceMap(topo('test', { hello: helloTrail }));
+    const diff = deriveSurfaceMapDiff(prev, curr);
 
     expect(diff.hasBreaking).toBe(true);
     const removedBye = diff.breaking.find((e) => e.id === 'bye');
@@ -188,9 +188,9 @@ describe('trails survey', () => {
     expect(removedBye?.change).toBe('removed');
   });
 
-  test('diffTrailheadMaps returns empty for identical maps', () => {
-    const trailheadMap = generateTrailheadMap(app);
-    const diff = diffTrailheadMaps(trailheadMap, trailheadMap);
+  test('deriveSurfaceMapDiff returns empty for identical maps', () => {
+    const trailheadMap = deriveSurfaceMap(app);
+    const diff = deriveSurfaceMapDiff(trailheadMap, trailheadMap);
     expect(diff.entries.length).toBe(0);
     expect(diff.hasBreaking).toBe(false);
   });

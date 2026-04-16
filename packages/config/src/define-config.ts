@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import type { z } from 'zod';
 
 import { appConfig } from './app-config.js';
-import { resolveConfig } from './resolve.js';
+import { deriveConfig } from './resolve.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -118,7 +118,7 @@ export const defineConfig = <T extends z.ZodType>(
       const cwd = resolveOpts?.cwd ?? process.cwd();
       const localOverrides = await discoverLocalOverrides(cwd, envRecord);
 
-      return resolveConfig({
+      return deriveConfig({
         base: options.base as Record<string, unknown> | undefined,
         env: envRecord,
         localOverrides,

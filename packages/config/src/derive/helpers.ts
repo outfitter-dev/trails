@@ -86,7 +86,7 @@ export const getObjectShape = (
 };
 
 /** Resolve a dot-separated path to the field schema within an object. */
-export const resolveFieldByPath = (
+export const deriveFieldByPath = (
   schema: z.ZodObject<Record<string, z.ZodType>>,
   path: string
 ): z.ZodType | undefined => {

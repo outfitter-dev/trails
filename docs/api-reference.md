@@ -158,8 +158,8 @@ TrailheadHttpOptions
 ## `@ontrails/schema`
 
 ```typescript
-generateOpenApiSpec(topo, options?) // OpenAPI 3.1 spec from topo
-generateTrailheadMap(topo), hashTrailheadMap(map), diffTrailheadMaps(before, after)
+deriveOpenApiSpec(topo, options?) // OpenAPI 3.1 spec from topo
+deriveSurfaceMap(topo), deriveSurfaceMapHash(map), deriveSurfaceMapDiff(before, after)
 writeTrailheadMap(map, options?), readTrailheadMap(options?)
 writeTrailheadLock(lock, options?), readTrailheadLockData(options?), readTrailheadLock(options?)
 
@@ -265,11 +265,20 @@ deprecated(schema, message)          // mark a field as deprecated with migratio
 
 // Resource & layer
 configResource                       // resource for resolved config state
-configGate                           // layer for per-trail config context
+configLayer                          // layer for per-trail config context
 
 // State management
 registerConfigState(state)           // register resolved config at bootstrap
+getConfigState()                     // read registered config state
 clearConfigState()                   // clear global config state (for tests)
+
+// Derivation helpers
+deriveConfig(options?)               // resolve config values against schema + sources
+deriveConfigFields(schema)           // field descriptions from the schema
+deriveConfigProvenance(result)       // provenance by resolved field
+deriveConfigEnvExample(schema)       // .env.example content from the schema
+deriveConfigExample(schema, format?) // commented example config for TOML / YAML / JSON
+deriveConfigJsonSchema(schema)       // JSON Schema Draft 2020-12 from the config schema
 
 // Trail definitions
 configCheck                          // validate config values against schema

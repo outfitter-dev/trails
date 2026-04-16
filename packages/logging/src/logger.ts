@@ -6,8 +6,8 @@ import {
 
 import type { Logger } from '@ontrails/core';
 
-import { resolveLogLevel } from './env.js';
-import { resolveCategory, shouldLog } from './levels.js';
+import { deriveLogLevel } from './env.js';
+import { deriveCategory, shouldLog } from './levels.js';
 import { createConsoleSink } from './sinks.js';
 import type {
   LogLevel,
@@ -110,9 +110,9 @@ const buildInstance = (
  * This is the **only** API for creating loggers in `@ontrails/logging`.
  */
 export const createLogger = (config: LoggerConfig): Logger => {
-  const envLevel = resolveLogLevel();
+  const envLevel = deriveLogLevel();
   const baseLevel: LogLevel = config.level ?? envLevel ?? 'info';
-  const effectiveLevel = resolveCategory(config.name, config.levels, baseLevel);
+  const effectiveLevel = deriveCategory(config.name, config.levels, baseLevel);
 
   const redactor = createRedactor({
     patterns: [...DEFAULT_PATTERNS, ...(config.redaction?.patterns ?? [])],

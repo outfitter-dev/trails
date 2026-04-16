@@ -8,8 +8,8 @@ import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { configResource } from '../config-resource.js';
-import type { ExplainConfigOptions } from '../explain.js';
-import { explainConfig } from '../explain.js';
+import type { DeriveConfigProvenanceOptions } from '../derive-provenance.js';
+import { deriveConfigProvenance } from '../derive-provenance.js';
 import type { ConfigState } from '../registry.js';
 
 const provenanceEntrySchema = z.object({
@@ -34,11 +34,11 @@ const filterByPath = (
       )
     : entries;
 
-/** Build ExplainConfigOptions from ConfigState, omitting undefined source overrides. */
+/** Build DeriveConfigProvenanceOptions from ConfigState, omitting undefined source overrides. */
 const toExplainOptions = (
   state: ConfigState
-): ExplainConfigOptions<typeof state.schema> => {
-  const base: ExplainConfigOptions<typeof state.schema> = {
+): DeriveConfigProvenanceOptions<typeof state.schema> => {
+  const base: DeriveConfigProvenanceOptions<typeof state.schema> = {
     resolved: state.resolved,
     schema: state.schema,
   };
@@ -51,8 +51,8 @@ const toExplainOptions = (
 /** Enrich explain options with env and source overrides from state. */
 const enrichOptions = (
   state: ConfigState,
-  options: ExplainConfigOptions<typeof state.schema>
-): ExplainConfigOptions<typeof state.schema> => {
+  options: DeriveConfigProvenanceOptions<typeof state.schema>
+): DeriveConfigProvenanceOptions<typeof state.schema> => {
   let enriched = options;
   if (state.env) {
     enriched = { ...enriched, env: state.env };
@@ -70,7 +70,7 @@ export const configExplain = trail('config.explain', {
   blaze: (input, ctx) => {
     const state = configResource.from(ctx);
     const options = enrichOptions(state, toExplainOptions(state));
-    const entries = explainConfig(options);
+    const entries = deriveConfigProvenance(options);
     const filtered = filterByPath(entries, input.path);
     return Result.ok({ entries: [...filtered] });
   },

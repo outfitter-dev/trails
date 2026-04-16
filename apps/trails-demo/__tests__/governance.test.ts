@@ -15,9 +15,9 @@ import { describe, expect, test } from 'bun:test';
 
 import { Result, trail, topo, validateTopo } from '@ontrails/core';
 import {
-  diffTrailheadMaps,
-  generateTrailheadMap,
-  hashTrailheadMap,
+  deriveSurfaceMapDiff,
+  deriveSurfaceMap,
+  deriveSurfaceMapHash,
 } from '@ontrails/schema';
 import { z } from 'zod';
 
@@ -36,7 +36,7 @@ import * as search from '../src/trails/search.js';
 // ---------------------------------------------------------------------------
 
 describe('trailhead map generation', () => {
-  const trailheadMap = generateTrailheadMap(app);
+  const trailheadMap = deriveSurfaceMap(app);
 
   test('contains all expected trail, event, and resource IDs', () => {
     const ids = trailheadMap.entries.map((e) => e.id);
@@ -138,24 +138,24 @@ describe('trailhead map generation', () => {
 
 describe('trailhead map hashing is deterministic', () => {
   test('identical topos produce identical hashes', () => {
-    const map1 = generateTrailheadMap(app);
-    const map2 = generateTrailheadMap(app);
+    const map1 = deriveSurfaceMap(app);
+    const map2 = deriveSurfaceMap(app);
 
-    const hash1 = hashTrailheadMap(map1);
-    const hash2 = hashTrailheadMap(map2);
+    const hash1 = deriveSurfaceMapHash(map1);
+    const hash2 = deriveSurfaceMapHash(map2);
 
     expect(hash1).toBe(hash2);
   });
 
   test('hash is a valid 64-character hex string', () => {
-    const trailheadMap = generateTrailheadMap(app);
-    const hash = hashTrailheadMap(trailheadMap);
+    const trailheadMap = deriveSurfaceMap(app);
+    const hash = deriveSurfaceMapHash(trailheadMap);
 
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
   test('generatedAt timestamp does not affect hash', () => {
-    const map1 = generateTrailheadMap(app);
+    const map1 = deriveSurfaceMap(app);
 
     // Manually create a copy with a different generatedAt
     const map2 = {
@@ -163,7 +163,7 @@ describe('trailhead map hashing is deterministic', () => {
       generatedAt: '2099-12-31T23:59:59.999Z',
     };
 
-    expect(hashTrailheadMap(map1)).toBe(hashTrailheadMap(map2));
+    expect(deriveSurfaceMapHash(map1)).toBe(deriveSurfaceMapHash(map2));
   });
 });
 
@@ -204,10 +204,10 @@ const makeModifiedShow = (inputSchema: z.ZodType) =>
 
 /** Diff the baseline app against a modified app. */
 const diffAgainst = (...modules: Record<string, unknown>[]) => {
-  const before = generateTrailheadMap(app);
+  const before = deriveSurfaceMap(app);
   const modifiedApp = topo('demo-modified', ...modules);
-  const after = generateTrailheadMap(modifiedApp);
-  return diffTrailheadMaps(before, after);
+  const after = deriveSurfaceMap(modifiedApp);
+  return deriveSurfaceMapDiff(before, after);
 };
 
 describe('breaking change detection', () => {
@@ -320,9 +320,9 @@ describe('non-breaking change detection', () => {
   });
 
   test('no changes produces empty diff', () => {
-    const map1 = generateTrailheadMap(app);
-    const map2 = generateTrailheadMap(app);
-    const diff = diffTrailheadMaps(map1, map2);
+    const map1 = deriveSurfaceMap(app);
+    const map2 = deriveSurfaceMap(app);
+    const diff = deriveSurfaceMapDiff(map1, map2);
 
     expect(diff.hasBreaking).toBe(false);
     expect(diff.entries).toHaveLength(0);

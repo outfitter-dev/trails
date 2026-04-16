@@ -28,7 +28,7 @@ export const shouldLog = (
 ): boolean => LEVEL_PRIORITY[messageLevel] >= LEVEL_PRIORITY[configuredLevel];
 
 // ---------------------------------------------------------------------------
-// resolveCategory
+// deriveCategory
 // ---------------------------------------------------------------------------
 
 /**
@@ -57,7 +57,7 @@ const findLevel = (
   return undefined;
 };
 
-export const resolveCategory = (
+export const deriveCategory = (
   name: string,
   levels: Record<string, LogLevel> | undefined,
   fallback: LogLevel

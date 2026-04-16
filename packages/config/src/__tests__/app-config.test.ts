@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 import type { AppConfig } from '../app-config.js';
 import { appConfig } from '../app-config.js';
-import { describeConfig } from '../describe.js';
+import { deriveConfigFields } from '../derive-fields.js';
 import { checkConfig } from '../doctor.js';
 import { configRef } from '../ref.js';
 
@@ -289,10 +289,10 @@ describe('appConfig()', () => {
   });
 
   describe('method delegations', () => {
-    test('describe() returns same result as describeConfig(schema)', () => {
+    test('describe() returns same result as deriveConfigFields(schema)', () => {
       const config = appConfig('myapp', { schema: testSchema });
       const methodResult = config.describe();
-      const standaloneResult = describeConfig(testSchema);
+      const standaloneResult = deriveConfigFields(testSchema);
 
       expect(methodResult).toEqual(standaloneResult);
     });
@@ -315,7 +315,7 @@ describe('appConfig()', () => {
       expect(methodResult).toEqual(standaloneResult);
     });
 
-    test('explain() delegates to explainConfig with bound schema', () => {
+    test('explain() delegates to deriveConfigProvenance with bound schema', () => {
       const config = appConfig('myapp', { schema: testSchema });
       const resolved = { output: './dist', verbose: true };
 

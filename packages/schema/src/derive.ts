@@ -1,5 +1,5 @@
 /**
- * Generate a deterministic trailhead map from a Topo.
+ * Derive a deterministic trailhead map from a Topo.
  */
 
 import {
@@ -257,12 +257,12 @@ const collectEntries = (topo: Topo): TrailheadMapEntry[] => [
 // ---------------------------------------------------------------------------
 
 /**
- * Generate a deterministic trailhead map from a Topo.
+ * Derive a deterministic trailhead map from a Topo.
  *
  * Entries are sorted alphabetically by id. Object keys within each entry
  * are sorted lexicographically for stable serialization.
  */
-export const generateTrailheadMap = (topo: Topo): TrailheadMap => {
+export const deriveSurfaceMap = (topo: Topo): TrailheadMap => {
   assertEstablishedTopo(topo);
   const sorted = collectEntries(topo).toSorted((a, b) =>
     a.id.localeCompare(b.id)

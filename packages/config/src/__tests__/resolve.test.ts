@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import { env } from '../extensions.js';
-import { resolveConfig } from '../resolve.js';
+import { deriveConfig } from '../resolve.js';
 
 const baseSchema = z.object({
   debug: z.boolean().default(false),
@@ -10,10 +10,10 @@ const baseSchema = z.object({
   port: z.number().default(3000),
 });
 
-describe('resolveConfig', () => {
+describe('deriveConfig', () => {
   describe('schema defaults', () => {
     test('applies schema defaults when no other source provides values', () => {
-      const result = resolveConfig({ schema: baseSchema });
+      const result = deriveConfig({ schema: baseSchema });
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toEqual({
@@ -26,7 +26,7 @@ describe('resolveConfig', () => {
 
   describe('base config', () => {
     test('overrides schema defaults', () => {
-      const result = resolveConfig({
+      const result = deriveConfig({
         base: { host: 'example.com', port: 8080 },
         schema: baseSchema,
       });
@@ -42,7 +42,7 @@ describe('resolveConfig', () => {
 
   describe('profiles', () => {
     test('overrides base config for matching profile', () => {
-      const result = resolveConfig({
+      const result = deriveConfig({
         base: { host: 'example.com', port: 8080 },
         profile: 'production',
         profiles: {
@@ -59,7 +59,7 @@ describe('resolveConfig', () => {
     });
 
     test('silently ignores unrecognized profile (base only)', () => {
-      const result = resolveConfig({
+      const result = deriveConfig({
         base: { host: 'example.com' },
         profile: 'staging',
         profiles: {
@@ -84,7 +84,7 @@ describe('resolveConfig', () => {
           .default({}),
       });
 
-      const result = resolveConfig({
+      const result = deriveConfig({
         base: { db: { host: 'db.example.com', port: 5432 } },
         localOverrides: { db: { port: 9999 } },
         profile: 'production',
@@ -108,7 +108,7 @@ describe('resolveConfig', () => {
         port: env(z.number(), 'APP_PORT').default(3000),
       });
 
-      const result = resolveConfig({
+      const result = deriveConfig({
         base: { host: 'example.com', port: 8080 },
         env: { APP_HOST: 'env-host.example.com', APP_PORT: '9090' },
         schema,
@@ -125,7 +125,7 @@ describe('resolveConfig', () => {
         port: env(z.number(), 'PORT').default(3000),
       });
 
-      const result = resolveConfig({
+      const result = deriveConfig({
         env: { PORT: '8080' },
         schema,
       });
@@ -139,7 +139,7 @@ describe('resolveConfig', () => {
         port: env(z.number(), 'PORT').default(3000),
       });
 
-      const result = resolveConfig({
+      const result = deriveConfig({
         env: { PORT: 'abc' },
         schema,
       });
@@ -153,7 +153,7 @@ describe('resolveConfig', () => {
         verbose: env(z.boolean(), 'VERBOSE').default(false),
       });
 
-      const trueValues = resolveConfig({
+      const trueValues = deriveConfig({
         env: { DEBUG: 'true', VERBOSE: '1' },
         schema,
       });
@@ -161,7 +161,7 @@ describe('resolveConfig', () => {
       expect(trueValues.unwrap().debug).toBe(true);
       expect(trueValues.unwrap().verbose).toBe(true);
 
-      const falseValues = resolveConfig({
+      const falseValues = deriveConfig({
         env: { DEBUG: 'false', VERBOSE: '0' },
         schema,
       });
@@ -177,7 +177,7 @@ describe('resolveConfig', () => {
         required: z.string(),
       });
 
-      const result = resolveConfig({ schema });
+      const result = deriveConfig({ schema });
 
       expect(result.isErr()).toBe(true);
     });
@@ -190,7 +190,7 @@ describe('resolveConfig', () => {
       });
       const base = { host: 'dev-host' };
 
-      const first = resolveConfig({
+      const first = deriveConfig({
         base,
         env: { APP_HOST: 'env-host' },
         schema,
@@ -198,7 +198,7 @@ describe('resolveConfig', () => {
       expect(first.isOk()).toBe(true);
       expect(first.unwrap().host).toBe('env-host');
 
-      const second = resolveConfig({ base, schema });
+      const second = deriveConfig({ base, schema });
       expect(second.isOk()).toBe(true);
       expect(second.unwrap().host).toBe('dev-host');
       expect(base.host).toBe('dev-host');
@@ -215,7 +215,7 @@ describe('resolveConfig', () => {
         port: z.number().default(3000),
       });
 
-      const result = resolveConfig({
+      const result = deriveConfig({
         // base overrides name
         base: { name: 'my-app', port: 8080 },
         // env overrides debug and apiUrl

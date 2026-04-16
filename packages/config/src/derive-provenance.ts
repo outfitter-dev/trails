@@ -23,7 +23,7 @@ export interface ProvenanceEntry {
 }
 
 /** Options for explaining config provenance. */
-export interface ExplainConfigOptions<T extends z.ZodType> {
+export interface DeriveConfigProvenanceOptions<T extends z.ZodType> {
   readonly schema: T;
   readonly base?: Record<string, unknown>;
   readonly profile?: Record<string, unknown>;
@@ -135,8 +135,8 @@ const collectLeafPaths = (schema: z.ZodType, prefix: string): string[] => {
  * Used for debugging — answers "where did this value come from?"
  *
  */
-export const explainConfig = <T extends z.ZodType>(
-  options: ExplainConfigOptions<T>
+export const deriveConfigProvenance = <T extends z.ZodType>(
+  options: DeriveConfigProvenanceOptions<T>
 ): readonly ProvenanceEntry[] => {
   const objSchema = options.schema as unknown as z.ZodObject<
     Record<string, z.ZodType>

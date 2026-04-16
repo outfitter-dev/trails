@@ -11,11 +11,11 @@ const isValidLogLevel = (value: string): value is LogLevel =>
   VALID_LEVELS.has(value);
 
 // ---------------------------------------------------------------------------
-// resolveLogLevel
+// deriveLogLevel
 // ---------------------------------------------------------------------------
 
 /**
- * Resolve log level from environment variables.
+ * Derive log level from environment variables.
  *
  * 1. `TRAILS_LOG_LEVEL` -- explicit override (if valid).
  * 2. `TRAILS_ENV` profile defaults:
@@ -24,7 +24,7 @@ const isValidLogLevel = (value: string): value is LogLevel =>
  *    - `production` -> `undefined` (caller falls through to `"info"`)
  * 3. `undefined` -- no env-based level configured.
  */
-export const resolveLogLevel = (
+export const deriveLogLevel = (
   env?: Record<string, string | undefined>
 ): LogLevel | undefined => {
   const source = env ?? process.env;

@@ -1,5 +1,5 @@
 /**
- * Generate an OpenAPI 3.1 specification from a Topo.
+ * Derive an OpenAPI 3.1 specification from a Topo.
  *
  * Converts each trail into an HTTP operation, deriving paths, methods,
  * parameters, and response schemas from the trail contract.
@@ -322,13 +322,13 @@ const buildInfo = (
 // ---------------------------------------------------------------------------
 
 /**
- * Generate an OpenAPI 3.1 specification from a Topo.
+ * Derive an OpenAPI 3.1 specification from a Topo.
  *
  * Iterates all trails, skipping signals and internal trails, and produces
  * paths, operations, parameters, and response schemas derived from
  * the trail contract.
  */
-export const generateOpenApiSpec = (
+export const deriveOpenApiSpec = (
   app: Topo,
   options?: OpenApiOptions
 ): OpenApiSpec => {
