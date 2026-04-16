@@ -10,7 +10,7 @@ import {
   ValidationError,
   resource,
 } from '@ontrails/core';
-import { store as defineStore, versionFieldName } from '@ontrails/store';
+import { versionFieldName } from '@ontrails/store';
 import type {
   AnyStoreDefinition,
   AnyStoreTable,
@@ -21,9 +21,9 @@ import type {
   StoreAccessMode,
   StoreFieldKey,
   StoreIdentifierOf,
+  StoreMockSeed,
   StoreTableAccessor,
   StoreTableConnection,
-  StoreTablesInput,
   UpsertOf,
   UpdateOf,
 } from '@ontrails/store';
@@ -34,17 +34,15 @@ import type { z } from 'zod';
 import type { TrailContext } from '@ontrails/core';
 
 import {
-  createSqliteSchemaStatements,
-  describeField,
   deriveDrizzleTables,
+  deriveFieldSpec,
+  deriveSqliteSchemaStatements,
 } from './schema.js';
 import type {
-  ConnectDrizzleOptions,
-  DrizzleMockSeed,
   DrizzleStoreConnection,
+  DrizzleStoreOptions,
   DrizzleStoreResource,
   DrizzleStoreSchema,
-  ReadOnlyDrizzleOptions,
   ReadOnlyDrizzleStoreConnection,
 } from './types.js';
 
@@ -169,7 +167,7 @@ const baseFieldKind = <TTable extends AnyStoreTable>(
   table: TTable,
   field: StoreFieldKey<TTable['schema']>
 ): string =>
-  describeField(
+  deriveFieldSpec(
     field as string,
     table.schema.shape[field as keyof typeof table.schema.shape] as z.ZodType
   ).kind;
@@ -565,7 +563,7 @@ const ensureSqliteSchema = (
   client: Database,
   definition: AnyStoreDefinition
 ): void => {
-  for (const statement of createSqliteSchemaStatements(definition)) {
+  for (const statement of deriveSqliteSchemaStatements(definition)) {
     client.run(statement);
   }
 };
@@ -857,7 +855,7 @@ const createWritableAccessor = <
 /** Collect non-empty fixture arrays keyed by table name. */
 const collectFixtures = <TStore extends AnyStoreDefinition>(
   definition: TStore,
-  seed?: DrizzleMockSeed<TStore>
+  seed?: StoreMockSeed<TStore>
 ): Map<string, readonly FixtureInputOf<AnyStoreTable>[]> => {
   const result = new Map<string, readonly FixtureInputOf<AnyStoreTable>[]>();
   for (const tableName of definition.tableNames) {
@@ -907,7 +905,7 @@ const seedFixtures = <TStore extends AnyStoreDefinition>(
   definition: TStore,
   tables: DrizzleStoreSchema<TStore>,
   db: ReturnType<typeof drizzle<DrizzleStoreSchema<TStore>>>,
-  seed?: DrizzleMockSeed<TStore>
+  seed?: StoreMockSeed<TStore>
 ): void => {
   const fixturesByTable = collectFixtures(definition, seed);
   if (fixturesByTable.size === 0) {
@@ -989,7 +987,7 @@ const seedReadonlyMockDatabase = <TStore extends AnyStoreDefinition>(
   definition: TStore,
   tables: DrizzleStoreSchema<TStore>,
   url: string,
-  seed?: DrizzleMockSeed<TStore>
+  seed?: StoreMockSeed<TStore>
 ): void => {
   const writableClient = openSqliteDatabase(url, false);
   try {
@@ -1020,7 +1018,7 @@ const openReadonlyMockConnection = <TStore extends AnyStoreDefinition>(
 const createReadonlyMockConnection = <TStore extends AnyStoreDefinition>(
   definition: TStore,
   tables: DrizzleStoreSchema<TStore>,
-  seed?: DrizzleMockSeed<TStore>
+  seed?: StoreMockSeed<TStore>
 ): ReadOnlyDrizzleStoreConnection<TStore> => {
   const tempDir = createReadonlyMockTempDir();
   const url = join(tempDir, 'mock.sqlite');
@@ -1243,7 +1241,7 @@ const connectionHealth = (
  */
 export const connectDrizzle = <const TStore extends AnyStoreDefinition>(
   definition: TStore,
-  options: ConnectDrizzleOptions<TStore>
+  options: DrizzleStoreOptions<TStore>
 ): DrizzleStoreResource<
   TStore,
   DrizzleStoreConnection<TStore>,
@@ -1282,6 +1280,7 @@ export const connectDrizzle = <const TStore extends AnyStoreDefinition>(
         closeConnection(connection);
       },
       health: connectionHealth,
+      meta: options.meta,
       mock: () => {
         const client = openSqliteDatabase(':memory:', false);
         try {
@@ -1303,7 +1302,7 @@ export const connectDrizzle = <const TStore extends AnyStoreDefinition>(
 
 export const connectReadOnlyDrizzle = <const TStore extends AnyStoreDefinition>(
   definition: TStore,
-  options: ReadOnlyDrizzleOptions<TStore>
+  options: DrizzleStoreOptions<TStore>
 ): DrizzleStoreResource<
   TStore,
   ReadOnlyDrizzleStoreConnection<TStore>,
@@ -1336,6 +1335,7 @@ export const connectReadOnlyDrizzle = <const TStore extends AnyStoreDefinition>(
         closeConnection(connection);
       },
       health: connectionHealth,
+      meta: options.meta,
       mock: () =>
         createReadonlyMockConnection(definition, tables, options.mockSeed),
     }),
@@ -1344,28 +1344,3 @@ export const connectReadOnlyDrizzle = <const TStore extends AnyStoreDefinition>(
     'readonly'
   );
 };
-
-export const store = <const TTables extends StoreTablesInput>(
-  tables: TTables,
-  options: ConnectDrizzleOptions<ReturnType<typeof defineStore<TTables>>>
-): DrizzleStoreResource<
-  ReturnType<typeof defineStore<TTables>>,
-  DrizzleStoreConnection<ReturnType<typeof defineStore<TTables>>>,
-  'readwrite'
-> => connectDrizzle(defineStore(tables), options);
-
-export const readonlyStore = <const TTables extends StoreTablesInput>(
-  tables: TTables,
-  options: ReadOnlyDrizzleOptions<ReturnType<typeof defineStore<TTables>>>
-): DrizzleStoreResource<
-  ReturnType<typeof defineStore<TTables>>,
-  ReadOnlyDrizzleStoreConnection<ReturnType<typeof defineStore<TTables>>>,
-  'readonly'
-> => connectReadOnlyDrizzle(defineStore(tables), options);
-
-export const getSchema = <TStore extends AnyStoreDefinition>(
-  binding: Pick<
-    DrizzleStoreResource<TStore, unknown, StoreAccessMode>,
-    'tables'
-  >
-): DrizzleStoreSchema<TStore> => binding.tables;

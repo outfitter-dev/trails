@@ -1,9 +1,9 @@
 import type { Resource } from '@ontrails/core';
 import type {
   AnyStoreDefinition,
-  FixtureInputOf,
   ReadOnlyStoreConnection,
   StoreAccessMode,
+  StoreConnectorOptions,
   StoreTableConnection,
 } from '@ontrails/store';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
@@ -20,25 +20,17 @@ export interface DrizzleQueryContext<TStore extends AnyStoreDefinition> {
   readonly tables: DrizzleStoreSchema<TStore>;
 }
 
-export type DrizzleMockSeed<TStore extends AnyStoreDefinition> = Partial<{
-  readonly [TName in keyof TStore['tables']]: readonly FixtureInputOf<
-    TStore['tables'][TName]
-  >[];
-}>;
-
-export interface ConnectDrizzleOptions<TStore extends AnyStoreDefinition> {
-  readonly description?: string;
-  readonly id?: string;
-  readonly mockSeed?: DrizzleMockSeed<TStore>;
-  readonly url: string;
-}
-
-export interface ReadOnlyDrizzleOptions<
-  TStore extends AnyStoreDefinition = AnyStoreDefinition,
-> {
-  readonly description?: string;
-  readonly id?: string;
-  readonly mockSeed?: DrizzleMockSeed<TStore>;
+/**
+ * Options accepted by the Drizzle store connector.
+ *
+ * Extends {@link StoreConnectorOptions} with drizzle-specific fields. The
+ * read-only vs writable distinction is enforced by the factory that consumes
+ * these options, not by the options type itself.
+ */
+export interface DrizzleStoreOptions<
+  TDef extends AnyStoreDefinition = AnyStoreDefinition,
+> extends StoreConnectorOptions<TDef> {
+  /** Path to the SQLite database file. Use `":memory:"` for ephemeral runs. */
   readonly url: string;
 }
 

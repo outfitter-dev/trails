@@ -173,11 +173,11 @@ OpenApiOptions, OpenApiSpec, OpenApiServer
 
 ```typescript
 store(tables)                      // connector-agnostic store definition
-entitySchemaOf(table)              // normalized full entity schema
-insertSchemaOf(table)              // entity schema minus generated fields
-updateSchemaOf(table)              // partial update schema
-fixtureSchemaOf(table)             // fixture schema with generated fields optional
-// every normalized table derives:
+// every normalized table exposes derived schemas and signals directly:
+// table.schema          — normalized full entity schema
+// table.insertSchema    — entity schema minus generated fields
+// table.updateSchema    — partial update schema keyed by identity
+// table.fixtureSchema   — fixture schema with generated fields optional
 // table.signals.created | table.signals.updated | table.signals.removed
 
 StoreDefinition, StoreTable, StoreTableSignals, StoreTablesInput, StoreTableInput
@@ -204,13 +204,11 @@ StoreAccessorContractOptions<T>, StoreAccessorContractSubject<T>
 ```typescript
 connectDrizzle(definition, options?)         // bind a root store definition to a writable Drizzle resource
 connectReadOnlyDrizzle(definition, options?) // bind a root store definition to a read-only Drizzle resource
-store(tables, options?)                      // convenience: define + connect writable store
-readonlyStore(tables, options?)              // convenience: define + connect read-only store
-getSchema(binding)                           // expose raw derived Drizzle tables
+binding.tables                               // expose raw derived Drizzle tables on the bound resource
 
-ConnectDrizzleOptions, ReadOnlyDrizzleOptions
+DrizzleStoreOptions
 DrizzleStoreResource, DrizzleStoreConnection, ReadOnlyDrizzleStoreConnection
-DrizzleQueryContext, DrizzleStoreSchema, DrizzleMockSeed
+DrizzleQueryContext, DrizzleStoreSchema
 ```
 
 ## `@ontrails/testing`

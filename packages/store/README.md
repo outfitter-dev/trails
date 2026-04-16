@@ -162,26 +162,15 @@ That means `testAll(app)` can auto-resolve connector-bound store resources witho
 
 ## Read-only bindings
 
-Use the Drizzle connector's read-only helpers when a trail should inspect persisted state without exposing writes:
+Use the Drizzle connector's read-only binding when a trail should inspect persisted state without exposing writes:
 
 ```typescript
-import { connectReadOnlyDrizzle, readonlyStore } from '@ontrails/drizzle';
+import { connectReadOnlyDrizzle } from '@ontrails/drizzle';
 
 const analytics = connectReadOnlyDrizzle(definition, {
   id: 'analytics.db',
   url: './data/analytics.sqlite',
 });
-
-const auditLog = readonlyStore(
-  {
-    entries: {
-      schema: auditEntrySchema,
-      identity: 'id',
-      generated: ['id', 'createdAt'],
-    },
-  },
-  { id: 'audit.db', url: './data/audit.sqlite' }
-);
 ```
 
 Read-only bindings expose `get()`, `list()`, and `query()`, but not `upsert()`, `remove()`, `insert()`, or `update()`.
@@ -212,46 +201,52 @@ const rows = await conn.query(({ drizzle, tables }) =>
 
 This keeps the default happy path derived and typed, while still giving you full access to the underlying connector when the CRUD accessors are not enough.
 
-## Connector conveniences
+## Connector binding
 
-`@ontrails/drizzle` also exports one-line conveniences when you want declaration and binding together:
+`@ontrails/drizzle` keeps the durable `store(...)` declaration in
+`@ontrails/store` and binds it to a concrete runtime:
 
 ```typescript
-import { store, readonlyStore } from '@ontrails/drizzle';
+import { connectDrizzle, connectReadOnlyDrizzle } from '@ontrails/drizzle';
+import { store } from '@ontrails/store';
 
-export const writable = store(
-  {
-    gists: {
-      schema: gistSchema,
-      identity: 'id',
-      generated: ['id', 'createdAt', 'updatedAt'],
-    },
+const definition = store({
+  gists: {
+    schema: gistSchema,
+    identity: 'id',
+    generated: ['id', 'createdAt', 'updatedAt'],
   },
-  { url: ':memory:' }
-);
+});
 
-export const readonly = readonlyStore(
-  {
-    gists: {
-      schema: gistSchema,
-      identity: 'id',
-      generated: ['id', 'createdAt', 'updatedAt'],
-    },
-  },
-  { url: './data/gists.sqlite' }
-);
+export const writable = connectDrizzle(definition, { url: ':memory:' });
+
+export const readonly = connectReadOnlyDrizzle(definition, {
+  url: './data/gists.sqlite',
+});
 ```
 
-These are conveniences, not the architectural source of truth. The root package still owns the durable authored `store(...)` model.
+The root package still owns the authored persistence model; connector packages
+project that model into runnable resources.
 
 ## Schema export for external tooling
 
-If you need the raw derived Drizzle tables for tooling such as `drizzle-kit`, use `getSchema()`:
+If you need the raw derived Drizzle tables for tooling such as `drizzle-kit`,
+read them from the bound resource's `tables` field:
 
 ```typescript
-import { getSchema } from '@ontrails/drizzle';
+import { connectDrizzle } from '@ontrails/drizzle';
+import { store } from '@ontrails/store';
 
-const schema = getSchema(db);
+const definition = store({
+  gists: {
+    schema: gistSchema,
+    identity: 'id',
+    generated: ['id', 'createdAt', 'updatedAt'],
+  },
+});
+
+const db = connectDrizzle(definition, { url: ':memory:' });
+const schema = db.tables;
 ```
 
 ## Installation

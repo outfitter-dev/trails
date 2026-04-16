@@ -572,6 +572,9 @@ export const jsonFile = <TStore extends AnyStoreDefinition>(
         );
       }
     },
+    description:
+      options.description ??
+      'JSON-file-backed store bound from an @ontrails/store definition.',
     dispose: async (connection) => {
       const tmpDir = mockTmpDirs.get(connection as object);
       if (tmpDir !== undefined) {
@@ -583,6 +586,7 @@ export const jsonFile = <TStore extends AnyStoreDefinition>(
         }
       }
     },
+    meta: options.meta,
     mock: async () => {
       const { mkdtemp } = await import('node:fs/promises');
       const { join } = await import('node:path');

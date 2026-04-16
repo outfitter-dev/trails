@@ -276,7 +276,7 @@ export interface StoreTable<
   readonly primaryKey: IdentityFieldOfInput<TInput>;
   readonly references: ReferencesOfInput<TInput>;
   readonly schema: SchemaOfInput<TInput>;
-  readonly search?: TInput['search'];
+  readonly search?: StoreSearchDefinition | undefined;
   readonly signals: StoreTableSignals<z.output<SchemaOfInput<TInput>>>;
   readonly updateSchema: StoreObjectSchema;
   readonly versioned: VersionedFieldsOfInput<TInput>;
@@ -371,11 +371,6 @@ export type FixtureOf<TTable extends AnyStoreTable> = StoreFixtureRow<
 export type IdentityOf<TTable extends AnyStoreTable> = TTable['identity'];
 
 /**
- * Primary-key field name for one store table.
- */
-export type PrimaryKeyOf<TTable extends AnyStoreTable> = IdentityOf<TTable>;
-
-/**
  * Server-managed fields for one store table.
  */
 export type GeneratedKeysOf<TTable extends AnyStoreTable> = Extract<
@@ -398,7 +393,7 @@ export type InsertOf<TTable extends AnyStoreTable> = Omit<
  * Update shape: partial insert minus the primary key (immutable identifier).
  */
 export type UpdateOf<TTable extends AnyStoreTable> = Partial<
-  Omit<InsertOf<TTable>, PrimaryKeyOf<TTable>>
+  Omit<InsertOf<TTable>, IdentityOf<TTable>>
 >;
 
 /**
@@ -569,3 +564,34 @@ export type StoreTableConnection<TStore extends AnyStoreDefinition> = {
     TStore['tables'][TName]
   >;
 };
+
+/**
+ * Optional fixture overrides used when building a mock store connection.
+ *
+ * The shape is a partial map keyed by table name; each entry is a list of
+ * fixture inputs validated against the table's fixture schema. Connectors
+ * share this type so every store backend seeds mocks the same way.
+ */
+export type StoreMockSeed<TDef extends AnyStoreDefinition> = Partial<{
+  readonly [TName in keyof TDef['tables']]: readonly FixtureInputOf<
+    TDef['tables'][TName]
+  >[];
+}>;
+
+/**
+ * Shared connector options every store backend accepts.
+ *
+ * Concrete connectors extend this shape with their backend-specific fields
+ * (e.g. `url`, `dir`). Aligning the authored surface here lets the framework
+ * reason about connector options uniformly — one shape, many projections.
+ */
+export interface StoreConnectorOptions<TDef extends AnyStoreDefinition> {
+  /** Optional resource id override. Defaults to `"store"`. */
+  readonly id?: string;
+  /** Human-readable description surfaced on the resource definition. */
+  readonly description?: string;
+  /** Free-form metadata for downstream tooling and governance. */
+  readonly meta?: Record<string, unknown>;
+  /** Optional per-table fixture overrides used by the mock resource factory. */
+  readonly mockSeed?: StoreMockSeed<TDef>;
+}

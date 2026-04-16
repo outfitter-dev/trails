@@ -347,5 +347,31 @@ describe('jsonfile connector', () => {
 
       await store.dispose?.(mock);
     });
+
+    test('preserves connector metadata on the resource definition', () => {
+      const store = jsonFile(fixtureStore, {
+        dir,
+        meta: { domain: 'fixtures' },
+      });
+
+      expect(store.meta).toEqual({ domain: 'fixtures' });
+    });
+
+    test('propagates caller-provided description to the resource', () => {
+      const store = jsonFile(fixtureStore, {
+        description: 'Custom jsonfile store description',
+        dir,
+      });
+
+      expect(store.description).toBe('Custom jsonfile store description');
+    });
+
+    test('uses a default description when caller omits one', () => {
+      const store = jsonFile(fixtureStore, { dir });
+
+      expect(store.description).toBe(
+        'JSON-file-backed store bound from an @ontrails/store definition.'
+      );
+    });
   });
 });

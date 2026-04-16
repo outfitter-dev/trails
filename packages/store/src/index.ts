@@ -1,11 +1,4 @@
-export {
-  entitySchemaOf,
-  fixtureSchemaOf,
-  insertSchemaOf,
-  store,
-  updateSchemaOf,
-  versionFieldName,
-} from './store.js';
+export { store, versionFieldName } from './store.js';
 export type {
   AnyStoreDefinition,
   AnyStoreTable,
@@ -21,13 +14,13 @@ export type {
   IndexFieldsOfInput,
   IndexedFieldsOfInput,
   InsertOf,
-  PrimaryKeyOf,
   ReadOnlyStoreConnection,
   StoreAccessor,
   ReadOnlyStoreTableAccessor,
   ReferencesOfInput,
   StoreAccessMode,
   StoreConnection,
+  StoreConnectorOptions,
   StoreDefinition,
   StoreFieldKey,
   StoreFixtureInput,
@@ -35,6 +28,7 @@ export type {
   StoreIdentifierOf,
   StoreKind,
   StoreListOptions,
+  StoreMockSeed,
   StoreObjectSchema,
   StoreOptions,
   StoreSearchDefinition,

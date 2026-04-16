@@ -546,31 +546,3 @@ export const store = <const TTables extends StoreTablesInput>(
     type: 'store' as const,
   });
 };
-
-/**
- * Read the full entity schema from a normalized store table.
- */
-export const entitySchemaOf = <TTable extends StoreTable>(
-  table: TTable
-): TTable['schema'] => table.schema;
-
-/**
- * Read the fixture schema from a normalized store table.
- */
-export const fixtureSchemaOf = <TTable extends StoreTable>(
-  table: TTable
-): TTable['fixtureSchema'] => table.fixtureSchema;
-
-/**
- * Read the insert schema from a normalized store table.
- */
-export const insertSchemaOf = <TTable extends StoreTable>(
-  table: TTable
-): TTable['insertSchema'] => table.insertSchema;
-
-/**
- * Read the update schema from a normalized store table.
- */
-export const updateSchemaOf = <TTable extends StoreTable>(
-  table: TTable
-): TTable['updateSchema'] => table.updateSchema;

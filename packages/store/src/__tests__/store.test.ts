@@ -3,19 +3,14 @@ import { ValidationError } from '@ontrails/core';
 import { z } from 'zod';
 
 import type {
+  AnyStoreTable,
   EntityOf,
   FixtureInputOf,
   FixtureOf,
   InsertOf,
   UpdateOf,
 } from '../index.js';
-import {
-  entitySchemaOf,
-  fixtureSchemaOf,
-  insertSchemaOf,
-  store,
-  updateSchemaOf,
-} from '../index.js';
+import { store } from '../index.js';
 
 const userSchema = z.object({
   email: z.string().email(),
@@ -90,10 +85,10 @@ const expectNormalizedGistTable = (
 const expectDerivedSchemas = (
   table: ReturnType<typeof createStoreDefinition>['tables']['gists']
 ) => {
-  expect(entitySchemaOf(table)).toBe(table.schema);
-  expect(fixtureSchemaOf(table)).toBe(table.fixtureSchema);
-  expect(insertSchemaOf(table)).toBe(table.insertSchema);
-  expect(updateSchemaOf(table)).toBe(table.updateSchema);
+  expect(table.schema).toBeDefined();
+  expect(table.fixtureSchema).toBeDefined();
+  expect(table.insertSchema).toBeDefined();
+  expect(table.updateSchema).toBeDefined();
 
   expect(
     table.insertSchema.parse({
@@ -138,9 +133,7 @@ type VersionedGistTable = ReturnType<
   typeof createVersionedStoreDefinition
 >['tables']['gists'];
 
-const createGistEntity = <
-  TTable extends Parameters<typeof entitySchemaOf>[0],
->() =>
+const createGistEntity = <TTable extends AnyStoreTable>() =>
   ({
     createdAt: '2026-04-03T12:00:00.000Z',
     description: null,

@@ -14,13 +14,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
 
-import {
-  connectDrizzle,
-  connectReadOnlyDrizzle,
-  getSchema,
-  readonlyStore,
-  store,
-} from '../index.js';
+import { connectDrizzle, connectReadOnlyDrizzle } from '../index.js';
 
 const userSchema = z.object({
   email: z.string().email(),
@@ -92,26 +86,27 @@ const unwrapCreated = async <T>(
 };
 
 const createWritableDemoStore = (rootDir: string) =>
-  store(
-    {
+  connectDrizzle(
+    defineStore({
       gists: gistTable,
       users: userTable,
-    },
+    }),
     {
       description: 'Writable demo store',
       id: 'demo.store',
+      meta: { domain: 'demo' },
       url: join(rootDir, 'demo.sqlite'),
     }
   );
 
 const createVersionedUserStore = (rootDir: string) =>
-  store(
-    {
+  connectDrizzle(
+    defineStore({
       users: {
         ...userTable,
         versioned: true,
       },
-    },
+    }),
     {
       description: 'Versioned demo store',
       id: 'demo.store.versioned',
@@ -183,6 +178,7 @@ const expectWritableResourceDefinition = (
   expect(db.id).toBe('demo.store');
   expect(db.access).toBe('readwrite');
   expect(db.mock).toBeDefined();
+  expect(db.meta).toEqual({ domain: 'demo' });
   expect(db.signals.map((candidate) => candidate.id)).toEqual([
     'gists.created',
     'gists.updated',
@@ -191,7 +187,8 @@ const expectWritableResourceDefinition = (
     'users.updated',
     'users.removed',
   ]);
-  expect(getSchema(db).gists).toBe(db.tables.gists);
+  expect(db.tables.gists).toBeDefined();
+  expect(db.tables.users).toBeDefined();
 };
 
 const expectInsertedGist = (
@@ -360,8 +357,8 @@ const expectRecordedSignals = (
 };
 
 const createFixtureBackedStore = () =>
-  store(
-    {
+  connectDrizzle(
+    defineStore({
       gists: {
         ...gistTable,
         fixtures: [
@@ -380,7 +377,7 @@ const createFixtureBackedStore = () =>
           },
         ],
       },
-    },
+    }),
     {
       id: 'demo.store.mock',
       url: ':memory:',
@@ -388,10 +385,10 @@ const createFixtureBackedStore = () =>
   );
 
 const createWritableSeedStore = (url: string) =>
-  store(
-    {
+  connectDrizzle(
+    defineStore({
       users: userTable,
-    },
+    }),
     {
       id: 'demo.store.seed',
       url,
@@ -412,12 +409,13 @@ const seedReadonlyFixture = async (
 };
 
 const createReadonlyUserStore = (url: string) =>
-  readonlyStore(
-    {
+  connectReadOnlyDrizzle(
+    defineStore({
       users: userTable,
-    },
+    }),
     {
       id: 'demo.store.readonly',
+      meta: { domain: 'readonly-demo' },
       url,
     }
   );
@@ -494,8 +492,8 @@ const expectVersionedCreate = async (
 };
 
 const createErrorStore = (rootDir: string) =>
-  store(
-    {
+  connectDrizzle(
+    defineStore({
       accounts: {
         primaryKey: 'id',
         schema: accountSchema,
@@ -504,7 +502,7 @@ const createErrorStore = (rootDir: string) =>
         ...gistTable,
         references: { ownerId: 'accounts' },
       },
-    },
+    }),
     {
       id: 'demo.store.errors',
       url: join(rootDir, 'errors.sqlite'),
@@ -705,8 +703,8 @@ describe('@ontrails/drizzle resource access', () => {
 
   test('round-trips a user-declared "version" field on non-versioned tables', async () => {
     const rootDir = tmp.makeRoot();
-    const db = store(
-      {
+    const db = connectDrizzle(
+      defineStore({
         documents: {
           generated: ['id'],
           primaryKey: 'id',
@@ -716,7 +714,7 @@ describe('@ontrails/drizzle resource access', () => {
             version: z.string(),
           }),
         },
-      },
+      }),
       {
         description: 'Non-versioned store with a user-owned "version" column',
         id: 'demo.store.user-version',
@@ -823,10 +821,10 @@ describe('@ontrails/drizzle read-only resource access', () => {
   });
 
   test('creates a mock resource seeded from mockSeed', async () => {
-    const db = readonlyStore(
-      {
+    const db = connectReadOnlyDrizzle(
+      defineStore({
         users: userTable,
-      },
+      }),
       {
         id: 'demo.store.readonly.mock',
         mockSeed: {
@@ -871,6 +869,11 @@ describe('@ontrails/drizzle read-only resource access', () => {
     await expectReadonlyWriteFailure(mock as ReadonlyUserStoreRuntime);
     await db.dispose?.(mock as ReadonlyUserStoreRuntime);
   });
+
+  test('preserves connector metadata on the resource definition', () => {
+    const db = createReadonlyUserStore(':memory:');
+    expect(db.meta).toEqual({ domain: 'readonly-demo' });
+  });
 });
 
 describe('@ontrails/drizzle edge cases', () => {
@@ -909,8 +912,8 @@ describe('@ontrails/drizzle edge cases', () => {
   });
 
   test('maps z.number().int() to INTEGER (Zod internals regression guard)', () => {
-    const intStore = store(
-      {
+    const intStore = connectDrizzle(
+      defineStore({
         counters: {
           generated: ['id'],
           primaryKey: 'id',
@@ -919,12 +922,11 @@ describe('@ontrails/drizzle edge cases', () => {
             value: z.number(),
           }),
         },
-      },
+      }),
       { url: join(tmp.makeRoot(), 'int.sqlite') }
     );
 
-    const schema = getSchema(intStore);
-    const col = schema.counters;
+    const col = intStore.tables.counters;
     expect(col).toBeDefined();
 
     const idColumn = col.id as unknown as { columnType: string };
