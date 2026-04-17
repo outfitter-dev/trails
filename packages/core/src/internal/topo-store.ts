@@ -460,10 +460,10 @@ const normalizeTopoProjection = (
 /**
  * Look up a cached JSON schema by content hash.
  *
- * The query matches on `zod_hash` without filtering by `save_id` because the
- * cache is intentionally cross-save: if the Zod schema definition has not
+ * The query matches on `zod_hash` without filtering by `snapshot_id` because the
+ * cache is intentionally cross-snapshot: if the Zod schema definition has not
  * changed (same hash), the serialized JSON Schema is reused regardless of
- * which save produced it. This is safe as long as `zodToJsonSchema` is
+ * which snapshot produced it. This is safe as long as `zodToJsonSchema` is
  * deterministic for a given `_def` hash — the `schemaDefinitionHash` pipeline
  * guarantees that structurally identical schemas produce the same hash.
  */

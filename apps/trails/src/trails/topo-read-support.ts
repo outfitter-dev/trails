@@ -1,8 +1,8 @@
 /**
  * Read-only topo store consumer helpers.
  *
- * Extracted from topo-support.ts so this branch (trl-132) owns its own file,
- * keeping absorb routing clean across the stack.
+ * Extracted from topo-support.ts to isolate read-only store consumer helpers,
+ * keeping module boundaries clean.
  */
 
 import { existsSync } from 'node:fs';

@@ -1,8 +1,8 @@
 /**
  * Stored-export pipeline for topo persistence.
  *
- * Extracted from topo-support.ts so this branch (trl-131) owns its own file,
- * keeping absorb routing clean across the stack.
+ * Extracted from topo-support.ts to isolate store persistence concerns,
+ * keeping module boundaries clean.
  */
 
 import type { Topo, TopoSnapshot } from '@ontrails/core';

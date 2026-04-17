@@ -328,7 +328,7 @@ export const createMockTopoStore = (
         return resolved.snapshots[0];
       },
       list(options) {
-        const snapshots =
+        let snapshots =
           options?.pinned === undefined
             ? resolved.snapshots
             : resolved.snapshots.filter((snapshot) =>
@@ -336,10 +336,20 @@ export const createMockTopoStore = (
                   ? snapshot.pinnedAs !== undefined
                   : snapshot.pinnedAs === undefined
               );
-        if (options?.limit === undefined) {
-          return snapshots;
+        if (options?.before !== undefined) {
+          const target = snapshots.find((s) => s.id === options.before);
+          if (target !== undefined) {
+            snapshots = snapshots.filter(
+              (s) =>
+                s.createdAt < target.createdAt ||
+                (s.createdAt === target.createdAt && s.id < target.id)
+            );
+          }
         }
-        return snapshots.slice(0, options.limit);
+        if (options?.limit !== undefined) {
+          snapshots = snapshots.slice(0, options.limit);
+        }
+        return snapshots;
       },
     },
     trails: {
