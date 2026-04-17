@@ -275,6 +275,7 @@ export const reconcile = <
     intent: 'write',
     on: options.on,
     output: options.table.schema as unknown as z.ZodType<EntityOf<TTable>>,
+    pattern: 'reconcile',
     resources: [options.resource],
   });
 };

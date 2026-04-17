@@ -232,6 +232,23 @@ describe('deriveTrail()', () => {
     expect(updated.input.parse({ id: 'note-1' })).toEqual({ id: 'note-1' });
     expect(listed.input.parse({})).toEqual({});
   });
+
+  test('does not auto-stamp a pattern when none is declared', () => {
+    const created = deriveNoteTrail('create');
+
+    expect(created.pattern).toBeUndefined();
+  });
+
+  test('preserves a caller-declared pattern', () => {
+    const created = deriveTrail(note, 'create', {
+      blaze: createBlaze,
+      generated: ['id', 'createdAt'],
+      pattern: 'crud',
+      resource: noteResource,
+    });
+
+    expect(created.pattern).toBe('crud');
+  });
 });
 
 // ---------------------------------------------------------------------------

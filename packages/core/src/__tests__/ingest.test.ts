@@ -67,6 +67,7 @@ describe('ingest()', () => {
 
     expect(paymentIngest.id).toBe('payment.completed.ingest');
     expect(paymentIngest.intent).toBe('write');
+    expect(paymentIngest.pattern).toBe('ingest');
     expect(paymentIngest.fires).toEqual(['payment.completed']);
     expect(paymentIngest.output?.safeParse().success).toBe(true);
     expect(paymentIngest.examples).toEqual([

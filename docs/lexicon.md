@@ -292,7 +292,7 @@ Industry-standard terminology, aligned with OpenTelemetry. Production observabil
 
 ### `pattern`
 
-A declared operational shape on a trail. Recognized structural forms — `toggle`, `crud`, `transition` — that the framework can use for derivation, governance, and agent guidance.
+A declared operational shape on a trail. Recognized structural forms — `crud`, `sync`, `reconcile`, `ingest`, `toggle`, `transition` — that the framework can use for derivation, governance, and agent guidance. First-party factories stamp the patterns they own; lower-level helpers like `deriveTrail()` stay neutral unless the caller declares one explicitly.
 
 ```typescript
 const enableFeature = trail('feature.enable', {
