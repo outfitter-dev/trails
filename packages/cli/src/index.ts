@@ -2,7 +2,7 @@
 export type { AnyTrail, CliCommand, CliFlag, CliArg } from './command.js';
 
 // Build
-export { buildCliCommands, deriveCliCommands } from './build.js';
+export { deriveCliCommands } from './build.js';
 export type { DeriveCliCommandsOptions, ActionResultContext } from './build.js';
 export { validateCliCommands } from './validate.js';
 
@@ -36,5 +36,4 @@ export { createProgram, surface } from './commander/surface.js';
 export type {
   CreateProgramOptions,
   SurfaceCliResult,
-  TrailheadCliOptions,
 } from './commander/surface.js';

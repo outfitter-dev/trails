@@ -149,7 +149,7 @@ import * as entityTrails from './trails/entity';
 import * as resources from './services';
 
 const graph = topo('myapp', entityTrails, resources);
-// app.resources -- Map<id, Resource>
+// graph.resources -- Map<id, Resource>
 ```
 
 `topo()` scans module exports for objects with `kind: 'resource'`, the same way it discovers trails and events. Duplicate resource IDs fail topo construction.

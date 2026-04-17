@@ -147,12 +147,16 @@ const runCreate = async (
 // ---------------------------------------------------------------------------
 
 export const createRoute = trail('create', {
+  // Warden's cross-declarations rule can't see through helper functions, but
+  // these crossings are real — scaffoldProject, addSurfaceFiles, and
+  // collectVerifyFiles all delegate via the CrossFn passed from ctx.cross.
   blaze: async (input: CreateInput, ctx) => {
     if (!ctx.cross) {
       return Result.err(new Error('create route requires ctx.cross'));
     }
     return await runCreate(ctx.cross, input);
   },
+  crosses: ['create.scaffold', 'add.trailhead', 'add.verify'],
   description: 'Create a new Trails project',
   fields: {
     starter: {
