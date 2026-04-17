@@ -11,7 +11,7 @@ bunx @ontrails/trails create
 # Or install manually
 bun add @ontrails/core @ontrails/cli
 bun add commander                    # Commander connector
-bun add @ontrails/mcp                # MCP trailhead (optional)
+bun add @ontrails/mcp                # MCP surface (optional)
 bun add -d @ontrails/testing         # Testing (dev)
 ```
 
@@ -75,7 +75,7 @@ Create `src/cli.ts`:
 import { surface } from '@ontrails/cli/commander';
 import { graph } from './app';
 
-surface(graph);
+await surface(graph);
 ```
 
 Run it:
@@ -101,7 +101,7 @@ import { graph } from './app';
 await surface(graph);
 ```
 
-Same trail, same implementation, different trailhead. The MCP server exposes `myapp_greet` with JSON Schema input, `readOnlyHint: true`, and examples for agent planning.
+Same trail, same implementation, different surface. The MCP server exposes `myapp_greet` with JSON Schema input, `readOnlyHint: true`, and examples for agent planning.
 
 ## Test with testAll
 
@@ -109,7 +109,7 @@ Create `src/__tests__/app.test.ts`:
 
 ```typescript
 import { testAll } from '@ontrails/testing';
-import { app } from '../app';
+import { graph } from '../app';
 
 testAll(graph);
 ```

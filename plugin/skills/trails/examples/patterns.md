@@ -27,7 +27,7 @@ console.log(JSON.stringify(result, null, 2));
 ### After
 
 ```typescript
-// The implementation returns data. The trailhead decides how to render it.
+// The implementation returns data. The surface decides how to render it.
 const result = await computeReport(input);
 return Result.ok(result);
 // CLI prints JSON, MCP returns content[], HTTP sends application/json

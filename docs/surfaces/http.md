@@ -1,6 +1,6 @@
-# HTTP Trailhead
+# HTTP Surface
 
-The HTTP trailhead connector turns every trail into an endpoint. Routes are derived from trail IDs, HTTP verbs from intent, input parsing from the method, and error responses from the error taxonomy. One `surface()` call starts a Hono server.
+The HTTP surface connector turns every trail into an endpoint. Routes are derived from trail IDs, HTTP verbs from intent, input parsing from the method, and error responses from the error taxonomy. One `surface()` call starts a Hono server.
 
 The package separates framework-agnostic route building (`@ontrails/http`) from the Hono connector (`@ontrails/hono`).
 
@@ -86,7 +86,7 @@ The `code` is the error class name. The `category` matches the error taxonomy.
 
 ## Status Code Mapping
 
-Status codes come directly from the error taxonomy -- the same mapping used across all trailheads:
+Status codes come directly from the error taxonomy -- the same mapping used across all surfaces:
 
 | Category     | HTTP Status | Classes                              |
 | ------------ | ----------- | ------------------------------------ |
@@ -119,7 +119,7 @@ await surface(graph, {
 
 Layers run in order, wrapping the implementation. They have access to the trail and its context, so they can inspect intent, metadata, and markers.
 
-## TrailheadHttpOptions
+## CreateAppOptions
 
 | Option          | Type                                   | Default       | Description                                          |
 | --------------- | -------------------------------------- | ------------- | ---------------------------------------------------- |

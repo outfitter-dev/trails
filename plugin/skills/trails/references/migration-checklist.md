@@ -37,18 +37,18 @@ For each handler:
   - `throw new Error('unauthorized')` → `Result.err(new AuthError(...))`
   - `throw new Error('forbidden')` → `Result.err(new PermissionError(...))`
   - `throw new Error('invalid')` → `Result.err(new ValidationError(...))`
-- [ ] Replace trailhead-specific returns with `Result.ok(value)`
+- [ ] Replace surface-specific returns with `Result.ok(value)`
   - `res.json(data)` → `Result.ok(data)`
   - `console.log(output)` → `Result.ok(output)`
   - `process.exit(1)` → `Result.err(new InternalError(...))`
-- [ ] Remove trailhead imports from implementation files
+- [ ] Remove surface imports from implementation files
 - [ ] Convert handler-to-handler calls to `ctx.cross()` in composite trails
 
 ## Phase 4: Composition
 
 - [ ] Create topo: `topo('appname', ...modules)`
-- [ ] Wire CLI trailhead: `surface(graph)` from `@ontrails/cli/commander`
-- [ ] Wire MCP trailhead: `await surface(graph)` from `@ontrails/mcp`
+- [ ] Open CLI surface: `await surface(graph)` from `@ontrails/cli/commander`
+- [ ] Open MCP surface: `await surface(graph)` from `@ontrails/mcp`
 - [ ] Remove old routing/command setup code
 
 ## Phase 5: Testing
@@ -56,18 +56,18 @@ For each handler:
 - [ ] Add examples to every trail (happy path + key error cases)
 - [ ] Create `governance.test.ts` with `testAll(graph)`
 - [ ] Add edge-case tests with `testTrail()` for complex trails
-- [ ] Add trailhead integration tests with CLI/MCP harnesses
+- [ ] Add surface integration tests with CLI/MCP harnesses
 - [ ] All tests pass
 
 ## Phase 6: Governance
 
 - [ ] `trails warden` reports clean
-- [ ] Generate trailhead lock: `trails schema lock`
+- [ ] Generate surface lock: `trails schema lock`
 - [ ] Add lock check to CI
 
 ## Common Gotchas
 
 - **Async handlers**: Trails normalizes sync and async — both work. But `ctx.cross()` is always async.
 - **Layers**: Convert to Layers, not trails. Layers wrap trail execution.
-- **Error handling layers**: Remove it. Trails maps errors to exit codes/HTTP status automatically.
+- **Error handling layers**: Remove them. Trails maps errors to exit codes/HTTP status automatically.
 - **Response formatting**: Remove it. Use `outputModePreset()` for CLI, MCP handles it automatically.

@@ -23,10 +23,10 @@ Core defines ports. Everything on the edges is a connector.
 
 **Core principles:**
 
-- The trail is the product, not the trailhead. Trailheads are projections.
+- The trail is the product, not the surface. Surfaces are projections.
 - Drift is structurally harder than alignment — one schema, one Result type, one error taxonomy.
-- Trailheads are peers. CLI, MCP, and HTTP are shipped connectors. Adding a trailhead is a `surface()` call.
-- Implementations are pure functions. Input in, Result out. No trailhead awareness.
+- Surfaces are peers. CLI, MCP, and HTTP are shipped connectors. Adding a surface is a `surface()` call.
+- Implementations are pure functions. Input in, Result out. No surface awareness.
 - The contract is machine-readable at runtime via topo, survey, and guide.
 
 ## Information Architecture
@@ -69,11 +69,11 @@ Every piece of information has a clear ownership model.
 
 | Inferred | From |
 |----------|------|
-| Which trails a trail crosses | `ctx.cross()` calls in run |
+| Which trails a trail crosses | `ctx.cross()` calls in the blaze function |
 | Error types returned | `Result.err(new XError(...))` patterns |
-| Trailhead map entries and hash | All of the above, canonicalized |
+| Surface map entries and hash | All of the above, canonicalized |
 
-Warden uses inference to verify declarations match actual code. The trailhead map captures inferred information for CI governance.
+Warden uses inference to verify declarations match actual code. The surface map captures inferred information for CI governance.
 
 ## Package Layout
 
@@ -81,7 +81,7 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
 
 `@ontrails/core` — only external dependency is `zod`. Contains Result, error taxonomy, `trail()`/`signal()`, `topo()`, validation, layers, connector port interfaces, `executeTrail()` (the shared pipeline), and `run()` (headless execution by trail ID).
 
-### Trailhead Connectors (left side)
+### Surface Connectors (left side)
 
 | Package | Purpose | External dep |
 |---------|---------|-------------|
@@ -90,6 +90,7 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP route definitions (framework-agnostic) | None beyond core |
 | `@ontrails/hono` | Hono connector, `surface()` | `hono` |
+| `@ontrails/vite` | Vite dev server adapter | `vite` |
 
 ### Infrastructure Connectors (right side)
 
@@ -106,7 +107,7 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
 | Package | Purpose |
 |---------|---------|
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing |
-| `@ontrails/schema` | Trailhead maps, semantic diffing, lock files |
+| `@ontrails/schema` | Surface maps, semantic diffing, lock files |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 
 ### Dependency graph
@@ -115,14 +116,18 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
 @ontrails/core (zod)
   <- @ontrails/cli (core)
   <- @ontrails/mcp (core, @modelcontextprotocol/sdk)
-  <- @ontrails/http (core, hono peer)
+  <- @ontrails/http (core)
   <- @ontrails/config (core)
   <- @ontrails/permits (core)
   <- @ontrails/tracing (core)
   <- @ontrails/logging (core)
+  <- @ontrails/store (core)
+  <- @ontrails/drizzle (store, drizzle-orm)
   <- @ontrails/testing (core, cli, mcp, logging)
   <- @ontrails/schema (core)
      <- @ontrails/cli/commander (cli, commander)
+     <- @ontrails/hono (http, hono)
+     <- @ontrails/vite (node:stream only)
      <- @ontrails/logtape (logging)
      <- @ontrails/warden (core, schema)
 ```
@@ -131,7 +136,7 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
 
 ### Shared Execution Pipeline
 
-All trailheads delegate to `executeTrail(trail, rawInput, options)` from `@ontrails/core`. It is the single implementation of the validate-context-layers-run pipeline:
+All surfaces delegate to `executeTrail(trail, rawInput, options)` from `@ontrails/core`. It is the single implementation of the validate-context-layers-run pipeline:
 
 ```text
 executeTrail(trail, rawInput, options)
@@ -143,7 +148,7 @@ executeTrail(trail, rawInput, options)
   -> Result returned (never throws)
 ```
 
-Trailheads only differ in how they parse inbound requests and map Results to their response format.
+Surfaces only differ in how they parse inbound requests and map Results to their response format.
 
 ### CLI Request Path
 
@@ -174,9 +179,9 @@ HTTP request (GET /entity/show?name=Alpha)
   -> Result mapped to JSON response with status code from error taxonomy
 ```
 
-### Headless Execution (no trailhead)
+### Headless Execution (no surface)
 
-`run(topo, id, input, options)` from `@ontrails/core` is the "no-trailhead" path. It resolves a trail by ID from the topo, then delegates to `executeTrail`. Returns `Result.err(NotFoundError)` if the ID is not registered.
+`run(topo, id, input, options)` from `@ontrails/core` is the "no-surface" path. It resolves a trail by ID from the topo, then delegates to `executeTrail`. Returns `Result.err(NotFoundError)` if the ID is not registered.
 
 ```text
 run(myTopo, 'entity.show', { name: 'Alpha' })
@@ -204,4 +209,4 @@ The implementation is identical across all paths. Only the edges change.
 | `auth` | 9 | 401 | No | `AuthError` |
 | `cancelled` | 130 | 499 | No | `CancelledError` |
 
-Use the most specific `TrailsError` subclass available. The error category determines exit code, HTTP status, JSON-RPC code, and retryability across all trailheads automatically.
+Use the most specific `TrailsError` subclass available. The error category determines exit code, HTTP status, JSON-RPC code, and retryability across all surfaces automatically.

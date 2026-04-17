@@ -101,7 +101,7 @@ Resolution happens eagerly during `executeTrail`, after input validation and bef
 
 This means failures surface at the boundary -- a missing `DATABASE_URL` fails before the implementation runs, not on line 47. It also means layers can access resources via `db.from(ctx)` because resolution is already complete.
 
-Shutdown signaling differs by trailhead. CLI tools dispose after the command completes. Long-running servers (MCP, HTTP) dispose on `SIGTERM`/`SIGINT`. The trailhead's `surface()` owns the lifecycle.
+Shutdown signaling differs by surface. CLI tools dispose after the command completes. Long-running servers (MCP, HTTP) dispose on `SIGTERM`/`SIGINT`. The `surface()` call owns the lifecycle.
 
 ## Testing with Resources
 

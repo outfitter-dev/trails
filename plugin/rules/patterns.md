@@ -1,15 +1,15 @@
 # Trails Code Patterns
 
-## Run Functions
+## Blaze Functions
 
 - Return `Result`, never throw. Use `Result.ok(value)` and `Result.err(new XError(...))`.
-- Keep run functions trailhead-agnostic. No `process.exit()`, no `console.log()`, no `Request`/`Response`.
-- Run functions receive `(input, ctx)` — validated input and `TrailContext`.
+- Keep blaze functions surface-agnostic. No `process.exit()`, no `console.log()`, no `Request`/`Response`.
+- Blaze functions receive `(input, ctx)` — validated input and `TrailContext`.
 - Sync authoring is fine for pure work. The runtime normalizes to async.
 
 ## Composition
 
-- Trails with `crosses` compose through `ctx.cross()`, never by calling `.run()` directly.
+- Trails with `crosses` compose through `ctx.cross()`, never by calling `.blaze()` directly.
 - Declare `crosses` on trails that compose others. The warden verifies these match actual `ctx.cross()` calls.
 - Propagate errors: `if (result.isErr()) return result;`
 
@@ -50,7 +50,7 @@ const search = trail('search', {
 });
 ```
 
-Resource factories receive `ResourceContext` (env, cwd, workspaceRoot) — not the full `TrailContext`. Keep them trailhead-agnostic.
+Resource factories receive `ResourceContext` (env, cwd, workspaceRoot) — not the full `TrailContext`. Keep them surface-agnostic.
 
 ## Code Shape
 

@@ -1,6 +1,6 @@
-# MCP Trailhead
+# MCP Surface
 
-The MCP trailhead connector turns every trail into an MCP tool. Annotations are auto-derived from trail intent and metadata. Progress callbacks bridge to MCP notifications. One `surface()` call starts a server.
+The MCP surface connector turns every trail into an MCP tool. Annotations are auto-derived from trail intent and metadata. Progress callbacks bridge to MCP notifications. One `surface()` call starts a server.
 
 ## Setup
 
@@ -110,7 +110,7 @@ If the result contains a `BlobRef` with an image MIME type, it becomes an image 
 
 ## Progress Bridging
 
-Trail implementations can report progress via `ctx.progress`. On the MCP trailhead, these are bridged to MCP `notifications/progress`:
+Trail implementations can report progress via `ctx.progress`. On the MCP surface, these are bridged to MCP `notifications/progress`:
 
 ```typescript
 const importTrail = trail('data.import', {
@@ -160,7 +160,7 @@ await surface(graph, {
 ```
 
 `surface(graph)` already derives the MCP server name and version from the
-topo identity. Pass `name` or `version` only when a specific trailhead instance
+topo identity. Pass `name` or `version` only when a specific surface instance
 needs to override them.
 
 ## AbortSignal Propagation

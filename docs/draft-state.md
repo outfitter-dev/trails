@@ -1,6 +1,6 @@
 # Draft State
 
-Draft state is Trails' controlled sketching mode. Model future trails, signals, and resources before every dependency exists — without weakening the established graph that powers trailheads, lockfiles, and CI.
+Draft state is Trails' controlled sketching mode. Model future trails, signals, and resources before every dependency exists — without weakening the established graph that powers surfaces, lockfiles, and CI.
 
 ## Concept
 
@@ -9,7 +9,7 @@ Top-down authoring is how Trails reads best and how agents naturally work. But e
 The framework exposes two views:
 
 - **Authored graph** — may contain draft state, used for governance and sketching
-- **Established graph** — must not contain draft state, used for lockfiles, trailheads, and runtime export
+- **Established graph** — must not contain draft state, used for lockfiles, surfaces, and runtime export
 
 ## The `_draft.` marker
 
@@ -66,7 +66,7 @@ One draft dependency can turn surprising amounts of downstream work into draft s
 
 These outputs reject draft state at runtime via `validateEstablishedTopo()`:
 
-- **Trailhead projection** — no draft trails in CLI, MCP, or HTTP trailheads
+- **Surface projection** — no draft trails in CLI, MCP, or HTTP surfaces
 - **Lockfile export** — no draft nodes in `.trails/trails.lock`
 - **OpenAPI generation** — established schema export excludes draft trails
 - **Topo exports** — standard topo accessors exclude draft declarations

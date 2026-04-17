@@ -1,4 +1,4 @@
-# CLI Trailhead Reference
+# CLI Surface Reference
 
 ## Flag Derivation
 
@@ -23,7 +23,7 @@ Zod fields on a trail's `input` schema become CLI flags automatically.
 
 ## Output Modes
 
-CLI trailheads support `--output text|json|jsonl` for structured output.
+CLI surfaces support `--output text|json|jsonl` for structured output.
 
 ```typescript
 surface(graph, {
@@ -31,9 +31,9 @@ surface(graph, {
 });
 ```
 
-The trailhead handles formatting based on mode:
+The surface handles formatting based on mode:
 
-- `text` — Human-readable (default). The trailhead calls `.toString()` or formats objects.
+- `text` — Human-readable (default). The surface calls `.toString()` or formats objects.
 - `json` — Pretty-printed JSON of the Result value.
 - `jsonl` — One JSON object per line. Useful for piping to `jq`.
 
@@ -71,7 +71,7 @@ Groups are created automatically from the dot-separated prefix.
 
 ## Destructive Trails
 
-When a trail has `intent: 'destroy'`, the CLI trailhead automatically adds a `--dry-run` flag. The `ctx.dryRun` boolean is available inside the implementation. You can also add this explicitly:
+When a trail has `intent: 'destroy'`, the CLI surface automatically adds a `--dry-run` flag. The `ctx.dryRun` boolean is available inside the implementation. You can also add this explicitly:
 
 ```typescript
 surface(graph, {
@@ -95,7 +95,7 @@ surface(graph, {
 });
 ```
 
-## Blaze Options
+## Surface Options
 
 ```typescript
 surface(graph, {
@@ -111,7 +111,7 @@ surface(graph, {
 
 ## Execution Pipeline
 
-The CLI trailhead delegates to `executeTrail()` from `@ontrails/core` — the same pipeline used by MCP, HTTP, and `run()`. Input is validated by Zod before the implementation runs. Layers are applied in order. The Result is mapped to an exit code and stdout/stderr by the trailhead; implementations never call `process.exit()` directly.
+The CLI surface delegates to `executeTrail()` from `@ontrails/core` — the same pipeline used by MCP, HTTP, and `run()`. Input is validated by Zod before the implementation runs. Layers are applied in order. The Result is mapped to an exit code and stdout/stderr by the surface; implementations never call `process.exit()` directly.
 
 ## Escape Hatch
 

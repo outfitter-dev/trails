@@ -4,7 +4,7 @@ Trails takes a contract-driven approach to testing. Write examples for agent flu
 
 ## The Core Idea
 
-When you add `examples` to a trail, you are writing both agent documentation and a test suite. `testExamples(app)` runs every example as an assertion. No separate test files for the happy path.
+When you add `examples` to a trail, you are writing both agent documentation and a test suite. `testExamples(graph)` runs every example as an assertion. No separate test files for the happy path.
 
 ```typescript
 const search = trail('search', {
@@ -31,7 +31,7 @@ Those examples serve six consumers at once:
 
 | Consumer               | What it does                            |
 | ---------------------- | --------------------------------------- |
-| `testExamples(app)` | Runs every example as a test            |
+| `testExamples(graph)` | Runs every example as a test            |
 | Agents (via MCP)       | Learns input/result shapes by example   |
 | Agents (via survey)    | Sees what the trail does with real data |
 | Guide                  | Generates usage documentation           |
@@ -48,15 +48,15 @@ Red -> Green -> Refactor, with examples as the starting point:
 4. **Refactor** while tests stay green
 5. **Add edge-case tests** with `testTrail()` for scenarios that should not appear in agent-facing examples
 
-## `testAll(app)`
+## `testAll(graph)`
 
 One line runs the full governance suite -- structural validation, example execution, contract checks, and detour verification:
 
 ```typescript
 import { testAll } from '@ontrails/testing';
-import { app } from '../app';
+import { graph } from '../app';
 
-testAll(app);
+testAll(graph);
 ```
 
 When trails declare resources, the testing helpers respect them in two ways:
@@ -67,17 +67,17 @@ When trails declare resources, the testing helpers respect them in two ways:
 ```typescript
 import { resource, Result } from '@ontrails/core';
 import { testAll } from '@ontrails/testing';
-import { app } from '../app';
+import { graph } from '../app';
 
 const db = resource('db.main', {
   create: () => Result.ok(connectToDatabase()),
   mock: () => createInMemoryDb(),
 });
 
-// `db` must be part of `app`'s topo for auto-resolution to work.
-testAll(app); // auto-resolves db.main from db.mock()
+// `db` must be part of `graph`'s topo for auto-resolution to work.
+testAll(graph); // auto-resolves db.main from db.mock()
 
-testAll(app, () => ({
+testAll(graph, () => ({
   resources: { 'db.main': createInMemoryDb() },
 }));
 ```
@@ -93,15 +93,15 @@ Generates a `governance` describe block containing:
 
 For most apps, `testAll` is the only test call you need. Reach for the individual helpers below when you need finer control.
 
-## `testExamples(app)`
+## `testExamples(graph)`
 
 One line tests the entire app:
 
 ```typescript
 import { testExamples } from '@ontrails/testing';
-import { app } from '../app';
+import { graph } from '../app';
 
-testExamples(app);
+testExamples(graph);
 ```
 
 For each trail with examples, generates a `describe` block with individual `test` calls:
@@ -233,38 +233,38 @@ testTrail(onboardTrail, [
 ]);
 ```
 
-## `testContracts(app)`
+## `testContracts(graph)`
 
 Catches implementation-schema drift. Runs every example through the implementation, then validates the result against the trail's `output` schema. Reports detailed Zod errors on mismatch.
 
 ```typescript
 import { testContracts } from '@ontrails/testing';
 
-testContracts(app);
+testContracts(graph);
 // Fails if any implementation returns data that doesn't match its declared output schema
 ```
 
 TypeScript checks types at compile time, but the implementation could return `{ name: "foo" }` when the output schema says `{ title: string }`. `testContracts` catches this at runtime.
 
-## `testDetours(app)`
+## `testDetours(graph)`
 
 Structural validation. Verifies every detour target trail exists in the topo. No implementation execution needed.
 
 ```typescript
 import { testDetours } from '@ontrails/testing';
 
-testDetours(app);
+testDetours(graph);
 // Fails: Trail "entity.show" has detour target "entity.search" which does not exist in the topo
 ```
 
-## `scenario(name, app, steps)`
+## `scenario(name, graph, steps)`
 
 Multi-step journey testing for flows that span multiple trail invocations. Scenarios live in test files alongside `testAll` — they test how trails compose, not what individual trails do.
 
 ```typescript
 import { ref, scenario } from '@ontrails/testing';
 
-scenario('Fork flow', app, [
+scenario('Fork flow', graph, [
   {
     cross: createGist,
     input: { description: 'Original', content: '# Hello' },
@@ -321,7 +321,7 @@ const cross = createCrossContext({
 });
 
 const ctx = { ...createTestContext(), cross };
-const result = await onboardTrail.trailhead({ name: 'Delta' }, ctx);
+const result = await onboardTrail.blaze({ name: 'Delta' }, ctx);
 
 expect(result.isOk()).toBe(true);
 ```
@@ -343,7 +343,7 @@ logger.entries; // all captured records
 logger.clear(); // reset
 ```
 
-## Trailhead Harnesses
+## Surface Harnesses
 
 ### CLI Harness
 
@@ -352,7 +352,7 @@ Execute CLI commands in-process and capture stdout/stderr:
 ```typescript
 import { createCliHarness } from '@ontrails/testing';
 
-const harness = createCliHarness({ app });
+const harness = createCliHarness({ app: graph });
 const result = await harness.run('entity show --name Alpha --output json');
 
 expect(result.exitCode).toBe(0);
@@ -366,7 +366,7 @@ Invoke MCP tools directly without transport:
 ```typescript
 import { createMcpHarness } from '@ontrails/testing';
 
-const harness = createMcpHarness({ app });
+const harness = createMcpHarness({ app: graph });
 const result = await harness.callTool('myapp_entity_show', { name: 'Alpha' });
 
 expect(result.isError).toBe(false);
@@ -374,7 +374,7 @@ expect(result.isError).toBe(false);
 
 ## Testing with Infrastructure Resources
 
-The config, permits, and tracing packages each provide test-friendly primitives that work with `testAll(app)` and `testExamples(app)` without external dependencies.
+The config, permits, and tracing packages each provide test-friendly primitives that work with `testAll(graph)` and `testExamples(graph)` without external dependencies.
 
 **Config test profile.** Use `defineConfig()` with a `test` profile that uses safe defaults (port 0, debug enabled, in-memory stores). When the `TRAILS_ENV` environment variable is set to `test`, the test profile is selected automatically during resolution. Services with `config` schemas receive the test profile values through `svc.config`.
 
@@ -410,7 +410,7 @@ src/
     entity.ts          # Trail definitions with examples
     search.ts
   __tests__/
-    governance.test.ts # testAll(app) -- full governance suite
+    governance.test.ts # testAll(graph) -- full governance suite
     entity.test.ts     # testTrail(show, [...]) -- edge cases
     cli.test.ts        # CLI harness integration tests
     mcp.test.ts        # MCP harness integration tests

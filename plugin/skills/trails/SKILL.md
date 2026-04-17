@@ -1,11 +1,11 @@
 ---
 name: trails
-description: Build with the Trails framework — define trail contracts, wire CLI/MCP trailheads, test with examples, debug errors, migrate codebases, run governance. Use when creating trails, adding trailheads, testing, debugging Trails errors, migrating to Trails, running warden, or any work involving @ontrails/* packages.
+description: Build with the Trails framework — define trail contracts, open CLI/MCP surfaces, test with examples, debug errors, migrate codebases, run governance. Use when creating trails, adding surfaces, testing, debugging Trails errors, migrating to Trails, running warden, or any work involving @ontrails/* packages.
 ---
 
 # Trails
 
-Contract-first TypeScript framework. Define a trail once with typed input, Result output, examples, and metadata — then trailhead it on CLI, MCP, HTTP, or WebSocket without drift.
+Contract-first TypeScript framework. Define a trail once with typed input, Result output, examples, and metadata — then surface it on CLI, MCP, HTTP, or WebSocket without drift.
 
 ## Quick Start
 
@@ -22,11 +22,11 @@ const greet = trail('greet', {
 // 2. Collect into topo
 const graph = topo('myapp', greetModule);
 
-// 3. Open surfaces on trailheads
+// 3. Open surfaces
 await surface(graph);        // CLI — from @ontrails/cli/commander
 // await surface(graph);     // MCP — from @ontrails/mcp
 
-// 4. Headless execution (no trailhead needed)
+// 4. Headless execution (no surface needed)
 const result = await run(graph, 'greet', { name: 'Alice' });
 
 // 5. Test
@@ -42,8 +42,10 @@ Use these terms — they are non-negotiable in Trails codebases.
 | `trail` | Unit of work (atomic or composite) | handler, action |
 | `cross` | Composition declaration and runtime verb | workflow, route |
 | `topo` | Trail collection | registry |
-| `blaze` | Open trails on a trailhead | serve, mount |
-| `trailhead` | Transport connector (CLI, MCP, HTTP) | transport |
+| `blaze` | Implementation function — input to Result | handler, impl |
+| `surface` | The boundary-owned one-liner that opens a graph | serve, mount |
+| `graph` | Local name for a topo instance | app, registry |
+| `projection` | Deterministic derivation of graph onto a surface shape | mapping |
 | `metadata` | Trail annotations | tags |
 | `warden` | Governance enforcement | linter |
 
@@ -71,7 +73,7 @@ input: z.object({
 
 ### Output Schema
 
-Required for MCP and HTTP trailheads. Define what Result.ok returns.
+Required for MCP and HTTP surfaces. Define what Result.ok returns.
 
 ### Intent and Flags
 
@@ -91,9 +93,9 @@ Each example is both documentation AND a test case:
 
 See [contract-patterns.md](references/contract-patterns.md) for detailed patterns. Copy from [trail.md](templates/trail.md) or [composition.md](templates/composition.md).
 
-## Trailheads
+## Surfaces
 
-Adding a trailhead is a `surface()` call, not an architecture change. The framework derives everything from the trail contract.
+Adding a surface is a `surface()` call, not an architecture change. The framework derives everything from the trail contract.
 
 **CLI**: Flags from Zod, subcommands from dotted IDs, exit codes from error taxonomy.
 
@@ -116,7 +118,7 @@ import { surface } from '@ontrails/hono';
 await surface(graph, { port: 3000 });
 ```
 
-See the CLI trailhead docs, the MCP trailhead docs, and the HTTP trailhead docs for derivation details.
+See the CLI surface docs, the MCP surface docs, and the HTTP surface docs for derivation details.
 
 ## Resources
 
@@ -154,7 +156,7 @@ const search = trail('search', {
 **Test** with zero config — resources with `mock` factories auto-resolve in `testAll(graph)`. Override explicitly when needed:
 
 ```typescript
-testAll(app, () => ({ resources: { 'db.main': createSpecialTestDb() } }));
+testAll(graph, () => ({ resources: { 'db.main': createSpecialTestDb() } }));
 ```
 
 **Governance:** The warden enforces `resource-declarations` (usage matches declarations) and `resource-exists` (resource IDs resolve in the topo).
@@ -172,7 +174,7 @@ See [contract-patterns.md](references/contract-patterns.md) for declaration patt
 
 **TDD workflow**: Define trail with examples → run tests (red) → implement (green) → refactor.
 
-Edge cases go in `testTrail(trail, scenarios)`. Use `createCrossContext()` to mock `ctx.cross` for composite trail unit tests. Trailhead integration uses `createCliHarness()` / `createMcpHarness()`.
+Edge cases go in `testTrail(trail, scenarios)`. Use `createCrossContext()` to mock `ctx.cross` for composite trail unit tests. Surface integration uses `createCliHarness()` / `createMcpHarness()`.
 
 See [testing-patterns.md](references/testing-patterns.md) for the full testing API.
 
@@ -204,7 +206,7 @@ Converting existing code to Trails:
 1. Inventory handlers (routes, CLI commands, MCP tools)
 2. Extract Zod input/output schemas
 3. Convert implementations to return Result (replace throw/console.log/process.exit)
-4. Compose into topo, blaze on trailheads
+4. Compose into topo, open surfaces
 5. Add examples, run `testAll()`
 6. Run warden for governance
 
@@ -219,7 +221,7 @@ trails warden          # Convention checks
 trails warden --drift  # Contract drift vs lock file
 ```
 
-Key rules: no throw in blaze functions, no trailhead imports, crosses declarations match ctx.cross() calls, resource declarations match db.from(ctx) / ctx.resource() calls, output schemas present, .describe() on fields.
+Key rules: no throw in blaze functions, no surface imports, crosses declarations match ctx.cross() calls, resource declarations match db.from(ctx) / ctx.resource() calls, output schemas present, .describe() on fields.
 
 ## References
 
@@ -228,11 +230,11 @@ Key rules: no throw in blaze functions, no trailhead imports, crosses declaratio
 | [getting-started.md](references/getting-started.md) | Full install-to-test walkthrough |
 | [architecture.md](references/architecture.md) | Hexagonal model, package gates, data flow |
 | [contract-patterns.md](references/contract-patterns.md) | ID naming, schema design, example authoring |
-| CLI trailhead docs | Flag derivation, output modes, exit codes |
-| MCP trailhead docs | Tool naming, annotations, progress |
+| CLI surface docs | Flag derivation, output modes, exit codes |
+| MCP surface docs | Tool naming, annotations, progress |
 | [testing-patterns.md](references/testing-patterns.md) | testAll, testTrail, harnesses |
 | [error-taxonomy.md](references/error-taxonomy.md) | All 13 error classes with signatures |
-| [common-pitfalls.md](references/common-pitfalls.md) | 9 anti-patterns with fixes |
+| [common-pitfalls.md](references/common-pitfalls.md) | 12 anti-patterns with fixes |
 | [migration-checklist.md](references/migration-checklist.md) | Step-by-step conversion guide |
 | [trail.md](templates/trail.md) | Annotated trail skeleton |
 | [composition.md](templates/composition.md) | Annotated composite trail skeleton |

@@ -1,4 +1,4 @@
-# MCP Trailhead Reference
+# MCP Surface Reference
 
 ## Tool Naming
 
@@ -44,7 +44,7 @@ These annotations help MCP clients (like Claude) make informed decisions about t
 
 ## Progress Bridging
 
-`ctx.progress(current, total)` inside a trail implementation maps to MCP progress notifications. The trailhead handles the protocol — implementations just report progress:
+`ctx.progress(current, total)` inside a trail implementation maps to MCP progress notifications. The surface handles the protocol — implementations just report progress:
 
 ```typescript
 blaze: async (input, ctx) => {
@@ -60,7 +60,7 @@ blaze: async (input, ctx) => {
 
 Trail `examples` are included in MCP tool metadata. Agents use these to understand expected input/output shapes and plan tool usage without trial and error.
 
-## Trailhead Options
+## Surface Options
 
 ```typescript
 import { surface } from '@ontrails/mcp';

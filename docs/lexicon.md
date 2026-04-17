@@ -20,7 +20,7 @@ This means:
 
 ## Branded — Top-Level Primitives
 
-Six terms a developer must internalize before reading a Trails app.
+Seven terms a developer must internalize before reading a Trails app.
 
 ### `trail`
 
@@ -34,29 +34,43 @@ const show = trail('entity.show', {
 });
 ```
 
-### `trailhead`
+### `surface`
 
-The entry point where the outside world reaches the trail system. CLI, MCP, HTTP, and WebSocket are trailheads.
+The boundary-owned rendering where the outside world reaches the trail system.
+CLI, MCP, HTTP, and WebSocket are surfaces.
 
 ```typescript
-import { trailhead } from '@ontrails/cli/commander';
-trailhead(app);
+import { surface } from '@ontrails/cli/commander';
+await surface(graph);
 
-import { trailhead as mcpTrailhead } from '@ontrails/mcp';
-await mcpTrailhead(app);
+import { surface as surfaceMcp } from '@ontrails/mcp';
+await surfaceMcp(graph);
 ```
 
-Use `trailhead` for both the one-liner function and the concept. "This app has three trailheads" is the intended sentence.
+Use `surface` for both the one-liner function and the concept. "This app has
+three surfaces" is the intended sentence.
+
+### `trailhead`
+
+The conceptual boundary where a surface meets the trail system. The
+trailhead is where external input enters the framework and where the
+surface's protocol-specific handling ends and the shared `executeTrail()`
+pipeline begins. "Surface" names the rendering; "trailhead" names the
+boundary point.
 
 ### `topo`
 
-Collect trail modules into an app. `topo()` scans exports and builds the internal trail map with `.trails`, `.signals`, and `.resources`.
+Collect trail modules into a graph. `topo()` scans exports and builds the
+internal trail map with `.trails`, `.signals`, and `.resources`.
 
 ```typescript
-const app = topo('myapp', entityModule, searchModule);
+const graph = topo('myapp', entityModule, searchModule);
 ```
 
-The topo is the center of gravity for discovery, validation, and runtime wiring. More than a registry — it is the queryable graph of everything: trails, relationships, signals, resources.
+The topo is the center of gravity for discovery, validation, and runtime
+wiring. More than a registry — it is the queryable graph of everything:
+trails, relationships, signals, resources. The primitive is `topo()`. The
+value it returns is a graph.
 
 ### `contour`
 
@@ -163,7 +177,8 @@ The noun is a crossing: a place where one trail intentionally steps onto another
 
 ### `crossInput`
 
-Composition-only input schema. Declares fields available through `ctx.cross()` but invisible to public trailheads (CLI, MCP, HTTP).
+Composition-only input schema. Declares fields available through `ctx.cross()`
+but invisible to public surfaces (CLI, MCP, HTTP).
 
 ```typescript
 const create = trail('gist.create', {
@@ -175,13 +190,15 @@ const create = trail('gist.create', {
     forkedFrom: z.string().optional(),
   }),
   blaze: async (input, ctx) => {
-    // input.forkedFrom is available here (undefined from trailheads)
+    // input.forkedFrom is available here (undefined from surfaces)
     return Result.ok({ id: '1' });
   },
 });
 ```
 
-`crossInput` fields are merged with `input` for the blaze. When invoked via a trailhead, `crossInput` fields are absent. When invoked via `ctx.cross()`, the caller can pass both. See [ADR-0024](adr/0024-typed-trail-composition.md).
+`crossInput` fields are merged with `input` for the blaze. When invoked via a
+surface, `crossInput` fields are absent. When invoked via `ctx.cross()`, the
+caller can pass both. See [ADR-0024](adr/0024-typed-trail-composition.md).
 
 ### `signal`
 
@@ -197,14 +214,17 @@ Trails signals go beyond events: cron triggers, webhook sources, file watchers, 
 
 ### `pin`
 
-A named snapshot of the topo state at a point in time. Pins are stored in `trails.db` and enable comparison between the current resolved graph and a previous known-good state.
+A named snapshot of the graph state at a point in time. Pins are stored in
+`trails.db` and enable comparison between the current resolved graph and a
+previous known-good state.
 
 ```bash
 trails topo pin --name v1.0
 trails topo verify
 ```
 
-Carries intent that "snapshot" doesn't — "this state is my reference point." Verb-friendly. A pin captures the topo; an export serializes it.
+Carries intent that "snapshot" doesn't — "this state is my reference point."
+Verb-friendly. A pin captures the graph; an export serializes it.
 
 ## Plain — Standard Language
 
@@ -212,10 +232,12 @@ Terms that name concepts existing cleanly across software. The standard word wor
 
 ### `layer`
 
-A cross-cutting wrapper around trail execution. Layers add behavior to the execution pipeline: dry-run, pagination, verbose, telemetry. Most layers don't block — they augment. Attaches at three levels: trail, trailhead, or topo.
+A cross-cutting wrapper around trail execution. Layers add behavior to the
+execution pipeline: dry-run, pagination, verbose, telemetry. Most layers don't
+block — they augment. Attaches at three levels: trail, surface, or graph.
 
 ```typescript
-const app = topo('myapp', entityModule, {
+const graph = topo('myapp', entityModule, {
   layers: [verboseLayer, paginationLayer],
 });
 ```
@@ -236,7 +258,7 @@ Trails declare their infrastructure needs with `resources: [...]` and access the
 
 ### `visibility`
 
-Whether a trail is exposed as a public verb on trailheads or kept as an internal
+Whether a trail is exposed as a public verb on surfaces or kept as an internal
 composition target.
 
 ```typescript
@@ -248,8 +270,8 @@ const normalizePayload = trail('github.normalize-payload', {
 });
 ```
 
-`'public'` is the default. `'internal'` keeps the trail off trailheads unless a
-specific trailhead includes that exact trail ID intentionally.
+`'public'` is the default. `'internal'` keeps the trail off surfaces unless a
+specific surface includes that exact trail ID intentionally.
 
 ### `profile`
 
@@ -284,10 +306,20 @@ const enableFeature = trail('feature.enable', {
 Direct programmatic execution through the full pipeline.
 
 ```typescript
-const result = await run(app, 'entity.show', { id: '123' });
+const result = await run(graph, 'entity.show', { id: '123' });
 ```
 
 `run()` is for "invoke this specific trail now." It is not the implementation field on a trail.
+
+### `graph`
+
+The assembled, queryable value returned by `topo()`. The graph is the runtime
+shape that surfaces render, survey inspects, and the lockfile serializes.
+
+```typescript
+const graph = topo('myapp', entityModule, searchModule);
+await surface(graph);
+```
 
 ### `store`
 
@@ -314,7 +346,12 @@ The store declaration stays kind-agnostic. The connector or binding chooses the 
 
 ### `projection`
 
-A mechanically derived output from authored information. The topo store is a relational projection of the resolved graph — the same data, restructured for queries. CLI flags are projections of input schemas. HTTP verbs are projections of intent. The framework derives projections; developers author the source.
+A mechanically derived output from authored information. The topo store is a
+relational projection of the resolved graph — the same data, restructured for
+queries. CLI flags are projections of input schemas. HTTP verbs are
+projections of intent. `deriveCliCommands(graph)` and
+`deriveHttpRoutes(graph)` are surface projections. The framework derives
+projections; developers author the source.
 
 ### Other plain terms
 
@@ -325,11 +362,13 @@ A mechanically derived output from authored information. The topo store is a rel
 | `meta` | Annotations for tooling and filtering |
 | `Result` | Ok/Err return type |
 | `error` | Error types |
+| `adapter` | A thinner runtime-specific layer that composes on top of an existing surface or connector |
 | `connector` | Integration-specific bridge to third-party systems (e.g., Hono, Commander, Drizzle) |
 | `logger` / `logging` | Structured logging — framework provides the interface; developers bring their own |
 | `health` | Health checks |
-| `build*` | Derived builder output before wiring |
-| `to*` / `connect*` | Runtime wiring helpers after build |
+| `derive*` | Mechanically project surface definitions from a graph |
+| `create*` | Materialize runtime objects without opening the boundary |
+| `to*` / `connect*` | Narrow translation or transport helpers where the boundary package needs them |
 
 ## Compound and Derived Terms
 
@@ -338,7 +377,7 @@ Built from the lexicon above.
 | Term | Composed of | Usage |
 | --- | --- | --- |
 | `pack` | Collection of trails as a distributable unit | Trail pack. Published capability bundle. |
-| `mount` | Cross-app composition | Mount a remote topo. Future. |
+| `mount` | Cross-app composition | Mount a remote graph. Future. |
 | `survey` | Full introspection of the trail system | `trails survey` to see everything. |
 | `guide` | Runtime guidance layer | `trails guide` for recommendations. |
 
@@ -352,7 +391,7 @@ These are directional. They should not be reused for unrelated concepts.
 | `pack` | Distributable capability bundle |
 | `depot` | Registry or distribution point for packs and shared assets |
 | `dispatch` | Reserved strong verb for a future concept, no longer the direct execution helper |
-| `_draft.` | Reserved ID prefix for draft state. Trails, signals, and other primitives with `_draft.` IDs are visible in source but excluded from the resolved graph, established trailheads, and topo exports. Draft state is visible debt — it must never leak into established outputs. See ADR-0021. |
+| `_draft.` | Reserved ID prefix for draft state. Trails, signals, and other primitives with `_draft.` IDs are visible in source but excluded from the resolved graph, established surfaces, and graph exports. Draft state is visible debt — it must never leak into established outputs. See ADR-0021. |
 
 ## Grammar
 
@@ -364,7 +403,7 @@ These rules carry over from ADR-0001 and govern how the lexicon composes:
 - **`create*` for runtime instances:** `createLogger()`, `createConsoleLogger()`
 - **`derive*` for derivations:** `deriveFields()`, `deriveFlags()`
 - **`validate*` for verification:** `validateInput()`, `validateTopo()`
-- **`derive*` then `to*` / `connect*` for surface wiring:** `deriveCliCommands()`, `toCommander()`
+- **`derive*` then `create*` then `surface()` for surface wiring:** `deriveCliCommands()`, `createProgram()`, `surface()`
 
 ## Term Hierarchy
 
@@ -374,8 +413,8 @@ When introducing Trails, use this order.
 
 1. `trail()` — define a unit of work
 2. `blaze:` — give the trail its implementation
-3. `topo()` — collect trails into an app
-4. `surface()` — open the app on CLI, MCP, HTTP, or WebSocket
+3. `topo()` — collect trails into a graph
+4. `surface()` — open the graph on CLI, MCP, HTTP, or WebSocket
 
 ### Intermediate
 
@@ -392,7 +431,7 @@ When introducing Trails, use this order.
 1. `layer` — wrap execution with cross-cutting behavior
 2. `tracing` / `ctx.trace()` — record what happened
 3. `permit` — auth and scopes
-4. `pin` — named topo snapshot for diffing and verification
+4. `pin` — named graph snapshot for diffing and verification
 5. `projection` — mechanically derived output from authored data
 6. `profile` — deployment and environment config sets
 7. `pattern` — declared operational shape on a trail
@@ -400,7 +439,8 @@ When introducing Trails, use this order.
 
 ## Writing Style
 
-- Lead with code: `trail()` → `blaze:` → `topo()` → `trailhead()`
-- Use the lexicon consistently: "cross" instead of "follow," "trailhead" instead of "surface"
+- Lead with code: `trail()` → `blaze:` → `topo()` → `surface()`
+- Use the lexicon consistently: "cross" instead of "follow," "surface"
+  instead of generic transport vocabulary
 - Keep the metaphor disciplined. The words should clarify behavior, not turn the docs into theme writing.
 - Prefer the lexicon's nouns even for internal architecture explanations. Leaving generic words in place only creates translation tax later.

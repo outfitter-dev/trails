@@ -101,7 +101,7 @@ examples: [
 | `intent` | `'destroy'` | Deletes, irreversible mutations. CLI adds `--dry-run`. |
 | `idempotent` | `true` | Safe to retry. Upserts, PUT-style operations. |
 
-Omitting `intent` means "has side effects but not destructive" — typical for create/update. Trailhead effects: CLI adds `--dry-run` for `intent: 'destroy'`; MCP skips confirmation for `intent: 'read'`; HTTP maps `'read'` to GET, others to POST.
+Omitting `intent` means "has side effects but not destructive" — typical for create/update. Surface effects: CLI adds `--dry-run` for `intent: 'destroy'`; MCP skips confirmation for `intent: 'read'`; HTTP maps `'read'` to GET, others to POST.
 
 ## Detours
 
@@ -114,7 +114,7 @@ detours: {
 },
 ```
 
-Keys are error type names (strings, not classes). Values are arrays of trail IDs. Trailheads can auto-suggest or auto-cross detours.
+Keys are error type names (strings, not classes). Values are arrays of trail IDs. Surfaces can auto-suggest or auto-cross detours.
 
 ## Field Overrides
 
