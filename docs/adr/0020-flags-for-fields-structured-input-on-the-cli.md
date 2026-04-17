@@ -15,20 +15,20 @@ depends_on: [8, 19]
 
 ### The derivation model works — until it doesn't
 
-The CLI gets its power from derivation. A trail author writes one input schema, and the framework projects flags from it automatically. That model — one schema, many trailheads, zero divergence — is the core promise of Trails.
+The CLI gets its power from derivation. A trail author writes one input schema, and the framework projects flags from it automatically. That model — one schema, many surfaces, zero divergence — is the core promise of Trails.
 
 It holds for scalar fields, booleans, enums, and arrays of primitives. It breaks for structured input (arrays of objects, nested schemas) and it says nothing about the two other concerns a real CLI needs: positional arguments and their ordering, and global flags that apply to every command.
 
 The Stash dogfood app hit the structured-input failure first: `gist.create` needs `files: [{ filename, content, language? }]`, and flat flag derivation cannot faithfully represent that shape.[^retro] The positional-ordering gap surfaced next: `topo pin <name>` reads naturally, but the framework had no way to express "this field is positional" without leaking CLI concepts into the trail spec. And global flags (`--json`, `--verbose`) were manually wired per-command through a preset mechanism that required explicit opt-in.
 
-These are three faces of the same problem: **how does a trailhead-agnostic trail spec project to the full structure of a CLI command?**
+These are three faces of the same problem: **how does a surface-agnostic trail spec project to the full structure of a CLI command?**
 
 ### The layered answer
 
 The answer is a four-layer model where each layer handles a different scope of the problem. The framework derives what it can, the developer declares what it can't, and overrides handle the exceptions:
 
 1. **Framework defaults** — type-driven derivation (schema → flags, booleans → toggles, arrays → comma-separated)
-2. **CLI trailhead globals** — flags that apply to every command (`--json`, `--verbose`)
+2. **CLI surface globals** — flags that apply to every command (`--json`, `--verbose`)
 3. **App conventions** — reusable patterns across trails (`deriveTrail`, contours)
 4. **Trail-level declarations** — `args` for positional ordering, `fields` for per-field overrides
 
@@ -118,7 +118,7 @@ The framework does not impose ceremony before it becomes necessary.
 
 ## Non-goals
 
-- **CLI trailhead globals.** Built-in global flags (`--json`, `--verbose`, `--no-color`) and the trailhead-level configuration for enabling/disabling them are a separate decision. The current preset mechanism works; formalizing it as a first-class API is deferred.
+- **CLI surface globals.** Built-in global flags (`--json`, `--verbose`, `--no-color`) and the surface-level configuration for enabling/disabling them are a separate decision. The current preset mechanism works; formalizing it as a first-class API is deferred.
 - **App-level field conventions.** Reusable patterns for field presentation across trails (e.g., "src/dest are always positional in my app") are handled by `deriveTrail` and contour factories, which are covered by their own ADRs.
 - **Interactive editor or form-based authoring.** Complex payload authoring via TUI editors or interactive prompts is a future concern.
 
@@ -136,7 +136,7 @@ The framework does not impose ceremony before it becomes necessary.
 
 - **The CLI has more than one input path.** Structured channels, positional args, and flags all converge on the same schema, but that's extra surface area to document and explain.
 - **Some commands will show fewer automatic flags than before.** That is intentional. Omitted flags are better than lossy flags.
-- **`args` adds a field to the trail spec.** One more thing to learn. The justification: without it, the only option is depending on schema key order (fragile) or putting positional config on the trailhead (disconnected from the trail).
+- **`args` adds a field to the trail spec.** One more thing to learn. The justification: without it, the only option is depending on schema key order (fragile) or putting positional config on the surface (disconnected from the trail).
 
 ## Non-decisions
 
@@ -146,7 +146,7 @@ The framework does not impose ceremony before it becomes necessary.
 
 ## References
 
-- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — the deterministic derivation model that `args` extends
+- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-trailhead-derivation.md) — the deterministic derivation model that `args` extends
 - [ADR-0019: Hierarchical Command Trees from Trail IDs](0019-hierarchical-command-trees-from-trail-ids.md) — the companion decision for nested command paths
 - [Trails Design Tenets](../tenets.md) — especially "derive by default, declare to tighten, override when wrong" and "schema always exists"
 - [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md) — contour-aware `deriveTrail()` that can carry `args` conventions

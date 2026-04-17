@@ -148,7 +148,7 @@ Resolution stack (later overrides earlier):
 3. **Local overrides** — `.trails/config/local.ts`, gitignored, per-developer
 4. **Environment variables** — auto-mapped from `.env()` bindings on schema fields
 
-Five layers were considered. **CLI flag derivation from config was explicitly rejected.** Config flags would conflict with trail input flags on the same CLI trailhead. Environment variables are the command-line override mechanism.
+Five layers were considered. **CLI flag derivation from config was explicitly rejected.** Config flags would conflict with trail input flags on the same CLI surface. Environment variables are the command-line override mechanism.
 
 Profiles are deep-partial overrides of `base`, not self-contained configs. Shared config lives in `base` once. Environment-specific deltas live in `profiles`. Author the minimum new information.
 
@@ -202,7 +202,7 @@ Config does NOT live on `topo()`. Topo is the contract graph — trails, signals
 Config is resolved in `surface()` / `run()` options:
 
 ```typescript
-await surface(app, { config });
+await surface(graph, { config });
 await run(app, 'search', input, { config });
 ```
 
@@ -297,7 +297,7 @@ myapp config check
   ✓ 4 of 5 fields valid
 ```
 
-The same structured output feeds CLI rendering, agent inspection, and the warden. A trail can expose `config.check` as a first-class operation — queryable, testable, available on any trailhead for agents that need to diagnose config issues programmatically.
+The same structured output feeds CLI rendering, agent inspection, and the warden. A trail can expose `config.check` as a first-class operation — queryable, testable, available on any surface for agents that need to diagnose config issues programmatically.
 
 ### Validation error UX
 
@@ -337,7 +337,7 @@ This keeps config resolution predictable and fast. The entire config tree resolv
 
 ### Tradeoffs
 
-- **`env()` and `secret()` use Zod's metadata API.** Implementation depends on Zod 4's `globalRegistry` and `.meta()`. Wrapper functions compose metadata before transforms. If Zod's metadata model changes, this trailhead breaks.
+- **`env()` and `secret()` use Zod's metadata API.** Implementation depends on Zod 4's `globalRegistry` and `.meta()`. Wrapper functions compose metadata before transforms. If Zod's metadata model changes, this surface breaks.
 - **Composable config adds schema merging complexity.** Multiple resources contributing config schemas means the framework must handle namespace scoping and conflict detection.
 - **No CLI flag derivation from config.** Environment variables are the only command-line override mechanism. Teams that want flags must set env vars or use wrapper scripts.
 

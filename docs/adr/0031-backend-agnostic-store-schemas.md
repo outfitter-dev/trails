@@ -21,7 +21,7 @@ This matters because the same domain object often lives in different backends ac
 
 ### Left side solved, right side open
 
-Trails already solved this on the left side of the hexagon. One trail schema projects into CLI flags, MCP tool parameters, and HTTP request bodies via trailheads. The developer authors one schema, the framework reads it many ways.
+Trails already solved this on the left side of the hexagon. One trail schema projects into CLI flags, MCP tool parameters, and HTTP request bodies via surfaces. The developer authors one schema, the framework reads it many ways.
 
 The right side — persistence — doesn't have this yet. One store schema should project into database tables, Firestore collections, KV entries, or files via connectors. The "one write, many reads" principle[^1] applies to both sides.
 
@@ -73,7 +73,7 @@ The same authored store schema can project into different store kinds depending 
 
 This extends "one write, many reads" to the right side of the hexagon:
 
-- **Left side:** one trail schema projects into CLI flags, MCP tool params, HTTP request bodies (via trailheads)
+- **Left side:** one trail schema projects into CLI flags, MCP tool params, HTTP request bodies (via surfaces)
 - **Right side:** one store schema projects into database tables, Firestore collections, KV entries, or files (via connectors)
 
 Kind-specific metadata (SQL indexes, Firestore subcollection config) lives on the *connector binding*, not the store declaration. This keeps the declaration pure and kind-agnostic:
@@ -228,7 +228,7 @@ Sync between local files and the database index uses sync trails reacting to cha
 
 ### Positive
 
-- **"One write, many reads" extended to persistence.** One store schema, many persistence backends. The same principle that makes trailheads work now makes connectors work.
+- **"One write, many reads" extended to persistence.** One store schema, many persistence backends. The same principle that makes surfaces work now makes connectors work.
 - **Progressive persistence.** Start with JSON files, graduate to SQLite, deploy to D1 — same schema, same trails, one-line connector swap.
 - **No sync primitives.** Multi-resource consistency uses existing concepts (trails, signals, resources). The framework's concept count doesn't grow.
 - **Change signals are derived.** Store write signals project from the schema. No new authoring.

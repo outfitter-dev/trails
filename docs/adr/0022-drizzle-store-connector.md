@@ -25,7 +25,7 @@ The first connector also needs to be useful enough for real application work and
 - derive real database tables from the authored schema
 - expose typed CRUD accessors
 - provide a truthful escape hatch for complex queries
-- supply mock and fixture behavior so `testAll(app)` keeps working
+- supply mock and fixture behavior so `testAll(graph)` keeps working
 
 Three options were considered:
 
@@ -47,7 +47,7 @@ The first concrete connector lives in its own workspace package:
 import { connectDrizzle } from '@ontrails/with-drizzle';
 ```
 
-This follows the same architectural pattern as trailhead connectors. The root package owns the connector-agnostic model. The `with-*` package binds it to a concrete runtime.
+This follows the same architectural pattern as surface connectors. The root package owns the connector-agnostic model. The `with-*` package binds it to a concrete runtime.
 
 > Originally shipped as the `@ontrails/store/drizzle` subpath; [ADR-0029](./0029-connector-extraction-and-the-with-packaging-model.md) promoted connectors to their own workspace packages.
 

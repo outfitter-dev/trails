@@ -213,7 +213,7 @@ concept count flat.
 - [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](0006-shared-execution-pipeline.md)
   — `Result` remains the execution contract even as surface startup helpers stay
   effectful
-- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md)
+- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-trailhead-derivation.md)
   — surface projections are deterministic renderings of the graph
 - [ADR-0029: Connector Extraction and Composition Around Core Contracts](0029-connector-extraction-and-the-with-packaging-model.md)
   — package boundaries and composition layers around extracted connectors

@@ -14,7 +14,7 @@ owners: ['[galligan](https://github.com/galligan)']
 
 ### The gap
 
-Trails implementations are pure functions. Input in, `Result` out. No side effects, no trailhead knowledge. But real implementations talk to databases, call external APIs, read from caches, and publish to queues. Today, every trail that touches an external system creates its own connection inline:
+Trails implementations are pure functions. Input in, `Result` out. No side effects, no surface knowledge. But real implementations talk to databases, call external APIs, read from caches, and publish to queues. Today, every trail that touches an external system creates its own connection inline:
 
 ```typescript
 const search = trail('search', {
@@ -46,7 +46,7 @@ That's the gap. The trail contract has no way to express dependencies on externa
 
 ### The right side of the hexagon
 
-The Trails architecture is hexagonal. The left side (inbound) has its primitive: trailheads via `surface()`. The right side (outbound) — logging, storage, telemetry, search — doesn't have one yet. The architecture doc says: *"The framework defines ports. Everything concrete is a connector."* But there's no mechanism to register, resolve, or govern those connectors.
+The Trails architecture is hexagonal. The left side (inbound) has its primitive: surfaces via `surface()`. The right side (outbound) — logging, storage, telemetry, search — doesn't have one yet. The architecture doc says: *"The framework defines ports. Everything concrete is a connector."* But there's no mechanism to register, resolve, or govern those connectors.
 
 The logging package already established the connector pattern: abstract API (`Logger`) → extension point (`LogSink`) → built-in implementations → subpath connectors (`/logtape`). Resources generalize this pattern. They're the primitive that fills the right side of the hexagon — how you register concrete implementations of connector ports and make them available to trails.
 
@@ -89,7 +89,7 @@ The fields:
 import * as entity from './trails/entity';
 import * as resources from './resources';
 
-const app = topo('myapp', entity, resources);
+const graph = topo('myapp', entity, resources);
 // app.trails — Map<id, Trail>
 // app.events — Map<id, Event>
 // app.resources — Map<id, Resource>
@@ -98,7 +98,7 @@ const app = topo('myapp', entity, resources);
 Explicit registration also works for custom configuration:
 
 ```typescript
-const app = topo('myapp', entity, { db, cache });
+const graph = topo('myapp', entity, { db, cache });
 ```
 
 Duplicate resource IDs fail topo construction, same as duplicate trail IDs. No implicit override. Pack authors namespace with dot-separated IDs (`db.primary`, `entity.store`).
@@ -166,7 +166,7 @@ Resource `create` factories return `Result`. Thrown exceptions are wrapped as `I
 
 ### Centralized cross creation
 
-Today, each trailhead creates its own `ctx.cross` function ad-hoc. With resources, cross needs to propagate the resolved resource scope through nested trail invocations. A core `createCross(topo, scope)` function — named per Convention 5 — centralizes this. All trailheads and `run()` use the same function.
+Today, each surface creates its own `ctx.cross` function ad-hoc. With resources, cross needs to propagate the resolved resource scope through nested trail invocations. A core `createCross(topo, scope)` function — named per Convention 5 — centralizes this. All surfaces and `run()` use the same function.
 
 The execution scope is a lightweight object that `executeTrail` creates per root invocation. For v1, it holds the singleton resource cache. The scope is extensible — tracing will add `TrackScope` for trace propagation, and request-scoped resources (when they ship) will add per-request state. Designing the seam now avoids retrofitting it later.
 
@@ -174,7 +174,7 @@ The execution scope is a lightweight object that `executeTrail` creates per root
 
 All resources are app-scoped singletons. Created once on first resolution, cached for the lifetime of the process, disposed on shutdown. This covers the dominant use case — database pools, API clients, cached configs.
 
-Shutdown signaling differs by trailhead. CLI tools run once and exit — disposal happens after the command completes. Long-running servers (MCP, HTTP) listen for `SIGTERM`/`SIGINT` and dispose resources before exiting. The trailhead's `surface()` function owns this lifecycle, which is consistent with how trailheads already own the server lifecycle today.
+Shutdown signaling differs by surface. CLI tools run once and exit — disposal happens after the command completes. Long-running servers (MCP, HTTP) listen for `SIGTERM`/`SIGINT` and dispose resources before exiting. The `surface()` function owns this lifecycle, which is consistent with how surfaces already own the server lifecycle today.
 
 Request-scoped resources (per-invocation loggers, transaction contexts) are deferred. The singleton model is simple, predictable, and sufficient for v1.
 
@@ -192,18 +192,18 @@ testExamples(app, { resources: { 'db.main': customMock } });
 
 When a resource definition includes a `mock` factory, `testExamples` uses it automatically. No configuration needed. The resource contract includes how to mock itself. This restores the `testExamples(app)` promise — one line tests the entire app, even for trails with external dependencies.
 
-The same mechanism works with `testCrosses`, `run`, and trailhead-level overrides:
+The same mechanism works with `testCrosses`, `run`, and surface-level overrides:
 
 ```typescript
 testCrosses(onboardTrail, scenarios, {
   resources: { 'db.main': mockDb },
 });
 
-run(app, 'search', input, {
+run(graph, 'search', input, {
   resources: { 'db.main': testDb },
 });
 
-surface(app, {
+surface(graph, {
   resources: { 'db.main': stagingDb },
 });
 ```
@@ -292,7 +292,7 @@ The layer receives the resource definition as a parameter. It reads from context
 
 ### Tradeoffs
 
-- **One more core concept.** `resource()` joins `trail()`, `signal()`, and `topo()` as a framework primitive. The API trailhead grows. The justification: without it, the framework can't manage lifecycle, govern dependencies, or make examples work for real implementations.
+- **One more core concept.** `resource()` joins `trail()`, `signal()`, and `topo()` as a framework primitive. The API surface grows. The justification: without it, the framework can't manage lifecycle, govern dependencies, or make examples work for real implementations.
 - **Singleton-only limits some patterns.** Request-scoped resources (per-invocation transaction contexts, request-scoped loggers) aren't supported in v1. Workaround: use layers for request-scoped concerns, or pass request-specific state through `ctx.extensions`.
 - **Mock factories are optional.** If a resource doesn't define `mock`, `testExamples` still needs explicit overrides. The convenience is opt-in, not guaranteed.
 

@@ -84,13 +84,13 @@ Tables in `trails.db` are organized by subsystem. Each subsystem owns its schema
 
 | Prefix | Subsystem | Lifecycle |
 |---|---|---|
-| `topo_*` | Topo store, topo snapshot history, and pins | Rebuilt on build/refresh; pins are user-managed |
+| `topo_*` | Topo store and snapshot history (pins are snapshots with `pinned_as` set) | Rebuilt on build/refresh; pinned snapshots are user-managed |
 | `track_*` | Tracing (execution records) | Append-only, pruned |
 | `cache_*` | Non-topo derivation caches and local framework caches | Populated on build, invalidated by content hash |
 
 This avoids collision as subsystems evolve independently. Each subsystem manages its own table creation, and a version table tracks schema versions per subsystem for safe migration.
 
-### Topo saves and pins
+### Topo snapshots and pins
 
 The topo store records every saved topo state, then lets developers pin the meaningful ones:
 
@@ -142,9 +142,9 @@ In production, the framework operates exactly as it does today: in-memory topo, 
 trails topo show                    # Show the current topo summary
 trails topo history                 # List pins and recent autosaves
 trails topo pin "name"              # Pin the current topo snapshot
-trails topo show "name"             # Show metadata for a pin or save reference
-trails topo diff --since "name"     # Structural diff since a pin or prior save
-trails topo unpin "name"            # Remove a pin but keep the underlying save eligible for pruning
+trails topo show "name"             # Show metadata for a pin or snapshot reference
+trails topo diff --since "name"     # Structural diff since a pin or prior snapshot
+trails topo unpin "name"            # Remove a pin but keep the underlying snapshot eligible for pruning
 trails topo export                  # Write .trails/trails.lock from the current topo
 trails topo verify                  # Verify .trails/trails.lock reflects the current topo
 

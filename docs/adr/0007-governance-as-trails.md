@@ -12,9 +12,9 @@ owners: ['[galligan](https://github.com/galligan)']
 
 ## Context
 
-The warden is Trails' governance system. It checks that code follows framework conventions: no throws in implementations, Result returns, cross declarations matching usage, no trailhead types in domain logic, and so on. It exists because the type system alone can't catch everything — `throw` is legal TypeScript, and nothing in the compiler prevents importing `Request` into a trail implementation.
+The warden is Trails' governance system. It checks that code follows framework conventions: no throws in implementations, Result returns, cross declarations matching usage, no surface types in domain logic, and so on. It exists because the type system alone can't catch everything — `throw` is legal TypeScript, and nothing in the compiler prevents importing `Request` into a trail implementation.
 
-Early warden rules used regex pattern matching on source code. This worked for the simplest cases but broke down fast. A `throw` inside a JSDoc comment triggered false positives. A string literal containing `new Request` looked like a trailhead type import. Nested scopes were invisible — regex can't tell the difference between a `throw` inside a `.map()` callback and a `throw` inside the implementation body itself.
+Early warden rules used regex pattern matching on source code. This worked for the simplest cases but broke down fast. A `throw` inside a JSDoc comment triggered false positives. A string literal containing `new Request` looked like a surface type import. Nested scopes were invisible — regex can't tell the difference between a `throw` inside a `.map()` callback and a `throw` inside the implementation body itself.
 
 Rules were standalone functions with ad-hoc interfaces. Each had a `name`, a `check` function, and a `severity`, but there were no schemas, no examples, no composition through the topo. The governance system was the one part of Trails that didn't use the Trails contract model.
 
@@ -61,9 +61,9 @@ One critical addition: `walkShallow()`. Standard `walk()` descends into everythi
 | `implementation-returns-result` | error | basic | `blaze:` bodies return `Result.ok()` or `Result.err()`, not raw values |
 | `context-no-surface-types` | error | basic | No imports of `Request`, `Response`, `McpSession`, etc. in trail files |
 | `cross-declarations` | error | basic | `ctx.cross()` calls match the declared `crosses` array |
-| `no-sync-result-assumption` | error | basic | `.trailhead()` results are awaited, not treated as synchronous |
-| `no-direct-implementation-call` | warn | basic | Application code uses `ctx.cross()`, not direct `.trailhead()` calls |
-| `no-direct-impl-in-route` | warn | basic | Trail bodies with `crosses` prefer `ctx.cross()` over `.trailhead()` |
+| `no-sync-result-assumption` | error | basic | `.blaze()` results are awaited, not treated as synchronous |
+| `no-direct-implementation-call` | warn | basic | Application code uses `ctx.cross()`, not direct `.blaze()` calls |
+| `no-direct-impl-in-route` | warn | basic | Trail bodies with `crosses` prefer `ctx.cross()` over `.blaze()` |
 | `prefer-schema-inference` | warn | basic | `fields` overrides don't restate what `deriveFields()` already infers |
 | `valid-describe-refs` | warn | project | `@see` tags in `.describe()` strings reference defined trail IDs |
 | `valid-detour-refs` | error | project | Detour target trail IDs reference defined trails |

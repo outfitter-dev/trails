@@ -13,9 +13,9 @@ depends_on: [14]
 
 ## Context
 
-The resolved topology — all trails, their schemas, crossings, resources, signals, trailhead mappings, and metadata — exists in two forms today. In memory, it's a `ReadonlyMap<string, AnyTrail>` with parallel maps for signals and resources. On disk, it's a JSON file (the surface map at `.trails/_surface.json`).[^surface-map] Both are flat serializations of a graph structure.
+The resolved topology — all trails, their schemas, crossings, resources, signals, surface mappings, and metadata — exists in two forms today. In memory, it's a `ReadonlyMap<string, AnyTrail>` with parallel maps for signals and resources. On disk, it's a JSON file (the surface map at `.trails/_surface.json`).[^surface-map] Both are flat serializations of a graph structure.
 
-When something wants to query the topo, it traverses these structures imperatively. The warden iterates all trails to check governance rules. The `survey` command iterates all trails to produce a human-readable summary. The `guide` command searches trails by ID or metadata. An agent connecting to an MCP trailhead gets a flat list of tools. These are all graph queries wearing imperative clothing.
+When something wants to query the topo, it traverses these structures imperatively. The warden iterates all trails to check governance rules. The `survey` command iterates all trails to produce a human-readable summary. The `guide` command searches trails by ID or metadata. An agent connecting to an MCP surface gets a flat list of tools. These are all graph queries wearing imperative clothing.
 
 "Which trails cross this trail?" is a join. "What resources does the crossing closure of `onboard.user` need?" is a recursive CTE. "Show me all write-intent trails exposed on HTTP" is a filtered join. Today, each consumer re-implements its own traversal logic.
 
@@ -27,7 +27,7 @@ The core premise says "the contract is queryable." Today it's queryable in the s
 
 **Agents:** An MCP-connected agent can query the topo store to understand crossing graphs, find trails by intent, check which resources a trail needs — all through structured queries rather than parsing TypeScript source.
 
-**CI pipelines:** The lockfile becomes an export of the topo store rather than a parallel serialization. Semantic diffing becomes a database operation: compare saved topo states or diff current topo against a pin.
+**CI pipelines:** The lockfile becomes an export of the topo store rather than a parallel serialization. Semantic diffing becomes a database operation: compare snapshots or diff current topo against a pin.
 
 **The execution hot path:** Unchanged. The in-memory `ReadonlyMap` stays as the dispatch engine. The topo store is for querying, not for hot-path lookups.
 
@@ -124,14 +124,14 @@ CREATE TABLE topo_fires (
   FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id)
 );
 
--- Trailhead mappings (which trailheads expose which trails)
-CREATE TABLE topo_trailheads (
+-- Surface mappings (which surfaces expose which trails)
+CREATE TABLE topo_surfaces (
   trail_id TEXT NOT NULL,
-  trailhead TEXT NOT NULL,        -- 'cli' | 'mcp' | 'http'
+  surface TEXT NOT NULL,          -- 'cli' | 'mcp' | 'http'
   derived_name TEXT NOT NULL,     -- CLI command path, MCP tool name, HTTP route
   method TEXT,                    -- HTTP method (null for CLI/MCP)
   snapshot_id TEXT NOT NULL,
-  PRIMARY KEY (trail_id, trailhead, snapshot_id),
+  PRIMARY KEY (trail_id, surface, snapshot_id),
   FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id)
 );
 
@@ -180,7 +180,7 @@ The cache is safe because the Zod schema is the source of truth. If the schema c
 
 **Build-time (CI):**
 
-`topo()` constructs the in-memory topology from module exports as today. A new build step, `populateTopoStore(topo, db)`, writes a saved topo state and projects the in-memory topo into SQLite tables. This happens once per CI run.
+`topo()` constructs the in-memory topology from module exports as today. A new build step, `populateTopoStore(topo, db)`, writes a snapshot and projects the in-memory topo into SQLite tables. This happens once per CI run.
 
 ```text
 Module exports -> topo() -> ReadonlyMap (in-memory) -> populateTopoStore() -> trails.db
@@ -190,7 +190,7 @@ Module exports -> topo() -> ReadonlyMap (in-memory) -> populateTopoStore() -> tr
 
 On `trails dev` startup, the topo store is populated from the current topo. On file changes (detected by Bun's file watcher), the topo is rebuilt from module exports and the store is refreshed. The refresh writes a new autosave, then incrementally reuses unchanged rows where possible.
 
-The refresh emits a `topo.saved` signal (see ADR: Signal-Driven Governance), which downstream consumers can fire on. `trails topo pin` emits `topo.pinned` when a saved topo state is deliberately retained under a durable name.
+The refresh emits a `topo.saved` signal (see ADR: Signal-Driven Governance), which downstream consumers can fire on. `trails topo pin` emits `topo.pinned` when a snapshot is deliberately retained under a durable name.
 
 **Production:**
 
@@ -344,7 +344,7 @@ The structural graph (what's declared) and the execution record (what happened) 
 ## References
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — "the contract is queryable"
-- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — the surface map that the topo store subsumes
+- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-trailhead-derivation.md) — the surface map that the topo store subsumes
 - [ADR-0013: Tracing](0013-tracing.md) — execution records that colocate with topo data for cross-cutting queries
 - [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) — the `trails.db` foundation this builds on
 - [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — the lockfile projection exported from topo state

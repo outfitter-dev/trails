@@ -6,7 +6,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 
 | ADR | Title | Status |
 | --- | --- | --- |
-| [0000](0000-core-premise.md) | Core Premise — Contract-First, Trailhead-Agnostic Design | Accepted |
+| [0000](0000-core-premise.md) | Core Premise — Contract-First, Surface-Agnostic Design | Accepted |
 | [0001](0001-naming-conventions.md) | Naming Conventions — Guessable API Through Structural Rules | Accepted |
 | [0002](0002-built-in-result-type.md) | Built-In Result Type | Accepted |
 | [0003](0003-unified-trail-primitive.md) | Unified Trail Primitive | Accepted |
@@ -14,7 +14,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0005](0005-framework-agnostic-http-route-model.md) | Framework-Agnostic HTTP Route Model | Accepted |
 | [0006](0006-shared-execution-pipeline.md) | Shared Execution Pipeline with Result-Returning Builders | Accepted |
 | [0007](0007-governance-as-trails.md) | Governance as Trails with AST-Based Analysis | Accepted |
-| [0008](0008-deterministic-trailhead-derivation.md) | Deterministic Trailhead Derivation | Accepted |
+| [0008](0008-deterministic-trailhead-derivation.md) | Deterministic Surface Derivation | Accepted |
 | [0009](0009-first-class-resources.md) | First-Class Resources | Accepted |
 | [0010](0010-native-infrastructure.md) | Trails-Native Infrastructure Pattern | Accepted |
 | [0011](0011-schema-driven-config.md) | Schema-Driven Config | Accepted |
@@ -33,7 +33,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0024](0024-typed-trail-composition.md) | Typed Trail Composition | Accepted |
 | [0025](0025-composition-testing.md) | Composition Testing | Accepted |
 | [0026](0026-error-taxonomy-as-transport-independent-behavior-contract.md) | Error Taxonomy as Transport-Independent Behavior Contract | Accepted |
-| [0027](0027-visibility-and-filtering.md) | Trail Visibility and Trailhead Filtering | Accepted |
+| [0027](0027-visibility-and-filtering.md) | Trail Visibility and Surface Filtering | Accepted |
 | [0028](0028-concurrent-crossing.md) | Concurrent Trail Crossing | Accepted |
 | [0029](0029-connector-extraction-and-the-with-packaging-model.md) | Connector Extraction and Composition Around Core Contracts | Accepted |
 | [0030](0030-contours-as-first-class-domain-objects.md) | Contours as First-Class Domain Objects | Accepted |

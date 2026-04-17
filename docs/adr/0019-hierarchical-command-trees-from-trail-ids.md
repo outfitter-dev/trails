@@ -65,15 +65,15 @@ trails topo verify
 
 This is not a special case. It falls out of the path model directly.
 
-### Core owns the path projection; trailheads render it
+### Core owns the path projection; surfaces render it
 
-The segment path is trailhead-agnostic resolved state. The framework should expose it as a deterministic derivation that other packages can consume.
+The segment path is surface-agnostic resolved state. The framework should expose it as a deterministic derivation that other packages can consume.
 
 This means:
 
 - core or schema owns the canonical path projection from trail ID to ordered segments
 - `@ontrails/cli` consumes that projection to build a nested command tree
-- other trailheads may also use the same segment projection where it fits
+- other surfaces may also use the same segment projection where it fits
 
 HTTP already trends this way:
 
@@ -135,7 +135,7 @@ No separate CLI authoring language is introduced. The override is still a projec
 
 ## References
 
-- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — this extends the CLI derivation story from a shallow first-dot grouping rule to a full ordered path
+- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-trailhead-derivation.md) — this extends the CLI derivation story from a shallow first-dot grouping rule to a full ordered path
 - [ADR-0001: Naming Conventions](0001-naming-conventions.md) — trail IDs are authored artifacts that feed multiple projections
 - [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — CLI projections belong in the resolved graph and lockfile
 - [Trails Design Tenets](../tenets.md) — especially "one write, many reads" and "the trail is the product"

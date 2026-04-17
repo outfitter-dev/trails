@@ -238,5 +238,9 @@ The return type is identical. The topo registration is identical. The trail's `r
 - [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store-kind model that makes first-party backends meaningful
 - [ADR: Resource Bundles](drafts/20260409-resource-bundles.md) (draft) — the bundling mechanism for connector and pack resources
 
+### Amendment log
+
+- 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — title updated to drop `with-*` prefix convention, naming rules revised for extracted connectors, migration table and composition layer table aligned with surface API grammar.
+
 [^1]: [ADR-0009: First-Class Resources](0009-first-class-resources.md)
 [^2]: See the evaluation hierarchy in [Tenets: Primitives](../tenets.md#the-bar-for-new-primitives)

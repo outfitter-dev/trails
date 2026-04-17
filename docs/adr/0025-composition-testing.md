@@ -15,7 +15,7 @@ depends_on: [3, 7, 24]
 
 ### Examples work brilliantly for single trails
 
-The examples-as-tests system is the framework's crown jewel. One `testAll(app)` call runs every example as an assertion. The developer writes structured data on the trail definition and gets six consumers for free: testing, agent guidance, schema validation, mock data, composition testing, and contract coverage[^1].
+The examples-as-tests system is the framework's crown jewel. One `testAll(graph)` call runs every example as an assertion. The developer writes structured data on the trail definition and gets six consumers for free: testing, agent guidance, schema validation, mock data, composition testing, and contract coverage[^1].
 
 For single trails, this works perfectly. The trail receives input, runs the blaze, returns a Result. The example declares input and expected output. The assertion is a deep equality check or schema validation.
 
@@ -137,13 +137,13 @@ Putting scenarios on a trail definition would mean one trail "owns" a multi-trai
 ```typescript
 // In a test file: gist.test.ts
 import { scenario, testAll } from '@ontrails/testing';
-import { app } from '../app';
+import { graph } from '../app';
 
 // Examples test individual trails
-testAll(app);
+testAll(graph);
 
 // Scenarios test composition flows
-scenario('Create and star', app, [
+scenario('Create and star', graph, [
   { cross: createGist, input: { description: 'Test', content: '# Hi' }, as: 'gist' },
   { cross: starGist, input: { gistId: ref('gist.id'), userId: 'u1' } },
   { cross: showGist, input: { id: ref('gist.id') }, expectedMatch: { starred: true } },

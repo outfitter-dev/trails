@@ -17,14 +17,14 @@ Trails wants top-down authoring. Sketch the system, tighten the contracts, then 
 
 But the current validation path makes that hard in exactly the places where the graph matters most. The Stash retro hit one clear example: an event wanted to declare `from: ['gist.fork']` before `gist.fork` existed, and topo validation rejected the entire shape.[^retro]
 
-The obvious escape hatch in most frameworks is "just use a placeholder and clean it up later." Trails can do better than that, but it also cannot weaken the resolved graph to make authoring easier. The resolved graph is the story. Lockfiles, trailhead maps, CI, and runtime trailheads all depend on it being fully established and queryable.[^tenets]
+The obvious escape hatch in most frameworks is "just use a placeholder and clean it up later." Trails can do better than that, but it also cannot weaken the resolved graph to make authoring easier. The resolved graph is the story. Lockfiles, surface maps, CI, and runtime surfaces all depend on it being fully established and queryable.[^tenets]
 
 This is one of the few places where Trails has unusually strong structural leverage. We already have:
 
 - typed declarations
 - a topo
 - warden validation
-- trailhead derivation
+- surface derivation
 - lockfile export
 
 That means a lazy authoring path does not have to be a loose convention. It can be a controlled draft state with hard containment.
@@ -98,7 +98,7 @@ This means:
 
 - warden and draft-aware topo inspection may read draft-bearing files and draft references
 - the standard resolved topo excludes draft declarations and rejects draft contamination
-- trailhead builders reject draft state
+- surface builders reject draft state
 - lockfile export rejects draft state
 - established build outputs never include draft nodes or edges
 

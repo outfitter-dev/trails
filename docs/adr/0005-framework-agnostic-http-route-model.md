@@ -12,13 +12,13 @@ owners: ['[galligan](https://github.com/galligan)']
 
 ## Context
 
-Trails needs an HTTP trailhead. It does not need to become a web framework.
+Trails needs an HTTP surface. It does not need to become a web framework.
 
 Hono, Express, Fastify, Koa — mature, well-tested HTTP frameworks already exist. They handle routing, layers, request parsing, and response serialization. Reimplementing any of that inside Trails would be wasted effort and a worse result than what's already available.
 
 But Trails can't couple to any single one of them either. Coupling to Hono means every Trails user becomes a Hono user. Coupling to Express means dragging in a framework whose design predates async/await. Any hard dependency on a specific HTTP framework creates lock-in that limits adoption and constrains how people integrate Trails into their existing stacks.
 
-The HTTP trailhead also needs to work in three distinct integration patterns:
+The HTTP surface also needs to work in three distinct integration patterns:
 
 1. **Standalone.** Trails is the server. You call `surface()` and it starts listening. No existing app, no existing framework.
 2. **Embedded.** Trails mounts into an existing Hono, Express, or Fastify app. The app owns the server lifecycle; Trails provides a subset of the routes.
@@ -26,16 +26,16 @@ The HTTP trailhead also needs to work in three distinct integration patterns:
 
 One route model needs to serve all three patterns. If the route model is framework-specific, the third pattern breaks — you can't easily wire Hono routes into a SvelteKit handler.
 
-This isn't a new problem in the Trails architecture. The same pattern already works on the other trailheads:
+This isn't a new problem in the Trails architecture. The same pattern already works on the other surfaces:
 
-- CLI: `deriveCliCommands(topo)` produces framework-agnostic command definitions. `toCommander()` wires them to Commander.js.
-- MCP: `deriveMcpTools(topo)` produces framework-agnostic tool definitions. `connectStdio()` wires them to the MCP SDK transport.
+- CLI: `deriveCliCommands(graph)` produces framework-agnostic command definitions. `toCommander()` wires them to Commander.js.
+- MCP: `deriveMcpTools(graph)` produces framework-agnostic tool definitions. `connectStdio()` wires them to the MCP SDK transport.
 
-HTTP is the third trailhead following the same two-step pattern.
+HTTP is the third surface following the same two-step pattern.
 
 ## Decision
 
-### `deriveHttpRoutes(topo)` produces `HttpRouteDefinition[]`
+### `deriveHttpRoutes(graph)` produces `HttpRouteDefinition[]`
 
 The core function takes a topo and returns an array of framework-agnostic route descriptions. Each `HttpRouteDefinition` contains:
 
@@ -105,7 +105,7 @@ This keeps the trail author out of HTTP vocabulary. They declare what the trail 
 - **No framework lock-in.** Users choose their HTTP framework. Trails provides the route model; connectors bridge to specific runtimes.
 - **Three integration patterns from one model.** Standalone, embedded, and catch-all all work because `HttpRouteDefinition[]` is just data. Wire it however you want.
 - **Thin connectors.** Each framework connector is roughly 100–150 lines. The route model does the heavy lifting; the connector does the wiring.
-- **Consistent trailhead pattern.** HTTP follows the same `derive*` → `to*`/`connect*` → `surface()` pattern as CLI and MCP. One mental model for all trailheads.
+- **Consistent surface pattern.** HTTP follows the same `derive*` → `to*`/`connect*` → `surface()` pattern as CLI and MCP. One mental model for all surfaces.
 - **Testable without HTTP.** `execute()` on a route definition takes plain input and returns `Result`. You can test every trail's HTTP behavior without starting a server or making HTTP requests.
 
 ### Tradeoffs
@@ -122,9 +122,9 @@ This keeps the trail author out of HTTP vocabulary. They declare what the trail 
 
 ## References
 
-- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions that require trailhead-agnosticism
+- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions that require surface-agnosticism
 - [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the `executeTrail` function that `HttpRouteDefinition.execute` delegates to
-- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — the derivation rules that produce paths, methods, and input sources from trail contracts
+- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-trailhead-derivation.md) — the derivation rules that produce paths, methods, and input sources from trail contracts
 
 ### Amendment log
 

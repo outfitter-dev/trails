@@ -12,13 +12,13 @@ owners: ['[galligan](https://github.com/galligan)']
 
 ## Context
 
-Early implementations had each trailhead running its own execution path. CLI validated input, created a context, composed layers, ran the implementation, and wrapped errors. MCP did the same — slightly differently. HTTP would have done it a third time. Each trailhead reimplemented the same pipeline with small variations that became real problems.
+Early implementations had each surface running its own execution path. CLI validated input, created a context, composed layers, ran the implementation, and wrapped errors. MCP did the same — slightly differently. HTTP would have done it a third time. Each surface reimplemented the same pipeline with small variations that became real problems.
 
-The variations were subtle enough to miss in review but visible enough to confuse users. One trailhead validated input before composing layers. Another composed layers first. Error wrapping differed: CLI would catch an exception and format it as a user-facing message, MCP would catch the same exception and produce a different JSON-RPC error shape. The behavior gap widened every time someone touched one trailhead without updating the others.
+The variations were subtle enough to miss in review but visible enough to confuse users. One surface validated input before composing layers. Another composed layers first. Error wrapping differed: CLI would catch an exception and format it as a user-facing message, MCP would catch the same exception and produce a different JSON-RPC error shape. The behavior gap widened every time someone touched one surface without updating the others.
 
-This is exactly the kind of drift the framework exists to prevent. If the trail is the product and trailheads are renderings, the execution path that turns a trail definition into a result should be shared infrastructure — not copy-pasted per trailhead.
+This is exactly the kind of drift the framework exists to prevent. If the trail is the product and surfaces are renderings, the execution path that turns a trail definition into a result should be shared infrastructure — not copy-pasted per surface.
 
-A second, related problem: trailhead builder functions. `deriveMcpTools(topo)` originally threw on setup errors like MCP tool name collisions. `deriveHttpRoutes(topo)` threw on route collisions (same method + path). This meant the framework's own wiring code used exceptions for predictable, recoverable errors — directly contradicting the "Result everywhere" principle that trail implementations follow. Builders that throw force callers into try/catch at the framework boundary, which is the one place where Result should be most natural.
+A second, related problem: surface builder functions. `deriveMcpTools(topo)` originally threw on setup errors like MCP tool name collisions. `deriveHttpRoutes(topo)` threw on route collisions (same method + path). This meant the framework's own wiring code used exceptions for predictable, recoverable errors — directly contradicting the "Result everywhere" principle that trail implementations follow. Builders that throw force callers into try/catch at the framework boundary, which is the one place where Result should be most natural.
 
 ## Decision
 
@@ -33,29 +33,29 @@ executeTrail(trail, rawInput, options?)
 The pipeline, in order:
 
 1. **Validate input** — parse `rawInput` against the trail's input schema via Zod. On failure, return `Result.err(new ValidationError(...))`.
-2. **Resolve context** — build `TrailContext` with logger, resources, cross capability, and any trailhead-provided extensions.
+2. **Resolve context** — build `TrailContext` with logger, resources, cross capability, and any surface-provided extensions.
 3. **Compose layers** — wrap the implementation with the trail's declared layers, in order.
 4. **Run** — execute the composed implementation with validated input and resolved context.
 5. **Catch** — if the implementation throws (it shouldn't, but defensive code beats optimistic code), wrap the exception as `Result.err(new InternalError(...))`.
 
-`executeTrail` never throws. Every outcome is a `Result`. Every trailhead gets identical validation order, identical layer composition, identical error wrapping.
+`executeTrail` never throws. Every outcome is a `Result`. Every surface gets identical validation order, identical layer composition, identical error wrapping.
 
-All four trailheads use it:
+All four surfaces use it:
 
 - **CLI:** parse argv into raw input → `executeTrail` → format output for terminal
 - **MCP:** parse JSON-RPC params into raw input → `executeTrail` → format output as JSON-RPC response
 - **HTTP:** parse request body/params into raw input → `executeTrail` → format output as HTTP response
 - **Headless (`run`):** accept raw input directly → `executeTrail` → return Result
 
-Each trailhead is a thin wrapper: parse trailhead-specific input, call `executeTrail`, format trailhead-specific output. The execution semantics — validation, layers, error handling — are framework concerns, not trailhead concerns.
+Each surface is a thin wrapper: parse surface-specific input, call `executeTrail`, format surface-specific output. The execution semantics — validation, layers, error handling — are framework concerns, not surface concerns.
 
 ### Part 2: Result-returning builders
 
-Trailhead builder functions return `Result` instead of throwing:
+Surface builder functions return `Result` instead of throwing:
 
 ```typescript
-deriveMcpTools(topo)   → Result<McpToolDefinition[], Error>
-deriveHttpRoutes(topo) → Result<HttpRouteDefinition[], Error>
+deriveMcpTools(graph)   → Result<McpToolDefinition[], Error>
+deriveHttpRoutes(graph) → Result<HttpRouteDefinition[], Error>
 ```
 
 `deriveMcpTools` returns `ValidationError` when two trails produce the same MCP tool name. `deriveHttpRoutes` returns `ValidationError` when two trails map to the same method + path combination.
@@ -70,25 +70,25 @@ This extends the Result model from runtime execution to framework wiring. The sa
 
 ### Positive
 
-- **Behavioral consistency.** Every trailhead validates, composes layers, and wraps errors in exactly the same order. A bug fix in `executeTrail` fixes all trailheads simultaneously.
-- **One place for cross-cutting concerns.** Logging, tracing, metrics, and any future observability hooks have a single integration point. No per-trailhead instrumentation.
+- **Behavioral consistency.** Every surface validates, composes layers, and wraps errors in exactly the same order. A bug fix in `executeTrail` fixes all surfaces simultaneously.
+- **One place for cross-cutting concerns.** Logging, tracing, metrics, and any future observability hooks have a single integration point. No per-surface instrumentation.
 - **Setup errors caught early.** Name collisions and route conflicts surface at boot, not when the first request hits a confusing runtime error.
 - **Result from boot to shutdown.** The framework's own wiring code follows the same error-handling pattern it requires of trail implementations. No philosophical inconsistency between "your code returns Result" and "our code throws."
 
 ### Tradeoffs
 
-- **`executeTrail` is a critical path.** Every trail invocation across every trailhead flows through this function. A regression here affects everything. This is acceptable because the alternative — four independent execution paths — is where regressions hide, not where they're prevented.
-- **Trailhead-specific optimizations are constrained.** If a trailhead needs to skip validation (e.g., internal-only calls with pre-validated input), it needs an explicit opt-in on the options parameter rather than just omitting the validation step. This is a feature, not a bug — skipping validation should be deliberate and visible.
+- **`executeTrail` is a critical path.** Every trail invocation across every surface flows through this function. A regression here affects everything. This is acceptable because the alternative — four independent execution paths — is where regressions hide, not where they're prevented.
+- **Surface-specific optimizations are constrained.** If a surface needs to skip validation (e.g., internal-only calls with pre-validated input), it needs an explicit opt-in on the options parameter rather than just omitting the validation step. This is a feature, not a bug — skipping validation should be deliberate and visible.
 
 ### What this does NOT decide
 
 - Whether `executeTrail` will gain layers or interceptor hooks beyond the current layer model. Layers handle most cross-cutting concerns today. If that proves insufficient, a separate ADR will address it.
-- The specific options trailhead on `executeTrail` beyond the current parameters. The function signature will grow as needs emerge.
-- How `surface()` handles builder failures in non-CLI contexts (e.g., programmatic embedding). That's a trailhead-level UX decision.
+- The specific options API of `executeTrail` beyond the current parameters. The function signature will grow as needs emerge.
+- How `surface()` handles builder failures in non-CLI contexts (e.g., programmatic embedding). That's a surface-level UX decision.
 
 ## References
 
-- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions this pipeline serves, especially "implementations are pure" and "trailheads are peers"
+- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions this pipeline serves, especially "implementations are pure" and "surfaces are peers"
 - [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) — the Result model that `executeTrail` and builders both return
 - [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) — the route derivation model that `deriveHttpRoutes` implements
 

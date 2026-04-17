@@ -216,7 +216,7 @@ crosses: {
 
 This approach would let the declaration express composition shape: which crossings are concurrent (grouped), which are optional, which are conditional. The warden could check that grouped crossings are actually called concurrently, and that optional crossings' errors aren't propagated.
 
-Rejected for several reasons. The declaration becomes a second place where composition logic lives, separate from the implementation. The declaration can say `group: 'notifications'` but the code might call them sequentially. That's a new drift trailhead. The annotations are governance hints that duplicate information already present in the code's control flow.
+Rejected for several reasons. The declaration becomes a second place where composition logic lives, separate from the implementation. The declaration can say `group: 'notifications'` but the code might call them sequentially. That's a new drift surface. The annotations are governance hints that duplicate information already present in the code's control flow.
 
 The flat array is beautifully simple. It says "here's what I might call." Everything else is in the code, where TypeScript provides the full expressiveness of a real programming language. Adding structure to the declaration is adding a limited DSL that competes with TypeScript for expressing the same things.
 
@@ -263,7 +263,7 @@ const results = await ctx.cross.concurrent([
 const enriched = await ctx.cross.optional('user.enrich', { userId });
 ```
 
-Method chaining on `cross` with named modes. Rejected because `concurrent` is just the array overload (no new method needed), and `optional` is just "handle the Result without propagating the error" (no new method needed). Adding named modes for things the developer already expresses with normal code patterns adds API trailhead without adding capability.
+Method chaining on `cross` with named modes. Rejected because `concurrent` is just the array overload (no new method needed), and `optional` is just "handle the Result without propagating the error" (no new method needed). Adding named modes for things the developer already expresses with normal code patterns adds API surface without adding capability.
 
 The optional pattern in particular is dangerous to codify. What does `cross.optional` return when the crossing fails? `null`? `undefined`? A default value? The Result model already answers this question clearly: you get a `Result`, you check it, you decide what to do. Adding `cross.optional` would hide the error handling, which is the opposite of what Result is designed for.
 
@@ -318,5 +318,5 @@ Rejected because implicit concurrency is a correctness hazard. Two crossings may
 - [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) -- the lockfile captures composition shapes including parallel crossing patterns
 - [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) -- typed `ctx.cross()` that the array overload extends; parallel crossing with typed results is a non-decision there, deferred here
 - [ADR-0025: Composition Testing](0025-composition-testing.md) -- `scenario()` and `expectedMatch` for testing concurrent composition flows
-- [ADR-0027: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode
+- [ADR-0027: Trail Visibility and Surface Filtering](0027-visibility-and-filtering.md) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode
 - ADR: Packs as Namespace Boundaries (draft) -- concurrent crossings across pack boundaries work identically to sequential crossings; pack boundary governance is unchanged
