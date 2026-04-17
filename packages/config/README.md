@@ -156,7 +156,7 @@ The config layer reserves a slot in the execution context for per-trail config v
 ```typescript
 import { configLayer } from '@ontrails/config';
 
-export const app = topo('my-app', configModule);
+export const graph = topo('my-app', configModule);
 // Register configLayer with your trailhead
 ```
 
@@ -185,7 +185,7 @@ Trails that depend on `configResource` auto-resolve with a mock when registered 
 ```typescript
 import { testAll } from '@ontrails/testing';
 
-const results = testAll(app);
+const results = testAll(graph);
 // configResource.mock() is called automatically
 ```
 

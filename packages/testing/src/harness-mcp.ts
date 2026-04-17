@@ -1,7 +1,7 @@
 /**
  * MCP integration test harness.
  *
- * Builds MCP tools from an App, invokes them directly (no transport),
+ * Builds MCP tools from a graph, invokes them directly (no transport),
  * and returns the MCP tool response.
  */
 
@@ -21,17 +21,17 @@ import type {
 /**
  * Create an MCP harness for integration testing.
  *
- * Builds MCP tools from the app's topo and provides a `callTool()` method
+ * Builds MCP tools from the graph's topo and provides a `callTool()` method
  * that invokes tools directly without any transport boundary.
  *
  * ```ts
- * const harness = createMcpHarness({ app });
+ * const harness = createMcpHarness({ graph });
  * const result = await harness.callTool("myapp_entity_show", { name: "Alpha" });
  * expect(result.isError).toBe(false);
  * ```
  */
 export const createMcpHarness = (options: McpHarnessOptions): McpHarness => {
-  const toolsResult = deriveMcpTools(options.app);
+  const toolsResult = deriveMcpTools(options.graph);
   if (toolsResult.isErr()) {
     throw toolsResult.error;
   }

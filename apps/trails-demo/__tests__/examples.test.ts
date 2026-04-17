@@ -5,7 +5,7 @@
 
 import { testAll } from '@ontrails/testing';
 
-import { app } from '../src/app.js';
+import { graph } from '../src/app.js';
 
 // oxlint-disable-next-line require-hook -- testAll registers tests at module level by design
-testAll(app);
+testAll(graph);

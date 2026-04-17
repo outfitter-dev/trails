@@ -121,7 +121,7 @@ const withHttpTrailhead = (
  */
 const createExecute =
   (
-    app: Topo,
+    graph: Topo,
     t: Trail<unknown, unknown, unknown>,
     layers: readonly Layer[],
     options: DeriveHttpRoutesOptions
@@ -134,7 +134,7 @@ const createExecute =
       ctx: withHttpTrailhead(requestId),
       layers,
       resources: options.resources,
-      topo: app,
+      topo: graph,
     });
 
 // ---------------------------------------------------------------------------
@@ -143,10 +143,10 @@ const createExecute =
 
 /** Filter topo items to eligible trails. */
 const eligibleTrails = (
-  app: Topo,
+  graph: Topo,
   options: DeriveHttpRoutesOptions
 ): Trail<unknown, unknown, unknown>[] =>
-  filterSurfaceTrails(app.list(), {
+  filterSurfaceTrails(graph.list(), {
     exclude: options.exclude,
     include: options.include,
     intent: options.intent,
@@ -154,7 +154,7 @@ const eligibleTrails = (
 
 /** Build a single route definition from a trail. */
 const buildRoute = (
-  app: Topo,
+  graph: Topo,
   trail: Trail<unknown, unknown, unknown>,
   basePath: string,
   layers: readonly Layer[],
@@ -163,7 +163,7 @@ const buildRoute = (
   const method = deriveMethod(trail);
   const path = derivePath(basePath, trail.id);
   return {
-    execute: createExecute(app, trail, layers, options),
+    execute: createExecute(graph, trail, layers, options),
     inputSource: deriveInputSource(method),
     method,
     path,
@@ -202,7 +202,7 @@ const registerRoute = (
 
 /** Accumulate route definitions, returning early on the first collision. */
 const accumulateRoutes = (
-  app: Topo,
+  graph: Topo,
   trails: Trail<unknown, unknown, unknown>[],
   basePath: string,
   layers: readonly Layer[],
@@ -212,7 +212,7 @@ const accumulateRoutes = (
   const seenRoutes = new Map<string, string>();
 
   for (const trail of trails) {
-    const route = buildRoute(app, trail, basePath, layers, options);
+    const route = buildRoute(graph, trail, basePath, layers, options);
     const registered = registerRoute(route, seenRoutes, routes);
     if (registered.isErr()) {
       return registered;
@@ -239,11 +239,11 @@ const accumulateRoutes = (
  * (method, path) pair. Returns `Result.ok(routes)` on success.
  */
 export const deriveHttpRoutes = (
-  app: Topo,
+  graph: Topo,
   options: DeriveHttpRoutesOptions = {}
 ): Result<HttpRouteDefinition[], Error> => {
   if (options.validate !== false) {
-    const validated = validateEstablishedTopo(app);
+    const validated = validateEstablishedTopo(graph);
     if (validated.isErr()) {
       return Result.err(validated.error);
     }
@@ -252,8 +252,8 @@ export const deriveHttpRoutes = (
   const basePath = (options.basePath ?? '').replace(/\/+$/, '');
   const layers = options.layers ?? [];
   return accumulateRoutes(
-    app,
-    eligibleTrails(app, options),
+    graph,
+    eligibleTrails(graph, options),
     basePath,
     layers,
     options

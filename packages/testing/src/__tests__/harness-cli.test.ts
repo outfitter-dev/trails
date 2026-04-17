@@ -12,7 +12,7 @@ describe('createCliHarness', () => {
       input: z.object({ name: z.string() }),
     });
     const harness = createCliHarness({
-      app: topo('test-app', { greet }),
+      graph: topo('test-app', { greet }),
     });
 
     const result = await harness.run('greet --name Trails');
@@ -27,7 +27,7 @@ describe('createCliHarness', () => {
       input: z.object({ name: z.string() }),
     });
     const harness = createCliHarness({
-      app: topo('test-app', { pin }),
+      graph: topo('test-app', { pin }),
     });
 
     const result = await harness.run('topo pin --name before-auth');
@@ -53,7 +53,7 @@ describe('createCliHarness', () => {
       input: z.object({}),
     });
     const harness = createCliHarness({
-      app: topo('test-app', { topoPin, topoShow }),
+      graph: topo('test-app', { topoPin, topoShow }),
     });
 
     const child = await harness.run('topo pin');

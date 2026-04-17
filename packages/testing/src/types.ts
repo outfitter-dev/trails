@@ -75,7 +75,7 @@ export interface TestTrailContextOptions {
 
 /** Options for creating a CLI harness. */
 export interface CliHarnessOptions {
-  readonly app: Topo;
+  readonly graph: Topo;
 }
 
 /** A test harness for CLI commands. */
@@ -99,7 +99,7 @@ export interface CliHarnessResult {
 
 /** Options for creating an MCP harness. */
 export interface McpHarnessOptions {
-  readonly app: Topo;
+  readonly graph: Topo;
 }
 
 /** A test harness for MCP tools. */

@@ -308,12 +308,15 @@ const registerErrorHandler = (hono: Hono): void => {
 /**
  * Build HTTP routes from a topo and register them on a Hono app.
  */
-export const createApp = (app: Topo, options: CreateAppOptions = {}): Hono => {
+export const createApp = (
+  graph: Topo,
+  options: CreateAppOptions = {}
+): Hono => {
   const hono = new Hono();
 
   registerErrorHandler(hono);
 
-  const routesResult = deriveHttpRoutes(app, {
+  const routesResult = deriveHttpRoutes(graph, {
     basePath: options.basePath,
     configValues: options.configValues,
     createContext: options.createContext,
@@ -362,10 +365,10 @@ const startServer = (
  * unserved Hono app that you can wire into your own server.
  */
 export const surface = async (
-  app: Topo,
+  graph: Topo,
   options: CreateAppOptions = {}
 ): Promise<SurfaceHttpResult> => {
   // oxlint-disable-next-line require-await -- async ensures createApp() throws become rejected promises, not uncaught exceptions
-  const hono = createApp(app, options);
+  const hono = createApp(graph, options);
   return startServer(hono, options);
 };

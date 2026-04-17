@@ -26,21 +26,21 @@ import {
   writeSurfaceMap,
 } from '@ontrails/schema';
 
-const map = deriveSurfaceMap(app);
+const map = deriveSurfaceMap(graph);
 const hash = deriveSurfaceMapHash(map);
 
 await writeSurfaceMap(map);
 await writeSurfaceLock({ hash });
 
 // Later, after changes:
-const nextMap = deriveSurfaceMap(app);
+const nextMap = deriveSurfaceMap(graph);
 const diff = deriveSurfaceMapDiff(map, nextMap);
 
 if (diff.hasBreaking) {
   console.error('Breaking changes:', diff.breaking);
 }
 
-const openApi = deriveOpenApiSpec(app);
+const openApi = deriveOpenApiSpec(graph);
 ```
 
 `deriveSurfaceMap()` rejects draft-contaminated topos. Only established state can be serialized into the committed artifacts.
@@ -96,7 +96,7 @@ Because CLI paths are now full hierarchical command paths, command-tree changes 
 ```typescript
 import { deriveSurfaceMap, deriveSurfaceMapHash, readSurfaceLock } from '@ontrails/schema';
 
-const current = deriveSurfaceMapHash(deriveSurfaceMap(app));
+const current = deriveSurfaceMapHash(deriveSurfaceMap(graph));
 const committed = await readSurfaceLock();
 
 if (committed !== current) {

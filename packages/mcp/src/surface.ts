@@ -147,10 +147,10 @@ const createMcpServer = (
  * Build MCP tools from a topo and create an MCP server.
  */
 export const createServer = (
-  app: Topo,
+  graph: Topo,
   options: CreateServerOptions = {}
 ): Server => {
-  const toolsResult = deriveMcpTools(app, {
+  const toolsResult = deriveMcpTools(graph, {
     configValues: options.configValues,
     createContext: options.createContext,
     exclude: options.exclude,
@@ -166,9 +166,9 @@ export const createServer = (
   }
 
   return createMcpServer(toolsResult.value, {
-    description: options.description ?? app.description,
-    name: options.name ?? app.name,
-    version: options.version ?? app.version ?? '0.1.0',
+    description: options.description ?? graph.description,
+    name: options.name ?? graph.name,
+    version: options.version ?? graph.version ?? '0.1.0',
   });
 };
 
@@ -183,10 +183,10 @@ export const createServer = (
  * `createServer(graph)` with `connectStdio` or your own connector.
  */
 export const surface = async (
-  app: Topo,
+  graph: Topo,
   options: CreateServerOptions = {}
 ): Promise<SurfaceMcpResult> => {
-  const server = createServer(app, options);
+  const server = createServer(graph, options);
   await connectStdio(server);
 
   return {

@@ -18,7 +18,7 @@ const greet = trail('greet', {
   blaze: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
 
-const app = topo('myapp', { greet });
+const graph = topo('myapp', { greet });
 ```
 
 Trails compose other trails through `crosses` and `ctx.cross()`:
@@ -60,7 +60,7 @@ const onboard = trail('entity.onboard', {
 const result = await executeTrail(greet, { name: 'Alice' });
 
 // run — no-trailhead execution by trail ID
-const result = await run(app, 'greet', { name: 'Alice' });
+const result = await run(graph, 'greet', { name: 'Alice' });
 if (result.isOk()) console.log(result.value);
 ```
 

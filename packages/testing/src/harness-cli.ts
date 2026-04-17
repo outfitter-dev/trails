@@ -1,7 +1,7 @@
 /**
  * CLI integration test harness.
  *
- * Builds CLI commands from an App, executes them in-process,
+ * Builds CLI commands from a graph, executes them in-process,
  * and captures stdout/stderr.
  */
 
@@ -268,17 +268,17 @@ const runCommand = async (
 /**
  * Create a CLI harness for integration testing.
  *
- * Builds commands from the app's topo and provides a `run()` method
+ * Builds commands from the graph's topo and provides a `run()` method
  * that parses command strings and executes them in-process.
  *
  * ```ts
- * const harness = createCliHarness({ app });
+ * const harness = createCliHarness({ graph });
  * const result = await harness.run("entity show --name Alpha --output json");
  * expect(result.exitCode).toBe(0);
  * ```
  */
 export const createCliHarness = (options: CliHarnessOptions): CliHarness => {
-  const commandsResult = deriveCliCommands(options.app);
+  const commandsResult = deriveCliCommands(options.graph);
   if (commandsResult.isErr()) {
     throw commandsResult.error;
   }

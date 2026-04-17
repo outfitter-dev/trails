@@ -108,9 +108,9 @@ DeriveTrailSpec<TContour, TOp, TGenerated>
 ## `@ontrails/cli`
 
 ```typescript
-surface(topo, options?)                // one-liner: parse argv, execute, return exit code
-createProgram(topo, options?)          // create a Commander program without parsing argv
-deriveCliCommands(topo, options?)      // projection: Result-returning command definitions
+surface(graph, options?)               // one-liner: parse argv, execute, return exit code
+createProgram(graph, options?)         // create a Commander program without parsing argv
+deriveCliCommands(graph, options?)     // projection: Result-returning command definitions
 validateCliCommands(commands)          // validate command tree shape and collisions
 toCommander(commands, options?)        // translate commands to Commander.js program
 deriveFlags(schema, overrides?)        // Zod → CLI flags
@@ -128,9 +128,9 @@ autoIterateLayer, dateShortcutsLayer
 ## `@ontrails/mcp`
 
 ```typescript
-surface(topo, options?)                // one-liner: create server, connect stdio, return close handle
-createServer(topo, options?)           // create an MCP server without connecting
-deriveMcpTools(topo, options?)         // projection: Result-returning tool definitions
+surface(graph, options?)               // one-liner: create server, connect stdio, return close handle
+createServer(graph, options?)          // create an MCP server without connecting
+deriveMcpTools(graph, options?)        // projection: Result-returning tool definitions
 connectStdio(server)                   // connect a created server to stdio transport
 deriveToolName(appName, trailId)       // tool name derivation
 deriveAnnotations(trail)               // MCP annotations from intent and metadata
@@ -144,7 +144,7 @@ McpToolResult, McpContent, McpExtra, McpAnnotations
 ## `@ontrails/http`
 
 ```typescript
-deriveHttpRoutes(topo, options?)       // projection: route definitions without server; returns Result<HttpRouteDefinition[], Error>
+deriveHttpRoutes(graph, options?)      // projection: route definitions without server; returns Result<HttpRouteDefinition[], Error>
 
 DeriveHttpRoutesOptions, HttpMethod, HttpRouteDefinition, InputSource
 ```
@@ -152,8 +152,8 @@ DeriveHttpRoutesOptions, HttpMethod, HttpRouteDefinition, InputSource
 ## `@ontrails/hono`
 
 ```typescript
-surface(topo, options?)                // one-liner: create and serve Hono app; returns close handle + url
-createApp(topo, options?)              // create a Hono app without serving
+surface(graph, options?)               // one-liner: create and serve Hono app; returns close handle + url
+createApp(graph, options?)             // create a Hono app without serving
 
 CreateAppOptions, SurfaceHttpResult
 ```
@@ -161,8 +161,8 @@ CreateAppOptions, SurfaceHttpResult
 ## `@ontrails/schema`
 
 ```typescript
-deriveOpenApiSpec(topo, options?) // OpenAPI 3.1 spec from topo
-deriveSurfaceMap(topo), deriveSurfaceMapHash(map), deriveSurfaceMapDiff(before, after)
+deriveOpenApiSpec(graph, options?) // OpenAPI 3.1 spec from topo
+deriveSurfaceMap(graph), deriveSurfaceMapHash(map), deriveSurfaceMapDiff(before, after)
 writeSurfaceMap(map, options?), readSurfaceMap(options?)
 writeSurfaceLock(lock, options?), readSurfaceLockData(options?), readSurfaceLock(options?)
 
@@ -231,7 +231,7 @@ assertErrorMatch(result, errorClass)
 // Factories
 createTestContext(options?), createTestLogger()
 createCrossContext(options?)       // minimal context for testing trail composition via ctx.cross()
-createCliHarness(options: { app: Topo }), createMcpHarness(options: { app: Topo })
+createCliHarness(options: { graph: Topo }), createMcpHarness(options: { graph: Topo })
 
 TestExecutionOptions, TestCrossOptions
 TestScenario, CrossScenario, TestLogger, TestTrailContextOptions

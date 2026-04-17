@@ -13,7 +13,7 @@ import * as notify from './trails/notify.js';
 import * as onboard from './trails/onboard.js';
 import * as search from './trails/search.js';
 
-export const app = topo(
+export const graph = topo(
   {
     description: 'Trails demo application',
     name: 'demo',

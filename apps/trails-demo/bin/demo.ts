@@ -11,7 +11,7 @@
 
 import { surface } from '@ontrails/cli/commander';
 
-import { app } from '../src/app.js';
+import { graph } from '../src/app.js';
 
 // oxlint-disable-next-line require-hook -- CLI entry point, not a test file
-await surface(app);
+await surface(graph);

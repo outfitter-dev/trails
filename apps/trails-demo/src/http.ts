@@ -7,8 +7,8 @@
 
 import { surface } from '@ontrails/hono';
 
-import { app } from './app.js';
+import { graph } from './app.js';
 
-await surface(app, {
+await surface(graph, {
   port: 3000,
 });

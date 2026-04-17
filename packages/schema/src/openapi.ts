@@ -25,7 +25,7 @@ export interface OpenApiServer {
 }
 
 export interface OpenApiOptions {
-  /** Default: `app.name` */
+  /** Default: `graph.name` */
   readonly title?: string | undefined;
   /** Default: `'1.0.0'` */
   readonly version?: string | undefined;
@@ -285,15 +285,15 @@ const buildOperation = (
 // Path collection
 // ---------------------------------------------------------------------------
 
-/** Collect all paths from public trails in the topo. */
+/** Collect all paths from public trails in the graph. */
 const collectPaths = (
-  app: Topo,
+  graph: Topo,
   basePath: string,
   options?: OpenApiOptions
 ): Record<string, Record<string, unknown>> => {
   const paths: Record<string, Record<string, unknown>> = {};
 
-  for (const t of filterSurfaceTrails(app.list(), {
+  for (const t of filterSurfaceTrails(graph.list(), {
     exclude: options?.exclude,
     include: options?.include,
     intent: options?.intent,
@@ -307,12 +307,12 @@ const collectPaths = (
   return paths;
 };
 
-/** Build the info object from options and app name. */
+/** Build the info object from options and graph name. */
 const buildInfo = (
-  appName: string,
+  graphName: string,
   options?: OpenApiOptions
 ): OpenApiSpec['info'] => ({
-  title: options?.title ?? appName,
+  title: options?.title ?? graphName,
   version: options?.version ?? '1.0.0',
   ...(options?.description ? { description: options.description } : {}),
 });
@@ -329,20 +329,20 @@ const buildInfo = (
  * the trail contract.
  */
 export const deriveOpenApiSpec = (
-  app: Topo,
+  graph: Topo,
   options?: OpenApiOptions
 ): OpenApiSpec => {
-  const validated = validateDraftFreeTopo(app);
+  const validated = validateDraftFreeTopo(graph);
   if (validated.isErr()) {
     throw validated.error;
   }
 
   return {
     components: { schemas: {} },
-    info: buildInfo(app.name, options),
+    info: buildInfo(graph.name, options),
     openapi: '3.1.0',
     paths: collectPaths(
-      app,
+      graph,
       (options?.basePath ?? '').replace(/\/+$/, ''),
       options
     ),

@@ -48,17 +48,17 @@ export interface SurfaceCliResult {
 // ---------------------------------------------------------------------------
 
 const deriveCommanderOptions = (
-  app: Topo,
+  graph: Topo,
   options: CreateProgramOptions
 ): ToCommanderOptions => {
   const commanderOpts: ToCommanderOptions = {
-    name: options.name ?? app.name,
+    name: options.name ?? graph.name,
   };
-  if (options.version !== undefined || app.version !== undefined) {
-    commanderOpts.version = options.version ?? app.version;
+  if (options.version !== undefined || graph.version !== undefined) {
+    commanderOpts.version = options.version ?? graph.version;
   }
-  if (options.description !== undefined || app.description !== undefined) {
-    commanderOpts.description = options.description ?? app.description;
+  if (options.description !== undefined || graph.description !== undefined) {
+    commanderOpts.description = options.description ?? graph.description;
   }
   return commanderOpts;
 };
@@ -67,10 +67,10 @@ const deriveCommanderOptions = (
  * Create a Commander program from a topo without parsing argv.
  */
 export const createProgram = (
-  app: Topo,
+  graph: Topo,
   options: CreateProgramOptions = {}
 ) => {
-  const commandsResult = deriveCliCommands(app, {
+  const commandsResult = deriveCliCommands(graph, {
     createContext: options.createContext,
     exclude: options.exclude,
     include: options.include,
@@ -88,7 +88,7 @@ export const createProgram = (
 
   return toCommander(
     commandsResult.value,
-    deriveCommanderOptions(app, options)
+    deriveCommanderOptions(graph, options)
   );
 };
 
@@ -100,14 +100,14 @@ export const createProgram = (
  * Parse argv for a topo through Commander.
  *
  * Returns the process exit code without calling `process.exit()`, so callers
- * can run cleanup before terminating. The CLI `trailhead()` entry point
+ * can run cleanup before terminating. The CLI `surface()` entry point
  * delegates here and lets the process exit naturally.
  */
 export const surface = async (
-  app: Topo,
+  graph: Topo,
   options: CreateProgramOptions = {}
 ): Promise<SurfaceCliResult> => {
-  const program = createProgram(app, options);
+  const program = createProgram(graph, options);
   await program.parseAsync();
   const { exitCode } = process;
   return { exitCode: typeof exitCode === 'number' ? exitCode : 0 };

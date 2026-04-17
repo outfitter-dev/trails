@@ -1,14 +1,14 @@
 # @ontrails/testing
 
-Contract-driven testing for Trails. Add examples to your trails, then `testAll(app)` runs them as assertions, validates output schemas, checks composition graphs, and verifies structural integrity. One line of test code, full governance.
+Contract-driven testing for Trails. Add examples to your trails, then `testAll(graph)` runs them as assertions, validates output schemas, checks composition graphs, and verifies structural integrity. One line of test code, full governance.
 
 ## Usage
 
 ```typescript
 import { testAll } from '@ontrails/testing';
-import { app } from '../app';
+import { graph } from '../app';
 
-testAll(app);
+testAll(graph);
 ```
 
 That single call covers example execution, contract validation, detour checks, and topo validation. For most apps, this is all you need.
@@ -18,9 +18,9 @@ If you want finer control:
 ```typescript
 import { testExamples, testContracts, testDetours } from '@ontrails/testing';
 
-testExamples(app);   // Run every trail's examples as tests
-testContracts(app);  // Validate outputs against declared schemas
-testDetours(app);    // Verify detour targets exist
+testExamples(graph);   // Run every trail's examples as tests
+testContracts(graph);  // Validate outputs against declared schemas
+testDetours(graph);    // Verify detour targets exist
 ```
 
 ## API
@@ -92,12 +92,12 @@ Calls to unregistered trail IDs return `Result.err` with a descriptive message, 
 import { createCliHarness, createMcpHarness } from '@ontrails/testing';
 
 // CLI
-const cli = createCliHarness({ app });
+const cli = createCliHarness({ graph });
 const result = await cli.run('entity show --name Alpha --output json');
 expect(result.exitCode).toBe(0);
 
 // MCP
-const mcp = createMcpHarness({ app });
+const mcp = createMcpHarness({ graph });
 const tool = await mcp.callTool('myapp_entity_show', { name: 'Alpha' });
 expect(tool.isError).toBe(false);
 ```
