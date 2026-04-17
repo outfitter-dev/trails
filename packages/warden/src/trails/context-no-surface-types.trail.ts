@@ -1,7 +1,7 @@
-import { contextNoTrailheadTypes } from '../rules/context-no-trailhead-types.js';
+import { contextNoSurfaceTypes } from '../rules/context-no-surface-types.js';
 import { wrapRule } from './wrap-rule.js';
 
-export const contextNoTrailheadTypesTrail = wrapRule({
+export const contextNoSurfaceTypesTrail = wrapRule({
   examples: [
     {
       expected: { diagnostics: [] },
@@ -14,8 +14,8 @@ trail("entity.show", {
   }
 })`,
       },
-      name: 'Clean trail without trailhead imports',
+      name: 'Clean trail without surface imports',
     },
   ],
-  rule: contextNoTrailheadTypes,
+  rule: contextNoSurfaceTypes,
 });

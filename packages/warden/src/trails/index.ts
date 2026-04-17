@@ -1,6 +1,6 @@
 export { circularRefsTrail } from './circular-refs.trail.js';
 export { contourExistsTrail } from './contour-exists.trail.js';
-export { contextNoTrailheadTypesTrail } from './context-no-trailhead-types.trail.js';
+export { contextNoSurfaceTypesTrail } from './context-no-surface-types.trail.js';
 export { crossDeclarationsTrail } from './cross-declarations.trail.js';
 export { deadInternalTrailTrail } from './dead-internal-trail.trail.js';
 export { errorMappingCompletenessTrail } from './error-mapping-completeness.trail.js';

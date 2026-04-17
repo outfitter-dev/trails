@@ -1,6 +1,6 @@
 # @ontrails/cli
 
-CLI trailhead connector. One `trailhead()` call turns a topo into a full CLI
+CLI surface connector. One `surface()` call turns a topo into a full CLI
 with honest flags, structured input channels, subcommands, help text, and
 error-mapped exit codes -- all derived from the trail contracts.
 
@@ -8,7 +8,7 @@ error-mapped exit codes -- all derived from the trail contracts.
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
-import { trailhead } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/cli/commander';
 import { z } from 'zod';
 
 const greet = trail('greet', {
@@ -16,8 +16,8 @@ const greet = trail('greet', {
   blaze: (input) => Result.ok(`Hello, ${input.name}!`),
 });
 
-const app = topo('myapp', { greet });
-trailhead(app);
+const graph = topo('myapp', { greet });
+await surface(graph);
 ```
 
 ```bash
@@ -35,15 +35,18 @@ Options:
 For more control, build the commands yourself:
 
 ```typescript
-import { buildCliCommands } from '@ontrails/cli';
+import { deriveCliCommands } from '@ontrails/cli';
 import { toCommander } from '@ontrails/cli/commander';
 
-const commands = buildCliCommands(app);
-const program = toCommander(commands, { name: 'myapp' });
+const commands = deriveCliCommands(graph);
+if (commands.isErr()) throw commands.error;
+
+const program = toCommander(commands.value, { name: 'myapp' });
 program.parse();
 ```
 
-`buildCliCommands` returns a framework-agnostic `CliCommand[]`. Use `toCommander` for Commander, or write your own connector.
+`deriveCliCommands` returns `Result<CliCommand[], Error>`. Use `toCommander`
+with `commands.value` on success, or write your own connector.
 Invalid command models are rejected before adapter wiring, including duplicate
 CLI paths and executable parents that also declare positional args beneath child
 commands.
@@ -52,8 +55,8 @@ commands.
 
 | Export | What it does |
 | --- | --- |
-| `trailhead(app, options?)` | One-liner: build commands, wire Commander, parse argv |
-| `buildCliCommands(app)` | Framework-agnostic command builder, returns `CliCommand[]` |
+| `surface(graph, options?)` | One-liner: build commands, wire Commander, parse argv |
+| `deriveCliCommands(graph)` | Framework-agnostic command builder, returns `Result<CliCommand[], Error>` |
 | `validateCliCommands(commands)` | Validate `CliCommand[]` shapes before wiring a CLI adapter |
 | `toCommander(commands, options?)` | Connect `CliCommand[]` to a Commander program |
 | `deriveFlags(schema)` | Extract honest CLI flags from a Zod schema |
@@ -176,8 +179,8 @@ Declared resources on each trail are resolved into the context before the implem
 ## Filtering
 
 ```typescript
-trailhead(app, { include: ['entity.**'] });
-trailhead(app, { exclude: ['dev.**'] });
+await surface(graph, { include: ['entity.**'] });
+await surface(graph, { exclude: ['dev.**'] });
 ```
 
 `*` matches one dotted segment and `**` matches any depth. Trails declared

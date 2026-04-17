@@ -47,14 +47,14 @@ For each handler:
 ## Phase 4: Composition
 
 - [ ] Create topo: `topo('appname', ...modules)`
-- [ ] Wire CLI trailhead: `trailhead(app)` from `@ontrails/cli/commander`
-- [ ] Wire MCP trailhead: `await trailhead(app)` from `@ontrails/mcp`
+- [ ] Wire CLI trailhead: `surface(graph)` from `@ontrails/cli/commander`
+- [ ] Wire MCP trailhead: `await surface(graph)` from `@ontrails/mcp`
 - [ ] Remove old routing/command setup code
 
 ## Phase 5: Testing
 
 - [ ] Add examples to every trail (happy path + key error cases)
-- [ ] Create `governance.test.ts` with `testAll(app)`
+- [ ] Create `governance.test.ts` with `testAll(graph)`
 - [ ] Add edge-case tests with `testTrail()` for complex trails
 - [ ] Add trailhead integration tests with CLI/MCP harnesses
 - [ ] All tests pass

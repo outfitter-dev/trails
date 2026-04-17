@@ -13,19 +13,19 @@ import { z } from 'zod';
 import { findTopoPath } from './project.js';
 
 const generateCliEntry = (appImportPath: string): string =>
-  `import { trailhead } from '@ontrails/cli/commander';
+  `import { surface } from '@ontrails/cli/commander';
 
 import { app } from '${appImportPath}';
 
-trailhead(app);
+await surface(app);
 `;
 
 const generateMcpEntry = (appImportPath: string): string =>
-  `import { trailhead } from '@ontrails/mcp';
+  `import { surface } from '@ontrails/mcp';
 
 import { app } from '${appImportPath}';
 
-await trailhead(app);
+await surface(app);
 `;
 
 /** Resolve the entry file for a trailhead. */

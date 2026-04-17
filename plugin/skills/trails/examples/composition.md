@@ -111,8 +111,8 @@ import * as inventory from '../trails/inventory.js';
 import * as order from '../trails/order.js';
 import * as resources from '../resources/db.js';
 
-const app = topo('shop', customer, inventory, order, resources);
-testAll(app);
+const graph = topo('shop', customer, inventory, order, resources);
+testAll(graph);
 // Validates topo structure, runs all examples, checks cross coverage,
 // and uses db.mock() automatically for resource resolution
 ```

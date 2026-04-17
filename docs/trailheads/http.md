@@ -1,6 +1,6 @@
 # HTTP Trailhead
 
-The HTTP trailhead connector turns every trail into an endpoint. Routes are derived from trail IDs, HTTP verbs from intent, input parsing from the method, and error responses from the error taxonomy. One `trailhead()` call starts a Hono server.
+The HTTP trailhead connector turns every trail into an endpoint. Routes are derived from trail IDs, HTTP verbs from intent, input parsing from the method, and error responses from the error taxonomy. One `surface()` call starts a Hono server.
 
 The package separates framework-agnostic route building (`@ontrails/http`) from the Hono connector (`@ontrails/hono`).
 
@@ -11,10 +11,10 @@ bun add @ontrails/http @ontrails/hono
 ```
 
 ```typescript
-import { trailhead } from '@ontrails/hono';
-import { app } from './app';
+import { surface } from '@ontrails/hono';
+import { graph } from './app';
 
-await trailhead(app, { port: 3000 });
+await surface(graph, { port: 3000 });
 ```
 
 That starts an HTTP server with every trail registered as a route.
@@ -33,7 +33,7 @@ Dots in trail IDs become path segments:
 A `basePath` option prepends a prefix to all routes:
 
 ```typescript
-await trailhead(app, { basePath: '/api/v1', port: 3000 });
+await surface(graph, { basePath: '/api/v1', port: 3000 });
 // entity.show -> /api/v1/entity/show
 ```
 
@@ -108,10 +108,10 @@ Unrecognized errors (non-`TrailsError` exceptions) return 500 with `category: 'i
 Layers compose the same way as on CLI and MCP -- they wrap trail implementations:
 
 ```typescript
-import { trailhead } from '@ontrails/hono';
+import { surface } from '@ontrails/hono';
 import { authLayer, loggingLayer } from './layers';
 
-await trailhead(app, {
+await surface(graph, {
   layers: [loggingLayer, authLayer],
   port: 3000,
 });
@@ -137,14 +137,14 @@ The handler reads `X-Request-ID` from inbound requests and passes it through to 
 
 ## Escape Hatch
 
-For custom setups, use `buildHttpRoutes()` from the base package to get framework-agnostic route definitions. Each route has an `execute` function that validates input, composes Layers, and runs the trail -- you wire it into whatever HTTP framework you use:
+For custom setups, use `deriveHttpRoutes()` from the base package to get framework-agnostic route definitions. Each route has an `execute` function that validates input, composes Layers, and runs the trail -- you wire it into whatever HTTP framework you use:
 
 ```typescript
-import { buildHttpRoutes } from '@ontrails/http';
+import { deriveHttpRoutes } from '@ontrails/http';
 import { Hono } from 'hono';
 
 const hono = new Hono();
-const routesResult = buildHttpRoutes(app, { basePath: '/api' });
+const routesResult = deriveHttpRoutes(graph, { basePath: '/api' });
 
 if (routesResult.isErr()) {
   throw routesResult.error; // ValidationError if route collisions are detected
@@ -169,7 +169,7 @@ export default hono;
 
 This gives you full control over the HTTP framework while still deriving routes from the topo.
 
-`buildHttpRoutes()` returns `Result<HttpRouteDefinition[], Error>`. If two trails resolve to the same method + path (e.g. two trails both map to `POST /entity/add`), it returns a `ValidationError` describing the collision instead of silently overwriting a route.
+`deriveHttpRoutes()` returns `Result<HttpRouteDefinition[], Error>`. If two trails resolve to the same method + path (e.g. two trails both map to `POST /entity/add`), it returns a `ValidationError` describing the collision instead of silently overwriting a route.
 
 ## AbortSignal Propagation
 
@@ -193,15 +193,15 @@ const longTask = trail('report.generate', {
 
 ```typescript
 import { createTrailContext } from '@ontrails/core';
-import { trailhead } from '@ontrails/hono';
-import { app } from './app';
+import { surface } from '@ontrails/hono';
+import { graph } from './app';
 import { createStore } from './store';
 
 const store = createStore([
   { name: 'Alpha', tags: ['core'], type: 'concept' },
 ]);
 
-await trailhead(app, {
+await surface(graph, {
   createContext: () => createTrailContext({ store }),
   port: 3000,
 });

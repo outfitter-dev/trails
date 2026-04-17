@@ -78,20 +78,20 @@ Create `src/app.ts`:
 import { topo } from '@ontrails/core';
 import * as greetModule from './trails/greet';
 
-export const app = topo('myapp', greetModule);
+export const graph = topo('myapp', greetModule);
 ```
 
 `topo()` scans the module exports for `Trail` shapes and builds the internal topo (the trail collection).
 
-## Open a CLI Trailhead
+## Open a CLI Surface
 
 Create `src/cli.ts`:
 
 ```typescript
-import { trailhead } from '@ontrails/cli/commander';
-import { app } from './app';
+import { surface } from '@ontrails/cli/commander';
+import { graph } from './app';
 
-trailhead(app);
+await surface(graph);
 ```
 
 Run it:
@@ -126,15 +126,15 @@ flag (`--name World`), but the positional form is shorter. To suppress
 auto-promotion, set `args: false` on the trail definition (see the
 [CLI trailhead guide](./trailheads/cli.md#positional-args)).
 
-## Open an MCP Trailhead
+## Open an MCP Surface
 
 Create `src/mcp.ts`:
 
 ```typescript
-import { trailhead } from '@ontrails/mcp';
-import { app } from './app';
+import { surface } from '@ontrails/mcp';
+import { graph } from './app';
 
-await trailhead(app);
+await surface(graph);
 ```
 
 Same trail. Same implementation. Different trailhead. The MCP server exposes a `myapp_greet` tool with:
@@ -151,9 +151,9 @@ Create `src/__tests__/app.test.ts`:
 
 ```typescript
 import { testAll } from '@ontrails/testing';
-import { app } from '../app';
+import { graph } from '../app';
 
-testAll(app);
+testAll(graph);
 ```
 
 Run it:
@@ -170,7 +170,7 @@ $ bun test
     detours
 ```
 
-That single `testAll(app)` call runs the full governance suite:
+That single `testAll(graph)` call runs the full governance suite:
 
 1. **Topo validation** via `validateTopo` -- crosses exist, no recursive crossing, event origins, example schema validation, output schema presence
 2. **Example execution** -- for each trail, validates input, runs the implementation, asserts the result matches `expected` (or validates against the output schema when no `expected` is declared)
@@ -179,17 +179,17 @@ That single `testAll(app)` call runs the full governance suite:
 
 No separate test files for the happy path. The examples ARE the tests.
 
-If your app declares resources with `mock` factories, `testAll(app)` and
-`testExamples(app)` pick them up automatically. Use explicit `resources`
+If your app declares resources with `mock` factories, `testAll(graph)` and
+`testExamples(graph)` pick them up automatically. Use explicit `resources`
 overrides only when you need a specific fake or fresh mutable state.
 
-For finer control, use `testExamples(app)` to run only example assertions without structural checks:
+For finer control, use `testExamples(graph)` to run only example assertions without structural checks:
 
 ```typescript
 import { testExamples } from '@ontrails/testing';
 import { app } from '../app';
 
-testExamples(app);
+testExamples(graph);
 ```
 
 ## Adding More Trails
@@ -225,7 +225,7 @@ import { topo } from '@ontrails/core';
 import * as greetModule from './trails/greet';
 import * as mathModule from './trails/math';
 
-export const app = topo('myapp', greetModule, mathModule);
+export const graph = topo('myapp', greetModule, mathModule);
 ```
 
 The dotted trail ID `math.add` becomes a subcommand on CLI (`myapp math add --a 2 --b 3`) and a namespaced tool on MCP (`myapp_math_add`). No additional configuration needed.
@@ -279,7 +279,7 @@ export const listUsers = trail('user.list', {
 });
 ```
 
-The `resources: [db]` declaration tells the topo which infrastructure this trail depends on. Access the resource instance through `db.from(ctx)` for typed access. When you run `testAll(app)`, the framework automatically resolves `mock` factories — no configuration needed for example-based tests.
+The `resources: [db]` declaration tells the topo which infrastructure this trail depends on. Access the resource instance through `db.from(ctx)` for typed access. When you run `testAll(graph)`, the framework automatically resolves `mock` factories — no configuration needed for example-based tests.
 
 ## Trails CLI Auto-Discovery
 

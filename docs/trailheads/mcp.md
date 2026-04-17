@@ -1,6 +1,6 @@
 # MCP Trailhead
 
-The MCP trailhead connector turns every trail into an MCP tool. Annotations are auto-derived from trail intent and metadata. Progress callbacks bridge to MCP notifications. One `trailhead()` call starts a server.
+The MCP trailhead connector turns every trail into an MCP tool. Annotations are auto-derived from trail intent and metadata. Progress callbacks bridge to MCP notifications. One `surface()` call starts a server.
 
 ## Setup
 
@@ -9,10 +9,10 @@ bun add @ontrails/mcp
 ```
 
 ```typescript
-import { trailhead } from '@ontrails/mcp';
-import { app } from './app';
+import { surface } from '@ontrails/mcp';
+import { graph } from './app';
 
-await trailhead(app);
+await surface(graph);
 ```
 
 That starts an MCP server over stdio with every trail registered as a tool.
@@ -133,12 +133,12 @@ Progress bridging activates only when the MCP client includes a `progressToken` 
 Not every trail should be exposed as an MCP tool. Use include/exclude filters:
 
 ```typescript
-await trailhead(app, {
+await surface(graph, {
   include: ['entity.**', 'search'],
 });
 
 // Or exclude specific trails
-await trailhead(app, {
+await surface(graph, {
   exclude: ['internal.debug', 'admin.reset'],
 });
 ```
@@ -150,7 +150,7 @@ hidden unless you include their exact trail ID.
 ## Server Configuration
 
 ```typescript
-await trailhead(app, {
+await surface(graph, {
   name: 'myapp',
   version: '1.0.0',
   transport: 'stdio', // Only stdio for now; SSE/streamable HTTP planned
@@ -159,7 +159,7 @@ await trailhead(app, {
 });
 ```
 
-`trailhead(app)` already derives the MCP server name and version from the
+`surface(graph)` already derives the MCP server name and version from the
 topo identity. Pass `name` or `version` only when a specific trailhead instance
 needs to override them.
 
@@ -187,14 +187,14 @@ Layers compose identically to CLI. The MCP connector uses `composeLayers()` from
 
 No MCP-specific Layers ship in v1. The infrastructure is wired and ready for domain-specific Layers (rate limiting, caching, auth) to be added later.
 
-## Building Tools Without `trailhead()`
+## Building Tools Without `surface()`
 
 For advanced use cases, build the tool definitions directly:
 
 ```typescript
-import { buildMcpTools } from '@ontrails/mcp';
+import { deriveMcpTools } from '@ontrails/mcp';
 
-const result = buildMcpTools(app, {
+const result = deriveMcpTools(graph, {
   include: ['entity.**', 'search'],
 });
 
@@ -211,4 +211,4 @@ for (const tool of result.value) {
 }
 ```
 
-Each `McpToolDefinition` includes a `trailId` field containing the original trail ID (e.g. `'entity.show'`). This is useful for logging, filtering, or routing when managing tool definitions outside of `trailhead()`.
+Each `McpToolDefinition` includes a `trailId` field containing the original trail ID (e.g. `'entity.show'`). This is useful for logging, filtering, or routing when managing tool definitions outside of `surface()`.

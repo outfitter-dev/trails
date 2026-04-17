@@ -1,32 +1,32 @@
 # Testing Patterns Reference
 
-## `testAll(app)` -- One-Liner Governance Suite
+## `testAll(graph)` -- One-Liner Governance Suite
 
 Runs topo validation + example execution + contract checks + detour verification in a single `describe('governance')` block.
 
 ```typescript
 import { testAll } from '@ontrails/testing';
-import { app } from '../src/app.js';
+import { graph } from '../src/app.js';
 
-testAll(app);
+testAll(graph);
 ```
 
 With mutable state, pass a factory to get a fresh context per test:
 
 ```typescript
-testAll(app, () => ({
+testAll(graph, () => ({
   store: createStore([
     { name: 'Alpha', tags: ['core'], type: 'concept' },
   ]),
 }));
 ```
 
-## `testExamples(app)` -- Example Assertions
+## `testExamples(graph)` -- Example Assertions
 
 Runs every trail's examples with progressive assertion. For trails with `crosses`, also verifies every declared cross ID was called. Accepts the same `ctxOrFactory` second arg as `testAll`.
 
 ```typescript
-testExamples(app);
+testExamples(graph);
 ```
 
 ## `testTrail(trail, scenarios)` -- Edge Cases
@@ -126,12 +126,12 @@ Pass a factory (the `() => ({...})` form) when overrides contain mutable state. 
 The same override mechanism works with `run()`:
 
 ```typescript
-run(app, 'search', input, {
+run(graph, 'search', input, {
   resources: { 'db.main': testDb },
 });
 ```
 
-If a resource definition omits `mock`, `testAll` requires an explicit override for any trail that uses it. Always define `mock` on resource definitions to keep the zero-config `testAll(app)` promise.
+If a resource definition omits `mock`, `testAll` requires an explicit override for any trail that uses it. Always define `mock` on resource definitions to keep the zero-config `testAll(graph)` promise.
 
 ## Progressive Assertion Modes
 

@@ -1,11 +1,11 @@
 import { outputModePreset } from '@ontrails/cli';
-import { trailhead } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/cli/commander';
 
 import { app } from './app.js';
 import { resolveInputWithClack } from './clack.js';
 
 // oxlint-disable-next-line require-hook -- CLI entry point
-trailhead(app, {
+await surface(app, {
   description: 'Agent-native, contract-first TypeScript framework',
   name: 'trails',
   presets: [outputModePreset()],

@@ -3,8 +3,8 @@ import { describe, expect, mock, test } from 'bun:test';
 import { NotFoundError, Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { buildCliCommands } from '../build.js';
-import type { AnyTrail } from '../command.js';
+import { deriveCliCommands } from '../build.js';
+import type { AnyTrail, CliCommand } from '../command.js';
 import { toCommander } from '../commander/to-commander.js';
 
 // ---------------------------------------------------------------------------
@@ -24,8 +24,16 @@ const makeApp = (...trails: AnyTrail[]) => {
   return topo('test-app', mod);
 };
 
+const buildCommands = (...args: Parameters<typeof deriveCliCommands>) => {
+  const result = deriveCliCommands(...args);
+  if (result.isErr()) {
+    throw result.error;
+  }
+  return result.value;
+};
+
 /** Intercept a command's execute to capture parsed opts. */
-const interceptOpts = (commands: ReturnType<typeof buildCliCommands>) => {
+const interceptOpts = (commands: CliCommand[]) => {
   let received: Record<string, unknown> = {};
   const [cmd] = commands;
   if (!cmd) {
@@ -87,7 +95,7 @@ const buildExecutableParentProgram = (calls: string[]) => {
     input: z.object({}),
   });
   const app = makeApp(topoShow, topoPin);
-  const commands = buildCliCommands(app, { onResult: noopResult });
+  const commands = buildCommands(app, { onResult: noopResult });
   const program = toCommander(commands, { name: 'test' });
   program.exitOverride();
   return program;
@@ -148,7 +156,7 @@ describe('toCommander command trees', () => {
       input: z.object({ name: z.string() }),
     });
     const app = makeApp(t);
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
     const program = toCommander(commands, { name: 'test-cli' });
 
     expect(program.name()).toBe('test-cli');
@@ -167,7 +175,7 @@ describe('toCommander command trees', () => {
       input: z.object({ name: z.string() }),
     });
     const app = makeApp(show, add);
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
     const program = toCommander(commands);
 
     const entityCmd = requireNestedCommand(program, ['entity']);
@@ -182,7 +190,7 @@ describe('toCommander command trees', () => {
       input: z.object({ name: z.string() }),
     });
     const app = makeApp(remove);
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
     const program = toCommander(commands);
 
     const topoCmd = requireNestedCommand(program, ['topo']);
@@ -284,7 +292,7 @@ describe('toCommander option wiring', () => {
       }),
     });
     const app = makeApp(t);
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
     const program = toCommander(commands);
 
     const opts = requireCommand(program, 'search').options;
@@ -309,7 +317,7 @@ describe('toCommander option wiring', () => {
       }),
     });
     const app = makeApp(t);
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
     const program = toCommander(commands);
 
     const opts = requireNestedCommand(program, ['gist', 'create']).options;
@@ -328,7 +336,7 @@ describe('toCommander option wiring', () => {
         input: z.object({ strict: z.boolean() }),
       });
       const app = makeApp(t);
-      const commands = buildCliCommands(app);
+      const commands = buildCommands(app);
       const program = toCommander(commands);
 
       const cmd = requireCommand(program, 'check');
@@ -345,7 +353,7 @@ describe('toCommander option wiring', () => {
         input: z.object({ strict: z.boolean().default(true) }),
       });
       const app = makeApp(t);
-      const commands = buildCliCommands(app, { onResult: noopResult });
+      const commands = buildCommands(app, { onResult: noopResult });
       const spy = interceptOpts(commands);
       const program = toCommander(commands, { name: 'test' });
       program.exitOverride();
@@ -360,7 +368,7 @@ describe('toCommander option wiring', () => {
         input: z.object({ strict: z.boolean().default(false) }),
       });
       const app = makeApp(t);
-      const commands = buildCliCommands(app, { onResult: noopResult });
+      const commands = buildCommands(app, { onResult: noopResult });
       const spy = interceptOpts(commands);
       const program = toCommander(commands, { name: 'test' });
       program.exitOverride();
@@ -377,7 +385,7 @@ describe('toCommander option wiring', () => {
         input: z.object({ limit: z.number() }),
       });
       const app = makeApp(t);
-      const commands = buildCliCommands(app);
+      const commands = buildCommands(app);
       const program = toCommander(commands, { name: 'test' });
       program.exitOverride();
       program.configureOutput({
@@ -450,7 +458,7 @@ describe('toCommander option wiring', () => {
         input: z.object({ limit: z.number() }),
       });
       const app = makeApp(t);
-      const commands = buildCliCommands(app, { onResult: noopResult });
+      const commands = buildCommands(app, { onResult: noopResult });
       const spy = interceptOpts(commands);
       const program = toCommander(commands, { name: 'test' });
       program.exitOverride();
@@ -466,7 +474,7 @@ describe('toCommander option wiring', () => {
       input: z.object({}),
     });
     const app = makeApp(t);
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
     const program = toCommander(commands, {
       description: 'A test app',
       name: 'myapp',

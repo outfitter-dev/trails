@@ -62,7 +62,7 @@ Create `src/app.ts`:
 import { topo } from '@ontrails/core';
 import * as greetModule from './trails/greet';
 
-export const app = topo('myapp', greetModule);
+export const graph = topo('myapp', greetModule);
 ```
 
 `topo()` scans module exports for `Trail` shapes and builds the collection.
@@ -72,10 +72,10 @@ export const app = topo('myapp', greetModule);
 Create `src/cli.ts`:
 
 ```typescript
-import { trailhead } from '@ontrails/cli/commander';
-import { app } from './app';
+import { surface } from '@ontrails/cli/commander';
+import { graph } from './app';
 
-trailhead(app);
+surface(graph);
 ```
 
 Run it:
@@ -95,10 +95,10 @@ Flags, types, defaults, and `--help` text are all derived from the Zod schema.
 Create `src/mcp.ts`:
 
 ```typescript
-import { trailhead } from '@ontrails/mcp';
-import { app } from './app';
+import { surface } from '@ontrails/mcp';
+import { graph } from './app';
 
-await trailhead(app);
+await surface(graph);
 ```
 
 Same trail, same implementation, different trailhead. The MCP server exposes `myapp_greet` with JSON Schema input, `readOnlyHint: true`, and examples for agent planning.
@@ -111,7 +111,7 @@ Create `src/__tests__/app.test.ts`:
 import { testAll } from '@ontrails/testing';
 import { app } from '../app';
 
-testAll(app);
+testAll(graph);
 ```
 
 Run it:
@@ -128,7 +128,7 @@ $ bun test
     detours
 ```
 
-`testAll(app)` runs: topo validation, example execution (input/output assertions), contract checks (output matches schema), and detour verification. Use `testExamples(app)` for example assertions only.
+`testAll(graph)` runs: topo validation, example execution (input/output assertions), contract checks (output matches schema), and detour verification. Use `testExamples(graph)` for example assertions only.
 
 ## Adding More Trails
 
@@ -159,7 +159,7 @@ import { topo } from '@ontrails/core';
 import * as greetModule from './trails/greet';
 import * as mathModule from './trails/math';
 
-export const app = topo('myapp', greetModule, mathModule);
+export const graph = topo('myapp', greetModule, mathModule);
 ```
 
 Dotted trail ID `math.add` becomes:
@@ -218,7 +218,7 @@ Register resources in the topo alongside trails:
 import * as greetModule from './trails/greet';
 import * as resources from './resources/db';
 
-export const app = topo('myapp', greetModule, resources);
+export const graph = topo('myapp', greetModule, resources);
 ```
 
 Use in a trail by declaring `resources` and accessing via `db.from(ctx)`:
@@ -238,4 +238,4 @@ const lookup = trail('lookup', {
 });
 ```
 
-The `mock` factory means `testAll(app)` works with no additional configuration — the in-memory database is used automatically in tests.
+The `mock` factory means `testAll(graph)` works with no additional configuration — the in-memory database is used automatically in tests.

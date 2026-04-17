@@ -30,7 +30,7 @@ console.log(formatWardenReport(report));
 | --- | --- | --- |
 | `no-throw-in-implementation` | error | `throw` inside blaze bodies |
 | `implementation-returns-result` | error | Blaze functions returning raw values instead of `Result` |
-| `context-no-trailhead-types` | error | Trailhead type imports (`Request`, `McpSession`) in trail files |
+| `context-no-surface-types` | error | Surface type imports (`Request`, `McpSession`) in trail files |
 | `no-sync-result-assumption` | error | Missing `await` on `.blaze()` results |
 | `valid-detour-refs` | error | Detour targets that do not exist in the topo |
 | `no-throw-in-detour-target` | error | `throw` inside detour target trails |

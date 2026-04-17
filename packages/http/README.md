@@ -1,12 +1,12 @@
 # @ontrails/http
 
-Framework-agnostic HTTP route derivation for Trails. Pair this package with `@ontrails/hono` when you want the Hono trailhead connector.
+Framework-agnostic HTTP route derivation for Trails. Pair this package with `@ontrails/hono` when you want the Hono surface connector.
 
 ## Usage
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
-import { trailhead } from '@ontrails/hono';
+import { surface } from '@ontrails/hono';
 import { z } from 'zod';
 
 const greet = trail('greet', {
@@ -16,8 +16,8 @@ const greet = trail('greet', {
   blaze: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
 
-const app = topo('myapp', { greet });
-await trailhead(app, { port: 3000 });
+const graph = topo('myapp', { greet });
+await surface(graph, { port: 3000 });
 ```
 
 This starts a Hono-based HTTP server. The `greet` trail becomes `GET /greet?name=...` because its `intent` is `'read'`.
@@ -25,22 +25,22 @@ This starts a Hono-based HTTP server. The `greet` trail becomes `GET /greet?name
 For more control, build the routes yourself:
 
 ```typescript
-import { buildHttpRoutes } from '@ontrails/http';
+import { deriveHttpRoutes } from '@ontrails/http';
 
-const result = buildHttpRoutes(app);
+const result = deriveHttpRoutes(graph);
 if (result.isErr()) throw result.error; // ValidationError on route collision
 for (const route of result.value) {
   console.log(`${route.method} ${route.path} → ${route.trailId}`);
 }
 ```
 
-`buildHttpRoutes` returns `Result<HttpRouteDefinition[], Error>` rather than a bare array. It returns `Result.err(ValidationError)` if two trails derive the same `(method, path)` pair.
+`deriveHttpRoutes` returns `Result<HttpRouteDefinition[], Error>` rather than a bare array. It returns `Result.err(ValidationError)` if two trails derive the same `(method, path)` pair.
 
 ## API
 
 | Export | What it does |
 | --- | --- |
-| `buildHttpRoutes(app, options?)` | Build framework-agnostic route definitions from a topo |
+| `deriveHttpRoutes(graph, options?)` | Build framework-agnostic route definitions from a topo |
 
 ## Route derivation
 
@@ -57,7 +57,7 @@ Trail IDs map to paths: `entity.show` becomes `/entity/show`. Dots become slashe
 
 ## Collision detection
 
-`buildHttpRoutes` detects when two trails would produce the same `(method, path)` pair and returns `Result.err(ValidationError)` describing both trail IDs. The `trailhead()` helper from `@ontrails/hono` throws on collision.
+`deriveHttpRoutes` detects when two trails would produce the same `(method, path)` pair and returns `Result.err(ValidationError)` describing both trail IDs. The `surface()` helper from `@ontrails/hono` throws on collision.
 
 ## Resource resolution
 
@@ -66,7 +66,7 @@ Declared resources on each trail are resolved into the context before the implem
 ## Filtering
 
 ```typescript
-const result = buildHttpRoutes(app, {
+const result = deriveHttpRoutes(graph, {
   include: ['entity.**'],
   exclude: ['dev.**'],
 });
@@ -82,7 +82,7 @@ The `execute` function on each `HttpRouteDefinition` accepts an optional `abortS
 
 ## `HttpRouteDefinition`
 
-Each route definition produced by `buildHttpRoutes` includes:
+Each route definition produced by `deriveHttpRoutes` includes:
 
 | Field | Type | What it is |
 | --- | --- | --- |
@@ -103,5 +103,5 @@ bun add @ontrails/http @ontrails/hono
 
 Hono integration now lives in `@ontrails/hono`.
 
-- Replace `import { trailhead } from '@ontrails/http/hono'` with `import { trailhead } from '@ontrails/hono'`
-- Keep `buildHttpRoutes()` and the route model imports on `@ontrails/http`
+- Replace `import { trailhead } from '@ontrails/http/hono'` with `import { surface } from '@ontrails/hono'`
+- Keep `deriveHttpRoutes()` and the route model imports on `@ontrails/http`

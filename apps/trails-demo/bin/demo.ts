@@ -9,9 +9,9 @@
  *   bun run bin/demo.ts search --query Alpha
  */
 
-import { trailhead } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/cli/commander';
 
 import { app } from '../src/app.js';
 
 // oxlint-disable-next-line require-hook -- CLI entry point, not a test file
-trailhead(app);
+await surface(app);

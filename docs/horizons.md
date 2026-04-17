@@ -4,7 +4,7 @@
 
 ## Shipped
 
-**HTTP trailhead (`@ontrails/http`).** The third trailhead connector. `intent: 'read'` maps to GET, mutations to POST, `'destroy'` to DELETE. Route paths derived from trail IDs. Error taxonomy maps to HTTP status codes. One `trailhead()` call, same pattern as CLI and MCP. Built on Hono.
+**HTTP surface (`@ontrails/http`).** The third surface connector. `intent: 'read'` maps to GET, mutations to POST, `'destroy'` to DELETE. Route paths derived from trail IDs. Error taxonomy maps to HTTP status codes. One `surface()` call, same pattern as CLI and MCP. Built on Hono.
 
 **OpenAPI generation (`@ontrails/schema`).** `deriveOpenApiSpec()` produces a complete OpenAPI 3.1 spec from the topo. The topo already carries everything OpenAPI needs.
 

@@ -14,7 +14,7 @@ import {
 import type { Layer, TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
-import { buildHttpRoutes } from '../build.js';
+import { deriveHttpRoutes } from '../build.js';
 
 // ---------------------------------------------------------------------------
 // Test trails
@@ -84,11 +84,11 @@ const requireFire = (fire: TrailContext['fire']) => {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('buildHttpRoutes', () => {
+describe('deriveHttpRoutes', () => {
   describe('method derivation', () => {
     test('intent: read maps to GET', () => {
       const app = topo('testapp', { echoTrail });
-      const result = buildHttpRoutes(app);
+      const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
       const routes = result.value;
@@ -98,7 +98,7 @@ describe('buildHttpRoutes', () => {
 
     test('intent: destroy maps to DELETE', () => {
       const app = topo('testapp', { deleteTrail });
-      const result = buildHttpRoutes(app);
+      const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
       const routes = result.value;
@@ -108,7 +108,7 @@ describe('buildHttpRoutes', () => {
 
     test('default intent (write) maps to POST', () => {
       const app = topo('testapp', { createTrail });
-      const result = buildHttpRoutes(app);
+      const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
       const routes = result.value;
@@ -120,7 +120,7 @@ describe('buildHttpRoutes', () => {
   describe('path derivation', () => {
     test('dotted ID becomes slashed path', () => {
       const app = topo('testapp', { createTrail });
-      const result = buildHttpRoutes(app);
+      const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
       expect(result.value[0]?.path).toBe('/item/create');
@@ -128,7 +128,7 @@ describe('buildHttpRoutes', () => {
 
     test('simple ID becomes /id', () => {
       const app = topo('testapp', { echoTrail });
-      const result = buildHttpRoutes(app);
+      const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
       expect(result.value[0]?.path).toBe('/echo');
@@ -136,7 +136,7 @@ describe('buildHttpRoutes', () => {
 
     test('basePath is prepended', () => {
       const app = topo('testapp', { echoTrail });
-      const result = buildHttpRoutes(app, { basePath: '/api/v1' });
+      const result = deriveHttpRoutes(app, { basePath: '/api/v1' });
 
       expect(result.isOk()).toBe(true);
       expect(result.value[0]?.path).toBe('/api/v1/echo');
@@ -144,7 +144,7 @@ describe('buildHttpRoutes', () => {
 
     test('basePath trailing slash is normalized', () => {
       const app = topo('testapp', { echoTrail });
-      const result = buildHttpRoutes(app, { basePath: '/api/v1/' });
+      const result = deriveHttpRoutes(app, { basePath: '/api/v1/' });
 
       expect(result.isOk()).toBe(true);
       expect(result.value[0]?.path).toBe('/api/v1/echo');
@@ -154,7 +154,7 @@ describe('buildHttpRoutes', () => {
   describe('input source derivation', () => {
     test('GET routes use query input source', () => {
       const app = topo('testapp', { echoTrail });
-      const result = buildHttpRoutes(app);
+      const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
       expect(result.value[0]?.inputSource).toBe('query');
@@ -162,7 +162,7 @@ describe('buildHttpRoutes', () => {
 
     test('POST routes use body input source', () => {
       const app = topo('testapp', { createTrail });
-      const result = buildHttpRoutes(app);
+      const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
       expect(result.value[0]?.inputSource).toBe('body');
@@ -170,7 +170,7 @@ describe('buildHttpRoutes', () => {
 
     test('DELETE routes use body input source', () => {
       const app = topo('testapp', { deleteTrail });
-      const result = buildHttpRoutes(app);
+      const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
       expect(result.value[0]?.inputSource).toBe('body');
@@ -180,7 +180,7 @@ describe('buildHttpRoutes', () => {
   describe('filtering', () => {
     test('internal trails are skipped', () => {
       const app = topo('testapp', { echoTrail, internalVisibilityTrail });
-      const result = buildHttpRoutes(app);
+      const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
       const routes = result.value;
@@ -190,7 +190,7 @@ describe('buildHttpRoutes', () => {
 
     test('exact include can expose an internal trail', () => {
       const app = topo('testapp', { echoTrail, internalVisibilityTrail });
-      const result = buildHttpRoutes(app, { include: ['secret'] });
+      const result = deriveHttpRoutes(app, { include: ['secret'] });
 
       expect(result.isOk()).toBe(true);
       const routes = result.value;
@@ -200,7 +200,7 @@ describe('buildHttpRoutes', () => {
 
     test('wildcard include does not expose internal trails', () => {
       const app = topo('testapp', { echoTrail, internalVisibilityTrail });
-      const result = buildHttpRoutes(app, { include: ['**'] });
+      const result = deriveHttpRoutes(app, { include: ['**'] });
 
       expect(result.isOk()).toBe(true);
       const routes = result.value;
@@ -210,7 +210,7 @@ describe('buildHttpRoutes', () => {
 
     test('exclude patterns win before include narrowing', () => {
       const app = topo('testapp', { deleteTrail, echoTrail });
-      const result = buildHttpRoutes(app, {
+      const result = deriveHttpRoutes(app, {
         exclude: ['item.**'],
         include: ['echo', 'item.delete'],
       });
@@ -221,7 +221,7 @@ describe('buildHttpRoutes', () => {
 
     test('intent filters narrow the route table', () => {
       const app = topo('testapp', { deleteTrail, echoTrail });
-      const result = buildHttpRoutes(app, { intent: ['read'] });
+      const result = deriveHttpRoutes(app, { intent: ['read'] });
 
       expect(result.isOk()).toBe(true);
       expect(result.value.map((route) => route.trailId)).toEqual(['echo']);
@@ -229,7 +229,7 @@ describe('buildHttpRoutes', () => {
 
     test('intent filters compose with include patterns using AND logic', () => {
       const app = topo('testapp', { deleteTrail, echoTrail });
-      const result = buildHttpRoutes(app, {
+      const result = deriveHttpRoutes(app, {
         include: ['item.*', 'echo'],
         intent: ['destroy'],
       });
@@ -249,7 +249,7 @@ describe('buildHttpRoutes', () => {
         on: ['order.placed'],
       });
       const app = topo('testapp', { consumerTrail, echoTrail, orderPlaced });
-      const result = buildHttpRoutes(app);
+      const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
       const routes = result.value;
@@ -261,7 +261,7 @@ describe('buildHttpRoutes', () => {
   describe('route definition shape', () => {
     test('includes trail reference', () => {
       const app = topo('testapp', { echoTrail });
-      const result = buildHttpRoutes(app);
+      const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
       expect(result.value[0]?.trail).toBe(echoTrail);
@@ -269,7 +269,7 @@ describe('buildHttpRoutes', () => {
 
     test('execute is a function', () => {
       const app = topo('testapp', { echoTrail });
-      const result = buildHttpRoutes(app);
+      const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
       expect(typeof result.value[0]?.execute).toBe('function');
@@ -279,7 +279,7 @@ describe('buildHttpRoutes', () => {
   describe('execute', () => {
     test('returns ok Result on valid input', async () => {
       const app = topo('testapp', { echoTrail });
-      const buildResult = buildHttpRoutes(app);
+      const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
       const [route] = buildResult.value;
@@ -291,7 +291,7 @@ describe('buildHttpRoutes', () => {
 
     test('returns err Result on invalid input', async () => {
       const app = topo('testapp', { echoTrail });
-      const buildResult = buildHttpRoutes(app);
+      const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
       const [route] = buildResult.value;
@@ -302,7 +302,7 @@ describe('buildHttpRoutes', () => {
 
     test('returns err Result from trail error', async () => {
       const app = topo('testapp', { notFoundTrail });
-      const buildResult = buildHttpRoutes(app);
+      const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
       const [route] = buildResult.value;
@@ -314,7 +314,7 @@ describe('buildHttpRoutes', () => {
 
     test('returns err Result from internal error', async () => {
       const app = topo('testapp', { internalTrail });
-      const buildResult = buildHttpRoutes(app);
+      const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
       const [route] = buildResult.value;
@@ -332,7 +332,7 @@ describe('buildHttpRoutes', () => {
         input: z.object({}),
       });
       const app = topo('testapp', { throwingTrail });
-      const buildResult = buildHttpRoutes(app);
+      const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
       const [route] = buildResult.value;
@@ -345,7 +345,7 @@ describe('buildHttpRoutes', () => {
 
     test('returns err Result when createContext throws', async () => {
       const app = topo('testapp', { echoTrail });
-      const buildResult = buildHttpRoutes(app, {
+      const buildResult = deriveHttpRoutes(app, {
         createContext: () => {
           throw new Error('context creation failed');
         },
@@ -384,7 +384,7 @@ describe('buildHttpRoutes', () => {
         input: z.object({ orderId: z.string() }),
       });
       const app = topo('signal-http', { consumer, orderPlaced, producer });
-      const buildResult = buildHttpRoutes(app);
+      const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
       const [route] = buildResult.value;
@@ -408,7 +408,7 @@ describe('buildHttpRoutes', () => {
       });
 
       const app = topo('testapp', { ctxTrail });
-      const buildResult = buildHttpRoutes(app);
+      const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
       const [route] = buildResult.value;
@@ -430,7 +430,7 @@ describe('buildHttpRoutes', () => {
       });
 
       const app = topo('testapp', { ctxTrail });
-      const buildResult = buildHttpRoutes(app);
+      const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
       const [route] = buildResult.value;
@@ -450,7 +450,7 @@ describe('buildHttpRoutes', () => {
       });
 
       const app = topo('testapp', { dbResource, resourceTrail });
-      const buildResult = buildHttpRoutes(app, {
+      const buildResult = deriveHttpRoutes(app, {
         resources: { 'db.main': { source: 'override' } },
       });
 
@@ -480,7 +480,7 @@ describe('buildHttpRoutes', () => {
       };
 
       const app = topo('testapp', { echoTrail });
-      const buildResult = buildHttpRoutes(app, { layers: [testGate] });
+      const buildResult = deriveHttpRoutes(app, { layers: [testGate] });
 
       expect(buildResult.isOk()).toBe(true);
       const [route] = buildResult.value;
@@ -507,7 +507,7 @@ describe('buildHttpRoutes', () => {
       });
 
       const app = topo('testapp', { ctxTrail });
-      const buildResult = buildHttpRoutes(app, {
+      const buildResult = deriveHttpRoutes(app, {
         createContext: () => ({
           abortSignal: new AbortController().signal,
           extensions: { custom: true },
@@ -543,7 +543,7 @@ describe('buildHttpRoutes', () => {
         intent: 'read',
       });
       const app = topo('testapp', { dotTrail, slashTrail });
-      const result = buildHttpRoutes(app);
+      const result = deriveHttpRoutes(app);
 
       expect(result.isErr()).toBe(true);
       expect(result.error).toBeInstanceOf(ValidationError);
@@ -566,7 +566,7 @@ describe('buildHttpRoutes', () => {
         input: z.object({ name: z.string() }),
       });
       const app = topo('testapp', { createItem, getItem });
-      const result = buildHttpRoutes(app);
+      const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
       expect(result.value).toHaveLength(2);
@@ -586,7 +586,7 @@ describe('buildHttpRoutes', () => {
         intent: 'read',
       });
       const app = topo('testapp', { dotTrail, slashTrail });
-      const result = buildHttpRoutes(app);
+      const result = deriveHttpRoutes(app);
 
       expect(result.isErr()).toBe(true);
       expect(result.error?.message).toContain('entity');
@@ -601,7 +601,7 @@ describe('buildHttpRoutes', () => {
         input: z.object({}),
       });
 
-      const result = buildHttpRoutes(topo('testapp', { draftTrail }));
+      const result = deriveHttpRoutes(topo('testapp', { draftTrail }));
 
       expect(result.isErr()).toBe(true);
       expect(result.error?.message).toMatch(/draft/i);

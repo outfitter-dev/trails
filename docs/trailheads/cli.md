@@ -14,10 +14,10 @@ bun add commander  # required for the /commander subpath
 ```
 
 ```typescript
-import { trailhead } from '@ontrails/cli/commander';
-import { app } from './app';
+import { surface } from '@ontrails/cli/commander';
+import { graph } from './app';
 
-trailhead(app);
+await surface(graph);
 ```
 
 That is the entire CLI setup. Every trail in the app becomes a command.
@@ -229,10 +229,10 @@ The error message is written to stderr. Non-`TrailsError` errors default to exit
 Override the default result handler for custom formatting, logging, or metrics:
 
 ```typescript
-import { trailhead } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/cli/commander';
 import { output, deriveOutputMode } from '@ontrails/cli';
 
-trailhead(app, {
+await surface(graph, {
   onResult: async (ctx) => {
     if (ctx.result.isErr()) {
       console.error(`Failed: ${ctx.trail.id}`);
@@ -263,26 +263,30 @@ For trails with `since`/`until` date fields, expands shortcut strings:
 
 ## The Two-Level Architecture
 
-`@ontrails/cli` is framework-agnostic. It produces a `CliCommand[]` model that any CLI framework can consume. The `/commander` subpath connects that model to Commander specifically.
+`@ontrails/cli` is framework-agnostic. It produces a `Result<CliCommand[], Error>`
+projection that any CLI framework can consume. The `/commander` subpath
+connects that model to Commander specifically.
 
 ```typescript
 // Framework-agnostic: build the model
-import { buildCliCommands } from '@ontrails/cli';
-const commands = buildCliCommands(app);
+import { deriveCliCommands } from '@ontrails/cli';
+const commands = deriveCliCommands(graph);
+if (commands.isErr()) throw commands.error;
 
 // Framework-specific: adapt to Commander
 import { toCommander } from '@ontrails/cli/commander';
-const program = toCommander(commands, { name: 'myapp' });
+const program = toCommander(commands.value, { name: 'myapp' });
 program.parse();
 ```
 
-Or use `trailhead()` which does both in one call:
+Or use `surface()` which does both in one call:
 
 ```typescript
-import { trailhead } from '@ontrails/cli/commander';
-trailhead(app);
+import { surface } from '@ontrails/cli/commander';
+await surface(graph);
 ```
 
-To use a different CLI framework (yargs, oclif, etc.), consume `CliCommand[]`
-directly and write your own connector. The model carries everything needed: a
-full ordered command path, flags, args, and an `execute()` function.
+To use a different CLI framework (yargs, oclif, etc.), consume the successful
+`CliCommand[]` result directly and write your own connector. The model carries
+everything needed: a full ordered command path, flags, args, and an
+`execute()` function.

@@ -1,6 +1,6 @@
 import { circularRefs } from './circular-refs.js';
 import { contourExists } from './contour-exists.js';
-import { contextNoTrailheadTypes } from './context-no-trailhead-types.js';
+import { contextNoSurfaceTypes } from './context-no-surface-types.js';
 import { crossDeclarations } from './cross-declarations.js';
 import { deadInternalTrail } from './dead-internal-trail.js';
 import { draftFileMarking } from './draft-file-marking.js';
@@ -39,7 +39,7 @@ export type {
 export { noThrowInImplementation } from './no-throw-in-implementation.js';
 export { circularRefs } from './circular-refs.js';
 export { contourExists } from './contour-exists.js';
-export { contextNoTrailheadTypes } from './context-no-trailhead-types.js';
+export { contextNoSurfaceTypes } from './context-no-surface-types.js';
 export { crossDeclarations } from './cross-declarations.js';
 export { deadInternalTrail } from './dead-internal-trail.js';
 export { draftFileMarking } from './draft-file-marking.js';
@@ -73,7 +73,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [noThrowInImplementation.name, noThrowInImplementation],
   [circularRefs.name, circularRefs],
   [contourExists.name, contourExists],
-  [contextNoTrailheadTypes.name, contextNoTrailheadTypes],
+  [contextNoSurfaceTypes.name, contextNoSurfaceTypes],
   [crossDeclarations.name, crossDeclarations],
   [deadInternalTrail.name, deadInternalTrail],
   [draftFileMarking.name, draftFileMarking],

@@ -70,11 +70,11 @@ Dotted IDs become subcommands. Flags derive from the Zod schema:
 ```typescript
 // cli.ts
 import { topo } from '@ontrails/core';
-import { trailhead } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/cli/commander';
 import * as deploy from './trails/deploy.js';
 
-const app = topo('myapp', deploy);
-trailhead(app);
+const graph = topo('myapp', deploy);
+surface(graph);
 // myapp deploy run --service api --env staging --dry-run
 // Flags, defaults, descriptions, and validation all derived from Zod.
 ```

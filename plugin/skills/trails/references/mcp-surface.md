@@ -63,9 +63,9 @@ Trail `examples` are included in MCP tool metadata. Agents use these to understa
 ## Trailhead Options
 
 ```typescript
-import { trailhead } from '@ontrails/mcp';
+import { surface } from '@ontrails/mcp';
 
-await trailhead(app, {
+await surface(graph, {
   name: 'myapp',           // Tool name prefix (defaults to topo name)
   version: '1.0.0',        // Server version
   capabilities: {},        // MCP server capabilities object
@@ -74,13 +74,13 @@ await trailhead(app, {
 
 ## Escape Hatch
 
-For manual tool definition or custom MCP server configuration, use `buildMcpTools()`. It returns `Result<McpToolDefinition[], Error>` — check for errors before using the array (name collisions produce a `ValidationError`):
+For manual tool definition or custom MCP server configuration, use `deriveMcpTools()`. It returns `Result<McpToolDefinition[], Error>` — check for errors before using the array (name collisions produce a `ValidationError`):
 
 ```typescript
-import { buildMcpTools } from '@ontrails/mcp';
-import { app } from './app';
+import { deriveMcpTools } from '@ontrails/mcp';
+import { graph } from './app';
 
-const toolsResult = buildMcpTools(app);
+const toolsResult = deriveMcpTools(graph);
 if (toolsResult.isErr()) throw new Error(toolsResult.error.message);
 const tools = toolsResult.value;
 // Wire into your own MCP server setup

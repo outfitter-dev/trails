@@ -12,7 +12,7 @@ import {
 import type { Layer, TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
-import { buildMcpTools } from '../build.js';
+import { deriveMcpTools } from '../build.js';
 import type { McpExtra, McpToolDefinition } from '../build.js';
 
 // ---------------------------------------------------------------------------
@@ -99,13 +99,13 @@ const requireOnlyTool = (tools: McpToolDefinition[]) => {
 };
 
 /**
- * Unwrap buildMcpTools result for success-path tests.
+ * Unwrap deriveMcpTools result for success-path tests.
  * Throws if the result is an error so test failures show up clearly.
  */
 const buildTools = (
-  ...args: Parameters<typeof buildMcpTools>
+  ...args: Parameters<typeof deriveMcpTools>
 ): McpToolDefinition[] => {
-  const result = buildMcpTools(...args);
+  const result = deriveMcpTools(...args);
   if (result.isErr()) {
     throw result.error;
   }
@@ -123,7 +123,7 @@ const parseJsonContent = (
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('buildMcpTools', () => {
+describe('deriveMcpTools', () => {
   describe('discovery', () => {
     test('builds tools from a single-trail app', () => {
       const app = topo('myapp', { echoTrail });
@@ -560,7 +560,7 @@ describe('buildMcpTools', () => {
       });
 
       const app = topo('myapp', { dotTrail, underscoreTrail });
-      const result = buildMcpTools(app);
+      const result = deriveMcpTools(app);
       expect(result.isErr()).toBe(true);
       expect(result.error?.message).toMatch(/tool-name collision/i);
     });
@@ -576,7 +576,7 @@ describe('buildMcpTools', () => {
       });
 
       const app = topo('myapp', { hyphenTrail, underscoreTrail });
-      const result = buildMcpTools(app);
+      const result = deriveMcpTools(app);
       expect(result.isErr()).toBe(true);
       expect(result.error?.message).toMatch(/tool-name collision/i);
     });
@@ -592,7 +592,7 @@ describe('buildMcpTools', () => {
       });
 
       const app = topo('myapp', { barTrail, fooTrail });
-      const result = buildMcpTools(app);
+      const result = deriveMcpTools(app);
       expect(result.isOk()).toBe(true);
     });
   });
@@ -639,7 +639,7 @@ describe('buildMcpTools', () => {
         input: z.object({}),
       });
 
-      const result = buildMcpTools(topo('myapp', { draftTrail }));
+      const result = deriveMcpTools(topo('myapp', { draftTrail }));
 
       expect(result.isErr()).toBe(true);
       expect(result.error?.message).toMatch(/draft/i);

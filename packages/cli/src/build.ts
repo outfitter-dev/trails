@@ -105,7 +105,7 @@ const validateCliCommandBuild = (
 };
 
 // ---------------------------------------------------------------------------
-// buildCliCommands
+// deriveCliCommands
 // ---------------------------------------------------------------------------
 
 /**
@@ -497,15 +497,4 @@ export const deriveCliCommands = (
       error instanceof Error ? error : new Error(String(error))
     );
   }
-};
-
-export const buildCliCommands = (
-  app: Topo,
-  options?: DeriveCliCommandsOptions
-): CliCommand[] => {
-  const result = deriveCliCommands(app, options);
-  if (result.isErr()) {
-    throw result.error;
-  }
-  return result.value;
 };

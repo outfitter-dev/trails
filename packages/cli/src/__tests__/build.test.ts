@@ -13,8 +13,8 @@ import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
 import type { ActionResultContext } from '../build.js';
-import { buildCliCommands } from '../build.js';
-import type { AnyTrail } from '../command.js';
+import { deriveCliCommands } from '../build.js';
+import type { AnyTrail, CliCommand } from '../command.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -39,7 +39,15 @@ const orderPlaced = signal('order.placed', {
   payload: z.object({ orderId: z.string() }),
 });
 
-const requireCommand = (commands: ReturnType<typeof buildCliCommands>) => {
+const buildCommands = (...args: Parameters<typeof deriveCliCommands>) => {
+  const result = deriveCliCommands(...args);
+  if (result.isErr()) {
+    throw result.error;
+  }
+  return result.value;
+};
+
+const requireCommand = (commands: CliCommand[]) => {
   const [command] = commands;
   expect(command).toBeDefined();
   if (!command) {
@@ -59,14 +67,14 @@ const requireFire = (fire: TrailContext['fire']) => {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('buildCliCommands path derivation', () => {
+describe('buildCommands path derivation', () => {
   test('builds commands from a simple app with one trail', () => {
     const t = trail('greet', {
       blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
       input: z.object({ name: z.string() }),
     });
     const app = topo('test-app', { 'db.main': dbResource, [t.id]: t });
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
     expect(commands).toHaveLength(1);
     expect(commands[0]?.path).toEqual(['greet']);
   });
@@ -81,7 +89,7 @@ describe('buildCliCommands path derivation', () => {
       input: z.object({ name: z.string() }),
     });
     const app = makeApp(show, add);
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
     expect(commands).toHaveLength(2);
     expect(commands[0]?.path).toEqual(['entity', 'show']);
     expect(commands[1]?.path).toEqual(['entity', 'add']);
@@ -93,7 +101,7 @@ describe('buildCliCommands path derivation', () => {
       input: z.object({ name: z.string() }),
     });
     const app = makeApp(remove);
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
 
     expect(commands[0]?.path).toEqual(['topo', 'pin', 'remove']);
   });
@@ -110,7 +118,7 @@ describe('buildCliCommands path derivation', () => {
       'db.main': dbResource,
       [t.id]: t,
     });
-    const { flags, args } = requireCommand(buildCliCommands(app));
+    const { flags, args } = requireCommand(buildCommands(app));
 
     // Single required string → auto-promoted to positional arg + kept as flag alias
     expect(args).toHaveLength(1);
@@ -128,7 +136,7 @@ describe('buildCliCommands path derivation', () => {
       }),
     });
     const app = makeApp(t);
-    const { flags, args } = requireCommand(buildCliCommands(app));
+    const { flags, args } = requireCommand(buildCommands(app));
 
     // query is auto-promoted to positional AND kept as --query flag alias
     expect(args).toHaveLength(1);
@@ -143,14 +151,14 @@ describe('buildCliCommands path derivation', () => {
       intent: 'destroy',
     });
     const app = makeApp(t);
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
     const dryRunFlag = commands[0]?.flags.find((f) => f.name === 'dry-run');
     expect(dryRunFlag).toBeDefined();
     expect(dryRunFlag?.type).toBe('boolean');
   });
 });
 
-describe('buildCliCommands execution', () => {
+describe('buildCommands execution', () => {
   describe('onResult callback', () => {
     test('receives correct context', async () => {
       let captured: ActionResultContext | undefined;
@@ -159,7 +167,7 @@ describe('buildCliCommands execution', () => {
         input: z.object({ msg: z.string() }),
       });
       const app = makeApp(t);
-      const commands = buildCliCommands(app, {
+      const commands = buildCommands(app, {
         onResult: (ctx) => {
           captured = ctx;
           return Promise.resolve();
@@ -181,7 +189,7 @@ describe('buildCliCommands execution', () => {
         input: z.object({ count: z.coerce.number() }),
       });
       const app = makeApp(t);
-      const commands = buildCliCommands(app, {
+      const commands = buildCommands(app, {
         onResult: (ctx) => {
           captured = ctx;
           return Promise.resolve();
@@ -208,7 +216,7 @@ describe('buildCliCommands execution', () => {
         input: z.object({ name: z.string() }),
       });
       const app = makeApp(t);
-      const commands = buildCliCommands(app, {
+      const commands = buildCommands(app, {
         onResult: (ctx) => {
           captured = ctx;
           return Promise.resolve();
@@ -242,7 +250,7 @@ describe('buildCliCommands execution', () => {
       input: z.object({ name: z.string() }),
     });
     const app = makeApp(t);
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
 
     // Pass invalid input (missing name)
     const [cmd] = commands;
@@ -263,7 +271,7 @@ describe('buildCliCommands execution', () => {
       input: z.object({ x: z.string() }),
     });
     const app = makeApp(t);
-    const commands = buildCliCommands(app, {
+    const commands = buildCommands(app, {
       layers: [
         {
           name: 'outer',
@@ -310,7 +318,7 @@ describe('buildCliCommands execution', () => {
       input: z.object({}),
     });
     const app = makeApp(t);
-    const commands = buildCliCommands(app, {
+    const commands = buildCommands(app, {
       createContext: () =>
         createTrailContext({
           extensions: { custom: true },
@@ -334,7 +342,7 @@ describe('buildCliCommands execution', () => {
       input: z.object({ sortOrder: z.string() }),
     });
     const app = makeApp(t);
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
 
     await commands[0]?.execute({}, { 'sort-order': 'asc' });
     expect(receivedInput).toEqual({ sortOrder: 'asc' });
@@ -350,7 +358,7 @@ describe('buildCliCommands execution', () => {
       input: z.object({ inputJson: z.string() }),
     });
     const app = makeApp(t);
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
 
     await commands[0]?.execute({}, { 'input-json': 'literal value' });
 
@@ -370,7 +378,7 @@ describe('buildCliCommands execution', () => {
       }),
     });
     const app = makeApp(t);
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
 
     await commands[0]?.execute(
       { query: 'from arg' },
@@ -399,7 +407,7 @@ describe('buildCliCommands execution', () => {
       }),
     });
     const app = makeApp(t);
-    const commands = buildCliCommands(app, {
+    const commands = buildCommands(app, {
       resolveInput: async () =>
         await Promise.resolve({
           limit: 10,
@@ -428,7 +436,7 @@ describe('buildCliCommands execution', () => {
       }),
     });
     const app = makeApp(t);
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
 
     const result = await commands[0]?.execute({}, {});
 
@@ -447,7 +455,7 @@ describe('buildCliCommands execution', () => {
       output: z.object({}),
     });
     const app = makeApp(throwing);
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
     const cmd = requireCommand(commands);
     const result = await cmd.execute({}, {});
     expect(result.isErr()).toBe(true);
@@ -455,7 +463,7 @@ describe('buildCliCommands execution', () => {
   });
 });
 
-describe('buildCliCommands resource overrides', () => {
+describe('buildCommands resource overrides', () => {
   test('passes topo to executeTrail so CLI-invoked producers can fan out', async () => {
     const captured: string[] = [];
     const consumer = trail('notify.email', {
@@ -481,7 +489,7 @@ describe('buildCliCommands resource overrides', () => {
     });
     const app = topo('signal-cli', { consumer, orderPlaced, producer });
 
-    const result = await requireCommand(buildCliCommands(app)).execute(
+    const result = await requireCommand(buildCommands(app)).execute(
       {},
       { orderId: 'o-cli' }
     );
@@ -502,7 +510,7 @@ describe('buildCliCommands resource overrides', () => {
       'db.main': dbResource,
       [t.id]: t,
     });
-    const commands = buildCliCommands(app, {
+    const commands = buildCommands(app, {
       resources: { 'db.main': { name: 'override' } },
     });
 
@@ -512,7 +520,7 @@ describe('buildCliCommands resource overrides', () => {
   });
 });
 
-describe('buildCliCommands filtering', () => {
+describe('buildCommands filtering', () => {
   test('internal trails are excluded by default', () => {
     const publicTrail = trail('entity.show', {
       blaze: () => Result.ok({ ok: true }),
@@ -523,7 +531,7 @@ describe('buildCliCommands filtering', () => {
       input: z.object({}),
       visibility: 'internal',
     });
-    const commands = buildCliCommands(makeApp(publicTrail, internalTrail));
+    const commands = buildCommands(makeApp(publicTrail, internalTrail));
 
     expect(commands.map((command) => command.trail.id)).toEqual([
       'entity.show',
@@ -540,7 +548,7 @@ describe('buildCliCommands filtering', () => {
       input: z.object({}),
       visibility: 'internal',
     });
-    const commands = buildCliCommands(makeApp(publicTrail, internalTrail), {
+    const commands = buildCommands(makeApp(publicTrail, internalTrail), {
       include: ['entity.secret.rotate'],
     });
 
@@ -558,7 +566,7 @@ describe('buildCliCommands filtering', () => {
       blaze: () => Result.ok({ ok: true }),
       input: z.object({}),
     });
-    const commands = buildCliCommands(makeApp(show, remove), {
+    const commands = buildCommands(makeApp(show, remove), {
       exclude: ['entity.remove'],
       include: ['entity.*'],
     });
@@ -580,7 +588,7 @@ describe('buildCliCommands filtering', () => {
       intent: 'destroy',
     });
 
-    const commands = buildCliCommands(makeApp(show, remove), {
+    const commands = buildCommands(makeApp(show, remove), {
       intent: ['read'],
     });
 
@@ -601,7 +609,7 @@ describe('buildCliCommands filtering', () => {
       intent: 'destroy',
     });
 
-    const commands = buildCliCommands(makeApp(show, remove), {
+    const commands = buildCommands(makeApp(show, remove), {
       include: ['entity.*'],
       intent: ['destroy'],
     });
@@ -624,7 +632,7 @@ describe('buildCliCommands filtering', () => {
       on: ['order.placed'],
     });
     const app = topo('test-app', { consumer, orderPlaced, producer });
-    const commands = buildCliCommands(app);
+    const commands = buildCommands(app);
 
     expect(commands).toHaveLength(1);
     expect(commands[0]?.trail.id).toBe('order.create');
@@ -652,7 +660,7 @@ describe('buildCliCommands filtering', () => {
       output: z.object({ rotated: z.string() }),
     });
 
-    const commands = buildCliCommands(makeApp(entry, helper));
+    const commands = buildCommands(makeApp(entry, helper));
 
     expect(commands.map((command) => command.trail.id)).toEqual([
       'entity.rotate',
@@ -671,7 +679,7 @@ describe('positional arg derivation', () => {
       input: z.object({ path: z.string() }),
     });
     const app = makeApp(t);
-    const cmd = requireCommand(buildCliCommands(app));
+    const cmd = requireCommand(buildCommands(app));
 
     expect(cmd.args).toHaveLength(1);
     expect(cmd.args[0]).toMatchObject({
@@ -690,7 +698,7 @@ describe('positional arg derivation', () => {
       input: z.object({ dest: z.string(), src: z.string() }),
     });
     const app = makeApp(t);
-    const cmd = requireCommand(buildCliCommands(app));
+    const cmd = requireCommand(buildCommands(app));
 
     expect(cmd.args).toHaveLength(0);
     // Both should remain as flags
@@ -707,7 +715,7 @@ describe('positional arg derivation', () => {
       }),
     });
     const app = makeApp(t);
-    const cmd = requireCommand(buildCliCommands(app));
+    const cmd = requireCommand(buildCommands(app));
 
     expect(cmd.args).toHaveLength(1);
     expect(cmd.args[0]).toMatchObject({ name: 'query', required: false });
@@ -724,7 +732,7 @@ describe('positional arg derivation', () => {
       input: z.object({ dest: z.string(), src: z.string() }),
     });
     const app = makeApp(t);
-    const cmd = requireCommand(buildCliCommands(app));
+    const cmd = requireCommand(buildCommands(app));
 
     expect(cmd.args).toHaveLength(1);
     expect(cmd.args[0]).toMatchObject({ name: 'src', required: false });
@@ -741,7 +749,7 @@ describe('positional arg derivation', () => {
       input: z.object({ dest: z.string(), src: z.string() }),
     });
     const app = makeApp(t);
-    const cmd = requireCommand(buildCliCommands(app));
+    const cmd = requireCommand(buildCommands(app));
 
     expect(cmd.args).toHaveLength(2);
     expect(cmd.args[0]?.name).toBe('src');
@@ -755,7 +763,7 @@ describe('positional arg derivation', () => {
       input: z.object({ path: z.string() }),
     });
     const app = makeApp(t);
-    const cmd = requireCommand(buildCliCommands(app));
+    const cmd = requireCommand(buildCommands(app));
 
     // Single required string would normally be auto-promoted, but args: false suppresses it
     expect(cmd.args).toHaveLength(0);
@@ -769,7 +777,7 @@ describe('positional arg derivation', () => {
       input: z.object({ path: z.string() }),
     });
     const app = makeApp(t);
-    const cmd = requireCommand(buildCliCommands(app));
+    const cmd = requireCommand(buildCommands(app));
 
     expect(cmd.args).toHaveLength(1);
     expect(cmd.args[0]).toMatchObject({ name: 'path', required: false });
@@ -782,7 +790,7 @@ describe('positional arg derivation', () => {
       input: z.object({ count: z.number(), verbose: z.boolean() }),
     });
     const app = makeApp(t);
-    const cmd = requireCommand(buildCliCommands(app));
+    const cmd = requireCommand(buildCommands(app));
 
     expect(cmd.args).toHaveLength(0);
   });
@@ -793,13 +801,13 @@ describe('positional arg derivation', () => {
       input: z.object({ name: z.string().default('World') }),
     });
     const app = makeApp(t);
-    const cmd = requireCommand(buildCliCommands(app));
+    const cmd = requireCommand(buildCommands(app));
 
     expect(cmd.args).toHaveLength(0);
   });
 });
 
-describe('buildCliCommands established graph enforcement', () => {
+describe('buildCommands established graph enforcement', () => {
   test('throws when draft contamination remains', () => {
     const draftTrail = trail('entity.export', {
       blaze: () => Result.ok({ ok: true }),
@@ -807,6 +815,6 @@ describe('buildCliCommands established graph enforcement', () => {
       input: z.object({}),
     });
 
-    expect(() => buildCliCommands(makeApp(draftTrail))).toThrowError(/draft/i);
+    expect(() => buildCommands(makeApp(draftTrail))).toThrowError(/draft/i);
   });
 });

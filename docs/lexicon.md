@@ -364,7 +364,7 @@ These rules carry over from ADR-0001 and govern how the lexicon composes:
 - **`create*` for runtime instances:** `createLogger()`, `createConsoleLogger()`
 - **`derive*` for derivations:** `deriveFields()`, `deriveFlags()`
 - **`validate*` for verification:** `validateInput()`, `validateTopo()`
-- **`build*` then `to*` / `connect*` for trailhead wiring:** `buildCliCommands()`, `toCommander()`
+- **`derive*` then `to*` / `connect*` for surface wiring:** `deriveCliCommands()`, `toCommander()`
 
 ## Term Hierarchy
 
@@ -375,7 +375,7 @@ When introducing Trails, use this order.
 1. `trail()` — define a unit of work
 2. `blaze:` — give the trail its implementation
 3. `topo()` — collect trails into an app
-4. `trailhead()` — open the app on CLI, MCP, HTTP, or WebSocket
+4. `surface()` — open the app on CLI, MCP, HTTP, or WebSocket
 
 ### Intermediate
 

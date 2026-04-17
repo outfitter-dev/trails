@@ -3,8 +3,8 @@ import { describe, expect, test } from 'bun:test';
 import { Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { createMcpServer, createServer, trailhead } from '../surface.js';
-import { buildMcpTools, deriveMcpTools } from '../build.js';
+import { createServer, surface } from '../surface.js';
+import { deriveMcpTools } from '../build.js';
 import type { McpToolDefinition } from '../build.js';
 
 // ---------------------------------------------------------------------------
@@ -29,19 +29,19 @@ const requireTool = (tools: McpToolDefinition[], name: string) => {
 };
 
 /**
- * Unwrap buildMcpTools result, throwing on error so test failures show up clearly.
+ * Unwrap deriveMcpTools result, throwing on error so test failures show up clearly.
  */
-const buildTools = (
-  ...args: Parameters<typeof buildMcpTools>
+const deriveTools = (
+  ...args: Parameters<typeof deriveMcpTools>
 ): McpToolDefinition[] => {
-  const result = buildMcpTools(...args);
+  const result = deriveMcpTools(...args);
   if (result.isErr()) {
     throw result.error;
   }
   return result.value;
 };
 
-const createIntegrationTools = () => {
+const createIntegrationFixtures = () => {
   const greetTrail = trail('greet', {
     blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
     description: 'Greet someone',
@@ -56,11 +56,12 @@ const createIntegrationTools = () => {
     intent: 'destroy',
   });
 
-  return buildTools(topo('myapp', { deleteTrail, greetTrail }));
+  const app = topo('myapp', { deleteTrail, greetTrail });
+  return { app, tools: deriveTools(app) };
 };
 
-describe('trailhead', () => {
-  test('trailhead throws on invalid topo', async () => {
+describe('surface', () => {
+  test('surface throws on invalid topo', async () => {
     const t = trail('broken', {
       blaze: () => Result.ok({}),
       crosses: ['nonexistent.trail'],
@@ -68,10 +69,10 @@ describe('trailhead', () => {
       output: z.object({}),
     });
     const app = topo('test', { t });
-    await expect(trailhead(app)).rejects.toThrow(/validation/i);
+    await expect(surface(app)).rejects.toThrow(/validation/i);
   });
 
-  test('trailhead skips validation when validate: false', async () => {
+  test('surface skips validation when validate: false', async () => {
     const t = trail('broken', {
       blaze: () => Result.ok({}),
       crosses: ['nonexistent.trail'],
@@ -80,7 +81,7 @@ describe('trailhead', () => {
     });
     const app = topo('test', { t });
     const result = await Promise.race([
-      trailhead(app, { validate: false }).then(() => 'resolved' as const),
+      surface(app, { validate: false }).then(() => 'resolved' as const),
       // oxlint-disable-next-line avoid-new -- Promise constructor needed for setTimeout-based timeout
       new Promise<'timeout'>((resolve) => {
         setTimeout(() => {
@@ -91,8 +92,8 @@ describe('trailhead', () => {
     expect(['resolved', 'timeout']).toContain(result);
   });
 
-  test('TrailheadMcpOptions accepts flattened identity and resource fields', () => {
-    const opts: Parameters<typeof trailhead>[1] = {
+  test('CreateServerOptions accepts flattened identity and resource fields', () => {
+    const opts: Parameters<typeof surface>[1] = {
       description: 'Test MCP server',
       name: 'testapp',
       resources: {},
@@ -106,7 +107,7 @@ describe('trailhead', () => {
     expect(opts.version).toBe('1.2.3');
   });
 
-  test('createMcpServer registers tools that can be listed', () => {
+  test('createServer registers tools that can be listed', () => {
     const echoTrail = trail('echo', {
       blaze: (input) => Result.ok({ reply: input.message }),
       description: 'Echo',
@@ -115,8 +116,7 @@ describe('trailhead', () => {
     });
 
     const app = topo('testapp', { echoTrail });
-    const tools = buildTools(app);
-    const server = createMcpServer(tools, {
+    const server = createServer(app, {
       name: 'testapp',
       version: '0.1.0',
     });
@@ -125,7 +125,7 @@ describe('trailhead', () => {
     expect(server).toBeDefined();
   });
 
-  test('createMcpServer handles multiple tools', () => {
+  test('createServer handles multiple tools', () => {
     const echoTrail = trail('echo', {
       blaze: (input) => Result.ok({ reply: input.message }),
       description: 'Echo',
@@ -140,18 +140,18 @@ describe('trailhead', () => {
     });
 
     const app = topo('testapp', { echoTrail, searchTrail });
-    const tools = buildTools(app);
+    const tools = deriveTools(app);
 
     expect(tools).toHaveLength(2);
 
-    const server = createMcpServer(tools, {
+    const server = createServer(app, {
       name: 'testapp',
       version: '0.1.0',
     });
     expect(server).toBeDefined();
   });
 
-  test('deriveMcpTools aliases buildMcpTools and createServer materializes the server', () => {
+  test('deriveMcpTools returns tools and createServer materializes the server', () => {
     const echoTrail = trail('echo', {
       blaze: (input) => Result.ok({ reply: input.message }),
       description: 'Echo',
@@ -169,8 +169,8 @@ describe('trailhead', () => {
     expect(server).toBeDefined();
   });
 
-  test('buildMcpTools + createMcpServer integration', () => {
-    const tools = createIntegrationTools();
+  test('deriveMcpTools + createServer integration', () => {
+    const { app, tools } = createIntegrationFixtures();
     const names = tools.map((t) => t.name);
     expect(names).toContain('myapp_greet');
     expect(names).toContain('myapp_item_delete');
@@ -182,7 +182,7 @@ describe('trailhead', () => {
       requireTool(tools, 'myapp_item_delete').annotations?.destructiveHint
     ).toBe(true);
 
-    const server = createMcpServer(tools, {
+    const server = createServer(app, {
       name: 'myapp',
       version: '1.0.0',
     });

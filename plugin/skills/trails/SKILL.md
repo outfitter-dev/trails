@@ -20,17 +20,17 @@ const greet = trail('greet', {
 });
 
 // 2. Collect into topo
-const app = topo('myapp', greetModule);
+const graph = topo('myapp', greetModule);
 
-// 3. Blaze on trailheads
-trailhead(app);              // CLI — from @ontrails/cli/commander
-await trailhead(app);        // MCP — from @ontrails/mcp
+// 3. Open surfaces on trailheads
+await surface(graph);        // CLI — from @ontrails/cli/commander
+// await surface(graph);     // MCP — from @ontrails/mcp
 
 // 4. Headless execution (no trailhead needed)
-const result = await run(app, 'greet', { name: 'Alice' });
+const result = await run(graph, 'greet', { name: 'Alice' });
 
 // 5. Test
-testAll(app);            // Examples + governance in one line
+testAll(graph);            // Examples + governance in one line
 ```
 
 ## Lexicon
@@ -93,27 +93,27 @@ See [contract-patterns.md](references/contract-patterns.md) for detailed pattern
 
 ## Trailheads
 
-Adding a trailhead is a `trailhead()` call, not an architecture change. The framework derives everything from the trail contract.
+Adding a trailhead is a `surface()` call, not an architecture change. The framework derives everything from the trail contract.
 
 **CLI**: Flags from Zod, subcommands from dotted IDs, exit codes from error taxonomy.
 
 ```typescript
-import { trailhead } from '@ontrails/cli/commander';
-trailhead(app);
+import { surface } from '@ontrails/cli/commander';
+await surface(graph);
 ```
 
 **MCP**: Tool names from trail IDs, JSON Schema from Zod, annotations from metadata.
 
 ```typescript
-import { trailhead } from '@ontrails/mcp';
-await trailhead(app);
+import { surface } from '@ontrails/mcp';
+await surface(graph);
 ```
 
 **HTTP**: Routes from trail IDs (dots become path segments), verbs from intent, error responses from taxonomy.
 
 ```typescript
-import { trailhead } from '@ontrails/hono';
-await trailhead(app, { port: 3000 });
+import { surface } from '@ontrails/hono';
+await surface(graph, { port: 3000 });
 ```
 
 See the CLI trailhead docs, the MCP trailhead docs, and the HTTP trailhead docs for derivation details.
@@ -151,7 +151,7 @@ const search = trail('search', {
 
 **Access** via `db.from(ctx)` (typed, preferred) or `ctx.resource<Database>('db.main')` (dynamic escape hatch).
 
-**Test** with zero config — resources with `mock` factories auto-resolve in `testAll(app)`. Override explicitly when needed:
+**Test** with zero config — resources with `mock` factories auto-resolve in `testAll(graph)`. Override explicitly when needed:
 
 ```typescript
 testAll(app, () => ({ resources: { 'db.main': createSpecialTestDb() } }));
@@ -163,7 +163,7 @@ See [contract-patterns.md](references/contract-patterns.md) for declaration patt
 
 ## Testing
 
-`testAll(app)` runs the full governance suite in one line:
+`testAll(graph)` runs the full governance suite in one line:
 
 1. Topo validation (crosses, schemas, events)
 2. Example execution (every example as an assertion)

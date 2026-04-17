@@ -1,5 +1,5 @@
 /**
- * Detects imports of trailhead-specific modules and types in trail files.
+ * Detects imports of surface-specific modules and types in trail files.
  *
  * Uses AST parsing for accurate detection — no false positives from
  * imports in comments or strings.
@@ -49,7 +49,7 @@ const makeDiag = (
   filePath,
   line: offsetToLine(sourceCode, node.start),
   message,
-  rule: 'context-no-trailhead-types',
+  rule: 'context-no-surface-types',
   severity: 'error',
 });
 
@@ -92,7 +92,7 @@ const checkSpecifiersForSurfaceTypes = (
     filePath,
     sourceCode,
     node,
-    `Do not import trailhead type "${typeName}" in trail implementation files.`
+    `Do not import surface type "${typeName}" in trail implementation files.`
   );
 };
 
@@ -111,7 +111,7 @@ const classifyImport = (
       filePath,
       sourceCode,
       node,
-      `Do not import from trailhead module "${moduleName}" in trail implementation files.`
+      `Do not import from surface module "${moduleName}" in trail implementation files.`
     );
   }
 
@@ -119,9 +119,9 @@ const classifyImport = (
 };
 
 /**
- * Detects imports of trailhead-specific types in trail implementation files.
+ * Detects imports of surface-specific types in trail implementation files.
  */
-export const contextNoTrailheadTypes: WardenRule = {
+export const contextNoSurfaceTypes: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
     if (!/\btrail\s*\(/.test(sourceCode)) {
       return [];
@@ -143,8 +143,8 @@ export const contextNoTrailheadTypes: WardenRule = {
     return diagnostics;
   },
   description:
-    'Disallow trailhead-specific type imports (Request, Response, McpSession, etc.) in trail implementation files.',
-  name: 'context-no-trailhead-types',
+    'Disallow surface-specific type imports (Request, Response, McpSession, etc.) in trail implementation files.',
+  name: 'context-no-surface-types',
 
   severity: 'error',
 };

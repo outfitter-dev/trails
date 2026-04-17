@@ -1,6 +1,6 @@
 # Trails
 
-**Define once. Trailhead everywhere.**
+**Define once. Surface everywhere.**
 
 Trails is a contract-first TypeScript framework. Define a trail — typed input, Result output, examples, intent — and the framework projects it onto CLI, MCP, HTTP, or WebSocket. One definition, every trailhead, zero drift.
 
@@ -80,7 +80,7 @@ Same logic. But now the framework derives:
 
 - **CLI**: `myapp project show --id p_1` with `--help` text, exit code 2 for not-found
 - **MCP**: tool `myapp_project_show` with JSON Schema input, `readOnlyHint` annotation
-- **Tests**: both examples run as assertions — `testAll(app)` validates the happy path and the error path
+- **Tests**: both examples run as assertions — `testAll(graph)` validates the happy path and the error path
 - **Governance**: warden checks for throws, trailhead imports, missing output schemas
 
 You authored the contract. The framework did the rest.
@@ -106,7 +106,8 @@ The value isn't any single feature. It's that they multiply — each declaration
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
-import { trailhead } from '@ontrails/cli/commander';
+import { surface as cliSurface } from '@ontrails/cli/commander';
+import { surface as mcpSurface } from '@ontrails/mcp';
 import { z } from 'zod';
 
 // 1. Define trails
@@ -118,11 +119,11 @@ const greet = trail('greet', {
 });
 
 // 2. Collect into topo
-const app = topo('myapp', { greet });
+const graph = topo('myapp', { greet });
 
-// 3. Open trailheads in any connector
-trailhead(app);              // CLI
-// await trailhead(app);     // MCP — same trails, same run function
+// 3. Open surfaces in any connector
+await cliSurface(graph);      // CLI
+// await mcpSurface(graph);   // MCP — same trails, same run function
 ```
 
 ```bash

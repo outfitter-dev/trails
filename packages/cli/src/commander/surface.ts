@@ -21,25 +21,23 @@ import { toCommander } from './to-commander.js';
 // Options
 // ---------------------------------------------------------------------------
 
-export interface TrailheadCliOptions {
-  createContext?:
+export interface CreateProgramOptions {
+  readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
-  description?: string | undefined;
-  exclude?: readonly string[] | undefined;
-  include?: readonly string[] | undefined;
-  layers?: Layer[] | undefined;
-  name?: string | undefined;
-  onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
-  presets?: CliFlag[][] | undefined;
-  resources?: ResourceOverrideMap | undefined;
-  resolveInput?: InputResolver | undefined;
+  readonly description?: string | undefined;
+  readonly exclude?: readonly string[] | undefined;
+  readonly include?: readonly string[] | undefined;
+  readonly layers?: readonly Layer[] | undefined;
+  readonly name?: string | undefined;
+  readonly onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
+  readonly presets?: CliFlag[][] | undefined;
+  readonly resources?: ResourceOverrideMap | undefined;
+  readonly resolveInput?: InputResolver | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
-  validate?: boolean | undefined;
-  version?: string | undefined;
+  readonly validate?: boolean | undefined;
+  readonly version?: string | undefined;
 }
-
-export type CreateProgramOptions = TrailheadCliOptions;
 
 export interface SurfaceCliResult {
   readonly exitCode: number;
@@ -51,7 +49,7 @@ export interface SurfaceCliResult {
 
 const deriveCommanderOptions = (
   app: Topo,
-  options: TrailheadCliOptions
+  options: CreateProgramOptions
 ): ToCommanderOptions => {
   const commanderOpts: ToCommanderOptions = {
     name: options.name ?? app.name,
@@ -107,36 +105,10 @@ export const createProgram = (
  */
 export const surface = async (
   app: Topo,
-  options: TrailheadCliOptions = {}
+  options: CreateProgramOptions = {}
 ): Promise<SurfaceCliResult> => {
   const program = createProgram(app, options);
   await program.parseAsync();
   const { exitCode } = process;
   return { exitCode: typeof exitCode === 'number' ? exitCode : 0 };
-};
-
-// ---------------------------------------------------------------------------
-// trailhead
-// ---------------------------------------------------------------------------
-
-/**
- * Wire an App to Commander and parse argv in one call.
- *
- * Validation is handled by `buildCliCommands` — pass `validate: false`
- * to skip it (e.g. during hot-reload or progressive startup).
- *
- * ```ts
- * import { topo } from "@ontrails/core";
- * import { trailhead } from "@ontrails/cli/commander";
- * import * as entity from "./trails/entity.ts";
- *
- * const app = topo("myapp", entity);
- * trailhead(app);
- * ```
- */
-export const trailhead = async (
-  app: Topo,
-  options: TrailheadCliOptions = {}
-): Promise<void> => {
-  await surface(app, options);
 };

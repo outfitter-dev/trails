@@ -25,7 +25,7 @@ Core defines ports. Everything on the edges is a connector.
 
 - The trail is the product, not the trailhead. Trailheads are projections.
 - Drift is structurally harder than alignment — one schema, one Result type, one error taxonomy.
-- Trailheads are peers. CLI, MCP, and HTTP are shipped connectors. Adding a trailhead is a `trailhead()` call.
+- Trailheads are peers. CLI, MCP, and HTTP are shipped connectors. Adding a trailhead is a `surface()` call.
 - Implementations are pure functions. Input in, Result out. No trailhead awareness.
 - The contract is machine-readable at runtime via topo, survey, and guide.
 
@@ -86,10 +86,10 @@ Warden uses inference to verify declarations match actual code. The trailhead ma
 | Package | Purpose | External dep |
 |---------|---------|-------------|
 | `@ontrails/cli` | Command model, flag derivation, output formatting | None beyond core |
-| `@ontrails/cli/commander` | Commander connector, `trailhead()` | `commander` (peer) |
-| `@ontrails/mcp` | MCP tools, annotations, progress bridge, `trailhead()` | `@modelcontextprotocol/sdk` |
+| `@ontrails/cli/commander` | Commander connector, `surface()` | `commander` (peer) |
+| `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP route definitions (framework-agnostic) | None beyond core |
-| `@ontrails/hono` | Hono connector, `trailhead()` | `hono` |
+| `@ontrails/hono` | Hono connector, `surface()` | `hono` |
 
 ### Infrastructure Connectors (right side)
 

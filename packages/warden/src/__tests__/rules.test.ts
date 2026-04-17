@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { contextNoTrailheadTypes } from '../rules/context-no-trailhead-types.js';
+import { contextNoSurfaceTypes } from '../rules/context-no-surface-types.js';
 import { noDirectImplInRoute } from '../rules/no-direct-impl-in-route.js';
 import { noThrowInImplementation } from '../rules/no-throw-in-implementation.js';
 import { validDetourRefs } from '../rules/valid-detour-refs.js';
@@ -52,9 +52,9 @@ trail("entity.show", {
 });
 
 // ---------------------------------------------------------------------------
-// context-no-trailhead-types
+// context-no-surface-types
 // ---------------------------------------------------------------------------
-describe('context-no-trailhead-types', () => {
+describe('context-no-surface-types', () => {
   test('flags express import in trail file', () => {
     const code = `
 import { Request, Response } from "express";
@@ -63,9 +63,9 @@ trail("entity.show", {
     return Result.ok(data);
   }
 })`;
-    const diagnostics = contextNoTrailheadTypes.check(code, TEST_FILE);
+    const diagnostics = contextNoSurfaceTypes.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(1);
-    expect(diagnostics[0]?.rule).toBe('context-no-trailhead-types');
+    expect(diagnostics[0]?.rule).toBe('context-no-surface-types');
     expect(diagnostics[0]?.message).toContain('express');
   });
 
@@ -77,7 +77,7 @@ trail("entity.show", {
     return Result.ok(data);
   }
 })`;
-    const diagnostics = contextNoTrailheadTypes.check(code, TEST_FILE);
+    const diagnostics = contextNoSurfaceTypes.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(1);
   });
 
@@ -89,7 +89,7 @@ trail("entity.show", {
     return Result.ok(data);
   }
 })`;
-    const diagnostics = contextNoTrailheadTypes.check(code, TEST_FILE);
+    const diagnostics = contextNoSurfaceTypes.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(0);
   });
 
@@ -97,7 +97,7 @@ trail("entity.show", {
     const code = `
 import { Request, Response } from "express";
 export function handleRequest(req: Request, res: Response) {}`;
-    const diagnostics = contextNoTrailheadTypes.check(code, TEST_FILE);
+    const diagnostics = contextNoSurfaceTypes.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(0);
   });
 });

@@ -1,7 +1,6 @@
 // Build
 export {
   deriveMcpTools,
-  buildMcpTools,
   type DeriveMcpToolsOptions,
   type McpToolDefinition,
   type McpToolResult,
@@ -18,14 +17,12 @@ export { deriveAnnotations, type McpAnnotations } from './annotations.js';
 // Progress
 export { createMcpProgressCallback } from './progress.js';
 
-// Trailhead
+// Surface
 export {
   createServer,
   surface,
-  trailhead,
   type CreateServerOptions,
   type SurfaceMcpResult,
-  type TrailheadMcpOptions,
 } from './surface.js';
 
 // Transport

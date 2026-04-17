@@ -57,18 +57,18 @@ export const show = trail('entity.show', {
 });
 ```
 
-Collect trails into an app with `topo()`. Open it on any trailhead with `trailhead()`:
+Collect trails into an app with `topo()`. Open it on any trailhead with `surface()`:
 
 ```typescript
-const app = topo('myapp', entityModule, searchModule);
+const graph = topo('myapp', entityModule, searchModule);
 
 // CLI
-import { trailhead } from '@ontrails/cli/commander';
-trailhead(app);
+import { surface } from '@ontrails/cli/commander';
+await surface(graph);
 
 // MCP
-import { trailhead as mcpTrailhead } from '@ontrails/mcp';
-await mcpTrailhead(app);
+import { surface as mcpSurface } from '@ontrails/mcp';
+await mcpSurface(graph);
 ```
 
 One definition. Every trailhead. The rest is derived.
@@ -81,7 +81,7 @@ Pure trails can return `Result` directly. Trails with `crosses` and I/O-bound tr
 
 Pure trail functions are great until they need a database. The typical escape hatch — constructing clients inline or importing singletons — couples implementations to concrete infrastructure and makes testing painful.
 
-Trails solves this with `resource()` declarations. A resource defines its factory, a `mock` factory for tests, and an optional `dispose` hook for cleanup. Trails declare their dependencies with `resources: [...]` and access them through `db.from(ctx)`. The framework manages the lifecycle, trailheads can inspect the dependency graph, and `testAll(app)` resolves mocks automatically.
+Trails solves this with `resource()` declarations. A resource defines its factory, a `mock` factory for tests, and an optional `dispose` hook for cleanup. Trails declare their dependencies with `resources: [...]` and access them through `db.from(ctx)`. The framework manages the lifecycle, trailheads can inspect the dependency graph, and `testAll(graph)` resolves mocks automatically.
 
 The result: implementations stay pure (input in, `Result` out), infrastructure is declared rather than imported, and the entire app remains testable without configuration.
 
@@ -110,7 +110,7 @@ Trails makes a different tradeoff. The trail declaration creates a bounded envir
 
 - **`output: schema`** constrains the return type. The implementation can't return data the contract doesn't describe.
 - **`Result<T, Error>`** eliminates throw/catch. Every code path returns a typed result.
-- **`examples`** specify concrete inputs plus expected results or error classes. `testExamples(app)` runs them as assertions. One authoring act — three purposes: specification for builders, documentation for consumers, test coverage for CI.
+- **`examples`** specify concrete inputs plus expected results or error classes. `testExamples(graph)` runs them as assertions. One authoring act — three purposes: specification for builders, documentation for consumers, test coverage for CI.
 - **`intent` / `idempotent`** are behavioral assertions that trailheads honor. `intent: 'read'` means no confirmation prompts on CLI, `readOnlyHint` on MCP, GET on HTTP. These aren't suggestions — they're projections.
 
 The implementation satisfies the specification. The framework enforces the boundaries. An agent building a trail writes the irreducible information — schema, examples, logic — and the framework handles the rest.
@@ -128,7 +128,7 @@ In most frameworks, tests are a separate authoring activity. You write the handl
 In Trails, examples on the trail definition ARE the tests:
 
 ```typescript
-testExamples(app);
+testExamples(graph);
 ```
 
 One line. Every trail. Every example. Progressive assertion — full match when `expected` is declared, schema validation when it isn't, error type checking when `error` is declared.
