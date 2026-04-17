@@ -112,7 +112,7 @@ export class NetworkError extends TrailsError {
 }
 
 export class InternalError extends TrailsError {
-  readonly category = 'internal' as const;
+  readonly category: ErrorCategory = 'internal';
   readonly retryable = false as const;
 }
 
@@ -141,10 +141,10 @@ export class CancelledError extends TrailsError {
  */
 export class RetryExhaustedError<
   TErr extends TrailsError = TrailsError,
-> extends TrailsError {
-  declare readonly category: ErrorCategory;
+> extends InternalError {
+  readonly category: ErrorCategory;
   readonly retryable = false as const;
-  declare readonly cause: TErr;
+  readonly cause: TErr;
 
   /** Number of recovery attempts made before exhaustion. */
   readonly attempts: number;
@@ -163,8 +163,8 @@ export class RetryExhaustedError<
     this.cause = wrapped;
     this.attempts = metadata.attempts;
     this.detour = metadata.detour;
-    // Dynamic — inherited from wrapped error at construction time
-    (this as { category: ErrorCategory }).category = wrapped.category;
+    // Dynamic — inherited from wrapped error at construction time.
+    this.category = wrapped.category;
   }
 }
 

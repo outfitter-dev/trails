@@ -120,7 +120,7 @@ Non-`TrailsError` throws inside `recover` follow the same rule as the blaze: the
 When a detour's retry attempts exhaust, the framework returns a `RetryExhaustedError<TErr>` that preserves the original error via `cause`:
 
 ```typescript
-class RetryExhaustedError<TErr extends TrailsError> extends TrailsError {
+class RetryExhaustedError<TErr extends TrailsError> extends InternalError {
   readonly cause: TErr;
 
   constructor(wrapped: TErr, metadata: { attempts: number; detour: string }) {
@@ -137,6 +137,10 @@ class RetryExhaustedError<TErr extends TrailsError> extends TrailsError {
 ```
 
 The category inheritance is the important part. A `RetryExhaustedError<ConflictError>` reports `category: 'conflict'`, so surfaces map it to HTTP 409 and exit code 3 — the same way a bare `ConflictError` would. Callers see the semantic underlying problem, not a synthetic wrapper with its own mapping.
+
+`InternalError.category` therefore needs to be typed broadly enough for this
+subclass override, even though plain `InternalError` instances still report the
+runtime value `'internal'`.
 
 The instance-level `retryable: false` override is load-bearing for a different reason, covered next.
 
