@@ -131,13 +131,20 @@ export type {
 export { topo } from './topo.js';
 export type { Topo, TopoIdentity } from './topo.js';
 export {
+  createTopoSnapshot,
   createMockTopoStore,
   createTopoStore,
+  listTopoSnapshots,
+  pinTopoSnapshot,
   topoStore,
+  unpinTopoSnapshot,
 } from './topo-store.js';
 export type {
+  CreateTopoSnapshotInput,
+  ListTopoSnapshotsOptions,
   MockTopoStoreSeed,
   ReadOnlyTopoStore,
+  TopoSnapshot,
   TopoStoreExportRecord,
   TopoStoreResourceRecord,
   TopoStoreRef,

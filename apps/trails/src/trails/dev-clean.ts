@@ -1,7 +1,10 @@
 import { Result, ValidationError, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { cleanDevState, DEFAULT_TOPO_SAVE_RETENTION } from './dev-support.js';
+import {
+  cleanDevState,
+  DEFAULT_TOPO_SNAPSHOT_RETENTION,
+} from './dev-support.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 
 export const devCleanTrail = trail('dev.clean', {
@@ -18,14 +21,14 @@ export const devCleanTrail = trail('dev.clean', {
     return Result.ok(
       cleanDevState({
         dryRun: input.dryRun,
-        maxAge: input.trackAgeMs,
-        maxRecords: input.tracks,
+        maxAge: input.traceAgeMs,
+        maxRecords: input.traces,
         rootDir,
-        saveRetention: input.saves,
+        snapshotRetention: input.snapshots,
       })
     );
   },
-  description: 'Prune unpinned topo saves and old track records',
+  description: 'Prune unpinned topo snapshots and old trace records',
   examples: [
     {
       input: {
@@ -41,33 +44,33 @@ export const devCleanTrail = trail('dev.clean', {
       .default(true)
       .describe('Preview cleanup without changing state'),
     rootDir: z.string().optional().describe('Workspace root directory'),
-    saves: z
+    snapshots: z
       .number()
-      .default(DEFAULT_TOPO_SAVE_RETENTION)
-      .describe('Unpinned topo saves to retain'),
-    trackAgeMs: z
+      .default(DEFAULT_TOPO_SNAPSHOT_RETENTION)
+      .describe('Unpinned topo snapshots to retain'),
+    traceAgeMs: z
       .number()
       .default(7 * 24 * 60 * 60 * 1000)
-      .describe('Maximum retained track age in milliseconds'),
-    tracks: z.number().default(10_000).describe('Maximum retained track count'),
+      .describe('Maximum retained trace age in milliseconds'),
+    traces: z.number().default(10_000).describe('Maximum retained trace count'),
     yes: z.boolean().default(false).describe('Confirm destructive changes'),
   }),
   intent: 'destroy',
   output: z.object({
     dryRun: z.boolean(),
     remaining: z.object({
-      pinCount: z.number(),
-      saveCount: z.number(),
-      trackCount: z.number(),
+      pinnedCount: z.number(),
+      snapshotCount: z.number(),
+      traceCount: z.number(),
     }),
     removed: z.object({
-      topoSaves: z.number(),
-      trackRecords: z.number(),
+      topoSnapshots: z.number(),
+      traceRecords: z.number(),
     }),
     retention: z.object({
-      saves: z.number(),
-      trackAgeMs: z.number(),
-      tracks: z.number(),
+      snapshots: z.number(),
+      traceAgeMs: z.number(),
+      traces: z.number(),
     }),
   }),
 });

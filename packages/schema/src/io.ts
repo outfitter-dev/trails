@@ -17,7 +17,7 @@ import type {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_DIR = '.trails';
-const SURFACE_MAP_FILE = '_trailhead.json';
+const SURFACE_MAP_FILE = '_surface.json';
 const SURFACE_LOCK_FILE = 'trails.lock';
 
 // ---------------------------------------------------------------------------
@@ -77,7 +77,7 @@ const parseSurfaceLock = (content: string): SurfaceLock => {
 // ---------------------------------------------------------------------------
 
 /**
- * Write a surface map to `<dir>/_trailhead.json`.
+ * Write a surface map to `<dir>/_surface.json`.
  *
  * Creates the directory if it doesn't exist. Returns the file path.
  */
@@ -94,7 +94,7 @@ export const writeSurfaceMap = async (
 };
 
 /**
- * Read a surface map from `<dir>/_trailhead.json`.
+ * Read a surface map from `<dir>/_surface.json`.
  */
 export const readSurfaceMap = async (
   options?: ReadOptions

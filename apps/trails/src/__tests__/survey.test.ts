@@ -290,7 +290,7 @@ describe('trails survey generate', () => {
       };
 
       expect(generated.hash).toHaveLength(64);
-      expect(existsSync(join(dir, '.trails', '_trailhead.json'))).toBe(true);
+      expect(existsSync(join(dir, '.trails', '_surface.json'))).toBe(true);
       expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(true);
       expect(
         JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))

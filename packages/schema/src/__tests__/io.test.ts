@@ -61,11 +61,11 @@ afterEach(async () => {
 // ---------------------------------------------------------------------------
 
 describe('writeSurfaceMap / readSurfaceMap', () => {
-  test('writes valid JSON to _trailhead.json', async () => {
+  test('writes valid JSON to _surface.json', async () => {
     const map = makeSurfaceMap();
     const filePath = await writeSurfaceMap(map, { dir: tempDir });
 
-    expect(filePath).toBe(join(tempDir, '_trailhead.json'));
+    expect(filePath).toBe(join(tempDir, '_surface.json'));
 
     const content = await readFile(filePath, 'utf8');
     const parsed = JSON.parse(content);
@@ -146,7 +146,7 @@ describe('default directory', () => {
     const customDir = join(tempDir, 'custom-trails');
     const filePath = await writeSurfaceMap(map, { dir: customDir });
 
-    expect(filePath).toBe(join(customDir, '_trailhead.json'));
+    expect(filePath).toBe(join(customDir, '_surface.json'));
 
     const result = await readSurfaceMap({ dir: customDir });
     expect(result).toEqual(map);

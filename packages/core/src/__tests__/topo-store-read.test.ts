@@ -8,6 +8,7 @@ import { z } from 'zod';
 import {
   ConflictError,
   createMockTopoStore,
+  createTopoSnapshot,
   createTopoStore,
   resource,
   Result,
@@ -16,9 +17,8 @@ import {
   topoStore,
   trail,
 } from '../index.js';
-import { pinTopoSave } from '../internal/topo-saves.js';
-import type { TopoSaveRecord } from '../internal/topo-saves.js';
-import { persistEstablishedTopoSave } from '../internal/topo-store.js';
+import { pinTopoSnapshot } from '../internal/topo-snapshots.js';
+import type { TopoSnapshot } from '../internal/topo-snapshots.js';
 import { openWriteTrailsDb } from '../internal/trails-db.js';
 
 const noop = () => Result.ok({ ok: true });
@@ -108,35 +108,38 @@ describe('read-only topo store', () => {
 
   const seedStore = (): {
     readonly rootDir: string;
-    readonly save: TopoSaveRecord;
+    readonly snapshot: TopoSnapshot;
   } => {
     const rootDir = makeRoot();
     const db = openWriteTrailsDb({ rootDir });
 
     try {
-      const result = persistEstablishedTopoSave(db, exampleApp(), {
+      const result = createTopoSnapshot(exampleApp(), {
         createdAt: '2026-04-03T14:00:00.000Z',
         gitSha: 'abc123',
+        rootDir,
       });
       if (result.isErr()) {
         throw result.error;
       }
-      const save = result.value;
-      pinTopoSave(db, { name: 'baseline', saveId: save.id });
-      return { rootDir, save };
+      const snapshot = result.value;
+      pinTopoSnapshot(db, { id: snapshot.id, name: 'baseline' });
+      return { rootDir, snapshot };
     } finally {
       db.close();
     }
   };
 
-  test('lists save-scoped trails and resources through typed accessors', () => {
-    const { rootDir, save } = seedStore();
+  test('lists snapshot-scoped trails and resources through typed accessors', () => {
+    const { rootDir, snapshot } = seedStore();
     const store = createTopoStore({ rootDir });
 
-    expect(store.saves.latest()?.id).toBe(save.id);
-    expect(store.pins.get('baseline')?.saveId).toBe(save.id);
+    expect(store.snapshots.latest()?.id).toBe(snapshot.id);
+    expect(store.snapshots.get({ pin: 'baseline' })?.id).toBe(snapshot.id);
 
-    expect(store.trails.list({ save: { saveId: save.id } })).toEqual([
+    expect(
+      store.trails.list({ snapshot: { snapshotId: snapshot.id } })
+    ).toEqual([
       expect.objectContaining({
         description: 'Add a new entity',
         exampleCount: 1,
@@ -153,7 +156,9 @@ describe('read-only topo store', () => {
       }),
     ]);
 
-    expect(store.resources.list({ save: { saveId: save.id } })).toEqual([
+    expect(
+      store.resources.list({ snapshot: { snapshotId: snapshot.id } })
+    ).toEqual([
       expect.objectContaining({
         description: 'Primary database',
         health: 'available',
@@ -164,30 +169,30 @@ describe('read-only topo store', () => {
   });
 
   test('filters trails by intent', () => {
-    const { rootDir, save } = seedStore();
+    const { rootDir, snapshot } = seedStore();
     const store = createTopoStore({ rootDir });
 
     const writeTrails = store.trails.list({
       intent: 'write',
-      save: { saveId: save.id },
+      snapshot: { snapshotId: snapshot.id },
     });
     expect(writeTrails).toHaveLength(1);
     expect(writeTrails[0]?.id).toBe('entity.add');
 
     const readTrails = store.trails.list({
       intent: 'read',
-      save: { saveId: save.id },
+      snapshot: { snapshotId: snapshot.id },
     });
     expect(readTrails).toHaveLength(1);
     expect(readTrails[0]?.id).toBe('entity.list');
   });
 
   test('returns detailed trail and export views, plus a query escape hatch', () => {
-    const { rootDir, save } = seedStore();
+    const { rootDir, snapshot } = seedStore();
     const store = createTopoStore({ rootDir });
 
     const detail = store.trails.get('entity.list', {
-      save: { saveId: save.id },
+      snapshot: { snapshotId: snapshot.id },
     });
     expect(detail).toEqual(
       expect.objectContaining({
@@ -200,12 +205,12 @@ describe('read-only topo store', () => {
     expect(detail?.examples).toEqual([]);
 
     const exported = store.exports.get({ pin: 'baseline' });
-    expect(exported?.save.id).toBe(save.id);
-    expect(exported?.trailheadHash).toHaveLength(64);
+    expect(exported?.snapshot.id).toBe(snapshot.id);
+    expect(exported?.surfaceHash).toHaveLength(64);
 
     const rows = store.query<{ id: string }>(
-      'SELECT id FROM topo_trails WHERE save_id = ? ORDER BY id ASC',
-      [save.id]
+      'SELECT id FROM topo_trails WHERE snapshot_id = ? ORDER BY id ASC',
+      [snapshot.id]
     );
     expect(rows).toEqual([{ id: 'entity.add' }, { id: 'entity.list' }]);
   });
@@ -214,7 +219,7 @@ describe('read-only topo store', () => {
     const rootDir = makeRoot();
     const store = createTopoStore({ rootDir });
 
-    expect(() => store.saves.latest()).toThrow('No saved topo state found');
+    expect(() => store.snapshots.latest()).toThrow('No saved topo state found');
     expect(() => store.trails.list()).toThrow('No saved topo state found');
     expect(() => store.exports.get()).toThrow('No saved topo state found');
   });
@@ -231,10 +236,10 @@ describe('read-only topo store', () => {
       })
     );
 
-    expect(created.saves.latest()).toBeDefined();
+    expect(created.snapshots.latest()).toBeDefined();
     expect(
       created.query<{ count: number }>(
-        'SELECT COUNT(*) as count FROM topo_saves'
+        'SELECT COUNT(*) as count FROM topo_snapshots'
       )[0]?.count
     ).toBe(1);
 

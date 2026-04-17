@@ -36,10 +36,10 @@ import * as search from '../src/trails/search.js';
 // ---------------------------------------------------------------------------
 
 describe('trailhead map generation', () => {
-  const trailheadMap = deriveSurfaceMap(app);
+  const surfaceMap = deriveSurfaceMap(app);
 
   test('contains all expected trail, event, and resource IDs', () => {
-    const ids = trailheadMap.entries.map((e) => e.id);
+    const ids = surfaceMap.entries.map((e) => e.id);
 
     expect(ids).toContain('entity.show');
     expect(ids).toContain('entity.add');
@@ -53,21 +53,21 @@ describe('trailhead map generation', () => {
   });
 
   test('has exactly 11 entries (8 trails + 1 event + 2 resources)', () => {
-    const ids = trailheadMap.entries.map((e) => e.id);
+    const ids = surfaceMap.entries.map((e) => e.id);
 
-    expect(trailheadMap.entries).toHaveLength(11);
+    expect(surfaceMap.entries).toHaveLength(11);
     expect(ids).toContain('entity.notify-updated');
     expect(ids).toContain('demo.notification-store');
   });
 
   test('entries are sorted alphabetically by id', () => {
-    const ids = trailheadMap.entries.map((e) => e.id);
+    const ids = surfaceMap.entries.map((e) => e.id);
     const sorted = [...ids].toSorted();
     expect(ids).toEqual(sorted);
   });
 
   test('each entry has the expected fields', () => {
-    for (const entry of trailheadMap.entries) {
+    for (const entry of surfaceMap.entries) {
       expect(entry.id).toBeString();
       expect(entry.kind).toBeOneOf(['trail', 'signal', 'resource']);
       expect(entry.exampleCount).toBeNumber();
@@ -76,7 +76,7 @@ describe('trailhead map generation', () => {
   });
 
   test('trail entries include input schema', () => {
-    const showEntry = trailheadMap.entries.find((e) => e.id === 'entity.show');
+    const showEntry = surfaceMap.entries.find((e) => e.id === 'entity.show');
     expect(showEntry).toBeDefined();
     if (showEntry) {
       expect(showEntry.input).toBeDefined();
@@ -85,8 +85,8 @@ describe('trailhead map generation', () => {
   });
 
   test('safety markers are preserved', () => {
-    const showEntry = trailheadMap.entries.find((e) => e.id === 'entity.show');
-    const deleteEntry = trailheadMap.entries.find(
+    const showEntry = surfaceMap.entries.find((e) => e.id === 'entity.show');
+    const deleteEntry = surfaceMap.entries.find(
       (e) => e.id === 'entity.delete'
     );
 
@@ -95,7 +95,7 @@ describe('trailhead map generation', () => {
   });
 
   test('route entries include crosses', () => {
-    const onboardEntry = trailheadMap.entries.find(
+    const onboardEntry = surfaceMap.entries.find(
       (e) => e.id === 'entity.onboard'
     );
     expect(onboardEntry).toBeDefined();
@@ -108,7 +108,7 @@ describe('trailhead map generation', () => {
   });
 
   test('event entries include payload schema as input', () => {
-    const updatedEntry = trailheadMap.entries.find(
+    const updatedEntry = surfaceMap.entries.find(
       (e) => e.id === 'entity.updated'
     );
     expect(updatedEntry).toBeDefined();
@@ -119,7 +119,7 @@ describe('trailhead map generation', () => {
   });
 
   test('resource entries include their description', () => {
-    const resourceEntry = trailheadMap.entries.find(
+    const resourceEntry = surfaceMap.entries.find(
       (e) => e.id === 'demo.entity-store'
     );
     expect(resourceEntry).toBeDefined();
@@ -148,8 +148,8 @@ describe('trailhead map hashing is deterministic', () => {
   });
 
   test('hash is a valid 64-character hex string', () => {
-    const trailheadMap = deriveSurfaceMap(app);
-    const hash = deriveSurfaceMapHash(trailheadMap);
+    const surfaceMap = deriveSurfaceMap(app);
+    const hash = deriveSurfaceMapHash(surfaceMap);
 
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
   });

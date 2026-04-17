@@ -9,7 +9,7 @@ Most applications reach this package through `trails topo export` and `trails to
 - deterministic surface-map generation from an established topo
 - stable hashing for CI drift detection
 - semantic diffing between two surface maps
-- file I/O helpers for `.trails/_trailhead.json` and `.trails/trails.lock`
+- file I/O helpers for `.trails/_surface.json` and `.trails/trails.lock`
 - OpenAPI generation from the same topo contract
 
 The package does not own topo history, pins, or `trails.db`. Those higher-level workflows live in the `trails` app and `@ontrails/core`. `@ontrails/schema` stays focused on serializable artifacts and diffing.
@@ -49,7 +49,7 @@ const openApi = deriveOpenApiSpec(app);
 
 The typical exported artifact pair is:
 
-- `.trails/_trailhead.json` — detailed derived map, useful for inspection and diffing
+- `.trails/_surface.json` — detailed derived map, useful for inspection and diffing
 - `.trails/trails.lock` — committed lock artifact, stored as structured JSON or legacy hash-only text
 
 `trails topo export` writes both from the current topo. `trails topo verify` and `@ontrails/warden` use the lockfile helpers here to detect drift.
@@ -61,8 +61,8 @@ The typical exported artifact pair is:
 | `deriveSurfaceMap(topo)` | Deterministic surface map of every established trail, signal, and resource |
 | `deriveSurfaceMapHash(map)` | Stable SHA-256 hash of the map |
 | `deriveSurfaceMapDiff(prev, curr)` | Semantic diff with `breaking`, `warning`, and `info` classifications |
-| `writeSurfaceMap(map, options?)` | Write `.trails/_trailhead.json` |
-| `readSurfaceMap(options?)` | Read `.trails/_trailhead.json` |
+| `writeSurfaceMap(map, options?)` | Write `.trails/_surface.json` |
+| `readSurfaceMap(options?)` | Read `.trails/_surface.json` |
 | `writeSurfaceLock(lock, options?)` | Write `.trails/trails.lock` as either structured JSON or legacy hash text |
 | `readSurfaceLockData(options?)` | Read the full normalized lock payload from `.trails/trails.lock` |
 | `readSurfaceLock(options?)` | Read just the committed lock hash |

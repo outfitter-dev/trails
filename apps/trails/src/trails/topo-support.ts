@@ -3,60 +3,33 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import type { Topo } from '@ontrails/core';
-import type {
-  TopoPinRecord,
-  TopoSaveRecord,
-} from '@ontrails/core/internal/topo-saves';
 import {
-  getTopoPin,
-  listTopoPins,
-  listTopoSaves,
-  pinTopoSave,
-  unpinTopoSave,
-} from '@ontrails/core/internal/topo-saves';
-import { persistEstablishedTopoSave } from '@ontrails/core/internal/topo-store';
-import {
-  openReadTrailsDb,
-  openWriteTrailsDb,
-  deriveTrailsDbPath,
-} from '@ontrails/core/internal/trails-db';
+  createTopoSnapshot as persistTopoSnapshot,
+  listTopoSnapshots as readTopoSnapshots,
+  pinTopoSnapshot,
+  unpinTopoSnapshot,
+} from '@ontrails/core';
+import type { Topo, TopoSnapshot } from '@ontrails/core';
+import { deriveTrailsDbPath } from '@ontrails/core/internal/trails-db';
 import { z } from 'zod';
 
 import type { BriefReport, SurveyListReport } from './topo-reports.js';
 
-/** Output schema for a topo save record. Shared across topo trails. */
-export const topoSaveOutput = z.object({
+/** Output schema for a topo snapshot record. Shared across topo trails. */
+export const topoSnapshotOutput = z.object({
   createdAt: z.string(),
   gitDirty: z.boolean(),
   gitSha: z.string().optional(),
   id: z.string(),
+  pinnedAs: z.string().optional(),
   resourceCount: z.number(),
   signalCount: z.number(),
   trailCount: z.number(),
 });
 
-/** Output schema for a topo pin record. Shared across topo trails. */
-export const topoPinOutput = z.object({
-  createdAt: z.string(),
-  name: z.string(),
-  saveId: z.string(),
-});
-
 export const DEFAULT_APP_MODULE = './src/app.ts';
 export const DEFAULT_TOPO_HISTORY_LIMIT = 10;
 export const LOCK_PATH = '.trails/trails.lock';
-export const LEGACY_LOCK_PATH = '.trails/trailhead.lock';
-
-/** Resolve the lockfile path, preferring the current name with legacy fallback. */
-export const resolveLockPath = (trailsDir: string): string => {
-  const primary = join(trailsDir, 'trails.lock');
-  if (existsSync(primary)) {
-    return primary;
-  }
-  const legacy = join(trailsDir, 'trailhead.lock');
-  return existsSync(legacy) ? legacy : primary;
-};
 const EXAMPLE_APP_MODULE = fileURLToPath(new URL('../app.ts', import.meta.url));
 
 export interface TopoSummaryReport {
@@ -70,17 +43,16 @@ export interface TopoSummaryReport {
 export interface TopoHistoryReport {
   readonly dbPath: string;
   readonly limit: number;
-  readonly pinCount: number;
-  readonly pins: TopoPinRecord[];
-  readonly saveCount: number;
-  readonly saves: TopoSaveRecord[];
+  readonly pinnedCount: number;
+  readonly snapshotCount: number;
+  readonly snapshots: TopoSnapshot[];
 }
 
 export interface TopoExportReport {
   readonly hash: string;
   readonly lockPath: string;
   readonly mapPath: string;
-  readonly save: TopoSaveRecord;
+  readonly snapshot: TopoSnapshot;
 }
 
 export interface TopoVerifyReport {
@@ -118,7 +90,7 @@ export const readGitState = (
 
 export const deriveTopoCounts = (
   app: Topo
-): Pick<TopoSaveRecord, 'resourceCount' | 'signalCount' | 'trailCount'> => ({
+): Pick<TopoSnapshot, 'resourceCount' | 'signalCount' | 'trailCount'> => ({
   resourceCount: app.resources.size,
   signalCount: app.signals.size,
   trailCount: app.trails.size,
@@ -130,38 +102,37 @@ const emptyTopoHistory = (
 ): TopoHistoryReport => ({
   dbPath,
   limit,
-  pinCount: 0,
-  pins: [],
-  saveCount: 0,
-  saves: [],
+  pinnedCount: 0,
+  snapshotCount: 0,
+  snapshots: [],
 });
 
-const collectedTopoHistory = (
+const collectTopoHistory = (
   dbPath: string,
   limit: number,
-  pins: readonly TopoPinRecord[],
-  allSaves: readonly TopoSaveRecord[]
+  snapshots: readonly TopoSnapshot[]
 ): TopoHistoryReport => ({
   dbPath,
   limit,
-  pinCount: pins.length,
-  pins: [...pins],
-  saveCount: allSaves.length,
-  saves: allSaves.slice(0, limit),
+  pinnedCount: snapshots.filter((snapshot) => snapshot.pinnedAs !== undefined)
+    .length,
+  snapshotCount: snapshots.length,
+  snapshots: snapshots.slice(0, limit),
 });
 
-const removeTopoPinWithDb = (
-  input: { readonly dryRun: boolean; readonly name: string },
-  pin: TopoPinRecord,
-  db: Parameters<typeof unpinTopoSave>[0]
+const buildSnapshotInput = (
+  app: Topo,
+  rootDir: string
 ): {
-  readonly dryRun: boolean;
-  readonly pin?: TopoPinRecord;
-  readonly removed: boolean;
-} =>
-  input.dryRun
-    ? { dryRun: true, pin, removed: false }
-    : { dryRun: false, pin, removed: unpinTopoSave(db, input.name) };
+  readonly gitDirty: boolean;
+  readonly gitSha?: string;
+  readonly resourceCount: number;
+  readonly signalCount: number;
+  readonly trailCount: number;
+} => ({
+  ...readGitState(rootDir),
+  ...deriveTopoCounts(app),
+});
 
 export const createIsolatedExampleInput = (
   name: string
@@ -175,25 +146,19 @@ export const createIsolatedExampleInput = (
   };
 };
 
-export const createCurrentTopoSave = (
+export const createCurrentTopoSnapshot = (
   app: Topo,
   options?: { readonly rootDir?: string }
-): TopoSaveRecord => {
+): TopoSnapshot => {
   const rootDir = deriveRootDir(options?.rootDir);
-  const db = openWriteTrailsDb({ rootDir });
-
-  try {
-    const result = persistEstablishedTopoSave(db, app, {
-      ...readGitState(rootDir),
-      ...deriveTopoCounts(app),
-    });
-    if (result.isErr()) {
-      throw result.error;
-    }
-    return result.value;
-  } finally {
-    db.close();
+  const result = persistTopoSnapshot(app, {
+    rootDir,
+    ...buildSnapshotInput(app, rootDir),
+  });
+  if (result.isErr()) {
+    throw result.error;
   }
+  return result.value;
 };
 
 export const listTopoHistory = (options?: {
@@ -206,69 +171,60 @@ export const listTopoHistory = (options?: {
   if (!existsSync(dbPath)) {
     return emptyTopoHistory(dbPath, limit);
   }
-  const db = openReadTrailsDb({ rootDir });
 
-  try {
-    return collectedTopoHistory(
-      dbPath,
-      limit,
-      listTopoPins(db),
-      listTopoSaves(db)
-    );
-  } finally {
-    db.close();
-  }
+  return collectTopoHistory(dbPath, limit, readTopoSnapshots({ rootDir }));
 };
 
-export const pinCurrentTopo = (
+export const pinCurrentTopoSnapshot = (
   app: Topo,
   input: { readonly name: string; readonly rootDir?: string }
-): { readonly pin: TopoPinRecord; readonly save: TopoSaveRecord } => {
+): { readonly snapshot: TopoSnapshot } => {
   const rootDir = deriveRootDir(input.rootDir);
-  const db = openWriteTrailsDb({ rootDir });
-
-  try {
-    const result = persistEstablishedTopoSave(db, app, {
-      ...readGitState(rootDir),
-      ...deriveTopoCounts(app),
-    });
-    if (result.isErr()) {
-      throw result.error;
-    }
-    const pin = pinTopoSave(db, {
-      name: input.name,
-      saveId: result.value.id,
-    });
-    return { pin, save: result.value };
-  } finally {
-    db.close();
+  const created = persistTopoSnapshot(app, {
+    rootDir,
+    ...buildSnapshotInput(app, rootDir),
+  });
+  if (created.isErr()) {
+    throw created.error;
   }
+
+  const snapshot = pinTopoSnapshot(created.value.id, input.name, {
+    rootDir,
+  });
+  if (snapshot === undefined) {
+    throw new Error(`Missing topo snapshot "${created.value.id}" to pin`);
+  }
+
+  return { snapshot };
 };
 
-export const removeTopoPin = (input: {
+export const removePinnedTopoSnapshot = (input: {
   readonly dryRun: boolean;
   readonly name: string;
   readonly rootDir?: string;
 }): {
   readonly dryRun: boolean;
-  readonly pin?: TopoPinRecord;
   readonly removed: boolean;
+  readonly snapshot?: TopoSnapshot;
 } => {
   const rootDir = deriveRootDir(input.rootDir);
   if (!existsSync(deriveTrailsDbPath({ rootDir }))) {
     return { dryRun: input.dryRun, removed: false };
   }
-  const db = input.dryRun
-    ? openReadTrailsDb({ rootDir })
-    : openWriteTrailsDb({ rootDir });
 
-  try {
-    const pin = getTopoPin(db, input.name);
-    if (pin === undefined) {
-      return { dryRun: input.dryRun, removed: false };
-    }
-    return removeTopoPinWithDb(input, pin, db);
-  } finally {
-    db.close();
+  if (input.dryRun) {
+    const snapshot = readTopoSnapshots({ pinned: true, rootDir }).find(
+      (candidate) => candidate.pinnedAs === input.name
+    );
+    return snapshot === undefined
+      ? { dryRun: true, removed: false }
+      : { dryRun: true, removed: false, snapshot };
   }
+
+  const snapshot = unpinTopoSnapshot(input.name, { rootDir });
+  return {
+    dryRun: false,
+    removed: snapshot !== undefined,
+    ...(snapshot === undefined ? {} : { snapshot }),
+  };
 };

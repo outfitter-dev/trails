@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { createTopoStore, trail, topo, Result } from '@ontrails/core';
-import { persistEstablishedTopoSave } from '@ontrails/core/internal/topo-store';
+import { createTopoSnapshot } from '@ontrails/core/internal/topo-store';
 import {
   openWriteTrailsDb,
   deriveTrailsDir,
@@ -42,7 +42,7 @@ const committedLockDir = (dir: string): string => {
 const seedSavedTopo = (dir: string): string | undefined => {
   const db = openWriteTrailsDb({ rootDir: dir });
   try {
-    const result = persistEstablishedTopoSave(db, makeTopo(), {
+    const result = createTopoSnapshot(db, makeTopo(), {
       createdAt: '2026-04-03T15:00:00.000Z',
     });
     if (result.isErr()) {
@@ -52,7 +52,7 @@ const seedSavedTopo = (dir: string): string | undefined => {
     db.close();
   }
 
-  return createTopoStore({ rootDir: dir }).exports.get()?.trailheadHash;
+  return createTopoStore({ rootDir: dir }).exports.get()?.surfaceHash;
 };
 
 describe('checkDrift', () => {

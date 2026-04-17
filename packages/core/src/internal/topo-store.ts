@@ -10,16 +10,22 @@ import type { Topo } from '../topo.js';
 import type { AnyTrail } from '../trail.js';
 import { validateEstablishedTopo } from '../validate-established-topo.js';
 import { zodToJsonSchema } from '../validation.js';
-import type { CreateTopoSaveInput, TopoSaveRecord } from './topo-saves.js';
-import { ensureTopoHistorySchema, insertTopoSaveRecord } from './topo-saves.js';
+import type {
+  CreateTopoSnapshotInput,
+  TopoSnapshot,
+} from './topo-snapshots.js';
+import {
+  ensureTopoSnapshotSchema,
+  insertTopoSnapshotRecord,
+} from './topo-snapshots.js';
 
-type TrailheadMapEntryRecord = Readonly<Record<string, unknown>> & {
+type SurfaceMapEntryRecord = Readonly<Record<string, unknown>> & {
   readonly id: string;
   readonly kind: 'contour' | 'resource' | 'signal' | 'trail';
 };
 
-type TrailheadMapRecord = Readonly<{
-  readonly entries: readonly TrailheadMapEntryRecord[];
+type SurfaceMapRecord = Readonly<{
+  readonly entries: readonly SurfaceMapEntryRecord[];
   readonly generatedAt: string;
   readonly version: '1.0';
 }>;
@@ -36,30 +42,30 @@ interface TopoTrailRow {
   readonly idempotent: number;
   readonly intent: string;
   readonly meta: string | null;
-  readonly saveId: string;
+  readonly snapshotId: string;
 }
 
 interface TopoCrossingRow {
-  readonly saveId: string;
+  readonly snapshotId: string;
   readonly sourceId: string;
   readonly targetId: string;
 }
 
 interface TopoFiresRow {
-  readonly saveId: string;
+  readonly snapshotId: string;
   readonly signalId: string;
   readonly trailId: string;
 }
 
 interface TopoOnRow {
-  readonly saveId: string;
+  readonly snapshotId: string;
   readonly signalId: string;
   readonly trailId: string;
 }
 
 interface TopoTrailResourceRow {
   readonly resourceId: string;
-  readonly saveId: string;
+  readonly snapshotId: string;
   readonly trailId: string;
 }
 
@@ -67,27 +73,27 @@ interface TopoResourceRow {
   readonly hasHealth: number;
   readonly hasMock: number;
   readonly id: string;
-  readonly saveId: string;
+  readonly snapshotId: string;
 }
 
 interface TopoSignalRow {
   readonly description: string | null;
   readonly id: string;
-  readonly saveId: string;
+  readonly snapshotId: string;
 }
 
 interface TopoTrailSignalRow {
-  readonly saveId: string;
+  readonly snapshotId: string;
   readonly signalId: string;
   readonly trailId: string;
 }
 
-interface TopoTrailheadRow {
+interface TopoSurfaceRow {
   readonly derivedName: string;
   readonly method: string | null;
-  readonly saveId: string;
+  readonly snapshotId: string;
   readonly trailId: string;
-  readonly trailhead: string;
+  readonly surface: string;
 }
 
 interface TopoExampleRow {
@@ -99,7 +105,7 @@ interface TopoExampleRow {
   readonly input: string;
   readonly name: string;
   readonly ordinal: number;
-  readonly saveId: string;
+  readonly snapshotId: string;
   readonly trailId: string;
 }
 
@@ -107,28 +113,28 @@ interface TopoSchemaRow {
   readonly jsonSchema: string;
   readonly ownerId: string;
   readonly ownerKind: 'signal' | 'trail';
-  readonly saveId: string;
+  readonly snapshotId: string;
   readonly schemaKind: 'input' | 'output' | 'payload';
   readonly zodHash: string;
 }
 
 interface StoredTopoExportRow {
-  readonly saveId: string;
+  readonly snapshotId: string;
   readonly serializedLock: string;
-  readonly trailheadHash: string;
-  readonly trailheadMap: string;
+  readonly surfaceHash: string;
+  readonly surfaceMap: string;
 }
 
 interface StoredTopoExportDbRow {
   readonly serialized_lock: string;
-  readonly trailhead_hash: string;
-  readonly trailhead_map: string;
+  readonly surface_hash: string;
+  readonly surface_map: string;
 }
 
 export interface StoredTopoExport {
   readonly lockContent: string;
-  readonly trailheadHash: string;
-  readonly trailheadMapJson: string;
+  readonly surfaceHash: string;
+  readonly surfaceMapJson: string;
 }
 
 interface MaterializedSchemas {
@@ -155,7 +161,7 @@ interface NormalizedTopoProjection {
   readonly on: readonly TopoOnRow[];
   readonly resources: readonly TopoResourceRow[];
   readonly signals: readonly TopoSignalRow[];
-  readonly trailheads: readonly TopoTrailheadRow[];
+  readonly surfaces: readonly TopoSurfaceRow[];
   readonly trailResources: readonly TopoTrailResourceRow[];
   readonly trailSignals: readonly TopoTrailSignalRow[];
   readonly trails: readonly TopoTrailRow[];
@@ -279,7 +285,7 @@ const sortKeys = <T extends Record<string, unknown>>(value: T): T => {
 
 const normalizeTrailRows = (
   trails: readonly AnyTrail[],
-  saveId: string
+  snapshotId: string
 ): readonly TopoTrailRow[] =>
   trails.map((trail) => ({
     description: trail.description ?? null,
@@ -290,16 +296,16 @@ const normalizeTrailRows = (
     idempotent: trail.idempotent === true ? 1 : 0,
     intent: trail.intent,
     meta: trail.meta === undefined ? null : stableJson(trail.meta),
-    saveId,
+    snapshotId,
   }));
 
 const normalizeCrossingRows = (
   trails: readonly AnyTrail[],
-  saveId: string
+  snapshotId: string
 ): readonly TopoCrossingRow[] =>
   trails.flatMap((trail) =>
     [...new Set(trail.crosses)].toSorted().map((targetId) => ({
-      saveId,
+      snapshotId,
       sourceId: trail.id,
       targetId,
     }))
@@ -307,104 +313,104 @@ const normalizeCrossingRows = (
 
 export const normalizeFiresRows = (
   trails: readonly AnyTrail[],
-  saveId: string
+  snapshotId: string
 ): readonly TopoFiresRow[] =>
   trails.flatMap((trail) =>
     [...new Set(trail.fires)].toSorted().map((signalId) => ({
-      saveId,
       signalId,
+      snapshotId,
       trailId: trail.id,
     }))
   );
 
 export const normalizeOnRows = (
   trails: readonly AnyTrail[],
-  saveId: string
+  snapshotId: string
 ): readonly TopoOnRow[] =>
   trails.flatMap((trail) =>
     [...new Set(trail.on)].toSorted().map((signalId) => ({
-      saveId,
       signalId,
+      snapshotId,
       trailId: trail.id,
     }))
   );
 
 const normalizeTrailResourceRows = (
   trails: readonly AnyTrail[],
-  saveId: string
+  snapshotId: string
 ): readonly TopoTrailResourceRow[] =>
   trails.flatMap((trail) =>
     [...new Set(trail.resources.map((resource) => resource.id))]
       .toSorted()
       .map((resourceId) => ({
         resourceId,
-        saveId,
+        snapshotId,
         trailId: trail.id,
       }))
   );
 
 const normalizeResourceRows = (
   resources: readonly AnyResource[],
-  saveId: string
+  snapshotId: string
 ): readonly TopoResourceRow[] =>
   resources.map((resource) => ({
     hasHealth: resource.health === undefined ? 0 : 1,
     hasMock: resource.mock === undefined ? 0 : 1,
     id: resource.id,
-    saveId,
+    snapshotId,
   }));
 
 const normalizeSignalRows = (
   signals: readonly AnySignal[],
-  saveId: string
+  snapshotId: string
 ): readonly TopoSignalRow[] =>
   signals.map((signal) => ({
     description: signal.description ?? null,
     id: signal.id,
-    saveId,
+    snapshotId,
   }));
 
 const normalizeTrailSignalRows = (
   signals: readonly AnySignal[],
-  saveId: string
+  snapshotId: string
 ): readonly TopoTrailSignalRow[] =>
   signals.flatMap((signal) =>
     [...new Set(signal.from)].toSorted().map((trailId) => ({
-      saveId,
       signalId: signal.id,
+      snapshotId,
       trailId,
     }))
   );
 
 /**
- * Project trailhead rows for stored topo.
+ * Project surface rows for stored topo.
  *
- * Currently records only CLI-derived rows. MCP, HTTP, and other trailhead
+ * Currently records only CLI-derived rows. MCP, HTTP, and other surface
  * projections are intentionally deferred until the topo-store schema supports
- * multi-trailhead representation. The JSON export (`trailhead_map` in
+ * multi-surface representation. The JSON export (`surface_map` in
  * `topo_exports`) is more faithful for now. See ADR-0015 for the target shape.
  */
-const normalizeTrailheadRows = (
+const normalizeSurfaceRows = (
   trails: readonly AnyTrail[],
-  saveId: string
-): readonly TopoTrailheadRow[] =>
+  snapshotId: string
+): readonly TopoSurfaceRow[] =>
   trails.map((trail) => ({
     derivedName: deriveCliPath(trail.id).join(' '),
     method: null,
-    saveId,
+    snapshotId,
+    surface: 'cli',
     trailId: trail.id,
-    trailhead: 'cli',
   }));
 
 const buildExampleId = (
-  saveId: string,
+  snapshotId: string,
   trailId: string,
   ordinal: number
-): string => `${saveId}:${trailId}:${ordinal.toString().padStart(4, '0')}`;
+): string => `${snapshotId}:${trailId}:${ordinal.toString().padStart(4, '0')}`;
 
 const normalizeExampleRows = (
   trails: readonly AnyTrail[],
-  saveId: string
+  snapshotId: string
 ): readonly TopoExampleRow[] =>
   trails.flatMap((trail) =>
     (trail.examples ?? []).map((example, index) => ({
@@ -416,18 +422,18 @@ const normalizeExampleRows = (
         example.expectedMatch === undefined
           ? null
           : stableJson(example.expectedMatch),
-      id: buildExampleId(saveId, trail.id, index),
+      id: buildExampleId(snapshotId, trail.id, index),
       input: stableJson(example.input),
       name: example.name,
       ordinal: index,
-      saveId,
+      snapshotId,
       trailId: trail.id,
     }))
   );
 
 const normalizeTopoProjection = (
   topo: Topo,
-  saveId: string
+  snapshotId: string
 ): NormalizedTopoProjection => {
   const trails = topo.list().toSorted((a, b) => a.id.localeCompare(b.id));
   const resources = topo
@@ -438,26 +444,26 @@ const normalizeTopoProjection = (
     .toSorted((a, b) => a.id.localeCompare(b.id));
 
   return {
-    crossings: normalizeCrossingRows(trails, saveId),
-    examples: normalizeExampleRows(trails, saveId),
-    fires: normalizeFiresRows(trails, saveId),
-    on: normalizeOnRows(trails, saveId),
-    resources: normalizeResourceRows(resources, saveId),
-    signals: normalizeSignalRows(signals, saveId),
-    trailResources: normalizeTrailResourceRows(trails, saveId),
-    trailSignals: normalizeTrailSignalRows(signals, saveId),
-    trailheads: normalizeTrailheadRows(trails, saveId),
-    trails: normalizeTrailRows(trails, saveId),
+    crossings: normalizeCrossingRows(trails, snapshotId),
+    examples: normalizeExampleRows(trails, snapshotId),
+    fires: normalizeFiresRows(trails, snapshotId),
+    on: normalizeOnRows(trails, snapshotId),
+    resources: normalizeResourceRows(resources, snapshotId),
+    signals: normalizeSignalRows(signals, snapshotId),
+    surfaces: normalizeSurfaceRows(trails, snapshotId),
+    trailResources: normalizeTrailResourceRows(trails, snapshotId),
+    trailSignals: normalizeTrailSignalRows(signals, snapshotId),
+    trails: normalizeTrailRows(trails, snapshotId),
   };
 };
 
 /**
  * Look up a cached JSON schema by content hash.
  *
- * The query matches on `zod_hash` without filtering by `save_id` because the
- * cache is intentionally cross-save: if the Zod schema definition has not
+ * The query matches on `zod_hash` without filtering by `snapshot_id` because the
+ * cache is intentionally cross-snapshot: if the Zod schema definition has not
  * changed (same hash), the serialized JSON Schema is reused regardless of
- * which save produced it. This is safe as long as `zodToJsonSchema` is
+ * which snapshot produced it. This is safe as long as `zodToJsonSchema` is
  * deterministic for a given `_def` hash — the `schemaDefinitionHash` pipeline
  * guarantees that structurally identical schemas produce the same hash.
  */
@@ -492,7 +498,7 @@ const resolveSchemaRow = (
   db: Database,
   ownerId: string,
   ownerKind: TopoSchemaRow['ownerKind'],
-  saveId: string,
+  snapshotId: string,
   schemaKind: TopoSchemaRow['schemaKind'],
   schema: ZodSchemaInput
 ): {
@@ -514,8 +520,8 @@ const resolveSchemaRow = (
         jsonSchema: cachedJson,
         ownerId,
         ownerKind,
-        saveId,
         schemaKind,
+        snapshotId,
         zodHash,
       },
       value: parseJsonRecord(cachedJson),
@@ -528,8 +534,8 @@ const resolveSchemaRow = (
       jsonSchema: generated.json,
       ownerId,
       ownerKind,
-      saveId,
       schemaKind,
+      snapshotId,
       zodHash,
     },
     value: generated.value,
@@ -538,7 +544,7 @@ const resolveSchemaRow = (
 
 const materializeTrailSchema = (
   db: Database,
-  saveId: string,
+  snapshotId: string,
   trail: AnyTrail
 ): {
   readonly rows: readonly TopoSchemaRow[];
@@ -551,7 +557,7 @@ const materializeTrailSchema = (
     db,
     trail.id,
     'trail',
-    saveId,
+    snapshotId,
     'input',
     trail.input as ZodSchemaInput
   );
@@ -569,7 +575,7 @@ const materializeTrailSchema = (
     db,
     trail.id,
     'trail',
-    saveId,
+    snapshotId,
     'output',
     trail.output as ZodSchemaInput
   );
@@ -585,7 +591,7 @@ const materializeTrailSchema = (
 
 const materializeTrailSchemas = (
   db: Database,
-  saveId: string,
+  snapshotId: string,
   trails: readonly AnyTrail[]
 ): Pick<MaterializedSchemas, 'rows' | 'trailSchemas'> => {
   const rows: TopoSchemaRow[] = [];
@@ -598,7 +604,7 @@ const materializeTrailSchemas = (
   >();
 
   for (const trail of trails) {
-    const materialized = materializeTrailSchema(db, saveId, trail);
+    const materialized = materializeTrailSchema(db, snapshotId, trail);
     rows.push(...materialized.rows);
     trailSchemas.set(trail.id, materialized.value);
   }
@@ -611,7 +617,7 @@ const materializeTrailSchemas = (
 
 const materializeSignalSchemas = (
   db: Database,
-  saveId: string,
+  snapshotId: string,
   signals: readonly AnySignal[]
 ): Pick<MaterializedSchemas, 'rows' | 'signalPayloads'> => {
   const rows: TopoSchemaRow[] = [];
@@ -622,7 +628,7 @@ const materializeSignalSchemas = (
       db,
       signal.id,
       'signal',
-      saveId,
+      snapshotId,
       'payload',
       signal.payload as ZodSchemaInput
     );
@@ -638,12 +644,12 @@ const materializeSignalSchemas = (
 
 const materializeSchemas = (
   db: Database,
-  saveId: string,
+  snapshotId: string,
   signals: readonly AnySignal[],
   trails: readonly AnyTrail[]
 ): MaterializedSchemas => {
-  const trailMaterial = materializeTrailSchemas(db, saveId, trails);
-  const signalMaterial = materializeSignalSchemas(db, saveId, signals);
+  const trailMaterial = materializeTrailSchemas(db, snapshotId, trails);
+  const signalMaterial = materializeSignalSchemas(db, snapshotId, signals);
 
   return {
     rows: [...trailMaterial.rows, ...signalMaterial.rows],
@@ -752,18 +758,18 @@ const trailToEntryRecord = (
     readonly input: JsonRecord;
     readonly output?: JsonRecord;
   }>
-): TrailheadMapEntryRecord => {
+): SurfaceMapEntryRecord => {
   const { entry, raw } = buildTrailEntryBase(trail, trailSchema);
   addSafetyMarkers(entry, trail);
   addExtendedMetadata(entry, raw, trail);
   addTrailRelations(entry, trail);
-  return sortKeys(entry) as TrailheadMapEntryRecord;
+  return sortKeys(entry) as SurfaceMapEntryRecord;
 };
 
 const signalToEntryRecord = (
   signal: AnySignal,
   payloadSchema: JsonRecord
-): TrailheadMapEntryRecord => {
+): SurfaceMapEntryRecord => {
   const raw = signal as unknown as Record<string, unknown>;
   const entry: Record<string, unknown> = {
     exampleCount: 0,
@@ -785,12 +791,12 @@ const signalToEntryRecord = (
     entry['replacedBy'] = raw['replacedBy'];
   }
 
-  return sortKeys(entry) as TrailheadMapEntryRecord;
+  return sortKeys(entry) as SurfaceMapEntryRecord;
 };
 
 const resourceToEntryRecord = (
   resource: AnyResource
-): TrailheadMapEntryRecord => {
+): SurfaceMapEntryRecord => {
   const entry: Record<string, unknown> = {
     exampleCount: 0,
     id: resource.id,
@@ -806,10 +812,10 @@ const resourceToEntryRecord = (
     entry['healthcheck'] = true;
   }
 
-  return sortKeys(entry) as TrailheadMapEntryRecord;
+  return sortKeys(entry) as SurfaceMapEntryRecord;
 };
 
-const contourToEntryRecord = (contour: AnyContour): TrailheadMapEntryRecord => {
+const contourToEntryRecord = (contour: AnyContour): SurfaceMapEntryRecord => {
   const schema = sortedJsonSchema(contour);
   const entry: Record<string, unknown> = {
     exampleCount: contour.examples?.length ?? 0,
@@ -825,7 +831,7 @@ const contourToEntryRecord = (contour: AnyContour): TrailheadMapEntryRecord => {
     entry['references'] = references;
   }
 
-  return sortKeys(entry) as TrailheadMapEntryRecord;
+  return sortKeys(entry) as SurfaceMapEntryRecord;
 };
 
 const requireTrailSchema = (
@@ -853,7 +859,7 @@ const requireSignalPayload = (
   return payload;
 };
 
-const buildTrailheadMap = (
+const buildSurfaceMap = (
   contours: readonly AnyContour[],
   generatedAt: string,
   resources: readonly AnyResource[],
@@ -867,7 +873,7 @@ const buildTrailheadMap = (
     }>
   >,
   trails: readonly AnyTrail[]
-): TrailheadMapRecord => {
+): SurfaceMapRecord => {
   const entries = [
     ...contours.map((contour) => contourToEntryRecord(contour)),
     ...trails.map((trail) =>
@@ -889,21 +895,21 @@ const buildTrailheadMap = (
   };
 };
 
-const hashTrailheadMapRecord = (trailheadMap: TrailheadMapRecord): string => {
-  const { generatedAt: _unused, ...rest } = trailheadMap;
+const hashSurfaceMapRecord = (surfaceMap: SurfaceMapRecord): string => {
+  const { generatedAt: _unused, ...rest } = surfaceMap;
   return hashValue(rest);
 };
 
 const entryPayload = (
-  entry: TrailheadMapEntryRecord
+  entry: SurfaceMapEntryRecord
 ): Readonly<Record<string, unknown>> => {
   const { id: _unusedId, kind: _unusedKind, ...rest } = entry;
   return sortKeys(rest);
 };
 
 const entriesForKind = (
-  entries: readonly TrailheadMapEntryRecord[],
-  kind: TrailheadMapEntryRecord['kind']
+  entries: readonly SurfaceMapEntryRecord[],
+  kind: SurfaceMapEntryRecord['kind']
 ): Readonly<Record<string, Readonly<Record<string, unknown>>>> =>
   Object.fromEntries(
     entries
@@ -914,25 +920,25 @@ const entriesForKind = (
 const buildSerializedLock = (
   hash: string,
   topo: Topo,
-  trailheadMap: TrailheadMapRecord
+  surfaceMap: SurfaceMapRecord
 ): Readonly<Record<string, unknown>> =>
   sortKeys({
     apps: sortKeys({
       [topo.name]: sortKeys({
-        contours: entriesForKind(trailheadMap.entries, 'contour'),
-        resources: entriesForKind(trailheadMap.entries, 'resource'),
-        signals: entriesForKind(trailheadMap.entries, 'signal'),
-        trails: entriesForKind(trailheadMap.entries, 'trail'),
+        contours: entriesForKind(surfaceMap.entries, 'contour'),
+        resources: entriesForKind(surfaceMap.entries, 'resource'),
+        signals: entriesForKind(surfaceMap.entries, 'signal'),
+        trails: entriesForKind(surfaceMap.entries, 'trail'),
       }),
     }),
-    generatedAt: trailheadMap.generatedAt,
+    generatedAt: surfaceMap.generatedAt,
     hash,
     version: 1,
   });
 
 const buildStoredTopoExport = (
   db: Database,
-  save: TopoSaveRecord,
+  snapshot: TopoSnapshot,
   topo: Topo
 ): MaterializedTopoArtifacts => {
   const contours = topo
@@ -945,29 +951,29 @@ const buildStoredTopoExport = (
   const signals = topo
     .listSignals()
     .toSorted((a, b) => a.id.localeCompare(b.id));
-  const schemas = materializeSchemas(db, save.id, signals, trails);
-  const trailheadMap = buildTrailheadMap(
+  const schemas = materializeSchemas(db, snapshot.id, signals, trails);
+  const surfaceMap = buildSurfaceMap(
     contours,
-    save.createdAt,
+    snapshot.createdAt,
     resources,
     schemas.signalPayloads,
     signals,
     schemas.trailSchemas,
     trails
   );
-  const trailheadHash = hashTrailheadMapRecord(trailheadMap);
+  const surfaceHash = hashSurfaceMapRecord(surfaceMap);
   const serializedLock = `${JSON.stringify(
-    buildSerializedLock(trailheadHash, topo, trailheadMap),
+    buildSerializedLock(surfaceHash, topo, surfaceMap),
     null,
     2
   )}\n`;
 
   return {
     exportRow: {
-      saveId: save.id,
       serializedLock,
-      trailheadHash,
-      trailheadMap: `${JSON.stringify(trailheadMap, null, 2)}\n`,
+      snapshotId: snapshot.id,
+      surfaceHash,
+      surfaceMap: `${JSON.stringify(surfaceMap, null, 2)}\n`,
     },
     schemaRows: schemas.rows,
   };
@@ -992,7 +998,7 @@ const insertProjectedRows = (
     db,
     projection.trails,
     `INSERT INTO topo_trails (
-      id, intent, idempotent, has_output, has_examples, example_count, description, meta, save_id
+      id, intent, idempotent, has_output, has_examples, example_count, description, meta, snapshot_id
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     (row) => [
       row.id,
@@ -1003,74 +1009,74 @@ const insertProjectedRows = (
       row.exampleCount,
       row.description,
       row.meta,
-      row.saveId,
+      row.snapshotId,
     ]
   );
   insertRows(
     db,
     projection.crossings,
-    'INSERT INTO topo_crossings (source_id, target_id, save_id) VALUES (?, ?, ?)',
-    (row) => [row.sourceId, row.targetId, row.saveId]
+    'INSERT INTO topo_crossings (source_id, target_id, snapshot_id) VALUES (?, ?, ?)',
+    (row) => [row.sourceId, row.targetId, row.snapshotId]
   );
   insertRows(
     db,
     projection.trailResources,
-    `INSERT INTO topo_trail_resources (trail_id, resource_id, save_id)
+    `INSERT INTO topo_trail_resources (trail_id, resource_id, snapshot_id)
      VALUES (?, ?, ?)`,
-    (row) => [row.trailId, row.resourceId, row.saveId]
+    (row) => [row.trailId, row.resourceId, row.snapshotId]
   );
   insertRows(
     db,
     projection.resources,
-    `INSERT INTO topo_resources (id, has_mock, has_health, save_id)
+    `INSERT INTO topo_resources (id, has_mock, has_health, snapshot_id)
      VALUES (?, ?, ?, ?)`,
-    (row) => [row.id, row.hasMock, row.hasHealth, row.saveId]
+    (row) => [row.id, row.hasMock, row.hasHealth, row.snapshotId]
   );
   insertRows(
     db,
     projection.signals,
-    'INSERT INTO topo_signals (id, description, save_id) VALUES (?, ?, ?)',
-    (row) => [row.id, row.description, row.saveId]
+    'INSERT INTO topo_signals (id, description, snapshot_id) VALUES (?, ?, ?)',
+    (row) => [row.id, row.description, row.snapshotId]
   );
   insertRows(
     db,
     projection.trailSignals,
-    `INSERT INTO topo_trail_signals (trail_id, signal_id, save_id)
+    `INSERT INTO topo_trail_signals (trail_id, signal_id, snapshot_id)
      VALUES (?, ?, ?)`,
-    (row) => [row.trailId, row.signalId, row.saveId]
+    (row) => [row.trailId, row.signalId, row.snapshotId]
   );
   insertRows(
     db,
     projection.fires,
-    `INSERT INTO topo_trail_fires (trail_id, signal_id, save_id)
+    `INSERT INTO topo_trail_fires (trail_id, signal_id, snapshot_id)
      VALUES (?, ?, ?)`,
-    (row) => [row.trailId, row.signalId, row.saveId]
+    (row) => [row.trailId, row.signalId, row.snapshotId]
   );
   insertRows(
     db,
     projection.on,
-    `INSERT INTO topo_trail_on (trail_id, signal_id, save_id)
+    `INSERT INTO topo_trail_on (trail_id, signal_id, snapshot_id)
      VALUES (?, ?, ?)`,
-    (row) => [row.trailId, row.signalId, row.saveId]
+    (row) => [row.trailId, row.signalId, row.snapshotId]
   );
   insertRows(
     db,
-    projection.trailheads,
-    `INSERT INTO topo_trailheads (trail_id, trailhead, derived_name, method, save_id)
+    projection.surfaces,
+    `INSERT INTO topo_surfaces (trail_id, surface, derived_name, method, snapshot_id)
      VALUES (?, ?, ?, ?, ?)`,
     (row) => [
       row.trailId,
-      row.trailhead,
+      row.surface,
       row.derivedName,
       row.method,
-      row.saveId,
+      row.snapshotId,
     ]
   );
   insertRows(
     db,
     projection.examples,
     `INSERT INTO topo_examples (
-      id, trail_id, ordinal, name, description, input, expected, error, save_id
+      id, trail_id, ordinal, name, description, input, expected, error, snapshot_id
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     (row) => [
       row.id,
@@ -1081,7 +1087,7 @@ const insertProjectedRows = (
       row.input,
       row.expected,
       row.error,
-      row.saveId,
+      row.snapshotId,
     ]
   );
 };
@@ -1094,7 +1100,7 @@ const insertSchemaRows = (
     db,
     rows,
     `INSERT INTO topo_schemas (
-      owner_id, owner_kind, schema_kind, zod_hash, json_schema, save_id
+      owner_id, owner_kind, schema_kind, zod_hash, json_schema, snapshot_id
     ) VALUES (?, ?, ?, ?, ?, ?)`,
     (row) => [
       row.ownerId,
@@ -1102,7 +1108,7 @@ const insertSchemaRows = (
       row.schemaKind,
       row.zodHash,
       row.jsonSchema,
-      row.saveId,
+      row.snapshotId,
     ]
   );
 };
@@ -1113,12 +1119,12 @@ const insertStoredExport = (
 ): void => {
   db.run(
     `INSERT INTO topo_exports (
-      save_id, trailhead_map, trailhead_hash, serialized_lock
+      snapshot_id, surface_map, surface_hash, serialized_lock
     ) VALUES (?, ?, ?, ?)`,
     [
-      exportRow.saveId,
-      exportRow.trailheadMap,
-      exportRow.trailheadHash,
+      exportRow.snapshotId,
+      exportRow.surfaceMap,
+      exportRow.surfaceHash,
       exportRow.serializedLock,
     ]
   );
@@ -1126,15 +1132,15 @@ const insertStoredExport = (
 
 export const getStoredTopoExport = (
   db: Database,
-  saveId: string
+  snapshotId: string
 ): StoredTopoExport | undefined => {
   const row = db
     .query<StoredTopoExportDbRow, [string]>(
-      `SELECT trailhead_map, trailhead_hash, serialized_lock
+      `SELECT surface_map, surface_hash, serialized_lock
        FROM topo_exports
-       WHERE save_id = ?`
+       WHERE snapshot_id = ?`
     )
-    .get(saveId);
+    .get(snapshotId);
 
   if (row === undefined || row === null) {
     return undefined;
@@ -1142,32 +1148,32 @@ export const getStoredTopoExport = (
 
   return {
     lockContent: row.serialized_lock,
-    trailheadHash: row.trailhead_hash,
-    trailheadMapJson: row.trailhead_map,
+    surfaceHash: row.surface_hash,
+    surfaceMapJson: row.surface_map,
   };
 };
 
-export const persistEstablishedTopoSave = (
+export const createTopoSnapshot = (
   db: Database,
   topo: Topo,
-  input?: CreateTopoSaveInput
-): Result<TopoSaveRecord, Error> => {
+  input?: CreateTopoSnapshotInput
+): Result<TopoSnapshot, Error> => {
   const validated = validateEstablishedTopo(topo);
   if (validated.isErr()) {
     return Result.err(validated.error);
   }
 
-  ensureTopoHistorySchema(db);
+  ensureTopoSnapshotSchema(db);
 
-  const saveInput: CreateTopoSaveInput = {
+  const snapshotInput: CreateTopoSnapshotInput = {
     ...input,
     resourceCount: input?.resourceCount ?? topo.resources.size,
     signalCount: input?.signalCount ?? topo.signals.size,
     trailCount: input?.trailCount ?? topo.trails.size,
   };
 
-  const save = db.transaction(() => {
-    const record = insertTopoSaveRecord(db, saveInput);
+  const snapshot = db.transaction(() => {
+    const record = insertTopoSnapshotRecord(db, snapshotInput);
     const artifacts = buildStoredTopoExport(db, record, topo);
     insertProjectedRows(db, normalizeTopoProjection(topo, record.id));
     insertSchemaRows(db, artifacts.schemaRows);
@@ -1175,5 +1181,5 @@ export const persistEstablishedTopoSave = (
     return record;
   })();
 
-  return Result.ok(save);
+  return Result.ok(snapshot);
 };

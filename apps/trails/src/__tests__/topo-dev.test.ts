@@ -115,7 +115,7 @@ describe('topo and dev trails', () => {
         await topoExportTrail.blaze(moduleInput, { cwd: dir } as never)
       );
       expect(exportResult.hash).toHaveLength(64);
-      expect(existsSync(join(dir, '.trails', '_trailhead.json'))).toBe(true);
+      expect(existsSync(join(dir, '.trails', '_surface.json'))).toBe(true);
       expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(true);
       expect(
         JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
@@ -237,8 +237,7 @@ describe('topo and dev trails', () => {
           cwd: dir,
         } as never)
       );
-      expect(firstPin.pin.name).toBe('before-auth');
-      expect(firstPin.pin.saveId).toBe(firstPin.save.id);
+      expect(firstPin.snapshot.pinnedAs).toBe('before-auth');
 
       const firstExport = expectOk(
         await topoExportTrail.blaze(moduleInput, { cwd: dir } as never)
@@ -258,17 +257,17 @@ describe('topo and dev trails', () => {
       try {
         const pinnedRows = projectionDb
           .query<{ count: number }, [string]>(
-            'SELECT COUNT(*) as count FROM topo_trails WHERE save_id = ?'
+            'SELECT COUNT(*) as count FROM topo_trails WHERE snapshot_id = ?'
           )
-          .get(firstPin.save.id);
+          .get(firstPin.snapshot.id);
         const exportedRows = projectionDb
           .query<{ count: number }, [string]>(
-            'SELECT COUNT(*) as count FROM topo_trails WHERE save_id = ?'
+            'SELECT COUNT(*) as count FROM topo_trails WHERE snapshot_id = ?'
           )
-          .get(firstExport.save.id);
+          .get(firstExport.snapshot.id);
         const projectedSaves = projectionDb
           .query<{ count: number }, []>(
-            'SELECT COUNT(DISTINCT save_id) as count FROM topo_trails'
+            'SELECT COUNT(DISTINCT snapshot_id) as count FROM topo_trails'
           )
           .get();
         const cachedSchemas = projectionDb
@@ -320,36 +319,45 @@ describe('topo and dev trails', () => {
       const history = expectOk(
         await topoHistoryTrail.blaze({}, { cwd: dir } as never)
       );
-      expect(history.pinCount).toBe(1);
-      expect(history.saveCount).toBeGreaterThanOrEqual(3);
-      expect(history.pins[0]?.saveId).toBe(firstPin.save.id);
+      expect(history.pinnedCount).toBe(1);
+      expect(history.snapshotCount).toBeGreaterThanOrEqual(3);
       expect(
-        history.saves.some((save) => save.id === secondExport.save.id)
+        history.snapshots.some(
+          (snapshot) => snapshot.id === firstPin.snapshot.id
+        )
+      ).toBe(true);
+      expect(
+        history.snapshots.some(
+          (snapshot) => snapshot.id === secondExport.snapshot.id
+        )
       ).toBe(true);
 
       const stats = expectOk(
         await devStatsTrail.blaze({}, { cwd: dir } as never)
       );
-      expect(stats.topo.pinCount).toBe(1);
+      expect(stats.topo.pinnedCount).toBe(1);
       expect(stats.tracing.recordCount).toBe(2);
 
       const cleanPreview = expectOk(
-        await devCleanTrail.blaze({ dryRun: true, saves: 0, trackAgeMs: 0 }, {
-          cwd: dir,
-        } as never)
+        await devCleanTrail.blaze(
+          { dryRun: true, snapshots: 0, traceAgeMs: 0 },
+          {
+            cwd: dir,
+          } as never
+        )
       );
       expect(cleanPreview.dryRun).toBe(true);
-      expect(cleanPreview.removed.topoSaves).toBeGreaterThanOrEqual(2);
-      expect(cleanPreview.removed.trackRecords).toBe(2);
+      expect(cleanPreview.removed.topoSnapshots).toBeGreaterThanOrEqual(2);
+      expect(cleanPreview.removed.traceRecords).toBe(2);
 
       const cleanResult = expectOk(
         await devCleanTrail.blaze(
-          { dryRun: false, saves: 0, trackAgeMs: 0, yes: true },
+          { dryRun: false, snapshots: 0, traceAgeMs: 0, yes: true },
           { cwd: dir } as never
         )
       );
-      expect(cleanResult.removed.trackRecords).toBe(2);
-      expect(cleanResult.remaining.pinCount).toBe(1);
+      expect(cleanResult.removed.traceRecords).toBe(2);
+      expect(cleanResult.remaining.pinnedCount).toBe(1);
 
       const unpinPreview = expectOk(
         await topoUnpinTrail.blaze({ dryRun: true, name: 'before-auth' }, {
@@ -357,7 +365,7 @@ describe('topo and dev trails', () => {
         } as never)
       );
       expect(unpinPreview.dryRun).toBe(true);
-      expect(unpinPreview.pin?.name).toBe('before-auth');
+      expect(unpinPreview.snapshot?.pinnedAs).toBe('before-auth');
 
       const unpinResult = expectOk(
         await topoUnpinTrail.blaze(
@@ -398,8 +406,8 @@ describe('topo and dev trails', () => {
         await devCleanTrail.blaze({ dryRun: true }, { cwd: dir } as never)
       );
       expect(preview.dryRun).toBe(true);
-      expect(preview.removed.topoSaves).toBe(0);
-      expect(preview.removed.trackRecords).toBe(0);
+      expect(preview.removed.topoSnapshots).toBe(0);
+      expect(preview.removed.traceRecords).toBe(0);
       expect(existsSync(join(dir, '.trails', 'trails.db'))).toBe(false);
 
       const applied = expectOk(
@@ -408,8 +416,8 @@ describe('topo and dev trails', () => {
         } as never)
       );
       expect(applied.dryRun).toBe(false);
-      expect(applied.removed.topoSaves).toBe(0);
-      expect(applied.removed.trackRecords).toBe(0);
+      expect(applied.removed.topoSnapshots).toBe(0);
+      expect(applied.removed.traceRecords).toBe(0);
       expect(existsSync(join(dir, '.trails', 'trails.db'))).toBe(false);
     } finally {
       rmSync(dir, { force: true, recursive: true });
