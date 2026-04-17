@@ -26,7 +26,7 @@ export {
   type CreateServerOptions,
   type SurfaceMcpResult,
   type TrailheadMcpOptions,
-} from './trailhead.js';
+} from './surface.js';
 
 // Transport
 export { connectStdio } from './stdio.js';

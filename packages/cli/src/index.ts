@@ -32,9 +32,9 @@ export { findAppModuleCandidates, findAppModule } from './discover.js';
 export { autoIterateLayer, dateShortcutsLayer } from './layers.js';
 
 // Surface helpers (also available from @ontrails/cli/commander)
-export { createProgram, surface } from './commander/trailhead.js';
+export { createProgram, surface } from './commander/surface.js';
 export type {
   CreateProgramOptions,
   SurfaceCliResult,
   TrailheadCliOptions,
-} from './commander/trailhead.js';
+} from './commander/surface.js';

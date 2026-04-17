@@ -45,7 +45,6 @@ export interface TrailheadMcpOptions {
   readonly layers?: readonly Layer[] | undefined;
   readonly name?: string | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
-  readonly transport?: 'stdio' | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
   readonly validate?: boolean | undefined;
   readonly version?: string | undefined;
@@ -193,10 +192,6 @@ export const surface = async (
   app: Topo,
   options: TrailheadMcpOptions = {}
 ): Promise<SurfaceMcpResult> => {
-  if ((options.transport ?? 'stdio') !== 'stdio') {
-    throw new Error(`Unsupported MCP transport: ${options.transport}`);
-  }
-
   const server = createServer(app, options);
   await connectStdio(server);
 

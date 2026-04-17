@@ -108,15 +108,16 @@ DeriveTrailSpec<TContour, TOp, TGenerated>
 ## `@ontrails/cli`
 
 ```typescript
-trailhead(topo, options?)              // one-liner (from @ontrails/cli/commander)
-buildCliCommands(topo, options?)   // escape hatch step 1
-validateCliCommands(commands)      // validate command tree shape and collisions
-toCommander(commands, options?)    // escape hatch step 2
-deriveFlags(schema, overrides?)    // Zod → CLI flags
-output(value, mode)                // write to stdout in text/json/jsonl
-deriveOutputMode(flags, topoName)  // determine output format from flags/topo-derived env
+surface(topo, options?)                // one-liner: parse argv, execute, return exit code
+createProgram(topo, options?)          // create a Commander program without parsing argv
+deriveCliCommands(topo, options?)      // projection: Result-returning command definitions
+validateCliCommands(commands)          // validate command tree shape and collisions
+toCommander(commands, options?)        // translate commands to Commander.js program
+deriveFlags(schema, overrides?)        // Zod → CLI flags
+output(value, mode)                    // write to stdout in text/json/jsonl
+deriveOutputMode(flags, topoName)      // determine output format from flags/topo-derived env
 
-DeriveCliCommandsOptions, ActionResultContext, OutputMode
+CreateProgramOptions, DeriveCliCommandsOptions, ActionResultContext, OutputMode
 CliCommand, CliFlag, CliArg
 outputModePreset(), cwdPreset(), dryRunPreset()
 defaultOnResult(ctx), passthroughResolver, isInteractive(options?)
@@ -127,22 +128,23 @@ autoIterateLayer, dateShortcutsLayer
 ## `@ontrails/mcp`
 
 ```typescript
-trailhead(topo, options?)              // one-liner
-buildMcpTools(topo, options?)      // escape hatch step 1; returns Result<McpToolDefinition[], Error>
-connectStdio(server)               // escape hatch step 2
-deriveToolName(appName, trailId)   // tool name derivation
-deriveAnnotations(trail)           // MCP annotations from intent and metadata
-createMcpProgressCallback(extra)   // progress bridge
+surface(topo, options?)                // one-liner: create server, connect stdio, return close handle
+createServer(topo, options?)           // create an MCP server without connecting
+deriveMcpTools(topo, options?)         // projection: Result-returning tool definitions
+connectStdio(server)                   // connect a created server to stdio transport
+deriveToolName(appName, trailId)       // tool name derivation
+deriveAnnotations(trail)               // MCP annotations from intent and metadata
+createMcpProgressCallback(extra)       // progress bridge
 
-TrailheadMcpOptions, DeriveMcpToolsOptions
-McpToolDefinition,                 // includes trailId: string
+CreateServerOptions, DeriveMcpToolsOptions
+McpToolDefinition,                     // includes trailId: string
 McpToolResult, McpContent, McpExtra, McpAnnotations
 ```
 
 ## `@ontrails/http`
 
 ```typescript
-buildHttpRoutes(topo, options?)    // escape hatch: route definitions without server; returns Result<HttpRouteDefinition[], Error>
+deriveHttpRoutes(topo, options?)       // projection: route definitions without server; returns Result<HttpRouteDefinition[], Error>
 
 DeriveHttpRoutesOptions, HttpMethod, HttpRouteDefinition, InputSource
 ```
@@ -150,9 +152,10 @@ DeriveHttpRoutesOptions, HttpMethod, HttpRouteDefinition, InputSource
 ## `@ontrails/hono`
 
 ```typescript
-trailhead(topo, options?)              // one-liner Hono HTTP server
+surface(topo, options?)                // one-liner: create and serve Hono app; returns close handle + url
+createApp(topo, options?)              // create a Hono app without serving
 
-TrailheadHttpOptions
+CreateAppOptions, SurfaceHttpResult
 ```
 
 ## `@ontrails/schema`

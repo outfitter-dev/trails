@@ -53,7 +53,10 @@ export interface TrailheadHttpOptions {
   readonly validate?: boolean | undefined;
 }
 
-export type CreateAppOptions = TrailheadHttpOptions;
+export type CreateAppOptions = Omit<
+  TrailheadHttpOptions,
+  'hostname' | 'port' | 'serve'
+>;
 
 export interface SurfaceHttpResult {
   readonly close: () => Promise<void>;
@@ -362,20 +365,19 @@ const startServer = (
 /**
  * Build a Hono app from a topo and start serving it with Bun.
  */
-export const surface = (
+export const surface = async (
   app: Topo,
   options: TrailheadHttpOptions = {}
 ): Promise<SurfaceHttpResult> => {
   if (options.serve === false) {
-    return Promise.reject(
-      new Error(
-        'surface() always serves the HTTP app; use createApp(graph) for an unserved Hono app'
-      )
+    throw new Error(
+      'surface() always serves the HTTP app; use createApp(graph) for an unserved Hono app'
     );
   }
 
+  // oxlint-disable-next-line require-await -- async ensures createApp() throws become rejected promises, not uncaught exceptions
   const hono = createApp(app, options);
-  return Promise.resolve(startServer(hono, options));
+  return startServer(hono, options);
 };
 
 // ---------------------------------------------------------------------------

@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { createApp, surface } from '../trailhead.js';
+import { createApp, surface } from '../surface.js';
 
 const echoTrail = trail('echo', {
   blaze: (input) => Result.ok({ reply: input.message }),

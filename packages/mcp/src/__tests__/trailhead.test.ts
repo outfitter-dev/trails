@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { createMcpServer, createServer, trailhead } from '../trailhead.js';
+import { createMcpServer, createServer, trailhead } from '../surface.js';
 import { buildMcpTools, deriveMcpTools } from '../build.js';
 import type { McpToolDefinition } from '../build.js';
 

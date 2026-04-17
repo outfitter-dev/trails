@@ -100,6 +100,10 @@ export const createProgram = (
 
 /**
  * Parse argv for a topo through Commander.
+ *
+ * Returns the process exit code without calling `process.exit()`, so callers
+ * can run cleanup before terminating. The CLI `trailhead()` entry point
+ * delegates here and lets the process exit naturally.
  */
 export const surface = async (
   app: Topo,

@@ -4,7 +4,7 @@ import { Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { buildCliCommands, deriveCliCommands } from '../build.js';
-import { createProgram, trailhead } from '../commander/trailhead.js';
+import { createProgram, trailhead } from '../commander/surface.js';
 import { toCommander } from '../commander/to-commander.js';
 import { defaultOnResult } from '../on-result.js';
 

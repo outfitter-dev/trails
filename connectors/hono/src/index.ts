@@ -5,4 +5,4 @@ export {
   type CreateAppOptions,
   type SurfaceHttpResult,
   type TrailheadHttpOptions,
-} from './trailhead.js';
+} from './surface.js';

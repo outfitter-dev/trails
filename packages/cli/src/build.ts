@@ -60,9 +60,9 @@ export interface DeriveCliCommandsOptions {
   exclude?: readonly string[] | undefined;
   include?: readonly string[] | undefined;
   intent?: readonly Intent[] | undefined;
-  layers?: Layer[] | undefined;
+  layers?: readonly Layer[] | undefined;
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
-  presets?: CliFlag[][] | undefined;
+  presets?: readonly (readonly CliFlag[])[] | undefined;
   resources?: ResourceOverrideMap | undefined;
   resolveInput?: InputResolver | undefined;
   /** Set to `false` to skip topo validation while building commands. */
