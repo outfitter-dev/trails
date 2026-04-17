@@ -1,22 +1,22 @@
 import { describe, test, expect } from 'bun:test';
 
 import { deriveSurfaceMapDiff } from '../diff.js';
-import type { TrailheadMap, TrailheadMapEntry } from '../types.js';
+import type { SurfaceMap, SurfaceMapEntry } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 const entry = (
-  overrides: Partial<TrailheadMapEntry> & { id: string }
-): TrailheadMapEntry => ({
+  overrides: Partial<SurfaceMapEntry> & { id: string }
+): SurfaceMapEntry => ({
   exampleCount: 0,
   kind: 'trail',
   trailheads: [],
   ...overrides,
 });
 
-const trailheadMap = (entries: TrailheadMapEntry[]): TrailheadMap => ({
+const surfaceMap = (entries: SurfaceMapEntry[]): SurfaceMap => ({
   entries,
   generatedAt: new Date().toISOString(),
   version: '1.0',
@@ -30,15 +30,15 @@ describe('deriveSurfaceMapDiff', () => {
   describe('top-level changes', () => {
     test('empty diff for identical maps', () => {
       const e = entry({ id: 'user.create' });
-      const result = deriveSurfaceMapDiff(trailheadMap([e]), trailheadMap([e]));
+      const result = deriveSurfaceMapDiff(surfaceMap([e]), surfaceMap([e]));
 
       expect(result.entries).toHaveLength(0);
       expect(result.hasBreaking).toBe(false);
     });
 
     test('added trail detected as info', () => {
-      const prev = trailheadMap([]);
-      const curr = trailheadMap([entry({ id: 'user.create' })]);
+      const prev = surfaceMap([]);
+      const curr = surfaceMap([entry({ id: 'user.create' })]);
       const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.entries).toHaveLength(1);
@@ -48,8 +48,8 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('added resource detected as info', () => {
-      const prev = trailheadMap([]);
-      const curr = trailheadMap([entry({ id: 'db.main', kind: 'resource' })]);
+      const prev = surfaceMap([]);
+      const curr = surfaceMap([entry({ id: 'db.main', kind: 'resource' })]);
       const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.entries[0]?.details).toContain('Resource "db.main" added');
@@ -57,8 +57,8 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('added contour detected as info', () => {
-      const prev = trailheadMap([]);
-      const curr = trailheadMap([entry({ id: 'user', kind: 'contour' })]);
+      const prev = surfaceMap([]);
+      const curr = surfaceMap([entry({ id: 'user', kind: 'contour' })]);
       const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.entries[0]?.details).toContain('Contour "user" added');
@@ -66,8 +66,8 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('removed trail detected as breaking', () => {
-      const prev = trailheadMap([entry({ id: 'user.delete' })]);
-      const curr = trailheadMap([]);
+      const prev = surfaceMap([entry({ id: 'user.delete' })]);
+      const curr = surfaceMap([]);
       const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.entries).toHaveLength(1);
@@ -77,8 +77,8 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('removed resource detected as breaking', () => {
-      const prev = trailheadMap([entry({ id: 'db.main', kind: 'resource' })]);
-      const curr = trailheadMap([]);
+      const prev = surfaceMap([entry({ id: 'db.main', kind: 'resource' })]);
+      const curr = surfaceMap([]);
       const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.entries[0]?.details).toContain(
@@ -88,8 +88,8 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('DiffResult.hasBreaking is true when any breaking entries exist', () => {
-      const prev = trailheadMap([entry({ id: 'user.delete' })]);
-      const curr = trailheadMap([]);
+      const prev = surfaceMap([entry({ id: 'user.delete' })]);
+      const curr = surfaceMap([]);
       const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
@@ -99,7 +99,7 @@ describe('deriveSurfaceMapDiff', () => {
 
   describe('schema changes', () => {
     test('required input field added classified as breaking', () => {
-      const prev = trailheadMap([
+      const prev = surfaceMap([
         entry({
           id: 'user.create',
           input: {
@@ -109,7 +109,7 @@ describe('deriveSurfaceMapDiff', () => {
           },
         }),
       ]);
-      const curr = trailheadMap([
+      const curr = surfaceMap([
         entry({
           id: 'user.create',
           input: {
@@ -136,7 +136,7 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('optional input field added classified as info', () => {
-      const prev = trailheadMap([
+      const prev = surfaceMap([
         entry({
           id: 'user.create',
           input: {
@@ -146,7 +146,7 @@ describe('deriveSurfaceMapDiff', () => {
           },
         }),
       ]);
-      const curr = trailheadMap([
+      const curr = surfaceMap([
         entry({
           id: 'user.create',
           input: {
@@ -172,7 +172,7 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('output field removed classified as breaking', () => {
-      const prev = trailheadMap([
+      const prev = surfaceMap([
         entry({
           id: 'user.get',
           output: {
@@ -184,7 +184,7 @@ describe('deriveSurfaceMapDiff', () => {
           },
         }),
       ]);
-      const curr = trailheadMap([
+      const curr = surfaceMap([
         entry({
           id: 'user.get',
           output: {
@@ -206,7 +206,7 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('output field type changed classified as breaking', () => {
-      const prev = trailheadMap([
+      const prev = surfaceMap([
         entry({
           id: 'user.get',
           output: {
@@ -215,7 +215,7 @@ describe('deriveSurfaceMapDiff', () => {
           },
         }),
       ]);
-      const curr = trailheadMap([
+      const curr = surfaceMap([
         entry({
           id: 'user.get',
           output: {
@@ -237,10 +237,10 @@ describe('deriveSurfaceMapDiff', () => {
 
   describe('meta and trailheads', () => {
     test('trailhead removed classified as breaking', () => {
-      const prev = trailheadMap([
+      const prev = surfaceMap([
         entry({ id: 'user.list', trailheads: ['cli', 'mcp'] }),
       ]);
-      const curr = trailheadMap([
+      const curr = surfaceMap([
         entry({ id: 'user.list', trailheads: ['mcp'] }),
       ]);
       const result = deriveSurfaceMapDiff(prev, curr);
@@ -254,10 +254,10 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('CLI path change is classified as breaking', () => {
-      const prev = trailheadMap([
+      const prev = surfaceMap([
         entry({ cli: { path: ['topo', 'pin'] }, id: 'topo.pin' }),
       ]);
-      const curr = trailheadMap([
+      const curr = surfaceMap([
         entry({ cli: { path: ['topo', 'save'] }, id: 'topo.pin' }),
       ]);
       const result = deriveSurfaceMapDiff(prev, curr);
@@ -271,10 +271,8 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('safety marker changed classified as warning', () => {
-      const prev = trailheadMap([entry({ id: 'data.wipe', intent: 'read' })]);
-      const curr = trailheadMap([
-        entry({ id: 'data.wipe', intent: 'destroy' }),
-      ]);
+      const prev = surfaceMap([entry({ id: 'data.wipe', intent: 'read' })]);
+      const curr = surfaceMap([entry({ id: 'data.wipe', intent: 'destroy' })]);
       const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
@@ -284,10 +282,10 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('description change classified as info', () => {
-      const prev = trailheadMap([
+      const prev = surfaceMap([
         entry({ description: 'Get a user', id: 'user.get' }),
       ]);
-      const curr = trailheadMap([
+      const curr = surfaceMap([
         entry({ description: 'Fetch a user by ID', id: 'user.get' }),
       ]);
       const result = deriveSurfaceMapDiff(prev, curr);
@@ -299,8 +297,8 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('deprecation added classified as warning', () => {
-      const prev = trailheadMap([entry({ id: 'entity.list' })]);
-      const curr = trailheadMap([
+      const prev = surfaceMap([entry({ id: 'entity.list' })]);
+      const curr = surfaceMap([
         entry({
           deprecated: true,
           id: 'entity.list',
@@ -318,14 +316,14 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('crosses changed produces warning', () => {
-      const prev = trailheadMap([
+      const prev = surfaceMap([
         entry({
           crosses: ['user.get', 'user.lookup'],
           id: 'user.update',
           kind: 'trail',
         }),
       ]);
-      const curr = trailheadMap([
+      const curr = surfaceMap([
         entry({
           crosses: ['user.get', 'user.search'],
           id: 'user.update',
@@ -344,13 +342,13 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('declared resources changed produces warning', () => {
-      const prev = trailheadMap([
+      const prev = surfaceMap([
         entry({
           id: 'user.update',
           resources: ['db.main', 'search.index'],
         }),
       ]);
-      const curr = trailheadMap([
+      const curr = surfaceMap([
         entry({
           id: 'user.update',
           resources: ['db.main', 'cache.main'],
@@ -370,7 +368,7 @@ describe('deriveSurfaceMapDiff', () => {
 
   describe('severity partitioning', () => {
     test('DiffResult partitions correctly into breaking, warnings, info', () => {
-      const prev = trailheadMap([
+      const prev = surfaceMap([
         entry({
           description: 'old',
           id: 'a.trail',
@@ -381,7 +379,7 @@ describe('deriveSurfaceMapDiff', () => {
           },
         }),
       ]);
-      const curr = trailheadMap([
+      const curr = surfaceMap([
         entry({
           description: 'new',
           id: 'a.trail',

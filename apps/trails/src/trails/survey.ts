@@ -1,7 +1,7 @@
 /**
  * `survey` trail -- Full topo introspection.
  *
- * Lists trails, shows detail for individual trails, generates trailhead maps,
+ * Lists trails, shows detail for individual trails, generates surface maps,
  * and diffs against previous versions.
  */
 
@@ -12,7 +12,7 @@ import {
   deriveSurfaceMapDiff,
   deriveOpenApiSpec,
   deriveSurfaceMap,
-  readTrailheadMap,
+  readSurfaceMap,
 } from '@ontrails/schema';
 import { z } from 'zod';
 
@@ -52,11 +52,11 @@ const buildSurveyDiff = async (
   breakingOnly: boolean
 ): Promise<Result<object, Error>> => {
   const currentMap = deriveSurfaceMap(app);
-  const previousMap = await readTrailheadMap();
+  const previousMap = await readSurfaceMap();
   if (!previousMap) {
     return Result.err(
       new NotFoundError(
-        'No previous trailhead map found. Run `trails topo export` first.'
+        'No previous surface map found. Run `trails topo export` first.'
       )
     );
   }
@@ -195,7 +195,7 @@ export const surveyTrail = trail('survey', {
     generate: z
       .boolean()
       .default(false)
-      .describe('Generate trailhead map and lock file'),
+      .describe('Generate surface map and lock file'),
     module: z.string().optional().describe('Path to the app module'),
     openapi: z.boolean().default(false).describe('Output OpenAPI 3.1 spec'),
     trailId: z.string().optional().describe('Trail ID for detail view'),

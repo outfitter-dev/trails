@@ -1,22 +1,22 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
-import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
-  writeTrailheadMap,
-  readTrailheadMap,
-  writeTrailheadLock,
-  readTrailheadLockData,
-  readTrailheadLock,
+  writeSurfaceMap,
+  readSurfaceMap,
+  writeSurfaceLock,
+  readSurfaceLockData,
+  readSurfaceLock,
 } from '../io.js';
-import type { TrailheadMap } from '../types.js';
+import type { SurfaceMap } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
 
-const makeTrailheadMap = (): TrailheadMap => ({
+const makeSurfaceMap = (): SurfaceMap => ({
   entries: [
     {
       description: 'Create a user',
@@ -57,13 +57,13 @@ afterEach(async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Trailhead map tests
+// Surface map tests
 // ---------------------------------------------------------------------------
 
-describe('writeTrailheadMap / readTrailheadMap', () => {
+describe('writeSurfaceMap / readSurfaceMap', () => {
   test('writes valid JSON to _trailhead.json', async () => {
-    const map = makeTrailheadMap();
-    const filePath = await writeTrailheadMap(map, { dir: tempDir });
+    const map = makeSurfaceMap();
+    const filePath = await writeSurfaceMap(map, { dir: tempDir });
 
     expect(filePath).toBe(join(tempDir, '_trailhead.json'));
 
@@ -74,15 +74,15 @@ describe('writeTrailheadMap / readTrailheadMap', () => {
   });
 
   test('reads it back and produces identical data', async () => {
-    const map = makeTrailheadMap();
-    await writeTrailheadMap(map, { dir: tempDir });
-    const result = await readTrailheadMap({ dir: tempDir });
+    const map = makeSurfaceMap();
+    await writeSurfaceMap(map, { dir: tempDir });
+    const result = await readSurfaceMap({ dir: tempDir });
 
     expect(result).toEqual(map);
   });
 
   test('returns null for missing file', async () => {
-    const result = await readTrailheadMap({
+    const result = await readSurfaceMap({
       dir: join(tempDir, 'nonexistent'),
     });
     expect(result).toBeNull();
@@ -93,10 +93,10 @@ describe('writeTrailheadMap / readTrailheadMap', () => {
 // Surface Lock tests
 // ---------------------------------------------------------------------------
 
-describe('writeTrailheadLock / readTrailheadLock', () => {
+describe('writeSurfaceLock / readSurfaceLock', () => {
   test('writes a single line with the hash', async () => {
     const hash = 'abc123def456'.repeat(4);
-    const filePath = await writeTrailheadLock(hash, { dir: tempDir });
+    const filePath = await writeSurfaceLock(hash, { dir: tempDir });
 
     expect(filePath).toBe(join(tempDir, 'trails.lock'));
 
@@ -108,7 +108,7 @@ describe('writeTrailheadLock / readTrailheadLock', () => {
 
   test('writes and reads structured JSON locks', async () => {
     const hash = 'deadbeef'.repeat(8);
-    const filePath = await writeTrailheadLock(makeStructuredLock(hash), {
+    const filePath = await writeSurfaceLock(makeStructuredLock(hash), {
       dir: tempDir,
     });
 
@@ -118,24 +118,16 @@ describe('writeTrailheadLock / readTrailheadLock', () => {
     expect(parsed.hash).toBe(hash);
     expect(parsed.version).toBe(1);
 
-    const result = await readTrailheadLockData({ dir: tempDir });
+    const result = await readSurfaceLockData({ dir: tempDir });
 
     expect(result).toEqual(makeStructuredLock(hash));
 
-    const legacyResult = await readTrailheadLock({ dir: tempDir });
+    const legacyResult = await readSurfaceLock({ dir: tempDir });
     expect(legacyResult).toBe(hash);
   });
 
-  test('falls back to the legacy trailhead.lock name during migration', async () => {
-    const hash = 'legacydeadbeef'.repeat(4);
-    await writeFile(join(tempDir, 'trailhead.lock'), `${hash}\n`);
-
-    const result = await readTrailheadLock({ dir: tempDir });
-    expect(result).toBe(hash);
-  });
-
   test('returns null for missing file', async () => {
-    const result = await readTrailheadLock({
+    const result = await readSurfaceLock({
       dir: join(tempDir, 'nonexistent'),
     });
     expect(result).toBeNull();
@@ -150,24 +142,24 @@ describe('default directory', () => {
   test('defaults to .trails/', async () => {
     // We can't easily test the actual default without polluting the repo,
     // so we verify the custom directory option works and trust the default
-    const map = makeTrailheadMap();
+    const map = makeSurfaceMap();
     const customDir = join(tempDir, 'custom-trails');
-    const filePath = await writeTrailheadMap(map, { dir: customDir });
+    const filePath = await writeSurfaceMap(map, { dir: customDir });
 
     expect(filePath).toBe(join(customDir, '_trailhead.json'));
 
-    const result = await readTrailheadMap({ dir: customDir });
+    const result = await readSurfaceMap({ dir: customDir });
     expect(result).toEqual(map);
   });
 
   test('custom directory option works for lock files', async () => {
     const customDir = join(tempDir, 'custom-lock-dir');
     const hash = 'a1b2c3d4e5f6'.repeat(5);
-    const filePath = await writeTrailheadLock(hash, { dir: customDir });
+    const filePath = await writeSurfaceLock(hash, { dir: customDir });
 
     expect(filePath).toBe(join(customDir, 'trails.lock'));
 
-    const result = await readTrailheadLock({ dir: customDir });
+    const result = await readSurfaceLock({ dir: customDir });
     expect(result).toBe(hash);
   });
 });

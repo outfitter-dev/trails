@@ -163,10 +163,10 @@ CreateAppOptions, SurfaceHttpResult
 ```typescript
 deriveOpenApiSpec(topo, options?) // OpenAPI 3.1 spec from topo
 deriveSurfaceMap(topo), deriveSurfaceMapHash(map), deriveSurfaceMapDiff(before, after)
-writeTrailheadMap(map, options?), readTrailheadMap(options?)
-writeTrailheadLock(lock, options?), readTrailheadLockData(options?), readTrailheadLock(options?)
+writeSurfaceMap(map, options?), readSurfaceMap(options?)
+writeSurfaceLock(lock, options?), readSurfaceLockData(options?), readSurfaceLock(options?)
 
-TrailheadMap, TrailheadMapEntry, DiffResult, DiffEntry, JsonSchema
+SurfaceMap, SurfaceMapEntry, SurfaceMapContourReference, SurfaceLock, DiffResult, DiffEntry, JsonSchema
 WriteOptions, ReadOptions
 
 OpenApiOptions, OpenApiSpec, OpenApiServer

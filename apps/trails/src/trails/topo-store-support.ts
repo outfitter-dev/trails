@@ -17,8 +17,8 @@ import {
   openWriteTrailsDb,
   deriveTrailsDir,
 } from '@ontrails/core/internal/trails-db';
-import type { TrailheadLock, TrailheadMap } from '@ontrails/schema';
-import { writeTrailheadLock, writeTrailheadMap } from '@ontrails/schema';
+import type { SurfaceLock, SurfaceMap } from '@ontrails/schema';
+import { writeSurfaceLock, writeSurfaceMap } from '@ontrails/schema';
 
 import type { TopoExportReport } from './topo-support.js';
 import {
@@ -59,12 +59,12 @@ const writeStoredExportArtifacts = async (
   storedExport: StoredTopoExport,
   trailsDir: string
 ): Promise<Pick<TopoExportReport, 'hash' | 'lockPath' | 'mapPath'>> => {
-  const mapPath = await writeTrailheadMap(
-    JSON.parse(storedExport.trailheadMapJson) as TrailheadMap,
+  const mapPath = await writeSurfaceMap(
+    JSON.parse(storedExport.trailheadMapJson) as SurfaceMap,
     { dir: trailsDir }
   );
-  const lockPath = await writeTrailheadLock(
-    JSON.parse(storedExport.lockContent) as TrailheadLock,
+  const lockPath = await writeSurfaceLock(
+    JSON.parse(storedExport.lockContent) as SurfaceLock,
     { dir: trailsDir }
   );
 

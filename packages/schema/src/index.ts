@@ -9,22 +9,22 @@ export type { OpenApiOptions, OpenApiSpec, OpenApiServer } from './openapi.js';
 
 // File I/O
 export {
-  writeTrailheadMap,
-  readTrailheadMap,
-  writeTrailheadLock,
-  readTrailheadLockData,
-  readTrailheadLock,
+  writeSurfaceMap,
+  readSurfaceMap,
+  writeSurfaceLock,
+  readSurfaceLockData,
+  readSurfaceLock,
 } from './io.js';
 
 // Types
 export type {
-  TrailheadMap,
-  TrailheadMapEntry,
-  TrailheadLock,
+  SurfaceMap,
+  SurfaceMapEntry,
+  SurfaceLock,
   DiffEntry,
   DiffResult,
   JsonSchema,
-  TrailheadContourReference,
+  SurfaceMapContourReference,
   WriteOptions,
   ReadOptions,
 } from './types.js';

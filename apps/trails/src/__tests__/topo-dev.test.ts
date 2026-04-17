@@ -124,23 +124,17 @@ describe('topo and dev trails', () => {
         version: 1,
       });
 
-      writeFileSync(
-        join(dir, '.trails', 'trailhead.lock'),
-        readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8')
-      );
-      rmSync(join(dir, '.trails', 'trails.lock'));
-
-      const legacySummary = expectOk(
+      const summaryAfterExport = expectOk(
         await topoTrail.blaze(moduleInput, { cwd: dir } as never)
       );
-      expect(legacySummary.lockExists).toBe(true);
+      expect(summaryAfterExport.lockExists).toBe(true);
 
       const verifyResult = expectOk(
         await topoVerifyTrail.blaze(moduleInput, { cwd: dir } as never)
       );
       expect(verifyResult.stale).toBe(false);
 
-      writeFileSync(join(dir, '.trails', 'trailhead.lock'), 'stale\n');
+      writeFileSync(join(dir, '.trails', 'trails.lock'), 'stale\n');
       const verifyError = expectErr(
         await topoVerifyTrail.blaze(moduleInput, { cwd: dir } as never)
       );

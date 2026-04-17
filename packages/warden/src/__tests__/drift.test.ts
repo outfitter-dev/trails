@@ -12,7 +12,7 @@ import {
 import {
   deriveSurfaceMapHash,
   deriveSurfaceMap,
-  writeTrailheadLock,
+  writeSurfaceLock,
 } from '@ontrails/schema';
 import { z } from 'zod';
 
@@ -92,7 +92,7 @@ describe('checkDrift', () => {
     try {
       const tp = makeTopo();
       const hash = deriveSurfaceMapHash(deriveSurfaceMap(tp));
-      await writeTrailheadLock(
+      await writeSurfaceLock(
         { hash, version: 1 },
         { dir: committedLockDir(dir) }
       );
@@ -110,7 +110,7 @@ describe('checkDrift', () => {
     const dir = createTempDir();
     try {
       writeFileSync(
-        join(committedLockDir(dir), 'trailhead.lock'),
+        join(committedLockDir(dir), 'trails.lock'),
         'outdated-hash\n'
       );
 

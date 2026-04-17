@@ -1,5 +1,5 @@
 /**
- * Types for trailhead maps, diffing, and lock files.
+ * Types for surface maps, diffing, and lock files.
  */
 
 // ---------------------------------------------------------------------------
@@ -9,17 +9,17 @@
 /** A JSON Schema object produced by zodToJsonSchema. */
 export type JsonSchema = Readonly<Record<string, unknown>>;
 
-export interface TrailheadContourReference {
+export interface SurfaceMapContourReference {
   readonly contour: string;
   readonly field: string;
   readonly identity: string;
 }
 
 // ---------------------------------------------------------------------------
-// Trailhead Map
+// Surface Map
 // ---------------------------------------------------------------------------
 
-export interface TrailheadMapEntry {
+export interface SurfaceMapEntry {
   readonly id: string;
   readonly kind: 'contour' | 'trail' | 'signal' | 'resource';
   readonly trailheads: readonly string[];
@@ -38,7 +38,7 @@ export interface TrailheadMapEntry {
   readonly contours?: readonly string[] | undefined;
   readonly schema?: JsonSchema | undefined;
   readonly identity?: string | undefined;
-  readonly references?: readonly TrailheadContourReference[] | undefined;
+  readonly references?: readonly SurfaceMapContourReference[] | undefined;
   readonly resources?: readonly string[] | undefined;
   readonly detours?:
     | readonly { readonly on: string; readonly maxAttempts: number }[]
@@ -48,14 +48,14 @@ export interface TrailheadMapEntry {
   readonly description?: string | undefined;
 }
 
-export interface TrailheadMap {
+export interface SurfaceMap {
   readonly version: string;
   readonly generatedAt: string;
-  readonly entries: readonly TrailheadMapEntry[];
+  readonly entries: readonly SurfaceMapEntry[];
 }
 
 // ---------------------------------------------------------------------------
-// Trailhead Lock
+// Surface Lock
 // ---------------------------------------------------------------------------
 
 /**
@@ -65,7 +65,7 @@ export interface TrailheadMap {
  * The normalized shape always exposes the committed hash and preserves any
  * extra structured metadata.
  */
-export type TrailheadLock = Readonly<Record<string, unknown>> & {
+export type SurfaceLock = Readonly<Record<string, unknown>> & {
   readonly hash: string;
 };
 
