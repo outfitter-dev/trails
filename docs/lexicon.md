@@ -56,7 +56,8 @@ The conceptual boundary where a surface meets the trail system. The
 trailhead is where external input enters the framework and where the
 surface's protocol-specific handling ends and the shared `executeTrail()`
 pipeline begins. "Surface" names the rendering; "trailhead" names the
-boundary point.
+boundary point. Use `surface` for the user-facing API and docs; reserve
+`trailhead` for this boundary concept only.
 
 ### `topo`
 
