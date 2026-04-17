@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { Readable } from 'node:stream';
-import { finished } from 'node:stream/promises';
+import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 
 export interface FetchSurface {
@@ -121,8 +121,7 @@ const writeResponse = async (
   const body = Readable.fromWeb(
     response.body as unknown as NodeReadableStream<Uint8Array>
   );
-  body.pipe(res);
-  await finished(res);
+  await pipeline(body, res);
 };
 
 /**

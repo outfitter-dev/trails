@@ -34,7 +34,7 @@ const handleMiddleware = async (
   const completion = Promise.withResolvers<undefined>();
 
   // oxlint-disable-next-line promise/prefer-await-to-callbacks -- Connect middleware completes through next(error?)
-  middleware(req, res, (error) => {
+  const middlewarePromise = middleware(req, res, (error) => {
     if (error !== undefined) {
       completion.reject(error);
       return;
@@ -44,7 +44,7 @@ const handleMiddleware = async (
   });
 
   try {
-    await completion.promise;
+    await Promise.race([middlewarePromise, completion.promise]);
   } catch (error) {
     res.statusCode = 500;
     res.end(error instanceof Error ? error.message : String(error));
