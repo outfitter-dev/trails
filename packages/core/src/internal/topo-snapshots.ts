@@ -134,25 +134,6 @@ const TOPO_INDEX_STATEMENTS = [
   'CREATE INDEX IF NOT EXISTS idx_topo_trail_fires_snapshot_id ON topo_trail_fires(snapshot_id)',
   'CREATE INDEX IF NOT EXISTS idx_topo_trail_on_snapshot_id ON topo_trail_on(snapshot_id)',
 ] as const;
-const ALL_TOPO_TABLES = [
-  'topo_exports',
-  'topo_schemas',
-  'topo_examples',
-  'topo_surfaces',
-  'topo_trailheads',
-  'topo_trail_signals',
-  'topo_signals',
-  'topo_trail_on',
-  'topo_trail_fires',
-  'topo_resources',
-  'topo_trail_resources',
-  'topo_crossings',
-  'topo_trails',
-  'topo_pins',
-  'topo_saves',
-  'topo_snapshots',
-] as const;
-
 interface TopoSnapshotRow {
   readonly created_at: string;
   readonly git_dirty: number;
@@ -222,30 +203,20 @@ const createAllTopoTables = (db: Database): void => {
   runStatements(db, TOPO_INDEX_STATEMENTS);
 };
 
-const dropAllTopoTables = (db: Database): void => {
-  for (const table of ALL_TOPO_TABLES) {
-    db.run(`DROP TABLE IF EXISTS ${table}`);
-  }
-};
-
 /**
  * Current topo subsystem schema version.
  *
- * Version 7 renames `topo_trailheads` to `topo_surfaces`, the stored export
- * columns to `surface_map`/`surface_hash`, and the child foreign key column
- * `save_id` to `snapshot_id` to match the snapshot-first vocabulary. Older
- * pre-release topo stores are cut over by dropping the previous history and
- * snapshot tables and recreating the schema in place rather than translating
- * old rows.
+ * Version 7 defines the snapshot-first topo tables (`topo_snapshots`,
+ * `topo_surfaces`, and `snapshot_id` foreign keys) as the only supported
+ * schema. Older pre-release tables are ignored in place; we create the current
+ * tables and advance the subsystem version without translating or deleting
+ * legacy rows.
  */
 export const TOPO_SCHEMA_VERSION = 7;
 
 export const ensureTopoSnapshotSchema = (db: Database): void => {
   ensureSubsystemSchema(db, {
-    migrate: (currentVersion) => {
-      if (currentVersion > 0 && currentVersion < TOPO_SCHEMA_VERSION) {
-        dropAllTopoTables(db);
-      }
+    migrate: () => {
       createAllTopoTables(db);
     },
     subsystem: TOPO_SUBSYSTEM,

@@ -454,8 +454,8 @@ const seedHistoryOnlyTopoSchema = (
 
 /**
  * Seed a pre-v7 projection store that still uses the `topo_trailheads`
- * table and the `save_id` foreign-key column. The fresh migration should drop
- * these before recreating the snapshot-first schema.
+ * table and the `save_id` foreign-key column. The fresh migration should
+ * ignore this legacy state and create the snapshot-first schema alongside it.
  */
 const seedLegacyProjectionStore = (
   db: ReturnType<typeof openWriteTrailsDb>
@@ -706,7 +706,7 @@ describe('topo store projection', () => {
       assertNoWriteEscalationOnReads(rootDir);
     });
 
-    test('createTopoStore resets a legacy history-only store during cutover', () => {
+    test('createTopoStore ignores a legacy history-only store during cutover', () => {
       const rootDir = makeRoot();
       withWriteDb(rootDir, (db) => {
         seedHistoryOnlyTopoSchema(db);
@@ -722,8 +722,8 @@ describe('topo store projection', () => {
         expect(tableExists(db, 'topo_trails')).toBe(true);
         expect(tableExists(db, 'topo_resources')).toBe(true);
         expect(tableExists(db, 'topo_surfaces')).toBe(true);
-        expect(tableExists(db, 'topo_saves')).toBe(false);
-        expect(tableExists(db, 'topo_pins')).toBe(false);
+        expect(tableExists(db, 'topo_saves')).toBe(true);
+        expect(tableExists(db, 'topo_pins')).toBe(true);
         expect(tableExists(db, 'topo_trailheads')).toBe(false);
         expect(
           db
@@ -736,7 +736,7 @@ describe('topo store projection', () => {
       });
     });
 
-    test('createTopoSnapshot succeeds after resetting a legacy projection store', () => {
+    test('createTopoSnapshot succeeds alongside a legacy projection store', () => {
       withProjectionDb((db) => {
         seedLegacyProjectionStore(db);
 
@@ -746,7 +746,7 @@ describe('topo store projection', () => {
           })
         );
 
-        expect(tableExists(db, 'topo_saves')).toBe(false);
+        expect(tableExists(db, 'topo_trailheads')).toBe(true);
         expect(countRows(db, 'topo_snapshots')).toBe(1);
         expectProjectionCounts(db, snapshot.id);
       });
@@ -779,7 +779,7 @@ describe('topo store projection', () => {
     });
   });
 
-  test('history-only topo stores are reset instead of translated into snapshots', () => {
+  test('history-only topo stores are ignored instead of translated into snapshots', () => {
     withProjectionDb((db) => {
       seedHistoryOnlyTopoSchema(db);
       ensureTopoSnapshotSchema(db);
@@ -804,10 +804,10 @@ describe('topo store projection', () => {
         expect(tableExists(db, table)).toBe(true);
       }
       expect(countRows(db, 'topo_snapshots')).toBe(0);
-      // Legacy history and trailhead tables are dropped during the migration,
-      // never translated into the new snapshot-first schema.
-      expect(tableExists(db, 'topo_saves')).toBe(false);
-      expect(tableExists(db, 'topo_pins')).toBe(false);
+      // Legacy history tables are left untouched during the migration and are
+      // simply ignored by the snapshot-first readers.
+      expect(tableExists(db, 'topo_saves')).toBe(true);
+      expect(tableExists(db, 'topo_pins')).toBe(true);
       expect(tableExists(db, 'topo_trailheads')).toBe(false);
     });
   });
