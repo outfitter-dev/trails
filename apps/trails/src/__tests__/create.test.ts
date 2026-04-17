@@ -92,7 +92,7 @@ const runCreate = (
   projectDir: string,
   overrides?: Partial<{
     starter: Starter;
-    trailheads: readonly Surface[];
+    surfaces: readonly Surface[];
     verify: boolean;
   }>
 ) =>
@@ -101,7 +101,7 @@ const runCreate = (
       dir: dirname(projectDir),
       name: basename(projectDir),
       starter: overrides?.starter ?? 'hello',
-      trailheads: [...(overrides?.trailheads ?? ['cli'])],
+      surfaces: [...(overrides?.surfaces ?? ['cli'])],
       verify: overrides?.verify ?? true,
     },
     { cross: runCross } as never
@@ -264,7 +264,7 @@ describe('trails create', () => {
 
     test('generates with MCP surface', async () => {
       await withTempProject(async (dir) => {
-        expectOk(await runCreate(dir, { trailheads: ['mcp'] }));
+        expectOk(await runCreate(dir, { surfaces: ['mcp'] }));
         assertMcpSurface(dir);
       });
     });

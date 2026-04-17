@@ -29,7 +29,7 @@ The skill gives your agent the full Trails reference: lexicon, patterns, error t
 bunx @ontrails/trails create
 ```
 
-Follow the prompts — pick a name, choose a starter, select your trailheads. The scaffolder generates a working project with trails, a topo, trailhead wiring, and tests.
+Follow the prompts — pick a name, choose a starter, select your surfaces. The scaffolder generates a working project with trails, a topo, surface wiring, and tests.
 
 Or install manually:
 

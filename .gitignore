@@ -12,3 +12,5 @@ dist/
 .claude/scheduled_tasks.lock
 .npmrc
 .envrc
+.claude/settings.local.json
+.trails/clark/survey-latest.md
