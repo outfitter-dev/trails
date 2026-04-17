@@ -189,8 +189,8 @@ describe('trails survey', () => {
   });
 
   test('deriveSurfaceMapDiff returns empty for identical maps', () => {
-    const trailheadMap = deriveSurfaceMap(app);
-    const diff = deriveSurfaceMapDiff(trailheadMap, trailheadMap);
+    const surfaceMap = deriveSurfaceMap(app);
+    const diff = deriveSurfaceMapDiff(surfaceMap, surfaceMap);
     expect(diff.entries.length).toBe(0);
     expect(diff.hasBreaking).toBe(false);
   });

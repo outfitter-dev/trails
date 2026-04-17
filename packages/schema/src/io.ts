@@ -36,19 +36,15 @@ const ensureDir = async (dir: string): Promise<void> => {
   await mkdir(dir, { recursive: true });
 };
 
-const readFirstExistingText = async (
-  filePaths: readonly string[]
-): Promise<string | null> => {
-  for (const filePath of filePaths) {
-    try {
-      return await Bun.file(filePath).text();
-    } catch (error: unknown) {
-      if (!isNotFound(error)) {
-        throw error;
-      }
+const readTextIfExists = async (filePath: string): Promise<string | null> => {
+  try {
+    return await Bun.file(filePath).text();
+  } catch (error: unknown) {
+    if (!isNotFound(error)) {
+      throw error;
     }
+    return null;
   }
-  return null;
 };
 
 const isSurfaceLock = (value: unknown): value is SurfaceLock => {
@@ -104,7 +100,7 @@ export const readSurfaceMap = async (
   options?: ReadOptions
 ): Promise<SurfaceMap | null> => {
   const dir = resolveDir(options);
-  const content = await readFirstExistingText([join(dir, SURFACE_MAP_FILE)]);
+  const content = await readTextIfExists(join(dir, SURFACE_MAP_FILE));
   return content ? (JSON.parse(content) as SurfaceMap) : null;
 };
 
@@ -145,7 +141,7 @@ export const readSurfaceLockData = async (
   options?: ReadOptions
 ): Promise<SurfaceLock | null> => {
   const dir = resolveDir(options);
-  const content = await readFirstExistingText([join(dir, SURFACE_LOCK_FILE)]);
+  const content = await readTextIfExists(join(dir, SURFACE_LOCK_FILE));
   return content ? parseSurfaceLock(content) : null;
 };
 

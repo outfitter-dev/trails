@@ -76,8 +76,7 @@ interface CurrentResourceDetail {
 const topoStoreRef = (saveId: string) => ({ saveId }) as const;
 
 const hasCommittedLock = (trailsDir: string): boolean =>
-  existsSync(join(trailsDir, 'trails.lock')) ||
-  existsSync(join(trailsDir, 'trailhead.lock'));
+  existsSync(join(trailsDir, 'trails.lock'));
 
 const readSurfaceEntries = (
   trailheadMapJson: string
