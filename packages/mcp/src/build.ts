@@ -11,7 +11,7 @@ import {
   TRAILHEAD_KEY,
   ValidationError,
   executeTrail,
-  filterTrailheadTrails,
+  filterSurfaceTrails,
   isBlobRef,
   validateEstablishedTopo,
   zodToJsonSchema,
@@ -35,7 +35,7 @@ import { deriveToolName } from './tool-name.js';
 // Public types
 // ---------------------------------------------------------------------------
 
-export interface BuildMcpToolsOptions {
+export interface DeriveMcpToolsOptions {
   /** Config values for resources that declare a `config` schema, keyed by resource ID. */
   readonly configValues?:
     | Readonly<Record<string, Record<string, unknown>>>
@@ -44,9 +44,7 @@ export interface BuildMcpToolsOptions {
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   readonly exclude?: readonly string[] | undefined;
-  readonly excludeTrails?: readonly string[] | undefined;
   readonly include?: readonly string[] | undefined;
-  readonly includeTrails?: readonly string[] | undefined;
   readonly intent?: readonly Intent[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
@@ -235,7 +233,7 @@ const createHandler =
     app: Topo,
     t: Trail<unknown, unknown, unknown>,
     layers: readonly Layer[],
-    options: BuildMcpToolsOptions
+    options: DeriveMcpToolsOptions
   ): ((
     args: Record<string, unknown>,
     extra: McpExtra
@@ -270,40 +268,6 @@ const createHandler =
  * - MCP annotations from trail meta
  * - A handler that validates, composes layers, executes, and maps results
  */
-const dedupePatterns = (
-  patterns: readonly string[] | undefined,
-  legacyPatterns: readonly string[] | undefined
-): string[] | undefined => {
-  const merged = [...(patterns ?? []), ...(legacyPatterns ?? [])];
-  return merged.length > 0 ? [...new Set(merged)] : undefined;
-};
-
-/**
- * Compute the legacy "include wins over exclude" allowlist.
- *
- * Preserves historical MCP semantics: trails named in `includeTrails` are
- * kept even when they also match `excludeTrails`. Only trails that appear
- * in `excludeTrails` without also appearing in `includeTrails` are removed.
- *
- * Returns the set of trail IDs that should bypass exclude-filter processing,
- * or `undefined` when no legacy options were supplied.
- */
-const computeLegacyIncludeOverrides = (
-  includeTrails: readonly string[] | undefined,
-  excludeTrails: readonly string[] | undefined
-): ReadonlySet<string> | undefined => {
-  if (includeTrails === undefined || excludeTrails === undefined) {
-    return undefined;
-  }
-  const excludes = new Set(excludeTrails);
-  const overrides = new Set<string>();
-  for (const id of includeTrails) {
-    if (excludes.has(id)) {
-      overrides.add(id);
-    }
-  }
-  return overrides.size > 0 ? overrides : undefined;
-};
 
 /** Build a description with optional example input appended. */
 const buildDescription = (
@@ -328,7 +292,7 @@ const buildToolDefinition = (
   app: Topo,
   trail: Trail<unknown, unknown, unknown>,
   layers: readonly Layer[],
-  options: BuildMcpToolsOptions
+  options: DeriveMcpToolsOptions
 ): McpToolDefinition => {
   const rawAnnotations = deriveAnnotations(trail);
   const annotations =
@@ -348,7 +312,7 @@ const registerTool = (
   app: Topo,
   trailItem: Trail<unknown, unknown, unknown>,
   layers: readonly Layer[],
-  options: BuildMcpToolsOptions,
+  options: DeriveMcpToolsOptions,
   nameToTrailId: Map<string, string>,
   tools: McpToolDefinition[]
 ): Result<void, Error> => {
@@ -366,55 +330,20 @@ const registerTool = (
   return Result.ok();
 };
 
-/**
- * Restore legacy "include wins over exclude" semantics: for any trail id
- * that appears in both legacy include and exclude, re-include it even
- * though the unified filter would have dropped it on the exclude pass.
- * We reuse filterTrailheadTrails (without the legacy exclude) so that
- * visibility rules, `on: [...]` consumer trails, and new-style exclude
- * globs still apply.
- */
-const mergeLegacyIncludeOverrides = (
-  app: Topo,
-  filtered: Trail<unknown, unknown, unknown>[],
-  legacyOverrides: ReadonlySet<string>,
-  options: BuildMcpToolsOptions
-): Trail<unknown, unknown, unknown>[] => {
-  const overrideCandidates = filterTrailheadTrails(app.list(), {
-    exclude: options.exclude,
-    include: options.includeTrails,
-  }).filter((t) => legacyOverrides.has(t.id));
-  if (overrideCandidates.length === 0) {
-    return filtered;
-  }
-  const filteredIds = new Set(filtered.map((t) => t.id));
-  const additions = overrideCandidates.filter((t) => !filteredIds.has(t.id));
-  return [...filtered, ...additions];
-};
-
 /** Filter topo items to eligible trails. */
 const eligibleTrails = (
   app: Topo,
-  options: BuildMcpToolsOptions
-): Trail<unknown, unknown, unknown>[] => {
-  const legacyOverrides = computeLegacyIncludeOverrides(
-    options.includeTrails,
-    options.excludeTrails
-  );
-  const filtered = filterTrailheadTrails(app.list(), {
-    exclude: dedupePatterns(options.exclude, options.excludeTrails),
-    include: dedupePatterns(options.include, options.includeTrails),
+  options: DeriveMcpToolsOptions
+): Trail<unknown, unknown, unknown>[] =>
+  filterSurfaceTrails(app.list(), {
+    exclude: options.exclude,
+    include: options.include,
     intent: options.intent,
   });
-  if (legacyOverrides === undefined) {
-    return filtered;
-  }
-  return mergeLegacyIncludeOverrides(app, filtered, legacyOverrides, options);
-};
 
 const validateToolBuild = (
   app: Topo,
-  options: BuildMcpToolsOptions
+  options: DeriveMcpToolsOptions
 ): Result<void, Error> => {
   if (options.validate === false) {
     return Result.ok();
@@ -426,7 +355,7 @@ const validateToolBuild = (
 
 const registerTools = (
   app: Topo,
-  options: BuildMcpToolsOptions,
+  options: DeriveMcpToolsOptions,
   layers: readonly Layer[]
 ): Result<McpToolDefinition[], Error> => {
   const tools: McpToolDefinition[] = [];
@@ -449,9 +378,9 @@ const registerTools = (
   return Result.ok(tools);
 };
 
-export const buildMcpTools = (
+export const deriveMcpTools = (
   app: Topo,
-  options: BuildMcpToolsOptions = {}
+  options: DeriveMcpToolsOptions = {}
 ): Result<McpToolDefinition[], Error> => {
   const validation = validateToolBuild(app, options);
   if (validation.isErr()) {
@@ -460,3 +389,8 @@ export const buildMcpTools = (
 
   return registerTools(app, options, options.layers ?? []);
 };
+
+export const buildMcpTools = (
+  app: Topo,
+  options: DeriveMcpToolsOptions = {}
+): Result<McpToolDefinition[], Error> => deriveMcpTools(app, options);

@@ -90,11 +90,11 @@ export type {
   TrailVisibility,
 } from './trail.js';
 export {
-  filterTrailheadTrails,
+  filterSurfaceTrails,
   matchesTrailPattern,
-  shouldIncludeTrailForTrailhead,
-} from './trailhead-filter.js';
-export type { TrailheadFilterOptions } from './trailhead-filter.js';
+  shouldIncludeTrailForSurface,
+} from './surface-filter.js';
+export type { SurfaceFilterOptions } from './surface-filter.js';
 
 // Type utilities
 export type {

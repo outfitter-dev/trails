@@ -3,13 +3,21 @@ import { describe, expect, test } from 'bun:test';
 import { Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { trailhead, createMcpServer } from '../trailhead.js';
-import { buildMcpTools } from '../build.js';
+import { createMcpServer, createServer, trailhead } from '../surface.js';
+import { buildMcpTools, deriveMcpTools } from '../build.js';
 import type { McpToolDefinition } from '../build.js';
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
+
+const unwrapOk = <T>(result: Result<T, Error>): T =>
+  result.match({
+    err: (error) => {
+      throw error;
+    },
+    ok: (value) => value,
+  });
 
 const requireTool = (tools: McpToolDefinition[], name: string) => {
   const tool = tools.find((entry) => entry.name === name);
@@ -139,6 +147,24 @@ describe('trailhead', () => {
     const server = createMcpServer(tools, {
       name: 'testapp',
       version: '0.1.0',
+    });
+    expect(server).toBeDefined();
+  });
+
+  test('deriveMcpTools aliases buildMcpTools and createServer materializes the server', () => {
+    const echoTrail = trail('echo', {
+      blaze: (input) => Result.ok({ reply: input.message }),
+      description: 'Echo',
+      input: z.object({ message: z.string() }),
+    });
+    const app = topo('surface-api', { echoTrail });
+
+    const tools = unwrapOk(deriveMcpTools(app));
+    expect(tools).toHaveLength(1);
+
+    const server = createServer(app, {
+      description: 'Surface API smoke',
+      version: '2.0.0',
     });
     expect(server).toBeDefined();
   });

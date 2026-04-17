@@ -3,10 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import { Result } from '../result.js';
-import {
-  filterTrailheadTrails,
-  matchesTrailPattern,
-} from '../trailhead-filter.js';
+import { filterSurfaceTrails, matchesTrailPattern } from '../surface-filter.js';
 import { signal } from '../signal.js';
 import { trail } from '../trail.js';
 
@@ -79,25 +76,25 @@ describe('matchesTrailPattern', () => {
   });
 });
 
-describe('filterTrailheadTrails', () => {
+describe('filterSurfaceTrails', () => {
   describe('visibility defaults', () => {
     test('includes public trails by default', () => {
-      expect(filterTrailheadTrails([publicTrail])).toEqual([publicTrail]);
+      expect(filterSurfaceTrails([publicTrail])).toEqual([publicTrail]);
     });
 
     test('excludes internal trails by default', () => {
-      expect(filterTrailheadTrails([internalTrail])).toEqual([]);
+      expect(filterSurfaceTrails([internalTrail])).toEqual([]);
     });
 
     test('does not expose internal trails for wildcard includes', () => {
       expect(
-        filterTrailheadTrails([internalTrail], { include: ['entity.**'] })
+        filterSurfaceTrails([internalTrail], { include: ['entity.**'] })
       ).toEqual([]);
     });
 
     test('allows exact include to expose an internal trail', () => {
       expect(
-        filterTrailheadTrails([internalTrail], {
+        filterSurfaceTrails([internalTrail], {
           include: ['entity.secret.rotate'],
         })
       ).toEqual([internalTrail]);
@@ -105,16 +102,16 @@ describe('filterTrailheadTrails', () => {
 
     test('legacy meta.internal is treated as internal visibility', () => {
       // Default filter: legacy internal trails must not leak out.
-      expect(filterTrailheadTrails([legacyInternalTrail])).toEqual([]);
+      expect(filterSurfaceTrails([legacyInternalTrail])).toEqual([]);
 
       // Wildcard include must also refuse to expose the legacy internal trail.
       expect(
-        filterTrailheadTrails([legacyInternalTrail], { include: ['entity.**'] })
+        filterSurfaceTrails([legacyInternalTrail], { include: ['entity.**'] })
       ).toEqual([]);
 
       // Explicit exact-id include is the documented escape hatch.
       expect(
-        filterTrailheadTrails([legacyInternalTrail], {
+        filterSurfaceTrails([legacyInternalTrail], {
           include: ['entity.legacy.rotate'],
         })
       ).toEqual([legacyInternalTrail]);
@@ -124,7 +121,7 @@ describe('filterTrailheadTrails', () => {
   describe('include and exclude patterns', () => {
     test('exclude patterns remove matches before include narrowing', () => {
       expect(
-        filterTrailheadTrails([publicTrail], {
+        filterSurfaceTrails([publicTrail], {
           exclude: ['entity.*'],
           include: ['entity.show'],
         })
@@ -133,12 +130,12 @@ describe('filterTrailheadTrails', () => {
 
     test('include patterns narrow the visible trail set', () => {
       expect(
-        filterTrailheadTrails([publicTrail, nestedTrail], {
+        filterSurfaceTrails([publicTrail, nestedTrail], {
           include: ['entity.**'],
         })
       ).toEqual([publicTrail, nestedTrail]);
       expect(
-        filterTrailheadTrails([publicTrail, nestedTrail], {
+        filterSurfaceTrails([publicTrail, nestedTrail], {
           include: ['entity.*'],
         })
       ).toEqual([publicTrail]);
@@ -147,7 +144,7 @@ describe('filterTrailheadTrails', () => {
     test('entity.** include matches bare entity and descendants', () => {
       // Regression guard for the ** terminal-segment zero-depth case.
       expect(
-        filterTrailheadTrails([bareEntityTrail, publicTrail, otherTrail], {
+        filterSurfaceTrails([bareEntityTrail, publicTrail, otherTrail], {
           include: ['entity.**'],
         })
       ).toEqual([bareEntityTrail, publicTrail]);
@@ -157,13 +154,13 @@ describe('filterTrailheadTrails', () => {
   describe('intent filtering', () => {
     test('intent filtering narrows visible trails by behavior class', () => {
       expect(
-        filterTrailheadTrails([publicTrail, nestedTrail], {
+        filterSurfaceTrails([publicTrail, nestedTrail], {
           intent: ['read'],
         })
       ).toEqual([publicTrail]);
 
       expect(
-        filterTrailheadTrails([publicTrail, nestedTrail], {
+        filterSurfaceTrails([publicTrail, nestedTrail], {
           intent: ['destroy'],
         })
       ).toEqual([nestedTrail]);
@@ -171,7 +168,7 @@ describe('filterTrailheadTrails', () => {
 
     test('intent filtering composes with glob include patterns using AND logic', () => {
       expect(
-        filterTrailheadTrails([publicTrail, nestedTrail], {
+        filterSurfaceTrails([publicTrail, nestedTrail], {
           include: ['entity.**'],
           intent: ['read'],
         })
@@ -180,7 +177,7 @@ describe('filterTrailheadTrails', () => {
 
     test('empty intent filters behave like no filter', () => {
       expect(
-        filterTrailheadTrails([publicTrail, nestedTrail], {
+        filterSurfaceTrails([publicTrail, nestedTrail], {
           intent: [],
         })
       ).toEqual([publicTrail, nestedTrail]);
@@ -190,7 +187,7 @@ describe('filterTrailheadTrails', () => {
   describe('consumer trails', () => {
     test('consumer trails are never exposed on trailheads', () => {
       expect(
-        filterTrailheadTrails([consumerTrail], {
+        filterSurfaceTrails([consumerTrail], {
           include: ['notify.email'],
         })
       ).toEqual([]);

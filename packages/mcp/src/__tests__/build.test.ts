@@ -342,11 +342,11 @@ describe('buildMcpTools', () => {
       expect(tools.map((tool) => tool.trailId)).toEqual(['echo']);
     });
 
-    test('legacy includeTrails and excludeTrails options still work', () => {
+    test('include narrows to a single trail and exclude drops another', () => {
       const app = topo('myapp', { deleteTrail, echoTrail, failTrail });
       const tools = buildTools(app, {
-        excludeTrails: ['fail'],
-        includeTrails: ['echo'],
+        exclude: ['fail'],
+        include: ['echo'],
       });
 
       expect(tools.map((tool) => tool.trailId)).toEqual(['echo']);

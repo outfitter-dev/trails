@@ -11,7 +11,7 @@ import {
   TRAILHEAD_KEY,
   ValidationError,
   executeTrail,
-  filterTrailheadTrails,
+  filterSurfaceTrails,
   validateEstablishedTopo,
 } from '@ontrails/core';
 import type {
@@ -27,7 +27,7 @@ import type {
 // Public types
 // ---------------------------------------------------------------------------
 
-export interface BuildHttpRoutesOptions {
+export interface DeriveHttpRoutesOptions {
   readonly basePath?: string | undefined;
   /** Config values for resources that declare a `config` schema, keyed by resource ID. */
   readonly configValues?:
@@ -124,7 +124,7 @@ const createExecute =
     app: Topo,
     t: Trail<unknown, unknown, unknown>,
     layers: readonly Layer[],
-    options: BuildHttpRoutesOptions
+    options: DeriveHttpRoutesOptions
   ): HttpRouteDefinition['execute'] =>
   (input, requestId, abortSignal) =>
     executeTrail(t, input, {
@@ -144,9 +144,9 @@ const createExecute =
 /** Filter topo items to eligible trails. */
 const eligibleTrails = (
   app: Topo,
-  options: BuildHttpRoutesOptions
+  options: DeriveHttpRoutesOptions
 ): Trail<unknown, unknown, unknown>[] =>
-  filterTrailheadTrails(app.list(), {
+  filterSurfaceTrails(app.list(), {
     exclude: options.exclude,
     include: options.include,
     intent: options.intent,
@@ -158,7 +158,7 @@ const buildRoute = (
   trail: Trail<unknown, unknown, unknown>,
   basePath: string,
   layers: readonly Layer[],
-  options: BuildHttpRoutesOptions
+  options: DeriveHttpRoutesOptions
 ): HttpRouteDefinition => {
   const method = deriveMethod(trail);
   const path = derivePath(basePath, trail.id);
@@ -206,7 +206,7 @@ const accumulateRoutes = (
   trails: Trail<unknown, unknown, unknown>[],
   basePath: string,
   layers: readonly Layer[],
-  options: BuildHttpRoutesOptions
+  options: DeriveHttpRoutesOptions
 ): Result<HttpRouteDefinition[], Error> => {
   const routes: HttpRouteDefinition[] = [];
   const seenRoutes = new Map<string, string>();
@@ -238,9 +238,9 @@ const accumulateRoutes = (
  * Returns `Result.err(ValidationError)` if two trails derive the same
  * (method, path) pair. Returns `Result.ok(routes)` on success.
  */
-export const buildHttpRoutes = (
+export const deriveHttpRoutes = (
   app: Topo,
-  options: BuildHttpRoutesOptions = {}
+  options: DeriveHttpRoutesOptions = {}
 ): Result<HttpRouteDefinition[], Error> => {
   if (options.validate !== false) {
     const validated = validateEstablishedTopo(app);
@@ -259,3 +259,8 @@ export const buildHttpRoutes = (
     options
   );
 };
+
+export const buildHttpRoutes = (
+  app: Topo,
+  options: DeriveHttpRoutesOptions = {}
+): Result<HttpRouteDefinition[], Error> => deriveHttpRoutes(app, options);

@@ -11,7 +11,7 @@ import {
 import type { Layer } from '@ontrails/core';
 import { z } from 'zod';
 
-import { trailhead } from '../trailhead.js';
+import { trailhead } from '../surface.js';
 
 // ---------------------------------------------------------------------------
 // Test trails

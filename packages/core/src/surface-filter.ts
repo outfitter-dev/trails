@@ -4,7 +4,7 @@ import type { Intent, Trail } from './trail.js';
 // Public types
 // ---------------------------------------------------------------------------
 
-export interface TrailheadFilterOptions {
+export interface SurfaceFilterOptions {
   /** Glob patterns that keep only matching trail IDs when provided. */
   readonly include?: readonly string[] | undefined;
   /** Glob patterns that remove matching trail IDs. */
@@ -153,9 +153,9 @@ const passesIntentFilter = (
 ): boolean =>
   intent === undefined || intent.length === 0 || intent.includes(trail.intent);
 
-export const shouldIncludeTrailForTrailhead = (
+export const shouldIncludeTrailForSurface = (
   trail: Trail<unknown, unknown, unknown>,
-  options: TrailheadFilterOptions = {}
+  options: SurfaceFilterOptions = {}
 ): boolean => {
   if (trail.on.length > 0) {
     return false;
@@ -175,8 +175,8 @@ export const shouldIncludeTrailForTrailhead = (
   );
 };
 
-export const filterTrailheadTrails = (
+export const filterSurfaceTrails = (
   trails: readonly Trail<unknown, unknown, unknown>[],
-  options: TrailheadFilterOptions = {}
+  options: SurfaceFilterOptions = {}
 ): Trail<unknown, unknown, unknown>[] =>
-  trails.filter((trail) => shouldIncludeTrailForTrailhead(trail, options));
+  trails.filter((trail) => shouldIncludeTrailForSurface(trail, options));

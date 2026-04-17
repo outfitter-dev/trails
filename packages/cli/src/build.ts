@@ -18,7 +18,7 @@ import {
   deriveCliPath,
   deriveFields,
   executeTrail,
-  filterTrailheadTrails,
+  filterSurfaceTrails,
   validateEstablishedTopo,
 } from '@ontrails/core';
 
@@ -50,8 +50,8 @@ export interface ActionResultContext {
   readonly trail: AnyTrail;
 }
 
-/** Options for buildCliCommands. */
-export interface BuildCliCommandsOptions {
+/** Options for CLI command projection. */
+export interface DeriveCliCommandsOptions {
   /** Config values for resources that declare a `config` schema, keyed by resource ID. */
   configValues?: Readonly<Record<string, Record<string, unknown>>> | undefined;
   createContext?:
@@ -60,9 +60,9 @@ export interface BuildCliCommandsOptions {
   exclude?: readonly string[] | undefined;
   include?: readonly string[] | undefined;
   intent?: readonly Intent[] | undefined;
-  layers?: Layer[] | undefined;
+  layers?: readonly Layer[] | undefined;
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
-  presets?: CliFlag[][] | undefined;
+  presets?: readonly (readonly CliFlag[])[] | undefined;
   resources?: ResourceOverrideMap | undefined;
   resolveInput?: InputResolver | undefined;
   /** Set to `false` to skip topo validation while building commands. */
@@ -88,18 +88,20 @@ const mergeFlags = (presets: CliFlag[], derived: CliFlag[]): CliFlag[] => {
   return merged;
 };
 
-const assertValidCliTopo = (
+const validateCliCommandBuild = (
   app: Topo,
-  options?: BuildCliCommandsOptions
-): void => {
+  options?: DeriveCliCommandsOptions
+): Result<void, Error> => {
   if (options?.validate === false) {
-    return;
+    return Result.ok();
   }
 
   const validated = validateEstablishedTopo(app);
   if (validated.isErr()) {
-    throw validated.error;
+    return Result.err(validated.error);
   }
+
+  return Result.ok();
 };
 
 // ---------------------------------------------------------------------------
@@ -148,7 +150,7 @@ const mergeArgsAndFlags = (
 const applyPrompting = async (
   fields: readonly Field[],
   mergedInput: Record<string, unknown>,
-  options?: BuildCliCommandsOptions
+  options?: DeriveCliCommandsOptions
 ): Promise<void> => {
   if (!options?.resolveInput) {
     return;
@@ -163,7 +165,7 @@ const applyPrompting = async (
 
 /** Report a result via onResult callback if provided. */
 const reportResult = async (
-  options: BuildCliCommandsOptions | undefined,
+  options: DeriveCliCommandsOptions | undefined,
   ctx: ActionResultContext
 ): Promise<void> => {
   if (options?.onResult) {
@@ -202,7 +204,7 @@ const resolveMergedInput = async (
   metaFlagNames: ReadonlySet<string>,
   parsedArgs: Record<string, unknown>,
   parsedFlags: Record<string, unknown>,
-  options?: BuildCliCommandsOptions
+  options?: DeriveCliCommandsOptions
 ): Promise<{
   readonly mergedInput: Record<string, unknown>;
   readonly usedStructuredInput: boolean;
@@ -256,7 +258,7 @@ const safeMergeInput = async (
   metaFlagNames: ReadonlySet<string>,
   parsedArgs: Record<string, unknown>,
   parsedFlags: Record<string, unknown>,
-  options?: BuildCliCommandsOptions
+  options?: DeriveCliCommandsOptions
 ): Promise<
   Result<
     { mergedInput: Record<string, unknown>; usedStructuredInput: boolean },
@@ -288,7 +290,7 @@ const createExecute =
     fields: readonly Field[],
     metaFlagNames: ReadonlySet<string>,
     shouldHintStructuredInput: boolean,
-    options?: BuildCliCommandsOptions
+    options?: DeriveCliCommandsOptions
   ) =>
   async (
     parsedArgs: Record<string, unknown>,
@@ -351,7 +353,7 @@ const buildFlags = (
   t: AnyTrail,
   fields: readonly Field[],
   intent: 'read' | 'write' | 'destroy',
-  options?: BuildCliCommandsOptions
+  options?: DeriveCliCommandsOptions
 ): CliFlag[] => {
   let flags = toFlags(fields);
   if (supportsStructuredInput(t.input)) {
@@ -426,7 +428,7 @@ const derivePositionalArgs = (
 const toCliCommand = (
   app: Topo,
   t: AnyTrail,
-  options?: BuildCliCommandsOptions
+  options?: DeriveCliCommandsOptions
 ): CliCommand => {
   const fields = deriveFields(t.input, t.fields);
   const { args } = derivePositionalArgs(t, fields);
@@ -469,20 +471,41 @@ const toCliCommand = (
 
 const collectCommands = (
   app: Topo,
-  options?: BuildCliCommandsOptions
+  options?: DeriveCliCommandsOptions
 ): CliCommand[] =>
-  filterTrailheadTrails(app.list(), {
+  filterSurfaceTrails(app.list(), {
     exclude: options?.exclude,
     include: options?.include,
     intent: options?.intent,
   }).map((trail) => toCliCommand(app, trail, options));
 
+export const deriveCliCommands = (
+  app: Topo,
+  options?: DeriveCliCommandsOptions
+): Result<CliCommand[], Error> => {
+  const validation = validateCliCommandBuild(app, options);
+  if (validation.isErr()) {
+    return validation;
+  }
+
+  const commands = collectCommands(app, options);
+  try {
+    validateCliCommands(commands);
+    return Result.ok(commands);
+  } catch (error: unknown) {
+    return Result.err(
+      error instanceof Error ? error : new Error(String(error))
+    );
+  }
+};
+
 export const buildCliCommands = (
   app: Topo,
-  options?: BuildCliCommandsOptions
+  options?: DeriveCliCommandsOptions
 ): CliCommand[] => {
-  assertValidCliTopo(app, options);
-  const commands = collectCommands(app, options);
-  validateCliCommands(commands);
-  return commands;
+  const result = deriveCliCommands(app, options);
+  if (result.isErr()) {
+    throw result.error;
+  }
+  return result.value;
 };

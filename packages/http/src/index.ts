@@ -1,7 +1,8 @@
 // Build (framework-agnostic)
 export {
+  deriveHttpRoutes,
   buildHttpRoutes,
-  type BuildHttpRoutesOptions,
+  type DeriveHttpRoutesOptions,
   type HttpMethod,
   type HttpRouteDefinition,
   type InputSource,

@@ -6,7 +6,7 @@
  */
 
 import {
-  filterTrailheadTrails,
+  filterSurfaceTrails,
   statusCodeMap,
   validateDraftFreeTopo,
   zodToJsonSchema,
@@ -293,7 +293,7 @@ const collectPaths = (
 ): Record<string, Record<string, unknown>> => {
   const paths: Record<string, Record<string, unknown>> = {};
 
-  for (const t of filterTrailheadTrails(app.list(), {
+  for (const t of filterSurfaceTrails(app.list(), {
     exclude: options?.exclude,
     include: options?.include,
     intent: options?.intent,

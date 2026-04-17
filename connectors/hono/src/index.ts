@@ -1,1 +1,8 @@
-export { trailhead, type TrailheadHttpOptions } from './trailhead.js';
+export {
+  createApp,
+  surface,
+  trailhead,
+  type CreateAppOptions,
+  type SurfaceHttpResult,
+  type TrailheadHttpOptions,
+} from './surface.js';

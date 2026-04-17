@@ -59,13 +59,26 @@ export interface CliCommand {
   readonly flags: CliFlag[];
   readonly args: CliArg[];
   readonly trail: AnyTrail;
-  readonly layers?: Layer[] | undefined;
+  readonly layers?: readonly Layer[] | undefined;
   readonly intent: 'read' | 'write' | 'destroy';
   readonly idempotent?: boolean | undefined;
 
+  /**
+   * Validate input, compose layers, and execute the trail implementation.
+   *
+   * The caller is responsible for parsing raw args and flags from the CLI
+   * invocation and mapping the Result to a process exit. This function is
+   * framework-agnostic.
+   *
+   * @param parsedArgs - Positional arguments parsed from argv, keyed by field name.
+   * @param parsedFlags - Named flags parsed from argv, keyed by camelCase field name.
+   * @param ctxOverrides - Optional per-invocation overrides merged into the
+   *   TrailContext before execution. The CLI trailhead marker is always
+   *   applied on top of these overrides.
+   */
   execute(
     parsedArgs: Record<string, unknown>,
     parsedFlags: Record<string, unknown>,
-    ctx?: Partial<TrailContext>
+    ctxOverrides?: Partial<TrailContext>
   ): Promise<Result<unknown, Error>>;
 }

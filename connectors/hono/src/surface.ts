@@ -5,8 +5,8 @@
  * Hono application, handling request parsing, response mapping, and errors.
  *
  * ```ts
- * const app = topo("myapp", entity);
- * await trailhead(app, { port: 3000 });
+ * const graph = topo("myapp", entity);
+ * await surface(graph, { port: 3000 });
  * ```
  */
 
@@ -23,7 +23,7 @@ import type { Context as HonoContext } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { z } from 'zod';
 
-import { buildHttpRoutes } from '@ontrails/http';
+import { deriveHttpRoutes } from '@ontrails/http';
 import type { HttpMethod, HttpRouteDefinition } from '@ontrails/http';
 
 // ---------------------------------------------------------------------------
@@ -51,6 +51,16 @@ export interface TrailheadHttpOptions {
   readonly serve?: boolean | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
   readonly validate?: boolean | undefined;
+}
+
+export type CreateAppOptions = Omit<
+  TrailheadHttpOptions,
+  'hostname' | 'port' | 'serve'
+>;
+
+export interface SurfaceHttpResult {
+  readonly close: () => Promise<void>;
+  readonly url: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -299,25 +309,18 @@ const registerErrorHandler = (hono: Hono): void => {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// trailhead
+// createApp
 // ---------------------------------------------------------------------------
 
 /**
- * Build HTTP routes from a topo, create a Hono app, and optionally start serving.
- *
- * Topo validation runs before route construction — pass `validate: false`
- * to skip it (e.g. during hot-reload or progressive startup).
+ * Build HTTP routes from a topo and register them on a Hono app.
  */
-// oxlint-disable-next-line require-await -- async for consistency with other trailhead() entrypoints
-export const trailhead = async (
-  app: Topo,
-  options: TrailheadHttpOptions = {}
-): Promise<Hono> => {
+export const createApp = (app: Topo, options: CreateAppOptions = {}): Hono => {
   const hono = new Hono();
 
   registerErrorHandler(hono);
 
-  const routesResult = buildHttpRoutes(app, {
+  const routesResult = deriveHttpRoutes(app, {
     basePath: options.basePath,
     configValues: options.configValues,
     createContext: options.createContext,
@@ -334,13 +337,68 @@ export const trailhead = async (
   }
 
   registerRoutes(hono, routesResult.value);
+  return hono;
+};
+
+const startServer = (
+  hono: Hono,
+  options: TrailheadHttpOptions
+): SurfaceHttpResult => {
+  const server = Bun.serve({
+    fetch: hono.fetch,
+    hostname: options.hostname ?? '0.0.0.0',
+    port: options.port ?? 3000,
+  });
+
+  return {
+    close: async () => {
+      await server.stop(true);
+    },
+    url: String(server.url),
+  };
+};
+
+// ---------------------------------------------------------------------------
+// surface
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a Hono app from a topo and start serving it with Bun.
+ */
+export const surface = async (
+  app: Topo,
+  options: TrailheadHttpOptions = {}
+): Promise<SurfaceHttpResult> => {
+  if (options.serve === false) {
+    throw new Error(
+      'surface() always serves the HTTP app; use createApp(graph) for an unserved Hono app'
+    );
+  }
+
+  // oxlint-disable-next-line require-await -- async ensures createApp() throws become rejected promises, not uncaught exceptions
+  const hono = createApp(app, options);
+  return startServer(hono, options);
+};
+
+// ---------------------------------------------------------------------------
+// trailhead
+// ---------------------------------------------------------------------------
+
+/**
+ * Build HTTP routes from a topo, create a Hono app, and optionally start serving.
+ *
+ * Topo validation runs before route construction — pass `validate: false`
+ * to skip it (e.g. during hot-reload or progressive startup).
+ */
+// oxlint-disable-next-line require-await -- async for consistency with other trailhead() entrypoints
+export const trailhead = async (
+  app: Topo,
+  options: TrailheadHttpOptions = {}
+): Promise<Hono> => {
+  const hono = createApp(app, options);
 
   if (options.serve !== false) {
-    Bun.serve({
-      fetch: hono.fetch,
-      hostname: options.hostname ?? '0.0.0.0',
-      port: options.port ?? 3000,
-    });
+    startServer(hono, options);
   }
 
   return hono;
