@@ -45,7 +45,7 @@ trail('gist.create', {
 });
 ```
 
-Now `--forked-from` appears as a CLI flag. The MCP tool description includes it. The HTTP request body accepts it. A field that exists solely for internal composition pollutes every public trailhead. The developer can't express "this input is for composition only."
+Now `--forked-from` appears as a CLI flag. The MCP tool description includes it. The HTTP request body accepts it. A field that exists solely for internal composition pollutes every public surface. The developer can't express "this input is for composition only."
 
 An early proposal suggested an opaque `crossMeta: Record<string, unknown>` bag on `ctx.cross()`. This was rejected — an untyped hidden channel violates "derive, don't hide." If it carries data, it needs a schema. If it has a schema, it's governable.
 
@@ -101,7 +101,7 @@ When `crosses` contains trail objects, the warden can verify that `ctx.cross()` 
 
 ### `crossInput` is a typed composition-only schema
 
-A new optional field on the trail spec. It declares input that is only available through `ctx.cross()`, invisible to public trailheads:
+A new optional field on the trail spec. It declares input that is only available through `ctx.cross()`, invisible to public surfaces:
 
 ```typescript
 trail('gist.create', {
@@ -122,7 +122,7 @@ trail('gist.create', {
 });
 ```
 
-**What the trailheads see:**
+**What the surfaces see:**
 
 - **CLI** derives flags from `input` only. No `--forked-from` flag.
 - **MCP** describes tool parameters from `input` only. No `forkedFrom` in the tool schema.
@@ -147,7 +147,7 @@ If `crossInput` declares a required field and the caller omits it, the compiler 
 
 In the information architecture[^2], `crossInput` is **authored** — the developer declares it. Its visibility is **composition-scoped** — it exists between trails, not between trails and the outside world.
 
-This is a new scope, but not a new mechanism. The framework already handles `input` (public-scoped) and derives trailhead representations from it. `crossInput` is the same pattern with a narrower scope: derive nothing for public trailheads, merge into the cross contract.
+This is a new scope, but not a new mechanism. The framework already handles `input` (public-scoped) and derives surface representations from it. `crossInput` is the same pattern with a narrower scope: derive nothing for public surfaces, merge into the cross contract.
 
 ### The blaze receives the merged input
 
@@ -156,13 +156,13 @@ The implementation function receives a single `input` parameter that merges `inp
 ```typescript
 blaze: async (input, ctx) => {
   // input.description — from public input
-  // input.forkedFrom  — from crossInput (undefined when called from trailhead)
+  // input.forkedFrom  — from crossInput (undefined when called from surface)
 }
 ```
 
-When invoked via a public trailhead, `crossInput` fields are `undefined` (or absent, depending on schema optionality). When invoked via `ctx.cross()`, they're present if the caller provided them.
+When invoked via a public surface, `crossInput` fields are `undefined` (or absent, depending on schema optionality). When invoked via `ctx.cross()`, they're present if the caller provided them.
 
-This means `crossInput` fields should generally be optional — the trail must handle both the public case (no cross input) and the composition case (cross input provided). A required `crossInput` field means the trail can ONLY be invoked via `ctx.cross()`, never from a public trailhead. The warden can flag this and suggest adding `visibility: 'internal'`[^3] for consistency.
+This means `crossInput` fields should generally be optional — the trail must handle both the public case (no cross input) and the composition case (cross input provided). A required `crossInput` field means the trail can ONLY be invoked via `ctx.cross()`, never from a public surface. The warden can flag this and suggest adding `visibility: 'internal'`[^3] for consistency.
 
 ### Warden rules
 
@@ -178,8 +178,8 @@ The existing `cross-declarations` rule gains awareness of `crossInput`: if a `ct
 ## Non-goals
 
 - **Topo-aware type inference from string IDs.** Making `ctx.cross('gist.show', input)` infer types from the string alone would require the topo graph to be a type-level construct. This is architecturally interesting but significantly more complex. The trail-object approach gives us full type inference without type-level topo resolution.
-- **Runtime enforcement of `crossInput` isolation.** The framework doesn't prevent a public trailhead from passing `crossInput` fields at runtime — the fields are simply not derived into the trailhead's parameter schema. A hand-crafted HTTP request could include them. This is acceptable: the contract is the schema, not runtime policing.
-- **`crossOutput` — composition-only output.** A trail that returns different shapes depending on whether it's called from a trailhead or via `ctx.cross()`. This introduces divergence in the output contract and is not proposed here.
+- **Runtime enforcement of `crossInput` isolation.** The framework doesn't prevent a public surface from passing `crossInput` fields at runtime — the fields are simply not derived into the surface's parameter schema. A hand-crafted HTTP request could include them. This is acceptable: the contract is the schema, not runtime policing.
+- **`crossOutput` — composition-only output.** A trail that returns different shapes depending on whether it's called from a surface or via `ctx.cross()`. This introduces divergence in the output contract and is not proposed here.
 
 ## Consequences
 
@@ -187,7 +187,7 @@ The existing `cross-declarations` rule gains awareness of `crossInput`: if a `ct
 
 - **Composition is type-safe.** `ctx.cross(showGist, input)` gives `Result<GistShowOutput, TrailsError>`. No casts, no drift, compiler-verified.
 - **Composition-only input is governable.** `crossInput` is a typed schema, not a hidden bag. The warden can verify cross contracts the same way it verifies public input contracts.
-- **Public trailheads stay clean.** Fields like `forkedFrom` never appear in CLI flags, MCP tool descriptions, or HTTP parameters. The public contract reflects what public consumers need.
+- **Public surfaces stay clean.** Fields like `forkedFrom` never appear in CLI flags, MCP tool descriptions, or HTTP parameters. The public contract reflects what public consumers need.
 - **Progressive adoption.** Existing `ctx.cross('id', input)` with string IDs continues to work. The typed form is an upgrade, not a migration.
 
 ### Tradeoffs
@@ -212,4 +212,4 @@ The existing `cross-declarations` rule gains awareness of `crossInput`: if a `ct
 
 [^1]: [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — `crosses` and `ctx.cross()` as the composition mechanism
 [^2]: [ADR-0000: Core Premise — The information architecture](0000-core-premise.md)
-[^3]: See [ADR-0027: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md)
+[^3]: See [ADR-0027: Trail Visibility and Surface Filtering](0027-visibility-and-filtering.md)

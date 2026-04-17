@@ -24,20 +24,20 @@ The framework can already declare what a trail is, what it needs, and how it beh
 - where an error occurred
 - how a nested execution chain fit together
 
-The architecture already has a natural chokepoint for recording this evidence. `executeTrail` (ADR-0006) is the shared function every trailhead uses for every trail invocation. Making tracing intrinsic to that pipeline records everything without per-trail instrumentation, per-trailhead instrumentation, or opt-in ceremony for the common path.
+The architecture already has a natural chokepoint for recording this evidence. `executeTrail` (ADR-0006) is the shared function every surface uses for every trail invocation. Making tracing intrinsic to that pipeline records everything without per-trail instrumentation, per-surface instrumentation, or opt-in ceremony for the common path.
 
 The previous `tracker` language captured the metaphor, but it blurred the infrastructure boundary. "Tracker" tried to be both the primitive and the user-facing story. The cleaner split is:
 
 - a **track** is one recorded footprint
 - the **tracker** is the primitive that records and queries tracks
 
-This framing makes the system easier to extend. Signal delivery, trailhead catch-up, execution replay, and debugging all depend on the same underlying recorded sequence. The primitive should say what it is.
+This framing makes the system easier to extend. Signal delivery, surface catch-up, execution replay, and debugging all depend on the same underlying recorded sequence. The primitive should say what it is.
 
 ## Decision
 
 ### Trails-native model, translated outward
 
-The core recording model remains Trails-shaped. A `TraceRecord` knows about trail IDs, intents, permits, trailheads, and crossings. Export formats translate outward from that model rather than defining it.
+The core recording model remains Trails-shaped. A `TraceRecord` knows about trail IDs, intents, permits, surfaces, and crossings. Export formats translate outward from that model rather than defining it.
 
 ### Intrinsic pipeline plus trace helper
 
@@ -121,7 +121,7 @@ The development store remains local SQLite. Production export remains an optiona
 - **Every trail execution can be recorded with zero per-trail ceremony.** Tracing is intrinsic to the shared execution pipeline instead of relying on ad hoc instrumentation or a separately attached layer.
 - **The primitive is honest.** Tracing is infrastructure, not just a debugging nicety.
 - **The atomic unit is explicit.** A trace record is one footprint, which makes lineage, retention, and export easier to describe.
-- **The naming composes better with future work.** Signal delivery, replay, and trailhead catch-up can all talk about tracing without inheriting a narrow observability metaphor.
+- **The naming composes better with future work.** Signal delivery, replay, and surface catch-up can all talk about tracing without inheriting a narrow observability metaphor.
 
 ### Tradeoffs
 

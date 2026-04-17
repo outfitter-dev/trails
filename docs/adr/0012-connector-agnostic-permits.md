@@ -14,11 +14,11 @@ owners: ['[galligan](https://github.com/galligan)']
 
 ### The vocabulary is already reserved
 
-`ctx.permit` exists on `TrailContext` typed as `unknown`. The name is claimed. The question isn't whether auth belongs on the context — it's how to structure the type, how trailheads populate it, and how the framework enforces it.
+`ctx.permit` exists on `TrailContext` typed as `unknown`. The name is claimed. The question isn't whether auth belongs on the context — it's how to structure the type, how surfaces populate it, and how the framework enforces it.
 
-### Trailheads resolve auth differently
+### Surfaces resolve auth differently
 
-HTTP reads a bearer token from the `Authorization` header. MCP receives a session token from the transport handshake. CLI might pull credentials from a keyring or environment variable. Each trailhead has its own extraction mechanism, but the trail implementation shouldn't know or care which one ran. The implementation needs a single, trailhead-agnostic permit — or the knowledge that no permit was required.
+HTTP reads a bearer token from the `Authorization` header. MCP receives a session token from the transport handshake. CLI might pull credentials from a keyring or environment variable. Each surface has its own extraction mechanism, but the trail implementation shouldn't know or care which one ran. The implementation needs a single, surface-agnostic permit — or the knowledge that no permit was required.
 
 ### Auth is a resource + layer hybrid
 
@@ -75,8 +75,8 @@ This means implementations can trust `ctx.permit` structurally. If it's present,
 The permit model separates into three distinct responsibilities:
 
 1. **Trail declaration.** `permit: { scopes: ['entity:write'] }` on the spec. Declares what's required.
-2. **Trailhead extraction.** Each trailhead normalizes raw credentials into `PermitExtractionInput`. No trailhead types cross into core.
-3. **Auth layer.** A shared layer that checks `ctx.permit.scopes` against the trail's declared scopes. Same layer, every trailhead.
+2. **Surface extraction.** Each surface normalizes raw credentials into `PermitExtractionInput`. No surface types cross into core.
+3. **Auth layer.** A shared layer that checks `ctx.permit.scopes` against the trail's declared scopes. Same layer, every surface.
 
 ### Normalized extraction input
 
@@ -90,7 +90,7 @@ interface PermitExtractionInput {
 }
 ```
 
-Trailheads do raw extraction — pulling tokens from headers, sessions, or environment. The auth connector receives this normalized input and returns a `Permit` or an error. Core auth never imports `Request`, `McpSession`, or any trailhead-specific type.
+Surfaces do raw extraction — pulling tokens from headers, sessions, or environment. The auth connector receives this normalized input and returns a `Permit` or an error. Core auth never imports `Request`, `McpSession`, or any surface-specific type.
 
 ### Auth connector interface
 
@@ -127,7 +127,7 @@ New rules for scope hygiene:
 
 `testExamples` auto-mints permits with exactly the declared scopes. No admin permit, no wildcard. If a trail declares `permit: { scopes: ['user:write'] }`, the test context receives a permit with `scopes: ['user:write']` and nothing more.
 
-Strict mode disables auto-minting entirely. Tests must provide explicit permits, which validates that the auth trailhead works end-to-end rather than being papered over by test conveniences.
+Strict mode disables auto-minting entirely. Tests must provide explicit permits, which validates that the auth surface works end-to-end rather than being papered over by test conveniences.
 
 ### Connector strategy
 
@@ -137,14 +137,14 @@ First external connector target: BetterAuth or Clerk, depending on which ships a
 
 ### Bearer-only for v1
 
-No cookies. No session-based auth at the framework level. Session management via cookies is a connector concern — a future connector can extract session tokens from cookies and feed them into the same `PermitExtractionInput`. The core model doesn't change; only the extraction trailhead does.
+No cookies. No session-based auth at the framework level. Session management via cookies is a connector concern — a future connector can extract session tokens from cookies and feed them into the same `PermitExtractionInput`. The core model doesn't change; only the extraction surface does.
 
 ## Consequences
 
 ### Positive
 
 - **Auth requirements are part of the trail contract.** Visible, verifiable, introspectable. An agent can query a topo and see every trail's auth posture without reading implementation code.
-- **Same auth layer works across all trailheads.** HTTP, MCP, CLI — one enforcement path. No trailhead-specific auth bugs.
+- **Same auth layer works across all surfaces.** HTTP, MCP, CLI — one enforcement path. No surface-specific auth bugs.
 - **Testing fails closed.** Auto-minted permits match declared scopes exactly. No silent privilege escalation in tests. Strict mode proves the full auth path.
 - **Warden catches unprotected destructive trails before deployment.** The `destroy` + no permit rule is a structural guarantee, not a code review convention.
 

@@ -14,7 +14,7 @@ owners: ['[galligan](https://github.com/galligan)']
 
 ### The missing right side
 
-The hexagonal architecture has a clear story on the left. Trailheads — CLI, MCP, HTTP, WebSocket — adapt inbound requests to trail contracts via `trailhead()`. Each is a peer rendering of the same topo. That side is solved.
+The hexagonal architecture has a clear story on the left. Surfaces — CLI, MCP, HTTP, WebSocket — adapt inbound requests to trail contracts via `surface()`. Each is a peer rendering of the same topo. That side is solved.
 
 The right side — logging, storage, telemetry, auth — had no primitive until ADR-0009 introduced resources. Before that, every trail that talked to infrastructure created its own connections inline. No lifecycle, no governance, no testability.
 
@@ -69,7 +69,7 @@ This means:
 - **Survey reports them.** An agent connecting to the topo sees both business and infrastructure capabilities.
 - **`testAll` covers them.** Infrastructure examples run alongside business examples. One line validates the entire system.
 - **Warden governs them.** The same rules apply — no throws, Result returns, crossing declarations match usage.
-- **Trailheads can filter them.** A trailhead that wants to hide infrastructure trails filters on `meta.category`. The default is to expose everything.
+- **Surfaces can filter them.** A surface that wants to hide infrastructure trails filters on `meta.category`. The default is to expose everything.
 
 The alternative — a separate infrastructure topo — fragments the graph. Follow chains can't cross topo boundaries. Survey would need to merge multiple topos. The warden would need to run twice. One topo, one graph, one governance pass.
 
@@ -92,13 +92,13 @@ Trails establishes `.trails/` as the workspace directory for framework state:
 .trails/
 ├── config/          — local overrides (gitignored)
 ├── trails.db        — local framework database (gitignored)
-├── _trailhead.json  — derived detail map
+├── _surface.json  — derived detail map
 └── trails.lock      — committed lock artifact
 ```
 
-Auto-created on first framework operation. The framework generates a `.gitignore` inside `.trails/` that excludes local mutable state such as `config/` and `trails.db`. `_trailhead.json` and `trails.lock` are the derived artifacts that support inspection and review; `trails.lock` is the committed contract artifact.
+Auto-created on first framework operation. The framework generates a `.gitignore` inside `.trails/` that excludes local mutable state such as `config/` and `trails.db`. `_surface.json` and `trails.lock` are the derived artifacts that support inspection and review; `trails.lock` is the committed contract artifact.
 
-The workspace gives infrastructure a known home. Config reads overrides from `.trails/config/`. Local framework state and topo history live in `.trails/trails.db`. Derived contract artifacts land alongside them in `.trails/_trailhead.json` and `.trails/trails.lock`. No more scattering framework files across the project root.
+The workspace gives infrastructure a known home. Config reads overrides from `.trails/config/`. Local framework state and topo history live in `.trails/trails.db`. Derived contract artifacts land alongside them in `.trails/_surface.json` and `.trails/trails.lock`. No more scattering framework files across the project root.
 
 ### Connectors are the integration point
 
@@ -112,7 +112,7 @@ Connectors carry optional peer dependencies. Installing `@ontrails/permits` does
 
 The built-in for each package is functional enough for development and simple production cases. Connectors are for teams that need specific providers. This follows the logging precedent: `@ontrails/logging` works out of the box, `/logtape` is there when you need it.
 
-### `testAll(app)` just works
+### `testAll(graph)` just works
 
 The mock factory pattern from ADR-0009 makes zero-config testing possible for every infrastructure service:
 
@@ -121,7 +121,7 @@ The mock factory pattern from ADR-0009 makes zero-config testing possible for ev
 - Tracing records to an in-memory store — spans are captured and queryable in assertions, nothing leaves the process.
 
 ```typescript
-testAll(app); // infrastructure resources auto-mock, business trails run against mocks
+testAll(graph); // infrastructure resources auto-mock, business trails run against mocks
 ```
 
 No setup. No test config files. No mock wiring. The resource definitions carry their own mock factories. `testAll` resolves them automatically. This is the ADR-0009 promise delivered across the entire infrastructure layer.
@@ -141,7 +141,7 @@ Each ADR can refine the shared pattern based on what the previous package learne
 ### Positive
 
 - **Every infrastructure package follows the same shape.** Resource + layer + trails. Developers learn the pattern once. New infrastructure packages follow the template.
-- **Infrastructure gets the full framework contract for free.** Examples, trailheads, governance, survey reporting — all derived from the same trail primitives business logic uses.
+- **Infrastructure gets the full framework contract for free.** Examples, surfaces, governance, survey reporting — all derived from the same trail primitives business logic uses.
 - **`testAll` validates the entire system in one call.** Infrastructure mocks are on the resource definitions. No test harness, no setup files, no per-package configuration. When a resource lacks a mock, `testAll` skips trails that depend on it and reports which resources blocked which trails — clear guidance, not a silent pass or a cryptic failure.
 - **The workspace is a known home for framework state.** No more ad-hoc dotfiles in the project root. Config, dev state, and generated artifacts have predictable locations.
 

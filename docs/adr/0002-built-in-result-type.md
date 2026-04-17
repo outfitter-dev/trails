@@ -16,13 +16,13 @@ owners: ['[galligan](https://github.com/galligan)']
 
 Trails implementations never throw. That's a hard rule — [ADR-0000](0000-core-premise.md) established it. Input in, `Result` out. The warden enforces it. If an implementation throws, it's a bug.
 
-This means Result isn't optional infrastructure. It's the return type of every trail, the input to every trailhead renderer, the thing every error flows through. The framework's contract model depends on it completely.
+This means Result isn't optional infrastructure. It's the return type of every trail, the input to every surface renderer, the thing every error flows through. The framework's contract model depends on it completely.
 
 ### External options
 
 Several good Result libraries exist in the TypeScript ecosystem — `neverthrow`[^neverthrow], `oxide.ts`[^oxide], `@badrap/result`[^badrap], `true-myth`[^true-myth], among others. I evaluated the main ones before deciding. The tradeoffs:
 
-- **`neverthrow`** is the most popular. It's well-maintained and has a reasonable API. But it carries its own error model, its own combinators, and its own opinions about how errors compose. Trails has a 13-class error taxonomy with deterministic trailhead mappings. Bridging neverthrow's error model to ours would mean wrapping everything anyway.
+- **`neverthrow`** is the most popular. It's well-maintained and has a reasonable API. But it carries its own error model, its own combinators, and its own opinions about how errors compose. Trails has a 13-class error taxonomy with deterministic surface mappings. Bridging neverthrow's error model to ours would mean wrapping everything anyway.
 - **`oxide.ts`** and **`true-myth`** are Rust-inspired and thorough. They're also larger than what we need and bring opinions about Option types, pattern matching, and other primitives that don't align with Trails' scope.
 - **`@badrap/result`** is tiny and close to what we need. But it doesn't handle serialization, and serialization is a first-class concern for us.
 
@@ -98,7 +98,7 @@ The Result type exists in tight partnership with the error taxonomy. Trails defi
 | `AuthError` | `auth` | 401 | 9 | -32600 | no |
 | `CancelledError` | `cancelled` | 499 | 130 | -32603 | no |
 
-The mapping is deterministic and lives in three lookup tables (`statusCodeMap`, `exitCodeMap`, `jsonRpcCodeMap`). The developer returns `Result.err(new NotFoundError('User not found'))`. The framework looks up the category and renders the right status code, exit code, or JSON-RPC code for the current trailhead. The developer never thinks about trailhead-specific error codes.
+The mapping is deterministic and lives in three lookup tables (`statusCodeMap`, `exitCodeMap`, `jsonRpcCodeMap`). The developer returns `Result.err(new NotFoundError('User not found'))`. The framework looks up the category and renders the right status code, exit code, or JSON-RPC code for the current surface. The developer never thinks about surface-specific error codes.
 
 ### Retryable is a property of the error, not the caller
 
@@ -110,14 +110,14 @@ The `isRetryable(error)` helper checks the category map. Detours (trail-level re
 
 ### Positive
 
-- **Zero dependencies.** The Result type is ~80 effective LOC across `result.ts` and a companion `fetch.ts`. No transitive dependency tree. No version conflicts. No supply chain trailhead.
+- **Zero dependencies.** The Result type is ~80 effective LOC across `result.ts` and a companion `fetch.ts`. No transitive dependency tree. No version conflicts. No supply chain surface.
 - **Serialization is built in.** `toJson`, `fromJson`, and `fromFetch` handle the common boundary-crossing cases. DAG-safe circular reference handling means complex object graphs don't silently fail.
-- **Error taxonomy is framework knowledge.** Developers return the right error type. The framework handles the mapping. This eliminates an entire class of inconsistency where the same error produces different status codes on different trailheads.
+- **Error taxonomy is framework knowledge.** Developers return the right error type. The framework handles the mapping. This eliminates an entire class of inconsistency where the same error produces different status codes on different surfaces.
 - **Type narrowing works.** `isOk()` and `isErr()` are proper type guards. After checking, TypeScript knows the shape. No casts, no assertions.
 
 ### Tradeoffs
 
-- **We maintain ~80 LOC of core infrastructure.** If the Result implementation has a bug, we fix it ourselves. No upstream community to catch edge cases. In practice, the API trailhead is small enough that this is manageable — the combinators are individually trivial.
+- **We maintain ~80 LOC of core infrastructure.** If the Result implementation has a bug, we fix it ourselves. No upstream community to catch edge cases. In practice, the API surface is small enough that this is manageable — the combinators are individually trivial.
 - **No community ecosystem.** Libraries built around `neverthrow` or `oxide.ts` won't compose directly with our Result. This is acceptable because trail implementations are self-contained — they don't pass Results to third-party code.
 - **`unwrap()` exists and it throws.** This is intentional for testing (`expectOk` uses it internally) but would be wrong in production trail code. The warden could enforce this in the future.
 
@@ -131,8 +131,8 @@ The `isRetryable(error)` helper checks the category map. Detours (trail-level re
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — establishes Result as mandatory and implementations as pure
 - [ADR-0001: Naming Conventions](0001-naming-conventions.md) — naming rules for `Result.ok()`, `Result.err()`, and the `validate*` family
-- [API Reference](../api-reference.md) — the canonical public API trailhead
-- [Architecture](../architecture.md) — system architecture and how Result flows through trailheads
+- [API Reference](../api-reference.md) — the canonical public API surface
+- [Architecture](../architecture.md) — system architecture and how Result flows through surfaces
 
 [^neverthrow]: [neverthrow](https://github.com/supermacro/neverthrow) — the most popular TypeScript Result library
 [^oxide]: [oxide.ts](https://github.com/neoncitylights/oxide.ts) — Rust-inspired Result and Option types for TypeScript

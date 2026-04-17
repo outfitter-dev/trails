@@ -201,7 +201,7 @@ const gist = contour('gist', {
 Everything downstream feeds from these:
 
 - **Trail examples derived.** A `crud.create` trail on gist can derive its input/output examples from the contour's example data.
-- **Store fixtures derived.** Contour examples become test fixtures. `testAll(app)` seeds the database with contour examples before running trail examples.
+- **Store fixtures derived.** Contour examples become test fixtures. `testAll(graph)` seeds the database with contour examples before running trail examples.
 - **Warden validation.** Examples are validated against the contour schema — if the schema changes and an example becomes invalid, the warden catches it.
 
 ### Contours and resources
@@ -247,7 +247,7 @@ Contour is a declaration-time concept. By the time a trail executes, the contour
 
 ## Non-goals
 
-- **Contour as ORM entity.** Contours declare shapes and references. They don't manage relationships at runtime, auto-fetch related objects, or cascade deletes. An ORM's domain graph answers "how are these things related?" The Trails topo answers "what can you do between these things, who's allowed to do it, and what does the contract look like on every trailhead?"
+- **Contour as ORM entity.** Contours declare shapes and references. They don't manage relationships at runtime, auto-fetch related objects, or cascade deletes. An ORM's domain graph answers "how are these things related?" The Trails topo answers "what can you do between these things, who's allowed to do it, and what does the contract look like on every surface?"
 - **Automatic schema derivation in 1.0.** When a trail declares `contours: [gist]` and `pattern: 'crud.create'`, the framework *could* derive the input schema (gist fields minus generated fields). The derivation rules need careful design. Manual schema slicing with Zod operations works now and is explicitly supported.
 - **`.id()` semantics beyond references.** Whether `.id()` implies a foreign key constraint in store, whether it can express optional references, and how it handles one-to-many vs. one-to-one at the declaration level — these are design decisions for the store integration, not the contour primitive itself.
 

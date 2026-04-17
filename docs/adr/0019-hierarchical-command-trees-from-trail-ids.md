@@ -15,7 +15,7 @@ depends_on: [8]
 
 Trails already treats a trail ID as a durable authored artifact. The same ID feeds CLI names, MCP tool names, HTTP paths, diff artifacts, and documentation. That is exactly the kind of one-write-many-reads multiplication the framework is supposed to provide.
 
-But the current CLI derivation only reads part of that authored story. `buildCliCommands()` splits on the first dot and produces `group + name`, so `topo.pin` becomes group `topo`, name `pin`, and `topo.pin.remove` collapses into group `topo`, name `pin.remove`.[^build-cli] The Commander adapter mirrors that limitation by creating only one parent layer.[^to-commander]
+But the current CLI derivation only reads part of that authored story. `deriveCliCommands()` splits on the first dot and produces `group + name`, so `topo.pin` becomes group `topo`, name `pin`, and `topo.pin.remove` collapses into group `topo`, name `pin.remove`.[^build-cli] The Commander adapter mirrors that limitation by creating only one parent layer.[^to-commander]
 
 That forces the trail contract to bend around a shallow CLI model:
 
@@ -43,7 +43,7 @@ The canonical CLI projection of a trail ID is its full ordered segment path.
 This means:
 
 - every dot in the trail ID is structurally meaningful to the CLI
-- the trailhead map and lockfile record the full path, not a special CLI-only `group` abstraction
+- the surface map and lockfile record the full path, not a special CLI-only `group` abstraction
 - the CLI is free to render an arbitrary-depth command tree from that path
 
 The first-dot rule goes away. A trail ID is not "a group plus a command." It is a path.
@@ -65,15 +65,15 @@ trails topo verify
 
 This is not a special case. It falls out of the path model directly.
 
-### Core owns the path projection; trailheads render it
+### Core owns the path projection; surfaces render it
 
-The segment path is trailhead-agnostic resolved state. The framework should expose it as a deterministic derivation that other packages can consume.
+The segment path is surface-agnostic resolved state. The framework should expose it as a deterministic derivation that other packages can consume.
 
 This means:
 
 - core or schema owns the canonical path projection from trail ID to ordered segments
 - `@ontrails/cli` consumes that projection to build a nested command tree
-- other trailheads may also use the same segment projection where it fits
+- other surfaces may also use the same segment projection where it fits
 
 HTTP already trends this way:
 
@@ -83,7 +83,7 @@ topo.pin -> /api/topo/pin
 
 MCP remains flat because MCP tool names are flat strings by protocol. The command-tree ADR does not change that.
 
-### Trailhead maps record the path explicitly
+### Surface maps record the path explicitly
 
 The serialized CLI projection must record the full path:
 
@@ -119,7 +119,7 @@ No separate CLI authoring language is introduced. The override is still a projec
 - **Nested subcommands become a normal rendering, not a workaround.** The CLI can represent the same hierarchy the trail IDs already express.
 - **Executable parents fit the model directly.** `trails topo` and `trails topo pin` no longer compete for the same namespace slot.
 - **The projection compounds across surfaces.** HTTP and CLI both benefit from the same segment story, even though they render it differently.
-- **The queryable contract stays complete.** Trailhead maps and the lockfile can record the actual path instead of a shallow adapter-specific shape.
+- **The queryable contract stays complete.** Surface maps and the lockfile can record the actual path instead of a shallow adapter-specific shape.
 
 ### Tradeoffs
 
@@ -135,10 +135,14 @@ No separate CLI authoring language is introduced. The override is still a projec
 
 ## References
 
-- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — this extends the CLI derivation story from a shallow first-dot grouping rule to a full ordered path
+- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-trailhead-derivation.md) — this extends the CLI derivation story from a shallow first-dot grouping rule to a full ordered path
 - [ADR-0001: Naming Conventions](0001-naming-conventions.md) — trail IDs are authored artifacts that feed multiple projections
 - [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — CLI projections belong in the resolved graph and lockfile
 - [Trails Design Tenets](../tenets.md) — especially "one write, many reads" and "the trail is the product"
+
+### Amendment log
+
+- 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — `buildCliCommands` → `deriveCliCommands`, `trailhead map` → `surface map`.
 
 [^build-cli]: [`packages/cli/src/build.ts`](../../packages/cli/src/build.ts) previously parsed a trail ID into `{ group, name }` by splitting on the first dot. It will call `deriveCliPath` which splits on all dots to produce a full command path.
 [^to-commander]: [`packages/cli/src/commander/to-commander.ts`](../../packages/cli/src/commander/to-commander.ts) previously created only one parent layer keyed by `group`. It will build a full nested command tree via `ensureCommandNode`.

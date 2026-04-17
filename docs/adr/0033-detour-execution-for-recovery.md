@@ -128,7 +128,7 @@ class RetryExhaustedError<TErr extends TrailsError> extends TrailsError {
       `Recovery exhausted after ${metadata.attempts} attempts: ${wrapped.message}`
     );
     this.cause = wrapped;
-    // Inherit the wrapped error's category for trailhead mapping
+    // Inherit the wrapped error's category for surface mapping
     this.category = wrapped.category;
     // But override retryable to false at the instance level (see below)
     this.retryable = false;
@@ -136,7 +136,7 @@ class RetryExhaustedError<TErr extends TrailsError> extends TrailsError {
 }
 ```
 
-The category inheritance is the important part. A `RetryExhaustedError<ConflictError>` reports `category: 'conflict'`, so trailheads map it to HTTP 409 and exit code 3 — the same way a bare `ConflictError` would. Callers see the semantic underlying problem, not a synthetic wrapper with its own mapping.
+The category inheritance is the important part. A `RetryExhaustedError<ConflictError>` reports `category: 'conflict'`, so surfaces map it to HTTP 409 and exit code 3 — the same way a bare `ConflictError` would. Callers see the semantic underlying problem, not a synthetic wrapper with its own mapping.
 
 The instance-level `retryable: false` override is load-bearing for a different reason, covered next.
 

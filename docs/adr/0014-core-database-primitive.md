@@ -18,7 +18,7 @@ Today the framework has exactly one SQLite usage: the tracing DevStore in `@ontr
 
 Meanwhile, the framework generates and consumes several categories of structural and operational data that are persisted as JSON files or held in memory:
 
-- **The trailhead map** (`.trails/_trailhead.json`) — a deterministic manifest of every trail, signal, and resource in the topo. Generated at build time by `generateTrailheadMap()`.[^trailhead-map]
+- **The surface map** (`.trails/_surface.json`) — a deterministic manifest of every trail, signal, and resource in the topo. Generated at build time by `deriveSurfaceMap()`.[^surface-map]
 - **The lockfile** (`.trails/trails.lock`) — a serialized record of the resolved topology for CI diffing.
 - **Schema derivations** — `zodToJsonSchema()` output computed fresh on every startup and build.
 - **Execution records** — the tracing DevStore, isolated from all structural data.
@@ -84,38 +84,32 @@ Tables in `trails.db` are organized by subsystem. Each subsystem owns its schema
 
 | Prefix | Subsystem | Lifecycle |
 |---|---|---|
-| `topo_*` | Topo store, topo save history, and pins | Rebuilt on build/refresh; pins are user-managed |
+| `topo_*` | Topo store and snapshot history (pins are snapshots with `pinned_as` set) | Rebuilt on build/refresh; pinned snapshots are user-managed |
 | `track_*` | Tracing (execution records) | Append-only, pruned |
 | `cache_*` | Non-topo derivation caches and local framework caches | Populated on build, invalidated by content hash |
 
 This avoids collision as subsystems evolve independently. Each subsystem manages its own table creation, and a version table tracks schema versions per subsystem for safe migration.
 
-### Topo saves and pins
+### Topo snapshots and pins
 
 The topo store records every saved topo state, then lets developers pin the meaningful ones:
 
 ```sql
-CREATE TABLE topo_saves (
+CREATE TABLE topo_snapshots (
   id TEXT PRIMARY KEY,        -- UUIDv7
-  git_sha TEXT,               -- HEAD at save time (null if not a git repo)
+  pinned_as TEXT UNIQUE,      -- developer-chosen durable name (null for autosaves)
+  git_sha TEXT,               -- HEAD at snapshot time (null if not a git repo)
   git_dirty INTEGER,          -- 1 if working tree had uncommitted changes
   trail_count INTEGER,        -- summary stats for quick display
   signal_count INTEGER,
   resource_count INTEGER,
   created_at TEXT NOT NULL     -- ISO 8601
 );
-
-CREATE TABLE topo_pins (
-  name TEXT PRIMARY KEY,      -- user-provided durable name
-  save_id TEXT NOT NULL UNIQUE,
-  created_at TEXT NOT NULL,
-  FOREIGN KEY (save_id) REFERENCES topo_saves(id)
-);
 ```
 
-Every build and topo refresh writes an **autosave**. Autosaves are ordinary topo saves that form the continuous structural history of the app.
+Every build and topo refresh writes an **autosave** (a snapshot with `pinned_as = NULL`). Autosaves form the continuous structural history of the app.
 
-Developers create **pins** to keep and name important topo states:
+Developers create **pins** to keep and name important topo states (setting `pinned_as` to the chosen name):
 
 ```bash
 trails topo pin "before auth refactor"
@@ -123,12 +117,12 @@ trails topo history
 trails topo diff --since "before auth refactor"
 ```
 
-Pins are durable names that point at saved topo states. They are not a second storage primitive. They are a retention and discovery affordance on top of autosaved topo history.
+Pins are durable names on topo snapshots. They are not a second storage primitive. They are a retention and discovery affordance on top of autosaved topo history.
 
 **Retention policy:**
 
-- Pins persist until explicitly removed. They are deliberate developer landmarks.
-- Unpinned topo saves are pruned to the most recent N (configurable, default 50).
+- Pinned snapshots persist until explicitly unpinned. They are deliberate developer landmarks.
+- Unpinned snapshots are pruned to the most recent N (configurable, default 50).
 - Tracing records are pruned to a configurable maximum (default 10,000) or age window (default 7 days), whichever is reached first.
 
 ### Lifecycle by environment
@@ -147,16 +141,16 @@ In production, the framework operates exactly as it does today: in-memory topo, 
 # Topo history
 trails topo show                    # Show the current topo summary
 trails topo history                 # List pins and recent autosaves
-trails topo pin "name"              # Pin the current topo save
-trails topo show "name"             # Show metadata for a pin or save reference
-trails topo diff --since "name"     # Structural diff since a pin or prior save
-trails topo unpin "name"            # Remove a pin but keep the underlying save eligible for pruning
+trails topo pin "name"              # Pin the current topo snapshot
+trails topo show "name"             # Show metadata for a pin or snapshot reference
+trails topo diff --since "name"     # Structural diff since a pin or prior snapshot
+trails topo unpin "name"            # Remove a pin but keep the underlying snapshot eligible for pruning
 trails topo export                  # Write .trails/trails.lock from the current topo
 trails topo verify                  # Verify .trails/trails.lock reflects the current topo
 
 # Developer maintenance
 trails dev stats                    # Table sizes, row counts, file size, and retention overview
-trails dev clean                    # Prune unpinned topo saves, old tracks, and stale caches
+trails dev clean                    # Prune unpinned snapshots, old tracks, and stale caches
 trails dev reset                    # Drop and recreate local Trails framework state
 ```
 
@@ -168,7 +162,7 @@ Retention and behavior are configurable through the standard Trails config:
 # trails.config.yaml
 db:
   retention:
-    saves: 50              # unpinned topo save count (pins exempt)
+    snapshots: 50           # unpinned snapshot count (pinned snapshots exempt)
     tracks: 10000          # max execution records
     trackAge: 7d           # max age for execution records
   enabled: true            # false to disable entirely (e.g., in CI-only repos)
@@ -180,11 +174,11 @@ All values have sensible defaults. Zero configuration required.
 
 ### Positive
 
-- **One database, many consumers.** Structural data, execution records, cached derivations, topo saves, and pins colocate. Cross-cutting queries become joins, not cross-system integrations.
+- **One database, many consumers.** Structural data, execution records, cached derivations, topo snapshots, and pins colocate. Cross-cutting queries become joins, not cross-system integrations.
 - **No new dependency.** `bun:sqlite` is a Bun built-in. Core gains a capability without gaining a dependency.
 - **Write restriction is enforced, not conventional.** SQLite's `readonly: true` connection flag plus TypeScript type narrowing. App code cannot accidentally write to framework data.
 - **Production is unaffected.** The database only exists in dev and CI. The in-memory topo remains the execution engine. Zero overhead in production.
-- **Topo history enables evolution tracking.** Autosaves plus pins create a queryable history of the app's structural evolution without forcing developers to think in database internals.
+- **Topo history enables evolution tracking.** Snapshots plus pins create a queryable history of the app's structural evolution without forcing developers to think in database internals.
 
 ### Tradeoffs
 
@@ -209,4 +203,9 @@ All values have sensible defaults. Zero configuration required.
 - [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — app-level persistence building on the patterns established here
 
 [^devstore]: The DevStore default path is `.trails/dev/tracing.db`. See `packages/tracing/src/stores/dev.ts`.
-[^trailhead-map]: The trailhead map is generated by `generateTrailheadMap()` in `@ontrails/schema` and written to `.trails/_trailhead.json` by `writeTrailheadMap()`. See [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md).
+
+### Amendment log
+
+- 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — `generateTrailheadMap` → `deriveSurfaceMap`, `writeTrailheadMap` → `writeSurfaceMap`, `_trailhead.json` → `_surface.json`, `trailhead map` → `surface map`. Schema tables updated: `topo_saves` + `topo_pins` collapsed into `topo_snapshots` with nullable `pinned_as` column.
+
+[^surface-map]: The surface map is generated by `deriveSurfaceMap()` in `@ontrails/schema` and written to `.trails/_surface.json` by `writeSurfaceMap()`. See [ADR-0008: Deterministic Surface Derivation](0008-deterministic-trailhead-derivation.md).

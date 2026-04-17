@@ -21,8 +21,8 @@ Early versions of Trails had two definition primitives: `trail()` for simple ope
 The `trail` / `hike` distinction rippled through the entire system:
 
 - **Topo had two maps.** `topo.trails` and `topo.hikes`, each with its own lookup, iteration, and registration logic. Every function that operated on "everything in the topo" needed to handle both.
-- **Kind discriminant everywhere.** `kind: 'trail'` vs `kind: 'hike'` appeared in types, runtime checks, trailhead connectors, test helpers, and governance rules. Each was a branch point where code had to ask "which one am I dealing with?"
-- **Trailhead connectors doubled their code paths.** CLI, MCP, and every future trailhead needed separate handling for trails and hikes. The logic was nearly identical — the only meaningful difference was whether `crosses` was present.
+- **Kind discriminant everywhere.** `kind: 'trail'` vs `kind: 'hike'` appeared in types, runtime checks, surface connectors, test helpers, and governance rules. Each was a branch point where code had to ask "which one am I dealing with?"
+- **Surface connectors doubled their code paths.** CLI, MCP, and every future surface needed separate handling for trails and hikes. The logic was nearly identical — the only meaningful difference was whether `crosses` was present.
 - **Testing split in two.** `testTrail` and `testHike` were separate functions. `TrailScenario` and `HikeScenario` were separate types. The warden had separate rules for each. All of this for a distinction that boiled down to: does the spec have a non-empty `crosses` array?
 - **Cognitive overhead.** New contributors had to learn when to use `trail()` vs `hike()`. The answer was always the same — "use `hike()` if you call `ctx.cross()`" — but the question kept coming up because the distinction felt like it should mean more than it did.
 
@@ -91,9 +91,9 @@ No discriminant. No branching. One type, one code path, everywhere.
 ### Positive
 
 - **One topo map.** Every function that operates on the topology iterates one collection. No "and also check hikes" logic anywhere.
-- **One code path per trailhead.** CLI, MCP, HTTP — each handles one kind of thing. The connector code is half what it was.
+- **One code path per surface.** CLI, MCP, HTTP — each handles one kind of thing. The connector code is half what it was.
 - **Simpler testing.** `testTrail` handles everything, including crossing chains. `testCrosses` exists for focused composition testing, not because the framework forced a different type.
-- **Composition is a property, not a type.** A trail that starts simple can add `crosses` later without changing its definition function, its tests, or its trailhead wiring. The progression is smooth.
+- **Composition is a property, not a type.** A trail that starts simple can add `crosses` later without changing its definition function, its tests, or its surface wiring. The progression is smooth.
 - **Fewer concepts to learn.** One primitive. One type. Composition is opt-in via a field, not a fork in the road.
 
 ### Tradeoffs

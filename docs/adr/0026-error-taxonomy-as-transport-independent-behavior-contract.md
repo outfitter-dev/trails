@@ -15,11 +15,11 @@ depends_on: [2, 6]
 
 ### The taxonomy already works across three transports
 
-ADR-0002[^1] established Trails' original error taxonomy with deterministic mappings to HTTP status codes, CLI exit codes, and JSON-RPC error codes. The developer returns `Result.err(new NotFoundError('User not found'))`. The framework looks up the mapping for the current trailhead and renders the right code. The developer never thinks about transport-specific error representation.
+ADR-0002[^1] established Trails' original error taxonomy with deterministic mappings to HTTP status codes, CLI exit codes, and JSON-RPC error codes. The developer returns `Result.err(new NotFoundError('User not found'))`. The framework looks up the mapping for the current surface and renders the right code. The developer never thinks about transport-specific error representation.
 
-This was designed for the original three trailheads: CLI, HTTP, and MCP. But the framework is acquiring new transports — webhook responses, queue consumers (ack/nack/dead-letter), WebSocket close codes, signal delivery outcomes. Each of these needs to know: is this error permanent or transient? Should the transport retry? What does the consumer see?
+This was designed for the original three surfaces: CLI, HTTP, and MCP. But the framework is acquiring new transports — webhook responses, queue consumers (ack/nack/dead-letter), WebSocket close codes, signal delivery outcomes. Each of these needs to know: is this error permanent or transient? Should the transport retry? What does the consumer see?
 
-The taxonomy already answers these questions. `retryable` is a property of the error class itself. The category groups errors into behavioral families. The insight: the error taxonomy is not a set of three trailhead-specific mapping tables. It's a universal behavior contract that any transport can read.
+The taxonomy already answers these questions. `retryable` is a property of the error class itself. The category groups errors into behavioral families. The insight: the error taxonomy is not a set of three surface-specific mapping tables. It's a universal behavior contract that any transport can read.
 
 ### The mapping pattern is the same every time
 
@@ -119,7 +119,7 @@ The deliberate friction from ADR-0002 applies: adding a new error class to the t
 
 - **Retry policies.** How many times a queue retries, what backoff strategy to use, when to give up — these are connector-level configuration decisions, not taxonomy decisions. The taxonomy says "this error is retryable." The connector decides how many times and how long.
 - **Dead-letter handling.** What happens to dead-lettered messages — alerting, manual inspection, automated reprocessing — is an operational concern outside the taxonomy.
-- **WebSocket close code mapping.** The specific mapping of error categories to WebSocket close codes (1008 for policy violation, 1011 for internal error, etc.) is deferred to the WebSocket Trailhead ADR.
+- **WebSocket close code mapping.** The specific mapping of error categories to WebSocket close codes (1008 for policy violation, 1011 for internal error, etc.) is deferred to the WebSocket Surface ADR.
 
 ## References
 

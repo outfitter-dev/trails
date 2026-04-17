@@ -13,7 +13,7 @@ depends_on: [14, 9]
 
 ## Context
 
-The hexagonal architecture places trailheads (CLI, MCP, HTTP) on the left and infrastructure (databases, caches, APIs) on the right. Trailheads have first-class framework support: `trailhead()` derives a full CLI from the trail contract, `buildMcpTools()` derives MCP tool definitions, `buildHttpRoutes()` derives HTTP routes. The left side of the hexagon is solved.
+The hexagonal architecture places surfaces (CLI, MCP, HTTP) on the left and infrastructure (databases, caches, APIs) on the right. Surfaces have first-class framework support: `surface()` derives a full CLI from the trail contract, `deriveMcpTools()` derives MCP tool definitions, `deriveHttpRoutes()` derives HTTP routes. The left side of the hexagon is solved.
 
 The right side is not. Every Trails app writes its own persistence layer from scratch. The Stash dogfood app[^stash] (a 19-trail GitHub Gist clone) spent ~700 lines on a hand-written SQLite store: table creation, CRUD functions, pagination helpers, FTS5 indexing, and type definitions. Every one of those lines restated information the framework already had:
 
@@ -54,9 +54,9 @@ A new package provides the framework-agnostic store model. It follows the same t
 | | Left side (trailheads) | Right side (store) |
 |---|---|---|
 | Framework-agnostic model | `CliCommand[]`, `McpTool[]`, `HttpRoute[]` | Store definitions, derived schemas, accessor contracts |
-| Binding package | `/commander`, `/hono` | `@ontrails/with-drizzle`, plus built-in backends such as `@ontrails/store/jsonfile` |
-| One-liner | `trailhead(app)` | `store({...})` |
-| Escape hatch | `buildCliCommands()` then manual wiring | connector-native query access such as `conn.query()` |
+| Binding package | `/commander`, `/hono` | `@ontrails/drizzle`, plus built-in backends such as `@ontrails/store/jsonfile` |
+| One-liner | `surface(graph)` | `store({...})` |
+| Escape hatch | `deriveCliCommands()` then manual wiring | connector-native query access such as `conn.query()` |
 | Derived from | Zod input schema + intent | Zod entity schema + persistence meta |
 
 ### Store definition
@@ -95,7 +95,7 @@ A connector consumes the declaration and binds it to a concrete runtime:
 
 ```typescript
 import { store } from '@ontrails/store';
-import { connectDrizzle } from '@ontrails/with-drizzle';
+import { connectDrizzle } from '@ontrails/drizzle';
 
 const definition = store({
   gists: {
@@ -152,7 +152,7 @@ trail('gist.list', {
 - **`mock`**: creates an in-memory instance with the same schema, optionally seeded with fixtures
 - **`health`**: pings the connection
 
-This eliminates the ceremony of wrapping a database in a `resource()` call. The connector-bound store collapses resource definition, table definitions, and connection management into one runnable surface — the same collapse that `trailhead()` achieves for `buildCliCommands` + `toCommander` + `program.parse()`. The authored store definition and the bound runtime stay distinct so the root package remains connector-agnostic.
+This eliminates the ceremony of wrapping a database in a `resource()` call. The connector-bound store collapses resource definition, table definitions, and connection management into one runnable surface — the same collapse that `surface()` achieves for `deriveCliCommands` + `toCommander` + `program.parse()`. The authored store definition and the bound runtime stay distinct so the root package remains connector-agnostic.
 
 ### Typed accessors
 
@@ -253,14 +253,14 @@ Fixtures are:
 - Validated against the entity schema at definition time
 - Visible to the warden for governance checks
 
-`testAll(app)` works with zero additional configuration. The mock store with fixtures resolves automatically when the resource context detects a test environment.
+`testAll(graph)` works with zero additional configuration. The mock store with fixtures resolves automatically when the resource context detects a test environment.
 
 ### Read-only store variant
 
 Stores can be created as read-only, exposing only `get`, `list`, and `query` on the connection type:
 
 ```typescript
-import { readonlyStore } from '@ontrails/with-drizzle';
+import { readonlyStore } from '@ontrails/drizzle';
 
 const analyticsDb = readonlyStore(
   { events: { schema: eventSchema, primaryKey: 'id' } },
@@ -328,7 +328,7 @@ Overrides are explicit and visible in the store definition. The framework derive
 - **Framework-proven patterns.** The typed accessors, escape hatch, and resource integration are stress-tested by the framework's own topo store before app developers use them.
 - **Fixtures solve the seed/example tension.** Deterministic IDs on the store definition, referenced by trail examples. No workarounds.
 - **Error mapping extends the taxonomy.** Database errors join the same deterministic mapping that trailheads use.
-- **Testing works unchanged.** `testAll(app)` uses the mock store automatically. Zero configuration.
+- **Testing works unchanged.** `testAll(graph)` uses the mock store automatically. Zero configuration.
 - **Read-only variant unifies internal and external patterns.** The topo store resource and an app's read-only database connection use the same API.
 
 ### Tradeoffs
@@ -348,13 +348,17 @@ Overrides are explicit and visible in the store definition. The framework derive
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — the trail is the product, everything else is a projection
 - [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) — the two-level architecture pattern this mirrors
-- [ADR-0008: Deterministic Trailhead Derivation](0008-deterministic-trailhead-derivation.md) — deterministic derivation, now extended to storage
+- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-trailhead-derivation.md) — deterministic derivation, now extended to storage
 - [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the resource primitive that the store builds on
 - [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) — the `trails.db` foundation and patterns this extends
 - [ADR-0015: Topo Store](0015-topo-store.md) — the framework's own usage of the store patterns
 - ADR: Drizzle Store Connector (draft) — the first database connector
 - ADR: Declarative Search (draft) — searchability as a store declaration
 - ADR: Entity Trail Factories (draft) — trail factories derived from store tables via `mark()`
+
+### Amendment log
+
+- 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — `trailhead(` → `surface(`, `build*` → `derive*`.
 
 [^stash]: The Stash dogfood app — a 19-trail GitHub Gist clone built overnight by an agent. Findings were captured in the Stash retro session.
 [^drizzle-zod]: A recurring theme in the Drizzle community: `drizzle-zod` schemas need refinement for API validation and the double-inference path degrades TypeScript performance.

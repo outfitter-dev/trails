@@ -64,7 +64,7 @@ Five terms a developer must internalize before reading a Trails app:
 | Term | What it is | Why branded |
 |---|---|---|
 | `trail` | Unit of work. Input, output, intent, contract. | The atomic concept. Everything orbits it. |
-| `trailhead` | Entry point where the outside world reaches trails. | More specific than "surface" or "endpoint." Says "entry into the trail system." |
+| `surface` | Entry point where the outside world reaches trails. | More specific than "endpoint." Says "entry into the trail system." |
 | `topo` | Assembles trails into a queryable graph. | More than a registry. The map of everything: trails, relationships, signals. |
 | `warden` | Governance and contract enforcement. | Active governance — completeness checking, drift detection, contract validation — not just "linting." |
 | `permit` | The resolved identity shape. What auth produces, not the process. | Auth is the boundary work. A permit is the artifact the trail receives: identity, scopes, roles — typed and resolved. |
@@ -145,11 +145,11 @@ Rename `docs/vocabulary.md` to `docs/lexicon.md`. Update every reference across 
 - **`create*` for runtime instances:** `createLogger()`, `createConsoleLogger()`
 - **`derive*` for derivations:** `deriveFields()`, `deriveFlags()`
 - **`validate*` for verification:** `validateInput()`, `validateTopo()`
-- **`build*` then `to*`/`connect*` for trailhead wiring:** `buildCliCommands()`, `toCommander()`
+- **`derive*` then `to*`/`connect*` for surface wiring:** `deriveCliCommands()`, `toCommander()`
 
 ## Non-goals
 
-- **Not re-evaluating `trail`, `trailhead`, `topo`, or `blaze`.** These are load-bearing and uncontested. They earned their keep in beta and stay.
+- **Not re-evaluating `trail`, `topo`, or `blaze`.** These are load-bearing and uncontested. They earned their keep in beta and stay.
 - **Not introducing a formal deprecation window.** Pre-1.0 means we rename in place. There is no older user base to migrate gradually.
 - **Not touching ADR-0001's grammar rules.** The singular/plural/verb grammar carries over verbatim. This ADR extends the naming heuristic and updates the specific term list; it does not replace the conventions.
 
@@ -160,7 +160,7 @@ Rename `docs/vocabulary.md` to `docs/lexicon.md`. Update every reference across 
 - **Lower onboarding cost.** Four terms that required explanation (`gate`, `provision`, `loadout`, `tracker`) become standard industry words. The lexicon shrinks by the four terms a new developer has to learn cold.
 - **Better agent ergonomics.** Agents inspecting a Trails topo encounter `resource`, `layer`, `profile`, `tracing` — words their training data already handles. Fewer synonyms to resolve.
 - **OTel alignment.** `tracing` + `TraceRecord` + `ctx.trace()` maps directly to OpenTelemetry terminology. `@ontrails/observe` can adopt OTel semantics without a naming translation layer.
-- **Stronger branded terms earn more.** The terms that remain branded — `trail`, `trailhead`, `topo`, `warden`, `permit`, `blaze`, `fires`, `detour`, `cross`, `signal`, `pin` — are now the full set. Each one names something the standard word would shrink. The signal-to-noise of the branded vocabulary goes up.
+- **Stronger branded terms earn more.** The terms that remain branded — `trail`, `surface`, `topo`, `warden`, `permit`, `blaze`, `fires`, `detour`, `cross`, `signal`, `pin` — are now the full set. Each one names something the standard word would shrink. The signal-to-noise of the branded vocabulary goes up.
 - **"Lexicon" reframes the discipline.** Calling the document what it is — a governed naming system with grammar — reinforces that this is a contract, not a glossary.
 
 ### Tradeoffs
@@ -190,3 +190,8 @@ Rename `docs/vocabulary.md` to `docs/lexicon.md`. Update every reference across 
 - [ADR-0011: Schema-Driven Config](0011-schema-driven-config.md) — to be revisited. `loadout` → `profile`. Config resolution unchanged.
 - [Trails Tenets](../tenets.md) — the heuristic here operationalizes "reduce ceremony, not clarity" at the naming layer.
 - [Lexicon doc (current)](../lexicon.md) — renamed from `docs/vocabulary.md` as part of this ADR's adoption.
+
+### Amendment log
+
+- 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — `build*` → `derive*` in grammar rules.
+- 2026-04-16: Removed `trailhead` from non-goals and branded-terms lists — retired to plain language per ADR-0035 Cutover 3 (`trailhead` → `surface`).

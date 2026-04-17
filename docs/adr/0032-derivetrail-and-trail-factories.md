@@ -109,7 +109,7 @@ const githubPush = ingest({
 });
 ```
 
-Each `ingest` call produces one trail. The trail's blaze verifies the source (via a layer derived from `verify`), validates the payload against `schema`, applies `transform`, and calls `ctx.signal()` with the result. Verification uses the existing permit model[^4] — HMAC signature checking is structurally identical to any other credential verification, producing a verified identity. The trail is a regular trail: testable, governable, trailheadable on any surface.
+Each `ingest` call produces one trail. The trail's blaze verifies the source (via a layer derived from `verify`), validates the payload against `schema`, applies `transform`, and calls `ctx.signal()` with the result. Verification uses the existing permit model[^4] — HMAC signature checking is structurally identical to any other credential verification, producing a verified identity. The trail is a regular trail: testable, governable, surfaceable on any surface.
 
 The `verify` option is optional. An internal service posting events to your API doesn't need signature verification — skip it and the trail validates and emits directly. The `transform` option is also optional — if the external payload already matches the signal schema, omit it and the payload passes through.
 
@@ -190,7 +190,7 @@ Each is ceremony the framework can truthfully carry. The tenet: *"Repeated cerem
 
 ### The four-step story
 
-Define your schema. Get your trails. Connect with Drizzle. Trailhead on CLI.
+Define your schema. Get your trails. Connect with Drizzle. Surface on CLI.
 
 ```typescript
 // 1. Define your schema
@@ -207,13 +207,13 @@ const noteTrails = crud(noteSchema, db);
 import { drizzle } from '@ontrails/with-drizzle';
 const notesDb = drizzle(db, { url: './notes.sqlite' });
 
-// 4. Trailhead on CLI
+// 4. Surface on CLI
 import { commander } from '@ontrails/with-commander';
 const app = topo('notes', noteTrails, { resources: { [db.id]: notesDb } });
 commander(app);
 ```
 
-Four imports. Four statements. A full CRUD app with typed schemas, a real database, and a CLI — testable, governable, trailheadable on any surface.
+Four imports. Four statements. A full CRUD app with typed schemas, a real database, and a CLI — testable, governable, surfaceable on any surface.
 
 ### Governance integration
 
@@ -290,7 +290,7 @@ Start small. Ship store trail factories and composition trail factories in their
 - [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — the store schema that `deriveTrail()` reads from
 - [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — the `pattern` field and `derive*` grammar rule
 - [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md) — the upstream domain noun that feeds `deriveTrail()`
-- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector-contributed `/trails` subpaths
+- [ADR-0029: Connector Extraction and Composition Around Core Contracts](0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector-contributed `/trails` subpaths
 - [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store schema that `deriveTrail()` reads from
 - [Tenets: Reduce ceremony, not clarity](../tenets.md) — the governing principle; trail factories are ceremony reduction that rests on inspectable ground truth
 - [Tenets: The bar for new primitives](../tenets.md#the-bar-for-new-primitives) — `deriveTrail()` passes because it strengthens existing primitives rather than adding new ones
