@@ -1,7 +1,7 @@
 /**
  * `create` route -- Create a new Trails project.
  *
- * Composes create.scaffold, add.trailhead, and add.verify sub-trails
+ * Composes create.scaffold, add.surface, and add.verify sub-trails
  * via ctx.cross.
  */
 
@@ -14,13 +14,13 @@ import { z } from 'zod';
 // ---------------------------------------------------------------------------
 
 type Starter = 'empty' | 'entity' | 'hello';
-type Trailhead = 'cli' | 'mcp';
+type Surface = 'cli' | 'mcp';
 
 interface CreateInput {
   readonly dir?: string | undefined;
   readonly name: string;
   readonly starter: Starter;
-  readonly trailheads: readonly Trailhead[];
+  readonly surfaces: readonly Surface[];
   readonly verify: boolean;
 }
 
@@ -48,9 +48,9 @@ const buildScaffoldInput = (input: ScaffoldRequest) => ({
   starter: input.starter,
 });
 
-const buildTrailheadInput = (dir: string, trailhead: string) => ({
+const buildSurfaceInput = (dir: string, surface: string) => ({
   dir,
-  trailhead,
+  surface,
 });
 
 const buildVerifyInput = (input: VerifyRequest) => ({
@@ -64,17 +64,17 @@ const scaffoldProject = (
 ): Promise<Result<ScaffoldedProject, Error>> =>
   cross('create.scaffold', buildScaffoldInput(input));
 
-const addTrailheadFiles = async (
+const addSurfaceFiles = async (
   cross: CrossFn,
   dir: string,
-  trailheads: readonly string[]
+  surfaces: readonly string[]
 ): Promise<Result<string[], Error>> => {
   const created: string[] = [];
 
-  for (const trailhead of trailheads) {
+  for (const surface of surfaces) {
     const result = await cross<{ created: string; dependency: string }>(
-      'add.trailhead',
-      buildTrailheadInput(dir, trailhead)
+      'add.surface',
+      buildSurfaceInput(dir, surface)
     );
     if (result.isErr()) {
       return Result.err(result.error);
@@ -104,9 +104,9 @@ const collectVerifyFiles = async (
 
 const collectCreatedFiles = (
   scaffolded: readonly string[],
-  trailheads: readonly string[],
+  surfaces: readonly string[],
   verify: readonly string[]
-): string[] => [...scaffolded, ...trailheads, ...verify];
+): string[] => [...scaffolded, ...surfaces, ...verify];
 
 const runCreate = async (
   cross: CrossFn,
@@ -117,13 +117,13 @@ const runCreate = async (
     return Result.err(scaffolded.error);
   }
 
-  const trailheadResults = await addTrailheadFiles(
+  const surfaceResults = await addSurfaceFiles(
     cross,
     scaffolded.value.dir,
-    input.trailheads
+    input.surfaces
   );
-  if (trailheadResults.isErr()) {
-    return Result.err(trailheadResults.error);
+  if (surfaceResults.isErr()) {
+    return Result.err(surfaceResults.error);
   }
 
   const verifyFiles = await collectVerifyFiles(cross, input);
@@ -134,7 +134,7 @@ const runCreate = async (
   return Result.ok({
     created: collectCreatedFiles(
       scaffolded.value.created,
-      trailheadResults.value,
+      surfaceResults.value,
       verifyFiles.value
     ),
     dir: scaffolded.value.dir,
@@ -156,7 +156,7 @@ export const createRoute = trail('create', {
     }
     return await runCreate(ctx.cross, input);
   },
-  crosses: ['create.scaffold', 'add.trailhead', 'add.verify'],
+  crosses: ['create.scaffold', 'add.surface', 'add.verify'],
   description: 'Create a new Trails project',
   fields: {
     starter: {
@@ -174,7 +174,7 @@ export const createRoute = trail('create', {
         { hint: 'Just the structure', label: 'Empty', value: 'empty' },
       ],
     },
-    trailheads: {
+    surfaces: {
       options: [
         { hint: 'Commander-based command line', label: 'CLI', value: 'cli' },
         {
@@ -192,10 +192,10 @@ export const createRoute = trail('create', {
       .enum(['hello', 'entity', 'empty'])
       .default('hello')
       .describe('Starter trail'),
-    trailheads: z
+    surfaces: z
       .array(z.enum(['cli', 'mcp']))
       .default(['cli'])
-      .describe('Trailheads'),
+      .describe('Surfaces'),
     verify: z.boolean().default(true).describe('Include testing + warden'),
   }),
   output: z.object({

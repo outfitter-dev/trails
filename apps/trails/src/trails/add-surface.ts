@@ -1,5 +1,5 @@
 /**
- * `add.trailhead` trail -- Add a trailhead to an existing project.
+ * `add.surface` trail -- Add a surface to an existing project.
  *
  * Generates the CLI or MCP entry point and updates package.json dependencies.
  */
@@ -28,9 +28,9 @@ import { app } from '${appImportPath}';
 await surface(app);
 `;
 
-/** Resolve the entry file for a trailhead. */
-const getEntryFile = (trailhead: 'cli' | 'mcp'): string =>
-  trailhead === 'cli' ? 'src/cli.ts' : 'src/mcp.ts';
+/** Resolve the entry file for a surface. */
+const getEntryFile = (surface: 'cli' | 'mcp'): string =>
+  surface === 'cli' ? 'src/cli.ts' : 'src/mcp.ts';
 
 // ---------------------------------------------------------------------------
 // Trail definition
@@ -39,13 +39,13 @@ const getEntryFile = (trailhead: 'cli' | 'mcp'): string =>
 /** Patch deps and optionally bin in a parsed package.json. */
 const patchPkgDeps = (
   pkg: Record<string, unknown>,
-  trailhead: 'cli' | 'mcp',
+  surface: 'cli' | 'mcp',
   cwd: string
 ): string => {
-  const depName = trailhead === 'cli' ? '@ontrails/cli' : '@ontrails/mcp';
+  const depName = surface === 'cli' ? '@ontrails/cli' : '@ontrails/mcp';
   const deps = (pkg['dependencies'] ?? {}) as Record<string, string>;
   deps[depName] = 'workspace:*';
-  if (trailhead === 'cli') {
+  if (surface === 'cli') {
     deps['commander'] = '^14.0.0';
     pkg['bin'] = {
       [(pkg['name'] as string | undefined) ?? basename(cwd)]: './src/cli.ts',
@@ -57,31 +57,31 @@ const patchPkgDeps = (
   return depName;
 };
 
-/** Update package.json with trailhead dependency and CLI bin if needed. */
-const updatePkgJsonForTrailhead = async (
+/** Update package.json with surface dependency and CLI bin if needed. */
+const updatePkgJsonForSurface = async (
   cwd: string,
-  trailhead: 'cli' | 'mcp'
+  surface: 'cli' | 'mcp'
 ): Promise<string> => {
   const pkgPath = join(cwd, 'package.json');
   if (!existsSync(pkgPath)) {
-    return trailhead === 'cli' ? '@ontrails/cli' : '@ontrails/mcp';
+    return surface === 'cli' ? '@ontrails/cli' : '@ontrails/mcp';
   }
   const pkg = (await Bun.file(pkgPath).json()) as Record<string, unknown>;
-  const depName = patchPkgDeps(pkg, trailhead, cwd);
+  const depName = patchPkgDeps(pkg, surface, cwd);
   await Bun.write(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
   return depName;
 };
 
-/** Create the entry file for a trailhead and return the relative path. */
-const writeTrailheadEntry = async (
+/** Create the entry file for a surface and return the relative path. */
+const writeSurfaceEntry = async (
   cwd: string,
-  trailhead: 'cli' | 'mcp'
+  surface: 'cli' | 'mcp'
 ): Promise<string> => {
-  const entryFile = getEntryFile(trailhead);
+  const entryFile = getEntryFile(surface);
   const fullEntryPath = join(cwd, entryFile);
   const appImport = (await findTopoPath(cwd)) ?? './app.js';
   const content =
-    trailhead === 'cli'
+    surface === 'cli'
       ? generateCliEntry(appImport)
       : generateMcpEntry(appImport);
 
@@ -90,29 +90,29 @@ const writeTrailheadEntry = async (
   return entryFile;
 };
 
-export const addTrailhead = trail('add.trailhead', {
+export const addSurface = trail('add.surface', {
   blaze: async (input) => {
     const cwd = resolve(input.dir ?? '.');
-    const { trailhead } = input;
-    const entryFile = getEntryFile(trailhead);
+    const { surface } = input;
+    const entryFile = getEntryFile(surface);
 
     if (existsSync(join(cwd, entryFile))) {
       return Result.err(
         new Error(
-          `${trailhead.toUpperCase()} trailhead already exists. Nothing to do.`
+          `${surface.toUpperCase()} surface already exists. Nothing to do.`
         )
       );
     }
 
     return Result.ok({
-      created: await writeTrailheadEntry(cwd, trailhead),
-      dependency: await updatePkgJsonForTrailhead(cwd, trailhead),
+      created: await writeSurfaceEntry(cwd, surface),
+      dependency: await updatePkgJsonForSurface(cwd, surface),
     });
   },
-  description: 'Add a trailhead to an existing project',
+  description: 'Add a surface to an existing project',
   input: z.object({
     dir: z.string().optional().describe('Project directory'),
-    trailhead: z.enum(['cli', 'mcp']).describe('Trailhead to add'),
+    surface: z.enum(['cli', 'mcp']).describe('Surface to add'),
   }),
   output: z.object({
     created: z.string(),

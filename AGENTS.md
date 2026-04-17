@@ -30,7 +30,7 @@ For direct local lint and format validation, prefer `bunx ultracite check` and `
 
 ## Project Overview
 
-Trails is an agent-native, contract-first TypeScript framework. Define a trail once with typed input, `Result` output, examples, and metadata, then trailhead it on CLI, MCP, HTTP, or WebSocket.
+Trails is an agent-native, contract-first TypeScript framework. Define a trail once with typed input, `Result` output, examples, and metadata, then surface it on CLI, MCP, HTTP, or WebSocket.
 
 The architecture is designed to make consistency easier than drift. Agents building with Trails should naturally produce aligned trailheads. Agents consuming Trails apps should be able to inspect contracts, examples, schemas, and errors at runtime without guessing.
 
@@ -49,7 +49,8 @@ Use the project language consistently:
 - `blaze`, not handler or impl (the implementation field on a trail)
 - `topo`, not registry or collection
 - `cross`, not follow (for composition declaration and runtime invocation)
-- `trailhead`, not transport terminology
+- `surface`, not transport terminology (the API function and user-facing noun)
+- `trailhead`, not endpoint or gateway (the conceptual boundary where surfaces meet trails)
 - `resource`, not service or dependency
 - `layer`, not middleware
 
