@@ -12,13 +12,13 @@
 
 **Config resolution (`@ontrails/config`).** `defineConfig()` provides schema-validated config with profiles (named environment profiles), env variable mapping, and `ResourceSpec.config` for resource-level config schemas. Includes diagnostics (`checkConfig`), introspection (`deriveConfigFields`, `deriveConfigProvenance`), and generation (`deriveConfigEnvExample`).
 
-**Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. `authLayer` extracts credentials from trailhead-specific sources, `AuthConnector` resolves them to a `Permit` (identity, scopes, roles), and scope enforcement rejects unauthorized access. Includes JWT connector, governance rules (`validatePermits`), and test helpers (`createTestPermit`, `createPermitForTrail`).
+**Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. `authLayer` extracts credentials from surface-specific sources, `AuthConnector` resolves them to a `Permit` (identity, scopes, roles), and scope enforcement rejects unauthorized access. Includes JWT connector, governance rules (`validatePermits`), and test helpers (`createTestPermit`, `createPermitForTrail`).
 
 **Tracing (intrinsic in `@ontrails/core`, sinks in `@ontrails/tracing`).** Every `executeTrail` invocation produces a `TraceRecord` automatically — no layer attachment required. `ctx.trace(label, fn)` records nested spans inside a trail blaze. Pluggable sinks register via `registerTraceSink()`: `createMemorySink` for testing, `createDevStore` for local development, `createOtelConnector` for production OpenTelemetry export. Sampling configuration controls recording volume.
 
 ## Mid-term (v1.3+)
 
-**Derived dependency graphs.** Instead of hand-maintaining `crosses` declarations, the framework infers them from `ctx.cross()` calls in the implementation via static analysis. The same idea could eventually extend beyond today's declared `resources: [...]` model to richer resource capability inference. The trailhead lock captures the graph. Changes show up in diffs.
+**Derived dependency graphs.** Instead of hand-maintaining `crosses` declarations, the framework infers them from `ctx.cross()` calls in the implementation via static analysis. The same idea could eventually extend beyond today's declared `resources: [...]` model to richer resource capability inference. The surface map captures the graph. Changes show up in diffs.
 
 **Implementation synthesis from examples.** For trails with comprehensive examples that fully specify behavior (pure transformations, mapping logic, validation rules), an agent could synthesize the implementation from the examples alone. The examples become the source of truth; the code becomes the derived artifact.
 

@@ -94,14 +94,14 @@ testTrail(onboardTrail, [
 
 Composition-specific fields: `expectCrossed` (ordered trail IDs), `expectCrossedCount` (counts per ID), `injectFromExample` (inject error from a crossed trail's error example by name). Pass `options.trails` map to enable injection lookups.
 
-## `testContracts(app)` / `testDetours(app)`
+## `testContracts(graph)` / `testDetours(graph)`
 
 `testContracts` verifies every trail's implementation output matches its declared output schema -- catches drift. `testDetours` checks that every detour target references a trail that exists in the topo. Both are included in `testAll` automatically; use standalone when debugging a specific failure.
 
 ```typescript
 import { testContracts, testDetours } from '@ontrails/testing';
-testContracts(app);  // schema drift detection
-testDetours(app);    // structural detour validation
+testContracts(graph);  // schema drift detection
+testDetours(graph);    // structural detour validation
 ```
 
 ## Service Mocking
@@ -110,13 +110,13 @@ Services with a `mock` factory auto-resolve during `testAll`, `testExamples`, an
 
 ```typescript
 // Zero-config: mock factories on resource definitions are used automatically
-testAll(app);
+testAll(graph);
 ```
 
 Override explicitly when you need specific behavior:
 
 ```typescript
-testAll(app, () => ({
+testAll(graph, () => ({
   resources: { 'db.main': createSpecialTestDb() },
 }));
 ```
@@ -179,9 +179,9 @@ For integration-style tests that verify the full pipeline (validation, layers, i
 
 ```typescript
 import { run } from '@ontrails/core';
-import { app } from '../src/app.js';
+import { graph } from '../src/app.js';
 
-const result = await run(app, 'entity.show', { name: 'Alpha' });
+const result = await run(graph, 'entity.show', { name: 'Alpha' });
 expect(result.isOk()).toBe(true);
 ```
 
@@ -209,7 +209,7 @@ logger.clear(); // reset captured entries
 ```typescript
 import { createCliHarness } from '@ontrails/testing';
 
-const cli = createCliHarness({ app });
+const cli = createCliHarness({ app: graph });
 const result = await cli.run('entity show --name Alpha --output json');
 expect(result.exitCode).toBe(0);
 expect(result.json).toEqual({ name: 'Alpha', type: 'concept' });
@@ -222,7 +222,7 @@ expect(result.json).toEqual({ name: 'Alpha', type: 'concept' });
 ```typescript
 import { createMcpHarness } from '@ontrails/testing';
 
-const mcp = createMcpHarness({ app });
+const mcp = createMcpHarness({ app: graph });
 const result = await mcp.callTool('myapp_entity_show', { name: 'Alpha' });
 expect(result.isError).toBe(false);
 ```
@@ -233,7 +233,7 @@ expect(result.isError).toBe(false);
 
 ```text
 src/__tests__/
-  governance.test.ts    # testAll(app) -- the one-liner
+  governance.test.ts    # testAll(graph) -- the one-liner
   entity.test.ts        # testTrail edge cases per domain
   onboard.test.ts       # testTrail composition scenarios
   cli.test.ts           # CLI harness integration

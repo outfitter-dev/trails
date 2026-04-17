@@ -75,7 +75,7 @@ Create `src/cli.ts`:
 import { surface } from '@ontrails/cli/commander';
 import { graph } from './app';
 
-surface(graph);
+await surface(graph);
 ```
 
 Run it:
@@ -109,7 +109,7 @@ Create `src/__tests__/app.test.ts`:
 
 ```typescript
 import { testAll } from '@ontrails/testing';
-import { app } from '../app';
+import { graph } from '../app';
 
 testAll(graph);
 ```

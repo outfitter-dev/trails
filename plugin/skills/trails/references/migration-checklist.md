@@ -47,7 +47,7 @@ For each handler:
 ## Phase 4: Composition
 
 - [ ] Create topo: `topo('appname', ...modules)`
-- [ ] Open CLI surface: `surface(graph)` from `@ontrails/cli/commander`
+- [ ] Open CLI surface: `await surface(graph)` from `@ontrails/cli/commander`
 - [ ] Open MCP surface: `await surface(graph)` from `@ontrails/mcp`
 - [ ] Remove old routing/command setup code
 

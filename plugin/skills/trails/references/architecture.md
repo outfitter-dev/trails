@@ -69,7 +69,7 @@ Every piece of information has a clear ownership model.
 
 | Inferred | From |
 |----------|------|
-| Which trails a trail crosses | `ctx.cross()` calls in run |
+| Which trails a trail crosses | `ctx.cross()` calls in the blaze function |
 | Error types returned | `Result.err(new XError(...))` patterns |
 | Surface map entries and hash | All of the above, canonicalized |
 
@@ -90,6 +90,7 @@ Warden uses inference to verify declarations match actual code. The surface map 
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP route definitions (framework-agnostic) | None beyond core |
 | `@ontrails/hono` | Hono connector, `surface()` | `hono` |
+| `@ontrails/vite` | Vite dev server adapter | `vite` |
 
 ### Infrastructure Connectors (right side)
 
@@ -115,14 +116,18 @@ Warden uses inference to verify declarations match actual code. The surface map 
 @ontrails/core (zod)
   <- @ontrails/cli (core)
   <- @ontrails/mcp (core, @modelcontextprotocol/sdk)
-  <- @ontrails/http (core, hono peer)
+  <- @ontrails/http (core)
   <- @ontrails/config (core)
   <- @ontrails/permits (core)
   <- @ontrails/tracing (core)
   <- @ontrails/logging (core)
+  <- @ontrails/store (core)
+  <- @ontrails/drizzle (store, drizzle-orm)
   <- @ontrails/testing (core, cli, mcp, logging)
   <- @ontrails/schema (core)
      <- @ontrails/cli/commander (cli, commander)
+     <- @ontrails/hono (http, hono)
+     <- @ontrails/vite (node:stream only)
      <- @ontrails/logtape (logging)
      <- @ontrails/warden (core, schema)
 ```

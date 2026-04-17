@@ -34,15 +34,15 @@
 - **[ADR-0001: Naming Conventions](./adr/0001-naming-conventions.md)** — How and why we chose every term
 - **[ADR-0002: Built-In Result Type](./adr/0002-built-in-result-type.md)** — Own the Result primitive, zero dependencies
 - **[ADR-0003: Unified Trail Primitive](./adr/0003-unified-trail-primitive.md)** — One `trail()`, composition as a property
-- **[ADR-0004: Intent as a First-Class Property](./adr/0004-intent-as-first-class-property.md)** — One field drives all trailhead behavior
+- **[ADR-0004: Intent as a First-Class Property](./adr/0004-intent-as-first-class-property.md)** — One field drives all surface behavior
 - **[ADR-0005: Framework-Agnostic HTTP Route Model](./adr/0005-framework-agnostic-http-route-model.md)** — `HttpRoute[]` with thin connector subpaths
 - **[ADR-0006: Shared Execution Pipeline](./adr/0006-shared-execution-pipeline.md)** — One `executeTrail`, Result-returning builders
 - **[ADR-0007: Governance as Trails](./adr/0007-governance-as-trails.md)** — Warden rules are trails, AST-based analysis
-- **[ADR-0008: Deterministic Trailhead Derivation](./adr/0008-deterministic-trailhead-derivation.md)** — Explicit lookup tables for every trailhead
+- **[ADR-0008: Deterministic Surface Derivation](./adr/0008-deterministic-trailhead-derivation.md)** — Explicit lookup tables for every surface
 - **[ADR-0009: First-Class Resources](./adr/0009-first-class-resources.md)** — Dependency declarations, lifecycle, testing, governance
 - **[ADR-0010: Trails-Native Infrastructure](./adr/0010-native-infrastructure.md)** — Workspace layout, `.trails/` directory, shared database
 - **[ADR-0011: Schema-Driven Config](./adr/0011-schema-driven-config.md)** — Typed configuration from schemas
-- **[ADR-0012: Connector-Agnostic Permits](./adr/0012-connector-agnostic-permits.md)** — Permission model independent of trailhead
+- **[ADR-0012: Connector-Agnostic Permits](./adr/0012-connector-agnostic-permits.md)** — Permission model independent of surface
 - **[ADR-0013: Tracing](./adr/0013-tracing.md)** — Runtime recording primitive
 - **[ADR-0014: Core Database Primitive](./adr/0014-core-database-primitive.md)** — Shared `trails.db`, subsystem schema versioning
 - **[ADR-0015: Topo Store](./adr/0015-topo-store.md)** — Queryable relational projection of the resolved graph
@@ -57,4 +57,4 @@
 
 ## Where to next?
 
-- **[Horizons](./horizons.md)** — HTTP trailhead, permits, mounts, tracing, and the road to v1 stable
+- **[Horizons](./horizons.md)** — HTTP surface, permits, mounts, tracing, and the road to v1 stable

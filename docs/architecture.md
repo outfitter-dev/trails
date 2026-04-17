@@ -146,7 +146,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP routes and error mapping | None beyond core |
 | `@ontrails/hono` | Hono connector, `surface()` | `hono` |
-| `@ontrails/vite` | Vite dev server integration, `surface()` | `vite` |
+| `@ontrails/vite` | Vite middleware adapter, `vite()` | None (node:stream only) |
 
 ### Infrastructure Connectors (right side)
 
@@ -194,7 +194,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
      ^
 @ontrails/cli/commander (cli, commander)
 @ontrails/hono (http, hono)
-@ontrails/vite (http, vite)
+@ontrails/vite (node:stream only, no workspace deps)
 @ontrails/logtape (logging)
 @ontrails/warden (core, schema)
      ^

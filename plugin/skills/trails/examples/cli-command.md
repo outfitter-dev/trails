@@ -74,7 +74,7 @@ import { surface } from '@ontrails/cli/commander';
 import * as deploy from './trails/deploy.js';
 
 const graph = topo('myapp', deploy);
-surface(graph);
+await surface(graph);
 // myapp deploy run --service api --env staging --dry-run
 // Flags, defaults, descriptions, and validation all derived from Zod.
 ```

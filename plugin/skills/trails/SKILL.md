@@ -156,7 +156,7 @@ const search = trail('search', {
 **Test** with zero config — resources with `mock` factories auto-resolve in `testAll(graph)`. Override explicitly when needed:
 
 ```typescript
-testAll(app, () => ({ resources: { 'db.main': createSpecialTestDb() } }));
+testAll(graph, () => ({ resources: { 'db.main': createSpecialTestDb() } }));
 ```
 
 **Governance:** The warden enforces `resource-declarations` (usage matches declarations) and `resource-exists` (resource IDs resolve in the topo).
@@ -234,7 +234,7 @@ Key rules: no throw in blaze functions, no surface imports, crosses declarations
 | MCP surface docs | Tool naming, annotations, progress |
 | [testing-patterns.md](references/testing-patterns.md) | testAll, testTrail, harnesses |
 | [error-taxonomy.md](references/error-taxonomy.md) | All 13 error classes with signatures |
-| [common-pitfalls.md](references/common-pitfalls.md) | 9 anti-patterns with fixes |
+| [common-pitfalls.md](references/common-pitfalls.md) | 12 anti-patterns with fixes |
 | [migration-checklist.md](references/migration-checklist.md) | Step-by-step conversion guide |
 | [trail.md](templates/trail.md) | Annotated trail skeleton |
 | [composition.md](templates/composition.md) | Annotated composite trail skeleton |

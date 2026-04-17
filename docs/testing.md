@@ -257,7 +257,7 @@ testDetours(graph);
 // Fails: Trail "entity.show" has detour target "entity.search" which does not exist in the topo
 ```
 
-## `scenario(name, app, steps)`
+## `scenario(name, graph, steps)`
 
 Multi-step journey testing for flows that span multiple trail invocations. Scenarios live in test files alongside `testAll` — they test how trails compose, not what individual trails do.
 
@@ -352,7 +352,7 @@ Execute CLI commands in-process and capture stdout/stderr:
 ```typescript
 import { createCliHarness } from '@ontrails/testing';
 
-const harness = createCliHarness({ graph });
+const harness = createCliHarness({ app: graph });
 const result = await harness.run('entity show --name Alpha --output json');
 
 expect(result.exitCode).toBe(0);
@@ -366,7 +366,7 @@ Invoke MCP tools directly without transport:
 ```typescript
 import { createMcpHarness } from '@ontrails/testing';
 
-const harness = createMcpHarness({ graph });
+const harness = createMcpHarness({ app: graph });
 const result = await harness.callTool('myapp_entity_show', { name: 'Alpha' });
 
 expect(result.isError).toBe(false);

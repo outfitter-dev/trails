@@ -57,18 +57,18 @@ Write examples on the trail definition — they ARE the tests. Then:
 bun test
 ```
 
-If `testAll(app)` doesn't exist yet, create it:
+If `testAll(graph)` doesn't exist yet, create it:
 
 ```typescript
 import { testAll } from '@ontrails/testing';
-import { app } from '../app';
-testAll(app);
+import { graph } from '../app';
+testAll(graph);
 ```
 
-Resources with `mock` factories are resolved automatically by `testAll(app)` -- no manual wiring needed. Override specific resources when tests need controlled behavior:
+Resources with `mock` factories are resolved automatically by `testAll(graph)` -- no manual wiring needed. Override specific resources when tests need controlled behavior:
 
 ```typescript
-testAll(app, () => ({
+testAll(graph, () => ({
   resources: { 'db.main': createSpecialTestDb() },
 }));
 ```

@@ -20,7 +20,7 @@ This means:
 
 ## Branded — Top-Level Primitives
 
-Six terms a developer must internalize before reading a Trails app.
+Seven terms a developer must internalize before reading a Trails app.
 
 ### `trail`
 
@@ -49,6 +49,14 @@ await surfaceMcp(graph);
 
 Use `surface` for both the one-liner function and the concept. "This app has
 three surfaces" is the intended sentence.
+
+### `trailhead`
+
+The conceptual boundary where a surface meets the trail system. The
+trailhead is where external input enters the framework and where the
+surface's protocol-specific handling ends and the shared `executeTrail()`
+pipeline begins. "Surface" names the rendering; "trailhead" names the
+boundary point.
 
 ### `topo`
 

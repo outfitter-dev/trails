@@ -7,10 +7,9 @@ Use Trails-branded terms consistently. These are non-negotiable in code, docs, a
 | Use this | Not this |
 |----------|----------|
 | `trail` | handler, action, endpoint, route |
-| `cross` | workflow, pipeline, chain, route (for composition) |
+| `cross` | call, invoke, workflow, pipeline, chain, route (for composition) |
 | `topo` | registry, collection, manifest |
-| `blaze` | implementation function — input to Result |
-| `cross` | call, invoke |
+| `blaze` | handler, impl, run, execute |
 | `surface` | serve, mount, start, wire up |
 | `resource` | provider, dependency, service |
 | `signal` | event, notification, message |

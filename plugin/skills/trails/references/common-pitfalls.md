@@ -27,9 +27,9 @@ blaze: async (input) => {
 
 **Fix:** Keep implementations pure: `(input, ctx) => Result`. Access surface-specific features through `ctx` only.
 
-## 3. Calling .run() directly
+## 3. Calling .blaze() directly
 
-**Symptom:** Tests or composite trails call `myTrail.run(input)` and skip validation, layers, and tracing.
+**Symptom:** Tests or composite trails call `myTrail.blaze(input)` and skip validation, layers, and tracing.
 
 **Why it's wrong:** Direct calls bypass the framework pipeline. Input isn't validated, layers don't run, and traces aren't recorded.
 
@@ -109,7 +109,7 @@ blaze: async (input, ctx) => {
 
 ## 9. Constructing dependencies inline instead of declaring resources
 
-**Symptom:** Every trail creates its own database connection. Tests require `vi.mock()`. `testAll(app)` fails for any trail with external dependencies.
+**Symptom:** Every trail creates its own database connection. Tests require `vi.mock()`. `testAll(graph)` fails for any trail with external dependencies.
 
 **Why it's wrong:** Inline construction hides dependencies from the framework. The warden can't verify them, survey can't report them, and the testing harness can't swap them.
 
@@ -134,7 +134,7 @@ const search = trail('search', {
 
 ## 10. Forgetting mock factories on resource definitions
 
-**Symptom:** `testAll(app)` fails with a resource resolution error because `DATABASE_URL` is not set in the test environment.
+**Symptom:** `testAll(graph)` fails with a resource resolution error because `DATABASE_URL` is not set in the test environment.
 
 **Why it's wrong:** Without a `mock` factory, the testing harness falls back to the real `create` factory, which needs production-like configuration.
 
@@ -143,7 +143,7 @@ const search = trail('search', {
 ```typescript
 const db = resource('db.main', {
   create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
-  mock: () => createInMemoryDb(), // enables zero-config testAll(app)
+  mock: () => createInMemoryDb(), // enables zero-config testAll(graph)
 });
 ```
 
@@ -168,4 +168,4 @@ const api = resource('api.client', {
 
 **Why it's wrong:** Even synchronous implementations are awaited at runtime. The framework wraps all implementations uniformly.
 
-**Fix:** Always `await` trail results in tests. Use `testTrail(myTrail, input)` instead of calling `.run()` directly.
+**Fix:** Always `await` trail results in tests. Use `testTrail(myTrail, input)` instead of calling `.blaze()` directly.

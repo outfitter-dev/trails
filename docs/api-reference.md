@@ -231,7 +231,7 @@ assertErrorMatch(result, errorClass)
 // Factories
 createTestContext(options?), createTestLogger()
 createCrossContext(options?)       // minimal context for testing trail composition via ctx.cross()
-createCliHarness(topo, options?), createMcpHarness(topo, options?)
+createCliHarness(options: { app: Topo }), createMcpHarness(options: { app: Topo })
 
 TestExecutionOptions, TestCrossOptions
 TestScenario, CrossScenario, TestLogger, TestTrailContextOptions

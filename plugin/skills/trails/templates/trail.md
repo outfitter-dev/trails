@@ -76,7 +76,7 @@ export const myTrail = trail('namespace.verb', {
     },
   ],
 
-  // --- Run ---
+  // --- Blaze ---
   // Receives validated input and TrailContext.
   // Return Result — never throw.
   // Keep surface-agnostic: no process.exit(), no console.log().

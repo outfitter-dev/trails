@@ -187,7 +187,7 @@ For finer control, use `testExamples(graph)` to run only example assertions with
 
 ```typescript
 import { testExamples } from '@ontrails/testing';
-import { app } from '../app';
+import { graph } from '../app';
 
 testExamples(graph);
 ```

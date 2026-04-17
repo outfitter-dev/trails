@@ -95,7 +95,7 @@ surface(graph, {
 });
 ```
 
-## Blaze Options
+## Surface Options
 
 ```typescript
 surface(graph, {

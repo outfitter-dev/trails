@@ -100,9 +100,9 @@ import * as project from './trails/project.js';
 import * as resources from './resources/db.js';
 
 const graph = topo('myapp', project, resources);
-surface(graph); // "myapp project show --id ..."
+await surface(graph); // "myapp project show --id ..."
 
 // mcp.ts
 import { surface } from '@ontrails/mcp';
-surface(graph); // tool: myapp_project_show, myapp_project_destroy
+await surface(graph); // tool: myapp_project_show, myapp_project_destroy
 ```

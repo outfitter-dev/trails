@@ -170,7 +170,7 @@ The questions that became Trails:
 - How do we make agents consistent in their work without relying on memory they don't have?
 - What if the contract wasn't documentation about the implementation, but the specification that bounds it?
 
-The answers became the principles: author what's new, derive what's known, override what's wrong. Make drift structurally harder than alignment. The trail is the product, not the trailhead.
+The answers became the principles: author what's new, derive what's known, override what's wrong. Make drift structurally harder than alignment. The trail is the product, not the surface.
 
 ---
 
