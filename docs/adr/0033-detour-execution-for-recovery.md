@@ -130,8 +130,6 @@ class RetryExhaustedError<TErr extends TrailsError> extends InternalError {
     this.cause = wrapped;
     // Inherit the wrapped error's category for surface mapping
     this.category = wrapped.category;
-    // But override retryable to false at the instance level (see below)
-    this.retryable = false;
   }
 }
 ```
@@ -155,7 +153,7 @@ abstract class TrailsError extends Error {
 }
 ```
 
-For normal errors, `retryable` is undefined and any retry-aware machinery falls back to `this.category`'s retryable flag — **no behavior change for existing code**. For `RetryExhaustedError` instances, the constructor sets `retryable = false` regardless of the wrapped error's category.
+For normal errors, `retryable` is undefined and any retry-aware machinery falls back to `this.category`'s retryable flag — **no behavior change for existing code**. For `RetryExhaustedError` instances, `retryable` is `false` via inheritance from `InternalError`, regardless of the wrapped error's category.
 
 **Why this matters:** a future framework retry layer (see Out of Scope) honors `retryable: true` categories automatically. Without the instance-level override, `RetryExhaustedError<NetworkError>` would carry `category: 'network'`, which is retryable, and the retry layer would re-retry an already-exhausted recovery across `ctx.cross()` boundaries or stacked layers. Runaway amplification.
 
