@@ -20,7 +20,7 @@ This means:
 
 ## Branded — Top-Level Primitives
 
-Seven terms a developer must internalize before reading a Trails app.
+Six terms a developer must internalize before reading a Trails app.
 
 ### `trail`
 
@@ -49,15 +49,6 @@ await surfaceMcp(graph);
 
 Use `surface` for both the one-liner function and the concept. "This app has
 three surfaces" is the intended sentence.
-
-### `trailhead`
-
-The conceptual boundary where a surface meets the trail system. The
-trailhead is where external input enters the framework and where the
-surface's protocol-specific handling ends and the shared `executeTrail()`
-pipeline begins. "Surface" names the rendering; "trailhead" names the
-boundary point. Use `surface` for the user-facing API and docs; reserve
-`trailhead` for this boundary concept only.
 
 ### `topo`
 
@@ -392,6 +383,7 @@ These are directional. They should not be reused for unrelated concepts.
 | `pack` | Distributable capability bundle |
 | `depot` | Registry or distribution point for packs and shared assets |
 | `dispatch` | Reserved strong verb for a future concept, no longer the direct execution helper |
+| `trailhead` | Historical boundary term retired from active user-facing vocabulary. Use `surface` in docs, examples, and public APIs. |
 | `_draft.` | Reserved ID prefix for draft state. Trails, signals, and other primitives with `_draft.` IDs are visible in source but excluded from the resolved graph, established surfaces, and graph exports. Draft state is visible debt — it must never leak into established outputs. See ADR-0021. |
 
 ## Grammar

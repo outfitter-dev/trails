@@ -33,7 +33,7 @@ For pinned formatter runs, prefer `bun run format:check`, `bun run format:fix`, 
 
 Trails is an agent-native, contract-first TypeScript framework. Define a trail once with typed input, `Result` output, examples, and metadata, then surface it on CLI, MCP, HTTP, or WebSocket.
 
-The architecture is designed to make consistency easier than drift. Agents building with Trails should naturally produce aligned trailheads. Agents consuming Trails apps should be able to inspect contracts, examples, schemas, and errors at runtime without guessing.
+The architecture is designed to make consistency easier than drift. Agents building with Trails should naturally produce aligned surfaces. Agents consuming Trails apps should be able to inspect contracts, examples, schemas, and errors at runtime without guessing.
 
 ## Project Documentation
 
@@ -51,7 +51,6 @@ Use the project language consistently:
 - `topo`, not registry or collection
 - `cross`, not follow (for composition declaration and runtime invocation)
 - `surface`, not transport terminology (the API function and user-facing noun)
-- `trailhead`, not endpoint or gateway (the conceptual boundary where surfaces meet trails)
 - `resource`, not service or dependency
 - `layer`, not middleware
 
@@ -62,15 +61,15 @@ Use the project language consistently:
 - Implementations return `Result`, never throw.
 - Use `Result.ok()` and `Result.err()` to construct outcomes.
 - Branch on results with `isOk()`, `isErr()`, or `match()`.
-- Keep `TrailContext` and implementations trailhead-agnostic. Do not import `Request`, `Response`, `McpSession`, or similar trailhead types into trail logic.
+- Keep `TrailContext` and implementations surface-agnostic. Do not import `Request`, `Response`, `McpSession`, or similar surface types into trail logic.
 - Trails with `crosses` compose through `ctx.cross()`, never by calling another trail's `.implementation()` directly.
 - Keep `crosses` declarations aligned with actual `ctx.cross()` usage.
-- Every trail exposed on MCP or HTTP trailheads must define an `output` schema.
+- Every trail exposed on MCP or HTTP surfaces must define an `output` schema.
 - Use `metadata` for annotations and ownership data.
 - Use `detours` for recovery strategies instead of inline retry logic.
   - **Narrow factory carve-out.** Detours execute at runtime. Factory-built trails such as the store's `reconcile` factory (`packages/store/src/trails/reconcile.ts`) may still keep a tightly-scoped inline recovery bridge when the current detour model cannot yet express the required store-specific behavior. Prefer detours first; treat inline recovery as a local exception, not the default pattern.
 - Prefer the most specific `TrailsError` subclass available.
-- Keep error taxonomy behavior aligned across trailheads so CLI, HTTP, and JSON-RPC mappings stay coherent.
+- Keep error taxonomy behavior aligned across surfaces so CLI, HTTP, and JSON-RPC mappings stay coherent.
 - Trails that use external dependencies declare them with `resources: [...]`.
 - Access resources through `db.from(ctx)` or `ctx.resource()`, never by constructing dependencies inline.
 - Keep `crosses` declarations for composition and `resources` declarations for infrastructure — they serve different purposes.
@@ -81,7 +80,7 @@ Use the project language consistently:
 - `_draft.` is the reserved marker for draft IDs.
 - Files whose primary purpose is draft-authored state should use the `_draft.` prefix.
 - Otherwise-normal files that contain draft-authored state should use a `.draft.` trailing segment before the extension.
-- Draft-authored state is visible debt. It must never leak into established trailheads, topo exports, committed lockfiles, or other established outputs.
+- Draft-authored state is visible debt. It must never leak into established surfaces, topo exports, committed lockfiles, or other established outputs.
 - Prefer the built-in promotion workflow when moving draft state into the established graph instead of hand-editing large batches of references.
 
 ## Shared Conventions
