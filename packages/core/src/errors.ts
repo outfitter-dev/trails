@@ -143,7 +143,6 @@ export class RetryExhaustedError<
   TErr extends TrailsError = TrailsError,
 > extends InternalError {
   readonly category: ErrorCategory;
-  readonly retryable = false as const;
   readonly cause: TErr;
 
   /** Number of recovery attempts made before exhaustion. */
