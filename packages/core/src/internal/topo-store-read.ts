@@ -28,6 +28,7 @@ export interface TopoStoreTrailRecord {
   readonly intent: 'destroy' | 'read' | 'write';
   readonly kind: 'trail';
   readonly meta: Readonly<Record<string, unknown>> | null;
+  readonly pattern: string | null;
   readonly safety: '-' | 'destroy' | 'read' | 'write';
   readonly snapshotId: string;
 }
@@ -75,6 +76,7 @@ interface TopoTrailRow {
   readonly idempotent: number;
   readonly intent: string | null;
   readonly meta: string | null;
+  readonly pattern: string | null;
   readonly snapshot_id: string;
 }
 
@@ -200,6 +202,7 @@ const mapTrailRow = (row: TopoTrailRow): TopoStoreTrailRecord => {
     intent,
     kind: 'trail',
     meta: parseMeta(row.meta),
+    pattern: row.pattern,
     safety: safetyForIntent(intent),
     snapshotId: row.snapshot_id,
   };
@@ -324,7 +327,7 @@ export const listTopoStoreTrails = (
     return [];
   }
 
-  const baseQuery = `SELECT id, intent, idempotent, has_output, has_examples, example_count, description, meta, snapshot_id
+  const baseQuery = `SELECT id, intent, idempotent, has_output, has_examples, example_count, description, pattern, meta, snapshot_id
              FROM topo_trails`;
 
   let rows: TopoTrailRow[];
@@ -363,7 +366,7 @@ export const getTopoStoreTrail = (
 
   const row = db
     .query<TopoTrailRow, [string, string]>(
-      `SELECT id, intent, idempotent, has_output, has_examples, example_count, description, meta, snapshot_id
+      `SELECT id, intent, idempotent, has_output, has_examples, example_count, description, pattern, meta, snapshot_id
        FROM topo_trails
        WHERE snapshot_id = ? AND id = ?
        LIMIT 1`

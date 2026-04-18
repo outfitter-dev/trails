@@ -32,6 +32,7 @@ export interface SurfaceMapEntry {
   readonly output?: JsonSchema | undefined;
   readonly intent?: 'read' | 'write' | 'destroy' | undefined;
   readonly idempotent?: boolean | undefined;
+  readonly pattern?: string | undefined;
   readonly deprecated?: boolean | undefined;
   readonly replacedBy?: string | undefined;
   readonly crosses?: readonly string[] | undefined;

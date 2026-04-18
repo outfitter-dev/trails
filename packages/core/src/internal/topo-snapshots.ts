@@ -22,6 +22,7 @@ const TOPO_TABLE_STATEMENTS = [
     has_examples INTEGER NOT NULL DEFAULT 0,
     example_count INTEGER NOT NULL DEFAULT 0,
     description TEXT,
+    pattern TEXT,
     meta TEXT,
     snapshot_id TEXT NOT NULL,
     PRIMARY KEY (id, snapshot_id),
@@ -206,18 +207,23 @@ const createAllTopoTables = (db: Database): void => {
 /**
  * Current topo subsystem schema version.
  *
- * Version 7 defines the snapshot-first topo tables (`topo_snapshots`,
+ * Version 8 adds `pattern TEXT` column to `topo_trails`.
+ *
+ * Version 7 defined the snapshot-first topo tables (`topo_snapshots`,
  * `topo_surfaces`, and `snapshot_id` foreign keys) as the only supported
  * schema. Older pre-release tables are ignored in place; we create the current
  * tables and advance the subsystem version without translating or deleting
  * legacy rows.
  */
-export const TOPO_SCHEMA_VERSION = 7;
+export const TOPO_SCHEMA_VERSION = 8;
 
 export const ensureTopoSnapshotSchema = (db: Database): void => {
   ensureSubsystemSchema(db, {
-    migrate: () => {
+    migrate: (currentVersion) => {
       createAllTopoTables(db);
+      if (currentVersion === 7) {
+        db.run('ALTER TABLE topo_trails ADD COLUMN pattern TEXT');
+      }
     },
     subsystem: TOPO_SUBSYSTEM,
     version: TOPO_SCHEMA_VERSION,
