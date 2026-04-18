@@ -731,7 +731,7 @@ describe('topo store projection', () => {
               "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
             )
             .get()?.version
-        ).toBe(7);
+        ).toBe(8);
         expect(countRows(db, 'topo_snapshots')).toBe(0);
       });
     });
@@ -789,7 +789,7 @@ describe('topo store projection', () => {
             "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
           )
           .get()?.version
-      ).toBe(7);
+      ).toBe(8);
       for (const table of [
         'topo_snapshots',
         'topo_trails',

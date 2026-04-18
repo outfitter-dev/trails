@@ -125,6 +125,9 @@ const addMetadata = (
   if (t.description !== undefined) {
     entry['description'] = t.description;
   }
+  if (t.pattern !== undefined) {
+    entry['pattern'] = t.pattern;
+  }
   addSafetyMarkers(entry, t);
   addExtendedMetadata(entry, t, raw);
 };

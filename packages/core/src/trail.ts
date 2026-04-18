@@ -67,6 +67,8 @@ export interface TrailSpec<I, O, CI = never> {
   readonly blaze: Implementation<BlazeInput<I, CI>, O>;
   /** Human-readable description */
   readonly description?: string | undefined;
+  /** Declared operational shape for governance, derivation, and agent guidance. */
+  readonly pattern?: string | undefined;
   /** Named examples for docs and testing */
   readonly examples?: readonly TrailExample<I, O>[] | undefined;
   /** What this trail does to the world: read, write (default), or destroy */

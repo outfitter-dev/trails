@@ -42,6 +42,7 @@ interface TopoTrailRow {
   readonly idempotent: number;
   readonly intent: string;
   readonly meta: string | null;
+  readonly pattern: string | null;
   readonly snapshotId: string;
 }
 
@@ -296,6 +297,7 @@ const normalizeTrailRows = (
     idempotent: trail.idempotent === true ? 1 : 0,
     intent: trail.intent,
     meta: trail.meta === undefined ? null : stableJson(trail.meta),
+    pattern: trail.pattern ?? null,
     snapshotId,
   }));
 
@@ -746,6 +748,10 @@ const buildTrailEntryBase = (
     entry['description'] = trail.description;
   }
 
+  if (trail.pattern !== undefined) {
+    entry['pattern'] = trail.pattern;
+  }
+
   return {
     entry,
     raw,
@@ -998,8 +1004,8 @@ const insertProjectedRows = (
     db,
     projection.trails,
     `INSERT INTO topo_trails (
-      id, intent, idempotent, has_output, has_examples, example_count, description, meta, snapshot_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, intent, idempotent, has_output, has_examples, example_count, description, pattern, meta, snapshot_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     (row) => [
       row.id,
       row.intent,
@@ -1008,6 +1014,7 @@ const insertProjectedRows = (
       row.hasExamples,
       row.exampleCount,
       row.description,
+      row.pattern,
       row.meta,
       row.snapshotId,
     ]

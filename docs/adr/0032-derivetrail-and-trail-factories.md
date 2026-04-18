@@ -31,7 +31,7 @@ Trails has a clear convention: core primitives are bare nouns (`trail()`, `store
 
 ### `deriveTrail()` is the base helper
 
-`deriveTrail()` takes a store schema, an operation name, and a resource. It derives everything internally — trail ID, input/output schemas, examples from fixtures, pattern metadata, resource wiring, and blaze for standard operations. One call, one trail.
+`deriveTrail()` takes a store schema, an operation name, and a resource. It derives everything internally except family-level pattern stamping — trail ID, input/output schemas, examples from fixtures, resource wiring, and blaze for standard operations. One call, one trail.
 
 ```typescript
 import { deriveTrail } from '@ontrails/core/trails';
@@ -39,7 +39,7 @@ import { deriveTrail } from '@ontrails/core/trails';
 const createNote = deriveTrail(noteSchema, 'create', db);
 ```
 
-The output is a regular trail — `kind: 'trail'`, with `pattern` metadata set automatically, blaze, input/output schemas, and resource declarations. Inspectable, testable, governable. The output is always trails.
+The output is a regular trail — `kind: 'trail'`, with blaze, input/output schemas, and resource declarations. Inspectable, testable, governable. The output is always trails.
 
 "Derive" is accurate: contour or schema in, trail out, deterministically. `deriveTrail()` sits one level above `trail()` — useful, powerful, but downstream of the primitive.
 
@@ -76,7 +76,7 @@ export const sync = ({ from, to, on, transform }) =>
   });
 ```
 
-When you provide a `blaze`, `deriveTrail()` uses yours. When you don't (standard CRUD operations), it derives one. Same function, progressive complexity.
+When you provide a `blaze`, `deriveTrail()` uses yours. When you don't (standard CRUD operations), it derives one. Same function, progressive complexity. First-party factories like `crud()`, `sync()`, `reconcile()`, and `ingest()` stamp their own family-level `pattern` values on the trails they return; `deriveTrail()` itself stays neutral unless the caller declares a pattern explicitly.
 
 The `ingest` factory handles the inverse: external data arriving in a non-trail shape that needs to enter the system as a signal. A Stripe webhook, a GitHub event, a partner API callback — the pattern is always the same: verify the source, validate the payload, transform to the domain shape, emit a signal.
 

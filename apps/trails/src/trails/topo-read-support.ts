@@ -54,6 +54,7 @@ interface CurrentTrailDetail {
   readonly id: string;
   readonly intent: 'destroy' | 'read' | 'write';
   readonly kind: string;
+  readonly pattern: string | null;
   readonly resources: string[];
   readonly safety: string;
 }
@@ -145,17 +146,20 @@ const buildSurveyListFromStore = (
 };
 
 const buildTrailDetailFromStore = (
-  detail: ReturnType<ReturnType<typeof createTopoStore>['trails']['get']>
+  detail: NonNullable<
+    ReturnType<ReturnType<typeof createTopoStore>['trails']['get']>
+  >
 ): CurrentTrailDetail => ({
-  crosses: [...(detail?.crosses ?? [])],
-  description: detail?.description ?? null,
-  detours: detail?.detours ?? null,
-  examples: [...(detail?.examples ?? [])],
-  id: detail?.id ?? '',
-  intent: detail?.intent ?? 'write',
-  kind: detail?.kind ?? 'trail',
-  resources: [...(detail?.resources ?? [])],
-  safety: detail?.safety ?? '-',
+  crosses: [...detail.crosses],
+  description: detail.description,
+  detours: detail.detours,
+  examples: [...detail.examples],
+  id: detail.id,
+  intent: detail.intent,
+  kind: detail.kind,
+  pattern: detail.pattern,
+  resources: [...detail.resources],
+  safety: detail.safety,
 });
 
 const buildResourceDetailFromStore = (

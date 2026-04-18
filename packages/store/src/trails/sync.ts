@@ -245,6 +245,7 @@ export const sync = <
     output: options.to.table.schema as unknown as z.ZodType<
       EntityOf<TTargetTable>
     >,
+    pattern: 'sync',
     resources: [options.from.resource, options.to.resource],
   });
 };

@@ -18,7 +18,7 @@ type ExampleBearingSchema<TSchema extends z.ZodType> = TSchema & {
 
 interface IngestBaseOptions<TSchema extends z.ZodType, TSignal> extends Omit<
   TrailSpec<SchemaValue<TSchema>, void>,
-  'blaze' | 'examples' | 'fires' | 'input' | 'intent' | 'output'
+  'blaze' | 'examples' | 'fires' | 'input' | 'intent' | 'output' | 'pattern'
 > {
   /** Override the derived trail id. Defaults to `${signal}.ingest`. */
   readonly id?: string | undefined;
@@ -130,6 +130,7 @@ export const ingest = <
     input: schema as z.ZodType<SchemaValue<TSchema>>,
     intent: 'write',
     output: z.void(),
+    pattern: 'ingest',
   }) as Trail<SchemaValue<TSchema>, void>;
 
   if (verify === undefined) {

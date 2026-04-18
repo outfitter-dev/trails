@@ -104,6 +104,16 @@ describe('trail()', () => {
       expect(withMeta.meta).toEqual({ domain: 'billing', tier: 1 });
     });
 
+    test('pattern is stored when declared', () => {
+      const withPattern = trail('feature.enable', {
+        blaze: () => Result.ok({ enabled: true }),
+        input: z.object({ id: z.string() }),
+        pattern: 'toggle',
+      });
+
+      expect(withPattern.pattern).toBe('toggle');
+    });
+
     test('detours are stored', () => {
       const withDetours = trail('orchestrator', {
         blaze: () => Result.ok(),

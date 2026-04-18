@@ -139,6 +139,14 @@ const expectCrudIds = () => {
   expect(listNote.id).toBe('notes.list');
 };
 
+const expectCrudPatterns = () => {
+  expect(createNote.pattern).toBe('crud');
+  expect(readNote.pattern).toBe('crud');
+  expect(updateNote.pattern).toBe('crud');
+  expect(deleteNote.pattern).toBe('crud');
+  expect(listNote.pattern).toBe('crud');
+};
+
 const expectCrudInputSchemas = () => {
   const createParsed = createNote.input.safeParse({
     id: 'note-1',
@@ -182,6 +190,7 @@ const expectOk = <T>(result: Result<T, Error>): T => {
 describe('crud()', () => {
   test('produces the five standard CRUD trails with derived schemas', () => {
     expectCrudIds();
+    expectCrudPatterns();
     expectCrudInputSchemas();
     expectCrudOutputSchemas();
     expect(createNote.resources).toEqual([notesResource]);

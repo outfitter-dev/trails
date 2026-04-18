@@ -124,6 +124,7 @@ const finalizeTrail = <TInput, TOutput>(
   options: {
     readonly blaze?: Implementation<TInput, TOutput> | undefined;
     readonly output?: z.ZodType<TOutput> | undefined;
+    readonly pattern?: string | undefined;
   } = {}
 ): Trail<TInput, TOutput> =>
   Object.freeze({
@@ -135,6 +136,7 @@ const finalizeTrail = <TInput, TOutput>(
           examples: normalizeExamplesForOutput(base, options.output),
           output: options.output,
         }),
+    ...(options.pattern === undefined ? {} : { pattern: options.pattern }),
   }) as Trail<TInput, TOutput>;
 
 const deriveCrudBaseTrails = <
@@ -183,21 +185,28 @@ const buildCrudTrails = <TTable extends AnyStoreTable>(
     finalizeTrail(baseTrails.createBase, {
       ...(overrides.create === undefined ? {} : { blaze: overrides.create }),
       output: entityOutput,
+      pattern: 'crud',
     }),
     finalizeTrail(baseTrails.readBase, {
       ...(overrides.read === undefined ? {} : { blaze: overrides.read }),
       output: entityOutput,
+      pattern: 'crud',
     }),
     finalizeTrail(baseTrails.updateBase, {
       ...(overrides.update === undefined ? {} : { blaze: overrides.update }),
       output: entityOutput,
+      pattern: 'crud',
     }),
     overrides.delete === undefined
-      ? finalizeTrail(baseTrails.deleteBase)
-      : finalizeTrail(baseTrails.deleteBase, { blaze: overrides.delete }),
+      ? finalizeTrail(baseTrails.deleteBase, { pattern: 'crud' })
+      : finalizeTrail(baseTrails.deleteBase, {
+          blaze: overrides.delete,
+          pattern: 'crud',
+        }),
     finalizeTrail(baseTrails.listBase, {
       ...(overrides.list === undefined ? {} : { blaze: overrides.list }),
       output: listOutput,
+      pattern: 'crud',
     }),
   ]) as CrudTrails<TTable>;
 
