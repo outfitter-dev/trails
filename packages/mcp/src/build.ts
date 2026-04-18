@@ -1,5 +1,5 @@
 /**
- * Build MCP tool definitions from a Trails App.
+ * Build MCP tool definitions from a Trails graph.
  *
  * Iterates the topo, generates McpToolDefinition[] with handlers that
  * validate input, compose layers, execute the implementation, and map
@@ -230,7 +230,7 @@ const withMcpTrailhead = (
 
 const createHandler =
   (
-    app: Topo,
+    graph: Topo,
     t: Trail<unknown, unknown, unknown>,
     layers: readonly Layer[],
     options: DeriveMcpToolsOptions
@@ -247,7 +247,7 @@ const createHandler =
       ctx: withMcpTrailhead(progressCb),
       layers,
       resources: options.resources,
-      topo: app,
+      topo: graph,
     });
     if (result.isOk()) {
       return { content: await serializeOutput(result.value) };
@@ -260,10 +260,10 @@ const createHandler =
 // ---------------------------------------------------------------------------
 
 /**
- * Build MCP tool definitions from an App's topology.
+ * Build MCP tool definitions from a graph's topology.
  *
  * Each trail in the topo becomes an McpToolDefinition with:
- * - A derived tool name (app-prefixed, underscore-delimited)
+ * - A derived tool name (topo-name-prefixed, underscore-delimited)
  * - JSON Schema input from zodToJsonSchema
  * - MCP annotations from trail meta
  * - A handler that validates, composes layers, executes, and maps results
@@ -289,7 +289,7 @@ const buildDescription = (
 
 /** Build a single MCP tool definition from a trail. */
 const buildToolDefinition = (
-  app: Topo,
+  graph: Topo,
   trail: Trail<unknown, unknown, unknown>,
   layers: readonly Layer[],
   options: DeriveMcpToolsOptions
@@ -300,23 +300,23 @@ const buildToolDefinition = (
   return {
     annotations,
     description: buildDescription(trail),
-    handler: createHandler(app, trail, layers, options),
+    handler: createHandler(graph, trail, layers, options),
     inputSchema: zodToJsonSchema(trail.input),
-    name: deriveToolName(app.name, trail.id),
+    name: deriveToolName(graph.name, trail.id),
     trailId: trail.id,
   };
 };
 
 /** Register a trail as an MCP tool, checking for name collisions. */
 const registerTool = (
-  app: Topo,
+  graph: Topo,
   trailItem: Trail<unknown, unknown, unknown>,
   layers: readonly Layer[],
   options: DeriveMcpToolsOptions,
   nameToTrailId: Map<string, string>,
   tools: McpToolDefinition[]
 ): Result<void, Error> => {
-  const toolName = deriveToolName(app.name, trailItem.id);
+  const toolName = deriveToolName(graph.name, trailItem.id);
   const existingId = nameToTrailId.get(toolName);
   if (existingId !== undefined) {
     return Result.err(
@@ -326,44 +326,44 @@ const registerTool = (
     );
   }
   nameToTrailId.set(toolName, trailItem.id);
-  tools.push(buildToolDefinition(app, trailItem, layers, options));
+  tools.push(buildToolDefinition(graph, trailItem, layers, options));
   return Result.ok();
 };
 
 /** Filter topo items to eligible trails. */
 const eligibleTrails = (
-  app: Topo,
+  graph: Topo,
   options: DeriveMcpToolsOptions
 ): Trail<unknown, unknown, unknown>[] =>
-  filterSurfaceTrails(app.list(), {
+  filterSurfaceTrails(graph.list(), {
     exclude: options.exclude,
     include: options.include,
     intent: options.intent,
   });
 
 const validateToolBuild = (
-  app: Topo,
+  graph: Topo,
   options: DeriveMcpToolsOptions
 ): Result<void, Error> => {
   if (options.validate === false) {
     return Result.ok();
   }
 
-  const validated = validateEstablishedTopo(app);
+  const validated = validateEstablishedTopo(graph);
   return validated.isErr() ? Result.err(validated.error) : Result.ok();
 };
 
 const registerTools = (
-  app: Topo,
+  graph: Topo,
   options: DeriveMcpToolsOptions,
   layers: readonly Layer[]
 ): Result<McpToolDefinition[], Error> => {
   const tools: McpToolDefinition[] = [];
   const nameToTrailId = new Map<string, string>();
 
-  for (const trailItem of eligibleTrails(app, options)) {
+  for (const trailItem of eligibleTrails(graph, options)) {
     const registered = registerTool(
-      app,
+      graph,
       trailItem,
       layers,
       options,
@@ -379,13 +379,13 @@ const registerTools = (
 };
 
 export const deriveMcpTools = (
-  app: Topo,
+  graph: Topo,
   options: DeriveMcpToolsOptions = {}
 ): Result<McpToolDefinition[], Error> => {
-  const validation = validateToolBuild(app, options);
+  const validation = validateToolBuild(graph, options);
   if (validation.isErr()) {
     return validation;
   }
 
-  return registerTools(app, options, options.layers ?? []);
+  return registerTools(graph, options, options.layers ?? []);
 };

@@ -32,7 +32,34 @@ const assertLoadAppCaching = async (cwd: string): Promise<void> => {
   expect(fresh.name).toBe('second');
 };
 
+const writeGraphFixture = (cwd: string, name: string): void => {
+  writeFileSync(
+    resolve(cwd, 'src/app.ts'),
+    `export const graph = {
+  name: '${name}',
+  trails: new Map(),
+  signals: new Map(),
+  resources: new Map()
+};`
+  );
+};
+
 describe('loadApp', () => {
+  test('resolves named graph export', async () => {
+    const cwd = resolve(
+      tmpdir(),
+      `trails-load-graph-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+      writeGraphFixture(cwd, 'graph-test');
+      const loaded = await loadApp('./src/app.ts', cwd);
+      expect(loaded.name).toBe('graph-test');
+    } finally {
+      rmSync(cwd, { force: true, recursive: true });
+    }
+  });
+
   test('resolves relative module paths from cwd', async () => {
     // import.meta.dir is src/__tests__/, go up two to get apps/trails/
     const cwd = resolve(import.meta.dir, '../..');

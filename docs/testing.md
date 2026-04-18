@@ -352,7 +352,7 @@ Execute CLI commands in-process and capture stdout/stderr:
 ```typescript
 import { createCliHarness } from '@ontrails/testing';
 
-const harness = createCliHarness({ app: graph });
+const harness = createCliHarness({ graph });
 const result = await harness.run('entity show --name Alpha --output json');
 
 expect(result.exitCode).toBe(0);
@@ -366,7 +366,7 @@ Invoke MCP tools directly without transport:
 ```typescript
 import { createMcpHarness } from '@ontrails/testing';
 
-const harness = createMcpHarness({ app: graph });
+const harness = createMcpHarness({ graph });
 const result = await harness.callTool('myapp_entity_show', { name: 'Alpha' });
 
 expect(result.isError).toBe(false);

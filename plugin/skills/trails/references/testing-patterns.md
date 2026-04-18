@@ -209,7 +209,7 @@ logger.clear(); // reset captured entries
 ```typescript
 import { createCliHarness } from '@ontrails/testing';
 
-const cli = createCliHarness({ app: graph });
+const cli = createCliHarness({ graph });
 const result = await cli.run('entity show --name Alpha --output json');
 expect(result.exitCode).toBe(0);
 expect(result.json).toEqual({ name: 'Alpha', type: 'concept' });
@@ -222,7 +222,7 @@ expect(result.json).toEqual({ name: 'Alpha', type: 'concept' });
 ```typescript
 import { createMcpHarness } from '@ontrails/testing';
 
-const mcp = createMcpHarness({ app: graph });
+const mcp = createMcpHarness({ graph });
 const result = await mcp.callTool('myapp_entity_show', { name: 'Alpha' });
 expect(result.isError).toBe(false);
 ```

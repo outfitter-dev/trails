@@ -21,7 +21,7 @@ import {
 } from '@ontrails/schema';
 import { z } from 'zod';
 
-import { app } from '../src/app.js';
+import { graph } from '../src/app.js';
 import * as entitySignals from '../src/signals/entity-signals.js';
 import * as demoResources from '../src/resources/entity-store.js';
 import * as notificationStoreResource from '../src/resources/notification-store.js';
@@ -32,11 +32,11 @@ import * as onboard from '../src/trails/onboard.js';
 import * as search from '../src/trails/search.js';
 
 // ---------------------------------------------------------------------------
-// 1. Trailhead map generation
+// 1. Surface map generation
 // ---------------------------------------------------------------------------
 
-describe('trailhead map generation', () => {
-  const surfaceMap = deriveSurfaceMap(app);
+describe('surface map generation', () => {
+  const surfaceMap = deriveSurfaceMap(graph);
 
   test('contains all expected trail, event, and resource IDs', () => {
     const ids = surfaceMap.entries.map((e) => e.id);
@@ -136,10 +136,10 @@ describe('trailhead map generation', () => {
 // 2. Deterministic hashing
 // ---------------------------------------------------------------------------
 
-describe('trailhead map hashing is deterministic', () => {
+describe('surface map hashing is deterministic', () => {
   test('identical topos produce identical hashes', () => {
-    const map1 = deriveSurfaceMap(app);
-    const map2 = deriveSurfaceMap(app);
+    const map1 = deriveSurfaceMap(graph);
+    const map2 = deriveSurfaceMap(graph);
 
     const hash1 = deriveSurfaceMapHash(map1);
     const hash2 = deriveSurfaceMapHash(map2);
@@ -148,14 +148,14 @@ describe('trailhead map hashing is deterministic', () => {
   });
 
   test('hash is a valid 64-character hex string', () => {
-    const surfaceMap = deriveSurfaceMap(app);
+    const surfaceMap = deriveSurfaceMap(graph);
     const hash = deriveSurfaceMapHash(surfaceMap);
 
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
   test('generatedAt timestamp does not affect hash', () => {
-    const map1 = deriveSurfaceMap(app);
+    const map1 = deriveSurfaceMap(graph);
 
     // Manually create a copy with a different generatedAt
     const map2 = {
@@ -204,7 +204,7 @@ const makeModifiedShow = (inputSchema: z.ZodType) =>
 
 /** Diff the baseline app against a modified app. */
 const diffAgainst = (...modules: Record<string, unknown>[]) => {
-  const before = deriveSurfaceMap(app);
+  const before = deriveSurfaceMap(graph);
   const modifiedApp = topo('demo-modified', ...modules);
   const after = deriveSurfaceMap(modifiedApp);
   return deriveSurfaceMapDiff(before, after);
@@ -320,8 +320,8 @@ describe('non-breaking change detection', () => {
   });
 
   test('no changes produces empty diff', () => {
-    const map1 = deriveSurfaceMap(app);
-    const map2 = deriveSurfaceMap(app);
+    const map1 = deriveSurfaceMap(graph);
+    const map2 = deriveSurfaceMap(graph);
     const diff = deriveSurfaceMapDiff(map1, map2);
 
     expect(diff.hasBreaking).toBe(false);
@@ -335,12 +335,12 @@ describe('non-breaking change detection', () => {
 
 describe('topo validation', () => {
   test('validateTopo passes for the demo app', () => {
-    const result = validateTopo(app);
+    const result = validateTopo(graph);
     expect(result.isOk()).toBe(true);
   });
 
   test('all trails in the topo have at least one example', () => {
-    for (const [_id, t] of app.trails) {
+    for (const [_id, t] of graph.trails) {
       const trailDef = t as { examples?: readonly unknown[] };
       expect(trailDef.examples?.length ?? 0).toBeGreaterThan(0);
     }
@@ -348,7 +348,7 @@ describe('topo validation', () => {
 
   test('topo contains the expected number of trails with examples', () => {
     let exampleCount = 0;
-    for (const [_id, t] of app.trails) {
+    for (const [_id, t] of graph.trails) {
       const trailDef = t as { examples?: readonly unknown[] };
       exampleCount += trailDef.examples?.length ?? 0;
     }

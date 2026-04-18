@@ -142,10 +142,10 @@ export const onboard = trail('entity.onboard', {
 
 ```typescript
 import { testAll } from '@ontrails/testing';
-import { app } from '../src/app.js';
+import { graph } from '../src/app.js';
 import { createMockEntityStore, entityStoreResource } from '../src/resources/entity-store.js';
 
-testAll(app, () => ({
+testAll(graph, () => ({
   resources: {
     [entityStoreResource.id]: createMockEntityStore(),
   },

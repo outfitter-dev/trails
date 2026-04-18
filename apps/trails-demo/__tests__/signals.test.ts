@@ -20,7 +20,7 @@ import { describe, expect, test } from 'bun:test';
 import { run } from '@ontrails/core';
 import { firesDeclarations, onReferencesExist } from '@ontrails/warden';
 
-import { app } from '../src/app.js';
+import { graph } from '../src/app.js';
 import { entityStoreResource } from '../src/resources/entity-store.js';
 import {
   createNotificationStore,
@@ -53,7 +53,7 @@ describe('entity.updated signal flow', () => {
     const entityStore = createStore([]);
     const notificationStore = createNotificationStore();
     const result = await run(
-      app,
+      graph,
       'entity.add',
       { name: 'Epsilon', tags: ['reactive'], type: 'concept' },
       {
@@ -75,7 +75,7 @@ describe('entity.updated signal flow', () => {
     ]);
     const notificationStore = createNotificationStore();
     const result = await run(
-      app,
+      graph,
       'entity.delete',
       { name: 'Disposable' },
       {
@@ -99,17 +99,17 @@ describe('entity.updated signal flow', () => {
 
 describe('signal wiring in the demo topo', () => {
   test('entity.updated is registered as a signal', () => {
-    expect(app.signals.has('entity.updated')).toBe(true);
+    expect(graph.signals.has('entity.updated')).toBe(true);
   });
 
   test('entity.notify-updated is registered with on: [entity.updated]', () => {
-    const consumer = app.get('entity.notify-updated');
+    const consumer = graph.get('entity.notify-updated');
     expect(consumer).toBeDefined();
     expect(consumer?.on).toContain('entity.updated');
   });
 
   test('entity.add declares fires: [entity.updated]', () => {
-    const producer = app.get('entity.add');
+    const producer = graph.get('entity.add');
     expect(producer).toBeDefined();
     expect(producer?.fires).toContain('entity.updated');
   });

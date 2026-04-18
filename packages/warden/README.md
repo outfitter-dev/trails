@@ -20,7 +20,7 @@ Or programmatically:
 ```typescript
 import { runWarden, formatWardenReport } from '@ontrails/warden';
 
-const report = await runWarden({ topo: app });
+const report = await runWarden({ topo: graph });
 console.log(formatWardenReport(report));
 ```
 
@@ -51,7 +51,7 @@ Warden integrates with `@ontrails/schema` to detect when the topo has changed wi
 ```typescript
 import { checkDrift } from '@ontrails/warden';
 
-const drift = await checkDrift(process.cwd(), app);
+const drift = await checkDrift(process.cwd(), graph);
 if (drift.stale) {
   console.log('lock file is stale -- regenerate with `trails topo export`');
 }

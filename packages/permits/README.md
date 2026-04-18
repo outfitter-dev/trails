@@ -31,7 +31,7 @@ export const search = trail('gist.search', {
 ```typescript
 import { authLayer } from '@ontrails/permits';
 
-export const app = topo('my-app', gistModule);
+export const graph = topo('my-app', gistModule);
 // Register authLayer with your trailhead
 ```
 

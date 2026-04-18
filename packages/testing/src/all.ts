@@ -31,9 +31,9 @@ import { testExamples } from './examples.js';
  * @example
  * ```ts
  * import { testAll } from '@ontrails/testing';
- * import { app } from '../src/app.js';
+ * import { graph } from '../src/app.js';
  *
- * testAll(app);
+ * testAll(graph);
  * ```
  */
 export const testAll = (

@@ -300,7 +300,7 @@ const runCompositionExample = async (
  *
  * One line in your test file:
  * ```ts
- * testExamples(app);
+ * testExamples(graph);
  * ```
  */
 export const testExamples = (

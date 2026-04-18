@@ -22,7 +22,7 @@ Sinks receive completed `TraceRecord` records. The default sink is a no-op — t
 Tracing happens automatically. No layer attachment, no per-trail wiring.
 
 ```typescript
-await run(app, 'user.create', { name: 'alice' });
+await run(graph, 'user.create', { name: 'alice' });
 
 // sink.records now contains a root TraceRecord for the execution
 ```

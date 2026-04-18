@@ -1,5 +1,5 @@
 /**
- * Build framework-agnostic CliCommand[] from an App's topology.
+ * Build framework-agnostic CliCommand[] from a graph topology.
  */
 
 import type {
@@ -89,14 +89,14 @@ const mergeFlags = (presets: CliFlag[], derived: CliFlag[]): CliFlag[] => {
 };
 
 const validateCliCommandBuild = (
-  app: Topo,
+  graph: Topo,
   options?: DeriveCliCommandsOptions
 ): Result<void, Error> => {
   if (options?.validate === false) {
     return Result.ok();
   }
 
-  const validated = validateEstablishedTopo(app);
+  const validated = validateEstablishedTopo(graph);
   if (validated.isErr()) {
     return Result.err(validated.error);
   }
@@ -109,7 +109,7 @@ const validateCliCommandBuild = (
 // ---------------------------------------------------------------------------
 
 /**
- * Build an array of framework-agnostic CLI commands from an App.
+ * Build an array of framework-agnostic CLI commands from a graph.
  *
  * Iterates the topo, derives flags from input schemas, groups by
  * dot-notation, and wires up the execute function with validation,
@@ -285,7 +285,7 @@ const safeMergeInput = async (
 /** Create the execute function for a CLI command. */
 const createExecute =
   (
-    app: Topo,
+    graph: Topo,
     t: AnyTrail,
     fields: readonly Field[],
     metaFlagNames: ReadonlySet<string>,
@@ -310,7 +310,7 @@ const createExecute =
         flags: parsedFlags,
         input: { ...parsedArgs, ...parsedFlags },
         result: merged,
-        topoName: app.name,
+        topoName: graph.name,
         trail: t,
       });
       return merged;
@@ -323,7 +323,7 @@ const createExecute =
       ctx: withCliTrailhead(ctxOverrides),
       layers: options?.layers,
       resources: options?.resources,
-      topo: app,
+      topo: graph,
     });
     const finalResult = maybeAddStructuredInputHint(
       result,
@@ -342,7 +342,7 @@ const createExecute =
       flags: parsedFlags,
       input: reportInput,
       result: finalResult,
-      topoName: app.name,
+      topoName: graph.name,
       trail: t,
     });
     return finalResult;
@@ -426,7 +426,7 @@ const derivePositionalArgs = (
 
 /** Convert a trail or route into a CLI command when it is publicly exposed. */
 const toCliCommand = (
-  app: Topo,
+  graph: Topo,
   t: AnyTrail,
   options?: DeriveCliCommandsOptions
 ): CliCommand => {
@@ -453,7 +453,7 @@ const toCliCommand = (
     args,
     description: t.description,
     execute: createExecute(
-      app,
+      graph,
       t,
       fields,
       metaFlagNames,
@@ -470,25 +470,25 @@ const toCliCommand = (
 };
 
 const collectCommands = (
-  app: Topo,
+  graph: Topo,
   options?: DeriveCliCommandsOptions
 ): CliCommand[] =>
-  filterSurfaceTrails(app.list(), {
+  filterSurfaceTrails(graph.list(), {
     exclude: options?.exclude,
     include: options?.include,
     intent: options?.intent,
-  }).map((trail) => toCliCommand(app, trail, options));
+  }).map((trail) => toCliCommand(graph, trail, options));
 
 export const deriveCliCommands = (
-  app: Topo,
+  graph: Topo,
   options?: DeriveCliCommandsOptions
 ): Result<CliCommand[], Error> => {
-  const validation = validateCliCommandBuild(app, options);
+  const validation = validateCliCommandBuild(graph, options);
   if (validation.isErr()) {
     return validation;
   }
 
-  const commands = collectCommands(app, options);
+  const commands = collectCommands(graph, options);
   try {
     validateCliCommands(commands);
     return Result.ok(commands);
