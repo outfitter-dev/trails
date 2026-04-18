@@ -1,11 +1,22 @@
-import { existsSync, rmSync } from 'node:fs';
-import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { dirname, extname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import type { Topo } from '@ontrails/core';
 import { findAppModule } from '@ontrails/cli';
 
 const URL_SCHEME = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
+const IMPORT_SCANNER = new Bun.Transpiler({ loader: 'ts' });
+const SCANNABLE_EXTENSIONS = new Set([
+  '.cjs',
+  '.cts',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.mts',
+  '.ts',
+  '.tsx',
+]);
 
 const resolveUrlModulePath = (modulePath: string): string => {
   const url = new URL(modulePath);
@@ -33,22 +44,84 @@ const resolveAbsoluteModulePath = (modulePath: string, cwd: string): string =>
     ? resolveUrlModulePath(modulePath)
     : resolveFilesystemModulePath(modulePath, cwd);
 
-const freshModuleCopyPath = (absolutePath: string): string =>
+const freshMirrorRootPath = (cwd: string): string =>
   join(
-    dirname(absolutePath),
-    `.__fresh-${Date.now()}-${Math.random().toString(36).slice(2)}-${basename(absolutePath)}`
+    cwd,
+    '.trails-tmp',
+    `load-app-fresh-${Date.now()}-${Math.random().toString(36).slice(2)}`
   );
 
+const freshMirrorPath = (absolutePath: string, mirrorRoot: string): string =>
+  join(mirrorRoot, absolutePath.replace(/^\/+/, ''));
+
+const isLocalFilesystemImport = (importPath: string): boolean =>
+  importPath.startsWith('.') ||
+  importPath.startsWith('/') ||
+  importPath.startsWith('file:');
+
+const isScannableModule = (modulePath: string): boolean =>
+  SCANNABLE_EXTENSIONS.has(extname(modulePath));
+
+const resolveImportedModulePath = (
+  importerPath: string,
+  importPath: string
+): string => {
+  const resolved = import.meta.resolve(
+    importPath,
+    pathToFileURL(importerPath).href
+  );
+  return resolveFilesystemModulePath(
+    fileURLToPath(resolved),
+    dirname(importerPath)
+  );
+};
+
+const collectImportedModulePaths = (
+  modulePath: string,
+  source: string
+): readonly string[] => {
+  if (!isScannableModule(modulePath)) {
+    return [];
+  }
+
+  return IMPORT_SCANNER.scanImports(source)
+    .map((entry) => entry.path)
+    .filter(isLocalFilesystemImport)
+    .map((importPath) => resolveImportedModulePath(modulePath, importPath));
+};
+
+const mirrorFreshImportGraph = async (
+  entryPath: string,
+  mirrorRoot: string
+): Promise<string> => {
+  const seen = new Set<string>();
+
+  const visit = async (modulePath: string): Promise<void> => {
+    if (seen.has(modulePath)) {
+      return;
+    }
+    seen.add(modulePath);
+
+    const source = await Bun.file(modulePath).text();
+    for (const importedPath of collectImportedModulePaths(modulePath, source)) {
+      await visit(importedPath);
+    }
+
+    const mirrorPath = freshMirrorPath(modulePath, mirrorRoot);
+    mkdirSync(dirname(mirrorPath), { recursive: true });
+    await Bun.write(mirrorPath, source);
+  };
+
+  await visit(entryPath);
+  return freshMirrorPath(entryPath, mirrorRoot);
+};
+
 /**
- * Import a module bypassing the ESM cache for the entry file.
+ * Import a module bypassing the ESM cache for the local filesystem import graph.
  *
  * @remarks
- * Cache-busting applies to the entry module only. Transitive imports resolved
- * by the entry file are still served from Bun's module cache. This is
- * acceptable for the draft promotion workflow (the only caller) because
- * promotion changes which modules the entry file imports, not the modules
- * themselves. If a deeper cache-bust is needed in the future, consider
- * Bun's `Loader.registry` or a full process restart.
+ * External packages and built-in modules still resolve normally. Only local
+ * filesystem imports are mirrored into the fresh temp root.
  */
 const importFreshModule = async (
   modulePath: string,
@@ -61,8 +134,8 @@ const importFreshModule = async (
     return (await import(url.href)) as Record<string, unknown>;
   }
 
-  const freshPath = freshModuleCopyPath(absolutePath);
-  await Bun.write(freshPath, await Bun.file(absolutePath).text());
+  const mirrorRoot = freshMirrorRootPath(cwd);
+  const freshPath = await mirrorFreshImportGraph(absolutePath, mirrorRoot);
 
   try {
     return (await import(pathToFileURL(freshPath).href)) as Record<
@@ -70,7 +143,7 @@ const importFreshModule = async (
       unknown
     >;
   } finally {
-    rmSync(freshPath, { force: true });
+    rmSync(mirrorRoot, { force: true, recursive: true });
   }
 };
 
