@@ -1321,6 +1321,7 @@ describe('executeTrail', () => {
       expect(result.isErr()).toBe(true);
       const { error } = result;
       expect(error).toBeInstanceOf(RetryExhaustedError);
+      expect(error).toBeInstanceOf(InternalError);
       const exhausted = error as RetryExhaustedError;
       expect(exhausted.category).toBe('conflict');
       expect(exhausted.retryable).toBe(false);

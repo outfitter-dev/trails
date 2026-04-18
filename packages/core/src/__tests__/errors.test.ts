@@ -392,6 +392,14 @@ describe('RetryExhaustedError', () => {
   });
 
   describe('identity', () => {
+    test('is instanceof InternalError', () => {
+      const err = new RetryExhaustedError(new ConflictError('x'), {
+        attempts: 1,
+        detour: 'ConflictError',
+      });
+      expect(err).toBeInstanceOf(InternalError);
+    });
+
     test('name is RetryExhaustedError', () => {
       const err = new RetryExhaustedError(new ConflictError('x'), {
         attempts: 1,
