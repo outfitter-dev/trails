@@ -4,8 +4,8 @@ import { createServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { createApp } from '../../../../connectors/hono/src/index.ts';
-import { Result, trail, topo } from '../../../../packages/core/src/index.ts';
+import { Result, trail, topo } from '@ontrails/core';
+import { createApp } from '@ontrails/hono';
 import { z } from 'zod';
 
 import { vite } from '../index.js';
