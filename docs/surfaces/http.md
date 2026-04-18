@@ -121,15 +121,23 @@ Layers run in order, wrapping the implementation. They have access to the trail 
 
 ## CreateAppOptions
 
-| Option          | Type                                   | Default       | Description                                          |
-| --------------- | -------------------------------------- | ------------- | ---------------------------------------------------- |
-| `basePath`      | `string`                               | `''`          | Prefix for all route paths                           |
-| `createContext`  | `() => TrailContext \| Promise<TrailContext>` | default context | Factory for per-request TrailContext           |
-| `hostname`      | `string`                               | `'0.0.0.0'`  | Bind address                                         |
-| `layers`         | `readonly Layer[]`                      | `[]`          | Layers to compose around implementations              |
-| `name`          | `string`                               | *none*        | Server name for logging                              |
-| `port`          | `number`                               | `3000`        | Listen port                                          |
-| `serve`         | `boolean`                              | `true`        | Set `false` to return the Hono app without starting  |
+`surface(graph, options)` and `createApp(graph, options)` share the same
+options bag. The most useful fields are:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `basePath` | `string` | `''` | Prefix for all derived route paths |
+| `configValues` | `Record<string, Record<string, unknown>>` | *none* | Resource config values keyed by resource ID |
+| `createContext` | `() => TrailContextInit \| Promise<TrailContextInit>` | default context | Factory for per-request TrailContext init data |
+| `exclude` | `readonly string[]` | *none* | Exclude matching trail IDs from the surface |
+| `hostname` | `string` | `'0.0.0.0'` | Bind address used by `surface()` |
+| `include` | `readonly string[]` | *none* | Narrow the surface to matching trail IDs |
+| `intent` | `readonly Intent[]` | *none* | Filter exposed trails by intent |
+| `layers` | `readonly Layer[]` | `[]` | Layers to compose around implementations |
+| `name` | `string` | *none* | Accepted but currently unused — reserved for future use |
+| `port` | `number` | `3000` | Listen port used by `surface()` |
+| `resources` | `ResourceOverrideMap` | *none* | Explicit resource instances for this surface |
+| `validate` | `boolean` | `true` | Set to `false` to skip topo validation at startup |
 
 ## Request ID Bridging
 

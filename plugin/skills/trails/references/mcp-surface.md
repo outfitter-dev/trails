@@ -60,17 +60,22 @@ blaze: async (input, ctx) => {
 
 Trail `examples` are included in MCP tool metadata. Agents use these to understand expected input/output shapes and plan tool usage without trial and error.
 
-## Surface Options
+## CreateServerOptions
 
 ```typescript
 import { surface } from '@ontrails/mcp';
 
 await surface(graph, {
-  name: 'myapp',           // Tool name prefix (defaults to topo name)
-  version: '1.0.0',        // Server version
-  capabilities: {},        // MCP server capabilities object
+  name: 'myapp',                  // Tool name prefix (defaults to topo name)
+  version: '1.0.0',               // Server version
+  description: 'Internal tools',  // Forwarded as MCP server instructions
+  include: ['entity.**'],         // Optional trail filters
 });
 ```
+
+`surface(graph, options)` and `createServer(graph, options)` accept the same
+options bag: `name`, `version`, `description`, `include`, `exclude`, `intent`,
+`layers`, `createContext`, `configValues`, `resources`, and `validate`.
 
 ## Escape Hatch
 
