@@ -92,11 +92,13 @@ export const loadApp = async (
             ? new URL(resolvedModulePath).href
             : pathToFileURL(resolvedModulePath).href
         )) as Record<string, unknown>);
-  const app = (mod['default'] ?? mod['app']) as Topo | undefined;
+  const app = (mod['default'] ?? mod['graph'] ?? mod['app']) as
+    | Topo
+    | undefined;
   if (!app?.trails) {
     throw new Error(
       `Could not find a Topo export in "${effectivePath}". ` +
-        "Expected a default or named 'app' export created with topo()."
+        "Expected a default, 'graph', or 'app' named export created with topo()."
     );
   }
   return app;

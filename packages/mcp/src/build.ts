@@ -263,7 +263,7 @@ const createHandler =
  * Build MCP tool definitions from a graph's topology.
  *
  * Each trail in the topo becomes an McpToolDefinition with:
- * - A derived tool name (graph-prefixed, underscore-delimited)
+ * - A derived tool name (topo-name-prefixed, underscore-delimited)
  * - JSON Schema input from zodToJsonSchema
  * - MCP annotations from trail meta
  * - A handler that validates, composes layers, executes, and maps results
