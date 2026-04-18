@@ -134,6 +134,7 @@ options bag. The most useful fields are:
 | `include` | `readonly string[]` | *none* | Narrow the surface to matching trail IDs |
 | `intent` | `readonly Intent[]` | *none* | Filter exposed trails by intent |
 | `layers` | `readonly Layer[]` | `[]` | Layers to compose around implementations |
+| `name` | `string` | *none* | Accepted but currently unused — reserved for future use |
 | `port` | `number` | `3000` | Listen port used by `surface()` |
 | `resources` | `ResourceOverrideMap` | *none* | Explicit resource instances for this surface |
 | `validate` | `boolean` | `true` | Set to `false` to skip topo validation at startup |
