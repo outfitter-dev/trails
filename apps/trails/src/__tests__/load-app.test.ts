@@ -1,5 +1,13 @@
 import { afterAll, describe, expect, test } from 'bun:test';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
@@ -154,6 +162,32 @@ const assertLoadAppPreservesBinarySiblings = async (
   expect(fresh.name).toBe(expected);
 };
 
+/**
+ * Seed a stale mirror dir under `.trails-tmp/` with an mtime well past the
+ * 10-minute freshness threshold, simulating a directory abandoned by a
+ * signal-killed process.
+ */
+const seedStaleMirrorDir = (cwd: string): string => {
+  mkdirSync(resolve(cwd, 'src'), { recursive: true });
+  writeLoadAppFixture(cwd, 'stale-cleanup');
+  const mirrorParent = resolve(cwd, '.trails-tmp');
+  const staleDir = resolve(mirrorParent, 'load-app-fresh-stale-fixture');
+  mkdirSync(staleDir, { recursive: true });
+  writeFileSync(resolve(staleDir, 'marker'), 'stale');
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  utimesSync(staleDir, oneHourAgo, oneHourAgo);
+  return staleDir;
+};
+
+const assertStaleDirCleaned = (cwd: string, staleDir: string): void => {
+  expect(existsSync(staleDir)).toBe(false);
+  const mirrorParent = resolve(cwd, '.trails-tmp');
+  const remaining = readdirSync(mirrorParent).filter((entry) =>
+    entry.startsWith('load-app-fresh-')
+  );
+  expect(remaining.length).toBeGreaterThan(0);
+};
+
 const workspaceTmpRoot = resolve(import.meta.dir, '../..', '.tmp-tests');
 
 describe('loadApp', () => {
@@ -277,6 +311,23 @@ export const app = {
 
     try {
       await assertLoadAppPreservesBinarySiblings(cwd);
+    } finally {
+      rmSync(cwd, { force: true, recursive: true });
+    }
+  });
+
+  test('fresh loading opportunistically cleans up stale mirror roots', async () => {
+    const cwd = resolve(
+      tmpdir(),
+      `trails-load-app-stale-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    );
+
+    try {
+      const staleDir = seedStaleMirrorDir(cwd);
+      await loadApp('./src/app.ts', cwd, { fresh: true });
+      assertStaleDirCleaned(cwd, staleDir);
     } finally {
       rmSync(cwd, { force: true, recursive: true });
     }

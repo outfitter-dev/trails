@@ -105,12 +105,9 @@ const resolveAbsoluteModulePath = (modulePath: string, cwd: string): string =>
     ? resolveUrlModulePath(modulePath)
     : resolveFilesystemModulePath(modulePath, cwd);
 
-const freshMirrorRootPath = (cwd: string): string =>
-  join(
-    cwd,
-    '.trails-tmp',
-    `load-app-fresh-${Date.now()}-${Math.random().toString(36).slice(2)}`
-  );
+const MIRROR_PARENT_DIRNAME = '.trails-tmp';
+
+const MIRROR_ENTRY_PREFIX = 'load-app-fresh-';
 
 /**
  * Convert an absolute path to a drive-safe relative form before appending it
@@ -238,6 +235,72 @@ const safeStat = (
   } catch {
     return undefined;
   }
+};
+
+/**
+ * Age threshold (ms) above which a mirror entry in `.trails-tmp/` is
+ * considered stale and safe to remove opportunistically.
+ *
+ * @remarks
+ * Fresh loads complete in seconds. Anything older than 10 minutes is almost
+ * certainly left over from a crashed or signal-killed process. We intentionally
+ * avoid registering SIGTERM/SIGINT handlers here because that would risk
+ * clobbering host-app signal handlers (and still wouldn't rescue SIGKILL).
+ * Opportunistic cleanup is self-healing across crashes from any cause.
+ */
+const STALE_MIRROR_THRESHOLD_MS = 10 * 60 * 1000;
+
+const isStaleMirrorEntry = (entryPath: string, now: number): boolean => {
+  if (ACTIVE_MIRROR_ROOTS.has(entryPath)) {
+    return false;
+  }
+  const entryStat = safeStat(entryPath);
+  if (entryStat === undefined) {
+    return false;
+  }
+  const mtimeMs = Number(entryStat.mtimeMs);
+  return now - mtimeMs >= STALE_MIRROR_THRESHOLD_MS;
+};
+
+const removeStaleMirrorEntry = (entryPath: string): void => {
+  try {
+    rmSync(entryPath, { force: true, recursive: true });
+  } catch {
+    /*
+     * Another concurrent load may own it. Safe to ignore — the next sweep
+     * will retry.
+     */
+  }
+};
+
+/**
+ * Best-effort removal of stale mirror directories left by previous (crashed or
+ * signal-killed) processes. Called before creating a new mirror root.
+ */
+const cleanupStaleMirrorRoots = (mirrorParent: string): void => {
+  const entries = readDirectoryEntries(mirrorParent);
+  if (entries.length === 0) {
+    return;
+  }
+  const now = Date.now();
+  for (const entry of entries) {
+    if (!entry.startsWith(MIRROR_ENTRY_PREFIX)) {
+      continue;
+    }
+    const entryPath = join(mirrorParent, entry);
+    if (isStaleMirrorEntry(entryPath, now)) {
+      removeStaleMirrorEntry(entryPath);
+    }
+  }
+};
+
+const freshMirrorRootPath = (cwd: string): string => {
+  const mirrorParent = join(cwd, MIRROR_PARENT_DIRNAME);
+  cleanupStaleMirrorRoots(mirrorParent);
+  return join(
+    mirrorParent,
+    `${MIRROR_ENTRY_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
 };
 
 interface MirrorWalkContext {
