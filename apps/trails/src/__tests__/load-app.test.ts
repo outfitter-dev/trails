@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { afterAll, describe, expect, test } from 'bun:test';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
@@ -121,7 +121,13 @@ export const app = topo('fixture', { sample });
   );
 };
 
+const workspaceTmpRoot = resolve(import.meta.dir, '../..', '.tmp-tests');
+
 describe('loadApp', () => {
+  afterAll(() => {
+    rmSync(workspaceTmpRoot, { force: true, recursive: true });
+  });
+
   test('resolves named graph export', async () => {
     const cwd = resolve(
       tmpdir(),
@@ -192,9 +198,7 @@ describe('loadApp', () => {
 
   test('fresh loading preserves workspace package resolution for mirrored apps', async () => {
     const cwd = resolve(
-      import.meta.dir,
-      '../..',
-      '.tmp-tests',
+      workspaceTmpRoot,
       `trails-load-app-workspace-deps-${Date.now()}-${Math.random()
         .toString(36)
         .slice(2)}`
