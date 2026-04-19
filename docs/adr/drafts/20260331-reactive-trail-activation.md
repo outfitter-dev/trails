@@ -308,6 +308,7 @@ Tracing queries can filter by fire source type: "show me all scheduled execution
 - **New field on the trail spec.** `on` adds a concept to learn. The justification: activation is genuinely new information that the framework can't derive.
 - **Activation resolution adds startup cost.** Topo construction resolves `on:` sources: register schedules, bind signal listeners, register webhook endpoints.
 - **Complex reactive chains.** Deep chains are inspectable via survey and the lockfile, and the warden detects cycles, but emergent behavior of long chains requires attention.
+- **Runtime suppression is narrower than static activation governance.** Warden can detect authored activation cycles in the graph, but the runtime still suppresses re-entrant delivery by signal-id membership in the current fire stack. That prevents infinite loops while over-suppressing some legitimate diamond paths until per-path provenance is promoted.
 - **Scheduled activation needs runtime infrastructure.** `Bun.cron` for production, mock scheduler for testing.
 
 ### What this does NOT decide

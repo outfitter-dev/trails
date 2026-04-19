@@ -291,6 +291,7 @@ Reactive mode runs after standard mode passes. Standard mode validates each trai
 - **Fire-and-forget semantics.** The emitting trail doesn't know if the event was delivered. This is correct (the trail shouldn't couple to its listeners) but means delivery failures are only visible through tracing.
 - **Lifecycle events add volume.** Every trail execution produces at least one lifecycle event. Sampling is a future optimization.
 - **Event ordering is not guaranteed across listeners.** Multiple triggers on the same event activate concurrently. If ordering matters, use sequential `cross` composition.
+- **Runtime cycle suppression is still signal-id-based.** The current fire stack prevents infinite re-entrant loops, but it can over-suppress legitimate diamond dispatch patterns that reuse the same signal ID on a different branch. Per-path provenance is a deferred upgrade once real graph pressure appears.
 
 ### What this does NOT decide
 

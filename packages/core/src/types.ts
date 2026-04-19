@@ -104,7 +104,11 @@ export interface CrossFn {
  * Fan-out to consumer trails (those with the signal in their `on:` array) is
  * the framework's responsibility. Producers get `Result.ok(undefined)` unless
  * the signal id is unknown or the payload fails schema validation. Consumer
- * errors are logged but do not propagate back to the producer.
+ * errors are logged but do not propagate back to the producer. Consumers fan
+ * out in parallel, each with its own derived context. Runtime cycle
+ * suppression is still signal-id-based against the current fire stack: it
+ * prevents re-entrant loops but can over-suppress legitimate diamond
+ * re-fires, with a debug breadcrumb and a warn emitted when suppression happens.
  *
  * Two call shapes are supported:
  *

@@ -60,18 +60,7 @@ const getFireStack = (
   return Array.isArray(value) ? (value as readonly string[]) : [];
 };
 
-/**
- * Fan out a validated signal payload to its consumer trails.
- *
- * @remarks
- * Consumers fan out in parallel by design. Signal delivery is fire-and-forget
- * notification, not ordered orchestration; if one consumer depends on another,
- * the dependency belongs in `crosses:` instead of sibling signal sequencing.
- *
- * `Promise.allSettled` preserves failure isolation and waits for every branch
- * to settle. Each consumer gets its own derived context so sibling branches do
- * not share mutable top-level state while they overlap.
- */
+/** Binds a per-consumer `fire` onto a mutable consumer context. */
 type ConsumerFireBinder = (
   consumerCtx: MutableConsumerContext
 ) => MutableConsumerContext;
@@ -110,6 +99,22 @@ const deriveConsumerCtx = (
       }
     : {};
 
+/**
+ * Fan out a validated signal payload to its consumer trails.
+ *
+ * @remarks
+ * Consumers fan out in parallel by design. Signal delivery is fire-and-forget
+ * notification, not ordered orchestration; if one consumer depends on another,
+ * the dependency belongs in `crosses:` instead of sibling signal sequencing.
+ *
+ * `Promise.allSettled` preserves failure isolation and waits for every branch
+ * to settle. Each consumer gets its own derived context so sibling branches do
+ * not share mutable top-level state while they overlap. Re-entrant suppression
+ * elsewhere in this module is still based on signal-id membership in the
+ * current fire stack: it prevents infinite loops, but it can over-suppress
+ * legitimate diamond re-fires. Per-path provenance is a documented future
+ * direction rather than part of the pre-v1 runtime contract.
+ */
 const fanOutToConsumers = async (
   consumers: readonly AnyTrail[],
   payload: unknown,
@@ -259,9 +264,13 @@ export const createFireFn = (
       return Result.ok();
     }
     if (stack.includes(signalId)) {
+      producerCtx?.logger?.debug('Signal fan-out suppressed due to cycle', {
+        fireStack: [...stack],
+        signalId,
+      });
       producerCtx?.logger?.warn(
         'Signal cycle detected — skipping re-entrant fire',
-        { signalId }
+        { fireStack: [...stack], signalId }
       );
       return Result.ok();
     }

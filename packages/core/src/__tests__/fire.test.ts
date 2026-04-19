@@ -104,14 +104,24 @@ const cyclePayload = z.object({ id: z.string() });
 const loopA = signal('loop.a', { payload: cyclePayload });
 const loopB = signal('loop.b', { payload: cyclePayload });
 
-const createCycleLogger = (
-  warnings: { message: string; signalId?: unknown }[]
-): Logger => ({
+interface CycleLogEvent {
+  fireStack?: unknown;
+  level: 'debug' | 'warn';
+  message: string;
+  signalId?: unknown;
+}
+
+const createCycleLogger = (events: CycleLogEvent[]): Logger => ({
   child() {
     return this;
   },
-  debug() {
-    // noop
+  debug(message, data) {
+    events.push({
+      fireStack: data?.fireStack,
+      level: 'debug',
+      message,
+      signalId: data?.signalId,
+    });
   },
   error() {
     // noop
@@ -126,9 +136,48 @@ const createCycleLogger = (
     // noop
   },
   warn(message, data) {
-    warnings.push({ message, signalId: data?.signalId });
+    events.push({
+      fireStack: data?.fireStack,
+      level: 'warn',
+      message,
+      signalId: data?.signalId,
+    });
   },
 });
+
+const cycleEventsAtLevel = (
+  events: readonly CycleLogEvent[],
+  level: CycleLogEvent['level']
+): CycleLogEvent[] => events.filter((event) => event.level === level);
+
+const expectCycleSuppressionLogs = (
+  events: readonly CycleLogEvent[],
+  signalId: string,
+  fireStack: readonly string[]
+): void => {
+  expect(cycleEventsAtLevel(events, 'debug')).toEqual([
+    {
+      fireStack,
+      level: 'debug',
+      message: 'Signal fan-out suppressed due to cycle',
+      signalId,
+    },
+  ]);
+  expect(cycleEventsAtLevel(events, 'warn')).toEqual([
+    {
+      fireStack,
+      level: 'warn',
+      message: 'Signal cycle detected — skipping re-entrant fire',
+      signalId,
+    },
+  ]);
+};
+
+const expectNoCycleSuppressionDebugLogs = (
+  events: readonly CycleLogEvent[]
+): void => {
+  expect(cycleEventsAtLevel(events, 'debug')).toEqual([]);
+};
 
 const createWarningLogger = (
   warnings: {
@@ -633,10 +682,10 @@ describe('fire', () => {
   });
 
   describe('cycle detection', () => {
-    test('skips re-entrant signal cycles and logs a warning', async () => {
-      const warnings: { message: string; signalId?: unknown }[] = [];
+    test('skips re-entrant signal cycles and logs suppression details', async () => {
+      const events: CycleLogEvent[] = [];
       const invocations: string[] = [];
-      const cycleLogger = createCycleLogger(warnings);
+      const cycleLogger = createCycleLogger(events);
       const app = createCycleScenario(invocations);
 
       const result = await run(
@@ -648,17 +697,32 @@ describe('fire', () => {
 
       expect(result.isOk()).toBe(true);
       expect(invocations).toEqual(['a', 'b']);
-      expect(warnings).toEqual([
-        {
-          message: 'Signal cycle detected — skipping re-entrant fire',
-          signalId: 'loop.a',
-        },
-      ]);
+      expectCycleSuppressionLogs(events, 'loop.a', ['loop.a', 'loop.b']);
+    });
+
+    test('does not emit suppression debug logs for ordinary fan-out', async () => {
+      const events: CycleLogEvent[] = [];
+      const app = topo('fire-no-cycle-debug', {
+        consumer: makeConsumer('notify.email', createCapture()),
+        orderPlaced,
+        producer: makeProducer({}),
+      });
+
+      const result = await run(
+        app,
+        'order.create',
+        { orderId: 'o-no-cycle', total: 1 },
+        { ctx: { logger: createCycleLogger(events) } }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expectNoCycleSuppressionDebugLogs(events);
+      expect(cycleEventsAtLevel(events, 'warn')).toEqual([]);
     });
 
     test('stops at max depth for distinct-signal chains', async () => {
-      const warnings: { message: string; signalId?: unknown }[] = [];
-      const logger = createCycleLogger(warnings);
+      const events: CycleLogEvent[] = [];
+      const logger = createCycleLogger(events);
       const { app } = createDepthChainScenario(20);
 
       const result = await run(
@@ -669,8 +733,8 @@ describe('fire', () => {
       );
 
       expect(result.isOk()).toBe(true);
-      const depthWarning = warnings.find((w) =>
-        w.message.includes('depth limit')
+      const depthWarning = cycleEventsAtLevel(events, 'warn').find((event) =>
+        event.message.includes('depth limit')
       );
       expect(depthWarning).toBeDefined();
     });
