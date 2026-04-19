@@ -11,6 +11,7 @@ import {
   resource,
 } from '@ontrails/core';
 import { versionFieldName } from '@ontrails/store';
+import { bindStoreDefinition } from '@ontrails/store/internal/signal-identity';
 import type {
   AnyStoreDefinition,
   AnyStoreTable,
@@ -1247,23 +1248,23 @@ export const connectDrizzle = <const TStore extends AnyStoreDefinition>(
   DrizzleStoreConnection<TStore>,
   'readwrite'
 > => {
-  const tables = deriveDrizzleTables(definition);
+  const scope = options.id ?? defaultResourceId;
+  const store = bindStoreDefinition(definition, scope) as TStore;
+  const tables = deriveDrizzleTables(store);
 
   return buildResourceShape(
-    resource(options.id ?? defaultResourceId, {
+    resource(scope, {
       create: () => {
         try {
           const client = openSqliteDatabase(options.url, false);
           try {
-            ensureSqliteSchema(client, definition);
+            ensureSqliteSchema(client, store);
           } catch (error) {
             client.close();
             throw error;
           }
           const db = drizzle({ client, schema: tables });
-          return Result.ok(
-            createWritableConnection(definition, tables, db, client)
-          );
+          return Result.ok(createWritableConnection(store, tables, db, client));
         } catch (error) {
           return Result.err(
             new InternalError(
@@ -1284,17 +1285,17 @@ export const connectDrizzle = <const TStore extends AnyStoreDefinition>(
       mock: () => {
         const client = openSqliteDatabase(':memory:', false);
         try {
-          ensureSqliteSchema(client, definition);
+          ensureSqliteSchema(client, store);
           const db = drizzle({ client, schema: tables });
-          seedFixtures(definition, tables, db, options.mockSeed);
-          return createWritableConnection(definition, tables, db, client);
+          seedFixtures(store, tables, db, options.mockSeed);
+          return createWritableConnection(store, tables, db, client);
         } catch (error) {
           client.close();
           throw error;
         }
       },
     }),
-    definition,
+    store,
     tables,
     'readwrite'
   );
@@ -1308,17 +1309,17 @@ export const connectReadOnlyDrizzle = <const TStore extends AnyStoreDefinition>(
   ReadOnlyDrizzleStoreConnection<TStore>,
   'readonly'
 > => {
-  const tables = deriveDrizzleTables(definition);
+  const scope = options.id ?? defaultResourceId;
+  const store = bindStoreDefinition(definition, scope) as TStore;
+  const tables = deriveDrizzleTables(store);
 
   return buildResourceShape(
-    resource(options.id ?? defaultResourceId, {
+    resource(scope, {
       create: () => {
         try {
           const client = openSqliteDatabase(options.url, true);
           const db = drizzle({ client, schema: tables });
-          return Result.ok(
-            createReadOnlyConnection(definition, tables, db, client)
-          );
+          return Result.ok(createReadOnlyConnection(store, tables, db, client));
         } catch (error) {
           return Result.err(
             new InternalError(
@@ -1336,10 +1337,9 @@ export const connectReadOnlyDrizzle = <const TStore extends AnyStoreDefinition>(
       },
       health: connectionHealth,
       meta: options.meta,
-      mock: () =>
-        createReadonlyMockConnection(definition, tables, options.mockSeed),
+      mock: () => createReadonlyMockConnection(store, tables, options.mockSeed),
     }),
-    definition,
+    store,
     tables,
     'readonly'
   );

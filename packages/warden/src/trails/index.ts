@@ -21,6 +21,7 @@ export { orphanedSignalTrail } from './orphaned-signal.trail.js';
 export { preferSchemaInferenceTrail } from './prefer-schema-inference.trail.js';
 export { referenceExistsTrail } from './reference-exists.trail.js';
 export { resourceDeclarationsTrail } from './resource-declarations.trail.js';
+export { resourceIdGrammarTrail } from './resource-id-grammar.trail.js';
 export { resourceExistsTrail } from './resource-exists.trail.js';
 export { validDescribeRefsTrail } from './valid-describe-refs.trail.js';
 export { validDetourRefsTrail } from './valid-detour-refs.trail.js';

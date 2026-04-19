@@ -1,15 +1,15 @@
-import { signal, ValidationError } from '@ontrails/core';
+import { ValidationError } from '@ontrails/core';
 import type { AnySignal } from '@ontrails/core';
 import { stripDefaultsFromShape } from '@ontrails/core/internal/zod-wrappers';
 import { z } from 'zod';
 
+import { createStoreTableSignals } from './internal/signal-identity.js';
 import type {
   StoreDefinition,
   StoreKind,
   StoreOptions,
   StoreObjectSchema,
   StoreTable,
-  StoreTableSignals,
   StoreTableInput,
   StoreTablesInput,
 } from './types.js';
@@ -119,25 +119,6 @@ const deriveFixtureSchema = <TSchema extends StoreObjectSchema>(
   schema: TSchema,
   generated: readonly string[]
 ): StoreObjectSchema => partialFields(schema, generated);
-
-const createTableSignals = (
-  tableName: string,
-  schema: StoreObjectSchema
-): StoreTableSignals<unknown> =>
-  Object.freeze({
-    created: signal(`${tableName}.created`, {
-      description: `Fired after a "${tableName}" entity is created.`,
-      payload: schema,
-    }),
-    removed: signal(`${tableName}.removed`, {
-      description: `Fired after a "${tableName}" entity is removed.`,
-      payload: schema,
-    }),
-    updated: signal(`${tableName}.updated`, {
-      description: `Fired after a "${tableName}" entity is updated.`,
-      payload: schema,
-    }),
-  });
 
 const deriveUpdateSchema = (
   schema: StoreObjectSchema,
@@ -454,7 +435,7 @@ const resolveNormalizedTableArtifacts = <
     fixtureSchema,
     input.fixtures
   );
-  const signals = createTableSignals(name, resolved.schema) as StoreTable<
+  const signals = createStoreTableSignals(name, resolved.schema) as StoreTable<
     TInput,
     TName
   >['signals'];

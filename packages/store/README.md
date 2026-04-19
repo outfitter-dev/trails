@@ -34,7 +34,7 @@ This declaration is pure metadata:
 - insert schema
 - update schema
 - fixture schema
-- derived change signals (`table.signals.created|updated|removed`)
+- derived change-signal handles (`table.signals.created|updated|removed`)
 - identity field
 - generated-field metadata
 - optional framework-managed version tracking
@@ -130,12 +130,21 @@ Types are derived from the Zod schema:
 Each normalized table also derives typed change signals from the same schema:
 
 ```typescript
-const created = definition.tables.gists.signals.created;
-const updated = definition.tables.gists.signals.updated;
-const removed = definition.tables.gists.signals.removed;
+const createdHandle = definition.tables.gists.signals.created;
+const updatedHandle = definition.tables.gists.signals.updated;
+const removedHandle = definition.tables.gists.signals.removed;
 ```
 
-Writable bindings fire those signals automatically when you access the resource through `db.from(ctx)` inside a trail context.
+These pre-bind handles preserve payload shape, but the canonical signal id materializes only when a connector binds the store to a resource. The bound form is always `resource:table.event`:
+
+```typescript
+const created = db.store.tables.gists.signals.created;
+
+created.id;
+// "db.main:gists.created"
+```
+
+Writable bindings fire those canonical scoped signals automatically when you access the resource through `db.from(ctx)` inside a trail context.
 
 Tabular connectors such as `@ontrails/drizzle` also expose `insert()` and `update()` as convenience methods when the backend natively distinguishes create and patch operations.
 

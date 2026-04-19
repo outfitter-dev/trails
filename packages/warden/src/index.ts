@@ -42,6 +42,7 @@ export { orphanedSignal } from './rules/orphaned-signal.js';
 export { preferSchemaInference } from './rules/prefer-schema-inference.js';
 export { referenceExists } from './rules/reference-exists.js';
 export { resourceDeclarations } from './rules/resource-declarations.js';
+export { resourceIdGrammar } from './rules/resource-id-grammar.js';
 export { resourceExists } from './rules/resource-exists.js';
 export { validDescribeRefs } from './rules/valid-describe-refs.js';
 
@@ -112,6 +113,7 @@ export {
   ruleInput,
   ruleOutput,
   resourceDeclarationsTrail,
+  resourceIdGrammarTrail,
   resourceExistsTrail,
   validDescribeRefsTrail,
   validDetourRefsTrail,

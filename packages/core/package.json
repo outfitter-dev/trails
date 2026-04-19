@@ -5,6 +5,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./internal/cross-batch": "./src/internal/cross-batch.ts",
+    "./internal/signal-ref": "./src/internal/signal-ref.ts",
     "./internal/topo-snapshots": "./src/internal/topo-snapshots.ts",
     "./internal/topo-store": "./src/internal/topo-store.ts",
     "./internal/tracing": "./src/internal/tracing.ts",

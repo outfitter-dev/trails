@@ -128,6 +128,12 @@ describe('resource()', () => {
     expect(Object.isFrozen(counter)).toBe(true);
   });
 
+  test('rejects resource ids containing a scope separator', () => {
+    expect(() => resource('billing:primary', counterResourceSpec)).toThrow(
+      'Resource "billing:primary" is invalid because resource ids may not contain ":"'
+    );
+  });
+
   test('infers the resource type through from(ctx)', () => {
     const db = resource('db.main', {
       create: () =>

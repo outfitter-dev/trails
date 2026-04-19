@@ -5,6 +5,10 @@ import type { FieldOverride } from './derive.js';
 import type { Result } from './result.js';
 import type { AnyResource } from './resource.js';
 import type { AnySignal } from './signal.js';
+import {
+  createLateBoundSignalMarker,
+  getLateBoundSignalRef,
+} from './internal/signal-ref.js';
 import type { TrailsError } from './errors.js';
 import type {
   Detour,
@@ -175,8 +179,46 @@ export interface Trail<I, O, CI = never> extends Omit<
 // Factory
 // ---------------------------------------------------------------------------
 
-const normalizeSignalRef = (entry: string | AnySignal): string =>
-  typeof entry === 'string' ? entry : entry.id;
+/**
+ * Canonical scoped-signal id shape: `<scope>:<table>.<event>`.
+ *
+ * Matches exactly one `:` separating a non-empty scope from a non-empty
+ * dotted tail of at least two segments (e.g. `identity:users.created`).
+ * The scope forbids only `:` and whitespace so resource ids may contain
+ * dots for namespacing (e.g. `demo.store:gists.created`). Tail segments
+ * forbid both `:` and `.` so strings like `foo:bar` (no dot) or
+ * `a:b.c.d` stay unambiguous.
+ */
+const SCOPED_SIGNAL_ID = /^[^:\s]+:[^:.\s]+(?:\.[^:.\s]+)+$/;
+
+const normalizeSignalRef = (entry: string | AnySignal): string => {
+  if (typeof entry === 'string') {
+    return entry;
+  }
+
+  const ref = getLateBoundSignalRef(entry);
+  if (!ref) {
+    return entry.id;
+  }
+
+  // Already-scoped canonical ids (e.g. "identity:users.created") must pass
+  // through unchanged. Rewriting them to a bare marker token collapses
+  // multi-binding cases where the same store definition is bound under two
+  // separate resources: both bindings share the late-bound token, so the
+  // caller's explicit choice of scope would be lost and topo resolution
+  // would throw an ambiguity error.
+  //
+  // Use a strict predicate that matches the canonical scoped shape
+  // `<scope>:<table>.<event>` (exactly one `:` separating a non-empty scope
+  // from a non-empty dotted tail of at least two segments). A looser
+  // `includes(':')` check would let unscoped ids that happen to contain `:`
+  // slip past markerization and then fail to resolve at topo finalization.
+  if (SCOPED_SIGNAL_ID.test(entry.id)) {
+    return entry.id;
+  }
+
+  return createLateBoundSignalMarker(ref, entry.id);
+};
 
 /** Normalize a crosses entry — trail objects are reduced to their id. */
 const normalizeCrossRef = (entry: string | AnyTrail): string =>

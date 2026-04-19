@@ -4,16 +4,19 @@ import { z } from 'zod';
 
 import { contour } from '../contour.js';
 import { ValidationError } from '../errors.js';
+import {
+  attachLateBoundSignalRef,
+  cloneSignalWithId,
+} from '../internal/signal-ref.js';
 import { resource } from '../resource.js';
 import { Result } from '../result.js';
+import { signal } from '../signal.js';
+import { trail } from '../trail.js';
 import { topo } from '../topo.js';
 
 // ---------------------------------------------------------------------------
 // Mock factories
 // ---------------------------------------------------------------------------
-
-// oxlint-disable-next-line require-await -- satisfies async interface without needing await
-const noop = async () => Result.ok();
 
 const mockContour = (name: string) =>
   contour(
@@ -29,21 +32,27 @@ const mockTrail = (
   id: string,
   crosses?: readonly string[],
   contours?: readonly ReturnType<typeof mockContour>[]
-) => ({
-  blaze: noop,
-  contours: Object.freeze([...(contours ?? [])]),
-  crosses: Object.freeze([...(crosses ?? [])]),
-  id,
-  input: z.object({ x: z.number() }),
-  kind: 'trail' as const,
-  output: z.object({ y: z.number() }),
-});
+) =>
+  trail(id, {
+    blaze: () => Result.ok({ y: 0 }),
+    contours,
+    crosses,
+    input: z.object({ x: z.number() }),
+    output: z.object({ y: z.number() }),
+  });
 
-const mockEvent = (id: string) => ({
-  id,
-  kind: 'signal' as const,
-  payload: z.object({ payload: z.string() }),
-});
+const mockEvent = (id: string) =>
+  signal(id, {
+    payload: z.object({ payload: z.string() }),
+  });
+
+const mockSignalConsumer = (on: readonly ReturnType<typeof mockEvent>[]) =>
+  trail('notify.users', {
+    blaze: () => Result.ok({ ok: true }),
+    input: z.object({ payload: z.string() }),
+    on,
+    output: z.object({ ok: z.boolean() }),
+  });
 
 const mockResource = (
   id: string,
@@ -74,7 +83,7 @@ describe('topo', () => {
     });
   });
 
-  describe('collection', () => {
+  describe('trail collection', () => {
     test('returns Topo with name', () => {
       const t = topo('my-app');
       expect(t.name).toBe('my-app');
@@ -135,7 +144,9 @@ describe('topo', () => {
       const registered = t.trails.get('trail-1');
       expect(registered?.crosses).toEqual(['trail-2']);
     });
+  });
 
+  describe('resource and signal collection', () => {
     test('collects resources from modules', () => {
       const mod = { db: mockResource('db.main') };
       const t = topo('app', mod);
@@ -154,6 +165,175 @@ describe('topo', () => {
       expect(t.listSignals()).toContain(usersCreated);
     });
 
+    test('resolves late-bound store signal refs from resource-scoped signals', () => {
+      const authored = attachLateBoundSignalRef(mockEvent('users.created'), {
+        kind: 'store-derived',
+        token: 'users-created',
+      });
+      const consumer = mockSignalConsumer([authored]);
+      const scoped = cloneSignalWithId(authored, 'identity:users.created');
+      const t = topo('app', {
+        consumer,
+        identity: mockResource('identity', [scoped]),
+      });
+
+      expect(t.get('notify.users')?.on).toEqual(['identity:users.created']);
+      expect(t.listSignals().map((s) => s.id)).toContain(
+        'identity:users.created'
+      );
+    });
+
+    test('preserves canonical scoped signal ids across multi-binding stores', () => {
+      // Regression test: the same store definition bound under two resources
+      // (identity + billing). A trail that registers under one resource and
+      // another that registers under the other must resolve to the distinct
+      // canonical scoped ids, not collide on a shared late-bound token.
+      const authored = attachLateBoundSignalRef(mockEvent('users.created'), {
+        kind: 'store-derived',
+        token: 'users-created-multi',
+      });
+      const identityScoped = cloneSignalWithId(
+        authored,
+        'identity:users.created'
+      );
+      const billingScoped = cloneSignalWithId(
+        authored,
+        'billing:users.created'
+      );
+
+      const identityConsumer = trail('notify.identity-users', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({ payload: z.string() }),
+        on: [identityScoped],
+        output: z.object({ ok: z.boolean() }),
+      });
+      const billingConsumer = trail('notify.billing-users', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({ payload: z.string() }),
+        on: [billingScoped],
+        output: z.object({ ok: z.boolean() }),
+      });
+
+      const t = topo('app', {
+        billing: mockResource('billing', [billingScoped]),
+        billingConsumer,
+        identity: mockResource('identity', [identityScoped]),
+        identityConsumer,
+      });
+
+      expect(t.get('notify.identity-users')?.on).toEqual([
+        'identity:users.created',
+      ]);
+      expect(t.get('notify.billing-users')?.on).toEqual([
+        'billing:users.created',
+      ]);
+    });
+
+    test('preserves canonical scoped signal ids when resource ids contain dots', () => {
+      // Regression test: the canonical-scope predicate previously disallowed
+      // dots inside the scope segment, which collapsed dotted resource ids
+      // like `demo.store` and `other.store` back to their shared late-bound
+      // token. With `:` prohibited inside resource ids, the scope is
+      // unambiguously everything before the first `:`, so dotted scopes must
+      // resolve to distinct canonical ids.
+      const authored = attachLateBoundSignalRef(mockEvent('gists.created'), {
+        kind: 'store-derived',
+        token: 'gists-created-dotted',
+      });
+      const demoScoped = cloneSignalWithId(
+        authored,
+        'demo.store:gists.created'
+      );
+      const otherScoped = cloneSignalWithId(
+        authored,
+        'other.store:gists.created'
+      );
+
+      const demoConsumer = trail('notify.demo-gists', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({ payload: z.string() }),
+        on: [demoScoped],
+        output: z.object({ ok: z.boolean() }),
+      });
+      const otherConsumer = trail('notify.other-gists', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({ payload: z.string() }),
+        on: [otherScoped],
+        output: z.object({ ok: z.boolean() }),
+      });
+
+      const t = topo('app', {
+        'demo.store': mockResource('demo.store', [demoScoped]),
+        demoConsumer,
+        'other.store': mockResource('other.store', [otherScoped]),
+        otherConsumer,
+      });
+
+      expect(t.get('notify.demo-gists')?.on).toEqual([
+        'demo.store:gists.created',
+      ]);
+      expect(t.get('notify.other-gists')?.on).toEqual([
+        'other.store:gists.created',
+      ]);
+    });
+
+    test('markerizes late-bound ids containing `:` but not in canonical scoped form', () => {
+      // Guard regression: `normalizeSignalRef` previously passed any id
+      // containing `:` through unchanged, which would let a non-canonical
+      // late-bound id like `foo:bar` slip past markerization and then fail
+      // to resolve during topo finalization. The strict predicate should
+      // still rewrite such ids onto the late-bound marker path, while
+      // leaving canonical `<scope>:<table>.<event>` ids alone.
+      const nonCanonical = attachLateBoundSignalRef(mockEvent('foo:bar'), {
+        kind: 'store-derived',
+        token: 'non-canonical',
+      });
+      const nonCanonicalConsumer = trail('notify.non-canonical', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({ payload: z.string() }),
+        on: [nonCanonical],
+        output: z.object({ ok: z.boolean() }),
+      });
+      expect(nonCanonicalConsumer.on).not.toEqual(['foo:bar']);
+
+      const canonical = attachLateBoundSignalRef(mockEvent('users.created'), {
+        kind: 'store-derived',
+        token: 'canonical',
+      });
+      const scoped = cloneSignalWithId(canonical, 'identity:users.created');
+      const canonicalConsumer = trail('notify.canonical', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({ payload: z.string() }),
+        on: [scoped],
+        output: z.object({ ok: z.boolean() }),
+      });
+      expect(canonicalConsumer.on).toEqual(['identity:users.created']);
+    });
+
+    test('rejects ambiguous late-bound store signal refs', () => {
+      const authored = attachLateBoundSignalRef(mockEvent('users.created'), {
+        kind: 'store-derived',
+        token: 'users-created',
+      });
+      const consumer = mockSignalConsumer([authored]);
+
+      expect(() =>
+        topo('app', {
+          billing: mockResource('billing', [
+            cloneSignalWithId(authored, 'billing:users.created'),
+          ]),
+          consumer,
+          identity: mockResource('identity', [
+            cloneSignalWithId(authored, 'identity:users.created'),
+          ]),
+        })
+      ).toThrow(
+        'Trail "notify.users" references late-bound signal "users.created" but it resolves to multiple bound resource signals'
+      );
+    });
+  });
+
+  describe('contour collection', () => {
     test('collects contours exported directly from modules', () => {
       const user = mockContour('user');
       const t = topo('app', { user });

@@ -10,6 +10,7 @@ import type {
   StoreListOptions,
   UpsertOf,
 } from '../types.js';
+import { bindStoreDefinition } from '../internal/signal-identity.js';
 import { versionFieldName } from '../store.js';
 
 import type {
@@ -648,11 +649,14 @@ export const connectJsonFile = async <TStore extends AnyStoreDefinition>(
 export const jsonFile = <TStore extends AnyStoreDefinition>(
   definition: TStore,
   options: JsonFileStoreOptions<TStore>
-): JsonFileStoreResource<TStore['tables']> =>
-  resource(options.id ?? defaultResourceId, {
+): JsonFileStoreResource<TStore['tables']> => {
+  const scope = options.id ?? defaultResourceId;
+  const store = bindStoreDefinition(definition, scope) as TStore;
+
+  return resource(scope, {
     create: async () => {
       try {
-        return Result.ok(await connectJsonFile(definition, options));
+        return Result.ok(await connectJsonFile(store, options));
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         return Result.err(
@@ -672,7 +676,7 @@ export const jsonFile = <TStore extends AnyStoreDefinition>(
         const { rm } = await import('node:fs/promises');
         await rm(tmpDir, { force: true, recursive: true });
         mockTmpDirs.delete(connection as object);
-        for (const tableName of definition.tableNames) {
+        for (const tableName of store.tableNames) {
           tableRegistry.delete(jsonFilePath(tmpDir, tableName));
         }
       }
@@ -683,14 +687,16 @@ export const jsonFile = <TStore extends AnyStoreDefinition>(
       const { join } = await import('node:path');
       const { tmpdir } = await import('node:os');
       const tmpDir = await mkdtemp(join(tmpdir(), 'jsonfile-mock-'));
-      const connection = await connectJsonFile(definition, {
+      const connection = await connectJsonFile(store, {
         ...options,
         dir: tmpDir,
       });
-      await seedMockConnection(connection, definition, options.mockSeed);
+      await seedMockConnection(connection, store, options.mockSeed);
       mockTmpDirs.set(connection as object, tmpDir);
       return connection;
     },
+    signals: store.signals,
   });
+};
 
 export { jsonFile as store };

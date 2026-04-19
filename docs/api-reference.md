@@ -182,6 +182,7 @@ store(tables)                      // connector-agnostic store definition
 // table.updateSchema    — partial update schema keyed by identity
 // table.fixtureSchema   — fixture schema with generated fields optional
 // table.signals.created | table.signals.updated | table.signals.removed
+// pre-bind handles preserve shape; the canonical bound id is resource:table.event
 
 StoreDefinition, StoreTable, StoreTableSignals, StoreTablesInput, StoreTableInput
 EntityOf<T>, InsertOf<T>, UpdateOf<T>, UpsertOf<T>, FixtureInputOf<T>, FixtureOf<T>
@@ -191,7 +192,7 @@ StoreAccessor<T>, StoreTableAccessor<T>, ReadOnlyStoreTableAccessor<T>
 
 // `versioned: true` on a store table adds a framework-managed integer `version`
 // field to returned entities and allows `upsert()` optimistic concurrency.
-// writable store resources fire the derived signals when accessed through `db.from(ctx)`.
+// writable store resources fire canonical scoped signals when accessed through `db.from(ctx)`.
 ```
 
 ## `@ontrails/store/testing`

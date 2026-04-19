@@ -129,7 +129,10 @@ const db = store({
   notes: {
     schema: noteSchema,
     identity: 'id',
-    // Framework derives: notes.created, notes.updated, notes.removed signals
+    // Framework derives change-signal handles here.
+    // When a connector binds the store to a resource, those materialize as
+    // resource-scoped ids like store:notes.created, store:notes.updated,
+    // and store:notes.removed.
   },
 });
 ```

@@ -4,6 +4,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./internal/signal-identity": "./src/internal/signal-identity.ts",
     "./jsonfile": "./src/jsonfile/index.ts",
     "./trails": "./src/trails/index.ts",
     "./testing": "./src/testing.ts",

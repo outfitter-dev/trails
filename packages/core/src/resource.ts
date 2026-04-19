@@ -108,15 +108,23 @@ export const createResourceLookup = (
  * instances into TrailContext extensions.
  */
 export const resource = <T>(id: string, spec: ResourceSpec<T>): Resource<T> =>
-  Object.freeze({
-    ...spec,
-    from(ctx: TrailContext): T {
-      const lookup = ctx.resource ?? createResourceLookup(() => ctx);
-      return lookup(this);
-    },
-    id,
-    kind: 'resource' as const,
-  });
+  (() => {
+    if (id.includes(':')) {
+      throw new InternalError(
+        `Resource "${id}" is invalid because resource ids may not contain ":"`
+      );
+    }
+
+    return Object.freeze({
+      ...spec,
+      from(ctx: TrailContext): T {
+        const lookup = ctx.resource ?? createResourceLookup(() => ctx);
+        return lookup(this);
+      },
+      id,
+      kind: 'resource' as const,
+    });
+  })();
 
 /** Narrow unknown values to resource definitions during topo discovery. */
 export const isResource = (value: unknown): value is AnyResource => {

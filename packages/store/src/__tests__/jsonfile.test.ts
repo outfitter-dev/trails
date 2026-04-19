@@ -1,7 +1,7 @@
 import { copyFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ConflictError } from '@ontrails/core';
+import { ConflictError, Result, topo, trail } from '@ontrails/core';
 import { store as defineStore } from '@ontrails/store';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { z } from 'zod';
@@ -447,5 +447,56 @@ describe('jsonfile connector', () => {
         'JSON-file-backed store bound from an @ontrails/store definition.'
       );
     });
+  });
+});
+
+describe('jsonfile connector — topo integration', () => {
+  let topoDir: string;
+
+  beforeEach(async () => {
+    topoDir = await mkdtemp(join(tmpdir(), 'jsonfile-topo-'));
+  });
+
+  afterEach(async () => {
+    await rm(topoDir, { force: true, recursive: true });
+  });
+
+  const scopedSetup = (tmpDir: string) => {
+    const definition = defineStore({
+      items: { identity: 'id', schema: itemSchema },
+    });
+    const storeResource = jsonFile(definition, {
+      dir: tmpDir,
+      id: 'primary-store',
+    });
+    const onCreated = trail('items.on-created', {
+      blaze: () => Result.ok({ seen: true }),
+      description: 'Consumer that reacts to items.created on the scoped store.',
+      input: z.object({}).passthrough(),
+      on: [definition.tables.items.signals.created],
+    });
+    return { onCreated, storeResource };
+  };
+
+  test('topo construction does not throw for on: with scoped store signal', () => {
+    const { onCreated, storeResource } = scopedSetup(topoDir);
+    expect(() =>
+      topo('jsonfile-scoped-store-app', {
+        onCreated,
+        storeResource,
+      } as Record<string, unknown>)
+    ).not.toThrow();
+  });
+
+  test('registers scoped signal id and late-binds trail on: reference', () => {
+    const { onCreated, storeResource } = scopedSetup(topoDir);
+    const graph = topo('jsonfile-scoped-store-app-2', {
+      onCreated,
+      storeResource,
+    } as Record<string, unknown>);
+    expect(graph.signals.has('primary-store:items.created')).toBe(true);
+    expect(graph.get('items.on-created')?.on).toContain(
+      'primary-store:items.created'
+    );
   });
 });

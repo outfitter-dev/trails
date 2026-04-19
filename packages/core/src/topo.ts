@@ -4,6 +4,10 @@
 
 import type { AnyContour } from './contour.js';
 import { ValidationError } from './errors.js';
+import {
+  getLateBoundSignalRef,
+  parseLateBoundSignalMarker,
+} from './internal/signal-ref.js';
 import type { AnySignal } from './signal.js';
 import type { AnyResource } from './resource.js';
 import { isResource } from './resource.js';
@@ -198,6 +202,128 @@ const registerTrail = (
   registerUnique(trails, trail.id, trail, `Duplicate trail ID: "${trail.id}"`);
 };
 
+const registerLateBoundSignalId = (
+  byToken: Map<string, Set<string>>,
+  signal: AnySignal
+): void => {
+  const ref = getLateBoundSignalRef(signal);
+  if (!ref) {
+    return;
+  }
+
+  const ids = byToken.get(ref.token) ?? new Set<string>();
+  ids.add(signal.id);
+  byToken.set(ref.token, ids);
+};
+
+const collectLateBoundSignalIdsByToken = (
+  resources: ReadonlyMap<string, AnyResource>
+): ReadonlyMap<string, readonly string[]> => {
+  const byToken = new Map<string, Set<string>>();
+
+  for (const resource of resources.values()) {
+    for (const signal of resource.signals ?? []) {
+      registerLateBoundSignalId(byToken, signal);
+    }
+  }
+
+  return new Map(
+    [...byToken.entries()].map(([token, ids]) => [token, [...ids]])
+  );
+};
+
+const resolveLateBoundSignalId = (
+  trailId: string,
+  signalId: string,
+  lateBoundSignalIdsByToken: ReadonlyMap<string, readonly string[]>
+): string => {
+  const marker = parseLateBoundSignalMarker(signalId);
+  if (!marker) {
+    return signalId;
+  }
+
+  const matches = lateBoundSignalIdsByToken.get(marker.token) ?? [];
+  if (matches.length === 1) {
+    return matches[0] ?? signalId;
+  }
+
+  if (matches.length === 0) {
+    // Intentional throw: split-topo composition (where a trail and the
+    // store that backs its signals live in different topos) is not yet
+    // supported. Failing loudly here surfaces the case at assembly time
+    // instead of silently producing a trail with an unresolved store
+    // reference that would misbehave at runtime.
+    throw new ValidationError(
+      `Trail "${trailId}" references store-derived signal "${marker.displayId}", but no resource bound in this topo exposes it. ` +
+        'This usually means the store that backs this signal is not bound in this topo. ' +
+        `Bind the store via resource() in the same topo() call as "${trailId}", or compose this topo with the topo that binds the store. ` +
+        'Splitting a trail and its backing store across independent topos is not yet supported.'
+    );
+  }
+
+  throw new ValidationError(
+    `Trail "${trailId}" references late-bound signal "${marker.displayId}" but it resolves to multiple bound resource signals: ${matches.join(', ')}. Use canonical scoped ids when the same store definition is bound more than once.`
+  );
+};
+
+const resolveTrailSignalIds = (
+  trailId: string,
+  signalIds: readonly string[],
+  lateBoundSignalIdsByToken: ReadonlyMap<string, readonly string[]>
+): { changed: boolean; ids: readonly string[] } => {
+  let changed = false;
+  const ids = Object.freeze(
+    signalIds.map((signalId) => {
+      const resolved = resolveLateBoundSignalId(
+        trailId,
+        signalId,
+        lateBoundSignalIdsByToken
+      );
+      changed ||= resolved !== signalId;
+      return resolved;
+    })
+  );
+
+  return { changed, ids };
+};
+
+const finalizeTrailSignals = (
+  trails: ReadonlyMap<string, AnyTrail>,
+  resources: ReadonlyMap<string, AnyResource>
+): Map<string, AnyTrail> => {
+  const lateBoundSignalIdsByToken = collectLateBoundSignalIdsByToken(resources);
+  const finalized = new Map<string, AnyTrail>();
+
+  for (const trail of trails.values()) {
+    const resolvedFires = resolveTrailSignalIds(
+      trail.id,
+      trail.fires ?? [],
+      lateBoundSignalIdsByToken
+    );
+    const resolvedOn = resolveTrailSignalIds(
+      trail.id,
+      trail.on ?? [],
+      lateBoundSignalIdsByToken
+    );
+
+    if (!resolvedFires.changed && !resolvedOn.changed) {
+      finalized.set(trail.id, trail);
+      continue;
+    }
+
+    finalized.set(
+      trail.id,
+      Object.freeze({
+        ...trail,
+        fires: resolvedFires.ids,
+        on: resolvedOn.ids,
+      })
+    );
+  }
+
+  return finalized;
+};
+
 /** Register a single registrable value into the appropriate map. */
 const register = (
   value: Registrable,
@@ -319,5 +445,11 @@ export const topo = (
     registerModuleValues(mod, contours, trails, signals, resources);
   }
 
-  return createTopo(identity, contours, trails, signals, resources);
+  return createTopo(
+    identity,
+    contours,
+    finalizeTrailSignals(trails, resources),
+    signals,
+    resources
+  );
 };

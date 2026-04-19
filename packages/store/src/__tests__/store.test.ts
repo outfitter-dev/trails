@@ -11,6 +11,7 @@ import type {
   UpdateOf,
 } from '../index.js';
 import { store } from '../index.js';
+import { bindStoreDefinition } from '../internal/signal-identity.js';
 
 const userSchema = z.object({
   email: z.string().email(),
@@ -499,5 +500,40 @@ describe('@ontrails/store', () => {
     expect(update.description).toBe('Updated');
     expect(entity.id).toBe('gist-1');
     expect(db.tables.gists.name).toBe('gists');
+  });
+});
+
+describe('bindStoreDefinition', () => {
+  const definition = store({
+    gists: {
+      generated: ['id'],
+      identity: 'id',
+      schema: gistSchema,
+    },
+  });
+
+  test('rejects scopes containing ":"', () => {
+    expect(() => bindStoreDefinition(definition, 'bad:scope')).toThrow(
+      new ValidationError(
+        'Store resource id "bad:scope" is invalid: must be a non-empty string with no ":" characters and no whitespace.'
+      )
+    );
+  });
+
+  test('rejects scopes containing whitespace', () => {
+    expect(() => bindStoreDefinition(definition, 'bad scope')).toThrow(
+      ValidationError
+    );
+  });
+
+  test('rejects empty scopes', () => {
+    expect(() => bindStoreDefinition(definition, '')).toThrow(ValidationError);
+  });
+
+  test('accepts valid scopes and scopes store signal ids', () => {
+    const bound = bindStoreDefinition(definition, 'primary');
+    expect(bound.tables.gists.signals.created.id).toBe('primary:gists.created');
+    expect(bound.tables.gists.signals.updated.id).toBe('primary:gists.updated');
+    expect(bound.tables.gists.signals.removed.id).toBe('primary:gists.removed');
   });
 });

@@ -180,12 +180,12 @@ const expectWritableResourceDefinition = (
   expect(db.mock).toBeDefined();
   expect(db.meta).toEqual({ domain: 'demo' });
   expect(db.signals.map((candidate) => candidate.id)).toEqual([
-    'gists.created',
-    'gists.updated',
-    'gists.removed',
-    'users.created',
-    'users.updated',
-    'users.removed',
+    'demo.store:gists.created',
+    'demo.store:gists.updated',
+    'demo.store:gists.removed',
+    'demo.store:users.created',
+    'demo.store:users.updated',
+    'demo.store:users.removed',
   ]);
   expect(db.tables.gists).toBeDefined();
   expect(db.tables.users).toBeDefined();
@@ -346,10 +346,10 @@ const expectRecordedSignals = (
   updatedGist: z.output<typeof gistSchema>
 ): void => {
   expect(recorder.events.map((event) => event.signalId)).toEqual([
-    'users.created',
-    'gists.created',
-    'gists.updated',
-    'gists.removed',
+    'demo.store:users.created',
+    'demo.store:gists.created',
+    'demo.store:gists.updated',
+    'demo.store:gists.removed',
   ]);
   expect(recorder.events[1]?.payload).toEqual(createdGist);
   expect(recorder.events[2]?.payload).toEqual(updatedGist);
