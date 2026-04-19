@@ -13,8 +13,10 @@
  * Consumer contexts inherit the producer's full ctx (logger, extensions,
  * resources, abortSignal, requestId, env, workspaceRoot, permit) with
  * `fire` rebound to the same closure so consumers can fan out further.
- * The consumer logger is derived from the producer logger as a child
- * tagged with `signalId` when `logger.child` exists.
+ * Each consumer gets its own derived context so sibling fan-out branches do
+ * not share mutable top-level state. The consumer logger is derived from the
+ * producer logger as a child tagged with `signalId` and `consumerId` when
+ * `logger.child` exists.
  *
  * Error semantics match the fire-and-forget framing: producers get
  * `Result.ok(undefined)` unless the signal id is unknown or the payload
@@ -62,31 +64,93 @@ const getFireStack = (
  * Fan out a validated signal payload to its consumer trails.
  *
  * @remarks
- * Consumers are awaited sequentially on purpose. Sequential execution gives
- * deterministic ordering for tracing and tests and makes error attribution
- * straightforward (each warn log pairs cleanly with the consumer that
- * produced it). Parallelizing via `Promise.allSettled` is a deliberate
- * future option — not an oversight — and would be worth revisiting once
- * tracing and error-aggregation semantics are designed to handle
- * interleaved consumer execution.
+ * Consumers fan out in parallel by design. Signal delivery is fire-and-forget
+ * notification, not ordered orchestration; if one consumer depends on another,
+ * the dependency belongs in `crosses:` instead of sibling signal sequencing.
+ *
+ * `Promise.allSettled` preserves failure isolation and waits for every branch
+ * to settle. Each consumer gets its own derived context so sibling branches do
+ * not share mutable top-level state while they overlap.
  */
+type ConsumerFireBinder = (
+  consumerCtx: MutableConsumerContext
+) => MutableConsumerContext;
+
+const deriveConsumerLogger = (
+  producerCtx: TrailContextInit | undefined,
+  signalId: string,
+  consumerId: string
+): Logger | undefined =>
+  producerCtx?.logger?.child?.({ consumerId, signalId }) ?? producerCtx?.logger;
+
+const deriveConsumerEnv = (
+  producerCtx: TrailContextInit | undefined
+): TrailContextInit['env'] =>
+  producerCtx?.env ? { ...producerCtx.env } : undefined;
+
+const deriveConsumerExtensions = (
+  producerCtx: TrailContextInit | undefined,
+  signalId: string
+): TrailContextInit['extensions'] => ({
+  ...producerCtx?.extensions,
+  [FIRE_STACK_KEY]: [...getFireStack(producerCtx), signalId],
+});
+
+const deriveConsumerCtx = (
+  producerCtx: TrailContextInit | undefined,
+  signalId: string,
+  consumerId: string
+): MutableConsumerContext =>
+  producerCtx
+    ? {
+        ...producerCtx,
+        env: deriveConsumerEnv(producerCtx),
+        extensions: deriveConsumerExtensions(producerCtx, signalId),
+        logger: deriveConsumerLogger(producerCtx, signalId, consumerId),
+      }
+    : {};
+
 const fanOutToConsumers = async (
   consumers: readonly AnyTrail[],
   payload: unknown,
   signalId: string,
-  consumerCtx: Partial<TrailContextInit>,
+  producerCtx: TrailContextInit | undefined,
+  bindFire: ConsumerFireBinder,
   executor: ConsumerExecutor,
   logger: Logger | undefined
 ): Promise<void> => {
-  for (const consumer of consumers) {
-    const consumerResult = await executor(consumer, payload, consumerCtx);
-    if (consumerResult.isErr()) {
-      logger?.warn('Signal consumer failed', {
-        consumerId: consumer.id,
-        error: consumerResult.error.message,
-        signalId,
-      });
+  const settled = await Promise.allSettled(
+    consumers.map(async (consumer) => {
+      const consumerCtx = bindFire(
+        deriveConsumerCtx(producerCtx, signalId, consumer.id)
+      );
+      const consumerResult = await executor(consumer, payload, consumerCtx);
+      if (consumerResult.isErr()) {
+        (consumerCtx.logger ?? logger)?.warn('Signal consumer failed', {
+          consumerId: consumer.id,
+          error: consumerResult.error.message,
+          signalId,
+        });
+      }
+      return consumer.id;
+    })
+  );
+  for (const [index, entry] of settled.entries()) {
+    if (entry.status !== 'rejected') {
+      continue;
     }
+    // `executeTrail` normalizes throws into `Result.err`, so reaching this
+    // branch means the executor (or the warn call above) rejected
+    // unexpectedly. Log at debug to preserve provenance without propagating
+    // the failure to the producer (fire-and-forget semantics).
+    logger?.debug('Signal consumer rejected unexpectedly', {
+      consumerId: consumers[index]?.id,
+      error:
+        entry.reason instanceof Error
+          ? entry.reason.message
+          : String(entry.reason),
+      signalId,
+    });
   }
 };
 
@@ -116,24 +180,6 @@ const resolveFireDispatch = (
     consumers: topo.list().filter((trail) => trail.on.includes(signalId)),
     payload: parsed.data,
   });
-};
-
-const buildConsumerCtx = (
-  producerCtx: TrailContextInit | undefined,
-  signalId: string
-): MutableConsumerContext => {
-  const childLogger: Logger | undefined =
-    producerCtx?.logger?.child?.({ signalId }) ?? producerCtx?.logger;
-  return producerCtx
-    ? {
-        ...producerCtx,
-        extensions: {
-          ...producerCtx.extensions,
-          [FIRE_STACK_KEY]: [...getFireStack(producerCtx), signalId],
-        },
-        logger: childLogger,
-      }
-    : {};
 };
 
 const resolveSignalId = (signalOrId: unknown): Result<string, Error> => {
@@ -169,6 +215,17 @@ export const createFireFn = (
   producerCtx: TrailContextInit | undefined,
   executor: ConsumerExecutor
 ): FireFn => {
+  const bindConsumerFire: ConsumerFireBinder = (consumerCtx) => ({
+    ...consumerCtx,
+    // Pre-bind fire on the consumer ctx as a safety net for direct
+    // executeTrail calls that skip the topo-aware path. In the normal
+    // fan-out flow below, bindFireToCtx in execute.ts rebinds fire to
+    // the fully-traced ctx before the blaze runs, so this assignment
+    // is superseded — but keeping it makes consumerCtx self-sufficient
+    // for any caller that inspects it pre-execution.
+    fire: createFireFn(topo, consumerCtx as TrailContextInit, executor),
+  });
+
   const dispatchFire = async (
     signalId: string,
     payload: unknown
@@ -177,23 +234,12 @@ export const createFireFn = (
     if (dispatch.isErr()) {
       return Result.err(dispatch.error);
     }
-    const consumerCtx = buildConsumerCtx(producerCtx, signalId);
-    // Pre-bind fire on the consumer ctx as a safety net for direct
-    // executeTrail calls that skip the topo-aware path. In the normal
-    // fan-out flow below, bindFireToCtx in execute.ts rebinds fire to
-    // the fully-traced ctx before the blaze runs, so this assignment
-    // is superseded — but keeping it makes consumerCtx self-sufficient
-    // for any caller that inspects it pre-execution.
-    consumerCtx.fire = createFireFn(
-      topo,
-      consumerCtx as TrailContextInit,
-      executor
-    );
     await fanOutToConsumers(
       dispatch.value.consumers,
       dispatch.value.payload,
       signalId,
-      consumerCtx,
+      producerCtx,
+      bindConsumerFire,
       executor,
       producerCtx?.logger
     );

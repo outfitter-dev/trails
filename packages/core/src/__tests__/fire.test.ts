@@ -80,6 +80,25 @@ const makeProducer = (fireResultKey: { result?: Result<void, Error> }) =>
     input: z.object({ orderId: z.string(), total: z.number() }),
   });
 
+const READY = 'ready';
+
+type Ready = typeof READY;
+type ReadyGate = ReturnType<typeof Promise.withResolvers<Ready>>;
+
+const createReadyGate = (): ReadyGate => Promise.withResolvers<Ready>();
+
+const waitForReadyPair = async (
+  left: Promise<Ready>,
+  right: Promise<Ready>
+): Promise<'started'> => {
+  await left;
+  await right;
+  return 'started';
+};
+
+const observedConsumerIds = (capture: Capture): string[] =>
+  capture.invocations.map((entry) => entry.trailId).toSorted();
+
 const cyclePayload = z.object({ id: z.string() });
 
 const loopA = signal('loop.a', { payload: cyclePayload });
@@ -111,6 +130,83 @@ const createCycleLogger = (
   },
 });
 
+const createWarningLogger = (
+  warnings: {
+    consumerId?: unknown;
+    message: string;
+    signalId?: unknown;
+  }[]
+): Logger => ({
+  child() {
+    return this;
+  },
+  debug() {
+    // noop
+  },
+  error() {
+    // noop
+  },
+  fatal() {
+    // noop
+  },
+  info() {
+    // noop
+  },
+  trace() {
+    // noop
+  },
+  warn(message, data) {
+    warnings.push({
+      consumerId: data?.consumerId,
+      message,
+      signalId: data?.signalId,
+    });
+  },
+});
+
+interface WarningEvent {
+  consumerId?: unknown;
+  message: string;
+  signalId?: unknown;
+}
+
+const createBlockingConsumer = (
+  id: string,
+  started: ReadyGate,
+  release: Promise<Ready>
+) =>
+  trail(id, {
+    blaze: async () => {
+      started.resolve(READY);
+      await release;
+      return Result.ok({ ok: true });
+    },
+    input: z.object({ orderId: z.string(), total: z.number() }),
+    on: ['order.placed'],
+    output: z.object({ ok: z.boolean() }),
+  });
+
+const createIsolatedConsumer = (
+  id: string,
+  value: string,
+  started: ReadyGate,
+  release: Promise<Ready>,
+  seen: Map<string, string>
+) =>
+  trail(id, {
+    blaze: async (_input, ctx) => {
+      const extensions = ctx.extensions as Record<string, unknown>;
+      extensions.currentConsumer = value;
+      started.resolve(READY);
+      await release;
+      seen.set(id, extensions.currentConsumer as string);
+      return Result.ok({ consumer: extensions.currentConsumer });
+    },
+    input: z.object({ orderId: z.string(), total: z.number() }),
+    on: ['order.placed'],
+    output: z.object({ consumer: z.unknown() }),
+  });
+
 const createCycleConsumer = (
   id: string,
   signalId: 'loop.a' | 'loop.b',
@@ -127,6 +223,105 @@ const createCycleConsumer = (
     input: cyclePayload,
     on: [signalId],
   });
+
+const createErrorIsolationScenario = () => {
+  const capture = createCapture();
+  const warnings: WarningEvent[] = [];
+  const fireBox: { result?: Result<void, Error> } = {};
+  const app = topo('fire-err', {
+    failingConsumer: makeConsumer('notify.broken', capture, 'err'),
+    healthyConsumer: makeConsumer('notify.email', capture),
+    orderPlaced,
+    producer: makeProducer(fireBox),
+  });
+
+  return {
+    app,
+    capture,
+    fireBox,
+    warnings,
+  };
+};
+
+const expectConsumerFailureWarning = (warnings: WarningEvent[]): void => {
+  expect(warnings).toEqual([
+    {
+      consumerId: 'notify.broken',
+      message: 'Signal consumer failed',
+      signalId: 'order.placed',
+    },
+  ]);
+};
+
+const createParallelStartScenario = () => {
+  const leftStarted = createReadyGate();
+  const rightStarted = createReadyGate();
+  const release = createReadyGate();
+  const app = topo('fire-parallel-start', {
+    consumerA: createBlockingConsumer(
+      'notify.email',
+      leftStarted,
+      release.promise
+    ),
+    consumerB: createBlockingConsumer(
+      'notify.slack',
+      rightStarted,
+      release.promise
+    ),
+    orderPlaced,
+    producer: makeProducer({}),
+  });
+
+  return {
+    app,
+    leftStarted,
+    release,
+    rightStarted,
+  };
+};
+
+const waitForConsumersToStart = async (
+  left: ReadyGate,
+  right: ReadyGate
+): Promise<'started'> =>
+  // Sequential fan-out would deadlock here: consumerA resolves `left` then
+  // blocks on `release`, which only resolves after both consumers have
+  // started. The test runner's own timeout catches the regression without
+  // needing a wall-clock timer that flakes under CI load.
+  await waitForReadyPair(left.promise, right.promise);
+
+const createContextIsolationScenario = () => {
+  const leftStarted = createReadyGate();
+  const rightStarted = createReadyGate();
+  const release = createReadyGate();
+  const seen = new Map<string, string>();
+  const app = topo('fire-context-isolation', {
+    consumerA: createIsolatedConsumer(
+      'notify.email',
+      'email',
+      leftStarted,
+      release.promise,
+      seen
+    ),
+    consumerB: createIsolatedConsumer(
+      'notify.slack',
+      'slack',
+      rightStarted,
+      release.promise,
+      seen
+    ),
+    orderPlaced,
+    producer: makeProducer({}),
+  });
+
+  return {
+    app,
+    leftStarted,
+    release,
+    rightStarted,
+    seen,
+  };
+};
 
 const createCycleScenario = (invocations: string[]) =>
   topo('fire-cycle', {
@@ -289,21 +484,66 @@ describe('fire', () => {
   });
 
   describe('error isolation', () => {
-    test('consumer error does not fail the producer', async () => {
-      const capture = createCapture();
-      const failingConsumer = makeConsumer('notify.broken', capture, 'err');
-      const fireBox: { result?: Result<void, Error> } = {};
-      const producer = makeProducer(fireBox);
-
-      const app = topo('fire-err', { failingConsumer, orderPlaced, producer });
-      const result = await run(app, 'order.create', {
-        orderId: 'o-3',
-        total: 1,
-      });
+    test('consumer error does not fail successful siblings or the producer', async () => {
+      const scenario = createErrorIsolationScenario();
+      const result = await run(
+        scenario.app,
+        'order.create',
+        {
+          orderId: 'o-3',
+          total: 1,
+        },
+        {
+          ctx: { logger: createWarningLogger(scenario.warnings) },
+        }
+      );
 
       expect(result.isOk()).toBe(true);
-      expect(fireBox.result?.isOk()).toBe(true);
-      expect(capture.invocations).toHaveLength(1);
+      expect(scenario.fireBox.result?.isOk()).toBe(true);
+      expect(observedConsumerIds(scenario.capture)).toEqual([
+        'notify.broken',
+        'notify.email',
+      ]);
+      expectConsumerFailureWarning(scenario.warnings);
+    });
+
+    test('starts sibling consumers before the first one settles', async () => {
+      const scenario = createParallelStartScenario();
+      const runPromise = run(scenario.app, 'order.create', {
+        orderId: 'o-parallel',
+        total: 1,
+      });
+      const started = await waitForConsumersToStart(
+        scenario.leftStarted,
+        scenario.rightStarted
+      );
+
+      scenario.release.resolve(READY);
+      const result = await runPromise;
+
+      expect(result.isOk()).toBe(true);
+      expect(started).toBe('started');
+    });
+
+    test('gives each consumer its own derived top-level context', async () => {
+      const scenario = createContextIsolationScenario();
+      const runPromise = run(
+        scenario.app,
+        'order.create',
+        { orderId: 'o-isolated', total: 1 },
+        { ctx: { extensions: { source: 'producer' } } }
+      );
+
+      await waitForReadyPair(
+        scenario.leftStarted.promise,
+        scenario.rightStarted.promise
+      );
+      scenario.release.resolve(READY);
+      const result = await runPromise;
+
+      expect(result.isOk()).toBe(true);
+      expect(scenario.seen.get('notify.email')).toBe('email');
+      expect(scenario.seen.get('notify.slack')).toBe('slack');
     });
   });
 

@@ -8,6 +8,8 @@ import {
   executeTrail,
   getTraceSink,
   registerTraceSink,
+  run,
+  signal,
   trail,
   topo,
 } from '@ontrails/core';
@@ -170,9 +172,9 @@ const waitForSignalPair = async (
 };
 
 const createReleasedSignal = (): Promise<Signal> => {
-  const signal = createSignalController();
-  signal.resolve(SIGNAL);
-  return signal.promise;
+  const controller = createSignalController();
+  controller.resolve(SIGNAL);
+  return controller.promise;
 };
 
 const createBatchCrossParent = (
@@ -329,6 +331,58 @@ const createLimitedCrossBatchScenario = () => {
   };
 };
 
+const createParallelSignalFanoutScenario = () => {
+  const emitted = signal('trace.signal.parallel', {
+    payload: z.object({ id: z.string() }),
+  });
+  const leftStarted = createSignalController();
+  const rightStarted = createSignalController();
+  const release = createSignalController();
+  const createSignalConsumer = (id: string, started: SignalController) =>
+    trail(id, {
+      blaze: async (_input, ctx) => {
+        await ctx.trace('work', async () => {
+          started.resolve(SIGNAL);
+          await release.promise;
+        });
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      on: [emitted.id],
+      output: z.object({ ok: z.boolean() }),
+      visibility: 'internal',
+    });
+  const left = createSignalConsumer('trace.signal.left', leftStarted);
+  const right = createSignalConsumer('trace.signal.right', rightStarted);
+  const producer = trail('trace.signal.producer', {
+    blaze: async (input, ctx) => {
+      const fired = await ctx.fire?.(emitted.id, input);
+      return (fired as Result<void, Error>).match({
+        err: (error) => Result.err(error),
+        ok: () => Result.ok({ ok: true }),
+      });
+    },
+    fires: [emitted.id],
+    input: z.object({ id: z.string() }),
+    output: z.object({ ok: z.boolean() }),
+  });
+  const app = topo('trace-signal-parallel-topo', {
+    emitted,
+    left,
+    producer,
+    right,
+  });
+
+  return {
+    app,
+    left,
+    producer,
+    release,
+    right,
+    started: waitForSignalPair(leftStarted.promise, rightStarted.promise),
+  };
+};
+
 const expectSiblingCrossTrailOverlap = (
   records: readonly TraceRecord[],
   parentTrailId: string,
@@ -361,6 +415,20 @@ const expectLimitedCrossTrailWaveShape = (
     fastRecord.endedAt as number
   );
   expect(recordsOverlap(slowRecord, queuedRecord)).toBe(true);
+};
+
+const expectParallelSignalFanoutTraceShape = (
+  records: readonly TraceRecord[],
+  producerTrailId: string,
+  leftTrailId: string,
+  rightTrailId: string
+) => {
+  const producerRecord = trailRecord(records, producerTrailId);
+  const leftRecord = trailRecord(records, leftTrailId);
+  const rightRecord = trailRecord(records, rightTrailId);
+  expect(leftRecord.parentId).toBe(producerRecord.id);
+  expect(rightRecord.parentId).toBe(producerRecord.id);
+  expect(recordsOverlap(leftRecord, rightRecord)).toBe(true);
 };
 
 describe('intrinsic tracing via executeTrail + ctx.trace', () => {
@@ -547,10 +615,14 @@ describe('intrinsic tracing via executeTrail + ctx.trace', () => {
 
     test('batch ctx.cross([...]) produces sibling child trail records with overlapping timings', async () => {
       const scenario = createConcurrentCrossBatchScenario();
-      const run = executeTrail(scenario.parent, {}, { topo: scenario.app });
+      const execution = executeTrail(
+        scenario.parent,
+        {},
+        { topo: scenario.app }
+      );
       await scenario.started;
       scenario.release.resolve(SIGNAL);
-      await run;
+      await execution;
       expectSiblingCrossTrailOverlap(
         sink.records,
         scenario.parent.id,
@@ -561,12 +633,16 @@ describe('intrinsic tracing via executeTrail + ctx.trace', () => {
 
     test('concurrency-limited batch crossings emit a second wave only after a slot frees up', async () => {
       const scenario = createLimitedCrossBatchScenario();
-      const run = executeTrail(scenario.parent, {}, { topo: scenario.app });
+      const execution = executeTrail(
+        scenario.parent,
+        {},
+        { topo: scenario.app }
+      );
       await scenario.firstBatchStarted;
       expect(scenario.startedIds).toEqual([scenario.slow.id, scenario.fast.id]);
       scenario.releaseFirstBatch.resolve(SIGNAL);
       await scenario.queuedStarted;
-      await run;
+      await execution;
 
       expectLimitedCrossTrailWaveShape(
         sink.records,
@@ -574,6 +650,26 @@ describe('intrinsic tracing via executeTrail + ctx.trace', () => {
         scenario.slow.id,
         scenario.fast.id,
         scenario.queued.id
+      );
+    });
+  });
+
+  describe('signal fan-out tracing', () => {
+    test('parallel signal consumers trace as overlapping sibling trails under the producer', async () => {
+      const scenario = createParallelSignalFanoutScenario();
+      const runPromise = run(scenario.app, scenario.producer.id, {
+        id: 'trace-signal-1',
+      });
+      await scenario.started;
+      scenario.release.resolve(SIGNAL);
+
+      const result = await runPromise;
+      expect(result.isOk()).toBe(true);
+      expectParallelSignalFanoutTraceShape(
+        sink.records,
+        scenario.producer.id,
+        scenario.left.id,
+        scenario.right.id
       );
     });
   });
