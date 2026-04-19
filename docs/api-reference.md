@@ -321,13 +321,14 @@ PermitDiagnostic
 
 ## `@ontrails/tracing`
 
-Tracing is intrinsic in `executeTrail` — every trail execution produces a `TraceRecord` automatically. `ctx.trace(label, fn)` records nested spans. No layer attachment required.
+Tracing is intrinsic in `executeTrail`. With a real sink installed, a trail execution emits a root `TraceRecord` and `ctx.trace(label, fn)` emits child spans. With `NOOP_SINK`, `executeTrail` short-circuits the tracing allocation path and `ctx.trace(label, fn)` stays a passthrough.
 
 ```typescript
 // Sink registration (from @ontrails/core or re-exported from @ontrails/tracing)
 registerTraceSink(sink)              // install a sink for trace records
 getTraceSink()                       // get the currently registered sink
 clearTraceSink()                     // revert to the default no-op sink
+NOOP_SINK                            // stable disabled-tracing sentinel
 
 // Sinks
 createMemorySink()                   // in-memory sink for testing

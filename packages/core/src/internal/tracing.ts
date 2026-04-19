@@ -67,13 +67,13 @@ export const getTraceContext = (ctx: {
 // ---------------------------------------------------------------------------
 
 /** No-op sink installed by default so core never crashes without configuration. */
-const noopSink: TraceSink = {
+export const NOOP_SINK: TraceSink = {
   // oxlint-disable-next-line no-empty-function -- intentional no-op
   write: () => {},
 };
 
 // oxlint-disable-next-line eslint-plugin-jest/require-hook -- module-level sink registry, not test setup
-let currentSink: TraceSink = noopSink;
+let currentSink: TraceSink = NOOP_SINK;
 
 /**
  * Register a trace sink globally.
@@ -84,15 +84,19 @@ let currentSink: TraceSink = noopSink;
  * the default no-op sink.
  */
 export const registerTraceSink = (sink: TraceSink | undefined): void => {
-  currentSink = sink ?? noopSink;
+  currentSink = sink ?? NOOP_SINK;
 };
 
 /** Retrieve the currently registered sink (never undefined). */
 export const getTraceSink = (): TraceSink => currentSink;
 
+/** True when tracing is effectively disabled and executeTrail should skip allocation. */
+export const isTracingDisabled = (sink: TraceSink = currentSink): boolean =>
+  sink === NOOP_SINK;
+
 /** Reset the sink registry back to the default no-op sink. */
 export const clearTraceSink = (): void => {
-  currentSink = noopSink;
+  currentSink = NOOP_SINK;
 };
 
 // ---------------------------------------------------------------------------

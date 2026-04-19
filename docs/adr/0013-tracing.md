@@ -5,7 +5,7 @@ title: Tracing — Runtime Recording Primitive
 status: partially-superseded
 superseded_by: ['23']
 created: 2026-03-30
-updated: 2026-04-08
+updated: 2026-04-19
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -43,10 +43,10 @@ The core recording model remains Trails-shaped. A `TraceRecord` knows about trai
 
 Tracing now integrates in two ways:
 
-- **Intrinsic recording in `executeTrail`** writes a root `TraceRecord` for every trail execution automatically
+- **Intrinsic recording in `executeTrail`** writes a root `TraceRecord` automatically whenever a real sink is installed
 - **`ctx.trace(label, fn)`** gives trail implementations scoped manual spans for important internal work
 
-The automatic path is the default. The manual path exists for trails that need extra detail around internal work inside the shared root trace.
+The automatic path is the default when tracing is enabled. When the installed sink is `NOOP_SINK`, `executeTrail` short-circuits the tracing allocation path and `ctx.trace(label, fn)` stays in passthrough mode. The manual path exists for trails that need extra detail around internal work inside the shared root trace.
 
 ```typescript
 const result = await ctx.trace('db-query', async () => {
@@ -113,6 +113,25 @@ No raw `start` / `end` pair in v1. Structural safety beats flexibility here.
 ### Dev store and export connectors
 
 The development store remains local SQLite. Production export remains an optional connector. The important language change is that these are **connectors**, not stores. Tracing owns the Trails-native model; connectors translate it into storage or observability systems.
+
+## Overhead Envelope
+
+`TRL-201` benchmarked the disabled-tracing baseline against a traced no-op sink on 2026-04-19 using `bun run bench:tracing` on Bun `1.3.12`.
+
+| Scenario | `NOOP_SINK` median | Wrapped no-op median | Overhead |
+| --- | ---: | ---: | ---: |
+| Pure no-op trail | 21.48 ms (`1.07 us/call`) | 28.50 ms (`1.42 us/call`) | `31.09%` |
+| Typical trail | 26.07 ms (`1.30 us/call`) | 33.25 ms (`1.66 us/call`) | `30.77%` |
+| Mocked I/O trail | 319.15 ms (`1276.60 us/call`) | 318.99 ms (`1275.98 us/call`) | `-0.15%` |
+
+The decision rule for `TRL-201` was locked before measurement: ship the fast path if tight-loop worst-case overhead exceeded `~5%` on a trivial trail. The measured worst-case overhead was roughly `31%`, so the fast path ships.
+
+That outcome gives the runtime two clear modes:
+
+- With a real sink installed, `executeTrail` records the root trace and `ctx.trace()` records child spans.
+- With `NOOP_SINK` installed, `executeTrail` skips root trace allocation and `ctx.trace()` stays in passthrough mode.
+
+The benchmark note lives at `.scratch/2026-04-19-trl-201-tracing-overhead-benchmark.md`.
 
 ## Consequences
 

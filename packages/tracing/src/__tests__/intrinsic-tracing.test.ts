@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import {
   InternalError,
+  NOOP_SINK,
   NotFoundError,
   Result,
   clearTraceSink,
   executeTrail,
+  getTraceSink,
   registerTraceSink,
   trail,
   topo,
@@ -581,6 +583,24 @@ describe('intrinsic tracing via executeTrail + ctx.trace', () => {
       clearTraceSink();
       const result = await executeTrail(noSinkTrail, {});
       expect(result.isOk()).toBe(true);
+    });
+
+    test('clearTraceSink restores the NOOP_SINK sentinel', () => {
+      registerTraceSink({ write: () => 0 });
+      clearTraceSink();
+      expect(getTraceSink()).toBe(NOOP_SINK);
+    });
+
+    test('NOOP_SINK fast path preserves trail results', async () => {
+      const tracedNoopSink = { write: () => 0 };
+
+      registerTraceSink(NOOP_SINK);
+      const fastPath = await executeTrail(spanOkTrail, {});
+
+      registerTraceSink(tracedNoopSink);
+      const traced = await executeTrail(spanOkTrail, {});
+
+      expect(fastPath).toEqual(traced);
     });
 
     test('registerTraceSink routes subsequent executions to the new sink', async () => {

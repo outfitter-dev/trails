@@ -14,6 +14,7 @@ import {
   ValidationError,
 } from '../errors';
 import { executeTrail } from '../execute';
+import { TRACE_CONTEXT_KEY, clearTraceSink } from '../internal/tracing';
 import { createTrailContext } from '../context';
 import type { Layer } from '../layer';
 import { Result } from '../result';
@@ -1113,10 +1114,30 @@ describe('executeTrail', () => {
           ctx: { extensions: { userId: '123' } },
         }
       );
-      // Intrinsic tracing injects TRACE_CONTEXT_KEY into extensions; the
-      // user-authored keys must still be present and untouched.
+      // User-authored extension keys must stay intact regardless of whether
+      // tracing later adds its own internal bookkeeping.
       expect(captured?.extensions?.store).toBe('db');
       expect(captured?.extensions?.userId).toBe('123');
+    });
+
+    test('keeps ctx.trace in passthrough mode when NOOP_SINK is installed', async () => {
+      clearTraceSink();
+
+      let sawTraceContext = true;
+      const probe = trail('ctx.trace.noop-sink', {
+        blaze: async (_input, ctx) => {
+          const value = await ctx.trace('inner', () => Promise.resolve(42));
+          sawTraceContext = ctx.extensions?.[TRACE_CONTEXT_KEY] !== undefined;
+          return Result.ok({ value });
+        },
+        input: z.object({}),
+        output: z.object({ value: z.number() }),
+      });
+
+      const result = await executeTrail(probe, {});
+
+      expect(result).toEqual(Result.ok({ value: 42 }));
+      expect(sawTraceContext).toBe(false);
     });
 
     test('rebinds ctx.resource after merging extension overrides from createContext', async () => {

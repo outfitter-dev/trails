@@ -191,6 +191,7 @@ export {
   clearTraceSink,
   getTraceContext,
   getTraceSink,
+  NOOP_SINK,
   registerTraceSink,
 } from './internal/tracing.js';
 export type {

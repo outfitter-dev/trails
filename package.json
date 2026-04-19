@@ -16,6 +16,7 @@
     "vocab:audit": "bun scripts/vocab-cutover-audit.ts",
     "vocab:audit:json": "bun scripts/vocab-cutover-audit.ts --json",
     "vocab:rewrite": "bun scripts/vocab-cutover-rewrite.ts",
+    "bench:tracing": "bun packages/tracing/scripts/benchmark-intrinsic-tracing.ts",
     "format:check": "./node_modules/.bin/ultracite check .",
     "format:fix": "./node_modules/.bin/ultracite fix .",
     "format:file": "./node_modules/.bin/ultracite fix",

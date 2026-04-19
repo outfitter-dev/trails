@@ -8,6 +8,7 @@ export {
   clearTraceSink,
   getTraceContext,
   getTraceSink,
+  NOOP_SINK,
   registerTraceSink,
 } from '@ontrails/core';
 export {

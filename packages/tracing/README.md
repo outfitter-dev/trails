@@ -2,7 +2,7 @@
 
 Sinks and query trails for the intrinsic tracing that ships in `@ontrails/core`.
 
-Tracing is built into `executeTrail` — every trail execution produces a `TraceRecord` automatically. This package provides the pluggable sinks, manual span API via `ctx.trace()`, and query trails that let you inspect recorded history. See [ADR-0023](../../docs/adr/0023-simplifying-the-trails-lexicon.md) for the design rationale.
+Tracing is built into `executeTrail`. When a real sink is installed, each trail execution writes a root `TraceRecord` automatically and `ctx.trace()` writes child spans. When `NOOP_SINK` is installed, the tracing path short-circuits and `ctx.trace()` remains a passthrough. This package provides the pluggable sinks, the `NOOP_SINK` sentinel, the manual span API via `ctx.trace()`, and query trails that let you inspect recorded history. See [ADR-0023](../../docs/adr/0023-simplifying-the-trails-lexicon.md) for the design rationale.
 
 ## The core pattern
 
@@ -15,11 +15,11 @@ const sink = createMemorySink();
 registerTraceSink(sink);
 ```
 
-Sinks receive completed `TraceRecord` records. The default sink is a no-op — tracing always works without configuration, but records are dropped until you register a real sink. Use a memory sink for testing, a dev store for local development, or an OTel connector to forward to your collector.
+Sinks receive completed `TraceRecord` records. The default sink is `NOOP_SINK` — tracing APIs still work without configuration, but root/span record allocation is skipped until you register a real sink. Use a memory sink for testing, a dev store for local development, or an OTel connector to forward to your collector. Use `registerTraceSink(NOOP_SINK)` or `clearTraceSink()` to switch back to the silent baseline.
 
 ### 2. Run trails
 
-Tracing happens automatically. No layer attachment, no per-trail wiring.
+Tracing happens automatically when a real sink is installed. No layer attachment, no per-trail wiring.
 
 ```typescript
 await run(graph, 'user.create', { name: 'alice' });
@@ -45,7 +45,7 @@ export const processUser = trail('user.process', {
 });
 ```
 
-Each `ctx.trace()` call creates a child span under the trail's root trace record. Spans time their callback, record errors, and flush to the registered sink.
+Each `ctx.trace()` call creates a child span under the trail's root trace record when tracing is enabled. Under `NOOP_SINK`, the same API runs as a passthrough.
 
 ## The tracing resource
 
@@ -102,6 +102,8 @@ try {
   clearTraceSink();
 }
 ```
+
+`clearTraceSink()` restores `NOOP_SINK`.
 
 ### Dev store
 
@@ -171,6 +173,8 @@ try {
   clearTraceSink();
 }
 ```
+
+Use `clearTraceSink()` or `registerTraceSink(NOOP_SINK)` to switch back to the silent baseline between tests.
 
 ## Installation
 

@@ -25,7 +25,7 @@ import type {
   TrailContextInit,
 } from './types.js';
 
-import { createTrailContext } from './context.js';
+import { createTrailContext, passthroughTrace } from './context.js';
 import { buildCrossValidationSchema } from './cross-schema.js';
 import {
   CancelledError,
@@ -45,6 +45,7 @@ import {
   createSpanRecord,
   createTraceRecord,
   getTraceSink,
+  isTracingDisabled,
   writeToSink,
 } from './internal/tracing.js';
 import { Result } from './result.js';
@@ -300,6 +301,18 @@ const buildTracedContext = (
   };
 
   return { record, tracedCtx };
+};
+
+const buildUntracedContext = (ctx: TrailContext): TrailContext => {
+  const { [TRACE_CONTEXT_KEY]: _traceContext, ...extensions } =
+    ctx.extensions ?? {};
+  const hasExtensions = Object.keys(extensions).length > 0;
+
+  return {
+    ...ctx,
+    extensions: hasExtensions ? extensions : undefined,
+    trace: passthroughTrace,
+  };
 };
 
 /** Run the composed implementation and write the root record on any outcome. */
@@ -857,7 +870,7 @@ const prepareRunImpl = (
   };
 };
 
-const runTrail = async (
+const runImplWithoutTracing = async (
   trail: AnyTrail,
   input: unknown,
   ctx: TrailContext,
@@ -865,7 +878,25 @@ const runTrail = async (
   topo: Topo | undefined,
   options: ExecuteTrailOptions | undefined
 ): Promise<Result<unknown, Error>> => {
-  const sink = getTraceSink();
+  const prepared = prepareRunImpl(
+    trail,
+    buildUntracedContext(ctx),
+    layers,
+    topo,
+    options
+  );
+  return await prepared.impl(input, prepared.ctxWithIntrinsics);
+};
+
+const runTrailWithTracing = async (
+  trail: AnyTrail,
+  input: unknown,
+  ctx: TrailContext,
+  layers: readonly Layer[],
+  topo: Topo | undefined,
+  options: ExecuteTrailOptions | undefined,
+  sink: ReturnType<typeof getTraceSink>
+): Promise<Result<unknown, Error>> => {
   const { record, tracedCtx } = buildTracedContext(trail, ctx, sink);
   let prepared: ReturnType<typeof prepareRunImpl>;
 
@@ -888,6 +919,20 @@ const runTrail = async (
     record,
     sink
   );
+};
+
+const runTrail = async (
+  trail: AnyTrail,
+  input: unknown,
+  ctx: TrailContext,
+  layers: readonly Layer[],
+  topo: Topo | undefined,
+  options: ExecuteTrailOptions | undefined
+): Promise<Result<unknown, Error>> => {
+  const sink = getTraceSink();
+  return isTracingDisabled(sink)
+    ? await runImplWithoutTracing(trail, input, ctx, layers, topo, options)
+    : await runTrailWithTracing(trail, input, ctx, layers, topo, options, sink);
 };
 
 // ---------------------------------------------------------------------------
