@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
 import {
   dirname,
   extname,
@@ -160,31 +160,154 @@ const collectImportedModulePaths = (
     .map((importPath) => resolveImportedModulePath(modulePath, importPath));
 };
 
+/**
+ * Copy a single file into the mirror by raw bytes.
+ *
+ * @remarks
+ * Reading via `.bytes()` rather than `.text()` preserves binary payloads
+ * (`.wasm`, `.node`, compiled assets) that may sit alongside source files in
+ * the app's graph. Text decoding would corrupt them on the way through the
+ * mirror.
+ */
+const copyFileToMirror = async (
+  sourcePath: string,
+  mirrorRoot: string,
+  copied: Set<string>
+): Promise<void> => {
+  if (copied.has(sourcePath)) {
+    return;
+  }
+  copied.add(sourcePath);
+
+  const mirrorPath = freshMirrorPath(sourcePath, mirrorRoot);
+  mkdirSync(dirname(mirrorPath), { recursive: true });
+  const bytes = await Bun.file(sourcePath).bytes();
+  await Bun.write(mirrorPath, bytes);
+};
+
+/** Directory basenames that are never worth mirroring. */
+const MIRROR_SKIP_DIRECTORIES = new Set([
+  '.git',
+  '.trails-tmp',
+  'node_modules',
+]);
+
+/**
+ * Recursively copy every regular file inside `directoryPath` into the
+ * mirror, skipping well-known heavy directories.
+ *
+ * @remarks
+ * `Bun.Transpiler#scanImports` only surfaces statically analyzable import
+ * specifiers. Computed dynamic imports such as `import(\`./${name}.ts\`)`
+ * never appear, so their targets would otherwise be missing from the
+ * mirror. Shadowing each directory touched by the static walk with its
+ * full subtree keeps those sibling modules resolvable under the mirror
+ * root at runtime without pulling in package installs or nested mirror
+ * artifacts.
+ */
+const readDirectoryEntries = (directoryPath: string): readonly string[] => {
+  try {
+    return readdirSync(directoryPath);
+  } catch {
+    return [];
+  }
+};
+
+const safeStat = (
+  entryPath: string
+): ReturnType<typeof statSync> | undefined => {
+  try {
+    return statSync(entryPath);
+  } catch {
+    return undefined;
+  }
+};
+
+interface MirrorWalkContext {
+  readonly mirrorRoot: string;
+  readonly copied: Set<string>;
+  readonly visitedDirectories: Set<string>;
+}
+
+type DirectoryEntryKind = 'directory' | 'file' | 'skip';
+
+const classifyDirectoryEntry = (
+  entry: string,
+  entryPath: string
+): DirectoryEntryKind => {
+  const entryStat = safeStat(entryPath);
+  if (entryStat === undefined) {
+    return 'skip';
+  }
+  if (entryStat.isDirectory()) {
+    return MIRROR_SKIP_DIRECTORIES.has(entry) ? 'skip' : 'directory';
+  }
+  return entryStat.isFile() ? 'file' : 'skip';
+};
+
+const copyDirectoryTreeToMirror = async (
+  directoryPath: string,
+  context: MirrorWalkContext
+): Promise<void> => {
+  if (context.visitedDirectories.has(directoryPath)) {
+    return;
+  }
+  context.visitedDirectories.add(directoryPath);
+
+  for (const entry of readDirectoryEntries(directoryPath)) {
+    const entryPath = join(directoryPath, entry);
+    const kind = classifyDirectoryEntry(entry, entryPath);
+    if (kind === 'directory') {
+      await copyDirectoryTreeToMirror(entryPath, context);
+    } else if (kind === 'file') {
+      await copyFileToMirror(entryPath, context.mirrorRoot, context.copied);
+    }
+  }
+};
+
+const mirrorImportedModule = async (
+  modulePath: string,
+  context: MirrorWalkContext
+): Promise<void> => {
+  const moduleDirectory = dirname(modulePath);
+  if (context.visitedDirectories.has(moduleDirectory)) {
+    await copyFileToMirror(modulePath, context.mirrorRoot, context.copied);
+    return;
+  }
+  await copyDirectoryTreeToMirror(moduleDirectory, context);
+};
+
+const scanAndVisitLocalImports = async (
+  modulePath: string,
+  visit: (path: string) => Promise<void>
+): Promise<void> => {
+  if (!isScannableModule(modulePath)) {
+    return;
+  }
+  const source = await Bun.file(modulePath).text();
+  for (const importedPath of collectImportedModulePaths(modulePath, source)) {
+    await visit(importedPath);
+  }
+};
+
 const mirrorFreshImportGraph = async (
   entryPath: string,
   mirrorRoot: string
 ): Promise<string> => {
-  const seen = new Set<string>();
+  const scanned = new Set<string>();
+  const context: MirrorWalkContext = {
+    copied: new Set<string>(),
+    mirrorRoot,
+    visitedDirectories: new Set<string>(),
+  };
 
   const visit = async (modulePath: string): Promise<void> => {
-    if (seen.has(modulePath)) {
+    if (scanned.has(modulePath)) {
       return;
     }
-    seen.add(modulePath);
-
-    const source = await Bun.file(modulePath).text();
-    if (isScannableModule(modulePath)) {
-      for (const importedPath of collectImportedModulePaths(
-        modulePath,
-        source
-      )) {
-        await visit(importedPath);
-      }
-    }
-
-    const mirrorPath = freshMirrorPath(modulePath, mirrorRoot);
-    mkdirSync(dirname(mirrorPath), { recursive: true });
-    await Bun.write(mirrorPath, source);
+    scanned.add(modulePath);
+    await scanAndVisitLocalImports(modulePath, visit);
+    await mirrorImportedModule(modulePath, context);
   };
 
   await visit(entryPath);
