@@ -44,6 +44,14 @@ const autoIdStore = defineStore({
   items: { generated: ['id'] as const, identity: 'id', schema: itemSchema },
 });
 
+const generatedNameStore = defineStore({
+  items: {
+    generated: ['name'] as const,
+    identity: 'id',
+    schema: itemSchema,
+  },
+});
+
 const fixtureStore = defineStore({
   items: {
     fixtures: [{ id: 'fixture-1', name: 'Fixture row' }],
@@ -86,6 +94,23 @@ afterEach(async () => {
   await rm(dir, { force: true, recursive: true });
 });
 
+const expectConflictError = async (
+  run: () => unknown,
+  messagePart: string
+): Promise<void> => {
+  const outcome = await Promise.resolve()
+    .then(run)
+    .then(
+      () => null,
+      (error: unknown) => error
+    );
+  if (outcome === null) {
+    throw new Error('Expected a ConflictError');
+  }
+  expect(outcome).toBeInstanceOf(ConflictError);
+  expect(String(outcome)).toContain(messagePart);
+};
+
 /** Copy a JSON table file into a fresh directory and load it via a new connection. */
 const reloadAndList = async (
   sourceDir: string,
@@ -102,7 +127,7 @@ const reloadAndList = async (
 };
 
 const createMockConnection = async <TConnection>(
-  factory: (() => Promise<TConnection>) | undefined
+  factory: (() => TConnection | Promise<TConnection>) | undefined
 ): Promise<TConnection> => {
   if (factory === undefined) {
     throw new Error('Expected jsonfile store mock factory to be defined');
@@ -110,6 +135,8 @@ const createMockConnection = async <TConnection>(
 
   return await factory();
 };
+
+const stableGeneratedId = (): string => 'generated-id';
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -270,6 +297,53 @@ describe('jsonfile connector', () => {
       const all = await reloadAndList(dir, 'items.json');
       expect(all).toHaveLength(2);
       expect(all.map((e) => e.name).toSorted()).toEqual(['First', 'Second']);
+    });
+  });
+
+  describe('table reuse', () => {
+    test('reuses the same table accessor when the config matches', async () => {
+      const first = await connectJsonFile(autoIdStore, {
+        dir,
+        generateIdentity: stableGeneratedId,
+      });
+      await first.items.upsert({ name: 'First' });
+
+      const second = await connectJsonFile(autoIdStore, {
+        dir,
+        generateIdentity: stableGeneratedId,
+      });
+
+      await expect(second.items.get('generated-id')).resolves.toEqual(
+        expect.objectContaining({
+          id: 'generated-id',
+          name: 'First',
+        })
+      );
+    });
+
+    test('throws when a shared path is reused with a different table config', async () => {
+      await connectJsonFile(itemStore, { dir });
+
+      await expectConflictError(
+        () => connectJsonFile(generatedNameStore, { dir }),
+        'generatedFields'
+      );
+    });
+
+    test('throws when a shared path is reused with a different identity generator', async () => {
+      await connectJsonFile(autoIdStore, {
+        dir,
+        generateIdentity: () => 'first-id',
+      });
+
+      await expectConflictError(
+        () =>
+          connectJsonFile(autoIdStore, {
+            dir,
+            generateIdentity: () => 'second-id',
+          }),
+        'generateIdentity'
+      );
     });
   });
 

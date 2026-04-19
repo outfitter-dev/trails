@@ -318,6 +318,80 @@ const deriveTableConfig = (options: JsonFileTableOptions): TableConfig => ({
   tableName: options.table.name,
 });
 
+interface JsonFileTableReuseConfig {
+  readonly generateIdentity: (() => string) | undefined;
+  readonly generatedFields: readonly string[];
+  readonly identityField: string;
+  readonly isVersioned: boolean;
+}
+
+const usesGeneratedIdentity = (config: {
+  readonly generatedFields: readonly string[];
+  readonly identityField: string;
+}): boolean => config.generatedFields.includes(config.identityField);
+
+const deriveTableReuseConfig = (
+  options: JsonFileTableOptions
+): JsonFileTableReuseConfig => {
+  const generatedFields = [...options.table.generated].toSorted();
+  return {
+    generateIdentity: usesGeneratedIdentity({
+      generatedFields,
+      identityField: options.table.identity,
+    })
+      ? options.generateIdentity
+      : undefined,
+    generatedFields,
+    identityField: options.table.identity,
+    isVersioned: options.table.versioned,
+  };
+};
+
+const diffTableReuseConfig = (
+  cached: JsonFileTableReuseConfig,
+  incoming: JsonFileTableReuseConfig
+): readonly string[] => {
+  const mismatches: string[] = [];
+
+  if (cached.identityField !== incoming.identityField) {
+    mismatches.push('identityField');
+  }
+
+  if (cached.isVersioned !== incoming.isVersioned) {
+    mismatches.push('versioned');
+  }
+
+  if (
+    cached.generatedFields.length !== incoming.generatedFields.length ||
+    cached.generatedFields.some(
+      (field, index) => field !== incoming.generatedFields[index]
+    )
+  ) {
+    mismatches.push('generatedFields');
+  }
+
+  if (cached.generateIdentity !== incoming.generateIdentity) {
+    mismatches.push('generateIdentity');
+  }
+
+  return mismatches;
+};
+
+const assertCompatibleTableReuse = (
+  path: string,
+  cached: JsonFileTableReuseConfig,
+  incoming: JsonFileTableReuseConfig
+): void => {
+  const mismatches = diffTableReuseConfig(cached, incoming);
+  if (mismatches.length === 0) {
+    return;
+  }
+
+  throw new ConflictError(
+    `JSON file table reuse conflict for "${path}": ${mismatches.join(', ')} differ across connections. Reuse the same table config for a shared path or isolate the stores to different directories.`
+  );
+};
+
 const createGetAccessor =
   <TTable extends AnyStoreTable>(
     index: Map<string, EntityOf<TTable>>
@@ -376,9 +450,14 @@ const executeRemove = async <TTable extends AnyStoreTable>(
 // Note: entries are never evicted. This is acceptable for v1 — the connector
 // targets single-process, short-lived servers where the number of distinct
 // table paths is bounded by the store definition.
+interface JsonFileTableRegistration<TTable extends AnyStoreTable> {
+  readonly accessor: LoadableTable<TTable>;
+  readonly reuseConfig: JsonFileTableReuseConfig;
+}
+
 const tableRegistry = new Map<
   string,
-  StoreAccessor<AnyStoreTable> & { readonly load: () => Promise<void> }
+  JsonFileTableRegistration<AnyStoreTable>
 >();
 
 type LoadableTable<TTable extends AnyStoreTable> = StoreAccessor<TTable> & {
@@ -429,7 +508,10 @@ const buildAndRegisterTable = <TTable extends AnyStoreTable>(
     remove,
     upsert,
   };
-  tableRegistry.set(path, instance);
+  tableRegistry.set(path, {
+    accessor: instance,
+    reuseConfig: deriveTableReuseConfig(options),
+  });
   return instance;
 };
 
@@ -437,19 +519,28 @@ const buildAndRegisterTable = <TTable extends AnyStoreTable>(
  * Return a cached or freshly-built table instance for the given path.
  *
  * @remarks
- * First-writer-wins: if a table for this path already exists in the registry,
- * the cached instance is returned and `options.generateIdentity` from the new
- * call is silently ignored. In practice this is fine — each resource creates
- * one connection per directory — but callers should not rely on passing
- * different generators for the same path across multiple `connectJsonFile`
- * calls.
+ * Tables are shared per resolved file path so multiple connections stay
+ * coherent in-process. Reuse is only allowed when table-affecting config
+ * matches exactly; otherwise the connector throws instead of silently
+ * inheriting the first connection's runtime semantics.
  */
 const createJsonFileTable = <TTable extends AnyStoreTable>(
   options: JsonFileTableOptions
 ): LoadableTable<TTable> => {
   const path = jsonFilePath(options.dir, options.table.name);
-  const cached = tableRegistry.get(path) as LoadableTable<TTable> | undefined;
-  return cached ?? buildAndRegisterTable<TTable>(path, options);
+  const cached = tableRegistry.get(path) as
+    | JsonFileTableRegistration<TTable>
+    | undefined;
+  if (cached === undefined) {
+    return buildAndRegisterTable<TTable>(path, options);
+  }
+
+  assertCompatibleTableReuse(
+    path,
+    cached.reuseConfig,
+    deriveTableReuseConfig(options)
+  );
+  return cached.accessor;
 };
 
 // Tracks temp directories created by mock factories so `dispose` can clean
