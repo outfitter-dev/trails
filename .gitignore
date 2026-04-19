@@ -2,6 +2,7 @@ node_modules/
 dist/
 .turbo/
 .scratch/
+.trails-tmp/
 .try/
 *.tsbuildinfo
 .DS_Store
