@@ -185,10 +185,27 @@ const copyFileToMirror = async (
   await Bun.write(mirrorPath, bytes);
 };
 
-/** Directory basenames that are never worth mirroring. */
+/**
+ * Directory basenames that are never worth mirroring.
+ *
+ * @remarks
+ * These directories are excluded because they can be large and are never
+ * sources of resolvable imports — they hold VCS metadata, package installs,
+ * prior mirror artifacts, or build/tooling output that module resolution
+ * should not touch.
+ */
 const MIRROR_SKIP_DIRECTORIES = new Set([
+  '.cache',
   '.git',
+  '.next',
+  '.nuxt',
+  '.output',
+  '.svelte-kit',
   '.trails-tmp',
+  '.turbo',
+  'build',
+  'coverage',
+  'dist',
   'node_modules',
 ]);
 
