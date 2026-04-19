@@ -44,6 +44,7 @@ export { referenceExists } from './rules/reference-exists.js';
 export { resourceDeclarations } from './rules/resource-declarations.js';
 export { resourceIdGrammar } from './rules/resource-id-grammar.js';
 export { resourceExists } from './rules/resource-exists.js';
+export { unreachableDetourShadowing } from './rules/unreachable-detour-shadowing.js';
 export { validDescribeRefs } from './rules/valid-describe-refs.js';
 
 // Rule registry
@@ -115,6 +116,7 @@ export {
   resourceDeclarationsTrail,
   resourceIdGrammarTrail,
   resourceExistsTrail,
+  unreachableDetourShadowingTrail,
   validDescribeRefsTrail,
   validDetourRefsTrail,
 } from './trails/index.js';

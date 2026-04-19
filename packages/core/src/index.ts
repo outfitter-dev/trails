@@ -17,6 +17,7 @@ export {
   InternalError,
   AuthError,
   CancelledError,
+  DerivationError,
   errorCategories,
   exitCodeMap,
   statusCodeMap,

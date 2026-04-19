@@ -26,6 +26,7 @@ import { resourceDeclarations } from './resource-declarations.js';
 import { resourceExists } from './resource-exists.js';
 import { resourceIdGrammar } from './resource-id-grammar.js';
 import type { WardenRule } from './types.js';
+import { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 import { validDescribeRefs } from './valid-describe-refs.js';
 import { validDetourRefs } from './valid-detour-refs.js';
 
@@ -65,6 +66,7 @@ export { referenceExists } from './reference-exists.js';
 export { resourceDeclarations } from './resource-declarations.js';
 export { resourceExists } from './resource-exists.js';
 export { resourceIdGrammar } from './resource-id-grammar.js';
+export { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 export { validDescribeRefs } from './valid-describe-refs.js';
 
 /** All built-in warden rules, keyed by rule name. */
@@ -101,4 +103,5 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [implementationReturnsResult.name, implementationReturnsResult],
   [noThrowInDetourTarget.name, noThrowInDetourTarget],
   [noDirectImplInRoute.name, noDirectImplInRoute],
+  [unreachableDetourShadowing.name, unreachableDetourShadowing],
 ]);

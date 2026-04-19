@@ -1,6 +1,6 @@
 # @ontrails/warden
 
-AST-based code convention rules for Trails. 15 lint rules that catch contract violations at development time, plus lock drift detection and CI formatters.
+AST-based code convention rules for Trails. Built-in lint rules catch contract violations at development time, alongside lock drift detection and CI formatters.
 
 Structural checks (cross target existence, declared resource existence, recursive crossing, example schema validation) live in `validateTopo()` from `@ontrails/core`. Warden handles the code-level rules that need AST analysis.
 
@@ -34,6 +34,7 @@ console.log(formatWardenReport(report));
 | `no-sync-result-assumption` | error | Missing `await` on `.blaze()` results |
 | `valid-detour-refs` | error | Detour targets that do not exist in the topo |
 | `no-throw-in-detour-target` | error | `throw` inside detour target trails |
+| `unreachable-detour-shadowing` | error | Later detours made unreachable by earlier same-or-broader `on:` error types |
 | `no-direct-implementation-call` | warn | Direct `.blaze()` calls bypassing `ctx.cross()` |
 | `no-direct-impl-in-route` | warn | Direct `.blaze()` calls inside trail bodies with `crosses` |
 | `prefer-schema-inference` | warn | Redundant field overrides already derivable from the schema |

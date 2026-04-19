@@ -23,6 +23,7 @@ export { referenceExistsTrail } from './reference-exists.trail.js';
 export { resourceDeclarationsTrail } from './resource-declarations.trail.js';
 export { resourceIdGrammarTrail } from './resource-id-grammar.trail.js';
 export { resourceExistsTrail } from './resource-exists.trail.js';
+export { unreachableDetourShadowingTrail } from './unreachable-detour-shadowing.trail.js';
 export { validDescribeRefsTrail } from './valid-describe-refs.trail.js';
 export { validDetourRefsTrail } from './valid-detour-refs.trail.js';
 

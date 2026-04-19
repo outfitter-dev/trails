@@ -162,9 +162,38 @@ describe('runWarden project context', () => {
         (diagnostic) => diagnostic.rule === 'no-throw-in-detour-target'
       );
 
-      // Detour target collection is dormant — detours now use error class
-      // constructors, not string trail IDs. See TRL-273 for the replacement rule.
+      // Target collection stays dormant because modern detours match error
+      // classes, not trail IDs. Shadowed detours are linted separately.
       expect(detourThrowRules).toHaveLength(0);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('reports detours shadowed by earlier broader on: types', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'shadowed.ts'),
+        `import { ConflictError, Result, TrailsError, trail } from '@ontrails/core';
+
+trail("entity.save", {
+  detours: [
+    { on: TrailsError, recover: async () => Result.ok({ winner: "broad" }) },
+    { on: ConflictError, recover: async () => Result.ok({ winner: "specific" }) },
+  ],
+  blaze: () => Result.err(new ConflictError("boom")),
+});`
+      );
+
+      const report = await runWarden({ rootDir: dir });
+      const shadowRules = report.diagnostics.filter(
+        (diagnostic) => diagnostic.rule === 'unreachable-detour-shadowing'
+      );
+
+      expect(shadowRules).toHaveLength(1);
+      expect(shadowRules[0]?.message).toContain('TrailsError');
+      expect(shadowRules[0]?.message).toContain('ConflictError');
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

@@ -105,7 +105,7 @@ When multiple detours could match an error, the framework runs the first one dec
 
 1. **Predictability.** Authors know exactly which detour will run by reading the spec top-to-bottom.
 2. **No runtime reflection.** Most-specific-first requires walking `instanceof` chains to compare distances. The framework does not otherwise inspect the class hierarchy at runtime and should not start here.
-3. **The warden catches the drift case.** When detour A's `on:` type is a supertype of detour B's `on:` type and A is declared before B, B is unreachable. This is a lint-time diagnostic, not a runtime behavior. Authors who get the order wrong get an error at build time, not a silent mismatch at runtime. A warden rule for detecting unreachable detours is planned as a follow-up.
+3. **The warden catches the drift case.** When detour A's `on:` type is a supertype of detour B's `on:` type and A is declared before B, B is unreachable. This is a lint-time diagnostic, not a runtime behavior. Authors who get the order wrong get an error at build time, not a silent mismatch at runtime. Warden now ships `unreachable-detour-shadowing` to flag that ordering mistake.
 
 If `recover` returns an error whose class does not match the same detour's `on:` type (e.g., a `ConflictError` detour whose `recover` returns `NetworkError`), the framework returns that error to the caller directly. The detour loop terminates; no further matching happens.
 
