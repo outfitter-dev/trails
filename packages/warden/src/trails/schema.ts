@@ -38,6 +38,12 @@ export const projectAwareRuleInput = ruleInput.extend({
     .array(z.string())
     .optional()
     .describe('Trail IDs referenced by crosses arrays across the project'),
+  crudCoverageByEntity: z
+    .record(z.string(), z.array(z.string()))
+    .optional()
+    .describe(
+      'CRUD operation coverage per entity aggregated across the project'
+    ),
   crudTableIds: z
     .array(z.string())
     .optional()

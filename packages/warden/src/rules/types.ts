@@ -65,6 +65,19 @@ export interface ProjectContext {
   readonly reconcileTableIds?: ReadonlySet<string>;
   /** Normalized trail intents by trail ID across the project. */
   readonly trailIntentsById?: ReadonlyMap<string, 'destroy' | 'read' | 'write'>;
+  /**
+   * CRUD operation coverage per entity aggregated across the project.
+   *
+   * Keys are stable entity IDs (authored contour names, `imported:<local>`
+   * sentinels for contours imported from another module, or store-table IDs
+   * produced by `deriveStoreTableId`). Values are the set of CRUD operations
+   * (`create`, `read`, `update`, `delete`, `list`) observed for that entity.
+   *
+   * Enables cross-file completeness evaluation so one-file-per-operation
+   * layouts (e.g. separate `create.ts`, `read.ts`) do not trip file-scoped
+   * coverage warnings.
+   */
+  readonly crudCoverageByEntity?: ReadonlyMap<string, ReadonlySet<string>>;
 }
 
 /**

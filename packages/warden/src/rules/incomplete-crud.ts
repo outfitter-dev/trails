@@ -13,13 +13,18 @@ import {
 } from './ast.js';
 import type { AstNode } from './ast.js';
 import { isTestFile } from './scan.js';
-import type { WardenDiagnostic, WardenRule } from './types.js';
+import type {
+  ProjectAwareWardenRule,
+  ProjectContext,
+  WardenDiagnostic,
+} from './types.js';
 
 const CRUD_OPERATIONS = ['create', 'read', 'update', 'delete', 'list'] as const;
 const CRUD_OPERATION_SET = new Set<string>(CRUD_OPERATIONS);
 
 /** Sentinel entity id prefix for contours imported from another module. */
 const IMPORTED_CONTOUR_PREFIX = 'imported:';
+const CONTOUR_BINDING_SUFFIX = 'Contour';
 
 interface CrudCoverage {
   readonly entityId: string;
@@ -57,6 +62,52 @@ const resolveContourIdentifier = (
   }
 
   return null;
+};
+
+const stripImportedContourPrefix = (entityId: string): string =>
+  entityId.startsWith(IMPORTED_CONTOUR_PREFIX)
+    ? entityId.slice(IMPORTED_CONTOUR_PREFIX.length)
+    : entityId;
+
+const stripContourBindingSuffix = (entityId: string): string =>
+  entityId.endsWith(CONTOUR_BINDING_SUFFIX)
+    ? entityId.slice(0, -CONTOUR_BINDING_SUFFIX.length)
+    : entityId;
+
+const normalizeProjectEntityId = (
+  entityId: string,
+  projectEntityIds: ReadonlySet<string>
+): string => {
+  const localId = stripImportedContourPrefix(entityId);
+  if (!entityId.startsWith(IMPORTED_CONTOUR_PREFIX)) {
+    return localId;
+  }
+
+  const strippedId = stripContourBindingSuffix(localId);
+  if (
+    strippedId !== localId &&
+    (projectEntityIds.has(strippedId) ||
+      projectEntityIds.has(`${IMPORTED_CONTOUR_PREFIX}${strippedId}`))
+  ) {
+    return strippedId;
+  }
+  return localId;
+};
+
+const normalizeProjectCoverage = (
+  projectCoverage: ReadonlyMap<string, ReadonlySet<string>>,
+  projectEntityIds: ReadonlySet<string>
+): ReadonlyMap<string, ReadonlySet<string>> => {
+  const normalized = new Map<string, Set<string>>();
+  for (const [entityId, operations] of projectCoverage) {
+    const normalizedId = normalizeProjectEntityId(entityId, projectEntityIds);
+    const bucket = normalized.get(normalizedId) ?? new Set<string>();
+    for (const operation of operations) {
+      bucket.add(operation);
+    }
+    normalized.set(normalizedId, bucket);
+  }
+  return normalized;
 };
 
 /**
@@ -242,14 +293,113 @@ const collectCrudTupleCoverage = (
   return coverageByEntityId;
 };
 
-const collectIncompleteCoverage = (
-  coverageByEntityId: ReadonlyMap<string, CrudCoverage>
-): readonly CrudCoverage[] =>
-  [...coverageByEntityId.values()].filter(
-    (coverage) =>
-      coverage.operations.size > 0 &&
-      coverage.operations.size < CRUD_OPERATIONS.length
+const collectFileCoverage = (
+  ast: AstNode,
+  sourceCode: string
+): {
+  readonly derived: ReadonlyMap<string, CrudCoverage>;
+  readonly tuple: ReadonlyMap<string, CrudCoverage>;
+} => ({
+  derived: collectDerivedCrudCoverage(ast, sourceCode),
+  tuple: collectCrudTupleCoverage(ast, sourceCode),
+});
+
+/**
+ * Public AST helper: collect per-entity CRUD operation coverage for a single
+ * file. Used by the CLI to aggregate coverage across the project before the
+ * rule runs, so one-file-per-operation layouts are evaluated correctly.
+ */
+export const collectFileCrudCoverage = (
+  ast: AstNode,
+  sourceCode: string
+): ReadonlyMap<string, ReadonlySet<string>> => {
+  const { derived, tuple } = collectFileCoverage(ast, sourceCode);
+  const merged = new Map<string, Set<string>>();
+  const merge = (source: ReadonlyMap<string, CrudCoverage>): void => {
+    for (const [entityId, coverage] of source) {
+      const bucket = merged.get(entityId) ?? new Set<string>();
+      for (const operation of coverage.operations) {
+        bucket.add(operation);
+      }
+      merged.set(entityId, bucket);
+    }
+  };
+  merge(derived);
+  merge(tuple);
+  return merged;
+};
+
+const seedCombinedCoverage = (
+  fileCoverage: ReadonlyMap<string, CrudCoverage>
+): Map<string, Set<string>> => {
+  const combined = new Map<string, Set<string>>();
+  for (const [entityId, coverage] of fileCoverage) {
+    combined.set(entityId, new Set(coverage.operations));
+  }
+  return combined;
+};
+
+const applyProjectOperations = (
+  combined: Map<string, Set<string>>,
+  fileCoverage: ReadonlyMap<string, CrudCoverage>,
+  projectCoverage: ReadonlyMap<string, ReadonlySet<string>>
+): void => {
+  const projectEntityIds = new Set(projectCoverage.keys());
+  const normalizedProjectCoverage = normalizeProjectCoverage(
+    projectCoverage,
+    projectEntityIds
   );
+  for (const entityId of fileCoverage.keys()) {
+    const bucket = combined.get(entityId) ?? new Set<string>();
+    const operations = normalizedProjectCoverage.get(
+      normalizeProjectEntityId(entityId, projectEntityIds)
+    );
+    if (operations) {
+      for (const operation of operations) {
+        bucket.add(operation);
+      }
+    }
+    combined.set(entityId, bucket);
+  }
+};
+
+const mergeProjectOperations = (
+  fileCoverage: ReadonlyMap<string, CrudCoverage>,
+  projectCoverage?: ReadonlyMap<string, ReadonlySet<string>>
+): Map<string, Set<string>> => {
+  const combined = seedCombinedCoverage(fileCoverage);
+  if (projectCoverage) {
+    applyProjectOperations(combined, fileCoverage, projectCoverage);
+  }
+  return combined;
+};
+
+const collectIncompleteEntities = (
+  fileCoverage: ReadonlyMap<string, CrudCoverage>,
+  projectCoverage?: ReadonlyMap<string, ReadonlySet<string>>
+): readonly CrudCoverage[] => {
+  const combinedOperations = mergeProjectOperations(
+    fileCoverage,
+    projectCoverage
+  );
+
+  return [...fileCoverage.values()].flatMap((coverage) => {
+    const combined = combinedOperations.get(coverage.entityId);
+    if (!combined || combined.size === 0) {
+      return [];
+    }
+    if (combined.size >= CRUD_OPERATIONS.length) {
+      return [];
+    }
+    return [
+      {
+        entityId: coverage.entityId,
+        line: coverage.line,
+        operations: combined,
+      },
+    ];
+  });
+};
 
 const formatEntityLabel = (entityId: string): string =>
   entityId.startsWith(IMPORTED_CONTOUR_PREFIX)
@@ -276,24 +426,52 @@ const buildIncompleteCrudDiagnostic = (
   };
 };
 
-export const incompleteCrud: WardenRule = {
+const evaluateFile = (
+  sourceCode: string,
+  filePath: string,
+  projectCoverage?: ReadonlyMap<string, ReadonlySet<string>>
+): readonly WardenDiagnostic[] => {
+  if (isTestFile(filePath)) {
+    return [];
+  }
+
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return [];
+  }
+
+  const { derived, tuple } = collectFileCoverage(ast, sourceCode);
+
+  return [
+    ...collectIncompleteEntities(derived, projectCoverage),
+    ...collectIncompleteEntities(tuple, projectCoverage),
+  ].map((coverage) => buildIncompleteCrudDiagnostic(coverage, filePath));
+};
+
+/**
+ * Warn when factory-style CRUD authoring covers only part of the standard
+ * create/read/update/delete/list set.
+ *
+ * Project-aware: when a `ProjectContext` is available, operations observed in
+ * sibling files (e.g. one-file-per-operation layouts such as `create.ts`,
+ * `read.ts`, `update.ts`, `delete.ts`, `list.ts`) are merged with the local
+ * file's coverage before completeness is evaluated, so split layouts do not
+ * produce false positives. The fallback `check` entry point stays file-scoped
+ * for direct invocations that lack project context.
+ */
+export const incompleteCrud: ProjectAwareWardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
-    if (isTestFile(filePath)) {
-      return [];
-    }
-
-    const ast = parse(filePath, sourceCode);
-    if (!ast) {
-      return [];
-    }
-
-    return [
-      ...collectIncompleteCoverage(collectDerivedCrudCoverage(ast, sourceCode)),
-      ...collectIncompleteCoverage(collectCrudTupleCoverage(ast, sourceCode)),
-    ].map((coverage) => buildIncompleteCrudDiagnostic(coverage, filePath));
+    return evaluateFile(sourceCode, filePath);
+  },
+  checkWithContext(
+    sourceCode: string,
+    filePath: string,
+    context: ProjectContext
+  ): readonly WardenDiagnostic[] {
+    return evaluateFile(sourceCode, filePath, context.crudCoverageByEntity);
   },
   description:
-    'Warn when factory-style CRUD authoring covers only part of the standard create/read/update/delete/list set. This rule is file-scoped: all operations for an entity must be colocated in the same file for the rule to correctly assess completeness. One-file-per-operation layouts (e.g. deriveTrail in separate create.ts, read.ts, etc.) may produce false positives.',
+    'Warn when factory-style CRUD authoring covers only part of the standard create/read/update/delete/list set. Coverage is aggregated across the project so one-file-per-operation layouts are evaluated on the full CRUD set.',
   name: 'incomplete-crud',
   severity: 'warn',
 };

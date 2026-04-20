@@ -38,6 +38,18 @@ const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
       }
     : {}),
   ...(input.crudTableIds ? { crudTableIds: new Set(input.crudTableIds) } : {}),
+  ...(input.crudCoverageByEntity
+    ? {
+        crudCoverageByEntity: new Map(
+          Object.entries(input.crudCoverageByEntity).map(
+            ([entityId, operations]) => [
+              entityId,
+              new Set(operations) as ReadonlySet<string>,
+            ]
+          )
+        ),
+      }
+    : {}),
   ...(input.knownContourIds
     ? { knownContourIds: new Set(input.knownContourIds) }
     : {}),

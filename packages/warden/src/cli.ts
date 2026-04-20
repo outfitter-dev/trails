@@ -25,6 +25,7 @@ import {
   findTrailDefinitions,
   parse,
 } from './rules/ast.js';
+import { collectFileCrudCoverage } from './rules/incomplete-crud.js';
 import { wardenRules } from './rules/index.js';
 import type {
   ProjectAwareWardenRule,
@@ -103,6 +104,7 @@ interface MutableProjectContext {
   contourReferencesByName: Map<string, Set<string>>;
   crudTableIds: Set<string>;
   crossTargetTrailIds: Set<string>;
+  crudCoverageByEntity: Map<string, Set<string>>;
   detourTargetTrailIds: Set<string>;
   knownContourIds: Set<string>;
   knownResourceIds: Set<string>;
@@ -116,6 +118,7 @@ interface MutableProjectContext {
 const createMutableProjectContext = (): MutableProjectContext => ({
   contourReferencesByName: new Map<string, Set<string>>(),
   crossTargetTrailIds: new Set<string>(),
+  crudCoverageByEntity: new Map<string, Set<string>>(),
   crudTableIds: new Set<string>(),
   detourTargetTrailIds: new Set<string>(),
   knownContourIds: new Set<string>(),
@@ -155,6 +158,18 @@ const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
     : {}),
   ...(context.crudTableIds.size > 0
     ? { crudTableIds: context.crudTableIds }
+    : {}),
+  ...(context.crudCoverageByEntity.size > 0
+    ? {
+        crudCoverageByEntity: new Map(
+          [...context.crudCoverageByEntity.entries()].map(
+            ([entityId, operations]) => [
+              entityId,
+              new Set(operations) as ReadonlySet<string>,
+            ]
+          )
+        ),
+      }
     : {}),
   crossTargetTrailIds: context.crossTargetTrailIds,
   detourTargetTrailIds: context.detourTargetTrailIds,
@@ -296,6 +311,27 @@ const collectOnTargetSignalIds = (
   }
 };
 
+const collectCrudCoverageByEntity = (
+  sourceCode: string,
+  filePath: string,
+  coverageByEntity: Map<string, Set<string>>
+): void => {
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return;
+  }
+  for (const [entityId, operations] of collectFileCrudCoverage(
+    ast,
+    sourceCode
+  )) {
+    const bucket = coverageByEntity.get(entityId) ?? new Set<string>();
+    for (const operation of operations) {
+      bucket.add(operation);
+    }
+    coverageByEntity.set(entityId, bucket);
+  }
+};
+
 const collectReconcileTableIds = (
   sourceCode: string,
   filePath: string,
@@ -401,7 +437,7 @@ const collectTopoTrailContext = (
   collectTopoContourReferences(appTopo, context);
 };
 
-const collectFileProjectContext = (
+const collectFileKnownIds = (
   sourceFile: SourceFile,
   context: MutableProjectContext
 ): void => {
@@ -425,6 +461,12 @@ const collectFileProjectContext = (
     sourceFile.filePath,
     context.knownSignalIds
   );
+};
+
+const collectFileTrailRelationships = (
+  sourceFile: SourceFile,
+  context: MutableProjectContext
+): void => {
   collectCrossedTrailIds(
     sourceFile.sourceCode,
     sourceFile.filePath,
@@ -439,21 +481,6 @@ const collectFileProjectContext = (
     sourceFile.sourceCode,
     sourceFile.filePath,
     context.trailIntentsById
-  );
-  collectCrudTableIds(
-    sourceFile.sourceCode,
-    sourceFile.filePath,
-    context.crudTableIds
-  );
-  collectOnTargetSignalIds(
-    sourceFile.sourceCode,
-    sourceFile.filePath,
-    context.onTargetSignalIds
-  );
-  collectReconcileTableIds(
-    sourceFile.sourceCode,
-    sourceFile.filePath,
-    context.reconcileTableIds
   );
 };
 
@@ -476,6 +503,20 @@ const collectFileSupplementalProjectContext = (
     sourceFile.filePath,
     context.reconcileTableIds
   );
+  collectCrudCoverageByEntity(
+    sourceFile.sourceCode,
+    sourceFile.filePath,
+    context.crudCoverageByEntity
+  );
+};
+
+const collectFileProjectContext = (
+  sourceFile: SourceFile,
+  context: MutableProjectContext
+): void => {
+  collectFileKnownIds(sourceFile, context);
+  collectFileTrailRelationships(sourceFile, context);
+  collectFileSupplementalProjectContext(sourceFile, context);
 };
 
 const collectFileContourReferences = (

@@ -33,6 +33,7 @@ interface ProjectRuleOptions {
   >;
   readonly crossTargetTrailIds?: readonly string[];
   readonly crudTableIds?: readonly string[];
+  readonly crudCoverageByEntity?: Readonly<Record<string, readonly string[]>>;
   readonly detourTargetTrailIds?: readonly string[];
   readonly knownContourIds?: readonly string[];
   readonly knownResourceIds?: readonly string[];
@@ -47,6 +48,7 @@ const PROJECT_OPTION_KEYS = [
   'contourReferencesByName',
   'crossTargetTrailIds',
   'crudTableIds',
+  'crudCoverageByEntity',
   'detourTargetTrailIds',
   'knownContourIds',
   'knownResourceIds',
