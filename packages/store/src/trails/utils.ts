@@ -1,8 +1,21 @@
 import { InternalError, contour, isTrailsError } from '@ontrails/core';
-import type { AnyContour } from '@ontrails/core';
+import type { Contour } from '@ontrails/core';
 import type { z } from 'zod';
 
 import type { AnyStoreTable } from '../types.js';
+
+/**
+ * The contour type produced by {@link createTableContour} for a given store
+ * table. Threads the table's name, schema shape, and identity through the
+ * contour generics so downstream `deriveTrail()` calls project concrete
+ * input/output types instead of widening back to
+ * `Contour<string, z.ZodRawShape, string>` (the `AnyContour` alias).
+ */
+export type TableContour<TTable extends AnyStoreTable> = Contour<
+  TTable['name'],
+  TTable['schema']['shape'],
+  Extract<TTable['identity'], keyof TTable['schema']['shape'] & string>
+>;
 
 /**
  * Build the shape used when deriving a contour view of a store table.
@@ -53,11 +66,11 @@ export const buildContourShape = (
  */
 export const createTableContour = <TTable extends AnyStoreTable>(
   table: TTable
-): AnyContour =>
+): TableContour<TTable> =>
   contour(table.name, buildContourShape(table), {
     examples: table.fixtures as readonly Record<string, unknown>[],
     identity: table.identity,
-  }) as AnyContour;
+  }) as TableContour<TTable>;
 
 /**
  * Coerce an unknown thrown value into an Error instance, preserving the

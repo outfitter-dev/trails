@@ -1,5 +1,9 @@
 import type { Implementation, Resource, Trail } from '@ontrails/core';
 import { deriveTrail } from '@ontrails/core/trails';
+import type {
+  DeriveTrailInput,
+  DeriveTrailOutput,
+} from '@ontrails/core/trails';
 import type { z } from 'zod';
 
 import type {
@@ -12,6 +16,7 @@ import type {
   UpdateOf,
 } from '../types.js';
 import { createTableContour } from './utils.js';
+import type { TableContour } from './utils.js';
 
 type IdentityInputOf<TTable extends AnyStoreTable> = Readonly<
   Record<Extract<TTable['identity'], string>, StoreIdentifierOf<TTable>>
@@ -20,6 +25,75 @@ type IdentityInputOf<TTable extends AnyStoreTable> = Readonly<
 type CrudConnection<TTable extends AnyStoreTable> = Readonly<
   Record<TTable['name'], StoreAccessor<TTable>>
 >;
+
+type TableContourFieldKey<TTable extends AnyStoreTable> = Extract<
+  keyof z.output<TableContour<TTable>>,
+  string
+>;
+
+type GeneratedFieldsOf<TTable extends AnyStoreTable> =
+  readonly TableContourFieldKey<TTable>[];
+
+/**
+ * Input type `deriveTrail` projects for a given CRUD operation against a
+ * store table. Routes through `TableContour<TTable>` so the projected input
+ * structurally matches the contour-backed derivation path in
+ * `@ontrails/core`'s `deriveTrail`.
+ */
+type DerivedInput<
+  TTable extends AnyStoreTable,
+  TOperation extends 'create' | 'read' | 'update' | 'delete' | 'list',
+> = DeriveTrailInput<
+  TableContour<TTable>,
+  TOperation,
+  GeneratedFieldsOf<TTable>
+>;
+
+/**
+ * Output type `deriveTrail` projects for a given CRUD operation against a
+ * store table.
+ */
+type DerivedOutput<
+  TTable extends AnyStoreTable,
+  TOperation extends 'create' | 'read' | 'update' | 'delete' | 'list',
+> = DeriveTrailOutput<TableContour<TTable>, TOperation>;
+
+type InternalCreateTrailOf<TTable extends AnyStoreTable> = Trail<
+  DerivedInput<TTable, 'create'>,
+  DerivedOutput<TTable, 'create'>
+>;
+
+type InternalReadTrailOf<TTable extends AnyStoreTable> = Trail<
+  DerivedInput<TTable, 'read'>,
+  DerivedOutput<TTable, 'read'>
+>;
+
+type InternalUpdateTrailOf<TTable extends AnyStoreTable> = Trail<
+  DerivedInput<TTable, 'update'>,
+  DerivedOutput<TTable, 'update'>
+>;
+
+type InternalDeleteTrailOf<TTable extends AnyStoreTable> = Trail<
+  DerivedInput<TTable, 'delete'>,
+  DerivedOutput<TTable, 'delete'>
+>;
+
+type InternalListTrailOf<TTable extends AnyStoreTable> = Trail<
+  DerivedInput<TTable, 'list'>,
+  DerivedOutput<TTable, 'list'>
+>;
+
+type InternalCrudBaseTrails<TTable extends AnyStoreTable> = Readonly<{
+  createBase: InternalCreateTrailOf<TTable>;
+  readBase: InternalReadTrailOf<TTable>;
+  updateBase: InternalUpdateTrailOf<TTable>;
+  deleteBase: InternalDeleteTrailOf<TTable>;
+  listBase: InternalListTrailOf<TTable>;
+}>;
+
+type TrailExampleOf<TInput, TOutput> = NonNullable<
+  Trail<TInput, TOutput>['examples']
+>[number];
 
 type CreateTrailOf<TTable extends AnyStoreTable> = Trail<
   InsertOf<TTable>,
@@ -46,17 +120,13 @@ type ListTrailOf<TTable extends AnyStoreTable> = Trail<
   EntityOf<TTable>[]
 >;
 
-type CrudBaseTrails<TTable extends AnyStoreTable> = Readonly<{
-  createBase: CreateTrailOf<TTable>;
-  readBase: ReadTrailOf<TTable>;
-  updateBase: UpdateTrailOf<TTable>;
-  deleteBase: DeleteTrailOf<TTable>;
-  listBase: ListTrailOf<TTable>;
-}>;
-
-type TrailExampleOf<TInput, TOutput> = NonNullable<
-  Trail<TInput, TOutput>['examples']
->[number];
+type InternalCrudTrails<TTable extends AnyStoreTable> = readonly [
+  create: InternalCreateTrailOf<TTable>,
+  read: InternalReadTrailOf<TTable>,
+  update: InternalUpdateTrailOf<TTable>,
+  remove: InternalDeleteTrailOf<TTable>,
+  list: InternalListTrailOf<TTable>,
+];
 
 export type CrudTrails<TTable extends AnyStoreTable> = readonly [
   create: CreateTrailOf<TTable>,
@@ -79,6 +149,33 @@ export interface CrudBlazeOverrides<TTable extends AnyStoreTable> {
 
 export interface CrudOptions<TTable extends AnyStoreTable> {
   readonly blaze?: CrudBlazeOverrides<TTable>;
+}
+
+interface InternalCrudBlazeOverrides<TTable extends AnyStoreTable> {
+  readonly create?: Implementation<
+    DerivedInput<TTable, 'create'>,
+    DerivedOutput<TTable, 'create'>
+  >;
+  readonly read?: Implementation<
+    DerivedInput<TTable, 'read'>,
+    DerivedOutput<TTable, 'read'>
+  >;
+  readonly update?: Implementation<
+    DerivedInput<TTable, 'update'>,
+    DerivedOutput<TTable, 'update'>
+  >;
+  readonly delete?: Implementation<
+    DerivedInput<TTable, 'delete'>,
+    DerivedOutput<TTable, 'delete'>
+  >;
+  readonly list?: Implementation<
+    DerivedInput<TTable, 'list'>,
+    DerivedOutput<TTable, 'list'>
+  >;
+}
+
+interface InternalCrudOptions<TTable extends AnyStoreTable> {
+  readonly blaze?: InternalCrudBlazeOverrides<TTable>;
 }
 
 const normalizeExampleForOutput = <TInput, TOutput>(
@@ -145,24 +242,29 @@ const deriveCrudBaseTrails = <
 >(
   table: TTable,
   resource: Resource<TConnection>
-): CrudBaseTrails<TTable> => {
+): InternalCrudBaseTrails<TTable> => {
   const entityContour = createTableContour(table);
-  const generated = table.generated as readonly string[];
+  // Narrow the store's `readonly string[]` to the contour's typed field-key
+  // array so `deriveTrail`'s `TGenerated` generic picks up the precise
+  // key-of shape that `CreateInputOf<Contour, TGenerated>` expects. The
+  // runtime value is unchanged — the names in `table.generated` are already
+  // keys of `table.schema.shape` by construction in `store()`.
+  const generated = table.generated as GeneratedFieldsOf<TTable>;
 
   return {
     createBase: deriveTrail(entityContour, 'create', {
       generated,
       resource,
-    }) as unknown as CreateTrailOf<TTable>,
+    }),
     deleteBase: deriveTrail(entityContour, 'delete', {
       resource,
-    }) as unknown as DeleteTrailOf<TTable>,
+    }),
     listBase: deriveTrail(entityContour, 'list', {
       resource,
-    }) as unknown as ListTrailOf<TTable>,
+    }),
     readBase: deriveTrail(entityContour, 'read', {
       resource,
-    }) as unknown as ReadTrailOf<TTable>,
+    }),
     // The `update` blaze synthesized by `deriveTrail` handles the partial-patch
     // concern: when the accessor lacks a native `update`, the fallback path in
     // `derive-trail.ts` (`updateViaReadAndUpsert`) reads the current entity,
@@ -171,16 +273,16 @@ const deriveCrudBaseTrails = <
     updateBase: deriveTrail(entityContour, 'update', {
       generated,
       resource,
-    }) as unknown as UpdateTrailOf<TTable>,
+    }),
   };
 };
 
 const buildCrudTrails = <TTable extends AnyStoreTable>(
-  baseTrails: CrudBaseTrails<TTable>,
-  overrides: CrudBlazeOverrides<TTable>,
-  entityOutput: z.ZodType<EntityOf<TTable>>,
-  listOutput: z.ZodType<EntityOf<TTable>[]>
-): CrudTrails<TTable> =>
+  baseTrails: InternalCrudBaseTrails<TTable>,
+  overrides: InternalCrudBlazeOverrides<TTable>,
+  entityOutput: z.ZodType<DerivedOutput<TTable, 'create'>>,
+  listOutput: z.ZodType<DerivedOutput<TTable, 'list'>>
+): InternalCrudTrails<TTable> =>
   Object.freeze([
     finalizeTrail(baseTrails.createBase, {
       ...(overrides.create === undefined ? {} : { blaze: overrides.create }),
@@ -208,7 +310,7 @@ const buildCrudTrails = <TTable extends AnyStoreTable>(
       output: listOutput,
       pattern: 'crud',
     }),
-  ]) as CrudTrails<TTable>;
+  ]) as InternalCrudTrails<TTable>;
 
 /**
  * Produce the standard CRUD trail tuple for one normalized store table.
@@ -219,20 +321,33 @@ const buildCrudTrails = <TTable extends AnyStoreTable>(
  * blaze overrides stay available for callers that need custom persistence
  * behavior and are layered onto the derived trails in a single pass.
  */
-export const crud = <
+export function crud<
   TTable extends AnyStoreTable,
   TConnection extends CrudConnection<TTable>,
 >(
   table: TTable,
   resource: Resource<TConnection>,
-  options: CrudOptions<TTable> = {}
-): CrudTrails<TTable> => {
+  options?: CrudOptions<TTable>
+): CrudTrails<TTable>;
+export function crud<
+  TTable extends AnyStoreTable,
+  TConnection extends CrudConnection<TTable>,
+>(
+  table: TTable,
+  resource: Resource<TConnection>,
+  options: InternalCrudOptions<TTable> = {}
+) {
   const overrides = options.blaze ?? {};
   const baseTrails = deriveCrudBaseTrails(table, resource);
-  const entityOutput = table.schema as unknown as z.ZodType<EntityOf<TTable>>;
-  const listOutput = table.schema.array() as unknown as z.ZodType<
-    EntityOf<TTable>[]
-  >;
+  // Narrow `table.schema` (typed `StoreObjectSchema`, which is
+  // `z.ZodObject<Record<string, z.ZodType>>`) to a ZodObject keyed by the
+  // concrete shape so its `z.output` unifies with the contour-derived
+  // output. Structurally `table.schema` already has `shape:
+  // TTable['schema']['shape']` — this only refines the generic parameter.
+  const entitySchema = table.schema as z.ZodObject<TTable['schema']['shape']>;
+  const entityOutput: z.ZodType<DerivedOutput<TTable, 'create'>> = entitySchema;
+  const listOutput: z.ZodType<DerivedOutput<TTable, 'list'>> =
+    entitySchema.array();
 
   return buildCrudTrails(baseTrails, overrides, entityOutput, listOutput);
-};
+}
