@@ -26,10 +26,11 @@ import {
   parse,
 } from './rules/ast.js';
 import { collectFileCrudCoverage } from './rules/incomplete-crud.js';
-import { wardenRules } from './rules/index.js';
+import { wardenRules, wardenTopoRules } from './rules/index.js';
 import type {
   ProjectAwareWardenRule,
   ProjectContext,
+  TopoAwareWardenRule,
   WardenDiagnostic,
   WardenRule,
 } from './rules/types.js';
@@ -44,8 +45,25 @@ export interface WardenOptions {
   readonly lintOnly?: boolean | undefined;
   /** Only run drift detection, skip lint rules */
   readonly driftOnly?: boolean | undefined;
-  /** App topology for drift detection. When provided, enables real trailhead lock comparison. */
+  /**
+   * App topology for drift detection. When provided, enables real trailhead
+   * lock comparison and unlocks the topo-aware rule dispatch path.
+   *
+   * @remarks
+   * Topo-aware rules (both built-in `wardenTopoRules` and `extraTopoRules`)
+   * only fire when a `Topo` is supplied. Runs without a topo silently skip
+   * topo-aware dispatch — callers that depend on a topo-aware rule firing
+   * must pass `topo` explicitly.
+   */
   readonly topo?: Topo | undefined;
+  /**
+   * Extra topo-aware rules to run in addition to the built-in registry.
+   *
+   * Primarily a test hook — production callers should register rules via
+   * `wardenTopoRules` in `rules/index.ts`. These rules are only invoked
+   * when `topo` is also supplied (see `topo` remarks).
+   */
+  readonly extraTopoRules?: readonly TopoAwareWardenRule[] | undefined;
 }
 
 /**
@@ -564,21 +582,54 @@ const buildProjectContext = (
 const isProjectAwareRule = (rule: WardenRule): rule is ProjectAwareWardenRule =>
   'checkWithContext' in rule;
 
-/**
- * Lint all files against all warden rules.
- */
-const lintFiles = async (
-  rootDir: string,
-  appTopo?: Topo | undefined
-): Promise<WardenDiagnostic[]> => {
-  const allDiagnostics: WardenDiagnostic[] = [];
-  const sourceFiles = await loadSourceFiles(rootDir);
-  const context = buildProjectContext(sourceFiles, appTopo);
+const topoRuleFailureDiagnostic = (
+  rule: TopoAwareWardenRule,
+  error: unknown
+): WardenDiagnostic => {
+  const cause = error instanceof Error ? error : new Error(String(error));
+  return {
+    filePath: '<topo>',
+    line: 1,
+    message: `Topo-aware rule "${rule.name}" threw: ${cause.message}`,
+    rule: rule.name,
+    severity: 'error',
+  };
+};
 
+/**
+ * Run all registered topo-aware rules against the resolved topo.
+ *
+ * Topo-aware rules fire exactly once per run (not per file) because they
+ * inspect the compiled trail graph, not source text.
+ */
+const lintTopo = async (
+  appTopo: Topo,
+  extraTopoRules: readonly TopoAwareWardenRule[]
+): Promise<readonly WardenDiagnostic[]> => {
+  const diagnostics: WardenDiagnostic[] = [];
+  const rules: readonly TopoAwareWardenRule[] = [
+    ...wardenTopoRules.values(),
+    ...extraTopoRules,
+  ];
+  for (const rule of rules) {
+    try {
+      diagnostics.push(...(await rule.checkTopo(appTopo)));
+    } catch (error) {
+      diagnostics.push(topoRuleFailureDiagnostic(rule, error));
+    }
+  }
+  return diagnostics;
+};
+
+const lintSourceFiles = (
+  sourceFiles: readonly SourceFile[],
+  context: ProjectContext
+): readonly WardenDiagnostic[] => {
+  const diagnostics: WardenDiagnostic[] = [];
   for (const sourceFile of sourceFiles) {
     for (const rule of wardenRules.values()) {
       if (isProjectAwareRule(rule)) {
-        allDiagnostics.push(
+        diagnostics.push(
           ...rule.checkWithContext(
             sourceFile.sourceCode,
             sourceFile.filePath,
@@ -587,11 +638,30 @@ const lintFiles = async (
         );
         continue;
       }
-
-      allDiagnostics.push(
+      diagnostics.push(
         ...rule.check(sourceFile.sourceCode, sourceFile.filePath)
       );
     }
+  }
+  return diagnostics;
+};
+
+/**
+ * Lint all files against all warden rules.
+ */
+const lintFiles = async (
+  rootDir: string,
+  appTopo?: Topo | undefined,
+  extraTopoRules: readonly TopoAwareWardenRule[] = []
+): Promise<WardenDiagnostic[]> => {
+  const sourceFiles = await loadSourceFiles(rootDir);
+  const context = buildProjectContext(sourceFiles, appTopo);
+  const allDiagnostics: WardenDiagnostic[] = [
+    ...lintSourceFiles(sourceFiles, context),
+  ];
+
+  if (appTopo) {
+    allDiagnostics.push(...(await lintTopo(appTopo, extraTopoRules)));
   }
 
   return allDiagnostics;
@@ -606,7 +676,7 @@ export const runWarden = async (
   const rootDir = resolve(options.rootDir ?? process.cwd());
   const allDiagnostics = options.driftOnly
     ? []
-    : await lintFiles(rootDir, options.topo);
+    : await lintFiles(rootDir, options.topo, options.extraTopoRules ?? []);
   const drift = options.lintOnly
     ? null
     : await checkDrift(rootDir, options.topo);

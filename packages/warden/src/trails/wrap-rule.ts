@@ -4,16 +4,27 @@
  * Keeps each rule trail file minimal — just the import + examples.
  */
 
-import { trail, Result } from '@ontrails/core';
+import { InternalError, trail, Result } from '@ontrails/core';
 import type { Trail } from '@ontrails/core';
 
 import type {
   ProjectAwareWardenRule,
   ProjectContext,
+  TopoAwareWardenRule,
   WardenRule,
 } from '../rules/types.js';
-import { projectAwareRuleInput, ruleInput, ruleOutput } from './schema.js';
-import type { ProjectAwareRuleInput, RuleInput, RuleOutput } from './schema.js';
+import {
+  projectAwareRuleInput,
+  ruleInput,
+  ruleOutput,
+  topoAwareRuleInput,
+} from './schema.js';
+import type {
+  ProjectAwareRuleInput,
+  RuleInput,
+  RuleOutput,
+  TopoAwareRuleInput,
+} from './schema.js';
 
 interface WrapRuleOptions {
   /** The existing warden rule to wrap. */
@@ -132,3 +143,45 @@ export function wrapRule(
     output: ruleOutput,
   });
 }
+
+interface WrapTopoRuleOptions {
+  /** The existing topo-aware warden rule to wrap. */
+  readonly rule: TopoAwareWardenRule;
+  /** Trail examples for testing and documentation. */
+  readonly examples: Trail<TopoAwareRuleInput, RuleOutput>['examples'];
+}
+
+/**
+ * Wrap an existing `TopoAwareWardenRule` as a trail.
+ *
+ * Mirrors `wrapRule` for the per-topo dispatch path. Topo-aware rules run
+ * once per topo against the compiled runtime graph rather than per file,
+ * so the trail accepts the live `Topo` as input.
+ */
+export const wrapTopoRule = (
+  options: WrapTopoRuleOptions
+): Trail<TopoAwareRuleInput, RuleOutput> => {
+  const { rule, examples } = options;
+  return trail(`warden.rule.${rule.name}`, {
+    blaze: async (input: TopoAwareRuleInput) => {
+      try {
+        const diagnostics = await rule.checkTopo(input.topo);
+        return Result.ok({ diagnostics: [...diagnostics] });
+      } catch (error) {
+        const cause = error instanceof Error ? error : new Error(String(error));
+        return Result.err(
+          new InternalError(
+            `Topo-aware rule "${rule.name}" threw while inspecting topo: ${cause.message}`,
+            { cause }
+          )
+        );
+      }
+    },
+    description: rule.description,
+    examples,
+    input: topoAwareRuleInput,
+    intent: 'read',
+    meta: { category: 'governance', severity: rule.severity },
+    output: ruleOutput,
+  });
+};

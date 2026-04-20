@@ -27,5 +27,11 @@ export { unreachableDetourShadowingTrail } from './unreachable-detour-shadowing.
 export { validDescribeRefsTrail } from './valid-describe-refs.trail.js';
 export { validDetourRefsTrail } from './valid-detour-refs.trail.js';
 
-export { ruleInput, ruleOutput, diagnosticSchema } from './schema.js';
-export type { RuleInput, RuleOutput } from './schema.js';
+export {
+  diagnosticSchema,
+  ruleInput,
+  ruleOutput,
+  topoAwareRuleInput,
+} from './schema.js';
+export type { RuleInput, RuleOutput, TopoAwareRuleInput } from './schema.js';
+export { wrapTopoRule } from './wrap-rule.js';

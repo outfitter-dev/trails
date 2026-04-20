@@ -25,7 +25,7 @@ import { referenceExists } from './reference-exists.js';
 import { resourceDeclarations } from './resource-declarations.js';
 import { resourceExists } from './resource-exists.js';
 import { resourceIdGrammar } from './resource-id-grammar.js';
-import type { WardenRule } from './types.js';
+import type { TopoAwareWardenRule, WardenRule } from './types.js';
 import { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 import { validDescribeRefs } from './valid-describe-refs.js';
 import { validDetourRefs } from './valid-detour-refs.js';
@@ -33,6 +33,7 @@ import { validDetourRefs } from './valid-detour-refs.js';
 export type {
   ProjectAwareWardenRule,
   ProjectContext,
+  TopoAwareWardenRule,
   WardenDiagnostic,
   WardenRule,
   WardenSeverity,
@@ -105,3 +106,19 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [noDirectImplInRoute.name, noDirectImplInRoute],
   [unreachableDetourShadowing.name, unreachableDetourShadowing],
 ]);
+
+/**
+ * Built-in topo-aware warden rules, keyed by rule name.
+ *
+ * These rules inspect the compiled runtime trail graph once per topo,
+ * rather than scanning source files. Kept in a separate registry because
+ * their dispatch shape differs from `WardenRule` / `ProjectAwareWardenRule`.
+ *
+ * @remarks
+ * Topo-aware rules only fire when the warden runtime is invoked with a
+ * resolved `Topo` (see `WardenOptions.topo`). Runs without a topo — e.g.
+ * pure source-directory lints — silently skip this registry. Rules
+ * registered here must tolerate non-execution when no topo is available.
+ */
+export const wardenTopoRules: ReadonlyMap<string, TopoAwareWardenRule> =
+  new Map<string, TopoAwareWardenRule>();

@@ -11,6 +11,7 @@
 export type {
   ProjectAwareWardenRule,
   ProjectContext,
+  TopoAwareWardenRule,
   WardenDiagnostic,
   WardenRule,
   WardenSeverity,
@@ -48,7 +49,7 @@ export { unreachableDetourShadowing } from './rules/unreachable-detour-shadowing
 export { validDescribeRefs } from './rules/valid-describe-refs.js';
 
 // Rule registry
-export { wardenRules } from './rules/index.js';
+export { wardenRules, wardenTopoRules } from './rules/index.js';
 
 // CLI runner
 export type { WardenOptions, WardenReport } from './cli.js';
@@ -116,8 +117,14 @@ export {
   resourceDeclarationsTrail,
   resourceIdGrammarTrail,
   resourceExistsTrail,
+  topoAwareRuleInput,
   unreachableDetourShadowingTrail,
   validDescribeRefsTrail,
   validDetourRefsTrail,
+  wrapTopoRule,
 } from './trails/index.js';
-export type { RuleInput, RuleOutput } from './trails/index.js';
+export type {
+  RuleInput,
+  RuleOutput,
+  TopoAwareRuleInput,
+} from './trails/index.js';

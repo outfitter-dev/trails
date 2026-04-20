@@ -5,6 +5,7 @@
  * (array of diagnostics) shape.
  */
 
+import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
 
 /** A single diagnostic emitted by a warden rule trail. */
@@ -82,6 +83,29 @@ export const projectAwareRuleInput = ruleInput.extend({
     .describe('Normalized trail intents keyed by trail ID'),
 });
 
+/**
+ * Input for topo-aware warden rule trails.
+ *
+ * The `Topo` graph is not a serializable value, so the schema accepts it
+ * as an opaque `z.custom`. Topo-aware rules are invoked from the warden
+ * runtime with a live, resolved topo reference — they are not expected
+ * to be called across a network boundary.
+ */
+export const topoAwareRuleInput = z.object({
+  topo: z
+    .custom<Topo>(
+      (value) =>
+        typeof value === 'object' &&
+        value !== null &&
+        'trails' in value &&
+        'resources' in value &&
+        'contours' in value &&
+        'signals' in value,
+      { message: 'Expected a resolved Topo instance' }
+    )
+    .describe('Resolved topo graph under inspection'),
+});
+
 /** Output returned by every warden rule trail. */
 export const ruleOutput = z.object({
   diagnostics: z.array(diagnosticSchema).describe('Diagnostics found'),
@@ -89,4 +113,5 @@ export const ruleOutput = z.object({
 
 export type RuleInput = z.infer<typeof ruleInput>;
 export type ProjectAwareRuleInput = z.infer<typeof projectAwareRuleInput>;
+export type TopoAwareRuleInput = z.infer<typeof topoAwareRuleInput>;
 export type RuleOutput = z.infer<typeof ruleOutput>;

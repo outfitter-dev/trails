@@ -1,3 +1,5 @@
+import type { Topo } from '@ontrails/core';
+
 /**
  * Severity level for warden diagnostics.
  */
@@ -90,4 +92,28 @@ export interface ProjectAwareWardenRule extends WardenRule {
     filePath: string,
     context: ProjectContext
   ) => readonly WardenDiagnostic[];
+}
+
+/**
+ * A topo-aware warden rule inspects the compiled runtime trail graph —
+ * actual `Trail` objects with resolved types, accessor shapes, detour
+ * declarations, `pattern` field values, and other runtime-only data that
+ * is unavailable to AST-based rules.
+ *
+ * Unlike `WardenRule` and `ProjectAwareWardenRule`, which analyze source
+ * code on a per-file basis, a `TopoAwareWardenRule` runs once per topo
+ * and returns diagnostics spanning the whole graph. A rule file must
+ * implement exactly one of the three rule kinds.
+ */
+export interface TopoAwareWardenRule {
+  /** Unique rule identifier */
+  readonly name: string;
+  /** Default severity */
+  readonly severity: WardenSeverity;
+  /** Human-readable description of what the rule enforces */
+  readonly description: string;
+  /** Run the rule against the resolved topo and return any diagnostics */
+  readonly checkTopo: (
+    topo: Topo
+  ) => readonly WardenDiagnostic[] | Promise<readonly WardenDiagnostic[]>;
 }
