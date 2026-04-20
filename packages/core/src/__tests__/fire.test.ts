@@ -3,6 +3,8 @@ import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import { NotFoundError, ValidationError } from '../errors';
+import { clearTraceSink, registerTraceSink } from '../internal/tracing';
+import type { TraceRecord, TraceSink } from '../internal/tracing';
 import type { Layer } from '../layer';
 import { Result } from '../result';
 import { run } from '../run';
@@ -439,6 +441,116 @@ const createDepthChainScenario = (chainLength: number) => {
   };
 };
 
+const createCapturingSink = (records: TraceRecord[]): TraceSink => ({
+  write(record) {
+    records.push(record);
+  },
+});
+
+const createTraceShapeScenario = () => {
+  const leftStarted = createReadyGate();
+  const rightStarted = createReadyGate();
+  const release = createReadyGate();
+  const app = topo('fire-trace-shape', {
+    consumerA: createBlockingConsumer(
+      'notify.email',
+      leftStarted,
+      release.promise
+    ),
+    consumerB: createBlockingConsumer(
+      'notify.slack',
+      rightStarted,
+      release.promise
+    ),
+    orderPlaced,
+    producer: makeProducer({}),
+  });
+  return { app, leftStarted, release, rightStarted };
+};
+
+const runTraceShapeScenario = async (
+  scenario: ReturnType<typeof createTraceShapeScenario>
+) => {
+  const runPromise = run(scenario.app, 'order.create', {
+    orderId: 'o-trace',
+    total: 7,
+  });
+  // Both consumers must enter before either completes — this proves parallel
+  // fan-out. Sequential fan-out would deadlock here.
+  await waitForReadyPair(
+    scenario.leftStarted.promise,
+    scenario.rightStarted.promise
+  );
+  scenario.release.resolve(READY);
+  return await runPromise;
+};
+
+const findTrailRecord = (
+  records: readonly TraceRecord[],
+  trailId: string
+): TraceRecord => {
+  const record = records.find(
+    (entry) => entry.kind === 'trail' && entry.trailId === trailId
+  );
+  if (!record) {
+    throw new Error(`Expected trail trace record for "${trailId}"`);
+  }
+  return record;
+};
+
+const expectSiblingParentage = (
+  producer: TraceRecord,
+  left: TraceRecord,
+  right: TraceRecord
+): void => {
+  expect(left.parentId).toBe(producer.id);
+  expect(right.parentId).toBe(producer.id);
+  expect(left.traceId).toBe(producer.traceId);
+  expect(right.traceId).toBe(producer.traceId);
+  expect(left.rootId).toBe(producer.rootId);
+  expect(right.rootId).toBe(producer.rootId);
+};
+
+const expectSiblingIdentity = (
+  producer: TraceRecord,
+  left: TraceRecord,
+  right: TraceRecord
+): void => {
+  expect(left.id).not.toBe(right.id);
+  expect(left.id).not.toBe(producer.id);
+  expect(right.id).not.toBe(producer.id);
+  expect(left.status).toBe('ok');
+  expect(right.status).toBe('ok');
+};
+
+const expectSiblingOverlap = (left: TraceRecord, right: TraceRecord): void => {
+  const leftEnd = left.endedAt;
+  const rightEnd = right.endedAt;
+  if (leftEnd === undefined || rightEnd === undefined) {
+    throw new Error('Expected both sibling records to have completed timings');
+  }
+  // Overlap means each span ended after the other started — i.e. they were
+  // both in-flight at some point. Sequential execution would fail this.
+  expect(leftEnd).toBeGreaterThanOrEqual(right.startedAt);
+  expect(rightEnd).toBeGreaterThanOrEqual(left.startedAt);
+};
+
+const expectSiblingTraceShape = (
+  records: readonly TraceRecord[],
+  ids: {
+    producerTrailId: string;
+    leftTrailId: string;
+    rightTrailId: string;
+  }
+): void => {
+  const producer = findTrailRecord(records, ids.producerTrailId);
+  const left = findTrailRecord(records, ids.leftTrailId);
+  const right = findTrailRecord(records, ids.rightTrailId);
+  expectSiblingParentage(producer, left, right);
+  expectSiblingIdentity(producer, left, right);
+  expectSiblingOverlap(left, right);
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -737,6 +849,26 @@ describe('fire', () => {
         event.message.includes('depth limit')
       );
       expect(depthWarning).toBeDefined();
+    });
+  });
+
+  describe('trace shape', () => {
+    test('sibling consumers emit overlapping trace records parented to the producer', async () => {
+      const records: TraceRecord[] = [];
+      registerTraceSink(createCapturingSink(records));
+
+      try {
+        const scenario = createTraceShapeScenario();
+        const result = await runTraceShapeScenario(scenario);
+        expect(result.isOk()).toBe(true);
+        expectSiblingTraceShape(records, {
+          leftTrailId: 'notify.email',
+          producerTrailId: 'order.create',
+          rightTrailId: 'notify.slack',
+        });
+      } finally {
+        clearTraceSink();
+      }
     });
   });
 
