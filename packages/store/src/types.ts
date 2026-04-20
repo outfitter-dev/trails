@@ -45,7 +45,9 @@ type GeneratedFieldNames<
 
 // We intentionally use Zod v4's shape-routed object infer helpers here because
 // the public z.input/z.output path widens away the generic equality we need at
-// store/core trail boundaries.
+// store/core trail boundaries. These $-prefixed helpers are semi-internal Zod
+// v4 API; that maintenance tradeoff is acceptable here because the public path
+// does not preserve the boundary-proof shape we need.
 type ObjectInputOf<TShape extends z.ZodRawShape> = z.core.$InferObjectInput<
   TShape,
   Record<never, never>
@@ -66,6 +68,11 @@ type ObjectOutputOf<TShape extends z.ZodRawShape> = z.core.$InferObjectOutput<
  * Routes input inference through the object's `shape` via a conditional
  * `infer` so fixture inputs stay structurally aligned with the derived
  * create/upsert inputs they meet at store/core trail boundaries.
+ *
+ * This is not the same type-level path core's `deriveTrail()` uses — core
+ * still goes through `z.input<TContour>` / `z.output<TContour>` — but at
+ * concrete instantiations it collapses to the same structural fixture shape
+ * while preserving generic equality across the store/core seam.
  */
 export type StoreFixtureInput<
   TSchema extends StoreObjectSchema,
@@ -97,6 +104,9 @@ export type StoreFixtureInput<
  * Mirror of {@link StoreFixtureInput} on the output side — routed through
  * `$InferObjectOutput<TShape, Record<never, never>>` so row types stay
  * structurally aligned with the contour output shapes they compose against.
+ *
+ * As with {@link StoreFixtureInput}, this is a shape-routed equivalent rather
+ * than the identical `z.output<TSchema>` inference path core uses directly.
  */
 export type StoreFixtureRow<
   TSchema extends StoreObjectSchema,
