@@ -110,6 +110,22 @@ const [createNote, readNote, updateNote, deleteNote, listNote] = crud(
   notesResource
 );
 
+type CreateNoteInput = Parameters<typeof createNote.blaze>[0];
+type UpdateNoteInput = Parameters<typeof updateNote.blaze>[0];
+
+const createInputHasTitle: 'title' extends keyof CreateNoteInput
+  ? true
+  : false = true;
+const createInputOmitsGeneratedId: 'id' extends keyof CreateNoteInput
+  ? false
+  : true = true;
+const updateInputHasIdentity: 'id' extends keyof UpdateNoteInput
+  ? true
+  : false = true;
+const updateInputHasWritableFields: 'title' extends keyof UpdateNoteInput
+  ? true
+  : false = true;
+
 // oxlint-disable-next-line jest/require-hook -- testAll generates describe/test blocks, not setup code
 testAll(
   topo('store-crud-app', {
@@ -189,6 +205,10 @@ const expectOk = <T>(result: Result<T, Error>): T => {
 
 describe('crud()', () => {
   test('produces the five standard CRUD trails with derived schemas', () => {
+    expect(createInputHasTitle).toBe(true);
+    expect(createInputOmitsGeneratedId).toBe(true);
+    expect(updateInputHasIdentity).toBe(true);
+    expect(updateInputHasWritableFields).toBe(true);
     expectCrudIds();
     expectCrudPatterns();
     expectCrudInputSchemas();

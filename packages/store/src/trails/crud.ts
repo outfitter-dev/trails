@@ -32,7 +32,9 @@ type TableContourFieldKey<TTable extends AnyStoreTable> = Extract<
 >;
 
 type GeneratedFieldsOf<TTable extends AnyStoreTable> =
-  readonly TableContourFieldKey<TTable>[];
+  TTable['generated'] extends readonly TableContourFieldKey<TTable>[]
+    ? TTable['generated']
+    : readonly [];
 
 /**
  * Input type `deriveTrail` projects for a given CRUD operation against a
