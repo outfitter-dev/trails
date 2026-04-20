@@ -43,47 +43,84 @@ type GeneratedFieldNames<
   ? TGenerated[number]
   : never;
 
+// We intentionally use Zod v4's shape-routed object infer helpers here because
+// the public z.input/z.output path widens away the generic equality we need at
+// store/core trail boundaries.
+type ObjectInputOf<TShape extends z.ZodRawShape> = z.core.$InferObjectInput<
+  TShape,
+  Record<never, never>
+>;
+
+type ObjectOutputOf<TShape extends z.ZodRawShape> = z.core.$InferObjectOutput<
+  TShape,
+  Record<never, never>
+>;
+
 /**
  * Seed row accepted for one table fixture.
  *
  * Generated fields may be supplied explicitly, but they are optional so test
  * fixtures can omit timestamps and similar server-managed values when the mock
  * store can synthesize them.
+ *
+ * Routes input inference through the object's `shape` via a conditional
+ * `infer` so fixture inputs stay structurally aligned with the derived
+ * create/upsert inputs they meet at store/core trail boundaries.
  */
 export type StoreFixtureInput<
   TSchema extends StoreObjectSchema,
   TGenerated extends readonly string[] | undefined =
     | readonly string[]
     | undefined,
-> = Omit<
-  z.input<TSchema>,
-  Extract<GeneratedFieldNames<TSchema, TGenerated>, keyof z.input<TSchema>>
-> &
-  Partial<
-    Pick<
-      z.input<TSchema>,
-      Extract<GeneratedFieldNames<TSchema, TGenerated>, keyof z.input<TSchema>>
-    >
-  >;
+> = [TSchema] extends [z.ZodObject<infer TShape>]
+  ? Omit<
+      ObjectInputOf<TShape>,
+      Extract<
+        GeneratedFieldNames<TSchema, TGenerated>,
+        keyof ObjectInputOf<TShape>
+      >
+    > &
+      Partial<
+        Pick<
+          ObjectInputOf<TShape>,
+          Extract<
+            GeneratedFieldNames<TSchema, TGenerated>,
+            keyof ObjectInputOf<TShape>
+          >
+        >
+      >
+  : never;
 
 /**
  * Normalized fixture row after schema validation and default application.
+ *
+ * Mirror of {@link StoreFixtureInput} on the output side — routed through
+ * `$InferObjectOutput<TShape, Record<never, never>>` so row types stay
+ * structurally aligned with the contour output shapes they compose against.
  */
 export type StoreFixtureRow<
   TSchema extends StoreObjectSchema,
   TGenerated extends readonly string[] | undefined =
     | readonly string[]
     | undefined,
-> = Omit<
-  z.output<TSchema>,
-  Extract<GeneratedFieldNames<TSchema, TGenerated>, keyof z.output<TSchema>>
-> &
-  Partial<
-    Pick<
-      z.output<TSchema>,
-      Extract<GeneratedFieldNames<TSchema, TGenerated>, keyof z.output<TSchema>>
-    >
-  >;
+> = [TSchema] extends [z.ZodObject<infer TShape>]
+  ? Omit<
+      ObjectOutputOf<TShape>,
+      Extract<
+        GeneratedFieldNames<TSchema, TGenerated>,
+        keyof ObjectOutputOf<TShape>
+      >
+    > &
+      Partial<
+        Pick<
+          ObjectOutputOf<TShape>,
+          Extract<
+            GeneratedFieldNames<TSchema, TGenerated>,
+            keyof ObjectOutputOf<TShape>
+          >
+        >
+      >
+  : never;
 
 /**
  * Connector-owned search metadata.
@@ -381,13 +418,22 @@ export type GeneratedKeysOf<TTable extends AnyStoreTable> = Extract<
 /**
  * Insert shape: entity minus generated fields, with defaulted fields optional.
  *
- * Uses `z.input` so that fields with `.default()` are correctly represented as
- * optional in the insert shape (matching the runtime insert schema behavior).
+ * Routes through `$InferObjectInput<TShape, Record<never, never>>` via a
+ * conditional `infer` on the object's `shape`. At concrete instantiations
+ * this collapses to the same structural shape as
+ * `Omit<z.input<TTable['schema']>, GeneratedKeysOf<TTable>>`, but the
+ * shape-routed form lets TypeScript prove structural equality with
+ * `CreateInputOf<Contour, ...>` at trail boundaries without widening
+ * generic call sites to `Record<string, unknown>`.
+ *
+ * Defaulted fields remain optional because `$InferObjectInput` honors
+ * `OptionalInSchema`, mirroring the runtime insert schema behavior.
  */
-export type InsertOf<TTable extends AnyStoreTable> = Omit<
-  z.input<TTable['schema']>,
-  GeneratedKeysOf<TTable>
->;
+export type InsertOf<TTable extends AnyStoreTable> = [
+  TTable['schema'],
+] extends [z.ZodObject<infer TShape>]
+  ? Omit<ObjectInputOf<TShape>, GeneratedKeysOf<TTable>>
+  : never;
 
 /**
  * Update shape: partial insert minus the primary key (immutable identifier).
