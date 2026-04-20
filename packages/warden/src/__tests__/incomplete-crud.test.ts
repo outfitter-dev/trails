@@ -39,10 +39,13 @@ export const ${operation}Note = deriveTrail(note, '${operation}', {
 });
 `;
 
-const importedSplitFileSource = (operation: string): string => `
+const importedSplitFileSource = (
+  operation: string,
+  source = './shared/contours.js'
+): string => `
 import { Result, resource } from '@ontrails/core';
 import { deriveTrail } from '@ontrails/core/trails';
-import { note } from './shared/contours.js';
+import { note } from '${source}';
 
 const notesResource = resource('db.notes', {
   create: () => Result.ok({}),
@@ -405,6 +408,23 @@ export const readNote = deriveTrail(noteContour, 'read', {
       expect(diagnostics).toHaveLength(1);
       expect(diagnostics[0]?.message).toContain('noteContour');
       expect(diagnostics[0]?.message).not.toContain('"note"');
+    });
+
+    test('does not merge imported coverage from a different module origin', () => {
+      const context = buildContext({
+        'imported:./shared/a.js#note': ['read', 'update', 'delete', 'list'],
+      });
+
+      const diagnostics = incompleteCrud.checkWithContext(
+        importedSplitFileSource('create', './shared/b.js'),
+        CREATE_FILE,
+        context
+      );
+
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0]?.message).toContain('note');
+      expect(diagnostics[0]?.message).toContain('create');
+      expect(diagnostics[0]?.message).toContain('read');
     });
 
     test('still warns when aggregated coverage is incomplete', () => {

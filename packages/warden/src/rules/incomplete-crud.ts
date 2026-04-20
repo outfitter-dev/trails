@@ -1,5 +1,4 @@
 import {
-  collectImportAliasMap,
   collectNamedContourIds,
   collectNamedStoreTableIds,
   getStringValue,
@@ -24,6 +23,7 @@ const CRUD_OPERATION_SET = new Set<string>(CRUD_OPERATIONS);
 
 /** Sentinel entity id prefix for contours imported from another module. */
 const IMPORTED_CONTOUR_PREFIX = 'imported:';
+const IMPORTED_CONTOUR_SOURCE_SEPARATOR = '#';
 const CONTOUR_BINDING_SUFFIX = 'Contour';
 
 interface CrudCoverage {
@@ -31,6 +31,69 @@ interface CrudCoverage {
   readonly line: number;
   readonly operations: Set<string>;
 }
+
+interface ImportAliasResolution {
+  readonly importedName: string;
+  readonly source: string;
+}
+
+const getImportSource = (node: AstNode): string | null => {
+  const sourceNode = (node as unknown as { source?: AstNode }).source;
+  return sourceNode && isStringLiteral(sourceNode)
+    ? getStringValue(sourceNode)
+    : null;
+};
+
+const extractImportAliasResolution = (
+  specifier: AstNode,
+  source: string
+): {
+  readonly localName: string;
+  readonly resolution: ImportAliasResolution;
+} | null => {
+  if (specifier.type !== 'ImportSpecifier') {
+    return null;
+  }
+
+  const { imported } = specifier as unknown as { imported?: AstNode };
+  const { local } = specifier as unknown as { local?: AstNode };
+  const localName = identifierName(local);
+  if (!localName) {
+    return null;
+  }
+
+  const importedName = imported
+    ? (identifierName(imported) ??
+      (isStringLiteral(imported) ? getStringValue(imported) : null))
+    : null;
+  return {
+    localName,
+    resolution: {
+      importedName: importedName ?? localName,
+      source,
+    },
+  };
+};
+
+const collectImportDeclarationAliases = (
+  node: AstNode,
+  aliases: Map<string, ImportAliasResolution>
+): void => {
+  const source = getImportSource(node);
+  if (!source) {
+    return;
+  }
+
+  const specifiers = ((node as unknown as { specifiers?: readonly AstNode[] })
+    .specifiers ?? []) as readonly AstNode[];
+  for (const specifier of specifiers) {
+    const alias = extractImportAliasResolution(specifier, source);
+    if (!alias) {
+      continue;
+    }
+    aliases.set(alias.localName, alias.resolution);
+  }
+};
 
 const extractInlineContourId = (node: AstNode | undefined): string | null => {
   if (!isNamedCall(node, 'contour')) {
@@ -42,6 +105,43 @@ const extractInlineContourId = (node: AstNode | undefined): string | null => {
   return nameArg && isStringLiteral(nameArg) ? getStringValue(nameArg) : null;
 };
 
+const collectImportAliasResolutions = (
+  ast: AstNode
+): ReadonlyMap<string, ImportAliasResolution> => {
+  const aliases = new Map<string, ImportAliasResolution>();
+
+  walk(ast, (node) => {
+    if (node.type !== 'ImportDeclaration') {
+      return;
+    }
+    collectImportDeclarationAliases(node, aliases);
+  });
+
+  return aliases;
+};
+
+const buildImportedContourId = (source: string, importedName: string): string =>
+  `${IMPORTED_CONTOUR_PREFIX}${source}${IMPORTED_CONTOUR_SOURCE_SEPARATOR}${importedName}`;
+
+const parseImportedContourId = (
+  entityId: string
+): { readonly bindingName: string; readonly source?: string } | null => {
+  if (!entityId.startsWith(IMPORTED_CONTOUR_PREFIX)) {
+    return null;
+  }
+
+  const remainder = entityId.slice(IMPORTED_CONTOUR_PREFIX.length);
+  const separator = remainder.lastIndexOf(IMPORTED_CONTOUR_SOURCE_SEPARATOR);
+  if (separator === -1) {
+    return { bindingName: remainder };
+  }
+
+  return {
+    bindingName: remainder.slice(separator + 1),
+    source: remainder.slice(0, separator),
+  };
+};
+
 /**
  * Resolve an identifier reference (bound contour or imported alias) to a
  * stable entity id. Imported identifiers return a `pending-resolution`
@@ -50,24 +150,20 @@ const extractInlineContourId = (node: AstNode | undefined): string | null => {
 const resolveContourIdentifier = (
   name: string,
   namedContourIds: ReadonlyMap<string, string>,
-  importAliases: ReadonlyMap<string, string>
+  importAliases: ReadonlyMap<string, ImportAliasResolution>
 ): string | null => {
   const local = namedContourIds.get(name);
   if (local) {
     return local;
   }
 
-  if (importAliases.has(name)) {
-    return `${IMPORTED_CONTOUR_PREFIX}${importAliases.get(name) ?? name}`;
+  const imported = importAliases.get(name);
+  if (imported) {
+    return buildImportedContourId(imported.source, imported.importedName);
   }
 
   return null;
 };
-
-const stripImportedContourPrefix = (entityId: string): string =>
-  entityId.startsWith(IMPORTED_CONTOUR_PREFIX)
-    ? entityId.slice(IMPORTED_CONTOUR_PREFIX.length)
-    : entityId;
 
 const stripContourBindingSuffix = (entityId: string): string =>
   entityId.endsWith(CONTOUR_BINDING_SUFFIX)
@@ -78,11 +174,15 @@ const normalizeProjectEntityId = (
   entityId: string,
   projectEntityIds: ReadonlySet<string>
 ): string => {
-  const localId = stripImportedContourPrefix(entityId);
-  if (!entityId.startsWith(IMPORTED_CONTOUR_PREFIX)) {
-    return localId;
+  const imported = parseImportedContourId(entityId);
+  if (!imported) {
+    return entityId;
   }
 
+  const localId = imported.bindingName;
+  if (projectEntityIds.has(localId)) {
+    return localId;
+  }
   const strippedId = stripContourBindingSuffix(localId);
   if (
     strippedId !== localId &&
@@ -91,7 +191,7 @@ const normalizeProjectEntityId = (
   ) {
     return strippedId;
   }
-  return localId;
+  return entityId;
 };
 
 const normalizeProjectCoverage = (
@@ -124,7 +224,7 @@ const normalizeProjectCoverage = (
 const resolveContourId = (
   node: AstNode | undefined,
   namedContourIds: ReadonlyMap<string, string>,
-  importAliases: ReadonlyMap<string, string>
+  importAliases: ReadonlyMap<string, ImportAliasResolution>
 ): string | null => {
   if (!node) {
     return null;
@@ -171,7 +271,7 @@ const extractCrudOperation = (node: AstNode | undefined): string | null => {
 const extractDerivedCrudEntry = (
   node: AstNode,
   namedContourIds: ReadonlyMap<string, string>,
-  importAliases: ReadonlyMap<string, string>
+  importAliases: ReadonlyMap<string, ImportAliasResolution>
 ): { readonly entityId: string; readonly operation: string } | null => {
   if (!isNamedCall(node, 'deriveTrail')) {
     return null;
@@ -193,7 +293,7 @@ const collectDerivedCrudCoverage = (
 ): ReadonlyMap<string, CrudCoverage> => {
   const coverageByEntityId = new Map<string, CrudCoverage>();
   const namedContourIds = collectNamedContourIds(ast);
-  const importAliases = collectImportAliasMap(ast);
+  const importAliases = collectImportAliasResolutions(ast);
 
   walk(ast, (node) => {
     const entry = extractDerivedCrudEntry(node, namedContourIds, importAliases);
@@ -401,10 +501,12 @@ const collectIncompleteEntities = (
   });
 };
 
-const formatEntityLabel = (entityId: string): string =>
-  entityId.startsWith(IMPORTED_CONTOUR_PREFIX)
-    ? `${entityId.slice(IMPORTED_CONTOUR_PREFIX.length)} (imported, pending-resolution)`
+const formatEntityLabel = (entityId: string): string => {
+  const imported = parseImportedContourId(entityId);
+  return imported
+    ? `${imported.bindingName} (imported, pending-resolution)`
     : entityId;
+};
 
 const buildIncompleteCrudDiagnostic = (
   coverage: CrudCoverage,
