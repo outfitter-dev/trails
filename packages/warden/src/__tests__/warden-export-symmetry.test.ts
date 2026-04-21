@@ -1,6 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
 import { wardenRules, wardenTopoRules } from '../rules/index.js';
@@ -55,16 +53,11 @@ describe('warden-export-symmetry', () => {
     test('ignores a foreign packages/warden/src/index.ts in another repo', () => {
       // Simulate a consumer repo that happens to have the same folder
       // structure. A path suffix match would incorrectly engage the rule here
-      // and flood the consumer with bogus diagnostics.
-      const foreignRepo = mkdtempSync(join(tmpdir(), 'warden-foreign-'));
-      const foreignBarrelDir = join(foreignRepo, 'packages/warden/src');
-      mkdirSync(foreignBarrelDir, { recursive: true });
-      const foreignBarrel = join(foreignBarrelDir, 'index.ts');
-      // Contents that WOULD trip every check if the rule ran: missing trails,
-      // raw rule leak, namespace re-export, default export.
-      writeFileSync(
-        foreignBarrel,
-        `export { ${sampleRawRuleCamel} } from './rules/index.js';\nexport * from './trails/index.js';\nexport default {};\n`
+      // and flood the consumer with bogus diagnostics. The rule reads source
+      // from its argument, not from disk, so no fs setup is needed — only the
+      // path-anchoring check runs against `foreignBarrel`.
+      const foreignBarrel = resolve(
+        '/tmp/warden-foreign-sim/packages/warden/src/index.ts'
       );
       const diagnostics = wardenExportSymmetry.check(
         `export { ${sampleRawRuleCamel} } from './rules/index.js';\nexport * from './trails/index.js';\nexport default {};\n`,
@@ -126,6 +119,33 @@ describe('warden-export-symmetry', () => {
       expect(orphans.length).toBe(1);
       expect(orphans[0]?.severity).toBe('error');
     });
+
+    test('fires on orphan *Trail declared via destructured object pattern', () => {
+      // Regression: `sitesForDeclaration` previously only handled Identifier
+      // declarator ids. A destructured `export const { ... } = ...` silently
+      // bypassed the orphan-trail check.
+      const source = buildIndexSource(
+        `export const { fictitiousGhostTrail } = {} as { fictitiousGhostTrail: unknown };\n`
+      );
+      const diagnostics = wardenExportSymmetry.check(source, TARGET_FILE);
+      const orphans = diagnostics.filter((d) =>
+        d.message.includes('fictitiousGhostTrail')
+      );
+      expect(orphans.length).toBe(1);
+      expect(orphans[0]?.severity).toBe('error');
+    });
+
+    test('fires on orphan *Trail declared via destructured array pattern', () => {
+      const source = buildIndexSource(
+        `export const [fictitiousGhostTrail] = [] as unknown as [unknown];\n`
+      );
+      const diagnostics = wardenExportSymmetry.check(source, TARGET_FILE);
+      const orphans = diagnostics.filter((d) =>
+        d.message.includes('fictitiousGhostTrail')
+      );
+      expect(orphans.length).toBe(1);
+      expect(orphans[0]?.severity).toBe('error');
+    });
   });
 
   describe('raw-rule leaks', () => {
@@ -144,6 +164,21 @@ describe('warden-export-symmetry', () => {
     test('fires on aliased raw-rule re-exports using the local binding name', () => {
       const source = buildIndexSource(
         `export { ${sampleRawRuleCamel} as disguisedRule } from './rules/index.js';\n`
+      );
+      const diagnostics = wardenExportSymmetry.check(source, TARGET_FILE);
+      const rawLeaks = diagnostics.filter((d) =>
+        d.message.includes(`raw rule export "${sampleRawRuleCamel}"`)
+      );
+      expect(rawLeaks.length).toBe(1);
+      expect(rawLeaks[0]?.severity).toBe('error');
+    });
+
+    test('fires on raw-rule leak via destructured object pattern', () => {
+      // Regression: destructuring was a silent bypass for raw-rule leaks —
+      // `export const { wardenExportSymmetry } = rulesModule` exposed the raw
+      // rule object without tripping the check.
+      const source = buildIndexSource(
+        `export const { ${sampleRawRuleCamel} } = {} as Record<string, unknown>;\n`
       );
       const diagnostics = wardenExportSymmetry.check(source, TARGET_FILE);
       const rawLeaks = diagnostics.filter((d) =>

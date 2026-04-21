@@ -112,6 +112,148 @@ const namedSiteFromDeclId = (
   return name ? { localName: name, name, start } : null;
 };
 
+/**
+ * Extract an identifier or `AssignmentPattern`'s left-hand identifier as a
+ * single export site. Returns null for anything else (nested patterns should
+ * be routed through `sitesFromPattern`).
+ */
+const siteFromSimpleBinding = (
+  node: AstNode | undefined,
+  start: number
+): ExportSite | null => {
+  if (!node) {
+    return null;
+  }
+  if (node.type === 'Identifier') {
+    const name = readIdentifierOrStringName(node);
+    return name ? { localName: name, name, start } : null;
+  }
+  if (node.type === 'AssignmentPattern') {
+    const { left } = node as unknown as { left?: AstNode };
+    return left ? siteFromSimpleBinding(left, start) : null;
+  }
+  return null;
+};
+
+/** Callback type to break the recursion cycle without use-before-define. */
+type PatternSitesFn = (
+  pattern: AstNode | undefined,
+  start: number
+) => readonly ExportSite[];
+
+/**
+ * Compose a rename-pair site from an `ObjectPattern` property's `key` and a
+ * resolved value site. Rename pairs (`{ foo: bar }`) emit one site whose
+ * `localName` is the source binding `foo` and whose public `name` is the
+ * target `bar`, mirroring `extractSpecifierNames` for `export { foo as bar }`.
+ */
+const renamePairSite = (
+  key: AstNode | undefined,
+  valueSite: ExportSite,
+  start: number
+): ExportSite => {
+  const keyName = readIdentifierOrStringName(key);
+  return {
+    localName: keyName ?? valueSite.localName,
+    name: valueSite.name,
+    start,
+  };
+};
+
+const isNestedPatternValue = (value: AstNode | undefined): boolean =>
+  !!value && value.type !== 'Identifier' && value.type !== 'AssignmentPattern';
+
+/**
+ * Extract sites from a single `ObjectPattern` property.
+ */
+const sitesFromObjectProperty = (
+  prop: AstNode,
+  start: number,
+  recurse: PatternSitesFn
+): readonly ExportSite[] => {
+  if (prop.type === 'RestElement') {
+    const { argument } = prop as unknown as { argument?: AstNode };
+    return recurse(argument, start);
+  }
+  if (prop.type !== 'Property') {
+    return [];
+  }
+  const { key, value } = prop as unknown as {
+    key?: AstNode;
+    value?: AstNode;
+  };
+  if (isNestedPatternValue(value)) {
+    return recurse(value, start);
+  }
+  const valueSite = siteFromSimpleBinding(value, start);
+  return valueSite ? [renamePairSite(key, valueSite, start)] : [];
+};
+
+const sitesFromArrayElement = (
+  element: AstNode | null,
+  start: number,
+  recurse: PatternSitesFn
+): readonly ExportSite[] => {
+  if (!element) {
+    return [];
+  }
+  if (element.type === 'RestElement') {
+    const { argument } = element as unknown as { argument?: AstNode };
+    return recurse(argument, start);
+  }
+  return recurse(element, start);
+};
+
+const sitesFromObjectPattern = (
+  pattern: AstNode,
+  start: number,
+  recurse: PatternSitesFn
+): readonly ExportSite[] => {
+  const properties =
+    (pattern as unknown as { properties?: readonly AstNode[] }).properties ??
+    [];
+  return properties.flatMap((prop) =>
+    sitesFromObjectProperty(prop, start, recurse)
+  );
+};
+
+const sitesFromArrayPattern = (
+  pattern: AstNode,
+  start: number,
+  recurse: PatternSitesFn
+): readonly ExportSite[] => {
+  const elements =
+    (pattern as unknown as { elements?: readonly (AstNode | null)[] })
+      .elements ?? [];
+  return elements.flatMap((element) =>
+    sitesFromArrayElement(element, start, recurse)
+  );
+};
+
+/**
+ * Recursively extract export sites from a declarator id, supporting
+ * `ObjectPattern` and `ArrayPattern` destructuring. Without this, a
+ * destructured `export const { wardenExportSymmetry } = rulesModule` silently
+ * bypasses orphan-trail and raw-rule-leak checks because the id is not an
+ * `Identifier`.
+ */
+const sitesFromPattern: PatternSitesFn = (pattern, start) => {
+  if (!pattern) {
+    return [];
+  }
+  const simple = siteFromSimpleBinding(pattern, start);
+  if (simple) {
+    return [simple];
+  }
+  if (pattern.type === 'ObjectPattern') {
+    return sitesFromObjectPattern(pattern, start, sitesFromPattern);
+  }
+  if (pattern.type === 'ArrayPattern') {
+    return sitesFromArrayPattern(pattern, start, sitesFromPattern);
+  }
+  return [];
+};
+
 const sitesForDeclaration = (declaration: AstNode): readonly ExportSite[] => {
   if (TYPE_ONLY_DECL_TYPES.has(declaration.type)) {
     return [];
@@ -130,8 +272,7 @@ const sitesForDeclaration = (declaration: AstNode): readonly ExportSite[] => {
         .declarations ?? [];
     return declarations.flatMap((declarator) => {
       const { id } = declarator as unknown as { id?: AstNode };
-      const site = namedSiteFromDeclId(id, declarator.start);
-      return site ? [site] : [];
+      return sitesFromPattern(id, declarator.start);
     });
   }
   return [];
