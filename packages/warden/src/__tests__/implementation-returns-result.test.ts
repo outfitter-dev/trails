@@ -524,11 +524,10 @@ trail("entity.report", {
 
         expect(diagnostics.length).toBe(0);
       });
+    });
 
-      test('still flags namespace-imported Result helper (documented gap)', () => {
-        // `import * as ns from './foo.js'` with `ns.helper(...)` is not yet
-        // resolved — the binding is `ns`, not `helper`, so the member call is
-        // unrecognized. Documented skip in buildImportBinding.
+    describe('namespace imports and barrel export *', () => {
+      test('allows namespace-imported Result helper (import * as ns)', () => {
         writeFile(
           'impl-namespace.ts',
           `export const helper = async (): Promise<Result<object, Error>> =>
@@ -546,6 +545,319 @@ trail("entity.report", {
 })`
         );
 
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(caller, 'utf8'),
+          caller
+        );
+
+        expect(diagnostics.length).toBe(0);
+      });
+
+      test('flags namespace-imported non-Result member call', () => {
+        writeFile(
+          'impl-namespace-mixed.ts',
+          `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+
+export const nonResultFn = async () => ({ ok: true });
+`
+        );
+        const caller = writeFile(
+          'caller-namespace-mixed.ts',
+          `import * as ns from './impl-namespace-mixed.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return ns.nonResultFn();
+  }
+})`
+        );
+
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(caller, 'utf8'),
+          caller
+        );
+
+        expect(diagnostics.length).toBe(1);
+      });
+
+      test('falls back gracefully on unresolvable namespace import target', () => {
+        const caller = writeFile(
+          'caller-namespace-missing.ts',
+          `import * as ns from './missing-namespace.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return ns.helper();
+  }
+})`
+        );
+
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(caller, 'utf8'),
+          caller
+        );
+
+        expect(diagnostics.length).toBe(1);
+      });
+
+      test('flags ns.helper() when blaze parameter shadows the namespace import', () => {
+        writeFile(
+          'impl-ns-shadow-param.ts',
+          `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+        );
+        const caller = writeFile(
+          'caller-ns-shadow-param.ts',
+          `import * as ns from './impl-ns-shadow-param.js';
+
+trail("entity.report", {
+  blaze: async (ns, ctx) => {
+    return ns.helper(ctx);
+  }
+})`
+        );
+
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(caller, 'utf8'),
+          caller
+        );
+
+        // The blaze parameter \`ns\` shadows the namespace import; \`ns.helper()\`
+        // is a call on the parameter, not on the namespace, so the return
+        // must be flagged rather than silently treated as a Result helper.
+        expect(diagnostics.length).toBe(1);
+      });
+
+      test('flags ns.helper() when a local const shadows the namespace import', () => {
+        writeFile(
+          'impl-ns-shadow-const.ts',
+          `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+        );
+        const caller = writeFile(
+          'caller-ns-shadow-const.ts',
+          `import * as ns from './impl-ns-shadow-const.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    const ns = { helper: () => ({ ok: true }) };
+    return ns.helper(input);
+  }
+})`
+        );
+
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(caller, 'utf8'),
+          caller
+        );
+
+        expect(diagnostics.length).toBe(1);
+      });
+
+      test('flags ns.helper() when a local let shadows the namespace import', () => {
+        writeFile(
+          'impl-ns-shadow-let.ts',
+          `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+        );
+        const caller = writeFile(
+          'caller-ns-shadow-let.ts',
+          `import * as ns from './impl-ns-shadow-let.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    let ns = input;
+    return ns.helper(input);
+  }
+})`
+        );
+
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(caller, 'utf8'),
+          caller
+        );
+
+        expect(diagnostics.length).toBe(1);
+      });
+
+      describe('shadowing in for/catch scopes', () => {
+        test('flags ns.helper() when a for-init const shadows the namespace import', () => {
+          writeFile(
+            'impl-ns-shadow-for-init.ts',
+            `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+          );
+          const caller = writeFile(
+            'caller-ns-shadow-for-init.ts',
+            `import * as ns from './impl-ns-shadow-for-init.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    for (const ns = 0; ns < 1; ns++) {
+      return ns.helper(input);
+    }
+    return Result.ok({});
+  }
+})`
+          );
+
+          const diagnostics = implementationReturnsResult.check(
+            readFileSync(caller, 'utf8'),
+            caller
+          );
+
+          expect(diagnostics.length).toBe(1);
+        });
+
+        test('flags ns.helper() when a for-of binding shadows the namespace import', () => {
+          writeFile(
+            'impl-ns-shadow-for-of.ts',
+            `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+          );
+          const caller = writeFile(
+            'caller-ns-shadow-for-of.ts',
+            `import * as ns from './impl-ns-shadow-for-of.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    for (const ns of [1, 2, 3]) {
+      return ns.helper(input);
+    }
+    return Result.ok({});
+  }
+})`
+          );
+
+          const diagnostics = implementationReturnsResult.check(
+            readFileSync(caller, 'utf8'),
+            caller
+          );
+
+          expect(diagnostics.length).toBe(1);
+        });
+
+        test('flags ns.helper() when a catch param shadows the namespace import', () => {
+          writeFile(
+            'impl-ns-shadow-catch.ts',
+            `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+          );
+          const caller = writeFile(
+            'caller-ns-shadow-catch.ts',
+            `import * as ns from './impl-ns-shadow-catch.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    try {
+      return Result.ok({});
+    } catch (ns) {
+      return ns.helper(input);
+    }
+  }
+})`
+          );
+
+          const diagnostics = implementationReturnsResult.check(
+            readFileSync(caller, 'utf8'),
+            caller
+          );
+
+          expect(diagnostics.length).toBe(1);
+        });
+
+        test('flags ns.helper() when a catch param destructures the namespace name', () => {
+          writeFile(
+            'impl-ns-shadow-catch-destructure.ts',
+            `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+          );
+          const caller = writeFile(
+            'caller-ns-shadow-catch-destructure.ts',
+            `import * as ns from './impl-ns-shadow-catch-destructure.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    try {
+      return Result.ok({});
+    } catch ({ ns }) {
+      return ns.helper(input);
+    }
+  }
+})`
+          );
+
+          const diagnostics = implementationReturnsResult.check(
+            readFileSync(caller, 'utf8'),
+            caller
+          );
+
+          expect(diagnostics.length).toBe(1);
+        });
+      });
+
+      test('allows named import through `export * from` barrel', () => {
+        writeFile(
+          'impl-star.ts',
+          `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+        );
+        writeFile(
+          'barrel-star.ts',
+          `export * from './impl-star.js';
+`
+        );
+        const caller = writeFile(
+          'caller-star.ts',
+          `import { helper } from './barrel-star.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return helper();
+  }
+})`
+        );
+
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(caller, 'utf8'),
+          caller
+        );
+
+        expect(diagnostics.length).toBe(0);
+      });
+
+      test('falls back gracefully on `export * from` cycle', () => {
+        writeFile(
+          'star-cycle-a.ts',
+          `export * from './star-cycle-b.js';
+`
+        );
+        writeFile(
+          'star-cycle-b.ts',
+          `export * from './star-cycle-a.js';
+`
+        );
+        const caller = writeFile(
+          'caller-star-cycle.ts',
+          `import { helper } from './star-cycle-a.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return helper();
+  }
+})`
+        );
+
+        // Should not hang; the helper is not resolvable through the cycle.
         const diagnostics = implementationReturnsResult.check(
           readFileSync(caller, 'utf8'),
           caller
