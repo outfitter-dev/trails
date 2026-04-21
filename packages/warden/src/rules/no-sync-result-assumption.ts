@@ -522,6 +522,19 @@ const collectBlockStatementBindings = (scope: AstNode): Set<string> => {
   const bindings = new Set<string>();
   const { body } = scope as unknown as { body?: readonly AstNode[] };
   collectBlockScopedStatementListBindings(body, bindings);
+  // Static initializer blocks own their own VariableEnvironment (per ES spec),
+  // so `var` declarations inside them do not escape into the enclosing class
+  // or function scope. `collectHoistedVarBindings` correctly refuses to cross
+  // a `StaticBlock` boundary from the outside, which means nothing else will
+  // register these bindings. Hoist them here so `var result = trail.blaze(...)`
+  // inside a `static { ... }` block is tracked against the block itself.
+  if (scope.type === 'StaticBlock') {
+    // `collectHoistedVarBindings` is called with the StaticBlock as the root,
+    // so the own-VariableEnvironment check (which refuses to descend *into* a
+    // nested StaticBlock) does not short-circuit traversal of the node itself.
+    // eslint-disable-next-line no-use-before-define
+    collectHoistedVarBindings(scope, bindings);
+  }
   return bindings;
 };
 
@@ -625,6 +638,14 @@ interface AnalyzeState {
   readonly pendingByScopeAndName: Map<string, PendingBinding>;
   readonly scopeStack: ScopeFrame[];
   readonly reportedAt: Set<number>;
+  /**
+   * Monotonic counter for scope frame ids. Intentionally mutable — every other
+   * field on `AnalyzeState` is `readonly`, but this one is incremented with
+   * `state.nextScopeId += 1` each time a scope frame is pushed so sibling
+   * scopes get distinct ids. Keeping it as a plain number (rather than a
+   * boxed `{ current: number }`) avoids an extra allocation and indirection
+   * on a hot path; the mutability is local to `pushScopeIfBoundary`.
+   */
   nextScopeId: number;
 }
 
@@ -801,6 +822,158 @@ const recordPendingBinding = (
   });
 };
 
+/**
+ * True when `expr`, descended through wrapping parens, conditional branches,
+ * and logical-operator operands, contains a `.blaze()` call that would be
+ * registered by `recordPendingBinding` for this assignment.
+ *
+ * This mirrors the *upward* carrier walk done by
+ * `skipParensAndBranchConditionals` — if a blaze call is anywhere along a
+ * carrier path descending from `expr`, then visiting that blaze call will
+ * re-register the pending binding, so we must not clear it on the way in.
+ */
+type CarrierChildExtractor = (
+  expr: AstNode
+) => readonly (AstNode | undefined)[];
+
+const CARRIER_CHILDREN: Record<string, CarrierChildExtractor> = {
+  ConditionalExpression: (expr) => {
+    const { consequent, alternate } = expr as unknown as {
+      consequent?: AstNode;
+      alternate?: AstNode;
+    };
+    return [consequent, alternate];
+  },
+  LogicalExpression: (expr) => {
+    const { left, right } = expr as unknown as {
+      left?: AstNode;
+      right?: AstNode;
+    };
+    return [left, right];
+  },
+};
+
+const unwrapTransparentWrapper = (expr: AstNode): AstNode | undefined =>
+  (expr as unknown as { expression?: AstNode }).expression;
+
+// biome-ignore lint/style/useConst: hoisted for recursive call
+// eslint-disable-next-line func-style
+function rhsCarriesBlazeReinit(expr: AstNode | undefined): boolean {
+  if (!expr) {
+    return false;
+  }
+  if (TRANSPARENT_WRAPPER_TYPES.has(expr.type)) {
+    return rhsCarriesBlazeReinit(unwrapTransparentWrapper(expr));
+  }
+  const extractor = CARRIER_CHILDREN[expr.type];
+  if (extractor) {
+    return extractor(expr).some(rhsCarriesBlazeReinit);
+  }
+  return isBlazeCall(expr);
+}
+
+/**
+ * Handle a plain `=` assignment to a bare identifier whose name currently has
+ * a pending `.blaze()` binding in scope.
+ *
+ * If the RHS is (or carries) another blaze call, leave the pending entry
+ * alone — `recordPendingBinding` will re-register it when the blaze call
+ * itself is visited. Otherwise, clear the pending entry: the identifier has
+ * been overwritten with a non-Result value, so the original
+ * `result.isOk()`-style diagnostic no longer applies.
+ *
+ * Compound assignments (`+=`, `??=`, etc.) and member-expression LHS are
+ * ignored here: compound operators do not unconditionally replace the slot
+ * (and `??=`/`||=` may preserve the Result when the LHS is truthy), and
+ * member writes do not rebind the tracked identifier at all.
+ */
+/**
+ * Nullish/falsy-skip compound assignments (`??=`, `||=`) only write to the slot
+ * when the LHS is nullish or falsy. A pending `.blaze()` binding holds a
+ * truthy `Promise<Result>`, so the RHS never runs and the pending binding must
+ * survive them.
+ *
+ * `&&=` is intentionally excluded: it writes when the LHS is truthy, so a
+ * pending `Promise<Result>` is *always* overwritten by the RHS. That matches
+ * the clearing behavior of mathematical compound operators (`+=`, `-=`, ...).
+ */
+const NULLISH_SKIP_OPERATORS = new Set(['??=', '||=']);
+
+interface IdentifierAssignment {
+  readonly operator: string;
+  readonly name: string;
+  readonly right: AstNode | undefined;
+}
+
+const extractIdentifierAssignment = (
+  node: AstNode
+): IdentifierAssignment | null => {
+  if (node.type !== 'AssignmentExpression') {
+    return null;
+  }
+  const { operator, left, right } = node as unknown as {
+    operator?: string;
+    left?: AstNode;
+    right?: AstNode;
+  };
+  if (!(operator && left) || left.type !== 'Identifier') {
+    return null;
+  }
+  const name = identifierName(left);
+  return name ? { name, operator, right } : null;
+};
+
+const resolvePendingKeyFor = (
+  name: string,
+  state: AnalyzeState
+): string | null => {
+  const frame = resolveNearestScope(name, state.scopeStack);
+  if (!frame) {
+    return null;
+  }
+  const key = pendingKey(frame.id, name);
+  return state.pendingByScopeAndName.has(key) ? key : null;
+};
+
+/**
+ * Handle a plain `=` assignment (or clearing compound assignment) to a bare
+ * identifier whose name currently has a pending `.blaze()` binding in scope.
+ *
+ * A plain `=` whose RHS carries another blaze call leaves the pending entry
+ * alone — `recordPendingBinding` will re-register it when the blaze call
+ * itself is visited. Otherwise, clear the pending entry: the identifier has
+ * been overwritten with a non-Result value, so the original
+ * `result.isOk()`-style diagnostic no longer applies.
+ *
+ * Nullish/falsy-skip compound assignments (`??=`, `||=`) are ignored — a
+ * truthy pending `Promise<Result>` causes the RHS to be skipped, so the
+ * pending binding is preserved. `&&=` is *not* in this set: a truthy LHS
+ * causes the RHS to always run, overwriting the pending slot, so it falls
+ * through to the clearing path alongside `+=`, `-=`, etc. Member-expression
+ * LHS is ignored because it writes a property, not the tracked identifier.
+ */
+const handleAssignmentReassignment = (
+  node: AstNode,
+  state: AnalyzeState
+): void => {
+  const assignment = extractIdentifierAssignment(node);
+  if (!assignment || NULLISH_SKIP_OPERATORS.has(assignment.operator)) {
+    return;
+  }
+  const key = resolvePendingKeyFor(assignment.name, state);
+  if (!key) {
+    return;
+  }
+  // Plain `=` with a blaze-carrying RHS will re-register via
+  // `recordPendingBinding` when the blaze call itself is visited. Other
+  // compound operators (`+=`, `-=`, `*=`, etc.) produce a primitive value
+  // from the existing slot, so they always clear.
+  if (assignment.operator === '=' && rhsCarriesBlazeReinit(assignment.right)) {
+    return;
+  }
+  state.pendingByScopeAndName.delete(key);
+};
+
 const reportMissingAwait = (node: AstNode, state: AnalyzeState): void => {
   if (state.reportedAt.has(node.start)) {
     return;
@@ -910,6 +1083,7 @@ const visitBlazeCall = (node: AstNode, state: AnalyzeState): void => {
 
 const visitNode = (node: AstNode, state: AnalyzeState): void => {
   visitBlazeCall(node, state);
+  handleAssignmentReassignment(node, state);
   checkPendingAccess(node, state);
 };
 

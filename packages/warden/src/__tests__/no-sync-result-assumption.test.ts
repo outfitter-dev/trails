@@ -388,6 +388,38 @@ result.isOk();`;
 
       expect(diagnostics).toHaveLength(0);
     });
+
+    test('flags var-declared blaze result used inside the same static block', () => {
+      const code = `
+class Foo {
+  static {
+    var result = entityShow.blaze({ id: "1" }, ctx);
+    result.isOk();
+  }
+}`;
+
+      const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
+
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0]?.message).toContain('Missing await');
+    });
+
+    test('does not let a static-block var leak to the enclosing scope', () => {
+      const code = `
+class Foo {
+  static {
+    var result = entityShow.blaze({ id: "1" }, ctx);
+  }
+}
+
+function outer() {
+  result.isOk();
+}`;
+
+      const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
+
+      expect(diagnostics).toHaveLength(0);
+    });
   });
 
   describe('parenthesized blaze calls', () => {
@@ -750,6 +782,95 @@ async function run() {
   let result = 0;
   result = 42;
   return result;
+}`;
+
+      const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
+
+      expect(diagnostics).toHaveLength(0);
+    });
+  });
+});
+
+describe('no-sync-result-assumption — pending re-assignment', () => {
+  describe('pending binding re-assignment', () => {
+    test('clears pending after re-assignment to a non-blaze value', () => {
+      const code = `
+async function run(ctx) {
+  let result = entityShow.blaze({ id: "1" }, ctx);
+  result = 42;
+  result.isOk();
+}`;
+
+      const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
+
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    test('keeps pending after re-assignment to another blaze call', () => {
+      const code = `
+async function run(ctx) {
+  let result = entityShow.blaze({ id: "1" }, ctx);
+  result = entityShow.blaze({ id: "2" }, ctx);
+  result.isOk();
+}`;
+
+      const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
+
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0]?.message).toContain('Missing await');
+    });
+
+    test('does not clear pending when a member-expression LHS is written', () => {
+      const code = `
+async function run(ctx, obj) {
+  let result = entityShow.blaze({ id: "1" }, ctx);
+  obj.result = 42;
+  result.isOk();
+}`;
+
+      const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
+
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0]?.message).toContain('Missing await');
+    });
+
+    test('clears pending after a mathematical compound assignment', () => {
+      const code = `
+async function run(ctx) {
+  let result = entityShow.blaze({ id: "1" }, ctx);
+  result += 1;
+  result.isOk();
+}`;
+
+      const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
+
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    test('keeps pending after a logical compound assignment (??=)', () => {
+      const code = `
+async function run(ctx, fallback) {
+  let result = entityShow.blaze({ id: "1" }, ctx);
+  result ??= fallback;
+  result.isOk();
+}`;
+
+      const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
+
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0]?.message).toContain('Missing await');
+    });
+
+    test('clears pending after a logical-AND compound assignment (&&=)', () => {
+      // `&&=` writes the RHS when the LHS is truthy. A pending
+      // Promise<Result> is truthy, so the RHS always runs and the pending
+      // slot is overwritten — the subsequent `result.isOk()` observes the
+      // fallback, not the blaze result, so no diagnostic should fire.
+      const code = `
+async function run(ctx, fallback) {
+  let result = entityShow.blaze({ id: "1" }, ctx);
+  result &&= fallback;
+  result.isOk();
 }`;
 
       const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');

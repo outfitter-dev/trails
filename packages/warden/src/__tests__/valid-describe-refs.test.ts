@@ -148,6 +148,49 @@ trail("entity.show", {
       expect(diagnostics[0]?.message).toContain('missing.trail');
     });
 
+    test('does not emit a phantom @see match when interpolation splits the marker', () => {
+      const code = `
+trail("entity.show", {
+  input: z.object({
+    query: z.string().describe(\`@s\${x}ee missing\`),
+  }),
+  blaze: (input) => Result.ok(input),
+})`;
+
+      const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
+
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    test('does not emit a phantom @see match across multiple interpolations', () => {
+      const code = `
+trail("entity.show", {
+  input: z.object({
+    query: z.string().describe(\`@s\${x}ee \${y} missing\`),
+  }),
+  blaze: (input) => Result.ok(input),
+})`;
+
+      const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
+
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    test('still matches @see when the marker is fully inside a single quasi', () => {
+      const code = `
+trail("entity.show", {
+  input: z.object({
+    query: z.string().describe(\`@see missing.trail \${x}\`),
+  }),
+  blaze: (input) => Result.ok(input),
+})`;
+
+      const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
+
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0]?.message).toContain('missing.trail');
+    });
+
     test('does not diagnose when quasis contain no @see token', () => {
       const code = `
 trail("entity.show", {

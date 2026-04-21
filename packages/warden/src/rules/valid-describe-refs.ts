@@ -64,9 +64,12 @@ const isDescribeCall = (node: AstNode): boolean => {
 
 /**
  * Extract scannable text from a template literal, even when it contains
- * `${...}` expressions. Concatenates the cooked quasi chunks with an empty
- * string between them — interpolated values are runtime-only and cannot
- * contribute static `@see` tokens, but the surrounding quasi text can.
+ * `${...}` expressions. Concatenates the cooked quasi chunks with a NUL
+ * sentinel between them — interpolated values are runtime-only and cannot
+ * contribute static `@see` tokens, but the surrounding quasi text can. The
+ * sentinel prevents phantom tokens that would otherwise appear when a quasi
+ * boundary splits the `@see` marker itself (e.g. `\`@s${x}ee missing\``
+ * would naively join to `"@seemissing"` and match `@see`).
  *
  * This is intentionally describe-local: the shared
  * {@link extractStringOrTemplateLiteral} helper preserves "plain template
@@ -108,7 +111,11 @@ const extractTemplateLiteralQuasiText = (node: AstNode): string | null => {
       parts.push(text);
     }
   }
-  return parts.join('');
+  // Use a NUL sentinel (not a letter / ref character) so interpolation
+  // boundaries cannot silently fuse neighbouring quasis into a phantom
+  // `@see <ident>` match. `\u0000` cannot appear inside a valid trail ID,
+  // so it safely terminates any partial token on either side.
+  return parts.join('\u0000');
 };
 
 const extractDescribeDescription = (node: AstNode): string | null => {
