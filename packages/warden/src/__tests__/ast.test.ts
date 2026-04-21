@@ -1,8 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+  __getTrailCalleeNameForTest,
   deriveContourIdentifierName,
+  findTrailDefinitions,
   hasIgnoreCommentOnLine,
+  parse,
   splitSourceLines,
 } from '../rules/ast.js';
 
@@ -73,5 +76,100 @@ describe('hasIgnoreCommentOnLine', () => {
     for (let line = 1; line <= 100; line += 1) {
       expect(hasIgnoreCommentOnLine(lines, line)).toBe(false);
     }
+  });
+});
+
+const parseOrThrow = (source: string) =>
+  parse('test.ts', source) ??
+  (() => {
+    throw new Error('failed to parse');
+  })();
+
+const parseCallee = (source: string) => {
+  const ast = parseOrThrow(source);
+  // The first statement is an ExpressionStatement wrapping the CallExpression.
+  const [stmt] = (ast as unknown as { body: readonly unknown[] }).body;
+  const { expression } = stmt as { expression: unknown };
+  return expression as Parameters<typeof __getTrailCalleeNameForTest>[0];
+};
+
+describe('getTrailCalleeName', () => {
+  test('matches bare trail(...) identifier callees', () => {
+    expect(__getTrailCalleeNameForTest(parseCallee('trail("foo", {});'))).toBe(
+      'trail'
+    );
+  });
+
+  test('matches namespaced ns.trail(...) callees', () => {
+    expect(
+      __getTrailCalleeNameForTest(parseCallee('core.trail("foo", {});'))
+    ).toBe('trail');
+  });
+
+  test('matches bare signal(...) identifier callees', () => {
+    expect(__getTrailCalleeNameForTest(parseCallee('signal("evt", {});'))).toBe(
+      'signal'
+    );
+  });
+
+  test('matches namespaced ns.signal(...) callees', () => {
+    expect(
+      __getTrailCalleeNameForTest(parseCallee('core.signal("evt", {});'))
+    ).toBe('signal');
+  });
+
+  test('rejects computed member access like ns[trail](...)', () => {
+    expect(
+      __getTrailCalleeNameForTest(parseCallee('ns[trail]("foo", {});'))
+    ).toBeNull();
+  });
+
+  test('rejects unrelated bare callees', () => {
+    expect(
+      __getTrailCalleeNameForTest(parseCallee('other("foo", {});'))
+    ).toBeNull();
+  });
+
+  test('rejects unrelated namespaced callees', () => {
+    expect(
+      __getTrailCalleeNameForTest(parseCallee('ns.other("foo", {});'))
+    ).toBeNull();
+  });
+});
+
+describe('findTrailDefinitions with namespaced callees', () => {
+  test('discovers core.trail("id", { ... }) definitions', () => {
+    const source = `
+      import * as core from '@ontrails/core';
+      export const t = core.trail('entity.show', {
+        input: {},
+      });
+    `;
+    const ast = parseOrThrow(source);
+    const defs = findTrailDefinitions(ast);
+    expect(defs).toHaveLength(1);
+    expect(defs[0]?.id).toBe('entity.show');
+    expect(defs[0]?.kind).toBe('trail');
+  });
+
+  test('discovers core.signal("id", { ... }) definitions', () => {
+    const source = `
+      import * as core from '@ontrails/core';
+      export const s = core.signal('entity.created', { payload: {} });
+    `;
+    const ast = parseOrThrow(source);
+    const defs = findTrailDefinitions(ast);
+    expect(defs).toHaveLength(1);
+    expect(defs[0]?.id).toBe('entity.created');
+    expect(defs[0]?.kind).toBe('signal');
+  });
+
+  test('still ignores computed-member access ns[trail]("id", ...)', () => {
+    const source = `
+      const trail = 'x';
+      ns[trail]('entity.show', { input: {} });
+    `;
+    const ast = parseOrThrow(source);
+    expect(findTrailDefinitions(ast)).toHaveLength(0);
   });
 });

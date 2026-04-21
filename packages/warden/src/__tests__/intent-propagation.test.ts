@@ -66,6 +66,31 @@ trail('entity.lookup', {
     expect(intentPropagation.check(code, TEST_FILE)).toEqual([]);
   });
 
+  test('warns when namespaced core.trail(...) read crosses a write trail', () => {
+    // Regression guard for TRL-343: the shared findTrailDefinitions helper
+    // must recognize `core.trail("id", { ... })` as a trail definition, not
+    // just bare `trail("id", { ... })`. Before the fix these definitions were
+    // silently skipped and this rule stayed quiet on namespaced-import files.
+    const code = `
+core.trail('entity.read', {
+  intent: 'read',
+  crosses: ['entity.refresh'],
+  blaze: async (_input, ctx) => ctx.cross('entity.refresh', {}),
+});
+
+core.trail('entity.refresh', {
+  intent: 'write',
+  blaze: async () => Result.ok({}),
+});
+`;
+
+    const diagnostics = intentPropagation.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toContain('entity.refresh');
+    expect(diagnostics[0]?.message).toContain("intent: 'write'");
+  });
+
   test('stays quiet when the entry trail is not read-only', () => {
     const code = `
 trail('entity.update', {

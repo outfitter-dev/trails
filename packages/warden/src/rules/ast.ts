@@ -558,17 +558,64 @@ export interface TrailDefinition {
  */
 const TRAIL_CALLEE_NAMES = new Set(['signal', 'trail']);
 
+const matchTrailPrimitiveName = (
+  name: string | undefined | null
+): string | null => (name && TRAIL_CALLEE_NAMES.has(name) ? name : null);
+
+const getBareTrailCalleeName = (callee: AstNode): string | null => {
+  if (callee.type !== 'Identifier') {
+    return null;
+  }
+  return matchTrailPrimitiveName((callee as unknown as { name?: string }).name);
+};
+
+/**
+ * Resolve a namespaced `ns.trail(...)` / `ns.signal(...)` callee to its
+ * primitive name. Computed access (`ns[trail]()`) is intentionally rejected:
+ * the bracketed expression may resolve to any runtime value, so we cannot
+ * prove the call targets the framework primitive.
+ */
+const getNamespacedTrailCalleeName = (callee: AstNode): string | null => {
+  if (
+    callee.type !== 'MemberExpression' &&
+    callee.type !== 'StaticMemberExpression'
+  ) {
+    return null;
+  }
+  if ((callee as unknown as { computed?: boolean }).computed === true) {
+    return null;
+  }
+  const prop = (callee as unknown as { property?: AstNode }).property;
+  if (prop?.type !== 'Identifier') {
+    return null;
+  }
+  return matchTrailPrimitiveName((prop as unknown as { name?: string }).name);
+};
+
+/**
+ * Resolve the callee name of a trail/signal call expression.
+ *
+ * Matches both bare `trail(...)` / `signal(...)` identifiers and namespaced
+ * member-expression callees like `core.trail(...)` or `ns.signal(...)`.
+ */
 const getTrailCalleeName = (node: AstNode): string | null => {
   if (node.type !== 'CallExpression') {
     return null;
   }
   const callee = node['callee'] as AstNode | undefined;
-  if (!callee || callee.type !== 'Identifier') {
+  if (!callee) {
     return null;
   }
-  const { name } = callee as unknown as { name?: string };
-  return name && TRAIL_CALLEE_NAMES.has(name) ? name : null;
+  return getBareTrailCalleeName(callee) ?? getNamespacedTrailCalleeName(callee);
 };
+
+/**
+ * Test hook: exposes {@link getTrailCalleeName} for unit tests.
+ *
+ * Kept unexported from the module's public surface (no re-export from
+ * `index.ts`) so internal refactors stay free.
+ */
+export const __getTrailCalleeNameForTest = getTrailCalleeName;
 
 /** Extract args from a trail() call, handling both two-arg and single-object forms. */
 const extractTrailArgs = (
