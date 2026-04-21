@@ -87,7 +87,7 @@ export type { AstNode, StringLiteralMatch } from './rules/ast.js';
 
 // Trail layer
 export { wardenTopo } from './trails/topo.js';
-export { runWardenTrails } from './trails/run.js';
+export { runTopoAwareWardenTrails, runWardenTrails } from './trails/run.js';
 export {
   circularRefsTrail,
   contourExistsTrail,
@@ -99,6 +99,7 @@ export {
   exampleValidTrail,
   firesDeclarationsTrail,
   implementationReturnsResultTrail,
+  incompleteAccessorForStandardOpTrail,
   incompleteCrudTrail,
   intentPropagationTrail,
   missingVisibilityTrail,

@@ -9,6 +9,7 @@ import { errorMappingCompleteness } from './error-mapping-completeness.js';
 import { exampleValid } from './example-valid.js';
 import { firesDeclarations } from './fires-declarations.js';
 import { implementationReturnsResult } from './implementation-returns-result.js';
+import { incompleteAccessorForStandardOp } from './incomplete-accessor-for-standard-op.js';
 import { incompleteCrud } from './incomplete-crud.js';
 import { intentPropagation } from './intent-propagation.js';
 import { missingVisibility } from './missing-visibility.js';
@@ -50,6 +51,7 @@ export { draftVisibleDebt } from './draft-visible-debt.js';
 export { errorMappingCompleteness } from './error-mapping-completeness.js';
 export { exampleValid } from './example-valid.js';
 export { firesDeclarations } from './fires-declarations.js';
+export { incompleteAccessorForStandardOp } from './incomplete-accessor-for-standard-op.js';
 export { incompleteCrud } from './incomplete-crud.js';
 export { intentPropagation } from './intent-propagation.js';
 export { missingVisibility } from './missing-visibility.js';
@@ -121,4 +123,6 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
  * registered here must tolerate non-execution when no topo is available.
  */
 export const wardenTopoRules: ReadonlyMap<string, TopoAwareWardenRule> =
-  new Map<string, TopoAwareWardenRule>();
+  new Map<string, TopoAwareWardenRule>([
+    [incompleteAccessorForStandardOp.name, incompleteAccessorForStandardOp],
+  ]);

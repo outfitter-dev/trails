@@ -81,7 +81,11 @@ import { formatGitHubAnnotations, formatJson, formatSummary } from '@ontrails/wa
 Every built-in warden rule is also available as a composable trail. This makes rules queryable, testable, and invocable through any Trails trailhead.
 
 ```typescript
-import { wardenTopo, runWardenTrails } from '@ontrails/warden';
+import {
+  runTopoAwareWardenTrails,
+  runWardenTrails,
+  wardenTopo,
+} from '@ontrails/warden';
 
 // Inspect the warden rule trails
 console.log(wardenTopo.ids()); // ['warden.rule.no-throw-in-implementation', ...]
@@ -91,6 +95,9 @@ const diagnostics = await runWardenTrails(filePath, sourceCode, {
   knownTrailIds: myApp.ids(),
   knownResourceIds: myApp.resourceIds(),
 });
+
+// Run built-in topo-aware rule trails once against the resolved graph
+const topoDiagnostics = await runTopoAwareWardenTrails(myApp);
 ```
 
 To wrap a custom rule as a trail, use `wrapRule` (imported from `@ontrails/warden/trails/wrap-rule`). This is the same factory used internally to build all built-in rule trails.
@@ -104,7 +111,8 @@ To wrap a custom rule as a trail, use `wrapRule` (imported from `@ontrails/warde
 | `checkDrift(rootDir, topo?)` | Check if the lock file matches the current topo |
 | `wardenRules` | Registry of all built-in rules |
 | `wardenTopo` | `Topo` of all built-in rule trails (one per rule) |
-| `runWardenTrails(filePath, sourceCode, options?)` | Dispatch all rule trails for a file, collect diagnostics |
+| `runWardenTrails(filePath, sourceCode, options?)` | Dispatch file-scoped rule trails for a file, collect diagnostics |
+| `runTopoAwareWardenTrails(topo)` | Dispatch built-in topo-aware rule trails once for a resolved topo |
 | `formatGitHubAnnotations(report)` | GitHub Actions annotation format |
 | `formatJson(report)` | Machine-readable JSON |
 | `formatSummary(report)` | Compact summary line |

@@ -245,8 +245,10 @@ McpHarness, McpHarnessOptions, McpHarnessResult
 ```typescript
 runWarden(options?), formatWardenReport(report), checkDrift(rootDir, topo?)
 wardenRules                        // ReadonlyMap<string, WardenRule> — built-in AST-based rules
+wardenTopoRules                    // ReadonlyMap<string, TopoAwareWardenRule> — built-in topo-aware rules
 wardenTopo                         // pre-built Topo of all warden trails
-runWardenTrails(filePath, sourceCode, options?) // run warden rules against a single file
+runWardenTrails(filePath, sourceCode, options?) // run file-scoped warden rules against a single file
+runTopoAwareWardenTrails(topo)     // run built-in topo-aware warden rule trails once per topo
 formatGitHubAnnotations(report), formatJson(report), formatSummary(report)
 
 WardenOptions, WardenReport, WardenDiagnostic, WardenSeverity, DriftResult

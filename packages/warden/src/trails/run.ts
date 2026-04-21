@@ -1,17 +1,21 @@
 /**
- * Run all warden rule trails against a single source file.
+ * Run file-scoped warden rule trails against a single source file.
  *
- * Returns a flat array of diagnostics from every rule.
+ * Returns a flat array of diagnostics from every source-aware rule. Built-in
+ * topo-aware rules are dispatched separately via `runTopoAwareWardenTrails()`
+ * so callers that loop files do not duplicate graph-level findings.
  */
 
+import type { Topo } from '@ontrails/core';
 import { run } from '@ontrails/core';
 
+import { wardenTopoRules } from '../rules/index.js';
 import type { WardenDiagnostic } from '../rules/types.js';
 import type { RuleOutput } from './schema.js';
 import { wardenTopo } from './topo.js';
 
 /**
- * Run all warden rule trails for a given file and collect diagnostics.
+ * Run all file-scoped warden rule trails for a given file and collect diagnostics.
  *
  * Each rule trail runs independently. Errors from individual trails are
  * silently skipped so that one broken rule does not block the rest.
@@ -95,6 +99,10 @@ const buildRuleInput = (
   return { ...base, ...collectProjectOptions(options) };
 };
 
+const topoAwareTrailIds = new Set(
+  [...wardenTopoRules.keys()].map((ruleName) => `warden.rule.${ruleName}`)
+);
+
 export const runWardenTrails = async (
   filePath: string,
   sourceCode: string,
@@ -104,7 +112,34 @@ export const runWardenTrails = async (
   const input = buildRuleInput(filePath, sourceCode, options);
 
   for (const id of wardenTopo.ids()) {
+    if (topoAwareTrailIds.has(id)) {
+      continue;
+    }
     const result = await run(wardenTopo, id, input);
+    if (result.isOk()) {
+      appendDiagnostics(
+        allDiagnostics,
+        (result.value as RuleOutput).diagnostics
+      );
+    }
+  }
+
+  return allDiagnostics;
+};
+
+/**
+ * Run the built-in topo-aware warden rule trails once against a resolved topo.
+ *
+ * Unlike `runWardenTrails()`, which is file-scoped, topo-aware rules inspect
+ * the compiled graph and should only be dispatched once per topo.
+ */
+export const runTopoAwareWardenTrails = async (
+  topo: Topo
+): Promise<readonly WardenDiagnostic[]> => {
+  const allDiagnostics: WardenDiagnostic[] = [];
+
+  for (const id of topoAwareTrailIds) {
+    const result = await run(wardenTopo, id, { topo });
     if (result.isOk()) {
       appendDiagnostics(
         allDiagnostics,
