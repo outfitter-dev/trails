@@ -42,3 +42,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0033](0033-detour-execution-for-recovery.md) | Detour Execution for Recovery | Accepted |
 | [0034](0034-store-accessor-contract-refinement-lessons-from-two-backends.md) | Store Accessor Contract Refinement: Lessons from Two Backends | Accepted |
 | [0035](0035-surface-apis-render-the-graph.md) | Surface APIs Render the Graph | Accepted |
+| [0036](0036-warden-rules-ship-only-as-trails.md) | Warden rules ship only as trails | Accepted |

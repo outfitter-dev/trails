@@ -115,6 +115,11 @@
           "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
         },
         {
+          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — \"the trail is the unit of everything\"; this ADR enforces that at the package boundary",
+          "from": "0036",
+          "fromPath": "docs/adr/0036-warden-rules-ship-only-as-trails.md"
+        },
+        {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; `trails run` makes every trail directly invocable without trailhead ceremony",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -638,6 +643,11 @@
           "fromPath": "docs/adr/0025-composition-testing.md"
         },
         {
+          "context": "[ADR-0007](0007-governance-as-trails.md) made warden rules into trails. Every rule is wrapped via `wrapRule()` into a trail with ID `warden.rule.<name>`, gets a schema, examples, and runs through t",
+          "from": "0036",
+          "fromPath": "docs/adr/0036-warden-rules-ship-only-as-trails.md"
+        },
+        {
           "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — warden rules for event declarations",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
@@ -1044,7 +1054,7 @@
       "status": "partially-superseded",
       "superseded_by": ["23"],
       "title": "Tracing — Runtime Recording Primitive",
-      "updated": "2026-04-08"
+      "updated": "2026-04-19"
     },
     {
       "created": "2026-04-02",
@@ -1896,6 +1906,19 @@
       "superseded_by": null,
       "title": "Surface APIs Render the Graph",
       "updated": "2026-04-16"
+    },
+    {
+      "created": "2026-04-20",
+      "depends_on": ["0", "7"],
+      "inbound": [],
+      "number": "0036",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0036-warden-rules-ship-only-as-trails.md",
+      "slug": "warden-rules-ship-only-as-trails",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Warden rules ship only as trails",
+      "updated": "2026-04-20"
     }
   ],
   "version": 1
