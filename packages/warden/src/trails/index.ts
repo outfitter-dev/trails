@@ -3,6 +3,8 @@ export { contourExistsTrail } from './contour-exists.trail.js';
 export { contextNoSurfaceTypesTrail } from './context-no-surface-types.trail.js';
 export { crossDeclarationsTrail } from './cross-declarations.trail.js';
 export { deadInternalTrailTrail } from './dead-internal-trail.trail.js';
+export { draftFileMarkingTrail } from './draft-file-marking.trail.js';
+export { draftVisibleDebtTrail } from './draft-visible-debt.trail.js';
 export { errorMappingCompletenessTrail } from './error-mapping-completeness.trail.js';
 export { exampleValidTrail } from './example-valid.trail.js';
 export { firesDeclarationsTrail } from './fires-declarations.trail.js';

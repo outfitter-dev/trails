@@ -18,7 +18,12 @@ import { dirname, resolve } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
 import { run } from '@ontrails/core';
-import { firesDeclarations, onReferencesExist } from '@ontrails/warden';
+import type { RuleOutput } from '@ontrails/warden';
+import {
+  firesDeclarationsTrail,
+  onReferencesExistTrail,
+  wardenTopo,
+} from '@ontrails/warden';
 
 import { graph } from '../src/app.js';
 import { entityStoreResource } from '../src/resources/entity-store.js';
@@ -120,22 +125,25 @@ describe('signal wiring in the demo topo', () => {
 // ---------------------------------------------------------------------------
 
 describe('warden rules over the signal producer/consumer', () => {
-  test('fires-declarations passes for entity.ts', () => {
+  test('fires-declarations passes for entity.ts', async () => {
     const source = readFileSync(entitySourcePath, 'utf8');
-    const diagnostics = firesDeclarations.check(source, entitySourcePath);
-    expect(diagnostics).toEqual([]);
+    const result = await run(wardenTopo, firesDeclarationsTrail.id, {
+      filePath: entitySourcePath,
+      sourceCode: source,
+    });
+    const output = result.unwrap() as RuleOutput;
+    expect(output.diagnostics).toEqual([]);
   });
 
-  test('on-references-exist passes for notify.ts with known signals', () => {
+  test('on-references-exist passes for notify.ts with known signals', async () => {
     const source = readFileSync(notifySourcePath, 'utf8');
-    const diagnostics = onReferencesExist.checkWithContext(
-      source,
-      notifySourcePath,
-      {
-        knownSignalIds: new Set(['entity.updated']),
-        knownTrailIds: new Set(),
-      }
-    );
-    expect(diagnostics).toEqual([]);
+    const result = await run(wardenTopo, onReferencesExistTrail.id, {
+      filePath: notifySourcePath,
+      knownSignalIds: ['entity.updated'],
+      knownTrailIds: [],
+      sourceCode: source,
+    });
+    const output = result.unwrap() as RuleOutput;
+    expect(output.diagnostics).toEqual([]);
   });
 });
