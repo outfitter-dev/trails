@@ -160,6 +160,21 @@ describe('warden-rules-use-ast', () => {
       expect(diagnostics.length).toBe(1);
       expect(diagnostics[0]?.message).toContain('split');
     });
+
+    // oxc-parser can emit either `MemberExpression` or `StaticMemberExpression`
+    // for non-computed member access depending on context. The rule must flow
+    // through both shapes.
+    test('flags sourceCode.split regardless of MemberExpression vs StaticMemberExpression shape', () => {
+      const source = `export const r = { check(sourceCode: string) { return sourceCode.split('\\n'); } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics.length).toBe(1);
+    });
+
+    test('flags /regex/.test(sourceCode) regardless of MemberExpression vs StaticMemberExpression shape', () => {
+      const source = `export const r = { check(sourceCode: string) { return /foo/.test(sourceCode) ? [] : []; } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics.length).toBe(1);
+    });
   });
 
   describe('positive fixtures: replace/search scans', () => {
@@ -226,6 +241,112 @@ describe('warden-rules-use-ast', () => {
       const diagnostics = wardenRulesUseAst.check(source, targetFile);
       expect(diagnostics.length).toBe(1);
       expect(diagnostics[0]?.message).toContain('test');
+    });
+  });
+
+  describe('positive fixtures: regex construction from raw source', () => {
+    const targetFile = ruleFilePath('fake-rule.ts');
+
+    test('flags new RegExp(sourceCode)', () => {
+      const source = `export const r = { check(sourceCode: string) { const pattern = new RegExp(sourceCode); return pattern ? [] : []; } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.rule).toBe('warden-rules-use-ast');
+      expect(diagnostics[0]?.severity).toBe('error');
+      expect(diagnostics[0]?.message).toContain('new RegExp(sourceCode)');
+      expect(diagnostics[0]?.message).toContain('constructs a regex');
+    });
+
+    test('flags new RegExp(rawText, "g")', () => {
+      const source = `export const r = { check(rawText: string) { const pattern = new RegExp(rawText, 'g'); return pattern ? [] : []; } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('new RegExp(rawText)');
+    });
+
+    test('flags RegExp(sourceCode) without new', () => {
+      const source = `export const r = { check(sourceCode: string) { const pattern = RegExp(sourceCode); return pattern ? [] : []; } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('RegExp(sourceCode)');
+      expect(diagnostics[0]?.message).not.toContain('new RegExp');
+    });
+
+    test('does not flag new RegExp("literal") with string literal arg', () => {
+      const source = `export const r = { check() { const pattern = new RegExp('foo'); return pattern ? [] : []; } };\n`;
+      expect(wardenRulesUseAst.check(source, targetFile)).toEqual([]);
+    });
+
+    test('flags new RegExp(userInput) when userInput is the first param of check (custom name)', () => {
+      // Under parameter-origin tracking (TRL-346 / Option A), the *binding
+      // identity* of the first `check` parameter is what matters — not its
+      // spelling. A rule author who renames the source parameter cannot
+      // silently opt out of the diagnostic by picking an unusual name.
+      const source = `export const r = { check(userInput: string) { const pattern = new RegExp(userInput); return pattern ? [] : []; } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('new RegExp(userInput)');
+    });
+  });
+
+  describe('parameter-origin tracking (TRL-346 / Option A)', () => {
+    // The pre-TRL-346 detectors gated on identifier spelling alone (a fixed
+    // set of raw-source names). That over-fired on unrelated locals whose
+    // names happened to appear in the list, and under-fired when a rule
+    // author picked a different name for the source parameter. These tests
+    // exercise the scope-aware replacement.
+    const targetFile = ruleFilePath('fake-rule.ts');
+
+    test('does not flag inner const that shadows the check parameter', () => {
+      // The inner `const sourceCode` is a local, not the rule's source
+      // parameter — flagging would be a false positive.
+      const source = `export const r = { check(sourceCode: string, filePath: string) { const inner: string = filePath; { const sourceCode = inner; const pattern = new RegExp(sourceCode); return pattern ? [] : []; } } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics).toEqual([]);
+    });
+
+    test('scope: does not flag a local named `text` unrelated to the source param', () => {
+      // Pre-Option A, the old RAW_SOURCE_IDENTIFIERS heuristic would fire
+      // here because `text` is in the set. Under parameter-origin tracking
+      // the local `text` shadows nothing and does not resolve to the rule's
+      // first parameter, so no diagnostic.
+      const source = `export const r = { check(src: string, filePath: string) { const text: string = filePath; const pattern = new RegExp(text); return pattern ? [] : []; } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics).toEqual([]);
+    });
+
+    test('scope: flags new RegExp(src) when src is the first param of check (custom name)', () => {
+      // The param binding, not the spelling, drives the diagnostic.
+      const source = `export const r = { check(src: string) { const pattern = new RegExp(src); return pattern ? [] : []; } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('new RegExp(src)');
+    });
+
+    test('scope: flags sourceCode.split when sourceCode is a checkWithContext param', () => {
+      // `checkWithContext` is the project-aware sibling of `check`; its
+      // first parameter is also raw source text and must be tracked.
+      const source = `export const r = { checkWithContext(sourceCode: string, filePath: string, ctx: unknown) { return sourceCode.split('\\n'); } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('split');
+    });
+
+    test('scope: does not flag sourceCode.split inside checkTopo (no raw source param)', () => {
+      // `checkTopo(topo)` does not receive raw source text. A local named
+      // `sourceCode` inside it is just a domain string and must not fire
+      // — this was the core false-positive scenario TRL-346 fixes.
+      const source = `export const r = { checkTopo(topo: unknown) { const sourceCode = 'arbitrary-data'; return sourceCode.split(','); } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics).toEqual([]);
+    });
+
+    test('scope: does not flag source-like identifiers at module scope', () => {
+      // Free identifiers with no enclosing `check` method cannot resolve to
+      // a tracked source-param binding, so detection stays silent.
+      const source = `const sourceCode = 'abc'; const pattern = new RegExp(sourceCode);\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics).toEqual([]);
     });
   });
 
@@ -322,29 +443,6 @@ export const r = { check(sourceCode: string, filePath: string) { const defs = fi
       const input = `${sep}runner${sep}dist-artifacts${sep}pkg${sep}dist${sep}rules`;
       const expected = `${sep}runner${sep}dist-artifacts${sep}pkg${sep}src${sep}rules`;
       expect(replaceLastDistSegmentWithSrc(input)).toBe(expected);
-    });
-  });
-
-  describe('StaticMemberExpression parity', () => {
-    // oxc-parser can emit either `MemberExpression` or `StaticMemberExpression`
-    // for non-computed member access depending on context. The rule must flow
-    // through both. These tests exercise the canonical scan shapes; the
-    // baseline test above already asserts the rule still emits zero
-    // diagnostics on the real tree, and the positive fixtures assert
-    // end-to-end detection against whichever node type the parser emits for
-    // these shapes today.
-    const targetFile = ruleFilePath('fake-rule.ts');
-
-    test('flags sourceCode.split regardless of MemberExpression vs StaticMemberExpression shape', () => {
-      const source = `export const r = { check(sourceCode: string) { return sourceCode.split('\\n'); } };\n`;
-      const diagnostics = wardenRulesUseAst.check(source, targetFile);
-      expect(diagnostics.length).toBe(1);
-    });
-
-    test('flags /regex/.test(sourceCode) regardless of MemberExpression vs StaticMemberExpression shape', () => {
-      const source = `export const r = { check(sourceCode: string) { return /foo/.test(sourceCode) ? [] : []; } };\n`;
-      const diagnostics = wardenRulesUseAst.check(source, targetFile);
-      expect(diagnostics.length).toBe(1);
     });
   });
 });
