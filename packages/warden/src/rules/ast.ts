@@ -861,12 +861,23 @@ const forEachAstChild = (
   }
 };
 
-const recordHoistedBinding = (node: AstNode, into: Set<string>): void => {
+const recordHoistedBinding = (
+  node: AstNode,
+  into: Set<string>,
+  inNestedBlock: boolean
+): void => {
   if (node.type === 'VariableDeclaration') {
     const { kind } = node as unknown as { kind?: string };
     if (kind === 'var') {
       addVarDeclarationBindingNames(node, into);
     }
+    return;
+  }
+  // In strict/module code, function/class/enum/module declarations inside a
+  // nested block (`if { function foo() {} }`, `switch` case, etc.) are
+  // block-scoped. Only hoist them to the enclosing function frame when they
+  // sit directly in the function body, not inside a further block.
+  if (inNestedBlock) {
     return;
   }
   if (
@@ -879,17 +890,29 @@ const recordHoistedBinding = (node: AstNode, into: Set<string>): void => {
   }
 };
 
+const NESTED_BLOCK_BOUNDARY_TYPES = new Set([
+  'BlockStatement',
+  'ForStatement',
+  'ForInStatement',
+  'ForOfStatement',
+  'SwitchStatement',
+  'CatchClause',
+]);
+
 const visitForHoisted = (
   node: AstNode,
   isRoot: boolean,
-  into: Set<string>
+  into: Set<string>,
+  inNestedBlock: boolean
 ): void => {
   if (!isRoot && FUNCTION_BOUNDARY_TYPES.has(node.type)) {
     return;
   }
-  recordHoistedBinding(node, into);
+  recordHoistedBinding(node, into, inNestedBlock);
+  const childInNestedBlock =
+    inNestedBlock || (!isRoot && NESTED_BLOCK_BOUNDARY_TYPES.has(node.type));
   forEachAstChild(node, (child) => {
-    visitForHoisted(child, false, into);
+    visitForHoisted(child, false, into, childInNestedBlock);
   });
 };
 
@@ -902,7 +925,7 @@ const collectHoistedVarAndFunctionBindings = (
   root: AstNode,
   into: Set<string>
 ): void => {
-  visitForHoisted(root, true, into);
+  visitForHoisted(root, true, into, false);
 };
 
 type FrameCollector = (node: AstNode, into: Set<string>) => void;
@@ -984,6 +1007,11 @@ const SCOPE_FRAME_COLLECTORS: Record<string, FrameCollector> = {
   ForInStatement: collectForInOfFrame,
   ForOfStatement: collectForInOfFrame,
   ForStatement: collectForStatementFrame,
+  // oxc-parser emits `FunctionBody` for `function` expression bodies; without
+  // this entry, a `const ns = ...` at the top of a function-expression body
+  // would not push a scope frame, and a module-level namespace import with
+  // the same name would be incorrectly recognized inside.
+  FunctionBody: collectBlockFrame,
   FunctionDeclaration: collectFunctionFrame,
   FunctionExpression: collectFunctionFrame,
   Program: collectProgramFrame,
@@ -1218,6 +1246,13 @@ const isNamespacedCallAllowed = (
  * receiver must be a framework namespace binding AND — when a
  * `safeCallStarts` set is present — the call site must appear in that set,
  * meaning the receiver is not shadowed by any enclosing scope.
+ *
+ * When `context` is `undefined`, this falls back to permissive matching
+ * (any `ns.trail(...)` shape resolves). Inline resolution paths that do
+ * not have the surrounding AST available (e.g. `crosses: [core.trail(...)]`
+ * or `on: [core.signal(...)]`) rely on this fallback. Scope-aware call
+ * sites always pass a context, so this only affects inline contexts where
+ * a best-effort name match is the intended behavior.
  */
 const getNamespacedTrailCalleeName = (
   callExpr: AstNode,
@@ -1229,7 +1264,7 @@ const getNamespacedTrailCalleeName = (
     return null;
   }
   const ctx = asNamespaceContext(context);
-  if (!ctx || !isNamespacedCallAllowed(callExpr.start, names.receiver, ctx)) {
+  if (ctx && !isNamespacedCallAllowed(callExpr.start, names.receiver, ctx)) {
     return null;
   }
   return matchTrailPrimitiveName(names.property);
@@ -1422,6 +1457,10 @@ const getNamespacedContourCalleeName = (
   if (!names) {
     return null;
   }
+  // Unlike the trail/signal variant, contour has no inline-resolution callers
+  // that legitimately invoke this without a FrameworkNamespaceContext, so the
+  // strict namespace gate stays on. If a future caller needs the permissive
+  // fallback, mirror the trail shape and add a regression test first.
   const ctx = asNamespaceContext(context);
   if (!ctx || !isNamespacedCallAllowed(callExpr.start, names.receiver, ctx)) {
     return null;

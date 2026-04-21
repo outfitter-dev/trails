@@ -351,6 +351,58 @@ describe('findTrailDefinitions scope-aware shadowing', () => {
     const ast = parseOrThrow(source);
     expect(findTrailDefinitions(ast)).toHaveLength(0);
   });
+
+  test('ignores core.trail(...) inside a FunctionExpression body that locally shadows the namespace', () => {
+    // oxc-parser emits `FunctionBody` for `function` expression bodies, not
+    // `BlockStatement`. Without a `FunctionBody` entry in the scope-frame
+    // collectors, a local `const core = {...}` at the top of the expression
+    // body would not push a frame and the shadow would be missed.
+    const source = `
+      import * as core from '@ontrails/core';
+      const fn = function weird() {
+        const core = { trail: (_id: string, _cfg: object) => undefined };
+        core.trail('entity.show', { input: {} });
+      };
+    `;
+    const ast = parseOrThrow(source);
+    expect(findTrailDefinitions(ast)).toHaveLength(0);
+  });
+
+  test('does not hoist block-local function declarations out of their block', () => {
+    // A `function core(){}` inside an `if` block is block-scoped in strict
+    // (module) code. Hoisting it to the enclosing function frame would
+    // wrongly shadow the module-level `core` namespace for later code in
+    // the same function, dropping the trail detection below.
+    const source = `
+      import * as core from '@ontrails/core';
+      export function outer() {
+        if (Math.random() > 0) {
+          function core() { return 0; }
+          core();
+        }
+        return core.trail('entity.show', { input: {} });
+      }
+    `;
+    const ast = parseOrThrow(source);
+    const defs = findTrailDefinitions(ast);
+    expect(defs).toHaveLength(1);
+    expect(defs[0]?.id).toBe('entity.show');
+  });
+});
+
+describe('getTrailCalleeName permissive fallback', () => {
+  test('resolves namespaced core.trail(...) when no context is provided', () => {
+    // Inline resolution paths (`crosses: [core.trail(...)]`,
+    // `on: [core.signal(...)]`) do not have access to the surrounding file
+    // AST and so cannot build a FrameworkNamespaceContext. They must still
+    // be able to recognize the trail/signal primitive by name.
+    expect(
+      __getTrailCalleeNameForTest(parseCallee('core.trail("foo", {});'))
+    ).toBe('trail');
+    expect(
+      __getTrailCalleeNameForTest(parseCallee('core.signal("evt", {});'))
+    ).toBe('signal');
+  });
 });
 
 describe('findContourDefinitions with namespaced callees', () => {
