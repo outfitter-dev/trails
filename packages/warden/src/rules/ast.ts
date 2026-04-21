@@ -558,6 +558,575 @@ export interface TrailDefinition {
  */
 const TRAIL_CALLEE_NAMES = new Set(['signal', 'trail']);
 
+/**
+ * Source prefix for the Trails framework package whose namespace imports are
+ * recognized as carriers of `trail()` / `signal()` / `contour()` primitives.
+ *
+ * A namespaced callee like `core.trail(...)` is only treated as a framework
+ * call when the receiver identifier resolves to an `import * as core from
+ * '@ontrails/...'` in the same file. An unrelated `analytics.trail(...)`
+ * whose `analytics` comes from a different module (or no import at all)
+ * is ignored.
+ */
+const FRAMEWORK_NAMESPACE_SOURCE_PREFIX = '@ontrails/';
+
+const isFrameworkNamespaceSource = (value: unknown): boolean =>
+  typeof value === 'string' &&
+  value.startsWith(FRAMEWORK_NAMESPACE_SOURCE_PREFIX);
+
+/**
+ * Collect local binding names introduced by `import * as <name> from
+ * '@ontrails/...'` declarations. Used to gate namespaced framework-primitive
+ * calls so an unrelated `analytics.trail(...)` doesn't match.
+ */
+const getImportSourceValue = (node: AstNode): unknown => {
+  const sourceNode = (node as unknown as { source?: AstNode }).source;
+  return sourceNode
+    ? (sourceNode as unknown as { value?: unknown }).value
+    : undefined;
+};
+
+const addNamespaceImportBindings = (
+  node: AstNode,
+  names: Set<string>
+): void => {
+  const specifiers =
+    (node['specifiers'] as readonly AstNode[] | undefined) ?? [];
+  for (const spec of specifiers) {
+    if (spec.type !== 'ImportNamespaceSpecifier') {
+      continue;
+    }
+    const { local } = spec as unknown as { local?: AstNode };
+    const localName = identifierName(local);
+    if (localName) {
+      names.add(localName);
+    }
+  }
+};
+
+const TOP_LEVEL_NAMED_DECL_TYPES = new Set([
+  'ClassDeclaration',
+  'FunctionDeclaration',
+  'TSEnumDeclaration',
+  'TSModuleDeclaration',
+]);
+
+const removeVarDeclarationShadowedNames = (
+  stmt: AstNode,
+  names: Set<string>
+): void => {
+  const declarations =
+    (stmt as unknown as { declarations?: readonly AstNode[] }).declarations ??
+    [];
+  for (const d of declarations) {
+    const { id } = d as unknown as { id?: AstNode };
+    const n = identifierName(id);
+    if (n) {
+      names.delete(n);
+    }
+  }
+};
+
+const removeNamedDeclShadowedName = (
+  stmt: AstNode,
+  names: Set<string>
+): void => {
+  const { id } = stmt as unknown as { id?: AstNode };
+  const n = identifierName(id);
+  if (n) {
+    names.delete(n);
+  }
+};
+
+const removeTopLevelShadowedNames = (
+  stmt: AstNode,
+  names: Set<string>
+): void => {
+  if (
+    stmt.type === 'ExportNamedDeclaration' ||
+    stmt.type === 'ExportDefaultDeclaration'
+  ) {
+    const { declaration } = stmt as unknown as { declaration?: AstNode };
+    if (declaration) {
+      removeTopLevelShadowedNames(declaration, names);
+    }
+    return;
+  }
+  if (stmt.type === 'VariableDeclaration') {
+    removeVarDeclarationShadowedNames(stmt, names);
+    return;
+  }
+  if (TOP_LEVEL_NAMED_DECL_TYPES.has(stmt.type)) {
+    removeNamedDeclShadowedName(stmt, names);
+  }
+};
+
+const collectFrameworkNamespaceBindings = (
+  ast: AstNode
+): ReadonlySet<string> => {
+  const names = new Set<string>();
+  walk(ast, (node) => {
+    if (node.type !== 'ImportDeclaration') {
+      return;
+    }
+    if (!isFrameworkNamespaceSource(getImportSourceValue(node))) {
+      return;
+    }
+    addNamespaceImportBindings(node, names);
+  });
+  if (names.size === 0) {
+    return names;
+  }
+  // A same-named top-level declaration (class / enum / namespace / var /
+  // function / lexical binding) shadows the namespace import at module scope.
+  // The scope walker treats Program as the outermost frame and skips it when
+  // testing for inner shadows, so we have to strip these collisions here.
+  if (ast.type === 'Program') {
+    const body = (ast as unknown as { body?: readonly AstNode[] }).body ?? [];
+    for (const stmt of body) {
+      removeTopLevelShadowedNames(stmt, names);
+    }
+  }
+  return names;
+};
+
+// ---------------------------------------------------------------------------
+// Scope-aware framework-namespace resolution
+// ---------------------------------------------------------------------------
+//
+// A module-level `import * as core from '@ontrails/core'` makes `core` a
+// framework-namespace binding, but a function-local `const core = {...}` (or
+// param, `let`, `var`, `function`, class, catch param) shadows the import for
+// the duration of that scope. A name-only check is not enough to trust
+// `core.trail(...)` — we have to walk scopes outward from each call site and
+// verify the first declaration of the receiver IS the namespace import.
+//
+// {@link collectFrameworkNamespacedCallStarts} performs that walk once per
+// AST and returns the set of `CallExpression` start offsets whose receiver is
+// provably the framework binding. Downstream helpers gate on this set instead
+// of the bare names, so a local shadow cannot sneak through.
+
+type PatternExpander = (node: AstNode) => readonly AstNode[];
+
+const expandAssignmentPattern: PatternExpander = (node) => {
+  const { left } = node as unknown as { left?: AstNode };
+  return left ? [left] : [];
+};
+
+const expandRestElement: PatternExpander = (node) => {
+  const { argument } = node as unknown as { argument?: AstNode };
+  return argument ? [argument] : [];
+};
+
+const expandArrayPattern: PatternExpander = (node) => {
+  const elements =
+    (node as unknown as { elements?: readonly (AstNode | null)[] }).elements ??
+    [];
+  return elements.filter((e): e is AstNode => e !== null);
+};
+
+const expandObjectPatternProperty = (prop: AstNode): AstNode | null => {
+  if (prop.type === 'RestElement') {
+    return prop;
+  }
+  const { value } = prop as unknown as { value?: AstNode };
+  return value ?? null;
+};
+
+const expandObjectPattern: PatternExpander = (node) => {
+  const properties =
+    (node as unknown as { properties?: readonly AstNode[] }).properties ?? [];
+  return properties
+    .map(expandObjectPatternProperty)
+    .filter((n): n is AstNode => n !== null);
+};
+
+const PATTERN_EXPANDERS: Record<string, PatternExpander> = {
+  ArrayPattern: expandArrayPattern,
+  AssignmentPattern: expandAssignmentPattern,
+  ObjectPattern: expandObjectPattern,
+  RestElement: expandRestElement,
+};
+
+const processPatternNode = (
+  node: AstNode,
+  into: Set<string>,
+  stack: AstNode[]
+): void => {
+  if (node.type === 'Identifier') {
+    const { name } = node as unknown as { name?: string };
+    if (name) {
+      into.add(name);
+    }
+    return;
+  }
+  const expand = PATTERN_EXPANDERS[node.type];
+  if (expand) {
+    stack.push(...expand(node));
+  }
+};
+
+const addPatternBindingNames = (
+  pattern: AstNode | undefined,
+  into: Set<string>
+): void => {
+  if (!pattern) {
+    return;
+  }
+  const stack: AstNode[] = [pattern];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (node) {
+      processPatternNode(node, into, stack);
+    }
+  }
+};
+
+const addVarDeclarationBindingNames = (
+  decl: AstNode,
+  into: Set<string>
+): void => {
+  const declarations =
+    (decl as unknown as { declarations?: readonly AstNode[] }).declarations ??
+    [];
+  for (const d of declarations) {
+    addPatternBindingNames((d as unknown as { id?: AstNode }).id, into);
+  }
+};
+
+const addFunctionOrClassBindingName = (
+  node: AstNode,
+  into: Set<string>
+): void => {
+  const { id } = node as unknown as { id?: AstNode };
+  const name = identifierName(id);
+  if (name) {
+    into.add(name);
+  }
+};
+
+const addBlockStatementBindings = (stmt: AstNode, into: Set<string>): void => {
+  if (stmt.type === 'VariableDeclaration') {
+    addVarDeclarationBindingNames(stmt, into);
+    return;
+  }
+  if (
+    stmt.type === 'FunctionDeclaration' ||
+    stmt.type === 'ClassDeclaration' ||
+    stmt.type === 'TSEnumDeclaration' ||
+    stmt.type === 'TSModuleDeclaration'
+  ) {
+    addFunctionOrClassBindingName(stmt, into);
+  }
+};
+
+const collectTopLevelStatementBindings = (
+  stmt: AstNode,
+  into: Set<string>
+): void => {
+  if (
+    stmt.type === 'ExportNamedDeclaration' ||
+    stmt.type === 'ExportDefaultDeclaration'
+  ) {
+    const { declaration } = stmt as unknown as { declaration?: AstNode };
+    if (declaration) {
+      collectTopLevelStatementBindings(declaration, into);
+    }
+    return;
+  }
+  addBlockStatementBindings(stmt, into);
+};
+
+const FUNCTION_BOUNDARY_TYPES = new Set([
+  'ArrowFunctionExpression',
+  'FunctionDeclaration',
+  'FunctionExpression',
+  'StaticBlock',
+]);
+
+const forEachAstChild = (
+  node: AstNode,
+  visit: (child: AstNode) => void
+): void => {
+  for (const val of Object.values(node)) {
+    if (Array.isArray(val)) {
+      for (const item of val) {
+        if (item && typeof item === 'object' && (item as AstNode).type) {
+          visit(item as AstNode);
+        }
+      }
+    } else if (val && typeof val === 'object' && (val as AstNode).type) {
+      visit(val as AstNode);
+    }
+  }
+};
+
+const recordHoistedBinding = (node: AstNode, into: Set<string>): void => {
+  if (node.type === 'VariableDeclaration') {
+    const { kind } = node as unknown as { kind?: string };
+    if (kind === 'var') {
+      addVarDeclarationBindingNames(node, into);
+    }
+    return;
+  }
+  if (
+    node.type === 'FunctionDeclaration' ||
+    node.type === 'ClassDeclaration' ||
+    node.type === 'TSEnumDeclaration' ||
+    node.type === 'TSModuleDeclaration'
+  ) {
+    addFunctionOrClassBindingName(node, into);
+  }
+};
+
+const visitForHoisted = (
+  node: AstNode,
+  isRoot: boolean,
+  into: Set<string>
+): void => {
+  if (!isRoot && FUNCTION_BOUNDARY_TYPES.has(node.type)) {
+    return;
+  }
+  recordHoistedBinding(node, into);
+  forEachAstChild(node, (child) => {
+    visitForHoisted(child, false, into);
+  });
+};
+
+/**
+ * Collect `var` declarations and `function` declarations hoisted to the
+ * nearest function scope from anywhere inside `root`, without crossing a
+ * nested function or static-block boundary.
+ */
+const collectHoistedVarAndFunctionBindings = (
+  root: AstNode,
+  into: Set<string>
+): void => {
+  visitForHoisted(root, true, into);
+};
+
+type FrameCollector = (node: AstNode, into: Set<string>) => void;
+
+const collectProgramFrame: FrameCollector = (node, into) => {
+  const body = (node as unknown as { body?: readonly AstNode[] }).body ?? [];
+  for (const stmt of body) {
+    collectTopLevelStatementBindings(stmt, into);
+  }
+};
+
+const collectFunctionFrame: FrameCollector = (node, into) => {
+  const params =
+    (node as unknown as { params?: readonly AstNode[] }).params ?? [];
+  for (const param of params) {
+    addPatternBindingNames(param, into);
+  }
+  // Hoisted vars and function declarations inside the body live in the
+  // function's var-environment. A `var ns = ...;` inside an `if` still
+  // shadows a module-level `ns` for the whole function.
+  const { body } = node as unknown as { body?: AstNode };
+  if (body) {
+    collectHoistedVarAndFunctionBindings(body, into);
+  }
+};
+
+const collectBlockFrame: FrameCollector = (node, into) => {
+  const body = (node as unknown as { body?: readonly AstNode[] }).body ?? [];
+  for (const stmt of body) {
+    addBlockStatementBindings(stmt, into);
+  }
+};
+
+const collectForStatementFrame: FrameCollector = (node, into) => {
+  const { init } = node as unknown as { init?: AstNode };
+  if (init && init.type === 'VariableDeclaration') {
+    addVarDeclarationBindingNames(init, into);
+  }
+};
+
+const collectForInOfFrame: FrameCollector = (node, into) => {
+  const { left } = node as unknown as { left?: AstNode };
+  if (left && left.type === 'VariableDeclaration') {
+    addVarDeclarationBindingNames(left, into);
+  }
+};
+
+const collectSwitchStatementFrame: FrameCollector = (node, into) => {
+  // `switch` shares one scope across every case. A binding in one case
+  // shadows the namespace across sibling cases (fall-through or otherwise).
+  const cases = (node as unknown as { cases?: readonly AstNode[] }).cases ?? [];
+  for (const c of cases) {
+    const consequent =
+      (c as unknown as { consequent?: readonly AstNode[] }).consequent ?? [];
+    for (const stmt of consequent) {
+      addBlockStatementBindings(stmt, into);
+    }
+  }
+};
+
+const collectCatchClauseFrame: FrameCollector = (node, into) => {
+  const { param } = node as unknown as { param?: AstNode };
+  addPatternBindingNames(param, into);
+};
+
+const collectClassExpressionFrame: FrameCollector = (node, into) => {
+  // A named `class expr` (`const C = class foo { ... }`) binds its own name
+  // inside its body only. ClassDeclaration names are hoisted into the
+  // enclosing block/program frame instead, so only class *expression* names
+  // need their own frame here.
+  addFunctionOrClassBindingName(node, into);
+};
+
+const SCOPE_FRAME_COLLECTORS: Record<string, FrameCollector> = {
+  ArrowFunctionExpression: collectFunctionFrame,
+  BlockStatement: collectBlockFrame,
+  CatchClause: collectCatchClauseFrame,
+  ClassExpression: collectClassExpressionFrame,
+  ForInStatement: collectForInOfFrame,
+  ForOfStatement: collectForInOfFrame,
+  ForStatement: collectForStatementFrame,
+  FunctionDeclaration: collectFunctionFrame,
+  FunctionExpression: collectFunctionFrame,
+  Program: collectProgramFrame,
+  StaticBlock: collectBlockFrame,
+  SwitchStatement: collectSwitchStatementFrame,
+};
+
+/**
+ * Collect the identifier bindings introduced *directly* by a scope frame
+ * node. Scope frames correspond to JS lexical scopes (function bodies, blocks,
+ * catch clauses, for-statements, switch statements, module/script roots).
+ */
+const collectScopeFrameBindings = (node: AstNode): ReadonlySet<string> => {
+  const names = new Set<string>();
+  const collector = SCOPE_FRAME_COLLECTORS[node.type];
+  if (collector) {
+    collector(node, names);
+  }
+  return names;
+};
+
+const isShadowed = (
+  receiverName: string,
+  scopeStack: readonly ReadonlySet<string>[]
+): boolean => {
+  // The module-level Program frame is the last entry and contains the
+  // namespace imports themselves. A "shadow" must come from a frame *inside*
+  // that one — i.e. any frame except the outermost.
+  for (let i = 0; i < scopeStack.length - 1; i += 1) {
+    const frame = scopeStack[i];
+    if (frame?.has(receiverName)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
+ * `isNonComputedMemberAccess` + `getNamespacedMemberNames` forward
+ * declarations. The bodies live next to the other callee-resolution helpers
+ * further down. Declared early here so the scope walker can use them without
+ * hitting `no-use-before-define`.
+ */
+const isMemberAccessNonComputed = (callee: AstNode): boolean => {
+  if (
+    callee.type !== 'MemberExpression' &&
+    callee.type !== 'StaticMemberExpression'
+  ) {
+    return false;
+  }
+  return (callee as unknown as { computed?: boolean }).computed !== true;
+};
+
+const resolveNamespacedMemberNames = (
+  callee: AstNode
+): { readonly receiver: string; readonly property: string } | null => {
+  if (!isMemberAccessNonComputed(callee)) {
+    return null;
+  }
+  const { object } = callee as unknown as { object?: AstNode };
+  const receiver = identifierName(object);
+  if (!receiver) {
+    return null;
+  }
+  const prop = (callee as unknown as { property?: AstNode }).property;
+  const property =
+    prop?.type === 'Identifier'
+      ? ((prop as unknown as { name?: string }).name ?? null)
+      : null;
+  return property ? { property, receiver } : null;
+};
+
+interface ScopeWalkState {
+  readonly frameworkNamespaces: ReadonlySet<string>;
+  readonly stack: ReadonlySet<string>[];
+  readonly starts: Set<number>;
+}
+
+const getFrameworkCallReceiver = (
+  node: AstNode,
+  frameworkNamespaces: ReadonlySet<string>
+): string | null => {
+  if (node.type !== 'CallExpression') {
+    return null;
+  }
+  const callee = node['callee'] as AstNode | undefined;
+  if (!callee) {
+    return null;
+  }
+  const names = resolveNamespacedMemberNames(callee);
+  if (!names || !frameworkNamespaces.has(names.receiver)) {
+    return null;
+  }
+  return names.receiver;
+};
+
+const recordFrameworkNamespacedCall = (
+  node: AstNode,
+  state: ScopeWalkState
+): void => {
+  const receiver = getFrameworkCallReceiver(node, state.frameworkNamespaces);
+  if (!receiver || isShadowed(receiver, state.stack)) {
+    return;
+  }
+  state.starts.add(node.start);
+};
+
+const recurseWithScope = (node: AstNode, state: ScopeWalkState): void => {
+  const isScope = node.type in SCOPE_FRAME_COLLECTORS;
+  if (isScope) {
+    state.stack.unshift(collectScopeFrameBindings(node));
+  }
+  try {
+    recordFrameworkNamespacedCall(node, state);
+    forEachAstChild(node, (child) => {
+      recurseWithScope(child, state);
+    });
+  } finally {
+    if (isScope) {
+      state.stack.shift();
+    }
+  }
+};
+
+/**
+ * Walk the AST with a scope stack and collect `CallExpression` start offsets
+ * whose callee is `<receiver>.<property>` where `<receiver>` is proven to
+ * resolve to a framework namespace import (i.e. not shadowed by any
+ * enclosing scope). Used to gate namespaced `core.trail(...)` /
+ * `core.signal(...)` / `core.contour(...)` resolution against local shadows.
+ */
+const collectFrameworkNamespacedCallStarts = (
+  ast: AstNode,
+  frameworkNamespaces: ReadonlySet<string>
+): ReadonlySet<number> => {
+  const starts = new Set<number>();
+  if (frameworkNamespaces.size === 0) {
+    return starts;
+  }
+  recurseWithScope(ast, { frameworkNamespaces, stack: [], starts });
+  return starts;
+};
+
 const matchTrailPrimitiveName = (
   name: string | undefined | null
 ): string | null => (name && TRAIL_CALLEE_NAMES.has(name) ? name : null);
@@ -570,35 +1139,114 @@ const getBareTrailCalleeName = (callee: AstNode): string | null => {
 };
 
 /**
- * Resolve a namespaced `ns.trail(...)` / `ns.signal(...)` callee to its
- * primitive name. Computed access (`ns[trail]()`) is intentionally rejected:
- * the bracketed expression may resolve to any runtime value, so we cannot
- * prove the call targets the framework primitive.
+ * Extract the `{ receiverName, propertyName }` of a non-computed member-call
+ * callee, or null for anything else. Computed access (`ns[trail]()`) is
+ * intentionally rejected: the bracketed expression may resolve to any runtime
+ * value, so we cannot prove the call targets a specific member.
  */
-const getNamespacedTrailCalleeName = (callee: AstNode): string | null => {
+const isNonComputedMemberAccess = (callee: AstNode): boolean => {
   if (
     callee.type !== 'MemberExpression' &&
     callee.type !== 'StaticMemberExpression'
   ) {
+    return false;
+  }
+  return (callee as unknown as { computed?: boolean }).computed !== true;
+};
+
+const getNamespacedMemberNames = (
+  callee: AstNode
+): { readonly receiver: string; readonly property: string } | null => {
+  if (!isNonComputedMemberAccess(callee)) {
     return null;
   }
-  if ((callee as unknown as { computed?: boolean }).computed === true) {
+  const { object } = callee as unknown as { object?: AstNode };
+  const receiver = identifierName(object);
+  if (!receiver) {
     return null;
   }
   const prop = (callee as unknown as { property?: AstNode }).property;
-  if (prop?.type !== 'Identifier') {
+  const property =
+    prop?.type === 'Identifier'
+      ? ((prop as unknown as { name?: string }).name ?? null)
+      : null;
+  return property ? { property, receiver } : null;
+};
+
+/**
+ * Resolution context for namespaced framework-primitive calls. Bundles the
+ * bare namespace-binding set with an optional set of proven-safe
+ * `CallExpression` start offsets from a scope-aware pre-pass. When the set of
+ * safe starts is present, a namespaced call only resolves if its start is in
+ * that set — so a function-local shadow of the namespace import does not
+ * leak through. When absent (e.g. from test helpers), the name-only gate is
+ * used as a backward-compatible fallback.
+ */
+interface FrameworkNamespaceContext {
+  readonly namespaces: ReadonlySet<string>;
+  readonly safeCallStarts?: ReadonlySet<number>;
+}
+
+const asNamespaceContext = (
+  input: ReadonlySet<string> | FrameworkNamespaceContext | undefined
+): FrameworkNamespaceContext | undefined => {
+  if (!input) {
+    return undefined;
+  }
+  return input instanceof Set
+    ? { namespaces: input }
+    : (input as FrameworkNamespaceContext);
+};
+
+const isNamespacedCallAllowed = (
+  callStart: number,
+  receiver: string,
+  ctx: FrameworkNamespaceContext
+): boolean => {
+  if (!ctx.namespaces.has(receiver)) {
+    return false;
+  }
+  // When `safeCallStarts` is present, it is the authoritative gate — it was
+  // built by a scope-aware pre-pass and already excludes shadowed receivers.
+  // Without it, fall back to the bare name check (used by unit-test hooks).
+  return ctx.safeCallStarts ? ctx.safeCallStarts.has(callStart) : true;
+};
+
+/**
+ * Resolve a namespaced `ns.trail(...)` / `ns.signal(...)` callee to its
+ * primitive name. When a {@link FrameworkNamespaceContext} is provided, the
+ * receiver must be a framework namespace binding AND — when a
+ * `safeCallStarts` set is present — the call site must appear in that set,
+ * meaning the receiver is not shadowed by any enclosing scope.
+ */
+const getNamespacedTrailCalleeName = (
+  callExpr: AstNode,
+  callee: AstNode,
+  context?: ReadonlySet<string> | FrameworkNamespaceContext
+): string | null => {
+  const names = getNamespacedMemberNames(callee);
+  if (!names) {
     return null;
   }
-  return matchTrailPrimitiveName((prop as unknown as { name?: string }).name);
+  const ctx = asNamespaceContext(context);
+  if (!ctx || !isNamespacedCallAllowed(callExpr.start, names.receiver, ctx)) {
+    return null;
+  }
+  return matchTrailPrimitiveName(names.property);
 };
 
 /**
  * Resolve the callee name of a trail/signal call expression.
  *
  * Matches both bare `trail(...)` / `signal(...)` identifiers and namespaced
- * member-expression callees like `core.trail(...)` or `ns.signal(...)`.
+ * member-expression callees like `core.trail(...)` or `ns.signal(...)`, where
+ * the namespace must come from an `@ontrails/*` import and, when the scope
+ * pre-pass is wired in, be unshadowed at the call site.
  */
-const getTrailCalleeName = (node: AstNode): string | null => {
+const getTrailCalleeName = (
+  node: AstNode,
+  context?: ReadonlySet<string> | FrameworkNamespaceContext
+): string | null => {
   if (node.type !== 'CallExpression') {
     return null;
   }
@@ -606,7 +1254,10 @@ const getTrailCalleeName = (node: AstNode): string | null => {
   if (!callee) {
     return null;
   }
-  return getBareTrailCalleeName(callee) ?? getNamespacedTrailCalleeName(callee);
+  return (
+    getBareTrailCalleeName(callee) ??
+    getNamespacedTrailCalleeName(node, callee, context)
+  );
 };
 
 /**
@@ -616,6 +1267,15 @@ const getTrailCalleeName = (node: AstNode): string | null => {
  * `index.ts`) so internal refactors stay free.
  */
 export const __getTrailCalleeNameForTest = getTrailCalleeName;
+
+/**
+ * Test hook: exposes {@link collectFrameworkNamespaceBindings} for unit tests.
+ *
+ * Not re-exported from `index.ts`; the double-underscore prefix marks it as an
+ * internal-only handle so consumer code cannot rely on it.
+ */
+export const __collectFrameworkNamespaceBindingsForTest =
+  collectFrameworkNamespaceBindings;
 
 /** Extract args from a trail() call, handling both two-arg and single-object forms. */
 const extractTrailArgs = (
@@ -661,8 +1321,11 @@ const extractTrailId = (trailArgs: {
   return extractIdFromConfig(trailArgs.configArg);
 };
 
-const extractTrailDefinition = (node: AstNode): TrailDefinition | null => {
-  const calleeName = getTrailCalleeName(node);
+const extractTrailDefinition = (
+  node: AstNode,
+  context?: ReadonlySet<string> | FrameworkNamespaceContext
+): TrailDefinition | null => {
+  const calleeName = getTrailCalleeName(node, context);
   if (!calleeName) {
     return null;
   }
@@ -685,11 +1348,22 @@ const extractTrailDefinition = (node: AstNode): TrailDefinition | null => {
   };
 };
 
+const buildFrameworkNamespaceContext = (
+  ast: AstNode
+): FrameworkNamespaceContext => {
+  const namespaces = collectFrameworkNamespaceBindings(ast);
+  return {
+    namespaces,
+    safeCallStarts: collectFrameworkNamespacedCallStarts(ast, namespaces),
+  };
+};
+
 export const findTrailDefinitions = (ast: AstNode): TrailDefinition[] => {
   const definitions: TrailDefinition[] = [];
+  const context = buildFrameworkNamespaceContext(ast);
 
   walk(ast, (node) => {
-    const def = extractTrailDefinition(node);
+    const def = extractTrailDefinition(node, context);
     if (def) {
       definitions.push(def);
     }
@@ -717,22 +1391,71 @@ export interface ContourDefinition {
   readonly start: number;
 }
 
-const getContourCalleeName = (node: AstNode): string | null => {
+const CONTOUR_PRIMITIVE_NAME = 'contour';
+
+const matchContourPrimitiveName = (
+  name: string | undefined | null
+): string | null => (name === CONTOUR_PRIMITIVE_NAME ? name : null);
+
+const getBareContourCalleeName = (callee: AstNode): string | null => {
+  if (callee.type !== 'Identifier') {
+    return null;
+  }
+  return matchContourPrimitiveName(
+    (callee as unknown as { name?: string }).name
+  );
+};
+
+/**
+ * Resolve a namespaced `ns.contour(...)` callee to its primitive name. Mirrors
+ * {@link getNamespacedTrailCalleeName}: the receiver identifier must resolve
+ * to an `@ontrails/*` namespace import, and — when a scope-aware
+ * `safeCallStarts` set is provided — the call site must not be shadowed by a
+ * local binding of the same name.
+ */
+const getNamespacedContourCalleeName = (
+  callExpr: AstNode,
+  callee: AstNode,
+  context?: ReadonlySet<string> | FrameworkNamespaceContext
+): string | null => {
+  const names = getNamespacedMemberNames(callee);
+  if (!names) {
+    return null;
+  }
+  const ctx = asNamespaceContext(context);
+  if (!ctx || !isNamespacedCallAllowed(callExpr.start, names.receiver, ctx)) {
+    return null;
+  }
+  return matchContourPrimitiveName(names.property);
+};
+
+/**
+ * Resolve the callee name of a contour call expression. Matches both bare
+ * `contour(...)` identifiers and namespaced `core.contour(...)` callees where
+ * the namespace comes from an `@ontrails/*` import and is unshadowed.
+ */
+const getContourCalleeName = (
+  node: AstNode,
+  context?: ReadonlySet<string> | FrameworkNamespaceContext
+): string | null => {
   if (node.type !== 'CallExpression') {
     return null;
   }
   const callee = node['callee'] as AstNode | undefined;
-  if (!callee || callee.type !== 'Identifier') {
+  if (!callee) {
     return null;
   }
-  const { name } = callee as unknown as { name?: string };
-  return name === 'contour' ? name : null;
+  return (
+    getBareContourCalleeName(callee) ??
+    getNamespacedContourCalleeName(node, callee, context)
+  );
 };
 
 const extractContourDefinition = (
-  node: AstNode
+  node: AstNode,
+  context?: ReadonlySet<string> | FrameworkNamespaceContext
 ): Omit<ContourDefinition, 'bindingName'> | null => {
-  if (!getContourCalleeName(node)) {
+  if (!getContourCalleeName(node, context)) {
     return null;
   }
 
@@ -755,6 +1478,7 @@ const extractContourDefinition = (
 export const findContourDefinitions = (ast: AstNode): ContourDefinition[] => {
   const definitions: ContourDefinition[] = [];
   const seenStarts = new Set<number>();
+  const context = buildFrameworkNamespaceContext(ast);
 
   const addContourDefinition = (definition: ContourDefinition): void => {
     if (seenStarts.has(definition.start)) {
@@ -773,7 +1497,7 @@ export const findContourDefinitions = (ast: AstNode): ContourDefinition[] => {
       return;
     }
 
-    const definition = extractContourDefinition(init);
+    const definition = extractContourDefinition(init, context);
     if (!definition) {
       return;
     }
@@ -797,7 +1521,7 @@ export const findContourDefinitions = (ast: AstNode): ContourDefinition[] => {
       return;
     }
 
-    const definition = extractContourDefinition(node);
+    const definition = extractContourDefinition(node, context);
     if (definition) {
       addContourDefinition(definition);
     }
@@ -1208,6 +1932,7 @@ export const collectNamedTrailIds = (
   ast: AstNode
 ): ReadonlyMap<string, string> => {
   const ids = new Map<string, string>();
+  const context = buildFrameworkNamespaceContext(ast);
 
   walk(ast, (node) => {
     if (node.type !== 'VariableDeclarator') {
@@ -1222,7 +1947,7 @@ export const collectNamedTrailIds = (
       return;
     }
 
-    const def = extractTrailDefinition(init);
+    const def = extractTrailDefinition(init, context);
     const name = extractBindingName(id);
     if (def?.kind === 'trail' && name) {
       ids.set(name, def.id);

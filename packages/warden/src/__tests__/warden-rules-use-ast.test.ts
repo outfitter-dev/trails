@@ -348,6 +348,26 @@ describe('warden-rules-use-ast', () => {
       const diagnostics = wardenRulesUseAst.check(source, targetFile);
       expect(diagnostics).toEqual([]);
     });
+
+    test('scope: catch-clause param shadowing does not fire', () => {
+      // The `catch (sourceCode)` binding is a different scope from the
+      // enclosing `check` parameter. The `.split()` inside the catch block
+      // reads the catch param, not the rule's source-text parameter.
+      const source =
+        "export const r = { check(sourceCode: string, filePath: string) { try { return []; } catch (sourceCode) { return sourceCode.split('\\n'); } } };\n";
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics).toEqual([]);
+    });
+
+    test('scope: hoisted var inside a block shadows the check param', () => {
+      // `var sourceCode` inside `if (cond) { ... }` hoists to the function
+      // body and shadows the parameter. The `.split(...)` after the block
+      // reads the hoisted var, not the param, so no diagnostic.
+      const source =
+        "export const r = { check(sourceCode: string, filePath: string) { if (filePath) { var sourceCode = 'local'; } return sourceCode.split('\\n'); } };\n";
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics).toEqual([]);
+    });
   });
 
   describe('idiomatic patterns are not flagged', () => {

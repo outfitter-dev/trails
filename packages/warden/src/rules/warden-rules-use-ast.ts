@@ -432,7 +432,7 @@ const detectSite = (node: AstNode): DetectedSite | null => {
 // ---------------------------------------------------------------------------
 
 interface Scope {
-  readonly declaredNames: Set<string>;
+  readonly declaredNames: ReadonlySet<string>;
   readonly sourceParamName: string | null;
 }
 
@@ -649,14 +649,53 @@ const collectBindingIdsFromPattern = (
   }
 };
 
-const collectFunctionParamNames = (fn: AstNode): Set<string> => {
-  const names = new Set<string>();
+interface FunctionScopeBindingsEx {
+  /** Param names exactly — used to identify the source-param binding. */
+  readonly paramNames: Set<string>;
+  /** Hoisted `var` names inside the function body. May overlap with params. */
+  readonly hoistedVarNames: Set<string>;
+  /** Combined set of declared names visible in this function scope. */
+  readonly declaredNames: Set<string>;
+}
+
+const collectParamBindingsFromFunction = (fn: AstNode): Set<string> => {
+  const paramNames = new Set<string>();
   const params =
     (fn as unknown as { params?: readonly AstNode[] }).params ?? [];
   for (const param of params) {
-    collectBindingIdsFromPattern(param, names);
+    collectBindingIdsFromPattern(param, paramNames);
   }
-  return names;
+  return paramNames;
+};
+
+const collectHoistedVarsFromFunctionBody = (fn: AstNode): Set<string> => {
+  const hoistedVarNames = new Set<string>();
+  const { body } = fn as unknown as { body?: AstNode };
+  if (body && typeof body === 'object' && (body as AstNode).type) {
+    // eslint-disable-next-line no-use-before-define
+    collectHoistedVarBindings(body, hoistedVarNames);
+  }
+  return hoistedVarNames;
+};
+
+/**
+ * Combine param names and body-level hoisted `var` names into a single
+ * declared-names set, while keeping the two subsets addressable. The
+ * hoisted set is kept separate so the scope walker can tell whether a
+ * source-param identity has been overwritten by a same-named hoisted local —
+ * a shadow that would otherwise be invisible because both names live in the
+ * same function-scope binding set.
+ */
+const collectFunctionScopeBindingsEx = (
+  fn: AstNode
+): FunctionScopeBindingsEx => {
+  const paramNames = collectParamBindingsFromFunction(fn);
+  const hoistedVarNames = collectHoistedVarsFromFunctionBody(fn);
+  const declaredNames = new Set<string>(paramNames);
+  for (const name of hoistedVarNames) {
+    declaredNames.add(name);
+  }
+  return { declaredNames, hoistedVarNames, paramNames };
 };
 
 const addVariableDeclarationNames = (
@@ -674,6 +713,47 @@ const addVariableDeclarationNames = (
   }
 };
 
+const isVarVariableDeclaration = (stmt: AstNode): boolean =>
+  stmt.type === 'VariableDeclaration' &&
+  (stmt as unknown as { kind?: string }).kind === 'var';
+
+/**
+ * True when `node` owns its own VariableEnvironment and therefore stops `var`
+ * hoisting from crossing into the enclosing function/program scope.
+ */
+const ownsVariableEnvironmentForHoisting = (node: AstNode): boolean =>
+  FUNCTION_NODE_TYPES.has(node.type) || node.type === 'StaticBlock';
+
+/**
+ * Collect `var` declarations that hoist to the nearest function (or program)
+ * scope from anywhere inside `root`, without crossing a nested function or
+ * static-block boundary. Mirrors the hoisting semantics used by
+ * {@link ./no-sync-result-assumption.ts} so `if (cond) { var sourceCode = ... }`
+ * inside a `check()` body correctly shadows the method's first parameter.
+ */
+const collectHoistedVarBindings = (root: AstNode, out: Set<string>): void => {
+  const walkVar = (node: AstNode, isRoot: boolean): void => {
+    if (!isRoot && ownsVariableEnvironmentForHoisting(node)) {
+      return;
+    }
+    if (isVarVariableDeclaration(node)) {
+      addVariableDeclarationNames(node, out);
+    }
+    for (const val of Object.values(node)) {
+      if (Array.isArray(val)) {
+        for (const item of val) {
+          if (item && typeof item === 'object' && (item as AstNode).type) {
+            walkVar(item as AstNode, false);
+          }
+        }
+      } else if (val && typeof val === 'object' && (val as AstNode).type) {
+        walkVar(val as AstNode, false);
+      }
+    }
+  };
+  walkVar(root, true);
+};
+
 const addFunctionDeclarationName = (
   stmt: AstNode,
   names: Set<string>
@@ -688,12 +768,33 @@ const collectBlockDeclarationNames = (block: AstNode): Set<string> => {
   const names = new Set<string>();
   const body = (block as unknown as { body?: readonly AstNode[] }).body ?? [];
   for (const stmt of body) {
-    if (stmt.type === 'VariableDeclaration') {
+    // `var` is function-scoped, not block-scoped — hoisted into the nearest
+    // enclosing function (or program) scope by
+    // {@link collectHoistedVarBindings}. Registering it here would make
+    // `if (cond) { var x = ... }` look block-local and fail to shadow a
+    // same-named outer binding when the write escapes the block.
+    if (
+      stmt.type === 'VariableDeclaration' &&
+      !isVarVariableDeclaration(stmt)
+    ) {
       addVariableDeclarationNames(stmt, names);
     } else if (stmt.type === 'FunctionDeclaration') {
       addFunctionDeclarationName(stmt, names);
     }
   }
+  return names;
+};
+
+/**
+ * Collect the names a `CatchClause` parameter introduces into its body. The
+ * catch clause has its own binding scope distinct from the surrounding block;
+ * without this, `try {} catch (sourceCode) { sourceCode.split(...) }` would
+ * resolve `sourceCode` to the enclosing `check()` parameter and fire.
+ */
+const collectCatchClauseDeclarationNames = (node: AstNode): Set<string> => {
+  const names = new Set<string>();
+  const { param } = node as unknown as { param?: AstNode };
+  collectBindingIdsFromPattern(param, names);
   return names;
 };
 
@@ -734,6 +835,46 @@ const maybeRecordDetection = (
 };
 
 /**
+ * Resolve the effective source-param name for a function scope. A hoisted
+ * `var` with the same name as the source param overwrites the param's slot
+ * in the function's VariableEnvironment, so the enclosing identifier no
+ * longer resolves to the raw-source binding.
+ */
+const resolveScopeSourceParamName = (
+  methodParamName: string | null,
+  hoistedVarNames: ReadonlySet<string>
+): string | null =>
+  methodParamName && hoistedVarNames.has(methodParamName)
+    ? null
+    : methodParamName;
+
+const pushFunctionScope = (
+  node: AstNode,
+  ctx: ScopeWalkContext,
+  scopes: Scope[]
+): void => {
+  const methodParamName = ctx.methodFunctionStarts.get(node.start) ?? null;
+  const { declaredNames, hoistedVarNames } =
+    collectFunctionScopeBindingsEx(node);
+  scopes.push({
+    declaredNames,
+    sourceParamName: resolveScopeSourceParamName(
+      methodParamName,
+      hoistedVarNames
+    ),
+  });
+};
+
+/** Collector for scope frames that carry no source-param identity. */
+const SIMPLE_SCOPE_COLLECTORS: Record<
+  string,
+  (node: AstNode) => ReadonlySet<string>
+> = {
+  BlockStatement: collectBlockDeclarationNames,
+  CatchClause: collectCatchClauseDeclarationNames,
+};
+
+/**
  * Push the scope a function node introduces, or null when the node is not
  * scope-introducing. Returning a dispose function keeps `visitWithScopes`
  * small and keeps the scope stack strictly paired.
@@ -744,16 +885,13 @@ const enterScopeForNode = (
   scopes: Scope[]
 ): boolean => {
   if (FUNCTION_NODE_TYPES.has(node.type)) {
-    const sourceParamName = ctx.methodFunctionStarts.get(node.start) ?? null;
-    scopes.push({
-      declaredNames: collectFunctionParamNames(node),
-      sourceParamName,
-    });
+    pushFunctionScope(node, ctx, scopes);
     return true;
   }
-  if (node.type === 'BlockStatement') {
+  const collector = SIMPLE_SCOPE_COLLECTORS[node.type];
+  if (collector) {
     scopes.push({
-      declaredNames: collectBlockDeclarationNames(node),
+      declaredNames: collector(node),
       sourceParamName: null,
     });
     return true;

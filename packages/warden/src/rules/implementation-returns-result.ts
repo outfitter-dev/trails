@@ -380,24 +380,115 @@ const collectCatchClauseBindingNames = (node: AstNode): ReadonlySet<string> => {
   return names;
 };
 
+/**
+ * Collect bindings introduced by any `consequent` statement of any `case`
+ * inside a `SwitchStatement`. JavaScript `switch` bodies share a single
+ * lexical scope across all cases — a `const ns = ...` declared in one case is
+ * visible in every other case via fall-through or direct reference. A
+ * per-`SwitchCase` frame would pop the binding when the case ended, missing
+ * the shadow from sibling cases.
+ *
+ * Braced cases (`case 'a': { const ns = ...; ... }`) still get their own
+ * `BlockStatement` frame nested inside this one, as before.
+ */
+const collectSwitchStatementBindingNames = (
+  node: AstNode
+): ReadonlySet<string> => {
+  const names = new Set<string>();
+  const cases = (node as unknown as { cases?: readonly AstNode[] }).cases ?? [];
+  for (const switchCase of cases) {
+    const consequent =
+      (switchCase as unknown as { consequent?: readonly AstNode[] })
+        .consequent ?? [];
+    for (const stmt of consequent) {
+      if (stmt.type === 'VariableDeclaration') {
+        addVariableDeclarationNames(stmt, names);
+      } else if (stmt.type === 'FunctionDeclaration') {
+        addFunctionDeclarationName(stmt, names);
+      }
+    }
+  }
+  return names;
+};
+
 const SCOPE_FRAME_COLLECTORS: Record<
   string,
   (node: AstNode) => ReadonlySet<string>
 > = {
+  // `FunctionBody` is the oxc-parser shape for the body of a regular
+  // `function expression() { ... }`. Arrow functions use `BlockStatement`.
+  // Without this entry, a `const ns = ...` at the top of a function-expression
+  // blaze body would not push a scope frame, and a module-level namespace
+  // import with the same name would be incorrectly recognized inside.
   BlockStatement: collectBlockBindingNames,
   CatchClause: collectCatchClauseBindingNames,
   ForInStatement: collectForInOfBindingNames,
   ForOfStatement: collectForInOfBindingNames,
   ForStatement: collectForStatementBindingNames,
+  FunctionBody: collectBlockBindingNames,
+  SwitchStatement: collectSwitchStatementBindingNames,
 };
 
-/** Collect parameter names from a function-like node. */
+const FUNCTION_VAR_ENV_TYPES = new Set([
+  'ArrowFunctionExpression',
+  'FunctionDeclaration',
+  'FunctionExpression',
+  'StaticBlock',
+]);
+
+const isVarDeclarationNode = (node: AstNode): boolean =>
+  node.type === 'VariableDeclaration' &&
+  (node as unknown as { kind?: string }).kind === 'var';
+
+/**
+ * Collect `var` declarations that hoist to the nearest function scope from
+ * anywhere inside `root`, without crossing a nested function or static-block
+ * boundary. Mirrors the hoisting rule used by
+ * `./no-sync-result-assumption.ts`.
+ *
+ * Used to seed a blaze's implParams with function-body `var`s so a pattern
+ * like `if (cond) { var ns = local; } return ns.helper();` correctly sees
+ * `ns` as a shadow of any module-level namespace import.
+ */
+const collectHoistedVarNamesInto = (root: AstNode, out: Set<string>): void => {
+  const walkVars = (node: AstNode, isRoot: boolean): void => {
+    if (!isRoot && FUNCTION_VAR_ENV_TYPES.has(node.type)) {
+      return;
+    }
+    if (isVarDeclarationNode(node)) {
+      addVariableDeclarationNames(node, out);
+    }
+    for (const val of Object.values(node)) {
+      if (Array.isArray(val)) {
+        for (const item of val) {
+          if (item && typeof item === 'object' && (item as AstNode).type) {
+            walkVars(item as AstNode, false);
+          }
+        }
+      } else if (val && typeof val === 'object' && (val as AstNode).type) {
+        walkVars(val as AstNode, false);
+      }
+    }
+  };
+  walkVars(root, true);
+};
+
+/**
+ * Collect parameter names from a function-like node, including `var`
+ * declarations hoisted from anywhere in the function body. The hoisted vars
+ * seed the scope stack so shadowing detection works for patterns like
+ * `if (cond) { var ns = local; } return ns.helper();`.
+ */
 const collectFunctionParamNames = (fn: AstNode): ReadonlySet<string> => {
   const names = new Set<string>();
   const params =
     (fn as unknown as { params?: readonly AstNode[] }).params ?? [];
   for (const param of params) {
     collectPatternNames(param, names);
+  }
+  const { body } = fn as unknown as { body?: AstNode };
+  if (body && typeof body === 'object' && (body as AstNode).type) {
+    collectHoistedVarNamesInto(body as AstNode, names);
   }
   return names;
 };
@@ -1429,7 +1520,17 @@ const getNamespaceLocalName = (spec: AstNode): string | null => {
   return extractIdentifierName(local);
 };
 
-/** Resolve a single namespace specifier to (localName, resultHelperNames) or null. */
+/**
+ * Resolve a single namespace specifier to (localName, resultHelperNames), or
+ * null when the specifier is not a resolvable namespace import.
+ *
+ * We intentionally record the namespace even when the target file exports no
+ * Result helpers (empty set). `isNamespaceHelperMemberCall` can then identify
+ * `ns.anything()` as a namespace member call against a non-Result-helper
+ * target — which correctly falls through to the general return-value
+ * diagnostic path. Dropping the entry would misclassify the call as a
+ * *non-namespace* member call and skip the namespace-shadowing scope check.
+ */
 const resolveNamespaceSpecifier = (
   spec: AstNode,
   source: string,
@@ -1444,7 +1545,7 @@ const resolveNamespaceSpecifier = (
     return null;
   }
   const names = collectTargetExportedResultHelperNames(targetPath);
-  return names.size > 0 ? { localName, names } : null;
+  return { localName, names };
 };
 
 /** Extract namespace helper entries from a single ImportDeclaration node. */

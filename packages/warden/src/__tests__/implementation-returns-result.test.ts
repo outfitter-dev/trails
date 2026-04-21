@@ -601,45 +601,46 @@ trail("entity.report", {
         expect(diagnostics.length).toBe(1);
       });
 
-      test('flags ns.helper() when blaze parameter shadows the namespace import', () => {
-        writeFile(
-          'impl-ns-shadow-param.ts',
-          `export const helper = async (): Promise<Result<object, Error>> =>
+      describe('shadowing by param/const/let', () => {
+        test('flags ns.helper() when blaze parameter shadows the namespace import', () => {
+          writeFile(
+            'impl-ns-shadow-param.ts',
+            `export const helper = async (): Promise<Result<object, Error>> =>
   Result.ok({ ok: true });
 `
-        );
-        const caller = writeFile(
-          'caller-ns-shadow-param.ts',
-          `import * as ns from './impl-ns-shadow-param.js';
+          );
+          const caller = writeFile(
+            'caller-ns-shadow-param.ts',
+            `import * as ns from './impl-ns-shadow-param.js';
 
 trail("entity.report", {
   blaze: async (ns, ctx) => {
     return ns.helper(ctx);
   }
 })`
-        );
+          );
 
-        const diagnostics = implementationReturnsResult.check(
-          readFileSync(caller, 'utf8'),
-          caller
-        );
+          const diagnostics = implementationReturnsResult.check(
+            readFileSync(caller, 'utf8'),
+            caller
+          );
 
-        // The blaze parameter \`ns\` shadows the namespace import; \`ns.helper()\`
-        // is a call on the parameter, not on the namespace, so the return
-        // must be flagged rather than silently treated as a Result helper.
-        expect(diagnostics.length).toBe(1);
-      });
+          // The blaze parameter \`ns\` shadows the namespace import; \`ns.helper()\`
+          // is a call on the parameter, not on the namespace, so the return
+          // must be flagged rather than silently treated as a Result helper.
+          expect(diagnostics.length).toBe(1);
+        });
 
-      test('flags ns.helper() when a local const shadows the namespace import', () => {
-        writeFile(
-          'impl-ns-shadow-const.ts',
-          `export const helper = async (): Promise<Result<object, Error>> =>
+        test('flags ns.helper() when a local const shadows the namespace import', () => {
+          writeFile(
+            'impl-ns-shadow-const.ts',
+            `export const helper = async (): Promise<Result<object, Error>> =>
   Result.ok({ ok: true });
 `
-        );
-        const caller = writeFile(
-          'caller-ns-shadow-const.ts',
-          `import * as ns from './impl-ns-shadow-const.js';
+          );
+          const caller = writeFile(
+            'caller-ns-shadow-const.ts',
+            `import * as ns from './impl-ns-shadow-const.js';
 
 trail("entity.report", {
   blaze: async (input, ctx) => {
@@ -647,26 +648,26 @@ trail("entity.report", {
     return ns.helper(input);
   }
 })`
-        );
+          );
 
-        const diagnostics = implementationReturnsResult.check(
-          readFileSync(caller, 'utf8'),
-          caller
-        );
+          const diagnostics = implementationReturnsResult.check(
+            readFileSync(caller, 'utf8'),
+            caller
+          );
 
-        expect(diagnostics.length).toBe(1);
-      });
+          expect(diagnostics.length).toBe(1);
+        });
 
-      test('flags ns.helper() when a local let shadows the namespace import', () => {
-        writeFile(
-          'impl-ns-shadow-let.ts',
-          `export const helper = async (): Promise<Result<object, Error>> =>
+        test('flags ns.helper() when a local let shadows the namespace import', () => {
+          writeFile(
+            'impl-ns-shadow-let.ts',
+            `export const helper = async (): Promise<Result<object, Error>> =>
   Result.ok({ ok: true });
 `
-        );
-        const caller = writeFile(
-          'caller-ns-shadow-let.ts',
-          `import * as ns from './impl-ns-shadow-let.js';
+          );
+          const caller = writeFile(
+            'caller-ns-shadow-let.ts',
+            `import * as ns from './impl-ns-shadow-let.js';
 
 trail("entity.report", {
   blaze: async (input, ctx) => {
@@ -674,14 +675,15 @@ trail("entity.report", {
     return ns.helper(input);
   }
 })`
-        );
+          );
 
-        const diagnostics = implementationReturnsResult.check(
-          readFileSync(caller, 'utf8'),
-          caller
-        );
+          const diagnostics = implementationReturnsResult.check(
+            readFileSync(caller, 'utf8'),
+            caller
+          );
 
-        expect(diagnostics.length).toBe(1);
+          expect(diagnostics.length).toBe(1);
+        });
       });
 
       describe('shadowing in for/catch scopes', () => {
@@ -791,6 +793,222 @@ trail("entity.report", {
     } catch ({ ns }) {
       return ns.helper(input);
     }
+  }
+})`
+          );
+
+          const diagnostics = implementationReturnsResult.check(
+            readFileSync(caller, 'utf8'),
+            caller
+          );
+
+          expect(diagnostics.length).toBe(1);
+        });
+      });
+
+      describe('scope-frame coverage (TRL-347)', () => {
+        test('flags ns.helper() when a const ns shadow sits in a function-expression blaze body (FunctionBody frame)', () => {
+          // Regression: oxc-parser emits `FunctionBody` for regular
+          // `function expression() { ... }` bodies, not `BlockStatement`. Without
+          // a FunctionBody scope-frame collector, the `const ns = ...` at the
+          // top of this body would not push a frame and the module-level
+          // namespace import would leak through.
+          writeFile(
+            'impl-ns-shadow-fn-expr.ts',
+            `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+          );
+          const caller = writeFile(
+            'caller-ns-shadow-fn-expr.ts',
+            `import * as ns from './impl-ns-shadow-fn-expr.js';
+
+trail("entity.report", {
+  blaze: async function(input, ctx) {
+    const ns = { helper: () => ({ ok: true }) };
+    return ns.helper(input);
+  }
+})`
+          );
+
+          const diagnostics = implementationReturnsResult.check(
+            readFileSync(caller, 'utf8'),
+            caller
+          );
+
+          expect(diagnostics.length).toBe(1);
+        });
+
+        test('flags ns.helper() when a hoisted var ns shadows the namespace import', () => {
+          // Regression: a `var ns` nested inside a block hoists to the
+          // enclosing blaze's function scope. Without function-body-level var
+          // hoisting, the namespace import is read as the receiver and the
+          // return is silently treated as a Result helper.
+          writeFile(
+            'impl-ns-shadow-hoisted-var.ts',
+            `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+          );
+          const caller = writeFile(
+            'caller-ns-shadow-hoisted-var.ts',
+            `import * as ns from './impl-ns-shadow-hoisted-var.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    if (input) {
+      var ns = { helper: () => ({ ok: true }) };
+    }
+    return ns.helper(input);
+  }
+})`
+          );
+
+          const diagnostics = implementationReturnsResult.check(
+            readFileSync(caller, 'utf8'),
+            caller
+          );
+
+          expect(diagnostics.length).toBe(1);
+        });
+
+        test('flags ns.helper() when an unbraced switch case declares a shadowing const', () => {
+          // Regression: an unbraced switch case (`case N: const ns = ...;`)
+          // does not push a BlockStatement frame. Without a SwitchCase
+          // collector, the shadow is invisible to the walker.
+          writeFile(
+            'impl-ns-shadow-switch.ts',
+            `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+          );
+          const caller = writeFile(
+            'caller-ns-shadow-switch.ts',
+            `import * as ns from './impl-ns-shadow-switch.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    switch (input.kind) {
+      case 'a':
+        const ns = { helper: () => ({ ok: true }) };
+        return ns.helper(input);
+      default:
+        return Result.ok({});
+    }
+  }
+})`
+          );
+
+          const diagnostics = implementationReturnsResult.check(
+            readFileSync(caller, 'utf8'),
+            caller
+          );
+
+          expect(diagnostics.length).toBe(1);
+        });
+
+        test('flags ns.helper() in a sibling switch case when an earlier case declares a shadowing const', () => {
+          // Regression: `switch` shares a single lexical scope across every
+          // case. A `const ns = ...` in case 'a' shadows the module-level
+          // namespace import for every sibling case (including via
+          // fall-through). A per-SwitchCase frame would pop the binding when
+          // case 'a' ended and miss the shadow in case 'b'.
+          writeFile(
+            'impl-ns-shadow-switch-fallthrough.ts',
+            `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+          );
+          const caller = writeFile(
+            'caller-ns-shadow-switch-fallthrough.ts',
+            `import * as ns from './impl-ns-shadow-switch-fallthrough.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    switch (input.kind) {
+      case 'a':
+        const ns = { helper: () => ({ ok: true }) };
+        return ns.helper(input);
+      case 'b':
+        return ns.helper(input);
+      default:
+        return Result.ok({});
+    }
+  }
+})`
+          );
+
+          const diagnostics = implementationReturnsResult.check(
+            readFileSync(caller, 'utf8'),
+            caller
+          );
+
+          // Both case 'a' and case 'b' should fire — the const declared in
+          // case 'a' is visible across the entire switch scope.
+          expect(diagnostics.length).toBe(2);
+        });
+
+        test('still resolves ns.helper() correctly when the switch case is braced', () => {
+          // Regression: braced cases create a BlockStatement frame nested
+          // inside the SwitchStatement frame. The shadow must still apply
+          // inside that block, and the sibling case must still see the
+          // namespace import (no SwitchStatement-level binding leaks).
+          writeFile(
+            'impl-ns-shadow-switch-braced.ts',
+            `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+          );
+          const caller = writeFile(
+            'caller-ns-shadow-switch-braced.ts',
+            `import * as ns from './impl-ns-shadow-switch-braced.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    switch (input.kind) {
+      case 'a': {
+        const ns = { helper: () => ({ ok: true }) };
+        return ns.helper(input);
+      }
+      case 'b':
+        return ns.helper(input);
+      default:
+        return Result.ok({});
+    }
+  }
+})`
+          );
+
+          const diagnostics = implementationReturnsResult.check(
+            readFileSync(caller, 'utf8'),
+            caller
+          );
+
+          // Only the braced case 'a' should fire — the `const ns` is scoped
+          // to the inner block and does not leak into case 'b'.
+          expect(diagnostics.length).toBe(1);
+        });
+
+        test('flags ns.anything() when the namespace target exports zero Result helpers', () => {
+          // Regression: when the target file has no Result-returning exports,
+          // `resolveNamespaceSpecifier` used to drop the entry entirely. That
+          // made `isNamespaceHelperMemberCall` return false because the
+          // namespace binding was absent from the map — the general return-
+          // value analysis then fired for the wrong reason. The entry is now
+          // recorded with an empty set so the call is correctly identified as
+          // a non-Result-helper namespace member call.
+          writeFile(
+            'impl-ns-empty.ts',
+            `export const nonResultFn = async () => ({ ok: true });
+`
+          );
+          const caller = writeFile(
+            'caller-ns-empty.ts',
+            `import * as ns from './impl-ns-empty.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return ns.nonResultFn();
   }
 })`
           );

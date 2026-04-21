@@ -861,6 +861,41 @@ async function run(ctx, fallback) {
       expect(diagnostics[0]?.message).toContain('Missing await');
     });
 
+    test('keeps pending after a logical compound assignment (||=)', () => {
+      // Mirrors the `??=` case: `||=` only writes when the LHS is falsy, and
+      // a pending `Promise<Result>` is truthy, so the pending binding must
+      // survive.
+      const code = `
+async function run(ctx, fallback) {
+  let result = entityShow.blaze({ id: "1" }, ctx);
+  result ||= fallback;
+  result.isOk();
+}`;
+
+      const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
+
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0]?.message).toContain('Missing await');
+    });
+
+    test('flags self-referential re-assignment that accesses Result members on RHS', () => {
+      // Regression for the pre-order-clear bug. `result = result.value` must
+      // fire on the RHS `result.value` BEFORE the assignment clears the
+      // pending binding — otherwise the missing-await diagnostic would
+      // silently disappear even though the RHS reads a Result accessor from
+      // the same pending slot.
+      const code = `
+async function run(ctx) {
+  let result = entityShow.blaze({ id: "1" }, ctx);
+  result = result.value;
+}`;
+
+      const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
+
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0]?.message).toContain('Missing await');
+    });
+
     test('clears pending after a logical-AND compound assignment (&&=)', () => {
       // `&&=` writes the RHS when the LHS is truthy. A pending
       // Promise<Result> is truthy, so the RHS always runs and the pending

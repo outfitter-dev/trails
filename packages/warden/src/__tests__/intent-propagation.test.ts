@@ -71,7 +71,13 @@ trail('entity.lookup', {
     // must recognize `core.trail("id", { ... })` as a trail definition, not
     // just bare `trail("id", { ... })`. Before the fix these definitions were
     // silently skipped and this rule stayed quiet on namespaced-import files.
+    //
+    // Per TRL-347 the namespace receiver must resolve to an `@ontrails/*`
+    // import — the `import * as core from '@ontrails/core'` below is what
+    // licenses the `core.trail(...)` recognition.
     const code = `
+import * as core from '@ontrails/core';
+
 core.trail('entity.read', {
   intent: 'read',
   crosses: ['entity.refresh'],

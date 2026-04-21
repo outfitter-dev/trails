@@ -873,21 +873,6 @@ function rhsCarriesBlazeReinit(expr: AstNode | undefined): boolean {
 }
 
 /**
- * Handle a plain `=` assignment to a bare identifier whose name currently has
- * a pending `.blaze()` binding in scope.
- *
- * If the RHS is (or carries) another blaze call, leave the pending entry
- * alone — `recordPendingBinding` will re-register it when the blaze call
- * itself is visited. Otherwise, clear the pending entry: the identifier has
- * been overwritten with a non-Result value, so the original
- * `result.isOk()`-style diagnostic no longer applies.
- *
- * Compound assignments (`+=`, `??=`, etc.) and member-expression LHS are
- * ignored here: compound operators do not unconditionally replace the slot
- * (and `??=`/`||=` may preserve the Result when the LHS is truthy), and
- * member writes do not rebind the tracked identifier at all.
- */
-/**
  * Nullish/falsy-skip compound assignments (`??=`, `||=`) only write to the slot
  * when the LHS is nullish or falsy. A pending `.blaze()` binding holds a
  * truthy `Promise<Result>`, so the RHS never runs and the pending binding must
@@ -1083,8 +1068,20 @@ const visitBlazeCall = (node: AstNode, state: AnalyzeState): void => {
 
 const visitNode = (node: AstNode, state: AnalyzeState): void => {
   visitBlazeCall(node, state);
-  handleAssignmentReassignment(node, state);
   checkPendingAccess(node, state);
+};
+
+/**
+ * Post-order visitor for assignment re-assignment clearing.
+ *
+ * `handleAssignmentReassignment` must run *after* the RHS subtree has been
+ * walked. Otherwise a self-referential `result = result.value` would clear
+ * the pending entry before the RHS `result.value` access is observed — the
+ * missing-await diagnostic would disappear even though the write produced
+ * a non-Result value from the same pending slot.
+ */
+const visitNodePost = (node: AstNode, state: AnalyzeState): void => {
+  handleAssignmentReassignment(node, state);
 };
 
 const pushScopeIfBoundary = (node: AstNode, state: AnalyzeState): boolean => {
@@ -1136,6 +1133,7 @@ function walkWithScopes(node: AstNode, state: AnalyzeState): void {
   const pushed = pushScopeIfBoundary(node, state);
   visitNode(node, state);
   walkChildren(node, state);
+  visitNodePost(node, state);
   if (pushed) {
     state.scopeStack.pop();
   }
