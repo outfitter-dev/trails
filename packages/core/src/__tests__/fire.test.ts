@@ -551,6 +551,47 @@ const expectSiblingTraceShape = (
   expectSiblingOverlap(left, right);
 };
 
+const createConsumerCrossScenario = () => {
+  const crossTarget = trail('notify.audit', {
+    blaze: () => Result.ok({ audited: true }),
+    input: z.object({ orderId: z.string() }),
+    output: z.object({ audited: z.boolean() }),
+  });
+  const consumer = trail('notify.email', {
+    blaze: async (input, ctx) => {
+      const crossFn = ctx.cross as NonNullable<typeof ctx.cross>;
+      return (await crossFn(crossTarget, {
+        orderId: input.orderId,
+      })) as Result<unknown, Error>;
+    },
+    crosses: [crossTarget],
+    input: z.object({ orderId: z.string(), total: z.number() }),
+    on: ['order.placed'],
+  });
+  const fireBox: { result?: Result<void, Error> } = {};
+  return topo('fire-consumer-cross-attribution', {
+    consumer,
+    crossTarget,
+    orderPlaced,
+    producer: makeProducer(fireBox),
+  });
+};
+
+const expectConsumerCrossAttribution = (
+  records: readonly TraceRecord[]
+): void => {
+  const producerRecord = findTrailRecord(records, 'order.create');
+  const consumerRecord = findTrailRecord(records, 'notify.email');
+  const crossRecord = findTrailRecord(records, 'notify.audit');
+  // The consumer span parents the crossed call — NOT the producer.
+  // Before the forkCtx fix, the consumer inherited the producer's
+  // `cross` closure, which attributed the crossed span to the
+  // producer's scope.
+  expect(crossRecord.parentId).toBe(consumerRecord.id);
+  expect(crossRecord.parentId).not.toBe(producerRecord.id);
+  expect(crossRecord.traceId).toBe(producerRecord.traceId);
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -866,6 +907,25 @@ describe('fire', () => {
           producerTrailId: 'order.create',
           rightTrailId: 'notify.slack',
         });
+      } finally {
+        clearTraceSink();
+      }
+    });
+  });
+
+  describe('per-consumer cross binding', () => {
+    test('cross calls from a consumer are attributed to the consumer span', async () => {
+      const records: TraceRecord[] = [];
+      registerTraceSink(createCapturingSink(records));
+
+      try {
+        const app = createConsumerCrossScenario();
+        const result = await run(app, 'order.create', {
+          orderId: 'o-cross-attr',
+          total: 4,
+        });
+        expect(result.isOk()).toBe(true);
+        expectConsumerCrossAttribution(records);
       } finally {
         clearTraceSink();
       }

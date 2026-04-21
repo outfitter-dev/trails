@@ -39,6 +39,7 @@ import {
   createCrossBatchValidationResults,
   normalizeCrossBatchConcurrency,
 } from './internal/cross-batch.js';
+import { forkCtx } from './internal/fork-ctx.js';
 import {
   TRACE_CONTEXT_KEY,
   completeRecord,
@@ -417,14 +418,11 @@ const buildConcurrentBranchContext = (
   target: AnyTrail,
   topo: Topo | undefined,
   branchIndex: number
-): TrailContext => ({
-  ...ctx,
-  cross: undefined,
-  extensions: stripInheritedResourceExtensions(ctx, target, topo),
-  fire: undefined,
-  logger: deriveConcurrentBranchLogger(ctx, target, branchIndex),
-  resource: undefined,
-});
+): TrailContext =>
+  forkCtx(ctx, {
+    extensions: stripInheritedResourceExtensions(ctx, target, topo),
+    logger: deriveConcurrentBranchLogger(ctx, target, branchIndex),
+  });
 
 const executeResolvedCrossTarget = async (
   target: AnyTrail,

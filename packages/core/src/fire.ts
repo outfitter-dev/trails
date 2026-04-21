@@ -26,6 +26,7 @@
  */
 
 import { NotFoundError, ValidationError } from './errors.js';
+import { forkCtx } from './internal/fork-ctx.js';
 import { Result } from './result.js';
 import type { Topo } from './topo.js';
 import type { AnyTrail } from './trail.js';
@@ -91,12 +92,11 @@ const deriveConsumerCtx = (
   consumerId: string
 ): MutableConsumerContext =>
   producerCtx
-    ? {
-        ...producerCtx,
+    ? forkCtx(producerCtx as MutableConsumerContext, {
         env: deriveConsumerEnv(producerCtx),
         extensions: deriveConsumerExtensions(producerCtx, signalId),
         logger: deriveConsumerLogger(producerCtx, signalId, consumerId),
-      }
+      })
     : {};
 
 /**
