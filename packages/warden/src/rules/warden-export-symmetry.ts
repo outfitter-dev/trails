@@ -160,6 +160,12 @@ const collectNamespaceReexports = (ast: AstNode): readonly ExportSite[] => {
     if (node.type !== 'ExportAllDeclaration') {
       return;
     }
+    // Mirror the `ExportNamedDeclaration` guard: `export type * from ...` and
+    // `export type * as ns from ...` propagate types only, never runtime
+    // identifiers, so they cannot leak raw rule objects and must be allowed.
+    if ((node as unknown as { exportKind?: string }).exportKind === 'type') {
+      return;
+    }
     const { source } = node as unknown as {
       source?: { value?: unknown };
     };
