@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
 import { wardenRules, wardenTopoRules } from '../rules/index.js';
@@ -6,8 +9,14 @@ import { wardenExportSymmetry } from '../rules/warden-export-symmetry.js';
 
 const SELF_RULE_NAME = 'warden-export-symmetry';
 
-const TARGET_FILE = 'packages/warden/src/index.ts';
-const UNRELATED_FILE = 'packages/warden/src/cli.ts';
+// The rule anchors to this package's own on-disk `src/index.ts`. Tests must
+// use the same resolved path so the rule actually engages.
+const TARGET_FILE = resolve(
+  Bun.fileURLToPath(new URL('../index.ts', import.meta.url))
+);
+const UNRELATED_FILE = resolve(
+  Bun.fileURLToPath(new URL('../cli.ts', import.meta.url))
+);
 
 const kebabToCamel = (value: string): string =>
   value.replaceAll(/-([a-z0-9])/g, (_, c: string) => c.toUpperCase());
@@ -37,9 +46,30 @@ ${extraExports}
 
 describe('warden-export-symmetry', () => {
   describe('scope', () => {
-    test('only targets packages/warden/src/index.ts', () => {
+    test("only targets this package's own src/index.ts", () => {
       const source = buildIndexSource();
       const diagnostics = wardenExportSymmetry.check(source, UNRELATED_FILE);
+      expect(diagnostics).toEqual([]);
+    });
+
+    test('ignores a foreign packages/warden/src/index.ts in another repo', () => {
+      // Simulate a consumer repo that happens to have the same folder
+      // structure. A path suffix match would incorrectly engage the rule here
+      // and flood the consumer with bogus diagnostics.
+      const foreignRepo = mkdtempSync(join(tmpdir(), 'warden-foreign-'));
+      const foreignBarrelDir = join(foreignRepo, 'packages/warden/src');
+      mkdirSync(foreignBarrelDir, { recursive: true });
+      const foreignBarrel = join(foreignBarrelDir, 'index.ts');
+      // Contents that WOULD trip every check if the rule ran: missing trails,
+      // raw rule leak, namespace re-export, default export.
+      writeFileSync(
+        foreignBarrel,
+        `export { ${sampleRawRuleCamel} } from './rules/index.js';\nexport * from './trails/index.js';\nexport default {};\n`
+      );
+      const diagnostics = wardenExportSymmetry.check(
+        `export { ${sampleRawRuleCamel} } from './rules/index.js';\nexport * from './trails/index.js';\nexport default {};\n`,
+        foreignBarrel
+      );
       expect(diagnostics).toEqual([]);
     });
 
@@ -133,6 +163,24 @@ describe('warden-export-symmetry', () => {
       );
       expect(nsReexports.length).toBe(1);
       expect(nsReexports[0]?.severity).toBe('error');
+      // Regression guard: plain `export *` must not mention an ` as ` alias.
+      expect(nsReexports[0]?.message).not.toContain(' as ');
+      expect(nsReexports[0]?.message).toContain(
+        "export * from './trails/index.js'"
+      );
+    });
+
+    test('fires on aliased namespace re-exports and preserves the alias', () => {
+      const source = `${buildIndexSource()}export * as trailsNs from './trails/index.js';\n`;
+      const diagnostics = wardenExportSymmetry.check(source, TARGET_FILE);
+      const nsReexports = diagnostics.filter((d) =>
+        d.message.includes('namespace re-export')
+      );
+      expect(nsReexports.length).toBe(1);
+      expect(nsReexports[0]?.severity).toBe('error');
+      expect(nsReexports[0]?.message).toContain(
+        "export * as trailsNs from './trails/index.js'"
+      );
     });
 
     test('rejects `export default` on the warden barrel', () => {

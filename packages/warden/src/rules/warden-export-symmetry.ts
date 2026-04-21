@@ -14,6 +14,8 @@
  * trails at dispatch time and is out of scope for TRL-341. Enforcement therefore
  * lives as a lint rule keyed on the warden barrel file path.
  */
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { walk, offsetToLine, parse } from './ast.js';
 import type { AstNode } from './ast.js';
 import { registeredRuleNames } from './registry-names.js';
@@ -21,12 +23,20 @@ import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const SELF_RULE_NAME = 'warden-export-symmetry';
 
-const TARGET_FILE_SUFFIX = 'packages/warden/src/index.ts';
-
-const normalize = (filePath: string): string => filePath.replaceAll('\\', '/');
+/**
+ * Absolute path to this package's own `src/index.ts`, resolved from the rule's
+ * own module URL. Anchoring to the real on-disk location prevents the rule
+ * from firing against a foreign `packages/warden/src/index.ts` in a consumer
+ * repository with the same folder structure — the rule would otherwise compare
+ * that unrelated barrel against `@ontrails/warden`'s internal registry and
+ * emit bogus missing/orphan diagnostics that break consumer CI.
+ */
+const SELF_BARREL_PATH = resolve(
+  fileURLToPath(new URL('../index.ts', import.meta.url))
+);
 
 const isTargetFile = (filePath: string): boolean =>
-  normalize(filePath).endsWith(TARGET_FILE_SUFFIX);
+  resolve(filePath) === SELF_BARREL_PATH;
 
 const kebabToCamel = (value: string): string =>
   value.replaceAll(/-([a-z0-9])/g, (_, char: string) => char.toUpperCase());
@@ -154,8 +164,18 @@ const collectNamedExports = (ast: AstNode): readonly ExportSite[] => {
   return sites;
 };
 
-const collectNamespaceReexports = (ast: AstNode): readonly ExportSite[] => {
-  const sites: ExportSite[] = [];
+interface NamespaceReexportSite {
+  /** Source module path, e.g. `'./trails/index.js'`. */
+  readonly target: string;
+  /** Alias for `export * as <alias> from '...'`, null for bare `export *`. */
+  readonly alias: string | null;
+  readonly start: number;
+}
+
+const collectNamespaceReexports = (
+  ast: AstNode
+): readonly NamespaceReexportSite[] => {
+  const sites: NamespaceReexportSite[] = [];
   walk(ast, (node) => {
     if (node.type !== 'ExportAllDeclaration') {
       return;
@@ -166,26 +186,36 @@ const collectNamespaceReexports = (ast: AstNode): readonly ExportSite[] => {
     if ((node as unknown as { exportKind?: string }).exportKind === 'type') {
       return;
     }
-    const { source } = node as unknown as {
+    const { source, exported } = node as unknown as {
       source?: { value?: unknown };
+      exported?: AstNode;
     };
     const target =
       typeof source?.value === 'string' ? source.value : '<unknown>';
-    sites.push({ localName: target, name: target, start: node.start });
+    // `export * as <alias> from '...'` exposes the alias as an
+    // `IdentifierName` / string-literal node on `exported`. Bare `export *`
+    // has `exported === null`.
+    const alias = readIdentifierOrStringName(exported);
+    sites.push({ alias, start: node.start, target });
   });
   return sites;
 };
 
+const formatNamespaceReexport = (site: NamespaceReexportSite): string =>
+  site.alias
+    ? `* as ${site.alias} from '${site.target}'`
+    : `* from '${site.target}'`;
+
 const namespaceReexportDiagnostics = (
   sourceCode: string,
   filePath: string,
-  sites: readonly ExportSite[]
+  sites: readonly NamespaceReexportSite[]
 ): readonly WardenDiagnostic[] =>
   sites.map((site) => ({
     filePath,
     line: offsetToLine(sourceCode, site.start),
     message:
-      `warden-export-symmetry: namespace re-export "export * from '${site.name}'" is not permitted on the warden public barrel. ` +
+      `warden-export-symmetry: namespace re-export "export ${formatNamespaceReexport(site)}" is not permitted on the warden public barrel. ` +
       'The rule cannot verify registry ↔ trail symmetry through a star export — list each *Trail by name instead (ADR-0036).',
     rule: 'warden-export-symmetry',
     severity: 'error' as const,
