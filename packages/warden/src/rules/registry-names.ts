@@ -37,6 +37,7 @@ import { resourceIdGrammar } from './resource-id-grammar.js';
 import { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 import { validDescribeRefs } from './valid-describe-refs.js';
 import { validDetourRefs } from './valid-detour-refs.js';
+import { wardenRulesUseAst } from './warden-rules-use-ast.js';
 
 /**
  * All non-`warden-export-symmetry` rule identifiers registered in
@@ -76,4 +77,5 @@ export const registeredRuleNames: readonly string[] = [
   unreachableDetourShadowing.name,
   validDescribeRefs.name,
   validDetourRefs.name,
+  wardenRulesUseAst.name,
 ];

@@ -31,6 +31,7 @@ import { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 import { validDescribeRefs } from './valid-describe-refs.js';
 import { validDetourRefs } from './valid-detour-refs.js';
 import { wardenExportSymmetry } from './warden-export-symmetry.js';
+import { wardenRulesUseAst } from './warden-rules-use-ast.js';
 
 export type {
   ProjectAwareWardenRule,
@@ -109,6 +110,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [noDirectImplInRoute.name, noDirectImplInRoute],
   [unreachableDetourShadowing.name, unreachableDetourShadowing],
   [wardenExportSymmetry.name, wardenExportSymmetry],
+  [wardenRulesUseAst.name, wardenRulesUseAst],
 ]);
 
 /**

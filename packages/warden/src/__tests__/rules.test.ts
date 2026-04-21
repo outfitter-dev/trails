@@ -100,6 +100,19 @@ export function handleRequest(req: Request, res: Response) {}`;
     const diagnostics = contextNoSurfaceTypes.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(0);
   });
+
+  test('ignores computed member access like ns[trail]()', () => {
+    // Computed bracket access may resolve to any runtime value; it must not
+    // be treated as a trail() call just because the key is an identifier
+    // literally named `trail`.
+    const code = `
+import { Request, Response } from "express";
+const trail = "entity.show";
+ns[trail]("entity.show", { blaze: async () => Result.ok(null) });
+export function handleRequest(req: Request, res: Response) {}`;
+    const diagnostics = contextNoSurfaceTypes.check(code, TEST_FILE);
+    expect(diagnostics.length).toBe(0);
+  });
 });
 
 // ---------------------------------------------------------------------------

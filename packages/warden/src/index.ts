@@ -97,6 +97,7 @@ export {
   validDescribeRefsTrail,
   validDetourRefsTrail,
   wardenExportSymmetryTrail,
+  wardenRulesUseAstTrail,
   wrapTopoRule,
 } from './trails/index.js';
 export type {

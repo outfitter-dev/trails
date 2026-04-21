@@ -53,10 +53,6 @@ const hasCrossesProperty = (config: AstNode): boolean =>
  */
 export const noDirectImplInRoute: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
-    if (!/\btrail\s*\(/.test(sourceCode)) {
-      return [];
-    }
-
     const ast = parse(filePath, sourceCode);
     if (!ast) {
       return [];
