@@ -1,6 +1,13 @@
 import { isDraftId } from '@ontrails/core';
 
-import { findStringLiterals, offsetToLine, parse } from './ast.js';
+import {
+  collectFrameworkDraftPrefixConstantOffsets,
+  findStringLiterals,
+  hasIgnoreCommentOnLine,
+  offsetToLine,
+  parse,
+  splitSourceLines,
+} from './ast.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const createDiagnostic = (
@@ -17,24 +24,42 @@ const createDiagnostic = (
   severity: 'warn',
 });
 
+const isSuppressedMatch = (
+  match: { start: number },
+  sourceCode: string,
+  lines: readonly string[],
+  frameworkConstantOffsets: ReadonlySet<number>
+): boolean =>
+  frameworkConstantOffsets.has(match.start) ||
+  hasIgnoreCommentOnLine(lines, offsetToLine(sourceCode, match.start));
+
 const collectDraftVisibleDebtDiagnostics = (
   sourceCode: string,
   filePath: string,
   ast: NonNullable<ReturnType<typeof parse>>
 ): WardenDiagnostic[] => {
+  const frameworkConstantOffsets = collectFrameworkDraftPrefixConstantOffsets(
+    ast,
+    filePath
+  );
+  const lines = splitSourceLines(sourceCode);
   const seen = new Set<string>();
-  const diagnostics: WardenDiagnostic[] = [];
 
-  for (const match of findStringLiterals(ast, (value) => isDraftId(value))) {
-    const key = `${match.value}:${String(match.start)}`;
-    if (seen.has(key)) {
-      continue;
+  return findStringLiterals(ast, (value) => isDraftId(value)).flatMap(
+    (match) => {
+      if (
+        isSuppressedMatch(match, sourceCode, lines, frameworkConstantOffsets)
+      ) {
+        return [];
+      }
+      const key = `${match.value}:${String(match.start)}`;
+      if (seen.has(key)) {
+        return [];
+      }
+      seen.add(key);
+      return [createDiagnostic(sourceCode, filePath, match)];
     }
-    seen.add(key);
-    diagnostics.push(createDiagnostic(sourceCode, filePath, match));
-  }
-
-  return diagnostics;
+  );
 };
 
 /**

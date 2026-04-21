@@ -5,6 +5,8 @@
  * walker and helpers for finding trail implementation bodies.
  */
 
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseSync } from 'oxc-parser';
 
 // ---------------------------------------------------------------------------
@@ -193,6 +195,138 @@ export interface StringLiteralMatch {
   readonly start: number;
   readonly value: string;
 }
+
+/**
+ * Names of framework constants whose value is a draft-marker prefix literal.
+ *
+ * String literals that initialize a `const` declaration with one of these
+ * names are treated as the framework's own draft-marker declarations, not as
+ * draft-id usage. This list is intentionally small and explicit — adding a
+ * new framework draft-prefix constant requires updating this set.
+ */
+export const FRAMEWORK_DRAFT_PREFIX_CONSTANT_NAMES: ReadonlySet<string> =
+  new Set(['DRAFT_ID_PREFIX', 'DRAFT_FILE_PREFIX']);
+
+/**
+ * Exact string literal value allowed for framework draft-prefix constant
+ * declarations. Tightens the exemption so a future framework file cannot
+ * redeclare `DRAFT_ID_PREFIX = '_draft.something-else'` and accidentally
+ * suppress its own draft-id diagnostic.
+ */
+const FRAMEWORK_DRAFT_PREFIX_LITERAL = '_draft.';
+
+/**
+ * Absolute paths of the two framework files allowed to declare the
+ * draft-prefix constants. Anchored against the rule module's own URL so the
+ * exemption is scoped to this package's real on-disk location — a consumer
+ * repository that happens to declare `const DRAFT_ID_PREFIX = '_draft.leak'`
+ * anywhere else cannot hide a genuine leak by matching the identifier name.
+ *
+ * The two framework files are:
+ *  - `packages/core/src/draft.ts`   (defines `DRAFT_ID_PREFIX`)
+ *  - `packages/warden/src/draft.ts` (defines `DRAFT_FILE_PREFIX`)
+ */
+const FRAMEWORK_DRAFT_CONSTANT_FILES: ReadonlySet<string> = new Set([
+  resolve(
+    fileURLToPath(new URL('../../../core/src/draft.ts', import.meta.url))
+  ),
+  resolve(fileURLToPath(new URL('../draft.ts', import.meta.url))),
+]);
+
+/**
+ * Collect the source offsets of string literals that initialize a framework
+ * draft-prefix constant declaration (e.g. `export const DRAFT_ID_PREFIX =
+ * '_draft.'`). Used by draft-awareness rules to skip their own marker
+ * constants.
+ *
+ * Exemption is gated on all three of:
+ *   1. The file's absolute path matches one of the two framework files that
+ *      actually define these constants.
+ *   2. The declaration name is `DRAFT_ID_PREFIX` or `DRAFT_FILE_PREFIX`.
+ *   3. The string literal value is exactly `'_draft.'`.
+ *
+ * A consumer file that reuses one of these identifier names cannot hide a
+ * `_draft.*` leak — the path gate rejects it outright.
+ */
+export const collectFrameworkDraftPrefixConstantOffsets = (
+  ast: AstNode,
+  filePath: string
+): ReadonlySet<number> => {
+  const offsets = new Set<number>();
+
+  if (!FRAMEWORK_DRAFT_CONSTANT_FILES.has(resolve(filePath))) {
+    return offsets;
+  }
+
+  walk(ast, (node) => {
+    if (node.type !== 'VariableDeclarator') {
+      return;
+    }
+
+    const { id, init } = node as unknown as {
+      readonly id?: AstNode;
+      readonly init?: AstNode;
+    };
+    const name = identifierName(id);
+    if (
+      !name ||
+      !FRAMEWORK_DRAFT_PREFIX_CONSTANT_NAMES.has(name) ||
+      !init ||
+      !isStringLiteral(init)
+    ) {
+      return;
+    }
+
+    if (getStringValue(init) !== FRAMEWORK_DRAFT_PREFIX_LITERAL) {
+      return;
+    }
+
+    offsets.add(init.start);
+  });
+
+  return offsets;
+};
+
+const WARDEN_IGNORE_NEXT_LINE_PRAGMA = '// warden-ignore-next-line';
+
+/**
+ * Split source code into lines for pragma lookups. Callers should split once
+ * per `check` invocation and thread the result through to
+ * {@link hasIgnoreCommentOnLine} so we avoid re-splitting the full source on
+ * every match in files with many draft-like string literals.
+ */
+export const splitSourceLines = (sourceCode: string): readonly string[] =>
+  sourceCode.split('\n');
+
+/**
+ * Check whether the line immediately preceding `line` contains a
+ * `// warden-ignore-next-line` pragma (leading/trailing whitespace tolerated).
+ * Pragma scope is strictly one line — an intervening blank line breaks it.
+ *
+ * Takes a pre-split `lines` array so callers can split the source once per
+ * invocation instead of re-splitting for every literal they check.
+ *
+ * @example
+ * ```ts
+ * // warden-ignore-next-line
+ * const x = '_draft.intentional'; // suppressed
+ * ```
+ */
+export const hasIgnoreCommentOnLine = (
+  lines: readonly string[],
+  line: number
+): boolean => {
+  if (line <= 1) {
+    return false;
+  }
+
+  const previous = lines[line - 2];
+  if (previous === undefined) {
+    return false;
+  }
+
+  return previous.trim() === WARDEN_IGNORE_NEXT_LINE_PRAGMA;
+};
 
 export const findStringLiterals = (
   ast: AstNode,

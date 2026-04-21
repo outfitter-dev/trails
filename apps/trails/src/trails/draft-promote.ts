@@ -664,6 +664,7 @@ export const draftPromoteTrail = trail('draft.promote', {
     {
       error: 'ValidationError',
       input: {
+        // warden-ignore-next-line
         fromId: '_draft.entity.prepare',
         renameFiles: true,
         rootDir: './__does_not_exist__/draft-promote-example',
