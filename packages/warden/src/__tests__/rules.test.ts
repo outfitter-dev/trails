@@ -172,6 +172,174 @@ trail("entity.onboard", {
     const diagnostics = validDetourRefs.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(0);
   });
+
+  test('ignores trail/detour patterns embedded in template literal payloads', () => {
+    const code = `
+const sample = \`
+trail("entity.fallback", {
+  blaze: async (input, ctx) => Result.ok(data)
+})
+
+trail("entity.show", {
+  detours: [{ target: "entity.fallback" }],
+  blaze: async (input, ctx) => Result.ok(data)
+})
+\`;
+`;
+    const diagnostics = validDetourRefs.check(code, TEST_FILE);
+    expect(diagnostics.length).toBe(0);
+  });
+
+  test('flags string-literal detour entries without an object wrapper', () => {
+    const code = `
+trail("entity.show", {
+  detours: ["entity.missing"],
+  blaze: async (input, ctx) => Result.ok(data)
+})`;
+    const diagnostics = validDetourRefs.check(code, TEST_FILE);
+    expect(diagnostics.length).toBe(1);
+    expect(diagnostics[0]?.message).toContain('entity.missing');
+  });
+
+  describe('backtick literals', () => {
+    test('flags backtick-literal detour target in an object wrapper', () => {
+      const code = `
+trail("entity.show", {
+  detours: [{ target: \`entity.missing\` }],
+  blaze: async (input, ctx) => Result.ok(data)
+})`;
+      const diagnostics = validDetourRefs.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('entity.missing');
+    });
+
+    test('passes when backtick-literal detour target exists', () => {
+      const code = `
+trail("entity.fallback", {
+  blaze: async (input, ctx) => Result.ok(data)
+})
+
+trail("entity.show", {
+  detours: [{ target: \`entity.fallback\` }],
+  blaze: async (input, ctx) => Result.ok(data)
+})`;
+      const diagnostics = validDetourRefs.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('flags bare backtick-literal detour entries', () => {
+      const code = `
+trail("entity.show", {
+  detours: [\`entity.missing\`],
+  blaze: async (input, ctx) => Result.ok(data)
+})`;
+      const diagnostics = validDetourRefs.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('entity.missing');
+    });
+
+    test('flags quoted "target" key inside detour object', () => {
+      const code = `
+trail("entity.show", {
+  detours: [{ "target": "entity.missing" }],
+  blaze: async (input, ctx) => Result.ok(data)
+})`;
+      const diagnostics = validDetourRefs.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('entity.missing');
+    });
+
+    test('flags detours when both "detours" and "target" keys are quoted', () => {
+      const code = `
+trail("entity.show", {
+  "detours": [{ "target": "entity.missing" }],
+  blaze: async (input, ctx) => Result.ok(data)
+})`;
+      const diagnostics = validDetourRefs.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('entity.missing');
+    });
+
+    test('flags mixed quoted-and-unquoted detour keys', () => {
+      const code = `
+trail("entity.show", {
+  detours: [{ "target": "entity.missing" }],
+  blaze: async (input, ctx) => Result.ok(data)
+})`;
+      const diagnostics = validDetourRefs.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('entity.missing');
+    });
+
+    test('flags detour target on a trail whose id is a backtick literal', () => {
+      const code = `
+trail(\`entity.show\`, {
+  detours: [{ target: "entity.missing" }],
+  blaze: async (input, ctx) => Result.ok(data)
+})`;
+      const diagnostics = validDetourRefs.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('entity.missing');
+      expect(diagnostics[0]?.message).toContain('entity.show');
+    });
+  });
+
+  describe('transparent expression wrappers', () => {
+    test('flags detour target when the detours array is wrapped in `as const`', () => {
+      const code = `
+trail("entity.show", {
+  detours: [{ target: "entity.missing" }] as const,
+  blaze: async (input, ctx) => Result.ok(data)
+})`;
+      const diagnostics = validDetourRefs.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('entity.missing');
+    });
+
+    test('flags detour target when the detours array uses `satisfies`', () => {
+      const code = `
+trail("entity.show", {
+  detours: [{ target: "entity.missing" }] satisfies readonly Detour[],
+  blaze: async (input, ctx) => Result.ok(data)
+})`;
+      const diagnostics = validDetourRefs.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('entity.missing');
+    });
+
+    test('flags detour target when the detours array is parenthesized', () => {
+      const code = `
+trail("entity.show", {
+  detours: ([{ target: "entity.missing" }]),
+  blaze: async (input, ctx) => Result.ok(data)
+})`;
+      const diagnostics = validDetourRefs.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('entity.missing');
+    });
+
+    test('flags detour target when the detours array uses a non-null assertion', () => {
+      const code = `
+trail("entity.show", {
+  detours: [{ target: "entity.missing" }]!,
+  blaze: async (input, ctx) => Result.ok(data)
+})`;
+      const diagnostics = validDetourRefs.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('entity.missing');
+    });
+
+    test('flags detour target when `target` property value uses `as const`', () => {
+      const code = `
+trail("entity.show", {
+  detours: [{ target: "entity.missing" as const }],
+  blaze: async (input, ctx) => Result.ok(data)
+})`;
+      const diagnostics = validDetourRefs.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain('entity.missing');
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

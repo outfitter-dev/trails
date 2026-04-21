@@ -189,6 +189,48 @@ export const extractStringLiteral = (
 ): string | null =>
   node && isStringLiteral(node) ? getStringValue(node) : null;
 
+/**
+ * Extract the cooked value from a `TemplateLiteral` with no interpolations
+ * (e.g. `` `entity.fallback` ``). Template literals with `${...}` expressions
+ * cannot be resolved at lint time and return null.
+ *
+ * Shared helper used by rules that accept both string literals and simple
+ * backtick-literal IDs (e.g. `valid-detour-refs`, `valid-describe-refs`).
+ */
+const getSingleQuasi = (node: AstNode): AstNode | null => {
+  const expressions =
+    (node['expressions'] as readonly AstNode[] | undefined) ?? [];
+  if (expressions.length > 0) {
+    return null;
+  }
+  const quasis = (node['quasis'] as readonly AstNode[] | undefined) ?? [];
+  return quasis.length === 1 ? (quasis[0] ?? null) : null;
+};
+
+export const extractPlainTemplateLiteral = (
+  node: AstNode | undefined
+): string | null => {
+  if (!node || node.type !== 'TemplateLiteral') {
+    return null;
+  }
+  const quasi = getSingleQuasi(node);
+  if (!quasi) {
+    return null;
+  }
+  const cooked = (quasi as unknown as { value?: { cooked?: unknown } }).value
+    ?.cooked;
+  return typeof cooked === 'string' ? cooked : null;
+};
+
+/**
+ * Extract a string value from either a string literal or a plain template
+ * literal (no `${...}` expressions). Returns null for anything else.
+ */
+export const extractStringOrTemplateLiteral = (
+  node: AstNode | undefined
+): string | null =>
+  extractStringLiteral(node) ?? extractPlainTemplateLiteral(node);
+
 export interface StringLiteralMatch {
   readonly end: number;
   readonly node: AstNode;
@@ -447,6 +489,32 @@ export const collectServiceDefinitionIds = collectResourceDefinitionIds;
 // Config property extraction helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Extract the identifying name of a `Property` key, supporting both
+ * identifier keys (`{ foo: 1 }`) and string-literal keys
+ * (`{ "foo": 1 }`). Computed keys are intentionally not resolved — a
+ * computed expression could evaluate to anything and we only want to
+ * match keys that are statically equivalent to a plain identifier.
+ */
+const staticPropertyKeyName = (key: AstNode): string | null => {
+  if (key.type === 'Identifier') {
+    return (key as unknown as { name?: string }).name ?? null;
+  }
+  return isStringLiteral(key) ? getStringValue(key) : null;
+};
+
+const propertyKeyName = (prop: AstNode): string | null => {
+  if (prop.type !== 'Property') {
+    return null;
+  }
+  const { computed } = prop as unknown as { computed?: boolean };
+  if (computed) {
+    return null;
+  }
+  const key = prop.key as AstNode | undefined;
+  return key ? staticPropertyKeyName(key) : null;
+};
+
 /** Find a Property node by key name inside an ObjectExpression config. */
 export const findConfigProperty = (
   config: AstNode,
@@ -460,7 +528,7 @@ export const findConfigProperty = (
     return null;
   }
   for (const prop of properties) {
-    if (prop.type === 'Property' && prop.key?.name === propertyName) {
+    if (propertyKeyName(prop) === propertyName) {
       return prop;
     }
   }
@@ -533,8 +601,7 @@ const extractIdFromConfig = (config: AstNode): string | null => {
   if (!idProp || !idProp.value) {
     return null;
   }
-  const val = (idProp.value as unknown as { value?: unknown }).value;
-  return typeof val === 'string' ? val : null;
+  return extractStringOrTemplateLiteral(idProp.value as AstNode);
 };
 
 const extractTrailId = (trailArgs: {
@@ -542,7 +609,7 @@ const extractTrailId = (trailArgs: {
   configArg: AstNode;
 }): string | null => {
   if (trailArgs.idArg) {
-    return (trailArgs.idArg as unknown as { value?: string }).value ?? null;
+    return extractStringOrTemplateLiteral(trailArgs.idArg);
   }
   return extractIdFromConfig(trailArgs.configArg);
 };

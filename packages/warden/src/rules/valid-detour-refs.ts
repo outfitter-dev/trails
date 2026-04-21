@@ -1,5 +1,13 @@
 import { isDraftId } from '@ontrails/core';
 
+import {
+  extractStringOrTemplateLiteral,
+  findConfigProperty,
+  findTrailDefinitions,
+  offsetToLine,
+  parse,
+} from './ast.js';
+import type { AstNode } from './ast.js';
 import { collectTrailIds } from './specs.js';
 import type {
   ProjectAwareWardenRule,
@@ -7,150 +15,116 @@ import type {
   WardenDiagnostic,
 } from './types.js';
 
-interface BraceState {
-  depth: number;
-  found: boolean;
+/**
+ * Node types that wrap an expression without changing its runtime value.
+ * These can legally surround a `detours: [...]` array or a `target: "..."`
+ * literal and must be peeled before we inspect the shape.
+ */
+const TRANSPARENT_WRAPPER_TYPES = new Set([
+  'ParenthesizedExpression',
+  'TSAsExpression',
+  'TSSatisfiesExpression',
+  'TSNonNullExpression',
+  'TSTypeAssertion',
+]);
+
+const unwrapExpression = (node: AstNode | undefined): AstNode | undefined => {
+  let current = node;
+  while (current && TRANSPARENT_WRAPPER_TYPES.has(current.type)) {
+    current = (current as AstNode)['expression'] as AstNode | undefined;
+  }
+  return current;
+};
+
+const getDetourElements = (config: AstNode): readonly (AstNode | null)[] => {
+  const detoursProp = findConfigProperty(config, 'detours');
+  if (!detoursProp) {
+    return [];
+  }
+
+  const detoursValue = unwrapExpression(
+    detoursProp.value as AstNode | undefined
+  );
+  if (!detoursValue || detoursValue.type !== 'ArrayExpression') {
+    return [];
+  }
+
+  const elements = (detoursValue as AstNode)['elements'] as
+    | readonly (AstNode | null)[]
+    | undefined;
+  return elements ?? [];
+};
+
+interface TargetRef {
+  readonly id: string;
+  readonly start: number;
 }
 
-const trackBraces = (line: string, state: BraceState): void => {
-  for (const ch of line) {
-    if (ch === '{') {
-      state.depth += 1;
-      state.found = true;
-    }
-    if (ch === '}') {
-      state.depth -= 1;
-    }
+const extractDetourTargetId = (node: AstNode | undefined): string | null =>
+  extractStringOrTemplateLiteral(node);
+
+const extractObjectTargetRef = (element: AstNode): TargetRef | null => {
+  if (element.type !== 'ObjectExpression') {
+    return null;
   }
+  const targetProp = findConfigProperty(element, 'target');
+  const rawTargetNode = targetProp?.value as AstNode | undefined;
+  const targetNode = unwrapExpression(rawTargetNode);
+  const targetId = extractDetourTargetId(targetNode);
+  return targetId !== null && targetNode
+    ? { id: targetId, start: targetNode.start }
+    : null;
 };
 
-const collectArrayText = (lines: readonly string[], start: number): string => {
-  let text = '';
-  for (let k = start; k < lines.length && k < start + 20; k += 1) {
-    const line = lines[k];
-    if (!line) {
+const extractDetourElementRef = (element: AstNode | null): TargetRef | null => {
+  if (!element) {
+    return null;
+  }
+  const unwrapped = unwrapExpression(element) ?? element;
+  // String-literal or backtick-literal detour:
+  //   detours: ["entity.fallback"] or detours: [`entity.fallback`]
+  const literalId = extractDetourTargetId(unwrapped);
+  if (literalId !== null) {
+    return { id: literalId, start: unwrapped.start };
+  }
+  return extractObjectTargetRef(unwrapped);
+};
+
+const extractDetourTargets = (config: AstNode): readonly TargetRef[] =>
+  getDetourElements(config).flatMap((element) => {
+    const ref = extractDetourElementRef(element);
+    return ref ? [ref] : [];
+  });
+
+const buildDiagnostics = (
+  ast: AstNode,
+  sourceCode: string,
+  filePath: string,
+  knownIds: ReadonlySet<string>
+): readonly WardenDiagnostic[] => {
+  const diagnostics: WardenDiagnostic[] = [];
+
+  for (const definition of findTrailDefinitions(ast)) {
+    if (definition.kind !== 'trail') {
       continue;
     }
-    text += `${line}\n`;
-    if (text.includes(']')) {
-      break;
+
+    for (const ref of extractDetourTargets(definition.config)) {
+      if (knownIds.has(ref.id) || isDraftId(ref.id)) {
+        continue;
+      }
+
+      diagnostics.push({
+        filePath,
+        line: offsetToLine(sourceCode, ref.start),
+        message: `Trail "${definition.id}" has detour targeting "${ref.id}" which is not defined.`,
+        rule: 'valid-detour-refs',
+        severity: 'error',
+      });
     }
   }
-  return text;
-};
 
-const findMissingDetourTargets = (
-  text: string,
-  knownIds: ReadonlySet<string>
-): string[] => {
-  const missing: string[] = [];
-  for (const m of text.matchAll(/target\s*:\s*["'`]([^"'`]+)["'`]/g)) {
-    const [, id] = m;
-    if (id && !knownIds.has(id) && !isDraftId(id)) {
-      missing.push(id);
-    }
-  }
-  return missing;
-};
-
-const findMissingPlainDetours = (
-  text: string,
-  knownIds: ReadonlySet<string>
-): string[] => {
-  const missing: string[] = [];
-  const cleaned = text.replaceAll(/target\s*:\s*["'`][^"'`]+["'`]/g, '');
-  for (const m of cleaned.matchAll(/["'`]([^"'`]+)["'`]/g)) {
-    const [, id] = m;
-    if (id && id.includes('.') && !knownIds.has(id) && !isDraftId(id)) {
-      missing.push(id);
-    }
-  }
-  return missing;
-};
-
-const findAllMissingDetours = (
-  text: string,
-  knownIds: ReadonlySet<string>
-): string[] => [
-  ...findMissingDetourTargets(text, knownIds),
-  ...findMissingPlainDetours(text, knownIds),
-];
-
-const addMissingDetourDiagnostics = (
-  specLine: string,
-  j: number,
-  lines: readonly string[],
-  trailId: string,
-  lineNum: number,
-  filePath: string,
-  knownIds: ReadonlySet<string>,
-  diagnostics: WardenDiagnostic[]
-): void => {
-  if (!/\bdetours\s*:/.test(specLine)) {
-    return;
-  }
-  for (const targetId of findAllMissingDetours(
-    collectArrayText(lines, j),
-    knownIds
-  )) {
-    diagnostics.push({
-      filePath,
-      line: lineNum,
-      message: `Trail "${trailId}" has detour targeting "${targetId}" which is not defined.`,
-      rule: 'valid-detour-refs',
-      severity: 'error',
-    });
-  }
-};
-
-const scanTrailDetours = (
-  lines: readonly string[],
-  startIndex: number,
-  trailId: string,
-  filePath: string,
-  knownIds: ReadonlySet<string>,
-  diagnostics: WardenDiagnostic[]
-): void => {
-  const braceState: BraceState = { depth: 0, found: false };
-  for (let j = startIndex; j < lines.length && j < startIndex + 200; j += 1) {
-    const specLine = lines[j];
-    if (!specLine) {
-      continue;
-    }
-    trackBraces(specLine, braceState);
-    addMissingDetourDiagnostics(
-      specLine,
-      j,
-      lines,
-      trailId,
-      startIndex + 1,
-      filePath,
-      knownIds,
-      diagnostics
-    );
-    if (braceState.found && braceState.depth <= 0) {
-      break;
-    }
-  }
-};
-
-const processLine = (
-  line: string,
-  i: number,
-  lines: readonly string[],
-  filePath: string,
-  knownIds: ReadonlySet<string>,
-  diagnostics: WardenDiagnostic[]
-): void => {
-  const trailMatch = line.match(/\btrail\s*\(\s*["'`]([^"'`]+)["'`]/);
-  if (!trailMatch) {
-    return;
-  }
-  const [, trailId] = trailMatch;
-  if (!trailId) {
-    return;
-  }
-  scanTrailDetours(lines, i, trailId, filePath, knownIds, diagnostics);
+  return diagnostics;
 };
 
 const checkDetourRefs = (
@@ -158,15 +132,11 @@ const checkDetourRefs = (
   filePath: string,
   knownIds: ReadonlySet<string>
 ): readonly WardenDiagnostic[] => {
-  const diagnostics: WardenDiagnostic[] = [];
-  const lines = sourceCode.split('\n');
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
-    if (line) {
-      processLine(line, i, lines, filePath, knownIds, diagnostics);
-    }
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return [];
   }
-  return diagnostics;
+  return buildDiagnostics(ast, sourceCode, filePath, knownIds);
 };
 
 /**
