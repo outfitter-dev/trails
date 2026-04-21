@@ -93,6 +93,7 @@ export {
   unreachableDetourShadowingTrail,
   validDescribeRefsTrail,
   validDetourRefsTrail,
+  wardenExportSymmetryTrail,
   wrapTopoRule,
 } from './trails/index.js';
 export type {

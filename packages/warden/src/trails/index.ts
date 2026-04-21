@@ -29,6 +29,7 @@ export { resourceExistsTrail } from './resource-exists.trail.js';
 export { unreachableDetourShadowingTrail } from './unreachable-detour-shadowing.trail.js';
 export { validDescribeRefsTrail } from './valid-describe-refs.trail.js';
 export { validDetourRefsTrail } from './valid-detour-refs.trail.js';
+export { wardenExportSymmetryTrail } from './warden-export-symmetry.trail.js';
 
 export {
   diagnosticSchema,
