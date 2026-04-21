@@ -1,8 +1,44 @@
-import { describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, spyOn, test } from 'bun:test';
+import * as nodeFs from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-import { implementationReturnsResult } from '../rules/implementation-returns-result.js';
+import {
+  clearImplementationReturnsResultCache,
+  implementationReturnsResult,
+} from '../rules/implementation-returns-result.js';
 
 const TEST_FILE = 'test.ts';
+
+const writeReadCountFixture = (
+  writeFile: (name: string, content: string) => string
+): { readonly implPath: string; readonly caller: string } => {
+  const implPath = writeFile(
+    'impl-readcount.ts',
+    `const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+
+export default helper;
+`
+  );
+  writeFile(
+    'barrel-readcount.ts',
+    `export { default as foo } from './impl-readcount.js';
+`
+  );
+  const caller = writeFile(
+    'caller-readcount.ts',
+    `import { foo } from './barrel-readcount.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return foo();
+  }
+})`
+  );
+  return { caller, implPath };
+};
 
 describe('implementation-returns-result', () => {
   test('flags raw object return in trail implementation', () => {
@@ -102,6 +138,454 @@ trail("entity.list", {
 
     expect(diagnostics.length).toBe(1);
     expect(diagnostics[0]?.message).toContain('entity.list');
+  });
+
+  describe('imported helpers', () => {
+    let tmpDir: string;
+
+    beforeAll(() => {
+      tmpDir = mkdtempSync(join(tmpdir(), 'warden-impl-result-'));
+    });
+
+    afterAll(() => {
+      rmSync(tmpDir, { force: true, recursive: true });
+    });
+
+    const writeFile = (name: string, content: string): string => {
+      const path = join(tmpDir, name);
+      writeFileSync(path, content);
+      return path;
+    };
+
+    test('allows imported helper with Promise<Result<...>> return annotation', () => {
+      writeFile(
+        'result-helper.ts',
+        `export const buildReport = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+      );
+      const caller = writeFile(
+        'caller.ts',
+        `import { buildReport } from './result-helper.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return buildReport();
+  }
+})`
+      );
+
+      const diagnostics = implementationReturnsResult.check(
+        readFileSync(caller, 'utf8'),
+        caller
+      );
+
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('flags imported helper without Result return annotation', () => {
+      writeFile(
+        'plain-helper.ts',
+        `export const buildReport = async () => ({ ok: true });
+`
+      );
+      const caller = writeFile(
+        'caller-plain.ts',
+        `import { buildReport } from './plain-helper.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return buildReport();
+  }
+})`
+      );
+
+      const diagnostics = implementationReturnsResult.check(
+        readFileSync(caller, 'utf8'),
+        caller
+      );
+
+      expect(diagnostics.length).toBe(1);
+    });
+
+    test('flags helper imported from bare specifier (node_modules)', () => {
+      const caller = writeFile(
+        'caller-bare.ts',
+        `import { buildReport } from 'some-package';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return buildReport();
+  }
+})`
+      );
+
+      const diagnostics = implementationReturnsResult.check(
+        readFileSync(caller, 'utf8'),
+        caller
+      );
+
+      expect(diagnostics.length).toBe(1);
+    });
+
+    test('flags gracefully when target file is unreadable', () => {
+      const caller = writeFile(
+        'caller-missing.ts',
+        `import { buildReport } from './does-not-exist.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return buildReport();
+  }
+})`
+      );
+
+      const diagnostics = implementationReturnsResult.check(
+        readFileSync(caller, 'utf8'),
+        caller
+      );
+
+      expect(diagnostics.length).toBe(1);
+    });
+
+    describe('specifier re-exports', () => {
+      test('allows specifier re-export with source (export { helper } from ...)', () => {
+        writeFile(
+          'impl-specifier.ts',
+          `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+        );
+        writeFile(
+          'barrel-specifier.ts',
+          `export { helper } from './impl-specifier.js';
+`
+        );
+        const caller = writeFile(
+          'caller-specifier.ts',
+          `import { helper } from './barrel-specifier.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return helper();
+  }
+})`
+        );
+
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(caller, 'utf8'),
+          caller
+        );
+
+        expect(diagnostics.length).toBe(0);
+      });
+
+      test('allows aliased specifier re-export (export { helper as aliased })', () => {
+        writeFile(
+          'impl-aliased.ts',
+          `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+        );
+        writeFile(
+          'barrel-aliased.ts',
+          `export { helper as aliased } from './impl-aliased.js';
+`
+        );
+        const caller = writeFile(
+          'caller-aliased.ts',
+          `import { aliased } from './barrel-aliased.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return aliased();
+  }
+})`
+        );
+
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(caller, 'utf8'),
+          caller
+        );
+
+        expect(diagnostics.length).toBe(0);
+      });
+
+      test('allows specifier re-export without source (same-file)', () => {
+        writeFile(
+          'barrel-samefile.ts',
+          `const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+
+export { helper };
+`
+        );
+        const caller = writeFile(
+          'caller-samefile.ts',
+          `import { helper } from './barrel-samefile.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return helper();
+  }
+})`
+        );
+
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(caller, 'utf8'),
+          caller
+        );
+
+        expect(diagnostics.length).toBe(0);
+      });
+
+      test('allows default re-export (export { default as foo } from ...)', () => {
+        writeFile(
+          'impl-default.ts',
+          `const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+
+export default helper;
+`
+        );
+        writeFile(
+          'barrel-default.ts',
+          `export { default as foo } from './impl-default.js';
+`
+        );
+        const caller = writeFile(
+          'caller-default.ts',
+          `import { foo } from './barrel-default.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return foo();
+  }
+})`
+        );
+
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(caller, 'utf8'),
+          caller
+        );
+
+        expect(diagnostics.length).toBe(0);
+      });
+
+      test('reads the re-export target file only once per check (default specifier)', () => {
+        // Regression for PR #204: `export { default as foo } from './impl.js'`
+        // previously triggered two reads/parses of impl.js within a single
+        // check() call — once via the downstream-names walk and once for the
+        // default-specifier AST lookup. The loaded target is now threaded
+        // through, so impl.js should be read exactly once.
+        const { implPath, caller } = writeReadCountFixture(writeFile);
+
+        clearImplementationReturnsResultCache();
+        const readSpy = spyOn(nodeFs, 'readFileSync');
+
+        try {
+          const diagnostics = implementationReturnsResult.check(
+            readFileSync(caller, 'utf8'),
+            caller
+          );
+          expect(diagnostics.length).toBe(0);
+          const implReads = readSpy.mock.calls.filter(
+            (call) => call[0] === implPath
+          );
+          expect(implReads.length).toBe(1);
+        } finally {
+          readSpy.mockRestore();
+        }
+      });
+
+      test('caps re-export chains beyond one transitive hop', () => {
+        // A -> B -> C: caller imports from A, which re-exports from B,
+        // which re-exports from C where the helper is declared. The
+        // MAX_RERESOLVE_DEPTH=1 cap should prevent resolving C, so the
+        // helper name is NOT recognized through the 2-hop chain.
+        writeFile(
+          'depth-c.ts',
+          `export const deepHelper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+        );
+        writeFile(
+          'depth-b.ts',
+          `export { deepHelper } from './depth-c.js';
+`
+        );
+        writeFile(
+          'depth-a.ts',
+          `export { deepHelper } from './depth-b.js';
+`
+        );
+        const caller = writeFile(
+          'caller-depth.ts',
+          `import { deepHelper } from './depth-a.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return deepHelper();
+  }
+})`
+        );
+
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(caller, 'utf8'),
+          caller
+        );
+
+        // 2-hop re-export chain exceeds MAX_RERESOLVE_DEPTH, so the helper's
+        // Result annotation is not discoverable and the return is flagged.
+        expect(diagnostics.length).toBe(1);
+      });
+
+      test('cache does not bleed cycle-truncated results into direct imports', () => {
+        // A -> B -> A cycle. When A is resolved first (e.g. through a caller
+        // that imports from A), resolving B is attempted while A is in the
+        // visited set, which truncates B's transitive view back to A. A naive
+        // per-target cache would then persist an empty set for B and wrongly
+        // flag a later direct import from B.
+        writeFile(
+          'ctx-a.ts',
+          `export { helper } from './ctx-b.js';
+`
+        );
+        writeFile(
+          'ctx-b.ts',
+          `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+
+export { helper as aliasedFromA } from './ctx-a.js';
+`
+        );
+        const callerA = writeFile(
+          'caller-ctx-a.ts',
+          `import { helper } from './ctx-a.js';
+
+trail("entity.first", {
+  blaze: async (input, ctx) => {
+    return helper();
+  }
+})`
+        );
+        const callerB = writeFile(
+          'caller-ctx-b.ts',
+          `import { helper } from './ctx-b.js';
+
+trail("entity.second", {
+  blaze: async (input, ctx) => {
+    return helper();
+  }
+})`
+        );
+
+        // Resolve A first — this walks A -> B (and B -> A is cycle-guarded).
+        implementationReturnsResult.check(
+          readFileSync(callerA, 'utf8'),
+          callerA
+        );
+
+        // Now resolve B directly. B's own inline helper must still be
+        // recognized as Result-returning, even though an earlier transitive
+        // walk touched B under a non-empty parentVisited.
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(callerB, 'utf8'),
+          callerB
+        );
+
+        expect(diagnostics.length).toBe(0);
+      });
+
+      test('allows default-imported Result helper (import foo from ...)', () => {
+        writeFile(
+          'impl-default-import.ts',
+          `const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+
+export default helper;
+`
+        );
+        const caller = writeFile(
+          'caller-default-import.ts',
+          `import buildReport from './impl-default-import.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return buildReport();
+  }
+})`
+        );
+
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(caller, 'utf8'),
+          caller
+        );
+
+        expect(diagnostics.length).toBe(0);
+      });
+
+      test('still flags namespace-imported Result helper (documented gap)', () => {
+        // `import * as ns from './foo.js'` with `ns.helper(...)` is not yet
+        // resolved — the binding is `ns`, not `helper`, so the member call is
+        // unrecognized. Documented skip in buildImportBinding.
+        writeFile(
+          'impl-namespace.ts',
+          `export const helper = async (): Promise<Result<object, Error>> =>
+  Result.ok({ ok: true });
+`
+        );
+        const caller = writeFile(
+          'caller-namespace.ts',
+          `import * as ns from './impl-namespace.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return ns.helper();
+  }
+})`
+        );
+
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(caller, 'utf8'),
+          caller
+        );
+
+        expect(diagnostics.length).toBe(1);
+      });
+
+      test('falls back gracefully on re-export cycle', () => {
+        writeFile(
+          'cycle-a.ts',
+          `export { helper } from './cycle-b.js';
+`
+        );
+        writeFile(
+          'cycle-b.ts',
+          `export { helper } from './cycle-a.js';
+`
+        );
+        const caller = writeFile(
+          'caller-cycle.ts',
+          `import { helper } from './cycle-a.js';
+
+trail("entity.report", {
+  blaze: async (input, ctx) => {
+    return helper();
+  }
+})`
+        );
+
+        // Should not hang. Since the helper's annotation cannot be resolved
+        // through the cycle, it falls back to flagging the return as non-Result.
+        const diagnostics = implementationReturnsResult.check(
+          readFileSync(caller, 'utf8'),
+          caller
+        );
+
+        expect(diagnostics.length).toBe(1);
+      });
+    });
   });
 
   test('allows returning explicitly Result-typed local helpers', () => {

@@ -6,6 +6,8 @@
  * or a tracked Result-typed variable.
  */
 
+import { dirname, isAbsolute, resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
 import {
   findBlazeBodies,
   findTrailDefinitions,
@@ -309,6 +311,808 @@ const collectResultHelperNames = (
 };
 
 // ---------------------------------------------------------------------------
+// Imported Result helper resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Per-target-file cache of exported Result-helper names keyed by the absolute
+ * target path. Saves re-parsing when multiple rule invocations resolve the
+ * same file during a single warden run.
+ *
+ * @remarks
+ * Long-running processes calling `implementationReturnsResult.check` after
+ * source files change (e.g. watch mode, editor language servers) should call
+ * `clearImplementationReturnsResultCache()` between runs to avoid returning
+ * stale helper-name sets. The cache is intentionally not auto-invalidated per
+ * invocation — that would defeat its purpose within a single warden run.
+ */
+const targetFileResultExportCache = new Map<string, ReadonlySet<string>>();
+
+/**
+ * Clear the module-level cache used by the `implementation-returns-result`
+ * rule to remember which exported names on a target file carry a `Result<...>`
+ * return annotation.
+ *
+ * Call this between runs in long-lived processes where the set of Trails
+ * source files may have changed on disk since the last check.
+ */
+export const clearImplementationReturnsResultCache = (): void => {
+  targetFileResultExportCache.clear();
+};
+
+interface ImportBinding {
+  /** Local alias used in the importing file. */
+  readonly localName: string;
+  /** Original exported name from the target module. */
+  readonly importedName: string;
+  /** Raw import source specifier (e.g. './foo.js'). */
+  readonly source: string;
+}
+
+const getImportSourceValue = (node: AstNode): string | null => {
+  const sourceNode = (node as unknown as { source?: AstNode }).source;
+  const sourceValue = sourceNode
+    ? (sourceNode as unknown as { value?: unknown }).value
+    : undefined;
+  return typeof sourceValue === 'string' ? sourceValue : null;
+};
+
+const extractIdentifierName = (node: AstNode | undefined): string | null =>
+  node?.type === 'Identifier'
+    ? ((node as unknown as { name: string }).name ?? null)
+    : null;
+
+const buildDefaultImportBinding = (
+  specifier: AstNode,
+  source: string
+): ImportBinding | null => {
+  const { local } = specifier as unknown as { local?: AstNode };
+  const localName = extractIdentifierName(local);
+  if (!localName) {
+    return null;
+  }
+  return { importedName: 'default', localName, source };
+};
+
+const buildNamedImportBinding = (
+  specifier: AstNode,
+  source: string
+): ImportBinding | null => {
+  const { local, imported } = specifier as unknown as {
+    local?: AstNode;
+    imported?: AstNode;
+  };
+  const localName = extractIdentifierName(local);
+  const importedName = extractIdentifierName(imported) ?? localName;
+  if (!(localName && importedName)) {
+    return null;
+  }
+  return { importedName, localName, source };
+};
+
+/**
+ * @remarks
+ * `import foo from './bar.js'` is treated as a re-export of `default` so the
+ * target file's `export default` declaration is considered as a potential
+ * Result helper. `import * as ns from './bar.js'` is intentionally not
+ * supported — recognizing `ns.helper(...)` member calls would require mapping
+ * the namespace binding back to the target's exported names. Callers using
+ * namespace imports of Result helpers will get false-positive diagnostics and
+ * can work around with a named import instead.
+ */
+const buildImportBinding = (
+  specifier: AstNode,
+  source: string
+): ImportBinding | null => {
+  if (specifier.type === 'ImportDefaultSpecifier') {
+    return buildDefaultImportBinding(specifier, source);
+  }
+  if (specifier.type === 'ImportSpecifier') {
+    return buildNamedImportBinding(specifier, source);
+  }
+  return null;
+};
+
+const collectBindingsFromImportDeclaration = (
+  node: AstNode
+): readonly ImportBinding[] => {
+  const source = getImportSourceValue(node);
+  if (!source) {
+    return [];
+  }
+  const specifiers =
+    (node['specifiers'] as readonly AstNode[] | undefined) ?? [];
+  return specifiers.flatMap((specifier) => {
+    const binding = buildImportBinding(specifier, source);
+    return binding ? [binding] : [];
+  });
+};
+
+/** Collect `import { foo as bar } from './...'` bindings keyed by local name. */
+const collectResolvableImports = (ast: AstNode): readonly ImportBinding[] => {
+  const imports: ImportBinding[] = [];
+  walk(ast, (node) => {
+    if (node.type === 'ImportDeclaration') {
+      imports.push(...collectBindingsFromImportDeclaration(node));
+    }
+  });
+  return imports;
+};
+
+/**
+ * Resolve a relative import source specifier to an absolute on-disk file path,
+ * or null when the source is not a relative path we can resolve locally.
+ *
+ * Handles `.js` -> `.ts` rewriting (the convention in this repo), plain `.ts`
+ * imports, and extensionless paths.
+ */
+const buildResolutionCandidates = (resolved: string): readonly string[] => {
+  if (resolved.endsWith('.ts') || resolved.endsWith('.tsx')) {
+    return [resolved];
+  }
+  if (resolved.endsWith('.js')) {
+    return [
+      resolved.replace(/\.js$/, '.ts'),
+      resolved.replace(/\.js$/, '.tsx'),
+      resolved,
+    ];
+  }
+  if (resolved.endsWith('.jsx')) {
+    return [resolved.replace(/\.jsx$/, '.tsx'), resolved];
+  }
+  return [`${resolved}.ts`, `${resolved}.tsx`];
+};
+
+const resolveRelativeImportPath = (
+  source: string,
+  fromFile: string
+): string | null => {
+  if (!(source.startsWith('./') || source.startsWith('../'))) {
+    return null;
+  }
+  const baseDir = isAbsolute(fromFile)
+    ? dirname(fromFile)
+    : dirname(resolve(fromFile));
+  const resolved = resolve(baseDir, source);
+  return (
+    buildResolutionCandidates(resolved).find((candidate) =>
+      existsSync(candidate)
+    ) ?? null
+  );
+};
+
+/** Extract the declaration wrapped by an ExportNamedDeclaration, if any. */
+const getExportedDeclaration = (node: AstNode): AstNode | null => {
+  if (node.type !== 'ExportNamedDeclaration') {
+    return null;
+  }
+  const decl = (node as unknown as { declaration?: AstNode }).declaration;
+  return decl ?? null;
+};
+
+const addExportedVariableResultHelper = (
+  decl: AstNode,
+  source: string,
+  collected: Set<string>
+): void => {
+  const declarations =
+    (decl['declarations'] as readonly AstNode[] | undefined) ?? [];
+  for (const declarator of declarations) {
+    const { id, init } = declarator as unknown as {
+      id?: AstNode;
+      init?: AstNode;
+    };
+    const name = extractIdentifierName(id);
+    if (
+      name &&
+      init &&
+      isFunctionLikeExpression(init) &&
+      hasResultReturnType(init, source)
+    ) {
+      collected.add(name);
+    }
+  }
+};
+
+const addExportedFunctionResultHelper = (
+  decl: AstNode,
+  source: string,
+  collected: Set<string>
+): void => {
+  const name = extractIdentifierName((decl as unknown as { id?: AstNode }).id);
+  if (name && hasResultReturnType(decl, source)) {
+    collected.add(name);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Same-file declaration index (for specifier re-exports without a source)
+// ---------------------------------------------------------------------------
+
+/**
+ * Index a file's top-level function-like declarations (both exported-inline
+ * and plain) by name to the declaration node, so we can look up the original
+ * binding referenced by a specifier re-export like `export { helper }`.
+ *
+ * Each entry carries the init/declaration node so the caller can check the
+ * return-type annotation without re-walking.
+ */
+type DeclarationIndex = ReadonlyMap<string, AstNode>;
+
+const indexVariableDeclarationInto = (
+  decl: AstNode,
+  index: Map<string, AstNode>
+): void => {
+  const declarators =
+    (decl['declarations'] as readonly AstNode[] | undefined) ?? [];
+  for (const declarator of declarators) {
+    const { id, init } = declarator as unknown as {
+      id?: AstNode;
+      init?: AstNode;
+    };
+    const name = extractIdentifierName(id);
+    if (name && init && isFunctionLikeExpression(init)) {
+      index.set(name, init);
+    }
+  }
+};
+
+const indexFunctionDeclarationInto = (
+  decl: AstNode,
+  index: Map<string, AstNode>
+): void => {
+  const name = extractIdentifierName((decl as unknown as { id?: AstNode }).id);
+  if (name) {
+    index.set(name, decl);
+  }
+};
+
+const indexDeclarationInto = (
+  decl: AstNode | null | undefined,
+  index: Map<string, AstNode>
+): void => {
+  if (!decl) {
+    return;
+  }
+  if (decl.type === 'VariableDeclaration') {
+    indexVariableDeclarationInto(decl, index);
+  } else if (decl.type === 'FunctionDeclaration') {
+    indexFunctionDeclarationInto(decl, index);
+  }
+};
+
+const indexBodyNodeInto = (
+  node: AstNode,
+  index: Map<string, AstNode>
+): void => {
+  if (node.type === 'ExportNamedDeclaration') {
+    indexDeclarationInto(getExportedDeclaration(node), index);
+    return;
+  }
+  indexDeclarationInto(node, index);
+};
+
+const indexLocalDeclarations = (ast: AstNode): DeclarationIndex => {
+  const index = new Map<string, AstNode>();
+  const program = ast as unknown as { body?: readonly AstNode[] };
+  const bodyNodes = program.body ?? [];
+  for (const node of bodyNodes) {
+    indexBodyNodeInto(node, index);
+  }
+  return index;
+};
+
+// ---------------------------------------------------------------------------
+// Export-specifier handling
+// ---------------------------------------------------------------------------
+
+interface ExportSpecifierInfo {
+  /** Name this export is exposed as to consumers (after `as` alias). */
+  readonly exportedName: string;
+  /** Name referenced inside the re-export (`helper` in `export { helper }`). */
+  readonly localName: string;
+  /** True when the specifier is `default` (i.e. `export { default as X }`). */
+  readonly isDefault: boolean;
+}
+
+const getSpecifierNameNode = (
+  spec: AstNode,
+  key: 'exported' | 'local'
+): string | null => {
+  const node = (spec as unknown as Record<string, AstNode | undefined>)[key];
+  if (!node) {
+    return null;
+  }
+  if (node.type === 'Identifier') {
+    return (node as unknown as { name?: string }).name ?? null;
+  }
+  // Support string-literal specifiers (`export { "default" as X }`, etc).
+  const { value } = node as unknown as { value?: unknown };
+  return typeof value === 'string' ? value : null;
+};
+
+const buildExportSpecifierInfo = (
+  spec: AstNode
+): ExportSpecifierInfo | null => {
+  if (spec.type !== 'ExportSpecifier') {
+    return null;
+  }
+  const localName = getSpecifierNameNode(spec, 'local');
+  const exportedName = getSpecifierNameNode(spec, 'exported') ?? localName;
+  if (!(localName && exportedName)) {
+    return null;
+  }
+  return {
+    exportedName,
+    isDefault: localName === 'default',
+    localName,
+  };
+};
+
+const getExportDefaultDeclaration = (ast: AstNode): AstNode | null => {
+  const program = ast as unknown as { body?: readonly AstNode[] };
+  const bodyNodes = program.body ?? [];
+  for (const node of bodyNodes) {
+    if (node.type === 'ExportDefaultDeclaration') {
+      const decl = (node as unknown as { declaration?: AstNode }).declaration;
+      return decl ?? null;
+    }
+  }
+  return null;
+};
+
+// Bounded recursion: one transitive hop through `export { ... } from`.
+const MAX_RERESOLVE_DEPTH = 1;
+
+/** Check whether a local declaration node has a `Result<...>` return annotation. */
+const isResultHelperDeclaration = (
+  declarationNode: AstNode | undefined,
+  source: string
+): boolean => {
+  if (!declarationNode) {
+    return false;
+  }
+  if (isFunctionLikeExpression(declarationNode)) {
+    return hasResultReturnType(declarationNode, source);
+  }
+  if (declarationNode.type === 'FunctionDeclaration') {
+    return hasResultReturnType(declarationNode, source);
+  }
+  return false;
+};
+
+/** Resolve an `export default ...` declaration, following one identifier hop. */
+const checkDefaultDeclarationIsResultHelper = (
+  defaultDecl: AstNode,
+  targetSource: string,
+  targetLocalDeclarations: DeclarationIndex
+): boolean => {
+  if (isResultHelperDeclaration(defaultDecl, targetSource)) {
+    return true;
+  }
+  if (defaultDecl.type === 'Identifier') {
+    const name = extractIdentifierName(defaultDecl);
+    const referenced = name ? targetLocalDeclarations.get(name) : undefined;
+    return isResultHelperDeclaration(referenced, targetSource);
+  }
+  return false;
+};
+
+interface LoadedTargetFile {
+  readonly ast: AstNode;
+  readonly source: string;
+  readonly localDeclarations: DeclarationIndex;
+}
+
+const loadTargetFile = (targetPath: string): LoadedTargetFile | null => {
+  try {
+    const source = readFileSync(targetPath, 'utf8');
+    const ast = parse(targetPath, source) as AstNode | null;
+    if (!ast) {
+      return null;
+    }
+    return {
+      ast,
+      localDeclarations: indexLocalDeclarations(ast),
+      source,
+    };
+  } catch {
+    return null;
+  }
+};
+
+interface ReExportContext {
+  readonly loadedTarget: LoadedTargetFile | null;
+  readonly downstreamResultNames: ReadonlySet<string>;
+}
+
+const applyDefaultSpecifier = (
+  info: ExportSpecifierInfo,
+  loadedTarget: LoadedTargetFile | null,
+  collected: Set<string>
+): void => {
+  if (!loadedTarget) {
+    return;
+  }
+  const defaultDecl = getExportDefaultDeclaration(loadedTarget.ast);
+  if (!defaultDecl) {
+    return;
+  }
+  if (
+    checkDefaultDeclarationIsResultHelper(
+      defaultDecl,
+      loadedTarget.source,
+      loadedTarget.localDeclarations
+    )
+  ) {
+    collected.add(info.exportedName);
+  }
+};
+
+const applySpecifierInfo = (
+  info: ExportSpecifierInfo,
+  ctx: ReExportContext,
+  collected: Set<string>
+): void => {
+  if (info.isDefault) {
+    applyDefaultSpecifier(info, ctx.loadedTarget, collected);
+    return;
+  }
+  if (ctx.downstreamResultNames.has(info.localName)) {
+    collected.add(info.exportedName);
+  }
+};
+
+const resolveReExportTargetPath = (
+  node: AstNode,
+  targetPath: string,
+  visited: ReadonlySet<string>,
+  depth: number
+): string | null => {
+  if (depth >= MAX_RERESOLVE_DEPTH) {
+    return null;
+  }
+  const reSource = getImportSourceValue(node);
+  if (!reSource) {
+    return null;
+  }
+  const reTargetPath = resolveRelativeImportPath(reSource, targetPath);
+  if (!reTargetPath || visited.has(reTargetPath)) {
+    return null;
+  }
+  return reTargetPath;
+};
+
+const buildReExportContext = (
+  reTargetPath: string,
+  specifierInfos: readonly ExportSpecifierInfo[],
+  targetPath: string,
+  visited: ReadonlySet<string>,
+  depth: number
+): ReExportContext => {
+  const needsDefault = specifierInfos.some((info) => info.isDefault);
+  // Load once when the default specifier branch needs the target AST; the
+  // same loaded object is threaded into the downstream walk so it isn't
+  // read and parsed a second time within this check() call.
+  const loadedTarget = needsDefault ? loadTargetFile(reTargetPath) : null;
+  // eslint-disable-next-line no-use-before-define
+  const downstreamResultNames = collectTargetExportedResultHelperNames(
+    reTargetPath,
+    visited,
+    targetPath,
+    depth + 1,
+    loadedTarget
+  );
+  return {
+    downstreamResultNames,
+    loadedTarget,
+  };
+};
+
+/**
+ * Resolve a re-export with source (`export { ... } from './x.js'`) by pulling
+ * the matching names off the target file, honoring aliases and `default`.
+ */
+const resolveReExportWithSource = (
+  node: AstNode,
+  specifiers: readonly AstNode[],
+  targetPath: string,
+  visited: ReadonlySet<string>,
+  depth: number,
+  collected: Set<string>
+): void => {
+  const reTargetPath = resolveReExportTargetPath(
+    node,
+    targetPath,
+    visited,
+    depth
+  );
+  if (!reTargetPath) {
+    return;
+  }
+  const specifierInfos = specifiers.flatMap((spec) => {
+    const info = buildExportSpecifierInfo(spec);
+    return info ? [info] : [];
+  });
+  const ctx = buildReExportContext(
+    reTargetPath,
+    specifierInfos,
+    targetPath,
+    visited,
+    depth
+  );
+  for (const info of specifierInfos) {
+    applySpecifierInfo(info, ctx, collected);
+  }
+};
+
+/** Resolve a specifier-only re-export (`export { helper };`) against same-file declarations. */
+const resolveReExportWithoutSource = (
+  specifiers: readonly AstNode[],
+  localDeclarations: DeclarationIndex,
+  source: string,
+  collected: Set<string>
+): void => {
+  for (const spec of specifiers) {
+    const info = buildExportSpecifierInfo(spec);
+    if (!info || info.isDefault) {
+      continue;
+    }
+    if (
+      isResultHelperDeclaration(localDeclarations.get(info.localName), source)
+    ) {
+      collected.add(info.exportedName);
+    }
+  }
+};
+
+const processInlineExportedDeclaration = (
+  exportedDecl: AstNode,
+  source: string,
+  collected: Set<string>
+): boolean => {
+  if (exportedDecl.type === 'VariableDeclaration') {
+    addExportedVariableResultHelper(exportedDecl, source, collected);
+    return true;
+  }
+  if (exportedDecl.type === 'FunctionDeclaration') {
+    addExportedFunctionResultHelper(exportedDecl, source, collected);
+    return true;
+  }
+  return false;
+};
+
+const processExportNamedDeclaration = (
+  node: AstNode,
+  source: string,
+  targetPath: string,
+  visited: ReadonlySet<string>,
+  depth: number,
+  localDeclarations: DeclarationIndex,
+  collected: Set<string>
+): void => {
+  const exportedDecl = getExportedDeclaration(node);
+  if (
+    exportedDecl &&
+    processInlineExportedDeclaration(exportedDecl, source, collected)
+  ) {
+    return;
+  }
+  const specifiers =
+    (node['specifiers'] as readonly AstNode[] | undefined) ?? [];
+  if (specifiers.length === 0) {
+    return;
+  }
+  if (getImportSourceValue(node)) {
+    resolveReExportWithSource(
+      node,
+      specifiers,
+      targetPath,
+      visited,
+      depth,
+      collected
+    );
+    return;
+  }
+  resolveReExportWithoutSource(
+    specifiers,
+    localDeclarations,
+    source,
+    collected
+  );
+};
+
+const processExportDefaultDeclaration = (
+  node: AstNode,
+  source: string,
+  localDeclarations: DeclarationIndex,
+  collected: Set<string>
+): void => {
+  const defaultDecl = (node as unknown as { declaration?: AstNode })
+    .declaration;
+  if (!defaultDecl) {
+    return;
+  }
+  if (
+    checkDefaultDeclarationIsResultHelper(
+      defaultDecl,
+      source,
+      localDeclarations
+    )
+  ) {
+    collected.add('default');
+  }
+};
+
+const collectExportedResultHelpersFromAst = (
+  ast: AstNode,
+  source: string,
+  targetPath: string,
+  visited: ReadonlySet<string>,
+  depth: number,
+  preloadedLocalDeclarations: DeclarationIndex | null = null
+): ReadonlySet<string> => {
+  const collected = new Set<string>();
+  // Reuse the preloaded declaration index when available (e.g., threaded in
+  // from `loadTargetFile`) to avoid re-walking the same AST.
+  const localDeclarations =
+    preloadedLocalDeclarations ?? indexLocalDeclarations(ast);
+  const program = ast as unknown as { body?: readonly AstNode[] };
+  const bodyNodes = program.body ?? [];
+
+  for (const node of bodyNodes) {
+    if (node.type === 'ExportNamedDeclaration') {
+      processExportNamedDeclaration(
+        node,
+        source,
+        targetPath,
+        visited,
+        depth,
+        localDeclarations,
+        collected
+      );
+    } else if (node.type === 'ExportDefaultDeclaration') {
+      processExportDefaultDeclaration(
+        node,
+        source,
+        localDeclarations,
+        collected
+      );
+    }
+  }
+
+  return collected;
+};
+
+const parseTargetResultHelperNames = (
+  targetPath: string,
+  visited: ReadonlySet<string>,
+  depth: number,
+  preloaded: LoadedTargetFile | null = null
+): ReadonlySet<string> => {
+  const loaded = preloaded ?? loadTargetFile(targetPath);
+  if (!loaded) {
+    return new Set<string>();
+  }
+  return collectExportedResultHelpersFromAst(
+    loaded.ast,
+    loaded.source,
+    targetPath,
+    visited,
+    depth,
+    loaded.localDeclarations
+  );
+};
+
+const buildVisitedPathSet = (
+  parentVisited: ReadonlySet<string>,
+  targetPath: string,
+  parentPath: string | undefined
+): ReadonlySet<string> => {
+  const seeds = [...parentVisited, targetPath];
+  if (parentPath) {
+    seeds.push(parentPath);
+  }
+  return new Set<string>(seeds);
+};
+
+/**
+ * Collect the set of exported names from a target file whose declaration has
+ * an explicit `Result<...>` / `Promise<Result<...>>` return annotation.
+ *
+ * Uses a visited-set on the recursion path to guard against `export { ... }
+ * from` import cycles between files. Depth is capped at a single transitive
+ * hop (see `MAX_RERESOLVE_DEPTH`) — deeper chains silently fall back.
+ */
+// Only the direct-import path (no parents visited) is safe to cache: the
+// computed set is a function of (targetPath, parentVisited), and
+// cycle-truncated results from transitive walks must not bleed into later
+// direct lookups. See PR #204 review.
+const readCachedResultExports = (
+  targetPath: string,
+  parentVisited: ReadonlySet<string>
+): ReadonlySet<string> | undefined => {
+  if (parentVisited.size !== 0) {
+    return;
+  }
+  return targetFileResultExportCache.get(targetPath);
+};
+
+// biome-ignore lint/style/useConst: declared as a function so hoisting lets `buildReExportContext` (a const declared earlier) reference it before its textual definition
+// eslint-disable-next-line func-style, no-use-before-define
+function collectTargetExportedResultHelperNames(
+  targetPath: string,
+  parentVisited: ReadonlySet<string> = new Set<string>(),
+  parentPath?: string,
+  depth = 0,
+  preloaded: LoadedTargetFile | null = null
+): ReadonlySet<string> {
+  if (parentVisited.has(targetPath)) {
+    return new Set<string>();
+  }
+  const cached = readCachedResultExports(targetPath, parentVisited);
+  if (cached) {
+    return cached;
+  }
+  const visited = buildVisitedPathSet(parentVisited, targetPath, parentPath);
+  const names = parseTargetResultHelperNames(
+    targetPath,
+    visited,
+    depth,
+    preloaded
+  );
+  if (parentVisited.size === 0) {
+    targetFileResultExportCache.set(targetPath, names);
+  }
+  return names;
+}
+
+/**
+ * Extend a local-helper-name set with Result-returning helpers imported from
+ * relative modules. Falls back silently on any resolution/parse failure.
+ */
+const collectImportedResultHelperNames = (
+  ast: AstNode,
+  filePath: string
+): ReadonlySet<string> => {
+  const names = new Set<string>();
+
+  for (const binding of collectResolvableImports(ast)) {
+    const targetPath = resolveRelativeImportPath(binding.source, filePath);
+    if (!targetPath) {
+      continue;
+    }
+    const exportedResultNames =
+      collectTargetExportedResultHelperNames(targetPath);
+    if (exportedResultNames.has(binding.importedName)) {
+      names.add(binding.localName);
+    }
+  }
+
+  return names;
+};
+
+/**
+ * Combine same-file helper names with helpers imported from relative modules.
+ */
+const collectAllResultHelperNames = (
+  ast: AstNode,
+  sourceCode: string,
+  filePath: string
+): ReadonlySet<string> => {
+  const local = collectResultHelperNames(ast, sourceCode);
+  const imported = collectImportedResultHelperNames(ast, filePath);
+  if (imported.size === 0) {
+    return local;
+  }
+  const merged = new Set<string>(local);
+  for (const name of imported) {
+    merged.add(name);
+  }
+  return merged;
+};
+
+// ---------------------------------------------------------------------------
 // Per-implementation checking
 // ---------------------------------------------------------------------------
 
@@ -358,7 +1162,7 @@ const checkAllDefinitions = (
   sourceCode: string
 ): WardenDiagnostic[] => {
   const diagnostics: WardenDiagnostic[] = [];
-  const helperNames = collectResultHelperNames(ast, sourceCode);
+  const helperNames = collectAllResultHelperNames(ast, sourceCode, filePath);
 
   for (const def of findTrailDefinitions(ast)) {
     const info = { id: def.id, label: 'Trail' };

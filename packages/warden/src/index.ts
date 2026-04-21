@@ -20,6 +20,9 @@ export type {
 // Rule registry
 export { wardenRules, wardenTopoRules } from './rules/index.js';
 
+// Rule-scoped cache controls for long-lived consumers (watch mode, LSPs).
+export { clearImplementationReturnsResultCache } from './rules/implementation-returns-result.js';
+
 // CLI runner
 export type { WardenOptions, WardenReport } from './cli.js';
 export { formatWardenReport, runWarden } from './cli.js';
