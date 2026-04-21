@@ -103,4 +103,38 @@ describe('warden-export-symmetry', () => {
     expect(nsReexports.length).toBe(1);
     expect(nsReexports[0]?.severity).toBe('error');
   });
+
+  test('fires on aliased raw-rule re-exports using the local binding name', () => {
+    const source = buildIndexSource(
+      `export { ${sampleRawRuleCamel} as disguisedRule } from './rules/index.js';\n`
+    );
+    const diagnostics = wardenExportSymmetry.check(source, TARGET_FILE);
+    const rawLeaks = diagnostics.filter((d) =>
+      d.message.includes(`raw rule export "${sampleRawRuleCamel}"`)
+    );
+    expect(rawLeaks.length).toBe(1);
+    expect(rawLeaks[0]?.severity).toBe('error');
+  });
+
+  test('fires on orphan *Trail declared via `export const`', () => {
+    const source = buildIndexSource(
+      `export const fictitiousGhostTrail = {} as unknown;\n`
+    );
+    const diagnostics = wardenExportSymmetry.check(source, TARGET_FILE);
+    const orphans = diagnostics.filter((d) =>
+      d.message.includes('fictitiousGhostTrail')
+    );
+    expect(orphans.length).toBe(1);
+    expect(orphans[0]?.severity).toBe('error');
+  });
+
+  test('rejects `export default` on the warden barrel', () => {
+    const source = `${buildIndexSource()}export default {};\n`;
+    const diagnostics = wardenExportSymmetry.check(source, TARGET_FILE);
+    const defaults = diagnostics.filter((d) =>
+      d.message.includes('default export')
+    );
+    expect(defaults.length).toBe(1);
+    expect(defaults[0]?.severity).toBe('error');
+  });
 });

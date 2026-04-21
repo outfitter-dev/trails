@@ -32,20 +32,47 @@ const kebabToCamel = (value: string): string =>
   value.replaceAll(/-([a-z0-9])/g, (_, char: string) => char.toUpperCase());
 
 interface ExportSite {
+  /** Public export name — what consumers see on the barrel. */
   readonly name: string;
+  /**
+   * Local source binding name. For alias re-exports
+   * (`export { foo as bar }`) this is `foo`. Equals `name` for non-aliased
+   * exports and for declaration-form exports (`export const foo = ...`).
+   * Used by `rawRuleLeakDiagnostics` so aliasing a raw rule does not sanitize it.
+   */
+  readonly localName: string;
   readonly start: number;
 }
 
-const extractSpecifierName = (specifier: AstNode): string | null => {
-  const { exported } = specifier as unknown as { exported?: AstNode };
-  if (exported?.type === 'Identifier') {
-    return (exported as unknown as { name?: string }).name ?? null;
+const readIdentifierOrStringName = (
+  node: AstNode | undefined
+): string | null => {
+  if (!node) {
+    return null;
   }
-  if (exported?.type === 'Literal' || exported?.type === 'StringLiteral') {
-    const { value } = exported as unknown as { value?: unknown };
+  if (node.type === 'Identifier') {
+    return (node as unknown as { name?: string }).name ?? null;
+  }
+  if (node.type === 'Literal' || node.type === 'StringLiteral') {
+    const { value } = node as unknown as { value?: unknown };
     return typeof value === 'string' ? value : null;
   }
   return null;
+};
+
+const extractSpecifierNames = (
+  specifier: AstNode
+): { readonly name: string; readonly localName: string } | null => {
+  const { exported, local } = specifier as unknown as {
+    exported?: AstNode;
+    local?: AstNode;
+  };
+  const name = readIdentifierOrStringName(exported);
+  if (!name) {
+    return null;
+  }
+  const localName = readIdentifierOrStringName(local) ?? name;
+  return { localName, name };
 };
 
 const isTypeExportSpecifier = (specifier: AstNode): boolean =>
@@ -58,8 +85,46 @@ const specifierSite = (specifier: AstNode): ExportSite | null => {
   ) {
     return null;
   }
-  const name = extractSpecifierName(specifier);
-  return name ? { name, start: specifier.start } : null;
+  const names = extractSpecifierNames(specifier);
+  return names ? { ...names, start: specifier.start } : null;
+};
+
+const TYPE_ONLY_DECL_TYPES = new Set([
+  'TSTypeAliasDeclaration',
+  'TSInterfaceDeclaration',
+]);
+
+const namedSiteFromDeclId = (
+  declId: AstNode | undefined,
+  start: number
+): ExportSite | null => {
+  const name = readIdentifierOrStringName(declId);
+  return name ? { localName: name, name, start } : null;
+};
+
+const sitesForDeclaration = (declaration: AstNode): readonly ExportSite[] => {
+  if (TYPE_ONLY_DECL_TYPES.has(declaration.type)) {
+    return [];
+  }
+  if (
+    declaration.type === 'FunctionDeclaration' ||
+    declaration.type === 'ClassDeclaration'
+  ) {
+    const { id } = declaration as unknown as { id?: AstNode };
+    const site = namedSiteFromDeclId(id, declaration.start);
+    return site ? [site] : [];
+  }
+  if (declaration.type === 'VariableDeclaration') {
+    const declarations =
+      (declaration as unknown as { declarations?: readonly AstNode[] })
+        .declarations ?? [];
+    return declarations.flatMap((declarator) => {
+      const { id } = declarator as unknown as { id?: AstNode };
+      const site = namedSiteFromDeclId(id, declarator.start);
+      return site ? [site] : [];
+    });
+  }
+  return [];
 };
 
 const sitesForExportNode = (node: AstNode): readonly ExportSite[] => {
@@ -68,6 +133,10 @@ const sitesForExportNode = (node: AstNode): readonly ExportSite[] => {
   }
   if ((node as unknown as { exportKind?: string }).exportKind === 'type') {
     return [];
+  }
+  const { declaration } = node as unknown as { declaration?: AstNode };
+  if (declaration) {
+    return sitesForDeclaration(declaration);
   }
   const specifiers =
     (node['specifiers'] as readonly AstNode[] | undefined) ?? [];
@@ -96,7 +165,7 @@ const collectNamespaceReexports = (ast: AstNode): readonly ExportSite[] => {
     };
     const target =
       typeof source?.value === 'string' ? source.value : '<unknown>';
-    sites.push({ name: target, start: node.start });
+    sites.push({ localName: target, name: target, start: node.start });
   });
   return sites;
 };
@@ -165,23 +234,105 @@ const orphanTrailDiagnostics = (
       severity: 'error' as const,
     }));
 
+const pickRawRuleMatch = (
+  site: ExportSite,
+  rawNames: ReadonlySet<string>
+): string | null => {
+  if (rawNames.has(site.localName)) {
+    return site.localName;
+  }
+  if (rawNames.has(site.name)) {
+    return site.name;
+  }
+  return null;
+};
+
 const rawRuleLeakDiagnostics = (
   sourceCode: string,
   filePath: string,
   exports: readonly ExportSite[],
   rawNames: ReadonlySet<string>
 ): readonly WardenDiagnostic[] =>
-  exports
-    .filter((site) => rawNames.has(site.name))
-    .map((site) => ({
+  exports.flatMap((site) => {
+    // Check BOTH the public name and the local source binding — aliasing a
+    // raw rule (`export { wardenExportSymmetry as disguised }`) must not
+    // sanitize the leak. Prefer the raw-matching name in the diagnostic so
+    // the incident points at the actual rule identifier.
+    const matched = pickRawRuleMatch(site, rawNames);
+    if (!matched) {
+      return [];
+    }
+    const alias =
+      site.localName === site.name ? '' : ` (aliased as "${site.name}")`;
+    return [
+      {
+        filePath,
+        line: offsetToLine(sourceCode, site.start),
+        message:
+          `warden-export-symmetry: raw rule export "${matched}"${alias} must not appear on the public barrel. ` +
+          'Raw WardenRule objects are internal; expose the matching *Trail wrapper instead (ADR-0036).',
+        rule: 'warden-export-symmetry',
+        severity: 'error' as const,
+      },
+    ];
+  });
+
+const collectDefaultExports = (ast: AstNode): readonly ExportSite[] => {
+  const sites: ExportSite[] = [];
+  walk(ast, (node) => {
+    if (node.type !== 'ExportDefaultDeclaration') {
+      return;
+    }
+    sites.push({ localName: 'default', name: 'default', start: node.start });
+  });
+  return sites;
+};
+
+const defaultExportDiagnostics = (
+  sourceCode: string,
+  filePath: string,
+  sites: readonly ExportSite[]
+): readonly WardenDiagnostic[] =>
+  sites.map((site) => ({
+    filePath,
+    line: offsetToLine(sourceCode, site.start),
+    message:
+      'warden-export-symmetry: default export is not permitted on the warden public barrel. ' +
+      'Use named exports only so registry ↔ trail symmetry is discoverable (ADR-0036).',
+    rule: 'warden-export-symmetry',
+    severity: 'error' as const,
+  }));
+
+const analyzeBarrel = (
+  sourceCode: string,
+  filePath: string,
+  ast: AstNode
+): readonly WardenDiagnostic[] => {
+  const exports = collectNamedExports(ast);
+  const presentExports = new Set(exports.map((site) => site.name));
+  const { expectedTrailExports, rawRuleCamelNames } = buildRegistryNameSets();
+
+  return [
+    ...namespaceReexportDiagnostics(
+      sourceCode,
       filePath,
-      line: offsetToLine(sourceCode, site.start),
-      message:
-        `warden-export-symmetry: raw rule export "${site.name}" must not appear on the public barrel. ` +
-        'Raw WardenRule objects are internal; expose the matching *Trail wrapper instead (ADR-0036).',
-      rule: 'warden-export-symmetry',
-      severity: 'error' as const,
-    }));
+      collectNamespaceReexports(ast)
+    ),
+    ...defaultExportDiagnostics(
+      sourceCode,
+      filePath,
+      collectDefaultExports(ast)
+    ),
+    ...missingTrailDiagnostics(filePath, expectedTrailExports, presentExports),
+    ...orphanTrailDiagnostics(
+      sourceCode,
+      filePath,
+      exports,
+      expectedTrailExports
+    ),
+    ...rawRuleLeakDiagnostics(sourceCode, filePath, exports, rawRuleCamelNames),
+  ];
+};
 
 /**
  * Warden rule enforcing ADR-0036 registry ↔ trail export symmetry on the
@@ -196,32 +347,7 @@ export const wardenExportSymmetry: WardenRule = {
     if (!ast) {
       return [];
     }
-
-    const exports = collectNamedExports(ast);
-    const presentExports = new Set(exports.map((site) => site.name));
-    const namespaceSites = collectNamespaceReexports(ast);
-    const { expectedTrailExports, rawRuleCamelNames } = buildRegistryNameSets();
-
-    return [
-      ...namespaceReexportDiagnostics(sourceCode, filePath, namespaceSites),
-      ...missingTrailDiagnostics(
-        filePath,
-        expectedTrailExports,
-        presentExports
-      ),
-      ...orphanTrailDiagnostics(
-        sourceCode,
-        filePath,
-        exports,
-        expectedTrailExports
-      ),
-      ...rawRuleLeakDiagnostics(
-        sourceCode,
-        filePath,
-        exports,
-        rawRuleCamelNames
-      ),
-    ];
+    return analyzeBarrel(sourceCode, filePath, ast);
   },
   description:
     'Enforces ADR-0036: every wardenRules / wardenTopoRules entry has a matching *Trail export, no orphan *Trail exports, and no raw rule objects leak onto the @ontrails/warden public barrel.',
