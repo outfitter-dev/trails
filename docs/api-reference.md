@@ -243,16 +243,43 @@ McpHarness, McpHarnessOptions, McpHarnessResult
 ## `@ontrails/warden`
 
 ```typescript
+// Main runtime
 runWarden(options?), formatWardenReport(report), checkDrift(rootDir, topo?)
-wardenRules                        // ReadonlyMap<string, WardenRule> — built-in AST-based rules
+
+// Built-in registries and wrapped topo
+wardenRules                        // ReadonlyMap<string, WardenRule> — built-in per-file rules (file-scoped and project-aware)
 wardenTopoRules                    // ReadonlyMap<string, TopoAwareWardenRule> — built-in topo-aware rules
-wardenTopo                         // pre-built Topo of all warden trails
+wardenTopo                         // pre-built Topo of all wrapped built-in warden rule trails
+
+// Trail runners
 runWardenTrails(filePath, sourceCode, options?) // run file-scoped warden rules against a single file
 runTopoAwareWardenTrails(topo)     // run built-in topo-aware warden rule trails once per topo
+
+// Formatting helpers
 formatGitHubAnnotations(report), formatJson(report), formatSummary(report)
 
+// Cache controls for long-lived tooling
+clearImplementationReturnsResultCache()
+
+// Draft-state helpers
+DRAFT_FILE_PREFIX, DRAFT_FILE_SEGMENT
+isDraftMarkedFile(path), stripDraftFileMarkers(path)
+
+// AST helpers for repo-local tooling
+parse(filePath, sourceCode), walk(ast, visitor), offsetToLine(source, offset)
+findStringLiterals(ast, predicate?), isStringLiteral(node), getStringValue(node)
+
+// Trail-wrapping helpers and schemas
+wrapRule({ rule, examples })
+wrapTopoRule({ rule, examples })
+ruleInput, projectAwareRuleInput, ruleOutput, topoAwareRuleInput, diagnosticSchema
+<builtInRuleName>Trail             // built-in wrapped rule trails, e.g. noThrowInImplementationTrail
+
+// Types
 WardenOptions, WardenReport, WardenDiagnostic, WardenSeverity, DriftResult
-ProjectAwareWardenRule, ProjectContext
+ProjectAwareWardenRule, ProjectContext, TopoAwareWardenRule, WardenRule
+RuleInput, ProjectAwareRuleInput, RuleOutput, TopoAwareRuleInput
+AstNode, StringLiteralMatch
 ```
 
 ## `@ontrails/config`
