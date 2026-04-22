@@ -51,7 +51,7 @@ The warden provides lightweight helpers over the raw AST:
 - `findConfigProperty()` — find a named property inside an ObjectExpression
 - `offsetToLine()` — convert byte offset to 1-based line number
 
-One critical addition: `walkShallow()`. Standard `walk()` descends into everything, including nested function expressions inside `.map()`, `.filter()`, and other callbacks. `walkShallow()` stops at function boundaries. This prevents false positives — a `throw` inside a callback passed to an external library is not a `throw` in the implementation body.
+One critical addition: `walkScope()`. Standard `walk()` descends into everything, including nested function expressions inside `.map()`, `.filter()`, and other callbacks. `walkScope()` stops at function boundaries. This prevents false positives — a `throw` inside a callback passed to an external library is not a `throw` in the implementation body. Rules that need finer-grained behavior (for example hoisted `var` handling or assignment tracking) layer their own specialized walkers on top of this baseline helper.
 
 ### The 11 rules
 
@@ -76,7 +76,7 @@ Basic rules analyze a single file. Project-aware rules receive a `ProjectContext
 ### Positive
 
 - **Rules get the full trail contract for free.** Schemas validate inputs. Examples document behavior. `testAll()` covers every rule's happy and sad paths. No separate test harness needed.
-- **AST analysis is scope-aware.** `walkShallow()` eliminates the false positives that plagued regex matching. A `throw` inside a `.map()` callback no longer triggers `no-throw-in-implementation`.
+- **AST analysis is scope-aware.** `walkScope()` eliminates the false positives that plagued regex matching. A `throw` inside a `.map()` callback no longer triggers `no-throw-in-implementation`.
 - **New rules follow a consistent pattern.** Write a `WardenRule`, wrap it with `wrapRule()`, add examples, drop it in the topo. The warden discovers and runs it automatically.
 - **The governance system is its own proof.** If `wardenTopo` passes `testAll()`, the warden's own code satisfies the patterns it enforces.
 

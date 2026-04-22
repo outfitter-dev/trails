@@ -1210,7 +1210,7 @@ const getNamespacedMemberNames = (
  * leak through. When absent (e.g. from test helpers), the name-only gate is
  * used as a backward-compatible fallback.
  */
-interface FrameworkNamespaceContext {
+export interface FrameworkNamespaceContext {
   readonly namespaces: ReadonlySet<string>;
   readonly safeCallStarts?: ReadonlySet<number>;
 }
@@ -1514,10 +1514,18 @@ const extractContourDefinition = (
   };
 };
 
-export const findContourDefinitions = (ast: AstNode): ContourDefinition[] => {
+export const findContourDefinitions = (
+  ast: AstNode,
+  /**
+   * Optional pre-built namespace context. When provided, the second full-AST
+   * traversal inside `buildFrameworkNamespaceContext` is skipped — useful for
+   * callers (such as `collectContourReferenceSites`) that already built one.
+   */
+  context?: FrameworkNamespaceContext
+): ContourDefinition[] => {
   const definitions: ContourDefinition[] = [];
   const seenStarts = new Set<number>();
-  const context = buildFrameworkNamespaceContext(ast);
+  const resolvedContext = context ?? buildFrameworkNamespaceContext(ast);
 
   const addContourDefinition = (definition: ContourDefinition): void => {
     if (seenStarts.has(definition.start)) {
@@ -1536,7 +1544,7 @@ export const findContourDefinitions = (ast: AstNode): ContourDefinition[] => {
       return;
     }
 
-    const definition = extractContourDefinition(init, context);
+    const definition = extractContourDefinition(init, resolvedContext);
     if (!definition) {
       return;
     }
@@ -1560,7 +1568,7 @@ export const findContourDefinitions = (ast: AstNode): ContourDefinition[] => {
       return;
     }
 
-    const definition = extractContourDefinition(node, context);
+    const definition = extractContourDefinition(node, resolvedContext);
     if (definition) {
       addContourDefinition(definition);
     }
@@ -1761,7 +1769,8 @@ const getContourReferenceTargetFromObject = (
   object: AstNode,
   namedContourIds: ReadonlyMap<string, string>,
   knownContourIds?: ReadonlySet<string>,
-  importAliases?: ReadonlyMap<string, string>
+  importAliases?: ReadonlyMap<string, string>,
+  context?: ReadonlySet<string> | FrameworkNamespaceContext
 ): string | null => {
   if (object.type === 'Identifier') {
     const bindingName = identifierName(object);
@@ -1775,7 +1784,7 @@ const getContourReferenceTargetFromObject = (
       : null;
   }
 
-  return extractContourDefinition(object)?.name ?? null;
+  return extractContourDefinition(object, context)?.name ?? null;
 };
 
 const getContourIdCallObject = (node: AstNode | undefined): AstNode | null => {
@@ -1796,7 +1805,8 @@ const extractContourReferenceTarget = (
   node: AstNode | undefined,
   namedContourIds: ReadonlyMap<string, string>,
   knownContourIds?: ReadonlySet<string>,
-  importAliases?: ReadonlyMap<string, string>
+  importAliases?: ReadonlyMap<string, string>,
+  context?: ReadonlySet<string> | FrameworkNamespaceContext
 ): string | null => {
   const object = getContourIdCallObject(node);
   return object
@@ -1804,7 +1814,8 @@ const extractContourReferenceTarget = (
         object,
         namedContourIds,
         knownContourIds,
-        importAliases
+        importAliases,
+        context
       )
     : null;
 };
@@ -1819,7 +1830,8 @@ const buildContourReferenceSite = (
   property: AstNode,
   namedContourIds: ReadonlyMap<string, string>,
   knownContourIds?: ReadonlySet<string>,
-  importAliases?: ReadonlyMap<string, string>
+  importAliases?: ReadonlyMap<string, string>,
+  context?: ReadonlySet<string> | FrameworkNamespaceContext
 ): ContourReferenceSite | null => {
   if (property.type !== 'Property') {
     return null;
@@ -1830,7 +1842,8 @@ const buildContourReferenceSite = (
     property.value as AstNode | undefined,
     namedContourIds,
     knownContourIds,
-    importAliases
+    importAliases,
+    context
   );
   if (!field || !target) {
     return null;
@@ -1848,7 +1861,8 @@ const findContourReferenceSitesForDefinition = (
   definition: ContourDefinition,
   namedContourIds: ReadonlyMap<string, string>,
   knownContourIds?: ReadonlySet<string>,
-  importAliases?: ReadonlyMap<string, string>
+  importAliases?: ReadonlyMap<string, string>,
+  context?: ReadonlySet<string> | FrameworkNamespaceContext
 ): readonly ContourReferenceSite[] =>
   getContourShapeProperties(definition).flatMap((property) => {
     const reference = buildContourReferenceSite(
@@ -1856,7 +1870,8 @@ const findContourReferenceSitesForDefinition = (
       property,
       namedContourIds,
       knownContourIds,
-      importAliases
+      importAliases,
+      context
     );
     return reference ? [reference] : [];
   });
@@ -1868,12 +1883,14 @@ export const collectContourReferenceSites = (
 ): readonly ContourReferenceSite[] => {
   const namedContourIds = collectNamedContourIds(ast);
   const importAliases = collectImportAliasMap(ast);
-  return findContourDefinitions(ast).flatMap((definition) =>
+  const context = buildFrameworkNamespaceContext(ast);
+  return findContourDefinitions(ast, context).flatMap((definition) =>
     findContourReferenceSitesForDefinition(
       definition,
       namedContourIds,
       knownContourIds,
-      importAliases
+      importAliases,
+      context
     )
   );
 };
