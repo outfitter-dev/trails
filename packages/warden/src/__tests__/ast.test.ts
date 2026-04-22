@@ -471,4 +471,27 @@ describe('collectContourReferenceSites with namespaced inline contours', () => {
 
     expect(collectContourReferenceSites(ast)).toEqual([]);
   });
+
+  test('unwraps wrapped contour id schemas before resolving the target', () => {
+    const source = `
+      import { contour } from '@ontrails/core';
+      import { z } from 'zod';
+
+      const user = contour('user', {
+        id: z.string().uuid(),
+      });
+
+      const gist = contour('gist', {
+        id: z.string().uuid(),
+        ownerId: user.id().nullable().optional().default(null),
+      });
+    `;
+    const ast = parseOrThrow(source);
+    const refs = collectContourReferenceSites(ast);
+
+    expect(refs).toHaveLength(1);
+    expect(refs[0]?.source).toBe('gist');
+    expect(refs[0]?.field).toBe('ownerId');
+    expect(refs[0]?.target).toBe('user');
+  });
 });

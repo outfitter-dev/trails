@@ -1779,18 +1779,49 @@ const getContourReferenceTargetFromObject = (
   return extractContourDefinition(object, context)?.name ?? null;
 };
 
-const getContourIdCallObject = (node: AstNode | undefined): AstNode | null => {
-  if (!node || node.type !== 'CallExpression') {
-    return null;
-  }
+const CONTOUR_ID_WRAPPER_METHODS = new Set([
+  'brand',
+  'catch',
+  'default',
+  'describe',
+  'meta',
+  'nullable',
+  'nullish',
+  'optional',
+  'readonly',
+]);
 
+const getContourIdCallMember = (
+  node: AstNode
+): {
+  readonly member: NonNullable<ReturnType<typeof getContourReferenceMember>>;
+  readonly propertyName: string;
+} | null => {
   const callee = node['callee'] as AstNode | undefined;
   const member = callee ? getContourReferenceMember(callee) : null;
-  if (!member || identifierName(member.property) !== 'id') {
+  const propertyName = member ? identifierName(member.property) : null;
+  return member && propertyName ? { member, propertyName } : null;
+};
+
+const getContourIdCallObject = function getContourIdCallObject(
+  node: AstNode | undefined
+): AstNode | null {
+  const current = node;
+  if (!current || current.type !== 'CallExpression') {
     return null;
   }
 
-  return member.object ?? null;
+  const member = getContourIdCallMember(current);
+  if (!member) {
+    return null;
+  }
+  if (member.propertyName === 'id') {
+    return member.member.object ?? null;
+  }
+
+  return CONTOUR_ID_WRAPPER_METHODS.has(member.propertyName)
+    ? getContourIdCallObject(member.member.object)
+    : null;
 };
 
 const extractContourReferenceTarget = (
