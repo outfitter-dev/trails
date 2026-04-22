@@ -47,7 +47,12 @@ jobs:
               'MEMBER',
               'OWNER',
             ]);
-            const waiverPattern = /review-bot-na:\s*([a-z, ]+)/gi;
+            // Strict key list: one or more [a-z] tokens separated by commas and
+            // optional whitespace. Any non-comma prose (e.g. "greptile this is
+            // covered") terminates the match so the trailing words are not
+            // captured as a bogus bot key.
+            const waiverPattern =
+              /review-bot-na:\s*([a-z]+(?:\s*,\s*[a-z]+)*)/gi;
 
             const pullRequest = context.payload.pull_request;
             if (!pullRequest) {
@@ -258,7 +263,13 @@ jobs:
                   }
                   if (botConfigs.some((bot) => bot.key === key)) {
                     waivedBots.add(key);
+                    continue;
                   }
+                  // Surface typo'd or unsupported waiver keys in the Actions
+                  // log so stale waivers don't silently disappear.
+                  core.warning(
+                    `Ignoring unrecognized review-bot-na key \`${key}\` in comment by @${comment.author?.login ?? 'unknown'}. Valid keys: ${botConfigs.map((bot) => bot.key).join(', ')}, all.`
+                  );
                 }
               }
             }
