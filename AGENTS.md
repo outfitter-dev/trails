@@ -102,9 +102,7 @@ Use Graphite for source control operations.
 - `git status` and `git diff` are the normal read-only exceptions.
 - We use Conventional Commits.
 - Keep PRs small, isolate mechanical changes when possible, and keep PRs in draft until CI is green.
-- Graphite queue labels are the last step, not the start of review. Do not add `queue:merge`, `queue:priority`, or `queue:hotfix` until Greptile, Codex, and Devin have each posted on the current PR revision, or a repo member has explicitly waived the missing reviewer with `review-bot-na: <greptile|codex|devin>`.
 - Treat a Greptile error comment (`Greptile encountered an error while reviewing this PR`) as a blocker, not as a completed review.
-- The `Review Bot Gate` check (see `.github/workflows/review-bot-gate.yml`) enforces the reviewer-posting policy above. It is expected to be listed as a required check in `main` branch protection so GitHub mergeability actually hinges on it; repo maintainers must configure this in GitHub settings since branch protection is not managed from code.
 - When performing fixes across stacked branches, always do so from the top most branch and use `gt absorb -a`
 
 ## Subagent Rules

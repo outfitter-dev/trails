@@ -2,7 +2,10 @@
  * Flags throws in implementations that are used as detour targets.
  *
  * Uses AST parsing for accurate detection of detour target IDs and
- * throw statements within those trail implementations.
+ * scope-aware walking of blaze bodies so throws inside nested callbacks
+ * (e.g. `.map()`, `.filter()`, inner helpers) are not attributed to the
+ * blaze body itself. ADR-0007 requires this class of false positive to
+ * be avoided — only throws in the blaze body scope should be flagged.
  */
 
 import {
@@ -11,6 +14,7 @@ import {
   offsetToLine,
   parse,
   walk,
+  walkScope,
 } from './ast.js';
 import { isTestFile } from './scan.js';
 import type {
@@ -67,7 +71,7 @@ const findThrowsInTargetedTrails = (
     }
 
     for (const body of findBlazeBodies(def.config as AstNode)) {
-      walk(body, (node) => {
+      walkScope(body, (node) => {
         if (node.type === 'ThrowStatement') {
           diagnostics.push({
             filePath,

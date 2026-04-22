@@ -75,4 +75,68 @@ trail("entity.fallback", {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.rule).toBe('no-throw-in-detour-target');
   });
+
+  test('does not flag throw inside a nested .map() callback of a detour target', () => {
+    const code = `
+trail("entity.show", {
+  detours: { NotFoundError: ["entity.fallback"] },
+  blaze: async (input, ctx) => Result.ok({ id: "123" })
+})
+
+trail("entity.fallback", {
+  blaze: async (input, ctx) => {
+    [1].map(() => {
+      throw new Error("boom");
+    });
+    return Result.ok({ ok: true });
+  }
+})`;
+
+    const diagnostics = noThrowInDetourTarget.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(0);
+  });
+
+  test('does not flag throw inside a nested function declaration of a detour target', () => {
+    const code = `
+trail("entity.show", {
+  detours: { NotFoundError: ["entity.fallback"] },
+  blaze: async (input, ctx) => Result.ok({ id: "123" })
+})
+
+trail("entity.fallback", {
+  blaze: async (input, ctx) => {
+    function helper() {
+      throw new Error("boom");
+    }
+    return Result.ok({ ok: true });
+  }
+})`;
+
+    const diagnostics = noThrowInDetourTarget.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(0);
+  });
+
+  test('still flags direct throw in a detour target alongside a safe nested callback', () => {
+    const code = `
+trail("entity.show", {
+  detours: { NotFoundError: ["entity.fallback"] },
+  blaze: async (input, ctx) => Result.ok({ id: "123" })
+})
+
+trail("entity.fallback", {
+  blaze: async (input, ctx) => {
+    [1].map(() => {
+      throw new Error("inner — allowed");
+    });
+    throw new Error("outer — flagged");
+  }
+})`;
+
+    const diagnostics = noThrowInDetourTarget.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.rule).toBe('no-throw-in-detour-target');
+  });
 });
