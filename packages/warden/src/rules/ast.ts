@@ -1024,13 +1024,79 @@ const SCOPE_FRAME_COLLECTORS: Record<string, FrameCollector> = {
  * node. Scope frames correspond to JS lexical scopes (function bodies, blocks,
  * catch clauses, for-statements, switch statements, module/script roots).
  */
-const collectScopeFrameBindings = (node: AstNode): ReadonlySet<string> => {
+export const collectScopeFrameBindings = (
+  node: AstNode
+): ReadonlySet<string> => {
   const names = new Set<string>();
   const collector = SCOPE_FRAME_COLLECTORS[node.type];
   if (collector) {
     collector(node, names);
   }
   return names;
+};
+
+export type ScopeAwareVisitor = (
+  node: AstNode,
+  scopes: readonly ReadonlySet<string>[]
+) => void;
+
+export interface ScopeWalkOptions {
+  readonly initialScopes?: readonly ReadonlySet<string>[];
+  readonly stopAtNestedFunctions?: boolean;
+}
+
+const asAstNode = (node: unknown): AstNode | null => {
+  if (!node || typeof node !== 'object') {
+    return null;
+  }
+  const astNode = node as AstNode;
+  return astNode.type ? astNode : null;
+};
+
+/**
+ * Walk an AST subtree while threading lexical scope bindings through each
+ * visit. Callers can seed outer scopes and optionally stop at nested function
+ * boundaries when only the current implementation body should be analyzed.
+ */
+export const walkWithScopes = (
+  node: unknown,
+  visit: ScopeAwareVisitor,
+  options: ScopeWalkOptions = {}
+): void => {
+  const root = asAstNode(node);
+  if (!root) {
+    return;
+  }
+
+  const stack = [...(options.initialScopes ?? [])];
+
+  const walkNode = (current: AstNode, isRoot: boolean): void => {
+    if (
+      !isRoot &&
+      options.stopAtNestedFunctions &&
+      FUNCTION_BOUNDARY_TYPES.has(current.type)
+    ) {
+      return;
+    }
+
+    const isScope = current.type in SCOPE_FRAME_COLLECTORS;
+    if (isScope) {
+      stack.unshift(collectScopeFrameBindings(current));
+    }
+
+    try {
+      visit(current, stack);
+      forEachAstChild(current, (child) => {
+        walkNode(child, false);
+      });
+    } finally {
+      if (isScope) {
+        stack.shift();
+      }
+    }
+  };
+
+  walkNode(root, true);
 };
 
 const isShadowed = (
@@ -1084,12 +1150,6 @@ const resolveNamespacedMemberNames = (
   return property ? { property, receiver } : null;
 };
 
-interface ScopeWalkState {
-  readonly frameworkNamespaces: ReadonlySet<string>;
-  readonly stack: ReadonlySet<string>[];
-  readonly starts: Set<number>;
-}
-
 const getFrameworkCallReceiver = (
   node: AstNode,
   frameworkNamespaces: ReadonlySet<string>
@@ -1108,34 +1168,6 @@ const getFrameworkCallReceiver = (
   return names.receiver;
 };
 
-const recordFrameworkNamespacedCall = (
-  node: AstNode,
-  state: ScopeWalkState
-): void => {
-  const receiver = getFrameworkCallReceiver(node, state.frameworkNamespaces);
-  if (!receiver || isShadowed(receiver, state.stack)) {
-    return;
-  }
-  state.starts.add(node.start);
-};
-
-const recurseWithScope = (node: AstNode, state: ScopeWalkState): void => {
-  const isScope = node.type in SCOPE_FRAME_COLLECTORS;
-  if (isScope) {
-    state.stack.unshift(collectScopeFrameBindings(node));
-  }
-  try {
-    recordFrameworkNamespacedCall(node, state);
-    forEachAstChild(node, (child) => {
-      recurseWithScope(child, state);
-    });
-  } finally {
-    if (isScope) {
-      state.stack.shift();
-    }
-  }
-};
-
 /**
  * Walk the AST with a scope stack and collect `CallExpression` start offsets
  * whose callee is `<receiver>.<property>` where `<receiver>` is proven to
@@ -1151,7 +1183,15 @@ const collectFrameworkNamespacedCallStarts = (
   if (frameworkNamespaces.size === 0) {
     return starts;
   }
-  recurseWithScope(ast, { frameworkNamespaces, stack: [], starts });
+
+  walkWithScopes(ast, (node, scopes) => {
+    const receiver = getFrameworkCallReceiver(node, frameworkNamespaces);
+    if (!receiver || isShadowed(receiver, scopes)) {
+      return;
+    }
+    starts.add(node.start);
+  });
+
   return starts;
 };
 
