@@ -34,9 +34,15 @@ export { wardenRulesUseAstTrail } from './warden-rules-use-ast.trail.js';
 
 export {
   diagnosticSchema,
+  projectAwareRuleInput,
   ruleInput,
   ruleOutput,
   topoAwareRuleInput,
 } from './schema.js';
-export type { RuleInput, RuleOutput, TopoAwareRuleInput } from './schema.js';
-export { wrapTopoRule } from './wrap-rule.js';
+export type {
+  ProjectAwareRuleInput,
+  RuleInput,
+  RuleOutput,
+  TopoAwareRuleInput,
+} from './schema.js';
+export { wrapRule, wrapTopoRule } from './wrap-rule.js';

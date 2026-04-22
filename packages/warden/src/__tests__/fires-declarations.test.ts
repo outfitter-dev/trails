@@ -472,28 +472,6 @@ trail('shadowCtx', {
       expect(diagnostics.length).toBe(0);
     });
 
-    test('nested arrow with legitimate ctx.fire is not flagged as undeclared', () => {
-      const code = `
-trail('nestedLegit', {
-  fires: ['legitimate.signal'],
-  blaze: async (input, ctx) => {
-    const runLater = () => ctx.fire('legitimate.signal', {});
-    runLater();
-    return Result.ok({});
-  },
-});
-`;
-
-      const diagnostics = firesDeclarations.check(code, TEST_FILE);
-      // Precision tradeoff: the nested arrow isn't walked, so the warden sees
-      // the declared 'legitimate.signal' as "unused". What matters for the
-      // P1 bug is that it is NOT reported as undeclared (no false error).
-      const undeclared = diagnostics.filter((d) =>
-        d.message.includes('not declared in fires')
-      );
-      expect(undeclared.length).toBe(0);
-    });
-
     test('top-level ctx.fire with matching declaration still clean (regression)', () => {
       const code = `
 trail('regression', {
@@ -615,5 +593,60 @@ trail('checkout', {
       expect(diagnostics[0]?.message).toContain("'order.placed'");
       expect(diagnostics[0]?.message).toContain('object-form fires entries');
     });
+  });
+});
+
+describe('fires-declarations helper-scoped blind spots', () => {
+  test('helper-scoped ctx.fire stays a documented unused-only blind spot', () => {
+    const code = `
+trail('nestedLegit', {
+  fires: ['legitimate.signal'],
+  blaze: async (input, ctx) => {
+    const runLater = () => ctx.fire('legitimate.signal', {});
+    runLater();
+    return Result.ok({});
+  },
+});
+`;
+
+    const diagnostics = firesDeclarations.check(code, TEST_FILE);
+    // Precision tradeoff: helper-scoped ctx.fire isn't walked yet, so the
+    // rule sees the declared signal as "unused" today. What matters is that
+    // it is NOT reported as undeclared, and that the limitation stays
+    // stable until helper-aware analysis lands.
+    const undeclared = diagnostics.filter((d) =>
+      d.message.includes('not declared in fires')
+    );
+    const unused = diagnostics.filter((d) =>
+      d.message.includes("'legitimate.signal' declared in fires")
+    );
+    expect(undeclared.length).toBe(0);
+    expect(unused.length).toBe(1);
+  });
+
+  test('helper-local destructured fire stays a documented unused-only blind spot', () => {
+    const code = `
+trail('nestedDestructure', {
+  fires: ['helper.signal'],
+  blaze: async (input, ctx) => {
+    const runLater = () => {
+      const { fire } = ctx;
+      return fire('helper.signal', {});
+    };
+    runLater();
+    return Result.ok({});
+  },
+});
+`;
+
+    const diagnostics = firesDeclarations.check(code, TEST_FILE);
+    const undeclared = diagnostics.filter((d) =>
+      d.message.includes('not declared in fires')
+    );
+    const unused = diagnostics.filter((d) =>
+      d.message.includes("'helper.signal' declared in fires")
+    );
+    expect(undeclared.length).toBe(0);
+    expect(unused.length).toBe(1);
   });
 });

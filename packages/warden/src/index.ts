@@ -86,6 +86,7 @@ export {
   onReferencesExistTrail,
   orphanedSignalTrail,
   preferSchemaInferenceTrail,
+  projectAwareRuleInput,
   referenceExistsTrail,
   ruleInput,
   ruleOutput,
@@ -98,9 +99,11 @@ export {
   validDetourRefsTrail,
   wardenExportSymmetryTrail,
   wardenRulesUseAstTrail,
+  wrapRule,
   wrapTopoRule,
 } from './trails/index.js';
 export type {
+  ProjectAwareRuleInput,
   RuleInput,
   RuleOutput,
   TopoAwareRuleInput,

@@ -11,6 +11,7 @@ import {
   deriveContourIdentifierName,
 } from './ast.js';
 import type { AstNode, TrailDefinition } from './ast.js';
+import { mergeKnownContourIds } from './contour-ids.js';
 import { isTestFile } from './scan.js';
 import type {
   ProjectAwareWardenRule,
@@ -192,7 +193,7 @@ export const contourExists: ProjectAwareWardenRule = {
       ast,
       sourceCode,
       filePath,
-      context.knownContourIds ?? localContourIds
+      mergeKnownContourIds(localContourIds, context.knownContourIds)
     );
   },
   description:

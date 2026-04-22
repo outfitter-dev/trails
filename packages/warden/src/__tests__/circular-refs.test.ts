@@ -72,4 +72,27 @@ const user = contour('user', {
       'user -> gist -> account -> user'
     );
   });
+
+  test('warns on local cycles formed through wrapped contour id schemas', () => {
+    const code = `
+import { contour } from '@ontrails/core';
+import { z } from 'zod';
+
+const user = contour('user', {
+  gistId: gist.id().optional(),
+  id: z.string().uuid(),
+}, { identity: 'id' });
+
+const gist = contour('gist', {
+  id: z.string().uuid(),
+  ownerId: user.id().nullable(),
+}, { identity: 'id' });
+`;
+
+    const diagnostics = circularRefs.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(2);
+    expect(diagnostics[0]?.rule).toBe('circular-refs');
+    expect(diagnostics[0]?.message).toContain('user -> gist -> user');
+  });
 });

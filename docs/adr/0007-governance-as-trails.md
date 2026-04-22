@@ -4,7 +4,7 @@ slug: governance-as-trails
 title: Governance as Trails with AST-Based Analysis
 status: accepted
 created: 2026-03-29
-updated: 2026-04-01
+updated: 2026-04-22
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -24,9 +24,9 @@ That's a credibility problem. If the framework's own governance tools don't foll
 
 ### Part 1: Rules as trails
 
-Each warden rule is wrapped via `wrapRule()` into a trail with ID `warden.rule.<name>`.
+Each source-file rule is wrapped via `wrapRule()` into a trail with ID `warden.rule.<name>`. `wrapRule()` has two overloads — one for plain `WardenRule` (single-file analysis) and one for `ProjectAwareWardenRule` (single-file analysis with cross-file context such as `knownTrailIds`). Topo-aware rules that inspect the resolved graph rather than source files are wrapped separately via `wrapTopoRule()`.
 
-**Input** is `{ filePath: string, sourceCode: string }` for basic rules, extended with `knownTrailIds` (and optionally `detourTargetTrailIds`) for project-aware rules that need cross-file context.
+**Input** is `{ filePath: string, sourceCode: string }` for file-scoped rules, extended with project context such as `knownTrailIds` or `detourTargetTrailIds` when a rule needs cross-file awareness. Topo-aware rules receive `{ topo: Topo }`.
 
 **Output** is `{ diagnostics: Diagnostic[] }` where each diagnostic carries `filePath`, `line`, `message`, `rule`, and `severity`.
 
@@ -34,9 +34,9 @@ Each warden rule is wrapped via `wrapRule()` into a trail with ID `warden.rule.<
 
 Rules have examples showing both clean code (empty diagnostics array) and violations (expected diagnostics with specific messages and line numbers). This means every rule's behavior is documented in the contract itself, not in separate test files or prose.
 
-All 11 rules are collected into `wardenTopo` via `topo('warden', rules)` and dispatched at runtime via `run()`. Running the warden is just iterating the topo and dispatching each trail with the file's source code as input.
+The built-in wrappers are collected into `wardenTopo`, but dispatch now follows the runtime shape instead of pretending every rule is file-scoped. `runWardenTrails(filePath, sourceCode, options?)` iterates only the file-scoped wrappers. `runTopoAwareWardenTrails(topo)` dispatches topo-aware wrappers once per resolved graph. `runWarden()` composes both paths, running file-scoped analysis across the requested sources and then adding topo-aware diagnostics when invoked with a resolved `Topo`.
 
-This is dogfooding. The governance system uses the same contract model it enforces. Rules get schemas, examples, and testing for free — `testAll(wardenTopo)` validates every rule's examples in a single call.
+This is dogfooding. The governance system uses the same contract model it enforces. Rules get schemas, examples, and testing for free — `testAll(wardenTopo)` validates the built-in rule trails in a single call, even as the registries evolve.
 
 ### Part 2: AST-based analysis
 
@@ -53,23 +53,15 @@ The warden provides lightweight helpers over the raw AST:
 
 One critical addition: `walkScope()`. Standard `walk()` descends into everything, including nested function expressions inside `.map()`, `.filter()`, and other callbacks. `walkScope()` stops at function boundaries. This prevents false positives — a `throw` inside a callback passed to an external library is not a `throw` in the implementation body. Rules that need finer-grained behavior (for example hoisted `var` handling or assignment tracking) layer their own specialized walkers on top of this baseline helper.
 
-### The 11 rules
+### Representative rule families
 
-| Rule | Severity | Kind | What it checks |
-|---|---|---|---|
-| `no-throw-in-implementation` | error | basic | No `throw` statements inside `blaze:` bodies |
-| `implementation-returns-result` | error | basic | `blaze:` bodies return `Result.ok()` or `Result.err()`, not raw values |
-| `context-no-surface-types` | error | basic | No imports of `Request`, `Response`, `McpSession`, etc. in trail files |
-| `cross-declarations` | error | basic | `ctx.cross()` calls match the declared `crosses` array |
-| `no-sync-result-assumption` | error | basic | `.blaze()` results are awaited, not treated as synchronous |
-| `no-direct-implementation-call` | warn | basic | Application code uses `ctx.cross()`, not direct `.blaze()` calls |
-| `no-direct-impl-in-route` | warn | basic | Trail bodies with `crosses` prefer `ctx.cross()` over `.blaze()` |
-| `prefer-schema-inference` | warn | basic | `fields` overrides don't restate what `deriveFields()` already infers |
-| `valid-describe-refs` | warn | project | `@see` tags in `.describe()` strings reference defined trail IDs |
-| `valid-detour-refs` | error | project | Detour target trail IDs reference defined trails |
-| `no-throw-in-detour-target` | error | project | No `throw` in implementations referenced as detour recovery targets |
+This ADR decides the execution model, not a fixed count of built-in rules. The concrete registry has grown since adoption and continues to evolve. The stable split is:
 
-Basic rules analyze a single file. Project-aware rules receive a `ProjectContext` with `knownTrailIds` (and optionally `detourTargetTrailIds`) so they can validate cross-file references.
+- **File-scoped AST rules** like `no-throw-in-implementation`, `implementation-returns-result`, `cross-declarations`, and `resource-declarations`
+- **Project-aware source rules** that still run per file but consume derived project context, such as `valid-describe-refs`, `valid-detour-refs`, `reference-exists`, and `incomplete-crud`
+- **Topo-aware rules** that inspect the resolved graph once per topo, such as `incomplete-accessor-for-standard-op`
+
+The current source of truth for the built-in registries is `packages/warden/src/rules/index.ts`.
 
 ## Consequences
 
@@ -77,7 +69,7 @@ Basic rules analyze a single file. Project-aware rules receive a `ProjectContext
 
 - **Rules get the full trail contract for free.** Schemas validate inputs. Examples document behavior. `testAll()` covers every rule's happy and sad paths. No separate test harness needed.
 - **AST analysis is scope-aware.** `walkScope()` eliminates the false positives that plagued regex matching. A `throw` inside a `.map()` callback no longer triggers `no-throw-in-implementation`.
-- **New rules follow a consistent pattern.** Write a `WardenRule`, wrap it with `wrapRule()`, add examples, drop it in the topo. The warden discovers and runs it automatically.
+- **New rules follow a consistent pattern.** Write a `WardenRule`, `ProjectAwareWardenRule`, or `TopoAwareWardenRule`, wrap it with the matching helper (`wrapRule()` for the first two, `wrapTopoRule()` for the last), add examples, and drop it into the correct registry. The warden discovers and runs it automatically.
 - **The governance system is its own proof.** If `wardenTopo` passes `testAll()`, the warden's own code satisfies the patterns it enforces.
 
 ### Tradeoffs
@@ -100,5 +92,6 @@ Basic rules analyze a single file. Project-aware rules receive a `ProjectContext
 ### Amendment log
 
 - 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — `context-no-trailhead-types` → `context-no-surface-types`.
+- 2026-04-22: Refreshed the execution model to distinguish file-scoped and topo-aware rule dispatch.
 
 [^oxc]: [oxc-parser](https://oxc.rs/) — Rust-compiled JavaScript/TypeScript toolchain with native bindings and WASM fallback

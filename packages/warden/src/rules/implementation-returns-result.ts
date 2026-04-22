@@ -8,57 +8,32 @@
 
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
+import type { AstNode } from './ast.js';
 import {
+  collectScopeFrameBindings,
   findBlazeBodies,
   findTrailDefinitions,
+  getMemberExpression,
+  identifierName,
   offsetToLine,
   parse,
   walk,
+  walkWithScopes,
 } from './ast.js';
 import { isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 // ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface AstNode {
-  readonly type: string;
-  readonly start: number;
-  readonly end: number;
-  readonly [key: string]: unknown;
-}
-
-// ---------------------------------------------------------------------------
 // Member expression helpers
 // ---------------------------------------------------------------------------
 
-/** Extract object.property names from a MemberExpression callee. */
-const extractMemberNames = (
-  callee: AstNode
-): { objName: string | undefined; propName: string | undefined } => {
-  const obj = (callee as unknown as { object?: AstNode }).object;
-  const prop = (callee as unknown as { property?: AstNode }).property;
-  const objName =
-    obj?.type === 'Identifier'
-      ? (obj as unknown as { name: string }).name
-      : undefined;
-  const propName =
-    prop?.type === 'Identifier'
-      ? (prop as unknown as { name: string }).name
-      : undefined;
-  return { objName, propName };
-};
-
-const isMemberExpression = (callee: AstNode): boolean =>
-  callee.type === 'StaticMemberExpression' ||
-  callee.type === 'MemberExpression';
-
 const isResultMemberCall = (callee: AstNode): boolean => {
-  if (!isMemberExpression(callee)) {
+  const member = getMemberExpression(callee);
+  if (!member) {
     return false;
   }
-  const { objName, propName } = extractMemberNames(callee);
+  const objName = identifierName(member.object) ?? undefined;
+  const propName = identifierName(member.property) ?? undefined;
   if (objName === 'Result' && (propName === 'ok' || propName === 'err')) {
     return true;
   }
@@ -108,18 +83,18 @@ const isNamespaceHelperMemberCall = (
   namespaceHelpers: NamespaceHelperMap,
   scopes: readonly ReadonlySet<string>[] = []
 ): boolean => {
-  if (!isMemberExpression(callee)) {
+  const member = getMemberExpression(callee);
+  if (!member) {
     return false;
   }
-  const { objName, propName } = extractMemberNames(callee);
+  const objName = identifierName(member.object) ?? undefined;
+  const propName = identifierName(member.property) ?? undefined;
   if (!(objName && propName)) {
     return false;
   }
-  for (const scope of scopes) {
-    if (scope.has(objName)) {
-      // Nearest binding is a local, not the namespace import.
-      return false;
-    }
+  // Nearest binding is a local, not the namespace import.
+  if (scopes.some((scope) => scope.has(objName))) {
+    return false;
   }
   return namespaceHelpers.get(objName)?.has(propName) ?? false;
 };
@@ -201,381 +176,6 @@ const trackResultVariable = (node: AstNode, resultVars: Set<string>): void => {
 };
 
 // ---------------------------------------------------------------------------
-// Shallow walk (stops at nested function boundaries)
-// ---------------------------------------------------------------------------
-
-const FUNCTION_BOUNDARY_TYPES = new Set([
-  'ArrowFunctionExpression',
-  'FunctionExpression',
-  'FunctionDeclaration',
-]);
-
-/** Check if a value is a function-boundary AST node that should not be recursed into. */
-const isFunctionBoundary = (val: unknown): boolean =>
-  !!val &&
-  typeof val === 'object' &&
-  FUNCTION_BOUNDARY_TYPES.has((val as AstNode).type);
-
-// ---------------------------------------------------------------------------
-// Scope tracking (namespace-shadowing awareness)
-// ---------------------------------------------------------------------------
-
-/**
- * Per-pattern-type expanders yielding the nested binding nodes to keep
- * visiting. Identifier is the base case; all other patterns bottom out at
- * Identifier nodes through one or more expansion steps.
- */
-const expandObjectPatternProperty = (prop: AstNode): readonly AstNode[] => {
-  if (prop.type === 'Property') {
-    const { value } = prop as unknown as { value?: AstNode };
-    return value ? [value] : [];
-  }
-  if (prop.type === 'RestElement') {
-    const { argument } = prop as unknown as { argument?: AstNode };
-    return argument ? [argument] : [];
-  }
-  return [];
-};
-
-const PATTERN_EXPANDERS: Record<string, (node: AstNode) => readonly AstNode[]> =
-  {
-    ArrayPattern: (node) => {
-      const elements =
-        (node as unknown as { elements?: readonly (AstNode | null)[] })
-          .elements ?? [];
-      return elements.filter((el): el is AstNode => el !== null);
-    },
-    AssignmentPattern: (node) => {
-      const { left } = node as unknown as { left?: AstNode };
-      return left ? [left] : [];
-    },
-    ObjectPattern: (node) => {
-      const properties =
-        (node as unknown as { properties?: readonly AstNode[] }).properties ??
-        [];
-      return properties.flatMap(expandObjectPatternProperty);
-    },
-    RestElement: (node) => {
-      const { argument } = node as unknown as { argument?: AstNode };
-      return argument ? [argument] : [];
-    },
-  };
-
-/**
- * Collect identifier names introduced by a binding pattern (parameter,
- * `const`/`let`/`var` declarator target, etc.). Iterative worklist over
- * {@link PATTERN_EXPANDERS}: each expander yields one level of child
- * patterns and the loop bottoms out at `Identifier` nodes.
- */
-const visitPatternNode = (
-  current: AstNode,
-  into: Set<string>,
-  worklist: AstNode[]
-): void => {
-  if (current.type === 'Identifier') {
-    const { name } = current as unknown as { name?: string };
-    if (name) {
-      into.add(name);
-    }
-    return;
-  }
-  const expand = PATTERN_EXPANDERS[current.type];
-  if (expand) {
-    worklist.push(...expand(current));
-  }
-};
-
-const collectPatternNames = (
-  pattern: AstNode | undefined,
-  into: Set<string>
-): void => {
-  if (!pattern) {
-    return;
-  }
-  const worklist: AstNode[] = [pattern];
-  while (worklist.length > 0) {
-    const current = worklist.pop();
-    if (current) {
-      visitPatternNode(current, into, worklist);
-    }
-  }
-};
-
-const addVariableDeclarationNames = (
-  stmt: AstNode,
-  into: Set<string>
-): void => {
-  const declarations =
-    (stmt as unknown as { declarations?: readonly AstNode[] }).declarations ??
-    [];
-  for (const decl of declarations) {
-    collectPatternNames((decl as unknown as { id?: AstNode }).id, into);
-  }
-};
-
-const addFunctionDeclarationName = (stmt: AstNode, into: Set<string>): void => {
-  const { id } = stmt as unknown as { id?: AstNode };
-  if (id?.type !== 'Identifier') {
-    return;
-  }
-  const { name } = id as unknown as { name?: string };
-  if (name) {
-    into.add(name);
-  }
-};
-
-/** Collect the declared identifier names that a BlockStatement introduces. */
-const collectBlockBindingNames = (block: AstNode): ReadonlySet<string> => {
-  const names = new Set<string>();
-  const body = (block as unknown as { body?: readonly AstNode[] }).body ?? [];
-  for (const stmt of body) {
-    if (stmt.type === 'VariableDeclaration') {
-      addVariableDeclarationNames(stmt, names);
-    } else if (stmt.type === 'FunctionDeclaration') {
-      addFunctionDeclarationName(stmt, names);
-    }
-  }
-  return names;
-};
-
-/**
- * Collect bindings introduced by a `for (init; ...; ...)` statement's init
- * clause. Only `VariableDeclaration` inits introduce new bindings; identifier
- * or expression inits reference existing ones.
- */
-const collectForStatementBindingNames = (
-  node: AstNode
-): ReadonlySet<string> => {
-  const names = new Set<string>();
-  const { init } = node as unknown as { init?: AstNode };
-  if (init && init.type === 'VariableDeclaration') {
-    addVariableDeclarationNames(init, names);
-  }
-  return names;
-};
-
-/**
- * Collect bindings introduced by a `for (left of right)` / `for (left in right)`
- * statement's left-hand side. Only `VariableDeclaration` lefts introduce new
- * bindings.
- */
-const collectForInOfBindingNames = (node: AstNode): ReadonlySet<string> => {
-  const names = new Set<string>();
-  const { left } = node as unknown as { left?: AstNode };
-  if (left && left.type === 'VariableDeclaration') {
-    addVariableDeclarationNames(left, names);
-  }
-  return names;
-};
-
-/**
- * Collect the binding introduced by a `catch (param)` clause. The param may be
- * an identifier or a destructuring pattern; `catch {}` (no param) contributes
- * nothing.
- */
-const collectCatchClauseBindingNames = (node: AstNode): ReadonlySet<string> => {
-  const names = new Set<string>();
-  const { param } = node as unknown as { param?: AstNode };
-  collectPatternNames(param, names);
-  return names;
-};
-
-/**
- * Collect bindings introduced by any `consequent` statement of any `case`
- * inside a `SwitchStatement`. JavaScript `switch` bodies share a single
- * lexical scope across all cases — a `const ns = ...` declared in one case is
- * visible in every other case via fall-through or direct reference. A
- * per-`SwitchCase` frame would pop the binding when the case ended, missing
- * the shadow from sibling cases.
- *
- * Braced cases (`case 'a': { const ns = ...; ... }`) still get their own
- * `BlockStatement` frame nested inside this one, as before.
- */
-const collectSwitchStatementBindingNames = (
-  node: AstNode
-): ReadonlySet<string> => {
-  const names = new Set<string>();
-  const cases = (node as unknown as { cases?: readonly AstNode[] }).cases ?? [];
-  for (const switchCase of cases) {
-    const consequent =
-      (switchCase as unknown as { consequent?: readonly AstNode[] })
-        .consequent ?? [];
-    for (const stmt of consequent) {
-      if (stmt.type === 'VariableDeclaration') {
-        addVariableDeclarationNames(stmt, names);
-      } else if (stmt.type === 'FunctionDeclaration') {
-        addFunctionDeclarationName(stmt, names);
-      }
-    }
-  }
-  return names;
-};
-
-const SCOPE_FRAME_COLLECTORS: Record<
-  string,
-  (node: AstNode) => ReadonlySet<string>
-> = {
-  // This rule analyzes trail blaze implementations, so "blaze body" is
-  // intentional lexicon here. The parallel comment in ast.ts stays generic.
-  // `FunctionBody` is the oxc-parser shape for the body of a regular
-  // `function expression() { ... }`. Arrow functions use `BlockStatement`.
-  // Without this entry, a `const ns = ...` at the top of a function-expression
-  // blaze body would not push a scope frame, and a module-level namespace
-  // import with the same name would be incorrectly recognized inside.
-  BlockStatement: collectBlockBindingNames,
-  CatchClause: collectCatchClauseBindingNames,
-  ForInStatement: collectForInOfBindingNames,
-  ForOfStatement: collectForInOfBindingNames,
-  ForStatement: collectForStatementBindingNames,
-  FunctionBody: collectBlockBindingNames,
-  SwitchStatement: collectSwitchStatementBindingNames,
-};
-
-const FUNCTION_VAR_ENV_TYPES = new Set([
-  'ArrowFunctionExpression',
-  'FunctionDeclaration',
-  'FunctionExpression',
-  'StaticBlock',
-]);
-
-const isVarDeclarationNode = (node: AstNode): boolean =>
-  node.type === 'VariableDeclaration' &&
-  (node as unknown as { kind?: string }).kind === 'var';
-
-/**
- * Collect `var` declarations that hoist to the nearest function scope from
- * anywhere inside `root`, without crossing a nested function or static-block
- * boundary. Mirrors the hoisting rule used by
- * `./no-sync-result-assumption.ts`.
- *
- * Used to seed a blaze's implParams with function-body `var`s so a pattern
- * like `if (cond) { var ns = local; } return ns.helper();` correctly sees
- * `ns` as a shadow of any module-level namespace import.
- */
-const collectHoistedVarNamesInto = (root: AstNode, out: Set<string>): void => {
-  const walkVars = (node: AstNode, isRoot: boolean): void => {
-    if (!isRoot && FUNCTION_VAR_ENV_TYPES.has(node.type)) {
-      return;
-    }
-    if (isVarDeclarationNode(node)) {
-      addVariableDeclarationNames(node, out);
-    }
-    for (const val of Object.values(node)) {
-      if (Array.isArray(val)) {
-        for (const item of val) {
-          if (item && typeof item === 'object' && (item as AstNode).type) {
-            walkVars(item as AstNode, false);
-          }
-        }
-      } else if (val && typeof val === 'object' && (val as AstNode).type) {
-        walkVars(val as AstNode, false);
-      }
-    }
-  };
-  walkVars(root, true);
-};
-
-/**
- * Collect parameter names from a function-like node, including `var`
- * declarations hoisted from anywhere in the function body. The hoisted vars
- * seed the scope stack so shadowing detection works for patterns like
- * `if (cond) { var ns = local; } return ns.helper();`.
- */
-const collectFunctionParamNames = (fn: AstNode): ReadonlySet<string> => {
-  const names = new Set<string>();
-  const params =
-    (fn as unknown as { params?: readonly AstNode[] }).params ?? [];
-  for (const param of params) {
-    collectPatternNames(param, names);
-  }
-  const { body } = fn as unknown as { body?: AstNode };
-  if (body && typeof body === 'object' && (body as AstNode).type) {
-    collectHoistedVarNamesInto(body as AstNode, names);
-  }
-  return names;
-};
-
-type ScopeVisitor = (
-  node: AstNode,
-  scopes: readonly ReadonlySet<string>[]
-) => void;
-
-/** Recurse into a single AST property value, skipping function boundaries. */
-const recurseIntoChildValue = (
-  val: unknown,
-  scopes: ReadonlySet<string>[],
-  visit: ScopeVisitor
-): void => {
-  if (Array.isArray(val)) {
-    for (const item of val) {
-      if (!isFunctionBoundary(item)) {
-        // eslint-disable-next-line no-use-before-define
-        walkShallowWithScopes(item, scopes, visit);
-      }
-    }
-    return;
-  }
-  if (
-    val &&
-    typeof val === 'object' &&
-    (val as AstNode).type &&
-    !isFunctionBoundary(val)
-  ) {
-    // eslint-disable-next-line no-use-before-define
-    walkShallowWithScopes(val, scopes, visit);
-  }
-};
-
-/**
- * Shallow walker that threads a scope-frame stack through the traversal so
- * visitors can resolve identifier shadowing. Stops at nested function
- * boundaries (their returns are not implementation-level).
- *
- * The stack is ordered inner-to-outer (index 0 = innermost) so callers can
- * iterate forwards and bail on the first declaring scope.
- */
-const visitNodeWithScopes = (
-  n: AstNode,
-  scopes: ReadonlySet<string>[],
-  visit: ScopeVisitor
-): void => {
-  visit(n, scopes);
-  for (const val of Object.values(n)) {
-    recurseIntoChildValue(val, scopes, visit);
-  }
-};
-
-const asAstNode = (node: unknown): AstNode | null => {
-  if (!node || typeof node !== 'object') {
-    return null;
-  }
-  const n = node as AstNode;
-  return n.type ? n : null;
-};
-
-const walkShallowWithScopes = (
-  node: unknown,
-  scopes: ReadonlySet<string>[],
-  visit: ScopeVisitor
-): void => {
-  const n = asAstNode(node);
-  if (!n) {
-    return;
-  }
-  const collector = SCOPE_FRAME_COLLECTORS[n.type];
-  if (collector) {
-    scopes.unshift(collector(n));
-  }
-  try {
-    visitNodeWithScopes(n, scopes, visit);
-  } finally {
-    if (collector) {
-      scopes.shift();
-    }
-  }
-};
-
-// ---------------------------------------------------------------------------
 // Return statement checking
 // ---------------------------------------------------------------------------
 
@@ -588,48 +188,50 @@ const checkReturnStatements = (
   helperNames: ReadonlySet<string>,
   namespaceHelpers: NamespaceHelperMap,
   diagnostics: WardenDiagnostic[],
-  implParams: ReadonlySet<string> = new Set<string>()
+  implScope: ReadonlySet<string> = new Set<string>()
 ): void => {
   const resultVars = new Set<string>();
-  // Seed the stack with the blaze's own parameter names so a parameter that
-  // shadows a namespace import is visible to every nested block-scope visit.
-  const scopes: ReadonlySet<string>[] = implParams.size > 0 ? [implParams] : [];
+  const initialScopes = implScope.size > 0 ? [implScope] : [];
 
-  walkShallowWithScopes(blockBody, scopes, (node, currentScopes) => {
-    if (node.type === 'VariableDeclarator') {
-      trackResultVariable(node, resultVars);
-    }
+  walkWithScopes(
+    blockBody,
+    (node, currentScopes) => {
+      if (node.type === 'VariableDeclarator') {
+        trackResultVariable(node, resultVars);
+      }
 
-    if (node.type !== 'ReturnStatement') {
-      return;
-    }
+      if (node.type !== 'ReturnStatement') {
+        return;
+      }
 
-    const { argument } = node as unknown as { argument?: AstNode };
-    // Bare return — not a value return
-    if (!argument) {
-      return;
-    }
+      const { argument } = node as unknown as { argument?: AstNode };
+      // Bare return — not a value return
+      if (!argument) {
+        return;
+      }
 
-    if (
-      isAllowedReturnArgument(
-        argument,
-        helperNames,
-        resultVars,
-        namespaceHelpers,
-        currentScopes
-      )
-    ) {
-      return;
-    }
+      if (
+        isAllowedReturnArgument(
+          argument,
+          helperNames,
+          resultVars,
+          namespaceHelpers,
+          currentScopes
+        )
+      ) {
+        return;
+      }
 
-    diagnostics.push({
-      filePath,
-      line: offsetToLine(sourceCode, node.start),
-      message: `${trailInfo.label} "${trailInfo.id}" implementation must return Result.ok(...) or Result.err(...), not a raw value.`,
-      rule: 'implementation-returns-result',
-      severity: 'error',
-    });
-  });
+      diagnostics.push({
+        filePath,
+        line: offsetToLine(sourceCode, node.start),
+        message: `${trailInfo.label} "${trailInfo.id}" implementation must return Result.ok(...) or Result.err(...), not a raw value.`,
+        rule: 'implementation-returns-result',
+        severity: 'error',
+      });
+    },
+    { initialScopes, stopAtNestedFunctions: true }
+  );
 };
 
 // ---------------------------------------------------------------------------
@@ -1630,9 +1232,9 @@ const checkImplementation = (
     return;
   }
 
-  // Blaze parameter names seed the scope stack so shadowing is respected by
-  // both block-body and concise-body checks.
-  const implParams = collectFunctionParamNames(implValue);
+  // Seed analysis with the implementation's own bindings so parameter names
+  // and hoisted vars shadow namespace imports in both block and concise bodies.
+  const implScope = collectScopeFrameBindings(implValue);
 
   if (fnBody.type === 'BlockStatement' || fnBody.type === 'FunctionBody') {
     checkReturnStatements(
@@ -1643,13 +1245,13 @@ const checkImplementation = (
       helperNames,
       namespaceHelpers,
       diagnostics,
-      implParams
+      implScope
     );
     return;
   }
 
   const conciseScopes: readonly ReadonlySet<string>[] =
-    implParams.size > 0 ? [implParams] : [];
+    implScope.size > 0 ? [implScope] : [];
   if (
     !isResultExpression(fnBody) &&
     !isHelperCall(fnBody, helperNames, namespaceHelpers, conciseScopes)

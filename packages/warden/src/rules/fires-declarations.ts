@@ -416,10 +416,12 @@ const buildCtxNames = (body: AstNode): ReadonlySet<string> => {
  * }
  * ```
  *
- * Tradeoff: legitimate `ctx.fire(...)` calls inside nested helpers are not
- * statically analyzed. The runtime + signal-id cross-check still validate
- * them; the warden just can't prove them at lint time. A full scope walker is
- * a follow-up if this precision loss becomes meaningful in practice.
+ * Tradeoff: legitimate helper-scoped fire calls are not statically analyzed
+ * today. This includes both direct `ctx.fire(...)` inside a nested helper and
+ * helper-local destructures like `const { fire } = ctx` inside that helper.
+ * The runtime + signal-id cross-check still validate them; the warden just
+ * can't prove them at lint time. A fuller helper-aware scope walker remains
+ * follow-up work if this precision loss becomes meaningful in practice.
  */
 const extractCalledFires = (config: AstNode): ReadonlySet<string> => {
   const ids = new Set<string>();

@@ -85,7 +85,7 @@ const gist = contour('gist', {
     ).toEqual([]);
   });
 
-  test('flags a missing namespaced inline contour reference target', () => {
+  test('keeps namespaced inline contour definitions when project context is present', () => {
     const code = `
 import * as core from '@ontrails/core';
 import { z } from 'zod';
@@ -93,6 +93,26 @@ import { z } from 'zod';
 const gist = core.contour('gist', {
   id: z.string().uuid(),
   ownerId: core.contour('user', { id: z.string().uuid() }).id(),
+}, { identity: 'id' });
+`;
+
+    expect(
+      referenceExists.checkWithContext(code, TEST_FILE, {
+        knownContourIds: new Set(['gist']),
+        knownTrailIds: new Set<string>(),
+      })
+    ).toEqual([]);
+  });
+
+  test('flags a missing wrapped contour reference target', () => {
+    const code = `
+import { contour } from '@ontrails/core';
+import { z } from 'zod';
+import { user } from './user';
+
+const gist = contour('gist', {
+  id: z.string().uuid(),
+  ownerId: user.id().nullish(),
 }, { identity: 'id' });
 `;
 
@@ -104,5 +124,28 @@ const gist = core.contour('gist', {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.rule).toBe('reference-exists');
     expect(diagnostics[0]?.message).toContain('user');
+  });
+
+  test('keeps local contour definitions when project context is present', () => {
+    const code = `
+import { contour } from '@ontrails/core';
+import { z } from 'zod';
+
+const user = contour('user', {
+  id: z.string().uuid(),
+}, { identity: 'id' });
+
+const gist = contour('gist', {
+  id: z.string().uuid(),
+  ownerId: user.id(),
+}, { identity: 'id' });
+`;
+
+    expect(
+      referenceExists.checkWithContext(code, TEST_FILE, {
+        knownContourIds: new Set(['gist']),
+        knownTrailIds: new Set<string>(),
+      })
+    ).toEqual([]);
   });
 });

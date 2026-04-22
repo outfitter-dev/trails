@@ -81,4 +81,27 @@ trail('user.create', {
       })
     ).toEqual([]);
   });
+
+  test('keeps local contour declarations when project context is present', () => {
+    const code = `
+import { Result, contour, trail } from '@ontrails/core';
+import { z } from 'zod';
+
+const user = contour('user', {
+  id: z.string().uuid(),
+}, { identity: 'id' });
+
+trail('user.create', {
+  contours: [user],
+  blaze: async () => Result.ok({ ok: true }),
+});
+`;
+
+    expect(
+      contourExists.checkWithContext(code, TEST_FILE, {
+        knownContourIds: new Set<string>(),
+        knownTrailIds: new Set(['user.create']),
+      })
+    ).toEqual([]);
+  });
 });
