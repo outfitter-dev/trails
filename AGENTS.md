@@ -143,6 +143,8 @@ To exit pre-release mode for a stable release: `bunx changeset pre exit`, then v
 - Follow TDD when the work is substantial: red, green, refactor.
 - Trail examples are the happy-path tests. Add focused tests for edge cases, error paths, and integrations when examples are not enough.
 
+Each package's main `tsconfig.json` excludes test files so build output stays clean. A sibling `tsconfig.tests.json` includes them so editors' LSP can resolve tests (e.g. `Array.prototype.toSorted`). Neither affects the `tsc --noEmit` CI gate, which still uses the main config.
+
 ## Reference Docs
 
 - `docs/getting-started.md`
