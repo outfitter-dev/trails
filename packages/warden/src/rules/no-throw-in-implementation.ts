@@ -1,11 +1,13 @@
 /**
  * Finds `throw` statements inside `blaze:` function bodies.
  *
- * Uses AST parsing for accurate detection — no false positives from
- * throw in comments, strings, or nested non-implementation functions.
+ * Uses scope-aware AST walking so throws inside nested callbacks
+ * (e.g. `.map()`, `.filter()`, inner helpers) are not attributed to
+ * the blaze body itself. ADR-0007 requires this class of false positive
+ * to be avoided — only throws in the blaze body scope should be flagged.
  */
 
-import { findBlazeBodies, offsetToLine, parse, walk } from './ast.js';
+import { findBlazeBodies, offsetToLine, parse, walkScope } from './ast.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 export const noThrowInImplementation: WardenRule = {
@@ -18,7 +20,7 @@ export const noThrowInImplementation: WardenRule = {
     const diagnostics: WardenDiagnostic[] = [];
 
     for (const body of findBlazeBodies(ast)) {
-      walk(body, (node) => {
+      walkScope(body, (node) => {
         if (node.type === 'ThrowStatement') {
           diagnostics.push({
             filePath,
