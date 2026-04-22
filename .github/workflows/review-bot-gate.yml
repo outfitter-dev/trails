@@ -1,8 +1,47 @@
+# Review Bot Gate
+#
+# Enforces that Greptile, Codex, and Devin have all posted on the current PR
+# revision (or been explicitly waived via `review-bot-na:` comment) before a
+# queue label (`queue:merge`, `queue:priority`, `queue:hotfix`) is allowed to
+# stick. If a required artifact is missing, the gate removes any queue labels
+# and fails the check.
+#
+# This workflow is intended to be a required check in main-branch protection.
+# Branch protection is not configured from code — repo maintainers must add
+# `Review Bot Gate / Review Bot Gate` to the required status checks list so
+# GitHub mergeability actually hinges on this gate rather than on advisory
+# label removal alone.
+#
+# Triggers cover label, code-push, and artifact events so the gate is reactive
+# to late-arriving bot reviews and waiver comments:
+#   - `pull_request` (labeled, reopened, synchronize, ready_for_review) picks
+#     up PR lifecycle changes and label additions.
+#   - `issue_comment` (created, edited) picks up late waiver and bot comments.
+#   - `pull_request_review` (submitted, edited, dismissed) picks up late bot
+#     reviews and state changes.
+#
+# Manual test scenarios (no unit tests — this is the regression checklist):
+#   1. Apply a queue label before all bots have posted -> gate removes the
+#      label. Then have the missing bot post on the current revision -> the
+#      `issue_comment` or `pull_request_review` trigger re-runs the gate and
+#      label re-application is allowed.
+#   2. Apply a queue label before all bots have posted -> gate removes the
+#      label. Then a repo member posts `review-bot-na: <bot>` -> the
+#      `issue_comment` trigger re-runs the gate and label re-application is
+#      allowed.
+#   3. Greptile posts an error comment ("Greptile encountered an error while
+#      reviewing this PR") on the current revision -> gate blocks queue entry
+#      even if the other bots are satisfied.
+
 name: Review Bot Gate
 
 on:
   pull_request:
     types: [labeled, reopened, synchronize, ready_for_review]
+  issue_comment:
+    types: [created, edited]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
 
 permissions:
   contents: read
@@ -54,9 +93,26 @@ jobs:
             const waiverPattern =
               /review-bot-na:\s*([a-z]+(?:\s*,\s*[a-z]+)*)/gi;
 
-            const pullRequest = context.payload.pull_request;
+            // Event-shape adapter. `pull_request` and `pull_request_review`
+            // events ship the full PR object on the payload. `issue_comment`
+            // events only attach an `issue` (with a `pull_request` marker if
+            // the comment is on a PR) — we have to fetch the PR to get the
+            // same shape (labels, head ref, number). One extra REST call per
+            // PR comment is acceptable given the artifact-trigger frequency;
+            // the subsequent GraphQL pagination dominates the rate-limit
+            // footprint either way.
+            let pullRequest = context.payload.pull_request ?? null;
+            if (!pullRequest && context.payload.issue?.pull_request) {
+              const { data } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.issue.number,
+              });
+              pullRequest = data;
+            }
+
             if (!pullRequest) {
-              core.info('No pull request payload present.');
+              core.info('Not a pull request event; skipping.');
               return;
             }
 
