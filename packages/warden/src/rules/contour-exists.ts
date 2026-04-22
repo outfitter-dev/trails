@@ -2,6 +2,7 @@ import {
   collectContourDefinitionIds,
   collectImportAliasMap,
   collectNamedContourIds,
+  collectUserNamespaceImportBindings,
   extractFirstStringArg,
   findConfigProperty,
   findTrailDefinitions,
@@ -41,11 +42,36 @@ const getContourElements = (config: AstNode): readonly AstNode[] => {
   return elements ?? [];
 };
 
+const resolveNamespaceMemberContourName = (
+  element: AstNode,
+  userNamespaceBindings: ReadonlySet<string>
+): string | null => {
+  if (
+    element.type !== 'MemberExpression' &&
+    element.type !== 'StaticMemberExpression'
+  ) {
+    return null;
+  }
+  if ((element as unknown as { computed?: boolean }).computed === true) {
+    return null;
+  }
+  const { object, property } = element as unknown as {
+    readonly object?: AstNode;
+    readonly property?: AstNode;
+  };
+  const receiver = object ? identifierName(object) : null;
+  if (!receiver || !userNamespaceBindings.has(receiver)) {
+    return null;
+  }
+  return property ? identifierName(property) : null;
+};
+
 const resolveDeclaredContourName = (
   element: AstNode,
   contourIdsByName: ReadonlyMap<string, string>,
   knownContourIds?: ReadonlySet<string>,
-  importAliases?: ReadonlyMap<string, string>
+  importAliases?: ReadonlyMap<string, string>,
+  userNamespaceBindings?: ReadonlySet<string>
 ): string | null => {
   if (element.type === 'Identifier') {
     const name = identifierName(element);
@@ -59,6 +85,16 @@ const resolveDeclaredContourName = (
       : null;
   }
 
+  if (userNamespaceBindings && userNamespaceBindings.size > 0) {
+    const namespaceTarget = resolveNamespaceMemberContourName(
+      element,
+      userNamespaceBindings
+    );
+    if (namespaceTarget) {
+      return namespaceTarget;
+    }
+  }
+
   return isContourCall(element) ? extractFirstStringArg(element) : null;
 };
 
@@ -66,7 +102,8 @@ const extractDeclaredContourNames = (
   config: AstNode,
   contourIdsByName: ReadonlyMap<string, string>,
   knownContourIds?: ReadonlySet<string>,
-  importAliases?: ReadonlyMap<string, string>
+  importAliases?: ReadonlyMap<string, string>,
+  userNamespaceBindings?: ReadonlySet<string>
 ): readonly string[] => [
   ...new Set(
     getContourElements(config).flatMap((element) => {
@@ -74,7 +111,8 @@ const extractDeclaredContourNames = (
         element,
         contourIdsByName,
         knownContourIds,
-        importAliases
+        importAliases,
+        userNamespaceBindings
       );
       return contourName ? [contourName] : [];
     })
@@ -100,7 +138,8 @@ const buildDiagnosticsForDefinition = (
   filePath: string,
   knownContourIds: ReadonlySet<string>,
   contourIdsByName: ReadonlyMap<string, string>,
-  importAliases: ReadonlyMap<string, string>
+  importAliases: ReadonlyMap<string, string>,
+  userNamespaceBindings: ReadonlySet<string>
 ): readonly WardenDiagnostic[] => {
   if (definition.kind !== 'trail') {
     return [];
@@ -111,7 +150,8 @@ const buildDiagnosticsForDefinition = (
     definition.config,
     contourIdsByName,
     knownContourIds,
-    importAliases
+    importAliases,
+    userNamespaceBindings
   ).flatMap((contourName) =>
     knownContourIds.has(contourName)
       ? []
@@ -134,6 +174,7 @@ const buildContourDiagnostics = (
 ): readonly WardenDiagnostic[] => {
   const contourIdsByName = collectNamedContourIds(ast);
   const importAliases = collectImportAliasMap(ast);
+  const userNamespaceBindings = collectUserNamespaceImportBindings(ast);
 
   return findTrailDefinitions(ast).flatMap((definition) =>
     buildDiagnosticsForDefinition(
@@ -142,7 +183,8 @@ const buildContourDiagnostics = (
       filePath,
       knownContourIds,
       contourIdsByName,
-      importAliases
+      importAliases,
+      userNamespaceBindings
     )
   );
 };

@@ -1638,30 +1638,55 @@ export const collectNamedContourIds = (
   return ids;
 };
 
+const resolveNamedImportedName = (
+  specifier: AstNode,
+  localName: string
+): string => {
+  const { imported } = specifier as unknown as { imported?: AstNode };
+  const importedName = imported
+    ? (identifierName(imported) ?? extractStringLiteral(imported))
+    : null;
+  return importedName ?? localName;
+};
+
 const extractImportSpecifierAlias = (
   specifier: AstNode
 ): { readonly localName: string; readonly importedName: string } | null => {
-  if (specifier.type !== 'ImportSpecifier') {
+  if (
+    specifier.type !== 'ImportSpecifier' &&
+    specifier.type !== 'ImportDefaultSpecifier'
+  ) {
     return null;
   }
 
-  const { imported } = specifier as unknown as { imported?: AstNode };
   const { local } = specifier as unknown as { local?: AstNode };
   const localName = identifierName(local);
   if (!localName) {
     return null;
   }
 
-  const importedName = imported
-    ? (identifierName(imported) ?? extractStringLiteral(imported))
-    : null;
-  return { importedName: importedName ?? localName, localName };
+  // Default imports bind the default export of the source module to the local
+  // name. We cannot statically recover the exported name without cross-file
+  // analysis, so the local name is the best identifier we have for resolving
+  // against `knownContourIds`. Treat the alias as an identity mapping; the
+  // downstream resolver will fall through to `knownContourIds` on the binding
+  // name and report it as missing when not found.
+  if (specifier.type === 'ImportDefaultSpecifier') {
+    return { importedName: localName, localName };
+  }
+
+  return {
+    importedName: resolveNamedImportedName(specifier, localName),
+    localName,
+  };
 };
 
 /**
- * Collect `import { foo as bar } from '...'` specifier mappings keyed by
- * local binding name. The value is the original exported name. Bindings
- * without an alias map to themselves.
+ * Collect `import { foo as bar } from '...'` and `import bar from '...'`
+ * specifier mappings keyed by local binding name. The value is the original
+ * exported name for named imports. Default imports map to themselves because
+ * the exported name cannot be recovered statically — callers should fall
+ * through to `knownContourIds` membership on the local binding name.
  */
 export const collectImportAliasMap = (
   ast: AstNode
@@ -1684,6 +1709,55 @@ export const collectImportAliasMap = (
   });
 
   return aliases;
+};
+
+const addUserNamespaceBindingsFromDeclaration = (
+  node: AstNode,
+  into: Set<string>
+): void => {
+  if (isFrameworkNamespaceSource(getImportSourceValue(node))) {
+    return;
+  }
+  const specifiers =
+    (node['specifiers'] as readonly AstNode[] | undefined) ?? [];
+  for (const specifier of specifiers) {
+    if (specifier.type !== 'ImportNamespaceSpecifier') {
+      continue;
+    }
+    const { local } = specifier as unknown as { local?: AstNode };
+    const localName = identifierName(local);
+    if (localName) {
+      into.add(localName);
+    }
+  }
+};
+
+/**
+ * Collect local binding names introduced by `import * as <name> from '<src>'`
+ * declarations whose source is NOT an `@ontrails/*` framework package. These
+ * are user-defined namespace imports of contour modules (e.g. `import * as
+ * contours from './contours'`), used to resolve `contours.user` member-access
+ * references to contour ids.
+ *
+ * Framework namespace imports (`import * as core from '@ontrails/core'`) are
+ * intentionally excluded — they carry framework primitives like
+ * `core.contour(...)` and are resolved by {@link buildFrameworkNamespaceContext}.
+ * Mixing them here would treat `core.contour` as a reference to a contour
+ * named "contour", producing false positives.
+ */
+export const collectUserNamespaceImportBindings = (
+  ast: AstNode
+): ReadonlySet<string> => {
+  const bindings = new Set<string>();
+
+  walk(ast, (node) => {
+    if (node.type !== 'ImportDeclaration') {
+      return;
+    }
+    addUserNamespaceBindingsFromDeclaration(node, bindings);
+  });
+
+  return bindings;
 };
 
 export interface ContourReferenceSite {
@@ -1805,12 +1879,42 @@ const getContourReferenceMember = (
   };
 };
 
+/**
+ * Resolve a user-namespace member access like `contours.user` to its contour
+ * id. Returns the property name (e.g. `'user'`) when the receiver identifier
+ * is a known user-defined namespace binding, otherwise `null`.
+ *
+ * The property name is taken as the contour id verbatim — we cannot statically
+ * resolve what `contours.user` binds to without reading the other file, so we
+ * treat the member name as the candidate target and let
+ * {@link deriveContourIdentifierName}'s downstream `knownContourIds` check
+ * report a missing target.
+ */
+const getContourReferenceTargetFromNamespaceMember = (
+  member: { readonly object?: AstNode; readonly property?: AstNode },
+  userNamespaceBindings?: ReadonlySet<string>
+): string | null => {
+  if (!userNamespaceBindings || userNamespaceBindings.size === 0) {
+    return null;
+  }
+  const receiver = member.object ? identifierName(member.object) : null;
+  if (!receiver || !userNamespaceBindings.has(receiver)) {
+    return null;
+  }
+  const { property } = member;
+  if (!property || property.type !== 'Identifier') {
+    return null;
+  }
+  return identifierName(property);
+};
+
 const getContourReferenceTargetFromObject = (
   object: AstNode,
   namedContourIds: ReadonlyMap<string, string>,
   knownContourIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
-  context?: ReadonlySet<string> | FrameworkNamespaceContext
+  context?: ReadonlySet<string> | FrameworkNamespaceContext,
+  userNamespaceBindings?: ReadonlySet<string>
 ): string | null => {
   if (object.type === 'Identifier') {
     const bindingName = identifierName(object);
@@ -1822,6 +1926,17 @@ const getContourReferenceTargetFromObject = (
           importAliases
         )
       : null;
+  }
+
+  const member = getContourReferenceMember(object);
+  if (member) {
+    const namespaceTarget = getContourReferenceTargetFromNamespaceMember(
+      member,
+      userNamespaceBindings
+    );
+    if (namespaceTarget) {
+      return namespaceTarget;
+    }
   }
 
   return extractContourDefinition(object, context)?.name ?? null;
@@ -1877,7 +1992,8 @@ const extractContourReferenceTarget = (
   namedContourIds: ReadonlyMap<string, string>,
   knownContourIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
-  context?: ReadonlySet<string> | FrameworkNamespaceContext
+  context?: ReadonlySet<string> | FrameworkNamespaceContext,
+  userNamespaceBindings?: ReadonlySet<string>
 ): string | null => {
   const object = getContourIdCallObject(node);
   return object
@@ -1886,7 +2002,8 @@ const extractContourReferenceTarget = (
         namedContourIds,
         knownContourIds,
         importAliases,
-        context
+        context,
+        userNamespaceBindings
       )
     : null;
 };
@@ -1902,7 +2019,8 @@ const buildContourReferenceSite = (
   namedContourIds: ReadonlyMap<string, string>,
   knownContourIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
-  context?: ReadonlySet<string> | FrameworkNamespaceContext
+  context?: ReadonlySet<string> | FrameworkNamespaceContext,
+  userNamespaceBindings?: ReadonlySet<string>
 ): ContourReferenceSite | null => {
   if (property.type !== 'Property') {
     return null;
@@ -1914,7 +2032,8 @@ const buildContourReferenceSite = (
     namedContourIds,
     knownContourIds,
     importAliases,
-    context
+    context,
+    userNamespaceBindings
   );
   if (!field || !target) {
     return null;
@@ -1933,7 +2052,8 @@ const findContourReferenceSitesForDefinition = (
   namedContourIds: ReadonlyMap<string, string>,
   knownContourIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
-  context?: ReadonlySet<string> | FrameworkNamespaceContext
+  context?: ReadonlySet<string> | FrameworkNamespaceContext,
+  userNamespaceBindings?: ReadonlySet<string>
 ): readonly ContourReferenceSite[] =>
   getContourShapeProperties(definition).flatMap((property) => {
     const reference = buildContourReferenceSite(
@@ -1942,7 +2062,8 @@ const findContourReferenceSitesForDefinition = (
       namedContourIds,
       knownContourIds,
       importAliases,
-      context
+      context,
+      userNamespaceBindings
     );
     return reference ? [reference] : [];
   });
@@ -1954,6 +2075,7 @@ export const collectContourReferenceSites = (
 ): readonly ContourReferenceSite[] => {
   const namedContourIds = collectNamedContourIds(ast);
   const importAliases = collectImportAliasMap(ast);
+  const userNamespaceBindings = collectUserNamespaceImportBindings(ast);
   const context = buildFrameworkNamespaceContext(ast);
   return findContourDefinitions(ast, context).flatMap((definition) =>
     findContourReferenceSitesForDefinition(
@@ -1961,7 +2083,8 @@ export const collectContourReferenceSites = (
       namedContourIds,
       knownContourIds,
       importAliases,
-      context
+      context,
+      userNamespaceBindings
     )
   );
 };

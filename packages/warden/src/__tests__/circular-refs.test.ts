@@ -95,4 +95,27 @@ const gist = contour('gist', {
     expect(diagnostics[0]?.rule).toBe('circular-refs');
     expect(diagnostics[0]?.message).toContain('user -> gist -> user');
   });
+
+  test('warns on local cycles formed through namespace-imported references', () => {
+    const code = `
+import { contour } from '@ontrails/core';
+import * as contours from './contours';
+
+const user = contour('user', {
+  id: 'x',
+  gistId: contours.gist.id(),
+}, { identity: 'id' });
+
+const gist = contour('gist', {
+  id: 'x',
+  ownerId: contours.user.id(),
+}, { identity: 'id' });
+`;
+
+    const diagnostics = circularRefs.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(2);
+    expect(diagnostics[0]?.rule).toBe('circular-refs');
+    expect(diagnostics[0]?.message).toContain('user -> gist -> user');
+  });
 });
