@@ -1554,18 +1554,46 @@ const extractContourDefinition = (
   };
 };
 
+export interface FindContourDefinitionsOptions {
+  /**
+   * When true, skip contour calls nested inside other expressions (e.g.
+   * `core.contour('inner', {...}).id()` used as a field of an outer contour).
+   * Only top-level declarations and statements surface as definitions.
+   *
+   * Defaults to `false`: both top-level and inline contours are returned so
+   * that reference-site resolution can reach anonymous inline contours.
+   */
+  readonly topLevelOnly?: boolean;
+}
+
+/**
+ * Return every `contour('name', ...)` definition reachable from the AST, in
+ * source order, deduplicated by call-expression start offset.
+ *
+ * Includes both top-level bindings (`const user = contour('user', ...)`) and
+ * inline contour calls nested inside other expressions (e.g.
+ * `contour('outer', { inner: contour('inner', ...).id() })`). Inline contours
+ * carry no `bindingName` because they have no local binding — this asymmetry
+ * is why {@link collectNamedContourIds} returns only the top-level subset
+ * while {@link collectContourDefinitionIds} returns the full set.
+ *
+ * Pass `{ topLevelOnly: true }` via `options` to opt out of inline discovery
+ * without disturbing callers that rely on the default behavior.
+ *
+ * @remarks
+ * Supplying a pre-built `context` skips the second full-AST traversal inside
+ * `buildFrameworkNamespaceContext` — useful for callers (such as
+ * {@link collectContourReferenceSites}) that already built one.
+ */
 export const findContourDefinitions = (
   ast: AstNode,
-  /**
-   * Optional pre-built namespace context. When provided, the second full-AST
-   * traversal inside `buildFrameworkNamespaceContext` is skipped — useful for
-   * callers (such as `collectContourReferenceSites`) that already built one.
-   */
-  context?: FrameworkNamespaceContext
+  context?: FrameworkNamespaceContext,
+  options?: FindContourDefinitionsOptions
 ): ContourDefinition[] => {
   const definitions: ContourDefinition[] = [];
   const seenStarts = new Set<number>();
   const resolvedContext = context ?? buildFrameworkNamespaceContext(ast);
+  const topLevelOnly = options?.topLevelOnly === true;
 
   const addContourDefinition = (definition: ContourDefinition): void => {
     if (seenStarts.has(definition.start)) {
@@ -1608,6 +1636,10 @@ export const findContourDefinitions = (
       return;
     }
 
+    if (topLevelOnly) {
+      return;
+    }
+
     const definition = extractContourDefinition(node, resolvedContext);
     if (definition) {
       addContourDefinition(definition);
@@ -1617,13 +1649,22 @@ export const findContourDefinitions = (
   return definitions.toSorted((left, right) => left.start - right.start);
 };
 
-/** Collect all inline `contour('name', ...)` definition names from a parsed file. */
+/**
+ * Collect the `name` of every contour definition in a parsed file, including
+ * inline contours nested inside other expressions. Returns the same set of
+ * names that {@link findContourDefinitions} discovers under default options.
+ */
 export const collectContourDefinitionIds = (
   ast: AstNode
 ): ReadonlySet<string> =>
   new Set(findContourDefinitions(ast).map((def) => def.name));
 
-/** Collect `const foo = contour('name', ...)` bindings from a parsed file. */
+/**
+ * Collect the `localBinding → contourName` map for `const foo = contour(...)`
+ * declarations. Inline contour calls are intentionally excluded because they
+ * have no local binding — use {@link collectContourDefinitionIds} when the
+ * full set of declared names is required.
+ */
 export const collectNamedContourIds = (
   ast: AstNode
 ): ReadonlyMap<string, string> => {

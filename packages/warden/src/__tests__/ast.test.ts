@@ -2,7 +2,9 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   __collectFrameworkNamespaceBindingsForTest,
+  collectContourDefinitionIds,
   collectContourReferenceSites,
+  collectNamedContourIds,
   __getTrailCalleeNameForTest,
   deriveContourIdentifierName,
   findContourDefinitions,
@@ -434,6 +436,66 @@ describe('findContourDefinitions with namespaced callees', () => {
     `;
     const ast = parseOrThrow(source);
     expect(findContourDefinitions(ast)).toHaveLength(0);
+  });
+});
+
+describe('findContourDefinitions inline discovery', () => {
+  // Regression: `findContourDefinitions` descends into nested object
+  // expressions and surfaces inline `core.contour('inner', ...)` calls as
+  // definitions alongside the outer binding. This behavior is load-bearing for
+  // reference-site resolution (see `collectContourReferenceSites`) and must
+  // not silently regress.
+  const inlineSource = `
+      import * as core from '@ontrails/core';
+      import { z } from 'zod';
+
+      export const outer = core.contour('outer', {
+        id: z.string().uuid(),
+        inner: core.contour('inner', { id: z.string().uuid() }).id(),
+      });
+    `;
+
+  test('returns both outer and inline contour definitions by default', () => {
+    const ast = parseOrThrow(inlineSource);
+    const defs = findContourDefinitions(ast);
+
+    expect(defs).toHaveLength(2);
+    const names = defs.map((d) => d.name).toSorted();
+    expect(names).toEqual(['inner', 'outer']);
+
+    const outer = defs.find((d) => d.name === 'outer');
+    const inner = defs.find((d) => d.name === 'inner');
+    expect(outer?.bindingName).toBe('outer');
+    // Inline contours are anonymous call expressions — no binding name.
+    expect(inner?.bindingName).toBeUndefined();
+  });
+
+  test('collectContourDefinitionIds includes inline contour ids', () => {
+    const ast = parseOrThrow(inlineSource);
+    const ids = collectContourDefinitionIds(ast);
+
+    expect(ids.has('outer')).toBe(true);
+    expect(ids.has('inner')).toBe(true);
+  });
+
+  test('collectNamedContourIds excludes inline contours (no bindingName)', () => {
+    const ast = parseOrThrow(inlineSource);
+    const named = collectNamedContourIds(ast);
+
+    expect([...named.keys()].toSorted()).toEqual(['outer']);
+    expect(named.get('outer')).toBe('outer');
+    expect(named.has('inner')).toBe(false);
+  });
+
+  test('topLevelOnly: true skips inline contour discovery', () => {
+    const ast = parseOrThrow(inlineSource);
+    const defs = findContourDefinitions(ast, undefined, {
+      topLevelOnly: true,
+    });
+
+    expect(defs).toHaveLength(1);
+    expect(defs[0]?.name).toBe('outer');
+    expect(defs[0]?.bindingName).toBe('outer');
   });
 });
 
