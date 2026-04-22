@@ -415,6 +415,8 @@ const SCOPE_FRAME_COLLECTORS: Record<
   string,
   (node: AstNode) => ReadonlySet<string>
 > = {
+  // This rule analyzes trail blaze implementations, so "blaze body" is
+  // intentional lexicon here. The parallel comment in ast.ts stays generic.
   // `FunctionBody` is the oxc-parser shape for the body of a regular
   // `function expression() { ... }`. Arrow functions use `BlockStatement`.
   // Without this entry, a `const ns = ...` at the top of a function-expression

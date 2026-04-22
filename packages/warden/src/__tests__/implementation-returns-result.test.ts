@@ -874,8 +874,8 @@ trail("entity.report", {
 
         test('flags ns.helper() when an unbraced switch case declares a shadowing const', () => {
           // Regression: an unbraced switch case (`case N: const ns = ...;`)
-          // does not push a BlockStatement frame. Without a SwitchCase
-          // collector, the shadow is invisible to the walker.
+          // does not push a BlockStatement frame. Without the enclosing
+          // SwitchStatement collector, the shadow is invisible to the walker.
           writeFile(
             'impl-ns-shadow-switch.ts',
             `export const helper = async (): Promise<Result<object, Error>> =>

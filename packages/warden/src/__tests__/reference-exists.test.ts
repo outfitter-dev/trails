@@ -84,4 +84,25 @@ const gist = contour('gist', {
       })
     ).toEqual([]);
   });
+
+  test('flags a missing namespaced inline contour reference target', () => {
+    const code = `
+import * as core from '@ontrails/core';
+import { z } from 'zod';
+
+const gist = core.contour('gist', {
+  id: z.string().uuid(),
+  ownerId: core.contour('user', { id: z.string().uuid() }).id(),
+}, { identity: 'id' });
+`;
+
+    const diagnostics = referenceExists.checkWithContext(code, TEST_FILE, {
+      knownContourIds: new Set(['gist']),
+      knownTrailIds: new Set<string>(),
+    });
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.rule).toBe('reference-exists');
+    expect(diagnostics[0]?.message).toContain('user');
+  });
 });

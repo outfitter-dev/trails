@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   __collectFrameworkNamespaceBindingsForTest,
+  collectContourReferenceSites,
   __getTrailCalleeNameForTest,
   deriveContourIdentifierName,
   findContourDefinitions,
@@ -433,5 +434,41 @@ describe('findContourDefinitions with namespaced callees', () => {
     `;
     const ast = parseOrThrow(source);
     expect(findContourDefinitions(ast)).toHaveLength(0);
+  });
+});
+
+describe('collectContourReferenceSites with namespaced inline contours', () => {
+  test('resolves core.contour(...).id() when the file context is available', () => {
+    const source = `
+      import * as core from '@ontrails/core';
+      import { z } from 'zod';
+
+      const gist = core.contour('gist', {
+        id: z.string().uuid(),
+        ownerId: core.contour('user', { id: z.string().uuid() }).id(),
+      });
+    `;
+    const ast = parseOrThrow(source);
+    const refs = collectContourReferenceSites(ast);
+
+    expect(refs).toHaveLength(1);
+    expect(refs[0]?.source).toBe('gist');
+    expect(refs[0]?.field).toBe('ownerId');
+    expect(refs[0]?.target).toBe('user');
+  });
+
+  test('ignores analytics.contour(...).id() when the receiver is not a framework namespace', () => {
+    const source = `
+      import * as analytics from 'analytics';
+      import { z } from 'zod';
+
+      const gist = contour('gist', {
+        id: z.string().uuid(),
+        ownerId: analytics.contour('user', { id: z.string().uuid() }).id(),
+      });
+    `;
+    const ast = parseOrThrow(source);
+
+    expect(collectContourReferenceSites(ast)).toEqual([]);
   });
 });

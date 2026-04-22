@@ -1,0 +1,374 @@
+name: Review Bot Gate
+
+on:
+  pull_request:
+    types: [labeled, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  review-bot-gate:
+    name: Review Bot Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce queue label review policy
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const queueLabels = new Set([
+              'queue:hotfix',
+              'queue:merge',
+              'queue:priority',
+            ]);
+            const botConfigs = [
+              {
+                display: 'Codex',
+                key: 'codex',
+                logins: new Set(['chatgpt-codex-connector']),
+              },
+              {
+                display: 'Devin',
+                key: 'devin',
+                logins: new Set(['devin-ai-integration']),
+              },
+              {
+                display: 'Greptile',
+                key: 'greptile',
+                logins: new Set(['greptile-apps', 'greptile-apps[bot]']),
+              },
+            ];
+            const greptileErrorPattern =
+              /Greptile encountered an error while reviewing this PR/i;
+            const memberAssociations = new Set([
+              'COLLABORATOR',
+              'MEMBER',
+              'OWNER',
+            ]);
+            const waiverPattern = /review-bot-na:\s*([a-z, ]+)/gi;
+
+            const pullRequest = context.payload.pull_request;
+            if (!pullRequest) {
+              core.info('No pull request payload present.');
+              return;
+            }
+
+            const activeQueueLabels = pullRequest.labels
+              .map((label) => label.name)
+              .filter((name) => queueLabels.has(name));
+            if (activeQueueLabels.length === 0) {
+              core.notice('No queue labels present; skipping gate.');
+              return;
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const number = pullRequest.number;
+            const MAX_PAGES = 10;
+            const initialQuery = `
+              query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    headRefOid
+                    commits(last: 1) {
+                      nodes {
+                        commit {
+                          committedDate
+                          pushedDate
+                          oid
+                        }
+                      }
+                    }
+                    comments(first: 100) {
+                      pageInfo {
+                        hasNextPage
+                        endCursor
+                      }
+                      nodes {
+                        author {
+                          login
+                        }
+                        authorAssociation
+                        body
+                        createdAt
+                      }
+                    }
+                    reviews(first: 100) {
+                      pageInfo {
+                        hasNextPage
+                        endCursor
+                      }
+                      nodes {
+                        author {
+                          login
+                        }
+                        body
+                        state
+                        submittedAt
+                        commit {
+                          oid
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const commentsPageQuery = `
+              query($owner: String!, $repo: String!, $number: Int!, $cursor: String!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    comments(first: 100, after: $cursor) {
+                      pageInfo {
+                        hasNextPage
+                        endCursor
+                      }
+                      nodes {
+                        author {
+                          login
+                        }
+                        authorAssociation
+                        body
+                        createdAt
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const reviewsPageQuery = `
+              query($owner: String!, $repo: String!, $number: Int!, $cursor: String!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    reviews(first: 100, after: $cursor) {
+                      pageInfo {
+                        hasNextPage
+                        endCursor
+                      }
+                      nodes {
+                        author {
+                          login
+                        }
+                        body
+                        state
+                        submittedAt
+                        commit {
+                          oid
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const data = await github.graphql(initialQuery, {
+              owner,
+              repo,
+              number,
+            });
+            const pr = data.repository.pullRequest;
+            const latestCommit = pr.commits.nodes[0]?.commit;
+            if (!latestCommit) {
+              core.setFailed('Unable to determine the latest PR commit.');
+              return;
+            }
+
+            const paginate = async (
+              label,
+              pageQuery,
+              initialPageInfo,
+              extract
+            ) => {
+              const nodes = [];
+              let pageInfo = initialPageInfo;
+              let pages = 1;
+              while (pageInfo?.hasNextPage && pageInfo.endCursor) {
+                if (pages >= MAX_PAGES) {
+                  core.warning(
+                    `Reached ${MAX_PAGES}-page cap while fetching ${label}; ` +
+                      'older entries may be omitted from gate evaluation.'
+                  );
+                  break;
+                }
+                const pageData = await github.graphql(pageQuery, {
+                  owner,
+                  repo,
+                  number,
+                  cursor: pageInfo.endCursor,
+                });
+                const connection = extract(pageData);
+                nodes.push(...connection.nodes);
+                pageInfo = connection.pageInfo;
+                pages += 1;
+              }
+              return nodes;
+            };
+
+            const additionalComments = await paginate(
+              'comments',
+              commentsPageQuery,
+              pr.comments.pageInfo,
+              (pageData) => pageData.repository.pullRequest.comments
+            );
+            const additionalReviews = await paginate(
+              'reviews',
+              reviewsPageQuery,
+              pr.reviews.pageInfo,
+              (pageData) => pageData.repository.pullRequest.reviews
+            );
+
+            pr.comments.nodes = [...pr.comments.nodes, ...additionalComments];
+            pr.reviews.nodes = [...pr.reviews.nodes, ...additionalReviews];
+
+            // Reviews are gated on commit OID (exact revision match). Comments
+            // fall back to timestamp comparison. pushedDate is preferred over
+            // committedDate so cherry-picked old commits don't admit pre-push
+            // stale bot comments.
+            const latestCommitAt = Date.parse(
+              latestCommit.pushedDate ?? latestCommit.committedDate
+            );
+
+            const waivedBots = new Set();
+            for (const comment of pr.comments.nodes) {
+              if (!memberAssociations.has(comment.authorAssociation)) {
+                continue;
+              }
+              const createdAt = comment.createdAt
+                ? Date.parse(comment.createdAt)
+                : NaN;
+              if (Number.isNaN(createdAt) || createdAt < latestCommitAt) {
+                continue;
+              }
+              for (const match of comment.body.matchAll(waiverPattern)) {
+                const keys = match[1]
+                  .split(',')
+                  .map((part) => part.trim().toLowerCase())
+                  .filter(Boolean);
+                for (const key of keys) {
+                  if (key === 'all') {
+                    for (const bot of botConfigs) {
+                      waivedBots.add(bot.key);
+                    }
+                    continue;
+                  }
+                  if (botConfigs.some((bot) => bot.key === key)) {
+                    waivedBots.add(key);
+                  }
+                }
+              }
+            }
+
+            const getLatestArtifact = (botConfig) => {
+              const reviewArtifacts = pr.reviews.nodes
+                .filter((review) => {
+                  const login = review.author?.login;
+                  const submittedAt = review.submittedAt
+                    ? Date.parse(review.submittedAt)
+                    : NaN;
+                  if (!login || Number.isNaN(submittedAt)) {
+                    return false;
+                  }
+                  return (
+                    botConfig.logins.has(login) &&
+                    review.commit?.oid === pr.headRefOid
+                  );
+                })
+                .map((review) => ({
+                  body: review.body ?? '',
+                  kind: 'review',
+                  time: review.submittedAt,
+                }));
+
+              const commentArtifacts = pr.comments.nodes
+                .filter((comment) => {
+                  const login = comment.author?.login;
+                  const createdAt = comment.createdAt
+                    ? Date.parse(comment.createdAt)
+                    : NaN;
+                  if (!login || Number.isNaN(createdAt)) {
+                    return false;
+                  }
+                  return (
+                    botConfig.logins.has(login) && createdAt >= latestCommitAt
+                  );
+                })
+                .map((comment) => ({
+                  body: comment.body ?? '',
+                  kind: 'comment',
+                  time: comment.createdAt,
+                }));
+
+              return [...reviewArtifacts, ...commentArtifacts].sort(
+                (left, right) => Date.parse(right.time) - Date.parse(left.time)
+              )[0];
+            };
+
+            const problems = [];
+            const satisfied = [];
+
+            for (const bot of botConfigs) {
+              if (waivedBots.has(bot.key)) {
+                satisfied.push(`${bot.display}: waived`);
+                continue;
+              }
+
+              const artifact = getLatestArtifact(bot);
+              if (!artifact) {
+                problems.push(
+                  `${bot.display} has not posted on the current PR revision.`
+                );
+                continue;
+              }
+
+              if (
+                bot.key === 'greptile' &&
+                greptileErrorPattern.test(artifact.body)
+              ) {
+                problems.push(
+                  'Greptile reported a review error on the current PR revision.'
+                );
+                continue;
+              }
+
+              satisfied.push(`${bot.display}: ${artifact.kind} posted`);
+            }
+
+            if (problems.length === 0) {
+              await core.summary
+                .addHeading('Review Bot Gate')
+                .addList([
+                  `Latest commit: \`${latestCommit.oid.slice(0, 12)}\``,
+                  ...satisfied,
+                ])
+                .write();
+              core.notice('Queue labels are allowed for this PR revision.');
+              return;
+            }
+
+            for (const label of activeQueueLabels) {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner,
+                  repo,
+                  issue_number: number,
+                  name: label,
+                });
+              } catch (error) {
+                core.warning(`Failed to remove label ${label}: ${error.message}`);
+              }
+            }
+
+            await core.summary
+              .addHeading('Review Bot Gate')
+              .addList([
+                `Removed queue label(s): ${activeQueueLabels.join(', ')}`,
+                `Latest commit: \`${latestCommit.oid.slice(0, 12)}\``,
+                ...problems,
+              ])
+              .write();
+            core.setFailed(problems.join(' '));
