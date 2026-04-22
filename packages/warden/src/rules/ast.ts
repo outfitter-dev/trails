@@ -1955,7 +1955,7 @@ export const collectContourReferenceSites = (
   const namedContourIds = collectNamedContourIds(ast);
   const importAliases = collectImportAliasMap(ast);
   const context = buildFrameworkNamespaceContext(ast);
-  return findContourDefinitions(ast).flatMap((definition) =>
+  return findContourDefinitions(ast, context).flatMap((definition) =>
     findContourReferenceSitesForDefinition(
       definition,
       namedContourIds,
