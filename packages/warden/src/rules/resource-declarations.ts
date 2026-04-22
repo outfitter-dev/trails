@@ -188,9 +188,19 @@ const collectParamResourceAliases = (body: AstNode): ReadonlySet<string> => {
   return aliases;
 };
 
-/** Build the set of context parameter names to match against. */
+/**
+ * Build the set of context parameter names to match against.
+ *
+ * Returns ONLY the actual second-parameter name from the blaze signature.
+ * No seeded defaults: if the blaze has no second parameter, the returned set
+ * is empty and no `ctx.resource(...)` / `context.resource(...)` calls are
+ * tracked for that blaze. An unrelated closure-scoped `ctx` identifier is not
+ * the trail context and must not be treated as one.
+ *
+ * Mirrors `fires-declarations.ts` `buildCtxNames` for the same reason.
+ */
 const buildCtxNames = (body: AstNode): ReadonlySet<string> => {
-  const ctxNames = new Set(['ctx', 'context']);
+  const ctxNames = new Set<string>();
   const paramName = extractContextParamName(body);
   if (paramName) {
     ctxNames.add(paramName);

@@ -320,6 +320,69 @@ trail('entity.show', {
 
       expect(diagnostics.length).toBe(0);
     });
+
+    test('blaze with no second parameter: unrelated closure ctx.resource is not tracked', () => {
+      const code = `
+import { trail, Result } from '@ontrails/core';
+
+const ctx = { resource: () => ({}) };
+
+trail('demo', {
+  blaze: async () => {
+    ctx.resource('db.main');
+    return Result.ok({ ok: true });
+  },
+  resources: [],
+});
+`;
+
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
+      // The blaze has no context parameter, so `ctx` in the body is an
+      // unrelated closure-scoped binding, not the trail context. It must
+      // not be tracked — no diagnostics.
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('blaze with no second parameter: unrelated closure context.resource is not tracked', () => {
+      const code = `
+import { trail, Result } from '@ontrails/core';
+
+const context = { resource: () => ({}) };
+
+trail('demo', {
+  blaze: async () => {
+    context.resource('db.main');
+    return Result.ok({ ok: true });
+  },
+  resources: [],
+});
+`;
+
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('custom-named context param: only that name is tracked', () => {
+      const code = `
+import { trail, Result } from '@ontrails/core';
+
+const ctx = { resource: () => ({}) };
+
+trail('customCtx', {
+  blaze: async (_input, c) => {
+    ctx.resource('whatever');
+    return Result.ok(c);
+  },
+  resources: [],
+});
+`;
+
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
+      // `c` is the real trail context (unused here, but it's the param).
+      // The closure `ctx.resource('whatever')` must not be flagged because
+      // `ctx` is not the trail context — only `c` is.
+      expect(diagnostics.length).toBe(0);
+    });
   });
 
   describe('nested run false positives', () => {
