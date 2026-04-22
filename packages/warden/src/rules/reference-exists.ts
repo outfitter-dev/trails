@@ -5,6 +5,7 @@ import {
   parse,
 } from './ast.js';
 import type { AstNode } from './ast.js';
+import { mergeKnownContourIds } from './contour-ids.js';
 import { isTestFile } from './scan.js';
 import type {
   ProjectAwareWardenRule,
@@ -87,7 +88,7 @@ export const referenceExists: ProjectAwareWardenRule = {
       ast,
       sourceCode,
       filePath,
-      context.knownContourIds ?? localContourIds
+      mergeKnownContourIds(localContourIds, context.knownContourIds)
     );
   },
   description:
