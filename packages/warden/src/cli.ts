@@ -123,7 +123,6 @@ interface MutableProjectContext {
   crudTableIds: Set<string>;
   crossTargetTrailIds: Set<string>;
   crudCoverageByEntity: Map<string, Set<string>>;
-  detourTargetTrailIds: Set<string>;
   knownContourIds: Set<string>;
   knownResourceIds: Set<string>;
   knownSignalIds: Set<string>;
@@ -138,7 +137,6 @@ const createMutableProjectContext = (): MutableProjectContext => ({
   crossTargetTrailIds: new Set<string>(),
   crudCoverageByEntity: new Map<string, Set<string>>(),
   crudTableIds: new Set<string>(),
-  detourTargetTrailIds: new Set<string>(),
   knownContourIds: new Set<string>(),
   knownResourceIds: new Set<string>(),
   knownSignalIds: new Set<string>(),
@@ -190,7 +188,6 @@ const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
       }
     : {}),
   crossTargetTrailIds: context.crossTargetTrailIds,
-  detourTargetTrailIds: context.detourTargetTrailIds,
   knownContourIds: context.knownContourIds,
   knownResourceIds: context.knownResourceIds,
   knownSignalIds: context.knownSignalIds,
@@ -231,19 +228,6 @@ const collectKnownTrailIds = (
     knownTrailIds.add(def.id);
   }
 };
-
-/**
- * Detours no longer reference trail IDs — they match on error classes.
- * This collector is dormant until the unreachable-detour warden rule ships
- * (see TRL-273 and ADR-0033). Kept as a stub for parity with
- * `collectTopoDetourTargetTrailIds`.
- */
-const collectDetourTargetTrailIds = (
-  _sourceCode: string,
-  _filePath: string,
-  _detourTargetTrailIds: Set<string>
-  // eslint-disable-next-line @typescript-eslint/no-empty-function -- dormant until TRL-273
-): void => {};
 
 const collectCrossedTrailIds = (
   sourceCode: string,
@@ -383,13 +367,6 @@ const loadSourceFiles = async (
   return sourceFiles;
 };
 
-/**
- * Detours no longer reference trail IDs — they match on error classes.
- * Kept as a stub so downstream context population still compiles.
- */
-const collectTopoDetourTargetTrailIds = (_appTopo: Topo): ReadonlySet<string> =>
-  new Set();
-
 const collectTopoKnownIds = (
   appTopo: Topo,
   context: MutableProjectContext
@@ -408,15 +385,6 @@ const collectTopoKnownIds = (
 
   for (const id of appTopo.signals.keys()) {
     context.knownSignalIds.add(id);
-  }
-};
-
-const collectTopoDetourIds = (
-  appTopo: Topo,
-  context: MutableProjectContext
-): void => {
-  for (const id of collectTopoDetourTargetTrailIds(appTopo)) {
-    context.detourTargetTrailIds.add(id);
   }
 };
 
@@ -450,7 +418,6 @@ const collectTopoTrailContext = (
   context: MutableProjectContext
 ): void => {
   collectTopoKnownIds(appTopo, context);
-  collectTopoDetourIds(appTopo, context);
   collectTopoCrossesAndIntents(appTopo, context);
   collectTopoContourReferences(appTopo, context);
 };
@@ -489,11 +456,6 @@ const collectFileTrailRelationships = (
     sourceFile.sourceCode,
     sourceFile.filePath,
     context.crossTargetTrailIds
-  );
-  collectDetourTargetTrailIds(
-    sourceFile.sourceCode,
-    sourceFile.filePath,
-    context.detourTargetTrailIds
   );
   collectTrailIntents(
     sourceFile.sourceCode,

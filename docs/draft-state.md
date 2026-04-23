@@ -21,7 +21,7 @@ Any authored ID may be marked as draft by prefixing it with `_draft.`:
 '_draft.cache.redis'     // draft resource
 ```
 
-The marker applies everywhere an ID appears: trail declarations, `crosses` references, signal `from` entries, detour targets.
+The marker applies everywhere an authored ID appears: trail declarations, resource declarations, `crosses` references, and signal `from` entries.
 
 ## File marking
 

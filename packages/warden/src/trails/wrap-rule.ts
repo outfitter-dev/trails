@@ -70,9 +70,6 @@ const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
   ...(input.crossTargetTrailIds
     ? { crossTargetTrailIds: new Set(input.crossTargetTrailIds) }
     : {}),
-  ...(input.detourTargetTrailIds
-    ? { detourTargetTrailIds: new Set(input.detourTargetTrailIds) }
-    : {}),
   ...(input.knownResourceIds
     ? { knownResourceIds: new Set(input.knownResourceIds) }
     : {}),

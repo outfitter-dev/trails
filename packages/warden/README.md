@@ -32,8 +32,8 @@ console.log(formatWardenReport(report));
 | `implementation-returns-result` | error | Blaze functions returning raw values instead of `Result` |
 | `context-no-surface-types` | error | Surface type imports (`Request`, `McpSession`) in trail files |
 | `no-sync-result-assumption` | error | Missing `await` on `.blaze()` results |
-| `valid-detour-refs` | error | Detour targets that do not exist in the topo |
-| `no-throw-in-detour-target` | error | `throw` inside detour target trails |
+| `valid-detour-contract` | error | Detours with non-constructor `on` values or non-callable `recover` values |
+| `no-throw-in-detour-recover` | error | `throw` inside detour `recover` functions |
 | `unreachable-detour-shadowing` | error | Later detours made unreachable by earlier same-or-broader `on:` error types |
 | `no-direct-implementation-call` | warn | Direct `.blaze()` calls bypassing `ctx.cross()` |
 | `no-direct-impl-in-route` | warn | Direct `.blaze()` calls inside trail bodies with `crosses` |

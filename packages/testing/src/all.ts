@@ -2,7 +2,7 @@
  * testAll — single-line governance suite for any Topo.
  *
  * Wraps topo validation, example execution, contract checks, and detour
- * verification into one describe block.
+ * contract validation into one describe block.
  */
 
 import { describe, expect, test } from 'bun:test';
@@ -25,7 +25,7 @@ import type { TestAllEstablishedOptions } from './types.js';
  * - Structural validation via `validateTopo`
  * - Example execution via `testExamples`
  * - Output contract checks via `testContracts`
- * - Detour target verification via `testDetours`
+ * - Detour contract validation via `testDetours`
  *
  * Accepts either a static context or a factory function that produces a
  * fresh context per test (useful when the context contains mutable state

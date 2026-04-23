@@ -17,7 +17,7 @@ import { missingReconcile } from './missing-reconcile.js';
 import { noDirectImplInRoute } from './no-direct-impl-in-route.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
 import { noSyncResultAssumption } from './no-sync-result-assumption.js';
-import { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
+import { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
 import { onReferencesExist } from './on-references-exist.js';
 import { orphanedSignal } from './orphaned-signal.js';
@@ -29,8 +29,8 @@ import { resourceExists } from './resource-exists.js';
 import { resourceIdGrammar } from './resource-id-grammar.js';
 import type { TopoAwareWardenRule, WardenRule } from './types.js';
 import { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
+import { validDetourContract } from './valid-detour-contract.js';
 import { validDescribeRefs } from './valid-describe-refs.js';
-import { validDetourRefs } from './valid-detour-refs.js';
 import { wardenExportSymmetry } from './warden-export-symmetry.js';
 import { wardenRulesUseAst } from './warden-rules-use-ast.js';
 
@@ -60,12 +60,11 @@ export { intentPropagation } from './intent-propagation.js';
 export { missingVisibility } from './missing-visibility.js';
 export { missingReconcile } from './missing-reconcile.js';
 export { onReferencesExist } from './on-references-exist.js';
-export { validDetourRefs } from './valid-detour-refs.js';
 export { noDirectImplInRoute } from './no-direct-impl-in-route.js';
 export { noDirectImplementationCall } from './no-direct-implementation-call.js';
 export { noSyncResultAssumption } from './no-sync-result-assumption.js';
 export { implementationReturnsResult } from './implementation-returns-result.js';
-export { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
+export { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
 export { orphanedSignal } from './orphaned-signal.js';
 export { permitGovernance } from './permit-governance.js';
 export { preferSchemaInference } from './prefer-schema-inference.js';
@@ -74,6 +73,7 @@ export { resourceDeclarations } from './resource-declarations.js';
 export { resourceExists } from './resource-exists.js';
 export { resourceIdGrammar } from './resource-id-grammar.js';
 export { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
+export { validDetourContract } from './valid-detour-contract.js';
 export { validDescribeRefs } from './valid-describe-refs.js';
 
 /** All built-in warden rules, keyed by rule name. */
@@ -104,11 +104,10 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [resourceExists.name, resourceExists],
   [preferSchemaInference.name, preferSchemaInference],
   [validDescribeRefs.name, validDescribeRefs],
-  [validDetourRefs.name, validDetourRefs],
   [noDirectImplementationCall.name, noDirectImplementationCall],
   [noSyncResultAssumption.name, noSyncResultAssumption],
   [implementationReturnsResult.name, implementationReturnsResult],
-  [noThrowInDetourTarget.name, noThrowInDetourTarget],
+  [noThrowInDetourRecover.name, noThrowInDetourRecover],
   [noDirectImplInRoute.name, noDirectImplInRoute],
   [unreachableDetourShadowing.name, unreachableDetourShadowing],
   [wardenExportSymmetry.name, wardenExportSymmetry],
@@ -132,4 +131,5 @@ export const wardenTopoRules: ReadonlyMap<string, TopoAwareWardenRule> =
   new Map<string, TopoAwareWardenRule>([
     [incompleteAccessorForStandardOp.name, incompleteAccessorForStandardOp],
     [permitGovernance.name, permitGovernance],
+    [validDetourContract.name, validDetourContract],
   ]);

@@ -175,7 +175,7 @@ That single `testAll(graph)` call runs the full governance suite:
 1. **Topo validation** via `validateTopo` -- crosses exist, no recursive crossing, event origins, example schema validation, output schema presence
 2. **Example execution** -- for each trail, validates input, runs the implementation, asserts the result matches `expected` (or validates against the output schema when no `expected` is declared)
 3. **Contract checks** -- verifies implementation output matches declared output schemas
-4. **Detour verification** -- confirms detour targets exist in the topo
+4. **Detour contract validation** -- confirms detours declare valid `on` / `recover` semantics and sane ordering
 
 No separate test files for the happy path. The examples ARE the tests.
 

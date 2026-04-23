@@ -89,7 +89,7 @@ Generates a `governance` describe block containing:
 - **Topo validation** via `validateTopo` (crosses exist, no recursive crossing, event origins, example schema validation, output schema presence)
 - **Example execution** via `testExamples`
 - **Contract checks** via `testContracts`
-- **Detour verification** via `testDetours`
+- **Detour contract validation** via `testDetours`
 
 For most apps, `testAll` is the only test call you need. Reach for the individual helpers below when you need finer control.
 
@@ -248,13 +248,13 @@ TypeScript checks types at compile time, but the implementation could return `{ 
 
 ## `testDetours(graph)`
 
-Structural validation. Verifies every detour target trail exists in the topo. No implementation execution needed.
+Structural validation. Verifies every detour declares a real `on` error constructor, a callable `recover`, and no later detour is shadowed by an earlier broader `on:` type. No implementation execution needed.
 
 ```typescript
 import { testDetours } from '@ontrails/testing';
 
 testDetours(graph);
-// Fails: Trail "entity.show" has detour target "entity.search" which does not exist in the topo
+// Fails: Trail "entity.save" detour[1] on ConflictError is shadowed by earlier detour[0] on TrailsError
 ```
 
 ## `scenario(name, graph, steps)`

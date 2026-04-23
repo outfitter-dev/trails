@@ -18,7 +18,7 @@ export { onReferencesExistTrail } from './on-references-exist.trail.js';
 export { noDirectImplInRouteTrail } from './no-direct-impl-in-route.trail.js';
 export { noDirectImplementationCallTrail } from './no-direct-implementation-call.trail.js';
 export { noSyncResultAssumptionTrail } from './no-sync-result-assumption.trail.js';
-export { noThrowInDetourTargetTrail } from './no-throw-in-detour-target.trail.js';
+export { noThrowInDetourRecoverTrail } from './no-throw-in-detour-recover.trail.js';
 export { noThrowInImplementationTrail } from './no-throw-in-implementation.trail.js';
 export { orphanedSignalTrail } from './orphaned-signal.trail.js';
 export { permitGovernanceTrail } from './permit-governance.trail.js';
@@ -28,8 +28,8 @@ export { resourceDeclarationsTrail } from './resource-declarations.trail.js';
 export { resourceIdGrammarTrail } from './resource-id-grammar.trail.js';
 export { resourceExistsTrail } from './resource-exists.trail.js';
 export { unreachableDetourShadowingTrail } from './unreachable-detour-shadowing.trail.js';
+export { validDetourContractTrail } from './valid-detour-contract.trail.js';
 export { validDescribeRefsTrail } from './valid-describe-refs.trail.js';
-export { validDetourRefsTrail } from './valid-detour-refs.trail.js';
 export { wardenExportSymmetryTrail } from './warden-export-symmetry.trail.js';
 export { wardenRulesUseAstTrail } from './warden-rules-use-ast.trail.js';
 

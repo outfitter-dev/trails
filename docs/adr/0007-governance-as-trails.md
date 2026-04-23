@@ -26,7 +26,7 @@ That's a credibility problem. If the framework's own governance tools don't foll
 
 Each source-file rule is wrapped via `wrapRule()` into a trail with ID `warden.rule.<name>`. `wrapRule()` has two overloads — one for plain `WardenRule` (single-file analysis) and one for `ProjectAwareWardenRule` (single-file analysis with cross-file context such as `knownTrailIds`). Topo-aware rules that inspect the resolved graph rather than source files are wrapped separately via `wrapTopoRule()`.
 
-**Input** is `{ filePath: string, sourceCode: string }` for file-scoped rules, extended with project context such as `knownTrailIds` or `detourTargetTrailIds` when a rule needs cross-file awareness. Topo-aware rules receive `{ topo: Topo }`.
+**Input** is `{ filePath: string, sourceCode: string }` for file-scoped rules, extended with project context such as `knownTrailIds` when a rule needs cross-file awareness. Topo-aware rules receive `{ topo: Topo }`.
 
 **Output** is `{ diagnostics: Diagnostic[] }` where each diagnostic carries `filePath`, `line`, `message`, `rule`, and `severity`.
 
@@ -58,8 +58,8 @@ One critical addition: `walkScope()`. Standard `walk()` descends into everything
 This ADR decides the execution model, not a fixed count of built-in rules. The concrete registry has grown since adoption and continues to evolve. The stable split is:
 
 - **File-scoped AST rules** like `no-throw-in-implementation`, `implementation-returns-result`, `cross-declarations`, and `resource-declarations`
-- **Project-aware source rules** that still run per file but consume derived project context, such as `valid-describe-refs`, `valid-detour-refs`, `reference-exists`, and `incomplete-crud`
-- **Topo-aware rules** that inspect the resolved graph once per topo, such as `incomplete-accessor-for-standard-op`
+- **Project-aware source rules** that still run per file but consume derived project context, such as `valid-describe-refs`, `reference-exists`, and `incomplete-crud`
+- **Topo-aware rules** that inspect the resolved graph once per topo, such as `incomplete-accessor-for-standard-op`, `permit-governance`, and `valid-detour-contract`
 
 The current source of truth for the built-in registries is `packages/warden/src/rules/index.ts`.
 

@@ -197,7 +197,7 @@ export const extractStringLiteral = (
  * cannot be resolved at lint time and return null.
  *
  * Shared helper used by rules that accept both string literals and simple
- * backtick-literal IDs (e.g. `valid-detour-refs`, `valid-describe-refs`).
+ * backtick-literal IDs (e.g. `valid-describe-refs`).
  */
 const getSingleQuasi = (node: AstNode): AstNode | null => {
   const expressions =

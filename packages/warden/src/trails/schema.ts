@@ -27,8 +27,7 @@ export const ruleInput = z.object({
  * Extended input for project-aware warden rule trails.
  *
  * Adds `knownTrailIds` so the caller can supply cross-file context and avoid
- * false positives for detour targets or `@see` references defined in other
- * files.
+ * false positives for `@see` references or cross-file contour relationships.
  */
 export const projectAwareRuleInput = ruleInput.extend({
   contourReferencesByName: z
@@ -49,10 +48,6 @@ export const projectAwareRuleInput = ruleInput.extend({
     .array(z.string())
     .optional()
     .describe('Store table IDs used with CRUD factories across the project'),
-  detourTargetTrailIds: z
-    .array(z.string())
-    .optional()
-    .describe('Trail IDs referenced as detour targets across the project'),
   knownContourIds: z
     .array(z.string())
     .optional()

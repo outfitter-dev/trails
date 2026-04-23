@@ -222,11 +222,9 @@ Runtime treats both uniformly. The detour loop doesn't know or care whether a de
 
 - **Scenario-based testing.** A future ADR may introduce scenario syntax on trail examples (e.g., *"given this resource fails on the first call, verify the detour recovers"*). Because detours are declarative, such scenarios fall out as a pure extension of the existing examples model. This ADR makes no commitment about their shape.
 
-- **Trail-ID references as `recover` targets.** Currently `recover: Function`. A future extension may allow `recover: Function | TrailId`, where the trail ID references another trail whose blaze implements the recovery logic. This is a non-breaking extension and will be scoped by its own ADR when it lands. Nested-recovery semantics (what happens when the referenced trail has its own detours) require specific care.
-
 - **Multi-process retry coordination.** Detour retries are in-memory only. If the process dies mid-retry, the operation is lost. This mirrors the single-process stance of the built-in `@ontrails/store/jsonfile` backend. Durable retry across process restarts is not a goal.
 
-- **Warden rules beyond unreachable-detour detection.** Additional rules (e.g., "layers that `instanceof`-check errors are drift toward undeclared detours," "every declared detour has an example that triggers it") are worth building but are not defined by this ADR. The declaration-order unreachability check is planned as a follow-up (see Tradeoffs); others follow.
+- **Additional detour-governance coverage.** Runtime contract checks (`on` constructor / callable `recover`), `recover` no-throw linting, and declaration-order shadowing now exist. Additional rules — for example "every declared detour has an example that triggers it" — are still out of scope for this ADR.
 
 ## References
 

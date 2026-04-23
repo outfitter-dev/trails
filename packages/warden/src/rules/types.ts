@@ -57,8 +57,6 @@ export interface ProjectContext {
   readonly knownResourceIds?: ReadonlySet<string>;
   /** All known signal IDs in the project */
   readonly knownSignalIds?: ReadonlySet<string>;
-  /** All trail IDs referenced as detour targets across the project */
-  readonly detourTargetTrailIds?: ReadonlySet<string>;
   /** All trail IDs referenced by declared crosses arrays across the project. */
   readonly crossTargetTrailIds?: ReadonlySet<string>;
   /** Signal IDs referenced by trail `on` arrays across the project. */

@@ -162,7 +162,7 @@ The warden provides two resource-related rules:
 
 **`resource-declarations`** -- validates that `db.from(ctx)` and `ctx.resource(...)` calls inside the implementation match the declared `resources: [...]` array. Undeclared usage is an error. Unused declarations are a warning.
 
-**`resource-exists`** -- validates that every resource referenced in trail declarations exists in the topo. Same pattern as `valid-detour-refs`.
+**`resource-exists`** -- validates that every resource referenced in trail declarations exists in the topo. Same pattern as other cross-file declaration rules like `valid-describe-refs`.
 
 Both use the established AST analysis pattern used by `cross-declarations`.
 

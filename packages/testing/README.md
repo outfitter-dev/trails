@@ -20,7 +20,7 @@ import { testExamples, testContracts, testDetours } from '@ontrails/testing';
 
 testExamples(graph);   // Run every trail's examples as tests
 testContracts(graph);  // Validate outputs against declared schemas
-testDetours(graph);    // Verify detour targets exist
+testDetours(graph);    // Validate detour constructor, recover, and ordering semantics
 ```
 
 ## API
@@ -31,7 +31,7 @@ testDetours(graph);    // Verify detour targets exist
 | `testExamples(topo, ctx?)` | Run trail examples as `describe`/`test` blocks |
 | `testTrail(trail, scenarios)` | Custom scenarios for edge cases, error paths, and cross chains |
 | `testContracts(topo, ctx?)` | Validate output against declared schemas |
-| `testDetours(topo)` | Verify every detour target exists in the topo |
+| `testDetours(topo)` | Validate detour constructor, recover, and shadowing semantics |
 | `createCrossContext(options?)` | Mock `CrossFn` for testing composite trails; returns preconfigured `Result` values keyed by trail ID |
 | `createTestContext(options?)` | `TrailContext` with sensible test defaults |
 | `createTestLogger()` | Logger that captures entries in memory for assertions |

@@ -87,7 +87,12 @@ export const show = trail('entity.show', {
   input: z.object({ name: z.string() }),
   output: entitySchema,
   intent: 'read',
-  detours: { NotFoundError: ['search'] },
+  detours: [
+    {
+      on: NotFoundError,
+      recover: async ({ input }, ctx) => ctx.cross('search', input),
+    },
+  ],
   resources: [entityStoreResource],
   examples: [
     {
@@ -157,7 +162,7 @@ testAll(graph, () => ({
 1. **`validateTopo`** -- structural validation (cross targets exist, declarations are consistent).
 2. **`testExamples`** -- progressive assertion over every trail example.
 3. **`testContracts`** -- output schema verification for every success example.
-4. **`testDetours`** -- detour targets reference real trails in the topo.
+4. **`testDetours`** -- detours expose real `on` / `recover` contracts and non-shadowed ordering.
 
 Pass a factory function (not a plain object) when your explicit resource overrides contain mutable state like an in-memory SQLite store, so each test gets a fresh copy.
 

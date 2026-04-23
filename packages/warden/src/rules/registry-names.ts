@@ -25,7 +25,7 @@ import { missingVisibility } from './missing-visibility.js';
 import { noDirectImplInRoute } from './no-direct-impl-in-route.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
 import { noSyncResultAssumption } from './no-sync-result-assumption.js';
-import { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
+import { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
 import { onReferencesExist } from './on-references-exist.js';
 import { orphanedSignal } from './orphaned-signal.js';
@@ -36,8 +36,8 @@ import { resourceDeclarations } from './resource-declarations.js';
 import { resourceExists } from './resource-exists.js';
 import { resourceIdGrammar } from './resource-id-grammar.js';
 import { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
+import { validDetourContract } from './valid-detour-contract.js';
 import { validDescribeRefs } from './valid-describe-refs.js';
-import { validDetourRefs } from './valid-detour-refs.js';
 import { wardenRulesUseAst } from './warden-rules-use-ast.js';
 
 /**
@@ -66,7 +66,7 @@ export const registeredRuleNames: readonly string[] = [
   noDirectImplInRoute.name,
   noDirectImplementationCall.name,
   noSyncResultAssumption.name,
-  noThrowInDetourTarget.name,
+  noThrowInDetourRecover.name,
   noThrowInImplementation.name,
   onReferencesExist.name,
   orphanedSignal.name,
@@ -77,7 +77,7 @@ export const registeredRuleNames: readonly string[] = [
   resourceExists.name,
   resourceIdGrammar.name,
   unreachableDetourShadowing.name,
+  validDetourContract.name,
   validDescribeRefs.name,
-  validDetourRefs.name,
   wardenRulesUseAst.name,
 ];

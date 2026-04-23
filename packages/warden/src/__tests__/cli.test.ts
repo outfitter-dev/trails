@@ -3,7 +3,8 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { topo } from '@ontrails/core';
+import { ConflictError, Result, topo, trail } from '@ontrails/core';
+import { z } from 'zod';
 
 import { formatWardenReport, runWarden } from '../cli.js';
 
@@ -104,67 +105,30 @@ describe('runWarden basics', () => {
 });
 
 describe('runWarden project context', () => {
-  test('uses project context for detour references across files', async () => {
+  test('reports throw inside detour recover functions', async () => {
     const dir = makeTempDir();
     try {
       writeFileSync(
-        join(dir, 'show.ts'),
+        join(dir, 'recover.ts'),
         `trail("entity.show", {
-  detours: { NotFoundError: ["entity.search"] },
-  blaze: async (input, ctx) => {
-    return Result.ok(data);
-  }
-})`
-      );
-      writeFileSync(
-        join(dir, 'search.ts'),
-        `trail("entity.search", {
-  blaze: async (input, ctx) => {
-    return Result.ok(data);
-  }
+  detours: [
+    {
+      on: ConflictError,
+      recover: async () => {
+        throw new Error("boom");
+      },
+    },
+  ],
+  blaze: () => Result.err(new ConflictError("conflict")),
 })`
       );
 
       const report = await runWarden({ rootDir: dir });
-      const detourRefErrors = report.diagnostics.filter(
-        (diagnostic) => diagnostic.rule === 'valid-detour-refs'
+      const detourRecoverErrors = report.diagnostics.filter(
+        (diagnostic) => diagnostic.rule === 'no-throw-in-detour-recover'
       );
 
-      expect(detourRefErrors).toHaveLength(0);
-    } finally {
-      rmSync(dir, { force: true, recursive: true });
-    }
-  });
-
-  test('detour target collection is dormant (detours use error classes, not trail IDs)', async () => {
-    const dir = makeTempDir();
-    try {
-      writeFileSync(
-        join(dir, 'show.ts'),
-        `trail("entity.show", {
-  detours: { NotFoundError: ["entity.search"] },
-  blaze: async (input, ctx) => {
-    return Result.ok(data);
-  }
-})`
-      );
-      writeFileSync(
-        join(dir, 'search.ts'),
-        `trail("entity.search", {
-  blaze: async (input, ctx) => {
-    throw new Error("boom");
-  }
-})`
-      );
-
-      const report = await runWarden({ rootDir: dir });
-      const detourThrowRules = report.diagnostics.filter(
-        (diagnostic) => diagnostic.rule === 'no-throw-in-detour-target'
-      );
-
-      // Target collection stays dormant because modern detours match error
-      // classes, not trail IDs. Shadowed detours are linted separately.
-      expect(detourThrowRules).toHaveLength(0);
+      expect(detourRecoverErrors).toHaveLength(1);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -197,6 +161,42 @@ trail("entity.save", {
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
+  });
+
+  test('includes topo-aware detour contract diagnostics when topo is supplied', async () => {
+    const validTrail = trail('entity.save', {
+      blaze: () => Result.ok({ ok: true }),
+      detours: [
+        {
+          on: ConflictError,
+          recover: () => Result.ok({ ok: true }),
+        },
+      ],
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const malformed = {
+      ...validTrail,
+      detours: [
+        {
+          on: 'ConflictError',
+          recover: 'not callable',
+        },
+      ],
+    } as typeof validTrail;
+
+    const report = await runWarden({
+      topo: topo('invalid-detour-contract', {
+        malformed,
+      } as Record<string, unknown>),
+    });
+
+    const contractDiagnostics = report.diagnostics.filter(
+      (diagnostic) => diagnostic.rule === 'valid-detour-contract'
+    );
+
+    expect(contractDiagnostics).toHaveLength(2);
   });
 
   test('uses project context for contour references across files', async () => {
