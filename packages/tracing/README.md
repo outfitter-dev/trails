@@ -110,17 +110,19 @@ try {
 SQLite-backed persistence for local development:
 
 ```typescript
-import { createDevStore, toTraceStore, registerTraceSink } from '@ontrails/tracing';
+import { createDevStore, registerTraceSink } from '@ontrails/tracing';
 
 const store = createDevStore({
   path: './debug.db',
   maxRecords: 50000,
   maxAge: 1000 * 60 * 60 * 24 * 30,
 });
-registerTraceSink(toTraceStore(store));
+registerTraceSink(store);
 ```
 
-The dev store uses WAL mode and prunes automatically.
+The dev store uses WAL mode and prunes automatically. Use `toTraceStore(store)`
+only when you need a read-only view for consumers that must not own the
+underlying writable connection.
 
 ### OpenTelemetry connector
 

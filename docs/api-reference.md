@@ -357,11 +357,14 @@ registerTraceSink(sink)              // install a sink for trace records
 getTraceSink()                       // get the currently registered sink
 clearTraceSink()                     // revert to the default no-op sink
 NOOP_SINK                            // stable disabled-tracing sentinel
+TRACE_CONTEXT_KEY                    // context extensions key for the active trace context
+createTraceRecord(options)           // construct a root or child TraceRecord explicitly
 
 // Sinks
 createMemorySink()                   // in-memory sink for testing
 createDevStore(options?)             // SQLite-backed persistent sink for development
 createOtelConnector(options?)        // OpenTelemetry span exporter
+toTraceStore(store)                  // read-only TraceStore view that does not own the writable connection
 
 // Resource & trails
 tracingResource                      // resource for tracing state

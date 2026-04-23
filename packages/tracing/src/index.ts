@@ -6,15 +6,13 @@ export {
   type TraceRecord,
   type TraceSink,
   clearTraceSink,
+  createTraceRecord,
   getTraceContext,
   getTraceSink,
   NOOP_SINK,
   registerTraceSink,
-} from '@ontrails/core';
-export {
   TRACE_CONTEXT_KEY,
-  createTraceRecord,
-} from '@ontrails/core/internal/tracing';
+} from '@ontrails/core';
 
 // Tracing-package-owned utilities
 export { createMemorySink } from './memory-sink.js';

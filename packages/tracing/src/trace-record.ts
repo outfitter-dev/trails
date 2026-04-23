@@ -5,4 +5,4 @@
  * duplicating the definition.
  */
 export { type TraceRecord } from '@ontrails/core';
-export { createTraceRecord } from '@ontrails/core/internal/tracing';
+export { createTraceRecord } from '@ontrails/core';

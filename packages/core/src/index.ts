@@ -190,10 +190,12 @@ export type { ExecuteTrailOptions } from './execute.js';
 // Intrinsic tracing
 export {
   clearTraceSink,
+  createTraceRecord,
   getTraceContext,
   getTraceSink,
   NOOP_SINK,
   registerTraceSink,
+  TRACE_CONTEXT_KEY,
 } from './internal/tracing.js';
 export type {
   TraceContext,
