@@ -169,15 +169,15 @@ export const parseImportedBindings = (
   );
 
   for (const statement of sourceFile.statements) {
-    const { importClause, moduleSpecifier } = statement;
-
     if (
       !ts.isImportDeclaration(statement) ||
-      !importClause ||
-      !ts.isStringLiteralLike(moduleSpecifier)
+      !statement.importClause ||
+      !ts.isStringLiteralLike(statement.moduleSpecifier)
     ) {
       continue;
     }
+
+    const { importClause, moduleSpecifier } = statement;
 
     // Whole statement is type-only (`import type { ... }`) — none of these
     // bindings exist at runtime, so skip the verify-exported-bindings step
