@@ -2,13 +2,21 @@
 #
 # bootstrap.sh — Get this repo from clone to runnable
 #
-# Usage: ./scripts/bootstrap.sh [--force]
+# Usage: ./scripts/bootstrap.sh [--force] [--update]
 #
 # By default, exits immediately if all tools and deps are present.
 # Use --force to run full bootstrap regardless.
 #
 # This script is safe to run repeatedly. Cloud agents (Claude Code, Codex)
 # should run this before any other commands.
+#
+# Runtime requirements:
+#   - bash 4+
+#   - python3 (or python) — used by `python_json` to parse package.json
+#     before Bun is available. Nearly ubiquitous on macOS and Linux; on
+#     minimal container images it may need to be installed first. If
+#     Python is absent, bootstrap fails loudly rather than silently
+#     skipping the workspace dependency check.
 #
 
 set -euo pipefail
@@ -29,54 +37,17 @@ if [[ -z "$PINNED_BUN_VERSION" ]]; then
   exit 1
 fi
 
-has_repo_install_state() {
-  [[ -e "$REPO_ROOT/node_modules" ]] || return 1
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/bootstrap.sh [--force] [--update]
 
-  local dir
-  local nullglob_state
-  nullglob_state="$(shopt -p nullglob)"
-  shopt -s nullglob
-  for dir in "$REPO_ROOT"/packages/* "$REPO_ROOT"/apps/*; do
-    [[ -f "$dir/package.json" ]] || continue
-    if [[ ! -e "$dir/node_modules" ]]; then
-      eval "$nullglob_state"
-      return 1
-    fi
-  done
-  eval "$nullglob_state"
+  --force   Run the full bootstrap even if tools and dependencies look present.
+  --update  Refresh dependencies with a non-frozen install.
+EOF
 }
 
-# -----------------------------------------------------------------------------
-# Fast path — exit immediately if all tools and deps are present
-# -----------------------------------------------------------------------------
-if [[ "${1:-}" != "--force" ]]; then
-  all_present=true
-
-  if command -v bun &>/dev/null; then
-    installed_bun_version="$(bun --version)"
-    [[ "$installed_bun_version" == "$PINNED_BUN_VERSION" ]] || all_present=false
-  else
-    all_present=false
-  fi
-
-  command -v gh &>/dev/null || all_present=false
-  command -v gt &>/dev/null || all_present=false
-  has_repo_install_state || all_present=false
-
-  if $all_present; then
-    exit 0  # All good, nothing to do
-  fi
-fi
-
-# Capture and strip --force if present
-FORCE=false
-if [[ "${1:-}" == "--force" ]]; then
-  FORCE=true
-  shift
-fi
-
-# Colors (disabled when not a terminal)
-if [[ -t 1 ]]; then
+# Colors (disabled when stderr is not a terminal — all log helpers write there)
+if [[ -t 2 ]]; then
   RED='\033[0;31m'
   GREEN='\033[0;32m'
   YELLOW='\033[0;33m'
@@ -86,21 +57,131 @@ else
   RED='' GREEN='' YELLOW='' BLUE='' NC=''
 fi
 
-info() { echo -e "${BLUE}▸${NC} $1"; }
-success() { echo -e "${GREEN}✓${NC} $1"; }
-warn() { echo -e "${YELLOW}!${NC} $1"; }
+info() { echo -e "${BLUE}▸${NC} $1" >&2; }
+success() { echo -e "${GREEN}✓${NC} $1" >&2; }
+warn() { echo -e "${YELLOW}!${NC} $1" >&2; }
 error() { echo -e "${RED}✗${NC} $1" >&2; }
 
 # Check if command exists
 has() { command -v "$1" &>/dev/null; }
 
-# Detect OS
-OS="$(uname -s)"
-case "$OS" in
-  Darwin) IS_MACOS=true ;;
-  Linux)  IS_MACOS=false ;;
-  *)      error "Unsupported OS: $OS"; exit 1 ;;
-esac
+python_json() {
+  if command -v python3 &>/dev/null; then
+    python3 "$@"
+  elif command -v python &>/dev/null; then
+    python "$@"
+  else
+    warn "Python not found; workspace install-state check skipped"
+    return 1
+  fi
+}
+
+list_workspace_globs() {
+  python_json - "$REPO_ROOT/package.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as fh:
+    package = json.load(fh)
+
+for workspace in package.get("workspaces", []):
+    print(workspace)
+PY
+}
+
+has_repo_install_state() {
+  [[ -e "$REPO_ROOT/node_modules" ]] || return 1
+
+  local dir
+  local workspace_glob
+  local workspace_globs=()
+  local nullglob_state
+  local ws_output
+  nullglob_state="$(shopt -p nullglob)"
+
+  # Capture list_workspace_globs output into a variable so its exit code is
+  # visible. Using process substitution hides failures (e.g. missing Python
+  # or malformed JSON) and would cause the caller to skip install entirely.
+  if ! ws_output="$(list_workspace_globs)"; then
+    return 1
+  fi
+
+  shopt -s nullglob
+  if [[ -n "$ws_output" ]]; then
+    while IFS= read -r workspace_glob; do
+      [[ -n "$workspace_glob" ]] || continue
+      workspace_globs+=("$workspace_glob")
+    done <<< "$ws_output"
+  fi
+  for workspace_glob in "${workspace_globs[@]}"; do
+    [[ -n "$workspace_glob" ]] || continue
+    for dir in "$REPO_ROOT"/$workspace_glob; do
+      [[ -f "$dir/package.json" ]] || continue
+      if [[ ! -e "$dir/node_modules" ]]; then
+        eval "$nullglob_state"
+        return 1
+      fi
+    done
+  done
+  eval "$nullglob_state"
+}
+
+FORCE=false
+UPDATE_INSTALL=false
+IS_MACOS=false
+
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --force)
+        FORCE=true
+        ;;
+      --update)
+        UPDATE_INSTALL=true
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        error "Unknown option: $1"
+        usage >&2
+        exit 1
+        ;;
+    esac
+    shift
+  done
+}
+
+# Fast path — returns 0 if everything is present and we should exit early.
+fast_path_ready() {
+  if $FORCE || $UPDATE_INSTALL; then
+    return 1
+  fi
+
+  local installed_bun_version
+  if command -v bun &>/dev/null; then
+    installed_bun_version="$(bun --version)"
+    [[ "$installed_bun_version" == "$PINNED_BUN_VERSION" ]] || return 1
+  else
+    return 1
+  fi
+
+  command -v gh &>/dev/null || return 1
+  command -v gt &>/dev/null || return 1
+  has_repo_install_state || return 1
+  return 0
+}
+
+detect_os() {
+  local os
+  os="$(uname -s)"
+  case "$os" in
+    Darwin) IS_MACOS=true ;;
+    Linux)  IS_MACOS=false ;;
+    *)      error "Unsupported OS: $os"; exit 1 ;;
+  esac
+}
 
 # -----------------------------------------------------------------------------
 # Homebrew (macOS only)
@@ -229,16 +310,24 @@ check_auth() {
 # Project dependencies
 # -----------------------------------------------------------------------------
 install_deps() {
-  info "Installing project dependencies with Bun..."
+  if $UPDATE_INSTALL; then
+    info "Refreshing project dependencies with Bun..."
+  else
+    info "Installing project dependencies with Bun (frozen lockfile)..."
+  fi
   (
     cd "$REPO_ROOT"
-    bun install
+    if $UPDATE_INSTALL; then
+      bun install
+    else
+      bun install --frozen-lockfile
+    fi
   )
   success "Dependencies installed"
 }
 
 ensure_project_deps() {
-  if ! $FORCE && has_repo_install_state; then
+  if ! $FORCE && ! $UPDATE_INSTALL && has_repo_install_state; then
     success "Dependencies already available"
     return
   fi
@@ -262,10 +351,18 @@ ensure_project_deps() {
 # Main
 # -----------------------------------------------------------------------------
 main() {
-  echo ""
-  echo -e "${BLUE}Trails Bootstrap${NC}"
-  echo "────────────────────"
-  echo ""
+  parse_args "$@"
+
+  if fast_path_ready; then
+    exit 0  # All good, nothing to do
+  fi
+
+  detect_os
+
+  echo "" >&2
+  echo -e "${BLUE}Trails Bootstrap${NC}" >&2
+  echo "────────────────────" >&2
+  echo "" >&2
 
   # Prerequisites
   if $IS_MACOS; then
@@ -280,19 +377,22 @@ main() {
   # Auth status
   check_auth
 
-  echo ""
+  echo "" >&2
 
   # Project setup
   ensure_project_deps
 
-  echo ""
-  echo -e "${GREEN}Bootstrap complete!${NC}"
-  echo ""
-  echo "Next steps:"
-  echo "  bun run build      # Build all packages"
-  echo "  bun run test       # Run tests"
-  echo "  bun run check      # Lint + format + typecheck"
-  echo ""
+  echo "" >&2
+  echo -e "${GREEN}Bootstrap complete!${NC}" >&2
+  echo "" >&2
+  echo "Next steps:" >&2
+  echo "  bun run build      # Build all packages" >&2
+  echo "  bun run test       # Run tests" >&2
+  echo "  bun run check      # Lint + format + typecheck" >&2
+  echo "  ./scripts/bootstrap.sh --update   # Refresh dependencies intentionally" >&2
+  echo "" >&2
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi
