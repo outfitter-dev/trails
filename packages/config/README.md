@@ -2,7 +2,7 @@
 
 Schema-derived configuration for Trails.
 
-The root package owns the connector-agnostic config declaration and resolution engine. Schemas define the contract; the resource and layer bind resolved values to the execution context.
+The root package owns the connector-agnostic config declaration and resolution engine. Schemas define the contract, and `configResource` exposes resolved values to trail execution.
 
 ## The core pattern
 
@@ -88,6 +88,9 @@ defaults (schema) → base → profile → local → env
 
 Each layer overrides the previous. Environment variables always win.
 
+`appConfig()` discovers `*.config.toml`, `*.config.json`, `*.config.jsonc`, and
+`*.config.yaml` by default, plus dotfile equivalents when `dotfile: true`.
+
 ## Extensions
 
 ### `env()`
@@ -147,17 +150,6 @@ export const myTrail = trail('my.trail', {
     return Result.ok(state.resolved);
   },
 });
-```
-
-## The layer
-
-The config layer reserves a slot in the execution context for per-trail config validation:
-
-```typescript
-import { configLayer } from '@ontrails/config';
-
-export const graph = topo('my-app', configModule);
-// Register configLayer with your trailhead
 ```
 
 ## Trail definitions

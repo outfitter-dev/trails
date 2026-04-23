@@ -93,10 +93,7 @@ const discoverLocalOverrides = async (
 export const defineConfig = <T extends z.ZodType>(
   options: DefineConfigOptions<T>
 ) => {
-  const config = appConfig('trails', {
-    formats: ['toml', 'json'],
-    schema: options.schema,
-  });
+  const config = appConfig('trails', { schema: options.schema });
 
   return {
     ...config,

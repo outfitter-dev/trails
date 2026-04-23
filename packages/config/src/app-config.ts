@@ -77,7 +77,12 @@ export interface AppConfig<T extends z.ZodType> {
 // Default values
 // ---------------------------------------------------------------------------
 
-const DEFAULT_FORMATS: readonly ConfigFormat[] = ['toml', 'json', 'yaml'];
+const DEFAULT_FORMATS: readonly ConfigFormat[] = [
+  'toml',
+  'json',
+  'jsonc',
+  'yaml',
+];
 
 // ---------------------------------------------------------------------------
 // Internal helpers (defined before consumers — no-use-before-define)

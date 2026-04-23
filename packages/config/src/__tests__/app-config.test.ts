@@ -45,9 +45,9 @@ describe('appConfig()', () => {
       expect(config.schema).toBe(testSchema);
     });
 
-    test('defaults formats to toml, json, yaml when not specified', () => {
+    test('defaults formats to toml, json, jsonc, yaml when not specified', () => {
       const config = appConfig('myapp', { schema: testSchema });
-      expect(config.formats).toEqual(['toml', 'json', 'yaml']);
+      expect(config.formats).toEqual(['toml', 'json', 'jsonc', 'yaml']);
     });
 
     test('uses provided formats', () => {
@@ -216,6 +216,19 @@ describe('appConfig()', () => {
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap().output).toBe('./from-toml');
+    });
+
+    test('includes jsonc in the default discovery set', async () => {
+      await Bun.write(
+        join(tempDir, 'myapp.config.jsonc'),
+        '{\n  // comment\n  "output": "./from-jsonc"\n}\n'
+      );
+
+      const config = appConfig('myapp', { schema: testSchema });
+      const result = await config.resolve({ cwd: tempDir });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap().output).toBe('./from-jsonc');
     });
 
     test('returns Result.err when no config file found', async () => {

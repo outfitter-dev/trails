@@ -177,6 +177,12 @@ describe('defineConfig', () => {
     expect(value.port).toBe(0);
   });
 
+  test('inherits the canonical appConfig format list, including jsonc', () => {
+    const config = defineConfig({ schema });
+
+    expect(config.formats).toEqual(['toml', 'json', 'jsonc', 'yaml']);
+  });
+
   describe('local overrides', () => {
     let tempDir: string;
 

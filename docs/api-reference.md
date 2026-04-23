@@ -294,9 +294,8 @@ env(schema, envVar)                  // bind a schema field to an environment va
 secret(schema)                       // mark a field as sensitive (redacted in output)
 deprecated(schema, message)          // mark a field as deprecated with migration guidance
 
-// Resource & layer
+// Resource
 configResource                       // resource for resolved config state
-configLayer                          // layer for per-trail config context
 
 // State management
 registerConfigState(state)           // register resolved config at bootstrap

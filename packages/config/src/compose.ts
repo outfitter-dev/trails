@@ -17,9 +17,6 @@ export interface ResourceConfigEntry {
   readonly schema: z.ZodType;
 }
 
-/** Backward-compatible alias while the migration is in flight. */
-export type ServiceConfigEntry = ResourceConfigEntry;
-
 /** Minimal shape needed to extract config from a resource-like object. */
 interface ResourceWithOptionalConfig {
   readonly id: string;
@@ -47,6 +44,3 @@ export const collectResourceConfigs = (
         svc.config !== undefined
     )
     .map((svc) => ({ resourceId: svc.id, schema: svc.config }));
-
-/** Backward-compatible alias while the migration is in flight. */
-export const collectServiceConfigs = collectResourceConfigs;
