@@ -1,6 +1,8 @@
 pre-commit:
-  parallel: false
+  piped: true
   commands:
+    format_guard:
+      run: bun run format:guard
     format:
       glob: '**/*.{ts,tsx,js,jsx,json,jsonc}'
       run: bun run format:file {staged_files}

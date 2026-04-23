@@ -27,7 +27,7 @@ bun run clean
 ```
 
 For direct local lint and format validation, prefer `bunx ultracite check` and `bunx ultracite fix`.
-For pinned formatter runs, prefer `bun run format:check`, `bun run format:fix`, or `bunx ultracite ...` over calling `./node_modules/.bin/ultracite` directly. Bun sets up `node_modules/.bin` on `PATH`, which lets `ultracite` resolve sibling tools like `oxfmt` and `oxlint`.
+For pinned formatter runs, prefer `bun run format:check`, `bun run format:fix`, or `bunx ultracite ...` over invoking the binary by a direct `node_modules/.bin` path. Bun sets up `node_modules/.bin` on `PATH`, which lets `ultracite` resolve sibling tools like `oxfmt` and `oxlint`.
 
 ## Project Overview
 
