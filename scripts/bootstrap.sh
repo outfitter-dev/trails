@@ -12,11 +12,10 @@
 #
 # Runtime requirements:
 #   - bash 4+
-#   - python3 (or python) — used by `python_json` to parse package.json
-#     before Bun is available. Nearly ubiquitous on macOS and Linux; on
-#     minimal container images it may need to be installed first. If
-#     Python is absent, bootstrap fails loudly rather than silently
-#     skipping the workspace dependency check.
+#   - one of: bun, node, python3, or python — used to parse package.json
+#     before dependency install checks can trust workspace state. Prefer
+#     Bun or Node when available so agent and CI environments do not depend
+#     on Python being present.
 #
 
 set -euo pipefail
@@ -65,28 +64,53 @@ error() { echo -e "${RED}✗${NC} $1" >&2; }
 # Check if command exists
 has() { command -v "$1" &>/dev/null; }
 
-python_json() {
-  if command -v python3 &>/dev/null; then
-    python3 "$@"
-  elif command -v python &>/dev/null; then
-    python "$@"
-  else
-    warn "Python not found; workspace install-state check skipped"
-    return 1
-  fi
-}
-
 list_workspace_globs() {
-  python_json - "$REPO_ROOT/package.json" <<'PY'
-import json
-import sys
+  if has bun; then
+    TRAILS_PACKAGE_JSON="$REPO_ROOT/package.json" bun --eval '
+      const packageJson = JSON.parse(
+        await Bun.file(process.env.TRAILS_PACKAGE_JSON).text()
+      );
+      for (const workspace of packageJson.workspaces ?? []) {
+        console.log(workspace);
+      }
+    '
+  elif has node; then
+    TRAILS_PACKAGE_JSON="$REPO_ROOT/package.json" node --input-type=module --eval '
+      import { readFileSync } from "node:fs";
 
-with open(sys.argv[1], "r", encoding="utf-8") as fh:
+      const packageJson = JSON.parse(
+        readFileSync(process.env.TRAILS_PACKAGE_JSON, "utf8")
+      );
+      for (const workspace of packageJson.workspaces ?? []) {
+        console.log(workspace);
+      }
+    '
+  elif has python3; then
+    TRAILS_PACKAGE_JSON="$REPO_ROOT/package.json" python3 - <<'PY'
+import json
+import os
+
+with open(os.environ["TRAILS_PACKAGE_JSON"], "r", encoding="utf-8") as fh:
     package = json.load(fh)
 
 for workspace in package.get("workspaces", []):
     print(workspace)
 PY
+  elif has python; then
+    TRAILS_PACKAGE_JSON="$REPO_ROOT/package.json" python - <<'PY'
+import json
+import os
+
+with open(os.environ["TRAILS_PACKAGE_JSON"], "r", encoding="utf-8") as fh:
+    package = json.load(fh)
+
+for workspace in package.get("workspaces", []):
+    print(workspace)
+PY
+  else
+    warn "No Bun, Node, or Python runtime found; workspace install-state check skipped"
+    return 1
+  fi
 }
 
 has_repo_install_state() {

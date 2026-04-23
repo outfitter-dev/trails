@@ -11,6 +11,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join, resolve } from 'node:path';
+import ts from 'typescript';
 
 interface ReadmeSnippetConfig {
   readonly prelude?: string | undefined;
@@ -100,9 +101,6 @@ declare function trail(
 ] as const;
 
 const TYPESCRIPT_FENCE_PATTERN = /^(?:ts|tsx|typescript)$/;
-const IMPORT_PATTERN =
-  /^import\s+(type\s+)?\{([^}]+)\}\s+from\s+['"]([^'"]+)['"];?$/gm;
-
 const extractSnippets = (
   markdown: string,
   sourcePath?: string
@@ -157,37 +155,51 @@ const extractSnippets = (
   return snippets;
 };
 
-const parseImportedBindings = (snippet: string): readonly ImportedBinding[] => {
+export const parseImportedBindings = (
+  snippet: string
+): readonly ImportedBinding[] => {
   const bindings: ImportedBinding[] = [];
 
-  for (const match of snippet.matchAll(IMPORT_PATTERN)) {
-    const [, typeModifier, imported, moduleSpecifier] = match;
+  const sourceFile = ts.createSourceFile(
+    'readme-snippet.ts',
+    snippet,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS
+  );
 
-    if (!imported || !moduleSpecifier) {
+  for (const statement of sourceFile.statements) {
+    const { importClause, moduleSpecifier } = statement;
+
+    if (
+      !ts.isImportDeclaration(statement) ||
+      !importClause ||
+      !ts.isStringLiteralLike(moduleSpecifier)
+    ) {
       continue;
     }
 
     // Whole statement is type-only (`import type { ... }`) — none of these
     // bindings exist at runtime, so skip the verify-exported-bindings step
     // entirely rather than false-positive on every specifier.
-    if (typeModifier) {
+    if (importClause.isTypeOnly) {
       continue;
     }
 
-    for (const specifier of imported.split(',')) {
-      const trimmed = specifier.trim();
-      // Per-binding `type` modifier (`import { type Foo, Bar }`) also makes
-      // that specifier type-only — skip it without recording a binding.
-      if (trimmed.startsWith('type ') || trimmed.startsWith('type\t')) {
+    const { namedBindings } = importClause;
+    if (!namedBindings || !ts.isNamedImports(namedBindings)) {
+      continue;
+    }
+
+    for (const specifier of namedBindings.elements) {
+      if (specifier.isTypeOnly) {
         continue;
       }
 
-      const [name] = trimmed.split(/\s+as\s+/);
-      if (!name) {
-        continue;
-      }
-
-      bindings.push({ moduleSpecifier, name });
+      bindings.push({
+        moduleSpecifier: moduleSpecifier.text,
+        name: specifier.propertyName?.text ?? specifier.name.text,
+      });
     }
   }
 
@@ -434,4 +446,6 @@ const main = async (): Promise<void> => {
   }
 };
 
-await main();
+if (import.meta.main) {
+  await main();
+}

@@ -96,12 +96,12 @@ Composition-specific fields: `expectCrossed` (ordered trail IDs), `expectCrossed
 
 ## `testContracts(graph)` / `testDetours(graph)`
 
-`testContracts` verifies every trail's implementation output matches its declared output schema -- catches drift. `testDetours` checks that every detour target references a trail that exists in the topo. Both are included in `testAll` automatically; use standalone when debugging a specific failure.
+`testContracts` verifies every trail's implementation output matches its declared output schema -- catches drift. `testDetours` validates detour constructor, `recover`, and shadowing semantics. Both are included in `testAll` automatically; use standalone when debugging a specific failure.
 
 ```typescript
 import { testContracts, testDetours } from '@ontrails/testing';
 testContracts(graph);  // schema drift detection
-testDetours(graph);    // structural detour validation
+testDetours(graph);    // detour contract validation
 ```
 
 ## Service Mocking
