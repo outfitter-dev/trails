@@ -1,17 +1,19 @@
 import {
+  buildUserNamespaceContext,
   collectContourDefinitionIds,
   collectImportAliasMap,
   collectNamedContourIds,
-  collectUserNamespaceImportBindings,
   extractFirstStringArg,
   findConfigProperty,
   findTrailDefinitions,
   identifierName,
+  isMemberAccessNonComputed,
+  isUserNamespaceReceiverAllowed,
   offsetToLine,
   parse,
   deriveContourIdentifierName,
 } from './ast.js';
-import type { AstNode, TrailDefinition } from './ast.js';
+import type { AstNode, TrailDefinition, UserNamespaceContext } from './ast.js';
 import { mergeKnownContourIds } from './contour-ids.js';
 import { isTestFile } from './scan.js';
 import type {
@@ -42,17 +44,18 @@ const getContourElements = (config: AstNode): readonly AstNode[] => {
   return elements ?? [];
 };
 
+/**
+ * Resolve `contours.user` to its contour name. When `userNamespace` carries a
+ * scope-aware `safeMemberStarts` set, the member access must appear in it —
+ * rejecting cases where `contours` is shadowed by a local binding such as a
+ * function parameter or `const contours = ...`. Without the set, falls back
+ * to the bare name check for backward compatibility.
+ */
 const resolveNamespaceMemberContourName = (
   element: AstNode,
-  userNamespaceBindings: ReadonlySet<string>
+  userNamespace: UserNamespaceContext
 ): string | null => {
-  if (
-    element.type !== 'MemberExpression' &&
-    element.type !== 'StaticMemberExpression'
-  ) {
-    return null;
-  }
-  if ((element as unknown as { computed?: boolean }).computed === true) {
+  if (!isMemberAccessNonComputed(element)) {
     return null;
   }
   const { object, property } = element as unknown as {
@@ -60,7 +63,10 @@ const resolveNamespaceMemberContourName = (
     readonly property?: AstNode;
   };
   const receiver = object ? identifierName(object) : null;
-  if (!receiver || !userNamespaceBindings.has(receiver)) {
+  if (
+    !receiver ||
+    !isUserNamespaceReceiverAllowed(receiver, element.start, userNamespace)
+  ) {
     return null;
   }
   return property ? identifierName(property) : null;
@@ -71,7 +77,7 @@ const resolveDeclaredContourName = (
   contourIdsByName: ReadonlyMap<string, string>,
   knownContourIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
-  userNamespaceBindings?: ReadonlySet<string>
+  userNamespace?: UserNamespaceContext
 ): string | null => {
   if (element.type === 'Identifier') {
     const name = identifierName(element);
@@ -85,10 +91,10 @@ const resolveDeclaredContourName = (
       : null;
   }
 
-  if (userNamespaceBindings && userNamespaceBindings.size > 0) {
+  if (userNamespace && userNamespace.bindings.size > 0) {
     const namespaceTarget = resolveNamespaceMemberContourName(
       element,
-      userNamespaceBindings
+      userNamespace
     );
     if (namespaceTarget) {
       return namespaceTarget;
@@ -103,7 +109,7 @@ const extractDeclaredContourNames = (
   contourIdsByName: ReadonlyMap<string, string>,
   knownContourIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
-  userNamespaceBindings?: ReadonlySet<string>
+  userNamespace?: UserNamespaceContext
 ): readonly string[] => [
   ...new Set(
     getContourElements(config).flatMap((element) => {
@@ -112,7 +118,7 @@ const extractDeclaredContourNames = (
         contourIdsByName,
         knownContourIds,
         importAliases,
-        userNamespaceBindings
+        userNamespace
       );
       return contourName ? [contourName] : [];
     })
@@ -139,7 +145,7 @@ const buildDiagnosticsForDefinition = (
   knownContourIds: ReadonlySet<string>,
   contourIdsByName: ReadonlyMap<string, string>,
   importAliases: ReadonlyMap<string, string>,
-  userNamespaceBindings: ReadonlySet<string>
+  userNamespace: UserNamespaceContext
 ): readonly WardenDiagnostic[] => {
   if (definition.kind !== 'trail') {
     return [];
@@ -151,7 +157,7 @@ const buildDiagnosticsForDefinition = (
     contourIdsByName,
     knownContourIds,
     importAliases,
-    userNamespaceBindings
+    userNamespace
   ).flatMap((contourName) =>
     knownContourIds.has(contourName)
       ? []
@@ -174,7 +180,7 @@ const buildContourDiagnostics = (
 ): readonly WardenDiagnostic[] => {
   const contourIdsByName = collectNamedContourIds(ast);
   const importAliases = collectImportAliasMap(ast);
-  const userNamespaceBindings = collectUserNamespaceImportBindings(ast);
+  const userNamespace = buildUserNamespaceContext(ast);
 
   return findTrailDefinitions(ast).flatMap((definition) =>
     buildDiagnosticsForDefinition(
@@ -184,7 +190,7 @@ const buildContourDiagnostics = (
       knownContourIds,
       contourIdsByName,
       importAliases,
-      userNamespaceBindings
+      userNamespace
     )
   );
 };

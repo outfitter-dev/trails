@@ -1116,19 +1116,25 @@ const isShadowed = (
 };
 
 /**
- * `isNonComputedMemberAccess` + `getNamespacedMemberNames` forward
- * declarations. The bodies live next to the other callee-resolution helpers
- * further down. Declared early here so the scope walker can use them without
- * hitting `no-use-before-define`.
+ * Return `true` when `node` is a non-computed member access (`a.b` /
+ * `a?.b`) and `false` for anything else, including computed access
+ * (`a[b]`) or non-member nodes. Exported as the canonical predicate so
+ * rule modules do not re-implement the check.
+ *
+ * @remarks
+ * Declared near the top of the file so the scope walker can use it
+ * without hitting `no-use-before-define`. A few sibling helpers in this
+ * module still inline the same shape under different local names for
+ * historical reasons; prefer this export for new call sites.
  */
-const isMemberAccessNonComputed = (callee: AstNode): boolean => {
+export const isMemberAccessNonComputed = (node: AstNode): boolean => {
   if (
-    callee.type !== 'MemberExpression' &&
-    callee.type !== 'StaticMemberExpression'
+    node.type !== 'MemberExpression' &&
+    node.type !== 'StaticMemberExpression'
   ) {
     return false;
   }
-  return (callee as unknown as { computed?: boolean }).computed !== true;
+  return (node as unknown as { computed?: boolean }).computed !== true;
 };
 
 const resolveNamespacedMemberNames = (
@@ -1801,6 +1807,76 @@ export const collectUserNamespaceImportBindings = (
   return bindings;
 };
 
+/**
+ * Resolution context for user-namespace member access like `contours.user`.
+ * Bundles the set of local namespace-binding names (from `import * as x from
+ * './contours'`) with an optional set of proven-safe `MemberExpression` start
+ * offsets from a scope-aware pre-pass. When `safeMemberStarts` is present, a
+ * member access only resolves to a user-namespace target if its start is in
+ * the set — so a function-local shadow of the namespace import does not leak
+ * through. When absent, the name-only gate is used as a
+ * backward-compatible fallback for ad-hoc callers.
+ */
+export interface UserNamespaceContext {
+  readonly bindings: ReadonlySet<string>;
+  readonly safeMemberStarts?: ReadonlySet<number>;
+}
+
+/**
+ * Walk the AST with a scope stack and collect `MemberExpression` start offsets
+ * whose receiver is a user-namespace binding that is NOT shadowed by any
+ * enclosing scope. Mirrors `collectFrameworkNamespacedCallStarts` for the
+ * framework-namespace path so `contours.user` inside
+ * `function f(contours) { ... }` is rejected as shadowed.
+ */
+/**
+ * Return the receiver-identifier name of a non-computed member access, or
+ * `null` for any other node shape (computed access, non-member, etc.).
+ */
+const getNonComputedMemberReceiver = (node: AstNode): string | null => {
+  if (!isMemberAccessNonComputed(node)) {
+    return null;
+  }
+  const { object } = node as unknown as { object?: AstNode };
+  return object ? identifierName(object) : null;
+};
+
+const collectUserNamespacedMemberStarts = (
+  ast: AstNode,
+  bindings: ReadonlySet<string>
+): ReadonlySet<number> => {
+  const starts = new Set<number>();
+  if (bindings.size === 0) {
+    return starts;
+  }
+
+  walkWithScopes(ast, (node, scopes) => {
+    const receiver = getNonComputedMemberReceiver(node);
+    if (!receiver || !bindings.has(receiver) || isShadowed(receiver, scopes)) {
+      return;
+    }
+    starts.add(node.start);
+  });
+
+  return starts;
+};
+
+/**
+ * Build a {@link UserNamespaceContext} for `ast`, including the scope-aware
+ * `safeMemberStarts` gate. Prefer this over bare
+ * {@link collectUserNamespaceImportBindings} so member access like
+ * `contours.user` is rejected when `contours` is shadowed by a local binding.
+ */
+export const buildUserNamespaceContext = (
+  ast: AstNode
+): UserNamespaceContext => {
+  const bindings = collectUserNamespaceImportBindings(ast);
+  return {
+    bindings,
+    safeMemberStarts: collectUserNamespacedMemberStarts(ast, bindings),
+  };
+};
+
 export interface ContourReferenceSite {
   /** Field on the source contour that declares the reference. */
   readonly field: string;
@@ -1906,7 +1982,11 @@ export const deriveContourIdentifierName = (
 
 const getContourReferenceMember = (
   node: AstNode
-): { readonly object?: AstNode; readonly property?: AstNode } | null => {
+): {
+  readonly object?: AstNode;
+  readonly property?: AstNode;
+  readonly start: number;
+} | null => {
   if (
     node.type !== 'MemberExpression' &&
     node.type !== 'StaticMemberExpression'
@@ -1917,13 +1997,28 @@ const getContourReferenceMember = (
   return node as unknown as {
     readonly object?: AstNode;
     readonly property?: AstNode;
+    readonly start: number;
   };
+};
+
+const asUserNamespaceContext = (
+  input: ReadonlySet<string> | UserNamespaceContext | undefined
+): UserNamespaceContext | undefined => {
+  if (!input) {
+    return undefined;
+  }
+  return input instanceof Set
+    ? { bindings: input }
+    : (input as UserNamespaceContext);
 };
 
 /**
  * Resolve a user-namespace member access like `contours.user` to its contour
  * id. Returns the property name (e.g. `'user'`) when the receiver identifier
- * is a known user-defined namespace binding, otherwise `null`.
+ * is a known user-defined namespace binding AND — when the caller provides a
+ * {@link UserNamespaceContext} with `safeMemberStarts` — the member access
+ * site is in that set (i.e. the receiver is not shadowed by any enclosing
+ * scope). Otherwise returns `null`.
  *
  * The property name is taken as the contour id verbatim — we cannot statically
  * resolve what `contours.user` binds to without reading the other file, so we
@@ -1931,15 +2026,36 @@ const getContourReferenceMember = (
  * {@link deriveContourIdentifierName}'s downstream `knownContourIds` check
  * report a missing target.
  */
+export const isUserNamespaceReceiverAllowed = (
+  receiver: string,
+  memberStart: number,
+  ctx: UserNamespaceContext
+): boolean => {
+  if (!ctx.bindings.has(receiver)) {
+    return false;
+  }
+  // Scope-aware gate: when the pre-pass produced a set, the member access
+  // must appear in it. Without the set, fall back to the bare name check.
+  return ctx.safeMemberStarts ? ctx.safeMemberStarts.has(memberStart) : true;
+};
+
 const getContourReferenceTargetFromNamespaceMember = (
-  member: { readonly object?: AstNode; readonly property?: AstNode },
-  userNamespaceBindings?: ReadonlySet<string>
+  member: {
+    readonly object?: AstNode;
+    readonly property?: AstNode;
+    readonly start: number;
+  },
+  userNamespace?: ReadonlySet<string> | UserNamespaceContext
 ): string | null => {
-  if (!userNamespaceBindings || userNamespaceBindings.size === 0) {
+  const ctx = asUserNamespaceContext(userNamespace);
+  if (!ctx || ctx.bindings.size === 0) {
     return null;
   }
   const receiver = member.object ? identifierName(member.object) : null;
-  if (!receiver || !userNamespaceBindings.has(receiver)) {
+  if (
+    !receiver ||
+    !isUserNamespaceReceiverAllowed(receiver, member.start, ctx)
+  ) {
     return null;
   }
   const { property } = member;
@@ -1955,7 +2071,7 @@ const getContourReferenceTargetFromObject = (
   knownContourIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
   context?: ReadonlySet<string> | FrameworkNamespaceContext,
-  userNamespaceBindings?: ReadonlySet<string>
+  userNamespace?: ReadonlySet<string> | UserNamespaceContext
 ): string | null => {
   if (object.type === 'Identifier') {
     const bindingName = identifierName(object);
@@ -1973,7 +2089,7 @@ const getContourReferenceTargetFromObject = (
   if (member) {
     const namespaceTarget = getContourReferenceTargetFromNamespaceMember(
       member,
-      userNamespaceBindings
+      userNamespace
     );
     if (namespaceTarget) {
       return namespaceTarget;
@@ -2034,7 +2150,7 @@ const extractContourReferenceTarget = (
   knownContourIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
   context?: ReadonlySet<string> | FrameworkNamespaceContext,
-  userNamespaceBindings?: ReadonlySet<string>
+  userNamespace?: ReadonlySet<string> | UserNamespaceContext
 ): string | null => {
   const object = getContourIdCallObject(node);
   return object
@@ -2044,7 +2160,7 @@ const extractContourReferenceTarget = (
         knownContourIds,
         importAliases,
         context,
-        userNamespaceBindings
+        userNamespace
       )
     : null;
 };
@@ -2061,7 +2177,7 @@ const buildContourReferenceSite = (
   knownContourIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
   context?: ReadonlySet<string> | FrameworkNamespaceContext,
-  userNamespaceBindings?: ReadonlySet<string>
+  userNamespace?: ReadonlySet<string> | UserNamespaceContext
 ): ContourReferenceSite | null => {
   if (property.type !== 'Property') {
     return null;
@@ -2074,7 +2190,7 @@ const buildContourReferenceSite = (
     knownContourIds,
     importAliases,
     context,
-    userNamespaceBindings
+    userNamespace
   );
   if (!field || !target) {
     return null;
@@ -2094,7 +2210,7 @@ const findContourReferenceSitesForDefinition = (
   knownContourIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
   context?: ReadonlySet<string> | FrameworkNamespaceContext,
-  userNamespaceBindings?: ReadonlySet<string>
+  userNamespace?: ReadonlySet<string> | UserNamespaceContext
 ): readonly ContourReferenceSite[] =>
   getContourShapeProperties(definition).flatMap((property) => {
     const reference = buildContourReferenceSite(
@@ -2104,7 +2220,7 @@ const findContourReferenceSitesForDefinition = (
       knownContourIds,
       importAliases,
       context,
-      userNamespaceBindings
+      userNamespace
     );
     return reference ? [reference] : [];
   });
@@ -2116,7 +2232,7 @@ export const collectContourReferenceSites = (
 ): readonly ContourReferenceSite[] => {
   const namedContourIds = collectNamedContourIds(ast);
   const importAliases = collectImportAliasMap(ast);
-  const userNamespaceBindings = collectUserNamespaceImportBindings(ast);
+  const userNamespace = buildUserNamespaceContext(ast);
   const context = buildFrameworkNamespaceContext(ast);
   return findContourDefinitions(ast, context).flatMap((definition) =>
     findContourReferenceSitesForDefinition(
@@ -2125,7 +2241,7 @@ export const collectContourReferenceSites = (
       knownContourIds,
       importAliases,
       context,
-      userNamespaceBindings
+      userNamespace
     )
   );
 };

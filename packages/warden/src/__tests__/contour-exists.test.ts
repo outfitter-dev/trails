@@ -172,5 +172,32 @@ trail('user.create', {
         })
       ).toEqual([]);
     });
+
+    test('ignores namespace member access when receiver is shadowed by a local binding', () => {
+      const code = `
+import { Result, trail } from '@ontrails/core';
+import * as contours from './contours';
+
+function makeTrail() {
+  const contours = { user: 'not-a-contour' };
+  return trail('user.create', {
+    contours: [contours.user],
+    blaze: async () => Result.ok({ ok: true }),
+  });
+}
+
+makeTrail();
+`;
+
+      // The trail's \`contours: [contours.user]\` refers to a local
+      // \`const contours = ...\`, not the namespace import, so no
+      // missing-contour diagnostic should be produced.
+      expect(
+        contourExists.checkWithContext(code, TEST_FILE, {
+          knownContourIds: new Set<string>(),
+          knownTrailIds: new Set(['user.create']),
+        })
+      ).toEqual([]);
+    });
   });
 });

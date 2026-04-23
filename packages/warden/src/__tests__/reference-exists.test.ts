@@ -236,6 +236,30 @@ const gist = contour('gist', {
       ).toEqual([]);
     });
 
+    test('ignores namespace member access when receiver is shadowed by a function parameter', () => {
+      const code = `
+import { contour } from '@ontrails/core';
+import * as contours from './contours';
+
+function buildGist(contours: { user: { id: () => unknown } }) {
+  return contour('gist', {
+    id: 'x',
+    ownerId: contours.user.id(),
+  }, { identity: 'id' });
+}
+`;
+
+      // The \`contours\` in \`contours.user.id()\` is the function parameter,
+      // not the namespace import, so no missing-reference diagnostic should
+      // be produced.
+      expect(
+        referenceExists.checkWithContext(code, TEST_FILE, {
+          knownContourIds: new Set(['gist']),
+          knownTrailIds: new Set<string>(),
+        })
+      ).toEqual([]);
+    });
+
     test('does not flag namespace imports from @ontrails sources', () => {
       const code = `
 import * as core from '@ontrails/core';
