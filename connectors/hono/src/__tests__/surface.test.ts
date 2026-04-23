@@ -12,6 +12,13 @@ const echoTrail = trail('echo', {
   output: z.object({ reply: z.string() }),
 });
 
+const tagsTrail = trail('tags', {
+  blaze: (input) => Result.ok({ tags: input.tags }),
+  input: z.object({ tags: z.array(z.string()) }),
+  intent: 'read',
+  output: z.object({ tags: z.array(z.string()) }),
+});
+
 describe('surface API (Hono connector)', () => {
   test('createApp materializes the Hono surface without serving', async () => {
     const graph = topo('surface-api', { echoTrail });
@@ -36,5 +43,35 @@ describe('surface API (Hono connector)', () => {
     } finally {
       await handle.close();
     }
+  });
+
+  test('repeated query keys arrive as arrays for GET routes', async () => {
+    const graph = topo('surface-api', { tagsTrail });
+    const app = createApp(graph);
+
+    const response = await app.request('/tags?tags=red&tags=blue', {
+      method: 'GET',
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: { tags: ['red', 'blue'] },
+    });
+  });
+
+  test('single query values stay scalar even when the schema expects an array', async () => {
+    const graph = topo('surface-api', { tagsTrail });
+    const app = createApp(graph);
+
+    const response = await app.request('/tags?tags=solo', {
+      method: 'GET',
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: {
+        category: 'validation',
+      },
+    });
   });
 });

@@ -93,6 +93,11 @@ Each route definition produced by `deriveHttpRoutes` includes:
 | `trail` | `Trail` | The original trail definition |
 | `execute` | `(input, requestId?, abortSignal?) => Promise<Result>` | Validates, layers, and runs the implementation |
 
+For GET routes on the Hono surface, repeated query keys are passed through as
+arrays (`?tag=one&tag=two` -> `{ tag: ['one', 'two'] }`) while a single
+occurrence stays a scalar string. The connector does not coerce singleton query
+values into arrays.
+
 ## Installation
 
 ```bash
