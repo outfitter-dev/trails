@@ -25,9 +25,10 @@
     "apps/ci": {
       "name": "trails-ci",
       "dependencies": {
-        "@ontrails/core": "workspace:*",
-        "@ontrails/schema": "workspace:*",
-        "@ontrails/warden": "workspace:*",
+        "@ontrails/cli": "workspace:^",
+        "@ontrails/core": "workspace:^",
+        "@ontrails/schema": "workspace:^",
+        "@ontrails/warden": "workspace:^",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -228,6 +229,9 @@
     "packages/warden": {
       "name": "@ontrails/warden",
       "version": "1.0.0-beta.14",
+      "dependencies": {
+        "@ontrails/permits": "workspace:^",
+      },
       "devDependencies": {
         "@ontrails/testing": "workspace:^",
         "@oxc-project/types": "^0.122.0",

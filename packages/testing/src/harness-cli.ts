@@ -7,8 +7,9 @@
 
 import { deriveCliCommands } from '@ontrails/cli';
 import type { CliCommand } from '@ontrails/cli';
+import type { TrailContext } from '@ontrails/core';
 
-import { createTestContext } from './context.js';
+import { mergeTestContext } from './context.js';
 import type {
   CliHarness,
   CliHarnessOptions,
@@ -218,9 +219,10 @@ const buildErrorResult = (
 const executeCommand = async (
   command: CliCommand,
   flags: Record<string, unknown>,
-  streams: CapturedStreams
+  streams: CapturedStreams,
+  ctxOverrides?: Partial<TrailContext>
 ): Promise<CliHarnessResult> => {
-  const ctx = createTestContext();
+  const ctx = mergeTestContext(ctxOverrides);
   const result = await command.execute({}, flags, ctx);
   streams.restore();
 
@@ -238,7 +240,8 @@ const executeCommand = async (
 /** Run the full command pipeline: resolve, parse, execute. */
 const runCommand = async (
   commands: CliCommand[],
-  commandString: string
+  commandString: string,
+  ctxOverrides?: Partial<TrailContext>
 ): Promise<CliHarnessResult> => {
   const parts = parseCommandString(commandString);
   const resolved = resolveCommand(commands, parts);
@@ -255,7 +258,7 @@ const runCommand = async (
   const streams = captureStreams();
 
   try {
-    return await executeCommand(command, flags, streams);
+    return await executeCommand(command, flags, streams, ctxOverrides);
   } catch (error: unknown) {
     return buildErrorResult(error, streams);
   }
@@ -278,13 +281,14 @@ const runCommand = async (
  * ```
  */
 export const createCliHarness = (options: CliHarnessOptions): CliHarness => {
-  const commandsResult = deriveCliCommands(options.graph);
+  const { ctx, graph, ...deriveOptions } = options;
+  const commandsResult = deriveCliCommands(graph, deriveOptions);
   if (commandsResult.isErr()) {
     throw commandsResult.error;
   }
   const commands = commandsResult.value;
 
   return {
-    run: (commandString: string) => runCommand(commands, commandString),
+    run: (commandString: string) => runCommand(commands, commandString, ctx),
   };
 };

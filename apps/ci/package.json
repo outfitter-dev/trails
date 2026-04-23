@@ -8,6 +8,7 @@
     "test": "bun test src"
   },
   "dependencies": {
+    "@ontrails/cli": "workspace:^",
     "@ontrails/core": "workspace:^",
     "@ontrails/schema": "workspace:^",
     "@ontrails/warden": "workspace:^",

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, topo, trail } from '@ontrails/core';
+import { resource, Result, topo, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { createCliHarness } from '../harness-cli.js';
@@ -62,5 +62,29 @@ describe('createCliHarness', () => {
     expect(child.exitCode).toBe(0);
     expect(parent.exitCode).toBe(0);
     expect(calls).toEqual(['topo.pin', 'topo']);
+  });
+
+  test('threads resource overrides through CLI projection options', async () => {
+    const dbResource = resource('db.main', {
+      create: () => Result.ok({ source: 'factory' }),
+    });
+    const readResource = trail('resource.read', {
+      blaze: (_input, ctx) =>
+        Result.ok({ source: dbResource.from(ctx).source as string }),
+      input: z.object({}),
+      output: z.object({ source: z.string() }),
+      resources: [dbResource],
+    });
+    const harness = createCliHarness({
+      graph: topo('test-app', { dbResource, readResource }),
+      resources: {
+        'db.main': { source: 'override' },
+      },
+    });
+
+    const result = await harness.run('resource read --output json');
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('"override"');
   });
 });

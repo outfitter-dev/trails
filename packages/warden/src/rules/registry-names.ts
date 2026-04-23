@@ -29,6 +29,7 @@ import { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
 import { onReferencesExist } from './on-references-exist.js';
 import { orphanedSignal } from './orphaned-signal.js';
+import { permitGovernance } from './permit-governance.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
 import { referenceExists } from './reference-exists.js';
 import { resourceDeclarations } from './resource-declarations.js';
@@ -69,6 +70,7 @@ export const registeredRuleNames: readonly string[] = [
   noThrowInImplementation.name,
   onReferencesExist.name,
   orphanedSignal.name,
+  permitGovernance.name,
   preferSchemaInference.name,
   referenceExists.name,
   resourceDeclarations.name,

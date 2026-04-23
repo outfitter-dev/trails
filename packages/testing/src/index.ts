@@ -1,5 +1,6 @@
 // Contract-driven testing
 export { testAll } from './all.js';
+export { testAllEstablished } from './all.js';
 export { testExamples } from './examples.js';
 export { testCrosses } from './crosses.js';
 export { testTrail } from './trail.js';
@@ -46,6 +47,7 @@ export type {
   CrossScenario,
   RefToken,
   ScenarioStep,
+  TestAllEstablishedOptions,
   TestScenario,
   TestLogger,
   TestTrailContextOptions,

@@ -31,7 +31,8 @@ import type {
  * ```
  */
 export const createMcpHarness = (options: McpHarnessOptions): McpHarness => {
-  const toolsResult = deriveMcpTools(options.graph);
+  const { extra, graph, ...deriveOptions } = options;
+  const toolsResult = deriveMcpTools(graph, deriveOptions);
   if (toolsResult.isErr()) {
     throw toolsResult.error;
   }
@@ -54,9 +55,9 @@ export const createMcpHarness = (options: McpHarnessOptions): McpHarness => {
       }
 
       const result = await tool.handler(args, {
-        abortSignal: undefined,
-        progressToken: undefined,
-        sendProgress: undefined,
+        abortSignal: extra?.abortSignal,
+        progressToken: extra?.progressToken,
+        sendProgress: extra?.sendProgress,
       });
 
       return {

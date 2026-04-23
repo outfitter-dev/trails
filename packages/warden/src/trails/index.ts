@@ -21,6 +21,7 @@ export { noSyncResultAssumptionTrail } from './no-sync-result-assumption.trail.j
 export { noThrowInDetourTargetTrail } from './no-throw-in-detour-target.trail.js';
 export { noThrowInImplementationTrail } from './no-throw-in-implementation.trail.js';
 export { orphanedSignalTrail } from './orphaned-signal.trail.js';
+export { permitGovernanceTrail } from './permit-governance.trail.js';
 export { preferSchemaInferenceTrail } from './prefer-schema-inference.trail.js';
 export { referenceExistsTrail } from './reference-exists.trail.js';
 export { resourceDeclarationsTrail } from './resource-declarations.trail.js';

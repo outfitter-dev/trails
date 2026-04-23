@@ -21,6 +21,7 @@ import { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
 import { onReferencesExist } from './on-references-exist.js';
 import { orphanedSignal } from './orphaned-signal.js';
+import { permitGovernance } from './permit-governance.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
 import { referenceExists } from './reference-exists.js';
 import { resourceDeclarations } from './resource-declarations.js';
@@ -66,6 +67,7 @@ export { noSyncResultAssumption } from './no-sync-result-assumption.js';
 export { implementationReturnsResult } from './implementation-returns-result.js';
 export { noThrowInDetourTarget } from './no-throw-in-detour-target.js';
 export { orphanedSignal } from './orphaned-signal.js';
+export { permitGovernance } from './permit-governance.js';
 export { preferSchemaInference } from './prefer-schema-inference.js';
 export { referenceExists } from './reference-exists.js';
 export { resourceDeclarations } from './resource-declarations.js';
@@ -129,4 +131,5 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
 export const wardenTopoRules: ReadonlyMap<string, TopoAwareWardenRule> =
   new Map<string, TopoAwareWardenRule>([
     [incompleteAccessorForStandardOp.name, incompleteAccessorForStandardOp],
+    [permitGovernance.name, permitGovernance],
   ]);

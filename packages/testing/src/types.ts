@@ -2,7 +2,15 @@
  * Shared types for @ontrails/testing.
  */
 
-import type { AnyTrail, Logger, Topo, TraceFn } from '@ontrails/core';
+import type { DeriveCliCommandsOptions } from '@ontrails/cli';
+import type { McpExtra, DeriveMcpToolsOptions } from '@ontrails/mcp';
+import type {
+  AnyTrail,
+  Logger,
+  Topo,
+  TraceFn,
+  TrailContext,
+} from '@ontrails/core';
 import type { LogLevel, LogRecord } from '@ontrails/logging';
 
 // ---------------------------------------------------------------------------
@@ -74,7 +82,11 @@ export interface TestTrailContextOptions {
 // ---------------------------------------------------------------------------
 
 /** Options for creating a CLI harness. */
-export interface CliHarnessOptions {
+export interface CliHarnessOptions extends Omit<
+  DeriveCliCommandsOptions,
+  'onResult' | 'presets' | 'resolveInput'
+> {
+  readonly ctx?: Partial<TrailContext> | undefined;
   readonly graph: Topo;
 }
 
@@ -98,7 +110,8 @@ export interface CliHarnessResult {
 // ---------------------------------------------------------------------------
 
 /** Options for creating an MCP harness. */
-export interface McpHarnessOptions {
+export interface McpHarnessOptions extends DeriveMcpToolsOptions {
+  readonly extra?: Partial<McpExtra> | undefined;
   readonly graph: Topo;
 }
 
@@ -115,6 +128,31 @@ export interface McpHarness {
 export interface McpHarnessResult {
   readonly content: unknown;
   readonly isError: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Established verification
+// ---------------------------------------------------------------------------
+
+export interface TestAllEstablishedOptions {
+  readonly cli?: Omit<CliHarnessOptions, 'graph'> | undefined;
+  readonly createPermit?:
+    | ((trail: {
+        readonly permit?:
+          | { readonly scopes: readonly string[] }
+          | 'public'
+          | undefined;
+      }) =>
+        | {
+            readonly id: string;
+            readonly scopes: readonly string[];
+          }
+        | undefined)
+    | undefined;
+  readonly ctx?: Partial<TrailContext> | undefined;
+  readonly mcp?: Omit<McpHarnessOptions, 'graph'> | undefined;
+  readonly resources?: Record<string, unknown> | undefined;
+  readonly strictPermits?: boolean | undefined;
 }
 
 // ---------------------------------------------------------------------------

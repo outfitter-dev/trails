@@ -1,4 +1,6 @@
-import { afterAll, describe, expect, mock } from 'bun:test';
+import { afterAll, describe, expect, mock, test } from 'bun:test';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
 import { contour, Result, trail, topo } from '@ontrails/core';
 import { connectDrizzle } from '@ontrails/drizzle';
@@ -150,6 +152,53 @@ const contourDerivedTrail = trail('contour.derived.all', {
   output: contourFixture,
 });
 
+const repoTempDir = (): string =>
+  join(
+    resolve(import.meta.dir, '../..'),
+    '.tmp-tests',
+    `test-all-established-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
+
+const runGeneratedGovernanceSuite = (
+  helperName: 'testAll' | 'testAllEstablished'
+): { readonly exitCode: number; readonly output: string } => {
+  const dir = repoTempDir();
+  const testFile = join(dir, `${helperName}.test.ts`);
+
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    testFile,
+    `import { Result, trail, topo } from '@ontrails/core';
+import { ${helperName} } from '../../src/index.ts';
+import { z } from 'zod';
+
+const draftTrail = trail('_draft.entity.prepare', {
+  blaze: async () => Result.ok({ ok: true }),
+  input: z.object({}),
+  output: z.object({ ok: z.boolean() }),
+});
+
+${helperName}(topo('draft-topo', { draftTrail }));
+`
+  );
+
+  try {
+    const proc = Bun.spawnSync({
+      cmd: ['bun', 'test', testFile, '--bail'],
+      cwd: resolve(import.meta.dir, '..', '..', '..'),
+      stderr: 'pipe',
+      stdout: 'pipe',
+    });
+
+    return {
+      exitCode: proc.exitCode,
+      output: `${proc.stdout.toString()}\n${proc.stderr.toString()}`,
+    };
+  } finally {
+    rmSync(dir, { force: true, recursive: true });
+  }
+};
+
 describe('testAll resource mocks', () => {
   // eslint-disable-next-line jest/require-hook
   testAll(
@@ -186,5 +235,20 @@ describe('testAll contour-derived fixtures', () => {
 
   afterAll(() => {
     expect(contourDerivedBlaze).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('testAllEstablished draft hygiene', () => {
+  test('keeps testAll draft-friendly for in-progress graphs', () => {
+    const result = runGeneratedGovernanceSuite('testAll');
+
+    expect(result.exitCode).toBe(0);
+  });
+
+  test('fails draft-contaminated graphs under testAllEstablished', () => {
+    const result = runGeneratedGovernanceSuite('testAllEstablished');
+
+    expect(result.exitCode).toBe(1);
+    expect(result.output).toContain('_draft.entity.prepare');
   });
 });

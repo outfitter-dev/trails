@@ -13,10 +13,10 @@ import { z } from 'zod';
 // ---------------------------------------------------------------------------
 
 const generateTestFile = (): string =>
-  `import { testAll } from '@ontrails/testing';
+  `import { testAllEstablished } from '@ontrails/testing';
 import { app } from '../src/app.js';
 
-testAll(app);
+testAllEstablished(app);
 `;
 
 const generateLefthookYml = (): string =>
