@@ -497,6 +497,60 @@ describe('findContourDefinitions inline discovery', () => {
     expect(defs[0]?.name).toBe('outer');
     expect(defs[0]?.bindingName).toBe('outer');
   });
+
+  test('topLevelOnly: true still surfaces top-level statement-form calls', () => {
+    // Regression for Codex P2 on PR #222: the `topLevelOnly` guard must only
+    // exclude inline nested contour calls. Top-level bare-statement forms
+    // (`core.contour('name', {...});` directly in the program body, not
+    // bound to a variable) are top-level and should still be returned.
+    const statementFormSource = `
+      import * as core from '@ontrails/core';
+      import { z } from 'zod';
+
+      export const bound = core.contour('bound', {
+        id: z.string().uuid(),
+      });
+
+      core.contour('bare', { id: z.string().uuid() });
+    `;
+    const ast = parseOrThrow(statementFormSource);
+    const defs = findContourDefinitions(ast, undefined, {
+      topLevelOnly: true,
+    });
+
+    const names = defs.map((d) => d.name).toSorted();
+    expect(names).toEqual(['bare', 'bound']);
+
+    const bound = defs.find((d) => d.name === 'bound');
+    const bare = defs.find((d) => d.name === 'bare');
+    expect(bound?.bindingName).toBe('bound');
+    // Bare statement-form calls have no local binding.
+    expect(bare?.bindingName).toBeUndefined();
+  });
+
+  test('topLevelOnly: true surfaces export default core.contour(...) form', () => {
+    // Regression for Greptile P2 on PR #227: collectTopLevelStatementCallStarts
+    // branches on ExportDefaultDeclaration via getCandidateCallHosts, so an
+    // export-default contour declaration must still be surfaced under the
+    // topLevelOnly: true flag.
+    const exportDefaultSource = `
+      import * as core from '@ontrails/core';
+      import { z } from 'zod';
+
+      export default core.contour('default-export', {
+        id: z.string().uuid(),
+      });
+    `;
+    const ast = parseOrThrow(exportDefaultSource);
+    const defs = findContourDefinitions(ast, undefined, {
+      topLevelOnly: true,
+    });
+
+    expect(defs).toHaveLength(1);
+    expect(defs[0]?.name).toBe('default-export');
+    // Export-default call expressions have no local binding name.
+    expect(defs[0]?.bindingName).toBeUndefined();
+  });
 });
 
 describe('collectContourReferenceSites with namespaced inline contours', () => {

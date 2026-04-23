@@ -1560,11 +1560,75 @@ const extractContourDefinition = (
   };
 };
 
+const getCallStartFromCandidate = (
+  node: AstNode | undefined
+): number | null => {
+  if (!node) {
+    return null;
+  }
+  if (node.type === 'CallExpression') {
+    return node.start;
+  }
+  if (node.type !== 'ExpressionStatement') {
+    return null;
+  }
+  const { expression } = node as unknown as { expression?: AstNode };
+  return expression?.type === 'CallExpression' ? expression.start : null;
+};
+
+// Statement forms that can directly contain a top-level contour call:
+//   `core.contour(...)` as a bare statement,
+//   `export const ... = core.contour(...)` (handled via VariableDeclarator),
+//   `export default core.contour(...);`.
+const getCandidateCallHosts = (
+  statement: AstNode
+): readonly (AstNode | undefined)[] => {
+  if (
+    statement.type !== 'ExportNamedDeclaration' &&
+    statement.type !== 'ExportDefaultDeclaration'
+  ) {
+    return [statement];
+  }
+  const { declaration } = statement as unknown as {
+    declaration?: AstNode;
+  };
+  return [statement, declaration];
+};
+
+const getTopLevelCallStartsFrom = (statement: AstNode): readonly number[] => {
+  const hosts = getCandidateCallHosts(statement);
+  const starts: number[] = [];
+  for (const host of hosts) {
+    const start = getCallStartFromCandidate(host);
+    if (start !== null) {
+      starts.push(start);
+    }
+  }
+  return starts;
+};
+
+/**
+ * Collect the `start` offsets of `CallExpression` nodes that appear as
+ * top-level `ExpressionStatement`s in a program body — including inside a
+ * top-level `ExportNamedDeclaration` / `ExportDefaultDeclaration` wrapper.
+ * Used to discriminate top-level statement-form calls from inline nested
+ * calls when `topLevelOnly` is enabled.
+ */
+const collectTopLevelStatementCallStarts = (
+  ast: AstNode
+): ReadonlySet<number> => {
+  const body = (ast as unknown as { body?: readonly AstNode[] }).body ?? [];
+  return new Set(body.flatMap(getTopLevelCallStartsFrom));
+};
+
 export interface FindContourDefinitionsOptions {
   /**
    * When true, skip contour calls nested inside other expressions (e.g.
    * `core.contour('inner', {...}).id()` used as a field of an outer contour).
-   * Only top-level declarations and statements surface as definitions.
+   * Top-level forms are still surfaced: both `const foo = contour(...)`
+   * declarations and bare `contour('name', {...});` statement-form calls that
+   * appear directly in the program body (optionally wrapped in `export`) are
+   * returned.
    *
    * Defaults to `false`: both top-level and inline contours are returned so
    * that reference-site resolution can reach anonymous inline contours.
@@ -1632,6 +1696,15 @@ export const findContourDefinitions = (
     addContourDefinition(definition);
   };
 
+  // When `topLevelOnly` is set, collect the start offsets of call expressions
+  // that sit directly in the program body as `ExpressionStatement`s (optionally
+  // wrapped in `export`). These are top-level statement-form contour calls and
+  // should still surface alongside `VariableDeclarator` bindings; only calls
+  // nested inside other expressions are excluded.
+  const topLevelStatementCallStarts = topLevelOnly
+    ? collectTopLevelStatementCallStarts(ast)
+    : null;
+
   walk(ast, (node) => {
     if (node.type === 'VariableDeclarator') {
       const { id, init } = node as unknown as {
@@ -1642,7 +1715,10 @@ export const findContourDefinitions = (
       return;
     }
 
-    if (topLevelOnly) {
+    if (
+      topLevelStatementCallStarts &&
+      !topLevelStatementCallStarts.has(node.start)
+    ) {
       return;
     }
 
