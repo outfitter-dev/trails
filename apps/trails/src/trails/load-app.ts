@@ -54,12 +54,14 @@ const getImportScanner = (loader: TranspilerLoader): Bun.Transpiler => {
  * the mirrors on disk and clean them up once, on process exit.
  */
 const ACTIVE_MIRROR_ROOTS = new Set<string>();
+const RETAINED_MIRROR_ROOTS = new Set<string>();
 
 const cleanupAllMirrorRoots = (): void => {
-  for (const root of ACTIVE_MIRROR_ROOTS) {
+  for (const root of [...ACTIVE_MIRROR_ROOTS, ...RETAINED_MIRROR_ROOTS]) {
     rmSync(root, { force: true, recursive: true });
   }
   ACTIVE_MIRROR_ROOTS.clear();
+  RETAINED_MIRROR_ROOTS.clear();
 };
 
 const mirrorCleanup = (() => {
@@ -77,6 +79,39 @@ const mirrorCleanup = (() => {
 
 const ensureMirrorCleanupHook = (): void => {
   mirrorCleanup.ensureRegistered();
+};
+
+/**
+ * Retain a fresh-import mirror for the lifetime of the process. A previously
+ * returned `loadApp` result may hold deferred relative `import()` calls whose
+ * resolution requires the mirror directory to still exist, so we cannot prune
+ * these by age without risking ENOENT in long-lived sessions (dev server,
+ * survey polling, concurrent fresh loads). Cleanup happens once on process
+ * exit via `cleanupAllMirrorRoots`.
+ */
+const retainMirrorRoot = (mirrorRoot: string): void => {
+  if (RETAINED_MIRROR_ROOTS.has(mirrorRoot)) {
+    return;
+  }
+  RETAINED_MIRROR_ROOTS.add(mirrorRoot);
+  ensureMirrorCleanupHook();
+};
+
+const acquireMirrorLease = (mirrorRoot: string): (() => void) => {
+  ACTIVE_MIRROR_ROOTS.add(mirrorRoot);
+  ensureMirrorCleanupHook();
+
+  let released = false;
+
+  return () => {
+    if (released) {
+      return;
+    }
+
+    released = true;
+    ACTIVE_MIRROR_ROOTS.delete(mirrorRoot);
+    rmSync(mirrorRoot, { force: true, recursive: true });
+  };
 };
 
 const resolveUrlModulePath = (modulePath: string): string => {
@@ -251,7 +286,10 @@ const safeStat = (
 const STALE_MIRROR_THRESHOLD_MS = 10 * 60 * 1000;
 
 const isStaleMirrorEntry = (entryPath: string, now: number): boolean => {
-  if (ACTIVE_MIRROR_ROOTS.has(entryPath)) {
+  if (
+    ACTIVE_MIRROR_ROOTS.has(entryPath) ||
+    RETAINED_MIRROR_ROOTS.has(entryPath)
+  ) {
     return false;
   }
   const entryStat = safeStat(entryPath);
@@ -438,12 +476,85 @@ const importFreshModule = async (
   }
 
   const { mirrorRoot, freshPath } = await prepareMirror(absolutePath, cwd);
-  ACTIVE_MIRROR_ROOTS.add(mirrorRoot);
-  ensureMirrorCleanupHook();
+  retainMirrorRoot(mirrorRoot);
   return (await import(pathToFileURL(freshPath).href)) as Record<
     string,
     unknown
   >;
+};
+
+const resolveLoadedTopo = (
+  effectivePath: string,
+  mod: Record<string, unknown>
+): Topo => {
+  const app = (mod['default'] ?? mod['graph'] ?? mod['app']) as
+    | Topo
+    | undefined;
+  if (!app?.trails) {
+    throw new Error(
+      `Could not find a Topo export in "${effectivePath}". ` +
+        "Expected a default, 'graph', or 'app' named export created with topo()."
+    );
+  }
+  return app;
+};
+
+export interface FreshAppLease {
+  readonly app: Topo;
+  readonly mirrorRoot: string;
+  readonly release: () => void;
+}
+
+const noopRelease = (): void => undefined;
+
+const createUrlSchemeLease = async (
+  absolutePath: string,
+  effectivePath: string
+): Promise<FreshAppLease> => ({
+  app: resolveLoadedTopo(
+    effectivePath,
+    await importWithCacheBust(absolutePath)
+  ),
+  mirrorRoot: absolutePath,
+  release: noopRelease,
+});
+
+const createFilesystemLease = async (
+  absolutePath: string,
+  cwd: string,
+  effectivePath: string
+): Promise<FreshAppLease> => {
+  const { mirrorRoot, freshPath } = await prepareMirror(absolutePath, cwd);
+  const release = acquireMirrorLease(mirrorRoot);
+
+  try {
+    const mod = (await import(pathToFileURL(freshPath).href)) as Record<
+      string,
+      unknown
+    >;
+
+    return {
+      app: resolveLoadedTopo(effectivePath, mod),
+      mirrorRoot,
+      release,
+    };
+  } catch (error) {
+    release();
+    throw error;
+  }
+};
+
+export const loadFreshAppLease = async (
+  modulePath: string | undefined,
+  cwd: string
+): Promise<FreshAppLease> => {
+  const effectivePath =
+    modulePath === undefined ? findAppModule(cwd) : modulePath;
+  const absolutePath = resolveAbsoluteModulePath(effectivePath, cwd);
+
+  return URL_SCHEME.test(absolutePath) && !absolutePath.startsWith('/')
+    ? await createUrlSchemeLease(absolutePath, effectivePath)
+    : await createFilesystemLease(absolutePath, cwd, effectivePath);
 };
 
 /** Load a Topo export from a module path relative to cwd. */
@@ -464,14 +575,5 @@ export const loadApp = async (
             ? new URL(resolvedModulePath).href
             : pathToFileURL(resolvedModulePath).href
         )) as Record<string, unknown>);
-  const app = (mod['default'] ?? mod['graph'] ?? mod['app']) as
-    | Topo
-    | undefined;
-  if (!app?.trails) {
-    throw new Error(
-      `Could not find a Topo export in "${effectivePath}". ` +
-        "Expected a default, 'graph', or 'app' named export created with topo()."
-    );
-  }
-  return app;
+  return resolveLoadedTopo(effectivePath, mod);
 };

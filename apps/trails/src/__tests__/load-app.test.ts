@@ -11,7 +11,7 @@ import {
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
-import { loadApp } from '../trails/load-app.js';
+import { loadApp, loadFreshAppLease } from '../trails/load-app.js';
 
 const writeLoadAppFixture = (cwd: string, name: string): void => {
   writeFileSync(
@@ -188,6 +188,17 @@ const assertStaleDirCleaned = (cwd: string, staleDir: string): void => {
   expect(remaining.length).toBeGreaterThan(0);
 };
 
+const countFreshMirrorRoots = (cwd: string): number => {
+  const mirrorParent = resolve(cwd, '.trails-tmp');
+  if (!existsSync(mirrorParent)) {
+    return 0;
+  }
+
+  return readdirSync(mirrorParent).filter((entry) =>
+    entry.startsWith('load-app-fresh-')
+  ).length;
+};
+
 const workspaceTmpRoot = resolve(import.meta.dir, '../..', '.tmp-tests');
 
 describe('loadApp', () => {
@@ -328,6 +339,58 @@ export const app = {
       const staleDir = seedStaleMirrorDir(cwd);
       await loadApp('./src/app.ts', cwd, { fresh: true });
       assertStaleDirCleaned(cwd, staleDir);
+    } finally {
+      rmSync(cwd, { force: true, recursive: true });
+    }
+  });
+});
+
+describe('loadApp fresh lifecycle', () => {
+  test('leased fresh loads remove their mirror root when released', async () => {
+    const cwd = resolve(
+      tmpdir(),
+      `trails-load-app-lease-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    );
+
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+      writeLoadAppFixture(cwd, 'leased');
+
+      const lease = await loadFreshAppLease('./src/app.ts', cwd);
+
+      expect(lease.app.name).toBe('leased');
+      expect(existsSync(lease.mirrorRoot)).toBe(true);
+
+      lease.release();
+
+      expect(existsSync(lease.mirrorRoot)).toBe(false);
+    } finally {
+      rmSync(cwd, { force: true, recursive: true });
+    }
+  });
+
+  test('fresh loading retains mirrors so deferred imports from earlier apps still resolve', async () => {
+    const cwd = resolve(
+      tmpdir(),
+      `trails-load-app-retained-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    );
+
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+
+      for (let index = 0; index < 6; index += 1) {
+        writeLoadAppFixture(cwd, `retained-${String(index)}`);
+        await loadApp('./src/app.ts', cwd, { fresh: true });
+      }
+
+      // All fresh mirrors stay on disk for the lifetime of the process so a
+      // previously returned Topo can still resolve deferred relative
+      // `import()` calls. Cleanup happens on process exit, not by LRU age.
+      expect(countFreshMirrorRoots(cwd)).toBe(6);
     } finally {
       rmSync(cwd, { force: true, recursive: true });
     }

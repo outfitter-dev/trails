@@ -8,6 +8,7 @@ import {
   isDraftId,
   trail,
 } from '@ontrails/core';
+import type { Topo } from '@ontrails/core';
 import {
   DRAFT_FILE_PREFIX,
   findStringLiterals,
@@ -17,7 +18,7 @@ import {
 } from '@ontrails/warden';
 import { z } from 'zod';
 
-import { loadApp } from './load-app.js';
+import { loadFreshAppLease } from './load-app.js';
 import { findTopoPath } from './project.js';
 
 interface PromotionEdit {
@@ -164,10 +165,8 @@ const replaceLiteralValue = (
   };
 };
 
-const collectOutputId = (
-  app: Awaited<ReturnType<typeof loadApp>>,
-  id: string
-) => app.get(id) ?? app.signals.get(id) ?? app.getResource(id);
+const collectOutputId = (app: Topo, id: string) =>
+  app.get(id) ?? app.signals.get(id) ?? app.getResource(id);
 
 const toRelativeOutputPath = (rootDir: string, filePath: string): string =>
   relative(rootDir, filePath).replaceAll('\\', '/');
@@ -185,7 +184,6 @@ interface PromotionRewriteState {
 interface PromotionLoadState {
   readonly appModule: string | null;
   readonly loadError: string | null;
-  readonly loadedApp: Awaited<ReturnType<typeof loadApp>> | undefined;
 }
 
 const validatePromotionInput = (input: {
@@ -511,23 +509,56 @@ const resolvePromotionAppModule = async (
   );
 };
 
-const loadVerifiedApp = async (
-  appModule: string | null,
+/**
+ * Run `consume` while holding a fresh-load lease on `appModule`.
+ *
+ * @remarks
+ * The lease deletes its on-disk mirror on release. Any Topo consumption that
+ * may trigger deferred filesystem imports (for example inside a trail's
+ * `blaze` or a lazy relative `import()`) must run before the lease is
+ * released, otherwise those resolutions race the mirror teardown. Collapsing
+ * consumption into the leased critical section keeps that contract
+ * structural rather than relying on the caller to discover it.
+ */
+type LeaseAttempt =
+  | {
+      readonly ok: true;
+      readonly lease: Awaited<ReturnType<typeof loadFreshAppLease>>;
+    }
+  | { readonly ok: false; readonly loadError: string };
+
+const tryAcquireLease = async (
+  appModule: string,
   rootDir: string
-): Promise<PromotionLoadState> => {
+): Promise<LeaseAttempt> => {
+  try {
+    return { lease: await loadFreshAppLease(appModule, rootDir), ok: true };
+  } catch (error) {
+    const loadError = error instanceof Error ? error.message : String(error);
+    return { loadError, ok: false };
+  }
+};
+
+const withVerifiedApp = async <T>(
+  appModule: string | null,
+  rootDir: string,
+  consume: (app: Topo) => T | Promise<T>
+): Promise<{ readonly load: PromotionLoadState; readonly value: T | null }> => {
   if (appModule === null) {
-    return { appModule, loadError: null, loadedApp: undefined };
+    return { load: { appModule, loadError: null }, value: null };
   }
 
-  let loadError: string | null = null;
-  const loadedApp = await loadApp(appModule, rootDir, { fresh: true }).catch(
-    (error: unknown): undefined => {
-      loadError = error instanceof Error ? error.message : String(error);
-      return undefined;
-    }
-  );
+  const attempt = await tryAcquireLease(appModule, rootDir);
+  if (!attempt.ok) {
+    return { load: { appModule, loadError: attempt.loadError }, value: null };
+  }
 
-  return { appModule, loadError, loadedApp };
+  try {
+    const value = await consume(attempt.lease.app);
+    return { load: { appModule, loadError: null }, value };
+  } finally {
+    attempt.lease.release();
+  }
 };
 
 const toRenamedFiles = (rootDir: string, renames: readonly FileRename[]) =>
@@ -589,7 +620,7 @@ const buildVerifiedPromotionResult = (
 
 const buildVerifiedPromotionResultFromApp = (
   rootDir: string,
-  loadedApp: Awaited<ReturnType<typeof loadApp>>,
+  loadedApp: Topo,
   renames: readonly FileRename[],
   updatedSourceFiles: Set<string>,
   appModule: string | null,
@@ -633,13 +664,11 @@ const promoteDraftState = async (
 
   const { renames, updatedSourceFiles } = rewriteResult.value;
   const appModule = await resolvePromotionAppModule(input, rootDirResult.value);
-  const { loadError, loadedApp } = await loadVerifiedApp(
+  const { load, value } = await withVerifiedApp(
     appModule,
-    rootDirResult.value
-  );
-
-  return loadedApp
-    ? buildVerifiedPromotionResultFromApp(
+    rootDirResult.value,
+    (loadedApp) =>
+      buildVerifiedPromotionResultFromApp(
         rootDirResult.value,
         loadedApp,
         renames,
@@ -647,13 +676,18 @@ const promoteDraftState = async (
         appModule,
         input.toId
       )
-    : buildUnverifiedPromotionResult(
-        rootDirResult.value,
-        loadError,
-        renames,
-        updatedSourceFiles,
-        appModule
-      );
+  );
+
+  return (
+    value ??
+    buildUnverifiedPromotionResult(
+      rootDirResult.value,
+      load.loadError,
+      renames,
+      updatedSourceFiles,
+      appModule
+    )
+  );
 };
 
 export const draftPromoteTrail = trail('draft.promote', {

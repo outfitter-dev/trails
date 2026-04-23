@@ -13,6 +13,7 @@ import {
   deriveSurfaceMap,
   deriveSurfaceMapHash,
   deriveSurfaceMapDiff,
+  writeSurfaceMap,
 } from '@ontrails/schema';
 import type { SurfaceMap } from '@ontrails/schema';
 import { z } from 'zod';
@@ -23,6 +24,7 @@ import {
   deriveTrailDetail,
   surveyTrail,
 } from '../trails/survey.js';
+import { loadApp } from '../trails/load-app.js';
 import type {
   BriefReport,
   SurveyListReport,
@@ -88,8 +90,24 @@ const expectOk = <T>(result: Result<T, Error>): T => {
   return result.value;
 };
 
-const writeSurveyAppFixture = (dir: string): void => {
+const writeSurveyAppFixture = (
+  dir: string,
+  options?: { withBye?: boolean }
+) => {
   mkdirSync(join(dir, 'src'), { recursive: true });
+  const byeSource = options?.withBye
+    ? `
+const bye = trail('bye', {
+  blaze: async (input) => Result.ok({ message: \`Bye, \${input.name ?? 'world'}!\` }),
+  input: z.object({ name: z.string().optional() }),
+  intent: 'read',
+  output: z.object({ message: z.string() }),
+});
+`
+    : '';
+  const topoMembers = options?.withBye
+    ? '{ bye, dbMain, hello }'
+    : '{ dbMain, hello }';
   writeFileSync(
     join(dir, 'src', 'app.ts'),
     `import { Result, resource, topo, trail } from '@ontrails/core';
@@ -112,7 +130,9 @@ if (!dbMain) {
   throw new Error('expected hello to declare db.main');
 }
 
-export const app = topo('survey-fixture', { dbMain, hello });
+${byeSource}
+
+export const app = topo('survey-fixture', ${topoMembers});
 `
   );
 };
@@ -297,6 +317,58 @@ describe('trails survey generate', () => {
       ).toMatchObject({
         hash: generated.hash,
         version: 1,
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+});
+
+describe('trails survey diffSaved', () => {
+  test('returns an error when no saved surface map exists yet', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+
+      const result = await surveyTrail.blaze(
+        { diffSaved: true, module: './src/app.ts' },
+        { cwd: dir } as never
+      );
+
+      expect(result.isErr()).toBe(true);
+      expect(result.error.message).toContain('Run `trails topo export` first');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('diffs against the saved local surface map', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+      const baselineApp = await loadApp('./src/app.ts', dir);
+      await writeSurfaceMap(deriveSurfaceMap(baselineApp), {
+        dir: join(dir, '.trails'),
+      });
+
+      writeSurveyAppFixture(dir, { withBye: true });
+
+      const result = await surveyTrail.blaze(
+        { diffSaved: true, module: './src/app.ts' },
+        { cwd: dir } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.value).toMatchObject({
+        hasBreaking: false,
+        info: [
+          expect.objectContaining({
+            change: 'added',
+            id: 'bye',
+          }),
+        ],
       });
     } finally {
       rmSync(dir, { force: true, recursive: true });

@@ -5,6 +5,8 @@
  * and diffs against previous versions.
  */
 
+import { join } from 'node:path';
+
 import type { Topo } from '@ontrails/core';
 import { NotFoundError, Result, trail } from '@ontrails/core';
 import type { DiffResult } from '@ontrails/schema';
@@ -16,7 +18,7 @@ import {
 } from '@ontrails/schema';
 import { z } from 'zod';
 
-import { loadApp } from './load-app.js';
+import { loadApp, loadFreshAppLease } from './load-app.js';
 import {
   buildCurrentTopoBrief,
   buildCurrentTopoDetail,
@@ -49,14 +51,15 @@ const formatDiff = (diff: DiffResult): object => ({
 
 const buildSurveyDiff = async (
   app: Topo,
+  rootDir: string,
   breakingOnly: boolean
 ): Promise<Result<object, Error>> => {
   const currentMap = deriveSurfaceMap(app);
-  const previousMap = await readSurfaceMap();
+  const previousMap = await readSurfaceMap({ dir: join(rootDir, '.trails') });
   if (!previousMap) {
     return Result.err(
       new NotFoundError(
-        'No previous surface map found. Run `trails topo export` first.'
+        'No saved surface map found. Run `trails topo export` first.'
       )
     );
   }
@@ -106,7 +109,7 @@ const buildSurveyGenerate = async (
 interface SurveyInput {
   breakingOnly: boolean;
   brief: boolean;
-  diff?: string | undefined;
+  diffSaved: boolean;
   generate: boolean;
   openapi: boolean;
   trailId?: string | undefined;
@@ -117,7 +120,7 @@ type SurveyMode = 'brief' | 'detail' | 'diff' | 'generate' | 'list' | 'openapi';
 /** Ordered mode checks — first truthy predicate wins, otherwise 'list'. */
 const modeChecks: readonly [(input: SurveyInput) => boolean, SurveyMode][] = [
   [(i) => i.brief, 'brief'],
-  [(i) => Boolean(i.diff), 'diff'],
+  [(i) => i.diffSaved, 'diff'],
   [(i) => Boolean(i.trailId), 'detail'],
   [(i) => i.generate, 'generate'],
   [(i) => i.openapi, 'openapi'],
@@ -139,7 +142,8 @@ const surveyHandlers: Record<SurveyMode, SurveyHandler> = {
     Result.ok(buildCurrentTopoBrief(app, { rootDir })),
   detail: (app, input, rootDir) =>
     buildSurveyDetail(app, input.trailId ?? '', rootDir),
-  diff: (app, input) => buildSurveyDiff(app, input.breakingOnly),
+  diff: (app, input, rootDir) =>
+    buildSurveyDiff(app, rootDir, input.breakingOnly),
   generate: (app, _input, rootDir) => buildSurveyGenerate(app, rootDir),
   list: (app, _input, rootDir) =>
     Result.ok(buildCurrentTopoList(app, { rootDir })),
@@ -164,6 +168,27 @@ const dispatchSurvey = (
 export const surveyTrail = trail('survey', {
   blaze: async (input, ctx) => {
     const rootDir = ctx.cwd ?? '.';
+    const mode = deriveSurveyMode(input);
+    // Fresh load only for diffSaved: comparing against a previously-saved
+    // surface map requires the current app's source state, not any cached
+    // module graph that a prior import may have frozen. Other modes read
+    // the in-memory topo and benefit from the standard import cache.
+    //
+    // For diff specifically, use a disposable lease rather than retained
+    // fresh mirrors — the returned diff result is serialisable data, not
+    // a Topo reference with deferred imports, so the mirror can be
+    // released the moment dispatchSurvey returns. That keeps MCP/dev
+    // sessions that poll diff repeatedly from growing .trails-tmp/
+    // without bound.
+    if (mode === 'diff') {
+      const lease = await loadFreshAppLease(input.module, rootDir);
+      try {
+        return await dispatchSurvey(lease.app, input, rootDir);
+      } finally {
+        lease.release();
+      }
+    }
+
     const app = await loadApp(input.module, rootDir);
     return dispatchSurvey(app, input, rootDir);
   },
@@ -191,7 +216,10 @@ export const surveyTrail = trail('survey', {
       .default(false)
       .describe('Only show breaking changes'),
     brief: z.boolean().default(false).describe('Quick capability summary'),
-    diff: z.string().optional().describe('Diff against a git ref'),
+    diffSaved: z
+      .boolean()
+      .default(false)
+      .describe('Diff against the saved local surface map'),
     generate: z
       .boolean()
       .default(false)
