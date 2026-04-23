@@ -8,7 +8,7 @@ When you define a trail, you author the things only you know: the input schema, 
 
 This is DRY applied not just to code, but to information. Frameworks have always been good at eliminating duplicate code. Trails extends that principle to duplicate authorship — across the entire surface area of a project, from the implementation to the CLI to the MCP tools to the tests to the agent documentation.
 
-Trails is Bun-native — the framework uses Bun APIs throughout for I/O, hashing, discovery, and storage. But the surfaces it produces are universally consumable: CLI binaries, MCP servers, and HTTP endpoints work with any runtime on the consuming side.
+Trails is Bun-native — the framework uses Bun APIs throughout for I/O, hashing, discovery, and storage. But the shipped surfaces it produces are universally consumable: CLI binaries, MCP servers, and HTTP endpoints work with any runtime on the consuming side. WebSocket is part of the architecture, but still planned.
 
 ---
 
@@ -70,6 +70,8 @@ await surface(graph);
 import { surface as mcpSurface } from '@ontrails/mcp';
 await mcpSurface(graph);
 ```
+
+The same topo can also open on HTTP today via `@ontrails/hono`. WebSocket follows the same peer-surface model, but does not ship yet.
 
 One definition. Every surface. The rest is derived.
 
@@ -147,7 +149,7 @@ One write, three reads. If someone changes the business rule, they change the ex
 
 Great tools already exist for each surface. tRPC, Hono, and Fastify are excellent for HTTP. Commander and oclif are battle-tested for CLIs. FastMCP and the official SDK make MCP server development straightforward. NestJS spans multiple transports with a mature ecosystem.
 
-Trails doesn't try to replace any of them. It occupies a different layer: the **contract layer** that sits above individual surface implementations. A trail definition captures the schema, examples, error types, intent and metadata, and composition graph in one place. Surface connectors — CLI, MCP, HTTP, WebSocket — project that contract into whatever runtime format the surface needs.
+Trails doesn't try to replace any of them. It occupies a different layer: the **contract layer** that sits above individual surface implementations. A trail definition captures the schema, examples, error types, intent and metadata, and composition graph in one place. Surface connectors — CLI, MCP, and HTTP today, with WebSocket planned — project that contract into whatever runtime format the surface needs.
 
 The value isn't in being better at any single surface. It's in making the contract the source of truth so that every surface stays consistent with it — not because anyone was careful, but because the framework derives each surface from the same definition.
 
@@ -176,7 +178,7 @@ The answers became the principles: author what's new, derive what's known, overr
 
 ## What's Next
 
-The v1 implementation delivers the foundation: Result types, error taxonomy, trail and signal definitions, CLI and MCP surfaces, contract-driven testing, schema governance, and the warden. These establish the contract layer and prove the core loop — define once, surface everywhere.
+The v1 implementation delivers the foundation: Result types, error taxonomy, trail, signal, and contour definitions, CLI/MCP/HTTP surfaces, contract-driven testing, schema governance, and the warden. These establish the contract layer and prove the core loop — define once, surface everywhere.
 
 The architecture points toward capabilities that follow naturally — resource capability shaping, derived dependency graphs, cross-app contract negotiation, implementation synthesis from examples. Each follows from the same principle: if the information exists in the system, don't ask the developer to restate it.
 

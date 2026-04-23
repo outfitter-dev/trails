@@ -18,6 +18,8 @@
 
 ## Mid-term (v1.3+)
 
+**WebSocket surface.** A peer surface to CLI, MCP, and HTTP for long-lived request/response sessions plus subscription-style updates where the contract supports them. The design goal is the same as every other surface: derive names, validation, and error mapping from the topo instead of hand-authoring a separate runtime model.
+
 **Derived dependency graphs.** Instead of hand-maintaining `crosses` declarations, the framework infers them from `ctx.cross()` calls in the implementation via static analysis. The same idea could eventually extend beyond today's declared `resources: [...]` model to richer resource capability inference. The surface map captures the graph. Changes show up in diffs.
 
 **Implementation synthesis from examples.** For trails with comprehensive examples that fully specify behavior (pure transformations, mapping logic, validation rules), an agent could synthesize the implementation from the examples alone. The examples become the source of truth; the code becomes the derived artifact.

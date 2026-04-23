@@ -6,7 +6,7 @@ Milestone review. Check the work against the plan. Trail posture applied to a bo
 
 ### 1. Contract Fidelity
 
-Did what was built match what was planned? Compare the implemented trails, schemas, and trailheads against the ADR, spec, or planning document that authorized the work.
+Did what was built match what was planned? Compare the implemented trails, schemas, and surfaces against the ADR, spec, or planning document that authorized the work.
 
 - Are the trail IDs what was specified?
 - Do the schemas match the agreed shapes?
@@ -20,9 +20,9 @@ Run `trails warden` and `trails survey --brief` to get the current state. Do not
 
 Does the implementation honor the hexagonal model?
 
-- Implementations are pure. No trailhead-specific types in trail logic.
+- Implementations are pure. No surface-specific types in trail logic.
 - Provisions accessed through declared dependencies, not ambient imports.
-- Trailheads delegate to the execution pipeline. No reimplementation of `validate-resolve-execute`.
+- Surfaces delegate to the execution pipeline. No reimplementation of `validate-resolve-execute`.
 - New packages or subpaths follow the framework's port/adapter pattern.
 
 ### 3. Information Architecture

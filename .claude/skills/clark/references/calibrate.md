@@ -21,9 +21,9 @@ Scan all changed or new files for vocabulary violations. Highest-priority check.
 | handler, action, endpoint | trail |
 | route (for composition) | cross |
 | registry, collection, manifest | topo |
-| serve, start, wire up | trailhead |
+| serve, start, wire up | surface |
 | call, invoke, dispatch (for cross) | cross |
-| transport, adapter, interface | trailhead |
+| transport, adapter, interface | surface |
 | impl, fn, handler (for run function) | blaze |
 | annotations, tags | metadata |
 | fallbacks, retries, recovery | detours |
@@ -47,7 +47,7 @@ Check against ADR-0001's thirteen conventions. Focus on new or changed exports:
 - **Convention 6 (create prefix):** Do runtime factories use `create*`?
 - **Convention 7 (derive prefix):** Do derivation functions use `derive*`?
 - **Convention 8 (validate prefix):** Do verification functions use `validate*`?
-- **Convention 9 (build prefix):** Do trailhead derivation builders use `build*`?
+- **Convention 9 (build prefix):** Do surface derivation builders use `build*`?
 - **Convention 10 (gate suffix):** Do gates follow the `*Gate` pattern?
 - **Convention 11 (of suffix):** Do schema extractors use `*Of`?
 - **Convention 12 (Zod boundary):** Does Zod leak past schema definitions?

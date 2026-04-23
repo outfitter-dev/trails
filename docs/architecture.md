@@ -18,6 +18,7 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 |                       |
                 |    @ontrails/core     |
                 |                       |
+                |  contour() -> Contour |
                 |  trail() -> Trail     |
                 |  signal() -> Signal   |
                 |  topo() -> Topo       |
@@ -45,13 +46,15 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 
 **Drift is structurally harder than alignment.** One schema, one `Result` type, one error taxonomy. You cannot have different parameter names across surfaces because there is only one schema.
 
-**Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, and WebSocket are all equal connectors reading from the same topo. Adding a surface is a `surface()` call, not an architecture change.
+**Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, and WebSocket are all equal connectors reading from the same topo. CLI, MCP, and HTTP ship today; WebSocket is still planned. Adding a surface is a `surface()` call, not an architecture change.
 
 **Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation does not know which surface invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before layers and surfaces run.
 
 **The framework defines ports -- everything concrete is a connector.** CLI framework (Commander, yargs), logging backend (LogTape, pino), storage engine, telemetry exporter -- all pluggable. The framework never imports a concrete implementation.
 
 **The contract is machine-readable at runtime.** The topo, survey, guide, and committed lock artifacts make the trail system queryable by agents, tooling, and CI.
+
+**Contours are graph nodes; trails are executable edges.** Contours declare the domain objects the graph is about. Trails declare the typed work that moves through that graph. The topo carries both so surfaces, testing, and governance can reason about nouns and verbs from the same authored source.
 
 ## Information Architecture
 
@@ -64,6 +67,7 @@ These are the creative contributions. They can't be derived because they don't e
 | What you author | Why it can't be derived |
 | --- | --- |
 | Input and output Zod schemas | The shape of your domain data |
+| Contour schemas, identities, and examples | The domain nodes your trails operate on |
 | Safety properties: `intent`, `idempotent` | Behavioral assertions about intent |
 | Examples (input plus expected result or error) | Concrete specifications of behavior |
 | The implementation function | Your business logic |
@@ -133,7 +137,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 
 ### Foundation
 
-`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, `trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, layers, and connector port interfaces.
+`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, `contour()`/`trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, layers, and connector port interfaces.
 
 **The test:** if you are building a surface connector or ecosystem package, you should only need `@ontrails/core`.
 

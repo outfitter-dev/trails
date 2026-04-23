@@ -10,17 +10,20 @@ Canonical public surface-facing reference. For naming conventions and decision h
 // Definitions
 trail(id, spec)                    // define a unit of work (with optional crosses for composition)
 signal(id, spec)                    // define a payload schema with provenance
+contour(name, shape, options)       // define a first-class domain object with identity metadata
 resource(id, spec)                  // define a first-class resource dependency
 createResourceLookup(getContext)   // bind ctx.resource() to a specific context snapshot
-topo(name, ...modules)             // assemble trails, signals, and resources into a queryable topology
+topo(name, ...modules)             // assemble trails, contours, signals, and resources into a queryable topology
 // Topo methods: .get(id), .has(id), .list(), .listSignals(), .ids(), .count
+//               .getContour(name), .hasContour(name), .listContours(), .contourIds(), .contourCount
 //               .getResource(id), .hasResource(id), .listResources(), .resourceIds(), .resourceCount
 createTopoStore(options?), createMockTopoStore(seed?), topoStore
 
 // Types
-Trail<I, O>, Signal<T>, Resource<T>, Topo, Intent
+Trail<I, O>, Signal<T>, Contour<TName, TShape, TIdentity>, Resource<T>, Topo, Intent
 TrailSpec<I, O>, SignalSpec<T>, ResourceSpec<T>, TrailExample<I, O>
-AnyTrail, AnySignal, AnyResource, ResourceContext, ResourceOverrideMap
+AnyTrail, AnySignal, AnyContour, AnyResource, ResourceContext, ResourceOverrideMap
+ContourOptions, ContourIdBrand, ContourIdMetadata, ContourIdSchema, ContourIdValue, ContourReference
 
 // Type utilities
 TrailInput<T>                      // extract input type from a Trail
@@ -28,6 +31,8 @@ TrailOutput<T>                     // extract output type from a Trail
 TrailResult<T>                     // extract Result<Output, Error> from a Trail
 inputOf(trail)                     // get the input Zod schema
 outputOf(trail)                    // get the output Zod schema (or undefined)
+getContourIdMetadata(schema)       // read runtime contour identity metadata from a branded schema
+getContourReferences(contour)      // read structural contour references declared inside a contour
 
 // Result
 Result<T, E>
@@ -106,6 +111,8 @@ DeriveTrailSpec<TContour, TOp, TGenerated>
 ```
 
 ## `@ontrails/cli`
+
+Current shipped surface packages are `@ontrails/cli`, `@ontrails/mcp`, `@ontrails/http`, and `@ontrails/hono`. A WebSocket surface is planned but has no public package or API yet.
 
 ```typescript
 surface(graph, options?)               // one-liner: parse argv, execute, return exit code
@@ -403,7 +410,7 @@ ConsoleSinkOptions, FileSinkOptions, PrettyFormatterOptions
 | Name | Intent |
 | --- | --- |
 | `trailblaze(topo, options?)` | Full hosted runtime |
-| `trailhead` | Conceptual boundary where a graph becomes reachable (reserved noun) |
+| `trailhead` | Historical boundary term retired from active user-facing vocabulary |
 | `scout` | Agent-side runtime discovery |
 | `validateExample`, `validateCross` | Contract verification family |
 | `generateDocs`, `generateOpenApi`, `generateLlmsTxt` | Build-time doc generation |

@@ -37,6 +37,8 @@ The architecture is designed to make consistency easier than drift. Agents build
 
 ## Project Documentation
 
+`AGENTS.md` is the canonical project guidance file. Tool-specific compatibility files such as `CLAUDE.md` should stay as thin pointers here plus any tool-bootstrap-specific notes.
+
 1. Contracts are at the core of how Trails works, and the contract for how Trails is worked on is governed by our [Tenets](docs/tenets.md).
 2. Decisions that define what Trails is, and what it is not, are defined by our [ADRs](docs/adr/README.md).
    - Future directions for Trails are outlined in speculative or [draft ADRs](docs/adr/drafts/README.md).
@@ -85,7 +87,7 @@ Use the project language consistently:
 
 ## Shared Conventions
 
-Shared TSDoc and code-shape guidance for packages and apps lives in [`.claude/rules/coding-conventions.md`](.claude/rules/coding-conventions.md). `apps/AGENTS.md` and `packages/AGENTS.md` point there.
+Shared TSDoc and code-shape guidance for packages and apps lives in [`.claude/rules/coding-conventions.md`](.claude/rules/coding-conventions.md). `apps/AGENTS.md` and `packages/AGENTS.md` should remain thin pointers there plus any small local overrides.
 
 ## Workflow
 

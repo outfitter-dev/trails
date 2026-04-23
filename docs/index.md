@@ -3,8 +3,8 @@
 ## New to Trails?
 
 1. **[Why Trails](./why-trails.md)** — The problem, the approach, why contracts beat conventions
-2. **[Getting Started](./getting-started.md)** — Install, define your first trail, open a CLI surface, test it
-3. **[Lexicon](./lexicon.md)** — The terms you'll use every day: trail, blaze, topo, surface, cross, resource, signal, layer, tracing
+2. **[Getting Started](./getting-started.md)** — Install, define your first trail, open CLI/MCP/HTTP surfaces, test it
+3. **[Lexicon](./lexicon.md)** — The terms you'll use every day: trail, blaze, topo, contour, surface, cross, resource, signal, layer, tracing
 
 ## Building something?
 
@@ -19,9 +19,10 @@
 
 ## Adding a surface?
 
-- **[CLI Surface](./surfaces/cli.md)** — Flag derivation, output modes, exit codes, `--dry-run`
-- **[MCP Surface](./surfaces/mcp.md)** — Tool naming, annotations, progress bridge
-- **[HTTP Surface](./surfaces/http.md)** — Route derivation, verb mapping, error responses, Hono connector
+- **[CLI Surface](./surfaces/cli.md)** — Shipped today. Flag derivation, output modes, exit codes, `--dry-run`
+- **[MCP Surface](./surfaces/mcp.md)** — Shipped today. Tool naming, annotations, progress bridge
+- **[HTTP Surface](./surfaces/http.md)** — Shipped today. Route derivation, verb mapping, error responses, Hono connector
+- **WebSocket Surface** — Planned, not yet implemented. See [Horizons](./horizons.md) for the current direction.
 
 ## Governing your codebase?
 
@@ -57,4 +58,4 @@
 
 ## Where to next?
 
-- **[Horizons](./horizons.md)** — HTTP surface, permits, mounts, tracing, and the road to v1 stable
+- **[Horizons](./horizons.md)** — WebSocket, mounts, packs, guide-driven SDKs, and the post-v1 roadmap

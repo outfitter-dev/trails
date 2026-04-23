@@ -1,6 +1,8 @@
 # Getting Started
 
-Install the core packages, define your first trail, open surfaces on CLI and MCP, and test it with one line.
+Install the core packages, define your first trail, open surfaces on CLI, MCP, or HTTP, and test it with one line.
+
+This guide demonstrates CLI and MCP first because they are the shortest path to a working app. HTTP is equally shipped today, and WebSocket is still planned.
 
 ## Installation
 
@@ -18,6 +20,9 @@ bun add commander
 
 # Add MCP surface (optional)
 bun add @ontrails/mcp
+
+# Add HTTP surface (optional, shipped today)
+bun add @ontrails/http @ontrails/hono
 
 # Add testing (dev dependency)
 bun add -d @ontrails/testing
@@ -81,7 +86,7 @@ import * as greetModule from './trails/greet';
 export const graph = topo('myapp', greetModule);
 ```
 
-`topo()` scans the module exports for `Trail` shapes and builds the internal topo (the trail collection).
+`topo()` scans the module exports for trails, signals, contours, and resources and builds the resolved graph.
 
 ## Open a CLI Surface
 
@@ -144,6 +149,25 @@ Same trail. Same implementation. Different surface. The MCP server exposes a `my
 - Examples available for agent planning
 
 Pure trails can return `Result` directly. Trails with `crosses` and I/O-heavy trails can stay `async`; Trails normalizes both forms before surfaces run them.
+
+## Open an HTTP Surface
+
+Create `src/http.ts`:
+
+```typescript
+import { surface } from '@ontrails/hono';
+import { graph } from './app';
+
+await surface(graph, { port: 3000 });
+```
+
+Same topo. Same implementation. Different shipped surface. The HTTP connector derives routes from trail IDs and verbs from `intent`:
+
+- `greet` becomes `GET /greet` because the trail declares `intent: 'read'`
+- Input validation still comes from the same Zod schema
+- The same `Result` and error taxonomy map to HTTP responses instead of CLI or MCP output
+
+See the [HTTP surface guide](./surfaces/http.md) for the full route and error model. WebSocket follows the same peer-surface design, but does not have a public package yet.
 
 ## Test with `testAll`
 

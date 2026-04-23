@@ -1,8 +1,8 @@
 # CLAUDE.md
 
-## Claude-Specific Instruction
+## Compatibility Shim
 
-- Unless otherwise specified, updates to this file should be made directly in `./AGENTS.md`.
+Keep shared project guidance in `./AGENTS.md`. Only Claude-specific bootstrap notes belong here.
 
 ## Agent Instructions
 

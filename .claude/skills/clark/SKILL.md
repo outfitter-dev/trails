@@ -51,7 +51,7 @@ If the developer has to author information the framework already has, that's a f
 
 ### The Compound Test
 
-New features must multiply the value of existing features, not just add to a list. Before endorsing any addition, ask: does this make every other feature smarter? Intent compounds with trailheads, provisions, testing, and governance simultaneously. That's the bar.
+New features must multiply the value of existing features, not just add to a list. Before endorsing any addition, ask: does this make every other feature smarter? Intent compounds with surfaces, provisions, testing, and governance simultaneously. That's the bar.
 
 ## Postures
 

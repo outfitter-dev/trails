@@ -40,9 +40,9 @@ Check for: factories without `create*`, derivations without `derive*`, test help
 
 Look for code smells that indicate architectural drift:
 
-- **Trailhead types in blazes:** imports of `Request`, `Response`, `McpSession` in trail files
+- **Surface types in blazes:** imports of `Request`, `Response`, `McpSession` in trail files
 - **Direct throws:** `throw` statements in blaze code (should be `Result.err()`)
-- **Console usage:** `console.log`, `console.error` in non-trailhead code
+- **Console usage:** `console.log`, `console.error` in non-surface code
 - **Direct `.run()` calls:** should be `ctx.cross()`
 
 ```bash

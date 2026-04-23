@@ -8,7 +8,7 @@ TSDoc explains the contract of exported APIs. Start there before reaching for in
 
 ### When to Add TSDoc
 
-- Add TSDoc to exported functions, classes, interfaces, and types that define package or trailhead boundaries.
+- Add TSDoc to exported functions, classes, interfaces, and types that define package or surface boundaries.
 - Add TSDoc to exported constants when their role or runtime behavior is not obvious from the name and type alone.
 - Add `@example` blocks for APIs that are easier to understand from a concrete call site than from prose.
 - Skip obvious one-line aliases and small internal helpers unless their intent is genuinely hard to infer.
@@ -30,9 +30,9 @@ TSDoc explains the contract of exported APIs. Start there before reaching for in
 
 ### Trails-Specific TSDoc
 
-- Describe the contract a helper or trailhead exposes, especially derived names, validation boundaries, and `Result` behavior.
+- Describe the contract a helper or surface exposes, especially derived names, validation boundaries, and `Result` behavior.
 - For APIs that return `Result`, document the success shape and the error types callers should expect.
-- Prefer examples that mirror how agents or trailhead connectors will actually consume the API.
+- Prefer examples that mirror how agents or surface connectors will actually consume the API.
 - For resource definitions, document the `create` factory's dependencies and the type it produces. Document `dispose` if cleanup is non-trivial. Skip `mock` TSDoc unless the mock behavior differs significantly from the real implementation.
 
 ## Code Shape Patterns
@@ -166,7 +166,7 @@ const processField = (field: Field, provided: Record<string, unknown>) => {
 
 ## Bun-Native Defaults
 
-Trails is Bun-native. Use Bun APIs where they improve the developer experience and keep compatibility concerns at the trailhead boundary.
+Trails is Bun-native. Use Bun APIs where they improve the developer experience and keep compatibility concerns at the surface boundary.
 
 - Use `Bun.file()` and `Bun.write()` for file I/O.
 - Use `Bun.Glob` for discovery.

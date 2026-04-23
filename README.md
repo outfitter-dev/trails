@@ -2,7 +2,9 @@
 
 **Define once. Surface everywhere.**
 
-Trails is a contract-first TypeScript framework. Define a trail — typed input, Result output, examples, intent — and the framework projects it onto CLI, MCP, HTTP, or WebSocket. One definition, every trailhead, zero drift.
+Trails is a contract-first TypeScript framework. Define a trail — typed input, Result output, examples, intent — and the framework projects it onto CLI, MCP, HTTP, or WebSocket. One definition, every surface, zero drift.
+
+Trails ships CLI, MCP, and HTTP surfaces today. WebSocket is part of the architecture and roadmap, but not yet built.
 
 ## Get started
 
@@ -21,7 +23,7 @@ claude plugin install trails@trails
 npx skills outfitter-dev/trails
 ```
 
-The skill gives your agent the full Trails reference: lexicon, patterns, error taxonomy, trailhead wiring, testing, and before/after migration examples.
+The skill gives your agent the full Trails reference: lexicon, patterns, error taxonomy, surface wiring, testing, and before/after migration examples.
 
 ### With code
 
@@ -81,26 +83,26 @@ Same logic. But now the framework derives:
 - **CLI**: `myapp project show --id p_1` with `--help` text, exit code 2 for not-found
 - **MCP**: tool `myapp_project_show` with JSON Schema input, `readOnlyHint` annotation
 - **Tests**: both examples run as assertions — `testAll(graph)` validates the happy path and the error path
-- **Governance**: warden checks for throws, trailhead imports, missing output schemas
+- **Governance**: warden checks for throws, surface-specific imports in trail code, missing output schemas
 
 You authored the contract. The framework did the rest.
 
 ## What compounds
 
-Each declaration you add to a trail unlocks derived behavior across every trailhead:
+Each declaration you add to a trail unlocks derived behavior across every surface:
 
 | You add | You get for free |
 |---------|-----------------|
 | `input` (Zod schema) | CLI flags + `--help` text, MCP JSON Schema, input validation |
-| `output` (Zod schema) | Contract tests, MCP response typing, trailhead map entries |
+| `output` (Zod schema) | Contract tests, MCP response typing, surface map entries |
 | `intent: 'read'` | MCP `readOnlyHint`, CLI skips confirmation, HTTP GET |
 | `intent: 'destroy'` | MCP `destructiveHint`, CLI auto-adds `--dry-run`, HTTP DELETE |
 | `examples` | Tests (happy + error path), agent guidance, documentation |
 | `crosses` | Composition graph, cycle detection, cross coverage in tests |
 | `resources: [db]` | Singleton lifecycle, test mock auto-resolution, warden governance |
-| `detours` | Recovery paths, warden validates targets exist |
+| `detours` | Recovery paths, detour contract validation, shadowing checks |
 
-The value isn't any single feature. It's that they multiply — each declaration makes every trailhead smarter without additional wiring.
+The value isn't any single feature. It's that they multiply — each declaration makes every surface smarter without additional wiring.
 
 ## How it works
 
@@ -126,6 +128,8 @@ await cliSurface(graph);      // CLI
 // await mcpSurface(graph);   // MCP — same trails, same run function
 ```
 
+The same topo can be opened on HTTP today with `@ontrails/hono`. WebSocket follows the same peer-surface model, but is still planned.
+
 ```bash
 $ myapp greet --name World
 { "message": "Hello, World!" }
@@ -135,13 +139,14 @@ $ myapp greet --name World
 
 | Package | What it does |
 |---------|-------------|
-| [`@ontrails/core`](./packages/core) | Result, errors, trail/event/topo, validation, schema derivation |
-| [`@ontrails/cli`](./packages/cli) | CLI trailhead — flag derivation, output formatting, Commander connector |
-| [`@ontrails/mcp`](./packages/mcp) | MCP trailhead — tool generation, annotations, progress bridge |
-| [`@ontrails/http`](./packages/http) | HTTP trailhead — route derivation, verb mapping, error responses, Hono connector |
+| [`@ontrails/core`](./packages/core) | Result, errors, trail/signal/contour/topo, validation, schema derivation |
+| [`@ontrails/cli`](./packages/cli) | CLI surface — flag derivation, output formatting, Commander connector |
+| [`@ontrails/mcp`](./packages/mcp) | MCP surface — tool generation, annotations, progress bridge |
+| [`@ontrails/http`](./packages/http) | HTTP surface model — route derivation, verb mapping, error responses |
+| [`@ontrails/hono`](./connectors/hono) | Hono connector that opens a topo on the HTTP surface |
 | [`@ontrails/store`](./packages/store) | Schema-derived store definitions, typed accessors, Drizzle bindings, read-only stores |
-| [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testCrosses()`, contract testing, trailhead harnesses |
-| [`@ontrails/schema`](./packages/schema) | Trailhead maps, semantic diffing, lock files for CI governance |
+| [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testCrosses()`, contract testing, surface harnesses |
+| [`@ontrails/schema`](./packages/schema) | Surface maps, semantic diffing, lock files for CI governance |
 | [`@ontrails/tracing`](./packages/tracing) | Execution recording, `trails.db` dev-state storage, telemetry helpers |
 | [`@ontrails/warden`](./packages/warden) | AST-based convention rules, drift detection, CI formatters |
 | [`@ontrails/logging`](./packages/logging) | Structured logging — sinks, formatters, LogTape connector |
@@ -161,4 +166,4 @@ bun run typecheck      # TypeScript strict mode
 
 ## Status
 
-v1 beta. The contract layer, CLI/MCP/HTTP trailheads, `trails topo` and `trails dev` workflows, shared `trails.db`, tracing-backed developer state, schema-derived stores, and the Drizzle runtime are implemented and shipping. WebSocket trailhead is designed but not yet built. See [Horizons](./docs/horizons.md) for what's next.
+v1 beta. The contract layer, CLI/MCP/HTTP surfaces, `trails topo` and `trails dev` workflows, shared `trails.db`, tracing-backed developer state, schema-derived stores, and the Drizzle runtime are implemented and shipping. The WebSocket surface is designed but not yet built. See [Horizons](./docs/horizons.md) for what's next.
