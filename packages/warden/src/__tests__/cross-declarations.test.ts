@@ -218,6 +218,87 @@ trail('onboard', {
 
       expect(diagnostics.length).toBe(0);
     });
+
+    test('blaze with no second parameter: unrelated closure ctx.cross is not tracked', () => {
+      const code = `
+import { trail, Result } from '@ontrails/core';
+
+const ctx = { cross: () => ({}) };
+
+trail('demo', {
+  blaze: async () => {
+    ctx.cross('entity.add');
+    return Result.ok({ ok: true });
+  },
+  crosses: [],
+});
+`;
+
+      const diagnostics = crossDeclarations.check(code, TEST_FILE);
+      // The blaze has no context parameter, so `ctx` in the body is an
+      // unrelated closure-scoped binding, not the trail context. It must
+      // not be tracked — no diagnostics.
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('blaze with no second parameter: unrelated closure context.cross is not tracked', () => {
+      const code = `
+import { trail, Result } from '@ontrails/core';
+
+const context = { cross: () => ({}) };
+
+trail('demo', {
+  blaze: async () => {
+    context.cross('entity.add');
+    return Result.ok({ ok: true });
+  },
+  crosses: [],
+});
+`;
+
+      const diagnostics = crossDeclarations.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('real blaze ctx.cross to undeclared target is still flagged', () => {
+      const code = `
+import { trail, Result } from '@ontrails/core';
+
+trail('demo', {
+  blaze: async (_, ctx) => {
+    await ctx.cross('undeclared');
+    return Result.ok({ ok: true });
+  },
+  crosses: [],
+});
+`;
+
+      const diagnostics = crossDeclarations.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('error');
+      expect(diagnostics[0]?.message).toContain("ctx.cross('undeclared')");
+    });
+
+    test('defaulted context param is detected (AssignmentPattern)', () => {
+      const code = `
+import { trail, Result } from '@ontrails/core';
+
+const fallbackCtx = { cross: async () => Result.ok({}) };
+
+trail('demo', {
+  blaze: async (_input, ctx = fallbackCtx) => {
+    await ctx.cross('undeclared');
+    return Result.ok({ ok: true });
+  },
+  crosses: [],
+});
+`;
+
+      const diagnostics = crossDeclarations.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('error');
+      expect(diagnostics[0]?.message).toContain("ctx.cross('undeclared')");
+    });
   });
 
   describe('nested run false positives', () => {

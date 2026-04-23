@@ -207,15 +207,22 @@ const extractMemberPair = (
 /**
  * Extract the second parameter name from a blaze function node.
  *
- * Handles `(input, ctx) => ...`, `async (input, context) => ...`, and
- * `function(input, ctx) { ... }` forms.
+ * Handles `(input, ctx) => ...`, `async (input, context) => ...`,
+ * `function(input, ctx) { ... }`, and defaulted params like
+ * `(input, ctx = fallback) => ...` (AssignmentPattern whose `.left` is the
+ * Identifier).
  */
 const extractContextParamName = (blazeBody: AstNode): string | null => {
   const params = blazeBody['params'] as readonly AstNode[] | undefined;
   if (!params || params.length < 2) {
     return null;
   }
-  return identifierName(params[1]);
+  const [, param] = params;
+  if (param?.type === 'AssignmentPattern') {
+    const { left } = param as unknown as { left?: AstNode };
+    return identifierName(left);
+  }
+  return identifierName(param);
 };
 
 /** Check if a callee is a member-style cross call: <ctxName>.cross(...). */
@@ -358,9 +365,20 @@ const extractCrossCall = (
   return resolveCrossCallTargets(extractCrossFirstArg(crossCall), sourceCode);
 };
 
-/** Build the set of context parameter names to match against. */
+/**
+ * Build the set of context parameter names to match against.
+ *
+ * Returns ONLY the actual second-parameter name from the blaze signature.
+ * No seeded defaults: if the blaze has no second parameter, the returned set
+ * is empty and no `ctx.cross(...)` / `context.cross(...)` calls are tracked
+ * for that blaze. An unrelated closure-scoped `ctx` identifier is not the
+ * trail context and must not be treated as one.
+ *
+ * Mirrors `fires-declarations.ts` and `resource-declarations.ts` for the same
+ * reason.
+ */
 const buildCtxNames = (body: AstNode): ReadonlySet<string> => {
-  const ctxNames = new Set(['ctx', 'context']);
+  const ctxNames = new Set<string>();
   const paramName = extractContextParamName(body);
   if (paramName) {
     ctxNames.add(paramName);

@@ -362,6 +362,31 @@ trail('demo', {
       expect(diagnostics.length).toBe(0);
     });
 
+    test('defaulted context param is detected (AssignmentPattern)', () => {
+      const code = `
+import { trail, Result } from '@ontrails/core';
+
+const fallbackCtx = { resource: () => ({}) };
+
+trail('demo', {
+  blaze: async (_input, ctx = fallbackCtx) => {
+    ctx.resource('db.main');
+    return Result.ok({ ok: true });
+  },
+  resources: [],
+});
+`;
+
+      const diagnostics = resourceDeclarations.check(code, TEST_FILE);
+      // The param is an AssignmentPattern; its `.left` is the Identifier `ctx`.
+      // Without AssignmentPattern handling in extractContextParamName, ctx-access
+      // analysis would silently drop and this undeclared access would go
+      // unreported.
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('error');
+      expect(diagnostics[0]?.message).toContain("ctx.resource('db.main')");
+    });
+
     test('custom-named context param: only that name is tracked', () => {
       const code = `
 import { trail, Result } from '@ontrails/core';

@@ -141,10 +141,21 @@ const extractContextParamNode = (blazeBody: AstNode): AstNode | null => {
  * Returns null when the parameter is not a plain Identifier (e.g. when the
  * author destructures `{ resource }` in the parameter list). Parameter-level
  * destructuring is handled separately by `collectParamResourceAliases`.
+ *
+ * Also handles defaulted parameters like `(input, ctx = fallback) => ...`
+ * (AssignmentPattern whose `.left` is the Identifier). Without this, valid
+ * signatures would silently drop out of ctx-access analysis.
  */
 const extractContextParamName = (blazeBody: AstNode): string | null => {
   const param = extractContextParamNode(blazeBody);
-  return param ? identifierName(param) : null;
+  if (!param) {
+    return null;
+  }
+  if (param.type === 'AssignmentPattern') {
+    const { left } = param as unknown as { left?: AstNode };
+    return identifierName(left);
+  }
+  return identifierName(param);
 };
 
 /** Extract the alias name from a Property node whose key is `resource`. */
