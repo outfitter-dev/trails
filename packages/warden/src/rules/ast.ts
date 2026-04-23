@@ -7,6 +7,8 @@
 
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { DRAFT_ID_PREFIX } from '@ontrails/core';
 import { parseSync } from 'oxc-parser';
 
 // ---------------------------------------------------------------------------
@@ -255,7 +257,7 @@ export const FRAMEWORK_DRAFT_PREFIX_CONSTANT_NAMES: ReadonlySet<string> =
  * redeclare `DRAFT_ID_PREFIX = '_draft.something-else'` and accidentally
  * suppress its own draft-id diagnostic.
  */
-const FRAMEWORK_DRAFT_PREFIX_LITERAL = '_draft.';
+const FRAMEWORK_DRAFT_PREFIX_LITERAL = DRAFT_ID_PREFIX;
 
 /**
  * Absolute paths of the two framework files allowed to declare the

@@ -5,7 +5,6 @@
  * via ctx.cross.
  */
 
-import type { CrossFn } from '@ontrails/core';
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -42,6 +41,11 @@ interface ScaffoldedProject {
   readonly name: string;
 }
 
+interface SurfaceResult {
+  readonly created: string;
+  readonly dependency: string;
+}
+
 const buildScaffoldInput = (input: ScaffoldRequest) => ({
   ...(input.dir === undefined ? {} : { dir: input.dir }),
   name: input.name,
@@ -58,24 +62,14 @@ const buildVerifyInput = (input: VerifyRequest) => ({
   name: input.name,
 });
 
-const scaffoldProject = (
-  cross: CrossFn,
-  input: ScaffoldRequest
-): Promise<Result<ScaffoldedProject, Error>> =>
-  cross('create.scaffold', buildScaffoldInput(input));
-
-const addSurfaceFiles = async (
-  cross: CrossFn,
-  dir: string,
-  surfaces: readonly string[]
+const collectSurfaceFiles = async (
+  surfaces: readonly string[],
+  addSurface: (surface: string) => Promise<Result<SurfaceResult, Error>>
 ): Promise<Result<string[], Error>> => {
   const created: string[] = [];
 
   for (const surface of surfaces) {
-    const result = await cross<{ created: string; dependency: string }>(
-      'add.surface',
-      buildSurfaceInput(dir, surface)
-    );
+    const result = await addSurface(surface);
     if (result.isErr()) {
       return Result.err(result.error);
     }
@@ -86,17 +80,14 @@ const addSurfaceFiles = async (
 };
 
 const collectVerifyFiles = async (
-  cross: CrossFn,
-  input: VerifyRequest
+  shouldVerify: boolean,
+  addVerify: () => Promise<Result<{ created: string[] }, Error>>
 ): Promise<Result<string[], Error>> => {
-  if (!input.verify) {
+  if (!shouldVerify) {
     return Result.ok([]);
   }
 
-  const result = await cross<{ created: string[] }>(
-    'add.verify',
-    buildVerifyInput(input)
-  );
+  const result = await addVerify();
   return result.isErr()
     ? Result.err(result.error)
     : Result.ok(result.value.created);
@@ -108,53 +99,59 @@ const collectCreatedFiles = (
   verify: readonly string[]
 ): string[] => [...scaffolded, ...surfaces, ...verify];
 
-const runCreate = async (
-  cross: CrossFn,
-  input: CreateInput
-): Promise<Result<{ created: string[]; dir: string; name: string }, Error>> => {
-  const scaffolded = await scaffoldProject(cross, input);
-  if (scaffolded.isErr()) {
-    return Result.err(scaffolded.error);
-  }
-
-  const surfaceResults = await addSurfaceFiles(
-    cross,
-    scaffolded.value.dir,
-    input.surfaces
-  );
-  if (surfaceResults.isErr()) {
-    return Result.err(surfaceResults.error);
-  }
-
-  const verifyFiles = await collectVerifyFiles(cross, input);
-  if (verifyFiles.isErr()) {
-    return Result.err(verifyFiles.error);
-  }
-
-  return Result.ok({
-    created: collectCreatedFiles(
-      scaffolded.value.created,
-      surfaceResults.value,
-      verifyFiles.value
-    ),
-    dir: scaffolded.value.dir,
-    name: input.name,
-  });
-};
-
 // ---------------------------------------------------------------------------
 // Route definition
 // ---------------------------------------------------------------------------
 
 export const createRoute = trail('create', {
-  // Warden's cross-declarations rule can't see through helper functions, but
-  // these crossings are real — scaffoldProject, addSurfaceFiles, and
-  // collectVerifyFiles all delegate via the CrossFn passed from ctx.cross.
   blaze: async (input: CreateInput, ctx) => {
     if (!ctx.cross) {
       return Result.err(new Error('create route requires ctx.cross'));
     }
-    return await runCreate(ctx.cross, input);
+    const { cross } = ctx;
+
+    const scaffolded = await cross<ScaffoldedProject>(
+      'create.scaffold',
+      buildScaffoldInput(input)
+    );
+    if (scaffolded.isErr()) {
+      return Result.err(scaffolded.error);
+    }
+
+    const finishCreate = async (): Promise<
+      Result<{ created: string[]; dir: string; name: string }, Error>
+    > => {
+      const surfaceFiles = await collectSurfaceFiles(
+        input.surfaces,
+        (surface) =>
+          cross<SurfaceResult>(
+            'add.surface',
+            buildSurfaceInput(scaffolded.value.dir, surface)
+          )
+      );
+      if (surfaceFiles.isErr()) {
+        return Result.err(surfaceFiles.error);
+      }
+
+      const verifyFiles = await collectVerifyFiles(input.verify, () =>
+        cross<{ created: string[] }>('add.verify', buildVerifyInput(input))
+      );
+      if (verifyFiles.isErr()) {
+        return Result.err(verifyFiles.error);
+      }
+
+      return Result.ok({
+        created: collectCreatedFiles(
+          scaffolded.value.created,
+          surfaceFiles.value,
+          verifyFiles.value
+        ),
+        dir: scaffolded.value.dir,
+        name: input.name,
+      });
+    };
+
+    return finishCreate();
   },
   crosses: ['create.scaffold', 'add.surface', 'add.verify'],
   description: 'Create a new Trails project',

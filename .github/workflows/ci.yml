@@ -85,7 +85,6 @@ jobs:
 
       - name: Warden
         run: bun apps/ci/bin/ci.ts --format github --fail-on error
-        continue-on-error: true
 
   ci-gate:
     name: CI Gate
