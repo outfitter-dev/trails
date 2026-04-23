@@ -6,27 +6,22 @@ import { Result, trail } from '@ontrails/core';
 import { checkDrift } from '@ontrails/warden';
 import { z } from 'zod';
 
-import { formatCiOutput } from '../formatters.js';
+import { createDriftOnlyReport, evaluateCiGovernance } from '../governance.js';
 
 export const ciDriftTrail = trail('ci.drift', {
   blaze: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
     const driftResult = await checkDrift(rootDir);
-
-    const output = formatCiOutput('summary', {
+    const output = evaluateCiGovernance({
       driftResult,
-      wardenReport: {
-        diagnostics: [],
-        drift: driftResult,
-        errorCount: 0,
-        passed: !driftResult.stale,
-        warnCount: 0,
-      },
+      failOn: 'error',
+      format: 'summary',
+      wardenReport: createDriftOnlyReport(driftResult),
     });
 
     return Result.ok({
       hasDrift: driftResult.stale,
-      output,
+      output: output.output,
     });
   },
   description: 'Run trailhead lock drift detection',

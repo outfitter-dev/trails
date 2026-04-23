@@ -3,39 +3,32 @@
  */
 
 import { Result, trail } from '@ontrails/core';
-import { runWarden } from '@ontrails/warden';
 import { z } from 'zod';
 
 import type { CiFormat } from '../formatters.js';
-import { formatCiOutput } from '../formatters.js';
+import type { CiFailOn } from '../governance.js';
+import { runCiGovernance } from '../governance.js';
 
 export const ciWardenTrail = trail('ci.warden', {
   blaze: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
     const format: CiFormat = input.format ?? 'json';
-    const failOn = input.failOn ?? 'error';
+    const failOn: CiFailOn = input.failOn ?? 'error';
+    const result = await runCiGovernance({ failOn, format, rootDir });
 
-    const report = await runWarden({ rootDir });
-    const driftResult = report.drift ?? {
-      committedHash: null,
-      currentHash: 'unknown',
-      stale: false,
-    };
-
-    const output = formatCiOutput(format, {
-      driftResult,
-      wardenReport: report,
-    });
-
-    const failedByErrors = report.errorCount > 0;
-    const failedByWarnings = failOn === 'warning' && report.warnCount > 0;
+    // Preserve the warden trail's historical `passed` contract: drift
+    // status flows through `output` but does not flip the trail's
+    // pass/fail flag. The CLI entrypoint still folds drift into its
+    // exit code via `runCiGovernance` / `result.passed` directly.
+    const failedByErrors = result.errorCount > 0;
+    const failedByWarnings = failOn === 'warning' && result.warningCount > 0;
     const passed = !failedByErrors && !failedByWarnings;
 
     return Result.ok({
-      errorCount: report.errorCount,
-      output,
+      errorCount: result.errorCount,
+      output: result.output,
       passed,
-      warningCount: report.warnCount,
+      warningCount: result.warningCount,
     });
   },
   description: 'Run warden governance checks with CI-friendly output',
