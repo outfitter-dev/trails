@@ -14,7 +14,7 @@
       "cache": false
     },
     "typecheck": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^typecheck"]
     },
     "lint": {
       "inputs": ["src/**", ".oxlintrc.json", ".oxfmtrc.jsonc"],
