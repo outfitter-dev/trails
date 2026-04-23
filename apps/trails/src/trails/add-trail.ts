@@ -12,40 +12,53 @@ import { z } from 'zod';
 // Helpers
 // ---------------------------------------------------------------------------
 
+const literal = (value: string): string => JSON.stringify(value);
+
+const deriveExampleMessage = (id: string): string => `${id} completed`;
+
 const generateTrailFile = (
   id: string,
+  description: string,
+  exampleName: string,
   intent: 'read' | 'write' | 'destroy'
 ): string => {
   const intentLine = intent === 'write' ? '' : `\n  intent: '${intent}',`;
+  const exampleMessage = deriveExampleMessage(id);
 
   return `import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 export const ${id.replaceAll('.', '_')} = trail('${id}', {
-  description: 'TODO: describe this trail',
+  blaze: async () => {
+    return Result.ok({ message: ${literal(exampleMessage)} });
+  },
+  description: ${literal(description)},
   examples: [
     {
+      expected: { message: ${literal(exampleMessage)} },
       input: {},
-      name: 'TODO: add example',
+      name: ${literal(exampleName)},
     },
   ],
-  blaze: async (input) => {
-    return Result.ok({ message: 'TODO' });
-  },
   input: z.object({}),${intentLine}
   output: z.object({ message: z.string() }),
 });
 `;
 };
 
-const generateTestFile = (id: string): string => {
+const generateTestFile = (id: string, exampleName: string): string => {
   const moduleName = id.replaceAll('.', '-');
   const trailName = id.replaceAll('.', '_');
+  const exampleMessage = deriveExampleMessage(id);
   return `import { testTrail } from '@ontrails/testing';
 import { ${trailName} } from '../src/trails/${moduleName}.js';
 
 testTrail(${trailName}, [
-  { description: 'basic test', input: {}, expectOk: true },
+  {
+    description: ${literal(exampleName)},
+    expectValue: { message: ${literal(exampleMessage)} },
+    input: {},
+  },
 ]);
 `;
 };
@@ -64,14 +77,26 @@ const writeWithDirs = async (
 };
 
 export const addTrail = trail('add.trail', {
+  args: ['id'],
   blaze: async (input, ctx) => {
     const { id } = input;
     const moduleName = id.replaceAll('.', '-');
     const cwd = resolve(ctx.cwd ?? '.');
 
     const files = new Map<string, string>([
-      [`src/trails/${moduleName}.ts`, generateTrailFile(id, input.intent)],
-      [`__tests__/${moduleName}.test.ts`, generateTestFile(id)],
+      [
+        `src/trails/${moduleName}.ts`,
+        generateTrailFile(
+          id,
+          input.description,
+          input.exampleName,
+          input.intent
+        ),
+      ],
+      [
+        `__tests__/${moduleName}.test.ts`,
+        generateTestFile(id, input.exampleName),
+      ],
     ]);
 
     for (const [relativePath, content] of files) {
@@ -82,7 +107,18 @@ export const addTrail = trail('add.trail', {
   },
   description: 'Scaffold a new trail with tests and examples',
   input: z.object({
-    id: z.string().describe('Trail ID (e.g., entity.update)'),
+    description: z
+      .string()
+      .min(1, 'Trail description is required')
+      .describe('Trail description'),
+    exampleName: z
+      .string()
+      .min(1, 'Starter example name is required')
+      .describe('Starter example name'),
+    id: z
+      .string()
+      .min(1, 'Trail ID is required')
+      .describe('Trail ID (e.g., entity.update)'),
     intent: z
       .enum(['read', 'write', 'destroy'])
       .default('write')
