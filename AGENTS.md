@@ -133,16 +133,13 @@ bunx changeset version
 # 3. Commit, push, publish
 git add -A && git commit -m "chore: version packages to 1.0.0-beta.N"
 git push
-bun run pack:check
+bun run publish:check
 bun run publish:packages
 ```
 
 To exit pre-release mode for a stable release: `bunx changeset pre exit`, then version as usual.
 
-`bun run pack:check` runs the publish matrix through `npm pack --dry-run`.
-Packages intentionally ship source `.ts` files while their `exports` map points at
-`src`; test files, `dist`, `.turbo`, and `*.tsbuildinfo` should stay out of the
-published tarballs.
+`bun run publish:check` auto-discovers every non-private workspace, topo-sorts by `workspace:` dep edges, runs `bun pm pack --dry-run` per package (required because `npm pack` does not resolve `catalog:`), and asserts the packed `package.json` contains no unresolved `workspace:` or `catalog:` ranges. `bun run publish:packages` uses the same discovery and applies the explicit dist-tag from `.changeset/pre.json` (falling back to `latest` outside prerelease mode). Packages intentionally ship source `.ts` files while their `exports` map points at `src`; test files, `dist`, `.turbo`, and `*.tsbuildinfo` should stay out of the published tarballs.
 
 ## Testing
 
