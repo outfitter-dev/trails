@@ -195,4 +195,4 @@ New or newly publishable packages in the beta.15 publish flow include:
 - `@ontrails/logtape`
 - `@ontrails/tracing`
 
-Deprecated package names such as `@ontrails/tracker` and `@ontrails/crumbs` should be retired separately from the beta.15 code changes.
+Deprecated package names `@ontrails/tracker` and `@ontrails/crumbs` have been retired on npm with `npm deprecate`. Both point at `@ontrails/tracing` in their deprecation messages; new installs surface a visible warning.
