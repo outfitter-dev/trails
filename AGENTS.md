@@ -73,7 +73,7 @@ Use the project language consistently:
 - Prefer the most specific `TrailsError` subclass available.
 - Keep error taxonomy behavior aligned across surfaces so CLI, HTTP, and JSON-RPC mappings stay coherent.
 - Trails that use external dependencies declare them with `resources: [...]`.
-- Access resources through `db.from(ctx)` or `ctx.resource()`, never by constructing dependencies inline.
+- Access resources through `db.from(ctx)` whenever the resource definition is statically in scope. `ctx.resource(id|definition)` is the underlying primitive — reach for it only when the definition isn't in scope (dynamic IDs from config, generic harness/framework code over `AnyResource`, or `TrailContextInit.resource` injection seams). Never construct dependencies inline.
 - Keep `crosses` declarations for composition and `resources` declarations for infrastructure — they serve different purposes.
 - Every resource should define a `mock` factory so `testAll(app)` works without configuration.
 

@@ -45,6 +45,31 @@ The package publishing script now includes the Vite connector. Active Changesets
 
 Beta 15 is not a broad API migration. Most existing Trails apps can upgrade by bumping package versions and aligning generated project files with the current scaffolder.
 
+### Surface API cutover (ADR-0035)
+
+The published `CHANGELOG.md` for `@ontrails/cli` and `@ontrails/mcp` attributes the lexicon work to ADR-0023, but the surface-API renames listed here are governed by [ADR-0035: Surface APIs Render the Graph](../adr/0035-surface-apis-render-the-graph.md). Both ADRs landed in the beta.15 cut.
+
+| Old (beta.14) | New (beta.15) | Where |
+| --- | --- | --- |
+| `import { trailhead } from '@ontrails/cli/commander'` | `import { surface } from '@ontrails/cli/commander'` | CLI entry |
+| `import { trailhead } from '@ontrails/mcp'` | `import { surface } from '@ontrails/mcp'` | MCP entry |
+| `trailhead(app)` / `await trailhead(app)` | `surface(app)` / `await surface(app)` | Both |
+| `TrailheadCliOptions` | `CreateProgramOptions` | `@ontrails/cli/commander` |
+| `TrailheadMcpOptions` | `CreateServerOptions` | `@ontrails/mcp` |
+| MCP options `serverInfo: { name, version }` | flat `name`, `version` on the options object | `@ontrails/mcp` |
+| MCP options `transport: ...` | dropped (stdio-only) | `@ontrails/mcp` |
+| Hono surface options `serve: false` | dropped (always serves) | `@ontrails/hono` |
+| `CliHarnessOptions.app` / `McpHarnessOptions.app` | `.graph` | `@ontrails/testing` |
+
+### Lexicon (ADR-0023)
+
+| Old (beta.14) | New (beta.15) |
+| --- | --- |
+| `provision()` factory + `provisions: [...]` field | `resource()` + `resources: [...]` |
+| `gate(...)` | `layer(...)` |
+| `loadout(...)` | `profile(...)` |
+| `tracker` package + `Track`/`TrackRecord` types | `@ontrails/tracing` + `TraceRecord` |
+
 | If you have | Do this for beta 15 |
 | --- | --- |
 | `workspace:^` or `workspace:*` ranges in a generated app | Replace them with published `^1.0.0-beta.15` ranges |
