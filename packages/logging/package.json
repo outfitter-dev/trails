@@ -1,6 +1,14 @@
 {
   "name": "@ontrails/logging",
   "version": "1.0.0-beta.15",
+  "files": [
+    "src/**/*.ts",
+    "!src/**/__tests__/**",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "exports": {
     ".": "./src/index.ts",

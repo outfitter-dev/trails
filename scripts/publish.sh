@@ -2,7 +2,7 @@
 #
 # publish.sh — Publish all @ontrails packages using bun publish
 #
-# Usage: ./scripts/publish.sh [--otp <code>]
+# Usage: ./scripts/publish.sh [--dry-run] [--otp <code>]
 #
 # Uses bun publish (not npm publish) so workspace:^ is automatically
 # replaced with the actual version. Changesets handles versioning,
@@ -14,10 +14,32 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
+info() { echo -e "\033[0;34m▸\033[0m $1"; }
+success() { echo -e "\033[0;32m✓\033[0m $1"; }
+error() { echo -e "\033[0;31m✗\033[0m $1" >&2; }
+
+DRY_RUN=false
 OTP=""
-if [[ "${1:-}" == "--otp" ]] && [[ -n "${2:-}" ]]; then
-  OTP="$2"
-fi
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run)
+      DRY_RUN=true
+      shift
+      ;;
+    --otp)
+      if [[ -z "${2:-}" ]]; then
+        error "--otp requires a code"
+        exit 1
+      fi
+      OTP="${2:-}"
+      shift 2
+      ;;
+    *)
+      error "Unknown argument: $1"
+      exit 1
+      ;;
+  esac
+done
 
 # Packages in dependency order (core first, dependents after)
 PACKAGES=(
@@ -40,10 +62,6 @@ PACKAGES=(
   apps/trails
 )
 
-info() { echo -e "\033[0;34m▸\033[0m $1"; }
-success() { echo -e "\033[0;32m✓\033[0m $1"; }
-error() { echo -e "\033[0;31m✗\033[0m $1" >&2; }
-
 for pkg in "${PACKAGES[@]}"; do
   pkg_path="$REPO_ROOT/$pkg"
   pkg_name=$(jq -r '.name' "$pkg_path/package.json")
@@ -54,6 +72,21 @@ for pkg in "${PACKAGES[@]}"; do
   if [[ "$is_private" == "true" ]]; then
     info "Skipping $pkg_name (private)"
     continue
+  fi
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    info "Checking package contents for $pkg_name@$pkg_version..."
+    pack_log=$(mktemp)
+    if (cd "$pkg_path" && npm pack --dry-run >"$pack_log" 2>&1); then
+      success "$pkg_name@$pkg_version pack check passed"
+      rm -f "$pack_log"
+      continue
+    fi
+
+    error "Failed pack check for $pkg_name"
+    cat "$pack_log" >&2
+    rm -f "$pack_log"
+    exit 1
   fi
 
   info "Publishing $pkg_name@$pkg_version..."
@@ -72,4 +105,8 @@ for pkg in "${PACKAGES[@]}"; do
 done
 
 echo ""
-success "All packages published!"
+if [[ "$DRY_RUN" == "true" ]]; then
+  success "All package pack checks passed!"
+else
+  success "All packages published!"
+fi

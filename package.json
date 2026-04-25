@@ -25,6 +25,7 @@
     "format:file": "bunx ultracite fix",
     "format:guard": "if git grep -nE \"(\\\\./)?node_modules/\\\\.bin/ultra[c]ite\" -- ':!bun.lock'; then echo 'Direct node_modules/.bin formatter invocation found'; exit 1; fi",
     "mdlint:fix": "./node_modules/.bin/markdownlint-cli2 --fix",
+    "pack:check": "./scripts/publish.sh --dry-run",
     "typecheck": "turbo run typecheck",
     "check": "bun run lint && bun run format:check && bun run typecheck && bun run docs:snippets && bun run scaffold-versions:check",
     "clean": "turbo run clean --no-cache && rm -rf node_modules",

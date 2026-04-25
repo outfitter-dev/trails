@@ -4,6 +4,15 @@
   "bin": {
     "trails": "./bin/trails.ts"
   },
+  "files": [
+    "bin/**/*.ts",
+    "src/**/*.ts",
+    "!src/**/__tests__/**",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "scripts": {
     "build": "tsc -b",
