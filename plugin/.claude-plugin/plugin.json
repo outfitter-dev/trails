@@ -1,6 +1,6 @@
 {
   "name": "trails",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Build with the Trails framework — contract-first trails, surfaces, testing, and governance for agent-assisted development.",
   "author": {
     "name": "Outfitter",

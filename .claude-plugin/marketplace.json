@@ -5,16 +5,16 @@
     "url": "https://github.com/outfitter-dev"
   },
   "metadata": {
-    "description": "Build with the Trails framework — contract-first trails, trailheads, testing, and governance.",
-    "version": "0.2.0"
+    "description": "Build with the Trails framework — contract-first trails, surfaces, testing, and governance.",
+    "version": "0.3.0"
   },
   "repository": "https://github.com/outfitter-dev/trails",
   "plugins": [
     {
       "name": "trails",
       "source": "./plugin",
-      "version": "0.2.0",
-      "description": "Skills for building Trails applications — trail creation, trailheads, testing, debugging, migration, and governance."
+      "version": "0.3.0",
+      "description": "Skills for building Trails applications — trail creation, surfaces, testing, debugging, migration, and governance."
     }
   ]
 }
