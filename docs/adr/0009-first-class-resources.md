@@ -83,16 +83,16 @@ The fields:
 
 ### Topo discovers resources alongside trails
 
-`topo()` already scans module exports for objects with `kind: 'trail'` and `kind: 'event'`. Resources use the same mechanism — `kind: 'resource'` objects are collected into a third map.
+`topo()` already scans module exports for objects with `kind: 'trail'` and `kind: 'signal'`. Resources use the same mechanism — `kind: 'resource'` objects are collected into a third map.
 
 ```typescript
 import * as entity from './trails/entity';
 import * as resources from './resources';
 
 const graph = topo('myapp', entity, resources);
-// app.trails — Map<id, Trail>
-// app.events — Map<id, Event>
-// app.resources — Map<id, Resource>
+// graph.trails — Map<id, Trail>
+// graph.signals — Map<id, Signal>
+// graph.resources — Map<id, Resource>
 ```
 
 Explicit registration also works for custom configuration:

@@ -1,20 +1,20 @@
 # Error Taxonomy Reference
 
-## All 13 Error Classes
+## All 15 Error Classes
 
 ### validation (exit 1, HTTP 400)
 
-- **ValidationError** — Input fails schema or business rules. `new ValidationError('age must be positive', { field: 'age', value: -1 })`
-- **AmbiguousError** — Input matches multiple interpretations. `new AmbiguousError('name matches 3 users', { candidates: ['alice', 'alex', 'ali'] })`
+- **ValidationError** — Input fails schema or business rules. `new ValidationError('age must be positive', { context: { field: 'age', value: -1 } })`
+- **AmbiguousError** — Input matches multiple interpretations. `new AmbiguousError('name matches 3 users', { context: { candidates: ['alice', 'alex', 'ali'] } })`
 
 ### not_found (exit 2, HTTP 404)
 
-- **NotFoundError** — Entity or resource not found. `new NotFoundError("User 'alice' not found", { entity: 'User', id: 'alice' })`
+- **NotFoundError** — Entity or resource not found. `new NotFoundError("User 'alice' not found", { context: { entity: 'User', id: 'alice' } })`
 
 ### conflict (exit 3, HTTP 409)
 
-- **AlreadyExistsError** — Entity with that ID already exists. `new AlreadyExistsError("User 'alice' already exists", { entity: 'User', id: 'alice' })`
-- **ConflictError** — State conflict (concurrent modification, version mismatch). `new ConflictError('version mismatch', { expected: 3, actual: 5 })`
+- **AlreadyExistsError** — Entity with that ID already exists. `new AlreadyExistsError("User 'alice' already exists", { context: { entity: 'User', id: 'alice' } })`
+- **ConflictError** — State conflict (concurrent modification, version mismatch). `new ConflictError('version mismatch', { context: { expected: 3, actual: 5 } })`
 
 ### permission (exit 4, HTTP 403)
 
@@ -22,11 +22,11 @@
 
 ### timeout (exit 5, HTTP 504)
 
-- **TimeoutError** — Operation exceeded time limit. `new TimeoutError('API call timed out after 30s', { timeoutMs: 30000 })`
+- **TimeoutError** — Operation exceeded time limit. `new TimeoutError('API call timed out after 30s', { context: { timeoutMs: 30000 } })`
 
 ### rate_limit (exit 6, HTTP 429)
 
-- **RateLimitError** — Too many requests. `new RateLimitError('rate limit exceeded', { retryAfterMs: 5000 })`
+- **RateLimitError** — Too many requests. `new RateLimitError('rate limit exceeded', { retryAfter: 5000 })` (milliseconds)
 
 ### network (exit 7, HTTP 502)
 
@@ -35,6 +35,7 @@
 ### internal (exit 8, HTTP 500)
 
 - **InternalError** — Unexpected failure. Catch-all for bugs. `new InternalError('unexpected null in pipeline')`
+- **DerivationError** — Framework or projection derivation failure. `new DerivationError('could not derive CLI fields from schema')`
 - **AssertionError** — Invariant violation. `new AssertionError('items array must not be empty after filter')`
 
 ### auth (exit 9, HTTP 401)
@@ -44,6 +45,10 @@
 ### cancelled (exit 130, HTTP 499)
 
 - **CancelledError** — Operation cancelled by user or caller. `new CancelledError('user aborted')`
+
+### wrapped category (exit and HTTP inherited, not retryable)
+
+- **RetryExhaustedError** — Detour recovery exhausted. Inherits the wrapped `TrailsError` category for surface mappings and sets `retryable` to `false`. `new RetryExhaustedError(error, { attempts: 3, detour: 'NotFoundError' })`
 
 ## Pattern Matching
 

@@ -47,10 +47,18 @@ export const myTrail = trail('namespace.verb', {
   // Omit intent for standard create/update operations.
 
   // --- Detours (optional) ---
-  // Error recovery suggestions — what to try when this trail fails.
-  // detours: {
-  //   NotFoundError: ['search'],
-  // },
+  // Runtime recovery paths — what to do when this trail fails.
+  // detours: [
+  //   {
+  //     on: NotFoundError,
+  //     maxAttempts: 1,
+  //     recover: async ({ input }, ctx) => {
+  //       const fallback = await ctx.cross('search', { query: input.name });
+  //       if (fallback.isErr()) return fallback;
+  //       return Result.ok(fallback.value);
+  //     },
+  //   },
+  // ],
 
   // --- Examples ---
   // Each example is both agent documentation AND a test case.
@@ -86,7 +94,7 @@ export const myTrail = trail('namespace.verb', {
 
   blaze: async (input, ctx) => {
     // Your logic here. Input types are guaranteed by the schema.
-    // Use ctx for resources, logging, and following other trails.
+    // Use ctx for resources, logging, tracing, signals, and crossing other trails.
 
     // Access a declared resource — typed from the resource's create() return:
     // const conn = db.from(ctx);

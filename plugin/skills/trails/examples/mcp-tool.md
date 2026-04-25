@@ -63,11 +63,15 @@ export const search = trail('docs.search', {
     { name: 'limited results', input: { query: 'deploy', section: 'guides', limit: 3 } },
   ],
   blaze: async (input) => {
-    const results = await searchIndex(input.query, {
-      limit: input.limit,
-      section: input.section,
-    });
-    return Result.ok(results);
+    try {
+      const results = await searchIndex(input.query, {
+        limit: input.limit,
+        section: input.section,
+      });
+      return Result.ok(results);
+    } catch (error) {
+      return Result.err(new InternalError('Search failed', { cause: error as Error }));
+    }
   },
 });
 ```

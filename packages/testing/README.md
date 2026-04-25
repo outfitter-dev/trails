@@ -81,12 +81,12 @@ const cross = createCrossContext({
   },
 });
 const ctx = { ...createTestContext(), cross };
-const result = await onboardTrail.run({ name: 'Delta', type: 'tool' }, ctx);
+const result = await onboardTrail.blaze({ name: 'Delta', type: 'tool' }, ctx);
 ```
 
 Calls to unregistered trail IDs return `Result.err` with a descriptive message, so missing stubs fail loudly.
 
-## Trailhead harnesses
+## Surface Harnesses
 
 ```typescript
 import { createCliHarness, createMcpHarness } from '@ontrails/testing';

@@ -31,7 +31,7 @@ Drift across surfaces is structurally harder than alignment. You cannot have dif
 
 ### Schema always exists
 
-There is no untyped state. If a trail accepts input, the input has a schema. If a trail returns output, the output has a schema. If a developer emits an event, the payload has a type. If a service has config, the config has a shape.
+There is no untyped state. If a trail accepts input, the input has a schema. If a trail returns output, the output has a schema. If a developer fires a signal, the payload has a type. If a resource has config, the config has a shape.
 
 The question is never "does a schema exist?" but "where is the schema authored?" The framework captures the schema at the earliest possible point and makes it available to every consumer.
 
@@ -69,13 +69,13 @@ This does not preclude experimentation. Trails itself was formed through iterati
 
 Six categories describe how information flows through the system. Understanding these categories is essential for evaluating any proposed feature or API change.
 
-**Authored.** New information only the developer knows. Schemas, intent, metadata, examples, the run function, trail IDs. Creative contributions that cannot be derived because they don't exist until someone writes them.
+**Authored.** New information only the developer knows. Schemas, intent, meta, examples, the blaze function, trail IDs. Creative contributions that cannot be derived because they don't exist until someone writes them.
 
 **Projected.** Mechanically derived from authored information, guaranteed correct. MCP tool names from trail IDs. CLI flags from schema fields. Exit codes from error classes. HTTP verbs from intent. If the authored input exists, the projection is unambiguous. "Derive" is the verb for what the framework does. "Projected" is the category for the deterministic output.
 
 **Enforced.** Constrained by the type system at compile time. Output schemas bind the return type. The Result type eliminates throw/catch. Context types scope what the implementation can access. The compiler rejects non-compliance.
 
-**Inferred.** Detected by static analysis, best-effort. Which trails a trail follows, which error types are returned. Useful for governance, but not compiler-guaranteed.
+**Inferred.** Detected by static analysis, best-effort. Which trails a trail crosses, which error types are returned. Useful for governance, but not compiler-guaranteed.
 
 **Observed.** Learned from runtime. The tracing system captures what actually happens: execution duration, error distributions, latency profiles, usage patterns. Observations close the loop between declared intent and actual behavior.
 
@@ -90,7 +90,7 @@ For any proposed feature, run through this checklist in order:
 3. If not, does testing against examples catch it? Prefer test-time safety.
 4. If not, does the warden catch it? Prefer lint-time safety.
 5. If not, does diffing the resolved graph catch it? Prefer diff-time safety.
-6. If none of the above, is it truly freeform? Freeform is acceptable only for metadata.
+6. If none of the above, is it truly freeform? Freeform is acceptable only for meta.
 
 If a feature requires the developer to author information the framework already has, that's a framework bug. If the authored information can drift from reality and nothing catches it, the feature needs redesign.
 
@@ -128,7 +128,7 @@ Validation is a framework guarantee enforced once at the boundary, not a develop
 
 ### The resolved graph is the story
 
-The lockfile is the serialized topology: the compiled, resolved, deduplicated story of a Trails application. Every trail, service, event, and surface is a node. Relationships are edges. An agent reading just the lockfile can understand the entire system without source code.
+The lockfile is the serialized topology: the compiled, resolved, deduplicated story of a Trails application. Every trail, resource, signal, and surface is a node. Relationships are edges. An agent reading just the lockfile can understand the entire system without source code.
 
 The lockfile is generated, checked in, and CI-diffable. Drift between code and lockfile is a governance finding.
 
@@ -178,13 +178,13 @@ One write, six reads. The developer authors an example. The framework reads it s
 
 ### Progressive disclosure of complexity
 
-Every concept starts simple and gains precision as the developer invests. A trail starts with an input schema and a blaze function. The framework derives what it can from there. Over time, the developer tightens: an explicitly authored output schema, intent, error declarations, crossing declarations, examples, metadata. Each tightening step is optional. Each compounds with everything else.
+Every concept starts simple and gains precision as the developer invests. A trail starts with an input schema and a blaze function. The framework derives what it can from there. Over time, the developer tightens: an explicitly authored output schema, intent, error declarations, crossing declarations, examples, meta. Each tightening step is optional. Each compounds with everything else.
 
 The framework should not impose ceremony before it becomes necessary. The warden suggests the next step without blocking the current one.
 
 ### Authored defaults, overridable in context
 
-A trail declares its defaults: intent, error behavior, crossing declarations, metadata. These are the author's stated design. The consuming context (the app, surface config, or a future composition layer) can override them.
+A trail declares its defaults: intent, error behavior, crossing declarations, meta. These are the author's stated design. The consuming context (the app, surface config, or a future composition layer) can override them.
 
 The authored default documents intent. The override enables reuse. The resolved graph captures the final state. Governance can flag overrides that contradict intent.
 

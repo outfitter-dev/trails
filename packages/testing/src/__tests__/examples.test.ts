@@ -1,9 +1,12 @@
 import { describe, test } from 'bun:test';
 
 import {
+  ConflictError,
   contour,
+  DerivationError,
   NotFoundError,
   Result,
+  RetryExhaustedError,
   resource,
   trail,
   topo,
@@ -72,6 +75,33 @@ const entityTrail = trail('entity.show', {
 const noExamplesTrail = trail('noexamples', {
   blaze: (input: { x: number }) => Result.ok(input.x * 2),
   input: z.object({ x: z.number() }),
+});
+
+const taxonomyErrorTrail = trail('taxonomy.errors', {
+  blaze: (input: { type: 'derivation' | 'retry' }) => {
+    if (input.type === 'derivation') {
+      return Result.err(new DerivationError('could not derive projection'));
+    }
+    return Result.err(
+      new RetryExhaustedError(new ConflictError('version mismatch'), {
+        attempts: 3,
+        detour: 'ConflictError',
+      })
+    );
+  },
+  examples: [
+    {
+      error: 'DerivationError',
+      input: { type: 'derivation' },
+      name: 'Derivation failure returns DerivationError',
+    },
+    {
+      error: 'RetryExhaustedError',
+      input: { type: 'retry' },
+      name: 'Exhausted detour returns RetryExhaustedError',
+    },
+  ],
+  input: z.object({ type: z.enum(['derivation', 'retry']) }),
 });
 
 const mockDbResource = resource('db.mock.examples', {
@@ -269,6 +299,7 @@ describe('testExamples', () => {
       greetTrail,
       noExamplesTrail,
       searchTrail,
+      taxonomyErrorTrail,
     } as Record<string, unknown>)
   );
 

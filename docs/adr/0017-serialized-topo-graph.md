@@ -13,7 +13,7 @@ depends_on: [7, 8]
 
 ## Context
 
-The framework currently produces `trailhead.lock` via `trails survey generate`. This file captures the derived surface shape (MCP tool names, CLI commands, HTTP routes) as a diffable, hashable artifact. CI compares it against the current topo to detect unintentional contract changes.
+Earlier implementations produced `trailhead.lock` via `trails survey generate`. That file captured the derived surface shape (MCP tool names, CLI commands, HTTP routes) as a diffable, hashable artifact. CI compared it against the current topo to detect unintentional contract changes.
 
 As the framework grows, more resolved state needs the same treatment: surfaces, signals, fires, resources, config, the reactive graph. Each is "resolved state of the system that should be diffable and governable." Splitting them into separate lockfiles creates multiple files to commit, multiple CI checks to configure, and multiple commands to remember.
 
@@ -33,7 +33,7 @@ When a trail ID exists in multiple apps (e.g., `health.check` in both `trails-ap
 
 ### Migration from `trailhead.lock`
 
-The current `trailhead.lock` has no external consumers. It's generated, committed, and checked by the framework's own tooling. The migration is mechanical: the existing surface lock content becomes part of the trail nodes in the new graph. The warden rule that validates the lock updates to read from the new location.
+The old `trailhead.lock` had no external consumers. It was generated, committed, and checked by the framework's own tooling. The migration was mechanical: the existing surface lock content became part of the trail nodes in the new graph. The warden rule that validates the lock updates to read from the new location.
 
 ## Decision
 

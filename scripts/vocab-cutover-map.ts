@@ -67,13 +67,16 @@ export const auditRules: readonly VocabAuditRule[] = [
   },
   {
     description:
-      'Old notification runtime still uses ctx.emit(...) instead of ctx.signal(...)',
+      'Old notification runtime still uses ctx.emit(...) instead of ctx.fire(...)',
     id: 'emit-call',
     pattern: String.raw`\bctx\.emit\(`,
   },
   {
+    // The noun is "signal"; the declaration field is `fires: [...]` (verb-form,
+    // matching the runtime call `ctx.fire(...)`). Map rewrites the old
+    // `emits: [...]` field name to the current `fires: [...]` field name.
     description:
-      'Old notification declarations still use emits: [...] instead of signals: [...]',
+      'Old notification declarations still use emits: [...] instead of fires: [...]',
     id: 'emits-field',
     pattern: String.raw`\bemits\s*:`,
   },
@@ -92,7 +95,7 @@ export const auditRules: readonly VocabAuditRule[] = [
   },
   {
     description:
-      'Old domain factory still uses entity(...) instead of mark(...)',
+      'Old domain factory still uses entity(...) instead of contour(...)',
     id: 'entity-factory',
     pattern: String.raw`\bentity\(`,
   },
@@ -121,10 +124,9 @@ export const auditRules: readonly VocabAuditRule[] = [
   },
   {
     description:
-      'Old transport terminology still uses surface instead of trailhead',
-    excludePaths: ['docs/lexicon.md'],
+      'Old boundary terminology still uses trailhead instead of surface',
     id: 'surface-term',
-    pattern: String.raw`\bsurface\b|\bsurfaces\b|SURFACE_KEY`,
+    pattern: String.raw`\b[Tt]railhead(s)?\b|TRAILHEAD_KEY|__trails_trailhead`,
   },
   {
     description:

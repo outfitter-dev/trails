@@ -33,7 +33,7 @@ blaze: async (input) => {
 
 **Why it's wrong:** Direct calls bypass the framework pipeline. Input isn't validated, layers don't run, and traces aren't recorded.
 
-**Fix:** In composite trails, use `ctx.cross('trail.id', input)` (pass the string ID, not the trail object). In tests, use `testAll()` or the test harness.
+**Fix:** In composite trails, use `ctx.cross(targetTrail, input)` for typed calls or `ctx.cross('trail.id', input)` for string-id calls. In tests, use `testAll()`, `testTrail()`, or `testCrosses()` from `@ontrails/testing`.
 
 ## 4. Missing output schema
 
@@ -94,7 +94,7 @@ trail('onboard', {
 
 ```typescript
 blaze: async (input, ctx) => {
-  ctx.logger.debug('Processing', { input });
+  ctx.logger?.debug('Processing', { input });
   // ...
 }
 ```

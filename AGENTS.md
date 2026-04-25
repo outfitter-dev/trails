@@ -31,7 +31,7 @@ For pinned formatter runs, prefer `bun run format:check`, `bun run format:fix`, 
 
 ## Project Overview
 
-Trails is an agent-native, contract-first TypeScript framework. Define a trail once with typed input, `Result` output, examples, and metadata, then surface it on CLI, MCP, HTTP, or WebSocket.
+Trails is an agent-native, contract-first TypeScript framework. Define a trail once with typed input, `Result` output, examples, and meta, then surface it on CLI, MCP, HTTP, or WebSocket.
 
 The architecture is designed to make consistency easier than drift. Agents building with Trails should naturally produce aligned surfaces. Agents consuming Trails apps should be able to inspect contracts, examples, schemas, and errors at runtime without guessing.
 
@@ -67,7 +67,7 @@ Use the project language consistently:
 - Trails with `crosses` compose through `ctx.cross()`, never by calling another trail's `.implementation()` directly.
 - Keep `crosses` declarations aligned with actual `ctx.cross()` usage.
 - Every trail exposed on MCP or HTTP surfaces must define an `output` schema.
-- Use `metadata` for annotations and ownership data.
+- Use `meta` for annotations and ownership data.
 - Use `detours` for recovery strategies instead of inline retry logic.
   - **Narrow factory carve-out.** Detours execute at runtime. Factory-built trails such as the store's `reconcile` factory (`packages/store/src/trails/reconcile.ts`) may still keep a tightly-scoped inline recovery bridge when the current detour model cannot yet express the required store-specific behavior. Prefer detours first; treat inline recovery as a local exception, not the default pattern.
 - Prefer the most specific `TrailsError` subclass available.

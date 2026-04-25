@@ -40,7 +40,7 @@ Channels merge with individual flags in a deterministic priority order.
 
 ### Draft state containment
 
-The `_draft.` ID prefix marks trails, signals, and resources as draft. Draft state lives in the authored graph but is excluded from established outputs — trailheads, lockfiles, topo exports. `trails draft promote` converts draft IDs to established with full reference rewriting.
+The `_draft.` ID prefix marks trails, signals, and resources as draft. Draft state lives in the authored graph but is excluded from established outputs — surfaces, lockfiles, topo exports. `trails draft promote` converts draft IDs to established with full reference rewriting.
 
 **ADR:** [0021](../adr/0021-draft-state-stays-out-of-the-resolved-graph.md)  
 **Guide:** [Draft State](../draft-state.md)

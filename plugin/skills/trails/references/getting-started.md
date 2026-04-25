@@ -9,9 +9,9 @@
 bunx @ontrails/trails create
 
 # Or install manually
-bun add @ontrails/core @ontrails/cli
+bun add @ontrails/core @ontrails/cli zod
 bun add commander                    # Commander connector
-bun add @ontrails/mcp                # MCP surface (optional)
+bun add @ontrails/mcp @modelcontextprotocol/sdk # MCP surface (optional)
 bun add -d @ontrails/testing         # Testing (dev)
 ```
 
@@ -67,7 +67,7 @@ export const graph = topo('myapp', greetModule);
 
 `topo()` scans module exports for `Trail` shapes and builds the collection.
 
-## Blaze on CLI
+## Open a CLI Surface
 
 Create `src/cli.ts`:
 
@@ -90,7 +90,7 @@ $ bun src/cli.ts greet --name World --loud
 
 Flags, types, defaults, and `--help` text are all derived from the Zod schema.
 
-## Blaze on MCP
+## Open an MCP Surface
 
 Create `src/mcp.ts`:
 
@@ -196,7 +196,7 @@ Rules for composition:
 - Propagate errors: `if (result.isErr()) return result;`
 - The warden verifies `crosses` matches actual `ctx.cross()` calls
 
-## Using Services
+## Using Resources
 
 When trails need infrastructure — databases, API clients, caches — declare them as resources.
 

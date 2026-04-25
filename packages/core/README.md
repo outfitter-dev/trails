@@ -56,10 +56,10 @@ const onboard = trail('entity.onboard', {
 | `run(topo, id, input, options?)` | Headless trail execution by ID. Looks up the trail in the topo, then delegates to `executeTrail`. Returns `Result.err(NotFoundError)` if the ID is not registered. |
 
 ```typescript
-// executeTrail — trailheads use this directly
+// executeTrail — surfaces use this directly
 const result = await executeTrail(greet, { name: 'Alice' });
 
-// run — no-trailhead execution by trail ID
+// run — headless execution by trail ID
 const result = await run(graph, 'greet', { name: 'Alice' });
 if (result.isOk()) console.log(result.value);
 ```
@@ -113,22 +113,24 @@ result.unwrapOr(fallback);   // Value or fallback
 
 ### Error taxonomy
 
-14 error classes across 10 categories. Each maps deterministically to exit codes, HTTP status, and JSON-RPC codes on every trailhead.
+15 error classes across 10 categories. Each maps deterministically to exit codes, HTTP status, and JSON-RPC codes on every surface.
 
 | Category | Classes | HTTP | Retryable |
 | --- | --- | --- | --- |
-| `validation` | `ValidationError`, `AmbiguousError`, `AssertionError` | 400 | No |
+| `validation` | `ValidationError`, `AmbiguousError` | 400 | No |
 | `not_found` | `NotFoundError` | 404 | No |
 | `conflict` | `AlreadyExistsError`, `ConflictError` | 409 | No |
 | `permission` | `PermissionError` | 403 | No |
 | `timeout` | `TimeoutError` | 504 | Yes |
 | `rate_limit` | `RateLimitError` | 429 | Yes |
 | `network` | `NetworkError` | 502 | Yes |
-| `internal` | `InternalError`, `DerivationError` | 500 | No |
+| `internal` | `InternalError`, `DerivationError`, `AssertionError` | 500 | No |
 | `auth` | `AuthError` | 401 | No |
 | `cancelled` | `CancelledError` | 499 | No |
 
-The developer returns `Result.err(new NotFoundError(...))`. The framework maps it to the right code on every trailhead.
+`RetryExhaustedError` wraps another `TrailsError`, inherits the wrapped error's category for surface mappings, and always reports `retryable: false`.
+
+The developer returns `Result.err(new NotFoundError(...))`. The framework maps it to the right code on every surface.
 
 ### Other exports
 

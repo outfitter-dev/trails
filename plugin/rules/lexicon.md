@@ -9,13 +9,13 @@ Use Trails-branded terms consistently. These are non-negotiable in code, docs, a
 | `trail` | handler, action, endpoint, route |
 | `cross` | call, invoke, workflow, pipeline, chain, route (for composition) |
 | `topo` | registry, collection, manifest |
-| `blaze` | handler, impl, run, execute |
+| `blaze` | handler, impl, action body; do not rename the trail implementation field to run/execute |
 | `surface` | serve, mount, start, wire up |
 | `resource` | provider, dependency, service |
 | `signal` | event, notification, message |
 | `layer` | gate, middleware |
 | `tracing` | telemetry recorder |
-| `metadata` | annotations, tags |
+| `meta` | metadata, annotations, tags |
 | `detours` | fallbacks, retries, recovery |
 | `warden` | linter, checker, validator |
 | `survey` | introspect, inspect, describe |

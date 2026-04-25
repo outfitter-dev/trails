@@ -168,7 +168,7 @@ import { testAll } from '@ontrails/testing';
 const sink = createMemorySink();
 registerTraceSink(sink);
 try {
-  const results = await testAll(app);
+  testAll(app);
   expect(sink.records).toHaveLength(5);
   expect(sink.records.filter((r) => r.status === 'err')).toHaveLength(0);
 } finally {

@@ -5,7 +5,7 @@ description: Build with the Trails framework — define trail contracts, open CL
 
 # Trails
 
-Contract-first TypeScript framework. Define a trail once with typed input, Result output, examples, and metadata — then surface it on CLI, MCP, HTTP, or WebSocket without drift.
+Contract-first TypeScript framework. Define a trail once with typed input, Result output, examples, and meta — then surface it on CLI, MCP, HTTP, or WebSocket without drift.
 
 ## Quick Start
 
@@ -41,12 +41,12 @@ Use these terms — they are non-negotiable in Trails codebases.
 |------|---------|----------|
 | `trail` | Unit of work (atomic or composite) | handler, action |
 | `cross` | Composition declaration and runtime verb | workflow, route |
-| `topo` | Trail collection | registry |
+| `topo` | Queryable graph of trails, signals, resources, and relationships | registry, collection |
 | `blaze` | Implementation function — input to Result | handler, impl |
 | `surface` | The boundary-owned one-liner that opens a graph | serve, mount |
 | `graph` | Local name for a topo instance | app, registry |
 | `projection` | Deterministic derivation of graph onto a surface shape | mapping |
-| `metadata` | Trail annotations | tags |
+| `meta` | Trail annotations and ownership data | tags, metadata |
 | `warden` | Governance enforcement | linter |
 
 ## Creating Trails
@@ -104,7 +104,7 @@ import { surface } from '@ontrails/cli/commander';
 await surface(graph);
 ```
 
-**MCP**: Tool names from trail IDs, JSON Schema from Zod, annotations from metadata.
+**MCP**: Tool names from trail IDs, JSON Schema from Zod, annotations from intent, idempotency, and description.
 
 ```typescript
 import { surface } from '@ontrails/mcp';
@@ -122,7 +122,7 @@ See the CLI surface docs, the MCP surface docs, and the HTTP surface docs for de
 
 ## Resources
 
-Resources declare infrastructure dependencies — databases, API clients, caches — as first-class primitives alongside trails and events.
+Resources declare infrastructure dependencies — databases, API clients, caches — as first-class primitives alongside trails and signals.
 
 **Define** a resource with `resource()`:
 
@@ -167,7 +167,7 @@ See [contract-patterns.md](references/contract-patterns.md) for declaration patt
 
 `testAll(graph)` runs the full governance suite in one line:
 
-1. Topo validation (crosses, schemas, events)
+1. Topo validation (crosses, schemas, signals, resources)
 2. Example execution (every example as an assertion)
 3. Contract checks (output matches schema)
 4. Detour verification (targets exist)
@@ -180,7 +180,7 @@ See [testing-patterns.md](references/testing-patterns.md) for the full testing A
 
 ## Error Taxonomy
 
-13 error classes, deterministic mapping to exit codes, HTTP status, and JSON-RPC codes:
+15 error classes across 10 categories, with deterministic mapping to exit codes, HTTP status, and JSON-RPC codes:
 
 | Category | Classes | Exit | HTTP | Retry |
 |----------|---------|------|------|-------|
@@ -191,9 +191,11 @@ See [testing-patterns.md](references/testing-patterns.md) for the full testing A
 | timeout | TimeoutError | 5 | 504 | Yes |
 | rate_limit | RateLimitError | 6 | 429 | Yes |
 | network | NetworkError | 7 | 502 | Yes |
-| internal | InternalError, AssertionError | 8 | 500 | No |
+| internal | InternalError, DerivationError, AssertionError | 8 | 500 | No |
 | auth | AuthError | 9 | 401 | No |
 | cancelled | CancelledError | 130 | 499 | No |
+
+`RetryExhaustedError` is dynamic: it wraps another `TrailsError`, inherits the wrapped error's category for surface mappings, and always reports `retryable: false`.
 
 Use the most specific class. Return `Result.err(new XError(...))`, never throw.
 
@@ -218,7 +220,9 @@ The warden enforces conventions and detects drift:
 
 ```bash
 trails warden          # Convention checks
-trails warden --drift  # Contract drift vs lock file
+trails warden --drift-only # Contract drift vs lockfile
+trails topo export         # Regenerate committed topo artifacts
+trails topo verify         # Verify committed topo artifacts
 ```
 
 Key rules: no throw in blaze functions, no surface imports, crosses declarations match ctx.cross() calls, resource declarations match db.from(ctx) / ctx.resource() calls, output schemas present, .describe() on fields.
@@ -228,12 +232,12 @@ Key rules: no throw in blaze functions, no surface imports, crosses declarations
 | Reference | Content |
 |-----------|---------|
 | [getting-started.md](references/getting-started.md) | Full install-to-test walkthrough |
-| [architecture.md](references/architecture.md) | Hexagonal model, package gates, data flow |
+| [architecture.md](references/architecture.md) | Hexagonal model, package boundaries, data flow |
 | [contract-patterns.md](references/contract-patterns.md) | ID naming, schema design, example authoring |
 | CLI surface docs | Flag derivation, output modes, exit codes |
 | MCP surface docs | Tool naming, annotations, progress |
 | [testing-patterns.md](references/testing-patterns.md) | testAll, testTrail, harnesses |
-| [error-taxonomy.md](references/error-taxonomy.md) | All 13 error classes with signatures |
+| [error-taxonomy.md](references/error-taxonomy.md) | All 15 error classes with signatures |
 | [common-pitfalls.md](references/common-pitfalls.md) | 12 anti-patterns with fixes |
 | [migration-checklist.md](references/migration-checklist.md) | Step-by-step conversion guide |
 | [trail.md](templates/trail.md) | Annotated trail skeleton |

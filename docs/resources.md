@@ -89,7 +89,7 @@ Both resolve the same way at runtime. Prefer `db.from(ctx)` -- it carries the ty
 
 ## Resource Lifecycle
 
-Resources are app-scoped singletons in v1. Created once on first resolution, cached for the process lifetime, disposed on shutdown.
+Resources are app-scoped singletons in v1. Created once on first resolution and cached for the process lifetime. A resource may declare a `dispose` callback; surface-specific shutdown wiring is still an implementation detail and should not be assumed unless the surface documents it.
 
 Resolution happens eagerly during `executeTrail`, after input validation and before layer composition:
 
@@ -101,7 +101,7 @@ Resolution happens eagerly during `executeTrail`, after input validation and bef
 
 This means failures surface at the boundary -- a missing `DATABASE_URL` fails before the implementation runs, not on line 47. It also means layers can access resources via `db.from(ctx)` because resolution is already complete.
 
-Shutdown signaling differs by surface. CLI tools dispose after the command completes. Long-running servers (MCP, HTTP) dispose on `SIGTERM`/`SIGINT`. The `surface()` call owns the lifecycle.
+Shutdown signaling differs by surface. Treat `dispose` as the resource's cleanup contract, and check the surface package before relying on automatic disposal timing.
 
 ## Testing with Resources
 
@@ -146,13 +146,13 @@ Resources register alongside trails through `topo()`:
 ```typescript
 import { topo } from '@ontrails/core';
 import * as entityTrails from './trails/entity';
-import * as resources from './services';
+import * as resources from './resources';
 
 const graph = topo('myapp', entityTrails, resources);
 // graph.resources -- Map<id, Resource>
 ```
 
-`topo()` scans module exports for objects with `kind: 'resource'`, the same way it discovers trails and events. Duplicate resource IDs fail topo construction.
+`topo()` scans module exports for objects with `kind: 'resource'`, the same way it discovers trails and signals. Duplicate resource IDs fail topo construction.
 
 Namespace resource IDs with dots for packs and multi-resource apps: `db.primary`, `entity.store`, `cache.redis`.
 
@@ -168,6 +168,6 @@ Both use the established AST analysis pattern used by `cross-declarations`.
 
 ## Design Rationale
 
-Resources complete the trail contract. A trail now declares what it takes (input), what it produces (output), what it crosses (crosses), and what it needs (resources). The full dependency graph -- trails, resources, events -- is queryable through the current topo, survey, and the committed lock artifacts.
+Resources complete the trail contract. A trail now declares what it takes (input), what it produces (output), what it crosses (crosses), and what it needs (resources). The full dependency graph -- trails, resources, signals -- is queryable through the current topo, survey, and the committed lock artifacts.
 
 For the complete design decision, tradeoffs, and future directions (request-scoped resources, composable config, intent-based type narrowing), see [ADR-0009: First-Class Resources](./adr/0009-first-class-resources.md).

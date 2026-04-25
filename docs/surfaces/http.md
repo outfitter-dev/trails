@@ -53,7 +53,7 @@ If no intent is declared, the trail defaults to POST.
 
 Input parsing depends on the HTTP method:
 
-- **GET** -- Query parameters are parsed into an object. Simple type coercion applies: numeric strings become numbers, `"true"`/`"false"` become booleans.
+- **GET** -- Query parameters are parsed into an object. Repeated keys become arrays; single keys stay strings. The trail's input schema owns any coercion.
 - **POST / DELETE** -- The JSON request body is parsed via `req.json()`.
 
 In both cases, the parsed input is validated against the trail's Zod schema before the implementation runs.
@@ -97,9 +97,11 @@ Status codes come directly from the error taxonomy -- the same mapping used acro
 | `timeout`    | 504         | `TimeoutError`                       |
 | `rate_limit` | 429         | `RateLimitError`                     |
 | `network`    | 502         | `NetworkError`                       |
-| `internal`   | 500         | `InternalError`, `AssertionError`    |
+| `internal`   | 500         | `InternalError`, `DerivationError`, `AssertionError` |
 | `auth`       | 401         | `AuthError`                          |
 | `cancelled`  | 499         | `CancelledError`                     |
+
+`RetryExhaustedError` wraps another `TrailsError` and uses the wrapped error's category, so its HTTP status varies with the underlying failure.
 
 Unrecognized errors (non-`TrailsError` exceptions) return 500 with `category: 'internal'`.
 

@@ -48,12 +48,12 @@ The core function takes a topo and returns an array of framework-agnostic route 
 
 The `execute` function is the important part. It does everything *except* touch HTTP framework types. It doesn't parse a `Request`. It doesn't construct a `Response`. It doesn't set status codes. It takes validated input, runs the trail, and returns a `Result`. Everything HTTP-specific happens in the connector.
 
-### Hono is the first connector at `@ontrails/with-hono`
+### Hono is the first connector at `@ontrails/hono`
 
 The Hono connector lives in its own workspace package (originally shipped as the `@ontrails/http/hono` subpath; see [ADR-0029](./0029-connector-extraction-and-the-with-packaging-model.md)). Two functions:
 
-- **`toHono(routes, options?)`** — takes `HttpRouteDefinition[]` and returns a Hono app with routes registered. The developer owns the app lifecycle.
-- **`surface(topo, options?)`** — collapses the pipeline into one call for the standalone case. Calls `deriveHttpRoutes`, then `toHono`, then starts listening.
+- **`createApp(graph, options?)`** — creates a Hono app with derived routes registered. The developer owns the app lifecycle.
+- **`surface(topo, options?)`** — collapses the pipeline into one call for the standalone case. Calls `createApp`, then starts listening.
 
 The connector handles:
 
@@ -66,9 +66,9 @@ The route model handles none of this. It doesn't know what a `200` is.
 
 ### Hono is a peer dependency
 
-`hono` is declared as a `peerDependency` on `@ontrails/http`, not a direct dependency. If you only use `deriveHttpRoutes()` and write your own connector, Hono is never imported and tree-shaking removes it entirely.
+`hono` is declared as a `peerDependency` on `@ontrails/hono`, not `@ontrails/http`. If you only use `deriveHttpRoutes()` and write your own connector, Hono is never imported and tree-shaking removes it entirely.
 
-Adding a new framework connector means adding a new subpath export (`@ontrails/http/express`, `@ontrails/http/fastify`) with the same peer dependency pattern. Each connector is thin — mapping route definitions to framework handlers is roughly 100–150 lines of straightforward code.
+Adding a new framework connector means adding a new package or connector export with the same peer dependency pattern. Each connector is thin — mapping route definitions to framework handlers is straightforward code.
 
 ### Path derivation follows the dot-to-slash convention
 
@@ -105,7 +105,7 @@ This keeps the trail author out of HTTP vocabulary. They declare what the trail 
 - **No framework lock-in.** Users choose their HTTP framework. Trails provides the route model; connectors bridge to specific runtimes.
 - **Three integration patterns from one model.** Standalone, embedded, and catch-all all work because `HttpRouteDefinition[]` is just data. Wire it however you want.
 - **Thin connectors.** Each framework connector is roughly 100–150 lines. The route model does the heavy lifting; the connector does the wiring.
-- **Consistent surface pattern.** HTTP follows the same `derive*` → `to*`/`connect*` → `surface()` pattern as CLI and MCP. One mental model for all surfaces.
+- **Consistent surface pattern.** HTTP follows the same `derive*` → `create*`/`connect*` → `surface()` pattern as CLI and MCP. One mental model for all surfaces.
 - **Testable without HTTP.** `execute()` on a route definition takes plain input and returns `Result`. You can test every trail's HTTP behavior without starting a server or making HTTP requests.
 
 ### Tradeoffs

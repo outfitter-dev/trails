@@ -56,7 +56,7 @@ import { z } from 'zod';
 import { trail, Result, NotFoundError, PermissionError } from '@ontrails/core';
 import { db } from '../resources/db.js';
 
-const ProjectId = z.object({ id: z.string().uuid() });
+const ProjectId = z.object({ id: z.string().uuid().describe('Project ID') });
 const Project = z.object({ id: z.string(), name: z.string(), status: z.string() });
 
 export const show = trail('project.show', {

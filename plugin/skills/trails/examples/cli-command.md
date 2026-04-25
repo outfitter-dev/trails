@@ -39,7 +39,7 @@ program.parse();
 ```typescript
 // trails/deploy.ts
 import { z } from 'zod';
-import { trail, Result, ValidationError } from '@ontrails/core';
+import { trail, Result, InternalError } from '@ontrails/core';
 
 export const run = trail('deploy.run', {
   input: z.object({
@@ -56,11 +56,15 @@ export const run = trail('deploy.run', {
     { name: 'production deploy', input: { service: 'api', env: 'production' } },
   ],
   blaze: async (input) => {
-    const result = await runDeploy(input.service, input.env, {
-      dryRun: input.dryRun,
-      timeout: input.timeout,
-    });
-    return Result.ok({ url: result.url, service: input.service, env: input.env });
+    try {
+      const result = await runDeploy(input.service, input.env, {
+        dryRun: input.dryRun,
+        timeout: input.timeout,
+      });
+      return Result.ok({ url: result.url, service: input.service, env: input.env });
+    } catch (error) {
+      return Result.err(new InternalError('Deploy failed', { cause: error as Error }));
+    }
   },
 });
 ```

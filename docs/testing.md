@@ -86,7 +86,7 @@ Pass a factory when your explicit overrides contain mutable state, so each test 
 
 Generates a `governance` describe block containing:
 
-- **Topo validation** via `validateTopo` (crosses exist, no recursive crossing, event origins, example schema validation, output schema presence)
+- **Topo validation** via `validateTopo` (crosses exist, no recursive crossing, signal origins, example schema validation, output schema presence)
 - **Example execution** via `testExamples`
 - **Contract checks** via `testContracts`
 - **Detour contract validation** via `testDetours`

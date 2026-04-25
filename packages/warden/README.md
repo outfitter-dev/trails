@@ -78,7 +78,7 @@ import { formatGitHubAnnotations, formatJson, formatSummary } from '@ontrails/wa
 
 ## Trail-based API
 
-Every built-in warden rule is also available as a composable trail. This makes rules queryable, testable, and invocable through any Trails trailhead.
+Every built-in warden rule is also available as a composable trail. This makes rules queryable, testable, and invocable through any Trails surface.
 
 ```typescript
 import {

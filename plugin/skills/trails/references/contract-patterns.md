@@ -105,16 +105,23 @@ Omitting `intent` means "has side effects but not destructive" — typical for c
 
 ## Detours
 
-Error recovery paths — what to suggest when a trail fails.
+Runtime recovery paths — what to do when a trail fails with a matching `TrailsError`.
 
 ```typescript
-detours: {
-  NotFoundError: ['search'],           // Suggest search when entity isn't found
-  ValidationError: ['entity.list'],    // Suggest listing when input is wrong
-},
+detours: [
+  {
+    on: NotFoundError,
+    maxAttempts: 1,
+    recover: async ({ input }, ctx) => {
+      const search = await ctx.cross('search', { query: input.name });
+      if (search.isErr()) return search;
+      return Result.ok(search.value);
+    },
+  },
+],
 ```
 
-Keys are error type names (strings, not classes). Values are arrays of trail IDs. Surfaces can auto-suggest or auto-cross detours.
+`on` is an error constructor, not a string. `recover` returns a `Result`, and declaration order matters: the first matching detour runs, so put specific error classes before broader ones.
 
 ## Field Overrides
 

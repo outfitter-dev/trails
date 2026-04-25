@@ -42,7 +42,8 @@ Result.fromFetch(url, opts?), Result.fromJson(string), Result.toJson(value)
 // Error taxonomy
 TrailsError, ValidationError, NotFoundError, AlreadyExistsError,
 ConflictError, PermissionError, AuthError, TimeoutError, RateLimitError,
-NetworkError, InternalError, CancelledError, AmbiguousError, AssertionError
+NetworkError, InternalError, DerivationError, CancelledError, AmbiguousError,
+AssertionError, RetryExhaustedError
 ErrorCategory, isTrailsError(value?), isRetryable(error)
 
 // Implementation & context
@@ -73,7 +74,7 @@ Field, FieldOverride
 
 // Draft state
 DRAFT_ID_PREFIX, isDraftId(value), deriveDraftReport(topo)
-validateDraftFreeTopo(topo)        // alias of validateEstablishedTopo
+validateDraftFreeTopo(topo)        // reject draft-contaminated IDs and schemas
 
 // Resilience
 retry(fn, options?), withTimeout(fn, ms, signal?), RetryOptions
@@ -140,7 +141,7 @@ createServer(graph, options?)          // create an MCP server without connectin
 deriveMcpTools(graph, options?)        // projection: Result-returning tool definitions
 connectStdio(server)                   // connect a created server to stdio transport
 deriveToolName(appName, trailId)       // tool name derivation
-deriveAnnotations(trail)               // MCP annotations from intent and metadata
+deriveAnnotations(trail)               // MCP annotations from intent, idempotency, and description
 createMcpProgressCallback(extra)       // progress bridge
 
 CreateServerOptions, DeriveMcpToolsOptions
@@ -409,7 +410,7 @@ ConsoleSinkOptions, FileSinkOptions, PrettyFormatterOptions
 
 | Name | Intent |
 | --- | --- |
-| `trailblaze(topo, options?)` | Full hosted runtime |
+| `trailblaze(topo, options?)` | Future hosted runtime; not shipped |
 | `trailhead` | Historical boundary term retired from active user-facing vocabulary |
 | `scout` | Agent-side runtime discovery |
 | `validateExample`, `validateCross` | Contract verification family |

@@ -44,13 +44,18 @@ These annotations help MCP clients (like Claude) make informed decisions about t
 
 ## Progress Bridging
 
-`ctx.progress(current, total)` inside a trail implementation maps to MCP progress notifications. The surface handles the protocol — implementations just report progress:
+`ctx.progress?.(event)` inside a trail implementation maps to MCP progress notifications. The surface handles the protocol — implementations just report structured progress events:
 
 ```typescript
 blaze: async (input, ctx) => {
   for (let i = 0; i < items.length; i++) {
     await processItem(items[i]);
-    ctx.progress(i + 1, items.length);
+    ctx.progress?.({
+      current: i + 1,
+      total: items.length,
+      ts: new Date().toISOString(),
+      type: 'progress',
+    });
   }
   return Result.ok({ processed: items.length });
 },

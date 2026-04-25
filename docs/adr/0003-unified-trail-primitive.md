@@ -68,7 +68,7 @@ On the frozen Trail object, `crosses` defaults to `[]`. Every trail has it. Most
 
 ### `ctx.cross()` is the composition mechanism
 
-Trailheads provide `ctx.cross()` at runtime. It resolves a trail by ID from the topo, validates the input, runs it, and returns the Result. The calling trail never imports or references the crossed trail directly — it uses the ID declared in its `crosses` array.
+The execution context provides `ctx.cross()` at runtime. It resolves a trail by ID from the topo, validates the input, runs it, and returns the Result. The calling trail never imports or references the crossed trail directly — it uses the ID declared in its `crosses` array.
 
 ### The warden enforces alignment
 

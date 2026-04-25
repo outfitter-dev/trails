@@ -2,7 +2,7 @@
 
 Scope-based authorization for Trails.
 
-The permits package owns the connector-agnostic `authResource` and `authLayer`. Connector packages bind those declarations to concrete auth logic, just like a trailhead connector binds a topo to CLI, MCP, or HTTP.
+The permits package owns the connector-agnostic `authResource` and `authLayer`. Connector packages bind those declarations to concrete auth logic, just like a surface connector binds a topo to CLI, MCP, or HTTP.
 
 ## The core pattern
 
@@ -32,7 +32,7 @@ export const search = trail('gist.search', {
 import { authLayer } from '@ontrails/permits';
 
 export const graph = topo('my-app', gistModule);
-// Register authLayer with your trailhead
+// Register authLayer with your surface
 ```
 
 The layer reads each trail's `permit` field:

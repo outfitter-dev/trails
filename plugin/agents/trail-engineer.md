@@ -38,8 +38,8 @@ If the feature is complex, sketch the contract and get user alignment before imp
 - Return `Result`, never throw
 - Keep implementations surface-agnostic
 - Declare resources on the trail spec with `resources: [db]` and access via `db.from(ctx)` -- never construct dependencies inline
-- Use `ctx.cross()` for composition, never `.run()` directly
-- Use `ctx.logger` instead of `console.log`
+- Use `ctx.cross()` for composition, never `.blaze()` or `.run()` directly
+- Use `ctx.logger?.debug/info/warn/error` instead of `console.log`
 
 ### 4. Wire Into Topo
 
@@ -95,8 +95,9 @@ Fix any violations before considering the work done. Common issues:
 If warden reports drift:
 
 ```bash
-trails warden --drift
-trails schema diff
+trails warden --drift-only
+trails topo export
+trails topo verify
 ```
 
 Review the diff, update the lock if the change is intentional.

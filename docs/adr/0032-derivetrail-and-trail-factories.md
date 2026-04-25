@@ -109,7 +109,7 @@ const githubPush = ingest({
 });
 ```
 
-Each `ingest` call produces one trail. The trail's blaze verifies the source (via a layer derived from `verify`), validates the payload against `schema`, applies `transform`, and calls `ctx.signal()` with the result. Verification uses the existing permit model[^4] — HMAC signature checking is structurally identical to any other credential verification, producing a verified identity. The trail is a regular trail: testable, governable, surfaceable on any surface.
+Each `ingest` call produces one trail. The trail's blaze verifies the source (via a layer derived from `verify`), validates the payload against `schema`, applies `transform`, and calls `ctx.fire()` with the result. Verification uses the existing permit model[^4] — HMAC signature checking is structurally identical to any other credential verification, producing a verified identity. The trail is a regular trail: testable, governable, surfaceable on any surface.
 
 The `verify` option is optional. An internal service posting events to your API doesn't need signature verification — skip it and the trail validates and emits directly. The `transform` option is also optional — if the external payload already matches the signal schema, omit it and the payload passes through.
 
@@ -217,7 +217,7 @@ Four imports. Four statements. A full CRUD app with typed schemas, a real databa
 
 ### Governance integration
 
-- **Trail factories produce trails.** Not a separate system. The output is `kind: 'trail'` with `pattern` metadata set. Testable with `testAll()`. Governable by the warden. Composable via `crosses`.
+- **Trail factories produce trails.** Not a separate system. The output is `kind: 'trail'` with pattern metadata set. Testable with `testAll()`. Governable by the warden. Composable via `crosses`.
 - **The warden is pattern-aware.** It validates pattern completeness and suggests missing companions: *"You have CRUD trails for notes and `versioned: true`, but no reconcile trail. What happens on conflict?"*
 - **Survey shows the shape.** An agent sees: *"12 CRUD trails, 3 sync trails, 1 gate trail, 2 custom trails."* The `pattern` field tells the story — not how the trails were created.
 

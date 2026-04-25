@@ -44,7 +44,7 @@ import { trail, Result, NotFoundError } from '@ontrails/core';
 import { db } from '../resources/db.js';
 
 export const get = trail('customer.get', {
-  input: z.object({ id: z.string() }),
+  input: z.object({ id: z.string().describe('Customer ID') }),
   output: z.object({ id: z.string(), email: z.string(), name: z.string() }),
   intent: 'read',
   resources: [db],
@@ -61,7 +61,7 @@ export const get = trail('customer.get', {
 import { db } from '../resources/db.js';
 
 export const check = trail('inventory.check', {
-  input: z.object({ items: z.array(CartItemSchema) }),
+  input: z.object({ items: z.array(CartItemSchema).describe('Cart items to check') }),
   output: z.object({ available: z.boolean(), total: z.number() }),
   intent: 'read',
   resources: [db],
@@ -74,10 +74,14 @@ export const check = trail('inventory.check', {
 });
 
 // trails/order.ts — the composition trail
+import { InternalError, ValidationError } from '@ontrails/core';
 import { db } from '../resources/db.js';
 
 export const create = trail('order.create', {
-  input: z.object({ customerId: z.string(), items: z.array(CartItemSchema) }),
+  input: z.object({
+    customerId: z.string().describe('Customer ID'),
+    items: z.array(CartItemSchema).describe('Cart items to order'),
+  }),
   output: z.object({ orderId: z.string(), total: z.number() }),
   intent: 'write',
   crosses: ['customer.get', 'inventory.check'],
@@ -86,10 +90,14 @@ export const create = trail('order.create', {
     { name: 'happy path', input: { customerId: 'cust_123', items: [{ sku: 'TRAIL-001', qty: 1 }] } },
   ],
   blaze: async (input, ctx) => {
-    const customer = await ctx.cross!<{ id: string; email: string }>('customer.get', { id: input.customerId });
+    if (!ctx.cross) {
+      return Result.err(new InternalError('order.create requires ctx.cross'));
+    }
+
+    const customer = await ctx.cross<{ id: string; email: string }>('customer.get', { id: input.customerId });
     if (customer.isErr()) return customer;
 
-    const stock = await ctx.cross!<{ available: boolean; total: number }>('inventory.check', { items: input.items });
+    const stock = await ctx.cross<{ available: boolean; total: number }>('inventory.check', { items: input.items });
     if (stock.isErr()) return stock;
     if (!stock.value.available) return Result.err(new ValidationError('Items out of stock'));
 

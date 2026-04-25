@@ -1,6 +1,6 @@
 # MCP Surface
 
-The MCP surface connector turns every trail into an MCP tool. Annotations are auto-derived from trail intent and metadata. Progress callbacks bridge to MCP notifications. One `surface()` call starts a server.
+The MCP surface connector turns every trail into an MCP tool. Annotations are auto-derived from trail intent, idempotency, and description. Progress callbacks bridge to MCP notifications. One `surface()` call starts a server.
 
 ## Setup
 

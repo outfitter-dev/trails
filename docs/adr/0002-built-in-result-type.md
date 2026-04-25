@@ -124,7 +124,7 @@ The `isRetryable(error)` helper checks the category map. Detours (trail-level re
 ### What this does NOT decide
 
 - Whether Result will gain additional combinators (e.g., `Result.wrap()` for try/catch conversion, `Result.all()` for parallel results). If the framework needs them, they'll be added. The bar is: the framework uses it internally, not "it might be nice."
-- Whether the error taxonomy will grow beyond 13 classes. New categories would need new entries in all three mapping tables, which is a deliberate friction that prevents casual additions.
+- Whether the error taxonomy will grow beyond the current small set of classes. New categories require new entries in all mapping tables, which is deliberate friction that prevents casual additions.
 - How Result serialization evolves for cross-network `ctx.cross()` calls in the future `trailblaze` runtime.
 
 ## References

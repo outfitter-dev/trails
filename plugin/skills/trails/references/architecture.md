@@ -194,7 +194,7 @@ The implementation is identical across all paths. Only the edges change.
 
 ## Error Taxonomy
 
-13 error classes across 10 categories. All extend `TrailsError`. Pattern match with `instanceof` or `error.category`.
+15 error classes across 10 categories. All extend `TrailsError`. Pattern match with `instanceof` or `error.category`.
 
 | Category | Exit | HTTP | Retryable | Classes |
 |----------|------|------|-----------|---------|
@@ -205,8 +205,10 @@ The implementation is identical across all paths. Only the edges change.
 | `timeout` | 5 | 504 | Yes | `TimeoutError` |
 | `rate_limit` | 6 | 429 | Yes | `RateLimitError` |
 | `network` | 7 | 502 | Yes | `NetworkError` |
-| `internal` | 8 | 500 | No | `InternalError`, `AssertionError` |
+| `internal` | 8 | 500 | No | `InternalError`, `DerivationError`, `AssertionError` |
 | `auth` | 9 | 401 | No | `AuthError` |
 | `cancelled` | 130 | 499 | No | `CancelledError` |
+
+`RetryExhaustedError` wraps another `TrailsError`, inherits the wrapped error's category for surface mappings, and always reports `retryable: false`.
 
 Use the most specific `TrailsError` subclass available. The error category determines exit code, HTTP status, JSON-RPC code, and retryability across all surfaces automatically.

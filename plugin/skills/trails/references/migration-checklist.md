@@ -62,7 +62,8 @@ For each handler:
 ## Phase 6: Governance
 
 - [ ] `trails warden` reports clean
-- [ ] Generate surface lock: `trails schema lock`
+- [ ] Regenerate topo artifacts: `trails topo export`
+- [ ] Verify topo artifacts: `trails topo verify`
 - [ ] Add lock check to CI
 
 ## Common Gotchas

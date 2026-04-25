@@ -33,10 +33,11 @@ executeTrail(trail, rawInput, options?)
 The pipeline, in order:
 
 1. **Validate input** — parse `rawInput` against the trail's input schema via Zod. On failure, return `Result.err(new ValidationError(...))`.
-2. **Resolve context** — build `TrailContext` with logger, resources, cross capability, and any surface-provided extensions.
-3. **Compose layers** — wrap the implementation with the trail's declared layers, in order.
-4. **Run** — execute the composed implementation with validated input and resolved context.
-5. **Catch** — if the implementation throws (it shouldn't, but defensive code beats optimistic code), wrap the exception as `Result.err(new InternalError(...))`.
+2. **Resolve context** — build `TrailContext` with logger, cross capability, and any surface-provided extensions.
+3. **Resolve resources** — create or retrieve declared resources and attach lookup support to the context.
+4. **Compose layers** — wrap the implementation with the trail's declared layers, in order.
+5. **Run** — execute the composed implementation with validated input and resolved context.
+6. **Catch** — if the implementation throws (it shouldn't, but defensive code beats optimistic code), wrap the exception as `Result.err(new InternalError(...))`.
 
 `executeTrail` never throws. Every outcome is a `Result`. Every surface gets identical validation order, identical layer composition, identical error wrapping.
 

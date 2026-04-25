@@ -12,7 +12,7 @@ owners: ['[galligan](https://github.com/galligan)']
 
 ## Context
 
-Trails needs to know whether a trail is safe to call without side effects, whether it modifies state, or whether it destroys something. Trailheads use this information to derive behavior: HTTP picks a method, MCP sets annotation hints, CLI adds safety flags. The question is how the developer declares it.
+Trails needs to know whether a trail is safe to call without side effects, whether it modifies state, or whether it destroys something. Surfaces use this information to derive behavior: HTTP picks a method, MCP sets annotation hints, CLI adds safety flags. The question is how the developer declares it.
 
 Early versions used two booleans:
 
@@ -89,7 +89,7 @@ A `'write'` trail sets no hint — the MCP SDK defaults apply. A `'read'` trail 
 
 **CLI** — safety presets:
 
-A `'destroy'` trail automatically receives a `--dry-run` flag preset. The developer doesn't add it. The framework adds it because destroy trails should always offer a dry run.
+A `'destroy'` trail automatically receives a `--dry-run` flag preset. The framework adds the surface flag because destroy trails should always offer a dry run. If the blaze needs to branch on the value, the trail should also declare `dryRun` in its input schema so Zod preserves it for the implementation.
 
 ```typescript
 if (intent === 'destroy') {

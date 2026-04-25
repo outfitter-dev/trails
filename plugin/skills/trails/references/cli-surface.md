@@ -19,7 +19,7 @@ Zod fields on a trail's `input` schema become CLI flags automatically.
 
 **Help text:** `.describe('...')` on any field becomes the flag's help line. Always add descriptions.
 
-**Positional arguments:** Promote the first required string field to a positional via `resolveInput` in blaze options.
+**Positional arguments:** If a trail has exactly one required string field with no default, the CLI auto-promotes it to a positional arg. For multiple positionals or explicit ordering, declare `args: ['src', 'dest']` on the trail spec. Use `args: false` to suppress auto-promotion.
 
 ## Output Modes
 
@@ -71,11 +71,19 @@ Groups are created automatically from the dot-separated prefix.
 
 ## Destructive Trails
 
-When a trail has `intent: 'destroy'`, the CLI surface automatically adds a `--dry-run` flag. The `ctx.dryRun` boolean is available inside the implementation. You can also add this explicitly:
+When a trail has `intent: 'destroy'`, the CLI surface automatically adds a `--dry-run` flag. If the blaze needs to branch on it, declare `dryRun` in the trail input schema so validation preserves it. You can also add this explicitly:
 
 ```typescript
-surface(graph, {
-  presets: [dryRunPreset()],
+const destroy = trail('project.destroy', {
+  intent: 'destroy',
+  input: z.object({
+    id: z.string().describe('Project ID'),
+    dryRun: z.boolean().default(false).describe('Preview without deleting'),
+  }),
+  blaze: async (input) => {
+    if (input.dryRun) return Result.ok({ deleted: false });
+    // Delete for real.
+  },
 });
 ```
 

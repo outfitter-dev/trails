@@ -172,9 +172,9 @@ Command-path nodes may be both executable and parents, so `myapp topo` and
 executable parent cannot also declare positional args if child commands exist
 beneath that path.
 
-## Service resolution
+## Resource Resolution
 
-Declared resources on each trail are resolved into the context before the implementation runs.
+Declared resources on each trail are resolved into the context before the blaze runs.
 
 ## Filtering
 

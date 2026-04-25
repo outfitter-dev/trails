@@ -196,7 +196,7 @@ $ bun test
 
 That single `testAll(graph)` call runs the full governance suite:
 
-1. **Topo validation** via `validateTopo` -- crosses exist, no recursive crossing, event origins, example schema validation, output schema presence
+1. **Topo validation** via `validateTopo` -- crosses exist, no recursive crossing, signal origins, example schema validation, output schema presence
 2. **Example execution** -- for each trail, validates input, runs the implementation, asserts the result matches `expected` (or validates against the output schema when no `expected` is declared)
 3. **Contract checks** -- verifies implementation output matches declared output schemas
 4. **Detour contract validation** -- confirms detours declare valid `on` / `recover` semantics and sane ordering
@@ -276,7 +276,7 @@ export const addAndDouble = trail('math.add-and-double', {
 
 Trails declare their composition dependencies with `crosses` and invoke them with `ctx.cross()`. The warden linter verifies these match.
 
-## Using Services
+## Using Resources
 
 When a trail needs an external dependency — a database, cache, or API client — declare it as a resource:
 

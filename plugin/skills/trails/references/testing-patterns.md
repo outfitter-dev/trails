@@ -15,15 +15,17 @@ With mutable state, pass a factory to get a fresh context per test:
 
 ```typescript
 testAll(graph, () => ({
-  store: createStore([
-    { name: 'Alpha', tags: ['core'], type: 'concept' },
-  ]),
+  resources: {
+    'store.main': createStore([
+      { name: 'Alpha', tags: ['core'], type: 'concept' },
+    ]),
+  },
 }));
 ```
 
 ## `testExamples(graph)` -- Example Assertions
 
-Runs every trail's examples with progressive assertion. For trails with `crosses`, also verifies every declared cross ID was called. Accepts the same `ctxOrFactory` second arg as `testAll`.
+Runs every trail's examples with progressive assertion. Accepts the same `ctxOrFactory` second arg as `testAll`.
 
 ```typescript
 testExamples(graph);
@@ -34,9 +36,9 @@ testExamples(graph);
 Test individual trails with custom scenarios. Use for boundary values, error paths, and regressions that don't belong in agent-facing examples.
 
 ```typescript
-import { NotFoundError, AlreadyExistsError, ValidationError } from '@ontrails/core';
+import { NotFoundError, ValidationError } from '@ontrails/core';
 import { testTrail } from '@ontrails/testing';
-import { show, add } from '../src/trails/entity.js';
+import { show } from '../src/trails/entity.js';
 
 testTrail(show, [
   {
@@ -50,7 +52,9 @@ testTrail(show, [
     expectErr: ValidationError,
     expectErrMessage: 'Required',
   },
-], { store });
+], {
+  resources: { 'store.main': testStore },
+});
 ```
 
 ### Scenario Assertions
@@ -62,15 +66,17 @@ testTrail(show, [
 | `expectErr: NotFoundError` | Asserts `result.isErr()` and error is instanceof |
 | `expectErrMessage: "not found"` | Asserts error message contains substring |
 
-## `testTrail` for Composition -- Cross Chain Testing
+## `testCrosses` for Composition -- Cross Chain Testing
 
-`testTrail` also works for trails with `crosses`, tracking cross chains and supporting failure injection.
+Use `testCrosses` for trails with `crosses`, tracking cross chains and supporting failure injection.
 
 ```typescript
-import { testTrail } from '@ontrails/testing';
+import { AlreadyExistsError } from '@ontrails/core';
+import { testCrosses } from '@ontrails/testing';
 import { onboardTrail } from '../src/trails/onboard.js';
+import { graph } from '../src/app.js';
 
-testTrail(onboardTrail, [
+testCrosses(onboardTrail, [
   {
     description: 'crosses add then relate',
     input: { name: 'Alpha' },
@@ -89,7 +95,7 @@ testTrail(onboardTrail, [
     injectFromExample: { 'entity.add': 'Duplicate name' },
     expectErr: AlreadyExistsError,
   },
-]);
+], { trails: graph.trails });
 ```
 
 Composition-specific fields: `expectCrossed` (ordered trail IDs), `expectCrossedCount` (counts per ID), `injectFromExample` (inject error from a crossed trail's error example by name). Pass `options.trails` map to enable injection lookups.
@@ -104,9 +110,9 @@ testContracts(graph);  // schema drift detection
 testDetours(graph);    // detour contract validation
 ```
 
-## Service Mocking
+## Resource Mocking
 
-Services with a `mock` factory auto-resolve during `testAll`, `testExamples`, and `testContracts` — no configuration needed.
+Resources with a `mock` factory auto-resolve during `testAll`, `testExamples`, and `testContracts` — no configuration needed.
 
 ```typescript
 // Zero-config: mock factories on resource definitions are used automatically
@@ -148,7 +154,7 @@ Applied automatically per example based on which fields are present:
 { name: 'Not found', input: { name: 'nope' }, error: 'NotFoundError' }
 ```
 
-Error class names: `ValidationError`, `NotFoundError`, `AlreadyExistsError`, `ConflictError`, `AuthError`, `PermissionError`, `TimeoutError`, `NetworkError`, `RateLimitError`, `InternalError`, `AmbiguousError`, `CancelledError`, `AssertionError`.
+Error class names: `ValidationError`, `NotFoundError`, `AlreadyExistsError`, `ConflictError`, `AuthError`, `PermissionError`, `TimeoutError`, `NetworkError`, `RateLimitError`, `InternalError`, `DerivationError`, `AmbiguousError`, `CancelledError`, `AssertionError`, `RetryExhaustedError`.
 
 ## `createCrossContext()` -- Mock Cross for Composite Trails
 
@@ -235,7 +241,7 @@ expect(result.isError).toBe(false);
 src/__tests__/
   governance.test.ts    # testAll(graph) -- the one-liner
   entity.test.ts        # testTrail edge cases per domain
-  onboard.test.ts       # testTrail composition scenarios
+  onboard.test.ts       # testCrosses composition scenarios
   cli.test.ts           # CLI harness integration
   mcp.test.ts           # MCP harness integration
 ```

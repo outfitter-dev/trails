@@ -1,6 +1,6 @@
 # trails-demo
 
-A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `crosses`, a first-class resource dependency, a schema-derived store, a signal, examples, metadata, detours, idempotent upsert, and trailhead entrypoints on CLI, MCP, and HTTP.
+A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `crosses`, a first-class resource, a schema-derived store, a signal, examples, meta, detours, idempotent upsert, and surface entrypoints on CLI, MCP, and HTTP.
 
 ## What this app does
 
@@ -119,7 +119,7 @@ Key concepts:
 
 - **`input` / `output`**: Zod schemas define the contract. Validated at the boundary, trusted internally.
 - **`intent`**: Safety property. On CLI, `'read'` prevents destructive flags. On MCP, `'read'` sets `readOnlyHint`, `'destroy'` sets `destructiveHint`.
-- **`detours`**: When `entity.show` returns `NotFoundError`, the trailhead can suggest `search` as a next step.
+- **`detours`**: When `entity.show` returns `NotFoundError`, the detour can recover by crossing into `search`.
 - **`examples`**: Agent-facing documentation that doubles as tests. Full-match examples assert exact output. Error examples assert the error class name. Schema-only examples (no `expected` or `error`) just validate the output matches the schema.
 
 ### Composition: `entity.onboard`

@@ -45,14 +45,14 @@ for (const tool of result.value) {
 | `surface(graph, options?)` | Start an MCP server with all trails as tools |
 | `deriveMcpTools(graph, options?)` | Build tool definitions without starting a server |
 | `deriveToolName(appName, trailId)` | Compute the MCP tool name from app and trail IDs |
-| `deriveAnnotations(trail)` | Extract MCP annotations from trail intent and metadata |
+| `deriveAnnotations(trail)` | Extract MCP annotations from trail intent, idempotency, and description |
 | `createMcpProgressCallback(server)` | Bridge `ctx.progress` to MCP `notifications/progress` |
 
 See the [API Reference](../../docs/api-reference.md) for the full list.
 
 ## Annotations
 
-Trail intent and metadata map directly to MCP annotations:
+Trail intent, idempotency, and description map directly to MCP annotations:
 
 | Trail field | MCP annotation |
 | --- | --- |
