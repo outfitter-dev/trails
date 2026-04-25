@@ -3,6 +3,7 @@ import { surface } from '@ontrails/cli/commander';
 
 import { app } from './app.js';
 import { resolveInputWithClack } from './clack.js';
+import { trailsPackageVersion } from './versions.js';
 
 // oxlint-disable-next-line require-hook -- CLI entry point
 await surface(app, {
@@ -10,5 +11,5 @@ await surface(app, {
   name: 'trails',
   presets: [outputModePreset()],
   resolveInput: resolveInputWithClack,
-  version: '0.1.0',
+  version: trailsPackageVersion,
 });

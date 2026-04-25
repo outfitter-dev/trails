@@ -36,6 +36,7 @@ PACKAGES=(
   packages/warden
   connectors/drizzle
   connectors/hono
+  connectors/vite
   apps/trails
 )
 

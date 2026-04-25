@@ -16,9 +16,13 @@ import { addVerify } from '../trails/add-verify.js';
 import { createRoute } from '../trails/create.js';
 import { createScaffold } from '../trails/create-scaffold.js';
 import { isInsideProject } from '../trails/project.js';
+import {
+  ontrailsPackageRange,
+  scaffoldDependencyVersions,
+} from '../versions.js';
 
 type Starter = 'empty' | 'entity' | 'hello';
-type Surface = 'cli' | 'mcp';
+type Surface = 'cli' | 'http' | 'mcp';
 
 const makeTempProject = (): string =>
   join(
@@ -117,7 +121,10 @@ const setupMinimalProject = (dir: string): void => {
   writeFileSync(
     join(dir, 'package.json'),
     JSON.stringify(
-      { dependencies: { '@ontrails/core': 'workspace:*' }, name: 'test' },
+      {
+        dependencies: { '@ontrails/core': ontrailsPackageRange },
+        name: 'test',
+      },
       null,
       2
     )
@@ -149,13 +156,28 @@ const assertCliPackage = (dir: string): void => {
   expect(pkg['name']).toBe(basename(dir));
 
   const deps = pkg['dependencies'] as Record<string, string>;
-  expect(deps['@ontrails/core']).toBe('workspace:*');
-  expect(deps['@ontrails/cli']).toBe('workspace:*');
-  expect(deps['commander']).toBeDefined();
+  expect(deps['@ontrails/core']).toBe(ontrailsPackageRange);
+  expect(deps['@ontrails/cli']).toBe(ontrailsPackageRange);
+  expect(deps['commander']).toBe(scaffoldDependencyVersions.commander);
+};
 
+const assertVerifyPackage = (dir: string): void => {
+  const pkg = readJson(dir, 'package.json');
   const devDeps = pkg['devDependencies'] as Record<string, string>;
-  expect(devDeps['@ontrails/testing']).toBe('workspace:*');
-  expect(devDeps['@ontrails/warden']).toBe('workspace:*');
+  expect(devDeps['@ontrails/testing']).toBe(ontrailsPackageRange);
+  expect(devDeps['@ontrails/warden']).toBe(ontrailsPackageRange);
+  expect(devDeps['lefthook']).toBe(scaffoldDependencyVersions.lefthook);
+  expect(readText(dir, 'lefthook.yml')).toContain('bunx trails warden');
+  expect(readText(dir, 'lefthook.yml')).not.toContain('--exit-code');
+};
+
+const assertGeneratedToolingDeps = (dir: string): void => {
+  const pkg = readJson(dir, 'package.json');
+  const devDeps = pkg['devDependencies'] as Record<string, string>;
+  expect(devDeps['@types/bun']).toBe(scaffoldDependencyVersions.bunTypes);
+  expect(devDeps['oxlint']).toBe(scaffoldDependencyVersions.oxlint);
+  expect(devDeps['typescript']).toBe(scaffoldDependencyVersions.typescript);
+  expect(devDeps['ultracite']).toBe(scaffoldDependencyVersions.ultracite);
 };
 
 const assertHelloApp = (dir: string): void => {
@@ -216,13 +238,33 @@ const assertMcpSurface = (dir: string): void => {
     string,
     string
   >;
-  expect(deps['@ontrails/mcp']).toBe('workspace:*');
+  expect(deps['@ontrails/mcp']).toBe(ontrailsPackageRange);
   expect(deps['@ontrails/cli']).toBeUndefined();
+};
+
+const assertHttpSurface = (dir: string): void => {
+  expectPaths(dir, ['src/http.ts'], true);
+  expectContainsAll(readText(dir, 'src/http.ts'), [
+    "import { surface } from '@ontrails/hono'",
+    'await surface(app, { port: 3000 })',
+  ]);
+
+  const deps = readJson(dir, 'package.json')['dependencies'] as Record<
+    string,
+    string
+  >;
+  expect(deps['@ontrails/hono']).toBe(ontrailsPackageRange);
+  expect(deps['@ontrails/http']).toBe(ontrailsPackageRange);
 };
 
 const assertVerifySkipped = (dir: string): void => {
   expectPaths(dir, ['__tests__/examples.test.ts', 'lefthook.yml'], false);
-  expect(readJson(dir, 'package.json')['devDependencies']).toBeUndefined();
+  const devDeps = readJson(dir, 'package.json')['devDependencies'] as Record<
+    string,
+    string
+  >;
+  expect(devDeps['@ontrails/testing']).toBeUndefined();
+  expect(devDeps['@ontrails/warden']).toBeUndefined();
 };
 
 const assertEmptyStarter = (dir: string): void => {
@@ -251,6 +293,8 @@ describe('trails create', () => {
         expectOk(await runCreate(dir));
         assertDefaultProjectFiles(dir);
         assertCliPackage(dir);
+        assertVerifyPackage(dir);
+        assertGeneratedToolingDeps(dir);
         assertHelloApp(dir);
       });
     });
@@ -266,6 +310,13 @@ describe('trails create', () => {
       await withTempProject(async (dir) => {
         expectOk(await runCreate(dir, { surfaces: ['mcp'] }));
         assertMcpSurface(dir);
+      });
+    });
+
+    test('generates with HTTP surface', async () => {
+      await withTempProject(async (dir) => {
+        expectOk(await runCreate(dir, { surfaces: ['http'] }));
+        assertHttpSurface(dir);
       });
     });
 
@@ -302,7 +353,20 @@ describe('trails create', () => {
           string,
           string
         >;
-        expect(deps['@ontrails/mcp']).toBe('workspace:*');
+        expect(deps['@ontrails/mcp']).toBe(ontrailsPackageRange);
+      });
+    });
+
+    test('adds HTTP to existing project', async () => {
+      await withTempProject(async (dir) => {
+        setupMinimalProject(dir);
+        const result = expectOk(
+          await addSurface.blaze({ dir, surface: 'http' }, {} as never)
+        );
+
+        expect(result.created).toBe('src/http.ts');
+        expect(result.dependency).toBe('@ontrails/hono');
+        assertHttpSurface(dir);
       });
     });
 

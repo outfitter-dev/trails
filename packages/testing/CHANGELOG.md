@@ -1,5 +1,19 @@
 # @ontrails/testing
 
+## 1.0.0-beta.15
+
+### Minor Changes
+
+- f511a3a: Rename `app` field to `graph` in `CliHarnessOptions` and `McpHarnessOptions`
+
+### Patch Changes
+
+- Updated dependencies [4ad6b25]
+  - @ontrails/core@1.0.0-beta.15
+  - @ontrails/cli@1.0.0-beta.15
+  - @ontrails/logging@1.0.0-beta.15
+  - @ontrails/mcp@1.0.0-beta.15
+
 ## 1.0.0-beta.14
 
 ### Minor Changes

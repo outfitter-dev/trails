@@ -9,7 +9,7 @@
 '@ontrails/schema': minor
 '@ontrails/store': minor
 '@ontrails/testing': minor
-'@ontrails/tracker': minor
+'@ontrails/tracing': minor
 '@ontrails/trails': minor
 '@ontrails/warden': minor
 ---

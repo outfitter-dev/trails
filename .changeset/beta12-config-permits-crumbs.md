@@ -1,7 +1,7 @@
 ---
 "@ontrails/config": minor
 "@ontrails/permits": minor
-"@ontrails/tracker": minor
+"@ontrails/tracing": minor
 "@ontrails/core": patch
 "@ontrails/cli": patch
 "@ontrails/testing": patch

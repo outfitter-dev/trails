@@ -10,6 +10,11 @@ import { dirname, join, resolve } from 'node:path';
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
+import {
+  ontrailsPackageRange,
+  scaffoldDependencyVersions,
+} from '../versions.js';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -28,13 +33,21 @@ interface ScaffoldResult {
 
 const generatePackageJson = (name: string): string => {
   const deps: Record<string, string> = {
-    '@ontrails/core': 'workspace:*',
-    zod: '^4.0.0',
+    '@ontrails/core': ontrailsPackageRange,
+    zod: scaffoldDependencyVersions.zod,
   };
 
   const pkg: Record<string, unknown> = {
     dependencies: Object.fromEntries(
       Object.entries(deps).toSorted(([a], [b]) => a.localeCompare(b))
+    ),
+    devDependencies: Object.fromEntries(
+      Object.entries({
+        '@types/bun': scaffoldDependencyVersions.bunTypes,
+        oxlint: scaffoldDependencyVersions.oxlint,
+        typescript: scaffoldDependencyVersions.typescript,
+        ultracite: scaffoldDependencyVersions.ultracite,
+      }).toSorted(([a], [b]) => a.localeCompare(b))
     ),
     name,
     scripts: {

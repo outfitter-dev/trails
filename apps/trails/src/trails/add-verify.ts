@@ -8,6 +8,11 @@ import { dirname, join, resolve } from 'node:path';
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
+import {
+  ontrailsPackageRange,
+  scaffoldDependencyVersions,
+} from '../versions.js';
+
 // ---------------------------------------------------------------------------
 // Content generators
 // ---------------------------------------------------------------------------
@@ -23,15 +28,15 @@ const generateLefthookYml = (): string =>
   `pre-push:
   commands:
     warden:
-      run: bunx trails warden --exit-code
+      run: bunx trails warden
 `;
 
 /** Add testing and warden devDependencies to package.json when present. */
 const patchVerifyDeps = (pkg: Record<string, unknown>): void => {
   const devDeps = (pkg['devDependencies'] ?? {}) as Record<string, string>;
-  devDeps['@ontrails/testing'] = 'workspace:*';
-  devDeps['@ontrails/warden'] = 'workspace:*';
-  devDeps['lefthook'] = '^2.1.1';
+  devDeps['@ontrails/testing'] = ontrailsPackageRange;
+  devDeps['@ontrails/warden'] = ontrailsPackageRange;
+  devDeps['lefthook'] = scaffoldDependencyVersions.lefthook;
   pkg['devDependencies'] = Object.fromEntries(
     Object.entries(devDeps).toSorted(([a], [b]) => a.localeCompare(b))
   );

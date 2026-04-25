@@ -22,6 +22,12 @@ await surface(graph);
 
 That is the entire CLI setup. Every trail in the app becomes a command.
 
+> **Beta 15 package shape:** Commander is still exposed through the
+> `@ontrails/cli/commander` subpath, with `commander` installed as a peer
+> dependency. The planned beta.16 cleanup is to move Commander into a dedicated
+> `@ontrails/commander` connector package by direct cutover. Do not use that
+> future import path until the connector package exists.
+
 ## How Trail IDs Map to Commands
 
 Trail IDs derive to full ordered command paths:
@@ -290,3 +296,28 @@ To use a different CLI framework (yargs, oclif, etc.), consume the successful
 `CliCommand[]` result directly and write your own connector. The model carries
 everything needed: a full ordered command path, flags, args, and an
 `execute()` function.
+
+## Planned Schema Command
+
+Trails CLI apps should eventually expose command schemas for free. The planned
+shape is a default-on `schema` command derived from the same topo and
+framework-agnostic CLI command model as the mounted commands.
+
+```bash
+myapp schema
+myapp schema entity.update
+myapp schema entity update --json
+```
+
+The no-arg form should return a compact index of available command contracts.
+Targeted schema lookup should return the full Trails command-contract envelope:
+command path, trail id, args, flags, aliases, input schema, output schema,
+output formats, examples, and deprecation metadata when derivable.
+
+Schema visibility should describe the mounted CLI surface by default. Apps may
+configure broader schema visibility for dev or agent environments, but runtime
+flags should not reveal hidden/internal schemas that the app author did not
+choose to expose.
+
+This schema command is planned future work in `@ontrails/cli`; it is not part
+of beta 15.

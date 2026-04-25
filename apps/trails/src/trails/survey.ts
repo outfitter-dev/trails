@@ -195,7 +195,7 @@ export const surveyTrail = trail('survey', {
   description: 'Full topo introspection',
   examples: [
     {
-      description: 'Lists all registered trails with safety and trailhead info',
+      description: 'Lists all registered trails with safety and surface info',
       input: { module: './src/app.ts' },
       name: 'List all trails',
     },

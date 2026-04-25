@@ -6,6 +6,10 @@
 2. **[Getting Started](./getting-started.md)** — Install, define your first trail, open CLI/MCP/HTTP surfaces, test it
 3. **[Lexicon](./lexicon.md)** — The terms you'll use every day: trail, blaze, topo, contour, surface, cross, resource, signal, layer, tracing
 
+## Release Notes
+
+- **[Beta 15](./releases/beta15.md)** — Current release-prep notes and known CLI follow-up work
+
 ## Building something?
 
 - **[Architecture](./architecture.md)** — Hexagonal model, package layers, how data flows from trail to surface

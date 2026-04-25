@@ -7,7 +7,7 @@
 "@ontrails/permits": minor
 "@ontrails/schema": minor
 "@ontrails/testing": minor
-"@ontrails/tracker": minor
+"@ontrails/tracing": minor
 "@ontrails/warden": minor
 "@ontrails/logging": minor
 ---

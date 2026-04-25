@@ -1,5 +1,18 @@
 # trails
 
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- 2003fa5: Prepare the Trails CLI for beta.15 release publishing: derive the CLI version from package metadata, scaffold publishable package ranges, add HTTP surface generation, include the scaffold toolchain dependencies, and avoid generating unsupported Warden flags.
+- Updated dependencies [4ad6b25]
+  - @ontrails/core@1.0.0-beta.15
+  - @ontrails/cli@1.0.0-beta.15
+  - @ontrails/tracing@1.0.0-beta.15
+  - @ontrails/warden@1.0.0-beta.15
+  - @ontrails/logging@1.0.0-beta.15
+  - @ontrails/schema@1.0.0-beta.15
+
 ## 1.0.0-beta.14
 
 ### Minor Changes

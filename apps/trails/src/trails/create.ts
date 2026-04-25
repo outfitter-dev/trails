@@ -13,7 +13,7 @@ import { z } from 'zod';
 // ---------------------------------------------------------------------------
 
 type Starter = 'empty' | 'entity' | 'hello';
-type Surface = 'cli' | 'mcp';
+type Surface = 'cli' | 'http' | 'mcp';
 
 interface CreateInput {
   readonly dir?: string | undefined;
@@ -179,6 +179,11 @@ export const createRoute = trail('create', {
           label: 'MCP',
           value: 'mcp',
         },
+        {
+          hint: 'Hono-powered HTTP endpoints',
+          label: 'HTTP',
+          value: 'http',
+        },
       ],
     },
   },
@@ -190,7 +195,7 @@ export const createRoute = trail('create', {
       .default('hello')
       .describe('Starter trail'),
     surfaces: z
-      .array(z.enum(['cli', 'mcp']))
+      .array(z.enum(['cli', 'http', 'mcp']))
       .default(['cli'])
       .describe('Surfaces'),
     verify: z.boolean().default(true).describe('Include testing + warden'),

@@ -1,0 +1,13 @@
+# Local config overrides
+config/
+
+# Development state
+dev/
+
+# Generated artifacts
+generated/
+
+# Shared Trails database
+trails.db
+trails.db-shm
+trails.db-wal
