@@ -31,6 +31,7 @@
 ## Governing your codebase?
 
 - **[Warden](../packages/warden/README.md)** — AST-based convention rules, drift detection, CI integration
+- **[Rule Design](./rule-design.md)** — Methodology for durable warden, oxlint, and agent rules
 - **[Schema](../packages/schema/README.md)** — Surface maps, topo export helpers, semantic diffing, lock files
 
 ## Design decisions
