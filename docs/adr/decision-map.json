@@ -115,7 +115,7 @@
           "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — \"the trail is the unit of everything\"; this ADR enforces that at the package boundary",
+          "context": "The [drift guard in ADR-0000](0000-core-premise.md) prefers derivation over lint-time checks. The implementation should evaluate structural derivation for properties 1 and 2 first, and fall back to a ",
           "from": "0036",
           "fromPath": "docs/adr/0036-warden-rules-ship-only-as-trails.md"
         },
@@ -643,9 +643,19 @@
           "fromPath": "docs/adr/0025-composition-testing.md"
         },
         {
-          "context": "[ADR-0007](0007-governance-as-trails.md) made warden rules into trails. Every rule is wrapped via `wrapRule()` into a trail with ID `warden.rule.<name>`, gets a schema, examples, and runs through t",
+          "context": "[ADR-0007](0007-governance-as-trails.md) made warden rules into trails internally. Every rule is wrapped via `wrapRule()` into a trail with ID `warden.rule.<name>`, gets a schema, examples, and runs t",
           "from": "0036",
           "fromPath": "docs/adr/0036-warden-rules-ship-only-as-trails.md"
+        },
+        {
+          "context": "- [ADR-0007: Governance as Trails with AST-Based Analysis](0007-governance-as-trails.md) — warden's foundational decision; the trail-shape for rules",
+          "from": "0037",
+          "fromPath": "docs/adr/0037-oxlint-plugin-and-warden-boundary.md"
+        },
+        {
+          "context": "- [ADR-0007: Governance as Trails with AST-Based Analysis](0007-governance-as-trails.md) — warden's foundational model; owner-first resolution is how warden rules read framework data without duplicati",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-owner-first-authority.md"
         },
         {
           "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — warden rules for event declarations",
@@ -665,7 +675,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Governance as Trails with AST-Based Analysis",
-      "updated": "2026-04-01"
+      "updated": "2026-04-22"
     },
     {
       "created": "2026-03-29",
@@ -1442,6 +1452,16 @@
           "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
         },
         {
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — vocabulary alignment for `external` / `extension` / `internal` contexts",
+          "from": "0037",
+          "fromPath": "docs/adr/0037-oxlint-plugin-and-warden-boundary.md"
+        },
+        {
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — vocabulary alignment",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-owner-first-authority.md"
+        },
+        {
           "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) -- the lexicon renames; note that `resource` in this ADR refers to the distribution unit, distinct from `resourc",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
@@ -1910,7 +1930,18 @@
     {
       "created": "2026-04-20",
       "depends_on": ["0", "7"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "- [ADR-0036: Warden Rules Ship Only as Trails](0036-warden-rules-ship-only-as-trails.md) — establishes warden's rule shape; this ADR carves out a complementary home for non-trail rules",
+          "from": "0037",
+          "fromPath": "docs/adr/0037-oxlint-plugin-and-warden-boundary.md"
+        },
+        {
+          "context": "- [ADR-0036: Warden Rules Ship Only as Trails](0036-warden-rules-ship-only-as-trails.md) — establishes warden's rule shape; this ADR provides the data layer warden rules consume from owner modules",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-owner-first-authority.md"
+        }
+      ],
       "number": "0036",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0036-warden-rules-ship-only-as-trails.md",
@@ -1919,6 +1950,54 @@
       "superseded_by": null,
       "title": "Warden rules ship only as trails",
       "updated": "2026-04-20"
+    },
+    {
+      "created": "2026-04-25",
+      "depends_on": ["7", "23", "36"],
+      "inbound": [
+        {
+          "context": "- [Oxlint Plugin and the Warden Boundary](0037-oxlint-plugin-and-warden-boundary.md) — companion ADR; the rule-home split applies regardless of how rules access framework data",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-owner-first-authority.md"
+        },
+        {
+          "context": "The methodology applies in both rule homes. The bright line between them is structural, per [ADR-0037: Oxlint Plugin and the Warden Boundary](adr/0037-oxlint-plugin-and-warden-boundary.md):",
+          "from": "rule-design",
+          "fromPath": "docs/rule-design.md"
+        }
+      ],
+      "number": "0037",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0037-oxlint-plugin-and-warden-boundary.md",
+      "slug": "oxlint-plugin-and-warden-boundary",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Oxlint Plugin and the Warden Boundary",
+      "updated": "2026-04-26"
+    },
+    {
+      "created": "2026-04-25",
+      "depends_on": ["7", "23", "36", "37"],
+      "inbound": [
+        {
+          "context": "A rule belongs in **`@ontrails/oxlint`** otherwise. The default is oxlint when the rule can answer its question from a single file's AST plus its imports plus values resolved through their owner modul",
+          "from": "0037",
+          "fromPath": "docs/adr/0037-oxlint-plugin-and-warden-boundary.md"
+        },
+        {
+          "context": "The mechanism is **owner-first**, per [ADR-0038: Owner-First Authority](adr/0038-owner-first-authority.md). Rules import authoritative data directly from the module that owns the concept. The error cl",
+          "from": "rule-design",
+          "fromPath": "docs/rule-design.md"
+        }
+      ],
+      "number": "0038",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0038-owner-first-authority.md",
+      "slug": "owner-first-authority",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Owner-First Authority",
+      "updated": "2026-04-26"
     }
   ],
   "version": 1
