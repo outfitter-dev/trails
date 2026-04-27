@@ -154,6 +154,7 @@ Each package's main `tsconfig.json` excludes test files so build output stays cl
 - `docs/getting-started.md`
 - `docs/architecture.md`
 - `docs/lexicon.md`
+- `docs/warden.md`
 - `docs/why-trails.md`
 - `docs/testing.md`
 
