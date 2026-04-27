@@ -9,6 +9,15 @@ describe('@ontrails/oxlint-plugin', () => {
 
     expect(meta?.name).toBe('@ontrails/oxlint-plugin');
     expect(pluginRules).toBe(rules);
-    expect(Object.keys(pluginRules)).toEqual(['local-plugin-smoke']);
+    expect(Object.keys(pluginRules)).toEqual([
+      'no-console-in-packages',
+      'no-deep-relative-import',
+      'no-nested-barrel',
+      'no-process-env-in-packages',
+      'no-process-exit-in-packages',
+      'prefer-bun-api',
+      'snapshot-location',
+      'test-file-naming',
+    ]);
   });
 });

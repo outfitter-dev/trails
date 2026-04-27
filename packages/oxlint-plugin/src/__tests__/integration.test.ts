@@ -13,12 +13,12 @@ describe('@ontrails/oxlint-plugin integration', () => {
       `oxlint-plugin-${Date.now()}-${Math.random().toString(36).slice(2)}`
     );
     const fixtureDir = join(fixtureRoot, 'packages', 'example', 'src');
-    const fixtureSource = join(fixtureDir, 'smoke.ts');
+    const fixtureSource = join(fixtureDir, 'index.ts');
 
     mkdirSync(fixtureDir, { recursive: true });
     writeFileSync(
       fixtureSource,
-      '// oxlint-local-plugin-smoke\nexport const loaded = true;\n'
+      'export function run(): void {\n  console.log("loaded");\n}\n'
     );
 
     try {
@@ -39,7 +39,7 @@ describe('@ontrails/oxlint-plugin integration', () => {
         .join('\n');
 
       expect(result.exitCode).not.toBe(0);
-      expect(output).toContain('The Trails repo-local oxlint plugin is loaded');
+      expect(output).toContain('Avoid console.* in packages source');
       expect(output).not.toContain('Failed to load JS plugin');
     } finally {
       rmSync(fixtureRoot, { force: true, recursive: true });

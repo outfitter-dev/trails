@@ -12,5 +12,16 @@ correctness, topology, owner-first authority, or consumer-facing doctrine.
 Rules are authored in `src/` as TypeScript and built to `dist/` before Oxlint
 loads the plugin. Repo lint and format scripts run that build first.
 
-`local-plugin-smoke` is only a wiring proof. Delete it once the first real
-repo-local rule lands.
+Initial rules cover low-blast repo hygiene:
+
+- `no-console-in-packages`
+- `no-process-exit-in-packages`
+- `no-process-env-in-packages`
+- `no-deep-relative-import`
+- `no-nested-barrel`
+- `prefer-bun-api`
+- `snapshot-location`
+- `test-file-naming`
+
+These rules may carry Trails-specific carve-outs in `oxlint.config.ts`. Keep
+semantic framework correctness in Warden.
