@@ -138,7 +138,7 @@ const assertDefaultProjectFiles = (dir: string): void => {
       'package.json',
       'tsconfig.json',
       '.gitignore',
-      '.oxlintrc.json',
+      'oxlint.config.ts',
       '.oxfmtrc.jsonc',
       'src/app.ts',
       '.trails',
@@ -175,6 +175,7 @@ const assertGeneratedToolingDeps = (dir: string): void => {
   const pkg = readJson(dir, 'package.json');
   const devDeps = pkg['devDependencies'] as Record<string, string>;
   expect(devDeps['@types/bun']).toBe(scaffoldDependencyVersions.bunTypes);
+  expect(devDeps['oxfmt']).toBe(scaffoldDependencyVersions.oxfmt);
   expect(devDeps['oxlint']).toBe(scaffoldDependencyVersions.oxlint);
   expect(devDeps['typescript']).toBe(scaffoldDependencyVersions.typescript);
   expect(devDeps['ultracite']).toBe(scaffoldDependencyVersions.ultracite);

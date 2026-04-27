@@ -3,7 +3,7 @@
   "remoteCache": {
     "signature": true
   },
-  "globalDependencies": [".bun-version", ".oxlintrc.json"],
+  "globalDependencies": [".bun-version", "oxlint.config.ts"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -17,7 +17,8 @@
       "dependsOn": ["^typecheck"]
     },
     "lint": {
-      "inputs": ["src/**", ".oxlintrc.json", ".oxfmtrc.jsonc"],
+      "dependsOn": ["@ontrails/oxlint-plugin#build"],
+      "inputs": ["src/**"],
       "outputs": []
     },
     "clean": {

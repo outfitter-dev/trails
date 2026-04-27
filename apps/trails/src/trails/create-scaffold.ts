@@ -44,6 +44,7 @@ const generatePackageJson = (name: string): string => {
     devDependencies: Object.fromEntries(
       Object.entries({
         '@types/bun': scaffoldDependencyVersions.bunTypes,
+        oxfmt: scaffoldDependencyVersions.oxfmt,
         oxlint: scaffoldDependencyVersions.oxlint,
         typescript: scaffoldDependencyVersions.typescript,
         ultracite: scaffoldDependencyVersions.ultracite,
@@ -52,6 +53,8 @@ const generatePackageJson = (name: string): string => {
     name,
     scripts: {
       build: 'tsc -b',
+      'format:check': 'bunx ultracite check .',
+      'format:fix': 'bunx ultracite fix .',
       lint: 'oxlint ./src',
       test: 'bun test',
       typecheck: 'tsc --noEmit',
@@ -89,13 +92,13 @@ dist/
 .trails/_surface.json
 `;
 
-const OXLINTRC_CONTENT = JSON.stringify(
-  {
-    extends: ['ultracite'],
-  },
-  null,
-  2
-);
+const OXLINT_CONFIG_CONTENT = `import { defineConfig } from 'oxlint';
+import ultracite from 'ultracite/oxlint/core';
+
+export default defineConfig({
+  extends: [ultracite],
+});
+`;
 
 const OXFMTRC_CONTENT = `{
   // ultracite defaults
@@ -309,7 +312,7 @@ const collectScaffoldFiles = (
     ['package.json', generatePackageJson(name)],
     ['tsconfig.json', TSCONFIG_CONTENT],
     ['.gitignore', GITIGNORE_CONTENT],
-    ['.oxlintrc.json', OXLINTRC_CONTENT],
+    ['oxlint.config.ts', OXLINT_CONFIG_CONTENT],
     ['.oxfmtrc.jsonc', OXFMTRC_CONTENT],
     ['src/app.ts', generateAppTs(name, starter)],
     ...starterFileGenerators[starter](),

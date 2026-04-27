@@ -1,0 +1,27 @@
+{
+  "name": "@ontrails/oxlint-plugin",
+  "version": "1.0.0-beta.15",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "bun run build:oxlint",
+    "build:oxlint": "tsc -p tsconfig.json",
+    "lint": "oxlint ./src",
+    "test": "bun run build:oxlint && bun test",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@oxlint/plugins": "1.62.0"
+  }
+}

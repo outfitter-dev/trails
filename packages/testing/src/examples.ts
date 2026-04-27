@@ -87,7 +87,7 @@ const ERROR_MAP: Record<string, new (...args: never[]) => Error> = {
  * Resolve an error class name string to the actual constructor.
  * Falls back to generic Error if the name is not in the core taxonomy.
  */
-const resolveErrorClass = (name: string): (new (...args: never[]) => Error) =>
+const resolveErrorClass = (name: string): new (...args: never[]) => Error =>
   ERROR_MAP[name] ?? (Error as new (...args: never[]) => Error);
 
 // ---------------------------------------------------------------------------

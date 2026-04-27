@@ -54,6 +54,7 @@ const loadScaffoldVersions = async (): Promise<
     ),
     commander: requireValue(catalog['commander'], 'commander', 'catalog'),
     lefthook: requireValue(devDeps['lefthook'], 'lefthook', 'devDependencies'),
+    oxfmt: requireValue(devDeps['oxfmt'], 'oxfmt', 'devDependencies'),
     oxlint: requireValue(devDeps['oxlint'], 'oxlint', 'devDependencies'),
     typescript: requireValue(
       devDeps['typescript'],

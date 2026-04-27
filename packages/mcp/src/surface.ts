@@ -119,7 +119,7 @@ const createMcpServer = (
               method: 'notifications/progress',
               params: {
                 progress: current,
-                progressToken: progressToken,
+                progressToken,
                 total,
               },
             });
