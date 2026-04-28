@@ -17,6 +17,7 @@ describe('@ontrails/oxlint-plugin', () => {
       'no-process-exit-in-packages',
       'prefer-bun-api',
       'snapshot-location',
+      'temp-audit-direct-framework-writes',
       'test-file-naming',
     ]);
   });

@@ -25,3 +25,9 @@ Initial rules cover low-blast repo hygiene:
 
 These rules may carry Trails-specific carve-outs in `oxlint.config.ts`. Keep
 semantic framework correctness in Warden.
+
+Temporary audit rules use a `temp-*` prefix and must name the issue or state
+that deletes them. During discovery, they may run from the root config at
+warning severity so follow-up branches can burn down findings while CI stays
+green. Promote a temporary rule to error only after its findings are fixed,
+intentionally baselined, or rehomed as durable Warden coverage.

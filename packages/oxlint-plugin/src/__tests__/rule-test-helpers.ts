@@ -24,6 +24,14 @@ export const createCallExpressionNode = (
   type: 'CallExpression',
 });
 
+export const createIdentifierCallNode = (callName: string): unknown => ({
+  callee: {
+    name: callName,
+    type: 'Identifier',
+  },
+  type: 'CallExpression',
+});
+
 export const createMemberExpressionNode = (
   objectName: string,
   propertyName: string

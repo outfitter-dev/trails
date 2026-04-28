@@ -39,6 +39,7 @@ export default defineConfig({
     ],
     'trails-local/prefer-bun-api': 'warn',
     'trails-local/snapshot-location': 'warn',
+    'trails-local/temp-audit-direct-framework-writes': 'warn',
     'trails-local/test-file-naming': 'warn',
     'typescript/require-await': 'off',
     'unicorn/custom-error-definition': 'off',

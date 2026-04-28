@@ -7,10 +7,12 @@ import { noProcessEnvInPackagesRule } from '../rules/no-process-env-in-packages.
 import { noProcessExitInPackagesRule } from '../rules/no-process-exit-in-packages.js';
 import { preferBunApiRule } from '../rules/prefer-bun-api.js';
 import { snapshotLocationRule } from '../rules/snapshot-location.js';
+import { tempAuditDirectFrameworkWritesRule } from '../rules/temp-audit-direct-framework-writes.js';
 import { testFileNamingRule } from '../rules/test-file-naming.js';
 import {
   createCallExpressionNode,
   createExportDeclarationNode,
+  createIdentifierCallNode,
   createImportDeclarationNode,
   createMemberExpressionNode,
   createRequireCallNode,
@@ -209,5 +211,53 @@ describe('repo-local rules', () => {
       'snapshotLocation',
     ]);
     expect(nestedSnapshotReports).toHaveLength(0);
+  });
+
+  test('reports direct framework writes in scoped audit paths', () => {
+    const bunWriteReports = runRuleForEvent({
+      event: 'CallExpression',
+      filename: 'apps/trails/src/trails/create-scaffold.ts',
+      nodes: [createCallExpressionNode('Bun', 'write')],
+      rule: tempAuditDirectFrameworkWritesRule,
+    });
+    const directWriteReports = runRuleForEvent({
+      event: 'CallExpression',
+      filename: 'apps/trails/src/trails/draft-promote.ts',
+      nodes: [createIdentifierCallNode('mkdirSync')],
+      rule: tempAuditDirectFrameworkWritesRule,
+    });
+    const directRenameReports = runRuleForEvent({
+      event: 'CallExpression',
+      filename: 'apps/trails/src/trails/draft-promote.ts',
+      nodes: [createIdentifierCallNode('renameSync')],
+      rule: tempAuditDirectFrameworkWritesRule,
+    });
+    const directWriteReportsFromImport = runRuleForEvent({
+      event: 'CallExpression',
+      filename: 'apps/trails/src/trails/add-verify.ts',
+      nodes: [createIdentifierCallNode('writeFile')],
+      rule: tempAuditDirectFrameworkWritesRule,
+    });
+    const packageReports = runRuleForEvent({
+      event: 'CallExpression',
+      filename: 'packages/core/src/internal/topo-store.ts',
+      nodes: [createCallExpressionNode('Bun', 'write')],
+      rule: tempAuditDirectFrameworkWritesRule,
+    });
+    const testReports = runRuleForEvent({
+      event: 'CallExpression',
+      filename: 'apps/trails/src/trails/__tests__/create-scaffold.test.ts',
+      nodes: [createCallExpressionNode('Bun', 'write')],
+      rule: tempAuditDirectFrameworkWritesRule,
+    });
+
+    expect(bunWriteReports[0]?.data).toEqual({ callName: 'Bun.write' });
+    expect(directWriteReports[0]?.data).toEqual({ callName: 'mkdirSync' });
+    expect(directRenameReports[0]?.data).toEqual({ callName: 'renameSync' });
+    expect(directWriteReportsFromImport[0]?.data).toEqual({
+      callName: 'writeFile',
+    });
+    expect(packageReports).toHaveLength(0);
+    expect(testReports).toHaveLength(0);
   });
 });
