@@ -11,6 +11,19 @@ import { graph } from './app';
 await surface(graph, { port: 3000 });
 ```
 
+JSON request bodies are capped at 1 MiB by default. Override the cap with
+`maxJsonBodyBytes` when a surface intentionally accepts larger JSON payloads:
+
+```typescript
+await surface(graph, {
+  maxJsonBodyBytes: 2 * 1024 * 1024,
+  port: 3000,
+});
+```
+
+Generic non-TrailsError failures return a redacted 500 response while the
+original error is written to server diagnostics.
+
 For custom HTTP integrations or route inspection, keep using `deriveHttpRoutes()` from `@ontrails/http`.
 
 ## Installation

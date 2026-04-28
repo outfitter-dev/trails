@@ -10,7 +10,11 @@
  * ```
  */
 
-import { isTrailsError, mapTransportError } from '@ontrails/core';
+import {
+  isTrailsError,
+  mapTransportError,
+  ValidationError,
+} from '@ontrails/core';
 import type {
   Intent,
   Layer,
@@ -42,12 +46,20 @@ export interface CreateAppOptions {
   readonly include?: readonly string[] | undefined;
   readonly intent?: readonly Intent[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
+  /** Maximum JSON request body size in bytes. Defaults to 1 MiB. */
+  readonly maxJsonBodyBytes?: number | undefined;
   readonly name?: string | undefined;
   readonly port?: number | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
   readonly validate?: boolean | undefined;
 }
+
+interface RuntimeOptions {
+  readonly maxJsonBodyBytes: number;
+}
+
+const DEFAULT_MAX_JSON_BODY_BYTES = 1024 * 1024;
 
 export interface SurfaceHttpResult {
   readonly close: () => Promise<void>;
@@ -85,32 +97,170 @@ const parseQueryParams = (c: HonoContext): Record<string, unknown> => {
 /** Sentinel indicating a JSON parse failure. */
 const JSON_PARSE_ERROR = Symbol('JSON_PARSE_ERROR');
 
+/** Sentinel indicating a JSON body rejected before parsing. */
+const JSON_BODY_TOO_LARGE = Symbol('JSON_BODY_TOO_LARGE');
+
+interface JsonObject {
+  readonly [key: string]: JsonValue;
+}
+
+type JsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | readonly JsonValue[]
+  | JsonObject;
+type JsonBodyReadResult =
+  | JsonValue
+  | typeof JSON_PARSE_ERROR
+  | typeof JSON_BODY_TOO_LARGE;
+type JsonBodyTextReadResult = string | typeof JSON_BODY_TOO_LARGE;
+type InputReadResult = Record<string, unknown> | JsonBodyReadResult;
+
+const CONTENT_LENGTH_DECIMAL_PATTERN = /^\d+$/;
+
 /** Return true when the request has no body content. */
+const parseContentLength = (
+  contentLength: string | undefined
+): number | undefined => {
+  if (contentLength === undefined) {
+    return undefined;
+  }
+  if (!CONTENT_LENGTH_DECIMAL_PATTERN.test(contentLength)) {
+    return undefined;
+  }
+  const size = Number(contentLength);
+  return Number.isSafeInteger(size) ? size : Number.MAX_SAFE_INTEGER;
+};
+
 const isEmptyBody = (c: HonoContext): boolean => {
-  const contentLength = c.req.header('Content-Length');
+  const contentLength = parseContentLength(c.req.header('Content-Length'));
   if (contentLength !== undefined) {
-    return Number.parseInt(contentLength, 10) === 0;
+    return contentLength === 0;
   }
   // No Content-Length header — treat as empty when Content-Type is also absent.
   return c.req.header('Content-Type') === undefined;
 };
 
+const resolveMaxJsonBodyBytes = (value: number | undefined): number => {
+  const maxJsonBodyBytes = value ?? DEFAULT_MAX_JSON_BODY_BYTES;
+
+  if (!Number.isFinite(maxJsonBodyBytes) || maxJsonBodyBytes < 1) {
+    throw new ValidationError(
+      'maxJsonBodyBytes must be a positive finite number'
+    );
+  }
+
+  return maxJsonBodyBytes;
+};
+
+const hasOversizedContentLength = (
+  c: HonoContext,
+  maxJsonBodyBytes: number
+): boolean => {
+  const contentLength = c.req.header('Content-Length');
+  if (contentLength === undefined) {
+    return false;
+  }
+  const size = parseContentLength(contentLength);
+  return size !== undefined && size > maxJsonBodyBytes;
+};
+
+const measureBodyTextBytes = (text: string): number => new Blob([text]).size;
+
+const validateCachedBodyText = (
+  text: string,
+  maxJsonBodyBytes: number
+): JsonBodyTextReadResult =>
+  measureBodyTextBytes(text) > maxJsonBodyBytes ? JSON_BODY_TOO_LARGE : text;
+
+const readCachedBodyText = async (
+  c: HonoContext,
+  maxJsonBodyBytes: number
+): Promise<JsonBodyTextReadResult> =>
+  validateCachedBodyText(await c.req.text(), maxJsonBodyBytes);
+
+const readBodyText = async (
+  c: HonoContext,
+  maxJsonBodyBytes: number
+): Promise<string | typeof JSON_BODY_TOO_LARGE> => {
+  if (c.req.raw.bodyUsed) {
+    return await readCachedBodyText(c, maxJsonBodyBytes);
+  }
+
+  const { body } = c.req.raw;
+  if (body === null) {
+    return '';
+  }
+
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      if (value === undefined) {
+        continue;
+      }
+      totalBytes += value.byteLength;
+      if (totalBytes > maxJsonBodyBytes) {
+        await reader.cancel();
+        return JSON_BODY_TOO_LARGE;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return new TextDecoder().decode(bytes);
+};
+
+const readJsonBody = async (
+  c: HonoContext,
+  maxJsonBodyBytes: number
+): Promise<JsonBodyReadResult> => {
+  if (hasOversizedContentLength(c, maxJsonBodyBytes)) {
+    return JSON_BODY_TOO_LARGE;
+  }
+
+  const text = await readBodyText(c, maxJsonBodyBytes);
+  if (text === JSON_BODY_TOO_LARGE) {
+    return JSON_BODY_TOO_LARGE;
+  }
+
+  try {
+    return JSON.parse(text) as JsonValue;
+  } catch {
+    return JSON_PARSE_ERROR;
+  }
+};
+
 /** Read input from request based on input source. */
 const readInput = async (
   c: HonoContext,
-  inputSource: 'query' | 'body'
-): Promise<unknown> => {
+  inputSource: 'query' | 'body',
+  options: RuntimeOptions
+): Promise<InputReadResult> => {
   if (inputSource === 'query') {
     return parseQueryParams(c);
   }
   if (isEmptyBody(c)) {
     return {};
   }
-  try {
-    return await c.req.json();
-  } catch {
-    return JSON_PARSE_ERROR;
-  }
+  return await readJsonBody(c, options.maxJsonBodyBytes);
 };
 
 // ---------------------------------------------------------------------------
@@ -138,11 +288,36 @@ const mapErrorResponse = (
       error: {
         category: 'internal',
         code: 'InternalError',
-        message: error.message,
+        message: 'Internal server error',
       },
     },
     status: 500,
   };
+};
+
+const LOG_UNSAFE_LABEL_CHARACTERS = /[^\w:.-]/g;
+const MAX_DIAGNOSTIC_LABEL_VALUE_LENGTH = 128;
+
+const sanitizeDiagnosticLabelValue = (value: string): string =>
+  value
+    .replace(LOG_UNSAFE_LABEL_CHARACTERS, '_')
+    .slice(0, MAX_DIAGNOSTIC_LABEL_VALUE_LENGTH);
+
+const reportInternalDiagnostics = (error: Error, c: HonoContext): void => {
+  if (isTrailsError(error)) {
+    return;
+  }
+
+  const requestId = c.req.header('X-Request-ID');
+  const safeRequestId =
+    requestId === undefined
+      ? undefined
+      : sanitizeDiagnosticLabelValue(requestId);
+  const label =
+    safeRequestId === undefined
+      ? '[ontrails:hono] Internal error'
+      : `[ontrails:hono] Internal error (${safeRequestId})`;
+  console.error(label, error);
 };
 
 // ---------------------------------------------------------------------------
@@ -157,24 +332,25 @@ const mapResultToResponse = (
   if (result.isOk()) {
     return c.json({ data: result.value }, 200);
   }
-  const { body, status } = mapErrorResponse(
-    result.error ?? new Error('Unknown error')
-  );
+  const error = result.error ?? new Error('Unknown error');
+  reportInternalDiagnostics(error, c);
+  const { body, status } = mapErrorResponse(error);
   return c.json(body, status);
 };
 
 /** Convert a caught unknown value to an error response. */
 const handleCaughtError = (error: unknown, c: HonoContext): Response => {
   const err = error instanceof Error ? error : new Error(String(error));
+  reportInternalDiagnostics(err, c);
   const { body, status } = mapErrorResponse(err);
   return c.json(body, status);
 };
 
 /** Create a Hono handler from a route definition. */
 const createHonoHandler =
-  (route: HttpRouteDefinition) =>
+  (route: HttpRouteDefinition, options: RuntimeOptions) =>
   async (c: HonoContext): Promise<Response> => {
-    const rawInput = await readInput(c, route.inputSource);
+    const rawInput = await readInput(c, route.inputSource, options);
 
     if (rawInput === JSON_PARSE_ERROR) {
       return c.json(
@@ -186,6 +362,19 @@ const createHonoHandler =
           },
         },
         400
+      );
+    }
+
+    if (rawInput === JSON_BODY_TOO_LARGE) {
+      return c.json(
+        {
+          error: {
+            category: 'validation',
+            code: 'ValidationError',
+            message: `JSON request body exceeds ${options.maxJsonBodyBytes} bytes`,
+          },
+        },
+        413
       );
     }
 
@@ -220,9 +409,13 @@ const routeRegistrars: Record<
   },
 };
 
-const registerRoutes = (hono: Hono, routes: HttpRouteDefinition[]): void => {
+const registerRoutes = (
+  hono: Hono,
+  routes: HttpRouteDefinition[],
+  options: RuntimeOptions
+): void => {
   for (const route of routes) {
-    const handler = createHonoHandler(route);
+    const handler = createHonoHandler(route, options);
     routeRegistrars[route.method](hono, route.path, handler);
   }
 };
@@ -233,18 +426,7 @@ const registerRoutes = (hono: Hono, routes: HttpRouteDefinition[]): void => {
 
 const registerErrorHandler = (hono: Hono): void => {
   // oxlint-disable-next-line prefer-await-to-callbacks -- Hono's onError API requires a callback
-  hono.onError((err, c) =>
-    c.json(
-      {
-        error: {
-          category: 'internal',
-          code: 'InternalError',
-          message: err.message,
-        },
-      },
-      500
-    )
-  );
+  hono.onError((err, c) => handleCaughtError(err, c));
 };
 
 // ---------------------------------------------------------------------------
@@ -263,6 +445,9 @@ export const createApp = (
   options: CreateAppOptions = {}
 ): Hono => {
   const hono = new Hono();
+  const runtimeOptions = {
+    maxJsonBodyBytes: resolveMaxJsonBodyBytes(options.maxJsonBodyBytes),
+  };
 
   registerErrorHandler(hono);
 
@@ -282,7 +467,7 @@ export const createApp = (
     throw routesResult.error;
   }
 
-  registerRoutes(hono, routesResult.value);
+  registerRoutes(hono, routesResult.value, runtimeOptions);
   return hono;
 };
 

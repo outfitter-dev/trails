@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, mock, test } from 'bun:test';
 
 import { Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
@@ -17,6 +17,20 @@ const tagsTrail = trail('tags', {
   input: z.object({ tags: z.array(z.string()) }),
   intent: 'read',
   output: z.object({ tags: z.array(z.string()) }),
+});
+
+const echoBodyTrail = trail('echo.body', {
+  blaze: (input) => Result.ok({ length: input.message.length }),
+  input: z.object({ message: z.string() }),
+  intent: 'write',
+  output: z.object({ length: z.number() }),
+});
+
+const genericErrorTrail = trail('generic.error', {
+  blaze: () => Result.err(new Error('database password=secret')),
+  input: z.object({}),
+  intent: 'read',
+  output: z.object({ ok: z.boolean() }),
 });
 
 describe('surface API (Hono connector)', () => {
@@ -73,5 +87,215 @@ describe('surface API (Hono connector)', () => {
         category: 'validation',
       },
     });
+  });
+
+  test('default JSON body cap rejects request bodies over 1 MiB', async () => {
+    const graph = topo('surface-api', { echoBodyTrail });
+    const app = createApp(graph);
+    const body = JSON.stringify({ message: 'x'.repeat(1024 * 1024) });
+
+    const response = await app.request('/echo/body', {
+      body,
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({
+      error: {
+        category: 'validation',
+        code: 'ValidationError',
+        message: 'JSON request body exceeds 1048576 bytes',
+      },
+    });
+  });
+
+  test('maxJsonBodyBytes overrides the default JSON body cap', async () => {
+    const graph = topo('surface-api', { echoBodyTrail });
+    const app = createApp(graph, { maxJsonBodyBytes: 2 * 1024 * 1024 });
+    const message = 'x'.repeat(1024 * 1024);
+
+    const response = await app.request('/echo/body', {
+      body: JSON.stringify({ message }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: { length: message.length },
+    });
+  });
+
+  test('uses Hono cached bodies when upstream middleware already read JSON', async () => {
+    const graph = topo('surface-api', { echoBodyTrail });
+    const app = createApp(graph);
+    app.use('/echo/body', async (c, next) => {
+      expect(await c.req.json()).toEqual({ message: 'cached body' });
+      await next();
+    });
+
+    const response = await app.request('/echo/body', {
+      body: JSON.stringify({ message: 'cached body' }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: { length: 'cached body'.length },
+    });
+  });
+
+  test('applies the JSON body cap to cached request text', async () => {
+    const graph = topo('surface-api', { echoBodyTrail });
+    const app = createApp(graph, { maxJsonBodyBytes: 20 });
+    const body = JSON.stringify({ message: 'cached body' });
+
+    app.use('/echo/body', async (c, next) => {
+      expect(await c.req.text()).toBe(body);
+      await next();
+    });
+
+    const response = await app.request('/echo/body', {
+      body,
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({
+      error: {
+        category: 'validation',
+        code: 'ValidationError',
+        message: 'JSON request body exceeds 20 bytes',
+      },
+    });
+  });
+
+  test('generic non-TrailsError results redact public 500 responses and keep diagnostics', async () => {
+    const originalError = console.error;
+    const logged: unknown[][] = [];
+    console.error = mock((...args: unknown[]) => {
+      logged.push(args);
+    });
+
+    try {
+      const graph = topo('surface-api', { genericErrorTrail });
+      const app = createApp(graph);
+
+      const response = await app.request('/generic/error', {
+        headers: { 'X-Request-ID': 'req-123' },
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(500);
+      expect(await response.json()).toEqual({
+        error: {
+          category: 'internal',
+          code: 'InternalError',
+          message: 'Internal server error',
+        },
+      });
+      expect(logged).toHaveLength(1);
+      expect(logged[0]?.[0]).toBe('[ontrails:hono] Internal error (req-123)');
+      const loggedError = logged[0]?.[1];
+      expect(loggedError).toBeInstanceOf(Error);
+      expect((loggedError as Error).message).toBe('database password=secret');
+    } finally {
+      console.error = originalError;
+    }
+  });
+
+  test('sanitizes request ids before logging diagnostics', async () => {
+    const originalError = console.error;
+    const logged: unknown[][] = [];
+    console.error = mock((...args: unknown[]) => {
+      logged.push(args);
+    });
+
+    try {
+      const graph = topo('surface-api', { genericErrorTrail });
+      const app = createApp(graph);
+
+      const response = await app.request('/generic/error', {
+        headers: { 'X-Request-ID': 'req-123 forged/line' },
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(500);
+      expect(logged).toHaveLength(1);
+      const label = logged[0]?.[0];
+      expect(label).toBe(
+        '[ontrails:hono] Internal error (req-123_forged_line)'
+      );
+      expect(String(label)).not.toContain('req-123 forged');
+      expect(String(label)).not.toContain('forged/line');
+    } finally {
+      console.error = originalError;
+    }
+  });
+
+  test('caps request ids before logging diagnostics', async () => {
+    const originalError = console.error;
+    const logged: unknown[][] = [];
+    console.error = mock((...args: unknown[]) => {
+      logged.push(args);
+    });
+
+    try {
+      const graph = topo('surface-api', { genericErrorTrail });
+      const app = createApp(graph);
+      const requestId = 'x'.repeat(160);
+
+      const response = await app.request('/generic/error', {
+        headers: { 'X-Request-ID': requestId },
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(500);
+      expect(logged).toHaveLength(1);
+      expect(logged[0]?.[0]).toBe(
+        `[ontrails:hono] Internal error (${'x'.repeat(128)})`
+      );
+    } finally {
+      console.error = originalError;
+    }
+  });
+
+  test('global Hono errors use the same redacted 500 response', async () => {
+    const originalError = console.error;
+    const logged: unknown[][] = [];
+    console.error = mock((...args: unknown[]) => {
+      logged.push(args);
+    });
+
+    try {
+      const graph = topo('surface-api', { echoTrail });
+      const app = createApp(graph);
+      app.get('/boom', () => {
+        throw new Error('token=secret');
+      });
+
+      const response = await app.request('/boom', {
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(500);
+      expect(await response.json()).toEqual({
+        error: {
+          category: 'internal',
+          code: 'InternalError',
+          message: 'Internal server error',
+        },
+      });
+      expect(logged).toHaveLength(1);
+      expect(logged[0]?.[0]).toBe('[ontrails:hono] Internal error');
+      const loggedError = logged[0]?.[1];
+      expect(loggedError).toBeInstanceOf(Error);
+      expect((loggedError as Error).message).toBe('token=secret');
+    } finally {
+      console.error = originalError;
+    }
   });
 });
