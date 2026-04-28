@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, renameSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 import {
@@ -105,6 +105,58 @@ export const writeProjectFile = async (
       new InternalError(`Failed to write project file "${relativePath}"`, {
         cause: asError(error),
         context: { projectDir, relativePath },
+      })
+    );
+  }
+};
+
+export const writeProjectPath = async (
+  projectDir: string,
+  filePath: string,
+  content: string | Uint8Array
+): Promise<TrailsResult<string, Error>> => {
+  const target = resolveProjectPath(projectDir, filePath);
+  if (target.isErr()) {
+    return target;
+  }
+
+  try {
+    mkdirSync(dirname(target.value), { recursive: true });
+    await Bun.write(target.value, content);
+    return Result.ok(target.value);
+  } catch (error) {
+    return Result.err(
+      new InternalError(`Failed to write project path "${filePath}"`, {
+        cause: asError(error),
+        context: { filePath, projectDir },
+      })
+    );
+  }
+};
+
+export const renameProjectPath = (
+  projectDir: string,
+  fromPath: string,
+  toPath: string
+): TrailsResult<void, Error> => {
+  const from = resolveProjectPath(projectDir, fromPath);
+  if (from.isErr()) {
+    return Result.err(from.error);
+  }
+
+  const to = resolveProjectPath(projectDir, toPath);
+  if (to.isErr()) {
+    return Result.err(to.error);
+  }
+
+  try {
+    renameSync(from.value, to.value);
+    return Result.ok();
+  } catch (error) {
+    return Result.err(
+      new InternalError(`Failed to rename project path "${fromPath}"`, {
+        cause: asError(error),
+        context: { fromPath, projectDir, toPath },
       })
     );
   }

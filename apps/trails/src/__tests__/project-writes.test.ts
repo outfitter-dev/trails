@@ -6,10 +6,12 @@ import { dirname, join } from 'node:path';
 import { PermissionError, ValidationError } from '@ontrails/core';
 
 import {
+  renameProjectPath,
   resolveProjectDir,
   validateProjectName,
   validateTrailId,
   writeProjectFile,
+  writeProjectPath,
 } from '../project-writes.js';
 
 const tempRoot = (): string =>
@@ -72,6 +74,64 @@ describe('project write helpers', () => {
       expect(existsSync(join(dirname(projectDir.value), 'escape.ts'))).toBe(
         false
       );
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('contains absolute project writes and renames under their root', async () => {
+    const root = tempRoot();
+
+    try {
+      const projectDir = resolveProjectDir(root, 'safe-project');
+      expect(projectDir.isOk()).toBe(true);
+
+      if (projectDir.isErr()) {
+        throw projectDir.error;
+      }
+
+      const sourcePath = join(projectDir.value, 'src', 'before.ts');
+      const targetPath = join(projectDir.value, 'src', 'after.ts');
+      const outsidePath = join(root, 'outside.ts');
+
+      const written = await writeProjectPath(
+        projectDir.value,
+        sourcePath,
+        'export const before = true;\n'
+      );
+      expect(written.isOk()).toBe(true);
+
+      const escapedWrite = await writeProjectPath(
+        projectDir.value,
+        outsidePath,
+        'export const outside = true;\n'
+      );
+      expect(escapedWrite.isErr()).toBe(true);
+      if (escapedWrite.isErr()) {
+        expect(escapedWrite.error).toBeInstanceOf(PermissionError);
+      }
+
+      const escapedRename = renameProjectPath(
+        projectDir.value,
+        sourcePath,
+        outsidePath
+      );
+      expect(escapedRename.isErr()).toBe(true);
+      if (escapedRename.isErr()) {
+        expect(escapedRename.error).toBeInstanceOf(PermissionError);
+      }
+
+      const renamed = renameProjectPath(
+        projectDir.value,
+        sourcePath,
+        targetPath
+      );
+      expect(renamed.isOk()).toBe(true);
+      expect(existsSync(sourcePath)).toBe(false);
+      expect(readFileSync(targetPath, 'utf8')).toBe(
+        'export const before = true;\n'
+      );
+      expect(existsSync(outsidePath)).toBe(false);
     } finally {
       rmSync(root, { force: true, recursive: true });
     }

@@ -6,7 +6,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 
 import type { Result } from '@ontrails/core';
 import { ValidationError } from '@ontrails/core';
@@ -122,6 +122,69 @@ describe('draft.promote', () => {
       expectDraftPromoteResults(dir);
     } finally {
       rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('promotes from a relative root without duplicating path containment', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeDraftPromoteFixture(dir);
+
+      const result = expectOk(
+        await draftPromoteTrail.blaze(
+          {
+            fromId: '_draft.entity.prepare',
+            renameFiles: true,
+            rootDir: relative(process.cwd(), dir),
+            toId: 'entity.prepare',
+          },
+          { cwd: process.cwd() } as never
+        )
+      );
+
+      expect(result.promotedEstablished).toBe(true);
+      expect(result.renamedFiles).toEqual([
+        {
+          from: 'src/_draft.prepare.ts',
+          to: 'src/prepare.ts',
+        },
+      ]);
+      expectDraftPromoteResults(dir);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('promotes a relative root from the context cwd', async () => {
+    const workspaceDir = repoTempDir();
+    const dir = join(workspaceDir, 'nested-project');
+
+    try {
+      writeDraftPromoteFixture(dir);
+
+      const result = expectOk(
+        await draftPromoteTrail.blaze(
+          {
+            fromId: '_draft.entity.prepare',
+            renameFiles: true,
+            rootDir: 'nested-project',
+            toId: 'entity.prepare',
+          },
+          { cwd: workspaceDir } as never
+        )
+      );
+
+      expect(result.promotedEstablished).toBe(true);
+      expect(result.renamedFiles).toEqual([
+        {
+          from: 'src/_draft.prepare.ts',
+          to: 'src/prepare.ts',
+        },
+      ]);
+      expectDraftPromoteResults(dir);
+    } finally {
+      rmSync(workspaceDir, { force: true, recursive: true });
     }
   });
 

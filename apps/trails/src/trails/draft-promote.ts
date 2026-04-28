@@ -1,5 +1,5 @@
-import { existsSync, renameSync, statSync } from 'node:fs';
-import { basename, dirname, join, relative } from 'node:path';
+import { existsSync, statSync } from 'node:fs';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 
 import {
   Result,
@@ -18,6 +18,7 @@ import {
 } from '@ontrails/warden';
 import { z } from 'zod';
 
+import { renameProjectPath, writeProjectPath } from '../project-writes.js';
 import { loadFreshAppLease } from './load-app.js';
 import { findTopoPath } from './project.js';
 
@@ -240,7 +241,9 @@ const resolveValidatedPromotionRoot = (
     return validation;
   }
 
-  const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
+  const cwd = resolve(ctx.cwd ?? process.cwd());
+  const rootDir =
+    input.rootDir === undefined ? cwd : resolve(cwd, input.rootDir);
   const rootValidation = validatePromotionRoot(rootDir);
   if (rootValidation.isErr()) {
     return rootValidation;
@@ -250,11 +253,12 @@ const resolveValidatedPromotionRoot = (
 };
 
 const rewritePromotedSourceFiles = async (
+  rootDir: string,
   filePaths: readonly string[],
   fromId: string,
   toId: string,
   updatedSourceFiles: Set<string>
-): Promise<void> => {
+): Promise<Result<void, Error>> => {
   for (const filePath of filePaths) {
     const sourceCode = await Bun.file(filePath).text();
     const replaced = replaceIdLiterals(sourceCode, filePath, fromId, toId);
@@ -262,9 +266,18 @@ const rewritePromotedSourceFiles = async (
       continue;
     }
 
-    await Bun.write(filePath, replaced.nextSource);
+    const written = await writeProjectPath(
+      rootDir,
+      filePath,
+      replaced.nextSource
+    );
+    if (written.isErr()) {
+      return Result.err(written.error);
+    }
     updatedSourceFiles.add(filePath);
   }
+
+  return Result.ok();
 };
 
 const hasDraftIdsInFile = async (filePath: string): Promise<boolean> => {
@@ -354,6 +367,7 @@ const collectFileRenames = async (
 };
 
 const collectAndApplyFileRenames = async (
+  rootDir: string,
   filePaths: readonly string[]
 ): Promise<Result<FileRename[], Error>> => {
   const collected = await collectFileRenames(filePaths);
@@ -368,7 +382,10 @@ const collectAndApplyFileRenames = async (
   }
 
   for (const r of renames) {
-    renameSync(r.from, r.to);
+    const renamed = renameProjectPath(rootDir, r.from, r.to);
+    if (renamed.isErr()) {
+      return Result.err(renamed.error);
+    }
   }
   return Result.ok(renames);
 };
@@ -430,33 +447,49 @@ const rewriteRelativeImportsForFile = (
 };
 
 const updateRelativeImportsForFile = async (
+  rootDir: string,
   filePath: string,
   renames: readonly FileRename[]
-): Promise<boolean> => {
+): Promise<Result<boolean, Error>> => {
   const sourceCode = await Bun.file(filePath).text();
   const updated = rewriteRelativeImportsForFile(filePath, renames, sourceCode);
   if (updated.changed) {
-    await Bun.write(filePath, updated.sourceCode);
-    return true;
+    const written = await writeProjectPath(
+      rootDir,
+      filePath,
+      updated.sourceCode
+    );
+    if (written.isErr()) {
+      return Result.err(written.error);
+    }
+    return Result.ok(true);
   }
 
-  return false;
+  return Result.ok(false);
 };
 
 const updateRelativeImports = async (
+  rootDir: string,
   filePaths: readonly string[],
   renames: readonly FileRename[]
-): Promise<string[]> => {
+): Promise<Result<string[], Error>> => {
   const updatedFiles = new Set<string>();
 
   for (const filePath of filePaths) {
-    const changed = await updateRelativeImportsForFile(filePath, renames);
-    if (changed) {
+    const changed = await updateRelativeImportsForFile(
+      rootDir,
+      filePath,
+      renames
+    );
+    if (changed.isErr()) {
+      return Result.err(changed.error);
+    }
+    if (changed.value) {
       updatedFiles.add(filePath);
     }
   }
 
-  return [...updatedFiles].toSorted();
+  return Result.ok([...updatedFiles].toSorted());
 };
 
 const rewritePromotionState = async (
@@ -470,25 +503,35 @@ const rewritePromotionState = async (
   const initialFiles = collectTsFiles(rootDir);
   const updatedSourceFiles = new Set<string>();
 
-  await rewritePromotedSourceFiles(
+  const rewritten = await rewritePromotedSourceFiles(
+    rootDir,
     initialFiles,
     input.fromId,
     input.toId,
     updatedSourceFiles
   );
+  if (rewritten.isErr()) {
+    return Result.err(rewritten.error);
+  }
 
   const renamesResult = input.renameFiles
-    ? await collectAndApplyFileRenames(initialFiles)
+    ? await collectAndApplyFileRenames(rootDir, initialFiles)
     : Result.ok([] as FileRename[]);
   if (renamesResult.isErr()) {
     return Result.err(renamesResult.error);
   }
 
   applyRenameEffects(updatedSourceFiles, renamesResult.value);
-  for (const f of await updateRelativeImports(
+  const importUpdates = await updateRelativeImports(
+    rootDir,
     collectTsFiles(rootDir),
     renamesResult.value
-  )) {
+  );
+  if (importUpdates.isErr()) {
+    return Result.err(importUpdates.error);
+  }
+
+  for (const f of importUpdates.value) {
     updatedSourceFiles.add(f);
   }
   return Result.ok({ renames: renamesResult.value, updatedSourceFiles });
