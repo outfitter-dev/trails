@@ -6,6 +6,7 @@ import type { AuthConnector, AuthError } from '../connectors/connector.js';
 import type { PermitExtractionInput } from '../extraction.js';
 import type { Permit } from '../permit.js';
 import { createJwtConnector } from '../connectors/jwt.js';
+import type { JwtAlgorithm } from '../connectors/jwt.js';
 
 // ---------------------------------------------------------------------------
 // Test helper: sign a JWT with HMAC-SHA256 using crypto.subtle
@@ -28,12 +29,15 @@ const base64urlEncode = (str: string): string => {
   return base64url(encoder.encode(str).buffer as ArrayBuffer);
 };
 
-const signJwt = async (
-  payload: Record<string, unknown>,
-  secret: string
+const signJwtPayload = async (
+  payloadJson: string,
+  secret: string,
+  headerOverrides?: Record<string, unknown>
 ): Promise<string> => {
-  const header = base64urlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const body = base64urlEncode(JSON.stringify(payload));
+  const header = base64urlEncode(
+    JSON.stringify({ alg: 'HS256', typ: 'JWT', ...headerOverrides })
+  );
+  const body = base64urlEncode(payloadJson);
   const data = `${header}.${body}`;
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -46,6 +50,13 @@ const signJwt = async (
   const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
   return `${data}.${base64url(sig)}`;
 };
+
+const signJwt = (
+  payload: Record<string, unknown>,
+  secret: string,
+  headerOverrides?: Record<string, unknown>
+): Promise<string> =>
+  signJwtPayload(JSON.stringify(payload), secret, headerOverrides);
 
 const TEST_SECRET = 'test-secret-for-hmac-256';
 
@@ -113,6 +124,176 @@ describe('createJwtConnector', () => {
     expect(err.code).toBe('expired_token');
   });
 
+  test('accepts an exp just inside the default clock skew', async () => {
+    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signJwt(
+      { exp: now - 30, sub: 'user-skew-exp' },
+      TEST_SECRET
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isOk()).toBe(true);
+  });
+
+  test('rejects expired tokens when clock skew is non-finite', async () => {
+    const connector = createJwtConnector({
+      clockSkewSeconds: Number.NaN,
+      secret: TEST_SECRET,
+    });
+    const past = Math.floor(Date.now() / 1000) - 3600;
+    const token = await signJwt(
+      { exp: past, sub: 'user-nan-skew-exp' },
+      TEST_SECRET
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isErr()).toBe(true);
+    const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
+    expect(err.code).toBe('expired_token');
+  });
+
+  test('uses the default clock skew when configured skew is non-finite', async () => {
+    const connector = createJwtConnector({
+      clockSkewSeconds: Number.NaN,
+      secret: TEST_SECRET,
+    });
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signJwt(
+      { exp: now - 30, nbf: now + 30, sub: 'user-nan-skew-default' },
+      TEST_SECRET
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isOk()).toBe(true);
+  });
+
+  test('rejects tokens missing an expiration claim by default', async () => {
+    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const token = await signJwt({ sub: 'user-no-exp' }, TEST_SECRET);
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isErr()).toBe(true);
+    const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
+    expect(err.code).toBe('invalid_token');
+    expect(err.message).toContain('Missing expiration claim');
+  });
+
+  test('allows missing expiration only when explicitly configured', async () => {
+    const connector = createJwtConnector({
+      requireExpiration: false,
+      secret: TEST_SECRET,
+    });
+    const token = await signJwt({ sub: 'user-no-exp-allowed' }, TEST_SECRET);
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isOk()).toBe(true);
+    const permit = result.unwrap() as Permit;
+    expect(permit.id).toBe('user-no-exp-allowed');
+  });
+
+  test('rejects expired tokens even when expiration is optional', async () => {
+    const connector = createJwtConnector({
+      requireExpiration: false,
+      secret: TEST_SECRET,
+    });
+    const past = Math.floor(Date.now() / 1000) - 3600;
+    const token = await signJwt(
+      { exp: past, sub: 'user-expired-optional' },
+      TEST_SECRET
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isErr()).toBe(true);
+    const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
+    expect(err.code).toBe('expired_token');
+  });
+
+  test('rejects non-finite expiration claims', async () => {
+    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const token = await signJwtPayload(
+      '{"exp":1e9999,"sub":"user-infinite-exp"}',
+      TEST_SECRET
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isErr()).toBe(true);
+    const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
+    expect(err.code).toBe('invalid_token');
+    expect(err.message).toContain('Invalid expiration claim');
+  });
+
+  test('rejects tokens before nbf outside clock skew', async () => {
+    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signJwt(
+      { exp: now + 3600, nbf: now + 120, sub: 'user-future' },
+      TEST_SECRET
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isErr()).toBe(true);
+    const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
+    expect(err.code).toBe('invalid_token');
+    expect(err.message).toContain('not valid yet');
+  });
+
+  test('rejects non-finite not-before claims', async () => {
+    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signJwtPayload(
+      `{"exp":${now + 3600},"nbf":1e9999,"sub":"user-infinite-nbf"}`,
+      TEST_SECRET
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isErr()).toBe(true);
+    const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
+    expect(err.code).toBe('invalid_token');
+    expect(err.message).toContain('Invalid not-before claim');
+  });
+
+  test('accepts nbf inside the default clock skew', async () => {
+    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signJwt(
+      { exp: now + 3600, nbf: now + 30, sub: 'user-future-skew' },
+      TEST_SECRET
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isOk()).toBe(true);
+  });
+
+  test('rejects future nbf claims when clock skew is non-finite', async () => {
+    const connector = createJwtConnector({
+      clockSkewSeconds: Number.NaN,
+      secret: TEST_SECRET,
+    });
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signJwt(
+      { exp: now + 3600, nbf: now + 120, sub: 'user-nan-skew-nbf' },
+      TEST_SECRET
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isErr()).toBe(true);
+    const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
+    expect(err.code).toBe('invalid_token');
+    expect(err.message).toContain('not valid yet');
+  });
+
   test('rejects an invalid signature', async () => {
     const connector = createJwtConnector({ secret: TEST_SECRET });
     const now = Math.floor(Date.now() / 1000);
@@ -126,6 +307,96 @@ describe('createJwtConnector', () => {
     expect(result.isErr()).toBe(true);
     const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
     expect(err.code).toBe('invalid_token');
+  });
+
+  test('rejects tokens with missing alg headers', async () => {
+    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signJwt(
+      { exp: now + 3600, sub: 'user-no-alg' },
+      TEST_SECRET,
+      { alg: undefined }
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isErr()).toBe(true);
+    const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
+    expect(err.code).toBe('invalid_token');
+    expect(err.message).toContain('Missing JWT alg');
+  });
+
+  test('rejects tokens with unexpected alg headers', async () => {
+    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signJwt(
+      { exp: now + 3600, sub: 'user-wrong-alg' },
+      TEST_SECRET,
+      { alg: 'HS512' }
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isErr()).toBe(true);
+    const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
+    expect(err.code).toBe('invalid_token');
+    expect(err.message).toContain('Unsupported JWT alg');
+  });
+
+  test('reports an empty algorithm allowlist as connector misconfiguration', async () => {
+    const connector = createJwtConnector({
+      allowedAlgorithms: [],
+      secret: TEST_SECRET,
+    });
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signJwt(
+      { exp: now + 3600, sub: 'user-empty-alg-list' },
+      TEST_SECRET
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isErr()).toBe(true);
+    const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
+    expect(err.code).toBe('invalid_token');
+    expect(err.message).toContain('allowedAlgorithms');
+  });
+
+  test('rejects unsupported runtime algorithms even when config is malformed', async () => {
+    const connector = createJwtConnector({
+      allowedAlgorithms: ['HS512' as JwtAlgorithm],
+      secret: TEST_SECRET,
+    });
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signJwt(
+      { exp: now + 3600, sub: 'user-configured-unsupported-alg' },
+      TEST_SECRET,
+      { alg: 'HS512' }
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isErr()).toBe(true);
+    const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
+    expect(err.code).toBe('invalid_token');
+    expect(err.message).toContain('Unsupported JWT alg');
+  });
+
+  test('rejects tokens with alg none headers', async () => {
+    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signJwt(
+      { exp: now + 3600, sub: 'user-none-alg' },
+      TEST_SECRET,
+      { alg: 'none' }
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isErr()).toBe(true);
+    const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
+    expect(err.code).toBe('invalid_token');
+    expect(err.message).toContain('Unsupported JWT alg');
   });
 
   test('rejects tokens with a missing subject claim', async () => {

@@ -6,8 +6,14 @@ import type { Permit } from '../permit.js';
 
 /** Configuration for the JWT auth connector. */
 export interface JwtConnectorOptions {
+  /** Accepted JWT header algorithms (default: ['HS256']). */
+  readonly allowedAlgorithms?: readonly JwtAlgorithm[];
+  /** Clock skew tolerated for exp/nbf checks, in seconds (default: 60). */
+  readonly clockSkewSeconds?: number;
   /** HMAC secret for HS256 verification. */
   readonly secret?: string;
+  /** Whether accepted tokens must include exp (default: true). */
+  readonly requireExpiration?: boolean;
   /** JWKS endpoint for RS256/ES256 (not yet implemented). */
   readonly jwksUrl?: string;
   /** Expected issuer claim. */
@@ -20,18 +26,36 @@ export interface JwtConnectorOptions {
   readonly rolesClaim?: string;
 }
 
+/** JWT algorithms this connector can verify today. */
+export type JwtAlgorithm = 'HS256';
+
+interface JwtHeader {
+  readonly alg?: unknown;
+  readonly typ?: unknown;
+  readonly [key: string]: unknown;
+}
+
 /** JWT payload with standard claims. */
 interface JwtPayload {
   readonly sub?: string;
   readonly iss?: string;
   readonly aud?: string | readonly string[];
   readonly exp?: number;
+  readonly nbf?: number;
   readonly [key: string]: unknown;
 }
 
 // ---------------------------------------------------------------------------
 // Helpers (defined before callers)
 // ---------------------------------------------------------------------------
+
+const DEFAULT_ALLOWED_ALGORITHMS = [
+  'HS256',
+] as const satisfies readonly JwtAlgorithm[];
+const SUPPORTED_JWT_ALGORITHMS = [
+  'HS256',
+] as const satisfies readonly JwtAlgorithm[];
+const DEFAULT_CLOCK_SKEW_SECONDS = 60;
 
 const authErr = (
   code: AuthError['code'],
@@ -52,18 +76,64 @@ const base64urlDecode = (input: string): Uint8Array => {
   return bytes;
 };
 
-/** Decode a JWT payload without verifying the signature. */
-const decodePayload = (token: string): JwtPayload | undefined => {
+const splitToken = (
+  token: string
+): readonly [string, string, string] | undefined => {
   const parts = token.split('.');
   if (parts.length !== 3) {
     return undefined;
   }
+  return [parts[0] ?? '', parts[1] ?? '', parts[2] ?? ''];
+};
+
+const decodeJsonPart = <T>(part: string): T | undefined => {
   try {
-    const json = new TextDecoder().decode(base64urlDecode(parts[1] ?? ''));
-    return JSON.parse(json) as JwtPayload;
+    const json = new TextDecoder().decode(base64urlDecode(part));
+    return JSON.parse(json) as T;
   } catch {
     return undefined;
   }
+};
+
+const normalizeClockSkewSeconds = (options: JwtConnectorOptions): number => {
+  const raw = options.clockSkewSeconds ?? DEFAULT_CLOCK_SKEW_SECONDS;
+  const value = Math.floor(raw);
+  return Number.isFinite(value)
+    ? Math.max(0, value)
+    : DEFAULT_CLOCK_SKEW_SECONDS;
+};
+
+const allowedAlgorithms = (
+  options: JwtConnectorOptions
+): readonly JwtAlgorithm[] =>
+  options.allowedAlgorithms ?? DEFAULT_ALLOWED_ALGORITHMS;
+
+const isSupportedJwtAlgorithm = (
+  algorithm: string
+): algorithm is JwtAlgorithm =>
+  (SUPPORTED_JWT_ALGORITHMS as readonly string[]).includes(algorithm);
+
+const validateHeader = (
+  header: JwtHeader,
+  options: JwtConnectorOptions
+): Result<JwtAlgorithm, AuthError> => {
+  if (typeof header.alg !== 'string') {
+    return authErr('invalid_token', 'Missing JWT alg header');
+  }
+  if (!isSupportedJwtAlgorithm(header.alg)) {
+    return authErr('invalid_token', 'Unsupported JWT alg header');
+  }
+  const configuredAlgorithms = allowedAlgorithms(options);
+  if (configuredAlgorithms.length === 0) {
+    return authErr(
+      'invalid_token',
+      'JWT allowedAlgorithms must include at least one algorithm'
+    );
+  }
+  if (!configuredAlgorithms.includes(header.alg)) {
+    return authErr('invalid_token', 'Unsupported JWT alg header');
+  }
+  return Result.ok(header.alg);
 };
 
 /** Import a secret as an HMAC CryptoKey. */
@@ -98,16 +168,53 @@ const verifyHmacSignature = (
   );
 };
 
+const verifyJwtSignature = async (
+  token: string,
+  secret: string,
+  algorithm: JwtAlgorithm
+): Promise<boolean> => {
+  switch (algorithm) {
+    case 'HS256': {
+      const key = await importHmacKey(secret);
+      return await verifyHmacSignature(token, key);
+    }
+    default: {
+      const exhaustive: never = algorithm;
+      void exhaustive;
+      return false;
+    }
+  }
+};
+
 /** Validate standard claims (exp, iss, aud). */
 const validateClaims = (
   payload: JwtPayload,
   options: JwtConnectorOptions
 ): AuthError | undefined => {
+  const now = Math.floor(Date.now() / 1000);
+  const skew = normalizeClockSkewSeconds(options);
+  if (payload.exp === undefined && options.requireExpiration !== false) {
+    return { code: 'invalid_token', message: 'Missing expiration claim (exp)' };
+  }
   if (
     payload.exp !== undefined &&
-    payload.exp < Math.floor(Date.now() / 1000)
+    (typeof payload.exp !== 'number' || !Number.isFinite(payload.exp))
   ) {
+    return { code: 'invalid_token', message: 'Invalid expiration claim (exp)' };
+  }
+  if (payload.exp !== undefined && payload.exp < now - skew) {
     return { code: 'expired_token', message: 'Token has expired' };
+  }
+  if (payload.nbf !== undefined) {
+    if (typeof payload.nbf !== 'number' || !Number.isFinite(payload.nbf)) {
+      return {
+        code: 'invalid_token',
+        message: 'Invalid not-before claim (nbf)',
+      };
+    }
+    if (payload.nbf > now + skew) {
+      return { code: 'invalid_token', message: 'Token is not valid yet' };
+    }
   }
   if (options.issuer && payload.iss !== options.issuer) {
     return { code: 'invalid_token', message: 'Issuer mismatch' };
@@ -172,15 +279,28 @@ const buildPermit = (
 /** Verify the signature and return the decoded payload, or an error. */
 const decodeAndVerify = async (
   token: string,
-  secret: string
+  secret: string,
+  options: JwtConnectorOptions
 ): Promise<Result<JwtPayload, AuthError>> => {
-  const payload = decodePayload(token);
+  const parts = splitToken(token);
+  if (!parts) {
+    return authErr('invalid_token', 'Malformed JWT');
+  }
+  const [rawHeader, rawPayload] = parts;
+  const header = decodeJsonPart<JwtHeader>(rawHeader);
+  if (!header) {
+    return authErr('invalid_token', 'Malformed JWT header');
+  }
+  const headerResult = validateHeader(header, options);
+  if (headerResult.isErr()) {
+    return headerResult;
+  }
+  const payload = decodeJsonPart<JwtPayload>(rawPayload);
   if (!payload) {
     return authErr('invalid_token', 'Malformed JWT');
   }
   try {
-    const key = await importHmacKey(secret);
-    const valid = await verifyHmacSignature(token, key);
+    const valid = await verifyJwtSignature(token, secret, headerResult.value);
     return valid
       ? Result.ok(payload)
       : authErr('invalid_token', 'Invalid signature');
@@ -224,7 +344,11 @@ export const createJwtConnector = (
     if (!options.secret) {
       return authErr('invalid_token', 'No secret configured');
     }
-    const decoded = await decodeAndVerify(input.bearerToken, options.secret);
+    const decoded = await decodeAndVerify(
+      input.bearerToken,
+      options.secret,
+      options
+    );
     return decoded.isErr() ? decoded : payloadToPermit(decoded.value, options);
   };
 

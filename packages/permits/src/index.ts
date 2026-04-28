@@ -5,6 +5,7 @@ export {
 } from './connectors/connector.js';
 export {
   createJwtConnector,
+  type JwtAlgorithm,
   type JwtConnectorOptions,
 } from './connectors/jwt.js';
 export { authLayer } from './auth-layer.js';
