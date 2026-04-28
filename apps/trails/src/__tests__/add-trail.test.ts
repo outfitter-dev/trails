@@ -94,4 +94,63 @@ describe('add.trail', () => {
       rmSync(dir, { force: true, recursive: true });
     }
   });
+
+  test('writes draft trail ids with draft-marked filenames', async () => {
+    const dir = repoTempDir();
+
+    try {
+      mkdirSync(dir, { recursive: true });
+
+      const result = expectOk(
+        await addTrail.blaze(
+          {
+            description: 'Prepare a draft entity',
+            exampleName: 'Prepare draft',
+            id: '_draft.entity.prepare',
+            intent: 'read',
+          },
+          { cwd: dir } as never
+        )
+      );
+
+      expect(result.created).toEqual([
+        'src/trails/_draft.entity-prepare.ts',
+        '__tests__/_draft.entity-prepare.test.ts',
+      ]);
+
+      const trailSource = readGeneratedFile(
+        dir,
+        'src/trails/_draft.entity-prepare.ts'
+      );
+      expect(trailSource).toContain('trail("_draft.entity.prepare"');
+      expect(trailSource).toContain('intent: "read"');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects path-shaped trail ids before writing files', async () => {
+    const dir = repoTempDir();
+
+    try {
+      mkdirSync(dir, { recursive: true });
+
+      const error = expectValidationError(
+        await addTrail.blaze(
+          {
+            description: 'Escape the project',
+            exampleName: 'Escape',
+            id: '../escape',
+            intent: 'write',
+          },
+          { cwd: dir } as never
+        )
+      );
+
+      expect(error.message).toContain('Trail ID');
+      expect(existsSync(join(dir, 'escape.ts'))).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
 });

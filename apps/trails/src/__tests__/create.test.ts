@@ -9,7 +9,7 @@ import {
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 
-import { Result } from '@ontrails/core';
+import { Result, ValidationError } from '@ontrails/core';
 
 import { addSurface } from '../trails/add-surface.js';
 import { addVerify } from '../trails/add-verify.js';
@@ -184,7 +184,7 @@ const assertGeneratedToolingDeps = (dir: string): void => {
 const assertHelloApp = (dir: string): void => {
   expectContainsAll(readText(dir, 'src/app.ts'), [
     'topo',
-    `'${basename(dir)}'`,
+    JSON.stringify(basename(dir)),
     'hello',
   ]);
   expectContainsAll(readText(dir, 'src/trails/hello.ts'), [
@@ -272,7 +272,7 @@ const assertEmptyStarter = (dir: string): void => {
   expectPaths(dir, ['src/trails/.gitkeep'], true);
   expectPaths(dir, ['src/trails/hello.ts'], false);
   const appContent = readText(dir, 'src/app.ts');
-  expect(appContent).toContain(`topo('${basename(dir)}')`);
+  expect(appContent).toContain(`topo(${JSON.stringify(basename(dir))})`);
   expect(appContent).not.toContain('import * as');
 };
 
@@ -332,6 +332,20 @@ describe('trails create', () => {
       await withTempProject(async (dir) => {
         expectOk(await runCreate(dir, { starter: 'empty' }));
         assertEmptyStarter(dir);
+      });
+    });
+
+    test('rejects path-shaped project names before writing', async () => {
+      await withTempProject(async (dir) => {
+        const error = expectErr(
+          await createScaffold.blaze(
+            { dir: dirname(dir), name: '../escape', starter: 'hello' },
+            {} as never
+          )
+        );
+
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(existsSync(join(dirname(dir), 'escape'))).toBe(false);
       });
     });
   });

@@ -4,12 +4,13 @@
  * Generates surface entry points and updates package.json dependencies.
  */
 
-import { existsSync, mkdirSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
 
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
+import { resolveProjectPath, writeProjectFile } from '../project-writes.js';
 import {
   ontrailsPackageRange,
   scaffoldDependencyVersions,
@@ -88,24 +89,32 @@ const patchPkgDeps = (
 const updatePkgJsonForSurface = async (
   cwd: string,
   surface: Surface
-): Promise<string> => {
-  const pkgPath = join(cwd, 'package.json');
+): Promise<Result<string, Error>> => {
+  const pkgPathResult = resolveProjectPath(cwd, 'package.json');
+  if (pkgPathResult.isErr()) {
+    return Result.err(pkgPathResult.error);
+  }
+
+  const pkgPath = pkgPathResult.value;
   if (!existsSync(pkgPath)) {
-    return surfaceDependencies[surface][0] ?? '';
+    return Result.ok(surfaceDependencies[surface][0] ?? '');
   }
   const pkg = (await Bun.file(pkgPath).json()) as Record<string, unknown>;
   const depName = patchPkgDeps(pkg, surface, cwd);
-  await Bun.write(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
-  return depName;
+  const written = await writeProjectFile(
+    cwd,
+    'package.json',
+    `${JSON.stringify(pkg, null, 2)}\n`
+  );
+  return written.isErr() ? Result.err(written.error) : Result.ok(depName);
 };
 
 /** Create the entry file for a surface and return the relative path. */
 const writeSurfaceEntry = async (
   cwd: string,
   surface: Surface
-): Promise<string> => {
+): Promise<Result<string, Error>> => {
   const entryFile = getEntryFile(surface);
-  const fullEntryPath = join(cwd, entryFile);
   const appImport = (await findTopoPath(cwd)) ?? './app.js';
   const generators = {
     cli: generateCliEntry,
@@ -114,9 +123,8 @@ const writeSurfaceEntry = async (
   } satisfies Record<Surface, (appImportPath: string) => string>;
   const content = generators[surface](appImport);
 
-  mkdirSync(dirname(fullEntryPath), { recursive: true });
-  await Bun.write(fullEntryPath, content);
-  return entryFile;
+  const written = await writeProjectFile(cwd, entryFile, content);
+  return written.isErr() ? Result.err(written.error) : Result.ok(entryFile);
 };
 
 export const addSurface = trail('add.surface', {
@@ -133,9 +141,19 @@ export const addSurface = trail('add.surface', {
       );
     }
 
+    const created = await writeSurfaceEntry(cwd, surface);
+    if (created.isErr()) {
+      return Result.err(created.error);
+    }
+
+    const dependency = await updatePkgJsonForSurface(cwd, surface);
+    if (dependency.isErr()) {
+      return Result.err(dependency.error);
+    }
+
     return Result.ok({
-      created: await writeSurfaceEntry(cwd, surface),
-      dependency: await updatePkgJsonForSurface(cwd, surface),
+      created: created.value,
+      dependency: dependency.value,
     });
   },
   description: 'Add a surface to an existing project',

@@ -2,12 +2,18 @@
  * `add.verify` trail -- Add testing + warden setup to a project.
  */
 
-import { existsSync, mkdirSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
 
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
+import {
+  PROJECT_NAME_MESSAGE,
+  PROJECT_NAME_PATTERN,
+  resolveProjectDir,
+  resolveProjectPath,
+  writeProjectFile,
+} from '../project-writes.js';
 import {
   ontrailsPackageRange,
   scaffoldDependencyVersions,
@@ -45,14 +51,24 @@ const patchVerifyDeps = (pkg: Record<string, unknown>): void => {
 /** Update package.json in the target project with verify dependencies. */
 const updatePackageJsonForVerify = async (
   projectDir: string
-): Promise<void> => {
-  const pkgPath = join(projectDir, 'package.json');
+): Promise<Result<void, Error>> => {
+  const pkgPathResult = resolveProjectPath(projectDir, 'package.json');
+  if (pkgPathResult.isErr()) {
+    return Result.err(pkgPathResult.error);
+  }
+
+  const pkgPath = pkgPathResult.value;
   if (!existsSync(pkgPath)) {
-    return;
+    return Result.ok();
   }
   const pkg = (await Bun.file(pkgPath).json()) as Record<string, unknown>;
   patchVerifyDeps(pkg);
-  await Bun.write(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+  const written = await writeProjectFile(
+    projectDir,
+    'package.json',
+    `${JSON.stringify(pkg, null, 2)}\n`
+  );
+  return written.isErr() ? Result.err(written.error) : Result.ok();
 };
 
 // ---------------------------------------------------------------------------
@@ -61,29 +77,53 @@ const updatePackageJsonForVerify = async (
 
 export const addVerify = trail('add.verify', {
   blaze: async (input) => {
-    const projectDir = resolve(input.dir ?? '.', input.name);
+    const projectDirResult = resolveProjectDir(input.dir ?? '.', input.name);
+    if (projectDirResult.isErr()) {
+      return Result.err(projectDirResult.error);
+    }
+
+    const projectDir = projectDirResult.value;
     const files: string[] = [];
 
     const writeFile = async (
       relativePath: string,
       content: string
-    ): Promise<void> => {
-      const fullPath = join(projectDir, relativePath);
-      mkdirSync(dirname(fullPath), { recursive: true });
-      await Bun.write(fullPath, content);
-      files.push(relativePath);
+    ): Promise<Result<void, Error>> => {
+      const written = await writeProjectFile(projectDir, relativePath, content);
+      if (written.isErr()) {
+        return Result.err(written.error);
+      }
+      files.push(written.value);
+      return Result.ok();
     };
 
-    await writeFile('__tests__/examples.test.ts', generateTestFile());
-    await writeFile('lefthook.yml', generateLefthookYml());
-    await updatePackageJsonForVerify(projectDir);
+    const testFile = await writeFile(
+      '__tests__/examples.test.ts',
+      generateTestFile()
+    );
+    if (testFile.isErr()) {
+      return Result.err(testFile.error);
+    }
+
+    const lefthookFile = await writeFile('lefthook.yml', generateLefthookYml());
+    if (lefthookFile.isErr()) {
+      return Result.err(lefthookFile.error);
+    }
+
+    const packageResult = await updatePackageJsonForVerify(projectDir);
+    if (packageResult.isErr()) {
+      return Result.err(packageResult.error);
+    }
 
     return Result.ok({ created: files });
   },
   description: 'Add testing and warden verification',
   input: z.object({
     dir: z.string().optional().describe('Parent directory'),
-    name: z.string().describe('Project name'),
+    name: z
+      .string()
+      .regex(PROJECT_NAME_PATTERN, PROJECT_NAME_MESSAGE)
+      .describe('Project name'),
   }),
   meta: { internal: true },
   output: z.object({

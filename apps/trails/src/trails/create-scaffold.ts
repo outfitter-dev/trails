@@ -4,12 +4,18 @@
  * Generates package.json, tsconfig, app.ts, starter trails, and .trails/ directory.
  */
 
-import { mkdirSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
+import {
+  ensureProjectDirectory,
+  PROJECT_NAME_MESSAGE,
+  PROJECT_NAME_PATTERN,
+  resolveProjectDir,
+  writeProjectFile,
+} from '../project-writes.js';
 import {
   ontrailsPackageRange,
   scaffoldDependencyVersions,
@@ -276,8 +282,11 @@ const starterImports: Record<
 
 const generateAppTs = (name: string, starter: Starter): string => {
   const { imports, modules } = starterImports[starter];
+  const appNameLiteral = JSON.stringify(name);
   const topoArgs =
-    modules.length > 0 ? `'${name}', ${modules.join(', ')}` : `'${name}'`;
+    modules.length > 0
+      ? `${appNameLiteral}, ${modules.join(', ')}`
+      : appNameLiteral;
 
   return [
     "import { topo } from '@ontrails/core';",
@@ -321,15 +330,16 @@ const collectScaffoldFiles = (
 const writeScaffoldFiles = async (
   projectDir: string,
   fileMap: Map<string, string>
-): Promise<string[]> => {
+): Promise<Result<string[], Error>> => {
   const files: string[] = [];
   for (const [relativePath, content] of fileMap) {
-    const fullPath = join(projectDir, relativePath);
-    mkdirSync(dirname(fullPath), { recursive: true });
-    await Bun.write(fullPath, content);
-    files.push(relativePath);
+    const written = await writeProjectFile(projectDir, relativePath, content);
+    if (written.isErr()) {
+      return written;
+    }
+    files.push(written.value);
   }
-  return files;
+  return Result.ok(files);
 };
 
 // ---------------------------------------------------------------------------
@@ -338,22 +348,37 @@ const writeScaffoldFiles = async (
 
 export const createScaffold = trail('create.scaffold', {
   blaze: async (input) => {
-    const projectDir = resolve(input.dir ?? '.', input.name);
+    const projectDirResult = resolveProjectDir(input.dir ?? '.', input.name);
+    if (projectDirResult.isErr()) {
+      return Result.err(projectDirResult.error);
+    }
+
+    const projectDir = projectDirResult.value;
     const starter = (input.starter ?? 'hello') as Starter;
     const fileMap = collectScaffoldFiles(input.name, starter);
     const files = await writeScaffoldFiles(projectDir, fileMap);
-    mkdirSync(join(projectDir, '.trails'), { recursive: true });
+    if (files.isErr()) {
+      return Result.err(files.error);
+    }
+
+    const trailsDir = ensureProjectDirectory(projectDir, '.trails');
+    if (trailsDir.isErr()) {
+      return Result.err(trailsDir.error);
+    }
 
     return Result.ok({
-      created: files,
-      dir: projectDir,
+      created: files.value,
+      dir: resolve(projectDir),
       name: input.name,
     } satisfies ScaffoldResult);
   },
   description: 'Scaffold a new Trails project',
   input: z.object({
     dir: z.string().optional().describe('Parent directory'),
-    name: z.string().describe('Project name'),
+    name: z
+      .string()
+      .regex(PROJECT_NAME_PATTERN, PROJECT_NAME_MESSAGE)
+      .describe('Project name'),
     starter: z
       .enum(['hello', 'entity', 'empty'])
       .default('hello')
