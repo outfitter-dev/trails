@@ -1,17 +1,18 @@
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
-import {
-  dirname,
-  extname,
-  isAbsolute,
-  join,
-  parse as parsePath,
-  relative,
-  resolve,
-} from 'node:path';
+import { existsSync, readdirSync, statSync } from 'node:fs';
+import { dirname, extname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import type { Topo } from '@ontrails/core';
 import { findAppModule } from '@ontrails/cli';
+
+import {
+  createLoadAppMirrorRootPath,
+  LOAD_APP_MIRROR_ENTRY_PREFIX,
+  LOAD_APP_MIRROR_PARENT_DIRNAME,
+  removeLoadAppMirrorRootQuietly,
+  resolveLoadAppMirrorFilePath,
+  writeLoadAppMirrorFile,
+} from '../load-app-mirror.js';
 
 const URL_SCHEME = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 
@@ -58,7 +59,7 @@ const RETAINED_MIRROR_ROOTS = new Set<string>();
 
 const cleanupAllMirrorRoots = (): void => {
   for (const root of [...ACTIVE_MIRROR_ROOTS, ...RETAINED_MIRROR_ROOTS]) {
-    rmSync(root, { force: true, recursive: true });
+    removeLoadAppMirrorRootQuietly(root);
   }
   ACTIVE_MIRROR_ROOTS.clear();
   RETAINED_MIRROR_ROOTS.clear();
@@ -110,7 +111,7 @@ const acquireMirrorLease = (mirrorRoot: string): (() => void) => {
 
     released = true;
     ACTIVE_MIRROR_ROOTS.delete(mirrorRoot);
-    rmSync(mirrorRoot, { force: true, recursive: true });
+    removeLoadAppMirrorRootQuietly(mirrorRoot);
   };
 };
 
@@ -139,19 +140,6 @@ const resolveAbsoluteModulePath = (modulePath: string, cwd: string): string =>
   URL_SCHEME.test(modulePath)
     ? resolveUrlModulePath(modulePath)
     : resolveFilesystemModulePath(modulePath, cwd);
-
-const MIRROR_PARENT_DIRNAME = '.trails-tmp';
-
-const MIRROR_ENTRY_PREFIX = 'load-app-fresh-';
-
-/**
- * Convert an absolute path to a drive-safe relative form before appending it
- * to the mirror root. `path.parse(...).root` returns `'/'` on POSIX and
- * `'C:\\'` (or similar) on Windows, so `relative` strips the platform root
- * in both cases.
- */
-const freshMirrorPath = (absolutePath: string, mirrorRoot: string): string =>
-  join(mirrorRoot, relative(parsePath(absolutePath).root, absolutePath));
 
 const isLocalFilesystemImport = (importPath: string): boolean =>
   importPath.startsWith('.') ||
@@ -192,15 +180,6 @@ const collectImportedModulePaths = (
     .map((importPath) => resolveImportedModulePath(modulePath, importPath));
 };
 
-/**
- * Copy a single file into the mirror by raw bytes.
- *
- * @remarks
- * Reading via `.bytes()` rather than `.text()` preserves binary payloads
- * (`.wasm`, `.node`, compiled assets) that may sit alongside source files in
- * the app's graph. Text decoding would corrupt them on the way through the
- * mirror.
- */
 const copyFileToMirror = async (
   sourcePath: string,
   mirrorRoot: string,
@@ -211,10 +190,10 @@ const copyFileToMirror = async (
   }
   copied.add(sourcePath);
 
-  const mirrorPath = freshMirrorPath(sourcePath, mirrorRoot);
-  mkdirSync(dirname(mirrorPath), { recursive: true });
-  const bytes = await Bun.file(sourcePath).bytes();
-  await Bun.write(mirrorPath, bytes);
+  const written = await writeLoadAppMirrorFile(sourcePath, mirrorRoot);
+  if (written.isErr()) {
+    throw written.error;
+  }
 };
 
 /**
@@ -301,14 +280,11 @@ const isStaleMirrorEntry = (entryPath: string, now: number): boolean => {
 };
 
 const removeStaleMirrorEntry = (entryPath: string): void => {
-  try {
-    rmSync(entryPath, { force: true, recursive: true });
-  } catch {
-    /*
-     * Another concurrent load may own it. Safe to ignore — the next sweep
-     * will retry.
-     */
-  }
+  /*
+   * Another concurrent load may own it. Safe to ignore — the next sweep
+   * will retry.
+   */
+  removeLoadAppMirrorRootQuietly(entryPath);
 };
 
 /**
@@ -322,7 +298,7 @@ const cleanupStaleMirrorRoots = (mirrorParent: string): void => {
   }
   const now = Date.now();
   for (const entry of entries) {
-    if (!entry.startsWith(MIRROR_ENTRY_PREFIX)) {
+    if (!entry.startsWith(LOAD_APP_MIRROR_ENTRY_PREFIX)) {
       continue;
     }
     const entryPath = join(mirrorParent, entry);
@@ -333,12 +309,9 @@ const cleanupStaleMirrorRoots = (mirrorParent: string): void => {
 };
 
 const freshMirrorRootPath = (cwd: string): string => {
-  const mirrorParent = join(cwd, MIRROR_PARENT_DIRNAME);
+  const mirrorParent = join(cwd, LOAD_APP_MIRROR_PARENT_DIRNAME);
   cleanupStaleMirrorRoots(mirrorParent);
-  return join(
-    mirrorParent,
-    `${MIRROR_ENTRY_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2)}`
-  );
+  return createLoadAppMirrorRootPath(cwd);
 };
 
 interface MirrorWalkContext {
@@ -429,7 +402,11 @@ const mirrorFreshImportGraph = async (
   };
 
   await visit(entryPath);
-  return freshMirrorPath(entryPath, mirrorRoot);
+  const freshPath = resolveLoadAppMirrorFilePath(entryPath, mirrorRoot);
+  if (freshPath.isErr()) {
+    throw freshPath.error;
+  }
+  return freshPath.value;
 };
 
 /**
@@ -461,7 +438,7 @@ const prepareMirror = async (
     const freshPath = await mirrorFreshImportGraph(absolutePath, mirrorRoot);
     return { freshPath, mirrorRoot };
   } catch (error) {
-    rmSync(mirrorRoot, { force: true, recursive: true });
+    removeLoadAppMirrorRootQuietly(mirrorRoot);
     throw error;
   }
 };
