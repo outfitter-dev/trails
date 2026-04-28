@@ -11,7 +11,10 @@ import type { Topo, TopoSnapshot } from '@ontrails/core';
 import { deriveTrailsDbPath } from '@ontrails/core/internal/trails-db';
 import { z } from 'zod';
 
-import { createIsolatedExampleRoot } from '../local-state-io.js';
+import {
+  createIsolatedExampleRoot,
+  writeIsolatedExampleAppModule,
+} from '../local-state-io.js';
 
 import type { BriefReport, SurveyListReport } from './topo-reports.js';
 
@@ -139,7 +142,7 @@ export const createIsolatedExampleInput = (
 ): { readonly module: string; readonly rootDir: string } => {
   const rootDir = createIsolatedExampleRoot(name);
   return {
-    module: EXAMPLE_APP_MODULE,
+    module: writeIsolatedExampleAppModule(rootDir, EXAMPLE_APP_MODULE),
     rootDir,
   };
 };

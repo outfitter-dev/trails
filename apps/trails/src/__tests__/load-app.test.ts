@@ -5,11 +5,15 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   utimesSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+import { PermissionError } from '@ontrails/core';
 
 import { loadApp, loadFreshAppLease } from '../trails/load-app.js';
 
@@ -230,6 +234,109 @@ describe('loadApp', () => {
     expect(app.get('survey')).toBeDefined();
   });
 
+  test('auto-discovers a workspace-relative module under the default trust boundary', async () => {
+    const cwd = resolve(
+      tmpdir(),
+      `trails-load-app-discovery-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    );
+
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+      writeLoadAppFixture(cwd, 'discovered');
+
+      const app = await loadApp(undefined, cwd);
+      expect(app.name).toBe('discovered');
+
+      const lease = await loadFreshAppLease(undefined, cwd);
+      try {
+        expect(lease.app.name).toBe('discovered');
+      } finally {
+        lease.release();
+      }
+    } finally {
+      rmSync(cwd, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects app module paths outside the default trust boundary', async () => {
+    const root = resolve(
+      tmpdir(),
+      `trails-load-app-boundary-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    );
+    const cwd = resolve(root, 'workspace');
+    const outside = resolve(root, 'outside');
+
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+      mkdirSync(resolve(outside, 'src'), { recursive: true });
+      writeLoadAppFixture(cwd, 'inside');
+      writeFileSync(
+        resolve(outside, 'src/app.ts'),
+        `export const app = {
+  name: 'outside',
+  trails: new Map(),
+  signals: new Map(),
+  resources: new Map()
+};`
+      );
+
+      await expect(loadApp(resolve(cwd, 'src/app.ts'), cwd)).rejects.toThrow(
+        PermissionError
+      );
+      await expect(
+        loadApp(pathToFileURL(resolve(cwd, 'src/app.ts')).href, cwd)
+      ).rejects.toThrow(PermissionError);
+      await expect(loadApp('../outside/src/app.ts', cwd)).rejects.toThrow(
+        PermissionError
+      );
+
+      const trustedAbsolute = await loadApp(resolve(cwd, 'src/app.ts'), cwd, {
+        trustedModulePath: true,
+      });
+      const trustedParentEscape = await loadApp('../outside/src/app.ts', cwd, {
+        trustedModulePath: true,
+      });
+
+      expect(trustedAbsolute.name).toBe('inside');
+      expect(trustedParentEscape.name).toBe('outside');
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects symlink escapes outside the default trust boundary', async () => {
+    const root = resolve(
+      tmpdir(),
+      `trails-load-app-symlink-boundary-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    );
+    const cwd = resolve(root, 'workspace');
+    const outside = resolve(root, 'outside');
+
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+      mkdirSync(resolve(outside, 'src'), { recursive: true });
+      writeLoadAppFixture(outside, 'outside-symlink');
+      symlinkSync(outside, resolve(cwd, 'src/linked-outside'), 'dir');
+
+      await expect(
+        loadApp('./src/linked-outside/src/app.ts', cwd)
+      ).rejects.toThrow(PermissionError);
+
+      const trusted = await loadApp('./src/linked-outside/src/app.ts', cwd, {
+        trustedModulePath: true,
+      });
+      expect(trusted.name).toBe('outside-symlink');
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
   test('can bypass module caching with fresh loading', async () => {
     const cwd = resolve(
       tmpdir(),
@@ -368,6 +475,47 @@ describe('loadApp fresh lifecycle', () => {
       expect(existsSync(lease.mirrorRoot)).toBe(false);
     } finally {
       rmSync(cwd, { force: true, recursive: true });
+    }
+  });
+
+  test('leased fresh loads use the same default trust boundary', async () => {
+    const root = resolve(
+      tmpdir(),
+      `trails-load-app-lease-boundary-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    );
+    const cwd = resolve(root, 'workspace');
+    const outside = resolve(root, 'outside');
+
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+      mkdirSync(resolve(outside, 'src'), { recursive: true });
+      writeLoadAppFixture(cwd, 'inside-lease');
+      writeFileSync(
+        resolve(outside, 'src/app.ts'),
+        `export const app = {
+  name: 'outside-lease',
+  trails: new Map(),
+  signals: new Map(),
+  resources: new Map()
+};`
+      );
+
+      await expect(
+        loadFreshAppLease('../outside/src/app.ts', cwd)
+      ).rejects.toThrow(PermissionError);
+
+      const lease = await loadFreshAppLease('../outside/src/app.ts', cwd, {
+        trustedModulePath: true,
+      });
+      try {
+        expect(lease.app.name).toBe('outside-lease');
+      } finally {
+        lease.release();
+      }
+    } finally {
+      rmSync(root, { force: true, recursive: true });
     }
   });
 

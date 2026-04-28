@@ -1,7 +1,15 @@
-import { existsSync, readdirSync, statSync } from 'node:fs';
-import { dirname, extname, isAbsolute, join, resolve } from 'node:path';
+import { existsSync, readdirSync, realpathSync, statSync } from 'node:fs';
+import {
+  dirname,
+  extname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+} from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { deriveSafePath, PermissionError } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { findAppModule } from '@ontrails/cli';
 
@@ -135,11 +143,97 @@ const resolveFilesystemModulePath = (
   return existsSync(tsPath) ? tsPath : absolutePath;
 };
 
-/** Resolve a module path from cwd so CLI defaults behave like shell paths. */
-const resolveAbsoluteModulePath = (modulePath: string, cwd: string): string =>
+const trustBoundaryError = (reason: string): PermissionError =>
+  new PermissionError(
+    `Refusing to load an app module outside the workspace trust boundary (${reason}). Use a workspace-relative module path, or pass trustedModulePath: true from trusted code.`
+  );
+
+const isPathInside = (root: string, target: string): boolean => {
+  const candidate = relative(root, target);
+  return (
+    candidate === '' || (!candidate.startsWith('..') && !isAbsolute(candidate))
+  );
+};
+
+const realpathIfPresent = (path: string): string | undefined => {
+  try {
+    return realpathSync(path);
+  } catch {
+    return undefined;
+  }
+};
+
+const ensureRealPathInsideCwd = (
+  resolvedModulePath: string,
+  cwd: string
+): string => {
+  const realRoot = realpathIfPresent(cwd);
+  const realModule = realpathIfPresent(resolvedModulePath);
+  if (
+    realRoot !== undefined &&
+    realModule !== undefined &&
+    !isPathInside(realRoot, realModule)
+  ) {
+    throw trustBoundaryError('symlink_escape');
+  }
+
+  return resolvedModulePath;
+};
+
+/** Resolve a caller-trusted module path using the legacy escape hatch policy. */
+const resolveTrustedModulePath = (modulePath: string, cwd: string): string =>
   URL_SCHEME.test(modulePath)
     ? resolveUrlModulePath(modulePath)
     : resolveFilesystemModulePath(modulePath, cwd);
+
+/**
+ * Resolve the default app module path inside cwd.
+ *
+ * @remarks
+ * CLI and trail callers accept user-supplied module specifiers, so the default
+ * policy is deliberately narrower than `import()` itself: no URL schemes, no
+ * absolute paths, and no parent traversal. Internal callers that intentionally
+ * load a path outside cwd must opt into `trustedModulePath`.
+ */
+const resolveContainedModulePath = (
+  modulePath: string,
+  cwd: string
+): string => {
+  if (URL_SCHEME.test(modulePath)) {
+    throw trustBoundaryError('url_scheme');
+  }
+  if (isAbsolute(modulePath)) {
+    throw trustBoundaryError('absolute_path');
+  }
+
+  const safePath = deriveSafePath(cwd, modulePath);
+  if (safePath.isErr()) {
+    throw trustBoundaryError('parent_escape');
+  }
+
+  return ensureRealPathInsideCwd(
+    resolveFilesystemModulePath(safePath.value, cwd),
+    cwd
+  );
+};
+
+interface LoadAppTrustOptions {
+  readonly trustedModulePath?: boolean | undefined;
+}
+
+const resolveLoadAppModulePath = (
+  modulePath: string,
+  cwd: string,
+  options: LoadAppTrustOptions = {}
+): string =>
+  options.trustedModulePath === true
+    ? resolveTrustedModulePath(modulePath, cwd)
+    : resolveContainedModulePath(modulePath, cwd);
+
+const findWorkspaceRelativeAppModule = (cwd: string): string => {
+  const discovered = findAppModule(cwd);
+  return isAbsolute(discovered) ? relative(cwd, discovered) : discovered;
+};
 
 const isLocalFilesystemImport = (importPath: string): boolean =>
   importPath.startsWith('.') ||
@@ -444,10 +538,10 @@ const prepareMirror = async (
 };
 
 const importFreshModule = async (
-  modulePath: string,
+  resolvedModulePath: string,
   cwd: string
 ): Promise<Record<string, unknown>> => {
-  const absolutePath = resolveAbsoluteModulePath(modulePath, cwd);
+  const absolutePath = resolvedModulePath;
   if (URL_SCHEME.test(absolutePath) && !absolutePath.startsWith('/')) {
     return await importWithCacheBust(absolutePath);
   }
@@ -480,6 +574,12 @@ export interface FreshAppLease {
   readonly app: Topo;
   readonly mirrorRoot: string;
   readonly release: () => void;
+}
+
+export type LoadAppLeaseOptions = LoadAppTrustOptions;
+
+export interface LoadAppOptions extends LoadAppTrustOptions {
+  readonly fresh?: boolean | undefined;
 }
 
 const noopRelease = (): void => undefined;
@@ -523,26 +623,39 @@ const createFilesystemLease = async (
 
 export const loadFreshAppLease = async (
   modulePath: string | undefined,
-  cwd: string
+  cwd: string,
+  options: LoadAppLeaseOptions = {}
 ): Promise<FreshAppLease> => {
   const effectivePath =
-    modulePath === undefined ? findAppModule(cwd) : modulePath;
-  const absolutePath = resolveAbsoluteModulePath(effectivePath, cwd);
+    modulePath === undefined ? findWorkspaceRelativeAppModule(cwd) : modulePath;
+  const absolutePath = resolveLoadAppModulePath(effectivePath, cwd, options);
 
   return URL_SCHEME.test(absolutePath) && !absolutePath.startsWith('/')
     ? await createUrlSchemeLease(absolutePath, effectivePath)
     : await createFilesystemLease(absolutePath, cwd, effectivePath);
 };
 
-/** Load a Topo export from a module path relative to cwd. */
+/**
+ * Load a Topo export from a module path relative to cwd.
+ *
+ * @remarks
+ * By default, `modulePath` must be workspace-relative and stay under `cwd`.
+ * URL-shaped, absolute, and parent-escape paths are rejected. Trusted internal
+ * callers can pass `trustedModulePath: true` to deliberately use the broader
+ * dynamic-import escape hatch.
+ */
 export const loadApp = async (
   modulePath: string | undefined,
   cwd: string,
-  options: { fresh?: boolean | undefined } = {}
+  options: LoadAppOptions = {}
 ): Promise<Topo> => {
   const effectivePath =
-    modulePath === undefined ? findAppModule(cwd) : modulePath;
-  const resolvedModulePath = resolveAbsoluteModulePath(effectivePath, cwd);
+    modulePath === undefined ? findWorkspaceRelativeAppModule(cwd) : modulePath;
+  const resolvedModulePath = resolveLoadAppModulePath(
+    effectivePath,
+    cwd,
+    options
+  );
   const mod =
     options.fresh === true
       ? await importFreshModule(resolvedModulePath, cwd)

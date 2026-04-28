@@ -8,6 +8,7 @@ import { PermissionError, ValidationError } from '@ontrails/core';
 import {
   createIsolatedExampleRoot,
   removeRootRelativeFileIfPresent,
+  writeIsolatedExampleAppModule,
 } from '../local-state-io.js';
 
 const tempRoot = (): string =>
@@ -84,5 +85,17 @@ describe('local state I/O helpers', () => {
     expect(() => createIsolatedExampleRoot('../outside')).toThrow(
       ValidationError
     );
+  });
+
+  test('requires absolute source modules for isolated example app wrappers', () => {
+    const root = tempRoot();
+
+    try {
+      expect(() => writeIsolatedExampleAppModule(root, 'src/app.ts')).toThrow(
+        ValidationError
+      );
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
   });
 });

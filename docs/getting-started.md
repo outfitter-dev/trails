@@ -314,6 +314,8 @@ The `trails` CLI commands (`topo`, `survey`, `guide`, etc.) automatically discov
 
 If multiple candidates are found, the CLI exits with an error listing them; pass `--module` to specify which one to use.
 
+`--module` is workspace-relative by default. The Trails CLI rejects URL-shaped paths, absolute paths, and `..` paths that escape the selected workspace root. Framework code that deliberately loads an app module outside that boundary must opt into `trustedModulePath: true` when calling `loadApp` or `loadFreshAppLease`.
+
 ## What's Next
 
 - [Architecture](./architecture.md) -- How the hexagonal model works

@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import {
   deriveSafePath,
@@ -43,6 +44,40 @@ export const createIsolatedExampleRoot = (name: string): string => {
     throw new InternalError(`Failed to recreate example root "${name}"`, {
       cause: asError(error),
       context: { name, rootDir: root.value },
+    });
+  }
+};
+
+export const writeIsolatedExampleAppModule = (
+  rootDir: string,
+  sourceModulePath: string
+): string => {
+  if (!isAbsolute(sourceModulePath)) {
+    throw new ValidationError(
+      'Example app source module path must be absolute.',
+      {
+        context: { rootDir, sourceModulePath },
+      }
+    );
+  }
+
+  const modulePath = './src/app.ts';
+  const target = deriveSafePath(rootDir, modulePath);
+  if (target.isErr()) {
+    throw target.error;
+  }
+
+  try {
+    mkdirSync(dirname(target.value), { recursive: true });
+    writeFileSync(
+      target.value,
+      `export { app } from ${JSON.stringify(pathToFileURL(sourceModulePath).href)};\n`
+    );
+    return modulePath;
+  } catch (error) {
+    throw new InternalError('Failed to write isolated example app module', {
+      cause: asError(error),
+      context: { rootDir, sourceModulePath, targetPath: target.value },
     });
   }
 };
