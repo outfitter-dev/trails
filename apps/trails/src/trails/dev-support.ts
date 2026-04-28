@@ -1,4 +1,4 @@
-import { existsSync, rmSync, statSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 import {
@@ -21,16 +21,21 @@ import {
   previewTraceCleanup,
 } from '@ontrails/tracing/internal/dev-state';
 
+import { removeRootRelativeFileIfPresent } from '../local-state-io.js';
+
 export const DEFAULT_TOPO_SNAPSHOT_RETENTION = 50;
 
 const deriveRootDir = (cwd?: string): string => cwd ?? process.cwd();
 
-const removeIfPresent = (filePath: string): boolean => {
-  if (!existsSync(filePath)) {
-    return false;
+const removeResetFileIfPresent = (
+  rootDir: string,
+  relativePath: string
+): boolean => {
+  const removed = removeRootRelativeFileIfPresent(rootDir, relativePath);
+  if (removed.isErr()) {
+    throw removed.error;
   }
-  rmSync(filePath, { force: true });
-  return true;
+  return removed.value;
 };
 
 export interface DevStatsReport {
@@ -317,7 +322,7 @@ export const resetDevState = (options?: {
   }
 
   const removedFiles = files.filter((relativePath) =>
-    removeIfPresent(join(rootDir, relativePath))
+    removeResetFileIfPresent(rootDir, relativePath)
   );
 
   return {

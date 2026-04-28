@@ -1,6 +1,4 @@
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import {
@@ -12,6 +10,8 @@ import {
 import type { Topo, TopoSnapshot } from '@ontrails/core';
 import { deriveTrailsDbPath } from '@ontrails/core/internal/trails-db';
 import { z } from 'zod';
+
+import { createIsolatedExampleRoot } from '../local-state-io.js';
 
 import type { BriefReport, SurveyListReport } from './topo-reports.js';
 
@@ -137,9 +137,7 @@ const buildSnapshotInput = (
 export const createIsolatedExampleInput = (
   name: string
 ): { readonly module: string; readonly rootDir: string } => {
-  const rootDir = join(tmpdir(), 'ontrails-trails-examples', name);
-  rmSync(rootDir, { force: true, recursive: true });
-  mkdirSync(rootDir, { recursive: true });
+  const rootDir = createIsolatedExampleRoot(name);
   return {
     module: EXAMPLE_APP_MODULE,
     rootDir,
