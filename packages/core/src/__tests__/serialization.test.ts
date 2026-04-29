@@ -12,6 +12,7 @@ import {
   AlreadyExistsError,
   ConflictError,
   PermissionError,
+  PermitError,
   AuthError,
   CancelledError,
 } from '../errors.js';
@@ -177,6 +178,7 @@ describe('deserializeError', () => {
       { Ctor: AlreadyExistsError, category: 'conflict' },
       { Ctor: ConflictError, category: 'conflict' },
       { Ctor: PermissionError, category: 'permission' },
+      { Ctor: PermitError, category: 'permission' },
       { Ctor: TimeoutError, category: 'timeout' },
       { Ctor: NetworkError, category: 'network' },
       { Ctor: InternalError, category: 'internal' },

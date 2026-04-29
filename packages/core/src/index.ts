@@ -11,6 +11,7 @@ export {
   AlreadyExistsError,
   ConflictError,
   PermissionError,
+  PermitError,
   TimeoutError,
   RateLimitError,
   NetworkError,

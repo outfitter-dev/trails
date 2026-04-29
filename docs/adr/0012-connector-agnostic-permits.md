@@ -66,7 +66,7 @@ Core enforcement keys off `scopes` only. Roles are connector output — the auth
 
 ### `ctx.permit` is `Permit | undefined`
 
-`undefined` means no permit declaration or public trail. `Permit` means auth succeeded. Failed auth never reaches the implementation — the auth layer short-circuits with `Result.err(AuthError)` before `run` executes.
+`undefined` means no permit declaration or public trail. `Permit` means auth succeeded. Failed auth never reaches the implementation — the execution pipeline short-circuits with `Result.err(PermitError)` before the blaze runs.
 
 This means implementations can trust `ctx.permit` structurally. If it's present, it's valid. No defensive checks inside domain logic.
 
@@ -76,7 +76,7 @@ The permit model separates into three distinct responsibilities:
 
 1. **Trail declaration.** `permit: { scopes: ['entity:write'] }` on the spec. Declares what's required.
 2. **Surface extraction.** Each surface normalizes raw credentials into `PermitExtractionInput`. No surface types cross into core.
-3. **Auth layer.** A shared layer that checks `ctx.permit.scopes` against the trail's declared scopes. Same layer, every surface.
+3. **Pipeline enforcement.** Core `executeTrail` checks `ctx.permit.scopes` against the trail's declared scopes. Same stage, every surface.
 
 ### Normalized extraction input
 

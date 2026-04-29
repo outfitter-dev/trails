@@ -183,6 +183,21 @@ describe('createJwtConnector', () => {
     expect(err.message).toContain('Missing expiration claim');
   });
 
+  test('treats null expiration as missing when expiration is required', async () => {
+    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const token = await signJwtPayload(
+      '{"exp":null,"sub":"user-null-exp"}',
+      TEST_SECRET
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isErr()).toBe(true);
+    const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
+    expect(err.code).toBe('invalid_token');
+    expect(err.message).toContain('Missing expiration claim');
+  });
+
   test('allows missing expiration only when explicitly configured', async () => {
     const connector = createJwtConnector({
       requireExpiration: false,
@@ -195,6 +210,24 @@ describe('createJwtConnector', () => {
     expect(result.isOk()).toBe(true);
     const permit = result.unwrap() as Permit;
     expect(permit.id).toBe('user-no-exp-allowed');
+  });
+
+  test('rejects null expiration even when expiration is optional', async () => {
+    const connector = createJwtConnector({
+      requireExpiration: false,
+      secret: TEST_SECRET,
+    });
+    const token = await signJwtPayload(
+      '{"exp":null,"sub":"user-null-exp-optional"}',
+      TEST_SECRET
+    );
+    const result = await connector.authenticate(
+      testInput({ bearerToken: token })
+    );
+    expect(result.isErr()).toBe(true);
+    const err = (result as ReturnType<typeof Result.err<AuthError>>).error;
+    expect(err.code).toBe('invalid_token');
+    expect(err.message).toContain('Invalid expiration claim');
   });
 
   test('rejects expired tokens even when expiration is optional', async () => {

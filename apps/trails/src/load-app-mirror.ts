@@ -143,12 +143,16 @@ export const removeLoadAppMirrorRoot = (
  * into an application-load failure.
  */
 export const removeLoadAppMirrorRootQuietly = (mirrorRoot: string): void => {
-  removeLoadAppMirrorRoot(mirrorRoot);
+  try {
+    removeLoadAppMirrorRoot(mirrorRoot);
+  } catch {
+    // Best-effort cleanup must never become the failure path.
+  }
 };
 
 export const createLoadAppMirrorRootPath = (cwd: string): string =>
   join(
-    cwd,
+    resolve(cwd),
     LOAD_APP_MIRROR_PARENT_DIRNAME,
     `${LOAD_APP_MIRROR_ENTRY_PREFIX}${Date.now()}-${Math.random()
       .toString(36)

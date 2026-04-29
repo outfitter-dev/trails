@@ -40,7 +40,7 @@ interface JwtPayload {
   readonly sub?: string;
   readonly iss?: string;
   readonly aud?: string | readonly string[];
-  readonly exp?: number;
+  readonly exp?: number | null;
   readonly nbf?: number;
   readonly [key: string]: unknown;
 }
@@ -193,7 +193,8 @@ const validateClaims = (
 ): AuthError | undefined => {
   const now = Math.floor(Date.now() / 1000);
   const skew = normalizeClockSkewSeconds(options);
-  if (payload.exp === undefined && options.requireExpiration !== false) {
+  const hasExpirationClaim = payload.exp !== undefined && payload.exp !== null;
+  if (!hasExpirationClaim && options.requireExpiration !== false) {
     return { code: 'invalid_token', message: 'Missing expiration claim (exp)' };
   }
   if (
@@ -202,7 +203,11 @@ const validateClaims = (
   ) {
     return { code: 'invalid_token', message: 'Invalid expiration claim (exp)' };
   }
-  if (payload.exp !== undefined && payload.exp < now - skew) {
+  if (
+    payload.exp !== undefined &&
+    payload.exp !== null &&
+    payload.exp < now - skew
+  ) {
     return { code: 'expired_token', message: 'Token has expired' };
   }
   if (payload.nbf !== undefined) {

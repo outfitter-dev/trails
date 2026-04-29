@@ -7,13 +7,14 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 
 import { PermissionError, ValidationError } from '@ontrails/core';
 
 import {
   createLoadAppMirrorRootPath,
   removeLoadAppMirrorRoot,
+  removeLoadAppMirrorRootQuietly,
   resolveLoadAppMirrorFilePath,
   writeLoadAppMirrorFile,
 } from '../load-app-mirror.js';
@@ -27,6 +28,13 @@ const tempRoot = (): string =>
   );
 
 describe('load-app mirror helpers', () => {
+  test('creates absolute mirror roots under the load-app mirror parent', () => {
+    const mirrorRoot = createLoadAppMirrorRootPath('relative-project');
+
+    expect(isAbsolute(mirrorRoot)).toBe(true);
+    expect(mirrorRoot).toContain('.trails-tmp/load-app-fresh-');
+  });
+
   test('writes source bytes under the load-app mirror root', async () => {
     const root = tempRoot();
 
@@ -110,6 +118,20 @@ describe('load-app mirror helpers', () => {
       const removed = removeLoadAppMirrorRoot(mirrorRoot);
       expect(removed.isOk()).toBe(true);
       expect(existsSync(mirrorRoot)).toBe(false);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('quiet removal ignores invalid mirror roots', () => {
+    const root = tempRoot();
+
+    try {
+      const protectedDir = join(root, 'project');
+      mkdirSync(protectedDir, { recursive: true });
+
+      expect(() => removeLoadAppMirrorRootQuietly(protectedDir)).not.toThrow();
+      expect(existsSync(protectedDir)).toBe(true);
     } finally {
       rmSync(root, { force: true, recursive: true });
     }

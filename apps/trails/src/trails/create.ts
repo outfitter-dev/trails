@@ -8,6 +8,11 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
+import {
+  PROJECT_NAME_MESSAGE,
+  PROJECT_NAME_PATTERN,
+} from '../project-writes.js';
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -189,7 +194,10 @@ export const createRoute = trail('create', {
   },
   input: z.object({
     dir: z.string().optional().describe('Parent directory'),
-    name: z.string().describe('Project name'),
+    name: z
+      .string()
+      .regex(PROJECT_NAME_PATTERN, PROJECT_NAME_MESSAGE)
+      .describe('Project name'),
     starter: z
       .enum(['hello', 'entity', 'empty'])
       .default('hello')

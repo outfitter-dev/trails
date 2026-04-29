@@ -16,6 +16,7 @@ import { addVerify } from '../trails/add-verify.js';
 import { createRoute } from '../trails/create.js';
 import { createScaffold } from '../trails/create-scaffold.js';
 import { isInsideProject } from '../trails/project.js';
+import { PROJECT_NAME_MESSAGE } from '../project-writes.js';
 import {
   ontrailsPackageRange,
   scaffoldDependencyVersions,
@@ -347,6 +348,21 @@ describe('trails create', () => {
         expect(error).toBeInstanceOf(ValidationError);
         expect(existsSync(join(dirname(dir), 'escape'))).toBe(false);
       });
+    });
+
+    test('rejects path-shaped project names at the create route boundary', () => {
+      const result = createRoute.input.safeParse({
+        dir: tmpdir(),
+        name: '../escape',
+        starter: 'hello',
+        surfaces: ['cli'],
+        verify: true,
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.message).toBe(PROJECT_NAME_MESSAGE);
+      }
     });
   });
 

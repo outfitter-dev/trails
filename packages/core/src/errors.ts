@@ -83,6 +83,16 @@ export class PermissionError extends TrailsError {
   readonly retryable = false as const;
 }
 
+export class PermitError extends PermissionError {
+  constructor(
+    message: string,
+    options?: { cause?: Error; context?: Record<string, unknown> }
+  ) {
+    super(message, options);
+    this.name = 'PermitError';
+  }
+}
+
 export class TimeoutError extends TrailsError {
   readonly category = 'timeout' as const;
   readonly retryable = true as const;

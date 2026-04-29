@@ -1,4 +1,4 @@
-import { mkdirSync, renameSync } from 'node:fs';
+import { existsSync, mkdirSync, renameSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 import {
@@ -86,6 +86,19 @@ export const ensureProjectDirectory = (
   }
 };
 
+export const projectPathExists = (
+  projectDir: string,
+  pathWithinProject: string
+): TrailsResult<boolean, Error> => {
+  const target = resolveProjectPath(projectDir, pathWithinProject);
+  if (target.isErr()) {
+    return target;
+  }
+
+  return Result.ok(existsSync(target.value));
+};
+
+/** Write a generated project-relative file and return the relative path. */
 export const writeProjectFile = async (
   projectDir: string,
   relativePath: string,
@@ -110,12 +123,13 @@ export const writeProjectFile = async (
   }
 };
 
-export const writeProjectPath = async (
+/** Write an already-derived path that must stay contained under the project. */
+export const writeContainedProjectPath = async (
   projectDir: string,
-  filePath: string,
+  pathWithinProject: string,
   content: string | Uint8Array
 ): Promise<TrailsResult<string, Error>> => {
-  const target = resolveProjectPath(projectDir, filePath);
+  const target = resolveProjectPath(projectDir, pathWithinProject);
   if (target.isErr()) {
     return target;
   }
@@ -126,15 +140,18 @@ export const writeProjectPath = async (
     return Result.ok(target.value);
   } catch (error) {
     return Result.err(
-      new InternalError(`Failed to write project path "${filePath}"`, {
-        cause: asError(error),
-        context: { filePath, projectDir },
-      })
+      new InternalError(
+        `Failed to write contained project path "${pathWithinProject}"`,
+        {
+          cause: asError(error),
+          context: { pathWithinProject, projectDir },
+        }
+      )
     );
   }
 };
 
-export const renameProjectPath = (
+export const renameContainedProjectPath = (
   projectDir: string,
   fromPath: string,
   toPath: string
@@ -154,10 +171,13 @@ export const renameProjectPath = (
     return Result.ok();
   } catch (error) {
     return Result.err(
-      new InternalError(`Failed to rename project path "${fromPath}"`, {
-        cause: asError(error),
-        context: { fromPath, projectDir, toPath },
-      })
+      new InternalError(
+        `Failed to rename contained project path "${fromPath}"`,
+        {
+          cause: asError(error),
+          context: { fromPath, projectDir, toPath },
+        }
+      )
     );
   }
 };

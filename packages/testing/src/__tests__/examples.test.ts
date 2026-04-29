@@ -548,12 +548,12 @@ describe('testExamples auto-minting permits', () => {
     const strictScopedTrail = trail('strict.scoped', {
       blaze: (_input, ctx) =>
         Result.ok({ hasPermit: ctx.permit !== undefined }),
-      description: 'Trail that expects no permit under strictPermits',
+      description: 'Trail that requires an explicit permit under strictPermits',
       examples: [
         {
-          expected: { hasPermit: false },
+          error: 'PermitError',
           input: {},
-          name: 'No auto-minted permit when strictPermits is true',
+          name: 'Fails without an explicit permit when strictPermits is true',
         },
       ],
       input: z.object({}),

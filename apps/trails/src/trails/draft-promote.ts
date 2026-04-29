@@ -18,7 +18,10 @@ import {
 } from '@ontrails/warden';
 import { z } from 'zod';
 
-import { renameProjectPath, writeProjectPath } from '../project-writes.js';
+import {
+  renameContainedProjectPath,
+  writeContainedProjectPath,
+} from '../project-writes.js';
 import { loadFreshAppLease } from './load-app.js';
 import { findTopoPath } from './project.js';
 
@@ -266,7 +269,7 @@ const rewritePromotedSourceFiles = async (
       continue;
     }
 
-    const written = await writeProjectPath(
+    const written = await writeContainedProjectPath(
       rootDir,
       filePath,
       replaced.nextSource
@@ -382,7 +385,7 @@ const collectAndApplyFileRenames = async (
   }
 
   for (const r of renames) {
-    const renamed = renameProjectPath(rootDir, r.from, r.to);
+    const renamed = renameContainedProjectPath(rootDir, r.from, r.to);
     if (renamed.isErr()) {
       return Result.err(renamed.error);
     }
@@ -454,7 +457,7 @@ const updateRelativeImportsForFile = async (
   const sourceCode = await Bun.file(filePath).text();
   const updated = rewriteRelativeImportsForFile(filePath, renames, sourceCode);
   if (updated.changed) {
-    const written = await writeProjectPath(
+    const written = await writeContainedProjectPath(
       rootDir,
       filePath,
       updated.sourceCode

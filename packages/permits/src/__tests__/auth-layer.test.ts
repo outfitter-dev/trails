@@ -6,7 +6,6 @@ import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
 import { authLayer } from '../auth-layer';
-import { PermitError } from '../errors';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -64,7 +63,7 @@ describe('authLayer', () => {
     });
   });
 
-  describe('scope enforcement', () => {
+  describe('compatibility pass-through', () => {
     const scopedTrail = trail('test.scoped', {
       blaze: okImpl,
       input: z.object({}),
@@ -83,17 +82,15 @@ describe('authLayer', () => {
       expect(result.unwrap()).toEqual({ done: true });
     });
 
-    test('returns error when ctx has no permit', async () => {
+    test('does not enforce missing permits directly', async () => {
       const wrapped = authLayer.wrap(scopedTrail, okImpl);
       const result = await wrapped({}, makeCtx());
 
-      expect(result.isErr()).toBe(true);
-      const err = (result as unknown as { error: PermitError }).error;
-      expect(err).toBeInstanceOf(PermitError);
-      expect(err.message).toContain('No permit');
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toEqual({ done: true });
     });
 
-    test('returns error when permit is missing required scopes', async () => {
+    test('does not enforce missing scopes directly', async () => {
       const multiScopeTrail = trail('test.multi', {
         blaze: okImpl,
         input: z.object({}),
@@ -107,10 +104,8 @@ describe('authLayer', () => {
         makeCtx({ id: 'usr-1', scopes: ['user:read'] })
       );
 
-      expect(result.isErr()).toBe(true);
-      const err = (result as unknown as { error: PermitError }).error;
-      expect(err).toBeInstanceOf(PermitError);
-      expect(err.message).toContain('user:write');
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toEqual({ done: true });
     });
 
     test('passes when permit has superset of required scopes', async () => {

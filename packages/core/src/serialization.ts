@@ -14,6 +14,7 @@ import {
   AlreadyExistsError,
   ConflictError,
   PermissionError,
+  PermitError,
   TimeoutError,
   RateLimitError,
   NetworkError,
@@ -106,6 +107,7 @@ const errorConstructorsByName: Record<string, ErrorFactory> = {
   NetworkError: (msg, opts) => new NetworkError(msg, opts),
   NotFoundError: (msg, opts) => new NotFoundError(msg, opts),
   PermissionError: (msg, opts) => new PermissionError(msg, opts),
+  PermitError: (msg, opts) => new PermitError(msg, opts),
   RateLimitError: (msg, opts, retryAfter) => {
     const rlOpts: { context?: Record<string, unknown>; retryAfter?: number } = {
       ...opts,

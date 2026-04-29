@@ -31,6 +31,7 @@ import {
   NetworkError,
   NotFoundError,
   PermissionError,
+  PermitError,
   RateLimitError,
   RetryExhaustedError,
   executeTrail,
@@ -74,6 +75,7 @@ const ERROR_MAP: Record<string, new (...args: never[]) => Error> = {
   NetworkError: NetworkError as new (...args: never[]) => Error,
   NotFoundError: NotFoundError as new (...args: never[]) => Error,
   PermissionError: PermissionError as new (...args: never[]) => Error,
+  PermitError: PermitError as new (...args: never[]) => Error,
   RateLimitError: RateLimitError as new (...args: never[]) => Error,
   RetryExhaustedError: RetryExhaustedError as unknown as new (
     ...args: never[]

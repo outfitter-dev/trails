@@ -100,6 +100,11 @@ const JSON_PARSE_ERROR = Symbol('JSON_PARSE_ERROR');
 /** Sentinel indicating a JSON body rejected before parsing. */
 const JSON_BODY_TOO_LARGE = Symbol('JSON_BODY_TOO_LARGE');
 
+/** Sentinel indicating malformed body metadata. */
+const JSON_BODY_INVALID_CONTENT_LENGTH = Symbol(
+  'JSON_BODY_INVALID_CONTENT_LENGTH'
+);
+
 interface JsonObject {
   readonly [key: string]: JsonValue;
 }
@@ -113,6 +118,7 @@ type JsonValue =
   | JsonObject;
 type JsonBodyReadResult =
   | JsonValue
+  | typeof JSON_BODY_INVALID_CONTENT_LENGTH
   | typeof JSON_PARSE_ERROR
   | typeof JSON_BODY_TOO_LARGE;
 type JsonBodyTextReadResult = string | typeof JSON_BODY_TOO_LARGE;
@@ -121,14 +127,19 @@ type InputReadResult = Record<string, unknown> | JsonBodyReadResult;
 const CONTENT_LENGTH_DECIMAL_PATTERN = /^\d+$/;
 
 /** Return true when the request has no body content. */
+type ParsedContentLength =
+  | number
+  | typeof JSON_BODY_INVALID_CONTENT_LENGTH
+  | undefined;
+
 const parseContentLength = (
   contentLength: string | undefined
-): number | undefined => {
+): ParsedContentLength => {
   if (contentLength === undefined) {
     return undefined;
   }
   if (!CONTENT_LENGTH_DECIMAL_PATTERN.test(contentLength)) {
-    return undefined;
+    return JSON_BODY_INVALID_CONTENT_LENGTH;
   }
   const size = Number(contentLength);
   return Number.isSafeInteger(size) ? size : Number.MAX_SAFE_INTEGER;
@@ -136,6 +147,9 @@ const parseContentLength = (
 
 const isEmptyBody = (c: HonoContext): boolean => {
   const contentLength = parseContentLength(c.req.header('Content-Length'));
+  if (contentLength === JSON_BODY_INVALID_CONTENT_LENGTH) {
+    return false;
+  }
   if (contentLength !== undefined) {
     return contentLength === 0;
   }
@@ -164,6 +178,9 @@ const hasOversizedContentLength = (
     return false;
   }
   const size = parseContentLength(contentLength);
+  if (size === JSON_BODY_INVALID_CONTENT_LENGTH) {
+    return false;
+  }
   return size !== undefined && size > maxJsonBodyBytes;
 };
 
@@ -232,6 +249,13 @@ const readJsonBody = async (
   c: HonoContext,
   maxJsonBodyBytes: number
 ): Promise<JsonBodyReadResult> => {
+  if (
+    parseContentLength(c.req.header('Content-Length')) ===
+    JSON_BODY_INVALID_CONTENT_LENGTH
+  ) {
+    return JSON_BODY_INVALID_CONTENT_LENGTH;
+  }
+
   if (hasOversizedContentLength(c, maxJsonBodyBytes)) {
     return JSON_BODY_TOO_LARGE;
   }
@@ -359,6 +383,19 @@ const createHonoHandler =
             category: 'validation',
             code: 'ValidationError',
             message: 'Invalid JSON in request body',
+          },
+        },
+        400
+      );
+    }
+
+    if (rawInput === JSON_BODY_INVALID_CONTENT_LENGTH) {
+      return c.json(
+        {
+          error: {
+            category: 'validation',
+            code: 'ValidationError',
+            message: 'Invalid Content-Length header',
           },
         },
         400

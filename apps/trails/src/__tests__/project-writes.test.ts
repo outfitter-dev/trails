@@ -6,12 +6,13 @@ import { dirname, join } from 'node:path';
 import { PermissionError, ValidationError } from '@ontrails/core';
 
 import {
-  renameProjectPath,
+  projectPathExists,
+  renameContainedProjectPath,
   resolveProjectDir,
   validateProjectName,
   validateTrailId,
+  writeContainedProjectPath,
   writeProjectFile,
-  writeProjectPath,
 } from '../project-writes.js';
 
 const tempRoot = (): string =>
@@ -79,7 +80,7 @@ describe('project write helpers', () => {
     }
   });
 
-  test('contains absolute project writes and renames under their root', async () => {
+  test('contains derived project paths under their root', async () => {
     const root = tempRoot();
 
     try {
@@ -94,14 +95,32 @@ describe('project write helpers', () => {
       const targetPath = join(projectDir.value, 'src', 'after.ts');
       const outsidePath = join(root, 'outside.ts');
 
-      const written = await writeProjectPath(
+      const missing = projectPathExists(projectDir.value, sourcePath);
+      expect(missing.isOk()).toBe(true);
+      if (missing.isOk()) {
+        expect(missing.value).toBe(false);
+      }
+
+      const written = await writeContainedProjectPath(
         projectDir.value,
         sourcePath,
         'export const before = true;\n'
       );
       expect(written.isOk()).toBe(true);
 
-      const escapedWrite = await writeProjectPath(
+      const existing = projectPathExists(projectDir.value, sourcePath);
+      expect(existing.isOk()).toBe(true);
+      if (existing.isOk()) {
+        expect(existing.value).toBe(true);
+      }
+
+      const escapedExists = projectPathExists(projectDir.value, outsidePath);
+      expect(escapedExists.isErr()).toBe(true);
+      if (escapedExists.isErr()) {
+        expect(escapedExists.error).toBeInstanceOf(PermissionError);
+      }
+
+      const escapedWrite = await writeContainedProjectPath(
         projectDir.value,
         outsidePath,
         'export const outside = true;\n'
@@ -111,7 +130,7 @@ describe('project write helpers', () => {
         expect(escapedWrite.error).toBeInstanceOf(PermissionError);
       }
 
-      const escapedRename = renameProjectPath(
+      const escapedRename = renameContainedProjectPath(
         projectDir.value,
         sourcePath,
         outsidePath
@@ -121,7 +140,7 @@ describe('project write helpers', () => {
         expect(escapedRename.error).toBeInstanceOf(PermissionError);
       }
 
-      const renamed = renameProjectPath(
+      const renamed = renameContainedProjectPath(
         projectDir.value,
         sourcePath,
         targetPath

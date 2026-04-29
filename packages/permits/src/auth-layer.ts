@@ -1,80 +1,17 @@
-import { Result } from '@ontrails/core';
 import type { Layer } from '@ontrails/core';
-
-import { PermitError } from './errors.js';
-import { getPermit } from './permit.js';
-
-// ---------------------------------------------------------------------------
-// Helpers (defined before callers — no use-before-define)
-// ---------------------------------------------------------------------------
-
-/**
- * Returns `true` when the permit requirement means "no enforcement needed."
- * Either the trail hasn't declared a permit posture or has explicitly
- * opted out with `'public'`.
- */
-const isPassThrough = (
-  requirement: unknown
-): requirement is undefined | 'public' =>
-  requirement === undefined || requirement === 'public';
-
-/** Returns scopes present in `required` but absent from `held`. */
-const findMissing = (
-  required: readonly string[],
-  held: readonly string[]
-): readonly string[] => required.filter((s) => !held.includes(s));
 
 // ---------------------------------------------------------------------------
 // Auth layer
 // ---------------------------------------------------------------------------
 
 /**
- * A {@link Layer} that enforces permit scopes declared on trails.
+ * Compatibility layer for older apps that still include `authLayer`.
  *
- * The layer reads the trail's `permit` field (a `PermitRequirement`):
- *
- * - If `permit` is `'public'` or `undefined` the layer passes through.
- * - If `permit` has `scopes`, the layer checks that `ctx.permit` contains
- *   all required scopes. A superset is fine; missing scopes produce a
- *   `PermitError`.
- *
- * Because `ctx.cross()` re-enters `executeTrail` (which applies layers),
- * this layer automatically re-checks on every invocation in a crossing chain.
- * No special crossing-chain handling is needed — it is built into the
- * architecture.
+ * @deprecated Permit scope enforcement is an intrinsic `executeTrail` pipeline
+ * stage. Keep this layer only while migrating existing app configuration.
  */
 export const authLayer: Layer = {
-  description: 'Enforces permit scopes declared on trails',
+  description: 'Compatibility wrapper; permit enforcement is intrinsic',
   name: 'auth',
-  wrap: (_trail, impl) => {
-    const requirement = _trail.permit;
-
-    if (isPassThrough(requirement)) {
-      return impl;
-    }
-
-    return (input, ctx) => {
-      const permit = getPermit(ctx);
-
-      if (!permit) {
-        return Promise.resolve(
-          Result.err(new PermitError('No permit provided'))
-        );
-      }
-
-      const missing = findMissing(requirement.scopes, permit.scopes);
-
-      if (missing.length > 0) {
-        return Promise.resolve(
-          Result.err(
-            new PermitError(`Missing scopes: ${missing.join(', ')}`, {
-              context: { missing, required: requirement.scopes },
-            })
-          )
-        );
-      }
-
-      return Promise.resolve(impl(input, ctx));
-    };
-  },
+  wrap: (_trail, impl) => impl,
 };

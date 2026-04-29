@@ -31,6 +31,7 @@ import {
   CancelledError,
   InternalError,
   NotFoundError,
+  PermitError,
   RetryExhaustedError,
   TrailsError,
 } from './errors.js';
@@ -155,14 +156,51 @@ const resolveContext = async (
   return bindResourceLookup(resolved, options);
 };
 
+const findMissingScopes = (
+  required: readonly string[],
+  held: readonly string[]
+): readonly string[] => required.filter((scope) => !held.includes(scope));
+
+const enforcePermitRequirement = (
+  trail: AnyTrail,
+  ctx: TrailContext
+): Result<TrailContext, Error> => {
+  const requirement = trail.permit;
+  if (requirement === undefined || requirement === 'public') {
+    return Result.ok(ctx);
+  }
+
+  if (ctx.permit === undefined) {
+    return Result.err(
+      new PermitError('No permit provided', {
+        context: { required: requirement.scopes, trailId: trail.id },
+      })
+    );
+  }
+
+  const missing = findMissingScopes(requirement.scopes, ctx.permit.scopes);
+  return missing.length === 0
+    ? Result.ok(ctx)
+    : Result.err(
+        new PermitError(`Missing scopes: ${missing.join(', ')}`, {
+          context: { missing, required: requirement.scopes, trailId: trail.id },
+        })
+      );
+};
+
 const prepareContext = async (
   trail: AnyTrail,
   options?: ExecuteTrailOptions
 ): Promise<Result<TrailContext, Error>> => {
   const baseCtx = await resolveContext(options);
+  const permitted = enforcePermitRequirement(trail, baseCtx);
+  if (permitted.isErr()) {
+    return permitted;
+  }
+
   return await createResources(
     trail,
-    baseCtx,
+    permitted.value,
     options?.resources,
     options?.configValues
   );

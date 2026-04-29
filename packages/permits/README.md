@@ -2,7 +2,7 @@
 
 Scope-based authorization for Trails.
 
-The permits package owns the connector-agnostic `authResource` and `authLayer`. Connector packages bind those declarations to concrete auth logic, just like a surface connector binds a topo to CLI, MCP, or HTTP.
+The permits package owns connector-agnostic auth resources, connectors, and helpers. Core `executeTrail` enforces trail `permit` declarations once a surface has resolved a permit into `ctx.permit`.
 
 ## The core pattern
 
@@ -12,7 +12,7 @@ The permits package owns the connector-agnostic `authResource` and `authLayer`. 
 export const create = trail('gist.create', {
   permit: { scopes: ['gist:write'] },
   blaze: async (input, ctx) => {
-    // authLayer enforces scopes before blaze runs
+    // executeTrail enforces scopes before blaze runs
     return Result.ok(newGist);
   },
 });
@@ -26,19 +26,19 @@ export const search = trail('gist.search', {
 });
 ```
 
-### 2. Register the auth layer
+### 2. Resolve a permit at the trailhead
 
 ```typescript
-import { authLayer } from '@ontrails/permits';
-
 export const graph = topo('my-app', gistModule);
-// Register authLayer with your surface
+// Surface auth verifies credentials and passes { permit } into executeTrail.
 ```
 
-The layer reads each trail's `permit` field:
+The execution pipeline reads each trail's `permit` field:
 
-- `'public'` or `undefined` — layer passes through
-- `{ scopes: [...] }` — layer checks that `ctx.permit` contains all required scopes
+- `'public'` or `undefined` — execution passes through
+- `{ scopes: [...] }` — execution checks that `ctx.permit` contains all required scopes
+
+`authLayer` remains exported as a deprecated compatibility wrapper for older app configuration, but it no longer owns permit enforcement.
 
 ### 3. Bind a connector at bootstrap
 

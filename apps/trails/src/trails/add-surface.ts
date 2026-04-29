@@ -5,12 +5,16 @@
  */
 
 import { existsSync } from 'node:fs';
-import { basename, join, resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { resolveProjectPath, writeProjectFile } from '../project-writes.js';
+import {
+  projectPathExists,
+  resolveProjectPath,
+  writeProjectFile,
+} from '../project-writes.js';
 import {
   ontrailsPackageRange,
   scaffoldDependencyVersions,
@@ -132,8 +136,12 @@ export const addSurface = trail('add.surface', {
     const cwd = resolve(input.dir ?? '.');
     const { surface } = input;
     const entryFile = getEntryFile(surface);
+    const entryExists = projectPathExists(cwd, entryFile);
+    if (entryExists.isErr()) {
+      return Result.err(entryExists.error);
+    }
 
-    if (existsSync(join(cwd, entryFile))) {
+    if (entryExists.value) {
       return Result.err(
         new Error(
           `${surface.toUpperCase()} surface already exists. Nothing to do.`

@@ -1,9 +1,25 @@
-import { describe, expect, mock, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 
 import { Result, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { createApp, surface } from '../surface.js';
+
+let originalConsoleError = console.error;
+let loggedErrors: unknown[][] = [];
+
+beforeEach(() => {
+  originalConsoleError = console.error;
+  loggedErrors = [];
+  console.error = mock((...args: unknown[]) => {
+    loggedErrors.push(args);
+  });
+});
+
+afterEach(() => {
+  console.error = originalConsoleError;
+  loggedErrors = [];
+});
 
 const echoTrail = trail('echo', {
   blaze: (input) => Result.ok({ reply: input.message }),
@@ -110,6 +126,25 @@ describe('surface API (Hono connector)', () => {
     });
   });
 
+  test('malformed Content-Length is rejected as invalid body metadata', async () => {
+    const graph = topo('surface-api', { echoBodyTrail });
+    const app = createApp(graph);
+
+    const response = await app.request('/echo/body', {
+      headers: { 'Content-Length': 'abc' },
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: {
+        category: 'validation',
+        code: 'ValidationError',
+        message: 'Invalid Content-Length header',
+      },
+    });
+  });
+
   test('maxJsonBodyBytes overrides the default JSON body cap', async () => {
     const graph = topo('surface-api', { echoBodyTrail });
     const app = createApp(graph, { maxJsonBodyBytes: 2 * 1024 * 1024 });
@@ -174,128 +209,88 @@ describe('surface API (Hono connector)', () => {
   });
 
   test('generic non-TrailsError results redact public 500 responses and keep diagnostics', async () => {
-    const originalError = console.error;
-    const logged: unknown[][] = [];
-    console.error = mock((...args: unknown[]) => {
-      logged.push(args);
+    const graph = topo('surface-api', { genericErrorTrail });
+    const app = createApp(graph);
+
+    const response = await app.request('/generic/error', {
+      headers: { 'X-Request-ID': 'req-123' },
+      method: 'GET',
     });
 
-    try {
-      const graph = topo('surface-api', { genericErrorTrail });
-      const app = createApp(graph);
-
-      const response = await app.request('/generic/error', {
-        headers: { 'X-Request-ID': 'req-123' },
-        method: 'GET',
-      });
-
-      expect(response.status).toBe(500);
-      expect(await response.json()).toEqual({
-        error: {
-          category: 'internal',
-          code: 'InternalError',
-          message: 'Internal server error',
-        },
-      });
-      expect(logged).toHaveLength(1);
-      expect(logged[0]?.[0]).toBe('[ontrails:hono] Internal error (req-123)');
-      const loggedError = logged[0]?.[1];
-      expect(loggedError).toBeInstanceOf(Error);
-      expect((loggedError as Error).message).toBe('database password=secret');
-    } finally {
-      console.error = originalError;
-    }
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: {
+        category: 'internal',
+        code: 'InternalError',
+        message: 'Internal server error',
+      },
+    });
+    expect(loggedErrors).toHaveLength(1);
+    expect(loggedErrors[0]?.[0]).toBe(
+      '[ontrails:hono] Internal error (req-123)'
+    );
+    const loggedError = loggedErrors[0]?.[1];
+    expect(loggedError).toBeInstanceOf(Error);
+    expect((loggedError as Error).message).toBe('database password=secret');
   });
 
   test('sanitizes request ids before logging diagnostics', async () => {
-    const originalError = console.error;
-    const logged: unknown[][] = [];
-    console.error = mock((...args: unknown[]) => {
-      logged.push(args);
+    const graph = topo('surface-api', { genericErrorTrail });
+    const app = createApp(graph);
+
+    const response = await app.request('/generic/error', {
+      headers: { 'X-Request-ID': 'req-123 forged/line' },
+      method: 'GET',
     });
 
-    try {
-      const graph = topo('surface-api', { genericErrorTrail });
-      const app = createApp(graph);
-
-      const response = await app.request('/generic/error', {
-        headers: { 'X-Request-ID': 'req-123 forged/line' },
-        method: 'GET',
-      });
-
-      expect(response.status).toBe(500);
-      expect(logged).toHaveLength(1);
-      const label = logged[0]?.[0];
-      expect(label).toBe(
-        '[ontrails:hono] Internal error (req-123_forged_line)'
-      );
-      expect(String(label)).not.toContain('req-123 forged');
-      expect(String(label)).not.toContain('forged/line');
-    } finally {
-      console.error = originalError;
-    }
+    expect(response.status).toBe(500);
+    expect(loggedErrors).toHaveLength(1);
+    const label = loggedErrors[0]?.[0];
+    expect(label).toBe('[ontrails:hono] Internal error (req-123_forged_line)');
+    expect(String(label)).not.toContain('req-123 forged');
+    expect(String(label)).not.toContain('forged/line');
   });
 
   test('caps request ids before logging diagnostics', async () => {
-    const originalError = console.error;
-    const logged: unknown[][] = [];
-    console.error = mock((...args: unknown[]) => {
-      logged.push(args);
+    const graph = topo('surface-api', { genericErrorTrail });
+    const app = createApp(graph);
+    const requestId = 'x'.repeat(160);
+
+    const response = await app.request('/generic/error', {
+      headers: { 'X-Request-ID': requestId },
+      method: 'GET',
     });
 
-    try {
-      const graph = topo('surface-api', { genericErrorTrail });
-      const app = createApp(graph);
-      const requestId = 'x'.repeat(160);
-
-      const response = await app.request('/generic/error', {
-        headers: { 'X-Request-ID': requestId },
-        method: 'GET',
-      });
-
-      expect(response.status).toBe(500);
-      expect(logged).toHaveLength(1);
-      expect(logged[0]?.[0]).toBe(
-        `[ontrails:hono] Internal error (${'x'.repeat(128)})`
-      );
-    } finally {
-      console.error = originalError;
-    }
+    expect(response.status).toBe(500);
+    expect(loggedErrors).toHaveLength(1);
+    expect(loggedErrors[0]?.[0]).toBe(
+      `[ontrails:hono] Internal error (${'x'.repeat(128)})`
+    );
   });
 
   test('global Hono errors use the same redacted 500 response', async () => {
-    const originalError = console.error;
-    const logged: unknown[][] = [];
-    console.error = mock((...args: unknown[]) => {
-      logged.push(args);
+    const graph = topo('surface-api', { echoTrail });
+    const app = createApp(graph);
+    app.get('/boom', () => {
+      throw new Error('token=secret');
     });
 
-    try {
-      const graph = topo('surface-api', { echoTrail });
-      const app = createApp(graph);
-      app.get('/boom', () => {
-        throw new Error('token=secret');
-      });
+    const response = await app.request('/boom', {
+      method: 'GET',
+    });
 
-      const response = await app.request('/boom', {
-        method: 'GET',
-      });
-
-      expect(response.status).toBe(500);
-      expect(await response.json()).toEqual({
-        error: {
-          category: 'internal',
-          code: 'InternalError',
-          message: 'Internal server error',
-        },
-      });
-      expect(logged).toHaveLength(1);
-      expect(logged[0]?.[0]).toBe('[ontrails:hono] Internal error');
-      const loggedError = logged[0]?.[1];
-      expect(loggedError).toBeInstanceOf(Error);
-      expect((loggedError as Error).message).toBe('token=secret');
-    } finally {
-      console.error = originalError;
-    }
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: {
+        category: 'internal',
+        code: 'InternalError',
+        message: 'Internal server error',
+      },
+    });
+    expect(loggedErrors).toHaveLength(1);
+    expect(loggedErrors[0]?.[0]).toBe('[ontrails:hono] Internal error');
+    const loggedError = loggedErrors[0]?.[1];
+    expect(loggedError).toBeInstanceOf(Error);
+    expect((loggedError as Error).message).toBe('token=secret');
   });
 });
