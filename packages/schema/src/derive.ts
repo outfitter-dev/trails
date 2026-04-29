@@ -3,6 +3,7 @@
  */
 
 import {
+  deriveStructuredTrailExamples,
   deriveCliPath,
   getContourReferences,
   validateDraftFreeTopo,
@@ -11,12 +12,19 @@ import {
 import type {
   AnyContour,
   AnyResource,
+  FieldOverride,
   Signal,
   Topo,
   Trail,
 } from '@ontrails/core';
 
-import type { JsonSchema, SurfaceMap, SurfaceMapEntry } from './types.js';
+import type {
+  JsonSchema,
+  SurfaceMap,
+  SurfaceMapEntry,
+  SurfaceMapFieldOverride,
+  SurfaceMapFieldOverrideKey,
+} from './types.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -147,6 +155,64 @@ const addTrailRelations = (
   }
 };
 
+const FIELD_OVERRIDE_KEYS: readonly SurfaceMapFieldOverrideKey[] = [
+  'hint',
+  'label',
+  'message',
+  'options',
+];
+
+const collectFieldOverrideKeys = (
+  override: FieldOverride
+): readonly SurfaceMapFieldOverrideKey[] =>
+  FIELD_OVERRIDE_KEYS.filter((key) => override[key] !== undefined);
+
+const deriveFieldOverrides = (
+  fields: Readonly<Record<string, FieldOverride>> | undefined
+): readonly SurfaceMapFieldOverride[] | undefined => {
+  if (fields === undefined) {
+    return undefined;
+  }
+
+  const overrides = Object.entries(fields)
+    .flatMap(([field, override]) => {
+      const overrideKeys = collectFieldOverrideKeys(override);
+      if (overrideKeys.length === 0) {
+        return [];
+      }
+      return [
+        {
+          field,
+          overrides: overrideKeys,
+          provenance: { source: 'trail.fields' as const },
+        },
+      ];
+    })
+    .toSorted((a, b) => a.field.localeCompare(b.field));
+
+  return overrides.length > 0 ? overrides : undefined;
+};
+
+const addFieldOverrides = (
+  entry: Record<string, unknown>,
+  t: Trail<unknown, unknown, unknown>
+): void => {
+  const fieldOverrides = deriveFieldOverrides(t.fields);
+  if (fieldOverrides !== undefined) {
+    entry['fieldOverrides'] = fieldOverrides;
+  }
+};
+
+const addExamples = (
+  entry: Record<string, unknown>,
+  t: Trail<unknown, unknown, unknown>
+): void => {
+  const examples = deriveStructuredTrailExamples(t.examples);
+  if (examples !== undefined) {
+    entry['examples'] = examples;
+  }
+};
+
 const trailToEntry = (t: Trail<unknown, unknown, unknown>): SurfaceMapEntry => {
   const raw = t as unknown as Record<string, unknown>;
   const trailheads = extractTrailheads(raw);
@@ -161,6 +227,8 @@ const trailToEntry = (t: Trail<unknown, unknown, unknown>): SurfaceMapEntry => {
   addSchemas(entry, t);
   addMetadata(entry, t, raw);
   addTrailRelations(entry, t);
+  addFieldOverrides(entry, t);
+  addExamples(entry, t);
 
   return sortKeys(entry) as unknown as SurfaceMapEntry;
 };

@@ -46,7 +46,7 @@ export interface TrailDetailReport {
   readonly crosses: readonly string[];
   readonly id: string;
   readonly intent: 'read' | 'write' | 'destroy';
-  readonly kind: string;
+  readonly kind: 'trail';
   readonly pattern: string | null;
   readonly safety: string;
   readonly resources: readonly string[];
@@ -220,7 +220,7 @@ export const deriveTrailDetail = (
     examples: item.examples ?? [],
     id: item.id,
     intent: item.intent,
-    kind: item.kind,
+    kind: 'trail',
     pattern: item.pattern ?? null,
     resources: item.resources.map((resource) => resource.id).toSorted(),
     safety,

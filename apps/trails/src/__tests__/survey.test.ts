@@ -13,6 +13,7 @@ import {
   deriveSurfaceMap,
   deriveSurfaceMapHash,
   deriveSurfaceMapDiff,
+  deriveOpenApiSpec,
   writeSurfaceMap,
 } from '@ontrails/schema';
 import type { SurfaceMap } from '@ontrails/schema';
@@ -307,8 +308,10 @@ describe('trails survey generate', () => {
         readonly hash: string;
         readonly lockPath: string;
         readonly mapPath: string;
+        readonly mode: 'generate';
       };
 
+      expect(generated.mode).toBe('generate');
       expect(generated.hash).toHaveLength(64);
       expect(existsSync(join(dir, '.trails', '_surface.json'))).toBe(true);
       expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(true);
@@ -369,9 +372,98 @@ describe('trails survey diffSaved', () => {
             id: 'bye',
           }),
         ],
+        mode: 'diff',
       });
     } finally {
       rmSync(dir, { force: true, recursive: true });
+    }
+  });
+});
+
+describe('trails survey output schema', () => {
+  test('uses mode as the public discriminant', () => {
+    expect(
+      surveyTrail.output.safeParse({
+        ...deriveSurveyList(app),
+        mode: 'list',
+      }).success
+    ).toBe(true);
+    expect(
+      surveyTrail.output.safeParse({
+        ...deriveBriefReport(app),
+        mode: 'brief',
+      }).success
+    ).toBe(true);
+    expect(
+      surveyTrail.output.safeParse({
+        detail: deriveTrailDetail(helloTrail),
+        mode: 'detail',
+      }).success
+    ).toBe(true);
+    expect(
+      surveyTrail.output.safeParse({
+        breaking: [],
+        hasBreaking: false,
+        info: [],
+        mode: 'diff',
+        warnings: [],
+      }).success
+    ).toBe(true);
+    expect(
+      surveyTrail.output.safeParse({
+        hash: 'a'.repeat(64),
+        lockPath: '.trails/trails.lock',
+        mapPath: '.trails/_surface.json',
+        mode: 'generate',
+      }).success
+    ).toBe(true);
+    expect(
+      surveyTrail.output.safeParse({
+        mode: 'openapi',
+        spec: deriveOpenApiSpec(app),
+      }).success
+    ).toBe(true);
+
+    // Regression: the openapi spec schema must NOT silently strip extra
+    // fields produced by deriveOpenApiSpec or richer real-world specs.
+    // Zod's default strip mode would drop these; .loose() preserves them.
+    const richSpec = {
+      ...deriveOpenApiSpec(app),
+      components: {
+        schemas: {},
+        securitySchemes: { bearerAuth: { scheme: 'bearer', type: 'http' } },
+      },
+      externalDocs: { url: 'https://example.com/docs' },
+      info: {
+        contact: { email: 'maintainer@example.com', name: 'Maintainer' },
+        license: { name: 'MIT' },
+        title: 'Test',
+        version: '1.0.0',
+      },
+      security: [{ bearerAuth: [] }],
+      tags: [{ description: 'Trail operations', name: 'trails' }],
+    };
+    const parsed = surveyTrail.output.safeParse({
+      mode: 'openapi',
+      spec: richSpec,
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success && parsed.data.mode === 'openapi') {
+      const spec = parsed.data.spec as Record<string, unknown>;
+      expect(spec['security']).toEqual([{ bearerAuth: [] }]);
+      expect(spec['tags']).toEqual([
+        { description: 'Trail operations', name: 'trails' },
+      ]);
+      expect(spec['externalDocs']).toEqual({
+        url: 'https://example.com/docs',
+      });
+      expect(
+        (spec['components'] as Record<string, unknown>)['securitySchemes']
+      ).toEqual({ bearerAuth: { scheme: 'bearer', type: 'http' } });
+      expect((spec['info'] as Record<string, unknown>)['contact']).toEqual({
+        email: 'maintainer@example.com',
+        name: 'Maintainer',
+      });
     }
   });
 });

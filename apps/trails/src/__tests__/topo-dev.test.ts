@@ -109,7 +109,9 @@ describe('topo and dev trails', () => {
         } as never)
       );
       expect(detail.id).toBe('hello');
+      expect(detail.kind).toBe('trail');
       expect(detail.resources).toEqual(['db.main']);
+      expect(topoShowTrail.output.safeParse(detail).success).toBe(true);
 
       const exportResult = expectOk(
         await topoExportTrail.blaze(moduleInput, { cwd: dir } as never)
@@ -157,6 +159,7 @@ describe('topo and dev trails', () => {
       );
       expect(surveyList).toMatchObject({
         count: 2,
+        mode: 'list',
         resourceCount: 1,
       });
 
@@ -171,6 +174,7 @@ describe('topo and dev trails', () => {
           outputSchemas: true,
           resources: true,
         },
+        mode: 'brief',
         name: 'fixture-app',
         trails: 2,
       });
@@ -181,8 +185,11 @@ describe('topo and dev trails', () => {
         } as never)
       );
       expect(surveyDetail).toMatchObject({
-        id: 'hello',
-        resources: ['db.main'],
+        detail: {
+          id: 'hello',
+          resources: ['db.main'],
+        },
+        mode: 'detail',
       });
 
       const guideList = expectOk(
@@ -190,20 +197,23 @@ describe('topo and dev trails', () => {
           cwd: dir,
         } as never)
       );
-      expect(guideList).toEqual([
-        {
-          description: '(no description)',
-          exampleCount: 0,
-          id: 'goodbye',
-          kind: 'trail',
-        },
-        {
-          description: '(no description)',
-          exampleCount: 1,
-          id: 'hello',
-          kind: 'trail',
-        },
-      ]);
+      expect(guideList).toEqual({
+        entries: [
+          {
+            description: '(no description)',
+            exampleCount: 0,
+            id: 'goodbye',
+            kind: 'trail',
+          },
+          {
+            description: '(no description)',
+            exampleCount: 1,
+            id: 'hello',
+            kind: 'trail',
+          },
+        ],
+        mode: 'list',
+      });
 
       const guideDetail = expectOk(
         await guideTrail.blaze({ module: './src/app.ts', trailId: 'hello' }, {
@@ -211,15 +221,18 @@ describe('topo and dev trails', () => {
         } as never)
       );
       expect(guideDetail).toMatchObject({
-        description: null,
-        examples: [
-          {
-            input: {},
-            name: 'Default greeting',
-          },
-        ],
-        id: 'hello',
-        kind: 'trail',
+        detail: {
+          description: null,
+          examples: [
+            {
+              input: {},
+              name: 'Default greeting',
+            },
+          ],
+          id: 'hello',
+          kind: 'trail',
+        },
+        mode: 'detail',
       });
     } finally {
       rmSync(dir, { force: true, recursive: true });

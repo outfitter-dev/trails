@@ -12,7 +12,7 @@ import {
 import type { Layer, TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
-import { deriveMcpTools } from '../build.js';
+import { MCP_TOOL_EXAMPLES_META_KEY, deriveMcpTools } from '../build.js';
 import type { McpExtra, McpToolDefinition } from '../build.js';
 
 // ---------------------------------------------------------------------------
@@ -51,6 +51,7 @@ const exampleTrail = trail('with.examples', {
     },
   ],
   input: z.object({ name: z.string() }),
+  output: z.object({ greeting: z.string() }),
 });
 
 const internalTrail = trail('internal.secret', {
@@ -161,6 +162,139 @@ describe('deriveMcpTools', () => {
       expect(props['message']).toEqual({ type: 'string' });
     });
 
+    test('output schema is projected when declared', () => {
+      const app = topo('myapp', { echoTrail });
+      const schema = requireOnlyTool(buildTools(app)).outputSchema;
+
+      expect(schema?.['type']).toBe('object');
+      const props = schema?.['properties'] as Record<string, unknown>;
+      expect(props['reply']).toEqual({ type: 'string' });
+    });
+
+    test('non-object output schemas are wrapped for MCP structured content', () => {
+      const listTrail = trail('items.list', {
+        blaze: () => Result.ok(['one', 'two']),
+        input: z.object({}),
+        output: z.array(z.string()),
+      });
+
+      const schema = requireOnlyTool(
+        buildTools(topo('myapp', { listTrail }))
+      ).outputSchema;
+
+      expect(schema).toEqual({
+        properties: {
+          data: { items: { type: 'string' }, type: 'array' },
+        },
+        required: ['data'],
+        type: 'object',
+      });
+    });
+
+    test('scalar union output schemas are wrapped for MCP structured content', () => {
+      const scalarUnionTrail = trail('scalar.union', {
+        blaze: () => Result.ok('one'),
+        input: z.object({}),
+        output: z.union([z.string(), z.number()]),
+      });
+
+      const schema = requireOnlyTool(
+        buildTools(topo('myapp', { scalarUnionTrail }))
+      ).outputSchema;
+
+      expect(schema).toEqual({
+        properties: {
+          data: { anyOf: [{ type: 'string' }, { type: 'number' }] },
+        },
+        required: ['data'],
+        type: 'object',
+      });
+    });
+
+    test('mixed-shape unions wrap structured content even when value is an object', async () => {
+      // `z.union([z.object(...), z.string()])` projects to a wrapped
+      // outputSchema (`{ data: ... }`) because the schema is not
+      // homogeneously object-shaped. The runtime structuredContent must
+      // therefore also wrap, even when the value happens to be the object
+      // branch — otherwise outputSchema and structuredContent diverge.
+      const mixedTrail = trail('mixed.union', {
+        blaze: () => Result.ok({ a: 'hello' }),
+        input: z.object({}),
+        output: z.union([z.object({ a: z.string() }), z.string()]),
+      });
+
+      const tool = requireOnlyTool(buildTools(topo('myapp', { mixedTrail })));
+      const schema = tool.outputSchema as Record<string, unknown>;
+      expect(schema['type']).toBe('object');
+      expect(schema['required']).toEqual(['data']);
+
+      const result = await tool.handler({}, noExtra);
+      expect(result?.structuredContent).toEqual({ data: { a: 'hello' } });
+    });
+
+    test('z.any() output wraps object structured content under data envelope', async () => {
+      const anyTrail = trail('anything', {
+        blaze: () => Result.ok({ shape: 'object' }),
+        input: z.object({}),
+        output: z.any(),
+      });
+
+      const tool = requireOnlyTool(buildTools(topo('myapp', { anyTrail })));
+      const schema = tool.outputSchema as Record<string, unknown>;
+      expect(schema['type']).toBe('object');
+      expect(schema['required']).toEqual(['data']);
+
+      const result = await tool.handler({}, noExtra);
+      expect(result?.structuredContent).toEqual({ data: { shape: 'object' } });
+    });
+
+    test('object union output schemas wrap under data envelope (MCP spec)', async () => {
+      // MCP's Tool schema requires `outputSchema` to have literal
+      // `type: "object"` at the root (see @modelcontextprotocol/sdk's
+      // `outputSchema: z.object({ type: z.literal('object'), ... })`).
+      // Discriminated unions emit as `{ anyOf: [...] }`, so they go
+      // through the `wrapAsData` path: schema becomes
+      // `{ type: 'object', properties: { data: { anyOf: [...] } }, required: ['data'] }`,
+      // and structuredContent matches under `data`.
+      const unionTrail = trail('surveyish', {
+        blaze: () => Result.ok({ entries: [], mode: 'list' as const }),
+        input: z.object({}),
+        output: z.discriminatedUnion('mode', [
+          z.object({ entries: z.array(z.unknown()), mode: z.literal('list') }),
+          z.object({ detail: z.string(), mode: z.literal('detail') }),
+        ]),
+      });
+
+      const tool = requireOnlyTool(buildTools(topo('myapp', { unionTrail })));
+      const schema = tool.outputSchema as Record<string, unknown>;
+      expect(schema['type']).toBe('object');
+      expect(schema['required']).toEqual(['data']);
+      const props = schema['properties'] as Record<string, unknown>;
+      expect((props['data'] as Record<string, unknown>)['anyOf']).toEqual([
+        {
+          properties: {
+            entries: { items: {}, type: 'array' },
+            mode: { const: 'list' },
+          },
+          required: ['entries', 'mode'],
+          type: 'object',
+        },
+        {
+          properties: {
+            detail: { type: 'string' },
+            mode: { const: 'detail' },
+          },
+          required: ['detail', 'mode'],
+          type: 'object',
+        },
+      ]);
+
+      const result = await tool.handler({}, noExtra);
+      expect(result?.structuredContent).toEqual({
+        data: { entries: [], mode: 'list' },
+      });
+    });
+
     test('annotations are correctly derived', () => {
       const app = topo('myapp', { deleteTrail, echoTrail });
       const tools = buildTools(app);
@@ -208,6 +342,20 @@ describe('deriveMcpTools', () => {
       expect(parseJsonContent(result?.content[0])).toEqual({
         reply: 'hello',
       });
+      expect(result?.structuredContent).toEqual({ reply: 'hello' });
+    });
+
+    test('handler wraps non-object outputs as structured content data', async () => {
+      const listTrail = trail('items.list', {
+        blaze: () => Result.ok(['one', 'two']),
+        input: z.object({}),
+        output: z.array(z.string()),
+      });
+
+      const tool = requireOnlyTool(buildTools(topo('myapp', { listTrail })));
+      const result = await tool.handler({}, noExtra);
+
+      expect(result?.structuredContent).toEqual({ data: ['one', 'two'] });
     });
 
     test('passes topo to executeTrail so MCP-invoked producers can fan out', async () => {
@@ -413,12 +561,20 @@ describe('deriveMcpTools', () => {
       expect(capturedSignal).toBe(controller.signal);
     });
 
-    test('description includes first example input when present', () => {
+    test('examples are projected as structured MCP metadata', () => {
       const app = topo('myapp', { exampleTrail });
       const tool = requireOnlyTool(buildTools(app));
 
-      expect(tool.description).toContain('A trail with examples');
-      expect(tool.description).toContain('"name":"world"');
+      expect(tool.description).toBe('A trail with examples');
+      expect(tool._meta?.[MCP_TOOL_EXAMPLES_META_KEY]).toEqual([
+        {
+          expected: { greeting: 'hello world' },
+          input: { name: 'world' },
+          kind: 'success',
+          name: 'basic',
+          provenance: { source: 'trail.examples' },
+        },
+      ]);
     });
 
     test('custom createContext is used when provided', async () => {
@@ -546,6 +702,52 @@ describe('deriveMcpTools', () => {
       expect(result?.content[0]?.mimeType).toBe('image/gif');
       expect(result?.content[0]?.data).toBeDefined();
     });
+
+    test('BlobRef output with outputSchema keeps structuredContent present', async () => {
+      const blobTrail = trail('blob.structured', {
+        blaze: () =>
+          Result.ok({
+            attachment: createBlobRef({
+              data: new Uint8Array([1, 2, 3]),
+              mimeType: 'application/pdf',
+              name: 'doc.pdf',
+              size: 3,
+            }),
+            label: 'report',
+          }),
+        input: z.object({}),
+        output: z.object({
+          attachment: z.custom(),
+          label: z.string(),
+        }),
+      });
+
+      const tool = requireOnlyTool(buildTools(topo('myapp', { blobTrail })));
+      expect(tool.outputSchema?.['type']).toBe('object');
+
+      const result = await tool.handler({}, noExtra);
+
+      expect(result?.content).toEqual([
+        {
+          text: JSON.stringify({ label: 'report' }),
+          type: 'text',
+        },
+        {
+          mimeType: 'application/pdf',
+          type: 'resource',
+          uri: 'blob://doc.pdf',
+        },
+      ]);
+      expect(result?.structuredContent).toEqual({
+        attachment: {
+          mimeType: 'application/pdf',
+          name: 'doc.pdf',
+          size: 3,
+          uri: 'blob://doc.pdf',
+        },
+        label: 'report',
+      });
+    });
   });
 
   describe('tool-name collision detection', () => {
@@ -623,6 +825,9 @@ describe('deriveMcpTools', () => {
       const successResult = await tool.handler({ name: 'World' }, noExtra);
       expect(successResult?.isError).toBeUndefined();
       expect(parseJsonContent(successResult?.content[0])).toEqual({
+        greeting: 'Hello, World!',
+      });
+      expect(successResult?.structuredContent).toEqual({
         greeting: 'Hello, World!',
       });
 

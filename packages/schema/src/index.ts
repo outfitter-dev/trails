@@ -20,6 +20,8 @@ export {
 export type {
   SurfaceMap,
   SurfaceMapEntry,
+  SurfaceMapFieldOverride,
+  SurfaceMapFieldOverrideKey,
   SurfaceLock,
   DiffEntry,
   DiffResult,

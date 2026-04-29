@@ -86,10 +86,12 @@ const createMcpServer = (
   // oxlint-disable-next-line require-await -- MCP SDK requires async handler
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: tools.map((t) => ({
+      _meta: t._meta,
       annotations: t.annotations,
       description: t.description,
       inputSchema: t.inputSchema,
       name: t.name,
+      outputSchema: t.outputSchema,
     })),
   }));
 

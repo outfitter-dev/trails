@@ -97,6 +97,17 @@ export {
   shouldIncludeTrailForSurface,
 } from './surface-filter.js';
 export type { SurfaceFilterOptions } from './surface-filter.js';
+export {
+  deriveStructuredSignalExamples,
+  deriveStructuredTrailExamples,
+} from './structured-examples.js';
+export type {
+  StructuredSignalExample,
+  StructuredSignalExampleProvenance,
+  StructuredTrailExample,
+  StructuredTrailExampleKind,
+  StructuredTrailExampleProvenance,
+} from './structured-examples.js';
 
 // Type utilities
 export type {

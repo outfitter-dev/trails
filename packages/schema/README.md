@@ -7,6 +7,7 @@ Most applications reach this package through `trails topo export` and `trails to
 ## What it owns
 
 - deterministic surface-map generation from an established topo
+- structured example and field-override provenance projection for surface-map entries
 - stable hashing for CI drift detection
 - semantic diffing between two surface maps
 - file I/O helpers for `.trails/_surface.json` and `.trails/trails.lock`

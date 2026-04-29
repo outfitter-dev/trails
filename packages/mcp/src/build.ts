@@ -10,6 +10,7 @@ import {
   Result,
   TRAILHEAD_KEY,
   ValidationError,
+  deriveStructuredTrailExamples,
   executeTrail,
   filterSurfaceTrails,
   isBlobRef,
@@ -30,6 +31,8 @@ import type { McpAnnotations } from './annotations.js';
 import { deriveAnnotations } from './annotations.js';
 import { createMcpProgressCallback } from './progress.js';
 import { deriveToolName } from './tool-name.js';
+
+export const MCP_TOOL_EXAMPLES_META_KEY = 'ontrails/examples';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -53,6 +56,7 @@ export interface DeriveMcpToolsOptions {
 }
 
 export interface McpToolDefinition {
+  readonly _meta?: Record<string, unknown> | undefined;
   readonly annotations: McpAnnotations | undefined;
   readonly description: string | undefined;
   readonly handler: (
@@ -61,6 +65,7 @@ export interface McpToolDefinition {
   ) => Promise<McpToolResult>;
   readonly inputSchema: Record<string, unknown>;
   readonly name: string;
+  readonly outputSchema?: Record<string, unknown> | undefined;
   /** The trail ID this tool was derived from. */
   readonly trailId: string;
 }
@@ -76,6 +81,7 @@ export interface McpExtra {
 export interface McpToolResult {
   readonly content: readonly McpContent[];
   readonly isError?: boolean | undefined;
+  readonly structuredContent?: Record<string, unknown> | undefined;
 }
 
 export interface McpContent {
@@ -208,6 +214,99 @@ const serializeOutput = async (
   return [{ text: JSON.stringify(value), type: 'text' }];
 };
 
+const containsBlobRef = (
+  value: unknown,
+  seen = new WeakSet<object>()
+): boolean => {
+  if (isBlobRef(value)) {
+    return true;
+  }
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  if (seen.has(value)) {
+    return false;
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.some((item) => containsBlobRef(item, seen));
+  }
+
+  return Object.values(value as Record<string, unknown>).some((item) =>
+    containsBlobRef(item, seen)
+  );
+};
+
+const blobToStructuredValue = (
+  blob: BlobRef
+): Record<string, string | number> => ({
+  mimeType: blob.mimeType,
+  name: blob.name,
+  size: blob.size,
+  uri: `blob://${blob.name}`,
+});
+
+const toStructuredValue = (
+  value: unknown,
+  seen = new WeakSet<object>()
+): unknown => {
+  if (isBlobRef(value)) {
+    return blobToStructuredValue(value);
+  }
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (seen.has(value)) {
+    return undefined;
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.map((item) => toStructuredValue(item, seen));
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+      key,
+      toStructuredValue(item, seen),
+    ])
+  );
+};
+
+// `wrapAsData` is decided at build time from the schema shape (see
+// `buildOutputSchemaProjection`). It must be threaded through to the runtime
+// because the schema's wrap decision and the runtime value's wrap decision
+// can diverge — e.g. for `z.union([z.object(...), z.string()])` or
+// `z.any()`, the schema declares a `{ data: ... }` envelope but a runtime
+// object value would otherwise be returned unwrapped, breaking the
+// outputSchema/structuredContent contract.
+const toStructuredContent = (
+  value: unknown,
+  wrapAsData: boolean
+): Record<string, unknown> | undefined => {
+  const structuredValue = containsBlobRef(value)
+    ? toStructuredValue(value)
+    : value;
+  if (wrapAsData) {
+    return { data: structuredValue };
+  }
+  if (
+    structuredValue !== null &&
+    typeof structuredValue === 'object' &&
+    !Array.isArray(structuredValue)
+  ) {
+    return structuredValue as Record<string, unknown>;
+  }
+  // When wrapAsData is false the schema's top-level type is `'object'`, and
+  // output validation has already constrained the runtime value to that
+  // shape — a primitive or array reaching this branch indicates the
+  // validation contract was bypassed. Return `undefined` so any future
+  // bypass surfaces as a missing `structuredContent` rather than a silently
+  // wrapped envelope that contradicts the published `outputSchema`.
+  return undefined;
+};
+
 // ---------------------------------------------------------------------------
 // Handler factory
 // ---------------------------------------------------------------------------
@@ -233,7 +332,8 @@ const createHandler =
     graph: Topo,
     t: Trail<unknown, unknown, unknown>,
     layers: readonly Layer[],
-    options: DeriveMcpToolsOptions
+    options: DeriveMcpToolsOptions,
+    wrapAsData: boolean
   ): ((
     args: Record<string, unknown>,
     extra: McpExtra
@@ -250,7 +350,13 @@ const createHandler =
       topo: graph,
     });
     if (result.isOk()) {
-      return { content: await serializeOutput(result.value) };
+      return {
+        content: await serializeOutput(result.value),
+        structuredContent:
+          t.output === undefined
+            ? undefined
+            : toStructuredContent(result.value, wrapAsData),
+      };
     }
     return mcpError(result.error.message);
   };
@@ -269,22 +375,57 @@ const createHandler =
  * - A handler that validates, composes layers, executes, and maps results
  */
 
-/** Build a description with optional example input appended. */
 const buildDescription = (
   trail: Trail<unknown, unknown, unknown>
-): string | undefined => {
-  let { description } = trail;
-  if (
-    description !== undefined &&
-    trail.examples !== undefined &&
-    trail.examples.length > 0
-  ) {
-    const [firstExample] = trail.examples;
-    if (firstExample !== undefined) {
-      description = `${description}\n\nExample input: ${JSON.stringify(firstExample.input)}`;
-    }
+): string | undefined => trail.description;
+
+// MCP requires `outputSchema` to have literal `type: "object"` at the root
+// (see `@modelcontextprotocol/sdk` Tool schema — `outputSchema: z.object({
+// type: z.literal('object'), ... })`). Object-shaped unions like
+// `z.discriminatedUnion(...)` emit as `{ anyOf: [...] }` from
+// `zodToJsonSchema` with no top-level `type`, so we publish them under the
+// data envelope. The shape of `structuredContent` then flows from the
+// `wrapAsData` flag, keeping the runtime aligned with what the schema
+// declares.
+const isMcpStructuredObjectSchema = (
+  schema: Record<string, unknown>
+): boolean => schema['type'] === 'object';
+
+interface OutputSchemaProjection {
+  readonly schema: Record<string, unknown>;
+  readonly wrapAsData: boolean;
+}
+
+const projectMcpOutputSchema = (
+  schema: Parameters<typeof zodToJsonSchema>[0]
+): OutputSchemaProjection => {
+  const raw = zodToJsonSchema(schema);
+  if (isMcpStructuredObjectSchema(raw)) {
+    return { schema: raw, wrapAsData: false };
   }
-  return description;
+  return {
+    schema: {
+      properties: { data: raw },
+      required: ['data'],
+      type: 'object',
+    },
+    wrapAsData: true,
+  };
+};
+
+const buildOutputSchemaProjection = (
+  trail: Trail<unknown, unknown, unknown>
+): OutputSchemaProjection | undefined =>
+  trail.output === undefined ? undefined : projectMcpOutputSchema(trail.output);
+
+const buildMeta = (
+  trail: Trail<unknown, unknown, unknown>
+): Record<string, unknown> | undefined => {
+  const examples = deriveStructuredTrailExamples(trail.examples);
+  if (examples === undefined) {
+    return undefined;
+  }
+  return { [MCP_TOOL_EXAMPLES_META_KEY]: examples };
 };
 
 /** Build a single MCP tool definition from a trail. */
@@ -297,12 +438,21 @@ const buildToolDefinition = (
   const rawAnnotations = deriveAnnotations(trail);
   const annotations =
     Object.keys(rawAnnotations).length > 0 ? rawAnnotations : undefined;
+  const projection = buildOutputSchemaProjection(trail);
   return {
+    _meta: buildMeta(trail),
     annotations,
     description: buildDescription(trail),
-    handler: createHandler(graph, trail, layers, options),
+    handler: createHandler(
+      graph,
+      trail,
+      layers,
+      options,
+      projection?.wrapAsData ?? false
+    ),
     inputSchema: zodToJsonSchema(trail.input),
     name: deriveToolName(graph.name, trail.id),
+    outputSchema: projection?.schema,
     trailId: trail.id,
   };
 };

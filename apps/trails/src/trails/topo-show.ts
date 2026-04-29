@@ -2,28 +2,8 @@ import { NotFoundError, Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
+import { topoDetailOutput } from './topo-output-schemas.js';
 import { buildCurrentTopoDetail } from './topo-read-support.js';
-
-const trailDetailOutput = z.object({
-  crosses: z.array(z.string()),
-  description: z.unknown().nullable(),
-  detours: z.unknown().nullable(),
-  examples: z.array(z.unknown()),
-  id: z.string(),
-  intent: z.enum(['read', 'write', 'destroy']),
-  kind: z.string(),
-  resources: z.array(z.string()),
-  safety: z.string(),
-});
-
-const resourceDetailOutput = z.object({
-  description: z.string().nullable(),
-  health: z.enum(['available', 'none']),
-  id: z.string(),
-  kind: z.literal('resource'),
-  lifetime: z.literal('singleton'),
-  usedBy: z.array(z.string()),
-});
 
 export const topoShowTrail = trail('topo.show', {
   blaze: async (input, ctx) => {
@@ -50,5 +30,5 @@ export const topoShowTrail = trail('topo.show', {
     rootDir: z.string().optional().describe('Workspace root directory'),
   }),
   intent: 'read',
-  output: z.union([trailDetailOutput, resourceDetailOutput]),
+  output: topoDetailOutput,
 });

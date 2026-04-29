@@ -11,15 +11,23 @@ import { z } from 'zod';
 
 const greet = trail('greet', {
   input: z.object({ name: z.string().describe('Who to greet') }),
+  output: z.object({ greeting: z.string() }),
   intent: 'read',
-  blaze: (input) => Result.ok(`Hello, ${input.name}!`),
+  examples: [
+    {
+      expected: { greeting: 'Hello, Ada!' },
+      input: { name: 'Ada' },
+      name: 'Ada',
+    },
+  ],
+  blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
 });
 
 const graph = topo('myapp', { greet });
 await surface(graph);
 ```
 
-This starts an MCP server over stdio with a `myapp_greet` tool. The tool gets `readOnlyHint: true` and a JSON Schema input -- both derived from the trail definition.
+This starts an MCP server over stdio with a `myapp_greet` tool. The tool gets `readOnlyHint: true`, JSON Schema input, JSON Schema output, and structured examples -- all derived from the trail definition.
 
 For more control, build the tools yourself:
 
@@ -31,7 +39,9 @@ if (result.isErr()) throw result.error; // ValidationError on tool-name collisio
 for (const tool of result.value) {
   server.registerTool(tool.name, tool.handler, {
     inputSchema: tool.inputSchema,
+    outputSchema: tool.outputSchema,
     annotations: tool.annotations,
+    _meta: tool._meta,
   });
 }
 ```
@@ -62,6 +72,12 @@ Trail intent, idempotency, and description map directly to MCP annotations:
 | `description` | `title` |
 
 No manual annotation definitions. The contract is the source of truth.
+
+## Schemas and Examples
+
+MCP tool definitions include the trail's input schema, and trails with an `output` schema also project that schema into MCP `outputSchema`. Non-object trail outputs are wrapped in a `{ data: ... }` object because MCP structured tool results are object-shaped.
+
+Trail examples are projected as structured metadata under `_meta["ontrails/examples"]`. Each projected example preserves its input, expected output or error, a success/error kind, and provenance pointing back to the authored `trail.examples` field.
 
 ## Tool naming
 

@@ -2,6 +2,8 @@
  * Types for surface maps, diffing, and lock files.
  */
 
+import type { StructuredTrailExample } from '@ontrails/core';
+
 // ---------------------------------------------------------------------------
 // JSON Schema (lightweight alias)
 // ---------------------------------------------------------------------------
@@ -13,6 +15,20 @@ export interface SurfaceMapContourReference {
   readonly contour: string;
   readonly field: string;
   readonly identity: string;
+}
+
+export type SurfaceMapFieldOverrideKey =
+  | 'hint'
+  | 'label'
+  | 'message'
+  | 'options';
+
+export interface SurfaceMapFieldOverride {
+  readonly field: string;
+  readonly overrides: readonly SurfaceMapFieldOverrideKey[];
+  readonly provenance: {
+    readonly source: 'trail.fields';
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -41,11 +57,13 @@ export interface SurfaceMapEntry {
   readonly identity?: string | undefined;
   readonly references?: readonly SurfaceMapContourReference[] | undefined;
   readonly resources?: readonly string[] | undefined;
+  readonly fieldOverrides?: readonly SurfaceMapFieldOverride[] | undefined;
   readonly detours?:
     | readonly { readonly on: string; readonly maxAttempts: number }[]
     | undefined;
   readonly healthcheck?: boolean | undefined;
   readonly exampleCount: number;
+  readonly examples?: readonly StructuredTrailExample[] | undefined;
   readonly description?: string | undefined;
 }
 

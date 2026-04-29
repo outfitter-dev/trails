@@ -54,7 +54,7 @@ import { Result } from './result.js';
 import { createResourceLookup } from './resource.js';
 import { createResources } from './resource-config.js';
 import { TRAILHEAD_KEY } from './types.js';
-import { validateInput } from './validation.js';
+import { validateInput, validateOutput } from './validation.js';
 
 type MutableTrailContext = {
   -readonly [K in keyof TrailContext]: TrailContext[K];
@@ -856,6 +856,28 @@ const wrapWithDetours = (
   };
 };
 
+const wrapWithOutputValidation = (
+  trail: AnyTrail,
+  implementation: Implementation<unknown, unknown>
+): Implementation<unknown, unknown> => {
+  const { output } = trail;
+  if (output === undefined) {
+    return implementation;
+  }
+
+  return async (input, ctx) => {
+    const result = await implementation(input, ctx);
+    if (result.isErr()) {
+      return result;
+    }
+
+    const validated = validateOutput(output, result.value);
+    return validated.isErr()
+      ? Result.err(validated.error)
+      : Result.ok(validated.value);
+  };
+};
+
 const prepareRunImpl = (
   trail: AnyTrail,
   ctx: TrailContext,
@@ -902,7 +924,7 @@ const prepareRunImpl = (
 
   return {
     ctxWithIntrinsics,
-    impl,
+    impl: wrapWithOutputValidation(trail, impl),
   };
 };
 

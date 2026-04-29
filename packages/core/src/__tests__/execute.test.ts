@@ -14,7 +14,12 @@ import {
   ValidationError,
 } from '../errors';
 import { executeTrail } from '../execute';
-import { TRACE_CONTEXT_KEY, clearTraceSink } from '../internal/tracing';
+import {
+  TRACE_CONTEXT_KEY,
+  clearTraceSink,
+  registerTraceSink,
+} from '../internal/tracing';
+import type { TraceRecord } from '../internal/tracing';
 import { createTrailContext } from '../context';
 import type { Layer } from '../layer';
 import { Result } from '../result';
@@ -400,6 +405,35 @@ describe('executeTrail', () => {
 
         expect(result.isOk()).toBe(true);
         expect(result.unwrap()).toEqual({ value: 'hello' });
+      });
+
+      test('validates successful output before returning it', async () => {
+        const invalidOutputTrail = trail('output.invalid', {
+          blaze: () => Result.ok({ value: 42 }),
+          input: z.object({}),
+          output: z.object({ value: z.string() }),
+        });
+
+        const result = await executeTrail(invalidOutputTrail, {});
+
+        expect(result.isErr()).toBe(true);
+        if (result.isErr()) {
+          expect(result.error).toBeInstanceOf(ValidationError);
+          expect(result.error.message).toContain('Output validation failed');
+        }
+      });
+
+      test('returns parsed output schema values', async () => {
+        const defaultedOutputTrail = trail('output.defaulted', {
+          blaze: () => Result.ok({}),
+          input: z.object({}),
+          output: z.object({ ok: z.boolean().default(true) }),
+        });
+
+        const result = await executeTrail(defaultedOutputTrail, {});
+
+        expect(result.isOk()).toBe(true);
+        expect(result.unwrap()).toEqual({ ok: true });
       });
 
       test('eagerly resolves declared resources before layers and implementation run', async () => {
@@ -1138,6 +1172,30 @@ describe('executeTrail', () => {
 
       expect(result).toEqual(Result.ok({ value: 42 }));
       expect(sawTraceContext).toBe(false);
+    });
+
+    test('records output validation failures as validation trace errors', async () => {
+      const records: TraceRecord[] = [];
+      registerTraceSink({ write: (record) => records.push(record) });
+
+      try {
+        const invalidOutputTrail = trail('trace.output.invalid', {
+          blaze: () => Result.ok({ value: 42 }),
+          input: z.object({}),
+          output: z.object({ value: z.string() }),
+        });
+
+        const result = await executeTrail(invalidOutputTrail, {});
+
+        expect(result.isErr()).toBe(true);
+        const root = records.find(
+          (record) => record.trailId === 'trace.output.invalid'
+        );
+        expect(root?.status).toBe('err');
+        expect(root?.errorCategory).toBe('validation');
+      } finally {
+        clearTraceSink();
+      }
     });
 
     test('rebinds ctx.resource after merging extension overrides from createContext', async () => {

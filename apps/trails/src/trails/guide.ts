@@ -8,6 +8,7 @@ import { NotFoundError, Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { loadApp } from './load-app.js';
+import { trailDetailOutput } from './topo-output-schemas.js';
 import {
   buildCurrentGuideEntries,
   buildCurrentTopoDetail,
@@ -21,7 +22,7 @@ interface GuideEntry {
   readonly description: string;
   readonly exampleCount: number;
   readonly id: string;
-  readonly kind: string;
+  readonly kind: 'trail';
 }
 
 // ---------------------------------------------------------------------------
@@ -41,17 +42,15 @@ export const guideTrail = trail('guide', {
         );
       }
       return Result.ok({
-        description: detail.description,
-        detours: detail.detours,
-        examples: detail.examples,
-        id: detail.id,
-        kind: detail.kind,
+        detail,
+        mode: 'detail' as const,
       });
     }
 
-    return Result.ok(
-      buildCurrentGuideEntries(app, { rootDir }) as GuideEntry[]
-    );
+    return Result.ok({
+      entries: buildCurrentGuideEntries(app, { rootDir }) as GuideEntry[],
+      mode: 'list' as const,
+    });
   },
   description: 'Runtime guidance for trails',
   examples: [
@@ -66,21 +65,21 @@ export const guideTrail = trail('guide', {
     trailId: z.string().optional().describe('Trail ID for detailed guidance'),
   }),
   intent: 'read',
-  output: z.union([
-    z.array(
-      z.object({
-        description: z.string(),
-        exampleCount: z.number(),
-        id: z.string(),
-        kind: z.string(),
-      })
-    ),
+  output: z.discriminatedUnion('mode', [
     z.object({
-      description: z.string().nullable(),
-      detours: z.unknown().nullable(),
-      examples: z.array(z.unknown()),
-      id: z.string(),
-      kind: z.string(),
+      entries: z.array(
+        z.object({
+          description: z.string(),
+          exampleCount: z.number(),
+          id: z.string(),
+          kind: z.literal('trail'),
+        })
+      ),
+      mode: z.literal('list'),
+    }),
+    z.object({
+      detail: trailDetailOutput,
+      mode: z.literal('detail'),
     }),
   ]),
 });

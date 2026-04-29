@@ -4,6 +4,8 @@ import type { AnyTrail } from '@ontrails/core';
 import { ConflictError, trail, topo, Result } from '@ontrails/core';
 import { z } from 'zod';
 
+import { guideTrail } from '../trails/guide.js';
+
 // ---------------------------------------------------------------------------
 // Test fixtures
 // ---------------------------------------------------------------------------
@@ -92,5 +94,44 @@ describe('trails guide', () => {
     expect(t).toBeDefined();
     expect(t.detours).toHaveLength(1);
     expect(t.detours[0]?.on).toBe(ConflictError);
+  });
+
+  test('output schema uses mode as the public discriminant', () => {
+    expect(
+      guideTrail.output.safeParse({
+        entries: [
+          {
+            description: 'Say hello',
+            exampleCount: 2,
+            id: 'hello',
+            kind: 'trail',
+          },
+        ],
+        mode: 'list',
+      }).success
+    ).toBe(true);
+
+    expect(
+      guideTrail.output.safeParse({
+        detail: {
+          crosses: [],
+          description: 'Say hello',
+          detours: [
+            {
+              maxAttempts: 1,
+              on: 'ConflictError',
+            },
+          ],
+          examples: [],
+          id: 'hello',
+          intent: 'read',
+          kind: 'trail',
+          pattern: null,
+          resources: [],
+          safety: 'read',
+        },
+        mode: 'detail',
+      }).success
+    ).toBe(true);
   });
 });

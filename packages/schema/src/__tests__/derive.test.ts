@@ -257,6 +257,98 @@ describe('deriveSurfaceMap', () => {
       expect(map.entries[0]?.exampleCount).toBe(3);
     });
 
+    test('trail entries preserve structured examples with provenance', () => {
+      const t = trail('with.examples', {
+        blaze: noop,
+        examples: [
+          {
+            description: 'Happy path',
+            expected: { y: 2 },
+            input: { x: 1 },
+            name: 'basic',
+          },
+          {
+            error: 'ValidationError',
+            input: { x: -1 },
+            name: 'negative',
+          },
+        ],
+        input: z.object({ x: z.number() }),
+        output: z.object({ y: z.number() }),
+      });
+      const entry = getFirstEntry(deriveSurfaceMap(topoFrom({ t })));
+
+      expect(entry.examples).toEqual([
+        {
+          description: 'Happy path',
+          expected: { y: 2 },
+          input: { x: 1 },
+          kind: 'success',
+          name: 'basic',
+          provenance: { source: 'trail.examples' },
+        },
+        {
+          error: 'ValidationError',
+          input: { x: -1 },
+          kind: 'error',
+          name: 'negative',
+          provenance: { source: 'trail.examples' },
+        },
+      ]);
+    });
+
+    test('omits structured examples that cannot be JSON serialized', () => {
+      const t = trail('with.dynamic.examples', {
+        blaze: noop,
+        examples: [
+          {
+            input: { value: 1n },
+            name: 'bigint input',
+          },
+        ],
+        input: z.any(),
+      });
+      const map = deriveSurfaceMap(topoFrom({ t }));
+      const entry = getFirstEntry(map);
+
+      expect(entry.exampleCount).toBe(1);
+      expect(entry.examples).toBeUndefined();
+      expect(() => JSON.stringify(map)).not.toThrow();
+    });
+
+    test('field overrides expose projection-local provenance', () => {
+      const t = trail('with.field.overrides', {
+        blaze: noop,
+        fields: {
+          name: { hint: 'Shown in prompts' },
+          status: {
+            label: 'State',
+            options: [
+              { hint: 'Ready for use', label: 'Active', value: 'active' },
+            ],
+          },
+        },
+        input: z.object({
+          name: z.string(),
+          status: z.enum(['active', 'inactive']),
+        }),
+      });
+      const entry = getFirstEntry(deriveSurfaceMap(topoFrom({ t })));
+
+      expect(entry.fieldOverrides).toEqual([
+        {
+          field: 'name',
+          overrides: ['hint'],
+          provenance: { source: 'trail.fields' },
+        },
+        {
+          field: 'status',
+          overrides: ['label', 'options'],
+          provenance: { source: 'trail.fields' },
+        },
+      ]);
+    });
+
     test('detours are included with error class names', () => {
       const t = trail('with.detours', {
         blaze: noop,

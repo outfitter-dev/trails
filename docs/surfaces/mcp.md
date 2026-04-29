@@ -62,6 +62,12 @@ Produces the JSON Schema:
 
 `.describe()` annotations on Zod fields become `description` in the JSON Schema -- these are what agents see.
 
+## Output Schema and Examples
+
+When a trail declares `output`, the MCP tool definition includes an `outputSchema` derived from that Zod schema. Schemas whose JSON representation has a top-level `type: "object"` project directly into `structuredContent`. All other schemas -- arrays, scalars, discriminated unions (`anyOf`), intersections (`allOf`), and `z.any()` -- are wrapped in `{ data: ... }` because MCP requires the root of `outputSchema` to be `type: "object"`.
+
+Trail examples are exposed as structured tool metadata under `_meta["ontrails/examples"]`. Each example keeps the authored input, expected output or error, a success/error kind, and provenance pointing back to `trail.examples`; clients do not need to scrape example JSON from prose descriptions.
+
 ## Annotations
 
 Trail intent maps directly to MCP tool annotations:
@@ -90,7 +96,10 @@ Trail results are mapped to MCP tool responses:
 
 ```typescript
 Result.ok({ name: 'Alpha', type: 'concept' });
-// -> { content: [{ type: "text", text: '{"name":"Alpha","type":"concept"}' }] }
+// -> {
+//   content: [{ type: "text", text: '{"name":"Alpha","type":"concept"}' }],
+//   structuredContent: { name: "Alpha", type: "concept" }
+// }
 ```
 
 **Error:**

@@ -24,6 +24,7 @@ import {
   buildCurrentTopoDetail,
   buildCurrentTopoList,
 } from './topo-read-support.js';
+import { topoDetailOutput } from './topo-output-schemas.js';
 import { exportCurrentTopo } from './topo-store-support.js';
 
 export {
@@ -67,12 +68,7 @@ const buildSurveyDiff = async (
   const diff = deriveSurfaceMapDiff(previousMap, currentMap);
   return Result.ok(
     breakingOnly
-      ? formatDiff({
-          ...diff,
-          entries: diff.breaking,
-          info: [],
-          warnings: [],
-        })
+      ? formatDiff({ ...diff, info: [], warnings: [] })
       : formatDiff(diff)
   );
 };
@@ -117,6 +113,8 @@ interface SurveyInput {
 
 type SurveyMode = 'brief' | 'detail' | 'diff' | 'generate' | 'list' | 'openapi';
 
+type SurveyEnvelope = { readonly mode: SurveyMode } & Record<string, unknown>;
+
 /** Ordered mode checks — first truthy predicate wins, otherwise 'list'. */
 const modeChecks: readonly [(input: SurveyInput) => boolean, SurveyMode][] = [
   [(i) => i.brief, 'brief'],
@@ -150,15 +148,32 @@ const surveyHandlers: Record<SurveyMode, SurveyHandler> = {
   openapi: (app) => Result.ok(deriveOpenApiSpec(app)),
 };
 
+const envelopeSurveyValue = (
+  mode: SurveyMode,
+  value: object
+): SurveyEnvelope => {
+  if (mode === 'detail') {
+    return { detail: value, mode };
+  }
+  if (mode === 'openapi') {
+    return { mode, spec: value };
+  }
+  return { ...value, mode };
+};
+
 /** Dispatch to the appropriate survey sub-command based on input flags. */
-const dispatchSurvey = (
+const dispatchSurvey = async (
   app: Topo,
   input: SurveyInput,
   rootDir: string
-): Result<object, Error> | Promise<Result<object, Error>> => {
+): Promise<Result<SurveyEnvelope, Error>> => {
   const mode = deriveSurveyMode(input);
   const handler = surveyHandlers[mode];
-  return handler(app, input, rootDir);
+  const result = await handler(app, input, rootDir);
+  if (result.isErr()) {
+    return result;
+  }
+  return Result.ok(envelopeSurveyValue(mode, result.value));
 };
 
 // ---------------------------------------------------------------------------
@@ -229,7 +244,7 @@ export const surveyTrail = trail('survey', {
     trailId: z.string().optional().describe('Trail ID for detail view'),
   }),
   intent: 'read',
-  output: z.union([
+  output: z.discriminatedUnion('mode', [
     z.object({
       count: z.number(),
       entries: z.array(
@@ -240,6 +255,7 @@ export const surveyTrail = trail('survey', {
           safety: z.string(),
         })
       ),
+      mode: z.literal('list'),
       resourceCount: z.number(),
       resources: z.array(
         z.object({
@@ -261,6 +277,7 @@ export const surveyTrail = trail('survey', {
         resources: z.boolean(),
         signals: z.boolean(),
       }),
+      mode: z.literal('brief'),
       name: z.string(),
       resources: z.number(),
       signals: z.number(),
@@ -271,51 +288,55 @@ export const surveyTrail = trail('survey', {
       breaking: z.array(z.unknown()),
       hasBreaking: z.boolean(),
       info: z.array(z.unknown()),
+      mode: z.literal('diff'),
       warnings: z.array(z.unknown()),
     }),
     z.object({
-      crosses: z.array(z.string()),
-      description: z.unknown().nullable(),
-      detours: z.unknown().nullable(),
-      examples: z.array(z.unknown()),
-      id: z.string(),
-      intent: z.enum(['read', 'write', 'destroy']),
-      kind: z.string(),
-      resources: z.array(z.string()),
-      safety: z.string(),
-    }),
-    z.object({
-      description: z.string().nullable(),
-      health: z.enum(['available', 'none']),
-      id: z.string(),
-      kind: z.literal('resource'),
-      lifetime: z.literal('singleton'),
-      usedBy: z.array(z.string()),
+      detail: topoDetailOutput,
+      mode: z.literal('detail'),
     }),
     z.object({
       hash: z.string(),
       lockPath: z.string(),
       mapPath: z.string(),
+      mode: z.literal('generate'),
     }),
     z.object({
-      components: z.object({
-        schemas: z.record(z.string(), z.unknown()),
-      }),
-      info: z.object({
-        description: z.string().optional(),
-        title: z.string(),
-        version: z.string(),
-      }),
-      openapi: z.literal('3.1.0'),
-      paths: z.record(z.string(), z.record(z.string(), z.unknown())),
-      servers: z
-        .array(
-          z.object({
-            description: z.string().optional(),
-            url: z.string(),
-          })
-        )
-        .optional(),
+      mode: z.literal('openapi'),
+      // OpenAPI 3.1 has many legal top-level and nested fields this schema
+      // doesn't enumerate (security schemes, tags, externalDocs, info.contact
+      // / info.license, etc.). Zod's default strip mode would silently drop
+      // those when wrapWithOutputValidation parses the value, so we pass
+      // extras through and let deriveOpenApiSpec's output reach callers
+      // unchanged.
+      spec: z
+        .object({
+          components: z
+            .object({
+              schemas: z.record(z.string(), z.unknown()),
+            })
+            .loose(),
+          info: z
+            .object({
+              description: z.string().optional(),
+              title: z.string(),
+              version: z.string(),
+            })
+            .loose(),
+          openapi: z.literal('3.1.0'),
+          paths: z.record(z.string(), z.record(z.string(), z.unknown())),
+          servers: z
+            .array(
+              z
+                .object({
+                  description: z.string().optional(),
+                  url: z.string(),
+                })
+                .loose()
+            )
+            .optional(),
+        })
+        .loose(),
     }),
   ]),
 });

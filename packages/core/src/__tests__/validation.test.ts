@@ -260,6 +260,34 @@ describe('zodToJsonSchema', () => {
       });
     });
 
+    test('converts z.discriminatedUnion()', () => {
+      const schema = z.discriminatedUnion('mode', [
+        z.object({ mode: z.literal('list'), value: z.string() }),
+        z.object({ count: z.number(), mode: z.literal('count') }),
+      ]);
+
+      expect(zodToJsonSchema(schema)).toEqual({
+        anyOf: [
+          {
+            properties: {
+              mode: { const: 'list' },
+              value: { type: 'string' },
+            },
+            required: ['mode', 'value'],
+            type: 'object',
+          },
+          {
+            properties: {
+              count: { type: 'number' },
+              mode: { const: 'count' },
+            },
+            required: ['count', 'mode'],
+            type: 'object',
+          },
+        ],
+      });
+    });
+
     test('preserves z.describe()', () => {
       const schema = z.string().describe('A user name');
       expect(zodToJsonSchema(schema)).toEqual({

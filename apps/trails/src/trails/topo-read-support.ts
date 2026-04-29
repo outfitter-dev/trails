@@ -44,22 +44,22 @@ interface StoredSurfaceMapEntry {
   readonly kind: 'resource' | 'signal' | 'trail';
 }
 
-interface CurrentTrailDetail {
+export interface CurrentTrailDetail {
   readonly crosses: string[];
   readonly description: string | null;
   readonly detours:
-    | readonly { readonly on: string; readonly maxAttempts: number }[]
+    | { readonly on: string; readonly maxAttempts: number }[]
     | null;
   readonly examples: unknown[];
   readonly id: string;
   readonly intent: 'destroy' | 'read' | 'write';
-  readonly kind: string;
+  readonly kind: 'trail';
   readonly pattern: string | null;
   readonly resources: string[];
   readonly safety: string;
 }
 
-interface CurrentResourceDetail {
+export interface CurrentResourceDetail {
   readonly description: string | null;
   readonly health: 'available' | 'none';
   readonly id: string;
@@ -152,11 +152,17 @@ const buildTrailDetailFromStore = (
 ): CurrentTrailDetail => ({
   crosses: [...detail.crosses],
   description: detail.description,
-  detours: detail.detours,
+  detours:
+    detail.detours === null
+      ? null
+      : detail.detours.map((detour) => ({
+          maxAttempts: detour.maxAttempts,
+          on: detour.on,
+        })),
   examples: [...detail.examples],
   id: detail.id,
   intent: detail.intent,
-  kind: detail.kind,
+  kind: 'trail',
   pattern: detail.pattern,
   resources: [...detail.resources],
   safety: detail.safety,
@@ -249,7 +255,7 @@ export const buildCurrentGuideEntries = (
   readonly description: string;
   readonly exampleCount: number;
   readonly id: string;
-  readonly kind: string;
+  readonly kind: 'trail';
 }[] => {
   const rootDir = deriveRootDir(options?.rootDir);
   return withCurrentTopoStore(app, rootDir, (store, ref) =>
@@ -257,7 +263,7 @@ export const buildCurrentGuideEntries = (
       description: trail.description ?? '(no description)',
       exampleCount: trail.exampleCount,
       id: trail.id,
-      kind: trail.kind,
+      kind: 'trail',
     }))
   );
 };

@@ -1,5 +1,6 @@
 // Build
 export {
+  MCP_TOOL_EXAMPLES_META_KEY,
   deriveMcpTools,
   type DeriveMcpToolsOptions,
   type McpToolDefinition,
