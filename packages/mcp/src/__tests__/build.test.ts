@@ -701,6 +701,7 @@ describe('deriveMcpTools', () => {
       expect(result?.content[0]?.type).toBe('image');
       expect(result?.content[0]?.mimeType).toBe('image/gif');
       expect(result?.content[0]?.data).toBeDefined();
+      expect(stream.locked).toBe(false);
     });
 
     test('BlobRef output with outputSchema keeps structuredContent present', async () => {

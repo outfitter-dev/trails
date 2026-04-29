@@ -203,10 +203,9 @@ export const withTimeout = <T>(
       );
     }, ms);
 
-    // oxlint-disable-next-line prefer-await-to-then, no-void -- .then() needed inside Promise constructor; void discards unhandled rejection
-    void fn().then(
-      // oxlint-disable-next-line prefer-await-to-callbacks -- callback required inside .then()
-      (result) => {
+    const run = async () => {
+      try {
+        const result = await fn();
         if (settled) {
           return;
         }
@@ -215,9 +214,7 @@ export const withTimeout = <T>(
         signal?.removeEventListener('abort', onAbort);
         // oxlint-disable-next-line promise/no-multiple-resolved -- settled guard ensures single resolution
         resolve(result);
-      },
-      // oxlint-disable-next-line prefer-await-to-callbacks -- rejection handler required inside .then()
-      (error: unknown) => {
+      } catch (error: unknown) {
         if (settled) {
           return;
         }
@@ -229,6 +226,9 @@ export const withTimeout = <T>(
           Result.err(error instanceof Error ? error : new Error(String(error)))
         );
       }
-    );
+    };
+
+    // oxlint-disable-next-line no-void -- fire-and-settle inside Promise constructor
+    void run();
   });
 };

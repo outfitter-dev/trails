@@ -229,6 +229,16 @@ describe('withTimeout', () => {
     expect(err3.error.message).toBe('unexpected');
   });
 
+  test('handles synchronous throws and settles with a Result', async () => {
+    const result = await withTimeout(() => {
+      throw new Error('sync unexpected');
+    }, 1000);
+
+    expect(result.isErr()).toBe(true);
+    const err = result as unknown as { error: Error };
+    expect(err.error.message).toBe('sync unexpected');
+  });
+
   test('includes timeout ms in error context', async () => {
     const result = await withTimeout(
       () =>

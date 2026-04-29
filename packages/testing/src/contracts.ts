@@ -26,18 +26,6 @@ import { deriveTrailExamples } from './effective-examples.js';
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Check if a trail requires cross() but the context doesn't provide it. */
-const needsCrossContext = (
-  t: unknown,
-  resolveCtx: () => Partial<TrailContext> | TestExecutionOptions | undefined
-): boolean => {
-  const spec = t as { crosses?: readonly string[] };
-  if (!spec.crosses || spec.crosses.length === 0) {
-    return false;
-  }
-  return !normalizeTestExecutionOptions(resolveCtx()).ctx?.cross;
-};
-
 const validateOutputSchema = (
   outputSchema: z.ZodType,
   value: unknown,
@@ -87,10 +75,6 @@ export const testContracts = (
       if (t.examples.length === 0) {
         return;
       }
-      if (needsCrossContext(t, resolveInput)) {
-        return;
-      }
-
       const { examples, output: outputSchema } = t;
       const successExamples = examples.filter((e) => e.error === undefined);
 
@@ -111,6 +95,7 @@ export const testContracts = (
           const result = await executeTrail(t, example.input, {
             ctx: testCtx,
             resources,
+            topo: app,
           });
           const resultValue = expectOk(result);
 

@@ -11,7 +11,7 @@ import { run } from '../run';
 import { signal } from '../signal';
 import { topo } from '../topo';
 import { trail } from '../trail';
-import type { Logger } from '../types';
+import type { Logger, TrailContext } from '../types';
 
 const noopLogger: Logger = {
   child() {
@@ -761,6 +761,50 @@ describe('fire', () => {
       const result = await executeTrail(standalone, {});
       expect(result.isOk()).toBe(true);
       expect((result.unwrap() as { hasFire: boolean }).hasFire).toBe(false);
+    });
+
+    test('caller-supplied ctx.fire is preserved even when topo is provided', async () => {
+      // Symmetry with bindCrossToCtx: a test harness or runtime that injects
+      // a custom ctx.fire mock should observe its calls, not have them
+      // silently rebound to the topo-backed dispatcher.
+      const { executeTrail } = await import('../execute');
+      const captured: { signalId?: string; payload?: unknown } = {};
+      const fireMock: NonNullable<TrailContext['fire']> = ((
+        signalArg: unknown,
+        payload: unknown
+      ) => {
+        const id =
+          typeof signalArg === 'string'
+            ? signalArg
+            : (signalArg as { id: string }).id;
+        captured.signalId = id;
+        captured.payload = payload;
+        return Promise.resolve(Result.ok(null as unknown));
+      }) as NonNullable<TrailContext['fire']>;
+
+      const producer = trail('order.create-with-injected-fire', {
+        blaze: async (_input, ctx) => {
+          await ctx.fire?.(orderPlaced, {
+            orderId: 'o-injected',
+            total: 1,
+          });
+          return Result.ok({ ok: true });
+        },
+        fires: ['order.placed'],
+        input: z.object({}),
+      });
+      const consumer = makeConsumer('notify.email', createCapture());
+      const app = topo('preserve-fire', { consumer, orderPlaced, producer });
+
+      const result = await executeTrail(
+        producer,
+        {},
+        { ctx: { fire: fireMock }, topo: app }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(captured.signalId).toBe('order.placed');
+      expect(captured.payload).toEqual({ orderId: 'o-injected', total: 1 });
     });
   });
 

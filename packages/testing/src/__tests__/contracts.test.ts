@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, mock, test } from 'bun:test';
 
-import { contour, Result, resource, trail, topo } from '@ontrails/core';
+import { contour, Result, resource, signal, trail, topo } from '@ontrails/core';
+import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
 import { testContracts } from '../contracts.js';
@@ -53,11 +54,31 @@ const noExamplesTrail = trail('noexamples', {
 // Composition trail
 // ---------------------------------------------------------------------------
 
+const compositionChildBlaze = mock((value: number) =>
+  Result.ok({ total: value })
+);
+
+const compositionChildTrail = trail('composition.child', {
+  blaze: (input: { value: number }) => compositionChildBlaze(input.value),
+  input: z.object({ value: z.number() }),
+  output: z.object({ total: z.number() }),
+});
+
 /** Composition trail whose implementation matches the output schema. */
 const compositionTrail = trail('composition.valid', {
-  blaze: (input: { a: number; b: number }) =>
-    Result.ok({ total: input.a + input.b }),
-  crosses: ['valid'],
+  blaze: async (input: { a: number; b: number }, ctx) => {
+    const crossed = await ctx.cross?.(compositionChildTrail, {
+      value: input.a + input.b,
+    });
+    if (crossed === undefined) {
+      return Result.err(new Error('missing cross context'));
+    }
+    if (crossed.isErr()) {
+      return Result.err(crossed.error);
+    }
+    return Result.ok({ total: crossed.value.total });
+  },
+  crosses: [compositionChildTrail],
   examples: [
     {
       expected: { total: 3 },
@@ -67,6 +88,35 @@ const compositionTrail = trail('composition.valid', {
   ],
   input: z.object({ a: z.number(), b: z.number() }),
   output: z.object({ total: z.number() }),
+});
+
+const compositionContractSignal = signal('composition.contract.fired', {
+  payload: z.object({ id: z.string() }),
+});
+
+const compositionWithFireTrail = trail('composition.withFire', {
+  blaze: async (_input: Record<string, never>, ctx) => {
+    const crossed = await ctx.cross?.(compositionChildTrail, { value: 3 });
+    const fired = await ctx.fire?.(compositionContractSignal, {
+      id: 'contract',
+    });
+
+    return Result.ok({
+      crossed: crossed?.isOk() === true,
+      fired: fired?.isOk() === true,
+    });
+  },
+  crosses: [compositionChildTrail],
+  examples: [
+    {
+      expected: { crossed: true, fired: true },
+      input: {},
+      name: 'Custom cross still keeps fire binding',
+    },
+  ],
+  fires: [compositionContractSignal],
+  input: z.object({}),
+  output: z.object({ crossed: z.literal(true), fired: z.literal(true) }),
 });
 
 const transformedInputTrail = trail('contract.transformed', {
@@ -186,8 +236,56 @@ describe('testContracts: skips trails without examples', () => {
 describe('testContracts: validates output schemas for trails with crossings', () => {
   // eslint-disable-next-line jest/require-hook
   testContracts(
-    topo('test-app', { compositionTrail } as Record<string, unknown>)
+    topo('test-app', {
+      compositionChildTrail,
+      compositionTrail,
+    } as Record<string, unknown>)
   );
+
+  afterAll(() => {
+    expect(compositionChildBlaze).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('testContracts: preserves provided cross context', () => {
+  const providedCross = mock(async () => Result.ok({ total: 3 }));
+
+  // eslint-disable-next-line jest/require-hook
+  testContracts(
+    topo('custom-cross-contract-app', {
+      compositionTrail,
+    } as Record<string, unknown>),
+    {
+      ctx: {
+        cross: providedCross as TrailContext['cross'],
+      },
+    }
+  );
+
+  afterAll(() => {
+    expect(providedCross).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('testContracts: preserves custom cross without suppressing fire', () => {
+  const providedCross = mock(async () => Result.ok({ total: 3 }));
+
+  // eslint-disable-next-line jest/require-hook
+  testContracts(
+    topo('custom-cross-fire-contract-app', {
+      compositionContractSignal,
+      compositionWithFireTrail,
+    } as Record<string, unknown>),
+    {
+      ctx: {
+        cross: providedCross as TrailContext['cross'],
+      },
+    }
+  );
+
+  afterAll(() => {
+    expect(providedCross).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('testContracts: raw transformed input', () => {

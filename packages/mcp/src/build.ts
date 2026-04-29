@@ -117,13 +117,17 @@ const collectStream = async (
   const reader = stream.getReader();
   const chunks: Uint8Array[] = [];
   let totalLength = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      chunks.push(value);
+      totalLength += value.length;
     }
-    chunks.push(value);
-    totalLength += value.length;
+  } finally {
+    reader.releaseLock();
   }
   return concatChunks(chunks, totalLength);
 };

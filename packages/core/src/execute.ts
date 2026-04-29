@@ -657,6 +657,14 @@ const bindFireToCtx = (
   topo: Topo | undefined,
   options: ExecuteTrailOptions | undefined
 ): TrailContext => {
+  // Symmetric with bindCrossToCtx: a caller-supplied ctx.fire (e.g. test
+  // helper, scenario harness, or runtime intercepting signal fan-out) is
+  // preserved as-is. Without this guard, passing both `topo: app` and a
+  // custom `ctx.fire` would silently clobber the injected mock with the
+  // topo-backed dispatcher.
+  if (ctx.fire !== undefined) {
+    return ctx;
+  }
   if (topo === undefined) {
     return ctx;
   }

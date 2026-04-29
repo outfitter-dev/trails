@@ -96,47 +96,50 @@ const createMcpServer = (
   }));
 
   // Register tools/call handler
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const tool = toolMap.get(request.params.name);
-    if (tool === undefined) {
-      return {
-        content: [
-          {
-            text: `Unknown tool: ${request.params.name}`,
-            type: 'text' as const,
-          },
-        ],
-        isError: true,
-      } as Record<string, unknown>;
+  server.setRequestHandler(
+    CallToolRequestSchema,
+    async (request, requestExtra) => {
+      const tool = toolMap.get(request.params.name);
+      if (tool === undefined) {
+        return {
+          content: [
+            {
+              text: `Unknown tool: ${request.params.name}`,
+              type: 'text' as const,
+            },
+          ],
+          isError: true,
+        } as Record<string, unknown>;
+      }
+
+      const args = (request.params.arguments ?? {}) as Record<string, unknown>;
+      const progressToken = request.params._meta?.progressToken;
+
+      const sendProgress =
+        progressToken === undefined
+          ? undefined
+          : async (current: number, total: number) => {
+              await server.notification({
+                method: 'notifications/progress',
+                params: {
+                  progress: current,
+                  progressToken,
+                  total,
+                },
+              });
+            };
+
+      const extra = {
+        abortSignal: requestExtra.signal,
+        progressToken,
+        sendProgress,
+      };
+
+      const result = await tool.handler(args, extra);
+      // Spread to satisfy MCP SDK's index-signature requirement
+      return { ...result } as Record<string, unknown>;
     }
-
-    const args = (request.params.arguments ?? {}) as Record<string, unknown>;
-    const progressToken = request.params._meta?.progressToken;
-
-    const sendProgress =
-      progressToken === undefined
-        ? undefined
-        : async (current: number, total: number) => {
-            await server.notification({
-              method: 'notifications/progress',
-              params: {
-                progress: current,
-                progressToken,
-                total,
-              },
-            });
-          };
-
-    const extra = {
-      abortSignal: undefined as AbortSignal | undefined,
-      progressToken,
-      sendProgress,
-    };
-
-    const result = await tool.handler(args, extra);
-    // Spread to satisfy MCP SDK's index-signature requirement
-    return { ...result } as Record<string, unknown>;
-  });
+  );
 
   return server;
 };
