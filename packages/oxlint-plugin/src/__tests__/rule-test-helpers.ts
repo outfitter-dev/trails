@@ -47,13 +47,53 @@ export const createMemberExpressionNode = (
   type: 'MemberExpression',
 });
 
-export const createImportDeclarationNode = (importSource: string): unknown => ({
+export const createImportDeclarationNode = (
+  importSource: string,
+  specifiers: readonly unknown[] = []
+): unknown => ({
   source: {
     type: 'Literal',
     value: importSource,
   },
+  specifiers,
   type: 'ImportDeclaration',
 });
+
+export const createNamedImportDeclarationNode = (
+  importSource: string,
+  imports: readonly {
+    readonly imported: string;
+    readonly local?: string;
+  }[]
+): unknown =>
+  createImportDeclarationNode(
+    importSource,
+    imports.map(({ imported, local }) => ({
+      imported: {
+        name: imported,
+        type: 'Identifier',
+      },
+      local: {
+        name: local ?? imported,
+        type: 'Identifier',
+      },
+      type: 'ImportSpecifier',
+    }))
+  );
+
+export const createNamespaceImportDeclarationNode = (
+  importSource: string,
+  localName: string
+): unknown =>
+  createImportDeclarationNode(importSource, [
+    {
+      local: {
+        name: localName,
+        type: 'Identifier',
+      },
+      type: 'ImportNamespaceSpecifier',
+    },
+  ]);
 
 export const createExportDeclarationNode = (
   importSource: string,
@@ -82,16 +122,54 @@ export const createRequireCallNode = (importSource: string): unknown => ({
   type: 'CallExpression',
 });
 
-export const runRuleForEvent = ({
-  event,
+export const createRequireBindingNode = (
+  importSource: string,
+  localName: string
+): unknown => ({
+  id: {
+    name: localName,
+    type: 'Identifier',
+  },
+  init: createRequireCallNode(importSource),
+  type: 'VariableDeclarator',
+});
+
+export const createRequireObjectPatternBindingNode = (
+  importSource: string,
+  imports: readonly {
+    readonly imported: string;
+    readonly local?: string;
+  }[]
+): unknown => ({
+  id: {
+    properties: imports.map(({ imported, local }) => ({
+      key: {
+        name: imported,
+        type: 'Identifier',
+      },
+      type: 'Property',
+      value: {
+        name: local ?? imported,
+        type: 'Identifier',
+      },
+    })),
+    type: 'ObjectPattern',
+  },
+  init: createRequireCallNode(importSource),
+  type: 'VariableDeclarator',
+});
+
+export const runRuleForEvents = ({
+  events,
   filename,
-  nodes,
   options,
   rule,
 }: {
-  readonly event: string;
+  readonly events: readonly {
+    readonly event: string;
+    readonly nodes: readonly unknown[];
+  }[];
   readonly filename: string;
-  readonly nodes: readonly unknown[];
   readonly options?: readonly unknown[];
   readonly rule: CreateRule;
 }): readonly CapturedReport[] => {
@@ -117,15 +195,37 @@ export const runRuleForEvent = ({
     string,
     ((node: unknown) => void) | undefined
   >;
-  const listener = listeners[event];
+  for (const { event, nodes } of events) {
+    const listener = listeners[event];
 
-  if (!listener) {
-    return reports;
-  }
+    if (!listener) {
+      continue;
+    }
 
-  for (const node of nodes) {
-    listener(node);
+    for (const node of nodes) {
+      listener(node);
+    }
   }
 
   return reports;
 };
+
+export const runRuleForEvent = ({
+  event,
+  filename,
+  nodes,
+  options,
+  rule,
+}: {
+  readonly event: string;
+  readonly filename: string;
+  readonly nodes: readonly unknown[];
+  readonly options?: readonly unknown[];
+  readonly rule: CreateRule;
+}): readonly CapturedReport[] =>
+  runRuleForEvents({
+    events: [{ event, nodes }],
+    filename,
+    options,
+    rule,
+  });

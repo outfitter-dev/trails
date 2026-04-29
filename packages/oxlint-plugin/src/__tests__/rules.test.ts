@@ -15,8 +15,13 @@ import {
   createIdentifierCallNode,
   createImportDeclarationNode,
   createMemberExpressionNode,
+  createNamedImportDeclarationNode,
+  createNamespaceImportDeclarationNode,
+  createRequireBindingNode,
   createRequireCallNode,
+  createRequireObjectPatternBindingNode,
   runRuleForEvent,
+  runRuleForEvents,
 } from './rule-test-helpers.js';
 
 describe('repo-local rules', () => {
@@ -220,22 +225,184 @@ describe('repo-local rules', () => {
       nodes: [createCallExpressionNode('Bun', 'write')],
       rule: tempAuditDirectFrameworkWritesRule,
     });
-    const directWriteReports = runRuleForEvent({
-      event: 'CallExpression',
+    const directWriteReports = runRuleForEvents({
+      events: [
+        {
+          event: 'ImportDeclaration',
+          nodes: [
+            createNamedImportDeclarationNode('node:fs', [
+              { imported: 'mkdirSync' },
+            ]),
+          ],
+        },
+        {
+          event: 'CallExpression',
+          nodes: [createIdentifierCallNode('mkdirSync')],
+        },
+      ],
       filename: 'apps/trails/src/trails/draft-promote.ts',
-      nodes: [createIdentifierCallNode('mkdirSync')],
       rule: tempAuditDirectFrameworkWritesRule,
     });
-    const directRenameReports = runRuleForEvent({
-      event: 'CallExpression',
+    const directRenameReports = runRuleForEvents({
+      events: [
+        {
+          event: 'ImportDeclaration',
+          nodes: [
+            createNamedImportDeclarationNode('node:fs', [
+              { imported: 'renameSync' },
+            ]),
+          ],
+        },
+        {
+          event: 'CallExpression',
+          nodes: [createIdentifierCallNode('renameSync')],
+        },
+      ],
       filename: 'apps/trails/src/trails/draft-promote.ts',
-      nodes: [createIdentifierCallNode('renameSync')],
       rule: tempAuditDirectFrameworkWritesRule,
     });
-    const directWriteReportsFromImport = runRuleForEvent({
+    const directWriteReportsFromImport = runRuleForEvents({
+      events: [
+        {
+          event: 'ImportDeclaration',
+          nodes: [
+            createNamedImportDeclarationNode('node:fs/promises', [
+              { imported: 'writeFile' },
+            ]),
+          ],
+        },
+        {
+          event: 'CallExpression',
+          nodes: [createIdentifierCallNode('writeFile')],
+        },
+      ],
+      filename: 'apps/trails/src/trails/add-verify.ts',
+      rule: tempAuditDirectFrameworkWritesRule,
+    });
+    const directWriteReportsFromBarePromisesImport = runRuleForEvents({
+      events: [
+        {
+          event: 'ImportDeclaration',
+          nodes: [
+            createNamedImportDeclarationNode('fs/promises', [
+              { imported: 'writeFile' },
+            ]),
+          ],
+        },
+        {
+          event: 'CallExpression',
+          nodes: [createIdentifierCallNode('writeFile')],
+        },
+      ],
+      filename: 'apps/trails/src/trails/add-verify.ts',
+      rule: tempAuditDirectFrameworkWritesRule,
+    });
+    const namespaceWriteReports = runRuleForEvents({
+      events: [
+        {
+          event: 'ImportDeclaration',
+          nodes: [createNamespaceImportDeclarationNode('node:fs', 'nodeFs')],
+        },
+        {
+          event: 'CallExpression',
+          nodes: [createCallExpressionNode('nodeFs', 'writeFile')],
+        },
+      ],
+      filename: 'apps/trails/src/trails/add-verify.ts',
+      rule: tempAuditDirectFrameworkWritesRule,
+    });
+    const namespacePromisesWriteReports = runRuleForEvents({
+      events: [
+        {
+          event: 'ImportDeclaration',
+          nodes: [createNamespaceImportDeclarationNode('fs/promises', 'fsP')],
+        },
+        {
+          event: 'CallExpression',
+          nodes: [createCallExpressionNode('fsP', 'writeFile')],
+        },
+      ],
+      filename: 'apps/trails/src/trails/add-verify.ts',
+      rule: tempAuditDirectFrameworkWritesRule,
+    });
+    const importedPromisesNamespaceReports = runRuleForEvents({
+      events: [
+        {
+          event: 'ImportDeclaration',
+          nodes: [
+            createNamedImportDeclarationNode('node:fs', [
+              { imported: 'promises', local: 'fsPromises' },
+            ]),
+          ],
+        },
+        {
+          event: 'CallExpression',
+          nodes: [createCallExpressionNode('fsPromises', 'writeFile')],
+        },
+      ],
+      filename: 'apps/trails/src/trails/add-verify.ts',
+      rule: tempAuditDirectFrameworkWritesRule,
+    });
+    const requireNamespaceReports = runRuleForEvents({
+      events: [
+        {
+          event: 'VariableDeclarator',
+          nodes: [createRequireBindingNode('node:fs', 'nodeFs')],
+        },
+        {
+          event: 'CallExpression',
+          nodes: [createCallExpressionNode('nodeFs', 'writeFile')],
+        },
+      ],
+      filename: 'apps/trails/src/trails/add-verify.ts',
+      rule: tempAuditDirectFrameworkWritesRule,
+    });
+    const requireDirectReports = runRuleForEvents({
+      events: [
+        {
+          event: 'VariableDeclarator',
+          nodes: [
+            createRequireObjectPatternBindingNode('node:fs', [
+              { imported: 'writeFile' },
+            ]),
+          ],
+        },
+        {
+          event: 'CallExpression',
+          nodes: [createIdentifierCallNode('writeFile')],
+        },
+      ],
+      filename: 'apps/trails/src/trails/add-verify.ts',
+      rule: tempAuditDirectFrameworkWritesRule,
+    });
+    const requirePromisesNamespaceReports = runRuleForEvents({
+      events: [
+        {
+          event: 'VariableDeclarator',
+          nodes: [
+            createRequireObjectPatternBindingNode('fs', [
+              { imported: 'promises', local: 'fsPromises' },
+            ]),
+          ],
+        },
+        {
+          event: 'CallExpression',
+          nodes: [createCallExpressionNode('fsPromises', 'writeFile')],
+        },
+      ],
+      filename: 'apps/trails/src/trails/add-verify.ts',
+      rule: tempAuditDirectFrameworkWritesRule,
+    });
+    const localWrapperReports = runRuleForEvent({
       event: 'CallExpression',
       filename: 'apps/trails/src/trails/add-verify.ts',
       nodes: [createIdentifierCallNode('writeFile')],
+      rule: tempAuditDirectFrameworkWritesRule,
+    });
+    const localMemberReports = runRuleForEvent({
+      event: 'CallExpression',
+      filename: 'apps/trails/src/trails/add-verify.ts',
+      nodes: [createCallExpressionNode('fs', 'writeFile')],
       rule: tempAuditDirectFrameworkWritesRule,
     });
     const packageReports = runRuleForEvent({
@@ -257,6 +424,29 @@ describe('repo-local rules', () => {
     expect(directWriteReportsFromImport[0]?.data).toEqual({
       callName: 'writeFile',
     });
+    expect(directWriteReportsFromBarePromisesImport[0]?.data).toEqual({
+      callName: 'writeFile',
+    });
+    expect(namespaceWriteReports[0]?.data).toEqual({
+      callName: 'nodeFs.writeFile',
+    });
+    expect(namespacePromisesWriteReports[0]?.data).toEqual({
+      callName: 'fsP.writeFile',
+    });
+    expect(importedPromisesNamespaceReports[0]?.data).toEqual({
+      callName: 'fsPromises.writeFile',
+    });
+    expect(requireNamespaceReports[0]?.data).toEqual({
+      callName: 'nodeFs.writeFile',
+    });
+    expect(requireDirectReports[0]?.data).toEqual({
+      callName: 'writeFile',
+    });
+    expect(requirePromisesNamespaceReports[0]?.data).toEqual({
+      callName: 'fsPromises.writeFile',
+    });
+    expect(localWrapperReports).toHaveLength(0);
+    expect(localMemberReports).toHaveLength(0);
     expect(packageReports).toHaveLength(0);
     expect(testReports).toHaveLength(0);
   });
