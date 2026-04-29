@@ -10,11 +10,15 @@ import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import {
-  ensureProjectDirectory,
+  applyProjectOperations,
+  planProjectOperations,
   PROJECT_NAME_MESSAGE,
   PROJECT_NAME_PATTERN,
   resolveProjectDir,
-  writeProjectFile,
+} from '../project-writes.js';
+import type {
+  PlannedProjectOperation,
+  ProjectWriteOperation,
 } from '../project-writes.js';
 import {
   ontrailsPackageRange,
@@ -30,7 +34,9 @@ type Starter = 'empty' | 'entity' | 'hello';
 interface ScaffoldResult {
   readonly created: string[];
   readonly dir: string;
+  readonly dryRun: boolean;
   readonly name: string;
+  readonly plannedOperations: PlannedProjectOperation[];
 }
 
 // ---------------------------------------------------------------------------
@@ -327,20 +333,16 @@ const collectScaffoldFiles = (
     ...starterFileGenerators[starter](),
   ]);
 
-const writeScaffoldFiles = async (
-  projectDir: string,
+const collectScaffoldOperations = (
   fileMap: Map<string, string>
-): Promise<Result<string[], Error>> => {
-  const files: string[] = [];
-  for (const [relativePath, content] of fileMap) {
-    const written = await writeProjectFile(projectDir, relativePath, content);
-    if (written.isErr()) {
-      return written;
-    }
-    files.push(written.value);
-  }
-  return Result.ok(files);
-};
+): ProjectWriteOperation[] => [
+  ...[...fileMap].map(([path, content]) => ({
+    content,
+    kind: 'write' as const,
+    path,
+  })),
+  { kind: 'mkdir' as const, path: '.trails' },
+];
 
 // ---------------------------------------------------------------------------
 // Trail definition
@@ -355,26 +357,33 @@ export const createScaffold = trail('create.scaffold', {
 
     const projectDir = projectDirResult.value;
     const starter = (input.starter ?? 'hello') as Starter;
+    const dryRun = input.dryRun === true;
     const fileMap = collectScaffoldFiles(input.name, starter);
-    const files = await writeScaffoldFiles(projectDir, fileMap);
-    if (files.isErr()) {
-      return Result.err(files.error);
+    const operations = collectScaffoldOperations(fileMap);
+    const plannedOperations = dryRun
+      ? planProjectOperations(projectDir, operations)
+      : await applyProjectOperations(projectDir, operations);
+    if (plannedOperations.isErr()) {
+      return Result.err(plannedOperations.error);
     }
 
-    const trailsDir = ensureProjectDirectory(projectDir, '.trails');
-    if (trailsDir.isErr()) {
-      return Result.err(trailsDir.error);
-    }
+    const created = dryRun ? [] : [...fileMap.keys()];
 
     return Result.ok({
-      created: files.value,
+      created,
       dir: resolve(projectDir),
+      dryRun,
       name: input.name,
+      plannedOperations: plannedOperations.value,
     } satisfies ScaffoldResult);
   },
   description: 'Scaffold a new Trails project',
   input: z.object({
     dir: z.string().optional().describe('Parent directory'),
+    dryRun: z
+      .boolean()
+      .default(false)
+      .describe('Plan scaffold writes without touching the project directory'),
     name: z
       .string()
       .regex(PROJECT_NAME_PATTERN, PROJECT_NAME_MESSAGE)
@@ -386,8 +395,22 @@ export const createScaffold = trail('create.scaffold', {
   }),
   meta: { internal: true },
   output: z.object({
-    created: z.array(z.string()),
+    created: z
+      .array(z.string())
+      .describe('Project-relative paths of files written (empty in dry-run)'),
     dir: z.string(),
+    dryRun: z.boolean(),
     name: z.string(),
+    plannedOperations: z.array(
+      z.discriminatedUnion('kind', [
+        z.object({ kind: z.literal('mkdir'), path: z.string() }),
+        z.object({
+          from: z.string(),
+          kind: z.literal('rename'),
+          to: z.string(),
+        }),
+        z.object({ kind: z.literal('write'), path: z.string() }),
+      ])
+    ),
   }),
 });

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -63,7 +64,10 @@ export const draftPrepare = trail('_draft.entity.prepare', {
   writeFileSync(
     join(dir, 'src', 'export.ts'),
     `import { Result, trail } from '@ontrails/core';
+import { draftPrepare } from './_draft.prepare.js';
 import { z } from 'zod';
+
+export const dependencies = [draftPrepare];
 
 export const exportTrail = trail('entity.export', {
   blaze: async () => Result.ok({ exported: true }),
@@ -83,6 +87,9 @@ const expectDraftPromoteResults = (dir: string): void => {
   );
   expect(readFileSync(join(dir, 'src', 'export.ts'), 'utf8')).toContain(
     "crosses: ['entity.prepare']"
+  );
+  expect(readFileSync(join(dir, 'src', 'export.ts'), 'utf8')).toContain(
+    "from './prepare.js'"
   );
   expect(readFileSync(join(dir, 'src', 'app.ts'), 'utf8')).toContain(
     "from './prepare.js'"
@@ -119,6 +126,79 @@ describe('draft.promote', () => {
           to: 'src/prepare.ts',
         },
       ]);
+      expectDraftPromoteResults(dir);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('plans promotion rewrites without touching disk and applies the same operations', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeDraftPromoteFixture(dir);
+      const originalDraft = readFileSync(
+        join(dir, 'src', '_draft.prepare.ts'),
+        'utf8'
+      );
+      const originalApp = readFileSync(join(dir, 'src', 'app.ts'), 'utf8');
+
+      const dryRun = expectOk(
+        await draftPromoteTrail.blaze(
+          {
+            dryRun: true,
+            fromId: '_draft.entity.prepare',
+            renameFiles: true,
+            rootDir: dir,
+            toId: 'entity.prepare',
+          },
+          { cwd: dir } as never
+        )
+      );
+
+      expect(dryRun.dryRun).toBe(true);
+      expect(dryRun.promotedEstablished).toBe(false);
+      expect(dryRun.plannedOperations).toEqual(
+        expect.arrayContaining([
+          { kind: 'write', path: 'src/_draft.prepare.ts' },
+          {
+            from: 'src/_draft.prepare.ts',
+            kind: 'rename',
+            to: 'src/prepare.ts',
+          },
+          { kind: 'write', path: 'src/app.ts' },
+        ])
+      );
+      expect(
+        dryRun.plannedOperations.filter(
+          (operation) =>
+            operation.kind === 'write' && operation.path === 'src/export.ts'
+        )
+      ).toHaveLength(1);
+      expect(existsSync(join(dir, 'src', '_draft.prepare.ts'))).toBe(true);
+      expect(existsSync(join(dir, 'src', 'prepare.ts'))).toBe(false);
+      expect(readFileSync(join(dir, 'src', '_draft.prepare.ts'), 'utf8')).toBe(
+        originalDraft
+      );
+      expect(readFileSync(join(dir, 'src', 'app.ts'), 'utf8')).toBe(
+        originalApp
+      );
+
+      const applied = expectOk(
+        await draftPromoteTrail.blaze(
+          {
+            fromId: '_draft.entity.prepare',
+            renameFiles: true,
+            rootDir: dir,
+            toId: 'entity.prepare',
+          },
+          { cwd: dir } as never
+        )
+      );
+
+      expect(applied.dryRun).toBe(false);
+      expect(applied.plannedOperations).toEqual(dryRun.plannedOperations);
+      expect(applied.promotedEstablished).toBe(true);
       expectDraftPromoteResults(dir);
     } finally {
       rmSync(dir, { force: true, recursive: true });
@@ -203,5 +283,32 @@ describe('draft.promote', () => {
 
     expect(error).toBeInstanceOf(ValidationError);
     expect(error.message).toContain('rootDir does not exist');
+  });
+
+  test('returns ValidationError when a source file cannot be read', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeDraftPromoteFixture(dir);
+      chmodSync(join(dir, 'src', 'export.ts'), 0o000);
+
+      const error = expectErr(
+        await draftPromoteTrail.blaze(
+          {
+            fromId: '_draft.entity.prepare',
+            renameFiles: true,
+            rootDir: dir,
+            toId: 'entity.prepare',
+          },
+          { cwd: dir } as never
+        )
+      );
+
+      expect(error).toBeInstanceOf(ValidationError);
+      expect(error.message).toContain('Cannot read source file');
+      expect(error.message).toContain('export.ts');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
   });
 });

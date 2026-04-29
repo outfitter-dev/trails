@@ -19,8 +19,12 @@ import {
 import { z } from 'zod';
 
 import {
-  renameContainedProjectPath,
-  writeContainedProjectPath,
+  applyProjectOperations,
+  planProjectOperations,
+} from '../project-writes.js';
+import type {
+  PlannedProjectOperation,
+  ProjectWriteOperation,
 } from '../project-writes.js';
 import { loadFreshAppLease } from './load-app.js';
 import { findTopoPath } from './project.js';
@@ -181,6 +185,7 @@ const toProjectModulePath = (sourceImport: string): string =>
     : sourceImport;
 
 interface PromotionRewriteState {
+  readonly plannedOperations: PlannedProjectOperation[];
   readonly renames: FileRename[];
   readonly updatedSourceFiles: Set<string>;
 }
@@ -255,37 +260,83 @@ const resolveValidatedPromotionRoot = (
   return Result.ok(rootDir);
 };
 
-const rewritePromotedSourceFiles = async (
-  rootDir: string,
+type SourceFileMap = Map<string, string>;
+type WriteProjectOperation = Extract<
+  ProjectWriteOperation,
+  { readonly kind: 'write' }
+>;
+
+const pushWriteOperation = (
+  operations: ProjectWriteOperation[],
+  operation: WriteProjectOperation
+): void => {
+  for (let index = operations.length - 1; index >= 0; index -= 1) {
+    const existing = operations[index];
+    if (
+      existing?.kind === 'rename' &&
+      (existing.from === operation.path || existing.to === operation.path)
+    ) {
+      break;
+    }
+    if (existing?.kind === 'write' && existing.path === operation.path) {
+      operations[index] = operation;
+      return;
+    }
+  }
+
+  operations.push(operation);
+};
+
+const readSourceFiles = async (
+  filePaths: readonly string[]
+): Promise<Result<SourceFileMap, Error>> => {
+  const sources = new Map<string, string>();
+  for (const filePath of filePaths) {
+    try {
+      sources.set(filePath, await Bun.file(filePath).text());
+    } catch (error) {
+      return Result.err(
+        new ValidationError(
+          `Cannot read source file "${filePath}"`,
+          error instanceof Error ? { cause: error } : undefined
+        )
+      );
+    }
+  }
+  return Result.ok(sources);
+};
+
+const planPromotedSourceFiles = (
   filePaths: readonly string[],
+  sources: SourceFileMap,
   fromId: string,
   toId: string,
-  updatedSourceFiles: Set<string>
-): Promise<Result<void, Error>> => {
+  updatedSourceFiles: Set<string>,
+  operations: ProjectWriteOperation[]
+): Result<void, Error> => {
   for (const filePath of filePaths) {
-    const sourceCode = await Bun.file(filePath).text();
+    const sourceCode = sources.get(filePath);
+    if (sourceCode === undefined) {
+      return Result.err(
+        new ValidationError(`Cannot read source file "${filePath}"`)
+      );
+    }
+
     const replaced = replaceIdLiterals(sourceCode, filePath, fromId, toId);
     if (!replaced.changed) {
       continue;
     }
 
-    const written = await writeContainedProjectPath(
-      rootDir,
-      filePath,
-      replaced.nextSource
-    );
-    if (written.isErr()) {
-      return Result.err(written.error);
-    }
+    sources.set(filePath, replaced.nextSource);
+    pushWriteOperation(operations, {
+      content: replaced.nextSource,
+      kind: 'write',
+      path: filePath,
+    });
     updatedSourceFiles.add(filePath);
   }
 
   return Result.ok();
-};
-
-const hasDraftIdsInFile = async (filePath: string): Promise<boolean> => {
-  const sourceCode = await Bun.file(filePath).text();
-  return hasDraftIds(sourceCode, filePath);
 };
 
 const buildPromotableFileRename = (
@@ -309,9 +360,10 @@ const buildPromotableFileRename = (
   return Result.ok({ from: filePath, to: nextPath });
 };
 
-const collectPromotableFileRename = async (
-  filePath: string
-): Promise<Result<FileRename | null, Error>> => {
+const collectPromotableFileRename = (
+  filePath: string,
+  sourceCode: string
+): Result<FileRename | null, Error> => {
   if (!isDraftMarkedFile(filePath)) {
     return Result.ok(null);
   }
@@ -321,7 +373,7 @@ const collectPromotableFileRename = async (
     return Result.ok(null);
   }
 
-  if (await hasDraftIdsInFile(filePath)) {
+  if (hasDraftIds(sourceCode, filePath)) {
     return Result.ok(null);
   }
 
@@ -353,41 +405,24 @@ const validateRenameTargets = (
   return Result.ok();
 };
 
-const collectFileRenames = async (
-  filePaths: readonly string[]
-): Promise<Result<FileRename[], Error>> => {
+const collectFileRenames = (
+  filePaths: readonly string[],
+  sources: SourceFileMap
+): Result<FileRename[], Error> => {
   const renames: FileRename[] = [];
   for (const filePath of filePaths) {
-    const renameResult = await collectPromotableFileRename(filePath);
+    const sourceCode = sources.get(filePath);
+    if (sourceCode === undefined) {
+      return Result.err(
+        new ValidationError(`Cannot read source file "${filePath}"`)
+      );
+    }
+    const renameResult = collectPromotableFileRename(filePath, sourceCode);
     if (renameResult.isErr()) {
       return renameResult;
     }
     if (renameResult.value !== null) {
       renames.push(renameResult.value);
-    }
-  }
-  return Result.ok(renames);
-};
-
-const collectAndApplyFileRenames = async (
-  rootDir: string,
-  filePaths: readonly string[]
-): Promise<Result<FileRename[], Error>> => {
-  const collected = await collectFileRenames(filePaths);
-  if (collected.isErr()) {
-    return collected;
-  }
-
-  const renames = collected.value;
-  const valid = validateRenameTargets(renames);
-  if (valid.isErr()) {
-    return valid;
-  }
-
-  for (const r of renames) {
-    const renamed = renameContainedProjectPath(rootDir, r.from, r.to);
-    if (renamed.isErr()) {
-      return Result.err(renamed.error);
     }
   }
   return Result.ok(renames);
@@ -402,6 +437,30 @@ const applyRenameEffects = (
       updatedSourceFiles.add(rename.to);
     }
   }
+};
+
+const applySourceRenameEffects = (
+  sources: SourceFileMap,
+  renames: readonly FileRename[]
+): void => {
+  for (const rename of renames) {
+    const sourceCode = sources.get(rename.from);
+    if (sourceCode === undefined) {
+      continue;
+    }
+    sources.delete(rename.from);
+    sources.set(rename.to, sourceCode);
+  }
+};
+
+const applyFilePathRenames = (
+  filePaths: readonly string[],
+  renames: readonly FileRename[]
+): string[] => {
+  const renamedBySource = new Map(
+    renames.map((rename) => [rename.from, rename.to])
+  );
+  return filePaths.map((filePath) => renamedBySource.get(filePath) ?? filePath);
 };
 
 const applyRelativeImportRename = (
@@ -449,95 +508,128 @@ const rewriteRelativeImportsForFile = (
   return { changed, sourceCode: nextSourceCode };
 };
 
-const updateRelativeImportsForFile = async (
-  rootDir: string,
+const planRelativeImportsForFile = (
   filePath: string,
-  renames: readonly FileRename[]
-): Promise<Result<boolean, Error>> => {
-  const sourceCode = await Bun.file(filePath).text();
+  renames: readonly FileRename[],
+  sources: SourceFileMap,
+  operations: ProjectWriteOperation[]
+): Result<boolean, Error> => {
+  const sourceCode = sources.get(filePath);
+  if (sourceCode === undefined) {
+    return Result.err(
+      new ValidationError(`Cannot read source file "${filePath}"`)
+    );
+  }
+
   const updated = rewriteRelativeImportsForFile(filePath, renames, sourceCode);
   if (updated.changed) {
-    const written = await writeContainedProjectPath(
-      rootDir,
-      filePath,
-      updated.sourceCode
-    );
-    if (written.isErr()) {
-      return Result.err(written.error);
-    }
+    sources.set(filePath, updated.sourceCode);
+    pushWriteOperation(operations, {
+      content: updated.sourceCode,
+      kind: 'write',
+      path: filePath,
+    });
     return Result.ok(true);
   }
 
   return Result.ok(false);
 };
 
-const updateRelativeImports = async (
-  rootDir: string,
+const planRelativeImports = (
   filePaths: readonly string[],
-  renames: readonly FileRename[]
-): Promise<Result<string[], Error>> => {
-  const updatedFiles = new Set<string>();
-
+  renames: readonly FileRename[],
+  sources: SourceFileMap,
+  updatedSourceFiles: Set<string>,
+  operations: ProjectWriteOperation[]
+): Result<void, Error> => {
   for (const filePath of filePaths) {
-    const changed = await updateRelativeImportsForFile(
-      rootDir,
+    const changed = planRelativeImportsForFile(
       filePath,
-      renames
+      renames,
+      sources,
+      operations
     );
     if (changed.isErr()) {
       return Result.err(changed.error);
     }
     if (changed.value) {
-      updatedFiles.add(filePath);
+      updatedSourceFiles.add(filePath);
     }
   }
 
-  return Result.ok([...updatedFiles].toSorted());
+  return Result.ok();
 };
 
 const rewritePromotionState = async (
   rootDir: string,
   input: {
+    readonly dryRun?: boolean | undefined;
     readonly fromId: string;
     readonly renameFiles: boolean;
     readonly toId: string;
   }
 ): Promise<Result<PromotionRewriteState, Error>> => {
   const initialFiles = collectTsFiles(rootDir);
+  const sourcesResult = await readSourceFiles(initialFiles);
+  if (sourcesResult.isErr()) {
+    return Result.err(sourcesResult.error);
+  }
+  const sources = sourcesResult.value;
+  const operations: ProjectWriteOperation[] = [];
   const updatedSourceFiles = new Set<string>();
 
-  const rewritten = await rewritePromotedSourceFiles(
-    rootDir,
+  const rewritten = planPromotedSourceFiles(
     initialFiles,
+    sources,
     input.fromId,
     input.toId,
-    updatedSourceFiles
+    updatedSourceFiles,
+    operations
   );
   if (rewritten.isErr()) {
     return Result.err(rewritten.error);
   }
 
   const renamesResult = input.renameFiles
-    ? await collectAndApplyFileRenames(rootDir, initialFiles)
+    ? collectFileRenames(initialFiles, sources)
     : Result.ok([] as FileRename[]);
   if (renamesResult.isErr()) {
     return Result.err(renamesResult.error);
   }
 
+  const valid = validateRenameTargets(renamesResult.value);
+  if (valid.isErr()) {
+    return valid;
+  }
+
+  for (const rename of renamesResult.value) {
+    operations.push({ from: rename.from, kind: 'rename', to: rename.to });
+  }
+
   applyRenameEffects(updatedSourceFiles, renamesResult.value);
-  const importUpdates = await updateRelativeImports(
-    rootDir,
-    collectTsFiles(rootDir),
-    renamesResult.value
+  applySourceRenameEffects(sources, renamesResult.value);
+  const importUpdates = planRelativeImports(
+    applyFilePathRenames(initialFiles, renamesResult.value),
+    renamesResult.value,
+    sources,
+    updatedSourceFiles,
+    operations
   );
   if (importUpdates.isErr()) {
     return Result.err(importUpdates.error);
   }
 
-  for (const f of importUpdates.value) {
-    updatedSourceFiles.add(f);
+  const plannedOperations = input.dryRun
+    ? planProjectOperations(rootDir, operations)
+    : await applyProjectOperations(rootDir, operations);
+  if (plannedOperations.isErr()) {
+    return Result.err(plannedOperations.error);
   }
-  return Result.ok({ renames: renamesResult.value, updatedSourceFiles });
+  return Result.ok({
+    plannedOperations: plannedOperations.value,
+    renames: renamesResult.value,
+    updatedSourceFiles,
+  });
 };
 
 const resolvePromotionAppModule = async (
@@ -618,19 +710,33 @@ const toUpdatedFiles = (rootDir: string, updatedSourceFiles: Set<string>) =>
     .toSorted()
     .map((filePath) => toRelativeOutputPath(rootDir, filePath));
 
+const buildUnverifiedPromotionMessage = (
+  loadError: string | null,
+  dryRun: boolean
+): string => {
+  if (dryRun) {
+    return 'Promotion plan is valid. Re-run without dryRun to apply it.';
+  }
+
+  return loadError === null
+    ? 'Promotion rewrote source files, but no topo entrypoint could be loaded for verification.'
+    : `Promotion rewrote source files, but verification failed: ${loadError}`;
+};
+
 const buildUnverifiedPromotionResult = (
   rootDir: string,
   loadError: string | null,
   renames: readonly FileRename[],
   updatedSourceFiles: Set<string>,
-  appModule: string | null
+  appModule: string | null,
+  plannedOperations: readonly PlannedProjectOperation[],
+  dryRun: boolean
 ) =>
   Result.ok({
     appModule,
-    message:
-      loadError === null
-        ? 'Promotion rewrote source files, but no topo entrypoint could be loaded for verification.'
-        : `Promotion rewrote source files, but verification failed: ${loadError}`,
+    dryRun,
+    message: buildUnverifiedPromotionMessage(loadError, dryRun),
+    plannedOperations,
     promotedEstablished: false,
     remainingDraftIds: [],
     renamedFiles: toRenamedFiles(rootDir, renames),
@@ -644,6 +750,7 @@ const buildVerifiedPromotionResult = (
   renames: readonly FileRename[],
   updatedSourceFiles: Set<string>,
   appModule: string | null,
+  plannedOperations: readonly PlannedProjectOperation[],
   toId: string
 ) => {
   const blockingFinding = analysis.findings.find(
@@ -652,11 +759,13 @@ const buildVerifiedPromotionResult = (
 
   return Result.ok({
     appModule,
+    dryRun: false,
     message:
       blockingFinding?.message ??
       (promotedEstablished
         ? `Promoted "${toId}" is now established.`
         : `Promoted "${toId}" could not be verified as established.`),
+    plannedOperations,
     promotedEstablished,
     remainingDraftIds: [...analysis.declaredDraftIds].toSorted(),
     renamedFiles: toRenamedFiles(rootDir, renames),
@@ -670,6 +779,7 @@ const buildVerifiedPromotionResultFromApp = (
   renames: readonly FileRename[],
   updatedSourceFiles: Set<string>,
   appModule: string | null,
+  plannedOperations: readonly PlannedProjectOperation[],
   toId: string
 ) => {
   const analysis = deriveDraftReport(loadedApp);
@@ -684,6 +794,7 @@ const buildVerifiedPromotionResultFromApp = (
     renames,
     updatedSourceFiles,
     appModule,
+    plannedOperations,
     toId
   );
 };
@@ -691,6 +802,7 @@ const buildVerifiedPromotionResultFromApp = (
 const promoteDraftState = async (
   input: {
     readonly appModule?: string | undefined;
+    readonly dryRun?: boolean | undefined;
     readonly fromId: string;
     readonly renameFiles: boolean;
     readonly rootDir?: string | undefined;
@@ -710,6 +822,18 @@ const promoteDraftState = async (
 
   const { renames, updatedSourceFiles } = rewriteResult.value;
   const appModule = await resolvePromotionAppModule(input, rootDirResult.value);
+  if (input.dryRun === true) {
+    return buildUnverifiedPromotionResult(
+      rootDirResult.value,
+      null,
+      renames,
+      updatedSourceFiles,
+      appModule,
+      rewriteResult.value.plannedOperations,
+      true
+    );
+  }
+
   const { load, value } = await withVerifiedApp(
     appModule,
     rootDirResult.value,
@@ -720,6 +844,7 @@ const promoteDraftState = async (
         renames,
         updatedSourceFiles,
         appModule,
+        rewriteResult.value.plannedOperations,
         input.toId
       )
   );
@@ -731,7 +856,9 @@ const promoteDraftState = async (
       load.loadError,
       renames,
       updatedSourceFiles,
-      appModule
+      appModule,
+      rewriteResult.value.plannedOperations,
+      false
     )
   );
 };
@@ -758,6 +885,10 @@ export const draftPromoteTrail = trail('draft.promote', {
       .string()
       .optional()
       .describe('Optional app module to verify after promotion'),
+    dryRun: z
+      .boolean()
+      .default(false)
+      .describe('Plan promotion rewrites without touching source files'),
     fromId: z.string().describe('Draft id to promote'),
     renameFiles: z
       .boolean()
@@ -771,7 +902,19 @@ export const draftPromoteTrail = trail('draft.promote', {
   intent: 'write',
   output: z.object({
     appModule: z.string().nullable(),
+    dryRun: z.boolean(),
     message: z.string(),
+    plannedOperations: z.array(
+      z.discriminatedUnion('kind', [
+        z.object({ kind: z.literal('mkdir'), path: z.string() }),
+        z.object({
+          from: z.string(),
+          kind: z.literal('rename'),
+          to: z.string(),
+        }),
+        z.object({ kind: z.literal('write'), path: z.string() }),
+      ])
+    ),
     promotedEstablished: z.boolean(),
     remainingDraftIds: z.array(z.string()),
     renamedFiles: z.array(

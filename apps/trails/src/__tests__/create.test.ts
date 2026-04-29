@@ -301,6 +301,61 @@ describe('trails create', () => {
       });
     });
 
+    test('plans scaffold writes without touching disk and applies the same operations', async () => {
+      await withTempProject(async (dir) => {
+        const dryRun = expectOk(
+          await createScaffold.blaze(
+            {
+              dir: dirname(dir),
+              dryRun: true,
+              name: basename(dir),
+              starter: 'hello',
+            },
+            {} as never
+          )
+        );
+
+        expect(dryRun.dryRun).toBe(true);
+        expect(dryRun.created).toEqual([]);
+        expect(dryRun.plannedOperations).toEqual(
+          expect.arrayContaining([
+            { kind: 'write', path: 'package.json' },
+            { kind: 'write', path: 'src/app.ts' },
+            { kind: 'mkdir', path: '.trails' },
+          ])
+        );
+        expect(existsSync(dir)).toBe(false);
+
+        const applied = expectOk(
+          await createScaffold.blaze(
+            {
+              dir: dirname(dir),
+              name: basename(dir),
+              starter: 'hello',
+            },
+            {} as never
+          )
+        );
+
+        expect(applied.dryRun).toBe(false);
+        expect(applied.plannedOperations).toEqual(dryRun.plannedOperations);
+        expectPaths(
+          dir,
+          [
+            'package.json',
+            'tsconfig.json',
+            '.gitignore',
+            'oxlint.config.ts',
+            '.oxfmtrc.jsonc',
+            'src/app.ts',
+            '.trails',
+            'src/trails/hello.ts',
+          ],
+          true
+        );
+      });
+    });
+
     test('generates with entity starter', async () => {
       await withTempProject(async (dir) => {
         expectOk(await runCreate(dir, { starter: 'entity' }));
