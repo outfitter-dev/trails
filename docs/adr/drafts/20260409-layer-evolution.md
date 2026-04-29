@@ -3,12 +3,18 @@ slug: layer-evolution
 title: Layer Evolution
 status: draft
 created: 2026-04-09
-updated: 2026-04-09
+updated: 2026-04-28
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [6, 12]
 ---
 
 # ADR: Layer Evolution
+
+> Current v1 posture: this ADR remains a future-facing draft. The shipped API
+> keeps `Layer` and `composeLayers()` as low-level execution plumbing passed
+> through `run()` and surface options. Layers are not topo primitives, trail spec
+> fields, or serialized graph nodes unless this evolution work is accepted and
+> implemented.
 
 ## Context
 

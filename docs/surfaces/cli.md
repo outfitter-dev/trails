@@ -250,7 +250,10 @@ await surface(graph, {
 });
 ```
 
-## Built-in Layers
+## CLI Execution Layers
+
+These are CLI-scoped execution helpers, not topo primitives or trail-spec
+fields. They are passed through the CLI surface's execution options.
 
 ### `autoIterateLayer`
 

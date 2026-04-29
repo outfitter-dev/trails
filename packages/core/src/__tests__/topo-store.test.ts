@@ -87,6 +87,7 @@ const exampleApp = () => {
 
   const entityAdded = signal('entity.added', {
     description: 'An entity was added',
+    examples: [{ id: 'ada' }],
     from: ['entity.add'],
     payload: z.object({ id: z.string() }),
   });

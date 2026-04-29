@@ -30,11 +30,13 @@ import { exportCurrentTopo } from './topo-store-support.js';
 export {
   deriveBriefReport,
   deriveResourceDetail,
+  deriveSignalDetail,
   deriveSurveyList,
   deriveTrailDetail,
 } from './topo-reports.js';
 export type {
   BriefReport,
+  SignalDetailReport,
   SurveyListReport,
   TrailDetailReport,
 } from './topo-reports.js';
@@ -75,15 +77,15 @@ const buildSurveyDiff = async (
 
 const buildSurveyDetail = (
   app: Topo,
-  trailId: string,
+  entityId: string,
   rootDir: string
 ): Result<object, Error> => {
-  const detail = buildCurrentTopoDetail(app, trailId, { rootDir });
+  const detail = buildCurrentTopoDetail(app, entityId, { rootDir });
   if (detail !== undefined) {
     return Result.ok(detail);
   }
   return Result.err(
-    new NotFoundError(`Trail or resource not found: ${trailId}`)
+    new NotFoundError(`Trail, resource, or signal not found: ${entityId}`)
   );
 };
 
@@ -241,7 +243,10 @@ export const surveyTrail = trail('survey', {
       .describe('Generate surface map and lock file'),
     module: z.string().optional().describe('Path to the app module'),
     openapi: z.boolean().default(false).describe('Output OpenAPI 3.1 spec'),
-    trailId: z.string().optional().describe('Trail ID for detail view'),
+    trailId: z
+      .string()
+      .optional()
+      .describe('Trail, resource, or signal ID for detail view'),
   }),
   intent: 'read',
   output: z.discriminatedUnion('mode', [
@@ -265,6 +270,19 @@ export const surveyTrail = trail('survey', {
           kind: z.literal('resource'),
           lifetime: z.literal('singleton'),
           usedBy: z.array(z.string()),
+        })
+      ),
+      signalCount: z.number(),
+      signals: z.array(
+        z.object({
+          consumers: z.array(z.string()).readonly(),
+          description: z.string().nullable(),
+          examples: z.number(),
+          from: z.array(z.string()).readonly(),
+          id: z.string(),
+          kind: z.literal('signal'),
+          payloadSchema: z.boolean(),
+          producers: z.array(z.string()).readonly(),
         })
       ),
     }),

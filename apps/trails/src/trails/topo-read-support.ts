@@ -23,7 +23,11 @@ import {
 } from '@ontrails/core/internal/trails-db';
 import { readSurfaceLockData } from '@ontrails/schema';
 
-import type { BriefReport, SurveyListReport } from './topo-reports.js';
+import type {
+  BriefReport,
+  SignalDetailReport,
+  SurveyListReport,
+} from './topo-reports.js';
 import type { TopoSummaryReport, TopoVerifyReport } from './topo-support.js';
 import { REPORT_CONTRACT_VERSION, REPORT_VERSION } from './topo-constants.js';
 import {
@@ -124,6 +128,7 @@ const buildSurveyListFromStore = (
 ): SurveyListReport => {
   const trails = store.trails.list({ snapshot: ref });
   const resources = store.resources.list({ snapshot: ref });
+  const signals = store.signals.list({ snapshot: ref });
 
   return {
     count: trails.length,
@@ -141,6 +146,17 @@ const buildSurveyListFromStore = (
       kind: resource.kind,
       lifetime: resource.lifetime,
       usedBy: resource.usedBy,
+    })),
+    signalCount: signals.length,
+    signals: signals.map((signal) => ({
+      consumers: signal.consumers,
+      description: signal.description,
+      examples: signal.exampleCount,
+      from: signal.from,
+      id: signal.id,
+      kind: signal.kind,
+      payloadSchema: signal.payloadSchema,
+      producers: signal.producers,
     })),
   };
 };
@@ -179,6 +195,21 @@ const buildResourceDetailFromStore = (
   kind: resource.kind,
   lifetime: resource.lifetime,
   usedBy: [...resource.usedBy],
+});
+
+const buildSignalDetailFromStore = (
+  signal: NonNullable<
+    ReturnType<ReturnType<typeof createTopoStore>['signals']['get']>
+  >
+): SignalDetailReport => ({
+  consumers: [...signal.consumers],
+  description: signal.description,
+  examples: [...signal.examples],
+  from: [...signal.from],
+  id: signal.id,
+  kind: signal.kind,
+  payload: signal.payload ?? null,
+  producers: [...signal.producers],
 });
 
 // ---------------------------------------------------------------------------
@@ -272,7 +303,11 @@ export const buildCurrentTopoDetail = (
   app: Topo,
   id: string,
   options?: { readonly rootDir?: string }
-): CurrentResourceDetail | CurrentTrailDetail | undefined => {
+):
+  | CurrentResourceDetail
+  | CurrentTrailDetail
+  | SignalDetailReport
+  | undefined => {
   const rootDir = deriveRootDir(options?.rootDir);
   return withCurrentTopoStore(app, rootDir, (store, ref) => {
     const trail = store.trails.get(id, { snapshot: ref });
@@ -281,9 +316,14 @@ export const buildCurrentTopoDetail = (
     }
 
     const resource = store.resources.get(id, { snapshot: ref });
-    return resource === undefined
+    if (resource !== undefined) {
+      return buildResourceDetailFromStore(resource);
+    }
+
+    const signal = store.signals.get(id, { snapshot: ref });
+    return signal === undefined
       ? undefined
-      : buildResourceDetailFromStore(resource);
+      : buildSignalDetailFromStore(signal);
   });
 };
 

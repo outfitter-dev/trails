@@ -42,6 +42,19 @@ const summaryOutput = z.object({
         usedBy: z.array(z.string()),
       })
     ),
+    signalCount: z.number(),
+    signals: z.array(
+      z.object({
+        consumers: z.array(z.string()).readonly(),
+        description: z.string().nullable(),
+        examples: z.number(),
+        from: z.array(z.string()).readonly(),
+        id: z.string(),
+        kind: z.literal('signal'),
+        payloadSchema: z.boolean(),
+        producers: z.array(z.string()).readonly(),
+      })
+    ),
   }),
   lockExists: z.boolean(),
   lockPath: z.string(),

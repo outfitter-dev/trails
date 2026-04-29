@@ -56,7 +56,7 @@ executeTrail(trail, rawInput, options?) // validate → resolve context → reso
 run(topo, id, input, options?)    // look up and execute a trail by ID; accepts ctx/resource overrides
 RunOptions
 
-// Layers
+// Execution layers (pipeline utility, not a v1 graph primitive)
 Layer                               // wrap(trail, implementation) → implementation
 composeLayers(layers, trail, implementation)
 

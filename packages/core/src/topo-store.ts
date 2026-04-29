@@ -21,14 +21,18 @@ import type {
   TopoStoreExportRecord,
   TopoStoreResourceRecord,
   TopoStoreRef,
+  TopoStoreSignalDetailRecord,
+  TopoStoreSignalRecord,
   TopoStoreTrailDetailRecord,
   TopoStoreTrailRecord,
 } from './internal/topo-store-read.js';
 import {
   getTopoStoreExport,
   getTopoStoreResource,
+  getTopoStoreSignal,
   getTopoStoreTrail,
   listTopoStoreResources,
+  listTopoStoreSignals,
   listTopoStoreSnapshots,
   listTopoStoreTrails,
   queryTopoStore,
@@ -170,6 +174,8 @@ export type {
   TopoStoreExportRecord,
   TopoStoreResourceRecord,
   TopoStoreRef,
+  TopoStoreSignalDetailRecord,
+  TopoStoreSignalRecord,
   TopoStoreTrailDetailRecord,
   TopoStoreTrailRecord,
 } from './internal/topo-store-read.js';
@@ -196,6 +202,15 @@ export interface ReadOnlyTopoStore {
       readonly snapshot?: TopoStoreRef;
     }): readonly TopoStoreResourceRecord[];
   };
+  readonly signals: {
+    get(
+      id: string,
+      options?: { readonly snapshot?: TopoStoreRef }
+    ): TopoStoreSignalDetailRecord | undefined;
+    list(options?: {
+      readonly snapshot?: TopoStoreRef;
+    }): readonly TopoStoreSignalRecord[];
+  };
   readonly snapshots: {
     get(ref?: TopoStoreRef): TopoSnapshot | undefined;
     latest(): TopoSnapshot | undefined;
@@ -216,6 +231,7 @@ export interface ReadOnlyTopoStore {
 export interface MockTopoStoreSeed {
   readonly exports?: readonly TopoStoreExportRecord[];
   readonly resources?: readonly TopoStoreResourceRecord[];
+  readonly signals?: readonly TopoStoreSignalDetailRecord[];
   readonly snapshots?: readonly TopoSnapshot[];
   readonly trails?: readonly TopoStoreTrailDetailRecord[];
 }
@@ -262,6 +278,7 @@ const createSeedResolver = (seed?: MockTopoStoreSeed) => {
   const snapshots = [...(seed?.snapshots ?? [])];
   const trails = [...(seed?.trails ?? [])];
   const resources = [...(seed?.resources ?? [])];
+  const signals = [...(seed?.signals ?? [])];
   const exports = [...(seed?.exports ?? [])];
 
   const resolveSnapshot = (ref?: TopoStoreRef): TopoSnapshot | undefined => {
@@ -278,6 +295,7 @@ const createSeedResolver = (seed?: MockTopoStoreSeed) => {
     exports,
     resolveSnapshot,
     resources,
+    signals,
     snapshots,
     trails,
   };
@@ -318,6 +336,26 @@ export const createMockTopoStore = (
           : resolved.resources.filter(
               (item) => item.snapshotId === snapshot.id
             );
+      },
+    },
+    signals: {
+      get(id, options) {
+        const snapshot = resolved.resolveSnapshot(options?.snapshot);
+        if (snapshot === undefined) {
+          return;
+        }
+        return resolved.signals.find(
+          (signal) => signal.id === id && signal.snapshotId === snapshot.id
+        );
+      },
+      list(options) {
+        const snapshot = resolved.resolveSnapshot(options?.snapshot);
+        if (snapshot === undefined) {
+          return [];
+        }
+        return resolved.signals.filter(
+          (signal) => signal.snapshotId === snapshot.id
+        );
       },
     },
     snapshots: {
@@ -402,6 +440,18 @@ export const createTopoStore = (
     list(queryOptions) {
       return withStoredTopoState(options, (db) =>
         listTopoStoreResources(db, queryOptions)
+      );
+    },
+  },
+  signals: {
+    get(id, queryOptions) {
+      return withStoredTopoState(options, (db) =>
+        getTopoStoreSignal(db, id, queryOptions)
+      );
+    },
+    list(queryOptions) {
+      return withStoredTopoState(options, (db) =>
+        listTopoStoreSignals(db, queryOptions)
       );
     },
   },

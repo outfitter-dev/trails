@@ -105,9 +105,11 @@ Status codes come directly from the error taxonomy -- the same mapping used acro
 
 Unrecognized errors (non-`TrailsError` exceptions) return 500 with `category: 'internal'`.
 
-## Layers as Layers
+## Execution Layers
 
-Layers compose the same way as on CLI and MCP -- they wrap trail implementations:
+HTTP accepts execution layers in the surface options. They wrap trail
+implementations for requests on that surface; they are not declared on the topo
+or surfaced as contract graph nodes in v1.
 
 ```typescript
 import { surface } from '@ontrails/hono';
@@ -135,7 +137,7 @@ options bag. The most useful fields are:
 | `hostname` | `string` | `'0.0.0.0'` | Bind address used by `surface()` |
 | `include` | `readonly string[]` | *none* | Narrow the surface to matching trail IDs |
 | `intent` | `readonly Intent[]` | *none* | Filter exposed trails by intent |
-| `layers` | `readonly Layer[]` | `[]` | Layers to compose around implementations |
+| `layers` | `readonly Layer[]` | `[]` | Execution layers to compose around implementations |
 | `name` | `string` | *none* | Accepted but currently unused — reserved for future use |
 | `port` | `number` | `3000` | Listen port used by `surface()` |
 | `resources` | `ResourceOverrideMap` | *none* | Explicit resource instances for this surface |

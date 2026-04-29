@@ -23,7 +23,7 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 |  signal() -> Signal   |
                 |  topo() -> Topo       |
                 |  Result, Errors       |
-                |  Layer, Topo           |
+                |  execute/run pipeline |
                 |                       |
                 +---------+-------------+
                           |
@@ -137,7 +137,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 
 ### Foundation
 
-`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, `contour()`/`trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, layers, and connector port interfaces.
+`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, `contour()`/`trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, execution pipeline utilities including `Layer`/`composeLayers()`, and connector port interfaces.
 
 **The test:** if you are building a surface connector or ecosystem package, you should only need `@ontrails/core`.
 
@@ -235,10 +235,10 @@ CLI input ("myapp entity show --name Alpha")
   -> Zod validates input against trail's schema
   -> TrailContext created (requestId, logger, abortSignal, env, cwd)
   -> Declared resources resolved into ctx
-  -> Layers run (auth, rate limit, telemetry)
+  -> Execution layers run (auth, rate limit, telemetry)
   -> implementation(validatedInput, ctx) called
   -> Result returned
-  -> Layers post-process
+  -> Execution layers post-process
   -> Result mapped to exit code + stdout output
 ```
 
@@ -292,7 +292,7 @@ executeTrail(trail, rawInput, options?)
   -> Zod validates rawInput against trail's input schema
   -> TrailContext resolved from options/createContext
   -> Declared resources resolved into ctx
-  -> Layers composed via composeLayers()
+  -> Execution layers composed via composeLayers()
   -> implementation(validatedInput, ctx) called
   -> Result returned
 ```

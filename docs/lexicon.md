@@ -224,15 +224,20 @@ Terms that name concepts existing cleanly across software. The standard word wor
 
 ### `layer`
 
-A cross-cutting wrapper around trail execution. Layers add behavior to the
-execution pipeline: dry-run, pagination, verbose, telemetry. Most layers don't
-block — they augment. Attaches at three levels: trail, surface, or graph.
+A low-level wrapper around one trail execution. In v1, a layer is execution
+plumbing passed through `run()` or surface options. It is not a topo primitive,
+not a trail spec field, and not serialized as a graph node. Use it for
+surface- or invocation-scoped behavior such as auth gates, rate limits,
+telemetry wrappers, or CLI convenience behavior.
 
 ```typescript
-const graph = topo('myapp', entityModule, {
-  layers: [verboseLayer, paginationLayer],
+await surface(graph, {
+  layers: [authLayer, telemetryLayer],
 });
 ```
+
+Typed, queryable, graph-aware layers are future design work, tracked in the
+draft layer-evolution ADR.
 
 ### `resource` / `resources`
 
@@ -391,7 +396,7 @@ These are directional. They should not be reused for unrelated concepts.
 These rules carry over from ADR-0001 and govern how the lexicon composes:
 
 - **Singular nouns define:** `trail()`, `signal()`, `resource()`
-- **Plural fields declare:** `signals:`, `resources:`, `crosses:`, `layers:`, `fires:`, `on:`
+- **Plural fields declare:** `signals:`, `resources:`, `crosses:`, `fires:`, `on:`
 - **Runtime verbs are plain actions:** `run()`, `cross()`, `signal()`
 - **`create*` for runtime instances:** `createLogger()`, `createConsoleLogger()`
 - **`derive*` for derivations:** `deriveFields()`, `deriveFlags()`
@@ -421,7 +426,7 @@ When introducing Trails, use this order.
 
 ### Advanced
 
-1. `layer` — wrap execution with cross-cutting behavior
+1. `layer` — wrap execution through `run()` or surface options
 2. `tracing` / `ctx.trace()` — record what happened
 3. `permit` — auth and scopes
 4. `pin` — named graph snapshot for diffing and verification

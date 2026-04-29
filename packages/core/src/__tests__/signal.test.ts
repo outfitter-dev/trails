@@ -11,6 +11,7 @@ const payloadSchema = z.object({
 
 const userAction = signal('user.action', {
   description: 'A user performed an action',
+  examples: [{ action: 'login', userId: 'u-1' }],
   from: ['auth.login', 'auth.signup'],
   meta: { domain: 'auth', priority: 1 },
   payload: payloadSchema,
@@ -40,6 +41,14 @@ describe('signal() basics', () => {
     expect(userAction.description).toBe('A user performed an action');
   });
 
+  test('preserves validated examples', () => {
+    expect(userAction.examples).toEqual([{ action: 'login', userId: 'u-1' }]);
+  });
+
+  test('examples array is frozen', () => {
+    expect(Object.isFrozen(userAction.examples)).toBe(true);
+  });
+
   test('result object is frozen', () => {
     expect(Object.isFrozen(userAction)).toBe(true);
   });
@@ -63,8 +72,18 @@ describe('signal() from and meta', () => {
       payload: z.string(),
     });
     expect(minimal.description).toBeUndefined();
+    expect(minimal.examples).toBeUndefined();
     expect(minimal.from).toBeUndefined();
     expect(minimal.meta).toBeUndefined();
+  });
+
+  test('throws when an example does not match the payload schema', () => {
+    expect(() =>
+      signal('bad.example', {
+        examples: [{ userId: 42 } as never],
+        payload: payloadSchema,
+      })
+    ).toThrow('signal("bad.example") example 0 is invalid');
   });
 });
 

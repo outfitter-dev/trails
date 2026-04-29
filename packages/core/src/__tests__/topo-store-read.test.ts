@@ -50,6 +50,7 @@ const exampleApp = () => {
 
   const entityAdded = signal('entity.added', {
     description: 'An entity was added',
+    examples: [{ id: 'ada' }],
     from: ['entity.add'],
     payload: z.object({ id: z.string() }),
   });
@@ -166,6 +167,20 @@ describe('read-only topo store', () => {
         usedBy: ['entity.add', 'entity.list'],
       }),
     ]);
+
+    expect(
+      store.signals.list({ snapshot: { snapshotId: snapshot.id } })
+    ).toEqual([
+      expect.objectContaining({
+        consumers: [],
+        description: 'An entity was added',
+        exampleCount: 1,
+        from: ['entity.add'],
+        hasExamples: true,
+        id: 'entity.added',
+        producers: [],
+      }),
+    ]);
   });
 
   test('filters trails by intent', () => {
@@ -207,6 +222,18 @@ describe('read-only topo store', () => {
     const exported = store.exports.get({ pin: 'baseline' });
     expect(exported?.snapshot.id).toBe(snapshot.id);
     expect(exported?.surfaceHash).toHaveLength(64);
+
+    const signalDetail = store.signals.get('entity.added', {
+      snapshot: { snapshotId: snapshot.id },
+    });
+    expect(signalDetail).toEqual(
+      expect.objectContaining({
+        examples: [{ id: 'ada' }],
+        from: ['entity.add'],
+        id: 'entity.added',
+        payload: expect.objectContaining({ type: 'object' }),
+      })
+    );
 
     const rows = store.query<{ id: string }>(
       'SELECT id FROM topo_trails WHERE snapshot_id = ? ORDER BY id ASC',

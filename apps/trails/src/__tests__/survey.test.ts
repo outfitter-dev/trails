@@ -8,7 +8,14 @@ import {
 } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-import { ConflictError, Result, resource, topo, trail } from '@ontrails/core';
+import {
+  ConflictError,
+  Result,
+  resource,
+  signal,
+  topo,
+  trail,
+} from '@ontrails/core';
 import {
   deriveSurfaceMap,
   deriveSurfaceMapHash,
@@ -21,6 +28,7 @@ import { z } from 'zod';
 
 import {
   deriveBriefReport,
+  deriveSignalDetail,
   deriveSurveyList,
   deriveTrailDetail,
   surveyTrail,
@@ -28,6 +36,7 @@ import {
 import { loadApp } from '../trails/load-app.js';
 import type {
   BriefReport,
+  SignalDetailReport,
   SurveyListReport,
   TrailDetailReport,
 } from '../trails/survey.js';
@@ -82,6 +91,33 @@ const app = topo('test-app', {
   bye: byeTrail,
   dbResource,
   hello: helloTrail,
+});
+
+const helloGreeted = signal('hello.greeted', {
+  description: 'A greeting was produced',
+  examples: [{ name: 'Ada' }],
+  from: ['signal.producer'],
+  payload: z.object({ name: z.string() }),
+});
+
+const signalProducer = trail('signal.producer', {
+  blaze: (input) => Result.ok({ name: input.name }),
+  fires: [helloGreeted],
+  input: z.object({ name: z.string() }),
+  output: z.object({ name: z.string() }),
+});
+
+const signalConsumer = trail('signal.consumer', {
+  blaze: () => Result.ok({ ok: true }),
+  input: z.object({}),
+  on: [helloGreeted],
+  output: z.object({ ok: z.boolean() }),
+});
+
+const signalApp = topo('signal-app', {
+  helloGreeted,
+  signalConsumer,
+  signalProducer,
 });
 
 const expectOk = <T>(result: Result<T, Error>): T => {
@@ -293,6 +329,47 @@ describe('trails survey resources section', () => {
   });
 });
 
+describe('trails survey signals section', () => {
+  test('list output includes signal examples and graph relations', () => {
+    const report = deriveSurveyList(signalApp);
+    const parsed = structuredClone(report) as SurveyListReport;
+    const entry = parsed.signals.find(
+      (signalEntry) => signalEntry.id === 'hello.greeted'
+    );
+
+    expect(parsed.signalCount).toBe(1);
+    expect(entry).toEqual({
+      consumers: ['signal.consumer'],
+      description: 'A greeting was produced',
+      examples: 1,
+      from: ['signal.producer'],
+      id: 'hello.greeted',
+      kind: 'signal',
+      payloadSchema: true,
+      producers: ['signal.producer'],
+    });
+  });
+
+  test('signal detail includes payload schema, examples, and relations', () => {
+    const detail = deriveSignalDetail(signalApp, 'hello.greeted');
+    const parsed = structuredClone(detail) as SignalDetailReport;
+
+    expect(parsed).toMatchObject({
+      consumers: ['signal.consumer'],
+      description: 'A greeting was produced',
+      examples: [{ name: 'Ada' }],
+      from: ['signal.producer'],
+      id: 'hello.greeted',
+      kind: 'signal',
+      producers: ['signal.producer'],
+    });
+    expect(parsed.payload).toMatchObject({
+      properties: { name: { type: 'string' } },
+      type: 'object',
+    });
+  });
+});
+
 describe('trails survey generate', () => {
   test('delegates to topo export and writes a structured lock', async () => {
     const dir = repoTempDir();
@@ -397,6 +474,12 @@ describe('trails survey output schema', () => {
     expect(
       surveyTrail.output.safeParse({
         detail: deriveTrailDetail(helloTrail),
+        mode: 'detail',
+      }).success
+    ).toBe(true);
+    expect(
+      surveyTrail.output.safeParse({
+        detail: deriveSignalDetail(signalApp, 'hello.greeted'),
         mode: 'detail',
       }).success
     ).toBe(true);

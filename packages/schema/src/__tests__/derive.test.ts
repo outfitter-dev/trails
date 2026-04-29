@@ -179,9 +179,11 @@ describe('deriveSurfaceMap', () => {
       expect(crossesEntry?.crosses).toEqual(['user.get']);
     });
 
-    test("event entries are included with kind 'signal'", () => {
+    test("signal entries are included with kind 'signal'", () => {
       const e = signal('user.created', {
         description: 'A user was created',
+        examples: [{ userId: 'u-1' }],
+        from: ['user.create'],
         payload: z.object({ userId: z.string() }),
       });
       const entry = getFirstEntry(deriveSurfaceMap(topoFrom({ e })));
@@ -190,6 +192,15 @@ describe('deriveSurfaceMap', () => {
       expect(entry.id).toBe('user.created');
       expect(entry.description).toBe('A user was created');
       expect(entry.input).toBeDefined();
+      expect(entry.exampleCount).toBe(1);
+      expect(entry.from).toEqual(['user.create']);
+      expect(entry.examples).toEqual([
+        {
+          kind: 'payload',
+          payload: { userId: 'u-1' },
+          provenance: { source: 'signal.examples' },
+        },
+      ]);
     });
 
     test('resource entries are included with description and healthcheck metadata', () => {

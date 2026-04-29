@@ -1,4 +1,5 @@
-import type { Topo, Trail } from '@ontrails/core';
+import { zodToJsonSchema } from '@ontrails/core';
+import type { Signal, Topo, Trail } from '@ontrails/core';
 
 import { REPORT_CONTRACT_VERSION, REPORT_VERSION } from './topo-constants.js';
 
@@ -35,6 +36,17 @@ export interface SurveyListReport {
     readonly lifetime: 'singleton';
     readonly usedBy: readonly string[];
   }[];
+  readonly signalCount: number;
+  readonly signals: readonly {
+    readonly consumers: readonly string[];
+    readonly description: string | null;
+    readonly examples: number;
+    readonly from: readonly string[];
+    readonly id: string;
+    readonly kind: 'signal';
+    readonly payloadSchema: boolean;
+    readonly producers: readonly string[];
+  }[];
 }
 
 export interface TrailDetailReport {
@@ -50,6 +62,24 @@ export interface TrailDetailReport {
   readonly pattern: string | null;
   readonly safety: string;
   readonly resources: readonly string[];
+}
+
+export interface SignalDetailReport {
+  readonly consumers: readonly string[];
+  readonly description: string | null;
+  readonly examples: readonly unknown[];
+  readonly from: readonly string[];
+  readonly id: string;
+  readonly kind: 'signal';
+  /**
+   * The signal's payload schema (JSON Schema object), or `null` when the
+   * surface-map entry is missing for this signal. `null` is meaningful:
+   * it matches the list view's `payloadSchema: false` flag and lets
+   * consumers distinguish "schema not found" from "schema accepts any
+   * value" (the latter would be an empty object `{}`).
+   */
+  readonly payload: Readonly<Record<string, unknown>> | null;
+  readonly producers: readonly string[];
 }
 
 const trailHas = (raw: Record<string, unknown>, key: string): boolean => {
@@ -141,6 +171,49 @@ const resourceHealthStatus = (resource: {
 }): 'available' | 'none' =>
   resource.health === undefined ? 'none' : 'available';
 
+interface SignalRelations {
+  readonly consumers: readonly string[];
+  readonly producers: readonly string[];
+}
+
+const buildSignalRelations = (
+  app: Topo
+): ReadonlyMap<string, SignalRelations> => {
+  const relations = new Map<
+    string,
+    { consumers: string[]; producers: string[] }
+  >();
+
+  const get = (signalId: string) => {
+    const existing = relations.get(signalId);
+    if (existing !== undefined) {
+      return existing;
+    }
+    const created = { consumers: [], producers: [] };
+    relations.set(signalId, created);
+    return created;
+  };
+
+  for (const trailDef of app.list()) {
+    for (const signalId of trailDef.fires) {
+      get(signalId).producers.push(trailDef.id);
+    }
+    for (const signalId of trailDef.on) {
+      get(signalId).consumers.push(trailDef.id);
+    }
+  }
+
+  return new Map(
+    [...relations.entries()].map(([id, value]) => [
+      id,
+      {
+        consumers: value.consumers.toSorted(),
+        producers: value.producers.toSorted(),
+      },
+    ])
+  );
+};
+
 export const deriveResourceDetail = (app: Topo, resourceId: string): object => {
   const item = app.getResource(resourceId);
   const usedBy = buildResourceUsage(app).get(resourceId) ?? [];
@@ -170,6 +243,31 @@ const formatResourceList = (app: Topo): SurveyListReport['resources'] => {
     .toSorted((a, b) => a.id.localeCompare(b.id));
 };
 
+const formatSignalList = (app: Topo): SurveyListReport['signals'] => {
+  const relations = buildSignalRelations(app);
+  return app
+    .listSignals()
+    .map((signalDef) => {
+      const related = relations.get(signalDef.id);
+      return {
+        consumers: related?.consumers ?? [],
+        description: signalDef.description ?? null,
+        examples: signalDef.examples?.length ?? 0,
+        from: signalDef.from?.toSorted() ?? [],
+        id: signalDef.id,
+        kind: signalDef.kind,
+        // Mirror the store path (`mapSignalRow` in `topo-store-read.ts`) which
+        // derives this from the surface-map entry. SignalSpec<T> requires
+        // `payload` so this is `true` in practice today; the explicit check
+        // keeps the in-memory and store reports self-consistent if a future
+        // SignalSpec variant ever omits `payload`.
+        payloadSchema: signalDef.payload !== undefined,
+        producers: related?.producers ?? [],
+      };
+    })
+    .toSorted((a, b) => a.id.localeCompare(b.id));
+};
+
 export const deriveSurveyList = (app: Topo): SurveyListReport => {
   const items = app.list();
   const entries = items.map((item) => {
@@ -191,12 +289,37 @@ export const deriveSurveyList = (app: Topo): SurveyListReport => {
   });
 
   const resources = formatResourceList(app);
+  const signals = formatSignalList(app);
 
   return {
     count: items.length,
     entries,
     resourceCount: resources.length,
     resources,
+    signalCount: signals.length,
+    signals,
+  };
+};
+
+export const deriveSignalDetail = (
+  app: Topo,
+  signalId: string
+): SignalDetailReport | undefined => {
+  const signalDef = app.signals.get(signalId) as Signal<unknown> | undefined;
+  if (signalDef === undefined) {
+    return undefined;
+  }
+  const related = buildSignalRelations(app).get(signalId);
+
+  return {
+    consumers: [...(related?.consumers ?? [])],
+    description: signalDef.description ?? null,
+    examples: [...(signalDef.examples ?? [])],
+    from: signalDef.from?.toSorted() ?? [],
+    id: signalDef.id,
+    kind: 'signal',
+    payload: zodToJsonSchema(signalDef.payload),
+    producers: [...(related?.producers ?? [])],
   };
 };
 

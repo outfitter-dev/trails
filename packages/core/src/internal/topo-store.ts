@@ -376,13 +376,17 @@ const normalizeTrailSignalRows = (
   signals: readonly AnySignal[],
   snapshotId: string
 ): readonly TopoTrailSignalRow[] =>
-  signals.flatMap((signal) =>
-    [...new Set(signal.from)].toSorted().map((trailId) => ({
+  signals.flatMap((signal) => {
+    if (signal.from === undefined) {
+      return [];
+    }
+
+    return [...new Set(signal.from)].toSorted().map((trailId) => ({
       signalId: signal.id,
       snapshotId,
       trailId,
-    }))
-  );
+    }));
+  });
 
 /**
  * Project surface rows for stored topo.
@@ -777,8 +781,13 @@ const signalToEntryRecord = (
   payloadSchema: JsonRecord
 ): SurfaceMapEntryRecord => {
   const raw = signal as unknown as Record<string, unknown>;
+  const examples = signal.examples?.map((payload) => ({
+    kind: 'payload',
+    payload,
+    provenance: { source: 'signal.examples' },
+  }));
   const entry: Record<string, unknown> = {
-    exampleCount: 0,
+    exampleCount: signal.examples?.length ?? 0,
     id: signal.id,
     input: payloadSchema,
     kind: 'signal',
@@ -787,6 +796,14 @@ const signalToEntryRecord = (
 
   if (signal.description !== undefined) {
     entry['description'] = signal.description;
+  }
+
+  if (examples !== undefined && examples.length > 0) {
+    entry['examples'] = examples;
+  }
+
+  if (signal.from !== undefined && signal.from.length > 0) {
+    entry['from'] = signal.from.toSorted();
   }
 
   if (raw['deprecated'] === true) {

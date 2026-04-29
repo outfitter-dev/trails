@@ -3,8 +3,9 @@
  */
 
 import {
-  deriveStructuredTrailExamples,
   deriveCliPath,
+  deriveStructuredSignalExamples,
+  deriveStructuredTrailExamples,
   getContourReferences,
   validateDraftFreeTopo,
   zodToJsonSchema,
@@ -245,6 +246,13 @@ const addEventFields = (
   if (e.description !== undefined) {
     entry['description'] = e.description;
   }
+  if (e.from !== undefined && e.from.length > 0) {
+    entry['from'] = e.from.toSorted();
+  }
+  const examples = deriveStructuredSignalExamples(e.examples);
+  if (examples !== undefined) {
+    entry['examples'] = examples;
+  }
   if (raw['deprecated'] === true) {
     entry['deprecated'] = true;
   }
@@ -257,7 +265,7 @@ const signalToEntry = (e: Signal<unknown>): SurfaceMapEntry => {
   const raw = e as unknown as Record<string, unknown>;
   const trailheads = extractTrailheads(raw);
   const entry: Record<string, unknown> = {
-    exampleCount: 0,
+    exampleCount: e.examples?.length ?? 0,
     id: e.id,
     kind: 'signal',
     trailheads,

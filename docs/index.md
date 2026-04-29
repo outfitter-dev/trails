@@ -4,7 +4,7 @@
 
 1. **[Why Trails](./why-trails.md)** — The problem, the approach, why contracts beat conventions
 2. **[Getting Started](./getting-started.md)** — Install, define your first trail, open CLI/MCP/HTTP surfaces, test it
-3. **[Lexicon](./lexicon.md)** — The terms you'll use every day: trail, blaze, topo, contour, surface, cross, resource, signal, layer, tracing
+3. **[Lexicon](./lexicon.md)** — The terms you'll use every day: trail, blaze, topo, contour, surface, cross, resource, signal, execution layers, tracing
 
 ## Release Notes
 

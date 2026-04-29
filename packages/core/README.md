@@ -140,7 +140,7 @@ The developer returns `Result.err(new NotFoundError(...))`. The framework maps i
 - **Resilience** -- `retry`, `withTimeout`, `shouldRetry`, `deriveBackoffDelay`
 - **Serialization** -- `serializeError`, `deserializeError`
 - **Branded types** -- `uuid`, `email`, `nonEmptyString`, `positiveInt`
-- **Layers** -- cross-cutting layers via `composeLayers`
+- **Execution layers** -- low-level pipeline wrappers via `composeLayers`
 - **Guards and collections** -- `isDefined`, `chunk`, `dedupe`, `groupBy`, `sortBy`
 - **Patterns** (`@ontrails/core/patterns`) -- reusable Zod schemas for pagination, bulk ops, timestamps, sorting
 - **Trail factories** (`@ontrails/core/trails`) -- derive CRUD-shaped trail contracts from contours without re-authoring IDs, schemas, examples, or intents

@@ -14,10 +14,10 @@ export const topoShowTrail = trail('topo.show', {
       return Result.ok(detail);
     }
     return Result.err(
-      new NotFoundError(`Trail or resource not found: ${input.id}`)
+      new NotFoundError(`Trail, resource, or signal not found: ${input.id}`)
     );
   },
-  description: 'Show detail for a current trail or resource',
+  description: 'Show detail for a current trail, resource, or signal',
   examples: [
     {
       input: { id: 'topo' },
@@ -25,7 +25,7 @@ export const topoShowTrail = trail('topo.show', {
     },
   ],
   input: z.object({
-    id: z.string().describe('Trail or resource ID to inspect'),
+    id: z.string().describe('Trail, resource, or signal ID to inspect'),
     module: z.string().optional().describe('Path to the app module'),
     rootDir: z.string().optional().describe('Workspace root directory'),
   }),

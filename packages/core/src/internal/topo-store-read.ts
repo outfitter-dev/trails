@@ -63,6 +63,24 @@ export interface TopoStoreResourceRecord {
   readonly usedBy: readonly string[];
 }
 
+export interface TopoStoreSignalRecord {
+  readonly consumers: readonly string[];
+  readonly description: string | null;
+  readonly exampleCount: number;
+  readonly from: readonly string[];
+  readonly hasExamples: boolean;
+  readonly id: string;
+  readonly kind: 'signal';
+  readonly payloadSchema: boolean;
+  readonly producers: readonly string[];
+  readonly snapshotId: string;
+}
+
+export interface TopoStoreSignalDetailRecord extends TopoStoreSignalRecord {
+  readonly examples: readonly unknown[];
+  readonly payload: Readonly<Record<string, unknown>> | null;
+}
+
 export interface TopoStoreExportRecord extends StoredTopoExport {
   readonly snapshot: TopoSnapshot;
 }
@@ -104,14 +122,28 @@ interface TopoResourceRow {
   readonly snapshot_id: string;
 }
 
+interface TopoSignalRow {
+  readonly description: string | null;
+  readonly id: string;
+  readonly snapshot_id: string;
+}
+
+interface TopoSignalRelationRow {
+  readonly trail_id: string;
+}
+
 interface StoredSurfaceMapEntry {
   readonly description?: string;
   readonly detours?: readonly {
     readonly on: string;
     readonly maxAttempts: number;
   }[];
+  readonly exampleCount?: number;
+  readonly examples?: readonly unknown[];
+  readonly from?: readonly string[];
   readonly healthcheck?: boolean;
   readonly id: string;
+  readonly input?: Readonly<Record<string, unknown>>;
   readonly kind: 'contour' | 'resource' | 'signal' | 'trail';
 }
 
@@ -284,6 +316,61 @@ const readResourceUsage = (
     [...usage.entries()].map(([id, trails]) => [id, trails] as const)
   );
 };
+
+type SignalRelationTable =
+  | 'topo_trail_fires'
+  | 'topo_trail_on'
+  | 'topo_trail_signals';
+
+// Hard-coded query strings keyed by the union variant. The TypeScript union
+// already constrains callers, but holding the literal SQL here removes any
+// runtime path where `${table}` could be substituted from an unconstrained
+// string.
+const SIGNAL_RELATION_QUERIES = {
+  topo_trail_fires: `SELECT trail_id
+       FROM topo_trail_fires
+       WHERE snapshot_id = ? AND signal_id = ?
+       ORDER BY trail_id ASC`,
+  topo_trail_on: `SELECT trail_id
+       FROM topo_trail_on
+       WHERE snapshot_id = ? AND signal_id = ?
+       ORDER BY trail_id ASC`,
+  topo_trail_signals: `SELECT trail_id
+       FROM topo_trail_signals
+       WHERE snapshot_id = ? AND signal_id = ?
+       ORDER BY trail_id ASC`,
+} as const satisfies Record<SignalRelationTable, string>;
+
+const readSignalTrailIds = (
+  db: Database,
+  table: SignalRelationTable,
+  snapshotId: string,
+  signalId: string
+): readonly string[] =>
+  db
+    .query<TopoSignalRelationRow, [string, string]>(
+      SIGNAL_RELATION_QUERIES[table]
+    )
+    .all(snapshotId, signalId)
+    .map((row) => row.trail_id);
+
+const signalExamplePayload = (example: unknown): unknown => {
+  if (typeof example !== 'object' || example === null) {
+    return example;
+  }
+  const candidate = example as {
+    readonly kind?: unknown;
+    readonly payload?: unknown;
+  };
+  return candidate.kind === 'payload' && 'payload' in candidate
+    ? candidate.payload
+    : example;
+};
+
+const signalExamplesFromEntry = (
+  storedEntry: StoredSurfaceMapEntry | undefined
+): readonly unknown[] =>
+  storedEntry?.examples?.map((example) => signalExamplePayload(example)) ?? [];
 
 export const readTopoStoreSnapshot = (
   db: Database,
@@ -469,6 +556,115 @@ export const getTopoStoreResource = (
     usage.get(resourceId) ?? [],
     readStoredEntry(db, snapshot.id, 'resource', resourceId)
   );
+};
+
+const mapSignalRow = (
+  row: TopoSignalRow,
+  storedEntry: StoredSurfaceMapEntry | undefined,
+  relations: {
+    readonly consumers: readonly string[];
+    readonly from: readonly string[];
+    readonly producers: readonly string[];
+  }
+): TopoStoreSignalRecord => {
+  const exampleCount =
+    storedEntry?.exampleCount ?? storedEntry?.examples?.length ?? 0;
+
+  return {
+    consumers: relations.consumers,
+    description: storedEntry?.description ?? row.description,
+    exampleCount,
+    from: relations.from,
+    hasExamples: exampleCount > 0,
+    id: row.id,
+    kind: 'signal',
+    // Derived from the stored surface-map entry rather than hard-coded so the
+    // list flag stays coherent with the detail record's `payload` field. If the
+    // surface-map entry is missing for a signal row (e.g. partial import or
+    // schema migration), `payload` would be null in the detail; signaling
+    // `payloadSchema: true` here would mislead consumers into skipping the
+    // detail call.
+    payloadSchema: storedEntry?.input !== undefined,
+    producers: relations.producers,
+    snapshotId: row.snapshot_id,
+  };
+};
+
+const readSignalRelations = (
+  db: Database,
+  snapshotId: string,
+  signalId: string
+) => ({
+  consumers: readSignalTrailIds(db, 'topo_trail_on', snapshotId, signalId),
+  from: readSignalTrailIds(db, 'topo_trail_signals', snapshotId, signalId),
+  producers: readSignalTrailIds(db, 'topo_trail_fires', snapshotId, signalId),
+});
+
+export const listTopoStoreSignals = (
+  db: Database,
+  options?: { readonly snapshot?: TopoStoreRef }
+): readonly TopoStoreSignalRecord[] => {
+  const snapshot = readSnapshotRef(db, options?.snapshot);
+  if (snapshot === undefined) {
+    return [];
+  }
+
+  const rows = db
+    .query<TopoSignalRow, [string]>(
+      `SELECT id, description, snapshot_id
+       FROM topo_signals
+       WHERE snapshot_id = ?
+       ORDER BY id ASC`
+    )
+    .all(snapshot.id);
+
+  const stored = getStoredTopoExport(db, snapshot.id);
+  const entries = stored
+    ? (JSON.parse(stored.surfaceMapJson) as StoredSurfaceMap).entries
+    : [];
+
+  return rows.map((row) =>
+    mapSignalRow(
+      row,
+      entries.find((entry) => entry.id === row.id && entry.kind === 'signal'),
+      readSignalRelations(db, snapshot.id, row.id)
+    )
+  );
+};
+
+export const getTopoStoreSignal = (
+  db: Database,
+  signalId: string,
+  options?: { readonly snapshot?: TopoStoreRef }
+): TopoStoreSignalDetailRecord | undefined => {
+  const snapshot = readSnapshotRef(db, options?.snapshot);
+  if (snapshot === undefined) {
+    return undefined;
+  }
+
+  const row = db
+    .query<TopoSignalRow, [string, string]>(
+      `SELECT id, description, snapshot_id
+       FROM topo_signals
+       WHERE snapshot_id = ? AND id = ?
+       LIMIT 1`
+    )
+    .get(snapshot.id, signalId);
+
+  if (row === null || row === undefined) {
+    return undefined;
+  }
+
+  const storedEntry = readStoredEntry(db, snapshot.id, 'signal', signalId);
+  return {
+    ...mapSignalRow(
+      row,
+      storedEntry,
+      readSignalRelations(db, snapshot.id, signalId)
+    ),
+    examples: signalExamplesFromEntry(storedEntry),
+    payload: storedEntry?.input ?? null,
+  };
 };
 
 export const queryTopoStore = <TRow extends Record<string, unknown>>(
