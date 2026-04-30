@@ -111,10 +111,13 @@ Result.err(new NotFoundError('Entity not found'));
 
 **Binary data:**
 
-If the result contains a `BlobRef` with an image MIME type, it becomes an image content entry:
+If the result contains a `BlobRef` declared with `blobRefSchema`, MCP projects
+the core descriptor into `structuredContent` and materializes bytes through MCP
+content entries. Image MIME types become image content:
 
 ```typescript
 // -> { content: [{ type: "image", data: "<base64>", mimeType: "image/png" }] }
+// -> { structuredContent: { file: { kind: "blob", name, mimeType, size, uri } } }
 ```
 
 ## Progress Bridging

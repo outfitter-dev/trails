@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   Result,
   TRAILHEAD_KEY,
+  blobRefSchema,
   createBlobRef,
   resource,
   signal,
@@ -674,6 +675,38 @@ describe('deriveMcpTools', () => {
       expect(result?.content[0]?.mimeType).toBe('application/pdf');
     });
 
+    test('BlobRef resource content does not consume non-image streams', async () => {
+      const bytes = new Uint8Array([4, 5, 6]);
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(bytes);
+          controller.close();
+        },
+      });
+      const blobTrail = trail('blob.file-stream', {
+        blaze: () =>
+          Result.ok(
+            createBlobRef({
+              data: stream,
+              mimeType: 'application/pdf',
+              name: 'doc.pdf',
+              size: 3,
+            })
+          ),
+        input: z.object({}),
+      });
+
+      const tool = requireOnlyTool(buildTools(topo('myapp', { blobTrail })));
+      const result = await tool.handler({}, noExtra);
+      const reader = stream.getReader();
+      const read = await reader.read();
+      reader.releaseLock();
+
+      expect(result?.content[0]?.type).toBe('resource');
+      expect(read.done).toBe(false);
+      expect(read.value).toEqual(bytes);
+    });
+
     test('BlobRef with ReadableStream data is collected and serialized', async () => {
       const bytes = new Uint8Array([10, 20, 30]);
       const stream = new ReadableStream<Uint8Array>({
@@ -718,13 +751,30 @@ describe('deriveMcpTools', () => {
           }),
         input: z.object({}),
         output: z.object({
-          attachment: z.custom(),
+          attachment: blobRefSchema,
           label: z.string(),
         }),
       });
 
       const tool = requireOnlyTool(buildTools(topo('myapp', { blobTrail })));
-      expect(tool.outputSchema?.['type']).toBe('object');
+      expect(tool.outputSchema).toEqual({
+        properties: {
+          attachment: {
+            properties: {
+              kind: { const: 'blob' },
+              mimeType: { type: 'string' },
+              name: { type: 'string' },
+              size: { type: 'number' },
+              uri: { type: 'string' },
+            },
+            required: ['kind', 'mimeType', 'name', 'size', 'uri'],
+            type: 'object',
+          },
+          label: { type: 'string' },
+        },
+        required: ['attachment', 'label'],
+        type: 'object',
+      });
 
       const result = await tool.handler({}, noExtra);
 
@@ -741,12 +791,68 @@ describe('deriveMcpTools', () => {
       ]);
       expect(result?.structuredContent).toEqual({
         attachment: {
+          kind: 'blob',
           mimeType: 'application/pdf',
           name: 'doc.pdf',
           size: 3,
           uri: 'blob://doc.pdf',
         },
         label: 'report',
+      });
+    });
+
+    test('nested BlobRef output materializes MCP content entries', async () => {
+      const blobTrail = trail('blob.nested', {
+        blaze: () =>
+          Result.ok({
+            files: [
+              createBlobRef({
+                data: new Uint8Array([1, 2, 3]),
+                mimeType: 'image/png',
+                name: 'chart.png',
+                size: 3,
+              }),
+            ],
+            label: 'gallery',
+          }),
+        input: z.object({}),
+        output: z.object({
+          files: z.array(blobRefSchema),
+          label: z.string(),
+        }),
+      });
+
+      const tool = requireOnlyTool(buildTools(topo('myapp', { blobTrail })));
+      const result = await tool.handler({}, noExtra);
+
+      expect(parseJsonContent(result?.content[0])).toEqual({
+        files: [
+          {
+            kind: 'blob',
+            mimeType: 'image/png',
+            name: 'chart.png',
+            size: 3,
+            uri: 'blob://chart.png',
+          },
+        ],
+        label: 'gallery',
+      });
+      expect(result?.content[1]).toMatchObject({
+        mimeType: 'image/png',
+        type: 'image',
+      });
+      expect(result?.content[1]?.data).toBeDefined();
+      expect(result?.structuredContent).toEqual({
+        files: [
+          {
+            kind: 'blob',
+            mimeType: 'image/png',
+            name: 'chart.png',
+            size: 3,
+            uri: 'blob://chart.png',
+          },
+        ],
+        label: 'gallery',
       });
     });
   });

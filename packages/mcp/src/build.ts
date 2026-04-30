@@ -14,6 +14,7 @@ import {
   executeTrail,
   filterSurfaceTrails,
   isBlobRef,
+  toBlobRefDescriptor,
   validateEstablishedTopo,
   zodToJsonSchema,
 } from '@ontrails/core';
@@ -150,72 +151,20 @@ const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
 };
 
 const blobToContent = async (blob: BlobRef): Promise<McpContent> => {
-  const bytes = await resolveBlobData(blob);
-  if (blob.mimeType.startsWith('image/')) {
+  if (!blob.mimeType.startsWith('image/')) {
     return {
-      data: uint8ArrayToBase64(bytes),
       mimeType: blob.mimeType,
-      type: 'image',
+      type: 'resource',
+      uri: `blob://${blob.name}`,
     };
   }
 
+  const bytes = await resolveBlobData(blob);
   return {
+    data: uint8ArrayToBase64(bytes),
     mimeType: blob.mimeType,
-    type: 'resource',
-    uri: `blob://${blob.name}`,
+    type: 'image',
   };
-};
-
-/** Separate blob fields from non-blob fields in an object. */
-const separateBlobFields = async (
-  obj: Record<string, unknown>
-): Promise<{
-  blobContents: McpContent[];
-  hasBlobFields: boolean;
-  textFields: Record<string, unknown>;
-}> => {
-  const blobContents: McpContent[] = [];
-  const textFields: Record<string, unknown> = {};
-  let hasBlobFields = false;
-  for (const [key, val] of Object.entries(obj)) {
-    if (isBlobRef(val)) {
-      hasBlobFields = true;
-      blobContents.push(await blobToContent(val));
-    } else {
-      textFields[key] = val;
-    }
-  }
-  return { blobContents, hasBlobFields, textFields };
-};
-
-/** Serialize a mixed blob/text object to MCP content. */
-const serializeMixedObject = async (
-  obj: Record<string, unknown>
-): Promise<readonly McpContent[] | undefined> => {
-  const { blobContents, hasBlobFields, textFields } =
-    await separateBlobFields(obj);
-  if (!hasBlobFields) {
-    return undefined;
-  }
-  if (Object.keys(textFields).length > 0) {
-    blobContents.unshift({ text: JSON.stringify(textFields), type: 'text' });
-  }
-  return blobContents;
-};
-
-const serializeOutput = async (
-  value: unknown
-): Promise<readonly McpContent[]> => {
-  if (isBlobRef(value)) {
-    return [await blobToContent(value)];
-  }
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    const mixed = await serializeMixedObject(value as Record<string, unknown>);
-    if (mixed) {
-      return mixed;
-    }
-  }
-  return [{ text: JSON.stringify(value), type: 'text' }];
 };
 
 const containsBlobRef = (
@@ -242,21 +191,12 @@ const containsBlobRef = (
   );
 };
 
-const blobToStructuredValue = (
-  blob: BlobRef
-): Record<string, string | number> => ({
-  mimeType: blob.mimeType,
-  name: blob.name,
-  size: blob.size,
-  uri: `blob://${blob.name}`,
-});
-
 const toStructuredValue = (
   value: unknown,
   seen = new WeakSet<object>()
 ): unknown => {
   if (isBlobRef(value)) {
-    return blobToStructuredValue(value);
+    return toBlobRefDescriptor(value);
   }
   if (value === null || typeof value !== 'object') {
     return value;
@@ -276,6 +216,105 @@ const toStructuredValue = (
       toStructuredValue(item, seen),
     ])
   );
+};
+
+const collectBlobContents = async (
+  value: unknown,
+  seen = new WeakSet<object>()
+): Promise<McpContent[]> => {
+  if (isBlobRef(value)) {
+    return [await blobToContent(value)];
+  }
+  if (value === null || typeof value !== 'object') {
+    return [];
+  }
+  if (seen.has(value)) {
+    return [];
+  }
+  seen.add(value);
+
+  const items = Array.isArray(value)
+    ? value
+    : Object.values(value as Record<string, unknown>);
+  const nested = await Promise.all(
+    items.map((item) => collectBlobContents(item, seen))
+  );
+  return nested.flat();
+};
+
+/** Separate blob fields from non-blob fields in an object. */
+const separateBlobFields = async (
+  obj: Record<string, unknown>
+): Promise<{
+  blobContents: McpContent[];
+  hasBlobFields: boolean;
+  textFields: Record<string, unknown>;
+}> => {
+  const blobContents: McpContent[] = [];
+  const textFields: Record<string, unknown> = {};
+  let hasBlobFields = false;
+  for (const [key, val] of Object.entries(obj)) {
+    if (isBlobRef(val)) {
+      hasBlobFields = true;
+      blobContents.push(await blobToContent(val));
+    } else if (containsBlobRef(val)) {
+      hasBlobFields = true;
+      blobContents.push(...(await collectBlobContents(val)));
+      textFields[key] = toStructuredValue(val);
+    } else {
+      textFields[key] = val;
+    }
+  }
+  return { blobContents, hasBlobFields, textFields };
+};
+
+/** Serialize a mixed blob/text object to MCP content. */
+const serializeMixedObject = async (
+  obj: Record<string, unknown>
+): Promise<readonly McpContent[] | undefined> => {
+  const { blobContents, hasBlobFields, textFields } =
+    await separateBlobFields(obj);
+  if (!hasBlobFields) {
+    return undefined;
+  }
+  if (Object.keys(textFields).length > 0) {
+    blobContents.unshift({ text: JSON.stringify(textFields), type: 'text' });
+  }
+  return blobContents;
+};
+
+const serializeBlobArray = async (
+  value: readonly unknown[]
+): Promise<readonly McpContent[] | undefined> => {
+  if (!containsBlobRef(value)) {
+    return undefined;
+  }
+  const blobContents = await collectBlobContents(value);
+  return [
+    { text: JSON.stringify(toStructuredValue(value)), type: 'text' },
+    ...blobContents,
+  ];
+};
+
+const serializeOutput = async (
+  value: unknown
+): Promise<readonly McpContent[]> => {
+  if (isBlobRef(value)) {
+    return [await blobToContent(value)];
+  }
+  if (Array.isArray(value)) {
+    const mixed = await serializeBlobArray(value);
+    if (mixed) {
+      return mixed;
+    }
+  }
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    const mixed = await serializeMixedObject(value as Record<string, unknown>);
+    if (mixed) {
+      return mixed;
+    }
+  }
+  return [{ text: JSON.stringify(value), type: 'text' }];
 };
 
 // `wrapAsData` is decided at build time from the schema shape (see

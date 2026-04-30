@@ -286,8 +286,16 @@ export {
 } from './workspace.js';
 
 // Blob
-export { createBlobRef, isBlobRef } from './blob-ref.js';
-export type { BlobRef } from './blob-ref.js';
+export {
+  BLOB_REF_SCHEMA_META_KEY,
+  blobRefDescriptorSchema,
+  blobRefJsonSchema,
+  blobRefSchema,
+  createBlobRef,
+  isBlobRef,
+  toBlobRefDescriptor,
+} from './blob-ref.js';
+export type { BlobRef, BlobRefDescriptor } from './blob-ref.js';
 
 // Guards
 export {

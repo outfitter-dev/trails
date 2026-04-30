@@ -7,6 +7,7 @@
 
 import type { z } from 'zod';
 
+import { BLOB_REF_SCHEMA_META_KEY, blobRefJsonSchema } from './blob-ref.js';
 import { ValidationError } from './errors.js';
 import { Result } from './result.js';
 
@@ -33,6 +34,43 @@ type JsonSchemaConverter = (schema: z.ZodType) => JsonSchema;
 const isOptionalLike = (s: ZodInternals): boolean => {
   const defType = s._zod.def['type'] as string;
   return defType === 'optional' || defType === 'default';
+};
+
+const getSchemaMeta = (
+  schema: z.ZodType
+): Readonly<Record<string, unknown>> | undefined => {
+  const maybeMeta = (schema as unknown as { meta?: () => unknown }).meta;
+  if (typeof maybeMeta !== 'function') {
+    return undefined;
+  }
+  const meta = maybeMeta.call(schema);
+  return typeof meta === 'object' && meta !== null
+    ? (meta as Readonly<Record<string, unknown>>)
+    : undefined;
+};
+
+const getSchemaJsonSchemaOverride = (
+  schema: z.ZodType
+): JsonSchema | undefined => {
+  const meta = getSchemaMeta(schema);
+  if (meta?.[BLOB_REF_SCHEMA_META_KEY] === true) {
+    const override: JsonSchema = {
+      properties: Object.fromEntries(
+        Object.entries(blobRefJsonSchema.properties).map(([key, value]) => [
+          key,
+          { ...value },
+        ])
+      ),
+      required: [...blobRefJsonSchema.required],
+      type: blobRefJsonSchema.type,
+    };
+    const { description } = schema as unknown as ZodInternals;
+    if (description) {
+      override['description'] = description;
+    }
+    return override;
+  }
+  return undefined;
 };
 
 // ---------------------------------------------------------------------------
@@ -132,6 +170,11 @@ const resolveDefault = (def: Record<string, unknown>): unknown => {
 export const zodToJsonSchema: JsonSchemaConverter = (
   schema: z.ZodType
 ): JsonSchema => {
+  const jsonSchemaOverride = getSchemaJsonSchemaOverride(schema);
+  if (jsonSchemaOverride !== undefined) {
+    return jsonSchemaOverride;
+  }
+
   const s = schema as unknown as ZodInternals;
 
   const collectObjectFields = (shape: Record<string, ZodInternals>) => {

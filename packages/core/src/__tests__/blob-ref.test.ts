@@ -1,6 +1,14 @@
 import { describe, test, expect } from 'bun:test';
 
-import { createBlobRef, isBlobRef } from '../blob-ref';
+import {
+  blobRefDescriptorSchema,
+  blobRefJsonSchema,
+  blobRefSchema,
+  createBlobRef,
+  isBlobRef,
+  toBlobRefDescriptor,
+} from '../blob-ref';
+import { zodToJsonSchema } from '../validation';
 
 describe('BlobRef', () => {
   const sampleData = new Uint8Array([137, 80, 78, 71]);
@@ -98,6 +106,93 @@ describe('BlobRef', () => {
           size: 0,
         })
       ).toBe(false);
+    });
+  });
+
+  describe('schema projection', () => {
+    test('blobRefSchema validates BlobRef values', () => {
+      const ref = createBlobRef({
+        data: sampleData,
+        mimeType: 'image/png',
+        name: 'image.png',
+        size: 4,
+      });
+
+      expect(blobRefSchema.safeParse(ref).success).toBe(true);
+      expect(blobRefSchema.safeParse({ name: 'image.png' }).success).toBe(
+        false
+      );
+    });
+
+    test('toBlobRefDescriptor projects the canonical descriptor shape', () => {
+      const ref = createBlobRef({
+        data: sampleData,
+        mimeType: 'image/png',
+        name: 'image.png',
+        size: 4,
+      });
+
+      const descriptor = toBlobRefDescriptor(ref);
+
+      expect(descriptor).toEqual({
+        kind: 'blob',
+        mimeType: 'image/png',
+        name: 'image.png',
+        size: 4,
+        uri: 'blob://image.png',
+      });
+      expect(blobRefDescriptorSchema.parse(descriptor)).toEqual(descriptor);
+      expect(Object.isFrozen(descriptor)).toBe(true);
+    });
+
+    test('zodToJsonSchema projects blobRefSchema as the descriptor contract', () => {
+      expect(zodToJsonSchema(blobRefSchema)).toEqual({
+        properties: {
+          kind: { const: 'blob' },
+          mimeType: { type: 'string' },
+          name: { type: 'string' },
+          size: { type: 'number' },
+          uri: { type: 'string' },
+        },
+        required: ['kind', 'mimeType', 'name', 'size', 'uri'],
+        type: 'object',
+      });
+    });
+
+    test('zodToJsonSchema preserves blob descriptors through schema descriptions', () => {
+      expect(zodToJsonSchema(blobRefSchema.describe('Uploaded file'))).toEqual({
+        description: 'Uploaded file',
+        properties: {
+          kind: { const: 'blob' },
+          mimeType: { type: 'string' },
+          name: { type: 'string' },
+          size: { type: 'number' },
+          uri: { type: 'string' },
+        },
+        required: ['kind', 'mimeType', 'name', 'size', 'uri'],
+        type: 'object',
+      });
+    });
+
+    test('zodToJsonSchema returns an isolated blob descriptor schema', () => {
+      const first = zodToJsonSchema(blobRefSchema) as {
+        properties: { kind: { const: string } };
+      };
+      first.properties.kind.const = 'mutated';
+
+      expect(zodToJsonSchema(blobRefSchema)).toEqual({
+        properties: {
+          kind: { const: 'blob' },
+          mimeType: { type: 'string' },
+          name: { type: 'string' },
+          size: { type: 'number' },
+          uri: { type: 'string' },
+        },
+        required: ['kind', 'mimeType', 'name', 'size', 'uri'],
+        type: 'object',
+      });
+      expect(Object.isFrozen(blobRefJsonSchema.properties)).toBe(true);
+      expect(Object.isFrozen(blobRefJsonSchema.properties.kind)).toBe(true);
     });
   });
 });

@@ -15,6 +15,7 @@ resource(id, spec)                  // define a first-class resource dependency
 createResourceLookup(getContext)   // bind ctx.resource() to a specific context snapshot
 drainResources(resources, ctx, configValues?) // evict and dispose cached resource singletons
 topo(name, ...modules)             // assemble trails, contours, signals, and resources into a queryable topology
+blobRefSchema, createBlobRef(...)  // declare and create binary output references
 // Topo methods: .get(id), .has(id), .list(), .listSignals(), .ids(), .count
 //               .getContour(name), .hasContour(name), .listContours(), .contourIds(), .contourCount
 //               .getResource(id), .hasResource(id), .listResources(), .resourceIds(), .resourceCount
@@ -24,6 +25,7 @@ createTopoStore(options?), createMockTopoStore(seed?), topoStore
 Trail<I, O>, Signal<T>, Contour<TName, TShape, TIdentity>, Resource<T>, Topo, Intent
 TrailSpec<I, O>, SignalSpec<T>, ResourceSpec<T>, TrailExample<I, O>
 AnyTrail, AnySignal, AnyContour, AnyResource, ResourceContext, ResourceOverrideMap
+BlobRef, BlobRefDescriptor
 ContourOptions, ContourIdBrand, ContourIdMetadata, ContourIdSchema, ContourIdValue, ContourReference
 
 // Type utilities
