@@ -32,9 +32,11 @@ import {
   trailDetailOutput,
 } from './topo-output-schemas.js';
 import { createIsolatedExampleInput } from './topo-support.js';
+import { briefReportSchema } from './topo-reports.js';
 import { exportCurrentTopo } from './topo-store-support.js';
 
 export {
+  briefReportSchema,
   deriveBriefReport,
   deriveResourceDetail,
   deriveSignalDetail,
@@ -49,7 +51,7 @@ export type {
 } from './topo-reports.js';
 
 // ---------------------------------------------------------------------------
-// Brief report (formerly scout)
+// Survey diff helpers
 // ---------------------------------------------------------------------------
 
 const formatDiff = (diff: DiffResult): object => ({
@@ -141,7 +143,6 @@ const buildSurveyGenerate = async (
 
 interface SurveyInput {
   breakingOnly: boolean;
-  brief: boolean;
   diffSaved: boolean;
   generate: boolean;
   id?: string | undefined;
@@ -149,13 +150,12 @@ interface SurveyInput {
   rootDir?: string | undefined;
 }
 
-type SurveyMode = 'brief' | 'diff' | 'generate' | 'lookup' | 'overview';
+type SurveyMode = 'diff' | 'generate' | 'lookup' | 'overview';
 
 type SurveyEnvelope = { readonly mode: SurveyMode } & Record<string, unknown>;
 
 /** Ordered mode checks — first truthy predicate wins, otherwise 'overview'. */
 const modeChecks: readonly [(input: SurveyInput) => boolean, SurveyMode][] = [
-  [(i) => i.brief, 'brief'],
   [(i) => i.diffSaved, 'diff'],
   [(i) => Boolean(i.id), 'lookup'],
   [(i) => i.generate, 'generate'],
@@ -173,8 +173,6 @@ type SurveyHandler = (
 
 /** Handlers keyed by survey mode. */
 const surveyHandlers: Record<SurveyMode, SurveyHandler> = {
-  brief: (app, _input, rootDir) =>
-    Result.ok(buildCurrentTopoBrief(app, { rootDir })),
   diff: (app, input, rootDir) =>
     buildSurveyDiff(app, rootDir, input.breakingOnly),
   generate: (app, _input, rootDir) => buildSurveyGenerate(app, rootDir),
@@ -230,6 +228,11 @@ const withFreshSurveyApp = async <T>(
   }
 };
 
+const moduleInputSchema = z.object({
+  module: z.string().optional().describe('Path to the app module'),
+  rootDir: z.string().optional().describe('Workspace root directory'),
+});
+
 const surveyMatchOutput = z.discriminatedUnion('kind', [
   z.object({
     detail: trailDetailOutput,
@@ -269,21 +272,12 @@ export const surveyTrail = trail('survey', {
       input: { ...createIsolatedExampleInput('survey-lookup'), id: 'survey' },
       name: 'Lookup by ID',
     },
-    {
-      description: 'Quick capability summary with counts and feature flags',
-      input: {
-        ...createIsolatedExampleInput('survey-brief'),
-        brief: true,
-      },
-      name: 'Brief capability report',
-    },
   ],
   input: z.object({
     breakingOnly: z
       .boolean()
       .default(false)
       .describe('Only show breaking changes'),
-    brief: z.boolean().default(false).describe('Quick capability summary'),
     diffSaved: z
       .boolean()
       .default(false)
@@ -342,22 +336,6 @@ export const surveyTrail = trail('survey', {
       mode: z.literal('lookup'),
     }),
     z.object({
-      contractVersion: z.string(),
-      features: z.object({
-        detours: z.boolean(),
-        examples: z.boolean(),
-        outputSchemas: z.boolean(),
-        resources: z.boolean(),
-        signals: z.boolean(),
-      }),
-      mode: z.literal('brief'),
-      name: z.string(),
-      resources: z.number(),
-      signals: z.number(),
-      trails: z.number(),
-      version: z.string(),
-    }),
-    z.object({
       breaking: z.array(z.unknown()),
       hasBreaking: z.boolean(),
       info: z.array(z.unknown()),
@@ -371,6 +349,26 @@ export const surveyTrail = trail('survey', {
       mode: z.literal('generate'),
     }),
   ]),
+});
+
+export const surveyBriefTrail = trail('survey.brief', {
+  blaze: async (input, ctx) => {
+    const rootDir = resolveRootDir(input, ctx.cwd);
+    return withFreshSurveyApp(input, rootDir, (app) =>
+      Result.ok(buildCurrentTopoBrief(app, { rootDir }))
+    );
+  },
+  description: 'Summarize topo capabilities',
+  examples: [
+    {
+      description: 'Show counts and feature flags',
+      input: createIsolatedExampleInput('survey-brief'),
+      name: 'Brief capability report',
+    },
+  ],
+  input: moduleInputSchema,
+  intent: 'read',
+  output: briefReportSchema,
 });
 
 export const surveyTrailDetailTrail = trail('survey.trail', {

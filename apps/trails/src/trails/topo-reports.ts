@@ -1,23 +1,32 @@
 import { zodToJsonSchema } from '@ontrails/core';
 import type { AnyTrail, Signal, Topo } from '@ontrails/core';
+import { z } from 'zod';
 
 import { REPORT_CONTRACT_VERSION, REPORT_VERSION } from './topo-constants.js';
 
-export interface BriefReport {
-  readonly name: string;
-  readonly version: string;
-  readonly contractVersion: string;
-  readonly features: {
-    readonly resources: boolean;
-    readonly outputSchemas: boolean;
-    readonly examples: boolean;
-    readonly detours: boolean;
-    readonly signals: boolean;
-  };
-  readonly trails: number;
-  readonly signals: number;
-  readonly resources: number;
-}
+export const briefReportSchema = z.object({
+  contractVersion: z.string(),
+  features: z.object({
+    detours: z.boolean(),
+    examples: z.boolean(),
+    outputSchemas: z.boolean(),
+    resources: z.boolean(),
+    signals: z.boolean(),
+  }),
+  name: z.string(),
+  resources: z.number(),
+  signals: z.number(),
+  trails: z.number(),
+  version: z.string(),
+});
+
+type BriefReportShape = z.infer<typeof briefReportSchema>;
+
+export type BriefReport = Readonly<
+  Omit<BriefReportShape, 'features'> & {
+    readonly features: Readonly<BriefReportShape['features']>;
+  }
+>;
 
 export interface SurveyListReport {
   readonly count: number;

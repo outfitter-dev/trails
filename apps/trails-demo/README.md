@@ -248,6 +248,7 @@ trails topo export --module ./src/app.ts
 
 # Get the broader machine-readable report
 trails survey --module ./src/app.ts
+trails survey brief --module ./src/app.ts
 ```
 
 Use `trails topo *` for the day-to-day operational flow: inspect the current topo, pin meaningful points, and export or verify the committed lock artifacts. `survey` remains the broader introspection surface for list, detail, diff, and OpenAPI output.

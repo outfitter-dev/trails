@@ -18,7 +18,11 @@ import { devCleanTrail } from '../trails/dev-clean.js';
 import { devResetTrail } from '../trails/dev-reset.js';
 import { devStatsTrail } from '../trails/dev-stats.js';
 import { guideTrail } from '../trails/guide.js';
-import { surveyTrail, surveyTrailDetailTrail } from '../trails/survey.js';
+import {
+  surveyBriefTrail,
+  surveyTrail,
+  surveyTrailDetailTrail,
+} from '../trails/survey.js';
 import { topoExportTrail } from '../trails/topo-export.js';
 import { topoHistoryTrail } from '../trails/topo-history.js';
 import { topoPinTrail } from '../trails/topo-pin.js';
@@ -215,7 +219,7 @@ describe('topo and dev trails', () => {
       });
 
       const surveyBrief = expectOk(
-        await surveyTrail.blaze({ brief: true, module: './src/app.ts' }, {
+        await surveyBriefTrail.blaze({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
@@ -225,7 +229,6 @@ describe('topo and dev trails', () => {
           outputSchemas: true,
           resources: true,
         },
-        mode: 'brief',
         name: 'fixture-app',
         trails: 2,
       });

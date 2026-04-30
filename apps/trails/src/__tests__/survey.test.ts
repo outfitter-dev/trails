@@ -30,6 +30,7 @@ import {
   deriveSignalDetail,
   deriveSurveyList,
   deriveTrailDetail,
+  surveyBriefTrail,
   surveyResourceTrail,
   surveySignalTrail,
   surveyTrail,
@@ -292,7 +293,7 @@ describe('trails survey', () => {
 // Brief mode (formerly scout)
 // ---------------------------------------------------------------------------
 
-describe('trails survey --brief', () => {
+describe('trails survey brief', () => {
   test('produces a valid capability report', () => {
     const report = deriveBriefReport(app);
     expect(report.name).toBe('test-app');
@@ -333,6 +334,29 @@ describe('trails survey --brief', () => {
     expect(report.features.detours).toBe(false);
     expect(report.features.resources).toBe(false);
   });
+
+  test('survey.brief returns the brief report directly', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+
+      const report = expectOk(
+        await surveyBriefTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      ) as BriefReport;
+
+      expect(report).toMatchObject({
+        name: 'survey-fixture',
+        resources: 1,
+        trails: 1,
+      });
+      expect('mode' in report).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
 });
 
 describe('trails survey detail', () => {
@@ -354,24 +378,34 @@ describe('trails survey lookup', () => {
     const detailExample = surveyTrailDetailTrail.examples?.find(
       (example) => example.name === 'Trail detail'
     );
+    const briefExample = surveyBriefTrail.examples?.find(
+      (example) => example.name === 'Brief capability report'
+    );
     const overviewInput = overviewExample?.input as
       | { readonly module?: string; readonly rootDir?: string }
       | undefined;
     const detailInput = detailExample?.input as
       | { readonly module?: string; readonly rootDir?: string }
       | undefined;
+    const briefInput = briefExample?.input as
+      | { readonly module?: string; readonly rootDir?: string }
+      | undefined;
 
     expect(overviewInput?.rootDir).toBeDefined();
     expect(detailInput?.rootDir).toBeDefined();
+    expect(briefInput?.rootDir).toBeDefined();
 
     const parsedOverview = surveyTrail.input.safeParse(overviewInput);
     const parsedDetail = surveyTrailDetailTrail.input.safeParse(detailInput);
+    const parsedBrief = surveyBriefTrail.input.safeParse(briefInput);
 
     expect(parsedOverview.success).toBe(true);
     expect(parsedDetail.success).toBe(true);
-    if (parsedOverview.success && parsedDetail.success) {
+    expect(parsedBrief.success).toBe(true);
+    if (parsedOverview.success && parsedDetail.success && parsedBrief.success) {
       expect(parsedOverview.data.rootDir).toBe(overviewInput?.rootDir);
       expect(parsedDetail.data.rootDir).toBe(detailInput?.rootDir);
+      expect(parsedBrief.data.rootDir).toBe(briefInput?.rootDir);
     }
   });
 
@@ -649,12 +683,6 @@ describe('trails survey output schema', () => {
     ).toBe(true);
     expect(
       surveyTrail.output.safeParse({
-        ...deriveBriefReport(app),
-        mode: 'brief',
-      }).success
-    ).toBe(true);
-    expect(
-      surveyTrail.output.safeParse({
         matches: [
           { detail: deriveTrailDetail(helloTrail), kind: 'trail' },
           {
@@ -675,6 +703,9 @@ describe('trails survey output schema', () => {
         ],
         mode: 'lookup',
       }).success
+    ).toBe(true);
+    expect(
+      surveyBriefTrail.output.safeParse(deriveBriefReport(app)).success
     ).toBe(true);
     expect(
       surveyTrail.output.safeParse({
