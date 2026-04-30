@@ -178,6 +178,135 @@ export class RetryExhaustedError<
 }
 
 // ---------------------------------------------------------------------------
+// Class registry
+// ---------------------------------------------------------------------------
+
+export type ErrorClassConstructor = new (...args: never[]) => TrailsError;
+
+export interface FixedErrorClassRegistryEntry {
+  readonly category: ErrorCategory;
+  readonly ctor: ErrorClassConstructor;
+  readonly name: string;
+  readonly retryable: boolean;
+}
+
+export interface DynamicErrorClassRegistryEntry {
+  readonly category: 'dynamic';
+  readonly ctor: ErrorClassConstructor;
+  readonly inheritsCategoryFrom: 'wrapped-error';
+  readonly name: string;
+  readonly retryable: false;
+}
+
+export type ErrorClassRegistryEntry =
+  | DynamicErrorClassRegistryEntry
+  | FixedErrorClassRegistryEntry;
+
+/**
+ * Authored registry of concrete TrailsError classes.
+ *
+ * JavaScript cannot enumerate subclasses at runtime, so rule and projection
+ * tooling should walk this owner-held list instead of hardcoding parallel
+ * class-name tables. `RetryExhaustedError` is marked dynamic because it
+ * inherits its runtime category from the wrapped error rather than always
+ * mapping as `internal`.
+ */
+export const errorClasses = [
+  {
+    category: 'validation',
+    ctor: ValidationError,
+    name: 'ValidationError',
+    retryable: false,
+  },
+  {
+    category: 'validation',
+    ctor: AmbiguousError,
+    name: 'AmbiguousError',
+    retryable: false,
+  },
+  {
+    category: 'internal',
+    ctor: AssertionError,
+    name: 'AssertionError',
+    retryable: false,
+  },
+  {
+    category: 'not_found',
+    ctor: NotFoundError,
+    name: 'NotFoundError',
+    retryable: false,
+  },
+  {
+    category: 'conflict',
+    ctor: AlreadyExistsError,
+    name: 'AlreadyExistsError',
+    retryable: false,
+  },
+  {
+    category: 'conflict',
+    ctor: ConflictError,
+    name: 'ConflictError',
+    retryable: false,
+  },
+  {
+    category: 'permission',
+    ctor: PermissionError,
+    name: 'PermissionError',
+    retryable: false,
+  },
+  {
+    category: 'permission',
+    ctor: PermitError,
+    name: 'PermitError',
+    retryable: false,
+  },
+  {
+    category: 'timeout',
+    ctor: TimeoutError,
+    name: 'TimeoutError',
+    retryable: true,
+  },
+  {
+    category: 'rate_limit',
+    ctor: RateLimitError,
+    name: 'RateLimitError',
+    retryable: true,
+  },
+  {
+    category: 'network',
+    ctor: NetworkError,
+    name: 'NetworkError',
+    retryable: true,
+  },
+  {
+    category: 'internal',
+    ctor: InternalError,
+    name: 'InternalError',
+    retryable: false,
+  },
+  {
+    category: 'internal',
+    ctor: DerivationError,
+    name: 'DerivationError',
+    retryable: false,
+  },
+  { category: 'auth', ctor: AuthError, name: 'AuthError', retryable: false },
+  {
+    category: 'cancelled',
+    ctor: CancelledError,
+    name: 'CancelledError',
+    retryable: false,
+  },
+  {
+    category: 'dynamic',
+    ctor: RetryExhaustedError,
+    inheritsCategoryFrom: 'wrapped-error',
+    name: 'RetryExhaustedError',
+    retryable: false,
+  },
+] as const satisfies readonly ErrorClassRegistryEntry[];
+
+// ---------------------------------------------------------------------------
 // Taxonomy maps
 // ---------------------------------------------------------------------------
 

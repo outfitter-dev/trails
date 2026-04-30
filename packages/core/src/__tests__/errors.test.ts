@@ -9,14 +9,17 @@ import {
   AlreadyExistsError,
   ConflictError,
   PermissionError,
+  PermitError,
   TimeoutError,
   RateLimitError,
   NetworkError,
   InternalError,
+  DerivationError,
   AuthError,
   CancelledError,
   RetryExhaustedError,
   codesByCategory,
+  errorClasses,
   errorCategories,
   exitCodeMap,
   statusCodeMap,
@@ -83,6 +86,12 @@ const errorMatrix: readonly {
     retryable: false,
   },
   {
+    Class: PermitError,
+    category: 'permission',
+    name: 'PermitError',
+    retryable: false,
+  },
+  {
     Class: TimeoutError,
     category: 'timeout',
     name: 'TimeoutError',
@@ -104,6 +113,12 @@ const errorMatrix: readonly {
     Class: InternalError,
     category: 'internal',
     name: 'InternalError',
+    retryable: false,
+  },
+  {
+    Class: DerivationError,
+    category: 'internal',
+    name: 'DerivationError',
     retryable: false,
   },
   { Class: AuthError, category: 'auth', name: 'AuthError', retryable: false },
@@ -172,6 +187,50 @@ describe('error classes', () => {
       });
     });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Error class registry
+// ---------------------------------------------------------------------------
+
+describe('errorClasses', () => {
+  test('represents every concrete TrailsError subclass', () => {
+    const registeredConstructors = new Set(
+      errorClasses.map(({ ctor }) => ctor)
+    );
+    const expectedConstructors = new Set([
+      ...errorMatrix.map(({ Class }) => Class),
+      RetryExhaustedError,
+    ]);
+
+    expect(registeredConstructors).toEqual(expectedConstructors);
+    expect(errorClasses).toHaveLength(expectedConstructors.size);
+  });
+
+  test('carries fixed category metadata without requiring instantiation', () => {
+    const fixedErrorClasses = errorClasses.filter(
+      (entry) => entry.category !== 'dynamic'
+    );
+
+    expect(fixedErrorClasses).toEqual(
+      errorMatrix.map(({ Class, category, name, retryable }) => ({
+        category,
+        ctor: Class,
+        name,
+        retryable,
+      }))
+    );
+  });
+
+  test('models RetryExhaustedError as a dynamic-category class', () => {
+    expect(errorClasses.at(-1)).toEqual({
+      category: 'dynamic',
+      ctor: RetryExhaustedError,
+      inheritsCategoryFrom: 'wrapped-error',
+      name: 'RetryExhaustedError',
+      retryable: false,
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
