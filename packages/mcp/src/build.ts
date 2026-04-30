@@ -141,6 +141,8 @@ const resolveBlobData = (blob: BlobRef): Promise<Uint8Array> | Uint8Array => {
   return blob.data;
 };
 
+type BlobDataResolver = (blob: BlobRef) => Promise<Uint8Array> | Uint8Array;
+
 const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
   // Use btoa with manual conversion for runtime-agnostic base64
   let binary = '';
@@ -150,7 +152,10 @@ const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
   return btoa(binary);
 };
 
-const blobToContent = async (blob: BlobRef): Promise<McpContent> => {
+const blobToContent = async (
+  blob: BlobRef,
+  resolveData: BlobDataResolver = resolveBlobData
+): Promise<McpContent> => {
   if (!blob.mimeType.startsWith('image/')) {
     return {
       mimeType: blob.mimeType,
@@ -159,7 +164,7 @@ const blobToContent = async (blob: BlobRef): Promise<McpContent> => {
     };
   }
 
-  const bytes = await resolveBlobData(blob);
+  const bytes = await resolveData(blob);
   return {
     data: uint8ArrayToBase64(bytes),
     mimeType: blob.mimeType,
@@ -167,9 +172,41 @@ const blobToContent = async (blob: BlobRef): Promise<McpContent> => {
   };
 };
 
+type BlobContentResolver = (blob: BlobRef) => Promise<McpContent>;
+
+const createBlobContentResolver = (): BlobContentResolver => {
+  const contentByBlob = new WeakMap<BlobRef, Promise<McpContent>>();
+  const dataByStream = new WeakMap<
+    ReadableStream<Uint8Array>,
+    Promise<Uint8Array>
+  >();
+
+  const resolveData: BlobDataResolver = (blob) => {
+    if (!(blob.data instanceof ReadableStream)) {
+      return blob.data;
+    }
+
+    let data = dataByStream.get(blob.data);
+    if (data === undefined) {
+      data = collectStream(blob.data);
+      dataByStream.set(blob.data, data);
+    }
+    return data;
+  };
+
+  return (blob) => {
+    let content = contentByBlob.get(blob);
+    if (content === undefined) {
+      content = blobToContent(blob, resolveData);
+      contentByBlob.set(blob, content);
+    }
+    return content;
+  };
+};
+
 const containsBlobRef = (
   value: unknown,
-  seen = new WeakSet<object>()
+  path = new WeakSet<object>()
 ): boolean => {
   if (isBlobRef(value)) {
     return true;
@@ -177,23 +214,27 @@ const containsBlobRef = (
   if (value === null || typeof value !== 'object') {
     return false;
   }
-  if (seen.has(value)) {
+  if (path.has(value)) {
     return false;
   }
-  seen.add(value);
+  path.add(value);
 
-  if (Array.isArray(value)) {
-    return value.some((item) => containsBlobRef(item, seen));
+  try {
+    if (Array.isArray(value)) {
+      return value.some((item) => containsBlobRef(item, path));
+    }
+
+    return Object.values(value as Record<string, unknown>).some((item) =>
+      containsBlobRef(item, path)
+    );
+  } finally {
+    path.delete(value);
   }
-
-  return Object.values(value as Record<string, unknown>).some((item) =>
-    containsBlobRef(item, seen)
-  );
 };
 
 const toStructuredValue = (
   value: unknown,
-  seen = new WeakSet<object>()
+  path = new WeakSet<object>()
 ): unknown => {
   if (isBlobRef(value)) {
     return toBlobRefDescriptor(value);
@@ -201,46 +242,57 @@ const toStructuredValue = (
   if (value === null || typeof value !== 'object') {
     return value;
   }
-  if (seen.has(value)) {
+  if (path.has(value)) {
     return undefined;
   }
-  seen.add(value);
+  path.add(value);
 
-  if (Array.isArray(value)) {
-    return value.map((item) => toStructuredValue(item, seen));
+  try {
+    if (Array.isArray(value)) {
+      return value.map((item) => toStructuredValue(item, path));
+    }
+
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+        key,
+        toStructuredValue(item, path),
+      ])
+    );
+  } finally {
+    path.delete(value);
   }
-
-  return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>).map(([key, item]) => [
-      key,
-      toStructuredValue(item, seen),
-    ])
-  );
 };
 
-const collectBlobContents = async (
+const collectBlobRefs = (
   value: unknown,
-  seen = new WeakSet<object>()
-): Promise<McpContent[]> => {
+  path = new WeakSet<object>()
+): BlobRef[] => {
   if (isBlobRef(value)) {
-    return [await blobToContent(value)];
+    return [value];
   }
   if (value === null || typeof value !== 'object') {
     return [];
   }
-  if (seen.has(value)) {
+  if (path.has(value)) {
     return [];
   }
-  seen.add(value);
+  path.add(value);
 
-  const items = Array.isArray(value)
-    ? value
-    : Object.values(value as Record<string, unknown>);
-  const nested = await Promise.all(
-    items.map((item) => collectBlobContents(item, seen))
-  );
-  return nested.flat();
+  try {
+    const items = Array.isArray(value)
+      ? value
+      : Object.values(value as Record<string, unknown>);
+    return items.flatMap((item) => collectBlobRefs(item, path));
+  } finally {
+    path.delete(value);
+  }
 };
+
+const collectBlobContents = async (
+  value: unknown,
+  resolveContent: BlobContentResolver
+): Promise<McpContent[]> =>
+  Promise.all(collectBlobRefs(value).map(resolveContent));
 
 /** Separate blob fields from non-blob fields in an object. */
 const separateBlobFields = async (
@@ -250,16 +302,17 @@ const separateBlobFields = async (
   hasBlobFields: boolean;
   textFields: Record<string, unknown>;
 }> => {
+  const resolveContent = createBlobContentResolver();
   const blobContents: McpContent[] = [];
   const textFields: Record<string, unknown> = {};
   let hasBlobFields = false;
   for (const [key, val] of Object.entries(obj)) {
     if (isBlobRef(val)) {
       hasBlobFields = true;
-      blobContents.push(await blobToContent(val));
+      blobContents.push(await resolveContent(val));
     } else if (containsBlobRef(val)) {
       hasBlobFields = true;
-      blobContents.push(...(await collectBlobContents(val)));
+      blobContents.push(...(await collectBlobContents(val, resolveContent)));
       textFields[key] = toStructuredValue(val);
     } else {
       textFields[key] = val;
@@ -289,7 +342,10 @@ const serializeBlobArray = async (
   if (!containsBlobRef(value)) {
     return undefined;
   }
-  const blobContents = await collectBlobContents(value);
+  const blobContents = await collectBlobContents(
+    value,
+    createBlobContentResolver()
+  );
   return [
     { text: JSON.stringify(toStructuredValue(value)), type: 'text' },
     ...blobContents,

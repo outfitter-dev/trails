@@ -148,6 +148,18 @@ const readPathSurfaceMap = async (
   );
 };
 
+const describeAgainstPathTarget = (against: string): string =>
+  extname(against) === '.json'
+    ? 'workspace-relative JSON surface-map file'
+    : 'workspace-relative directory containing _surface.json';
+
+const surfaceMapNotFound = (against: string): NotFoundError =>
+  new NotFoundError(
+    `No surface map found for: ${against}. Tried ${describeAgainstPathTarget(
+      against
+    )}, then topo-store pin and snapshot references.`
+  );
+
 const readAgainstSurfaceMap = async (
   rootDir: string,
   against?: string | undefined
@@ -178,7 +190,7 @@ const readAgainstSurfaceMap = async (
     return Result.ok({ against, map: storedMap });
   }
 
-  return Result.err(new NotFoundError(`No surface map found for: ${against}`));
+  return Result.err(surfaceMapNotFound(against));
 };
 
 const buildSurveyDiff = async (
@@ -487,7 +499,9 @@ export const surveyDiffTrail = trail('survey.diff', {
       .string()
       .min(1)
       .optional()
-      .describe('Saved map target: "saved", a pin/snapshot id, or a path'),
+      .describe(
+        'Saved map target: "saved", a workspace path (.json file or directory with _surface.json), then a pin/snapshot id'
+      ),
     breakingOnly: z
       .boolean()
       .default(false)

@@ -820,6 +820,124 @@ describe('executeTrail', () => {
         expect(drained.unwrap()).toEqual({ disposed: [], evicted: [] });
       });
 
+      test('drain reports cached resources missed by a different stable context', async () => {
+        const events: string[] = [];
+        const envAware = resource(nextResourceId('drain-context-miss'), {
+          create: (ctx) => {
+            events.push(`create:${ctx.env?.VAL}`);
+            return Result.ok({ value: String(ctx.env?.VAL) });
+          },
+          dispose: (instance) => {
+            events.push(`dispose:${instance.value}`);
+          },
+        });
+        const resourceTrail = trail('resource.drain-context-miss', {
+          blaze: (_input, ctx) =>
+            Result.ok({ value: envAware.from(ctx).value }),
+          input: z.object({}),
+          output: z.object({ value: z.string() }),
+          resources: [envAware],
+        });
+
+        const beforeDrain = await executeTrail(
+          resourceTrail,
+          {},
+          {
+            createContext: () =>
+              createTrailContext({
+                env: { VAL: 'first' },
+              }),
+          }
+        );
+        const missedDrain = await drainResources(
+          [envAware],
+          createTrailContext({ env: { VAL: 'second' } })
+        );
+        const matchingDrain = await drainResources(
+          [envAware],
+          createTrailContext({ env: { VAL: 'first' } })
+        );
+
+        expect(beforeDrain.unwrap()).toEqual({ value: 'first' });
+        expect(missedDrain.unwrap()).toEqual({
+          disposed: [],
+          evicted: [],
+          missed: [envAware.id],
+        });
+        expect(matchingDrain.unwrap()).toEqual({
+          disposed: [envAware.id],
+          evicted: [envAware.id],
+        });
+        expect(events).toEqual(['create:first', 'dispose:first']);
+      });
+
+      test('drain reports remaining cached resource keys after matching context is drained', async () => {
+        const events: string[] = [];
+        const envAware = resource(nextResourceId('drain-context-remainder'), {
+          create: (ctx) => {
+            events.push(`create:${ctx.env?.VAL}`);
+            return Result.ok({ value: String(ctx.env?.VAL) });
+          },
+          dispose: (instance) => {
+            events.push(`dispose:${instance.value}`);
+          },
+        });
+        const resourceTrail = trail('resource.drain-context-remainder', {
+          blaze: (_input, ctx) =>
+            Result.ok({ value: envAware.from(ctx).value }),
+          input: z.object({}),
+          output: z.object({ value: z.string() }),
+          resources: [envAware],
+        });
+
+        const first = await executeTrail(
+          resourceTrail,
+          {},
+          {
+            createContext: () =>
+              createTrailContext({
+                env: { VAL: 'first' },
+              }),
+          }
+        );
+        const second = await executeTrail(
+          resourceTrail,
+          {},
+          {
+            createContext: () =>
+              createTrailContext({
+                env: { VAL: 'second' },
+              }),
+          }
+        );
+        const firstDrain = await drainResources(
+          [envAware],
+          createTrailContext({ env: { VAL: 'first' } })
+        );
+        const secondDrain = await drainResources(
+          [envAware],
+          createTrailContext({ env: { VAL: 'second' } })
+        );
+
+        expect(first.unwrap()).toEqual({ value: 'first' });
+        expect(second.unwrap()).toEqual({ value: 'second' });
+        expect(firstDrain.unwrap()).toEqual({
+          disposed: [envAware.id],
+          evicted: [envAware.id],
+          missed: [envAware.id],
+        });
+        expect(secondDrain.unwrap()).toEqual({
+          disposed: [envAware.id],
+          evicted: [envAware.id],
+        });
+        expect(events).toEqual([
+          'create:first',
+          'create:second',
+          'dispose:first',
+          'dispose:second',
+        ]);
+      });
+
       test('drains cached resources in reverse order and evicts them', async () => {
         const events: string[] = [];
         const first = resource(nextResourceId('drain-first'), {

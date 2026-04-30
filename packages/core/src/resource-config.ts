@@ -218,6 +218,17 @@ export interface ResourceDrainReport {
   readonly disposed: readonly string[];
   /** Resource IDs removed from the singleton cache before disposal. */
   readonly evicted: readonly string[];
+  /**
+   * Resource IDs that had cached or pending singleton entries, but not for the
+   * stable context/config key supplied to `drainResources`.
+   */
+  readonly missed?: readonly string[] | undefined;
+}
+
+interface MutableResourceDrainReport {
+  readonly disposed: string[];
+  readonly evicted: string[];
+  missed?: string[] | undefined;
 }
 
 const resolveConfigAwareProvidedResource = (
@@ -645,7 +656,7 @@ const drainCachedEntry = async (
   resource: AnyResource,
   key: string,
   entry: SingletonResourceEntry,
-  report: { readonly disposed: string[]; readonly evicted: string[] },
+  report: MutableResourceDrainReport,
   failures: Error[]
 ): Promise<void> => {
   if (entry.activeLeases > 0) {
@@ -667,6 +678,38 @@ const drainCachedEntry = async (
   }
 };
 
+const recordDrainMiss = (
+  resource: AnyResource,
+  report: MutableResourceDrainReport
+): void => {
+  report.missed ??= [];
+  if (report.missed.includes(resource.id)) {
+    return;
+  }
+  report.missed.push(resource.id);
+};
+
+const hasKeyOtherThan = <T>(
+  entries: ReadonlyMap<string, T> | undefined,
+  key: string
+): boolean => {
+  if (entries === undefined) {
+    return false;
+  }
+  for (const existingKey of entries.keys()) {
+    if (existingKey !== key) {
+      return true;
+    }
+  }
+  return false;
+};
+
+const hasOtherSingletonKeys = (
+  key: string,
+  cache: ReadonlyMap<string, SingletonResourceEntry> | undefined,
+  pending: ReadonlyMap<string, PendingCreation> | undefined
+): boolean => hasKeyOtherThan(cache, key) || hasKeyOtherThan(pending, key);
+
 /**
  * Evict and dispose cached resource singletons for a stable resource context.
  *
@@ -681,7 +724,7 @@ export const drainResources = async (
   ctx: TrailContext,
   configValues?: ConfigValues
 ): Promise<Result<ResourceDrainReport, Error>> => {
-  const report = { disposed: [] as string[], evicted: [] as string[] };
+  const report: MutableResourceDrainReport = { disposed: [], evicted: [] };
   const failures: Error[] = [];
 
   for (const resource of resources.toReversed()) {
@@ -708,20 +751,25 @@ export const drainResources = async (
     const key = toResourceContextKey(
       toResourceContext(ctx, configResult.value)
     );
+    const hasAdditionalKeys = hasOtherSingletonKeys(key, cache, pending);
     const pendingForKey = pending?.get(key);
     if (pendingForKey !== undefined) {
+      if (hasAdditionalKeys) {
+        recordDrainMiss(resource, report);
+      }
       failures.push(toResourceInUseError(resource, pendingForKey.waiters + 1));
       continue;
     }
 
-    if (cache === undefined) {
-      continue;
-    }
-    const entry = cache.get(key);
+    const entry = cache?.get(key);
     if (entry === undefined) {
+      recordDrainMiss(resource, report);
       continue;
     }
 
+    if (hasAdditionalKeys) {
+      recordDrainMiss(resource, report);
+    }
     await drainCachedEntry(resource, key, entry, report, failures);
   }
 
@@ -731,6 +779,7 @@ export const drainResources = async (
         toResourceLifecycleError('Resource drain failed', failures, undefined, {
           disposed: report.disposed,
           evicted: report.evicted,
+          ...(report.missed === undefined ? {} : { missed: report.missed }),
         })
       );
 };

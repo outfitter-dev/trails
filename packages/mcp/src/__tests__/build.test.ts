@@ -855,6 +855,153 @@ describe('deriveMcpTools', () => {
         label: 'gallery',
       });
     });
+
+    test('nested BlobRef output preserves repeated shared references', async () => {
+      const attachment = createBlobRef({
+        data: new Uint8Array([1, 2, 3]),
+        mimeType: 'application/pdf',
+        name: 'shared.pdf',
+        size: 3,
+      });
+      const shared = { attachment };
+      const descriptor = {
+        kind: 'blob',
+        mimeType: 'application/pdf',
+        name: 'shared.pdf',
+        size: 3,
+        uri: 'blob://shared.pdf',
+      };
+      const blobTrail = trail('blob.shared-reference', {
+        blaze: () => Result.ok({ first: shared, second: shared }),
+        input: z.object({}),
+        output: z.object({
+          first: z.object({ attachment: blobRefSchema }),
+          second: z.object({ attachment: blobRefSchema }),
+        }),
+      });
+
+      const tool = requireOnlyTool(buildTools(topo('myapp', { blobTrail })));
+      const result = await tool.handler({}, noExtra);
+
+      expect(parseJsonContent(result?.content[0])).toEqual({
+        first: { attachment: descriptor },
+        second: { attachment: descriptor },
+      });
+      expect(result?.content.slice(1)).toEqual([
+        {
+          mimeType: 'application/pdf',
+          type: 'resource',
+          uri: 'blob://shared.pdf',
+        },
+        {
+          mimeType: 'application/pdf',
+          type: 'resource',
+          uri: 'blob://shared.pdf',
+        },
+      ]);
+      expect(result?.structuredContent).toEqual({
+        first: { attachment: descriptor },
+        second: { attachment: descriptor },
+      });
+    });
+
+    test('nested ReadableStream BlobRef output reuses materialized shared references', async () => {
+      const bytes = new Uint8Array([7, 8, 9]);
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(bytes);
+          controller.close();
+        },
+      });
+      const attachment = createBlobRef({
+        data: stream,
+        mimeType: 'image/png',
+        name: 'shared-stream.png',
+        size: 3,
+      });
+      const shared = { attachment };
+      const descriptor = {
+        kind: 'blob',
+        mimeType: 'image/png',
+        name: 'shared-stream.png',
+        size: 3,
+        uri: 'blob://shared-stream.png',
+      };
+      const blobTrail = trail('blob.shared-stream-reference', {
+        blaze: () => Result.ok({ group: [shared, shared] }),
+        input: z.object({}),
+        output: z.object({
+          group: z.array(z.object({ attachment: blobRefSchema })),
+        }),
+      });
+
+      const tool = requireOnlyTool(buildTools(topo('myapp', { blobTrail })));
+      const result = await tool.handler({}, noExtra);
+      const imageContents = result?.content.slice(1);
+
+      expect(parseJsonContent(result?.content[0])).toEqual({
+        group: [{ attachment: descriptor }, { attachment: descriptor }],
+      });
+      expect(imageContents).toHaveLength(2);
+      expect(imageContents?.[0]).toMatchObject({
+        mimeType: 'image/png',
+        type: 'image',
+      });
+      expect(imageContents?.[1]).toMatchObject({
+        mimeType: 'image/png',
+        type: 'image',
+      });
+      expect(imageContents?.[0]?.data).toBe(imageContents?.[1]?.data);
+      expect(stream.locked).toBe(false);
+    });
+
+    test('nested BlobRef output cuts true cycles without dropping blob content', async () => {
+      const attachment = createBlobRef({
+        data: new Uint8Array([1, 2, 3]),
+        mimeType: 'application/pdf',
+        name: 'cycle.pdf',
+        size: 3,
+      });
+      const cyclic: Record<string, unknown> = { attachment };
+      cyclic['self'] = cyclic;
+      const descriptor = {
+        kind: 'blob',
+        mimeType: 'application/pdf',
+        name: 'cycle.pdf',
+        size: 3,
+        uri: 'blob://cycle.pdf',
+      };
+      const blobTrail = trail('blob.cycle', {
+        blaze: () => Result.ok(cyclic),
+        input: z.object({}),
+        output: z.any(),
+      });
+
+      const tool = requireOnlyTool(buildTools(topo('myapp', { blobTrail })));
+      const result = await tool.handler({}, noExtra);
+
+      expect(parseJsonContent(result?.content[0])).toEqual({
+        self: { attachment: descriptor },
+      });
+      expect(result?.content.slice(1)).toEqual([
+        {
+          mimeType: 'application/pdf',
+          type: 'resource',
+          uri: 'blob://cycle.pdf',
+        },
+        {
+          mimeType: 'application/pdf',
+          type: 'resource',
+          uri: 'blob://cycle.pdf',
+        },
+      ]);
+      expect(result?.structuredContent).toEqual({
+        data: {
+          attachment: descriptor,
+          self: undefined,
+        },
+      });
+    });
   });
 
   describe('tool-name collision detection', () => {

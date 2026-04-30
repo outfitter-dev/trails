@@ -716,6 +716,67 @@ describe('trails survey diff', () => {
     }
   });
 
+  test('can diff against a workspace-relative JSON surface map file', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+      const baselineApp = await loadApp('./src/app.ts', dir);
+      writeFileSync(
+        join(dir, 'baseline.json'),
+        JSON.stringify(deriveSurfaceMap(baselineApp))
+      );
+
+      writeSurveyAppFixture(dir, { withBye: true });
+
+      const result = await surveyDiffTrail.blaze(
+        { against: 'baseline.json', module: './src/app.ts' },
+        { cwd: dir } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.value).toMatchObject({
+        against: 'baseline.json',
+        hasBreaking: false,
+        info: [
+          expect.objectContaining({
+            change: 'added',
+            id: 'bye',
+          }),
+        ],
+        mode: 'diff',
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('reports attempted resolution strategies for missing diff targets', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+
+      const result = await surveyDiffTrail.blaze(
+        { against: 'baselins', module: './src/app.ts' },
+        { cwd: dir } as never
+      );
+
+      expect(result.isErr()).toBe(true);
+      expect(result.error.message).toContain(
+        'No surface map found for: baselins'
+      );
+      expect(result.error.message).toContain(
+        'workspace-relative directory containing _surface.json'
+      );
+      expect(result.error.message).toContain(
+        'topo-store pin and snapshot references'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('reads explicit diff paths before opening the topo store', async () => {
     const dir = repoTempDir();
 
