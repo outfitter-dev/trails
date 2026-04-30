@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, signal, topo, trail } from '@ontrails/core';
+import { Result, ValidationError, signal, topo, trail } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -113,6 +113,45 @@ const registerPathAndMethodTests = () => {
 
       expect(spec.paths['/api/v1/entity/show']).toBeDefined();
       expect(spec.paths['/api/v1//entity/show']).toBeUndefined();
+    });
+
+    test('same derived path with different methods keeps both operations', () => {
+      const getItem = trail('item.resource', {
+        blaze: noop,
+        input: z.object({}),
+        intent: 'read',
+      });
+      const createItem = trail('item/resource', {
+        blaze: noop,
+        input: z.object({ name: z.string() }),
+      });
+      const spec = deriveOpenApiSpec(topoFrom({ createItem, getItem }));
+
+      expect(
+        Object.keys(spec.paths['/item/resource'] ?? {}).toSorted()
+      ).toEqual(['get', 'post']);
+    });
+
+    test('throws on duplicate method and path derivation', () => {
+      const dotTrail = trail('entity.show', {
+        blaze: noop,
+        input: z.object({}),
+        intent: 'read',
+      });
+      const slashTrail = trail('entity/show', {
+        blaze: noop,
+        input: z.object({}),
+        intent: 'read',
+      });
+
+      expect(() =>
+        deriveOpenApiSpec(topoFrom({ dotTrail, slashTrail }))
+      ).toThrow(ValidationError);
+      expect(() =>
+        deriveOpenApiSpec(topoFrom({ dotTrail, slashTrail }))
+      ).toThrow(
+        'HTTP route collision: trails "entity.show" and "entity/show" both derive GET /entity/show'
+      );
     });
   });
 };
@@ -320,8 +359,17 @@ const registerResponseTests = () => {
       const op = spec.paths['/entity/show']?.['get'] as Record<string, unknown>;
       const responses = op['responses'] as Record<string, unknown>;
 
-      // The example-derived 400 (description: 'ValidationError') overrides the default
-      expect(responses['400']).toEqual({ description: 'ValidationError' });
+      expect(responses['400']).toMatchObject({
+        description: 'Validation error',
+      });
+      expect(
+        getJsonSchema(responses['400'] as Record<string, unknown>)
+      ).toEqual(
+        expect.objectContaining({
+          required: ['error'],
+          type: 'object',
+        })
+      );
     });
   });
 };
@@ -350,6 +398,28 @@ const registerMetadataAndStructureTests = () => {
       const op = spec.paths['/search']?.['get'] as Record<string, unknown>;
 
       expect(op['operationId']).toBe('search');
+    });
+
+    test('throws on duplicate operationId derivation', () => {
+      const dotTrail = trail('foo.bar', {
+        blaze: noop,
+        input: z.object({}),
+        intent: 'read',
+      });
+      const underscoreTrail = trail('foo_bar', {
+        blaze: noop,
+        input: z.object({}),
+        intent: 'read',
+      });
+
+      expect(() =>
+        deriveOpenApiSpec(topoFrom({ dotTrail, underscoreTrail }))
+      ).toThrow(ValidationError);
+      expect(() =>
+        deriveOpenApiSpec(topoFrom({ dotTrail, underscoreTrail }))
+      ).toThrow(
+        'OpenAPI operationId collision: trails "foo.bar" and "foo_bar" both derive operationId "foo_bar"'
+      );
     });
   });
 
@@ -573,6 +643,18 @@ const registerMetadataAndStructureTests = () => {
 
       expect(() => deriveOpenApiSpec(topoFrom({ exportTrail }))).toThrowError(
         /draft/i
+      );
+    });
+
+    test('rejects structural validation issues', () => {
+      const exportTrail = trail('entity.export', {
+        blaze: noop,
+        crosses: ['entity.missing'],
+        input: z.object({}),
+      });
+
+      expect(() => deriveOpenApiSpec(topoFrom({ exportTrail }))).toThrowError(
+        /topo validation/i
       );
     });
   });

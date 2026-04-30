@@ -148,7 +148,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 | `@ontrails/cli` | Framework-agnostic command model, flag derivation, output formatting | None beyond core |
 | `@ontrails/cli/commander` | Commander connector, `surface()` | `commander` (optional peer) |
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
-| `@ontrails/http` | HTTP routes and error mapping | None beyond core |
+| `@ontrails/http` | HTTP routes, error mapping, and OpenAPI generation | None beyond core |
 | `@ontrails/hono` | Hono connector, `surface()` | `hono` |
 | `@ontrails/vite` | Vite middleware adapter, `vite()` | None (node:stream only) |
 
@@ -169,7 +169,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 | Package | What it does |
 | --- | --- |
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, surface harnesses |
-| `@ontrails/schema` | Surface maps, semantic diffing, OpenAPI generation, lock helpers |
+| `@ontrails/schema` | Surface maps, semantic diffing, lock helpers |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 
 ### Apps
@@ -202,7 +202,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 @ontrails/logtape (logging)
 @ontrails/warden (core, schema)
      ^
-apps/trails (cli/commander, schema, tracing)
+apps/trails (cli/commander, http, schema, tracing)
 ```
 
 Clean DAG. Core at the center. No cycles. Surface connectors depend only on core. Framework connectors depend on their parent package.

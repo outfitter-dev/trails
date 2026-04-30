@@ -3,10 +3,6 @@ export { deriveSurfaceMap } from './derive.js';
 export { deriveSurfaceMapHash } from './hash.js';
 export { deriveSurfaceMapDiff } from './diff.js';
 
-// OpenAPI
-export { deriveOpenApiSpec } from './openapi.js';
-export type { OpenApiOptions, OpenApiSpec, OpenApiServer } from './openapi.js';
-
 // File I/O
 export {
   writeSurfaceMap,

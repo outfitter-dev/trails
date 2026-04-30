@@ -36,11 +36,23 @@ for (const route of result.value) {
 
 `deriveHttpRoutes` returns `Result<HttpRouteDefinition[], Error>` rather than a bare array. It returns `Result.err(ValidationError)` if two trails derive the same `(method, path)` pair.
 
+OpenAPI is the HTTP surface's persisted client contract projection:
+
+```typescript
+import { deriveOpenApiSpec } from '@ontrails/http';
+
+const spec = deriveOpenApiSpec(graph, { basePath: '/api' });
+```
+
+`deriveOpenApiSpec()` emits an OpenAPI 3.1 document from the same trail
+contracts used by `deriveHttpRoutes()`.
+
 ## API
 
 | Export | What it does |
 | --- | --- |
 | `deriveHttpRoutes(graph, options?)` | Build framework-agnostic route definitions from a topo |
+| `deriveOpenApiSpec(graph, options?)` | Generate an OpenAPI 3.1 document for the HTTP surface |
 
 ## Route derivation
 

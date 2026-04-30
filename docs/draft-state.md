@@ -68,7 +68,7 @@ These outputs reject draft state at runtime via `validateEstablishedTopo()`:
 
 - **Surface projection** — no draft trails in current shipped surfaces
 - **Lockfile export** — no draft nodes in `.trails/trails.lock`
-- **OpenAPI generation** — established schema export excludes draft trails
+- **OpenAPI generation** — the HTTP OpenAPI projection excludes draft trails
 - **Topo exports** — standard topo accessors exclude draft declarations
 
 ## The promotion workflow

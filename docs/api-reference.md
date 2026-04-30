@@ -156,8 +156,10 @@ McpToolResult, McpContent, McpExtra, McpAnnotations
 
 ```typescript
 deriveHttpRoutes(graph, options?)      // projection: route definitions without server; returns Result<HttpRouteDefinition[], Error>
+deriveOpenApiSpec(graph, options?)     // OpenAPI 3.1 spec for the HTTP surface
 
 DeriveHttpRoutesOptions, HttpMethod, HttpRouteDefinition, InputSource
+OpenApiOptions, OpenApiSpec, OpenApiServer
 ```
 
 ## `@ontrails/hono`
@@ -172,15 +174,12 @@ CreateAppOptions, SurfaceHttpResult
 ## `@ontrails/schema`
 
 ```typescript
-deriveOpenApiSpec(graph, options?) // OpenAPI 3.1 spec from topo
 deriveSurfaceMap(graph), deriveSurfaceMapHash(map), deriveSurfaceMapDiff(before, after)
 writeSurfaceMap(map, options?), readSurfaceMap(options?)
 writeSurfaceLock(lock, options?), readSurfaceLockData(options?), readSurfaceLock(options?)
 
 SurfaceMap, SurfaceMapEntry, SurfaceMapContourReference, SurfaceLock, DiffResult, DiffEntry, JsonSchema
 WriteOptions, ReadOptions
-
-OpenApiOptions, OpenApiSpec, OpenApiServer
 ```
 
 ## `@ontrails/store`

@@ -25,6 +25,7 @@
     "@clack/prompts": "^1.1.0",
     "@ontrails/cli": "workspace:^",
     "@ontrails/core": "workspace:^",
+    "@ontrails/http": "workspace:^",
     "@ontrails/logging": "workspace:^",
     "@ontrails/schema": "workspace:^",
     "@ontrails/tracing": "workspace:^",

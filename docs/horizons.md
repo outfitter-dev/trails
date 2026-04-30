@@ -6,7 +6,7 @@
 
 **HTTP surface (`@ontrails/http`).** The third surface connector. `intent: 'read'` maps to GET, mutations to POST, `'destroy'` to DELETE. Route paths derived from trail IDs. Error taxonomy maps to HTTP status codes. One `surface()` call, same pattern as CLI and MCP. Built on Hono.
 
-**OpenAPI generation (`@ontrails/schema`).** `deriveOpenApiSpec()` produces a complete OpenAPI 3.1 spec from the topo. The topo already carries everything OpenAPI needs.
+**OpenAPI generation (`@ontrails/http`).** `deriveOpenApiSpec()` produces a complete OpenAPI 3.1 spec from the topo for HTTP clients. The topo already carries everything OpenAPI needs; the HTTP package owns the surface-specific projection.
 
 **Resources (`resource()` and trail `resources: [...]`).** Trails now declare infrastructure dependencies explicitly. `executeTrail()` resolves app-scoped singletons before layers and implementations run. Testing can auto-resolve `mock` factories, and survey / schema tooling exposes the full resource graph.
 

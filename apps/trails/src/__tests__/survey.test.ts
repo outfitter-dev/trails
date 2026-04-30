@@ -16,11 +16,11 @@ import {
   topo,
   trail,
 } from '@ontrails/core';
+import { deriveOpenApiSpec } from '@ontrails/http';
 import {
   deriveSurfaceMap,
   deriveSurfaceMapHash,
   deriveSurfaceMapDiff,
-  deriveOpenApiSpec,
   writeSurfaceMap,
 } from '@ontrails/schema';
 import type { SurfaceMap } from '@ontrails/schema';

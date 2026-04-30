@@ -6,14 +6,15 @@
  */
 
 import {
+  ValidationError,
   filterSurfaceTrails,
   statusCodeMap,
-  validateDraftFreeTopo,
+  validateEstablishedTopo,
   zodToJsonSchema,
 } from '@ontrails/core';
 import type { Intent, Topo, Trail } from '@ontrails/core';
 
-import type { JsonSchema } from './types.js';
+type JsonSchema = Readonly<Record<string, unknown>>;
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -264,17 +265,20 @@ const buildResponses = (
   }[];
   return {
     ...buildSuccessResponse(t),
-    ...validationErrorResponse,
     ...errorResponsesFromExamples(examples),
+    ...validationErrorResponse,
   };
 };
+
+const operationIdFromTrailId = (trailId: string): string =>
+  trailId.replaceAll('.', '_');
 
 /** Build a complete OpenAPI operation for a trail. */
 const buildOperation = (
   t: Trail<unknown, unknown, unknown>,
   method: string
 ): Record<string, unknown> => ({
-  operationId: t.id.replaceAll('.', '_'),
+  operationId: operationIdFromTrailId(t.id),
   responses: buildResponses(t),
   tags: [tagFromId(t.id)],
   ...(t.description ? { summary: t.description } : {}),
@@ -292,6 +296,8 @@ const collectPaths = (
   options?: OpenApiOptions
 ): Record<string, Record<string, unknown>> => {
   const paths: Record<string, Record<string, unknown>> = {};
+  const seenRoutes = new Map<string, string>();
+  const seenOperationIds = new Map<string, string>();
 
   for (const t of filterSurfaceTrails(graph.list(), {
     exclude: options?.exclude,
@@ -299,9 +305,27 @@ const collectPaths = (
     intent: options?.intent,
   })) {
     const method = intentToMethod[t.intent] ?? 'post';
-    paths[trailIdToPath(t.id, basePath)] = {
-      [method]: buildOperation(t, method),
-    };
+    const path = trailIdToPath(t.id, basePath);
+    const routeKey = `${method.toUpperCase()} ${path}`;
+    const existingId = seenRoutes.get(routeKey);
+    if (existingId !== undefined) {
+      throw new ValidationError(
+        `HTTP route collision: trails "${existingId}" and "${t.id}" both derive ${routeKey}`
+      );
+    }
+    seenRoutes.set(routeKey, t.id);
+
+    const operationId = operationIdFromTrailId(t.id);
+    const existingOperationId = seenOperationIds.get(operationId);
+    if (existingOperationId !== undefined) {
+      throw new ValidationError(
+        `OpenAPI operationId collision: trails "${existingOperationId}" and "${t.id}" both derive operationId "${operationId}"`
+      );
+    }
+    seenOperationIds.set(operationId, t.id);
+
+    paths[path] ??= {};
+    paths[path][method] = buildOperation(t, method);
   }
 
   return paths;
@@ -332,7 +356,7 @@ export const deriveOpenApiSpec = (
   graph: Topo,
   options?: OpenApiOptions
 ): OpenApiSpec => {
-  const validated = validateDraftFreeTopo(graph);
+  const validated = validateEstablishedTopo(graph);
   if (validated.isErr()) {
     throw validated.error;
   }

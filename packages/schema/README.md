@@ -11,7 +11,6 @@ Most applications reach this package through `trails topo export` and `trails to
 - stable hashing for CI drift detection
 - semantic diffing between two surface maps
 - file I/O helpers for `.trails/_surface.json` and `.trails/trails.lock`
-- OpenAPI generation from the same topo contract
 
 The package does not own topo history, pins, or `trails.db`. Those higher-level workflows live in the `trails` app and `@ontrails/core`. `@ontrails/schema` stays focused on serializable artifacts and diffing.
 
@@ -19,7 +18,6 @@ The package does not own topo history, pins, or `trails.db`. Those higher-level 
 
 ```typescript
 import {
-  deriveOpenApiSpec,
   deriveSurfaceMap,
   deriveSurfaceMapDiff,
   deriveSurfaceMapHash,
@@ -40,8 +38,6 @@ const diff = deriveSurfaceMapDiff(map, nextMap);
 if (diff.hasBreaking) {
   console.error('Breaking changes:', diff.breaking);
 }
-
-const openApi = deriveOpenApiSpec(graph);
 ```
 
 `deriveSurfaceMap()` rejects draft-contaminated topos. Only established state can be serialized into the committed artifacts.
@@ -67,7 +63,6 @@ The typical exported artifact pair is:
 | `writeSurfaceLock(lock, options?)` | Write `.trails/trails.lock` as either structured JSON or legacy hash text |
 | `readSurfaceLockData(options?)` | Read the full normalized lock payload from `.trails/trails.lock` |
 | `readSurfaceLock(options?)` | Read just the committed lock hash |
-| `deriveOpenApiSpec(topo, options?)` | Generate an OpenAPI 3.1 document from the topo |
 
 ## Breaking change detection
 

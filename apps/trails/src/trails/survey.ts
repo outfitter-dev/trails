@@ -9,10 +9,10 @@ import { join } from 'node:path';
 
 import type { Topo } from '@ontrails/core';
 import { NotFoundError, Result, trail } from '@ontrails/core';
+import { deriveOpenApiSpec } from '@ontrails/http';
 import type { DiffResult } from '@ontrails/schema';
 import {
   deriveSurfaceMapDiff,
-  deriveOpenApiSpec,
   deriveSurfaceMap,
   readSurfaceMap,
 } from '@ontrails/schema';
