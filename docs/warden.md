@@ -4,6 +4,10 @@ Warden is Trails' correctness surface. It catches code-level framework drift, re
 
 Structural graph checks that can be answered from the resolved topo belong in `validateTopo()` from `@ontrails/core`. Warden owns checks that need source inspection, project context, topo-aware analysis, or drift reporting.
 
+Use [Rule Design](./rule-design.md) when authoring or auditing rules. It defines
+the survival tests, owner-data expectations, and family-collapse criteria for
+durable rules.
+
 ## Rule Homes
 
 Use Warden for durable Trails correctness:

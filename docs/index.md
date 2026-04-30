@@ -31,6 +31,7 @@
 ## Governing your codebase?
 
 - **[Warden](./warden.md)** — Trails correctness rules, rule-home boundaries, drift detection, CI integration
+- **[Rule Design](./rule-design.md)** — Methodology for durable Warden rules, owner-held rule data, and rule-family collapse
 - **[Schema](../packages/schema/README.md)** — Surface maps, topo compile helpers, semantic diffing, lock files
 
 ## Design decisions
