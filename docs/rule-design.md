@@ -23,9 +23,10 @@ and [ADR-0037](./adr/0037-owner-first-authority.md).
   topo-resident canonical tables, generic registries, loader APIs, or
   `derivedFrom` metadata as the default answer to duplicated framework facts.
 
-The tier names here are authoring classifications. Runtime tier metadata,
-filtering, and advisory report shape land in the Warden metadata work; until
-then, classify rules with these names in docs, tests, and issue descriptions.
+The tier names here are authoring classifications. Built-in Warden rule
+metadata exposes them from `@ontrails/warden`; runtime tier filtering and
+advisory report shape build on that metadata rather than inventing another rule
+registry.
 
 ## Core Principle
 

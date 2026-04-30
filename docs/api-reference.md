@@ -301,6 +301,11 @@ wardenRules                        // ReadonlyMap<string, WardenRule> — built-
 wardenTopoRules                    // ReadonlyMap<string, TopoAwareWardenRule> — built-in topo-aware rules
 wardenTopo                         // pre-built Topo of all wrapped built-in warden rule trails
 
+// Built-in rule metadata
+builtinWardenRuleMetadata
+getWardenRuleMetadata(ruleOrName), listWardenRuleMetadata()
+wardenRuleTiers, wardenRuleScopes, wardenRuleLifecycleStates
+
 // Trail runners
 runWardenTrails(filePath, sourceCode, options?) // run file-scoped warden rules against a single file
 runTopoAwareWardenTrails(topo)     // run built-in topo-aware warden rule trails once per topo
@@ -324,6 +329,7 @@ ruleInput, projectAwareRuleInput, ruleOutput, topoAwareRuleInput, diagnosticSche
 // Types
 WardenOptions, WardenReport, WardenDiagnostic, WardenSeverity, DriftResult
 ProjectAwareWardenRule, ProjectContext, TopoAwareWardenRule, WardenRule
+WardenRuleMetadata, WardenRuleTier, WardenRuleScope, WardenRuleLifecycle
 RuleInput, ProjectAwareRuleInput, RuleOutput, TopoAwareRuleInput
 ```
 

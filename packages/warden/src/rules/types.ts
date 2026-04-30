@@ -6,6 +6,60 @@ import type { Intent, Topo } from '@ontrails/core';
 export type WardenSeverity = 'error' | 'warn';
 
 /**
+ * Execution tier for a Warden rule.
+ *
+ * Tier names describe the narrowest runtime shape that can answer the rule's
+ * question. They do not change ownership: source-static rules can still be
+ * durable public Warden doctrine.
+ */
+export type WardenRuleTier =
+  | 'advisory'
+  | 'drift'
+  | 'project-static'
+  | 'source-static'
+  | 'topo-aware';
+
+/**
+ * Context where a Warden rule applies.
+ */
+export type WardenRuleScope =
+  | 'advisory'
+  | 'extension'
+  | 'external'
+  | 'internal'
+  | 'repo-local'
+  | 'temporary';
+
+/**
+ * Lifecycle state for a Warden rule.
+ */
+export type WardenRuleLifecycleState = 'deprecated' | 'durable' | 'temporary';
+
+/**
+ * Lifecycle metadata for a Warden rule.
+ */
+export interface WardenRuleLifecycle {
+  /** Current lifecycle state. */
+  readonly state: WardenRuleLifecycleState;
+  /** Required for temporary or deprecated rules. */
+  readonly retireWhen?: string | undefined;
+}
+
+/**
+ * Stable metadata used to classify Warden rules before dispatch filtering.
+ */
+export interface WardenRuleMetadata {
+  /** One-line invariant the rule protects. */
+  readonly invariant: string;
+  /** Rule lifecycle. */
+  readonly lifecycle: WardenRuleLifecycle;
+  /** Where the rule applies. */
+  readonly scope: WardenRuleScope;
+  /** Narrowest Warden tier that can answer the rule. */
+  readonly tier: WardenRuleTier;
+}
+
+/**
  * A single diagnostic reported by a warden rule.
  */
 export interface WardenDiagnostic {
@@ -22,10 +76,11 @@ export interface WardenDiagnostic {
 }
 
 /**
- * A warden rule is a function that analyzes source code and returns diagnostics.
+ * A warden rule analyzes one source file and returns diagnostics.
  *
- * Rules use string/regex analysis (not full AST parsing) to detect patterns
- * that violate Trails conventions.
+ * Rules should prefer structured AST helpers when they inspect TypeScript
+ * syntax. Simple string checks remain acceptable when the authored rule is
+ * explicitly about text that is not parseable syntax, such as generated output.
  */
 export interface WardenRule {
   /** Unique rule identifier */
@@ -34,6 +89,8 @@ export interface WardenRule {
   readonly severity: WardenSeverity;
   /** Human-readable description of what the rule enforces */
   readonly description: string;
+  /** Optional inline classification. Built-ins are classified by registry. */
+  readonly metadata?: WardenRuleMetadata | undefined;
   /** Run the rule against source code and return any diagnostics */
   readonly check: (
     sourceCode: string,
@@ -110,6 +167,8 @@ export interface TopoAwareWardenRule {
   readonly severity: WardenSeverity;
   /** Human-readable description of what the rule enforces */
   readonly description: string;
+  /** Optional inline classification. Built-ins are classified by registry. */
+  readonly metadata?: WardenRuleMetadata | undefined;
   /** Run the rule against the resolved topo and return any diagnostics */
   readonly checkTopo: (
     topo: Topo

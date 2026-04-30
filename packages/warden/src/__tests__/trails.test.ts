@@ -16,4 +16,15 @@ describe('wardenTopo', () => {
       expect(id).toMatch(/^warden\.rule\./);
     }
   });
+
+  test('all rule trails expose Warden metadata', () => {
+    for (const trail of wardenTopo.list()) {
+      const metadata = trail.meta?.warden as
+        | { lifecycle?: { state?: unknown }; tier?: unknown }
+        | undefined;
+
+      expect(typeof metadata?.lifecycle?.state).toBe('string');
+      expect(typeof metadata?.tier).toBe('string');
+    }
+  });
 });

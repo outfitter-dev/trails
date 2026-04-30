@@ -38,6 +38,9 @@ Warden rules can operate at several levels:
 - **Advisory** checks point at incomplete or risky framework usage without necessarily failing the build.
 
 The tier affects execution shape, not ownership. A source-static check can still be Warden-owned when it enforces public Trails semantics.
+Built-in rule classifications are exposed as metadata from `@ontrails/warden`;
+use that metadata when tooling needs to group rules by tier, scope, or
+lifecycle.
 
 ## Authoring Durable Rules
 

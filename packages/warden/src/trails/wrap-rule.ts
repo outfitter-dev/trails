@@ -13,6 +13,7 @@ import type {
   TopoAwareWardenRule,
   WardenRule,
 } from '../rules/types.js';
+import { getWardenRuleMetadata } from '../rules/metadata.js';
 import {
   projectAwareRuleInput,
   ruleInput,
@@ -39,6 +40,15 @@ interface WrapProjectAwareRuleOptions {
   /** Trail examples for testing and documentation. */
   readonly examples: Trail<ProjectAwareRuleInput, RuleOutput>['examples'];
 }
+
+const buildRuleMeta = (rule: WardenRule | TopoAwareWardenRule) => {
+  const metadata = getWardenRuleMetadata(rule);
+  return {
+    category: 'governance',
+    ...(metadata ? { warden: metadata } : {}),
+    severity: rule.severity,
+  };
+};
 
 const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
   ...(input.contourReferencesByName
@@ -122,7 +132,7 @@ export function wrapRule(
       >['examples'],
       input: projectAwareRuleInput,
       intent: 'read',
-      meta: { category: 'governance', severity: rule.severity },
+      meta: buildRuleMeta(rule),
       output: ruleOutput,
     });
   }
@@ -136,7 +146,7 @@ export function wrapRule(
     examples: examples as Trail<RuleInput, RuleOutput>['examples'],
     input: ruleInput,
     intent: 'read',
-    meta: { category: 'governance', severity: rule.severity },
+    meta: buildRuleMeta(rule),
     output: ruleOutput,
   });
 }
@@ -178,7 +188,7 @@ export const wrapTopoRule = (
     examples,
     input: topoAwareRuleInput,
     intent: 'read',
-    meta: { category: 'governance', severity: rule.severity },
+    meta: buildRuleMeta(rule),
     output: ruleOutput,
   });
 };

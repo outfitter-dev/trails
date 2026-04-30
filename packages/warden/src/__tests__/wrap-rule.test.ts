@@ -2,10 +2,22 @@ import { describe, expect, test } from 'bun:test';
 
 import { createTrailContext } from '@ontrails/core';
 
+import { noThrowInImplementation } from '../rules/no-throw-in-implementation.js';
 import { wrapRule } from '../trails/wrap-rule.js';
 import type { ProjectAwareWardenRule } from '../rules/types.js';
 
 describe('wrapRule', () => {
+  test('copies built-in rule metadata into trail meta', () => {
+    const wrapped = wrapRule({ examples: [], rule: noThrowInImplementation });
+
+    expect(wrapped.meta?.category).toBe('governance');
+    expect(wrapped.meta?.severity).toBe('error');
+    expect(wrapped.meta?.warden).toMatchObject({
+      lifecycle: { state: 'durable' },
+      tier: 'source-static',
+    });
+  });
+
   test('omits absent resource ids and defaults knownTrailIds to empty set', async () => {
     let capturedContext:
       | {
