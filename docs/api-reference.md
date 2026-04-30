@@ -15,6 +15,7 @@ resource(id, spec)                  // define a first-class resource dependency
 createResourceLookup(getContext)   // bind ctx.resource() to a specific context snapshot
 drainResources(resources, ctx, configValues?) // evict and dispose cached resource singletons
 topo(name, ...modules)             // assemble trails, contours, signals, and resources into a queryable topology
+intentValues                       // owner-held runtime vocabulary for trail intent
 blobRefSchema, createBlobRef(...)  // declare and create binary output references
 // Topo methods: .get(id), .has(id), .list(), .listSignals(), .ids(), .count
 //               .getContour(name), .hasContour(name), .listContours(), .contourIds(), .contourCount

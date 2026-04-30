@@ -130,8 +130,14 @@ export interface TrailSpec<I, O, CI = never> {
 // Trail (the frozen runtime object)
 // ---------------------------------------------------------------------------
 
-/** Intent describes what a trail does to the world */
-export type Intent = 'read' | 'write' | 'destroy';
+/** Intent describes what a trail does to the world. */
+export const intentValues = Object.freeze([
+  'read',
+  'write',
+  'destroy',
+] as const);
+
+export type Intent = (typeof intentValues)[number];
 
 /** Whether trailheads expose a trail by default. */
 export type TrailVisibility = 'public' | 'internal';

@@ -8,7 +8,7 @@ import { ConflictError } from '../errors';
 import { Result } from '../result';
 import { resource } from '../resource';
 import { signal } from '../signal';
-import { trail } from '../trail';
+import { intentValues, trail } from '../trail';
 import type { TrailContext } from '../types';
 
 const stubCtx: TrailContext = createTrailContext({
@@ -269,6 +269,11 @@ describe('trail()', () => {
   });
 
   describe('intent and idempotent', () => {
+    test('intentValues is the owner-held runtime vocabulary', () => {
+      expect(intentValues).toEqual(['read', 'write', 'destroy']);
+      expect(Object.isFrozen(intentValues)).toBe(true);
+    });
+
     test('intent defaults to write', () => {
       const minimal = trail('bare', {
         blaze: () => Result.ok(),

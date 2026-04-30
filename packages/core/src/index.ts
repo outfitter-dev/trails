@@ -106,7 +106,7 @@ export type {
 } from './resource.js';
 
 // Trail
-export { trail } from './trail.js';
+export { intentValues, trail } from './trail.js';
 export type {
   AnyTrail,
   BlazeInput,
