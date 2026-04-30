@@ -120,6 +120,11 @@
           "fromPath": "docs/adr/0036-warden-rules-ship-only-as-trails.md"
         },
         {
+          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) - establishes contract-first,",
+          "from": "0037",
+          "fromPath": "docs/adr/0037-owner-first-authority.md"
+        },
+        {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; `trails run` makes every trail directly invocable without trailhead ceremony",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -646,6 +651,11 @@
           "context": "[ADR-0007](0007-governance-as-trails.md) made warden rules into trails internally. Every rule is wrapped via `wrapRule()` into a trail with ID `warden.rule.<name>`, gets a schema, examples, and runs t",
           "from": "0036",
           "fromPath": "docs/adr/0036-warden-rules-ship-only-as-trails.md"
+        },
+        {
+          "context": "[ADR-0007](0007-governance-as-trails.md) made governance part of the Trails",
+          "from": "0037",
+          "fromPath": "docs/adr/0037-owner-first-authority.md"
         },
         {
           "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — warden rules for event declarations",
@@ -1564,6 +1574,11 @@
       "depends_on": ["2", "6"],
       "inbound": [
         {
+          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md) -",
+          "from": "0037",
+          "fromPath": "docs/adr/0037-owner-first-authority.md"
+        },
+        {
           "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) — signal delivery semantics (retry, dead-letter, discard) ",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
@@ -1896,6 +1911,11 @@
           "context": "- [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md) — the surface composition ladder that extracted runtime adapters build on",
           "from": "0029",
           "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
+          "context": "- [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md) -",
+          "from": "0037",
+          "fromPath": "docs/adr/0037-owner-first-authority.md"
         }
       ],
       "number": "0035",
@@ -1912,6 +1932,11 @@
       "depends_on": ["0", "7"],
       "inbound": [
         {
+          "context": "model. [ADR-0036](0036-warden-rules-ship-only-as-trails.md) made Warden rules",
+          "from": "0037",
+          "fromPath": "docs/adr/0037-owner-first-authority.md"
+        },
+        {
           "context": "4. Wrap built-in rules as trails, in line with [ADR-0036](./adr/0036-warden-rules-ship-only-as-trails.md).",
           "from": "warden",
           "fromPath": "docs/warden.md"
@@ -1925,6 +1950,19 @@
       "superseded_by": null,
       "title": "Warden rules ship only as trails",
       "updated": "2026-04-20"
+    },
+    {
+      "created": "2026-04-30",
+      "depends_on": ["0", "7", "26", "35", "36"],
+      "inbound": [],
+      "number": "0037",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0037-owner-first-authority.md",
+      "slug": "owner-first-authority",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Owner-First Authority",
+      "updated": "2026-04-30"
     }
   ],
   "version": 1
