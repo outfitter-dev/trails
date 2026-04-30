@@ -5,21 +5,19 @@ import {
   countPinnedSnapshots,
   countPrunableSnapshots,
   countTopoSnapshots,
-  pruneUnpinnedSnapshots,
-} from '@ontrails/core/internal/topo-snapshots';
-import {
   openReadTrailsDb,
   openWriteTrailsDb,
   deriveTrailsDbPath,
   deriveTrailsDir,
-} from '@ontrails/core/internal/trails-db';
+  pruneUnpinnedSnapshots,
+} from '@ontrails/core';
 import {
   DEFAULT_MAX_AGE,
   DEFAULT_MAX_RECORDS,
   applyTraceCleanup,
   countTraceRecords,
   previewTraceCleanup,
-} from '@ontrails/tracing/internal/dev-state';
+} from '@ontrails/tracing';
 
 import { removeRootRelativeFileIfPresent } from '../local-state-io.js';
 

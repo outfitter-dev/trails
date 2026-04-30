@@ -3,12 +3,12 @@ import { fileURLToPath } from 'node:url';
 
 import {
   createTopoSnapshot as persistTopoSnapshot,
+  deriveTrailsDbPath,
   listTopoSnapshots as readTopoSnapshots,
   pinTopoSnapshot,
   unpinTopoSnapshot,
 } from '@ontrails/core';
 import type { Topo, TopoSnapshot } from '@ontrails/core';
-import { deriveTrailsDbPath } from '@ontrails/core/internal/trails-db';
 import { z } from 'zod';
 
 import {

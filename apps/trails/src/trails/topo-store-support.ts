@@ -7,17 +7,15 @@
 
 import { Database } from 'bun:sqlite';
 
-import type { Topo, TopoSnapshot } from '@ontrails/core';
-import { InternalError, Result } from '@ontrails/core';
-import type { StoredTopoExport } from '@ontrails/core/internal/topo-store';
+import type { StoredTopoExport, Topo, TopoSnapshot } from '@ontrails/core';
 import {
-  createTopoSnapshot,
-  getStoredTopoExport,
-} from '@ontrails/core/internal/topo-store';
-import {
-  openWriteTrailsDb,
+  createStoredTopoSnapshot,
   deriveTrailsDir,
-} from '@ontrails/core/internal/trails-db';
+  getStoredTopoExport,
+  InternalError,
+  openWriteTrailsDb,
+  Result,
+} from '@ontrails/core';
 import type { SurfaceLock, SurfaceMap } from '@ontrails/schema';
 import { writeSurfaceLock, writeSurfaceMap } from '@ontrails/schema';
 
@@ -36,7 +34,7 @@ const persistAndReadStoredExport = (
   { snapshot: TopoSnapshot; storedExport: StoredTopoExport },
   Error
 > => {
-  const snapshotResult = createTopoSnapshot(db, app, {
+  const snapshotResult = createStoredTopoSnapshot(db, app, {
     ...readGitState(rootDir),
     ...deriveTopoCounts(app),
   });

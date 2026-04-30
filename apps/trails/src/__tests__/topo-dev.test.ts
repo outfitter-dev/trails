@@ -11,7 +11,7 @@ import {
 import { join, resolve } from 'node:path';
 
 import type { Result } from '@ontrails/core';
-import { openReadTrailsDb } from '@ontrails/core/internal/trails-db';
+import { openReadTrailsDb } from '@ontrails/core';
 import { createDevStore } from '@ontrails/tracing';
 
 import { devCleanTrail } from '../trails/dev-clean.js';

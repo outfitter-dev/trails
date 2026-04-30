@@ -21,6 +21,11 @@ blobRefSchema, createBlobRef(...)  // declare and create binary output reference
 //               .getContour(name), .hasContour(name), .listContours(), .contourIds(), .contourCount
 //               .getResource(id), .hasResource(id), .listResources(), .resourceIds(), .resourceCount
 createTopoStore(options?), createMockTopoStore(seed?), topoStore
+createStoredTopoSnapshot(db, topo, input?), getStoredTopoExport(db, snapshotId)
+openReadTrailsDb(options?), openWriteTrailsDb(options?), ensureSubsystemSchema(db, options)
+deriveTrailsDir(options?), deriveTrailsDbPath(options?)
+countTopoSnapshots(db), countPinnedSnapshots(db), countPrunableSnapshots(db, options?)
+pruneUnpinnedSnapshots(db, options?)
 
 // Types
 Trail<I, O>, Signal<T>, Contour<TName, TShape, TIdentity>, Resource<T>, Topo, Intent
@@ -28,6 +33,7 @@ TrailSpec<I, O>, SignalSpec<T>, ResourceSpec<T>, TrailExample<I, O>
 AnyTrail, AnySignal, AnyContour, AnyResource, ResourceContext, ResourceOverrideMap
 BlobRef, BlobRefDescriptor
 ContourOptions, ContourIdBrand, ContourIdMetadata, ContourIdSchema, ContourIdValue, ContourReference
+StoredTopoExport, TrailsDbLocationOptions, EnsureSubsystemSchemaOptions
 
 // Type utilities
 TrailInput<T>                      // extract input type from a Trail
@@ -58,6 +64,8 @@ mapTransportError(surface, error)       // deprecated compatibility alias
 Implementation<I, O>              // (input, ctx) => Result | Promise<Result>
 TrailContext, createTrailContext(overrides?)
 CrossFn, ResourceLookup, ProgressCallback, ProgressEvent, Logger
+normalizeCrossBatchConcurrency(options?), createCrossBatchValidationResults(calls, error)
+claimNextCrossBatchIndex(counter, calls)
 
 // Execution pipeline
 DETOUR_MAX_ATTEMPTS_CAP
@@ -72,6 +80,7 @@ composeLayers(layers, trail, implementation)
 // Validation
 validateInput(schema, data)        // → Result<T, ValidationError>
 validateOutput(schema, data)       // → Result<T, ValidationError>
+stripDefaultWrappers(schema), stripDefaultsFromShape(schema)
 validateTopo(topo)                 // → Result<void, ValidationError>; called by testAll()
 validateEstablishedTopo(topo)      // → Result<void, ValidationError>; rejects draft-contaminated outputs
 TopoIssue
@@ -203,6 +212,9 @@ WriteOptions, ReadOptions
 store(tables)                      // connector-agnostic store definition
 crudOperations                     // canonical create/read/update/delete/list order
 crudAccessorExpectations           // canonical accessor methods/fallbacks per CRUD operation
+bindStoreDefinition(definition, scope) // bind derived store signals to a resource scope
+createStoreTableSignals(tableName, payload), composeStoreSignalId(scope, tableName, event)
+isValidResourceId(resourceId)
 // every normalized table exposes derived schemas and signals directly:
 // table.schema          — normalized full entity schema
 // table.insertSchema    — entity schema minus generated fields
@@ -217,6 +229,7 @@ FiltersOf<T>, StoreListOptions
 StoreConnection<T>, StoreTableConnection<T>, ReadOnlyStoreConnection<T>
 StoreAccessor<T>, StoreTableAccessor<T>, ReadOnlyStoreTableAccessor<T>
 CrudOperation, CrudAccessorExpectation
+StoreSignalEvent
 
 // `versioned: true` on a store table adds a framework-managed integer `version`
 // field to returned entities and allows `upsert()` optimistic concurrency.
@@ -393,6 +406,9 @@ createMemorySink()                   // in-memory sink for testing
 createDevStore(options?)             // SQLite-backed persistent sink for development
 createOtelConnector(options?)        // OpenTelemetry span exporter
 toTraceStore(store)                  // read-only TraceStore view that does not own the writable connection
+countTraceRecords(db), previewTraceCleanup(db, options?), applyTraceCleanup(db, options?)
+withTraceStoreDb(options, run), ensureTraceSchema(db)
+DEFAULT_MAX_RECORDS, DEFAULT_MAX_AGE
 
 // Resource & trails
 tracingResource                      // resource for tracing state
@@ -408,7 +424,7 @@ createChildTraceContext(parent)      // create a child trace context
 shouldSample(intent, config?)        // sampling decision based on intent
 DEFAULT_SAMPLING                     // default sampling rates by intent
 
-TraceRecord, TraceSink, SamplingConfig, TraceContext, TraceFn
+TraceRecord, TraceSink, SamplingConfig, TraceContext, TraceFn, TraceCleanupReport
 ```
 
 ## `@ontrails/logging`

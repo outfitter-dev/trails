@@ -7,8 +7,6 @@
  * runner in `@ontrails/testing`. Extracting them here keeps the validation
  * rule, error message, and worker-pool semantics authored in one place so
  * the two call sites cannot drift.
- *
- * @internal
  */
 
 import { ValidationError } from '../errors.js';
@@ -22,8 +20,6 @@ import type { CrossBatchOptions } from '../types.js';
  * positive integer is supplied, and `Err(ValidationError)` for any other
  * value. The error message is load-bearing: callers and tests depend on
  * the exact string.
- *
- * @internal
  */
 export const normalizeCrossBatchConcurrency = (
   options: CrossBatchOptions | undefined
@@ -48,8 +44,6 @@ export const normalizeCrossBatchConcurrency = (
  * Produce one validation-error result per call, preserving the original
  * call order. Used when `normalizeCrossBatchConcurrency` fails so the caller
  * can surface a uniform batch shape to the trail implementation.
- *
- * @internal
  */
 export const createCrossBatchValidationResults = <TCall>(
   calls: readonly TCall[],
@@ -60,8 +54,6 @@ export const createCrossBatchValidationResults = <TCall>(
  * Claim the next branch index from a shared counter. Safe to call from
  * multiple worker coroutines because JavaScript is single-threaded between
  * awaits — the read/increment pair runs without interleaving.
- *
- * @internal
  */
 export const claimNextCrossBatchIndex = <TCall>(
   nextIndex: { value: number },

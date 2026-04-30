@@ -10,8 +10,7 @@ import {
   ValidationError,
   resource,
 } from '@ontrails/core';
-import { versionFieldName } from '@ontrails/store';
-import { bindStoreDefinition } from '@ontrails/store/internal/signal-identity';
+import { bindStoreDefinition, versionFieldName } from '@ontrails/store';
 import type {
   AnyStoreDefinition,
   AnyStoreTable,

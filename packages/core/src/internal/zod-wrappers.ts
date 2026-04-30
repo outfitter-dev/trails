@@ -15,8 +15,6 @@
  * would be redundant at best and would produce an `OptionalOptional<T>` shape
  * in edge cases at worst. `nullable` wrappers are preserved because nullability
  * is a semantic constraint that `.partial()` does not reintroduce.
- *
- * @internal
  */
 
 import type { z } from 'zod';
@@ -35,8 +33,6 @@ const readInnerType = (schema: z.ZodType): z.ZodType =>
  * (`default`, `optional`, `nullable`), drops defaults, drops `optional` (the
  * downstream `.partial()` reintroduces it across the whole shape), and
  * preserves `nullable` so explicit nullability survives.
- *
- * @internal
  */
 export const stripDefaultWrappers = (schema: z.ZodType): z.ZodType => {
   let current = schema;
@@ -61,8 +57,6 @@ const asObjectSchema = (schema: z.ZodType): AnyObjectSchema =>
  * Apply {@link stripDefaultWrappers} to every field in a Zod object shape and
  * return the resulting shape record. Callers typically feed the result to
  * `.extend()` + `.partial()`.
- *
- * @internal
  */
 export const stripDefaultsFromShape = (
   schema: z.ZodType

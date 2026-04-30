@@ -1,9 +1,10 @@
-import { signal, ValidationError } from '@ontrails/core';
-import type { Signal } from '@ontrails/core';
 import {
   attachLateBoundSignalRef,
   cloneSignalWithId,
-} from '@ontrails/core/internal/signal-ref';
+  signal,
+  ValidationError,
+} from '@ontrails/core';
+import type { Signal } from '@ontrails/core';
 import type { z } from 'zod';
 
 import type {

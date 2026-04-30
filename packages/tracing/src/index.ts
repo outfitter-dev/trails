@@ -48,6 +48,16 @@ export {
   type TraceStore,
   toTraceStore,
 } from './stores/dev.js';
+export {
+  applyTraceCleanup,
+  countTraceRecords,
+  DEFAULT_MAX_AGE,
+  DEFAULT_MAX_RECORDS,
+  ensureTraceSchema,
+  previewTraceCleanup,
+  withTraceStoreDb,
+} from './internal/dev-state.js';
+export type { TraceCleanupReport } from './internal/dev-state.js';
 
 // OTel connector
 export {

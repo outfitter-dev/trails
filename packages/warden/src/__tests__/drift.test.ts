@@ -3,12 +3,15 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { createTopoStore, trail, topo, Result } from '@ontrails/core';
-import { createTopoSnapshot } from '@ontrails/core/internal/topo-store';
 import {
-  openWriteTrailsDb,
+  createStoredTopoSnapshot,
+  createTopoStore,
   deriveTrailsDir,
-} from '@ontrails/core/internal/trails-db';
+  openWriteTrailsDb,
+  trail,
+  topo,
+  Result,
+} from '@ontrails/core';
 import {
   deriveSurfaceMapHash,
   deriveSurfaceMap,
@@ -42,7 +45,7 @@ const committedLockDir = (dir: string): string => {
 const seedSavedTopo = (dir: string): string | undefined => {
   const db = openWriteTrailsDb({ rootDir: dir });
   try {
-    const result = createTopoSnapshot(db, makeTopo(), {
+    const result = createStoredTopoSnapshot(db, makeTopo(), {
       createdAt: '2026-04-03T15:00:00.000Z',
     });
     if (result.isErr()) {

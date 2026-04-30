@@ -12,7 +12,6 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./internal/dev-state": "./src/internal/dev-state.ts",
     "./otel": "./src/connectors/otel.ts",
     "./package.json": "./package.json"
   },

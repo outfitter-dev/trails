@@ -8,12 +8,14 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { ConflictError, NotFoundError, Result } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import {
+  ConflictError,
   deriveTrailsDbPath,
   deriveTrailsDir,
-} from '@ontrails/core/internal/trails-db';
+  NotFoundError,
+  Result,
+} from '@ontrails/core';
 import { readSurfaceLockData } from '@ontrails/schema';
 
 import type {

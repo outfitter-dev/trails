@@ -159,6 +159,17 @@ export { inputOf, outputOf } from './type-utils.js';
 // Signal
 export { signal } from './signal.js';
 export type { AnySignal, Signal, SignalSpec } from './signal.js';
+export {
+  attachLateBoundSignalRef,
+  cloneSignalWithId,
+  createLateBoundSignalMarker,
+  getLateBoundSignalRef,
+  parseLateBoundSignalMarker,
+} from './internal/signal-ref.js';
+export type {
+  LateBoundSignalMarker,
+  LateBoundSignalRef,
+} from './internal/signal-ref.js';
 
 // Contour
 export { contour } from './contour.js';
@@ -202,6 +213,28 @@ export type {
   TopoStoreTrailDetailRecord,
   TopoStoreTrailRecord,
 } from './topo-store.js';
+export {
+  countPinnedSnapshots,
+  countPrunableSnapshots,
+  countTopoSnapshots,
+  pruneUnpinnedSnapshots,
+} from './internal/topo-snapshots.js';
+export {
+  createTopoSnapshot as createStoredTopoSnapshot,
+  getStoredTopoExport,
+} from './internal/topo-store.js';
+export type { StoredTopoExport } from './internal/topo-store.js';
+export {
+  deriveTrailsDbPath,
+  deriveTrailsDir,
+  ensureSubsystemSchema,
+  openReadTrailsDb,
+  openWriteTrailsDb,
+} from './internal/trails-db.js';
+export type {
+  EnsureSubsystemSchemaOptions,
+  TrailsDbLocationOptions,
+} from './internal/trails-db.js';
 
 // Draft state
 export {
@@ -232,6 +265,11 @@ export type { Field, FieldOverride } from './derive.js';
 
 // Cross schema
 export { buildCrossValidationSchema } from './cross-schema.js';
+export {
+  claimNextCrossBatchIndex,
+  createCrossBatchValidationResults,
+  normalizeCrossBatchConcurrency,
+} from './internal/cross-batch.js';
 
 // Execute
 export { DETOUR_MAX_ATTEMPTS_CAP } from './detours.js';
@@ -277,6 +315,10 @@ export {
   formatZodIssues,
   zodToJsonSchema,
 } from './validation.js';
+export {
+  stripDefaultWrappers,
+  stripDefaultsFromShape,
+} from './internal/zod-wrappers.js';
 
 // Serialization
 export { serializeError, deserializeError } from './serialization.js';

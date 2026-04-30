@@ -3,7 +3,7 @@ import { Database } from 'bun:sqlite';
 import { existsSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { openWriteTrailsDb } from '@ontrails/core/internal/trails-db';
+import { openWriteTrailsDb } from '@ontrails/core';
 
 import {
   DEFAULT_MAX_AGE,

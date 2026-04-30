@@ -12,13 +12,6 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./internal/cross-batch": "./src/internal/cross-batch.ts",
-    "./internal/signal-ref": "./src/internal/signal-ref.ts",
-    "./internal/topo-snapshots": "./src/internal/topo-snapshots.ts",
-    "./internal/topo-store": "./src/internal/topo-store.ts",
-    "./internal/tracing": "./src/internal/tracing.ts",
-    "./internal/trails-db": "./src/internal/trails-db.ts",
-    "./internal/zod-wrappers": "./src/internal/zod-wrappers.ts",
     "./patterns": "./src/patterns/index.ts",
     "./redaction": "./src/redaction/index.ts",
     "./store": "./src/store/index.ts",

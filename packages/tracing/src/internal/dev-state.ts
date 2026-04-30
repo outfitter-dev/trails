@@ -1,9 +1,6 @@
 import type { Database } from 'bun:sqlite';
 
-import {
-  ensureSubsystemSchema,
-  openWriteTrailsDb,
-} from '@ontrails/core/internal/trails-db';
+import { ensureSubsystemSchema, openWriteTrailsDb } from '@ontrails/core';
 
 import type { DevStoreOptions } from '../stores/dev.js';
 

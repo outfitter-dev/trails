@@ -1,6 +1,5 @@
-import { ValidationError } from '@ontrails/core';
+import { stripDefaultsFromShape, ValidationError } from '@ontrails/core';
 import type { AnySignal } from '@ontrails/core';
-import { stripDefaultsFromShape } from '@ontrails/core/internal/zod-wrappers';
 import { z } from 'zod';
 
 import { createStoreTableSignals } from './internal/signal-identity.js';

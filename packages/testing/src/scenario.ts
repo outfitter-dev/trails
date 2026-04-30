@@ -18,15 +18,13 @@ import type {
 } from '@ontrails/core';
 import {
   buildCrossValidationSchema,
-  executeTrail,
-  InternalError,
-  Result as R,
-} from '@ontrails/core';
-import {
   claimNextCrossBatchIndex,
   createCrossBatchValidationResults,
+  executeTrail,
+  InternalError,
   normalizeCrossBatchConcurrency,
-} from '@ontrails/core/internal/cross-batch';
+  Result as R,
+} from '@ontrails/core';
 
 import { assertPartialMatch, expectOk } from './assertions.js';
 import { createTestContext, createMockResources } from './context.js';

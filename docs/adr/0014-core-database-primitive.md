@@ -61,8 +61,7 @@ The database has two connection modes:
 
 ```typescript
 // Conceptual — illustrates the write-restriction architecture.
-// Actual internal paths: @ontrails/core/internal/trails-db (openWriteTrailsDb)
-import { getWriteConnection } from '@ontrails/core/internal/db';
+import { openWriteTrailsDb } from '@ontrails/core';
 
 // Resource for warden trails and dev tooling
 import { topoStore } from '@ontrails/core';
