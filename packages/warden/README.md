@@ -142,6 +142,9 @@ runtime barrel. The stable authoring surface includes `parse`, `walk`,
 `walkScope`, `offsetToLine`, `findTrailDefinitions`, `findBlazeBodies`,
 `findContourDefinitions`, `isBlazeCall`, and string-literal helpers.
 
+`runWarden({ tier })` can narrow a run to `source-static`, `project-static`,
+`topo-aware`, `drift`, or `advisory`. Omit `tier` for the default full run.
+
 See the [API Reference](../../docs/api-reference.md) for the full list.
 
 ## Installation

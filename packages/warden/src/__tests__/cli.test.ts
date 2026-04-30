@@ -102,6 +102,77 @@ describe('runWarden basics', () => {
       rmSync(dir, { force: true, recursive: true });
     }
   });
+
+  test('source-static tier runs source rules and skips project rules plus drift', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'mixed.ts'),
+        `trail('entity.show', {
+  on: ['entity.changed'],
+  blaze: async () => {
+    throw new Error('boom');
+  },
+});`
+      );
+
+      const report = await runWarden({
+        rootDir: dir,
+        tier: 'source-static',
+      });
+      const rules = new Set(report.diagnostics.map((d) => d.rule));
+
+      expect(rules.has('no-throw-in-implementation')).toBe(true);
+      expect(rules.has('on-references-exist')).toBe(false);
+      expect(report.drift).toBeNull();
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('project-static tier runs project rules and skips source rules plus drift', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'mixed.ts'),
+        `trail('entity.show', {
+  on: ['entity.changed'],
+  blaze: async () => {
+    throw new Error('boom');
+  },
+});`
+      );
+
+      const report = await runWarden({
+        rootDir: dir,
+        tier: 'project-static',
+      });
+      const rules = new Set(report.diagnostics.map((d) => d.rule));
+
+      expect(rules.has('no-throw-in-implementation')).toBe(false);
+      expect(rules.has('on-references-exist')).toBe(true);
+      expect(report.drift).toBeNull();
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('drift tier skips lint and runs drift', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'bad.ts'),
+        `trail('x', { blaze: async () => { throw new Error('x'); } })`
+      );
+
+      const report = await runWarden({ rootDir: dir, tier: 'drift' });
+
+      expect(report.diagnostics).toHaveLength(0);
+      expect(report.drift).not.toBeNull();
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
 });
 
 describe('runWarden project context', () => {
