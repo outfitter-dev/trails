@@ -1,3 +1,8 @@
+export { crudAccessorExpectations, crudOperations } from './crud-doctrine.js';
+export type {
+  CrudAccessorExpectation,
+  CrudOperation,
+} from './crud-doctrine.js';
 export { store, versionFieldName } from './store.js';
 export type {
   AnyStoreDefinition,

@@ -4,8 +4,12 @@ import { z } from 'zod';
 
 import type { EntityOf, InsertOf, StoreAccessor } from '../index.js';
 import { testAll } from '../../../testing/src/index.js';
-import { store } from '../index.js';
-import { crud } from '../trails/index.js';
+import { crudAccessorExpectations, crudOperations, store } from '../index.js';
+import {
+  crud,
+  crudAccessorExpectations as trailsCrudAccessorExpectations,
+  crudOperations as trailsCrudOperations,
+} from '../trails/index.js';
 
 const noteSchema = z.object({
   body: z.string().default('draft'),
@@ -204,6 +208,44 @@ const expectOk = <T>(result: Result<T, Error>): T => {
 };
 
 describe('crud()', () => {
+  test('exports the store-owned CRUD doctrine constants', () => {
+    expect(crudOperations).toEqual([
+      'create',
+      'read',
+      'update',
+      'delete',
+      'list',
+    ]);
+    expect(crudAccessorExpectations).toEqual({
+      create: {
+        fallback: 'upsert',
+        preferred: 'insert',
+        severityWhenNoFallback: 'error',
+        severityWhenPreferredMissingWithFallback: 'warn',
+      },
+      delete: {
+        preferred: 'remove',
+        severityWhenNoFallback: 'error',
+      },
+      list: {
+        preferred: 'list',
+        severityWhenNoFallback: 'error',
+      },
+      read: {
+        preferred: 'get',
+        severityWhenNoFallback: 'error',
+      },
+      update: {
+        fallback: 'upsert',
+        preferred: 'update',
+        severityWhenNoFallback: 'error',
+        severityWhenPreferredMissingWithFallback: 'warn',
+      },
+    });
+    expect(trailsCrudOperations).toBe(crudOperations);
+    expect(trailsCrudAccessorExpectations).toBe(crudAccessorExpectations);
+  });
+
   test('produces the five standard CRUD trails with derived schemas', () => {
     expect(createInputHasTitle).toBe(true);
     expect(createInputOmitsGeneratedId).toBe(true);

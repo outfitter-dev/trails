@@ -190,6 +190,8 @@ WriteOptions, ReadOptions
 
 ```typescript
 store(tables)                      // connector-agnostic store definition
+crudOperations                     // canonical create/read/update/delete/list order
+crudAccessorExpectations           // canonical accessor methods/fallbacks per CRUD operation
 // every normalized table exposes derived schemas and signals directly:
 // table.schema          — normalized full entity schema
 // table.insertSchema    — entity schema minus generated fields
@@ -203,6 +205,7 @@ EntityOf<T>, InsertOf<T>, UpdateOf<T>, UpsertOf<T>, FixtureInputOf<T>, FixtureOf
 FiltersOf<T>, StoreListOptions
 StoreConnection<T>, StoreTableConnection<T>, ReadOnlyStoreConnection<T>
 StoreAccessor<T>, StoreTableAccessor<T>, ReadOnlyStoreTableAccessor<T>
+CrudOperation, CrudAccessorExpectation
 
 // `versioned: true` on a store table adds a framework-managed integer `version`
 // field to returned entities and allows `upsert()` optimistic concurrency.

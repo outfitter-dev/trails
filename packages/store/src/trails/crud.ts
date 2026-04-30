@@ -15,6 +15,7 @@ import type {
   StoreIdentifierOf,
   UpdateOf,
 } from '../types.js';
+import type { CrudOperation } from '../crud-doctrine.js';
 import { createTableContour } from './utils.js';
 import type { TableContour } from './utils.js';
 
@@ -44,7 +45,7 @@ type GeneratedFieldsOf<TTable extends AnyStoreTable> =
  */
 type DerivedInput<
   TTable extends AnyStoreTable,
-  TOperation extends 'create' | 'read' | 'update' | 'delete' | 'list',
+  TOperation extends CrudOperation,
 > = DeriveTrailInput<
   TableContour<TTable>,
   TOperation,
@@ -57,7 +58,7 @@ type DerivedInput<
  */
 type DerivedOutput<
   TTable extends AnyStoreTable,
-  TOperation extends 'create' | 'read' | 'update' | 'delete' | 'list',
+  TOperation extends CrudOperation,
 > = DeriveTrailOutput<TableContour<TTable>, TOperation>;
 
 type InternalCreateTrailOf<TTable extends AnyStoreTable> = Trail<

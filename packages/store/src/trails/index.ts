@@ -1,3 +1,8 @@
+export { crudAccessorExpectations, crudOperations } from '../crud-doctrine.js';
+export type {
+  CrudAccessorExpectation,
+  CrudOperation,
+} from '../crud-doctrine.js';
 export { crud } from './crud.js';
 export type { CrudBlazeOverrides, CrudOptions, CrudTrails } from './crud.js';
 export { reconcile } from './reconcile.js';
