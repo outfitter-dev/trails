@@ -243,8 +243,8 @@ trails survey trail --module ./src/app.ts entity.show
 # See saved topo history and pins
 trails topo history --root-dir .
 
-# Export the committed lock artifacts
-trails topo export --module ./src/app.ts
+# Compile the committed lock artifacts
+trails topo compile --module ./src/app.ts
 
 # Get the broader machine-readable report
 trails survey --module ./src/app.ts
@@ -252,7 +252,7 @@ trails survey brief --module ./src/app.ts
 trails survey diff --module ./src/app.ts
 ```
 
-Use `trails topo *` for the day-to-day operational flow: inspect the current topo, pin meaningful points, and export or verify the committed lock artifacts. `survey` remains the broader introspection surface for list, detail, diff, and OpenAPI output.
+Use `trails topo *` for the day-to-day operational flow: inspect the current topo, pin meaningful points, and compile or verify the committed lock artifacts. `survey` remains the broader introspection surface for list, detail, and diff output.
 
 ## Signals
 

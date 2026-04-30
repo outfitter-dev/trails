@@ -2,7 +2,7 @@
 
 Deterministic surface maps, lockfile helpers, and semantic diffing for Trails.
 
-Most applications reach this package through `trails topo export` and `trails topo verify`. Those CLI trails layer workspace and topo-store behavior on top of the low-level building blocks in `@ontrails/schema`.
+Most applications reach this package through `trails topo compile` and `trails topo verify`. Those CLI trails layer workspace and topo-store behavior on top of the low-level building blocks in `@ontrails/schema`.
 
 ## What it owns
 
@@ -49,7 +49,7 @@ The typical exported artifact pair is:
 - `.trails/_surface.json` — detailed derived map, useful for inspection and diffing
 - `.trails/trails.lock` — committed lock artifact, stored as structured JSON or legacy hash-only text
 
-`trails topo export` writes both from the current topo. `trails topo verify` and `@ontrails/warden` use the lockfile helpers here to detect drift.
+`trails topo compile` writes both from the current topo. `trails topo verify` and `@ontrails/warden` use the lockfile helpers here to detect drift.
 
 ## API
 

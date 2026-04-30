@@ -23,7 +23,7 @@ import {
   surveyTrail,
   surveyTrailDetailTrail,
 } from '../trails/survey.js';
-import { topoExportTrail } from '../trails/topo-export.js';
+import { topoCompileTrail } from '../trails/topo-compile.js';
 import { topoHistoryTrail } from '../trails/topo-history.js';
 import { topoPinTrail } from '../trails/topo-pin.js';
 import { topoTrail } from '../trails/topo.js';
@@ -124,7 +124,7 @@ export const app = topo('fixture-app', { ${topoMembers} });
 };
 
 describe('topo and dev trails', () => {
-  test('topo surfaces current summary, detail, and export/verify flow', async () => {
+  test('topo surfaces current summary, detail, and compile/verify flow', async () => {
     const dir = repoTempDir();
 
     try {
@@ -150,17 +150,17 @@ describe('topo and dev trails', () => {
         true
       );
 
-      const exportResult = expectOk(
-        await topoExportTrail.blaze(moduleInput, { cwd: dir } as never)
+      const compileResult = expectOk(
+        await topoCompileTrail.blaze(moduleInput, { cwd: dir } as never)
       );
       const snapshotCountAfterExport = countTopoSnapshots(dir);
-      expect(exportResult.hash).toHaveLength(64);
+      expect(compileResult.hash).toHaveLength(64);
       expect(existsSync(join(dir, '.trails', '_surface.json'))).toBe(true);
       expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(true);
       expect(
         JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
       ).toMatchObject({
-        hash: exportResult.hash,
+        hash: compileResult.hash,
         version: 1,
       });
 
@@ -311,17 +311,17 @@ describe('topo and dev trails', () => {
       );
       expect(firstPin.snapshot.pinnedAs).toBe('before-auth');
 
-      const firstExport = expectOk(
-        await topoExportTrail.blaze(moduleInput, { cwd: dir } as never)
+      const firstCompile = expectOk(
+        await topoCompileTrail.blaze(moduleInput, { cwd: dir } as never)
       );
-      const secondExport = expectOk(
-        await topoExportTrail.blaze(moduleInput, { cwd: dir } as never)
+      const secondCompile = expectOk(
+        await topoCompileTrail.blaze(moduleInput, { cwd: dir } as never)
       );
-      expect(firstExport.hash).toBe(secondExport.hash);
+      expect(firstCompile.hash).toBe(secondCompile.hash);
       expect(
         JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
       ).toMatchObject({
-        hash: secondExport.hash,
+        hash: secondCompile.hash,
         version: 1,
       });
 
@@ -336,7 +336,7 @@ describe('topo and dev trails', () => {
           .query<{ count: number }, [string]>(
             'SELECT COUNT(*) as count FROM topo_trails WHERE snapshot_id = ?'
           )
-          .get(firstExport.snapshot.id);
+          .get(firstCompile.snapshot.id);
         const projectedSaves = projectionDb
           .query<{ count: number }, []>(
             'SELECT COUNT(DISTINCT snapshot_id) as count FROM topo_trails'
@@ -400,7 +400,7 @@ describe('topo and dev trails', () => {
       ).toBe(true);
       expect(
         history.snapshots.some(
-          (snapshot) => snapshot.id === secondExport.snapshot.id
+          (snapshot) => snapshot.id === secondCompile.snapshot.id
         )
       ).toBe(true);
 

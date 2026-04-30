@@ -562,7 +562,7 @@ Trail IDs are completed from the topo. Example names are completed from the trai
 
 ### Tradeoffs
 
-- **Depends on the lockfile.** `trails run` resolves trails through `trails.lock`. The lockfile must be current. A stale lockfile could point to a trail that's been renamed or removed. `trails topo export` (or a pin-driven export workflow) becomes a prerequisite for accurate resolution.
+- **Depends on the lockfile.** `trails run` resolves trails through `trails.lock`. The lockfile must be current. A stale lockfile could point to a trail that's been renamed or removed. `trails topo compile` (or a pin-driven compile workflow) becomes a prerequisite for accurate resolution.
 - **Reactive chains can cascade.** `trails run` with triggers enabled means one invocation could trigger a chain of trail executions. With `--tracing` this is visible. Without it, the cascading triggers are silent. A developer exploring a trail might not expect their invocation to trigger five downstream trails.
 - **Watch mode requires file watching.** Adds a dependency on file system watching (Bun handles this natively). For large projects, file watching can be resource-intensive, though scoping to the trail's source file and its dependencies mitigates this.
 

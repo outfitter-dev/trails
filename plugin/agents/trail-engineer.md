@@ -46,7 +46,7 @@ If the feature is complex, sketch the contract and get user alignment before imp
 Add the module import to the topo file. Verify the trail appears:
 
 ```bash
-trails survey --brief
+trails survey brief
 ```
 
 ### 5. Test
@@ -96,7 +96,7 @@ If warden reports drift:
 
 ```bash
 trails warden --drift-only
-trails topo export
+trails topo compile
 trails topo verify
 ```
 

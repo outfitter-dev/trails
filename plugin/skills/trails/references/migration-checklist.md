@@ -62,7 +62,7 @@ For each handler:
 ## Phase 6: Governance
 
 - [ ] `trails warden` reports clean
-- [ ] Regenerate topo artifacts: `trails topo export`
+- [ ] Regenerate topo artifacts: `trails topo compile`
 - [ ] Verify topo artifacts: `trails topo verify`
 - [ ] Add lock check to CI
 

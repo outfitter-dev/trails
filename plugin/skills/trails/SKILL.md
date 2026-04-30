@@ -224,7 +224,7 @@ The warden enforces conventions and detects drift:
 ```bash
 trails warden          # Convention checks
 trails warden --drift-only # Contract drift vs lockfile
-trails topo export         # Regenerate committed topo artifacts
+trails topo compile        # Regenerate committed topo artifacts
 trails topo verify         # Verify committed topo artifacts
 ```
 

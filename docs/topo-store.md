@@ -16,12 +16,12 @@ Trails creates a `.trails/` directory in your workspace root on first use:
 ├── generated/             # Generated artifacts (gitignored)
 ├── trails.db              # SQLite database (topology store)
 ├── trails.lock            # Lockfile (text, git-tracked)
-└── _surface.json          # Full surface map (generated on export)
+└── _surface.json          # Full surface map (compiled artifact)
 ```
 
 - **`trails.db`** — SQLite database containing all topo saves, pins, and schema cache. Not git-tracked.
 - **`trails.lock`** — Committed lockfile. Text format, git-tracked. This is your contract's current state for CI.
-- **`_surface.json`** — Full surface map with all metadata, generated on export.
+- **`_surface.json`** — Full surface map with all metadata, written by `topo compile`.
 
 ## What trails.db contains
 
@@ -77,12 +77,12 @@ List saved topo states (pinned and recent autosaves).
 trails topo history --limit 20
 ```
 
-### `trails topo export`
+### `trails topo compile`
 
-Export the current topo to `.trails/trails.lock` and `.trails/_surface.json`.
+Compile the current topo to `.trails/trails.lock` and `.trails/_surface.json`.
 
 ```bash
-trails topo export
+trails topo compile
 ```
 
 ### `trails topo verify`
@@ -99,7 +99,7 @@ trails topo verify || exit 1
 ### Pre-deployment
 
 1. Make topology changes
-2. Export: `trails topo export`
+2. Compile: `trails topo compile`
 3. Commit `.trails/trails.lock`
 4. In CI, verify: `trails topo verify`
 
@@ -108,7 +108,7 @@ trails topo verify || exit 1
 ```bash
 trails topo pin --name pre-refactor
 # ... make changes ...
-trails topo export
+trails topo compile
 # Compare lockfile diff against the pinned baseline
 ```
 

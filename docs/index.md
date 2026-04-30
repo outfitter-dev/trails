@@ -31,7 +31,7 @@
 ## Governing your codebase?
 
 - **[Warden](./warden.md)** — Trails correctness rules, rule-home boundaries, drift detection, CI integration
-- **[Schema](../packages/schema/README.md)** — Surface maps, topo export helpers, semantic diffing, lock files
+- **[Schema](../packages/schema/README.md)** — Surface maps, topo compile helpers, semantic diffing, lock files
 
 ## Design decisions
 

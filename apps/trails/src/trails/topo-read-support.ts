@@ -186,7 +186,7 @@ export const verifyCurrentTopo = async (
   if (committedLock === null) {
     return Result.err(
       new NotFoundError(
-        'No committed trails.lock found. Run `trails topo export` first.'
+        'No committed trails.lock found. Run `trails topo compile` first.'
       )
     );
   }
@@ -200,7 +200,7 @@ export const verifyCurrentTopo = async (
   if (committedLock.hash !== currentHash) {
     return Result.err(
       new ConflictError(
-        'trails.lock is stale. Run `trails topo export` to refresh it.'
+        'trails.lock is stale. Run `trails topo compile` to refresh it.'
       )
     );
   }

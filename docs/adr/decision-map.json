@@ -115,7 +115,7 @@
           "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — \"the trail is the unit of everything\"; this ADR enforces that at the package boundary",
+          "context": "The [drift guard in ADR-0000](0000-core-premise.md) prefers derivation over lint-time checks. The implementation should evaluate structural derivation for properties 1 and 2 first, and fall back to a ",
           "from": "0036",
           "fromPath": "docs/adr/0036-warden-rules-ship-only-as-trails.md"
         },
@@ -643,7 +643,7 @@
           "fromPath": "docs/adr/0025-composition-testing.md"
         },
         {
-          "context": "[ADR-0007](0007-governance-as-trails.md) made warden rules into trails. Every rule is wrapped via `wrapRule()` into a trail with ID `warden.rule.<name>`, gets a schema, examples, and runs through t",
+          "context": "[ADR-0007](0007-governance-as-trails.md) made warden rules into trails internally. Every rule is wrapped via `wrapRule()` into a trail with ID `warden.rule.<name>`, gets a schema, examples, and runs t",
           "from": "0036",
           "fromPath": "docs/adr/0036-warden-rules-ship-only-as-trails.md"
         },
@@ -665,7 +665,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Governance as Trails with AST-Based Analysis",
-      "updated": "2026-04-01"
+      "updated": "2026-04-22"
     },
     {
       "created": "2026-03-29",
@@ -1208,7 +1208,7 @@
           "fromPath": "docs/adr/0015-topo-store.md"
         },
         {
-          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — topo export, verify, and lockfile-as-projection semantics",
+          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — topo compile, verify, and lockfile-as-projection semantics",
           "from": "0018",
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
         },
@@ -1910,7 +1910,13 @@
     {
       "created": "2026-04-20",
       "depends_on": ["0", "7"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "4. Wrap built-in rules as trails, in line with [ADR-0036](./adr/0036-warden-rules-ship-only-as-trails.md).",
+          "from": "warden",
+          "fromPath": "docs/warden.md"
+        }
+      ],
       "number": "0036",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0036-warden-rules-ship-only-as-trails.md",

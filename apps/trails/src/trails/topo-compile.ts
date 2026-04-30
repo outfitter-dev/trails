@@ -1,14 +1,21 @@
 import { trail } from '@ontrails/core';
+import type { Result, Topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { loadFreshAppLease } from './load-app.js';
-import { compileCurrentTopo } from './topo-compile.js';
+import { exportCurrentTopo } from './topo-store-support.js';
+import type { TopoExportReport } from './topo-support.js';
 import {
   createIsolatedExampleInput,
   topoSnapshotOutput,
 } from './topo-support.js';
 
-export const topoExportTrail = trail('topo.export', {
+export const compileCurrentTopo = async (
+  app: Topo,
+  options?: { readonly rootDir?: string }
+): Promise<Result<TopoExportReport, Error>> => exportCurrentTopo(app, options);
+
+export const topoCompileTrail = trail('topo.compile', {
   blaze: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
     const lease = await loadFreshAppLease(input.module, rootDir);
@@ -18,11 +25,11 @@ export const topoExportTrail = trail('topo.export', {
       lease.release();
     }
   },
-  description: 'Legacy alias for compiling the current topo artifacts',
+  description: 'Compile the current topo to .trails artifacts',
   examples: [
     {
-      input: createIsolatedExampleInput('topo-export'),
-      name: 'Compile the current topo artifacts through the legacy export alias',
+      input: createIsolatedExampleInput('topo-compile'),
+      name: 'Compile the current topo artifacts',
     },
   ],
   input: z.object({

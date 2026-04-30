@@ -13,7 +13,7 @@ depends_on: [7, 8]
 
 ## Context
 
-Earlier implementations produced `trailhead.lock` via `trails survey generate`. That file captured the derived surface shape (MCP tool names, CLI commands, HTTP routes) as a diffable, hashable artifact. CI compared it against the current topo to detect unintentional contract changes.
+Earlier implementations produced `trailhead.lock` through the legacy survey generation mode. That file captured the derived surface shape (MCP tool names, CLI commands, HTTP routes) as a diffable, hashable artifact. CI compared it against the current topo to detect unintentional contract changes.
 
 As the framework grows, more resolved state needs the same treatment: surfaces, signals, fires, resources, config, the reactive graph. Each is "resolved state of the system that should be diffable and governable." Splitting them into separate lockfiles creates multiple files to commit, multiple CI checks to configure, and multiple commands to remember.
 
@@ -99,16 +99,16 @@ This means:
 ### Generation and lifecycle
 
 ```bash
-trails topo export           # write .trails/trails.lock from current topo
+trails topo compile          # write .trails/trails.lock from current topo
 trails topo verify           # verify .trails/trails.lock matches current topo (CI mode)
 trails topo diff --lock      # show lockfile drift against current topo
 ```
 
-`trails topo export` replaces the old lock-focused command shape. The command now centers on the thing being exported rather than on the artifact. `verify` is the CI layer. `diff --lock` is the developer feedback loop.
+`trails topo compile` replaces the old lock-focused command shape. The command now centers on the resolved topo artifacts rather than on only the lockfile. `trails topo export` remains a legacy alias for compile. `verify` is the CI layer. `diff --lock` is the developer feedback loop.
 
 The lockfile is:
 
-- **Generated** by `trails topo export` from the current code. In manual workflows this is explicit, like `bun install` generating `bun.lock`. Signal-driven flows can invoke the same trail automatically from topo snapshots or pins.
+- **Generated** by `trails topo compile` from the current code. In manual workflows this is explicit, like `bun install` generating `bun.lock`. Signal-driven flows can invoke the same trail automatically from topo snapshots or pins.
 - **Checked in** to source control. A PR that changes trail contracts produces a lockfile diff.
 - **CI-diffable.** `trails topo verify` fails if the lockfile doesn't match the current code. Drift between code and lockfile is caught before merge.
 - **The saved record of resolved state.** Not a cache, not a convenience. A commitment: "this is the resolved state of the system at this point in time."
@@ -139,9 +139,8 @@ The `--app` flag is an override for the collision case, not a required parameter
 
 The lockfile captures the full reactive graph: which signals trigger which trails, which trails fire which signals, the complete activation chain. This makes the reactive graph inspectable without running the app:
 
-```bash
+```text
 # Derived from the lockfile
-trails topo show --reactive
 webhook:stripe → booking.confirm → booking.confirmed → notify.booking-confirmed
                                                       → audit.log-write
 ```
@@ -160,13 +159,13 @@ webhook:stripe → booking.confirm → booking.confirmed → notify.booking-conf
 ### Tradeoffs
 
 - **Larger file over time.** As the topo grows, the lockfile grows. For most projects this is manageable. For very large workspaces, the graph structure helps: changes to one trail only affect that trail's node and its edges.
-- **Requires topo export to stay current.** A stale lockfile means stale resolution. `trails topo verify` in CI catches this, but a manual workflow must still export after contract changes unless a save- or pin-driven automation does it.
+- **Requires topo compile to stay current.** A stale lockfile means stale resolution. `trails topo verify` in CI catches this, but a manual workflow must still compile after contract changes unless a save- or pin-driven automation does it.
 - **Graph format is more complex than flat sections.** A section-per-concern format is simpler to understand at first glance. The graph format is more powerful but requires understanding the node/edge model. The tradeoff favors power: the lockfile is primarily machine-read (by agents, CI, framework commands), not human-read.
 
 ### What this does NOT decide
 
 - **The exact schema for each node type.** Trail nodes, signal nodes, and resource nodes will gain properties as their respective ADRs ship. The graph structure is stable; the node schemas evolve.
-- **Whether sections can be independently regenerated** (e.g., `trails topo export --only surfaces`). Future ergonomic improvement if needed.
+- **Whether sections can be independently regenerated** (e.g., `trails topo compile --only surfaces`). Future ergonomic improvement if needed.
 - **Whether the format is JSON, JSONC, or another structured format.** JSON is the default for machine-generated artifacts. If comments become valuable, JSONC is a backward-compatible extension.
 - **Resource contract snapshots.** How provisioned packs record their contract state in the lockfile. The resources ADR defines this.
 - **Rig lock state.** How rigged external surfaces record their resolved state. The rig ADR defines this.

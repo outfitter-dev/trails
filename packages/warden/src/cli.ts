@@ -693,7 +693,7 @@ const formatDriftSection = (drift: DriftResult | null): string[] => {
     return [`Drift: blocked (${drift.blockedReason})`, ''];
   }
   const label = drift.stale
-    ? 'Drift: trails.lock is stale (regenerate with `trails topo export`)'
+    ? 'Drift: trails.lock is stale (regenerate with `trails topo compile`)'
     : 'Drift: clean';
   return [label, ''];
 };

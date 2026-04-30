@@ -68,7 +68,7 @@ describe('evaluateCiGovernance', () => {
       [
         '::warning file=apps/example/src/foo.ts,line=12,title=missing-docs::Document this trail',
         '::error file=apps/example/src/bar.ts,line=24,title=implementation-returns-result::Return Result.ok/err instead of throwing',
-        '::error title=drift-detected::trails.lock is stale — regenerate with `trails topo export`',
+        '::error title=drift-detected::trails.lock is stale — regenerate with `trails topo compile`',
       ].join('\n')
     );
   });
@@ -131,7 +131,7 @@ describe('evaluateCiGovernance', () => {
 | error | implementation-returns-result | apps/example/src/bar.ts | 24 | Return Result.ok/err instead of throwing |
 
 ### Drift: stale
-The trails.lock file is out of date. Regenerate with \`trails topo export\`.
+The trails.lock file is out of date. Regenerate with \`trails topo compile\`.
 
 **Result: FAIL**`);
   });

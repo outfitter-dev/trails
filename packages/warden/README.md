@@ -56,7 +56,7 @@ import { checkDrift } from '@ontrails/warden';
 
 const drift = await checkDrift(process.cwd(), graph);
 if (drift.stale) {
-  console.log('lock file is stale -- regenerate with `trails topo export`');
+  console.log('lock file is stale -- regenerate with `trails topo compile`');
 }
 ```
 

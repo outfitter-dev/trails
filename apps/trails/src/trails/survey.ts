@@ -1,8 +1,8 @@
 /**
  * `survey` trail -- Full topo introspection.
  *
- * Lists trails, looks up trails/resources/signals, generates surface maps,
- * and diffs against previous versions.
+ * Lists trails, looks up trails/resources/signals, and diffs against previous
+ * versions.
  */
 
 import { extname, join } from 'node:path';
@@ -42,7 +42,6 @@ import {
 } from './topo-output-schemas.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 import { briefReportSchema } from './topo-reports.js';
-import { exportCurrentTopo } from './topo-store-support.js';
 
 export {
   briefReportSchema,
@@ -158,7 +157,7 @@ const readAgainstSurfaceMap = async (
     return map === null
       ? Result.err(
           new NotFoundError(
-            'No saved surface map found. Run `trails topo export` first.'
+            'No saved surface map found. Run `trails topo compile` first.'
           )
         )
       : Result.ok({ against: 'saved', map });
@@ -244,41 +243,19 @@ const buildSurveySignalDetail = (
     : Result.ok(detail);
 };
 
-const buildSurveyGenerate = async (
-  app: Topo,
-  rootDir: string
-): Promise<Result<object, Error>> => {
-  const exported = await exportCurrentTopo(app, { rootDir });
-  if (exported.isErr()) {
-    return exported;
-  }
-  return Result.ok({
-    hash: exported.value.hash,
-    lockPath: exported.value.lockPath,
-    mapPath: exported.value.mapPath,
-  });
-};
-
 interface SurveyInput {
-  generate: boolean;
   id?: string | undefined;
   module?: string | undefined;
   rootDir?: string | undefined;
 }
 
-type SurveyMode = 'generate' | 'lookup' | 'overview';
+type SurveyMode = 'lookup' | 'overview';
 
 type SurveyEnvelope = { readonly mode: SurveyMode } & Record<string, unknown>;
 
-/** Ordered mode checks — first truthy predicate wins, otherwise 'overview'. */
-const modeChecks: readonly [(input: SurveyInput) => boolean, SurveyMode][] = [
-  [(i) => Boolean(i.id), 'lookup'],
-  [(i) => i.generate, 'generate'],
-];
-
 /** Determine which survey mode was requested, falling back to 'overview'. */
 const deriveSurveyMode = (input: SurveyInput): SurveyMode =>
-  modeChecks.find(([predicate]) => predicate(input))?.[1] ?? 'overview';
+  input.id === undefined || input.id === '' ? 'overview' : 'lookup';
 
 type SurveyHandler = (
   app: Topo,
@@ -288,7 +265,6 @@ type SurveyHandler = (
 
 /** Handlers keyed by survey mode. */
 const surveyHandlers: Record<SurveyMode, SurveyHandler> = {
-  generate: (app, _input, rootDir) => buildSurveyGenerate(app, rootDir),
   lookup: (app, input, rootDir) =>
     input.id === undefined || input.id === ''
       ? Result.err(new ValidationError('Survey lookup requires an id'))
@@ -404,10 +380,6 @@ export const surveyTrail = trail('survey', {
     },
   ],
   input: z.object({
-    generate: z
-      .boolean()
-      .default(false)
-      .describe('Generate surface map and lock file'),
     id: z
       .string()
       .optional()
@@ -456,12 +428,6 @@ export const surveyTrail = trail('survey', {
     z.object({
       matches: z.array(surveyMatchOutput),
       mode: z.literal('lookup'),
-    }),
-    z.object({
-      hash: z.string(),
-      lockPath: z.string(),
-      mapPath: z.string(),
-      mode: z.literal('generate'),
     }),
   ]),
 });

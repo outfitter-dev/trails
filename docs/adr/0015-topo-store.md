@@ -284,7 +284,7 @@ This is the `trails topo diff` concept made continuous. The lockfile captures th
 The lockfile (`.trails/trails.lock`) becomes a deterministic text export of the current topo state:
 
 ```bash
-trails topo export          # Write .trails/trails.lock from the current topo
+trails topo compile         # Write .trails/trails.lock from the current topo
 trails topo diff --lock     # Compare current topo against .trails/trails.lock
 trails topo verify          # CI: fail if .trails/trails.lock is stale
 ```

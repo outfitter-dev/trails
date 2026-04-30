@@ -144,7 +144,7 @@ trails topo history                 # List pins and recent autosaves
 trails topo pin "name"              # Pin the current topo snapshot
 trails topo diff --since "name"     # Structural diff since a pin or prior snapshot
 trails topo unpin "name"            # Remove a pin but keep the underlying snapshot eligible for pruning
-trails topo export                  # Write .trails/trails.lock from the current topo
+trails topo compile                 # Write .trails/trails.lock from the current topo
 trails topo verify                  # Verify .trails/trails.lock reflects the current topo
 
 # Developer maintenance

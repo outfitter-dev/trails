@@ -38,6 +38,7 @@ import {
   surveyTrailDetailTrail,
 } from '../trails/survey.js';
 import { loadApp } from '../trails/load-app.js';
+import { topoCompileTrail } from '../trails/topo-compile.js';
 import type {
   BriefReport,
   SignalDetailReport,
@@ -587,34 +588,34 @@ describe('trails survey signals section', () => {
   });
 });
 
-describe('trails survey generate', () => {
-  test('delegates to topo export and writes a structured lock', async () => {
+describe('trails topo compile', () => {
+  test('writes the structured topo artifacts', async () => {
     const dir = repoTempDir();
 
     try {
       writeSurveyAppFixture(dir);
 
-      const generated = expectOk(
-        await surveyTrail.blaze({ generate: true, module: './src/app.ts' }, {
+      const compiled = expectOk(
+        await topoCompileTrail.blaze({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       ) as {
         readonly hash: string;
         readonly lockPath: string;
         readonly mapPath: string;
-        readonly mode: 'generate';
+        readonly snapshot: unknown;
       };
 
-      expect(generated.mode).toBe('generate');
-      expect(generated.hash).toHaveLength(64);
+      expect(compiled.hash).toHaveLength(64);
       expect(existsSync(join(dir, '.trails', '_surface.json'))).toBe(true);
       expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(true);
       expect(
         JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
       ).toMatchObject({
-        hash: generated.hash,
+        hash: compiled.hash,
         version: 1,
       });
+      expect(topoCompileTrail.output.safeParse(compiled).success).toBe(true);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -646,7 +647,7 @@ describe('trails survey diff', () => {
       } as never);
 
       expect(result.isErr()).toBe(true);
-      expect(result.error.message).toContain('Run `trails topo export` first');
+      expect(result.error.message).toContain('Run `trails topo compile` first');
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -797,11 +798,18 @@ describe('trails survey output schema', () => {
       }).success
     ).toBe(true);
     expect(
-      surveyTrail.output.safeParse({
+      topoCompileTrail.output.safeParse({
         hash: 'a'.repeat(64),
         lockPath: '.trails/trails.lock',
         mapPath: '.trails/_surface.json',
-        mode: 'generate',
+        snapshot: {
+          createdAt: new Date(0).toISOString(),
+          gitDirty: false,
+          id: 'snapshot-1',
+          resourceCount: 1,
+          signalCount: 0,
+          trailCount: 2,
+        },
       }).success
     ).toBe(true);
     expect(

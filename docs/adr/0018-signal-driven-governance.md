@@ -252,7 +252,7 @@ The trails are environment-agnostic. The topo composition determines what's acti
 - [ADR-0000: Core Premise](0000-core-premise.md) — "examples are structured data," "the contract is queryable"
 - [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) — the `trails.db` foundation
 - [ADR-0015: Topo Store](0015-topo-store.md) — the read-only resource that governance trails query
-- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — topo export, verify, and lockfile-as-projection semantics
+- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — topo compile, verify, and lockfile-as-projection semantics
 - [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — app-level persistence using the same resource patterns
 
 ### Amendment log
