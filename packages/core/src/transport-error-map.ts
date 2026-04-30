@@ -50,7 +50,12 @@ export const transportErrorRegistry = {
   },
 } as const;
 
-export const mapTransportError = (
+export type MapTransportError = (
   transport: TransportName,
   error: TrailsError
-): TransportErrorCode => transportErrorMap[transport][error.category];
+) => TransportErrorCode;
+
+export const mapTransportError: MapTransportError = (
+  transport: TransportName,
+  error: TrailsError
+) => transportErrorMap[transport][error.category];

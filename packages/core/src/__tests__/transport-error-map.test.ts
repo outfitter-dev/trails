@@ -1,9 +1,22 @@
+import type { TrailsError } from '../errors.js';
+
 import { describe, expect, test } from 'bun:test';
 
 import {
+  AlreadyExistsError,
+  AmbiguousError,
+  AssertionError,
+  AuthError,
   CancelledError,
+  ConflictError,
+  DerivationError,
+  InternalError,
   NetworkError,
   NotFoundError,
+  PermissionError,
+  RateLimitError,
+  RetryExhaustedError,
+  TimeoutError,
   ValidationError,
   errorCategories,
   exitCodeMap,
@@ -46,6 +59,95 @@ describe('transportErrorRegistry', () => {
 });
 
 describe('mapTransportError', () => {
+  const expectedMappings: readonly {
+    readonly error: TrailsError;
+    readonly name: string;
+    readonly values: {
+      readonly cli: number;
+      readonly http: number;
+      readonly mcp: number;
+    };
+  }[] = [
+    {
+      error: new ValidationError('bad input'),
+      name: 'ValidationError',
+      values: { cli: 1, http: 400, mcp: -32_602 },
+    },
+    {
+      error: new AmbiguousError('ambiguous input'),
+      name: 'AmbiguousError',
+      values: { cli: 1, http: 400, mcp: -32_602 },
+    },
+    {
+      error: new NotFoundError('missing'),
+      name: 'NotFoundError',
+      values: { cli: 2, http: 404, mcp: -32_601 },
+    },
+    {
+      error: new AlreadyExistsError('exists'),
+      name: 'AlreadyExistsError',
+      values: { cli: 3, http: 409, mcp: -32_603 },
+    },
+    {
+      error: new ConflictError('conflict'),
+      name: 'ConflictError',
+      values: { cli: 3, http: 409, mcp: -32_603 },
+    },
+    {
+      error: new PermissionError('forbidden'),
+      name: 'PermissionError',
+      values: { cli: 4, http: 403, mcp: -32_600 },
+    },
+    {
+      error: new TimeoutError('timed out'),
+      name: 'TimeoutError',
+      values: { cli: 5, http: 504, mcp: -32_603 },
+    },
+    {
+      error: new RateLimitError('too many requests'),
+      name: 'RateLimitError',
+      values: { cli: 6, http: 429, mcp: -32_603 },
+    },
+    {
+      error: new NetworkError('offline'),
+      name: 'NetworkError',
+      values: { cli: 7, http: 502, mcp: -32_603 },
+    },
+    {
+      error: new InternalError('internal'),
+      name: 'InternalError',
+      values: { cli: 8, http: 500, mcp: -32_603 },
+    },
+    {
+      error: new AssertionError('assertion failed'),
+      name: 'AssertionError',
+      values: { cli: 8, http: 500, mcp: -32_603 },
+    },
+    {
+      error: new DerivationError('derivation failed'),
+      name: 'DerivationError',
+      values: { cli: 8, http: 500, mcp: -32_603 },
+    },
+    {
+      error: new AuthError('unauthorized'),
+      name: 'AuthError',
+      values: { cli: 9, http: 401, mcp: -32_600 },
+    },
+    {
+      error: new CancelledError('cancelled'),
+      name: 'CancelledError',
+      values: { cli: 130, http: 499, mcp: -32_603 },
+    },
+    {
+      error: new RetryExhaustedError(new NotFoundError('missing'), {
+        attempts: 5,
+        detour: 'recoverMissing',
+      }),
+      name: 'RetryExhaustedError<NotFoundError>',
+      values: { cli: 2, http: 404, mcp: -32_601 },
+    },
+  ];
+
   test('maps known error instances through each registered transport', () => {
     const validation = new ValidationError('bad input');
     const notFound = new NotFoundError('missing');
@@ -58,6 +160,15 @@ describe('mapTransportError', () => {
     expect(mapTransportError('http', network)).toBe(502);
     expect(mapTransportError('cli', cancelled)).toBe(130);
   });
+
+  test.each(expectedMappings)(
+    'maps $name across CLI, HTTP, and JSON-RPC codes',
+    ({ error, values }) => {
+      expect(mapTransportError('cli', error)).toBe(values.cli);
+      expect(mapTransportError('http', error)).toBe(values.http);
+      expect(mapTransportError('mcp', error)).toBe(values.mcp);
+    }
+  );
 });
 
 describe('createTransportErrorMapper', () => {

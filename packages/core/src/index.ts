@@ -37,6 +37,7 @@ export {
   transportNames,
 } from './transport-error-map.js';
 export type {
+  MapTransportError,
   TransportErrorCode,
   TransportErrorMapper,
   TransportErrorMappings,
