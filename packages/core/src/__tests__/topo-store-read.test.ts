@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import {
   ConflictError,
+  DETOUR_MAX_ATTEMPTS_CAP,
   createMockTopoStore,
   createTopoSnapshot,
   createTopoStore,
@@ -76,7 +77,13 @@ const exampleApp = () => {
     crosses: ['entity.add'],
     description: 'List entities',
     /* oxlint-disable-next-line require-await -- test stub */
-    detours: [{ on: ConflictError, recover: async () => Result.ok() }],
+    detours: [
+      {
+        maxAttempts: 100,
+        on: ConflictError,
+        recover: async () => Result.ok(),
+      },
+    ],
     idempotent: true,
     input: z.object({}),
     intent: 'read',
@@ -212,7 +219,9 @@ describe('read-only topo store', () => {
     expect(detail).toEqual(
       expect.objectContaining({
         crosses: ['entity.add'],
-        detours: [{ maxAttempts: 1, on: 'ConflictError' }],
+        detours: [
+          { maxAttempts: DETOUR_MAX_ATTEMPTS_CAP, on: 'ConflictError' },
+        ],
         id: 'entity.list',
         resources: ['db.main'],
       })
@@ -240,6 +249,34 @@ describe('read-only topo store', () => {
       [snapshot.id]
     );
     expect(rows).toEqual([{ id: 'entity.add' }, { id: 'entity.list' }]);
+  });
+
+  test('defaults omitted detour maxAttempts to one in detailed views', async () => {
+    const rootDir = makeRoot();
+    const withDefaultDetour = trail('entity.with-default-detour', {
+      blaze: noop,
+      /* oxlint-disable-next-line require-await -- test stub */
+      detours: [
+        {
+          on: ConflictError,
+          recover: async () => Result.ok(),
+        },
+      ],
+      input: z.object({}),
+    });
+    const snapshot = await expectOk(
+      createTopoSnapshot(topo('default-detour-app', { withDefaultDetour }), {
+        createdAt: '2026-04-03T14:00:00.000Z',
+        gitSha: 'abc123',
+        rootDir,
+      })
+    );
+    const store = createTopoStore({ rootDir });
+    const detail = store.trails.get('entity.with-default-detour', {
+      snapshot: { snapshotId: snapshot.id },
+    });
+
+    expect(detail?.detours).toEqual([{ maxAttempts: 1, on: 'ConflictError' }]);
   });
 
   test('fails loudly when no saved topo state exists', () => {

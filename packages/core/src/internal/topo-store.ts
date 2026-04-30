@@ -1,6 +1,7 @@
 import type { Database, SQLQueryBindings } from 'bun:sqlite';
 
 import { getContourReferences } from '../contour.js';
+import { DETOUR_MAX_ATTEMPTS_CAP } from '../detours.js';
 import { deriveCliPath } from '../derive.js';
 import { Result } from '../result.js';
 import type { AnyContour } from '../contour.js';
@@ -697,7 +698,10 @@ const addExtendedMetadata = (
 
   if (trail.detours.length > 0) {
     entry['detours'] = trail.detours.map((d) => ({
-      maxAttempts: Math.max(1, Math.min(d.maxAttempts ?? 1, 5)),
+      maxAttempts: Math.max(
+        1,
+        Math.min(d.maxAttempts ?? 1, DETOUR_MAX_ATTEMPTS_CAP)
+      ),
       on: d.on.name,
     }));
   }

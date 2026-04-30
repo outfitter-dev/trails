@@ -222,6 +222,7 @@ export type { Field, FieldOverride } from './derive.js';
 export { buildCrossValidationSchema } from './cross-schema.js';
 
 // Execute
+export { DETOUR_MAX_ATTEMPTS_CAP } from './detours.js';
 export { executeTrail } from './execute.js';
 export type { ExecuteTrailOptions } from './execute.js';
 

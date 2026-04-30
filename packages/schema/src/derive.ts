@@ -3,6 +3,7 @@
  */
 
 import {
+  DETOUR_MAX_ATTEMPTS_CAP,
   deriveCliPath,
   deriveStructuredSignalExamples,
   deriveStructuredTrailExamples,
@@ -119,7 +120,10 @@ const addExtendedMetadata = (
   }
   if (t.detours.length > 0) {
     entry['detours'] = t.detours.map((d) => ({
-      maxAttempts: Math.max(1, Math.min(d.maxAttempts ?? 1, 5)),
+      maxAttempts: Math.max(
+        1,
+        Math.min(d.maxAttempts ?? 1, DETOUR_MAX_ATTEMPTS_CAP)
+      ),
       on: d.on.name,
     }));
   }

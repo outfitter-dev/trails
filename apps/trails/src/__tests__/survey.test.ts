@@ -10,6 +10,7 @@ import { join, resolve } from 'node:path';
 
 import {
   ConflictError,
+  DETOUR_MAX_ATTEMPTS_CAP,
   Result,
   resource,
   signal,
@@ -369,6 +370,26 @@ describe('trails survey detail', () => {
     expect(parsed.crosses).toEqual([]);
     expect(parsed.intent).toBe('read');
     expect(parsed.resources).toEqual(['db.main']);
+  });
+
+  test('trail detail clamps detour maxAttempts to the owner cap', () => {
+    const detail = deriveTrailDetail(
+      trail('retrying', {
+        blaze: () => Result.ok(),
+        detours: [
+          {
+            maxAttempts: 100,
+            on: ConflictError,
+            recover: () => Result.ok(),
+          },
+        ],
+        input: z.object({}),
+      })
+    );
+
+    expect(detail.detours).toEqual([
+      { maxAttempts: DETOUR_MAX_ATTEMPTS_CAP, on: 'ConflictError' },
+    ]);
   });
 });
 

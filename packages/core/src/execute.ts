@@ -51,6 +51,7 @@ import {
   writeToSink,
 } from './internal/tracing.js';
 import { Result } from './result.js';
+import { DETOUR_MAX_ATTEMPTS_CAP } from './detours.js';
 import { createResourceLookup } from './resource.js';
 import { createResources } from './resource-config.js';
 import { TRAILHEAD_KEY } from './types.js';
@@ -727,8 +728,6 @@ const bindFireAtLayerBoundary = <I, O>(
 // ---------------------------------------------------------------------------
 // Detour loop
 // ---------------------------------------------------------------------------
-
-const DETOUR_MAX_ATTEMPTS_CAP = 5;
 
 /**
  * Find the first detour whose `on` class matches the error via `instanceof`.

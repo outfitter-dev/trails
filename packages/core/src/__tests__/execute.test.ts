@@ -13,6 +13,7 @@ import {
   TrailsError,
   ValidationError,
 } from '../errors';
+import { DETOUR_MAX_ATTEMPTS_CAP } from '../detours';
 import { executeTrail } from '../execute';
 import {
   TRACE_CONTEXT_KEY,
@@ -2049,7 +2050,7 @@ describe('executeTrail', () => {
       expect(result.error).toBeInstanceOf(InternalError);
     });
 
-    test('maxAttempts hard cap at 5', async () => {
+    test('maxAttempts hard cap is owner-held', async () => {
       let recoverCalls = 0;
       const detourTrail = trail('detour.cap', {
         blaze: () => Result.err(new ConflictError('conflict')),
@@ -2070,7 +2071,7 @@ describe('executeTrail', () => {
 
       expect(result.isErr()).toBe(true);
       expect(result.error).toBeInstanceOf(RetryExhaustedError);
-      expect(recoverCalls).toBe(5);
+      expect(recoverCalls).toBe(DETOUR_MAX_ATTEMPTS_CAP);
     });
 
     test('no detours declared — baseline unchanged', async () => {

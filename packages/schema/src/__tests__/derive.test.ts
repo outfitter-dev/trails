@@ -2,6 +2,7 @@ import { describe, test, expect } from 'bun:test';
 
 import {
   ConflictError,
+  DETOUR_MAX_ATTEMPTS_CAP,
   contour,
   signal,
   resource,
@@ -362,6 +363,26 @@ describe('deriveSurfaceMap', () => {
 
     test('detours are included with error class names', () => {
       const t = trail('with.detours', {
+        blaze: noop,
+        detours: [
+          {
+            maxAttempts: 100,
+            on: ConflictError,
+            /* oxlint-disable-next-line require-await -- test stub, no real async work */
+            recover: async () => Result.ok(),
+          },
+        ],
+        input: z.object({}),
+      });
+      const entry = getFirstEntry(deriveSurfaceMap(topoFrom({ t })));
+
+      expect(entry.detours).toEqual([
+        { maxAttempts: DETOUR_MAX_ATTEMPTS_CAP, on: 'ConflictError' },
+      ]);
+    });
+
+    test('detours preserve in-range maxAttempts values', () => {
+      const t = trail('with.in-range.detour', {
         blaze: noop,
         detours: [
           {

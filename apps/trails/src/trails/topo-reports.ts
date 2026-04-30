@@ -1,4 +1,4 @@
-import { zodToJsonSchema } from '@ontrails/core';
+import { DETOUR_MAX_ATTEMPTS_CAP, zodToJsonSchema } from '@ontrails/core';
 import type { AnyTrail, Signal, Topo } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -343,7 +343,10 @@ export const deriveTrailDetail = (item: AnyTrail): TrailDetailReport => {
     detours:
       item.detours.length > 0
         ? item.detours.map((d) => ({
-            maxAttempts: d.maxAttempts ?? 1,
+            maxAttempts: Math.max(
+              1,
+              Math.min(d.maxAttempts ?? 1, DETOUR_MAX_ATTEMPTS_CAP)
+            ),
             on: d.on.name,
           }))
         : null,

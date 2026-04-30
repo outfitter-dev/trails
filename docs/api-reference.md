@@ -60,6 +60,7 @@ TrailContext, createTrailContext(overrides?)
 CrossFn, ResourceLookup, ProgressCallback, ProgressEvent, Logger
 
 // Execution pipeline
+DETOUR_MAX_ATTEMPTS_CAP
 executeTrail(trail, rawInput, options?) // validate → resolve context → resolve resources → compose layers → run
 run(topo, id, input, options?)    // look up and execute a trail by ID; accepts ctx/resource overrides
 RunOptions
