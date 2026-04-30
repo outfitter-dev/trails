@@ -14,7 +14,6 @@ import { incompleteCrud } from './incomplete-crud.js';
 import { intentPropagation } from './intent-propagation.js';
 import { missingVisibility } from './missing-visibility.js';
 import { missingReconcile } from './missing-reconcile.js';
-import { noDirectImplInRoute } from './no-direct-impl-in-route.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
 import { noSyncResultAssumption } from './no-sync-result-assumption.js';
 import { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
@@ -60,7 +59,6 @@ export { intentPropagation } from './intent-propagation.js';
 export { missingVisibility } from './missing-visibility.js';
 export { missingReconcile } from './missing-reconcile.js';
 export { onReferencesExist } from './on-references-exist.js';
-export { noDirectImplInRoute } from './no-direct-impl-in-route.js';
 export { noDirectImplementationCall } from './no-direct-implementation-call.js';
 export { noSyncResultAssumption } from './no-sync-result-assumption.js';
 export { implementationReturnsResult } from './implementation-returns-result.js';
@@ -108,7 +106,6 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [noSyncResultAssumption.name, noSyncResultAssumption],
   [implementationReturnsResult.name, implementationReturnsResult],
   [noThrowInDetourRecover.name, noThrowInDetourRecover],
-  [noDirectImplInRoute.name, noDirectImplInRoute],
   [unreachableDetourShadowing.name, unreachableDetourShadowing],
   [wardenExportSymmetry.name, wardenExportSymmetry],
   [wardenRulesUseAst.name, wardenRulesUseAst],

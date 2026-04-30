@@ -24,6 +24,24 @@ async function run() {
     expect(diagnostics[0]?.message).toContain('ctx.cross');
   });
 
+  test('flags direct implementation access inside trails with crossings', () => {
+    const code = `
+trail("entity.onboard", {
+  crosses: ["entity.create"],
+  blaze: async (input, ctx) => {
+    const result = await entityCreate.blaze(data);
+    return Result.ok(result);
+  }
+})`;
+
+    const diagnostics = noDirectImplementationCall.check(code, 'src/route.ts');
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.rule).toBe('no-direct-implementation-call');
+    expect(diagnostics[0]?.severity).toBe('warn');
+    expect(diagnostics[0]?.message).toContain('ctx.cross');
+  });
+
   test('allows ctx.cross() calls', () => {
     const code = `
 trail("entity.onboard", {
