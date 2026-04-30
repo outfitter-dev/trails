@@ -12,7 +12,7 @@
 
 **Config resolution (`@ontrails/config`).** `defineConfig()` provides schema-validated config with profiles (named environment profiles), env variable mapping, and `ResourceSpec.config` for resource-level config schemas. Includes diagnostics (`checkConfig`), introspection (`deriveConfigFields`, `deriveConfigProvenance`), and generation (`deriveConfigEnvExample`).
 
-**Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. `authLayer` extracts credentials from surface-specific sources, `AuthConnector` resolves them to a `Permit` (identity, scopes, roles), and scope enforcement rejects unauthorized access. Includes JWT connector, governance rules (`validatePermits`), and test helpers (`createTestPermit`, `createPermitForTrail`).
+**Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. `authLayer` extracts credentials from surface-specific sources, `AuthConnector` resolves them to a `Permit` (identity, scopes, roles), and scope enforcement rejects unauthorized access. Includes JWT connector, governance rules (`validatePermits`), and test helpers through `@ontrails/permits/testing`.
 
 **Tracing (intrinsic in `@ontrails/core`, sinks in `@ontrails/tracing`).** With a real sink installed, `executeTrail` produces a `TraceRecord` automatically and `ctx.trace(label, fn)` records nested spans inside a trail blaze. With `NOOP_SINK`, the tracing path short-circuits without layer attachment or per-trail wiring. Pluggable sinks register via `registerTraceSink()`: `createMemorySink` for testing, `createDevStore` for local development, `createOtelConnector` for production OpenTelemetry export. Sampling configuration controls recording volume.
 

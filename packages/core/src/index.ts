@@ -84,7 +84,7 @@ export type {
   Logger,
   ResourceLookup,
 } from './types.js';
-export { TRAILHEAD_KEY } from './types.js';
+export { SURFACE_KEY, TRAILHEAD_KEY } from './types.js';
 
 // Context factory
 export { createTrailContext, passthroughTrace } from './context.js';

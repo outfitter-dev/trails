@@ -78,6 +78,13 @@ CI formatters for structured output:
 import { formatGitHubAnnotations, formatJson, formatSummary } from '@ontrails/warden';
 ```
 
+Parser helpers for rule authoring and repo-local tooling live on the dedicated
+AST entrypoint:
+
+```typescript
+import { findStringLiterals, parse, walk } from '@ontrails/warden/ast';
+```
+
 ## Trail-based API
 
 Every built-in warden rule is also available as a composable trail. This makes rules queryable, testable, and invocable through any Trails surface.
@@ -118,6 +125,9 @@ To wrap a custom rule as a trail, use `wrapRule` (imported from `@ontrails/warde
 | `formatGitHubAnnotations(report)` | GitHub Actions annotation format |
 | `formatJson(report)` | Machine-readable JSON |
 | `formatSummary(report)` | Compact summary line |
+
+AST parser helpers are exported from `@ontrails/warden/ast`, not the root
+runtime barrel.
 
 See the [API Reference](../../docs/api-reference.md) for the full list.
 

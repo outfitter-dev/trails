@@ -3,7 +3,7 @@ import type { Intent } from './trail.js';
 import type { Topo } from './topo.js';
 import type { SurfaceName } from './transport-error-map.js';
 import type { TrailContextInit } from './types.js';
-import { TRAILHEAD_KEY } from './types.js';
+import { SURFACE_KEY } from './types.js';
 import { validateEstablishedTopo } from './validate-established-topo.js';
 
 export type SurfaceConfigValues = Readonly<
@@ -57,6 +57,6 @@ export const withSurfaceMarker = (
   ...ctx,
   extensions: {
     ...ctx.extensions,
-    [TRAILHEAD_KEY]: surface,
+    [SURFACE_KEY]: surface,
   },
 });

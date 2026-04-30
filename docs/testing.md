@@ -381,7 +381,10 @@ The config, permits, and tracing packages each provide test-friendly primitives 
 **Synthetic permit creation.** `createTestPermit()` creates a `Permit` with exactly the scopes you specify -- no admin privileges, no wildcards. `createPermitForTrail()` reads a trail's `permit` declaration and creates a permit with exactly the declared scopes, so tests exercise the real authorization path without a running auth provider:
 
 ```typescript
-import { createTestPermit, createPermitForTrail } from '@ontrails/permits';
+import {
+  createTestPermit,
+  createPermitForTrail,
+} from '@ontrails/permits/testing';
 
 const permit = createTestPermit({ scopes: ['entity:read'] });
 const trailPermit = createPermitForTrail(showTrail);

@@ -46,17 +46,6 @@ export {
   stripDraftFileMarkers,
 } from './draft.js';
 
-// AST helpers for repo-local tooling
-export {
-  findStringLiterals,
-  getStringValue,
-  isStringLiteral,
-  offsetToLine,
-  parse,
-  walk,
-} from './rules/ast.js';
-export type { AstNode, StringLiteralMatch } from './rules/ast.js';
-
 // Trail layer
 export { wardenTopo } from './trails/topo.js';
 export { runTopoAwareWardenTrails, runWardenTrails } from './trails/run.js';

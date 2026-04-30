@@ -54,7 +54,7 @@ import { Result } from './result.js';
 import { DETOUR_MAX_ATTEMPTS_CAP } from './detours.js';
 import { createResourceLookup } from './resource.js';
 import { createResources } from './resource-config.js';
-import { TRAILHEAD_KEY } from './types.js';
+import { SURFACE_KEY } from './types.js';
 import { validateInput, validateOutput } from './validation.js';
 
 type MutableTrailContext = {
@@ -330,7 +330,7 @@ const buildTracedContext = (
     rootId: parent?.rootId,
     traceId: parent?.traceId,
     trailId: trail.id,
-    trailhead: ctx.extensions?.[TRAILHEAD_KEY] as TraceRecord['trailhead'],
+    trailhead: ctx.extensions?.[SURFACE_KEY] as TraceRecord['trailhead'],
   });
 
   // Root trace context for this trail's span. When inheriting a parent, the

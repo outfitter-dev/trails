@@ -12,6 +12,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./ast": "./src/ast.ts",
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -22,12 +23,12 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@ontrails/permits": "workspace:^"
+    "@ontrails/permits": "workspace:^",
+    "oxc-parser": "^0.121.0"
   },
   "devDependencies": {
     "@ontrails/testing": "workspace:^",
     "@oxc-project/types": "^0.122.0",
-    "oxc-parser": "^0.121.0",
     "zod": "catalog:"
   },
   "peerDependencies": {

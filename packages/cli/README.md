@@ -1,8 +1,8 @@
 # @ontrails/cli
 
-CLI surface connector. One `surface()` call turns a topo into a full CLI
-with honest flags, structured input channels, subcommands, help text, and
-error-mapped exit codes -- all derived from the trail contracts.
+CLI surface model and Commander connector. Import framework-agnostic command
+derivation from `@ontrails/cli`; import the Commander runtime from
+`@ontrails/cli/commander`.
 
 ## Usage
 
@@ -55,13 +55,19 @@ commands.
 
 | Export | What it does |
 | --- | --- |
-| `surface(graph, options?)` | One-liner: build commands, wire Commander, parse argv |
 | `deriveCliCommands(graph)` | Framework-agnostic command builder, returns `Result<CliCommand[], Error>` |
 | `validateCliCommands(commands)` | Validate `CliCommand[]` shapes before wiring a CLI adapter |
-| `toCommander(commands, options?)` | Connect `CliCommand[]` to a Commander program |
 | `deriveFlags(schema)` | Extract honest CLI flags from a Zod schema |
 | `output(data, mode)` | Format output as JSON, JSONL, or text |
 | `deriveOutputMode(flags, topoName)` | Derive output mode from flags and topo-derived env vars (`<TOPO>_JSON`, `<TOPO>_JSONL`) |
+
+### `@ontrails/cli/commander`
+
+| Export | What it does |
+| --- | --- |
+| `surface(graph, options?)` | One-liner: build commands, wire Commander, parse argv |
+| `createProgram(graph, options?)` | Build a Commander program without parsing argv |
+| `toCommander(commands, options?)` | Connect `CliCommand[]` to a Commander program |
 
 See the [API Reference](../../docs/api-reference.md) for the full list.
 

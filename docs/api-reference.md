@@ -63,6 +63,8 @@ mapTransportError(surface, error)       // deprecated compatibility alias
 // Implementation & context
 Implementation<I, O>              // (input, ctx) => Result | Promise<Result>
 TrailContext, createTrailContext(overrides?)
+SURFACE_KEY                        // invoking surface extension key
+TRAILHEAD_KEY                      // deprecated compatibility alias for SURFACE_KEY
 CrossFn, ResourceLookup, ProgressCallback, ProgressEvent, Logger
 normalizeCrossBatchConcurrency(options?), createCrossBatchValidationResults(calls, error)
 claimNextCrossBatchIndex(counter, calls)
@@ -139,21 +141,28 @@ DeriveTrailSpec<TContour, TOp, TGenerated>
 Current shipped surface packages are `@ontrails/cli`, `@ontrails/mcp`, `@ontrails/http`, and `@ontrails/hono`. A WebSocket surface is planned but has no public package or API yet.
 
 ```typescript
-surface(graph, options?)               // one-liner: parse argv, execute, return exit code
-createProgram(graph, options?)         // create a Commander program without parsing argv
 deriveCliCommands(graph, options?)     // projection: Result-returning command definitions
 validateCliCommands(commands)          // validate command tree shape and collisions
-toCommander(commands, options?)        // translate commands to Commander.js program
 deriveFlags(schema, overrides?)        // Zod → CLI flags
 output(value, mode)                    // write to stdout in text/json/jsonl
 deriveOutputMode(flags, topoName)      // determine output format from flags/topo-derived env
 
-CreateProgramOptions, DeriveCliCommandsOptions, ActionResultContext, OutputMode
+DeriveCliCommandsOptions, ActionResultContext, OutputMode
 CliCommand, CliFlag, CliArg
 outputModePreset(), cwdPreset(), dryRunPreset()
 defaultOnResult(ctx), passthroughResolver, isInteractive(options?)
 InputResolver, ResolveInputOptions
 autoIterateLayer, dateShortcutsLayer
+```
+
+## `@ontrails/cli/commander`
+
+```typescript
+surface(graph, options?)               // one-liner: parse argv, execute, return exit code
+createProgram(graph, options?)         // create a Commander program without parsing argv
+toCommander(commands, options?)        // translate commands to Commander.js program
+
+CreateProgramOptions, SurfaceCliResult, ToCommanderOptions
 ```
 
 ## `@ontrails/mcp`
@@ -306,10 +315,6 @@ clearImplementationReturnsResultCache()
 DRAFT_FILE_PREFIX, DRAFT_FILE_SEGMENT
 isDraftMarkedFile(path), stripDraftFileMarkers(path)
 
-// AST helpers for repo-local tooling
-parse(filePath, sourceCode), walk(ast, visitor), offsetToLine(source, offset)
-findStringLiterals(ast, predicate?), isStringLiteral(node), getStringValue(node)
-
 // Trail-wrapping helpers and schemas
 wrapRule({ rule, examples })
 wrapTopoRule({ rule, examples })
@@ -320,6 +325,14 @@ ruleInput, projectAwareRuleInput, ruleOutput, topoAwareRuleInput, diagnosticSche
 WardenOptions, WardenReport, WardenDiagnostic, WardenSeverity, DriftResult
 ProjectAwareWardenRule, ProjectContext, TopoAwareWardenRule, WardenRule
 RuleInput, ProjectAwareRuleInput, RuleOutput, TopoAwareRuleInput
+```
+
+## `@ontrails/warden/ast`
+
+```typescript
+parse(filePath, sourceCode), walk(ast, visitor), offsetToLine(source, offset)
+findStringLiterals(ast, predicate?), isStringLiteral(node), getStringValue(node)
+
 AstNode, StringLiteralMatch
 ```
 
@@ -370,7 +383,7 @@ authLayer                            // layer that enforces permit scopes on tra
 // Permits
 getPermit(ctx)                       // extract the resolved permit from context
 Permit                               // { id, scopes, roles?, tenantId?, metadata? }
-PermitExtractionInput                // transport-agnostic auth input
+PermitExtractionInput                // surface-agnostic auth input
 
 // Connectors
 AuthConnector                        // interface: authenticate(input) → Result<Permit | null>
@@ -379,13 +392,16 @@ createJwtConnector(options)          // built-in HS256 JWT connector (from @ontr
 // Trail definitions
 authVerify                           // verify a bearer token and return a permit
 
-// Testing
-createTestPermit(overrides?)         // create a permit for tests
-createPermitForTrail(trail)          // create a permit matching a trail's requirements
-
 // Governance
 validatePermits(trails)              // check trails against permit governance rules
 PermitDiagnostic
+```
+
+## `@ontrails/permits/testing`
+
+```typescript
+createTestPermit(overrides?)         // create a permit for tests
+createPermitForTrail(trail)          // create a permit matching a trail's requirements
 ```
 
 ## `@ontrails/tracing`

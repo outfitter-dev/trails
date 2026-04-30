@@ -30,10 +30,3 @@ export { findAppModuleCandidates, findAppModule } from './discover.js';
 
 // Layers
 export { autoIterateLayer, dateShortcutsLayer } from './layers.js';
-
-// Surface helpers (also available from @ontrails/cli/commander)
-export { createProgram, surface } from './commander/surface.js';
-export type {
-  CreateProgramOptions,
-  SurfaceCliResult,
-} from './commander/surface.js';

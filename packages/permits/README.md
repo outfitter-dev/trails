@@ -26,7 +26,7 @@ export const search = trail('gist.search', {
 });
 ```
 
-### 2. Resolve a permit at the trailhead
+### 2. Resolve a permit at the surface
 
 ```typescript
 export const graph = topo('my-app', gistModule);
@@ -138,7 +138,10 @@ import { authVerify } from '@ontrails/permits';
 Use `createTestPermit()` and `createPermitForTrail()` in tests:
 
 ```typescript
-import { createTestPermit, createPermitForTrail } from '@ontrails/permits';
+import {
+  createTestPermit,
+  createPermitForTrail,
+} from '@ontrails/permits/testing';
 
 const permit = createTestPermit({
   id: 'user-123',

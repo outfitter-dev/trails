@@ -1,4 +1,4 @@
-import { Result, TRAILHEAD_KEY, trail } from '@ontrails/core';
+import { Result, SURFACE_KEY, trail } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -30,7 +30,7 @@ const toOutputPermit = (permit: Permit) => ({
   scopes: [...permit.scopes],
 });
 
-const isTrailhead = (
+const isSurfaceName = (
   value: unknown
 ): value is PermitExtractionInput['trailhead'] =>
   value === 'http' || value === 'mcp' || value === 'cli';
@@ -38,8 +38,8 @@ const isTrailhead = (
 const getTrailhead = (
   ctx: TrailContext
 ): PermitExtractionInput['trailhead'] => {
-  const trailhead = ctx.extensions?.[TRAILHEAD_KEY];
-  return isTrailhead(trailhead) ? trailhead : 'http';
+  const surface = ctx.extensions?.[SURFACE_KEY];
+  return isSurfaceName(surface) ? surface : 'http';
 };
 
 /**
