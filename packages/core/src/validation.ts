@@ -32,7 +32,17 @@ type JsonSchemaConverter = (schema: z.ZodType) => JsonSchema;
 // ---------------------------------------------------------------------------
 
 const isOptionalLike = (s: ZodInternals): boolean => {
-  const defType = s._zod.def['type'] as string;
+  let current = s;
+  const seen = new Set<ZodInternals>();
+  while (
+    current._zod.def['type'] === 'readonly' &&
+    !seen.has(current) &&
+    current._zod.def['innerType'] !== undefined
+  ) {
+    seen.add(current);
+    current = current._zod.def['innerType'] as ZodInternals;
+  }
+  const defType = current._zod.def['type'] as string;
   return defType === 'optional' || defType === 'default';
 };
 
@@ -237,6 +247,10 @@ export const zodToJsonSchema: JsonSchemaConverter = (
     number: () => ({ type: 'number' }),
     object: convertObject,
     optional: (value) => {
+      const inner = value._zod.def['innerType'] as unknown as z.ZodType;
+      return zodToJsonSchema(inner);
+    },
+    readonly: (value) => {
       const inner = value._zod.def['innerType'] as unknown as z.ZodType;
       return zodToJsonSchema(inner);
     },

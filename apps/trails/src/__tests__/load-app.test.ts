@@ -133,6 +133,39 @@ export const app = topo('fixture', { sample });
   );
 };
 
+const writePackageLocalImportFixture = (cwd: string): void => {
+  writeFileSync(
+    resolve(cwd, 'package.json'),
+    JSON.stringify({
+      exports: {
+        './config': './config.ts',
+      },
+      imports: {
+        '#alias': './alias.ts',
+      },
+      name: 'fresh-self-fixture',
+      type: 'module',
+    })
+  );
+  writeFileSync(
+    resolve(cwd, 'config.ts'),
+    "export const selfName = 'self-config';"
+  );
+  writeFileSync(resolve(cwd, 'alias.ts'), "export const aliasName = 'alias';");
+  writeFileSync(
+    resolve(cwd, 'src/app.ts'),
+    `import { aliasName } from '#alias';
+import { selfName } from 'fresh-self-fixture/config';
+
+export const app = {
+  name: \`\${selfName}:\${aliasName}\`,
+  trails: new Map(),
+  signals: new Map(),
+  resources: new Map()
+};`
+  );
+};
+
 // Bytes that are intentionally not valid UTF-8. Decoding then re-encoding
 // would replace them with U+FFFD and corrupt the file.
 const BINARY_SIBLING_BYTES = new Uint8Array([
@@ -414,6 +447,58 @@ export const app = {
 
       const fresh = await loadApp('./src/app.ts', cwd, { fresh: true });
       expect(fresh.name).toBe('beta');
+    } finally {
+      rmSync(cwd, { force: true, recursive: true });
+    }
+  });
+
+  test('fresh loading preserves package metadata read via import.meta.url', async () => {
+    const cwd = resolve(
+      tmpdir(),
+      `trails-load-app-package-json-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    );
+
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+      writeFileSync(resolve(cwd, 'package.json'), '{"version":"9.8.7"}');
+      writeFileSync(
+        resolve(cwd, 'src/app.ts'),
+        `const pkg = await Bun.file(new URL('../package.json', import.meta.url)).json();
+
+export const app = {
+  name: pkg.version,
+  trails: new Map(),
+  signals: new Map(),
+  resources: new Map()
+};`
+      );
+
+      const fresh = await loadApp('./src/app.ts', cwd, { fresh: true });
+      expect(fresh.name).toBe('9.8.7');
+    } finally {
+      rmSync(cwd, { force: true, recursive: true });
+    }
+  });
+
+  test('fresh loading mirrors package self references and imports aliases', async () => {
+    const cwd = resolve(
+      tmpdir(),
+      `trails-load-app-package-imports-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    );
+
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+      writePackageLocalImportFixture(cwd);
+
+      const cached = await loadApp('./src/app.ts', cwd);
+      const fresh = await loadApp('./src/app.ts', cwd, { fresh: true });
+
+      expect(cached.name).toBe('self-config:alias');
+      expect(fresh.name).toBe('self-config:alias');
     } finally {
       rmSync(cwd, { force: true, recursive: true });
     }

@@ -1,5 +1,5 @@
 import { zodToJsonSchema } from '@ontrails/core';
-import type { Signal, Topo, Trail } from '@ontrails/core';
+import type { AnyTrail, Signal, Topo } from '@ontrails/core';
 
 import { REPORT_CONTRACT_VERSION, REPORT_VERSION } from './topo-constants.js';
 
@@ -323,9 +323,7 @@ export const deriveSignalDetail = (
   };
 };
 
-export const deriveTrailDetail = (
-  item: Trail<unknown, unknown>
-): TrailDetailReport => {
+export const deriveTrailDetail = (item: AnyTrail): TrailDetailReport => {
   const safety = safetyLabel(
     item as unknown as { intent?: 'read' | 'write' | 'destroy' }
   );

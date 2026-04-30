@@ -1,7 +1,7 @@
 import { trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { loadApp } from './load-app.js';
+import { loadFreshAppLease } from './load-app.js';
 import { exportCurrentTopo } from './topo-store-support.js';
 import {
   createIsolatedExampleInput,
@@ -11,8 +11,12 @@ import {
 export const topoExportTrail = trail('topo.export', {
   blaze: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
-    const app = await loadApp(input.module, rootDir);
-    return exportCurrentTopo(app, { rootDir });
+    const lease = await loadFreshAppLease(input.module, rootDir);
+    try {
+      return exportCurrentTopo(lease.app, { rootDir });
+    } finally {
+      lease.release();
+    }
   },
   description: 'Export the current topo to .trails artifacts',
   examples: [

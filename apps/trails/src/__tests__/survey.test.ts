@@ -16,7 +16,6 @@ import {
   topo,
   trail,
 } from '@ontrails/core';
-import { deriveOpenApiSpec } from '@ontrails/http';
 import {
   deriveSurfaceMap,
   deriveSurfaceMapHash,
@@ -31,7 +30,10 @@ import {
   deriveSignalDetail,
   deriveSurveyList,
   deriveTrailDetail,
+  surveyResourceTrail,
+  surveySignalTrail,
   surveyTrail,
+  surveyTrailDetailTrail,
 } from '../trails/survey.js';
 import { loadApp } from '../trails/load-app.js';
 import type {
@@ -174,6 +176,39 @@ export const app = topo('survey-fixture', ${topoMembers});
   );
 };
 
+const writeMultiMatchAppFixture = (dir: string) => {
+  mkdirSync(join(dir, 'src'), { recursive: true });
+  writeFileSync(
+    join(dir, 'src', 'app.ts'),
+    `import { Result, resource, signal, topo, trail } from '@ontrails/core';
+import { z } from 'zod';
+
+const sharedResource = resource('shared', {
+  create: () => Result.ok({ source: 'factory' }),
+});
+
+const sharedSignal = signal('shared', {
+  payload: z.object({ ok: z.boolean() }),
+});
+
+const sharedTrail = trail('shared', {
+  blaze: async () => Result.ok({ ok: true }),
+  fires: [sharedSignal],
+  input: z.object({}),
+  intent: 'read',
+  output: z.object({ ok: z.boolean() }),
+  resources: [sharedResource],
+});
+
+export const app = topo('multi-match-fixture', {
+  sharedResource,
+  sharedSignal,
+  sharedTrail,
+});
+`
+  );
+};
+
 const repoTempDir = (): string =>
   join(
     resolve(import.meta.dir, '../..'),
@@ -308,6 +343,153 @@ describe('trails survey detail', () => {
     expect(parsed.crosses).toEqual([]);
     expect(parsed.intent).toBe('read');
     expect(parsed.resources).toEqual(['db.main']);
+  });
+});
+
+describe('trails survey lookup', () => {
+  test('isolated survey examples keep their rootDir through input validation', () => {
+    const overviewExample = surveyTrail.examples?.find(
+      (example) => example.name === 'Overview'
+    );
+    const detailExample = surveyTrailDetailTrail.examples?.find(
+      (example) => example.name === 'Trail detail'
+    );
+    const overviewInput = overviewExample?.input as
+      | { readonly module?: string; readonly rootDir?: string }
+      | undefined;
+    const detailInput = detailExample?.input as
+      | { readonly module?: string; readonly rootDir?: string }
+      | undefined;
+
+    expect(overviewInput?.rootDir).toBeDefined();
+    expect(detailInput?.rootDir).toBeDefined();
+
+    const parsedOverview = surveyTrail.input.safeParse(overviewInput);
+    const parsedDetail = surveyTrailDetailTrail.input.safeParse(detailInput);
+
+    expect(parsedOverview.success).toBe(true);
+    expect(parsedDetail.success).toBe(true);
+    if (parsedOverview.success && parsedDetail.success) {
+      expect(parsedOverview.data.rootDir).toBe(overviewInput?.rootDir);
+      expect(parsedDetail.data.rootDir).toBe(detailInput?.rootDir);
+    }
+  });
+
+  test('bare survey returns the overview shape', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+
+      const overview = expectOk(
+        await surveyTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+
+      expect(overview).toMatchObject({
+        count: 1,
+        mode: 'overview',
+        resourceCount: 1,
+        signalCount: 0,
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('id lookup returns all matching entity kinds', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeMultiMatchAppFixture(dir);
+
+      const lookup = expectOk(
+        await surveyTrail.blaze({ id: 'shared', module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      ) as {
+        readonly matches: readonly {
+          readonly detail: { readonly id: string };
+          readonly kind: string;
+        }[];
+        readonly mode: 'lookup';
+      };
+
+      expect(lookup.mode).toBe('lookup');
+      expect(lookup.matches.map((match) => match.kind)).toEqual([
+        'trail',
+        'resource',
+        'signal',
+      ]);
+      expect(
+        lookup.matches.every((match) => match.detail.id === 'shared')
+      ).toBe(true);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('id lookup returns an empty match list when nothing matches', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+
+      const lookup = expectOk(
+        await surveyTrail.blaze({ id: 'missing', module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      ) as {
+        readonly matches: readonly unknown[];
+        readonly mode: 'lookup';
+      };
+
+      expect(lookup).toEqual({ matches: [], mode: 'lookup' });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('typed survey accessors return one kind or NotFound', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeMultiMatchAppFixture(dir);
+
+      const trailDetail = expectOk(
+        await surveyTrailDetailTrail.blaze(
+          { id: 'shared', module: './src/app.ts' },
+          { cwd: dir } as never
+        )
+      );
+      expect(trailDetail.kind).toBe('trail');
+
+      const resourceDetail = expectOk(
+        await surveyResourceTrail.blaze(
+          { id: 'shared', module: './src/app.ts' },
+          { cwd: dir } as never
+        )
+      );
+      expect(resourceDetail.kind).toBe('resource');
+
+      const signalDetail = expectOk(
+        await surveySignalTrail.blaze(
+          { id: 'shared', module: './src/app.ts' },
+          { cwd: dir } as never
+        )
+      );
+      expect(signalDetail.kind).toBe('signal');
+
+      const missing = await surveyTrailDetailTrail.blaze(
+        { id: 'missing', module: './src/app.ts' },
+        { cwd: dir } as never
+      );
+      expect(missing.isErr()).toBe(true);
+      expect(missing.error.message).toBe('Trail not found: missing');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
   });
 });
 
@@ -462,7 +644,7 @@ describe('trails survey output schema', () => {
     expect(
       surveyTrail.output.safeParse({
         ...deriveSurveyList(app),
-        mode: 'list',
+        mode: 'overview',
       }).success
     ).toBe(true);
     expect(
@@ -473,14 +655,25 @@ describe('trails survey output schema', () => {
     ).toBe(true);
     expect(
       surveyTrail.output.safeParse({
-        detail: deriveTrailDetail(helloTrail),
-        mode: 'detail',
-      }).success
-    ).toBe(true);
-    expect(
-      surveyTrail.output.safeParse({
-        detail: deriveSignalDetail(signalApp, 'hello.greeted'),
-        mode: 'detail',
+        matches: [
+          { detail: deriveTrailDetail(helloTrail), kind: 'trail' },
+          {
+            detail: {
+              description: null,
+              health: 'none',
+              id: 'db.main',
+              kind: 'resource',
+              lifetime: 'singleton',
+              usedBy: ['hello'],
+            },
+            kind: 'resource',
+          },
+          {
+            detail: deriveSignalDetail(signalApp, 'hello.greeted'),
+            kind: 'signal',
+          },
+        ],
+        mode: 'lookup',
       }).success
     ).toBe(true);
     expect(
@@ -501,52 +694,23 @@ describe('trails survey output schema', () => {
       }).success
     ).toBe(true);
     expect(
-      surveyTrail.output.safeParse({
-        mode: 'openapi',
-        spec: deriveOpenApiSpec(app),
+      surveyTrailDetailTrail.output.safeParse(deriveTrailDetail(helloTrail))
+        .success
+    ).toBe(true);
+    expect(
+      surveyResourceTrail.output.safeParse({
+        description: null,
+        health: 'none',
+        id: 'db.main',
+        kind: 'resource',
+        lifetime: 'singleton',
+        usedBy: ['hello'],
       }).success
     ).toBe(true);
-
-    // Regression: the openapi spec schema must NOT silently strip extra
-    // fields produced by deriveOpenApiSpec or richer real-world specs.
-    // Zod's default strip mode would drop these; .loose() preserves them.
-    const richSpec = {
-      ...deriveOpenApiSpec(app),
-      components: {
-        schemas: {},
-        securitySchemes: { bearerAuth: { scheme: 'bearer', type: 'http' } },
-      },
-      externalDocs: { url: 'https://example.com/docs' },
-      info: {
-        contact: { email: 'maintainer@example.com', name: 'Maintainer' },
-        license: { name: 'MIT' },
-        title: 'Test',
-        version: '1.0.0',
-      },
-      security: [{ bearerAuth: [] }],
-      tags: [{ description: 'Trail operations', name: 'trails' }],
-    };
-    const parsed = surveyTrail.output.safeParse({
-      mode: 'openapi',
-      spec: richSpec,
-    });
-    expect(parsed.success).toBe(true);
-    if (parsed.success && parsed.data.mode === 'openapi') {
-      const spec = parsed.data.spec as Record<string, unknown>;
-      expect(spec['security']).toEqual([{ bearerAuth: [] }]);
-      expect(spec['tags']).toEqual([
-        { description: 'Trail operations', name: 'trails' },
-      ]);
-      expect(spec['externalDocs']).toEqual({
-        url: 'https://example.com/docs',
-      });
-      expect(
-        (spec['components'] as Record<string, unknown>)['securitySchemes']
-      ).toEqual({ bearerAuth: { scheme: 'bearer', type: 'http' } });
-      expect((spec['info'] as Record<string, unknown>)['contact']).toEqual({
-        email: 'maintainer@example.com',
-        name: 'Maintainer',
-      });
-    }
+    expect(
+      surveySignalTrail.output.safeParse(
+        deriveSignalDetail(signalApp, 'hello.greeted')
+      ).success
+    ).toBe(true);
   });
 });

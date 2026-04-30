@@ -375,7 +375,7 @@ Built from the lexicon above.
 | --- | --- | --- |
 | `pack` | Collection of trails as a distributable unit | Trail pack. Published capability bundle. |
 | `mount` | Cross-app composition | Mount a remote graph. Future. |
-| `survey` | Full introspection of the trail system | `trails survey` to see everything. |
+| `survey` | Full introspection of the trail system | `trails survey` for an overview; `trails survey <id>` or `trails survey trail <id>` for focused detail. |
 | `guide` | Runtime guidance layer | `trails guide` for recommendations. |
 
 ## Reserved Terms

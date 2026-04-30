@@ -1,8 +1,9 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { loadApp } from './load-app.js';
+import { loadFreshAppLease } from './load-app.js';
 import { buildTopoSummary } from './topo-read-support.js';
+import { createIsolatedExampleInput } from './topo-support.js';
 
 const summaryOutput = z.object({
   app: z.object({
@@ -63,13 +64,17 @@ const summaryOutput = z.object({
 export const topoTrail = trail('topo', {
   blaze: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
-    const app = await loadApp(input.module, rootDir);
-    return Result.ok(buildTopoSummary(app, { rootDir }));
+    const lease = await loadFreshAppLease(input.module, rootDir);
+    try {
+      return Result.ok(buildTopoSummary(lease.app, { rootDir }));
+    } finally {
+      lease.release();
+    }
   },
   description: 'Show the current topo summary and entry list',
   examples: [
     {
-      input: {},
+      input: createIsolatedExampleInput('topo-summary'),
       name: 'Show the current topo summary',
     },
   ],

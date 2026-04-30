@@ -134,4 +134,22 @@ describe('trails guide', () => {
       }).success
     ).toBe(true);
   });
+
+  test('isolated guide example keeps its rootDir through input validation', () => {
+    const example = guideTrail.examples?.find(
+      (candidate) => candidate.name === 'List trail guidance'
+    );
+    const input = example?.input as
+      | { readonly module?: string; readonly rootDir?: string }
+      | undefined;
+
+    expect(input?.rootDir).toBeDefined();
+
+    const parsed = guideTrail.input.safeParse(input);
+
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.rootDir).toBe(input?.rootDir);
+    }
+  });
 });

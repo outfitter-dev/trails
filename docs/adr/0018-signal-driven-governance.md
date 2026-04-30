@@ -206,7 +206,7 @@ This topo is:
 
 - **Governable by itself.** The warden can check warden rules. A meta-warden rule can verify that all warden rules have examples.
 - **Testable.** `testAll(frameworkTopo)` verifies every governance rule, every lockfile edge case, every dev intelligence query. The topo store's mock resource seeds test data.
-- **Introspectable.** `trails topo show --framework` shows the framework's own operational topology. What fires on what. What resources are needed. The full picture.
+- **Introspectable.** `trails topo` shows the framework's own operational topology summary, and `trails survey <id>` plus role-specific survey trails inspect details. What fires on what. What resources are needed. The full picture.
 
 ### Signal scoping
 

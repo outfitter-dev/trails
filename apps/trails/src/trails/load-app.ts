@@ -1,4 +1,10 @@
-import { existsSync, readdirSync, realpathSync, statSync } from 'node:fs';
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+} from 'node:fs';
 import {
   dirname,
   extname,
@@ -240,6 +246,57 @@ const isLocalFilesystemImport = (importPath: string): boolean =>
   importPath.startsWith('/') ||
   importPath.startsWith('file:');
 
+const readPackageName = (packagePath: string): string | undefined => {
+  try {
+    const parsed = JSON.parse(readFileSync(packagePath, 'utf8')) as
+      | { readonly name?: unknown }
+      | undefined;
+    return typeof parsed?.name === 'string' && parsed.name.length > 0
+      ? parsed.name
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const findNearestPackageName = (directoryPath: string): string | undefined => {
+  let current = directoryPath;
+  while (true) {
+    const name = readPackageName(join(current, 'package.json'));
+    if (name !== undefined) {
+      return name;
+    }
+
+    const parent = dirname(current);
+    if (parent === current) {
+      return undefined;
+    }
+    current = parent;
+  }
+};
+
+const isPackageLocalImport = (
+  importerPath: string,
+  importPath: string
+): boolean => {
+  if (importPath.startsWith('#')) {
+    return true;
+  }
+
+  const packageName = findNearestPackageName(dirname(importerPath));
+  return (
+    packageName !== undefined &&
+    (importPath === packageName || importPath.startsWith(`${packageName}/`))
+  );
+};
+
+const shouldMirrorImportSpecifier = (
+  importerPath: string,
+  importPath: string
+): boolean =>
+  isLocalFilesystemImport(importPath) ||
+  isPackageLocalImport(importerPath, importPath);
+
 const isScannableModule = (modulePath: string): boolean =>
   SCANNABLE_EXTENSIONS.has(extname(modulePath));
 
@@ -270,7 +327,7 @@ const collectImportedModulePaths = (
   return getImportScanner(loader)
     .scanImports(source)
     .map((entry) => entry.path)
-    .filter(isLocalFilesystemImport)
+    .filter((importPath) => shouldMirrorImportSpecifier(modulePath, importPath))
     .map((importPath) => resolveImportedModulePath(modulePath, importPath));
 };
 
@@ -450,11 +507,33 @@ const copyDirectoryTreeToMirror = async (
   }
 };
 
+const copyNearestPackageJsonToMirror = async (
+  directoryPath: string,
+  context: MirrorWalkContext
+): Promise<void> => {
+  let current = directoryPath;
+  while (true) {
+    const packagePath = join(current, 'package.json');
+    const packageStat = safeStat(packagePath);
+    if (packageStat?.isFile()) {
+      await copyFileToMirror(packagePath, context.mirrorRoot, context.copied);
+      return;
+    }
+
+    const parent = dirname(current);
+    if (parent === current) {
+      return;
+    }
+    current = parent;
+  }
+};
+
 const mirrorImportedModule = async (
   modulePath: string,
   context: MirrorWalkContext
 ): Promise<void> => {
   const moduleDirectory = dirname(modulePath);
+  await copyNearestPackageJsonToMirror(moduleDirectory, context);
   if (context.visitedDirectories.has(moduleDirectory)) {
     await copyFileToMirror(modulePath, context.mirrorRoot, context.copied);
     return;

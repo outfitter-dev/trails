@@ -237,7 +237,8 @@ Checks governance rules: every trail has examples, destructive trails declare `i
 
 ```bash
 # Inspect one trail or resource
-trails topo show --module ./src/app.ts --id entity.show
+trails survey --module ./src/app.ts entity.show
+trails survey trail --module ./src/app.ts entity.show
 
 # See saved topo history and pins
 trails topo history --root-dir .

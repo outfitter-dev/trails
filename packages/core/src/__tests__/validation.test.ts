@@ -186,6 +186,13 @@ describe('zodToJsonSchema', () => {
         type: 'array',
       });
     });
+
+    test('converts z.readonly() wrappers', () => {
+      expect(zodToJsonSchema(z.array(z.string()).readonly())).toEqual({
+        items: { type: 'string' },
+        type: 'array',
+      });
+    });
   });
 
   describe('objects', () => {
@@ -212,6 +219,38 @@ describe('zodToJsonSchema', () => {
         properties: {
           name: { type: 'string' },
           nickname: { type: 'string' },
+        },
+        required: ['name'],
+        type: 'object',
+      });
+    });
+
+    test('treats readonly optional fields as optional', () => {
+      const schema = z.object({
+        name: z.string(),
+        tags: z.array(z.string()).optional().readonly(),
+      });
+      const result = zodToJsonSchema(schema);
+      expect(result).toEqual({
+        properties: {
+          name: { type: 'string' },
+          tags: { items: { type: 'string' }, type: 'array' },
+        },
+        required: ['name'],
+        type: 'object',
+      });
+    });
+
+    test('treats readonly default fields as optional', () => {
+      const schema = z.object({
+        name: z.string(),
+        tags: z.array(z.string()).default([]).readonly(),
+      });
+      const result = zodToJsonSchema(schema);
+      expect(result).toEqual({
+        properties: {
+          name: { type: 'string' },
+          tags: { default: [], items: { type: 'string' }, type: 'array' },
         },
         required: ['name'],
         type: 'object',

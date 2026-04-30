@@ -1,15 +1,14 @@
 /**
  * `survey` trail -- Full topo introspection.
  *
- * Lists trails, shows detail for individual trails, generates surface maps,
+ * Lists trails, looks up trails/resources/signals, generates surface maps,
  * and diffs against previous versions.
  */
 
 import { join } from 'node:path';
 
 import type { Topo } from '@ontrails/core';
-import { NotFoundError, Result, trail } from '@ontrails/core';
-import { deriveOpenApiSpec } from '@ontrails/http';
+import { NotFoundError, Result, trail, ValidationError } from '@ontrails/core';
 import type { DiffResult } from '@ontrails/schema';
 import {
   deriveSurfaceMapDiff,
@@ -18,13 +17,21 @@ import {
 } from '@ontrails/schema';
 import { z } from 'zod';
 
-import { loadApp, loadFreshAppLease } from './load-app.js';
+import { loadFreshAppLease } from './load-app.js';
 import {
   buildCurrentTopoBrief,
-  buildCurrentTopoDetail,
   buildCurrentTopoList,
+  buildCurrentTopoMatches,
+  buildCurrentTrailDetail,
+  buildCurrentResourceDetail,
+  buildCurrentSignalDetail,
 } from './topo-read-support.js';
-import { topoDetailOutput } from './topo-output-schemas.js';
+import {
+  resourceDetailOutput,
+  signalDetailOutput,
+  trailDetailOutput,
+} from './topo-output-schemas.js';
+import { createIsolatedExampleInput } from './topo-support.js';
 import { exportCurrentTopo } from './topo-store-support.js';
 
 export {
@@ -75,18 +82,46 @@ const buildSurveyDiff = async (
   );
 };
 
-const buildSurveyDetail = (
+const buildSurveyLookup = (
   app: Topo,
   entityId: string,
   rootDir: string
 ): Result<object, Error> => {
-  const detail = buildCurrentTopoDetail(app, entityId, { rootDir });
-  if (detail !== undefined) {
-    return Result.ok(detail);
-  }
-  return Result.err(
-    new NotFoundError(`Trail, resource, or signal not found: ${entityId}`)
-  );
+  const matches = buildCurrentTopoMatches(app, entityId, { rootDir });
+  return Result.ok({ matches });
+};
+
+const buildSurveyTrailDetail = (
+  app: Topo,
+  id: string,
+  rootDir: string
+): Result<object, Error> => {
+  const detail = buildCurrentTrailDetail(app, id, { rootDir });
+  return detail === undefined
+    ? Result.err(new NotFoundError(`Trail not found: ${id}`))
+    : Result.ok(detail);
+};
+
+const buildSurveyResourceDetail = (
+  app: Topo,
+  id: string,
+  rootDir: string
+): Result<object, Error> => {
+  const detail = buildCurrentResourceDetail(app, id, { rootDir });
+  return detail === undefined
+    ? Result.err(new NotFoundError(`Resource not found: ${id}`))
+    : Result.ok(detail);
+};
+
+const buildSurveySignalDetail = (
+  app: Topo,
+  id: string,
+  rootDir: string
+): Result<object, Error> => {
+  const detail = buildCurrentSignalDetail(app, id, { rootDir });
+  return detail === undefined
+    ? Result.err(new NotFoundError(`Signal not found: ${id}`))
+    : Result.ok(detail);
 };
 
 const buildSurveyGenerate = async (
@@ -109,26 +144,26 @@ interface SurveyInput {
   brief: boolean;
   diffSaved: boolean;
   generate: boolean;
-  openapi: boolean;
-  trailId?: string | undefined;
+  id?: string | undefined;
+  module?: string | undefined;
+  rootDir?: string | undefined;
 }
 
-type SurveyMode = 'brief' | 'detail' | 'diff' | 'generate' | 'list' | 'openapi';
+type SurveyMode = 'brief' | 'diff' | 'generate' | 'lookup' | 'overview';
 
 type SurveyEnvelope = { readonly mode: SurveyMode } & Record<string, unknown>;
 
-/** Ordered mode checks — first truthy predicate wins, otherwise 'list'. */
+/** Ordered mode checks — first truthy predicate wins, otherwise 'overview'. */
 const modeChecks: readonly [(input: SurveyInput) => boolean, SurveyMode][] = [
   [(i) => i.brief, 'brief'],
   [(i) => i.diffSaved, 'diff'],
-  [(i) => Boolean(i.trailId), 'detail'],
+  [(i) => Boolean(i.id), 'lookup'],
   [(i) => i.generate, 'generate'],
-  [(i) => i.openapi, 'openapi'],
 ];
 
-/** Determine which survey mode was requested, falling back to 'list'. */
+/** Determine which survey mode was requested, falling back to 'overview'. */
 const deriveSurveyMode = (input: SurveyInput): SurveyMode =>
-  modeChecks.find(([predicate]) => predicate(input))?.[1] ?? 'list';
+  modeChecks.find(([predicate]) => predicate(input))?.[1] ?? 'overview';
 
 type SurveyHandler = (
   app: Topo,
@@ -140,28 +175,21 @@ type SurveyHandler = (
 const surveyHandlers: Record<SurveyMode, SurveyHandler> = {
   brief: (app, _input, rootDir) =>
     Result.ok(buildCurrentTopoBrief(app, { rootDir })),
-  detail: (app, input, rootDir) =>
-    buildSurveyDetail(app, input.trailId ?? '', rootDir),
   diff: (app, input, rootDir) =>
     buildSurveyDiff(app, rootDir, input.breakingOnly),
   generate: (app, _input, rootDir) => buildSurveyGenerate(app, rootDir),
-  list: (app, _input, rootDir) =>
+  lookup: (app, input, rootDir) =>
+    input.id === undefined || input.id === ''
+      ? Result.err(new ValidationError('Survey lookup requires an id'))
+      : buildSurveyLookup(app, input.id, rootDir),
+  overview: (app, _input, rootDir) =>
     Result.ok(buildCurrentTopoList(app, { rootDir })),
-  openapi: (app) => Result.ok(deriveOpenApiSpec(app)),
 };
 
 const envelopeSurveyValue = (
   mode: SurveyMode,
   value: object
-): SurveyEnvelope => {
-  if (mode === 'detail') {
-    return { detail: value, mode };
-  }
-  if (mode === 'openapi') {
-    return { mode, spec: value };
-  }
-  return { ...value, mode };
-};
+): SurveyEnvelope => ({ ...value, mode });
 
 /** Dispatch to the appropriate survey sub-command based on input flags. */
 const dispatchSurvey = async (
@@ -178,53 +206,76 @@ const dispatchSurvey = async (
   return Result.ok(envelopeSurveyValue(mode, result.value));
 };
 
+const detailInputSchema = z.object({
+  id: z.string().describe('Trail, resource, or signal ID'),
+  module: z.string().optional().describe('Path to the app module'),
+  rootDir: z.string().optional().describe('Workspace root directory'),
+});
+
+const resolveRootDir = (
+  input: { readonly rootDir?: string | undefined },
+  cwd?: string | undefined
+): string => input.rootDir ?? cwd ?? process.cwd();
+
+const withFreshSurveyApp = async <T>(
+  input: { readonly module?: string | undefined },
+  rootDir: string,
+  consume: (app: Topo) => Promise<Result<T, Error>> | Result<T, Error>
+): Promise<Result<T, Error>> => {
+  const lease = await loadFreshAppLease(input.module, rootDir);
+  try {
+    return await consume(lease.app);
+  } finally {
+    lease.release();
+  }
+};
+
+const surveyMatchOutput = z.discriminatedUnion('kind', [
+  z.object({
+    detail: trailDetailOutput,
+    kind: z.literal('trail'),
+  }),
+  z.object({
+    detail: resourceDetailOutput,
+    kind: z.literal('resource'),
+  }),
+  z.object({
+    detail: signalDetailOutput,
+    kind: z.literal('signal'),
+  }),
+]);
+
 // ---------------------------------------------------------------------------
 // Trail definition
 // ---------------------------------------------------------------------------
 
 export const surveyTrail = trail('survey', {
+  args: ['id'],
   blaze: async (input, ctx) => {
-    const rootDir = ctx.cwd ?? '.';
-    const mode = deriveSurveyMode(input);
-    // Fresh load only for diffSaved: comparing against a previously-saved
-    // surface map requires the current app's source state, not any cached
-    // module graph that a prior import may have frozen. Other modes read
-    // the in-memory topo and benefit from the standard import cache.
-    //
-    // For diff specifically, use a disposable lease rather than retained
-    // fresh mirrors — the returned diff result is serialisable data, not
-    // a Topo reference with deferred imports, so the mirror can be
-    // released the moment dispatchSurvey returns. That keeps MCP/dev
-    // sessions that poll diff repeatedly from growing .trails-tmp/
-    // without bound.
-    if (mode === 'diff') {
-      const lease = await loadFreshAppLease(input.module, rootDir);
-      try {
-        return await dispatchSurvey(lease.app, input, rootDir);
-      } finally {
-        lease.release();
-      }
-    }
-
-    const app = await loadApp(input.module, rootDir);
-    return dispatchSurvey(app, input, rootDir);
+    const rootDir = resolveRootDir(input, ctx.cwd);
+    return withFreshSurveyApp(input, rootDir, (app) =>
+      dispatchSurvey(app, input, rootDir)
+    );
   },
   description: 'Full topo introspection',
   examples: [
     {
-      description: 'Lists all registered trails with safety and surface info',
-      input: { module: './src/app.ts' },
-      name: 'List all trails',
+      description: 'Show all registered trails, resources, and signals',
+      input: createIsolatedExampleInput('survey-overview'),
+      name: 'Overview',
+    },
+    {
+      description: 'Find every trail, resource, or signal with a matching ID',
+      input: { ...createIsolatedExampleInput('survey-lookup'), id: 'survey' },
+      name: 'Lookup by ID',
     },
     {
       description: 'Quick capability summary with counts and feature flags',
-      input: { brief: true, module: './src/app.ts' },
+      input: {
+        ...createIsolatedExampleInput('survey-brief'),
+        brief: true,
+      },
       name: 'Brief capability report',
-    },
-    {
-      description: 'Generate an OpenAPI 3.1 specification for the topo',
-      input: { module: './src/app.ts', openapi: true },
-      name: 'OpenAPI spec',
     },
   ],
   input: z.object({
@@ -241,12 +292,12 @@ export const surveyTrail = trail('survey', {
       .boolean()
       .default(false)
       .describe('Generate surface map and lock file'),
-    module: z.string().optional().describe('Path to the app module'),
-    openapi: z.boolean().default(false).describe('Output OpenAPI 3.1 spec'),
-    trailId: z
+    id: z
       .string()
       .optional()
-      .describe('Trail, resource, or signal ID for detail view'),
+      .describe('Trail, resource, or signal ID to look up'),
+    module: z.string().optional().describe('Path to the app module'),
+    rootDir: z.string().optional().describe('Workspace root directory'),
   }),
   intent: 'read',
   output: z.discriminatedUnion('mode', [
@@ -260,7 +311,7 @@ export const surveyTrail = trail('survey', {
           safety: z.string(),
         })
       ),
-      mode: z.literal('list'),
+      mode: z.literal('overview'),
       resourceCount: z.number(),
       resources: z.array(
         z.object({
@@ -287,6 +338,10 @@ export const surveyTrail = trail('survey', {
       ),
     }),
     z.object({
+      matches: z.array(surveyMatchOutput),
+      mode: z.literal('lookup'),
+    }),
+    z.object({
       contractVersion: z.string(),
       features: z.object({
         detours: z.boolean(),
@@ -310,51 +365,84 @@ export const surveyTrail = trail('survey', {
       warnings: z.array(z.unknown()),
     }),
     z.object({
-      detail: topoDetailOutput,
-      mode: z.literal('detail'),
-    }),
-    z.object({
       hash: z.string(),
       lockPath: z.string(),
       mapPath: z.string(),
       mode: z.literal('generate'),
     }),
-    z.object({
-      mode: z.literal('openapi'),
-      // OpenAPI 3.1 has many legal top-level and nested fields this schema
-      // doesn't enumerate (security schemes, tags, externalDocs, info.contact
-      // / info.license, etc.). Zod's default strip mode would silently drop
-      // those when wrapWithOutputValidation parses the value, so we pass
-      // extras through and let deriveOpenApiSpec's output reach callers
-      // unchanged.
-      spec: z
-        .object({
-          components: z
-            .object({
-              schemas: z.record(z.string(), z.unknown()),
-            })
-            .loose(),
-          info: z
-            .object({
-              description: z.string().optional(),
-              title: z.string(),
-              version: z.string(),
-            })
-            .loose(),
-          openapi: z.literal('3.1.0'),
-          paths: z.record(z.string(), z.record(z.string(), z.unknown())),
-          servers: z
-            .array(
-              z
-                .object({
-                  description: z.string().optional(),
-                  url: z.string(),
-                })
-                .loose()
-            )
-            .optional(),
-        })
-        .loose(),
-    }),
   ]),
+});
+
+export const surveyTrailDetailTrail = trail('survey.trail', {
+  args: ['id'],
+  blaze: async (input, ctx) => {
+    const rootDir = resolveRootDir(input, ctx.cwd);
+    return withFreshSurveyApp(input, rootDir, (app) =>
+      buildSurveyTrailDetail(app, input.id, rootDir)
+    );
+  },
+  description: 'Inspect one trail by ID',
+  examples: [
+    {
+      description: 'Show trail contract detail',
+      input: {
+        ...createIsolatedExampleInput('survey-trail-detail'),
+        id: 'survey',
+      },
+      name: 'Trail detail',
+    },
+  ],
+  input: detailInputSchema,
+  intent: 'read',
+  output: trailDetailOutput,
+});
+
+export const surveyResourceTrail = trail('survey.resource', {
+  args: ['id'],
+  blaze: async (input, ctx) => {
+    const rootDir = resolveRootDir(input, ctx.cwd);
+    return withFreshSurveyApp(input, rootDir, (app) =>
+      buildSurveyResourceDetail(app, input.id, rootDir)
+    );
+  },
+  description: 'Inspect one resource by ID',
+  examples: [
+    {
+      description: 'Show resource usage detail',
+      error: 'NotFoundError',
+      input: {
+        ...createIsolatedExampleInput('survey-resource-detail'),
+        id: 'db.main',
+      },
+      name: 'Resource detail',
+    },
+  ],
+  input: detailInputSchema,
+  intent: 'read',
+  output: resourceDetailOutput,
+});
+
+export const surveySignalTrail = trail('survey.signal', {
+  args: ['id'],
+  blaze: async (input, ctx) => {
+    const rootDir = resolveRootDir(input, ctx.cwd);
+    return withFreshSurveyApp(input, rootDir, (app) =>
+      buildSurveySignalDetail(app, input.id, rootDir)
+    );
+  },
+  description: 'Inspect one signal by ID',
+  examples: [
+    {
+      description: 'Show signal producer and consumer detail',
+      error: 'NotFoundError',
+      input: {
+        ...createIsolatedExampleInput('survey-signal-detail'),
+        id: 'hello.greeted',
+      },
+      name: 'Signal detail',
+    },
+  ],
+  input: detailInputSchema,
+  intent: 'read',
+  output: signalDetailOutput,
 });

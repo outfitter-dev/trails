@@ -18,11 +18,10 @@ import { devCleanTrail } from '../trails/dev-clean.js';
 import { devResetTrail } from '../trails/dev-reset.js';
 import { devStatsTrail } from '../trails/dev-stats.js';
 import { guideTrail } from '../trails/guide.js';
-import { surveyTrail } from '../trails/survey.js';
+import { surveyTrail, surveyTrailDetailTrail } from '../trails/survey.js';
 import { topoExportTrail } from '../trails/topo-export.js';
 import { topoHistoryTrail } from '../trails/topo-history.js';
 import { topoPinTrail } from '../trails/topo-pin.js';
-import { topoShowTrail } from '../trails/topo-show.js';
 import { topoTrail } from '../trails/topo.js';
 import { topoUnpinTrail } from '../trails/topo-unpin.js';
 import { topoVerifyTrail } from '../trails/topo-verify.js';
@@ -50,7 +49,38 @@ const expectErr = <E extends Error>(result: Result<unknown, E>): E => {
 
 const moduleInput = { module: './src/app.ts' } as const;
 
-const writeAppFixture = (dir: string): void => {
+const countTopoSnapshots = (rootDir: string): number => {
+  const db = openReadTrailsDb({ rootDir });
+  try {
+    return (
+      db
+        .query<{ count: number }, []>(
+          'SELECT COUNT(*) as count FROM topo_snapshots'
+        )
+        .get()?.count ?? 0
+    );
+  } finally {
+    db.close();
+  }
+};
+
+const writeAppFixture = (
+  dir: string,
+  options?: { readonly includeAuthTrail?: boolean }
+): void => {
+  const authTrail = options?.includeAuthTrail
+    ? `
+const authCheck = trail('auth.check', {
+  blaze: async () => Result.ok({ ok: true }),
+  input: z.object({}),
+  intent: 'read',
+  output: z.object({ ok: z.boolean() }),
+});
+`
+    : '';
+  const topoMembers = options?.includeAuthTrail
+    ? 'authCheck, dbMain, goodbye, hello'
+    : 'dbMain, goodbye, hello';
   mkdirSync(join(dir, 'src'), { recursive: true });
   writeFileSync(
     join(dir, 'src', 'app.ts'),
@@ -83,7 +113,8 @@ if (!dbMain) {
   throw new Error('expected hello to declare db.main');
 }
 
-export const app = topo('fixture-app', { dbMain, goodbye, hello });
+${authTrail}
+export const app = topo('fixture-app', { ${topoMembers} });
 `
   );
 };
@@ -104,18 +135,21 @@ describe('topo and dev trails', () => {
       expect(summary.lockExists).toBe(false);
 
       const detail = expectOk(
-        await topoShowTrail.blaze({ ...moduleInput, id: 'hello' }, {
+        await surveyTrailDetailTrail.blaze({ ...moduleInput, id: 'hello' }, {
           cwd: dir,
         } as never)
       );
       expect(detail.id).toBe('hello');
       expect(detail.kind).toBe('trail');
       expect(detail.resources).toEqual(['db.main']);
-      expect(topoShowTrail.output.safeParse(detail).success).toBe(true);
+      expect(surveyTrailDetailTrail.output.safeParse(detail).success).toBe(
+        true
+      );
 
       const exportResult = expectOk(
         await topoExportTrail.blaze(moduleInput, { cwd: dir } as never)
       );
+      const snapshotCountAfterExport = countTopoSnapshots(dir);
       expect(exportResult.hash).toHaveLength(64);
       expect(existsSync(join(dir, '.trails', '_surface.json'))).toBe(true);
       expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(true);
@@ -135,12 +169,29 @@ describe('topo and dev trails', () => {
         await topoVerifyTrail.blaze(moduleInput, { cwd: dir } as never)
       );
       expect(verifyResult.stale).toBe(false);
+      expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
+
+      writeAppFixture(dir, { includeAuthTrail: true });
+      const currentSummary = expectOk(
+        await topoTrail.blaze(moduleInput, { cwd: dir } as never)
+      );
+      expect(currentSummary.list.count).toBe(3);
+      expect(currentSummary.list.entries.map((entry) => entry.id)).toContain(
+        'auth.check'
+      );
+
+      const driftError = expectErr(
+        await topoVerifyTrail.blaze(moduleInput, { cwd: dir } as never)
+      );
+      expect(driftError.message).toContain('trails.lock is stale');
+      expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
 
       writeFileSync(join(dir, '.trails', 'trails.lock'), 'stale\n');
       const verifyError = expectErr(
         await topoVerifyTrail.blaze(moduleInput, { cwd: dir } as never)
       );
       expect(verifyError.message).toContain('trails.lock is stale');
+      expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -159,7 +210,7 @@ describe('topo and dev trails', () => {
       );
       expect(surveyList).toMatchObject({
         count: 2,
-        mode: 'list',
+        mode: 'overview',
         resourceCount: 1,
       });
 
@@ -180,16 +231,21 @@ describe('topo and dev trails', () => {
       });
 
       const surveyDetail = expectOk(
-        await surveyTrail.blaze({ module: './src/app.ts', trailId: 'hello' }, {
+        await surveyTrail.blaze({ id: 'hello', module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
       expect(surveyDetail).toMatchObject({
-        detail: {
-          id: 'hello',
-          resources: ['db.main'],
-        },
-        mode: 'detail',
+        matches: [
+          {
+            detail: {
+              id: 'hello',
+              resources: ['db.main'],
+            },
+            kind: 'trail',
+          },
+        ],
+        mode: 'lookup',
       });
 
       const guideList = expectOk(

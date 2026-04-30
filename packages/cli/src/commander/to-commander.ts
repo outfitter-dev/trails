@@ -79,16 +79,26 @@ const buildOptions = (flag: CliFlag): Option[] => {
 };
 
 /** Add positional args to a Commander subcommand. */
-const buildArgTemplate = (arg: CliCommand['args'][number]): string => {
+const buildArgTemplate = (
+  arg: CliCommand['args'][number],
+  required = arg.required
+): string => {
   if (arg.variadic) {
-    return arg.required ? `<${arg.name}...>` : `[${arg.name}...]`;
+    return required ? `<${arg.name}...>` : `[${arg.name}...]`;
   }
-  return arg.required ? `<${arg.name}>` : `[${arg.name}]`;
+  return required ? `<${arg.name}>` : `[${arg.name}]`;
 };
 
-const addArgs = (sub: Command, cmd: CliCommand): void => {
-  for (const arg of cmd.args) {
-    const template = buildArgTemplate(arg);
+const addArgs = (
+  sub: Command,
+  cmd: CliCommand,
+  options?: { readonly forceOptionalFirstArg?: boolean } | undefined
+): void => {
+  for (const [index, arg] of cmd.args.entries()) {
+    const template = buildArgTemplate(
+      arg,
+      options?.forceOptionalFirstArg === true && index === 0 ? false : undefined
+    );
     sub.argument(template, arg.description);
   }
 };
@@ -108,6 +118,55 @@ const collectPositionalArgs = (
   return parsedArgs;
 };
 
+const isUserSuppliedOption = (command: Command, name: string): boolean => {
+  const source = command.getOptionValueSource(name);
+  return source !== undefined && source !== 'default' && source !== 'implied';
+};
+
+const getCommandOptionNames = (command: Command): Set<string> =>
+  new Set(command.options.map((option) => option.attributeName()));
+
+const hasUserSuppliedOptionOutside = (
+  sourceCommand: Command,
+  allowedCommand: Command
+): boolean => {
+  const allowedOptionNames = getCommandOptionNames(allowedCommand);
+  return sourceCommand.options.some((option) => {
+    const name = option.attributeName();
+    return (
+      isUserSuppliedOption(sourceCommand, name) && !allowedOptionNames.has(name)
+    );
+  });
+};
+
+const hasAnyPositionalValue = (
+  cmd: CliCommand,
+  parsedArgs: Readonly<Record<string, unknown>>
+): boolean => cmd.args.some((arg) => parsedArgs[arg.name] !== undefined);
+
+const getActionTarget = (fallbackTarget: Command, actionArgs: unknown[]) => {
+  const candidate = actionArgs.at(-1);
+  return candidate instanceof Command ? candidate : fallbackTarget;
+};
+
+const getParsedFlags = (command: Command): Record<string, unknown> =>
+  command.optsWithGlobals() as Record<string, unknown>;
+
+const getFallbackParsedFlags = (
+  parentTarget: Command,
+  target: Command
+): Record<string, unknown> => {
+  const flags = { ...getParsedFlags(parentTarget) };
+  const parentOptionNames = getCommandOptionNames(parentTarget);
+  for (const option of target.options) {
+    const name = option.attributeName();
+    if (parentOptionNames.has(name) && isUserSuppliedOption(target, name)) {
+      flags[name] = target.getOptionValue(name);
+    }
+  }
+  return flags;
+};
+
 /** Handle execution errors with appropriate exit codes. */
 const handleError = (error: unknown): void => {
   if (error instanceof Error) {
@@ -121,13 +180,64 @@ const handleError = (error: unknown): void => {
   process.exit(8);
 };
 
+interface BareChildFallback {
+  readonly argName: string;
+  readonly argValue: string;
+  readonly parentCommand: CliCommand;
+  readonly parentTarget: Command;
+}
+
+const maybeUseBareChildFallback = (
+  target: Command,
+  cmd: CliCommand,
+  parsedArgs: Readonly<Record<string, unknown>>,
+  fallback?: BareChildFallback | undefined
+): {
+  readonly command: CliCommand;
+  readonly parsedArgs: Record<string, unknown>;
+  readonly parsedFlags: Record<string, unknown>;
+} => {
+  if (
+    !fallback ||
+    hasAnyPositionalValue(cmd, parsedArgs) ||
+    hasUserSuppliedOptionOutside(target, fallback.parentTarget)
+  ) {
+    return {
+      command: cmd,
+      parsedArgs: { ...parsedArgs },
+      parsedFlags: getParsedFlags(target),
+    };
+  }
+
+  return {
+    command: fallback.parentCommand,
+    parsedArgs: { [fallback.argName]: fallback.argValue },
+    parsedFlags: getFallbackParsedFlags(fallback.parentTarget, target),
+  };
+};
+
 /** Wire a CliCommand's action to a Commander subcommand. */
-const wireAction = (target: Command, cmd: CliCommand): void => {
+const wireAction = (
+  target: Command,
+  cmd: CliCommand,
+  fallback?: BareChildFallback | undefined
+): void => {
   target.action(async (...actionArgs: unknown[]) => {
-    const opts = target.opts() as Record<string, unknown>;
+    const actionTarget = getActionTarget(target, actionArgs);
     const parsedArgs = collectPositionalArgs(cmd, actionArgs);
+    const action = maybeUseBareChildFallback(
+      actionTarget,
+      cmd,
+      parsedArgs,
+      fallback === undefined
+        ? undefined
+        : {
+            ...fallback,
+            parentTarget: actionTarget.parent ?? fallback.parentTarget,
+          }
+    );
     try {
-      await cmd.execute(parsedArgs, opts);
+      await action.command.execute(action.parsedArgs, action.parsedFlags);
     } catch (error: unknown) {
       handleError(error);
     }
@@ -161,6 +271,7 @@ const pathKey = (path: readonly string[]): string => path.join('\0');
 
 interface CommandNodeState {
   readonly command: Command;
+  cliCommand?: CliCommand | undefined;
   executable: boolean;
 }
 
@@ -212,7 +323,42 @@ const ensureCommandNode = (
   return state;
 };
 
-const applyCliCommand = (state: CommandNodeState, cmd: CliCommand): void => {
+const createBareChildFallback = (
+  cmd: CliCommand,
+  parentState?: CommandNodeState | undefined
+): BareChildFallback | undefined => {
+  if (!parentState?.cliCommand || cmd.path.length < 2) {
+    return undefined;
+  }
+
+  const [parentArg] = parentState.cliCommand.args;
+  const [childArg] = cmd.args;
+  const childSegment = cmd.path.at(-1);
+  if (
+    parentArg === undefined ||
+    childArg === undefined ||
+    parentArg.required ||
+    parentArg.variadic ||
+    childArg.variadic ||
+    childArg.name !== parentArg.name ||
+    childSegment === undefined
+  ) {
+    return undefined;
+  }
+
+  return {
+    argName: parentArg.name,
+    argValue: childSegment,
+    parentCommand: parentState.cliCommand,
+    parentTarget: parentState.command,
+  };
+};
+
+const applyCliCommand = (
+  state: CommandNodeState,
+  cmd: CliCommand,
+  fallback?: BareChildFallback | undefined
+): void => {
   if (state.executable) {
     throw new Error(`Duplicate CLI path: ${cmd.path.join(' ')}`);
   }
@@ -225,8 +371,11 @@ const applyCliCommand = (state: CommandNodeState, cmd: CliCommand): void => {
       state.command.addOption(opt);
     }
   }
-  addArgs(state.command, cmd);
-  wireAction(state.command, cmd);
+  addArgs(state.command, cmd, {
+    forceOptionalFirstArg: fallback !== undefined,
+  });
+  wireAction(state.command, cmd, fallback);
+  state.cliCommand = cmd;
   state.executable = true;
 };
 
@@ -245,7 +394,9 @@ export const toCommander = (
       : a.path.length - b.path.length
   )) {
     const state = ensureCommandNode(cmd.path, program, nodes);
-    applyCliCommand(state, cmd);
+    const parentKey = pathKey(cmd.path.slice(0, -1));
+    const fallback = createBareChildFallback(cmd, nodes.get(parentKey));
+    applyCliCommand(state, cmd, fallback);
   }
 
   return program;

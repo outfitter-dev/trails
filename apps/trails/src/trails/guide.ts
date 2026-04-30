@@ -7,12 +7,13 @@
 import { NotFoundError, Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { loadApp } from './load-app.js';
+import { loadFreshAppLease } from './load-app.js';
 import { trailDetailOutput } from './topo-output-schemas.js';
 import {
   buildCurrentGuideEntries,
   buildCurrentTopoDetail,
 } from './topo-read-support.js';
+import { createIsolatedExampleInput } from './topo-support.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -31,37 +32,46 @@ interface GuideEntry {
 
 export const guideTrail = trail('guide', {
   blaze: async (input, ctx) => {
-    const rootDir = ctx.cwd ?? '.';
-    const app = await loadApp(input.module, rootDir);
+    const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
+    const lease = await loadFreshAppLease(input.module, rootDir);
 
-    if (input.trailId) {
-      const detail = buildCurrentTopoDetail(app, input.trailId, { rootDir });
-      if (detail === undefined || detail.kind !== 'trail') {
-        return Result.err(
-          new NotFoundError(`Trail not found: ${input.trailId}`)
-        );
+    try {
+      if (input.trailId) {
+        const detail = buildCurrentTopoDetail(lease.app, input.trailId, {
+          rootDir,
+        });
+        if (detail === undefined || detail.kind !== 'trail') {
+          return Result.err(
+            new NotFoundError(`Trail not found: ${input.trailId}`)
+          );
+        }
+        return Result.ok({
+          detail,
+          mode: 'detail' as const,
+        });
       }
-      return Result.ok({
-        detail,
-        mode: 'detail' as const,
-      });
-    }
 
-    return Result.ok({
-      entries: buildCurrentGuideEntries(app, { rootDir }) as GuideEntry[],
-      mode: 'list' as const,
-    });
+      return Result.ok({
+        entries: buildCurrentGuideEntries(lease.app, {
+          rootDir,
+        }) as GuideEntry[],
+        mode: 'list' as const,
+      });
+    } finally {
+      lease.release();
+    }
   },
   description: 'Runtime guidance for trails',
   examples: [
     {
       description: 'Lists all trails with descriptions and example counts',
-      input: { module: './src/app.ts' },
+      input: createIsolatedExampleInput('guide-list'),
       name: 'List trail guidance',
     },
   ],
   input: z.object({
     module: z.string().optional().describe('Path to the app module'),
+    rootDir: z.string().optional().describe('Workspace root directory'),
     trailId: z.string().optional().describe('Trail ID for detailed guidance'),
   }),
   intent: 'read',

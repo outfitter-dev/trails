@@ -5,6 +5,8 @@
  * keeping module boundaries clean.
  */
 
+import { Database } from 'bun:sqlite';
+
 import type { Topo, TopoSnapshot } from '@ontrails/core';
 import { InternalError, Result } from '@ontrails/core';
 import type { StoredTopoExport } from '@ontrails/core/internal/topo-store';
@@ -57,6 +59,23 @@ const persistAndReadStoredExport = (
     snapshot,
     storedExport,
   });
+};
+
+export const deriveCurrentTopoExport = (
+  app: Topo,
+  options?: { readonly rootDir?: string }
+): Result<StoredTopoExport, Error> => {
+  const rootDir = deriveRootDir(options?.rootDir);
+  const db = new Database(':memory:');
+
+  try {
+    const projected = persistAndReadStoredExport(app, db, rootDir);
+    return projected.isErr()
+      ? projected
+      : Result.ok(projected.value.storedExport);
+  } finally {
+    db.close();
+  }
 };
 
 const writeStoredExportArtifacts = async (

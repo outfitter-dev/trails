@@ -139,10 +139,9 @@ In production, the framework operates exactly as it does today: in-memory topo, 
 
 ```bash
 # Topo history
-trails topo show                    # Show the current topo summary
+trails topo                         # Show the current topo summary
 trails topo history                 # List pins and recent autosaves
 trails topo pin "name"              # Pin the current topo snapshot
-trails topo show "name"             # Show metadata for a pin or snapshot reference
 trails topo diff --since "name"     # Structural diff since a pin or prior snapshot
 trails topo unpin "name"            # Remove a pin but keep the underlying snapshot eligible for pruning
 trails topo export                  # Write .trails/trails.lock from the current topo

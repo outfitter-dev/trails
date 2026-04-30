@@ -1,7 +1,7 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { loadApp } from './load-app.js';
+import { loadFreshAppLease } from './load-app.js';
 import {
   createIsolatedExampleInput,
   pinCurrentTopoSnapshot,
@@ -11,10 +11,14 @@ import {
 export const topoPinTrail = trail('topo.pin', {
   blaze: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
-    const app = await loadApp(input.module, rootDir);
-    return Result.ok(
-      pinCurrentTopoSnapshot(app, { name: input.name, rootDir })
-    );
+    const lease = await loadFreshAppLease(input.module, rootDir);
+    try {
+      return Result.ok(
+        pinCurrentTopoSnapshot(lease.app, { name: input.name, rootDir })
+      );
+    } finally {
+      lease.release();
+    }
   },
   description: 'Pin the current topo under a durable name',
   examples: [

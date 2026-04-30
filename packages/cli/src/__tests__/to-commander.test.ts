@@ -247,35 +247,477 @@ describe('toCommander validation', () => {
     expect(() => toCommander(commands)).toThrow('Duplicate CLI path: topo pin');
   });
 
-  test('rejects executable parents with positional args when child commands exist', () => {
+  test('routes child commands before parent positional args', async () => {
+    const calls: string[] = [];
     const commands = [
       {
-        args: [{ name: 'ref', required: true, variadic: false }],
-        execute: async () => await Result.ok('topo'),
+        args: [{ name: 'ref', required: false, variadic: false }],
+        execute: async (args: Record<string, unknown>) => {
+          calls.push(
+            `survey:${String(args['ref'] ?? `flag:${String(args['id'])}`)}`
+          );
+          return await Result.ok('survey');
+        },
         flags: [],
         intent: 'read' as const,
-        path: ['topo'] as const,
-        trail: trail('topo', {
-          blaze: () => Result.ok('topo'),
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          blaze: () => Result.ok('survey'),
           input: z.object({}),
         }),
       },
       {
-        args: [],
-        execute: async () => await Result.ok('topo.pin'),
+        args: [{ name: 'ref', required: true, variadic: false }],
+        execute: async (args: Record<string, unknown>) => {
+          calls.push(`survey.trail:${String(args['ref'])}`);
+          return await Result.ok('survey.trail');
+        },
         flags: [],
         intent: 'read' as const,
-        path: ['topo', 'pin'] as const,
-        trail: trail('topo.pin', {
-          blaze: () => Result.ok('topo.pin'),
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          blaze: () => Result.ok('survey.trail'),
           input: z.object({}),
         }),
       },
     ];
 
-    expect(() => toCommander(commands)).toThrow(
-      'Executable parent commands cannot declare positional args when child commands exist: topo'
-    );
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync(['node', 'test', 'survey', 'shared']);
+    await program.parseAsync(['node', 'test', 'survey', 'trail', 'shared']);
+
+    expect(calls).toEqual(['survey:shared', 'survey.trail:shared']);
+  });
+
+  test('routes bare child-name tokens to parent positional lookup', async () => {
+    const calls: string[] = [];
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (args: Record<string, unknown>) => {
+          calls.push(`survey:${String(args['id'])}`);
+          return await Result.ok('survey');
+        },
+        flags: [],
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          blaze: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [{ name: 'id', required: true, variadic: false }],
+        execute: async (args: Record<string, unknown>) => {
+          calls.push(`survey.trail:${String(args['id'])}`);
+          return await Result.ok('survey.trail');
+        },
+        flags: [],
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          blaze: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync(['node', 'test', 'survey', 'trail']);
+    await program.parseAsync(['node', 'test', 'survey', 'trail', 'shared']);
+
+    expect(calls).toEqual(['survey:trail', 'survey.trail:shared']);
+  });
+
+  test('parent flag aliases can target IDs that match child command names', async () => {
+    const calls: string[] = [];
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(`survey:${String(args['id'] ?? opts['id'])}`);
+          return await Result.ok('survey');
+        },
+        flags: [
+          {
+            name: 'id',
+            required: false,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          blaze: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [{ name: 'id', required: true, variadic: false }],
+        execute: async (args: Record<string, unknown>) => {
+          calls.push(`survey.trail:${String(args['id'])}`);
+          return await Result.ok('survey.trail');
+        },
+        flags: [],
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          blaze: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync(['node', 'test', 'survey', '--id=trail']);
+
+    expect(calls).toEqual(['survey:trail']);
+  });
+
+  test('passes child flags when an executable parent has fallback routing', async () => {
+    let received:
+      | {
+          readonly args: Record<string, unknown>;
+          readonly opts: Record<string, unknown>;
+        }
+      | undefined;
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async () => await Result.ok('survey'),
+        flags: [
+          {
+            name: 'module',
+            required: false,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          blaze: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [{ name: 'id', required: true, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          received = { args, opts };
+          return await Result.ok('survey.trail');
+        },
+        flags: [
+          {
+            name: 'json',
+            required: false,
+            type: 'boolean' as const,
+            variadic: false,
+          },
+          {
+            name: 'module',
+            required: false,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          blaze: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync([
+      'node',
+      'test',
+      'survey',
+      'trail',
+      'hello',
+      '--module',
+      './src/app.ts',
+      '--json',
+    ]);
+
+    expect(received).toEqual({
+      args: { id: 'hello' },
+      opts: { json: true, module: './src/app.ts' },
+    });
+  });
+
+  test('does not route child-only nested command flags through parent fallback', async () => {
+    const calls: string[] = [];
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(`survey:${String(args['id'])}:${String(opts['module'])}`);
+          return await Result.ok('survey');
+        },
+        flags: [
+          {
+            name: 'module',
+            required: false,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          blaze: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(
+            `survey.trail:${String(args['id'])}:${String(opts['format'])}`
+          );
+          return await Result.ok('survey.trail');
+        },
+        flags: [
+          {
+            name: 'format',
+            required: false,
+            type: 'boolean' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          blaze: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync(['node', 'test', 'survey', 'trail', '--format']);
+
+    expect(calls).toEqual(['survey.trail:undefined:true']);
+  });
+
+  test('routes parent flags before a bare child-name token through parent fallback', async () => {
+    const calls: string[] = [];
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(`survey:${String(args['id'])}:${String(opts['module'])}`);
+          return await Result.ok('survey');
+        },
+        flags: [
+          {
+            name: 'module',
+            required: false,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          blaze: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(
+            `survey.trail:${String(args['id'])}:${String(opts['module'])}`
+          );
+          return await Result.ok('survey.trail');
+        },
+        flags: [
+          {
+            name: 'module',
+            required: false,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          blaze: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync([
+      'node',
+      'test',
+      'survey',
+      '--module',
+      './src/app.ts',
+      'trail',
+    ]);
+
+    expect(calls).toEqual(['survey:trail:./src/app.ts']);
+  });
+
+  test('routes matching trailing parent flags through parent fallback', async () => {
+    const calls: string[] = [];
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(`survey:${String(args['id'])}:${String(opts['module'])}`);
+          return await Result.ok('survey');
+        },
+        flags: [
+          {
+            name: 'module',
+            required: false,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          blaze: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(
+            `survey.trail:${String(args['id'])}:${String(opts['module'])}`
+          );
+          return await Result.ok('survey.trail');
+        },
+        flags: [
+          {
+            name: 'module',
+            required: false,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          blaze: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync([
+      'node',
+      'test',
+      'survey',
+      'trail',
+      '--module',
+      './src/app.ts',
+    ]);
+
+    expect(calls).toEqual(['survey:trail:./src/app.ts']);
+  });
+
+  test('passes parent-supplied global flags to child commands', async () => {
+    let received: Record<string, unknown> | undefined;
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async () => await Result.ok('survey'),
+        flags: [
+          {
+            name: 'json',
+            required: false,
+            type: 'boolean' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          blaze: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [{ name: 'id', required: true, variadic: false }],
+        execute: async (
+          _args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          received = opts;
+          return await Result.ok('survey.trail');
+        },
+        flags: [],
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          blaze: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync([
+      'node',
+      'test',
+      'survey',
+      '--json',
+      'trail',
+      'hello',
+    ]);
+
+    expect(received).toEqual({ json: true });
   });
 });
 

@@ -1,14 +1,18 @@
 import { trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { loadApp } from './load-app.js';
+import { loadFreshAppLease } from './load-app.js';
 import { verifyCurrentTopo } from './topo-read-support.js';
 
 export const topoVerifyTrail = trail('topo.verify', {
   blaze: async (input, ctx) => {
     const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
-    const app = await loadApp(input.module, rootDir);
-    return verifyCurrentTopo(app, { rootDir });
+    const lease = await loadFreshAppLease(input.module, rootDir);
+    try {
+      return await verifyCurrentTopo(lease.app, { rootDir });
+    } finally {
+      lease.release();
+    }
   },
   description: 'Verify that the committed lockfile matches the current topo',
   input: z.object({

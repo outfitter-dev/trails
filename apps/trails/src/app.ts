@@ -14,7 +14,6 @@ import * as survey from './trails/survey.js';
 import * as topoExport from './trails/topo-export.js';
 import * as topoHistory from './trails/topo-history.js';
 import * as topoPin from './trails/topo-pin.js';
-import * as topoShow from './trails/topo-show.js';
 import * as topoCommand from './trails/topo.js';
 import * as topoUnpin from './trails/topo-unpin.js';
 import * as topoVerify from './trails/topo-verify.js';
@@ -24,7 +23,6 @@ export const app = topo(
   'trails',
   survey,
   topoCommand,
-  topoShow,
   topoHistory,
   topoPin,
   topoUnpin,

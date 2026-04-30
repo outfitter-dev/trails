@@ -58,12 +58,15 @@ Remove a pin. Requires `--yes` to confirm (dry-run by default). The underlying s
 trails topo unpin --name experimental-feature --yes
 ```
 
-### `trails topo show`
+### `trails survey <id>`
 
-Display detailed information about a trail or resource — schema, examples, crossings, resources.
+Display every trail, resource, or signal matching an ID. Use the typed survey accessors when you want exactly one kind.
 
 ```bash
-trails topo show auth.login
+trails survey auth.login
+trails survey trail auth.login
+trails survey resource db.main
+trails survey signal user.created
 ```
 
 ### `trails topo history`

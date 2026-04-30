@@ -35,6 +35,9 @@ export const DEFAULT_TOPO_HISTORY_LIMIT = 10;
 export const LOCK_PATH = '.trails/trails.lock';
 const EXAMPLE_APP_MODULE = fileURLToPath(new URL('../app.ts', import.meta.url));
 
+const uniqueExampleRootName = (name: string): string =>
+  `${name}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+
 export interface TopoSummaryReport {
   readonly app: BriefReport;
   readonly dbPath: string;
@@ -140,7 +143,7 @@ const buildSnapshotInput = (
 export const createIsolatedExampleInput = (
   name: string
 ): { readonly module: string; readonly rootDir: string } => {
-  const rootDir = createIsolatedExampleRoot(name);
+  const rootDir = createIsolatedExampleRoot(uniqueExampleRootName(name));
   return {
     module: writeIsolatedExampleAppModule(rootDir, EXAMPLE_APP_MODULE),
     rootDir,
