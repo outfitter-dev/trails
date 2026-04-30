@@ -106,8 +106,27 @@ Result.ok({ name: 'Alpha', type: 'concept' });
 
 ```typescript
 Result.err(new NotFoundError('Entity not found'));
-// -> { content: [{ type: "text", text: "Entity not found" }], isError: true }
+// -> {
+//   content: [{ type: "text", text: "Entity not found" }],
+//   isError: true,
+//   _meta: {
+//     "ontrails/error": {
+//       name: "NotFoundError",
+//       category: "not_found",
+//       code: -32601,
+//       retryable: false,
+//       message: "Entity not found",
+//       surface: "mcp"
+//     }
+//   }
+// }
 ```
+
+Trail failures are MCP tool-result errors, not JSON-RPC protocol errors. The
+model-visible payload stays text-only on error, while `_meta["ontrails/error"]`
+contains the same JSON-RPC-family code projection used by
+`mapSurfaceError('mcp', error)`. Protocol errors remain reserved for invalid
+MCP requests such as malformed methods or unknown tools.
 
 **Binary data:**
 

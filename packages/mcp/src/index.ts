@@ -1,10 +1,12 @@
 // Build
 export {
+  MCP_TOOL_ERROR_META_KEY,
   MCP_TOOL_EXAMPLES_META_KEY,
   deriveMcpTools,
   type DeriveMcpToolsOptions,
   type McpToolDefinition,
   type McpToolResult,
+  type McpToolErrorMeta,
   type McpContent,
   type McpExtra,
 } from './build.js';

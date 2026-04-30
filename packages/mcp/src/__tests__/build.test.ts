@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+  NotFoundError,
   Result,
   TRAILHEAD_KEY,
   blobRefSchema,
@@ -13,7 +14,11 @@ import {
 import type { Layer, TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
-import { MCP_TOOL_EXAMPLES_META_KEY, deriveMcpTools } from '../build.js';
+import {
+  MCP_TOOL_ERROR_META_KEY,
+  MCP_TOOL_EXAMPLES_META_KEY,
+  deriveMcpTools,
+} from '../build.js';
 import type { McpExtra, McpToolDefinition } from '../build.js';
 
 // ---------------------------------------------------------------------------
@@ -39,6 +44,12 @@ const failTrail = trail('fail', {
   blaze: (input) => Result.err(new Error(input.reason)),
   description: 'Always fails',
   input: z.object({ reason: z.string() }),
+});
+
+const notFoundTrail = trail('item.find', {
+  blaze: () => Result.err(new NotFoundError('Item not found')),
+  description: 'Always fails with a TrailsError',
+  input: z.object({ id: z.string() }),
 });
 
 const exampleTrail = trail('with.examples', {
@@ -420,6 +431,27 @@ describe('deriveMcpTools', () => {
       const result = await tool.handler({ reason: 'broken' }, noExtra);
       expect(result?.isError).toBe(true);
       expect(result?.content[0]?.text).toBe('broken');
+    });
+
+    test('handler projects TrailsError metadata onto MCP tool-result errors', async () => {
+      const app = topo('myapp', { notFoundTrail });
+      const tool = requireOnlyTool(buildTools(app));
+
+      const result = await tool.handler({ id: 'missing' }, noExtra);
+
+      expect(result?.isError).toBe(true);
+      expect(result?.content).toEqual([
+        { text: 'Item not found', type: 'text' },
+      ]);
+      expect(result?._meta?.[MCP_TOOL_ERROR_META_KEY]).toEqual({
+        category: 'not_found',
+        code: -32_601,
+        message: 'Item not found',
+        name: 'NotFoundError',
+        retryable: false,
+        surface: 'mcp',
+      });
+      expect(result?.structuredContent).toBeUndefined();
     });
 
     test('handler catches thrown exceptions', async () => {

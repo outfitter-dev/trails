@@ -14,6 +14,8 @@ import {
   executeTrail,
   filterSurfaceTrails,
   isBlobRef,
+  isTrailsError,
+  projectSurfaceError,
   toBlobRefDescriptor,
   validateEstablishedTopo,
   zodToJsonSchema,
@@ -23,6 +25,7 @@ import type {
   Intent,
   Layer,
   ResourceOverrideMap,
+  SurfaceErrorProjection,
   Topo,
   Trail,
   TrailContextInit,
@@ -34,6 +37,8 @@ import { createMcpProgressCallback } from './progress.js';
 import { deriveToolName } from './tool-name.js';
 
 export const MCP_TOOL_EXAMPLES_META_KEY = 'ontrails/examples';
+
+export const MCP_TOOL_ERROR_META_KEY = 'ontrails/error';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -80,10 +85,15 @@ export interface McpExtra {
 }
 
 export interface McpToolResult {
+  readonly _meta?: Record<string, unknown> | undefined;
   readonly content: readonly McpContent[];
   readonly isError?: boolean | undefined;
   readonly structuredContent?: Record<string, unknown> | undefined;
 }
+
+export type McpToolErrorMeta = Omit<SurfaceErrorProjection, 'surface'> & {
+  readonly surface: 'mcp';
+};
 
 export interface McpContent {
   readonly data?: string | undefined;
@@ -410,11 +420,30 @@ const toStructuredContent = (
 // Handler factory
 // ---------------------------------------------------------------------------
 
+const buildMcpErrorMeta = (
+  error: Error
+): Record<string, McpToolErrorMeta> | undefined => {
+  if (!isTrailsError(error)) {
+    return undefined;
+  }
+  const projection = projectSurfaceError('mcp', error);
+  return {
+    [MCP_TOOL_ERROR_META_KEY]: {
+      ...projection,
+      surface: 'mcp',
+    },
+  };
+};
+
 /** Create an error result for MCP responses. */
-const mcpError = (message: string): McpToolResult => ({
-  content: [{ text: message, type: 'text' }],
-  isError: true,
-});
+const mcpError = (error: Error): McpToolResult => {
+  const meta = buildMcpErrorMeta(error);
+  return {
+    ...(meta === undefined ? {} : { _meta: meta }),
+    content: [{ text: error.message, type: 'text' }],
+    isError: true,
+  };
+};
 
 /** Add the MCP trailhead marker while preserving any existing context extras. */
 const withMcpTrailhead = (
@@ -457,7 +486,7 @@ const createHandler =
             : toStructuredContent(result.value, wrapAsData),
       };
     }
-    return mcpError(result.error.message);
+    return mcpError(result.error);
   };
 
 // ---------------------------------------------------------------------------

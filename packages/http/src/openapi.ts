@@ -7,9 +7,8 @@
 
 import {
   ValidationError,
-  codesByCategory,
-  errorClasses,
   filterSurfaceTrails,
+  projectErrorClassSurface,
   validateEstablishedTopo,
   zodToJsonSchema,
 } from '@ontrails/core';
@@ -52,38 +51,6 @@ export interface OpenApiSpec {
   readonly paths: Record<string, Record<string, unknown>>;
   readonly components: { readonly schemas: Record<string, unknown> };
 }
-
-// ---------------------------------------------------------------------------
-// Owner-derived error metadata
-// ---------------------------------------------------------------------------
-
-type ErrorClassEntry = (typeof errorClasses)[number];
-type FixedErrorClassEntry = Exclude<
-  ErrorClassEntry,
-  { readonly category: 'dynamic' }
->;
-type DynamicErrorClassEntry = Extract<
-  ErrorClassEntry,
-  { readonly category: 'dynamic' }
->;
-
-const isFixedErrorClassEntry = (
-  entry: ErrorClassEntry
-): entry is FixedErrorClassEntry => entry.category !== 'dynamic';
-
-const isDynamicErrorClassEntry = (
-  entry: ErrorClassEntry
-): entry is DynamicErrorClassEntry => entry.category === 'dynamic';
-
-const errorNameToStatusCode = new Map<string, number>(
-  errorClasses
-    .filter(isFixedErrorClassEntry)
-    .map(({ category, name }) => [name, codesByCategory[category].http])
-);
-
-const dynamicErrorNames = new Set<string>(
-  errorClasses.filter(isDynamicErrorClassEntry).map(({ name }) => name)
-);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -137,15 +104,12 @@ const errorExampleToEntry = (
   errorName: string,
   seen: Set<number>
 ): [string, { description: string }] | undefined => {
-  if (dynamicErrorNames.has(errorName)) {
+  const projection = projectErrorClassSurface('http', errorName);
+  if (projection === undefined) {
     return undefined;
   }
 
-  const code = errorNameToStatusCode.get(errorName);
-  if (code === undefined) {
-    return undefined;
-  }
-
+  const { code } = projection;
   if (seen.has(code)) {
     return undefined;
   }

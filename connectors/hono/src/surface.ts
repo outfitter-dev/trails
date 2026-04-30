@@ -12,7 +12,7 @@
 
 import {
   isTrailsError,
-  mapTransportError,
+  projectSurfaceError,
   ValidationError,
 } from '@ontrails/core';
 import type {
@@ -296,15 +296,16 @@ const mapErrorResponse = (
   error: Error
 ): { body: Record<string, unknown>; status: ContentfulStatusCode } => {
   if (isTrailsError(error)) {
+    const projection = projectSurfaceError('http', error);
     return {
       body: {
         error: {
-          category: error.category,
-          code: error.name,
-          message: error.message,
+          category: projection.category,
+          code: projection.name,
+          message: projection.message,
         },
       },
-      status: mapTransportError('http', error) as ContentfulStatusCode,
+      status: projection.code as ContentfulStatusCode,
     };
   }
   return {

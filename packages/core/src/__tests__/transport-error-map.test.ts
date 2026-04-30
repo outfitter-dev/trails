@@ -24,12 +24,48 @@ import {
   statusCodeMap,
 } from '../errors.js';
 import {
+  createSurfaceErrorMapper,
   createTransportErrorMapper,
+  mapSurfaceError,
   mapTransportError,
+  projectErrorClassSurface,
+  projectSurfaceError,
+  surfaceErrorMap,
+  surfaceErrorRegistry,
+  surfaceNames,
   transportErrorMap,
   transportErrorRegistry,
   transportNames,
 } from '../transport-error-map.js';
+
+describe('surfaceErrorMap', () => {
+  test('covers every error category for every surface', () => {
+    for (const surface of surfaceNames) {
+      const mappings = surfaceErrorMap[surface];
+      for (const category of errorCategories) {
+        expect(category in mappings).toBe(true);
+      }
+    }
+  });
+
+  test('reuses the owner-held public code maps', () => {
+    expect(surfaceErrorMap.cli).toBe(exitCodeMap);
+    expect(surfaceErrorMap.http).toBe(statusCodeMap);
+    expect(surfaceErrorMap.jsonRpc).toBe(jsonRpcCodeMap);
+    expect(surfaceErrorMap.mcp).toBe(jsonRpcCodeMap);
+  });
+});
+
+describe('surfaceErrorRegistry', () => {
+  test('exposes a callable mapper for each surface', () => {
+    const notFound = new NotFoundError('missing');
+
+    expect(surfaceErrorRegistry.cli.map(notFound)).toBe(2);
+    expect(surfaceErrorRegistry.http.map(notFound)).toBe(404);
+    expect(surfaceErrorRegistry.jsonRpc.map(notFound)).toBe(-32_601);
+    expect(surfaceErrorRegistry.mcp.map(notFound)).toBe(-32_601);
+  });
+});
 
 describe('transportErrorMap', () => {
   test('covers every error category for every transport', () => {
@@ -42,9 +78,9 @@ describe('transportErrorMap', () => {
   });
 
   test('reuses the existing public transport maps', () => {
-    expect(transportErrorMap.cli).toBe(exitCodeMap);
-    expect(transportErrorMap.http).toBe(statusCodeMap);
-    expect(transportErrorMap.mcp).toBe(jsonRpcCodeMap);
+    expect(transportErrorMap.cli).toBe(surfaceErrorMap.cli);
+    expect(transportErrorMap.http).toBe(surfaceErrorMap.http);
+    expect(transportErrorMap.mcp).toBe(surfaceErrorMap.mcp);
   });
 });
 
@@ -169,6 +205,92 @@ describe('mapTransportError', () => {
       expect(mapTransportError('mcp', error)).toBe(values.mcp);
     }
   );
+});
+
+describe('mapSurfaceError', () => {
+  test('maps known error instances through public surface names', () => {
+    const notFound = new NotFoundError('missing');
+
+    expect(mapSurfaceError('cli', notFound)).toBe(2);
+    expect(mapSurfaceError('http', notFound)).toBe(404);
+    expect(mapSurfaceError('jsonRpc', notFound)).toBe(-32_601);
+    expect(mapSurfaceError('mcp', notFound)).toBe(-32_601);
+  });
+
+  test('keeps mapTransportError as a compatibility alias', () => {
+    const error = new ValidationError('bad input');
+
+    expect(mapTransportError('cli', error)).toBe(mapSurfaceError('cli', error));
+    expect(mapTransportError('http', error)).toBe(
+      mapSurfaceError('http', error)
+    );
+    expect(mapTransportError('mcp', error)).toBe(mapSurfaceError('mcp', error));
+  });
+});
+
+describe('projectSurfaceError', () => {
+  test('returns surface metadata for a runtime error', () => {
+    const error = new RetryExhaustedError(new NotFoundError('missing'), {
+      attempts: 5,
+      detour: 'recoverMissing',
+    });
+
+    expect(projectSurfaceError('http', error)).toEqual({
+      category: 'not_found',
+      code: 404,
+      message: 'Recovery exhausted after 5 attempts: missing',
+      name: 'RetryExhaustedError',
+      retryable: false,
+      surface: 'http',
+    });
+  });
+});
+
+describe('projectErrorClassSurface', () => {
+  test('projects fixed error class names without constructing errors', () => {
+    expect(projectErrorClassSurface('http', 'DerivationError')).toEqual({
+      category: 'internal',
+      code: 500,
+      name: 'DerivationError',
+      retryable: false,
+      surface: 'http',
+    });
+    expect(projectErrorClassSurface('mcp', 'PermissionError')).toEqual({
+      category: 'permission',
+      code: -32_600,
+      name: 'PermissionError',
+      retryable: false,
+      surface: 'mcp',
+    });
+  });
+
+  test('does not invent fixed projections for dynamic or unknown class names', () => {
+    expect(
+      projectErrorClassSurface('http', 'RetryExhaustedError')
+    ).toBeUndefined();
+    expect(projectErrorClassSurface('http', 'CustomError')).toBeUndefined();
+  });
+});
+
+describe('createSurfaceErrorMapper', () => {
+  test('uses the error category to project into surface-specific values', () => {
+    const mapper = createSurfaceErrorMapper({
+      auth: 'auth',
+      cancelled: 'cancelled',
+      conflict: 'conflict',
+      internal: 'internal',
+      network: 'network',
+      not_found: 'not_found',
+      permission: 'permission',
+      rate_limit: 'rate_limit',
+      timeout: 'timeout',
+      validation: 'validation',
+    });
+
+    expect(mapper(new ValidationError('bad input'))).toBe('validation');
+    expect(mapper(new NetworkError('offline'))).toBe('network');
+    expect(mapper(new CancelledError('cancelled'))).toBe('cancelled');
+  });
 });
 
 describe('createTransportErrorMapper', () => {

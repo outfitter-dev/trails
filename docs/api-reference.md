@@ -48,6 +48,9 @@ ConflictError, PermissionError, AuthError, TimeoutError, RateLimitError,
 NetworkError, InternalError, DerivationError, CancelledError, AmbiguousError,
 AssertionError, RetryExhaustedError
 ErrorCategory, isTrailsError(value?), isRetryable(error)
+mapSurfaceError(surface, error), projectSurfaceError(surface, error)
+projectErrorClassSurface(surface, errorName)
+mapTransportError(surface, error)       // deprecated compatibility alias
 
 // Implementation & context
 Implementation<I, O>              // (input, ctx) => Result | Promise<Result>

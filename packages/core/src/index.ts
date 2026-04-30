@@ -39,14 +39,27 @@ export type {
   FixedErrorClassRegistryEntry,
 } from './errors.js';
 export {
+  createSurfaceErrorMapper,
   createTransportErrorMapper,
+  mapSurfaceError,
   mapTransportError,
+  projectErrorClassSurface,
+  projectSurfaceError,
+  surfaceErrorMap,
+  surfaceErrorRegistry,
+  surfaceNames,
   transportErrorMap,
   transportErrorRegistry,
   transportNames,
 } from './transport-error-map.js';
 export type {
+  ErrorClassSurfaceProjection,
   MapTransportError,
+  SurfaceErrorCode,
+  SurfaceErrorMapper,
+  SurfaceErrorMappings,
+  SurfaceErrorProjection,
+  SurfaceName,
   TransportErrorCode,
   TransportErrorMapper,
   TransportErrorMappings,
