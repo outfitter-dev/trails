@@ -72,6 +72,8 @@ export {
   isResource,
   resource,
 } from './resource.js';
+export { drainResources } from './resource-config.js';
+export type { ResourceDrainReport } from './resource-config.js';
 export type {
   AnyResource,
   Resource,

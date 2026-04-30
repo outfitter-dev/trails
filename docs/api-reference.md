@@ -13,6 +13,7 @@ signal(id, spec)                    // define a payload schema with provenance
 contour(name, shape, options)       // define a first-class domain object with identity metadata
 resource(id, spec)                  // define a first-class resource dependency
 createResourceLookup(getContext)   // bind ctx.resource() to a specific context snapshot
+drainResources(resources, ctx, configValues?) // evict and dispose cached resource singletons
 topo(name, ...modules)             // assemble trails, contours, signals, and resources into a queryable topology
 // Topo methods: .get(id), .has(id), .list(), .listSignals(), .ids(), .count
 //               .getContour(name), .hasContour(name), .listContours(), .contourIds(), .contourCount

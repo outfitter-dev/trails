@@ -191,19 +191,30 @@ const enforcePermitRequirement = (
 const prepareContext = async (
   trail: AnyTrail,
   options?: ExecuteTrailOptions
-): Promise<Result<TrailContext, Error>> => {
+): Promise<
+  Result<
+    { readonly ctx: TrailContext; readonly releaseResources: () => void },
+    Error
+  >
+> => {
   const baseCtx = await resolveContext(options);
   const permitted = enforcePermitRequirement(trail, baseCtx);
   if (permitted.isErr()) {
-    return permitted;
+    return Result.err(permitted.error);
   }
 
-  return await createResources(
+  const resources = await createResources(
     trail,
     permitted.value,
     options?.resources,
     options?.configValues
   );
+  return resources.isErr()
+    ? Result.err(resources.error)
+    : Result.ok({
+        ctx: resources.value.ctx,
+        releaseResources: resources.value.release,
+      });
 };
 
 // ---------------------------------------------------------------------------
@@ -1027,17 +1038,21 @@ export const executeTrail = async (
 
     const resolvedCtx = await prepareContext(trail, options);
     if (resolvedCtx.isErr()) {
-      return resolvedCtx;
+      return Result.err(resolvedCtx.error);
     }
 
-    return await runTrail(
-      trail,
-      validated.value,
-      resolvedCtx.value,
-      options?.layers ?? [],
-      options?.topo,
-      options
-    );
+    try {
+      return await runTrail(
+        trail,
+        validated.value,
+        resolvedCtx.value.ctx,
+        options?.layers ?? [],
+        options?.topo,
+        options
+      );
+    } finally {
+      resolvedCtx.value.releaseResources();
+    }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     return Result.err(new InternalError(message));

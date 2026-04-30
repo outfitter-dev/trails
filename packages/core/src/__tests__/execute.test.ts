@@ -24,6 +24,7 @@ import { createTrailContext } from '../context';
 import type { Layer } from '../layer';
 import { Result } from '../result';
 import { resource } from '../resource';
+import { drainResources } from '../resource-config';
 import { topo } from '../topo';
 import { trail } from '../trail';
 import type { TrailContext, TrailContextInit } from '../types';
@@ -544,6 +545,431 @@ describe('executeTrail', () => {
 
         expect(first.unwrap()).toEqual({ value: 'first' });
         expect(second.unwrap()).toEqual({ value: 'second' });
+      });
+
+      test('rolls back newly created resources when a later resource fails', async () => {
+        const events: string[] = [];
+        const created = resource(nextResourceId('rollback-created'), {
+          create: () => {
+            events.push('create:first');
+            return Result.ok({ label: 'first' });
+          },
+          dispose: (instance) => {
+            events.push(`dispose:${instance.label}`);
+          },
+        });
+        const failing = resource(nextResourceId('rollback-failing'), {
+          create: () => {
+            events.push('create:second');
+            return Result.err(new ValidationError('second unavailable'));
+          },
+        });
+        const resourceTrail = trail('resource.rollback', {
+          blaze: () => Result.ok(null),
+          input: z.object({}),
+          resources: [created, failing],
+        });
+
+        const first = await executeTrail(resourceTrail, {});
+        const second = await executeTrail(resourceTrail, {});
+
+        expect(first.isErr()).toBe(true);
+        expect(first.error).toBeInstanceOf(ValidationError);
+        expect(second.isErr()).toBe(true);
+        expect(events).toEqual([
+          'create:first',
+          'create:second',
+          'dispose:first',
+          'create:first',
+          'create:second',
+          'dispose:first',
+        ]);
+      });
+
+      test('reports rollback disposal failures with the original create failure as cause', async () => {
+        const original = new ValidationError('second unavailable');
+        const created = resource(nextResourceId('rollback-dispose-failure'), {
+          create: () => Result.ok({ label: 'first' }),
+          dispose: () => {
+            throw new Error('dispose exploded');
+          },
+        });
+        const failing = resource(nextResourceId('rollback-original'), {
+          create: () => Result.err(original),
+        });
+        const resourceTrail = trail('resource.rollback-dispose-failure', {
+          blaze: () => Result.ok(null),
+          input: z.object({}),
+          resources: [created, failing],
+        });
+
+        const result = await executeTrail(resourceTrail, {});
+
+        expect(result.isErr()).toBe(true);
+        expect(result.error).toBeInstanceOf(InternalError);
+        expect(result.error.message).toContain('rollback also failed');
+        expect(result.error.cause).toBe(original);
+        expect(result.error.context?.failures).toEqual([
+          {
+            context: {
+              failures: [
+                {
+                  context: { resourceId: created.id },
+                  message: `Resource "${created.id}" failed to dispose: dispose exploded`,
+                  name: 'InternalError',
+                },
+              ],
+            },
+            message: 'Resource rollback failed during resource resolution',
+            name: 'InternalError',
+          },
+        ]);
+      });
+
+      test('does not dispose rollback resources shared with another in-flight execution', async () => {
+        const sharedCreated = Promise.withResolvers<undefined>();
+        const secondCanRead = Promise.withResolvers<undefined>();
+        const events: string[] = [];
+        const shared = resource(nextResourceId('rollback-shared'), {
+          create: async () => {
+            events.push('create:shared');
+            await sharedCreated.promise;
+            return Result.ok({ closed: false });
+          },
+          dispose: (instance) => {
+            instance.closed = true;
+            events.push('dispose:shared');
+          },
+        });
+        const failing = resource(nextResourceId('rollback-shared-failing'), {
+          create: () => Result.err(new ValidationError('second unavailable')),
+        });
+        const firstTrail = trail('resource.rollback-shared.first', {
+          blaze: () => Result.ok(null),
+          input: z.object({}),
+          resources: [shared, failing],
+        });
+        const secondTrail = trail('resource.rollback-shared.second', {
+          blaze: async (_input, ctx) => {
+            await secondCanRead.promise;
+            return Result.ok({ closed: shared.from(ctx).closed });
+          },
+          input: z.object({}),
+          output: z.object({ closed: z.boolean() }),
+          resources: [shared],
+        });
+
+        const first = executeTrail(firstTrail, {});
+        const second = executeTrail(secondTrail, {});
+        await Bun.sleep(0);
+        sharedCreated.resolve();
+        const firstResult = await first;
+        secondCanRead.resolve();
+        const secondResult = await second;
+
+        expect(firstResult.isErr()).toBe(true);
+        expect(secondResult.unwrap()).toEqual({ closed: false });
+        expect(events).toEqual(['create:shared']);
+      });
+
+      test('releases duplicate resource declarations before rollback disposal', async () => {
+        const events: string[] = [];
+        const shared = resource(nextResourceId('rollback-duplicate'), {
+          create: () => {
+            events.push('create:shared');
+            return Result.ok({ label: 'shared' });
+          },
+          dispose: (instance) => {
+            events.push(`dispose:${instance.label}`);
+          },
+        });
+        const failing = resource(nextResourceId('rollback-duplicate-failing'), {
+          create: () => {
+            events.push('create:failing');
+            return Result.err(new ValidationError('second unavailable'));
+          },
+        });
+        const resourceTrail = trail('resource.rollback-duplicate', {
+          blaze: () => Result.ok(null),
+          input: z.object({}),
+          resources: [shared, shared, failing],
+        });
+
+        const result = await executeTrail(resourceTrail, {});
+        const drained = await drainResources([shared], createTrailContext());
+
+        expect(result.isErr()).toBe(true);
+        expect(result.error).toBeInstanceOf(ValidationError);
+        expect(drained.unwrap()).toEqual({ disposed: [], evicted: [] });
+        expect(events).toEqual([
+          'create:shared',
+          'create:failing',
+          'dispose:shared',
+        ]);
+      });
+
+      test('releases leases acquired from cached unconfigured resources', async () => {
+        const events: string[] = [];
+        const cached = resource(nextResourceId('cached-unconfigured'), {
+          create: () => {
+            events.push('create:cached');
+            return Result.ok({ label: 'cached' });
+          },
+          dispose: (instance) => {
+            events.push(`dispose:${instance.label}`);
+          },
+        });
+        const resourceTrail = trail('resource.cached-unconfigured', {
+          blaze: (_input, ctx) => Result.ok(cached.from(ctx).label),
+          input: z.object({}),
+          output: z.string(),
+          resources: [cached],
+        });
+
+        const first = await executeTrail(resourceTrail, {});
+        const second = await executeTrail(resourceTrail, {});
+        const drained = await drainResources([cached], createTrailContext());
+
+        expect(first.unwrap()).toBe('cached');
+        expect(second.unwrap()).toBe('cached');
+        expect(drained.unwrap()).toEqual({
+          disposed: [cached.id],
+          evicted: [cached.id],
+        });
+        expect(events).toEqual(['create:cached', 'dispose:cached']);
+      });
+
+      test('drain reports resources with in-flight creation as in use', async () => {
+        const createCanFinish = Promise.withResolvers<undefined>();
+        const events: string[] = [];
+        const pending = resource(nextResourceId('drain-pending'), {
+          create: async () => {
+            events.push('create:start');
+            await createCanFinish.promise;
+            events.push('create:finish');
+            return Result.ok({ label: 'pending' });
+          },
+          dispose: (instance) => {
+            events.push(`dispose:${instance.label}`);
+          },
+        });
+        const resourceTrail = trail('resource.drain-pending', {
+          blaze: (_input, ctx) =>
+            Result.ok({ label: pending.from(ctx).label as string }),
+          input: z.object({}),
+          output: z.object({ label: z.string() }),
+          resources: [pending],
+        });
+
+        const executing = executeTrail(resourceTrail, {});
+        await Bun.sleep(0);
+        const drainedWhilePending = await drainResources(
+          [pending],
+          createTrailContext()
+        );
+        createCanFinish.resolve();
+        const execution = await executing;
+        const drainedAfterExecution = await drainResources(
+          [pending],
+          createTrailContext()
+        );
+
+        expect(drainedWhilePending.isErr()).toBe(true);
+        expect(drainedWhilePending.error).toBeInstanceOf(InternalError);
+        expect(drainedWhilePending.error.message).toBe('Resource drain failed');
+        expect(drainedWhilePending.error.context).toMatchObject({
+          disposed: [],
+          evicted: [],
+          failures: [
+            {
+              context: {
+                activeLeases: 1,
+                resourceId: pending.id,
+              },
+              message: `Resource "${pending.id}" is still in use`,
+              name: 'InternalError',
+            },
+          ],
+        });
+        expect(execution.unwrap()).toEqual({ label: 'pending' });
+        expect(drainedAfterExecution.unwrap()).toEqual({
+          disposed: [pending.id],
+          evicted: [pending.id],
+        });
+        expect(events).toEqual([
+          'create:start',
+          'create:finish',
+          'dispose:pending',
+        ]);
+      });
+
+      test('draining an uncached configured resource is a no-op without config values', async () => {
+        const configured = resource(nextResourceId('drain-uncached-config'), {
+          config: z.object({ token: z.string() }),
+          create: () => Result.ok({ label: 'configured' }),
+          dispose: () => {
+            throw new Error('should not dispose');
+          },
+        });
+
+        const drained = await drainResources(
+          [configured],
+          createTrailContext()
+        );
+
+        expect(drained.unwrap()).toEqual({ disposed: [], evicted: [] });
+      });
+
+      test('drains cached resources in reverse order and evicts them', async () => {
+        const events: string[] = [];
+        const first = resource(nextResourceId('drain-first'), {
+          create: () => {
+            events.push('create:first');
+            return Result.ok({ label: 'first' });
+          },
+          dispose: (instance) => {
+            events.push(`dispose:${instance.label}`);
+          },
+        });
+        const second = resource(nextResourceId('drain-second'), {
+          create: () => {
+            events.push('create:second');
+            return Result.ok({ label: 'second' });
+          },
+          dispose: (instance) => {
+            events.push(`dispose:${instance.label}`);
+          },
+        });
+        const resourceTrail = trail('resource.drain', {
+          blaze: (_input, ctx) =>
+            Result.ok({
+              first: first.from(ctx).label,
+              second: second.from(ctx).label,
+            }),
+          input: z.object({}),
+          output: z.object({ first: z.string(), second: z.string() }),
+          resources: [first, second],
+        });
+
+        const beforeDrain = await executeTrail(resourceTrail, {});
+        const drained = await drainResources(
+          [first, second],
+          createTrailContext()
+        );
+        const afterDrain = await executeTrail(resourceTrail, {});
+
+        expect(beforeDrain.isOk()).toBe(true);
+        expect(afterDrain.isOk()).toBe(true);
+        expect(drained.unwrap()).toEqual({
+          disposed: [second.id, first.id],
+          evicted: [second.id, first.id],
+        });
+        expect(events).toEqual([
+          'create:first',
+          'create:second',
+          'dispose:second',
+          'dispose:first',
+          'create:first',
+          'create:second',
+        ]);
+      });
+
+      test('drain evicts cached configured resources even when supplied config is invalid', async () => {
+        const events: string[] = [];
+        const configured = resource(nextResourceId('drain-invalid-config'), {
+          config: z.object({ token: z.string() }),
+          create: (ctx) => {
+            events.push(`create:${ctx.config.token}`);
+            return Result.ok({ token: ctx.config.token });
+          },
+          dispose: (instance) => {
+            events.push(`dispose:${instance.token}`);
+          },
+        });
+        const resourceTrail = trail('resource.drain-invalid-config', {
+          blaze: (_input, ctx) =>
+            Result.ok({ token: configured.from(ctx).token }),
+          input: z.object({}),
+          output: z.object({ token: z.string() }),
+          resources: [configured],
+        });
+
+        const beforeDrain = await executeTrail(
+          resourceTrail,
+          {},
+          {
+            configValues: { [configured.id]: { token: 'valid' } },
+          }
+        );
+        const drained = await drainResources(
+          [configured],
+          createTrailContext(),
+          { [configured.id]: { token: 42 } }
+        );
+        const afterDrain = await executeTrail(
+          resourceTrail,
+          {},
+          {
+            configValues: { [configured.id]: { token: 'valid' } },
+          }
+        );
+
+        expect(beforeDrain.unwrap()).toEqual({ token: 'valid' });
+        expect(drained.isErr()).toBe(true);
+        expect(drained.error).toBeInstanceOf(InternalError);
+        expect(drained.error.context).toMatchObject({
+          disposed: [configured.id],
+          evicted: [configured.id],
+        });
+        expect(afterDrain.unwrap()).toEqual({ token: 'valid' });
+        expect(events).toEqual([
+          'create:valid',
+          'dispose:valid',
+          'create:valid',
+        ]);
+      });
+
+      test('drain reports disposal failures and still drains sibling resources', async () => {
+        const events: string[] = [];
+        const failing = resource(nextResourceId('drain-failing'), {
+          create: () => Result.ok({ label: 'failing' }),
+          dispose: () => {
+            events.push('dispose:failing');
+            throw new Error('close failed');
+          },
+        });
+        const succeeding = resource(nextResourceId('drain-succeeding'), {
+          create: () => Result.ok({ label: 'succeeding' }),
+          dispose: (instance) => {
+            events.push(`dispose:${instance.label}`);
+          },
+        });
+        const resourceTrail = trail('resource.drain-failure', {
+          blaze: (_input, ctx) =>
+            Result.ok({
+              failing: failing.from(ctx).label,
+              succeeding: succeeding.from(ctx).label,
+            }),
+          input: z.object({}),
+          output: z.object({ failing: z.string(), succeeding: z.string() }),
+          resources: [failing, succeeding],
+        });
+
+        const beforeDrain = await executeTrail(resourceTrail, {});
+        const drained = await drainResources(
+          [failing, succeeding],
+          createTrailContext()
+        );
+
+        expect(beforeDrain.isOk()).toBe(true);
+        expect(drained.isErr()).toBe(true);
+        expect(drained.error).toBeInstanceOf(InternalError);
+        expect(drained.error.message).toBe('Resource drain failed');
+        expect(drained.error.context).toMatchObject({
+          disposed: [succeeding.id],
+          evicted: [succeeding.id, failing.id],
+        });
+        expect(events).toEqual(['dispose:succeeding', 'dispose:failing']);
       });
     });
 

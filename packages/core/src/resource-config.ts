@@ -28,12 +28,31 @@ type ConfigValues = Readonly<Record<string, Record<string, unknown>>>;
 // Singleton caches
 // ---------------------------------------------------------------------------
 
-const singletonResources = new WeakMap<AnyResource, Map<string, unknown>>();
+interface SingletonResourceEntry {
+  readonly value: unknown;
+  activeLeases: number;
+}
+
+interface ResourceLease {
+  readonly key: string;
+  readonly resource: AnyResource;
+  readonly value: unknown;
+}
+
+const singletonResources = new WeakMap<
+  AnyResource,
+  Map<string, SingletonResourceEntry>
+>();
+
+interface PendingCreation {
+  readonly promise: Promise<Result<unknown, Error>>;
+  waiters: number;
+}
 
 /** In-flight resource creation promises, keyed by resource x context. */
 const pendingCreations = new WeakMap<
   AnyResource,
-  Map<string, Promise<Result<unknown, Error>>>
+  Map<string, PendingCreation>
 >();
 
 // ---------------------------------------------------------------------------
@@ -104,20 +123,24 @@ const hasOwnResourceOverride = (
 const getCachedSingletonResource = (
   declaredResource: AnyResource,
   resourceContext: ResourceContext
-): { readonly found: boolean; readonly value: unknown } => {
+):
+  | { readonly found: false }
+  | { readonly found: true; readonly lease: ResourceLease } => {
   const scopedCache = singletonResources.get(declaredResource);
   if (scopedCache === undefined) {
-    return { found: false, value: undefined };
+    return { found: false };
   }
 
   const key = toResourceContextKey(resourceContext);
-  if (!scopedCache.has(key)) {
-    return { found: false, value: undefined };
+  const entry = scopedCache.get(key);
+  if (entry === undefined) {
+    return { found: false };
   }
 
+  entry.activeLeases += 1;
   return {
     found: true,
-    value: scopedCache.get(key),
+    lease: { key, resource: declaredResource, value: entry.value },
   };
 };
 
@@ -126,19 +149,24 @@ const getProvidedResource = (
   overrides: ResourceOverrideMap | undefined,
   declaredResource: AnyResource,
   resourceContext: ResourceContext
-): Result<unknown, Error> | undefined => {
+):
+  | Result<
+      { readonly lease?: ResourceLease | undefined; readonly value: unknown },
+      Error
+    >
+  | undefined => {
   const { id } = declaredResource;
   if (hasOwnResourceOverride(overrides, id)) {
-    return Result.ok(overrides[id]);
+    return Result.ok({ value: overrides[id] });
   }
 
   if (Object.hasOwn(ctx.extensions ?? {}, id)) {
-    return Result.ok(ctx.extensions?.[id]);
+    return Result.ok({ value: ctx.extensions?.[id] });
   }
 
   const cached = getCachedSingletonResource(declaredResource, resourceContext);
   if (cached.found) {
-    return Result.ok(cached.value);
+    return Result.ok({ lease: cached.lease, value: cached.lease?.value });
   }
 
   return undefined;
@@ -148,15 +176,49 @@ const getOverrideOrExtension = (
   ctx: TrailContext,
   overrides: ResourceOverrideMap | undefined,
   declaredResource: AnyResource
-): Result<unknown, Error> | undefined =>
+):
+  | Result<
+      { readonly lease?: ResourceLease | undefined; readonly value: unknown },
+      Error
+    >
+  | undefined =>
   getProvidedResource(ctx, overrides, declaredResource, toResourceContext(ctx));
 
 type ConfigAwareResolution =
-  | Result<{ readonly kind: 'provided'; readonly value: unknown }, Error>
+  | Result<
+      {
+        readonly kind: 'provided';
+        readonly lease?: ResourceLease | undefined;
+        readonly value: unknown;
+      },
+      Error
+    >
   | Result<
       { readonly kind: 'context'; readonly resourceContext: ResourceContext },
       Error
     >;
+
+interface CreatedResourceInstance {
+  readonly key: string;
+  readonly lease: ResourceLease;
+  readonly resource: AnyResource;
+  readonly sharedDuringCreation: boolean;
+  readonly value: unknown;
+}
+
+interface ResourceResolution {
+  readonly created?: CreatedResourceInstance | undefined;
+  readonly lease?: ResourceLease | undefined;
+  readonly value: unknown;
+}
+
+/** Outcome from draining cached resource singletons. */
+export interface ResourceDrainReport {
+  /** Resource IDs whose cached singleton entries were disposed successfully. */
+  readonly disposed: readonly string[];
+  /** Resource IDs removed from the singleton cache before disposal. */
+  readonly evicted: readonly string[];
+}
 
 const resolveConfigAwareProvidedResource = (
   ctx: TrailContext,
@@ -176,9 +238,18 @@ const resolveConfigAwareProvidedResource = (
     resourceContext
   );
 
-  return provided
-    ? Result.ok({ kind: 'provided', value: provided.unwrap() })
-    : Result.ok({ kind: 'context', resourceContext });
+  if (provided === undefined) {
+    return Result.ok({ kind: 'context', resourceContext });
+  }
+  if (provided.isErr()) {
+    return provided;
+  }
+
+  return Result.ok({
+    kind: 'provided',
+    lease: provided.value.lease,
+    value: provided.value.value,
+  });
 };
 
 // ---------------------------------------------------------------------------
@@ -196,20 +267,118 @@ const toInternalResourceError = (id: string, error: unknown): InternalError => {
 
 const getSingletonResourceCache = (
   declaredResource: AnyResource
-): Map<string, unknown> => {
+): Map<string, SingletonResourceEntry> => {
   const existing = singletonResources.get(declaredResource);
   if (existing !== undefined) {
     return existing;
   }
 
-  const created = new Map<string, unknown>();
+  const created = new Map<string, SingletonResourceEntry>();
   singletonResources.set(declaredResource, created);
   return created;
 };
 
+const acquireCachedSingletonResourceByKey = (
+  declaredResource: AnyResource,
+  key: string
+): ResourceLease | undefined => {
+  const entry = singletonResources.get(declaredResource)?.get(key);
+  if (entry === undefined) {
+    return undefined;
+  }
+
+  entry.activeLeases += 1;
+  return { key, resource: declaredResource, value: entry.value };
+};
+
+const releaseResourceLease = (lease: ResourceLease): number => {
+  const entry = singletonResources.get(lease.resource)?.get(lease.key);
+  if (entry === undefined || entry.value !== lease.value) {
+    return 0;
+  }
+
+  entry.activeLeases = Math.max(0, entry.activeLeases - 1);
+  return entry.activeLeases;
+};
+
+const countActiveResourceLeases = (lease: ResourceLease): number => {
+  const entry = singletonResources.get(lease.resource)?.get(lease.key);
+  return entry === undefined || entry.value !== lease.value
+    ? 0
+    : entry.activeLeases;
+};
+
+const releaseResourceLeases = (leases: readonly ResourceLease[]): void => {
+  for (const lease of leases.toReversed()) {
+    releaseResourceLease(lease);
+  }
+};
+
+const deleteCachedSingletonResource = (
+  declaredResource: AnyResource,
+  key: string,
+  value: unknown
+): boolean => {
+  const cache = singletonResources.get(declaredResource);
+  const entry = cache?.get(key);
+  if (entry === undefined || entry.value !== value) {
+    return false;
+  }
+
+  cache?.delete(key);
+  return true;
+};
+
+const disposeResourceInstance = async (
+  resource: AnyResource,
+  value: unknown
+): Promise<Result<void, Error>> => {
+  if (resource.dispose === undefined) {
+    return Result.ok();
+  }
+
+  try {
+    await resource.dispose(value);
+    return Result.ok();
+  } catch (error: unknown) {
+    const cause = error instanceof Error ? error : undefined;
+    const message = cause?.message ?? String(error);
+    return Result.err(
+      new InternalError(
+        `Resource "${resource.id}" failed to dispose: ${message}`,
+        {
+          ...(cause ? { cause } : {}),
+          context: { resourceId: resource.id },
+        }
+      )
+    );
+  }
+};
+
+const toResourceLifecycleError = (
+  message: string,
+  errors: readonly Error[],
+  cause?: Error,
+  context?: Record<string, unknown>
+): InternalError =>
+  new InternalError(message, {
+    ...(cause ? { cause } : {}),
+    context: {
+      ...context,
+      failures: errors.map((error) => ({
+        message: error.message,
+        name: error.name,
+        ...(error instanceof InternalError && error.context !== undefined
+          ? { context: error.context }
+          : {}),
+      })),
+    },
+  });
+
 const doCreateResourceInstance = async (
   declaredResource: AnyResource,
-  resourceContext: ResourceContext
+  resourceContext: ResourceContext,
+  key: string
 ): Promise<Result<unknown, Error>> => {
   try {
     const created = await declaredResource.create(resourceContext);
@@ -218,10 +387,10 @@ const doCreateResourceInstance = async (
     }
 
     const instance = created.unwrap();
-    getSingletonResourceCache(declaredResource).set(
-      toResourceContextKey(resourceContext),
-      instance
-    );
+    getSingletonResourceCache(declaredResource).set(key, {
+      activeLeases: 1,
+      value: instance,
+    });
     return Result.ok(instance);
   } catch (error: unknown) {
     return Result.err(toInternalResourceError(declaredResource.id, error));
@@ -232,13 +401,15 @@ const trackPendingCreation = (
   declaredResource: AnyResource,
   key: string,
   promise: Promise<Result<unknown, Error>>
-): void => {
+): PendingCreation => {
+  const entry: PendingCreation = { promise, waiters: 0 };
   const pending = pendingCreations.get(declaredResource);
   if (pending) {
-    pending.set(key, promise);
+    pending.set(key, entry);
   } else {
-    pendingCreations.set(declaredResource, new Map([[key, promise]]));
+    pendingCreations.set(declaredResource, new Map([[key, entry]]));
   }
+  return entry;
 };
 
 /**
@@ -249,30 +420,96 @@ const trackPendingCreation = (
 const createResourceInstance = async (
   declaredResource: AnyResource,
   resourceContext: ResourceContext
-): Promise<Result<unknown, Error>> => {
+): Promise<Result<ResourceResolution, Error>> => {
   const key = toResourceContextKey(resourceContext);
   const inflight = pendingCreations.get(declaredResource)?.get(key);
   if (inflight) {
-    return inflight;
+    inflight.waiters += 1;
+    const resolved = await inflight.promise;
+    if (resolved.isErr()) {
+      return resolved;
+    }
+    const lease = acquireCachedSingletonResourceByKey(declaredResource, key);
+    return lease === undefined
+      ? Result.err(
+          new InternalError(
+            `Resource "${declaredResource.id}" was created but is no longer cached`,
+            { context: { resourceId: declaredResource.id } }
+          )
+        )
+      : Result.ok({ lease, value: lease.value });
   }
 
-  const promise = doCreateResourceInstance(declaredResource, resourceContext);
-  trackPendingCreation(declaredResource, key, promise);
+  const promise = doCreateResourceInstance(
+    declaredResource,
+    resourceContext,
+    key
+  );
+  const pending = trackPendingCreation(declaredResource, key, promise);
 
   try {
-    return await promise;
+    const resolved = await promise;
+    if (resolved.isErr()) {
+      return resolved;
+    }
+    const { value } = resolved;
+    const lease = { key, resource: declaredResource, value };
+    return Result.ok({
+      created: {
+        key,
+        lease,
+        resource: declaredResource,
+        sharedDuringCreation: pending.waiters > 0,
+        value,
+      },
+      lease,
+      value,
+    });
   } finally {
     pendingCreations.get(declaredResource)?.delete(key);
   }
 };
 
-/** Validate config and resolve a single declared resource. */
-const resolveDeclaredResource = async (
+const rollbackCreatedResources = async (
+  created: readonly CreatedResourceInstance[]
+): Promise<Result<void, Error>> => {
+  const failures: Error[] = [];
+
+  for (const entry of created.toReversed()) {
+    const activeLeases = countActiveResourceLeases(entry.lease);
+    if (activeLeases > 0 || entry.sharedDuringCreation) {
+      continue;
+    }
+    const deleted = deleteCachedSingletonResource(
+      entry.resource,
+      entry.key,
+      entry.value
+    );
+    if (!deleted) {
+      continue;
+    }
+    const disposed = await disposeResourceInstance(entry.resource, entry.value);
+    if (disposed.isErr()) {
+      failures.push(disposed.error);
+    }
+  }
+
+  return failures.length === 0
+    ? Result.ok()
+    : Result.err(
+        toResourceLifecycleError(
+          'Resource rollback failed during resource resolution',
+          failures
+        )
+      );
+};
+
+const resolveDeclaredResourceForCreation = async (
   declaredResource: AnyResource,
   ctx: TrailContext,
   overrides: ResourceOverrideMap | undefined,
   configValues: ConfigValues | undefined
-): Promise<Result<unknown, Error>> => {
+): Promise<Result<ResourceResolution, Error>> => {
   // Check overrides/extensions first — skip config validation entirely when
   // a resource instance is already provided.
   const overrideOrExtension = getOverrideOrExtension(
@@ -281,7 +518,12 @@ const resolveDeclaredResource = async (
     declaredResource
   );
   if (overrideOrExtension !== undefined) {
-    return overrideOrExtension;
+    return overrideOrExtension.isErr()
+      ? overrideOrExtension
+      : Result.ok({
+          lease: overrideOrExtension.value.lease,
+          value: overrideOrExtension.value.value,
+        });
   }
 
   // Resolve config before consulting the singleton cache so config-aware
@@ -298,7 +540,7 @@ const resolveDeclaredResource = async (
   // No provided instance — create via factory.
   const resolved = configAwareResource.unwrap();
   if (resolved.kind === 'provided') {
-    return Result.ok(resolved.value);
+    return Result.ok({ lease: resolved.lease, value: resolved.value });
   }
 
   return await createResourceInstance(
@@ -323,6 +565,16 @@ const withResolvedResources = (
 };
 
 /**
+ * Resolved trail context plus lease release for resources used by the run.
+ */
+interface ResolvedResourceScope {
+  readonly ctx: TrailContext;
+  release(): void;
+}
+
+const releaseNoResources = (): undefined => undefined;
+
+/**
  * Resolve all declared resources for a trail.
  *
  * Validates per-resource config, checks overrides and caches, and creates
@@ -334,26 +586,151 @@ export const createResources = async (
   ctx: TrailContext,
   overrides?: ResourceOverrideMap,
   configValues?: ConfigValues
-): Promise<Result<TrailContext, Error>> => {
-  const { resources } = trail;
+): Promise<Result<ResolvedResourceScope, Error>> => {
+  const resources = [...new Set(trail.resources)];
   if (resources.length === 0) {
-    return Result.ok(ctx);
+    return Result.ok({ ctx, release: releaseNoResources });
   }
 
   const resolvedResources: Record<string, unknown> = {};
+  const acquiredLeases: ResourceLease[] = [];
+  const createdResources: CreatedResourceInstance[] = [];
 
   for (const declaredResource of resources) {
-    const resolved = await resolveDeclaredResource(
+    const resolved = await resolveDeclaredResourceForCreation(
       declaredResource,
       ctx,
       overrides,
       configValues
     );
     if (resolved.isErr()) {
+      releaseResourceLeases(acquiredLeases);
+      const rolledBack = await rollbackCreatedResources(createdResources);
+      if (rolledBack.isErr()) {
+        return Result.err(
+          toResourceLifecycleError(
+            `Resource resolution failed for "${declaredResource.id}" and rollback also failed`,
+            [rolledBack.error],
+            resolved.error
+          )
+        );
+      }
       return resolved;
     }
-    resolvedResources[declaredResource.id] = resolved.unwrap();
+    const resolution = resolved.unwrap();
+    if (resolution.lease !== undefined) {
+      acquiredLeases.push(resolution.lease);
+    }
+    if (resolution.created !== undefined) {
+      createdResources.push(resolution.created);
+    }
+    resolvedResources[declaredResource.id] = resolution.value;
   }
 
-  return Result.ok(withResolvedResources(ctx, resolvedResources));
+  return Result.ok({
+    ctx: withResolvedResources(ctx, resolvedResources),
+    release: () => releaseResourceLeases(acquiredLeases),
+  });
+};
+
+const toResourceInUseError = (
+  resource: AnyResource,
+  activeLeases: number
+): InternalError =>
+  new InternalError(`Resource "${resource.id}" is still in use`, {
+    context: { activeLeases, resourceId: resource.id },
+  });
+
+const drainCachedEntry = async (
+  resource: AnyResource,
+  key: string,
+  entry: SingletonResourceEntry,
+  report: { readonly disposed: string[]; readonly evicted: string[] },
+  failures: Error[]
+): Promise<void> => {
+  if (entry.activeLeases > 0) {
+    failures.push(toResourceInUseError(resource, entry.activeLeases));
+    return;
+  }
+
+  const deleted = deleteCachedSingletonResource(resource, key, entry.value);
+  if (!deleted) {
+    return;
+  }
+  report.evicted.push(resource.id);
+
+  const result = await disposeResourceInstance(resource, entry.value);
+  if (result.isErr()) {
+    failures.push(result.error);
+  } else if (resource.dispose !== undefined) {
+    report.disposed.push(resource.id);
+  }
+};
+
+/**
+ * Evict and dispose cached resource singletons for a stable resource context.
+ *
+ * Call this from surface or test shutdown paths with the same `ctx` and
+ * `configValues` used for execution. The returned report lists resources
+ * removed from the singleton cache and resources whose `dispose` hook ran
+ * successfully. On partial failure, the `InternalError` context still includes
+ * the report arrays so callers can tell what cleanup already happened.
+ */
+export const drainResources = async (
+  resources: readonly AnyResource[],
+  ctx: TrailContext,
+  configValues?: ConfigValues
+): Promise<Result<ResourceDrainReport, Error>> => {
+  const report = { disposed: [] as string[], evicted: [] as string[] };
+  const failures: Error[] = [];
+
+  for (const resource of resources.toReversed()) {
+    const cache = singletonResources.get(resource);
+    const pending = pendingCreations.get(resource);
+    if (
+      (cache === undefined || cache.size === 0) &&
+      (pending === undefined || pending.size === 0)
+    ) {
+      continue;
+    }
+
+    const configResult = resolveResourceConfig(resource, configValues);
+    if (configResult.isErr()) {
+      failures.push(configResult.error);
+      if (cache !== undefined) {
+        for (const [key, entry] of [...cache.entries()].toReversed()) {
+          await drainCachedEntry(resource, key, entry, report, failures);
+        }
+      }
+      continue;
+    }
+
+    const key = toResourceContextKey(
+      toResourceContext(ctx, configResult.value)
+    );
+    const pendingForKey = pending?.get(key);
+    if (pendingForKey !== undefined) {
+      failures.push(toResourceInUseError(resource, pendingForKey.waiters + 1));
+      continue;
+    }
+
+    if (cache === undefined) {
+      continue;
+    }
+    const entry = cache.get(key);
+    if (entry === undefined) {
+      continue;
+    }
+
+    await drainCachedEntry(resource, key, entry, report, failures);
+  }
+
+  return failures.length === 0
+    ? Result.ok(report)
+    : Result.err(
+        toResourceLifecycleError('Resource drain failed', failures, undefined, {
+          disposed: report.disposed,
+          evicted: report.evicted,
+        })
+      );
 };

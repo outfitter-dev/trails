@@ -89,7 +89,7 @@ Both resolve the same way at runtime. Prefer `db.from(ctx)` -- it carries the ty
 
 ## Resource Lifecycle
 
-Resources are app-scoped singletons in v1. Created once on first resolution and cached for the process lifetime. A resource may declare a `dispose` callback; surface-specific shutdown wiring is still an implementation detail and should not be assumed unless the surface documents it.
+Resources are app-scoped singletons in v1. They are created once on first resolution and cached by resource definition plus stable resource context (`cwd`, `env`, `workspaceRoot`, and validated resource config). A resource may declare a `dispose` callback for cleanup.
 
 Resolution happens eagerly during `executeTrail`, after input validation and before layer composition:
 
@@ -101,7 +101,9 @@ Resolution happens eagerly during `executeTrail`, after input validation and bef
 
 This means failures surface at the boundary -- a missing `DATABASE_URL` fails before the implementation runs, not on line 47. It also means layers can access resources via `db.from(ctx)` because resolution is already complete.
 
-Shutdown signaling differs by surface. Treat `dispose` as the resource's cleanup contract, and check the surface package before relying on automatic disposal timing.
+If a later resource fails during eager resolution, Trails rolls back resource instances created during that same resolution pass in reverse declaration order. Rollback evicts an owned instance from the singleton cache before calling `dispose`, so the next execution gets a fresh create attempt. If the instance has already been shared with another in-flight execution, rollback leaves it cached and avoids disposing a resource that another trail may still be using.
+
+Surfaces and test harnesses own shutdown timing. At shutdown, call `drainResources(resources, ctx, configValues?)` with the topo's resources and the same stable context/config values used during execution. Draining evicts cached instances first, disposes them in reverse order, continues through sibling resources if one dispose fails, and reports disposal failures as `Result.err(InternalError)`. Partial drain errors include `disposed` and `evicted` arrays in the error context so shutdown callers can tell which cleanup already happened. Uncached configured resources are treated as no-ops when config is missing; if cached entries exist but supplied config no longer validates, drain evicts and disposes those cached entries while still reporting the config error.
 
 ## Testing with Resources
 
