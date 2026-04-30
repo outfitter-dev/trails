@@ -16,6 +16,8 @@ import {
   AuthError,
   CancelledError,
   RetryExhaustedError,
+  codesByCategory,
+  errorCategories,
   exitCodeMap,
   statusCodeMap,
   jsonRpcCodeMap,
@@ -203,6 +205,69 @@ describe('RateLimitError.retryAfter', () => {
 // ---------------------------------------------------------------------------
 // Taxonomy maps
 // ---------------------------------------------------------------------------
+
+describe('codesByCategory', () => {
+  test('maps all categories to expected exit, HTTP, and JSON-RPC codes', () => {
+    expect(codesByCategory.validation).toEqual({
+      exit: 1,
+      http: 400,
+      jsonRpc: -32_602,
+    });
+    expect(codesByCategory.not_found).toEqual({
+      exit: 2,
+      http: 404,
+      jsonRpc: -32_601,
+    });
+    expect(codesByCategory.conflict).toEqual({
+      exit: 3,
+      http: 409,
+      jsonRpc: -32_603,
+    });
+    expect(codesByCategory.permission).toEqual({
+      exit: 4,
+      http: 403,
+      jsonRpc: -32_600,
+    });
+    expect(codesByCategory.timeout).toEqual({
+      exit: 5,
+      http: 504,
+      jsonRpc: -32_603,
+    });
+    expect(codesByCategory.rate_limit).toEqual({
+      exit: 6,
+      http: 429,
+      jsonRpc: -32_603,
+    });
+    expect(codesByCategory.network).toEqual({
+      exit: 7,
+      http: 502,
+      jsonRpc: -32_603,
+    });
+    expect(codesByCategory.internal).toEqual({
+      exit: 8,
+      http: 500,
+      jsonRpc: -32_603,
+    });
+    expect(codesByCategory.auth).toEqual({
+      exit: 9,
+      http: 401,
+      jsonRpc: -32_600,
+    });
+    expect(codesByCategory.cancelled).toEqual({
+      exit: 130,
+      http: 499,
+      jsonRpc: -32_603,
+    });
+  });
+
+  test('drives the legacy per-surface maps', () => {
+    for (const category of errorCategories) {
+      expect(exitCodeMap[category]).toBe(codesByCategory[category].exit);
+      expect(statusCodeMap[category]).toBe(codesByCategory[category].http);
+      expect(jsonRpcCodeMap[category]).toBe(codesByCategory[category].jsonRpc);
+    }
+  });
+});
 
 describe('exitCodeMap', () => {
   test('maps all categories to expected exit codes', () => {

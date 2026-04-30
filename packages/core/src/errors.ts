@@ -181,44 +181,50 @@ export class RetryExhaustedError<
 // Taxonomy maps
 // ---------------------------------------------------------------------------
 
-export const exitCodeMap = {
-  auth: 9,
-  cancelled: 130,
-  conflict: 3,
-  internal: 8,
-  network: 7,
-  not_found: 2,
-  permission: 4,
-  rate_limit: 6,
-  timeout: 5,
-  validation: 1,
-} as const satisfies Record<ErrorCategory, number>;
+export interface ErrorCategoryCodes {
+  readonly exit: number;
+  readonly http: number;
+  readonly jsonRpc: number;
+}
 
-export const statusCodeMap = {
-  auth: 401,
-  cancelled: 499,
-  conflict: 409,
-  internal: 500,
-  network: 502,
-  not_found: 404,
-  permission: 403,
-  rate_limit: 429,
-  timeout: 504,
-  validation: 400,
-} as const satisfies Record<ErrorCategory, number>;
+export const codesByCategory = {
+  auth: { exit: 9, http: 401, jsonRpc: -32_600 },
+  cancelled: { exit: 130, http: 499, jsonRpc: -32_603 },
+  conflict: { exit: 3, http: 409, jsonRpc: -32_603 },
+  internal: { exit: 8, http: 500, jsonRpc: -32_603 },
+  network: { exit: 7, http: 502, jsonRpc: -32_603 },
+  not_found: { exit: 2, http: 404, jsonRpc: -32_601 },
+  permission: { exit: 4, http: 403, jsonRpc: -32_600 },
+  rate_limit: { exit: 6, http: 429, jsonRpc: -32_603 },
+  timeout: { exit: 5, http: 504, jsonRpc: -32_603 },
+  validation: { exit: 1, http: 400, jsonRpc: -32_602 },
+} as const satisfies Record<ErrorCategory, ErrorCategoryCodes>;
 
-export const jsonRpcCodeMap = {
-  auth: -32_600,
-  cancelled: -32_603,
-  conflict: -32_603,
-  internal: -32_603,
-  network: -32_603,
-  not_found: -32_601,
-  permission: -32_600,
-  rate_limit: -32_603,
-  timeout: -32_603,
-  validation: -32_602,
-} as const satisfies Record<ErrorCategory, number>;
+const deriveCodeMap = <TCode extends keyof ErrorCategoryCodes>(
+  code: TCode
+): {
+  readonly [TCategory in ErrorCategory]: (typeof codesByCategory)[TCategory][TCode];
+} => ({
+  auth: codesByCategory.auth[code],
+  cancelled: codesByCategory.cancelled[code],
+  conflict: codesByCategory.conflict[code],
+  internal: codesByCategory.internal[code],
+  network: codesByCategory.network[code],
+  not_found: codesByCategory.not_found[code],
+  permission: codesByCategory.permission[code],
+  rate_limit: codesByCategory.rate_limit[code],
+  timeout: codesByCategory.timeout[code],
+  validation: codesByCategory.validation[code],
+});
+
+/** @deprecated Prefer `codesByCategory[category].exit`. */
+export const exitCodeMap = deriveCodeMap('exit');
+
+/** @deprecated Prefer `codesByCategory[category].http`. */
+export const statusCodeMap = deriveCodeMap('http');
+
+/** @deprecated Prefer `codesByCategory[category].jsonRpc`. */
+export const jsonRpcCodeMap = deriveCodeMap('jsonRpc');
 
 export const retryableMap: Record<ErrorCategory, boolean> = {
   auth: false,

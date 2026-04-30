@@ -19,6 +19,7 @@ export {
   AuthError,
   CancelledError,
   DerivationError,
+  codesByCategory,
   errorCategories,
   exitCodeMap,
   statusCodeMap,
@@ -28,7 +29,7 @@ export {
   isRetryable,
   isTrailsError,
 } from './errors.js';
-export type { ErrorCategory } from './errors.js';
+export type { ErrorCategory, ErrorCategoryCodes } from './errors.js';
 export {
   createTransportErrorMapper,
   mapTransportError,

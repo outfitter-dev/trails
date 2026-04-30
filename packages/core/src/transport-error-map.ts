@@ -1,9 +1,24 @@
-import type { ErrorCategory, TrailsError } from './errors.js';
-import { exitCodeMap, jsonRpcCodeMap, statusCodeMap } from './errors.js';
+import type {
+  ErrorCategory,
+  ErrorCategoryCodes,
+  TrailsError,
+} from './errors.js';
+import {
+  codesByCategory,
+  exitCodeMap,
+  jsonRpcCodeMap,
+  statusCodeMap,
+} from './errors.js';
 
 export const transportNames = ['cli', 'http', 'mcp'] as const;
 
 export type TransportName = (typeof transportNames)[number];
+
+const transportCodeKeys = {
+  cli: 'exit',
+  http: 'http',
+  mcp: 'jsonRpc',
+} as const satisfies Record<TransportName, keyof ErrorCategoryCodes>;
 
 export type TransportErrorMapper<T> = (error: TrailsError) => T;
 
@@ -22,7 +37,7 @@ export type TransportErrorMappings<T> = Record<ErrorCategory, T>;
  * what `mapTransportError` returns at the call site.
  */
 export type TransportErrorCode =
-  (typeof transportErrorMap)[TransportName][ErrorCategory];
+  (typeof codesByCategory)[ErrorCategory][(typeof transportCodeKeys)[TransportName]];
 
 export const createTransportErrorMapper =
   <T>(mappings: TransportErrorMappings<T>): TransportErrorMapper<T> =>
@@ -58,4 +73,4 @@ export type MapTransportError = (
 export const mapTransportError: MapTransportError = (
   transport: TransportName,
   error: TrailsError
-) => transportErrorMap[transport][error.category];
+) => codesByCategory[error.category][transportCodeKeys[transport]];
