@@ -337,9 +337,13 @@ RuleInput, ProjectAwareRuleInput, RuleOutput, TopoAwareRuleInput
 
 ```typescript
 parse(filePath, sourceCode), walk(ast, visitor), offsetToLine(source, offset)
+walkScope(ast, visitor)
+findTrailDefinitions(ast), findBlazeBodies(node)
+findContourDefinitions(ast, context?, options?), isBlazeCall(node)
 findStringLiterals(ast, predicate?), isStringLiteral(node), getStringValue(node)
 
-AstNode, StringLiteralMatch
+AstNode, TrailDefinition, ContourDefinition, FindContourDefinitionsOptions
+StringLiteralMatch
 ```
 
 ## `@ontrails/config`
