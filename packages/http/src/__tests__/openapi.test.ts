@@ -325,6 +325,58 @@ const registerResponseTests = () => {
       expect(responses['404']).toEqual({ description: 'NotFoundError' });
     });
 
+    test('fixed-category error examples derive status codes from owner metadata', () => {
+      const t = trail('entity.create', {
+        blaze: noop,
+        examples: [
+          {
+            error: 'PermitError',
+            input: { name: 'Ada' },
+            name: 'missing permit',
+          },
+          {
+            error: 'DerivationError',
+            input: { name: 'Ada' },
+            name: 'projection failed',
+          },
+        ],
+        input: z.object({ name: z.string() }),
+      });
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/entity/create']?.['post'] as Record<
+        string,
+        unknown
+      >;
+      const responses = op['responses'] as Record<string, unknown>;
+
+      expect(responses['403']).toEqual({ description: 'PermitError' });
+      expect(responses['500']).toEqual({ description: 'DerivationError' });
+    });
+
+    test('dynamic-category error examples are not projected to a fixed response code', () => {
+      const t = trail('entity.create', {
+        blaze: noop,
+        examples: [
+          {
+            error: 'RetryExhaustedError',
+            input: { name: 'Ada' },
+            name: 'recovery exhausted',
+          },
+        ],
+        input: z.object({ name: z.string() }),
+      });
+      const spec = deriveOpenApiSpec(topoFrom({ t }));
+      const op = spec.paths['/entity/create']?.['post'] as Record<
+        string,
+        unknown
+      >;
+      const responses = op['responses'] as Record<string, unknown>;
+
+      expect(Object.values(responses)).not.toContainEqual({
+        description: 'RetryExhaustedError',
+      });
+    });
+
     test('every trail includes a default 400 validation error response', () => {
       const t = trail('entity.show', {
         blaze: noop,

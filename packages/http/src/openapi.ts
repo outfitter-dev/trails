@@ -7,8 +7,9 @@
 
 import {
   ValidationError,
+  codesByCategory,
+  errorClasses,
   filterSurfaceTrails,
-  statusCodeMap,
   validateEstablishedTopo,
   zodToJsonSchema,
 } from '@ontrails/core';
@@ -53,24 +54,36 @@ export interface OpenApiSpec {
 }
 
 // ---------------------------------------------------------------------------
-// Error name → category lookup
+// Owner-derived error metadata
 // ---------------------------------------------------------------------------
 
-const errorNameToCategory: Record<string, keyof typeof statusCodeMap> = {
-  AlreadyExistsError: 'conflict',
-  AmbiguousError: 'validation',
-  AssertionError: 'internal',
-  AuthError: 'auth',
-  CancelledError: 'cancelled',
-  ConflictError: 'conflict',
-  InternalError: 'internal',
-  NetworkError: 'network',
-  NotFoundError: 'not_found',
-  PermissionError: 'permission',
-  RateLimitError: 'rate_limit',
-  TimeoutError: 'timeout',
-  ValidationError: 'validation',
-};
+type ErrorClassEntry = (typeof errorClasses)[number];
+type FixedErrorClassEntry = Exclude<
+  ErrorClassEntry,
+  { readonly category: 'dynamic' }
+>;
+type DynamicErrorClassEntry = Extract<
+  ErrorClassEntry,
+  { readonly category: 'dynamic' }
+>;
+
+const isFixedErrorClassEntry = (
+  entry: ErrorClassEntry
+): entry is FixedErrorClassEntry => entry.category !== 'dynamic';
+
+const isDynamicErrorClassEntry = (
+  entry: ErrorClassEntry
+): entry is DynamicErrorClassEntry => entry.category === 'dynamic';
+
+const errorNameToStatusCode = new Map<string, number>(
+  errorClasses
+    .filter(isFixedErrorClassEntry)
+    .map(({ category, name }) => [name, codesByCategory[category].http])
+);
+
+const dynamicErrorNames = new Set<string>(
+  errorClasses.filter(isDynamicErrorClassEntry).map(({ name }) => name)
+);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -124,11 +137,15 @@ const errorExampleToEntry = (
   errorName: string,
   seen: Set<number>
 ): [string, { description: string }] | undefined => {
-  const category = errorNameToCategory[errorName];
-  if (!category) {
+  if (dynamicErrorNames.has(errorName)) {
     return undefined;
   }
-  const code = statusCodeMap[category];
+
+  const code = errorNameToStatusCode.get(errorName);
+  if (code === undefined) {
+    return undefined;
+  }
+
   if (seen.has(code)) {
     return undefined;
   }
