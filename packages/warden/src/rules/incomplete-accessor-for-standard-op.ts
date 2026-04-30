@@ -16,58 +16,14 @@
  */
 
 import type { AnyResource, AnyTrail, Topo } from '@ontrails/core';
+import { crudAccessorExpectations, crudOperations } from '@ontrails/store';
+import type { CrudAccessorExpectation, CrudOperation } from '@ontrails/store';
 
 import type { TopoAwareWardenRule, WardenDiagnostic } from './types.js';
 
-type StandardOp = 'create' | 'read' | 'update' | 'delete' | 'list';
+type StandardOp = CrudOperation;
 
-type AccessorExpectation =
-  | {
-      readonly preferred: string;
-      readonly fallback: string;
-      readonly severityWhenPreferredMissingWithFallback: 'warn';
-      readonly severityWhenNoFallback: 'error';
-    }
-  | {
-      readonly preferred: string;
-      readonly fallback?: undefined;
-      readonly severityWhenNoFallback: 'error';
-    };
-
-const STANDARD_OPS: ReadonlySet<StandardOp> = new Set([
-  'create',
-  'read',
-  'update',
-  'delete',
-  'list',
-]);
-
-const EXPECTATIONS: Readonly<Record<StandardOp, AccessorExpectation>> = {
-  create: {
-    fallback: 'upsert',
-    preferred: 'insert',
-    severityWhenNoFallback: 'error',
-    severityWhenPreferredMissingWithFallback: 'warn',
-  },
-  delete: {
-    preferred: 'remove',
-    severityWhenNoFallback: 'error',
-  },
-  list: {
-    preferred: 'list',
-    severityWhenNoFallback: 'error',
-  },
-  read: {
-    preferred: 'get',
-    severityWhenNoFallback: 'error',
-  },
-  update: {
-    fallback: 'upsert',
-    preferred: 'update',
-    severityWhenNoFallback: 'error',
-    severityWhenPreferredMissingWithFallback: 'warn',
-  },
-};
+const STANDARD_OPS: ReadonlySet<StandardOp> = new Set(crudOperations);
 
 const RULE_NAME = 'incomplete-accessor-for-standard-op';
 
@@ -239,7 +195,7 @@ const extractStandardOpContext = (
 const diagnoseMissingMethod = (
   ctx: StandardOpContext,
   methods: ReadonlySet<string>,
-  expectation: AccessorExpectation
+  expectation: CrudAccessorExpectation
 ): WardenDiagnostic | undefined => {
   if (methods.has(expectation.preferred)) {
     return undefined;
@@ -259,7 +215,8 @@ const diagnoseMissingMethod = (
       ctx.trailId,
       ctx.operation,
       `${base} is missing preferred method "${expectation.preferred}"; falls back to "${fallback}"`,
-      expectation.severityWhenPreferredMissingWithFallback
+      expectation.severityWhenPreferredMissingWithFallback ??
+        expectation.severityWhenNoFallback
     );
   }
   return formatDiagnostic(
@@ -284,7 +241,7 @@ const evaluateTrail = async (
   const diagnostic = diagnoseMissingMethod(
     ctx,
     methods,
-    EXPECTATIONS[ctx.operation]
+    crudAccessorExpectations[ctx.operation]
   );
   return diagnostic === undefined ? [] : [diagnostic];
 };

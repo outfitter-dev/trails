@@ -1,3 +1,4 @@
+import { intentValues } from '@ontrails/core';
 import type { Intent } from '@ontrails/core';
 import {
   collectNamedTrailIds,
@@ -18,15 +19,21 @@ import type {
   WardenDiagnostic,
 } from './types.js';
 
+const INTENT_VALUE_SET = new Set<string>(intentValues);
+const DEFAULT_INTENT: Intent = 'write';
+
+const normalizeTrailIntent = (value: string): Intent =>
+  INTENT_VALUE_SET.has(value) ? (value as Intent) : DEFAULT_INTENT;
+
 const extractTrailIntent = (config: AstNode): Intent => {
   const intentProp = findConfigProperty(config, 'intent');
   const intentValue = intentProp?.value as AstNode | undefined;
   if (!intentValue || !isStringLiteral(intentValue)) {
-    return 'write';
+    return DEFAULT_INTENT;
   }
 
   const value = getStringValue(intentValue);
-  return value === 'destroy' || value === 'read' ? value : 'write';
+  return value ? normalizeTrailIntent(value) : DEFAULT_INTENT;
 };
 
 const buildIntentPropagationDiagnostic = (

@@ -1,13 +1,15 @@
+import { crudOperations } from '@ontrails/store';
+
 import {
   collectNamedContourIds,
   collectNamedStoreTableIds,
+  deriveStoreTableId,
   getStringValue,
   identifierName,
   isNamedCall,
   isStringLiteral,
   offsetToLine,
   parse,
-  deriveStoreTableId,
   walk,
 } from './ast.js';
 import type { AstNode } from './ast.js';
@@ -18,8 +20,7 @@ import type {
   WardenDiagnostic,
 } from './types.js';
 
-const CRUD_OPERATIONS = ['create', 'read', 'update', 'delete', 'list'] as const;
-const CRUD_OPERATION_SET = new Set<string>(CRUD_OPERATIONS);
+const CRUD_OPERATION_SET = new Set<string>(crudOperations);
 
 /** Sentinel entity id prefix for contours imported from another module. */
 const IMPORTED_CONTOUR_PREFIX = 'imported:';
@@ -318,7 +319,7 @@ const collectTupleOperations = (
   // check below intentionally treats those the same as out-of-bounds slots.
   // If OXC ever switches to a non-null placeholder node, update this to an
   // explicit null check so elisions still count as absent.
-  CRUD_OPERATIONS.flatMap((operation, index) =>
+  crudOperations.flatMap((operation, index) =>
     elements[index] ? [operation] : []
   );
 
@@ -488,7 +489,7 @@ const collectIncompleteEntities = (
     if (!combined || combined.size === 0) {
       return [];
     }
-    if (combined.size >= CRUD_OPERATIONS.length) {
+    if (combined.size >= crudOperations.length) {
       return [];
     }
     return [
@@ -512,10 +513,10 @@ const buildIncompleteCrudDiagnostic = (
   coverage: CrudCoverage,
   filePath: string
 ): WardenDiagnostic => {
-  const present = CRUD_OPERATIONS.filter((operation) =>
+  const present = crudOperations.filter((operation) =>
     coverage.operations.has(operation)
   );
-  const missing = CRUD_OPERATIONS.filter(
+  const missing = crudOperations.filter(
     (operation) => !coverage.operations.has(operation)
   );
 
