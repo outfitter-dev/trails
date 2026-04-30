@@ -163,7 +163,7 @@ await surface(graph, {
   name: 'myapp',
   version: '1.0.0',
   transport: 'stdio', // Only stdio for now; SSE/streamable HTTP planned
-  layers: [myAuthGate, myRateLimitGate],
+  layers: [myAuthLayer, myRateLimitLayer],
   createContext: () => createTrailContext({ logger: myLogger }),
 });
 ```
