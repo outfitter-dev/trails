@@ -5,17 +5,26 @@
  * and diffs against previous versions.
  */
 
-import { join } from 'node:path';
+import { extname, join } from 'node:path';
 
 import type { Topo } from '@ontrails/core';
-import { NotFoundError, Result, trail, ValidationError } from '@ontrails/core';
-import type { DiffResult } from '@ontrails/schema';
+import {
+  createTopoStore,
+  deriveSafePath,
+  NotFoundError,
+  Result,
+  trail,
+  ValidationError,
+} from '@ontrails/core';
+import type { DiffEntry, DiffResult, SurfaceMap } from '@ontrails/schema';
 import {
   deriveSurfaceMapDiff,
   deriveSurfaceMap,
   readSurfaceMap,
 } from '@ontrails/schema';
 import { z } from 'zod';
+
+import { writeIsolatedExampleJsonFile } from '../local-state-io.js';
 
 import { loadFreshAppLease } from './load-app.js';
 import {
@@ -54,33 +63,142 @@ export type {
 // Survey diff helpers
 // ---------------------------------------------------------------------------
 
-const formatDiff = (diff: DiffResult): object => ({
+interface SurveyDiffReport {
+  readonly against: string;
+  readonly breaking: readonly DiffEntry[];
+  readonly hasBreaking: boolean;
+  readonly info: readonly DiffEntry[];
+  readonly mode: 'diff';
+  readonly warnings: readonly DiffEntry[];
+}
+
+const formatDiff = (diff: DiffResult, against: string): SurveyDiffReport => ({
+  against,
   breaking: diff.breaking,
   hasBreaking: diff.hasBreaking,
   info: diff.info,
+  mode: 'diff',
   warnings: diff.warnings,
 });
+
+const createDiffExampleInput = (): {
+  readonly against: string;
+  readonly module: string;
+  readonly rootDir: string;
+} => {
+  const input = createIsolatedExampleInput('survey-diff');
+  writeIsolatedExampleJsonFile(input.rootDir, 'baseline/_surface.json', {
+    entries: [],
+    generatedAt: '2026-01-01T00:00:00.000Z',
+    version: '1.0',
+  } satisfies SurfaceMap);
+  return { ...input, against: 'baseline' };
+};
+
+const isNotFound = (error: unknown): boolean =>
+  typeof error === 'object' &&
+  error !== null &&
+  (error as NodeJS.ErrnoException).code === 'ENOENT';
+
+const readSurfaceMapFile = async (
+  filePath: string
+): Promise<SurfaceMap | null> => {
+  try {
+    return (await Bun.file(filePath).json()) as SurfaceMap;
+  } catch (error: unknown) {
+    if (isNotFound(error)) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+const readStoredSurfaceMap = (
+  rootDir: string,
+  against: string
+): SurfaceMap | undefined => {
+  try {
+    const store = createTopoStore({ rootDir });
+    const stored =
+      store.exports.get({ pin: against }) ??
+      store.exports.get({ snapshotId: against });
+    return stored === undefined
+      ? undefined
+      : (JSON.parse(stored.surfaceMapJson) as SurfaceMap);
+  } catch (error: unknown) {
+    if (error instanceof NotFoundError) {
+      return undefined;
+    }
+    throw error;
+  }
+};
+
+const readPathSurfaceMap = async (
+  rootDir: string,
+  against: string
+): Promise<Result<SurfaceMap | null, Error>> => {
+  const safePath = deriveSafePath(rootDir, against);
+  if (safePath.isErr()) {
+    return safePath;
+  }
+
+  return Result.ok(
+    extname(safePath.value) === '.json'
+      ? await readSurfaceMapFile(safePath.value)
+      : await readSurfaceMap({ dir: safePath.value })
+  );
+};
+
+const readAgainstSurfaceMap = async (
+  rootDir: string,
+  against?: string | undefined
+): Promise<Result<{ against: string; map: SurfaceMap }, Error>> => {
+  if (against === undefined || against === 'saved') {
+    const map = await readSurfaceMap({ dir: join(rootDir, '.trails') });
+    return map === null
+      ? Result.err(
+          new NotFoundError(
+            'No saved surface map found. Run `trails topo export` first.'
+          )
+        )
+      : Result.ok({ against: 'saved', map });
+  }
+
+  // Treat explicit filesystem targets as the most local user intent; stored
+  // pins and snapshot ids are fallback references when no path exists.
+  const pathMap = await readPathSurfaceMap(rootDir, against);
+  if (pathMap.isErr()) {
+    return pathMap;
+  }
+  if (pathMap.value !== null) {
+    return Result.ok({ against, map: pathMap.value });
+  }
+
+  const storedMap = readStoredSurfaceMap(rootDir, against);
+  if (storedMap !== undefined) {
+    return Result.ok({ against, map: storedMap });
+  }
+
+  return Result.err(new NotFoundError(`No surface map found for: ${against}`));
+};
 
 const buildSurveyDiff = async (
   app: Topo,
   rootDir: string,
-  breakingOnly: boolean
-): Promise<Result<object, Error>> => {
+  breakingOnly: boolean,
+  against?: string | undefined
+): Promise<Result<SurveyDiffReport, Error>> => {
   const currentMap = deriveSurfaceMap(app);
-  const previousMap = await readSurfaceMap({ dir: join(rootDir, '.trails') });
-  if (!previousMap) {
-    return Result.err(
-      new NotFoundError(
-        'No saved surface map found. Run `trails topo export` first.'
-      )
-    );
+  const previous = await readAgainstSurfaceMap(rootDir, against);
+  if (previous.isErr()) {
+    return previous;
   }
 
-  const diff = deriveSurfaceMapDiff(previousMap, currentMap);
+  const diff = deriveSurfaceMapDiff(previous.value.map, currentMap);
   return Result.ok(
     breakingOnly
-      ? formatDiff({ ...diff, info: [], warnings: [] })
-      : formatDiff(diff)
+      ? formatDiff({ ...diff, info: [], warnings: [] }, previous.value.against)
+      : formatDiff(diff, previous.value.against)
   );
 };
 
@@ -142,21 +260,18 @@ const buildSurveyGenerate = async (
 };
 
 interface SurveyInput {
-  breakingOnly: boolean;
-  diffSaved: boolean;
   generate: boolean;
   id?: string | undefined;
   module?: string | undefined;
   rootDir?: string | undefined;
 }
 
-type SurveyMode = 'diff' | 'generate' | 'lookup' | 'overview';
+type SurveyMode = 'generate' | 'lookup' | 'overview';
 
 type SurveyEnvelope = { readonly mode: SurveyMode } & Record<string, unknown>;
 
 /** Ordered mode checks — first truthy predicate wins, otherwise 'overview'. */
 const modeChecks: readonly [(input: SurveyInput) => boolean, SurveyMode][] = [
-  [(i) => i.diffSaved, 'diff'],
   [(i) => Boolean(i.id), 'lookup'],
   [(i) => i.generate, 'generate'],
 ];
@@ -173,8 +288,6 @@ type SurveyHandler = (
 
 /** Handlers keyed by survey mode. */
 const surveyHandlers: Record<SurveyMode, SurveyHandler> = {
-  diff: (app, input, rootDir) =>
-    buildSurveyDiff(app, rootDir, input.breakingOnly),
   generate: (app, _input, rootDir) => buildSurveyGenerate(app, rootDir),
   lookup: (app, input, rootDir) =>
     input.id === undefined || input.id === ''
@@ -233,6 +346,23 @@ const moduleInputSchema = z.object({
   rootDir: z.string().optional().describe('Workspace root directory'),
 });
 
+const diffEntryOutput = z.object({
+  change: z.enum(['added', 'removed', 'modified']),
+  details: z.array(z.string()).readonly(),
+  id: z.string(),
+  kind: z.enum(['contour', 'trail', 'signal', 'resource']),
+  severity: z.enum(['info', 'warning', 'breaking']),
+});
+
+const diffOutput = z.object({
+  against: z.string(),
+  breaking: z.array(diffEntryOutput),
+  hasBreaking: z.boolean(),
+  info: z.array(diffEntryOutput),
+  mode: z.literal('diff'),
+  warnings: z.array(diffEntryOutput),
+});
+
 const surveyMatchOutput = z.discriminatedUnion('kind', [
   z.object({
     detail: trailDetailOutput,
@@ -274,14 +404,6 @@ export const surveyTrail = trail('survey', {
     },
   ],
   input: z.object({
-    breakingOnly: z
-      .boolean()
-      .default(false)
-      .describe('Only show breaking changes'),
-    diffSaved: z
-      .boolean()
-      .default(false)
-      .describe('Diff against the saved local surface map'),
     generate: z
       .boolean()
       .default(false)
@@ -336,13 +458,6 @@ export const surveyTrail = trail('survey', {
       mode: z.literal('lookup'),
     }),
     z.object({
-      breaking: z.array(z.unknown()),
-      hasBreaking: z.boolean(),
-      info: z.array(z.unknown()),
-      mode: z.literal('diff'),
-      warnings: z.array(z.unknown()),
-    }),
-    z.object({
       hash: z.string(),
       lockPath: z.string(),
       mapPath: z.string(),
@@ -369,6 +484,53 @@ export const surveyBriefTrail = trail('survey.brief', {
   input: moduleInputSchema,
   intent: 'read',
   output: briefReportSchema,
+});
+
+export const surveyDiffTrail = trail('survey.diff', {
+  blaze: async (input, ctx) => {
+    const rootDir = resolveRootDir(input, ctx.cwd);
+    return withFreshSurveyApp(input, rootDir, (app) =>
+      buildSurveyDiff(app, rootDir, input.breakingOnly, input.against)
+    );
+  },
+  description: 'Diff the current topo against a saved surface map',
+  examples: [
+    {
+      description: 'Compare current topo to a saved surface map directory',
+      input: createDiffExampleInput(),
+      name: 'Diff against baseline',
+    },
+    {
+      description: 'Reject an empty saved map target',
+      error: 'ValidationError',
+      input: { against: '' },
+      name: 'Reject empty diff target',
+    },
+    {
+      description: 'Reject an empty target before filtering breaking drift',
+      error: 'ValidationError',
+      input: {
+        against: '',
+        breakingOnly: true,
+      },
+      name: 'Reject empty breaking-only target',
+    },
+  ],
+  input: z.object({
+    against: z
+      .string()
+      .min(1)
+      .optional()
+      .describe('Saved map target: "saved", a pin/snapshot id, or a path'),
+    breakingOnly: z
+      .boolean()
+      .default(false)
+      .describe('Only show breaking changes'),
+    module: z.string().optional().describe('Path to the app module'),
+    rootDir: z.string().optional().describe('Workspace root directory'),
+  }),
+  intent: 'read',
+  output: diffOutput,
 });
 
 export const surveyTrailDetailTrail = trail('survey.trail', {

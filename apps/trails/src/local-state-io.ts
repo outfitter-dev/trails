@@ -82,6 +82,28 @@ export const writeIsolatedExampleAppModule = (
   }
 };
 
+export const writeIsolatedExampleJsonFile = (
+  rootDir: string,
+  relativePath: string,
+  value: unknown
+): string => {
+  const target = deriveSafePath(rootDir, relativePath);
+  if (target.isErr()) {
+    throw target.error;
+  }
+
+  try {
+    mkdirSync(dirname(target.value), { recursive: true });
+    writeFileSync(target.value, `${JSON.stringify(value, null, 2)}\n`);
+    return relativePath;
+  } catch (error) {
+    throw new InternalError('Failed to write isolated example JSON file', {
+      cause: asError(error),
+      context: { relativePath, rootDir, targetPath: target.value },
+    });
+  }
+};
+
 export const removeRootRelativeFileIfPresent = (
   rootDir: string,
   relativePath: string

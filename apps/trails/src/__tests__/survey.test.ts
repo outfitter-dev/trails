@@ -31,6 +31,7 @@ import {
   deriveSurveyList,
   deriveTrailDetail,
   surveyBriefTrail,
+  surveyDiffTrail,
   surveyResourceTrail,
   surveySignalTrail,
   surveyTrail,
@@ -620,17 +621,29 @@ describe('trails survey generate', () => {
   });
 });
 
-describe('trails survey diffSaved', () => {
+describe('trails survey diff', () => {
+  test('input validation preserves an isolated example rootDir', () => {
+    const parsed = surveyDiffTrail.input.safeParse({
+      against: 'saved',
+      module: './src/app.ts',
+      rootDir: '/tmp/trails-survey-diff',
+    });
+
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.rootDir).toBe('/tmp/trails-survey-diff');
+    }
+  });
+
   test('returns an error when no saved surface map exists yet', async () => {
     const dir = repoTempDir();
 
     try {
       writeSurveyAppFixture(dir);
 
-      const result = await surveyTrail.blaze(
-        { diffSaved: true, module: './src/app.ts' },
-        { cwd: dir } as never
-      );
+      const result = await surveyDiffTrail.blaze({ module: './src/app.ts' }, {
+        cwd: dir,
+      } as never);
 
       expect(result.isErr()).toBe(true);
       expect(result.error.message).toContain('Run `trails topo export` first');
@@ -651,13 +664,79 @@ describe('trails survey diffSaved', () => {
 
       writeSurveyAppFixture(dir, { withBye: true });
 
-      const result = await surveyTrail.blaze(
-        { diffSaved: true, module: './src/app.ts' },
+      const result = await surveyDiffTrail.blaze({ module: './src/app.ts' }, {
+        cwd: dir,
+      } as never);
+
+      expect(result.isOk()).toBe(true);
+      expect(result.value).toMatchObject({
+        against: 'saved',
+        hasBreaking: false,
+        info: [
+          expect.objectContaining({
+            change: 'added',
+            id: 'bye',
+          }),
+        ],
+        mode: 'diff',
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('can diff against a workspace-relative surface map directory', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+      const baselineApp = await loadApp('./src/app.ts', dir);
+      await writeSurfaceMap(deriveSurfaceMap(baselineApp), {
+        dir: join(dir, 'baselines'),
+      });
+
+      writeSurveyAppFixture(dir, { withBye: true });
+
+      const result = await surveyDiffTrail.blaze(
+        { against: 'baselines', breakingOnly: true, module: './src/app.ts' },
         { cwd: dir } as never
       );
 
       expect(result.isOk()).toBe(true);
       expect(result.value).toMatchObject({
+        against: 'baselines',
+        hasBreaking: false,
+        info: [],
+        mode: 'diff',
+        warnings: [],
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('reads explicit diff paths before opening the topo store', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+      const baselineApp = await loadApp('./src/app.ts', dir);
+      await writeSurfaceMap(deriveSurfaceMap(baselineApp), {
+        dir: join(dir, 'baselines'),
+      });
+      mkdirSync(join(dir, '.trails'), { recursive: true });
+      writeFileSync(join(dir, '.trails', 'trails.db'), 'not sqlite');
+
+      writeSurveyAppFixture(dir, { withBye: true });
+
+      const result = await surveyDiffTrail.blaze(
+        { against: 'baselines', module: './src/app.ts' },
+        { cwd: dir } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.value).toMatchObject({
+        against: 'baselines',
         hasBreaking: false,
         info: [
           expect.objectContaining({
@@ -708,7 +787,8 @@ describe('trails survey output schema', () => {
       surveyBriefTrail.output.safeParse(deriveBriefReport(app)).success
     ).toBe(true);
     expect(
-      surveyTrail.output.safeParse({
+      surveyDiffTrail.output.safeParse({
+        against: 'saved',
         breaking: [],
         hasBreaking: false,
         info: [],
