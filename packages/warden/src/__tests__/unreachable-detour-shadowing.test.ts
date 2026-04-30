@@ -56,6 +56,23 @@ trail('entity.save', {
     expect(diagnostics[0]?.message).toContain('StoreConflictError');
   });
 
+  test('flags a later owner-registered subclass shadowed by its parent detour', () => {
+    const code = `
+trail('entity.permit', {
+  detours: [
+    { on: PermissionError, recover: async () => Result.ok({ winner: 'permission' }) },
+    { on: PermitError, recover: async () => Result.ok({ winner: 'permit' }) },
+  ],
+});
+`;
+
+    const diagnostics = unreachableDetourShadowing.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toContain('PermissionError');
+    expect(diagnostics[0]?.message).toContain('PermitError');
+  });
+
   test('flags a later detour shadowed by an earlier DerivationError detour', () => {
     const code = `
 trail('entity.derive', {

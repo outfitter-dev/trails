@@ -6,10 +6,10 @@ export const errorMappingCompletenessTrail = wrapRule({
     {
       expected: { diagnostics: [] },
       input: {
-        filePath: 'transport-error-map.ts',
-        sourceCode: `import { createTransportErrorMapper } from "@ontrails/core";
+        filePath: 'surface-error-map.ts',
+        sourceCode: `import { createSurfaceErrorMapper } from "@ontrails/core";
 
-const cliMapper = createTransportErrorMapper({
+const cliMapper = createSurfaceErrorMapper({
   auth: 9,
   cancelled: 130,
   conflict: 3,
@@ -22,7 +22,7 @@ const cliMapper = createTransportErrorMapper({
   validation: 1,
 });`,
       },
-      name: 'Complete transport error mapper',
+      name: 'Complete surface error mapper',
     },
   ],
   rule: errorMappingCompleteness,

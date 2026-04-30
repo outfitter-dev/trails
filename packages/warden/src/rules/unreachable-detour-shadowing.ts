@@ -1,21 +1,4 @@
-import {
-  AlreadyExistsError,
-  AmbiguousError,
-  AssertionError,
-  AuthError,
-  CancelledError,
-  ConflictError,
-  DerivationError,
-  InternalError,
-  NetworkError,
-  NotFoundError,
-  PermissionError,
-  RateLimitError,
-  RetryExhaustedError,
-  TimeoutError,
-  TrailsError,
-  ValidationError,
-} from '@ontrails/core';
+import { TrailsError, errorClasses } from '@ontrails/core';
 
 import {
   extractStringLiteral,
@@ -42,21 +25,7 @@ interface DetourOnType {
 
 const knownErrorConstructors = new Map<string, ErrorTypeShape>([
   [TrailsError.name, TrailsError],
-  [ValidationError.name, ValidationError],
-  [AmbiguousError.name, AmbiguousError],
-  [AssertionError.name, AssertionError],
-  [NotFoundError.name, NotFoundError],
-  [AlreadyExistsError.name, AlreadyExistsError],
-  [ConflictError.name, ConflictError],
-  [PermissionError.name, PermissionError],
-  [TimeoutError.name, TimeoutError],
-  [RateLimitError.name, RateLimitError],
-  [NetworkError.name, NetworkError],
-  [InternalError.name, InternalError],
-  [DerivationError.name, DerivationError],
-  [AuthError.name, AuthError],
-  [CancelledError.name, CancelledError],
-  [RetryExhaustedError.name, RetryExhaustedError],
+  ...errorClasses.map(({ ctor, name }) => [name, ctor] as const),
 ]);
 
 const knownErrorParents = new Map<string, string | null>(

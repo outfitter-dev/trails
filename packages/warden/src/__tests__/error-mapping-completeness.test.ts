@@ -5,7 +5,30 @@ import { errorMappingCompleteness } from '../rules/error-mapping-completeness.js
 const TEST_FILE = 'transport-error-map.ts';
 
 describe('error-mapping-completeness', () => {
-  test('passes complete mapper registrations', () => {
+  test('passes complete surface mapper registrations', () => {
+    const code = `
+import { createSurfaceErrorMapper } from '@ontrails/core';
+
+const cliMapper = createSurfaceErrorMapper({
+  auth: 9,
+  cancelled: 130,
+  conflict: 3,
+  internal: 8,
+  network: 7,
+  not_found: 2,
+  permission: 4,
+  rate_limit: 6,
+  timeout: 5,
+  validation: 1,
+});
+`;
+
+    const diagnostics = errorMappingCompleteness.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(0);
+  });
+
+  test('passes complete compatibility mapper registrations', () => {
     const code = `
 import { createTransportErrorMapper } from '@ontrails/core';
 
@@ -28,11 +51,11 @@ const cliMapper = createTransportErrorMapper({
     expect(diagnostics).toHaveLength(0);
   });
 
-  test('catches incomplete mapper registrations resolved through object properties', () => {
+  test('catches incomplete surface mapper registrations resolved through object properties', () => {
     const code = `
-import { createTransportErrorMapper } from '@ontrails/core';
+import { createSurfaceErrorMapper } from '@ontrails/core';
 
-const transportErrorMap = {
+const surfaceErrorMap = {
   cli: {
     conflict: 3,
     internal: 8,
@@ -41,7 +64,7 @@ const transportErrorMap = {
   },
 };
 
-const cliMapper = createTransportErrorMapper(transportErrorMap.cli);
+const cliMapper = createSurfaceErrorMapper(surfaceErrorMap.cli);
 `;
 
     const diagnostics = errorMappingCompleteness.check(code, TEST_FILE);
