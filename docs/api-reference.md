@@ -40,6 +40,7 @@ getContourReferences(contour)      // read structural contour references declare
 
 // Result
 Result<T, E>
+resultAccessorNames                // canonical Result instance accessors used by Warden
 Result.ok(value?), Result.err(error), Result.combine(results)
 Result.fromFetch(url, opts?), Result.fromJson(string), Result.toJson(value)
 

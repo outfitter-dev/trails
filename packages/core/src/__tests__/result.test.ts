@@ -1,8 +1,29 @@
 import { describe, test, expect } from 'bun:test';
 
-import { Result } from '../result';
+import { Result, resultAccessorNames } from '../result';
+import type { ResultAccessorName } from '../result';
+
+const acceptsAccessorName = (name: ResultAccessorName) => name;
 
 describe('Result', () => {
+  describe('resultAccessorNames', () => {
+    test('exports the owner-held Result accessor surface', () => {
+      expect(acceptsAccessorName('unwrap')).toBe('unwrap');
+      expect(resultAccessorNames).toEqual([
+        'error',
+        'flatMap',
+        'isErr',
+        'isOk',
+        'map',
+        'mapErr',
+        'match',
+        'unwrap',
+        'unwrapOr',
+        'value',
+      ]);
+    });
+  });
+
   describe('construction', () => {
     test('Result.ok() creates a success result', () => {
       const result = Result.ok(42);

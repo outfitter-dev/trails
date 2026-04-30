@@ -4,6 +4,24 @@
 
 import { InternalError, ValidationError } from './errors.js';
 
+export const resultAccessorNames = [
+  'error',
+  'flatMap',
+  'isErr',
+  'isOk',
+  'map',
+  'mapErr',
+  'match',
+  'unwrap',
+  'unwrapOr',
+  'value',
+] as const satisfies readonly (
+  | keyof Ok<unknown, unknown>
+  | keyof Err<unknown>
+)[];
+
+export type ResultAccessorName = (typeof resultAccessorNames)[number];
+
 class Ok<T, E> {
   readonly value: T;
 

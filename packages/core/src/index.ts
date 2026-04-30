@@ -1,5 +1,6 @@
 // Result
-export { Result } from './result.js';
+export { Result, resultAccessorNames } from './result.js';
+export type { ResultAccessorName } from './result.js';
 
 // Errors
 export {

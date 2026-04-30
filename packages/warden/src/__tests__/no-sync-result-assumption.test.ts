@@ -590,6 +590,34 @@ function run() {
     expect(diagnostics[0]?.message).toContain('Missing await');
   });
 
+  test('flags .unwrap() access on unawaited blaze call', () => {
+    const code = `
+function run() {
+  return entityShow.blaze({ id: "1" }, ctx).unwrap();
+}`;
+
+    const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toContain('Missing await');
+  });
+
+  test.each([
+    ['flatMap', 'flatMap((value) => Result.ok(value))'],
+    ['mapErr', 'mapErr((error) => error)'],
+    ['unwrapOr', 'unwrapOr(null)'],
+  ])('flags .%s access on unawaited blaze call', (_name, expression) => {
+    const code = `
+function run() {
+  return entityShow.blaze({ id: "1" }, ctx).${expression};
+}`;
+
+    const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toContain('Missing await');
+  });
+
   describe('conditional-expression inits', () => {
     test('flags accessor use when blaze call is the consequent branch', () => {
       const code = `

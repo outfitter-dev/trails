@@ -1,16 +1,13 @@
+import { resultAccessorNames } from '@ontrails/core';
+
 import { identifierName, isBlazeCall, offsetToLine, parse } from './ast.js';
 import type { AstNode } from './ast.js';
 import { isFrameworkInternalFile, isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
-const RESULT_ACCESSOR_PROPERTIES = new Set([
-  'error',
-  'isErr',
-  'isOk',
-  'map',
-  'match',
-  'value',
-]);
+const RESULT_ACCESSOR_PROPERTIES: ReadonlySet<string> = new Set(
+  resultAccessorNames
+);
 
 const MISSING_AWAIT_MESSAGE =
   'Missing await: .blaze() returns Promise<Result> after normalization. Use `const result = await trail.blaze(input, ctx)`.';
