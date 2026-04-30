@@ -3,6 +3,7 @@
  */
 
 import type {
+  BaseSurfaceOptions,
   Layer,
   ResourceOverrideMap,
   Topo,
@@ -21,21 +22,17 @@ import { toCommander } from './to-commander.js';
 // Options
 // ---------------------------------------------------------------------------
 
-export interface CreateProgramOptions {
+export interface CreateProgramOptions extends BaseSurfaceOptions {
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   readonly description?: string | undefined;
-  readonly exclude?: readonly string[] | undefined;
-  readonly include?: readonly string[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly name?: string | undefined;
   readonly onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
   readonly presets?: CliFlag[][] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   readonly resolveInput?: InputResolver | undefined;
-  /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
-  readonly validate?: boolean | undefined;
   readonly version?: string | undefined;
 }
 
@@ -71,9 +68,11 @@ export const createProgram = (
   options: CreateProgramOptions = {}
 ) => {
   const commandsResult = deriveCliCommands(graph, {
+    configValues: options.configValues,
     createContext: options.createContext,
     exclude: options.exclude,
     include: options.include,
+    intent: options.intent,
     layers: options.layers,
     onResult: options.onResult ?? defaultOnResult,
     presets: options.presets,

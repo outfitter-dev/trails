@@ -1,17 +1,11 @@
 import type { Intent, Trail } from './trail.js';
+import type { SurfaceSelectionOptions } from './surface-derivation.js';
 
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
 
-export interface SurfaceFilterOptions {
-  /** Glob patterns that keep only matching trail IDs when provided. */
-  readonly include?: readonly string[] | undefined;
-  /** Glob patterns that remove matching trail IDs. */
-  readonly exclude?: readonly string[] | undefined;
-  /** Allowed intents for exposed trailheads. Empty arrays act as no filter. */
-  readonly intent?: readonly Intent[] | undefined;
-}
+export type SurfaceFilterOptions = SurfaceSelectionOptions;
 
 // ---------------------------------------------------------------------------
 // Glob matching

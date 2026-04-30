@@ -8,7 +8,6 @@
 
 import {
   Result,
-  TRAILHEAD_KEY,
   ValidationError,
   deriveStructuredTrailExamples,
   executeTrail,
@@ -17,12 +16,13 @@ import {
   isTrailsError,
   projectSurfaceError,
   toBlobRefDescriptor,
-  validateEstablishedTopo,
+  validateSurfaceTopo,
+  withSurfaceMarker,
   zodToJsonSchema,
 } from '@ontrails/core';
 import type {
+  BaseSurfaceOptions,
   BlobRef,
-  Intent,
   Layer,
   ResourceOverrideMap,
   SurfaceErrorProjection,
@@ -44,21 +44,12 @@ export const MCP_TOOL_ERROR_META_KEY = 'ontrails/error';
 // Public types
 // ---------------------------------------------------------------------------
 
-export interface DeriveMcpToolsOptions {
-  /** Config values for resources that declare a `config` schema, keyed by resource ID. */
-  readonly configValues?:
-    | Readonly<Record<string, Record<string, unknown>>>
-    | undefined;
+export interface DeriveMcpToolsOptions extends BaseSurfaceOptions {
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
-  readonly exclude?: readonly string[] | undefined;
-  readonly include?: readonly string[] | undefined;
-  readonly intent?: readonly Intent[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
-  /** Set to `false` to skip topo validation while building tools. */
-  readonly validate?: boolean | undefined;
 }
 
 export interface McpToolDefinition {
@@ -448,12 +439,11 @@ const mcpError = (error: Error): McpToolResult => {
 /** Add the MCP trailhead marker while preserving any existing context extras. */
 const withMcpTrailhead = (
   progressCb: TrailContextInit['progress']
-): Partial<TrailContextInit> => ({
-  ...(progressCb === undefined ? {} : { progress: progressCb }),
-  extensions: {
-    [TRAILHEAD_KEY]: 'mcp' as const,
-  },
-});
+): Partial<TrailContextInit> =>
+  withSurfaceMarker(
+    'mcp',
+    progressCb === undefined ? {} : { progress: progressCb }
+  );
 
 const createHandler =
   (
@@ -622,14 +612,7 @@ const eligibleTrails = (
 const validateToolBuild = (
   graph: Topo,
   options: DeriveMcpToolsOptions
-): Result<void, Error> => {
-  if (options.validate === false) {
-    return Result.ok();
-  }
-
-  const validated = validateEstablishedTopo(graph);
-  return validated.isErr() ? Result.err(validated.error) : Result.ok();
-};
+): Result<void, Error> => validateSurfaceTopo(graph, options);
 
 const registerTools = (
   graph: Topo,

@@ -8,14 +8,14 @@
 
 import {
   Result,
-  TRAILHEAD_KEY,
   ValidationError,
   executeTrail,
   filterSurfaceTrails,
-  validateEstablishedTopo,
+  validateSurfaceTopo,
+  withSurfaceMarker,
 } from '@ontrails/core';
 import type {
-  Intent,
+  BaseSurfaceOptions,
   Layer,
   ResourceOverrideMap,
   Topo,
@@ -23,32 +23,23 @@ import type {
   TrailContextInit,
 } from '@ontrails/core';
 
+import { deriveHttpInputSource, deriveHttpMethod } from './method.js';
+import type { HttpMethod, InputSource } from './method.js';
+
+export type { HttpMethod, InputSource } from './method.js';
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
 
-export interface DeriveHttpRoutesOptions {
+export interface DeriveHttpRoutesOptions extends BaseSurfaceOptions {
   readonly basePath?: string | undefined;
-  /** Config values for resources that declare a `config` schema, keyed by resource ID. */
-  readonly configValues?:
-    | Readonly<Record<string, Record<string, unknown>>>
-    | undefined;
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
-  readonly exclude?: readonly string[] | undefined;
-  readonly include?: readonly string[] | undefined;
-  readonly intent?: readonly Intent[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
-  /** Set to `false` to skip topo validation while building routes. */
-  readonly validate?: boolean | undefined;
 }
-
-export type HttpMethod = 'GET' | 'POST' | 'DELETE';
-
-/** Input source derived from the HTTP method. */
-export type InputSource = 'query' | 'body';
 
 export interface HttpRouteDefinition {
   readonly method: HttpMethod;
@@ -77,16 +68,9 @@ export interface HttpRouteDefinition {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-/** Explicit intent → HTTP method mapping. */
-const intentToMethod: Record<string, HttpMethod> = {
-  destroy: 'DELETE',
-  read: 'GET',
-  write: 'POST',
-};
-
 /** Derive HTTP method from trail intent. */
 const deriveMethod = (trail: Trail<unknown, unknown, unknown>): HttpMethod =>
-  intentToMethod[trail.intent] ?? 'POST';
+  deriveHttpMethod(trail.intent);
 
 /** Derive HTTP path from trail ID: `entity.show` -> `/entity/show`. */
 const derivePath = (basePath: string, trailId: string): string => {
@@ -95,19 +79,11 @@ const derivePath = (basePath: string, trailId: string): string => {
   return `${base}/${segments}`;
 };
 
-/** Derive input source from HTTP method. */
-const deriveInputSource = (method: HttpMethod): InputSource =>
-  method === 'GET' ? 'query' : 'body';
-
 /** Build per-request context overrides with the HTTP trailhead marker. */
 const withHttpTrailhead = (
   requestId: string | undefined
-): Partial<TrailContextInit> => ({
-  ...(requestId === undefined ? {} : { requestId }),
-  extensions: {
-    [TRAILHEAD_KEY]: 'http' as const,
-  },
-});
+): Partial<TrailContextInit> =>
+  withSurfaceMarker('http', requestId === undefined ? {} : { requestId });
 
 // ---------------------------------------------------------------------------
 // Execute factory
@@ -164,7 +140,7 @@ const buildRoute = (
   const path = derivePath(basePath, trail.id);
   return {
     execute: createExecute(graph, trail, layers, options),
-    inputSource: deriveInputSource(method),
+    inputSource: deriveHttpInputSource(method),
     method,
     path,
     trail,
@@ -242,11 +218,9 @@ export const deriveHttpRoutes = (
   graph: Topo,
   options: DeriveHttpRoutesOptions = {}
 ): Result<HttpRouteDefinition[], Error> => {
-  if (options.validate !== false) {
-    const validated = validateEstablishedTopo(graph);
-    if (validated.isErr()) {
-      return Result.err(validated.error);
-    }
+  const validated = validateSurfaceTopo(graph, options);
+  if (validated.isErr()) {
+    return Result.err(validated.error);
   }
 
   const basePath = (options.basePath ?? '').replace(/\/+$/, '');

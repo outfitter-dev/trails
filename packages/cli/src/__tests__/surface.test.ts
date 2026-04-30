@@ -105,13 +105,17 @@ describe('surface', () => {
       })
     ).not.toThrow();
     const opts: Parameters<typeof surface>[1] = {
+      configValues: { 'db.main': { url: 'memory://' } },
       exclude: ['entity.secret'],
       include: ['entity.show'],
+      intent: ['read'],
       resources: {},
       validate: false,
     };
+    expect(opts.configValues).toEqual({ 'db.main': { url: 'memory://' } });
     expect(opts.exclude).toEqual(['entity.secret']);
     expect(opts.include).toEqual(['entity.show']);
+    expect(opts.intent).toEqual(['read']);
     expect(opts.validate).toBe(false);
     expect(opts.resources).toEqual({});
   });

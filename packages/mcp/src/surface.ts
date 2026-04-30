@@ -8,7 +8,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import type {
-  Intent,
+  BaseSurfaceOptions,
   Layer,
   ResourceOverrideMap,
   Topo,
@@ -23,23 +23,14 @@ import { connectStdio } from './stdio.js';
 // Options
 // ---------------------------------------------------------------------------
 
-export interface CreateServerOptions {
-  /** Config values for resources that declare a `config` schema, keyed by resource ID. */
-  readonly configValues?:
-    | Readonly<Record<string, Record<string, unknown>>>
-    | undefined;
+export interface CreateServerOptions extends BaseSurfaceOptions {
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   readonly description?: string | undefined;
-  readonly exclude?: readonly string[] | undefined;
-  readonly include?: readonly string[] | undefined;
-  readonly intent?: readonly Intent[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly name?: string | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
-  /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
-  readonly validate?: boolean | undefined;
   readonly version?: string | undefined;
 }
 

@@ -9,10 +9,17 @@ import {
   ValidationError,
   filterSurfaceTrails,
   projectErrorClassSurface,
-  validateEstablishedTopo,
+  validateSurfaceTopo,
   zodToJsonSchema,
 } from '@ontrails/core';
-import type { Intent, Topo, Trail } from '@ontrails/core';
+import type {
+  SurfaceSelectionOptions,
+  SurfaceValidationOptions,
+  Topo,
+  Trail,
+} from '@ontrails/core';
+
+import { deriveHttpOperationMethod } from './method.js';
 
 type JsonSchema = Readonly<Record<string, unknown>>;
 
@@ -25,7 +32,8 @@ export interface OpenApiServer {
   readonly description?: string | undefined;
 }
 
-export interface OpenApiOptions {
+export interface OpenApiOptions
+  extends SurfaceSelectionOptions, SurfaceValidationOptions {
   /** Default: `graph.name` */
   readonly title?: string | undefined;
   /** Default: `'1.0.0'` */
@@ -34,9 +42,6 @@ export interface OpenApiOptions {
   readonly servers?: readonly OpenApiServer[] | undefined;
   /** Prefix for all paths. Default: `''` */
   readonly basePath?: string | undefined;
-  readonly exclude?: readonly string[] | undefined;
-  readonly include?: readonly string[] | undefined;
-  readonly intent?: readonly Intent[] | undefined;
 }
 
 /** Minimal OpenAPI 3.1 spec shape — intentionally plain objects, no heavy library. */
@@ -55,12 +60,6 @@ export interface OpenApiSpec {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-const intentToMethod: Record<string, string> = {
-  destroy: 'delete',
-  read: 'get',
-  write: 'post',
-};
 
 /** `entity.show` → `/entity/show` */
 const trailIdToPath = (id: string, basePath: string): string =>
@@ -285,7 +284,7 @@ const collectPaths = (
     include: options?.include,
     intent: options?.intent,
   })) {
-    const method = intentToMethod[t.intent] ?? 'post';
+    const method = deriveHttpOperationMethod(t.intent);
     const path = trailIdToPath(t.id, basePath);
     const routeKey = `${method.toUpperCase()} ${path}`;
     const existingId = seenRoutes.get(routeKey);
@@ -337,7 +336,7 @@ export const deriveOpenApiSpec = (
   graph: Topo,
   options?: OpenApiOptions
 ): OpenApiSpec => {
-  const validated = validateEstablishedTopo(graph);
+  const validated = validateSurfaceTopo(graph, options);
   if (validated.isErr()) {
     throw validated.error;
   }

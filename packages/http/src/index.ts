@@ -2,10 +2,15 @@
 export {
   deriveHttpRoutes,
   type DeriveHttpRoutesOptions,
-  type HttpMethod,
   type HttpRouteDefinition,
-  type InputSource,
 } from './build.js';
+export {
+  deriveHttpInputSource,
+  deriveHttpMethod,
+  deriveHttpOperationMethod,
+  httpMethodByIntent,
+} from './method.js';
+export type { HttpMethod, HttpOperationMethod, InputSource } from './method.js';
 
 // OpenAPI
 export { deriveOpenApiSpec } from './openapi.js';

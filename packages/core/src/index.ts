@@ -124,6 +124,18 @@ export {
 } from './surface-filter.js';
 export type { SurfaceFilterOptions } from './surface-filter.js';
 export {
+  shouldValidateSurfaceTopo,
+  validateSurfaceTopo,
+  withSurfaceMarker,
+} from './surface-derivation.js';
+export type {
+  BaseSurfaceOptions,
+  SurfaceConfigValues,
+  SurfaceSelectionOptions,
+  SurfaceMarkedContext,
+  SurfaceValidationOptions,
+} from './surface-derivation.js';
+export {
   deriveStructuredSignalExamples,
   deriveStructuredTrailExamples,
 } from './structured-examples.js';

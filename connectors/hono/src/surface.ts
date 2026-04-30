@@ -16,7 +16,7 @@ import {
   ValidationError,
 } from '@ontrails/core';
 import type {
-  Intent,
+  BaseSurfaceOptions,
   Layer,
   ResourceOverrideMap,
   Topo,
@@ -32,27 +32,18 @@ import type { HttpMethod, HttpRouteDefinition } from '@ontrails/http';
 // Options
 // ---------------------------------------------------------------------------
 
-export interface CreateAppOptions {
+export interface CreateAppOptions extends BaseSurfaceOptions {
   readonly basePath?: string | undefined;
-  /** Config values for resources that declare a `config` schema, keyed by resource ID. */
-  readonly configValues?:
-    | Readonly<Record<string, Record<string, unknown>>>
-    | undefined;
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
-  readonly exclude?: readonly string[] | undefined;
   readonly hostname?: string | undefined;
-  readonly include?: readonly string[] | undefined;
-  readonly intent?: readonly Intent[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   /** Maximum JSON request body size in bytes. Defaults to 1 MiB. */
   readonly maxJsonBodyBytes?: number | undefined;
   readonly name?: string | undefined;
   readonly port?: number | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
-  /** Set to `false` to skip topo validation at startup. Defaults to `true`. */
-  readonly validate?: boolean | undefined;
 }
 
 interface RuntimeOptions {

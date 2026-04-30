@@ -81,6 +81,11 @@ deriveFields(schema, overrides?)   // → Field[] (faithfully representable fiel
 deriveCliPath(trailId)             // trail ID → hierarchical CLI command path
 Field, FieldOverride
 
+// Surface derivation
+validateSurfaceTopo(topo, options?) // shared established-topo guard for surface projections
+withSurfaceMarker(surface, ctx?)    // merge a surface marker into execution context extensions
+BaseSurfaceOptions, SurfaceSelectionOptions, SurfaceValidationOptions, SurfaceConfigValues
+
 // Draft state
 DRAFT_ID_PREFIX, isDraftId(value), deriveDraftReport(topo)
 validateDraftFreeTopo(topo)        // reject draft-contaminated IDs and schemas
@@ -163,8 +168,12 @@ McpToolResult, McpContent, McpExtra, McpAnnotations
 ```typescript
 deriveHttpRoutes(graph, options?)      // projection: route definitions without server; returns Result<HttpRouteDefinition[], Error>
 deriveOpenApiSpec(graph, options?)     // OpenAPI 3.1 spec for the HTTP surface
+deriveHttpMethod(intent)               // intent → HTTP method
+deriveHttpOperationMethod(intent)      // intent → OpenAPI operation method
+deriveHttpInputSource(method)          // HTTP method → input source
+httpMethodByIntent
 
-DeriveHttpRoutesOptions, HttpMethod, HttpRouteDefinition, InputSource
+DeriveHttpRoutesOptions, HttpMethod, HttpOperationMethod, HttpRouteDefinition, InputSource
 OpenApiOptions, OpenApiSpec, OpenApiServer
 ```
 

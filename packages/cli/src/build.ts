@@ -3,8 +3,8 @@
  */
 
 import type {
+  BaseSurfaceOptions,
   Field,
-  Intent,
   Layer,
   ResourceOverrideMap,
   Topo,
@@ -13,13 +13,13 @@ import type {
 } from '@ontrails/core';
 import {
   Result,
-  TRAILHEAD_KEY,
   ValidationError,
   deriveCliPath,
   deriveFields,
   executeTrail,
   filterSurfaceTrails,
-  validateEstablishedTopo,
+  validateSurfaceTopo,
+  withSurfaceMarker,
 } from '@ontrails/core';
 
 import type { AnyTrail, CliArg, CliCommand, CliFlag } from './command.js';
@@ -51,22 +51,15 @@ export interface ActionResultContext {
 }
 
 /** Options for CLI command projection. */
-export interface DeriveCliCommandsOptions {
-  /** Config values for resources that declare a `config` schema, keyed by resource ID. */
-  configValues?: Readonly<Record<string, Record<string, unknown>>> | undefined;
+export interface DeriveCliCommandsOptions extends BaseSurfaceOptions {
   createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
-  exclude?: readonly string[] | undefined;
-  include?: readonly string[] | undefined;
-  intent?: readonly Intent[] | undefined;
   layers?: readonly Layer[] | undefined;
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
   presets?: readonly (readonly CliFlag[])[] | undefined;
   resources?: ResourceOverrideMap | undefined;
   resolveInput?: InputResolver | undefined;
-  /** Set to `false` to skip topo validation while building commands. */
-  validate?: boolean | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,18 +84,7 @@ const mergeFlags = (presets: CliFlag[], derived: CliFlag[]): CliFlag[] => {
 const validateCliCommandBuild = (
   graph: Topo,
   options?: DeriveCliCommandsOptions
-): Result<void, Error> => {
-  if (options?.validate === false) {
-    return Result.ok();
-  }
-
-  const validated = validateEstablishedTopo(graph);
-  if (validated.isErr()) {
-    return Result.err(validated.error);
-  }
-
-  return Result.ok();
-};
+): Result<void, Error> => validateSurfaceTopo(graph, options);
 
 // ---------------------------------------------------------------------------
 // deriveCliCommands
@@ -172,17 +154,6 @@ const reportResult = async (
     await options.onResult(ctx);
   }
 };
-
-/** Merge context overrides with the CLI trailhead marker. */
-const withCliTrailhead = (
-  ctxOverrides: Partial<TrailContext> | undefined
-): Partial<TrailContext> => ({
-  ...ctxOverrides,
-  extensions: {
-    ...ctxOverrides?.extensions,
-    [TRAILHEAD_KEY]: 'cli' as const,
-  },
-});
 
 const selectStructuredInputFlags = (
   normalizedFlags: Record<string, unknown>,
@@ -320,7 +291,7 @@ const createExecute =
     const result = await executeTrail(t, mergedInput, {
       configValues: options?.configValues,
       createContext: options?.createContext,
-      ctx: withCliTrailhead(ctxOverrides),
+      ctx: withSurfaceMarker('cli', ctxOverrides),
       layers: options?.layers,
       resources: options?.resources,
       topo: graph,
