@@ -83,6 +83,7 @@ export {
   missingVisibilityTrail,
   missingReconcileTrail,
   noDirectImplementationCallTrail,
+  noNativeErrorResultTrail,
   noSyncResultAssumptionTrail,
   noThrowInDetourRecoverTrail,
   noThrowInImplementationTrail,

@@ -23,6 +23,7 @@ import { intentPropagation } from './intent-propagation.js';
 import { missingReconcile } from './missing-reconcile.js';
 import { missingVisibility } from './missing-visibility.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
+import { noNativeErrorResult } from './no-native-error-result.js';
 import { noSyncResultAssumption } from './no-sync-result-assumption.js';
 import { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
@@ -63,6 +64,7 @@ export const registeredRuleNames: readonly string[] = [
   missingReconcile.name,
   missingVisibility.name,
   noDirectImplementationCall.name,
+  noNativeErrorResult.name,
   noSyncResultAssumption.name,
   noThrowInDetourRecover.name,
   noThrowInImplementation.name,
