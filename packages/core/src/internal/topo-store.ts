@@ -5,6 +5,10 @@ import { DETOUR_MAX_ATTEMPTS_CAP } from '../detours.js';
 import { deriveCliPath } from '../derive.js';
 import { Result } from '../result.js';
 import { signalDiagnosticDefinitions } from '../signal-diagnostics.js';
+import {
+  deriveStructuredSignalExamples,
+  deriveStructuredTrailExamples,
+} from '../structured-examples.js';
 import type { AnyContour } from '../contour.js';
 import type { AnyResource } from '../resource.js';
 import type { AnySignal } from '../signal.js';
@@ -108,6 +112,7 @@ interface TopoExampleRow {
   readonly input: string;
   readonly name: string;
   readonly ordinal: number;
+  readonly signals: string | null;
   readonly snapshotId: string;
   readonly trailId: string;
 }
@@ -445,8 +450,9 @@ const normalizeExampleRows = (
   trails: readonly AnyTrail[],
   snapshotId: string
 ): readonly TopoExampleRow[] =>
-  trails.flatMap((trail) =>
-    (trail.examples ?? []).map((example, index) => ({
+  trails.flatMap((trail) => {
+    const examples = deriveStructuredTrailExamples(trail.examples) ?? [];
+    return examples.map((example, index) => ({
       description: example.description ?? null,
       error: example.error ?? null,
       expected:
@@ -459,10 +465,12 @@ const normalizeExampleRows = (
       input: stableJson(example.input),
       name: example.name,
       ordinal: index,
+      signals:
+        example.signals === undefined ? null : stableJson(example.signals),
       snapshotId,
       trailId: trail.id,
-    }))
-  );
+    }));
+  });
 
 const normalizeTopoProjection = (
   topo: Topo,
@@ -778,6 +786,11 @@ const buildTrailEntryBase = (
     entry['output'] = trailSchema.output;
   }
 
+  const examples = deriveStructuredTrailExamples(trail.examples);
+  if (examples !== undefined) {
+    entry['examples'] = examples;
+  }
+
   if (trail.description !== undefined) {
     entry['description'] = trail.description;
   }
@@ -812,11 +825,7 @@ const signalToEntryRecord = (
   relations: SignalGraphRelations
 ): SurfaceMapEntryRecord => {
   const raw = signal as unknown as Record<string, unknown>;
-  const examples = signal.examples?.map((payload) => ({
-    kind: 'payload',
-    payload,
-    provenance: { source: 'signal.examples' },
-  }));
+  const examples = deriveStructuredSignalExamples(signal.examples);
   const entry: Record<string, unknown> = {
     consumers: relations.consumers,
     diagnostics: SIGNAL_DIAGNOSTIC_HOOKS,
@@ -1173,8 +1182,8 @@ const insertProjectedRows = (
     db,
     projection.examples,
     `INSERT INTO topo_examples (
-      id, trail_id, ordinal, name, description, input, expected, error, snapshot_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, trail_id, ordinal, name, description, input, expected, expected_match, error, signals, snapshot_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     (row) => [
       row.id,
       row.trailId,
@@ -1183,7 +1192,9 @@ const insertProjectedRows = (
       row.description,
       row.input,
       row.expected,
+      row.expectedMatch,
       row.error,
+      row.signals,
       row.snapshotId,
     ]
   );

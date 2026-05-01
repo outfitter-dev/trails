@@ -81,7 +81,9 @@ const TOPO_TABLE_STATEMENTS = [
     description TEXT,
     input TEXT NOT NULL,
     expected TEXT,
+    expected_match TEXT,
     error TEXT,
+    signals TEXT,
     snapshot_id TEXT NOT NULL,
     FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
   )`,
@@ -193,6 +195,27 @@ const tableExists = (db: Database, tableName: string): boolean => {
   return row?.name === tableName;
 };
 
+const columnExists = (
+  db: Database,
+  tableName: string,
+  columnName: string
+): boolean =>
+  db
+    .query<{ name: string }, []>(`PRAGMA table_info(${tableName})`)
+    .all()
+    .some((row) => row.name === columnName);
+
+const addColumnIfMissing = (
+  db: Database,
+  tableName: string,
+  columnName: string,
+  definition: string
+): void => {
+  if (tableExists(db, tableName) && !columnExists(db, tableName, columnName)) {
+    db.run(`ALTER TABLE ${tableName} ADD COLUMN ${definition}`);
+  }
+};
+
 const runStatements = (db: Database, statements: readonly string[]): void => {
   for (const statement of statements) {
     db.run(statement);
@@ -207,6 +230,8 @@ const createAllTopoTables = (db: Database): void => {
 /**
  * Current topo subsystem schema version.
  *
+ * Version 9 adds structured example assertion columns to `topo_examples`.
+ *
  * Version 8 adds `pattern TEXT` column to `topo_trails`.
  *
  * Version 7 defined the snapshot-first topo tables (`topo_snapshots`,
@@ -215,14 +240,23 @@ const createAllTopoTables = (db: Database): void => {
  * tables and advance the subsystem version without translating or deleting
  * legacy rows.
  */
-export const TOPO_SCHEMA_VERSION = 8;
+export const TOPO_SCHEMA_VERSION = 9;
 
 export const ensureTopoSnapshotSchema = (db: Database): void => {
   ensureSubsystemSchema(db, {
     migrate: (currentVersion) => {
       createAllTopoTables(db);
       if (currentVersion === 7) {
-        db.run('ALTER TABLE topo_trails ADD COLUMN pattern TEXT');
+        addColumnIfMissing(db, 'topo_trails', 'pattern', 'pattern TEXT');
+      }
+      if (currentVersion >= 7 && currentVersion < 9) {
+        addColumnIfMissing(
+          db,
+          'topo_examples',
+          'expected_match',
+          'expected_match TEXT'
+        );
+        addColumnIfMissing(db, 'topo_examples', 'signals', 'signals TEXT');
       }
     },
     subsystem: TOPO_SUBSYSTEM,

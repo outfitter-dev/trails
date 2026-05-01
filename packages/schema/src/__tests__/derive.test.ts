@@ -336,6 +336,9 @@ describe('deriveSurfaceMap', () => {
     });
 
     test('trail entries preserve structured examples with provenance', () => {
+      const profileUpdated = signal('profile.updated', {
+        payload: z.object({ id: z.string() }),
+      });
       const t = trail('with.examples', {
         blaze: noop,
         examples: [
@@ -344,6 +347,12 @@ describe('deriveSurfaceMap', () => {
             expected: { y: 2 },
             input: { x: 1 },
             name: 'basic',
+            signals: [
+              {
+                payloadMatch: { id: 'u1' },
+                signal: profileUpdated,
+              },
+            ],
           },
           {
             error: 'ValidationError',
@@ -364,6 +373,12 @@ describe('deriveSurfaceMap', () => {
           kind: 'success',
           name: 'basic',
           provenance: { source: 'trail.examples' },
+          signals: [
+            {
+              payloadMatch: { id: 'u1' },
+              signalId: 'profile.updated',
+            },
+          ],
         },
         {
           error: 'ValidationError',

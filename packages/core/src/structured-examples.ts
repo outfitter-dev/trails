@@ -1,4 +1,4 @@
-import type { TrailExample } from './trail.js';
+import type { TrailExample, TrailExampleSignalAssertion } from './trail.js';
 
 export interface StructuredTrailExampleProvenance {
   readonly source: 'trail.examples';
@@ -19,6 +19,16 @@ export interface StructuredTrailExample {
   readonly kind: StructuredTrailExampleKind;
   readonly name: string;
   readonly provenance: StructuredTrailExampleProvenance;
+  readonly signals?:
+    | readonly StructuredTrailExampleSignalAssertion[]
+    | undefined;
+}
+
+export interface StructuredTrailExampleSignalAssertion {
+  readonly payload?: unknown | undefined;
+  readonly payloadMatch?: unknown | undefined;
+  readonly signalId: string;
+  readonly times?: number | undefined;
 }
 
 export interface StructuredSignalExample {
@@ -86,6 +96,61 @@ const toJsonSerializable = (value: unknown): unknown | undefined => {
   }
 };
 
+const signalIdFromAssertion = (
+  assertion: TrailExampleSignalAssertion
+): string | undefined => {
+  if (typeof assertion.signal === 'string') {
+    return assertion.signal;
+  }
+  return typeof assertion.signal.id === 'string'
+    ? assertion.signal.id
+    : undefined;
+};
+
+const projectSignalAssertion = (
+  assertion: TrailExampleSignalAssertion
+): StructuredTrailExampleSignalAssertion | undefined => {
+  const signalId = signalIdFromAssertion(assertion);
+  if (signalId === undefined) {
+    return undefined;
+  }
+
+  const projected: Record<string, unknown> = { signalId };
+  if (assertion.payload !== undefined) {
+    const payload = toJsonSerializable(assertion.payload);
+    if (payload === undefined) {
+      return undefined;
+    }
+    projected['payload'] = payload;
+  }
+  if (assertion.payloadMatch !== undefined) {
+    const payloadMatch = toJsonSerializable(assertion.payloadMatch);
+    if (payloadMatch === undefined) {
+      return undefined;
+    }
+    projected['payloadMatch'] = payloadMatch;
+  }
+  if (assertion.times !== undefined) {
+    projected['times'] = assertion.times;
+  }
+  return Object.freeze(
+    projected
+  ) as unknown as StructuredTrailExampleSignalAssertion;
+};
+
+const projectSignalAssertions = (
+  assertions: readonly TrailExampleSignalAssertion[] | undefined
+): readonly StructuredTrailExampleSignalAssertion[] | undefined => {
+  if (assertions === undefined) {
+    return undefined;
+  }
+  const projected = assertions.map(projectSignalAssertion);
+  if (projected.some((assertion) => assertion === undefined)) {
+    return undefined;
+  }
+  return Object.freeze(projected as StructuredTrailExampleSignalAssertion[]);
+};
+
 const projectExample = (
   example: TrailExample<unknown, unknown>
 ): StructuredTrailExample | undefined => {
@@ -120,6 +185,13 @@ const projectExample = (
   }
   if (example.error !== undefined) {
     projected['error'] = example.error;
+  }
+  if (example.signals !== undefined) {
+    const signals = projectSignalAssertions(example.signals);
+    if (signals === undefined) {
+      return undefined;
+    }
+    projected['signals'] = signals;
   }
 
   return Object.freeze(projected) as unknown as StructuredTrailExample;

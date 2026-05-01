@@ -3,7 +3,9 @@ import {
   deriveStructuredSignalExamples,
   deriveStructuredTrailExamples,
 } from '../structured-examples.js';
+import { signal } from '../signal.js';
 import type { TrailExample } from '../trail.js';
+import { z } from 'zod';
 
 const okExample = (
   overrides: Partial<TrailExample<unknown, unknown>> = {}
@@ -86,6 +88,54 @@ describe('deriveStructuredTrailExamples', () => {
     ]);
     expect(projected).toBeDefined();
     expect(projected?.[0]?.input).toEqual({ name: 'ada' });
+  });
+
+  test('projects signal assertions using stable signal ids', () => {
+    const profileUpdated = signal('profile.updated', {
+      payload: z.object({ id: z.string(), revision: z.number() }),
+    });
+    const projected = deriveStructuredTrailExamples([
+      okExample({
+        signals: [
+          {
+            payloadMatch: { id: 'u1' },
+            signal: profileUpdated,
+          },
+          {
+            payload: { id: 'audit-1' },
+            signal: 'audit.logged',
+            times: 2,
+          },
+        ],
+      }),
+    ]);
+
+    expect(projected?.[0]?.signals).toEqual([
+      {
+        payloadMatch: { id: 'u1' },
+        signalId: 'profile.updated',
+      },
+      {
+        payload: { id: 'audit-1' },
+        signalId: 'audit.logged',
+        times: 2,
+      },
+    ]);
+  });
+
+  test('drops examples whose signal assertions are not JSON serializable', () => {
+    const projected = deriveStructuredTrailExamples([
+      okExample({
+        signals: [
+          {
+            payload: { id: 1n },
+            signal: 'profile.updated',
+          },
+        ],
+      }),
+    ]);
+
+    expect(projected).toBeUndefined();
   });
 });
 

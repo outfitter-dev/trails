@@ -21,6 +21,17 @@ import type {
 // Trail example
 // ---------------------------------------------------------------------------
 
+export interface TrailExampleSignalAssertion {
+  /** Signal contract object or stable signal ID expected during the example. */
+  readonly signal: AnySignal | string;
+  /** Exact payload assertion for the fired signal. */
+  readonly payload?: unknown | undefined;
+  /** Partial payload assertion; declared fields must match, extras ignored. */
+  readonly payloadMatch?: unknown | undefined;
+  /** Number of matching fired signals expected. Defaults to one. */
+  readonly times?: number | undefined;
+}
+
 /**
  * A named example for documentation and testing.
  *
@@ -41,6 +52,8 @@ export interface TrailExample<I, O> {
   readonly expectedMatch?: Partial<O> | undefined;
   /** Error class name for error-path examples */
   readonly error?: string | undefined;
+  /** Signal fires expected while executing this example. */
+  readonly signals?: readonly TrailExampleSignalAssertion[] | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -103,7 +116,7 @@ export interface TrailSpec<I, O, CI = never> {
   /** Resources this trail may access via resource.from(ctx) */
   readonly resources?: readonly AnyResource[] | undefined;
   /**
-   * Signals this trail emits via `ctx.fire()`.
+   * Signals this trail fires via `ctx.fire()`.
    *
    * Accepts either a string id or a `Signal` value. Both forms are
    * normalized to the signal's id at trail definition time, so
@@ -169,7 +182,7 @@ export interface Trail<I, O, CI = never> extends Omit<
   readonly detours: readonly Detour<I, O, TrailsError>[];
   /** Resources this trail may access via resource.from(ctx) (always present, default []) */
   readonly resources: readonly AnyResource[];
-  /** IDs of signals this trail emits via ctx.fire() (always present, default []) */
+  /** IDs of signals this trail fires via ctx.fire() (always present, default []) */
   readonly fires: readonly string[];
   /** IDs of signals that activate this trail (always present, default []) */
   readonly on: readonly string[];

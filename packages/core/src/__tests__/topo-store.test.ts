@@ -63,6 +63,15 @@ const tableExists = (
   return row?.name === tableName;
 };
 
+const tableColumns = (
+  db: ReturnType<typeof openWriteTrailsDb>,
+  tableName: string
+): readonly string[] =>
+  db
+    .query<{ name: string }, []>(`PRAGMA table_info(${tableName})`)
+    .all()
+    .map((row) => row.name);
+
 const exampleApp = () => {
   const entityContour = contour(
     'entity',
@@ -100,8 +109,15 @@ const exampleApp = () => {
     examples: [
       {
         expected: { id: 'ada', ok: true },
+        expectedMatch: { ok: true },
         input: { name: 'Ada' },
         name: 'Add Ada',
+        signals: [
+          {
+            payloadMatch: { id: 'ada' },
+            signal: entityAdded,
+          },
+        ],
       },
       {
         error: 'ConflictError',
@@ -195,13 +211,15 @@ const readExampleRows = (
       {
         error: string | null;
         expected: string | null;
+        expected_match: string | null;
         input: string;
         name: string;
         ordinal: number;
+        signals: string | null;
       },
       [string]
     >(
-      `SELECT ordinal, name, input, expected, error
+      `SELECT ordinal, name, input, expected, expected_match, error, signals
        FROM topo_examples
        WHERE snapshot_id = ?
        ORDER BY ordinal ASC`
@@ -292,16 +310,25 @@ const expectProjectedFixtureRows = (
     {
       error: null,
       expected: JSON.stringify({ id: 'ada', ok: true }),
+      expected_match: JSON.stringify({ ok: true }),
       input: JSON.stringify({ name: 'Ada' }),
       name: 'Add Ada',
       ordinal: 0,
+      signals: JSON.stringify([
+        {
+          payloadMatch: { id: 'ada' },
+          signalId: 'entity.added',
+        },
+      ]),
     },
     {
       error: 'ConflictError',
       expected: null,
+      expected_match: null,
       input: JSON.stringify({ name: 'Existing' }),
       name: 'Conflict on duplicate',
       ordinal: 1,
+      signals: null,
     },
   ]);
 };
@@ -549,8 +576,39 @@ describe('topo store projection', () => {
       expect(
         entries?.some((entry) => hasContourTrailheadEntry(entry, 'entity'))
       ).toBe(true);
+      const trailEntry = entries?.find(
+        (entry) =>
+          typeof entry === 'object' &&
+          entry !== null &&
+          (entry as { id?: unknown }).id === 'entity.add'
+      ) as { examples?: unknown } | undefined;
+      expect(trailEntry?.examples).toEqual([
+        {
+          expected: { id: 'ada', ok: true },
+          expectedMatch: { ok: true },
+          input: { name: 'Ada' },
+          kind: 'success',
+          name: 'Add Ada',
+          provenance: { source: 'trail.examples' },
+          signals: [
+            {
+              payloadMatch: { id: 'ada' },
+              signalId: 'entity.added',
+            },
+          ],
+        },
+        {
+          error: 'ConflictError',
+          input: { name: 'Existing' },
+          kind: 'error',
+          name: 'Conflict on duplicate',
+          provenance: { source: 'trail.examples' },
+        },
+      ]);
 
-      expect(JSON.parse(stored.lockContent)).toMatchObject({
+      const lock = JSON.parse(stored.lockContent);
+      const lockTrail = lock.apps['projection-app'].trails['entity.add'];
+      expect(lock).toMatchObject({
         apps: {
           'projection-app': {
             contours: {
@@ -567,6 +625,12 @@ describe('topo store projection', () => {
         hash: stored.surfaceHash,
         version: 1,
       });
+      expect(lockTrail.examples?.[0]?.signals).toEqual([
+        {
+          payloadMatch: { id: 'ada' },
+          signalId: 'entity.added',
+        },
+      ]);
     });
   });
 
@@ -801,7 +865,7 @@ describe('topo store projection', () => {
               "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
             )
             .get()?.version
-        ).toBe(8);
+        ).toBe(9);
         expect(countRows(db, 'topo_snapshots')).toBe(0);
       });
     });
@@ -819,6 +883,40 @@ describe('topo store projection', () => {
         expect(tableExists(db, 'topo_trailheads')).toBe(true);
         expect(countRows(db, 'topo_snapshots')).toBe(1);
         expectProjectionCounts(db, snapshot.id);
+      });
+    });
+
+    test('ensureTopoSnapshotSchema migrates v8 example assertion columns', () => {
+      withProjectionDb((db) => {
+        db.run(
+          `INSERT INTO meta_schema_versions (subsystem, version, updated_at)
+           VALUES ('topo', 8, ?)`,
+          ['2026-04-03T11:00:00.000Z']
+        );
+        db.run(`CREATE TABLE topo_examples (
+          id TEXT PRIMARY KEY,
+          trail_id TEXT NOT NULL,
+          ordinal INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT,
+          input TEXT NOT NULL,
+          expected TEXT,
+          error TEXT,
+          snapshot_id TEXT NOT NULL
+        )`);
+
+        ensureTopoSnapshotSchema(db);
+
+        expect(tableColumns(db, 'topo_examples')).toEqual(
+          expect.arrayContaining(['expected_match', 'signals'])
+        );
+        expect(
+          db
+            .query<{ version: number }, []>(
+              "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
+            )
+            .get()?.version
+        ).toBe(9);
       });
     });
 
@@ -859,7 +957,7 @@ describe('topo store projection', () => {
             "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
           )
           .get()?.version
-      ).toBe(8);
+      ).toBe(9);
       for (const table of [
         'topo_snapshots',
         'topo_trails',

@@ -58,6 +58,7 @@ import {
 } from './context.js';
 import type { PermittedTrail, TestExecutionOptions } from './context.js';
 import { isDerivedExample, deriveTrailExamples } from './effective-examples.js';
+import { withSignalAssertions } from './signals.js';
 
 // ---------------------------------------------------------------------------
 // Error class name -> constructor map
@@ -164,7 +165,7 @@ const applyAutoPermit = (
  * Run a single example against a trail.
  * Handles validation, execution, and assertions.
  */
-const runExample = async (
+export const runExample = async (
   t: Trail<unknown, unknown, unknown>,
   example: TrailExample<unknown, unknown>,
   output: z.ZodType | undefined,
@@ -172,19 +173,21 @@ const runExample = async (
   resources?: ResourceOverrideMap,
   opts?: TestExecutionOptions
 ): Promise<void> => {
+  const ctx = opts ? applyAutoPermit(testCtx, t, opts) : testCtx;
+  const signals = withSignalAssertions(ctx, example);
   const validated = validateInput(t.input, example.input);
 
   if (handleValidationError(validated, example)) {
+    signals.assert();
     return;
   }
 
-  const ctx = opts ? applyAutoPermit(testCtx, t, opts) : testCtx;
-
   const result = await executeTrail(t, example.input, {
-    ctx,
+    ctx: signals.ctx,
     resources: resources ?? opts?.resources,
   });
   assertProgressiveMatch(result, example, output);
+  signals.assert();
 };
 
 // ---------------------------------------------------------------------------
@@ -269,23 +272,25 @@ const runCompositionExample = async (
   resources?: ResourceOverrideMap,
   opts?: TestExecutionOptions
 ): Promise<void> => {
-  const validated = validateInput(trailDef.input, example.input);
-
-  if (handleValidationError(validated, example)) {
-    return;
-  }
-
   const permittedCtx = opts
     ? applyAutoPermit(baseCtx, trailDef, opts)
     : baseCtx;
+  const signals = withSignalAssertions(permittedCtx, example);
+  const validated = validateInput(trailDef.input, example.input);
+
+  if (handleValidationError(validated, example)) {
+    signals.assert();
+    return;
+  }
+
   const cross = createCoverageCross(
     called,
-    permittedCtx.cross,
+    signals.ctx.cross,
     topo,
-    permittedCtx,
+    signals.ctx,
     resources
   );
-  const testCtx: TrailContext = { ...permittedCtx, cross };
+  const testCtx: TrailContext = { ...signals.ctx, cross };
 
   // Top-level trail validates against trail.input (not merged crossInput).
   // Merged validation only applies to cross targets in executeFromMap/createCoverageCross.
@@ -294,6 +299,7 @@ const runCompositionExample = async (
     resources: resources ?? opts?.resources,
   });
   assertProgressiveMatch(result, example, output);
+  signals.assert();
 };
 
 // ---------------------------------------------------------------------------

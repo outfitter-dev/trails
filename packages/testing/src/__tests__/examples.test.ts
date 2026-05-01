@@ -1,4 +1,4 @@
-import { describe, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 
 import {
   ConflictError,
@@ -8,12 +8,14 @@ import {
   Result,
   RetryExhaustedError,
   resource,
+  signal,
   trail,
   topo,
 } from '@ontrails/core';
 import { z } from 'zod';
 
-import { testExamples } from '../examples.js';
+import { createTestContext } from '../context.js';
+import { runExample, testExamples } from '../examples.js';
 
 // ---------------------------------------------------------------------------
 // Test trails
@@ -287,6 +289,41 @@ const onboardTrail = trail('entity.onboard', {
   output: z.object({ id: z.string(), name: z.string() }),
 });
 
+const profileUpdated = signal('profile.updated', {
+  payload: z.object({
+    displayName: z.string(),
+    id: z.string(),
+    revision: z.number(),
+  }),
+});
+
+const profileUpdateTrail = trail('profile.update', {
+  blaze: async (input: { displayName: string; id: string }, ctx) => {
+    await ctx.fire?.(profileUpdated, {
+      displayName: input.displayName,
+      id: input.id,
+      revision: 2,
+    });
+    return Result.ok({ ok: true });
+  },
+  examples: [
+    {
+      expected: { ok: true },
+      input: { displayName: 'Ada', id: 'u1' },
+      name: 'Updates profile and fires a typed signal',
+      signals: [
+        {
+          payloadMatch: { id: 'u1', revision: 2 },
+          signal: profileUpdated,
+        },
+      ],
+    },
+  ],
+  fires: [profileUpdated],
+  input: z.object({ displayName: z.string(), id: z.string() }),
+  output: z.object({ ok: z.boolean() }),
+});
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -400,6 +437,46 @@ describe('testExamples crossing coverage for trails with crossings', () => {
       relateTrail,
     } as Record<string, unknown>)
   );
+});
+
+describe('testExamples signal assertions', () => {
+  // eslint-disable-next-line jest/require-hook
+  testExamples(
+    topo('signal-assertion-app', {
+      profileUpdateTrail,
+      profileUpdated,
+    } as Record<string, unknown>)
+  );
+
+  test('asserts signals on expected input validation failures', async () => {
+    let message = '';
+    try {
+      await runExample(
+        profileUpdateTrail,
+        {
+          error: 'ValidationError',
+          input: { displayName: 123, id: 'u1' },
+          name: 'Invalid profile update still checks signal expectations',
+          signals: [
+            {
+              payloadMatch: { id: 'u1' },
+              signal: profileUpdated,
+            },
+          ],
+        },
+        profileUpdateTrail.output,
+        createTestContext()
+      );
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+
+    expect(message).toMatch(
+      /^Example "Invalid profile update still checks signal expectations" expected signal signal=profile\.updated payloadMatchSummary=\{redacted=true shape=object digest=/
+    );
+    expect(message).toContain('topLevelEntryCount=1');
+    expect(message).not.toContain('"u1"');
+  });
 });
 
 describe('testExamples resource mocks through cross', () => {

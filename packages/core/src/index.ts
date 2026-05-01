@@ -115,6 +115,7 @@ export type {
   Trail,
   TrailSpec,
   TrailExample,
+  TrailExampleSignalAssertion,
   TrailVisibility,
 } from './trail.js';
 export {
@@ -145,6 +146,7 @@ export type {
   StructuredTrailExample,
   StructuredTrailExampleKind,
   StructuredTrailExampleProvenance,
+  StructuredTrailExampleSignalAssertion,
 } from './structured-examples.js';
 
 // Type utilities

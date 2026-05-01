@@ -63,8 +63,15 @@ const exampleApp = () => {
     examples: [
       {
         expected: { id: 'ada', ok: true },
+        expectedMatch: { ok: true },
         input: { name: 'Ada' },
         name: 'Add Ada',
+        signals: [
+          {
+            payloadMatch: { id: 'ada' },
+            signal: entityAdded,
+          },
+        ],
       },
     ],
     input: z.object({ name: z.string() }),
@@ -227,6 +234,27 @@ describe('read-only topo store', () => {
       })
     );
     expect(detail?.examples).toEqual([]);
+
+    const addDetail = store.trails.get('entity.add', {
+      snapshot: { snapshotId: snapshot.id },
+    });
+    expect(addDetail?.examples).toEqual([
+      {
+        description: null,
+        error: null,
+        expected: { id: 'ada', ok: true },
+        expectedMatch: { ok: true },
+        input: { name: 'Ada' },
+        name: 'Add Ada',
+        ordinal: 0,
+        signals: [
+          {
+            payloadMatch: { id: 'ada' },
+            signalId: 'entity.added',
+          },
+        ],
+      },
+    ]);
 
     const exported = store.exports.get({ pin: 'baseline' });
     expect(exported?.snapshot.id).toBe(snapshot.id);

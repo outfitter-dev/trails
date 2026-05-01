@@ -37,9 +37,11 @@ export interface TopoStoreExampleRecord {
   readonly description: string | null;
   readonly error: string | null;
   readonly expected: unknown;
+  readonly expectedMatch: unknown;
   readonly input: unknown;
   readonly name: string;
   readonly ordinal: number;
+  readonly signals: unknown;
 }
 
 export interface TopoStoreTrailDetailRecord extends TopoStoreTrailRecord {
@@ -110,9 +112,11 @@ interface TopoExampleRow {
   readonly description: string | null;
   readonly error: string | null;
   readonly expected: string | null;
+  readonly expected_match: string | null;
   readonly input: string;
   readonly name: string;
   readonly ordinal: number;
+  readonly signals: string | null;
 }
 
 interface TopoResourceRow {
@@ -278,7 +282,7 @@ const readTrailExamples = (
 ): readonly TopoStoreExampleRecord[] =>
   db
     .query<TopoExampleRow, [string, string]>(
-      `SELECT ordinal, name, description, input, expected, error
+      `SELECT ordinal, name, description, input, expected, expected_match, error, signals
        FROM topo_examples
        WHERE snapshot_id = ? AND trail_id = ?
        ORDER BY ordinal ASC`
@@ -288,9 +292,12 @@ const readTrailExamples = (
       description: row.description,
       error: row.error,
       expected: row.expected === null ? null : parseJson(row.expected),
+      expectedMatch:
+        row.expected_match === null ? null : parseJson(row.expected_match),
       input: parseJson(row.input),
       name: row.name,
       ordinal: row.ordinal,
+      signals: row.signals === null ? null : parseJson(row.signals),
     }));
 
 const readResourceUsage = (

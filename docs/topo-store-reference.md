@@ -125,7 +125,9 @@ CREATE TABLE topo_examples (
   description TEXT,
   input TEXT NOT NULL,
   expected TEXT,
+  expected_match TEXT,
   error TEXT,
+  signals TEXT,
   snapshot_id TEXT NOT NULL,
   FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
 );
@@ -314,7 +316,7 @@ interface TopoStoreRef {
 
 ### `TopoStoreTrailDetailRecord`
 
-Extends trail record with `crosses`, `detours`, `resources`, and `examples` arrays.
+Extends trail record with `crosses`, `detours`, `resources`, and `examples` arrays. Detailed examples preserve `expected`, `expectedMatch`, and structured signal assertions when they are JSON-serializable.
 
 ### `TopoStoreResourceRecord`
 
