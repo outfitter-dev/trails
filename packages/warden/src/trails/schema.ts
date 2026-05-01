@@ -5,6 +5,7 @@
  * (array of diagnostics) shape.
  */
 
+import { intentValues } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -73,7 +74,7 @@ export const projectAwareRuleInput = ruleInput.extend({
     .optional()
     .describe('Store table IDs used with reconcile trails across the project'),
   trailIntentsById: z
-    .record(z.string(), z.enum(['read', 'write', 'destroy']))
+    .record(z.string(), z.enum(intentValues))
     .optional()
     .describe('Normalized trail intents keyed by trail ID'),
 });

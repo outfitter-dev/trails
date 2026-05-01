@@ -3,10 +3,7 @@ import {
   collectNamedTrailIds,
   collectTrailIntentsById,
   extractDefinitionCrossTargetIds,
-  findConfigProperty,
   findTrailDefinitions,
-  getStringValue,
-  isStringLiteral,
   offsetToLine,
   parse,
 } from './ast.js';
@@ -17,17 +14,6 @@ import type {
   ProjectContext,
   WardenDiagnostic,
 } from './types.js';
-
-const extractTrailIntent = (config: AstNode): Intent => {
-  const intentProp = findConfigProperty(config, 'intent');
-  const intentValue = intentProp?.value as AstNode | undefined;
-  if (!intentValue || !isStringLiteral(intentValue)) {
-    return 'write';
-  }
-
-  const value = getStringValue(intentValue);
-  return value === 'destroy' || value === 'read' ? value : 'write';
-};
 
 const buildIntentPropagationDiagnostic = (
   trailId: string,
@@ -74,7 +60,7 @@ const buildDiagnosticsForTrail = (
   namedTrailIds: ReadonlyMap<string, string>,
   trailIntentsById: ReadonlyMap<string, Intent>
 ): readonly WardenDiagnostic[] => {
-  if (def.kind !== 'trail' || extractTrailIntent(def.config) !== 'read') {
+  if (def.kind !== 'trail' || trailIntentsById.get(def.id) !== 'read') {
     return [];
   }
 
@@ -128,12 +114,11 @@ export const intentPropagation: ProjectAwareWardenRule = {
     const localTrailIntentsById = ast
       ? collectTrailIntentsById(ast)
       : new Map<string, Intent>();
-    return checkIntentPropagation(
-      ast,
-      sourceCode,
-      filePath,
-      context.trailIntentsById ?? localTrailIntentsById
-    );
+    const trailIntentsById = new Map(localTrailIntentsById);
+    for (const [trailId, intent] of context.trailIntentsById ?? []) {
+      trailIntentsById.set(trailId, intent);
+    }
+    return checkIntentPropagation(ast, sourceCode, filePath, trailIntentsById);
   },
   description:
     "Warn when a trail declaring intent: 'read' crosses a trail whose normalized intent is write or destroy.",

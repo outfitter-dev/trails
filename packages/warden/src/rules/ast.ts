@@ -8,7 +8,8 @@
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { DRAFT_ID_PREFIX } from '@ontrails/core';
+import { DRAFT_ID_PREFIX, intentValues } from '@ontrails/core';
+import type { Intent } from '@ontrails/core';
 import { parseSync } from 'oxc-parser';
 
 // ---------------------------------------------------------------------------
@@ -2528,21 +2529,27 @@ export const collectCrossTargetTrailIds = (
   return ids;
 };
 
-const extractTrailIntent = (config: AstNode): 'destroy' | 'read' | 'write' => {
+const INTENT_VALUE_SET = new Set<string>(intentValues);
+const DEFAULT_INTENT: Intent = 'write';
+
+const normalizeTrailIntent = (value: string): Intent =>
+  INTENT_VALUE_SET.has(value) ? (value as Intent) : DEFAULT_INTENT;
+
+const extractTrailIntent = (config: AstNode): Intent => {
   const intentProp = findConfigProperty(config, 'intent');
   if (!intentProp || !isStringLiteral(intentProp.value as AstNode)) {
-    return 'write';
+    return DEFAULT_INTENT;
   }
 
   const value = getStringValue(intentProp.value as AstNode);
-  return value === 'destroy' || value === 'read' ? value : 'write';
+  return value ? normalizeTrailIntent(value) : DEFAULT_INTENT;
 };
 
 /** Collect the normalized intent for every trail definition in a parsed file. */
 export const collectTrailIntentsById = (
   ast: AstNode
-): ReadonlyMap<string, 'destroy' | 'read' | 'write'> => {
-  const intents = new Map<string, 'destroy' | 'read' | 'write'>();
+): ReadonlyMap<string, Intent> => {
+  const intents = new Map<string, Intent>();
 
   for (const def of findTrailDefinitions(ast)) {
     if (def.kind === 'trail') {

@@ -237,11 +237,12 @@
       "version": "1.0.0-beta.15",
       "dependencies": {
         "@ontrails/permits": "workspace:^",
+        "@ontrails/store": "workspace:^",
+        "oxc-parser": "^0.121.0",
       },
       "devDependencies": {
         "@ontrails/testing": "workspace:^",
         "@oxc-project/types": "^0.122.0",
-        "oxc-parser": "^0.121.0",
         "zod": "catalog:",
       },
       "peerDependencies": {

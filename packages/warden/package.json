@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@ontrails/permits": "workspace:^",
+    "@ontrails/store": "workspace:^",
     "oxc-parser": "^0.121.0"
   },
   "devDependencies": {

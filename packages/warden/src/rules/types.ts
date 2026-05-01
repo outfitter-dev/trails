@@ -1,4 +1,4 @@
-import type { Topo } from '@ontrails/core';
+import type { Intent, Topo } from '@ontrails/core';
 
 /**
  * Severity level for warden diagnostics.
@@ -64,7 +64,7 @@ export interface ProjectContext {
   /** Store table IDs used with reconcile trails across the project. */
   readonly reconcileTableIds?: ReadonlySet<string>;
   /** Normalized trail intents by trail ID across the project. */
-  readonly trailIntentsById?: ReadonlyMap<string, 'destroy' | 'read' | 'write'>;
+  readonly trailIntentsById?: ReadonlyMap<string, Intent>;
   /**
    * CRUD operation coverage per entity aggregated across the project.
    *

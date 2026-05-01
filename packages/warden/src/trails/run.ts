@@ -6,7 +6,7 @@
  * so callers that loop files do not duplicate graph-level findings.
  */
 
-import type { Topo } from '@ontrails/core';
+import type { Intent, Topo } from '@ontrails/core';
 import { run } from '@ontrails/core';
 
 import { wardenTopoRules } from '../rules/index.js';
@@ -29,7 +29,7 @@ const appendDiagnostics = (
   }
 };
 
-type TrailIntentMap = Readonly<Record<string, 'destroy' | 'read' | 'write'>>;
+type TrailIntentMap = Readonly<Record<string, Intent>>;
 
 interface ProjectRuleOptions {
   readonly contourReferencesByName?: Readonly<
