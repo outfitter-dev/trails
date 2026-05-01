@@ -18,6 +18,7 @@ claude plugin install trails@trails
 | `trails` | Build with Trails: trail creation, resources, surfaces, testing, debugging, migration, and governance. |
 | `trails-warden-advisory` | Classify hardening findings into Warden, repo-local Oxlint, docs, advisory, or no-rule homes. |
 | `trails-derive-from-source` | Derive framework facts from owner exports instead of shadow registries or duplicated maps. |
+| `trails-dogfood-check` | Review framework code against Trails' own Result, cwd, loading, and host-boundary rules. |
 
 ### Agent
 
