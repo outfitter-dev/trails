@@ -14,6 +14,12 @@ export {
   TRACE_CONTEXT_KEY,
 } from '@ontrails/core';
 
+export {
+  type SignalTraceRecordName,
+  createSignalTraceRecord,
+  writeSignalTraceRecord,
+} from './signal-trace.js';
+
 // Tracing-package-owned utilities
 export { createMemorySink } from './memory-sink.js';
 export { createChildTraceContext } from './trace-context.js';

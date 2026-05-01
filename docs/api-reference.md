@@ -417,16 +417,20 @@ createPermitForTrail(trail)          // create a permit matching a trail's requi
 
 ## `@ontrails/tracing`
 
-Tracing is intrinsic in `executeTrail`. With a real sink installed, a trail execution emits a root `TraceRecord` and `ctx.trace(label, fn)` emits child spans. With `NOOP_SINK`, `executeTrail` short-circuits the tracing allocation path and `ctx.trace(label, fn)` stays a passthrough.
+Tracing is intrinsic in `executeTrail`. With a real sink installed, a trail execution writes a root `TraceRecord`, `ctx.trace(label, fn)` writes child spans, and typed signal fan-out records `signal.*` lifecycle entries. With `NOOP_SINK`, `executeTrail` short-circuits the tracing allocation path and `ctx.trace(label, fn)` stays a passthrough.
 
 ```typescript
-// Sink registration (from @ontrails/core or re-exported from @ontrails/tracing)
+// Sink registration (from @ontrails/core and re-exported from @ontrails/tracing)
 registerTraceSink(sink)              // install a sink for trace records
 getTraceSink()                       // get the currently registered sink
 clearTraceSink()                     // revert to the default no-op sink
 NOOP_SINK                            // stable disabled-tracing sentinel
 TRACE_CONTEXT_KEY                    // context extensions key for the active trace context
 createTraceRecord(options)           // construct a root or child TraceRecord explicitly
+
+// Signal lifecycle helpers (from @ontrails/tracing)
+createSignalTraceRecord(parent, name, attrs?) // construct a signal lifecycle TraceRecord
+writeSignalTraceRecord(ctx, name, attrs, status?, category?) // write a signal lifecycle TraceRecord
 
 // Sinks
 createMemorySink()                   // in-memory sink for testing

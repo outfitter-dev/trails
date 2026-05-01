@@ -2,7 +2,7 @@
 
 Sinks and query trails for the intrinsic tracing that ships in `@ontrails/core`.
 
-Tracing is built into `executeTrail`. When a real sink is installed, each trail execution writes a root `TraceRecord` automatically and `ctx.trace()` writes child spans. When `NOOP_SINK` is installed, the tracing path short-circuits and `ctx.trace()` remains a passthrough. This package provides the pluggable sinks, the `NOOP_SINK` sentinel, the manual span API via `ctx.trace()`, and query trails that let you inspect recorded history. See [ADR-0023](../../docs/adr/0023-simplifying-the-trails-lexicon.md) for the design rationale.
+Tracing is built into `executeTrail`. When a real sink is installed, each trail execution writes a root `TraceRecord` automatically, `ctx.trace()` writes child spans, and typed signal fan-out writes `signal.*` lifecycle records. When `NOOP_SINK` is installed, the tracing path short-circuits and `ctx.trace()` remains a passthrough. This package provides the pluggable sinks, the `NOOP_SINK` sentinel, the manual span API via `ctx.trace()`, and query trails that let you inspect recorded history. See [ADR-0023](../../docs/adr/0023-simplifying-the-trails-lexicon.md) for the design rationale.
 
 ## The core pattern
 
@@ -15,7 +15,9 @@ const sink = createMemorySink();
 registerTraceSink(sink);
 ```
 
-Sinks receive completed `TraceRecord` records. The default sink is `NOOP_SINK` — tracing APIs still work without configuration, but root/span record allocation is skipped until you register a real sink. Use a memory sink for testing, a dev store for local development, or an OTel connector to forward to your collector. Use `registerTraceSink(NOOP_SINK)` or `clearTraceSink()` to switch back to the silent baseline.
+Sinks receive completed `TraceRecord` records. The default sink is `NOOP_SINK` — tracing APIs still work without configuration, but root/span/signal record allocation is skipped until you register a real sink. Use a memory sink for testing, a dev store for local development, or an OTel connector to forward to your collector. Use `registerTraceSink(NOOP_SINK)` or `clearTraceSink()` to switch back to the silent baseline.
+
+Signal fan-out records use lexicon-aligned names: `signal.fired`, `signal.invalid`, `signal.handler.invoked`, `signal.handler.completed`, and `signal.handler.failed`. Signal record attrs carry IDs and redacted payload summaries, never raw payloads by default.
 
 ### 2. Run trails
 

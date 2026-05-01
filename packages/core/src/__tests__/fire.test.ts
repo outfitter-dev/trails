@@ -456,6 +456,46 @@ const createCapturingSink = (records: TraceRecord[]): TraceSink => ({
   },
 });
 
+const createPayloadWithThrowingGetter = (): Record<string, unknown> => {
+  const payload: Record<string, unknown> = {};
+  Object.defineProperty(payload, 'secret', {
+    enumerable: true,
+    get() {
+      throw new Error('payload getter exploded');
+    },
+  });
+  return payload;
+};
+
+const createThrowingPayloadScenario = () => {
+  const fragileSignal = signal('fragile.payload', { payload: z.any() });
+  const invocations: unknown[] = [];
+  const consumer = trail('fragile.consumer', {
+    blaze: (input) => {
+      invocations.push(input);
+      return Result.ok({ ok: true });
+    },
+    input: z.any(),
+    on: [fragileSignal.id],
+  });
+  const producer = trail('fragile.producer', {
+    blaze: async (_input, ctx) => {
+      await ctx.fire?.(fragileSignal, createPayloadWithThrowingGetter());
+      return Result.ok({ ok: true });
+    },
+    fires: [fragileSignal],
+    input: z.object({}),
+  });
+  return {
+    app: topo('fragile-payload-summary', {
+      consumer,
+      fragileSignal,
+      producer,
+    }),
+    invocations,
+  };
+};
+
 const createTraceShapeScenario = () => {
   const leftStarted = createReadyGate();
   const rightStarted = createReadyGate();
@@ -599,6 +639,35 @@ const expectConsumerCrossAttribution = (
   expect(crossRecord.parentId).toBe(consumerRecord.id);
   expect(crossRecord.parentId).not.toBe(producerRecord.id);
   expect(crossRecord.traceId).toBe(producerRecord.traceId);
+};
+
+const signalTraceRecords = (records: readonly TraceRecord[]): TraceRecord[] =>
+  records.filter((record) => record.kind === 'signal');
+
+const findSignalTraceRecord = (
+  records: readonly TraceRecord[],
+  name: string,
+  handlerTrailId?: string
+): TraceRecord => {
+  const record = signalTraceRecords(records).find(
+    (entry) =>
+      entry.name === name &&
+      (handlerTrailId === undefined ||
+        entry.attrs['trails.signal.handler_trail.id'] === handlerTrailId)
+  );
+  if (!record) {
+    throw new Error(`Expected signal trace record "${name}"`);
+  }
+  return record;
+};
+
+const expectSignalRecordParentedToProducer = (
+  record: TraceRecord,
+  producer: TraceRecord
+): void => {
+  expect(record.parentId).toBe(producer.id);
+  expect(record.rootId).toBe(producer.rootId);
+  expect(record.traceId).toBe(producer.traceId);
 };
 
 // ---------------------------------------------------------------------------
@@ -1006,6 +1075,24 @@ describe('fire', () => {
       const [diagnostic] = diagnostics;
       expect(diagnostic?.runId).toBe(producerRecord?.id);
       expect(diagnostic?.traceId).toBe(producerRecord?.traceId);
+
+      const invalidRecord = findSignalTraceRecord(records, 'signal.invalid');
+      expect(invalidRecord.status).toBe('err');
+      expect(invalidRecord.errorCategory).toBe('validation');
+      expect(invalidRecord.attrs).toMatchObject({
+        'trails.signal.id': 'order.placed',
+        'trails.signal.payload.redacted': true,
+        'trails.signal.payload.shape': 'object',
+        'trails.signal.producer_trail.id': 'bad.payload',
+        'trails.signal.schema_issue_count': 2,
+      });
+      expect(invalidRecord.attrs['trails.signal.payload.digest']).toBeString();
+      expect(invalidRecord.attrs['trails.signal.schema_issue_paths']).toContain(
+        'orderId'
+      );
+      if (producerRecord) {
+        expectSignalRecordParentedToProducer(invalidRecord, producerRecord);
+      }
     });
 
     test('consumer fires are rebound to the consumer trace context before diagnostics', async () => {
@@ -1252,6 +1339,54 @@ describe('fire', () => {
         message: 'executor rejected',
         name: 'Error',
       });
+    });
+
+    test('consumer error records a signal.handler.failed trace record', async () => {
+      const records: TraceRecord[] = [];
+      registerTraceSink(createCapturingSink(records));
+
+      try {
+        const scenario = createErrorIsolationScenario();
+        const result = await run(
+          scenario.app,
+          'order.create',
+          {
+            orderId: 'o-3',
+            total: 1,
+          },
+          {
+            ctx: { logger: createWarningLogger(scenario.warnings) },
+          }
+        );
+
+        expect(result.isOk()).toBe(true);
+        const producer = findTrailRecord(records, 'order.create');
+        const failed = findSignalTraceRecord(
+          records,
+          'signal.handler.failed',
+          'notify.broken'
+        );
+        const completed = findSignalTraceRecord(
+          records,
+          'signal.handler.completed',
+          'notify.email'
+        );
+
+        expectSignalRecordParentedToProducer(failed, producer);
+        expectSignalRecordParentedToProducer(completed, producer);
+        expect(failed.status).toBe('err');
+        expect(failed.errorCategory).toBe('internal');
+        expect(failed.attrs).toMatchObject({
+          'trails.signal.error.name': 'Error',
+          'trails.signal.handler_trail.id': 'notify.broken',
+          'trails.signal.id': 'order.placed',
+          'trails.signal.payload.redacted': true,
+          'trails.signal.producer_trail.id': 'order.create',
+        });
+        expect(completed.status).toBe('ok');
+      } finally {
+        clearTraceSink();
+      }
     });
 
     test('starts sibling consumers before the first one settles', async () => {
@@ -1527,6 +1662,122 @@ describe('fire', () => {
           producerTrailId: 'order.create',
           rightTrailId: 'notify.slack',
         });
+      } finally {
+        clearTraceSink();
+      }
+    });
+
+    test('records signal lifecycle trace records with redacted payload summaries', async () => {
+      const records: TraceRecord[] = [];
+      registerTraceSink(createCapturingSink(records));
+
+      try {
+        const scenario = createTraceShapeScenario();
+        const result = await runTraceShapeScenario(scenario);
+        expect(result.isOk()).toBe(true);
+
+        const producer = findTrailRecord(records, 'order.create');
+        const fired = findSignalTraceRecord(records, 'signal.fired');
+        const emailInvoked = findSignalTraceRecord(
+          records,
+          'signal.handler.invoked',
+          'notify.email'
+        );
+        const emailCompleted = findSignalTraceRecord(
+          records,
+          'signal.handler.completed',
+          'notify.email'
+        );
+        const slackInvoked = findSignalTraceRecord(
+          records,
+          'signal.handler.invoked',
+          'notify.slack'
+        );
+        const slackCompleted = findSignalTraceRecord(
+          records,
+          'signal.handler.completed',
+          'notify.slack'
+        );
+
+        for (const record of [
+          fired,
+          emailInvoked,
+          emailCompleted,
+          slackInvoked,
+          slackCompleted,
+        ]) {
+          expectSignalRecordParentedToProducer(record, producer);
+          expect(record.status).toBe('ok');
+          expect(record.attrs).toMatchObject({
+            'trails.signal.id': 'order.placed',
+            'trails.signal.payload.redacted': true,
+            'trails.signal.payload.shape': 'object',
+            'trails.signal.producer_trail.id': 'order.create',
+            'trails.signal.run.id': producer.id,
+          });
+          expect(record.attrs['trails.signal.payload.digest']).toBeString();
+        }
+
+        expect(fired.attrs).toMatchObject({
+          'trails.signal.consumer_count': 2,
+          'trails.signal.consumer_ids': 'notify.email,notify.slack',
+        });
+        expect(JSON.stringify(signalTraceRecords(records))).not.toContain(
+          'o-trace'
+        );
+      } finally {
+        clearTraceSink();
+      }
+    });
+
+    test('skips payload summaries when signal tracing is inactive', async () => {
+      clearTraceSink();
+      const scenario = createThrowingPayloadScenario();
+
+      const result = await run(scenario.app, 'fragile.producer', {});
+
+      expect(result.isOk()).toBe(true);
+      expect(scenario.invocations).toHaveLength(1);
+    });
+
+    test('records redacted payload attrs when trace payload getters throw', async () => {
+      const records: TraceRecord[] = [];
+      registerTraceSink(createCapturingSink(records));
+
+      try {
+        const scenario = createThrowingPayloadScenario();
+        const result = await run(scenario.app, 'fragile.producer', {});
+        expect(result.isOk()).toBe(true);
+        expect(scenario.invocations).toHaveLength(1);
+
+        const producer = findTrailRecord(records, 'fragile.producer');
+        const fired = findSignalTraceRecord(records, 'signal.fired');
+        const invoked = findSignalTraceRecord(
+          records,
+          'signal.handler.invoked',
+          'fragile.consumer'
+        );
+        const completed = findSignalTraceRecord(
+          records,
+          'signal.handler.completed',
+          'fragile.consumer'
+        );
+
+        for (const record of [fired, invoked, completed]) {
+          expectSignalRecordParentedToProducer(record, producer);
+          expect(record.status).toBe('ok');
+          expect(record.attrs).toMatchObject({
+            'trails.signal.id': 'fragile.payload',
+            'trails.signal.payload.redacted': true,
+            'trails.signal.payload.shape': 'object',
+            'trails.signal.producer_trail.id': 'fragile.producer',
+            'trails.signal.run.id': producer.id,
+          });
+          expect(record.attrs['trails.signal.payload.digest']).toBeString();
+        }
+        expect(JSON.stringify(signalTraceRecords(records))).not.toContain(
+          'payload getter exploded'
+        );
       } finally {
         clearTraceSink();
       }

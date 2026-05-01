@@ -8,18 +8,27 @@
  * can continue to import from there.
  *
  * Tracing is intrinsic: every `executeTrail` call automatically produces a
- * root `TraceRecord`, and `ctx.trace(label, fn)` creates nested child spans
- * underneath it. A default no-op sink is installed at module load so core
- * never crashes when no real sink has been registered.
+ * root `TraceRecord`, `ctx.trace(label, fn)` creates nested child spans, and
+ * the signal runtime records lifecycle points underneath the active producer
+ * trace. A default no-op sink is installed at module load so core never
+ * crashes when no real sink has been registered.
  */
 
-/** Evidence of a single trail execution or manual span. */
+/** Signal lifecycle records emitted by the typed signal runtime. */
+export type SignalTraceRecordName =
+  | 'signal.fired'
+  | 'signal.handler.completed'
+  | 'signal.handler.failed'
+  | 'signal.handler.invoked'
+  | 'signal.invalid';
+
+/** Evidence of a single trail execution, manual span, or signal lifecycle point. */
 export interface TraceRecord {
   readonly id: string;
   readonly traceId: string;
   readonly rootId: string;
   readonly parentId?: string | undefined;
-  readonly kind: 'trail' | 'span';
+  readonly kind: 'signal' | 'span' | 'trail';
   readonly name: string;
   readonly trailId?: string | undefined;
   readonly trailhead?: 'cli' | 'mcp' | 'http' | 'ws' | undefined;
@@ -162,6 +171,28 @@ export const createSpanRecord = (
   trailhead: undefined,
 });
 
+/** Build a signal lifecycle record from a parent trace context. */
+export const createSignalTraceRecord = (
+  parent: TraceContext,
+  name: SignalTraceRecordName,
+  attrs: Readonly<Record<string, unknown>> = {}
+): TraceRecord => ({
+  attrs,
+  endedAt: undefined,
+  errorCategory: undefined,
+  id: Bun.randomUUIDv7(),
+  intent: undefined,
+  kind: 'signal',
+  name,
+  parentId: parent.spanId,
+  rootId: parent.rootId,
+  startedAt: Date.now(),
+  status: 'ok',
+  traceId: parent.traceId,
+  trailId: undefined,
+  trailhead: undefined,
+});
+
 /** Mark a record as completed with timing and status. */
 export const completeRecord = (
   record: TraceRecord,
@@ -184,4 +215,27 @@ export const writeToSink = async (
   } catch {
     // Sink failures must never affect trail result delivery.
   }
+};
+
+/** Best-effort write for signal lifecycle records, no-op when tracing is disabled. */
+export const writeSignalTraceRecord = async (
+  ctx: { readonly extensions?: Readonly<Record<string, unknown>> | undefined },
+  name: SignalTraceRecordName,
+  attrs: Readonly<Record<string, unknown>>,
+  status: TraceRecord['status'] = 'ok',
+  errorCategory?: string | undefined
+): Promise<void> => {
+  const sink = getTraceSink();
+  const parent = getTraceContext(ctx);
+  if (parent === undefined || isTracingDisabled(sink)) {
+    return;
+  }
+  await writeToSink(
+    sink,
+    completeRecord(
+      createSignalTraceRecord(parent, name, attrs),
+      status,
+      errorCategory
+    )
+  );
 };

@@ -120,9 +120,11 @@ describe('tracing.query', () => {
       ({ cleanup } = testStore);
       testStore.store.write(
         makeRecord({
+          attrs: { 'trails.surface': 'cli' },
           id: 'rec-abc',
           intent: 'read',
           name: 'user.list',
+          rootId: 'root-abc',
           traceId: 'trace-abc',
           trailId: 'user.list',
           trailhead: 'cli',
@@ -139,11 +141,52 @@ describe('tracing.query', () => {
         intent: 'read',
         kind: 'trail',
         name: 'user.list',
+        rootId: 'root-abc',
         status: 'ok',
         traceId: 'trace-abc',
         trailId: 'user.list',
         trailhead: 'cli',
       });
+      expect(value.records[0]?.attrs).toEqual({ 'trails.surface': 'cli' });
+    });
+
+    test('returns signal trace records from store in state', async () => {
+      const testStore = createTestStore();
+      ({ cleanup } = testStore);
+      testStore.store.write(
+        makeRecord({
+          attrs: {
+            'trails.signal.error.name': 'ValidationError',
+            'trails.signal.id': 'order.placed',
+          },
+          errorCategory: 'validation',
+          id: 'signal-fired',
+          kind: 'signal',
+          name: 'signal.invalid',
+          rootId: 'root-signal',
+          status: 'err',
+          trailId: undefined,
+        })
+      );
+
+      const ctx = buildCtx(stateWithStore(testStore.store));
+      const result = await tracingQuery.blaze({}, ctx);
+      const value = result.unwrap();
+
+      expect(value.count).toBe(1);
+      expect(value.records[0]).toMatchObject({
+        attrs: {
+          'trails.signal.error.name': 'ValidationError',
+          'trails.signal.id': 'order.placed',
+        },
+        errorCategory: 'validation',
+        id: 'signal-fired',
+        kind: 'signal',
+        name: 'signal.invalid',
+        rootId: 'root-signal',
+        status: 'err',
+      });
+      expect(value.records[0]?.trailId).toBeUndefined();
     });
 
     test('filters by trailId', async () => {

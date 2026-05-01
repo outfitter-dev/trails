@@ -6,12 +6,15 @@ import { tracingResource } from '../tracing-resource.js';
 
 /** Output schema for individual trace records. */
 const traceRecordOutput = z.object({
+  attrs: z.record(z.string(), z.unknown()),
   endedAt: z.number().optional(),
+  errorCategory: z.string().optional(),
   id: z.string(),
   intent: z.string().optional(),
-  kind: z.enum(['trail', 'span']),
+  kind: z.enum(['signal', 'span', 'trail']),
   name: z.string(),
   parentId: z.string().optional(),
+  rootId: z.string(),
   startedAt: z.number(),
   status: z.enum(['ok', 'err', 'cancelled']),
   traceId: z.string(),
@@ -27,24 +30,30 @@ const tracingQueryOutput = z.object({
 
 /** Map a TraceRecord to the output shape, dropping internal fields. */
 const mapRecord = (r: {
+  readonly attrs: Readonly<Record<string, unknown>>;
   readonly endedAt?: number | undefined;
+  readonly errorCategory?: string | undefined;
   readonly id: string;
   readonly intent?: string | undefined;
-  readonly kind: 'trail' | 'span';
+  readonly kind: 'signal' | 'span' | 'trail';
   readonly name: string;
   readonly parentId?: string | undefined;
+  readonly rootId: string;
   readonly startedAt: number;
   readonly status: 'ok' | 'err' | 'cancelled';
   readonly trailhead?: string | undefined;
   readonly traceId: string;
   readonly trailId?: string | undefined;
 }) => ({
+  attrs: r.attrs,
   endedAt: r.endedAt,
+  errorCategory: r.errorCategory,
   id: r.id,
   intent: r.intent,
   kind: r.kind,
   name: r.name,
   parentId: r.parentId,
+  rootId: r.rootId,
   startedAt: r.startedAt,
   status: r.status,
   traceId: r.traceId,

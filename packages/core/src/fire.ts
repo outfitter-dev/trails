@@ -28,9 +28,15 @@
 
 import type { z } from 'zod';
 
-import { NotFoundError, ValidationError } from './errors.js';
+import { NotFoundError, TrailsError, ValidationError } from './errors.js';
 import { forkCtx } from './internal/fork-ctx.js';
-import { getTraceContext } from './internal/tracing.js';
+import {
+  getTraceContext,
+  getTraceSink,
+  isTracingDisabled,
+  writeSignalTraceRecord,
+} from './internal/tracing.js';
+import type { SignalTraceRecordName } from './internal/tracing.js';
 import { Result } from './result.js';
 import type { AnySignal } from './signal.js';
 import {
@@ -40,10 +46,14 @@ import {
   createSignalInvalidDiagnostic,
   createSignalUnknownDiagnostic,
   recordSignalDiagnostic,
+  signalDiagnosticCauseFromUnknown,
+  summarizeSignalPayload,
 } from './signal-diagnostics.js';
 import type {
   SignalDiagnostic,
+  SignalDiagnosticSchemaIssue,
   SignalInvalidDiagnostic,
+  SignalPayloadSummary,
 } from './signal-diagnostics.js';
 import type { Topo } from './topo.js';
 import type { AnyTrail } from './trail.js';
@@ -122,6 +132,35 @@ const deriveConsumerCtx = (
       })
     : {};
 
+interface FireDiagnosticMetadata {
+  readonly producerTrailId?: string | undefined;
+  readonly runId?: string | undefined;
+  readonly traceId?: string | undefined;
+}
+
+interface SignalTraceAttrsInput {
+  readonly consumerIds?: readonly string[] | undefined;
+  readonly errorName?: string | undefined;
+  readonly handlerTrailId?: string | undefined;
+  readonly payload?: SignalPayloadSummary | undefined;
+  readonly producerTrailId?: string | undefined;
+  readonly runId?: string | undefined;
+  readonly schemaIssues?: readonly SignalDiagnosticSchemaIssue[] | undefined;
+  readonly signalId: string;
+}
+
+const deriveFireDiagnosticMetadata = (
+  producerCtx: TrailContextInit | undefined,
+  producerTrailId: string | undefined
+): FireDiagnosticMetadata => {
+  const trace = producerCtx ? getTraceContext(producerCtx) : undefined;
+  return {
+    producerTrailId,
+    runId: trace?.spanId,
+    traceId: trace?.traceId,
+  };
+};
+
 const recordRuntimeSignalDiagnostic = async (
   producerCtx: TrailContextInit | undefined,
   diagnostic: SignalDiagnostic
@@ -137,6 +176,104 @@ const recordRuntimeSignalDiagnostic = async (
     });
   }
   return record.promoted;
+};
+
+const deriveSignalErrorCategory = (error: unknown): string =>
+  error instanceof TrailsError ? error.category : 'internal';
+
+const signalIssuePathLabel = (issue: SignalDiagnosticSchemaIssue): string => {
+  if (issue.path.length === 0) {
+    return '$';
+  }
+  return issue.path.map(String).join('.');
+};
+
+const addPayloadSummaryAttrs = (
+  attrs: Record<string, unknown>,
+  payload: SignalPayloadSummary
+): void => {
+  attrs['trails.signal.payload.byte_length'] = payload.byteLength;
+  attrs['trails.signal.payload.digest'] = payload.digest;
+  attrs['trails.signal.payload.redacted'] = payload.redacted;
+  attrs['trails.signal.payload.shape'] = payload.shape;
+  if (payload.topLevelEntryCount !== undefined) {
+    attrs['trails.signal.payload.top_level_entry_count'] =
+      payload.topLevelEntryCount;
+  }
+};
+
+const buildSignalTraceAttrs = (
+  input: SignalTraceAttrsInput
+): Readonly<Record<string, unknown>> => {
+  const attrs: Record<string, unknown> = {
+    'trails.signal.id': input.signalId,
+  };
+
+  if (input.producerTrailId !== undefined) {
+    attrs['trails.signal.producer_trail.id'] = input.producerTrailId;
+  }
+  if (input.runId !== undefined) {
+    attrs['trails.signal.run.id'] = input.runId;
+  }
+  if (input.handlerTrailId !== undefined) {
+    attrs['trails.signal.handler_trail.id'] = input.handlerTrailId;
+  }
+  if (input.consumerIds !== undefined) {
+    attrs['trails.signal.consumer_count'] = input.consumerIds.length;
+    attrs['trails.signal.consumer_ids'] = input.consumerIds
+      .toSorted()
+      .join(',');
+  }
+  if (input.errorName !== undefined) {
+    attrs['trails.signal.error.name'] = input.errorName;
+  }
+  if (input.payload !== undefined) {
+    addPayloadSummaryAttrs(attrs, input.payload);
+  }
+  if (input.schemaIssues !== undefined) {
+    const issuePaths = input.schemaIssues.map(signalIssuePathLabel);
+    attrs['trails.signal.schema_issue_count'] = input.schemaIssues.length;
+    attrs['trails.signal.schema_issue_paths'] = issuePaths.join(',');
+  }
+
+  return attrs;
+};
+
+const recordSignalLifecycleTrace = async (
+  producerCtx: TrailContextInit | undefined,
+  name: SignalTraceRecordName,
+  attrs: Readonly<Record<string, unknown>>,
+  status?: Parameters<typeof writeSignalTraceRecord>[3],
+  errorCategory?: string | undefined
+): Promise<void> => {
+  if (producerCtx === undefined) {
+    return;
+  }
+  await writeSignalTraceRecord(producerCtx, name, attrs, status, errorCategory);
+};
+
+const hasActiveSignalTraceContext = (
+  producerCtx: TrailContextInit | undefined
+): boolean =>
+  producerCtx !== undefined &&
+  getTraceContext(producerCtx) !== undefined &&
+  !isTracingDisabled(getTraceSink());
+
+const summarizeSignalPayloadForTrace = (
+  producerCtx: TrailContextInit | undefined,
+  payload: unknown
+): SignalPayloadSummary | undefined => {
+  if (!hasActiveSignalTraceContext(producerCtx)) {
+    return undefined;
+  }
+  try {
+    return summarizeSignalPayload(payload);
+  } catch (error) {
+    producerCtx?.logger?.debug('Signal payload summary skipped', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return undefined;
+  }
 };
 
 /**
@@ -165,15 +302,28 @@ const fanOutToConsumers = async (
   executor: ConsumerExecutor,
   logger: Logger | undefined
 ): Promise<void> => {
+  const payloadSummary = summarizeSignalPayloadForTrace(producerCtx, payload);
   const settled = await Promise.allSettled(
     consumers.map(async (consumer) => {
       const consumerCtx = bindFire(
         deriveConsumerCtx(producerCtx, signalId, consumer.id),
         consumer.id
       );
+      await recordSignalLifecycleTrace(
+        producerCtx,
+        'signal.handler.invoked',
+        buildSignalTraceAttrs({
+          handlerTrailId: consumer.id,
+          payload: payloadSummary,
+          producerTrailId: diagnosticMetadata.producerTrailId,
+          runId: diagnosticMetadata.runId,
+          signalId,
+        })
+      );
       try {
         const consumerResult = await executor(consumer, payload, consumerCtx);
         if (consumerResult.isErr()) {
+          const cause = signalDiagnosticCauseFromUnknown(consumerResult.error);
           const diagnostic = createSignalHandlerFailedDiagnostic({
             ...diagnosticMetadata,
             cause: consumerResult.error,
@@ -182,14 +332,41 @@ const fanOutToConsumers = async (
             signalId,
           });
           await recordRuntimeSignalDiagnostic(producerCtx, diagnostic);
+          await recordSignalLifecycleTrace(
+            producerCtx,
+            'signal.handler.failed',
+            buildSignalTraceAttrs({
+              errorName: cause.name,
+              handlerTrailId: consumer.id,
+              payload: payloadSummary,
+              producerTrailId: diagnosticMetadata.producerTrailId,
+              runId: diagnosticMetadata.runId,
+              signalId,
+            }),
+            'err',
+            deriveSignalErrorCategory(consumerResult.error)
+          );
           (consumerCtx.logger ?? logger)?.warn('Signal consumer failed', {
             consumerId: consumer.id,
             error: consumerResult.error.message,
             signalId,
           });
+          return consumer.id;
         }
+        await recordSignalLifecycleTrace(
+          producerCtx,
+          'signal.handler.completed',
+          buildSignalTraceAttrs({
+            handlerTrailId: consumer.id,
+            payload: payloadSummary,
+            producerTrailId: diagnosticMetadata.producerTrailId,
+            runId: diagnosticMetadata.runId,
+            signalId,
+          })
+        );
         return consumer.id;
       } catch (error) {
+        const cause = signalDiagnosticCauseFromUnknown(error);
         const diagnostic = createSignalHandlerRejectedDiagnostic({
           ...diagnosticMetadata,
           cause: error,
@@ -198,6 +375,20 @@ const fanOutToConsumers = async (
           signalId,
         });
         await recordRuntimeSignalDiagnostic(producerCtx, diagnostic);
+        await recordSignalLifecycleTrace(
+          producerCtx,
+          'signal.handler.failed',
+          buildSignalTraceAttrs({
+            errorName: cause.name,
+            handlerTrailId: consumer.id,
+            payload: payloadSummary,
+            producerTrailId: diagnosticMetadata.producerTrailId,
+            runId: diagnosticMetadata.runId,
+            signalId,
+          }),
+          'err',
+          deriveSignalErrorCategory(error)
+        );
         throw error;
       }
     })
@@ -219,24 +410,6 @@ const fanOutToConsumers = async (
       signalId,
     });
   }
-};
-
-interface FireDiagnosticMetadata {
-  readonly producerTrailId?: string | undefined;
-  readonly runId?: string | undefined;
-  readonly traceId?: string | undefined;
-}
-
-const deriveFireDiagnosticMetadata = (
-  producerCtx: TrailContextInit | undefined,
-  producerTrailId: string | undefined
-): FireDiagnosticMetadata => {
-  const trace = producerCtx ? getTraceContext(producerCtx) : undefined;
-  return {
-    producerTrailId,
-    runId: trace?.spanId,
-    traceId: trace?.traceId,
-  };
 };
 
 const recordInvalidSignalDiagnostic = async (
@@ -341,6 +514,19 @@ const resolveFireDispatch = async (
       producerCtx,
       diagnostic
     );
+    await recordSignalLifecycleTrace(
+      producerCtx,
+      'signal.invalid',
+      buildSignalTraceAttrs({
+        payload: diagnostic.payload,
+        producerTrailId: diagnostic.producerTrailId,
+        runId: diagnostic.runId,
+        schemaIssues: diagnostic.schemaIssues,
+        signalId,
+      }),
+      'err',
+      'validation'
+    );
     return Result.err(
       createInvalidPayloadError(signalId, parsed.message, diagnostic, promoted)
     );
@@ -432,6 +618,20 @@ export const createFireFn = (
     if (dispatch.isErr()) {
       return Result.err(dispatch.error);
     }
+    await recordSignalLifecycleTrace(
+      producerCtx,
+      'signal.fired',
+      buildSignalTraceAttrs({
+        consumerIds: dispatch.value.consumers.map((consumer) => consumer.id),
+        payload: summarizeSignalPayloadForTrace(
+          producerCtx,
+          dispatch.value.payload
+        ),
+        producerTrailId: diagnosticMetadata.producerTrailId,
+        runId: diagnosticMetadata.runId,
+        signalId,
+      })
+    );
     await fanOutToConsumers(
       dispatch.value.consumers,
       dispatch.value.payload,
