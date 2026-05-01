@@ -20,6 +20,7 @@ claude plugin install trails@trails
 | `trails-derive-from-source` | Derive framework facts from owner exports instead of shadow registries or duplicated maps. |
 | `trails-dogfood-check` | Review framework code against Trails' own Result, cwd, loading, and host-boundary rules. |
 | `trails-error-format` | Review error taxonomy, projection, redaction, retryability, and Result-vs-throw boundaries. |
+| `trails-discriminate-union` | Review public/queryable union-like outputs for stable branch discriminants. |
 
 ### Agent
 
