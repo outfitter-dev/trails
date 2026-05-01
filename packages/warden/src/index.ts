@@ -67,7 +67,6 @@ export {
   intentPropagationTrail,
   missingVisibilityTrail,
   missingReconcileTrail,
-  noDirectImplInRouteTrail,
   noDirectImplementationCallTrail,
   noSyncResultAssumptionTrail,
   noThrowInDetourRecoverTrail,

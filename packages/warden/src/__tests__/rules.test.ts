@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
 import { contextNoSurfaceTypes } from '../rules/context-no-surface-types.js';
-import { noDirectImplInRoute } from '../rules/no-direct-impl-in-route.js';
 import { noThrowInImplementation } from '../rules/no-throw-in-implementation.js';
 
 const TEST_FILE = 'test.ts';
@@ -110,58 +109,6 @@ const trail = "entity.show";
 ns[trail]("entity.show", { blaze: async () => Result.ok(null) });
 export function handleRequest(req: Request, res: Response) {}`;
     const diagnostics = contextNoSurfaceTypes.check(code, TEST_FILE);
-    expect(diagnostics.length).toBe(0);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// no-direct-impl-in-route
-// ---------------------------------------------------------------------------
-describe('no-direct-impl-in-route', () => {
-  test('warns on direct .blaze() call in trail with crossings', () => {
-    const code = `
-trail("entity.onboard", {
-  crosses: ["entity.create"],
-  blaze: async (input, ctx) => {
-    const result = await entityCreate.blaze(data);
-    return Result.ok(result);
-  }
-})`;
-    const diagnostics = noDirectImplInRoute.check(code, TEST_FILE);
-    expect(diagnostics.length).toBe(1);
-    expect(diagnostics[0]?.severity).toBe('warn');
-    expect(diagnostics[0]?.message).toContain('ctx.cross');
-  });
-
-  test('allows ctx.cross() calls', () => {
-    const code = `
-trail("entity.onboard", {
-  crosses: ["entity.create"],
-  blaze: async (input, ctx) => {
-    const result = await ctx.cross("entity.create", data);
-    return Result.ok(result);
-  }
-})`;
-    const diagnostics = noDirectImplInRoute.check(code, TEST_FILE);
-    expect(diagnostics.length).toBe(0);
-  });
-
-  test('ignores trails without crossings', () => {
-    const code = `
-trail("entity.show", {
-  blaze: async (input, ctx) => {
-    const result = await someTrail.blaze(data);
-    return Result.ok(result);
-  }
-})`;
-    const diagnostics = noDirectImplInRoute.check(code, TEST_FILE);
-    expect(diagnostics.length).toBe(0);
-  });
-
-  test('ignores files without trail() calls', () => {
-    const code = `
-const result = await someTrail.blaze(data);`;
-    const diagnostics = noDirectImplInRoute.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(0);
   });
 });
