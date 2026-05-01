@@ -179,6 +179,12 @@ export const builtinWardenRuleMetadata = {
     scope: 'advisory',
     tier: 'source-static',
   },
+  'public-internal-deep-imports': {
+    invariant: 'Cross-package imports stay on package-owned public exports.',
+    lifecycle: { state: 'durable' },
+    scope: 'internal',
+    tier: 'source-static',
+  },
   'reference-exists': {
     ...durableExternal,
     invariant: 'Reference declarations resolve to known contours.',

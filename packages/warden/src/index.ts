@@ -93,6 +93,7 @@ export {
   permitGovernanceTrail,
   preferSchemaInferenceTrail,
   projectAwareRuleInput,
+  publicInternalDeepImportsTrail,
   referenceExistsTrail,
   ruleInput,
   ruleOutput,

@@ -32,6 +32,7 @@ import { orphanedSignal } from './orphaned-signal.js';
 import { ownerProjectionParity } from './owner-projection-parity.js';
 import { permitGovernance } from './permit-governance.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
+import { publicInternalDeepImports } from './public-internal-deep-imports.js';
 import { referenceExists } from './reference-exists.js';
 import { resourceDeclarations } from './resource-declarations.js';
 import { resourceExists } from './resource-exists.js';
@@ -74,6 +75,7 @@ export const registeredRuleNames: readonly string[] = [
   ownerProjectionParity.name,
   permitGovernance.name,
   preferSchemaInference.name,
+  publicInternalDeepImports.name,
   referenceExists.name,
   resourceDeclarations.name,
   resourceExists.name,

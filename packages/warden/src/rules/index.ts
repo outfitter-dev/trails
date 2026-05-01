@@ -24,6 +24,7 @@ import { orphanedSignal } from './orphaned-signal.js';
 import { ownerProjectionParity } from './owner-projection-parity.js';
 import { permitGovernance } from './permit-governance.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
+import { publicInternalDeepImports } from './public-internal-deep-imports.js';
 import { referenceExists } from './reference-exists.js';
 import { resourceDeclarations } from './resource-declarations.js';
 import { resourceExists } from './resource-exists.js';
@@ -85,6 +86,7 @@ export { orphanedSignal } from './orphaned-signal.js';
 export { ownerProjectionParity } from './owner-projection-parity.js';
 export { permitGovernance } from './permit-governance.js';
 export { preferSchemaInference } from './prefer-schema-inference.js';
+export { publicInternalDeepImports } from './public-internal-deep-imports.js';
 export { referenceExists } from './reference-exists.js';
 export { resourceDeclarations } from './resource-declarations.js';
 export { resourceExists } from './resource-exists.js';
@@ -116,6 +118,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [onReferencesExist.name, onReferencesExist],
   [orphanedSignal.name, orphanedSignal],
   [ownerProjectionParity.name, ownerProjectionParity],
+  [publicInternalDeepImports.name, publicInternalDeepImports],
   [resourceDeclarations.name, resourceDeclarations],
   [referenceExists.name, referenceExists],
   [resourceIdGrammar.name, resourceIdGrammar],
