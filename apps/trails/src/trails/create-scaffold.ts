@@ -393,7 +393,6 @@ export const createScaffold = trail('create.scaffold', {
       .default('hello')
       .describe('Starter trail'),
   }),
-  meta: { internal: true },
   output: z.object({
     created: z
       .array(z.string())
@@ -413,4 +412,5 @@ export const createScaffold = trail('create.scaffold', {
       ])
     ),
   }),
+  visibility: 'internal',
 });

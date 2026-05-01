@@ -9,9 +9,15 @@ import type { CiFormat } from '../formatters.js';
 import type { CiFailOn } from '../governance.js';
 import { runCiGovernance } from '../governance.js';
 
+import { resolveCiRootDir } from './root-dir.js';
+
 export const ciWardenTrail = trail('ci.warden', {
   blaze: async (input, ctx) => {
-    const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
+    const rootDirResult = resolveCiRootDir(input.rootDir, ctx.cwd);
+    if (rootDirResult.isErr()) {
+      return Result.err(rootDirResult.error);
+    }
+    const rootDir = rootDirResult.value;
     const format: CiFormat = input.format ?? 'json';
     const failOn: CiFailOn = input.failOn ?? 'error';
     const result = await runCiGovernance({ failOn, format, rootDir });

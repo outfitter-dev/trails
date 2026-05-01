@@ -141,6 +141,10 @@ const createMcpServer = (
 
 /**
  * Build MCP tools from a topo and create an MCP server.
+ *
+ * @remarks This is a host materialization boundary. Derivation failures are
+ * thrown for server bootstrap code after `deriveMcpTools` has already
+ * represented the framework error as a Result.
  */
 export const createServer = (
   graph: Topo,

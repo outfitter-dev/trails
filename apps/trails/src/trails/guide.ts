@@ -7,13 +7,14 @@
 import { NotFoundError, Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { loadFreshAppLease } from './load-app.js';
+import { tryLoadFreshAppLease } from './load-app.js';
 import { trailDetailOutput } from './topo-output-schemas.js';
 import {
   buildCurrentGuideEntries,
   buildCurrentTopoDetail,
 } from './topo-read-support.js';
 import { createIsolatedExampleInput } from './topo-support.js';
+import { resolveTrailRootDir } from './root-dir.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,8 +33,16 @@ interface GuideEntry {
 
 export const guideTrail = trail('guide', {
   blaze: async (input, ctx) => {
-    const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
-    const lease = await loadFreshAppLease(input.module, rootDir);
+    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
+    if (rootDirResult.isErr()) {
+      return Result.err(rootDirResult.error);
+    }
+    const rootDir = rootDirResult.value;
+    const leaseResult = await tryLoadFreshAppLease(input.module, rootDir);
+    if (leaseResult.isErr()) {
+      return Result.err(leaseResult.error);
+    }
+    const lease = leaseResult.value;
 
     try {
       if (input.trailId) {

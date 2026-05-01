@@ -26,7 +26,8 @@ import { z } from 'zod';
 
 import { writeIsolatedExampleJsonFile } from '../local-state-io.js';
 
-import { loadFreshAppLease } from './load-app.js';
+import { tryLoadFreshAppLease } from './load-app.js';
+import { resolveTrailRootDir } from './root-dir.js';
 import {
   buildCurrentTopoBrief,
   buildCurrentTopoList,
@@ -311,22 +312,40 @@ const detailInputSchema = z.object({
   rootDir: z.string().optional().describe('Workspace root directory'),
 });
 
-const resolveRootDir = (
-  input: { readonly rootDir?: string | undefined },
-  cwd?: string | undefined
-): string => input.rootDir ?? cwd ?? process.cwd();
-
 const withFreshSurveyApp = async <T>(
   input: { readonly module?: string | undefined },
   rootDir: string,
   consume: (app: Topo) => Promise<Result<T, Error>> | Result<T, Error>
 ): Promise<Result<T, Error>> => {
-  const lease = await loadFreshAppLease(input.module, rootDir);
+  const leaseResult = await tryLoadFreshAppLease(input.module, rootDir);
+  if (leaseResult.isErr()) {
+    return Result.err(leaseResult.error);
+  }
+  const lease = leaseResult.value;
   try {
     return await consume(lease.app);
   } finally {
     lease.release();
   }
+};
+
+const withResolvedSurveyApp = async <T>(
+  input: {
+    readonly module?: string | undefined;
+    readonly rootDir?: string | undefined;
+  },
+  cwd: string | undefined,
+  consume: (
+    app: Topo,
+    rootDir: string
+  ) => Promise<Result<T, Error>> | Result<T, Error>
+): Promise<Result<T, Error>> => {
+  const rootDirResult = resolveTrailRootDir(input.rootDir, cwd);
+  if (rootDirResult.isErr()) {
+    return Result.err(rootDirResult.error);
+  }
+  const rootDir = rootDirResult.value;
+  return withFreshSurveyApp(input, rootDir, (app) => consume(app, rootDir));
 };
 
 const moduleInputSchema = z.object({
@@ -372,12 +391,10 @@ const surveyMatchOutput = z.discriminatedUnion('kind', [
 
 export const surveyTrail = trail('survey', {
   args: ['id'],
-  blaze: async (input, ctx) => {
-    const rootDir = resolveRootDir(input, ctx.cwd);
-    return withFreshSurveyApp(input, rootDir, (app) =>
+  blaze: async (input, ctx) =>
+    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
       dispatchSurvey(app, input, rootDir)
-    );
-  },
+    ),
   description: 'Full topo introspection',
   examples: [
     {
@@ -445,12 +462,10 @@ export const surveyTrail = trail('survey', {
 });
 
 export const surveyBriefTrail = trail('survey.brief', {
-  blaze: async (input, ctx) => {
-    const rootDir = resolveRootDir(input, ctx.cwd);
-    return withFreshSurveyApp(input, rootDir, (app) =>
+  blaze: async (input, ctx) =>
+    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
       Result.ok(buildCurrentTopoBrief(app, { rootDir }))
-    );
-  },
+    ),
   description: 'Summarize topo capabilities',
   examples: [
     {
@@ -465,12 +480,10 @@ export const surveyBriefTrail = trail('survey.brief', {
 });
 
 export const surveyDiffTrail = trail('survey.diff', {
-  blaze: async (input, ctx) => {
-    const rootDir = resolveRootDir(input, ctx.cwd);
-    return withFreshSurveyApp(input, rootDir, (app) =>
+  blaze: async (input, ctx) =>
+    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
       buildSurveyDiff(app, rootDir, input.breakingOnly, input.against)
-    );
-  },
+    ),
   description: 'Diff the current topo against a saved surface map',
   examples: [
     {
@@ -515,12 +528,10 @@ export const surveyDiffTrail = trail('survey.diff', {
 
 export const surveyTrailDetailTrail = trail('survey.trail', {
   args: ['id'],
-  blaze: async (input, ctx) => {
-    const rootDir = resolveRootDir(input, ctx.cwd);
-    return withFreshSurveyApp(input, rootDir, (app) =>
+  blaze: async (input, ctx) =>
+    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
       buildSurveyTrailDetail(app, input.id, rootDir)
-    );
-  },
+    ),
   description: 'Inspect one trail by ID',
   examples: [
     {
@@ -539,12 +550,10 @@ export const surveyTrailDetailTrail = trail('survey.trail', {
 
 export const surveyResourceTrail = trail('survey.resource', {
   args: ['id'],
-  blaze: async (input, ctx) => {
-    const rootDir = resolveRootDir(input, ctx.cwd);
-    return withFreshSurveyApp(input, rootDir, (app) =>
+  blaze: async (input, ctx) =>
+    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
       buildSurveyResourceDetail(app, input.id, rootDir)
-    );
-  },
+    ),
   description: 'Inspect one resource by ID',
   examples: [
     {
@@ -564,12 +573,10 @@ export const surveyResourceTrail = trail('survey.resource', {
 
 export const surveySignalTrail = trail('survey.signal', {
   args: ['id'],
-  blaze: async (input, ctx) => {
-    const rootDir = resolveRootDir(input, ctx.cwd);
-    return withFreshSurveyApp(input, rootDir, (app) =>
+  blaze: async (input, ctx) =>
+    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
       buildSurveySignalDetail(app, input.id, rootDir)
-    );
-  },
+    ),
   description: 'Inspect one signal by ID',
   examples: [
     {

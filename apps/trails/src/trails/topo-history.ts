@@ -7,10 +7,15 @@ import {
   listTopoHistory,
   topoSnapshotOutput,
 } from './topo-support.js';
+import { resolveTrailRootDir } from './root-dir.js';
 
 export const topoHistoryTrail = trail('topo.history', {
   blaze: (input, ctx) => {
-    const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
+    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
+    if (rootDirResult.isErr()) {
+      return Result.err(rootDirResult.error);
+    }
+    const rootDir = rootDirResult.value;
     return Result.ok(listTopoHistory({ limit: input.limit, rootDir }));
   },
   description: 'List saved topo snapshots, including pinned references',

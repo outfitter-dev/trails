@@ -125,8 +125,8 @@ export const addVerify = trail('add.verify', {
       .regex(PROJECT_NAME_PATTERN, PROJECT_NAME_MESSAGE)
       .describe('Project name'),
   }),
-  meta: { internal: true },
   output: z.object({
     created: z.array(z.string()),
   }),
+  visibility: 'internal',
 });

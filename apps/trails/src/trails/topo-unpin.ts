@@ -6,6 +6,7 @@ import {
   removePinnedTopoSnapshot,
   topoSnapshotOutput,
 } from './topo-support.js';
+import { resolveTrailRootDir } from './root-dir.js';
 
 export const topoUnpinTrail = trail('topo.unpin', {
   blaze: (input, ctx) => {
@@ -17,7 +18,11 @@ export const topoUnpinTrail = trail('topo.unpin', {
       );
     }
 
-    const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
+    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
+    if (rootDirResult.isErr()) {
+      return Result.err(rootDirResult.error);
+    }
+    const rootDir = rootDirResult.value;
     return Result.ok(
       removePinnedTopoSnapshot({
         dryRun: input.dryRun,

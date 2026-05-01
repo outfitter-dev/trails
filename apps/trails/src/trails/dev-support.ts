@@ -21,9 +21,11 @@ import {
 
 import { removeRootRelativeFileIfPresent } from '../local-state-io.js';
 
+import { requireTrailRootDir } from './root-dir.js';
+
 export const DEFAULT_TOPO_SNAPSHOT_RETENTION = 50;
 
-const deriveRootDir = (cwd?: string): string => cwd ?? process.cwd();
+const deriveRootDir = (cwd?: string): string => requireTrailRootDir(cwd);
 
 const removeResetFileIfPresent = (
   rootDir: string,
