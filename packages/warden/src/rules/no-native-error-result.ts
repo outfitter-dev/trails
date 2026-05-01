@@ -1,4 +1,5 @@
 import { identifierName, offsetToLine, parse, walk } from './ast.js';
+import { isFrameworkInternalFile } from './scan.js';
 import type { AstNode } from './ast.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
@@ -69,6 +70,7 @@ const createDiagnostic = (
 export const noNativeErrorResult: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
     if (
+      isFrameworkInternalFile(filePath) ||
       !sourceCode.includes('Result.err') ||
       !sourceCode.includes('new Error')
     ) {

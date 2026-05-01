@@ -5,7 +5,7 @@
  * error propagation from downstream trails.
  */
 
-import { trail, Result } from '@ontrails/core';
+import { InternalError, Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
@@ -15,7 +15,7 @@ import { z } from 'zod';
 export const onboard = trail('entity.onboard', {
   blaze: async (input, ctx) => {
     if (!ctx.cross) {
-      return Result.err(new Error('Route requires a cross function'));
+      return Result.err(new InternalError('Route requires a cross function'));
     }
 
     const added = await ctx.cross<{

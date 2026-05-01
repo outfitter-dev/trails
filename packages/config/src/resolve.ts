@@ -5,7 +5,7 @@
 
 import type { z } from 'zod';
 
-import { Result } from '@ontrails/core';
+import { Result, ValidationError } from '@ontrails/core';
 
 import { collectConfigMeta } from './collect.js';
 import { deepMerge } from './merge.js';
@@ -275,5 +275,7 @@ export const deriveConfig = <T extends z.ZodType>(
     return Result.ok(parsed.data as z.infer<T>);
   }
 
-  return Result.err(new Error(formatValidationError(parsed.error.issues)));
+  return Result.err(
+    new ValidationError(formatValidationError(parsed.error.issues))
+  );
 };

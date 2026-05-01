@@ -51,4 +51,19 @@ export const load = () => {
 
     expect(noNativeErrorResult.check(code, TEST_FILE)).toEqual([]);
   });
+
+  test('ignores framework-internal test helpers', () => {
+    const code = `
+import { Result } from '@ontrails/core';
+
+export const inject = () => Result.err(new Error('AlreadyExistsError'));
+`;
+
+    const diagnostics = noNativeErrorResult.check(
+      code,
+      '/workspace/packages/testing/src/crosses.ts'
+    );
+
+    expect(diagnostics).toEqual([]);
+  });
 });
