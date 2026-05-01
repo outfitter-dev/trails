@@ -1,12 +1,14 @@
 /**
- * Validates that registered transport error mappers cover every error category.
+ * Validates that registered surface error mappers cover every error category.
  *
- * Scans `createTransportErrorMapper(...)` calls and resolves simple object
- * literals, identifier bindings, and object-property references in the same
- * file so incomplete mapper registrations are caught before they ship.
+ * Scans `createSurfaceErrorMapper(...)` and compatibility
+ * `createTransportErrorMapper(...)` calls, then resolves simple object
+ * literals, identifier bindings, and object-property references in the same file
+ * so incomplete mapper registrations are caught before they ship.
  */
 
-import { errorCategories } from '@ontrails/core';
+import { codesByCategory, errorClasses } from '@ontrails/core';
+import type { ErrorCategory } from '@ontrails/core';
 
 import {
   getStringValue,
@@ -24,6 +26,21 @@ const MEMBER_EXPRESSION_TYPES = new Set([
   'MemberExpression',
   'StaticMemberExpression',
 ]);
+
+const MAPPER_FACTORY_NAMES = new Set([
+  'createSurfaceErrorMapper',
+  'createTransportErrorMapper',
+]);
+
+const mappedErrorClassCategories = new Set(
+  errorClasses.flatMap((entry) =>
+    entry.category === 'dynamic' ? [] : [entry.category]
+  )
+);
+
+const requiredErrorCategories = (
+  Object.keys(codesByCategory) as ErrorCategory[]
+).filter((category) => mappedErrorClassCategories.has(category));
 
 const getPropertyName = (node: AstNode | undefined): string | null => {
   if (!node) {
@@ -176,7 +193,7 @@ const createDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Transport error mapper is missing mappings for: ${missingCategories.join(', ')}. Registered createTransportErrorMapper() calls must cover every ErrorCategory.`,
+  message: `Surface error mapper is missing mappings for: ${missingCategories.join(', ')}. Registered createSurfaceErrorMapper() and compatibility createTransportErrorMapper() calls must cover every ErrorCategory.`,
   rule: 'error-mapping-completeness',
   severity: 'error',
 });
@@ -189,12 +206,12 @@ const getCallCallee = (node: AstNode): AstNode | undefined =>
 
 const isMapperFactoryCall = (node: AstNode): boolean =>
   node.type === 'CallExpression' &&
-  identifierName(getCallCallee(node)) === 'createTransportErrorMapper';
+  MAPPER_FACTORY_NAMES.has(identifierName(getCallCallee(node)) ?? '');
 
 const findMissingCategories = (
   mappedCategories: ReadonlySet<string>
 ): readonly string[] =>
-  errorCategories.filter((category) => !mappedCategories.has(category));
+  requiredErrorCategories.filter((category) => !mappedCategories.has(category));
 
 const resolveMappedCategories = (
   node: AstNode,
@@ -233,13 +250,15 @@ const inspectMapperCall = (
 };
 
 /**
- * Flags `createTransportErrorMapper()` registrations that omit error categories.
+ * Flags registered surface error mapper calls that omit error categories.
  */
 export const errorMappingCompleteness: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
     if (
       isTestFile(filePath) ||
-      !sourceCode.includes('createTransportErrorMapper')
+      ![...MAPPER_FACTORY_NAMES].some((factoryName) =>
+        sourceCode.includes(factoryName)
+      )
     ) {
       return [];
     }
@@ -267,7 +286,7 @@ export const errorMappingCompleteness: WardenRule = {
     return diagnostics;
   },
   description:
-    'Require registered transport error mappers to cover every ErrorCategory.',
+    'Require registered surface error mappers to cover every ErrorCategory.',
   name: 'error-mapping-completeness',
   severity: 'error',
 };
