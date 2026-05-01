@@ -89,6 +89,7 @@ export {
   noThrowInImplementationTrail,
   onReferencesExistTrail,
   orphanedSignalTrail,
+  ownerProjectionParityTrail,
   permitGovernanceTrail,
   preferSchemaInferenceTrail,
   projectAwareRuleInput,

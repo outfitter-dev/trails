@@ -21,6 +21,7 @@ import { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
 import { onReferencesExist } from './on-references-exist.js';
 import { orphanedSignal } from './orphaned-signal.js';
+import { ownerProjectionParity } from './owner-projection-parity.js';
 import { permitGovernance } from './permit-governance.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
 import { referenceExists } from './reference-exists.js';
@@ -81,6 +82,7 @@ export { noSyncResultAssumption } from './no-sync-result-assumption.js';
 export { implementationReturnsResult } from './implementation-returns-result.js';
 export { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
 export { orphanedSignal } from './orphaned-signal.js';
+export { ownerProjectionParity } from './owner-projection-parity.js';
 export { permitGovernance } from './permit-governance.js';
 export { preferSchemaInference } from './prefer-schema-inference.js';
 export { referenceExists } from './reference-exists.js';
@@ -113,6 +115,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [missingReconcile.name, missingReconcile],
   [onReferencesExist.name, onReferencesExist],
   [orphanedSignal.name, orphanedSignal],
+  [ownerProjectionParity.name, ownerProjectionParity],
   [resourceDeclarations.name, resourceDeclarations],
   [referenceExists.name, referenceExists],
   [resourceIdGrammar.name, resourceIdGrammar],

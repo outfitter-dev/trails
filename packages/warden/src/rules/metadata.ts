@@ -162,6 +162,12 @@ export const builtinWardenRuleMetadata = {
       'Derived store signals are consumed by matching trail listeners.',
     tier: 'project-static',
   },
+  'owner-projection-parity': {
+    invariant: 'Framework projections stay aligned with owner exports.',
+    lifecycle: { state: 'durable' },
+    scope: 'internal',
+    tier: 'source-static',
+  },
   'permit-governance': {
     ...durableExternal,
     invariant: 'Destroy trails declare explicit permit requirements.',
