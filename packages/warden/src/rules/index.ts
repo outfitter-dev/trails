@@ -34,13 +34,28 @@ import { wardenExportSymmetry } from './warden-export-symmetry.js';
 import { wardenRulesUseAst } from './warden-rules-use-ast.js';
 
 export type {
+  WardenRuleLifecycle,
+  WardenRuleLifecycleState,
+  WardenRuleMetadata,
+  WardenRuleScope,
   ProjectAwareWardenRule,
   ProjectContext,
   TopoAwareWardenRule,
   WardenDiagnostic,
   WardenRule,
+  WardenRuleTier,
   WardenSeverity,
 } from './types.js';
+
+export {
+  builtinWardenRuleMetadata,
+  getWardenRuleMetadata,
+  listWardenRuleMetadata,
+  wardenRuleLifecycleStates,
+  wardenRuleScopes,
+  wardenRuleTiers,
+} from './metadata.js';
+export type { BuiltinWardenRuleName } from './metadata.js';
 
 export { noThrowInImplementation } from './no-throw-in-implementation.js';
 export { circularRefs } from './circular-refs.js';

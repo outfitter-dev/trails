@@ -127,6 +127,9 @@ to build all built-in rule trails.
 | `formatWardenReport(report)` | Human-readable report |
 | `checkDrift(rootDir, topo?)` | Check if the lock file matches the current topo |
 | `wardenRules` | Registry of all built-in rules |
+| `builtinWardenRuleMetadata` | Tier, scope, lifecycle, and invariant metadata for built-in rules |
+| `getWardenRuleMetadata(ruleOrName)` | Resolve inline or built-in metadata for a Warden rule |
+| `listWardenRuleMetadata()` | List built-in rule metadata entries |
 | `wardenTopo` | `Topo` of all built-in rule trails (one per rule) |
 | `runWardenTrails(filePath, sourceCode, options?)` | Dispatch file-scoped rule trails for a file, collect diagnostics |
 | `runTopoAwareWardenTrails(topo)` | Dispatch built-in topo-aware rule trails once for a resolved topo |

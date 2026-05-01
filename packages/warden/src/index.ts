@@ -9,16 +9,31 @@
 
 // Rule types
 export type {
+  BuiltinWardenRuleName,
   ProjectAwareWardenRule,
   ProjectContext,
   TopoAwareWardenRule,
   WardenDiagnostic,
   WardenRule,
+  WardenRuleLifecycle,
+  WardenRuleLifecycleState,
+  WardenRuleMetadata,
+  WardenRuleScope,
+  WardenRuleTier,
   WardenSeverity,
 } from './rules/index.js';
 
 // Rule registry
-export { wardenRules, wardenTopoRules } from './rules/index.js';
+export {
+  builtinWardenRuleMetadata,
+  getWardenRuleMetadata,
+  listWardenRuleMetadata,
+  wardenRuleLifecycleStates,
+  wardenRuleScopes,
+  wardenRuleTiers,
+  wardenRules,
+  wardenTopoRules,
+} from './rules/index.js';
 
 // Rule-scoped cache controls for long-lived consumers (watch mode, LSPs).
 export { clearImplementationReturnsResultCache } from './rules/implementation-returns-result.js';

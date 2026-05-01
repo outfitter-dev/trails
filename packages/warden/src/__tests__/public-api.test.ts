@@ -4,6 +4,14 @@ import * as warden from '@ontrails/warden';
 import { parse, walk } from '@ontrails/warden/ast';
 
 describe('@ontrails/warden public API', () => {
+  test('exports built-in rule metadata from the root entrypoint', () => {
+    expect(warden.getWardenRuleMetadata('permit-governance')?.tier).toBe(
+      'topo-aware'
+    );
+    expect(warden.wardenRuleTiers).toContain('source-static');
+    expect(warden.listWardenRuleMetadata().length).toBeGreaterThan(0);
+  });
+
   test('keeps parser helpers on the ast entrypoint', () => {
     expect('parse' in warden).toBe(false);
     expect('walk' in warden).toBe(false);
