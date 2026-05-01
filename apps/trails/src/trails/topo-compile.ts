@@ -1,8 +1,9 @@
-import { trail } from '@ontrails/core';
-import type { Result, Topo } from '@ontrails/core';
+import { Result, trail } from '@ontrails/core';
+import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { loadFreshAppLease } from './load-app.js';
+import { tryLoadFreshAppLease } from './load-app.js';
+import { resolveTrailRootDir } from './root-dir.js';
 import { exportCurrentTopo } from './topo-store-support.js';
 import type { TopoExportReport } from './topo-support.js';
 import {
@@ -17,8 +18,16 @@ export const compileCurrentTopo = async (
 
 export const topoCompileTrail = trail('topo.compile', {
   blaze: async (input, ctx) => {
-    const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
-    const lease = await loadFreshAppLease(input.module, rootDir);
+    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
+    if (rootDirResult.isErr()) {
+      return Result.err(rootDirResult.error);
+    }
+    const rootDir = rootDirResult.value;
+    const leaseResult = await tryLoadFreshAppLease(input.module, rootDir);
+    if (leaseResult.isErr()) {
+      return Result.err(leaseResult.error);
+    }
+    const lease = leaseResult.value;
     try {
       return await compileCurrentTopo(lease.app, { rootDir });
     } finally {

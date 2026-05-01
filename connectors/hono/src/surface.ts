@@ -468,6 +468,10 @@ const registerErrorHandler = (hono: Hono): void => {
 
 /**
  * Build HTTP routes from a topo and register them on a Hono app.
+ *
+ * @remarks This is a host materialization boundary. Derivation failures are
+ * thrown for HTTP bootstrap code after `deriveHttpRoutes` has already
+ * represented the framework error as a Result.
  */
 export const createApp = (
   graph: Topo,

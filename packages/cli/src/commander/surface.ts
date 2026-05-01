@@ -62,6 +62,10 @@ const deriveCommanderOptions = (
 
 /**
  * Create a Commander program from a topo without parsing argv.
+ *
+ * @remarks This is a host materialization boundary. Derivation failures are
+ * thrown for the caller's CLI bootstrap code after `deriveCliCommands` has
+ * already represented the framework error as a Result.
  */
 export const createProgram = (
   graph: Topo,

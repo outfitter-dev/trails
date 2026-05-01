@@ -8,9 +8,15 @@ import { z } from 'zod';
 
 import { createDriftOnlyReport, evaluateCiGovernance } from '../governance.js';
 
+import { resolveCiRootDir } from './root-dir.js';
+
 export const ciDriftTrail = trail('ci.drift', {
   blaze: async (input, ctx) => {
-    const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
+    const rootDirResult = resolveCiRootDir(input.rootDir, ctx.cwd);
+    if (rootDirResult.isErr()) {
+      return Result.err(rootDirResult.error);
+    }
+    const rootDir = rootDirResult.value;
     const driftResult = await checkDrift(rootDir);
     const output = evaluateCiGovernance({
       driftResult,

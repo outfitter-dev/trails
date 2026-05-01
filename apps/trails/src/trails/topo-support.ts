@@ -16,6 +16,7 @@ import {
   writeIsolatedExampleAppModule,
 } from '../local-state-io.js';
 
+import { requireTrailRootDir } from './root-dir.js';
 import type { BriefReport, SurveyListReport } from './topo-reports.js';
 
 /** Output schema for a topo snapshot record. Shared across topo trails. */
@@ -68,7 +69,7 @@ export interface TopoVerifyReport {
   readonly stale: false;
 }
 
-export const deriveRootDir = (cwd?: string): string => cwd ?? process.cwd();
+export const deriveRootDir = (cwd?: string): string => requireTrailRootDir(cwd);
 
 const safeGit = (cwd: string, args: readonly string[]): string | undefined => {
   const proc = Bun.spawnSync({

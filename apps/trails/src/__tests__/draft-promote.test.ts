@@ -268,6 +268,37 @@ describe('draft.promote', () => {
     }
   });
 
+  test('promotes an absolute root without context cwd', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeDraftPromoteFixture(dir);
+
+      const result = expectOk(
+        await draftPromoteTrail.blaze(
+          {
+            fromId: '_draft.entity.prepare',
+            renameFiles: true,
+            rootDir: dir,
+            toId: 'entity.prepare',
+          },
+          {} as never
+        )
+      );
+
+      expect(result.promotedEstablished).toBe(true);
+      expect(result.renamedFiles).toEqual([
+        {
+          from: 'src/_draft.prepare.ts',
+          to: 'src/prepare.ts',
+        },
+      ]);
+      expectDraftPromoteResults(dir);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('returns ValidationError when rootDir does not exist', async () => {
     const error = expectErr(
       await draftPromoteTrail.blaze(

@@ -5,6 +5,7 @@
  */
 
 import { Result, trail } from '@ontrails/core';
+import type { Topo } from '@ontrails/core';
 import {
   formatGitHubAnnotations,
   formatJson,
@@ -15,7 +16,8 @@ import {
 } from '@ontrails/warden';
 import { z } from 'zod';
 
-import { loadApp } from './load-app.js';
+import { tryLoadApp } from './load-app.js';
+import { resolveTrailRootDir } from './root-dir.js';
 
 // ---------------------------------------------------------------------------
 // Trail definition
@@ -23,16 +25,20 @@ import { loadApp } from './load-app.js';
 
 export const wardenTrail = trail('warden', {
   blaze: async (input, ctx) => {
-    const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
-    // oxlint-disable-next-line prefer-await-to-then -- catch preserves graceful degradation
-    const topo = await loadApp(input.module, rootDir).catch(
-      (error: unknown): undefined => {
-        ctx.logger?.warn('Could not load app for topo-aware governance', {
-          error: error instanceof Error ? error.message : String(error),
-        });
-        return undefined;
-      }
-    );
+    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
+    if (rootDirResult.isErr()) {
+      return Result.err(rootDirResult.error);
+    }
+    const rootDir = rootDirResult.value;
+    const loadedTopo = await tryLoadApp(input.module, rootDir);
+    let topo: Topo | undefined;
+    if (loadedTopo.isOk()) {
+      topo = loadedTopo.value;
+    } else {
+      ctx.logger?.warn('Could not load app for topo-aware governance', {
+        error: loadedTopo.error.message,
+      });
+    }
 
     const report = await runWarden({
       driftOnly: input.driftOnly,

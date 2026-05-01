@@ -15,7 +15,14 @@ import {
 } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { deriveSafePath, PermissionError } from '@ontrails/core';
+import {
+  deriveSafePath,
+  InternalError,
+  isTrailsError,
+  PermissionError,
+  Result,
+  ValidationError,
+} from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { findAppModule } from '@ontrails/cli';
 
@@ -153,6 +160,13 @@ const trustBoundaryError = (reason: string): PermissionError =>
   new PermissionError(
     `Refusing to load an app module outside the workspace trust boundary (${reason}). Use a workspace-relative module path, or pass trustedModulePath: true from trusted code.`
   );
+
+const toLoadAppError = (error: unknown): Error =>
+  isTrailsError(error)
+    ? error
+    : new InternalError('Failed to load app module', {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      });
 
 const isPathInside = (root: string, target: string): boolean => {
   const candidate = relative(root, target);
@@ -641,7 +655,7 @@ const resolveLoadedTopo = (
     | Topo
     | undefined;
   if (!app?.trails) {
-    throw new Error(
+    throw new ValidationError(
       `Could not find a Topo export in "${effectivePath}". ` +
         "Expected a default, 'graph', or 'app' named export created with topo()."
     );
@@ -714,6 +728,18 @@ export const loadFreshAppLease = async (
     : await createFilesystemLease(absolutePath, cwd, effectivePath);
 };
 
+export const tryLoadFreshAppLease = async (
+  modulePath: string | undefined,
+  cwd: string,
+  options: LoadAppLeaseOptions = {}
+): Promise<Result<FreshAppLease, Error>> => {
+  try {
+    return Result.ok(await loadFreshAppLease(modulePath, cwd, options));
+  } catch (error) {
+    return Result.err(toLoadAppError(error));
+  }
+};
+
 /**
  * Load a Topo export from a module path relative to cwd.
  *
@@ -745,4 +771,16 @@ export const loadApp = async (
             : pathToFileURL(resolvedModulePath).href
         )) as Record<string, unknown>);
   return resolveLoadedTopo(effectivePath, mod);
+};
+
+export const tryLoadApp = async (
+  modulePath: string | undefined,
+  cwd: string,
+  options: LoadAppOptions = {}
+): Promise<Result<Topo, Error>> => {
+  try {
+    return Result.ok(await loadApp(modulePath, cwd, options));
+  } catch (error) {
+    return Result.err(toLoadAppError(error));
+  }
 };

@@ -1,7 +1,8 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { loadFreshAppLease } from './load-app.js';
+import { tryLoadFreshAppLease } from './load-app.js';
+import { resolveTrailRootDir } from './root-dir.js';
 import {
   createIsolatedExampleInput,
   pinCurrentTopoSnapshot,
@@ -10,8 +11,16 @@ import {
 
 export const topoPinTrail = trail('topo.pin', {
   blaze: async (input, ctx) => {
-    const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
-    const lease = await loadFreshAppLease(input.module, rootDir);
+    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
+    if (rootDirResult.isErr()) {
+      return Result.err(rootDirResult.error);
+    }
+    const rootDir = rootDirResult.value;
+    const leaseResult = await tryLoadFreshAppLease(input.module, rootDir);
+    if (leaseResult.isErr()) {
+      return Result.err(leaseResult.error);
+    }
+    const lease = leaseResult.value;
     try {
       return Result.ok(
         pinCurrentTopoSnapshot(lease.app, { name: input.name, rootDir })

@@ -1,5 +1,12 @@
 import { existsSync, statSync } from 'node:fs';
-import { basename, dirname, join, relative, resolve } from 'node:path';
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+} from 'node:path';
 
 import {
   Result,
@@ -25,8 +32,10 @@ import type {
   PlannedProjectOperation,
   ProjectWriteOperation,
 } from '../project-writes.js';
-import { loadFreshAppLease } from './load-app.js';
+import type { FreshAppLease } from './load-app.js';
+import { tryLoadFreshAppLease } from './load-app.js';
 import { findTopoPath } from './project.js';
+import { resolveTrailRootDir } from './root-dir.js';
 
 interface PromotionEdit {
   readonly end: number;
@@ -248,9 +257,22 @@ const resolveValidatedPromotionRoot = (
     return validation;
   }
 
-  const cwd = resolve(ctx.cwd ?? process.cwd());
-  const rootDir =
-    input.rootDir === undefined ? cwd : resolve(cwd, input.rootDir);
+  let rootDir: string;
+  if (input.rootDir === undefined) {
+    const cwdResult = resolveTrailRootDir(undefined, ctx.cwd);
+    if (cwdResult.isErr()) {
+      return cwdResult;
+    }
+    rootDir = resolve(cwdResult.value);
+  } else if (isAbsolute(input.rootDir)) {
+    rootDir = resolve(input.rootDir);
+  } else {
+    const cwdResult = resolveTrailRootDir(undefined, ctx.cwd);
+    if (cwdResult.isErr()) {
+      return cwdResult;
+    }
+    rootDir = resolve(cwdResult.value, input.rootDir);
+  }
   const rootValidation = validatePromotionRoot(rootDir);
   if (rootValidation.isErr()) {
     return rootValidation;
@@ -660,7 +682,7 @@ const resolvePromotionAppModule = async (
 type LeaseAttempt =
   | {
       readonly ok: true;
-      readonly lease: Awaited<ReturnType<typeof loadFreshAppLease>>;
+      readonly lease: FreshAppLease;
     }
   | { readonly ok: false; readonly loadError: string };
 
@@ -668,12 +690,11 @@ const tryAcquireLease = async (
   appModule: string,
   rootDir: string
 ): Promise<LeaseAttempt> => {
-  try {
-    return { lease: await loadFreshAppLease(appModule, rootDir), ok: true };
-  } catch (error) {
-    const loadError = error instanceof Error ? error.message : String(error);
-    return { loadError, ok: false };
+  const loaded = await tryLoadFreshAppLease(appModule, rootDir);
+  if (loaded.isErr()) {
+    return { loadError: loaded.error.message, ok: false };
   }
+  return { lease: loaded.value, ok: true };
 };
 
 const withVerifiedApp = async <T>(

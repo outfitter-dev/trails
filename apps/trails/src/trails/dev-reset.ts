@@ -2,6 +2,7 @@ import { Result, ValidationError, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { resetDevState } from './dev-support.js';
+import { resolveTrailRootDir } from './root-dir.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 
 export const devResetTrail = trail('dev.reset', {
@@ -14,7 +15,11 @@ export const devResetTrail = trail('dev.reset', {
       );
     }
 
-    const rootDir = input.rootDir ?? ctx.cwd ?? process.cwd();
+    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
+    if (rootDirResult.isErr()) {
+      return Result.err(rootDirResult.error);
+    }
+    const rootDir = rootDirResult.value;
     return Result.ok(resetDevState({ dryRun: input.dryRun, rootDir }));
   },
   description: 'Remove local Trails database artifacts',
