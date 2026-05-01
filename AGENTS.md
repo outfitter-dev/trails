@@ -42,7 +42,8 @@ The architecture is designed to make consistency easier than drift. Agents build
 1. Contracts are at the core of how Trails works, and the contract for how Trails is worked on is governed by our [Tenets](docs/tenets.md).
 2. Decisions that define what Trails is, and what it is not, are defined by our [ADRs](docs/adr/README.md).
    - Future directions for Trails are outlined in speculative or [draft ADRs](docs/adr/drafts/README.md).
-3. We keep a log of our working notes, session recaps, learnings, etc. in `.agents/notes/` (gitignored — local only) as a historical record of our journey.
+3. Durable Warden rule methodology lives in [Rule Design](docs/rule-design.md).
+4. We keep a log of our working notes, session recaps, learnings, etc. in `.agents/notes/` (gitignored — local only) as a historical record of our journey.
 
 ## Lexicon
 

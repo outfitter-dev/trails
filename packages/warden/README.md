@@ -1,20 +1,23 @@
 # @ontrails/warden
 
-AST-based code convention rules for Trails. Built-in lint rules catch contract violations at development time, alongside lock drift detection and CI formatters.
+AST-based code convention rules for Trails. Built-in lint rules catch contract
+violations at development time, alongside lock drift detection and CI
+formatters.
 
-Structural checks (cross target existence, declared resource existence, recursive crossing, example schema validation) live in `validateTopo()` from `@ontrails/core`. Warden handles the code-level rules that need AST analysis.
+Structural checks (cross target existence, declared resource existence,
+recursive crossing, example schema validation) live in `validateTopo()` from
+`@ontrails/core`. Warden handles the code-level rules that need AST analysis.
 
-For rule-home boundaries and authoring doctrine, see the [Warden guide](../../docs/warden.md).
+For rule-home boundaries and authoring doctrine, see the
+[Warden guide](../../docs/warden.md) and
+[Rule Design](../../docs/rule-design.md).
 
 ## Usage
 
 From the Trails CLI:
 
 ```bash
-trails warden              # Run all checks
-trails warden --exit-code  # Non-zero exit on errors or drift
-trails warden --lint-only  # Skip drift detection
-trails warden --drift-only # Skip lint rules
+bunx trails warden # Run all checks
 ```
 
 Or programmatically:
@@ -28,24 +31,22 @@ console.log(formatWardenReport(report));
 
 ## Rules
 
-| Rule | Severity | What it catches |
-| --- | --- | --- |
-| `no-throw-in-implementation` | error | `throw` inside blaze bodies |
-| `implementation-returns-result` | error | Blaze functions returning raw values instead of `Result` |
-| `context-no-surface-types` | error | Surface type imports (`Request`, `McpSession`) in trail files |
-| `no-sync-result-assumption` | error | Missing `await` on `.blaze()` results |
-| `valid-detour-contract` | error | Detours with non-constructor `on` values or non-callable `recover` values |
-| `no-throw-in-detour-recover` | error | `throw` inside detour `recover` functions |
-| `unreachable-detour-shadowing` | error | Later detours made unreachable by earlier same-or-broader `on:` error types |
-| `no-direct-implementation-call` | warn | Direct `.blaze()` calls bypassing `ctx.cross()` |
-| `no-direct-impl-in-route` | warn | Direct `.blaze()` calls inside trail bodies with `crosses` |
-| `prefer-schema-inference` | warn | Redundant field overrides already derivable from the schema |
-| `cross-declarations` | error/warn | `ctx.cross()` calls that drift from declared `crosses: [...]` |
-| `resource-declarations` | error/warn | `resource.from(ctx)` / `ctx.resource()` usage that drifts from declared `resources: [...]` |
-| `resource-exists` | error | Declared or referenced resource IDs that do not resolve in project context |
-| `valid-describe-refs` | warn | `@see` refs in `.describe()` that do not resolve |
-| `draft-file-marking` | error | Draft-bearing files missing `_draft.*` or `*.draft.*` filename markers |
-| `draft-visible-debt` | warn | Draft IDs remaining in source files that need promotion or removal |
+Built-in rules are registered in `wardenRules` and `wardenTopoRules`; use those
+registries or `wardenTopo.ids()` for the current rule list instead of copying a
+static table into docs.
+
+Rules cover several families:
+
+- blaze and `Result` contract checks
+- cross, fire, resource, and detour declaration drift
+- draft-state containment
+- source-static guardrails such as surface-type leakage
+- topo-aware checks that need the resolved graph or resource mock shape
+
+When adding or auditing rules, follow [Rule Design](../../docs/rule-design.md):
+name the invariant, import owner-held framework data, choose the narrowest
+Warden tier, and collapse families only when the data model, traversal, and
+diagnostic shape are shared.
 
 ## Drift detection
 
@@ -68,14 +69,18 @@ Add to lefthook for pre-push enforcement:
 pre-push:
   commands:
     warden:
-      run: trails warden --exit-code
+      run: bunx trails warden
       tags: governance
 ```
 
 CI formatters for structured output:
 
 ```typescript
-import { formatGitHubAnnotations, formatJson, formatSummary } from '@ontrails/warden';
+import {
+  formatGitHubAnnotations,
+  formatJson,
+  formatSummary,
+} from '@ontrails/warden';
 ```
 
 Parser helpers for rule authoring and repo-local tooling live on the dedicated
@@ -87,7 +92,8 @@ import { findStringLiterals, parse, walk } from '@ontrails/warden/ast';
 
 ## Trail-based API
 
-Every built-in warden rule is also available as a composable trail. This makes rules queryable, testable, and invocable through any Trails surface.
+Every built-in warden rule is also available as a composable trail. This makes
+rules queryable, testable, and invocable through any Trails surface.
 
 ```typescript
 import {
@@ -109,7 +115,9 @@ const diagnostics = await runWardenTrails(filePath, sourceCode, {
 const topoDiagnostics = await runTopoAwareWardenTrails(myApp);
 ```
 
-To wrap a custom rule as a trail, use `wrapRule` (imported from `@ontrails/warden/trails/wrap-rule`). This is the same factory used internally to build all built-in rule trails.
+To wrap a custom rule as a trail, use `wrapRule` (imported from
+`@ontrails/warden/trails/wrap-rule`). This is the same factory used internally
+to build all built-in rule trails.
 
 ## API
 
