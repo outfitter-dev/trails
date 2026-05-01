@@ -54,12 +54,12 @@
     },
     {
       "created": "2026-03-31",
-      "depends_on": ["3", "4", "13", "typed-signal-emission"],
+      "depends_on": ["3", "4", "13", "38"],
       "inbound": [
         {
-          "context": "- [ADR: Reactive Trail Activation](20260331-reactive-trail-activation.md) (draft) — depends on this ADR; `on:` declarations consume signals for reactive activation",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
+          "context": "- [ADR: Reactive Trail Activation](drafts/20260331-reactive-trail-activation.md)",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-typed-signal-emission.md"
         }
       ],
       "number": null,
@@ -73,27 +73,14 @@
     },
     {
       "created": "2026-03-31",
-      "depends_on": ["2", "3", "6", "7", "13"],
+      "depends_on": ["38"],
       "inbound": [
         {
-          "context": "- [ADR: Typed Signal Emission](20260331-typed-signal-emission.md) (draft) — **this ADR depends on it**; provides `ctx.signal()`, the `fires` declaration, lifecycle signals, and the signal routing pipe",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
+          "context": "- [ADR: WebSocket Trailhead](drafts/20260331-websocket-trailhead.md) (draft) -",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-typed-signal-emission.md"
         }
       ],
-      "number": null,
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260331-typed-signal-emission.md",
-      "slug": "typed-signal-emission",
-      "status": "draft",
-      "superseded_by": null,
-      "title": "Typed Signal Emission",
-      "updated": "2026-04-09"
-    },
-    {
-      "created": "2026-03-31",
-      "depends_on": ["typed-signal-emission"],
-      "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260331-websocket-trailhead.md",
@@ -266,11 +253,6 @@
           "context": "- [ADR: Unified Observability](20260409-unified-observability.md) (draft) — tracing moves into core; activation provenance is recorded intrinsically by the execution pipeline",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
-        },
-        {
-          "context": "- [ADR: Unified Observability](20260409-unified-observability.md) (draft) — tracing moves into core; signal delivery outcomes are recorded intrinsically by the execution pipeline",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
           "context": "- [ADR: Unified Observability](20260409-unified-observability.md) (draft) -- tracing system that provides WebSocket connection observability",

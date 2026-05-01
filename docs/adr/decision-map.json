@@ -125,6 +125,11 @@
           "fromPath": "docs/adr/0037-owner-first-authority.md"
         },
         {
+          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) - signals reinforce the",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-typed-signal-emission.md"
+        },
+        {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; `trails run` makes every trail directly invocable without trailhead ceremony",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -148,11 +153,6 @@
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — \"derive by default\"; `on:` declares activation, the framework derives the reactive graph",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
-        },
-        {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — \"derive by default\"; framework lifecycle events are derived from execution observation",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"trailheads are peers\"; WebSocket is the fourth trailhead, following the same patterns as CLI, MCP, and HTTP",
@@ -308,9 +308,9 @@
           "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
         },
         {
-          "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the error taxonomy maps to categorized failure events",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
+          "context": "- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) - producer",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-typed-signal-emission.md"
         },
         {
           "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the Result and error taxonomy that gains `VersionNotSupportedError`",
@@ -377,6 +377,11 @@
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
         {
+          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) -",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-typed-signal-emission.md"
+        },
+        {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- every trail is runnable, whether atomic or composite",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -395,11 +400,6 @@
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — trails with `on:` are still trails. Activation is a property.",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
-        },
-        {
-          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — `fires` is a new property on the trail spec",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the trail as the single unit of work, the unit that versioning targets",
@@ -569,6 +569,11 @@
           "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
         },
         {
+          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) -",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-typed-signal-emission.md"
+        },
+        {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` executes through the pipeline, the same as every trailhead",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -577,11 +582,6 @@
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- rigged trails execute through the same pipeline",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
-        },
-        {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — lifecycle events are emitted by `executeTrail`",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- trail invocations over WebSocket execute through the pipeline",
@@ -658,9 +658,9 @@
           "fromPath": "docs/adr/0037-owner-first-authority.md"
         },
         {
-          "context": "- [ADR-0007: Governance as Trails](../0007-governance-as-trails.md) — warden rules for event declarations",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
+          "context": "- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) - Warden",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-typed-signal-emission.md"
         },
         {
           "context": "- **[ADR-0007: Governance as Trails](./adr/0007-governance-as-trails.md)** — Warden rules are trails, AST-based analysis",
@@ -742,7 +742,7 @@
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
         },
         {
-          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- trail IDs map to WebSocket method names, event IDs map to subscription channels",
+          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- trail IDs map to WebSocket method names; future delivery would map signal IDs to signal channels",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
         },
@@ -1002,6 +1002,11 @@
           "fromPath": "docs/adr/0028-concurrent-crossing.md"
         },
         {
+          "context": "- [ADR-0013: Tracing](0013-tracing.md) - signal records extend runtime",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-typed-signal-emission.md"
+        },
+        {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- the tracing primitive; live tracing during `trails run`, historical tracing via `trails trace`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -1025,11 +1030,6 @@
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) — tracing records activation provenance on every execution",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
-        },
-        {
-          "context": "- [ADR-0013: Tracing](../0013-tracing.md) — tracing records emission and delivery metadata",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- observability and replay buffer backing store",
@@ -1241,6 +1241,11 @@
           "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) -- the lockfile captures composition shapes including parallel crossing patterns",
           "from": "0028",
           "fromPath": "docs/adr/0028-concurrent-crossing.md"
+        },
+        {
+          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) -",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-typed-signal-emission.md"
         },
         {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`",
@@ -1516,14 +1521,14 @@
           "fromPath": "docs/adr/0028-concurrent-crossing.md"
         },
         {
+          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) -",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-typed-signal-emission.md"
+        },
+        {
           "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` complements signal-based activation; `on:` is for reactive decoupling, `crosses` is for direct compositi",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
-        },
-        {
-          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` complements signal-based decoupling; signals are for loose coupling, crosses are for typed direct compos",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
         },
         {
           "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- `crossInput` follows the same \"compose schemas, project the union\" pattern as layer input schemas",
@@ -1579,14 +1584,14 @@
           "fromPath": "docs/adr/0037-owner-first-authority.md"
         },
         {
-          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) — signal delivery semantics (retry, dead-letter, discard) ",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
+          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md) -",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-typed-signal-emission.md"
         },
         {
-          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) — signal delivery semantics (retry, dead-letter, discard) ",
+          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) — future delivery semantics may use error categories, but ",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-typed-signal-emission.md"
+          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
         {
           "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) -- WebSocket close code mapping deferred there; the error ",
@@ -1858,7 +1863,7 @@
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- `ingest()` factory for webhook-to-trail flows that can feed events to WebSocket subscribers",
+          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- `ingest()` factory for webhook-to-trail flows that can feed signals to WebSocket subscribers",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
         }
@@ -1937,6 +1942,11 @@
           "fromPath": "docs/adr/0037-owner-first-authority.md"
         },
         {
+          "context": "Use it with [Warden](./warden.md), [ADR-0036](./adr/0036-warden-rules-ship-only-as-trails.md),",
+          "from": "rule-design",
+          "fromPath": "docs/rule-design.md"
+        },
+        {
           "context": "4. Wrap built-in rules as trails, in line with [ADR-0036](./adr/0036-warden-rules-ship-only-as-trails.md).",
           "from": "warden",
           "fromPath": "docs/warden.md"
@@ -1954,7 +1964,13 @@
     {
       "created": "2026-04-30",
       "depends_on": ["0", "7", "26", "35", "36"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "and [ADR-0037](./adr/0037-owner-first-authority.md).",
+          "from": "rule-design",
+          "fromPath": "docs/rule-design.md"
+        }
+      ],
       "number": "0037",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0037-owner-first-authority.md",
@@ -1963,6 +1979,30 @@
       "superseded_by": null,
       "title": "Owner-First Authority",
       "updated": "2026-04-30"
+    },
+    {
+      "created": "2026-03-31",
+      "depends_on": ["2", "3", "6", "7", "13", "17", "24", "26"],
+      "inbound": [
+        {
+          "context": "- [ADR-0038: Typed Signal Emission](../0038-typed-signal-emission.md) — **this ADR depends on it**; provides `ctx.fire(signal, payload)`, `fires`, `on`, and the authored signal graph",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
+        },
+        {
+          "context": "- [ADR-0038: Typed Signal Emission](../0038-typed-signal-emission.md) -- provides typed `ctx.fire(signal, payload)` records; external subscription delivery remains deferred to this draft",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        }
+      ],
+      "number": "0038",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0038-typed-signal-emission.md",
+      "slug": "typed-signal-emission",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Typed Signal Emission",
+      "updated": "2026-05-01"
     }
   ],
   "version": 1

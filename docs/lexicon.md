@@ -397,7 +397,7 @@ These rules carry over from ADR-0001 and govern how the lexicon composes:
 
 - **Singular nouns define:** `trail()`, `signal()`, `resource()`
 - **Plural fields declare:** `signals:`, `resources:`, `crosses:`, `fires:`, `on:`
-- **Runtime verbs are plain actions:** `run()`, `cross()`, `signal()`
+- **Runtime verbs are plain actions:** `run()`, `cross()`, `ctx.fire()`
 - **`create*` for runtime instances:** `createLogger()`, `createConsoleLogger()`
 - **`derive*` for derivations:** `deriveFields()`, `deriveFlags()`
 - **`validate*` for verification:** `validateInput()`, `validateTopo()`

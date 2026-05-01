@@ -5,7 +5,7 @@ status: draft
 created: 2026-03-31
 updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [3, 4, 13, typed-signal-emission]
+depends_on: [3, 4, 13, 38]
 ---
 
 # ADR: Reactive Trail Activation
@@ -18,14 +18,14 @@ Every trail in a topo is callable: a trailhead or `run()` can invoke it with inp
 
 This means the framework can't see the reactive graph. Survey reports what trails exist and what they cross. It can't report what activates them. The warden governs trail contracts and composition. It can't govern activation. Tracing records what happened. It can't attribute the execution to a trigger source.
 
-### Real applications are event-driven
+### Real applications are activation-driven
 
 The patterns are everywhere:
 
 - A Stripe webhook triggers booking confirmation
 - A nightly schedule triggers data archival
 - A trail failure triggers an alert or compensation
-- An emitted event triggers a downstream trail
+- A fired signal activates a downstream trail
 - A config change triggers a cache invalidation
 
 Developers build these patterns today with application code: webhook handlers call `run()`, schedulers call `run()`, error handlers call `run()`. The activation logic works, but it's invisible to the framework. The trigger, the condition, and the action are disconnected.
@@ -38,7 +38,12 @@ If someone wants "when X happens, do A then B then C with branching," the answer
 
 ### Depends on: Typed Signal Emission
 
-The Typed Signal Emission ADR establishes `ctx.signal()`, the `fires` declaration, and framework lifecycle signals (`trail.completed`, `trail.failed`, `trail.failed.<category>`). Activation sources consume the signal routing pipeline. Trail completions and failures are lifecycle signals emitted by the framework. Rather than implementing separate activation types for these, the `on:` system listens for signals — both authored and framework-emitted — through one mechanism.
+ADR-0038 establishes `ctx.fire(signal, payload)`, the `fires` declaration, and
+typed signal contracts that can be consumed through `on:`. It explicitly leaves
+framework lifecycle signal families, durable delivery, and source materializers
+to later decisions. This draft builds on the accepted authored-signal runtime
+and explores the additional activation sources that would make those deferred
+pieces real.
 
 ## Decision
 
@@ -124,7 +129,10 @@ The `input` field on a scheduled fire source provides static input for each invo
 
 #### Signal fire sources
 
-Activation when a signal is emitted. This covers authored signals (via `ctx.signal()`) AND framework lifecycle signals (`trail.completed`, `trail.failed`, `trail.failed.<category>`). One fire source type, one routing mechanism.
+Activation when a signal is fired. In the accepted signal runtime this covers
+authored signals via `ctx.fire(signal, payload)`. Framework lifecycle signals
+(`trail.completed`, `trail.failed`, `trail.failed.<category>`) remain a future
+decision.
 
 **Authored signal fire source:**
 
@@ -137,7 +145,7 @@ const notifyBooking = trail('notify.booking-confirmed', {
 });
 ```
 
-**Trail failure fire source (categorized lifecycle signal):**
+**Proposed trail failure activation source (categorized lifecycle signal):**
 
 ```typescript
 const billingConflictResolve = trail('billing.conflict-resolve', {
@@ -151,11 +159,11 @@ const billingConflictResolve = trail('billing.conflict-resolve', {
 });
 ```
 
-The execution pipeline emits categorized failure signals: `trail.failed.conflict`, `trail.failed.auth`, `trail.failed.timeout`, etc. Each maps to an error taxonomy category. The fire source binds to a specific category and filters further with `where`. The error taxonomy compounds with fire sources: the 13 error classes become signal vocabulary for reactive error handling.
+If this draft is accepted, the execution pipeline would be able to produce categorized lifecycle signals such as `trail.failed.conflict`, `trail.failed.auth`, and `trail.failed.timeout`. Each would map to an error taxonomy category. The activation source would bind to a specific category and filter further with `where`. The error taxonomy would compound with activation sources: the error classes become signal vocabulary for reactive error handling.
 
 #### Webhook fire sources
 
-Activation when an external system sends a webhook payload.
+Proposed activation when an external system sends a webhook payload.
 
 ```typescript
 const githubEventReceived = trail('github.event.received', {
@@ -174,7 +182,7 @@ Webhook verification is permit resolution for this activation path — it produc
 
 ### Conditional fire sources with `where`
 
-Fire sources can include a predicate that filters activations:
+Proposed fire sources can include a predicate that filters activations:
 
 ```typescript
 const highValueApproval = trail('approval.high-value', {
@@ -201,7 +209,7 @@ where: {
 },
 ```
 
-`testExamples` validates the predicate against these examples. The fire condition is part of the contract, testable without the actual signal source.
+`testExamples` would validate the predicate against these examples. The fire condition would be part of the contract, testable without the actual signal source.
 
 ### Multiple fire sources on one trail
 
@@ -217,20 +225,19 @@ const healthCheck = trail('health.check-all', {
 });
 ```
 
-Each fire source is an independent activation path. The trail's implementation doesn't know which one fired (by design: the trail is the execution layer, not the activation layer).
+Each proposed fire source is an independent activation path. The trail's implementation would not know which one fired (by design: the trail is the execution layer, not the activation layer).
 
 ### Fire source resolution and the lockfile
 
-When a topo is constructed, the framework resolves all fire sources. The lockfile captures the full reactive graph:
+If this draft is implemented, topo construction would resolve fire sources and the lockfile would capture the full reactive graph:
 
-- **Schedule fire sources** register with the scheduler.
-- **Signal fire sources** register as listeners on the signal routing pipeline.
-- **Webhook fire sources** register endpoints on the HTTP trailhead.
+- **Schedule fire sources** would register with the scheduler.
+- **Signal fire sources** would register with the signal routing pipeline.
+- **Webhook fire sources** would register endpoints on the HTTP trailhead.
 
-The lockfile records every fire source on every trail, including overrides. This makes the reactive graph inspectable without running the app:
+The lockfile would record every fire source on every trail, including overrides. This would make the reactive graph inspectable without running the app:
 
-```bash
-$ trails survey --on
+```text
 Activation:
   booking.confirm          ← webhook:stripe (payment_intent.succeeded)
   booking.send-reminders   ← schedule (0 * * * *)
@@ -243,7 +250,7 @@ Reactive chains:
 
 The reactive chain is derived by tracing: a fire source activates a trail, the trail signals, and that signal activates the next trail. The full activation path is inspectable.
 
-Invalid fire sources are caught at construction time:
+Invalid fire sources would be caught at construction time:
 
 - A signal fire source referencing a signal ID that no trail declares and that isn't a framework lifecycle signal: warning.
 - A fire source with a `where` predicate whose input type doesn't match the signal payload schema: error.
@@ -306,7 +313,7 @@ Tracing queries can filter by fire source type: "show me all scheduled execution
 ### Tradeoffs
 
 - **New field on the trail spec.** `on` adds a concept to learn. The justification: activation is genuinely new information that the framework can't derive.
-- **Activation resolution adds startup cost.** Topo construction resolves `on:` sources: register schedules, bind signal listeners, register webhook endpoints.
+- **Activation resolution adds startup cost.** Topo construction resolves `on:` sources: register schedules, bind signal consumers, register webhook endpoints.
 - **Complex reactive chains.** Deep chains are inspectable via survey and the lockfile, and the warden detects cycles, but emergent behavior of long chains requires attention.
 - **Runtime suppression is narrower than static activation governance.** Warden can detect authored activation cycles in the graph, but the runtime still suppresses re-entrant delivery by signal-id membership in the current fire stack. That prevents infinite loops while over-suppressing some legitimate diamond paths until per-path provenance is promoted.
 - **Scheduled activation needs runtime infrastructure.** `Bun.cron` for production, mock scheduler for testing.
@@ -325,8 +332,8 @@ Tracing queries can filter by fire source type: "show me all scheduled execution
 - [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — trails with `on:` are still trails. Activation is a property.
 - [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) — intent compounds with activation; lifecycle signals filter by intent
 - [ADR-0013: Tracing](../0013-tracing.md) — tracing records activation provenance on every execution
-- [ADR: Typed Signal Emission](20260331-typed-signal-emission.md) (draft) — **this ADR depends on it**; provides `ctx.signal()`, the `fires` declaration, lifecycle signals, and the signal routing pipeline
-- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) — signal delivery semantics (retry, dead-letter, discard) for activation failures derive from the error taxonomy
+- [ADR-0038: Typed Signal Emission](../0038-typed-signal-emission.md) — **this ADR depends on it**; provides `ctx.fire(signal, payload)`, `fires`, `on`, and the authored signal graph
+- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) — future delivery semantics may use error categories, but ADR-0038 does not define retry or dead-letter behavior
 - [ADR: Unified Observability](20260409-unified-observability.md) (draft) — tracing moves into core; activation provenance is recorded intrinsically by the execution pipeline
 - [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` complements signal-based activation; `on:` is for reactive decoupling, `crosses` is for direct composition
 - [ADR: Layer Evolution](20260409-layer-evolution.md) (draft) — pipeline stages (auth, recording) apply automatically to activated trails
