@@ -41,6 +41,8 @@ The tier affects execution shape, not ownership. A source-static check can still
 Built-in rule classifications are exposed as metadata from `@ontrails/warden`;
 use that metadata when tooling needs to group rules by tier, scope, or
 lifecycle.
+`runWarden({ tier })` can execute one tier at a time; omitting `tier` preserves
+the full lint-plus-drift run.
 
 ## Authoring Durable Rules
 

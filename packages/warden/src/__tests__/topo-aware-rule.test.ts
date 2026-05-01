@@ -88,6 +88,69 @@ describe('TopoAwareWardenRule dispatch', () => {
     }
   });
 
+  test('CLI dispatches topo-aware tier rules when selected explicitly', async () => {
+    const dir = makeTempDir();
+    try {
+      const seen: string[] = [];
+      const report = await runWarden({
+        extraTopoRules: [buildPlaceholderRule(seen)],
+        rootDir: dir,
+        tier: 'topo-aware',
+        topo: buildFixtureTopo(),
+      });
+
+      expect(seen).toEqual(['fixture']);
+      expect(
+        report.diagnostics.some((d) => d.rule === 'placeholder-topo-aware')
+      ).toBe(true);
+      expect(report.drift).toBeNull();
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('topo-aware tier does not dispatch source rules', async () => {
+    const dir = makeTempDir();
+    try {
+      await Bun.write(
+        join(dir, 'bad-source.ts'),
+        `trail('x', { blaze: async () => { throw new Error('x'); } })`
+      );
+      const seen: string[] = [];
+      const report = await runWarden({
+        extraTopoRules: [buildPlaceholderRule(seen)],
+        rootDir: dir,
+        tier: 'topo-aware',
+        topo: buildFixtureTopo(),
+      });
+      const rules = new Set(report.diagnostics.map((d) => d.rule));
+
+      expect(seen).toEqual(['fixture']);
+      expect(rules.has('placeholder-topo-aware')).toBe(true);
+      expect(rules.has('no-throw-in-implementation')).toBe(false);
+      expect(report.drift).toBeNull();
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI skips topo-aware rules when another tier is selected', async () => {
+    const dir = makeTempDir();
+    try {
+      const seen: string[] = [];
+      await runWarden({
+        extraTopoRules: [buildPlaceholderRule(seen)],
+        rootDir: dir,
+        tier: 'source-static',
+        topo: buildFixtureTopo(),
+      });
+
+      expect(seen).toEqual([]);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('CLI skips topo-aware rules when no topo is provided', async () => {
     const dir = makeTempDir();
     try {

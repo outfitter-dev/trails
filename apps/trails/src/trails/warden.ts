@@ -11,6 +11,7 @@ import {
   formatSummary,
   formatWardenReport,
   runWarden,
+  wardenRuleTiers,
 } from '@ontrails/warden';
 import { z } from 'zod';
 
@@ -37,6 +38,7 @@ export const wardenTrail = trail('warden', {
       driftOnly: input.driftOnly,
       lintOnly: input.lintOnly,
       rootDir,
+      tier: input.tier,
       topo,
     });
 
@@ -86,6 +88,10 @@ export const wardenTrail = trail('warden', {
       .optional()
       .describe('App module path (auto-discovered if omitted)'),
     rootDir: z.string().optional().describe('Root directory to scan'),
+    tier: z
+      .enum(wardenRuleTiers)
+      .optional()
+      .describe('Run only one Warden tier'),
   }),
   intent: 'read',
   output: z.object({

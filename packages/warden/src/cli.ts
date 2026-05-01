@@ -27,12 +27,14 @@ import {
 } from './rules/ast.js';
 import { collectFileCrudCoverage } from './rules/incomplete-crud.js';
 import { wardenRules, wardenTopoRules } from './rules/index.js';
+import { getWardenRuleMetadata } from './rules/metadata.js';
 import type {
   ProjectAwareWardenRule,
   ProjectContext,
   TopoAwareWardenRule,
   WardenDiagnostic,
   WardenRule,
+  WardenRuleTier,
 } from './rules/types.js';
 
 /**
@@ -45,6 +47,13 @@ export interface WardenOptions {
   readonly lintOnly?: boolean | undefined;
   /** Only run drift detection, skip lint rules */
   readonly driftOnly?: boolean | undefined;
+  /**
+   * Run a single Warden tier. Defaults to all lint tiers plus drift.
+   *
+   * Selecting a non-drift tier skips drift detection; selecting `drift` skips
+   * lint rule dispatch. `lintOnly` and `driftOnly` remain compatibility shims.
+   */
+  readonly tier?: WardenRuleTier | undefined;
   /**
    * App topology for drift detection. When provided, enables real trailhead
    * lock comparison and unlocks the topo-aware rule dispatch path.
@@ -544,6 +553,48 @@ const buildProjectContext = (
 const isProjectAwareRule = (rule: WardenRule): rule is ProjectAwareWardenRule =>
   'checkWithContext' in rule;
 
+const createOptionsDiagnostic = (message: string): WardenDiagnostic => ({
+  filePath: '<warden-options>',
+  line: 1,
+  message,
+  rule: 'warden-options',
+  severity: 'error',
+});
+
+const ruleMatchesTier = (
+  metadata: ReturnType<typeof getWardenRuleMetadata>,
+  tier: WardenRuleTier | undefined
+): boolean => {
+  if (!tier) {
+    return true;
+  }
+
+  if (!metadata) {
+    return false;
+  }
+
+  return tier === 'advisory'
+    ? metadata.scope === 'advisory'
+    : metadata.tier === tier;
+};
+
+const isSelectedRule = (
+  rule: WardenRule | TopoAwareWardenRule,
+  tier: WardenRuleTier | undefined
+): boolean => ruleMatchesTier(getWardenRuleMetadata(rule), tier);
+
+const isSelectedTopoRule = (
+  rule: TopoAwareWardenRule,
+  tier: WardenRuleTier | undefined
+): boolean => {
+  if (!tier) {
+    return true;
+  }
+
+  const metadata = getWardenRuleMetadata(rule);
+  return metadata ? ruleMatchesTier(metadata, tier) : tier === 'topo-aware';
+};
+
 const topoRuleFailureDiagnostic = (
   rule: TopoAwareWardenRule,
   error: unknown
@@ -566,13 +617,14 @@ const topoRuleFailureDiagnostic = (
  */
 const lintTopo = async (
   appTopo: Topo,
-  extraTopoRules: readonly TopoAwareWardenRule[]
+  extraTopoRules: readonly TopoAwareWardenRule[],
+  tier: WardenRuleTier | undefined
 ): Promise<readonly WardenDiagnostic[]> => {
   const diagnostics: WardenDiagnostic[] = [];
   const rules: readonly TopoAwareWardenRule[] = [
     ...wardenTopoRules.values(),
     ...extraTopoRules,
-  ];
+  ].filter((rule) => isSelectedTopoRule(rule, tier));
   for (const rule of rules) {
     try {
       diagnostics.push(...(await rule.checkTopo(appTopo)));
@@ -585,11 +637,16 @@ const lintTopo = async (
 
 const lintSourceFiles = (
   sourceFiles: readonly SourceFile[],
-  context: ProjectContext
+  context: ProjectContext,
+  tier: WardenRuleTier | undefined
 ): readonly WardenDiagnostic[] => {
   const diagnostics: WardenDiagnostic[] = [];
   for (const sourceFile of sourceFiles) {
     for (const rule of wardenRules.values()) {
+      if (!isSelectedRule(rule, tier)) {
+        continue;
+      }
+
       if (isProjectAwareRule(rule)) {
         diagnostics.push(
           ...rule.checkWithContext(
@@ -614,16 +671,21 @@ const lintSourceFiles = (
 const lintFiles = async (
   rootDir: string,
   appTopo?: Topo | undefined,
-  extraTopoRules: readonly TopoAwareWardenRule[] = []
+  extraTopoRules: readonly TopoAwareWardenRule[] = [],
+  tier?: WardenRuleTier | undefined
 ): Promise<WardenDiagnostic[]> => {
+  if (tier === 'topo-aware') {
+    return appTopo ? [...(await lintTopo(appTopo, extraTopoRules, tier))] : [];
+  }
+
   const sourceFiles = await loadSourceFiles(rootDir);
   const context = buildProjectContext(sourceFiles, appTopo);
   const allDiagnostics: WardenDiagnostic[] = [
-    ...lintSourceFiles(sourceFiles, context),
+    ...lintSourceFiles(sourceFiles, context, tier),
   ];
 
-  if (appTopo) {
-    allDiagnostics.push(...(await lintTopo(appTopo, extraTopoRules)));
+  if (appTopo && (!tier || tier === 'advisory')) {
+    allDiagnostics.push(...(await lintTopo(appTopo, extraTopoRules, tier)));
   }
 
   return allDiagnostics;
@@ -636,12 +698,29 @@ export const runWarden = async (
   options: WardenOptions = {}
 ): Promise<WardenReport> => {
   const rootDir = resolve(options.rootDir ?? process.cwd());
-  const allDiagnostics = options.driftOnly
-    ? []
-    : await lintFiles(rootDir, options.topo, options.extraTopoRules ?? []);
-  const drift = options.lintOnly
-    ? null
-    : await checkDrift(rootDir, options.topo);
+  const optionDiagnostics =
+    !options.tier && options.lintOnly && options.driftOnly
+      ? [
+          createOptionsDiagnostic(
+            'lintOnly and driftOnly cannot both be true. Use tier to select a single Warden mode.'
+          ),
+        ]
+      : [];
+  const runLint = options.tier ? options.tier !== 'drift' : !options.driftOnly;
+  const runDrift = options.tier ? options.tier === 'drift' : !options.lintOnly;
+
+  const allDiagnostics = [
+    ...optionDiagnostics,
+    ...(runLint
+      ? await lintFiles(
+          rootDir,
+          options.topo,
+          options.extraTopoRules ?? [],
+          options.tier
+        )
+      : []),
+  ];
+  const drift = runDrift ? await checkDrift(rootDir, options.topo) : null;
 
   const errorCount = allDiagnostics.filter(
     (d) => d.severity === 'error'
