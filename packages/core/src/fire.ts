@@ -1,10 +1,11 @@
 /**
  * Signal emission and auto-activation.
  *
- * `createFireFn(topo, producerCtx?, executor)` returns a `FireFn` bound to
- * a topo. Calling `fire(signal, payload)` looks up the signal, validates
- * the payload against its schema, finds every trail with the signal in its
- * `on:` array, and invokes each consumer via the supplied executor.
+ * `createFireFn(topo, producerCtx?, executor, producerTrailId?)` returns a
+ * `FireFn` bound to a topo. Calling `fire(signal, payload)` looks up the
+ * signal, validates the payload against its schema, finds every trail with
+ * the signal in its `on:` array, and invokes each consumer via the supplied
+ * executor.
  *
  * The `executor` parameter is an indirection that lets `execute.ts` pass in
  * `executeTrail` without `fire.ts` importing it directly — keeping the two
@@ -25,10 +26,25 @@
  * should use `crosses:`.
  */
 
+import type { z } from 'zod';
+
 import { NotFoundError, ValidationError } from './errors.js';
 import { forkCtx } from './internal/fork-ctx.js';
+import { getTraceContext } from './internal/tracing.js';
 import { Result } from './result.js';
 import type { AnySignal } from './signal.js';
+import {
+  createSignalFireSuppressedDiagnostic,
+  createSignalHandlerFailedDiagnostic,
+  createSignalHandlerRejectedDiagnostic,
+  createSignalInvalidDiagnostic,
+  createSignalUnknownDiagnostic,
+  recordSignalDiagnostic,
+} from './signal-diagnostics.js';
+import type {
+  SignalDiagnostic,
+  SignalInvalidDiagnostic,
+} from './signal-diagnostics.js';
 import type { Topo } from './topo.js';
 import type { AnyTrail } from './trail.js';
 import type { FireFn, Logger, TrailContextInit } from './types.js';
@@ -45,6 +61,11 @@ type MutableConsumerContext = {
 };
 
 const FIRE_STACK_KEY = '__trails_fire_stack';
+
+const frameworkFireFns = new WeakSet<FireFn>();
+
+export const isFrameworkFireFn = (fire: FireFn | undefined): boolean =>
+  fire !== undefined && frameworkFireFns.has(fire);
 
 /**
  * Maximum depth for signal fan-out chains.
@@ -64,7 +85,8 @@ const getFireStack = (
 
 /** Binds a per-consumer `fire` onto a mutable consumer context. */
 type ConsumerFireBinder = (
-  consumerCtx: MutableConsumerContext
+  consumerCtx: MutableConsumerContext,
+  consumerId: string
 ) => MutableConsumerContext;
 
 const deriveConsumerLogger = (
@@ -100,6 +122,23 @@ const deriveConsumerCtx = (
       })
     : {};
 
+const recordRuntimeSignalDiagnostic = async (
+  producerCtx: TrailContextInit | undefined,
+  diagnostic: SignalDiagnostic
+): Promise<boolean> => {
+  const record = await recordSignalDiagnostic(producerCtx, diagnostic);
+  if (record.promoted) {
+    producerCtx?.logger?.warn('Signal diagnostic promoted by strict mode', {
+      code: diagnostic.code,
+      producerTrailId: diagnostic.producerTrailId,
+      runId: diagnostic.runId,
+      signalId: diagnostic.signalId,
+      traceId: diagnostic.traceId,
+    });
+  }
+  return record.promoted;
+};
+
 /**
  * Fan out a validated signal payload to its consumer trails.
  *
@@ -121,6 +160,7 @@ const fanOutToConsumers = async (
   payload: unknown,
   signalId: string,
   producerCtx: TrailContextInit | undefined,
+  diagnosticMetadata: FireDiagnosticMetadata,
   bindFire: ConsumerFireBinder,
   executor: ConsumerExecutor,
   logger: Logger | undefined
@@ -128,17 +168,38 @@ const fanOutToConsumers = async (
   const settled = await Promise.allSettled(
     consumers.map(async (consumer) => {
       const consumerCtx = bindFire(
-        deriveConsumerCtx(producerCtx, signalId, consumer.id)
+        deriveConsumerCtx(producerCtx, signalId, consumer.id),
+        consumer.id
       );
-      const consumerResult = await executor(consumer, payload, consumerCtx);
-      if (consumerResult.isErr()) {
-        (consumerCtx.logger ?? logger)?.warn('Signal consumer failed', {
-          consumerId: consumer.id,
-          error: consumerResult.error.message,
+      try {
+        const consumerResult = await executor(consumer, payload, consumerCtx);
+        if (consumerResult.isErr()) {
+          const diagnostic = createSignalHandlerFailedDiagnostic({
+            ...diagnosticMetadata,
+            cause: consumerResult.error,
+            handlerTrailId: consumer.id,
+            payload,
+            signalId,
+          });
+          await recordRuntimeSignalDiagnostic(producerCtx, diagnostic);
+          (consumerCtx.logger ?? logger)?.warn('Signal consumer failed', {
+            consumerId: consumer.id,
+            error: consumerResult.error.message,
+            signalId,
+          });
+        }
+        return consumer.id;
+      } catch (error) {
+        const diagnostic = createSignalHandlerRejectedDiagnostic({
+          ...diagnosticMetadata,
+          cause: error,
+          handlerTrailId: consumer.id,
+          payload,
           signalId,
         });
+        await recordRuntimeSignalDiagnostic(producerCtx, diagnostic);
+        throw error;
       }
-      return consumer.id;
     })
   );
   for (const [index, entry] of settled.entries()) {
@@ -160,26 +221,128 @@ const fanOutToConsumers = async (
   }
 };
 
-const resolveFireDispatch = (
+interface FireDiagnosticMetadata {
+  readonly producerTrailId?: string | undefined;
+  readonly runId?: string | undefined;
+  readonly traceId?: string | undefined;
+}
+
+const deriveFireDiagnosticMetadata = (
+  producerCtx: TrailContextInit | undefined,
+  producerTrailId: string | undefined
+): FireDiagnosticMetadata => {
+  const trace = producerCtx ? getTraceContext(producerCtx) : undefined;
+  return {
+    producerTrailId,
+    runId: trace?.spanId,
+    traceId: trace?.traceId,
+  };
+};
+
+const recordInvalidSignalDiagnostic = async (
+  producerCtx: TrailContextInit | undefined,
+  diagnostic: SignalInvalidDiagnostic
+): Promise<boolean> =>
+  await recordRuntimeSignalDiagnostic(producerCtx, diagnostic);
+
+const createInvalidPayloadError = (
+  signalId: string,
+  message: string,
+  diagnostic: SignalInvalidDiagnostic,
+  promoted: boolean
+): ValidationError =>
+  new ValidationError(`Invalid payload for signal "${signalId}": ${message}`, {
+    context: {
+      diagnosticCode: diagnostic.code,
+      promoted,
+      schemaIssues: diagnostic.schemaIssues,
+      signalId,
+    },
+  });
+
+const PAYLOAD_SCHEMA_READ_ERROR_MESSAGE =
+  'Payload schema validation could not read the payload safely';
+
+type SignalPayloadParseResult =
+  | {
+      readonly data: unknown;
+      readonly success: true;
+    }
+  | {
+      readonly issues: readonly z.core.$ZodIssue[];
+      readonly message: string;
+      readonly success: false;
+    };
+
+const unreadablePayloadIssue = (): z.core.$ZodIssue =>
+  ({
+    code: 'custom',
+    message: PAYLOAD_SCHEMA_READ_ERROR_MESSAGE,
+    path: [],
+  }) as z.core.$ZodIssue;
+
+const safeParseSignalPayload = (
+  signal: AnySignal,
+  payload: unknown
+): SignalPayloadParseResult => {
+  try {
+    const parsed = signal.payload.safeParse(payload);
+    if (parsed.success) {
+      return { data: parsed.data, success: true };
+    }
+    return {
+      issues: parsed.error.issues,
+      message: parsed.error.message,
+      success: false,
+    };
+  } catch {
+    return {
+      issues: [unreadablePayloadIssue()],
+      message: PAYLOAD_SCHEMA_READ_ERROR_MESSAGE,
+      success: false,
+    };
+  }
+};
+
+const resolveFireDispatch = async (
   topo: Topo,
   signalId: string,
-  payload: unknown
-): Result<
-  { readonly consumers: readonly AnyTrail[]; readonly payload: unknown },
-  Error
+  payload: unknown,
+  producerCtx: TrailContextInit | undefined,
+  diagnosticMetadata: FireDiagnosticMetadata
+): Promise<
+  Result<
+    { readonly consumers: readonly AnyTrail[]; readonly payload: unknown },
+    Error
+  >
 > => {
   const signal = topo.signals.get(signalId);
   if (signal === undefined) {
+    await recordRuntimeSignalDiagnostic(
+      producerCtx,
+      createSignalUnknownDiagnostic({
+        ...diagnosticMetadata,
+        signalId,
+      })
+    );
     return Result.err(
       new NotFoundError(`Signal "${signalId}" not found in topo "${topo.name}"`)
     );
   }
-  const parsed = signal.payload.safeParse(payload);
+  const parsed = safeParseSignalPayload(signal, payload);
   if (!parsed.success) {
+    const diagnostic = createSignalInvalidDiagnostic({
+      ...diagnosticMetadata,
+      payload,
+      schemaIssues: parsed.issues,
+      signalId,
+    });
+    const promoted = await recordInvalidSignalDiagnostic(
+      producerCtx,
+      diagnostic
+    );
     return Result.err(
-      new ValidationError(
-        `Invalid payload for signal "${signalId}": ${parsed.error.message}`
-      )
+      createInvalidPayloadError(signalId, parsed.message, diagnostic, promoted)
     );
   }
   return Result.ok({
@@ -232,9 +395,10 @@ const logFireError = (
 export const createFireFn = (
   topo: Topo,
   producerCtx: TrailContextInit | undefined,
-  executor: ConsumerExecutor
+  executor: ConsumerExecutor,
+  producerTrailId?: string | undefined
 ): FireFn => {
-  const bindConsumerFire: ConsumerFireBinder = (consumerCtx) => ({
+  const bindConsumerFire: ConsumerFireBinder = (consumerCtx, consumerId) => ({
     ...consumerCtx,
     // Pre-bind fire on the consumer ctx as a safety net for direct
     // executeTrail calls that skip the topo-aware path. In the normal
@@ -242,14 +406,29 @@ export const createFireFn = (
     // the fully-traced ctx before the blaze runs, so this assignment
     // is superseded — but keeping it makes consumerCtx self-sufficient
     // for any caller that inspects it pre-execution.
-    fire: createFireFn(topo, consumerCtx as TrailContextInit, executor),
+    fire: createFireFn(
+      topo,
+      consumerCtx as TrailContextInit,
+      executor,
+      consumerId
+    ),
   });
 
   const dispatchFire = async (
     signalId: string,
     payload: unknown
   ): Promise<Result<void, Error>> => {
-    const dispatch = resolveFireDispatch(topo, signalId, payload);
+    const diagnosticMetadata = deriveFireDiagnosticMetadata(
+      producerCtx,
+      producerTrailId
+    );
+    const dispatch = await resolveFireDispatch(
+      topo,
+      signalId,
+      payload,
+      producerCtx,
+      diagnosticMetadata
+    );
     if (dispatch.isErr()) {
       return Result.err(dispatch.error);
     }
@@ -258,6 +437,7 @@ export const createFireFn = (
       dispatch.value.payload,
       signalId,
       producerCtx,
+      diagnosticMetadata,
       bindConsumerFire,
       executor,
       producerCtx?.logger
@@ -266,14 +446,24 @@ export const createFireFn = (
   };
 
   /** Return an early Result if the fire should be suppressed, or null to proceed. */
-  const guardFire = (
+  const guardFire = async (
     signalId: string,
     stack: readonly string[]
-  ): Result<void, Error> | null => {
+  ): Promise<Result<void, Error> | null> => {
     if (stack.length >= MAX_FIRE_DEPTH) {
       producerCtx?.logger?.warn(
         'Signal fan-out depth limit reached — skipping fire',
         { depth: stack.length, signalId }
+      );
+      await recordRuntimeSignalDiagnostic(
+        producerCtx,
+        createSignalFireSuppressedDiagnostic({
+          ...deriveFireDiagnosticMetadata(producerCtx, producerTrailId),
+          fireStack: [...stack],
+          limit: MAX_FIRE_DEPTH,
+          reason: 'depth',
+          signalId,
+        })
       );
       return Result.ok();
     }
@@ -285,6 +475,15 @@ export const createFireFn = (
       producerCtx?.logger?.warn(
         'Signal cycle detected — skipping re-entrant fire',
         { fireStack: [...stack], signalId }
+      );
+      await recordRuntimeSignalDiagnostic(
+        producerCtx,
+        createSignalFireSuppressedDiagnostic({
+          ...deriveFireDiagnosticMetadata(producerCtx, producerTrailId),
+          fireStack: [...stack],
+          reason: 'cycle',
+          signalId,
+        })
       );
       return Result.ok();
     }
@@ -304,7 +503,10 @@ export const createFireFn = (
       );
       return;
     }
-    const suppressed = guardFire(resolved.value, getFireStack(producerCtx));
+    const suppressed = await guardFire(
+      resolved.value,
+      getFireStack(producerCtx)
+    );
     if (suppressed) {
       if (suppressed.isErr()) {
         logFireError(producerCtx?.logger, resolved.value, suppressed.error);
@@ -316,5 +518,6 @@ export const createFireFn = (
       logFireError(producerCtx?.logger, resolved.value, dispatched.error);
     }
   };
+  frameworkFireFns.add(fireImpl);
   return fireImpl;
 };

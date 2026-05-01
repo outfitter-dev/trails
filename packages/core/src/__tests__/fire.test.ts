@@ -2,11 +2,17 @@
 import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
+import { createFireFn } from '../fire';
 import { clearTraceSink, registerTraceSink } from '../internal/tracing';
 import type { TraceRecord, TraceSink } from '../internal/tracing';
 import type { Layer } from '../layer';
 import { Result } from '../result';
 import { run } from '../run';
+import {
+  SIGNAL_DIAGNOSTICS_SINK_KEY,
+  SIGNAL_DIAGNOSTICS_STRICT_MODE_KEY,
+} from '../signal-diagnostics';
+import type { SignalDiagnostic } from '../signal-diagnostics';
 import { signal } from '../signal';
 import type { Signal } from '../signal';
 import { topo } from '../topo';
@@ -689,6 +695,46 @@ describe('fire', () => {
       expect(result.isOk()).toBe(true);
     });
 
+    test('unknown signal values record a signal.unknown diagnostic', async () => {
+      const diagnostics: SignalDiagnostic[] = [];
+      const ghostSignal = signal('ghost.signal', { payload: z.object({}) });
+      const badProducer = trail('bad.producer', {
+        blaze: async (_input, ctx) => {
+          await ctx.fire?.(ghostSignal, {});
+          return Result.ok({ ok: true });
+        },
+        input: z.object({}),
+      });
+
+      const app = topo('fire-unknown-diagnostic', { badProducer });
+      const result = await run(
+        app,
+        'bad.producer',
+        {},
+        {
+          ctx: {
+            extensions: {
+              [SIGNAL_DIAGNOSTICS_SINK_KEY]: (diagnostic: SignalDiagnostic) => {
+                diagnostics.push(diagnostic);
+              },
+            },
+          },
+        }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(diagnostics).toEqual([
+        expect.objectContaining({
+          category: 'topology',
+          code: 'signal.unknown',
+          level: 'error',
+          origin: 'fire-boundary',
+          producerTrailId: 'bad.producer',
+          signalId: 'ghost.signal',
+        }),
+      ]);
+    });
+
     test('bad payload resolves and skips consumers', async () => {
       const capture = createCapture();
       const consumer = makeConsumer('notify.email', capture);
@@ -710,6 +756,385 @@ describe('fire', () => {
 
       expect(result.isOk()).toBe(true);
       expect(capture.invocations).toHaveLength(0);
+    });
+
+    test('bad payload records a signal.invalid diagnostic at the fire boundary', async () => {
+      const capture = createCapture();
+      const diagnostics: SignalDiagnostic[] = [];
+      const consumer = makeConsumer('notify.email', capture);
+
+      const badProducer = trail('bad.payload', {
+        blaze: async (_input, ctx) => {
+          await ctx.fire?.(orderPlaced as Signal<unknown>, {
+            orderId: 'o-redacted',
+            total: 'secret-total',
+          });
+          return Result.ok({ ok: true });
+        },
+        fires: ['order.placed'],
+        input: z.object({}),
+      });
+
+      const app = topo('fire-bad-payload-diagnostics', {
+        badProducer,
+        consumer,
+        orderPlaced,
+      });
+      const result = await run(
+        app,
+        'bad.payload',
+        {},
+        {
+          ctx: {
+            extensions: {
+              [SIGNAL_DIAGNOSTICS_SINK_KEY]: (diagnostic: SignalDiagnostic) => {
+                diagnostics.push(diagnostic);
+              },
+            },
+          },
+        }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(capture.invocations).toHaveLength(0);
+      expect(diagnostics).toHaveLength(1);
+
+      const [diagnostic] = diagnostics;
+      expect(diagnostic).toMatchObject({
+        category: 'validation',
+        code: 'signal.invalid',
+        level: 'error',
+        origin: 'fire-boundary',
+        producerTrailId: 'bad.payload',
+        signalId: 'order.placed',
+      });
+      if (diagnostic?.code !== 'signal.invalid') {
+        throw new Error('Expected signal.invalid diagnostic');
+      }
+      expect(diagnostic.schemaIssues).toContainEqual(
+        expect.objectContaining({ path: ['total'] })
+      );
+      expect(diagnostic.payload).toMatchObject({
+        redacted: true,
+        shape: 'object',
+        topLevelEntryCount: 2,
+      });
+      expect(diagnostic.payload.digest).toHaveLength(64);
+      expect(JSON.stringify(diagnostic)).not.toContain('secret-total');
+    });
+
+    test('bad payload with throwing getters still records diagnostics and resolves', async () => {
+      const capture = createCapture();
+      const diagnostics: SignalDiagnostic[] = [];
+      const consumer = makeConsumer('notify.email', capture);
+      const payload = {
+        total: 'secret-total',
+      };
+      Object.defineProperty(payload, 'orderId', {
+        enumerable: true,
+        get() {
+          throw new Error('getter exploded');
+        },
+      });
+
+      const badProducer = trail('bad.payload.getter', {
+        blaze: async (_input, ctx) => {
+          await ctx.fire?.(orderPlaced as Signal<unknown>, payload);
+          return Result.ok({ ok: true });
+        },
+        fires: ['order.placed'],
+        input: z.object({}),
+      });
+
+      const app = topo('fire-bad-payload-getter-diagnostics', {
+        badProducer,
+        consumer,
+        orderPlaced,
+      });
+      const result = await run(
+        app,
+        'bad.payload.getter',
+        {},
+        {
+          ctx: {
+            extensions: {
+              [SIGNAL_DIAGNOSTICS_SINK_KEY]: (diagnostic: SignalDiagnostic) => {
+                diagnostics.push(diagnostic);
+              },
+            },
+          },
+        }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(capture.invocations).toHaveLength(0);
+      expect(diagnostics).toEqual([
+        expect.objectContaining({
+          code: 'signal.invalid',
+          origin: 'fire-boundary',
+          signalId: 'order.placed',
+        }),
+      ]);
+      const [diagnostic] = diagnostics;
+      if (diagnostic?.code !== 'signal.invalid') {
+        throw new Error('Expected signal.invalid diagnostic');
+      }
+      expect(diagnostic.schemaIssues).toContainEqual(
+        expect.objectContaining({
+          message:
+            'Payload schema validation could not read the payload safely',
+          path: [],
+        })
+      );
+      expect(JSON.stringify(diagnostics[0])).not.toContain('secret-total');
+      expect(JSON.stringify(diagnostics[0])).not.toContain('getter exploded');
+    });
+
+    test('bad payload with revoked proxies still records diagnostics and resolves', async () => {
+      const capture = createCapture();
+      const diagnostics: SignalDiagnostic[] = [];
+      const consumer = makeConsumer('notify.email', capture);
+      const { proxy, revoke } = Proxy.revocable(
+        {
+          orderId: 'o-redacted',
+          total: 'secret-total',
+        },
+        {}
+      );
+      revoke();
+
+      const badProducer = trail('bad.payload.revoked-proxy', {
+        blaze: async (_input, ctx) => {
+          await ctx.fire?.(orderPlaced as Signal<unknown>, proxy);
+          return Result.ok({ ok: true });
+        },
+        fires: ['order.placed'],
+        input: z.object({}),
+      });
+
+      const app = topo('fire-bad-payload-revoked-proxy-diagnostics', {
+        badProducer,
+        consumer,
+        orderPlaced,
+      });
+      const result = await run(
+        app,
+        'bad.payload.revoked-proxy',
+        {},
+        {
+          ctx: {
+            extensions: {
+              [SIGNAL_DIAGNOSTICS_SINK_KEY]: (diagnostic: SignalDiagnostic) => {
+                diagnostics.push(diagnostic);
+              },
+            },
+          },
+        }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(capture.invocations).toHaveLength(0);
+      expect(diagnostics).toEqual([
+        expect.objectContaining({
+          code: 'signal.invalid',
+          origin: 'fire-boundary',
+          signalId: 'order.placed',
+        }),
+      ]);
+      const [diagnostic] = diagnostics;
+      if (diagnostic?.code !== 'signal.invalid') {
+        throw new Error('Expected signal.invalid diagnostic');
+      }
+      expect(diagnostic.payload).toMatchObject({
+        redacted: true,
+        shape: 'object',
+        topLevelEntryCount: undefined,
+      });
+      expect(JSON.stringify(diagnostics[0])).not.toContain('secret-total');
+    });
+
+    test('signal.invalid diagnostics carry trace and run ids when tracing is enabled', async () => {
+      const diagnostics: SignalDiagnostic[] = [];
+      const records: TraceRecord[] = [];
+      const traceSink: TraceSink = {
+        write(record) {
+          records.push(record);
+        },
+      };
+      const badProducer = trail('bad.payload', {
+        blaze: async (_input, ctx) => {
+          await ctx.fire?.(orderPlaced as Signal<unknown>, { orderId: 123 });
+          return Result.ok({ ok: true });
+        },
+        fires: ['order.placed'],
+        input: z.object({}),
+      });
+      const app = topo('fire-bad-payload-traced-diagnostics', {
+        badProducer,
+        orderPlaced,
+      });
+
+      registerTraceSink(traceSink);
+      try {
+        const result = await run(
+          app,
+          'bad.payload',
+          {},
+          {
+            ctx: {
+              extensions: {
+                [SIGNAL_DIAGNOSTICS_SINK_KEY]: (
+                  diagnostic: SignalDiagnostic
+                ) => {
+                  diagnostics.push(diagnostic);
+                },
+              },
+            },
+          }
+        );
+
+        expect(result.isOk()).toBe(true);
+      } finally {
+        clearTraceSink();
+      }
+
+      const producerRecord = records.find(
+        (record) => record.trailId === 'bad.payload'
+      );
+      expect(producerRecord).toBeDefined();
+      expect(diagnostics).toHaveLength(1);
+      const [diagnostic] = diagnostics;
+      expect(diagnostic?.runId).toBe(producerRecord?.id);
+      expect(diagnostic?.traceId).toBe(producerRecord?.traceId);
+    });
+
+    test('consumer fires are rebound to the consumer trace context before diagnostics', async () => {
+      const diagnostics: SignalDiagnostic[] = [];
+      const records: TraceRecord[] = [];
+      const producerReady = signal('producer.ready', {
+        payload: z.object({ orderId: z.string() }),
+      });
+      const consumerInvalid = signal('consumer.invalid', {
+        payload: z.object({ chargeId: z.string() }),
+      });
+      const producer = trail('producer.ready-fire', {
+        blaze: async (input, ctx) => {
+          await ctx.fire?.(producerReady, { orderId: input.orderId });
+          return Result.ok({ ok: true });
+        },
+        fires: [producerReady],
+        input: z.object({ orderId: z.string() }),
+      });
+      const consumer = trail('consumer.invalid-fire', {
+        blaze: async (_input, ctx) => {
+          await ctx.fire?.(consumerInvalid as Signal<unknown>, {
+            chargeId: 123,
+          });
+          return Result.ok({ ok: true });
+        },
+        fires: [consumerInvalid],
+        input: z.object({ orderId: z.string() }),
+        on: [producerReady.id],
+      });
+      const app = topo('consumer-fire-diagnostic-context', {
+        consumer,
+        consumerInvalid,
+        producer,
+        producerReady,
+      });
+
+      registerTraceSink(createCapturingSink(records));
+      try {
+        const result = await run(
+          app,
+          producer.id,
+          { orderId: 'o-consumer-diagnostic' },
+          {
+            ctx: {
+              extensions: {
+                [SIGNAL_DIAGNOSTICS_SINK_KEY]: (
+                  diagnostic: SignalDiagnostic
+                ) => {
+                  diagnostics.push(diagnostic);
+                },
+              },
+            },
+          }
+        );
+        expect(result.isOk()).toBe(true);
+      } finally {
+        clearTraceSink();
+      }
+
+      const producerRecord = findTrailRecord(records, producer.id);
+      const consumerRecord = findTrailRecord(records, consumer.id);
+      expect(diagnostics).toHaveLength(1);
+      const [diagnostic] = diagnostics;
+      expect(diagnostic).toMatchObject({
+        code: 'signal.invalid',
+        producerTrailId: consumer.id,
+        signalId: consumerInvalid.id,
+      });
+      expect(diagnostic?.runId).toBe(consumerRecord.id);
+      expect(diagnostic?.runId).not.toBe(producerRecord.id);
+      expect(diagnostic?.traceId).toBe(consumerRecord.traceId);
+      expect(diagnostic?.traceId).toBe(producerRecord.traceId);
+    });
+
+    test('strict mode marks signal.invalid diagnostics for promotion without failing the producer', async () => {
+      const diagnostics: SignalDiagnostic[] = [];
+      const promotions: Record<string, unknown>[] = [];
+      const strictLogger: Logger = {
+        ...noopLogger,
+        child() {
+          return this;
+        },
+        warn(message, data) {
+          if (message === 'Signal diagnostic promoted by strict mode') {
+            promotions.push({ message, ...data });
+          }
+        },
+      };
+      const badProducer = trail('bad.payload', {
+        blaze: async (_input, ctx) => {
+          await ctx.fire?.(orderPlaced as Signal<unknown>, { orderId: 123 });
+          return Result.ok({ ok: true });
+        },
+        fires: ['order.placed'],
+        input: z.object({}),
+      });
+      const app = topo('fire-bad-payload-strict-diagnostics', {
+        badProducer,
+        orderPlaced,
+      });
+
+      const result = await run(
+        app,
+        'bad.payload',
+        {},
+        {
+          ctx: {
+            extensions: {
+              [SIGNAL_DIAGNOSTICS_SINK_KEY]: (diagnostic: SignalDiagnostic) => {
+                diagnostics.push(diagnostic);
+              },
+              [SIGNAL_DIAGNOSTICS_STRICT_MODE_KEY]: ['signal.invalid'],
+            },
+            logger: strictLogger,
+          },
+        }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(diagnostics).toHaveLength(1);
+      expect(promotions).toEqual([
+        expect.objectContaining({
+          code: 'signal.invalid',
+          message: 'Signal diagnostic promoted by strict mode',
+          producerTrailId: 'bad.payload',
+          signalId: 'order.placed',
+        }),
+      ]);
     });
   });
 
@@ -735,6 +1160,98 @@ describe('fire', () => {
         'notify.email',
       ]);
       expectConsumerFailureWarning(scenario.warnings);
+    });
+
+    test('consumer errors record a signal.handler.failed diagnostic', async () => {
+      const diagnostics: SignalDiagnostic[] = [];
+      const scenario = createErrorIsolationScenario();
+      const result = await run(
+        scenario.app,
+        'order.create',
+        {
+          orderId: 'o-3',
+          total: 1,
+        },
+        {
+          ctx: {
+            extensions: {
+              [SIGNAL_DIAGNOSTICS_SINK_KEY]: (diagnostic: SignalDiagnostic) => {
+                diagnostics.push(diagnostic);
+              },
+            },
+            logger: createWarningLogger(scenario.warnings),
+          },
+        }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(diagnostics).toContainEqual(
+        expect.objectContaining({
+          category: 'handler',
+          code: 'signal.handler.failed',
+          handlerTrailId: 'notify.broken',
+          level: 'error',
+          origin: 'handler',
+          producerTrailId: 'order.create',
+          signalId: 'order.placed',
+        })
+      );
+      const [diagnostic] = diagnostics;
+      if (diagnostic?.code !== 'signal.handler.failed') {
+        throw new Error('Expected signal.handler.failed diagnostic');
+      }
+      expect(diagnostic.cause).toEqual({
+        message: 'notify.broken failed',
+        name: 'Error',
+      });
+      expect(diagnostic.payload).toMatchObject({
+        redacted: true,
+        shape: 'object',
+      });
+    });
+
+    test('executor rejections record a signal.handler.rejected diagnostic', async () => {
+      const diagnostics: SignalDiagnostic[] = [];
+      const consumer = makeConsumer('notify.email', createCapture());
+      const app = topo('fire-rejected-diagnostic', { consumer, orderPlaced });
+      const fire = createFireFn(
+        app,
+        {
+          abortSignal: AbortSignal.timeout(5000),
+          extensions: {
+            [SIGNAL_DIAGNOSTICS_SINK_KEY]: (diagnostic: SignalDiagnostic) => {
+              diagnostics.push(diagnostic);
+            },
+          },
+          requestId: 'fire-rejected-diagnostic',
+        },
+        async () => {
+          throw new Error('executor rejected');
+        },
+        'manual.producer'
+      );
+
+      await fire(orderPlaced, { orderId: 'o-rejected', total: 1 });
+
+      expect(diagnostics).toEqual([
+        expect.objectContaining({
+          category: 'handler',
+          code: 'signal.handler.rejected',
+          handlerTrailId: 'notify.email',
+          level: 'error',
+          origin: 'handler',
+          producerTrailId: 'manual.producer',
+          signalId: 'order.placed',
+        }),
+      ]);
+      const [diagnostic] = diagnostics;
+      if (diagnostic?.code !== 'signal.handler.rejected') {
+        throw new Error('Expected signal.handler.rejected diagnostic');
+      }
+      expect(diagnostic.cause).toEqual({
+        message: 'executor rejected',
+        name: 'Error',
+      });
     });
 
     test('starts sibling consumers before the first one settles', async () => {
@@ -919,6 +1436,41 @@ describe('fire', () => {
       expect(result.isOk()).toBe(true);
       expect(invocations).toEqual(['a', 'b']);
       expectCycleSuppressionLogs(events, 'loop.a', ['loop.a', 'loop.b']);
+    });
+
+    test('cycle suppression records a signal.fire.suppressed diagnostic', async () => {
+      const diagnostics: SignalDiagnostic[] = [];
+      const invocations: string[] = [];
+      const app = createCycleScenario(invocations);
+
+      const result = await run(
+        app,
+        'loop.producer',
+        { id: 'loop-1' },
+        {
+          ctx: {
+            extensions: {
+              [SIGNAL_DIAGNOSTICS_SINK_KEY]: (diagnostic: SignalDiagnostic) => {
+                diagnostics.push(diagnostic);
+              },
+            },
+          },
+        }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(diagnostics).toEqual([
+        expect.objectContaining({
+          category: 'activation',
+          code: 'signal.fire.suppressed',
+          fireStack: ['loop.a', 'loop.b'],
+          level: 'warning',
+          origin: 'fan-out-guard',
+          producerTrailId: 'loop.consumer.b',
+          reason: 'cycle',
+          signalId: 'loop.a',
+        }),
+      ]);
     });
 
     test('does not emit suppression debug logs for ordinary fan-out', async () => {

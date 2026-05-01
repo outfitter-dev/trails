@@ -14,7 +14,7 @@ import type { ResourceOverrideMap } from './resource.js';
 import type { TraceContext, TraceRecord } from './internal/tracing.js';
 import type { Topo } from './topo.js';
 
-import { createFireFn } from './fire.js';
+import { createFireFn, isFrameworkFireFn } from './fire.js';
 import type {
   CrossBatchOptions,
   CrossFn,
@@ -667,14 +667,16 @@ const bindCrossToCtx = (
 const bindFireToCtx = (
   ctx: TrailContext,
   topo: Topo | undefined,
-  options: ExecuteTrailOptions | undefined
+  options: ExecuteTrailOptions | undefined,
+  producerTrailId?: string | undefined
 ): TrailContext => {
   // Symmetric with bindCrossToCtx: a caller-supplied ctx.fire (e.g. test
   // helper, scenario harness, or runtime intercepting signal fan-out) is
   // preserved as-is. Without this guard, passing both `topo: app` and a
   // custom `ctx.fire` would silently clobber the injected mock with the
-  // topo-backed dispatcher.
-  if (ctx.fire !== undefined) {
+  // topo-backed dispatcher. Framework-created fire functions are replaced
+  // because consumer fan-out seeds them before the consumer trace span exists.
+  if (ctx.fire !== undefined && !isFrameworkFireFn(ctx.fire)) {
     return ctx;
   }
   if (topo === undefined) {
@@ -692,13 +694,17 @@ const bindFireToCtx = (
     validationSchema: _omitSchema,
     ...forwarded
   } = options ?? {};
-  const fire = createFireFn(topo, ctx, (consumer, input, consumerCtx) =>
-    // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
-    executeTrail(consumer, input, {
-      ...forwarded,
-      ctx: consumerCtx,
-      topo,
-    })
+  const fire = createFireFn(
+    topo,
+    ctx,
+    (consumer, input, consumerCtx) =>
+      // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
+      executeTrail(consumer, input, {
+        ...forwarded,
+        ctx: consumerCtx,
+        topo,
+      }),
+    producerTrailId
   );
   return { ...ctx, fire };
 };
@@ -714,6 +720,7 @@ const bindCrossAtLayerBoundary =
 
 const bindFireAtLayerBoundary = <I, O>(
   implementation: Implementation<I, O>,
+  trail: AnyTrail,
   topo: Topo | undefined,
   options: ExecuteTrailOptions | undefined
 ): Implementation<I, O> => {
@@ -722,7 +729,7 @@ const bindFireAtLayerBoundary = <I, O>(
   }
 
   return (input, ctx) =>
-    implementation(input, bindFireToCtx(ctx, topo, options));
+    implementation(input, bindFireToCtx(ctx, topo, options, trail.id));
 };
 
 // ---------------------------------------------------------------------------
@@ -909,7 +916,8 @@ const prepareRunImpl = (
   const ctxWithIntrinsics = bindFireToCtx(
     bindCrossToCtx(ctx, topo, options),
     topo,
-    options
+    options,
+    trail.id
   );
   // Detour loop wraps the blaze (inside layer stack, closest to blaze)
   let impl = wrapWithDetours(
@@ -919,6 +927,7 @@ const prepareRunImpl = (
         topo,
         options
       ),
+      trail,
       topo,
       options
     ),
@@ -934,6 +943,7 @@ const prepareRunImpl = (
           topo,
           options
         ),
+        trail,
         topo,
         options
       );
