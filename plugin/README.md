@@ -21,6 +21,7 @@ claude plugin install trails@trails
 | `trails-dogfood-check` | Review framework code against Trails' own Result, cwd, loading, and host-boundary rules. |
 | `trails-error-format` | Review error taxonomy, projection, redaction, retryability, and Result-vs-throw boundaries. |
 | `trails-discriminate-union` | Review public/queryable union-like outputs for stable branch discriminants. |
+| `trails-primitive-parity` | Compare primitive maturity without forcing trail-equivalent scope or speculative public API. |
 
 ### Agent
 
