@@ -37,6 +37,7 @@ import {
   buildCurrentSignalDetail,
 } from './topo-read-support.js';
 import {
+  activationOverviewOutput,
   resourceDetailOutput,
   signalDetailOutput,
   trailDetailOutput,
@@ -419,9 +420,12 @@ export const surveyTrail = trail('survey', {
   intent: 'read',
   output: z.discriminatedUnion('mode', [
     z.object({
+      activation: activationOverviewOutput,
       count: z.number(),
       entries: z.array(
         z.object({
+          activatedBy: z.array(z.string()).readonly(),
+          activates: z.array(z.string()).readonly(),
           examples: z.number(),
           id: z.string(),
           kind: z.string(),

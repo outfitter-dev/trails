@@ -30,20 +30,31 @@ import {
   deriveSurveyList,
   deriveTrailDetail,
 } from './topo-reports.js';
+import type { ActivationGraphReport } from './topo-activation.js';
+import { deriveActivationGraph } from './topo-activation.js';
 import type { TopoSummaryReport, TopoVerifyReport } from './topo-support.js';
 import { deriveRootDir, LOCK_PATH } from './topo-support.js';
 import { deriveCurrentTopoExport } from './topo-store-support.js';
 
 export interface CurrentTrailDetail {
+  readonly activatedBy: readonly string[];
+  readonly activates: readonly string[];
+  readonly activationChains: readonly {
+    readonly consumer: string;
+    readonly producer: string;
+    readonly signal: string;
+  }[];
   readonly crosses: readonly string[];
   readonly description: string | null;
   readonly detours:
     | readonly { readonly on: string; readonly maxAttempts: number }[]
     | null;
   readonly examples: readonly unknown[];
+  readonly fires: readonly string[];
   readonly id: string;
   readonly intent: 'destroy' | 'read' | 'write';
   readonly kind: 'trail';
+  readonly on: readonly string[];
   readonly pattern: string | null;
   readonly resources: readonly string[];
   readonly safety: string;
@@ -125,7 +136,7 @@ export const buildCurrentTrailDetail = (
   _options?: { readonly rootDir?: string }
 ): CurrentTrailDetail | undefined => {
   const trail = app.get(id);
-  return trail === undefined ? undefined : deriveTrailDetail(trail);
+  return trail === undefined ? undefined : deriveTrailDetail(trail, app);
 };
 
 export const buildCurrentResourceDetail = (
@@ -158,9 +169,16 @@ export const buildCurrentTopoMatches = (
   _options?: { readonly rootDir?: string }
 ): readonly CurrentTopoMatch[] => {
   const matches: CurrentTopoMatch[] = [];
-  const trail = buildCurrentTrailDetail(app, id);
+  let activationGraph: ActivationGraphReport | undefined;
+  const getActivationGraph = (): ActivationGraphReport =>
+    (activationGraph ??= deriveActivationGraph(app));
+
+  const trail = app.get(id);
   if (trail !== undefined) {
-    matches.push({ detail: trail, kind: 'trail' });
+    matches.push({
+      detail: deriveTrailDetail(trail, app, getActivationGraph()),
+      kind: 'trail',
+    });
   }
 
   const resource = buildCurrentResourceDetail(app, id);
@@ -168,7 +186,7 @@ export const buildCurrentTopoMatches = (
     matches.push({ detail: resource, kind: 'resource' });
   }
 
-  const signal = buildCurrentSignalDetail(app, id);
+  const signal = deriveSignalDetail(app, id, activationGraph);
   if (signal !== undefined) {
     matches.push({ detail: signal, kind: 'signal' });
   }

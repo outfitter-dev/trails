@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { tryLoadFreshAppLease } from './load-app.js';
 import { resolveTrailRootDir } from './root-dir.js';
+import { activationOverviewOutput } from './topo-output-schemas.js';
 import { buildTopoSummary } from './topo-read-support.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 
@@ -24,39 +25,48 @@ const summaryOutput = z.object({
   }),
   dbPath: z.string(),
   list: z.object({
+    activation: activationOverviewOutput,
     count: z.number(),
-    entries: z.array(
-      z.object({
-        examples: z.number(),
-        id: z.string(),
-        kind: z.string(),
-        safety: z.string(),
-      })
-    ),
+    entries: z
+      .array(
+        z.object({
+          activatedBy: z.array(z.string()).readonly(),
+          activates: z.array(z.string()).readonly(),
+          examples: z.number(),
+          id: z.string(),
+          kind: z.string(),
+          safety: z.string(),
+        })
+      )
+      .readonly(),
     resourceCount: z.number(),
-    resources: z.array(
-      z.object({
-        description: z.string().nullable(),
-        health: z.enum(['available', 'none']),
-        id: z.string(),
-        kind: z.literal('resource'),
-        lifetime: z.literal('singleton'),
-        usedBy: z.array(z.string()),
-      })
-    ),
+    resources: z
+      .array(
+        z.object({
+          description: z.string().nullable(),
+          health: z.enum(['available', 'none']),
+          id: z.string(),
+          kind: z.literal('resource'),
+          lifetime: z.literal('singleton'),
+          usedBy: z.array(z.string()).readonly(),
+        })
+      )
+      .readonly(),
     signalCount: z.number(),
-    signals: z.array(
-      z.object({
-        consumers: z.array(z.string()).readonly(),
-        description: z.string().nullable(),
-        examples: z.number(),
-        from: z.array(z.string()).readonly(),
-        id: z.string(),
-        kind: z.literal('signal'),
-        payloadSchema: z.boolean(),
-        producers: z.array(z.string()).readonly(),
-      })
-    ),
+    signals: z
+      .array(
+        z.object({
+          consumers: z.array(z.string()).readonly(),
+          description: z.string().nullable(),
+          examples: z.number(),
+          from: z.array(z.string()).readonly(),
+          id: z.string(),
+          kind: z.literal('signal'),
+          payloadSchema: z.boolean(),
+          producers: z.array(z.string()).readonly(),
+        })
+      )
+      .readonly(),
   }),
   lockExists: z.boolean(),
   lockPath: z.string(),

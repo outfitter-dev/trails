@@ -2,7 +2,26 @@ import { DETOUR_MAX_ATTEMPTS_CAP, zodToJsonSchema } from '@ontrails/core';
 import type { AnyTrail, Signal, Topo } from '@ontrails/core';
 import { z } from 'zod';
 
+import type {
+  ActivationChainReport,
+  ActivationGraphReport,
+  ActivationOverviewReport,
+  SignalActivationRelations,
+} from './topo-activation.js';
+import {
+  deriveActivationGraph,
+  deriveDeclaredTrailActivation,
+  deriveSignalActivationRelations,
+} from './topo-activation.js';
 import { REPORT_CONTRACT_VERSION, REPORT_VERSION } from './topo-constants.js';
+
+export type {
+  ActivationChainReport,
+  ActivationGraphReport,
+  ActivationOverviewReport,
+  SignalActivationRelations,
+  TrailActivationReport,
+} from './topo-activation.js';
 
 export const briefReportSchema = z.object({
   contractVersion: z.string(),
@@ -29,8 +48,11 @@ export type BriefReport = Readonly<
 >;
 
 export interface SurveyListReport {
+  readonly activation: ActivationOverviewReport;
   readonly count: number;
   readonly entries: readonly {
+    readonly activatedBy: readonly string[];
+    readonly activates: readonly string[];
     readonly examples: number;
     readonly id: string;
     readonly kind: string;
@@ -59,15 +81,20 @@ export interface SurveyListReport {
 }
 
 export interface TrailDetailReport {
+  readonly activatedBy: readonly string[];
+  readonly activates: readonly string[];
+  readonly activationChains: readonly ActivationChainReport[];
   readonly description: string | null;
   readonly detours:
     | readonly { readonly on: string; readonly maxAttempts: number }[]
     | null;
   readonly examples: readonly unknown[];
   readonly crosses: readonly string[];
+  readonly fires: readonly string[];
   readonly id: string;
   readonly intent: 'read' | 'write' | 'destroy';
   readonly kind: 'trail';
+  readonly on: readonly string[];
   readonly pattern: string | null;
   readonly safety: string;
   readonly resources: readonly string[];
@@ -180,49 +207,6 @@ const resourceHealthStatus = (resource: {
 }): 'available' | 'none' =>
   resource.health === undefined ? 'none' : 'available';
 
-interface SignalRelations {
-  readonly consumers: readonly string[];
-  readonly producers: readonly string[];
-}
-
-const buildSignalRelations = (
-  app: Topo
-): ReadonlyMap<string, SignalRelations> => {
-  const relations = new Map<
-    string,
-    { consumers: string[]; producers: string[] }
-  >();
-
-  const get = (signalId: string) => {
-    const existing = relations.get(signalId);
-    if (existing !== undefined) {
-      return existing;
-    }
-    const created = { consumers: [], producers: [] };
-    relations.set(signalId, created);
-    return created;
-  };
-
-  for (const trailDef of app.list()) {
-    for (const signalId of trailDef.fires) {
-      get(signalId).producers.push(trailDef.id);
-    }
-    for (const signalId of trailDef.on) {
-      get(signalId).consumers.push(trailDef.id);
-    }
-  }
-
-  return new Map(
-    [...relations.entries()].map(([id, value]) => [
-      id,
-      {
-        consumers: value.consumers.toSorted(),
-        producers: value.producers.toSorted(),
-      },
-    ])
-  );
-};
-
 export const deriveResourceDetail = (app: Topo, resourceId: string): object => {
   const item = app.getResource(resourceId);
   const usedBy = buildResourceUsage(app).get(resourceId) ?? [];
@@ -252,14 +236,18 @@ const formatResourceList = (app: Topo): SurveyListReport['resources'] => {
     .toSorted((a, b) => a.id.localeCompare(b.id));
 };
 
-const formatSignalList = (app: Topo): SurveyListReport['signals'] => {
-  const relations = buildSignalRelations(app);
-  return app
+const formatSignalList = (
+  app: Topo,
+  relations: ReadonlyMap<string, SignalActivationRelations>
+): SurveyListReport['signals'] =>
+  app
     .listSignals()
     .map((signalDef) => {
       const related = relations.get(signalDef.id);
+      const consumers = related?.consumers ?? [];
+      const producers = related?.producers ?? [];
       return {
-        consumers: related?.consumers ?? [],
+        consumers,
         description: signalDef.description ?? null,
         examples: signalDef.examples?.length ?? 0,
         from: signalDef.from?.toSorted() ?? [],
@@ -271,15 +259,17 @@ const formatSignalList = (app: Topo): SurveyListReport['signals'] => {
         // keeps the in-memory and store reports self-consistent if a future
         // SignalSpec variant ever omits `payload`.
         payloadSchema: signalDef.payload !== undefined,
-        producers: related?.producers ?? [],
+        producers,
       };
     })
     .toSorted((a, b) => a.id.localeCompare(b.id));
-};
 
 export const deriveSurveyList = (app: Topo): SurveyListReport => {
   const items = app.list();
+  const activation = deriveActivationGraph(app);
   const entries = items.map((item) => {
+    const trailActivation =
+      activation.trails.get(item.id) ?? deriveDeclaredTrailActivation(item);
     const safety = safetyLabel(
       item as unknown as { intent?: 'read' | 'write' | 'destroy' }
     );
@@ -290,6 +280,8 @@ export const deriveSurveyList = (app: Topo): SurveyListReport => {
       : 0;
 
     return {
+      activatedBy: trailActivation.activatedBy,
+      activates: trailActivation.activates,
       examples,
       id: item.id,
       kind: item.kind,
@@ -298,9 +290,10 @@ export const deriveSurveyList = (app: Topo): SurveyListReport => {
   });
 
   const resources = formatResourceList(app);
-  const signals = formatSignalList(app);
+  const signals = formatSignalList(app, activation.signals);
 
   return {
+    activation: activation.overview,
     count: items.length,
     entries,
     resourceCount: resources.length,
@@ -312,32 +305,47 @@ export const deriveSurveyList = (app: Topo): SurveyListReport => {
 
 export const deriveSignalDetail = (
   app: Topo,
-  signalId: string
+  signalId: string,
+  activationGraph?: ActivationGraphReport | undefined
 ): SignalDetailReport | undefined => {
   const signalDef = app.signals.get(signalId) as Signal<unknown> | undefined;
   if (signalDef === undefined) {
     return undefined;
   }
-  const related = buildSignalRelations(app).get(signalId);
+  const related =
+    activationGraph?.signals.get(signalId) ??
+    deriveSignalActivationRelations(app, signalId);
 
   return {
-    consumers: [...(related?.consumers ?? [])],
+    consumers: [...related.consumers],
     description: signalDef.description ?? null,
     examples: [...(signalDef.examples ?? [])],
     from: signalDef.from?.toSorted() ?? [],
     id: signalDef.id,
     kind: 'signal',
     payload: zodToJsonSchema(signalDef.payload),
-    producers: [...(related?.producers ?? [])],
+    producers: [...related.producers],
   };
 };
 
-export const deriveTrailDetail = (item: AnyTrail): TrailDetailReport => {
+export const deriveTrailDetail = (
+  item: AnyTrail,
+  app?: Topo | undefined,
+  activationGraph?: ActivationGraphReport | undefined
+): TrailDetailReport => {
+  const activation =
+    app === undefined
+      ? deriveDeclaredTrailActivation(item)
+      : ((activationGraph ?? deriveActivationGraph(app)).trails.get(item.id) ??
+        deriveDeclaredTrailActivation(item));
   const safety = safetyLabel(
     item as unknown as { intent?: 'read' | 'write' | 'destroy' }
   );
 
   return {
+    activatedBy: activation.activatedBy,
+    activates: activation.activates,
+    activationChains: activation.chains,
     crosses: item.crosses.toSorted(),
     description: item.description ?? null,
     detours:
@@ -351,9 +359,11 @@ export const deriveTrailDetail = (item: AnyTrail): TrailDetailReport => {
           }))
         : null,
     examples: item.examples ?? [],
+    fires: activation.fires,
     id: item.id,
     intent: item.intent,
     kind: 'trail',
+    on: activation.on,
     pattern: item.pattern ?? null,
     resources: item.resources.map((resource) => resource.id).toSorted(),
     safety,

@@ -1,6 +1,22 @@
 import { z } from 'zod';
 
+export const activationChainOutput = z.object({
+  consumer: z.string(),
+  producer: z.string(),
+  signal: z.string(),
+});
+
+export const activationOverviewOutput = z.object({
+  chainCount: z.number(),
+  chains: z.array(activationChainOutput).readonly(),
+  signalIds: z.array(z.string()).readonly(),
+  trailIds: z.array(z.string()).readonly(),
+});
+
 export const trailDetailOutput = z.object({
+  activatedBy: z.array(z.string()).readonly(),
+  activates: z.array(z.string()).readonly(),
+  activationChains: z.array(activationChainOutput).readonly(),
   crosses: z.array(z.string()).readonly(),
   description: z.string().nullable(),
   detours: z
@@ -13,9 +29,11 @@ export const trailDetailOutput = z.object({
     .readonly()
     .nullable(),
   examples: z.array(z.unknown()).readonly(),
+  fires: z.array(z.string()).readonly(),
   id: z.string(),
   intent: z.enum(['read', 'write', 'destroy']),
   kind: z.literal('trail'),
+  on: z.array(z.string()).readonly(),
   pattern: z.string().nullable(),
   resources: z.array(z.string()).readonly(),
   safety: z.string(),

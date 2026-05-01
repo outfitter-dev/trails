@@ -114,6 +114,9 @@ describe('trails guide', () => {
     expect(
       guideTrail.output.safeParse({
         detail: {
+          activatedBy: [],
+          activates: [],
+          activationChains: [],
           crosses: [],
           description: 'Say hello',
           detours: [
@@ -123,9 +126,11 @@ describe('trails guide', () => {
             },
           ],
           examples: [],
+          fires: [],
           id: 'hello',
           intent: 'read',
           kind: 'trail',
+          on: [],
           pattern: null,
           resources: [],
           safety: 'read',

@@ -371,9 +371,43 @@ describe('trails survey detail', () => {
     const detail = deriveTrailDetail(helloTrail);
     const parsed = structuredClone(detail) as TrailDetailReport;
 
+    expect(parsed.activatedBy).toEqual([]);
+    expect(parsed.activates).toEqual([]);
+    expect(parsed.activationChains).toEqual([]);
     expect(parsed.crosses).toEqual([]);
+    expect(parsed.fires).toEqual([]);
     expect(parsed.intent).toBe('read');
+    expect(parsed.on).toEqual([]);
     expect(parsed.resources).toEqual(['db.main']);
+  });
+
+  test('trail detail includes static activation graph chains', () => {
+    const producer = structuredClone(
+      deriveTrailDetail(signalProducer, signalApp)
+    ) as TrailDetailReport;
+    const consumer = structuredClone(
+      deriveTrailDetail(signalConsumer, signalApp)
+    ) as TrailDetailReport;
+    const chain = {
+      consumer: 'signal.consumer',
+      producer: 'signal.producer',
+      signal: 'hello.greeted',
+    };
+
+    expect(producer).toMatchObject({
+      activatedBy: [],
+      activates: ['signal.consumer'],
+      activationChains: [chain],
+      fires: ['hello.greeted'],
+      on: [],
+    });
+    expect(consumer).toMatchObject({
+      activatedBy: ['signal.producer'],
+      activates: [],
+      activationChains: [chain],
+      fires: [],
+      on: ['hello.greeted'],
+    });
   });
 
   test('trail detail clamps detour maxAttempts to the owner cap', () => {
@@ -486,6 +520,21 @@ describe('trails survey lookup', () => {
       expect(
         lookup.matches.every((match) => match.detail.id === 'shared')
       ).toBe(true);
+
+      const detailByKind = new Map(
+        lookup.matches.map((match) => [match.kind, match.detail])
+      );
+      expect(detailByKind.get('trail')).toMatchObject({
+        activationChains: [],
+        fires: ['shared'],
+      });
+      expect(detailByKind.get('resource')).toMatchObject({
+        usedBy: ['shared'],
+      });
+      expect(detailByKind.get('signal')).toMatchObject({
+        consumers: [],
+        producers: ['shared'],
+      });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -568,6 +617,40 @@ describe('trails survey resources section', () => {
       kind: 'resource',
       lifetime: 'singleton',
       usedBy: ['hello'],
+    });
+  });
+});
+
+describe('trails survey activation graph', () => {
+  test('list output includes static activation overview and trail relations', () => {
+    const report = deriveSurveyList(signalApp);
+    const parsed = structuredClone(report) as SurveyListReport;
+    const consumer = parsed.entries.find(
+      (entry) => entry.id === 'signal.consumer'
+    );
+    const producer = parsed.entries.find(
+      (entry) => entry.id === 'signal.producer'
+    );
+
+    expect(parsed.activation).toEqual({
+      chainCount: 1,
+      chains: [
+        {
+          consumer: 'signal.consumer',
+          producer: 'signal.producer',
+          signal: 'hello.greeted',
+        },
+      ],
+      signalIds: ['hello.greeted'],
+      trailIds: ['signal.consumer', 'signal.producer'],
+    });
+    expect(producer).toMatchObject({
+      activatedBy: [],
+      activates: ['signal.consumer'],
+    });
+    expect(consumer).toMatchObject({
+      activatedBy: ['signal.producer'],
+      activates: [],
     });
   });
 });
