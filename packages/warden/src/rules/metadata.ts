@@ -185,6 +185,11 @@ export const builtinWardenRuleMetadata = {
     scope: 'internal',
     tier: 'source-static',
   },
+  'public-union-output-discriminants': {
+    ...durableExternal,
+    invariant: 'Public output object unions expose branch discriminants.',
+    tier: 'topo-aware',
+  },
   'reference-exists': {
     ...durableExternal,
     invariant: 'Reference declarations resolve to known contours.',

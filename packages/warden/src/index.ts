@@ -94,6 +94,7 @@ export {
   preferSchemaInferenceTrail,
   projectAwareRuleInput,
   publicInternalDeepImportsTrail,
+  publicUnionOutputDiscriminantsTrail,
   referenceExistsTrail,
   ruleInput,
   ruleOutput,

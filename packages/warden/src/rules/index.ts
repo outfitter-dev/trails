@@ -25,6 +25,7 @@ import { ownerProjectionParity } from './owner-projection-parity.js';
 import { permitGovernance } from './permit-governance.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
 import { publicInternalDeepImports } from './public-internal-deep-imports.js';
+import { publicUnionOutputDiscriminants } from './public-union-output-discriminants.js';
 import { referenceExists } from './reference-exists.js';
 import { resourceDeclarations } from './resource-declarations.js';
 import { resourceExists } from './resource-exists.js';
@@ -87,6 +88,7 @@ export { ownerProjectionParity } from './owner-projection-parity.js';
 export { permitGovernance } from './permit-governance.js';
 export { preferSchemaInference } from './prefer-schema-inference.js';
 export { publicInternalDeepImports } from './public-internal-deep-imports.js';
+export { publicUnionOutputDiscriminants } from './public-union-output-discriminants.js';
 export { referenceExists } from './reference-exists.js';
 export { resourceDeclarations } from './resource-declarations.js';
 export { resourceExists } from './resource-exists.js';
@@ -152,5 +154,6 @@ export const wardenTopoRules: ReadonlyMap<string, TopoAwareWardenRule> =
   new Map<string, TopoAwareWardenRule>([
     [incompleteAccessorForStandardOp.name, incompleteAccessorForStandardOp],
     [permitGovernance.name, permitGovernance],
+    [publicUnionOutputDiscriminants.name, publicUnionOutputDiscriminants],
     [validDetourContract.name, validDetourContract],
   ]);
