@@ -11,9 +11,12 @@ claude plugin install trails@trails
 
 ## What's Included
 
-### Skill
+### Skills
 
-**`trails`** — The complete guide to building with Trails. Covers trail creation, resources, surfaces, testing, debugging, migration, and governance in one skill with 11 reference files for deep dives.
+| Skill | Purpose |
+|-------|---------|
+| `trails` | Build with Trails: trail creation, resources, surfaces, testing, debugging, migration, and governance. |
+| `trails-warden-advisory` | Classify hardening findings into Warden, repo-local Oxlint, docs, advisory, or no-rule homes. |
 
 ### Agent
 
