@@ -7,7 +7,7 @@
 import { existsSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 
-import { Result, trail } from '@ontrails/core';
+import { AlreadyExistsError, Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import {
@@ -143,7 +143,7 @@ export const addSurface = trail('add.surface', {
 
     if (entryExists.value) {
       return Result.err(
-        new Error(
+        new AlreadyExistsError(
           `${surface.toUpperCase()} surface already exists. Nothing to do.`
         )
       );

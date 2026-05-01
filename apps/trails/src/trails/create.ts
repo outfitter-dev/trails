@@ -5,7 +5,7 @@
  * via ctx.cross.
  */
 
-import { Result, trail } from '@ontrails/core';
+import { InternalError, Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import {
@@ -111,7 +111,7 @@ const collectCreatedFiles = (
 export const createRoute = trail('create', {
   blaze: async (input: CreateInput, ctx) => {
     if (!ctx.cross) {
-      return Result.err(new Error('create route requires ctx.cross'));
+      return Result.err(new InternalError('create route requires ctx.cross'));
     }
     const { cross } = ctx;
 

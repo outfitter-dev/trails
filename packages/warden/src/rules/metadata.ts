@@ -130,6 +130,11 @@ export const builtinWardenRuleMetadata = {
     invariant: 'Application code composes trails through ctx.cross().',
     tier: 'source-static',
   },
+  'no-native-error-result': {
+    ...durableExternal,
+    invariant: 'Result error boundaries carry specific TrailsError subclasses.',
+    tier: 'source-static',
+  },
   'no-sync-result-assumption': {
     ...durableExternal,
     invariant:

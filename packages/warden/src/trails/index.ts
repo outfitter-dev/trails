@@ -16,6 +16,7 @@ export { missingVisibilityTrail } from './missing-visibility.trail.js';
 export { missingReconcileTrail } from './missing-reconcile.trail.js';
 export { onReferencesExistTrail } from './on-references-exist.trail.js';
 export { noDirectImplementationCallTrail } from './no-direct-implementation-call.trail.js';
+export { noNativeErrorResultTrail } from './no-native-error-result.trail.js';
 export { noSyncResultAssumptionTrail } from './no-sync-result-assumption.trail.js';
 export { noThrowInDetourRecoverTrail } from './no-throw-in-detour-recover.trail.js';
 export { noThrowInImplementationTrail } from './no-throw-in-implementation.trail.js';

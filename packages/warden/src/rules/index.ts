@@ -15,6 +15,7 @@ import { intentPropagation } from './intent-propagation.js';
 import { missingVisibility } from './missing-visibility.js';
 import { missingReconcile } from './missing-reconcile.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
+import { noNativeErrorResult } from './no-native-error-result.js';
 import { noSyncResultAssumption } from './no-sync-result-assumption.js';
 import { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
@@ -75,6 +76,7 @@ export { missingVisibility } from './missing-visibility.js';
 export { missingReconcile } from './missing-reconcile.js';
 export { onReferencesExist } from './on-references-exist.js';
 export { noDirectImplementationCall } from './no-direct-implementation-call.js';
+export { noNativeErrorResult } from './no-native-error-result.js';
 export { noSyncResultAssumption } from './no-sync-result-assumption.js';
 export { implementationReturnsResult } from './implementation-returns-result.js';
 export { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
@@ -118,6 +120,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [preferSchemaInference.name, preferSchemaInference],
   [validDescribeRefs.name, validDescribeRefs],
   [noDirectImplementationCall.name, noDirectImplementationCall],
+  [noNativeErrorResult.name, noNativeErrorResult],
   [noSyncResultAssumption.name, noSyncResultAssumption],
   [implementationReturnsResult.name, implementationReturnsResult],
   [noThrowInDetourRecover.name, noThrowInDetourRecover],
