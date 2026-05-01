@@ -6,11 +6,23 @@
  * built-in rule implementation until they have a stable public contract.
  */
 export {
+  findBlazeBodies,
+  findContourDefinitions,
   findStringLiterals,
+  findTrailDefinitions,
   getStringValue,
+  isBlazeCall,
   isStringLiteral,
   offsetToLine,
   parse,
   walk,
+  walkScope,
 } from './rules/ast.js';
-export type { AstNode, StringLiteralMatch } from './rules/ast.js';
+export type {
+  AstNode,
+  ContourDefinition,
+  FindContourDefinitionsOptions,
+  FrameworkNamespaceContext,
+  StringLiteralMatch,
+  TrailDefinition,
+} from './rules/ast.js';

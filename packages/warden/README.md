@@ -138,7 +138,9 @@ to build all built-in rule trails.
 | `formatSummary(report)` | Compact summary line |
 
 AST parser helpers are exported from `@ontrails/warden/ast`, not the root
-runtime barrel.
+runtime barrel. The stable authoring surface includes `parse`, `walk`,
+`walkScope`, `offsetToLine`, `findTrailDefinitions`, `findBlazeBodies`,
+`findContourDefinitions`, `isBlazeCall`, and string-literal helpers.
 
 See the [API Reference](../../docs/api-reference.md) for the full list.
 
