@@ -31,7 +31,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import type { AnySQLiteColumn, AnySQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { z } from 'zod';
-import type { TrailContext } from '@ontrails/core';
+import type { Signal, TrailContext } from '@ontrails/core';
 
 import {
   deriveDrizzleTables,
@@ -1044,19 +1044,16 @@ type BoundFireFn = NonNullable<TrailContext['fire']>;
  */
 const fireDerivedSignal = async <TTable extends AnyStoreTable>(
   fire: BoundFireFn,
-  signalId: string,
+  derivedSignal: Signal<unknown>,
   entity: EntityOf<TTable>
 ): Promise<void> => {
   try {
-    const fired = await fire(signalId, entity);
-    if (fired.isErr()) {
-      console.warn(
-        `[drizzle] signal "${signalId}" emission failed:`,
-        fired.error
-      );
-    }
+    await fire(derivedSignal, entity);
   } catch (error) {
-    console.warn(`[drizzle] signal "${signalId}" emission threw:`, error);
+    console.warn(
+      `[drizzle] signal "${derivedSignal.id}" emission threw:`,
+      error
+    );
   }
 };
 
@@ -1083,7 +1080,7 @@ const bindWritableAccessorSignals = <TTable extends AnyStoreTable>(
     ...accessor,
     async insert(input: InsertOf<TTable>) {
       const created = await accessor.insert(input);
-      await fireDerivedSignal(fire, table.signals.created.id, created);
+      await fireDerivedSignal(fire, table.signals.created, created);
       return created;
     },
     async remove(id: StoreIdentifierOf<TTable>) {
@@ -1094,7 +1091,7 @@ const bindWritableAccessorSignals = <TTable extends AnyStoreTable>(
       const existing = await accessor.get(id);
       const removed = await accessor.remove(id);
       if (removed.deleted && existing !== null) {
-        await fireDerivedSignal(fire, table.signals.removed.id, existing);
+        await fireDerivedSignal(fire, table.signals.removed, existing);
       }
       return removed;
     },
@@ -1105,14 +1102,14 @@ const bindWritableAccessorSignals = <TTable extends AnyStoreTable>(
         // and fire unconditionally on successful update.
         const updated = await accessor.update(id, input);
         if (updated !== null) {
-          await fireDerivedSignal(fire, table.signals.updated.id, updated);
+          await fireDerivedSignal(fire, table.signals.updated, updated);
         }
         return updated;
       }
       const existing = await accessor.get(id);
       const updated = await accessor.update(id, input);
       if (changedEntity(existing, updated)) {
-        await fireDerivedSignal(fire, table.signals.updated.id, updated);
+        await fireDerivedSignal(fire, table.signals.updated, updated);
       }
       return updated;
     },
@@ -1127,12 +1124,12 @@ const bindWritableAccessorSignals = <TTable extends AnyStoreTable>(
       const written = await accessor.upsert(input);
 
       if (existing === null) {
-        await fireDerivedSignal(fire, table.signals.created.id, written);
+        await fireDerivedSignal(fire, table.signals.created, written);
         return written;
       }
 
       if (changedEntity(existing, written)) {
-        await fireDerivedSignal(fire, table.signals.updated.id, written);
+        await fireDerivedSignal(fire, table.signals.updated, written);
       }
       return written;
     },

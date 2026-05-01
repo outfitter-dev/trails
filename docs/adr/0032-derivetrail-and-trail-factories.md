@@ -83,12 +83,13 @@ The `ingest` factory handles the inverse: external data arriving in a non-trail 
 ```typescript
 import { ingest } from '@ontrails/core/trails';
 import { hmac } from '@ontrails/core/layers';
+import { orderCreated, paymentCompleted, repoPushed } from './signals';
 
 // Stripe webhook → payment signal
 const stripePayment = ingest({
   schema: StripePaymentEventSchema,
   verify: hmac({ header: 'Stripe-Signature', algo: 'sha256' }),
-  signal: 'payment.completed',
+  signal: paymentCompleted,
   transform: (payload) => ({
     paymentId: payload.data.object.id,
     amount: payload.data.object.amount,
@@ -100,7 +101,7 @@ const stripePayment = ingest({
 const githubPush = ingest({
   schema: GitHubPushEventSchema,
   verify: hmac({ header: 'X-Hub-Signature-256', algo: 'sha256' }),
-  signal: 'repo.pushed',
+  signal: repoPushed,
   transform: (payload) => ({
     repo: payload.repository.full_name,
     ref: payload.ref,
@@ -117,7 +118,7 @@ The `verify` option is optional. An internal service posting events to your API 
 // Minimal ingest — no verification, no transform
 const internalEvent = ingest({
   schema: InternalEventSchema,
-  signal: 'order.created',
+  signal: orderCreated,
 });
 ```
 

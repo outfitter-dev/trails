@@ -7,10 +7,11 @@ export const firesDeclarationsTrail = wrapRule({
       expected: { diagnostics: [] },
       input: {
         filePath: 'clean.ts',
-        sourceCode: `trail("entity.onboard", {
-  fires: ["entity.created"],
+        sourceCode: `const entityCreated = signal("entity.created", { payload: z.object({}) });
+trail("entity.onboard", {
+  fires: [entityCreated],
   blaze: async (input, ctx) => {
-    await ctx.fire("entity.created", { id: input.id });
+    await ctx.fire(entityCreated, { id: input.id });
     return Result.ok({});
   }
 })`,

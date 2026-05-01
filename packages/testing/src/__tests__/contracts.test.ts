@@ -97,13 +97,15 @@ const compositionContractSignal = signal('composition.contract.fired', {
 const compositionWithFireTrail = trail('composition.withFire', {
   blaze: async (_input: Record<string, never>, ctx) => {
     const crossed = await ctx.cross?.(compositionChildTrail, { value: 3 });
-    const fired = await ctx.fire?.(compositionContractSignal, {
+    let fired = false;
+    await ctx.fire?.(compositionContractSignal, {
       id: 'contract',
     });
+    fired = true;
 
     return Result.ok({
       crossed: crossed?.isOk() === true,
-      fired: fired?.isOk() === true,
+      fired,
     });
   },
   crosses: [compositionChildTrail],

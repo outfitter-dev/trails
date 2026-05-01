@@ -2413,6 +2413,239 @@ export const collectSignalDefinitionIds = (
   return ids;
 };
 
+const unwrapTopLevelDeclaration = (stmt: AstNode): AstNode => {
+  if (
+    stmt.type === 'ExportNamedDeclaration' ||
+    stmt.type === 'ExportDefaultDeclaration'
+  ) {
+    return (stmt as unknown as { declaration?: AstNode }).declaration ?? stmt;
+  }
+  return stmt;
+};
+
+const collectSignalIdsFromDeclaration = (
+  declaration: AstNode,
+  context: FrameworkNamespaceContext,
+  ids: Map<string, string>
+): void => {
+  const declarations =
+    (
+      unwrapTopLevelDeclaration(declaration) as unknown as {
+        declarations?: readonly AstNode[];
+      }
+    ).declarations ?? [];
+
+  for (const node of declarations) {
+    const { id, init } = node as unknown as {
+      readonly id?: AstNode;
+      readonly init?: AstNode;
+    };
+    if (!init) {
+      continue;
+    }
+
+    const def = extractTrailDefinition(init, context);
+    const name = extractBindingName(id);
+    if (def?.kind === 'signal' && name && !ids.has(name)) {
+      ids.set(name, def.id);
+    }
+  }
+};
+
+const collectStringIdsFromDeclaration = (
+  declaration: AstNode,
+  ids: Map<string, string>
+): void => {
+  const declarations =
+    (
+      unwrapTopLevelDeclaration(declaration) as unknown as {
+        declarations?: readonly AstNode[];
+      }
+    ).declarations ?? [];
+
+  for (const node of declarations) {
+    const { id, init } = node as unknown as {
+      readonly id?: AstNode;
+      readonly init?: AstNode;
+    };
+    if (!init) {
+      continue;
+    }
+
+    const name = extractBindingName(id);
+    const value =
+      extractStringLiteral(init) ?? extractPlainTemplateLiteral(init);
+    if (name && value !== null && !ids.has(name)) {
+      ids.set(name, value);
+    }
+  }
+};
+
+/** Collect module-scope `const foo = signal('id', ...)` bindings from a file. */
+export const collectNamedSignalIds = (
+  ast: AstNode
+): ReadonlyMap<string, string> => {
+  const ids = new Map<string, string>();
+  const context = buildFrameworkNamespaceContext(ast);
+  const statements =
+    (ast as unknown as { body?: readonly AstNode[] }).body ?? [];
+
+  for (const statement of statements) {
+    const declaration = unwrapTopLevelDeclaration(statement);
+    if (declaration.type === 'VariableDeclaration') {
+      collectSignalIdsFromDeclaration(declaration, context, ids);
+    }
+  }
+
+  return ids;
+};
+
+export type SignalIdentifierResolution =
+  | {
+      readonly id: string;
+      readonly kind: 'signal' | 'string';
+    }
+  | {
+      readonly kind: 'shadowed' | 'unbound';
+    };
+
+export interface SignalIdentifierResolver {
+  readonly resolve: (reference: AstNode) => SignalIdentifierResolution;
+}
+
+interface SignalScopeFrame {
+  readonly bindings: ReadonlySet<string>;
+  readonly end: number;
+  readonly signals: ReadonlyMap<string, string>;
+  readonly start: number;
+  readonly strings: ReadonlyMap<string, string>;
+}
+
+const collectSignalFrameValues = (
+  node: AstNode,
+  context: FrameworkNamespaceContext
+): {
+  readonly signals: ReadonlyMap<string, string>;
+  readonly strings: ReadonlyMap<string, string>;
+} => {
+  const signals = new Map<string, string>();
+  const strings = new Map<string, string>();
+
+  const collectDeclaration = (statement: AstNode): void => {
+    const declaration = unwrapTopLevelDeclaration(statement);
+    if (declaration.type !== 'VariableDeclaration') {
+      return;
+    }
+    collectSignalIdsFromDeclaration(declaration, context, signals);
+    collectStringIdsFromDeclaration(declaration, strings);
+  };
+
+  if (
+    node.type === 'Program' ||
+    node.type === 'BlockStatement' ||
+    node.type === 'FunctionBody'
+  ) {
+    const body = (node as unknown as { body?: readonly AstNode[] }).body ?? [];
+    for (const statement of body) {
+      collectDeclaration(statement);
+    }
+  }
+
+  if (node.type === 'ForStatement') {
+    const { init } = node as unknown as { init?: AstNode };
+    if (init) {
+      collectDeclaration(init);
+    }
+  }
+
+  if (node.type === 'SwitchStatement') {
+    const cases =
+      (node as unknown as { cases?: readonly AstNode[] }).cases ?? [];
+    for (const item of cases) {
+      const consequent =
+        (item as unknown as { consequent?: readonly AstNode[] }).consequent ??
+        [];
+      for (const statement of consequent) {
+        collectDeclaration(statement);
+      }
+    }
+  }
+
+  return { signals, strings };
+};
+
+const collectSignalScopeFrames = (
+  ast: AstNode,
+  context: FrameworkNamespaceContext
+): readonly SignalScopeFrame[] => {
+  const frames: SignalScopeFrame[] = [];
+
+  walk(ast, (node) => {
+    if (!(node.type in SCOPE_FRAME_COLLECTORS)) {
+      return;
+    }
+    const values = collectSignalFrameValues(node, context);
+    frames.push({
+      bindings: collectScopeFrameBindings(node),
+      end: node.end,
+      signals: values.signals,
+      start: node.start,
+      strings: values.strings,
+    });
+  });
+
+  return frames;
+};
+
+const isInsideFrame = (reference: AstNode, frame: SignalScopeFrame): boolean =>
+  frame.start <= reference.start && reference.end <= frame.end;
+
+const compareInnermostFrame = (
+  a: SignalScopeFrame,
+  b: SignalScopeFrame
+): number => {
+  const aSize = a.end - a.start;
+  const bSize = b.end - b.start;
+  return aSize - bSize || b.start - a.start;
+};
+
+export const buildSignalIdentifierResolver = (
+  ast: AstNode
+): SignalIdentifierResolver => {
+  const context = buildFrameworkNamespaceContext(ast);
+  const frames = collectSignalScopeFrames(ast, context);
+
+  return {
+    resolve(reference: AstNode): SignalIdentifierResolution {
+      const name = identifierName(reference);
+      if (!name) {
+        return { kind: 'unbound' };
+      }
+
+      const containingFrames = frames
+        .filter((frame) => isInsideFrame(reference, frame))
+        .toSorted(compareInnermostFrame);
+
+      for (const frame of containingFrames) {
+        if (!frame.bindings.has(name)) {
+          continue;
+        }
+        const signalId = frame.signals.get(name);
+        if (signalId) {
+          return { id: signalId, kind: 'signal' };
+        }
+        const stringId = frame.strings.get(name);
+        if (stringId) {
+          return { id: stringId, kind: 'string' };
+        }
+        return { kind: 'shadowed' };
+      }
+
+      return { kind: 'unbound' };
+    },
+  };
+};
+
 /** Collect `const foo = trail('id', ...)` bindings from a parsed file. */
 export const collectNamedTrailIds = (
   ast: AstNode

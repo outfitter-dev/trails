@@ -2,7 +2,7 @@
  * End-to-end integration tests for the producer -> consumer signal flow.
  *
  * Proves that `fires:` / `on:` fan-out works against a real topo:
- * - entity.add declares `fires: ['entity.updated']` and calls ctx.fire
+ * - entity.add declares `fires: [entityUpdated]` and calls ctx.fire
  * - entity.updated is a signal defined in src/signals/entity-signals.ts
  * - entity.notify-updated declares `on: ['entity.updated']` as a consumer
  *   and reads its notification sink from a real resource registered on

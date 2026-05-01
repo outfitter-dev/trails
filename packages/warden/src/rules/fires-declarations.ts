@@ -1,16 +1,18 @@
 /**
  * Validates that `ctx.fire()` calls match the declared `fires` array.
  *
- * Statically analyzes trail `blaze` functions to find `ctx.fire('signalId', ...)`
- * calls and compares them against the `fires: [...]` declaration in the trail
- * config. Reports errors for undeclared fires and warnings for unused ones.
+ * Statically analyzes trail `blaze` functions to find `ctx.fire(signal, ...)`
+ * calls and compares locally-resolved `Signal` values against the `fires: [...]`
+ * declaration in the trail config. Reports errors for undeclared fires, string
+ * fire calls that no longer match the public runtime API, and warnings for
+ * unused declarations.
  *
  * Mirrors `cross-declarations` structurally — same extraction, same reporting
  * shape, same const-identifier resolution, same context-parameter handling.
  */
 
 import {
-  extractFirstStringArg,
+  buildSignalIdentifierResolver,
   extractStringLiteral,
   findConfigProperty,
   findBlazeBodies,
@@ -21,25 +23,13 @@ import {
   deriveConstString,
   walkScope,
 } from './ast.js';
-import type { AstNode } from './ast.js';
+import type { AstNode, SignalIdentifierResolver } from './ast.js';
 import { isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 // ---------------------------------------------------------------------------
 // Const identifier resolution
 // ---------------------------------------------------------------------------
-
-/** Try to resolve an Identifier element to a string via const declaration. */
-const resolveIdentifierElement = (
-  el: AstNode,
-  sourceCode: string
-): string | null => {
-  const name = identifierName(el);
-  if (!name) {
-    return null;
-  }
-  return deriveConstString(name, sourceCode);
-};
 
 /**
  * Resolve an array element to a static signal ID when possible.
@@ -52,7 +42,8 @@ const resolveIdentifierElement = (
  */
 const resolveFireElementId = (
   element: AstNode,
-  sourceCode: string
+  sourceCode: string,
+  signalIds: SignalIdentifierResolver
 ): string | null => {
   const literalValue = extractStringLiteral(element);
   if (literalValue !== null) {
@@ -60,7 +51,17 @@ const resolveFireElementId = (
   }
 
   if (element.type === 'Identifier') {
-    return resolveIdentifierElement(element, sourceCode);
+    const name = identifierName(element);
+    if (name) {
+      const resolved = signalIds.resolve(element);
+      if (resolved.kind === 'signal' || resolved.kind === 'string') {
+        return resolved.id;
+      }
+      if (resolved.kind === 'shadowed') {
+        return null;
+      }
+      return deriveConstString(name, sourceCode);
+    }
   }
 
   return null;
@@ -105,12 +106,13 @@ interface DeclaredFires {
  */
 const resolveDeclaredFiresElements = (
   elements: readonly AstNode[],
-  sourceCode: string
+  sourceCode: string,
+  signalIds: SignalIdentifierResolver
 ): DeclaredFires => {
   const ids = new Set<string>();
   let hasUnresolved = false;
   for (const element of elements) {
-    const resolved = resolveFireElementId(element, sourceCode);
+    const resolved = resolveFireElementId(element, sourceCode, signalIds);
     if (resolved) {
       ids.add(resolved);
     } else {
@@ -122,11 +124,12 @@ const resolveDeclaredFiresElements = (
 
 const extractDeclaredFires = (
   config: AstNode,
-  sourceCode: string
+  sourceCode: string,
+  signalIds: SignalIdentifierResolver
 ): DeclaredFires => {
   const elements = getFiresElements(config);
   return elements
-    ? resolveDeclaredFiresElements(elements, sourceCode)
+    ? resolveDeclaredFiresElements(elements, sourceCode, signalIds)
     : { hasUnresolved: false, ids: new Set() };
 };
 
@@ -255,7 +258,7 @@ const isMemberFireCall = (
 };
 
 /**
- * Check if a node is a `<ctxName>.fire(...)` call and return the string signal ID.
+ * Check if a node is a `<ctxName>.fire(...)` call.
  *
  * Also matches bare `<fireLocalName>(...)` calls, but only when the local name
  * was verifiably destructured from the trail context (e.g. `const { fire } = ctx`
@@ -274,11 +277,62 @@ const isTrackedFireCallee = (
   return !!calleeName && fireLocalNames.has(calleeName);
 };
 
+interface FireCallArg {
+  readonly id: string | null;
+  readonly stringId: string | null;
+  readonly unresolved: boolean;
+}
+
+const firstCallArg = (node: AstNode): AstNode | null => {
+  const args = node['arguments'] as readonly AstNode[] | undefined;
+  return args?.[0] ?? null;
+};
+
+const resolveFireCallArg = (
+  arg: AstNode | null,
+  sourceCode: string,
+  signalIds: SignalIdentifierResolver
+): FireCallArg => {
+  if (!arg) {
+    return { id: null, stringId: null, unresolved: true };
+  }
+
+  const stringId = extractStringLiteral(arg);
+  if (stringId !== null) {
+    return { id: stringId, stringId, unresolved: false };
+  }
+
+  if (arg.type === 'Identifier') {
+    const name = identifierName(arg);
+    if (!name) {
+      return { id: null, stringId: null, unresolved: true };
+    }
+    const resolved = signalIds.resolve(arg);
+    if (resolved.kind === 'signal') {
+      return { id: resolved.id, stringId: null, unresolved: false };
+    }
+    if (resolved.kind === 'string') {
+      return { id: resolved.id, stringId: resolved.id, unresolved: false };
+    }
+    if (resolved.kind === 'shadowed') {
+      return { id: null, stringId: null, unresolved: true };
+    }
+    const constStringId = deriveConstString(name, sourceCode);
+    if (constStringId) {
+      return { id: constStringId, stringId: constStringId, unresolved: false };
+    }
+  }
+
+  return { id: null, stringId: null, unresolved: true };
+};
+
 const extractFireCallId = (
   node: AstNode,
   ctxNames: ReadonlySet<string>,
-  fireLocalNames: ReadonlySet<string>
-): string | null => {
+  fireLocalNames: ReadonlySet<string>,
+  sourceCode: string,
+  signalIds: SignalIdentifierResolver
+): FireCallArg | null => {
   if (node.type !== 'CallExpression') {
     return null;
   }
@@ -287,7 +341,7 @@ const extractFireCallId = (
     return null;
   }
   return isTrackedFireCallee(callee, ctxNames, fireLocalNames)
-    ? extractFirstStringArg(node)
+    ? resolveFireCallArg(firstCallArg(node), sourceCode, signalIds)
     : null;
 };
 
@@ -421,8 +475,8 @@ const buildCtxNames = (body: AstNode): ReadonlySet<string> => {
  * ```ts
  * blaze: async (_, ctx) => {
  *   const { fire } = ctx;
- *   function nested(fire) { fire('shadow'); } // ignored — shadowed
- *   function other(ctx)  { ctx.fire('x'); }   // ignored — shadowed
+ *   function nested(fire) { fire(orderPlaced); } // ignored — shadowed
+ *   function other(ctx)  { ctx.fire(orderPlaced); } // ignored — shadowed
  *   return Result.ok({});
  * }
  * ```
@@ -434,27 +488,84 @@ const buildCtxNames = (body: AstNode): ReadonlySet<string> => {
  * can't prove them at lint time. A fuller helper-aware scope walker remains
  * follow-up work if this precision loss becomes meaningful in practice.
  */
-const extractCalledFires = (config: AstNode): ReadonlySet<string> => {
+interface CalledFires {
+  readonly hasUnresolved: boolean;
+  readonly ids: ReadonlySet<string>;
+  readonly stringIds: ReadonlySet<string>;
+}
+
+const mergeCalledFires = (
+  target: {
+    hasUnresolved: boolean;
+    ids: Set<string>;
+    stringIds: Set<string>;
+  },
+  source: CalledFires
+): void => {
+  for (const id of source.ids) {
+    target.ids.add(id);
+  }
+  for (const id of source.stringIds) {
+    target.stringIds.add(id);
+  }
+  target.hasUnresolved = target.hasUnresolved || source.hasUnresolved;
+};
+
+const extractCalledFiresFromBody = (
+  body: AstNode,
+  sourceCode: string,
+  signalIds: SignalIdentifierResolver
+): CalledFires => {
   const ids = new Set<string>();
+  const stringIds = new Set<string>();
+  let hasUnresolved = false;
+  const ctxNames = buildCtxNames(body);
+  const bodyFireNames = collectDestructuredFireNames(body, ctxNames);
+  const paramFireNames = collectParamFireNames(body);
+  const fireLocalNames = new Set<string>([...bodyFireNames, ...paramFireNames]);
+
+  walkScope(body, (node) => {
+    const call = extractFireCallId(
+      node,
+      ctxNames,
+      fireLocalNames,
+      sourceCode,
+      signalIds
+    );
+    if (!call) {
+      return;
+    }
+    if (call.id) {
+      ids.add(call.id);
+    }
+    if (call.stringId) {
+      stringIds.add(call.stringId);
+    }
+    if (call.unresolved) {
+      hasUnresolved = true;
+    }
+  });
+
+  return { hasUnresolved, ids, stringIds };
+};
+
+const extractCalledFires = (
+  config: AstNode,
+  sourceCode: string,
+  signalIds: SignalIdentifierResolver
+): CalledFires => {
+  const ids = new Set<string>();
+  const stringIds = new Set<string>();
+  const merged = { hasUnresolved: false, ids, stringIds };
 
   for (const body of findBlazeBodies(config)) {
-    const ctxNames = buildCtxNames(body);
-    const bodyFireNames = collectDestructuredFireNames(body, ctxNames);
-    const paramFireNames = collectParamFireNames(body);
-    const fireLocalNames = new Set<string>([
-      ...bodyFireNames,
-      ...paramFireNames,
-    ]);
-
-    walkScope(body, (node) => {
-      const id = extractFireCallId(node, ctxNames, fireLocalNames);
-      if (id) {
-        ids.add(id);
-      }
-    });
+    mergeCalledFires(
+      merged,
+      extractCalledFiresFromBody(body, sourceCode, signalIds)
+    );
   }
 
-  return ids;
+  return { hasUnresolved: merged.hasUnresolved, ids, stringIds };
 };
 
 // ---------------------------------------------------------------------------
@@ -475,6 +586,19 @@ const buildUndeclaredDiagnostic = (
     : `Trail "${trailId}": ctx.fire('${signalId}') called but '${signalId}' is not declared in fires`,
   rule: 'fires-declarations',
   severity: softened ? 'warn' : 'error',
+});
+
+const buildStringFireDiagnostic = (
+  trailId: string,
+  signalId: string,
+  filePath: string,
+  line: number
+): WardenDiagnostic => ({
+  filePath,
+  line,
+  message: `Trail "${trailId}": ctx.fire('${signalId}') uses a string signal id; pass the Signal value to ctx.fire(signal, payload)`,
+  rule: 'fires-declarations',
+  severity: 'error',
 });
 
 const buildUnusedDiagnostic = (
@@ -546,34 +670,56 @@ const reportUnused = (
   }
 };
 
+const reportStringFireCalls = (
+  stringIds: ReadonlySet<string>,
+  ctx: { trailId: string; filePath: string; line: number },
+  diagnostics: WardenDiagnostic[]
+): void => {
+  for (const id of stringIds) {
+    diagnostics.push(
+      buildStringFireDiagnostic(ctx.trailId, id, ctx.filePath, ctx.line)
+    );
+  }
+};
+
 const checkTrailDefinition = (
   def: { id: string; config: AstNode; start: number },
   filePath: string,
   sourceCode: string,
+  signalIds: SignalIdentifierResolver,
   diagnostics: WardenDiagnostic[]
 ): void => {
-  const declared = extractDeclaredFires(def.config, sourceCode);
-  const called = extractCalledFires(def.config);
+  const declared = extractDeclaredFires(def.config, sourceCode, signalIds);
+  const called = extractCalledFires(def.config, sourceCode, signalIds);
 
-  if (declared.ids.size === 0 && !declared.hasUnresolved && called.size === 0) {
+  if (
+    declared.ids.size === 0 &&
+    !declared.hasUnresolved &&
+    called.ids.size === 0 &&
+    !called.hasUnresolved
+  ) {
     return;
   }
 
   const line = offsetToLine(sourceCode, def.start);
   const ctx = { filePath, line, trailId: def.id };
+  const signalValueCalledIds = new Set(
+    [...called.ids].filter((id) => !called.stringIds.has(id))
+  );
 
+  reportStringFireCalls(called.stringIds, ctx, diagnostics);
   // When the declared array contains object-form references we can't resolve,
   // downgrade "undeclared" diagnostics from error to warn with a disclaimer
   // instead of suppressing entirely. The developer still sees genuinely
   // undeclared calls, but we can't statically prove the call isn't covered by
   // a Signal-value entry the runtime will normalize.
   reportUndeclared(
-    called,
+    signalValueCalledIds,
     declared.ids,
     { ...ctx, softened: declared.hasUnresolved },
     diagnostics
   );
-  reportUnused(declared.ids, called, ctx, diagnostics);
+  reportUnused(declared.ids, called.ids, ctx, diagnostics);
 };
 
 // ---------------------------------------------------------------------------
@@ -593,11 +739,14 @@ export const firesDeclarations: WardenRule = {
     if (!ast) {
       return [];
     }
+    const signalIds = buildSignalIdentifierResolver(ast);
 
     const diagnostics: WardenDiagnostic[] = [];
 
     for (const def of findTrailDefinitions(ast)) {
-      checkTrailDefinition(def, filePath, sourceCode, diagnostics);
+      if (def.kind === 'trail') {
+        checkTrailDefinition(def, filePath, sourceCode, signalIds, diagnostics);
+      }
     }
 
     return diagnostics;

@@ -14,6 +14,7 @@ import {
 import { z } from 'zod';
 
 import { entityStoreResource } from '../resources/entity-store.js';
+import { updated as entityUpdated } from '../signals/entity-signals.js';
 import type { Entity } from '../store.js';
 import { entitySchema } from '../store.js';
 
@@ -88,7 +89,7 @@ export const add = trail('entity.add', {
         tags: input.tags ?? [],
         type: input.type,
       });
-      await ctx.fire?.('entity.updated', {
+      await ctx.fire?.(entityUpdated, {
         action: 'created',
         entityId: entity.id,
         entityName: entity.name,
@@ -119,7 +120,7 @@ export const add = trail('entity.add', {
       name: 'Duplicate entity returns conflict',
     },
   ],
-  fires: ['entity.updated'],
+  fires: [entityUpdated],
   input: z.object({
     name: z.string().describe('Entity name'),
     tags: z
@@ -151,7 +152,7 @@ export const remove = trail('entity.delete', {
     if (!deleted.deleted) {
       return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
     }
-    await ctx.fire?.('entity.updated', {
+    await ctx.fire?.(entityUpdated, {
       action: 'deleted',
       entityId: existing.id,
       entityName: existing.name,
@@ -173,7 +174,7 @@ export const remove = trail('entity.delete', {
       name: 'Delete non-existent entity returns not found',
     },
   ],
-  fires: ['entity.updated'],
+  fires: [entityUpdated],
   input: z.object({
     name: z.string().describe('Entity name to delete'),
   }),

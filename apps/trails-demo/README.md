@@ -256,7 +256,7 @@ Use `trails topo *` for the day-to-day operational flow: inspect the current top
 
 ## Signals
 
-The demo exercises the lexicon's reactive activation primitive end-to-end. A producer trail declares the signal it emits, calls `ctx.fire()` from its blaze, and any trail that lists the signal in `on:` runs automatically.
+The demo exercises the lexicon's reactive activation primitive end-to-end. A producer trail declares the signal it fires, calls `ctx.fire()` from its blaze, and any trail that lists the signal in `on:` runs automatically.
 
 ```typescript
 // src/signals/entity-signals.ts
@@ -272,10 +272,10 @@ export const updated = signal('entity.updated', {
 
 // src/trails/entity.ts -- producer
 export const add = trail('entity.add', {
-  fires: ['entity.updated'],
+  fires: [updated],
   blaze: async (input, ctx) => {
     const entity = await store.entities.insert(input);
-    await ctx.fire?.('entity.updated', {
+    await ctx.fire?.(updated, {
       action: 'created',
       entityId: entity.id,
       entityName: entity.name,
@@ -297,4 +297,4 @@ export const notifyEntityUpdated = trail('entity.notify-updated', {
 });
 ```
 
-The warden enforces that every `ctx.fire(id, ...)` call appears in the trail's `fires: [...]` declaration (and vice-versa), and that every `on:` reference resolves to a signal definition the topo actually knows about. See `__tests__/signals.test.ts` for the end-to-end proof.
+The warden enforces that signal declarations and consumers stay aligned, and that every `on:` reference resolves to a signal definition the topo actually knows about. See `__tests__/signals.test.ts` for the end-to-end proof.

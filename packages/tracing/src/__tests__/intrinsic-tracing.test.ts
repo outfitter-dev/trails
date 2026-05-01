@@ -356,13 +356,10 @@ const createParallelSignalFanoutScenario = () => {
   const right = createSignalConsumer('trace.signal.right', rightStarted);
   const producer = trail('trace.signal.producer', {
     blaze: async (input, ctx) => {
-      const fired = await ctx.fire?.(emitted.id, input);
-      return (fired as Result<void, Error>).match({
-        err: (error) => Result.err(error),
-        ok: () => Result.ok({ ok: true }),
-      });
+      await ctx.fire?.(emitted, input);
+      return Result.ok({ ok: true });
     },
-    fires: [emitted.id],
+    fires: [emitted],
     input: z.object({ id: z.string() }),
     output: z.object({ ok: z.boolean() }),
   });

@@ -2,13 +2,13 @@
 import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
-import { NotFoundError, ValidationError } from '../errors';
 import { clearTraceSink, registerTraceSink } from '../internal/tracing';
 import type { TraceRecord, TraceSink } from '../internal/tracing';
 import type { Layer } from '../layer';
 import { Result } from '../result';
 import { run } from '../run';
 import { signal } from '../signal';
+import type { Signal } from '../signal';
 import { topo } from '../topo';
 import { trail } from '../trail';
 import type { Logger, TrailContext } from '../types';
@@ -68,14 +68,14 @@ const makeConsumer = (
     on: ['order.placed'],
   });
 
-const makeProducer = (fireResultKey: { result?: Result<void, Error> }) =>
+const makeProducer = (fireCapture: { fired?: boolean }) =>
   trail('order.create', {
     blaze: async (input, ctx) => {
-      const fired = await ctx.fire?.('order.placed', {
+      await ctx.fire?.(orderPlaced, {
         orderId: input.orderId,
         total: input.total,
       });
-      fireResultKey.result = fired;
+      fireCapture.fired = true;
       return Result.ok({ ok: true });
     },
     fires: ['order.placed'],
@@ -261,16 +261,16 @@ const createIsolatedConsumer = (
 const createCycleConsumer = (
   id: string,
   signalId: 'loop.a' | 'loop.b',
-  nextSignalId: 'loop.a' | 'loop.b',
+  nextSignal: typeof loopA | typeof loopB,
   invocations: string[]
 ) =>
   trail(id, {
     blaze: async (input, ctx) => {
       invocations.push(signalId === 'loop.a' ? 'a' : 'b');
-      const fired = await ctx.fire?.(nextSignalId, { id: input.id });
-      return fired as Result<unknown, Error>;
+      await ctx.fire?.(nextSignal, { id: input.id });
+      return Result.ok({ ok: true });
     },
-    fires: [nextSignalId],
+    fires: [nextSignal],
     input: cyclePayload,
     on: [signalId],
   });
@@ -278,7 +278,7 @@ const createCycleConsumer = (
 const createErrorIsolationScenario = () => {
   const capture = createCapture();
   const warnings: WarningEvent[] = [];
-  const fireBox: { result?: Result<void, Error> } = {};
+  const fireBox: { fired?: boolean } = {};
   const app = topo('fire-err', {
     failingConsumer: makeConsumer('notify.broken', capture, 'err'),
     healthyConsumer: makeConsumer('notify.email', capture),
@@ -379,24 +379,23 @@ const createCycleScenario = (invocations: string[]) =>
     consumerA: createCycleConsumer(
       'loop.consumer.a',
       'loop.a',
-      'loop.b',
+      loopB,
       invocations
     ),
     consumerB: createCycleConsumer(
       'loop.consumer.b',
       'loop.b',
-      'loop.a',
+      loopA,
       invocations
     ),
     loopA,
     loopB,
     producer: trail('loop.producer', {
-      blaze: async (input, ctx) =>
-        (await ctx.fire?.('loop.a', { id: input.id })) as Result<
-          unknown,
-          Error
-        >,
-      fires: ['loop.a'],
+      blaze: async (input, ctx) => {
+        await ctx.fire?.(loopA, { id: input.id });
+        return Result.ok({ ok: true });
+      },
+      fires: [loopA],
       input: cyclePayload,
     }),
   });
@@ -413,10 +412,12 @@ const createDepthChainScenario = (chainLength: number) => {
       trail(`chain.consumer.${i}`, {
         blaze: async (_input, ctx) => {
           const next = signals[i + 1];
-          await ctx.fire?.(next?.id ?? '', { n: i + 1 });
+          if (next !== undefined) {
+            await ctx.fire?.(next, { n: i + 1 });
+          }
           return Result.ok({ step: i });
         },
-        fires: [signals[i + 1]?.id ?? ''],
+        fires: signals[i + 1] === undefined ? [] : [signals[i + 1]],
         input: chainPayload,
         on: [sig.id],
       }),
@@ -431,10 +432,12 @@ const createDepthChainScenario = (chainLength: number) => {
       ...signalEntries,
       producer: trail('chain.start', {
         blaze: async (input: { n: number }, ctx) => {
-          await ctx.fire?.(firstSignal?.id ?? '', input);
+          if (firstSignal !== undefined) {
+            await ctx.fire?.(firstSignal, input);
+          }
           return Result.ok({ started: true });
         },
-        fires: [firstSignal?.id ?? ''],
+        fires: firstSignal === undefined ? [] : [firstSignal],
         input: chainPayload,
       }),
     }),
@@ -568,7 +571,7 @@ const createConsumerCrossScenario = () => {
     input: z.object({ orderId: z.string(), total: z.number() }),
     on: ['order.placed'],
   });
-  const fireBox: { result?: Result<void, Error> } = {};
+  const fireBox: { fired?: boolean } = {};
   return topo('fire-consumer-cross-attribution', {
     consumer,
     crossTarget,
@@ -600,7 +603,7 @@ describe('fire', () => {
   describe('fan-out', () => {
     test('invokes every consumer with validated payload', async () => {
       const capture = createCapture();
-      const fireBox: { result?: Result<void, Error> } = {};
+      const fireBox: { fired?: boolean } = {};
       const app = topo('fire-test', {
         consumerA: makeConsumer('notify.email', capture),
         consumerB: makeConsumer('notify.slack', capture),
@@ -612,7 +615,7 @@ describe('fire', () => {
         total: 42,
       });
       expect(result.isOk()).toBe(true);
-      expect(fireBox.result?.isOk()).toBe(true);
+      expect(fireBox.fired).toBe(true);
       expect(capture.invocations).toHaveLength(2);
       expect(capture.invocations.map((i) => i.trailId).toSorted()).toEqual([
         'notify.email',
@@ -628,8 +631,8 @@ describe('fire', () => {
       });
     });
 
-    test('no-consumer fan-out returns Result.ok', async () => {
-      const fireBox: { result?: Result<void, Error> } = {};
+    test('no-consumer fan-out resolves without producer-facing Result plumbing', async () => {
+      const fireBox: { fired?: boolean } = {};
       const producer = makeProducer(fireBox);
       const app = topo('fire-empty', { orderPlaced, producer });
 
@@ -639,16 +642,43 @@ describe('fire', () => {
       });
 
       expect(result.isOk()).toBe(true);
-      expect(fireBox.result?.isOk()).toBe(true);
+      expect(fireBox.fired).toBe(true);
     });
   });
 
   describe('validation', () => {
-    test('unknown signal id returns Result.err(NotFoundError)', async () => {
+    test('loose string signal ids are blocked by the public fire path', async () => {
+      const capture = createCapture();
+      const consumer = makeConsumer('notify.email', capture);
       const badProducer = trail('bad.producer', {
         blaze: async (_input, ctx) => {
-          const fired = await ctx.fire?.('ghost.signal', {});
-          return fired as Result<unknown, Error>;
+          const fireByString = ctx.fire as unknown as (
+            signalId: string,
+            payload: unknown
+          ) => Promise<void>;
+          await fireByString('order.placed', { orderId: 'o-loose', total: 1 });
+          return Result.ok({ ok: true });
+        },
+        input: z.object({}),
+      });
+
+      const app = topo('fire-loose-string', {
+        badProducer,
+        consumer,
+        orderPlaced,
+      });
+      const result = await run(app, 'bad.producer', {});
+
+      expect(result.isOk()).toBe(true);
+      expect(capture.invocations).toHaveLength(0);
+    });
+
+    test('unknown signal values do not fail the producer', async () => {
+      const ghostSignal = signal('ghost.signal', { payload: z.object({}) });
+      const badProducer = trail('bad.producer', {
+        blaze: async (_input, ctx) => {
+          await ctx.fire?.(ghostSignal, {});
+          return Result.ok({ ok: true });
         },
         input: z.object({}),
       });
@@ -656,18 +686,17 @@ describe('fire', () => {
       const app = topo('fire-unknown', { badProducer });
       const result = await run(app, 'bad.producer', {});
 
-      expect(result.isErr()).toBe(true);
-      expect(result.error).toBeInstanceOf(NotFoundError);
+      expect(result.isOk()).toBe(true);
     });
 
-    test('bad payload returns Result.err(ValidationError) and skips consumers', async () => {
+    test('bad payload resolves and skips consumers', async () => {
       const capture = createCapture();
       const consumer = makeConsumer('notify.email', capture);
 
       const badProducer = trail('bad.payload', {
         blaze: async (_input, ctx) => {
-          const fired = await ctx.fire?.('order.placed', { orderId: 123 });
-          return fired as Result<unknown, Error>;
+          await ctx.fire?.(orderPlaced as Signal<unknown>, { orderId: 123 });
+          return Result.ok({ ok: true });
         },
         input: z.object({}),
       });
@@ -679,8 +708,7 @@ describe('fire', () => {
       });
       const result = await run(app, 'bad.payload', {});
 
-      expect(result.isErr()).toBe(true);
-      expect(result.error).toBeInstanceOf(ValidationError);
+      expect(result.isOk()).toBe(true);
       expect(capture.invocations).toHaveLength(0);
     });
   });
@@ -701,7 +729,7 @@ describe('fire', () => {
       );
 
       expect(result.isOk()).toBe(true);
-      expect(scenario.fireBox.result?.isOk()).toBe(true);
+      expect(scenario.fireBox.fired).toBe(true);
       expect(observedConsumerIds(scenario.capture)).toEqual([
         'notify.broken',
         'notify.email',
@@ -773,13 +801,9 @@ describe('fire', () => {
         signalArg: unknown,
         payload: unknown
       ) => {
-        const id =
-          typeof signalArg === 'string'
-            ? signalArg
-            : (signalArg as { id: string }).id;
-        captured.signalId = id;
+        captured.signalId = (signalArg as { id: string }).id;
         captured.payload = payload;
-        return Promise.resolve(Result.ok(null as unknown));
+        return Promise.resolve();
       }) as NonNullable<TrailContext['fire']>;
 
       const producer = trail('order.create-with-injected-fire', {
@@ -814,11 +838,11 @@ describe('fire', () => {
       const consumerA = makeConsumer('notify.email', capture);
       const valueProducer = trail('order.create-by-value', {
         blaze: async (input, ctx) => {
-          const fired = await ctx.fire?.(orderPlaced, {
+          await ctx.fire?.(orderPlaced, {
             orderId: input.orderId,
             total: input.total,
           });
-          return fired as Result<unknown, Error>;
+          return Result.ok({ ok: true });
         },
         fires: ['order.placed'],
         input: z.object({ orderId: z.string(), total: z.number() }),
@@ -857,7 +881,7 @@ describe('fire', () => {
         input: z.object({ orderId: z.string(), total: z.number() }),
         on: ['order.placed'],
       });
-      const fireBox: { result?: Result<void, Error> } = {};
+      const fireBox: { fired?: boolean } = {};
       const producer = makeProducer(fireBox);
       const app = topo('fire-layer-forward', {
         consumer,
@@ -990,7 +1014,7 @@ describe('fire', () => {
         input: z.object({ orderId: z.string(), total: z.number() }),
         on: ['order.placed'],
       });
-      const fireBox: { result?: Result<void, Error> } = {};
+      const fireBox: { fired?: boolean } = {};
       const app = topo('fire-inherit', {
         consumer,
         orderPlaced,
@@ -1026,7 +1050,7 @@ describe('fire', () => {
             requestId: 'layer-request-id',
           }),
       };
-      const fireBox: { result?: Result<void, Error> } = {};
+      const fireBox: { fired?: boolean } = {};
       const app = topo('fire-inherit-layered', {
         consumer,
         orderPlaced,
@@ -1060,11 +1084,11 @@ describe('fire', () => {
       const producer = trail('inherit.extracted.producer', {
         blaze: async (input, ctx) => {
           const { fire } = ctx;
-          const fired = await fire?.('order.placed', {
+          await fire?.(orderPlaced, {
             orderId: input.orderId,
             total: input.total,
           });
-          return fired as Result<unknown, Error>;
+          return Result.ok({ ok: true });
         },
         fires: ['order.placed'],
         input: z.object({ orderId: z.string(), total: z.number() }),

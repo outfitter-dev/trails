@@ -382,15 +382,12 @@ describe('deriveMcpTools', () => {
       });
       const producer = trail('order.create', {
         blaze: async (input: { orderId: string }, ctx) => {
-          const fired = await requireFire(ctx.fire)('order.placed', {
+          await requireFire(ctx.fire)(orderPlaced, {
             orderId: input.orderId,
           });
-          return fired.match({
-            err: (error) => Result.err(error),
-            ok: () => Result.ok({ ok: true }),
-          });
+          return Result.ok({ ok: true });
         },
-        fires: ['order.placed'],
+        fires: [orderPlaced],
         input: z.object({ orderId: z.string() }),
       });
       const tool = requireTool(

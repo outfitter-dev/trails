@@ -119,8 +119,8 @@ const create = trail('entity.create', {
   fires: [created],
   input: entityInput,
   blaze: async (input, ctx) => {
-    const result = await ctx.fire(created, { id: input.id });
-    return result;
+    await ctx.fire(created, { id: input.id });
+    return Result.ok({ id: input.id });
   },
 });
 ```
@@ -202,7 +202,7 @@ const updated = signal('entity.updated', {
 });
 ```
 
-Trails signals go beyond events: cron triggers, webhook sources, file watchers, bare triggers with no domain payload. "Event" would mislead; "signal" scopes correctly.
+Trails signals are authored, typed notifications in the contract graph. Future activation/source work may let schedules, webhooks, file watchers, and other external triggers produce signals, but v1 signal support does not materialize those sources.
 
 ### `pin`
 

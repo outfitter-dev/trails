@@ -2,7 +2,7 @@
  * Signal emission and auto-activation.
  *
  * `createFireFn(topo, producerCtx?, executor)` returns a `FireFn` bound to
- * a topo. Calling `fire(signalId, payload)` looks up the signal, validates
+ * a topo. Calling `fire(signal, payload)` looks up the signal, validates
  * the payload against its schema, finds every trail with the signal in its
  * `on:` array, and invokes each consumer via the supplied executor.
  *
@@ -18,16 +18,17 @@
  * producer logger as a child tagged with `signalId` and `consumerId` when
  * `logger.child` exists.
  *
- * Error semantics match the fire-and-forget framing: producers get
- * `Result.ok(undefined)` unless the signal id is unknown or the payload
- * fails schema validation. Consumer errors are logged via the producer's
- * logger but do NOT propagate back to the producer. Consumers that need
- * transactional coupling should use `crosses:`.
+ * Error semantics match the fire-and-forget framing: producer-facing
+ * `ctx.fire()` resolves without a value. Unknown signals, invalid payloads,
+ * guard suppression, and consumer errors are logged/diagnosed but do NOT
+ * propagate back to the producer. Consumers that need transactional coupling
+ * should use `crosses:`.
  */
 
 import { NotFoundError, ValidationError } from './errors.js';
 import { forkCtx } from './internal/fork-ctx.js';
 import { Result } from './result.js';
+import type { AnySignal } from './signal.js';
 import type { Topo } from './topo.js';
 import type { AnyTrail } from './trail.js';
 import type { FireFn, Logger, TrailContextInit } from './types.js';
@@ -188,22 +189,35 @@ const resolveFireDispatch = (
 };
 
 const resolveSignalId = (signalOrId: unknown): Result<string, Error> => {
-  if (typeof signalOrId === 'string') {
-    return Result.ok(signalOrId);
-  }
   if (
     typeof signalOrId === 'object' &&
     signalOrId !== null &&
+    'kind' in signalOrId &&
+    (signalOrId as { kind: unknown }).kind === 'signal' &&
     'id' in signalOrId &&
     typeof (signalOrId as { id: unknown }).id === 'string'
   ) {
-    return Result.ok((signalOrId as { id: string }).id);
+    return Result.ok((signalOrId as AnySignal).id);
   }
-  return Result.err(
-    new ValidationError(
-      'ctx.fire() requires a signal id string or a Signal value'
-    )
-  );
+  if (typeof signalOrId === 'string') {
+    return Result.err(
+      new ValidationError(
+        'ctx.fire() requires a Signal value; string signal ids are not part of the public fire API'
+      )
+    );
+  }
+  return Result.err(new ValidationError('ctx.fire() requires a Signal value'));
+};
+
+const logFireError = (
+  logger: Logger | undefined,
+  signalId: string | undefined,
+  error: Error
+): void => {
+  logger?.warn('Signal fire skipped', {
+    error: error.message,
+    signalId,
+  });
 };
 
 /**
@@ -280,16 +294,27 @@ export const createFireFn = (
   const fireImpl: FireFn = async (
     signalOrId: unknown,
     payload: unknown
-  ): Promise<Result<void, Error>> => {
+  ): Promise<void> => {
     const resolved = resolveSignalId(signalOrId);
     if (resolved.isErr()) {
-      return Result.err(resolved.error);
+      logFireError(
+        producerCtx?.logger,
+        typeof signalOrId === 'string' ? signalOrId : undefined,
+        resolved.error
+      );
+      return;
     }
     const suppressed = guardFire(resolved.value, getFireStack(producerCtx));
     if (suppressed) {
-      return suppressed;
+      if (suppressed.isErr()) {
+        logFireError(producerCtx?.logger, resolved.value, suppressed.error);
+      }
+      return;
     }
-    return await dispatchFire(resolved.value, payload);
+    const dispatched = await dispatchFire(resolved.value, payload);
+    if (dispatched.isErr()) {
+      logFireError(producerCtx?.logger, resolved.value, dispatched.error);
+    }
   };
   return fireImpl;
 };

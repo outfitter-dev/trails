@@ -102,28 +102,17 @@ export interface CrossFn {
  * Emit a signal — used for signal-driven activation.
  *
  * Fan-out to consumer trails (those with the signal in their `on:` array) is
- * the framework's responsibility. Producers get `Result.ok(undefined)` unless
- * the signal id is unknown or the payload fails schema validation. Consumer
- * errors are logged but do not propagate back to the producer. Consumers fan
- * out in parallel, each with its own derived context. Runtime cycle
- * suppression is still signal-id-based against the current fire stack: it
- * prevents re-entrant loops but can over-suppress legitimate diamond
- * re-fires, with a debug breadcrumb and a warn emitted when suppression happens.
- *
- * Two call shapes are supported:
- *
- * - **By id** (base shape): `ctx.fire('order.placed', { ... })`. Matches
- *   the shape of `ctx.cross`; payload is typed as `unknown` and validated
- *   against the signal's schema at the fire boundary.
- * - **By signal value** (progressive disclosure): `ctx.fire(orderPlaced, payload)`
- *   where `orderPlaced` is a `Signal<T>`. The compiler enforces that
- *   `payload` matches the signal's declared schema type at the call site,
- *   on top of the runtime validation.
+ * the framework's responsibility. Producers call with a `Signal<T>` value and
+ * get best-effort `Promise<void>` semantics: payload validation, missing topo
+ * entries, guard suppression, and consumer failures are observable through
+ * diagnostics/logging but do not become producer-facing `Result` plumbing.
+ * Consumers fan out in parallel, each with its own derived context. Runtime
+ * cycle suppression is still signal-id-based against the current fire stack:
+ * it prevents re-entrant loops but can over-suppress legitimate diamond
+ * re-fires, with a debug breadcrumb and a warn emitted when suppression
+ * happens.
  */
-export interface FireFn {
-  <T>(signal: Signal<T>, payload: T): Promise<Result<void, Error>>;
-  (signalId: string, payload: unknown): Promise<Result<void, Error>>;
-}
+export type FireFn = <T>(signal: Signal<T>, payload: T) => Promise<void>;
 
 /** Resolve a resource instance from the current trail context. */
 export type ResourceLookup = <T = unknown>(
@@ -190,7 +179,7 @@ export interface TrailContext {
   readonly abortSignal: AbortSignal;
   readonly cross?: CrossFn | undefined;
   /**
-   * Emit a signal by id. Fans out to every trail with the signal in its
+   * Emit a typed signal. Fans out to every trail with the signal in its
    * `on:` declaration. Bound by the runner that holds the topo (typically
    * `run()`); undefined when a context is constructed without topo access.
    */

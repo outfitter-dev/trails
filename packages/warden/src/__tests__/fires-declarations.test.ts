@@ -9,12 +9,14 @@ describe('fires-declarations', () => {
     test('declared and called match exactly', () => {
       const code = `
 import { trail, Result } from '@ontrails/core';
+const entityCreated = signal('entity.created', { payload: z.object({}) });
+const auditLogged = signal('audit.logged', { payload: z.object({}) });
 const t = trail('onboard', {
-  fires: ['entity.created', 'audit.logged'],
+  fires: [entityCreated, auditLogged],
   input: z.object({ name: z.string() }),
   blaze: async (input, ctx) => {
-    await ctx.fire('entity.created', { name: input.name });
-    await ctx.fire('audit.logged', { actor: input.name });
+    await ctx.fire(entityCreated, { name: input.name });
+    await ctx.fire(auditLogged, { actor: input.name });
     return Result.ok({});
   },
 });
@@ -27,11 +29,12 @@ const t = trail('onboard', {
 
     test('optional-chained ctx.fire?.() call matching declaration is clean', () => {
       const code = `
+const declaredSignal = signal('declared.signal', { payload: z.object({}) });
 trail('optionalChain', {
-  fires: ['declared.signal'],
+  fires: [declaredSignal],
   input: z.object({ name: z.string() }),
   blaze: async (input, ctx) => {
-    await ctx.fire?.('declared.signal', { name: input.name });
+    await ctx.fire?.(declaredSignal, { name: input.name });
     return Result.ok({});
   },
 });
@@ -63,10 +66,11 @@ trail('simple', {
   describe('error cases', () => {
     test('called but not declared produces error', () => {
       const code = `
+const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('onboard', {
   input: z.object({ name: z.string() }),
   blaze: async (input, ctx) => {
-    await ctx.fire('entity.created', { name: input.name });
+    await ctx.fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
 });
@@ -80,15 +84,39 @@ trail('onboard', {
       expect(diagnostics[0]?.message).toContain("ctx.fire('entity.created')");
       expect(diagnostics[0]?.message).toContain('not declared in fires');
     });
+
+    test('string ctx.fire call produces an API-shape error', () => {
+      const code = `
+trail('onboard', {
+  fires: ['entity.created'],
+  input: z.object({ name: z.string() }),
+  blaze: async (input, ctx) => {
+    await ctx.fire('entity.created', { name: input.name });
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = firesDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('error');
+      expect(diagnostics[0]?.message).toContain(
+        "ctx.fire('entity.created') uses a string signal id"
+      );
+      expect(diagnostics[0]?.message).toContain('Signal value');
+    });
   });
 
   describe('warn cases', () => {
     test('declared but not called produces warning', () => {
       const code = `
+const entityCreated = signal('entity.created', { payload: z.object({}) });
+const auditLogged = signal('audit.logged', { payload: z.object({}) });
 trail('onboard', {
-  fires: ['entity.created', 'audit.logged'],
+  fires: [entityCreated, auditLogged],
   blaze: async (input, ctx) => {
-    await ctx.fire('entity.created', { name: input.name });
+    await ctx.fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
 });
@@ -109,12 +137,13 @@ trail('onboard', {
   describe('single-object overload', () => {
     test('recognizes trail({ id, fires, blaze }) form', () => {
       const code = `
+const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail({
   id: 'onboard',
-  fires: ['entity.created'],
+  fires: [entityCreated],
   input: z.object({ name: z.string() }),
   blaze: async (input, ctx) => {
-    await ctx.fire('entity.created', { name: input.name });
+    await ctx.fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
 });
@@ -127,11 +156,12 @@ trail({
 
     test('detects undeclared fires in single-object form', () => {
       const code = `
+const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail({
   id: 'onboard',
   input: z.object({ name: z.string() }),
   blaze: async (input, ctx) => {
-    await ctx.fire('entity.created', { name: input.name });
+    await ctx.fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
 });
@@ -148,11 +178,12 @@ trail({
   describe('context parameter naming', () => {
     test('recognizes context.fire() when second param is named context', () => {
       const code = `
+const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('onboard', {
-  fires: ['entity.created'],
+  fires: [entityCreated],
   input: z.object({ name: z.string() }),
   blaze: async (input, context) => {
-    await context.fire('entity.created', { name: input.name });
+    await context.fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
 });
@@ -183,11 +214,12 @@ trail('noCtxParam', {
 
     test('custom-named context param: only that name is tracked', () => {
       const code = `
+const declared = signal('declared.id', { payload: z.object({}) });
 const ctx = { fire: (_: string) => {} };
 trail('customCtx', {
-  fires: ['declared.id'],
+  fires: [declared],
   blaze: async (input, c) => {
-    await c.fire('declared.id', {});
+    await c.fire(declared, {});
     ctx.fire('whatever');
     return Result.ok({});
   },
@@ -203,10 +235,12 @@ trail('customCtx', {
 
     test('custom-named context param: undeclared call via that name is flagged', () => {
       const code = `
+const declared = signal('declared.id', { payload: z.object({}) });
+const undeclared = signal('undeclared.id', { payload: z.object({}) });
 trail('customCtxUndeclared', {
-  fires: ['declared.id'],
+  fires: [declared],
   blaze: async (input, c) => {
-    await c.fire('undeclared.id', {});
+    await c.fire(undeclared, {});
     return Result.ok({});
   },
 });
@@ -222,12 +256,13 @@ trail('customCtxUndeclared', {
 
     test('recognizes destructured fire() calls', () => {
       const code = `
+const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('onboard', {
-  fires: ['entity.created'],
+  fires: [entityCreated],
   input: z.object({ name: z.string() }),
   blaze: async (input, ctx) => {
     const { fire } = ctx;
-    await fire('entity.created', { name: input.name });
+    await fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
 });
@@ -242,12 +277,13 @@ trail('onboard', {
   describe('nested run false positives', () => {
     test('meta.blaze with phantom fire does not trigger false positives', () => {
       const code = `
+const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('onboard', {
-  fires: ['entity.created'],
+  fires: [entityCreated],
   input: z.object({ name: z.string() }),
   meta: { blaze: async () => ctx.fire('phantom') },
   blaze: async (input, ctx) => {
-    await ctx.fire('entity.created', { name: input.name });
+    await ctx.fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
 });
@@ -262,12 +298,13 @@ trail('onboard', {
   describe('identifier resolution in fires arrays', () => {
     test('resolves const identifiers in fires array', () => {
       const code = `
+const entityCreated = signal('entity.created', { payload: z.object({}) });
 const ENTITY_CREATED = 'entity.created';
 trail('onboard', {
   fires: [ENTITY_CREATED],
   input: z.object({ name: z.string() }),
   blaze: async (input, ctx) => {
-    await ctx.fire('entity.created', { name: input.name });
+    await ctx.fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
 });
@@ -282,12 +319,13 @@ trail('onboard', {
   describe('edge cases', () => {
     test('dynamic fire IDs are skipped', () => {
       const code = `
+const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('dispatch', {
   fires: ['entity.created'],
   blaze: async (input, ctx) => {
     const signalId = input.target;
     await ctx.fire(signalId, input);
-    await ctx.fire('entity.created', input);
+    await ctx.fire(entityCreated, input);
     return Result.ok({});
   },
 });
@@ -300,17 +338,19 @@ trail('dispatch', {
 
     test('multiple trails in one file are validated independently', () => {
       const code = `
+const sharedSignal = signal('shared.signal', { payload: z.object({}) });
+const undeclaredSignal = signal('undeclared.signal', { payload: z.object({}) });
 trail('alpha', {
-  fires: ['shared.signal'],
+  fires: [sharedSignal],
   blaze: async (input, ctx) => {
-    await ctx.fire('shared.signal', input);
+    await ctx.fire(sharedSignal, input);
     return Result.ok({});
   },
 });
 
 trail('beta', {
   blaze: async (input, ctx) => {
-    await ctx.fire('undeclared.signal', input);
+    await ctx.fire(undeclaredSignal, input);
     return Result.ok({});
   },
 });
@@ -344,10 +384,12 @@ trail('onboard', {
 
     test('both wrong: called and undeclared, declared and unused', () => {
       const code = `
+const declaredOnly = signal('declared.only', { payload: z.object({}) });
+const calledOnly = signal('called.only', { payload: z.object({}) });
 trail('mixed', {
-  fires: ['declared.only'],
+  fires: [declaredOnly],
   blaze: async (input, ctx) => {
-    await ctx.fire('called.only', input);
+    await ctx.fire(calledOnly, input);
     return Result.ok({});
   },
 });
@@ -385,11 +427,12 @@ const t = trail('calc', {
 
     test('destructured { fire } from ctx is tracked', () => {
       const code = `
+const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('onboard', {
-  fires: ['entity.created'],
+  fires: [entityCreated],
   blaze: async (input, ctx) => {
     const { fire } = ctx;
-    await fire('entity.created', { name: input.name });
+    await fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
 });
@@ -420,10 +463,11 @@ trail('outer', {
 
     test('top-level destructure is still tracked (regression check)', () => {
       const code = `
+const undeclared = signal('undeclared.signal', { payload: z.object({}) });
 trail('tracked', {
   blaze: async (input, ctx) => {
     const { fire } = ctx;
-    await fire('undeclared.signal', {});
+    await fire(undeclared, {});
     return Result.ok({});
   },
 });
@@ -474,10 +518,11 @@ trail('shadowCtx', {
 
     test('top-level ctx.fire with matching declaration still clean (regression)', () => {
       const code = `
+const declaredSignal = signal('declared.signal', { payload: z.object({}) });
 trail('regression', {
-  fires: ['declared.signal'],
+  fires: [declaredSignal],
   blaze: async (input, ctx) => {
-    await ctx.fire('declared.signal', {});
+    await ctx.fire(declaredSignal, {});
     return Result.ok({});
   },
 });
@@ -507,11 +552,12 @@ trail('letDestructure', {
 
     test('destructured { fire: emit } alias from ctx is tracked', () => {
       const code = `
+const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('onboard', {
-  fires: ['entity.created'],
+  fires: [entityCreated],
   blaze: async (input, ctx) => {
     const { fire: emit } = ctx;
-    await emit('entity.created', { name: input.name });
+    await emit(entityCreated, { name: input.name });
     return Result.ok({});
   },
 });
@@ -523,44 +569,40 @@ trail('onboard', {
   });
 
   describe('object-form fires declarations', () => {
-    test('Signal value reference downgrades undeclared to warn', () => {
+    test('local Signal value reference resolves cleanly', () => {
       const code = `
 import { trail, signal, Result } from '@ontrails/core';
 const orderPlaced = signal('order.placed', { payload: z.object({}) });
 trail('checkout', {
   fires: [orderPlaced],
   blaze: async (input, ctx) => {
-    await ctx.fire('order.placed', {});
+    await ctx.fire(orderPlaced, {});
     return Result.ok({});
   },
 });
 `;
 
       const diagnostics = firesDeclarations.check(code, TEST_FILE);
-      // Object-form makes the declared set unresolvable — downgrade undeclared
-      // to warn rather than silently suppressing; runtime normalization in
-      // trail() may cover the call.
-      expect(diagnostics.length).toBe(1);
-      expect(diagnostics[0]?.severity).toBe('warn');
-      expect(diagnostics[0]?.message).toContain('object-form fires entries');
+      expect(diagnostics.length).toBe(0);
     });
 
-    test('genuinely undeclared string call alongside Signal value is downgraded to warn', () => {
+    test('known Signal call alongside unresolved imported declaration is downgraded to warn', () => {
       const code = `
 import { trail, signal, Result } from '@ontrails/core';
-const orderPlaced = signal('order.placed', { payload: z.object({}) });
+import { orderPlaced } from './signals';
+const auditLogged = signal('audit.logged', { payload: z.object({}) });
 trail('checkout', {
   fires: [orderPlaced],
   blaze: async (input, ctx) => {
-    await ctx.fire('audit.logged', {});
+    await ctx.fire(auditLogged, {});
     return Result.ok({});
   },
 });
 `;
 
       const diagnostics = firesDeclarations.check(code, TEST_FILE);
-      // Cannot statically prove 'audit.logged' isn't covered by the object-form
-      // entry, but also cannot stay silent — warn with disclaimer.
+      // Cannot statically prove the imported Signal declaration does not cover
+      // this known local Signal call, but also cannot stay silent.
       const undeclared = diagnostics.filter((d) =>
         d.message.includes("'audit.logged'")
       );
@@ -571,27 +613,95 @@ trail('checkout', {
       );
     });
 
-    test('mixed string + Signal value — resolved string still matches, unresolved warns', () => {
+    test('mixed string + local Signal value resolves cleanly', () => {
       const code = `
 import { trail, signal, Result } from '@ontrails/core';
 const orderPlaced = signal('order.placed', { payload: z.object({}) });
+const auditLogged = signal('audit.logged', { payload: z.object({}) });
 trail('checkout', {
   fires: ['audit.logged', orderPlaced],
   blaze: async (input, ctx) => {
-    await ctx.fire('order.placed', {});
-    await ctx.fire('audit.logged', {});
+    await ctx.fire(orderPlaced, {});
+    await ctx.fire(auditLogged, {});
     return Result.ok({});
   },
 });
 `;
 
       const diagnostics = firesDeclarations.check(code, TEST_FILE);
-      // 'audit.logged' resolves from the string literal; 'order.placed' can't
-      // be resolved statically so it downgrades to warn.
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('fires array resolves module-scope signal when blaze shadows the name', () => {
+      const code = `
+import { trail, signal, Result } from '@ontrails/core';
+const orderPlaced = signal('order.placed', { payload: z.object({}) });
+trail('checkout', {
+  fires: [orderPlaced],
+  blaze: async (input, ctx) => {
+    const orderPlaced = signal('audit.logged', { payload: z.object({}) });
+    await ctx.fire(orderPlaced, {});
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = firesDeclarations.check(code, TEST_FILE);
+      expect(
+        diagnostics.some((d) => d.message.includes("ctx.fire('audit.logged')"))
+      ).toBe(true);
+      expect(
+        diagnostics.some((d) =>
+          d.message.includes("'order.placed' declared in fires")
+        )
+      ).toBe(true);
+    });
+
+    test('imported fires entry with local shadowed signal call is not clean', () => {
+      const code = `
+import { trail, signal, Result } from '@ontrails/core';
+import { orderPlaced } from './signals';
+trail('checkout', {
+  fires: [orderPlaced],
+  blaze: async (input, ctx) => {
+    const orderPlaced = signal('audit.logged', { payload: z.object({}) });
+    await ctx.fire(orderPlaced, {});
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = firesDeclarations.check(code, TEST_FILE);
       expect(diagnostics.length).toBe(1);
       expect(diagnostics[0]?.severity).toBe('warn');
-      expect(diagnostics[0]?.message).toContain("'order.placed'");
-      expect(diagnostics[0]?.message).toContain('object-form fires entries');
+      expect(diagnostics[0]?.message).toContain(
+        "ctx.fire('audit.logged') called"
+      );
+      expect(diagnostics[0]?.message).toContain(
+        'may be declared via object-form fires entries'
+      );
+    });
+
+    test('non-signal inner shadow blocks outer signal resolution', () => {
+      const code = `
+import { trail, signal, Result } from '@ontrails/core';
+const orderPlaced = signal('order.placed', { payload: z.object({}) });
+trail('checkout', {
+  fires: [orderPlaced],
+  blaze: async (input, ctx) => {
+    const orderPlaced = input.target;
+    await ctx.fire(orderPlaced, {});
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = firesDeclarations.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('warn');
+      expect(diagnostics[0]?.message).toContain(
+        "'order.placed' declared in fires"
+      );
     });
   });
 });

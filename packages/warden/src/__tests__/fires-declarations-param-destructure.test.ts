@@ -7,10 +7,11 @@ const TEST_FILE = 'test.ts';
 describe('fires-declarations — parameter-level destructure', () => {
   test('parameter-level { fire } destructure is tracked (clean)', () => {
     const code = `
+const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('paramDestructure', {
-  fires: ['entity.created'],
+  fires: [entityCreated],
   blaze: async (input, { fire }) => {
-    await fire('entity.created', { name: input.name });
+    await fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
 });
@@ -22,9 +23,10 @@ trail('paramDestructure', {
 
   test('parameter-level { fire } destructure flags undeclared signal', () => {
     const code = `
+const undeclaredSignal = signal('undeclared.signal', { payload: z.object({}) });
 trail('paramDestructureUndeclared', {
   blaze: async (input, { fire }) => {
-    await fire('undeclared.signal', { name: input.name });
+    await fire(undeclaredSignal, { name: input.name });
     return Result.ok({});
   },
 });
@@ -38,9 +40,10 @@ trail('paramDestructureUndeclared', {
 
   test('parameter-level { fire: emit } rename is tracked', () => {
     const code = `
+const undeclaredRenamed = signal('undeclared.renamed', { payload: z.object({}) });
 trail('paramRename', {
   blaze: async (input, { fire: emit }) => {
-    await emit('undeclared.renamed', { name: input.name });
+    await emit(undeclaredRenamed, { name: input.name });
     return Result.ok({});
   },
 });

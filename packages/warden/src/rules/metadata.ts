@@ -159,7 +159,7 @@ export const builtinWardenRuleMetadata = {
   'orphaned-signal': {
     ...durableExternal,
     invariant:
-      'Derived store signals are consumed by matching trail listeners.',
+      'Derived store signals are consumed by matching trail on: consumers.',
     tier: 'project-static',
   },
   'owner-projection-parity': {

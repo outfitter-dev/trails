@@ -29,7 +29,7 @@ const definition = store({
   },
 });`,
       },
-      name: 'Derived store signals stay quiet when trail listeners exist',
+      name: 'Derived store signals stay quiet when trail on consumers exist',
     },
   ],
   rule: orphanedSignal,

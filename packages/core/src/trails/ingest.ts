@@ -10,7 +10,6 @@ import type { Trail, TrailExample, TrailSpec } from '../trail.js';
 import type { TrailContext } from '../types.js';
 
 type SchemaValue<TSchema extends z.ZodType> = z.output<TSchema>;
-type SignalRef<TSignal> = string | Signal<TSignal>;
 
 type ExampleBearingSchema<TSchema extends z.ZodType> = TSchema & {
   readonly examples?: readonly Partial<SchemaValue<TSchema>>[] | undefined;
@@ -25,7 +24,7 @@ interface IngestBaseOptions<TSchema extends z.ZodType, TSignal> extends Omit<
   /** Validated external payload shape. */
   readonly schema: TSchema;
   /** Signal to emit after verification and optional transformation. */
-  readonly signal: SignalRef<TSignal>;
+  readonly signal: Signal<TSignal>;
   /** Optional per-trail verification layer, e.g. HMAC signature checks. */
   readonly verify?: Layer | undefined;
 }
@@ -43,9 +42,6 @@ export interface IngestOptions<
     | IngestTransform<SchemaValue<TSchema>, TSignal>
     | undefined;
 }
-
-const resolveSignalId = <TSignal>(signalRef: SignalRef<TSignal>): string =>
-  typeof signalRef === 'string' ? signalRef : signalRef.id;
 
 const deriveExampleName = (signalId: string, index: number): string =>
   `Ingest ${signalId} ${index + 1}`;
@@ -69,7 +65,7 @@ const deriveExamples = <TSchema extends z.ZodType>(
 
 const createIngestBlaze =
   <TSchema extends z.ZodType, TSignal>(
-    signalRef: SignalRef<TSignal>,
+    signalRef: Signal<TSignal>,
     signalId: string,
     trailId: string,
     transform: IngestTransform<SchemaValue<TSchema>, TSignal> | undefined
@@ -91,12 +87,8 @@ const createIngestBlaze =
         transform === undefined
           ? (input as TSignal)
           : await transform(input, ctx);
-      const fired =
-        typeof signalRef === 'string'
-          ? await ctx.fire(signalRef, payload as unknown)
-          : await ctx.fire(signalRef as Signal<unknown>, payload as unknown);
-
-      return fired.isErr() ? Result.err(fired.error) : Result.ok();
+      await ctx.fire(signalRef, payload);
+      return Result.ok();
     } catch (error) {
       const message = `ingest("${trailId}"): ${error instanceof Error ? error.message : String(error)}`;
       return Result.err(
@@ -113,7 +105,7 @@ export const ingest = <
 >(
   options: IngestOptions<TSchema, TSignal>
 ): Trail<SchemaValue<TSchema>, void> => {
-  const signalId = resolveSignalId(options.signal);
+  const signalId = options.signal.id;
   const id = options.id ?? `${signalId}.ingest`;
   const { id: _id, schema, signal, transform, verify, ...trailSpec } = options;
   const baseBlaze = createIngestBlaze<TSchema, TSignal>(

@@ -10,6 +10,8 @@
  */
 
 import type { Trail } from './trail.js';
+import type { Signal } from './signal.js';
+import type { FireFn } from './types.js';
 import type { CrossInput, TrailInput } from './type-utils.js';
 
 // ---------------------------------------------------------------------------
@@ -104,3 +106,51 @@ type AssertDefault =
     ? true
     : false;
 export type Default = [AssertDefault] extends [true] ? 'pass' : never;
+
+// ---------------------------------------------------------------------------
+// FireFn requires signal values and preserves payload inference
+// ---------------------------------------------------------------------------
+
+type OrderPlacedSignal = Signal<{ orderId: string }>;
+
+type AssertFireReturnsVoid = FireFn extends {
+  (signal: OrderPlacedSignal, payload: { orderId: string }): infer R;
+}
+  ? R extends Promise<void>
+    ? true
+    : false
+  : false;
+export type FireReturnsVoid = [AssertFireReturnsVoid] extends [true]
+  ? 'pass'
+  : never;
+
+type AssertFireAcceptsSignalValue = FireFn extends {
+  (signal: OrderPlacedSignal, payload: { orderId: string }): Promise<void>;
+}
+  ? true
+  : false;
+export type FireAcceptsSignalValue = [AssertFireAcceptsSignalValue] extends [
+  true,
+]
+  ? 'pass'
+  : never;
+
+type AssertFireRejectsStringId = FireFn extends {
+  (signalId: string, payload: unknown): unknown;
+}
+  ? false
+  : true;
+export type FireRejectsStringId = [AssertFireRejectsStringId] extends [true]
+  ? 'pass'
+  : never;
+
+type AssertFireRejectsMismatchedPayload = FireFn extends {
+  (signal: OrderPlacedSignal, payload: { orderId: number }): unknown;
+}
+  ? false
+  : true;
+export type FireRejectsMismatchedPayload = [
+  AssertFireRejectsMismatchedPayload,
+] extends [true]
+  ? 'pass'
+  : never;
