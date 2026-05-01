@@ -1,7 +1,7 @@
 /**
  * Structural validation for a Topo graph.
  *
- * Checks trail crossing references, example input validity, event origin
+ * Checks trail crossing references, example input validity, signal origin
  * references, and output schema completeness. Returns a Result with all
  * issues collected into a single ValidationError.
  */
@@ -205,6 +205,37 @@ const checkSignalOrigins = (
   return issues;
 };
 
+const checkSignalReferences = (
+  trails: ReadonlyMap<string, AnyTrail>,
+  signals: ReadonlyMap<string, AnySignal>
+): TopoIssue[] => {
+  const issues: TopoIssue[] = [];
+
+  for (const [id, trail] of trails) {
+    for (const signalId of trail.fires ?? []) {
+      if (!signals.has(signalId) && !isDraftId(signalId)) {
+        issues.push({
+          message: `Trail fires signal "${signalId}" which is not in the topo`,
+          rule: 'signal-fire-exists',
+          trailId: id,
+        });
+      }
+    }
+
+    for (const signalId of trail.on ?? []) {
+      if (!signals.has(signalId) && !isDraftId(signalId)) {
+        issues.push({
+          message: `Trail declares on signal "${signalId}" which is not in the topo`,
+          rule: 'signal-on-exists',
+          trailId: id,
+        });
+      }
+    }
+  }
+
+  return issues;
+};
+
 const checkContourReferences = (
   contours: ReadonlyMap<string, AnyContour>,
   topo: Topo
@@ -233,7 +264,7 @@ const checkContourReferences = (
 /**
  * Validate the structural integrity of a Topo graph.
  *
- * Checks crossing references, example inputs, event origins, and output
+ * Checks crossing references, example inputs, signal origins, and output
  * schema presence. Returns `Result.ok()` when no issues are found, or
  * `Result.err(ValidationError)` with all issues in the error context.
  */
@@ -244,6 +275,7 @@ export const validateTopo = (topo: Topo): Result<void, ValidationError> => {
     ...checkContourReferences(topo.contours, topo),
     ...checkExamples(topo.trails),
     ...checkSignalOrigins(topo.signals, topo),
+    ...checkSignalReferences(topo.trails, topo.signals),
   ];
 
   if (issues.length === 0) {

@@ -632,6 +632,7 @@ describe('topo store projection', () => {
     withProjectionDb((db) => {
       const created = signal('entity.created', {
         from: ['entity.create'],
+        meta: { owner: 'entity' },
         payload: z.object({ id: z.string() }),
       });
       const updated = signal('entity.updated', {
@@ -697,6 +698,74 @@ describe('topo store projection', () => {
         { signal_id: 'entity.updated', trail_id: 'entity.audit' },
         { signal_id: 'entity.created', trail_id: 'entity.index' },
       ]);
+
+      const lock = JSON.parse(
+        requireStoredExport(db, snapshot.id).lockContent
+      ) as {
+        apps: Record<
+          string,
+          { signals: Record<string, Record<string, unknown>> }
+        >;
+      };
+      const createdLockEntry =
+        lock.apps['signal-edges-app']?.signals['entity.created'];
+      expect(createdLockEntry).toMatchObject({
+        consumers: ['entity.audit', 'entity.index'],
+        diagnostics: expect.objectContaining({
+          codes: expect.arrayContaining(['signal.invalid']),
+          strictMode: true,
+        }),
+        from: ['entity.create'],
+        governance: {
+          consumers: 'trail.on',
+          payload: 'signal.payload',
+          producers: 'trail.fires',
+        },
+        meta: { owner: 'entity' },
+        producers: ['entity.create'],
+      });
+      expect(createdLockEntry?.payload).toEqual(createdLockEntry?.input);
+    });
+  });
+
+  test('rejects signal edges that are not in the signal namespace before projection', () => {
+    withProjectionDb((db) => {
+      const producer = trail('entity.produce', {
+        blaze: () => Result.ok({ ok: true }),
+        fires: ['entity.missing'],
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+      });
+      const consumer = trail('entity.consume', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+        on: ['entity.missing'],
+        output: z.object({ ok: z.boolean() }),
+      });
+
+      const result = createTopoSnapshot(
+        db,
+        topo('signal-edges-app', {
+          consumer,
+          producer,
+        })
+      );
+
+      expect(result.isErr()).toBe(true);
+      const issues =
+        (result.isErr()
+          ? (
+              result.error as {
+                context?: { issues?: readonly { readonly rule: string }[] };
+              }
+            ).context?.issues
+          : undefined) ?? [];
+      expect(issues.map((issue) => issue.rule)).toEqual(
+        expect.arrayContaining(['signal-fire-exists', 'signal-on-exists'])
+      );
+      expect(tableExists(db, 'topo_snapshots')).toBe(false);
+      expect(tableExists(db, 'topo_trail_fires')).toBe(false);
+      expect(tableExists(db, 'topo_trail_on')).toBe(false);
     });
   });
 

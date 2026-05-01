@@ -29,6 +29,8 @@ const mockTrail = (
       expected?: unknown;
       error?: string;
     }[];
+    fires?: readonly string[];
+    on?: readonly string[];
     output?: z.ZodType;
     resources?: readonly ReturnType<typeof resource>[];
   }
@@ -36,9 +38,11 @@ const mockTrail = (
   blaze: noop,
   contours: Object.freeze([...(overrides?.contours ?? [])]),
   crosses: Object.freeze([...(overrides?.crosses ?? [])]),
+  fires: Object.freeze([...(overrides?.fires ?? [])]),
   id,
   input: z.object({ name: z.string() }),
   kind: 'trail' as const,
+  on: Object.freeze([...(overrides?.on ?? [])]),
   resources: Object.freeze([...(overrides?.resources ?? [])]),
   ...overrides,
 });
@@ -48,7 +52,7 @@ const mockResource = (id: string) =>
     create: () => Result.ok({ id }),
   });
 
-const mockEvent = (id: string, from?: readonly string[]) => ({
+const mockSignal = (id: string, from?: readonly string[]) => ({
   from,
   id,
   kind: 'signal' as const,
@@ -75,7 +79,7 @@ describe('validateTopo', () => {
       onboard: mockTrail('entity.onboard', {
         crosses: ['entity.add'],
       }),
-      updated: mockEvent('entity.updated', ['entity.add']),
+      updated: mockSignal('entity.updated', ['entity.add']),
     });
 
     const result = validateTopo(app);
@@ -365,10 +369,10 @@ describe('validateTopo', () => {
     });
   });
 
-  describe('event origins', () => {
-    test('event with non-existent origin fails', () => {
+  describe('signal origins', () => {
+    test('signal with non-existent origin fails', () => {
       const app = topo('app', {
-        updated: mockEvent('entity.updated', ['entity.ghost']),
+        updated: mockSignal('entity.updated', ['entity.ghost']),
       });
 
       const result = validateTopo(app);
@@ -380,9 +384,72 @@ describe('validateTopo', () => {
       expect(issues[0]?.message).toContain('entity.ghost');
     });
 
-    test('event without origins is accepted', () => {
+    test('signal without origins is accepted', () => {
       const app = topo('app', {
-        updated: mockEvent('entity.updated'),
+        updated: mockSignal('entity.updated'),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
+    });
+  });
+
+  describe('signal references', () => {
+    test('trail firing and activating from registered signals passes', () => {
+      const app = topo('app', {
+        consumer: mockTrail('entity.consume', {
+          on: ['entity.created'],
+        }),
+        created: mockSignal('entity.created'),
+        producer: mockTrail('entity.produce', {
+          fires: ['entity.created'],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
+    });
+
+    test('trail firing a missing signal fails', () => {
+      const app = topo('app', {
+        producer: mockTrail('entity.produce', {
+          fires: ['entity.missing'],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issues = extractIssues(result);
+      expect(issues).toHaveLength(1);
+      expect(issues[0]?.rule).toBe('signal-fire-exists');
+      expect(issues[0]?.message).toContain('entity.missing');
+    });
+
+    test('trail activating from a missing signal fails', () => {
+      const app = topo('app', {
+        consumer: mockTrail('entity.consume', {
+          on: ['entity.missing'],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issues = extractIssues(result);
+      expect(issues).toHaveLength(1);
+      expect(issues[0]?.rule).toBe('signal-on-exists');
+      expect(issues[0]?.message).toContain('entity.missing');
+    });
+
+    test('draft signal references are allowed in the authored graph', () => {
+      const app = topo('app', {
+        consumer: mockTrail('entity.consume', {
+          on: ['_draft.entity.ready'],
+        }),
+        producer: mockTrail('entity.produce', {
+          fires: ['_draft.entity.ready'],
+        }),
       });
 
       const result = validateTopo(app);
@@ -400,7 +467,7 @@ describe('validateTopo', () => {
       show: mockTrail('entity.show', {
         examples: [{ input: { name: 123 }, name: 'Bad' }],
       }),
-      updated: mockEvent('entity.updated', ['entity.ghost']),
+      updated: mockSignal('entity.updated', ['entity.ghost']),
     });
 
     const result = validateTopo(app);
@@ -413,7 +480,7 @@ describe('validateTopo', () => {
   describe('signal origins', () => {
     test('draft signal origins are allowed in the authored graph', () => {
       const app = topo('app', {
-        updated: mockEvent('entity.updated', ['_draft.entity.prepare']),
+        updated: mockSignal('entity.updated', ['_draft.entity.prepare']),
       });
 
       const result = validateTopo(app);
@@ -514,6 +581,32 @@ describe('draft state analysis', () => {
     expect(analysis.contaminatedIds.has('gist.create')).toBe(true);
     expect(finding?.via).toBe('contour');
   });
+
+  test('propagates contamination through draft signal edges', () => {
+    const app = topo('app', {
+      consume: mockTrail('entity.consume', {
+        on: ['_draft.entity.ready'],
+      }),
+      produce: mockTrail('entity.produce', {
+        fires: ['_draft.entity.ready'],
+      }),
+    });
+
+    const analysis = deriveDraftReport(app);
+
+    expect(analysis.contaminatedIds.has('entity.consume')).toBe(true);
+    expect(analysis.contaminatedIds.has('entity.produce')).toBe(true);
+    expect(analysis.dependencies).toContainEqual({
+      fromId: 'entity.consume',
+      kind: 'signal-on',
+      toId: '_draft.entity.ready',
+    });
+    expect(analysis.dependencies).toContainEqual({
+      fromId: 'entity.produce',
+      kind: 'signal-fire',
+      toId: '_draft.entity.ready',
+    });
+  });
 });
 
 describe('validateEstablishedTopo', () => {
@@ -583,6 +676,37 @@ describe('validateEstablishedTopo', () => {
     const issues = extractIssues(result);
     expect(issues).toHaveLength(1);
     expect(issues[0]?.rule).toBe('resource-exists');
+  });
+
+  test('fails when signal edges are not established in the topo', () => {
+    const app = topo('app', {
+      producer: mockTrail('entity.produce', {
+        fires: ['entity.missing'],
+      }),
+    });
+
+    const result = validateEstablishedTopo(app);
+    expect(result.isErr()).toBe(true);
+
+    const issues = extractIssues(result);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.rule).toBe('signal-fire-exists');
+  });
+
+  test('fails when established trails depend on draft signal edges', () => {
+    const app = topo('app', {
+      consumer: mockTrail('entity.consume', {
+        on: ['_draft.entity.ready'],
+      }),
+    });
+
+    const result = validateEstablishedTopo(app);
+    expect(result.isErr()).toBe(true);
+
+    const issues = extractIssues(result);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.rule).toBe('draft-contamination');
+    expect(issues[0]?.message).toContain('entity.consume');
   });
 
   test('allows authoring-only example issues outside projection checks', () => {

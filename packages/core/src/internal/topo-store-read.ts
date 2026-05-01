@@ -144,6 +144,7 @@ interface StoredSurfaceMapEntry {
   readonly healthcheck?: boolean;
   readonly id: string;
   readonly input?: Readonly<Record<string, unknown>>;
+  readonly payload?: Readonly<Record<string, unknown>>;
   readonly kind: 'contour' | 'resource' | 'signal' | 'trail';
 }
 
@@ -584,7 +585,8 @@ const mapSignalRow = (
     // schema migration), `payload` would be null in the detail; signaling
     // `payloadSchema: true` here would mislead consumers into skipping the
     // detail call.
-    payloadSchema: storedEntry?.input !== undefined,
+    payloadSchema:
+      storedEntry?.payload !== undefined || storedEntry?.input !== undefined,
     producers: relations.producers,
     snapshotId: row.snapshot_id,
   };
@@ -663,7 +665,7 @@ export const getTopoStoreSignal = (
       readSignalRelations(db, snapshot.id, signalId)
     ),
     examples: signalExamplesFromEntry(storedEntry),
-    payload: storedEntry?.input ?? null,
+    payload: storedEntry?.payload ?? storedEntry?.input ?? null,
   };
 };
 

@@ -15,6 +15,8 @@ export type DraftDependencyKind =
   | 'resource'
   | 'replaced-by'
   | 'schema-reference'
+  | 'signal-fire'
+  | 'signal-on'
   | 'signal-from';
 
 export interface DraftDependency {
@@ -92,6 +94,8 @@ const trailDependencies = (trail: AnyTrail): DraftDependency[] => [
     trail.resources.map(({ id }) => id),
     'resource'
   ),
+  ...dependenciesFromIds(trail.id, trail.fires ?? [], 'signal-fire'),
+  ...dependenciesFromIds(trail.id, trail.on ?? [], 'signal-on'),
   ...dependencyFromTarget(trail.id, replacedByTarget(trail), 'replaced-by'),
 ];
 

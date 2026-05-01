@@ -263,7 +263,9 @@ describe('trails survey', () => {
   });
 
   test('deriveSurfaceMapDiff detects added trails', () => {
-    const prev = deriveSurfaceMap(topo('test', { hello: helloTrail }));
+    const prev = deriveSurfaceMap(
+      topo('test', { dbResource, hello: helloTrail })
+    );
     const curr = deriveSurfaceMap(app);
     const diff = deriveSurfaceMapDiff(prev, curr);
 
@@ -275,7 +277,9 @@ describe('trails survey', () => {
 
   test('deriveSurfaceMapDiff detects removed trails', () => {
     const prev = deriveSurfaceMap(app);
-    const curr = deriveSurfaceMap(topo('test', { hello: helloTrail }));
+    const curr = deriveSurfaceMap(
+      topo('test', { dbResource, hello: helloTrail })
+    );
     const diff = deriveSurfaceMapDiff(prev, curr);
 
     expect(diff.hasBreaking).toBe(true);

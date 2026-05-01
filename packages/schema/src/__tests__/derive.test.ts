@@ -3,6 +3,7 @@ import { describe, test, expect } from 'bun:test';
 import {
   ConflictError,
   DETOUR_MAX_ATTEMPTS_CAP,
+  ValidationError,
   contour,
   signal,
   resource,
@@ -10,7 +11,7 @@ import {
   topo,
   trail,
 } from '@ontrails/core';
-import type { Topo } from '@ontrails/core';
+import type { Topo, TopoIssue } from '@ontrails/core';
 import { z } from 'zod';
 
 import { deriveSurfaceMap } from '../derive.js';
@@ -67,6 +68,21 @@ const expectSchemaProperties = (
   );
 };
 
+const expectSurfaceMapTopoIssue = (tp: Topo, rule: string) => {
+  try {
+    deriveSurfaceMap(tp);
+  } catch (error) {
+    expect(error).toBeInstanceOf(ValidationError);
+    const issues = (error as ValidationError).context?.['issues'] as
+      | readonly TopoIssue[]
+      | undefined;
+    expect(issues).toContainEqual(expect.objectContaining({ rule }));
+    return;
+  }
+
+  throw new Error(`Expected deriveSurfaceMap to reject with ${rule}`);
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -119,9 +135,12 @@ describe('deriveSurfaceMap', () => {
         output: z.object({ id: z.string(), name: z.string() }),
         resources: [dbResource],
       });
-      const map = deriveSurfaceMap(topoFrom({ t }));
-      const entry = getFirstEntry(map);
+      const map = deriveSurfaceMap(topoFrom({ dbResource, t }));
+      const entry = map.entries.find(
+        (candidate) => candidate.id === 'entity.create'
+      );
 
+      expect(entry).toBeDefined();
       expect(entry.input).toBeDefined();
       expect(entry.output).toBeDefined();
       expect(entry.cli?.path).toEqual(['entity', 'create']);
@@ -187,8 +206,15 @@ describe('deriveSurfaceMap', () => {
         from: ['user.create'],
         payload: z.object({ userId: z.string() }),
       });
-      const entry = getFirstEntry(deriveSurfaceMap(topoFrom({ e })));
+      const createUser = trail('user.create', {
+        blaze: noop,
+        input: z.object({}),
+      });
+      const entry = deriveSurfaceMap(topoFrom({ createUser, e })).entries.find(
+        (candidate) => candidate.id === 'user.created'
+      );
 
+      expect(entry).toBeDefined();
       expect(entry.kind).toBe('signal');
       expect(entry.id).toBe('user.created');
       expect(entry.description).toBe('A user was created');
@@ -202,6 +228,46 @@ describe('deriveSurfaceMap', () => {
           provenance: { source: 'signal.examples' },
         },
       ]);
+    });
+
+    test('signal entries expose graph namespace metadata and edges', () => {
+      const created = signal('user.created', {
+        description: 'A user was created',
+        examples: [{ userId: 'u-1' }],
+        from: ['user.create'],
+        meta: { owner: 'identity' },
+        payload: z.object({ userId: z.string() }),
+      });
+      const producer = trail('user.create', {
+        blaze: noop,
+        fires: [created],
+        input: z.object({}),
+      });
+      const consumer = trail('user.index', {
+        blaze: noop,
+        input: z.object({}),
+        on: [created],
+      });
+      const entry = deriveSurfaceMap(
+        topoFrom({ consumer, created, producer })
+      ).entries.find((candidate) => candidate.id === 'user.created');
+
+      expect(entry).toMatchObject({
+        consumers: ['user.index'],
+        diagnostics: expect.objectContaining({
+          codes: expect.arrayContaining(['signal.invalid']),
+          strictMode: true,
+        }),
+        from: ['user.create'],
+        governance: {
+          consumers: 'trail.on',
+          payload: 'signal.payload',
+          producers: 'trail.fires',
+        },
+        meta: { owner: 'identity' },
+        producers: ['user.create'],
+      });
+      expect(entry?.payload).toEqual(entry?.input);
     });
 
     test('resource entries are included with description and healthcheck metadata', () => {
@@ -464,6 +530,26 @@ describe('deriveSurfaceMap', () => {
       expect(() => deriveSurfaceMap(topoFrom({ exportTrail }))).toThrowError(
         /draft/i
       );
+    });
+
+    test('rejects producer references to missing signals', () => {
+      const producer = trail('entity.produce', {
+        blaze: noop,
+        fires: ['entity.missing'],
+        input: z.object({}),
+      });
+
+      expectSurfaceMapTopoIssue(topoFrom({ producer }), 'signal-fire-exists');
+    });
+
+    test('rejects consumer references to missing signals', () => {
+      const consumer = trail('entity.consume', {
+        blaze: noop,
+        input: z.object({}),
+        on: ['entity.missing'],
+      });
+
+      expectSurfaceMapTopoIssue(topoFrom({ consumer }), 'signal-on-exists');
     });
   });
 });

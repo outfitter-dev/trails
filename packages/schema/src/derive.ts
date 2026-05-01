@@ -8,7 +8,8 @@ import {
   deriveStructuredSignalExamples,
   deriveStructuredTrailExamples,
   getContourReferences,
-  validateDraftFreeTopo,
+  validateEstablishedTopo,
+  signalDiagnosticDefinitions,
   zodToJsonSchema,
 } from '@ontrails/core';
 import type {
@@ -61,6 +62,61 @@ const toSortedJsonSchema = (schema: unknown): JsonSchema => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const raw = zodToJsonSchema(schema as any);
   return deepSortKeys(raw) as JsonSchema;
+};
+
+interface SignalGraphRelations {
+  readonly consumers: readonly string[];
+  readonly producers: readonly string[];
+}
+
+const EMPTY_SIGNAL_RELATIONS: SignalGraphRelations = {
+  consumers: [],
+  producers: [],
+};
+
+const SIGNAL_DIAGNOSTIC_CODES = Object.keys(
+  signalDiagnosticDefinitions
+).toSorted();
+
+const SIGNAL_DIAGNOSTIC_HOOKS = {
+  codes: SIGNAL_DIAGNOSTIC_CODES,
+  strictMode: true,
+} as const;
+
+const SIGNAL_GOVERNANCE_HOOKS = {
+  consumers: 'trail.on',
+  payload: 'signal.payload',
+  producers: 'trail.fires',
+} as const;
+
+const collectSignalGraphRelations = (
+  topo: Topo
+): ReadonlyMap<string, SignalGraphRelations> => {
+  const producers = new Map<string, Set<string>>();
+  const consumers = new Map<string, Set<string>>();
+
+  for (const trail of topo.trails.values()) {
+    for (const signalId of trail.fires) {
+      const current = producers.get(signalId) ?? new Set<string>();
+      current.add(trail.id);
+      producers.set(signalId, current);
+    }
+    for (const signalId of trail.on) {
+      const current = consumers.get(signalId) ?? new Set<string>();
+      current.add(trail.id);
+      consumers.set(signalId, current);
+    }
+  }
+
+  return new Map(
+    [...topo.signals.keys()].map((signalId) => [
+      signalId,
+      {
+        consumers: [...(consumers.get(signalId) ?? [])].toSorted(),
+        producers: [...(producers.get(signalId) ?? [])].toSorted(),
+      },
+    ])
+  );
 };
 
 // ---------------------------------------------------------------------------
@@ -238,21 +294,31 @@ const trailToEntry = (t: Trail<unknown, unknown, unknown>): SurfaceMapEntry => {
   return sortKeys(entry) as unknown as SurfaceMapEntry;
 };
 
-/** Add optional event-specific fields. */
-const addEventFields = (
+/** Add optional signal-specific fields. */
+const addSignalFields = (
   entry: Record<string, unknown>,
   e: Signal<unknown>,
-  raw: Record<string, unknown>
+  raw: Record<string, unknown>,
+  relations: SignalGraphRelations
 ): void => {
   if (e.payload) {
-    entry['input'] = toSortedJsonSchema(e.payload);
+    const payload = toSortedJsonSchema(e.payload);
+    entry['input'] = payload;
+    entry['payload'] = payload;
   }
   if (e.description !== undefined) {
     entry['description'] = e.description;
   }
+  if (e.meta !== undefined) {
+    entry['meta'] = e.meta;
+  }
   if (e.from !== undefined && e.from.length > 0) {
     entry['from'] = e.from.toSorted();
   }
+  entry['consumers'] = relations.consumers;
+  entry['diagnostics'] = SIGNAL_DIAGNOSTIC_HOOKS;
+  entry['governance'] = SIGNAL_GOVERNANCE_HOOKS;
+  entry['producers'] = relations.producers;
   const examples = deriveStructuredSignalExamples(e.examples);
   if (examples !== undefined) {
     entry['examples'] = examples;
@@ -265,7 +331,10 @@ const addEventFields = (
   }
 };
 
-const signalToEntry = (e: Signal<unknown>): SurfaceMapEntry => {
+const signalToEntry = (
+  e: Signal<unknown>,
+  relations: SignalGraphRelations
+): SurfaceMapEntry => {
   const raw = e as unknown as Record<string, unknown>;
   const trailheads = extractTrailheads(raw);
   const entry: Record<string, unknown> = {
@@ -274,7 +343,7 @@ const signalToEntry = (e: Signal<unknown>): SurfaceMapEntry => {
     kind: 'signal',
     trailheads,
   };
-  addEventFields(entry, e, raw);
+  addSignalFields(entry, e, raw, relations);
   return sortKeys(entry) as unknown as SurfaceMapEntry;
 };
 
@@ -316,22 +385,30 @@ const contourToEntry = (contour: AnyContour): SurfaceMapEntry => {
 };
 
 const assertEstablishedTopo = (topo: Topo): void => {
-  const validated = validateDraftFreeTopo(topo);
+  const validated = validateEstablishedTopo(topo);
   if (validated.isErr()) {
     throw validated.error;
   }
 };
 
-const collectEntries = (topo: Topo): SurfaceMapEntry[] => [
-  ...[...topo.contours.values()].map((contour) => contourToEntry(contour)),
-  ...[...topo.trails.values()].map((trail) =>
-    trailToEntry(trail as Trail<unknown, unknown, unknown>)
-  ),
-  ...[...topo.signals.values()].map((signal) =>
-    signalToEntry(signal as Signal<unknown>)
-  ),
-  ...[...topo.resources.values()].map((resource) => resourceToEntry(resource)),
-];
+const collectEntries = (topo: Topo): SurfaceMapEntry[] => {
+  const signalRelations = collectSignalGraphRelations(topo);
+  return [
+    ...[...topo.contours.values()].map((contour) => contourToEntry(contour)),
+    ...[...topo.trails.values()].map((trail) =>
+      trailToEntry(trail as Trail<unknown, unknown, unknown>)
+    ),
+    ...[...topo.signals.values()].map((signal) =>
+      signalToEntry(
+        signal as Signal<unknown>,
+        signalRelations.get(signal.id) ?? EMPTY_SIGNAL_RELATIONS
+      )
+    ),
+    ...[...topo.resources.values()].map((resource) =>
+      resourceToEntry(resource)
+    ),
+  ];
+};
 
 // ---------------------------------------------------------------------------
 // Public API

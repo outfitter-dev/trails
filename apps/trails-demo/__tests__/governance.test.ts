@@ -38,7 +38,7 @@ import * as search from '../src/trails/search.js';
 describe('surface map generation', () => {
   const surfaceMap = deriveSurfaceMap(graph);
 
-  test('contains all expected trail, event, and resource IDs', () => {
+  test('contains all expected trail, signal, and resource IDs', () => {
     const ids = surfaceMap.entries.map((e) => e.id);
 
     expect(ids).toContain('entity.show');
@@ -52,7 +52,7 @@ describe('surface map generation', () => {
     expect(ids).toContain('demo.entity-store');
   });
 
-  test('has exactly 11 entries (8 trails + 1 event + 2 resources)', () => {
+  test('has exactly 11 entries (8 trails + 1 signal + 2 resources)', () => {
     const ids = surfaceMap.entries.map((e) => e.id);
 
     expect(surfaceMap.entries).toHaveLength(11);
@@ -107,7 +107,7 @@ describe('surface map generation', () => {
     }
   });
 
-  test('event entries include payload schema as input', () => {
+  test('signal entries include payload schema as input', () => {
     const updatedEntry = surfaceMap.entries.find(
       (e) => e.id === 'entity.updated'
     );
@@ -241,7 +241,6 @@ describe('breaking change detection', () => {
   test('removed trail is detected as breaking', () => {
     const diff = diffAgainst(
       entity,
-      onboard,
       entitySignals,
       kv,
       notify,

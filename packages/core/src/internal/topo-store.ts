@@ -4,6 +4,7 @@ import { getContourReferences } from '../contour.js';
 import { DETOUR_MAX_ATTEMPTS_CAP } from '../detours.js';
 import { deriveCliPath } from '../derive.js';
 import { Result } from '../result.js';
+import { signalDiagnosticDefinitions } from '../signal-diagnostics.js';
 import type { AnyContour } from '../contour.js';
 import type { AnyResource } from '../resource.js';
 import type { AnySignal } from '../signal.js';
@@ -155,6 +156,31 @@ interface MaterializedTopoArtifacts {
   readonly exportRow: StoredTopoExportRow;
   readonly schemaRows: readonly TopoSchemaRow[];
 }
+
+interface SignalGraphRelations {
+  readonly consumers: readonly string[];
+  readonly producers: readonly string[];
+}
+
+const EMPTY_SIGNAL_RELATIONS: SignalGraphRelations = {
+  consumers: [],
+  producers: [],
+};
+
+const SIGNAL_DIAGNOSTIC_CODES = Object.keys(
+  signalDiagnosticDefinitions
+).toSorted();
+
+const SIGNAL_DIAGNOSTIC_HOOKS = {
+  codes: SIGNAL_DIAGNOSTIC_CODES,
+  strictMode: true,
+} as const;
+
+const SIGNAL_GOVERNANCE_HOOKS = {
+  consumers: 'trail.on',
+  payload: 'signal.payload',
+  producers: 'trail.fires',
+} as const;
 
 interface NormalizedTopoProjection {
   readonly crossings: readonly TopoCrossingRow[];
@@ -782,7 +808,8 @@ const trailToEntryRecord = (
 
 const signalToEntryRecord = (
   signal: AnySignal,
-  payloadSchema: JsonRecord
+  payloadSchema: JsonRecord,
+  relations: SignalGraphRelations
 ): SurfaceMapEntryRecord => {
   const raw = signal as unknown as Record<string, unknown>;
   const examples = signal.examples?.map((payload) => ({
@@ -791,15 +818,24 @@ const signalToEntryRecord = (
     provenance: { source: 'signal.examples' },
   }));
   const entry: Record<string, unknown> = {
+    consumers: relations.consumers,
+    diagnostics: SIGNAL_DIAGNOSTIC_HOOKS,
     exampleCount: signal.examples?.length ?? 0,
+    governance: SIGNAL_GOVERNANCE_HOOKS,
     id: signal.id,
     input: payloadSchema,
     kind: 'signal',
+    payload: payloadSchema,
+    producers: relations.producers,
     trailheads: extractTrailheads(raw),
   };
 
   if (signal.description !== undefined) {
     entry['description'] = signal.description;
+  }
+
+  if (signal.meta !== undefined) {
+    entry['meta'] = signal.meta;
   }
 
   if (examples !== undefined && examples.length > 0) {
@@ -886,6 +922,37 @@ const requireSignalPayload = (
   return payload;
 };
 
+const collectSignalGraphRelations = (
+  signals: readonly AnySignal[],
+  trails: readonly AnyTrail[]
+): ReadonlyMap<string, SignalGraphRelations> => {
+  const producers = new Map<string, Set<string>>();
+  const consumers = new Map<string, Set<string>>();
+
+  for (const trail of trails) {
+    for (const signalId of trail.fires) {
+      const current = producers.get(signalId) ?? new Set<string>();
+      current.add(trail.id);
+      producers.set(signalId, current);
+    }
+    for (const signalId of trail.on) {
+      const current = consumers.get(signalId) ?? new Set<string>();
+      current.add(trail.id);
+      consumers.set(signalId, current);
+    }
+  }
+
+  return new Map(
+    signals.map((signal) => [
+      signal.id,
+      {
+        consumers: [...(consumers.get(signal.id) ?? [])].toSorted(),
+        producers: [...(producers.get(signal.id) ?? [])].toSorted(),
+      },
+    ])
+  );
+};
+
 const buildSurfaceMap = (
   contours: readonly AnyContour[],
   generatedAt: string,
@@ -901,6 +968,7 @@ const buildSurfaceMap = (
   >,
   trails: readonly AnyTrail[]
 ): SurfaceMapRecord => {
+  const signalRelations = collectSignalGraphRelations(signals, trails);
   const entries = [
     ...contours.map((contour) => contourToEntryRecord(contour)),
     ...trails.map((trail) =>
@@ -909,7 +977,8 @@ const buildSurfaceMap = (
     ...signals.map((signal) =>
       signalToEntryRecord(
         signal,
-        requireSignalPayload(signalPayloads, signal.id)
+        requireSignalPayload(signalPayloads, signal.id),
+        signalRelations.get(signal.id) ?? EMPTY_SIGNAL_RELATIONS
       )
     ),
     ...resources.map((resource) => resourceToEntryRecord(resource)),

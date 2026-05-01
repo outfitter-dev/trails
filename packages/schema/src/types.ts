@@ -52,6 +52,7 @@ export interface SurfaceMapEntry {
       }
     | undefined;
   readonly input?: JsonSchema | undefined;
+  readonly payload?: JsonSchema | undefined;
   readonly output?: JsonSchema | undefined;
   readonly intent?: 'read' | 'write' | 'destroy' | undefined;
   readonly idempotent?: boolean | undefined;
@@ -65,6 +66,11 @@ export interface SurfaceMapEntry {
   readonly references?: readonly SurfaceMapContourReference[] | undefined;
   readonly resources?: readonly string[] | undefined;
   readonly from?: readonly string[] | undefined;
+  readonly producers?: readonly string[] | undefined;
+  readonly consumers?: readonly string[] | undefined;
+  readonly diagnostics?: Readonly<Record<string, unknown>> | undefined;
+  readonly governance?: Readonly<Record<string, unknown>> | undefined;
+  readonly meta?: Readonly<Record<string, unknown>> | undefined;
   readonly fieldOverrides?: readonly SurfaceMapFieldOverride[] | undefined;
   readonly detours?:
     | readonly { readonly on: string; readonly maxAttempts: number }[]
