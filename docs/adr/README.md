@@ -45,3 +45,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0036](0036-warden-rules-ship-only-as-trails.md) | Warden rules ship only as trails | Accepted |
 | [0037](0037-owner-first-authority.md) | Owner-First Authority | Accepted |
 | [0038](0038-typed-signal-emission.md) | Typed Signal Emission | Accepted |
+| [0039](0039-reactive-trail-activation.md) | Reactive Trail Activation | Accepted |

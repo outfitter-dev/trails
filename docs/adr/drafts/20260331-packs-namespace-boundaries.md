@@ -365,7 +365,7 @@ The warden enforces pack boundaries:
 - ADR: Trail Visibility and Trailhead Filtering (draft) -- packs set default visibility; this ADR depends on it
 - ADR: Pack Provisioning (draft) -- distribution mechanism for packs; depends on this ADR
 - ADR: Typed Signal Emission (draft) -- signals are the primary decoupling mechanism between packs
-- ADR: Reactive Trail Activation (draft) -- packs carry trigger declarations; activation registers when the pack composes into a topo
+- [ADR-0039: Reactive Trail Activation](../0039-reactive-trail-activation.md) -- packs carry trigger declarations; activation registers when the pack composes into a topo
 - ADR: External Trailheads as Trails (draft) -- rigged trails compose into packs with the same layering pattern
 - [ADR-0013: Tracing](../0013-tracing.md) -- observability primitive; packs scope tracing emission boundaries
 - [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) -- the lexicon renames that apply to pack field names (`events` → `signals`, `services` → `resources`)

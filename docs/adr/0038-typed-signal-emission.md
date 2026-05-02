@@ -259,9 +259,9 @@ Typed signal v1 does not introduce:
   attempts local fan-out. It does not promise persistence, replay, retry,
   exactly-once delivery, handler completion before `ctx.fire()` resolves,
   total ordering, external subscription delivery, or dead-letter queues.
-- **No source materializer claims.** Schedule, webhook, subscription, and
-  predicate provenance should appear only after the runtime really produces
-  that data.
+- **No source materializer claims inside ADR-0038.** Schedule and webhook
+  materializers are accepted separately in ADR-0039. Subscription materializers
+  remain deferred.
 - **No separate reactive test runner.** `testExamples` can assert fired signals.
   A full reactive-chain test mode is a later testing decision.
 
@@ -326,7 +326,7 @@ Typed signal v1 does not introduce:
 - [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md) -
   future delivery decisions may use error categories without changing this
   producer API.
-- [ADR: Reactive Trail Activation](drafts/20260331-reactive-trail-activation.md)
-  (draft) - future activation sources build on this signal contract.
+- [ADR-0039: Reactive Trail Activation](0039-reactive-trail-activation.md) -
+  schedule and webhook source materializers build on this signal contract.
 - [ADR: WebSocket Trailhead](drafts/20260331-websocket-trailhead.md) (draft) -
   external subscriptions remain deferred from ADR-0038's local signal runtime.

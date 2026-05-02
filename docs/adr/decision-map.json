@@ -130,6 +130,11 @@
           "fromPath": "docs/adr/0038-typed-signal-emission.md"
         },
         {
+          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) - activation follows",
+          "from": "0039",
+          "fromPath": "docs/adr/0039-reactive-trail-activation.md"
+        },
+        {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; `trails run` makes every trail directly invocable without trailhead ceremony",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -148,11 +153,6 @@
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; packs group trails into capability boundaries",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
-        },
-        {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) — \"derive by default\"; `on:` declares activation, the framework derives the reactive graph",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
         {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"trailheads are peers\"; WebSocket is the fourth trailhead, following the same patterns as CLI, MCP, and HTTP",
@@ -382,6 +382,11 @@
           "fromPath": "docs/adr/0038-typed-signal-emission.md"
         },
         {
+          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) -",
+          "from": "0039",
+          "fromPath": "docs/adr/0039-reactive-trail-activation.md"
+        },
+        {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- every trail is runnable, whether atomic or composite",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -395,11 +400,6 @@
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- the trail definition that packs contain",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
-        },
-        {
-          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — trails with `on:` are still trails. Activation is a property.",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
         {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the trail as the single unit of work, the unit that versioning targets",
@@ -446,14 +446,14 @@
           "fromPath": "docs/adr/0027-visibility-and-filtering.md"
         },
         {
+          "context": "- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) -",
+          "from": "0039",
+          "fromPath": "docs/adr/0039-reactive-trail-activation.md"
+        },
+        {
           "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- rigged trails declare intent; HTTP method mapping and MCP annotations work identically",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
-        },
-        {
-          "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) — intent compounds with activation; lifecycle signals filter by intent",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
         {
           "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent compounds with layers for surface derivation and governance",
@@ -493,6 +493,11 @@
           "context": "- [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md)",
           "from": "0035",
           "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
+        },
+        {
+          "context": "- [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) -",
+          "from": "0039",
+          "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
           "context": "- **[ADR-0005: Framework-Agnostic HTTP Route Model](./adr/0005-framework-agnostic-http-route-model.md)** — `HttpRoute[]` with thin connector subpaths",
@@ -1007,6 +1012,11 @@
           "fromPath": "docs/adr/0038-typed-signal-emission.md"
         },
         {
+          "context": "- [ADR-0013: Tracing](0013-tracing.md) - activation provenance is projected into",
+          "from": "0039",
+          "fromPath": "docs/adr/0039-reactive-trail-activation.md"
+        },
+        {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- the tracing primitive; live tracing during `trails run`, historical tracing via `trails trace`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -1025,11 +1035,6 @@
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- observability primitive; packs scope tracing emission boundaries",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
-        },
-        {
-          "context": "- [ADR-0013: Tracing](../0013-tracing.md) — tracing records activation provenance on every execution",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
         {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- observability and replay buffer backing store",
@@ -1246,6 +1251,11 @@
           "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) -",
           "from": "0038",
           "fromPath": "docs/adr/0038-typed-signal-emission.md"
+        },
+        {
+          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) -",
+          "from": "0039",
+          "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`",
@@ -1526,9 +1536,9 @@
           "fromPath": "docs/adr/0038-typed-signal-emission.md"
         },
         {
-          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — typed `ctx.cross()` complements signal-based activation; `on:` is for reactive decoupling, `crosses` is for direct compositi",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
+          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) -",
+          "from": "0039",
+          "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
           "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- `crossInput` follows the same \"compose schemas, project the union\" pattern as layer input schemas",
@@ -1589,9 +1599,9 @@
           "fromPath": "docs/adr/0038-typed-signal-emission.md"
         },
         {
-          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) — future delivery semantics may use error categories, but ",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
+          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md) -",
+          "from": "0039",
+          "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
           "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) -- WebSocket close code mapping deferred there; the error ",
@@ -1621,6 +1631,11 @@
           "context": "- [ADR-0027: Trail Visibility and Surface Filtering](0027-visibility-and-filtering.md) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode",
           "from": "0028",
           "fromPath": "docs/adr/0028-concurrent-crossing.md"
+        },
+        {
+          "context": "- [ADR-0027: Trail Visibility and Surface Filtering](0027-visibility-and-filtering.md) -",
+          "from": "0039",
+          "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
           "context": "- [ADR: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) (draft) -- `trails run` can invoke internal trails (it's programmatic, like `run()`)",
@@ -1985,9 +2000,19 @@
       "depends_on": ["2", "3", "6", "7", "13", "17", "24", "26"],
       "inbound": [
         {
-          "context": "- [ADR-0038: Typed Signal Emission](../0038-typed-signal-emission.md) — **this ADR depends on it**; provides `ctx.fire(signal, payload)`, `fires`, `on`, and the authored signal graph",
+          "context": "- [ADR-0038: Typed Signal Emission](0038-typed-signal-emission.md) — signals as nodes in the graph, `fires`/`on` signal edges on trail nodes",
+          "from": "0017",
+          "fromPath": "docs/adr/0017-serialized-topo-graph.md"
+        },
+        {
+          "context": "[ADR-0038](0038-typed-signal-emission.md) made `signal()` live: producers",
+          "from": "0039",
+          "fromPath": "docs/adr/0039-reactive-trail-activation.md"
+        },
+        {
+          "context": "- [ADR-0038: Typed Signal Emission](../0038-typed-signal-emission.md) -- rigged trails can fire signals via `ctx.fire(signal, payload)`; the \"observe and announce\" pattern",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
+          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
           "context": "- [ADR-0038: Typed Signal Emission](../0038-typed-signal-emission.md) -- provides typed `ctx.fire(signal, payload)` records; external subscription delivery remains deferred to this draft",
@@ -2003,6 +2028,45 @@
       "superseded_by": null,
       "title": "Typed Signal Emission",
       "updated": "2026-05-01"
+    },
+    {
+      "created": "2026-03-31",
+      "depends_on": ["3", "4", "5", "13", "17", "24", "26", "27", "38"],
+      "inbound": [
+        {
+          "context": "- [ADR-0039: Reactive Trail Activation](0039-reactive-trail-activation.md) — activation sources as edges, reactive graph resolution",
+          "from": "0017",
+          "fromPath": "docs/adr/0017-serialized-topo-graph.md"
+        },
+        {
+          "context": "- [ADR-0039: Reactive Trail Activation](0039-reactive-trail-activation.md) -",
+          "from": "0038",
+          "fromPath": "docs/adr/0038-typed-signal-emission.md"
+        },
+        {
+          "context": "- [ADR-0039: Reactive Trail Activation](../0039-reactive-trail-activation.md) -- rigged trails with schedule activation sources become periodic monitoring probes",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
+        },
+        {
+          "context": "- [ADR-0039: Reactive Trail Activation](../0039-reactive-trail-activation.md) -- packs carry trigger declarations; activation registers when the pack composes into a topo",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
+        },
+        {
+          "context": "- [ADR-0039: Reactive Trail Activation](../0039-reactive-trail-activation.md) -- activation sources and WebSocket subscriptions would both consume typed signal contracts",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        }
+      ],
+      "number": "0039",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0039-reactive-trail-activation.md",
+      "slug": "reactive-trail-activation",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Reactive Trail Activation",
+      "updated": "2026-05-02"
     }
   ],
   "version": 1

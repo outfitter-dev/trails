@@ -54,25 +54,6 @@
     },
     {
       "created": "2026-03-31",
-      "depends_on": ["3", "4", "13", "38"],
-      "inbound": [
-        {
-          "context": "- [ADR: Reactive Trail Activation](drafts/20260331-reactive-trail-activation.md)",
-          "from": "0038",
-          "fromPath": "docs/adr/0038-typed-signal-emission.md"
-        }
-      ],
-      "number": null,
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260331-reactive-trail-activation.md",
-      "slug": "reactive-trail-activation",
-      "status": "draft",
-      "superseded_by": null,
-      "title": "Reactive Trail Activation",
-      "updated": "2026-04-09"
-    },
-    {
-      "created": "2026-03-31",
       "depends_on": ["38"],
       "inbound": [
         {
@@ -158,11 +139,6 @@
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- [ADR: Layer Evolution](20260409-layer-evolution.md) (draft) — pipeline stages (auth, recording) apply automatically to activated trails",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
-        },
-        {
           "context": "- [ADR: Layer Evolution](20260409-layer-evolution.md) (draft) -- layers gain input schemas; the compiled library trailhead must project layer inputs alongside trail inputs",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
@@ -245,14 +221,14 @@
       "depends_on": ["6", "13"],
       "inbound": [
         {
+          "context": "[Unified Observability](drafts/20260409-unified-observability.md) draft",
+          "from": "0039",
+          "fromPath": "docs/adr/0039-reactive-trail-activation.md"
+        },
+        {
           "context": "- [ADR: Unified Observability](20260409-unified-observability.md) (draft) -- `--trace` flag, `ctx.trace()`, and the tracing vocabulary used throughout this draft. Note: this draft uses `--tracing` as ",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
-        },
-        {
-          "context": "- [ADR: Unified Observability](20260409-unified-observability.md) (draft) — tracing moves into core; activation provenance is recorded intrinsically by the execution pipeline",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-reactive-trail-activation.md"
         },
         {
           "context": "- [ADR: Unified Observability](20260409-unified-observability.md) (draft) -- tracing system that provides WebSocket connection observability",

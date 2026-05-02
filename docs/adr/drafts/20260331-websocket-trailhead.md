@@ -353,6 +353,6 @@ clients.
 - [ADR: Unified Observability](20260409-unified-observability.md) (draft) -- tracing system that provides WebSocket connection observability
 - [ADR-0038: Typed Signal Emission](../0038-typed-signal-emission.md) -- provides typed `ctx.fire(signal, payload)` records; external subscription delivery remains deferred to this draft
 - [ADR-0027: Trail Visibility and Trailhead Filtering](../0027-visibility-and-filtering.md) -- visibility and intent filtering apply to WebSocket trail discovery and invocation
-- ADR: Reactive Trail Activation (draft) -- activation sources and WebSocket subscriptions would both consume typed signal contracts
+- [ADR-0039: Reactive Trail Activation](../0039-reactive-trail-activation.md) -- activation sources and WebSocket subscriptions would both consume typed signal contracts
 - [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- `ingest()` factory for webhook-to-trail flows that can feed signals to WebSocket subscribers
 - [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- captures WebSocket trailhead configuration in the resolved topo graph

@@ -791,6 +791,6 @@ Rig lock state rolls up into the `rigs` section of `trails.lock`:
 - ADR: Packs as Namespace Boundaries (draft) -- rigged trails compose into packs with the same layering pattern
 - ADR: Pack Provisioning (draft) -- rig packs distribute as resources with the same lifecycle
 - [ADR-0038: Typed Signal Emission](../0038-typed-signal-emission.md) -- rigged trails can fire signals via `ctx.fire(signal, payload)`; the "observe and announce" pattern
-- ADR: Reactive Trail Activation (draft) -- rigged trails with schedule activation sources become periodic monitoring probes
+- [ADR-0039: Reactive Trail Activation](../0039-reactive-trail-activation.md) -- rigged trails with schedule activation sources become periodic monitoring probes
 - [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`
 - [ADR-0013: Tracing](../0013-tracing.md) -- rigged trail executions are recorded via tracing for observability

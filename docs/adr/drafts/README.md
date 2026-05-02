@@ -14,8 +14,6 @@ Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.
   - depends on [Packs as Namespace Boundaries](20260331-packs-namespace-boundaries.md)
 - [Packs as Namespace Boundaries](20260331-packs-namespace-boundaries.md)
   - depends on [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md), [ADR-0009: First-Class Resources](../0009-first-class-resources.md), [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md)
-- [Reactive Trail Activation](20260331-reactive-trail-activation.md)
-  - depends on [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md), [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md), [ADR-0013: Tracing — Runtime Recording Primitive](../0013-tracing.md), [ADR-0038: Typed Signal Emission](../0038-typed-signal-emission.md)
 - [WebSocket Trailhead](20260331-websocket-trailhead.md)
   - depends on [ADR-0038: Typed Signal Emission](../0038-typed-signal-emission.md)
 
