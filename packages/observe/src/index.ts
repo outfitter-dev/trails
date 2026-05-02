@@ -7,6 +7,9 @@
  *
  * @see {@link https://github.com/outfitter-dev/trails/blob/main/docs/adr/0041-unified-observability.md | ADR-0041 Unified Observability}
  */
+export { combine } from './combine.js';
+export type { CombinedSink } from './combine.js';
+
 export type {
   Logger,
   LogFormatter,
