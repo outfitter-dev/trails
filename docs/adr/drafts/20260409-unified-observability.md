@@ -3,7 +3,7 @@ slug: unified-observability
 title: Unified Observability
 status: draft
 created: 2026-04-09
-updated: 2026-04-09
+updated: 2026-05-02
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [6, 13]
 supersedes: ['13']
@@ -55,6 +55,8 @@ The `Logger` interface is already in core. The following join it:
 - **Trace record data model.** The `TraceRecord` interface describing one recorded execution footprint. The developer-facing word is "trace" (as verb and noun). The internal type is `TraceRecord` to avoid overloading "trace" (which can mean one record or an entire execution tree in industry usage). Records can describe trail execution, manual spans, signal lifecycle points, or activation boundaries.
 - **Memory trace sink.** Bounded in-memory trace storage, sufficient for development and `trails run --trace` without unbounded process growth.
 - **`ctx.trace()` method.** Manual sub-step recording within a blaze, replacing `tracker.from(ctx).track()`.
+
+This also resolves the `tracingLayer` concern named in [ADR: Layer Evolution](20260409-layer-evolution.md): tracing is a core pipeline capability, not a user-authored layer.
 
 A developer who installs `@ontrails/core` and `@ontrails/cli` gets:
 
@@ -274,6 +276,7 @@ Everything else — OTel, file sinks, SQLite dev stores, pretty formatters, samp
 
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — `executeTrail` is the chokepoint where tracing wraps. Moving tracing into core puts it next to the pipeline it instruments.
 - [ADR-0013: Tracing](../0013-tracing.md) — the decision this supersedes. The architectural choices (flat records, callback-only manual API, root-level sampling, crossing propagation through execution scope) remain valid. The change is packaging and vocabulary, not mechanism.
+- [ADR: Layer Evolution](20260409-layer-evolution.md) — identifies `tracingLayer` as framework behavior dressed as user configuration; this ADR resolves it by making tracing core.
 - [Tenets: One write, many reads](../../tenets.md) — the governing principle. Trace data authored once feeds `--trace` rendering, OTel export, SQLite dev store, and future replay.
 - OpenTelemetry specification — the industry standard this aligns with for vocabulary and export format.
 
