@@ -25,7 +25,13 @@ export {
 } from './signal-trace.js';
 
 // Tracing-package-owned utilities
-export { createMemorySink } from './memory-sink.js';
+export {
+  createBoundedMemorySink,
+  createMemorySink,
+  DEFAULT_MEMORY_SINK_MAX_RECORDS,
+  type MemorySinkOptions,
+  type MemoryTraceSink,
+} from './memory-sink.js';
 export { createChildTraceContext } from './trace-context.js';
 export {
   shouldSample,

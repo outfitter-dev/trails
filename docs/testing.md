@@ -395,7 +395,7 @@ const trailPermit = createPermitForTrail(showTrail);
 ```typescript
 import { createMemorySink, registerTraceSink, clearTraceSink } from '@ontrails/tracing';
 
-const sink = createMemorySink();
+const sink = createMemorySink({ maxRecords: 100 });
 registerTraceSink(sink);
 try {
   // ...run trails...
@@ -404,6 +404,9 @@ try {
   clearTraceSink();
 }
 ```
+
+The memory sink is bounded by default and drops the oldest records when it
+passes `maxRecords`; `sink.droppedCount` reports discarded records.
 
 ## Recommended Test Structure
 

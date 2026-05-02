@@ -53,7 +53,7 @@ The `Logger` interface is already in core. The following join it:
 - **Default console logger.** Structured logging to stdout with no configuration. Available on `ctx.logger` automatically.
 - **Built-in tracing.** Automatic execution recording for every trail invocation, intrinsic to the `executeTrail` pipeline. Records which trail ran, how long, what result, what errors, which crossings happened, trace ID propagation. Not an optional layer the developer attaches — it just happens.
 - **Trace record data model.** The `TraceRecord` interface describing one recorded execution footprint. The developer-facing word is "trace" (as verb and noun). The internal type is `TraceRecord` to avoid overloading "trace" (which can mean one record or an entire execution tree in industry usage). Records can describe trail execution, manual spans, signal lifecycle points, or activation boundaries.
-- **Memory trace sink.** In-memory trace storage, sufficient for development and `trails run --trace`.
+- **Memory trace sink.** Bounded in-memory trace storage, sufficient for development and `trails run --trace` without unbounded process growth.
 - **`ctx.trace()` method.** Manual sub-step recording within a blaze, replacing `tracker.from(ctx).track()`.
 
 A developer who installs `@ontrails/core` and `@ontrails/cli` gets:
@@ -152,6 +152,11 @@ A developer never needs `@ontrails/observe` to build, test, or debug locally. Th
 ### Topo configuration
 
 Observability follows the Trails posture: zero config by default, one declaration to customize.
+
+The process-level sink registry still keeps `NOOP_SINK` as the disabled
+baseline. Bounded memory tracing is the built-in sink used by observe-aware
+tooling and explicit registration; core does not allocate trace records until a
+real sink is installed.
 
 Without `@ontrails/observe`, the default works:
 

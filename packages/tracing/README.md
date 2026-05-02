@@ -11,11 +11,11 @@ Tracing is built into `executeTrail`. When a real sink is installed, each trail 
 ```typescript
 import { createMemorySink, registerTraceSink } from '@ontrails/tracing';
 
-const sink = createMemorySink();
+const sink = createMemorySink({ maxRecords: 1000 });
 registerTraceSink(sink);
 ```
 
-Sinks receive completed `TraceRecord` records. The default sink is `NOOP_SINK` — tracing APIs still work without configuration, but root/span/signal/activation record allocation is skipped until you register a real sink. Use a memory sink for testing, a dev store for local development, or an OTel connector to forward to your collector. Use `registerTraceSink(NOOP_SINK)` or `clearTraceSink()` to switch back to the silent baseline.
+Sinks receive completed `TraceRecord` records. The default sink is `NOOP_SINK` — tracing APIs still work without configuration, but root/span/signal/activation record allocation is skipped until you register a real sink. Use a bounded memory sink for testing and local trace rendering, a dev store for local development, or an OTel connector to forward to your collector. Use `registerTraceSink(NOOP_SINK)` or `clearTraceSink()` to switch back to the silent baseline.
 
 Signal fan-out records use lexicon-aligned names: `signal.fired`, `signal.invalid`, `signal.handler.invoked`, `signal.handler.completed`, and `signal.handler.failed`. Signal record attrs carry IDs and redacted payload summaries, never raw payloads by default.
 
@@ -96,7 +96,7 @@ For testing and demos:
 ```typescript
 import { createMemorySink, registerTraceSink, clearTraceSink } from '@ontrails/tracing';
 
-const sink = createMemorySink();
+const sink = createMemorySink({ maxRecords: 500 });
 registerTraceSink(sink);
 try {
   // ... run trails ...
@@ -107,7 +107,10 @@ try {
 }
 ```
 
-`clearTraceSink()` restores `NOOP_SINK`.
+`createMemorySink()` is bounded by default. Older records drop once `maxRecords`
+is reached, and `sink.droppedCount` reports how many were discarded since the
+last `sink.clear()`. `createBoundedMemorySink()` is an explicit alias for the
+same factory. `clearTraceSink()` restores `NOOP_SINK`.
 
 ### Dev store
 

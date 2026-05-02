@@ -50,6 +50,14 @@ declare module '@ontrails/tracing' {
 
   export interface MemorySink {
     readonly records: readonly TraceRecord[];
+    readonly maxRecords: number;
+    readonly droppedCount: number;
+    readonly clear: () => void;
+    readonly snapshot: () => readonly TraceRecord[];
+  }
+
+  export interface MemorySinkOptions {
+    readonly maxRecords?: number | undefined;
   }
 
   export interface SamplingConfig {
@@ -65,7 +73,7 @@ declare module '@ontrails/tracing' {
     readonly maxRecords?: number;
     readonly path?: string;
   }): unknown;
-  export function createMemorySink(): MemorySink;
+  export function createMemorySink(options?: MemorySinkOptions): MemorySink;
   export function createOtelConnector(options: {
     readonly batchSize?: number;
     readonly exporter: (spans: unknown) => Promise<void>;

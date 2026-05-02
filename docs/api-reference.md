@@ -447,7 +447,8 @@ createSignalTraceRecord(parent, name, attrs?) // construct a signal lifecycle Tr
 writeSignalTraceRecord(ctx, name, attrs, status?, category?) // write a signal lifecycle TraceRecord
 
 // Sinks
-createMemorySink()                   // in-memory sink for testing
+createMemorySink(options?)           // bounded in-memory sink for testing
+createBoundedMemorySink(options?)    // explicit alias for createMemorySink
 createDevStore(options?)             // SQLite-backed persistent sink for development
 createOtelConnector(options?)        // OpenTelemetry span exporter
 toTraceStore(store)                  // read-only TraceStore view that does not own the writable connection
