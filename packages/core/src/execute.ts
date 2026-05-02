@@ -59,6 +59,11 @@ import {
   isTracingDisabled,
   writeToSink,
 } from './internal/tracing.js';
+import {
+  OBSERVE_LOGGER_CONTEXT_KEY,
+  OBSERVE_LOGGER_METADATA_KEY,
+  createObserveLogger,
+} from './observe.js';
 import { Result } from './result.js';
 import { DETOUR_MAX_ATTEMPTS_CAP } from './detours.js';
 import { createResourceLookup } from './resource.js';
@@ -166,6 +171,47 @@ const resolveContext = async (
   return bindResourceLookup(resolved, options);
 };
 
+const readObserveLoggerMetadata = (
+  ctx: TrailContext
+): Record<string, unknown> => {
+  const value = ctx.extensions?.[OBSERVE_LOGGER_METADATA_KEY];
+  return value !== null && typeof value === 'object'
+    ? (value as Record<string, unknown>)
+    : {};
+};
+
+const applyTopoObserveContext = (
+  trail: AnyTrail,
+  ctx: TrailContext,
+  topo: Topo | undefined
+): TrailContext => {
+  if (topo?.observe?.log === undefined) {
+    return ctx;
+  }
+  const hasTopoObserveLogger =
+    ctx.extensions?.[OBSERVE_LOGGER_CONTEXT_KEY] === true;
+  if (ctx.logger !== undefined && !hasTopoObserveLogger) {
+    return ctx;
+  }
+  const { log } = topo.observe;
+  // Accumulated metadata (e.g. signal fan-out fields) takes precedence over
+  // the previous observe logger's `topo`/`trailId` values, but the new trail's
+  // identity wins so log records keep pointing at the trail currently running.
+  const accumulated = readObserveLoggerMetadata(ctx);
+  return {
+    ...ctx,
+    extensions: {
+      ...ctx.extensions,
+      [OBSERVE_LOGGER_CONTEXT_KEY]: true,
+    },
+    logger: createObserveLogger(log, trail.id, {
+      ...accumulated,
+      topo: topo.name,
+      trailId: trail.id,
+    }),
+  };
+};
+
 const findMissingScopes = (
   required: readonly string[],
   held: readonly string[]
@@ -207,7 +253,11 @@ const prepareContext = async (
     Error
   >
 > => {
-  const baseCtx = await resolveContext(options);
+  const baseCtx = applyTopoObserveContext(
+    trail,
+    await resolveContext(options),
+    options?.topo
+  );
   const permitted = enforcePermitRequirement(trail, baseCtx);
   if (permitted.isErr()) {
     return Result.err(permitted.error);
@@ -460,6 +510,45 @@ const stripInheritedResourceExtensions = (
   return Object.fromEntries(entries);
 };
 
+const deriveConcurrentBranchObserveMetadata = (
+  ctx: TrailContext,
+  target: AnyTrail,
+  branchIndex: number
+): Record<string, unknown> | undefined => {
+  // Only carry observe metadata forward when the parent ctx is using a
+  // topo-managed observe logger. Otherwise we'd attach branch fields to
+  // caller-supplied loggers that didn't opt into the structured contract.
+  if (ctx.extensions?.[OBSERVE_LOGGER_CONTEXT_KEY] !== true) {
+    return;
+  }
+  return {
+    ...readObserveLoggerMetadata(ctx),
+    branchIndex,
+    crossedTrailId: target.id,
+  };
+};
+
+const buildConcurrentBranchExtensions = (
+  ctx: TrailContext,
+  target: AnyTrail,
+  topo: Topo | undefined,
+  branchIndex: number
+): Record<string, unknown> => {
+  const stripped = stripInheritedResourceExtensions(ctx, target, topo);
+  const observeMetadata = deriveConcurrentBranchObserveMetadata(
+    ctx,
+    target,
+    branchIndex
+  );
+  if (observeMetadata === undefined) {
+    return stripped;
+  }
+  return {
+    ...stripped,
+    [OBSERVE_LOGGER_METADATA_KEY]: observeMetadata,
+  };
+};
+
 const deriveConcurrentBranchLogger = (
   ctx: TrailContext,
   target: AnyTrail,
@@ -490,7 +579,7 @@ const buildConcurrentBranchContext = (
   branchIndex: number
 ): TrailContext =>
   forkCtx(ctx, {
-    extensions: stripInheritedResourceExtensions(ctx, target, topo),
+    extensions: buildConcurrentBranchExtensions(ctx, target, topo, branchIndex),
     logger: deriveConcurrentBranchLogger(ctx, target, branchIndex),
   });
 
@@ -1040,7 +1129,7 @@ const runTrail = async (
   topo: Topo | undefined,
   options: ExecuteTrailOptions | undefined
 ): Promise<Result<unknown, Error>> => {
-  const sink = getTraceSink();
+  const sink = topo?.observe?.trace ?? getTraceSink();
   return isTracingDisabled(sink)
     ? await runImplWithoutTracing(trail, input, ctx, layers, topo, options)
     : await runTrailWithTracing(trail, input, ctx, layers, topo, options, sink);

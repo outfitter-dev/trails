@@ -157,6 +157,29 @@ export interface Logger {
   child(context: Record<string, unknown>): Logger;
 }
 
+export type LogLevel =
+  | 'debug'
+  | 'error'
+  | 'fatal'
+  | 'info'
+  | 'silent'
+  | 'trace'
+  | 'warn';
+
+export interface LogRecord {
+  readonly category: string;
+  readonly level: LogLevel;
+  readonly message: string;
+  readonly metadata: Record<string, unknown>;
+  readonly timestamp: Date;
+}
+
+export interface LogSink {
+  readonly name: string;
+  readonly write: (record: LogRecord) => void;
+  readonly flush?: (() => Promise<void>) | undefined;
+}
+
 /**
  * Context extension key for the invoking surface name.
  *

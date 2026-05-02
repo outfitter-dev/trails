@@ -46,7 +46,7 @@ const onboard = trail('entity.onboard', {
 | `resource(id, spec)` | Define an infrastructure dependency with `create`, `dispose`, and optional `mock` |
 | `drainResources(resources, ctx, configValues?)` | Evict and dispose cached resource singletons for surface/test shutdown |
 | `blobRefSchema` / `createBlobRef(...)` | Declare and create binary output references with a shared descriptor contract |
-| `topo(name, ...modules)` | Collect trail modules into a queryable topology |
+| `topo(name, ...modules, options?)` | Collect trail modules into a queryable topology with optional `observe:` sinks |
 | `deriveTrail(contour, operation, spec)` | Derive CRUD-shaped trail contracts from a contour on the `@ontrails/core/trails` subpath |
 | `validateTopo(topo)` | Structural validation: cross targets exist, no cycles, examples parse, output schemas present |
 

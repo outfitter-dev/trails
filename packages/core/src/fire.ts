@@ -40,13 +40,17 @@ import { activationSourceKey } from './activation-source-projection.js';
 import { NotFoundError, TrailsError, ValidationError } from './errors.js';
 import { forkCtx } from './internal/fork-ctx.js';
 import {
+  OBSERVE_LOGGER_CONTEXT_KEY,
+  OBSERVE_LOGGER_METADATA_KEY,
+} from './observe.js';
+import {
   getTraceContext,
   getTraceSink,
   isTracingDisabled,
   writeActivationTraceRecord,
   writeSignalTraceRecord,
 } from './internal/tracing.js';
-import type { SignalTraceRecordName } from './internal/tracing.js';
+import type { SignalTraceRecordName, TraceSink } from './internal/tracing.js';
 import { Result } from './result.js';
 import type { AnySignal } from './signal.js';
 import {
@@ -185,15 +189,51 @@ const deriveConsumerEnv = (
 ): TrailContextInit['env'] =>
   producerCtx?.env ? { ...producerCtx.env } : undefined;
 
+const readExistingObserveMetadata = (
+  producerCtx: TrailContextInit | undefined
+): Record<string, unknown> => {
+  const value = producerCtx?.extensions?.[OBSERVE_LOGGER_METADATA_KEY];
+  return value !== null && typeof value === 'object'
+    ? (value as Record<string, unknown>)
+    : {};
+};
+
+const deriveConsumerObserveMetadata = (
+  producerCtx: TrailContextInit | undefined,
+  signalId: string,
+  consumerId: string
+): Record<string, unknown> | undefined => {
+  // Only carry observe metadata forward when the producer ctx is using a
+  // topo-managed observe logger. Otherwise we'd attach signal fan-out fields
+  // to caller-supplied loggers that didn't opt into the structured contract.
+  if (producerCtx?.extensions?.[OBSERVE_LOGGER_CONTEXT_KEY] !== true) {
+    return undefined;
+  }
+  return {
+    ...readExistingObserveMetadata(producerCtx),
+    consumerId,
+    signalId,
+  };
+};
+
 const deriveConsumerExtensions = (
   producerCtx: TrailContextInit | undefined,
-  signalId: string
+  signalId: string,
+  consumerId: string
 ): TrailContextInit['extensions'] => {
   const { [FIRE_PENDING_DISPATCHES_KEY]: _pending, ...extensions } =
     producerCtx?.extensions ?? {};
+  const observeMetadata = deriveConsumerObserveMetadata(
+    producerCtx,
+    signalId,
+    consumerId
+  );
   return {
     ...extensions,
     [FIRE_STACK_KEY]: [...getFireStack(producerCtx), signalId],
+    ...(observeMetadata === undefined
+      ? {}
+      : { [OBSERVE_LOGGER_METADATA_KEY]: observeMetadata }),
   };
 };
 
@@ -207,7 +247,11 @@ const deriveConsumerCtx = (
     producerCtx
       ? forkCtx(producerCtx as MutableConsumerContext, {
           env: deriveConsumerEnv(producerCtx),
-          extensions: deriveConsumerExtensions(producerCtx, signalId),
+          extensions: deriveConsumerExtensions(
+            producerCtx,
+            signalId,
+            consumerId
+          ),
           logger: deriveConsumerLogger(producerCtx, signalId, consumerId),
         })
       : {},
@@ -342,12 +386,20 @@ const recordSignalLifecycleTrace = async (
   name: SignalTraceRecordName,
   attrs: Readonly<Record<string, unknown>>,
   status?: Parameters<typeof writeSignalTraceRecord>[3],
-  errorCategory?: string | undefined
+  errorCategory?: string | undefined,
+  sink?: TraceSink | undefined
 ): Promise<void> => {
   if (producerCtx === undefined) {
     return;
   }
-  await writeSignalTraceRecord(producerCtx, name, attrs, status, errorCategory);
+  await writeSignalTraceRecord(
+    producerCtx,
+    name,
+    attrs,
+    status,
+    errorCategory,
+    sink
+  );
 };
 
 const recordActivationGuardTrace = async (
@@ -356,7 +408,8 @@ const recordActivationGuardTrace = async (
   reason: 'cycle' | 'depth',
   signalId: string,
   fireStack: readonly string[],
-  limit?: number | undefined
+  limit?: number | undefined,
+  sink?: TraceSink | undefined
 ): Promise<void> => {
   const attrs: Record<string, unknown> = {
     ...buildActivationProvenanceTraceAttrs(diagnosticMetadata.activation),
@@ -372,7 +425,8 @@ const recordActivationGuardTrace = async (
     attrs,
     'ok',
     undefined,
-    producerCtx === undefined ? undefined : getTraceContext(producerCtx)
+    producerCtx === undefined ? undefined : getTraceContext(producerCtx),
+    sink
   );
 };
 
@@ -425,17 +479,19 @@ const consumerTrailsFromActivations = (
 ];
 
 const hasActiveSignalTraceContext = (
-  producerCtx: TrailContextInit | undefined
+  producerCtx: TrailContextInit | undefined,
+  sink: TraceSink
 ): boolean =>
   producerCtx !== undefined &&
   getTraceContext(producerCtx) !== undefined &&
-  !isTracingDisabled(getTraceSink());
+  !isTracingDisabled(sink);
 
 const summarizeSignalPayloadForTrace = (
   producerCtx: TrailContextInit | undefined,
-  payload: unknown
+  payload: unknown,
+  sink: TraceSink
 ): SignalPayloadSummary | undefined => {
-  if (!hasActiveSignalTraceContext(producerCtx)) {
+  if (!hasActiveSignalTraceContext(producerCtx, sink)) {
     return undefined;
   }
   try {
@@ -462,6 +518,7 @@ const recordPredicateTrace = async (
     readonly payloadSummary?: SignalPayloadSummary | undefined;
     readonly signalId: string;
     readonly status?: Parameters<typeof recordSignalLifecycleTrace>[3];
+    readonly traceSink: TraceSink;
   }
 ): Promise<void> => {
   await recordSignalLifecycleTrace(
@@ -477,7 +534,8 @@ const recordPredicateTrace = async (
       signalId: input.signalId,
     }),
     input.status,
-    input.errorCategory
+    input.errorCategory,
+    input.traceSink
   );
 };
 
@@ -488,7 +546,8 @@ const shouldInvokeConsumer = async (
   signalId: string,
   producerCtx: TrailContextInit | undefined,
   diagnosticMetadata: FireDiagnosticMetadata,
-  logger: Logger | undefined
+  logger: Logger | undefined,
+  traceSink: TraceSink
 ): Promise<boolean> => {
   if (activation.wheres.length === 0) {
     return true;
@@ -512,6 +571,7 @@ const shouldInvokeConsumer = async (
           handlerTrailId: activation.trail.id,
           payloadSummary,
           signalId,
+          traceSink,
         }
       );
       if (matched) {
@@ -538,6 +598,7 @@ const shouldInvokeConsumer = async (
           payloadSummary,
           signalId,
           status: 'err',
+          traceSink,
         }
       );
       logger?.warn('Signal activation predicate failed', {
@@ -578,9 +639,14 @@ const fanOutToConsumers = async (
   diagnosticMetadata: FireDiagnosticMetadata,
   bindFire: ConsumerFireBinder,
   executor: ConsumerExecutor,
-  logger: Logger | undefined
+  logger: Logger | undefined,
+  traceSink: TraceSink
 ): Promise<void> => {
-  const payloadSummary = summarizeSignalPayloadForTrace(producerCtx, payload);
+  const payloadSummary = summarizeSignalPayloadForTrace(
+    producerCtx,
+    payload,
+    traceSink
+  );
   const settled = await Promise.allSettled(
     activations.map(async (activation) => {
       const consumer = activation.trail;
@@ -591,7 +657,8 @@ const fanOutToConsumers = async (
         signalId,
         producerCtx,
         diagnosticMetadata,
-        logger
+        logger,
+        traceSink
       );
       if (!shouldInvoke) {
         return consumer.id;
@@ -615,7 +682,10 @@ const fanOutToConsumers = async (
           producerTrailId: diagnosticMetadata.producerTrailId,
           runId: diagnosticMetadata.runId,
           signalId,
-        })
+        }),
+        undefined,
+        undefined,
+        traceSink
       );
       try {
         const consumerResult = await executor(consumer, payload, consumerCtx);
@@ -642,7 +712,8 @@ const fanOutToConsumers = async (
               signalId,
             }),
             'err',
-            deriveSignalErrorCategory(consumerResult.error)
+            deriveSignalErrorCategory(consumerResult.error),
+            traceSink
           );
           (consumerCtx.logger ?? logger)?.warn('Signal consumer failed', {
             consumerId: consumer.id,
@@ -661,7 +732,10 @@ const fanOutToConsumers = async (
             producerTrailId: diagnosticMetadata.producerTrailId,
             runId: diagnosticMetadata.runId,
             signalId,
-          })
+          }),
+          undefined,
+          undefined,
+          traceSink
         );
         return consumer.id;
       } catch (error) {
@@ -687,7 +761,8 @@ const fanOutToConsumers = async (
             signalId,
           }),
           'err',
-          deriveSignalErrorCategory(error)
+          deriveSignalErrorCategory(error),
+          traceSink
         );
         throw error;
       }
@@ -782,7 +857,8 @@ const resolveFireDispatch = async (
   signalId: string,
   payload: unknown,
   producerCtx: TrailContextInit | undefined,
-  diagnosticMetadata: FireDiagnosticMetadata
+  diagnosticMetadata: FireDiagnosticMetadata,
+  traceSink: TraceSink
 ): Promise<
   Result<
     {
@@ -830,7 +906,8 @@ const resolveFireDispatch = async (
         signalId,
       }),
       'err',
-      'validation'
+      'validation',
+      traceSink
     );
     return Result.err(
       createInvalidPayloadError(signalId, parsed.message, diagnostic, promoted)
@@ -895,6 +972,7 @@ export const createFireFn = (
     producerCtx === undefined
       ? undefined
       : withFireDispatchTracking(producerCtx);
+  const traceSink = topo.observe?.trace ?? getTraceSink();
   const bindConsumerFire: ConsumerFireBinder = (consumerCtx, consumerId) => ({
     ...consumerCtx,
     // Pre-bind fire on the consumer ctx as a safety net for direct
@@ -921,7 +999,8 @@ export const createFireFn = (
       signalId,
       payload,
       trackedProducerCtx,
-      diagnosticMetadata
+      diagnosticMetadata,
+      traceSink
     );
     if (dispatch.isErr()) {
       return Result.err(dispatch.error);
@@ -934,12 +1013,16 @@ export const createFireFn = (
         consumerIds: dispatch.value.consumers.map((consumer) => consumer.id),
         payload: summarizeSignalPayloadForTrace(
           trackedProducerCtx,
-          dispatch.value.payload
+          dispatch.value.payload,
+          traceSink
         ),
         producerTrailId: diagnosticMetadata.producerTrailId,
         runId: diagnosticMetadata.runId,
         signalId,
-      })
+      }),
+      undefined,
+      undefined,
+      traceSink
     );
     const completion = (async (): Promise<void> => {
       try {
@@ -951,7 +1034,8 @@ export const createFireFn = (
           diagnosticMetadata,
           bindConsumerFire,
           executor,
-          trackedProducerCtx?.logger
+          trackedProducerCtx?.logger,
+          traceSink
         );
       } catch (error: unknown) {
         trackedProducerCtx?.logger?.debug(
@@ -994,7 +1078,8 @@ export const createFireFn = (
         'depth',
         signalId,
         stack,
-        MAX_FIRE_DEPTH
+        MAX_FIRE_DEPTH,
+        traceSink
       );
       return Result.ok();
     }
@@ -1024,7 +1109,9 @@ export const createFireFn = (
         diagnosticMetadata,
         'cycle',
         signalId,
-        stack
+        stack,
+        undefined,
+        traceSink
       );
       return Result.ok();
     }

@@ -158,16 +158,15 @@ baseline. Bounded memory tracing is the built-in sink used by observe-aware
 tooling and explicit registration; core does not allocate trace records until a
 real sink is installed.
 
-Without `@ontrails/observe`, the default works:
+Without `@ontrails/observe`, the default execution path stays inert:
 
 ```typescript
 const app = topo('myapp', trails)
-// Console logging at 'info' level
-// Memory tracing, visible via --trace
-// Zero configuration
+// No process-level trace allocation until tooling or app code installs a sink
+// Still zero configuration
 ```
 
-For production, plug in a connector:
+For local tooling or production, plug in a connector or sink:
 
 ```typescript
 import { otel } from '@ontrails/observe/otel'

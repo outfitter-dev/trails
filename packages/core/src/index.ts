@@ -78,6 +78,9 @@ export type {
   CrossFn,
   FireFn,
   BasePermit,
+  LogLevel,
+  LogRecord,
+  LogSink,
   PermitRequirement,
   ProgressCallback,
   ProgressEvent,
@@ -413,6 +416,22 @@ export type {
   TraceSink,
 } from './internal/tracing.js';
 export type { TraceFn } from './types.js';
+
+// Observe
+export {
+  createObserveLogger,
+  isLogSink,
+  isLogger,
+  isObserveInput,
+  isTraceSink,
+  normalizeObserve,
+} from './observe.js';
+export type {
+  ObserveCapabilities,
+  ObserveConfig,
+  ObserveInput,
+  TopoOptions,
+} from './observe.js';
 
 // Run
 export { run } from './run.js';

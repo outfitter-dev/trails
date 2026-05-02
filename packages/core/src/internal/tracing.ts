@@ -292,9 +292,9 @@ export const writeSignalTraceRecord = async (
   name: SignalTraceRecordName,
   attrs: Readonly<Record<string, unknown>>,
   status: TraceRecord['status'] = 'ok',
-  errorCategory?: string | undefined
+  errorCategory?: string | undefined,
+  sink: TraceSink = getTraceSink()
 ): Promise<void> => {
-  const sink = getTraceSink();
   const parent = getTraceContext(ctx);
   if (parent === undefined || isTracingDisabled(sink)) {
     return;
@@ -315,9 +315,9 @@ export const writeActivationTraceRecord = async (
   attrs: Readonly<Record<string, unknown>>,
   status: TraceRecord['status'] = 'ok',
   errorCategory?: string | undefined,
-  parent?: TraceContext | undefined
+  parent?: TraceContext | undefined,
+  sink: TraceSink = getTraceSink()
 ): Promise<TraceRecord | undefined> => {
-  const sink = getTraceSink();
   if (isTracingDisabled(sink)) {
     return undefined;
   }

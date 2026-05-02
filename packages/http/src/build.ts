@@ -13,6 +13,7 @@ import {
   executeTrail,
   filterSurfaceTrails,
   getActivationWherePredicate,
+  getTraceSink,
   matchesTrailPattern,
   TRACE_CONTEXT_KEY,
   traceContextFromRecord,
@@ -144,6 +145,7 @@ const webhookActivationTraceAttrs = (
 });
 
 const recordWebhookActivationTrace = async (
+  graph: Topo,
   source: WebhookSource,
   activation: ActivationProvenance,
   trailId: string,
@@ -155,7 +157,9 @@ const recordWebhookActivationTrace = async (
     name,
     webhookActivationTraceAttrs(source, activation, trailId),
     status,
-    errorCategory
+    errorCategory,
+    undefined,
+    graph.observe?.trace ?? getTraceSink()
   );
   return record === undefined ? undefined : traceContextFromRecord(record);
 };
@@ -175,10 +179,15 @@ type WebhookInvalidConsumerRecorder = (
 ) => Promise<void>;
 
 const createWebhookInvalidRecorder =
-  (source: WebhookSource, trailId: string): WebhookInvalidConsumerRecorder =>
+  (
+    graph: Topo,
+    source: WebhookSource,
+    trailId: string
+  ): WebhookInvalidConsumerRecorder =>
   async (errorCategory, activationFireId) => {
     const activation = webhookActivationProvenance(source, activationFireId);
     await recordWebhookActivationTrace(
+      graph,
       source,
       activation,
       trailId,
@@ -294,6 +303,7 @@ const createWebhookConsumerExecute =
 
     const activation = webhookActivationProvenance(source, activationFireId);
     const traceContext = await recordWebhookActivationTrace(
+      graph,
       source,
       activation,
       t.id,
@@ -519,6 +529,7 @@ const buildWebhookRoute = (
     options
   );
   const consumerInvalidRecorder = createWebhookInvalidRecorder(
+    graph,
     source.value,
     trail.id
   );

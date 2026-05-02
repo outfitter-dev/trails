@@ -10,6 +10,7 @@ import { createTrailContext } from './context.js';
 import type { ExecuteTrailOptions } from './execute.js';
 import { ConflictError, InternalError } from './errors.js';
 import {
+  getTraceSink,
   TRACE_CONTEXT_KEY,
   traceContextFromRecord,
   writeActivationTraceRecord,
@@ -274,11 +275,16 @@ const scheduleActivationTraceAttrs = (
 
 const recordScheduleActivationTrace = async (
   registration: ScheduleActivationRegistration,
-  activation: ActivationProvenance
+  activation: ActivationProvenance,
+  graph: Topo
 ): Promise<TraceContext | undefined> => {
   const record = await writeActivationTraceRecord(
     'activation.scheduled',
-    scheduleActivationTraceAttrs(registration, activation)
+    scheduleActivationTraceAttrs(registration, activation),
+    'ok',
+    undefined,
+    undefined,
+    graph.observe?.trace ?? getTraceSink()
   );
   return record === undefined ? undefined : traceContextFromRecord(record);
 };
@@ -408,7 +414,8 @@ const executeScheduleActivation = async (
 
   const traceContext = await recordScheduleActivationTrace(
     registration,
-    activation
+    activation,
+    graph
   );
 
   try {

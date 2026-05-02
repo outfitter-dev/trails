@@ -16,7 +16,7 @@ contour(name, shape, options)       // define a first-class domain object with i
 resource(id, spec)                  // define a first-class resource dependency
 createResourceLookup(getContext)   // bind ctx.resource() to a specific context snapshot
 drainResources(resources, ctx, configValues?) // evict and dispose cached resource singletons
-topo(name, ...modules)             // assemble trails, contours, signals, and resources into a queryable topology
+topo(name, ...modules, options?)   // assemble trails, contours, signals, resources, and optional observe sinks
 intentValues                       // owner-held runtime vocabulary for trail intent
 blobRefSchema, createBlobRef(...)  // declare and create binary output references
 // Topo methods: .get(id), .has(id), .list(), .listSignals(), .ids(), .count
@@ -31,6 +31,7 @@ pruneUnpinnedSnapshots(db, options?)
 
 // Types
 Trail<I, O>, Signal<T>, ScheduleSource, WebhookSource<T>, Contour<TName, TShape, TIdentity>, Resource<T>, Topo, Intent
+ObserveConfig, ObserveInput, LogSink, TraceSink
 TrailSpec<I, O>, SignalSpec<T>, ScheduleSpec, WebhookSpec<T>, ResourceSpec<T>, TrailExample<I, O>
 AnyTrail, AnySignal, AnyContour, AnyResource, ResourceContext, ResourceOverrideMap
 BlobRef, BlobRefDescriptor
