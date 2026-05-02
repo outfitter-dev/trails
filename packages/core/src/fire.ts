@@ -43,6 +43,7 @@ import {
   getTraceContext,
   getTraceSink,
   isTracingDisabled,
+  writeActivationTraceRecord,
   writeSignalTraceRecord,
 } from './internal/tracing.js';
 import type { SignalTraceRecordName } from './internal/tracing.js';
@@ -347,6 +348,32 @@ const recordSignalLifecycleTrace = async (
     return;
   }
   await writeSignalTraceRecord(producerCtx, name, attrs, status, errorCategory);
+};
+
+const recordActivationGuardTrace = async (
+  producerCtx: TrailContextInit | undefined,
+  diagnosticMetadata: FireDiagnosticMetadata,
+  reason: 'cycle' | 'depth',
+  signalId: string,
+  fireStack: readonly string[],
+  limit?: number | undefined
+): Promise<void> => {
+  const attrs: Record<string, unknown> = {
+    ...buildActivationProvenanceTraceAttrs(diagnosticMetadata.activation),
+    'trails.activation.guard.fire_stack': fireStack.join(','),
+    'trails.activation.guard.reason': reason,
+    'trails.signal.id': signalId,
+  };
+  if (limit !== undefined) {
+    attrs['trails.activation.guard.limit'] = limit;
+  }
+  await writeActivationTraceRecord(
+    'activation.cycle_detected',
+    attrs,
+    'ok',
+    undefined,
+    producerCtx === undefined ? undefined : getTraceContext(producerCtx)
+  );
 };
 
 const activationEntriesForSignal = (
@@ -961,6 +988,14 @@ export const createFireFn = (
           signalId,
         })
       );
+      await recordActivationGuardTrace(
+        trackedProducerCtx,
+        diagnosticMetadata,
+        'depth',
+        signalId,
+        stack,
+        MAX_FIRE_DEPTH
+      );
       return Result.ok();
     }
     if (stack.includes(signalId)) {
@@ -983,6 +1018,13 @@ export const createFireFn = (
           reason: 'cycle',
           signalId,
         })
+      );
+      await recordActivationGuardTrace(
+        trackedProducerCtx,
+        diagnosticMetadata,
+        'cycle',
+        signalId,
+        stack
       );
       return Result.ok();
     }

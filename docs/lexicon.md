@@ -276,7 +276,7 @@ A named config set for a deployment environment. "Dev profile, staging profile, 
 
 ### `tracing` / `TraceRecord`
 
-Automatic execution recording. Tracing is intrinsic to the execution pipeline. The internal record type is `TraceRecord`; the developer-facing word is just "trace."
+Automatic execution recording. Tracing is intrinsic to the execution pipeline. The internal record type is `TraceRecord`; records can describe trail execution, spans, signal lifecycle entries, and activation boundaries. The developer-facing word is just "trace."
 
 ```typescript
 const result = await ctx.trace('db.query', async () => {

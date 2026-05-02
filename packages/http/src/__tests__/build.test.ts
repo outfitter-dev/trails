@@ -5,18 +5,44 @@ import {
   NotFoundError,
   Result,
   TRAILHEAD_KEY,
+  clearTraceSink,
   getActivationProvenance,
   resource,
+  registerTraceSink,
   signal,
   ValidationError,
   trail,
   topo,
   webhook,
 } from '@ontrails/core';
-import type { ActivationSource, Layer, TrailContext } from '@ontrails/core';
+import type {
+  ActivationSource,
+  Layer,
+  TraceRecord,
+  TraceSink,
+  TrailContext,
+} from '@ontrails/core';
 import { z } from 'zod';
 
 import { deriveHttpRoutes } from '../build.js';
+
+const createCapturingSink = (records: TraceRecord[]): TraceSink => ({
+  write(record) {
+    records.push(record);
+  },
+});
+
+const findTraceRecord = (
+  records: readonly TraceRecord[],
+  predicate: (record: TraceRecord) => boolean,
+  label: string
+): TraceRecord => {
+  const record = records.find(predicate);
+  if (record === undefined) {
+    throw new Error(`Expected ${label} trace record`);
+  }
+  return record;
+};
 
 // ---------------------------------------------------------------------------
 // Test trails
@@ -613,6 +639,115 @@ describe('deriveHttpRoutes', () => {
       expect(invoked).toBe(0);
     });
 
+    test('webhook execution emits an activation trace record parented to the receiver', async () => {
+      const records: TraceRecord[] = [];
+      const source: ActivationSource = {
+        id: 'webhook.payment.received',
+        kind: 'webhook',
+        method: 'post',
+        parse: z.object({ paymentId: z.string() }),
+        path: ' /webhooks/payment ',
+      };
+      const receiver = trail('payment.receive', {
+        blaze: (input) => Result.ok({ paymentId: input.paymentId }),
+        input: z.object({ paymentId: z.string() }),
+        on: [source],
+        output: z.object({ paymentId: z.string() }),
+      });
+      const result = deriveHttpRoutes(topo('billing', { receiver }));
+      registerTraceSink(createCapturingSink(records));
+
+      try {
+        expect(result.isOk()).toBe(true);
+        if (!result.isOk()) {
+          return;
+        }
+        const [route] = result.value;
+        const parsed = route?.parseWebhookInput?.({ paymentId: 'pay_1' });
+        expect(parsed?.isOk()).toBe(true);
+        if (!parsed?.isOk()) {
+          return;
+        }
+
+        const executed = await route?.execute(parsed.value);
+
+        expect(executed?.isOk()).toBe(true);
+        const activation = findTraceRecord(
+          records,
+          (entry) =>
+            entry.kind === 'activation' && entry.name === 'activation.webhook',
+          'activation.webhook'
+        );
+        const trailRecord = findTraceRecord(
+          records,
+          (entry) =>
+            entry.kind === 'trail' && entry.trailId === 'payment.receive',
+          'payment.receive'
+        );
+        expect(trailRecord.parentId).toBe(activation.id);
+        expect(trailRecord.traceId).toBe(activation.traceId);
+        expect(trailRecord.rootId).toBe(activation.rootId);
+        expect(activation.attrs).toMatchObject({
+          'trails.activation.source.id': 'webhook.payment.received',
+          'trails.activation.source.kind': 'webhook',
+          'trails.activation.target_trail.id': 'payment.receive',
+          'trails.activation.webhook.method': 'POST',
+          'trails.activation.webhook.path': '/webhooks/payment',
+        });
+        expect(trailRecord.attrs['trails.activation.fire_id']).toBe(
+          activation.attrs['trails.activation.fire_id']
+        );
+      } finally {
+        clearTraceSink();
+      }
+    });
+
+    test('webhook parse failures emit invalid activation trace records', async () => {
+      const records: TraceRecord[] = [];
+      const source = webhook('webhook.payment.received', {
+        parse: z.object({ paymentId: z.string() }),
+        path: '/webhooks/payment',
+      });
+      const receiver = trail('payment.receive', {
+        blaze: (input) => Result.ok({ paymentId: input.paymentId }),
+        input: z.object({ paymentId: z.string() }),
+        on: [source],
+        output: z.object({ paymentId: z.string() }),
+      });
+      const result = deriveHttpRoutes(topo('billing', { receiver }));
+      registerTraceSink(createCapturingSink(records));
+
+      try {
+        expect(result.isOk()).toBe(true);
+        if (!result.isOk()) {
+          return;
+        }
+        const [route] = result.value;
+        const parsed = route?.parseWebhookInput?.({});
+
+        expect(parsed?.isErr()).toBe(true);
+        await route?.recordWebhookInvalid?.();
+        const invalid = findTraceRecord(
+          records,
+          (entry) =>
+            entry.kind === 'activation' &&
+            entry.name === 'activation.webhook.invalid',
+          'activation.webhook.invalid'
+        );
+        expect(invalid.status).toBe('err');
+        expect(invalid.errorCategory).toBe('validation');
+        expect(invalid.attrs).toMatchObject({
+          'trails.activation.source.id': 'webhook.payment.received',
+          'trails.activation.source.kind': 'webhook',
+          'trails.activation.target_trail.id': 'payment.receive',
+          'trails.activation.webhook.method': 'POST',
+          'trails.activation.webhook.path': '/webhooks/payment',
+        });
+      } finally {
+        clearTraceSink();
+      }
+    });
+
     test('rejects webhook routes that collide with derived trail routes', () => {
       const source = webhook('webhook.payment.received', {
         parse: z.object({ paymentId: z.string() }),
@@ -756,6 +891,80 @@ describe('deriveHttpRoutes', () => {
       expect(result.error).toBeInstanceOf(ValidationError);
       expect(result.error.message).toContain('webhook parse contract');
       expect(result.error.message).toContain('POST /webhooks/payment');
+    });
+
+    test('records an invalid activation trace for every merged consumer', async () => {
+      const records: TraceRecord[] = [];
+      const verify = mock(() => Promise.resolve(Result.ok()));
+      const parse = z.object({ paymentId: z.string() });
+      const sourceA = webhook('webhook.payment.received', {
+        parse,
+        path: '/webhooks/payment',
+        verify,
+      });
+      const sourceB = webhook('webhook.payment.received', {
+        parse,
+        path: '/webhooks/payment',
+        verify,
+      });
+      const audit = trail('payment.audit', {
+        blaze: (input) => Result.ok({ audited: input.paymentId }),
+        input: z.object({ paymentId: z.string() }),
+        on: [sourceA],
+        output: z.object({ audited: z.string() }),
+      });
+      const notify = trail('payment.notify', {
+        blaze: (input) => Result.ok({ notified: input.paymentId }),
+        input: z.object({ paymentId: z.string() }),
+        on: [sourceB],
+        output: z.object({ notified: z.string() }),
+      });
+
+      const built = deriveHttpRoutes(topo('billing', { audit, notify }), {
+        validate: false,
+      });
+      expect(built.isOk()).toBe(true);
+      if (!built.isOk()) {
+        return;
+      }
+      expect(built.value).toHaveLength(1);
+      const [route] = built.value;
+
+      registerTraceSink(createCapturingSink(records));
+      try {
+        await route?.recordWebhookInvalid?.('validation');
+
+        const invalids = records.filter(
+          (entry) =>
+            entry.kind === 'activation' &&
+            entry.name === 'activation.webhook.invalid'
+        );
+        // Two consumers share the source -> two invalid records, one per
+        // consumer. Neither receiver may be silently dropped from telemetry.
+        expect(invalids).toHaveLength(2);
+        const targets = invalids
+          .map(
+            (entry) =>
+              entry.attrs['trails.activation.target_trail.id'] as string
+          )
+          .toSorted();
+        expect(targets).toEqual(['payment.audit', 'payment.notify']);
+        for (const invalid of invalids) {
+          expect(invalid.status).toBe('err');
+          expect(invalid.errorCategory).toBe('validation');
+        }
+        // Sibling invalid records from a single failed inbound request must
+        // share one activation fire ID so observability can correlate them
+        // as one activation root, mirroring the success path.
+        const fireIds = invalids.map(
+          (entry) => entry.attrs['trails.activation.fire_id']
+        );
+        expect(fireIds).toHaveLength(2);
+        expect(fireIds[0]).toBeString();
+        expect(fireIds[0]).toBe(fireIds[1]);
+      } finally {
+        clearTraceSink();
+      }
     });
 
     test('runs every fan-out consumer even when an earlier consumer fails', async () => {

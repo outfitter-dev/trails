@@ -41,6 +41,18 @@ describe('signal trace helpers', () => {
     });
   });
 
+  test('accepts core predicate lifecycle record names', () => {
+    const record = createSignalTraceRecord(
+      parent,
+      'signal.handler.predicate_skipped',
+      {
+        handlerTrailId: 'notify.email',
+      }
+    );
+
+    expect(record.name).toBe('signal.handler.predicate_skipped');
+  });
+
   test('writes signal lifecycle records through the core trace sink registry', async () => {
     const records: TraceRecord[] = [];
     const sink: TraceSink = {

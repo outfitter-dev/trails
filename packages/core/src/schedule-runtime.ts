@@ -1,11 +1,20 @@
 import type { ActivationEntry } from './activation-source.js';
 import { activationSourceKey } from './activation-source-projection.js';
-import { withActivationProvenance } from './activation-provenance.js';
+import {
+  buildActivationProvenanceTraceAttrs,
+  withActivationProvenance,
+} from './activation-provenance.js';
 import type { ActivationProvenance } from './activation-provenance.js';
 import { getActivationWherePredicate } from './activation-source.js';
 import { createTrailContext } from './context.js';
 import type { ExecuteTrailOptions } from './execute.js';
 import { ConflictError, InternalError } from './errors.js';
+import {
+  TRACE_CONTEXT_KEY,
+  traceContextFromRecord,
+  writeActivationTraceRecord,
+} from './internal/tracing.js';
+import type { TraceContext } from './internal/tracing.js';
 import { Result } from './result.js';
 import { drainResources } from './resource-config.js';
 import type { ResourceDrainReport } from './resource-config.js';
@@ -255,6 +264,25 @@ const scheduleActivationProvenance = (
   };
 };
 
+const scheduleActivationTraceAttrs = (
+  registration: ScheduleActivationRegistration,
+  activation: ActivationProvenance
+): Readonly<Record<string, unknown>> => ({
+  ...buildActivationProvenanceTraceAttrs(activation),
+  'trails.activation.target_trail.id': registration.trail.id,
+});
+
+const recordScheduleActivationTrace = async (
+  registration: ScheduleActivationRegistration,
+  activation: ActivationProvenance
+): Promise<TraceContext | undefined> => {
+  const record = await writeActivationTraceRecord(
+    'activation.scheduled',
+    scheduleActivationTraceAttrs(registration, activation)
+  );
+  return record === undefined ? undefined : traceContextFromRecord(record);
+};
+
 const emitRunRecord = async (
   options: ScheduleRuntimeOptions,
   record: ScheduleRuntimeRunRecord
@@ -272,17 +300,33 @@ const emitRunRecord = async (
 
 const runContextOption = (
   options: ScheduleRuntimeOptions,
-  activation: ActivationProvenance | undefined
+  activation: ActivationProvenance | undefined,
+  traceContext?: TraceContext | undefined
 ): Pick<ExecuteTrailOptions, 'ctx'> | Record<string, never> => {
-  if (activation !== undefined) {
-    return { ctx: withActivationProvenance(options.ctx ?? {}, activation) };
+  if (activation === undefined && traceContext === undefined) {
+    return options.ctx === undefined ? {} : { ctx: options.ctx };
   }
-  return options.ctx === undefined ? {} : { ctx: options.ctx };
+  const withActivation =
+    activation === undefined
+      ? (options.ctx ?? {})
+      : withActivationProvenance(options.ctx ?? {}, activation);
+  const ctx =
+    traceContext === undefined
+      ? withActivation
+      : {
+          ...withActivation,
+          extensions: {
+            ...withActivation.extensions,
+            [TRACE_CONTEXT_KEY]: traceContext,
+          },
+        };
+  return { ctx };
 };
 
 const runOptions = (
   options: ScheduleRuntimeOptions,
-  activation?: ActivationProvenance | undefined
+  activation?: ActivationProvenance | undefined,
+  traceContext?: TraceContext | undefined
 ): Pick<
   ExecuteTrailOptions,
   | 'abortSignal'
@@ -301,7 +345,7 @@ const runOptions = (
   ...(options.createContext === undefined
     ? {}
     : { createContext: options.createContext }),
-  ...runContextOption(options, activation),
+  ...runContextOption(options, activation, traceContext),
   ...(options.layers === undefined ? {} : { layers: options.layers }),
   ...(options.resources === undefined ? {} : { resources: options.resources }),
 });
@@ -362,12 +406,17 @@ const executeScheduleActivation = async (
     return;
   }
 
+  const traceContext = await recordScheduleActivationTrace(
+    registration,
+    activation
+  );
+
   try {
     const result = await run(
       graph,
       registration.trail.id,
       registration.input,
-      runOptions(options, activation)
+      runOptions(options, activation, traceContext)
     );
     if (result.isErr()) {
       options.logger?.warn('Scheduled trail failed', {

@@ -337,6 +337,7 @@ const buildTracedContext = (
     parentId: parent?.spanId,
     permit: extractPermit(ctx),
     rootId: parent?.rootId,
+    sampled: parent?.sampled ?? true,
     traceId: parent?.traceId,
     trailId: trail.id,
     trailhead: ctx.extensions?.[SURFACE_KEY] as TraceRecord['trailhead'],
@@ -354,7 +355,7 @@ const buildTracedContext = (
   // traceId/rootId carry forward and only spanId advances to the new record.
   const rootTrace: TraceContext = {
     rootId: parent?.rootId ?? record.id,
-    sampled: true,
+    sampled: recordWithAttrs.sampled ?? true,
     spanId: recordWithAttrs.id,
     traceId: recordWithAttrs.traceId,
   };

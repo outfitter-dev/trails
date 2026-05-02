@@ -11,6 +11,8 @@ import type {
 } from '../schedule-runtime.js';
 import { createTrailContext } from '../context.js';
 import { ValidationError } from '../errors.js';
+import { clearTraceSink, registerTraceSink } from '../internal/tracing.js';
+import type { TraceRecord, TraceSink } from '../internal/tracing.js';
 import { Result } from '../result.js';
 import { resource } from '../resource.js';
 import { createScheduleRuntime } from '../schedule-runtime.js';
@@ -62,6 +64,24 @@ const createFakeCron = (): {
 
 const scheduleRuntimeId = (name: string): string =>
   `schedule.runtime.${name}.${Bun.randomUUIDv7()}`;
+
+const createCapturingSink = (records: TraceRecord[]): TraceSink => ({
+  write(record) {
+    records.push(record);
+  },
+});
+
+const findTraceRecord = (
+  records: readonly TraceRecord[],
+  predicate: (record: TraceRecord) => boolean,
+  label: string
+): TraceRecord => {
+  const record = records.find(predicate);
+  if (record === undefined) {
+    throw new Error(`Expected ${label} trace record`);
+  }
+  return record;
+};
 
 describe('createScheduleRuntime()', () => {
   test('keeps topo construction and runtime creation inert until start', async () => {
@@ -178,6 +198,58 @@ describe('createScheduleRuntime()', () => {
     });
   });
 
+  test('scheduled runs emit activation trace records parented to trail execution', async () => {
+    const fakeCron = createFakeCron();
+    const records: TraceRecord[] = [];
+    const worker = trail('provenance.trace', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      on: [
+        schedule('schedule.provenance.trace', {
+          cron: '0 3 * * *',
+          timezone: 'UTC',
+        }),
+      ],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const graph = topo('schedule-provenance-trace', { worker });
+    const runtime = createScheduleRuntime(graph, { cron: fakeCron.factory });
+    registerTraceSink(createCapturingSink(records));
+
+    try {
+      await runtime.start();
+      await fakeCron.entries[0]?.trigger();
+
+      const activation = findTraceRecord(
+        records,
+        (entry) =>
+          entry.kind === 'activation' && entry.name === 'activation.scheduled',
+        'activation.scheduled'
+      );
+      const trailRecord = findTraceRecord(
+        records,
+        (entry) =>
+          entry.kind === 'trail' && entry.trailId === 'provenance.trace',
+        'provenance.trace'
+      );
+      expect(trailRecord.parentId).toBe(activation.id);
+      expect(trailRecord.traceId).toBe(activation.traceId);
+      expect(trailRecord.rootId).toBe(activation.rootId);
+      expect(activation.attrs).toMatchObject({
+        'trails.activation.source.cron': '0 3 * * *',
+        'trails.activation.source.id': 'schedule.provenance.trace',
+        'trails.activation.source.kind': 'schedule',
+        'trails.activation.source.timezone': 'UTC',
+        'trails.activation.target_trail.id': 'provenance.trace',
+      });
+      expect(trailRecord.attrs['trails.activation.fire_id']).toBe(
+        activation.attrs['trails.activation.fire_id']
+      );
+    } finally {
+      clearTraceSink();
+    }
+  });
+
   test('stop cancels cron handles and ignores ticks after stop', async () => {
     const fakeCron = createFakeCron();
     const seenInputs: unknown[] = [];
@@ -282,6 +354,9 @@ describe('createScheduleRuntime()', () => {
 
     expect(started.isOk()).toBe(true);
     expect(stopped.isErr()).toBe(true);
+    if (!stopped.isErr()) {
+      return;
+    }
     expect(stopped.error.message).toBe('Schedule runtime stop failed');
     expect(stopped.error.cause).toBeInstanceOf(Error);
     expect((stopped.error.cause as Error | undefined)?.message).toBe(
@@ -471,6 +546,52 @@ describe('createScheduleRuntime()', () => {
       'where_error',
       'where_false',
     ]);
+  });
+
+  test('does not emit activation.scheduled trace when where predicate skips the run', async () => {
+    const fakeCron = createFakeCron();
+    const records: TraceRecord[] = [];
+    const skipped = trail('where.trace.skipped', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      on: [
+        {
+          source: schedule('schedule.where.trace.false', { cron: '* * * * *' }),
+          where: () => false,
+        },
+      ],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const broken = trail('where.trace.broken', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      on: [
+        {
+          source: schedule('schedule.where.trace.error', { cron: '* * * * *' }),
+          where: () => {
+            throw new Error('where exploded');
+          },
+        },
+      ],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const graph = topo('where-trace', { broken, skipped });
+    const runtime = createScheduleRuntime(graph, { cron: fakeCron.factory });
+    registerTraceSink(createCapturingSink(records));
+
+    try {
+      await runtime.start();
+      await fakeCron.entries[0]?.trigger();
+      await fakeCron.entries[1]?.trigger();
+
+      const activationTraces = records.filter(
+        (entry) =>
+          entry.kind === 'activation' && entry.name === 'activation.scheduled'
+      );
+      expect(activationTraces).toHaveLength(0);
+    } finally {
+      clearTraceSink();
+    }
   });
 
   test('passes execution options through the normal run pipeline', async () => {

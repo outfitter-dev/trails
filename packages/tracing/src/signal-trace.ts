@@ -1,13 +1,13 @@
 import { getTraceContext, getTraceSink, NOOP_SINK } from '@ontrails/core';
-import type { TraceContext, TraceRecord, TraceSink } from '@ontrails/core';
+import type {
+  SignalTraceRecordName as CoreSignalTraceRecordName,
+  TraceContext,
+  TraceRecord,
+  TraceSink,
+} from '@ontrails/core';
 
 /** Signal lifecycle records emitted by the typed signal runtime. */
-export type SignalTraceRecordName =
-  | 'signal.fired'
-  | 'signal.handler.completed'
-  | 'signal.handler.failed'
-  | 'signal.handler.invoked'
-  | 'signal.invalid';
+export type SignalTraceRecordName = CoreSignalTraceRecordName;
 
 /** Build a signal lifecycle record from a parent trace context. */
 export const createSignalTraceRecord = (

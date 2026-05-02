@@ -87,6 +87,7 @@ export type {
 export { SURFACE_KEY, TRAILHEAD_KEY } from './types.js';
 export {
   ACTIVATION_PROVENANCE_KEY,
+  buildActivationProvenanceTraceAttrs,
   getActivationProvenance,
   withActivationProvenance,
 } from './activation-provenance.js';
@@ -394,14 +395,19 @@ export type { ExecuteTrailOptions } from './execute.js';
 // Intrinsic tracing
 export {
   clearTraceSink,
+  createActivationTraceRecord,
   createTraceRecord,
   getTraceContext,
   getTraceSink,
   NOOP_SINK,
   registerTraceSink,
   TRACE_CONTEXT_KEY,
+  traceContextFromRecord,
+  writeActivationTraceRecord,
 } from './internal/tracing.js';
 export type {
+  ActivationTraceRecordName,
+  SignalTraceRecordName,
   TraceContext,
   TraceRecord,
   TraceSink,

@@ -3,11 +3,14 @@ import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import {
   PermissionError,
   Result,
+  clearTraceSink,
   getWebhookHeader,
+  registerTraceSink,
   trail,
   topo,
   webhook,
 } from '@ontrails/core';
+import type { TraceRecord, TraceSink } from '@ontrails/core';
 import { z } from 'zod';
 
 import { createApp, surface } from '../surface.js';
@@ -83,6 +86,12 @@ const emptyWebhookTrail = trail('webhook.empty.receive', {
   input: z.object({}),
   on: [emptyWebhook],
   output: z.object({ ok: z.boolean() }),
+});
+
+const createCapturingSink = (records: TraceRecord[]): TraceSink => ({
+  write(record) {
+    records.push(record);
+  },
 });
 
 describe('surface API (Hono connector)', () => {
@@ -284,6 +293,38 @@ describe('surface API (Hono connector)', () => {
         message: 'Invalid webhook secret',
       },
     });
+  });
+
+  test('webhook verification failures emit invalid activation trace records', async () => {
+    const records: TraceRecord[] = [];
+    const graph = topo('surface-api', { paymentWebhookTrail });
+    const app = createApp(graph);
+    registerTraceSink(createCapturingSink(records));
+
+    try {
+      const response = await app.request('/webhooks/payment', {
+        body: JSON.stringify({ paymentId: 'pay_1' }),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Secret': 'wrong',
+        },
+        method: 'POST',
+      });
+
+      expect(response.status).toBe(403);
+      expect(
+        records.find(
+          (record) =>
+            record.kind === 'activation' &&
+            record.name === 'activation.webhook.invalid'
+        )
+      ).toMatchObject({
+        errorCategory: 'permission',
+        status: 'err',
+      });
+    } finally {
+      clearTraceSink();
+    }
   });
 
   test('webhook payload validation failures return 400', async () => {

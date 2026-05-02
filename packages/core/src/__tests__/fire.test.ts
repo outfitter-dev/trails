@@ -696,6 +696,23 @@ const expectConsumerCrossAttribution = (
 const signalTraceRecords = (records: readonly TraceRecord[]): TraceRecord[] =>
   records.filter((record) => record.kind === 'signal');
 
+const activationTraceRecords = (
+  records: readonly TraceRecord[]
+): TraceRecord[] => records.filter((record) => record.kind === 'activation');
+
+const findActivationTraceRecord = (
+  records: readonly TraceRecord[],
+  name: string
+): TraceRecord => {
+  const record = activationTraceRecords(records).find(
+    (entry) => entry.name === name
+  );
+  if (!record) {
+    throw new Error(`Expected activation trace record "${name}"`);
+  }
+  return record;
+};
+
 const findSignalTraceRecord = (
   records: readonly TraceRecord[],
   name: string,
@@ -1948,6 +1965,39 @@ describe('fire', () => {
           signalId: 'loop.a',
         }),
       ]);
+    });
+
+    test('cycle suppression records an activation safety trace event', async () => {
+      const records: TraceRecord[] = [];
+      const invocations: string[] = [];
+      const app = createCycleScenario(invocations);
+      registerTraceSink(createCapturingSink(records));
+
+      try {
+        const result = await run(app, 'loop.producer', { id: 'loop-1' });
+
+        expect(result.isOk()).toBe(true);
+        const guard = findActivationTraceRecord(
+          records,
+          'activation.cycle_detected'
+        );
+        const consumerB = findTrailRecord(records, 'loop.consumer.b');
+        expect(guard.parentId).toBe(consumerB.id);
+        expect(guard.traceId).toBe(consumerB.traceId);
+        expect(guard.rootId).toBe(consumerB.rootId);
+        expect(guard.status).toBe('ok');
+        expect(guard.attrs['trails.activation.fire_id']).toBeString();
+        expect(guard.attrs).toMatchObject({
+          'trails.activation.guard.fire_stack': 'loop.a,loop.b',
+          'trails.activation.guard.reason': 'cycle',
+          'trails.activation.source.id': 'loop.a',
+          'trails.activation.source.kind': 'signal',
+          'trails.activation.source.producer_trail.id': 'loop.consumer.b',
+          'trails.signal.id': 'loop.a',
+        });
+      } finally {
+        clearTraceSink();
+      }
     });
 
     test('does not emit suppression debug logs for ordinary fan-out', async () => {

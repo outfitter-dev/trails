@@ -11,7 +11,7 @@ const traceRecordOutput = z.object({
   errorCategory: z.string().optional(),
   id: z.string(),
   intent: z.string().optional(),
-  kind: z.enum(['signal', 'span', 'trail']),
+  kind: z.enum(['activation', 'signal', 'span', 'trail']),
   name: z.string(),
   parentId: z.string().optional(),
   rootId: z.string(),
@@ -35,7 +35,7 @@ const mapRecord = (r: {
   readonly errorCategory?: string | undefined;
   readonly id: string;
   readonly intent?: string | undefined;
-  readonly kind: 'signal' | 'span' | 'trail';
+  readonly kind: 'activation' | 'signal' | 'span' | 'trail';
   readonly name: string;
   readonly parentId?: string | undefined;
   readonly rootId: string;

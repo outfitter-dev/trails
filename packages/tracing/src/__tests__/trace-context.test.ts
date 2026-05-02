@@ -5,7 +5,9 @@ import {
   createChildTraceContext,
   getTraceContext,
 } from '../trace-context.js';
+import { traceContextFromRecord } from '../index.js';
 import type { TraceContext } from '../trace-context.js';
+import type { TraceRecord } from '../trace-record.js';
 
 describe('getTraceContext', () => {
   test('returns undefined when no extensions', () => {
@@ -86,5 +88,34 @@ describe('createChildTraceContext', () => {
 
     expect(child.rootId).toBe('the-root');
     expect(child.rootId).not.toBe(child.spanId);
+  });
+});
+
+describe('traceContextFromRecord', () => {
+  const baseRecord: TraceRecord = {
+    attrs: {},
+    id: 'span-from-record',
+    kind: 'activation',
+    name: 'activation.webhook',
+    rootId: 'root-from-record',
+    sampled: false,
+    startedAt: 1,
+    status: 'ok',
+    traceId: 'trace-from-record',
+  };
+
+  test('inherits sampled false from the record', () => {
+    expect(traceContextFromRecord(baseRecord)).toEqual({
+      rootId: 'root-from-record',
+      sampled: false,
+      spanId: 'span-from-record',
+      traceId: 'trace-from-record',
+    });
+  });
+
+  test('defaults legacy records without sampled state to sampled', () => {
+    const legacyRecord: TraceRecord = { ...baseRecord, sampled: undefined };
+
+    expect(traceContextFromRecord(legacyRecord).sampled).toBe(true);
   });
 });

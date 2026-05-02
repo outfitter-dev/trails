@@ -6,13 +6,17 @@ export {
   type TraceRecord,
   type TraceSink,
   clearTraceSink,
+  createActivationTraceRecord,
   createTraceRecord,
   getTraceContext,
   getTraceSink,
   NOOP_SINK,
   registerTraceSink,
   TRACE_CONTEXT_KEY,
+  traceContextFromRecord,
+  writeActivationTraceRecord,
 } from '@ontrails/core';
+export type { ActivationTraceRecordName } from '@ontrails/core';
 
 export {
   type SignalTraceRecordName,

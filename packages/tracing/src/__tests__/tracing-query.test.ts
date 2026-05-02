@@ -189,6 +189,42 @@ describe('tracing.query', () => {
       expect(value.records[0]?.trailId).toBeUndefined();
     });
 
+    test('returns activation trace records from store in state', async () => {
+      const testStore = createTestStore();
+      ({ cleanup } = testStore);
+      testStore.store.write(
+        makeRecord({
+          attrs: {
+            'trails.activation.source.id': 'webhook.payment.received',
+            'trails.activation.source.kind': 'webhook',
+          },
+          id: 'activation-webhook',
+          kind: 'activation',
+          name: 'activation.webhook',
+          rootId: 'root-activation',
+          trailId: undefined,
+        })
+      );
+
+      const ctx = buildCtx(stateWithStore(testStore.store));
+      const result = await tracingQuery.blaze({}, ctx);
+      const value = result.unwrap();
+
+      expect(value.count).toBe(1);
+      expect(value.records[0]).toMatchObject({
+        attrs: {
+          'trails.activation.source.id': 'webhook.payment.received',
+          'trails.activation.source.kind': 'webhook',
+        },
+        id: 'activation-webhook',
+        kind: 'activation',
+        name: 'activation.webhook',
+        rootId: 'root-activation',
+        status: 'ok',
+      });
+      expect(value.records[0]?.trailId).toBeUndefined();
+    });
+
     test('filters by trailId', async () => {
       const testStore = createTestStore();
       ({ cleanup } = testStore);

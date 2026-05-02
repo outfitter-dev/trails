@@ -52,7 +52,7 @@ The `Logger` interface is already in core. The following join it:
 
 - **Default console logger.** Structured logging to stdout with no configuration. Available on `ctx.logger` automatically.
 - **Built-in tracing.** Automatic execution recording for every trail invocation, intrinsic to the `executeTrail` pipeline. Records which trail ran, how long, what result, what errors, which crossings happened, trace ID propagation. Not an optional layer the developer attaches — it just happens.
-- **Trace record data model.** The `TraceRecord` interface describing one recorded execution footprint. The developer-facing word is "trace" (as verb and noun). The internal type is `TraceRecord` to avoid overloading "trace" (which can mean one record or an entire execution tree in industry usage).
+- **Trace record data model.** The `TraceRecord` interface describing one recorded execution footprint. The developer-facing word is "trace" (as verb and noun). The internal type is `TraceRecord` to avoid overloading "trace" (which can mean one record or an entire execution tree in industry usage). Records can describe trail execution, manual spans, signal lifecycle points, or activation boundaries.
 - **Memory trace sink.** In-memory trace storage, sufficient for development and `trails run --trace`.
 - **`ctx.trace()` method.** Manual sub-step recording within a blaze, replacing `tracker.from(ctx).track()`.
 
@@ -95,6 +95,26 @@ The API is callback-based to guarantee closure. No raw `start` / `end` pair. Str
 This is not an attached layer or gate. It is intrinsic to `executeTrail`. The developer does not install it, configure it, or opt into it. Every trail execution is recorded.
 
 Storage stays flat. Each `TraceRecord` is an independent row with explicit lineage (`traceId`, `rootId`, `parentId`). Tree rendering happens at query time. Storage, retention, and export stay simple.
+
+### Activation trace record contract
+
+Activation uses a documented mix:
+
+- Activated trail and signal records carry `trails.activation.*` provenance attributes.
+- Runtime activation boundaries also emit `kind: "activation"` trace records when a real sink is installed.
+- Boundary records parent the trail they activate when the materializer owns the trigger, such as schedule ticks and webhook delivery.
+- Safety records capture activation that was intentionally suppressed before another trail could run.
+
+The initial activation record names are:
+
+| Record name | Meaning |
+| --- | --- |
+| `activation.scheduled` | A schedule materializer received a tick for a declared schedule source. |
+| `activation.webhook` | The HTTP surface accepted a webhook source and invoked the receiving trail. |
+| `activation.webhook.invalid` | A webhook source failed payload parsing before any receiving trail ran. |
+| `activation.cycle_detected` | Signal fan-out safety suppressed a cyclic or over-depth activation chain. |
+
+This keeps activation visible in traces even when no normal trail record exists, while avoiding a second event model beside `TraceRecord`. Activation records use the same flat lineage fields, status vocabulary, and sink path as trail, span, and signal records.
 
 ### Production observability in `@ontrails/observe`
 

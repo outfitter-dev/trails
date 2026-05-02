@@ -25,13 +25,20 @@ export type SignalTraceRecordName =
   | 'signal.handler.predicate_skipped'
   | 'signal.invalid';
 
-/** Evidence of a single trail execution, manual span, or signal lifecycle point. */
+/** Activation boundary records emitted by runtime materializers. */
+export type ActivationTraceRecordName =
+  | 'activation.cycle_detected'
+  | 'activation.scheduled'
+  | 'activation.webhook'
+  | 'activation.webhook.invalid';
+
+/** Evidence of a single trail execution, manual span, activation boundary, or signal lifecycle point. */
 export interface TraceRecord {
   readonly id: string;
   readonly traceId: string;
   readonly rootId: string;
   readonly parentId?: string | undefined;
-  readonly kind: 'signal' | 'span' | 'trail';
+  readonly kind: 'activation' | 'signal' | 'span' | 'trail';
   readonly name: string;
   readonly trailId?: string | undefined;
   readonly trailhead?: 'cli' | 'mcp' | 'http' | 'ws' | undefined;
@@ -40,6 +47,7 @@ export interface TraceRecord {
   readonly endedAt?: number | undefined;
   readonly status: 'ok' | 'err' | 'cancelled';
   readonly errorCategory?: string | undefined;
+  readonly sampled?: boolean | undefined;
   readonly permit?:
     | { readonly id: string; readonly tenantId?: string }
     | undefined;
@@ -123,9 +131,18 @@ interface CreateTraceRecordOptions {
   readonly rootId?: string | undefined;
   readonly trailhead?: TraceRecord['trailhead'];
   readonly intent?: TraceRecord['intent'];
+  readonly sampled?: boolean | undefined;
   readonly permit?:
     | { readonly id: string; readonly tenantId?: string }
     | undefined;
+}
+
+interface CreateActivationTraceRecordOptions {
+  readonly attrs?: Readonly<Record<string, unknown>> | undefined;
+  readonly parentId?: string | undefined;
+  readonly rootId?: string | undefined;
+  readonly traceId?: string | undefined;
+  readonly sampled?: boolean | undefined;
 }
 
 /** Create a fresh trail-kind {@link TraceRecord}. */
@@ -145,11 +162,40 @@ export const createTraceRecord = (
     parentId: options.parentId,
     permit: options.permit,
     rootId: options.rootId ?? id,
+    sampled: options.sampled,
     startedAt: Date.now(),
     status: 'ok',
     traceId,
     trailId: options.trailId,
     trailhead: options.trailhead,
+  };
+};
+
+/** Create an activation-kind {@link TraceRecord}. */
+export const createActivationTraceRecord = (
+  name: ActivationTraceRecordName,
+  options: CreateActivationTraceRecordOptions = {}
+): TraceRecord => {
+  const id = Bun.randomUUIDv7();
+  const traceId = options.traceId ?? Bun.randomUUIDv7();
+
+  return {
+    attrs: options.attrs ?? {},
+    endedAt: undefined,
+    errorCategory: undefined,
+    id,
+    intent: undefined,
+    kind: 'activation',
+    name,
+    parentId: options.parentId,
+    permit: undefined,
+    rootId: options.rootId ?? id,
+    sampled: options.sampled,
+    startedAt: Date.now(),
+    status: 'ok',
+    traceId,
+    trailId: undefined,
+    trailhead: undefined,
   };
 };
 
@@ -167,6 +213,7 @@ export const createSpanRecord = (
   name: label,
   parentId: parent.spanId,
   rootId: parent.rootId,
+  sampled: parent.sampled,
   startedAt: Date.now(),
   status: 'ok',
   traceId: parent.traceId,
@@ -189,11 +236,20 @@ export const createSignalTraceRecord = (
   name,
   parentId: parent.spanId,
   rootId: parent.rootId,
+  sampled: parent.sampled,
   startedAt: Date.now(),
   status: 'ok',
   traceId: parent.traceId,
   trailId: undefined,
   trailhead: undefined,
+});
+
+/** Use a completed record as the current trace parent for subsequent trail execution. */
+export const traceContextFromRecord = (record: TraceRecord): TraceContext => ({
+  rootId: record.rootId,
+  sampled: record.sampled ?? true,
+  spanId: record.id,
+  traceId: record.traceId,
 });
 
 /** Mark a record as completed with timing and status. */
@@ -208,15 +264,25 @@ export const completeRecord = (
   status,
 });
 
-/** Best-effort sink write that never throws. */
+/**
+ * Best-effort sink write that never throws.
+ *
+ * Returns `true` when the sink accepted the record, `false` when the write
+ * threw. Most callers can ignore the return value -- it exists so that
+ * callers that hand the written record back as a parent trace context
+ * (e.g. {@link writeActivationTraceRecord}) can refuse to do so when the
+ * record never actually made it to storage.
+ */
 export const writeToSink = async (
   sink: TraceSink,
   record: TraceRecord
-): Promise<void> => {
+): Promise<boolean> => {
   try {
     await Promise.resolve(sink.write(record));
+    return true;
   } catch {
     // Sink failures must never affect trail result delivery.
+    return false;
   }
 };
 
@@ -241,4 +307,39 @@ export const writeSignalTraceRecord = async (
       errorCategory
     )
   );
+};
+
+/** Best-effort write for activation boundary records, no-op when tracing is disabled. */
+export const writeActivationTraceRecord = async (
+  name: ActivationTraceRecordName,
+  attrs: Readonly<Record<string, unknown>>,
+  status: TraceRecord['status'] = 'ok',
+  errorCategory?: string | undefined,
+  parent?: TraceContext | undefined
+): Promise<TraceRecord | undefined> => {
+  const sink = getTraceSink();
+  if (isTracingDisabled(sink)) {
+    return undefined;
+  }
+  const record = completeRecord(
+    createActivationTraceRecord(name, {
+      attrs,
+      parentId: parent?.spanId,
+      rootId: parent?.rootId,
+      // Parentless activations are the root span of their trace tree. Default
+      // sampled to true so the activation boundary stays consistent with
+      // child trail records, which default sampled=true via
+      // traceContextFromRecord. Inconsistent sampled flags within a trace
+      // break filters/exporters that gate on the activation boundary.
+      sampled: parent?.sampled ?? true,
+      traceId: parent?.traceId,
+    }),
+    status,
+    errorCategory
+  );
+  const written = await writeToSink(sink, record);
+  // When the sink dropped the record we must not hand it back to callers as
+  // a parent trace context -- subsequent child writes would reference an
+  // activation span that never reached storage, producing broken lineage.
+  return written ? record : undefined;
 };

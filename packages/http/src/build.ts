@@ -9,23 +9,29 @@
 import {
   Result,
   ValidationError,
+  buildActivationProvenanceTraceAttrs,
   executeTrail,
   filterSurfaceTrails,
   getActivationWherePredicate,
   matchesTrailPattern,
+  TRACE_CONTEXT_KEY,
+  traceContextFromRecord,
   validateInput,
   validateWebhookSource,
   validateSurfaceTopo,
   verifyWebhookRequest,
+  writeActivationTraceRecord,
   withActivationProvenance,
   withSurfaceMarker,
 } from '@ontrails/core';
 import type {
   ActivationEntry,
+  ActivationProvenance,
   ActivationSource,
   BaseSurfaceOptions,
   Layer,
   ResourceOverrideMap,
+  TraceContext,
   Topo,
   Trail,
   TrailContextInit,
@@ -113,20 +119,107 @@ const createWebhookActivationFireId = (): string => {
   return `webhook_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
 };
 
-const withWebhookActivation = (
+const webhookActivationProvenance = (
   source: WebhookSource,
-  requestId: string | undefined,
   fireId: string
-): Partial<TrailContextInit> =>
-  withActivationProvenance(withHttpTrailhead(requestId), {
-    fireId,
-    rootFireId: fireId,
-    source: {
-      id: source.id,
-      kind: 'webhook',
-      ...(source.meta === undefined ? {} : { meta: source.meta }),
-    },
-  });
+): ActivationProvenance => ({
+  fireId,
+  rootFireId: fireId,
+  source: {
+    id: source.id,
+    kind: 'webhook',
+    ...(source.meta === undefined ? {} : { meta: source.meta }),
+  },
+});
+
+const webhookActivationTraceAttrs = (
+  source: WebhookSource,
+  activation: ActivationProvenance,
+  trailId: string
+): Readonly<Record<string, unknown>> => ({
+  ...buildActivationProvenanceTraceAttrs(activation),
+  'trails.activation.target_trail.id': trailId,
+  'trails.activation.webhook.method': source.method,
+  'trails.activation.webhook.path': source.path,
+});
+
+const recordWebhookActivationTrace = async (
+  source: WebhookSource,
+  activation: ActivationProvenance,
+  trailId: string,
+  name: 'activation.webhook' | 'activation.webhook.invalid',
+  status: 'err' | 'ok',
+  errorCategory?: string | undefined
+): Promise<TraceContext | undefined> => {
+  const record = await writeActivationTraceRecord(
+    name,
+    webhookActivationTraceAttrs(source, activation, trailId),
+    status,
+    errorCategory
+  );
+  return record === undefined ? undefined : traceContextFromRecord(record);
+};
+
+/**
+ * Internal recorder signature for webhook invalid traces.
+ *
+ * Unlike the public `HttpRouteDefinition['recordWebhookInvalid']`, this
+ * accepts an `activationFireId` so a single inbound failed request can share
+ * one activation fire ID across every consumer fan-out — letting
+ * observability correlate sibling consumers' invalid records as one
+ * activation root, mirroring the success path.
+ */
+type WebhookInvalidConsumerRecorder = (
+  errorCategory: string | undefined,
+  activationFireId: string
+) => Promise<void>;
+
+const createWebhookInvalidRecorder =
+  (source: WebhookSource, trailId: string): WebhookInvalidConsumerRecorder =>
+  async (errorCategory, activationFireId) => {
+    const activation = webhookActivationProvenance(source, activationFireId);
+    await recordWebhookActivationTrace(
+      source,
+      activation,
+      trailId,
+      'activation.webhook.invalid',
+      'err',
+      errorCategory ?? 'validation'
+    );
+  };
+
+/**
+ * Wrap a single-consumer invalid recorder as the public `recordWebhookInvalid`
+ * function. Generates one activation fire ID per inbound failed request,
+ * matching the fan-out behavior so single and merged routes share the same
+ * observability shape.
+ */
+const createWebhookInvalidPublicRecorder =
+  (
+    consumerRecorder: WebhookInvalidConsumerRecorder
+  ): NonNullable<HttpRouteDefinition['recordWebhookInvalid']> =>
+  async (errorCategory = 'validation') =>
+    await consumerRecorder(errorCategory, createWebhookActivationFireId());
+
+const withWebhookActivation = (
+  activation: ActivationProvenance,
+  requestId: string | undefined,
+  traceContext: TraceContext | undefined
+): Partial<TrailContextInit> => {
+  const ctx = withActivationProvenance(
+    withHttpTrailhead(requestId),
+    activation
+  );
+  return traceContext === undefined
+    ? ctx
+    : {
+        ...ctx,
+        extensions: {
+          ...ctx.extensions,
+          [TRACE_CONTEXT_KEY]: traceContext,
+        },
+      };
+};
 
 // ---------------------------------------------------------------------------
 // Execute factory
@@ -176,11 +269,11 @@ const createWebhookConsumerExecute =
     graph: Topo,
     t: Trail<unknown, unknown, unknown>,
     activationEntry: ActivationEntry,
+    source: WebhookSource,
     layers: readonly Layer[],
     options: DeriveHttpRoutesOptions
   ): WebhookConsumerExecute =>
   async (input, requestId, abortSignal, activationFireId) => {
-    const source = activationEntry.source as WebhookSource;
     const predicate = getActivationWherePredicate(activationEntry.where);
     if (predicate !== undefined) {
       let shouldRun = false;
@@ -199,11 +292,19 @@ const createWebhookConsumerExecute =
       }
     }
 
+    const activation = webhookActivationProvenance(source, activationFireId);
+    const traceContext = await recordWebhookActivationTrace(
+      source,
+      activation,
+      t.id,
+      'activation.webhook',
+      'ok'
+    );
     return await executeTrail(t, input, {
       abortSignal,
       configValues: options.configValues,
       createContext: options.createContext,
-      ctx: withWebhookActivation(source, requestId, activationFireId),
+      ctx: withWebhookActivation(activation, requestId, traceContext),
       layers,
       resources: options.resources,
       topo: graph,
@@ -386,9 +487,15 @@ const createWebhookInputParser =
   };
 
 const WEBHOOK_CONSUMERS = Symbol('webhookConsumers');
+const WEBHOOK_INVALID_RECORDERS = Symbol('webhookInvalidRecorders');
+
+type WebhookInvalidRecorder = NonNullable<
+  HttpRouteDefinition['recordWebhookInvalid']
+>;
 
 type MergeableWebhookRoute = HttpRouteDefinition & {
   readonly [WEBHOOK_CONSUMERS]?: readonly WebhookConsumerExecute[];
+  readonly [WEBHOOK_INVALID_RECORDERS]?: readonly WebhookInvalidConsumerRecorder[];
 };
 
 const buildWebhookRoute = (
@@ -407,16 +514,25 @@ const buildWebhookRoute = (
     graph,
     trail,
     activation,
+    source.value,
     layers,
     options
   );
+  const consumerInvalidRecorder = createWebhookInvalidRecorder(
+    source.value,
+    trail.id
+  );
   const route: MergeableWebhookRoute = {
     [WEBHOOK_CONSUMERS]: [consumerExecute],
+    [WEBHOOK_INVALID_RECORDERS]: [consumerInvalidRecorder],
     execute: createWebhookExecute(consumerExecute),
     inputSource: 'webhook',
     method: source.value.method,
     parseWebhookInput: createWebhookInputParser(source.value),
     path: normalizeSourcePath(basePath, source.value.path),
+    recordWebhookInvalid: createWebhookInvalidPublicRecorder(
+      consumerInvalidRecorder
+    ),
     trail,
     trailId: trail.id,
     verifyWebhook: (request) => verifyWebhookRequest(source.value, request),
@@ -475,6 +591,11 @@ const webhookConsumers = (
   route: MergeableWebhookRoute
 ): readonly WebhookConsumerExecute[] | undefined => route[WEBHOOK_CONSUMERS];
 
+const webhookInvalidRecorders = (
+  route: MergeableWebhookRoute
+): readonly WebhookInvalidConsumerRecorder[] =>
+  route[WEBHOOK_INVALID_RECORDERS] ?? [];
+
 type MergeWebhookOutcome =
   | { readonly kind: 'merged'; readonly route: HttpRouteDefinition }
   | { readonly kind: 'verifier-mismatch'; readonly error: ValidationError }
@@ -515,9 +636,41 @@ const mergeWebhookRoutes = (
     ...incomingConsumers,
   ];
 
+  const recorders = [
+    ...webhookInvalidRecorders(existing as MergeableWebhookRoute),
+    ...webhookInvalidRecorders(route as MergeableWebhookRoute),
+  ] as const;
+
+  // Fan-out: every consumer's recorder must fire on parse/verify failures so
+  // each trail emits its own activation.webhook.invalid trace record. A
+  // single activation fire ID is generated per inbound failed request and
+  // shared across all recorders so observability can correlate the sibling
+  // invalid records as one activation root, mirroring the success path. A
+  // recorder failure must not prevent the remaining recorders from running.
+  const recordWebhookInvalidFanOut: WebhookInvalidRecorder | undefined =
+    recorders.length === 0
+      ? undefined
+      : async (errorCategory) => {
+          const activationFireId = createWebhookActivationFireId();
+          await Promise.all(
+            recorders.map(async (record) => {
+              try {
+                await record(errorCategory, activationFireId);
+              } catch {
+                // Recorder failures must never short-circuit the fan-out;
+                // sink errors are already swallowed inside writeToSink.
+              }
+            })
+          );
+        };
+
   const merged: MergeableWebhookRoute = {
     ...existing,
     [WEBHOOK_CONSUMERS]: consumers,
+    [WEBHOOK_INVALID_RECORDERS]: recorders,
+    ...(recordWebhookInvalidFanOut === undefined
+      ? {}
+      : { recordWebhookInvalid: recordWebhookInvalidFanOut }),
     async execute(input, requestId, abortSignal) {
       // One activation fire ID per inbound webhook request, shared across every
       // fan-out consumer so observability can correlate them as siblings of a
