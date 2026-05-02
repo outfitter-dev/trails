@@ -1,14 +1,15 @@
 ---
+id: 40
 slug: resource-scoped-store-signal-identity
 title: Resource-Scoped Store Signal Identity
-status: draft
+status: accepted
 created: 2026-04-19
-updated: 2026-04-19
+updated: 2026-05-02
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [9, 16, 22, 23]
 ---
 
-# ADR: Resource-Scoped Store Signal Identity
+# ADR-0040: Resource-Scoped Store Signal Identity
 
 ## Context
 
@@ -70,6 +71,8 @@ identity.store.tables.users.signals.created.id;
 
 If the same store definition is bound more than once, pre-bind signal handles become ambiguous. In that case the framework rejects the unresolved reference and asks the author to use the canonical scoped id explicitly.
 
+Migration guidance lives in [Store Signal Identity Migration](../store-signal-identity-migration.md).
+
 ## Consequences
 
 ### Positive
@@ -93,7 +96,7 @@ If the same store definition is bound more than once, pre-bind signal handles be
 
 ## References
 
-- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — resources provide the stable binding identity store signals now derive from
-- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — store tables and their reactive surfaces are derived from one authored schema
-- [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md) — Drizzle is the first binding surface that needs the scoped signal form
-- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — keeps the signal vocabulary aligned with the current framework grammar
+- [ADR-0009: First-Class Resources](0009-first-class-resources.md) — resources provide the stable binding identity store signals now derive from
+- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — store tables and their reactive surfaces are derived from one authored schema
+- [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](0022-drizzle-store-connector.md) — Drizzle is the first binding surface that needs the scoped signal form
+- [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — keeps the signal vocabulary aligned with the current framework grammar

@@ -16,6 +16,7 @@
 - **[API Reference](./api-reference.md)** — Every public export across all packages
 - **[Resources Guide](./resources.md)** — Define resources, declare them on trails, test with mock factories
 - **[Store Guide](../packages/store/README.md)** — Declare schema-derived stores, bind them with Drizzle, use fixtures and read-only access
+- **[Store Signal Identity Migration](./store-signal-identity-migration.md)** — Update store-derived signal ids from bare table changes to resource-scoped form
 - **[Config Guide](../packages/config/README.md)** — Schema-derived configuration, resolution stack, extensions, profiles
 - **[Permits Guide](../packages/permits/README.md)** — Scope-based authorization, auth connectors, permit governance
 - **[Tracing Guide](../packages/tracing/README.md)** — Execution recording, sinks, sampling, manual instrumentation

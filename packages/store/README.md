@@ -146,6 +146,8 @@ created.id;
 
 Writable bindings fire those canonical scoped signals automatically when you access the resource through `db.from(ctx)` inside a trail context.
 
+See [Store Signal Identity Migration](../../docs/store-signal-identity-migration.md) when updating existing `on:` clauses, surface-map fixtures, or custom resource wrappers from bare ids to scoped ids.
+
 Tabular connectors such as `@ontrails/drizzle` also expose `insert()` and `update()` as convenience methods when the backend natively distinguishes create and patch operations.
 
 ## Fixtures and mocks
