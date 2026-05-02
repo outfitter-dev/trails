@@ -10,6 +10,8 @@ Canonical public surface-facing reference. For naming conventions and decision h
 // Definitions
 trail(id, spec)                    // define a unit of work (with optional crosses for composition)
 signal(id, spec)                    // define a payload schema with provenance
+schedule(id, spec)                  // define an inert cron activation source
+webhook(id, spec)                   // define an inert HTTP webhook activation source
 contour(name, shape, options)       // define a first-class domain object with identity metadata
 resource(id, spec)                  // define a first-class resource dependency
 createResourceLookup(getContext)   // bind ctx.resource() to a specific context snapshot
@@ -28,12 +30,14 @@ countTopoSnapshots(db), countPinnedSnapshots(db), countPrunableSnapshots(db, opt
 pruneUnpinnedSnapshots(db, options?)
 
 // Types
-Trail<I, O>, Signal<T>, Contour<TName, TShape, TIdentity>, Resource<T>, Topo, Intent
-TrailSpec<I, O>, SignalSpec<T>, ResourceSpec<T>, TrailExample<I, O>
+Trail<I, O>, Signal<T>, ScheduleSource, WebhookSource<T>, Contour<TName, TShape, TIdentity>, Resource<T>, Topo, Intent
+TrailSpec<I, O>, SignalSpec<T>, ScheduleSpec, WebhookSpec<T>, ResourceSpec<T>, TrailExample<I, O>
 AnyTrail, AnySignal, AnyContour, AnyResource, ResourceContext, ResourceOverrideMap
 BlobRef, BlobRefDescriptor
 ContourOptions, ContourIdBrand, ContourIdMetadata, ContourIdSchema, ContourIdValue, ContourReference
 StoredTopoExport, TrailsDbLocationOptions, EnsureSubsystemSchemaOptions
+ActivationSource, ActivationEntry, ActivationProvenance
+WebhookMethod, WebhookVerify, WebhookVerifyRequest, WebhookVerifyHeaders, WebhookValidationIssue
 
 // Type utilities
 TrailInput<T>                      // extract input type from a Trail
@@ -96,6 +100,12 @@ Field, FieldOverride
 validateSurfaceTopo(topo, options?) // shared established-topo guard for surface projections
 withSurfaceMarker(surface, ctx?)    // merge a surface marker into execution context extensions
 BaseSurfaceOptions, SurfaceSelectionOptions, SurfaceValidationOptions, SurfaceConfigValues
+
+// Webhook activation sources
+webhookMethods
+validateWebhookSource(source)       // validate method/path/parse/verify shape
+verifyWebhookRequest(source, request) // run an optional source verify hook
+getWebhookHeader(request, name)     // case-insensitive helper for verify hooks
 
 // Draft state
 DRAFT_ID_PREFIX, isDraftId(value), deriveDraftReport(topo)

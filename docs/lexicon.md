@@ -202,7 +202,7 @@ const updated = signal('entity.updated', {
 });
 ```
 
-Trails signals are authored, typed notifications in the contract graph. Future activation/source work may let schedules, webhooks, file watchers, and other external activation sources produce signals, but v1 signal support does not materialize those sources.
+Trails signals are authored, typed notifications in the contract graph. Schedule and webhook activation sources are separate `on:` source objects: schedules are materialized by the schedule runtime, and webhooks are materialized by the HTTP surface through the universal `webhook()` source shape. File watchers and other external activation sources remain future source kinds.
 
 ### `pin`
 
