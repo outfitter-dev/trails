@@ -25,7 +25,7 @@ export default defineConfig({
     'require-await': 'off',
     'trails-local/no-console-in-packages': [
       'error',
-      { allowedPackages: ['logging'] },
+      { allowedPackages: ['logging', 'observe'] },
     ],
     'trails-local/no-deep-relative-import': ['warn', { maxParentSegments: 2 }],
     'trails-local/no-nested-barrel': ['warn', { maxDepth: 2 }],

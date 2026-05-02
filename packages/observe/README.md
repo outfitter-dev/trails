@@ -3,11 +3,23 @@
 Primitive observability contracts for Trails.
 
 This package is the public home for log and trace sink shapes used by Trails
-apps and connectors. The initial surface re-exports the core contracts; runtime
-sink helpers are added in focused follow-up branches.
+apps and connectors. It includes zero-dependency sinks for local and server
+baselines, plus connector composition for production observability.
 
 ```typescript
-import { combine } from '@ontrails/observe';
+import {
+  combine,
+  createConsoleSink,
+  createFileSink,
+  createMemorySink,
+} from '@ontrails/observe';
 
-const sink = combine(otelSink, fileSink);
+const sink = combine(
+  createConsoleSink(),
+  createFileSink('./logs/app.log'),
+  createMemorySink({ maxRecords: 500 })
+);
 ```
+
+`createFileSink()` is append-only and does not rotate files. Use external log
+rotation or a production connector when retention policy matters.
