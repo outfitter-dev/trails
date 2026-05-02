@@ -3,7 +3,7 @@ slug: reactive-trail-activation
 title: Reactive Trail Activation
 status: draft
 created: 2026-03-31
-updated: 2026-04-09
+updated: 2026-05-01
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [3, 4, 13, 38]
 ---
@@ -323,6 +323,40 @@ diagnostics instead of failing the producer.
 
 V1 does not define retry, queue, dead-letter, backpressure, external delivery,
 or total-order semantics.
+
+### V1 non-goals and deferred work
+
+The sections above describe the larger Reactive Activation direction. The v1
+implementation slice is narrower: universal `on:` source declarations,
+authored signal activation, schedule source declaration and materialization,
+predicate guards, activation provenance, lockfile graph projection, and Warden
+coaching for the source graph.
+
+V1 intentionally does not ship:
+
+- **Activation overrides.** Pack, mount, or app-level overrides that add,
+  remove, or replace authored `on:` declarations are deferred. The authored
+  `on:` declarations on the trail are the v1 source of truth, and the lockfile
+  records those resolved authored declarations.
+- **Webhook materialization.** `webhook` remains a known activation source kind
+  for graph shape and follow-on design, but HTTP surface registration,
+  verification hooks, mock HMAC fixtures, path collision handling, and
+  connector guides belong to the webhook stack.
+- **Framework lifecycle signals.** Failure and completion lifecycle families
+  such as `trail.failed.conflict` remain future signal families. V1 only
+  routes authored signals fired through `ctx.fire()` plus materialized
+  schedules.
+- **Durable delivery semantics.** Retry, queue, dead-letter, backpressure,
+  external delivery, replay, and exactly-once or total-order guarantees remain
+  out of scope. The v1 runtime contract is in-process dispatch initiation.
+- **Source option sugar.** Helper forms such as `.where()` source sugar,
+  debounce, throttle, batching, or delivery policy options are deferred until
+  the base source graph has implementation-backed behavior.
+
+The draft should remain draft until webhook materialization and the final
+Reactive Activation closeout decide the external inbound path. Promoting this
+ADR before that work would make schedule and signal behavior look like the
+whole decision, or make webhook behavior look done before it is implemented.
 
 ### Warden rules for activation
 
