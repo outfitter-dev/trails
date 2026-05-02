@@ -7,6 +7,7 @@ import { createTrailContext } from '../context';
 import { ConflictError } from '../errors';
 import { Result } from '../result';
 import { resource } from '../resource';
+import { schedule } from '../schedule';
 import { signal } from '../signal';
 import { intentValues, trail } from '../trail';
 import type { TrailContext } from '../types';
@@ -461,11 +462,11 @@ describe('trail() fires/on normalization', () => {
   });
 
   test('schedule and webhook source objects stay inert and normalized', () => {
-    const scheduleSource = {
-      id: 'schedule.nightly-close',
+    const scheduleSource = schedule('schedule.nightly-close', {
+      cron: '0 2 * * *',
       input: { olderThanDays: 90 },
-      kind: 'schedule' as const,
-    };
+      timezone: 'UTC',
+    });
     const webhookSource = {
       id: 'webhook.stripe.payment',
       kind: 'webhook' as const,

@@ -181,6 +181,12 @@ export { inputOf, outputOf } from './type-utils.js';
 // Signal
 export { signal } from './signal.js';
 export type { AnySignal, Signal, SignalSpec } from './signal.js';
+export { schedule, validateScheduleSource } from './schedule.js';
+export type {
+  ScheduleSource,
+  ScheduleSpec,
+  ScheduleValidationIssue,
+} from './schedule.js';
 export {
   SIGNAL_DIAGNOSTICS_SINK_KEY,
   SIGNAL_DIAGNOSTICS_STRICT_MODE_KEY,

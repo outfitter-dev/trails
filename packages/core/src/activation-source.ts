@@ -24,10 +24,12 @@ export type ActivationSourceParse<TPayload = unknown> =
 export interface ActivationSource {
   readonly id: string;
   readonly kind: ActivationSourceKind;
+  readonly cron?: string | undefined;
   readonly input?: unknown;
   readonly meta?: ActivationSourceMeta | undefined;
   readonly parse?: ActivationSourceParse | undefined;
   readonly payload?: z.ZodType<unknown> | undefined;
+  readonly timezone?: string | undefined;
 }
 
 export interface ActivationWhereExample {

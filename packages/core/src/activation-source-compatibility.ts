@@ -22,6 +22,8 @@ type SourcePayloadContract =
 
 type JsonSchemaObject = Record<string, unknown>;
 
+const EMPTY_SOURCE_INPUT = Object.freeze({});
+
 const hasOwn = (value: object, key: string): boolean =>
   Object.hasOwn(value, key);
 
@@ -51,6 +53,10 @@ const getActivationPayloadContract = (
   if (source.kind === 'signal') {
     const signal = signals.get(source.id);
     return signal ? { schema: signal.payload, type: 'schema' } : undefined;
+  }
+
+  if (source.kind === 'schedule' && !hasOwn(source, 'input')) {
+    return { type: 'value', value: EMPTY_SOURCE_INPUT };
   }
 
   if (isZodSchema(source.payload)) {

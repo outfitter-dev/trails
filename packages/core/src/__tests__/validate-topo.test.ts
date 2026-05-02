@@ -599,6 +599,7 @@ describe('validateTopo', () => {
           input: z.object({ accountId: z.string() }),
           on: [
             {
+              cron: '0 2 * * *',
               id: 'schedule.account.reconcile',
               input: { accountId: 'acct_1' },
               kind: 'schedule',
@@ -618,6 +619,7 @@ describe('validateTopo', () => {
           input: z.object({ accountId: z.string() }),
           on: [
             {
+              cron: '0 2 * * *',
               id: 'schedule.account.reconcile',
               input: { accountId: 123 },
               kind: 'schedule',
@@ -637,6 +639,65 @@ describe('validateTopo', () => {
       expect(issue?.sourceKind).toBe('schedule');
       expect(issue?.inputPath).toEqual(['accountId']);
       expect(issue?.schemaIssues?.[0]?.code).toBe('invalid_type');
+    });
+
+    test('omitted schedule input defaults to empty object for input compatibility', () => {
+      const app = topo('app', {
+        reconcile: trail('account.reconcile', {
+          blaze: noop,
+          input: z.object({ accountId: z.string() }),
+          on: [
+            {
+              cron: '0 2 * * *',
+              id: 'schedule.account.reconcile',
+              kind: 'schedule',
+            },
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issue = extractIssues(result).find(
+        (entry) => entry.rule === 'activation-source-input-compatible'
+      );
+      expect(issue?.trailId).toBe('account.reconcile');
+      expect(issue?.sourceKind).toBe('schedule');
+      expect(issue?.inputPath).toEqual(['accountId']);
+      expect(issue?.schemaIssues?.[0]?.code).toBe('invalid_type');
+    });
+
+    test('invalid schedule cron and timezone produce source diagnostics', () => {
+      const app = topo('app', {
+        reconcile: trail('account.reconcile', {
+          blaze: noop,
+          input: z.object({}),
+          on: [
+            {
+              cron: '60 2 * * *',
+              id: 'schedule.account.reconcile',
+              kind: 'schedule',
+              timezone: 'Not/A_Zone',
+            },
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issues = extractIssues(result).filter(
+        (entry) => entry.rule === 'activation-schedule-valid'
+      );
+      expect(issues).toHaveLength(2);
+      expect(issues.map((issue) => issue.inputPath)).toEqual([
+        ['cron'],
+        ['timezone'],
+      ]);
+      expect(issues.every((issue) => issue.sourceKind === 'schedule')).toBe(
+        true
+      );
     });
 
     test('compatible webhook parse output and trail input pass', () => {

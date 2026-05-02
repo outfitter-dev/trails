@@ -10,6 +10,7 @@ import {
 } from '../internal/signal-ref.js';
 import { resource } from '../resource.js';
 import { Result } from '../result.js';
+import { schedule } from '../schedule.js';
 import { signal } from '../signal.js';
 import { trail } from '../trail.js';
 import { topo } from '../topo.js';
@@ -187,16 +188,11 @@ describe('topo', () => {
     });
 
     test('keeps schedule and webhook activation sources inert during topo construction', () => {
-      let cronRegistered = false;
       let routeRegistered = false;
-      const scheduleSource = {
-        id: 'schedule.nightly-close',
+      const scheduleSource = schedule('schedule.nightly-close', {
+        cron: '0 2 * * *',
         input: { olderThanDays: 90 },
-        kind: 'schedule' as const,
-        register: () => {
-          cronRegistered = true;
-        },
-      };
+      });
       const webhookSource = {
         id: 'webhook.stripe.payment',
         kind: 'webhook' as const,
@@ -214,7 +210,6 @@ describe('topo', () => {
         }),
       });
 
-      expect(cronRegistered).toBe(false);
       expect(routeRegistered).toBe(false);
       expect(app.get('billing.reconcile')?.activationSources).toEqual([
         { source: scheduleSource },

@@ -15,6 +15,7 @@ import type { ActivationEntry } from './activation-source.js';
 import { isKnownActivationSourceKind } from './activation-source.js';
 import { isDraftId } from './draft.js';
 import type { AnySignal } from './signal.js';
+import { validateScheduleSource } from './schedule.js';
 import { Result } from './result.js';
 import type { Topo } from './topo.js';
 import type { AnyTrail } from './trail.js';
@@ -257,6 +258,22 @@ const checkActivationSources = (
         issues.push({
           message: `Trail declares on source "${activation.source.id}" with unsupported source kind "${activation.source.kind}"`,
           rule: 'activation-source-kind-known',
+          trailId: id,
+        });
+        continue;
+      }
+
+      const scheduleIssues = validateScheduleSource(activation.source);
+      for (const issue of scheduleIssues) {
+        issues.push({
+          inputPath: [issue.field],
+          message: `Trail declares schedule source "${activation.source.id}" with invalid ${issue.field}: ${issue.message}`,
+          rule: 'activation-schedule-valid',
+          schemaIssues: [
+            { code: issue.field, message: issue.message, path: [issue.field] },
+          ],
+          sourceId: activation.source.id,
+          sourceKind: activation.source.kind,
           trailId: id,
         });
       }
