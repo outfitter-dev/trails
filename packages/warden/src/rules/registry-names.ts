@@ -41,6 +41,7 @@ import { resourceDeclarations } from './resource-declarations.js';
 import { resourceExists } from './resource-exists.js';
 import { resourceIdGrammar } from './resource-id-grammar.js';
 import { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
+import { unmaterializedActivationSource } from './unmaterialized-activation-source.js';
 import { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 import { validDetourContract } from './valid-detour-contract.js';
 import { validDescribeRefs } from './valid-describe-refs.js';
@@ -88,6 +89,7 @@ export const registeredRuleNames: readonly string[] = [
   resourceExists.name,
   resourceIdGrammar.name,
   scheduledDestroyIntent.name,
+  unmaterializedActivationSource.name,
   unreachableDetourShadowing.name,
   validDetourContract.name,
   validDescribeRefs.name,

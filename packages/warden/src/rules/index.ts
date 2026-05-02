@@ -34,6 +34,7 @@ import { resourceExists } from './resource-exists.js';
 import { resourceIdGrammar } from './resource-id-grammar.js';
 import { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 import type { TopoAwareWardenRule, WardenRule } from './types.js';
+import { unmaterializedActivationSource } from './unmaterialized-activation-source.js';
 import { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 import { validDetourContract } from './valid-detour-contract.js';
 import { validDescribeRefs } from './valid-describe-refs.js';
@@ -99,6 +100,7 @@ export { resourceDeclarations } from './resource-declarations.js';
 export { resourceExists } from './resource-exists.js';
 export { resourceIdGrammar } from './resource-id-grammar.js';
 export { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
+export { unmaterializedActivationSource } from './unmaterialized-activation-source.js';
 export { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 export { validDetourContract } from './valid-detour-contract.js';
 export { validDescribeRefs } from './valid-describe-refs.js';
@@ -164,5 +166,6 @@ export const wardenTopoRules: ReadonlyMap<string, TopoAwareWardenRule> =
     [permitGovernance.name, permitGovernance],
     [publicUnionOutputDiscriminants.name, publicUnionOutputDiscriminants],
     [scheduledDestroyIntent.name, scheduledDestroyIntent],
+    [unmaterializedActivationSource.name, unmaterializedActivationSource],
     [validDetourContract.name, validDetourContract],
   ]);

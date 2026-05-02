@@ -227,6 +227,12 @@ export const builtinWardenRuleMetadata = {
       'Schedule-activated destroy trails make unattended destructive work visible for review.',
     tier: 'topo-aware',
   },
+  'unmaterialized-activation-source': {
+    ...durableExternal,
+    invariant:
+      'Activation sources have an available runtime materializer before runtime delivery is assumed.',
+    tier: 'topo-aware',
+  },
   'unreachable-detour-shadowing': {
     ...durableExternal,
     invariant: 'Specific detours are not shadowed by earlier broader detours.',
