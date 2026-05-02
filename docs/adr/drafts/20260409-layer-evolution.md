@@ -36,7 +36,7 @@ The five layers shipped today break down as follows:
 | `autoIterateLayer` | CLI-specific pagination behavior | Yes -- from output schema shape |
 | `dateShortcutsLayer` | CLI-specific date expansion | Yes -- from input schema shape |
 
-The `tracingLayer` row is resolved by [ADR: Unified Observability](20260409-unified-observability.md): tracing is core execution-pipeline behavior, not an authored layer.
+The `tracingLayer` row is resolved by [ADR-0041: Unified Observability](../0041-unified-observability.md): tracing is core execution-pipeline behavior, not an authored layer.
 
 None are genuinely authored cross-cutting concerns. All five are either derivable from trail declarations or intrinsic pipeline behavior. To get basic framework capabilities (auth, recording), the developer imports layers, creates instances, and passes them to every `blaze()` call. That's requiring Level 2 ceremony for Level 0 behavior -- the same anti-pattern as if input validation were a layer you had to import and wire.
 
@@ -319,7 +319,7 @@ The name change from `layers` to `middleware` is intentional. `layers` implied f
 - [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md) -- the execution pipeline that layers currently compose into
 - [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) -- permit declarations that become pipeline-enforced
 - [ADR-0013: Tracing -- Runtime Recording Primitive](../0013-tracing.md) -- recording that becomes a pipeline stage
-- [ADR: Unified Observability](20260409-unified-observability.md) -- resolves the obsolete `tracingLayer` concept by moving tracing into core rather than preserving it as a layer
+- [ADR-0041: Unified Observability](../0041-unified-observability.md) -- resolves the obsolete `tracingLayer` concept by moving tracing into core rather than preserving it as a layer
 - [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent compounds with layers for surface derivation and governance
 - [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- `crossInput` follows the same "compose schemas, project the union" pattern as layer input schemas
 - [Tenets: One write, many reads](../../tenets.md) -- layer input schemas exemplify one authoring point feeding CLI flags, MCP parameters, HTTP query params, and lockfile diffing simultaneously

@@ -1,15 +1,15 @@
 ---
+id: 41
 slug: unified-observability
 title: Unified Observability
-status: draft
+status: accepted
 created: 2026-04-09
 updated: 2026-05-02
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [6, 13]
-supersedes: ['13']
+depends_on: [6, 13, 39]
 ---
 
-# ADR: Unified Observability
+# ADR-0041: Unified Observability
 
 ## Context
 
@@ -18,7 +18,7 @@ supersedes: ['13']
 Trails currently ships two packages for understanding what an app does at runtime:
 
 - **`@ontrails/logging`** — structured logging with sinks and formatters. The developer writes `ctx.logger.info('creating gist')`.
-- **`@ontrails/tracker`** — execution recording with trace propagation. The framework writes a `TraceRecord` for every trail invocation via the execution pipeline.
+- **`@ontrails/tracing`** — execution recording with trace propagation. The framework writes a `TraceRecord` for every trail invocation via the execution pipeline.
 
 These packages are configured separately, installed separately, and documented separately. But they serve the same fundamental need: tell me what happened in my app.
 
@@ -30,7 +30,7 @@ In practice, a developer setting up observability configures two packages, two s
 
 `executeTrail` is in core. `TrailContext` with its `logger` is in core. The `Logger` interface is in core. Trace context propagation flows through `TrailContext`, which is in core. The infrastructure for observability already lives where it belongs. The implementations just live in the wrong packages.
 
-A new developer installing Trails today needs `@ontrails/core` and a trailhead package to get started. If they want to see what their trails are doing, they need to also install `@ontrails/logging` and `@ontrails/tracker`, configure both, and wire them in. That is two extra packages before "hello world" has observability.
+A new developer installing Trails today needs `@ontrails/core` and a trailhead package to get started. If they want to send runtime evidence somewhere durable, they have to understand separate logging and tracing packages, configure separate sinks, and wire them in. That is too much package and setup vocabulary before "hello world" has production-grade observability.
 
 ### The vocabulary question
 
@@ -53,10 +53,10 @@ The `Logger` interface is already in core. The following join it:
 - **Default console logger.** Structured logging to stdout with no configuration. Available on `ctx.logger` automatically.
 - **Built-in tracing.** Automatic execution recording for every trail invocation, intrinsic to the `executeTrail` pipeline. Records which trail ran, how long, what result, what errors, which crossings happened, trace ID propagation. Not an optional layer the developer attaches — it just happens.
 - **Trace record data model.** The `TraceRecord` interface describing one recorded execution footprint. The developer-facing word is "trace" (as verb and noun). The internal type is `TraceRecord` to avoid overloading "trace" (which can mean one record or an entire execution tree in industry usage). Records can describe trail execution, manual spans, signal lifecycle points, or activation boundaries.
-- **Memory trace sink.** Bounded in-memory trace storage, sufficient for development and `trails run --trace` without unbounded process growth.
+- **Trace sink contract and registry.** Core owns the `TraceSink` contract, the process-level trace sink registry, and the `NOOP_SINK` disabled baseline. Core does not own durable or developer-configurable trace storage.
 - **`ctx.trace()` method.** Manual sub-step recording within a blaze, replacing `tracker.from(ctx).track()`.
 
-This also resolves the `tracingLayer` concern named in [ADR: Layer Evolution](20260409-layer-evolution.md): tracing is a core pipeline capability, not a user-authored layer.
+This also resolves the `tracingLayer` concern named in [ADR: Layer Evolution](drafts/20260409-layer-evolution.md): tracing is a core pipeline capability, not a user-authored layer.
 
 A developer who installs `@ontrails/core` and `@ontrails/cli` gets:
 
@@ -120,32 +120,25 @@ This keeps activation visible in traces even when no normal trail record exists,
 
 ### Production observability in `@ontrails/observe`
 
-`@ontrails/logging` and `@ontrails/tracker` merge into a single package: `@ontrails/observe`. This package provides observability connectors — the same pattern Trails uses everywhere (Hono connector, Commander connector, Drizzle connector). Each connector bridges the framework's internal observability data to an external system:
+`@ontrails/observe` is the public package for production and durable observability adapters. The first shipped surface is intentionally small and dependency-free: root exports for log/trace sink contracts, `combine(...)`, console/file log sinks, and bounded memory trace sinks. Connector packages can build on those contracts without importing framework internals directly.
 
-| Connector | Purpose |
+| Initial primitive | Purpose |
 | --- | --- |
-| `otel(options)` | Unified OpenTelemetry export for logs and traces. Owns sampling, batching, and formatting. |
-| `file(options)` | Persistent log output for server environments. |
-| `devStore(options?)` | SQLite-backed persistent trace storage for local development with query support. |
-| `combine(...connectors)` | Compose multiple connectors into one `observe:` declaration. |
+| `combine(...sinks)` | Compose log and trace sinks into one `observe:` declaration. |
+| `createConsoleSink(options?)` | Write log records to the process console. |
+| `createFileSink(options)` | Append log records to a file; retention and rotation stay external. |
+| `createMemorySink(options?)` | Retain bounded trace records for local tooling and tests. |
 
-Subpath exports keep concerns accessible:
-
-```text
-@ontrails/observe
-  /otel      — OpenTelemetry connector
-  /dev       — SQLite dev store
-  /file      — file output connector
-```
+Future connector exports, such as OpenTelemetry export or a SQLite dev store, remain packaging decisions. They belong in or beside `@ontrails/observe`, but this ADR does not canonize exact subpath names or the complete connector set.
 
 ### Dev-time tracing vs production observability
 
 The split is deliberate. Core handles the inner development loop. `@ontrails/observe` handles production.
 
-| Concern | Core (dev-time) | `@ontrails/observe` (production) |
+| Concern | Core (intrinsic) | `@ontrails/observe` and connectors |
 | --- | --- | --- |
 | Logging | Console logger, `ctx.logger` | OTel export, file sinks, pretty formatter |
-| Tracing | In-memory sink, `--trace` rendering | OTel export, SQLite dev store |
+| Tracing | `TraceRecord`, `ctx.trace()`, propagation, sink registry, `NOOP_SINK` | Bounded memory sink, OTel export, SQLite dev store |
 | Configuration | Zero — works out of the box | Connector-level options (sampling, batching, levels) |
 | Dependencies | None beyond core | OpenTelemetry SDK, `bun:sqlite` |
 
@@ -156,9 +149,11 @@ A developer never needs `@ontrails/observe` to build, test, or debug locally. Th
 Observability follows the Trails posture: zero config by default, one declaration to customize.
 
 The process-level sink registry still keeps `NOOP_SINK` as the disabled
-baseline. Bounded memory tracing is the built-in sink used by observe-aware
-tooling and explicit registration; core does not allocate trace records until a
-real sink is installed.
+baseline. Core owns that registry and the trace record contract, but not a
+storage sink. Bounded memory tracing is a package-level sink exposed by
+`@ontrails/observe` for app code and local tooling, and by `@ontrails/tracing`
+as compatibility while the earlier tracing package migrates. Core does not
+allocate trace records until a real sink is installed.
 
 Without `@ontrails/observe`, the default execution path stays inert:
 
@@ -171,34 +166,38 @@ const app = topo('myapp', trails)
 For local tooling or production, plug in a connector or sink:
 
 ```typescript
-import { otel } from '@ontrails/observe/otel'
+import { createMemorySink } from '@ontrails/observe'
 
 const app = topo('myapp', trails, {
-  observe: otel({ endpoint: 'https://otel.example.com' }),
+  observe: createMemorySink({ maxRecords: 500 }),
 })
 ```
 
-The connector owns the details: sampling rates, log levels, formatting, batching. These are connector configuration, not topo configuration. The topo says "observe with this." One declaration.
+The sink or connector owns the details: sampling rates, log levels, formatting, batching. These are connector configuration, not topo configuration. The topo says "observe with this." One declaration.
 
 ```typescript
-otel({
+futureOtelConnector({
   endpoint: 'https://otel.example.com',
   sampling: { read: 0.1, write: 1.0, destroy: 1.0 },
   logging: { level: 'warn' },
 })
 ```
 
-If a developer needs two outputs (OTel for traces, file for logs):
+If a developer needs two outputs:
 
 ```typescript
-import { otel } from '@ontrails/observe/otel'
-import { file } from '@ontrails/observe/file'
-import { combine } from '@ontrails/observe'
+import {
+  combine,
+  createConsoleSink,
+  createFileSink,
+  createMemorySink,
+} from '@ontrails/observe'
 
 const app = topo('myapp', trails, {
   observe: combine(
-    otel({ endpoint: '...' }),
-    file({ path: './logs/app.log' }),
+    createConsoleSink(),
+    createFileSink('./logs/app.log'),
+    createMemorySink({ maxRecords: 500 }),
   ),
 })
 ```
@@ -213,8 +212,8 @@ Still one `observe:` declaration. The complexity lives in the connector, not the
 | `Track` | `TraceRecord` (internal type; developer-facing word is "trace") |
 | `trackerGate` | built-in tracing (intrinsic to `executeTrail`, not a separately attached layer) |
 | `tracker.from(ctx).track('name', fn)` | `ctx.trace('name', fn)` |
-| `@ontrails/tracker` | `@ontrails/observe` (merged) |
-| `@ontrails/logging` | `@ontrails/observe` (merged) |
+| `@ontrails/tracing` sinks | `@ontrails/observe` contracts and adapters |
+| `@ontrails/logging` sinks | `@ontrails/observe` contracts and adapters |
 | `crumbs` (original) | no longer relevant |
 
 The developer-facing logger vocabulary does not change. `ctx.logger.info()`, `ctx.logger.error()` — these are already plain language.
@@ -231,17 +230,18 @@ Logger, TrailContext, executeTrail
 TraceRecord                          // one recorded execution footprint
 createConsoleLogger(options?)        // default logger, no deps
 ctx.trace(name, fn)                  // manual sub-step recording
+TraceSink, NOOP_SINK                 // sink contract and disabled baseline
+registerTraceSink, getTraceSink      // process-level sink registry
 // Built-in tracing intrinsic to executeTrail
-// In-memory trace storage for --trace rendering
 ```
 
-Everything else — OTel, file sinks, SQLite dev stores, pretty formatters, sampling configuration — belongs in `@ontrails/observe`.
+Everything else — developer-configurable memory sinks, OTel, file sinks, SQLite dev stores, pretty formatters, sampling configuration — belongs in `@ontrails/observe` or compatibility/connector packages that build on the same contracts.
 
 ## Non-goals
 
 - **Metrics.** Core does not ship a metrics primitive. If metrics are needed, `@ontrails/observe` can add a metrics connector. Trace data (duration, error rates) can be derived into metrics at the OTel layer.
 - **Distributed tracing.** Trace context propagation across trail crossings within a single process is in scope. Propagation across network boundaries (cross-app) is a future concern for the mount/pack system.
-- **Replacing OpenTelemetry.** The framework maintains a Trails-native model internally. OTel is the export format, not the internal representation. `@ontrails/observe/otel` translates outward from `TraceRecord` to OTel spans.
+- **Replacing OpenTelemetry.** The framework maintains a Trails-native model internally. OTel is the export format, not the internal representation. An OTel connector translates outward from `TraceRecord` to OTel spans.
 
 ## Consequences
 
@@ -256,7 +256,7 @@ Everything else — OTel, file sinks, SQLite dev stores, pretty formatters, samp
 ### Tradeoffs
 
 - **Core grows.** Adding built-in tracing, the trace record model, and console logger to core increases its surface area. This is justified because `executeTrail` is already in core and tracing wraps it — the natural home for automatic recording is next to the thing being recorded.
-- **Migration from `tracker`.** Package rename, API rename (`tracker.from(ctx).track()` to `ctx.trace()`), configuration restructure. This is a pre-1.0 change, so the migration cost is limited to internal and early adopters.
+- **Migration from earlier trace packaging.** Package imports and sink configuration restructure around `@ontrails/observe`. This is a pre-1.0 change, so the migration cost is limited to internal and early adopters.
 - **Connector owns config details.** Sampling, log level, and formatting are connector concerns, not topo concerns. This keeps the topo config surface minimal but means developers configure observability behavior through their connector, not through a central config object.
 
 ### Risks
@@ -274,11 +274,12 @@ Everything else — OTel, file sinks, SQLite dev stores, pretty formatters, samp
 
 ## References
 
-- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — `executeTrail` is the chokepoint where tracing wraps. Moving tracing into core puts it next to the pipeline it instruments.
-- [ADR-0013: Tracing](../0013-tracing.md) — the decision this supersedes. The architectural choices (flat records, callback-only manual API, root-level sampling, crossing propagation through execution scope) remain valid. The change is packaging and vocabulary, not mechanism.
-- [ADR: Layer Evolution](20260409-layer-evolution.md) — identifies `tracingLayer` as framework behavior dressed as user configuration; this ADR resolves it by making tracing core.
-- [Tenets: One write, many reads](../../tenets.md) — the governing principle. Trace data authored once feeds `--trace` rendering, OTel export, SQLite dev store, and future replay.
+- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — `executeTrail` is the chokepoint where tracing wraps. Moving tracing into core puts it next to the pipeline it instruments.
+- [ADR-0013: Tracing](0013-tracing.md) — the runtime recording primitive this decision updates. The architectural choices (flat records, callback-only manual API, root-level sampling, crossing propagation through execution scope) remain valid. The change is packaging and vocabulary, not mechanism.
+- [ADR-0039: Reactive Trail Activation](0039-reactive-trail-activation.md) — activation source boundaries define the runtime events this ADR makes observable through `activation.*` trace records.
+- [ADR: Layer Evolution](drafts/20260409-layer-evolution.md) — identifies `tracingLayer` as framework behavior dressed as user configuration; this ADR resolves it by making tracing core.
+- [Tenets: One write, many reads](../tenets.md) — the governing principle. Trace data authored once feeds `--trace` rendering, OTel export, SQLite dev store, and future replay.
 - OpenTelemetry specification — the industry standard this aligns with for vocabulary and export format.
 
-[^1]: [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — `executeTrail` as the shared chokepoint for every trail invocation
-[^2]: [Tenets: The information architecture](../../tenets.md) — authored vs derived information categories
+[^1]: [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — `executeTrail` as the shared chokepoint for every trail invocation
+[^2]: [Tenets: The information architecture](../tenets.md) — authored vs derived information categories

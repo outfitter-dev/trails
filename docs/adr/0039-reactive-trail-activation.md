@@ -335,7 +335,7 @@ Reactive activation v1 does not define:
   materialization, validation, Warden, survey, serialized graph state, and
   tracing provenance.
 - **Activation runtime records are shared observability data.** The
-  [Unified Observability](drafts/20260409-unified-observability.md) draft
+  [Unified Observability](0041-unified-observability.md) ADR
   defines the public `activation.*` trace record names for schedule, webhook,
   and safety boundaries.
 - **External inbound activation is surface-derived.** Webhook paths are rendered
@@ -387,5 +387,5 @@ Reactive activation v1 does not define:
 - [ADR-0038: Typed Signal Emission](0038-typed-signal-emission.md) - signal
   activation builds on typed `ctx.fire()`.
 - [HTTP Surface](../surfaces/http.md) - current webhook materialization guide.
-- [ADR: Unified Observability](drafts/20260409-unified-observability.md)
-  (draft) - decides the public observe package and sink composition layer.
+- [ADR-0041: Unified Observability](0041-unified-observability.md) - decides
+  the public observe package and sink composition layer.

@@ -350,7 +350,7 @@ clients.
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- trail IDs map to WebSocket method names; future delivery would map signal IDs to signal channels
 - [ADR-0013: Tracing](../0013-tracing.md) -- observability and replay buffer backing store
 - [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) -- WebSocket close code mapping deferred there; the error taxonomy extends to WebSocket as a transport
-- [ADR: Unified Observability](20260409-unified-observability.md) (draft) -- tracing system that provides WebSocket connection observability
+- [ADR-0041: Unified Observability](../0041-unified-observability.md) -- tracing system that provides WebSocket connection observability
 - [ADR-0038: Typed Signal Emission](../0038-typed-signal-emission.md) -- provides typed `ctx.fire(signal, payload)` records; external subscription delivery remains deferred to this draft
 - [ADR-0027: Trail Visibility and Trailhead Filtering](../0027-visibility-and-filtering.md) -- visibility and intent filtering apply to WebSocket trail discovery and invocation
 - [ADR-0039: Reactive Trail Activation](../0039-reactive-trail-activation.md) -- activation sources and WebSocket subscriptions would both consume typed signal contracts

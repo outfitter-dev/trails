@@ -579,6 +579,11 @@
           "fromPath": "docs/adr/0038-typed-signal-emission.md"
         },
         {
+          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — `executeTrail` is the chokepoint where tracing wraps. Moving tracing into core puts it next to the pipeline it instruments.",
+          "from": "0041",
+          "fromPath": "docs/adr/0041-unified-observability.md"
+        },
+        {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` executes through the pipeline, the same as every trailhead",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -602,11 +607,6 @@
           "context": "- [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md) -- the execution pipeline that layers currently compose into",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-layer-evolution.md"
-        },
-        {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) — `executeTrail` is the chokepoint where tracing wraps. Moving tracing into core puts it next to the pipeline it instrumen",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-unified-observability.md"
         },
         {
           "context": "- **[ADR-0006: Shared Execution Pipeline](./adr/0006-shared-execution-pipeline.md)** — One `executeTrail`, Result-returning builders",
@@ -1017,6 +1017,11 @@
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
+          "context": "- [ADR-0013: Tracing](0013-tracing.md) — the runtime recording primitive this decision updates. The architectural choices (flat records, callback-only manual API, root-level sampling, crossing propaga",
+          "from": "0041",
+          "fromPath": "docs/adr/0041-unified-observability.md"
+        },
+        {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- the tracing primitive; live tracing during `trails run`, historical tracing via `trails trace`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -1050,11 +1055,6 @@
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) — runtime recording that powers version traffic monitoring",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-trail-versioning.md"
-        },
-        {
-          "context": "- [ADR-0013: Tracing](../0013-tracing.md) — the decision this supersedes. The architectural choices (flat records, callback-only manual API, root-level sampling, crossing propagation through execution",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-unified-observability.md"
         },
         {
           "context": "- **[ADR-0013: Tracing](./adr/0013-tracing.md)** — Runtime recording primitive",
@@ -2085,6 +2085,40 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Resource-Scoped Store Signal Identity",
+      "updated": "2026-05-02"
+    },
+    {
+      "created": "2026-04-09",
+      "depends_on": ["6", "13", "39"],
+      "inbound": [
+        {
+          "context": "Unified Observability](0041-unified-observability.md) defines the public",
+          "from": "0039",
+          "fromPath": "docs/adr/0039-reactive-trail-activation.md"
+        },
+        {
+          "context": "- [ADR-0041: Unified Observability](../0041-unified-observability.md) -- `--trace` flag, `ctx.trace()`, and the tracing vocabulary used throughout this draft. Note: this draft uses `--tracing` as the ",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
+        },
+        {
+          "context": "- [ADR-0041: Unified Observability](../0041-unified-observability.md) -- tracing system that provides WebSocket connection observability",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        },
+        {
+          "context": "The `tracingLayer` row is resolved by [ADR-0041: Unified Observability](../0041-unified-observability.md): tracing is core execution-pipeline behavior, not an authored layer.",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-layer-evolution.md"
+        }
+      ],
+      "number": "0041",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0041-unified-observability.md",
+      "slug": "unified-observability",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Unified Observability",
       "updated": "2026-05-02"
     }
   ],

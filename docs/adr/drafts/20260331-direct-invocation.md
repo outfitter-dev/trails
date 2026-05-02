@@ -584,6 +584,6 @@ Trail IDs are completed from the topo. Example names are completed from the trai
 - ADR: Typed Signal Emission (draft) -- events emitted during `trails run` flow through normal routing, triggers fire
 - [ADR-0028: Concurrent Trail Crossing](../0028-concurrent-crossing.md) -- `--trace` renders concurrent crossings as parallel branches in the execution tree
 - [ADR: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) (draft) -- `trails run` can invoke internal trails (it's programmatic, like `run()`)
-- [ADR: Unified Observability](20260409-unified-observability.md) (draft) -- `--trace` flag, `ctx.trace()`, and the tracing vocabulary used throughout this draft. Note: this draft uses `--tracing` as the flag name; the canonical flag is `--trace` per the observability ADR.
+- [ADR-0041: Unified Observability](../0041-unified-observability.md) -- `--trace` flag, `ctx.trace()`, and the tracing vocabulary used throughout this draft. Note: this draft uses `--tracing` as the flag name; the canonical flag is `--trace` per the observability ADR.
 - ADR: Packs as Namespace Boundaries (draft) -- `trails run` can invoke any trail in any pack, regardless of visibility
 - [ADR-0013: Tracing](../0013-tracing.md) -- the tracing primitive; live tracing during `trails run`, historical tracing via `trails trace`

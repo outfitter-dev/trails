@@ -134,6 +134,11 @@
       "depends_on": ["6", "12"],
       "inbound": [
         {
+          "context": "This also resolves the `tracingLayer` concern named in [ADR: Layer Evolution](drafts/20260409-layer-evolution.md): tracing is a core pipeline capability, not a user-authored layer.",
+          "from": "0041",
+          "fromPath": "docs/adr/0041-unified-observability.md"
+        },
+        {
           "context": "- [ADR: Layer Evolution](20260409-layer-evolution.md) (draft) -- layers gain input schemas and three attachment levels; packs can carry trail-level layers",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
@@ -151,7 +156,7 @@
       "status": "draft",
       "superseded_by": null,
       "title": "Layer Evolution",
-      "updated": "2026-04-28"
+      "updated": "2026-05-02"
     },
     {
       "created": "2026-04-09",
@@ -214,35 +219,6 @@
       "status": "draft",
       "superseded_by": null,
       "title": "Trail Versioning",
-      "updated": "2026-04-09"
-    },
-    {
-      "created": "2026-04-09",
-      "depends_on": ["6", "13"],
-      "inbound": [
-        {
-          "context": "[Unified Observability](drafts/20260409-unified-observability.md) draft",
-          "from": "0039",
-          "fromPath": "docs/adr/0039-reactive-trail-activation.md"
-        },
-        {
-          "context": "- [ADR: Unified Observability](20260409-unified-observability.md) (draft) -- `--trace` flag, `ctx.trace()`, and the tracing vocabulary used throughout this draft. Note: this draft uses `--tracing` as ",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
-        },
-        {
-          "context": "- [ADR: Unified Observability](20260409-unified-observability.md) (draft) -- tracing system that provides WebSocket connection observability",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
-        }
-      ],
-      "number": null,
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260409-unified-observability.md",
-      "slug": "unified-observability",
-      "status": "draft",
-      "superseded_by": null,
-      "title": "Unified Observability",
       "updated": "2026-04-09"
     }
   ],

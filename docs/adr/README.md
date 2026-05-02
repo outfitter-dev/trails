@@ -47,3 +47,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0038](0038-typed-signal-emission.md) | Typed Signal Emission | Accepted |
 | [0039](0039-reactive-trail-activation.md) | Reactive Trail Activation | Accepted |
 | [0040](0040-resource-scoped-store-signal-identity.md) | Resource-Scoped Store Signal Identity | Accepted |
+| [0041](0041-unified-observability.md) | Unified Observability | Accepted |
