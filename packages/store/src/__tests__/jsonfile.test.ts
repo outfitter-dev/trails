@@ -499,4 +499,35 @@ describe('jsonfile connector — topo integration', () => {
       'primary-store:items.created'
     );
   });
+
+  test('rejects unresolved pre-bind handles when the same store is bound twice', () => {
+    const definition = defineStore({
+      items: { identity: 'id', schema: itemSchema },
+    });
+    const billing = jsonFile(definition, {
+      dir: join(topoDir, 'billing'),
+      id: 'billing',
+    });
+    const identity = jsonFile(definition, {
+      dir: join(topoDir, 'identity'),
+      id: 'identity',
+    });
+    const onCreated = trail('items.on-created', {
+      blaze: () => Result.ok({ seen: true }),
+      description:
+        'Consumer that must choose a scoped store signal when bindings are ambiguous.',
+      input: z.object({}).passthrough(),
+      on: [definition.tables.items.signals.created],
+    });
+
+    expect(() =>
+      topo('jsonfile-ambiguous-store-app', {
+        billing,
+        identity,
+        onCreated,
+      } as Record<string, unknown>)
+    ).toThrow(
+      'Trail "items.on-created" references late-bound signal "items.created" but it resolves to multiple bound resource signals'
+    );
+  });
 });
