@@ -6,6 +6,7 @@
  * list in lockstep with `wardenRules` / `wardenTopoRules` in `./index.ts` —
  * the `warden-export-symmetry` rule will fail the build if they drift.
  */
+import { activationOrphan } from './activation-orphan.js';
 import { circularRefs } from './circular-refs.js';
 import { contourExists } from './contour-exists.js';
 import { contextNoSurfaceTypes } from './context-no-surface-types.js';
@@ -52,6 +53,7 @@ import { wardenRulesUseAst } from './warden-rules-use-ast.js';
  * when comparing against the public barrel.
  */
 export const registeredRuleNames: readonly string[] = [
+  activationOrphan.name,
   circularRefs.name,
   contextNoSurfaceTypes.name,
   contourExists.name,

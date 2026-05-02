@@ -1,3 +1,4 @@
+import { activationOrphan } from './activation-orphan.js';
 import { circularRefs } from './circular-refs.js';
 import { contourExists } from './contour-exists.js';
 import { contextNoSurfaceTypes } from './context-no-surface-types.js';
@@ -63,6 +64,7 @@ export {
 } from './metadata.js';
 export type { BuiltinWardenRuleName } from './metadata.js';
 
+export { activationOrphan } from './activation-orphan.js';
 export { noThrowInImplementation } from './no-throw-in-implementation.js';
 export { circularRefs } from './circular-refs.js';
 export { contourExists } from './contour-exists.js';
@@ -157,6 +159,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
  */
 export const wardenTopoRules: ReadonlyMap<string, TopoAwareWardenRule> =
   new Map<string, TopoAwareWardenRule>([
+    [activationOrphan.name, activationOrphan],
     [incompleteAccessorForStandardOp.name, incompleteAccessorForStandardOp],
     [permitGovernance.name, permitGovernance],
     [publicUnionOutputDiscriminants.name, publicUnionOutputDiscriminants],

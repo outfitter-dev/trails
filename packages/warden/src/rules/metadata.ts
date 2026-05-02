@@ -45,6 +45,12 @@ const durableRepoLocal = {
 } as const;
 
 export const builtinWardenRuleMetadata = {
+  'activation-orphan': {
+    ...durableExternal,
+    invariant:
+      'Signal activation consumers reference sources with producer declarations.',
+    tier: 'topo-aware',
+  },
   'circular-refs': {
     ...durableExternal,
     invariant: 'Contour reference graphs must be acyclic.',

@@ -65,6 +65,7 @@ export {
 export { wardenTopo } from './trails/topo.js';
 export { runTopoAwareWardenTrails, runWardenTrails } from './trails/run.js';
 export {
+  activationOrphanTrail,
   circularRefsTrail,
   contourExistsTrail,
   contextNoSurfaceTypesTrail,
