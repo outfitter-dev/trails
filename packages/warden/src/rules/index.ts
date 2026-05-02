@@ -31,6 +31,7 @@ import { referenceExists } from './reference-exists.js';
 import { resourceDeclarations } from './resource-declarations.js';
 import { resourceExists } from './resource-exists.js';
 import { resourceIdGrammar } from './resource-id-grammar.js';
+import { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 import type { TopoAwareWardenRule, WardenRule } from './types.js';
 import { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 import { validDetourContract } from './valid-detour-contract.js';
@@ -95,6 +96,7 @@ export { referenceExists } from './reference-exists.js';
 export { resourceDeclarations } from './resource-declarations.js';
 export { resourceExists } from './resource-exists.js';
 export { resourceIdGrammar } from './resource-id-grammar.js';
+export { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 export { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 export { validDetourContract } from './valid-detour-contract.js';
 export { validDescribeRefs } from './valid-describe-refs.js';
@@ -158,5 +160,6 @@ export const wardenTopoRules: ReadonlyMap<string, TopoAwareWardenRule> =
     [incompleteAccessorForStandardOp.name, incompleteAccessorForStandardOp],
     [permitGovernance.name, permitGovernance],
     [publicUnionOutputDiscriminants.name, publicUnionOutputDiscriminants],
+    [scheduledDestroyIntent.name, scheduledDestroyIntent],
     [validDetourContract.name, validDetourContract],
   ]);

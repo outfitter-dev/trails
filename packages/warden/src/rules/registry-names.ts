@@ -39,6 +39,7 @@ import { referenceExists } from './reference-exists.js';
 import { resourceDeclarations } from './resource-declarations.js';
 import { resourceExists } from './resource-exists.js';
 import { resourceIdGrammar } from './resource-id-grammar.js';
+import { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 import { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 import { validDetourContract } from './valid-detour-contract.js';
 import { validDescribeRefs } from './valid-describe-refs.js';
@@ -84,6 +85,7 @@ export const registeredRuleNames: readonly string[] = [
   resourceDeclarations.name,
   resourceExists.name,
   resourceIdGrammar.name,
+  scheduledDestroyIntent.name,
   unreachableDetourShadowing.name,
   validDetourContract.name,
   validDescribeRefs.name,

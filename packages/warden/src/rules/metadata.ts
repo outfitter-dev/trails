@@ -215,6 +215,12 @@ export const builtinWardenRuleMetadata = {
     invariant: 'Resource identifiers stay out of the scope separator grammar.',
     tier: 'source-static',
   },
+  'scheduled-destroy-intent': {
+    ...durableExternal,
+    invariant:
+      'Schedule-activated destroy trails make unattended destructive work visible for review.',
+    tier: 'topo-aware',
+  },
   'unreachable-detour-shadowing': {
     ...durableExternal,
     invariant: 'Specific detours are not shadowed by earlier broader detours.',

@@ -102,6 +102,7 @@ export {
   resourceDeclarationsTrail,
   resourceIdGrammarTrail,
   resourceExistsTrail,
+  scheduledDestroyIntentTrail,
   topoAwareRuleInput,
   unreachableDetourShadowingTrail,
   validDetourContractTrail,
