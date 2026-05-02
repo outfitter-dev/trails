@@ -450,7 +450,7 @@ describe('jsonfile connector', () => {
   });
 });
 
-describe('jsonfile connector — topo integration', () => {
+describe('signal registration', () => {
   let topoDir: string;
 
   beforeEach(async () => {
@@ -477,6 +477,24 @@ describe('jsonfile connector — topo integration', () => {
     });
     return { onCreated, storeResource };
   };
+
+  test('injects the resource scope into registered store signal ids', () => {
+    const storeResource = jsonFile(itemStore, {
+      dir: topoDir,
+      id: 'primary-store',
+    });
+
+    expect(itemStore.signals.map((candidate) => candidate.id)).toEqual([
+      'items.created',
+      'items.updated',
+      'items.removed',
+    ]);
+    expect(storeResource.signals?.map((candidate) => candidate.id)).toEqual([
+      'primary-store:items.created',
+      'primary-store:items.updated',
+      'primary-store:items.removed',
+    ]);
+  });
 
   test('topo construction does not throw for on: with scoped store signal', () => {
     const { onCreated, storeResource } = scopedSetup(topoDir);
