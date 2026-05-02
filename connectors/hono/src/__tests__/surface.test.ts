@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 
-import { Result, trail, topo } from '@ontrails/core';
+import {
+  PermissionError,
+  Result,
+  getWebhookHeader,
+  trail,
+  topo,
+  webhook,
+} from '@ontrails/core';
 import { z } from 'zod';
 
 import { createApp, surface } from '../surface.js';
@@ -46,6 +53,35 @@ const genericErrorTrail = trail('generic.error', {
   blaze: () => Result.err(new Error('database password=secret')),
   input: z.object({}),
   intent: 'read',
+  output: z.object({ ok: z.boolean() }),
+});
+
+const webhookSecret = 'secret';
+const paymentWebhook = webhook('webhook.payment.received', {
+  parse: z.object({ paymentId: z.string() }),
+  path: '/webhooks/payment',
+  verify: (request) =>
+    getWebhookHeader(request, 'x-webhook-secret') === webhookSecret
+      ? Result.ok()
+      : Result.err(new PermissionError('Invalid webhook secret')),
+});
+
+const paymentWebhookTrail = trail('payment.receive', {
+  blaze: (input) => Result.ok({ paymentId: input.paymentId }),
+  input: z.object({ paymentId: z.string() }),
+  on: [paymentWebhook],
+  output: z.object({ paymentId: z.string() }),
+});
+
+const emptyWebhook = webhook('webhook.empty', {
+  parse: z.object({}),
+  path: '/webhooks/empty',
+});
+
+const emptyWebhookTrail = trail('webhook.empty.receive', {
+  blaze: () => Result.ok({ ok: true }),
+  input: z.object({}),
+  on: [emptyWebhook],
   output: z.object({ ok: z.boolean() }),
 });
 
@@ -205,6 +241,85 @@ describe('surface API (Hono connector)', () => {
         code: 'ValidationError',
         message: 'JSON request body exceeds 20 bytes',
       },
+    });
+  });
+
+  test('materializes webhook sources as Hono routes', async () => {
+    const graph = topo('surface-api', { paymentWebhookTrail });
+    const app = createApp(graph);
+
+    const response = await app.request('/webhooks/payment', {
+      body: JSON.stringify({ paymentId: 'pay_1' }),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Webhook-Secret': webhookSecret,
+      },
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: { paymentId: 'pay_1' },
+    });
+  });
+
+  test('webhook verification failures map through surface errors', async () => {
+    const graph = topo('surface-api', { paymentWebhookTrail });
+    const app = createApp(graph);
+
+    const response = await app.request('/webhooks/payment', {
+      body: JSON.stringify({ paymentId: 'pay_1' }),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Webhook-Secret': 'wrong',
+      },
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: {
+        category: 'permission',
+        code: 'PermissionError',
+        message: 'Invalid webhook secret',
+      },
+    });
+  });
+
+  test('webhook payload validation failures return 400', async () => {
+    const graph = topo('surface-api', { paymentWebhookTrail });
+    const app = createApp(graph);
+
+    const response = await app.request('/webhooks/payment', {
+      body: JSON.stringify({ paymentId: 123 }),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Webhook-Secret': webhookSecret,
+      },
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: {
+        category: 'validation',
+        code: 'ValidationError',
+      },
+    });
+  });
+
+  test('empty webhook bodies parse as empty objects', async () => {
+    const graph = topo('surface-api', { emptyWebhookTrail });
+    const app = createApp(graph);
+
+    const response = await app.request('/webhooks/empty', {
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: { ok: true },
     });
   });
 

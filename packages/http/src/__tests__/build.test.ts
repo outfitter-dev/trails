@@ -1,17 +1,19 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, mock, test } from 'bun:test';
 
 import {
   InternalError,
   NotFoundError,
   Result,
   TRAILHEAD_KEY,
+  getActivationProvenance,
   resource,
   signal,
   ValidationError,
   trail,
   topo,
+  webhook,
 } from '@ontrails/core';
-import type { Layer, TrailContext } from '@ontrails/core';
+import type { ActivationSource, Layer, TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
 import { deriveHttpRoutes } from '../build.js';
@@ -91,6 +93,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       const routes = result.value;
       expect(routes).toHaveLength(1);
       expect(routes[0]?.method).toBe('GET');
@@ -101,6 +106,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       const routes = result.value;
       expect(routes).toHaveLength(1);
       expect(routes[0]?.method).toBe('DELETE');
@@ -111,6 +119,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       const routes = result.value;
       expect(routes).toHaveLength(1);
       expect(routes[0]?.method).toBe('POST');
@@ -123,6 +134,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       expect(result.value[0]?.path).toBe('/item/create');
     });
 
@@ -131,6 +145,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       expect(result.value[0]?.path).toBe('/echo');
     });
 
@@ -139,6 +156,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app, { basePath: '/api/v1' });
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       expect(result.value[0]?.path).toBe('/api/v1/echo');
     });
 
@@ -147,6 +167,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app, { basePath: '/api/v1/' });
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       expect(result.value[0]?.path).toBe('/api/v1/echo');
     });
   });
@@ -157,6 +180,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       expect(result.value[0]?.inputSource).toBe('query');
     });
 
@@ -165,6 +191,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       expect(result.value[0]?.inputSource).toBe('body');
     });
 
@@ -173,6 +202,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       expect(result.value[0]?.inputSource).toBe('body');
     });
   });
@@ -183,6 +215,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       const routes = result.value;
       expect(routes).toHaveLength(1);
       expect(routes[0]?.trailId).toBe('echo');
@@ -193,6 +228,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app, { include: ['secret'] });
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       const routes = result.value;
       expect(routes).toHaveLength(1);
       expect(routes[0]?.trailId).toBe('secret');
@@ -203,6 +241,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app, { include: ['**'] });
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       const routes = result.value;
       expect(routes).toHaveLength(1);
       expect(routes[0]?.trailId).toBe('echo');
@@ -216,6 +257,9 @@ describe('deriveHttpRoutes', () => {
       });
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       expect(result.value.map((route) => route.trailId)).toEqual(['echo']);
     });
 
@@ -224,6 +268,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app, { intent: ['read'] });
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       expect(result.value.map((route) => route.trailId)).toEqual(['echo']);
     });
 
@@ -235,6 +282,9 @@ describe('deriveHttpRoutes', () => {
       });
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       expect(result.value.map((route) => route.trailId)).toEqual([
         'item.delete',
       ]);
@@ -252,9 +302,509 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       const routes = result.value;
       expect(routes).toHaveLength(1);
       expect(routes[0]?.trailId).toBe('echo');
+    });
+  });
+
+  describe('webhook source materialization', () => {
+    test('materializes webhook activation sources as HTTP routes', () => {
+      const source = webhook('webhook.payment.received', {
+        parse: z.object({ paymentId: z.string() }),
+        path: '/webhooks/payment',
+      });
+      const receiver = trail('payment.receive', {
+        blaze: (input) => Result.ok({ paymentId: input.paymentId }),
+        input: z.object({ paymentId: z.string() }),
+        on: [source],
+        output: z.object({ paymentId: z.string() }),
+      });
+
+      const result = deriveHttpRoutes(topo('billing', { receiver }));
+
+      expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
+      expect(result.value).toHaveLength(1);
+      expect(result.value[0]).toMatchObject({
+        inputSource: 'webhook',
+        method: 'POST',
+        path: '/webhooks/payment',
+        trailId: 'payment.receive',
+        webhookSource: source,
+      });
+    });
+
+    test('fans out shared webhook source routes to every consumer trail', async () => {
+      const source = webhook('webhook.payment.received', {
+        parse: z.object({ paymentId: z.string() }),
+        path: '/webhooks/payment',
+      });
+      const invoked: string[] = [];
+      const audit = trail('payment.audit', {
+        blaze: (input) => {
+          invoked.push(`audit:${input.paymentId}`);
+          return Result.ok({ audited: input.paymentId });
+        },
+        input: z.object({ paymentId: z.string() }),
+        on: [source],
+        output: z.object({ audited: z.string() }),
+      });
+      const notify = trail('payment.notify', {
+        blaze: (input) => {
+          invoked.push(`notify:${input.paymentId}`);
+          return Result.ok({ notified: input.paymentId });
+        },
+        input: z.object({ paymentId: z.string() }),
+        on: [source],
+        output: z.object({ notified: z.string() }),
+      });
+
+      const result = deriveHttpRoutes(topo('billing', { audit, notify }));
+
+      expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
+      expect(result.value).toHaveLength(1);
+      const [route] = result.value;
+      const parsed = route?.parseWebhookInput?.({ paymentId: 'pay_1' });
+      expect(parsed?.isOk()).toBe(true);
+      if (!parsed?.isOk()) {
+        return;
+      }
+      const executed = await route?.execute(parsed.value);
+      expect(executed?.isOk()).toBe(true);
+      if (!executed?.isOk()) {
+        return;
+      }
+      expect(executed.value).toEqual([
+        { audited: 'pay_1' },
+        { notified: 'pay_1' },
+      ]);
+      expect(invoked).toEqual(['audit:pay_1', 'notify:pay_1']);
+    });
+
+    test('merged webhook consumers share one activation fire ID per inbound request', async () => {
+      const source = webhook('webhook.payment.received', {
+        parse: z.object({ paymentId: z.string() }),
+        path: '/webhooks/payment',
+      });
+      const fireIds: (string | undefined)[] = [];
+      const rootFireIds: (string | undefined)[] = [];
+      const sourceIds: (string | undefined)[] = [];
+      const audit = trail('payment.audit', {
+        blaze: (input, ctx) => {
+          const activation = getActivationProvenance(ctx);
+          fireIds.push(activation?.fireId);
+          rootFireIds.push(activation?.rootFireId);
+          sourceIds.push(activation?.source.id);
+          return Result.ok({ audited: input.paymentId });
+        },
+        input: z.object({ paymentId: z.string() }),
+        on: [source],
+        output: z.object({ audited: z.string() }),
+      });
+      const notify = trail('payment.notify', {
+        blaze: (input, ctx) => {
+          const activation = getActivationProvenance(ctx);
+          fireIds.push(activation?.fireId);
+          rootFireIds.push(activation?.rootFireId);
+          sourceIds.push(activation?.source.id);
+          return Result.ok({ notified: input.paymentId });
+        },
+        input: z.object({ paymentId: z.string() }),
+        on: [source],
+        output: z.object({ notified: z.string() }),
+      });
+
+      let nextId = 0;
+      const randomUUID = mock(() => {
+        nextId += 1;
+        return `00000000-0000-4000-8000-00000000000${nextId}`;
+      });
+      const originalRandomUUID = globalThis.crypto.randomUUID;
+      Object.defineProperty(globalThis.crypto, 'randomUUID', {
+        configurable: true,
+        value: randomUUID,
+      });
+
+      try {
+        const result = deriveHttpRoutes(topo('billing', { audit, notify }));
+        expect(result.isOk()).toBe(true);
+        if (!result.isOk()) {
+          return;
+        }
+        const [route] = result.value;
+        const parsed = route?.parseWebhookInput?.({ paymentId: 'pay_1' });
+        expect(parsed?.isOk()).toBe(true);
+        if (!parsed?.isOk()) {
+          return;
+        }
+        const executed = await route?.execute(parsed.value);
+        expect(executed?.isOk()).toBe(true);
+
+        expect(fireIds).toHaveLength(2);
+        expect(fireIds[0]).toBeDefined();
+        expect(fireIds[0]).toBe(fireIds[1]);
+        expect(rootFireIds[0]).toBe(fireIds[0]);
+        expect(rootFireIds[1]).toBe(fireIds[1]);
+        expect(sourceIds).toEqual([
+          'webhook.payment.received',
+          'webhook.payment.received',
+        ]);
+        // Exactly one activation fire ID is generated per inbound request,
+        // regardless of how many consumers fan out from it.
+        expect(randomUUID).toHaveBeenCalledTimes(1);
+      } finally {
+        Object.defineProperty(globalThis.crypto, 'randomUUID', {
+          configurable: true,
+          value: originalRandomUUID,
+        });
+      }
+    });
+
+    test('prepends basePath to webhook source paths', () => {
+      const source = webhook('webhook.payment.received', {
+        parse: z.object({ paymentId: z.string() }),
+        path: '/webhooks/payment',
+      });
+      const receiver = trail('payment.receive', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({ paymentId: z.string() }),
+        on: [source],
+      });
+
+      const result = deriveHttpRoutes(topo('billing', { receiver }), {
+        basePath: '/api',
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
+      expect(result.value[0]?.path).toBe('/api/webhooks/payment');
+    });
+
+    test('canonicalizes manual webhook source methods and paths', () => {
+      const source: ActivationSource = {
+        id: 'webhook.payment.received',
+        kind: 'webhook',
+        method: 'post',
+        parse: z.object({ paymentId: z.string() }),
+        path: ' /webhooks/payment ',
+      };
+      const receiver = trail('payment.receive', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({ paymentId: z.string() }),
+        on: [source],
+      });
+
+      const result = deriveHttpRoutes(topo('billing', { receiver }));
+
+      expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
+      expect(result.value[0]?.method).toBe('POST');
+      expect(result.value[0]?.path).toBe('/webhooks/payment');
+      expect(result.value[0]?.webhookSource).toMatchObject({
+        method: 'POST',
+        path: '/webhooks/payment',
+      });
+    });
+
+    test('parses webhook payloads before executing the consumer trail', async () => {
+      const source = webhook('webhook.payment.received', {
+        parse: z.object({ paymentId: z.string() }),
+        path: '/webhooks/payment',
+      });
+      let activationSourceId: string | undefined;
+      let activationFireId: string | undefined;
+      const receiver = trail('payment.receive', {
+        blaze: (input, ctx) => {
+          const activation = getActivationProvenance(ctx);
+          activationSourceId = activation?.source.id;
+          activationFireId = activation?.fireId;
+          return Result.ok({ paymentId: input.paymentId });
+        },
+        input: z.object({ paymentId: z.string() }),
+        on: [source],
+        output: z.object({ paymentId: z.string() }),
+      });
+      const randomUUID = mock(() => '00000000-0000-4000-8000-000000000000');
+      const originalRandomUUID = globalThis.crypto.randomUUID;
+      Object.defineProperty(globalThis.crypto, 'randomUUID', {
+        configurable: true,
+        value: randomUUID,
+      });
+
+      try {
+        const result = deriveHttpRoutes(topo('billing', { receiver }));
+
+        expect(result.isOk()).toBe(true);
+        if (!result.isOk()) {
+          return;
+        }
+        const [route] = result.value;
+        const parsed = route?.parseWebhookInput?.({ paymentId: 'pay_1' });
+        expect(parsed?.isOk()).toBe(true);
+        if (!parsed?.isOk()) {
+          return;
+        }
+
+        const executed = await route?.execute(parsed.value);
+        expect(executed?.isOk()).toBe(true);
+        if (!executed?.isOk()) {
+          return;
+        }
+        expect(executed.value).toEqual({ paymentId: 'pay_1' });
+        expect(activationSourceId).toBe('webhook.payment.received');
+        expect(activationFireId).toBe('00000000-0000-4000-8000-000000000000');
+        expect(randomUUID).toHaveBeenCalledTimes(1);
+      } finally {
+        Object.defineProperty(globalThis.crypto, 'randomUUID', {
+          configurable: true,
+          value: originalRandomUUID,
+        });
+      }
+    });
+
+    test('webhook where guards skip execution when they return false', async () => {
+      const source = webhook('webhook.payment.received', {
+        parse: z.object({ paymentId: z.string() }),
+        path: '/webhooks/payment',
+      });
+      let invoked = 0;
+      const receiver = trail('payment.receive', {
+        blaze: (input) => {
+          invoked += 1;
+          return Result.ok({ paymentId: input.paymentId });
+        },
+        input: z.object({ paymentId: z.string() }),
+        on: [{ source, where: () => false }],
+        output: z.object({ paymentId: z.string() }),
+      });
+      const result = deriveHttpRoutes(topo('billing', { receiver }));
+
+      expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
+      const [route] = result.value;
+      const parsed = route?.parseWebhookInput?.({ paymentId: 'pay_1' });
+      expect(parsed?.isOk()).toBe(true);
+      if (!parsed?.isOk()) {
+        return;
+      }
+
+      const executed = await route?.execute(parsed.value);
+
+      expect(executed?.isOk()).toBe(true);
+      if (!executed?.isOk()) {
+        return;
+      }
+      expect(executed.value).toBeUndefined();
+      expect(invoked).toBe(0);
+    });
+
+    test('rejects webhook routes that collide with derived trail routes', () => {
+      const source = webhook('webhook.payment.received', {
+        parse: z.object({ paymentId: z.string() }),
+        path: '/webhooks/payment',
+      });
+      const receiver = trail('payment.receive', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({ paymentId: z.string() }),
+        on: [source],
+      });
+      const direct = trail('webhooks.payment', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+      });
+
+      const result = deriveHttpRoutes(topo('billing', { direct, receiver }));
+
+      expect(result.isErr()).toBe(true);
+      if (!result.isErr()) {
+        return;
+      }
+      expect(result.error).toBeInstanceOf(ValidationError);
+      expect(result.error.message).toContain('POST /webhooks/payment');
+    });
+
+    test('rejects shared webhook routes with mismatched verifier policies', () => {
+      const verifyA = mock(() => Promise.resolve(Result.ok()));
+      const verifyB = mock(() => Promise.resolve(Result.ok()));
+      const sourceA = webhook('webhook.payment.received', {
+        parse: z.object({ paymentId: z.string() }),
+        path: '/webhooks/payment',
+        verify: verifyA,
+      });
+      const sourceB = webhook('webhook.payment.received', {
+        parse: z.object({ paymentId: z.string() }),
+        path: '/webhooks/payment',
+        verify: verifyB,
+      });
+      const audit = trail('payment.audit', {
+        blaze: (input) => Result.ok({ audited: input.paymentId }),
+        input: z.object({ paymentId: z.string() }),
+        on: [sourceA],
+        output: z.object({ audited: z.string() }),
+      });
+      const notify = trail('payment.notify', {
+        blaze: (input) => Result.ok({ notified: input.paymentId }),
+        input: z.object({ paymentId: z.string() }),
+        on: [sourceB],
+        output: z.object({ notified: z.string() }),
+      });
+
+      // PR #348 tightened the upstream validator to reject mismatched
+      // verifier policies; bypass it here so we exercise the HTTP-level
+      // merge guard directly.
+      const result = deriveHttpRoutes(topo('billing', { audit, notify }), {
+        validate: false,
+      });
+
+      expect(result.isErr()).toBe(true);
+      if (!result.isErr()) {
+        return;
+      }
+      expect(result.error).toBeInstanceOf(ValidationError);
+      expect(result.error.message).toContain('webhook verifier policy');
+      expect(result.error.message).toContain('POST /webhooks/payment');
+    });
+
+    test('merges shared webhook routes when verifier and parse identities match', () => {
+      const verify = mock(() => Promise.resolve(Result.ok()));
+      const parse = z.object({ paymentId: z.string() });
+      const sourceA = webhook('webhook.payment.received', {
+        parse,
+        path: '/webhooks/payment',
+        verify,
+      });
+      const sourceB = webhook('webhook.payment.received', {
+        parse,
+        path: '/webhooks/payment',
+        verify,
+      });
+      const audit = trail('payment.audit', {
+        blaze: (input) => Result.ok({ audited: input.paymentId }),
+        input: z.object({ paymentId: z.string() }),
+        on: [sourceA],
+        output: z.object({ audited: z.string() }),
+      });
+      const notify = trail('payment.notify', {
+        blaze: (input) => Result.ok({ notified: input.paymentId }),
+        input: z.object({ paymentId: z.string() }),
+        on: [sourceB],
+        output: z.object({ notified: z.string() }),
+      });
+
+      const result = deriveHttpRoutes(topo('billing', { audit, notify }), {
+        validate: false,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
+      expect(result.value).toHaveLength(1);
+    });
+
+    test('rejects shared webhook routes with mismatched parse contracts', () => {
+      const verify = mock(() => Promise.resolve(Result.ok()));
+      const sourceA = webhook('webhook.payment.received', {
+        parse: z.object({ paymentId: z.string() }),
+        path: '/webhooks/payment',
+        verify,
+      });
+      const sourceB = webhook('webhook.payment.received', {
+        parse: z.object({ amount: z.number(), paymentId: z.string() }),
+        path: '/webhooks/payment',
+        verify,
+      });
+      const audit = trail('payment.audit', {
+        blaze: (input) => Result.ok({ audited: input.paymentId }),
+        input: z.object({ paymentId: z.string() }),
+        on: [sourceA],
+        output: z.object({ audited: z.string() }),
+      });
+      const notify = trail('payment.notify', {
+        blaze: (input) => Result.ok({ notified: input.paymentId }),
+        input: z.object({ paymentId: z.string() }),
+        on: [sourceB],
+        output: z.object({ notified: z.string() }),
+      });
+
+      // The upstream `activation-source-definition-unique` validator rejects
+      // mismatched parse contracts, so bypass it here to exercise the
+      // HTTP-level merge guard directly.
+      const result = deriveHttpRoutes(topo('billing', { audit, notify }), {
+        validate: false,
+      });
+
+      expect(result.isErr()).toBe(true);
+      if (!result.isErr()) {
+        return;
+      }
+      expect(result.error).toBeInstanceOf(ValidationError);
+      expect(result.error.message).toContain('webhook parse contract');
+      expect(result.error.message).toContain('POST /webhooks/payment');
+    });
+
+    test('runs every fan-out consumer even when an earlier consumer fails', async () => {
+      const source = webhook('webhook.payment.received', {
+        parse: z.object({ paymentId: z.string() }),
+        path: '/webhooks/payment',
+      });
+      const invoked: string[] = [];
+      const failing = trail('payment.audit', {
+        blaze: (input) => {
+          invoked.push(`audit:${input.paymentId}`);
+          return Result.err(new ValidationError('audit blew up'));
+        },
+        input: z.object({ paymentId: z.string() }),
+        on: [source],
+        output: z.object({ audited: z.string() }),
+      });
+      const succeeding = trail('payment.notify', {
+        blaze: (input) => {
+          invoked.push(`notify:${input.paymentId}`);
+          return Result.ok({ notified: input.paymentId });
+        },
+        input: z.object({ paymentId: z.string() }),
+        on: [source],
+        output: z.object({ notified: z.string() }),
+      });
+
+      const built = deriveHttpRoutes(topo('billing', { failing, succeeding }));
+      expect(built.isOk()).toBe(true);
+      if (!built.isOk()) {
+        return;
+      }
+      const [route] = built.value;
+      const parsed = route?.parseWebhookInput?.({ paymentId: 'pay_1' });
+      expect(parsed?.isOk()).toBe(true);
+      if (!parsed?.isOk()) {
+        return;
+      }
+
+      const executed = await route?.execute(parsed.value);
+
+      // Every consumer attempted, regardless of order or earlier failures.
+      expect(invoked).toEqual(['audit:pay_1', 'notify:pay_1']);
+      // First error surfaces; later successes do not mask it.
+      expect(executed?.isErr()).toBe(true);
+      if (!executed?.isErr()) {
+        return;
+      }
+      expect(executed.error.message).toContain('audit blew up');
     });
   });
 
@@ -264,7 +814,10 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
-      expect(result.value[0]?.trail).toBe(echoTrail);
+      if (!result.isOk()) {
+        return;
+      }
+      expect(Object.is(result.value[0]?.trail, echoTrail)).toBe(true);
     });
 
     test('execute is a function', () => {
@@ -272,6 +825,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       expect(typeof result.value[0]?.execute).toBe('function');
     });
   });
@@ -282,11 +838,17 @@ describe('deriveHttpRoutes', () => {
       const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
       const [route] = buildResult.value;
 
       const result = await route?.execute({ message: 'hello' });
       expect(result?.isOk()).toBe(true);
-      expect(result?.value).toEqual({ reply: 'hello' });
+      if (!result?.isOk()) {
+        return;
+      }
+      expect(result.value).toEqual({ reply: 'hello' });
     });
 
     test('returns err Result on invalid input', async () => {
@@ -294,6 +856,9 @@ describe('deriveHttpRoutes', () => {
       const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
       const [route] = buildResult.value;
 
       const result = await route?.execute({});
@@ -305,11 +870,17 @@ describe('deriveHttpRoutes', () => {
       const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
       const [route] = buildResult.value;
 
       const result = await route?.execute({ id: 'missing' });
       expect(result?.isErr()).toBe(true);
-      expect(result?.error?.message).toBe('Item not found');
+      if (!result?.isErr()) {
+        return;
+      }
+      expect(result.error.message).toBe('Item not found');
     });
 
     test('returns err Result from internal error', async () => {
@@ -317,11 +888,17 @@ describe('deriveHttpRoutes', () => {
       const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
       const [route] = buildResult.value;
 
       const result = await route?.execute({});
       expect(result?.isErr()).toBe(true);
-      expect(result?.error?.message).toBe('Something broke');
+      if (!result?.isErr()) {
+        return;
+      }
+      expect(result.error.message).toBe('Something broke');
     });
 
     test('returns err Result when run function throws', async () => {
@@ -335,12 +912,18 @@ describe('deriveHttpRoutes', () => {
       const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
       const [route] = buildResult.value;
 
       const result = await route?.execute({});
       expect(result?.isErr()).toBe(true);
-      expect(result?.error).toBeInstanceOf(InternalError);
-      expect(result?.error?.message).toBe('unexpected throw');
+      if (!result?.isErr()) {
+        return;
+      }
+      expect(result.error).toBeInstanceOf(InternalError);
+      expect(result.error.message).toBe('unexpected throw');
     });
 
     test('returns err Result when createContext throws', async () => {
@@ -352,12 +935,18 @@ describe('deriveHttpRoutes', () => {
       });
 
       expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
       const [route] = buildResult.value;
 
       const result = await route?.execute({ message: 'hi' });
       expect(result?.isErr()).toBe(true);
-      expect(result?.error).toBeInstanceOf(InternalError);
-      expect(result?.error?.message).toBe('context creation failed');
+      if (!result?.isErr()) {
+        return;
+      }
+      expect(result.error).toBeInstanceOf(InternalError);
+      expect(result.error.message).toBe('context creation failed');
     });
 
     test('passes topo to executeTrail so HTTP-invoked producers can fan out', async () => {
@@ -384,6 +973,9 @@ describe('deriveHttpRoutes', () => {
       const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
       const [route] = buildResult.value;
 
       const result = await route?.execute({ orderId: 'o-http' });
@@ -408,6 +1000,9 @@ describe('deriveHttpRoutes', () => {
       const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
       const [route] = buildResult.value;
 
       await route?.execute({}, 'custom-req-123');
@@ -430,6 +1025,9 @@ describe('deriveHttpRoutes', () => {
       const buildResult = deriveHttpRoutes(app);
 
       expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
       const [route] = buildResult.value;
 
       await route?.execute({});
@@ -452,11 +1050,17 @@ describe('deriveHttpRoutes', () => {
       });
 
       expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
       const [route] = buildResult.value;
 
       const result = await route?.execute({});
       expect(result?.isOk()).toBe(true);
-      expect(result?.value).toEqual({ source: 'override' });
+      if (!result?.isOk()) {
+        return;
+      }
+      expect(result.value).toEqual({ source: 'override' });
     });
   });
 
@@ -480,6 +1084,9 @@ describe('deriveHttpRoutes', () => {
       const buildResult = deriveHttpRoutes(app, { layers: [testGate] });
 
       expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
       const [route] = buildResult.value;
 
       const result = await route?.execute({ message: 'hi' });
@@ -513,6 +1120,9 @@ describe('deriveHttpRoutes', () => {
       });
 
       expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
       const [route] = buildResult.value;
 
       const result = await route?.execute({});
@@ -543,8 +1153,11 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app);
 
       expect(result.isErr()).toBe(true);
+      if (!result.isErr()) {
+        return;
+      }
       expect(result.error).toBeInstanceOf(ValidationError);
-      expect(result.error?.message).toContain('GET /entity/show');
+      expect(result.error.message).toContain('GET /entity/show');
     });
 
     test('same path with different methods is allowed', () => {
@@ -566,6 +1179,9 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app);
 
       expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
       expect(result.value).toHaveLength(2);
     });
 
@@ -586,7 +1202,10 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(app);
 
       expect(result.isErr()).toBe(true);
-      expect(result.error?.message).toContain('entity');
+      if (!result.isErr()) {
+        return;
+      }
+      expect(result.error.message).toContain('entity');
     });
   });
 
@@ -601,7 +1220,10 @@ describe('deriveHttpRoutes', () => {
       const result = deriveHttpRoutes(topo('testapp', { draftTrail }));
 
       expect(result.isErr()).toBe(true);
-      expect(result.error?.message).toMatch(/draft/i);
+      if (!result.isErr()) {
+        return;
+      }
+      expect(result.error.message).toMatch(/draft/i);
     });
   });
 });

@@ -263,6 +263,38 @@ const readJsonBody = async (
   }
 };
 
+const parseJsonBodyText = (text: string): JsonBodyReadResult => {
+  try {
+    return JSON.parse(text) as JsonValue;
+  } catch {
+    return JSON_PARSE_ERROR;
+  }
+};
+
+const parseWebhookBodyText = (
+  c: HonoContext,
+  text: string
+): JsonBodyReadResult =>
+  isEmptyBody(c) || text.length === 0 ? {} : parseJsonBodyText(text);
+
+const readWebhookBodyText = async (
+  c: HonoContext,
+  maxJsonBodyBytes: number
+): Promise<
+  string | typeof JSON_BODY_INVALID_CONTENT_LENGTH | typeof JSON_BODY_TOO_LARGE
+> => {
+  if (
+    parseContentLength(c.req.header('Content-Length')) ===
+    JSON_BODY_INVALID_CONTENT_LENGTH
+  ) {
+    return JSON_BODY_INVALID_CONTENT_LENGTH;
+  }
+  if (hasOversizedContentLength(c, maxJsonBodyBytes)) {
+    return JSON_BODY_TOO_LARGE;
+  }
+  return await readBodyText(c, maxJsonBodyBytes);
+};
+
 /** Read input from request based on input source. */
 const readInput = async (
   c: HonoContext,
@@ -362,49 +394,158 @@ const handleCaughtError = (error: unknown, c: HonoContext): Response => {
   return c.json(body, status);
 };
 
+const invalidJsonResponse = (c: HonoContext): Response =>
+  c.json(
+    {
+      error: {
+        category: 'validation',
+        code: 'ValidationError',
+        message: 'Invalid JSON in request body',
+      },
+    },
+    400
+  );
+
+const invalidContentLengthResponse = (c: HonoContext): Response =>
+  c.json(
+    {
+      error: {
+        category: 'validation',
+        code: 'ValidationError',
+        message: 'Invalid Content-Length header',
+      },
+    },
+    400
+  );
+
+const oversizedJsonBodyResponse = (
+  c: HonoContext,
+  options: RuntimeOptions
+): Response =>
+  c.json(
+    {
+      error: {
+        category: 'validation',
+        code: 'ValidationError',
+        message: `JSON request body exceeds ${options.maxJsonBodyBytes} bytes`,
+      },
+    },
+    413
+  );
+
+const collectHeaders = (c: HonoContext): Record<string, string> => {
+  const headers: Record<string, string> = {};
+  for (const [key, value] of c.req.raw.headers) {
+    headers[key] = value;
+  }
+  return headers;
+};
+
+const createWebhookVerifyRequest = (
+  c: HonoContext,
+  body: string
+): {
+  readonly body: string;
+  readonly headers: Record<string, string>;
+  readonly method: string;
+  readonly path: string;
+} => ({
+  body,
+  headers: collectHeaders(c),
+  method: c.req.method,
+  path: new URL(c.req.url).pathname,
+});
+
+const recordInvalidWebhook = async (
+  route: HttpRouteDefinition,
+  errorCategory = 'validation'
+): Promise<void> => {
+  await route.recordWebhookInvalid?.(errorCategory);
+};
+
+const errorCategoryForWebhookFailure = (error: Error | undefined): string =>
+  error !== undefined && isTrailsError(error) ? error.category : 'internal';
+
+const handleWebhookRoute = async (
+  route: HttpRouteDefinition,
+  options: RuntimeOptions,
+  c: HonoContext
+): Promise<Response> => {
+  const rawBody = await readWebhookBodyText(c, options.maxJsonBodyBytes);
+
+  if (rawBody === JSON_BODY_INVALID_CONTENT_LENGTH) {
+    await recordInvalidWebhook(route);
+    return invalidContentLengthResponse(c);
+  }
+
+  if (rawBody === JSON_BODY_TOO_LARGE) {
+    await recordInvalidWebhook(route);
+    return oversizedJsonBodyResponse(c, options);
+  }
+
+  const verified = await route.verifyWebhook?.(
+    createWebhookVerifyRequest(c, rawBody)
+  );
+  if (verified?.isErr()) {
+    await recordInvalidWebhook(
+      route,
+      errorCategoryForWebhookFailure(verified.error)
+    );
+    return mapResultToResponse(verified, c);
+  }
+
+  const jsonBody = parseWebhookBodyText(c, rawBody);
+  if (jsonBody === JSON_PARSE_ERROR) {
+    await recordInvalidWebhook(route);
+    return invalidJsonResponse(c);
+  }
+
+  const parsed = route.parseWebhookInput?.(jsonBody);
+  if (parsed === undefined) {
+    await recordInvalidWebhook(route);
+    return mapResultToResponse(
+      {
+        error: new ValidationError('Webhook route is missing parse handler'),
+        isOk: () => false,
+      },
+      c
+    );
+  }
+  if (parsed.isErr()) {
+    await recordInvalidWebhook(route);
+    return mapResultToResponse(parsed, c);
+  }
+
+  const requestId = c.req.header('X-Request-ID') ?? undefined;
+  const { signal: abortSignal } = c.req.raw;
+  const result = await route.execute(parsed.value, requestId, abortSignal);
+  return mapResultToResponse(result, c);
+};
+
 /** Create a Hono handler from a route definition. */
 const createHonoHandler =
   (route: HttpRouteDefinition, options: RuntimeOptions) =>
   async (c: HonoContext): Promise<Response> => {
+    if (route.inputSource === 'webhook') {
+      try {
+        return await handleWebhookRoute(route, options, c);
+      } catch (error: unknown) {
+        return handleCaughtError(error, c);
+      }
+    }
+
     const rawInput = await readInput(c, route.inputSource, options);
 
     if (rawInput === JSON_PARSE_ERROR) {
-      return c.json(
-        {
-          error: {
-            category: 'validation',
-            code: 'ValidationError',
-            message: 'Invalid JSON in request body',
-          },
-        },
-        400
-      );
+      return invalidJsonResponse(c);
     }
 
     if (rawInput === JSON_BODY_INVALID_CONTENT_LENGTH) {
-      return c.json(
-        {
-          error: {
-            category: 'validation',
-            code: 'ValidationError',
-            message: 'Invalid Content-Length header',
-          },
-        },
-        400
-      );
+      return invalidContentLengthResponse(c);
     }
 
     if (rawInput === JSON_BODY_TOO_LARGE) {
-      return c.json(
-        {
-          error: {
-            category: 'validation',
-            code: 'ValidationError',
-            message: `JSON request body exceeds ${options.maxJsonBodyBytes} bytes`,
-          },
-        },
-        413
-      );
+      return oversizedJsonBodyResponse(c, options);
     }
 
     const requestId = c.req.header('X-Request-ID') ?? undefined;
@@ -433,8 +574,14 @@ const routeRegistrars: Record<
   GET: (hono, path, handler) => {
     hono.get(path, handler);
   },
+  PATCH: (hono, path, handler) => {
+    hono.patch(path, handler);
+  },
   POST: (hono, path, handler) => {
     hono.post(path, handler);
+  },
+  PUT: (hono, path, handler) => {
+    hono.put(path, handler);
   },
 };
 

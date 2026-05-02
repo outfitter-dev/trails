@@ -1,10 +1,10 @@
-import type { Intent } from '@ontrails/core';
+import type { Intent, WebhookMethod } from '@ontrails/core';
 
-export type HttpMethod = 'GET' | 'POST' | 'DELETE';
+export type HttpMethod = 'GET' | 'POST' | 'DELETE' | WebhookMethod;
 
 export type HttpOperationMethod = Lowercase<HttpMethod>;
 
-export type InputSource = 'query' | 'body';
+export type InputSource = 'query' | 'body' | 'webhook';
 
 export const httpMethodByIntent = {
   destroy: 'DELETE',

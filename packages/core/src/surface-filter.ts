@@ -151,7 +151,7 @@ export const shouldIncludeTrailForSurface = (
   trail: Trail<unknown, unknown, unknown>,
   options: SurfaceFilterOptions = {}
 ): boolean => {
-  if (trail.on.length > 0) {
+  if (trail.activationSources.length > 0) {
     return false;
   }
 

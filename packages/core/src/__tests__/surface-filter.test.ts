@@ -6,6 +6,7 @@ import { Result } from '../result.js';
 import { filterSurfaceTrails, matchesTrailPattern } from '../surface-filter.js';
 import { signal } from '../signal.js';
 import { trail } from '../trail.js';
+import { webhook } from '../webhook.js';
 
 const orderPlaced = signal('order.placed', {
   payload: z.object({ orderId: z.string() }),
@@ -49,6 +50,17 @@ const consumerTrail = trail('notify.email', {
   blaze: () => Result.ok({ ok: true }),
   input: z.object({}),
   on: [orderPlaced],
+});
+
+const webhookConsumerTrail = trail('payment.receive', {
+  blaze: () => Result.ok({ ok: true }),
+  input: z.object({ paymentId: z.string() }),
+  on: [
+    webhook('webhook.payment.received', {
+      parse: z.object({ paymentId: z.string() }),
+      path: '/webhooks/payment',
+    }),
+  ],
 });
 
 describe('matchesTrailPattern', () => {
@@ -189,6 +201,14 @@ describe('filterSurfaceTrails', () => {
       expect(
         filterSurfaceTrails([consumerTrail], {
           include: ['notify.email'],
+        })
+      ).toEqual([]);
+    });
+
+    test('webhook-activated trails are not exposed as direct trailhead routes', () => {
+      expect(
+        filterSurfaceTrails([webhookConsumerTrail], {
+          include: ['payment.receive'],
         })
       ).toEqual([]);
     });
