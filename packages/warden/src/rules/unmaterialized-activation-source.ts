@@ -8,9 +8,10 @@ const TOPO_FILE = '<topo>';
 const MATERIALIZED_SOURCE_KINDS = new Set<ActivationSourceKind>([
   'schedule',
   'signal',
+  'webhook',
 ]);
 
-const PENDING_SOURCE_KINDS = new Set<ActivationSourceKind>(['webhook']);
+const PENDING_SOURCE_KINDS = new Set<ActivationSourceKind>();
 
 interface SourceConsumers {
   readonly id: string;

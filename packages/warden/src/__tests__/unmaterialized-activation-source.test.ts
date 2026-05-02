@@ -3,18 +3,16 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { Result, schedule, signal, topo, trail } from '@ontrails/core';
-import type { ActivationSource } from '@ontrails/core';
+import { Result, schedule, signal, topo, trail, webhook } from '@ontrails/core';
 import { z } from 'zod';
 
 import { runWarden } from '../cli.js';
 import { unmaterializedActivationSource } from '../rules/unmaterialized-activation-source.js';
 
-const webhookSource = {
-  id: 'webhook.invoice.paid',
-  kind: 'webhook',
-  payload: z.object({ invoiceId: z.string() }),
-} as const satisfies ActivationSource;
+const webhookSource = webhook('webhook.invoice.paid', {
+  parse: z.object({ invoiceId: z.string() }),
+  path: '/webhooks/invoice/paid',
+});
 
 const webhookConsumer = trail('invoice.audit-webhook', {
   blaze: () => Result.ok({ ok: true }),
@@ -43,7 +41,7 @@ const signalConsumer = trail('invoice.index', {
 });
 
 describe('unmaterialized-activation-source', () => {
-  test('warns once for a webhook source and lists all consuming trails', async () => {
+  test('stays quiet for webhook sources now that HTTP materializes them', async () => {
     const notifyConsumer = trail('invoice.notify-webhook', {
       blaze: () => Result.ok({ ok: true }),
       input: z.object({ invoiceId: z.string() }),
@@ -63,19 +61,10 @@ describe('unmaterialized-activation-source', () => {
       })
     );
 
-    expect(diagnostics).toEqual([
-      {
-        filePath: '<topo>',
-        line: 1,
-        message:
-          'Activation source "webhook.invoice.paid" of kind "webhook" activates trails "invoice.audit-webhook", "invoice.notify-webhook" but no built-in materializer is available in this stack. Add the materializer before relying on runtime delivery, or defer the source declaration until the materializer lands.',
-        rule: 'unmaterialized-activation-source',
-        severity: 'warn',
-      },
-    ]);
+    expect(diagnostics).toEqual([]);
   });
 
-  test('stays quiet for schedule and signal activation sources', async () => {
+  test('stays quiet for schedule, signal, and webhook activation sources', async () => {
     const scheduleConsumer = trail('invoice.reconcile', {
       blaze: () => Result.ok({ ok: true }),
       input: z.object({}),
@@ -89,6 +78,7 @@ describe('unmaterialized-activation-source', () => {
         scheduleConsumer,
         signalConsumer,
         signalProducer,
+        webhookConsumer,
       })
     );
 
@@ -96,11 +86,10 @@ describe('unmaterialized-activation-source', () => {
   });
 
   test('keeps source kind in the materialization key', async () => {
-    const sameIdWebhook = {
-      id: 'shared.source',
-      kind: 'webhook',
-      payload: z.object({ id: z.string() }),
-    } as const satisfies ActivationSource;
+    const sameIdWebhook = webhook('shared.source', {
+      parse: z.object({ id: z.string() }),
+      path: '/webhooks/shared',
+    });
     const sameIdSignal = signal('shared.source', {
       from: ['shared.producer'],
       payload: z.object({ id: z.string() }),
@@ -133,15 +122,10 @@ describe('unmaterialized-activation-source', () => {
       })
     );
 
-    expect(diagnostics).toHaveLength(1);
-    expect(diagnostics[0]?.message).toContain(
-      'Activation source "shared.source" of kind "webhook"'
-    );
-    expect(diagnostics[0]?.message).toContain('"shared.webhook-consumer"');
-    expect(diagnostics[0]?.message).not.toContain('"shared.signal-consumer"');
+    expect(diagnostics).toEqual([]);
   });
 
-  test('runWarden includes unmaterialized source coaching when topo is supplied', async () => {
+  test('runWarden does not warn for webhook sources once materialized', async () => {
     const rootDir = mkdtempSync(
       join(tmpdir(), 'warden-unmaterialized-source-')
     );
@@ -152,16 +136,16 @@ describe('unmaterialized-activation-source', () => {
         topo: topo('unmaterialized-webhook', { webhookConsumer }),
       });
 
-      expect(report.diagnostics).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            message: expect.stringContaining('no built-in materializer'),
-            rule: 'unmaterialized-activation-source',
-            severity: 'warn',
-          }),
-        ])
+      expect(
+        report.diagnostics.some(
+          (diagnostic) => diagnostic.rule === 'unmaterialized-activation-source'
+        )
+      ).toBe(false);
+      expect(report.warnCount).toBe(
+        report.diagnostics.filter(
+          (diagnostic) => diagnostic.severity === 'warn'
+        ).length
       );
-      expect(report.warnCount).toBeGreaterThan(0);
     } finally {
       rmSync(rootDir, { force: true, recursive: true });
     }

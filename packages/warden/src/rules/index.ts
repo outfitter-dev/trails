@@ -41,6 +41,7 @@ import { validDetourContract } from './valid-detour-contract.js';
 import { validDescribeRefs } from './valid-describe-refs.js';
 import { wardenExportSymmetry } from './warden-export-symmetry.js';
 import { wardenRulesUseAst } from './warden-rules-use-ast.js';
+import { webhookRouteCollision } from './webhook-route-collision.js';
 
 export type {
   WardenRuleLifecycle,
@@ -106,6 +107,7 @@ export { unmaterializedActivationSource } from './unmaterialized-activation-sour
 export { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 export { validDetourContract } from './valid-detour-contract.js';
 export { validDescribeRefs } from './valid-describe-refs.js';
+export { webhookRouteCollision } from './webhook-route-collision.js';
 
 /** All built-in warden rules, keyed by rule name. */
 export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
@@ -171,4 +173,5 @@ export const wardenTopoRules: ReadonlyMap<string, TopoAwareWardenRule> =
     [signalGraphCoaching.name, signalGraphCoaching],
     [unmaterializedActivationSource.name, unmaterializedActivationSource],
     [validDetourContract.name, validDetourContract],
+    [webhookRouteCollision.name, webhookRouteCollision],
   ]);

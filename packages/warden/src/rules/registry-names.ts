@@ -47,6 +47,7 @@ import { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 import { validDetourContract } from './valid-detour-contract.js';
 import { validDescribeRefs } from './valid-describe-refs.js';
 import { wardenRulesUseAst } from './warden-rules-use-ast.js';
+import { webhookRouteCollision } from './webhook-route-collision.js';
 
 /**
  * All non-`warden-export-symmetry` rule identifiers registered in
@@ -96,4 +97,5 @@ export const registeredRuleNames: readonly string[] = [
   validDetourContract.name,
   validDescribeRefs.name,
   wardenRulesUseAst.name,
+  webhookRouteCollision.name,
 ];

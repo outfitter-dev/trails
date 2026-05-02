@@ -266,6 +266,12 @@ export const builtinWardenRuleMetadata = {
     invariant: 'Warden source rules use AST helpers instead of ad hoc parsing.',
     tier: 'source-static',
   },
+  'webhook-route-collision': {
+    ...durableExternal,
+    invariant:
+      'Webhook routes do not collide with each other or direct HTTP trail routes.',
+    tier: 'topo-aware',
+  },
 } as const satisfies Record<string, WardenRuleMetadata>;
 
 export type BuiltinWardenRuleName = keyof typeof builtinWardenRuleMetadata;
