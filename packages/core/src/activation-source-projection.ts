@@ -108,6 +108,11 @@ const parseOutputSchema = (
   return undefined;
 };
 
+const normalizeWebhookMethod = (method: string | undefined): string =>
+  (method ?? 'POST').trim().toUpperCase();
+
+const normalizeWebhookPath = (path: string): string => path.trim();
+
 export const projectActivationSourceDeclaration = (
   source: ActivationSource
 ): ActivationSourceProjection => {
@@ -130,12 +135,23 @@ export const projectActivationSourceDeclaration = (
   if (source.meta !== undefined) {
     record['meta'] = canonicalize(source.meta);
   }
+  if (source.kind === 'webhook') {
+    record['method'] = normalizeWebhookMethod(source.method);
+  } else if (source.method !== undefined) {
+    record['method'] = source.method;
+  }
   if (source.parse !== undefined) {
     record['hasParse'] = true;
     const output = parseOutputSchema(source);
     if (output !== undefined) {
       record['parseOutputSchema'] = toSortedJsonSchema(output);
     }
+  }
+  if (source.path !== undefined) {
+    record['path'] =
+      source.kind === 'webhook'
+        ? normalizeWebhookPath(source.path)
+        : source.path;
   }
   if (source.payload !== undefined) {
     record['hasPayloadSchema'] = true;

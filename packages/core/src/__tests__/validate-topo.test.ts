@@ -11,6 +11,7 @@ import { trail } from '../trail.js';
 import { topo } from '../topo.js';
 import type { TopoIssue } from '../validate-topo.js';
 import { validateTopo } from '../validate-topo.js';
+import { webhook } from '../webhook.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -545,6 +546,37 @@ describe('validateTopo', () => {
       expect(issue?.sourceId).toBe('schedule.report.shared');
       expect(issue?.sourceKind).toBe('schedule');
     });
+
+    test('equivalent webhook default methods share one source signature', () => {
+      const parse = z.object({ paymentId: z.string() });
+      const app = topo('app', {
+        explicit: trail('payment.explicit', {
+          blaze: noop,
+          input: parse,
+          on: [webhook('webhook.payment', { parse, path: '/webhooks/pay' })],
+        }),
+        manual: trail('payment.manual', {
+          blaze: noop,
+          input: parse,
+          on: [
+            {
+              id: 'webhook.payment',
+              kind: 'webhook',
+              parse,
+              path: '/webhooks/pay',
+            },
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+
+      expect(
+        extractIssues(result).some(
+          (entry) => entry.rule === 'activation-source-definition-unique'
+        )
+      ).toBe(false);
+    });
   });
 
   describe('activation source input compatibility', () => {
@@ -770,7 +802,7 @@ describe('validateTopo', () => {
       );
     });
 
-    test('compatible webhook parse output and trail input pass', () => {
+    test('invalid webhook path and parse shape produce source diagnostics', () => {
       const app = topo('app', {
         receive: trail('payment.receive', {
           blaze: noop,
@@ -779,10 +811,41 @@ describe('validateTopo', () => {
             {
               id: 'webhook.stripe.payment',
               kind: 'webhook',
+              method: 'POST',
+              path: 'webhooks/stripe/payment',
+            },
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issues = extractIssues(result).filter(
+        (entry) => entry.rule === 'activation-webhook-valid'
+      );
+      expect(issues).toHaveLength(2);
+      expect(issues.map((issue) => issue.inputPath)).toEqual([
+        ['path'],
+        ['parse'],
+      ]);
+      expect(issues.every((issue) => issue.sourceKind === 'webhook')).toBe(
+        true
+      );
+    });
+
+    test('compatible webhook parse output and trail input pass', () => {
+      const app = topo('app', {
+        receive: trail('payment.receive', {
+          blaze: noop,
+          input: z.object({ paymentId: z.string() }),
+          on: [
+            webhook('webhook.stripe.payment', {
               parse: {
                 output: z.object({ paymentId: z.string() }),
               },
-            },
+              path: '/webhooks/stripe/payment',
+            }),
           ],
         }),
       });
@@ -797,17 +860,16 @@ describe('validateTopo', () => {
           blaze: noop,
           input: z.object({ issueId: z.string() }),
           on: [
-            {
-              id: 'webhook.github.issue',
-              kind: 'webhook',
+            webhook('webhook.github.issue', {
               parse: {
                 output: z.object({ issueId: z.string() }),
               },
+              path: '/webhooks/github/issue',
               payload: z.object({
                 action: z.string(),
                 issue: z.object({ number: z.number() }),
               }),
-            },
+            }),
           ],
         }),
       });
@@ -822,13 +884,12 @@ describe('validateTopo', () => {
           blaze: noop,
           input: z.object({ paymentId: z.string() }),
           on: [
-            {
-              id: 'webhook.stripe.payment',
-              kind: 'webhook',
+            webhook('webhook.stripe.payment', {
               parse: {
                 output: z.object({ paymentId: z.number() }),
               },
-            },
+              path: '/webhooks/stripe/payment',
+            }),
           ],
         }),
       });

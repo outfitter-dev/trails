@@ -24,6 +24,7 @@ import { Result } from './result.js';
 import type { Topo } from './topo.js';
 import type { AnyTrail } from './trail.js';
 import { validateInput } from './validation.js';
+import { validateWebhookSource } from './webhook.js';
 
 // ---------------------------------------------------------------------------
 // Issue shape
@@ -313,6 +314,21 @@ const checkActivationSources = (
           inputPath: [issue.field],
           message: `Trail declares schedule source "${activation.source.id}" with invalid ${issue.field}: ${issue.message}`,
           rule: 'activation-schedule-valid',
+          schemaIssues: [
+            { code: issue.field, message: issue.message, path: [issue.field] },
+          ],
+          sourceId: activation.source.id,
+          sourceKind: activation.source.kind,
+          trailId: id,
+        });
+      }
+
+      const webhookIssues = validateWebhookSource(activation.source);
+      for (const issue of webhookIssues) {
+        issues.push({
+          inputPath: [issue.field],
+          message: `Trail declares webhook source "${activation.source.id}" with invalid ${issue.field}: ${issue.message}`,
+          rule: 'activation-webhook-valid',
           schemaIssues: [
             { code: issue.field, message: issue.message, path: [issue.field] },
           ],

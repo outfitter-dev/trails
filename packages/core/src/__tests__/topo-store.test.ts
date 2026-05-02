@@ -14,6 +14,7 @@ import {
   signal,
   topo,
   trail,
+  webhook,
 } from '../index.js';
 import { __topoStoreMigrationStats, createTopoStore } from '../topo-store.js';
 import {
@@ -1013,17 +1014,17 @@ describe('topo store projection', () => {
 
   test('activation source projection records source payload and parse schemas', () => {
     withProjectionDb((db) => {
-      const webhookSource = {
-        id: 'webhook.user.upsert',
-        kind: 'webhook' as const,
+      const webhookSource = webhook('webhook.user.upsert', {
+        method: 'post',
         parse: {
           output: z.object({
             email: z.string().optional(),
             userId: z.string(),
           }),
         },
+        path: '/webhooks/users/upsert',
         payload: z.object({ userId: z.string() }),
-      };
+      });
       const receiver = trail('user.webhook.receive', {
         blaze: () => Result.ok({ ok: true }),
         input: z.object({ userId: z.string() }),
@@ -1055,12 +1056,14 @@ describe('topo store projection', () => {
         id: 'webhook.user.upsert',
         key: 'webhook:webhook.user.upsert',
         kind: 'webhook',
+        method: 'POST',
         parseOutputSchema: {
           properties: {
             userId: { type: 'string' },
           },
           type: 'object',
         },
+        path: '/webhooks/users/upsert',
         payloadSchema: {
           properties: {
             userId: { type: 'string' },

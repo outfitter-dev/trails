@@ -14,6 +14,7 @@ import { schedule } from '../schedule.js';
 import { signal } from '../signal.js';
 import { trail } from '../trail.js';
 import { topo } from '../topo.js';
+import { webhook } from '../webhook.js';
 
 // ---------------------------------------------------------------------------
 // Mock factories
@@ -188,18 +189,14 @@ describe('topo', () => {
     });
 
     test('keeps schedule and webhook activation sources inert during topo construction', () => {
-      let routeRegistered = false;
       const scheduleSource = schedule('schedule.nightly-close', {
         cron: '0 2 * * *',
         input: { olderThanDays: 90 },
       });
-      const webhookSource = {
-        id: 'webhook.stripe.payment',
-        kind: 'webhook' as const,
-        route: () => {
-          routeRegistered = true;
-        },
-      };
+      const webhookSource = webhook('webhook.stripe.payment', {
+        parse: z.object({ paymentId: z.string() }),
+        path: '/webhooks/stripe/payment',
+      });
 
       const app = topo('billing', {
         reconcile: trail('billing.reconcile', {
@@ -210,7 +207,6 @@ describe('topo', () => {
         }),
       });
 
-      expect(routeRegistered).toBe(false);
       expect(app.get('billing.reconcile')?.activationSources).toEqual([
         { source: scheduleSource },
         { source: webhookSource },

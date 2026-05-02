@@ -11,6 +11,7 @@ import { schedule } from '../schedule';
 import { signal } from '../signal';
 import { intentValues, trail } from '../trail';
 import type { TrailContext } from '../types';
+import { webhook } from '../webhook';
 
 const stubCtx: TrailContext = createTrailContext({
   abortSignal: AbortSignal.timeout(5000),
@@ -467,11 +468,11 @@ describe('trail() fires/on normalization', () => {
       input: { olderThanDays: 90 },
       timezone: 'UTC',
     });
-    const webhookSource = {
-      id: 'webhook.stripe.payment',
-      kind: 'webhook' as const,
+    const webhookSource = webhook('webhook.stripe.payment', {
       meta: { provider: 'stripe' },
-    };
+      parse: z.object({ paymentId: z.string() }),
+      path: '/webhooks/stripe/payment',
+    });
 
     const t = trail('billing.reconcile', {
       blaze: () => Result.ok({}),
@@ -490,6 +491,7 @@ describe('trail() fires/on normalization', () => {
         source: webhookSource,
       },
     ]);
+    expect(Object.isFrozen(webhookSource.meta)).toBe(true);
   });
 
   test('mixed string + Signal value in fires: is normalized', () => {

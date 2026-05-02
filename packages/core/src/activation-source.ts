@@ -27,7 +27,9 @@ export interface ActivationSource {
   readonly cron?: string | undefined;
   readonly input?: unknown;
   readonly meta?: ActivationSourceMeta | undefined;
+  readonly method?: string | undefined;
   readonly parse?: ActivationSourceParse | undefined;
+  readonly path?: string | undefined;
   readonly payload?: z.ZodType<unknown> | undefined;
   readonly timezone?: string | undefined;
 }
