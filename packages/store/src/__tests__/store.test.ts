@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { ValidationError } from '@ontrails/core';
+import { getLateBoundSignalRef, ValidationError } from '@ontrails/core';
 import { z } from 'zod';
 
 import type {
@@ -218,6 +218,47 @@ describe('@ontrails/store', () => {
     expectNormalizedGistTable(table);
     expect(db.get('users')).toBe(db.tables.users);
     expectDerivedSchemas(table);
+  });
+
+  test('marks pre-bind table signal handles as store-derived late-bound refs', () => {
+    const db = createStoreDefinition();
+    const { created, removed, updated } = db.tables.gists.signals;
+
+    expect(getLateBoundSignalRef(created)).toMatchObject({
+      kind: 'store-derived',
+    });
+    expect(getLateBoundSignalRef(updated)).toMatchObject({
+      kind: 'store-derived',
+    });
+    expect(getLateBoundSignalRef(removed)).toMatchObject({
+      kind: 'store-derived',
+    });
+    expect(getLateBoundSignalRef(created)?.token).not.toBe(
+      getLateBoundSignalRef(updated)?.token
+    );
+    expect(getLateBoundSignalRef(created)?.token).not.toBe(
+      getLateBoundSignalRef(removed)?.token
+    );
+    expect(getLateBoundSignalRef(updated)?.token).not.toBe(
+      getLateBoundSignalRef(removed)?.token
+    );
+
+    expect(
+      created.payload.parse({
+        createdAt: '2026-04-03T12:00:00.000Z',
+        id: 'gist-1',
+        ownerId: 'user-1',
+        updatedAt: '2026-04-03T12:00:00.000Z',
+      })
+    ).toEqual({
+      createdAt: '2026-04-03T12:00:00.000Z',
+      description: null,
+      id: 'gist-1',
+      isPublic: true,
+      ownerId: 'user-1',
+      tags: [],
+      updatedAt: '2026-04-03T12:00:00.000Z',
+    });
   });
 
   test('accepts an explicit backend-agnostic kind', () => {
@@ -535,5 +576,8 @@ describe('bindStoreDefinition', () => {
     expect(bound.tables.gists.signals.created.id).toBe('primary:gists.created');
     expect(bound.tables.gists.signals.updated.id).toBe('primary:gists.updated');
     expect(bound.tables.gists.signals.removed.id).toBe('primary:gists.removed');
+    expect(getLateBoundSignalRef(bound.tables.gists.signals.created)).toBe(
+      getLateBoundSignalRef(definition.tables.gists.signals.created)
+    );
   });
 });
