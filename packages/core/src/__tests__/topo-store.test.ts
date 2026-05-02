@@ -1024,6 +1024,7 @@ describe('topo store projection', () => {
         },
         path: '/webhooks/users/upsert',
         payload: z.object({ userId: z.string() }),
+        verify: () => Result.ok(),
       });
       const receiver = trail('user.webhook.receive', {
         blaze: () => Result.ok({ ok: true }),
@@ -1053,6 +1054,7 @@ describe('topo store projection', () => {
       expect(source).toMatchObject({
         hasParse: true,
         hasPayloadSchema: true,
+        hasVerify: true,
         id: 'webhook.user.upsert',
         key: 'webhook:webhook.user.upsert',
         kind: 'webhook',

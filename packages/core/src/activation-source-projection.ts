@@ -162,10 +162,60 @@ export const projectActivationSourceDeclaration = (
   if (source.timezone !== undefined) {
     record['timezone'] = source.timezone;
   }
+  if (source.verify !== undefined) {
+    record['hasVerify'] = true;
+  }
 
   return sortKeys(record) as ActivationSourceProjection;
 };
 
+/**
+ * Identifies the verifier function attached to an activation source, when one
+ * exists. Two declarations sharing the same id/method/path/parse but different
+ * `verify` references must be treated as conflicting source options. The
+ * returned token captures the function's reference identity so it changes when
+ * the verifier function changes.
+ *
+ * The token is intentionally kept out of {@link projectActivationSourceDeclaration}
+ * so that the persisted topo-store projection remains stable and free of
+ * nondeterministic function identity. Use this only for in-memory comparisons
+ * (validation, conflict detection).
+ */
+const verifierIds = new WeakMap<object, number>();
+let verifierIdCounter = 0;
+
+const verifierIdToken = (verify: object): string => {
+  const existing = verifierIds.get(verify);
+  if (existing !== undefined) {
+    return `verify#${existing}`;
+  }
+  verifierIdCounter += 1;
+  verifierIds.set(verify, verifierIdCounter);
+  return `verify#${verifierIdCounter}`;
+};
+
+const verifierIdentityToken = (
+  source: ActivationSource
+): string | undefined => {
+  if (source.kind !== 'webhook') {
+    return undefined;
+  }
+  const { verify } = source as { readonly verify?: unknown };
+  if (typeof verify !== 'function') {
+    return undefined;
+  }
+  // Use a per-process WeakMap-backed counter so two different function
+  // references produce different tokens, even if they share a name.
+  return verifierIdToken(verify);
+};
+
 export const activationSourceDeclarationSignature = (
   source: ActivationSource
-): string => JSON.stringify(projectActivationSourceDeclaration(source));
+): string => {
+  const projection = projectActivationSourceDeclaration(source);
+  const verifyToken = verifierIdentityToken(source);
+  if (verifyToken === undefined) {
+    return JSON.stringify(projection);
+  }
+  return JSON.stringify({ projection, verify: verifyToken });
+};

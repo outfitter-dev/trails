@@ -32,6 +32,7 @@ export interface ActivationSource {
   readonly path?: string | undefined;
   readonly payload?: z.ZodType<unknown> | undefined;
   readonly timezone?: string | undefined;
+  readonly verify?: unknown;
 }
 
 export interface ActivationWhereExample {

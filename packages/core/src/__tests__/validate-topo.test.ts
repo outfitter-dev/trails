@@ -50,7 +50,7 @@ const mockTrail = (
 });
 
 const mockResource = (id: string) =>
-  resource(id, {
+  resource<unknown>(id, {
     create: () => Result.ok({ id }),
   });
 
@@ -542,9 +542,13 @@ describe('validateTopo', () => {
       const issue = extractIssues(result).find(
         (entry) => entry.rule === 'activation-source-definition-unique'
       );
-      expect(['report.morning', 'report.nightly']).toContain(issue?.trailId);
-      expect(issue?.sourceId).toBe('schedule.report.shared');
-      expect(issue?.sourceKind).toBe('schedule');
+      expect(issue?.trailId).toBeDefined();
+      if (issue?.trailId === undefined) {
+        return;
+      }
+      expect(['report.morning', 'report.nightly']).toContain(issue.trailId);
+      expect(issue.sourceId).toBe('schedule.report.shared');
+      expect(issue.sourceKind).toBe('schedule');
     });
 
     test('equivalent webhook default methods share one source signature', () => {
@@ -576,6 +580,80 @@ describe('validateTopo', () => {
           (entry) => entry.rule === 'activation-source-definition-unique'
         )
       ).toBe(false);
+    });
+
+    test('shared webhook source with the same verifier reference does not conflict', () => {
+      const parse = z.object({ paymentId: z.string() });
+      const verify = () => Result.ok();
+      const app = topo('app', {
+        first: trail('payment.first', {
+          blaze: noop,
+          input: parse,
+          on: [
+            webhook('webhook.payment', {
+              parse,
+              path: '/webhooks/pay',
+              verify,
+            }),
+          ],
+        }),
+        second: trail('payment.second', {
+          blaze: noop,
+          input: parse,
+          on: [
+            webhook('webhook.payment', {
+              parse,
+              path: '/webhooks/pay',
+              verify,
+            }),
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+
+      expect(
+        extractIssues(result).some(
+          (entry) => entry.rule === 'activation-source-definition-unique'
+        )
+      ).toBe(false);
+    });
+
+    test('shared webhook source with distinct verifier functions trips activation-source-definition-unique', () => {
+      const parse = z.object({ paymentId: z.string() });
+      const app = topo('app', {
+        first: trail('payment.first', {
+          blaze: noop,
+          input: parse,
+          on: [
+            webhook('webhook.payment', {
+              parse,
+              path: '/webhooks/pay',
+              verify: () => Result.ok(),
+            }),
+          ],
+        }),
+        second: trail('payment.second', {
+          blaze: noop,
+          input: parse,
+          on: [
+            webhook('webhook.payment', {
+              parse,
+              path: '/webhooks/pay',
+              verify: () => Result.ok(),
+            }),
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issue = extractIssues(result).find(
+        (entry) => entry.rule === 'activation-source-definition-unique'
+      );
+      expect(issue?.sourceId).toBe('webhook.payment');
+      expect(issue?.sourceKind).toBe('webhook');
     });
   });
 

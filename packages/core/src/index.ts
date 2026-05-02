@@ -197,13 +197,23 @@ export type {
   ScheduleSpec,
   ScheduleValidationIssue,
 } from './schedule.js';
-export { validateWebhookSource, webhook, webhookMethods } from './webhook.js';
+export {
+  getWebhookHeader,
+  getWebhookHeaders,
+  validateWebhookSource,
+  verifyWebhookRequest,
+  webhook,
+  webhookMethods,
+} from './webhook.js';
 export type {
   WebhookMethod,
   WebhookMethodInput,
   WebhookSource,
   WebhookSpec,
   WebhookValidationIssue,
+  WebhookVerify,
+  WebhookVerifyHeaders,
+  WebhookVerifyRequest,
 } from './webhook.js';
 export { createScheduleRuntime } from './schedule-runtime.js';
 export type {

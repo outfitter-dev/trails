@@ -3,7 +3,8 @@ import type {
   ActivationSourceMeta,
   ActivationSourceParse,
 } from './activation-source.js';
-import { ValidationError } from './errors.js';
+import { InternalError, ValidationError } from './errors.js';
+import { Result } from './result.js';
 
 export const webhookMethods = Object.freeze([
   'DELETE',
@@ -16,12 +17,28 @@ export const webhookMethods = Object.freeze([
 export type WebhookMethod = (typeof webhookMethods)[number];
 export type WebhookMethodInput = WebhookMethod | Lowercase<WebhookMethod>;
 
+export type WebhookVerifyHeaders = Readonly<
+  Record<string, readonly string[] | string | undefined>
+>;
+
+export interface WebhookVerifyRequest {
+  readonly body: ArrayBuffer | Uint8Array | string;
+  readonly headers: WebhookVerifyHeaders;
+  readonly method: string;
+  readonly path: string;
+}
+
+export type WebhookVerify = (
+  request: WebhookVerifyRequest
+) => Promise<Result<void, Error>> | Result<void, Error>;
+
 export interface WebhookSpec<TOutput = unknown> {
   readonly meta?: ActivationSourceMeta | undefined;
   readonly method?: WebhookMethodInput | undefined;
   readonly parse: ActivationSourceParse<TOutput>;
   readonly path: string;
   readonly payload?: ActivationSource['payload'] | undefined;
+  readonly verify?: WebhookVerify | undefined;
 }
 
 export interface WebhookSource<TOutput = unknown> extends ActivationSource {
@@ -31,10 +48,11 @@ export interface WebhookSource<TOutput = unknown> extends ActivationSource {
   readonly parse: ActivationSourceParse<TOutput>;
   readonly path: string;
   readonly payload?: ActivationSource['payload'] | undefined;
+  readonly verify?: WebhookVerify | undefined;
 }
 
 export interface WebhookValidationIssue {
-  readonly field: 'method' | 'parse' | 'path';
+  readonly field: 'method' | 'parse' | 'path' | 'verify';
   readonly message: string;
 }
 
@@ -115,6 +133,16 @@ const validateParseShape = (parse: unknown): WebhookValidationIssue[] => {
   ];
 };
 
+const validateVerify = (verify: unknown): WebhookValidationIssue[] =>
+  verify === undefined || typeof verify === 'function'
+    ? []
+    : [
+        {
+          field: 'verify',
+          message: 'Webhook verify must be a function when provided',
+        },
+      ];
+
 const webhookIssuesMessage = (
   id: string,
   issues: readonly WebhookValidationIssue[]
@@ -133,6 +161,7 @@ const assertWebhookSpec = <TOutput>(
     ...validatePath(spec.path),
     ...validateRequiredParse(spec.parse),
     ...validateParseShape(spec.parse),
+    ...validateVerify(spec.verify),
   ];
 
   if (issues.length > 0) {
@@ -159,7 +188,61 @@ export const validateWebhookSource = (
     ...validatePath(source.path),
     ...validateRequiredParse(source.parse),
     ...validateParseShape(source.parse),
+    ...validateVerify(source.verify),
   ];
+};
+
+const errorFromUnknown = (error: unknown): Error =>
+  error instanceof Error ? error : new Error(String(error));
+
+export const getWebhookHeaders = (
+  request: Pick<WebhookVerifyRequest, 'headers'>,
+  name: string
+): readonly string[] => {
+  const normalized = name.toLowerCase();
+  const matches: string[] = [];
+  for (const [headerName, value] of Object.entries(request.headers)) {
+    if (headerName.toLowerCase() !== normalized) {
+      continue;
+    }
+    if (value === undefined) {
+      continue;
+    }
+    if (typeof value === 'string') {
+      matches.push(value);
+    } else {
+      matches.push(...value);
+    }
+  }
+  return matches;
+};
+
+export const getWebhookHeader = (
+  request: Pick<WebhookVerifyRequest, 'headers'>,
+  name: string
+): string | undefined => {
+  const [first] = getWebhookHeaders(request, name);
+  return first;
+};
+
+export const verifyWebhookRequest = async (
+  source: Pick<WebhookSource, 'id' | 'verify'>,
+  request: WebhookVerifyRequest
+): Promise<Result<void, Error>> => {
+  if (source.verify === undefined) {
+    return Result.ok();
+  }
+
+  try {
+    return await source.verify(request);
+  } catch (error) {
+    const cause = errorFromUnknown(error);
+    return Result.err(
+      new InternalError(`Webhook source "${source.id}" verification threw`, {
+        cause,
+      })
+    );
+  }
 };
 
 export function webhook<TOutput>(
@@ -188,5 +271,6 @@ export function webhook<TOutput>(
       ? {}
       : { meta: Object.freeze({ ...spec.meta }) }),
     ...(spec.payload === undefined ? {} : { payload: spec.payload }),
+    ...(spec.verify === undefined ? {} : { verify: spec.verify }),
   });
 }
