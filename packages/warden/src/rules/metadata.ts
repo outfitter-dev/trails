@@ -227,6 +227,12 @@ export const builtinWardenRuleMetadata = {
       'Schedule-activated destroy trails make unattended destructive work visible for review.',
     tier: 'topo-aware',
   },
+  'signal-graph-coaching': {
+    ...durableExternal,
+    invariant:
+      'Typed signal contracts either declare a producer or participate in reactive consumption.',
+    tier: 'topo-aware',
+  },
   'unmaterialized-activation-source': {
     ...durableExternal,
     invariant:

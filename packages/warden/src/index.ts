@@ -104,6 +104,7 @@ export {
   resourceIdGrammarTrail,
   resourceExistsTrail,
   scheduledDestroyIntentTrail,
+  signalGraphCoachingTrail,
   unmaterializedActivationSourceTrail,
   topoAwareRuleInput,
   unreachableDetourShadowingTrail,
