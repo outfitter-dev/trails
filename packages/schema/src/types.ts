@@ -38,6 +38,48 @@ export interface SurfaceMapFieldOverride {
   };
 }
 
+export interface SurfaceMapActivationSource extends Readonly<
+  Record<string, unknown>
+> {
+  readonly cron?: string | undefined;
+  readonly hasParse?: true | undefined;
+  readonly hasPayloadSchema?: true | undefined;
+  readonly id: string;
+  readonly input?: unknown;
+  readonly inputSchema?: JsonSchema | undefined;
+  readonly kind: string;
+  readonly key: string;
+  readonly meta?: Readonly<Record<string, unknown>> | undefined;
+  readonly parseOutputSchema?: JsonSchema | undefined;
+  readonly payloadSchema?: JsonSchema | undefined;
+  readonly timezone?: string | undefined;
+}
+
+export interface SurfaceMapActivationEdge extends Readonly<
+  Record<string, unknown>
+> {
+  readonly hasWhere: boolean;
+  readonly sourceId: string;
+  readonly sourceKey: string;
+  readonly sourceKind: string;
+  readonly trailId: string;
+  readonly where?: { readonly predicate: true } | undefined;
+}
+
+export interface SurfaceMapActivationGraph {
+  readonly edgeCount: number;
+  readonly edges: readonly SurfaceMapActivationEdge[];
+  readonly sourceCount: number;
+  readonly sourceKeys: readonly string[];
+  readonly trailIds: readonly string[];
+}
+
+export interface SurfaceMapActivationEntry {
+  readonly meta?: Readonly<Record<string, unknown>> | undefined;
+  readonly source: SurfaceMapActivationSource;
+  readonly where?: { readonly predicate: true } | undefined;
+}
+
 // ---------------------------------------------------------------------------
 // Surface Map
 // ---------------------------------------------------------------------------
@@ -59,6 +101,7 @@ export interface SurfaceMapEntry {
   readonly pattern?: string | undefined;
   readonly deprecated?: boolean | undefined;
   readonly replacedBy?: string | undefined;
+  readonly activationSources?: readonly SurfaceMapActivationEntry[] | undefined;
   readonly crosses?: readonly string[] | undefined;
   readonly contours?: readonly string[] | undefined;
   readonly schema?: JsonSchema | undefined;
@@ -83,6 +126,10 @@ export interface SurfaceMapEntry {
 
 export interface SurfaceMap {
   readonly version: string;
+  readonly activationGraph: SurfaceMapActivationGraph;
+  readonly activationSources: Readonly<
+    Record<string, SurfaceMapActivationSource>
+  >;
   readonly generatedAt: string;
   readonly entries: readonly SurfaceMapEntry[];
 }

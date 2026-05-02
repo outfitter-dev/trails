@@ -4,8 +4,10 @@ import { z } from 'zod';
 
 import type {
   ActivationChainReport,
+  ActivationEdgeReport,
   ActivationGraphReport,
   ActivationOverviewReport,
+  ActivationSourceReport,
   SignalActivationRelations,
 } from './topo-activation.js';
 import {
@@ -17,8 +19,10 @@ import { REPORT_CONTRACT_VERSION, REPORT_VERSION } from './topo-constants.js';
 
 export type {
   ActivationChainReport,
+  ActivationEdgeReport,
   ActivationGraphReport,
   ActivationOverviewReport,
+  ActivationSourceReport,
   SignalActivationRelations,
   TrailActivationReport,
 } from './topo-activation.js';
@@ -84,6 +88,8 @@ export interface TrailDetailReport {
   readonly activatedBy: readonly string[];
   readonly activates: readonly string[];
   readonly activationChains: readonly ActivationChainReport[];
+  readonly activationEdges: readonly ActivationEdgeReport[];
+  readonly activationSources: readonly ActivationSourceReport[];
   readonly description: string | null;
   readonly detours:
     | readonly { readonly on: string; readonly maxAttempts: number }[]
@@ -346,6 +352,8 @@ export const deriveTrailDetail = (
     activatedBy: activation.activatedBy,
     activates: activation.activates,
     activationChains: activation.chains,
+    activationEdges: activation.edges,
+    activationSources: activation.sources,
     crosses: item.crosses.toSorted(),
     description: item.description ?? null,
     detours:

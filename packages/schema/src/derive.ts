@@ -13,6 +13,8 @@ import {
   zodToJsonSchema,
 } from '@ontrails/core';
 import type {
+  ActivationEntry,
+  ActivationSource,
   AnyContour,
   AnyResource,
   FieldOverride,
@@ -24,6 +26,9 @@ import type {
 import type {
   JsonSchema,
   SurfaceMap,
+  SurfaceMapActivationEdge,
+  SurfaceMapActivationGraph,
+  SurfaceMapActivationSource,
   SurfaceMapEntry,
   SurfaceMapFieldOverride,
   SurfaceMapFieldOverrideKey,
@@ -57,6 +62,54 @@ const deepSortKeys = (value: unknown): unknown => {
   return value;
 };
 
+const canonicalLeaf = (value: unknown): unknown => {
+  switch (typeof value) {
+    case 'bigint': {
+      return value.toString();
+    }
+    case 'function': {
+      return `[Function:${value.name || 'anonymous'}]`;
+    }
+    case 'symbol': {
+      return `[Symbol:${value.description ?? ''}]`;
+    }
+    case 'undefined': {
+      return '[Undefined]';
+    }
+    default: {
+      return value;
+    }
+  }
+};
+
+const canonicalObject = (
+  value: Record<string, unknown>,
+  visit: (value: unknown) => unknown
+): Record<string, unknown> => {
+  const sorted: Record<string, unknown> = {};
+  for (const key of Object.keys(value).toSorted()) {
+    const next = value[key];
+    sorted[key] = next === undefined ? '[Undefined]' : visit(next);
+  }
+  return sorted;
+};
+
+const canonicalize = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(canonicalize);
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  if (value instanceof RegExp) {
+    return value.toString();
+  }
+  if (value !== null && typeof value === 'object') {
+    return canonicalObject(value as Record<string, unknown>, canonicalize);
+  }
+  return canonicalLeaf(value);
+};
+
 /** Convert a Zod schema to a deterministically-keyed JSON Schema. */
 const toSortedJsonSchema = (schema: unknown): JsonSchema => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,6 +141,144 @@ const SIGNAL_GOVERNANCE_HOOKS = {
   payload: 'signal.payload',
   producers: 'trail.fires',
 } as const;
+
+const activationSourceKey = (source: Pick<ActivationSource, 'id' | 'kind'>) =>
+  `${source.kind}:${source.id}`;
+
+const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isZodSchema = (value: unknown): boolean =>
+  isObjectRecord(value) &&
+  typeof value['safeParse'] === 'function' &&
+  isObjectRecord(value['_zod']);
+
+const activationParseOutputSchema = (
+  source: ActivationSource
+): unknown | undefined => {
+  if (isZodSchema(source.parse)) {
+    return source.parse;
+  }
+  if (isObjectRecord(source.parse) && isZodSchema(source.parse['output'])) {
+    return source.parse['output'];
+  }
+  return undefined;
+};
+
+const projectActivationSource = (
+  source: ActivationSource
+): SurfaceMapActivationSource => {
+  const record: Record<string, unknown> = {
+    id: source.id,
+    key: activationSourceKey(source),
+    kind: source.kind,
+  };
+
+  if (source.cron !== undefined) {
+    record['cron'] = source.cron;
+  }
+  if (Object.hasOwn(source, 'input')) {
+    if (isZodSchema(source.input)) {
+      record['inputSchema'] = toSortedJsonSchema(source.input);
+    } else {
+      record['input'] = canonicalize(source.input);
+    }
+  }
+  if (source.meta !== undefined) {
+    record['meta'] = canonicalize(source.meta);
+  }
+  if (source.parse !== undefined) {
+    record['hasParse'] = true;
+    const parseOutput = activationParseOutputSchema(source);
+    if (parseOutput !== undefined) {
+      record['parseOutputSchema'] = toSortedJsonSchema(parseOutput);
+    }
+  }
+  if (source.payload !== undefined) {
+    record['hasPayloadSchema'] = true;
+    if (isZodSchema(source.payload)) {
+      record['payloadSchema'] = toSortedJsonSchema(source.payload);
+    }
+  }
+  if (source.timezone !== undefined) {
+    record['timezone'] = source.timezone;
+  }
+
+  return sortKeys(record) as SurfaceMapActivationSource;
+};
+
+const projectActivationEdge = (
+  trailId: string,
+  activation: ActivationEntry
+): SurfaceMapActivationEdge => {
+  const sourceKey = activationSourceKey(activation.source);
+  const edge: Record<string, unknown> = {
+    hasWhere: activation.where !== undefined,
+    sourceId: activation.source.id,
+    sourceKey,
+    sourceKind: activation.source.kind,
+    trailId,
+  };
+
+  if (activation.meta !== undefined) {
+    edge['meta'] = canonicalize(activation.meta);
+  }
+  if (activation.where !== undefined) {
+    edge['where'] = { predicate: true };
+  }
+
+  return sortKeys(edge) as SurfaceMapActivationEdge;
+};
+
+const collectActivationSourceCatalog = (
+  topo: Topo
+): readonly SurfaceMapActivationSource[] => {
+  const sources = new Map<string, SurfaceMapActivationSource>();
+  for (const trail of topo.trails.values()) {
+    for (const activation of trail.activationSources) {
+      const projected = projectActivationSource(activation.source);
+      sources.set(projected.key, projected);
+    }
+  }
+  return [...sources.values()].toSorted((a, b) => a.key.localeCompare(b.key));
+};
+
+const collectActivationGraphEdges = (
+  topo: Topo
+): readonly SurfaceMapActivationEdge[] => {
+  const edges = new Map<string, SurfaceMapActivationEdge>();
+  for (const trail of topo.trails.values()) {
+    for (const activation of trail.activationSources) {
+      const edge = projectActivationEdge(trail.id, activation);
+      const key = `${edge.sourceKey}\0${edge.trailId}`;
+      const previous = edges.get(key);
+      edges.set(
+        key,
+        previous === undefined || (!previous.hasWhere && edge.hasWhere)
+          ? edge
+          : previous
+      );
+    }
+  }
+
+  return [...edges.values()].toSorted(
+    (a, b) =>
+      a.sourceKey.localeCompare(b.sourceKey) ||
+      a.trailId.localeCompare(b.trailId)
+  );
+};
+
+const buildActivationGraph = (
+  edges: readonly SurfaceMapActivationEdge[],
+  sources: readonly SurfaceMapActivationSource[]
+): SurfaceMapActivationGraph =>
+  sortKeys({
+    edgeCount: edges.length,
+    edges,
+    sourceCount: sources.length,
+    sourceKeys: sources.map((source) => source.key),
+    trailIds: [...new Set(edges.map((edge) => edge.trailId))].toSorted(),
+  }) as SurfaceMapActivationGraph;
 
 const collectSignalGraphRelations = (
   topo: Topo
@@ -205,6 +396,19 @@ const addTrailRelations = (
   entry: Record<string, unknown>,
   t: Trail<unknown, unknown, unknown>
 ): void => {
+  if (t.activationSources.length > 0) {
+    entry['activationSources'] = t.activationSources.map((activation) =>
+      sortKeys({
+        ...(activation.meta === undefined
+          ? {}
+          : { meta: canonicalize(activation.meta) }),
+        source: projectActivationSource(activation.source),
+        ...(activation.where === undefined
+          ? {}
+          : { where: sortKeys({ predicate: true }) }),
+      })
+    );
+  }
   if (t.crosses.length > 0) {
     entry['crosses'] = t.crosses.toSorted();
   }
@@ -425,8 +629,14 @@ export const deriveSurfaceMap = (topo: Topo): SurfaceMap => {
   const sorted = collectEntries(topo).toSorted((a, b) =>
     a.id.localeCompare(b.id)
   );
+  const activationSources = collectActivationSourceCatalog(topo);
+  const activationEdges = collectActivationGraphEdges(topo);
 
   return {
+    activationGraph: buildActivationGraph(activationEdges, activationSources),
+    activationSources: Object.fromEntries(
+      activationSources.map((source) => [source.key, source])
+    ),
     entries: sorted,
     generatedAt: new Date().toISOString(),
     version: '1.0',

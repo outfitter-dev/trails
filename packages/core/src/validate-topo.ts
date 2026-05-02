@@ -8,6 +8,10 @@
 
 import type { ActivationSchemaIssue } from './activation-source-compatibility.js';
 import { getActivationSourceInputCompatibilityIssues } from './activation-source-compatibility.js';
+import {
+  activationSourceDeclarationSignature,
+  activationSourceKey,
+} from './activation-source-projection.js';
 import type { AnyContour } from './contour.js';
 import { getContourReferences } from './contour.js';
 import { ValidationError } from './errors.js';
@@ -251,6 +255,14 @@ const checkActivationSources = (
   trails: ReadonlyMap<string, AnyTrail>
 ): TopoIssue[] => {
   const issues: TopoIssue[] = [];
+  const sourceDeclarations = new Map<
+    string,
+    {
+      readonly signature: string;
+      readonly trailId: string;
+    }
+  >();
+  const trailSourceEdges = new Set<string>();
 
   for (const [id, trail] of trails) {
     for (const activation of trail.activationSources ?? []) {
@@ -261,6 +273,38 @@ const checkActivationSources = (
           trailId: id,
         });
         continue;
+      }
+
+      const sourceKey = activationSourceKey(activation.source);
+      const edgeKey = `${id}\0${sourceKey}`;
+      if (trailSourceEdges.has(edgeKey)) {
+        issues.push({
+          message: `Trail declares activation source "${activation.source.id}" (${activation.source.kind}) more than once. Keep one source-to-trail activation edge, or split distinct activation behavior into distinct source ids.`,
+          rule: 'activation-source-edge-unique',
+          sourceId: activation.source.id,
+          sourceKind: activation.source.kind,
+          trailId: id,
+        });
+      } else {
+        trailSourceEdges.add(edgeKey);
+      }
+
+      if (!isDraftId(activation.source.id)) {
+        const signature = activationSourceDeclarationSignature(
+          activation.source
+        );
+        const previous = sourceDeclarations.get(sourceKey);
+        if (previous === undefined) {
+          sourceDeclarations.set(sourceKey, { signature, trailId: id });
+        } else if (previous.signature !== signature) {
+          issues.push({
+            message: `Activation source "${activation.source.id}" (${activation.source.kind}) is declared with conflicting source options by trails "${previous.trailId}" and "${id}". Use one canonical source declaration per source id, or give distinct source configurations distinct ids.`,
+            rule: 'activation-source-definition-unique',
+            sourceId: activation.source.id,
+            sourceKind: activation.source.kind,
+            trailId: id,
+          });
+        }
       }
 
       const scheduleIssues = validateScheduleSource(activation.source);

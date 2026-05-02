@@ -89,6 +89,14 @@ const createDiffExampleInput = (): {
 } => {
   const input = createIsolatedExampleInput('survey-diff');
   writeIsolatedExampleJsonFile(input.rootDir, 'baseline/_surface.json', {
+    activationGraph: {
+      edgeCount: 0,
+      edges: [],
+      sourceCount: 0,
+      sourceKeys: [],
+      trailIds: [],
+    },
+    activationSources: {},
     entries: [],
     generatedAt: '2026-01-01T00:00:00.000Z',
     version: '1.0',

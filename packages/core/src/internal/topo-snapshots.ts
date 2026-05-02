@@ -118,6 +118,26 @@ const TOPO_TABLE_STATEMENTS = [
     PRIMARY KEY (trail_id, signal_id, snapshot_id),
     FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
   )`,
+  `CREATE TABLE IF NOT EXISTS topo_activation_sources (
+    source_key TEXT NOT NULL,
+    source_id TEXT NOT NULL,
+    source_kind TEXT NOT NULL,
+    source TEXT NOT NULL,
+    snapshot_id TEXT NOT NULL,
+    PRIMARY KEY (source_key, snapshot_id),
+    FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS topo_activation_edges (
+    source_key TEXT NOT NULL,
+    source_id TEXT NOT NULL,
+    source_kind TEXT NOT NULL,
+    trail_id TEXT NOT NULL,
+    has_where INTEGER NOT NULL DEFAULT 0,
+    edge TEXT NOT NULL,
+    snapshot_id TEXT NOT NULL,
+    PRIMARY KEY (source_key, trail_id, snapshot_id),
+    FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
+  )`,
 ] as const;
 const TOPO_INDEX_STATEMENTS = [
   'CREATE INDEX IF NOT EXISTS idx_topo_snapshots_created_at ON topo_snapshots(created_at DESC)',
@@ -136,6 +156,9 @@ const TOPO_INDEX_STATEMENTS = [
    ON topo_schemas(owner_id, owner_kind, schema_kind, zod_hash)`,
   'CREATE INDEX IF NOT EXISTS idx_topo_trail_fires_snapshot_id ON topo_trail_fires(snapshot_id)',
   'CREATE INDEX IF NOT EXISTS idx_topo_trail_on_snapshot_id ON topo_trail_on(snapshot_id)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_activation_sources_snapshot_id ON topo_activation_sources(snapshot_id)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_activation_edges_snapshot_id ON topo_activation_edges(snapshot_id)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_activation_edges_trail ON topo_activation_edges(snapshot_id, trail_id)',
 ] as const;
 interface TopoSnapshotRow {
   readonly created_at: string;
@@ -230,6 +253,8 @@ const createAllTopoTables = (db: Database): void => {
 /**
  * Current topo subsystem schema version.
  *
+ * Version 10 adds generic activation source catalog and activation edge tables.
+ *
  * Version 9 adds structured example assertion columns to `topo_examples`.
  *
  * Version 8 adds `pattern TEXT` column to `topo_trails`.
@@ -240,7 +265,7 @@ const createAllTopoTables = (db: Database): void => {
  * tables and advance the subsystem version without translating or deleting
  * legacy rows.
  */
-export const TOPO_SCHEMA_VERSION = 9;
+export const TOPO_SCHEMA_VERSION = 10;
 
 export const ensureTopoSnapshotSchema = (db: Database): void => {
   ensureSubsystemSchema(db, {

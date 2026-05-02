@@ -1,4 +1,5 @@
 import type { ActivationEntry } from './activation-source.js';
+import { activationSourceKey } from './activation-source-projection.js';
 import { withActivationProvenance } from './activation-provenance.js';
 import type { ActivationProvenance } from './activation-provenance.js';
 import { getActivationWherePredicate } from './activation-source.js';
@@ -198,11 +199,23 @@ const sourceInput = (activation: ActivationEntry): unknown =>
 
 const collectScheduleActivations = (
   graph: Topo
-): ScheduleActivationRegistration[] =>
-  graph.list().flatMap((trail) =>
-    trail.activationSources
-      .filter((activation) => activation.source.kind === 'schedule')
-      .map((activation) => ({
+): ScheduleActivationRegistration[] => {
+  const registrations = new Map<string, ScheduleActivationRegistration>();
+  for (const trail of graph.list()) {
+    for (const activation of trail.activationSources) {
+      if (activation.source.kind !== 'schedule') {
+        continue;
+      }
+      const key = `${trail.id}\0${activationSourceKey(activation.source)}`;
+      const previous = registrations.get(key);
+      if (
+        previous !== undefined &&
+        (previous.activation.where !== undefined ||
+          activation.where === undefined)
+      ) {
+        continue;
+      }
+      registrations.set(key, {
         activation,
         cron:
           typeof activation.source.cron === 'string'
@@ -214,8 +227,12 @@ const collectScheduleActivations = (
           ? {}
           : { timezone: activation.source.timezone }),
         trail,
-      }))
-  );
+      });
+    }
+  }
+
+  return [...registrations.values()];
+};
 
 const scheduleActivationProvenance = (
   registration: ScheduleActivationRegistration

@@ -6,7 +6,15 @@ import { join } from 'node:path';
 import { z } from 'zod';
 
 import { NotFoundError } from '../errors.js';
-import { contour, Result, resource, signal, topo, trail } from '../index.js';
+import {
+  contour,
+  Result,
+  resource,
+  schedule,
+  signal,
+  topo,
+  trail,
+} from '../index.js';
 import { __topoStoreMigrationStats, createTopoStore } from '../topo-store.js';
 import {
   ensureTopoSnapshotSchema,
@@ -16,6 +24,8 @@ import {
 import {
   createTopoSnapshot,
   getStoredTopoExport,
+  normalizeActivationEdgeRows,
+  normalizeActivationSourceRows,
   normalizeFiresRows,
   normalizeOnRows,
 } from '../internal/topo-store.js';
@@ -189,6 +199,50 @@ const readTrailSignalRows = (
     )
     .all(snapshotId);
 
+const readActivationSourceRows = (
+  db: ReturnType<typeof openWriteTrailsDb>,
+  snapshotId: string
+) =>
+  db
+    .query<
+      {
+        source: string;
+        source_id: string;
+        source_key: string;
+        source_kind: string;
+      },
+      [string]
+    >(
+      `SELECT source_key, source_id, source_kind, source
+       FROM topo_activation_sources
+       WHERE snapshot_id = ?
+       ORDER BY source_key ASC`
+    )
+    .all(snapshotId);
+
+const readActivationEdgeRows = (
+  db: ReturnType<typeof openWriteTrailsDb>,
+  snapshotId: string
+) =>
+  db
+    .query<
+      {
+        edge: string;
+        has_where: number;
+        source_id: string;
+        source_key: string;
+        source_kind: string;
+        trail_id: string;
+      },
+      [string]
+    >(
+      `SELECT source_key, source_id, source_kind, trail_id, has_where, edge
+       FROM topo_activation_edges
+       WHERE snapshot_id = ?
+       ORDER BY source_key ASC, trail_id ASC`
+    )
+    .all(snapshotId);
+
 const readSurfaceRows = (
   db: ReturnType<typeof openWriteTrailsDb>,
   snapshotId: string
@@ -269,6 +323,8 @@ const expectProjectionCounts = (
   expect(countRows(db, 'topo_surfaces', snapshotId)).toBe(2);
   expect(countRows(db, 'topo_examples', snapshotId)).toBe(2);
   expect(countRows(db, 'topo_schemas', snapshotId)).toBe(5);
+  expect(countRows(db, 'topo_activation_sources', snapshotId)).toBe(0);
+  expect(countRows(db, 'topo_activation_edges', snapshotId)).toBe(0);
   expect(countRows(db, 'topo_exports')).toBeGreaterThanOrEqual(1);
 };
 
@@ -362,6 +418,8 @@ const expectDisposableSaveCascaded = (
   expect(countRows(db, 'topo_schemas', disposableId)).toBe(0);
   expect(countRows(db, 'topo_trail_fires', disposableId)).toBe(0);
   expect(countRows(db, 'topo_trail_on', disposableId)).toBe(0);
+  expect(countRows(db, 'topo_activation_sources', disposableId)).toBe(0);
+  expect(countRows(db, 'topo_activation_edges', disposableId)).toBe(0);
 };
 
 const expectSignalEdgeCounts = (
@@ -703,6 +761,12 @@ describe('topo store projection', () => {
         from: ['entity.create'],
         payload: z.object({ id: z.string() }),
       });
+      const dailyAudit = schedule('schedule.entity.audit', {
+        cron: '0 2 * * *',
+        input: { id: 'daily' },
+        meta: { owner: 'entity' },
+        timezone: 'UTC',
+      });
 
       const createTrail = trail('entity.create', {
         blaze: () => Result.ok({ id: 'x' }),
@@ -727,6 +791,12 @@ describe('topo store projection', () => {
         on: ['entity.created', 'entity.updated'],
         output: z.object({ ok: z.boolean() }),
       });
+      const scheduledAuditTrail = trail('entity.scheduled-audit', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({ id: z.string() }),
+        on: [dailyAudit],
+        output: z.object({ ok: z.boolean() }),
+      });
 
       const snapshot = unwrap(
         createTopoSnapshot(
@@ -736,6 +806,7 @@ describe('topo store projection', () => {
             createTrail,
             created,
             indexTrail,
+            scheduledAuditTrail,
             updated,
           })
         )
@@ -768,12 +839,113 @@ describe('topo store projection', () => {
         { signal_id: 'entity.created', trail_id: 'entity.index' },
       ]);
 
+      expect(readActivationSourceRows(db, snapshot.id)).toEqual([
+        {
+          source: JSON.stringify({
+            cron: '0 2 * * *',
+            id: 'schedule.entity.audit',
+            input: { id: 'daily' },
+            key: 'schedule:schedule.entity.audit',
+            kind: 'schedule',
+            meta: { owner: 'entity' },
+            timezone: 'UTC',
+          }),
+          source_id: 'schedule.entity.audit',
+          source_key: 'schedule:schedule.entity.audit',
+          source_kind: 'schedule',
+        },
+        {
+          source: JSON.stringify({
+            id: 'entity.created',
+            key: 'signal:entity.created',
+            kind: 'signal',
+          }),
+          source_id: 'entity.created',
+          source_key: 'signal:entity.created',
+          source_kind: 'signal',
+        },
+        {
+          source: JSON.stringify({
+            id: 'entity.updated',
+            key: 'signal:entity.updated',
+            kind: 'signal',
+          }),
+          source_id: 'entity.updated',
+          source_key: 'signal:entity.updated',
+          source_kind: 'signal',
+        },
+      ]);
+      expect(readActivationEdgeRows(db, snapshot.id)).toEqual([
+        {
+          edge: JSON.stringify({
+            hasWhere: false,
+            sourceId: 'schedule.entity.audit',
+            sourceKey: 'schedule:schedule.entity.audit',
+            sourceKind: 'schedule',
+            trailId: 'entity.scheduled-audit',
+          }),
+          has_where: 0,
+          source_id: 'schedule.entity.audit',
+          source_key: 'schedule:schedule.entity.audit',
+          source_kind: 'schedule',
+          trail_id: 'entity.scheduled-audit',
+        },
+        {
+          edge: JSON.stringify({
+            hasWhere: false,
+            sourceId: 'entity.created',
+            sourceKey: 'signal:entity.created',
+            sourceKind: 'signal',
+            trailId: 'entity.audit',
+          }),
+          has_where: 0,
+          source_id: 'entity.created',
+          source_key: 'signal:entity.created',
+          source_kind: 'signal',
+          trail_id: 'entity.audit',
+        },
+        {
+          edge: JSON.stringify({
+            hasWhere: true,
+            sourceId: 'entity.created',
+            sourceKey: 'signal:entity.created',
+            sourceKind: 'signal',
+            trailId: 'entity.index',
+            where: { predicate: true },
+          }),
+          has_where: 1,
+          source_id: 'entity.created',
+          source_key: 'signal:entity.created',
+          source_kind: 'signal',
+          trail_id: 'entity.index',
+        },
+        {
+          edge: JSON.stringify({
+            hasWhere: false,
+            sourceId: 'entity.updated',
+            sourceKey: 'signal:entity.updated',
+            sourceKind: 'signal',
+            trailId: 'entity.audit',
+          }),
+          has_where: 0,
+          source_id: 'entity.updated',
+          source_key: 'signal:entity.updated',
+          source_kind: 'signal',
+          trail_id: 'entity.audit',
+        },
+      ]);
+
       const lock = JSON.parse(
         requireStoredExport(db, snapshot.id).lockContent
       ) as {
         apps: Record<
           string,
           {
+            activationGraph: {
+              edges: readonly Record<string, unknown>[];
+              sourceKeys: readonly string[];
+            };
+            activationSources: Record<string, Record<string, unknown>>;
             signals: Record<string, Record<string, unknown>>;
             trails: Record<string, Record<string, unknown>>;
           }
@@ -783,6 +955,7 @@ describe('topo store projection', () => {
         lock.apps['signal-edges-app']?.signals['entity.created'];
       const indexLockEntry =
         lock.apps['signal-edges-app']?.trails['entity.index'];
+      const appLock = lock.apps['signal-edges-app'];
       expect(createdLockEntry).toMatchObject({
         consumers: ['entity.audit', 'entity.index'],
         diagnostics: expect.objectContaining({
@@ -799,12 +972,102 @@ describe('topo store projection', () => {
         producers: ['entity.create'],
       });
       expect(createdLockEntry?.payload).toEqual(createdLockEntry?.input);
+      expect(appLock?.activationSources).toMatchObject({
+        'schedule:schedule.entity.audit': {
+          cron: '0 2 * * *',
+          id: 'schedule.entity.audit',
+          input: { id: 'daily' },
+          key: 'schedule:schedule.entity.audit',
+          kind: 'schedule',
+          meta: { owner: 'entity' },
+          timezone: 'UTC',
+        },
+        'signal:entity.created': {
+          id: 'entity.created',
+          key: 'signal:entity.created',
+          kind: 'signal',
+        },
+      });
+      expect(appLock?.activationGraph).toMatchObject({
+        edgeCount: 4,
+        sourceCount: 3,
+        sourceKeys: [
+          'schedule:schedule.entity.audit',
+          'signal:entity.created',
+          'signal:entity.updated',
+        ],
+        trailIds: ['entity.audit', 'entity.index', 'entity.scheduled-audit'],
+      });
       expect(indexLockEntry?.activationSources).toEqual([
         {
-          source: { id: 'entity.created', kind: 'signal' },
+          source: {
+            id: 'entity.created',
+            key: 'signal:entity.created',
+            kind: 'signal',
+          },
           where: { predicate: true },
         },
       ]);
+    });
+  });
+
+  test('activation source projection records source payload and parse schemas', () => {
+    withProjectionDb((db) => {
+      const webhookSource = {
+        id: 'webhook.user.upsert',
+        kind: 'webhook' as const,
+        parse: {
+          output: z.object({
+            email: z.string().optional(),
+            userId: z.string(),
+          }),
+        },
+        payload: z.object({ userId: z.string() }),
+      };
+      const receiver = trail('user.webhook.receive', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({ userId: z.string() }),
+        on: [webhookSource],
+        output: z.object({ ok: z.boolean() }),
+      });
+
+      const snapshot = unwrap(
+        createTopoSnapshot(db, topo('webhook-app', { receiver }))
+      );
+      const lock = JSON.parse(
+        requireStoredExport(db, snapshot.id).lockContent
+      ) as {
+        apps: Record<
+          string,
+          {
+            activationSources: Record<string, Record<string, unknown>>;
+          }
+        >;
+      };
+      const source =
+        lock.apps['webhook-app']?.activationSources[
+          'webhook:webhook.user.upsert'
+        ];
+
+      expect(source).toMatchObject({
+        hasParse: true,
+        hasPayloadSchema: true,
+        id: 'webhook.user.upsert',
+        key: 'webhook:webhook.user.upsert',
+        kind: 'webhook',
+        parseOutputSchema: {
+          properties: {
+            userId: { type: 'string' },
+          },
+          type: 'object',
+        },
+        payloadSchema: {
+          properties: {
+            userId: { type: 'string' },
+          },
+          type: 'object',
+        },
+      });
     });
   });
 
@@ -881,7 +1144,7 @@ describe('topo store projection', () => {
               "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
             )
             .get()?.version
-        ).toBe(9);
+        ).toBe(10);
         expect(countRows(db, 'topo_snapshots')).toBe(0);
       });
     });
@@ -932,7 +1195,7 @@ describe('topo store projection', () => {
               "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
             )
             .get()?.version
-        ).toBe(9);
+        ).toBe(10);
       });
     });
 
@@ -973,8 +1236,10 @@ describe('topo store projection', () => {
             "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
           )
           .get()?.version
-      ).toBe(9);
+      ).toBe(10);
       for (const table of [
+        'topo_activation_edges',
+        'topo_activation_sources',
         'topo_snapshots',
         'topo_trails',
         'topo_crossings',
@@ -1048,6 +1313,131 @@ describe('signal edge normalizers', () => {
     expect(normalizeFiresRows(trails, 'snap-1')).toEqual([
       { signalId: 's.a', snapshotId: 'snap-1', trailId: 't.one' },
       { signalId: 's.b', snapshotId: 'snap-1', trailId: 't.one' },
+    ]);
+  });
+
+  test('normalizeActivationSourceRows catalogues generic activation sources', () => {
+    const nightly = schedule('schedule.nightly', {
+      cron: '0 * * * *',
+      input: { id: 'n1' },
+      timezone: 'UTC',
+    });
+    const trails = [
+      trail('t.one', {
+        blaze: noop,
+        input: z.object({ id: z.string() }),
+        on: [
+          nightly,
+          {
+            source: 's.a',
+            where: () => true,
+          },
+          's.a',
+        ],
+      }),
+    ];
+
+    expect(normalizeActivationSourceRows(trails, 'snap-1')).toEqual([
+      {
+        snapshotId: 'snap-1',
+        source: JSON.stringify({
+          cron: '0 * * * *',
+          id: 'schedule.nightly',
+          input: { id: 'n1' },
+          key: 'schedule:schedule.nightly',
+          kind: 'schedule',
+          timezone: 'UTC',
+        }),
+        sourceId: 'schedule.nightly',
+        sourceKey: 'schedule:schedule.nightly',
+        sourceKind: 'schedule',
+      },
+      {
+        snapshotId: 'snap-1',
+        source: JSON.stringify({
+          id: 's.a',
+          key: 'signal:s.a',
+          kind: 'signal',
+        }),
+        sourceId: 's.a',
+        sourceKey: 'signal:s.a',
+        sourceKind: 'signal',
+      },
+    ]);
+  });
+
+  test('normalizeActivationEdgeRows projects deduped source-to-trail edges', () => {
+    const nightly = schedule('schedule.nightly', {
+      cron: '0 * * * *',
+      input: { id: 'n1' },
+    });
+    const trails = [
+      trail('t.one', {
+        blaze: noop,
+        input: z.object({ id: z.string() }),
+        on: [
+          nightly,
+          {
+            source: 's.a',
+            where: () => true,
+          },
+          's.a',
+        ],
+      }),
+      trail('t.two', {
+        blaze: noop,
+        input: z.object({}),
+        on: ['s.a'],
+      }),
+    ];
+
+    expect(normalizeActivationEdgeRows(trails, 'snap-1')).toEqual([
+      {
+        edge: JSON.stringify({
+          hasWhere: false,
+          sourceId: 'schedule.nightly',
+          sourceKey: 'schedule:schedule.nightly',
+          sourceKind: 'schedule',
+          trailId: 't.one',
+        }),
+        hasWhere: 0,
+        snapshotId: 'snap-1',
+        sourceId: 'schedule.nightly',
+        sourceKey: 'schedule:schedule.nightly',
+        sourceKind: 'schedule',
+        trailId: 't.one',
+      },
+      {
+        edge: JSON.stringify({
+          hasWhere: true,
+          sourceId: 's.a',
+          sourceKey: 'signal:s.a',
+          sourceKind: 'signal',
+          trailId: 't.one',
+          where: { predicate: true },
+        }),
+        hasWhere: 1,
+        snapshotId: 'snap-1',
+        sourceId: 's.a',
+        sourceKey: 'signal:s.a',
+        sourceKind: 'signal',
+        trailId: 't.one',
+      },
+      {
+        edge: JSON.stringify({
+          hasWhere: false,
+          sourceId: 's.a',
+          sourceKey: 'signal:s.a',
+          sourceKind: 'signal',
+          trailId: 't.two',
+        }),
+        hasWhere: 0,
+        snapshotId: 'snap-1',
+        sourceId: 's.a',
+        sourceKey: 'signal:s.a',
+        sourceKind: 'signal',
+        trailId: 't.two',
+      },
     ]);
   });
 });

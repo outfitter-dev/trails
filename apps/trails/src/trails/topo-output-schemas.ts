@@ -6,10 +6,39 @@ export const activationChainOutput = z.object({
   signal: z.string(),
 });
 
+export const activationSourceOutput = z
+  .object({
+    cron: z.string().optional(),
+    hasParse: z.literal(true).optional(),
+    hasPayloadSchema: z.literal(true).optional(),
+    id: z.string(),
+    input: z.unknown().optional(),
+    key: z.string(),
+    kind: z.string(),
+    meta: z.record(z.string(), z.unknown()).optional(),
+    timezone: z.string().optional(),
+  })
+  .catchall(z.unknown());
+
+export const activationEdgeOutput = z
+  .object({
+    hasWhere: z.boolean(),
+    sourceId: z.string(),
+    sourceKey: z.string(),
+    sourceKind: z.string(),
+    trailId: z.string(),
+    where: z.object({ predicate: z.literal(true) }).optional(),
+  })
+  .catchall(z.unknown());
+
 export const activationOverviewOutput = z.object({
   chainCount: z.number(),
   chains: z.array(activationChainOutput).readonly(),
+  edgeCount: z.number(),
+  edges: z.array(activationEdgeOutput).readonly(),
   signalIds: z.array(z.string()).readonly(),
+  sourceCount: z.number(),
+  sourceKeys: z.array(z.string()).readonly(),
   trailIds: z.array(z.string()).readonly(),
 });
 
@@ -17,6 +46,8 @@ export const trailDetailOutput = z.object({
   activatedBy: z.array(z.string()).readonly(),
   activates: z.array(z.string()).readonly(),
   activationChains: z.array(activationChainOutput).readonly(),
+  activationEdges: z.array(activationEdgeOutput).readonly(),
+  activationSources: z.array(activationSourceOutput).readonly(),
   crosses: z.array(z.string()).readonly(),
   description: z.string().nullable(),
   detours: z

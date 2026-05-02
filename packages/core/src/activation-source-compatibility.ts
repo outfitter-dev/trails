@@ -59,16 +59,16 @@ const getActivationPayloadContract = (
     return { type: 'value', value: EMPTY_SOURCE_INPUT };
   }
 
-  if (isZodSchema(source.payload)) {
-    return { schema: source.payload, type: 'schema' };
-  }
-
   if (isZodSchema(source.parse)) {
     return { schema: source.parse, type: 'schema' };
   }
 
   if (isObjectRecord(source.parse) && isZodSchema(source.parse['output'])) {
     return { schema: source.parse['output'], type: 'schema' };
+  }
+
+  if (isZodSchema(source.payload)) {
+    return { schema: source.payload, type: 'schema' };
   }
 
   if (isZodSchema(source.input)) {

@@ -117,6 +117,8 @@ describe('trails guide', () => {
           activatedBy: [],
           activates: [],
           activationChains: [],
+          activationEdges: [],
+          activationSources: [],
           crosses: [],
           description: 'Say hello',
           detours: [

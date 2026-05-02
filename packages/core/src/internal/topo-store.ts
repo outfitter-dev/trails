@@ -1,5 +1,13 @@
 import type { Database, SQLQueryBindings } from 'bun:sqlite';
 
+import type {
+  ActivationEntry,
+  ActivationSource,
+} from '../activation-source.js';
+import {
+  activationSourceKey,
+  projectActivationSourceDeclaration,
+} from '../activation-source-projection.js';
 import { getContourReferences } from '../contour.js';
 import { DETOUR_MAX_ATTEMPTS_CAP } from '../detours.js';
 import { deriveCliPath } from '../derive.js';
@@ -31,6 +39,10 @@ type SurfaceMapEntryRecord = Readonly<Record<string, unknown>> & {
 };
 
 type SurfaceMapRecord = Readonly<{
+  readonly activationGraph: ActivationGraphRecord;
+  readonly activationSources: Readonly<
+    Record<string, ActivationSourceCatalogRecord>
+  >;
   readonly entries: readonly SurfaceMapEntryRecord[];
   readonly generatedAt: string;
   readonly version: '1.0';
@@ -67,6 +79,24 @@ interface TopoFiresRow {
 interface TopoOnRow {
   readonly snapshotId: string;
   readonly signalId: string;
+  readonly trailId: string;
+}
+
+interface TopoActivationSourceRow {
+  readonly snapshotId: string;
+  readonly source: string;
+  readonly sourceId: string;
+  readonly sourceKey: string;
+  readonly sourceKind: string;
+}
+
+interface TopoActivationEdgeRow {
+  readonly edge: string;
+  readonly hasWhere: number;
+  readonly snapshotId: string;
+  readonly sourceId: string;
+  readonly sourceKey: string;
+  readonly sourceKind: string;
   readonly trailId: string;
 }
 
@@ -167,6 +197,30 @@ interface SignalGraphRelations {
   readonly producers: readonly string[];
 }
 
+interface ActivationSourceCatalogRecord extends JsonRecord {
+  readonly hasParse?: true;
+  readonly hasPayloadSchema?: true;
+  readonly id: string;
+  readonly kind: string;
+  readonly key: string;
+}
+
+interface ActivationGraphEdgeRecord extends JsonRecord {
+  readonly hasWhere: boolean;
+  readonly sourceId: string;
+  readonly sourceKey: string;
+  readonly sourceKind: string;
+  readonly trailId: string;
+}
+
+interface ActivationGraphRecord extends JsonRecord {
+  readonly edgeCount: number;
+  readonly edges: readonly ActivationGraphEdgeRecord[];
+  readonly sourceCount: number;
+  readonly sourceKeys: readonly string[];
+  readonly trailIds: readonly string[];
+}
+
 const EMPTY_SIGNAL_RELATIONS: SignalGraphRelations = {
   consumers: [],
   producers: [],
@@ -188,6 +242,8 @@ const SIGNAL_GOVERNANCE_HOOKS = {
 } as const;
 
 interface NormalizedTopoProjection {
+  readonly activationEdges: readonly TopoActivationEdgeRow[];
+  readonly activationSources: readonly TopoActivationSourceRow[];
   readonly crossings: readonly TopoCrossingRow[];
   readonly examples: readonly TopoExampleRow[];
   readonly fires: readonly TopoFiresRow[];
@@ -369,6 +425,110 @@ export const normalizeOnRows = (
     }))
   );
 
+const projectActivationSource = (
+  source: ActivationSource
+): ActivationSourceCatalogRecord =>
+  projectActivationSourceDeclaration(source) as ActivationSourceCatalogRecord;
+
+const projectActivationEdge = (
+  trailId: string,
+  activation: ActivationEntry
+): ActivationGraphEdgeRecord => {
+  const sourceKey = activationSourceKey(activation.source);
+  const edge: Record<string, unknown> = {
+    hasWhere: activation.where !== undefined,
+    sourceId: activation.source.id,
+    sourceKey,
+    sourceKind: activation.source.kind,
+    trailId,
+  };
+
+  if (activation.meta !== undefined) {
+    edge['meta'] = canonicalize(activation.meta);
+  }
+  if (activation.where !== undefined) {
+    edge['where'] = { predicate: true };
+  }
+
+  return sortKeys(edge) as ActivationGraphEdgeRecord;
+};
+
+const collectActivationSourceCatalog = (
+  trails: readonly AnyTrail[]
+): readonly ActivationSourceCatalogRecord[] => {
+  const sources = new Map<string, ActivationSourceCatalogRecord>();
+  for (const trail of trails) {
+    for (const activation of trail.activationSources) {
+      const projected = projectActivationSource(activation.source);
+      sources.set(projected.key, projected);
+    }
+  }
+  return [...sources.values()].toSorted((a, b) => a.key.localeCompare(b.key));
+};
+
+const collectActivationGraphEdges = (
+  trails: readonly AnyTrail[]
+): readonly ActivationGraphEdgeRecord[] => {
+  const edges = new Map<string, ActivationGraphEdgeRecord>();
+  for (const trail of trails) {
+    for (const activation of trail.activationSources) {
+      const edge = projectActivationEdge(trail.id, activation);
+      const key = `${edge.sourceKey}\0${edge.trailId}`;
+      const previous = edges.get(key);
+      edges.set(
+        key,
+        previous === undefined || (!previous.hasWhere && edge.hasWhere)
+          ? edge
+          : previous
+      );
+    }
+  }
+
+  return [...edges.values()].toSorted(
+    (a, b) =>
+      a.sourceKey.localeCompare(b.sourceKey) ||
+      a.trailId.localeCompare(b.trailId)
+  );
+};
+
+const buildActivationGraphRecord = (
+  edges: readonly ActivationGraphEdgeRecord[],
+  sources: readonly ActivationSourceCatalogRecord[]
+): ActivationGraphRecord =>
+  sortKeys({
+    edgeCount: edges.length,
+    edges,
+    sourceCount: sources.length,
+    sourceKeys: sources.map((source) => source.key),
+    trailIds: [...new Set(edges.map((edge) => edge.trailId))].toSorted(),
+  }) as ActivationGraphRecord;
+
+export const normalizeActivationSourceRows = (
+  trails: readonly AnyTrail[],
+  snapshotId: string
+): readonly TopoActivationSourceRow[] =>
+  collectActivationSourceCatalog(trails).map((source) => ({
+    snapshotId,
+    source: stableJson(source),
+    sourceId: source.id,
+    sourceKey: source.key,
+    sourceKind: source.kind,
+  }));
+
+export const normalizeActivationEdgeRows = (
+  trails: readonly AnyTrail[],
+  snapshotId: string
+): readonly TopoActivationEdgeRow[] =>
+  collectActivationGraphEdges(trails).map((edge) => ({
+    edge: stableJson(edge),
+    hasWhere: edge.hasWhere ? 1 : 0,
+    snapshotId,
+    sourceId: edge.sourceId,
+    sourceKey: edge.sourceKey,
+    sourceKind: edge.sourceKind,
+    trailId: edge.trailId,
+  }));
+
 const normalizeTrailResourceRows = (
   trails: readonly AnyTrail[],
   snapshotId: string
@@ -485,6 +645,8 @@ const normalizeTopoProjection = (
     .toSorted((a, b) => a.id.localeCompare(b.id));
 
   return {
+    activationEdges: normalizeActivationEdgeRows(trails, snapshotId),
+    activationSources: normalizeActivationSourceRows(trails, snapshotId),
     crossings: normalizeCrossingRows(trails, snapshotId),
     examples: normalizeExampleRows(trails, snapshotId),
     fires: normalizeFiresRows(trails, snapshotId),
@@ -748,10 +910,10 @@ const addTrailRelations = (
   if (trail.activationSources.length > 0) {
     entry['activationSources'] = trail.activationSources.map((activation) =>
       sortKeys({
-        source: sortKeys({
-          id: activation.source.id,
-          kind: activation.source.kind,
-        }),
+        ...(activation.meta === undefined
+          ? {}
+          : { meta: canonicalize(activation.meta) }),
+        source: projectActivationSource(activation.source),
         ...(activation.where === undefined
           ? {}
           : { where: sortKeys({ predicate: true }) }),
@@ -992,6 +1154,8 @@ const buildSurfaceMap = (
   trails: readonly AnyTrail[]
 ): SurfaceMapRecord => {
   const signalRelations = collectSignalGraphRelations(signals, trails);
+  const activationSources = collectActivationSourceCatalog(trails);
+  const activationEdges = collectActivationGraphEdges(trails);
   const entries = [
     ...contours.map((contour) => contourToEntryRecord(contour)),
     ...trails.map((trail) =>
@@ -1008,6 +1172,13 @@ const buildSurfaceMap = (
   ].toSorted((a, b) => a.id.localeCompare(b.id));
 
   return {
+    activationGraph: buildActivationGraphRecord(
+      activationEdges,
+      activationSources
+    ),
+    activationSources: Object.fromEntries(
+      activationSources.map((source) => [source.key, source])
+    ),
     entries,
     generatedAt,
     version: '1.0',
@@ -1044,6 +1215,8 @@ const buildSerializedLock = (
   sortKeys({
     apps: sortKeys({
       [topo.name]: sortKeys({
+        activationGraph: surfaceMap.activationGraph,
+        activationSources: surfaceMap.activationSources,
         contours: entriesForKind(surfaceMap.entries, 'contour'),
         resources: entriesForKind(surfaceMap.entries, 'resource'),
         signals: entriesForKind(surfaceMap.entries, 'signal'),
@@ -1178,6 +1351,36 @@ const insertProjectedRows = (
     `INSERT INTO topo_trail_on (trail_id, signal_id, snapshot_id)
      VALUES (?, ?, ?)`,
     (row) => [row.trailId, row.signalId, row.snapshotId]
+  );
+  insertRows(
+    db,
+    projection.activationSources,
+    `INSERT INTO topo_activation_sources (
+      source_key, source_id, source_kind, source, snapshot_id
+    ) VALUES (?, ?, ?, ?, ?)`,
+    (row) => [
+      row.sourceKey,
+      row.sourceId,
+      row.sourceKind,
+      row.source,
+      row.snapshotId,
+    ]
+  );
+  insertRows(
+    db,
+    projection.activationEdges,
+    `INSERT INTO topo_activation_edges (
+      source_key, source_id, source_kind, trail_id, has_where, edge, snapshot_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    (row) => [
+      row.sourceKey,
+      row.sourceId,
+      row.sourceKind,
+      row.trailId,
+      row.hasWhere,
+      row.edge,
+      row.snapshotId,
+    ]
   );
   insertRows(
     db,

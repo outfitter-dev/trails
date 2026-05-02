@@ -8,6 +8,14 @@ import type { SurfaceMap } from '../types.js';
 // ---------------------------------------------------------------------------
 
 const makeSurfaceMap = (overrides?: Partial<SurfaceMap>): SurfaceMap => ({
+  activationGraph: {
+    edgeCount: 0,
+    edges: [],
+    sourceCount: 0,
+    sourceKeys: [],
+    trailIds: [],
+  },
+  activationSources: {},
   entries: [
     {
       exampleCount: 2,

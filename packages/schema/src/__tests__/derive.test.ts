@@ -8,6 +8,7 @@ import {
   signal,
   resource,
   Result,
+  schedule,
   topo,
   trail,
 } from '@ontrails/core';
@@ -268,6 +269,138 @@ describe('deriveSurfaceMap', () => {
         producers: ['user.create'],
       });
       expect(entry?.payload).toEqual(entry?.input);
+    });
+
+    test('activation sources expose a source catalog and activation graph', () => {
+      const created = signal('user.created', {
+        from: ['user.create'],
+        payload: z.object({ userId: z.string() }),
+      });
+      const nightly = schedule('schedule.user.reindex', {
+        cron: '0 2 * * *',
+        input: { id: 'nightly' },
+        meta: { owner: 'identity' },
+        timezone: 'UTC',
+      });
+      const producer = trail('user.create', {
+        blaze: noop,
+        fires: [created],
+        input: z.object({}),
+      });
+      const consumer = trail('user.index', {
+        blaze: noop,
+        input: z.object({}),
+        on: [
+          {
+            source: created,
+            where: (payload) => payload.userId.startsWith('u_'),
+          },
+        ],
+      });
+      const scheduled = trail('user.scheduled-index', {
+        blaze: noop,
+        input: z.object({ id: z.string() }),
+        on: [nightly],
+      });
+
+      const map = deriveSurfaceMap(
+        topoFrom({ consumer, created, producer, scheduled })
+      );
+      const consumerEntry = map.entries.find(
+        (candidate) => candidate.id === 'user.index'
+      );
+
+      expect(map.activationSources).toMatchObject({
+        'schedule:schedule.user.reindex': {
+          cron: '0 2 * * *',
+          id: 'schedule.user.reindex',
+          input: { id: 'nightly' },
+          key: 'schedule:schedule.user.reindex',
+          kind: 'schedule',
+          meta: { owner: 'identity' },
+          timezone: 'UTC',
+        },
+        'signal:user.created': {
+          id: 'user.created',
+          key: 'signal:user.created',
+          kind: 'signal',
+        },
+      });
+      expect(map.activationGraph).toMatchObject({
+        edgeCount: 2,
+        sourceCount: 2,
+        sourceKeys: ['schedule:schedule.user.reindex', 'signal:user.created'],
+        trailIds: ['user.index', 'user.scheduled-index'],
+      });
+      expect(map.activationGraph.edges).toEqual([
+        {
+          hasWhere: false,
+          sourceId: 'schedule.user.reindex',
+          sourceKey: 'schedule:schedule.user.reindex',
+          sourceKind: 'schedule',
+          trailId: 'user.scheduled-index',
+        },
+        {
+          hasWhere: true,
+          sourceId: 'user.created',
+          sourceKey: 'signal:user.created',
+          sourceKind: 'signal',
+          trailId: 'user.index',
+          where: { predicate: true },
+        },
+      ]);
+      expect(consumerEntry?.activationSources).toEqual([
+        {
+          source: {
+            id: 'user.created',
+            key: 'signal:user.created',
+            kind: 'signal',
+          },
+          where: { predicate: true },
+        },
+      ]);
+    });
+
+    test('activation source projection records source payload and parse schemas', () => {
+      const webhookSource = {
+        id: 'webhook.user.upsert',
+        kind: 'webhook' as const,
+        parse: {
+          output: z.object({
+            email: z.string().optional(),
+            userId: z.string(),
+          }),
+        },
+        payload: z.object({ userId: z.string() }),
+      };
+      const receiver = trail('user.webhook.receive', {
+        blaze: noop,
+        input: z.object({ userId: z.string() }),
+        on: [webhookSource],
+      });
+
+      const map = deriveSurfaceMap(topoFrom({ receiver }));
+      const source = map.activationSources['webhook:webhook.user.upsert'];
+
+      expect(source).toMatchObject({
+        hasParse: true,
+        hasPayloadSchema: true,
+        id: 'webhook.user.upsert',
+        key: 'webhook:webhook.user.upsert',
+        kind: 'webhook',
+        parseOutputSchema: {
+          properties: {
+            userId: { type: 'string' },
+          },
+          type: 'object',
+        },
+        payloadSchema: {
+          properties: {
+            userId: { type: 'string' },
+          },
+          type: 'object',
+        },
+      });
     });
 
     test('resource entries are included with description and healthcheck metadata', () => {

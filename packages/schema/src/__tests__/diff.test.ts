@@ -17,6 +17,14 @@ const entry = (
 });
 
 const surfaceMap = (entries: SurfaceMapEntry[]): SurfaceMap => ({
+  activationGraph: {
+    edgeCount: 0,
+    edges: [],
+    sourceCount: 0,
+    sourceKeys: [],
+    trailIds: [],
+  },
+  activationSources: {},
   entries,
   generatedAt: new Date().toISOString(),
   version: '1.0',

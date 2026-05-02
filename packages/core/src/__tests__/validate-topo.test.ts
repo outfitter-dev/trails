@@ -475,6 +475,76 @@ describe('validateTopo', () => {
       expect(issues[0]?.message).toContain('queue.entity.created');
       expect(issues[0]?.message).toContain('queue');
     });
+
+    test('duplicate source-to-trail activation entries produce diagnostics', () => {
+      const app = topo('app', {
+        consumer: trail('order.consume', {
+          blaze: noop,
+          input: z.object({ orderId: z.string() }),
+          on: [
+            'order.created',
+            {
+              source: 'order.created',
+              where: () => true,
+            },
+          ],
+        }),
+        created: {
+          id: 'order.created',
+          kind: 'signal' as const,
+          payload: z.object({ orderId: z.string() }),
+        },
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issue = extractIssues(result).find(
+        (entry) => entry.rule === 'activation-source-edge-unique'
+      );
+      expect(issue?.trailId).toBe('order.consume');
+      expect(issue?.sourceId).toBe('order.created');
+      expect(issue?.sourceKind).toBe('signal');
+    });
+
+    test('conflicting source declarations for the same key produce diagnostics', () => {
+      const app = topo('app', {
+        morning: trail('report.morning', {
+          blaze: noop,
+          input: z.object({ name: z.string() }),
+          on: [
+            {
+              cron: '0 8 * * *',
+              id: 'schedule.report.shared',
+              input: { name: 'morning' },
+              kind: 'schedule',
+            },
+          ],
+        }),
+        nightly: trail('report.nightly', {
+          blaze: noop,
+          input: z.object({ name: z.string() }),
+          on: [
+            {
+              cron: '0 2 * * *',
+              id: 'schedule.report.shared',
+              input: { name: 'nightly' },
+              kind: 'schedule',
+            },
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issue = extractIssues(result).find(
+        (entry) => entry.rule === 'activation-source-definition-unique'
+      );
+      expect(['report.morning', 'report.nightly']).toContain(issue?.trailId);
+      expect(issue?.sourceId).toBe('schedule.report.shared');
+      expect(issue?.sourceKind).toBe('schedule');
+    });
   });
 
   describe('activation source input compatibility', () => {
@@ -712,6 +782,31 @@ describe('validateTopo', () => {
               parse: {
                 output: z.object({ paymentId: z.string() }),
               },
+            },
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
+    });
+
+    test('webhook parse output takes precedence over raw payload for input compatibility', () => {
+      const app = topo('app', {
+        receive: trail('issue.receive', {
+          blaze: noop,
+          input: z.object({ issueId: z.string() }),
+          on: [
+            {
+              id: 'webhook.github.issue',
+              kind: 'webhook',
+              parse: {
+                output: z.object({ issueId: z.string() }),
+              },
+              payload: z.object({
+                action: z.string(),
+                issue: z.object({ number: z.number() }),
+              }),
             },
           ],
         }),
@@ -1043,6 +1138,46 @@ describe('validateEstablishedTopo', () => {
 
     const established = validateEstablishedTopo(app);
     expect(established.isOk()).toBe(true);
+  });
+
+  test('fails when established activation source kind is unsupported', () => {
+    const app = topo('app', {
+      consume: trail('queue.consume', {
+        blaze: noop,
+        input: z.object({}),
+        on: [{ id: 'queue.work', kind: 'queue' }],
+      }),
+    });
+
+    const result = validateEstablishedTopo(app);
+    expect(result.isErr()).toBe(true);
+
+    const issues = extractIssues(result);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.rule).toBe('activation-source-kind-known');
+  });
+
+  test('fails when established schedule activation source is invalid', () => {
+    const app = topo('app', {
+      consume: trail('schedule.consume', {
+        blaze: noop,
+        input: z.object({}),
+        on: [
+          {
+            cron: '60 2 * * *',
+            id: 'schedule.invalid',
+            kind: 'schedule',
+          },
+        ],
+      }),
+    });
+
+    const result = validateEstablishedTopo(app);
+    expect(result.isErr()).toBe(true);
+
+    const issues = extractIssues(result);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.rule).toBe('activation-schedule-valid');
   });
 
   test('fails when established trails depend on draft signal edges', () => {

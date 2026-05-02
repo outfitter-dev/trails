@@ -17,6 +17,14 @@ import type { SurfaceMap } from '../types.js';
 // ---------------------------------------------------------------------------
 
 const makeSurfaceMap = (): SurfaceMap => ({
+  activationGraph: {
+    edgeCount: 0,
+    edges: [],
+    sourceCount: 0,
+    sourceKeys: [],
+    trailIds: [],
+  },
+  activationSources: {},
   entries: [
     {
       description: 'Create a user',

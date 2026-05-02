@@ -39,6 +39,7 @@ import type {
   ActivationWhereSpec,
 } from './activation-source.js';
 import { getActivationWherePredicate } from './activation-source.js';
+import { activationSourceKey } from './activation-source-projection.js';
 import { NotFoundError, TrailsError, ValidationError } from './errors.js';
 import { forkCtx } from './internal/fork-ctx.js';
 import {
@@ -363,7 +364,7 @@ const activationEntriesForSignal = (
     ) {
       continue;
     }
-    const key = `${activation.source.kind}:${activation.source.id}`;
+    const key = activationSourceKey(activation.source);
     const previous = activations.get(key);
     if (
       previous === undefined ||

@@ -13,6 +13,7 @@ import {
   DETOUR_MAX_ATTEMPTS_CAP,
   Result,
   resource,
+  schedule,
   signal,
   topo,
   trail,
@@ -374,6 +375,8 @@ describe('trails survey detail', () => {
     expect(parsed.activatedBy).toEqual([]);
     expect(parsed.activates).toEqual([]);
     expect(parsed.activationChains).toEqual([]);
+    expect(parsed.activationEdges).toEqual([]);
+    expect(parsed.activationSources).toEqual([]);
     expect(parsed.crosses).toEqual([]);
     expect(parsed.fires).toEqual([]);
     expect(parsed.intent).toBe('read');
@@ -405,6 +408,22 @@ describe('trails survey detail', () => {
       activatedBy: ['signal.producer'],
       activates: [],
       activationChains: [chain],
+      activationEdges: [
+        {
+          hasWhere: false,
+          sourceId: 'hello.greeted',
+          sourceKey: 'signal:hello.greeted',
+          sourceKind: 'signal',
+          trailId: 'signal.consumer',
+        },
+      ],
+      activationSources: [
+        {
+          id: 'hello.greeted',
+          key: 'signal:hello.greeted',
+          kind: 'signal',
+        },
+      ],
       fires: [],
       on: ['hello.greeted'],
     });
@@ -641,7 +660,19 @@ describe('trails survey activation graph', () => {
           signal: 'hello.greeted',
         },
       ],
+      edgeCount: 1,
+      edges: [
+        {
+          hasWhere: false,
+          sourceId: 'hello.greeted',
+          sourceKey: 'signal:hello.greeted',
+          sourceKind: 'signal',
+          trailId: 'signal.consumer',
+        },
+      ],
       signalIds: ['hello.greeted'],
+      sourceCount: 1,
+      sourceKeys: ['signal:hello.greeted'],
       trailIds: ['signal.consumer', 'signal.producer'],
     });
     expect(producer).toMatchObject({
@@ -652,6 +683,59 @@ describe('trails survey activation graph', () => {
       activatedBy: ['signal.producer'],
       activates: [],
     });
+  });
+
+  test('list and detail output include generic activation source edges', () => {
+    const nightly = schedule('schedule.report.rebuild', {
+      cron: '0 3 * * *',
+      input: { id: 'nightly' },
+      meta: { owner: 'reports' },
+      timezone: 'UTC',
+    });
+    const scheduledTrail = trail('report.rebuild', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ id: z.string() }),
+      on: [nightly],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const scheduledApp = topo('scheduled-app', { scheduledTrail });
+
+    const overview = structuredClone(
+      deriveSurveyList(scheduledApp)
+    ) as SurveyListReport;
+    const detail = structuredClone(
+      deriveTrailDetail(scheduledTrail, scheduledApp)
+    ) as TrailDetailReport;
+
+    expect(overview.activation).toMatchObject({
+      chainCount: 0,
+      edgeCount: 1,
+      signalIds: [],
+      sourceCount: 1,
+      sourceKeys: ['schedule:schedule.report.rebuild'],
+      trailIds: ['report.rebuild'],
+    });
+    expect(overview.activation.edges).toEqual([
+      {
+        hasWhere: false,
+        sourceId: 'schedule.report.rebuild',
+        sourceKey: 'schedule:schedule.report.rebuild',
+        sourceKind: 'schedule',
+        trailId: 'report.rebuild',
+      },
+    ]);
+    expect(detail.activationSources).toEqual([
+      {
+        cron: '0 3 * * *',
+        id: 'schedule.report.rebuild',
+        input: { id: 'nightly' },
+        key: 'schedule:schedule.report.rebuild',
+        kind: 'schedule',
+        meta: { owner: 'reports' },
+        timezone: 'UTC',
+      },
+    ]);
+    expect(detail.activationEdges).toEqual(overview.activation.edges);
   });
 });
 

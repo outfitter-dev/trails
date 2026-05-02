@@ -30,7 +30,11 @@ import {
   deriveSurveyList,
   deriveTrailDetail,
 } from './topo-reports.js';
-import type { ActivationGraphReport } from './topo-activation.js';
+import type {
+  ActivationEdgeReport,
+  ActivationGraphReport,
+  ActivationSourceReport,
+} from './topo-activation.js';
 import { deriveActivationGraph } from './topo-activation.js';
 import type { TopoSummaryReport, TopoVerifyReport } from './topo-support.js';
 import { deriveRootDir, LOCK_PATH } from './topo-support.js';
@@ -44,6 +48,8 @@ export interface CurrentTrailDetail {
     readonly producer: string;
     readonly signal: string;
   }[];
+  readonly activationEdges: readonly ActivationEdgeReport[];
+  readonly activationSources: readonly ActivationSourceReport[];
   readonly crosses: readonly string[];
   readonly description: string | null;
   readonly detours:
