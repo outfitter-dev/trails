@@ -26,6 +26,7 @@ export { permitGovernanceTrail } from './permit-governance.trail.js';
 export { preferSchemaInferenceTrail } from './prefer-schema-inference.trail.js';
 export { publicInternalDeepImportsTrail } from './public-internal-deep-imports.trail.js';
 export { publicUnionOutputDiscriminantsTrail } from './public-union-output-discriminants.trail.js';
+export { readIntentFiresTrail } from './read-intent-fires.trail.js';
 export { referenceExistsTrail } from './reference-exists.trail.js';
 export { resourceDeclarationsTrail } from './resource-declarations.trail.js';
 export { resourceIdGrammarTrail } from './resource-id-grammar.trail.js';

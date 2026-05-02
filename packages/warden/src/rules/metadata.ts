@@ -190,6 +190,11 @@ export const builtinWardenRuleMetadata = {
     invariant: 'Public output object unions expose branch discriminants.',
     tier: 'topo-aware',
   },
+  'read-intent-fires': {
+    ...durableExternal,
+    invariant: 'Read trails should not declare signal fires side effects.',
+    tier: 'source-static',
+  },
   'reference-exists': {
     ...durableExternal,
     invariant: 'Reference declarations resolve to known contours.',

@@ -95,6 +95,7 @@ export {
   projectAwareRuleInput,
   publicInternalDeepImportsTrail,
   publicUnionOutputDiscriminantsTrail,
+  readIntentFiresTrail,
   referenceExistsTrail,
   ruleInput,
   ruleOutput,
