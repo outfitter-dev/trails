@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
+import type { ActivationProvenance } from '../activation-provenance.js';
 import type { Layer } from '../layer.js';
 import type {
   ScheduleCronFactory,
@@ -123,6 +124,58 @@ describe('createScheduleRuntime()', () => {
     await fakeCron.entries[0]?.trigger();
 
     expect(seenInputs).toEqual([{ olderThanDays: 90 }]);
+  });
+
+  test('scheduled runs seed activation provenance on context and run records', async () => {
+    const fakeCron = createFakeCron();
+    const activations: ActivationProvenance[] = [];
+    const records: ScheduleRuntimeRunRecord[] = [];
+    const worker = trail('provenance.run', {
+      blaze: (_input, ctx) => {
+        if (ctx.activation !== undefined) {
+          activations.push(ctx.activation);
+        }
+        return Result.ok({ ok: true });
+      },
+      input: z.object({}),
+      on: [
+        schedule('schedule.provenance', {
+          cron: '0 3 * * *',
+          timezone: 'UTC',
+        }),
+      ],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const graph = topo('schedule-provenance', { worker });
+    const runtime = createScheduleRuntime(graph, {
+      cron: fakeCron.factory,
+      onRun: (record) => {
+        records.push(record);
+      },
+    });
+
+    await runtime.start();
+    await fakeCron.entries[0]?.trigger();
+
+    expect(activations).toHaveLength(1);
+    expect(records).toHaveLength(1);
+    const [activation] = activations;
+    const [record] = records;
+    expect(activation?.fireId).toBeString();
+    expect(activation?.parentFireId).toBeUndefined();
+    expect(activation?.rootFireId).toBe(activation?.fireId);
+    expect(activation?.source).toEqual({
+      cron: '0 3 * * *',
+      id: 'schedule.provenance',
+      kind: 'schedule',
+      timezone: 'UTC',
+    });
+    expect(record?.activation).toEqual(activation);
+    expect(record).toMatchObject({
+      sourceId: 'schedule.provenance',
+      status: 'ok',
+      trailId: 'provenance.run',
+    });
   });
 
   test('stop cancels cron handles and ignores ticks after stop', async () => {

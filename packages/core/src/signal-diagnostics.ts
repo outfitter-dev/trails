@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto';
 
 import type { z } from 'zod';
 
+import type { ActivationProvenance } from './activation-provenance.js';
 import type { Logger } from './types.js';
 
 export const SIGNAL_DIAGNOSTICS_SINK_KEY =
@@ -109,6 +110,7 @@ interface SignalDiagnosticBase<
   TCode extends SignalDiagnosticCode,
   TOrigin extends SignalDiagnosticOrigin,
 > {
+  readonly activation?: ActivationProvenance | undefined;
   readonly category: (typeof signalDiagnosticDefinitions)[TCode]['category'];
   readonly code: TCode;
   readonly level: (typeof signalDiagnosticDefinitions)[TCode]['level'];
@@ -203,6 +205,7 @@ export interface SignalDiagnosticRecordResult {
 }
 
 export interface SignalDiagnosticCommonInput {
+  readonly activation?: ActivationProvenance | undefined;
   readonly message?: string | undefined;
   readonly producerTrailId?: string | undefined;
   readonly runId?: string | undefined;
@@ -488,6 +491,7 @@ export const createSignalInvalidDiagnostic = (
 ): SignalInvalidDiagnostic => {
   const definition = signalDiagnosticDefinitions['signal.invalid'];
   return {
+    activation: input.activation,
     category: definition.category,
     code: 'signal.invalid',
     level: definition.level,
@@ -508,6 +512,7 @@ export const createSignalUnknownDiagnostic = (
 ): SignalUnknownDiagnostic => {
   const definition = signalDiagnosticDefinitions['signal.unknown'];
   return {
+    activation: input.activation,
     category: definition.category,
     code: 'signal.unknown',
     level: definition.level,
@@ -526,6 +531,7 @@ export const createSignalHandlerFailedDiagnostic = (
 ): SignalHandlerFailedDiagnostic => {
   const definition = signalDiagnosticDefinitions['signal.handler.failed'];
   return {
+    activation: input.activation,
     category: definition.category,
     cause: signalDiagnosticCauseFromUnknown(input.cause),
     code: 'signal.handler.failed',
@@ -552,6 +558,7 @@ export const createSignalHandlerRejectedDiagnostic = (
 ): SignalHandlerRejectedDiagnostic => {
   const definition = signalDiagnosticDefinitions['signal.handler.rejected'];
   return {
+    activation: input.activation,
     category: definition.category,
     cause: signalDiagnosticCauseFromUnknown(input.cause),
     code: 'signal.handler.rejected',
@@ -579,6 +586,7 @@ export const createSignalPredicateFailedDiagnostic = (
   const definition =
     signalDiagnosticDefinitions['signal.handler.predicate_failed'];
   return {
+    activation: input.activation,
     category: definition.category,
     cause: signalDiagnosticCauseFromUnknown(input.cause),
     code: 'signal.handler.predicate_failed',
@@ -605,6 +613,7 @@ export const createSignalFireSuppressedDiagnostic = (
 ): SignalFireSuppressedDiagnostic => {
   const definition = signalDiagnosticDefinitions['signal.fire.suppressed'];
   return {
+    activation: input.activation,
     category: definition.category,
     code: 'signal.fire.suppressed',
     fireStack: input.fireStack,

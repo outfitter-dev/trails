@@ -85,6 +85,16 @@ export type {
   ResourceLookup,
 } from './types.js';
 export { SURFACE_KEY, TRAILHEAD_KEY } from './types.js';
+export {
+  ACTIVATION_PROVENANCE_KEY,
+  getActivationProvenance,
+  withActivationProvenance,
+} from './activation-provenance.js';
+export type {
+  ActivationProvenance,
+  ActivationProvenanceCarrier,
+  ActivationProvenanceSource,
+} from './activation-provenance.js';
 
 // Context factory
 export { createTrailContext, passthroughTrace } from './context.js';

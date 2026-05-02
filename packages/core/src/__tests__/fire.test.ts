@@ -2,6 +2,7 @@
 import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
+import type { ActivationProvenance } from '../activation-provenance';
 import { createFireFn } from '../fire';
 import { clearTraceSink, registerTraceSink } from '../internal/tracing';
 import type { TraceRecord, TraceSink } from '../internal/tracing';
@@ -787,7 +788,6 @@ describe('fire', () => {
       expect(result.isOk()).toBe(true);
       expect(scenario.state.consumerCompleted).toBe(true);
     });
-
     test('object-form where predicates match or skip only their consumer trail', async () => {
       const capture = createCapture();
       const app = topo('fire-where-match-skip', {
@@ -851,6 +851,121 @@ describe('fire', () => {
       expect(result.isOk()).toBe(true);
       expect(capture.invocations).toHaveLength(1);
       expect(capture.invocations[0]?.trailId).toBe('notify.dedupe');
+    });
+
+    test('consumer contexts carry signal activation provenance', async () => {
+      const activations: ActivationProvenance[] = [];
+      const consumer = trail('provenance.consumer', {
+        blaze: (_input, ctx) => {
+          if (ctx.activation !== undefined) {
+            activations.push(ctx.activation);
+          }
+          return Result.ok({ ok: true });
+        },
+        input: z.object({ orderId: z.string(), total: z.number() }),
+        on: [orderPlaced],
+        output: z.object({ ok: z.boolean() }),
+      });
+      const producer = trail('provenance.producer', {
+        blaze: async (input, ctx) => {
+          await ctx.fire?.(orderPlaced, input);
+          return Result.ok({ ok: true });
+        },
+        fires: [orderPlaced],
+        input: z.object({ orderId: z.string(), total: z.number() }),
+        output: z.object({ ok: z.boolean() }),
+      });
+      const app = topo('fire-provenance', { consumer, orderPlaced, producer });
+
+      const result = await run(app, 'provenance.producer', {
+        orderId: 'o-provenance',
+        total: 11,
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(activations).toHaveLength(1);
+      const [activation] = activations;
+      expect(activation?.fireId).toBeString();
+      expect(activation?.parentFireId).toBeUndefined();
+      expect(activation?.rootFireId).toBe(activation?.fireId);
+      expect(activation?.source).toEqual({
+        id: 'order.placed',
+        kind: 'signal',
+        producerTrailId: 'provenance.producer',
+      });
+    });
+
+    test('nested signal fires preserve root and parent fire provenance', async () => {
+      const firstSignal = signal('provenance.first', {
+        payload: z.object({ id: z.string() }),
+      });
+      const secondSignal = signal('provenance.second', {
+        payload: z.object({ id: z.string() }),
+      });
+      const activations: ActivationProvenance[] = [];
+      const producer = trail('provenance.root', {
+        blaze: async (_input, ctx) => {
+          await ctx.fire?.(firstSignal, { id: 'chain' });
+          return Result.ok({ ok: true });
+        },
+        fires: [firstSignal],
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+      });
+      const firstConsumer = trail('provenance.first.consumer', {
+        blaze: async (input, ctx) => {
+          if (ctx.activation !== undefined) {
+            activations.push(ctx.activation);
+          }
+          await ctx.fire?.(secondSignal, input);
+          return Result.ok({ ok: true });
+        },
+        fires: [secondSignal],
+        input: z.object({ id: z.string() }),
+        on: [firstSignal],
+        output: z.object({ ok: z.boolean() }),
+      });
+      const secondConsumer = trail('provenance.second.consumer', {
+        blaze: (_input, ctx) => {
+          if (ctx.activation !== undefined) {
+            activations.push(ctx.activation);
+          }
+          return Result.ok({ ok: true });
+        },
+        input: z.object({ id: z.string() }),
+        on: [secondSignal],
+        output: z.object({ ok: z.boolean() }),
+      });
+      const app = topo('fire-nested-provenance', {
+        firstConsumer,
+        firstSignal,
+        producer,
+        secondConsumer,
+        secondSignal,
+      });
+
+      const result = await run(app, 'provenance.root', {});
+
+      expect(result.isOk()).toBe(true);
+      expect(activations).toHaveLength(2);
+      const [first, second] = activations;
+      expect(first?.fireId).toBeString();
+      expect(first?.parentFireId).toBeUndefined();
+      expect(first?.rootFireId).toBe(first?.fireId);
+      expect(first?.source).toEqual({
+        id: 'provenance.first',
+        kind: 'signal',
+        producerTrailId: 'provenance.root',
+      });
+      expect(second?.fireId).toBeString();
+      expect(second?.fireId).not.toBe(first?.fireId);
+      expect(second?.parentFireId).toBe(first?.fireId);
+      expect(second?.rootFireId).toBe(first?.rootFireId);
+      expect(second?.source).toEqual({
+        id: 'provenance.second',
+        kind: 'signal',
+        producerTrailId: 'provenance.first.consumer',
+      });
     });
   });
 
@@ -927,6 +1042,15 @@ describe('fire', () => {
       expect(result.isOk()).toBe(true);
       expect(diagnostics).toEqual([
         expect.objectContaining({
+          activation: expect.objectContaining({
+            fireId: expect.any(String),
+            rootFireId: expect.any(String),
+            source: {
+              id: 'ghost.signal',
+              kind: 'signal',
+              producerTrailId: 'bad.producer',
+            },
+          }),
           category: 'topology',
           code: 'signal.unknown',
           level: 'error',
@@ -935,6 +1059,9 @@ describe('fire', () => {
           signalId: 'ghost.signal',
         }),
       ]);
+      expect(diagnostics[0]?.activation?.rootFireId).toBe(
+        diagnostics[0]?.activation?.fireId
+      );
     });
 
     test('bad payload resolves and skips consumers', async () => {
@@ -1854,6 +1981,8 @@ describe('fire', () => {
         expect(result.isOk()).toBe(true);
 
         const producer = findTrailRecord(records, 'order.create');
+        const emailTrail = findTrailRecord(records, 'notify.email');
+        const slackTrail = findTrailRecord(records, 'notify.slack');
         const fired = findSignalTraceRecord(records, 'signal.fired');
         const emailInvoked = findSignalTraceRecord(
           records,
@@ -1875,6 +2004,8 @@ describe('fire', () => {
           'signal.handler.completed',
           'notify.slack'
         );
+        const fireId = fired.attrs['trails.activation.fire_id'];
+        expect(fireId).toBeString();
 
         for (const record of [
           fired,
@@ -1886,6 +2017,11 @@ describe('fire', () => {
           expectSignalRecordParentedToProducer(record, producer);
           expect(record.status).toBe('ok');
           expect(record.attrs).toMatchObject({
+            'trails.activation.fire_id': fireId,
+            'trails.activation.root_fire_id': fireId,
+            'trails.activation.source.id': 'order.placed',
+            'trails.activation.source.kind': 'signal',
+            'trails.activation.source.producer_trail.id': 'order.create',
             'trails.signal.id': 'order.placed',
             'trails.signal.payload.redacted': true,
             'trails.signal.payload.shape': 'object',
@@ -1894,6 +2030,16 @@ describe('fire', () => {
           });
           expect(record.attrs['trails.signal.payload.digest']).toBeString();
         }
+        for (const record of [emailTrail, slackTrail]) {
+          expect(record.attrs).toMatchObject({
+            'trails.activation.fire_id': fireId,
+            'trails.activation.root_fire_id': fireId,
+            'trails.activation.source.id': 'order.placed',
+            'trails.activation.source.kind': 'signal',
+            'trails.activation.source.producer_trail.id': 'order.create',
+          });
+        }
+        expect(producer.attrs['trails.activation.fire_id']).toBeUndefined();
 
         expect(fired.attrs).toMatchObject({
           'trails.signal.consumer_count': 2,

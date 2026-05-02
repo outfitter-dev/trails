@@ -28,6 +28,12 @@
 
 import type { z } from 'zod';
 
+import {
+  buildActivationProvenanceTraceAttrs,
+  getActivationProvenance,
+  withActivationProvenance,
+} from './activation-provenance.js';
+import type { ActivationProvenance } from './activation-provenance.js';
 import type {
   ActivationEntry,
   ActivationWhereSpec,
@@ -195,17 +201,22 @@ const deriveConsumerExtensions = (
 const deriveConsumerCtx = (
   producerCtx: TrailContextInit | undefined,
   signalId: string,
-  consumerId: string
+  consumerId: string,
+  activation: ActivationProvenance
 ): MutableConsumerContext =>
-  producerCtx
-    ? forkCtx(producerCtx as MutableConsumerContext, {
-        env: deriveConsumerEnv(producerCtx),
-        extensions: deriveConsumerExtensions(producerCtx, signalId),
-        logger: deriveConsumerLogger(producerCtx, signalId, consumerId),
-      })
-    : {};
+  withActivationProvenance(
+    producerCtx
+      ? forkCtx(producerCtx as MutableConsumerContext, {
+          env: deriveConsumerEnv(producerCtx),
+          extensions: deriveConsumerExtensions(producerCtx, signalId),
+          logger: deriveConsumerLogger(producerCtx, signalId, consumerId),
+        })
+      : {},
+    activation
+  );
 
 interface FireDiagnosticMetadata {
+  readonly activation: ActivationProvenance;
   readonly producerTrailId?: string | undefined;
   readonly runId?: string | undefined;
   readonly traceId?: string | undefined;
@@ -220,14 +231,28 @@ interface SignalTraceAttrsInput {
   readonly runId?: string | undefined;
   readonly schemaIssues?: readonly SignalDiagnosticSchemaIssue[] | undefined;
   readonly signalId: string;
+  readonly activation?: ActivationProvenance | undefined;
 }
 
 const deriveFireDiagnosticMetadata = (
   producerCtx: TrailContextInit | undefined,
-  producerTrailId: string | undefined
+  producerTrailId: string | undefined,
+  signalId: string
 ): FireDiagnosticMetadata => {
   const trace = producerCtx ? getTraceContext(producerCtx) : undefined;
+  const parent = getActivationProvenance(producerCtx);
+  const fireId = Bun.randomUUIDv7();
   return {
+    activation: {
+      fireId,
+      ...(parent?.fireId === undefined ? {} : { parentFireId: parent.fireId }),
+      rootFireId: parent?.rootFireId ?? fireId,
+      source: {
+        id: signalId,
+        kind: 'signal',
+        ...(producerTrailId === undefined ? {} : { producerTrailId }),
+      },
+    },
     producerTrailId,
     runId: trace?.spanId,
     traceId: trace?.traceId,
@@ -279,6 +304,7 @@ const buildSignalTraceAttrs = (
   input: SignalTraceAttrsInput
 ): Readonly<Record<string, unknown>> => {
   const attrs: Record<string, unknown> = {
+    ...buildActivationProvenanceTraceAttrs(input.activation),
     'trails.signal.id': input.signalId,
   };
 
@@ -413,6 +439,7 @@ const recordPredicateTrace = async (
     producerCtx,
     name,
     buildSignalTraceAttrs({
+      activation: input.diagnosticMetadata.activation,
       errorName: input.errorName,
       handlerTrailId: input.handlerTrailId,
       payload: input.payloadSummary,
@@ -497,8 +524,9 @@ const shouldInvokeConsumer = async (
  * top-level state while they overlap. Re-entrant suppression elsewhere in this
  * module is still based on signal-id membership in the current fire stack: it
  * prevents infinite loops, but it can over-suppress legitimate diamond
- * re-fires. Per-path provenance is a documented future direction rather than
- * part of the pre-v1 runtime contract.
+ * re-fires. Activation provenance records each fire boundary so downstream
+ * traces and diagnostics can still reconstruct the chain that activated a
+ * consumer.
  */
 const fanOutToConsumers = async (
   activations: readonly ConsumerActivation[],
@@ -527,13 +555,19 @@ const fanOutToConsumers = async (
         return consumer.id;
       }
       const consumerCtx = bindFire(
-        deriveConsumerCtx(producerCtx, signalId, consumer.id),
+        deriveConsumerCtx(
+          producerCtx,
+          signalId,
+          consumer.id,
+          diagnosticMetadata.activation
+        ),
         consumer.id
       );
       await recordSignalLifecycleTrace(
         producerCtx,
         'signal.handler.invoked',
         buildSignalTraceAttrs({
+          activation: diagnosticMetadata.activation,
           handlerTrailId: consumer.id,
           payload: payloadSummary,
           producerTrailId: diagnosticMetadata.producerTrailId,
@@ -557,6 +591,7 @@ const fanOutToConsumers = async (
             producerCtx,
             'signal.handler.failed',
             buildSignalTraceAttrs({
+              activation: diagnosticMetadata.activation,
               errorName: cause.name,
               handlerTrailId: consumer.id,
               payload: payloadSummary,
@@ -578,6 +613,7 @@ const fanOutToConsumers = async (
           producerCtx,
           'signal.handler.completed',
           buildSignalTraceAttrs({
+            activation: diagnosticMetadata.activation,
             handlerTrailId: consumer.id,
             payload: payloadSummary,
             producerTrailId: diagnosticMetadata.producerTrailId,
@@ -600,6 +636,7 @@ const fanOutToConsumers = async (
           producerCtx,
           'signal.handler.failed',
           buildSignalTraceAttrs({
+            activation: diagnosticMetadata.activation,
             errorName: cause.name,
             handlerTrailId: consumer.id,
             payload: payloadSummary,
@@ -743,6 +780,7 @@ const resolveFireDispatch = async (
       producerCtx,
       'signal.invalid',
       buildSignalTraceAttrs({
+        activation: diagnostic.activation,
         payload: diagnostic.payload,
         producerTrailId: diagnostic.producerTrailId,
         runId: diagnostic.runId,
@@ -833,12 +871,9 @@ export const createFireFn = (
 
   const dispatchFire = async (
     signalId: string,
-    payload: unknown
+    payload: unknown,
+    diagnosticMetadata: FireDiagnosticMetadata
   ): Promise<Result<void, Error>> => {
-    const diagnosticMetadata = deriveFireDiagnosticMetadata(
-      trackedProducerCtx,
-      producerTrailId
-    );
     const dispatch = await resolveFireDispatch(
       topo,
       signalId,
@@ -853,6 +888,7 @@ export const createFireFn = (
       trackedProducerCtx,
       'signal.fired',
       buildSignalTraceAttrs({
+        activation: diagnosticMetadata.activation,
         consumerIds: dispatch.value.consumers.map((consumer) => consumer.id),
         payload: summarizeSignalPayloadForTrace(
           trackedProducerCtx,
@@ -892,7 +928,8 @@ export const createFireFn = (
   /** Return an early Result if the fire should be suppressed, or null to proceed. */
   const guardFire = async (
     signalId: string,
-    stack: readonly string[]
+    stack: readonly string[],
+    diagnosticMetadata: FireDiagnosticMetadata
   ): Promise<Result<void, Error> | null> => {
     if (stack.length >= MAX_FIRE_DEPTH) {
       trackedProducerCtx?.logger?.warn(
@@ -902,7 +939,7 @@ export const createFireFn = (
       await recordRuntimeSignalDiagnostic(
         trackedProducerCtx,
         createSignalFireSuppressedDiagnostic({
-          ...deriveFireDiagnosticMetadata(trackedProducerCtx, producerTrailId),
+          ...diagnosticMetadata,
           fireStack: [...stack],
           limit: MAX_FIRE_DEPTH,
           reason: 'depth',
@@ -926,7 +963,7 @@ export const createFireFn = (
       await recordRuntimeSignalDiagnostic(
         trackedProducerCtx,
         createSignalFireSuppressedDiagnostic({
-          ...deriveFireDiagnosticMetadata(trackedProducerCtx, producerTrailId),
+          ...diagnosticMetadata,
           fireStack: [...stack],
           reason: 'cycle',
           signalId,
@@ -950,9 +987,15 @@ export const createFireFn = (
       );
       return;
     }
+    const diagnosticMetadata = deriveFireDiagnosticMetadata(
+      trackedProducerCtx,
+      producerTrailId,
+      resolved.value
+    );
     const suppressed = await guardFire(
       resolved.value,
-      getFireStack(trackedProducerCtx)
+      getFireStack(trackedProducerCtx),
+      diagnosticMetadata
     );
     if (suppressed) {
       if (suppressed.isErr()) {
@@ -964,7 +1007,11 @@ export const createFireFn = (
       }
       return;
     }
-    const dispatched = await dispatchFire(resolved.value, payload);
+    const dispatched = await dispatchFire(
+      resolved.value,
+      payload,
+      diagnosticMetadata
+    );
     if (dispatched.isErr()) {
       logFireError(
         trackedProducerCtx?.logger,

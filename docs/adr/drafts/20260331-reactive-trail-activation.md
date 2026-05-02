@@ -274,6 +274,30 @@ When an activation source fires, the framework executes the trail through the fu
 ```
 
 Tracing queries can filter by activation source type: "show me all scheduled executions," "show me all webhook-activated failures."
+### Dispatch semantics
+
+Reactive Activation v1 uses in-process dispatch. When a source activates a
+trail, the runtime invokes every declared consuming trail whose source
+declaration matches and whose guard checks pass. Handler order is intentionally
+unspecified; code that needs ordered work should put that order inside a trail
+and use normal `ctx.cross()` composition.
+
+Handler failures are isolated. A failing consumer records diagnostics and
+trace data, but it does not prevent sibling consumers from being invoked and it
+does not produce a producer-facing delivery `Result`. Likewise, `ctx.fire()`
+resolves after the framework validates the payload, records the signal
+lifecycle point, and initiates dispatch. It does not promise that every
+consuming trail has completed before the producer continues. The current
+in-process runtime may still track pending consumers for lifecycle cleanup; the
+public contract is dispatch initiation, not handler completion.
+
+Cycle safety is bounded. The runtime suppresses re-entrant signal fires when
+the same signal ID is already in the current fire stack, and it enforces a max
+fan-out depth for chains of distinct signals. Suppression records activation
+diagnostics instead of failing the producer.
+
+V1 does not define retry, queue, dead-letter, backpressure, external delivery,
+or total-order semantics.
 
 ### Dispatch semantics
 

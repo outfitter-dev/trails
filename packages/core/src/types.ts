@@ -3,6 +3,7 @@ import type { Result } from './result.js';
 import type { Signal } from './signal.js';
 import type { AnyTrail } from './trail.js';
 import type { CrossInput, TrailOutput } from './type-utils.js';
+import type { ActivationProvenance } from './activation-provenance.js';
 
 // ---------------------------------------------------------------------------
 // Detour
@@ -175,6 +176,7 @@ export interface BasePermit {
 
 /** Runtime context threaded through every trail execution */
 export interface TrailContext {
+  readonly activation?: ActivationProvenance | undefined;
   readonly requestId: string;
   readonly abortSignal: AbortSignal;
   readonly cross?: CrossFn | undefined;

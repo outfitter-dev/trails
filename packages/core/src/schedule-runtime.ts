@@ -1,4 +1,6 @@
 import type { ActivationEntry } from './activation-source.js';
+import { withActivationProvenance } from './activation-provenance.js';
+import type { ActivationProvenance } from './activation-provenance.js';
 import { getActivationWherePredicate } from './activation-source.js';
 import { createTrailContext } from './context.js';
 import type { ExecuteTrailOptions } from './execute.js';
@@ -40,6 +42,7 @@ export type ScheduleRuntimeSkipReason =
 export type ScheduleRuntimeRunStatus = 'err' | 'ok' | 'skipped';
 
 export interface ScheduleRuntimeRunRecord {
+  readonly activation?: ActivationProvenance | undefined;
   readonly error?: Error | undefined;
   readonly result?: Result<unknown, Error> | undefined;
   readonly skipReason?: ScheduleRuntimeSkipReason | undefined;
@@ -214,6 +217,27 @@ const collectScheduleActivations = (
       }))
   );
 
+const scheduleActivationProvenance = (
+  registration: ScheduleActivationRegistration
+): ActivationProvenance => {
+  const fireId = Bun.randomUUIDv7();
+  return {
+    fireId,
+    rootFireId: fireId,
+    source: {
+      cron: registration.cron,
+      id: registration.sourceId,
+      kind: 'schedule',
+      ...(registration.activation.source.meta === undefined
+        ? {}
+        : { meta: registration.activation.source.meta }),
+      ...(registration.timezone === undefined
+        ? {}
+        : { timezone: registration.timezone }),
+    },
+  };
+};
+
 const emitRunRecord = async (
   options: ScheduleRuntimeOptions,
   record: ScheduleRuntimeRunRecord
@@ -229,8 +253,19 @@ const emitRunRecord = async (
   }
 };
 
+const runContextOption = (
+  options: ScheduleRuntimeOptions,
+  activation: ActivationProvenance | undefined
+): Pick<ExecuteTrailOptions, 'ctx'> | Record<string, never> => {
+  if (activation !== undefined) {
+    return { ctx: withActivationProvenance(options.ctx ?? {}, activation) };
+  }
+  return options.ctx === undefined ? {} : { ctx: options.ctx };
+};
+
 const runOptions = (
-  options: ScheduleRuntimeOptions
+  options: ScheduleRuntimeOptions,
+  activation?: ActivationProvenance | undefined
 ): Pick<
   ExecuteTrailOptions,
   | 'abortSignal'
@@ -249,14 +284,15 @@ const runOptions = (
   ...(options.createContext === undefined
     ? {}
     : { createContext: options.createContext }),
-  ...(options.ctx === undefined ? {} : { ctx: options.ctx }),
+  ...runContextOption(options, activation),
   ...(options.layers === undefined ? {} : { layers: options.layers }),
   ...(options.resources === undefined ? {} : { resources: options.resources }),
 });
 
 const shouldRunActivation = async (
   registration: ScheduleActivationRegistration,
-  options: ScheduleRuntimeOptions
+  options: ScheduleRuntimeOptions,
+  activation: ActivationProvenance
 ): Promise<boolean> => {
   const predicate = getActivationWherePredicate(registration.activation.where);
   if (predicate === undefined) {
@@ -267,6 +303,7 @@ const shouldRunActivation = async (
     const matched = await predicate(registration.input);
     if (!matched) {
       await emitRunRecord(options, {
+        activation,
         skipReason: 'where_false',
         sourceId: registration.sourceId,
         status: 'skipped',
@@ -282,6 +319,7 @@ const shouldRunActivation = async (
       trailId: registration.trail.id,
     });
     await emitRunRecord(options, {
+      activation,
       error: cause,
       skipReason: 'where_error',
       sourceId: registration.sourceId,
@@ -295,9 +333,14 @@ const shouldRunActivation = async (
 const executeScheduleActivation = async (
   graph: Topo,
   registration: ScheduleActivationRegistration,
-  options: ScheduleRuntimeOptions
+  options: ScheduleRuntimeOptions,
+  activation: ActivationProvenance
 ): Promise<void> => {
-  const shouldRun = await shouldRunActivation(registration, options);
+  const shouldRun = await shouldRunActivation(
+    registration,
+    options,
+    activation
+  );
   if (!shouldRun) {
     return;
   }
@@ -307,7 +350,7 @@ const executeScheduleActivation = async (
       graph,
       registration.trail.id,
       registration.input,
-      runOptions(options)
+      runOptions(options, activation)
     );
     if (result.isErr()) {
       options.logger?.warn('Scheduled trail failed', {
@@ -316,6 +359,7 @@ const executeScheduleActivation = async (
         trailId: registration.trail.id,
       });
       await emitRunRecord(options, {
+        activation,
         result,
         sourceId: registration.sourceId,
         status: 'err',
@@ -324,6 +368,7 @@ const executeScheduleActivation = async (
       return;
     }
     await emitRunRecord(options, {
+      activation,
       result,
       sourceId: registration.sourceId,
       status: 'ok',
@@ -337,6 +382,7 @@ const executeScheduleActivation = async (
       trailId: registration.trail.id,
     });
     await emitRunRecord(options, {
+      activation,
       error: cause,
       sourceId: registration.sourceId,
       status: 'err',
@@ -433,8 +479,10 @@ export const createScheduleRuntime = (
   const runAndTrack = (
     registration: ScheduleActivationRegistration
   ): Promise<void> => {
+    const activation = scheduleActivationProvenance(registration);
     if (state !== 'running') {
       return emitRunRecord(options, {
+        activation,
         skipReason: 'stopped',
         sourceId: registration.sourceId,
         status: 'skipped',
@@ -442,7 +490,12 @@ export const createScheduleRuntime = (
       });
     }
 
-    const execution = executeScheduleActivation(graph, registration, options);
+    const execution = executeScheduleActivation(
+      graph,
+      registration,
+      options,
+      activation
+    );
     inFlight.add(execution);
     void (async () => {
       try {

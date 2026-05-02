@@ -15,6 +15,10 @@ import type { TraceContext, TraceRecord } from './internal/tracing.js';
 import type { Topo } from './topo.js';
 
 import {
+  buildActivationProvenanceTraceAttrs,
+  getActivationProvenance,
+} from './activation-provenance.js';
+import {
   createFireFn,
   isFrameworkFireFn,
   waitForPendingFireDispatches,
@@ -337,14 +341,22 @@ const buildTracedContext = (
     trailId: trail.id,
     trailhead: ctx.extensions?.[SURFACE_KEY] as TraceRecord['trailhead'],
   });
+  const activation = getActivationProvenance(ctx);
+  const recordWithAttrs: TraceRecord =
+    activation === undefined
+      ? record
+      : {
+          ...record,
+          attrs: buildActivationProvenanceTraceAttrs(activation),
+        };
 
   // Root trace context for this trail's span. When inheriting a parent, the
   // traceId/rootId carry forward and only spanId advances to the new record.
   const rootTrace: TraceContext = {
     rootId: parent?.rootId ?? record.id,
     sampled: true,
-    spanId: record.id,
-    traceId: record.traceId,
+    spanId: recordWithAttrs.id,
+    traceId: recordWithAttrs.traceId,
   };
 
   const tracedCtx: TrailContext = {
@@ -356,7 +368,7 @@ const buildTracedContext = (
     trace: buildTraceFn(rootTrace, sink),
   };
 
-  return { record, tracedCtx };
+  return { record: recordWithAttrs, tracedCtx };
 };
 
 const buildUntracedContext = (ctx: TrailContext): TrailContext => {
