@@ -337,6 +337,40 @@ const createParallelStartScenario = () => {
   };
 };
 
+const createDispatchInitiationScenario = () => {
+  const fireReturned = createReadyGate();
+  const release = createReadyGate();
+  const state = { consumerCompleted: false };
+  const consumer = trail('notify.blocking', {
+    blaze: async () => {
+      await release.promise;
+      state.consumerCompleted = true;
+      return Result.ok({ ok: true });
+    },
+    input: z.object({ orderId: z.string(), total: z.number() }),
+    on: ['order.placed'],
+    output: z.object({ ok: z.boolean() }),
+  });
+  const producer = trail('order.create', {
+    blaze: async (input, ctx) => {
+      await ctx.fire?.(orderPlaced, {
+        orderId: input.orderId,
+        total: input.total,
+      });
+      fireReturned.resolve(READY);
+      return Result.ok({ ok: true });
+    },
+    fires: ['order.placed'],
+    input: z.object({ orderId: z.string(), total: z.number() }),
+  });
+  const app = topo('fire-dispatch-initiated', {
+    consumer,
+    orderPlaced,
+    producer,
+  });
+  return { app, fireReturned, release, state };
+};
+
 const waitForConsumersToStart = async (
   left: ReadyGate,
   right: ReadyGate
@@ -718,6 +752,23 @@ describe('fire', () => {
 
       expect(result.isOk()).toBe(true);
       expect(fireBox.fired).toBe(true);
+    });
+
+    test('ctx.fire resolves after dispatch is initiated, not after consumers complete', async () => {
+      const scenario = createDispatchInitiationScenario();
+      const runPromise = run(scenario.app, 'order.create', {
+        orderId: 'o-dispatch',
+        total: 1,
+      });
+
+      await scenario.fireReturned.promise;
+      expect(scenario.state.consumerCompleted).toBe(false);
+
+      scenario.release.resolve(READY);
+      const result = await runPromise;
+
+      expect(result.isOk()).toBe(true);
+      expect(scenario.state.consumerCompleted).toBe(true);
     });
   });
 
@@ -1299,6 +1350,7 @@ describe('fire', () => {
 
     test('executor rejections record a signal.handler.rejected diagnostic', async () => {
       const diagnostics: SignalDiagnostic[] = [];
+      const diagnosticRecorded = Promise.withResolvers<undefined>();
       const consumer = makeConsumer('notify.email', createCapture());
       const app = topo('fire-rejected-diagnostic', { consumer, orderPlaced });
       const fire = createFireFn(
@@ -1308,6 +1360,7 @@ describe('fire', () => {
           extensions: {
             [SIGNAL_DIAGNOSTICS_SINK_KEY]: (diagnostic: SignalDiagnostic) => {
               diagnostics.push(diagnostic);
+              diagnosticRecorded.resolve();
             },
           },
           requestId: 'fire-rejected-diagnostic',
@@ -1319,6 +1372,7 @@ describe('fire', () => {
       );
 
       await fire(orderPlaced, { orderId: 'o-rejected', total: 1 });
+      await diagnosticRecorded.promise;
 
       expect(diagnostics).toEqual([
         expect.objectContaining({

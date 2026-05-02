@@ -14,7 +14,12 @@ import type { ResourceOverrideMap } from './resource.js';
 import type { TraceContext, TraceRecord } from './internal/tracing.js';
 import type { Topo } from './topo.js';
 
-import { createFireFn, isFrameworkFireFn } from './fire.js';
+import {
+  createFireFn,
+  isFrameworkFireFn,
+  waitForPendingFireDispatches,
+  withFireDispatchTracking,
+} from './fire.js';
 import type {
   CrossBatchOptions,
   CrossFn,
@@ -376,6 +381,7 @@ const runImplWithRootRecord = async (
 ): Promise<Result<unknown, Error>> => {
   try {
     const result = await impl(input, tracedCtx);
+    await waitForPendingFireDispatches(tracedCtx);
     const outcome = deriveOutcome(result);
     await writeToSink(
       sink,
@@ -383,6 +389,7 @@ const runImplWithRootRecord = async (
     );
     return result;
   } catch (error: unknown) {
+    await waitForPendingFireDispatches(tracedCtx);
     // Normalize unexpected throws so the root record still reflects the error
     // outcome. The outer executeTrail try/catch converts the thrown value into
     // a Result.err(InternalError) for the caller.
@@ -694,9 +701,10 @@ const bindFireToCtx = (
     validationSchema: _omitSchema,
     ...forwarded
   } = options ?? {};
+  const trackedCtx = withFireDispatchTracking(ctx);
   const fire = createFireFn(
     topo,
-    ctx,
+    trackedCtx,
     (consumer, input, consumerCtx) =>
       // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
       executeTrail(consumer, input, {
@@ -706,7 +714,7 @@ const bindFireToCtx = (
       }),
     producerTrailId
   );
-  return { ...ctx, fire };
+  return { ...trackedCtx, fire };
 };
 
 const bindCrossAtLayerBoundary =
@@ -971,7 +979,11 @@ const runImplWithoutTracing = async (
     topo,
     options
   );
-  return await prepared.impl(input, prepared.ctxWithIntrinsics);
+  try {
+    return await prepared.impl(input, prepared.ctxWithIntrinsics);
+  } finally {
+    await waitForPendingFireDispatches(prepared.ctxWithIntrinsics);
+  }
 };
 
 const runTrailWithTracing = async (

@@ -20,10 +20,10 @@
  * `logger.child` exists.
  *
  * Error semantics match the fire-and-forget framing: producer-facing
- * `ctx.fire()` resolves without a value. Unknown signals, invalid payloads,
- * guard suppression, and consumer errors are logged/diagnosed but do NOT
- * propagate back to the producer. Consumers that need transactional coupling
- * should use `crosses:`.
+ * `ctx.fire()` resolves after dispatch is initiated and without a value.
+ * Unknown signals, invalid payloads, guard suppression, and consumer errors
+ * are logged/diagnosed but do NOT propagate back to the producer. Consumers
+ * that need transactional coupling should use `crosses:`.
  */
 
 import type { z } from 'zod';
@@ -71,11 +71,69 @@ type MutableConsumerContext = {
 };
 
 const FIRE_STACK_KEY = '__trails_fire_stack';
+const FIRE_PENDING_DISPATCHES_KEY = '__trails_fire_pending_dispatches';
 
 const frameworkFireFns = new WeakSet<FireFn>();
 
 export const isFrameworkFireFn = (fire: FireFn | undefined): boolean =>
   fire !== undefined && frameworkFireFns.has(fire);
+
+type FireDispatchTracker = Set<Promise<void>>;
+
+const getFireDispatchTracker = (
+  ctx: Pick<TrailContextInit, 'extensions'> | undefined
+): FireDispatchTracker | undefined => {
+  const tracker = ctx?.extensions?.[FIRE_PENDING_DISPATCHES_KEY];
+  return tracker instanceof Set ? (tracker as FireDispatchTracker) : undefined;
+};
+
+export const withFireDispatchTracking = <T extends TrailContextInit>(
+  ctx: T
+): T => {
+  if (getFireDispatchTracker(ctx) !== undefined) {
+    return ctx;
+  }
+
+  return {
+    ...ctx,
+    extensions: {
+      ...ctx.extensions,
+      [FIRE_PENDING_DISPATCHES_KEY]: new Set<Promise<void>>(),
+    },
+  };
+};
+
+const trackFireDispatch = (
+  ctx: Pick<TrailContextInit, 'extensions'> | undefined,
+  dispatch: Promise<void>
+): void => {
+  const tracker = getFireDispatchTracker(ctx);
+  if (tracker === undefined) {
+    return;
+  }
+  tracker.add(dispatch);
+  const untrack = async (): Promise<void> => {
+    try {
+      await dispatch;
+    } finally {
+      tracker.delete(dispatch);
+    }
+  };
+  void untrack();
+};
+
+export const waitForPendingFireDispatches = async (
+  ctx: Pick<TrailContextInit, 'extensions'>
+): Promise<void> => {
+  const tracker = getFireDispatchTracker(ctx);
+  if (tracker === undefined) {
+    return;
+  }
+
+  while (tracker.size > 0) {
+    await Promise.allSettled(tracker);
+  }
+};
 
 /**
  * Maximum depth for signal fan-out chains.
@@ -114,10 +172,14 @@ const deriveConsumerEnv = (
 const deriveConsumerExtensions = (
   producerCtx: TrailContextInit | undefined,
   signalId: string
-): TrailContextInit['extensions'] => ({
-  ...producerCtx?.extensions,
-  [FIRE_STACK_KEY]: [...getFireStack(producerCtx), signalId],
-});
+): TrailContextInit['extensions'] => {
+  const { [FIRE_PENDING_DISPATCHES_KEY]: _pending, ...extensions } =
+    producerCtx?.extensions ?? {};
+  return {
+    ...extensions,
+    [FIRE_STACK_KEY]: [...getFireStack(producerCtx), signalId],
+  };
+};
 
 const deriveConsumerCtx = (
   producerCtx: TrailContextInit | undefined,
@@ -280,17 +342,19 @@ const summarizeSignalPayloadForTrace = (
  * Fan out a validated signal payload to its consumer trails.
  *
  * @remarks
- * Consumers fan out in parallel by design. Signal delivery is fire-and-forget
- * notification, not ordered orchestration; if one consumer depends on another,
- * the dependency belongs in `crosses:` instead of sibling signal sequencing.
+ * Signal delivery is fire-and-forget notification, not ordered orchestration;
+ * if one consumer depends on another, the dependency belongs in `crosses:`
+ * instead of sibling signal sequencing.
  *
- * `Promise.allSettled` preserves failure isolation and waits for every branch
- * to settle. Each consumer gets its own derived context so sibling branches do
- * not share mutable top-level state while they overlap. Re-entrant suppression
- * elsewhere in this module is still based on signal-id membership in the
- * current fire stack: it prevents infinite loops, but it can over-suppress
- * legitimate diamond re-fires. Per-path provenance is a documented future
- * direction rather than part of the pre-v1 runtime contract.
+ * `Promise.allSettled` preserves failure isolation for the background
+ * completion task. Producer-facing `ctx.fire()` starts this task but does not
+ * wait for every consumer to complete before resolving. Each consumer gets its
+ * own derived context so sibling fan-out branches do not share mutable
+ * top-level state while they overlap. Re-entrant suppression elsewhere in this
+ * module is still based on signal-id membership in the current fire stack: it
+ * prevents infinite loops, but it can over-suppress legitimate diamond
+ * re-fires. Per-path provenance is a documented future direction rather than
+ * part of the pre-v1 runtime contract.
  */
 const fanOutToConsumers = async (
   consumers: readonly AnyTrail[],
@@ -584,6 +648,10 @@ export const createFireFn = (
   executor: ConsumerExecutor,
   producerTrailId?: string | undefined
 ): FireFn => {
+  const trackedProducerCtx =
+    producerCtx === undefined
+      ? undefined
+      : withFireDispatchTracking(producerCtx);
   const bindConsumerFire: ConsumerFireBinder = (consumerCtx, consumerId) => ({
     ...consumerCtx,
     // Pre-bind fire on the consumer ctx as a safety net for direct
@@ -605,26 +673,26 @@ export const createFireFn = (
     payload: unknown
   ): Promise<Result<void, Error>> => {
     const diagnosticMetadata = deriveFireDiagnosticMetadata(
-      producerCtx,
+      trackedProducerCtx,
       producerTrailId
     );
     const dispatch = await resolveFireDispatch(
       topo,
       signalId,
       payload,
-      producerCtx,
+      trackedProducerCtx,
       diagnosticMetadata
     );
     if (dispatch.isErr()) {
       return Result.err(dispatch.error);
     }
     await recordSignalLifecycleTrace(
-      producerCtx,
+      trackedProducerCtx,
       'signal.fired',
       buildSignalTraceAttrs({
         consumerIds: dispatch.value.consumers.map((consumer) => consumer.id),
         payload: summarizeSignalPayloadForTrace(
-          producerCtx,
+          trackedProducerCtx,
           dispatch.value.payload
         ),
         producerTrailId: diagnosticMetadata.producerTrailId,
@@ -632,16 +700,29 @@ export const createFireFn = (
         signalId,
       })
     );
-    await fanOutToConsumers(
-      dispatch.value.consumers,
-      dispatch.value.payload,
-      signalId,
-      producerCtx,
-      diagnosticMetadata,
-      bindConsumerFire,
-      executor,
-      producerCtx?.logger
-    );
+    const completion = (async (): Promise<void> => {
+      try {
+        await fanOutToConsumers(
+          dispatch.value.consumers,
+          dispatch.value.payload,
+          signalId,
+          trackedProducerCtx,
+          diagnosticMetadata,
+          bindConsumerFire,
+          executor,
+          trackedProducerCtx?.logger
+        );
+      } catch (error: unknown) {
+        trackedProducerCtx?.logger?.debug(
+          'Signal dispatch completion failed unexpectedly',
+          {
+            error: error instanceof Error ? error.message : String(error),
+            signalId,
+          }
+        );
+      }
+    })();
+    trackFireDispatch(trackedProducerCtx, completion);
     return Result.ok();
   };
 
@@ -651,14 +732,14 @@ export const createFireFn = (
     stack: readonly string[]
   ): Promise<Result<void, Error> | null> => {
     if (stack.length >= MAX_FIRE_DEPTH) {
-      producerCtx?.logger?.warn(
+      trackedProducerCtx?.logger?.warn(
         'Signal fan-out depth limit reached — skipping fire',
         { depth: stack.length, signalId }
       );
       await recordRuntimeSignalDiagnostic(
-        producerCtx,
+        trackedProducerCtx,
         createSignalFireSuppressedDiagnostic({
-          ...deriveFireDiagnosticMetadata(producerCtx, producerTrailId),
+          ...deriveFireDiagnosticMetadata(trackedProducerCtx, producerTrailId),
           fireStack: [...stack],
           limit: MAX_FIRE_DEPTH,
           reason: 'depth',
@@ -668,18 +749,21 @@ export const createFireFn = (
       return Result.ok();
     }
     if (stack.includes(signalId)) {
-      producerCtx?.logger?.debug('Signal fan-out suppressed due to cycle', {
-        fireStack: [...stack],
-        signalId,
-      });
-      producerCtx?.logger?.warn(
+      trackedProducerCtx?.logger?.debug(
+        'Signal fan-out suppressed due to cycle',
+        {
+          fireStack: [...stack],
+          signalId,
+        }
+      );
+      trackedProducerCtx?.logger?.warn(
         'Signal cycle detected — skipping re-entrant fire',
         { fireStack: [...stack], signalId }
       );
       await recordRuntimeSignalDiagnostic(
-        producerCtx,
+        trackedProducerCtx,
         createSignalFireSuppressedDiagnostic({
-          ...deriveFireDiagnosticMetadata(producerCtx, producerTrailId),
+          ...deriveFireDiagnosticMetadata(trackedProducerCtx, producerTrailId),
           fireStack: [...stack],
           reason: 'cycle',
           signalId,
@@ -697,7 +781,7 @@ export const createFireFn = (
     const resolved = resolveSignalId(signalOrId);
     if (resolved.isErr()) {
       logFireError(
-        producerCtx?.logger,
+        trackedProducerCtx?.logger,
         typeof signalOrId === 'string' ? signalOrId : undefined,
         resolved.error
       );
@@ -705,17 +789,25 @@ export const createFireFn = (
     }
     const suppressed = await guardFire(
       resolved.value,
-      getFireStack(producerCtx)
+      getFireStack(trackedProducerCtx)
     );
     if (suppressed) {
       if (suppressed.isErr()) {
-        logFireError(producerCtx?.logger, resolved.value, suppressed.error);
+        logFireError(
+          trackedProducerCtx?.logger,
+          resolved.value,
+          suppressed.error
+        );
       }
       return;
     }
     const dispatched = await dispatchFire(resolved.value, payload);
     if (dispatched.isErr()) {
-      logFireError(producerCtx?.logger, resolved.value, dispatched.error);
+      logFireError(
+        trackedProducerCtx?.logger,
+        resolved.value,
+        dispatched.error
+      );
     }
   };
   frameworkFireFns.add(fireImpl);

@@ -387,7 +387,7 @@ These are directional. They should not be reused for unrelated concepts.
 | `mount` | Deployment or cross-app attachment |
 | `pack` | Distributable capability bundle |
 | `depot` | Registry or distribution point for packs and shared assets |
-| `dispatch` | Reserved strong verb for a future concept, no longer the direct execution helper |
+| `dispatch` | Activation/source fan-out from a source to consuming trails; not the direct execution helper |
 | `trailhead` | Historical boundary term retired from active user-facing vocabulary. Use `surface` in docs, examples, and public APIs. |
 | `_draft.` | Reserved ID prefix for draft state. Trails, signals, and other primitives with `_draft.` IDs are visible in source but excluded from the resolved graph, established surfaces, and graph exports. Draft state is visible debt — it must never leak into established outputs. See ADR-0021. |
 

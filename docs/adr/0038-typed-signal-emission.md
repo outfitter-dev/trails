@@ -120,8 +120,9 @@ const confirmBooking = trail('booking.confirm', {
 
 `ctx.fire()` returns `Promise<void>`. It is best-effort from the producer's
 perspective. The producer waits for the framework to validate, record, and
-attempt local fan-out, but it does not receive a delivery `Result` and it does
-not branch on consumer success.
+initiate local in-process fan-out, but `ctx.fire()` is not a completion barrier
+for every consuming trail. The producer does not receive a delivery `Result`
+and it does not branch on consumer success.
 
 This is deliberate. A producer should not become coupled to consumers through a
 return value. Problems in the fire path become diagnostics and trace records,
@@ -256,8 +257,8 @@ Typed signal v1 does not introduce:
   later ADR.
 - **No delivery guarantees beyond current runtime behavior.** V1 records and
   attempts local fan-out. It does not promise persistence, replay, retry,
-  exactly-once delivery, total ordering, external subscription delivery, or
-  dead-letter queues.
+  exactly-once delivery, handler completion before `ctx.fire()` resolves,
+  total ordering, external subscription delivery, or dead-letter queues.
 - **No source materializer claims.** Schedule, webhook, subscription, and
   predicate provenance should appear only after the runtime really produces
   that data.
