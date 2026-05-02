@@ -1,3 +1,5 @@
+import type { z } from 'zod';
+
 import type { AnySignal } from './signal.js';
 
 export const activationSourceKinds = Object.freeze([
@@ -13,11 +15,19 @@ export type ActivationSourceKind = string;
 
 export type ActivationSourceMeta = Readonly<Record<string, unknown>>;
 
+export type ActivationSourceParse<TPayload = unknown> =
+  | z.ZodType<TPayload>
+  | {
+      readonly output?: z.ZodType<TPayload> | undefined;
+    };
+
 export interface ActivationSource {
   readonly id: string;
   readonly kind: ActivationSourceKind;
   readonly input?: unknown;
   readonly meta?: ActivationSourceMeta | undefined;
+  readonly parse?: ActivationSourceParse | undefined;
+  readonly payload?: z.ZodType<unknown> | undefined;
 }
 
 export interface ActivationWhereExample {

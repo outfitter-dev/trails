@@ -6,9 +6,12 @@
  * a Result with all issues collected into a single ValidationError.
  */
 
+import type { ActivationSchemaIssue } from './activation-source-compatibility.js';
+import { getActivationSourceInputCompatibilityIssues } from './activation-source-compatibility.js';
 import type { AnyContour } from './contour.js';
 import { getContourReferences } from './contour.js';
 import { ValidationError } from './errors.js';
+import type { ActivationEntry } from './activation-source.js';
 import { isKnownActivationSourceKind } from './activation-source.js';
 import { isDraftId } from './draft.js';
 import type { AnySignal } from './signal.js';
@@ -25,7 +28,13 @@ export interface TopoIssue {
   readonly trailId: string;
   readonly rule: string;
   readonly message: string;
+  readonly inputPath?: readonly (string | number)[];
+  readonly schemaIssues?: readonly TopoSchemaIssue[];
+  readonly sourceId?: string;
+  readonly sourceKind?: string;
 }
+
+export type TopoSchemaIssue = ActivationSchemaIssue;
 
 // ---------------------------------------------------------------------------
 // Validators
@@ -257,6 +266,71 @@ const checkActivationSources = (
   return issues;
 };
 
+const issuePathText = (path: readonly (string | number)[]): string =>
+  path.length > 0 ? path.join('.') : '<root>';
+
+const createSourceCompatibilityIssue = (
+  trailId: string,
+  activation: ActivationEntry,
+  schemaIssues: readonly TopoSchemaIssue[]
+): TopoIssue => {
+  const [firstIssue] = schemaIssues;
+  const inputPath = firstIssue?.path ?? Object.freeze([]);
+  return {
+    inputPath,
+    message: `Activation source "${activation.source.id}" (${activation.source.kind}) does not satisfy trail input at ${issuePathText(inputPath)}: ${firstIssue?.message ?? 'source payload is incompatible with trail input'}`,
+    rule: 'activation-source-input-compatible',
+    schemaIssues,
+    sourceId: activation.source.id,
+    sourceKind: activation.source.kind,
+    trailId,
+  };
+};
+
+const checkSourcePayloadCompatibility = (
+  trail: AnyTrail,
+  activation: ActivationEntry,
+  signals: ReadonlyMap<string, AnySignal>
+): TopoIssue | undefined => {
+  if (
+    !isKnownActivationSourceKind(activation.source.kind) ||
+    isDraftId(activation.source.id)
+  ) {
+    return undefined;
+  }
+
+  const schemaIssues = getActivationSourceInputCompatibilityIssues(
+    trail.input,
+    activation.source,
+    signals
+  );
+  if (!schemaIssues) {
+    return undefined;
+  }
+
+  return schemaIssues.length > 0
+    ? createSourceCompatibilityIssue(trail.id, activation, schemaIssues)
+    : undefined;
+};
+
+const checkActivationSourceInputCompatibility = (
+  trails: ReadonlyMap<string, AnyTrail>,
+  signals: ReadonlyMap<string, AnySignal>
+): TopoIssue[] => {
+  const issues: TopoIssue[] = [];
+
+  for (const trail of trails.values()) {
+    for (const activation of trail.activationSources ?? []) {
+      const issue = checkSourcePayloadCompatibility(trail, activation, signals);
+      if (issue) {
+        issues.push(issue);
+      }
+    }
+  }
+
+  return issues;
+};
+
 const checkContourReferences = (
   contours: ReadonlyMap<string, AnyContour>,
   topo: Topo
@@ -299,6 +373,7 @@ export const validateTopo = (topo: Topo): Result<void, ValidationError> => {
     ...checkSignalOrigins(topo.signals, topo),
     ...checkSignalReferences(topo.trails, topo.signals),
     ...checkActivationSources(topo.trails),
+    ...checkActivationSourceInputCompatibility(topo.trails, topo.signals),
   ];
 
   if (issues.length === 0) {

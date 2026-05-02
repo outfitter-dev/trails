@@ -57,7 +57,7 @@ const mockSignal = (id: string, from?: readonly string[]) => ({
   from,
   id,
   kind: 'signal' as const,
-  payload: z.object({ data: z.string() }),
+  payload: z.object({ name: z.string() }),
 });
 
 /** Extract issues from a failed validateTopo result. */
@@ -477,6 +477,253 @@ describe('validateTopo', () => {
     });
   });
 
+  describe('activation source input compatibility', () => {
+    test('compatible signal payload and trail input pass', () => {
+      const app = topo('app', {
+        consumer: trail('order.consume', {
+          blaze: noop,
+          input: z.object({ orderId: z.string() }),
+          on: ['order.created'],
+        }),
+        created: {
+          id: 'order.created',
+          kind: 'signal' as const,
+          payload: z.object({
+            orderId: z.string(),
+            status: z.enum(['pending', 'settled']),
+          }),
+        },
+      });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
+    });
+
+    test('defaulted source payload fields satisfy required trail input fields', () => {
+      const app = topo('app', {
+        consumer: trail('account.consume', {
+          blaze: noop,
+          input: z.object({ accountId: z.string() }),
+          on: ['account.created'],
+        }),
+        created: {
+          id: 'account.created',
+          kind: 'signal' as const,
+          payload: z.object({
+            accountId: z.string().default('acct_1'),
+          }),
+        },
+      });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
+    });
+
+    test('literal-union source payload values satisfy wider target enums', () => {
+      const app = topo('app', {
+        consumer: trail('order.consume', {
+          blaze: noop,
+          input: z.object({
+            status: z.enum(['pending', 'settled', 'failed']),
+          }),
+          on: ['order.created'],
+        }),
+        created: {
+          id: 'order.created',
+          kind: 'signal' as const,
+          payload: z.object({
+            status: z.union([z.literal('pending'), z.literal('settled')]),
+          }),
+        },
+      });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
+    });
+
+    test('matching source and target nullable unions pass', () => {
+      const app = topo('app', {
+        consumer: trail('order.consume', {
+          blaze: noop,
+          input: z.object({
+            orderId: z.string().nullable(),
+          }),
+          on: ['order.created'],
+        }),
+        created: {
+          id: 'order.created',
+          kind: 'signal' as const,
+          payload: z.object({
+            orderId: z.string().nullable(),
+          }),
+        },
+      });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
+    });
+
+    test('incompatible signal payload and trail input produce a source diagnostic', () => {
+      const app = topo('app', {
+        consumer: trail('order.consume', {
+          blaze: noop,
+          input: z.object({ orderId: z.string() }),
+          on: ['order.created'],
+        }),
+        created: {
+          id: 'order.created',
+          kind: 'signal' as const,
+          payload: z.object({ orderId: z.number() }),
+        },
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issue = extractIssues(result).find(
+        (entry) => entry.rule === 'activation-source-input-compatible'
+      );
+      expect(issue).toBeDefined();
+      expect(issue?.trailId).toBe('order.consume');
+      expect(issue?.sourceId).toBe('order.created');
+      expect(issue?.sourceKind).toBe('signal');
+      expect(issue?.inputPath).toEqual(['orderId']);
+      expect(issue?.schemaIssues?.[0]?.path).toEqual(['orderId']);
+      expect(issue?.schemaIssues?.[0]?.code).toBe('type');
+    });
+
+    test('compatible schedule input and trail input pass', () => {
+      const app = topo('app', {
+        reconcile: trail('account.reconcile', {
+          blaze: noop,
+          input: z.object({ accountId: z.string() }),
+          on: [
+            {
+              id: 'schedule.account.reconcile',
+              input: { accountId: 'acct_1' },
+              kind: 'schedule',
+            },
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
+    });
+
+    test('incompatible schedule input and trail input produce a source diagnostic', () => {
+      const app = topo('app', {
+        reconcile: trail('account.reconcile', {
+          blaze: noop,
+          input: z.object({ accountId: z.string() }),
+          on: [
+            {
+              id: 'schedule.account.reconcile',
+              input: { accountId: 123 },
+              kind: 'schedule',
+            },
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issue = extractIssues(result).find(
+        (entry) => entry.rule === 'activation-source-input-compatible'
+      );
+      expect(issue?.trailId).toBe('account.reconcile');
+      expect(issue?.sourceId).toBe('schedule.account.reconcile');
+      expect(issue?.sourceKind).toBe('schedule');
+      expect(issue?.inputPath).toEqual(['accountId']);
+      expect(issue?.schemaIssues?.[0]?.code).toBe('invalid_type');
+    });
+
+    test('compatible webhook parse output and trail input pass', () => {
+      const app = topo('app', {
+        receive: trail('payment.receive', {
+          blaze: noop,
+          input: z.object({ paymentId: z.string() }),
+          on: [
+            {
+              id: 'webhook.stripe.payment',
+              kind: 'webhook',
+              parse: {
+                output: z.object({ paymentId: z.string() }),
+              },
+            },
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
+    });
+
+    test('incompatible webhook parse output and trail input produce a source diagnostic', () => {
+      const app = topo('app', {
+        receive: trail('payment.receive', {
+          blaze: noop,
+          input: z.object({ paymentId: z.string() }),
+          on: [
+            {
+              id: 'webhook.stripe.payment',
+              kind: 'webhook',
+              parse: {
+                output: z.object({ paymentId: z.number() }),
+              },
+            },
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issue = extractIssues(result).find(
+        (entry) => entry.rule === 'activation-source-input-compatible'
+      );
+      expect(issue?.trailId).toBe('payment.receive');
+      expect(issue?.sourceId).toBe('webhook.stripe.payment');
+      expect(issue?.sourceKind).toBe('webhook');
+      expect(issue?.inputPath).toEqual(['paymentId']);
+      expect(issue?.schemaIssues?.[0]?.code).toBe('type');
+    });
+
+    test('object-form where predicates do not narrow source payload schemas', () => {
+      const app = topo('app', {
+        consumer: trail('order.consume', {
+          blaze: noop,
+          input: z.object({ orderId: z.string() }),
+          on: [
+            {
+              source: 'order.created',
+              where: {
+                predicate: (payload: { orderId?: string }) =>
+                  payload.orderId !== undefined,
+              },
+            },
+          ],
+        }),
+        created: {
+          id: 'order.created',
+          kind: 'signal' as const,
+          payload: z.object({ orderId: z.string().optional() }),
+        },
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issue = extractIssues(result).find(
+        (entry) => entry.rule === 'activation-source-input-compatible'
+      );
+      expect(issue?.sourceKind).toBe('signal');
+      expect(issue?.inputPath).toEqual(['orderId']);
+      expect(issue?.schemaIssues?.[0]?.code).toBe('required');
+    });
+  });
+
   test('collects multiple issues', () => {
     const db = mockResource('db.main');
     const app = topo('app', {
@@ -711,6 +958,30 @@ describe('validateEstablishedTopo', () => {
     const issues = extractIssues(result);
     expect(issues).toHaveLength(1);
     expect(issues[0]?.rule).toBe('signal-fire-exists');
+  });
+
+  test('allows activation source compatibility issues outside projection checks', () => {
+    const app = topo('app', {
+      consumer: trail('order.consume', {
+        blaze: noop,
+        input: z.object({ orderId: z.string() }),
+        on: ['order.created'],
+      }),
+      created: {
+        id: 'order.created',
+        kind: 'signal' as const,
+        payload: z.object({ orderId: z.number() }),
+      },
+    });
+
+    const authored = validateTopo(app);
+    expect(authored.isErr()).toBe(true);
+    expect(extractIssues(authored)[0]?.rule).toBe(
+      'activation-source-input-compatible'
+    );
+
+    const established = validateEstablishedTopo(app);
+    expect(established.isOk()).toBe(true);
   });
 
   test('fails when established trails depend on draft signal edges', () => {
