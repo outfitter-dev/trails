@@ -48,14 +48,17 @@ describe('surface map generation', () => {
     expect(ids).toContain('search');
     expect(ids).toContain('entity.onboard');
     expect(ids).toContain('entity.updated');
+    expect(ids).toContain('demo.entity-store:entities.created');
+    expect(ids).toContain('demo.entity-store:entities.updated');
+    expect(ids).toContain('demo.entity-store:entities.removed');
     expect(ids).toContain('demo.upsert');
     expect(ids).toContain('demo.entity-store');
   });
 
-  test('has exactly 11 entries (8 trails + 1 signal + 2 resources)', () => {
+  test('has exactly 14 entries (8 trails + 4 signals + 2 resources)', () => {
     const ids = surfaceMap.entries.map((e) => e.id);
 
-    expect(surfaceMap.entries).toHaveLength(11);
+    expect(surfaceMap.entries).toHaveLength(14);
     expect(ids).toContain('entity.notify-updated');
     expect(ids).toContain('demo.notification-store');
   });

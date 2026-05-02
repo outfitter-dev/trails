@@ -16,7 +16,7 @@ Entity management -- a small CRUD + search system with enough depth to exercise 
 | `entity.onboard` | Composition: create + verify searchable | `crosses: ['entity.add', 'search']` |
 | `demo.upsert` | Idempotent key-value store example | `idempotent: true` |
 
-Plus one signal: `entity.updated` (fired by `entity.add` and `entity.delete`).
+Plus one domain signal: `entity.updated` (fired by `entity.add` and `entity.delete`). The store resource also registers scoped change signals such as `demo.entity-store:entities.created`.
 
 Plus one resource: `demo.entity-store` (a Drizzle-backed in-memory entity store derived from a root `store(...)` definition).
 

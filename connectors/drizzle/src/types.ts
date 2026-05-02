@@ -4,6 +4,7 @@ import type {
   ReadOnlyStoreConnection,
   StoreAccessMode,
   StoreConnectorOptions,
+  StoreMockSeed,
   StoreTableConnection,
 } from '@ontrails/store';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
@@ -32,6 +33,21 @@ export interface DrizzleStoreOptions<
 > extends StoreConnectorOptions<TDef> {
   /** Path to the SQLite database file. Use `":memory:"` for ephemeral runs. */
   readonly url: string;
+  /**
+   * Optional fixture overrides applied when the writable runtime database is
+   * first created.
+   *
+   * Mirrors {@link StoreConnectorOptions.mockSeed} but for the `create`
+   * (runtime) path: when supplied, the connector seeds these rows into the
+   * writable database immediately after schema initialization. Use this for
+   * demo/dogfood apps that want commands and examples to find pre-loaded
+   * entities on a fresh `:memory:` boot. Defaults to `undefined` — runtime
+   * databases are not auto-seeded from `table.fixtures`.
+   *
+   * Has no effect on the read-only connector, which receives runtime data
+   * from disk rather than from fixtures.
+   */
+  readonly seed?: StoreMockSeed<TDef>;
 }
 
 export type ReadOnlyDrizzleStoreConnection<TStore extends AnyStoreDefinition> =

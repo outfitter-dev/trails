@@ -107,6 +107,16 @@ describe('signal wiring in the demo topo', () => {
     expect(graph.signals.has('entity.updated')).toBe(true);
   });
 
+  test('store change signals are registered with resource-scoped ids', () => {
+    expect([...graph.signals.keys()]).toEqual(
+      expect.arrayContaining([
+        'demo.entity-store:entities.created',
+        'demo.entity-store:entities.updated',
+        'demo.entity-store:entities.removed',
+      ])
+    );
+  });
+
   test('entity.notify-updated is registered with on: [entity.updated]', () => {
     const consumer = graph.get('entity.notify-updated');
     expect(consumer).toBeDefined();

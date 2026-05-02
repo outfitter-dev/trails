@@ -1260,6 +1260,14 @@ export const connectDrizzle = <const TStore extends AnyStoreDefinition>(
             throw error;
           }
           const db = drizzle({ client, schema: tables });
+          if (options.seed !== undefined) {
+            try {
+              seedFixtures(store, tables, db, options.seed);
+            } catch (error) {
+              client.close();
+              throw error;
+            }
+          }
           return Result.ok(createWritableConnection(store, tables, db, client));
         } catch (error) {
           return Result.err(

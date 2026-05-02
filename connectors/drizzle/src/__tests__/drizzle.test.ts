@@ -669,6 +669,60 @@ describe('@ontrails/drizzle resource access', () => {
     );
   });
 
+  test('seeds the writable runtime database when seed is provided', async () => {
+    const rootDir = tmp.makeRoot();
+    const db = connectDrizzle(
+      defineStore({
+        users: userTable,
+      }),
+      {
+        id: 'demo.store.runtime-seed',
+        seed: {
+          users: [{ email: 'runtime@example.com', id: 'user-runtime' }],
+        },
+        url: ':memory:',
+      }
+    );
+
+    const created = await unwrapCreated(
+      db.create(createResourceInput(rootDir))
+    );
+    expect(await created.users.get('user-runtime')).toEqual(
+      expect.objectContaining({
+        email: 'runtime@example.com',
+        id: 'user-runtime',
+      })
+    );
+    await db.dispose?.(created);
+  });
+
+  test('does not seed the writable runtime database when seed is omitted', async () => {
+    const rootDir = tmp.makeRoot();
+    const db = connectDrizzle(
+      defineStore({
+        gists: {
+          ...gistTable,
+          fixtures: [{ id: 'gist-default', ownerId: 'user-default' }],
+        },
+        users: {
+          ...userTable,
+          fixtures: [{ email: 'default@example.com', id: 'user-default' }],
+        },
+      }),
+      {
+        id: 'demo.store.no-runtime-seed',
+        url: ':memory:',
+      }
+    );
+
+    const created = await unwrapCreated(
+      db.create(createResourceInput(rootDir))
+    );
+    expect(await created.users.list()).toEqual([]);
+    expect(await created.gists.list()).toEqual([]);
+    await db.dispose?.(created);
+  });
+
   test('manages versioned writes and rejects stale optimistic-concurrency updates', async () => {
     const rootDir = tmp.makeRoot();
     const { created, db } = await setupVersionedUserStore(rootDir);
