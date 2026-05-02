@@ -79,6 +79,7 @@ export type {
   FireFn,
   BasePermit,
   LogLevel,
+  LogFormatter,
   LogRecord,
   LogSink,
   PermitRequirement,

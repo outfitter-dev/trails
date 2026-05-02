@@ -180,6 +180,10 @@ export interface LogSink {
   readonly flush?: (() => Promise<void>) | undefined;
 }
 
+export interface LogFormatter {
+  format(record: LogRecord): string;
+}
+
 /**
  * Context extension key for the invoking surface name.
  *

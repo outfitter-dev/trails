@@ -176,6 +176,13 @@
         "zod": "catalog:",
       },
     },
+    "packages/observe": {
+      "name": "@ontrails/observe",
+      "version": "1.0.0-beta.15",
+      "peerDependencies": {
+        "@ontrails/core": "workspace:^",
+      },
+    },
     "packages/oxlint-plugin": {
       "name": "@ontrails/oxlint-plugin",
       "version": "1.0.0-beta.15",
@@ -342,6 +349,8 @@
     "@ontrails/logtape": ["@ontrails/logtape@workspace:packages/logtape"],
 
     "@ontrails/mcp": ["@ontrails/mcp@workspace:packages/mcp"],
+
+    "@ontrails/observe": ["@ontrails/observe@workspace:packages/observe"],
 
     "@ontrails/oxlint-plugin": ["@ontrails/oxlint-plugin@workspace:packages/oxlint-plugin"],
 
