@@ -407,6 +407,88 @@ describe('trail() fires/on normalization', () => {
       on: [orderPlaced],
     });
     expect(t.on).toEqual(['order.placed']);
+    expect(t.activationSources).toEqual([
+      { source: { id: 'order.placed', kind: 'signal' } },
+    ]);
+  });
+
+  test('object-form on: source normalizes to the same activation graph', () => {
+    const bare = trail('notify.bare', {
+      blaze: () => Result.ok({}),
+      input: z.object({}),
+      on: [orderPlaced],
+    });
+    const objectForm = trail('notify.object', {
+      blaze: () => Result.ok({}),
+      input: z.object({}),
+      on: [{ source: orderPlaced }],
+    });
+
+    expect(objectForm.on).toEqual(bare.on);
+    expect(objectForm.activationSources).toEqual(bare.activationSources);
+    expect(Object.isFrozen(objectForm.activationSources)).toBe(true);
+    expect(Object.isFrozen(objectForm.activationSources[0])).toBe(true);
+    expect(Object.isFrozen(objectForm.activationSources[0]?.source)).toBe(true);
+  });
+
+  test('object-form signal activation source preserves source metadata', () => {
+    const t = trail('notify.object-source', {
+      blaze: () => Result.ok({}),
+      input: z.object({}),
+      on: [
+        {
+          source: {
+            id: 'order.placed',
+            input: { channel: 'orders' },
+            kind: 'signal',
+            meta: { owner: 'checkout' },
+          },
+        },
+      ],
+    });
+
+    expect(t.activationSources).toEqual([
+      {
+        source: {
+          id: 'order.placed',
+          input: { channel: 'orders' },
+          kind: 'signal',
+          meta: { owner: 'checkout' },
+        },
+      },
+    ]);
+    expect(Object.isFrozen(t.activationSources[0]?.source.meta)).toBe(true);
+  });
+
+  test('schedule and webhook source objects stay inert and normalized', () => {
+    const scheduleSource = {
+      id: 'schedule.nightly-close',
+      input: { olderThanDays: 90 },
+      kind: 'schedule' as const,
+    };
+    const webhookSource = {
+      id: 'webhook.stripe.payment',
+      kind: 'webhook' as const,
+      meta: { provider: 'stripe' },
+    };
+
+    const t = trail('billing.reconcile', {
+      blaze: () => Result.ok({}),
+      input: z.object({}),
+      on: [
+        scheduleSource,
+        { meta: { owner: 'billing' }, source: webhookSource },
+      ],
+    });
+
+    expect(t.on).toEqual([]);
+    expect(t.activationSources).toEqual([
+      { source: scheduleSource },
+      {
+        meta: { owner: 'billing' },
+        source: webhookSource,
+      },
+    ]);
   });
 
   test('mixed string + Signal value in fires: is normalized', () => {
@@ -427,5 +509,7 @@ describe('trail() fires/on normalization', () => {
     expect(Object.isFrozen(minimal.fires)).toBe(true);
     expect(minimal.on).toEqual([]);
     expect(Object.isFrozen(minimal.on)).toBe(true);
+    expect(minimal.activationSources).toEqual([]);
+    expect(Object.isFrozen(minimal.activationSources)).toBe(true);
   });
 });

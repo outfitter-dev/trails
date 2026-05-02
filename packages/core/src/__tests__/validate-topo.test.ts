@@ -7,6 +7,7 @@ import { contour } from '../contour.js';
 import { validateEstablishedTopo } from '../validate-established-topo.js';
 import { resource } from '../resource.js';
 import { Result } from '../result.js';
+import { trail } from '../trail.js';
 import { topo } from '../topo.js';
 import type { TopoIssue } from '../validate-topo.js';
 import { validateTopo } from '../validate-topo.js';
@@ -454,6 +455,25 @@ describe('validateTopo', () => {
 
       const result = validateTopo(app);
       expect(result.isOk()).toBe(true);
+    });
+
+    test('unsupported activation source kinds produce diagnostics', () => {
+      const app = topo('app', {
+        consumer: trail('entity.consume', {
+          blaze: noop,
+          input: z.object({}),
+          on: [{ id: 'queue.entity.created', kind: 'queue' }],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issues = extractIssues(result);
+      expect(issues).toHaveLength(1);
+      expect(issues[0]?.rule).toBe('activation-source-kind-known');
+      expect(issues[0]?.message).toContain('queue.entity.created');
+      expect(issues[0]?.message).toContain('queue');
     });
   });
 

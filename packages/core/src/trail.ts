@@ -1,5 +1,15 @@
 import type { z } from 'zod';
 
+import type {
+  ActivationEntry,
+  ActivationEntrySpec,
+  ActivationSource,
+  ActivationSourceRef,
+} from './activation-source.js';
+import {
+  isActivationEntrySpec,
+  isActivationSource,
+} from './activation-source.js';
 import type { AnyContour } from './contour.js';
 import type { FieldOverride } from './derive.js';
 import type { Result } from './result.js';
@@ -127,12 +137,14 @@ export interface TrailSpec<I, O, CI = never> {
    */
   readonly fires?: readonly (string | AnySignal)[] | undefined;
   /**
-   * Signals that activate this trail (framework auto-subscribes).
+   * Activation sources that can invoke this trail.
    *
-   * Accepts either a string id or a `Signal` value. Both forms are
-   * normalized to the signal's id at trail definition time.
+   * Bare strings and `Signal` values are signal-source shorthand. Object form
+   * preserves the source kind and per-source metadata for the activation graph.
    */
-  readonly on?: readonly (string | AnySignal)[] | undefined;
+  readonly on?:
+    | readonly (ActivationEntrySpec | ActivationSourceRef)[]
+    | undefined;
   /** Auth requirement: scopes object, 'public', or omitted (undeclared) */
   readonly permit?: PermitRequirement | undefined;
   /** Primary input fields and their order. CLI projects as positional args. */
@@ -184,8 +196,13 @@ export interface Trail<I, O, CI = never> extends Omit<
   readonly resources: readonly AnyResource[];
   /** IDs of signals this trail fires via ctx.fire() (always present, default []) */
   readonly fires: readonly string[];
-  /** IDs of signals that activate this trail (always present, default []) */
+  /**
+   * IDs of signal sources that activate this trail (always present, default []).
+   * Non-signal activation sources live in `activationSources`.
+   */
   readonly on: readonly string[];
+  /** Normalized activation source entries declared through `on` (always present, default []). */
+  readonly activationSources: readonly ActivationEntry[];
   /** What this trail does to the world (always present, default 'write') */
   readonly intent: Intent;
   /** Whether trailheads expose this trail by default (always present, default 'public'). */
@@ -239,6 +256,78 @@ const normalizeSignalRef = (entry: string | AnySignal): string => {
   return createLateBoundSignalMarker(ref, entry.id);
 };
 
+const freezeActivationSource = (source: ActivationSource): ActivationSource =>
+  Object.freeze({
+    ...source,
+    ...(source.meta === undefined
+      ? {}
+      : { meta: Object.freeze({ ...source.meta }) }),
+  });
+
+const shouldPreserveSignalSource = (source: ActivationSource): boolean =>
+  source.kind === 'signal' &&
+  (!('payload' in source) ||
+    'input' in source ||
+    'parse' in source ||
+    'cron' in source ||
+    'timezone' in source);
+
+const normalizeActivationSource = (
+  source: ActivationSourceRef
+): ActivationSource => {
+  if (typeof source === 'string') {
+    return freezeActivationSource({ id: source, kind: 'signal' });
+  }
+
+  if (isActivationSource(source) && shouldPreserveSignalSource(source)) {
+    return freezeActivationSource({
+      ...source,
+      id: normalizeSignalRef(source.id),
+      kind: 'signal',
+    });
+  }
+
+  if (isActivationSource(source) && source.kind !== 'signal') {
+    return freezeActivationSource(source);
+  }
+
+  return freezeActivationSource({
+    id: normalizeSignalRef(source as string | AnySignal),
+    kind: 'signal',
+  });
+};
+
+const normalizeActivationEntry = (
+  entry: ActivationEntrySpec | ActivationSourceRef
+): ActivationEntry => {
+  const source = isActivationEntrySpec(entry) ? entry.source : entry;
+  const normalized: ActivationEntry = {
+    source: normalizeActivationSource(source),
+    ...(isActivationEntrySpec(entry) && entry.meta !== undefined
+      ? { meta: Object.freeze({ ...entry.meta }) }
+      : {}),
+    ...(isActivationEntrySpec(entry) && entry.where !== undefined
+      ? { where: entry.where }
+      : {}),
+  };
+
+  return Object.freeze(normalized);
+};
+
+const normalizeActivationSources = (
+  entries: readonly (ActivationEntrySpec | ActivationSourceRef)[]
+): readonly ActivationEntry[] =>
+  Object.freeze(entries.map((entry) => normalizeActivationEntry(entry)));
+
+const extractSignalActivationIds = (
+  activations: readonly ActivationEntry[]
+): readonly string[] =>
+  Object.freeze(
+    activations
+      .filter((entry) => entry.source.kind === 'signal')
+      .map((entry) => entry.source.id)
+  );
+
 /** Normalize a crosses entry — trail objects are reduced to their id. */
 const normalizeCrossRef = (entry: string | AnyTrail): string =>
   typeof entry === 'string' ? entry : entry.id;
@@ -248,19 +337,24 @@ const normalizeCollections = <I, O, CI>(
   spec: TrailSpec<I, O, CI>
 ): {
   readonly args: readonly string[] | false | undefined;
+  readonly activationSources: readonly ActivationEntry[];
   readonly contours: readonly AnyContour[];
   readonly detours: readonly Detour<I, O, TrailsError>[];
   readonly fires: readonly string[];
   readonly on: readonly string[];
   readonly resources: readonly AnyResource[];
-} => ({
-  args: Array.isArray(spec.args) ? Object.freeze([...spec.args]) : spec.args,
-  contours: Object.freeze([...(spec.contours ?? [])]),
-  detours: Object.freeze([...(spec.detours ?? [])]),
-  fires: Object.freeze((spec.fires ?? []).map(normalizeSignalRef)),
-  on: Object.freeze((spec.on ?? []).map(normalizeSignalRef)),
-  resources: Object.freeze([...(spec.resources ?? [])]),
-});
+} => {
+  const activationSources = normalizeActivationSources(spec.on ?? []);
+  return {
+    activationSources,
+    args: Array.isArray(spec.args) ? Object.freeze([...spec.args]) : spec.args,
+    contours: Object.freeze([...(spec.contours ?? [])]),
+    detours: Object.freeze([...(spec.detours ?? [])]),
+    fires: Object.freeze((spec.fires ?? []).map(normalizeSignalRef)),
+    on: extractSignalActivationIds(activationSources),
+    resources: Object.freeze([...(spec.resources ?? [])]),
+  };
+};
 
 /**
  * Create a trail definition.

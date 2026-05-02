@@ -2,13 +2,14 @@
  * Structural validation for a Topo graph.
  *
  * Checks trail crossing references, example input validity, signal origin
- * references, and output schema completeness. Returns a Result with all
- * issues collected into a single ValidationError.
+ * references, activation source kinds, and output schema completeness. Returns
+ * a Result with all issues collected into a single ValidationError.
  */
 
 import type { AnyContour } from './contour.js';
 import { getContourReferences } from './contour.js';
 import { ValidationError } from './errors.js';
+import { isKnownActivationSourceKind } from './activation-source.js';
 import { isDraftId } from './draft.js';
 import type { AnySignal } from './signal.js';
 import { Result } from './result.js';
@@ -236,6 +237,26 @@ const checkSignalReferences = (
   return issues;
 };
 
+const checkActivationSources = (
+  trails: ReadonlyMap<string, AnyTrail>
+): TopoIssue[] => {
+  const issues: TopoIssue[] = [];
+
+  for (const [id, trail] of trails) {
+    for (const activation of trail.activationSources ?? []) {
+      if (!isKnownActivationSourceKind(activation.source.kind)) {
+        issues.push({
+          message: `Trail declares on source "${activation.source.id}" with unsupported source kind "${activation.source.kind}"`,
+          rule: 'activation-source-kind-known',
+          trailId: id,
+        });
+      }
+    }
+  }
+
+  return issues;
+};
+
 const checkContourReferences = (
   contours: ReadonlyMap<string, AnyContour>,
   topo: Topo
@@ -264,8 +285,9 @@ const checkContourReferences = (
 /**
  * Validate the structural integrity of a Topo graph.
  *
- * Checks crossing references, example inputs, signal origins, and output
- * schema presence. Returns `Result.ok()` when no issues are found, or
+ * Checks crossing references, example inputs, signal origins, activation
+ * source kinds, and output schema presence. Returns `Result.ok()` when no
+ * issues are found, or
  * `Result.err(ValidationError)` with all issues in the error context.
  */
 export const validateTopo = (topo: Topo): Result<void, ValidationError> => {
@@ -276,6 +298,7 @@ export const validateTopo = (topo: Topo): Result<void, ValidationError> => {
     ...checkExamples(topo.trails),
     ...checkSignalOrigins(topo.signals, topo),
     ...checkSignalReferences(topo.trails, topo.signals),
+    ...checkActivationSources(topo.trails),
   ];
 
   if (issues.length === 0) {

@@ -107,6 +107,25 @@ export type {
 } from './resource.js';
 
 // Trail
+export {
+  activationSourceKinds,
+  isActivationEntrySpec,
+  isActivationSource,
+  isKnownActivationSourceKind,
+} from './activation-source.js';
+export type {
+  ActivationEntry,
+  ActivationEntrySpec,
+  ActivationSource,
+  ActivationSourceKind,
+  ActivationSourceMeta,
+  ActivationSourceRef,
+  ActivationWhere,
+  ActivationWhereExample,
+  ActivationWherePredicate,
+  ActivationWhereSpec,
+  BuiltinActivationSourceKind,
+} from './activation-source.js';
 export { intentValues, trail } from './trail.js';
 export type {
   AnyTrail,

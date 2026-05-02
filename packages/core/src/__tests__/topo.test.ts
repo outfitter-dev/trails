@@ -178,9 +178,48 @@ describe('topo', () => {
       });
 
       expect(t.get('notify.users')?.on).toEqual(['identity:users.created']);
+      expect(t.get('notify.users')?.activationSources).toEqual([
+        { source: { id: 'identity:users.created', kind: 'signal' } },
+      ]);
       expect(t.listSignals().map((s) => s.id)).toContain(
         'identity:users.created'
       );
+    });
+
+    test('keeps schedule and webhook activation sources inert during topo construction', () => {
+      let cronRegistered = false;
+      let routeRegistered = false;
+      const scheduleSource = {
+        id: 'schedule.nightly-close',
+        input: { olderThanDays: 90 },
+        kind: 'schedule' as const,
+        register: () => {
+          cronRegistered = true;
+        },
+      };
+      const webhookSource = {
+        id: 'webhook.stripe.payment',
+        kind: 'webhook' as const,
+        route: () => {
+          routeRegistered = true;
+        },
+      };
+
+      const app = topo('billing', {
+        reconcile: trail('billing.reconcile', {
+          blaze: () => Result.ok({ ok: true }),
+          input: z.object({}),
+          on: [scheduleSource, { source: webhookSource }],
+          output: z.object({ ok: z.boolean() }),
+        }),
+      });
+
+      expect(cronRegistered).toBe(false);
+      expect(routeRegistered).toBe(false);
+      expect(app.get('billing.reconcile')?.activationSources).toEqual([
+        { source: scheduleSource },
+        { source: webhookSource },
+      ]);
     });
 
     test('preserves canonical scoped signal ids across multi-binding stores', () => {

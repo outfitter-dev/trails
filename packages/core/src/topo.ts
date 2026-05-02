@@ -4,6 +4,7 @@
 
 import type { AnyContour } from './contour.js';
 import { ValidationError } from './errors.js';
+import type { ActivationEntry } from './activation-source.js';
 import {
   getLateBoundSignalRef,
   parseLateBoundSignalMarker,
@@ -287,6 +288,38 @@ const resolveTrailSignalIds = (
   return { changed, ids };
 };
 
+const resolveTrailActivationSources = (
+  trailId: string,
+  activations: readonly ActivationEntry[],
+  lateBoundSignalIdsByToken: ReadonlyMap<string, readonly string[]>
+): { changed: boolean; activations: readonly ActivationEntry[] } => {
+  let changed = false;
+  const resolved = Object.freeze(
+    activations.map((entry) => {
+      if (entry.source.kind !== 'signal') {
+        return entry;
+      }
+
+      const resolvedId = resolveLateBoundSignalId(
+        trailId,
+        entry.source.id,
+        lateBoundSignalIdsByToken
+      );
+      if (resolvedId === entry.source.id) {
+        return entry;
+      }
+
+      changed = true;
+      return Object.freeze({
+        ...entry,
+        source: Object.freeze({ ...entry.source, id: resolvedId }),
+      });
+    })
+  );
+
+  return { activations: resolved, changed };
+};
+
 const finalizeTrailSignals = (
   trails: ReadonlyMap<string, AnyTrail>,
   resources: ReadonlyMap<string, AnyResource>
@@ -305,8 +338,17 @@ const finalizeTrailSignals = (
       trail.on ?? [],
       lateBoundSignalIdsByToken
     );
+    const resolvedActivationSources = resolveTrailActivationSources(
+      trail.id,
+      trail.activationSources ?? [],
+      lateBoundSignalIdsByToken
+    );
 
-    if (!resolvedFires.changed && !resolvedOn.changed) {
+    if (
+      !resolvedFires.changed &&
+      !resolvedOn.changed &&
+      !resolvedActivationSources.changed
+    ) {
       finalized.set(trail.id, trail);
       continue;
     }
@@ -315,6 +357,7 @@ const finalizeTrailSignals = (
       trail.id,
       Object.freeze({
         ...trail,
+        activationSources: resolvedActivationSources.activations,
         fires: resolvedFires.ids,
         on: resolvedOn.ids,
       })
