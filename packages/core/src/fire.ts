@@ -34,10 +34,7 @@ import {
   withActivationProvenance,
 } from './activation-provenance.js';
 import type { ActivationProvenance } from './activation-provenance.js';
-import type {
-  ActivationEntry,
-  ActivationWhereSpec,
-} from './activation-source.js';
+import type { ActivationWhereSpec } from './activation-source.js';
 import { getActivationWherePredicate } from './activation-source.js';
 import { activationSourceKey } from './activation-source-projection.js';
 import { NotFoundError, TrailsError, ValidationError } from './errors.js';
@@ -85,7 +82,7 @@ type MutableConsumerContext = {
 
 interface ConsumerActivation {
   readonly trail: AnyTrail;
-  readonly where?: ActivationWhereSpec | undefined;
+  readonly wheres: readonly ActivationWhereSpec[];
 }
 
 const FIRE_STACK_KEY = '__trails_fire_stack';
@@ -356,7 +353,7 @@ const activationEntriesForSignal = (
   trail: AnyTrail,
   signalId: string
 ): readonly ConsumerActivation[] => {
-  const activations = new Map<string, ActivationEntry>();
+  const activations = new Map<string, readonly ActivationWhereSpec[]>();
   for (const activation of trail.activationSources ?? []) {
     if (
       activation.source.kind !== 'signal' ||
@@ -365,21 +362,25 @@ const activationEntriesForSignal = (
       continue;
     }
     const key = activationSourceKey(activation.source);
-    const previous = activations.get(key);
-    if (
-      previous === undefined ||
-      (previous.where === undefined && activation.where !== undefined)
-    ) {
-      activations.set(key, activation);
+    if (activation.where === undefined) {
+      activations.set(key, []);
+      continue;
+    }
+
+    const wheres = activations.get(key);
+    if (wheres === undefined) {
+      activations.set(key, [activation.where]);
+    } else if (wheres.length > 0) {
+      activations.set(key, [...wheres, activation.where]);
     }
   }
   if (activations.size > 0) {
-    return [...activations.values()].map((activation) => ({
+    return [...activations.values()].map((wheres) => ({
       trail,
-      where: activation.where,
+      wheres,
     }));
   }
-  return trail.on.includes(signalId) ? [{ trail }] : [];
+  return trail.on.includes(signalId) ? [{ trail, wheres: [] }] : [];
 };
 
 const listConsumerActivations = (
@@ -462,52 +463,65 @@ const shouldInvokeConsumer = async (
   diagnosticMetadata: FireDiagnosticMetadata,
   logger: Logger | undefined
 ): Promise<boolean> => {
-  const predicate = getActivationWherePredicate(activation.where);
-  if (predicate === undefined) {
+  if (activation.wheres.length === 0) {
     return true;
   }
 
-  try {
-    const matched = await predicate(payload);
-    await recordPredicateTrace(
-      producerCtx,
-      matched
-        ? 'signal.handler.predicate_matched'
-        : 'signal.handler.predicate_skipped',
-      {
-        diagnosticMetadata,
-        handlerTrailId: activation.trail.id,
-        payloadSummary,
-        signalId,
+  for (const where of activation.wheres) {
+    const predicate = getActivationWherePredicate(where);
+    if (predicate === undefined) {
+      return true;
+    }
+
+    try {
+      const matched = await predicate(payload);
+      await recordPredicateTrace(
+        producerCtx,
+        matched
+          ? 'signal.handler.predicate_matched'
+          : 'signal.handler.predicate_skipped',
+        {
+          diagnosticMetadata,
+          handlerTrailId: activation.trail.id,
+          payloadSummary,
+          signalId,
+        }
+      );
+      if (matched) {
+        return true;
       }
-    );
-    return matched;
-  } catch (error) {
-    const cause = signalDiagnosticCauseFromUnknown(error);
-    const diagnostic = createSignalPredicateFailedDiagnostic({
-      ...diagnosticMetadata,
-      cause: error,
-      handlerTrailId: activation.trail.id,
-      payload,
-      signalId,
-    });
-    await recordRuntimeSignalDiagnostic(producerCtx, diagnostic);
-    await recordPredicateTrace(producerCtx, 'signal.handler.predicate_failed', {
-      diagnosticMetadata,
-      errorCategory: deriveSignalErrorCategory(error),
-      errorName: cause.name,
-      handlerTrailId: activation.trail.id,
-      payloadSummary,
-      signalId,
-      status: 'err',
-    });
-    logger?.warn('Signal activation predicate failed', {
-      consumerId: activation.trail.id,
-      error: cause.message,
-      signalId,
-    });
-    return false;
+    } catch (error) {
+      const cause = signalDiagnosticCauseFromUnknown(error);
+      const diagnostic = createSignalPredicateFailedDiagnostic({
+        ...diagnosticMetadata,
+        cause: error,
+        handlerTrailId: activation.trail.id,
+        payload,
+        signalId,
+      });
+      await recordRuntimeSignalDiagnostic(producerCtx, diagnostic);
+      await recordPredicateTrace(
+        producerCtx,
+        'signal.handler.predicate_failed',
+        {
+          diagnosticMetadata,
+          errorCategory: deriveSignalErrorCategory(error),
+          errorName: cause.name,
+          handlerTrailId: activation.trail.id,
+          payloadSummary,
+          signalId,
+          status: 'err',
+        }
+      );
+      logger?.warn('Signal activation predicate failed', {
+        consumerId: activation.trail.id,
+        error: cause.message,
+        signalId,
+      });
+    }
   }
+
+  return false;
 };
 
 /**

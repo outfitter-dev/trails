@@ -853,6 +853,44 @@ describe('fire', () => {
       expect(capture.invocations[0]?.trailId).toBe('notify.dedupe');
     });
 
+    test('duplicate guarded signal entries match when any predicate matches', async () => {
+      const capture = createCapture();
+      const consumer = trail('notify.guarded-dedupe', {
+        blaze: (input) => {
+          capture.invocations.push({
+            payload: input,
+            trailId: 'notify.guarded-dedupe',
+          });
+          return Result.ok({ received: input });
+        },
+        input: z.object({ orderId: z.string(), total: z.number() }),
+        on: [
+          {
+            source: orderPlaced,
+            where: (payload) => payload.total > 100,
+          },
+          {
+            source: orderPlaced,
+            where: (payload) => payload.total > 10,
+          },
+        ],
+      });
+      const app = topo('fire-guarded-dedupe-activation-edge', {
+        consumer,
+        orderPlaced,
+        producer: makeProducer({}),
+      });
+
+      const result = await run(app, 'order.create', {
+        orderId: 'o-guarded-dedupe',
+        total: 42,
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(capture.invocations).toHaveLength(1);
+      expect(capture.invocations[0]?.trailId).toBe('notify.guarded-dedupe');
+    });
+
     test('consumer contexts carry signal activation provenance', async () => {
       const activations: ActivationProvenance[] = [];
       const consumer = trail('provenance.consumer', {
