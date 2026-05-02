@@ -573,6 +573,11 @@ describe('bindStoreDefinition', () => {
 
   test('accepts valid scopes and scopes store signal ids', () => {
     const bound = bindStoreDefinition(definition, 'primary');
+    expect(bound.signals.map((candidate) => candidate.id)).toEqual([
+      'primary:gists.created',
+      'primary:gists.updated',
+      'primary:gists.removed',
+    ]);
     expect(bound.tables.gists.signals.created.id).toBe('primary:gists.created');
     expect(bound.tables.gists.signals.updated.id).toBe('primary:gists.updated');
     expect(bound.tables.gists.signals.removed.id).toBe('primary:gists.removed');
