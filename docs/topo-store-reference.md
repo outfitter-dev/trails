@@ -100,10 +100,39 @@ CREATE TABLE topo_signals (
 
 ### `topo_trail_signals`
 
-Which signals each trail can emit.
+Legacy producer hints from `signal.from`. Prefer `topo_trail_fires` for
+authored trail `fires` declarations.
 
 ```sql
 CREATE TABLE topo_trail_signals (
+  trail_id TEXT NOT NULL,
+  signal_id TEXT NOT NULL,
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (trail_id, signal_id, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
+);
+```
+
+### `topo_trail_fires`
+
+Signals each trail declares in `fires`.
+
+```sql
+CREATE TABLE topo_trail_fires (
+  trail_id TEXT NOT NULL,
+  signal_id TEXT NOT NULL,
+  snapshot_id TEXT NOT NULL,
+  PRIMARY KEY (trail_id, signal_id, snapshot_id),
+  FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
+);
+```
+
+### `topo_trail_on`
+
+Signals each trail declares in `on`.
+
+```sql
+CREATE TABLE topo_trail_on (
   trail_id TEXT NOT NULL,
   signal_id TEXT NOT NULL,
   snapshot_id TEXT NOT NULL,

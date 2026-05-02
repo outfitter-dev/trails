@@ -25,7 +25,7 @@ Store signal identity is **resource-scoped and derived at binding**.
 The canonical form is always:
 
 ```text
-<scope>:<table>.<event>
+<scope>:<table>.<change>
 ```
 
 Examples:
@@ -45,7 +45,7 @@ For `TRL-270`, the framework commits only to the first canonical role: `store`.
 This means:
 
 - A store declaration exposes **signal shape**, not final globally meaningful signal identity.
-- Binding composes the canonical id from the bound resource scope plus the table-local event.
+- Binding composes the canonical id from the bound resource scope plus the table-local change name.
 - The canonical scoped id is the only external form used by topo, runtime, docs, diagnostics, and persisted graph projections.
 - Resource ids may not contain `:` so the scope boundary stays unambiguous.
 

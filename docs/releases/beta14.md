@@ -65,6 +65,10 @@ New developer tooling trails: `dev stats` (codebase statistics), `dev clean` (cl
 
 Beta 14 completes the vocabulary alignment started in beta 13. All framework-specific terms now use trail-native language consistently.
 
+Historical note: this table records the beta14 vocabulary at the time. The
+current typed-signal API is `fires` plus `ctx.fire(signal, payload)`; do not use
+the beta14 `signals:` / `ctx.signal()` names in new code.
+
 | Before | After |
 | --- | --- |
 | `services:` | `provisions:` |

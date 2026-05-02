@@ -16,25 +16,25 @@ depends_on: [3, 4, 13, 38]
 
 Every trail in a topo is callable: a trailhead or `run()` can invoke it with input and receive a Result. But the framework has no concept of *when* a trail should be invoked. Activation logic lives outside the contract: in trailhead configuration (trailhead options), in external schedulers (crontab), in application code (a webhook handler that calls `run()`), or in infrastructure (a queue consumer).
 
-This means the framework can't see the reactive graph. Survey reports what trails exist and what they cross. It can't report what activates them. The warden governs trail contracts and composition. It can't govern activation. Tracing records what happened. It can't attribute the execution to a trigger source.
+This means the framework can't see the reactive graph. Survey reports what trails exist and what they cross. It can't report what activates them. The warden governs trail contracts and composition. It can't govern activation. Tracing records what happened. It can't attribute the execution to an activation source.
 
 ### Real applications are activation-driven
 
 The patterns are everywhere:
 
-- A Stripe webhook triggers booking confirmation
-- A nightly schedule triggers data archival
-- A trail failure triggers an alert or compensation
+- A Stripe webhook activates booking confirmation
+- A nightly schedule activates data archival
+- A trail failure activates an alert or compensation
 - A fired signal activates a downstream trail
-- A config change triggers a cache invalidation
+- A config change activates a cache invalidation
 
-Developers build these patterns today with application code: webhook handlers call `run()`, schedulers call `run()`, error handlers call `run()`. The activation logic works, but it's invisible to the framework. The trigger, the condition, and the action are disconnected.
+Developers build these patterns today with application code: webhook handlers call `run()`, schedulers call `run()`, error handlers call `run()`. The activation logic works, but it's invisible to the framework. The source, the condition, and the trail are disconnected.
 
 ### The key constraint
 
-Triggers activate trails. That's the boundary. A trigger does not compose trails. It does not orchestrate. It does not branch. It fires, the trail runs, and the trail handles composition with normal `ctx.cross()` calls inside its implementation.
+Activation sources activate trails. That's the boundary. An activation source does not compose trails. It does not orchestrate. It does not branch. It fires, the trail runs, and the trail handles composition with normal `ctx.cross()` calls inside its implementation.
 
-If someone wants "when X happens, do A then B then C with branching," the answer is: put a trigger on a trail that crosses into A, B, and C with normal imperative composition. The trigger is the activation layer. The trail is the execution layer. These stay separate.
+If someone wants "when X happens, do A then B then C with branching," the answer is: put an activation source on a trail that crosses into A, B, and C with normal imperative composition. The source is the activation layer. The trail is the execution layer. These stay separate.
 
 ### Depends on: Typed Signal Emission
 
@@ -78,7 +78,7 @@ The `on` field is part of the trail's contract — the author's stated design fo
 This matters for packs. A pack declares `on` for its trails. The consuming app may need different activation:
 
 ```typescript
-// The pack trail declares its default trigger
+// The pack trail declares its default activation source
 const notifyBooking = trail('notify.booking-confirmed', {
   on: [{ signal: 'booking.confirmed' }],
   // ...
@@ -105,11 +105,11 @@ app.override('notify.booking-confirmed', {
 
 The authored `on` documents intent: "I was designed to respond to this." The override enables reuse: "in my app, I need you to respond to that instead." The lockfile resolves the final state. The warden can flag overrides that contradict the original intent.
 
-### Fire source types
+### Activation source types
 
-Three fire source types. Schedule is the only non-signal source (time isn't a signal, it's a clock). Signal sources handle both authored signals and framework lifecycle signals through one mechanism. Webhook sources handle external inbound activation.
+Three activation source types. Schedule is the only non-signal source (time isn't a signal, it's a clock). Signal sources handle both authored signals and framework lifecycle signals through one mechanism. Webhook sources handle external inbound activation.
 
-#### Schedule fire sources
+#### Schedule activation sources
 
 Time-based activation. Cron expressions for recurring schedules.
 
@@ -125,16 +125,16 @@ const archiveOld = trail('data.archive-old', {
 });
 ```
 
-The `input` field on a scheduled fire source provides static input for each invocation. If omitted, the trail receives an empty object. The trail's input schema validates the fire source input at topo construction time.
+The `input` field on a scheduled activation source provides static input for each invocation. If omitted, the trail receives an empty object. The trail's input schema validates the activation source input at topo construction time.
 
-#### Signal fire sources
+#### Signal activation sources
 
 Activation when a signal is fired. In the accepted signal runtime this covers
 authored signals via `ctx.fire(signal, payload)`. Framework lifecycle signals
 (`trail.completed`, `trail.failed`, `trail.failed.<category>`) remain a future
 decision.
 
-**Authored signal fire source:**
+**Authored signal activation source:**
 
 ```typescript
 const notifyBooking = trail('notify.booking-confirmed', {
@@ -161,7 +161,7 @@ const billingConflictResolve = trail('billing.conflict-resolve', {
 
 If this draft is accepted, the execution pipeline would be able to produce categorized lifecycle signals such as `trail.failed.conflict`, `trail.failed.auth`, and `trail.failed.timeout`. Each would map to an error taxonomy category. The activation source would bind to a specific category and filter further with `where`. The error taxonomy would compound with activation sources: the error classes become signal vocabulary for reactive error handling.
 
-#### Webhook fire sources
+#### Webhook activation sources
 
 Proposed activation when an external system sends a webhook payload.
 
@@ -180,9 +180,9 @@ const githubEventReceived = trail('github.event.received', {
 
 Webhook verification is permit resolution for this activation path — it produces a `Permit` through a connector, not necessarily a JWT. See the Webhooks ADR for the full webhook trailhead design.
 
-### Conditional fire sources with `where`
+### Conditional activation sources with `where`
 
-Proposed fire sources can include a predicate that filters activations:
+Proposed activation sources can include a predicate that filters activations:
 
 ```typescript
 const highValueApproval = trail('approval.high-value', {
@@ -209,9 +209,9 @@ where: {
 },
 ```
 
-`testExamples` would validate the predicate against these examples. The fire condition would be part of the contract, testable without the actual signal source.
+`testExamples` would validate the predicate against these examples. The activation condition would be part of the contract, testable without the actual signal source.
 
-### Multiple fire sources on one trail
+### Multiple activation sources on one trail
 
 ```typescript
 const healthCheck = trail('health.check-all', {
@@ -225,17 +225,17 @@ const healthCheck = trail('health.check-all', {
 });
 ```
 
-Each proposed fire source is an independent activation path. The trail's implementation would not know which one fired (by design: the trail is the execution layer, not the activation layer).
+Each proposed activation source is an independent activation path. The trail's implementation would not know which one activated it (by design: the trail is the execution layer, not the activation layer).
 
-### Fire source resolution and the lockfile
+### Activation source resolution and the lockfile
 
-If this draft is implemented, topo construction would resolve fire sources and the lockfile would capture the full reactive graph:
+If this draft is implemented, topo construction would resolve activation sources and the lockfile would capture the full reactive graph:
 
-- **Schedule fire sources** would register with the scheduler.
-- **Signal fire sources** would register with the signal routing pipeline.
-- **Webhook fire sources** would register endpoints on the HTTP trailhead.
+- **Schedule activation sources** would register with the scheduler.
+- **Signal activation sources** would register with the signal routing pipeline.
+- **Webhook activation sources** would register endpoints on the HTTP trailhead.
 
-The lockfile would record every fire source on every trail, including overrides. This would make the reactive graph inspectable without running the app:
+The lockfile would record every activation source on every trail, including overrides. This would make the reactive graph inspectable without running the app:
 
 ```text
 Activation:
@@ -248,22 +248,22 @@ Reactive chains:
   webhook:stripe → booking.confirm → booking.confirmed → notify.booking-confirmed
 ```
 
-The reactive chain is derived by tracing: a fire source activates a trail, the trail signals, and that signal activates the next trail. The full activation path is inspectable.
+The reactive chain is derived by tracing: an activation source activates a trail, the trail fires a signal, and that signal activates the next trail. The full activation path is inspectable.
 
-Invalid fire sources would be caught at construction time:
+Invalid activation sources would be caught at construction time:
 
-- A signal fire source referencing a signal ID that no trail declares and that isn't a framework lifecycle signal: warning.
-- A fire source with a `where` predicate whose input type doesn't match the signal payload schema: error.
-- A scheduled fire source whose input doesn't validate against the trail's input schema: error.
+- A signal activation source referencing a signal ID that no trail declares and that isn't a framework lifecycle signal: warning.
+- An activation source with a `where` predicate whose input type doesn't match the signal payload schema: error.
+- A scheduled activation source whose input doesn't validate against the trail's input schema: error.
 
-### Fire-activated execution uses `run()`
+### Activated execution uses `run()`
 
-When a fire source ignites, the framework executes the trail through the full pipeline via `run(trailId, input)`. Tracing records the execution with fire provenance:
+When an activation source fires, the framework executes the trail through the full pipeline via `run(trailId, input)`. Tracing records the execution with activation provenance:
 
 ```json
 {
   "trailId": "booking.confirm",
-  "fire": {
+  "activation": {
     "type": "webhook:stripe",
     "event": "payment_intent.succeeded",
     "receivedAt": "2026-03-31T14:32:05Z"
@@ -273,7 +273,7 @@ When a fire source ignites, the framework executes the trail through the full pi
 }
 ```
 
-Tracing queries can filter by fire source type: "show me all scheduled executions," "show me all webhook-activated failures."
+Tracing queries can filter by activation source type: "show me all scheduled executions," "show me all webhook-activated failures."
 
 ### Warden rules for activation
 
@@ -305,10 +305,10 @@ Tracing queries can filter by fire source type: "show me all scheduled execution
 
 - **Activation is part of the contract.** `on:` sources are declared on the trail, visible to survey, governed by the warden, testable via examples.
 - **Authored defaults with overrides.** The trail declares what activates it. The consuming app can override, extend, or suppress. The lockfile resolves the final state.
-- **Three fire source types cover the full space.** Schedule (time), signal (authored + lifecycle + error category), webhook (external inbound). Fewer concepts, one routing mechanism.
+- **Three activation source types cover the full space.** Schedule (time), signal (authored + lifecycle + error category), webhook (external inbound). Fewer concepts, one routing mechanism.
 - **The framework sees the full picture.** The static call graph (crossings) and the reactive activation graph (`on:` sources) together describe the system's behavior. Both are in the lockfile.
-- **Fire conditions are testable.** `where` predicates with examples are tested by `testExamples`.
-- **No workflow engine.** Fire sources activate trails. Trails handle composition through crossings. The activation layer and the execution layer stay separate.
+- **Activation conditions are testable.** `where` predicates with examples are tested by `testExamples`.
+- **No workflow engine.** Activation sources activate trails. Trails handle composition through crossings. The activation layer and the execution layer stay separate.
 
 ### Tradeoffs
 

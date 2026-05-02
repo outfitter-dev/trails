@@ -23,7 +23,7 @@ interface IngestBaseOptions<TSchema extends z.ZodType, TSignal> extends Omit<
   readonly id?: string | undefined;
   /** Validated external payload shape. */
   readonly schema: TSchema;
-  /** Signal to emit after verification and optional transformation. */
+  /** Signal to fire after verification and optional transformation. */
   readonly signal: Signal<TSignal>;
   /** Optional per-trail verification layer, e.g. HMAC signature checks. */
   readonly verify?: Layer | undefined;
@@ -77,7 +77,7 @@ const createIngestBlaze =
     if (ctx.fire === undefined) {
       return Result.err(
         new InternalError(
-          `ingest("${trailId}") requires topo-backed execution to emit "${signalId}"`
+          `ingest("${trailId}") requires topo-backed execution to fire "${signalId}"`
         )
       );
     }

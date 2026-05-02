@@ -145,7 +145,7 @@ async (input, ctx) => {
 };
 ```
 
-`Bun.spawn()` provides native timeout (kills the process with configurable `killSignal` when exceeded), AbortSignal support (rigged trails can be cancelled via `ctx.signal`), and lazy stdout reading. No external process management libraries are needed.
+`Bun.spawn()` provides native timeout (kills the process with configurable `killSignal` when exceeded), AbortSignal support (rigged trails can be cancelled via `ctx.abortSignal`), and lazy stdout reading. No external process management libraries are needed.
 
 Exit code 0 produces `Result.ok(parsed)`. Non-zero exit codes map to the error taxonomy via an optional `errors` mapping: exit 1 with stderr → `InternalError` by default, specific patterns can be mapped to `NotFoundError`, `PermissionError`, etc.
 
@@ -712,16 +712,16 @@ const gitStatus = rig('git.status', {
   blaze: async (input, ctx) => {
     const status = await runRig(input);
     if (status.isOk() && status.value.length > 0) {
-      ctx.signal(uncommittedChangesDetected, { files: status.value });
+      await ctx.fire(uncommittedChangesDetected, { files: status.value });
     }
     return status;
   },
 });
 ```
 
-A rigged trail with a schedule trigger becomes a periodic monitoring probe. The rig captures the command output. The trigger activates it on a schedule. The parse function structures the output. `ctx.signal()` announces what was observed. Other trails trigger on the event. Tracing records every execution.
+A rigged trail with a schedule activation source becomes a periodic monitoring probe. The rig captures the command output. The activation source runs it on a schedule. The parse function structures the output. `ctx.fire(signal, payload)` announces what was observed. Other trails activate on the signal. Tracing records every execution.
 
-This is the "observe the external world and announce what you found" pattern. Rig provides the observation. Events provide the announcement. Triggers provide the activation. Each is a separate primitive. Together they form a monitoring pipeline from external command through typed observation through reactive response.
+This is the "observe the external world and announce what you found" pattern. Rig provides the observation. Signals provide the announcement. Activation sources provide the activation. Each is a separate primitive. Together they form a monitoring pipeline from external command through typed observation through reactive response.
 
 ### Rig locks in `trails.lock`
 
@@ -790,7 +790,7 @@ Rig lock state rolls up into the `rigs` section of `trails.lock`:
 - [ADR-0029: Connector Extraction and the `with-*` Packaging Model](../0029-connector-extraction-and-the-with-packaging-model.md) -- the packaging model for connector-contributed capabilities that rig packs may use
 - ADR: Packs as Namespace Boundaries (draft) -- rigged trails compose into packs with the same layering pattern
 - ADR: Pack Provisioning (draft) -- rig packs distribute as resources with the same lifecycle
-- ADR: Typed Signal Emission (draft) -- rigged trails can emit events via `ctx.signal()`; the "observe and announce" pattern
-- ADR: Reactive Trail Activation (draft) -- rigged trails with schedule triggers become periodic monitoring probes
+- [ADR-0038: Typed Signal Emission](../0038-typed-signal-emission.md) -- rigged trails can fire signals via `ctx.fire(signal, payload)`; the "observe and announce" pattern
+- ADR: Reactive Trail Activation (draft) -- rigged trails with schedule activation sources become periodic monitoring probes
 - [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`
 - [ADR-0013: Tracing](../0013-tracing.md) -- rigged trail executions are recorded via tracing for observability

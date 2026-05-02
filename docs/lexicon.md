@@ -202,7 +202,7 @@ const updated = signal('entity.updated', {
 });
 ```
 
-Trails signals are authored, typed notifications in the contract graph. Future activation/source work may let schedules, webhooks, file watchers, and other external triggers produce signals, but v1 signal support does not materialize those sources.
+Trails signals are authored, typed notifications in the contract graph. Future activation/source work may let schedules, webhooks, file watchers, and other external activation sources produce signals, but v1 signal support does not materialize those sources.
 
 ### `pin`
 

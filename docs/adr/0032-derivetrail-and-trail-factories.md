@@ -78,7 +78,7 @@ export const sync = ({ from, to, on, transform }) =>
 
 When you provide a `blaze`, `deriveTrail()` uses yours. When you don't (standard CRUD operations), it derives one. Same function, progressive complexity. First-party factories like `crud()`, `sync()`, `reconcile()`, and `ingest()` stamp their own family-level `pattern` values on the trails they return; `deriveTrail()` itself stays neutral unless the caller declares a pattern explicitly.
 
-The `ingest` factory handles the inverse: external data arriving in a non-trail shape that needs to enter the system as a signal. A Stripe webhook, a GitHub event, a partner API callback — the pattern is always the same: verify the source, validate the payload, transform to the domain shape, emit a signal.
+The `ingest` factory handles the inverse: external data arriving in a non-trail shape that needs to enter the system as a signal. A Stripe webhook, a GitHub event, a partner API callback — the pattern is always the same: verify the source, validate the payload, transform to the domain shape, fire a signal.
 
 ```typescript
 import { ingest } from '@ontrails/core/trails';
@@ -112,7 +112,7 @@ const githubPush = ingest({
 
 Each `ingest` call produces one trail. The trail's blaze verifies the source (via a layer derived from `verify`), validates the payload against `schema`, applies `transform`, and calls `ctx.fire()` with the result. Verification uses the existing permit model[^4] — HMAC signature checking is structurally identical to any other credential verification, producing a verified identity. The trail is a regular trail: testable, governable, surfaceable on any surface.
 
-The `verify` option is optional. An internal service posting events to your API doesn't need signature verification — skip it and the trail validates and emits directly. The `transform` option is also optional — if the external payload already matches the signal schema, omit it and the payload passes through.
+The `verify` option is optional. An internal service posting payloads to your API doesn't need signature verification — skip it and the trail validates and fires directly. The `transform` option is also optional — if the external payload already matches the signal schema, omit it and the payload passes through.
 
 ```typescript
 // Minimal ingest — no verification, no transform

@@ -17,13 +17,13 @@ type MutableTables<TStore extends AnyStoreDefinition> = {
   -readonly [TName in keyof TStore['tables']]: TStore['tables'][TName];
 };
 
-type StoreSignalEvent = 'created' | 'removed' | 'updated';
+type StoreSignalChange = 'created' | 'removed' | 'updated';
 
 const createStoreSignalDescription = (
   tableName: string,
-  event: StoreSignalEvent
+  change: StoreSignalChange
 ): string => {
-  switch (event) {
+  switch (change) {
     case 'created': {
       return `Fired after a "${tableName}" entity is created.`;
     }
@@ -34,19 +34,19 @@ const createStoreSignalDescription = (
       return `Fired after a "${tableName}" entity is updated.`;
     }
     default: {
-      throw new Error(`Unsupported store signal event: ${event as string}`);
+      throw new Error(`Unsupported store signal change: ${change as string}`);
     }
   }
 };
 
 const createStoreSignal = <TPayload>(
   tableName: string,
-  event: StoreSignalEvent,
+  change: StoreSignalChange,
   payload: z.ZodType<TPayload>
 ): Signal<TPayload> =>
   attachLateBoundSignalRef(
-    signal(`${tableName}.${event}`, {
-      description: createStoreSignalDescription(tableName, event),
+    signal(`${tableName}.${change}`, {
+      description: createStoreSignalDescription(tableName, change),
       payload,
     }),
     {
@@ -68,8 +68,8 @@ export const createStoreTableSignals = <TPayload>(
 export const composeStoreSignalId = (
   scope: string,
   tableName: string,
-  event: StoreSignalEvent
-): string => `${scope}:${tableName}.${event}`;
+  change: StoreSignalChange
+): string => `${scope}:${tableName}.${change}`;
 
 const bindTableSignals = (
   scope: string,
@@ -160,4 +160,4 @@ export const bindStoreDefinition = <TStore extends AnyStoreDefinition>(
   }) as TStore;
 };
 
-export type { StoreSignalEvent };
+export type { StoreSignalChange };

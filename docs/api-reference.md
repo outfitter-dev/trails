@@ -222,7 +222,7 @@ store(tables)                      // connector-agnostic store definition
 crudOperations                     // canonical create/read/update/delete/list order
 crudAccessorExpectations           // canonical accessor methods/fallbacks per CRUD operation
 bindStoreDefinition(definition, scope) // bind derived store signals to a resource scope
-createStoreTableSignals(tableName, payload), composeStoreSignalId(scope, tableName, event)
+createStoreTableSignals(tableName, payload), composeStoreSignalId(scope, tableName, change)
 isValidResourceId(resourceId)
 // every normalized table exposes derived schemas and signals directly:
 // table.schema          — normalized full entity schema
@@ -230,7 +230,7 @@ isValidResourceId(resourceId)
 // table.updateSchema    — partial update schema keyed by identity
 // table.fixtureSchema   — fixture schema with generated fields optional
 // table.signals.created | table.signals.updated | table.signals.removed
-// pre-bind handles preserve shape; the canonical bound id is resource:table.event
+// pre-bind handles preserve shape; the canonical bound id is resource:table.change
 
 StoreDefinition, StoreTable, StoreTableSignals, StoreTablesInput, StoreTableInput
 EntityOf<T>, InsertOf<T>, UpdateOf<T>, UpsertOf<T>, FixtureInputOf<T>, FixtureOf<T>
@@ -238,7 +238,7 @@ FiltersOf<T>, StoreListOptions
 StoreConnection<T>, StoreTableConnection<T>, ReadOnlyStoreConnection<T>
 StoreAccessor<T>, StoreTableAccessor<T>, ReadOnlyStoreTableAccessor<T>
 CrudOperation, CrudAccessorExpectation
-StoreSignalEvent
+StoreSignalChange
 
 // `versioned: true` on a store table adds a framework-managed integer `version`
 // field to returned entities and allows `upsert()` optimistic concurrency.

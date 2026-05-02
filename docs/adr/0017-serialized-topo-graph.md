@@ -15,9 +15,9 @@ depends_on: [7, 8]
 
 Earlier implementations produced `trailhead.lock` through the legacy survey generation mode. That file captured the derived surface shape (MCP tool names, CLI commands, HTTP routes) as a diffable, hashable artifact. CI compared it against the current topo to detect unintentional contract changes.
 
-As the framework grows, more resolved state needs the same treatment: surfaces, signals, fires, resources, config, the reactive graph. Each is "resolved state of the system that should be diffable and governable." Splitting them into separate lockfiles creates multiple files to commit, multiple CI checks to configure, and multiple commands to remember.
+As the framework grows, more resolved state needs the same treatment: surfaces, signals, activation sources, resources, config, the reactive graph. Each is "resolved state of the system that should be diffable and governable." Splitting them into separate lockfiles creates multiple files to commit, multiple CI checks to configure, and multiple commands to remember.
 
-But the deeper issue is that these aren't independent concerns. A trail's surface derivation, its fire activations, its signal emissions, its resource dependencies, and its `crosses` declarations are all facets of the same graph. Surfaces reference trails. Fires reference signals. Signals reference emitters. Resources reference config. The resolved state of the system is a single connected graph, not a collection of independent sections.
+But the deeper issue is that these aren't independent concerns. A trail's surface derivation, its activation sources, its signal fires, its resource dependencies, and its `crosses` declarations are all facets of the same graph. Surfaces reference trails. `fires` references signals. Signals reference producers and consumers. Resources reference config. The resolved state of the system is a single connected graph, not a collection of independent sections.
 
 ### The lockfile as the story
 
@@ -53,9 +53,9 @@ All resolved framework state lives in `.trails/trails.lock`. The file is structu
           "input": { /* resolved JSON Schema */ },
           "output": { /* resolved JSON Schema */ },
           "permit": { "scopes": ["booking:write"] },
-          "signals": ["booking.confirmed"],
+          "fires": ["booking.confirmed"],
           "crosses": ["availability.reserve", "billing.charge"],
-          "fires": [{ "type": "webhook:stripe", "event": "payment_intent.succeeded" }],
+          "on": [{ "kind": "webhook", "provider": "stripe", "event": "payment_intent.succeeded" }],
           "resources": ["bookingStore", "billingService"],
           "visibility": "public",
           "examples": 3,
@@ -69,8 +69,8 @@ All resolved framework state lives in `.trails/trails.lock`. The file is structu
       "signals": {
         "booking.confirmed": {
           "schema": { /* resolved JSON Schema */ },
-          "emittedBy": ["booking.confirm"],
-          "consumedBy": ["notify.booking-confirmed", "audit.log-write"]
+          "producers": ["booking.confirm"],
+          "consumers": ["notify.booking-confirmed", "audit.log-write"]
         }
       },
       "resources": {
@@ -84,15 +84,15 @@ All resolved framework state lives in `.trails/trails.lock`. The file is structu
 }
 ```
 
-A single trail entry carries everything: input/output schemas, intent, permit requirements, signal emissions, `crosses` declarations, fire activations, resource dependencies, visibility, example count, and per-surface derivations. No duplication — the trail is the node, everything else is an edge or a property.
+A single trail entry carries everything: input/output schemas, intent, permit requirements, signal `fires`, `crosses` declarations, activation `on` sources, resource dependencies, visibility, example count, and per-surface derivations. No duplication — the trail is the node, everything else is an edge or a property.
 
 ### The graph, not sections
 
-The lockfile is not organized by concern (a surfaces section, a signals section, a triggers section). It's organized by the topo graph: apps contain trails, signals, and resources. Relationships between them are edges on the nodes.
+The lockfile is not organized by concern (a surfaces section, a signals section, an activation-source section). It's organized by the topo graph: apps contain trails, signals, and resources. Relationships between them are edges on the nodes.
 
 This means:
 
-- Adding a new framework feature (e.g., signals) doesn't require a new top-level section. Signals are properties on trail nodes (fires) and standalone nodes (signal declarations) within the app.
+- Adding a new framework feature (e.g., signals) doesn't require a new top-level section. Signal relations are properties on trail nodes (`fires` and `on`) and standalone nodes (signal declarations) within the app.
 - Cross-cutting queries are natural: "which trails fire signals with no consumers?" is a graph traversal, not a cross-section join.
 - The lockfile grows organically as the topo's type system grows, without structural changes to the file format.
 
@@ -137,7 +137,7 @@ The `--app` flag is an override for the collision case, not a required parameter
 
 ### Reactive graph resolution
 
-The lockfile captures the full reactive graph: which signals trigger which trails, which trails fire which signals, the complete activation chain. This makes the reactive graph inspectable without running the app:
+The lockfile captures the full reactive graph: which signals activate which trails, which trails fire which signals, the complete activation chain. This makes the reactive graph inspectable without running the app:
 
 ```text
 # Derived from the lockfile
@@ -149,10 +149,10 @@ webhook:stripe → booking.confirm → booking.confirmed → notify.booking-conf
 
 ### Positive
 
-- **One file to commit.** A PR that changes trail schemas, adds triggers, updates resources, and modifies config produces one lockfile diff.
+- **One file to commit.** A PR that changes trail schemas, adds activation sources, updates resources, and modifies config produces one lockfile diff.
 - **One CI check.** `trails topo verify` validates everything.
 - **Agent-readable.** An agent reads the lockfile to understand the entire system without source code. The contract is queryable.
-- **Graph-native.** Cross-cutting queries (orphan signals, unreachable trails, trigger cycles) are natural graph traversals.
+- **Graph-native.** Cross-cutting queries (orphan signals, unreachable trails, activation cycles) are natural graph traversals.
 - **Multi-app resolution.** Trail IDs resolve workspace-wide. `trails run` and `trails guide` work across apps without specifying which app owns a trail.
 - **Co-located.** `.trails/trails.lock` sits alongside the rest of the framework workspace.
 
@@ -174,8 +174,8 @@ webhook:stripe → booking.confirm → booking.confirmed → notify.booking-conf
 
 - [ADR-0008: Deterministic Surface Derivation](0008-deterministic-trailhead-derivation.md) — the derivation rules that produce surface properties on trail nodes
 - [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — the warden rules that validate the lock
-- ADR: Typed Signal Emission (draft) — signals as nodes in the graph, fire edges on trail nodes
-- ADR: Reactive Trail Activation (draft) — trigger activations as edges, reactive graph resolution
+- [ADR-0038: Typed Signal Emission](0038-typed-signal-emission.md) — signals as nodes in the graph, `fires`/`on` signal edges on trail nodes
+- ADR: Reactive Trail Activation (draft) — activation sources as edges, reactive graph resolution
 - ADR: Packs as Namespace Boundaries (draft) — pack boundaries as subgraphs within the topo
 - ADR: Pack Provisioning (draft) — provisioned pack state recorded in the graph
 - ADR: Trail Run (draft) — trail ID resolution via the lockfile

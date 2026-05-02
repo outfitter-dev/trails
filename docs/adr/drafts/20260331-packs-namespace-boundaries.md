@@ -190,24 +190,24 @@ Internally, `topo()` unpacks each Pack: registers its trails, resources, and sig
 
 However, the topo retains pack membership meta. Survey can report "this trail belongs to the `github.core` pack." The warden can enforce pack boundaries. CLI help can group by pack. The information is preserved for introspection without changing the runtime model.
 
-### Pack-level trigger overrides
+### Pack-level activation overrides
 
-A pack's trails may declare `on` triggers as authored defaults. When a consuming app resources a pack into its topo, it can override the `on` field for any trail within that pack -- adding, suppressing, or replacing triggers. This follows the "authored defaults, overridable in context" pattern that visibility inheritance already establishes.
+A pack's trails may declare `on` activation sources as authored defaults. When a consuming app resources a pack into its topo, it can override the `on` field for any trail within that pack -- adding, suppressing, or replacing activation sources. This follows the "authored defaults, overridable in context" pattern that visibility inheritance already establishes.
 
 ```typescript
 const app = topo('firewatch',
   githubCore,
   githubPullRequests.resource({
     on: {
-      'github.pr.list': { on: ['cron:every-5m'] },       // replace authored fire sources
-      'github.pr.show': { on: [] },                       // suppress all fire sources
-      'github.pr.submit-review': { on: { add: ['event:review.requested'] } }, // add to existing
+      'github.pr.list': { on: ['cron:every-5m'] },       // replace authored activation sources
+      'github.pr.show': { on: [] },                       // suppress all activation sources
+      'github.pr.submit-review': { on: { add: ['signal:review.requested'] } }, // add to existing
     },
   }),
 );
 ```
 
-The pack author provides sensible defaults. The consuming app adapts activation to its operational context without forking the pack. Survey reports which triggers are overridden and by whom.
+The pack author provides sensible defaults. The consuming app adapts activation to its operational context without forking the pack. Survey reports which activation sources are overridden and by whom.
 
 ### Signal ownership and namespace scoping
 
@@ -218,20 +218,19 @@ The `billing` pack owns `billing.*` signals. The `notification` pack owns `notif
 Signals within a pack follow the same progressive disclosure as everything else:
 
 ```typescript
-// Stage 1: Event is derived from the emitting trail
-// The schema is captured from the typed payload in ctx.signal()
-const processWebhook = trail('github.webhook.process', {
-  fires: ['github.webhook.received'],
-  blaze: async (input, ctx) => {
-    ctx.signal('github.webhook.received', { action: input.action, payload: input.body });
-    return Result.ok({ processed: true });
-  },
+const webhookReceived = signal('github.webhook.received', {
+  payload: z.object({ action: z.string(), payload: z.unknown() }),
 });
 
-// Stage 2: Event promoted to pack-level declaration
-// The schema is now explicit, queryable, and part of the pack's public contract
-const webhookReceived = signal('github.webhook.received', {
-  schema: z.object({ action: z.string(), payload: z.unknown() }),
+const processWebhook = trail('github.webhook.process', {
+  fires: [webhookReceived],
+  blaze: async (input, ctx) => {
+    await ctx.fire(webhookReceived, {
+      action: input.action,
+      payload: input.body,
+    });
+    return Result.ok({ processed: true });
+  },
 });
 
 const githubCore = pack('github.core', {
@@ -240,7 +239,7 @@ const githubCore = pack('github.core', {
 });
 ```
 
-Pack-level `signal()` declarations indicate "this signal is part of the pack's public contract" the same way trail visibility indicates "this trail is part of the pack's public API." Signals that are only emitted and consumed within the pack don't need extraction — they're internal implementation details.
+Pack-level `signal()` declarations indicate "this signal is part of the pack's public contract" the same way trail visibility indicates "this trail is part of the pack's public API." Signals that are only fired and consumed within the pack don't need extraction — they're internal implementation details.
 
 ### The SDK wrapping pattern
 

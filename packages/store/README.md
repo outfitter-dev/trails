@@ -135,7 +135,7 @@ const updatedHandle = definition.tables.gists.signals.updated;
 const removedHandle = definition.tables.gists.signals.removed;
 ```
 
-These pre-bind handles preserve payload shape, but the canonical signal id materializes only when a connector binds the store to a resource. The bound form is always `resource:table.event`:
+These pre-bind handles preserve payload shape, but the canonical signal id materializes only when a connector binds the store to a resource. The bound form is always `resource:table.change`:
 
 ```typescript
 const created = db.store.tables.gists.signals.created;

@@ -19,7 +19,7 @@ But the current CLI derivation only reads part of that authored story. `deriveCl
 
 That forces the trail contract to bend around a shallow CLI model:
 
-- trail IDs have to grow fake leaf names like `topo.show` just to keep `topo` free as a group
+- trail IDs historically had to grow fake leaf names like `topo.show` just to keep `topo` free as a group
 - deeper command trees cannot be expressed cleanly
 - the CLI stops feeling like a rendering of the trail contract and starts feeling like a separate authoring system
 
