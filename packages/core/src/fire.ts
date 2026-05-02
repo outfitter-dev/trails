@@ -28,6 +28,11 @@
 
 import type { z } from 'zod';
 
+import type {
+  ActivationEntry,
+  ActivationWhereSpec,
+} from './activation-source.js';
+import { getActivationWherePredicate } from './activation-source.js';
 import { NotFoundError, TrailsError, ValidationError } from './errors.js';
 import { forkCtx } from './internal/fork-ctx.js';
 import {
@@ -44,6 +49,7 @@ import {
   createSignalHandlerFailedDiagnostic,
   createSignalHandlerRejectedDiagnostic,
   createSignalInvalidDiagnostic,
+  createSignalPredicateFailedDiagnostic,
   createSignalUnknownDiagnostic,
   recordSignalDiagnostic,
   signalDiagnosticCauseFromUnknown,
@@ -69,6 +75,11 @@ export type ConsumerExecutor = (
 type MutableConsumerContext = {
   -readonly [K in keyof Partial<TrailContextInit>]: Partial<TrailContextInit>[K];
 };
+
+interface ConsumerActivation {
+  readonly trail: AnyTrail;
+  readonly where?: ActivationWhereSpec | undefined;
+}
 
 const FIRE_STACK_KEY = '__trails_fire_stack';
 const FIRE_PENDING_DISPATCHES_KEY = '__trails_fire_pending_dispatches';
@@ -314,6 +325,50 @@ const recordSignalLifecycleTrace = async (
   await writeSignalTraceRecord(producerCtx, name, attrs, status, errorCategory);
 };
 
+const activationEntriesForSignal = (
+  trail: AnyTrail,
+  signalId: string
+): readonly ConsumerActivation[] => {
+  const activations = new Map<string, ActivationEntry>();
+  for (const activation of trail.activationSources ?? []) {
+    if (
+      activation.source.kind !== 'signal' ||
+      activation.source.id !== signalId
+    ) {
+      continue;
+    }
+    const key = `${activation.source.kind}:${activation.source.id}`;
+    const previous = activations.get(key);
+    if (
+      previous === undefined ||
+      (previous.where === undefined && activation.where !== undefined)
+    ) {
+      activations.set(key, activation);
+    }
+  }
+  if (activations.size > 0) {
+    return [...activations.values()].map((activation) => ({
+      trail,
+      where: activation.where,
+    }));
+  }
+  return trail.on.includes(signalId) ? [{ trail }] : [];
+};
+
+const listConsumerActivations = (
+  topo: Topo,
+  signalId: string
+): readonly ConsumerActivation[] =>
+  topo.list().flatMap((trail) => activationEntriesForSignal(trail, signalId));
+
+const consumerTrailsFromActivations = (
+  activations: readonly ConsumerActivation[]
+): readonly AnyTrail[] => [
+  ...new Map(
+    activations.map((activation) => [activation.trail.id, activation.trail])
+  ).values(),
+];
+
 const hasActiveSignalTraceContext = (
   producerCtx: TrailContextInit | undefined
 ): boolean =>
@@ -338,6 +393,95 @@ const summarizeSignalPayloadForTrace = (
   }
 };
 
+const recordPredicateTrace = async (
+  producerCtx: TrailContextInit | undefined,
+  name:
+    | 'signal.handler.predicate_failed'
+    | 'signal.handler.predicate_matched'
+    | 'signal.handler.predicate_skipped',
+  input: {
+    readonly diagnosticMetadata: FireDiagnosticMetadata;
+    readonly errorCategory?: string | undefined;
+    readonly errorName?: string | undefined;
+    readonly handlerTrailId: string;
+    readonly payloadSummary?: SignalPayloadSummary | undefined;
+    readonly signalId: string;
+    readonly status?: Parameters<typeof recordSignalLifecycleTrace>[3];
+  }
+): Promise<void> => {
+  await recordSignalLifecycleTrace(
+    producerCtx,
+    name,
+    buildSignalTraceAttrs({
+      errorName: input.errorName,
+      handlerTrailId: input.handlerTrailId,
+      payload: input.payloadSummary,
+      producerTrailId: input.diagnosticMetadata.producerTrailId,
+      runId: input.diagnosticMetadata.runId,
+      signalId: input.signalId,
+    }),
+    input.status,
+    input.errorCategory
+  );
+};
+
+const shouldInvokeConsumer = async (
+  activation: ConsumerActivation,
+  payload: unknown,
+  payloadSummary: SignalPayloadSummary | undefined,
+  signalId: string,
+  producerCtx: TrailContextInit | undefined,
+  diagnosticMetadata: FireDiagnosticMetadata,
+  logger: Logger | undefined
+): Promise<boolean> => {
+  const predicate = getActivationWherePredicate(activation.where);
+  if (predicate === undefined) {
+    return true;
+  }
+
+  try {
+    const matched = await predicate(payload);
+    await recordPredicateTrace(
+      producerCtx,
+      matched
+        ? 'signal.handler.predicate_matched'
+        : 'signal.handler.predicate_skipped',
+      {
+        diagnosticMetadata,
+        handlerTrailId: activation.trail.id,
+        payloadSummary,
+        signalId,
+      }
+    );
+    return matched;
+  } catch (error) {
+    const cause = signalDiagnosticCauseFromUnknown(error);
+    const diagnostic = createSignalPredicateFailedDiagnostic({
+      ...diagnosticMetadata,
+      cause: error,
+      handlerTrailId: activation.trail.id,
+      payload,
+      signalId,
+    });
+    await recordRuntimeSignalDiagnostic(producerCtx, diagnostic);
+    await recordPredicateTrace(producerCtx, 'signal.handler.predicate_failed', {
+      diagnosticMetadata,
+      errorCategory: deriveSignalErrorCategory(error),
+      errorName: cause.name,
+      handlerTrailId: activation.trail.id,
+      payloadSummary,
+      signalId,
+      status: 'err',
+    });
+    logger?.warn('Signal activation predicate failed', {
+      consumerId: activation.trail.id,
+      error: cause.message,
+      signalId,
+    });
+    return false;
+  }
+};
+
 /**
  * Fan out a validated signal payload to its consumer trails.
  *
@@ -357,7 +501,7 @@ const summarizeSignalPayloadForTrace = (
  * part of the pre-v1 runtime contract.
  */
 const fanOutToConsumers = async (
-  consumers: readonly AnyTrail[],
+  activations: readonly ConsumerActivation[],
   payload: unknown,
   signalId: string,
   producerCtx: TrailContextInit | undefined,
@@ -368,7 +512,20 @@ const fanOutToConsumers = async (
 ): Promise<void> => {
   const payloadSummary = summarizeSignalPayloadForTrace(producerCtx, payload);
   const settled = await Promise.allSettled(
-    consumers.map(async (consumer) => {
+    activations.map(async (activation) => {
+      const consumer = activation.trail;
+      const shouldInvoke = await shouldInvokeConsumer(
+        activation,
+        payload,
+        payloadSummary,
+        signalId,
+        producerCtx,
+        diagnosticMetadata,
+        logger
+      );
+      if (!shouldInvoke) {
+        return consumer.id;
+      }
       const consumerCtx = bindFire(
         deriveConsumerCtx(producerCtx, signalId, consumer.id),
         consumer.id
@@ -466,7 +623,7 @@ const fanOutToConsumers = async (
     // unexpectedly. Log at debug to preserve provenance without propagating
     // the failure to the producer (fire-and-forget semantics).
     logger?.debug('Signal consumer rejected unexpectedly', {
-      consumerId: consumers[index]?.id,
+      consumerId: activations[index]?.trail.id,
       error:
         entry.reason instanceof Error
           ? entry.reason.message
@@ -549,7 +706,11 @@ const resolveFireDispatch = async (
   diagnosticMetadata: FireDiagnosticMetadata
 ): Promise<
   Result<
-    { readonly consumers: readonly AnyTrail[]; readonly payload: unknown },
+    {
+      readonly activations: readonly ConsumerActivation[];
+      readonly consumers: readonly AnyTrail[];
+      readonly payload: unknown;
+    },
     Error
   >
 > => {
@@ -595,8 +756,10 @@ const resolveFireDispatch = async (
       createInvalidPayloadError(signalId, parsed.message, diagnostic, promoted)
     );
   }
+  const activations = listConsumerActivations(topo, signalId);
   return Result.ok({
-    consumers: topo.list().filter((trail) => trail.on.includes(signalId)),
+    activations,
+    consumers: consumerTrailsFromActivations(activations),
     payload: parsed.data,
   });
 };
@@ -703,7 +866,7 @@ export const createFireFn = (
     const completion = (async (): Promise<void> => {
       try {
         await fanOutToConsumers(
-          dispatch.value.consumers,
+          dispatch.value.activations,
           dispatch.value.payload,
           signalId,
           trackedProducerCtx,

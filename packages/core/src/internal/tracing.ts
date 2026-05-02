@@ -20,6 +20,9 @@ export type SignalTraceRecordName =
   | 'signal.handler.completed'
   | 'signal.handler.failed'
   | 'signal.handler.invoked'
+  | 'signal.handler.predicate_failed'
+  | 'signal.handler.predicate_matched'
+  | 'signal.handler.predicate_skipped'
   | 'signal.invalid';
 
 /** Evidence of a single trail execution, manual span, or signal lifecycle point. */

@@ -45,6 +45,7 @@ describe('signal diagnostics', () => {
     expect(Object.keys(signalDiagnosticDefinitions).toSorted()).toEqual([
       'signal.fire.suppressed',
       'signal.handler.failed',
+      'signal.handler.predicate_failed',
       'signal.handler.rejected',
       'signal.invalid',
       'signal.unknown',

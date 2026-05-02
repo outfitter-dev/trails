@@ -26,16 +26,19 @@ export interface ActivationWhereExample {
   readonly payload?: unknown;
 }
 
-export type ActivationWherePredicate = (
-  payload: unknown
+/* oxlint-disable no-explicit-any -- contextual predicate authoring needs source-specific payload inference; unknown would make inline predicates unusable until a helper API exists. */
+export type ActivationWherePredicate<TPayload = any> = (
+  payload: TPayload
 ) => boolean | Promise<boolean>;
 
-export interface ActivationWhere {
+export interface ActivationWhere<TPayload = any> {
   readonly examples?: readonly ActivationWhereExample[] | undefined;
-  readonly predicate: ActivationWherePredicate;
+  readonly predicate: ActivationWherePredicate<TPayload>;
 }
 
-export type ActivationWhereSpec = ActivationWhere | ActivationWherePredicate;
+export type ActivationWhereSpec<TPayload = any> =
+  | ActivationWhere<TPayload>
+  | ActivationWherePredicate<TPayload>;
 
 export type ActivationSourceRef = string | AnySignal | ActivationSource;
 
@@ -50,6 +53,11 @@ export interface ActivationEntry {
   readonly meta?: ActivationSourceMeta | undefined;
   readonly where?: ActivationWhereSpec | undefined;
 }
+
+export const getActivationWherePredicate = (
+  where: ActivationWhereSpec | undefined
+): ActivationWherePredicate | undefined =>
+  typeof where === 'function' ? where : where?.predicate;
 
 export const isKnownActivationSourceKind = (
   kind: string

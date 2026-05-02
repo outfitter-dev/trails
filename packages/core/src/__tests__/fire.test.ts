@@ -74,6 +74,23 @@ const makeConsumer = (
     on: ['order.placed'],
   });
 
+const makeWhereConsumer = (
+  id: string,
+  capture: Capture,
+  where: (payload: {
+    orderId: string;
+    total: number;
+  }) => boolean | Promise<boolean>
+) =>
+  trail(id, {
+    blaze: (input) => {
+      capture.invocations.push({ payload: input, trailId: id });
+      return Result.ok({ received: input });
+    },
+    input: z.object({ orderId: z.string(), total: z.number() }),
+    on: [{ source: orderPlaced, where }],
+  });
+
 const makeProducer = (fireCapture: { fired?: boolean }) =>
   trail('order.create', {
     blaze: async (input, ctx) => {
@@ -770,6 +787,71 @@ describe('fire', () => {
       expect(result.isOk()).toBe(true);
       expect(scenario.state.consumerCompleted).toBe(true);
     });
+
+    test('object-form where predicates match or skip only their consumer trail', async () => {
+      const capture = createCapture();
+      const app = topo('fire-where-match-skip', {
+        matched: makeWhereConsumer(
+          'notify.large-order',
+          capture,
+          async (payload) => payload.total > 10
+        ),
+        orderPlaced,
+        plain: makeConsumer('notify.audit', capture),
+        producer: makeProducer({}),
+        skipped: makeWhereConsumer(
+          'notify.huge-order',
+          capture,
+          (payload) => payload.total > 100
+        ),
+      });
+
+      const result = await run(app, 'order.create', {
+        orderId: 'o-where',
+        total: 42,
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(observedConsumerIds(capture)).toEqual([
+        'notify.audit',
+        'notify.large-order',
+      ]);
+    });
+
+    test('duplicate signal activation entries dispatch one consumer edge', async () => {
+      const capture = createCapture();
+      const consumer = trail('notify.dedupe', {
+        blaze: (input) => {
+          capture.invocations.push({
+            payload: input,
+            trailId: 'notify.dedupe',
+          });
+          return Result.ok({ received: input });
+        },
+        input: z.object({ orderId: z.string(), total: z.number() }),
+        on: [
+          'order.placed',
+          {
+            source: orderPlaced,
+            where: () => true,
+          },
+        ],
+      });
+      const app = topo('fire-dedupe-activation-edge', {
+        consumer,
+        orderPlaced,
+        producer: makeProducer({}),
+      });
+
+      const result = await run(app, 'order.create', {
+        orderId: 'o-dedupe',
+        total: 42,
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(capture.invocations).toHaveLength(1);
+      expect(capture.invocations[0]?.trailId).toBe('notify.dedupe');
+    });
   });
 
   describe('validation', () => {
@@ -1348,6 +1430,47 @@ describe('fire', () => {
       });
     });
 
+    test('predicate failures record diagnostics and do not block siblings', async () => {
+      const capture = createCapture();
+      const diagnostics: SignalDiagnostic[] = [];
+      const app = topo('fire-where-failure', {
+        broken: makeWhereConsumer('notify.broken-predicate', capture, () => {
+          throw new Error('predicate exploded');
+        }),
+        healthy: makeConsumer('notify.audit', capture),
+        orderPlaced,
+        producer: makeProducer({}),
+      });
+
+      const result = await run(
+        app,
+        'order.create',
+        { orderId: 'o-where-failure', total: 42 },
+        {
+          ctx: {
+            extensions: {
+              [SIGNAL_DIAGNOSTICS_SINK_KEY]: (diagnostic: SignalDiagnostic) => {
+                diagnostics.push(diagnostic);
+              },
+            },
+          },
+        }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(observedConsumerIds(capture)).toEqual(['notify.audit']);
+      expect(diagnostics).toContainEqual(
+        expect.objectContaining({
+          category: 'activation',
+          code: 'signal.handler.predicate_failed',
+          handlerTrailId: 'notify.broken-predicate',
+          origin: 'predicate',
+          producerTrailId: 'order.create',
+          signalId: 'order.placed',
+        })
+      );
+    });
+
     test('executor rejections record a signal.handler.rejected diagnostic', async () => {
       const diagnostics: SignalDiagnostic[] = [];
       const diagnosticRecorded = Promise.withResolvers<undefined>();
@@ -1779,6 +1902,61 @@ describe('fire', () => {
         expect(JSON.stringify(signalTraceRecords(records))).not.toContain(
           'o-trace'
         );
+      } finally {
+        clearTraceSink();
+      }
+    });
+
+    test('records predicate match, skip, and failure trace records', async () => {
+      const capture = createCapture();
+      const records: TraceRecord[] = [];
+      const app = topo('fire-where-trace', {
+        failed: makeWhereConsumer('notify.failed-predicate', capture, () => {
+          throw new Error('predicate failed');
+        }),
+        matched: makeWhereConsumer(
+          'notify.matched-predicate',
+          capture,
+          (payload) => payload.total > 10
+        ),
+        orderPlaced,
+        producer: makeProducer({}),
+        skipped: makeWhereConsumer(
+          'notify.skipped-predicate',
+          capture,
+          (payload) => payload.total > 100
+        ),
+      });
+      registerTraceSink(createCapturingSink(records));
+
+      try {
+        const result = await run(app, 'order.create', {
+          orderId: 'o-where-trace',
+          total: 42,
+        });
+
+        expect(result.isOk()).toBe(true);
+        expect(
+          findSignalTraceRecord(
+            records,
+            'signal.handler.predicate_matched',
+            'notify.matched-predicate'
+          ).status
+        ).toBe('ok');
+        expect(
+          findSignalTraceRecord(
+            records,
+            'signal.handler.predicate_skipped',
+            'notify.skipped-predicate'
+          ).status
+        ).toBe('ok');
+        const failed = findSignalTraceRecord(
+          records,
+          'signal.handler.predicate_failed',
+          'notify.failed-predicate'
+        );
+        expect(failed.status).toBe('err');
+        expect(failed.errorCategory).toBe('internal');
       } finally {
         clearTraceSink();
       }

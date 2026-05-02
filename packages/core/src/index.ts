@@ -109,6 +109,7 @@ export type {
 // Trail
 export {
   activationSourceKinds,
+  getActivationWherePredicate,
   isActivationEntrySpec,
   isActivationSource,
   isKnownActivationSourceKind,
@@ -187,6 +188,7 @@ export {
   createSignalHandlerFailedDiagnostic,
   createSignalHandlerRejectedDiagnostic,
   createSignalInvalidDiagnostic,
+  createSignalPredicateFailedDiagnostic,
   createSignalUnknownDiagnostic,
   recordSignalDiagnostic,
   shouldPromoteSignalDiagnostic,
@@ -215,6 +217,7 @@ export type {
   SignalHandlerFailedDiagnostic,
   SignalHandlerRejectedDiagnostic,
   SignalInvalidDiagnostic,
+  SignalPredicateFailedDiagnostic,
   SignalPayloadShape,
   SignalPayloadSummary,
   SignalUnknownDiagnostic,

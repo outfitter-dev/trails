@@ -745,6 +745,20 @@ const addTrailRelations = (
   entry: Record<string, unknown>,
   trail: AnyTrail
 ): void => {
+  if (trail.activationSources.length > 0) {
+    entry['activationSources'] = trail.activationSources.map((activation) =>
+      sortKeys({
+        source: sortKeys({
+          id: activation.source.id,
+          kind: activation.source.kind,
+        }),
+        ...(activation.where === undefined
+          ? {}
+          : { where: sortKeys({ predicate: true }) }),
+      })
+    );
+  }
+
   if (trail.crosses.length > 0) {
     entry['crosses'] = trail.crosses.toSorted();
   }

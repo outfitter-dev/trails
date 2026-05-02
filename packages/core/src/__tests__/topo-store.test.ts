@@ -713,7 +713,12 @@ describe('topo store projection', () => {
       const indexTrail = trail('entity.index', {
         blaze: () => Result.ok({ ok: true }),
         input: z.object({}),
-        on: ['entity.created'],
+        on: [
+          {
+            source: created,
+            where: (payload) => payload.id.startsWith('idx_'),
+          },
+        ],
         output: z.object({ ok: z.boolean() }),
       });
       const auditTrail = trail('entity.audit', {
@@ -768,11 +773,16 @@ describe('topo store projection', () => {
       ) as {
         apps: Record<
           string,
-          { signals: Record<string, Record<string, unknown>> }
+          {
+            signals: Record<string, Record<string, unknown>>;
+            trails: Record<string, Record<string, unknown>>;
+          }
         >;
       };
       const createdLockEntry =
         lock.apps['signal-edges-app']?.signals['entity.created'];
+      const indexLockEntry =
+        lock.apps['signal-edges-app']?.trails['entity.index'];
       expect(createdLockEntry).toMatchObject({
         consumers: ['entity.audit', 'entity.index'],
         diagnostics: expect.objectContaining({
@@ -789,6 +799,12 @@ describe('topo store projection', () => {
         producers: ['entity.create'],
       });
       expect(createdLockEntry?.payload).toEqual(createdLockEntry?.input);
+      expect(indexLockEntry?.activationSources).toEqual([
+        {
+          source: { id: 'entity.created', kind: 'signal' },
+          where: { predicate: true },
+        },
+      ]);
     });
   });
 

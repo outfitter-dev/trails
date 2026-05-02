@@ -29,6 +29,11 @@ export const signalDiagnosticDefinitions = {
     description: 'A signal consumer returned a failed Result.',
     level: 'error',
   },
+  'signal.handler.predicate_failed': {
+    category: 'activation',
+    description: 'A signal consumer activation predicate threw or rejected.',
+    level: 'error',
+  },
   'signal.handler.rejected': {
     category: 'handler',
     description: 'A signal consumer rejected outside Result normalization.',
@@ -58,7 +63,8 @@ export type SignalDiagnosticCategory =
 export type SignalDiagnosticOrigin =
   | 'fan-out-guard'
   | 'fire-boundary'
-  | 'handler';
+  | 'handler'
+  | 'predicate';
 
 export type SignalPayloadShape =
   | 'array'
@@ -146,6 +152,15 @@ export interface SignalHandlerRejectedDiagnostic extends SignalDiagnosticBase<
   readonly payload?: SignalPayloadSummary | undefined;
 }
 
+export interface SignalPredicateFailedDiagnostic extends SignalDiagnosticBase<
+  'signal.handler.predicate_failed',
+  'predicate'
+> {
+  readonly cause: SignalDiagnosticCause;
+  readonly handlerTrailId: string;
+  readonly payload?: SignalPayloadSummary | undefined;
+}
+
 export interface SignalFireSuppressedDiagnostic extends SignalDiagnosticBase<
   'signal.fire.suppressed',
   'fan-out-guard'
@@ -159,6 +174,7 @@ export type SignalDiagnostic =
   | SignalFireSuppressedDiagnostic
   | SignalHandlerFailedDiagnostic
   | SignalHandlerRejectedDiagnostic
+  | SignalPredicateFailedDiagnostic
   | SignalInvalidDiagnostic
   | SignalUnknownDiagnostic;
 
@@ -545,6 +561,33 @@ export const createSignalHandlerRejectedDiagnostic = (
       input.message ??
       `Signal handler "${input.handlerTrailId}" rejected for "${input.signalId}"`,
     origin: 'handler',
+    payload:
+      input.payload === undefined
+        ? undefined
+        : summarizeSignalPayload(input.payload),
+    producerTrailId: input.producerTrailId,
+    runId: input.runId,
+    signalId: input.signalId,
+    sourceLocation: input.sourceLocation,
+    traceId: input.traceId,
+  };
+};
+
+export const createSignalPredicateFailedDiagnostic = (
+  input: CreateSignalHandlerDiagnosticInput
+): SignalPredicateFailedDiagnostic => {
+  const definition =
+    signalDiagnosticDefinitions['signal.handler.predicate_failed'];
+  return {
+    category: definition.category,
+    cause: signalDiagnosticCauseFromUnknown(input.cause),
+    code: 'signal.handler.predicate_failed',
+    handlerTrailId: input.handlerTrailId,
+    level: definition.level,
+    message:
+      input.message ??
+      `Signal handler predicate for "${input.handlerTrailId}" failed for "${input.signalId}"`,
+    origin: 'predicate',
     payload:
       input.payload === undefined
         ? undefined
