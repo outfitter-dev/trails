@@ -187,6 +187,24 @@ export type {
   ScheduleSpec,
   ScheduleValidationIssue,
 } from './schedule.js';
+export { createScheduleRuntime } from './schedule-runtime.js';
+export type {
+  ScheduleCronFactory,
+  ScheduleCronHandler,
+  ScheduleCronJob,
+  ScheduleRuntime,
+  ScheduleRuntimeLogger,
+  ScheduleRuntimeOptions,
+  ScheduleRuntimeRegistrationReport,
+  ScheduleRuntimeRunRecord,
+  ScheduleRuntimeRunStatus,
+  ScheduleRuntimeSkipReason,
+  ScheduleRuntimeStartReport,
+  ScheduleRuntimeState,
+  ScheduleRuntimeStopReport,
+  ScheduleRuntimeWarning,
+  ScheduleRuntimeWarningCode,
+} from './schedule-runtime.js';
 export {
   SIGNAL_DIAGNOSTICS_SINK_KEY,
   SIGNAL_DIAGNOSTICS_STRICT_MODE_KEY,
