@@ -26,19 +26,18 @@ ADR-0006[^1] established the shared execution pipeline. Step 3 is "compose layer
 
 ### Framework concerns are dressed as user configuration
 
-The five layers shipped today break down as follows:
+The four layers shipped today break down as follows:
 
 | Layer | What it actually is | Derivable? |
 | --- | --- | --- |
 | `authLayer` | Pipeline enforcement of `trail.permit` | Yes -- from `permit` declaration |
 | `tracingLayer` | Always-on execution recording | Yes -- from pipeline position |
-| `configLayer` | Pass-through placeholder | N/A -- delete |
 | `autoIterateLayer` | CLI-specific pagination behavior | Yes -- from output schema shape |
 | `dateShortcutsLayer` | CLI-specific date expansion | Yes -- from input schema shape |
 
 The `tracingLayer` row is resolved by [ADR-0041: Unified Observability](../0041-unified-observability.md): tracing is core execution-pipeline behavior, not an authored layer.
 
-None are genuinely authored cross-cutting concerns. All five are either derivable from trail declarations or intrinsic pipeline behavior. To get basic framework capabilities (auth, recording), the developer imports layers, creates instances, and passes them to every `blaze()` call. That's requiring Level 2 ceremony for Level 0 behavior -- the same anti-pattern as if input validation were a layer you had to import and wire.
+None are genuinely authored cross-cutting concerns. All four are either derivable from trail declarations or intrinsic pipeline behavior. To get basic framework capabilities (auth, recording), the developer imports layers, creates instances, and passes them to every `blaze()` call. That's requiring Level 2 ceremony for Level 0 behavior -- the same anti-pattern as if input validation were a layer you had to import and wire.
 
 ### The layer ordering bug is a design smell
 
