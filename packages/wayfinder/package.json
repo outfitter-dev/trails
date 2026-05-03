@@ -1,0 +1,37 @@
+{
+  "name": "@ontrails/wayfinder",
+  "version": "1.0.0-beta.15",
+  "description": "Agent-shaped wayfinding trails over @ontrails/topographer artifacts. v0 trails defined in the wayfinding draft ADR; package shell only — no trails ship yet.",
+  "files": [
+    "src/**/*.ts",
+    "!src/**/__tests__/**",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint ./src",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "peerDependencies": {
+    "@ontrails/core": "workspace:^",
+    "@ontrails/topographer": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@ontrails/core": {
+      "optional": true
+    },
+    "@ontrails/topographer": {
+      "optional": true
+    }
+  }
+}

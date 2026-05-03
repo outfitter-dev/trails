@@ -10,6 +10,7 @@
     "@ontrails/observe": "0.1.0",
     "@ontrails/mcp": "0.1.0",
     "@ontrails/topographer": "0.1.0",
+    "@ontrails/wayfinder": "0.1.0",
     "@ontrails/testing": "0.1.0",
     "@ontrails/warden": "0.1.0",
     "@ontrails/http": "1.0.0-beta.6",

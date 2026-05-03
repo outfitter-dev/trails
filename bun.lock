@@ -257,6 +257,14 @@
         "@ontrails/topographer": "workspace:^",
       },
     },
+    "packages/wayfinder": {
+      "name": "@ontrails/wayfinder",
+      "version": "1.0.0-beta.15",
+      "peerDependencies": {
+        "@ontrails/core": "workspace:^",
+        "@ontrails/topographer": "workspace:^",
+      },
+    },
   },
   "trustedDependencies": [
     "oxfmt",
@@ -369,6 +377,8 @@
     "@ontrails/vite": ["@ontrails/vite@workspace:connectors/vite"],
 
     "@ontrails/warden": ["@ontrails/warden@workspace:packages/warden"],
+
+    "@ontrails/wayfinder": ["@ontrails/wayfinder@workspace:packages/wayfinder"],
 
     "@oxc-parser/binding-android-arm-eabi": ["@oxc-parser/binding-android-arm-eabi@0.121.0", "", { "os": "android", "cpu": "arm" }, "sha512-n07FQcySwOlzap424/PLMtOkbS7xOu8nsJduKL8P3COGHKgKoDYXwoAHCbChfgFpHnviehrLWIPX0lKGtbEk/A=="],
 
