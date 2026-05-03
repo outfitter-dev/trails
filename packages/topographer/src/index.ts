@@ -1,3 +1,8 @@
+// `@ontrails/topographer` owns durable graph artifacts derived from the
+// resolved graph (per ADR-0042). The companion `@ontrails/wayfinder`
+// package ships trails over these artifacts; the v0 catalog is defined
+// in the wayfinding draft ADR at docs/adr/drafts/20260503-wayfinding.md.
+
 // Derivation
 export { deriveSurfaceMap } from './derive.js';
 export { deriveSurfaceMapHash } from './hash.js';

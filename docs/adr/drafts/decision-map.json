@@ -220,6 +220,19 @@
       "superseded_by": null,
       "title": "Trail Versioning",
       "updated": "2026-04-09"
+    },
+    {
+      "created": "2026-05-03",
+      "depends_on": ["17", "27", "42"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260503-wayfinding.md",
+      "slug": "wayfinding",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Wayfinding",
+      "updated": "2026-05-03"
     }
   ],
   "version": 1
