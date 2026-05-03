@@ -1,6 +1,7 @@
 import type { Database, SQLQueryBindings } from 'bun:sqlite';
 
-import { ValidationError } from '../errors.js';
+import { ValidationError } from '@ontrails/core';
+
 import type {
   ListTopoSnapshotsOptions,
   TopoSnapshot,

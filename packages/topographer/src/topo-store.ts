@@ -1,10 +1,16 @@
 import type { SQLQueryBindings } from 'bun:sqlite';
 import { existsSync, statSync } from 'node:fs';
 
-import { NotFoundError } from './errors.js';
-import type { Topo } from './topo.js';
-import { resource } from './resource.js';
-import { Result } from './result.js';
+import {
+  NotFoundError,
+  Result,
+  deriveTrailsDbPath,
+  openReadTrailsDb,
+  openWriteTrailsDb,
+  resource,
+} from '@ontrails/core';
+import type { Topo, TrailsDbLocationOptions } from '@ontrails/core';
+
 import {
   TOPO_SCHEMA_VERSION,
   ensureTopoSnapshotSchema,
@@ -39,12 +45,6 @@ import {
   readTopoStoreSnapshot,
 } from './internal/topo-store-read.js';
 import { createTopoSnapshot as storeTopoSnapshot } from './internal/topo-store.js';
-import {
-  openReadTrailsDb,
-  openWriteTrailsDb,
-  deriveTrailsDbPath,
-} from './internal/trails-db.js';
-import type { TrailsDbLocationOptions } from './internal/trails-db.js';
 
 interface MigratedDbIdentity {
   readonly mtimeMs: number;

@@ -137,7 +137,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 
 ### Foundation
 
-`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, `contour()`/`trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, execution pipeline utilities including `Layer`/`composeLayers()`, and connector port interfaces.
+`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, `contour()`/`trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, execution pipeline utilities including `Layer`/`composeLayers()`, generic `trails-db` helpers (`openReadTrailsDb`, `ensureSubsystemSchema`, etc.), and connector port interfaces. Persistence of the resolved topo graph (the topo-store API) lives in `@ontrails/topographer` per ADR-0042.
 
 **The test:** if you are building a surface connector or ecosystem package, you should only need `@ontrails/core`.
 
@@ -169,7 +169,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 | Package | What it does |
 | --- | --- |
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, surface harnesses |
-| `@ontrails/topographer` | Surface maps, semantic diffing, lock helpers |
+| `@ontrails/topographer` | Surface maps, semantic diffing, lock helpers, topo-store persistence (relocated from `@ontrails/core` per ADR-0042) |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 
 ### Apps

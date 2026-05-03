@@ -4,8 +4,6 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import {
-  createStoredTopoSnapshot,
-  createTopoStore,
   deriveTrailsDir,
   openWriteTrailsDb,
   trail,
@@ -13,6 +11,8 @@ import {
   Result,
 } from '@ontrails/core';
 import {
+  createStoredTopoSnapshot,
+  createTopoStore,
   deriveSurfaceMapHash,
   deriveSurfaceMap,
   writeSurfaceLock,

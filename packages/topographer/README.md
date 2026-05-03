@@ -2,7 +2,7 @@
 
 Durable graph substrate for Trails: deterministic surface maps, lockfile helpers, and semantic diffing.
 
-Most applications reach this package through `trails topo compile` and `trails topo verify`. Those CLI trails layer workspace and topo-store behavior on top of the low-level building blocks in `@ontrails/topographer`.
+Most applications reach this package through `trails topo compile` and `trails topo verify`. Those CLI trails layer workspace and topo-store behavior on top of the building blocks in `@ontrails/topographer`.
 
 ## What it owns
 
@@ -11,8 +11,9 @@ Most applications reach this package through `trails topo compile` and `trails t
 - stable hashing for CI drift detection
 - semantic diffing between two surface maps
 - file I/O helpers for `.trails/_surface.json` and `.trails/trails.lock`
+- the topo-store: queryable persistence of the resolved topo graph in `trails.db`, including snapshots, pinning, history, and read-only query accessors (relocated from `@ontrails/core` per ADR-0042)
 
-The package does not own topo history, pins, or `trails.db`. Those higher-level workflows live in the `trails` app and `@ontrails/core`. `@ontrails/topographer` stays focused on serializable artifacts and diffing.
+`@ontrails/topographer` is the durable graph substrate for Trails. Generic `trails-db` plumbing (read/write SQLite handles, subsystem schema management, derived paths) stays in `@ontrails/core` so other subsystems (tracing, signals) can share it without depending on topographer.
 
 ## Usage
 
@@ -63,6 +64,14 @@ The typical exported artifact pair is:
 | `writeSurfaceLock(lock, options?)` | Write `.trails/trails.lock` as either structured JSON or legacy hash text |
 | `readSurfaceLockData(options?)` | Read the full normalized lock payload from `.trails/trails.lock` |
 | `readSurfaceLock(options?)` | Read just the committed lock hash |
+| `createTopoStore(options?)` | Read-only query interface over the persisted topo state in `trails.db` |
+| `createMockTopoStore(seed?)` | Seeded in-memory mock for tests that need a `ReadOnlyTopoStore` |
+| `topoStore` | Read-only `resource()` wrapper around `createTopoStore`, suitable for `resources: [...]` |
+| `createTopoSnapshot(topo, options?)` | Persist a new topo snapshot row plus its denormalized projections |
+| `listTopoSnapshots(options?)` | List historical topo snapshots (filterable by pinned status) |
+| `pinTopoSnapshot(id, name, options?)` / `unpinTopoSnapshot(nameOrId, options?)` | Manage human-named pins |
+| `countTopoSnapshots(db)` / `countPinnedSnapshots(db)` / `countPrunableSnapshots(db, options?)` / `pruneUnpinnedSnapshots(db, options?)` | Lower-level snapshot counters and pruning over an open `trails.db` handle |
+| `createStoredTopoSnapshot(db, topo, input?)` / `getStoredTopoExport(db, snapshotId)` | Direct DB-handle variants for callers that already hold an open writer |
 
 ## Breaking change detection
 

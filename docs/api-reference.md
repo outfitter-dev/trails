@@ -22,12 +22,10 @@ blobRefSchema, createBlobRef(...)  // declare and create binary output reference
 // Topo methods: .get(id), .has(id), .list(), .listSignals(), .ids(), .count
 //               .getContour(name), .hasContour(name), .listContours(), .contourIds(), .contourCount
 //               .getResource(id), .hasResource(id), .listResources(), .resourceIds(), .resourceCount
-createTopoStore(options?), createMockTopoStore(seed?), topoStore
-createStoredTopoSnapshot(db, topo, input?), getStoredTopoExport(db, snapshotId)
 openReadTrailsDb(options?), openWriteTrailsDb(options?), ensureSubsystemSchema(db, options)
 deriveTrailsDir(options?), deriveTrailsDbPath(options?)
-countTopoSnapshots(db), countPinnedSnapshots(db), countPrunableSnapshots(db, options?)
-pruneUnpinnedSnapshots(db, options?)
+// topo-store API (createTopoStore, createMockTopoStore, topoStore, snapshot helpers, etc.)
+// has moved to @ontrails/topographer per ADR-0042. See that section below.
 
 // Types
 Trail<I, O>, Signal<T>, ScheduleSource, WebhookSource<T>, Contour<TName, TShape, TIdentity>, Resource<T>, Topo, Intent
@@ -36,7 +34,7 @@ TrailSpec<I, O>, SignalSpec<T>, ScheduleSpec, WebhookSpec<T>, ResourceSpec<T>, T
 AnyTrail, AnySignal, AnyContour, AnyResource, ResourceContext, ResourceOverrideMap
 BlobRef, BlobRefDescriptor
 ContourOptions, ContourIdBrand, ContourIdMetadata, ContourIdSchema, ContourIdValue, ContourReference
-StoredTopoExport, TrailsDbLocationOptions, EnsureSubsystemSchemaOptions
+TrailsDbLocationOptions, EnsureSubsystemSchemaOptions
 ActivationSource, ActivationEntry, ActivationProvenance
 WebhookMethod, WebhookVerify, WebhookVerifyRequest, WebhookVerifyHeaders, WebhookValidationIssue
 
@@ -218,12 +216,24 @@ CreateAppOptions, SurfaceHttpResult
 ## `@ontrails/topographer`
 
 ```typescript
+// Surface maps and lockfile helpers
 deriveSurfaceMap(graph), deriveSurfaceMapHash(map), deriveSurfaceMapDiff(before, after)
 writeSurfaceMap(map, options?), readSurfaceMap(options?)
 writeSurfaceLock(lock, options?), readSurfaceLockData(options?), readSurfaceLock(options?)
 
+// Topo store (durable graph substrate; relocated from @ontrails/core per ADR-0042)
+createTopoStore(options?), createMockTopoStore(seed?), topoStore
+createTopoSnapshot(topo, options?), listTopoSnapshots(options?)
+pinTopoSnapshot(id, name, options?), unpinTopoSnapshot(nameOrId, options?)
+createStoredTopoSnapshot(db, topo, input?), getStoredTopoExport(db, snapshotId)
+countTopoSnapshots(db), countPinnedSnapshots(db), countPrunableSnapshots(db, options?)
+pruneUnpinnedSnapshots(db, options?)
+
 SurfaceMap, SurfaceMapEntry, SurfaceMapContourReference, SurfaceLock, DiffResult, DiffEntry, JsonSchema
 WriteOptions, ReadOptions
+ReadOnlyTopoStore, MockTopoStoreSeed, TopoSnapshot, TopoStoreRef
+TopoStoreExportRecord, TopoStoreResourceRecord, TopoStoreTrailRecord, TopoStoreTrailDetailRecord
+CreateTopoSnapshotInput, ListTopoSnapshotsOptions, StoredTopoExport
 ```
 
 ## `@ontrails/store`

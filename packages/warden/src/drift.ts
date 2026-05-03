@@ -11,12 +11,12 @@ import { existsSync, statSync } from 'node:fs';
 
 import type { Topo } from '@ontrails/core';
 import {
-  createTopoStore,
   deriveTrailsDir,
   NotFoundError,
   ValidationError,
 } from '@ontrails/core';
 import {
+  createTopoStore,
   deriveSurfaceMap,
   deriveSurfaceMapHash,
   readSurfaceLockData,

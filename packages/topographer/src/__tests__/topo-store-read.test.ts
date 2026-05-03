@@ -8,19 +8,22 @@ import { z } from 'zod';
 import {
   ConflictError,
   DETOUR_MAX_ATTEMPTS_CAP,
-  createMockTopoStore,
-  createTopoSnapshot,
-  createTopoStore,
   resource,
   Result,
   signal,
   topo,
-  topoStore,
   trail,
+  openWriteTrailsDb,
+} from '@ontrails/core';
+
+import {
+  createMockTopoStore,
+  createTopoSnapshot,
+  createTopoStore,
+  topoStore,
 } from '../index.js';
 import { pinTopoSnapshot } from '../internal/topo-snapshots.js';
 import type { TopoSnapshot } from '../internal/topo-snapshots.js';
-import { openWriteTrailsDb } from '../internal/trails-db.js';
 
 const noop = () => Result.ok({ ok: true });
 

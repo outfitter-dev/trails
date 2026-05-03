@@ -117,7 +117,7 @@ trails topo compile
 Use the `topoStore` resource for programmatic access:
 
 ```typescript
-import { topoStore } from '@ontrails/core';
+import { topoStore } from '@ontrails/topographer';
 
 trail('warden.check-outputs', {
   resources: [topoStore],

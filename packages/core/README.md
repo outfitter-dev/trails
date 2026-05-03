@@ -150,6 +150,19 @@ The developer returns `Result.err(new NotFoundError(...))`. The framework maps i
 
 See the [API Reference](../../docs/api-reference.md) for the full list.
 
+## Migration: topo-store moved to `@ontrails/topographer`
+
+Per [ADR-0042](../../docs/adr/0042-core-topographer-boundary-doctrine.md), the topo-store public API previously exported from `@ontrails/core` now lives in `@ontrails/topographer`. Generic `trails-db` helpers (`openReadTrailsDb`, `openWriteTrailsDb`, `ensureSubsystemSchema`, `deriveTrailsDbPath`, `deriveTrailsDir`) stay in core because tracing and other subsystems share them.
+
+Update consumer imports:
+
+```diff
+- import { topoStore, createTopoStore, createMockTopoStore, createTopoSnapshot, listTopoSnapshots, pinTopoSnapshot, unpinTopoSnapshot, createStoredTopoSnapshot, getStoredTopoExport, countTopoSnapshots, countPinnedSnapshots, countPrunableSnapshots, pruneUnpinnedSnapshots } from '@ontrails/core';
++ import { topoStore, createTopoStore, createMockTopoStore, createTopoSnapshot, listTopoSnapshots, pinTopoSnapshot, unpinTopoSnapshot, createStoredTopoSnapshot, getStoredTopoExport, countTopoSnapshots, countPinnedSnapshots, countPrunableSnapshots, pruneUnpinnedSnapshots } from '@ontrails/topographer';
+```
+
+Types `ReadOnlyTopoStore`, `MockTopoStoreSeed`, `TopoSnapshot`, `TopoStoreRef`, `TopoStoreExportRecord`, `TopoStoreResourceRecord`, `TopoStoreTrailRecord`, `TopoStoreTrailDetailRecord`, `CreateTopoSnapshotInput`, `ListTopoSnapshotsOptions`, and `StoredTopoExport` follow the same move.
+
 ## Installation
 
 ```bash

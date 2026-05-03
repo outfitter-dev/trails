@@ -1,6 +1,6 @@
 import type { Database, SQLQueryBindings } from 'bun:sqlite';
 
-import { ensureSubsystemSchema } from './trails-db.js';
+import { ensureSubsystemSchema } from '@ontrails/core';
 
 const TOPO_SUBSYSTEM = 'topo';
 const TOPO_TABLE_STATEMENTS = [

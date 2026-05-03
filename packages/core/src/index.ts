@@ -142,6 +142,12 @@ export type {
   ActivationWhereSpec,
   BuiltinActivationSourceKind,
 } from './activation-source.js';
+export {
+  activationSourceDeclarationSignature,
+  activationSourceKey,
+  projectActivationSourceDeclaration,
+} from './activation-source-projection.js';
+export type { ActivationSourceProjection } from './activation-source-projection.js';
 export { intentValues, trail } from './trail.js';
 export type {
   AnyTrail,
@@ -312,42 +318,10 @@ export type {
 // Topo
 export { topo } from './topo.js';
 export type { Topo, TopoIdentity } from './topo.js';
-// Topo-store public API. Per ADR-0042, these exports relocate to
-// `@ontrails/topographer` in a follow-up commit on this stack;
-// consumers should plan to import from `@ontrails/topographer` once
-// the package lands.
-export {
-  createTopoSnapshot,
-  createMockTopoStore,
-  createTopoStore,
-  listTopoSnapshots,
-  pinTopoSnapshot,
-  topoStore,
-  unpinTopoSnapshot,
-} from './topo-store.js';
-export type {
-  CreateTopoSnapshotInput,
-  ListTopoSnapshotsOptions,
-  MockTopoStoreSeed,
-  ReadOnlyTopoStore,
-  TopoSnapshot,
-  TopoStoreExportRecord,
-  TopoStoreResourceRecord,
-  TopoStoreRef,
-  TopoStoreTrailDetailRecord,
-  TopoStoreTrailRecord,
-} from './topo-store.js';
-export {
-  countPinnedSnapshots,
-  countPrunableSnapshots,
-  countTopoSnapshots,
-  pruneUnpinnedSnapshots,
-} from './internal/topo-snapshots.js';
-export {
-  createTopoSnapshot as createStoredTopoSnapshot,
-  getStoredTopoExport,
-} from './internal/topo-store.js';
-export type { StoredTopoExport } from './internal/topo-store.js';
+
+// Generic trails-db helpers (shared framework infrastructure per ADR-0014).
+// The topo-store public API that previously lived here moved to
+// `@ontrails/topographer` per ADR-0042.
 export {
   deriveTrailsDbPath,
   deriveTrailsDir,

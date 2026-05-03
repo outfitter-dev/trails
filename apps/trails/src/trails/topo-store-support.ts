@@ -7,17 +7,25 @@
 
 import { Database } from 'bun:sqlite';
 
-import type { StoredTopoExport, Topo, TopoSnapshot } from '@ontrails/core';
+import type { Topo } from '@ontrails/core';
 import {
-  createStoredTopoSnapshot,
   deriveTrailsDir,
-  getStoredTopoExport,
   InternalError,
   openWriteTrailsDb,
   Result,
 } from '@ontrails/core';
-import type { SurfaceLock, SurfaceMap } from '@ontrails/topographer';
-import { writeSurfaceLock, writeSurfaceMap } from '@ontrails/topographer';
+import type {
+  StoredTopoExport,
+  SurfaceLock,
+  SurfaceMap,
+  TopoSnapshot,
+} from '@ontrails/topographer';
+import {
+  createStoredTopoSnapshot,
+  getStoredTopoExport,
+  writeSurfaceLock,
+  writeSurfaceMap,
+} from '@ontrails/topographer';
 
 import type { TopoExportReport } from './topo-support.js';
 import {

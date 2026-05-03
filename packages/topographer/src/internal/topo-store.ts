@@ -1,29 +1,28 @@
 import type { Database, SQLQueryBindings } from 'bun:sqlite';
 
+import {
+  DETOUR_MAX_ATTEMPTS_CAP,
+  Result,
+  activationSourceKey,
+  deriveCliPath,
+  deriveStructuredSignalExamples,
+  deriveStructuredTrailExamples,
+  getContourReferences,
+  projectActivationSourceDeclaration,
+  signalDiagnosticDefinitions,
+  validateEstablishedTopo,
+  zodToJsonSchema,
+} from '@ontrails/core';
 import type {
   ActivationEntry,
   ActivationSource,
-} from '../activation-source.js';
-import {
-  activationSourceKey,
-  projectActivationSourceDeclaration,
-} from '../activation-source-projection.js';
-import { getContourReferences } from '../contour.js';
-import { DETOUR_MAX_ATTEMPTS_CAP } from '../detours.js';
-import { deriveCliPath } from '../derive.js';
-import { Result } from '../result.js';
-import { signalDiagnosticDefinitions } from '../signal-diagnostics.js';
-import {
-  deriveStructuredSignalExamples,
-  deriveStructuredTrailExamples,
-} from '../structured-examples.js';
-import type { AnyContour } from '../contour.js';
-import type { AnyResource } from '../resource.js';
-import type { AnySignal } from '../signal.js';
-import type { Topo } from '../topo.js';
-import type { AnyTrail } from '../trail.js';
-import { validateEstablishedTopo } from '../validate-established-topo.js';
-import { zodToJsonSchema } from '../validation.js';
+  AnyContour,
+  AnyResource,
+  AnySignal,
+  AnyTrail,
+  Topo,
+} from '@ontrails/core';
+
 import type {
   CreateTopoSnapshotInput,
   TopoSnapshot,

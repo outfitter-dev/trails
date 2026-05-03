@@ -5,8 +5,8 @@ import { join } from 'node:path';
 
 import { z } from 'zod';
 
-import { NotFoundError } from '../errors.js';
 import {
+  NotFoundError,
   contour,
   Result,
   resource,
@@ -15,7 +15,9 @@ import {
   topo,
   trail,
   webhook,
-} from '../index.js';
+  openWriteTrailsDb,
+} from '@ontrails/core';
+
 import { __topoStoreMigrationStats, createTopoStore } from '../topo-store.js';
 import {
   ensureTopoSnapshotSchema,
@@ -30,7 +32,6 @@ import {
   normalizeFiresRows,
   normalizeOnRows,
 } from '../internal/topo-store.js';
-import { openWriteTrailsDb } from '../internal/trails-db.js';
 
 const noop = () => Result.ok({ ok: true });
 

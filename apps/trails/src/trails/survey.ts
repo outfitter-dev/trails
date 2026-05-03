@@ -9,7 +9,6 @@ import { extname, join } from 'node:path';
 
 import type { Topo } from '@ontrails/core';
 import {
-  createTopoStore,
   deriveSafePath,
   NotFoundError,
   Result,
@@ -18,6 +17,7 @@ import {
 } from '@ontrails/core';
 import type { DiffEntry, DiffResult, SurfaceMap } from '@ontrails/topographer';
 import {
+  createTopoStore,
   deriveSurfaceMapDiff,
   deriveSurfaceMap,
   readSurfaceMap,

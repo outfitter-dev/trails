@@ -2,15 +2,17 @@ import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 import {
-  countPinnedSnapshots,
-  countPrunableSnapshots,
-  countTopoSnapshots,
   openReadTrailsDb,
   openWriteTrailsDb,
   deriveTrailsDbPath,
   deriveTrailsDir,
-  pruneUnpinnedSnapshots,
 } from '@ontrails/core';
+import {
+  countPinnedSnapshots,
+  countPrunableSnapshots,
+  countTopoSnapshots,
+  pruneUnpinnedSnapshots,
+} from '@ontrails/topographer';
 import {
   DEFAULT_MAX_AGE,
   DEFAULT_MAX_RECORDS,

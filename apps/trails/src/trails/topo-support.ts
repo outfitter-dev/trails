@@ -1,14 +1,15 @@
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+import { deriveTrailsDbPath } from '@ontrails/core';
+import type { Topo } from '@ontrails/core';
 import {
   createTopoSnapshot as persistTopoSnapshot,
-  deriveTrailsDbPath,
   listTopoSnapshots as readTopoSnapshots,
   pinTopoSnapshot,
   unpinTopoSnapshot,
-} from '@ontrails/core';
-import type { Topo, TopoSnapshot } from '@ontrails/core';
+} from '@ontrails/topographer';
+import type { TopoSnapshot } from '@ontrails/topographer';
 import { z } from 'zod';
 
 import {
