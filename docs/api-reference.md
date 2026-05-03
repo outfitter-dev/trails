@@ -215,7 +215,7 @@ createApp(graph, options?)             // create a Hono app without serving
 CreateAppOptions, SurfaceHttpResult
 ```
 
-## `@ontrails/schema`
+## `@ontrails/topographer`
 
 ```typescript
 deriveSurfaceMap(graph), deriveSurfaceMapHash(map), deriveSurfaceMapDiff(before, after)

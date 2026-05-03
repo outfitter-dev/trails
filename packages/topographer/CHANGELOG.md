@@ -1,4 +1,10 @@
-# @ontrails/schema
+# @ontrails/topographer
+
+## Unreleased
+
+### Patch Changes
+
+- Renamed package from `@ontrails/schema` to `@ontrails/topographer`. No API changes; mechanical rename only. See ADR-0042 for the durable graph substrate doctrine.
 
 ## 1.0.0-beta.15
 

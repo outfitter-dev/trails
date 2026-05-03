@@ -1,8 +1,8 @@
-# @ontrails/schema
+# @ontrails/topographer
 
-Deterministic surface maps, lockfile helpers, and semantic diffing for Trails.
+Durable graph substrate for Trails: deterministic surface maps, lockfile helpers, and semantic diffing.
 
-Most applications reach this package through `trails topo compile` and `trails topo verify`. Those CLI trails layer workspace and topo-store behavior on top of the low-level building blocks in `@ontrails/schema`.
+Most applications reach this package through `trails topo compile` and `trails topo verify`. Those CLI trails layer workspace and topo-store behavior on top of the low-level building blocks in `@ontrails/topographer`.
 
 ## What it owns
 
@@ -12,7 +12,7 @@ Most applications reach this package through `trails topo compile` and `trails t
 - semantic diffing between two surface maps
 - file I/O helpers for `.trails/_surface.json` and `.trails/trails.lock`
 
-The package does not own topo history, pins, or `trails.db`. Those higher-level workflows live in the `trails` app and `@ontrails/core`. `@ontrails/schema` stays focused on serializable artifacts and diffing.
+The package does not own topo history, pins, or `trails.db`. Those higher-level workflows live in the `trails` app and `@ontrails/core`. `@ontrails/topographer` stays focused on serializable artifacts and diffing.
 
 ## Usage
 
@@ -23,7 +23,7 @@ import {
   deriveSurfaceMapHash,
   writeSurfaceLock,
   writeSurfaceMap,
-} from '@ontrails/schema';
+} from '@ontrails/topographer';
 
 const map = deriveSurfaceMap(graph);
 const hash = deriveSurfaceMapHash(map);
@@ -90,7 +90,7 @@ Because CLI paths are now full hierarchical command paths, command-tree changes 
 ## Drift detection with warden
 
 ```typescript
-import { deriveSurfaceMap, deriveSurfaceMapHash, readSurfaceLock } from '@ontrails/schema';
+import { deriveSurfaceMap, deriveSurfaceMapHash, readSurfaceLock } from '@ontrails/topographer';
 
 const current = deriveSurfaceMapHash(deriveSurfaceMap(graph));
 const committed = await readSurfaceLock();
@@ -105,5 +105,5 @@ The `@ontrails/warden` package wraps this into `checkDrift()` with CI-friendly r
 ## Installation
 
 ```bash
-bun add -d @ontrails/schema
+bun add -d @ontrails/topographer
 ```

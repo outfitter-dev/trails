@@ -16,12 +16,12 @@ import {
   trail,
   ValidationError,
 } from '@ontrails/core';
-import type { DiffEntry, DiffResult, SurfaceMap } from '@ontrails/schema';
+import type { DiffEntry, DiffResult, SurfaceMap } from '@ontrails/topographer';
 import {
   deriveSurfaceMapDiff,
   deriveSurfaceMap,
   readSurfaceMap,
-} from '@ontrails/schema';
+} from '@ontrails/topographer';
 import { z } from 'zod';
 
 import { writeIsolatedExampleJsonFile } from '../local-state-io.js';

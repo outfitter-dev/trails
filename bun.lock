@@ -28,7 +28,7 @@
       "dependencies": {
         "@ontrails/cli": "workspace:^",
         "@ontrails/core": "workspace:^",
-        "@ontrails/schema": "workspace:^",
+        "@ontrails/topographer": "workspace:^",
         "@ontrails/warden": "workspace:^",
         "zod": "catalog:",
       },
@@ -45,7 +45,7 @@
         "@ontrails/core": "workspace:^",
         "@ontrails/http": "workspace:^",
         "@ontrails/logging": "workspace:^",
-        "@ontrails/schema": "workspace:^",
+        "@ontrails/topographer": "workspace:^",
         "@ontrails/tracing": "workspace:^",
         "@ontrails/warden": "workspace:^",
         "commander": "catalog:",
@@ -74,8 +74,8 @@
         "zod": "catalog:",
       },
       "devDependencies": {
-        "@ontrails/schema": "workspace:^",
         "@ontrails/testing": "workspace:^",
+        "@ontrails/topographer": "workspace:^",
         "@ontrails/warden": "workspace:^",
       },
     },
@@ -198,14 +198,6 @@
         "zod": "catalog:",
       },
     },
-    "packages/schema": {
-      "name": "@ontrails/schema",
-      "version": "1.0.0-beta.15",
-      "peerDependencies": {
-        "@ontrails/core": "workspace:^",
-        "zod": "catalog:",
-      },
-    },
     "packages/store": {
       "name": "@ontrails/store",
       "version": "1.0.0-beta.15",
@@ -228,6 +220,14 @@
         "@ontrails/core": "workspace:^",
         "@ontrails/logging": "workspace:^",
         "@ontrails/mcp": "workspace:^",
+        "zod": "catalog:",
+      },
+    },
+    "packages/topographer": {
+      "name": "@ontrails/topographer",
+      "version": "1.0.0-beta.15",
+      "peerDependencies": {
+        "@ontrails/core": "workspace:^",
         "zod": "catalog:",
       },
     },
@@ -254,7 +254,7 @@
       },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
-        "@ontrails/schema": "workspace:^",
+        "@ontrails/topographer": "workspace:^",
       },
     },
   },
@@ -356,11 +356,11 @@
 
     "@ontrails/permits": ["@ontrails/permits@workspace:packages/permits"],
 
-    "@ontrails/schema": ["@ontrails/schema@workspace:packages/schema"],
-
     "@ontrails/store": ["@ontrails/store@workspace:packages/store"],
 
     "@ontrails/testing": ["@ontrails/testing@workspace:packages/testing"],
+
+    "@ontrails/topographer": ["@ontrails/topographer@workspace:packages/topographer"],
 
     "@ontrails/tracing": ["@ontrails/tracing@workspace:packages/tracing"],
 

@@ -16,8 +16,8 @@ import {
   openWriteTrailsDb,
   Result,
 } from '@ontrails/core';
-import type { SurfaceLock, SurfaceMap } from '@ontrails/schema';
-import { writeSurfaceLock, writeSurfaceMap } from '@ontrails/schema';
+import type { SurfaceLock, SurfaceMap } from '@ontrails/topographer';
+import { writeSurfaceLock, writeSurfaceMap } from '@ontrails/topographer';
 
 import type { TopoExportReport } from './topo-support.js';
 import {

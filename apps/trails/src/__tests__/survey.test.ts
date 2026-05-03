@@ -23,8 +23,8 @@ import {
   deriveSurfaceMapHash,
   deriveSurfaceMapDiff,
   writeSurfaceMap,
-} from '@ontrails/schema';
-import type { SurfaceMap } from '@ontrails/schema';
+} from '@ontrails/topographer';
+import type { SurfaceMap } from '@ontrails/topographer';
 import { z } from 'zod';
 
 import {

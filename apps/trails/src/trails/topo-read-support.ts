@@ -16,7 +16,7 @@ import {
   NotFoundError,
   Result,
 } from '@ontrails/core';
-import { readSurfaceLockData } from '@ontrails/schema';
+import { readSurfaceLockData } from '@ontrails/topographer';
 
 import type {
   BriefReport,

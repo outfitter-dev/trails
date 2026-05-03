@@ -169,7 +169,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 | Package | What it does |
 | --- | --- |
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, surface harnesses |
-| `@ontrails/schema` | Surface maps, semantic diffing, lock helpers |
+| `@ontrails/topographer` | Surface maps, semantic diffing, lock helpers |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 
 ### Apps
@@ -194,15 +194,15 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 @ontrails/tracing (core)
 @ontrails/logging (core)
 @ontrails/testing (core, cli, mcp, logging)
-@ontrails/schema (core)
+@ontrails/topographer (core)
      ^
 @ontrails/cli/commander (cli, commander)
 @ontrails/hono (http, hono)
 @ontrails/vite (node:stream only, no workspace deps)
 @ontrails/logtape (logging)
-@ontrails/warden (core, schema)
+@ontrails/warden (core, topographer)
      ^
-apps/trails (cli/commander, http, schema, tracing)
+apps/trails (cli/commander, http, topographer, tracing)
 ```
 
 Clean DAG. Core at the center. No cycles. Surface connectors depend only on core. Framework connectors depend on their parent package.

@@ -146,7 +146,7 @@ $ myapp greet --name World
 | [`@ontrails/hono`](./connectors/hono) | Hono connector that opens a topo on the HTTP surface |
 | [`@ontrails/store`](./packages/store) | Schema-derived store definitions, typed accessors, Drizzle bindings, read-only stores |
 | [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testCrosses()`, contract testing, surface harnesses |
-| [`@ontrails/schema`](./packages/schema) | Surface maps, semantic diffing, lock files for CI governance |
+| [`@ontrails/topographer`](./packages/topographer) | Surface maps, semantic diffing, lock files for CI governance |
 | [`@ontrails/tracing`](./packages/tracing) | Execution recording, `trails.db` dev-state storage, telemetry helpers |
 | [`@ontrails/warden`](./packages/warden) | AST-based convention rules, drift detection, CI formatters |
 | [`@ontrails/logging`](./packages/logging) | Structured logging — sinks, formatters, LogTape connector |

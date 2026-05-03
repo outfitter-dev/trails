@@ -18,7 +18,7 @@ import {
   deriveSurfaceMapDiff,
   deriveSurfaceMap,
   deriveSurfaceMapHash,
-} from '@ontrails/schema';
+} from '@ontrails/topographer';
 import { z } from 'zod';
 
 import { graph } from '../src/app.js';

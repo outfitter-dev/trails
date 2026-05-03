@@ -50,7 +50,7 @@ diagnostic shape are shared.
 
 ## Drift detection
 
-Warden integrates with `@ontrails/schema` to detect when the topo has changed without updating the lock file:
+Warden integrates with `@ontrails/topographer` to detect when the topo has changed without updating the lock file:
 
 ```typescript
 import { checkDrift } from '@ontrails/warden';

@@ -16,7 +16,7 @@ import {
   deriveSurfaceMapHash,
   deriveSurfaceMap,
   writeSurfaceLock,
-} from '@ontrails/schema';
+} from '@ontrails/topographer';
 import { z } from 'zod';
 
 import { checkDrift } from '../drift.js';

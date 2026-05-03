@@ -10,7 +10,7 @@
   "dependencies": {
     "@ontrails/cli": "workspace:^",
     "@ontrails/core": "workspace:^",
-    "@ontrails/schema": "workspace:^",
+    "@ontrails/topographer": "workspace:^",
     "@ontrails/warden": "workspace:^",
     "zod": "catalog:"
   }

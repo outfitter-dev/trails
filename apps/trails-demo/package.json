@@ -27,8 +27,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@ontrails/schema": "workspace:^",
     "@ontrails/testing": "workspace:^",
+    "@ontrails/topographer": "workspace:^",
     "@ontrails/warden": "workspace:^"
   }
 }

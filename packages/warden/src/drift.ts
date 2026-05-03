@@ -20,7 +20,7 @@ import {
   deriveSurfaceMap,
   deriveSurfaceMapHash,
   readSurfaceLockData,
-} from '@ontrails/schema';
+} from '@ontrails/topographer';
 
 /**
  * Result of a drift check comparing committed trails.lock against the current state.

@@ -107,7 +107,7 @@ Warden uses inference to verify declarations match actual code. The surface map 
 | Package | Purpose |
 |---------|---------|
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing |
-| `@ontrails/schema` | Surface maps, semantic diffing, lock files |
+| `@ontrails/topographer` | Surface maps, semantic diffing, lock files |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 
 ### Dependency graph
@@ -124,12 +124,12 @@ Warden uses inference to verify declarations match actual code. The surface map 
   <- @ontrails/store (core)
   <- @ontrails/drizzle (store, drizzle-orm)
   <- @ontrails/testing (core, cli, mcp, logging)
-  <- @ontrails/schema (core)
+  <- @ontrails/topographer (core)
      <- @ontrails/cli/commander (cli, commander)
      <- @ontrails/hono (http, hono)
      <- @ontrails/vite (node:stream only)
      <- @ontrails/logtape (logging)
-     <- @ontrails/warden (core, schema)
+     <- @ontrails/warden (core, topographer)
 ```
 
 ## Data Flow
