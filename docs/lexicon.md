@@ -82,6 +82,12 @@ A contour is a node in the domain graph. Trails operate on contours. Stores pers
 
 Governance and contract enforcement tooling. Active governance — completeness checking, drift detection, contract validation — not just linting. Lint rules and CI gating live here.
 
+### `topographer`
+
+The durable graph substrate. `@ontrails/topographer` owns the artifacts derived from the resolved graph that survive across processes or compare state across time: surface maps, hashes, semantic diffs, lockfile I/O, snapshots, and pinned history. Core resolves the graph; Topographer persists and compares it.
+
+A package needs Topographer only when it crosses a process boundary or compares state across time. The runtime never reads Topographer artifacts to execute trails — every `topo()` call resolves entirely in core. See [ADR-0042](adr/0042-core-topographer-boundary-doctrine.md) for the boundary doctrine.
+
 ### `permit`
 
 The resolved identity shape that authentication produces. A permit is the artifact the trail receives: identity, scopes, roles — typed and resolved. Auth is the boundary work; the permit is what the trail sees.

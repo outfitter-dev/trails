@@ -1096,6 +1096,11 @@
           "fromPath": "docs/adr/0031-backend-agnostic-store-schemas.md"
         },
         {
+          "context": "[ADR-0014: Core Database Primitive](../0014-core-database-primitive.md) treats `.trails/trails.db` as shared framework infrastructure with subsystem namespaces (`topo_*`, `track_*`, `cache_*`). This A",
+          "from": "0042",
+          "fromPath": "docs/adr/0042-core-topographer-boundary-doctrine.md"
+        },
+        {
           "context": "- **[ADR-0014: Core Database Primitive](./adr/0014-core-database-primitive.md)** — Shared `trails.db`, subsystem schema versioning",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1128,6 +1133,11 @@
           "context": "- [ADR-0015: Topo Store](0015-topo-store.md) — the read-only resource that governance trails query",
           "from": "0018",
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
+        },
+        {
+          "context": "But the topo store is the read-only *projection of a persisted snapshot* established by [ADR-0015: Topo Store](../0015-topo-store.md). It writes rows to `.trails/trails.db`. It tracks history across b",
+          "from": "0042",
+          "fromPath": "docs/adr/0042-core-topographer-boundary-doctrine.md"
         },
         {
           "context": "- **[ADR-0015: Topo Store](./adr/0015-topo-store.md)** — Queryable relational projection of the resolved graph",
@@ -1256,6 +1266,11 @@
           "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) -",
           "from": "0039",
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
+        },
+        {
+          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — the lockfile as the resolved-graph artifact. This ADR keeps the lockfile firmly in tooling, not on the runtime path.",
+          "from": "0042",
+          "fromPath": "docs/adr/0042-core-topographer-boundary-doctrine.md"
         },
         {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`",
@@ -1936,6 +1951,11 @@
           "context": "- [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md) -",
           "from": "0037",
           "fromPath": "docs/adr/0037-owner-first-authority.md"
+        },
+        {
+          "context": "- Decide the public teaching path for build-time surfaces (SDK, OpenAPI, docs). [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) already establishes `surface(graph, ",
+          "from": "0042",
+          "fromPath": "docs/adr/0042-core-topographer-boundary-doctrine.md"
         }
       ],
       "number": "0035",
@@ -2044,6 +2064,11 @@
           "fromPath": "docs/adr/0038-typed-signal-emission.md"
         },
         {
+          "context": "- [ADR-0039: Reactive Trail Activation](0039-reactive-trail-activation.md) — activation source boundaries define the runtime events this ADR makes observable through `activation.*` trace records.",
+          "from": "0041",
+          "fromPath": "docs/adr/0041-unified-observability.md"
+        },
+        {
           "context": "- [ADR-0039: Reactive Trail Activation](../0039-reactive-trail-activation.md) -- rigged trails with schedule activation sources become periodic monitoring probes",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
@@ -2092,7 +2117,7 @@
       "depends_on": ["6", "13", "39"],
       "inbound": [
         {
-          "context": "Unified Observability](0041-unified-observability.md) defines the public",
+          "context": "[Unified Observability](0041-unified-observability.md) ADR",
           "from": "0039",
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
@@ -2119,6 +2144,19 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Unified Observability",
+      "updated": "2026-05-02"
+    },
+    {
+      "created": "2026-05-02",
+      "depends_on": ["14", "15", "17", "35"],
+      "inbound": [],
+      "number": "0042",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0042-core-topographer-boundary-doctrine.md",
+      "slug": "core-topographer-boundary-doctrine",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Core/Topographer Boundary Doctrine",
       "updated": "2026-05-02"
     }
   ],
