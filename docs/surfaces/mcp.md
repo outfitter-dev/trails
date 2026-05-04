@@ -218,8 +218,8 @@ The MCP surface accepts execution layers in its options and uses
 `composeLayers()` from `@ontrails/core` to wrap the implementation.
 
 No MCP-specific layers ship in v1. The infrastructure is wired for
-surface-scoped behavior such as rate limiting, caching, or auth gates, but these
-layers are not topo primitives or graph nodes.
+surface-scoped behavior such as rate limiting, caching, or auth layers, but
+these layers are not topo primitives or graph nodes.
 
 ## Building Tools Without `surface()`
 

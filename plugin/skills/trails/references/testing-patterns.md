@@ -154,7 +154,7 @@ Applied automatically per example based on which fields are present:
 { name: 'Not found', input: { name: 'nope' }, error: 'NotFoundError' }
 ```
 
-Error class names: `ValidationError`, `NotFoundError`, `AlreadyExistsError`, `ConflictError`, `AuthError`, `PermissionError`, `TimeoutError`, `NetworkError`, `RateLimitError`, `InternalError`, `DerivationError`, `AmbiguousError`, `CancelledError`, `AssertionError`, `RetryExhaustedError`.
+Error class names: `ValidationError`, `NotFoundError`, `AlreadyExistsError`, `ConflictError`, `AuthError`, `PermissionError`, `PermitError`, `TimeoutError`, `NetworkError`, `RateLimitError`, `InternalError`, `DerivationError`, `AmbiguousError`, `CancelledError`, `AssertionError`, `RetryExhaustedError`.
 
 ## `createCrossContext()` -- Mock Cross for Composite Trails
 

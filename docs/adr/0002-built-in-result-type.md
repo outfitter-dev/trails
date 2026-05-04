@@ -80,7 +80,9 @@ const result = await Result.fromFetch('https://api.example.com/data');
 
 ### Error taxonomy integration
 
-The Result type exists in tight partnership with the error taxonomy. Trails defines 13 concrete error classes, each extending `TrailsError` with a `category` and `retryable` flag:
+The Result type exists in tight partnership with the error taxonomy. Trails
+defines 15 fixed-category error classes, each extending `TrailsError` with a
+`category` and `retryable` flag:
 
 | Error class | Category | HTTP | CLI exit | JSON-RPC | Retryable |
 | --- | --- | --- | --- | --- | --- |
@@ -90,13 +92,19 @@ The Result type exists in tight partnership with the error taxonomy. Trails defi
 | `ConflictError` | `conflict` | 409 | 3 | -32603 | no |
 | `AlreadyExistsError` | `conflict` | 409 | 3 | -32603 | no |
 | `PermissionError` | `permission` | 403 | 4 | -32600 | no |
+| `PermitError` | `permission` | 403 | 4 | -32600 | no |
 | `TimeoutError` | `timeout` | 504 | 5 | -32603 | yes |
 | `RateLimitError` | `rate_limit` | 429 | 6 | -32603 | yes |
 | `NetworkError` | `network` | 502 | 7 | -32603 | yes |
 | `InternalError` | `internal` | 500 | 8 | -32603 | no |
 | `AssertionError` | `internal` | 500 | 8 | -32603 | no |
+| `DerivationError` | `internal` | 500 | 8 | -32603 | no |
 | `AuthError` | `auth` | 401 | 9 | -32600 | no |
 | `CancelledError` | `cancelled` | 499 | 130 | -32603 | no |
+
+`RetryExhaustedError` is dynamic: it wraps another `TrailsError`, inherits the
+wrapped error's category for surface mappings, and always reports
+`retryable: false`.
 
 The mapping is deterministic and lives in three lookup tables (`statusCodeMap`, `exitCodeMap`, `jsonRpcCodeMap`). The developer returns `Result.err(new NotFoundError('User not found'))`. The framework looks up the category and renders the right status code, exit code, or JSON-RPC code for the current surface. The developer never thinks about surface-specific error codes.
 

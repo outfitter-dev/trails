@@ -1,6 +1,9 @@
 # Error Taxonomy Reference
 
-## All 15 Error Classes
+## Error Classes
+
+The taxonomy has 15 fixed-category classes across 10 categories, plus the
+dynamic `RetryExhaustedError` wrapper.
 
 ### validation (exit 1, HTTP 400)
 
@@ -19,6 +22,7 @@
 ### permission (exit 4, HTTP 403)
 
 - **PermissionError** — Authenticated but not authorized. `new PermissionError('cannot delete admin users')`
+- **PermitError** — Permit extraction or enforcement failed before the blaze ran. `new PermitError('Missing required scope', { context: { scope: 'entity:write' } })`
 
 ### timeout (exit 5, HTTP 504)
 

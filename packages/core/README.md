@@ -115,7 +115,9 @@ result.unwrapOr(fallback);   // Value or fallback
 
 ### Error taxonomy
 
-17 error classes across 10 categories. Each maps deterministically to exit codes, HTTP status, and JSON-RPC codes on every surface.
+17 error classes across 10 categories. `RetryExhaustedError` inherits the
+wrapped error's category. Each maps deterministically to exit codes, HTTP
+status, and JSON-RPC codes on every surface.
 
 | Category | Classes | HTTP | Retryable |
 | --- | --- | --- | --- |
