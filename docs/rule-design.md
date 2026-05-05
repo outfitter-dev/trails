@@ -38,7 +38,7 @@ Instance form:
 ```ts
 {
   name: 'mcp-error-map-not-consumed',
-  description: "MCP handler must call mapTransportError('mcp', err)",
+  description: "MCP surface must call mapSurfaceError('mcp', err)",
 }
 ```
 

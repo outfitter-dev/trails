@@ -30,7 +30,7 @@ export const ciDriftTrail = trail('ci.drift', {
       output: output.output,
     });
   },
-  description: 'Run trailhead lock drift detection',
+  description: 'Run surface lock drift detection',
   examples: [
     {
       input: {},

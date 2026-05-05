@@ -303,8 +303,62 @@ const buildDraftsIndex = (
   return lines.join('\n');
 };
 
+const jsonIndent = (depth: number): string => '  '.repeat(depth);
+
+const isJsonPrimitive = (value: unknown): boolean =>
+  value === null || typeof value !== 'object';
+
+const stringifyFormattedJson = (
+  value: unknown,
+  depth = 0,
+  linePrefixLength = 0
+): string => {
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return '[]';
+    }
+    if (value.every(isJsonPrimitive)) {
+      const inline = `[${value.map((item) => JSON.stringify(item)).join(', ')}]`;
+      if (jsonIndent(depth).length + linePrefixLength + inline.length <= 100) {
+        return inline;
+      }
+      const nextDepth = depth + 1;
+      return `[\n${value
+        .map((item) => `${jsonIndent(nextDepth)}${JSON.stringify(item)}`)
+        .join(',\n')}\n${jsonIndent(depth)}]`;
+    }
+    const nextDepth = depth + 1;
+    return `[\n${value
+      .map(
+        (item) =>
+          `${jsonIndent(nextDepth)}${stringifyFormattedJson(item, nextDepth)}`
+      )
+      .join(',\n')}\n${jsonIndent(depth)}]`;
+  }
+
+  if (value !== null && typeof value === 'object') {
+    const entries = Object.entries(value);
+    if (entries.length === 0) {
+      return '{}';
+    }
+    const nextDepth = depth + 1;
+    return `{\n${entries
+      .map(([key, item]) => {
+        const keyPrefix = `${jsonIndent(nextDepth)}${JSON.stringify(key)}: `;
+        return `${keyPrefix}${stringifyFormattedJson(
+          item,
+          nextDepth,
+          keyPrefix.length - jsonIndent(nextDepth).length
+        )}`;
+      })
+      .join(',\n')}\n${jsonIndent(depth)}}`;
+  }
+
+  return JSON.stringify(value);
+};
+
 const writeJson = (path: string, data: unknown): void => {
-  writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+  writeFileSync(path, `${stringifyFormattedJson(data)}\n`, 'utf8');
 };
 
 /**

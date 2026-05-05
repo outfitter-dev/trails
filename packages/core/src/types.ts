@@ -186,14 +186,8 @@ export interface LogFormatter {
 
 /**
  * Context extension key for the invoking surface name.
- *
- * @remarks The string value is retained for beta compatibility with existing
- * trace and permit metadata while public API vocabulary moves to surfaces.
  */
-export const SURFACE_KEY = '__trails_trailhead' as const;
-
-/** @deprecated Prefer `SURFACE_KEY`. */
-export const TRAILHEAD_KEY = SURFACE_KEY;
+export const SURFACE_KEY = '__trails_surface' as const;
 
 /** Minimal permit shape available on TrailContext. Permits extends this. */
 export interface BasePermit {

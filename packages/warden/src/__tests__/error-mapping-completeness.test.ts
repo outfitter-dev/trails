@@ -28,29 +28,6 @@ const cliMapper = createSurfaceErrorMapper({
     expect(diagnostics).toHaveLength(0);
   });
 
-  test('passes complete compatibility mapper registrations', () => {
-    const code = `
-import { createTransportErrorMapper } from '@ontrails/core';
-
-const cliMapper = createTransportErrorMapper({
-  auth: 9,
-  cancelled: 130,
-  conflict: 3,
-  internal: 8,
-  network: 7,
-  not_found: 2,
-  permission: 4,
-  rate_limit: 6,
-  timeout: 5,
-  validation: 1,
-});
-`;
-
-    const diagnostics = errorMappingCompleteness.check(code, TEST_FILE);
-
-    expect(diagnostics).toHaveLength(0);
-  });
-
   test('catches incomplete surface mapper registrations resolved through object properties', () => {
     const code = `
 import { createSurfaceErrorMapper } from '@ontrails/core';

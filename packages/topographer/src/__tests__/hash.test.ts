@@ -31,7 +31,7 @@ const makeSurfaceMap = (overrides?: Partial<SurfaceMap>): SurfaceMap => ({
         required: ['id'],
         type: 'object',
       },
-      trailheads: ['cli', 'mcp'],
+      surfaces: ['cli', 'mcp'],
     },
   ],
   generatedAt: '2025-01-01T00:00:00.000Z',
@@ -65,7 +65,7 @@ describe('deriveSurfaceMapHash', () => {
           id: 'user.delete',
           input: { type: 'object' },
           kind: 'trail',
-          trailheads: [],
+          surfaces: [],
         },
       ],
     });
@@ -99,7 +99,7 @@ describe('deriveSurfaceMapHash', () => {
             type: 'object',
           },
           kind: 'trail',
-          trailheads: [],
+          surfaces: [],
         },
       ],
     });
@@ -113,7 +113,7 @@ describe('deriveSurfaceMapHash', () => {
             type: 'object',
           },
           kind: 'trail',
-          trailheads: [],
+          surfaces: [],
         },
       ],
     });

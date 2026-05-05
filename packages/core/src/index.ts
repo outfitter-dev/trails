@@ -41,30 +41,20 @@ export type {
 } from './errors.js';
 export {
   createSurfaceErrorMapper,
-  createTransportErrorMapper,
   mapSurfaceError,
-  mapTransportError,
   projectErrorClassSurface,
   projectSurfaceError,
   surfaceErrorMap,
   surfaceErrorRegistry,
   surfaceNames,
-  transportErrorMap,
-  transportErrorRegistry,
-  transportNames,
 } from './transport-error-map.js';
 export type {
   ErrorClassSurfaceProjection,
-  MapTransportError,
   SurfaceErrorCode,
   SurfaceErrorMapper,
   SurfaceErrorMappings,
   SurfaceErrorProjection,
   SurfaceName,
-  TransportErrorCode,
-  TransportErrorMapper,
-  TransportErrorMappings,
-  TransportName,
 } from './transport-error-map.js';
 
 // Types
@@ -88,7 +78,7 @@ export type {
   Logger,
   ResourceLookup,
 } from './types.js';
-export { SURFACE_KEY, TRAILHEAD_KEY } from './types.js';
+export { SURFACE_KEY } from './types.js';
 export {
   ACTIVATION_PROVENANCE_KEY,
   buildActivationProvenanceTraceAttrs,

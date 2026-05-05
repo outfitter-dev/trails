@@ -1,8 +1,4 @@
-export {
-  type AuthConnector,
-  type AuthCredentials,
-  type AuthError,
-} from './connectors/connector.js';
+export { type AuthConnector, type AuthError } from './connectors/connector.js';
 export {
   createJwtConnector,
   type JwtAlgorithm,

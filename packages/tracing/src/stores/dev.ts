@@ -1,7 +1,4 @@
-import type { SQLQueryBindings } from 'bun:sqlite';
-import { Database } from 'bun:sqlite';
-import { existsSync, unlinkSync } from 'node:fs';
-import { join } from 'node:path';
+import type { Database, SQLQueryBindings } from 'bun:sqlite';
 
 import { openWriteTrailsDb } from '@ontrails/core';
 
@@ -58,7 +55,7 @@ interface TraceRow {
   readonly kind: string;
   readonly name: string;
   readonly trail_id: string | null;
-  readonly trailhead: string | null;
+  readonly surface: string | null;
   readonly intent: string | null;
   readonly started_at: number;
   readonly ended_at: number | null;
@@ -98,9 +95,9 @@ const rowToRecord = (row: TraceRow): TraceRecord => ({
   rootId: row.root_id,
   startedAt: row.started_at,
   status: row.status as TraceRecord['status'],
+  surface: (row.surface ?? undefined) as TraceRecord['surface'],
   traceId: row.trace_id,
   trailId: row.trail_id ?? undefined,
-  trailhead: (row.trailhead ?? undefined) as TraceRecord['trailhead'],
 });
 
 /** Filter definition: column condition and optional bound value. */
@@ -164,7 +161,7 @@ const recordToParams = (record: TraceRecord): SQLQueryBindings[] => [
   record.kind,
   record.name,
   record.trailId ?? null,
-  record.trailhead ?? null,
+  record.surface ?? null,
   record.intent ?? null,
   record.startedAt,
   record.endedAt ?? null,
@@ -178,7 +175,7 @@ const recordToParams = (record: TraceRecord): SQLQueryBindings[] => [
 /** SQL for inserting a track record. */
 const UPSERT_SQL = `INSERT INTO ${TRACK_TABLE} (
   id, trace_id, root_id, parent_id,
-  kind, name, trail_id, trailhead,
+  kind, name, trail_id, surface,
   intent, started_at, ended_at, status,
   error_category, permit_id, permit_tenant_id, attrs
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -189,7 +186,7 @@ ON CONFLICT(id) DO UPDATE SET
   kind = excluded.kind,
   name = excluded.name,
   trail_id = excluded.trail_id,
-  trailhead = excluded.trailhead,
+  surface = excluded.surface,
   intent = excluded.intent,
   started_at = excluded.started_at,
   ended_at = excluded.ended_at,
@@ -213,124 +210,6 @@ const createWriter = (
       ...(maxAge === undefined ? {} : { maxAge }),
     });
   });
-
-interface LegacyStoreCandidate {
-  readonly path: string;
-  readonly tableName: string;
-}
-
-const resolveLegacyCandidates = (
-  rootDir?: string
-): readonly LegacyStoreCandidate[] => {
-  const devDir = join(rootDir ?? process.cwd(), '.trails', 'dev');
-  return [{ path: join(devDir, 'tracing.db'), tableName: 'tracing' }];
-};
-
-const hasLegacyTable = (db: Database, tableName: string): boolean => {
-  const row = db
-    .query<{ name: string }, [string]>(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?"
-    )
-    .get(tableName);
-  return row?.name === tableName;
-};
-
-const shouldSkipLegacyMigration = (
-  db: Database,
-  _options: DevStoreOptions | undefined
-): boolean => countTraceRecords(db) > 0;
-
-interface LegacyCandidateRows {
-  readonly matched: boolean;
-  readonly rows: readonly TraceRow[];
-}
-
-const readLegacyCandidateRows = (
-  candidate: LegacyStoreCandidate
-): LegacyCandidateRows => {
-  if (!existsSync(candidate.path)) {
-    return { matched: false, rows: [] };
-  }
-
-  const legacyDb = new Database(candidate.path, { readonly: true });
-  try {
-    if (!hasLegacyTable(legacyDb, candidate.tableName)) {
-      return { matched: false, rows: [] };
-    }
-
-    return {
-      matched: true,
-      rows: legacyDb
-        .query<TraceRow, []>(
-          `SELECT * FROM ${candidate.tableName} ORDER BY started_at ASC`
-        )
-        .all(),
-    };
-  } finally {
-    legacyDb.close();
-  }
-};
-
-interface LegacyRows {
-  readonly paths: readonly string[];
-  readonly rows: readonly TraceRow[];
-}
-
-/** Read rows from all supported legacy stores and track which files were consumed. */
-const drainLegacyRows = (options: DevStoreOptions | undefined): LegacyRows => {
-  const rows: TraceRow[] = [];
-  const paths: string[] = [];
-
-  for (const candidate of resolveLegacyCandidates(options?.rootDir)) {
-    const candidateRows = readLegacyCandidateRows(candidate);
-    if (!candidateRows.matched) {
-      continue;
-    }
-    paths.push(candidate.path);
-    rows.push(...candidateRows.rows);
-  }
-
-  return { paths, rows };
-};
-
-const removeLegacyDbFiles = (paths: readonly string[]): void => {
-  for (const path of paths) {
-    if (existsSync(path)) {
-      unlinkSync(path);
-    }
-    for (const suffix of ['-wal', '-shm']) {
-      const sidecar = `${path}${suffix}`;
-      if (existsSync(sidecar)) {
-        unlinkSync(sidecar);
-      }
-    }
-  }
-};
-
-const migrateLegacyRows = (
-  rows: readonly TraceRow[],
-  write: (record: TraceRecord) => void
-): void => {
-  for (const row of rows) {
-    write(rowToRecord(row));
-  }
-};
-
-const migrateLegacyStoreIfPresent = (
-  db: Database,
-  options: DevStoreOptions | undefined,
-  write: (record: TraceRecord) => void
-): void => {
-  if (shouldSkipLegacyMigration(db, options)) {
-    return;
-  }
-  const { paths, rows } = drainLegacyRows(options);
-  if (paths.length === 0) {
-    return;
-  }
-  migrateLegacyRows(rows, write);
-  removeLegacyDbFiles(paths);
-};
 
 const createReadApi = (db: Database, defaultLimit: number): TraceStore => ({
   close: () => {
@@ -360,7 +239,6 @@ export const createDevStore = (options?: DevStoreOptions): DevStore => {
   ensureTraceSchema(db);
   const insertStmt = db.prepare(UPSERT_SQL);
   const write = createWriter(db, insertStmt, maxRecords, maxAge);
-  migrateLegacyStoreIfPresent(db, options, write);
   return { ...createReadApi(db, maxRecords), write };
 };
 

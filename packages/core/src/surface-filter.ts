@@ -87,7 +87,7 @@ export const matchesTrailPattern = (
 };
 
 // ---------------------------------------------------------------------------
-// Trailhead filtering
+// Surface filtering
 // ---------------------------------------------------------------------------
 
 const matchesAnyPattern = (
@@ -108,7 +108,7 @@ const isExplicitInternalInclude = (
  * Returns `'internal'` when either the explicit `visibility` field is
  * `'internal'` or the legacy `meta.internal === true` convention is set.
  * Honoring the legacy flag keeps trails authored before the visibility
- * field was introduced (e.g. `meta: { internal: true }`) off trailheads.
+ * field was introduced (e.g. `meta: { internal: true }`) off surfaces.
  *
  * The runtime always fills in `visibility: 'public'` when the spec did not
  * declare it, so we cannot distinguish explicit `'public'` from the default.
@@ -126,7 +126,7 @@ const effectiveVisibility = (
   return trail.meta?.['internal'] === true ? 'internal' : 'public';
 };
 
-const isVisibleToTrailheads = (
+const isVisibleToSurfaces = (
   trail: Trail<unknown, unknown, unknown>,
   include: readonly string[] | undefined
 ): boolean =>
@@ -156,7 +156,7 @@ export const shouldIncludeTrailForSurface = (
   }
 
   const { exclude, include, intent } = options;
-  if (!isVisibleToTrailheads(trail, include)) {
+  if (!isVisibleToSurfaces(trail, include)) {
     return false;
   }
 

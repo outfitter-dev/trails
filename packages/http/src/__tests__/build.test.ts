@@ -4,7 +4,7 @@ import {
   InternalError,
   NotFoundError,
   Result,
-  TRAILHEAD_KEY,
+  SURFACE_KEY,
   clearTraceSink,
   getActivationProvenance,
   resource,
@@ -1306,13 +1306,12 @@ describe('deriveHttpRoutes', () => {
 
   describe('custom createContext', () => {
     test('custom createContext is used when provided', async () => {
-      const contextState = { custom: false, trailheadMarker: false };
+      const contextState = { custom: false, surfaceMarker: false };
 
       const ctxTrail = trail('ctx.custom', {
         blaze: (_input, ctx) => {
           contextState.custom = ctx.extensions?.['custom'] === true;
-          contextState.trailheadMarker =
-            ctx.extensions?.[TRAILHEAD_KEY] === 'http';
+          contextState.surfaceMarker = ctx.extensions?.[SURFACE_KEY] === 'http';
           return Result.ok({ ok: true });
         },
         input: z.object({}),
@@ -1337,7 +1336,7 @@ describe('deriveHttpRoutes', () => {
       const result = await route?.execute({});
       expect(result?.isOk()).toBe(true);
       expect(contextState.custom).toBe(true);
-      expect(contextState.trailheadMarker).toBe(true);
+      expect(contextState.surfaceMarker).toBe(true);
     });
   });
 

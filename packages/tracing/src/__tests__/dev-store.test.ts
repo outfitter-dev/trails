@@ -1,6 +1,5 @@
-import { Database } from 'bun:sqlite';
 import { afterEach, describe, expect, test } from 'bun:test';
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -24,94 +23,6 @@ const makeRecord = (overrides?: Partial<TraceRecord>): TraceRecord => ({
 });
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-const LEGACY_CREATE_TABLE_SQL = (tableName: string): string =>
-  `CREATE TABLE IF NOT EXISTS ${tableName} (
-  id TEXT PRIMARY KEY,
-  trace_id TEXT NOT NULL,
-  root_id TEXT NOT NULL,
-  parent_id TEXT,
-  kind TEXT NOT NULL,
-  name TEXT NOT NULL,
-  trail_id TEXT,
-  trailhead TEXT,
-  intent TEXT,
-  started_at INTEGER NOT NULL,
-  ended_at INTEGER,
-  status TEXT NOT NULL,
-  error_category TEXT,
-  permit_id TEXT,
-  permit_tenant_id TEXT,
-  attrs TEXT
-)`;
-
-const LEGACY_UPSERT_SQL = (tableName: string): string =>
-  `INSERT INTO ${tableName} (
-  id, trace_id, root_id, parent_id,
-  kind, name, trail_id, trailhead,
-  intent, started_at, ended_at, status,
-  error_category, permit_id, permit_tenant_id, attrs
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT(id) DO UPDATE SET
-  trace_id = excluded.trace_id,
-  root_id = excluded.root_id,
-  parent_id = excluded.parent_id,
-  kind = excluded.kind,
-  name = excluded.name,
-  trail_id = excluded.trail_id,
-  trailhead = excluded.trailhead,
-  intent = excluded.intent,
-  started_at = excluded.started_at,
-  ended_at = excluded.ended_at,
-  status = excluded.status,
-  error_category = excluded.error_category,
-  permit_id = excluded.permit_id,
-  permit_tenant_id = excluded.permit_tenant_id,
-  attrs = excluded.attrs`;
-
-interface LegacyStoreFixture {
-  readonly fileName: string;
-  readonly tableName: string;
-}
-
-const writeLegacyTracingDb = (
-  rootDir: string,
-  fixture: LegacyStoreFixture,
-  records: readonly TraceRecord[]
-): void => {
-  const path = join(rootDir, '.trails', 'dev', fixture.fileName);
-  mkdirSync(join(rootDir, '.trails', 'dev'), { recursive: true });
-  const db = new Database(path, { create: true });
-
-  try {
-    db.run(LEGACY_CREATE_TABLE_SQL(fixture.tableName));
-    const stmt = db.prepare(LEGACY_UPSERT_SQL(fixture.tableName));
-    for (const record of records) {
-      stmt.run(
-        record.id,
-        record.traceId,
-        record.rootId,
-        record.parentId ?? null,
-        record.kind,
-        record.name,
-        record.trailId ?? null,
-        record.trailhead ?? null,
-        record.intent ?? null,
-        record.startedAt,
-        record.endedAt ?? null,
-        record.status,
-        record.errorCategory ?? null,
-        record.permit?.id ?? null,
-        record.permit?.tenantId ?? null,
-        Object.keys(record.attrs).length > 0
-          ? JSON.stringify(record.attrs)
-          : null
-      );
-    }
-  } finally {
-    db.close();
-  }
-};
 
 const makeOrderedRecords = (): {
   readonly newer: TraceRecord;
@@ -366,37 +277,6 @@ describe('createDevStore', () => {
       const results = store.query();
       expect(results).toHaveLength(1);
       expect(results[0]?.id).toBe('fresh');
-    });
-  });
-
-  describe('legacy migration', () => {
-    test('migrates legacy .trails/dev/tracing.db records into shared trails.db', () => {
-      const dir = makeTmpDir();
-      const now = Date.now();
-      const legacyRecords = [
-        makeRecord({
-          id: 'legacy-a',
-          startedAt: now - 2000,
-          trailId: 'user.create',
-        }),
-        makeRecord({
-          id: 'legacy-b',
-          startedAt: now - 1000,
-          trailId: 'user.list',
-        }),
-      ];
-
-      writeLegacyTracingDb(
-        dir,
-        { fileName: 'tracing.db', tableName: 'tracing' },
-        legacyRecords
-      );
-
-      store = createDevStore({ maxRecords: 10, rootDir: dir });
-
-      expect(existsSync(join(dir, '.trails', 'trails.db'))).toBe(true);
-      expect(queryIds(store)).toEqual(['legacy-b', 'legacy-a']);
-      expect(existsSync(join(dir, '.trails', 'dev', 'tracing.db'))).toBe(false);
     });
   });
 

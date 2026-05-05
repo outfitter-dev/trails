@@ -40,7 +40,7 @@ const ATTR_MAP: readonly {
 }[] = [
   { get: (r) => r.trailId, key: 'trails.trail.id' },
   { get: (r) => r.intent, key: 'trails.intent' },
-  { get: (r) => r.trailhead, key: 'trails.trailhead' },
+  { get: (r) => r.surface, key: 'trails.surface' },
   { get: (r) => r.permit?.id, key: 'trails.permit.id' },
   { get: (r) => r.permit?.tenantId, key: 'trails.permit.tenant_id' },
 ];

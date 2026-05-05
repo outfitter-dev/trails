@@ -26,9 +26,9 @@ export const createSignalTraceRecord = (
   rootId: parent.rootId,
   startedAt: Date.now(),
   status: 'ok',
+  surface: undefined,
   traceId: parent.traceId,
   trailId: undefined,
-  trailhead: undefined,
 });
 
 const completeSignalTraceRecord = (

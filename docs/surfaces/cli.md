@@ -304,7 +304,7 @@ everything needed: a full ordered command path, flags, args, and an
 
 Trails CLI apps should eventually expose command schemas for free. The planned
 shape is a default-on `schema` command derived from the same topo and
-framework-agnostic CLI command model as the mounted commands.
+framework-agnostic CLI command model as the derived commands.
 
 ```bash
 myapp schema
@@ -317,7 +317,7 @@ Targeted schema lookup should return the full Trails command-contract envelope:
 command path, trail id, args, flags, aliases, input schema, output schema,
 output formats, examples, and deprecation metadata when derivable.
 
-Schema visibility should describe the mounted CLI surface by default. Apps may
+Schema visibility should describe the surface-bound CLI commands by default. Apps may
 configure broader schema visibility for dev or agent environments, but runtime
 flags should not reveal hidden/internal schemas that the app author did not
 choose to expose.

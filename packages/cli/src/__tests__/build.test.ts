@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   Result,
-  TRAILHEAD_KEY,
+  SURFACE_KEY,
   createTrailContext,
   resource,
   signal,
@@ -307,12 +307,12 @@ describe('buildCommands execution', () => {
   test('uses provided createContext factory', async () => {
     let usedRequestId: string | undefined;
     let usedCustom = false;
-    let usedTrailheadMarker = false;
+    let usedSurfaceMarker = false;
     const t = trail('ctx-test', {
       blaze: (_input: Record<string, never>, ctx: TrailContext) => {
         usedRequestId = ctx.requestId;
         usedCustom = ctx.extensions?.['custom'] === true;
-        usedTrailheadMarker = ctx.extensions?.[TRAILHEAD_KEY] === 'cli';
+        usedSurfaceMarker = ctx.extensions?.[SURFACE_KEY] === 'cli';
         return Result.ok('ok');
       },
       input: z.object({}),
@@ -329,7 +329,7 @@ describe('buildCommands execution', () => {
     await commands[0]?.execute({}, {});
     expect(usedRequestId).toBe('custom-123');
     expect(usedCustom).toBe(true);
-    expect(usedTrailheadMarker).toBe(true);
+    expect(usedSurfaceMarker).toBe(true);
   });
 
   test('converts kebab-case flags back to camelCase for input', async () => {

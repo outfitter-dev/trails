@@ -47,7 +47,7 @@ describe('otelConnector', () => {
       expect(spans[0]?.attributes['trails.intent']).toBe('write');
     });
 
-    test('maps trailhead to attributes["trails.trailhead"]', async () => {
+    test('maps surface to attributes["trails.surface"]', async () => {
       const spans: OtelSpan[] = [];
       const connector = createOtelConnector({
         exporter: (s) => {
@@ -55,9 +55,9 @@ describe('otelConnector', () => {
         },
       });
 
-      await connector.write(makeRecord({ trailhead: 'mcp' }));
+      await connector.write(makeRecord({ surface: 'mcp' }));
 
-      expect(spans[0]?.attributes['trails.trailhead']).toBe('mcp');
+      expect(spans[0]?.attributes['trails.surface']).toBe('mcp');
     });
 
     test('maps permit.id to attributes["trails.permit.id"]', async () => {
@@ -87,8 +87,8 @@ describe('otelConnector', () => {
       await connector.write(
         makeRecord({
           intent: undefined,
+          surface: undefined,
           trailId: undefined,
-          trailhead: undefined,
         })
       );
 
@@ -96,7 +96,7 @@ describe('otelConnector', () => {
       const keys = Object.keys(spans[0].attributes);
       expect(keys).not.toContain('trails.trail.id');
       expect(keys).not.toContain('trails.intent');
-      expect(keys).not.toContain('trails.trailhead');
+      expect(keys).not.toContain('trails.surface');
     });
 
     test('forwards OTel-safe custom attributes', async () => {

@@ -367,9 +367,9 @@ describe('topo and dev trails', () => {
           rootId: 'track-1',
           startedAt: Date.now() - 10_000,
           status: 'ok',
+          surface: 'cli',
           traceId: 'trace-1',
           trailId: 'hello',
-          trailhead: 'cli',
         });
         store.write({
           attrs: {},
@@ -380,9 +380,9 @@ describe('topo and dev trails', () => {
           rootId: 'track-2',
           startedAt: Date.now() - 20_000,
           status: 'err',
+          surface: 'cli',
           traceId: 'trace-2',
           trailId: 'goodbye',
-          trailhead: 'cli',
         });
       } finally {
         store.close();

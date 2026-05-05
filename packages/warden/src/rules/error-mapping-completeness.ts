@@ -1,10 +1,9 @@
 /**
  * Validates that registered surface error mappers cover every error category.
  *
- * Scans `createSurfaceErrorMapper(...)` and compatibility
- * `createTransportErrorMapper(...)` calls, then resolves simple object
- * literals, identifier bindings, and object-property references in the same file
- * so incomplete mapper registrations are caught before they ship.
+ * Scans `createSurfaceErrorMapper(...)` calls, then resolves simple object
+ * literals, identifier bindings, and object-property references in the same
+ * file so incomplete mapper registrations are caught before they ship.
  */
 
 import { codesByCategory, errorClasses } from '@ontrails/core';
@@ -27,10 +26,7 @@ const MEMBER_EXPRESSION_TYPES = new Set([
   'StaticMemberExpression',
 ]);
 
-const MAPPER_FACTORY_NAMES = new Set([
-  'createSurfaceErrorMapper',
-  'createTransportErrorMapper',
-]);
+const MAPPER_FACTORY_NAMES = new Set(['createSurfaceErrorMapper']);
 
 const mappedErrorClassCategories = new Set(
   errorClasses.flatMap((entry) =>
@@ -193,7 +189,7 @@ const createDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Surface error mapper is missing mappings for: ${missingCategories.join(', ')}. Registered createSurfaceErrorMapper() and compatibility createTransportErrorMapper() calls must cover every ErrorCategory.`,
+  message: `Surface error mapper is missing mappings for: ${missingCategories.join(', ')}. Registered createSurfaceErrorMapper() calls must cover every ErrorCategory.`,
   rule: 'error-mapping-completeness',
   severity: 'error',
 });

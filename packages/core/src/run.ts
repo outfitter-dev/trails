@@ -1,5 +1,5 @@
 /**
- * Headless trail execution without mounting a trailhead.
+ * Headless trail execution without surface registration.
  *
  * Looks up a trail by ID in a topo, then delegates to `executeTrail`.
  * Returns a `Result` and never throws.
@@ -23,7 +23,7 @@ export type RunOptions = ExecuteTrailOptions;
 // ---------------------------------------------------------------------------
 
 /**
- * Execute a trail by ID from a topo without mounting a trailhead.
+ * Execute a trail by ID from a topo without registering it on a surface.
  *
  * Resolves the trail from the topo, then runs it through the standard
  * `executeTrail` pipeline with `topo` threaded so `ctx.fire()` is bound

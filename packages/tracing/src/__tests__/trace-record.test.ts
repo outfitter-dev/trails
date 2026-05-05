@@ -46,15 +46,15 @@ describe('createTraceRecord', () => {
     expect(record.status).toBe('ok');
   });
 
-  test('includes trailId, intent, and trailhead when provided', () => {
+  test('includes trailId, intent, and surface when provided', () => {
     const record = createTraceRecord({
       intent: 'write',
+      surface: 'mcp',
       trailId: 'widget.create',
-      trailhead: 'mcp',
     });
 
     expect(record.trailId).toBe('widget.create');
-    expect(record.trailhead).toBe('mcp');
+    expect(record.surface).toBe('mcp');
     expect(record.intent).toBe('write');
     expect(record.kind).toBe('trail');
     expect(record.name).toBe('widget.create');

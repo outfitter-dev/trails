@@ -19,7 +19,7 @@ const createDiagnostic = (
   line: offsetToLine(sourceCode, match.start),
   message:
     `Draft id "${match.value}" is still visible debt. ` +
-    'Established trailheads, lock export, and OpenAPI generation will reject it until it is promoted.',
+    'Established surfaces, lock export, and OpenAPI generation will reject it until it is promoted.',
   rule: 'draft-visible-debt',
   severity: 'warn',
 });
@@ -68,7 +68,7 @@ const collectDraftVisibleDebtDiagnostics = (
  *
  * Severity is intentionally `warn`, not `error`. The hard rejection layer for
  * draft state leaking into established outputs is `validateEstablishedTopo` at
- * runtime — it blocks topo compile, trailhead projection, and lockfile writes.
+ * runtime — it blocks topo compile, surface projection, and lockfile writes.
  * This rule surfaces the debt for human reviewers without duplicating that layer.
  */
 export const draftVisibleDebt: WardenRule = {

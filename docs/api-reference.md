@@ -61,13 +61,11 @@ AssertionError, RetryExhaustedError
 ErrorCategory, isTrailsError(value?), isRetryable(error)
 mapSurfaceError(surface, error), projectSurfaceError(surface, error)
 projectErrorClassSurface(surface, errorName)
-mapTransportError(surface, error)       // deprecated compatibility alias
 
 // Implementation & context
 Implementation<I, O>              // (input, ctx) => Result | Promise<Result>
 TrailContext, createTrailContext(overrides?)
 SURFACE_KEY                        // invoking surface extension key
-TRAILHEAD_KEY                      // deprecated compatibility alias for SURFACE_KEY
 CrossFn, ResourceLookup, ProgressCallback, ProgressEvent, Logger
 normalizeCrossBatchConcurrency(options?), createCrossBatchValidationResults(calls, error)
 claimNextCrossBatchIndex(counter, calls)

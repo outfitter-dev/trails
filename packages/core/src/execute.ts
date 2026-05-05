@@ -388,9 +388,9 @@ const buildTracedContext = (
     permit: extractPermit(ctx),
     rootId: parent?.rootId,
     sampled: parent?.sampled ?? true,
+    surface: ctx.extensions?.[SURFACE_KEY] as TraceRecord['surface'],
     traceId: parent?.traceId,
     trailId: trail.id,
-    trailhead: ctx.extensions?.[SURFACE_KEY] as TraceRecord['trailhead'],
   });
   const activation = getActivationProvenance(ctx);
   const recordWithAttrs: TraceRecord =
@@ -565,7 +565,7 @@ const deriveConcurrentBranchLogger = (
  * Concurrent crossings should not inherit already-resolved resource instances
  * from the parent execution scope. Stripping resource IDs from extensions
  * forces each branch to resolve its own scope while still carrying forward
- * request-scoped values like tracing, trailhead identity, permits, and the
+ * request-scoped values like tracing, surface identity, permits, and the
  * shared AbortSignal.
  *
  * `cross`, `fire`, and `resource` are cleared so the child execution can

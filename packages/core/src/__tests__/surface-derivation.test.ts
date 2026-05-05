@@ -10,7 +10,7 @@ import {
 } from '../surface-derivation.js';
 import { topo } from '../topo.js';
 import { trail } from '../trail.js';
-import { SURFACE_KEY, TRAILHEAD_KEY } from '../types.js';
+import { SURFACE_KEY } from '../types.js';
 
 const exportTrail = trail('entity.export', {
   blaze: () => Result.ok({ ok: true }),
@@ -19,9 +19,8 @@ const exportTrail = trail('entity.export', {
 });
 
 describe('surface derivation helpers', () => {
-  test('surface key preserves the legacy extension slot', () => {
-    expect(SURFACE_KEY).toBe('__trails_trailhead');
-    expect(TRAILHEAD_KEY).toBe(SURFACE_KEY);
+  test('surface key uses the surface extension slot', () => {
+    expect(SURFACE_KEY).toBe('__trails_surface');
   });
 
   test('surface validation follows the shared validate option', () => {

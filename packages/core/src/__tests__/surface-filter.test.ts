@@ -197,7 +197,7 @@ describe('filterSurfaceTrails', () => {
   });
 
   describe('consumer trails', () => {
-    test('consumer trails are never exposed on trailheads', () => {
+    test('consumer trails are never exposed on surfaces', () => {
       expect(
         filterSurfaceTrails([consumerTrail], {
           include: ['notify.email'],
@@ -205,7 +205,7 @@ describe('filterSurfaceTrails', () => {
       ).toEqual([]);
     });
 
-    test('webhook-activated trails are not exposed as direct trailhead routes', () => {
+    test('webhook-activated trails are not exposed as direct surface routes', () => {
       expect(
         filterSurfaceTrails([webhookConsumerTrail], {
           include: ['payment.receive'],

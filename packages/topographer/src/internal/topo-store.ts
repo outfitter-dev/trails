@@ -860,9 +860,9 @@ const materializeSchemas = (
   };
 };
 
-const extractTrailheads = (raw: Record<string, unknown>): string[] =>
-  Array.isArray(raw['trailheads'])
-    ? (raw['trailheads'] as string[]).toSorted()
+const extractSurfaces = (raw: Record<string, unknown>): string[] =>
+  Array.isArray(raw['surfaces'])
+    ? (raw['surfaces'] as string[]).toSorted()
     : [];
 
 const addSafetyMarkers = (
@@ -954,7 +954,7 @@ const buildTrailEntryBase = (
     id: trail.id,
     input: trailSchema.input,
     kind: trail.kind,
-    trailheads: extractTrailheads(raw),
+    surfaces: extractSurfaces(raw),
   };
 
   if (trailSchema.output !== undefined) {
@@ -1011,7 +1011,7 @@ const signalToEntryRecord = (
     kind: 'signal',
     payload: payloadSchema,
     producers: relations.producers,
-    trailheads: extractTrailheads(raw),
+    surfaces: extractSurfaces(raw),
   };
 
   if (signal.description !== undefined) {
@@ -1048,7 +1048,7 @@ const resourceToEntryRecord = (
     exampleCount: 0,
     id: resource.id,
     kind: 'resource',
-    trailheads: [],
+    surfaces: [],
   };
 
   if (resource.description !== undefined) {
@@ -1070,7 +1070,7 @@ const contourToEntryRecord = (contour: AnyContour): SurfaceMapEntryRecord => {
     identity: contour.identity,
     kind: 'contour',
     schema: schema.value,
-    trailheads: [],
+    surfaces: [],
   };
 
   const references = getContourReferences(contour);

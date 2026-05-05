@@ -15,7 +15,7 @@ describe('forkCtx', () => {
     const parent = {
       cross: noopCross,
       env: { NODE_ENV: 'test' },
-      extensions: { trailhead: 'cli' },
+      extensions: { surface: 'cli' },
       fire: noopFire,
       logger: undefined,
       resource: noopResource,
@@ -28,7 +28,7 @@ describe('forkCtx', () => {
     expect(forked.resource).toBeUndefined();
     // Non-reset keys are preserved.
     expect(forked.env).toEqual({ NODE_ENV: 'test' });
-    expect(forked.extensions).toEqual({ trailhead: 'cli' });
+    expect(forked.extensions).toEqual({ surface: 'cli' });
   });
 
   test('applies overrides after reset so overrides win', () => {

@@ -147,7 +147,7 @@ const sink = createOtelConnector({
 registerTraceSink(sink);
 ```
 
-The connector translates `TraceRecord` records to OTel spans with Trails-namespaced attributes (`trails.trail.id`, `trails.intent`, `trails.trailhead`, `trails.permit.id`).
+The connector translates `TraceRecord` records to OTel spans with Trails-namespaced attributes (`trails.trail.id`, `trails.intent`, `trails.surface`, `trails.permit.id`).
 
 ## Sampling
 

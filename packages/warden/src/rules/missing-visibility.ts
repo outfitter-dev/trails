@@ -45,7 +45,7 @@ const buildMissingVisibilityDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}" is crossed elsewhere and declares required crossInput fields, but it is still public. Consider visibility: 'internal' so trailheads do not expose a trail that only works through ctx.cross().`,
+  message: `Trail "${trailId}" is crossed elsewhere and declares required crossInput fields, but it is still public. Consider visibility: 'internal' so surfaces do not expose a trail that only works through ctx.cross().`,
   rule: 'missing-visibility',
   severity: 'warn',
 });

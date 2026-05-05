@@ -4,7 +4,7 @@
  * Integration tests proving the full governance loop works end-to-end.
  *
  * The "five things" that make Trails real:
- * 1. Trailhead map generation
+ * 1. Surface map generation
  * 2. Deterministic hashing
  * 3. Breaking change detection
  * 4. Non-breaking change detection
@@ -74,7 +74,7 @@ describe('surface map generation', () => {
       expect(entry.id).toBeString();
       expect(entry.kind).toBeOneOf(['trail', 'signal', 'resource']);
       expect(entry.exampleCount).toBeNumber();
-      expect(Array.isArray(entry.trailheads)).toBe(true);
+      expect(Array.isArray(entry.surfaces)).toBe(true);
     }
   });
 

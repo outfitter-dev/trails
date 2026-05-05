@@ -12,7 +12,6 @@ import * as draftPromote from './trails/draft-promote.js';
 import * as guide from './trails/guide.js';
 import * as survey from './trails/survey.js';
 import * as topoCompile from './trails/topo-compile.js';
-import * as topoExport from './trails/topo-export.js';
 import * as topoHistory from './trails/topo-history.js';
 import * as topoPin from './trails/topo-pin.js';
 import * as topoCommand from './trails/topo.js';
@@ -28,7 +27,6 @@ export const app = topo(
   topoHistory,
   topoPin,
   topoUnpin,
-  topoExport,
   topoVerify,
   devStats,
   devClean,

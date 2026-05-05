@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   NotFoundError,
   Result,
-  TRAILHEAD_KEY,
+  SURFACE_KEY,
   blobRefSchema,
   createBlobRef,
   resource,
@@ -609,12 +609,12 @@ describe('deriveMcpTools', () => {
 
     test('custom createContext is used when provided', async () => {
       let contextUsed = false;
-      let trailheadMarkerUsed = false;
+      let surfaceMarkerUsed = false;
 
       const ctxTrail = trail('ctx.check', {
         blaze: (_input, ctx) => {
           contextUsed = ctx.extensions?.['custom'] === true;
-          trailheadMarkerUsed = ctx.extensions?.[TRAILHEAD_KEY] === 'mcp';
+          surfaceMarkerUsed = ctx.extensions?.[SURFACE_KEY] === 'mcp';
           return Result.ok({ ok: true });
         },
         input: z.object({}),
@@ -633,7 +633,7 @@ describe('deriveMcpTools', () => {
 
       await tool.handler({}, noExtra);
       expect(contextUsed).toBe(true);
-      expect(trailheadMarkerUsed).toBe(true);
+      expect(surfaceMarkerUsed).toBe(true);
     });
 
     test('resource overrides are forwarded to executeTrail', async () => {

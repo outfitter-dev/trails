@@ -17,9 +17,9 @@ const traceRecordOutput = z.object({
   rootId: z.string(),
   startedAt: z.number(),
   status: z.enum(['ok', 'err', 'cancelled']),
+  surface: z.string().optional(),
   traceId: z.string(),
   trailId: z.string().optional(),
-  trailhead: z.string().optional(),
 });
 
 /** Output schema for the tracing.query trail. */
@@ -41,7 +41,7 @@ const mapRecord = (r: {
   readonly rootId: string;
   readonly startedAt: number;
   readonly status: 'ok' | 'err' | 'cancelled';
-  readonly trailhead?: string | undefined;
+  readonly surface?: string | undefined;
   readonly traceId: string;
   readonly trailId?: string | undefined;
 }) => ({
@@ -56,9 +56,9 @@ const mapRecord = (r: {
   rootId: r.rootId,
   startedAt: r.startedAt,
   status: r.status,
+  surface: r.surface,
   traceId: r.traceId,
   trailId: r.trailId,
-  trailhead: r.trailhead,
 });
 
 /** Build DevStoreQueryOptions, omitting undefined fields for exactOptionalPropertyTypes. */

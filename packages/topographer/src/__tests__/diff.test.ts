@@ -12,7 +12,7 @@ const entry = (
 ): SurfaceMapEntry => ({
   exampleCount: 0,
   kind: 'trail',
-  trailheads: [],
+  surfaces: [],
   ...overrides,
 });
 
@@ -243,20 +243,18 @@ describe('deriveSurfaceMapDiff', () => {
     });
   });
 
-  describe('meta and trailheads', () => {
-    test('trailhead removed classified as breaking', () => {
+  describe('meta and surfaces', () => {
+    test('surface removed classified as breaking', () => {
       const prev = surfaceMap([
-        entry({ id: 'user.list', trailheads: ['cli', 'mcp'] }),
+        entry({ id: 'user.list', surfaces: ['cli', 'mcp'] }),
       ]);
-      const curr = surfaceMap([
-        entry({ id: 'user.list', trailheads: ['mcp'] }),
-      ]);
+      const curr = surfaceMap([entry({ id: 'user.list', surfaces: ['mcp'] })]);
       const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(
         result.breaking[0]?.details.some((d) =>
-          d.includes('Trailhead "cli" removed')
+          d.includes('Surface "cli" removed')
         )
       ).toBe(true);
     });

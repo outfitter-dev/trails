@@ -411,7 +411,7 @@ describe('deriveSurfaceMap', () => {
       expect(entry.id).toBe('db.main');
       expect(entry.description).toBe('Primary database');
       expect(entry.healthcheck).toBe(true);
-      expect(entry.trailheads).toEqual([]);
+      expect(entry.surfaces).toEqual([]);
     });
 
     test('contour entries are included with schema and references', () => {

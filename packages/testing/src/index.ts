@@ -30,7 +30,7 @@ export {
 } from './context.js';
 export { createTestLogger } from './logger.js';
 
-// Trailhead harnesses
+// Surface harnesses
 export { createCliHarness } from './harness-cli.js';
 export { createMcpHarness } from './harness-mcp.js';
 

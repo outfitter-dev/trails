@@ -314,10 +314,10 @@ const collectSignalGraphRelations = (
 // Entry builders
 // ---------------------------------------------------------------------------
 
-/** Extract trailheads from a raw object. */
-const extractTrailheads = (raw: Record<string, unknown>): string[] =>
-  Array.isArray(raw['trailheads'])
-    ? (raw['trailheads'] as string[]).toSorted()
+/** Extract surfaces from a raw object. */
+const extractSurfaces = (raw: Record<string, unknown>): string[] =>
+  Array.isArray(raw['surfaces'])
+    ? (raw['surfaces'] as string[]).toSorted()
     : [];
 
 /** Add optional schemas to an entry. */
@@ -480,13 +480,13 @@ const addExamples = (
 
 const trailToEntry = (t: Trail<unknown, unknown, unknown>): SurfaceMapEntry => {
   const raw = t as unknown as Record<string, unknown>;
-  const trailheads = extractTrailheads(raw);
+  const surfaces = extractSurfaces(raw);
   const entry: Record<string, unknown> = {
     cli: { path: deriveCliPath(t.id) },
     exampleCount: Array.isArray(t.examples) ? t.examples.length : 0,
     id: t.id,
     kind: t.kind,
-    trailheads,
+    surfaces,
   };
 
   addSchemas(entry, t);
@@ -540,12 +540,12 @@ const signalToEntry = (
   relations: SignalGraphRelations
 ): SurfaceMapEntry => {
   const raw = e as unknown as Record<string, unknown>;
-  const trailheads = extractTrailheads(raw);
+  const surfaces = extractSurfaces(raw);
   const entry: Record<string, unknown> = {
     exampleCount: e.examples?.length ?? 0,
     id: e.id,
     kind: 'signal',
-    trailheads,
+    surfaces,
   };
   addSignalFields(entry, e, raw, relations);
   return sortKeys(entry) as unknown as SurfaceMapEntry;
@@ -556,7 +556,7 @@ const resourceToEntry = (resource: AnyResource): SurfaceMapEntry => {
     exampleCount: 0,
     id: resource.id,
     kind: 'resource',
-    trailheads: [],
+    surfaces: [],
   };
 
   if (resource.description !== undefined) {
@@ -575,7 +575,7 @@ const contourToEntry = (contour: AnyContour): SurfaceMapEntry => {
     id: contour.name,
     identity: contour.identity,
     kind: 'contour',
-    trailheads: [],
+    surfaces: [],
   };
 
   addContourSchema(entry, contour);

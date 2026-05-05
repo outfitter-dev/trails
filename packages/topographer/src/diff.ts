@@ -230,22 +230,22 @@ const diffSchemaFields = (
 // Per-entry diffing
 // ---------------------------------------------------------------------------
 
-/** Diff trailhead additions and removals. */
-const diffTrailheads = (
+/** Diff surface additions and removals. */
+const diffSurfaces = (
   acc: DetailAccumulator,
   prev: SurfaceMapEntry,
   curr: SurfaceMapEntry
 ): void => {
-  const prevTrailheads = new Set(prev.trailheads);
-  const currTrailheads = new Set(curr.trailheads);
-  for (const trailhead of [...currTrailheads].toSorted()) {
-    if (!prevTrailheads.has(trailhead)) {
-      addDetail(acc, 'info', `Trailhead "${trailhead}" added`);
+  const prevSurfaces = new Set(prev.surfaces);
+  const currSurfaces = new Set(curr.surfaces);
+  for (const surface of [...currSurfaces].toSorted()) {
+    if (!prevSurfaces.has(surface)) {
+      addDetail(acc, 'info', `Surface "${surface}" added`);
     }
   }
-  for (const trailhead of [...prevTrailheads].toSorted()) {
-    if (!currTrailheads.has(trailhead)) {
-      addDetail(acc, 'breaking', `Trailhead "${trailhead}" removed`);
+  for (const surface of [...prevSurfaces].toSorted()) {
+    if (!currSurfaces.has(surface)) {
+      addDetail(acc, 'breaking', `Surface "${surface}" removed`);
     }
   }
 };
@@ -475,7 +475,7 @@ const diffEntryDetails = (
   prev: SurfaceMapEntry,
   curr: SurfaceMapEntry
 ): void => {
-  diffTrailheads(acc, prev, curr);
+  diffSurfaces(acc, prev, curr);
   diffMetadata(acc, prev, curr);
 
   if (curr.kind === 'contour') {
@@ -518,7 +518,7 @@ const diffEntry = (
  * Classifies each change with a severity:
  * - `info`: new trail, optional field added, output field added, description change
  * - `warning`: safety marker change, deprecation, crossing change
- * - `breaking`: trail removed, required input added, field removed, type change, trailhead removed
+ * - `breaking`: trail removed, required input added, field removed, type change, surface removed
  */
 /** Find entries added in curr that don't exist in prev. */
 const findAdded = (

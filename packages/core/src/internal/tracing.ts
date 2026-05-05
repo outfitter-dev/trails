@@ -41,7 +41,7 @@ export interface TraceRecord {
   readonly kind: 'activation' | 'signal' | 'span' | 'trail';
   readonly name: string;
   readonly trailId?: string | undefined;
-  readonly trailhead?: 'cli' | 'mcp' | 'http' | 'ws' | undefined;
+  readonly surface?: 'cli' | 'mcp' | 'http' | 'ws' | undefined;
   readonly intent?: 'read' | 'write' | 'destroy' | undefined;
   readonly startedAt: number;
   readonly endedAt?: number | undefined;
@@ -129,7 +129,7 @@ interface CreateTraceRecordOptions {
   readonly traceId?: string | undefined;
   readonly parentId?: string | undefined;
   readonly rootId?: string | undefined;
-  readonly trailhead?: TraceRecord['trailhead'];
+  readonly surface?: TraceRecord['surface'];
   readonly intent?: TraceRecord['intent'];
   readonly sampled?: boolean | undefined;
   readonly permit?:
@@ -165,9 +165,9 @@ export const createTraceRecord = (
     sampled: options.sampled,
     startedAt: Date.now(),
     status: 'ok',
+    surface: options.surface,
     traceId,
     trailId: options.trailId,
-    trailhead: options.trailhead,
   };
 };
 
@@ -193,9 +193,9 @@ export const createActivationTraceRecord = (
     sampled: options.sampled,
     startedAt: Date.now(),
     status: 'ok',
+    surface: undefined,
     traceId,
     trailId: undefined,
-    trailhead: undefined,
   };
 };
 
@@ -216,9 +216,9 @@ export const createSpanRecord = (
   sampled: parent.sampled,
   startedAt: Date.now(),
   status: 'ok',
+  surface: undefined,
   traceId: parent.traceId,
   trailId: undefined,
-  trailhead: undefined,
 });
 
 /** Build a signal lifecycle record from a parent trace context. */
@@ -239,9 +239,9 @@ export const createSignalTraceRecord = (
   sampled: parent.sampled,
   startedAt: Date.now(),
   status: 'ok',
+  surface: undefined,
   traceId: parent.traceId,
   trailId: undefined,
-  trailhead: undefined,
 });
 
 /** Use a completed record as the current trace parent for subsequent trail execution. */

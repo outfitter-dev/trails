@@ -73,7 +73,7 @@ export interface CliCommand {
    * @param parsedArgs - Positional arguments parsed from argv, keyed by field name.
    * @param parsedFlags - Named flags parsed from argv, keyed by camelCase field name.
    * @param ctxOverrides - Optional per-invocation overrides merged into the
-   *   TrailContext before execution. The CLI trailhead marker is always
+   *   TrailContext before execution. The CLI surface marker is always
    *   applied on top of these overrides.
    */
   execute(

@@ -17,7 +17,7 @@ const CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS ${TRACK_TABLE} (
   kind TEXT NOT NULL,
   name TEXT NOT NULL,
   trail_id TEXT,
-  trailhead TEXT,
+  surface TEXT,
   intent TEXT,
   started_at INTEGER NOT NULL,
   ended_at INTEGER,
@@ -53,14 +53,17 @@ const traceTableExists = (db: Database): boolean => {
 
 export const ensureTraceSchema = (db: Database): void => {
   ensureSubsystemSchema(db, {
-    migrate: () => {
+    migrate: (currentVersion) => {
+      if (currentVersion > 0) {
+        db.run(`DROP TABLE IF EXISTS ${TRACK_TABLE}`);
+      }
       db.run(CREATE_TABLE_SQL);
       for (const sql of CREATE_INDEXES_SQL) {
         db.run(sql);
       }
     },
     subsystem: TRACK_SUBSYSTEM,
-    version: 1,
+    version: 2,
   });
 };
 

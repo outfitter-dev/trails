@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   Result,
-  TRAILHEAD_KEY,
+  SURFACE_KEY,
   ValidationError,
   executeTrail,
 } from '@ontrails/core';
@@ -94,7 +94,7 @@ const runVerify = async (
       ctx:
         options?.trailhead === undefined
           ? undefined
-          : { extensions: { [TRAILHEAD_KEY]: options.trailhead } },
+          : { extensions: { [SURFACE_KEY]: options.trailhead } },
       resources: { [authResource.id]: connector },
     }
   );

@@ -304,7 +304,7 @@ const requireStoredExport = (
   return stored;
 };
 
-const hasContourTrailheadEntry = (entry: unknown, id: string): boolean => {
+const hasContourSurfaceEntry = (entry: unknown, id: string): boolean => {
   if (typeof entry !== 'object' || entry === null) {
     return false;
   }
@@ -634,7 +634,7 @@ describe('topo store projection', () => {
       });
       expect(Array.isArray(entries)).toBe(true);
       expect(
-        entries?.some((entry) => hasContourTrailheadEntry(entry, 'entity'))
+        entries?.some((entry) => hasContourSurfaceEntry(entry, 'entity'))
       ).toBe(true);
       const trailEntry = entries?.find(
         (entry) =>

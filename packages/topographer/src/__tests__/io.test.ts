@@ -32,7 +32,7 @@ const makeSurfaceMap = (): SurfaceMap => ({
       id: 'user.create',
       input: { properties: { name: { type: 'string' } }, type: 'object' },
       kind: 'trail',
-      trailheads: ['cli'],
+      surfaces: ['cli'],
     },
   ],
   generatedAt: '2025-01-01T00:00:00.000Z',

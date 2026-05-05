@@ -144,7 +144,7 @@ export class CancelledError extends TrailsError {
 /**
  * Returned when a detour exhausts all recovery attempts.
  *
- * Inherits the wrapped error's category for trailhead mapping (e.g. a
+ * Inherits the wrapped error's category for surface mapping (e.g. a
  * `RetryExhaustedError<ConflictError>` maps to HTTP 409), but always
  * sets `retryable = false` to prevent amplification across `ctx.cross()`
  * boundaries or stacked layers.

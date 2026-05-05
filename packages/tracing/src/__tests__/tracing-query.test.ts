@@ -125,9 +125,9 @@ describe('tracing.query', () => {
           intent: 'read',
           name: 'user.list',
           rootId: 'root-abc',
+          surface: 'cli',
           traceId: 'trace-abc',
           trailId: 'user.list',
-          trailhead: 'cli',
         })
       );
 
@@ -143,9 +143,9 @@ describe('tracing.query', () => {
         name: 'user.list',
         rootId: 'root-abc',
         status: 'ok',
+        surface: 'cli',
         traceId: 'trace-abc',
         trailId: 'user.list',
-        trailhead: 'cli',
       });
       expect(value.records[0]?.attrs).toEqual({ 'trails.surface': 'cli' });
     });

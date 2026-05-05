@@ -31,7 +31,7 @@ export interface ResourceSpec<T, C = unknown> {
   ) => Result<T, Error> | Promise<Result<T, Error>>;
   /** Config schema — when present, config is validated and passed to `create`. */
   readonly config?: z.ZodType<C> | undefined;
-  /** Optional cleanup performed when the hosting trailhead shuts down. */
+  /** Optional cleanup performed when the host application shuts down. */
   readonly dispose?: ((resource: T) => void | Promise<void>) | undefined;
   /** Optional operational readiness probe for introspection tooling. */
   readonly health?:

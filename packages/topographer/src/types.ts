@@ -87,7 +87,7 @@ export interface SurfaceMapActivationEntry {
 export interface SurfaceMapEntry {
   readonly id: string;
   readonly kind: 'contour' | 'trail' | 'signal' | 'resource';
-  readonly trailheads: readonly string[];
+  readonly surfaces: readonly string[];
   readonly cli?:
     | {
         readonly path: readonly string[];
