@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   Result,
   SURFACE_KEY,
+  ValidationError,
   createTrailContext,
   resource,
   signal,
@@ -976,5 +977,147 @@ describe('buildCommands structured input', () => {
         '--input-json requires a value'
       );
     }
+  });
+});
+
+describe('buildCommands date-shortcut absorption', () => {
+  // Use z.string() for the date fields so the shortcut expander runs first
+  // and Zod accepts the resulting ISO string. The shortcut detection still
+  // matches because the schema declares `.datetime()`.
+  const eventsTrail = trail('events.list', {
+    blaze: (input: {
+      since?: string | undefined;
+      until?: string | undefined;
+    }) => Result.ok(input),
+    input: z.object({
+      since: z.string().datetime().optional(),
+      until: z.string().datetime().optional(),
+    }),
+  });
+
+  const greetTrail = trail('greet', {
+    blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
+    input: z.object({ name: z.string() }),
+  });
+
+  const dateOnlyTrail = trail('events.by-day', {
+    blaze: (input: { day?: string | undefined }) => Result.ok(input),
+    input: z.object({
+      day: z.iso.date().optional(),
+    }),
+  });
+
+  const nativeDateTrail = trail('events.by-instant', {
+    blaze: (input: { occurredAt?: Date | undefined }) => Result.ok(input),
+    input: z.object({
+      occurredAt: z.date().optional(),
+    }),
+  });
+
+  test("expands 'today' on a date field before validation", async () => {
+    const app = makeApp(eventsTrail);
+    const cmd = requireCommand(buildCommands(app));
+
+    const result = await cmd.execute({}, { since: 'today' });
+
+    expect(result.isOk()).toBe(true);
+    if (!result.isOk()) {
+      throw new Error('expected ok');
+    }
+    const value = result.value as { since?: string };
+    expect(typeof value.since).toBe('string');
+    // The expander returned an ISO datetime that ends in start-of-day UTC.
+    expect(value.since).toMatch(/T00:00:00\.000Z$/);
+  });
+
+  test("expands 'today' to YYYY-MM-DD for z.iso.date fields before validation", async () => {
+    const app = makeApp(dateOnlyTrail);
+    const cmd = requireCommand(buildCommands(app));
+
+    const result = await cmd.execute({}, { day: 'today' });
+
+    expect(result.isOk()).toBe(true);
+    if (!result.isOk()) {
+      throw new Error('expected ok');
+    }
+    const value = result.value as { day?: string };
+    expect(value.day).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(value.day).not.toContain('T');
+  });
+
+  test("expands 'today' to a Date for z.date fields before validation", async () => {
+    const app = makeApp(nativeDateTrail);
+    const cmd = requireCommand(buildCommands(app));
+
+    const result = await cmd.execute({}, { occurredAt: 'today' });
+
+    expect(result.isOk()).toBe(true);
+    if (!result.isOk()) {
+      throw new Error('expected ok');
+    }
+    const value = result.value as { occurredAt?: Date };
+    expect(value.occurredAt).toBeInstanceOf(Date);
+  });
+
+  test("expands 'Nd' on a date field", async () => {
+    const app = makeApp(eventsTrail);
+    const cmd = requireCommand(buildCommands(app));
+
+    const result = await cmd.execute({}, { since: '7d' });
+
+    expect(result.isOk()).toBe(true);
+    if (!result.isOk()) {
+      throw new Error('expected ok');
+    }
+    const value = result.value as { since?: string };
+    expect(typeof value.since).toBe('string');
+    expect(value.since).toMatch(/T00:00:00\.000Z$/);
+  });
+
+  test('plain ISO datetime strings pass through to Zod unchanged', async () => {
+    const app = makeApp(eventsTrail);
+    const cmd = requireCommand(buildCommands(app));
+
+    const iso = '2025-01-15T12:00:00.000Z';
+    const result = await cmd.execute({}, { since: iso });
+
+    expect(result.isOk()).toBe(true);
+    if (!result.isOk()) {
+      throw new Error('expected ok');
+    }
+    const value = result.value as { since?: string };
+    expect(value.since).toBe(iso);
+  });
+
+  test('invalid shortcut-shaped values surface a ValidationError', async () => {
+    const app = makeApp(eventsTrail);
+    const cmd = requireCommand(buildCommands(app));
+
+    const result = await cmd.execute({}, { since: '7day' });
+
+    expect(result.isErr()).toBe(true);
+    if (!result.isErr()) {
+      throw new Error('expected err');
+    }
+    // Preserve the error class so downstream surfaces (CLI exit code,
+    // HTTP status, JSON-RPC code) route via the validation taxonomy.
+    expect(result.error).toBeInstanceOf(ValidationError);
+    expect(result.error.message).toContain('7day');
+    expect(result.error.message).toContain('today');
+  });
+
+  test('shortcuts are NOT expanded for trails without date fields', async () => {
+    const app = makeApp(greetTrail);
+    const cmd = requireCommand(buildCommands(app));
+
+    // The trail input has only `name: z.string()`, so 'today' must not
+    // be treated as a date shortcut.
+    const result = await cmd.execute({}, { name: 'today' });
+
+    expect(result.isOk()).toBe(true);
+    if (!result.isOk()) {
+      throw new Error('expected ok');
+    }
+    expect(result.value).toBe('Hello, today');
   });
 });

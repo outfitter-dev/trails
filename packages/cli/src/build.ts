@@ -23,6 +23,12 @@ import {
 } from '@ontrails/core';
 
 import type { AnyTrail, CliArg, CliCommand, CliFlag } from './command.js';
+import {
+  detectDateFieldKinds,
+  detectDateFields,
+  expandDateShortcuts,
+} from './date-shortcuts.js';
+import type { DateShortcutKind } from './date-shortcuts.js';
 import { dryRunPreset, toFlags } from './flags.js';
 import {
   inputHasCursorField,
@@ -220,9 +226,44 @@ const splitStructuredInlineJsonArg = (
   return { positionalInlineJson, trailArgs };
 };
 
+/**
+ * Apply date-shortcut expansion in place over a merged-input record.
+ *
+ * Throws a `ValidationError` when any field carries a malformed
+ * shortcut-shaped value so the surrounding `safeMergeInput` can route
+ * the failure through the standard onResult path.
+ */
+const applyDateShortcutsInPlace = (
+  mergedInput: Record<string, unknown>,
+  dateFields: readonly string[],
+  dateFieldKinds: Readonly<Record<string, DateShortcutKind>>
+): void => {
+  if (dateFields.length === 0) {
+    return;
+  }
+  const expansion = expandDateShortcuts(
+    mergedInput,
+    dateFields,
+    new Date(),
+    dateFieldKinds
+  );
+  if (!expansion.ok) {
+    throw new ValidationError(expansion.message, {
+      context: { field: expansion.field },
+    });
+  }
+  for (const field of dateFields) {
+    if (field in expansion.value) {
+      mergedInput[field] = expansion.value[field];
+    }
+  }
+};
+
 const resolveMergedInput = async (
   fields: readonly Field[],
   metaFlagNames: ReadonlySet<string>,
+  dateFields: readonly string[],
+  dateFieldKinds: Readonly<Record<string, DateShortcutKind>>,
   parsedArgs: Record<string, unknown>,
   parsedFlags: Record<string, unknown>,
   options?: DeriveCliCommandsOptions
@@ -249,6 +290,7 @@ const resolveMergedInput = async (
     normalizedFlags
   );
   await applyPrompting(fields, mergedInput, options);
+  applyDateShortcutsInPlace(mergedInput, dateFields, dateFieldKinds);
   return {
     mergedInput,
     usedStructuredInput: structuredInput.used,
@@ -283,6 +325,8 @@ const maybeAddStructuredInputHint = (
 const safeMergeInput = async (
   fields: readonly Field[],
   metaFlagNames: ReadonlySet<string>,
+  dateFields: readonly string[],
+  dateFieldKinds: Readonly<Record<string, DateShortcutKind>>,
   parsedArgs: Record<string, unknown>,
   parsedFlags: Record<string, unknown>,
   options?: DeriveCliCommandsOptions
@@ -297,6 +341,8 @@ const safeMergeInput = async (
       await resolveMergedInput(
         fields,
         metaFlagNames,
+        dateFields,
+        dateFieldKinds,
         parsedArgs,
         parsedFlags,
         options
@@ -406,6 +452,8 @@ const createExecute =
     t: AnyTrail,
     fields: readonly Field[],
     metaFlagNames: ReadonlySet<string>,
+    dateFields: readonly string[],
+    dateFieldKinds: Readonly<Record<string, DateShortcutKind>>,
     shouldHintStructuredInput: boolean,
     options?: DeriveCliCommandsOptions
   ) =>
@@ -417,6 +465,8 @@ const createExecute =
     const merged = await safeMergeInput(
       fields,
       metaFlagNames,
+      dateFields,
+      dateFieldKinds,
       parsedArgs,
       parsedFlags,
       options
@@ -600,6 +650,8 @@ const toCliCommand = (
     derivedArgs,
     shouldHintStructuredInput
   );
+  const dateFields = detectDateFields(t.input);
+  const dateFieldKinds = detectDateFieldKinds(t.input);
 
   return {
     args,
@@ -609,6 +661,8 @@ const toCliCommand = (
       t,
       fields,
       metaFlagNames,
+      dateFields,
+      dateFieldKinds,
       shouldHintStructuredInput,
       options
     ),
