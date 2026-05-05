@@ -183,7 +183,7 @@ Adds `--cwd <path>` flag.
 import { dryRunPreset } from '@ontrails/cli';
 ```
 
-Adds a `--dry-run` flag. Automatically added for trails with `intent: 'destroy'`. If the blaze needs to branch on it, declare `dryRun` in the trail input schema so validation preserves it.
+Adds a `--dry-run` flag. Automatically added for trails with `intent: 'write'` or `intent: 'destroy'`. If the blaze needs to branch on it, read `ctx.dryRun`; dry-run is execution context, not trail input.
 
 ## Output Formatting
 

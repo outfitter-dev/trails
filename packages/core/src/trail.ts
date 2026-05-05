@@ -102,6 +102,14 @@ export interface TrailSpec<I, O, CI = never> {
   readonly intent?: 'read' | 'write' | 'destroy' | undefined;
   /** Trail is idempotent (safe to retry) */
   readonly idempotent?: boolean | undefined;
+  /**
+   * Trail explicitly supports dry-run execution semantics.
+   *
+   * This is a declaration for governance, derivation, and surface tooling. It
+   * does not change runtime behavior by itself; the active invocation signal is
+   * `TrailContext.dryRun`.
+   */
+  readonly dryRun?: boolean | undefined;
   /** Whether trailheads expose this trail by default. */
   readonly visibility?: TrailVisibility | undefined;
   /** Arbitrary meta for tooling and filtering */

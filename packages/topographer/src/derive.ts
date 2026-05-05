@@ -351,6 +351,9 @@ const addSafetyMarkers = (
   if (t.idempotent === true) {
     entry['idempotent'] = true;
   }
+  if (t.dryRun === true) {
+    entry['dryRunCapable'] = true;
+  }
 };
 
 /** Add deprecation and detours to an entry. */

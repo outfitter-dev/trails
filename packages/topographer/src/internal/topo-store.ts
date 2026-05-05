@@ -876,6 +876,10 @@ const addSafetyMarkers = (
   if (trail.idempotent === true) {
     entry['idempotent'] = true;
   }
+
+  if (trail.dryRun === true) {
+    entry['dryRunCapable'] = true;
+  }
 };
 
 const addExtendedMetadata = (

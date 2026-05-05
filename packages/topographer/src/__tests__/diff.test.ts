@@ -277,13 +277,28 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('safety marker changed classified as warning', () => {
-      const prev = surfaceMap([entry({ id: 'data.wipe', intent: 'read' })]);
-      const curr = surfaceMap([entry({ id: 'data.wipe', intent: 'destroy' })]);
+      const prev = surfaceMap([
+        entry({ id: 'data.wipe', intent: 'read' }),
+        entry({ id: 'data.preview' }),
+      ]);
+      const curr = surfaceMap([
+        entry({ id: 'data.wipe', intent: 'destroy' }),
+        entry({ dryRunCapable: true, id: 'data.preview' }),
+      ]);
       const result = deriveSurfaceMapDiff(prev, curr);
 
-      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings).toHaveLength(2);
       expect(
-        result.warnings[0]?.details.some((d) => d.includes('intent changed'))
+        result.warnings.some((warning) =>
+          warning.details.some((detail) => detail.includes('intent changed'))
+        )
+      ).toBe(true);
+      expect(
+        result.warnings.some((warning) =>
+          warning.details.some((detail) =>
+            detail.includes('dryRunCapable changed')
+          )
+        )
       ).toBe(true);
     });
 

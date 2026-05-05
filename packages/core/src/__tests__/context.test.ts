@@ -74,4 +74,14 @@ describe('createTrailContext', () => {
     const b = createTrailContext();
     expect(a.requestId).not.toBe(b.requestId);
   });
+
+  test('defaults dryRun to false', () => {
+    const ctx = createTrailContext();
+    expect(ctx.dryRun).toBe(false);
+  });
+
+  test('respects dryRun override', () => {
+    const ctx = createTrailContext({ dryRun: true });
+    expect(ctx.dryRun).toBe(true);
+  });
 });

@@ -157,6 +157,33 @@ describe('buildCommands path derivation', () => {
     expect(dryRunFlag).toBeDefined();
     expect(dryRunFlag?.type).toBe('boolean');
   });
+
+  test('adds --dry-run for write intent trails', () => {
+    const t = trail('entity.create', {
+      blaze: () => Result.ok({ id: 'x' }),
+      input: z.object({ name: z.string() }),
+      intent: 'write',
+      output: z.object({ id: z.string() }),
+    });
+    const app = makeApp(t);
+    const commands = buildCommands(app);
+    const dryRunFlag = commands[0]?.flags.find((f) => f.name === 'dry-run');
+    expect(dryRunFlag).toBeDefined();
+    expect(dryRunFlag?.type).toBe('boolean');
+  });
+
+  test('does not add --dry-run for read intent trails', () => {
+    const t = trail('entity.show', {
+      blaze: (input: { id: string }) => Result.ok({ id: input.id }),
+      input: z.object({ id: z.string() }),
+      intent: 'read',
+      output: z.object({ id: z.string() }),
+    });
+    const app = makeApp(t);
+    const commands = buildCommands(app);
+    const dryRunFlag = commands[0]?.flags.find((f) => f.name === 'dry-run');
+    expect(dryRunFlag).toBeUndefined();
+  });
 });
 
 describe('buildCommands execution', () => {
@@ -1119,5 +1146,128 @@ describe('buildCommands date-shortcut absorption', () => {
       throw new Error('expected ok');
     }
     expect(result.value).toBe('Hello, today');
+  });
+});
+
+describe('--dry-run wiring', () => {
+  test('--dry-run flag sets ctx.dryRun to true on the trail', async () => {
+    let observed: boolean | undefined;
+    const t = trail('thing.delete', {
+      blaze: (_input, ctx) => {
+        observed = ctx.dryRun;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      intent: 'destroy',
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { dryRun: true, id: 'abc' }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(observed).toBe(true);
+  });
+
+  test('omitted --dry-run leaves ctx.dryRun as false', async () => {
+    let observed: boolean | undefined;
+    const t = trail('thing.delete-default', {
+      blaze: (_input, ctx) => {
+        observed = ctx.dryRun;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      intent: 'destroy',
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app));
+
+    const result = await cmd.execute({ id: 'abc' }, { id: 'abc' });
+
+    expect(result.isOk()).toBe(true);
+    expect(observed).toBe(false);
+  });
+
+  test('omitted --dry-run preserves a context factory dryRun default', async () => {
+    let observed: boolean | undefined;
+    const t = trail('thing.delete-factory-default', {
+      blaze: (_input, ctx) => {
+        observed = ctx.dryRun;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      intent: 'destroy',
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(
+      buildCommands(app, {
+        createContext: () => createTrailContext({ dryRun: true }),
+      })
+    );
+
+    const result = await cmd.execute({ id: 'abc' }, { id: 'abc' });
+
+    expect(result.isOk()).toBe(true);
+    expect(observed).toBe(true);
+  });
+
+  test('--dry-run does not leak into trail input', async () => {
+    let receivedInput: unknown;
+    const t = trail('thing.write', {
+      blaze: (input: { name: string }) => {
+        receivedInput = input;
+        return Result.ok({ name: input.name });
+      },
+      input: z.object({ name: z.string() }),
+      intent: 'write',
+      output: z.object({ name: z.string() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app));
+
+    const result = await cmd.execute(
+      { name: 'alpha' },
+      { dryRun: true, name: 'alpha' }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(receivedInput).toEqual({ name: 'alpha' });
+  });
+
+  test('schema-authored dryRun remains trail input instead of a meta flag', async () => {
+    let observedInput: { dryRun: boolean; id: string } | undefined;
+    let observedCtxDryRun: boolean | undefined;
+    const t = trail('thing.preview', {
+      blaze: (input: { dryRun: boolean; id: string }, ctx) => {
+        observedInput = input;
+        observedCtxDryRun = ctx.dryRun;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ dryRun: z.boolean(), id: z.string() }),
+      intent: 'write',
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { dryRun: true, id: 'abc' }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(observedInput).toEqual({ dryRun: true, id: 'abc' });
+    expect(observedCtxDryRun).toBe(false);
   });
 });

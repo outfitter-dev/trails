@@ -441,6 +441,7 @@ describe('deriveSurfaceMap', () => {
     test('safety markers are included when set', () => {
       const t = trail('safe.trail', {
         blaze: noop,
+        dryRun: true,
         idempotent: true,
         input: z.object({}),
         intent: 'read',
@@ -449,6 +450,7 @@ describe('deriveSurfaceMap', () => {
 
       expect(entry.intent).toBe('read');
       expect(entry.idempotent).toBe(true);
+      expect(entry.dryRunCapable).toBe(true);
     });
 
     test('exampleCount reflects the number of examples', () => {

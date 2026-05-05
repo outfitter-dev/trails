@@ -100,6 +100,14 @@ export interface ExecuteTrailOptions {
   /** Topo used for signal-driven activation; required for `ctx.fire()` to work. */
   readonly topo?: Topo | undefined;
   /**
+   * Whether this invocation is a dry run.
+   *
+   * Sets `ctx.dryRun` for the trail. Defaults to `false`. The framework
+   * never short-circuits execution on this field — it only carries the
+   * flag through. Trails that read `ctx.dryRun` decide what dry-run means.
+   */
+  readonly dryRun?: boolean | undefined;
+  /**
    * Override the validation schema used for input validation.
    *
    * When a trail is invoked via `ctx.cross()` and the target declares
@@ -130,9 +138,13 @@ const applyContextOverrides = (
       }
     : base;
 
-  return options?.abortSignal
+  const withAbort = options?.abortSignal
     ? { ...withOverrides, abortSignal: options.abortSignal }
     : withOverrides;
+
+  return options?.dryRun === undefined
+    ? withAbort
+    : { ...withAbort, dryRun: options.dryRun };
 };
 
 const bindResourceLookup = (
@@ -159,6 +171,8 @@ const bindResourceLookup = (
  * 1. Factory (`createContext`) or `createTrailContext()` defaults.
  * 2. Partial `ctx` overrides merged on top.
  * 3. `abortSignal` override takes final precedence.
+ * 4. `dryRun` option takes final precedence (defaults to `false` via
+ *    `createTrailContext` when neither option nor `ctx.dryRun` is provided).
  */
 const resolveContext = async (
   options?: ExecuteTrailOptions

@@ -214,6 +214,6 @@ describe('dryRunPreset', () => {
     expect(flags).toHaveLength(1);
     expect(flags[0]?.name).toBe('dry-run');
     expect(flags[0]?.type).toBe('boolean');
-    expect(flags[0]?.default).toBe(false);
+    expect(flags[0]?.default).toBeUndefined();
   });
 });

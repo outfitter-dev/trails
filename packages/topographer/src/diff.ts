@@ -270,6 +270,13 @@ const diffMetadata = (
       `idempotent changed: ${String(prev.idempotent ?? false)} -> ${String(curr.idempotent ?? false)}`
     );
   }
+  if (prev.dryRunCapable !== curr.dryRunCapable) {
+    addDetail(
+      acc,
+      'warning',
+      `dryRunCapable changed: ${String(prev.dryRunCapable ?? false)} -> ${String(curr.dryRunCapable ?? false)}`
+    );
+  }
   if (prev.description !== curr.description) {
     addDetail(acc, 'info', 'Description updated');
   }

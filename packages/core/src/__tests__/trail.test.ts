@@ -310,6 +310,15 @@ describe('trail()', () => {
       expect(t.idempotent).toBe(true);
     });
 
+    test('dryRun capability is preserved when set', () => {
+      const t = trail('supports.dry-run', {
+        blaze: () => Result.ok(),
+        dryRun: true,
+        input: z.object({}),
+      });
+      expect(t.dryRun).toBe(true);
+    });
+
     test('visibility defaults to public', () => {
       const minimal = trail('visible', {
         blaze: () => Result.ok(),

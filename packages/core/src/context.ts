@@ -34,6 +34,7 @@ export const createTrailContext = (
   const ctx = {
     abortSignal: new AbortController().signal,
     cwd: process.cwd(),
+    dryRun: false,
     env: process.env as Record<string, string | undefined>,
     requestId: Bun.randomUUIDv7(),
     trace: passthroughTrace,
@@ -43,6 +44,9 @@ export const createTrailContext = (
   ctx.resource = lookup;
   if (ctx.trace === undefined) {
     ctx.trace = passthroughTrace;
+  }
+  if (ctx.dryRun === undefined) {
+    ctx.dryRun = false;
   }
   return ctx;
 };

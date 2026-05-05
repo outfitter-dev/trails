@@ -148,6 +148,7 @@ const exampleApp = () => {
     contours: [entityContour],
     crosses: ['entity.add'],
     description: 'List entities',
+    dryRun: true,
     idempotent: true,
     input: z.object({}),
     intent: 'read',
@@ -665,6 +666,13 @@ describe('topo store projection', () => {
           provenance: { source: 'trail.examples' },
         },
       ]);
+      const listEntry = entries?.find(
+        (entry) =>
+          typeof entry === 'object' &&
+          entry !== null &&
+          (entry as { id?: unknown }).id === 'entity.list'
+      ) as { dryRunCapable?: unknown } | undefined;
+      expect(listEntry?.dryRunCapable).toBe(true);
 
       const lock = JSON.parse(stored.lockContent);
       const lockTrail = lock.apps['projection-app'].trails['entity.add'];

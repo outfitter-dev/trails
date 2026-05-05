@@ -32,7 +32,7 @@ Trail IDs map to CLI commands via deterministic path projection:
 - `deriveFields(schema)` introspects the Zod input schema to produce a surface-agnostic `Field[]` descriptor array
 - `toFlags(fields)` converts faithfully representable descriptors to CLI flag definitions, including kebab-casing (`dryRun` → `--dry-run`)
 - Structured input channels supplement flags for full-schema input on the CLI; that input model is defined in ADR-0020
-- Destroy-intent trails auto-merge a `--dry-run` flag via `dryRunPreset()`
+- Write- and destroy-intent trails auto-merge a `--dry-run` flag via `dryRunPreset()`
 
 ### MCP derivation
 
@@ -64,7 +64,7 @@ The following table shows how a single trail ID derives across all three surface
 | Surface | Derived artifact | Value |
 | --- | --- | --- |
 | CLI | Command path | `["user", "delete"]` |
-| CLI | Extra flags | `--dry-run` (auto-added for destroy intent) |
+| CLI | Extra flags | `--dry-run` (auto-added for write/destroy intent) |
 | MCP | Tool name | `myapp_user_delete` |
 | MCP | Annotations | `destructiveHint: true` |
 | HTTP | Method | `DELETE` |

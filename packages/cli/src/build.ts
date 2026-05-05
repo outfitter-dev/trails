@@ -126,6 +126,7 @@ const validateCliCommandBuild = (
  */
 const META_FLAG_CANDIDATES = new Set([
   'all',
+  'dryRun',
   'input',
   'inputJson',
   'json',
@@ -377,16 +378,42 @@ const runTrailOnce = async (
   t: AnyTrail,
   ctxOverrides: Partial<TrailContext> | undefined,
   options: DeriveCliCommandsOptions | undefined,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
+  dryRun: boolean | undefined
 ): Promise<Result<unknown, Error>> =>
   await executeTrail(t, input, {
     configValues: options?.configValues,
     createContext: options?.createContext,
     ctx: withSurfaceMarker('cli', ctxOverrides),
+    dryRun,
     layers: options?.layers,
     resources: options?.resources,
     topo: graph,
   });
+
+/**
+ * Read the parsed `--dry-run` flag value.
+ *
+ * Accepts both the kebab-case (`'dry-run'`) and camelCase (`'dryRun'`)
+ * forms so callers don't have to normalize before invoking `execute`.
+ * Returns `undefined` when the flag is absent so custom context factories can
+ * provide their own `ctx.dryRun` default.
+ */
+const readDryRunFlag = (
+  parsedFlags: Record<string, unknown>,
+  metaFlagNames: ReadonlySet<string>
+): boolean | undefined => {
+  if (!metaFlagNames.has('dryRun')) {
+    return undefined;
+  }
+  if (parsedFlags['dryRun'] === true || parsedFlags['dry-run'] === true) {
+    return true;
+  }
+  if (parsedFlags['dryRun'] === false || parsedFlags['dry-run'] === false) {
+    return false;
+  }
+  return undefined;
+};
 
 /**
  * Decide whether the executor should iterate this invocation.
@@ -424,7 +451,8 @@ const runPaginatedIteration = async (
   ctxOverrides: Partial<TrailContext> | undefined,
   options: DeriveCliCommandsOptions | undefined,
   baseInput: Record<string, unknown>,
-  jsonl: boolean
+  jsonl: boolean,
+  dryRun: boolean | undefined
 ): Promise<IterationOutcome> => {
   if (!inputHasCursorField(t)) {
     return {
@@ -441,7 +469,8 @@ const runPaginatedIteration = async (
     baseInput: stripAllFlag(baseInput),
     cursorField: 'cursor',
     onItem: jsonl ? writeJsonLine : undefined,
-    runPage: (input) => runTrailOnce(graph, t, ctxOverrides, options, input),
+    runPage: (input) =>
+      runTrailOnce(graph, t, ctxOverrides, options, input, dryRun),
   });
   return { result, streamed: jsonl && result.isOk() };
 };
@@ -485,6 +514,7 @@ const createExecute =
     }
     const { mergedInput, usedStructuredInput } = merged.value;
 
+    const dryRun = readDryRunFlag(parsedFlags, metaFlagNames);
     let result: Result<unknown, Error>;
     let streamed = false;
     if (shouldIteratePages(t, parsedFlags, metaFlagNames)) {
@@ -494,7 +524,8 @@ const createExecute =
         ctxOverrides,
         options,
         mergedInput,
-        isJsonlMode(parsedFlags)
+        isJsonlMode(parsedFlags),
+        dryRun
       );
       ({ result } = outcome);
       ({ streamed } = outcome);
@@ -504,7 +535,8 @@ const createExecute =
         t,
         ctxOverrides,
         options,
-        metaFlagNames.has('all') ? stripAllFlag(mergedInput) : mergedInput
+        metaFlagNames.has('all') ? stripAllFlag(mergedInput) : mergedInput,
+        dryRun
       );
     }
 
@@ -549,7 +581,7 @@ const buildFlags = (
   if (options?.presets) {
     flags = mergeFlags(options.presets.flat(), flags);
   }
-  if (intent === 'destroy') {
+  if (intent === 'destroy' || intent === 'write') {
     flags = mergeFlags(dryRunPreset(), flags);
   }
   return flags;

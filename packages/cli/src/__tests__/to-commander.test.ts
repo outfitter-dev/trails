@@ -1,6 +1,12 @@
 import { describe, expect, mock, test } from 'bun:test';
 
-import { NotFoundError, Result, trail, topo } from '@ontrails/core';
+import {
+  createTrailContext,
+  NotFoundError,
+  Result,
+  trail,
+  topo,
+} from '@ontrails/core';
 import { z } from 'zod';
 
 import { deriveCliCommands } from '../build.js';
@@ -815,6 +821,37 @@ describe('toCommander option wiring', () => {
 
       await program.parseAsync(['node', 'test', 'check', '--strict']);
       expect(spy.received['strict']).toBe(true);
+    });
+
+    test('omitted --dry-run preserves a createContext dryRun default through Commander', async () => {
+      let observed: boolean | undefined;
+      const t = trail('thing.delete', {
+        blaze: (_input, ctx) => {
+          observed = ctx.dryRun;
+          return Result.ok({ ok: true });
+        },
+        input: z.object({ id: z.string() }),
+        intent: 'destroy',
+        output: z.object({ ok: z.boolean() }),
+      });
+      const app = makeApp(t);
+      const commands = buildCommands(app, {
+        createContext: () => createTrailContext({ dryRun: true }),
+        onResult: noopResult,
+      });
+      const program = toCommander(commands, { name: 'test' });
+      program.exitOverride();
+
+      await program.parseAsync([
+        'node',
+        'test',
+        'thing',
+        'delete',
+        '--id',
+        'abc',
+      ]);
+
+      expect(observed).toBe(true);
     });
   });
 

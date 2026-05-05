@@ -83,7 +83,7 @@ These are deterministic transformations from authored information. If the input 
 | Trail ID | Full CLI command path (`entity show`, `topo pin`, `topo pin remove`), MCP tool name (`myapp_entity_show`) |
 | `.describe()` on Zod fields | `--help` text, MCP tool descriptions |
 | `intent: 'read'` | MCP `readOnlyHint`, HTTP GET, skip CLI confirmation |
-| `intent: 'destroy'` | Auto-add `--dry-run` flag on CLI, HTTP DELETE |
+| `intent: 'write'` / `intent: 'destroy'` | Auto-add `--dry-run` flag on CLI; map HTTP to POST / DELETE |
 | Error taxonomy class | Exit code, HTTP status, JSON-RPC code, retryability |
 | Examples | Test assertions via `testExamples()`, agent documentation |
 

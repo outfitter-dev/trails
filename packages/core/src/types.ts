@@ -216,6 +216,27 @@ export interface TrailContext {
   readonly extensions?: Readonly<Record<string, unknown>> | undefined;
   readonly resource?: ResourceLookup | undefined;
   /**
+   * Whether the current invocation is a dry run.
+   *
+   * Defaults to `false`. Trails that don't read this field are unaffected.
+   * Trails that do read it decide what dry-run means for their domain — for
+   * example: preview the change without committing, validate inputs without
+   * performing side effects, or return what would happen without actually
+   * doing it.
+   *
+   * The framework only carries the flag from the surface (e.g. CLI
+   * `--dry-run`) into the context. It never short-circuits trail execution
+   * on its own based on this field.
+   *
+   * Pair this runtime signal with `TrailSpec.dryRun`, which declares whether a
+   * trail supports dry-run semantics for governance, derivation, and surface
+   * tooling.
+   *
+   * @remarks Always defined on contexts produced by `executeTrail` or
+   * `createTrailContext` (normalized to `false` when not provided).
+   */
+  readonly dryRun?: boolean | undefined;
+  /**
    * Wrap a callback in a child trace span.
    *
    * Always present on contexts produced by `executeTrail` or

@@ -115,7 +115,6 @@ export const cwdPreset = (): CliFlag[] => [
 /** Flag for dry-run mode: --dry-run */
 export const dryRunPreset = (): CliFlag[] => [
   {
-    default: false,
     description: 'Execute without side effects',
     name: 'dry-run',
     required: false,

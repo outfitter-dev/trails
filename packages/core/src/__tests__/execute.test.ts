@@ -2163,4 +2163,81 @@ describe('executeTrail', () => {
       });
     });
   });
+
+  describe('dryRun option', () => {
+    test('defaults ctx.dryRun to false when option omitted', async () => {
+      let observed: boolean | undefined;
+      const t = trail('observes-dry-run-default', {
+        blaze: (_input, ctx) => {
+          observed = ctx.dryRun;
+          return Result.ok({ ok: true });
+        },
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+      });
+
+      const result = await executeTrail(t, {});
+
+      expect(result.isOk()).toBe(true);
+      expect(observed).toBe(false);
+    });
+
+    test('sets ctx.dryRun to true when dryRun option is true', async () => {
+      let observed: boolean | undefined;
+      const t = trail('observes-dry-run-true', {
+        blaze: (_input, ctx) => {
+          observed = ctx.dryRun;
+          return Result.ok({ ok: true });
+        },
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+      });
+
+      const result = await executeTrail(t, {}, { dryRun: true });
+
+      expect(result.isOk()).toBe(true);
+      expect(observed).toBe(true);
+    });
+
+    test('option dryRun: true overrides ctx.dryRun: false', async () => {
+      let observed: boolean | undefined;
+      const t = trail('dry-run-precedence', {
+        blaze: (_input, ctx) => {
+          observed = ctx.dryRun;
+          return Result.ok({ ok: true });
+        },
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+      });
+
+      const result = await executeTrail(
+        t,
+        {},
+        {
+          ctx: { dryRun: false },
+          dryRun: true,
+        }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(observed).toBe(true);
+    });
+
+    test('preserves ctx.dryRun: true when dryRun option is omitted', async () => {
+      let observed: boolean | undefined;
+      const t = trail('dry-run-ctx-preserved', {
+        blaze: (_input, ctx) => {
+          observed = ctx.dryRun;
+          return Result.ok({ ok: true });
+        },
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+      });
+
+      const result = await executeTrail(t, {}, { ctx: { dryRun: true } });
+
+      expect(result.isOk()).toBe(true);
+      expect(observed).toBe(true);
+    });
+  });
 });
