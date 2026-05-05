@@ -15,12 +15,13 @@ import type {
   ActionResultContext,
   ResolveCliPermitFromToken,
 } from '@ontrails/cli';
-import { surface } from '@ontrails/cli/commander';
+import { createProgram } from '@ontrails/cli/commander';
 import { resolvePermitFromBearerToken } from '@ontrails/permits';
 import { deriveSurfaceMap } from '@ontrails/topographer';
 
 import { app } from './app.js';
 import { resolveInputWithClack } from './clack.js';
+import { attachCompletionsInstallCommand } from './run-completions-install.js';
 import { tryRecoverFromRunCollision } from './run-collision.js';
 import { tryExampleRunOutput } from './run-example.js';
 import { tryExamplesRunOutput } from './run-examples.js';
@@ -222,8 +223,7 @@ const readWatchSurfaceHash = async (
 const runSurfaceOnce = async (): Promise<void> => {
   const session = maybeInstallTraceSession();
   try {
-    // oxlint-disable-next-line require-hook -- CLI entry point
-    await surface(app, {
+    const program = createProgram(app, {
       description: 'Agent-native, contract-first TypeScript framework',
       name: 'trails',
       onResult: buildOnResult(session),
@@ -239,6 +239,8 @@ const runSurfaceOnce = async (): Promise<void> => {
       resolvePermitFromToken: resolveCliPermitFromToken,
       version: trailsPackageVersion,
     });
+    attachCompletionsInstallCommand(program);
+    await program.parseAsync();
   } finally {
     if (session !== undefined) {
       const records = session.finalize();
