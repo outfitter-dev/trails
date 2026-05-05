@@ -151,8 +151,7 @@ for programmatic access.
 For every non-empty object input schema, the CLI also exposes:
 
 - `--input-json <json>`
-- `--input-file <path>`
-- `--stdin`
+- `--input <path|->`
 
 These channels supply the full input object before positional args and explicit
 flags are merged on top. Explicit CLI inputs always win on conflict, and the

@@ -381,7 +381,7 @@ Trails produce JSON. Unix pipes compose JSON. `trails run` naturally chains:
 
 ```bash
 # Run one trail, feed its output to another
-trails run entity.show '{"name": "Alpha"}' --quiet | trails run entity.update --stdin
+trails run entity.show --input-json '{"input":{"name":"Alpha"}}' --quiet | trails run entity.update --input -
 
 # Extract a field with jq, feed to next trail
 trails run entity.list '{"limit": 5}' --quiet | jq '.[0].id' | xargs -I {} trails run entity.show '{"id": "{}"}'

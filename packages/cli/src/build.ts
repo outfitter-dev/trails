@@ -30,7 +30,7 @@ import {
   hasStructuredOnlyFields,
   kebabToCamel,
   normalizeParsedFlags,
-  readStructuredInput,
+  resolveStructuredInput,
   structuredInputPreset,
   supportsStructuredInput,
 } from './structured-input.js';
@@ -81,6 +81,15 @@ const mergeFlags = (presets: CliFlag[], derived: CliFlag[]): CliFlag[] => {
   return merged;
 };
 
+const RESERVED_STRUCTURED_INPUT_META_FLAGS = new Set(['input']);
+
+const mergeStructuredInputFlags = (derived: CliFlag[]): CliFlag[] => {
+  const filteredDerived = derived.filter(
+    (flag) => !RESERVED_STRUCTURED_INPUT_META_FLAGS.has(kebabToCamel(flag.name))
+  );
+  return mergeFlags(structuredInputPreset(), filteredDerived);
+};
+
 const validateCliCommandBuild = (
   graph: Topo,
   options?: DeriveCliCommandsOptions
@@ -98,13 +107,21 @@ const validateCliCommandBuild = (
  * layer composition, and onResult handling.
  */
 const META_FLAG_CANDIDATES = new Set([
-  'inputFile',
+  'input',
   'inputJson',
   'json',
   'jsonl',
   'output',
-  'stdin',
 ]);
+
+const STRUCTURED_INLINE_JSON_ARG_NAME = 'inline-json';
+
+const STRUCTURED_INLINE_JSON_ARG: CliArg = {
+  description: 'Inline JSON object to merge before explicit flags',
+  name: STRUCTURED_INLINE_JSON_ARG_NAME,
+  required: false,
+  variadic: false,
+};
 
 /** Merge parsed args and flags into a camelCase input record. */
 const mergeArgsAndFlags = (
@@ -114,11 +131,12 @@ const mergeArgsAndFlags = (
   parsedFlags: Record<string, unknown>
 ): Record<string, unknown> => {
   const mergedInput: Record<string, unknown> = { ...structuredInput };
-  // Only merge defined positional args — undefined means the user omitted it
+  // Only merge defined positional args — undefined means the user omitted it.
   for (const [key, value] of Object.entries(parsedArgs)) {
-    if (value !== undefined) {
-      mergedInput[key] = value;
+    if (value === undefined) {
+      continue;
     }
+    mergedInput[key] = value;
   }
   for (const [key, value] of Object.entries(parsedFlags)) {
     if (!metaFlagNames.has(key) && value !== undefined) {
@@ -163,12 +181,18 @@ const selectStructuredInputFlags = (
     Object.entries(normalizedFlags).filter(([key]) => metaFlagNames.has(key))
   );
 
-const usesStructuredInput = (
-  structuredInputFlags: Record<string, unknown>
-): boolean =>
-  structuredInputFlags['inputJson'] !== undefined ||
-  structuredInputFlags['inputFile'] !== undefined ||
-  structuredInputFlags['stdin'] === true;
+const splitStructuredInlineJsonArg = (
+  parsedArgs: Record<string, unknown>
+): {
+  readonly positionalInlineJson: unknown;
+  readonly trailArgs: Record<string, unknown>;
+} => {
+  const {
+    [STRUCTURED_INLINE_JSON_ARG_NAME]: positionalInlineJson,
+    ...trailArgs
+  } = parsedArgs;
+  return { positionalInlineJson, trailArgs };
+};
 
 const resolveMergedInput = async (
   fields: readonly Field[],
@@ -185,17 +209,23 @@ const resolveMergedInput = async (
     normalizedFlags,
     metaFlagNames
   );
-  const structuredInput = await readStructuredInput(structuredInputFlags);
+  const { positionalInlineJson, trailArgs } =
+    splitStructuredInlineJsonArg(parsedArgs);
+
+  const structuredInput = await resolveStructuredInput(
+    structuredInputFlags,
+    positionalInlineJson
+  );
   const mergedInput = mergeArgsAndFlags(
     metaFlagNames,
-    structuredInput,
-    parsedArgs,
+    structuredInput.payload ?? {},
+    trailArgs,
     normalizedFlags
   );
   await applyPrompting(fields, mergedInput, options);
   return {
     mergedInput,
-    usedStructuredInput: usesStructuredInput(structuredInputFlags),
+    usedStructuredInput: structuredInput.used,
   };
 };
 
@@ -328,7 +358,7 @@ const buildFlags = (
 ): CliFlag[] => {
   let flags = toFlags(fields);
   if (supportsStructuredInput(t.input)) {
-    flags = mergeFlags(structuredInputPreset(), flags);
+    flags = mergeStructuredInputFlags(flags);
   }
   if (options?.presets) {
     flags = mergeFlags(options.presets.flat(), flags);
@@ -389,11 +419,18 @@ const derivePositionalArgs = (
     (f) => f.type === 'string' && f.required && f.default === undefined
   );
   if (candidates.length === 1 && candidates[0]) {
-    return { args: [fieldToArg(candidates[0])] };
+    return {
+      args: [fieldToArg(candidates[0])],
+    };
   }
 
   return { args: [] };
 };
+
+const addStructuredInlineJsonArg = (
+  args: readonly CliArg[],
+  shouldAdd: boolean
+): CliArg[] => (shouldAdd ? [...args, STRUCTURED_INLINE_JSON_ARG] : [...args]);
 
 /** Convert a trail or route into a CLI command when it is publicly exposed. */
 const toCliCommand = (
@@ -402,11 +439,15 @@ const toCliCommand = (
   options?: DeriveCliCommandsOptions
 ): CliCommand => {
   const fields = deriveFields(t.input, t.fields);
-  const { args } = derivePositionalArgs(t, fields);
   // All fields generate flags — positional fields keep their --flag alias
   const flags = buildFlags(t, fields, t.intent, options);
+  const structuredInputReservedNames = supportsStructuredInput(t.input)
+    ? RESERVED_STRUCTURED_INPUT_META_FLAGS
+    : new Set<string>();
   const derivedFlagNames = new Set(
-    toFlags(fields).map((flag) => kebabToCamel(flag.name))
+    toFlags(fields)
+      .map((flag) => kebabToCamel(flag.name))
+      .filter((name) => !structuredInputReservedNames.has(name))
   );
   const metaFlagNames = new Set(
     flags
@@ -418,6 +459,11 @@ const toCliCommand = (
   const shouldHintStructuredInput = hasStructuredOnlyFields(
     t.input,
     fields.length
+  );
+  const { args: derivedArgs } = derivePositionalArgs(t, fields);
+  const args = addStructuredInlineJsonArg(
+    derivedArgs,
+    shouldHintStructuredInput
   );
 
   return {

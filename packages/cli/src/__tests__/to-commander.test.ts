@@ -765,9 +765,7 @@ describe('toCommander option wiring', () => {
     const opts = requireNestedCommand(program, ['gist', 'create']).options;
     const longs = opts.map((option) => option.long);
 
-    expect(longs).toEqual(
-      expect.arrayContaining(['--input-file', '--input-json', '--stdin'])
-    );
+    expect(longs).toEqual(expect.arrayContaining(['--input', '--input-json']));
     expect(longs).not.toContain('--files');
   });
 

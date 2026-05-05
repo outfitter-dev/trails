@@ -129,11 +129,10 @@ trail('config.set', {
 
 ## Structured Input
 
-Every non-empty object input schema also gets three structured input channels:
+Every non-empty object input schema also gets two structured input channels:
 
 - `--input-json <json>` to pass the full input object inline
-- `--input-file <path>` to load the full input object from a JSON file
-- `--stdin` to read the full input object as JSON from stdin
+- `--input <path|->` to load the full input object from a JSON file or stdin
 
 These channels merge into one final input object before validation:
 
@@ -151,7 +150,7 @@ myapp gist create \
 ```
 
 ```bash
-cat payload.json | myapp gist create --stdin
+cat payload.json | myapp gist create --input -
 ```
 
 When a schema includes fields that cannot be expressed truthfully as flags, the

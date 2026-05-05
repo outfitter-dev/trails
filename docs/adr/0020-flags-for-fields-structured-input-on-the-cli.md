@@ -82,12 +82,11 @@ Positional fields keep their flag alias. `myapp file copy source.txt dest.txt` a
 The CLI exposes structured-input channels for input shapes that cannot be faithfully represented as flags:
 
 - `--input-json <json>` — inline JSON payload
-- `--input-file <path>` — file path to JSON
-- `--stdin` — read JSON from stdin
+- `--input <path|->` — file path to JSON, or `-` to read JSON from stdin
 
 ```bash
 myapp gist create --input-json '{"files":[{"filename":"hello.ts","content":"export {}"}]}'
-cat payload.json | myapp gist create --stdin
+cat payload.json | myapp gist create --input -
 ```
 
 If a field cannot be represented faithfully as a derived flag, the framework does not invent a misleading one. Arrays of objects do not become fake variadic string flags. Nested objects do not become ad hoc flattened flags. The rule is simple: derive flags only when the projection is truthful.

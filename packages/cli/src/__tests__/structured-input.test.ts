@@ -6,7 +6,9 @@ import { z } from 'zod';
 import {
   hasStructuredOnlyFields,
   normalizeParsedFlags,
+  parsePositionalInlineJson,
   readStructuredInput,
+  resolveStructuredInput,
   structuredInputPreset,
   supportsStructuredInput,
 } from '../structured-input.js';
@@ -15,20 +17,24 @@ describe('structured input helpers', () => {
   test('normalizeParsedFlags converts kebab-case names to camelCase', () => {
     expect(
       normalizeParsedFlags({
-        'input-file': '/tmp/input.json',
+        input: '/tmp/input.json',
         'sort-order': 'asc',
       })
     ).toEqual({
-      inputFile: '/tmp/input.json',
+      input: '/tmp/input.json',
       sortOrder: 'asc',
     });
   });
 
-  test('structuredInputPreset exposes JSON, file, and stdin channels', () => {
-    expect(structuredInputPreset().map((flag) => flag.name)).toEqual([
-      'input-json',
-      'input-file',
-      'stdin',
+  test('structuredInputPreset exposes path/stdin and inline JSON channels', () => {
+    expect(
+      structuredInputPreset().map((flag) => ({
+        name: flag.name,
+        required: flag.required,
+      }))
+    ).toEqual([
+      { name: 'input', required: true },
+      { name: 'input-json', required: true },
     ]);
   });
 
@@ -69,11 +75,11 @@ describe('readStructuredInput', () => {
   test('rejects multiple structured sources at once', async () => {
     await expect(
       readStructuredInput({
+        input: '/tmp/input.json',
         inputJson: '{"query":"hello"}',
-        stdin: true,
       })
     ).rejects.toThrow(
-      'Use only one structured input source at a time: --input-json, --input-file, or --stdin'
+      'Use only one structured input source at a time: --input or --input-json'
     );
   });
 
@@ -96,6 +102,15 @@ describe('readStructuredInput', () => {
     ).rejects.toThrow('Invalid JSON for --input-json');
   });
 
+  test('rejects missing values for structured flags', async () => {
+    await expect(readStructuredInput({ input: true })).rejects.toThrow(
+      '--input requires a value'
+    );
+    await expect(readStructuredInput({ inputJson: true })).rejects.toThrow(
+      '--input-json requires a value'
+    );
+  });
+
   test('rejects non-object JSON payloads', async () => {
     await expect(
       readStructuredInput({
@@ -106,11 +121,11 @@ describe('readStructuredInput', () => {
     );
   });
 
-  test('parses --input-file payloads via the injected file reader', async () => {
+  test('parses --input file payloads via the injected file reader', async () => {
     await expect(
       readStructuredInput(
         {
-          inputFile: '/tmp/input.json',
+          input: '/tmp/input.json',
         },
         {
           readFileText: (path) => {
@@ -122,11 +137,11 @@ describe('readStructuredInput', () => {
     ).resolves.toEqual({ query: 'from file' });
   });
 
-  test('parses --stdin payloads via the injected stdin reader', async () => {
+  test('parses --input - payloads via the injected stdin reader', async () => {
     await expect(
       readStructuredInput(
         {
-          stdin: true,
+          input: '-',
         },
         {
           readStdinText: () => Promise.resolve('{"query":"from stdin"}'),
@@ -139,14 +154,104 @@ describe('readStructuredInput', () => {
     await expect(
       readStructuredInput(
         {
-          stdin: true,
+          input: '-',
         },
         {
           readStdinText: () => Promise.resolve('   '),
         }
       )
     ).rejects.toThrow(
-      '--stdin was provided but no JSON payload was read from stdin'
+      '--input - was provided but no JSON payload was read from stdin'
+    );
+  });
+});
+
+describe('parsePositionalInlineJson', () => {
+  test('returns undefined when the value is not a string', () => {
+    expect(parsePositionalInlineJson()).toBeUndefined();
+    expect(parsePositionalInlineJson(123)).toBeUndefined();
+    expect(parsePositionalInlineJson({})).toBeUndefined();
+  });
+
+  test('returns undefined for an empty string', () => {
+    expect(parsePositionalInlineJson('')).toBeUndefined();
+  });
+
+  test('parses a JSON object string into an object', () => {
+    expect(parsePositionalInlineJson('{"name":"Alpha","limit":3}')).toEqual({
+      limit: 3,
+      name: 'Alpha',
+    });
+  });
+
+  test('rejects invalid JSON with a parse error', () => {
+    expect(() => parsePositionalInlineJson('{bad json}')).toThrow(
+      'Invalid JSON for <inline-json>'
+    );
+  });
+
+  test('rejects non-object JSON payloads', () => {
+    expect(() => parsePositionalInlineJson('[1,2,3]')).toThrow(
+      '<inline-json> must provide a JSON object at the top level'
+    );
+  });
+});
+
+describe('resolveStructuredInput', () => {
+  test('returns no payload when neither flags nor positional are provided', async () => {
+    const result = await resolveStructuredInput({});
+    expect(result.payload).toBeUndefined();
+    expect(result.used).toBe(false);
+  });
+
+  test('parses the positional inline JSON when no flags are provided', async () => {
+    const result = await resolveStructuredInput({}, '{"name":"Alpha"}');
+    expect(result.payload).toEqual({ name: 'Alpha' });
+    expect(result.used).toBe(true);
+  });
+
+  test('reads --input-json when no positional is provided', async () => {
+    const result = await resolveStructuredInput({ inputJson: '{"k":1}' });
+    expect(result.payload).toEqual({ k: 1 });
+    expect(result.used).toBe(true);
+  });
+
+  test('reads --input file via injected reader', async () => {
+    const result = await resolveStructuredInput(
+      { input: '/tmp/in.json' },
+      undefined,
+      {
+        readFileText: (path) => {
+          expect(path).toBe('/tmp/in.json');
+          return Promise.resolve('{"from":"file"}');
+        },
+      }
+    );
+    expect(result.payload).toEqual({ from: 'file' });
+    expect(result.used).toBe(true);
+  });
+
+  test('reads --input - via injected reader', async () => {
+    const result = await resolveStructuredInput({ input: '-' }, undefined, {
+      readStdinText: () => Promise.resolve('{"from":"stdin"}'),
+    });
+    expect(result.payload).toEqual({ from: 'stdin' });
+    expect(result.used).toBe(true);
+  });
+
+  test('rejects when both --input-json and positional are provided', async () => {
+    await expect(
+      resolveStructuredInput({ inputJson: '{"a":1}' }, '{"b":2}')
+    ).rejects.toThrow(
+      'Use only one structured input source at a time: --input, --input-json, or the positional inline-JSON argument'
+    );
+  });
+
+  test('rejects when both --input and positional are provided', async () => {
+    await expect(
+      resolveStructuredInput({ input: '/tmp/in.json' }, '{"b":2}')
+    ).rejects.toThrow(
+      'Use only one structured input source at a time: --input, --input-json, or the positional inline-JSON argument'
     );
   });
 });

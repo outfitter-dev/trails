@@ -28,11 +28,10 @@ Trail IDs now derive nested command trees. `entity.create` becomes `trails entit
 
 ### Structured CLI input
 
-Three new channels for passing complex input to CLI trails:
+Two new channels for passing complex input to CLI trails:
 
 - `--input-json '<json>'` — inline JSON
-- `--input-file <path>` — read from file
-- `--stdin` — pipe from stdin
+- `--input <path|->` — read from file, or pipe from stdin with `-`
 
 Channels merge with individual flags in a deterministic priority order.
 

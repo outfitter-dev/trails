@@ -442,7 +442,7 @@ describe('buildCommands execution', () => {
 
     expect(result?.isErr()).toBe(true);
     expect(result?.error.message).toContain(
-      'Use --input-json, --input-file, or --stdin for full structured input.'
+      'Use --input <path|-> or --input-json for full structured input.'
     );
   });
 
@@ -813,5 +813,168 @@ describe('buildCommands established graph enforcement', () => {
     });
 
     expect(() => buildCommands(makeApp(draftTrail))).toThrowError(/draft/i);
+  });
+});
+
+const captureInput =
+  (captured: {
+    input?: unknown;
+  }): ((ctx: ActionResultContext) => Promise<void>) =>
+  (ctx) => {
+    captured.input = ctx.input;
+    return Promise.resolve();
+  };
+
+describe('buildCommands structured input', () => {
+  test('merges --input file payloads at the top level', async () => {
+    const t = trail('search', {
+      blaze: (input: { query: string }) => Result.ok({ received: input }),
+      input: z.object({ query: z.string() }),
+    });
+    const captured: { input?: unknown } = {};
+    const cmd = requireCommand(
+      buildCommands(makeApp(t), { onResult: captureInput(captured) })
+    );
+    const tmpPath = `${process.env['TMPDIR'] ?? '/tmp'}/structured-input-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}.json`;
+    await Bun.write(tmpPath, '{"query":"from file"}');
+
+    try {
+      const result = await cmd.execute({}, { input: tmpPath });
+      expect(result.isOk()).toBe(true);
+      expect(captured.input).toEqual({ query: 'from file' });
+    } finally {
+      await Bun.file(tmpPath).delete();
+    }
+  });
+
+  test('keeps --input reserved for file payloads when the schema has an input field', async () => {
+    const t = trail('echo-input', {
+      blaze: (input: { input: string }) => Result.ok({ received: input }),
+      input: z.object({ input: z.string() }),
+    });
+    const captured: { input?: unknown } = {};
+    const cmd = requireCommand(
+      buildCommands(makeApp(t), { onResult: captureInput(captured) })
+    );
+    const tmpPath = `${process.env['TMPDIR'] ?? '/tmp'}/structured-input-collision-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}.json`;
+    await Bun.write(tmpPath, '{"input":"from file"}');
+
+    try {
+      const result = await cmd.execute({}, { input: tmpPath });
+      expect(result.isOk()).toBe(true);
+      expect(captured.input).toEqual({ input: 'from file' });
+    } finally {
+      await Bun.file(tmpPath).delete();
+    }
+  });
+
+  test('rejects when --input and --input-json are both provided', async () => {
+    const t = trail('search', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ query: z.string() }),
+    });
+    const cmd = requireCommand(buildCommands(makeApp(t)));
+
+    const result = await cmd.execute(
+      {},
+      { input: '/tmp/in.json', inputJson: '{"query":"from json"}' }
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.message).toContain(
+        'Use only one structured input source at a time'
+      );
+    }
+  });
+
+  test('merges positional inline JSON for structured-only fields', async () => {
+    const t = trail('gist.create', {
+      blaze: (input: {
+        files: readonly {
+          readonly content: string;
+          readonly filename: string;
+        }[];
+      }) => Result.ok({ received: input }),
+      input: z.object({
+        files: z.array(
+          z.object({
+            content: z.string(),
+            filename: z.string(),
+          })
+        ),
+      }),
+    });
+    const captured: { input?: unknown } = {};
+    const cmd = requireCommand(
+      buildCommands(makeApp(t), { onResult: captureInput(captured) })
+    );
+
+    expect(cmd.args.map((arg) => arg.name)).toEqual(['inline-json']);
+
+    const result = await cmd.execute(
+      {
+        'inline-json': '{"files":[{"filename":"README.md","content":"Hello"}]}',
+      },
+      {}
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(captured.input).toEqual({
+      files: [{ content: 'Hello', filename: 'README.md' }],
+    });
+  });
+
+  test('rejects when positional inline JSON conflicts with structured flags', async () => {
+    const t = trail('gist.create', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({
+        files: z.array(
+          z.object({
+            content: z.string(),
+            filename: z.string(),
+          })
+        ),
+      }),
+    });
+    const cmd = requireCommand(buildCommands(makeApp(t)));
+
+    const result = await cmd.execute(
+      {
+        'inline-json': '{"files":[{"filename":"README.md","content":"Hello"}]}',
+      },
+      {
+        inputJson: '{"files":[{"filename":"README.md","content":"Hello"}]}',
+      }
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.message).toContain(
+        'Use only one structured input source at a time: --input, --input-json, or the positional inline-JSON argument'
+      );
+    }
+  });
+
+  test('rejects missing structured flag values before schema validation', async () => {
+    const t = trail('search', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ query: z.string() }),
+    });
+    const cmd = requireCommand(buildCommands(makeApp(t)));
+
+    const inputResult = await cmd.execute({}, { input: true });
+    expect(inputResult.isErr()).toBe(true);
+    if (inputResult.isErr()) {
+      expect(inputResult.error.message).toContain('--input requires a value');
+    }
+
+    const inputJsonResult = await cmd.execute({}, { inputJson: true });
+    expect(inputJsonResult.isErr()).toBe(true);
+    if (inputJsonResult.isErr()) {
+      expect(inputJsonResult.error.message).toContain(
+        '--input-json requires a value'
+      );
+    }
   });
 });

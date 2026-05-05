@@ -10,6 +10,13 @@ import type { z } from 'zod';
 
 import type { CliFlag } from './command.js';
 
+/**
+ * Label used in error messages when the inline-JSON positional argument is
+ * involved. Kept here so the structured-input source taxonomy stays in one
+ * place.
+ */
+export const POSITIONAL_INLINE_JSON_LABEL = '<inline-json>';
+
 interface ZodInternals {
   readonly _zod: {
     readonly def: Readonly<Record<string, unknown>>;
@@ -17,31 +24,23 @@ interface ZodInternals {
 }
 
 export const STRUCTURED_INPUT_HINT =
-  'Use --input-json, --input-file, or --stdin for full structured input.';
+  'Use --input <path|-> or --input-json for full structured input.';
 
 export const structuredInputPreset = (): CliFlag[] => [
+  {
+    description:
+      'Path to a JSON file (or `-` for stdin) to merge before explicit positional args and flags',
+    name: 'input',
+    required: true,
+    type: 'string',
+    variadic: false,
+  },
   {
     description:
       'JSON object to merge before explicit positional args and flags',
     name: 'input-json',
     required: true,
     type: 'string',
-    variadic: false,
-  },
-  {
-    description:
-      'Path to a JSON file to merge before explicit positional args and flags',
-    name: 'input-file',
-    required: true,
-    type: 'string',
-    variadic: false,
-  },
-  {
-    description:
-      'Read a JSON object from stdin before explicit positional args and flags',
-    name: 'stdin',
-    required: false,
-    type: 'boolean',
     variadic: false,
   },
 ];
@@ -89,23 +88,41 @@ interface StructuredInputReaders {
 }
 
 type StructuredSource =
+  | { readonly kind: 'input'; readonly value: string }
   | { readonly kind: 'input-json'; readonly value: string }
-  | { readonly kind: 'input-file'; readonly value: string }
-  | { readonly kind: 'stdin' };
+  | { readonly kind: 'positional'; readonly value: Record<string, unknown> };
+
+const resolveOptionalStringFlag = (
+  flags: Record<string, unknown>,
+  key: 'input' | 'inputJson',
+  label: '--input' | '--input-json'
+): string | undefined => {
+  const value = flags[key];
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new ValidationError(`${label} requires a value`);
+  }
+  return value;
+};
 
 const resolveStructuredSources = (
   flags: Record<string, unknown>
 ): StructuredSource[] => {
   const sources: StructuredSource[] = [];
+  const input = resolveOptionalStringFlag(flags, 'input', '--input');
+  const inputJson = resolveOptionalStringFlag(
+    flags,
+    'inputJson',
+    '--input-json'
+  );
 
-  if (typeof flags['inputJson'] === 'string') {
-    sources.push({ kind: 'input-json', value: flags['inputJson'] });
+  if (input !== undefined) {
+    sources.push({ kind: 'input', value: input });
   }
-  if (typeof flags['inputFile'] === 'string') {
-    sources.push({ kind: 'input-file', value: flags['inputFile'] });
-  }
-  if (flags['stdin'] === true) {
-    sources.push({ kind: 'stdin' });
+  if (inputJson !== undefined) {
+    sources.push({ kind: 'input-json', value: inputJson });
   }
 
   return sources;
@@ -113,7 +130,7 @@ const resolveStructuredSources = (
 
 const parseStructuredObject = (
   raw: string,
-  sourceLabel: '--input-json' | '--input-file' | '--stdin'
+  sourceLabel: '--input-json' | '--input'
 ): Record<string, unknown> => {
   let parsed: unknown;
   try {
@@ -135,7 +152,7 @@ const parseStructuredObject = (
 const readStdinText = async (): Promise<string> => {
   if (process.stdin.isTTY ?? false) {
     throw new ValidationError(
-      '--stdin was provided but no piped input is available on stdin'
+      '--input - was provided but no piped input is available on stdin'
     );
   }
 
@@ -147,16 +164,6 @@ const readStdinText = async (): Promise<string> => {
   return Buffer.concat(chunks).toString('utf8');
 };
 
-const readStructuredFile = async (
-  path: string,
-  readers?: StructuredInputReaders
-): Promise<Record<string, unknown>> => {
-  const read =
-    readers?.readFileText ?? ((filePath: string) => Bun.file(filePath).text());
-  const contents = await read(path);
-  return parseStructuredObject(contents, '--input-file');
-};
-
 const readStructuredStdin = async (
   readers?: StructuredInputReaders
 ): Promise<Record<string, unknown>> => {
@@ -164,10 +171,23 @@ const readStructuredStdin = async (
   const contents = await read();
   if (contents.trim().length === 0) {
     throw new ValidationError(
-      '--stdin was provided but no JSON payload was read from stdin'
+      '--input - was provided but no JSON payload was read from stdin'
     );
   }
-  return parseStructuredObject(contents, '--stdin');
+  return parseStructuredObject(contents, '--input');
+};
+
+const readStructuredPath = async (
+  path: string,
+  readers?: StructuredInputReaders
+): Promise<Record<string, unknown>> => {
+  if (path === '-') {
+    return await readStructuredStdin(readers);
+  }
+  const read =
+    readers?.readFileText ?? ((filePath: string) => Bun.file(filePath).text());
+  const contents = await read(path);
+  return parseStructuredObject(contents, '--input');
 };
 
 const readStructuredSource = async (
@@ -175,14 +195,14 @@ const readStructuredSource = async (
   readers?: StructuredInputReaders
 ): Promise<Record<string, unknown>> => {
   switch (source.kind) {
+    case 'input': {
+      return await readStructuredPath(source.value, readers);
+    }
     case 'input-json': {
       return parseStructuredObject(source.value, '--input-json');
     }
-    case 'input-file': {
-      return await readStructuredFile(source.value, readers);
-    }
-    case 'stdin': {
-      return await readStructuredStdin(readers);
+    case 'positional': {
+      return source.value;
     }
     default: {
       throw new ValidationError('Unsupported structured input source');
@@ -209,7 +229,7 @@ export const readStructuredInput = async (
 
   if (sources.length > 1) {
     throw new ValidationError(
-      'Use only one structured input source at a time: --input-json, --input-file, or --stdin'
+      'Use only one structured input source at a time: --input or --input-json'
     );
   }
 
@@ -218,4 +238,82 @@ export const readStructuredInput = async (
     return {};
   }
   return await readStructuredSource(source, readers);
+};
+
+/**
+ * Parse a positional inline-JSON argument as a top-level JSON object.
+ *
+ * Returns `undefined` when the value is not a non-empty string, so callers can
+ * branch cleanly on "no positional given".
+ */
+export const parsePositionalInlineJson = (
+  value?: unknown
+): Record<string, unknown> | undefined => {
+  if (typeof value !== 'string' || value.length === 0) {
+    return undefined;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new ValidationError(
+      `Invalid JSON for ${POSITIONAL_INLINE_JSON_LABEL}: ${message}`
+    );
+  }
+  if (!isPlainObject(parsed)) {
+    throw new ValidationError(
+      `${POSITIONAL_INLINE_JSON_LABEL} must provide a JSON object at the top level`
+    );
+  }
+  return parsed;
+};
+
+/**
+ * Resolve a routed structured-input payload from flags or a positional
+ * inline-JSON argument.
+ *
+ * Returns the parsed object plus a flag indicating whether any structured
+ * source contributed (used to suppress the structured-input hint when the
+ * caller already used one). Throws when more than one source was provided so
+ * conflicts surface early at the surface boundary.
+ */
+export interface ResolvedStructuredInput {
+  readonly payload: Record<string, unknown> | undefined;
+  readonly used: boolean;
+}
+
+export const resolveStructuredInput = async (
+  parsedFlags: Record<string, unknown>,
+  positionalValue?: unknown,
+  readers?: StructuredInputReaders
+): Promise<ResolvedStructuredInput> => {
+  const flags = normalizeParsedFlags(parsedFlags);
+  const sources = resolveStructuredSources(flags);
+  const positional = parsePositionalInlineJson(positionalValue);
+
+  const totalSources = sources.length + (positional === undefined ? 0 : 1);
+
+  if (totalSources === 0) {
+    return { payload: undefined, used: false };
+  }
+
+  if (totalSources > 1) {
+    throw new ValidationError(
+      'Use only one structured input source at a time: --input, --input-json, or the positional inline-JSON argument'
+    );
+  }
+
+  if (positional !== undefined) {
+    return { payload: positional, used: true };
+  }
+
+  const [source] = sources;
+  if (!source) {
+    return { payload: undefined, used: false };
+  }
+  return {
+    payload: await readStructuredSource(source, readers),
+    used: true,
+  };
 };
