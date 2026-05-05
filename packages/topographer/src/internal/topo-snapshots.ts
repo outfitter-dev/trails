@@ -12,6 +12,7 @@ const TOPO_TABLE_STATEMENTS = [
     signal_count INTEGER NOT NULL DEFAULT 0,
     resource_count INTEGER NOT NULL DEFAULT 0,
     pinned_as TEXT,
+    app_name TEXT,
     created_at TEXT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS topo_trails (
@@ -161,6 +162,7 @@ const TOPO_INDEX_STATEMENTS = [
   'CREATE INDEX IF NOT EXISTS idx_topo_activation_edges_trail ON topo_activation_edges(snapshot_id, trail_id)',
 ] as const;
 interface TopoSnapshotRow {
+  readonly app_name: string | null;
   readonly created_at: string;
   readonly git_dirty: number;
   readonly git_sha: string | null;
@@ -172,6 +174,14 @@ interface TopoSnapshotRow {
 }
 
 export interface TopoSnapshot {
+  /**
+   * Optional name of the app the snapshot was captured for.
+   *
+   * Workspace-aware tooling sets this so a single trails-db can host
+   * snapshots from multiple apps without losing attribution. Legacy
+   * single-app snapshots leave this `undefined`.
+   */
+  readonly appName?: string;
   readonly createdAt: string;
   readonly gitDirty: boolean;
   readonly gitSha?: string;
@@ -183,6 +193,7 @@ export interface TopoSnapshot {
 }
 
 export interface CreateTopoSnapshotInput {
+  readonly appName?: string;
   readonly createdAt?: string;
   readonly gitDirty?: boolean;
   readonly gitSha?: string;
@@ -205,6 +216,7 @@ const rowToSnapshot = (row: TopoSnapshotRow): TopoSnapshot => ({
   resourceCount: row.resource_count,
   signalCount: row.signal_count,
   trailCount: row.trail_count,
+  ...(row.app_name === null ? {} : { appName: row.app_name }),
   ...(row.git_sha === null ? {} : { gitSha: row.git_sha }),
   ...(row.pinned_as === null ? {} : { pinnedAs: row.pinned_as }),
 });
@@ -253,6 +265,10 @@ const createAllTopoTables = (db: Database): void => {
 /**
  * Current topo subsystem schema version.
  *
+ * Version 11 adds optional `app_name` attribution to `topo_snapshots` so a
+ * single trails-db can host snapshots from multiple apps in workspace-aware
+ * tooling. Older snapshots remain valid with `app_name IS NULL`.
+ *
  * Version 10 adds generic activation source catalog and activation edge tables.
  *
  * Version 9 adds structured example assertion columns to `topo_examples`.
@@ -265,7 +281,7 @@ const createAllTopoTables = (db: Database): void => {
  * tables and advance the subsystem version without translating or deleting
  * legacy rows.
  */
-export const TOPO_SCHEMA_VERSION = 10;
+export const TOPO_SCHEMA_VERSION = 11;
 
 export const ensureTopoSnapshotSchema = (db: Database): void => {
   ensureSubsystemSchema(db, {
@@ -282,6 +298,9 @@ export const ensureTopoSnapshotSchema = (db: Database): void => {
           'expected_match TEXT'
         );
         addColumnIfMissing(db, 'topo_examples', 'signals', 'signals TEXT');
+      }
+      if (currentVersion >= 7 && currentVersion < 11) {
+        addColumnIfMissing(db, 'topo_snapshots', 'app_name', 'app_name TEXT');
       }
     },
     subsystem: TOPO_SUBSYSTEM,
@@ -300,13 +319,14 @@ export const insertTopoSnapshotRecord = (
     resourceCount: input?.resourceCount ?? 0,
     signalCount: input?.signalCount ?? 0,
     trailCount: input?.trailCount ?? 0,
+    ...(input?.appName === undefined ? {} : { appName: input.appName }),
     ...(input?.gitSha === undefined ? {} : { gitSha: input.gitSha }),
   };
 
   db.run(
     `INSERT INTO topo_snapshots (
-      id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, app_name, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       record.id,
       record.gitSha ?? null,
@@ -315,6 +335,7 @@ export const insertTopoSnapshotRecord = (
       record.signalCount,
       record.resourceCount,
       null,
+      record.appName ?? null,
       record.createdAt,
     ]
   );
@@ -338,7 +359,7 @@ export const readTopoSnapshot = (
   }
   const row = db
     .query<TopoSnapshotRow, [string]>(
-      `SELECT id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, created_at
+      `SELECT id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, app_name, created_at
        FROM topo_snapshots
        WHERE id = ?`
     )
@@ -355,7 +376,7 @@ export const readPinnedTopoSnapshot = (
   }
   const row = db
     .query<TopoSnapshotRow, [string]>(
-      `SELECT id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, created_at
+      `SELECT id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, app_name, created_at
        FROM topo_snapshots
        WHERE pinned_as = ?
        LIMIT 1`
@@ -436,7 +457,7 @@ const listSnapshotRows = (
 
   return db
     .query<TopoSnapshotRow, SQLQueryBindings[]>(
-      `SELECT id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, created_at
+      `SELECT id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, app_name, created_at
        FROM topo_snapshots${whereClause}
        ORDER BY created_at DESC, id DESC${limitClause}`
     )

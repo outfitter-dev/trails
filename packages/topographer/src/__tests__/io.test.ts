@@ -9,7 +9,9 @@ import {
   writeSurfaceLock,
   readSurfaceLockData,
   readSurfaceLock,
+  readWorkspaceLock,
 } from '../io.js';
+import { surfaceLockSchema } from '../types.js';
 import type { SurfaceMap } from '../types.js';
 
 // ---------------------------------------------------------------------------
@@ -40,9 +42,8 @@ const makeSurfaceMap = (): SurfaceMap => ({
 });
 
 const makeStructuredLock = (hash: string) => ({
-  generatedAt: '2026-04-03T00:00:00.000Z',
   hash,
-  version: 1,
+  version: '2' as const,
 });
 
 const readParsedLock = async (
@@ -124,7 +125,7 @@ describe('writeSurfaceLock / readSurfaceLock', () => {
 
     const parsed = await readParsedLock(filePath);
     expect(parsed.hash).toBe(hash);
-    expect(parsed.version).toBe(1);
+    expect(parsed.version).toBe('2');
 
     const result = await readSurfaceLockData({ dir: tempDir });
 
@@ -132,6 +133,20 @@ describe('writeSurfaceLock / readSurfaceLock', () => {
 
     const legacyResult = await readSurfaceLock({ dir: tempDir });
     expect(legacyResult).toBe(hash);
+  });
+
+  test('normalizes legacy structured JSON locks with numeric versions', async () => {
+    const hash = 'facefeed'.repeat(8);
+    await Bun.write(
+      join(tempDir, 'trails.lock'),
+      `${JSON.stringify({ hash, version: 1 }, null, 2)}\n`
+    );
+
+    const data = await readSurfaceLockData({ dir: tempDir });
+    expect(data).toEqual({ hash });
+
+    const result = await readSurfaceLock({ dir: tempDir });
+    expect(result).toBe(hash);
   });
 
   test('returns null for missing file', async () => {
@@ -169,5 +184,72 @@ describe('default directory', () => {
 
     const result = await readSurfaceLock({ dir: customDir });
     expect(result).toBe(hash);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Workspace trail index
+// ---------------------------------------------------------------------------
+
+describe('readWorkspaceLock', () => {
+  test('returns null for a single-app structured lock without workspace metadata', async () => {
+    const hash = 'cafebabe'.repeat(8);
+    await writeSurfaceLock(makeStructuredLock(hash), { dir: tempDir });
+
+    const result = await readWorkspaceLock({ dir: tempDir });
+    expect(result).toBeNull();
+  });
+
+  test('returns the trail-id index for a multi-app workspace lock', async () => {
+    const hash = 'feedface'.repeat(8);
+    const workspaceTrails = {
+      'a.trail': {
+        appName: 'app-one',
+        modulePath: 'apps/one/src/app.ts',
+        trailId: 'a.trail',
+      },
+      'b.trail': {
+        appName: 'app-two',
+        modulePath: 'apps/two/src/app.ts',
+        trailId: 'b.trail',
+      },
+    } as const;
+    const filePath = await writeSurfaceLock(
+      { hash, workspaceTrails },
+      { dir: tempDir }
+    );
+
+    const parsed = await readParsedLock(filePath);
+    expect(parsed.hash).toBe(hash);
+    expect(parsed.version).toBe('2');
+    expect(parsed.workspaceTrails).toEqual(workspaceTrails);
+
+    const result = await readWorkspaceLock({ dir: tempDir });
+    expect(result).toEqual(workspaceTrails);
+  });
+
+  test('rejects out-of-band structured lock versions', () => {
+    const hash = '0badf00d'.repeat(8);
+    const result = surfaceLockSchema.safeParse({
+      hash,
+      version: 'banana',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  test('returns null for the legacy single-line hash file', async () => {
+    const hash = 'aaaaaaaa'.repeat(8);
+    await writeSurfaceLock(hash, { dir: tempDir });
+
+    const result = await readWorkspaceLock({ dir: tempDir });
+    expect(result).toBeNull();
+  });
+
+  test('returns null when the lock file is missing', async () => {
+    const result = await readWorkspaceLock({
+      dir: join(tempDir, 'nonexistent'),
+    });
+    expect(result).toBeNull();
   });
 });

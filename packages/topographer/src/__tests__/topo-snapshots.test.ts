@@ -82,4 +82,58 @@ describe('topo snapshot primitives', () => {
       db.close();
     }
   });
+
+  test('round-trips appName attribution through the snapshot row mapper', () => {
+    const rootDir = makeRoot();
+    const db = openWriteTrailsDb({ rootDir });
+
+    try {
+      const attributed = createTopoSnapshot(db, {
+        appName: 'app-one',
+        createdAt: '2026-04-04T00:00:00.000Z',
+      });
+      const unattributed = createTopoSnapshot(db, {
+        createdAt: '2026-04-05T00:00:00.000Z',
+      });
+
+      expect(attributed.appName).toBe('app-one');
+      expect(unattributed.appName).toBeUndefined();
+
+      const listed = listTopoSnapshots(db);
+      const byId = new Map(listed.map((snapshot) => [snapshot.id, snapshot]));
+
+      expect(byId.get(attributed.id)?.appName).toBe('app-one');
+      const unattributedSnapshot = byId.get(unattributed.id);
+      expect(unattributedSnapshot).toBeDefined();
+      expect(unattributedSnapshot?.appName).toBeUndefined();
+    } finally {
+      db.close();
+    }
+  });
+
+  test('app_name migration via addColumnIfMissing is idempotent', () => {
+    const rootDir = makeRoot();
+    const db = openWriteTrailsDb({ rootDir });
+
+    try {
+      ensureTopoSnapshotSchema(db);
+      // Second call must not throw or duplicate the column.
+      ensureTopoSnapshotSchema(db);
+
+      const columns = db
+        .query<{ name: string }, []>('PRAGMA table_info(topo_snapshots)')
+        .all()
+        .map((row) => row.name);
+      expect(columns.filter((name) => name === 'app_name')).toHaveLength(1);
+
+      // Inserts continue to work after re-running the migration.
+      const snapshot = createTopoSnapshot(db, {
+        appName: 'app-two',
+        createdAt: '2026-04-06T00:00:00.000Z',
+      });
+      expect(snapshot.appName).toBe('app-two');
+    } finally {
+      db.close();
+    }
+  });
 });

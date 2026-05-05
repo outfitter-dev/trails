@@ -1150,7 +1150,7 @@ describe('topo store projection', () => {
               "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
             )
             .get()?.version
-        ).toBe(10);
+        ).toBe(11);
         expect(countRows(db, 'topo_snapshots')).toBe(0);
       });
     });
@@ -1201,7 +1201,7 @@ describe('topo store projection', () => {
               "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
             )
             .get()?.version
-        ).toBe(10);
+        ).toBe(11);
       });
     });
 
@@ -1242,7 +1242,7 @@ describe('topo store projection', () => {
             "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
           )
           .get()?.version
-      ).toBe(10);
+      ).toBe(11);
       for (const table of [
         'topo_activation_edges',
         'topo_activation_sources',

@@ -805,7 +805,7 @@ describe('trails topo compile', () => {
         JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
       ).toMatchObject({
         hash: compiled.hash,
-        version: 1,
+        version: '2',
       });
       expect(topoCompileTrail.output.safeParse(compiled).success).toBe(true);
     } finally {

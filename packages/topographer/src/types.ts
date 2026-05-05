@@ -6,6 +6,7 @@ import type {
   StructuredSignalExample,
   StructuredTrailExample,
 } from '@ontrails/core';
+import { z } from 'zod';
 
 export type SurfaceMapExample =
   | StructuredSignalExample
@@ -138,16 +139,51 @@ export interface SurfaceMap {
 // Surface Lock
 // ---------------------------------------------------------------------------
 
+/** Workspace-owned trail entry serialized into a workspace lock. */
+export const workspaceTrailEntrySchema = z.object({
+  appName: z.string(),
+  modulePath: z.string(),
+  trailId: z.string(),
+});
+
+export type WorkspaceTrailEntry = z.infer<typeof workspaceTrailEntrySchema>;
+
+/**
+ * Workspace-wide trail-id index serialized into a workspace lock.
+ *
+ * Each key is a fully-qualified trail identifier. Each value carries the app
+ * that owns it plus the app module path used by consumers that need to load
+ * the owning topo without re-walking workspace manifests.
+ *
+ * @see SurfaceLock for the lock envelope that may carry this index.
+ */
+export const workspaceTrailIndexSchema = z.record(
+  z.string(),
+  workspaceTrailEntrySchema
+);
+
+export type WorkspaceTrailIndex = z.infer<typeof workspaceTrailIndexSchema>;
+
 /**
  * Normalized lock data read from `trails.lock`.
  *
  * The file may be stored as structured JSON or legacy single-line text.
  * The normalized shape always exposes the committed hash and preserves any
  * extra structured metadata.
+ *
+ * @remarks
+ * **Migration story.** Historical locks may be a single line containing a hash
+ * or a JSON string hash. Structured lock envelopes authored by Topographer use
+ * `version: '2'` and parse through {@link surfaceLockSchema}. Future lockfile
+ * versions should update this schema and add an explicit migration path.
  */
-export type SurfaceLock = Readonly<Record<string, unknown>> & {
-  readonly hash: string;
-};
+export const surfaceLockSchema = z.object({
+  hash: z.string(),
+  version: z.literal('2').optional(),
+  workspaceTrails: workspaceTrailIndexSchema.optional(),
+});
+
+export type SurfaceLock = z.infer<typeof surfaceLockSchema>;
 
 // ---------------------------------------------------------------------------
 // Diff

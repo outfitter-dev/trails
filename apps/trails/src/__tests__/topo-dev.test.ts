@@ -161,7 +161,7 @@ describe('topo and dev trails', () => {
         JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
       ).toMatchObject({
         hash: compileResult.hash,
-        version: 1,
+        version: '2',
       });
 
       const summaryAfterExport = expectOk(
@@ -322,7 +322,7 @@ describe('topo and dev trails', () => {
         JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
       ).toMatchObject({
         hash: secondCompile.hash,
-        version: 1,
+        version: '2',
       });
 
       const projectionDb = openReadTrailsDb({ rootDir: dir });

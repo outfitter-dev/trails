@@ -15,7 +15,13 @@ export {
   writeSurfaceLock,
   readSurfaceLockData,
   readSurfaceLock,
+  readWorkspaceLock,
 } from './io.js';
+export {
+  surfaceLockSchema,
+  workspaceTrailEntrySchema,
+  workspaceTrailIndexSchema,
+} from './types.js';
 
 // Types
 export type {
@@ -24,6 +30,8 @@ export type {
   SurfaceMapFieldOverride,
   SurfaceMapFieldOverrideKey,
   SurfaceLock,
+  WorkspaceTrailEntry,
+  WorkspaceTrailIndex,
   DiffEntry,
   DiffResult,
   JsonSchema,

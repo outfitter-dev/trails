@@ -9,8 +9,10 @@ import type {
   ReadOptions,
   SurfaceLock,
   SurfaceMap,
+  WorkspaceTrailIndex,
   WriteOptions,
 } from './types.js';
+import { surfaceLockSchema } from './types.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -47,23 +49,27 @@ const readTextIfExists = async (filePath: string): Promise<string | null> => {
   }
 };
 
-const isSurfaceLock = (value: unknown): value is SurfaceLock => {
-  const lock = value as Record<string, unknown>;
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof lock['hash'] === 'string'
-  );
+const parseLegacyStructuredLock = (value: unknown): SurfaceLock | null => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return null;
+  }
+  const { hash } = value as { readonly hash?: unknown };
+  return typeof hash === 'string' ? { hash: hash.trim() } : null;
 };
 
 const parseSurfaceLock = (content: string): SurfaceLock => {
   try {
     const parsed: unknown = JSON.parse(content);
-    if (isSurfaceLock(parsed)) {
-      return parsed;
-    }
     if (typeof parsed === 'string') {
       return { hash: parsed.trim() };
+    }
+    const result = surfaceLockSchema.safeParse(parsed);
+    if (result.success) {
+      return result.data;
+    }
+    const legacyStructuredLock = parseLegacyStructuredLock(parsed);
+    if (legacyStructuredLock !== null) {
+      return legacyStructuredLock;
     }
   } catch {
     // Fall through to the legacy hash-line format.
@@ -109,10 +115,20 @@ export const readSurfaceMap = async (
 // ---------------------------------------------------------------------------
 
 /**
+ * Stamp a structured lock with the current lockfile version.
+ */
+const versionStampLock = (lock: SurfaceLock): SurfaceLock =>
+  surfaceLockSchema.parse({ ...lock, version: '2' });
+
+/**
  * Write a committed lock to `<dir>/trails.lock`.
  *
  * String input preserves the legacy single-line hash format. Structured input
  * is serialized as JSON. Creates the directory if it doesn't exist.
+ *
+ * @remarks
+ * Structured locks are validated with {@link surfaceLockSchema} and stamped
+ * with the current `version: '2'` envelope before serialization.
  */
 export const writeSurfaceLock = async (
   lock: string | SurfaceLock,
@@ -127,7 +143,8 @@ export const writeSurfaceLock = async (
     return filePath;
   }
 
-  await Bun.write(filePath, `${JSON.stringify(lock, null, 2)}\n`);
+  const stamped = versionStampLock(lock);
+  await Bun.write(filePath, `${JSON.stringify(stamped, null, 2)}\n`);
   return filePath;
 };
 
@@ -153,4 +170,30 @@ export const readSurfaceLock = async (
 ): Promise<string | null> => {
   const lock = await readSurfaceLockData(options);
   return lock?.hash ?? null;
+};
+
+/**
+ * Read the workspace trail-id index from `<dir>/trails.lock`.
+ *
+ * Returns the workspace trail index when the lock is a structured
+ * JSON document carrying `workspaceTrails`, and `null` for legacy single-line
+ * hash files, hash-only structured locks, or missing files.
+ *
+ * @remarks
+ * This is the workspace-wide catalog consumed by `trails run <id>` to resolve
+ * a trail to its owning app without scanning sources. Callers that need the
+ * raw lock envelope (hash, version, etc.) should use {@link readSurfaceLockData}.
+ */
+export const readWorkspaceLock = async (
+  options?: ReadOptions
+): Promise<WorkspaceTrailIndex | null> => {
+  const lock = await readSurfaceLockData(options);
+  if (lock === null) {
+    return null;
+  }
+  const { workspaceTrails } = lock;
+  if (workspaceTrails === undefined) {
+    return null;
+  }
+  return workspaceTrails;
 };
