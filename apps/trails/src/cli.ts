@@ -78,8 +78,9 @@ const buildOnResult =
     await defaultOnResult(resolvedCtx);
   };
 
+const traceEnabled = argvHasTraceFlag(process.argv);
 const maybeInstallTraceSession = (): TraceSession | undefined =>
-  argvHasTraceFlag(process.argv) ? installTraceSink() : undefined;
+  traceEnabled ? installTraceSink() : undefined;
 
 const resolveCliPermitFromToken: ResolveCliPermitFromToken = (input) =>
   resolvePermitFromBearerToken({
@@ -209,6 +210,15 @@ const readWatchSurfaceHash = async (
   }
 };
 
+/**
+ * Invoke `surface()` once with an optional fresh trace session.
+ *
+ * When `--trace` is set, a fresh {@link TraceSession} is installed for the
+ * duration of the call and finalized in the `finally` block. Under
+ * `--watch`, this produces a fresh sink (and a fresh stderr tree) per
+ * rerun rather than letting records accumulate in a single
+ * process-lifetime sink.
+ */
 const runSurfaceOnce = async (): Promise<void> => {
   const session = maybeInstallTraceSession();
   try {
@@ -240,6 +250,7 @@ const runSurfaceOnce = async (): Promise<void> => {
 const watchTarget = argvHasWatchFlag(process.argv)
   ? resolveWatchRunTarget(process.argv)
   : null;
+
 await (argvHasWatchFlag(process.argv)
   ? runWatchLoop({
       readSurfaceHash: () => readWatchSurfaceHash(watchTarget),

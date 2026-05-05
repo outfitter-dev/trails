@@ -452,6 +452,10 @@ trails run example entity.show "Found" --watch
 
 Edit the implementation, save, the example reruns, match/mismatch updates instantly. This is TDD without leaving the terminal. The example is the assertion. The watch loop is the runner.
 
+The feedback loop is straightforward: write an example that captures the behavior you want, watch the trail under that example, and edit the implementation until the comparison envelope flips from `MISMATCH` to `OK`. The example envelope is rebuilt per rerun, so each save shows the current diff between expected and actual without any state carrying over from the previous attempt. When the example matches, the watch loop is quiet — no diff block, just the compact match summary. When it does not, the `input / expected / actual / diff` block is the next step the developer needs to take.
+
+Because the example is structured data on the trail, not a separate test file, the assertion travels with the trail definition. A trail that ships with examples ships with its own test suite. `trails run example <id> <exampleName> --watch` is the inner loop that drives each example to green; `bun test` is the outer loop that asserts every example on every trail across the workspace. The two surfaces share the same source of truth, so an example tightened in the terminal during development is the same example exercised in CI.
+
 Combined with `--trace`:
 
 ```bash
