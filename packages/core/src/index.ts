@@ -347,7 +347,7 @@ export { validateEstablishedTopo } from './validate-established-topo.js';
 
 // Layer
 export { composeLayers } from './layer.js';
-export type { Layer } from './layer.js';
+export type { Layer, LayerInputSchema } from './layer.js';
 
 // Derive
 export { deriveCliPath, deriveFields } from './derive.js';

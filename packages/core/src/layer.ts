@@ -1,3 +1,5 @@
+import type { z } from 'zod';
+
 import type { AnyTrail } from './trail.js';
 import type { Implementation } from './types.js';
 
@@ -5,10 +7,39 @@ import type { Implementation } from './types.js';
 // Layer interface
 // ---------------------------------------------------------------------------
 
-/** A composable layer that wraps trail implementations. */
+/**
+ * A composable, named layer that wraps trail implementations.
+ *
+ * Layers attach at trail, surface, or topo scope and may declare an object
+ * `input` schema describing the configuration they need from the surrounding
+ * surface. Surface packages (CLI, MCP, HTTP) project this schema onto their
+ * native idioms — flags, tool parameters, query strings — alongside the
+ * trail's own input schema.
+ *
+ * @remarks
+ * The `input` schema is metadata for surface projection. It must be an object
+ * schema so every surface can project named fields consistently. It is
+ * optional; layers without an `input` schema behave as plain wrappers. The
+ * layer's `wrap` function is the runtime contract.
+ */
+export type LayerInputSchema = z.ZodObject<z.ZodRawShape>;
+
 export interface Layer {
   readonly name: string;
   readonly description?: string | undefined;
+
+  /**
+   * Authored configuration the layer needs from the surrounding surface.
+   *
+   * Surface packages project this schema onto their native idioms (CLI flags,
+   * MCP tool parameters, HTTP query strings) so a layer's input fields appear
+   * alongside the trail's own input fields. Optional — layers that wrap purely
+   * by behavior, with no surface-visible inputs, may omit it.
+   *
+   * @see TRL-473 for CLI flag projection.
+   * @see TRL-474 for MCP and HTTP projection.
+   */
+  readonly input?: LayerInputSchema | undefined;
 
   /**
    * Wrap a trail's implementation, returning a new implementation.

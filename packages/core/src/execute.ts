@@ -86,7 +86,13 @@ export interface ExecuteTrailOptions {
   readonly ctx?: Partial<TrailContextInit> | undefined;
   /** AbortSignal override (takes final precedence over ctx and factory). */
   readonly abortSignal?: AbortSignal | undefined;
-  /** Layers to compose around the implementation. */
+  /**
+   * Typed layers supplied for this execution.
+   *
+   * Layers compose around the trail implementation. Layers without `input`
+   * schemas are surface-invisible wrappers for concerns such as tenant guards,
+   * rate limiting, circuit breaking, or custom audit logging.
+   */
   readonly layers?: readonly Layer[] | undefined;
   /** Factory that produces a base TrailContext (takes precedence over defaults). */
   readonly createContext?:

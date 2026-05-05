@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { createTrailContext } from '../context';
 import { composeLayers } from '../layer';
 import type { Layer } from '../layer';
+import { executeTrail } from '../execute';
 import { Result } from '../result';
 import { trail } from '../trail';
 import type { TrailContext } from '../types';
@@ -21,6 +22,19 @@ const echoTrail = trail('echo', {
   meta: { domain: 'test' },
   output: z.object({ value: z.string() }),
 });
+
+const taggingLayer: Layer = {
+  name: 'tag',
+  wrap(_t, impl) {
+    return async (input, ctx) => {
+      const r = await impl(input, ctx);
+      return r.map((out) => ({
+        ...(out as { value: string }),
+        value: `tagged:${(out as { value: string }).value}`,
+      }));
+    };
+  },
+};
 
 // ---------------------------------------------------------------------------
 // Layer tests
@@ -121,5 +135,72 @@ describe('Layer', () => {
   test('empty layers array returns implementation unchanged', () => {
     const wrapped = composeLayers([], echoTrail, echoTrail.blaze);
     expect(wrapped).toBe(echoTrail.blaze);
+  });
+
+  test('typed layer accepts optional input schema', () => {
+    const dryRun: Layer = {
+      input: z.object({ dryRun: z.boolean().default(false) }),
+      name: 'dry-run',
+      wrap(_t, impl) {
+        return impl;
+      },
+    };
+
+    expect(dryRun.input).toBeDefined();
+    expect(dryRun.name).toBe('dry-run');
+  });
+
+  test('typed layer without input schema still works (input is optional)', () => {
+    const noInput: Layer = {
+      name: 'no-input',
+      wrap(_t, impl) {
+        return impl;
+      },
+    };
+
+    expect(noInput.input).toBeUndefined();
+    expect(composeLayers([noInput], echoTrail, echoTrail.blaze)).toBeDefined();
+  });
+});
+
+describe('executeTrail layers option', () => {
+  test('layers option wraps the implementation without a deprecation warning', async () => {
+    const result = await executeTrail(
+      echoTrail,
+      { value: 'hello' },
+      { layers: [taggingLayer] }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(result.unwrap()).toEqual({ value: 'tagged:hello' });
+  });
+
+  test('layer without input schema wraps runtime-only concerns', async () => {
+    const tenantGuard: Layer = {
+      name: 'tenant-guard',
+      wrap(_trail, impl) {
+        return async (input, ctx) => {
+          const expectedTenant = ctx.extensions?.['tenantId'];
+          const actualTenant = (input as { tenantId?: string }).tenantId;
+          if (expectedTenant !== actualTenant) {
+            return Result.err(new Error('tenant mismatch'));
+          }
+          return await impl(input, ctx);
+        };
+      },
+    };
+    const tenantTrail = trail('tenant.echo', {
+      blaze: (input) => Result.ok({ value: input.value }),
+      input: z.object({ tenantId: z.string(), value: z.string() }),
+      output: z.object({ value: z.string() }),
+    });
+    const result = await executeTrail(
+      tenantTrail,
+      { tenantId: 'acme', value: 'hello' },
+      { ctx: { extensions: { tenantId: 'acme' } }, layers: [tenantGuard] }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(result.unwrap()).toEqual({ value: 'hello' });
   });
 });
