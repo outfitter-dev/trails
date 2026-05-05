@@ -35,6 +35,68 @@ TSDoc explains the contract of exported APIs. Start there before reaching for in
 - Prefer examples that mirror how agents or surface connectors will actually consume the API.
 - For resource definitions, document the `create` factory's dependencies and the type it produces. Document `dispose` if cleanup is non-trivial. Skip `mock` TSDoc unless the mock behavior differs significantly from the real implementation.
 
+## Cross-References in Source
+
+Cross-references in source are part of the framework's queryable contract: they should point future readers to durable source-of-truth artifacts, not make local prose look authoritative.
+
+### Source-of-Truth Anchoring
+
+When implementation must port behavior from existing code, the new code's TSDoc should name the source location with a file:line anchor. This is the difference between "this function happens to look like X" and "this function intentionally mirrors X." Future readers, human or agent, need to know which.
+
+The discipline applies in two distinct cases. Both produce the same artifact, a file:line TSDoc anchor, but differ in motivation and detectability.
+
+#### When Mirroring Established Semantics
+
+Apply this when authoring code that intentionally mirrors existing semantics: porting behavior from a sibling module, paralleling an established pattern, or building parallel infrastructure that must stay synchronized through a deprecation window.
+
+For example, a helper that ports subset-matching semantics from `packages/testing/src/assertions.ts` should say so in TSDoc and name the source helper. A date shortcut helper that intentionally matches a legacy layer's behavior should leave a short anchor to that legacy behavior while both surfaces coexist.
+
+This case rejects local summaries that hide the source of the semantics:
+
+```typescript
+/** Deep equality check for our test fixtures. */
+const deepEqual = (a: unknown, b: unknown): boolean => {
+  // ...logic intentionally ported from another framework helper...
+};
+```
+
+If the helper is intentionally porting existing behavior, the TSDoc should name that behavior's source. Otherwise readers cannot tell whether the author was unaware of the existing helper, deliberately diverging, or intentionally mirroring.
+
+This case is author discipline, not a good Warden target. "Looks similar" versus "intentionally mirrors" is a semantic judgment that a lint rule would either over-flag or miss.
+
+#### When Declining to Reuse
+
+Apply this when the framework or a sibling module exposes a helper that would serve, but the implementation authors a local copy or parallel version for a stated reason. The TSDoc should name the constraint that justified the inlining.
+
+The test surface is the framework-helper case: "This file exports its own `isPlainObject` even though `@ontrails/core` exports one, because of this named constraint." If you cannot write the reason, use the framework helper.
+
+This case is partially Warden-detectable for framework helpers: a future rule could flag function declarations that match exported framework helpers by name and signature without a TSDoc anchor explaining the local copy. The broader sibling-module case remains author discipline.
+
+### No Draft-ADR Anchors
+
+Source code, including TSDoc, inline comments, runtime strings, error messages, and log payloads, should reference accepted ADRs by stable number, such as `docs/adr/0043-layer-evolution.md`. It should not directly reference `docs/adr/drafts/<path>` unless the same stack promotes that draft below the implementing branch and the exception is explicitly documented.
+
+Draft paths are not durable anchors. Drafts can be renamed, promoted, replaced, or deleted while source comments still compile. Accepted ADRs carry stable numbers, are versioned explicitly, and survive promotion.
+
+When a feature is implemented from draft doctrine, prefer one of these anchors instead of the draft path:
+
+- Promote the draft first, then reference the accepted ADR.
+- Anchor to the source helper, sibling module, or branch that provides the current behavior.
+- Reference the introducing Linear issue when the doctrine is still pending.
+
+Do not invent ADR citations to make prose look authoritative. Verify the target exists and names the decision being cited.
+
+### Public Escape-Hatch Gate
+
+An escape hatch earns public-export status only when all four conditions hold:
+
+- **Structural necessity:** the existing primitive cannot express the case. Awkward expression is not enough.
+- **Desirable bareness:** the lack of metadata, schema, or governance is actively desirable, not merely tolerated.
+- **Downstream legibility:** the escape hatch produces something Warden, survey, traces, error attribution, or agents reading the resolved graph can understand.
+- **Empirical exhaustion:** concrete cases prove the existing primitive's options inadequate. Speculative scenarios do not qualify.
+
+When any condition fails, keep the seam internal or strengthen the existing primitive. Public exports are contracts, not convenience handles.
+
 ## Code Shape Patterns
 
 These patterns help keep code under the `max-statements` limit without normalizing suppressions. They also tend to produce code that is easier to test, extend, and read.

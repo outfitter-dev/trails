@@ -175,8 +175,128 @@ describe('topo', () => {
       expect(records[0]?.trailId).toBe('observe.capable');
     });
 
-    test('leaves unconfigured topos on the default observe path', () => {
+    test('applies the default console log sink when no observe is provided', () => {
+      // ADR 0041 promises a non-null `ctx.logger` with zero configuration.
+      // The default observe config carries an in-core console log sink so
+      // the existing adapter path projects it onto `ctx.logger`.
       const t = topo('app', { myTrail: mockTrail('observe.default') });
+
+      expect(t.observe).toBeDefined();
+      expect(t.observe?.log).toBeDefined();
+      expect(t.observe?.trace).toBeUndefined();
+      // The default sink mirrors the shape of `@ontrails/observe`'s
+      // `createConsoleSink` without depending on it.
+      const log = t.observe?.log;
+      if (log === undefined || !('write' in log)) {
+        throw new Error('expected default observe log target to be a LogSink');
+      }
+      expect(log.name).toBe('console');
+      expect(typeof log.write).toBe('function');
+    });
+
+    test('default ctx.logger is non-null and routes records to stdout', async () => {
+      // The brief: with no `observe:` option, `ctx.logger` must be callable
+      // and emit a structured record to stdout via the default console sink.
+      const lines: string[] = [];
+      const originalInfo = console.info;
+      console.info = (line: unknown): void => {
+        lines.push(typeof line === 'string' ? line : String(line));
+      };
+      try {
+        const logged = trail('observe.default-logger', {
+          blaze: (_input, ctx) => {
+            ctx.logger?.info('default observed', { step: 'blaze' });
+            return Result.ok({ ok: true });
+          },
+          input: z.object({}),
+          output: z.object({ ok: z.boolean() }),
+        });
+        const t = topo('app', { logged });
+
+        const result = await run(t, 'observe.default-logger', {});
+
+        expect(result.isOk()).toBe(true);
+        expect(lines).toHaveLength(1);
+        const parsed = JSON.parse(lines[0] ?? '{}') as Record<string, unknown>;
+        expect(parsed['category']).toBe('observe.default-logger');
+        expect(parsed['level']).toBe('info');
+        expect(parsed['message']).toBe('default observed');
+        expect(parsed['metadata']).toMatchObject({
+          step: 'blaze',
+          topo: 'app',
+          trailId: 'observe.default-logger',
+        });
+      } finally {
+        console.info = originalInfo;
+      }
+    });
+
+    test('preserves an explicit Logger and does not merge in the default sink', async () => {
+      // When the caller hands in an explicit Logger, it must reach the
+      // adapter intact — the default console sink must not be added.
+      const calls: { message: string; data?: Record<string, unknown> }[] = [];
+      const explicitLogger = {
+        child(_metadata: Record<string, unknown>) {
+          return explicitLogger;
+        },
+        debug(): void {},
+        error(): void {},
+        fatal(): void {},
+        info(message: string, data?: Record<string, unknown>): void {
+          calls.push({ data, message });
+        },
+        name: 'explicit',
+        trace(): void {},
+        warn(): void {},
+      };
+      const t = topo(
+        'app',
+        { myTrail: mockTrail('observe.explicit-logger') },
+        { observe: explicitLogger }
+      );
+
+      expect(t.observe?.log).toBe(explicitLogger);
+      expect(t.observe?.trace).toBeUndefined();
+
+      const logged = trail('observe.explicit-logger.run', {
+        blaze: (_input, ctx) => {
+          ctx.logger?.info('explicit', { step: 'blaze' });
+          return Result.ok({ ok: true });
+        },
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+      });
+      const t2 = topo('app', { logged }, { observe: explicitLogger });
+      const result = await run(t2, 'observe.explicit-logger.run', {});
+      expect(result.isOk()).toBe(true);
+      expect(calls).toHaveLength(1);
+      expect(calls[0]?.message).toBe('explicit');
+    });
+
+    test('preserves an explicit { log } target without merging the default sink', () => {
+      const explicitLog: LogSink = {
+        name: 'capture',
+        write: () => {},
+      };
+      const t = topo(
+        'app',
+        { myTrail: mockTrail('observe.explicit-log') },
+        { observe: { log: explicitLog } }
+      );
+
+      expect(t.observe?.log).toBe(explicitLog);
+      expect(t.observe?.trace).toBeUndefined();
+    });
+
+    test('respects an explicit empty observe config without injecting the default sink', () => {
+      // An ObserveConfig shape with both `log` and `trace` set to `undefined`
+      // is an explicit "no sinks" declaration. The default console sink must
+      // not be silently merged in — the resolved observe stays absent.
+      const t = topo(
+        'app',
+        { myTrail: mockTrail('observe.explicit-empty') },
+        { observe: { log: undefined, trace: undefined } }
+      );
 
       expect(t.observe).toBeUndefined();
     });
@@ -444,7 +564,11 @@ describe('topo', () => {
         { observe: helperObserveFunction as unknown as never }
       );
 
-      expect(t.observe).toBeUndefined();
+      // The helper is ignored as a non-registrable module export, so the
+      // topo lands on the default observe path (in-core console sink),
+      // exactly as if no `observe:` had been provided at all.
+      expect(t.observe?.log?.name).toBe('console');
+      expect(t.observe?.trace).toBeUndefined();
       expect(t.trails.get('observe.helper-fn')).toBeDefined();
     });
 
@@ -460,7 +584,10 @@ describe('topo', () => {
         { observe: helperObject as unknown as never }
       );
 
-      expect(t.observe).toBeUndefined();
+      // Falling back to module semantics means the topo is unconfigured
+      // for observe and resolves to the default in-core console sink.
+      expect(t.observe?.log?.name).toBe('console');
+      expect(t.observe?.trace).toBeUndefined();
       expect(t.trails.get('observe.helper-obj')).toBeDefined();
     });
 
@@ -474,7 +601,8 @@ describe('topo', () => {
         { observe: 123 as unknown as never }
       );
 
-      expect(t.observe).toBeUndefined();
+      expect(t.observe?.log?.name).toBe('console');
+      expect(t.observe?.trace).toBeUndefined();
       expect(t.trails.get('observe.bad-number')).toBeDefined();
     });
 
@@ -488,7 +616,8 @@ describe('topo', () => {
         { observe: {} as unknown as never }
       );
 
-      expect(t.observe).toBeUndefined();
+      expect(t.observe?.log?.name).toBe('console');
+      expect(t.observe?.trace).toBeUndefined();
       expect(t.trails.get('observe.empty')).toBeDefined();
     });
 

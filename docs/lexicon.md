@@ -228,6 +228,16 @@ Verb-friendly. A pin captures the graph; an export serializes it.
 
 Terms that name concepts existing cleanly across software. The standard word works.
 
+### Scope of Branded-Role Enforcement
+
+Lexicon enforcement is role-scoped. The framework bans generic synonyms when a word is claiming the canonical slot for a Trails concept, not whenever the word appears in ordinary explanation.
+
+A substitution claim should use the Trails term. For example, code or docs should not describe a `topo` as a registry, a `trail` as an action, a `blaze` as a handler, or a `surface` as transport terminology when the sentence is naming the framework concept itself.
+
+A mention can use the external or generic word when it is doing a different job: contrasting Trails with another system, naming an upstream library concept, quoting external API vocabulary, or explaining why a standard word is not the Trails term. The sentence "MCP calls these tools, while Trails authors trails" is a valid mention; the sentence "register this action in the topo" is a substitution and should be corrected.
+
+When in doubt, ask whether the word is occupying the Trails concept's canonical noun slot. If yes, use the lexicon. If it is apposition, contrast, quotation, or external-system vocabulary, keep the sentence accurate and avoid theatrical rewriting.
+
 ### `layer`
 
 A low-level wrapper around one trail execution. In v1, a layer is execution

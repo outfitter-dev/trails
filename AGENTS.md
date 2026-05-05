@@ -120,6 +120,55 @@ Subagents must not perform `git` or `gt` write operations. Only the main agent h
 - Subagents do not create branches, make commits, or push anything.
 - The main agent collects subagent work and commits it.
 
+### Brief Discipline
+
+Two principles gate whether a subagent dispatch produces usable findings versus fabricated output. Apply both.
+
+#### Principle 1: Concrete anchors beat semantic descriptions
+
+Briefs should name the artifacts the subagent must read, not just the semantics it should produce. Paraphrasing source code, types, or conventions leaves room for the subagent to invent what those artifacts contain.
+
+##### 1.1 Pin the data shape
+
+When the task involves subtle data structures or framework types, name the canonical declaration and file:line in the brief. Do not rely on prose like "render the trace as a tree" when the exact `TraceRecord` fields matter. Pin the field names, discriminants, and source type before asking for implementation or review.
+
+##### 1.2 Port from a named source and line
+
+When the task ports behavior from existing code, name the source helper and line range. A brief that says "implement partial matching" is weaker than one that says "port the semantics of `assertSubset` and `findObjectMatch` from `packages/testing/src/assertions.ts:<line>`." The named source makes alignment testable instead of aspirational.
+
+##### 1.3 Name the narrowing or type-guard pattern
+
+When the codebase has converged patterns, cite them. Examples include `instanceof TrailsError` for error narrowing, `isPlainObject` from `@ontrails/core` for object guards, or established casts in test fixtures. Without the pattern anchor, subagents tend to produce locally plausible but inconsistent checks.
+
+#### Principle 2: Unknowns demand grounding, not invention
+
+When the subagent cannot verify something, the correct output is an explicit unknown, not a plausible guess.
+
+##### 2.1 Scope-fit
+
+Before dispatching, ask whether the task can be expressed as bounded predicates over known artifacts, where "predicate fails" and "artifact missing" are both legible answers. If the task is "look around and tell me what you find," keep it in the main context or break it into bounded predicates first.
+
+##### 2.2 Anti-fabrication framing
+
+Briefs should say that "unable to verify" is acceptable and invented references are not. A subagent that cannot cite a claim should report that gap and continue or stop, depending on the brief. Inventing file paths, line numbers, branch descriptions, or source content is a hard failure.
+
+##### 2.3 Quote, do not paraphrase
+
+Every claim about file contents should include a verbatim quote with file path and line range when the task is evidentiary. If the subagent cannot quote the exact text, it should report "unable to quote" rather than approximate from memory.
+
+#### How the principles compose
+
+Anchor what you can; ground the rest. Principle 1 reduces the unknown surface area before dispatch. Principle 2 handles the residue when an otherwise bounded task hits missing or ambiguous evidence.
+
+#### Operational constraints
+
+Use these constraints alongside the two principles:
+
+- Do not ask subagents to create their own task lists. The main agent owns task tracking.
+- Do not let subagents run source-control write commands.
+- Specify exact write targets when a subagent is allowed to write findings.
+- Name known pre-existing noise upfront so subagents do not rediscover unrelated issues.
+
 ## Releasing
 
 All `@ontrails/*` packages are versioned in lockstep using [Changesets](https://github.com/changesets/changesets) in pre-release (`beta`) mode. We use Changesets only for versioning and changelogs — **not** `changeset publish`. Publishing goes through `bun publish` via our script, which correctly resolves `workspace:^` to real versions (npm publish does not).

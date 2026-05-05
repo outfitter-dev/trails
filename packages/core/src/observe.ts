@@ -1,6 +1,7 @@
 import { ValidationError } from './errors.js';
 import type { TraceSink } from './internal/tracing.js';
-import type { Logger, LogLevel, LogSink } from './types.js';
+import { safeStringify } from './serialization.js';
+import type { Logger, LogLevel, LogRecord, LogSink } from './types.js';
 
 export interface ObserveConfig {
   readonly log?: Logger | LogSink | undefined;
@@ -160,11 +161,89 @@ const normalizeTraceTarget = (
   throw new ValidationError('topo observe.trace must be a TraceSink');
 };
 
+/**
+ * Maps observe log levels to the `console` method that should receive the
+ * formatted record. `silent` is intentionally absent — records at that level
+ * are dropped before reaching `console`.
+ */
+const DEFAULT_SINK_CONSOLE_METHOD: Record<
+  LogLevel,
+  'debug' | 'error' | 'info' | 'warn' | undefined
+> = {
+  debug: 'debug',
+  error: 'error',
+  fatal: 'error',
+  info: 'info',
+  silent: undefined,
+  trace: 'debug',
+  warn: 'warn',
+};
+
+const stringifyDefaultConsoleRecord = (record: LogRecord): string => {
+  const serialized = safeStringify({
+    category: record.category,
+    level: record.level,
+    message: record.message,
+    metadata: record.metadata,
+    timestamp: record.timestamp.toISOString(),
+  });
+  if (serialized.isOk()) {
+    return serialized.value;
+  }
+  return JSON.stringify({
+    category: record.category,
+    level: record.level,
+    message: record.message,
+    metadata: '[unserializable]',
+    timestamp: record.timestamp.toISOString(),
+  });
+};
+
+/**
+ * In-core mirror of `@ontrails/observe`'s `createConsoleSink` shape, kept
+ * minimal and private to avoid a reverse dependency from `@ontrails/core`
+ * onto `@ontrails/observe`. It mirrors the console level routing in
+ * `packages/observe/src/sinks.ts:50` and emits each record as a single-line
+ * JSON object routed to the matching `console.{debug|info|warn|error}` method.
+ *
+ * @remarks
+ * Used as the default `observe.log` target when `topo()` is called without an
+ * explicit `observe` option, so every app gets a non-null `ctx.logger` with
+ * structured stdout output and zero configuration. Apps that want richer
+ * formatting, file destinations, or custom routing should pass an explicit
+ * `observe` option, which fully replaces this default.
+ */
+const createDefaultConsoleSink = (): LogSink => ({
+  name: 'console',
+  write(record): void {
+    const method = DEFAULT_SINK_CONSOLE_METHOD[record.level];
+    if (method === undefined) {
+      return;
+    }
+    const payload = stringifyDefaultConsoleRecord(record);
+    // oxlint-disable-next-line trails-local/no-console-in-packages -- ADR 0041 mandates a default console logger in core; this is the single sanctioned console boundary, mirroring `@ontrails/observe`'s `createConsoleSink`.
+    console[method](payload);
+  },
+});
+
+/**
+ * The default observe configuration applied when `topo()` receives no
+ * `observe` option. Frozen so callers cannot mutate the shared default; the
+ * sink itself is shared across topos because it has no per-topo state.
+ */
+const DEFAULT_OBSERVE_CONFIG: ObserveConfig = Object.freeze({
+  log: createDefaultConsoleSink(),
+});
+
 export const normalizeObserve = (
   observe: ObserveInput | undefined
 ): ObserveConfig | undefined => {
   if (observe === undefined) {
-    return undefined;
+    // ADR 0041 promises a non-null `ctx.logger` with zero configuration.
+    // Returning the default config here lets the existing topo → adapter
+    // path project this log sink into `ctx.logger` without a second
+    // resolution point or a reverse dependency on `@ontrails/observe`.
+    return DEFAULT_OBSERVE_CONFIG;
   }
 
   const capabilities = readObserveCapabilities(observe);
