@@ -148,6 +148,17 @@ export const builtinWardenRuleMetadata = {
     invariant: 'Application code composes trails through ctx.cross().',
     tier: 'source-static',
   },
+  'no-legacy-layer-imports': {
+    invariant:
+      'Legacy layer exports removed across TRL-475/TRL-476 (authLayer, autoIterateLayer, dateShortcutsLayer) do not reappear in committed source.',
+    lifecycle: {
+      retireWhen:
+        'Layer Evolution legacy layer migration window closes (one minor release after the legacy exports are removed).',
+      state: 'temporary',
+    },
+    scope: 'external',
+    tier: 'source-static',
+  },
   'no-native-error-result': {
     ...durableExternal,
     invariant: 'Result error boundaries carry specific TrailsError subclasses.',

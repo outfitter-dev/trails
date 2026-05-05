@@ -17,6 +17,7 @@ import { layerFieldNameDrift } from './layer-field-name-drift.js';
 import { missingVisibility } from './missing-visibility.js';
 import { missingReconcile } from './missing-reconcile.js';
 import { noDevPermitInSource } from './no-dev-permit-in-source.js';
+import { noLegacyLayerImports } from './no-legacy-layer-imports.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
 import { noNativeErrorResult } from './no-native-error-result.js';
 import { noSyncResultAssumption } from './no-sync-result-assumption.js';
@@ -89,6 +90,7 @@ export { missingVisibility } from './missing-visibility.js';
 export { missingReconcile } from './missing-reconcile.js';
 export { onReferencesExist } from './on-references-exist.js';
 export { noDevPermitInSource } from './no-dev-permit-in-source.js';
+export { noLegacyLayerImports } from './no-legacy-layer-imports.js';
 export { noDirectImplementationCall } from './no-direct-implementation-call.js';
 export { noNativeErrorResult } from './no-native-error-result.js';
 export { noSyncResultAssumption } from './no-sync-result-assumption.js';
@@ -147,6 +149,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [validDescribeRefs.name, validDescribeRefs],
   [noDevPermitInSource.name, noDevPermitInSource],
   [noDirectImplementationCall.name, noDirectImplementationCall],
+  [noLegacyLayerImports.name, noLegacyLayerImports],
   [noNativeErrorResult.name, noNativeErrorResult],
   [noSyncResultAssumption.name, noSyncResultAssumption],
   [implementationReturnsResult.name, implementationReturnsResult],

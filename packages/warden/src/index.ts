@@ -86,6 +86,7 @@ export {
   missingReconcileTrail,
   noDevPermitInSourceTrail,
   noDirectImplementationCallTrail,
+  noLegacyLayerImportsTrail,
   noNativeErrorResultTrail,
   noSyncResultAssumptionTrail,
   noThrowInDetourRecoverTrail,
