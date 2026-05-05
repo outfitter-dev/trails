@@ -178,19 +178,23 @@ describe('deriveFlags', () => {
 });
 
 describe('outputModePreset', () => {
-  test('returns --output, --json, --jsonl flags', () => {
+  test('returns --output, --json, --jsonl, --quiet flags', () => {
     const flags = outputModePreset();
-    expect(flags).toHaveLength(3);
+    expect(flags).toHaveLength(4);
 
     const outputFlag = requireFlag(flags, 'output');
     const jsonFlag = requireFlag(flags, 'json');
     const jsonlFlag = requireFlag(flags, 'jsonl');
+    const quietFlag = requireFlag(flags, 'quiet');
 
     expect(outputFlag.short).toBe('o');
     expect(outputFlag.choices).toEqual(['text', 'json', 'jsonl']);
     expect(outputFlag.default).toBe('text');
     expect(jsonFlag.type).toBe('boolean');
     expect(jsonlFlag.type).toBe('boolean');
+    expect(quietFlag.type).toBe('boolean');
+    expect(quietFlag.short).toBe('q');
+    expect(quietFlag.required).toBe(false);
   });
 });
 

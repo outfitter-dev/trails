@@ -64,7 +64,7 @@ export const deriveFlags = (
 // Presets
 // ---------------------------------------------------------------------------
 
-/** Flags for output mode selection: --output, --json, --jsonl */
+/** Flags for output mode selection: --output, --json, --jsonl, --quiet */
 export const outputModePreset = (): CliFlag[] => [
   {
     choices: ['text', 'json', 'jsonl'],
@@ -87,6 +87,15 @@ export const outputModePreset = (): CliFlag[] => [
     description: 'Shorthand for --output jsonl',
     name: 'jsonl',
     required: false,
+    type: 'boolean',
+    variadic: false,
+  },
+  {
+    description:
+      'Strip outer Result wrapper from `trails run` (pipe-friendly: value only on stdout, error message on stderr)',
+    name: 'quiet',
+    required: false,
+    short: 'q',
     type: 'boolean',
     variadic: false,
   },
