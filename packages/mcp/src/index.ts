@@ -9,6 +9,8 @@ export {
   type McpToolErrorMeta,
   type McpContent,
   type McpExtra,
+  type ResolveMcpPermit,
+  type ResolveMcpPermitInput,
 } from './build.js';
 
 // Tool naming

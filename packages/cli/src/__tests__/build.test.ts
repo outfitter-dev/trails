@@ -14,7 +14,10 @@ import {
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
-import type { ActionResultContext } from '../build.js';
+import type {
+  ActionResultContext,
+  ResolveCliPermitFromToken,
+} from '../build.js';
 import { deriveCliCommands } from '../build.js';
 import type { AnyTrail, CliCommand } from '../command.js';
 import { devPermitPreset, permitPreset, tokenPreset } from '../flags.js';

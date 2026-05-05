@@ -2,7 +2,12 @@
 export {
   deriveHttpRoutes,
   type DeriveHttpRoutesOptions,
+  type HttpExecutionContext,
+  type HttpHeaderSource,
+  type HttpLayerInputProjection,
   type HttpRouteDefinition,
+  type ResolveHttpPermit,
+  type ResolveHttpPermitInput,
 } from './build.js';
 export {
   deriveHttpInputSource,

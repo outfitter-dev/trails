@@ -82,7 +82,7 @@ The permit model separates into three distinct responsibilities:
 
 ```typescript
 interface PermitExtractionInput {
-  readonly trailhead: 'http' | 'mcp' | 'cli';
+  readonly surface: 'http' | 'mcp' | 'cli';
   readonly bearerToken?: string;
   readonly sessionId?: string;
   readonly headers?: Headers;
@@ -144,7 +144,7 @@ No cookies. No session-based auth at the framework level. Session management via
 ### Positive
 
 - **Auth requirements are part of the trail contract.** Visible, verifiable, introspectable. An agent can query a topo and see every trail's auth posture without reading implementation code.
-- **Same auth layer works across all surfaces.** HTTP, MCP, CLI — one enforcement path. No surface-specific auth bugs.
+- **Same auth model works across all surfaces.** HTTP, MCP, CLI — one enforcement path. No surface-specific auth bugs.
 - **Testing fails closed.** Auto-minted permits match declared scopes exactly. No silent privilege escalation in tests. Strict mode proves the full auth path.
 - **Warden catches unprotected destructive trails before deployment.** The `destroy` + no permit rule is a structural guarantee, not a code review convention.
 

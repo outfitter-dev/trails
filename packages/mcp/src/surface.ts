@@ -15,7 +15,7 @@ import type {
   TrailContextInit,
 } from '@ontrails/core';
 
-import type { McpToolDefinition } from './build.js';
+import type { McpToolDefinition, ResolveMcpPermit } from './build.js';
 import { deriveMcpTools } from './build.js';
 import { connectStdio } from './stdio.js';
 
@@ -31,6 +31,7 @@ export interface CreateServerOptions extends BaseSurfaceOptions {
   readonly layers?: readonly Layer[] | undefined;
   readonly name?: string | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
+  readonly resolvePermit?: ResolveMcpPermit | undefined;
   readonly version?: string | undefined;
 }
 
@@ -105,6 +106,16 @@ const createMcpServer = (
 
       const args = (request.params.arguments ?? {}) as Record<string, unknown>;
       const progressToken = request.params._meta?.progressToken;
+      const { authInfo } = requestExtra as {
+        readonly authInfo?:
+          | {
+              readonly accessToken?: string | undefined;
+              readonly sessionId?: string | undefined;
+              readonly token?: string | undefined;
+            }
+          | undefined;
+      };
+      const authorizationToken = authInfo?.accessToken ?? authInfo?.token;
 
       const sendProgress =
         progressToken === undefined
@@ -122,8 +133,14 @@ const createMcpServer = (
 
       const extra = {
         abortSignal: requestExtra.signal,
+        ...(authorizationToken === undefined
+          ? {}
+          : { authorization: `Bearer ${authorizationToken}` }),
         progressToken,
         sendProgress,
+        ...(authInfo?.sessionId === undefined
+          ? {}
+          : { sessionId: authInfo.sessionId }),
       };
 
       const result = await tool.handler(args, extra);
@@ -157,6 +174,7 @@ export const createServer = (
     include: options.include,
     intent: options.intent,
     layers: options.layers,
+    resolvePermit: options.resolvePermit,
     resources: options.resources,
     validate: options.validate,
   });

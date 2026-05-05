@@ -7,14 +7,18 @@
  */
 
 import {
+  AuthError,
   Result,
   ValidationError,
   buildActivationProvenanceTraceAttrs,
+  collectAttachedTypedLayers,
   executeTrail,
   filterSurfaceTrails,
   getActivationWherePredicate,
   getTraceSink,
+  LAYER_FIELD_RESERVED_NAMES,
   matchesTrailPattern,
+  projectLayerFieldName,
   TRACE_CONTEXT_KEY,
   traceContextFromRecord,
   validateInput,
@@ -24,11 +28,14 @@ import {
   writeActivationTraceRecord,
   withActivationProvenance,
   withSurfaceLayerNames,
+  zodToJsonSchema,
 } from '@ontrails/core';
 import type {
   ActivationEntry,
   ActivationProvenance,
   ActivationSource,
+  AttachedTypedLayer,
+  BasePermit,
   BaseSurfaceOptions,
   Layer,
   ResourceOverrideMap,
@@ -56,7 +63,29 @@ export interface DeriveHttpRoutesOptions extends BaseSurfaceOptions {
     | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
+  readonly resolvePermit?: ResolveHttpPermit | undefined;
 }
+
+export type HttpHeaderSource =
+  | Headers
+  | Readonly<Record<string, string | readonly string[] | undefined>>;
+
+export interface HttpExecutionContext {
+  readonly headers?: HttpHeaderSource | undefined;
+}
+
+export interface ResolveHttpPermitInput {
+  readonly authorization?: string | undefined;
+  readonly bearerToken?: string | undefined;
+  readonly headers?: HttpHeaderSource | undefined;
+  readonly requestId?: string | undefined;
+}
+
+export type ResolveHttpPermit = (
+  input: ResolveHttpPermitInput
+) =>
+  | Promise<Result<BasePermit | null | undefined, Error>>
+  | Result<BasePermit | null | undefined, Error>;
 
 export interface HttpRouteDefinition {
   readonly method: HttpMethod;
@@ -64,6 +93,28 @@ export interface HttpRouteDefinition {
   readonly trailId: string;
   readonly inputSource: InputSource;
   readonly trail: Trail<unknown, unknown, unknown>;
+  /**
+   * JSON Schema for the merged request input (trail input + projected layer
+   * input fields). Empty/undefined when the trail declares no input and no
+   * typed layer is attached. Surface adapters and OpenAPI generators read
+   * this to build the published request shape.
+   *
+   * @see TRL-474.
+   */
+  readonly inputSchema?: Record<string, unknown> | undefined;
+  /**
+   * Per-layer projections describing the parameter names the route accepts
+   * for typed layers and the routing target back onto each layer's input
+   * schema. Empty when the trail has no typed layer attached.
+   *
+   * Surface adapters use this to partition the parsed request into
+   * `{ trailInput, layerInputs }` before invoking `execute`. The `execute`
+   * function published below performs the same partitioning for callers
+   * that pass the full merged record straight through.
+   *
+   * @see TRL-474.
+   */
+  readonly layerInputProjections?: readonly HttpLayerInputProjection[];
   readonly parseWebhookInput?:
     | ((rawPayload: unknown) => Result<unknown, Error>)
     | undefined;
@@ -83,11 +134,14 @@ export interface HttpRouteDefinition {
    * @param abortSignal - Optional AbortSignal from the HTTP request. When provided,
    *   it takes final precedence over any context factory signal, allowing
    *   client-initiated cancellation to propagate into trail execution.
+   * @param context - Optional request context such as headers. When supplied,
+   *   HTTP Bearer credentials can be resolved into `ctx.permit`.
    */
   readonly execute: (
     input: unknown,
     requestId?: string | undefined,
-    abortSignal?: AbortSignal | undefined
+    abortSignal?: AbortSignal | undefined,
+    context?: HttpExecutionContext | undefined
   ) => Promise<Result<unknown, Error>>;
 }
 
@@ -106,7 +160,7 @@ const derivePath = (basePath: string, trailId: string): string => {
   return `${base}/${segments}`;
 };
 
-/** Build per-request context overrides with the HTTP trailhead marker. */
+/** Build per-request context overrides with the HTTP surface marker. */
 const withHttpTrailhead = (
   requestId: string | undefined,
   layers: readonly Layer[]
@@ -116,6 +170,72 @@ const withHttpTrailhead = (
     layers,
     requestId === undefined ? {} : { requestId }
   );
+
+const readHeader = (
+  headers: HttpHeaderSource | undefined,
+  name: string
+): string | undefined => {
+  if (headers === undefined) {
+    return undefined;
+  }
+  if (headers instanceof Headers) {
+    return headers.get(name) ?? undefined;
+  }
+  const needle = name.toLowerCase();
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() !== needle || value === undefined) {
+      continue;
+    }
+    return typeof value === 'string' ? value : value[0];
+  }
+  return undefined;
+};
+
+const parseBearerAuthorization = (
+  authorization: string | undefined
+): Result<string | undefined, Error> => {
+  if (authorization === undefined || authorization.length === 0) {
+    return Result.ok();
+  }
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  const token = match?.[1]?.trim();
+  if (token === undefined || token.length === 0) {
+    return Result.err(
+      new AuthError('Malformed Authorization header; expected Bearer token', {
+        context: { code: 'invalid_authorization_header' },
+      })
+    );
+  }
+  return Result.ok(token);
+};
+
+const resolveHttpPermit = async (
+  options: DeriveHttpRoutesOptions,
+  request: HttpExecutionContext | undefined,
+  requestId: string | undefined
+): Promise<Result<BasePermit | undefined, Error>> => {
+  const authorization = readHeader(request?.headers, 'authorization');
+  const token = parseBearerAuthorization(authorization);
+  if (token.isErr()) {
+    return token;
+  }
+  if (token.value === undefined) {
+    return Result.ok();
+  }
+  if (options.resolvePermit === undefined) {
+    return Result.ok();
+  }
+  const resolved = await options.resolvePermit({
+    authorization,
+    bearerToken: token.value,
+    headers: request?.headers,
+    requestId,
+  });
+  if (resolved.isErr()) {
+    return resolved;
+  }
+  return Result.ok(resolved.value ?? undefined);
+};
 
 const createWebhookActivationFireId = (): string => {
   const randomUUID = globalThis.crypto?.randomUUID;
@@ -237,6 +357,255 @@ const withWebhookActivation = (
 };
 
 // ---------------------------------------------------------------------------
+// Layer input projection (TRL-474)
+// ---------------------------------------------------------------------------
+
+/**
+ * Per-layer projection onto an HTTP route's request input.
+ *
+ * `routing` maps the parameter name a consumer sees on the request (a query
+ * key for `intent: 'read'`, a body field for write/destroy) to the authored
+ * field name on the layer's input schema. When no rename was required the
+ * two are the same; on collision the parameter name carries the layer
+ * prefix while the routing target preserves the original field.
+ */
+export interface HttpLayerInputProjection {
+  readonly layerName: string;
+  /** parameterName → originalFieldName for this layer. */
+  readonly routing: ReadonlyMap<string, string>;
+  /** Fragment merged into the route's `inputSchema.properties`. */
+  readonly properties: Readonly<Record<string, unknown>>;
+  /** Field names appended to the route's `inputSchema.required` list. */
+  readonly required: readonly string[];
+}
+
+const buildHttpRenameTarget = (
+  layerName: string,
+  originalName: string
+): string => {
+  if (originalName.length === 0) {
+    return layerName;
+  }
+  const [head, ...rest] = originalName;
+  if (head === undefined) {
+    return layerName;
+  }
+  return `${layerName}${head.toUpperCase()}${rest.join('')}`;
+};
+
+const isJsonObjectSchema = (
+  value: unknown
+): value is { properties?: Record<string, unknown>; required?: string[] } =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const readRequiredFields = (value: unknown): readonly string[] => {
+  if (!isJsonObjectSchema(value) || !Array.isArray(value.required)) {
+    return [];
+  }
+  return value.required.every((field) => typeof field === 'string')
+    ? value.required
+    : [];
+};
+
+const projectHttpLayerInput = (
+  layer: Layer,
+  claimedNames: Set<string>
+): HttpLayerInputProjection => {
+  if (layer.input === undefined) {
+    return {
+      layerName: layer.name,
+      properties: {},
+      required: [],
+      routing: new Map(),
+    };
+  }
+
+  const layerSchema = zodToJsonSchema(layer.input);
+  const properties: Record<string, unknown> = {};
+  const required: string[] = [];
+  const routing = new Map<string, string>();
+
+  if (
+    !isJsonObjectSchema(layerSchema) ||
+    layerSchema.properties === undefined
+  ) {
+    return {
+      layerName: layer.name,
+      properties,
+      required,
+      routing,
+    };
+  }
+
+  const requiredSet = new Set<string>(layerSchema.required);
+  for (const [fieldName, fieldSchema] of Object.entries(
+    layerSchema.properties
+  )) {
+    const renamed = buildHttpRenameTarget(layer.name, fieldName);
+    const projection = projectLayerFieldName(
+      layer.name,
+      fieldName,
+      fieldName,
+      renamed,
+      claimedNames,
+      LAYER_FIELD_RESERVED_NAMES
+    );
+    properties[projection.claimedName] = fieldSchema;
+    if (requiredSet.has(fieldName)) {
+      required.push(projection.claimedName);
+    }
+    routing.set(projection.claimedName, projection.routingTarget);
+  }
+
+  return { layerName: layer.name, properties, required, routing };
+};
+
+interface HttpInputProjection {
+  readonly schema: Record<string, unknown> | undefined;
+  readonly projections: readonly HttpLayerInputProjection[];
+}
+
+const projectHttpInputSchema = (
+  trail: Trail<unknown, unknown, unknown>,
+  attachedLayers: readonly AttachedTypedLayer[]
+): HttpInputProjection => {
+  const baseSchema = zodToJsonSchema(trail.input);
+  if (attachedLayers.length === 0) {
+    return { projections: [], schema: baseSchema };
+  }
+
+  const baseProperties =
+    isJsonObjectSchema(baseSchema) && baseSchema.properties !== undefined
+      ? baseSchema.properties
+      : undefined;
+  const baseRequired =
+    isJsonObjectSchema(baseSchema) && Array.isArray(baseSchema.required)
+      ? baseSchema.required
+      : [];
+
+  const claimedNames = new Set<string>(
+    baseProperties === undefined ? [] : Object.keys(baseProperties)
+  );
+
+  const mergedProperties: Record<string, unknown> = {
+    ...baseProperties,
+  };
+  const mergedRequired = [...baseRequired];
+  const projections: HttpLayerInputProjection[] = [];
+
+  for (const { layer } of attachedLayers) {
+    const projection = projectHttpLayerInput(layer, claimedNames);
+    if (projection.routing.size === 0) {
+      continue;
+    }
+    Object.assign(mergedProperties, projection.properties);
+    mergedRequired.push(...projection.required);
+    projections.push(projection);
+  }
+
+  if (projections.length === 0) {
+    return { projections: [], schema: baseSchema };
+  }
+
+  const mergedSchema: Record<string, unknown> = isJsonObjectSchema(baseSchema)
+    ? { ...baseSchema, properties: mergedProperties, type: 'object' }
+    : { properties: mergedProperties, type: 'object' };
+  if (mergedRequired.length > 0) {
+    mergedSchema['required'] = mergedRequired;
+  } else if ('required' in mergedSchema) {
+    delete mergedSchema['required'];
+  }
+
+  return { projections, schema: mergedSchema };
+};
+
+const mergeHttpInputSchemas = (
+  left: Record<string, unknown> | undefined,
+  right: Record<string, unknown> | undefined
+): Record<string, unknown> | undefined => {
+  if (left === undefined) {
+    return right;
+  }
+  if (right === undefined) {
+    return left;
+  }
+  const leftProperties =
+    isJsonObjectSchema(left) && left.properties !== undefined
+      ? left.properties
+      : undefined;
+  const rightProperties =
+    isJsonObjectSchema(right) && right.properties !== undefined
+      ? right.properties
+      : undefined;
+  const merged: Record<string, unknown> = {
+    ...left,
+    ...right,
+    properties: {
+      ...leftProperties,
+      ...rightProperties,
+    },
+    type: 'object',
+  };
+  const required = [
+    ...new Set([...readRequiredFields(left), ...readRequiredFields(right)]),
+  ];
+  if (required.length > 0) {
+    merged['required'] = required;
+  } else {
+    delete merged['required'];
+  }
+  return merged;
+};
+
+/**
+ * Partition a parsed request input into the trail input plus per-layer
+ * inputs, using each layer's routing table.
+ *
+ * Layer-projected parameter names are stripped from the trail input so the
+ * trail's schema validation only ever sees its own fields. A layer that
+ * received no parameters is omitted from `layerInputs` so consumers can
+ * cleanly assert which layers were activated by the request.
+ */
+const partitionHttpInput = (
+  input: unknown,
+  projections: readonly HttpLayerInputProjection[]
+): {
+  readonly trailInput: unknown;
+  readonly layerInputs: Record<string, unknown>;
+} => {
+  if (projections.length === 0 || !isJsonObjectSchema(input)) {
+    return { layerInputs: {}, trailInput: input };
+  }
+  const record = input as Record<string, unknown>;
+  const claimedKeys = new Set<string>();
+  const layerInputs: Record<string, unknown> = {};
+  for (const projection of projections) {
+    const layerInput: Record<string, unknown> = {};
+    let received = false;
+    for (const [paramName, fieldName] of projection.routing) {
+      claimedKeys.add(paramName);
+      const value = record[paramName];
+      if (value === undefined) {
+        continue;
+      }
+      layerInput[fieldName] = value;
+      received = true;
+    }
+    if (received) {
+      layerInputs[projection.layerName] = layerInput;
+    }
+  }
+  const trailInput: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(record)) {
+    if (claimedKeys.has(key)) {
+      continue;
+    }
+    trailInput[key] = value;
+  }
+  return { layerInputs, trailInput };
+};
+
+// ---------------------------------------------------------------------------
 // Execute factory
 // ---------------------------------------------------------------------------
 
@@ -251,19 +620,36 @@ const createExecute =
     graph: Topo,
     t: Trail<unknown, unknown, unknown>,
     layers: readonly Layer[],
-    options: DeriveHttpRoutesOptions
+    options: DeriveHttpRoutesOptions,
+    layerProjections: readonly HttpLayerInputProjection[]
   ): HttpRouteDefinition['execute'] =>
-  (input, requestId, abortSignal) =>
-    executeTrail(t, input, {
+  async (input, requestId, abortSignal, request) => {
+    const { trailInput, layerInputs } = partitionHttpInput(
+      input,
+      layerProjections
+    );
+    const permitResolution = await resolveHttpPermit(
+      options,
+      request,
+      requestId
+    );
+    if (permitResolution.isErr()) {
+      return Result.err(permitResolution.error);
+    }
+    const permit = permitResolution.value;
+    return await executeTrail(t, trailInput, {
       abortSignal,
       configValues: options.configValues,
       createContext: options.createContext,
       ctx: withHttpTrailhead(requestId, layers),
+      ...(Object.keys(layerInputs).length === 0 ? {} : { layerInputs }),
+      ...(permit === undefined ? {} : { permit }),
       resources: options.resources,
       surfaceLayers: layers,
       topo: graph,
       topoLayers: graph.layers,
     });
+  };
 
 /**
  * Internal executor signature used for shared webhook source fan-out.
@@ -277,6 +663,7 @@ type WebhookConsumerExecute = (
   input: unknown,
   requestId: string | undefined,
   abortSignal: AbortSignal | undefined,
+  request: HttpExecutionContext | undefined,
   activationFireId: string
 ) => Promise<Result<unknown, Error>>;
 
@@ -287,9 +674,10 @@ const createWebhookConsumerExecute =
     activationEntry: ActivationEntry,
     source: WebhookSource,
     layers: readonly Layer[],
-    options: DeriveHttpRoutesOptions
+    options: DeriveHttpRoutesOptions,
+    layerProjections: readonly HttpLayerInputProjection[]
   ): WebhookConsumerExecute =>
-  async (input, requestId, abortSignal, activationFireId) => {
+  async (input, requestId, abortSignal, request, activationFireId) => {
     const predicate = getActivationWherePredicate(activationEntry.where);
     if (predicate !== undefined) {
       let shouldRun = false;
@@ -317,11 +705,26 @@ const createWebhookConsumerExecute =
       'activation.webhook',
       'ok'
     );
-    return await executeTrail(t, input, {
+    const { trailInput, layerInputs } = partitionHttpInput(
+      input,
+      layerProjections
+    );
+    const permitResolution = await resolveHttpPermit(
+      options,
+      request,
+      requestId
+    );
+    if (permitResolution.isErr()) {
+      return Result.err(permitResolution.error);
+    }
+    const permit = permitResolution.value;
+    return await executeTrail(t, trailInput, {
       abortSignal,
       configValues: options.configValues,
       createContext: options.createContext,
       ctx: withWebhookActivation(activation, requestId, traceContext, layers),
+      ...(Object.keys(layerInputs).length === 0 ? {} : { layerInputs }),
+      ...(permit === undefined ? {} : { permit }),
       resources: options.resources,
       surfaceLayers: layers,
       topo: graph,
@@ -337,11 +740,12 @@ const createWebhookConsumerExecute =
  */
 const createWebhookExecute =
   (consumerExecute: WebhookConsumerExecute): HttpRouteDefinition['execute'] =>
-  async (input, requestId, abortSignal) =>
+  async (input, requestId, abortSignal, request) =>
     await consumerExecute(
       input,
       requestId,
       abortSignal,
+      request,
       createWebhookActivationFireId()
     );
 
@@ -409,9 +813,27 @@ const buildRoute = (
 ): HttpRouteDefinition => {
   const method = deriveMethod(trail);
   const path = derivePath(basePath, trail.id);
+  const attachedLayers = collectAttachedTypedLayers(
+    graph,
+    trail,
+    options.layers
+  );
+  const inputProjection = projectHttpInputSchema(trail, attachedLayers);
   return {
-    execute: createExecute(graph, trail, layers, options),
+    execute: createExecute(
+      graph,
+      trail,
+      layers,
+      options,
+      inputProjection.projections
+    ),
+    ...(inputProjection.schema === undefined
+      ? {}
+      : { inputSchema: inputProjection.schema }),
     inputSource: deriveHttpInputSource(method),
+    ...(inputProjection.projections.length === 0
+      ? {}
+      : { layerInputProjections: inputProjection.projections }),
     method,
     path,
     trail,
@@ -528,13 +950,20 @@ const buildWebhookRoute = (
   if (source.isErr()) {
     return source;
   }
+  const attachedLayers = collectAttachedTypedLayers(
+    graph,
+    trail,
+    options.layers
+  );
+  const inputProjection = projectHttpInputSchema(trail, attachedLayers);
   const consumerExecute = createWebhookConsumerExecute(
     graph,
     trail,
     activation,
     source.value,
     layers,
-    options
+    options,
+    inputProjection.projections
   );
   const consumerInvalidRecorder = createWebhookInvalidRecorder(
     graph,
@@ -545,7 +974,13 @@ const buildWebhookRoute = (
     [WEBHOOK_CONSUMERS]: [consumerExecute],
     [WEBHOOK_INVALID_RECORDERS]: [consumerInvalidRecorder],
     execute: createWebhookExecute(consumerExecute),
+    ...(inputProjection.schema === undefined
+      ? {}
+      : { inputSchema: inputProjection.schema }),
     inputSource: 'webhook',
+    ...(inputProjection.projections.length === 0
+      ? {}
+      : { layerInputProjections: inputProjection.projections }),
     method: source.value.method,
     parseWebhookInput: createWebhookInputParser(source.value),
     path: normalizeSourcePath(basePath, source.value.path),
@@ -687,10 +1122,15 @@ const mergeWebhookRoutes = (
     ...existing,
     [WEBHOOK_CONSUMERS]: consumers,
     [WEBHOOK_INVALID_RECORDERS]: recorders,
+    inputSchema: mergeHttpInputSchemas(existing.inputSchema, route.inputSchema),
+    layerInputProjections: [
+      ...(existing.layerInputProjections ?? []),
+      ...(route.layerInputProjections ?? []),
+    ],
     ...(recordWebhookInvalidFanOut === undefined
       ? {}
       : { recordWebhookInvalid: recordWebhookInvalidFanOut }),
-    async execute(input, requestId, abortSignal) {
+    async execute(input, requestId, abortSignal, request) {
       // One activation fire ID per inbound webhook request, shared across every
       // fan-out consumer so observability can correlate them as siblings of a
       // single activation root.
@@ -706,6 +1146,7 @@ const mergeWebhookRoutes = (
           input,
           requestId,
           abortSignal,
+          request,
           activationFireId
         );
         if (result.isErr()) {

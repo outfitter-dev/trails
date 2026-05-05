@@ -17,11 +17,14 @@ import {
   Result,
   ValidationError,
   basePermitSchema,
+  collectAttachedTypedLayers as collectTypedLayers,
   deriveCliPath,
   deriveFields,
   executeTrail,
   filterSurfaceTrails,
   LAYER_FIELD_RESERVED_NAMES,
+  LAYER_FIELD_RESERVED_NAMES_KEBAB,
+  projectLayerFieldName,
   validateSurfaceTopo,
   withSurfaceLayerNames,
 } from '@ontrails/core';
@@ -716,32 +719,17 @@ interface LayerFlagProjection {
  * Collect every typed layer attached to a trail, in the same composition
  * order the executor uses (topo → surface → trail). Layers without an
  * `input` schema are skipped — they have nothing to project.
+ *
+ * Thin adapter over the surface-agnostic `collectAttachedTypedLayers`
+ * helper from `@ontrails/core` so the CLI continues to operate on a flat
+ * `readonly Layer[]` while every surface shares one collection rule.
  */
 const collectAttachedTypedLayers = (
   graph: Topo,
   t: AnyTrail,
   options?: DeriveCliCommandsOptions
-): readonly Layer[] => {
-  const layers: Layer[] = [];
-  for (const layer of graph.layers) {
-    if (layer.input !== undefined) {
-      layers.push(layer);
-    }
-  }
-  if (options?.layers) {
-    for (const layer of options.layers) {
-      if (layer.input !== undefined) {
-        layers.push(layer);
-      }
-    }
-  }
-  for (const layer of t.layers) {
-    if (layer.input !== undefined) {
-      layers.push(layer);
-    }
-  }
-  return layers;
-};
+): readonly Layer[] =>
+  collectTypedLayers(graph, t, options?.layers).map(({ layer }) => layer);
 
 /**
  * Convert a `Layer.name` (typically camelCase) into a kebab-case prefix
@@ -793,35 +781,33 @@ const projectSingleLayerFlags = (
   const routing = new Map<string, string>();
 
   for (const flag of toFlags(layerFields)) {
-    const camelKey = kebabToCamel(flag.name);
-    const collidesWithClaimed = claimedFlagNames.has(flag.name);
-    const collidesWithMeta = LAYER_FIELD_RESERVED_NAMES.has(camelKey);
-
-    if (!collidesWithClaimed && !collidesWithMeta) {
+    const projection = projectLayerFieldName(
+      layer.name,
+      flag.name,
+      flag.name,
+      `${layerKebab}-${flag.name}`,
+      claimedFlagNames,
+      LAYER_FIELD_RESERVED_NAMES_KEBAB
+    );
+    const claimedKebab = projection.claimedName;
+    const claimedCamel = kebabToCamel(claimedKebab);
+    const originalCamel = kebabToCamel(projection.routingTarget);
+    if (projection.renamed) {
+      const reason =
+        projection.reason === 'reserved-name'
+          ? `--${projection.originalName} collides with a CLI meta flag`
+          : `--${projection.originalName} collides with another flag`;
+      warnLayerFlagRenamed(
+        layer.name,
+        projection.originalName,
+        projection.claimedName,
+        reason
+      );
+      flags.push({ ...flag, name: claimedKebab });
+    } else {
       flags.push(flag);
-      claimedFlagNames.add(flag.name);
-      routing.set(camelKey, camelKey);
-      continue;
     }
-
-    const fallbackKebab = `${layerKebab}-${flag.name}`;
-    let renamedKebab = fallbackKebab;
-    let suffix = 2;
-    while (
-      claimedFlagNames.has(renamedKebab) ||
-      LAYER_FIELD_RESERVED_NAMES.has(kebabToCamel(renamedKebab))
-    ) {
-      renamedKebab = `${fallbackKebab}${suffix}`;
-      suffix += 1;
-    }
-    const renamedCamel = kebabToCamel(renamedKebab);
-    const reason = collidesWithMeta
-      ? `--${flag.name} collides with a CLI meta flag`
-      : `--${flag.name} collides with another flag`;
-    warnLayerFlagRenamed(layer.name, flag.name, renamedKebab, reason);
-    flags.push({ ...flag, name: renamedKebab });
-    claimedFlagNames.add(renamedKebab);
-    routing.set(renamedCamel, camelKey);
+    routing.set(claimedCamel, originalCamel);
   }
 
   return { flags, input: layerInput, layerName: layer.name, routing };

@@ -88,9 +88,9 @@ const result = deriveHttpRoutes(graph, {
 with `visibility: 'internal'` stay hidden unless you include their exact trail
 ID intentionally.
 
-## AbortSignal propagation
+## Request context and abort propagation
 
-The `execute` function on each `HttpRouteDefinition` accepts an optional `abortSignal`. The Hono connector extracts `signal` from `c.req.raw` and forwards it as `abortSignal`, so client disconnects propagate into trail execution.
+The `execute` function on each `HttpRouteDefinition` accepts optional `requestId`, `abortSignal`, and request context arguments. HTTP adapters should pass the request's `AbortSignal` so client disconnects propagate into trail execution, and pass headers in the request context when Bearer auth should resolve into `ctx.permit`.
 
 ## `HttpRouteDefinition`
 
@@ -103,7 +103,7 @@ Each route definition produced by `deriveHttpRoutes` includes:
 | `trailId` | `string` | The trail ID this route was derived from |
 | `inputSource` | `'query' \| 'body'` | Where to read input |
 | `trail` | `Trail` | The original trail definition |
-| `execute` | `(input, requestId?, abortSignal?) => Promise<Result>` | Validates, layers, and runs the implementation |
+| `execute` | `(input, requestId?, abortSignal?, context?) => Promise<Result>` | Validates, layers, resolves request auth when configured, and runs the implementation |
 
 For GET routes on the Hono surface, repeated query keys are passed through as
 arrays (`?tag=one&tag=two` -> `{ tag: ['one', 'two'] }`) while a single

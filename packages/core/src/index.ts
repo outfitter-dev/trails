@@ -96,7 +96,6 @@ export type {
   ActivationProvenanceCarrier,
   ActivationProvenanceSource,
 } from './activation-provenance.js';
-export { LAYER_FIELD_RESERVED_NAMES } from './internal/layer-projection.js';
 
 // Context factory
 export { createTrailContext, passthroughTrace } from './context.js';
@@ -354,6 +353,20 @@ export { validateEstablishedTopo } from './validate-established-topo.js';
 // Layer
 export { composeLayers } from './layer.js';
 export type { Layer, LayerInputSchema } from './layer.js';
+export {
+  collectAttachedTypedLayers,
+  LAYER_FIELD_RESERVED_NAMES,
+  LAYER_FIELD_RESERVED_NAMES_KEBAB,
+  projectLayerFieldName,
+} from './internal/layer-projection.js';
+export type {
+  AttachedLayerScope,
+  AttachedTypedLayer,
+  LayerFieldProjection,
+  LayerFieldRenameReason,
+  ProjectedLayerField,
+  RenamedLayerFieldProjection,
+} from './internal/layer-projection.js';
 
 // Derive
 export { deriveCliPath, deriveFields } from './derive.js';

@@ -7,13 +7,17 @@
  */
 
 import {
+  AuthError,
   Result,
   ValidationError,
+  collectAttachedTypedLayers,
   deriveStructuredTrailExamples,
   executeTrail,
   filterSurfaceTrails,
   isBlobRef,
   isTrailsError,
+  LAYER_FIELD_RESERVED_NAMES,
+  projectLayerFieldName,
   projectSurfaceError,
   toBlobRefDescriptor,
   validateSurfaceTopo,
@@ -21,6 +25,8 @@ import {
   zodToJsonSchema,
 } from '@ontrails/core';
 import type {
+  AttachedTypedLayer,
+  BasePermit,
   BaseSurfaceOptions,
   BlobRef,
   Layer,
@@ -50,7 +56,20 @@ export interface DeriveMcpToolsOptions extends BaseSurfaceOptions {
     | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
+  readonly resolvePermit?: ResolveMcpPermit | undefined;
 }
+
+export interface ResolveMcpPermitInput {
+  readonly authorization?: string | undefined;
+  readonly bearerToken?: string | undefined;
+  readonly sessionId?: string | undefined;
+}
+
+export type ResolveMcpPermit = (
+  input: ResolveMcpPermitInput
+) =>
+  | Promise<Result<BasePermit | null | undefined, Error>>
+  | Result<BasePermit | null | undefined, Error>;
 
 export interface McpToolDefinition {
   readonly _meta?: Record<string, unknown> | undefined;
@@ -68,11 +87,14 @@ export interface McpToolDefinition {
 }
 
 export interface McpExtra {
+  readonly authorization?: string | undefined;
   readonly progressToken?: string | number | undefined;
   readonly sendProgress?:
     | ((current: number, total: number) => Promise<void>)
     | undefined;
   readonly abortSignal?: AbortSignal | undefined;
+  readonly permit?: BasePermit | undefined;
+  readonly sessionId?: string | undefined;
 }
 
 export interface McpToolResult {
@@ -408,6 +430,226 @@ const toStructuredContent = (
 };
 
 // ---------------------------------------------------------------------------
+// Layer input projection (TRL-474)
+// ---------------------------------------------------------------------------
+
+/**
+ * Per-layer projection onto an MCP tool's input schema.
+ *
+ * `routing` maps the parameter name a consumer sees on the tool to the
+ * authored field name on the layer's input schema. When no rename was
+ * required the two are the same; on collision the parameter name carries
+ * the layer prefix while the routing target preserves the original field.
+ */
+interface McpLayerInputProjection {
+  readonly layerName: string;
+  /** parameterName → originalFieldName for this layer. */
+  readonly routing: ReadonlyMap<string, string>;
+  /** Fragment merged into the top-level input schema's `properties`. */
+  readonly properties: Readonly<Record<string, unknown>>;
+  /** Field names appended to the top-level `required` list. */
+  readonly required: readonly string[];
+}
+
+/**
+ * Build the camelCase rename target for a layer field collision.
+ *
+ * The CLI projection uses `kebab-case` (`<layerName>-<field>`); MCP exposes
+ * fields as JSON properties so the corresponding shape is camelCase
+ * (`<layerName><FieldCapitalized>`). The shared collision policy lives in
+ * `projectLayerFieldName`; this helper just supplies the surface-specific
+ * fallback name.
+ */
+const buildMcpRenameTarget = (
+  layerName: string,
+  originalName: string
+): string => {
+  if (originalName.length === 0) {
+    return layerName;
+  }
+  const [head, ...rest] = originalName;
+  if (head === undefined) {
+    return layerName;
+  }
+  return `${layerName}${head.toUpperCase()}${rest.join('')}`;
+};
+
+const isJsonObjectSchema = (
+  value: unknown
+): value is { properties?: Record<string, unknown>; required?: string[] } =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/**
+ * Project a single layer's input schema into MCP-shaped property and
+ * required fragments, applying the deterministic collision rename rule.
+ */
+const projectMcpLayerInput = (
+  layer: Layer,
+  claimedNames: Set<string>
+): McpLayerInputProjection => {
+  if (layer.input === undefined) {
+    return {
+      layerName: layer.name,
+      properties: {},
+      required: [],
+      routing: new Map(),
+    };
+  }
+
+  const layerSchema = zodToJsonSchema(layer.input);
+  const properties: Record<string, unknown> = {};
+  const required: string[] = [];
+  const routing = new Map<string, string>();
+
+  if (
+    !isJsonObjectSchema(layerSchema) ||
+    layerSchema.properties === undefined
+  ) {
+    return {
+      layerName: layer.name,
+      properties,
+      required,
+      routing,
+    };
+  }
+
+  const requiredSet = new Set<string>(layerSchema.required);
+  for (const [fieldName, fieldSchema] of Object.entries(
+    layerSchema.properties
+  )) {
+    const renamed = buildMcpRenameTarget(layer.name, fieldName);
+    const projection = projectLayerFieldName(
+      layer.name,
+      fieldName,
+      fieldName,
+      renamed,
+      claimedNames,
+      LAYER_FIELD_RESERVED_NAMES
+    );
+    properties[projection.claimedName] = fieldSchema;
+    if (requiredSet.has(fieldName)) {
+      required.push(projection.claimedName);
+    }
+    routing.set(projection.claimedName, projection.routingTarget);
+  }
+
+  return { layerName: layer.name, properties, required, routing };
+};
+
+interface McpInputProjection {
+  readonly schema: Record<string, unknown>;
+  readonly projections: readonly McpLayerInputProjection[];
+}
+
+/**
+ * Merge typed layer input schemas into the trail's input schema.
+ *
+ * Returns the merged input schema published on the MCP tool plus the
+ * per-layer routing tables consumed by the handler when partitioning
+ * incoming parameters.
+ */
+const projectMcpInputSchema = (
+  trail: Trail<unknown, unknown, unknown>,
+  attachedLayers: readonly AttachedTypedLayer[]
+): McpInputProjection => {
+  const baseSchema = zodToJsonSchema(trail.input);
+  if (attachedLayers.length === 0) {
+    return { projections: [], schema: baseSchema };
+  }
+
+  const baseProperties =
+    isJsonObjectSchema(baseSchema) && baseSchema.properties !== undefined
+      ? baseSchema.properties
+      : undefined;
+  const baseRequired =
+    isJsonObjectSchema(baseSchema) && Array.isArray(baseSchema.required)
+      ? baseSchema.required
+      : [];
+
+  const claimedNames = new Set<string>(
+    baseProperties === undefined ? [] : Object.keys(baseProperties)
+  );
+
+  const mergedProperties: Record<string, unknown> = {
+    ...baseProperties,
+  };
+  const mergedRequired = [...baseRequired];
+  const projections: McpLayerInputProjection[] = [];
+
+  for (const { layer } of attachedLayers) {
+    const projection = projectMcpLayerInput(layer, claimedNames);
+    if (projection.routing.size === 0) {
+      continue;
+    }
+    Object.assign(mergedProperties, projection.properties);
+    mergedRequired.push(...projection.required);
+    projections.push(projection);
+  }
+
+  if (projections.length === 0) {
+    return { projections: [], schema: baseSchema };
+  }
+
+  const mergedSchema: Record<string, unknown> = isJsonObjectSchema(baseSchema)
+    ? { ...baseSchema, properties: mergedProperties, type: 'object' }
+    : { properties: mergedProperties, type: 'object' };
+  if (mergedRequired.length > 0) {
+    mergedSchema['required'] = mergedRequired;
+  } else if ('required' in mergedSchema) {
+    delete mergedSchema['required'];
+  }
+
+  return { projections, schema: mergedSchema };
+};
+
+/**
+ * Partition a parsed MCP `args` record into the trail input plus per-layer
+ * inputs, using each layer's routing table.
+ *
+ * Layer-projected parameter names are stripped from the trail input so the
+ * trail's schema validation only ever sees its own fields. A layer that
+ * received no parameters is omitted from `layerInputs` so consumers can
+ * cleanly assert which layers were activated by the request.
+ */
+const partitionMcpArgs = (
+  args: Record<string, unknown>,
+  projections: readonly McpLayerInputProjection[]
+): {
+  readonly trailInput: Record<string, unknown>;
+  readonly layerInputs: Record<string, unknown>;
+} => {
+  if (projections.length === 0) {
+    return { layerInputs: {}, trailInput: { ...args } };
+  }
+  const claimedKeys = new Set<string>();
+  const layerInputs: Record<string, unknown> = {};
+  for (const projection of projections) {
+    const layerInput: Record<string, unknown> = {};
+    let received = false;
+    for (const [paramName, fieldName] of projection.routing) {
+      claimedKeys.add(paramName);
+      const value = args[paramName];
+      if (value === undefined) {
+        continue;
+      }
+      layerInput[fieldName] = value;
+      received = true;
+    }
+    if (received) {
+      layerInputs[projection.layerName] = layerInput;
+    }
+  }
+  const trailInput: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(args)) {
+    if (claimedKeys.has(key)) {
+      continue;
+    }
+    trailInput[key] = value;
+  }
+  return { layerInputs, trailInput };
+};
+
+// ---------------------------------------------------------------------------
 // Handler factory
 // ---------------------------------------------------------------------------
 
@@ -436,7 +678,7 @@ const mcpError = (error: Error): McpToolResult => {
   };
 };
 
-/** Add the MCP trailhead marker while preserving any existing context extras. */
+/** Add the MCP surface marker while preserving any existing context extras. */
 const withMcpTrailhead = (
   progressCb: TrailContextInit['progress'],
   layers: readonly Layer[]
@@ -447,24 +689,82 @@ const withMcpTrailhead = (
     progressCb === undefined ? {} : { progress: progressCb }
   );
 
+const parseBearerAuthorization = (
+  authorization: string | undefined
+): Result<string | undefined, Error> => {
+  if (authorization === undefined || authorization.length === 0) {
+    return Result.ok();
+  }
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  const token = match?.[1]?.trim();
+  if (token === undefined || token.length === 0) {
+    return Result.err(
+      new AuthError('Malformed MCP authorization; expected Bearer token', {
+        context: { code: 'invalid_authorization_header' },
+      })
+    );
+  }
+  return Result.ok(token);
+};
+
+const resolveMcpPermit = async (
+  options: DeriveMcpToolsOptions,
+  extra: McpExtra
+): Promise<Result<BasePermit | undefined, Error>> => {
+  if (extra.permit !== undefined) {
+    return Result.ok(extra.permit);
+  }
+  const token = parseBearerAuthorization(extra.authorization);
+  if (token.isErr()) {
+    return token;
+  }
+  if (token.value === undefined) {
+    return Result.ok();
+  }
+  if (options.resolvePermit === undefined) {
+    return Result.ok();
+  }
+  const resolved = await options.resolvePermit({
+    authorization: extra.authorization,
+    bearerToken: token.value,
+    sessionId: extra.sessionId,
+  });
+  if (resolved.isErr()) {
+    return resolved;
+  }
+  return Result.ok(resolved.value ?? undefined);
+};
+
 const createHandler =
   (
     graph: Topo,
     t: Trail<unknown, unknown, unknown>,
     layers: readonly Layer[],
     options: DeriveMcpToolsOptions,
-    wrapAsData: boolean
+    wrapAsData: boolean,
+    layerProjections: readonly McpLayerInputProjection[]
   ): ((
     args: Record<string, unknown>,
     extra: McpExtra
   ) => Promise<McpToolResult>) =>
   async (args, extra): Promise<McpToolResult> => {
     const progressCb = createMcpProgressCallback(extra);
-    const result = await executeTrail(t, args, {
+    const { trailInput, layerInputs } = partitionMcpArgs(
+      args,
+      layerProjections
+    );
+    const permitResolution = await resolveMcpPermit(options, extra);
+    if (permitResolution.isErr()) {
+      return mcpError(permitResolution.error);
+    }
+    const permit = permitResolution.value;
+    const result = await executeTrail(t, trailInput, {
       abortSignal: extra.abortSignal,
       configValues: options.configValues,
       createContext: options.createContext,
       ctx: withMcpTrailhead(progressCb, layers),
+      ...(Object.keys(layerInputs).length === 0 ? {} : { layerInputs }),
+      ...(permit === undefined ? {} : { permit }),
       resources: options.resources,
       surfaceLayers: layers,
       topo: graph,
@@ -560,6 +860,12 @@ const buildToolDefinition = (
   const annotations =
     Object.keys(rawAnnotations).length > 0 ? rawAnnotations : undefined;
   const projection = buildOutputSchemaProjection(trail);
+  const attachedLayers = collectAttachedTypedLayers(
+    graph,
+    trail,
+    options.layers
+  );
+  const inputProjection = projectMcpInputSchema(trail, attachedLayers);
   return {
     _meta: buildMeta(trail),
     annotations,
@@ -569,9 +875,10 @@ const buildToolDefinition = (
       trail,
       layers,
       options,
-      projection?.wrapAsData ?? false
+      projection?.wrapAsData ?? false,
+      inputProjection.projections
     ),
-    inputSchema: zodToJsonSchema(trail.input),
+    inputSchema: inputProjection.schema,
     name: deriveToolName(graph.name, trail.id),
     outputSchema: projection?.schema,
     trailId: trail.id,

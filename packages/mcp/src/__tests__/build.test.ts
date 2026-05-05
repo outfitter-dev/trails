@@ -699,6 +699,190 @@ describe('deriveMcpTools', () => {
         source: 'override',
       });
     });
+
+    test('session permit from MCP extra lands in ctx.permit', async () => {
+      let observedPermit: TrailContext['permit'];
+      const protectedTrail = trail('permit.read', {
+        blaze: (_input, ctx) => {
+          observedPermit = ctx.permit;
+          return Result.ok({ ok: true });
+        },
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+        permit: { scopes: ['thing:read'] },
+      });
+      const tool = requireOnlyTool(
+        buildTools(topo('myapp', { protectedTrail }))
+      );
+
+      const result = await tool.handler(
+        {},
+        { permit: { id: 'user-1', scopes: ['thing:read'] } }
+      );
+
+      expect(result.isError ?? false).toBe(false);
+      expect(observedPermit).toEqual({ id: 'user-1', scopes: ['thing:read'] });
+    });
+
+    test('MCP Bearer credentials resolve through the configured permit resolver', async () => {
+      let seenSession: string | undefined;
+      let observedPermit: TrailContext['permit'];
+      const protectedTrail = trail('permit.token', {
+        blaze: (_input, ctx) => {
+          observedPermit = ctx.permit;
+          return Result.ok({ ok: true });
+        },
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+        permit: { scopes: ['thing:read'] },
+      });
+      const tool = requireOnlyTool(
+        buildTools(topo('myapp', { protectedTrail }), {
+          resolvePermit: ({ bearerToken, sessionId }) => {
+            seenSession = sessionId;
+            return Result.ok(
+              bearerToken === 'good'
+                ? { id: 'user-1', scopes: ['thing:read'] }
+                : { id: 'user-1', scopes: [] }
+            );
+          },
+        })
+      );
+
+      const result = await tool.handler(
+        {},
+        { authorization: 'Bearer good', sessionId: 'session-1' }
+      );
+
+      expect(result.isError ?? false).toBe(false);
+      expect(seenSession).toBe('session-1');
+      expect(observedPermit).toEqual({ id: 'user-1', scopes: ['thing:read'] });
+    });
+
+    test('MCP Bearer credentials without a resolver do not block public tools', async () => {
+      const publicTrail = trail('permit.public', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+      });
+      const tool = requireOnlyTool(buildTools(topo('myapp', { publicTrail })));
+
+      const result = await tool.handler(
+        {},
+        { authorization: 'Bearer gateway-token' }
+      );
+
+      expect(result.isError ?? false).toBe(false);
+      expect(parseJsonContent(result.content[0])).toEqual({ ok: true });
+    });
+
+    test('MCP Bearer credentials without a resolver fall through to the permit gate', async () => {
+      const protectedTrail = trail('permit.unresolved-token', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+        permit: { scopes: ['thing:read'] },
+      });
+      const tool = requireOnlyTool(
+        buildTools(topo('myapp', { protectedTrail }))
+      );
+
+      const result = await tool.handler(
+        {},
+        { authorization: 'Bearer gateway-token' }
+      );
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0]?.text).toContain('No permit provided');
+    });
+
+    test('per-call MCP permit override wins over session authorization', async () => {
+      let observedPermit: TrailContext['permit'];
+      const protectedTrail = trail('permit.override', {
+        blaze: (_input, ctx) => {
+          observedPermit = ctx.permit;
+          return Result.ok({ ok: true });
+        },
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+        permit: { scopes: ['thing:read'] },
+      });
+      const tool = requireOnlyTool(
+        buildTools(topo('myapp', { protectedTrail }), {
+          resolvePermit: () =>
+            Result.ok({ id: 'session-user', scopes: ['thing:read'] }),
+        })
+      );
+
+      const result = await tool.handler(
+        {},
+        {
+          authorization: 'Bearer session-token',
+          permit: { id: 'override-user', scopes: ['thing:read'] },
+        }
+      );
+
+      expect(result.isError ?? false).toBe(false);
+      expect(observedPermit).toEqual({
+        id: 'override-user',
+        scopes: ['thing:read'],
+      });
+    });
+
+    test('missing MCP credentials on a protected tool returns a permit error response', async () => {
+      const protectedTrail = trail('permit.missing', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+        permit: { scopes: ['thing:read'] },
+      });
+      const tool = requireOnlyTool(
+        buildTools(topo('myapp', { protectedTrail }))
+      );
+
+      const result = await tool.handler({}, noExtra);
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0]?.text).toContain('No permit provided');
+    });
+
+    test('malformed MCP authorization fails before execution', async () => {
+      let invoked = false;
+      const protectedTrail = trail('permit.malformed', {
+        blaze: () => {
+          invoked = true;
+          return Result.ok({ ok: true });
+        },
+        input: z.object({}),
+        permit: { scopes: ['thing:read'] },
+      });
+      const tool = requireOnlyTool(
+        buildTools(topo('myapp', { protectedTrail }))
+      );
+
+      const result = await tool.handler({}, { authorization: 'Basic nope' });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0]?.text).toContain('Malformed MCP authorization');
+      expect(invoked).toBe(false);
+    });
+
+    test('resolved MCP permit with missing scopes returns a permit error response', async () => {
+      const protectedTrail = trail('permit.scope', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+        permit: { scopes: ['thing:read'] },
+      });
+      const tool = requireOnlyTool(
+        buildTools(topo('myapp', { protectedTrail }), {
+          resolvePermit: () => Result.ok({ id: 'user-1', scopes: [] }),
+        })
+      );
+
+      const result = await tool.handler({}, { authorization: 'Bearer weak' });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0]?.text).toContain('Missing scopes');
+    });
   });
 
   describe('blob outputs', () => {

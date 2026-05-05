@@ -1,8 +1,11 @@
 import { describe, expect, mock, test } from 'bun:test';
 
 import {
+  AuthError,
   InternalError,
+  LAYER_INPUTS_KEY,
   NotFoundError,
+  PermitError,
   Result,
   SURFACE_KEY,
   clearTraceSink,
@@ -414,6 +417,55 @@ describe('deriveHttpRoutes', () => {
         { notified: 'pay_1' },
       ]);
       expect(invoked).toEqual(['audit:pay_1', 'notify:pay_1']);
+    });
+
+    test('webhook execution partitions typed layer input and composes route layers', async () => {
+      const source = webhook('webhook.payment.received', {
+        parse: z.object({ paymentId: z.string() }),
+        path: '/webhooks/payment',
+      });
+      const captured: unknown[] = [];
+      const auditLayer: Layer = {
+        input: z.object({ auditMode: z.string() }),
+        name: 'audit',
+        wrap(_trail, impl) {
+          return async (input, ctx) => {
+            const all = ctx.extensions?.[LAYER_INPUTS_KEY] as
+              | Record<string, unknown>
+              | undefined;
+            captured.push(all?.['audit']);
+            return await impl(input, ctx);
+          };
+        },
+      };
+      let observedInput: unknown;
+      const receiver = trail('payment.receive', {
+        blaze: (input) => {
+          observedInput = input;
+          return Result.ok({ paymentId: input.paymentId });
+        },
+        input: z.object({ paymentId: z.string() }),
+        on: [source],
+        output: z.object({ paymentId: z.string() }),
+      });
+
+      const result = deriveHttpRoutes(topo('billing', { receiver }), {
+        layers: [auditLayer],
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (!result.isOk()) {
+        return;
+      }
+      const [route] = result.value;
+      const executed = await route?.execute({
+        auditMode: 'full',
+        paymentId: 'pay_1',
+      });
+
+      expect(executed?.isOk()).toBe(true);
+      expect(observedInput).toEqual({ paymentId: 'pay_1' });
+      expect(captured).toEqual([{ auditMode: 'full' }]);
     });
 
     test('merged webhook consumers share one activation fire ID per inbound request', async () => {
@@ -1270,6 +1322,179 @@ describe('deriveHttpRoutes', () => {
         return;
       }
       expect(result.value).toEqual({ source: 'override' });
+    });
+
+    test('resolves Authorization Bearer credentials into ctx.permit', async () => {
+      let observedPermit: TrailContext['permit'];
+      const protectedTrail = trail('permit.read', {
+        blaze: (_input, ctx) => {
+          observedPermit = ctx.permit;
+          return Result.ok({ ok: true });
+        },
+        input: z.object({}),
+        intent: 'read',
+        output: z.object({ ok: z.boolean() }),
+        permit: { scopes: ['thing:read'] },
+      });
+      const app = topo('permit-http', { protectedTrail });
+      const buildResult = deriveHttpRoutes(app, {
+        resolvePermit: ({ bearerToken }) =>
+          Result.ok(
+            bearerToken === 'good'
+              ? { id: 'user-1', scopes: ['thing:read'] }
+              : { id: 'user-1', scopes: [] }
+          ),
+      });
+
+      expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
+      const [route] = buildResult.value;
+      const result = await route?.execute({}, 'req-1', undefined, {
+        headers: { authorization: 'Bearer good' },
+      });
+
+      expect(result?.isOk()).toBe(true);
+      expect(observedPermit).toEqual({ id: 'user-1', scopes: ['thing:read'] });
+    });
+
+    test('missing Authorization on a protected route falls through to PermitError', async () => {
+      const protectedTrail = trail('permit.missing', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+        intent: 'read',
+        permit: { scopes: ['thing:read'] },
+      });
+      const app = topo('permit-http', { protectedTrail });
+      const buildResult = deriveHttpRoutes(app, {
+        resolvePermit: () =>
+          Result.ok({ id: 'user-1', scopes: ['thing:read'] }),
+      });
+
+      expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
+      const [route] = buildResult.value;
+      const result = await route?.execute({});
+
+      expect(result?.isErr()).toBe(true);
+      if (!result?.isErr()) {
+        return;
+      }
+      expect(result.error).toBeInstanceOf(PermitError);
+    });
+
+    test('Bearer Authorization without a resolver falls through for public routes', async () => {
+      const app = topo('permit-http', { echoTrail });
+      const buildResult = deriveHttpRoutes(app);
+
+      expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
+      const [route] = buildResult.value;
+      const result = await route?.execute(
+        { message: 'hello' },
+        'req-1',
+        undefined,
+        {
+          headers: { authorization: 'Bearer gateway-token' },
+        }
+      );
+
+      expect(result?.isOk()).toBe(true);
+      if (result?.isOk()) {
+        expect(result.value).toEqual({ reply: 'hello' });
+      }
+    });
+
+    test('Bearer Authorization without a resolver still lets protected routes fail at the permit gate', async () => {
+      const protectedTrail = trail('permit.no-resolver', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+        intent: 'read',
+        permit: { scopes: ['thing:read'] },
+      });
+      const app = topo('permit-http', { protectedTrail });
+      const buildResult = deriveHttpRoutes(app);
+
+      expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
+      const [route] = buildResult.value;
+      const result = await route?.execute({}, 'req-1', undefined, {
+        headers: { authorization: 'Bearer gateway-token' },
+      });
+
+      expect(result?.isErr()).toBe(true);
+      if (result?.isErr()) {
+        expect(result.error).toBeInstanceOf(PermitError);
+      }
+    });
+
+    test('malformed Authorization header fails before execution', async () => {
+      let invoked = false;
+      const protectedTrail = trail('permit.malformed', {
+        blaze: () => {
+          invoked = true;
+          return Result.ok({ ok: true });
+        },
+        input: z.object({}),
+        intent: 'read',
+        permit: { scopes: ['thing:read'] },
+      });
+      const app = topo('permit-http', { protectedTrail });
+      const buildResult = deriveHttpRoutes(app, {
+        resolvePermit: () =>
+          Result.ok({ id: 'user-1', scopes: ['thing:read'] }),
+      });
+
+      expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
+      const [route] = buildResult.value;
+      const result = await route?.execute({}, 'req-1', undefined, {
+        headers: { authorization: 'Basic nope' },
+      });
+
+      expect(result?.isErr()).toBe(true);
+      if (!result?.isErr()) {
+        return;
+      }
+      expect(result.error).toBeInstanceOf(AuthError);
+      expect(invoked).toBe(false);
+    });
+
+    test('resolved permit with missing scopes returns PermitError', async () => {
+      const protectedTrail = trail('permit.scope', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+        intent: 'read',
+        permit: { scopes: ['thing:read'] },
+      });
+      const app = topo('permit-http', { protectedTrail });
+      const buildResult = deriveHttpRoutes(app, {
+        resolvePermit: () => Result.ok({ id: 'user-1', scopes: [] }),
+      });
+
+      expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
+      const [route] = buildResult.value;
+      const result = await route?.execute({}, 'req-1', undefined, {
+        headers: { authorization: 'Bearer weak' },
+      });
+
+      expect(result?.isErr()).toBe(true);
+      if (!result?.isErr()) {
+        return;
+      }
+      expect(result.error).toBeInstanceOf(PermitError);
     });
   });
 

@@ -302,7 +302,12 @@ for (const route of routesResult.value) {
           statusFor(parsed.error)
         );
       }
-      const result = await route.execute(parsed.value);
+      const result = await route.execute(
+        parsed.value,
+        undefined,
+        c.req.raw.signal,
+        { headers: c.req.raw.headers }
+      );
       return result.isOk()
         ? c.json({ data: result.value }, 200)
         : c.json(
@@ -315,7 +320,9 @@ for (const route of routesResult.value) {
       route.inputSource === 'query'
         ? Object.fromEntries(new URL(c.req.url).searchParams)
         : await c.req.json();
-    const result = await route.execute(input);
+    const result = await route.execute(input, undefined, c.req.raw.signal, {
+      headers: c.req.raw.headers,
+    });
     return result.isOk()
       ? c.json({ data: result.value }, 200)
       : c.json(
@@ -332,9 +339,9 @@ This gives you full control over the HTTP framework while still deriving routes 
 
 `deriveHttpRoutes()` returns `Result<HttpRouteDefinition[], Error>`. If two trails resolve to the same method + path (e.g. two trails both map to `POST /entity/add`), it returns a `ValidationError` describing the collision instead of silently overwriting a route.
 
-## AbortSignal Propagation
+## Request Context and AbortSignal Propagation
 
-The HTTP request's abort signal is forwarded to `TrailContext.abortSignal`. If the client disconnects or cancels the request mid-flight, the implementation's signal is aborted.
+The HTTP request's abort signal is forwarded to `TrailContext.abortSignal`. If the client disconnects or cancels the request mid-flight, the implementation's signal is aborted. Pass request headers as the fourth `execute` argument when the HTTP surface should resolve Bearer credentials into `ctx.permit`.
 
 ```typescript
 const longTask = trail('report.generate', {
