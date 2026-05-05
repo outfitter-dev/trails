@@ -55,9 +55,10 @@ Result.fromFetch(url, opts?), Result.fromJson(string), Result.toJson(value)
 
 // Error taxonomy
 TrailsError, ValidationError, NotFoundError, AlreadyExistsError,
-ConflictError, PermissionError, AuthError, TimeoutError, RateLimitError,
-NetworkError, InternalError, DerivationError, CancelledError, AmbiguousError,
-AssertionError, RetryExhaustedError
+ConflictError, PermissionError, PermitError, AuthError, TimeoutError,
+RateLimitError, NetworkError, InternalError, DerivationError,
+RecoverableCompletionError, CancelledError, AmbiguousError, AssertionError,
+RetryExhaustedError
 ErrorCategory, isTrailsError(value?), isRetryable(error)
 mapSurfaceError(surface, error), projectSurfaceError(surface, error)
 projectErrorClassSurface(surface, errorName)

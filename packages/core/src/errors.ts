@@ -131,6 +131,8 @@ export class DerivationError extends TrailsError {
   readonly retryable = false as const;
 }
 
+export class RecoverableCompletionError extends InternalError {}
+
 export class AuthError extends TrailsError {
   readonly category = 'auth' as const;
   readonly retryable = false as const;
@@ -288,6 +290,12 @@ export const errorClasses = [
     category: 'internal',
     ctor: DerivationError,
     name: 'DerivationError',
+    retryable: false,
+  },
+  {
+    category: 'internal',
+    ctor: RecoverableCompletionError,
+    name: 'RecoverableCompletionError',
     retryable: false,
   },
   { category: 'auth', ctor: AuthError, name: 'AuthError', retryable: false },

@@ -115,18 +115,18 @@ result.unwrapOr(fallback);   // Value or fallback
 
 ### Error taxonomy
 
-15 error classes across 10 categories. Each maps deterministically to exit codes, HTTP status, and JSON-RPC codes on every surface.
+17 error classes across 10 categories. Each maps deterministically to exit codes, HTTP status, and JSON-RPC codes on every surface.
 
 | Category | Classes | HTTP | Retryable |
 | --- | --- | --- | --- |
 | `validation` | `ValidationError`, `AmbiguousError` | 400 | No |
 | `not_found` | `NotFoundError` | 404 | No |
 | `conflict` | `AlreadyExistsError`, `ConflictError` | 409 | No |
-| `permission` | `PermissionError` | 403 | No |
+| `permission` | `PermissionError`, `PermitError` | 403 | No |
 | `timeout` | `TimeoutError` | 504 | Yes |
 | `rate_limit` | `RateLimitError` | 429 | Yes |
 | `network` | `NetworkError` | 502 | Yes |
-| `internal` | `InternalError`, `DerivationError`, `AssertionError` | 500 | No |
+| `internal` | `InternalError`, `DerivationError`, `RecoverableCompletionError`, `AssertionError` | 500 | No |
 | `auth` | `AuthError` | 401 | No |
 | `cancelled` | `CancelledError` | 499 | No |
 

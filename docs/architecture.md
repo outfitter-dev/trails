@@ -301,22 +301,22 @@ This guarantees consistent validation, layer ordering, and error handling regard
 
 ## Error Taxonomy
 
-15 error classes across 10 categories. Each maps to CLI exit codes, HTTP status codes, JSON-RPC codes, and retryability:
+17 error classes across 10 categories. Each maps to CLI exit codes, HTTP status codes, JSON-RPC codes, and retryability:
 
 | Category | Exit | HTTP | Retryable | Classes |
 | --- | --- | --- | --- | --- |
 | `validation` | 1 | 400 | No | `ValidationError`, `AmbiguousError` |
 | `not_found` | 2 | 404 | No | `NotFoundError` |
 | `conflict` | 3 | 409 | No | `AlreadyExistsError`, `ConflictError` |
-| `permission` | 4 | 403 | No | `PermissionError` |
+| `permission` | 4 | 403 | No | `PermissionError`, `PermitError` |
 | `timeout` | 5 | 504 | Yes | `TimeoutError` |
 | `rate_limit` | 6 | 429 | Yes | `RateLimitError` |
 | `network` | 7 | 502 | Yes | `NetworkError` |
-| `internal` | 8 | 500 | No | `InternalError`, `DerivationError`, `AssertionError` |
+| `internal` | 8 | 500 | No | `InternalError`, `DerivationError`, `RecoverableCompletionError`, `AssertionError` |
 | `auth` | 9 | 401 | No | `AuthError` |
 | `cancelled` | 130 | 499 | No | `CancelledError` |
 
-`RetryExhaustedError` is the fifteenth class. It wraps another `TrailsError`, inherits the wrapped error's category for surface mappings, and always reports `retryable: false`.
+`RetryExhaustedError` wraps another `TrailsError`, inherits the wrapped error's category for surface mappings, and always reports `retryable: false`.
 
 All extend `TrailsError` (direct class inheritance). Pattern matching uses `instanceof` or `error.category`.
 

@@ -180,11 +180,11 @@ Status codes come directly from the error taxonomy -- the same mapping used acro
 | `validation` | 400         | `ValidationError`, `AmbiguousError`  |
 | `not_found`  | 404         | `NotFoundError`                      |
 | `conflict`   | 409         | `AlreadyExistsError`, `ConflictError`|
-| `permission` | 403         | `PermissionError`                    |
+| `permission` | 403         | `PermissionError`, `PermitError`     |
 | `timeout`    | 504         | `TimeoutError`                       |
 | `rate_limit` | 429         | `RateLimitError`                     |
 | `network`    | 502         | `NetworkError`                       |
-| `internal`   | 500         | `InternalError`, `DerivationError`, `AssertionError` |
+| `internal`   | 500         | `InternalError`, `DerivationError`, `RecoverableCompletionError`, `AssertionError` |
 | `auth`       | 401         | `AuthError`                          |
 | `cancelled`  | 499         | `CancelledError`                     |
 

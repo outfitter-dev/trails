@@ -15,8 +15,15 @@
  * workspace trail index for accurate, live suggestions.
  */
 
-import { Result, ValidationError } from '@ontrails/core';
+import {
+  deriveStructuredTrailExamples,
+  RecoverableCompletionError,
+  Result,
+  ValidationError,
+} from '@ontrails/core';
 import { buildWorkspaceTrailIndex } from '@ontrails/topographer';
+
+import { tryLoadFreshAppLease } from './trails/load-app.js';
 
 /** Shells supported by the completion generator. */
 export type CompletionShell = 'bash' | 'zsh' | 'fish';
@@ -74,6 +81,16 @@ const SCRIPT_RENDERERS: Readonly<Record<CompletionShell, ScriptRenderer>> = {
 
 /** Pattern that `binName` must match — alphanumerics, underscore, hyphen. */
 const BIN_NAME_PATTERN = /^[a-zA-Z0-9_-]+$/;
+
+const recoverableCompletionError = (
+  message: string,
+  context: Record<string, unknown>,
+  cause?: unknown
+): RecoverableCompletionError =>
+  new RecoverableCompletionError(message, {
+    ...(cause instanceof Error ? { cause } : {}),
+    context,
+  });
 
 /**
  * Render a static shell completion script that delegates dynamic completion
@@ -139,4 +156,85 @@ export const renderTrailIdCompletions = async (
     return 0;
   });
   return matching;
+};
+
+// ---------------------------------------------------------------------------
+// Example name completion
+// ---------------------------------------------------------------------------
+
+/**
+ * Return example names for `trailId` matching `prefix`, sorted lexicographically.
+ *
+ * Looks the trail up via the workspace index (TRL-404), resolves its owning
+ * app module from the enriched index, loads the app's topo, and reads the
+ * `name` of every structured example.
+ *
+ * Completion is best-effort for shell callers, but this helper preserves
+ * load-time failures as `RecoverableCompletionError` so the internal bridge can
+ * decide whether to suppress them for prompt safety.
+ */
+export const renderTrailExampleCompletions = async (
+  workspaceRoot: string,
+  trailId: string,
+  prefix: string
+): Promise<Result<readonly string[], RecoverableCompletionError>> => {
+  try {
+    const { index } = await buildWorkspaceTrailIndex({ cwd: workspaceRoot });
+    const owner = index[trailId];
+    if (owner === undefined) {
+      return Result.ok([]);
+    }
+    const leaseResult = await tryLoadFreshAppLease(
+      owner.modulePath,
+      workspaceRoot
+    );
+    if (leaseResult.isErr()) {
+      return Result.err(
+        recoverableCompletionError(
+          'Cannot load app while completing example names',
+          { modulePath: owner.modulePath, trailId, workspaceRoot },
+          leaseResult.error
+        )
+      );
+    }
+    const lease = leaseResult.value;
+    try {
+      const target = lease.app.get(trailId);
+      if (target === undefined) {
+        return Result.err(
+          recoverableCompletionError(
+            'Indexed trail was not found in loaded app while completing example names',
+            { modulePath: owner.modulePath, trailId, workspaceRoot }
+          )
+        );
+      }
+      const structured = deriveStructuredTrailExamples(target.examples) ?? [];
+      const matching: string[] = [];
+      for (const example of structured) {
+        if (example.name.startsWith(prefix)) {
+          matching.push(example.name);
+        }
+      }
+      matching.sort((a, b) => {
+        if (a < b) {
+          return -1;
+        }
+        if (a > b) {
+          return 1;
+        }
+        return 0;
+      });
+      return Result.ok(matching);
+    } finally {
+      lease.release();
+    }
+  } catch (error) {
+    return Result.err(
+      recoverableCompletionError(
+        'Cannot resolve workspace while completing example names',
+        { trailId, workspaceRoot },
+        error
+      )
+    );
+  }
 };

@@ -20,6 +20,7 @@ export {
   AuthError,
   CancelledError,
   DerivationError,
+  RecoverableCompletionError,
   codesByCategory,
   errorClasses,
   errorCategories,

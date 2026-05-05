@@ -4,7 +4,7 @@ slug: error-taxonomy-as-transport-independent-behavior-contract
 title: Error Taxonomy as Transport-Independent Behavior Contract
 status: accepted
 created: 2026-04-09
-updated: 2026-04-13
+updated: 2026-05-04
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [2, 6]
 ---
@@ -37,7 +37,7 @@ If every new transport repeats this pattern ad hoc, the mappings will drift. A q
 
 ### The error taxonomy is a transport-independent behavior contract
 
-The 15 error classes define *behavioral categories*, not transport-specific codes. Each category carries two properties that any transport can read:
+The 17 error classes define *behavioral categories*, not transport-specific codes. Each category carries two properties that any transport can read:
 
 - **`retryable`** — should the transport attempt redelivery?
 - **`category`** — what family of failure is this?
@@ -54,12 +54,14 @@ Transports map these properties to their native representations. The framework p
 | `ConflictError` | `conflict` | no | 409 | 3 | -32603 | nack → dead-letter | drop + dead-event |
 | `AlreadyExistsError` | `conflict` | no | 409 | 3 | -32603 | nack → dead-letter | drop + dead-event |
 | `PermissionError` | `permission` | no | 403 | 4 | -32600 | nack → dead-letter | drop + dead-event |
+| `PermitError` | `permission` | no | 403 | 4 | -32600 | nack → dead-letter | drop + dead-event |
 | `TimeoutError` | `timeout` | yes | 504 | 5 | -32603 | nack → retry | retry |
 | `RateLimitError` | `rate_limit` | yes | 429 | 6 | -32603 | nack → retry (with backoff) | retry (with backoff) |
 | `NetworkError` | `network` | yes | 502 | 7 | -32603 | nack → retry | retry |
 | `InternalError` | `internal` | no | 500 | 8 | -32603 | nack → dead-letter | drop + dead-event |
 | `AssertionError` | `internal` | no | 500 | 8 | -32603 | nack → dead-letter | drop + dead-event |
 | `DerivationError` | `internal` | no | 500 | 8 | -32603 | nack → dead-letter | drop + dead-event |
+| `RecoverableCompletionError` | `internal` | no | 500 | 8 | -32603 | nack → dead-letter | drop + dead-event |
 | `RetryExhaustedError` | wrapped error category | no | wrapped status | wrapped exit | wrapped code | wrapped category behavior | wrapped category behavior |
 | `AuthError` | `auth` | no | 401 | 9 | -32600 | nack → dead-letter | drop + dead-event |
 | `CancelledError` | `cancelled` | no | 499 | 130 | -32603 | nack → discard | discard |
@@ -75,7 +77,7 @@ The queue mapping is mechanical:
 - **`CancelledError`** → nack with discard. The trail was cancelled (e.g., by shutdown). The message is neither retried nor dead-lettered — it's discarded. The cancellation is an operational concern, not a message problem.
 - **Success** → ack.
 
-A queue connector (`@ontrails/with-kafka`, `@ontrails/with-sqs`) reads `retryable` from the error and makes the ack/nack decision. The connector doesn't need to understand 15 error classes. It understands one boolean.
+A queue connector (`@ontrails/with-kafka`, `@ontrails/with-sqs`) reads `retryable` from the error and makes the ack/nack decision. The connector doesn't need to understand 17 error classes. It understands one boolean.
 
 ### Signal delivery follows the same pattern
 
@@ -108,8 +110,8 @@ The deliberate friction from ADR-0002 applies: adding a new error class or categ
 ### Positive
 
 - **Queue and signal delivery semantics are derived, not designed.** A queue connector reads `retryable` and makes the ack/nack decision. No transport-specific error logic to author.
-- **New transports get error handling for free.** WebSocket close codes, gRPC status codes, any future transport — one mapping function, and the 15 error classes work everywhere.
-- **The taxonomy proves its design.** ADR-0002 designed the taxonomy with three transports. This ADR validates that the same 15 classes and the `retryable` flag extend to five transports without modification. The abstraction holds.
+- **New transports get error handling for free.** WebSocket close codes, gRPC status codes, any future transport — one mapping function, and the 17 error classes work everywhere.
+- **The taxonomy proves its design.** ADR-0002 designed the taxonomy with three transports. This ADR validates that the same behavioral categories and the `retryable` flag extend to five transports without modification. The abstraction holds.
 
 ### Tradeoffs
 
