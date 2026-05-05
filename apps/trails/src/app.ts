@@ -3,6 +3,8 @@ import { topo } from '@ontrails/core';
 import * as addSurface from './trails/add-surface.js';
 import * as addTrail from './trails/add-trail.js';
 import * as addVerify from './trails/add-verify.js';
+import * as completions from './trails/completions.js';
+import * as completionsComplete from './trails/completions-complete.js';
 import * as create from './trails/create.js';
 import * as createScaffold from './trails/create-scaffold.js';
 import * as devClean from './trails/dev-clean.js';
@@ -44,5 +46,7 @@ export const app = topo(
   createScaffold,
   addSurface,
   addVerify,
-  addTrail
+  addTrail,
+  completions,
+  completionsComplete
 );
