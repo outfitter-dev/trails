@@ -23,7 +23,7 @@ import {
   verifyWebhookRequest,
   writeActivationTraceRecord,
   withActivationProvenance,
-  withSurfaceMarker,
+  withSurfaceLayerNames,
 } from '@ontrails/core';
 import type {
   ActivationEntry,
@@ -108,9 +108,14 @@ const derivePath = (basePath: string, trailId: string): string => {
 
 /** Build per-request context overrides with the HTTP trailhead marker. */
 const withHttpTrailhead = (
-  requestId: string | undefined
+  requestId: string | undefined,
+  layers: readonly Layer[]
 ): Partial<TrailContextInit> =>
-  withSurfaceMarker('http', requestId === undefined ? {} : { requestId });
+  withSurfaceLayerNames(
+    'http',
+    layers,
+    requestId === undefined ? {} : { requestId }
+  );
 
 const createWebhookActivationFireId = (): string => {
   const randomUUID = globalThis.crypto?.randomUUID;
@@ -213,10 +218,11 @@ const createWebhookInvalidPublicRecorder =
 const withWebhookActivation = (
   activation: ActivationProvenance,
   requestId: string | undefined,
-  traceContext: TraceContext | undefined
+  traceContext: TraceContext | undefined,
+  layers: readonly Layer[]
 ): Partial<TrailContextInit> => {
   const ctx = withActivationProvenance(
-    withHttpTrailhead(requestId),
+    withHttpTrailhead(requestId, layers),
     activation
   );
   return traceContext === undefined
@@ -252,10 +258,11 @@ const createExecute =
       abortSignal,
       configValues: options.configValues,
       createContext: options.createContext,
-      ctx: withHttpTrailhead(requestId),
-      layers,
+      ctx: withHttpTrailhead(requestId, layers),
       resources: options.resources,
+      surfaceLayers: layers,
       topo: graph,
+      topoLayers: graph.layers,
     });
 
 /**
@@ -314,10 +321,11 @@ const createWebhookConsumerExecute =
       abortSignal,
       configValues: options.configValues,
       createContext: options.createContext,
-      ctx: withWebhookActivation(activation, requestId, traceContext),
-      layers,
+      ctx: withWebhookActivation(activation, requestId, traceContext, layers),
       resources: options.resources,
+      surfaceLayers: layers,
       topo: graph,
+      topoLayers: graph.layers,
     });
   };
 

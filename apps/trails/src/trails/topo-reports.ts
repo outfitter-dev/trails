@@ -51,6 +51,16 @@ export type BriefReport = Readonly<
   }
 >;
 
+export type SurfaceLayerKey = 'cli' | 'http' | 'mcp';
+
+export type SurfaceLayerNames = Readonly<
+  Record<SurfaceLayerKey, readonly string[]>
+>;
+
+export interface TrailDetailOptions {
+  readonly surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined;
+}
+
 export interface SurveyListReport {
   readonly activation: ActivationOverviewReport;
   readonly count: number;
@@ -90,6 +100,19 @@ export interface TrailDetailReport {
   readonly activationChains: readonly ActivationChainReport[];
   readonly activationEdges: readonly ActivationEdgeReport[];
   readonly activationSources: readonly ActivationSourceReport[];
+  /**
+   * Composed layer names visible at the survey boundary.
+   *
+   * Reports the names of typed layers that wrap this trail at execution time,
+   * in the framework's composition order: `topo → surface → trail`
+   * (outermost-first). Surface-scope layers are keyed by surface because
+   * each surface owns its own attachment set.
+   */
+  readonly composedLayers: {
+    readonly topo: readonly string[];
+    readonly surface: SurfaceLayerNames;
+    readonly trail: readonly string[];
+  };
   readonly description: string | null;
   readonly detours:
     | readonly { readonly on: string; readonly maxAttempts: number }[]
@@ -334,10 +357,31 @@ export const deriveSignalDetail = (
   };
 };
 
+const emptySurfaceLayerNames = (): SurfaceLayerNames => ({
+  cli: [],
+  http: [],
+  mcp: [],
+});
+
+const normalizeSurfaceLayerNames = (
+  names?: Partial<SurfaceLayerNames> | undefined
+): SurfaceLayerNames => {
+  const base = emptySurfaceLayerNames();
+  if (names === undefined) {
+    return base;
+  }
+  return {
+    cli: names.cli ?? base.cli,
+    http: names.http ?? base.http,
+    mcp: names.mcp ?? base.mcp,
+  };
+};
+
 export const deriveTrailDetail = (
   item: AnyTrail,
   app?: Topo | undefined,
-  activationGraph?: ActivationGraphReport | undefined
+  activationGraph?: ActivationGraphReport | undefined,
+  options: TrailDetailOptions = {}
 ): TrailDetailReport => {
   const activation =
     app === undefined
@@ -348,12 +392,20 @@ export const deriveTrailDetail = (
     item as unknown as { intent?: 'read' | 'write' | 'destroy' }
   );
 
+  const trailLayerNames = item.layers.map((layer) => layer.name);
+  const topoLayerNames = (app?.layers ?? []).map((layer) => layer.name);
+
   return {
     activatedBy: activation.activatedBy,
     activates: activation.activates,
     activationChains: activation.chains,
     activationEdges: activation.edges,
     activationSources: activation.sources,
+    composedLayers: {
+      surface: normalizeSurfaceLayerNames(options.surfaceLayerNames),
+      topo: topoLayerNames,
+      trail: trailLayerNames,
+    },
     crosses: item.crosses.toSorted(),
     description: item.description ?? null,
     detours:

@@ -119,6 +119,11 @@ describe('trails guide', () => {
           activationChains: [],
           activationEdges: [],
           activationSources: [],
+          composedLayers: {
+            surface: { cli: [], http: [], mcp: [] },
+            topo: [],
+            trail: [],
+          },
           crosses: [],
           description: 'Say hello',
           detours: [

@@ -12,6 +12,7 @@ import {
 } from './activation-source.js';
 import type { AnyContour } from './contour.js';
 import type { FieldOverride } from './derive.js';
+import type { Layer } from './layer.js';
 import type { Result } from './result.js';
 import type { AnyResource } from './resource.js';
 import type { AnySignal } from './signal.js';
@@ -110,12 +111,25 @@ export interface TrailSpec<I, O, CI = never> {
    * `TrailContext.dryRun`.
    */
   readonly dryRun?: boolean | undefined;
-  /** Whether trailheads expose this trail by default. */
+  /** Whether surfaces expose this trail by default. */
   readonly visibility?: TrailVisibility | undefined;
   /** Arbitrary meta for tooling and filtering */
   readonly meta?: Readonly<Record<string, unknown>> | undefined;
   /** Recovery paths activated when blaze fails with a matching error class. */
   readonly detours?: readonly Detour<I, O, TrailsError>[] | undefined;
+  /**
+   * Typed layers attached at trail scope.
+   *
+   * Layers declared here wrap this trail's implementation on every execution,
+   * regardless of which surface invokes it. The execution pipeline composes
+   * trail-scope layers innermost — closer to the blaze than surface-scope
+   * or topo-scope layers — so the final order is
+   * `topo → surface → trail → blaze` (outermost-first).
+   *
+   * Layers are typed and inspectable. Omit `input` for surface-invisible
+   * wrappers that do not project any fields.
+   */
+  readonly layers?: readonly Layer[] | undefined;
   /** Per-field overrides for deriveFields() (labels, hints, options) */
   readonly fields?: Readonly<Record<string, FieldOverride>> | undefined;
   /** Contours this trail operates on. */
@@ -124,7 +138,7 @@ export interface TrailSpec<I, O, CI = never> {
   readonly crosses?: readonly (string | AnyTrail)[] | undefined;
   /**
    * Composition-only input schema — merged with `input` for `ctx.cross()` calls,
-   * invisible to public trailheads (CLI, MCP, HTTP).
+   * invisible to public surfaces (CLI, MCP, HTTP).
    *
    * Fields here are available in the blaze but are not derived into CLI flags,
    * MCP tool parameters, or HTTP request bodies. Use for data that only makes
@@ -172,7 +186,7 @@ export const intentValues = Object.freeze([
 
 export type Intent = (typeof intentValues)[number];
 
-/** Whether trailheads expose a trail by default. */
+/** Whether surfaces expose a trail by default. */
 export type TrailVisibility = 'public' | 'internal';
 
 /** A fully-defined trail — the unit of work in the Trails system */
@@ -186,6 +200,7 @@ export interface Trail<I, O, CI = never> extends Omit<
   | 'detours'
   | 'fires'
   | 'intent'
+  | 'layers'
   | 'on'
   | 'resources'
 > {
@@ -200,6 +215,13 @@ export interface Trail<I, O, CI = never> extends Omit<
   readonly crossInput?: z.ZodType<CI> | undefined;
   /** Recovery paths activated when blaze fails with a matching error (always present, default []). */
   readonly detours: readonly Detour<I, O, TrailsError>[];
+  /**
+   * Typed layers attached at trail scope (always present, default []).
+   *
+   * Composed innermost in the layer chain — closest to the blaze. The final
+   * composition order is `topo → surface → trail → blaze` (outermost-first).
+   */
+  readonly layers: readonly Layer[];
   /** Resources this trail may access via resource.from(ctx) (always present, default []) */
   readonly resources: readonly AnyResource[];
   /** IDs of signals this trail fires via ctx.fire() (always present, default []) */
@@ -213,7 +235,7 @@ export interface Trail<I, O, CI = never> extends Omit<
   readonly activationSources: readonly ActivationEntry[];
   /** What this trail does to the world (always present, default 'write') */
   readonly intent: Intent;
-  /** Whether trailheads expose this trail by default (always present, default 'public'). */
+  /** Whether surfaces expose this trail by default (always present, default 'public'). */
   readonly visibility: TrailVisibility;
   /** Primary input fields and their order (always present, default undefined) */
   readonly args?: readonly string[] | false | undefined;
@@ -349,6 +371,7 @@ const normalizeCollections = <I, O, CI>(
   readonly contours: readonly AnyContour[];
   readonly detours: readonly Detour<I, O, TrailsError>[];
   readonly fires: readonly string[];
+  readonly layers: readonly Layer[];
   readonly on: readonly string[];
   readonly resources: readonly AnyResource[];
 } => {
@@ -359,6 +382,7 @@ const normalizeCollections = <I, O, CI>(
     contours: Object.freeze([...(spec.contours ?? [])]),
     detours: Object.freeze([...(spec.detours ?? [])]),
     fires: Object.freeze((spec.fires ?? []).map(normalizeSignalRef)),
+    layers: Object.freeze([...(spec.layers ?? [])]),
     on: extractSignalActivationIds(activationSources),
     resources: Object.freeze([...(spec.resources ?? [])]),
   };
@@ -417,6 +441,7 @@ export function trail<I, O, CI = never>(
     contours: _c,
     detours: _d,
     fires: _f,
+    layers: _l,
     on: _o,
     resources: _r,
     ...spec

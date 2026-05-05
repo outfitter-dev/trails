@@ -12,6 +12,7 @@ import {
   ConflictError,
   DETOUR_MAX_ATTEMPTS_CAP,
   Result,
+  SURFACE_LAYER_NAMES_KEY,
   resource,
   schedule,
   signal,
@@ -40,6 +41,11 @@ import {
   surveyTrailDetailTrail,
 } from '../trails/survey.js';
 import { loadApp } from '../trails/load-app.js';
+import {
+  buildCurrentTopoMatches,
+  buildCurrentTrailDetail,
+  readSurfaceLayerNamesFromContext,
+} from '../trails/topo-read-support.js';
 import { topoCompileTrail } from '../trails/topo-compile.js';
 import type {
   BriefReport,
@@ -382,6 +388,111 @@ describe('trails survey detail', () => {
     expect(parsed.intent).toBe('read');
     expect(parsed.on).toEqual([]);
     expect(parsed.resources).toEqual(['db.main']);
+    expect(parsed.composedLayers).toEqual({
+      surface: { cli: [], http: [], mcp: [] },
+      topo: [],
+      trail: [],
+    });
+  });
+
+  test('trail detail surfaces composed layers from every scope', () => {
+    const trailLayer = {
+      name: 'trail-A',
+      wrap: (_t: unknown, impl: unknown) => impl as never,
+    };
+    const topoLayer = {
+      name: 'topo-Z',
+      wrap: (_t: unknown, impl: unknown) => impl as never,
+    };
+    const layered = trail('layered.surveyed', {
+      blaze: () => Result.ok({}),
+      input: z.object({}),
+      layers: [trailLayer],
+    });
+    const layeredApp = topo(
+      'layered-app',
+      { layered },
+      { layers: [topoLayer] }
+    );
+
+    const parsed = structuredClone(
+      deriveTrailDetail(layered, layeredApp, undefined, {
+        surfaceLayerNames: { cli: ['cli-B'] },
+      })
+    ) as TrailDetailReport;
+
+    expect(parsed.composedLayers.trail).toEqual(['trail-A']);
+    expect(parsed.composedLayers.topo).toEqual(['topo-Z']);
+    expect(parsed.composedLayers.surface).toEqual({
+      cli: ['cli-B'],
+      http: [],
+      mcp: [],
+    });
+  });
+
+  test('current topo read support forwards surface layer names', () => {
+    const layer = {
+      name: 'trail-A',
+      wrap: (_t: unknown, impl: unknown) => impl as never,
+    };
+    const layered = trail('layered.current', {
+      blaze: () => Result.ok({}),
+      input: z.object({}),
+      layers: [layer],
+    });
+    const layeredApp = topo('layered-app', { layered });
+
+    const detail = buildCurrentTrailDetail(layeredApp, layered.id, {
+      surfaceLayerNames: { cli: ['cli-B'], http: ['http-C'] },
+    });
+    const matches = buildCurrentTopoMatches(layeredApp, layered.id, {
+      surfaceLayerNames: { mcp: ['mcp-D'] },
+    });
+
+    expect(detail?.composedLayers.surface).toEqual({
+      cli: ['cli-B'],
+      http: ['http-C'],
+      mcp: [],
+    });
+    expect(matches[0]?.detail.kind).toBe('trail');
+    expect(
+      matches[0]?.detail.kind === 'trail'
+        ? matches[0].detail.composedLayers.surface
+        : undefined
+    ).toEqual({
+      cli: [],
+      http: [],
+      mcp: ['mcp-D'],
+    });
+  });
+
+  test('surface layer names tolerate explicit undefined values', () => {
+    const parsed = structuredClone(
+      deriveTrailDetail(helloTrail, undefined, undefined, {
+        surfaceLayerNames: {
+          cli: undefined,
+          mcp: ['mcp-A'],
+        } as Partial<TrailDetailReport['composedLayers']['surface']>,
+      })
+    ) as TrailDetailReport;
+
+    expect(parsed.composedLayers.surface).toEqual({
+      cli: [],
+      http: [],
+      mcp: ['mcp-A'],
+    });
+  });
+
+  test('surface layer names can be read from execution context', () => {
+    expect(
+      readSurfaceLayerNamesFromContext({
+        abortSignal: new AbortController().signal,
+        extensions: {
+          [SURFACE_LAYER_NAMES_KEY]: { cli: ['cli-A'], http: ['http-B'] },
+        },
+        requestId: 'req-1',
+      })
+    ).toEqual({ cli: ['cli-A'], http: ['http-B'] });
   });
 
   test('trail detail includes static activation graph chains', () => {

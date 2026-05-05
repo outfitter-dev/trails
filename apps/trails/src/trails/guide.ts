@@ -12,6 +12,7 @@ import { trailDetailOutput } from './topo-output-schemas.js';
 import {
   buildCurrentGuideEntries,
   buildCurrentTopoDetail,
+  readSurfaceLayerNamesFromContext,
 } from './topo-read-support.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 import { resolveTrailRootDir } from './root-dir.js';
@@ -48,6 +49,7 @@ export const guideTrail = trail('guide', {
       if (input.trailId) {
         const detail = buildCurrentTopoDetail(lease.app, input.trailId, {
           rootDir,
+          surfaceLayerNames: readSurfaceLayerNamesFromContext(ctx),
         });
         if (detail === undefined || detail.kind !== 'trail') {
           return Result.err(

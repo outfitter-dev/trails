@@ -48,6 +48,15 @@ export const trailDetailOutput = z.object({
   activationChains: z.array(activationChainOutput).readonly(),
   activationEdges: z.array(activationEdgeOutput).readonly(),
   activationSources: z.array(activationSourceOutput).readonly(),
+  composedLayers: z.object({
+    surface: z.object({
+      cli: z.array(z.string()).readonly(),
+      http: z.array(z.string()).readonly(),
+      mcp: z.array(z.string()).readonly(),
+    }),
+    topo: z.array(z.string()).readonly(),
+    trail: z.array(z.string()).readonly(),
+  }),
   crosses: z.array(z.string()).readonly(),
   description: z.string().nullable(),
   detours: z

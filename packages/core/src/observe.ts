@@ -1,5 +1,6 @@
 import { ValidationError } from './errors.js';
 import type { TraceSink } from './internal/tracing.js';
+import type { Layer } from './layer.js';
 import { safeStringify } from './serialization.js';
 import type { Logger, LogLevel, LogRecord, LogSink } from './types.js';
 
@@ -21,6 +22,15 @@ export type ObserveInput = Logger | LogSink | TraceSink | ObserveConfig;
 
 export interface TopoOptions {
   readonly observe?: ObserveInput | undefined;
+  /**
+   * Typed layers attached at topo scope.
+   *
+   * Layers declared here wrap every trail invoked through this topo, on every
+   * surface. The execution pipeline composes topo-scope layers outermost —
+   * around surface-scope and trail-scope layers — so the final order is
+   * `topo → surface → trail → blaze` (outermost-first).
+   */
+  readonly layers?: readonly Layer[] | undefined;
 }
 
 const OBSERVE_CONFIG_KEYS = new Set(['log', 'trace']);

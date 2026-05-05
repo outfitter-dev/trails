@@ -21,7 +21,7 @@ import {
   executeTrail,
   filterSurfaceTrails,
   validateSurfaceTopo,
-  withSurfaceMarker,
+  withSurfaceLayerNames,
 } from '@ontrails/core';
 
 import type { AnyTrail, CliArg, CliCommand, CliFlag } from './command.js';
@@ -466,12 +466,13 @@ const runTrailOnce = async (
   await executeTrail(t, input, {
     configValues: options?.configValues,
     createContext: options?.createContext,
-    ctx: withSurfaceMarker('cli', ctxOverrides),
+    ctx: withSurfaceLayerNames('cli', options?.layers ?? [], ctxOverrides),
     dryRun,
-    layers: options?.layers,
     ...(permit === undefined ? {} : { permit }),
     resources: options?.resources,
+    surfaceLayers: options?.layers,
     topo: graph,
+    topoLayers: graph.layers,
   });
 
 /**

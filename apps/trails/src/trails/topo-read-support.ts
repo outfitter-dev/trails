@@ -8,19 +8,21 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { Topo } from '@ontrails/core';
+import type { Topo, TrailContext } from '@ontrails/core';
 import {
   ConflictError,
   deriveTrailsDbPath,
   deriveTrailsDir,
   NotFoundError,
   Result,
+  SURFACE_LAYER_NAMES_KEY,
 } from '@ontrails/core';
 import { readSurfaceLockData } from '@ontrails/topographer';
 
 import type {
   BriefReport,
   SignalDetailReport,
+  SurfaceLayerNames,
   SurveyListReport,
 } from './topo-reports.js';
 import {
@@ -50,6 +52,15 @@ export interface CurrentTrailDetail {
   }[];
   readonly activationEdges: readonly ActivationEdgeReport[];
   readonly activationSources: readonly ActivationSourceReport[];
+  readonly composedLayers: {
+    readonly topo: readonly string[];
+    readonly trail: readonly string[];
+    readonly surface: {
+      readonly cli: readonly string[];
+      readonly http: readonly string[];
+      readonly mcp: readonly string[];
+    };
+  };
   readonly crosses: readonly string[];
   readonly description: string | null;
   readonly detours:
@@ -84,6 +95,29 @@ export interface CurrentTopoMatch {
   readonly kind: CurrentTopoDetail['kind'];
   readonly detail: CurrentTopoDetail;
 }
+
+export interface CurrentTopoReadOptions {
+  readonly rootDir?: string | undefined;
+  readonly surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined;
+}
+
+const isStringArray = (value: unknown): value is readonly string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === 'string');
+
+export const readSurfaceLayerNamesFromContext = (
+  ctx: TrailContext
+): Partial<SurfaceLayerNames> => {
+  const value = ctx.extensions?.[SURFACE_LAYER_NAMES_KEY];
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  const raw = value as Record<string, unknown>;
+  return {
+    ...(isStringArray(raw['cli']) ? { cli: raw['cli'] } : {}),
+    ...(isStringArray(raw['http']) ? { http: raw['http'] } : {}),
+    ...(isStringArray(raw['mcp']) ? { mcp: raw['mcp'] } : {}),
+  };
+};
 
 const hasCommittedLock = (trailsDir: string): boolean =>
   existsSync(join(trailsDir, 'trails.lock'));
@@ -139,10 +173,14 @@ export const buildCurrentGuideEntries = (
 export const buildCurrentTrailDetail = (
   app: Topo,
   id: string,
-  _options?: { readonly rootDir?: string }
+  options?: CurrentTopoReadOptions
 ): CurrentTrailDetail | undefined => {
   const trail = app.get(id);
-  return trail === undefined ? undefined : deriveTrailDetail(trail, app);
+  return trail === undefined
+    ? undefined
+    : deriveTrailDetail(trail, app, undefined, {
+        surfaceLayerNames: options?.surfaceLayerNames,
+      });
 };
 
 export const buildCurrentResourceDetail = (
@@ -163,16 +201,16 @@ export const buildCurrentSignalDetail = (
 export const buildCurrentTopoDetail = (
   app: Topo,
   id: string,
-  _options?: { readonly rootDir?: string }
+  options?: CurrentTopoReadOptions
 ): CurrentTopoDetail | undefined =>
-  buildCurrentTrailDetail(app, id) ??
+  buildCurrentTrailDetail(app, id, options) ??
   buildCurrentResourceDetail(app, id) ??
   buildCurrentSignalDetail(app, id);
 
 export const buildCurrentTopoMatches = (
   app: Topo,
   id: string,
-  _options?: { readonly rootDir?: string }
+  options?: CurrentTopoReadOptions
 ): readonly CurrentTopoMatch[] => {
   const matches: CurrentTopoMatch[] = [];
   let activationGraph: ActivationGraphReport | undefined;
@@ -182,7 +220,9 @@ export const buildCurrentTopoMatches = (
   const trail = app.get(id);
   if (trail !== undefined) {
     matches.push({
-      detail: deriveTrailDetail(trail, app, getActivationGraph()),
+      detail: deriveTrailDetail(trail, app, getActivationGraph(), {
+        surfaceLayerNames: options?.surfaceLayerNames,
+      }),
       kind: 'trail',
     });
   }

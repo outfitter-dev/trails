@@ -9,6 +9,7 @@ import {
   getLateBoundSignalRef,
   parseLateBoundSignalMarker,
 } from './internal/signal-ref.js';
+import type { Layer } from './layer.js';
 import {
   hasObserveCapabilities,
   isLogger,
@@ -43,6 +44,15 @@ export interface Topo {
   readonly signals: ReadonlyMap<string, AnySignal>;
   readonly resources: ReadonlyMap<string, AnyResource>;
   readonly observe?: ObserveConfig | undefined;
+  /**
+   * Typed layers attached at topo scope (always present, default `[]`).
+   *
+   * The CLI/MCP/HTTP surfaces forward these into `executeTrail` as
+   * `topoLayers`, where they are composed outermost in the layer chain.
+   * The final composition order is `topo → surface → trail → blaze`
+   * (outermost-first).
+   */
+  readonly layers: readonly Layer[];
   readonly count: number;
   readonly contourCount: number;
   readonly resourceCount: number;
@@ -85,7 +95,8 @@ const createTopo = (
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
   resources: ReadonlyMap<string, AnyResource>,
-  observe: ObserveConfig | undefined
+  observe: ObserveConfig | undefined,
+  layers: readonly Layer[]
 ): Topo => ({
   contourCount: contours.size,
   contourIds(): string[] {
@@ -135,6 +146,7 @@ const createTopo = (
     description: identity.description,
   }),
   ...(observe !== undefined && { observe }),
+  layers,
   resourceCount: resources.size,
   resourceIds(): string[] {
     return [...resources.keys()];
@@ -483,7 +495,7 @@ const registerModuleValues = (
   }
 };
 
-const TOPO_OPTION_KEYS = ['observe'] as const;
+const TOPO_OPTION_KEYS = ['layers', 'observe'] as const;
 const TOPO_OPTION_KEY_SET: ReadonlySet<string> = new Set(TOPO_OPTION_KEYS);
 
 /**
@@ -630,6 +642,18 @@ const classifyTrailingArgument = (
   // helper that should be treated as a (silently ignored) module
   // export.
   const observeValue = (value as TopoOptions).observe;
+  const layersValue = (value as TopoOptions).layers;
+
+  // A module export named `layers` would be a non-registrable array, but
+  // an explicit `topo.options({ layers: [...] })` is the documented escape
+  // hatch for that disambiguation. Without the brand, accept the trailing
+  // argument as options when `layers` is an array and `observe` is either
+  // unset or already an unambiguous option shape — this mirrors how
+  // `observe`-only options are accepted today.
+  if (Array.isArray(layersValue) && observeValue === undefined) {
+    return { kind: 'options', options: value as TopoOptions };
+  }
+
   if (hasRegistrableKind(observeValue)) {
     return { kind: 'module' };
   }
@@ -784,6 +808,7 @@ const topoImpl = (
       : nameOrIdentity;
   const { modules, options } = splitTopoArguments(modulesOrOptions);
   const observe = normalizeObserve(options?.observe);
+  const layers = Object.freeze([...(options?.layers ?? [])]);
 
   const contours = new Map<string, AnyContour>();
   const trails = new Map<string, AnyTrail>();
@@ -800,7 +825,8 @@ const topoImpl = (
     finalizeTrailSignals(trails, resources),
     signals,
     resources,
-    observe
+    observe,
+    layers
   );
 };
 

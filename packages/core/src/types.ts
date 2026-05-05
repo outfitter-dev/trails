@@ -190,6 +190,11 @@ export interface LogFormatter {
  */
 export const SURFACE_KEY = '__trails_surface' as const;
 
+/**
+ * Context extension key for the layer names attached by the invoking surface.
+ */
+export const SURFACE_LAYER_NAMES_KEY = '__trails_surface_layer_names' as const;
+
 /** Runtime context threaded through every trail execution */
 export interface TrailContext {
   readonly activation?: ActivationProvenance | undefined;

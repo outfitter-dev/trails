@@ -17,7 +17,7 @@ import {
   projectSurfaceError,
   toBlobRefDescriptor,
   validateSurfaceTopo,
-  withSurfaceMarker,
+  withSurfaceLayerNames,
   zodToJsonSchema,
 } from '@ontrails/core';
 import type {
@@ -438,10 +438,12 @@ const mcpError = (error: Error): McpToolResult => {
 
 /** Add the MCP trailhead marker while preserving any existing context extras. */
 const withMcpTrailhead = (
-  progressCb: TrailContextInit['progress']
+  progressCb: TrailContextInit['progress'],
+  layers: readonly Layer[]
 ): Partial<TrailContextInit> =>
-  withSurfaceMarker(
+  withSurfaceLayerNames(
     'mcp',
+    layers,
     progressCb === undefined ? {} : { progress: progressCb }
   );
 
@@ -462,10 +464,11 @@ const createHandler =
       abortSignal: extra.abortSignal,
       configValues: options.configValues,
       createContext: options.createContext,
-      ctx: withMcpTrailhead(progressCb),
-      layers,
+      ctx: withMcpTrailhead(progressCb, layers),
       resources: options.resources,
+      surfaceLayers: layers,
       topo: graph,
+      topoLayers: graph.layers,
     });
     if (result.isOk()) {
       return {

@@ -35,6 +35,7 @@ import {
   buildCurrentTrailDetail,
   buildCurrentResourceDetail,
   buildCurrentSignalDetail,
+  readSurfaceLayerNamesFromContext,
 } from './topo-read-support.js';
 import {
   activationOverviewOutput,
@@ -44,6 +45,7 @@ import {
 } from './topo-output-schemas.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 import { briefReportSchema } from './topo-reports.js';
+import type { SurfaceLayerNames } from './topo-reports.js';
 
 export {
   briefReportSchema,
@@ -56,6 +58,7 @@ export {
 export type {
   BriefReport,
   SignalDetailReport,
+  SurfaceLayerNames,
   SurveyListReport,
   TrailDetailReport,
 } from './topo-reports.js';
@@ -226,18 +229,26 @@ const buildSurveyDiff = async (
 const buildSurveyLookup = (
   app: Topo,
   entityId: string,
-  rootDir: string
+  rootDir: string,
+  surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined
 ): Result<object, Error> => {
-  const matches = buildCurrentTopoMatches(app, entityId, { rootDir });
+  const matches = buildCurrentTopoMatches(app, entityId, {
+    rootDir,
+    surfaceLayerNames,
+  });
   return Result.ok({ matches });
 };
 
 const buildSurveyTrailDetail = (
   app: Topo,
   id: string,
-  rootDir: string
+  rootDir: string,
+  surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined
 ): Result<object, Error> => {
-  const detail = buildCurrentTrailDetail(app, id, { rootDir });
+  const detail = buildCurrentTrailDetail(app, id, {
+    rootDir,
+    surfaceLayerNames,
+  });
   return detail === undefined
     ? Result.err(new NotFoundError(`Trail not found: ${id}`))
     : Result.ok(detail);
@@ -282,15 +293,16 @@ const deriveSurveyMode = (input: SurveyInput): SurveyMode =>
 type SurveyHandler = (
   app: Topo,
   input: SurveyInput,
-  rootDir: string
+  rootDir: string,
+  surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined
 ) => Result<object, Error> | Promise<Result<object, Error>>;
 
 /** Handlers keyed by survey mode. */
 const surveyHandlers: Record<SurveyMode, SurveyHandler> = {
-  lookup: (app, input, rootDir) =>
+  lookup: (app, input, rootDir, surfaceLayerNames) =>
     input.id === undefined || input.id === ''
       ? Result.err(new ValidationError('Survey lookup requires an id'))
-      : buildSurveyLookup(app, input.id, rootDir),
+      : buildSurveyLookup(app, input.id, rootDir, surfaceLayerNames),
   overview: (app, _input, rootDir) =>
     Result.ok(buildCurrentTopoList(app, { rootDir })),
 };
@@ -304,11 +316,12 @@ const envelopeSurveyValue = (
 const dispatchSurvey = async (
   app: Topo,
   input: SurveyInput,
-  rootDir: string
+  rootDir: string,
+  surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined
 ): Promise<Result<SurveyEnvelope, Error>> => {
   const mode = deriveSurveyMode(input);
   const handler = surveyHandlers[mode];
-  const result = await handler(app, input, rootDir);
+  const result = await handler(app, input, rootDir, surfaceLayerNames);
   if (result.isErr()) {
     return result;
   }
@@ -402,7 +415,7 @@ export const surveyTrail = trail('survey', {
   args: ['id'],
   blaze: async (input, ctx) =>
     withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
-      dispatchSurvey(app, input, rootDir)
+      dispatchSurvey(app, input, rootDir, readSurfaceLayerNamesFromContext(ctx))
     ),
   description: 'Full topo introspection',
   examples: [
@@ -542,7 +555,12 @@ export const surveyTrailDetailTrail = trail('survey.trail', {
   args: ['id'],
   blaze: async (input, ctx) =>
     withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
-      buildSurveyTrailDetail(app, input.id, rootDir)
+      buildSurveyTrailDetail(
+        app,
+        input.id,
+        rootDir,
+        readSurfaceLayerNamesFromContext(ctx)
+      )
     ),
   description: 'Inspect one trail by ID',
   examples: [

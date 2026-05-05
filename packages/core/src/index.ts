@@ -80,7 +80,7 @@ export type {
 } from './types.js';
 export { basePermitSchema } from './permits.js';
 export type { BasePermit } from './permits.js';
-export { SURFACE_KEY } from './types.js';
+export { SURFACE_KEY, SURFACE_LAYER_NAMES_KEY } from './types.js';
 export {
   ACTIVATION_PROVENANCE_KEY,
   buildActivationProvenanceTraceAttrs,
@@ -160,6 +160,7 @@ export type { SurfaceFilterOptions } from './surface-filter.js';
 export {
   shouldValidateSurfaceTopo,
   validateSurfaceTopo,
+  withSurfaceLayerNames,
   withSurfaceMarker,
 } from './surface-derivation.js';
 export type {

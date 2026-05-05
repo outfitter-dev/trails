@@ -6,11 +6,12 @@ import { Result } from '../result.js';
 import {
   shouldValidateSurfaceTopo,
   validateSurfaceTopo,
+  withSurfaceLayerNames,
   withSurfaceMarker,
 } from '../surface-derivation.js';
 import { topo } from '../topo.js';
 import { trail } from '../trail.js';
-import { SURFACE_KEY } from '../types.js';
+import { SURFACE_KEY, SURFACE_LAYER_NAMES_KEY } from '../types.js';
 
 const exportTrail = trail('entity.export', {
   blaze: () => Result.ok({ ok: true }),
@@ -45,6 +46,28 @@ describe('surface derivation helpers', () => {
     expect(marked.requestId).toBe('req-1');
     expect(marked.extensions).toEqual({
       [SURFACE_KEY]: 'cli',
+      existing: true,
+    });
+  });
+
+  test('surface layer marker records layer names by invoking surface', () => {
+    const marked = withSurfaceLayerNames(
+      'mcp',
+      [
+        { name: 'auth', wrap: (_trail, impl) => impl },
+        { name: 'audit', wrap: (_trail, impl) => impl },
+      ],
+      {
+        extensions: {
+          [SURFACE_LAYER_NAMES_KEY]: { cli: ['quiet'] },
+          existing: true,
+        },
+      }
+    );
+
+    expect(marked.extensions).toEqual({
+      [SURFACE_KEY]: 'mcp',
+      [SURFACE_LAYER_NAMES_KEY]: { cli: ['quiet'], mcp: ['auth', 'audit'] },
       existing: true,
     });
   });

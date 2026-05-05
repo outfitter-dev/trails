@@ -1,9 +1,10 @@
 import { Result } from './result.js';
+import type { Layer } from './layer.js';
 import type { Intent } from './trail.js';
 import type { Topo } from './topo.js';
 import type { SurfaceName } from './transport-error-map.js';
 import type { TrailContextInit } from './types.js';
-import { SURFACE_KEY } from './types.js';
+import { SURFACE_KEY, SURFACE_LAYER_NAMES_KEY } from './types.js';
 import { validateEstablishedTopo } from './validate-established-topo.js';
 
 export type SurfaceConfigValues = Readonly<
@@ -60,3 +61,31 @@ export const withSurfaceMarker = (
     [SURFACE_KEY]: surface,
   },
 });
+
+const readSurfaceLayerNameRecord = (
+  value: unknown
+): Record<string, readonly string[]> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, readonly string[]>)
+    : {};
+
+export const withSurfaceLayerNames = (
+  surface: SurfaceName,
+  layers: readonly Layer[],
+  ctx: Partial<TrailContextInit> = {}
+): SurfaceMarkedContext => {
+  const existing = readSurfaceLayerNameRecord(
+    ctx.extensions?.[SURFACE_LAYER_NAMES_KEY]
+  );
+  return {
+    ...ctx,
+    extensions: {
+      ...ctx.extensions,
+      [SURFACE_KEY]: surface,
+      [SURFACE_LAYER_NAMES_KEY]: {
+        ...existing,
+        [surface]: layers.map((layer) => layer.name),
+      },
+    },
+  };
+};

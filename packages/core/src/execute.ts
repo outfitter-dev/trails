@@ -94,6 +94,22 @@ export interface ExecuteTrailOptions {
    * rate limiting, circuit breaking, or custom audit logging.
    */
   readonly layers?: readonly Layer[] | undefined;
+  /**
+   * Typed layers attached at surface scope.
+   *
+   * Surfaces (CLI, MCP, HTTP) forward their `layers` option here so they
+   * compose around every trail dispatched through that surface. The final
+   * composition order is `topo → surface → trail → blaze` (outermost-first).
+   */
+  readonly surfaceLayers?: readonly Layer[] | undefined;
+  /**
+   * Typed layers attached at topo scope.
+   *
+   * The CLI/MCP/HTTP surfaces typically forward `topo.layers` here so the
+   * topo's declared layers wrap every trail invocation. The final
+   * composition order is `topo → surface → trail → blaze` (outermost-first).
+   */
+  readonly topoLayers?: readonly Layer[] | undefined;
   /** Factory that produces a base TrailContext (takes precedence over defaults). */
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
@@ -1179,6 +1195,24 @@ const runTrail = async (
 // ---------------------------------------------------------------------------
 
 /**
+ * Compose the typed layers attached at topo, surface, and trail scope.
+ *
+ * Composition order is topo → surface → trail → execution-supplied → blaze
+ * (outermost-first): trail-scope layers run inside surface/topo layers, and
+ * `executeTrail({ layers })` layers wrap closest to the blaze for per-call
+ * behavior.
+ */
+const composeAttachedLayers = (
+  trail: AnyTrail,
+  options: ExecuteTrailOptions | undefined
+): readonly Layer[] => [
+  ...(options?.topoLayers ?? []),
+  ...(options?.surfaceLayers ?? []),
+  ...trail.layers,
+  ...(options?.layers ?? []),
+];
+
+/**
  * Execute a trail through the standard validate-context-layers-run pipeline.
  *
  * The function never throws -- unexpected exceptions are caught and
@@ -1208,7 +1242,7 @@ export const executeTrail = async (
         trail,
         validated.value,
         resolvedCtx.value.ctx,
-        options?.layers ?? [],
+        composeAttachedLayers(trail, options),
         options?.topo,
         options
       );

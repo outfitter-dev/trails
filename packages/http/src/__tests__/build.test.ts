@@ -1302,6 +1302,54 @@ describe('deriveHttpRoutes', () => {
       expect(result?.isOk()).toBe(true);
       expect(calls).toEqual(['before', 'after']);
     });
+
+    test('topo, surface, and trail layers compose in documented order', async () => {
+      const calls: string[] = [];
+      const makeLayer = (name: string): Layer => ({
+        name,
+        wrap(_trail, impl) {
+          return async (input, ctx) => {
+            calls.push(`${name}:before`);
+            const result = await impl(input, ctx);
+            calls.push(`${name}:after`);
+            return result;
+          };
+        },
+      });
+
+      const trailLayer = makeLayer('trail');
+      const surfaceLayer = makeLayer('surface');
+      const topoLayer = makeLayer('topo');
+      const layeredTrail = trail('layered.echo', {
+        blaze: (input) => {
+          calls.push('blaze');
+          return Result.ok({ reply: input.message });
+        },
+        input: z.object({ message: z.string() }),
+        layers: [trailLayer],
+        output: z.object({ reply: z.string() }),
+      });
+      const app = topo('testapp', { layeredTrail }, { layers: [topoLayer] });
+      const buildResult = deriveHttpRoutes(app, { layers: [surfaceLayer] });
+
+      expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
+      const [route] = buildResult.value;
+
+      const result = await route?.execute({ message: 'hi' });
+      expect(result?.isOk()).toBe(true);
+      expect(calls).toEqual([
+        'topo:before',
+        'surface:before',
+        'trail:before',
+        'blaze',
+        'trail:after',
+        'surface:after',
+        'topo:after',
+      ]);
+    });
   });
 
   describe('custom createContext', () => {

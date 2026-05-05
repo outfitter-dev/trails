@@ -338,6 +338,70 @@ describe('buildCommands execution', () => {
     ]);
   });
 
+  test('composes topo, surface, and trail layers in C → B → A → blaze order', async () => {
+    const order: string[] = [];
+
+    const trailLayer = {
+      name: 'A',
+      wrap:
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- declarative shape
+        (_t: unknown, impl: (i: unknown, c: unknown) => Promise<unknown>) =>
+          async (i: unknown, c: unknown) => {
+            order.push('A:before');
+            const r = (await impl(i, c)) as { isOk: () => boolean };
+            order.push('A:after');
+            return r as never;
+          },
+    } as never;
+
+    const surfaceLayer = {
+      name: 'B',
+      wrap:
+        (_t: unknown, impl: (i: unknown, c: unknown) => Promise<unknown>) =>
+        async (i: unknown, c: unknown) => {
+          order.push('B:before');
+          const r = await impl(i, c);
+          order.push('B:after');
+          return r as never;
+        },
+    } as never;
+
+    const topoLayer = {
+      name: 'C',
+      wrap:
+        (_t: unknown, impl: (i: unknown, c: unknown) => Promise<unknown>) =>
+        async (i: unknown, c: unknown) => {
+          order.push('C:before');
+          const r = await impl(i, c);
+          order.push('C:after');
+          return r as never;
+        },
+    } as never;
+
+    const t = trail('layered.scopes', {
+      blaze: (input: { x: string }) => {
+        order.push('impl');
+        return Result.ok(input.x);
+      },
+      input: z.object({ x: z.string() }),
+      layers: [trailLayer],
+    });
+    const app = topo('test-app', { [t.id]: t }, { layers: [topoLayer] });
+    const commands = buildCommands(app, { layers: [surfaceLayer] });
+
+    await commands[0]?.execute({}, { x: 'test' });
+
+    expect(order).toEqual([
+      'C:before',
+      'B:before',
+      'A:before',
+      'impl',
+      'A:after',
+      'B:after',
+      'C:after',
+    ]);
+  });
+
   test('uses provided createContext factory', async () => {
     let usedRequestId: string | undefined;
     let usedCustom = false;
