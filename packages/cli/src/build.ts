@@ -24,6 +24,12 @@ import {
 
 import type { AnyTrail, CliArg, CliCommand, CliFlag } from './command.js';
 import { dryRunPreset, toFlags } from './flags.js';
+import {
+  inputHasCursorField,
+  isPaginatedOutput,
+  iteratePages,
+  writeJsonLine,
+} from './pagination.js';
 import type { InputResolver } from './prompt.js';
 import {
   STRUCTURED_INPUT_HINT,
@@ -48,6 +54,12 @@ export interface ActionResultContext {
   readonly result: Result<unknown, Error>;
   readonly topoName: string;
   readonly trail: AnyTrail;
+  /**
+   * True when the executor already streamed the trail's items to stdout
+   * (e.g. paginated `--all --jsonl`). Result handlers should skip writing
+   * the result value to avoid duplicate output.
+   */
+  readonly streamed?: boolean | undefined;
 }
 
 /** Options for CLI command projection. */
@@ -107,6 +119,7 @@ const validateCliCommandBuild = (
  * layer composition, and onResult handling.
  */
 const META_FLAG_CANDIDATES = new Set([
+  'all',
   'input',
   'inputJson',
   'json',
@@ -123,6 +136,18 @@ const STRUCTURED_INLINE_JSON_ARG: CliArg = {
   required: false,
   variadic: false,
 };
+
+/** Auto-derived flag for paginated trails: --all triggers iteration. */
+const paginatePreset = (): CliFlag[] => [
+  {
+    default: false,
+    description: 'Iterate all pages and aggregate results',
+    name: 'all',
+    required: false,
+    type: 'boolean',
+    variadic: false,
+  },
+];
 
 /** Merge parsed args and flags into a camelCase input record. */
 const mergeArgsAndFlags = (
@@ -284,6 +309,96 @@ const safeMergeInput = async (
   }
 };
 
+/** Strip the --all meta flag from input so the trail's blaze never sees it. */
+const stripAllFlag = (
+  input: Record<string, unknown>
+): Record<string, unknown> => {
+  if (!('all' in input)) {
+    return input;
+  }
+  const { all: _ignored, ...rest } = input;
+  return rest;
+};
+
+/**
+ * Run the trail once via `executeTrail`, returning the trail's Result.
+ * Used both for non-paginated commands and as the per-page runner for
+ * paginated `--all` iteration.
+ */
+const runTrailOnce = async (
+  graph: Topo,
+  t: AnyTrail,
+  ctxOverrides: Partial<TrailContext> | undefined,
+  options: DeriveCliCommandsOptions | undefined,
+  input: Record<string, unknown>
+): Promise<Result<unknown, Error>> =>
+  await executeTrail(t, input, {
+    configValues: options?.configValues,
+    createContext: options?.createContext,
+    ctx: withSurfaceMarker('cli', ctxOverrides),
+    layers: options?.layers,
+    resources: options?.resources,
+    topo: graph,
+  });
+
+/**
+ * Decide whether the executor should iterate this invocation.
+ *
+ * Iteration kicks in when the trail's output schema matches the paginated
+ * shape AND the user passed `--all`.
+ */
+const shouldIteratePages = (
+  t: AnyTrail,
+  parsedFlags: Record<string, unknown>,
+  metaFlagNames: ReadonlySet<string>
+): boolean =>
+  metaFlagNames.has('all') &&
+  isPaginatedOutput(t) &&
+  parsedFlags['all'] === true;
+
+const isJsonlMode = (parsedFlags: Record<string, unknown>): boolean =>
+  parsedFlags['jsonl'] === true ||
+  (typeof parsedFlags['output'] === 'string' &&
+    parsedFlags['output'] === 'jsonl');
+
+interface IterationOutcome {
+  readonly result: Result<unknown, Error>;
+  readonly streamed: boolean;
+}
+
+/**
+ * Drain a paginated trail across pages and return the aggregated/streamed
+ * outcome. The base input is what the user provided (after merging args +
+ * flags); the iteration helper rewrites the cursor field per page.
+ */
+const runPaginatedIteration = async (
+  graph: Topo,
+  t: AnyTrail,
+  ctxOverrides: Partial<TrailContext> | undefined,
+  options: DeriveCliCommandsOptions | undefined,
+  baseInput: Record<string, unknown>,
+  jsonl: boolean
+): Promise<IterationOutcome> => {
+  if (!inputHasCursorField(t)) {
+    return {
+      result: Result.err(
+        new ValidationError(
+          `Trail '${t.id}' has paginated output but no 'cursor' field on its input schema; cannot iterate with --all.`,
+          { context: { trailId: t.id } }
+        )
+      ),
+      streamed: false,
+    };
+  }
+  const result = await iteratePages({
+    baseInput: stripAllFlag(baseInput),
+    cursorField: 'cursor',
+    onItem: jsonl ? writeJsonLine : undefined,
+    runPage: (input) => runTrailOnce(graph, t, ctxOverrides, options, input),
+  });
+  return { result, streamed: jsonl && result.isOk() };
+};
+
 /** Create the execute function for a CLI command. */
 const createExecute =
   (
@@ -319,14 +434,29 @@ const createExecute =
     }
     const { mergedInput, usedStructuredInput } = merged.value;
 
-    const result = await executeTrail(t, mergedInput, {
-      configValues: options?.configValues,
-      createContext: options?.createContext,
-      ctx: withSurfaceMarker('cli', ctxOverrides),
-      layers: options?.layers,
-      resources: options?.resources,
-      topo: graph,
-    });
+    let result: Result<unknown, Error>;
+    let streamed = false;
+    if (shouldIteratePages(t, parsedFlags, metaFlagNames)) {
+      const outcome = await runPaginatedIteration(
+        graph,
+        t,
+        ctxOverrides,
+        options,
+        mergedInput,
+        isJsonlMode(parsedFlags)
+      );
+      ({ result } = outcome);
+      ({ streamed } = outcome);
+    } else {
+      result = await runTrailOnce(
+        graph,
+        t,
+        ctxOverrides,
+        options,
+        metaFlagNames.has('all') ? stripAllFlag(mergedInput) : mergedInput
+      );
+    }
+
     const finalResult = maybeAddStructuredInputHint(
       result,
       shouldHintStructuredInput,
@@ -344,6 +474,7 @@ const createExecute =
       flags: parsedFlags,
       input: reportInput,
       result: finalResult,
+      streamed,
       topoName: graph.name,
       trail: t,
     });
@@ -360,6 +491,9 @@ const buildFlags = (
   let flags = toFlags(fields);
   if (supportsStructuredInput(t.input)) {
     flags = mergeStructuredInputFlags(flags);
+  }
+  if (isPaginatedOutput(t) && inputHasCursorField(t)) {
+    flags = mergeFlags(paginatePreset(), flags);
   }
   if (options?.presets) {
     flags = mergeFlags(options.presets.flat(), flags);

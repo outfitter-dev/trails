@@ -26,6 +26,12 @@ export const defaultOnResult = async (
     throw ctx.result.error;
   }
 
+  // Iteration helpers (e.g. paginated `--all --jsonl`) may have already
+  // streamed the items to stdout. Skip re-writing in that case.
+  if (ctx.streamed) {
+    return;
+  }
+
   const { mode } = deriveOutputMode(ctx.flags, ctx.topoName);
   await output(ctx.result.value, mode);
 };
