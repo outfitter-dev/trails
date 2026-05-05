@@ -160,7 +160,6 @@ CliCommand, CliFlag, CliArg
 outputModePreset(), cwdPreset(), dryRunPreset()
 defaultOnResult(ctx), passthroughResolver, isInteractive(options?)
 InputResolver, ResolveInputOptions
-autoIterateLayer, dateShortcutsLayer
 ```
 
 ## `@ontrails/cli/commander`
@@ -407,9 +406,9 @@ DefineConfigOptions, ConfigState, ConfigFieldMeta, ConfigDiagnostic
 ## `@ontrails/permits`
 
 ```typescript
-// Resource & layer
+// Resource
 authResource                         // resource for auth connector lifecycle
-authLayer                            // layer that enforces permit scopes on trails
+                                     // (permit scope enforcement is intrinsic to executeTrail)
 
 // Permits
 getPermit(ctx)                       // extract the resolved permit from context

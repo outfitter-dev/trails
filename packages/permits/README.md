@@ -38,7 +38,7 @@ The execution pipeline reads each trail's `permit` field:
 - `'public'` or `undefined` — execution passes through
 - `{ scopes: [...] }` — execution checks that `ctx.permit` contains all required scopes
 
-`authLayer` remains exported as a deprecated compatibility wrapper for older app configuration, but it no longer owns permit enforcement.
+Permit enforcement is intrinsic to `executeTrail`; there is no opt-in layer to wire. The previously deprecated `authLayer` compatibility wrapper has been removed (TRL-475).
 
 ### 3. Bind a connector at bootstrap
 

@@ -249,18 +249,24 @@ await surface(graph, {
 });
 ```
 
-## CLI Execution Layers
+## Derived CLI Behavior
 
-These are CLI-scoped execution helpers, not topo primitives or trail-spec
-fields. They are passed through the CLI surface's execution options.
+The CLI surface derives previously layer-shaped behavior directly from trail
+schemas. There is no opt-in wiring; if the trail shape matches, the behavior
+is on. The legacy `autoIterateLayer` and `dateShortcutsLayer` exports were
+removed in TRL-475.
 
-### `autoIterateLayer`
+### Auto-iterate (paginated trails)
 
-For trails with paginated output (matching the pagination pattern from `@ontrails/core/patterns`), adds an `--all` flag. When set, the layer repeatedly calls the implementation with incrementing cursors and collects all items.
+For trails with paginated output (matching the pagination pattern from
+`@ontrails/core/patterns`), the CLI command exposes an `--all` flag. When set,
+the surface repeatedly invokes the implementation with incrementing cursors
+and collects every page into a single result.
 
-### `dateShortcutsLayer`
+### Date shortcut expansion
 
-For trails with `since`/`until` date fields, expands shortcut strings:
+For trails with `since`/`until` date fields, the CLI surface expands shortcut
+strings into ISO 8601 dates before validation:
 
 - `"today"` -> today's date range
 - `"yesterday"` -> yesterday's date range

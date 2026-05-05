@@ -200,10 +200,10 @@ or surfaced as contract graph nodes in v1.
 
 ```typescript
 import { surface } from '@ontrails/hono';
-import { authLayer, loggingLayer } from './layers';
+import { loggingLayer, rateLimitLayer } from './layers';
 
 await surface(graph, {
-  layers: [loggingLayer, authLayer],
+  layers: [loggingLayer, rateLimitLayer],
   port: 3000,
 });
 ```

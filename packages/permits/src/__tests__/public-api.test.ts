@@ -16,4 +16,8 @@ describe('@ontrails/permits public API', () => {
     ]);
     expect(createPermitForTrail({ permit: 'public' })).toBeUndefined();
   });
+
+  test('does not expose the legacy auth layer wrapper', () => {
+    expect('authLayer' in permits).toBe(false);
+  });
 });

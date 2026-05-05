@@ -117,7 +117,7 @@ The built-in for each package is functional enough for development and simple pr
 The mock factory pattern from ADR-0009 makes zero-config testing possible for every infrastructure service:
 
 - Config resolves a test profile — minimal, deterministic, no env vars required.
-- Auth mints synthetic permits — valid tokens with minimal claims, enough to pass `authLayer` without a real provider.
+- Auth mints synthetic permits — valid tokens with minimal claims, enough to satisfy intrinsic permit enforcement without a real provider.
 - Tracing records to an in-memory store — spans are captured and queryable in assertions, nothing leaves the process.
 
 ```typescript

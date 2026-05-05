@@ -37,6 +37,3 @@ export type { Field, InputResolver, ResolveInputOptions } from './prompt.js';
 
 // Discovery
 export { findAppModuleCandidates, findAppModule } from './discover.js';
-
-// Layers
-export { autoIterateLayer, dateShortcutsLayer } from './layers.js';

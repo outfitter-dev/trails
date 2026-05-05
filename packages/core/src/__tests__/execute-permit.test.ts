@@ -124,6 +124,29 @@ describe('executeTrail permit enforcement', () => {
     expect(wrapped).toBe(false);
   });
 
+  test('TRL-475: enforces permits without authLayer wiring (regression)', async () => {
+    // Regression: after TRL-475 removed `authLayer` from @ontrails/permits,
+    // permit enforcement must remain intrinsic to executeTrail. This trail
+    // never declares any layer; the permit check is owned entirely by
+    // enforcePermitRequirement inside executeTrail.
+    const adminTrail = trail('permit.trl475', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+      permit: { scopes: ['admin'] },
+    });
+
+    const result = await executeTrail(
+      adminTrail,
+      {},
+      { ctx: { permit: { id: 'user', scopes: ['user'] } } }
+    );
+
+    expect(result.isErr()).toBe(true);
+    expect(result.error).toBeInstanceOf(PermitError);
+    expect(result.error.message).toContain('admin');
+  });
+
   test('rechecks permit requirements across ctx.cross boundaries', async () => {
     const child = trail('permit.child', {
       blaze: () => Result.ok({ ok: true }),

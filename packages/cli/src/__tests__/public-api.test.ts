@@ -12,4 +12,9 @@ describe('@ontrails/cli public API', () => {
     expect(typeof commander.createProgram).toBe('function');
     expect(typeof commander.toCommander).toBe('function');
   });
+
+  test('does not expose legacy layer wrappers from the root entrypoint', () => {
+    expect('autoIterateLayer' in cli).toBe(false);
+    expect('dateShortcutsLayer' in cli).toBe(false);
+  });
 });

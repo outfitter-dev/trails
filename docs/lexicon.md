@@ -248,7 +248,7 @@ telemetry wrappers, or CLI convenience behavior.
 
 ```typescript
 await surface(graph, {
-  layers: [authLayer, telemetryLayer],
+  layers: [rateLimitLayer, telemetryLayer],
 });
 ```
 

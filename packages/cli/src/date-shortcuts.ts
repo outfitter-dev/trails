@@ -7,10 +7,10 @@
  * flags and expands them to UTC ISO 8601 datetimes before validation.
  *
  * This module is the CLI-package-local home of the detection and
- * expansion helpers. The legacy `dateShortcutsLayer` in `./layers.ts`
- * remains exported for apps that still register it explicitly; the
- * derivation pipeline performs the same job without requiring an
- * authored layer.
+ * expansion helpers. Earlier betas exposed a `dateShortcutsLayer`
+ * that wrapped the same behavior; that export was removed in TRL-475
+ * and the derivation pipeline now owns this responsibility
+ * intrinsically.
  *
  * All expansions are computed in UTC. The expander does not consult
  * the system locale, and time-of-day always pins to 00:00:00.000Z.
@@ -169,8 +169,8 @@ export const detectDateFields = (
 
 /**
  * Canonical set of recognized shortcut tokens. Mirrors the vocabulary
- * declared in the legacy `dateShortcutsLayer` so that switching from
- * the layer to the derivation pipeline is a no-op for users.
+ * that the removed `dateShortcutsLayer` accepted, so apps migrating
+ * off the layer see no behavior change.
  */
 export const DATE_SHORTCUT_NAMES = [
   'today',

@@ -9,7 +9,6 @@ export {
   type JwtAlgorithm,
   type JwtConnectorOptions,
 } from './connectors/jwt.js';
-export { authLayer } from './auth-layer.js';
 export { authResource } from './auth-resource.js';
 export {
   AUTH_RESOURCE_ID,

@@ -8,10 +8,9 @@
  * streaming per-item JSONL when `--jsonl` is also set.
  *
  * This module is the CLI-package-local home of the detection and
- * iteration helpers. The legacy `autoIterateLayer` in `./layers.ts`
- * remains exported for apps that still register it explicitly; the
- * derivation pipeline performs the same job without requiring an
- * authored layer.
+ * iteration helpers. Earlier betas exposed an `autoIterateLayer` that
+ * wrapped the same behavior; that export was removed in TRL-475 and
+ * the derivation pipeline now owns this responsibility intrinsically.
  */
 
 import type { Result } from '@ontrails/core';

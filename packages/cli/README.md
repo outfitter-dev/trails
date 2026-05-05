@@ -192,10 +192,20 @@ await surface(graph, { exclude: ['dev.**'] });
 with `visibility: 'internal'` stay hidden unless you include their exact trail
 ID intentionally.
 
-## Layers
+## Derived behavior
 
-- **`autoIterateLayer`** -- adds `--all` for paginated trails, collects all pages
-- **`dateShortcutsLayer`** -- expands `"today"`, `"7d"`, `"30d"` into ISO date ranges
+The CLI surface derives previously layer-shaped behavior directly from trail
+schemas:
+
+- Trails whose output matches the pagination pattern (`items`, `hasMore`,
+  `nextCursor`) automatically get an `--all` flag that walks every page.
+- Trails with `since`/`until` input fields automatically expand date shortcuts
+  (`"today"`, `"yesterday"`, `"7d"`, `"30d"`, `"this-week"`, `"this-month"`)
+  into ISO 8601 strings before validation.
+
+The legacy `autoIterateLayer` and `dateShortcutsLayer` exports were removed in
+TRL-475; these behaviors are now intrinsic to the CLI surface and require no
+wiring.
 
 ## Installation
 
