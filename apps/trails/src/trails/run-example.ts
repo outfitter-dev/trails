@@ -32,6 +32,7 @@ export const runExampleComparisonSchema = z.object({
     z.literal('expected'),
     z.literal('expectedMatch'),
     z.literal('error'),
+    z.literal('none'),
   ]),
   trailId: z.string(),
 });
@@ -176,16 +177,23 @@ const partialMatchWithDiff = (
       return false;
     }
     let ok = true;
+    const consumed = new Set<number>();
     for (const [index, expectedEntry] of expected.entries()) {
-      const matched = actual.some((candidate) =>
-        partialMatchWithDiff(candidate, expectedEntry, [], [])
-      );
-      if (!matched) {
+      const matchIndex = actual.findIndex((candidate, candidateIndex) => {
+        if (consumed.has(candidateIndex)) {
+          return false;
+        }
+        const probe: string[] = [];
+        return partialMatchWithDiff(candidate, expectedEntry, [], probe);
+      });
+      if (matchIndex === -1) {
         diffs.push(
           `${formatPath([...path, `[${index}]`])}: expected array to contain ${formatLeaf(expectedEntry)}`
         );
         ok = false;
+        continue;
       }
+      consumed.add(matchIndex);
     }
     return ok;
   }
@@ -308,12 +316,14 @@ const findExample = (
     return Result.ok(match);
   }
 
+  const available = structured.map((entry) => entry.name);
+  const listing = available.length === 0 ? '<none>' : available.join(', ');
   return Result.err(
     new NotFoundError(
-      `Example '${exampleName}' not found on trail '${trailId}'.`,
+      `Example '${exampleName}' not found on trail '${trailId}'. Available: ${listing}.`,
       {
         context: {
-          available: structured.map((entry) => entry.name),
+          available,
           exampleName,
           trailId,
         },
@@ -331,7 +341,10 @@ const determineMode = (
   if (example.expectedMatch !== undefined) {
     return 'expectedMatch';
   }
-  return 'expected';
+  if (example.expected !== undefined) {
+    return 'expected';
+  }
+  return 'none';
 };
 
 const buildComparisonEnvelope = async (
@@ -376,6 +389,18 @@ const buildComparisonEnvelope = async (
       input: example.input,
       kind: RUN_EXAMPLE_COMPARISON_KIND,
       match,
+      mode,
+      trailId,
+    });
+  }
+  if (mode === 'none') {
+    return Result.ok({
+      actual,
+      exampleName,
+      expected: undefined,
+      input: example.input,
+      kind: RUN_EXAMPLE_COMPARISON_KIND,
+      match: true,
       mode,
       trailId,
     });

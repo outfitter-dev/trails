@@ -36,7 +36,7 @@ A trail's examples are structured input/output pairs. They're already the closes
 
 ```bash
 # Run the trail with example input
-trails run entity.show --example "Found"
+trails run example entity.show "Found"
 ```
 
 The example named "Found" has `input: { id: 'p_1' }`. `trails run` feeds that input to the trail and shows the result alongside the expected output. Did the actual result match? The developer sees immediately. No test harness needed.
@@ -92,7 +92,7 @@ trails run entity.show '{"name": "Alpha"}'
 **Named example:**
 
 ```bash
-trails run entity.show --example "Found"
+trails run example entity.show "Found"
 # Uses the example's input, shows actual vs expected
 ```
 
@@ -315,10 +315,10 @@ trails tracing --chain exec_abc
 
 ### Example-driven execution
 
-Running a trail with `--example` feeds the example's input and compares the result:
+Running `trails run example` feeds the example's input and compares the result:
 
 ```bash
-$ trails run entity.show --example "Found"
+$ trails run example entity.show "Found"
 Input (from example "Found"):
   { "name": "Alpha" }
 
@@ -334,7 +334,7 @@ Actual:
 On mismatch:
 
 ```bash
-$ trails run entity.show --example "Found"
+$ trails run example entity.show "Found"
 Input (from example "Found"):
   { "name": "Alpha" }
 
@@ -351,7 +351,7 @@ Actual:
 For error examples:
 
 ```bash
-$ trails run entity.show --example "Missing"
+$ trails run example entity.show "Missing"
 Input (from example "Missing"):
   { "name": "nonexistent" }
 
@@ -432,10 +432,10 @@ trails run entity.show '{"name": "Alpha"}' --watch
 
 Reruns the trail whenever the trail's source file, schema definitions, or resource implementations change. The developer edits the trail's `run` function, saves, and sees the new result immediately. Same hot-reload loop as `bun --watch` but scoped to one trail's execution.
 
-Combined with `--example`:
+Combined with `trails run example`:
 
 ```bash
-trails run entity.show --example "Found" --watch
+trails run example entity.show "Found" --watch
 ```
 
 Edit the implementation, save, the example reruns, match/mismatch updates instantly. This is TDD without leaving the terminal. The example is the assertion. The watch loop is the runner.
@@ -543,7 +543,7 @@ trails run book<TAB>
 booking.confirm    booking.cancel    booking.show    booking.send-reminders
 
 # Tab-complete example names
-trails run entity.show --example <TAB>
+trails run example entity.show <TAB>
 Found    Missing    Filtered
 ```
 
@@ -554,10 +554,10 @@ Trail IDs are completed from the topo. Example names are completed from the trai
 ### Positive
 
 - **Zero-ceremony invocation.** Run any trail from the terminal with one command. No trailhead setup, no bin entry, no server. The topo is the interface.
-- **Examples become directly executable.** `--example` bridges exploration and testing. The developer runs a specific example, sees actual vs expected, adjusts the implementation. TDD in the terminal.
+- **Examples become directly executable.** `trails run example` bridges exploration and testing. The developer runs a specific example, sees actual vs expected, adjusts the implementation. TDD in the terminal.
 - **Unix-native composition.** JSON in, JSON out, exit codes, pipes. `trails run` composes with `jq`, `xargs`, other `trails run` invocations, and any JSONL-aware tool. Trails become first-class Unix citizens.
 - **Full pipeline execution.** Validation, layers, resources, events, triggers, tracing. Everything fires. The developer sees production-equivalent behavior without production infrastructure (via mock resources).
-- **Watch mode tightens the loop.** Edit, save, see the result. Combined with `--example`, it's TDD without a test framework. The example is the assertion. The file system is the trigger.
+- **Watch mode tightens the loop.** Edit, save, see the result. Combined with `trails run example`, it's TDD without a test framework. The example is the assertion. The file system is the trigger.
 - **`--tracing` makes composition visible.** The live execution tree shows crossings, events, triggers, parallel branches, and timing as they happen. The developer understands the reactive chain without reading code. Tracing stream to stderr while the result goes to stdout, composing cleanly with standard flags and Unix pipes.
 
 ### Tradeoffs
