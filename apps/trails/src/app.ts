@@ -10,6 +10,9 @@ import * as devReset from './trails/dev-reset.js';
 import * as devStats from './trails/dev-stats.js';
 import * as draftPromote from './trails/draft-promote.js';
 import * as guide from './trails/guide.js';
+import * as run from './trails/run.js';
+import * as runExample from './trails/run-example.js';
+import * as runExamples from './trails/run-examples.js';
 import * as survey from './trails/survey.js';
 import * as topoCompile from './trails/topo-compile.js';
 import * as topoHistory from './trails/topo-history.js';
@@ -21,6 +24,9 @@ import * as warden from './trails/warden.js';
 
 export const app = topo(
   'trails',
+  run,
+  runExamples,
+  runExample,
   survey,
   topoCommand,
   topoCompile,
