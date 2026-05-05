@@ -10,6 +10,7 @@
 export { combine } from './combine.js';
 export { createJsonFormatter, createPrettyFormatter } from './formatters.js';
 export { createBoundedMemorySink, createMemorySink } from './memory.js';
+export { renderTraceTree } from './renderer.js';
 export { createConsoleSink, createFileSink } from './sinks.js';
 export type { CombinedSink } from './combine.js';
 export type { PrettyFormatterOptions } from './formatters.js';
