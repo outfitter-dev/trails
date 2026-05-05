@@ -12,6 +12,7 @@ export {
   outputModePreset,
   cwdPreset,
   dryRunPreset,
+  tracePreset,
 } from './flags.js';
 
 // Output

@@ -132,6 +132,7 @@ const META_FLAG_CANDIDATES = new Set([
   'jsonl',
   'output',
   'quiet',
+  'trace',
 ]);
 
 const STRUCTURED_INLINE_JSON_ARG_NAME = 'inline-json';

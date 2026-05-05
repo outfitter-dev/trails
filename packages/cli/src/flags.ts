@@ -123,3 +123,22 @@ export const dryRunPreset = (): CliFlag[] => [
     variadic: false,
   },
 ];
+
+/**
+ * Flag for trace collection: --trace
+ *
+ * When set, the CLI installs a per-invocation in-memory trace sink, renders
+ * the resulting trace tree to stderr after execution, and (under `--json`)
+ * includes the structured `TraceRecord[]` on the stdout envelope. The flag
+ * is treated as a meta flag — it never routes into trail input.
+ */
+export const tracePreset = (): CliFlag[] => [
+  {
+    default: false,
+    description: 'Collect a per-invocation trace tree to stderr',
+    name: 'trace',
+    required: false,
+    type: 'boolean',
+    variadic: false,
+  },
+];
