@@ -37,6 +37,7 @@ export type {
   BuildWorkspaceTrailIndexOptions,
   RootManifest,
   WorkspaceTopoLoader,
+  WorkspaceTrailCollision,
   WorkspaceTrailIndexResult,
 } from './workspace-topos.js';
 

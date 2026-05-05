@@ -60,19 +60,46 @@ export interface BuildWorkspaceTrailIndexOptions {
 }
 
 /**
+ * A trail id exported by more than one app in the workspace.
+ *
+ * @remarks
+ * Collisions are facts, not warnings. Callers (e.g. `trails run <id>`) decide
+ * whether to prompt the user, error out, or honor an explicit `--app` override
+ * — none of which the discovery layer can decide on its own.
+ *
+ * `owners` carries the same app/module-path entries as non-colliding index
+ * values so consumers can resolve an explicit app override without repeating
+ * workspace manifest discovery. `apps` is the stable, display-ready projection
+ * of those owners and is guaranteed to contain at least two entries.
+ */
+export interface WorkspaceTrailCollision {
+  readonly trailId: string;
+  readonly apps: readonly string[];
+  readonly owners: readonly WorkspaceTrailEntry[];
+}
+
+/**
  * Structured result of building the workspace trail-id index.
  *
  * @remarks
- * `index` is the trail-id-to-app-name map. `source` distinguishes a cache hit
- * (the lockfile already carried `workspaceTrails`) from discovery (apps were
- * walked and loaded). `apps` lists the app names actually represented in the
- * index; `warnings` reports load failures and last-write-wins collisions.
+ * `index` is the trail-id-to-app-name map for **non-colliding** ids. When a
+ * trail id is exported by more than one app, it is **omitted** from `index`
+ * and recorded in `collisions` instead — callers must consult `collisions`
+ * to resolve ambiguous ids deterministically.
+ *
+ * `source` distinguishes a cache hit (the lockfile already carried
+ * `workspaceTrails`) from discovery (apps were walked and loaded). The
+ * lockfile path cannot collide because the lockfile is itself a flat
+ * `{ trailId → appName }` map. `apps` lists the app names actually represented
+ * in the index. `warnings` reports load failures and other non-collision
+ * issues; collisions live in their own structured field.
  */
 export interface WorkspaceTrailIndexResult {
   readonly index: WorkspaceTrailIndex;
   readonly source: 'lockfile' | 'discovery';
   readonly apps: readonly string[];
   readonly warnings: readonly string[];
+  readonly collisions: readonly WorkspaceTrailCollision[];
 }
 
 // ---------------------------------------------------------------------------
@@ -269,7 +296,8 @@ export const defaultLoadTopo: WorkspaceTopoLoader = async (
 // ---------------------------------------------------------------------------
 
 interface IndexAccumulator {
-  readonly entries: Map<string, WorkspaceTrailEntry>;
+  /** All apps each trail id was registered by, in registration order. */
+  readonly owners: Map<string, WorkspaceTrailEntry[]>;
   readonly apps: Set<string>;
   readonly warnings: string[];
 }
@@ -281,18 +309,52 @@ const recordTrails = (
 ): void => {
   for (const trailId of trailIds) {
     accumulator.apps.add(app.appName);
-    const previousOwner = accumulator.entries.get(trailId);
-    if (previousOwner !== undefined && previousOwner.appName !== app.appName) {
-      accumulator.warnings.push(
-        `Trail id "${trailId}" is registered by both "${previousOwner.appName}" and "${app.appName}"; last-write-wins until TRL-405 collision handling lands.`
-      );
-    }
-    accumulator.entries.set(trailId, {
+    const entry: WorkspaceTrailEntry = {
       appName: app.appName,
       modulePath: app.modulePath,
       trailId,
+    };
+    const owners = accumulator.owners.get(trailId);
+    if (owners === undefined) {
+      accumulator.owners.set(trailId, [entry]);
+      continue;
+    }
+    if (!owners.some((owner) => owner.appName === app.appName)) {
+      owners.push(entry);
+    }
+  }
+};
+
+interface ResolvedOwners {
+  readonly index: WorkspaceTrailIndex;
+  readonly collisions: readonly WorkspaceTrailCollision[];
+}
+
+const resolveOwners = (
+  owners: ReadonlyMap<string, readonly WorkspaceTrailEntry[]>
+): ResolvedOwners => {
+  const index: WorkspaceTrailIndex = {};
+  const collisions: WorkspaceTrailCollision[] = [];
+  for (const [trailId, entries] of owners) {
+    if (entries.length === 1) {
+      // Safe: length-1 array, so destructured element is defined.
+      const [sole] = entries;
+      if (sole !== undefined) {
+        index[trailId] = sole;
+      }
+      continue;
+    }
+    const sortedOwners = [...entries].toSorted((a, b) =>
+      a.appName < b.appName ? -1 : 1
+    );
+    collisions.push({
+      apps: sortedOwners.map((entry) => entry.appName),
+      owners: sortedOwners,
+      trailId,
     });
   }
+  collisions.sort((a, b) => (a.trailId < b.trailId ? -1 : 1));
+  return { collisions, index };
 };
 
 const buildFromLockfile = (
@@ -304,6 +366,7 @@ const buildFromLockfile = (
   }
   return {
     apps: [...apps].toSorted(),
+    collisions: [],
     index: Object.freeze({ ...workspaceTrails }),
     source: 'lockfile',
     warnings: [],
@@ -317,7 +380,7 @@ const buildFromDiscovery = async (
 ): Promise<WorkspaceTrailIndexResult> => {
   const accumulator: IndexAccumulator = {
     apps: new Set<string>(),
-    entries: new Map<string, WorkspaceTrailEntry>(),
+    owners: new Map<string, WorkspaceTrailEntry[]>(),
     warnings: [...initialWarnings],
   };
 
@@ -325,6 +388,7 @@ const buildFromDiscovery = async (
   if (globs.length === 0) {
     return {
       apps: [],
+      collisions: [],
       index: Object.freeze({}),
       source: 'discovery',
       warnings: [...accumulator.warnings],
@@ -366,9 +430,11 @@ const buildFromDiscovery = async (
     );
   }
 
+  const { index, collisions } = resolveOwners(accumulator.owners);
   return {
     apps: [...accumulator.apps].toSorted(),
-    index: Object.freeze(Object.fromEntries(accumulator.entries)),
+    collisions,
+    index: Object.freeze(index),
     source: 'discovery',
     warnings: [...accumulator.warnings],
   };

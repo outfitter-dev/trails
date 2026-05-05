@@ -163,6 +163,7 @@ describe('buildWorkspaceTrailIndex (discovery path)', () => {
     expect(result.warnings).toEqual([
       expect.stringContaining(LOCKFILE_FALLBACK_WARNING),
     ]);
+    expect(result.collisions).toEqual([]);
   });
 
   test('indexes a single-app workspace', async () => {
@@ -220,6 +221,7 @@ describe('buildWorkspaceTrailIndex (discovery path)', () => {
       trailId: 'custom.run',
     });
     expect(entries).toEqual(['src/custom-app.ts']);
+    expect(result.collisions).toEqual([]);
   });
 
   test('returns an empty index for a workspace with no apps', async () => {
@@ -256,6 +258,7 @@ describe('buildWorkspaceTrailIndex (discovery path)', () => {
     expect(result.warnings).toEqual([
       expect.stringContaining(LOCKFILE_FALLBACK_WARNING),
     ]);
+    expect(result.collisions).toEqual([]);
   });
 
   test('records a warning and partial index when one app fails to load', async () => {
@@ -283,12 +286,13 @@ describe('buildWorkspaceTrailIndex (discovery path)', () => {
     expect(result.warnings).toHaveLength(2);
     expect(result.warnings[0]).toContain(LOCKFILE_FALLBACK_WARNING);
     expect(result.warnings[1]).toContain('broken-app');
+    expect(result.collisions).toEqual([]);
   });
 
-  test('warns and last-write-wins on cross-app trail id collision', async () => {
+  test('records a structured collision and omits the colliding id from the index', async () => {
     const fixtures = [
-      { name: 'app-a', trailIds: ['shared.id'] },
-      { name: 'app-b', trailIds: ['shared.id'] },
+      { name: 'app-a', trailIds: ['shared.id', 'a.only'] },
+      { name: 'app-b', trailIds: ['shared.id', 'b.only'] },
     ];
     const registry = new Map(fixtures.map((f) => [f.name, f]));
     await writeWorkspace(workspaceRoot, fixtures);
@@ -299,18 +303,87 @@ describe('buildWorkspaceTrailIndex (discovery path)', () => {
     });
 
     expect(result.source).toBe('discovery');
-    // last-write-wins; with deterministic discovery order, app-b wins.
-    expect(result.index['shared.id']).toEqual({
-      appName: 'app-b',
-      modulePath: 'apps/app-b/src/app.ts',
-      trailId: 'shared.id',
+    // Colliding ids are NOT in the index — callers must resolve via collisions.
+    expect(result.index).toEqual({
+      'a.only': {
+        appName: 'app-a',
+        modulePath: 'apps/app-a/src/app.ts',
+        trailId: 'a.only',
+      },
+      'b.only': {
+        appName: 'app-b',
+        modulePath: 'apps/app-b/src/app.ts',
+        trailId: 'b.only',
+      },
     });
-    expect(result.warnings.some((w: string) => w.includes('shared.id'))).toBe(
-      true
-    );
-    expect(
-      result.warnings.some((w: string) => w.includes(LOCKFILE_FALLBACK_WARNING))
-    ).toBe(true);
+    expect(result.collisions).toEqual([
+      {
+        apps: ['app-a', 'app-b'],
+        owners: [
+          {
+            appName: 'app-a',
+            modulePath: 'apps/app-a/src/app.ts',
+            trailId: 'shared.id',
+          },
+          {
+            appName: 'app-b',
+            modulePath: 'apps/app-b/src/app.ts',
+            trailId: 'shared.id',
+          },
+        ],
+        trailId: 'shared.id',
+      },
+    ]);
+    // Collisions are reported via the structured field, not the warnings list.
+    expect(result.warnings).toEqual([
+      expect.stringContaining(LOCKFILE_FALLBACK_WARNING),
+    ]);
+  });
+
+  test('records a 3-way collision with all owning apps sorted', async () => {
+    const fixtures = [
+      { name: 'app-a', trailIds: ['triple'] },
+      { name: 'app-b', trailIds: ['triple'] },
+      { name: 'app-c', trailIds: ['triple'] },
+    ];
+    const registry = new Map(fixtures.map((f) => [f.name, f]));
+    await writeWorkspace(workspaceRoot, fixtures);
+
+    const result = await buildWorkspaceTrailIndex({
+      cwd: workspaceRoot,
+      loadTopo: makeLoader(registry),
+    });
+
+    expect(result.source).toBe('discovery');
+    expect(result.index).toEqual({});
+    expect(result.collisions).toHaveLength(1);
+    const [collision] = result.collisions;
+    expect(collision).toBeDefined();
+    if (collision === undefined) {
+      throw new Error('expected at least one collision');
+    }
+    expect(collision.trailId).toBe('triple');
+    expect(collision.apps).toEqual(['app-a', 'app-b', 'app-c']);
+    expect(collision.owners).toEqual([
+      {
+        appName: 'app-a',
+        modulePath: 'apps/app-a/src/app.ts',
+        trailId: 'triple',
+      },
+      {
+        appName: 'app-b',
+        modulePath: 'apps/app-b/src/app.ts',
+        trailId: 'triple',
+      },
+      {
+        appName: 'app-c',
+        modulePath: 'apps/app-c/src/app.ts',
+        trailId: 'triple',
+      },
+    ]);
+    expect(result.warnings).toEqual([
+      expect.stringContaining(LOCKFILE_FALLBACK_WARNING),
+    ]);
   });
 });
 
@@ -359,6 +432,7 @@ describe('buildWorkspaceTrailIndex (lockfile path)', () => {
     expect(loaderCalls).toBe(0);
     expect(result.warnings).toEqual([]);
     expect(Object.isFrozen(result.index)).toBe(true);
+    expect(result.collisions).toEqual([]);
     // apps reflect what the lockfile asserts.
     expect(result.apps).toEqual(['lock-app']);
   });
