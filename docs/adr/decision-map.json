@@ -2142,7 +2142,7 @@
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
-          "context": "- [ADR-0041: Unified Observability](../0041-unified-observability.md) -- `--trace` flag, `ctx.trace()`, and the tracing vocabulary used throughout this draft. Note: this draft uses `--tracing` as the ",
+          "context": "- [ADR-0041: Unified Observability](../0041-unified-observability.md) -- `--trace` flag, `ctx.trace()`, and the trace vocabulary used throughout this draft. The canonical flag name `--trace` matches t",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         },
