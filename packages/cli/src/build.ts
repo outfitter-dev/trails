@@ -7,6 +7,7 @@ import type {
   BaseSurfaceOptions,
   Field,
   Layer,
+  LayerInputSchema,
   ResourceOverrideMap,
   Topo,
   TrailContext,
@@ -20,6 +21,7 @@ import {
   deriveFields,
   executeTrail,
   filterSurfaceTrails,
+  LAYER_FIELD_RESERVED_NAMES,
   validateSurfaceTopo,
   withSurfaceLayerNames,
 } from '@ontrails/core';
@@ -138,22 +140,6 @@ const validateCliCommandBuild = (
  * dot-notation, and wires up the execute function with validation,
  * layer composition, and onResult handling.
  */
-const META_FLAG_CANDIDATES = new Set([
-  'all',
-  'devPermit',
-  'dryRun',
-  'input',
-  'inputJson',
-  'json',
-  'jsonl',
-  'output',
-  'permit',
-  'quiet',
-  'token',
-  'trace',
-  'watch',
-]);
-
 const STRUCTURED_INLINE_JSON_ARG_NAME = 'inline-json';
 
 const STRUCTURED_INLINE_JSON_ARG: CliArg = {
@@ -461,13 +447,17 @@ const runTrailOnce = async (
   options: DeriveCliCommandsOptions | undefined,
   input: Record<string, unknown>,
   dryRun: boolean | undefined,
-  permit: BasePermit | undefined
+  permit: BasePermit | undefined,
+  layerInputs: Readonly<Record<string, unknown>> | undefined
 ): Promise<Result<unknown, Error>> =>
   await executeTrail(t, input, {
     configValues: options?.configValues,
     createContext: options?.createContext,
     ctx: withSurfaceLayerNames('cli', options?.layers ?? [], ctxOverrides),
     dryRun,
+    ...(layerInputs === undefined || Object.keys(layerInputs).length === 0
+      ? {}
+      : { layerInputs }),
     ...(permit === undefined ? {} : { permit }),
     resources: options?.resources,
     surfaceLayers: options?.layers,
@@ -537,7 +527,8 @@ const runPaginatedIteration = async (
   baseInput: Record<string, unknown>,
   jsonl: boolean,
   dryRun: boolean | undefined,
-  permit: BasePermit | undefined
+  permit: BasePermit | undefined,
+  layerInputs: Readonly<Record<string, unknown>> | undefined
 ): Promise<IterationOutcome> => {
   if (!inputHasCursorField(t)) {
     return {
@@ -555,7 +546,16 @@ const runPaginatedIteration = async (
     cursorField: 'cursor',
     onItem: jsonl ? writeJsonLine : undefined,
     runPage: (input) =>
-      runTrailOnce(graph, t, ctxOverrides, options, input, dryRun, permit),
+      runTrailOnce(
+        graph,
+        t,
+        ctxOverrides,
+        options,
+        input,
+        dryRun,
+        permit,
+        layerInputs
+      ),
   });
   return { result, streamed: jsonl && result.isOk() };
 };
@@ -690,16 +690,231 @@ const resolvePermitForExecution = async (
   });
 };
 
+// ---------------------------------------------------------------------------
+// Layer flag projection (TRL-473)
+// ---------------------------------------------------------------------------
+
+/**
+ * Per-layer flag projection: the rendered flags plus the routing map that
+ * sends parsed flag values back into the layer's runtime input slot.
+ */
+interface LayerFlagProjection {
+  /** The rendered `CliFlag` set contributed by this layer. */
+  readonly flags: readonly CliFlag[];
+  /** The layer input schema, kept so omitted CLI flags can still materialize defaults. */
+  readonly input: LayerInputSchema;
+  /**
+   * Map from camelCase parsed-flag key to the layer-input field name the
+   * value should be assigned to. Used by the executor to rebuild the
+   * per-layer input record before calling `executeTrail`.
+   */
+  readonly routing: ReadonlyMap<string, string>;
+  readonly layerName: string;
+}
+
+/**
+ * Collect every typed layer attached to a trail, in the same composition
+ * order the executor uses (topo → surface → trail). Layers without an
+ * `input` schema are skipped — they have nothing to project.
+ */
+const collectAttachedTypedLayers = (
+  graph: Topo,
+  t: AnyTrail,
+  options?: DeriveCliCommandsOptions
+): readonly Layer[] => {
+  const layers: Layer[] = [];
+  for (const layer of graph.layers) {
+    if (layer.input !== undefined) {
+      layers.push(layer);
+    }
+  }
+  if (options?.layers) {
+    for (const layer of options.layers) {
+      if (layer.input !== undefined) {
+        layers.push(layer);
+      }
+    }
+  }
+  for (const layer of t.layers) {
+    if (layer.input !== undefined) {
+      layers.push(layer);
+    }
+  }
+  return layers;
+};
+
+/**
+ * Convert a `Layer.name` (typically camelCase) into a kebab-case prefix
+ * usable in flag names. Mirrors `flags.ts` `toKebab` so the prefix stays
+ * consistent with derived flag names.
+ */
+const layerNameToKebab = (name: string): string =>
+  name.replaceAll(/[A-Z]/g, (ch) => `-${ch.toLowerCase()}`).replace(/^-/, '');
+
+/**
+ * Emit the deprecation-style stderr warning fired when a layer flag is
+ * renamed because of a collision. Using `process.stderr.write` follows
+ * the same boundary used elsewhere in the CLI surface.
+ */
+const warnLayerFlagRenamed = (
+  layerName: string,
+  originalName: string,
+  renamedName: string,
+  reason: string
+): void => {
+  process.stderr.write(
+    `[trails] layer "${layerName}" flag --${originalName} renamed to --${renamedName} (${reason})\n`
+  );
+};
+
+/**
+ * Project a single layer's `input` schema onto a CLI flag set, applying
+ * the deterministic collision rename rule.
+ *
+ * Collision rule: if the layer's derived flag name (after kebab-casing)
+ * conflicts with an already-claimed flag name (trail-derived flag,
+ * meta flag, or a previous layer's flag), the field is renamed to
+ * `<layerNameKebab>-<fieldKebab>`. Renames emit a one-line warning to
+ * stderr so the operator can see the projected name.
+ */
+const projectSingleLayerFlags = (
+  layer: Layer,
+  claimedFlagNames: Set<string>
+): LayerFlagProjection => {
+  if (layer.input === undefined) {
+    throw new Error(
+      `Cannot project CLI flags for layer '${layer.name}' without an input schema.`
+    );
+  }
+  const layerInput = layer.input;
+  const layerFields = deriveFields(layer.input);
+  const layerKebab = layerNameToKebab(layer.name);
+  const flags: CliFlag[] = [];
+  const routing = new Map<string, string>();
+
+  for (const flag of toFlags(layerFields)) {
+    const camelKey = kebabToCamel(flag.name);
+    const collidesWithClaimed = claimedFlagNames.has(flag.name);
+    const collidesWithMeta = LAYER_FIELD_RESERVED_NAMES.has(camelKey);
+
+    if (!collidesWithClaimed && !collidesWithMeta) {
+      flags.push(flag);
+      claimedFlagNames.add(flag.name);
+      routing.set(camelKey, camelKey);
+      continue;
+    }
+
+    const fallbackKebab = `${layerKebab}-${flag.name}`;
+    let renamedKebab = fallbackKebab;
+    let suffix = 2;
+    while (
+      claimedFlagNames.has(renamedKebab) ||
+      LAYER_FIELD_RESERVED_NAMES.has(kebabToCamel(renamedKebab))
+    ) {
+      renamedKebab = `${fallbackKebab}${suffix}`;
+      suffix += 1;
+    }
+    const renamedCamel = kebabToCamel(renamedKebab);
+    const reason = collidesWithMeta
+      ? `--${flag.name} collides with a CLI meta flag`
+      : `--${flag.name} collides with another flag`;
+    warnLayerFlagRenamed(layer.name, flag.name, renamedKebab, reason);
+    flags.push({ ...flag, name: renamedKebab });
+    claimedFlagNames.add(renamedKebab);
+    routing.set(renamedCamel, camelKey);
+  }
+
+  return { flags, input: layerInput, layerName: layer.name, routing };
+};
+
+/**
+ * Project every attached layer's input schema onto the command's flag set.
+ *
+ * Returns the full list of layer-derived flags (in composition order) plus
+ * the per-layer routing maps the executor needs to partition parsed flag
+ * values back into per-layer input objects.
+ */
+const projectLayerFlags = (
+  attachedLayers: readonly Layer[],
+  trailDerivedFlagNames: ReadonlySet<string>
+): {
+  readonly flags: readonly CliFlag[];
+  readonly projections: readonly LayerFlagProjection[];
+} => {
+  const claimed = new Set<string>(trailDerivedFlagNames);
+  const allFlags: CliFlag[] = [];
+  const projections: LayerFlagProjection[] = [];
+  for (const layer of attachedLayers) {
+    const projection = projectSingleLayerFlags(layer, claimed);
+    if (projection.flags.length === 0) {
+      continue;
+    }
+    allFlags.push(...projection.flags);
+    projections.push(projection);
+  }
+  return { flags: allFlags, projections };
+};
+
+/**
+ * Build the `layerInputs` map from parsed flags using each layer's
+ * projection routing table. Only includes layers that actually received
+ * at least one parsed value, so tests can assert presence cleanly.
+ */
+const buildLayerInputs = (
+  projections: readonly LayerFlagProjection[],
+  parsedFlags: Record<string, unknown>
+): Record<string, unknown> => {
+  const result: Record<string, unknown> = {};
+  for (const projection of projections) {
+    const layerInput: Record<string, unknown> = {};
+    let received = false;
+    for (const [parsedKey, fieldName] of projection.routing) {
+      const value = parsedFlags[parsedKey];
+      if (value === undefined) {
+        continue;
+      }
+      layerInput[fieldName] = value;
+      received = true;
+    }
+    if (received) {
+      result[projection.layerName] = layerInput;
+      continue;
+    }
+    if (projection.input.safeParse({}).success) {
+      result[projection.layerName] = {};
+    }
+  }
+  return result;
+};
+
+/**
+ * Collect every camelCase key that any layer projection routes through —
+ * those are flag names the executor must keep out of the trail's input
+ * record (alongside the existing meta flags).
+ */
+const collectLayerRoutedKeys = (
+  projections: readonly LayerFlagProjection[]
+): ReadonlySet<string> => {
+  const keys = new Set<string>();
+  for (const projection of projections) {
+    for (const key of projection.routing.keys()) {
+      keys.add(key);
+    }
+  }
+  return keys;
+};
+
 /** Create the execute function for a CLI command. */
 const createExecute =
   (
     graph: Topo,
     t: AnyTrail,
     fields: readonly Field[],
-    metaFlagNames: ReadonlySet<string>,
+    trailInputExcludeKeys: ReadonlySet<string>,
     dateFields: readonly string[],
     dateFieldKinds: Readonly<Record<string, DateShortcutKind>>,
     shouldHintStructuredInput: boolean,
+    layerProjections: readonly LayerFlagProjection[],
     options?: DeriveCliCommandsOptions
   ) =>
   async (
@@ -709,7 +924,7 @@ const createExecute =
   ): Promise<Result<unknown, Error>> => {
     const merged = await safeMergeInput(
       fields,
-      metaFlagNames,
+      trailInputExcludeKeys,
       dateFields,
       dateFieldKinds,
       parsedArgs,
@@ -732,7 +947,7 @@ const createExecute =
     const permitResolution = await resolvePermitForExecution(
       graph,
       parsedFlags,
-      metaFlagNames,
+      trailInputExcludeKeys,
       options
     );
     if (permitResolution.isErr()) {
@@ -751,10 +966,17 @@ const createExecute =
     }
     const permit = permitResolution.value;
 
-    const dryRun = readDryRunFlag(parsedFlags, metaFlagNames);
+    // Partition parsed flags into per-layer input objects via the
+    // projection routing tables. Projected camelCase keys are normalized
+    // first because Commander emits camelCase-looking keys, but tests and
+    // adapters may pass either kebab- or camelCase.
+    const normalizedFlags = normalizeParsedFlags(parsedFlags);
+    const layerInputs = buildLayerInputs(layerProjections, normalizedFlags);
+
+    const dryRun = readDryRunFlag(parsedFlags, trailInputExcludeKeys);
     let result: Result<unknown, Error>;
     let streamed = false;
-    if (shouldIteratePages(t, parsedFlags, metaFlagNames)) {
+    if (shouldIteratePages(t, parsedFlags, trailInputExcludeKeys)) {
       const outcome = await runPaginatedIteration(
         graph,
         t,
@@ -763,7 +985,8 @@ const createExecute =
         mergedInput,
         isJsonlMode(parsedFlags),
         dryRun,
-        permit
+        permit,
+        layerInputs
       );
       ({ result } = outcome);
       ({ streamed } = outcome);
@@ -773,9 +996,12 @@ const createExecute =
         t,
         ctxOverrides,
         options,
-        metaFlagNames.has('all') ? stripAllFlag(mergedInput) : mergedInput,
+        trailInputExcludeKeys.has('all')
+          ? stripAllFlag(mergedInput)
+          : mergedInput,
         dryRun,
-        permit
+        permit,
+        layerInputs
       );
     }
 
@@ -897,7 +1123,7 @@ const toCliCommand = (
 ): CliCommand => {
   const fields = deriveFields(t.input, t.fields);
   // All fields generate flags — positional fields keep their --flag alias
-  const flags = buildFlags(t, fields, t.intent, options);
+  const trailFlags = buildFlags(t, fields, t.intent, options);
   const structuredInputReservedNames = supportsStructuredInput(t.input)
     ? RESERVED_STRUCTURED_INPUT_META_FLAGS
     : new Set<string>();
@@ -907,12 +1133,33 @@ const toCliCommand = (
       .filter((name) => !structuredInputReservedNames.has(name))
   );
   const metaFlagNames = new Set(
-    flags
+    trailFlags
       .map((flag) => kebabToCamel(flag.name))
       .filter(
-        (name) => META_FLAG_CANDIDATES.has(name) && !derivedFlagNames.has(name)
+        (name) =>
+          LAYER_FIELD_RESERVED_NAMES.has(name) && !derivedFlagNames.has(name)
       )
   );
+
+  // Project each typed layer's `input` schema onto the command's flag set,
+  // applying the deterministic collision rename rule. The routing map
+  // returned per layer is consumed at execute time to rebuild a per-layer
+  // input object from parsed flags. (TRL-473)
+  const attachedTypedLayers = collectAttachedTypedLayers(graph, t, options);
+  const claimedFlagKebabs = new Set<string>(trailFlags.map((f) => f.name));
+  const layerProjection = projectLayerFlags(
+    attachedTypedLayers,
+    claimedFlagKebabs
+  );
+  const flags = [...trailFlags, ...layerProjection.flags];
+  const layerRoutedKeys = collectLayerRoutedKeys(layerProjection.projections);
+  // The executor strips both meta flags and layer-routed flag values from
+  // the trail input so layer-only flags never reach trail validation.
+  const trailInputExcludeKeys = new Set<string>([
+    ...metaFlagNames,
+    ...layerRoutedKeys,
+  ]);
+
   const shouldHintStructuredInput = hasStructuredOnlyFields(
     t.input,
     fields.length
@@ -932,10 +1179,11 @@ const toCliCommand = (
       graph,
       t,
       fields,
-      metaFlagNames,
+      trailInputExcludeKeys,
       dateFields,
       dateFieldKinds,
       shouldHintStructuredInput,
+      layerProjection.projections,
       options
     ),
     flags,

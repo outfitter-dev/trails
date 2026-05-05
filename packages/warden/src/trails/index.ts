@@ -13,6 +13,7 @@ export { implementationReturnsResultTrail } from './implementation-returns-resul
 export { incompleteAccessorForStandardOpTrail } from './incomplete-accessor-for-standard-op.trail.js';
 export { incompleteCrudTrail } from './incomplete-crud.trail.js';
 export { intentPropagationTrail } from './intent-propagation.trail.js';
+export { layerFieldNameDriftTrail } from './layer-field-name-drift.trail.js';
 export { missingVisibilityTrail } from './missing-visibility.trail.js';
 export { missingReconcileTrail } from './missing-reconcile.trail.js';
 export { onReferencesExistTrail } from './on-references-exist.trail.js';

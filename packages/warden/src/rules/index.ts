@@ -13,6 +13,7 @@ import { implementationReturnsResult } from './implementation-returns-result.js'
 import { incompleteAccessorForStandardOp } from './incomplete-accessor-for-standard-op.js';
 import { incompleteCrud } from './incomplete-crud.js';
 import { intentPropagation } from './intent-propagation.js';
+import { layerFieldNameDrift } from './layer-field-name-drift.js';
 import { missingVisibility } from './missing-visibility.js';
 import { missingReconcile } from './missing-reconcile.js';
 import { noDevPermitInSource } from './no-dev-permit-in-source.js';
@@ -83,6 +84,7 @@ export { firesDeclarations } from './fires-declarations.js';
 export { incompleteAccessorForStandardOp } from './incomplete-accessor-for-standard-op.js';
 export { incompleteCrud } from './incomplete-crud.js';
 export { intentPropagation } from './intent-propagation.js';
+export { layerFieldNameDrift } from './layer-field-name-drift.js';
 export { missingVisibility } from './missing-visibility.js';
 export { missingReconcile } from './missing-reconcile.js';
 export { onReferencesExist } from './on-references-exist.js';
@@ -129,6 +131,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [firesDeclarations.name, firesDeclarations],
   [incompleteCrud.name, incompleteCrud],
   [intentPropagation.name, intentPropagation],
+  [layerFieldNameDrift.name, layerFieldNameDrift],
   [missingVisibility.name, missingVisibility],
   [missingReconcile.name, missingReconcile],
   [onReferencesExist.name, onReferencesExist],

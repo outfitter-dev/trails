@@ -44,6 +44,7 @@ import {
   PermitError,
   RetryExhaustedError,
   TrailsError,
+  ValidationError,
 } from './errors.js';
 import {
   claimNextCrossBatchIndex,
@@ -69,7 +70,7 @@ import { Result } from './result.js';
 import { DETOUR_MAX_ATTEMPTS_CAP } from './detours.js';
 import { createResourceLookup } from './resource.js';
 import { createResources } from './resource-config.js';
-import { SURFACE_KEY } from './types.js';
+import { LAYER_INPUTS_KEY, SURFACE_KEY } from './types.js';
 import { validateInput, validateOutput } from './validation.js';
 
 type MutableTrailContext = {
@@ -141,6 +142,18 @@ export interface ExecuteTrailOptions {
    */
   readonly permit?: BasePermit | undefined;
   /**
+   * Per-layer runtime input keyed by `Layer.name`.
+   *
+   * Surfaces (CLI, MCP, HTTP) parse their native idiom into a per-layer
+   * input object — usually projected from each layer's `input` schema —
+   * and pass it here. The executor merges these into
+   * `ctx.extensions[LAYER_INPUTS_KEY]` so layers can read their own slot
+   * via `ctx.extensions?.[LAYER_INPUTS_KEY]?.[layer.name]`.
+   *
+   * @see TRL-473 for the CLI projection contract.
+   */
+  readonly layerInputs?: Readonly<Record<string, unknown>> | undefined;
+  /**
    * Override the validation schema used for input validation.
    *
    * When a trail is invoked via `ctx.cross()` and the target declares
@@ -180,9 +193,30 @@ const applyContextOverrides = (
       ? withAbort
       : { ...withAbort, dryRun: options.dryRun };
 
-  return options?.permit === undefined
-    ? withDryRun
-    : { ...withDryRun, permit: options.permit };
+  const withPermit =
+    options?.permit === undefined
+      ? withDryRun
+      : { ...withDryRun, permit: options.permit };
+
+  if (options?.layerInputs === undefined) {
+    return withPermit;
+  }
+  // Merge per-layer inputs onto any inherited LAYER_INPUTS_KEY slot so
+  // crossed/forked contexts can preserve outer-surface routing.
+  const inheritedExtensions = withPermit.extensions ?? {};
+  const inheritedLayerInputs = (inheritedExtensions[LAYER_INPUTS_KEY] ?? {}) as
+    | Readonly<Record<string, unknown>>
+    | Record<string, unknown>;
+  return {
+    ...withPermit,
+    extensions: {
+      ...inheritedExtensions,
+      [LAYER_INPUTS_KEY]: {
+        ...inheritedLayerInputs,
+        ...options.layerInputs,
+      },
+    },
+  };
 };
 
 const bindResourceLookup = (
@@ -1212,6 +1246,84 @@ const composeAttachedLayers = (
   ...(options?.layers ?? []),
 ];
 
+const isLayerInputMap = (
+  value: unknown
+): value is Readonly<Record<string, unknown>> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const readContextLayerInputs = (
+  ctx: TrailContext
+): Result<Readonly<Record<string, unknown>> | undefined, ValidationError> => {
+  const value = ctx.extensions?.[LAYER_INPUTS_KEY];
+  if (value === undefined) {
+    return Result.ok();
+  }
+  return isLayerInputMap(value)
+    ? Result.ok(value)
+    : Result.err(
+        new ValidationError(
+          'Layer inputs must be an object keyed by layer name',
+          {
+            context: { extensionKey: LAYER_INPUTS_KEY },
+          }
+        )
+      );
+};
+
+const validateLayerInputs = (
+  layers: readonly Layer[],
+  layerInputs: Readonly<Record<string, unknown>>
+): Result<Readonly<Record<string, unknown>>, ValidationError> => {
+  const validated: Record<string, unknown> = { ...layerInputs };
+  for (const layer of layers) {
+    if (layer.input === undefined) {
+      continue;
+    }
+    const slot = layerInputs[layer.name];
+    if (slot === undefined) {
+      continue;
+    }
+    const parsed = layer.input.safeParse(slot);
+    if (!parsed.success) {
+      return Result.err(
+        new ValidationError(
+          `Invalid input for layer '${layer.name}': ${parsed.error.message}`,
+          {
+            cause: parsed.error,
+            context: { issues: parsed.error.issues, layerName: layer.name },
+          }
+        )
+      );
+    }
+    validated[layer.name] = parsed.data;
+  }
+  return Result.ok(validated);
+};
+
+const validateContextLayerInputs = (
+  ctx: TrailContext,
+  layers: readonly Layer[]
+): Result<TrailContext, ValidationError> => {
+  const layerInputs = readContextLayerInputs(ctx);
+  if (layerInputs.isErr()) {
+    return Result.err(layerInputs.error);
+  }
+  if (layerInputs.value === undefined) {
+    return Result.ok(ctx);
+  }
+  const validated = validateLayerInputs(layers, layerInputs.value);
+  if (validated.isErr()) {
+    return Result.err(validated.error);
+  }
+  return Result.ok({
+    ...ctx,
+    extensions: {
+      ...ctx.extensions,
+      [LAYER_INPUTS_KEY]: validated.value,
+    },
+  });
+};
+
 /**
  * Execute a trail through the standard validate-context-layers-run pipeline.
  *
@@ -1237,12 +1349,20 @@ export const executeTrail = async (
       return Result.err(resolvedCtx.error);
     }
 
+    const layers = composeAttachedLayers(trail, options);
     try {
+      const layerCtx = validateContextLayerInputs(
+        resolvedCtx.value.ctx,
+        layers
+      );
+      if (layerCtx.isErr()) {
+        return Result.err(layerCtx.error);
+      }
       return await runTrail(
         trail,
         validated.value,
-        resolvedCtx.value.ctx,
-        composeAttachedLayers(trail, options),
+        layerCtx.value,
+        layers,
         options?.topo,
         options
       );

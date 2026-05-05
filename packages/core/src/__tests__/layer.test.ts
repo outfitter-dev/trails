@@ -4,11 +4,13 @@ import { describe, test, expect } from 'bun:test';
 import { z } from 'zod';
 
 import { createTrailContext } from '../context';
+import { ValidationError } from '../errors';
 import { composeLayers } from '../layer';
 import type { Layer } from '../layer';
 import { executeTrail } from '../execute';
 import { Result } from '../result';
 import { trail } from '../trail';
+import { LAYER_INPUTS_KEY } from '../types';
 import type { TrailContext } from '../types';
 
 const stubCtx: TrailContext = createTrailContext({
@@ -198,6 +200,101 @@ describe('executeTrail layers option', () => {
       tenantTrail,
       { tenantId: 'acme', value: 'hello' },
       { ctx: { extensions: { tenantId: 'acme' } }, layers: [tenantGuard] }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(result.unwrap()).toEqual({ value: 'hello' });
+  });
+
+  test('validates layer input slots before wrapping and exposes parsed values', async () => {
+    let captured: unknown;
+    const typedLayer: Layer = {
+      input: z.object({ retries: z.coerce.number().int() }),
+      name: 'retry',
+      wrap(_trail, impl) {
+        return async (input, ctx) => {
+          const all = ctx.extensions?.[LAYER_INPUTS_KEY] as
+            | Readonly<Record<string, unknown>>
+            | undefined;
+          captured = all?.['retry'];
+          return await impl(input, ctx);
+        };
+      },
+    };
+
+    const result = await executeTrail(
+      echoTrail,
+      { value: 'hello' },
+      { layerInputs: { retry: { retries: '3' } }, layers: [typedLayer] }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(captured).toEqual({ retries: 3 });
+  });
+
+  test('invalid layer input returns ValidationError before any layer wraps', async () => {
+    let wrapped = false;
+    const typedLayer: Layer = {
+      input: z.object({ token: z.string() }),
+      name: 'auth',
+      wrap(_trail, impl) {
+        return async (input, ctx) => {
+          wrapped = true;
+          return await impl(input, ctx);
+        };
+      },
+    };
+
+    const result = await executeTrail(
+      echoTrail,
+      { value: 'hello' },
+      { layerInputs: { auth: { token: 42 } }, layers: [typedLayer] }
+    );
+
+    expect(result.isErr()).toBe(true);
+    expect(result.error).toBeInstanceOf(ValidationError);
+    expect(result.error.message).toContain("Invalid input for layer 'auth'");
+    expect(wrapped).toBe(false);
+  });
+
+  test('layers without input schemas preserve their unvalidated runtime slot', async () => {
+    let captured: unknown;
+    const runtimeLayer: Layer = {
+      name: 'runtime',
+      wrap(_trail, impl) {
+        return async (input, ctx) => {
+          const all = ctx.extensions?.[LAYER_INPUTS_KEY] as
+            | Readonly<Record<string, unknown>>
+            | undefined;
+          captured = all?.['runtime'];
+          return await impl(input, ctx);
+        };
+      },
+    };
+
+    const result = await executeTrail(
+      echoTrail,
+      { value: 'hello' },
+      { layerInputs: { runtime: { raw: true } }, layers: [runtimeLayer] }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(captured).toEqual({ raw: true });
+  });
+
+  test('omitted layer input is a no-op for typed layers', async () => {
+    const typedLayer: Layer = {
+      input: z.object({ token: z.string() }),
+      name: 'auth',
+      wrap(_trail, impl) {
+        return impl;
+      },
+    };
+
+    const result = await executeTrail(
+      echoTrail,
+      { value: 'hello' },
+      { layers: [typedLayer] }
     );
 
     expect(result.isOk()).toBe(true);

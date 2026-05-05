@@ -21,6 +21,7 @@ import { implementationReturnsResult } from './implementation-returns-result.js'
 import { incompleteAccessorForStandardOp } from './incomplete-accessor-for-standard-op.js';
 import { incompleteCrud } from './incomplete-crud.js';
 import { intentPropagation } from './intent-propagation.js';
+import { layerFieldNameDrift } from './layer-field-name-drift.js';
 import { missingReconcile } from './missing-reconcile.js';
 import { missingVisibility } from './missing-visibility.js';
 import { noDevPermitInSource } from './no-dev-permit-in-source.js';
@@ -72,6 +73,7 @@ export const registeredRuleNames: readonly string[] = [
   incompleteAccessorForStandardOp.name,
   incompleteCrud.name,
   intentPropagation.name,
+  layerFieldNameDrift.name,
   missingReconcile.name,
   missingVisibility.name,
   noDevPermitInSource.name,

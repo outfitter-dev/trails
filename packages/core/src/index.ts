@@ -80,7 +80,11 @@ export type {
 } from './types.js';
 export { basePermitSchema } from './permits.js';
 export type { BasePermit } from './permits.js';
-export { SURFACE_KEY, SURFACE_LAYER_NAMES_KEY } from './types.js';
+export {
+  LAYER_INPUTS_KEY,
+  SURFACE_KEY,
+  SURFACE_LAYER_NAMES_KEY,
+} from './types.js';
 export {
   ACTIVATION_PROVENANCE_KEY,
   buildActivationProvenanceTraceAttrs,
@@ -92,6 +96,7 @@ export type {
   ActivationProvenanceCarrier,
   ActivationProvenanceSource,
 } from './activation-provenance.js';
+export { LAYER_FIELD_RESERVED_NAMES } from './internal/layer-projection.js';
 
 // Context factory
 export { createTrailContext, passthroughTrace } from './context.js';

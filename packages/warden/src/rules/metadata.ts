@@ -121,6 +121,12 @@ export const builtinWardenRuleMetadata = {
     invariant: 'Composite trail intent cannot be safer than crossed trails.',
     tier: 'project-static',
   },
+  'layer-field-name-drift': {
+    ...durableExternal,
+    invariant:
+      'Layer input field reserved names are shared across surface projections.',
+    tier: 'source-static',
+  },
   'missing-reconcile': {
     ...durableExternal,
     invariant: 'Versioned CRUD store tables provide reconcile coverage.',

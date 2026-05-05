@@ -81,6 +81,7 @@ export {
   incompleteAccessorForStandardOpTrail,
   incompleteCrudTrail,
   intentPropagationTrail,
+  layerFieldNameDriftTrail,
   missingVisibilityTrail,
   missingReconcileTrail,
   noDevPermitInSourceTrail,
