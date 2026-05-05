@@ -104,6 +104,28 @@ export const writeIsolatedExampleJsonFile = (
   }
 };
 
+export const writeIsolatedExampleTextFile = (
+  rootDir: string,
+  relativePath: string,
+  contents: string
+): string => {
+  const target = deriveSafePath(rootDir, relativePath);
+  if (target.isErr()) {
+    throw target.error;
+  }
+
+  try {
+    mkdirSync(dirname(target.value), { recursive: true });
+    writeFileSync(target.value, contents);
+    return relativePath;
+  } catch (error) {
+    throw new InternalError('Failed to write isolated example text file', {
+      cause: asError(error),
+      context: { relativePath, rootDir, targetPath: target.value },
+    });
+  }
+};
+
 export const removeRootRelativeFileIfPresent = (
   rootDir: string,
   relativePath: string
