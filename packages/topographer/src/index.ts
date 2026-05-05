@@ -23,6 +23,23 @@ export {
   workspaceTrailIndexSchema,
 } from './types.js';
 
+// Workspace-wide trail-id index (cross-app resolution for `trails run <id>`).
+export {
+  buildWorkspaceTrailIndex,
+  defaultLoadTopo,
+  isAppManifest,
+  isRootManifest,
+  readAppManifest,
+  readWorkspacesGlobs,
+} from './workspace-topos.js';
+export type {
+  AppManifest,
+  BuildWorkspaceTrailIndexOptions,
+  RootManifest,
+  WorkspaceTopoLoader,
+  WorkspaceTrailIndexResult,
+} from './workspace-topos.js';
+
 // Types
 export type {
   SurfaceMap,
