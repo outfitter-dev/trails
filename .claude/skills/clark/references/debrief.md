@@ -11,7 +11,7 @@ Did this sprint surface a recurring pattern that should be named?
 - A composition pattern that multiple trails used the same way
 - An error handling pattern that could become a framework utility
 - A testing pattern that should be added to the testing guide
-- A provision interaction pattern that suggests a new convenience
+- A resource interaction pattern that suggests a new convenience
 
 Apply the primitive-pattern-new-primitive hierarchy: is this a pattern that uses existing primitives well, or does it suggest a new primitive is warranted?
 

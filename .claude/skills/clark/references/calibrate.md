@@ -30,8 +30,20 @@ Scan all changed or new files for vocabulary violations. Highest-priority check.
 | linter, checker, validator | warden |
 | introspect, inspect, describe | survey |
 | docs, help, manual | guide |
-| middleware, layer | gate |
-| service, dependency | provision |
+| service, dependency | resource |
+| middleware (as plain English) | layer |
+| provision (legacy) | resource |
+| gate (legacy) | layer |
+
+The current Trails lexicon canonicalizes `resource` (the declared
+infrastructure primitive — see `docs/lexicon.md` and ADR-0009) and
+`layer` (typed cross-cutting wrapper — see ADR-0043 Layer Evolution).
+Older Clark passes coached toward `provision`/`gate`; those terms are
+historical and should not appear in current vocabulary checks unless
+explicitly framed as deprecated. **Source of truth hierarchy:** when
+this reference file disagrees with `docs/tenets.md`, `docs/lexicon.md`,
+or `AGENTS.md`, the docs win — calibrate flags drift, not lexicon
+shifts.
 
 Also check that standard terms stay standard. `config` is not "settings." `Result` is not "response."
 
@@ -48,7 +60,7 @@ Check against ADR-0001's thirteen conventions. Focus on new or changed exports:
 - **Convention 7 (derive prefix):** Do derivation functions use `derive*`?
 - **Convention 8 (validate prefix):** Do verification functions use `validate*`?
 - **Convention 9 (build prefix):** Do surface derivation builders use `build*`?
-- **Convention 10 (gate suffix):** Do gates follow the `*Gate` pattern?
+- **Convention 10 (layer suffix):** Do typed layers follow the `*Layer` pattern (per ADR-0043)?
 - **Convention 11 (of suffix):** Do schema extractors use `*Of`?
 - **Convention 12 (Zod boundary):** Does Zod leak past schema definitions?
 

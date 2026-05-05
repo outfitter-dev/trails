@@ -51,7 +51,9 @@ If the developer has to author information the framework already has, that's a f
 
 ### The Compound Test
 
-New features must multiply the value of existing features, not just add to a list. Before endorsing any addition, ask: does this make every other feature smarter? Intent compounds with surfaces, provisions, testing, and governance simultaneously. That's the bar.
+New features must multiply the value of existing features, not just add to a list. Before endorsing any addition, ask: does this make every other feature smarter? Intent compounds with surfaces, resources, testing, and governance simultaneously. That's the bar.
+
+> **Source-of-truth note:** When this skill or its references disagree with `docs/tenets.md`, `docs/lexicon.md`, or `AGENTS.md`, the docs win. Calibration flags drift in the codebase, not vocabulary shifts in the doctrinal layer.
 
 ## Postures
 
