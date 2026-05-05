@@ -1,4 +1,9 @@
-import { defaultOnResult, outputModePreset, tracePreset } from '@ontrails/cli';
+import {
+  defaultOnResult,
+  outputModePreset,
+  permitPreset,
+  tracePreset,
+} from '@ontrails/cli';
 import type { ActionResultContext } from '@ontrails/cli';
 import { surface } from '@ontrails/cli/commander';
 
@@ -62,7 +67,7 @@ try {
     description: 'Agent-native, contract-first TypeScript framework',
     name: 'trails',
     onResult: buildOnResult(session),
-    presets: [outputModePreset(), tracePreset()],
+    presets: [outputModePreset(), tracePreset(), permitPreset()],
     resolveInput: resolveInputWithClack,
     version: trailsPackageVersion,
   });

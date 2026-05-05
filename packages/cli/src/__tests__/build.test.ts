@@ -16,6 +16,7 @@ import { z } from 'zod';
 import type { ActionResultContext } from '../build.js';
 import { deriveCliCommands } from '../build.js';
 import type { AnyTrail, CliCommand } from '../command.js';
+import { permitPreset } from '../flags.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -47,6 +48,8 @@ const buildCommands = (...args: Parameters<typeof deriveCliCommands>) => {
   }
   return result.value;
 };
+
+const authPresets = () => permitPreset();
 
 const requireCommand = (commands: CliCommand[]) => {
   const [command] = commands;
@@ -1269,5 +1272,166 @@ describe('--dry-run wiring', () => {
     expect(result.isOk()).toBe(true);
     expect(observedInput).toEqual({ dryRun: true, id: 'abc' });
     expect(observedCtxDryRun).toBe(false);
+  });
+});
+
+describe('--permit wiring', () => {
+  test('--permit JSON sets ctx.permit to the parsed permit object', async () => {
+    let observed: TrailContext['permit'];
+    const t = trail('thing.read', {
+      blaze: (_input, ctx) => {
+        observed = ctx.permit;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app, { presets: authPresets() }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { id: 'abc', permit: '{"id":"dev","scopes":["admin:write"]}' }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(observed).toEqual({ id: 'dev', scopes: ['admin:write'] });
+  });
+
+  test('omitted --permit leaves ctx.permit undefined', async () => {
+    let observed: TrailContext['permit'] = { id: 'sentinel', scopes: [] };
+    const t = trail('thing.read-default', {
+      blaze: (_input, ctx) => {
+        observed = ctx.permit;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app, { presets: authPresets() }));
+
+    const result = await cmd.execute({ id: 'abc' }, { id: 'abc' });
+
+    expect(result.isOk()).toBe(true);
+    expect(observed).toBeUndefined();
+  });
+
+  test('--permit with invalid JSON fails with ValidationError', async () => {
+    const t = trail('thing.read-bad-json', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app, { presets: authPresets() }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { id: 'abc', permit: 'not-json' }
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (!result.isErr()) {
+      throw new Error('expected err');
+    }
+    expect(result.error).toBeInstanceOf(ValidationError);
+    expect(result.error.message.toLowerCase()).toContain('permit');
+  });
+
+  test('--permit missing scopes field fails with ValidationError', async () => {
+    const t = trail('thing.read-missing-scopes', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app, { presets: authPresets() }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { id: 'abc', permit: '{"id":"dev"}' }
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (!result.isErr()) {
+      throw new Error('expected err');
+    }
+    expect(result.error).toBeInstanceOf(ValidationError);
+  });
+
+  test('--permit with non-string id fails with ValidationError', async () => {
+    const t = trail('thing.read-bad-id', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app, { presets: authPresets() }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { id: 'abc', permit: '{"id":42,"scopes":["x"]}' }
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (!result.isErr()) {
+      throw new Error('expected err');
+    }
+    expect(result.error).toBeInstanceOf(ValidationError);
+  });
+
+  test('--permit does not leak into trail input', async () => {
+    let receivedInput: unknown;
+    const t = trail('thing.read-no-leak', {
+      blaze: (input: { id: string }) => {
+        receivedInput = input;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app, { presets: authPresets() }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { id: 'abc', permit: '{"id":"dev","scopes":["admin:write"]}' }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(receivedInput).toEqual({ id: 'abc' });
+  });
+
+  test('--permit satisfies permit-protected trails when scopes match', async () => {
+    const t = trail('thing.write-protected', {
+      blaze: (_input, ctx) => Result.ok({ ok: true, permitId: ctx.permit?.id }),
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean(), permitId: z.string().optional() }),
+      permit: { scopes: ['entity:write'] },
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app, { presets: authPresets() }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      {
+        id: 'abc',
+        permit: '{"id":"dev","scopes":["entity:write","entity:read"]}',
+      }
+    );
+
+    expect(result.isOk()).toBe(true);
+    if (!result.isOk()) {
+      throw new Error('expected ok');
+    }
+    expect(result.value).toEqual({ ok: true, permitId: 'dev' });
   });
 });

@@ -23,6 +23,7 @@ import type {
   Topo,
 } from '@ontrails/core';
 
+import { addPermitRequirement } from '../permit.js';
 import type {
   CreateTopoSnapshotInput,
   TopoSnapshot,
@@ -993,6 +994,7 @@ const trailToEntryRecord = (
 ): SurfaceMapEntryRecord => {
   const { entry, raw } = buildTrailEntryBase(trail, trailSchema);
   addSafetyMarkers(entry, trail);
+  addPermitRequirement(entry, trail);
   addExtendedMetadata(entry, raw, trail);
   addTrailRelations(entry, trail);
   return sortKeys(entry) as SurfaceMapEntryRecord;

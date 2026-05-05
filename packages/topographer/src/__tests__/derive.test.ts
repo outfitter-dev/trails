@@ -453,6 +453,27 @@ describe('deriveSurfaceMap', () => {
       expect(entry.dryRunCapable).toBe(true);
     });
 
+    test('trail permit requirements are included when declared', () => {
+      const scoped = trail('secure.write', {
+        blaze: noop,
+        input: z.object({}),
+        permit: { scopes: ['write:entity', 'read:entity'] },
+      });
+      const publicTrail = trail('status.read', {
+        blaze: noop,
+        input: z.object({}),
+        permit: 'public',
+      });
+      const { entries } = deriveSurfaceMap(topoFrom({ publicTrail, scoped }));
+
+      expect(
+        entries.find((entry) => entry.id === 'secure.write')?.permit
+      ).toEqual({ scopes: ['read:entity', 'write:entity'] });
+      expect(entries.find((entry) => entry.id === 'status.read')?.permit).toBe(
+        'public'
+      );
+    });
+
     test('exampleCount reflects the number of examples', () => {
       const t = trail('with.examples', {
         blaze: noop,

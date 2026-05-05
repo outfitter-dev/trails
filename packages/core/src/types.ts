@@ -1,4 +1,5 @@
 import type { TrailsError } from './errors.js';
+import type { BasePermit } from './permits.js';
 import type { Result } from './result.js';
 import type { Signal } from './signal.js';
 import type { AnyTrail } from './trail.js';
@@ -188,12 +189,6 @@ export interface LogFormatter {
  * Context extension key for the invoking surface name.
  */
 export const SURFACE_KEY = '__trails_surface' as const;
-
-/** Minimal permit shape available on TrailContext. Permits extends this. */
-export interface BasePermit {
-  readonly id: string;
-  readonly scopes: readonly string[];
-}
 
 /** Runtime context threaded through every trail execution */
 export interface TrailContext {

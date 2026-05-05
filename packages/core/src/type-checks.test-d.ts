@@ -11,6 +11,7 @@
 
 import type { Trail } from './trail.js';
 import type { Signal } from './signal.js';
+import type { BasePermit } from './permits.js';
 import type { FireFn } from './types.js';
 import type { CrossInput, TrailInput } from './type-utils.js';
 
@@ -123,6 +124,16 @@ type AssertFireReturnsVoid = FireFn extends {
 export type FireReturnsVoid = [AssertFireReturnsVoid] extends [true]
   ? 'pass'
   : never;
+
+// ---------------------------------------------------------------------------
+// BasePermit preserves readonly fields across schema inference
+// ---------------------------------------------------------------------------
+
+declare const permit: BasePermit;
+// @ts-expect-error BasePermit.id is immutable once installed on TrailContext.
+permit.id = 'next';
+// @ts-expect-error BasePermit.scopes is immutable once installed on TrailContext.
+permit.scopes.push('next');
 
 type AssertFireAcceptsSignalValue = FireFn extends {
   (signal: OrderPlacedSignal, payload: { orderId: string }): Promise<void>;

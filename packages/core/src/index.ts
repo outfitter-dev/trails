@@ -67,7 +67,6 @@ export type {
   CrossBatchOptions,
   CrossFn,
   FireFn,
-  BasePermit,
   LogLevel,
   LogFormatter,
   LogRecord,
@@ -78,6 +77,8 @@ export type {
   Logger,
   ResourceLookup,
 } from './types.js';
+export { basePermitSchema } from './permits.js';
+export type { BasePermit } from './permits.js';
 export { SURFACE_KEY } from './types.js';
 export {
   ACTIVATION_PROVENANCE_KEY,

@@ -153,6 +153,7 @@ const exampleApp = () => {
     input: z.object({}),
     intent: 'read',
     output: z.object({ items: z.array(z.string()) }),
+    permit: { scopes: ['entity:read'] },
     resources: [dbMain],
   });
 
@@ -671,8 +672,9 @@ describe('topo store projection', () => {
           typeof entry === 'object' &&
           entry !== null &&
           (entry as { id?: unknown }).id === 'entity.list'
-      ) as { dryRunCapable?: unknown } | undefined;
+      ) as { dryRunCapable?: unknown; permit?: unknown } | undefined;
       expect(listEntry?.dryRunCapable).toBe(true);
+      expect(listEntry?.permit).toEqual({ scopes: ['entity:read'] });
 
       const lock = JSON.parse(stored.lockContent);
       const lockTrail = lock.apps['projection-app'].trails['entity.add'];

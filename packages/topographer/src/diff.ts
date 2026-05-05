@@ -57,6 +57,50 @@ const labelForKind = (kind: SurfaceMapEntry['kind']): string => {
   return 'Trail';
 };
 
+const stableStringify = (value: unknown): string =>
+  JSON.stringify(value, (_key, nested) => {
+    if (Array.isArray(nested)) {
+      return [...nested].toSorted((a, b) =>
+        JSON.stringify(a).localeCompare(JSON.stringify(b))
+      );
+    }
+    if (
+      nested !== null &&
+      typeof nested === 'object' &&
+      !Array.isArray(nested)
+    ) {
+      return Object.fromEntries(Object.entries(nested).toSorted());
+    }
+    return nested;
+  });
+
+const permitScopes = (
+  permit: SurfaceMapEntry['permit'] | undefined
+): ReadonlySet<string> | undefined =>
+  permit === undefined || permit === 'public'
+    ? undefined
+    : new Set(permit.scopes);
+
+const permitChangeSeverity = (
+  prevPermit: SurfaceMapEntry['permit'] | undefined,
+  currPermit: SurfaceMapEntry['permit'] | undefined
+): Severity => {
+  const prevScopes = permitScopes(prevPermit);
+  const currScopes = permitScopes(currPermit);
+  if (currScopes === undefined) {
+    return 'warning';
+  }
+  if (prevScopes === undefined) {
+    return 'breaking';
+  }
+  for (const scope of currScopes) {
+    if (!prevScopes.has(scope)) {
+      return 'breaking';
+    }
+  }
+  return 'warning';
+};
+
 // ---------------------------------------------------------------------------
 // Schema field diffing
 // ---------------------------------------------------------------------------
@@ -275,6 +319,15 @@ const diffMetadata = (
       acc,
       'warning',
       `dryRunCapable changed: ${String(prev.dryRunCapable ?? false)} -> ${String(curr.dryRunCapable ?? false)}`
+    );
+  }
+  const prevPermit = stableStringify(prev.permit ?? 'undeclared');
+  const currPermit = stableStringify(curr.permit ?? 'undeclared');
+  if (prevPermit !== currPermit) {
+    addDetail(
+      acc,
+      permitChangeSeverity(prev.permit, curr.permit),
+      `permit changed: ${prevPermit} -> ${currPermit}`
     );
   }
   if (prev.description !== curr.description) {

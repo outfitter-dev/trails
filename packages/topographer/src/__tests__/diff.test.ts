@@ -276,18 +276,24 @@ describe('deriveSurfaceMapDiff', () => {
       ).toBe(true);
     });
 
-    test('safety marker changed classified as warning', () => {
+    test('safety marker changes partition by severity', () => {
       const prev = surfaceMap([
         entry({ id: 'data.wipe', intent: 'read' }),
         entry({ id: 'data.preview' }),
+        entry({ id: 'data.secure', permit: 'public' }),
       ]);
       const curr = surfaceMap([
         entry({ id: 'data.wipe', intent: 'destroy' }),
         entry({ dryRunCapable: true, id: 'data.preview' }),
+        entry({
+          id: 'data.secure',
+          permit: { scopes: ['data:write'] },
+        }),
       ]);
       const result = deriveSurfaceMapDiff(prev, curr);
 
       expect(result.warnings).toHaveLength(2);
+      expect(result.breaking).toHaveLength(1);
       expect(
         result.warnings.some((warning) =>
           warning.details.some((detail) => detail.includes('intent changed'))
@@ -300,6 +306,51 @@ describe('deriveSurfaceMapDiff', () => {
           )
         )
       ).toBe(true);
+      expect(
+        result.breaking.some((breaking) =>
+          breaking.details.some((detail) => detail.includes('permit changed'))
+        )
+      ).toBe(true);
+    });
+
+    test('adding permit scopes is classified as breaking', () => {
+      const prev = surfaceMap([
+        entry({
+          id: 'data.secure',
+          permit: { scopes: ['data:read'] },
+        }),
+      ]);
+      const curr = surfaceMap([
+        entry({
+          id: 'data.secure',
+          permit: { scopes: ['data:read', 'data:write'] },
+        }),
+      ]);
+      const result = deriveSurfaceMapDiff(prev, curr);
+
+      expect(result.hasBreaking).toBe(true);
+      expect(result.breaking[0]?.details).toContain(
+        'permit changed: {"scopes":["data:read"]} -> {"scopes":["data:read","data:write"]}'
+      );
+    });
+
+    test('permit scope order does not produce a warning', () => {
+      const prev = surfaceMap([
+        entry({
+          id: 'data.secure',
+          permit: { scopes: ['data:write', 'data:read'] },
+        }),
+      ]);
+      const curr = surfaceMap([
+        entry({
+          id: 'data.secure',
+          permit: { scopes: ['data:read', 'data:write'] },
+        }),
+      ]);
+      const result = deriveSurfaceMapDiff(prev, curr);
+
+      expect(result.warnings).toHaveLength(0);
+      expect(result.hasBreaking).toBe(false);
     });
 
     test('description change classified as info', () => {

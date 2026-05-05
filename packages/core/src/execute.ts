@@ -24,6 +24,7 @@ import {
   waitForPendingFireDispatches,
   withFireDispatchTracking,
 } from './fire.js';
+import type { BasePermit } from './permits.js';
 import type {
   CrossBatchOptions,
   CrossFn,
@@ -108,6 +109,16 @@ export interface ExecuteTrailOptions {
    */
   readonly dryRun?: boolean | undefined;
   /**
+   * Permit to overlay onto `ctx.permit` for this invocation.
+   *
+   * When provided, this overrides any permit supplied via `ctx.permit` on
+   * the partial context overrides or via the `createContext` factory. Leave
+   * unset to inherit the permit from the resolved context (typically
+   * `undefined`). Surfaces parse and validate the permit at their boundary
+   * (e.g. CLI `--permit '<json>'`) before passing it here.
+   */
+  readonly permit?: BasePermit | undefined;
+  /**
    * Override the validation schema used for input validation.
    *
    * When a trail is invoked via `ctx.cross()` and the target declares
@@ -142,9 +153,14 @@ const applyContextOverrides = (
     ? { ...withOverrides, abortSignal: options.abortSignal }
     : withOverrides;
 
-  return options?.dryRun === undefined
-    ? withAbort
-    : { ...withAbort, dryRun: options.dryRun };
+  const withDryRun =
+    options?.dryRun === undefined
+      ? withAbort
+      : { ...withAbort, dryRun: options.dryRun };
+
+  return options?.permit === undefined
+    ? withDryRun
+    : { ...withDryRun, permit: options.permit };
 };
 
 const bindResourceLookup = (
@@ -173,6 +189,9 @@ const bindResourceLookup = (
  * 3. `abortSignal` override takes final precedence.
  * 4. `dryRun` option takes final precedence (defaults to `false` via
  *    `createTrailContext` when neither option nor `ctx.dryRun` is provided).
+ * 5. `permit` option takes final precedence over any inherited permit when
+ *    provided; leaving it unset preserves whatever the resolved context
+ *    already carries.
  */
 const resolveContext = async (
   options?: ExecuteTrailOptions

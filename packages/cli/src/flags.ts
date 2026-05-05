@@ -141,3 +141,22 @@ export const tracePreset = (): CliFlag[] => [
     variadic: false,
   },
 ];
+
+/**
+ * Flag for inline permit JSON: --permit '<json>'
+ *
+ * Accepts a JSON-encoded `BasePermit` (`{ id: string; scopes: string[] }`)
+ * which the CLI parses, validates, and overlays onto the trail's
+ * `ctx.permit`. Failures (invalid JSON, schema mismatch) are surfaced as
+ * `ValidationError`. The flag is treated as a meta flag — it never routes
+ * into trail input.
+ */
+export const permitPreset = (): CliFlag[] => [
+  {
+    description: 'Inline permit JSON: \'{"id":"...","scopes":["..."]}\'',
+    name: 'permit',
+    required: false,
+    type: 'string',
+    variadic: false,
+  },
+];

@@ -23,6 +23,7 @@ import type {
   Trail,
 } from '@ontrails/core';
 
+import { addPermitRequirement } from './permit.js';
 import type {
   JsonSchema,
   SurfaceMap,
@@ -494,6 +495,7 @@ const trailToEntry = (t: Trail<unknown, unknown, unknown>): SurfaceMapEntry => {
 
   addSchemas(entry, t);
   addMetadata(entry, t, raw);
+  addPermitRequirement(entry, t);
   addTrailRelations(entry, t);
   addFieldOverrides(entry, t);
   addExamples(entry, t);

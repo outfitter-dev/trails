@@ -3,6 +3,7 @@
  */
 
 import type {
+  BasePermit,
   BaseSurfaceOptions,
   Field,
   Layer,
@@ -14,6 +15,7 @@ import type {
 import {
   Result,
   ValidationError,
+  basePermitSchema,
   deriveCliPath,
   deriveFields,
   executeTrail,
@@ -132,6 +134,7 @@ const META_FLAG_CANDIDATES = new Set([
   'json',
   'jsonl',
   'output',
+  'permit',
   'quiet',
   'trace',
 ]);
@@ -143,6 +146,44 @@ const STRUCTURED_INLINE_JSON_ARG: CliArg = {
   name: STRUCTURED_INLINE_JSON_ARG_NAME,
   required: false,
   variadic: false,
+};
+
+/**
+ * Parse and validate the `--permit '<json>'` flag value.
+ *
+ * Returns `Result.err(ValidationError)` for non-string inputs, JSON parse
+ * failures, or schema mismatches. Returns `Result.ok(undefined)` when the
+ * flag is unset so callers can avoid clobbering an inherited permit.
+ */
+const parsePermitFlag = (
+  raw: unknown
+): Result<BasePermit | undefined, ValidationError> => {
+  if (raw === undefined) {
+    return Result.ok();
+  }
+  if (typeof raw !== 'string') {
+    return Result.err(
+      new ValidationError('--permit expects a JSON string value')
+    );
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error: unknown) {
+    const detail = error instanceof Error ? error.message : String(error);
+    return Result.err(
+      new ValidationError(`--permit value is not valid JSON: ${detail}`)
+    );
+  }
+  const validated = basePermitSchema.safeParse(parsed);
+  if (!validated.success) {
+    return Result.err(
+      new ValidationError(
+        `--permit JSON does not match the BasePermit shape ({ id: string; scopes: string[] }): ${validated.error.message}`
+      )
+    );
+  }
+  return Result.ok(validated.data);
 };
 
 /** Auto-derived flag for paginated trails: --all triggers iteration. */
@@ -379,7 +420,8 @@ const runTrailOnce = async (
   ctxOverrides: Partial<TrailContext> | undefined,
   options: DeriveCliCommandsOptions | undefined,
   input: Record<string, unknown>,
-  dryRun: boolean | undefined
+  dryRun: boolean | undefined,
+  permit: BasePermit | undefined
 ): Promise<Result<unknown, Error>> =>
   await executeTrail(t, input, {
     configValues: options?.configValues,
@@ -387,6 +429,7 @@ const runTrailOnce = async (
     ctx: withSurfaceMarker('cli', ctxOverrides),
     dryRun,
     layers: options?.layers,
+    ...(permit === undefined ? {} : { permit }),
     resources: options?.resources,
     topo: graph,
   });
@@ -452,7 +495,8 @@ const runPaginatedIteration = async (
   options: DeriveCliCommandsOptions | undefined,
   baseInput: Record<string, unknown>,
   jsonl: boolean,
-  dryRun: boolean | undefined
+  dryRun: boolean | undefined,
+  permit: BasePermit | undefined
 ): Promise<IterationOutcome> => {
   if (!inputHasCursorField(t)) {
     return {
@@ -470,7 +514,7 @@ const runPaginatedIteration = async (
     cursorField: 'cursor',
     onItem: jsonl ? writeJsonLine : undefined,
     runPage: (input) =>
-      runTrailOnce(graph, t, ctxOverrides, options, input, dryRun),
+      runTrailOnce(graph, t, ctxOverrides, options, input, dryRun, permit),
   });
   return { result, streamed: jsonl && result.isOk() };
 };
@@ -514,6 +558,21 @@ const createExecute =
     }
     const { mergedInput, usedStructuredInput } = merged.value;
 
+    const permitParsed = parsePermitFlag(parsedFlags['permit']);
+    if (permitParsed.isErr()) {
+      const errResult: Result<unknown, Error> = Result.err(permitParsed.error);
+      await reportResult(options, {
+        args: parsedArgs,
+        flags: parsedFlags,
+        input: mergedInput,
+        result: errResult,
+        topoName: graph.name,
+        trail: t,
+      });
+      return errResult;
+    }
+    const permit = permitParsed.value;
+
     const dryRun = readDryRunFlag(parsedFlags, metaFlagNames);
     let result: Result<unknown, Error>;
     let streamed = false;
@@ -525,7 +584,8 @@ const createExecute =
         options,
         mergedInput,
         isJsonlMode(parsedFlags),
-        dryRun
+        dryRun,
+        permit
       );
       ({ result } = outcome);
       ({ streamed } = outcome);
@@ -536,7 +596,8 @@ const createExecute =
         ctxOverrides,
         options,
         metaFlagNames.has('all') ? stripAllFlag(mergedInput) : mergedInput,
-        dryRun
+        dryRun,
+        permit
       );
     }
 

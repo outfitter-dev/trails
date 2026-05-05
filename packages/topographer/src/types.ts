@@ -81,6 +81,10 @@ export interface SurfaceMapActivationEntry {
   readonly where?: { readonly predicate: true } | undefined;
 }
 
+export interface SurfaceMapPermitRequirement {
+  readonly scopes: readonly string[];
+}
+
 // ---------------------------------------------------------------------------
 // Surface Map
 // ---------------------------------------------------------------------------
@@ -100,6 +104,7 @@ export interface SurfaceMapEntry {
   readonly intent?: 'read' | 'write' | 'destroy' | undefined;
   readonly idempotent?: boolean | undefined;
   readonly dryRunCapable?: boolean | undefined;
+  readonly permit?: 'public' | SurfaceMapPermitRequirement | undefined;
   readonly pattern?: string | undefined;
   readonly deprecated?: boolean | undefined;
   readonly replacedBy?: string | undefined;
