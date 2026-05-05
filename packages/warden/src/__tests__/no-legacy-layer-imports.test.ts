@@ -24,7 +24,7 @@ describe('no-legacy-layer-imports', () => {
     expect(diagnostics[0]?.message).toContain("Legacy layer 'authLayer'");
     expect(diagnostics[0]?.message).toContain('TRL-475');
     expect(diagnostics[0]?.message).toContain(
-      'docs/adr/drafts/20260409-layer-evolution.md'
+      'docs/adr/0043-layer-evolution.md'
     );
   });
 

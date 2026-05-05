@@ -240,11 +240,11 @@ When in doubt, ask whether the word is occupying the Trails concept's canonical 
 
 ### `layer`
 
-A low-level wrapper around one trail execution. In v1, a layer is execution
-plumbing passed through `run()` or surface options. It is not a topo primitive,
-not a trail spec field, and not serialized as a graph node. Use it for
-surface- or invocation-scoped behavior such as auth gates, rate limits,
-telemetry wrappers, or CLI convenience behavior.
+A typed cross-cutting wrapper around one trail execution. A layer can declare an
+`input` schema for surface-visible behavior, or omit `input` to stay invisible
+to surfaces. Layers can attach at trail, surface, topo, or execution-call
+scope. They are not standalone graph nodes; they are execution wrappers whose
+declared inputs can still be projected and governed.
 
 ```typescript
 await surface(graph, {
@@ -252,8 +252,10 @@ await surface(graph, {
 });
 ```
 
-Typed, queryable, graph-aware layers are future design work, tracked in the
-draft layer-evolution ADR.
+Use layers for authored behavior such as rate limits, tenant guards, telemetry
+wrappers, or CLI verbosity. Framework-owned behavior such as permit enforcement
+and tracing stays in the execution pipeline. See
+[ADR-0043: Layer Evolution](./adr/0043-layer-evolution.md).
 
 ### `resource` / `resources`
 
@@ -442,7 +444,7 @@ When introducing Trails, use this order.
 
 ### Advanced
 
-1. `layer` — wrap execution through `run()` or surface options
+1. `layer` — wrap execution at trail, surface, topo, or execution-call scope
 2. `tracing` / `ctx.trace()` — record what happened
 3. `permit` — auth and scopes
 4. `pin` — named graph snapshot for diffing and verification

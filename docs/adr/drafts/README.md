@@ -26,8 +26,6 @@ Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.
 - [Documentation freshness SLAs](20260406-documentation-freshness.md)
   - depends on [Documentation structure](20260406-documentation-structure.md)
 - [Documentation structure](20260406-documentation-structure.md)
-- [Layer Evolution](20260409-layer-evolution.md)
-  - depends on [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md), [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md)
 - [Resource Bundles](20260409-resource-bundles.md)
   - depends on [ADR-0009: First-Class Resources](../0009-first-class-resources.md), [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md), [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md)
 - [Trail Versioning](20260409-trail-versioning.md)

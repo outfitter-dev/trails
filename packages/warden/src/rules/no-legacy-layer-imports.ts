@@ -161,7 +161,7 @@ const lineForOffset = (sourceCode: string, offset: number): number => {
 
 const buildMessage = (name: LegacyLayerName): string => {
   const migration = LEGACY_LAYER_MIGRATIONS[name];
-  return `Legacy layer '${name}' was removed in ${migration.removedIn}. ${migration.guidance}. See docs/adr/drafts/20260409-layer-evolution.md.`;
+  return `Legacy layer '${name}' was removed in ${migration.removedIn}. ${migration.guidance}. See docs/adr/0043-layer-evolution.md.`;
 };
 
 /**

@@ -451,14 +451,14 @@
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
+          "context": "- [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent compounds with layers for surface derivation and governance",
+          "from": "0043",
+          "fromPath": "docs/adr/0043-layer-evolution.md"
+        },
+        {
           "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- rigged trails declare intent; HTTP method mapping and MCP annotations work identically",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
-        },
-        {
-          "context": "- [ADR-0004: Intent as a First-Class Property](../0004-intent-as-first-class-property.md) -- intent compounds with layers for surface derivation and governance",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-layer-evolution.md"
         },
         {
           "context": "- **[ADR-0004: Intent as a First-Class Property](./adr/0004-intent-as-first-class-property.md)** — One field drives all surface behavior",
@@ -584,6 +584,11 @@
           "fromPath": "docs/adr/0041-unified-observability.md"
         },
         {
+          "context": "- [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](0006-shared-execution-pipeline.md) — the execution pipeline that layers compose into",
+          "from": "0043",
+          "fromPath": "docs/adr/0043-layer-evolution.md"
+        },
+        {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` executes through the pipeline, the same as every trailhead",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -602,11 +607,6 @@
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-layers-run; the library trailhead delegates to the same p",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
-        },
-        {
-          "context": "- [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md) -- the execution pipeline that layers currently compose into",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-layer-evolution.md"
         },
         {
           "context": "- **[ADR-0006: Shared Execution Pipeline](./adr/0006-shared-execution-pipeline.md)** — One `executeTrail`, Result-returning builders",
@@ -953,9 +953,9 @@
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
         {
-          "context": "- [ADR-0012: Connector-Agnostic Permits](../0012-connector-agnostic-permits.md) -- permit declarations that become pipeline-enforced",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-layer-evolution.md"
+          "context": "- [ADR-0012: Connector-Agnostic Permits](0012-connector-agnostic-permits.md) — permit declarations that became pipeline-enforced",
+          "from": "0043",
+          "fromPath": "docs/adr/0043-layer-evolution.md"
         },
         {
           "context": "- **[ADR-0012: Connector-Agnostic Permits](./adr/0012-connector-agnostic-permits.md)** — Permission model independent of surface",
@@ -1027,6 +1027,11 @@
           "fromPath": "docs/adr/0041-unified-observability.md"
         },
         {
+          "context": "- [ADR-0013: Tracing — Runtime Recording Primitive](0013-tracing.md) — recording that became a pipeline stage",
+          "from": "0043",
+          "fromPath": "docs/adr/0043-layer-evolution.md"
+        },
+        {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- the tracing primitive; live tracing during `trails run`, historical tracing via `trails trace`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -1050,11 +1055,6 @@
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- observability and replay buffer backing store",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
-        },
-        {
-          "context": "- [ADR-0013: Tracing -- Runtime Recording Primitive](../0013-tracing.md) -- recording that becomes a pipeline stage",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-layer-evolution.md"
         },
         {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) — runtime recording that powers version traffic monitoring",
@@ -1571,9 +1571,9 @@
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
-          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) -- `crossInput` follows the same \"compose schemas, project the union\" pattern as layer input schemas",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-layer-evolution.md"
+          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) — `crossInput` follows the same \"compose schemas, project the union\" pattern as layer input schemas",
+          "from": "0043",
+          "fromPath": "docs/adr/0043-layer-evolution.md"
         },
         {
           "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — `crossInput` and its interaction with versioning",
@@ -2142,6 +2142,11 @@
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
+          "context": "The `tracingLayer` row was resolved by [ADR-0041: Unified Observability](0041-unified-observability.md): tracing is core execution-pipeline behavior, not an authored layer.",
+          "from": "0043",
+          "fromPath": "docs/adr/0043-layer-evolution.md"
+        },
+        {
           "context": "- [ADR-0041: Unified Observability](../0041-unified-observability.md) -- `--trace` flag, `ctx.trace()`, and the trace vocabulary used throughout this draft. The canonical flag name `--trace` matches t",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -2150,11 +2155,6 @@
           "context": "- [ADR-0041: Unified Observability](../0041-unified-observability.md) -- tracing system that provides WebSocket connection observability",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
-        },
-        {
-          "context": "The `tracingLayer` row is resolved by [ADR-0041: Unified Observability](../0041-unified-observability.md): tracing is core execution-pipeline behavior, not an authored layer.",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-layer-evolution.md"
         },
         {
           "context": "[ADR-0041: Unified Observability](../0041-unified-observability.md) — the",
@@ -2194,6 +2194,40 @@
       "superseded_by": null,
       "title": "Core/Topographer Boundary Doctrine",
       "updated": "2026-05-02"
+    },
+    {
+      "created": "2026-04-09",
+      "depends_on": ["6", "12"],
+      "inbound": [
+        {
+          "context": "This also resolves the `tracingLayer` concern named in [ADR-0043: Layer Evolution](0043-layer-evolution.md): tracing is a core pipeline capability, not a user-authored layer.",
+          "from": "0041",
+          "fromPath": "docs/adr/0041-unified-observability.md"
+        },
+        {
+          "context": "- [ADR-0043: Layer Evolution](../0043-layer-evolution.md) -- layers gain input schemas and three attachment levels; packs can carry trail-level layers",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
+        },
+        {
+          "context": "- [ADR-0043: Layer Evolution](../0043-layer-evolution.md) -- layers gain input schemas; the compiled library trailhead must project layer inputs alongside trail inputs",
+          "from": "20260401",
+          "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
+        },
+        {
+          "context": "[ADR-0043: Layer Evolution](./adr/0043-layer-evolution.md).",
+          "from": "lexicon",
+          "fromPath": "docs/lexicon.md"
+        }
+      ],
+      "number": "0043",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0043-layer-evolution.md",
+      "slug": "layer-evolution",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Layer Evolution",
+      "updated": "2026-05-04"
     }
   ],
   "version": 1

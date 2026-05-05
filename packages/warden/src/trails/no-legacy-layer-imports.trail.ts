@@ -18,7 +18,7 @@ export const noLegacyLayerImportsTrail = wrapRule({
             filePath: 'apps/example/src/cli.ts',
             line: 1,
             message:
-              "Legacy layer 'authLayer' was removed in TRL-475. Permit enforcement is intrinsic to executeTrail. See docs/adr/drafts/20260409-layer-evolution.md.",
+              "Legacy layer 'authLayer' was removed in TRL-475. Permit enforcement is intrinsic to executeTrail. See docs/adr/0043-layer-evolution.md.",
             rule: 'no-legacy-layer-imports',
             severity: 'error',
           },

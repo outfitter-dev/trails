@@ -372,7 +372,7 @@ The warden enforces pack boundaries:
 - [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) -- the bundling mechanism for pack and connector resources; packs distribute bundles
 - [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) -- contours define the domain objects that pack trails operate on
 - [ADR-0029: Connector Extraction and the `with-*` Packaging Model](../0029-connector-extraction-and-the-with-packaging-model.md) -- connectors are extracted from core packages; packs compose with connectors via bundles
-- [ADR: Layer Evolution](20260409-layer-evolution.md) (draft) -- layers gain input schemas and three attachment levels; packs can carry trail-level layers
+- [ADR-0043: Layer Evolution](../0043-layer-evolution.md) -- layers gain input schemas and three attachment levels; packs can carry trail-level layers
 - ADR: The Serialized Topo Graph (draft) -- lockfile records pack membership and trailhead bindings
 - [docs/lexicon.md](../../lexicon.md) -- `pack` reserved term
 - [docs/horizons.md](../../horizons.md) -- packs listed as mid-term direction

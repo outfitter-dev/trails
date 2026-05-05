@@ -147,11 +147,11 @@ The framework has a small set of core primitives. Everything else is either a sp
 - **`Result`** is the universal return type. Ok or Err, never throw.
 - **`cross()` / `crosses`** is the first-class compositional mechanism. `crosses` declares which trails a trail may compose, and `ctx.cross()` performs that composition at runtime. The warden verifies that declarations match actual usage.
 
-Execution layers exist in v1, but they are pipeline utilities rather than graph
-primitives. They wrap a trail execution through `run()` or surface options; they
-are not authored on trails, assembled by `topo()`, or serialized as graph nodes.
-The draft layer-evolution ADR tracks what it would take to promote them into a
-typed, governable primitive later.
+Typed layers exist in v1 as execution wrappers rather than standalone graph
+nodes. They can attach at trail, surface, topo, or execution-call scope. When a
+layer declares an input schema, surfaces can project it and governance can see
+it. Pipeline-owned concerns such as permit enforcement and tracing stay
+intrinsic rather than becoming authored layers.
 
 ### The bar for new primitives
 
@@ -189,7 +189,9 @@ The framework should not impose ceremony before it becomes necessary. The warden
 
 ### Authored defaults, overridable in context
 
-A trail declares its defaults: intent, error behavior, crossing declarations, meta. These are the author's stated design. The consuming context (the app, surface config, or a future composition layer) can override them.
+A trail declares its defaults: intent, error behavior, crossing declarations,
+layers, and meta. These are the author's stated design. The consuming context
+(the app, surface config, or execution-call options) can override them.
 
 The authored default documents intent. The override enables reuse. The resolved graph captures the final state. Governance can flag overrides that contradict intent.
 
@@ -197,8 +199,9 @@ The authored default documents intent. The override enables reuse. The resolved 
 
 The system is a single graph: trails, resources, signals, crossings, and
 metadata. Different tools provide different views of the same underlying data.
-Runtime execution layers can wrap that graph at invocation time, but v1 does not
-persist them as nodes in the graph.
+Typed layers can wrap that graph at declared attachment points, and their
+declared inputs can be projected, but layers are not persisted as standalone
+nodes in the graph.
 
 Survey reveals what exists and how it connects. Guide explains how to use it. The warden reports what's missing and what's drifting. The lockfile captures the resolved state. The tracing system shows what's actually happening at runtime — live during execution, historical after the fact.
 

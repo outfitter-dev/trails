@@ -30,7 +30,7 @@ In practice, a developer setting up observability configures two packages, two s
 
 `executeTrail` is in core. `TrailContext` with its `logger` is in core. The `Logger` interface is in core. Trace context propagation flows through `TrailContext`, which is in core. The infrastructure for observability already lives where it belongs. The implementations just live in the wrong packages.
 
-A new developer installing Trails today needs `@ontrails/core` and a trailhead package to get started. If they want to send runtime evidence somewhere durable, they have to understand separate logging and tracing packages, configure separate sinks, and wire them in. That is too much package and setup vocabulary before "hello world" has production-grade observability.
+A new developer installing Trails today needs `@ontrails/core` and a surface package to get started. If they want to send runtime evidence somewhere durable, they have to understand separate logging and tracing packages, configure separate sinks, and wire them in. That is too much package and setup vocabulary before "hello world" has production-grade observability.
 
 ### The vocabulary question
 
@@ -56,7 +56,7 @@ The `Logger` interface is already in core. The following join it:
 - **Trace sink contract and registry.** Core owns the `TraceSink` contract, the process-level trace sink registry, and the `NOOP_SINK` disabled baseline. Core does not own durable or developer-configurable trace storage.
 - **`ctx.trace()` method.** Manual sub-step recording within a blaze, replacing `tracker.from(ctx).track()`.
 
-This also resolves the `tracingLayer` concern named in [ADR: Layer Evolution](drafts/20260409-layer-evolution.md): tracing is a core pipeline capability, not a user-authored layer.
+This also resolves the `tracingLayer` concern named in [ADR-0043: Layer Evolution](0043-layer-evolution.md): tracing is a core pipeline capability, not a user-authored layer.
 
 A developer who installs `@ontrails/core` and `@ontrails/cli` gets:
 
@@ -88,9 +88,9 @@ The API is callback-based to guarantee closure. No raw `start` / `end` pair. Str
 
 ### How the execution pipeline records traces
 
-`executeTrail`[^1] is the shared chokepoint every trailhead uses for every trail invocation. Tracing wraps it intrinsically:
+`executeTrail`[^1] is the shared chokepoint every surface uses for every trail invocation. Tracing wraps it intrinsically:
 
-1. **Before the blaze runs** — create a root `TraceRecord` with trail ID, intent, trailhead, and `traceId`. Write `traceId` and root record ID into execution scope.
+1. **Before the blaze runs** — create a root `TraceRecord` with trail ID, intent, surface, and `traceId`. Write `traceId` and root record ID into execution scope.
 2. **During execution** — `ctx.trace()` calls create child records parented to the current scope. When a trail crosses another trail, the child inherits the same trace and parent linkage through the shared execution scope.
 3. **After the blaze completes** — close the root record with duration, status (`ok` | `err` | `cancelled`), and error category if applicable.
 
@@ -277,7 +277,7 @@ Everything else — developer-configurable memory sinks, OTel, file sinks, SQLit
 - [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — `executeTrail` is the chokepoint where tracing wraps. Moving tracing into core puts it next to the pipeline it instruments.
 - [ADR-0013: Tracing](0013-tracing.md) — the runtime recording primitive this decision updates. The architectural choices (flat records, callback-only manual API, root-level sampling, crossing propagation through execution scope) remain valid. The change is packaging and vocabulary, not mechanism.
 - [ADR-0039: Reactive Trail Activation](0039-reactive-trail-activation.md) — activation source boundaries define the runtime events this ADR makes observable through `activation.*` trace records.
-- [ADR: Layer Evolution](drafts/20260409-layer-evolution.md) — identifies `tracingLayer` as framework behavior dressed as user configuration; this ADR resolves it by making tracing core.
+- [ADR-0043: Layer Evolution](0043-layer-evolution.md) — identifies `tracingLayer` as framework behavior dressed as user configuration; this ADR resolves it by making tracing core.
 - [Tenets: One write, many reads](../tenets.md) — the governing principle. Trace data authored once feeds `--trace` rendering, OTel export, SQLite dev store, and future replay.
 - OpenTelemetry specification — the industry standard this aligns with for vocabulary and export format.
 
