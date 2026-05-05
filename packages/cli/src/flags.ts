@@ -1,5 +1,5 @@
 /**
- * Flag derivation from trailhead-agnostic fields and reusable flag presets.
+ * Flag derivation from surface-agnostic fields and reusable flag presets.
  */
 
 import { deriveFields } from '@ontrails/core';
@@ -150,11 +150,37 @@ export const tracePreset = (): CliFlag[] => [
  * `ctx.permit`. Failures (invalid JSON, schema mismatch) are surfaced as
  * `ValidationError`. The flag is treated as a meta flag — it never routes
  * into trail input.
+ *
+ * Mutually exclusive with `--token`; passing both surfaces a
+ * `ValidationError`.
  */
 export const permitPreset = (): CliFlag[] => [
   {
     description: 'Inline permit JSON: \'{"id":"...","scopes":["..."]}\'',
     name: 'permit',
+    required: false,
+    type: 'string',
+    variadic: false,
+  },
+];
+
+/**
+ * Flag for resolving a permit through the CLI resolver: --token <value>
+ *
+ * The surface caller supplies `resolvePermitFromToken` to turn the token into
+ * a `Permit`, which is overlaid onto `ctx.permit`. The `apps/trails` binary
+ * wires this to `@ontrails/permits`; the CLI package itself stays
+ * connector-agnostic.
+ *
+ * Mutually exclusive with `--permit`; passing both surfaces a
+ * `ValidationError`. The flag is treated as a meta flag — it never routes
+ * into trail input.
+ */
+export const tokenPreset = (): CliFlag[] => [
+  {
+    description:
+      'Bearer token resolved to a permit by the CLI resolver (mutually exclusive with --permit)',
+    name: 'token',
     required: false,
     type: 'string',
     variadic: false,

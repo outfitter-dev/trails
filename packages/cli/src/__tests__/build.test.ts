@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+  AuthError,
   Result,
   SURFACE_KEY,
   ValidationError,
@@ -16,7 +17,7 @@ import { z } from 'zod';
 import type { ActionResultContext } from '../build.js';
 import { deriveCliCommands } from '../build.js';
 import type { AnyTrail, CliCommand } from '../command.js';
-import { permitPreset } from '../flags.js';
+import { permitPreset, tokenPreset } from '../flags.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -49,7 +50,7 @@ const buildCommands = (...args: Parameters<typeof deriveCliCommands>) => {
   return result.value;
 };
 
-const authPresets = () => permitPreset();
+const authPresets = () => [permitPreset(), tokenPreset()];
 
 const requireCommand = (commands: CliCommand[]) => {
   const [command] = commands;
@@ -1433,5 +1434,339 @@ describe('--permit wiring', () => {
       throw new Error('expected ok');
     }
     expect(result.value).toEqual({ ok: true, permitId: 'dev' });
+  });
+});
+
+describe('--token wiring', () => {
+  interface StubAuthConnector {
+    readonly authenticate: (input: {
+      readonly bearerToken?: string | undefined;
+      readonly requestId: string;
+      readonly surface: 'cli' | 'http' | 'mcp';
+    }) => Promise<
+      Result<
+        { readonly id: string; readonly scopes: readonly string[] } | null,
+        { readonly code: string; readonly message: string }
+      >
+    >;
+  }
+
+  /**
+   * Build a topo containing a trail plus an auth resource whose connector is
+   * supplied via `options.resources` so the test does not need to instantiate
+   * the real `@ontrails/permits` factory.
+   */
+  const authResourceDef = resource<{
+    readonly authenticate: (input: {
+      readonly surface: 'cli' | 'http' | 'mcp';
+      readonly bearerToken?: string | undefined;
+      readonly requestId: string;
+    }) => Promise<
+      Result<
+        {
+          readonly id: string;
+          readonly scopes: readonly string[];
+        } | null,
+        { readonly code: string; readonly message: string }
+      >
+    >;
+  }>('auth', {
+    create: () =>
+      Result.ok({
+        // oxlint-disable-next-line require-await -- fallback connector
+        authenticate: async () => Result.ok(null),
+      }),
+  });
+
+  const makeAuthApp = (t: AnyTrail) =>
+    topo('auth-test-app', { auth: authResourceDef, [t.id]: t });
+
+  const resolvePermitFromTokenForTest: ResolveCliPermitFromToken = async ({
+    requestId,
+    resources,
+    token,
+  }) => {
+    const connector = resources?.['auth'] as StubAuthConnector | undefined;
+    if (connector === undefined) {
+      return Result.err(
+        new ValidationError(
+          '--token requires an auth connector. Register authResource from @ontrails/permits in your topo.'
+        )
+      );
+    }
+    const authResult = await connector.authenticate({
+      bearerToken: token,
+      requestId,
+      surface: 'cli',
+    });
+    if (authResult.isErr()) {
+      return Result.err(
+        new AuthError(authResult.error.message, {
+          context: { code: authResult.error.code },
+        })
+      );
+    }
+    if (authResult.value === null) {
+      return Result.err(
+        new AuthError('Auth connector did not produce a permit for --token', {
+          context: { code: 'missing_credentials' },
+        })
+      );
+    }
+    return Result.ok(authResult.value);
+  };
+
+  const buildAuthCommands = (
+    app: Parameters<typeof buildCommands>[0],
+    resources?: Record<string, unknown>
+  ) =>
+    buildCommands(app, {
+      ...(resources === undefined ? {} : { resources }),
+      presets: authPresets(),
+      resolvePermitFromToken: resolvePermitFromTokenForTest,
+    });
+
+  test('--token resolves a permit via the auth connector and lands ctx.permit', async () => {
+    let observed: TrailContext['permit'];
+    const t = trail('thing.token-read', {
+      blaze: (_input, ctx) => {
+        observed = ctx.permit;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const stubConnector = {
+      authenticate: (input: { readonly bearerToken?: string | undefined }) =>
+        Promise.resolve(
+          input.bearerToken === 'good-token'
+            ? Result.ok({ id: 'user-42', scopes: ['read', 'write'] })
+            : Result.err({ code: 'invalid_token', message: 'rejected' })
+        ),
+    };
+
+    const app = makeAuthApp(t);
+    const cmd = requireCommand(buildAuthCommands(app, { auth: stubConnector }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { id: 'abc', token: 'good-token' }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(observed).toEqual({ id: 'user-42', scopes: ['read', 'write'] });
+  });
+
+  test('--token without a registered auth resource fails with ValidationError', async () => {
+    const t = trail('thing.no-auth', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    // Topo without an auth resource registered.
+    const app = makeApp(t);
+    const cmd = requireCommand(buildAuthCommands(app));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { id: 'abc', token: 'any-token' }
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (!result.isErr()) {
+      throw new Error('expected err');
+    }
+    expect(result.error).toBeInstanceOf(ValidationError);
+    expect(result.error.message.toLowerCase()).toContain('auth');
+  });
+
+  test('--token with invalid token surfaces an AuthError (auth category, exit 9)', async () => {
+    const t = trail('thing.bad-token', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const stubConnector = {
+      // oxlint-disable-next-line require-await -- stub connector
+      authenticate: async () =>
+        Result.err({ code: 'invalid_token', message: 'bad signature' }),
+    };
+
+    const app = makeAuthApp(t);
+    const cmd = requireCommand(buildAuthCommands(app, { auth: stubConnector }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { id: 'abc', token: 'nope' }
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (!result.isErr()) {
+      throw new Error('expected err');
+    }
+    expect(result.error).toBeInstanceOf(AuthError);
+    expect(result.error.message.toLowerCase()).toContain('bad signature');
+    if (result.error instanceof AuthError) {
+      expect(result.error.context).toMatchObject({ code: 'invalid_token' });
+    }
+  });
+
+  test('--token returning a null permit fails with AuthError (missing credentials)', async () => {
+    const t = trail('thing.null-permit', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const stubConnector = {
+      // oxlint-disable-next-line require-await -- stub connector
+      authenticate: async () => Result.ok(null),
+    };
+
+    const app = makeAuthApp(t);
+    const cmd = requireCommand(buildAuthCommands(app, { auth: stubConnector }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { id: 'abc', token: 'opaque' }
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (!result.isErr()) {
+      throw new Error('expected err');
+    }
+    expect(result.error).toBeInstanceOf(AuthError);
+    if (result.error instanceof AuthError) {
+      expect(result.error.context).toMatchObject({
+        code: 'missing_credentials',
+      });
+    }
+  });
+
+  test('--token and --permit together fail with ValidationError', async () => {
+    const t = trail('thing.both-flags', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const stubConnector = {
+      // oxlint-disable-next-line require-await -- stub connector
+      authenticate: async () => Result.ok({ id: 'u', scopes: [] }),
+    };
+
+    const app = makeAuthApp(t);
+    const cmd = requireCommand(buildAuthCommands(app, { auth: stubConnector }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      {
+        id: 'abc',
+        permit: '{"id":"dev","scopes":["x"]}',
+        token: 'good-token',
+      }
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (!result.isErr()) {
+      throw new Error('expected err');
+    }
+    expect(result.error).toBeInstanceOf(ValidationError);
+    expect(result.error.message.toLowerCase()).toContain('mutually exclusive');
+  });
+
+  test('omitted --token and --permit leaves ctx.permit undefined', async () => {
+    let observed: TrailContext['permit'] = { id: 'sentinel', scopes: [] };
+    const t = trail('thing.no-flags', {
+      blaze: (_input, ctx) => {
+        observed = ctx.permit;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const stubConnector = {
+      // oxlint-disable-next-line require-await -- stub connector
+      authenticate: async () => Result.ok({ id: 'u', scopes: [] }),
+    };
+
+    const app = makeAuthApp(t);
+    const cmd = requireCommand(buildAuthCommands(app, { auth: stubConnector }));
+
+    const result = await cmd.execute({ id: 'abc' }, { id: 'abc' });
+
+    expect(result.isOk()).toBe(true);
+    expect(observed).toBeUndefined();
+  });
+
+  test('--token does not leak into trail input', async () => {
+    let receivedInput: unknown;
+    const t = trail('thing.token-no-leak', {
+      blaze: (input: { id: string }) => {
+        receivedInput = input;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const stubConnector = {
+      // oxlint-disable-next-line require-await -- stub connector
+      authenticate: async () => Result.ok({ id: 'user-42', scopes: ['read'] }),
+    };
+
+    const app = makeAuthApp(t);
+    const cmd = requireCommand(buildAuthCommands(app, { auth: stubConnector }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { id: 'abc', token: 'good-token' }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(receivedInput).toEqual({ id: 'abc' });
+  });
+
+  test('--token forwards surface "cli" and a bearer token to the connector', async () => {
+    let seenInput:
+      | {
+          readonly surface?: string;
+          readonly bearerToken?: string;
+          readonly requestId?: string;
+        }
+      | undefined;
+    const t = trail('thing.token-forward', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const stubConnector = {
+      authenticate: (input: {
+        readonly surface: string;
+        readonly bearerToken?: string | undefined;
+        readonly requestId: string;
+      }) => {
+        seenInput = input;
+        return Promise.resolve(Result.ok({ id: 'user-42', scopes: ['read'] }));
+      },
+    };
+
+    const app = makeAuthApp(t);
+    const cmd = requireCommand(buildAuthCommands(app, { auth: stubConnector }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { id: 'abc', token: 'forward-me' }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(seenInput?.surface).toBe('cli');
+    expect(seenInput?.bearerToken).toBe('forward-me');
+    expect(typeof seenInput?.requestId).toBe('string');
   });
 });

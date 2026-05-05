@@ -46,6 +46,7 @@
         "@ontrails/http": "workspace:^",
         "@ontrails/logging": "workspace:^",
         "@ontrails/observe": "workspace:^",
+        "@ontrails/permits": "workspace:^",
         "@ontrails/topographer": "workspace:^",
         "@ontrails/tracing": "workspace:^",
         "@ontrails/warden": "workspace:^",

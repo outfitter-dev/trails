@@ -70,6 +70,17 @@ export interface ActionResultContext {
   readonly streamed?: boolean | undefined;
 }
 
+export interface ResolveCliPermitFromTokenInput {
+  readonly graph: Topo;
+  readonly requestId: string;
+  readonly resources?: ResourceOverrideMap | undefined;
+  readonly token: string;
+}
+
+export type ResolveCliPermitFromToken = (
+  input: ResolveCliPermitFromTokenInput
+) => Promise<Result<BasePermit, Error>> | Result<BasePermit, Error>;
+
 /** Options for CLI command projection. */
 export interface DeriveCliCommandsOptions extends BaseSurfaceOptions {
   createContext?:
@@ -79,6 +90,7 @@ export interface DeriveCliCommandsOptions extends BaseSurfaceOptions {
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
   presets?: readonly (readonly CliFlag[])[] | undefined;
   resources?: ResourceOverrideMap | undefined;
+  resolvePermitFromToken?: ResolveCliPermitFromToken | undefined;
   resolveInput?: InputResolver | undefined;
 }
 
@@ -136,6 +148,7 @@ const META_FLAG_CANDIDATES = new Set([
   'output',
   'permit',
   'quiet',
+  'token',
   'trace',
 ]);
 
@@ -184,6 +197,31 @@ const parsePermitFlag = (
     );
   }
   return Result.ok(validated.data);
+};
+
+// ---------------------------------------------------------------------------
+// --token resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse and validate the `--token <value>` flag.
+ *
+ * Returns `Result.ok(undefined)` when the flag is unset so callers can skip
+ * the configured permit resolver.
+ */
+const parseTokenFlag = (
+  raw: unknown
+): Result<string | undefined, ValidationError> => {
+  if (raw === undefined) {
+    return Result.ok();
+  }
+  if (typeof raw !== 'string') {
+    return Result.err(new ValidationError('--token expects a string value'));
+  }
+  if (raw.length === 0) {
+    return Result.err(new ValidationError('--token must not be empty'));
+  }
+  return Result.ok(raw);
 };
 
 /** Auto-derived flag for paginated trails: --all triggers iteration. */
@@ -519,6 +557,58 @@ const runPaginatedIteration = async (
   return { result, streamed: jsonl && result.isOk() };
 };
 
+/**
+ * Reconcile `--permit` and `--token` into a single `BasePermit | undefined`
+ * for the execution pipeline.
+ *
+ * `--permit` and `--token` are mutually exclusive: when both are supplied
+ * the call surfaces a `ValidationError` (exit 1). When only `--token` is
+ * supplied the auth connector resolves it into a permit; failures map to
+ * `AuthError` (exit 9). When neither flag is supplied the call returns
+ * `Result.ok(undefined)` so callers preserve any inherited permit.
+ */
+const resolvePermitForExecution = async (
+  graph: Topo,
+  parsedFlags: Record<string, unknown>,
+  metaFlagNames: ReadonlySet<string>,
+  options: DeriveCliCommandsOptions | undefined
+): Promise<Result<BasePermit | undefined, Error>> => {
+  const permitParsed = metaFlagNames.has('permit')
+    ? parsePermitFlag(parsedFlags['permit'])
+    : Result.ok<BasePermit | undefined>();
+  if (permitParsed.isErr()) {
+    return permitParsed;
+  }
+  const tokenParsed = metaFlagNames.has('token')
+    ? parseTokenFlag(parsedFlags['token'])
+    : Result.ok<string | undefined>();
+  if (tokenParsed.isErr()) {
+    return tokenParsed;
+  }
+  if (permitParsed.value !== undefined && tokenParsed.value !== undefined) {
+    return Result.err(
+      new ValidationError('--token and --permit are mutually exclusive.')
+    );
+  }
+  if (tokenParsed.value === undefined) {
+    return Result.ok(permitParsed.value);
+  }
+  if (options?.resolvePermitFromToken === undefined) {
+    return Result.err(
+      new ValidationError(
+        '--token requires a CLI permit resolver supplied via resolvePermitFromToken.'
+      )
+    );
+  }
+  const requestId = Bun.randomUUIDv7();
+  return await options.resolvePermitFromToken({
+    graph,
+    requestId,
+    resources: options.resources,
+    token: tokenParsed.value,
+  });
+};
+
 /** Create the execute function for a CLI command. */
 const createExecute =
   (
@@ -558,9 +648,16 @@ const createExecute =
     }
     const { mergedInput, usedStructuredInput } = merged.value;
 
-    const permitParsed = parsePermitFlag(parsedFlags['permit']);
-    if (permitParsed.isErr()) {
-      const errResult: Result<unknown, Error> = Result.err(permitParsed.error);
+    const permitResolution = await resolvePermitForExecution(
+      graph,
+      parsedFlags,
+      metaFlagNames,
+      options
+    );
+    if (permitResolution.isErr()) {
+      const errResult: Result<unknown, Error> = Result.err(
+        permitResolution.error
+      );
       await reportResult(options, {
         args: parsedArgs,
         flags: parsedFlags,
@@ -571,7 +668,7 @@ const createExecute =
       });
       return errResult;
     }
-    const permit = permitParsed.value;
+    const permit = permitResolution.value;
 
     const dryRun = readDryRunFlag(parsedFlags, metaFlagNames);
     let result: Result<unknown, Error>;

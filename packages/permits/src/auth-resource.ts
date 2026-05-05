@@ -7,7 +7,7 @@ import type { AuthConnector } from './connectors/connector.js';
  *
  * The v1 factory returns a no-op connector that always succeeds (null permit).
  * Real connector configuration will come through `ResourceSpec.config`
- * (TRL-91). The mock factory provides a synthetic connector that always
+ * (TRL-620). The mock factory provides a synthetic connector that always
  * succeeds.
  */
 export const authResource = resource<AuthConnector>('auth', {

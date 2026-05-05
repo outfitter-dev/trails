@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { Permit, PermitExtractionInput } from '../index';
-import { getPermit } from '../index';
+import { getPermit, permitExtractionInputSchema } from '../index';
 
 describe('Permit type', () => {
   test('accepts a valid permit with required fields only', () => {
@@ -77,42 +77,63 @@ describe('getPermit()', () => {
 });
 
 describe('PermitExtractionInput', () => {
-  test('accepts HTTP trailhead extraction', () => {
+  test('permitExtractionInputSchema parses the canonical CLI extraction shape', () => {
+    const parsed = permitExtractionInputSchema.parse({
+      bearerToken: 'cli-token-from-keyring',
+      requestId: 'req-cli-schema',
+      surface: 'cli',
+    });
+    expect(parsed).toEqual({
+      bearerToken: 'cli-token-from-keyring',
+      requestId: 'req-cli-schema',
+      surface: 'cli',
+    });
+  });
+
+  test('permitExtractionInputSchema rejects unknown surface values', () => {
+    const parsed = permitExtractionInputSchema.safeParse({
+      requestId: 'req-bad-surface',
+      surface: 'not-a-surface',
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  test('accepts HTTP surface extraction', () => {
     const input: PermitExtractionInput = {
       bearerToken: 'eyJhbGciOiJSUzI1NiJ9.test',
       headers: new Headers({
         authorization: 'Bearer eyJhbGciOiJSUzI1NiJ9.test',
       }),
       requestId: 'req-http-1',
-      trailhead: 'http',
+      surface: 'http',
     };
-    expect(input.trailhead).toBe('http');
+    expect(input.surface).toBe('http');
     expect(input.bearerToken).toBeDefined();
   });
 
-  test('accepts MCP trailhead extraction', () => {
+  test('accepts MCP surface extraction', () => {
     const input: PermitExtractionInput = {
       requestId: 'req-mcp-1',
       sessionId: 'mcp-session-abc',
-      trailhead: 'mcp',
+      surface: 'mcp',
     };
-    expect(input.trailhead).toBe('mcp');
+    expect(input.surface).toBe('mcp');
     expect(input.sessionId).toBe('mcp-session-abc');
   });
 
-  test('accepts CLI trailhead extraction', () => {
+  test('accepts CLI surface extraction', () => {
     const input: PermitExtractionInput = {
       bearerToken: 'cli-token-from-keyring',
       requestId: 'req-cli-1',
-      trailhead: 'cli',
+      surface: 'cli',
     };
-    expect(input.trailhead).toBe('cli');
+    expect(input.surface).toBe('cli');
   });
 
   test('accepts minimal extraction with only required fields', () => {
     const input: PermitExtractionInput = {
       requestId: 'req-minimal',
-      trailhead: 'http',
+      surface: 'http',
     };
     expect(input.requestId).toBe('req-minimal');
     expect(input.bearerToken).toBeUndefined();

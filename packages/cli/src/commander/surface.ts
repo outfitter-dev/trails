@@ -10,7 +10,10 @@ import type {
   TrailContextInit,
 } from '@ontrails/core';
 
-import type { ActionResultContext } from '../build.js';
+import type {
+  ActionResultContext,
+  ResolveCliPermitFromToken,
+} from '../build.js';
 import { deriveCliCommands } from '../build.js';
 import type { CliFlag } from '../command.js';
 import { defaultOnResult } from '../on-result.js';
@@ -33,6 +36,7 @@ export interface CreateProgramOptions extends BaseSurfaceOptions {
   readonly presets?: CliFlag[][] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   readonly resolveInput?: InputResolver | undefined;
+  readonly resolvePermitFromToken?: ResolveCliPermitFromToken | undefined;
   readonly version?: string | undefined;
 }
 
@@ -81,6 +85,7 @@ export const createProgram = (
     onResult: options.onResult ?? defaultOnResult,
     presets: options.presets,
     resolveInput: options.resolveInput,
+    resolvePermitFromToken: options.resolvePermitFromToken,
     resources: options.resources,
     validate: options.validate,
   });

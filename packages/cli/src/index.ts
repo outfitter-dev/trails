@@ -3,7 +3,12 @@ export type { AnyTrail, CliCommand, CliFlag, CliArg } from './command.js';
 
 // Build
 export { deriveCliCommands } from './build.js';
-export type { DeriveCliCommandsOptions, ActionResultContext } from './build.js';
+export type {
+  ActionResultContext,
+  DeriveCliCommandsOptions,
+  ResolveCliPermitFromToken,
+  ResolveCliPermitFromTokenInput,
+} from './build.js';
 export { validateCliCommands } from './validate.js';
 
 // Flags
@@ -13,6 +18,7 @@ export {
   cwdPreset,
   dryRunPreset,
   permitPreset,
+  tokenPreset,
   tracePreset,
 } from './flags.js';
 

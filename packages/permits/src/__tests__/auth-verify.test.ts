@@ -64,7 +64,7 @@ const runVerify = async (
   token: string,
   connector: AuthConnector,
   options?: {
-    trailhead?: 'http' | 'mcp' | 'cli';
+    surface?: 'http' | 'mcp' | 'cli';
   }
 ): Promise<
   Result<
@@ -92,9 +92,9 @@ const runVerify = async (
     { token },
     {
       ctx:
-        options?.trailhead === undefined
+        options?.surface === undefined
           ? undefined
-          : { extensions: { [SURFACE_KEY]: options.trailhead } },
+          : { extensions: { [SURFACE_KEY]: options.surface } },
       resources: { [authResource.id]: connector },
     }
   );
@@ -203,12 +203,12 @@ describe('auth.verify trail', () => {
       });
     });
 
-    test('forwards the invoking trailhead from trail context', async () => {
-      let seenTrailhead: string | undefined;
+    test('forwards the invoking surface from trail context', async () => {
+      let seenSurface: string | undefined;
       const connector: AuthConnector = {
         // oxlint-disable-next-line require-await -- captures connector input
         authenticate: async (input) => {
-          seenTrailhead = input.trailhead;
+          seenSurface = input.surface;
           return Result.ok({
             id: 'user-42',
             scopes: ['read'],
@@ -216,12 +216,12 @@ describe('auth.verify trail', () => {
         },
       };
 
-      const result = await runVerify('trailhead-aware-token', connector, {
-        trailhead: 'mcp',
+      const result = await runVerify('surface-aware-token', connector, {
+        surface: 'mcp',
       });
 
       expect(result.isOk()).toBe(true);
-      expect(seenTrailhead).toBe('mcp');
+      expect(seenSurface).toBe('mcp');
     });
   });
 

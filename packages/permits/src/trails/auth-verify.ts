@@ -32,12 +32,10 @@ const toOutputPermit = (permit: Permit) => ({
 
 const isSurfaceName = (
   value: unknown
-): value is PermitExtractionInput['trailhead'] =>
+): value is PermitExtractionInput['surface'] =>
   value === 'http' || value === 'mcp' || value === 'cli';
 
-const getTrailhead = (
-  ctx: TrailContext
-): PermitExtractionInput['trailhead'] => {
+const getSurface = (ctx: TrailContext): PermitExtractionInput['surface'] => {
   const surface = ctx.extensions?.[SURFACE_KEY];
   return isSurfaceName(surface) ? surface : 'http';
 };
@@ -55,7 +53,7 @@ export const authVerify = trail('auth.verify', {
     const result = await connector.authenticate({
       bearerToken: input.token,
       requestId: ctx.requestId,
-      trailhead: getTrailhead(ctx),
+      surface: getSurface(ctx),
     });
 
     if (result.isErr()) {

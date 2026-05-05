@@ -2,10 +2,15 @@ import {
   defaultOnResult,
   outputModePreset,
   permitPreset,
+  tokenPreset,
   tracePreset,
 } from '@ontrails/cli';
-import type { ActionResultContext } from '@ontrails/cli';
+import type {
+  ActionResultContext,
+  ResolveCliPermitFromToken,
+} from '@ontrails/cli';
 import { surface } from '@ontrails/cli/commander';
+import { resolvePermitFromBearerToken } from '@ontrails/permits';
 
 import { app } from './app.js';
 import { resolveInputWithClack } from './clack.js';
@@ -61,14 +66,28 @@ const session: TraceSession | undefined = argvHasTraceFlag(process.argv)
   ? installTraceSink()
   : undefined;
 
+const resolveCliPermitFromToken: ResolveCliPermitFromToken = (input) =>
+  resolvePermitFromBearerToken({
+    bearerToken: input.token,
+    env: process.env as Record<string, string | undefined>,
+    graph: input.graph,
+    missingAuthResourceMessage:
+      '--token requires an auth connector. Register authResource from @ontrails/permits in your topo.',
+    nullPermitMessage: 'Auth connector did not produce a permit for --token',
+    requestId: input.requestId,
+    resources: input.resources,
+    surface: 'cli',
+  });
+
 try {
   // oxlint-disable-next-line require-hook -- CLI entry point
   await surface(app, {
     description: 'Agent-native, contract-first TypeScript framework',
     name: 'trails',
     onResult: buildOnResult(session),
-    presets: [outputModePreset(), tracePreset(), permitPreset()],
+    presets: [outputModePreset(), tracePreset(), permitPreset(), tokenPreset()],
     resolveInput: resolveInputWithClack,
+    resolvePermitFromToken: resolveCliPermitFromToken,
     version: trailsPackageVersion,
   });
 } finally {

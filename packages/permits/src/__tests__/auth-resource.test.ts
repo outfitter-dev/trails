@@ -11,7 +11,7 @@ const testInput = (
   overrides?: Partial<PermitExtractionInput>
 ): PermitExtractionInput => ({
   requestId: 'test-svc-req',
-  trailhead: 'http',
+  surface: 'http',
   ...overrides,
 });
 

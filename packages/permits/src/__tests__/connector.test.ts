@@ -3,6 +3,10 @@ import { describe, expect, test } from 'bun:test';
 import { Result } from '@ontrails/core';
 
 import type { AuthConnector, AuthError } from '../connectors/connector.js';
+import {
+  authConnectorSchema,
+  authErrorSchema,
+} from '../connectors/connector.js';
 import type { PermitExtractionInput } from '../extraction.js';
 import type { Permit } from '../permit.js';
 import { createJwtConnector } from '../connectors/jwt.js';
@@ -69,7 +73,7 @@ const testInput = (
   overrides?: Partial<PermitExtractionInput>
 ): PermitExtractionInput => ({
   requestId: 'test-req',
-  trailhead: 'http',
+  surface: 'http',
   ...overrides,
 });
 
@@ -81,6 +85,28 @@ describe('AuthConnector interface', () => {
     };
     const result = await connector.authenticate(testInput());
     expect(result.isOk()).toBe(true);
+  });
+
+  test('authConnectorSchema validates the connector shape', () => {
+    expect(
+      authConnectorSchema.safeParse({
+        authenticate: () => Promise.resolve(Result.ok(null)),
+      }).success
+    ).toBe(true);
+    expect(
+      authConnectorSchema.safeParse({ authenticate: 'nope' }).success
+    ).toBe(false);
+  });
+
+  test('authErrorSchema validates canonical connector error codes', () => {
+    const parsed = authErrorSchema.parse({
+      code: 'invalid_token',
+      message: 'bad token',
+    });
+    expect(parsed).toEqual({ code: 'invalid_token', message: 'bad token' });
+    expect(
+      authErrorSchema.safeParse({ code: 'other', message: 'bad token' }).success
+    ).toBe(false);
   });
 });
 
