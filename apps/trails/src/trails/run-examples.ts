@@ -18,27 +18,29 @@ import { createIsolatedExampleInput } from './topo-support.js';
 
 export const RUN_EXAMPLES_LISTING_KIND = 'examples-listing' as const;
 
-export const structuredTrailExampleSchema = z.object({
-  description: z.string().optional(),
-  error: z.string().optional(),
-  expected: z.unknown().optional(),
-  expectedMatch: z.unknown().optional(),
-  input: z.unknown(),
-  kind: z.union([z.literal('success'), z.literal('error')]),
-  name: z.string(),
-  provenance: z.object({ source: z.literal('trail.examples') }),
-  signals: z
-    .array(
-      z.object({
-        payload: z.unknown().optional(),
-        payloadMatch: z.unknown().optional(),
-        signalId: z.string(),
-        times: z.number().optional(),
-      })
-    )
-    .readonly()
-    .optional(),
-});
+export const structuredTrailExampleSchema = z
+  .object({
+    description: z.string().optional(),
+    error: z.string().optional(),
+    expected: z.unknown().optional(),
+    expectedMatch: z.unknown().optional(),
+    input: z.unknown(),
+    kind: z.union([z.literal('success'), z.literal('error')]),
+    name: z.string(),
+    provenance: z.object({ source: z.literal('trail.examples') }),
+    signals: z
+      .array(
+        z.object({
+          payload: z.unknown().optional(),
+          payloadMatch: z.unknown().optional(),
+          signalId: z.string(),
+          times: z.number().optional(),
+        })
+      )
+      .readonly()
+      .optional(),
+  })
+  .passthrough();
 
 export const runExamplesListingSchema = z.object({
   examples: z.array(structuredTrailExampleSchema).readonly(),
@@ -76,7 +78,7 @@ const buildExamplesListing = (
       | readonly StructuredTrailExample[]
       | undefined) ?? [];
   return Result.ok({
-    examples: structured,
+    examples: structured as unknown as RunExamplesListing['examples'],
     kind: RUN_EXAMPLES_LISTING_KIND,
     trailId,
   });

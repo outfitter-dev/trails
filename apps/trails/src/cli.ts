@@ -5,6 +5,7 @@ import { surface } from '@ontrails/cli/commander';
 import { app } from './app.js';
 import { resolveInputWithClack } from './clack.js';
 import { tryRecoverFromRunCollision } from './run-collision.js';
+import { tryExamplesRunOutput } from './run-examples.js';
 import { tryQuietRunOutput } from './run-quiet.js';
 import { trailsPackageVersion } from './versions.js';
 
@@ -21,6 +22,9 @@ const onResult = async (ctx: ActionResultContext): Promise<void> => {
           result: recovered,
         };
 
+  if (tryExamplesRunOutput(resolvedCtx)) {
+    return;
+  }
   if (await tryQuietRunOutput(resolvedCtx)) {
     return;
   }

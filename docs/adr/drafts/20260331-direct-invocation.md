@@ -368,7 +368,7 @@ This bridges the gap between ad-hoc exploration and structured testing. The deve
 **List available examples:**
 
 ```bash
-$ trails run entity.show --examples
+$ trails run examples entity.show
 Available examples for entity.show:
   Found     input: { name: "Alpha" }           expects: ok
   Missing   input: { name: "nonexistent" }     expects: NotFoundError
