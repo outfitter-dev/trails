@@ -151,6 +151,7 @@ const META_FLAG_CANDIDATES = new Set([
   'quiet',
   'token',
   'trace',
+  'watch',
 ]);
 
 const STRUCTURED_INLINE_JSON_ARG_NAME = 'inline-json';

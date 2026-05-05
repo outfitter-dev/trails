@@ -188,6 +188,31 @@ export const tokenPreset = (): CliFlag[] => [
 ];
 
 /**
+ * Flag for live re-execution of `trails run`: --watch
+ *
+ * When set, the CLI runs the resolved trail once, installs a filesystem
+ * watcher scoped to the trail's source file (and its sibling
+ * `*.ts`/`*.js` files in the same directory), and reruns the trail
+ * whenever a watched file changes. The loop runs until the user sends
+ * `SIGINT`. The flag is treated as a meta flag — it never routes into
+ * trail input.
+ *
+ * `--watch` is local-development ergonomics only and is implemented in
+ * the `apps/trails` binary's `run` entrypoint, not in surface-agnostic
+ * trail code. Other surfaces (MCP, HTTP) ignore the flag.
+ */
+export const watchPreset = (): CliFlag[] => [
+  {
+    default: false,
+    description: 'Rerun the trail when its source file or siblings change',
+    name: 'watch',
+    required: false,
+    type: 'boolean',
+    variadic: false,
+  },
+];
+
+/**
  * Flag for injecting a synthetic full-access permit: --dev-permit
  *
  * Local development only. When set, the CLI synthesizes a `BasePermit`

@@ -21,6 +21,7 @@ export {
   permitPreset,
   tokenPreset,
   tracePreset,
+  watchPreset,
 } from './flags.js';
 
 // Output
