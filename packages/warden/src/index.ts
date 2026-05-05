@@ -83,6 +83,7 @@ export {
   intentPropagationTrail,
   missingVisibilityTrail,
   missingReconcileTrail,
+  noDevPermitInSourceTrail,
   noDirectImplementationCallTrail,
   noNativeErrorResultTrail,
   noSyncResultAssumptionTrail,

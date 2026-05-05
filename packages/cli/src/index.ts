@@ -16,6 +16,7 @@ export {
   deriveFlags,
   outputModePreset,
   cwdPreset,
+  devPermitPreset,
   dryRunPreset,
   permitPreset,
   tokenPreset,

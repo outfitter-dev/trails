@@ -55,8 +55,8 @@ export interface WardenOptions {
    */
   readonly tier?: WardenRuleTier | undefined;
   /**
-   * App topology for drift detection. When provided, enables real trailhead
-   * lock comparison and unlocks the topo-aware rule dispatch path.
+   * App topology for drift detection. When provided, enables real topology
+   * drift comparison and unlocks the topo-aware rule dispatch path.
    *
    * @remarks
    * Topo-aware rules (both built-in `wardenTopoRules` and `extraTopoRules`)
@@ -92,38 +92,82 @@ export interface WardenReport {
 }
 
 /**
- * Collect all .ts files under a directory, excluding node_modules, dist, and .git.
+ * Collect Warden scan targets under a directory, excluding generated and test
+ * surfaces that should not contribute most committed-source diagnostics.
  */
-const isSourceFile = (match: string): boolean =>
-  !match.endsWith('.d.ts') &&
-  !match.startsWith('node_modules/') &&
-  !match.startsWith('dist/') &&
-  !match.startsWith('.git/') &&
-  !match.includes('__tests__/') &&
-  !match.includes('__test__/') &&
-  !match.endsWith('.test.ts') &&
-  !match.endsWith('.spec.ts');
+const isInfrastructureScanTarget = (match: string): boolean =>
+  match.endsWith('.d.ts') ||
+  match.startsWith('node_modules/') ||
+  match.startsWith('dist/') ||
+  match.startsWith('.git/');
 
-const collectTsFiles = (dir: string): readonly string[] => {
-  const glob = new Bun.Glob('**/*.ts');
+const isTestScanTarget = (match: string): boolean =>
+  match.includes('__tests__/') ||
+  match.includes('__test__/') ||
+  match.endsWith('.test.ts') ||
+  match.endsWith('.spec.ts');
+
+const isAllowedScanTarget = (match: string): boolean =>
+  !isInfrastructureScanTarget(match) && !isTestScanTarget(match);
+
+const isDevPermitTestScanTarget = (match: string): boolean =>
+  !isInfrastructureScanTarget(match) && isTestScanTarget(match);
+
+const collectFilesMatching = (
+  dir: string,
+  pattern: string,
+  dot = false
+): readonly string[] => {
+  const glob = new Bun.Glob(pattern);
   let matches: IterableIterator<string>;
   try {
-    matches = glob.scanSync({ cwd: dir, dot: false, onlyFiles: true });
+    matches = glob.scanSync({ cwd: dir, dot, onlyFiles: true });
   } catch {
     return [];
   }
 
   const files: string[] = [];
   for (const match of matches) {
-    if (isSourceFile(match)) {
+    if (isAllowedScanTarget(match)) {
       files.push(`${dir}/${match}`);
     }
   }
   return files;
 };
 
+const collectTsFiles = (dir: string): readonly string[] =>
+  collectFilesMatching(dir, '**/*.ts');
+
+const collectDevPermitTestFiles = (dir: string): readonly string[] => {
+  const glob = new Bun.Glob('**/*.ts');
+  let matches: IterableIterator<string>;
+  try {
+    matches = glob.scanSync({ cwd: dir, onlyFiles: true });
+  } catch {
+    return [];
+  }
+
+  const files: string[] = [];
+  for (const match of matches) {
+    if (isDevPermitTestScanTarget(match)) {
+      files.push(`${dir}/${match}`);
+    }
+  }
+  return files;
+};
+
+const collectTextScanFiles = (dir: string): readonly string[] => [
+  ...collectFilesMatching(dir, '**/*.sh', true),
+  ...collectFilesMatching(dir, '**/*.bash', true),
+  ...collectFilesMatching(dir, '**/*.zsh', true),
+  ...collectFilesMatching(dir, '**/*.yml', true),
+  ...collectFilesMatching(dir, '**/*.yaml', true),
+  ...collectFilesMatching(dir, '**/package.json', true),
+];
+
 interface SourceFile {
   readonly filePath: string;
+  readonly kind: 'text' | 'typescript';
   readonly sourceCode: string;
 }
 
@@ -366,6 +410,31 @@ const loadSourceFiles = async (
     try {
       sourceFiles.push({
         filePath,
+        kind: 'typescript',
+        sourceCode: await Bun.file(filePath).text(),
+      });
+    } catch {
+      continue;
+    }
+  }
+
+  for (const filePath of collectTextScanFiles(rootDir)) {
+    try {
+      sourceFiles.push({
+        filePath,
+        kind: 'text',
+        sourceCode: await Bun.file(filePath).text(),
+      });
+    } catch {
+      continue;
+    }
+  }
+
+  for (const filePath of collectDevPermitTestFiles(rootDir)) {
+    try {
+      sourceFiles.push({
+        filePath,
+        kind: 'text',
         sourceCode: await Bun.file(filePath).text(),
       });
     } catch {
@@ -531,19 +600,22 @@ const buildProjectContext = (
   appTopo?: Topo | undefined
 ): ProjectContext => {
   const context = createMutableProjectContext();
+  const typeScriptSourceFiles = sourceFiles.filter(
+    (sourceFile) => sourceFile.kind === 'typescript'
+  );
 
   if (appTopo) {
     collectTopoTrailContext(appTopo, context);
-    for (const sourceFile of sourceFiles) {
+    for (const sourceFile of typeScriptSourceFiles) {
       collectFileSupplementalProjectContext(sourceFile, context);
     }
   } else {
-    for (const sourceFile of sourceFiles) {
+    for (const sourceFile of typeScriptSourceFiles) {
       collectFileProjectContext(sourceFile, context);
     }
   }
 
-  for (const sourceFile of sourceFiles) {
+  for (const sourceFile of typeScriptSourceFiles) {
     collectFileContourReferences(sourceFile, context);
   }
 
@@ -643,6 +715,13 @@ const lintSourceFiles = (
   const diagnostics: WardenDiagnostic[] = [];
   for (const sourceFile of sourceFiles) {
     for (const rule of wardenRules.values()) {
+      if (
+        sourceFile.kind === 'text' &&
+        rule.name !== 'no-dev-permit-in-source'
+      ) {
+        continue;
+      }
+
       if (!isSelectedRule(rule, tier)) {
         continue;
       }

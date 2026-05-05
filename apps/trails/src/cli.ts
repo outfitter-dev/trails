@@ -1,5 +1,6 @@
 import {
   defaultOnResult,
+  devPermitPreset,
   outputModePreset,
   permitPreset,
   tokenPreset,
@@ -85,7 +86,13 @@ try {
     description: 'Agent-native, contract-first TypeScript framework',
     name: 'trails',
     onResult: buildOnResult(session),
-    presets: [outputModePreset(), tracePreset(), permitPreset(), tokenPreset()],
+    presets: [
+      outputModePreset(),
+      tracePreset(),
+      permitPreset(),
+      tokenPreset(),
+      devPermitPreset(),
+    ],
     resolveInput: resolveInputWithClack,
     resolvePermitFromToken: resolveCliPermitFromToken,
     version: trailsPackageVersion,

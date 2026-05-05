@@ -17,7 +17,9 @@ import { z } from 'zod';
 import type { ActionResultContext } from '../build.js';
 import { deriveCliCommands } from '../build.js';
 import type { AnyTrail, CliCommand } from '../command.js';
-import { permitPreset, tokenPreset } from '../flags.js';
+import { devPermitPreset, permitPreset, tokenPreset } from '../flags.js';
+
+const DEV_PERMIT_FLAG = ['--dev', '-permit'].join('');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -50,7 +52,7 @@ const buildCommands = (...args: Parameters<typeof deriveCliCommands>) => {
   return result.value;
 };
 
-const authPresets = () => [permitPreset(), tokenPreset()];
+const authPresets = () => [permitPreset(), tokenPreset(), devPermitPreset()];
 
 const requireCommand = (commands: CliCommand[]) => {
   const [command] = commands;
@@ -1768,5 +1770,190 @@ describe('--token wiring', () => {
     expect(seenInput?.surface).toBe('cli');
     expect(seenInput?.bearerToken).toBe('forward-me');
     expect(typeof seenInput?.requestId).toBe('string');
+  });
+});
+
+describe('dev permit flag wiring', () => {
+  test('injects a synthetic permit covering every declared scope', async () => {
+    let observed: TrailContext['permit'];
+    const writer = trail('thing.dev-write', {
+      blaze: (_input, ctx) => {
+        observed = ctx.permit;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+      permit: { scopes: ['entity:write', 'entity:admin'] },
+    });
+    const reader = trail('thing.dev-read', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+      permit: { scopes: ['entity:read'] },
+    });
+
+    const app = makeApp(writer, reader);
+    const commands = buildCommands(app, { presets: authPresets() });
+    const cmd = commands.find((c) => c.trail.id === 'thing.dev-write');
+    expect(cmd).toBeDefined();
+    if (!cmd) {
+      throw new Error('expected command');
+    }
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { devPermit: true, id: 'abc' }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(observed?.id).toBe('dev-permit');
+    const observedScopes = observed?.scopes;
+    expect(observedScopes).toBeDefined();
+    if (!observedScopes) {
+      throw new Error('expected scopes on synthetic permit');
+    }
+    const scopes = new Set(observedScopes);
+    expect(scopes.has('entity:write')).toBe(true);
+    expect(scopes.has('entity:admin')).toBe(true);
+    expect(scopes.has('entity:read')).toBe(true);
+  });
+
+  test('satisfies a permit-protected trail without permit or token flags', async () => {
+    const t = trail('thing.dev-protected', {
+      blaze: (_input, ctx) => Result.ok({ ok: true, permitId: ctx.permit?.id }),
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean(), permitId: z.string().optional() }),
+      permit: { scopes: ['entity:write'] },
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app, { presets: authPresets() }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { devPermit: true, id: 'abc' }
+    );
+
+    expect(result.isOk()).toBe(true);
+    if (!result.isOk()) {
+      throw new Error('expected ok');
+    }
+    expect(result.value).toEqual({ ok: true, permitId: 'dev-permit' });
+  });
+
+  test('dev permit plus permit fails with ValidationError listing both flags', async () => {
+    const t = trail('thing.dev-and-permit', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app, { presets: authPresets() }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      {
+        devPermit: true,
+        id: 'abc',
+        permit: '{"id":"dev","scopes":["x"]}',
+      }
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (!result.isErr()) {
+      throw new Error('expected err');
+    }
+    expect(result.error).toBeInstanceOf(ValidationError);
+    expect(result.error.message).toContain('--permit');
+    expect(result.error.message).toContain(DEV_PERMIT_FLAG);
+    expect(result.error.message.toLowerCase()).toContain('mutually exclusive');
+  });
+
+  test('dev permit plus token fails with ValidationError listing both flags', async () => {
+    const stubAuth = resource<{
+      readonly authenticate: (input: {
+        readonly surface: 'cli' | 'http' | 'mcp';
+        readonly bearerToken?: string | undefined;
+        readonly requestId: string;
+      }) => Promise<
+        Result<
+          { readonly id: string; readonly scopes: readonly string[] } | null,
+          { readonly code: string; readonly message: string }
+        >
+      >;
+    }>('auth', {
+      create: () =>
+        Result.ok({
+          // oxlint-disable-next-line require-await -- stub connector
+          authenticate: async () => Result.ok({ id: 'u', scopes: [] }),
+        }),
+    });
+
+    const t = trail('thing.dev-and-token', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = topo('dev-token-app', { auth: stubAuth, [t.id]: t });
+    const cmd = requireCommand(buildCommands(app, { presets: authPresets() }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { devPermit: true, id: 'abc', token: 'good-token' }
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (!result.isErr()) {
+      throw new Error('expected err');
+    }
+    expect(result.error).toBeInstanceOf(ValidationError);
+    expect(result.error.message).toContain('--token');
+    expect(result.error.message).toContain(DEV_PERMIT_FLAG);
+    expect(result.error.message.toLowerCase()).toContain('mutually exclusive');
+  });
+
+  test('omitted dev permit flag leaves ctx.permit undefined', async () => {
+    let observed: TrailContext['permit'] = { id: 'sentinel', scopes: [] };
+    const t = trail('thing.dev-omitted', {
+      blaze: (_input, ctx) => {
+        observed = ctx.permit;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app, { presets: authPresets() }));
+
+    const result = await cmd.execute({ id: 'abc' }, { id: 'abc' });
+
+    expect(result.isOk()).toBe(true);
+    expect(observed).toBeUndefined();
+  });
+
+  test('dev permit flag does not leak into trail input', async () => {
+    let receivedInput: unknown;
+    const t = trail('thing.dev-no-leak', {
+      blaze: (input: { id: string }) => {
+        receivedInput = input;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app, { presets: authPresets() }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { devPermit: true, id: 'abc' }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(receivedInput).toEqual({ id: 'abc' });
   });
 });

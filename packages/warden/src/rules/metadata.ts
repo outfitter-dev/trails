@@ -131,6 +131,12 @@ export const builtinWardenRuleMetadata = {
     invariant: 'Composition-only trails declare internal visibility.',
     tier: 'project-static',
   },
+  'no-dev-permit-in-source': {
+    ...durableExternal,
+    invariant:
+      'The `--dev-permit` CLI flag string never appears in committed source.',
+    tier: 'source-static',
+  },
   'no-direct-implementation-call': {
     ...durableExternal,
     invariant: 'Application code composes trails through ctx.cross().',

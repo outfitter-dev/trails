@@ -140,6 +140,7 @@ const validateCliCommandBuild = (
  */
 const META_FLAG_CANDIDATES = new Set([
   'all',
+  'devPermit',
   'dryRun',
   'input',
   'inputJson',
@@ -558,14 +559,73 @@ const runPaginatedIteration = async (
 };
 
 /**
- * Reconcile `--permit` and `--token` into a single `BasePermit | undefined`
- * for the execution pipeline.
+ * Synthetic permit identifier injected by `--dev-permit`. Distinctive on
+ * purpose so accidental production use shows up clearly in trace records
+ * and audit logs.
+ */
+const DEV_PERMIT_ID = 'dev-permit';
+
+/**
+ * Read the `--dev-permit` boolean flag, accepting either the kebab-case
+ * (`'dev-permit'`) or camelCase (`'devPermit'`) form so callers don't
+ * have to normalize.
+ */
+const readDevPermitFlag = (parsedFlags: Record<string, unknown>): boolean =>
+  parsedFlags['devPermit'] === true || parsedFlags['dev-permit'] === true;
+
+/**
+ * Collect every scope declared by any trail on the resolved topo.
  *
- * `--permit` and `--token` are mutually exclusive: when both are supplied
- * the call surfaces a `ValidationError` (exit 1). When only `--token` is
- * supplied the auth connector resolves it into a permit; failures map to
- * `AuthError` (exit 9). When neither flag is supplied the call returns
- * `Result.ok(undefined)` so callers preserve any inherited permit.
+ * The synthetic dev permit needs to satisfy every permit-protected trail
+ * the user might invoke. Because `findMissingScopes` does literal string
+ * matching (no wildcard recognition), the synthetic permit's `scopes`
+ * array enumerates the union of declared scopes across the topo.
+ */
+const collectAllDeclaredScopes = (graph: Topo): readonly string[] => {
+  const scopes = new Set<string>();
+  for (const trail of graph.list()) {
+    const requirement = trail.permit;
+    if (requirement === undefined || requirement === 'public') {
+      continue;
+    }
+    for (const scope of requirement.scopes) {
+      scopes.add(scope);
+    }
+  }
+  return [...scopes];
+};
+
+/**
+ * Build the synthetic full-access permit injected by `--dev-permit`.
+ *
+ * Returns a `BasePermit` whose `scopes` enumerate every scope declared
+ * across the topo. The id is the literal string `'dev-permit'` so trace
+ * records and audit logs make accidental production use obvious.
+ *
+ * @remarks Scope coverage is bounded by `topo.list()`. Trails on a child or
+ * mounted topo (Phase 7) won't contribute scopes here; that case will need
+ * to walk the mounted hierarchy when cross-app composition lands. Trails
+ * filtered out of `topo.list()` (e.g. by a future tier filter) are likewise
+ * not represented in the synthesized permit.
+ */
+const synthesizeDevPermit = (graph: Topo): BasePermit => ({
+  id: DEV_PERMIT_ID,
+  scopes: collectAllDeclaredScopes(graph),
+});
+
+/**
+ * Reconcile `--permit`, `--token`, and `--dev-permit` into a single
+ * `BasePermit | undefined` for the execution pipeline.
+ *
+ * The three flags are pairwise mutually exclusive: passing any
+ * combination surfaces a `ValidationError` (exit 1). When only `--token`
+ * is supplied the auth connector resolves it into a permit; failures map
+ * to `AuthError` (exit 9). When `--dev-permit` is supplied, a synthetic
+ * permit covering every scope declared on the topo is injected. When
+ * none of the three registered meta flags are supplied the call returns
+ * `Result.ok(undefined)` so callers preserve any inherited permit. Parsed
+ * values with the same names are ignored when the command did not project the
+ * corresponding meta flag, allowing trails to own fields such as `token`.
  */
 const resolvePermitForExecution = async (
   graph: Topo,
@@ -585,10 +645,29 @@ const resolvePermitForExecution = async (
   if (tokenParsed.isErr()) {
     return tokenParsed;
   }
-  if (permitParsed.value !== undefined && tokenParsed.value !== undefined) {
+  const devPermit =
+    metaFlagNames.has('devPermit') && readDevPermitFlag(parsedFlags);
+
+  const conflicts: string[] = [];
+  if (permitParsed.value !== undefined) {
+    conflicts.push('--permit');
+  }
+  if (tokenParsed.value !== undefined) {
+    conflicts.push('--token');
+  }
+  if (devPermit) {
+    conflicts.push('--dev-permit');
+  }
+  if (conflicts.length > 1) {
     return Result.err(
-      new ValidationError('--token and --permit are mutually exclusive.')
+      new ValidationError(
+        `${conflicts.join(', ')} are mutually exclusive; pass only one.`
+      )
     );
+  }
+
+  if (devPermit) {
+    return Result.ok(synthesizeDevPermit(graph));
   }
   if (tokenParsed.value === undefined) {
     return Result.ok(permitParsed.value);

@@ -8,6 +8,8 @@ import { z } from 'zod';
 
 import { formatWardenReport, runWarden } from '../cli.js';
 
+const DEV_PERMIT_FLAG = ['--dev', '-permit'].join('');
+
 const isDraftFileMarking = (rule: string): boolean =>
   rule === 'draft-file-marking';
 
@@ -125,6 +127,97 @@ describe('runWarden basics', () => {
       expect(rules.has('no-throw-in-implementation')).toBe(true);
       expect(rules.has('on-references-exist')).toBe(false);
       expect(report.drift).toBeNull();
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('source-static tier scans package manifests for dev permit usage', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'package.json'),
+        JSON.stringify(
+          {
+            scripts: {
+              seed: `trails run seed ${DEV_PERMIT_FLAG}`,
+            },
+          },
+          null,
+          2
+        )
+      );
+
+      const report = await runWarden({
+        rootDir: dir,
+        tier: 'source-static',
+      });
+      const diagnostics = report.diagnostics.filter(
+        (diagnostic) => diagnostic.rule === 'no-dev-permit-in-source'
+      );
+
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0]?.filePath).toBe(join(dir, 'package.json'));
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('source-static tier scans CI YAML and shell scripts for dev permit usage', async () => {
+    const dir = makeTempDir();
+    try {
+      mkdirSync(join(dir, '.github', 'workflows'), { recursive: true });
+      mkdirSync(join(dir, 'scripts'), { recursive: true });
+      writeFileSync(
+        join(dir, '.github', 'workflows', 'ci.yml'),
+        ['steps:', `  - run: bun trails run ci ${DEV_PERMIT_FLAG}`].join('\n')
+      );
+      writeFileSync(
+        join(dir, 'scripts', 'seed.sh'),
+        ['#!/usr/bin/env bash', `bun trails run seed ${DEV_PERMIT_FLAG}`].join(
+          '\n'
+        )
+      );
+
+      const report = await runWarden({
+        rootDir: dir,
+        tier: 'source-static',
+      });
+      const diagnostics = report.diagnostics.filter(
+        (diagnostic) => diagnostic.rule === 'no-dev-permit-in-source'
+      );
+
+      expect(
+        diagnostics.map((diagnostic) => diagnostic.filePath).toSorted()
+      ).toEqual(
+        [
+          join(dir, '.github', 'workflows', 'ci.yml'),
+          join(dir, 'scripts', 'seed.sh'),
+        ].toSorted()
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('source-static tier scans test TypeScript files for dev permit usage', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'seed.test.ts'),
+        `const command = "trails run seed ${DEV_PERMIT_FLAG}";`
+      );
+
+      const report = await runWarden({
+        rootDir: dir,
+        tier: 'source-static',
+      });
+      const diagnostics = report.diagnostics.filter(
+        (diagnostic) => diagnostic.rule === 'no-dev-permit-in-source'
+      );
+
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0]?.filePath).toBe(join(dir, 'seed.test.ts'));
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

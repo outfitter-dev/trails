@@ -186,3 +186,35 @@ export const tokenPreset = (): CliFlag[] => [
     variadic: false,
   },
 ];
+
+/**
+ * Flag for injecting a synthetic full-access permit: --dev-permit
+ *
+ * Local development only. When set, the CLI synthesizes a `BasePermit`
+ * with `id: 'dev-permit'` whose `scopes` array contains every scope
+ * declared by trails on the resolved topo, so any permit-protected trail
+ * accepts it without configuring `--permit` or `--token`.
+ *
+ * The synthetic id (`'dev-permit'`) is intentionally distinctive so it
+ * shows up clearly in trace records and audit logs — accidental use in
+ * a non-development context is easy to grep for.
+ *
+ * CI and committed scripts must use `--token` or `--permit`. The Warden
+ * rule `no-dev-permit-in-source` flags `--dev-permit` strings appearing
+ * in committed source as a hard error so accidental check-ins fail CI.
+ *
+ * Mutually exclusive with `--permit` and `--token`; passing any pair
+ * surfaces a `ValidationError`. The flag is treated as a meta flag — it
+ * never routes into trail input.
+ */
+export const devPermitPreset = (): CliFlag[] => [
+  {
+    default: false,
+    description:
+      'Local development only: inject a synthetic full-access permit (mutually exclusive with --permit and --token)',
+    name: 'dev-permit',
+    required: false,
+    type: 'boolean',
+    variadic: false,
+  },
+];

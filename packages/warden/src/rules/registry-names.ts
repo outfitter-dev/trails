@@ -23,6 +23,7 @@ import { incompleteCrud } from './incomplete-crud.js';
 import { intentPropagation } from './intent-propagation.js';
 import { missingReconcile } from './missing-reconcile.js';
 import { missingVisibility } from './missing-visibility.js';
+import { noDevPermitInSource } from './no-dev-permit-in-source.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
 import { noNativeErrorResult } from './no-native-error-result.js';
 import { noSyncResultAssumption } from './no-sync-result-assumption.js';
@@ -73,6 +74,7 @@ export const registeredRuleNames: readonly string[] = [
   intentPropagation.name,
   missingReconcile.name,
   missingVisibility.name,
+  noDevPermitInSource.name,
   noDirectImplementationCall.name,
   noNativeErrorResult.name,
   noSyncResultAssumption.name,
