@@ -99,7 +99,7 @@ deferred, not ambitiously promised.
 | `wayfind.describe` | Return the full record for one entity by ID | `SurfaceMapEntry` plus `TopoStoreTrailDetailRecord` for the requested entity | v0 |
 | `wayfind.signature` | Tight input / output / intent / idempotent view for a trail | `SurfaceMapEntry.input`, `output`, `intent`, `idempotent` | v0 |
 | `wayfind.neighborhood` | Nearby graph: `crosses`, `crossed-by`, `contours`, `resources`, `signals` (one query, `direction` parameter) | `SurfaceMapEntry.crosses`, `producers`, `consumers`, `resources`, `contours` | v0 |
-| `wayfind.projections` | Show CLI, MCP, and HTTP projections for a trail | `SurfaceMapEntry.cli`, `trailheads`, plus surface-derived projections | v0 |
+| `wayfind.projections` | Show CLI, MCP, and HTTP projections for a trail | `SurfaceMapEntry.cli`, `SurfaceMapEntry.surfaces`, plus surface-derived projections | v0 |
 | `wayfind.examples` | Return examples for a trail or contour | `SurfaceMapEntry.examples`, `TopoStoreExampleRecord` | v0 |
 | `wayfind.diff` | Compare two graph snapshots (e.g. `main` vs branch) | `DiffResult` from `deriveSurfaceMapDiff` | v0 |
 

@@ -86,7 +86,7 @@ From this declaration, the framework derives:
 
 The Trails-native developer declares a Zod schema and gets discovery, parsing, validation, examples, JSON Schema, introspection, and doctor for free. Everything derives from the schema.
 
-The expert who wants full control can provide custom validators, custom example generators, or custom format handlers through extension points on `appConfig`. The framework calls their code at the right time — during validation, during generation, during introspection — but doesn't force the derived path. Both paths produce the same shaped output so trailheads, the warden, and agents don't care which path was used.
+The expert who wants full control can provide custom validators, custom example generators, or custom format handlers through extension points on `appConfig`. The framework calls their code at the right time — during validation, during generation, during introspection — but doesn't force the derived path. Both paths produce the same shaped output so surfaces, the warden, and agents don't care which path was used.
 
 ### Config fields as trail input defaults
 

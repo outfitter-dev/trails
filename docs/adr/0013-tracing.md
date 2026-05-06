@@ -67,7 +67,7 @@ interface TraceRecord {
   readonly kind: 'trail' | 'span';
   readonly name: string;
   readonly trailId?: string;
-  readonly trailhead?: 'cli' | 'mcp' | 'http' | 'ws';
+  readonly surface?: 'cli' | 'mcp' | 'http' | 'ws';
   readonly intent?: Intent;
   readonly startedAt: number;
   readonly endedAt?: number;

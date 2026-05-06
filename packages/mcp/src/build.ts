@@ -679,7 +679,7 @@ const mcpError = (error: Error): McpToolResult => {
 };
 
 /** Add the MCP surface marker while preserving any existing context extras. */
-const withMcpTrailhead = (
+const withMcpSurface = (
   progressCb: TrailContextInit['progress'],
   layers: readonly Layer[]
 ): Partial<TrailContextInit> =>
@@ -762,7 +762,7 @@ const createHandler =
       abortSignal: extra.abortSignal,
       configValues: options.configValues,
       createContext: options.createContext,
-      ctx: withMcpTrailhead(progressCb, layers),
+      ctx: withMcpSurface(progressCb, layers),
       ...(Object.keys(layerInputs).length === 0 ? {} : { layerInputs }),
       ...(permit === undefined ? {} : { permit }),
       resources: options.resources,

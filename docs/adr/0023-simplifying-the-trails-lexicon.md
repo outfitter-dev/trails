@@ -132,7 +132,7 @@ Built from the vocabulary above:
 | Term | What it is |
 |---|---|
 | `pattern` property on trail | Declared operational shape (toggle, crud, transition) |
-| `layers:` on trail / trailhead / topo | Layer attachment at three levels |
+| `layers:` on trail / surface / topo | Layer attachment at three levels |
 | `@ontrails/observe` | Production observability (OTel, dev store, file sink) |
 
 ### Vocabulary → lexicon

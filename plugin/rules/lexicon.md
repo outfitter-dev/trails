@@ -1,4 +1,4 @@
-# Trails Vocabulary
+# Trails Lexicon
 
 Use Trails-branded terms consistently. These are non-negotiable in code, docs, and conversation.
 
@@ -20,12 +20,12 @@ Use Trails-branded terms consistently. These are non-negotiable in code, docs, a
 | `warden` | linter, checker, validator |
 | `survey` | introspect, inspect, describe |
 | `guide` | docs, help, manual |
-| `connector` | adapter, bridge, transport shim |
+| `connector` | bridge, transport shim |
 
 ## When Writing
 
 - The framework is "Trails" (capitalized). The primitive is "trail" (lowercase).
 - Lead with code: `trail()` -> `crosses` -> `resource()` -> `surface()` before explaining.
 - Do not overextend the metaphor. "Define a trail" is good. "Blaze a path through the wilderness" is not.
-- Standard terms stay standard: `config`, `Result`, `Error`.
+- Standard terms stay standard: `config`, `Result`, `Error`, and `adapter` when it names a thin runtime-specific layer.
 - `resource` is a branded term: `resource()` defines a typed infrastructure dependency. Use `resources: [...]` on trail specs to declare dependencies. Do not use "resource" for generic helpers or utility classes.

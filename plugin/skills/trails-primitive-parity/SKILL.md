@@ -11,7 +11,7 @@ Use this skill when a resource, signal, contour, detour, layer, permit, tracing 
 
 1. Name the primitive and the suspected gap.
 2. Gather current public docs, ADRs, examples, and package exports for that primitive.
-3. Check whether it participates in topo validation, Warden, examples, query surfaces, trailheads, or generated artifacts.
+3. Check whether it participates in topo validation, Warden, examples, query surfaces, or generated artifacts.
 4. Decide whether the difference is:
    - Deliberate scope for the primitive's current maturity.
    - A user-facing gap.

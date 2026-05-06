@@ -23,7 +23,7 @@ The right side is not. Every Trails app writes its own persistence layer from sc
 - The operation semantics were already expressed by `intent: 'read' | 'write' | 'destroy'`
 - The error conditions were already mapped by the error taxonomy (`NotFoundError`, `AlreadyExistsError`)
 
-This is the same class of problem trailheads solved. The store is a copy of information the trail contract already contains. Trails eliminates the copies.
+This is the same class of problem surfaces solved. The store is a copy of information the trail contract already contains. Trails eliminates the copies.
 
 ### The information flow question
 
@@ -36,7 +36,7 @@ The critical design question: which direction does the schema flow?
 Option B is the right choice. The reasons:
 
 1. **Zod schemas carry strictly more information than database schemas.** `.email()`, `.min(3)`, `.max(100)`, `.url()`, `.describe('...')` exist on Zod. A database column is just `text NOT NULL`. Deriving Zod from DB is lossy. Deriving DB from Zod is lossless.
-2. **The trail contract is the single source of truth.** This is the core premise (ADR-0000). Trailheads, tests, governance, and now persistence all project from the same authored schema.
+2. **The trail contract is the single source of truth.** This is the core premise (ADR-0000). Surfaces, tests, governance, and now persistence all project from the same authored schema.
 3. **The community already feels the pain of the reverse direction.** Drizzle community members report that `drizzle-zod` generated schemas are not useful for API validation because they always need refinement, and TypeScript performance degrades from double-inference.[^drizzle-zod] The workaround is maintaining two separate schemas — exactly the duplication Trails exists to prevent.
 
 ### The foundation
@@ -49,9 +49,9 @@ The framework already uses SQLite as its own internal database (see ADR: Core Da
 
 ### The `@ontrails/store` package
 
-A new package provides the framework-agnostic store model. It follows the same two-level architecture as trailheads:
+A new package provides the framework-agnostic store model. It follows the same two-level architecture as surfaces:
 
-| | Left side (trailheads) | Right side (store) |
+| | Left side (surfaces) | Right side (store) |
 |---|---|---|
 | Framework-agnostic model | `CliCommand[]`, `McpTool[]`, `HttpRoute[]` | Store definitions, derived schemas, accessor contracts |
 | Binding package | `/commander`, `/hono` | `@ontrails/drizzle`, plus built-in backends such as `@ontrails/store/jsonfile` |
@@ -226,7 +226,7 @@ The store accessors return `Result` and map database errors to the Trails error 
 | Query timeout | `TimeoutError` |
 | Unknown database error | `InternalError` |
 
-This extends the error taxonomy's reach from trailheads to storage. The same `NotFoundError` that maps to HTTP 404 and CLI exit code 2 now also represents a missing database row. The developer returns `Result.err(new NotFoundError(...))` regardless of whether the trail is reading from memory, a database, or an external API.
+This extends the error taxonomy's reach from surfaces to storage. The same `NotFoundError` that maps to HTTP 404 and CLI exit code 2 now also represents a missing database row. The developer returns `Result.err(new NotFoundError(...))` regardless of whether the trail is reading from memory, a database, or an external API.
 
 ### Mocks and fixtures
 
@@ -327,7 +327,7 @@ Overrides are explicit and visible in the store definition. The framework derive
 - **The trail contract drives persistence.** No reversed information flow. One schema, many projections.
 - **Framework-proven patterns.** The typed accessors, escape hatch, and resource integration are stress-tested by the framework's own topo store before app developers use them.
 - **Fixtures solve the seed/example tension.** Deterministic IDs on the store definition, referenced by trail examples. No workarounds.
-- **Error mapping extends the taxonomy.** Database errors join the same deterministic mapping that trailheads use.
+- **Error mapping extends the taxonomy.** Database errors join the same deterministic mapping that surfaces use.
 - **Testing works unchanged.** `testAll(graph)` uses the mock store automatically. Zero configuration.
 - **Read-only variant unifies internal and external patterns.** The topo store resource and an app's read-only database connection use the same API.
 

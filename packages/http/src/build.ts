@@ -161,7 +161,7 @@ const derivePath = (basePath: string, trailId: string): string => {
 };
 
 /** Build per-request context overrides with the HTTP surface marker. */
-const withHttpTrailhead = (
+const withHttpSurface = (
   requestId: string | undefined,
   layers: readonly Layer[]
 ): Partial<TrailContextInit> =>
@@ -342,7 +342,7 @@ const withWebhookActivation = (
   layers: readonly Layer[]
 ): Partial<TrailContextInit> => {
   const ctx = withActivationProvenance(
-    withHttpTrailhead(requestId, layers),
+    withHttpSurface(requestId, layers),
     activation
   );
   return traceContext === undefined
@@ -641,7 +641,7 @@ const createExecute =
       abortSignal,
       configValues: options.configValues,
       createContext: options.createContext,
-      ctx: withHttpTrailhead(requestId, layers),
+      ctx: withHttpSurface(requestId, layers),
       ...(Object.keys(layerInputs).length === 0 ? {} : { layerInputs }),
       ...(permit === undefined ? {} : { permit }),
       resources: options.resources,
