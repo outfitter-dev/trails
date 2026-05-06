@@ -45,6 +45,7 @@ The architecture is designed to make consistency easier than drift. Agents build
    - Future directions for Trails are outlined in speculative or [draft ADRs](docs/adr/drafts/README.md).
 3. Durable Warden rule methodology lives in [Rule Design](docs/rule-design.md).
 4. We keep a log of our working notes, session recaps, learnings, etc. in `.agents/notes/` (gitignored — local only) as a historical record of our journey.
+5. Agent symbol-level navigation setup lives in [Agent Symbol Navigation](docs/agent-symbol-navigation.md). The committed `.serena/project.yml` is the repo-level Serena project config; client-specific MCP launch config stays local unless a client provides a portable project config shape.
 
 ## Lexicon
 
