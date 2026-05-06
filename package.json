@@ -25,7 +25,7 @@
     "scaffold-versions:check": "bun scripts/sync-scaffold-versions.ts --check",
     "format:check": "bun run oxlint-plugin:build && bunx ultracite check .",
     "format:fix": "bun run oxlint-plugin:build && bunx ultracite fix .",
-    "format:file": "bun run oxlint-plugin:build && bunx ultracite fix",
+    "format:file": "bun run oxlint-plugin:build && bun scripts/format-staged.ts",
     "format:guard": "if git grep -nE \"(\\\\./)?node_modules/\\\\.bin/ultra[c]ite\" -- ':!bun.lock'; then echo 'Direct node_modules/.bin formatter invocation found'; exit 1; fi",
     "mdlint:fix": "./node_modules/.bin/markdownlint-cli2 --fix",
     "typecheck": "turbo run typecheck",
