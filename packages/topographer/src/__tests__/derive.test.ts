@@ -12,7 +12,7 @@ import {
   topo,
   trail,
 } from '@ontrails/core';
-import type { Topo, TopoIssue } from '@ontrails/core';
+import type { Layer, Topo, TopoIssue } from '@ontrails/core';
 import { z } from 'zod';
 
 import { deriveSurfaceMap } from '../derive.js';
@@ -29,6 +29,12 @@ const dbResource = resource('db.main', {
   create: () => Result.ok({ source: 'factory' }),
   description: 'Primary database',
   health: () => Result.ok({ ok: true }),
+});
+
+const passThroughLayer = (name: string, input?: Layer['input']): Layer => ({
+  ...(input === undefined ? {} : { input }),
+  name,
+  wrap: (_trail, implementation) => implementation,
 });
 const userContour = contour(
   'user',
@@ -154,6 +160,51 @@ describe('deriveSurfaceMap', () => {
         name: { type: 'string' },
       });
       expect(entry.resources).toEqual(['db.main']);
+    });
+
+    test('trail entries include topo and trail layer attachments', () => {
+      const topoLayer = passThroughLayer(
+        'topo.auth',
+        z.object({ token: z.string() })
+      );
+      const trailLayer = passThroughLayer(
+        'trail.retry',
+        z.object({ attempts: z.number().int() })
+      );
+      const t = trail('entity.layered', {
+        blaze: noop,
+        input: z.object({}),
+        layers: [trailLayer],
+      });
+      const map = deriveSurfaceMap(
+        topo('layered-app', { t }, { layers: [topoLayer] })
+      );
+      const entry = map.entries.find(
+        (candidate) => candidate.id === 'entity.layered'
+      );
+
+      expect(entry?.layers).toEqual([
+        expect.objectContaining({
+          input: expect.objectContaining({
+            properties: expect.objectContaining({
+              token: { type: 'string' },
+            }),
+            type: 'object',
+          }),
+          name: 'topo.auth',
+          scope: 'topo',
+        }),
+        expect.objectContaining({
+          input: expect.objectContaining({
+            properties: expect.objectContaining({
+              attempts: { type: 'number' },
+            }),
+            type: 'object',
+          }),
+          name: 'trail.retry',
+          scope: 'trail',
+        }),
+      ]);
     });
 
     test('trail entries include declared contours when present', () => {

@@ -20,6 +20,7 @@ import type {
   AnyResource,
   AnySignal,
   AnyTrail,
+  Layer,
   Topo,
 } from '@ontrails/core';
 
@@ -929,6 +930,14 @@ const addTrailRelations = (
     entry['crosses'] = trail.crosses.toSorted();
   }
 
+  if (trail.fires.length > 0) {
+    entry['fires'] = trail.fires.toSorted();
+  }
+
+  if (trail.on.length > 0) {
+    entry['on'] = trail.on.toSorted();
+  }
+
   if (trail.contours.length > 0) {
     entry['contours'] = trail.contours
       .map((contour) => contour.name)
@@ -939,6 +948,42 @@ const addTrailRelations = (
     entry['resources'] = trail.resources
       .map((resource) => resource.id)
       .toSorted();
+  }
+};
+
+const layerToReferenceRecord = (
+  scope: 'topo' | 'trail',
+  layer: Layer
+): Record<string, unknown> => {
+  const reference: Record<string, unknown> = {
+    name: layer.name,
+    scope,
+  };
+  if (layer.input !== undefined) {
+    reference['input'] = parseJsonRecord(
+      stableJson(zodToJsonSchema(layer.input as ZodSchemaInput))
+    );
+  }
+  return sortKeys(reference);
+};
+
+const addLayerAttachments = (
+  entry: Record<string, unknown>,
+  topoLayers: readonly Layer[],
+  trail: AnyTrail
+): void => {
+  const layers = [
+    ...topoLayers.map((layer) => layerToReferenceRecord('topo', layer)),
+    ...trail.layers.map((layer) => layerToReferenceRecord('trail', layer)),
+  ].toSorted((left, right) => {
+    const scope = String(left['scope']).localeCompare(String(right['scope']));
+    return scope === 0
+      ? String(left['name']).localeCompare(String(right['name']))
+      : scope;
+  });
+
+  if (layers.length > 0) {
+    entry['layers'] = layers;
   }
 };
 
@@ -987,6 +1032,7 @@ const buildTrailEntryBase = (
 
 const trailToEntryRecord = (
   trail: AnyTrail,
+  topoLayers: readonly Layer[],
   trailSchema: Readonly<{
     readonly input: JsonRecord;
     readonly output?: JsonRecord;
@@ -997,6 +1043,7 @@ const trailToEntryRecord = (
   addPermitRequirement(entry, trail);
   addExtendedMetadata(entry, raw, trail);
   addTrailRelations(entry, trail);
+  addLayerAttachments(entry, topoLayers, trail);
   return sortKeys(entry) as SurfaceMapEntryRecord;
 };
 
@@ -1149,6 +1196,7 @@ const buildSurfaceMap = (
   resources: readonly AnyResource[],
   signalPayloads: ReadonlyMap<string, JsonRecord>,
   signals: readonly AnySignal[],
+  topoLayers: readonly Layer[],
   trailSchemas: ReadonlyMap<
     string,
     Readonly<{
@@ -1164,7 +1212,11 @@ const buildSurfaceMap = (
   const entries = [
     ...contours.map((contour) => contourToEntryRecord(contour)),
     ...trails.map((trail) =>
-      trailToEntryRecord(trail, requireTrailSchema(trailSchemas, trail.id))
+      trailToEntryRecord(
+        trail,
+        topoLayers,
+        requireTrailSchema(trailSchemas, trail.id)
+      )
     ),
     ...signals.map((signal) =>
       signalToEntryRecord(
@@ -1255,6 +1307,7 @@ const buildStoredTopoExport = (
     resources,
     schemas.signalPayloads,
     signals,
+    topo.layers,
     schemas.trailSchemas,
     trails
   );

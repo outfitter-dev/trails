@@ -3,7 +3,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { Result, resource, signal, topo, trail } from '@ontrails/core';
+import type { Layer, Topo } from '@ontrails/core';
+import { deriveSurfaceMap } from '@ontrails/topographer';
 import type { SurfaceMapEntry } from '@ontrails/topographer';
+import { z } from 'zod';
 
 import {
   WATCH_DEBOUNCE_MS,
@@ -62,6 +66,79 @@ const setupFixture = (): TestFixture => {
     watchedDir,
   };
 };
+
+const noopBlaze = () => Result.ok({ ok: true });
+
+const passThroughLayer = (name: string, input?: Layer['input']): Layer => ({
+  ...(input === undefined ? {} : { input }),
+  name,
+  wrap: (_trail, implementation) => implementation,
+});
+
+interface WatchedAppOptions {
+  readonly crosses?: boolean | undefined;
+  readonly examples?:
+    | readonly [
+        {
+          readonly expected: { readonly ok: true };
+          readonly input: Record<string, unknown>;
+          readonly name: string;
+        },
+      ]
+    | undefined;
+  readonly fires?: boolean | undefined;
+  readonly helperInput?: z.ZodType | undefined;
+  readonly input?: z.ZodType | undefined;
+  readonly intent?: 'destroy' | 'read' | 'write' | undefined;
+  readonly layers?: readonly Layer[] | undefined;
+  readonly output?: z.ZodType | undefined;
+  readonly resources?: boolean | undefined;
+}
+
+const buildWatchedApp = (options: WatchedAppOptions = {}): Topo => {
+  const auditResource = resource('audit.log', {
+    create: () => Result.ok({ write: () => null }),
+  });
+  const changed = signal('entity.changed', {
+    payload: z.object({ id: z.string() }),
+  });
+  const helper = trail('entity.helper', {
+    blaze: noopBlaze,
+    input: options.helperInput ?? z.object({}),
+    output: z.object({ ok: z.boolean() }),
+  });
+  const watched = trail('entity.watch', {
+    blaze: noopBlaze,
+    ...(options.crosses === true ? { crosses: ['entity.helper'] } : {}),
+    ...(options.examples === undefined ? {} : { examples: options.examples }),
+    ...(options.fires === true ? { fires: ['entity.changed'] } : {}),
+    input: options.input ?? z.object({ id: z.string() }),
+    ...(options.intent === undefined ? {} : { intent: options.intent }),
+    ...(options.layers === undefined ? {} : { layers: options.layers }),
+    output: options.output ?? z.object({ ok: z.boolean() }),
+    ...(options.resources === true ? { resources: [auditResource] } : {}),
+  });
+
+  return topo('watch-contract-app', {
+    auditResource,
+    changed,
+    helper,
+    watched,
+  });
+};
+
+const watchedEntry = (app: Topo): SurfaceMapEntry => {
+  const entry = deriveSurfaceMap(app).entries.find(
+    (candidate) => candidate.kind === 'trail' && candidate.id === 'entity.watch'
+  );
+  if (entry === undefined) {
+    throw new Error('Expected watched trail entry');
+  }
+  return entry;
+};
+
+const watchedEntryHash = (app: Topo): string =>
+  hashSurfaceMapEntry(watchedEntry(app));
 
 // ---------------------------------------------------------------------------
 // Argv detection
@@ -148,6 +225,74 @@ describe('createTrailWatcher', () => {
     );
   });
 
+  test('derived watched entry hash changes for resolved contract fields', () => {
+    const baseline = watchedEntryHash(buildWatchedApp());
+    const cases = [
+      {
+        app: buildWatchedApp({
+          input: z.object({ id: z.string(), verbose: z.boolean() }),
+        }),
+        name: 'input schema',
+      },
+      {
+        app: buildWatchedApp({
+          output: z.object({ id: z.string(), ok: z.boolean() }),
+        }),
+        name: 'output schema',
+      },
+      {
+        app: buildWatchedApp({
+          examples: [
+            {
+              expected: { ok: true },
+              input: { id: 'entity-1' },
+              name: 'happy path',
+            },
+          ],
+        }),
+        name: 'examples',
+      },
+      {
+        app: buildWatchedApp({ intent: 'read' }),
+        name: 'intent',
+      },
+      {
+        app: buildWatchedApp({ resources: true }),
+        name: 'resources',
+      },
+      {
+        app: buildWatchedApp({ fires: true }),
+        name: 'signals',
+      },
+      {
+        app: buildWatchedApp({ crosses: true }),
+        name: 'crosses',
+      },
+      {
+        app: buildWatchedApp({
+          layers: [passThroughLayer('audit', z.object({ token: z.string() }))],
+        }),
+        name: 'layers',
+      },
+    ];
+
+    for (const { app, name } of cases) {
+      expect(watchedEntryHash(app), name).not.toBe(baseline);
+    }
+  });
+
+  test('derived watched entry hash ignores sibling trail contract changes', () => {
+    const baseline = watchedEntryHash(buildWatchedApp({ crosses: true }));
+    const changedSibling = watchedEntryHash(
+      buildWatchedApp({
+        crosses: true,
+        helperInput: z.object({ changed: z.boolean() }),
+      })
+    );
+
+    expect(changedSibling).toBe(baseline);
+  });
+
   test('triggers a rerun when the watched surface-map entry changes', async () => {
     const reruns: number[] = [];
     let surfaceHash = 'contract:v1';
@@ -171,6 +316,39 @@ describe('createTrailWatcher', () => {
       await waitFor(() => reruns.length >= 1, WATCH_DEBOUNCE_MS + 1000);
 
       expect(reruns.length).toBeGreaterThanOrEqual(1);
+    } finally {
+      watcher.close();
+    }
+  });
+
+  test('triggers exactly one rerun for a derived contract hash change', async () => {
+    const reruns: number[] = [];
+    let surfaceHash = watchedEntryHash(buildWatchedApp());
+    const watcher = createTrailWatcher({
+      initialSurfaceHash: surfaceHash,
+      onRerun: () => {
+        reruns.push(Date.now());
+      },
+      readSurfaceHash: () => surfaceHash,
+      sourcePath: join(fixture.watchedDir, 'trail.ts'),
+    });
+
+    try {
+      await Bun.sleep(WATCHER_SETTLE_MS);
+      surfaceHash = watchedEntryHash(
+        buildWatchedApp({
+          input: z.object({ id: z.string(), verbose: z.boolean() }),
+        })
+      );
+      writeFileSync(
+        join(fixture.watchedDir, 'trail.ts'),
+        'export const inputChanged = true;\n'
+      );
+
+      await waitFor(() => reruns.length >= 1, WATCH_DEBOUNCE_MS + 1000);
+      await Bun.sleep(WATCH_DEBOUNCE_MS + 100);
+
+      expect(reruns).toHaveLength(1);
     } finally {
       watcher.close();
     }

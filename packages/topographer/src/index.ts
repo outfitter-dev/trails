@@ -47,6 +47,7 @@ export type {
   SurfaceMapEntry,
   SurfaceMapFieldOverride,
   SurfaceMapFieldOverrideKey,
+  SurfaceMapLayerReference,
   SurfaceLock,
   WorkspaceTrailEntry,
   WorkspaceTrailIndex,

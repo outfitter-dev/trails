@@ -39,6 +39,12 @@ export interface SurfaceMapFieldOverride {
   };
 }
 
+export interface SurfaceMapLayerReference {
+  readonly input?: JsonSchema | undefined;
+  readonly name: string;
+  readonly scope: 'topo' | 'trail';
+}
+
 export interface SurfaceMapActivationSource extends Readonly<
   Record<string, unknown>
 > {
@@ -115,6 +121,8 @@ export interface SurfaceMapEntry {
   readonly identity?: string | undefined;
   readonly references?: readonly SurfaceMapContourReference[] | undefined;
   readonly resources?: readonly string[] | undefined;
+  readonly fires?: readonly string[] | undefined;
+  readonly on?: readonly string[] | undefined;
   readonly from?: readonly string[] | undefined;
   readonly producers?: readonly string[] | undefined;
   readonly consumers?: readonly string[] | undefined;
@@ -122,6 +130,7 @@ export interface SurfaceMapEntry {
   readonly governance?: Readonly<Record<string, unknown>> | undefined;
   readonly meta?: Readonly<Record<string, unknown>> | undefined;
   readonly fieldOverrides?: readonly SurfaceMapFieldOverride[] | undefined;
+  readonly layers?: readonly SurfaceMapLayerReference[] | undefined;
   readonly detours?:
     | readonly { readonly on: string; readonly maxAttempts: number }[]
     | undefined;

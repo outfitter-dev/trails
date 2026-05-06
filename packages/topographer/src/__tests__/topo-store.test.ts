@@ -17,6 +17,7 @@ import {
   webhook,
   openWriteTrailsDb,
 } from '@ontrails/core';
+import type { Layer } from '@ontrails/core';
 
 import { __topoStoreMigrationStats, createTopoStore } from '../topo-store.js';
 import {
@@ -701,6 +702,100 @@ describe('topo store projection', () => {
           signalId: 'entity.added',
         },
       ]);
+    });
+  });
+
+  test('stored surface map and lock include trail signal and layer contract fields', () => {
+    withProjectionDb((db) => {
+      const topoPolicy: Layer = {
+        input: z.object({ tenant: z.string() }),
+        name: 'topo.policy',
+        wrap: (_trail, impl) => impl,
+      };
+      const trailAudit: Layer = {
+        input: z.object({ requestId: z.string() }),
+        name: 'trail.audit',
+        wrap: (_trail, impl) => impl,
+      };
+      const created = signal('entity.created', {
+        payload: z.object({ id: z.string() }),
+      });
+      const updated = signal('entity.updated', {
+        payload: z.object({ id: z.string() }),
+      });
+      const process = trail('entity.process', {
+        blaze: () => Result.ok({ ok: true }),
+        fires: [created],
+        input: z.object({ id: z.string() }),
+        layers: [trailAudit],
+        on: [updated],
+        output: z.object({ ok: z.boolean() }),
+      });
+
+      const snapshot = unwrap(
+        createTopoSnapshot(
+          db,
+          topo(
+            'contract-export-app',
+            {
+              created,
+              process,
+              updated,
+            },
+            { layers: [topoPolicy] }
+          ),
+          { createdAt: '2026-04-03T12:00:00.000Z' }
+        )
+      );
+
+      const stored = requireStoredExport(db, snapshot.id);
+      const surfaceMap = JSON.parse(stored.surfaceMapJson) as {
+        entries: readonly unknown[];
+      };
+      const entry = surfaceMap.entries.find(
+        (candidate) =>
+          typeof candidate === 'object' &&
+          candidate !== null &&
+          (candidate as { id?: unknown }).id === 'entity.process'
+      ) as
+        | {
+            fires?: unknown;
+            layers?: readonly {
+              readonly input?: { readonly properties?: unknown };
+              readonly name?: unknown;
+              readonly scope?: unknown;
+            }[];
+            on?: unknown;
+          }
+        | undefined;
+
+      expect(entry?.fires).toEqual(['entity.created']);
+      expect(entry?.on).toEqual(['entity.updated']);
+      expect(entry?.layers).toEqual([
+        {
+          input: expect.objectContaining({
+            properties: { tenant: { type: 'string' } },
+            type: 'object',
+          }),
+          name: 'topo.policy',
+          scope: 'topo',
+        },
+        {
+          input: expect.objectContaining({
+            properties: { requestId: { type: 'string' } },
+            type: 'object',
+          }),
+          name: 'trail.audit',
+          scope: 'trail',
+        },
+      ]);
+
+      const lock = JSON.parse(stored.lockContent);
+      const lockTrail =
+        lock.apps['contract-export-app'].trails['entity.process'];
+      expect(lockTrail.fires).toEqual(['entity.created']);
+      expect(lockTrail.on).toEqual(['entity.updated']);
+      expect(lockTrail.layers).toEqual(entry?.layers);
     });
   });
 

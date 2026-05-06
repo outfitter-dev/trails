@@ -18,6 +18,7 @@ import type {
   AnyContour,
   AnyResource,
   FieldOverride,
+  Layer,
   Signal,
   Topo,
   Trail,
@@ -416,11 +417,51 @@ const addTrailRelations = (
   if (t.crosses.length > 0) {
     entry['crosses'] = t.crosses.toSorted();
   }
+  if (t.fires.length > 0) {
+    entry['fires'] = t.fires.toSorted();
+  }
+  if (t.on.length > 0) {
+    entry['on'] = t.on.toSorted();
+  }
   if (t.contours.length > 0) {
     entry['contours'] = t.contours.map((contour) => contour.name).toSorted();
   }
   if (t.resources.length > 0) {
     entry['resources'] = t.resources.map((resource) => resource.id).toSorted();
+  }
+};
+
+const layerToReference = (
+  scope: 'topo' | 'trail',
+  layer: Layer
+): Record<string, unknown> => {
+  const reference: Record<string, unknown> = {
+    name: layer.name,
+    scope,
+  };
+  if (layer.input !== undefined) {
+    reference['input'] = toSortedJsonSchema(layer.input);
+  }
+  return sortKeys(reference);
+};
+
+const addLayerAttachments = (
+  entry: Record<string, unknown>,
+  topoLayers: readonly Layer[],
+  t: Trail<unknown, unknown, unknown>
+): void => {
+  const layers = [
+    ...topoLayers.map((layer) => layerToReference('topo', layer)),
+    ...t.layers.map((layer) => layerToReference('trail', layer)),
+  ].toSorted((left, right) => {
+    const scope = String(left['scope']).localeCompare(String(right['scope']));
+    return scope === 0
+      ? String(left['name']).localeCompare(String(right['name']))
+      : scope;
+  });
+
+  if (layers.length > 0) {
+    entry['layers'] = layers;
   }
 };
 
@@ -482,7 +523,10 @@ const addExamples = (
   }
 };
 
-const trailToEntry = (t: Trail<unknown, unknown, unknown>): SurfaceMapEntry => {
+const trailToEntry = (
+  t: Trail<unknown, unknown, unknown>,
+  topoLayers: readonly Layer[]
+): SurfaceMapEntry => {
   const raw = t as unknown as Record<string, unknown>;
   const surfaces = extractSurfaces(raw);
   const entry: Record<string, unknown> = {
@@ -497,6 +541,7 @@ const trailToEntry = (t: Trail<unknown, unknown, unknown>): SurfaceMapEntry => {
   addMetadata(entry, t, raw);
   addPermitRequirement(entry, t);
   addTrailRelations(entry, t);
+  addLayerAttachments(entry, topoLayers, t);
   addFieldOverrides(entry, t);
   addExamples(entry, t);
 
@@ -605,7 +650,7 @@ const collectEntries = (topo: Topo): SurfaceMapEntry[] => {
   return [
     ...[...topo.contours.values()].map((contour) => contourToEntry(contour)),
     ...[...topo.trails.values()].map((trail) =>
-      trailToEntry(trail as Trail<unknown, unknown, unknown>)
+      trailToEntry(trail as Trail<unknown, unknown, unknown>, topo.layers)
     ),
     ...[...topo.signals.values()].map((signal) =>
       signalToEntry(
