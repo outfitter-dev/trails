@@ -1,0 +1,97 @@
+[defaults]
+command = "repo"
+local_bun_policy = "compatible"
+remote_bun_policy = "strict"
+
+[root]
+env_vars = [
+  "CODEX_WORKTREE_PATH",
+  "CLAUDE_PROJECT_DIR",
+  "CLAUDECODE",
+  "FACTORY_PROJECT_DIR",
+  "GITHUB_WORKSPACE",
+]
+fallback_to_git_root = true
+
+[bun]
+version_file = ".bun-version"
+install_dir_env = "BUN_INSTALL"
+install_dir_default = "$HOME/.bun"
+
+[paths.lifecycle]
+prepend = [
+  "$BUN_INSTALL/bin",
+  "/opt/homebrew/bin",
+  "/usr/local/bin",
+  "/usr/bin",
+  "/bin",
+  "/usr/sbin",
+  "/sbin",
+]
+
+[paths.working_shell]
+prepend = ["$BUN_INSTALL/bin"]
+
+[commands.repo]
+install_dependencies = true
+check_optional_tools = true
+
+[commands.agent]
+runs_repo = true
+show_worktree_notice = true
+show_graphite_stack = true
+graphite_stack_max_lines = 120
+
+[commands.doctor]
+mutates = false
+
+[commands.sweep]
+mutates = true
+git_mutation_allowed = false
+
+[checks.required]
+tools = ["bun"]
+
+[checks.optional]
+tools = ["git", "gh", "gt", "rg", "jq", "direnv"]
+
+[graphite]
+enabled_if_tool_exists = true
+forbidden_lifecycle_commands = [
+  "gt sync",
+  "gt restack",
+  "gt submit",
+  "gt branch delete",
+  "gt branch untrack",
+]
+
+[cleanup]
+directories = [".turbo", ".trails-tmp", ".tmp-tests", ".try"]
+files = [
+  ".trails/trails.db",
+  ".trails/trails.db-shm",
+  ".trails/trails.db-wal",
+  ".trails/dev/tracing.db",
+  ".trails/dev/tracing.db-shm",
+  ".trails/dev/tracing.db-wal",
+]
+
+[providers.codex]
+root_env_vars = ["CODEX_WORKTREE_PATH"]
+local_bun_policy = "compatible"
+
+[providers.claude]
+root_env_vars = ["CLAUDE_PROJECT_DIR", "CLAUDECODE"]
+remote_env_var = "CLAUDE_CODE_REMOTE"
+remote_env_value = "true"
+remote_bun_policy = "strict"
+persist_env_file_var = "CLAUDE_ENV_FILE"
+
+[providers.factory]
+root_env_vars = ["FACTORY_PROJECT_DIR"]
+remote_bun_policy = "strict"
+
+[providers.devin]
+root_env_vars = ["GITHUB_WORKSPACE"]
+persist_env_file_var = "ENVRC"
+remote_bun_policy = "strict"
