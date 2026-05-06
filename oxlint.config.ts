@@ -37,6 +37,7 @@ export default defineConfig({
       'error',
       { allowedPackages: ['cli'] },
     ],
+    'trails-local/no-retired-lexicon-terms': 'warn',
     'trails-local/prefer-bun-api': 'warn',
     'trails-local/snapshot-location': 'warn',
     'trails-local/temp-audit-direct-framework-writes': 'warn',

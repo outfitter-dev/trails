@@ -164,6 +164,14 @@ the rule owns.
 - List rule-owned roles explicitly when a word has legitimate meanings outside
   the Trails concept being retired.
 
+The repo-local `no-retired-lexicon-terms` Oxlint rule is the source-file guard
+for retired lexicon terms. It reads retired terms from the `docs/lexicon.md`
+Reserved Terms table and checks source-owned symbol roles such as identifiers,
+local or `@ontrails/*` import paths, object keys, and literal member properties.
+It intentionally does not lint Markdown prose; docs and historical mention-class
+coverage stays in the vocabulary audit path so migration docs, changelogs, ADRs,
+and contrastive explanations can be classified instead of blindly rewritten.
+
 ## Existing Rule Audit Checklist
 
 For each existing rule:

@@ -15,6 +15,7 @@ describe('@ontrails/oxlint-plugin', () => {
       'no-nested-barrel',
       'no-process-env-in-packages',
       'no-process-exit-in-packages',
+      'no-retired-lexicon-terms',
       'prefer-bun-api',
       'snapshot-location',
       'temp-audit-direct-framework-writes',

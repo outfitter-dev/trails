@@ -10,6 +10,9 @@ export type RuleModule = CreateRule;
 
 const PACKAGES_SRC_PATTERN = /(?:^|\/)packages\/[^/]+\/src\//u;
 const PACKAGE_NAME_PATTERN = /(?:^|\/)packages\/([^/]+)\/src\//u;
+const REPO_SOURCE_PATTERN =
+  /(?:^|\/)(?:apps|connectors|packages)\/[^/]+\/src\/.+\.[cm]?[jt]sx?$/u;
+const SCRIPT_SOURCE_PATTERN = /(?:^|\/)scripts\/.+\.[cm]?[jt]sx?$/u;
 const TEST_FILE_PATTERN = /(?:^|\/)__tests__\/|\.(test|spec)\.[cm]?[jt]sx?$/u;
 const TEMPLATE_FILE_PATTERN = /\.template\.[cm]?[jt]sx?$/u;
 
@@ -53,6 +56,26 @@ export const isPackageSourceFile = (filePath: string | undefined): boolean => {
   }
 
   return !TEMPLATE_FILE_PATTERN.test(normalized);
+};
+
+export const isRepoSourceFile = (filePath: string | undefined): boolean => {
+  if (!filePath) {
+    return false;
+  }
+
+  const normalized = normalizeFilePath(filePath);
+
+  if (
+    TEST_FILE_PATTERN.test(normalized) ||
+    TEMPLATE_FILE_PATTERN.test(normalized)
+  ) {
+    return false;
+  }
+
+  return (
+    REPO_SOURCE_PATTERN.test(normalized) ||
+    SCRIPT_SOURCE_PATTERN.test(normalized)
+  );
 };
 
 export const extractPackageName = (

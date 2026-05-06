@@ -5,6 +5,10 @@ import { noDeepRelativeImportRule } from '../rules/no-deep-relative-import.js';
 import { noNestedBarrelRule } from '../rules/no-nested-barrel.js';
 import { noProcessEnvInPackagesRule } from '../rules/no-process-env-in-packages.js';
 import { noProcessExitInPackagesRule } from '../rules/no-process-exit-in-packages.js';
+import {
+  noRetiredLexiconTermsRule,
+  parseRetiredLexiconTerms,
+} from '../rules/no-retired-lexicon-terms.js';
 import { preferBunApiRule } from '../rules/prefer-bun-api.js';
 import { snapshotLocationRule } from '../rules/snapshot-location.js';
 import { tempAuditDirectFrameworkWritesRule } from '../rules/temp-audit-direct-framework-writes.js';
@@ -125,6 +129,231 @@ describe('repo-local rules', () => {
       'noDeepRelativeImport',
     ]);
     expect(allowedReports).toHaveLength(0);
+  });
+
+  test('parses retired terms from the lexicon reserved table', () => {
+    const terms = parseRetiredLexiconTerms(`
+## Reserved Terms
+
+| Term | Concept |
+| --- | --- |
+| \`trailhead\` | Historical boundary term retired from active user-facing vocabulary. Use \`surface\` in docs, examples, and public APIs. |
+| \`dispatch\` | Retired runtime wording; use \`cross\` in active APIs. |
+| \`pack\` | Distributable capability bundle |
+
+## Grammar
+`);
+
+    expect(terms).toEqual([
+      {
+        concept:
+          'Historical boundary term retired from active user-facing vocabulary. Use `surface` in docs, examples, and public APIs.',
+        replacement: 'surface',
+        term: 'trailhead',
+      },
+      {
+        concept: 'Retired runtime wording; use `cross` in active APIs.',
+        replacement: 'cross',
+        term: 'dispatch',
+      },
+    ]);
+  });
+
+  test('reports retired lexicon terms in source symbol roles', () => {
+    const identifierReports = runRuleForEvent({
+      event: 'Identifier',
+      filename: 'packages/http/src/build.ts',
+      nodes: [{ name: 'withHttpTrailhead', type: 'Identifier' }],
+      options: [
+        {
+          retiredTerms: [
+            {
+              replacement: 'surface',
+              term: 'trailhead',
+            },
+          ],
+        },
+      ],
+      rule: noRetiredLexiconTermsRule,
+    });
+    const importReports = runRuleForEvent({
+      event: 'ImportDeclaration',
+      filename: 'packages/cli/src/index.ts',
+      nodes: [createImportDeclarationNode('@ontrails/cli/trailhead')],
+      options: [
+        {
+          retiredTerms: [
+            {
+              replacement: 'surface',
+              term: 'trailhead',
+            },
+          ],
+        },
+      ],
+      rule: noRetiredLexiconTermsRule,
+    });
+    const propertyReports = runRuleForEvent({
+      event: 'MemberExpression',
+      filename: 'packages/core/src/runtime.ts',
+      nodes: [
+        {
+          object: {
+            name: 'metadata',
+            type: 'Identifier',
+          },
+          property: {
+            type: 'Literal',
+            value: '__trails_trailhead',
+          },
+          type: 'MemberExpression',
+        },
+      ],
+      options: [
+        {
+          retiredTerms: [
+            {
+              replacement: 'surface',
+              term: 'trailhead',
+            },
+          ],
+        },
+      ],
+      rule: noRetiredLexiconTermsRule,
+    });
+    const objectKeyReports = runRuleForEvent({
+      event: 'Property',
+      filename: 'packages/core/src/runtime.ts',
+      nodes: [
+        {
+          computed: false,
+          key: {
+            type: 'Literal',
+            value: '__trails_trailhead',
+          },
+          type: 'Property',
+        },
+      ],
+      options: [
+        {
+          retiredTerms: [
+            {
+              replacement: 'surface',
+              term: 'trailhead',
+            },
+          ],
+        },
+      ],
+      rule: noRetiredLexiconTermsRule,
+    });
+
+    expect(identifierReports[0]?.data).toEqual({
+      replacement: " Use 'surface'.",
+      role: 'identifier',
+      term: 'trailhead',
+      value: 'withHttpTrailhead',
+    });
+    expect(importReports.map((report) => report.messageId)).toEqual([
+      'noRetiredLexiconTerms',
+    ]);
+    expect(propertyReports.map((report) => report.messageId)).toEqual([
+      'noRetiredLexiconTerms',
+    ]);
+    expect(objectKeyReports[0]?.data).toEqual({
+      replacement: " Use 'surface'.",
+      role: 'object key',
+      term: 'trailhead',
+      value: '__trails_trailhead',
+    });
+  });
+
+  test('does not report retired terms outside source-owned roles', () => {
+    const externalImportReports = runRuleForEvent({
+      event: 'ImportDeclaration',
+      filename: 'packages/http/src/build.ts',
+      nodes: [createImportDeclarationNode('external-trailhead-sdk')],
+      options: [
+        {
+          retiredTerms: [
+            {
+              replacement: 'surface',
+              term: 'trailhead',
+            },
+          ],
+        },
+      ],
+      rule: noRetiredLexiconTermsRule,
+    });
+    const docsPathReports = runRuleForEvent({
+      event: 'Identifier',
+      filename: 'docs/migration/trailhead-to-surface.md',
+      nodes: [{ name: 'trailhead', type: 'Identifier' }],
+      options: [
+        {
+          retiredTerms: [
+            {
+              replacement: 'surface',
+              term: 'trailhead',
+            },
+          ],
+        },
+      ],
+      rule: noRetiredLexiconTermsRule,
+    });
+    const identifierObjectKeyReports = runRuleForEvent({
+      event: 'Property',
+      filename: 'packages/core/src/runtime.ts',
+      nodes: [
+        {
+          computed: false,
+          key: {
+            name: 'trailhead',
+            type: 'Identifier',
+          },
+          type: 'Property',
+        },
+      ],
+      options: [
+        {
+          retiredTerms: [
+            {
+              replacement: 'surface',
+              term: 'trailhead',
+            },
+          ],
+        },
+      ],
+      rule: noRetiredLexiconTermsRule,
+    });
+    const computedObjectKeyReports = runRuleForEvent({
+      event: 'Property',
+      filename: 'packages/core/src/runtime.ts',
+      nodes: [
+        {
+          computed: true,
+          key: {
+            name: 'trailheadConfig',
+            type: 'Identifier',
+          },
+          type: 'Property',
+        },
+      ],
+      options: [
+        {
+          retiredTerms: [
+            {
+              replacement: 'surface',
+              term: 'trailhead',
+            },
+          ],
+        },
+      ],
+      rule: noRetiredLexiconTermsRule,
+    });
+
+    expect(externalImportReports).toHaveLength(0);
+    expect(docsPathReports).toHaveLength(0);
+    expect(identifierObjectKeyReports).toHaveLength(0);
+    expect(computedObjectKeyReports).toHaveLength(0);
   });
 
   test('allows first-level package barrels and reports deeper barrels', () => {

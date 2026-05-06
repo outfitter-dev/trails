@@ -5,6 +5,7 @@ import { noDeepRelativeImportRule } from './no-deep-relative-import.js';
 import { noNestedBarrelRule } from './no-nested-barrel.js';
 import { noProcessEnvInPackagesRule } from './no-process-env-in-packages.js';
 import { noProcessExitInPackagesRule } from './no-process-exit-in-packages.js';
+import { noRetiredLexiconTermsRule } from './no-retired-lexicon-terms.js';
 import { preferBunApiRule } from './prefer-bun-api.js';
 import { snapshotLocationRule } from './snapshot-location.js';
 import { tempAuditDirectFrameworkWritesRule } from './temp-audit-direct-framework-writes.js';
@@ -23,6 +24,7 @@ export const rules = {
   'no-nested-barrel': noNestedBarrelRule,
   'no-process-env-in-packages': noProcessEnvInPackagesRule,
   'no-process-exit-in-packages': noProcessExitInPackagesRule,
+  'no-retired-lexicon-terms': noRetiredLexiconTermsRule,
   'prefer-bun-api': preferBunApiRule,
   'snapshot-location': snapshotLocationRule,
   'temp-audit-direct-framework-writes': tempAuditDirectFrameworkWritesRule,
