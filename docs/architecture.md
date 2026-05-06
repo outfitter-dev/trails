@@ -301,7 +301,9 @@ This guarantees consistent validation, layer ordering, and error handling regard
 
 ## Error Taxonomy
 
-17 error classes across 10 categories. Each maps to CLI exit codes, HTTP status codes, JSON-RPC codes, and retryability:
+17 error classes across 10 categories. `RetryExhaustedError` inherits the
+wrapped error's category; each class maps to CLI exit codes, HTTP status codes,
+JSON-RPC codes, and retryability:
 
 | Category | Exit | HTTP | Retryable | Classes |
 | --- | --- | --- | --- | --- |

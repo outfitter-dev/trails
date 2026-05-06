@@ -194,14 +194,16 @@ The implementation is identical across all paths. Only the edges change.
 
 ## Error Taxonomy
 
-15 error classes across 10 categories. All extend `TrailsError`. Pattern match with `instanceof` or `error.category`.
+15 fixed-category error classes across 10 categories, plus the dynamic
+`RetryExhaustedError` wrapper. All extend `TrailsError`. Pattern match with
+`instanceof` or `error.category`.
 
 | Category | Exit | HTTP | Retryable | Classes |
 |----------|------|------|-----------|---------|
 | `validation` | 1 | 400 | No | `ValidationError`, `AmbiguousError` |
 | `not_found` | 2 | 404 | No | `NotFoundError` |
 | `conflict` | 3 | 409 | No | `AlreadyExistsError`, `ConflictError` |
-| `permission` | 4 | 403 | No | `PermissionError` |
+| `permission` | 4 | 403 | No | `PermissionError`, `PermitError` |
 | `timeout` | 5 | 504 | Yes | `TimeoutError` |
 | `rate_limit` | 6 | 429 | Yes | `RateLimitError` |
 | `network` | 7 | 502 | Yes | `NetworkError` |

@@ -183,14 +183,14 @@ See [testing-patterns.md](references/testing-patterns.md) for the full testing A
 
 ## Error Taxonomy
 
-15 error classes across 10 categories, with deterministic mapping to exit codes, HTTP status, and JSON-RPC codes:
+15 fixed-category error classes across 10 categories, plus the dynamic `RetryExhaustedError` wrapper, with deterministic mapping to exit codes, HTTP status, and JSON-RPC codes:
 
 | Category | Classes | Exit | HTTP | Retry |
 |----------|---------|------|------|-------|
 | validation | ValidationError, AmbiguousError | 1 | 400 | No |
 | not_found | NotFoundError | 2 | 404 | No |
 | conflict | AlreadyExistsError, ConflictError | 3 | 409 | No |
-| permission | PermissionError | 4 | 403 | No |
+| permission | PermissionError, PermitError | 4 | 403 | No |
 | timeout | TimeoutError | 5 | 504 | Yes |
 | rate_limit | RateLimitError | 6 | 429 | Yes |
 | network | NetworkError | 7 | 502 | Yes |
@@ -240,7 +240,7 @@ Key rules: no throw in blaze functions, no surface imports, crosses declarations
 | CLI surface docs | Flag derivation, output modes, exit codes |
 | MCP surface docs | Tool naming, annotations, progress |
 | [testing-patterns.md](references/testing-patterns.md) | testAll, testTrail, harnesses |
-| [error-taxonomy.md](references/error-taxonomy.md) | All 15 error classes with signatures |
+| [error-taxonomy.md](references/error-taxonomy.md) | Error classes and signatures |
 | [common-pitfalls.md](references/common-pitfalls.md) | 12 anti-patterns with fixes |
 | [migration-checklist.md](references/migration-checklist.md) | Step-by-step conversion guide |
 | [trail.md](templates/trail.md) | Annotated trail skeleton |
