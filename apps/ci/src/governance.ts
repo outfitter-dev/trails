@@ -12,10 +12,10 @@ import type {
   WardenReport,
 } from '@ontrails/warden';
 
-import type { CiFormat } from './formatters.js';
+import type { CiFailOn, CiFormat } from './formatters.js';
 import { formatCiOutput } from './formatters.js';
 
-export type CiFailOn = 'error' | 'warning';
+export type { CiFailOn } from './formatters.js';
 
 export interface CiGovernanceResult {
   readonly driftResult: DriftResult;
@@ -212,25 +212,30 @@ export const evaluateCiGovernance = ({
   format,
   wardenReport,
 }: EvaluateCiGovernanceOptions): CiGovernanceResult => {
-  const output = formatCiOutput(format, {
-    driftResult,
-    wardenReport,
-  });
-  const summary = formatCiOutput('summary', {
-    driftResult,
-    wardenReport,
-  });
   const failedByErrors = wardenReport.errorCount > 0;
   const failedByWarnings = failOn === 'warning' && wardenReport.warnCount > 0;
   const hasDrift = driftResult.stale;
   const hasBlockedDrift = driftResult.blockedReason !== undefined;
+  const passed =
+    !failedByErrors && !failedByWarnings && !hasDrift && !hasBlockedDrift;
+  const output = formatCiOutput(format, {
+    driftResult,
+    failOn,
+    passed,
+    wardenReport,
+  });
+  const summary = formatCiOutput('summary', {
+    driftResult,
+    failOn,
+    passed,
+    wardenReport,
+  });
 
   return {
     driftResult,
     errorCount: wardenReport.errorCount,
     output,
-    passed:
-      !failedByErrors && !failedByWarnings && !hasDrift && !hasBlockedDrift,
+    passed,
     summary,
     wardenReport,
     warningCount: wardenReport.warnCount,

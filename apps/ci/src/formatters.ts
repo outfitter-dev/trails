@@ -11,11 +11,22 @@ import type { DriftResult, WardenReport } from '@ontrails/warden';
 
 /** Supported CI output formats */
 export type CiFormat = 'github' | 'json' | 'summary';
+export type CiFailOn = 'error' | 'warning';
 
 interface CiOutput {
   readonly wardenReport: WardenReport;
   readonly driftResult: DriftResult;
+  readonly failOn?: CiFailOn | undefined;
+  readonly passed?: boolean | undefined;
 }
+
+const resolvePassed = (output: CiOutput): boolean =>
+  output.passed ??
+  (!output.driftResult.stale &&
+    output.driftResult.blockedReason === undefined &&
+    output.wardenReport.passed &&
+    ((output.failOn ?? 'error') !== 'warning' ||
+      output.wardenReport.warnCount === 0));
 
 /** Format warden diagnostics as GitHub Actions annotations */
 const formatGitHub = (output: CiOutput): string => {
@@ -45,7 +56,7 @@ const formatJson = (output: CiOutput): string =>
         hasDrift: output.driftResult.stale,
         ...output.driftResult,
       },
-      passed: output.wardenReport.passed && !output.driftResult.stale,
+      passed: resolvePassed(output),
       warden: {
         diagnostics: output.wardenReport.diagnostics,
         errorCount: output.wardenReport.errorCount,
@@ -90,7 +101,7 @@ const summaryDriftSection = (drift: DriftResult): string[] => {
 
 /** Format as markdown summary */
 const formatSummary = (output: CiOutput): string => {
-  const passed = output.wardenReport.passed && !output.driftResult.stale;
+  const passed = resolvePassed(output);
   const result = passed ? '**Result: PASS**' : '**Result: FAIL**';
 
   return [

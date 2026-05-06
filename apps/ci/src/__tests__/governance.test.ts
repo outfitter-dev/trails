@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type { DriftResult, WardenReport } from '@ontrails/warden';
 
+import { formatCiOutput } from '../formatters.js';
 import { createDriftOnlyReport, evaluateCiGovernance } from '../governance.js';
 
 const staleDrift: DriftResult = {
@@ -156,6 +157,31 @@ The trails.lock file is out of date. Regenerate with \`trails topo compile\`.
     });
 
     expect(result.passed).toBe(false);
+    expect(JSON.parse(result.output) as { passed: boolean }).toMatchObject({
+      passed: false,
+    });
+    expect(result.summary).toContain('**Result: FAIL**');
+  });
+
+  test('formats warning-only summary output as failing when failOn is warning', () => {
+    const result = evaluateCiGovernance({
+      driftResult: cleanDrift,
+      failOn: 'warning',
+      format: 'summary',
+      wardenReport: warningOnlyReport,
+    });
+
+    expect(result.output).toContain('**Result: FAIL**');
+  });
+
+  test('formats warning-only fallback output as failing when failOn is warning', () => {
+    const output = formatCiOutput('summary', {
+      driftResult: cleanDrift,
+      failOn: 'warning',
+      wardenReport: warningOnlyReport,
+    });
+
+    expect(output).toContain('**Result: FAIL**');
   });
 
   test('fails when error diagnostics are present', () => {
