@@ -1,0 +1,276 @@
+import { describe, expect, test } from 'bun:test';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import {
+  checkChangesetGate,
+  discoverWorkspaces,
+} from '../check-changeset-gate.ts';
+import type { WorkspaceInfo } from '../check-changeset-gate.ts';
+
+const workspaces: readonly WorkspaceInfo[] = [
+  {
+    isPrivate: false,
+    name: '@ontrails/core',
+    relativePath: 'packages/core',
+  },
+  {
+    isPrivate: false,
+    name: '@ontrails/http',
+    relativePath: 'packages/http',
+  },
+  {
+    isPrivate: true,
+    name: '@ontrails/oxlint-plugin',
+    relativePath: 'packages/oxlint-plugin',
+  },
+  {
+    isPrivate: false,
+    name: 'trails-demo',
+    relativePath: 'apps/demo',
+  },
+];
+
+const withTempRepo = <T>(
+  setup: (repoRoot: string) => T
+): { readonly repoRoot: string; readonly value: T } => {
+  const repoRoot = mkdtempSync(join(tmpdir(), 'trails-changeset-gate-'));
+  mkdirSync(join(repoRoot, '.changeset'), { recursive: true });
+
+  try {
+    return {
+      repoRoot,
+      value: setup(repoRoot),
+    };
+  } catch (error) {
+    rmSync(repoRoot, { force: true, recursive: true });
+    throw error;
+  }
+};
+
+describe('checkChangesetGate', () => {
+  test('fails package-affecting publishable workspace changes without a covering changeset', () => {
+    const { repoRoot } = withTempRepo(() => {});
+
+    try {
+      const result = checkChangesetGate({
+        changedFiles: ['packages/core/src/index.ts'],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.affectedPackages).toEqual(['@ontrails/core']);
+      expect(result.errors).toEqual([
+        'Package-affecting changes need changeset entries for: @ontrails/core',
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('passes package-affecting changes with a real matching changeset entry', () => {
+    const { repoRoot } = withTempRepo((root) => {
+      writeFileSync(
+        join(root, '.changeset', 'core-change.md'),
+        "---\n'@ontrails/core': minor\n---\n\nAdd the thing.\n"
+      );
+    });
+
+    try {
+      const result = checkChangesetGate({
+        changedFiles: [
+          'packages/core/src/index.ts',
+          '.changeset/core-change.md',
+        ],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.changedChangesets).toEqual(['.changeset/core-change.md']);
+      expect(result.coveredPackages).toEqual(['@ontrails/core']);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('requires changeset coverage for each affected publishable package', () => {
+    const { repoRoot } = withTempRepo((root) => {
+      writeFileSync(
+        join(root, '.changeset', 'core-change.md'),
+        "---\n'@ontrails/core': patch\n---\n\nCore only.\n"
+      );
+    });
+
+    try {
+      const result = checkChangesetGate({
+        changedFiles: [
+          'packages/core/src/index.ts',
+          'packages/http/src/build.ts',
+          '.changeset/core-change.md',
+        ],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        'Package-affecting changes need changeset entries for: @ontrails/http',
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('ignores non-shipping package test artifacts and private workspaces', () => {
+    const { repoRoot } = withTempRepo(() => {});
+
+    try {
+      const result = checkChangesetGate({
+        changedFiles: [
+          'packages/core/src/__tests__/result.test.ts',
+          'packages/core/dist/index.js',
+          'packages/core/tsconfig.tsbuildinfo',
+          'packages/oxlint-plugin/src/rules/shared.ts',
+          'apps/demo/src/main.ts',
+        ],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.affectedPackages).toEqual([]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('honors release:none and rejects contradictory changesets', () => {
+    const { repoRoot } = withTempRepo((root) => {
+      writeFileSync(
+        join(root, '.changeset', 'core-change.md'),
+        "---\n'@ontrails/core': patch\n---\n\nCore.\n"
+      );
+    });
+
+    try {
+      const bypass = checkChangesetGate({
+        changedFiles: ['packages/core/src/index.ts'],
+        releaseNone: true,
+        repoRoot,
+        workspaces,
+      });
+      const contradiction = checkChangesetGate({
+        changedFiles: [
+          'packages/core/src/index.ts',
+          '.changeset/core-change.md',
+        ],
+        releaseNone: true,
+        repoRoot,
+        workspaces,
+      });
+
+      expect(bypass.passed).toBe(true);
+      expect(contradiction.passed).toBe(false);
+      expect(contradiction.errors).toEqual([
+        '`release:none` conflicts with changed changeset files. Remove the label or the changeset.',
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('release:none conflicts with changed changeset files even when they are unparsable or deleted', () => {
+    const { repoRoot } = withTempRepo((root) => {
+      writeFileSync(
+        join(root, '.changeset', 'empty-change.md'),
+        'This file is not a valid changeset frontmatter block.\n'
+      );
+    });
+
+    try {
+      const malformed = checkChangesetGate({
+        changedFiles: ['.changeset/empty-change.md'],
+        releaseNone: true,
+        repoRoot,
+        workspaces,
+      });
+      const deleted = checkChangesetGate({
+        changedFiles: ['.changeset/deleted-change.md'],
+        releaseNone: true,
+        repoRoot,
+        workspaces,
+      });
+
+      expect(malformed.passed).toBe(false);
+      expect(malformed.changedChangesets).toEqual([
+        '.changeset/empty-change.md',
+      ]);
+      expect(deleted.passed).toBe(false);
+      expect(deleted.changedChangesets).toEqual([
+        '.changeset/deleted-change.md',
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+});
+
+describe('discoverWorkspaces', () => {
+  test('discovers publish metadata from root workspace globs', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-workspaces-'));
+
+    try {
+      mkdirSync(join(repoRoot, 'packages', 'core'), { recursive: true });
+      mkdirSync(join(repoRoot, 'packages', 'private-tool'), {
+        recursive: true,
+      });
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ workspaces: ['packages/*'] })
+      );
+      writeFileSync(
+        join(repoRoot, 'packages', 'core', 'package.json'),
+        JSON.stringify({ name: '@ontrails/core' })
+      );
+      writeFileSync(
+        join(repoRoot, 'packages', 'private-tool', 'package.json'),
+        JSON.stringify({ name: '@ontrails/private-tool', private: true })
+      );
+
+      await expect(discoverWorkspaces(repoRoot)).resolves.toEqual([
+        {
+          isPrivate: false,
+          name: '@ontrails/core',
+          relativePath: 'packages/core',
+        },
+        {
+          isPrivate: true,
+          name: '@ontrails/private-tool',
+          relativePath: 'packages/private-tool',
+        },
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects unsupported workspace glob patterns instead of ignoring them', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-workspaces-'));
+
+    try {
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ workspaces: ['packages/**'] })
+      );
+
+      await expect(discoverWorkspaces(repoRoot)).rejects.toThrow(
+        "Unsupported workspace pattern 'packages/**'"
+      );
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+});

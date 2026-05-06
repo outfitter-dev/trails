@@ -187,6 +187,13 @@ bun run publish:check
 bun run publish:packages
 ```
 
+Every PR that changes publishable `@ontrails/*` package contents must include a
+branch-local `.changeset/*.md` entry for the affected package unless the PR is
+explicitly labeled `release:none`. The CI changeset gate reads the GitHub PR file
+list, so stacked PRs are checked against their immediate PR diff rather than the
+whole local stack. Use `release:none` only for package-touching changes that
+truly do not ship user-visible package content.
+
 To exit pre-release mode for a stable release: `bunx changeset pre exit`, then version as usual.
 
 `bun run publish:check` auto-discovers every non-private workspace, topo-sorts by `workspace:` dep edges, runs `bun pm pack --dry-run` per package (required because `npm pack` does not resolve `catalog:`), and asserts the packed `package.json` contains no unresolved `workspace:` or `catalog:` ranges. `bun run publish:packages` uses the same discovery and applies the explicit dist-tag from `.changeset/pre.json` (falling back to `latest` outside prerelease mode). Packages intentionally ship source `.ts` files while their `exports` map points at `src`; test files, `dist`, `.turbo`, and `*.tsbuildinfo` should stay out of the published tarballs.

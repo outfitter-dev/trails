@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [labeled, opened, reopened, synchronize, unlabeled]
     branches-ignore:
       - '**/graphite-base/**'
   push:
@@ -86,10 +86,42 @@ jobs:
       - name: Warden
         run: bun apps/ci/bin/ci.ts --format github --fail-on error
 
+  changeset:
+    name: Changeset
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+
+      - name: Collect PR file list
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          gh api --paginate "repos/$REPOSITORY/pulls/$PR_NUMBER/files" \
+            --jq '.[].filename' \
+            > "$RUNNER_TEMP/changed-files.txt"
+
+      - name: Check changeset
+        env:
+          RELEASE_NONE: ${{ contains(github.event.pull_request.labels.*.name, 'release:none') }}
+        run: |
+          args=(--changed-files "$RUNNER_TEMP/changed-files.txt")
+          if [ "$RELEASE_NONE" = "true" ]; then
+            args+=(--release-none)
+          fi
+          bun run changeset:check -- "${args[@]}"
+
   ci-gate:
     name: CI Gate
     if: always()
-    needs: [build, lint, typecheck, test, governance]
+    needs: [build, lint, typecheck, test, governance, changeset]
     runs-on: ubuntu-latest
     steps:
       - name: Summary
@@ -103,6 +135,7 @@ jobs:
           echo "| Typecheck | \`${{ needs.typecheck.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Test | \`${{ needs.test.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Governance | \`${{ needs.governance.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Changeset | \`${{ needs.changeset.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Require all jobs to pass
         if: contains(needs.*.result, 'failure') && !cancelled()
